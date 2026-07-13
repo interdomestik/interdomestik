@@ -83,3 +83,26 @@ test('adapter rejects a non-loopback Host before calling the API handler', async
   assert.equal(response.statusCode, 404);
   assert.equal(called, false);
 });
+
+test('API root and query stay inside the private API handler', async t => {
+  const seen = [];
+  const server = createConsoleServer({
+    portalHandler: async (_request, pathname) => {
+      seen.push(pathname);
+      return new Response(null, { status: 204 });
+    },
+  });
+  server.listen(0, '127.0.0.1');
+  await new Promise(resolve => server.once('listening', resolve));
+  t.after(() => server.close());
+
+  const port = server.address().port;
+  const response = await requestServer({
+    port,
+    pathname: '/api?probe=1',
+    host: `127.0.0.1:${port}`,
+  });
+
+  assert.equal(response.statusCode, 204);
+  assert.deepEqual(seen, ['/api']);
+});

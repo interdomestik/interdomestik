@@ -18,11 +18,15 @@ test('middleware leaves public assets alone and delegates only API requests', as
   });
   assert.equal(await scoped(new Request('https://reviewer.example.test/')), undefined);
   assert.equal(
-    (await scoped(new Request('https://reviewer.example.test/styles/base.css'))),
+    await scoped(new Request('https://reviewer.example.test/styles/base.css')),
     undefined
   );
-  assert.equal((await scoped(new Request('https://reviewer.example.test/api/session'))).status, 200);
-  assert.deepEqual(seen, ['/api/session']);
+  assert.equal((await scoped(new Request('https://reviewer.example.test/api'))).status, 200);
+  assert.equal(
+    (await scoped(new Request('https://reviewer.example.test/api/session'))).status,
+    200
+  );
+  assert.deepEqual(seen, ['/api', '/api/session']);
 });
 
 test('default middleware fails closed without named-account configuration', async () => {

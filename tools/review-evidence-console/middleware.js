@@ -4,7 +4,8 @@ export const config = Object.freeze({ runtime: 'nodejs', matcher: '/api/:path*' 
 
 export function createMiddleware({ handler }) {
   return async request => {
-    if (!new URL(request.url).pathname.startsWith('/api/')) return undefined;
+    const pathname = new URL(request.url).pathname;
+    if (pathname !== '/api' && !pathname.startsWith('/api/')) return undefined;
     return handler(request);
   };
 }

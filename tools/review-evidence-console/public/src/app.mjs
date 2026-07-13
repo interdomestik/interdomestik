@@ -29,6 +29,7 @@ const render = (content, role, saveStatus) =>
 const reviewRoutes = createReviewRouteLoaders({
   repository,
   isCurrent: token => routes.isCurrent(token),
+  onSessionExpired: () => auth.expire(),
   navigate: value => (window.location.hash = formatRoute(value)),
   render: (content, role, focusId) => {
     render(Array.isArray(content) ? documentFragment(content) : content, role);

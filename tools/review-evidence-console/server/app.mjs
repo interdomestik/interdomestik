@@ -54,11 +54,11 @@ export function createConsoleServer({
   portalHandler = createEnvironmentPortalHandler(),
 } = {}) {
   let publicIndexPromise;
-  const getPublicIndex = () =>
-    (publicIndexPromise ??= buildPublicIndex(publicRoot));
+  const getPublicIndex = () => (publicIndexPromise ??= buildPublicIndex(publicRoot));
 
   return createServer(async (request, response) => {
-    if ((request.url ?? '').startsWith('/api/')) {
+    const requestPath = (request.url ?? '').split('?')[0];
+    if (requestPath === '/api' || requestPath.startsWith('/api/')) {
       return handleNodePortalRequest(request, response, portalHandler);
     }
     if (!['GET', 'HEAD'].includes(request.method)) return sendError(response, request.method, 405);
