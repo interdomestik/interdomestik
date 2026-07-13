@@ -22,7 +22,7 @@ function currentLocalDate() {
 export function createReviewSession(
   bundle,
   draft,
-  { onChange, applySuggestions = true, getLocalDate = currentLocalDate } = {}
+  { onChange, applySuggestions = true, getLocalDate = currentLocalDate, verifyReceipt } = {}
 ) {
   const ownedBundle = ownSessionBundle(bundle);
   const initialized = initializeSuggestedDecisions(ownedBundle, draft, {
@@ -95,7 +95,9 @@ export function createReviewSession(
   }
 
   async function createCorrection(previousReceipt, metadata = {}) {
-    return commit(await prepareCorrection(ownedBundle, state, previousReceipt, metadata, itemFor));
+    return commit(
+      await prepareCorrection(ownedBundle, state, previousReceipt, metadata, itemFor, verifyReceipt)
+    );
   }
 
   return {

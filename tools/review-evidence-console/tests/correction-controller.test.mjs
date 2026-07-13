@@ -31,6 +31,21 @@ test('writes a correction draft linked to an immutable verified receipt', async 
   assert.deepEqual(receipt, snapshot);
 });
 
+test('uses the injected API verifier for a server-attested receipt', async () => {
+  const receipt = { ...(await priorReceipt()), attestation: { signature: 'server-owned' } };
+  let verified;
+  const result = await startCorrection({
+    bundle,
+    receipt,
+    storage: makeStorage(),
+    verifyReceipt: async value => ((verified = value), { ok: true, value }),
+    metadata: { itemId: 'item_a', reason: 'Clarify boundary.', impact: 'Improves auditability.' },
+  });
+  assert.equal(result.ok, true);
+  assert.deepEqual(verified, receipt);
+  assert.equal(result.value.correction.previousReceipt.attestation.signature, 'server-owned');
+});
+
 test('rejects unsafe correction metadata without creating a draft', async () => {
   const result = await startCorrection({
     bundle,

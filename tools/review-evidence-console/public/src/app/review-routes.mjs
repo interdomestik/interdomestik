@@ -13,13 +13,14 @@ export function createReviewRouteLoaders({
   isCurrent,
   directoryWriter = createReceiptDirectoryWriter(),
 }) {
+  const receiptVerifier = repository.verifyReceipt ?? verifyReceipt;
   const receiptStore = createReceiptStore({
-    verifyReceipt: repository.verifyReceipt ?? verifyReceipt,
+    verifyReceipt: receiptVerifier,
     schemaVersion: 1,
   });
   const pendingFocus = { value: null };
   const imported = new Set();
-  const shared = { repository, receiptStore, render, navigate, isCurrent };
+  const shared = { repository, receiptStore, receiptVerifier, render, navigate, isCurrent };
   const validation = createValidationHandler({ ...shared, pendingFocus, directoryWriter });
   const receipt = createReceiptRoute({ ...shared, imported, directoryWriter });
   const importReceipt = createImportHandler({
