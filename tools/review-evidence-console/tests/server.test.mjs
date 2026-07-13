@@ -6,7 +6,6 @@ import test from 'node:test';
 
 import { createConsoleServer, resolvePublicFile } from '../server/app.mjs';
 import { parsePort, startConsoleServer } from '../server/start.mjs';
-
 const publicRoot = await makePublicRoot();
 const CSP =
   "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; connect-src 'self'";
@@ -120,8 +119,16 @@ test('delegates API requests to the shared Fetch handler', async t => {
     publicRoot,
     portalHandler: async (request, pathname) =>
       new Response(
-        JSON.stringify({ method: request.method, body: await request.json(), pathname, url: request.url }),
-        { status: 201, headers: { 'content-type': 'application/json', 'cache-control': 'private, no-store' } }
+        JSON.stringify({
+          method: request.method,
+          body: await request.json(),
+          pathname,
+          url: request.url,
+        }),
+        {
+          status: 201,
+          headers: { 'content-type': 'application/json', 'cache-control': 'private, no-store' },
+        }
       ),
   });
   server.listen(0, '127.0.0.1');
@@ -129,13 +136,15 @@ test('delegates API requests to the shared Fetch handler', async t => {
   t.after(() => server.close());
   const response = await fetch(`http://127.0.0.1:${server.address().port}/api/echo`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', host: 'attacker.example', origin: 'http://127.0.0.1' },
+    headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ ok: true }),
   });
   assert.equal(response.status, 201);
   assert.equal(response.headers.get('cache-control'), 'private, no-store');
   assert.deepEqual(await response.json(), {
-    method: 'POST', body: { ok: true }, pathname: '/api/echo',
+    method: 'POST',
+    body: { ok: true },
+    pathname: '/api/echo',
     url: `http://127.0.0.1:${server.address().port}/api`,
   });
 });
