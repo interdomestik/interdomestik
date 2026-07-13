@@ -76,7 +76,7 @@ test('maps verifier failures across async store methods without mutation', async
 
 test('preserves invalid contextual draft bytes for recovery', () => {
   const storage = makeStorage();
-  const key = 'review-console:v1:draft:assign_a:reviewer_a:1';
+  const key = 'review-console:v2:draft:assign_a:reviewer_a:draft_account_a:1';
   const raw = '{"schemaVersion":1,"suggestionVersion":2}';
   storage.setItem(key, raw);
   const store = createDraftStore({ storage, schemaVersion: 1, contextSchema: { items: {} } });

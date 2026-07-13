@@ -4,7 +4,10 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const dataRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public/data');
+const dataRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../server/fixtures/data'
+);
 
 async function dataFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });

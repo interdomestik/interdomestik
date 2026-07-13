@@ -1,5 +1,5 @@
 import { createRequire } from 'node:module';
-import { startConsoleServer } from '../server/start.mjs';
+import { startBrowserPortalServer } from './browser-auth-fixture.mjs';
 import {
   installDirectoryScenario,
   submissionArtifacts,
@@ -11,8 +11,7 @@ const { expect, test } = requireFromWeb('@playwright/test');
 let origin, server;
 
 test.beforeAll(async () => {
-  server = await startConsoleServer({ port: 0 });
-  origin = `http://127.0.0.1:${server.address().port}`;
+  ({ origin, server } = await startBrowserPortalServer());
 });
 
 test.afterAll(async () => {

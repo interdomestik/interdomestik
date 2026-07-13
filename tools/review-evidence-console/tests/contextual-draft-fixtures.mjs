@@ -7,6 +7,7 @@ export const contextualDraftSchema = createDraftContextSchema(bundle.packet);
 export const contextualDraftKey = composeDraftKey({
   assignmentId: bundle.assignment.id,
   reviewerFixtureId: bundle.reviewer.id,
+  draftScope: bundle.reviewer.draftScope,
   packetVersion: bundle.packet.version,
 });
 
@@ -17,6 +18,7 @@ export function contextualDraft(overrides = {}) {
     assignmentId: bundle.assignment.id,
     packetId: bundle.packet.id,
     reviewerFixtureId: bundle.reviewer.id,
+    draftScope: bundle.reviewer.draftScope,
     packetVersion: bundle.packet.version,
     itemDecisions: { item_a: {}, item_b: {} },
     activeItem: 'item_a',

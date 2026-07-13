@@ -9,7 +9,7 @@ import { parsePort, startConsoleServer } from '../server/start.mjs';
 
 const publicRoot = await makePublicRoot();
 const CSP =
-  "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; connect-src 'none'";
+  "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; connect-src 'self'";
 
 async function makePublicRoot() {
   const root = await mkdtemp(join(tmpdir(), 'review-console-'));
@@ -113,4 +113,26 @@ test('serves every external shell reference from the real public root', async t 
     '/src/app.mjs',
   ];
   for (const pathname of references) assert.equal((await fetch(origin + pathname)).status, 200);
+});
+
+test('delegates API requests to the shared Fetch handler', async t => {
+  const server = createConsoleServer({
+    publicRoot,
+    portalHandler: async request =>
+      new Response(
+        JSON.stringify({ method: request.method, body: await request.json() }),
+        { status: 201, headers: { 'content-type': 'application/json', 'cache-control': 'private, no-store' } }
+      ),
+  });
+  server.listen(0, '127.0.0.1');
+  await new Promise(resolve => server.once('listening', resolve));
+  t.after(() => server.close());
+  const response = await fetch(`http://127.0.0.1:${server.address().port}/api/echo`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', origin: 'http://127.0.0.1' },
+    body: JSON.stringify({ ok: true }),
+  });
+  assert.equal(response.status, 201);
+  assert.equal(response.headers.get('cache-control'), 'private, no-store');
+  assert.deepEqual(await response.json(), { method: 'POST', body: { ok: true } });
 });

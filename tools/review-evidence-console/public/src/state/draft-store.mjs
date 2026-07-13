@@ -2,11 +2,12 @@ import { failure, isIsoDate, isRecord, storageFailure } from './storage-results.
 import { validateDraftContext } from './draft-context-schema.mjs';
 
 const SEGMENT = /^[a-zA-Z0-9._-]+$/;
-const PREFIX = 'review-console:v1:draft:';
+const PREFIX = 'review-console:v2:draft:';
 const requiredStrings = [
   'assignmentId',
   'packetId',
   'reviewerFixtureId',
+  'draftScope',
   'packetVersion',
   'activeItem',
   'editorId',
@@ -15,8 +16,11 @@ const requiredStrings = [
 function parseKey(key) {
   if (typeof key !== 'string' || !key.startsWith(PREFIX)) return null;
   const segments = key.slice(PREFIX.length).split(':');
-  if (segments.length !== 3 || segments.some(value => !SEGMENT.test(value))) return null;
-  return { assignmentId: segments[0], reviewerFixtureId: segments[1], packetVersion: segments[2] };
+  if (segments.length !== 4 || segments.some(value => !SEGMENT.test(value))) return null;
+  return {
+    assignmentId: segments[0], reviewerFixtureId: segments[1],
+    draftScope: segments[2], packetVersion: segments[3],
+  };
 }
 
 function validateDraft(key, draft, schemaVersion, contextSchema) {
@@ -41,7 +45,7 @@ function validateDraft(key, draft, schemaVersion, contextSchema) {
 }
 
 export function composeDraftKey(parts) {
-  const values = [parts?.assignmentId, parts?.reviewerFixtureId, parts?.packetVersion];
+  const values = [parts?.assignmentId, parts?.reviewerFixtureId, parts?.draftScope, parts?.packetVersion];
   if (values.some(value => typeof value !== 'string' || !SEGMENT.test(value))) {
     throw new TypeError(
       'Segmentet e çelësit të draftit duhet të jenë identifikues të sigurt për repo.'

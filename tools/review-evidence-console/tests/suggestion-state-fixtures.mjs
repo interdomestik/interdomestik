@@ -70,6 +70,7 @@ export function storedDraft(overrides = {}) {
     assignmentId: bundle.assignment.id,
     packetId: bundle.packet.id,
     reviewerFixtureId: bundle.reviewer.id,
+    draftScope: bundle.reviewer.draftScope,
     packetVersion: bundle.packet.version,
     itemDecisions,
     activeItem: bundle.packet.itemIds[0],

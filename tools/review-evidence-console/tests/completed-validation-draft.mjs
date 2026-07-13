@@ -7,6 +7,7 @@ export function completedValidationDraft() {
   const key = composeDraftKey({
     assignmentId: 'assign_a',
     reviewerFixtureId: 'reviewer_a',
+    draftScope: 'draft_account_a',
     packetVersion: '1',
   });
   createDraftStore({ storage, schemaVersion: 1 }).save(key, {
@@ -14,6 +15,7 @@ export function completedValidationDraft() {
     assignmentId: 'assign_a',
     packetId: 'packet_a',
     reviewerFixtureId: 'reviewer_a',
+    draftScope: 'draft_account_a',
     packetVersion: '1',
     activeItem: 'item_a',
     editorId: 'editor_a',

@@ -3,6 +3,17 @@ import { readdir, readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { handleNodePortalRequest } from './http/node-adapter.mjs';
+import { createEnvironmentPortalHandler } from './runtime.mjs';
+
+export { createFixtureService } from './fixture-service.mjs';
+export { parseAccountRegistry } from './auth/account-registry.mjs';
+export { derivePasswordKey, verifyPassword } from './auth/password.mjs';
+export { createSessionToken, verifySessionToken } from './auth/session-token.mjs';
+export { clearSessionCookie, readSessionCookie, sessionCookie } from './auth/cookies.mjs';
+export { hasValidMutationOrigin, requestOrigin } from './auth/origin.mjs';
+export { createPortalHandler } from './portal-handler.mjs';
+
 export const MIME_TYPES = Object.freeze({
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -20,7 +31,7 @@ export const SECURITY_HEADERS = Object.freeze({
   'referrer-policy': 'no-referrer',
   'cross-origin-resource-policy': 'same-origin',
   'content-security-policy':
-    "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; connect-src 'none'",
+    "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; connect-src 'self'",
 });
 
 const defaultPublicRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
@@ -38,12 +49,18 @@ export function resolvePublicFile(pathname, publicRoot = defaultPublicRoot) {
   return { filePath };
 }
 
-export function createConsoleServer({ publicRoot = defaultPublicRoot } = {}) {
+export function createConsoleServer({
+  publicRoot = defaultPublicRoot,
+  portalHandler = createEnvironmentPortalHandler(),
+} = {}) {
   let publicIndexPromise;
   const getPublicIndex = () =>
     (publicIndexPromise ??= buildPublicIndex(publicRoot));
 
   return createServer(async (request, response) => {
+    if ((request.url ?? '').startsWith('/api/')) {
+      return handleNodePortalRequest(request, response, portalHandler);
+    }
     if (!['GET', 'HEAD'].includes(request.method)) return sendError(response, request.method, 405);
     const pathname = (request.url ?? '/').split('?')[0];
     let decodedPath;
@@ -53,6 +70,7 @@ export function createConsoleServer({ publicRoot = defaultPublicRoot } = {}) {
       return sendError(response, request.method, 400);
     }
     const publicPath = decodedPath === '/' ? '/index.html' : decodedPath;
+    if (publicPath.startsWith('/data/')) return sendError(response, request.method, 404);
     const mime = MIME_TYPES[path.extname(publicPath).toLowerCase()];
     if (!mime) return sendError(response, request.method, 415);
     try {

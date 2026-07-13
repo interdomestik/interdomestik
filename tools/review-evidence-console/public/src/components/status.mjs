@@ -4,7 +4,8 @@ let liveRegion;
 
 export function createHeader(
   reviewerRole = 'Rishikues privatësie',
-  saveStatus = 'Ruajtja lokale aktive'
+  saveStatus = 'Ruajtja lokale aktive',
+  accountMenu
 ) {
   liveRegion = element('span', {
     attributes: {
@@ -21,10 +22,12 @@ export function createHeader(
       text('Review & Evidence Console'),
     ]),
   ]);
-  const menu = element('details', { attributes: { class: 'local-menu' } }, [
-    element('summary', {}, [text('Të dhëna lokale')]),
-    element('p', {}, [text('Vetëm mostër e sigurt për repo në këtë pajisje. Pa hyrje ose prodhim.')]),
-  ]);
+  const menu =
+    accountMenu ??
+    element('details', { attributes: { class: 'local-menu' } }, [
+      element('summary', {}, [text('Të dhëna lokale')]),
+      element('p', {}, [text('Vetëm mostër e sigurt për repo në këtë pajisje. Pa prodhim.')]),
+    ]);
   return element('header', { attributes: { class: 'topbar' } }, [
     element('div', { attributes: { class: 'topbar__inner' } }, [
       identity,

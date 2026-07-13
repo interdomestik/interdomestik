@@ -11,6 +11,7 @@ const LINEAGE_FIELDS = [
   'packetId',
   'packetVersion',
   'assignmentId',
+  'reviewerAccountId',
   'reviewerFixtureId',
   'reviewerRole',
   'packetRole',
@@ -41,7 +42,11 @@ export async function buildReceipt(input, { now = () => new Date().toISOString()
     const previousVerification = previousValidation.ok
       ? await verifyReceipt(previous)
       : previousValidation;
-    const lineageMatches = LINEAGE_FIELDS.every(field => previous[field] === input[field]);
+    const lineageMatches = LINEAGE_FIELDS.every(
+      field => field === 'reviewerAccountId' && previous[field] === undefined
+        ? true
+        : previous[field] === input[field]
+    );
     if (!previousVerification.ok || !lineageMatches) {
       throw new TypeError('Previous receipt identity, version, schema, or content is invalid.');
     }
@@ -55,6 +60,7 @@ export async function buildReceipt(input, { now = () => new Date().toISOString()
     packetId: input.packetId,
     packetVersion: input.packetVersion,
     assignmentId: input.assignmentId,
+    ...(input.reviewerAccountId ? { reviewerAccountId: input.reviewerAccountId } : {}),
     reviewerFixtureId: input.reviewerFixtureId,
     reviewerDisplayName: input.reviewerDisplayName,
     reviewerRole: input.reviewerRole,

@@ -10,6 +10,7 @@ const schema = createDraftContextSchema(bundle.packet);
 const key = composeDraftKey({
   assignmentId: bundle.assignment.id,
   reviewerFixtureId: bundle.reviewer.id,
+  draftScope: bundle.reviewer.draftScope,
   packetVersion: bundle.packet.version,
 });
 const state = status =>

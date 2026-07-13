@@ -18,6 +18,7 @@ export async function startCorrection({
     const key = composeDraftKey({
       assignmentId: receipt.assignmentId,
       reviewerFixtureId: receipt.reviewerFixtureId,
+      draftScope: bundle.reviewer.draftScope ?? `draft_fixture_${receipt.reviewerFixtureId}`,
       packetVersion: receipt.packetVersion,
     });
     const store = createDraftStore({

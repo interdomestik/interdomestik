@@ -118,7 +118,7 @@ test('keeps receipt visible and reports delete and export storage failures', asy
   const context = setup();
   const receipt = await buildReceipt({ ...receiptInput, submittedAt });
   await context.loaders.receiptStore.save(receipt);
-  context.base.setItem('review-console:v1:draft:assign_a:reviewer_a:1', 'draft');
+  context.base.setItem('review-console:v2:draft:assign_a:reviewer_a:draft_account_a:1', 'draft');
   await context.loaders.receipt({ name: 'receipt', receiptId: receipt.receiptId }, 1);
   context.fail();
   let confirmation;
@@ -137,5 +137,5 @@ test('keeps receipt visible and reports delete and export storage failures', asy
     .listeners.click();
   await new Promise(resolve => setImmediate(resolve));
   assert.match(copy(nodes(context.renders.at(-1).content)[0]), /Ruajtja lokale nuk është/);
-  assert.equal(context.base.getItem('review-console:v1:draft:assign_a:reviewer_a:1'), 'draft');
+  assert.equal(context.base.getItem('review-console:v2:draft:assign_a:reviewer_a:draft_account_a:1'), 'draft');
 });

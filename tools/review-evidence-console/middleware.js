@@ -1,52 +1,16 @@
-function unauthorized() {
-  return new Response('Authentication required', {
-    status: 401,
-    headers: {
-      'cache-control': 'no-store',
-      'content-type': 'text/plain; charset=utf-8',
-      'www-authenticate': 'Basic realm="Interdomestik Reviewer Portal"',
-    },
-  });
+import { createEnvironmentPortalHandler } from './server/runtime.mjs';
+
+export const config = Object.freeze({ runtime: 'nodejs', matcher: '/api/:path*' });
+
+export function createMiddleware({ handler }) {
+  return async request => {
+    if (!new URL(request.url).pathname.startsWith('/api/')) return undefined;
+    return handler(request);
+  };
 }
 
-async function sha256Hex(value) {
-  const data = new TextEncoder().encode(value);
-  const digest = await crypto.subtle.digest('SHA-256', data);
-  return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('');
-}
+const middleware = createMiddleware({
+  handler: createEnvironmentPortalHandler(undefined, event => console.info(JSON.stringify(event))),
+});
 
-function decodeBasicAuth(header) {
-  if (!header?.startsWith('Basic ')) return null;
-  try {
-    const decoded = atob(header.slice(6));
-    const separator = decoded.indexOf(':');
-    if (separator < 0) return null;
-    return {
-      user: decoded.slice(0, separator),
-      password: decoded.slice(separator + 1),
-    };
-  } catch {
-    return null;
-  }
-}
-
-function equalText(left, right) {
-  if (left.length !== right.length) return false;
-  let difference = 0;
-  for (let index = 0; index < left.length; index += 1) {
-    difference |= left.charCodeAt(index) ^ right.charCodeAt(index);
-  }
-  return difference === 0;
-}
-
-export default async function middleware(request) {
-  if (process.env.REVIEW_PORTAL_AUTH_MODE !== 'basic') return unauthorized();
-  const expectedUser = process.env.REVIEW_PORTAL_BASIC_USER || '';
-  const expectedHash = process.env.REVIEW_PORTAL_BASIC_PASSWORD_HASH || '';
-  const auth = decodeBasicAuth(request.headers.get('authorization') || '');
-  if (!expectedUser || !expectedHash || !auth) return unauthorized();
-  const suppliedHash = await sha256Hex(auth.password);
-  if (!equalText(auth.user, expectedUser) || !equalText(suppliedHash, expectedHash)) {
-    return unauthorized();
-  }
-}
+export default middleware;

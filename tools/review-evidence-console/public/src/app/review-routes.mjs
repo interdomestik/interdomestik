@@ -13,7 +13,10 @@ export function createReviewRouteLoaders({
   isCurrent,
   directoryWriter = createReceiptDirectoryWriter(),
 }) {
-  const receiptStore = createReceiptStore({ verifyReceipt, schemaVersion: 1 });
+  const receiptStore = createReceiptStore({
+    verifyReceipt: repository.verifyReceipt ?? verifyReceipt,
+    schemaVersion: 1,
+  });
   const pendingFocus = { value: null };
   const imported = new Set();
   const shared = { repository, receiptStore, render, navigate, isCurrent };

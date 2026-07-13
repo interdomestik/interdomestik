@@ -3,7 +3,7 @@ import test from 'node:test';
 import { createWorkspaceRuntime } from '../public/src/app/workspace-runtime.mjs';
 import { installRuntimeGlobals, storedDraft, suggestionBundle } from './suggestion-state-fixtures.mjs';
 
-const key = 'review-console:v1:draft:assign_a:reviewer_a:1';
+const key = 'review-console:v2:draft:assign_a:reviewer_a:draft_account_a:1';
 const cases = [
   ['unsupported suggestion version', JSON.stringify(storedDraft({ suggestionVersion: 2 })), 'invalid_data'],
   ['corrupt JSON', '{bad', 'invalid_data'],

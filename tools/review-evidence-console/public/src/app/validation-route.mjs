@@ -21,6 +21,7 @@ export async function loadValidationRoute({
   const key = composeDraftKey({
     assignmentId: bundle.assignment.id,
     reviewerFixtureId: bundle.reviewer.id,
+    draftScope: bundle.reviewer.draftScope ?? `draft_fixture_${bundle.reviewer.id}`,
     packetVersion: bundle.packet.version,
   });
   const stored = createDraftStore({
@@ -34,6 +35,7 @@ export async function loadValidationRoute({
     bundle,
     receiptStore,
     directoryWriter,
+    ...(repository.buildReceipt ? { buildReceipt: repository.buildReceipt } : {}),
     onInbox: () => current() && navigate({ name: 'inbox' }),
     onReceipt: receiptId => current() && navigate({ name: 'receipt', receiptId }),
     onStatus: () => current() && draw(false),

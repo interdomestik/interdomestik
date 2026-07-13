@@ -72,6 +72,7 @@ export function initialState(bundle, draft) {
     packetId: packet.id,
     packetVersion: packet.version,
     reviewerFixtureId: reviewer.id,
+    draftScope: reviewer.draftScope ?? `draft_fixture_${reviewer.id}`,
   };
   if (
     draft &&

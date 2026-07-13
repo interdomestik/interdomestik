@@ -1,7 +1,7 @@
 export async function waitForPersistedDraft(page, itemIds) {
   await page.waitForFunction(ids => {
     const key = Object.keys(localStorage).find(value =>
-      value.startsWith('review-console:v1:draft:')
+      value.startsWith('review-console:v2:draft:')
     );
     const draft = key && JSON.parse(localStorage.getItem(key));
     return (
