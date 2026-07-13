@@ -62,13 +62,36 @@ test('auth runtime exposes pending state before login resolves', async () => {
   assert.deepEqual(states.at(-1), { status: 'authenticated', account });
 });
 
+test('auth runtime preserves service and origin failures during login', async () => {
+  for (const code of ['unavailable', 'forbidden']) {
+    const states = [];
+    const runtime = createAuthRuntime({
+      client: {
+        login: async () => Promise.reject(Object.assign(new Error(), { code })),
+        logout: async () => undefined,
+      },
+      onState: state => states.push(state),
+    });
+    await runtime.login({ username: 'gazmend', password: 'secret' });
+    assert.deepEqual(states.at(-1), { status: 'anonymous', reason: code, username: 'gazmend' });
+  }
+});
+
 test('auth runtime clears rendered access at the server session expiry', async () => {
   const states = [];
   let expire;
   const runtime = createAuthRuntime({
-    client: { session: async () => ({ ...account, sessionExpiresAt: 101 }), logout: async () => {} },
-    onState: state => states.push(state), now: () => 100_000,
-    setTimer: callback => { expire = callback; return 1; }, clearTimer() {},
+    client: {
+      session: async () => ({ ...account, sessionExpiresAt: 101 }),
+      logout: async () => {},
+    },
+    onState: state => states.push(state),
+    now: () => 100_000,
+    setTimer: callback => {
+      expire = callback;
+      return 1;
+    },
+    clearTimer() {},
   });
   await runtime.start();
   expire();

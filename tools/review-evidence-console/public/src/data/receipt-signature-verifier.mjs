@@ -51,14 +51,28 @@ async function normalizeTrustedKeys(bundle) {
 
 export function createSignedReceiptVerifier(loadKeys) {
   let pendingKeys;
+  let currentKeys;
   async function trustedKeys() {
-    if (!pendingKeys) pendingKeys = Promise.resolve().then(loadKeys).then(normalizeTrustedKeys);
+    if (currentKeys) return currentKeys;
+    if (!pendingKeys) {
+      pendingKeys = Promise.resolve()
+        .then(loadKeys)
+        .then(normalizeTrustedKeys)
+        .then(keys => (currentKeys = keys));
+    }
     try {
       return await pendingKeys;
     } catch (error) {
       pendingKeys = undefined;
       throw error;
     }
+  }
+  async function refreshedKeys(staleKeys) {
+    if (currentKeys === staleKeys) {
+      currentKeys = undefined;
+      pendingKeys = undefined;
+    }
+    return trustedKeys();
   }
   return async function verifySignedReceipt(receipt) {
     try {
@@ -72,7 +86,12 @@ export function createSignedReceiptVerifier(loadKeys) {
         return invalid('invalid_signature');
       if (attestation.version !== 1 || attestation.algorithm !== 'Ed25519')
         return invalid('invalid_signature');
-      const trusted = (await trustedKeys()).get(attestation.keyId);
+      let keys = await trustedKeys();
+      let trusted = keys.get(attestation.keyId);
+      if (!trusted || trusted.fingerprint !== attestation.keyFingerprint) {
+        keys = await refreshedKeys(keys);
+        trusted = keys.get(attestation.keyId);
+      }
       if (!trusted || trusted.fingerprint !== attestation.keyFingerprint)
         return invalid('invalid_signature');
       const signature = decodeBase64url(attestation.signature, 64, 64);

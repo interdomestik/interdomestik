@@ -2,10 +2,25 @@ import { isIP } from 'node:net';
 
 const UNKNOWN_SOURCE = 'unknown';
 const OVERFLOW_SOURCE = 'overflow';
+const SOURCE_HEADERS = [
+  'x-vercel-forwarded-for',
+  'x-forwarded-for',
+  'cf-connecting-ip',
+  'x-real-ip',
+];
+
+function firstIp(value) {
+  if (typeof value !== 'string' || value.length > 256) return null;
+  const candidate = value.split(',', 1)[0]?.trim() ?? '';
+  return isIP(candidate) ? candidate : null;
+}
 
 function sourceKey(request) {
-  const supplied = request.headers.get('x-vercel-forwarded-for')?.trim() ?? '';
-  return isIP(supplied) ? supplied : UNKNOWN_SOURCE;
+  for (const header of SOURCE_HEADERS) {
+    const supplied = firstIp(request.headers.get(header));
+    if (supplied) return supplied;
+  }
+  return UNKNOWN_SOURCE;
 }
 
 export function createLoginLimiter({

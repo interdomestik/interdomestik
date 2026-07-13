@@ -3,6 +3,8 @@ import { authenticateRequest } from '../auth/session-context.mjs';
 import { readJsonBody } from '../http/read-body.mjs';
 import { jsonResponse, notFoundResponse, unauthorizedResponse } from '../http/responses.mjs';
 
+const ASSIGNMENT_ID = /^[a-z0-9_-]{3,100}$/u;
+
 export async function routeReceipts(request, pathname, context) {
   if (pathname === '/api/receipts/keys') {
     if (request.method !== 'GET') {
@@ -23,7 +25,8 @@ export async function routeReceipts(request, pathname, context) {
   if (!body.ok) return jsonResponse(body.status, { code: body.code });
   if (
     !['/api/receipts', '/api/receipts/correct'].includes(pathname) ||
-    typeof body.value.assignmentId !== 'string'
+    typeof body.value.assignmentId !== 'string' ||
+    !ASSIGNMENT_ID.test(body.value.assignmentId)
   ) {
     return notFoundResponse();
   }

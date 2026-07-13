@@ -1,4 +1,12 @@
-export function createAuthRuntime({ client, onState, now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout }) {
+const EXPLICIT_LOGIN_FAILURES = new Set(['forbidden', 'rate_limited', 'unavailable']);
+
+export function createAuthRuntime({
+  client,
+  onState,
+  now = () => Date.now(),
+  setTimer = setTimeout,
+  clearTimer = clearTimeout,
+}) {
   let current = { status: 'checking' };
   let expiryTimer;
   const scheduleExpiry = account => {
@@ -28,7 +36,7 @@ export function createAuthRuntime({ client, onState, now = () => Date.now(), set
     } catch (error) {
       emit({
         status: 'anonymous',
-        reason: error?.code === 'rate_limited' ? 'rate_limited' : 'authentication_failed',
+        reason: EXPLICIT_LOGIN_FAILURES.has(error?.code) ? error.code : 'authentication_failed',
         username: credentials.username,
       });
     }
