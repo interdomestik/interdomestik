@@ -451,6 +451,24 @@ uploads, `apps/web`, runtime integration, schema/RLS, paid Vercel upgrades, and
 broad UI redesign remain excluded.
 The next active governed implementation goal is exactly one canonical tracker slice: `REC-02b`, legacy receipt continuity and local review history.
 
+Rev 110 branch-local parallel current-authority/design-gate: Arben approved
+`IDA-DG05` in
+`docs/plans/2026-07-13-ida-dg05-public-entry-portal-design-gate.md` on
+2026-07-13 after confirming that the REC evidence stream and UI stream may run
+concurrently in isolated branches and worktrees. On
+`codex/interdomestik-ui-ux-foundation`, the promoted implementation is limited to
+the active above-fold public `HeroSection`, a semantic three-link problem-led
+action composition, existing signed-in member CTA precedence, and complete
+SQ/EN/SR/MK copy. The runtime slice may not touch `apps/web/src/proxy.ts`, routes,
+auth/session, tenancy, schema/RLS/database, Paddle/billing, production aliases,
+analytics providers/events, shared tokens, the page shell, or the REC evidence
+worktree. Human linguistic disposition remains required before merge. This
+branch-local overlay authorizes concurrent implementation only; it does not
+authorize concurrent merge or production exposure, and merge order must reconcile
+the REC authority history without overwriting it.
+
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI01a`, single neutral public-entry hero presentation.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the

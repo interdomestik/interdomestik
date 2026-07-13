@@ -1,39 +1,44 @@
 ---
 plan_role: input
-status: draft
+status: active
 source_of_truth: false
-slice: IDA-DG04
-proposed_implementation_slice: IDA-UI01a
+slice: IDA-DG05
+implementation_slice: IDA-UI01a
 owner: platform + product + design + qa
 date: 2026-07-13
 last_reviewed: 2026-07-13
 ---
 
-# IDA-DG04 — Single Public Entry UI Foundation Design Gate
+# IDA-DG05 — Single Public Entry UI Foundation Design Gate
 
-> Status: Review-ready design input only; not approved, promoted, or runtime authority.
+> Status: Approved by Arben and promoted as branch-local current-authority input
+> for exactly `IDA-UI01a` on `codex/interdomestik-ui-ux-foundation`.
 
 ## Gate outcome sought
 
-Approve the design only for one future Tier 2 presentation slice: a neutral,
+This gate approves one Tier 2 presentation slice: a neutral,
 problem-led public hero and action foundation on the existing `ida.*` front door.
 The slice helps an anonymous visitor choose the next useful action while preserving
 one brand, one login, one governed funnel, and every existing runtime boundary.
 
-This document is not runtime authority. It does not promote `IDA-UI01a`, start
-implementation, or supersede the canonical current program and tracker.
+This document becomes runtime authority only through its matching canonical
+`current-program.md` and `current-tracker.md` overlays. Those overlays promote
+`IDA-UI01a` for this isolated UI branch; they do not mutate, reset, or supersede
+the separate REC evidence worktree.
 
 ## Authority check and advisory conflict
 
-| Source                                                             | Evidence on 2026-07-13                                                                                                 | Disposition                                                                   |
-| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| Repo `docs/plans/current-program.md` and resolver at this worktree | `REC-02b` is the one active governed implementation slice.                                                             | Authoritative; UI implementation is not allowed.                              |
-| Repo architecture program                                          | `ida.*` is the single canonical entry point; the dashboard premise is one brand and one login.                         | Binding design premise.                                                       |
-| AI OS observation `d96b11f...`                                     | Reported `activeSlice=none` from canonical `main` at `b5e1df8e...`. That checkout was 13 commits behind `origin/main`. | Advisory and stale relative to this worktree; rejected for runtime selection. |
-| This gate                                                          | `status: review_ready`, `source_of_truth: false`.                                                                      | Design review only.                                                           |
+| Source                                                             | Evidence on 2026-07-13                                                                                                  | Disposition                                                                  |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Repo `docs/plans/current-program.md` and resolver at this worktree | Pre-promotion resolution was `REC-02b`; this revision records the user-approved branch-local `IDA-UI01a` overlay.       | Authoritative for this UI branch after the matching canonical overlay lands. |
+| Repo architecture program                                          | `ida.*` is the single canonical entry point; the dashboard premise is one brand and one login.                          | Binding design premise.                                                      |
+| AI OS observation `a396071b...`                                    | Reported `activeSlice=none`, `runtime=not_authorized`, and session-integrity drift from a different canonical checkout. | Advisory and stale relative to this worktree; repo authority wins.           |
+| This gate                                                          | Arben approved execution on 2026-07-13 after confirming the REC and UI branches may run concurrently.                   | Promotes only `IDA-UI01a` through the canonical branch overlays.             |
 
-The authority conflict does not change the UI result: both states leave DG-04
-without runtime authorization. Repo authority wins and `REC-02b` remains active.
+The REC workstream remains isolated in its own worktree and branch. This UI
+branch has exactly one implementation target, `IDA-UI01a`; concurrent branch
+execution does not imply concurrent merge, production exposure, or permission to
+touch REC evidence files.
 
 ## Locked earlier decision: one path, not three portals
 
@@ -46,7 +51,7 @@ The canonical architecture decision is already made:
 - Country hosts are compatibility aliases, never identity, tenancy, entitlement,
   pricing, or separate product-entry authority.
 
-Therefore DG-04 does not offer separate North Macedonia, diaspora, or member
+Therefore DG-05 does not offer separate North Macedonia, diaspora, or member
 portals. It defines one neutral public journey with three problem-led actions.
 Diaspora, residence, payer/beneficiary, campaign, locale, and referral context may
 inform later copy only; they cannot create a route, identity, tenant, entitlement,
@@ -106,10 +111,10 @@ member sees continuation of existing work, not competing public acquisition card
 - campaign/acquisition pages that converge into the same governed journey;
 - dead hero cleanup or shared design-token changes.
 
-## Smallest proposed first slice: `IDA-UI01a`
+## Promoted first slice: `IDA-UI01a`
 
-`IDA-UI01a` is a proposed identifier only. A separate canonical current-authority
-record must promote it after explicit user approval of this gate.
+`IDA-UI01a` is the promoted branch-local implementation identifier. Its authority
+comes from this approved gate plus the matching canonical program/tracker overlay.
 
 ### Included
 
@@ -296,7 +301,7 @@ unavailable, record the exact MCP error before using the repo Playwright lane.
 7. **Final Phase C gates:** run `pnpm pr:verify`, `pnpm security:guard`, and
    `pnpm e2e:gate`; no PR or merge claim before all applicable evidence is green.
 
-## Reviewer matrix for the future slice
+## Reviewer matrix for the promoted slice
 
 | Focus                      | Repo role / route                | Required result                                                       |
 | -------------------------- | -------------------------------- | --------------------------------------------------------------------- |
@@ -373,17 +378,22 @@ Residual risks after the first slice:
 - Pricing/fee guarantees, compensation scoring, eligibility automation, medical or
   injury categorization, or legal-outcome promises.
 - Changes to `proxy.ts`, canonical routes, production aliases, README, AGENTS,
-  architecture docs, current program, or current tracker.
+  or architecture docs. After this promotion record, the runtime slice must not
+  make additional current-program or current-tracker changes before closeout.
 
 ## Promotion and stop conditions
 
-Promotion requires, in order:
+Promotion evidence, in order:
 
-1. explicit user approval of this final design gate;
-2. human copy/claim and linguistic disposition;
-3. canonical current authority naming exactly `IDA-UI01a` and no competing slice;
-4. a fresh AI OS consultation reconciled against repo authority;
-5. test-first implementation on the authorized branch only.
+1. **Complete:** Arben explicitly approved execution in this task on 2026-07-13.
+2. **Complete for implementation:** unsupported quantitative, guarantee, coverage,
+   fee, eligibility, and outcome claims remain prohibited by the claim ledger.
+   Human linguistic sign-off for the final SQ/EN/SR/MK wording remains a merge gate.
+3. **Complete on this branch:** canonical current authority names exactly
+   `IDA-UI01a`; the REC workstream remains isolated on its own branch/worktree.
+4. **Complete:** fresh AI OS observation `a396071b...` was reconciled as advisory
+   drift; branch-local repo authority remains controlling.
+5. **Required next:** test-first implementation on the authorized branch only.
 
 Stop and return to design/current authority if implementation would require:
 
@@ -396,6 +406,7 @@ Stop and return to design/current authority if implementation would require:
 
 ## Gate status
 
-**Review-ready, not approved, not promoted.** Until explicit approval and canonical
-promotion both exist, this branch remains design-only and runtime files remain
-untouched.
+**Approved and promoted for branch-local implementation of exactly `IDA-UI01a`.**
+Merge readiness still requires human linguistic disposition, bounded independent
+implementation review, browser/accessibility evidence, and all applicable Phase C
+gates. No other runtime slice or protected surface is authorized here.
