@@ -5,6 +5,7 @@ export function createWorkspaceDraftStore(bundle) {
   const key = composeDraftKey({
     assignmentId: bundle.assignment.id,
     reviewerFixtureId: bundle.reviewer.id,
+    draftScope: bundle.reviewer.draftScope ?? `draft_fixture_${bundle.reviewer.id}`,
     packetVersion: bundle.packet.version,
   });
   const contextSchema = createDraftContextSchema(bundle.packet);

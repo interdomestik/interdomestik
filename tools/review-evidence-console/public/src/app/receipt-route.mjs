@@ -7,8 +7,16 @@ import { renderReceiptView } from './receipt-view.mjs';
 import { importedReceiptMatchesPacket } from './receipt-packet-guard.mjs';
 
 export function createReceiptRoute(options) {
-  const { repository, receiptStore, render, navigate, isCurrent, imported, directoryWriter } =
-    options;
+  const {
+    repository,
+    receiptStore,
+    receiptVerifier,
+    render,
+    navigate,
+    isCurrent,
+    imported,
+    directoryWriter,
+  } = options;
   return async function receipt(route, token) {
     const loaded = await receiptStore.load(route.receiptId);
     if (!isCurrent(token)) return;
@@ -71,7 +79,12 @@ export function createReceiptRoute(options) {
     };
     const onCorrectionSubmit = async () => {
       const completed = await awaitCurrent(
-        startCorrection({ bundle, receipt: loaded.value, metadata: correction }),
+        startCorrection({
+          bundle,
+          receipt: loaded.value,
+          metadata: correction,
+          verifyReceipt: receiptVerifier,
+        }),
         current
       );
       if (!completed.ok) return;

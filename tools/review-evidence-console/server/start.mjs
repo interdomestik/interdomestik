@@ -12,8 +12,11 @@ export function parsePort(value) {
   return port;
 }
 
-export async function startConsoleServer({ port = parsePort(process.env.PORT) } = {}) {
-  const server = createConsoleServer();
+export async function startConsoleServer({
+  port = parsePort(process.env.PORT),
+  portalHandler,
+} = {}) {
+  const server = createConsoleServer({ portalHandler });
   server.listen(port, '127.0.0.1');
   await once(server, 'listening');
   return server;

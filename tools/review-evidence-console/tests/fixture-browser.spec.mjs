@@ -1,35 +1,19 @@
 import { createRequire } from 'node:module';
-import { startConsoleServer } from '../server/start.mjs';
 import { waitForPersistedDraft } from './browser-draft-state.mjs';
+import { loginReviewer, startBrowserPortalServer } from './browser-auth-fixture.mjs';
 const requireFromWeb = createRequire(new URL('../../../apps/web/package.json', import.meta.url));
 const { expect, test } = requireFromWeb('@playwright/test');
 let origin, server;
 test.beforeAll(async () => {
-  server = await startConsoleServer({ port: 0 });
-  origin = `http://127.0.0.1:${server.address().port}`;
+  ({ origin, server } = await startBrowserPortalServer());
 });
 test.afterAll(async () => {
   await new Promise(resolve => server.close(resolve));
 });
-test('loads complete fixture bundles under connect-src none without fetch or XHR', async ({
+test('loads complete fixture bundles only through the authenticated same-origin API', async ({
   page,
 }) => {
-  await page.addInitScript(() => {
-    globalThis.fixtureNetworkCalls = { fetch: 0, xhr: 0 };
-    globalThis.fetch = () => {
-      globalThis.fixtureNetworkCalls.fetch += 1;
-      throw new Error('fetch must not be called');
-    };
-    globalThis.XMLHttpRequest = class {
-      constructor() {
-        globalThis.fixtureNetworkCalls.xhr += 1;
-        throw new Error('XMLHttpRequest must not be constructed');
-      }
-    };
-  });
-
-  const response = await page.goto(origin);
-  expect(response.headers()['content-security-policy']).toContain("connect-src 'none'");
+  await loginReviewer(page, origin);
   const result = await page.evaluate(async () => {
     const { createFixtureRepository } = await import('/src/data/fixture-repository.mjs');
     const repository = createFixtureRepository();
@@ -40,13 +24,11 @@ test('loads complete fixture bundles under connect-src none without fetch or XHR
     return {
       bundleIds: bundles.map(bundle => bundle.value.packet.id),
       itemCounts: bundles.map(bundle => bundle.value.packet.items.length),
-      networkCalls: globalThis.fixtureNetworkCalls,
     };
   });
   expect(result).toEqual({
     bundleIds: ['mob-03a-part-a', 'mob-03a-part-b'],
     itemCounts: [4, 4],
-    networkCalls: { fetch: 0, xhr: 0 },
   });
 });
 const noteText =
@@ -78,11 +60,12 @@ async function openItem(page, itemId) {
   if (decodeURIComponent(new URL(page.url()).hash).endsWith(`/${itemId}`)) return;
   await page.locator(`[data-item-id="${itemId}"]`).click();
   await expect(page.locator('.save-state')).toHaveText('Drafti u rikthye');
+  await expect(page.locator('#item-heading')).toBeFocused();
 }
 
 async function proveSuggestionFlow(page, viewport) {
   await page.setViewportSize(viewport);
-  await page.goto(origin);
+  await loginReviewer(page, origin);
   await page.getByRole('button', { name: 'Vazhdo paketën' }).click();
   await expect(page.getByRole('note')).toHaveText(noteText);
   await expect(page.getByRole('note')).toHaveCount(1);
@@ -91,6 +74,7 @@ async function proveSuggestionFlow(page, viewport) {
   await expect(page.locator('#response-ownerDisplayName')).toHaveValue('Sanja Jovanovska');
 
   await page.locator('.decision-form input[type="radio"][value="change"]').check();
+  await expect(page.locator('.decision-form input[type="radio"][value="change"]')).toBeFocused();
   await expect(page.locator('#requestedChange')).toHaveValue(
     'Ndrysho ose blloko nëse autoriteti i Sanjës ose ndarja e roleve nuk përputhet me strukturën MK.'
   );
@@ -127,7 +111,7 @@ async function proveSuggestionFlow(page, viewport) {
   await expect(page.getByRole('heading', { name: 'Vërtetimi i shqyrtimit' })).toBeVisible();
   const receipt = await page.evaluate(() => {
     const key = Object.keys(localStorage).find(value =>
-      value.startsWith('review-console:v1:receipt:')
+      value.startsWith('review-console:v2:receipt:')
     );
     return JSON.parse(localStorage.getItem(key));
   });

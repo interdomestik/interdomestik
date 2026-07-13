@@ -8,7 +8,7 @@ import {
   suggestionBundle,
 } from './suggestion-state-fixtures.mjs';
 
-const key = 'review-console:v1:draft:assign_a:reviewer_a:1';
+const key = 'review-console:v2:draft:assign_a:reviewer_a:draft_account_a:1';
 const waitForSave = () => new Promise(resolve => setTimeout(resolve, 500));
 
 function trackedStorage(seed) {

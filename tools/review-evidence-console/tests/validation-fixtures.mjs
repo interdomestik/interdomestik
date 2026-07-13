@@ -3,6 +3,7 @@ export const reviewer = {
   displayName: 'Privacy reviewer',
   role: 'privacy',
   repoSafe: true,
+  draftScope: 'draft_fixture_reviewer_privacy_mk',
 };
 
 export const assignments = [

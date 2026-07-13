@@ -11,12 +11,25 @@ export function createReviewRouteLoaders({
   render,
   navigate,
   isCurrent,
+  onSessionExpired = () => {},
   directoryWriter = createReceiptDirectoryWriter(),
 }) {
-  const receiptStore = createReceiptStore({ verifyReceipt, schemaVersion: 1 });
+  const receiptVerifier = repository.verifyReceipt ?? verifyReceipt;
+  const receiptStore = createReceiptStore({
+    verifyReceipt: receiptVerifier,
+    schemaVersion: 1,
+  });
   const pendingFocus = { value: null };
   const imported = new Set();
-  const shared = { repository, receiptStore, render, navigate, isCurrent };
+  const shared = {
+    repository,
+    receiptStore,
+    receiptVerifier,
+    render,
+    navigate,
+    isCurrent,
+    onSessionExpired,
+  };
   const validation = createValidationHandler({ ...shared, pendingFocus, directoryWriter });
   const receipt = createReceiptRoute({ ...shared, imported, directoryWriter });
   const importReceipt = createImportHandler({

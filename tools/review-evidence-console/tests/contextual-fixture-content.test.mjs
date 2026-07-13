@@ -22,7 +22,7 @@ export const expectedRequestedChanges = {
 };
 
 async function loadRawItems() {
-  const directory = new URL('../public/data/items/', import.meta.url);
+  const directory = new URL('../server/fixtures/data/items/', import.meta.url);
   const files = (await readdir(directory)).filter(file => /^m03a-.*\.json$/u.test(file));
   return Promise.all(files.map(async file => JSON.parse(await readFile(new URL(file, directory), 'utf8'))));
 }

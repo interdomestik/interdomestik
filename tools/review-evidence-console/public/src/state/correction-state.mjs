@@ -19,9 +19,16 @@ function metadataMatches(receipt, bundle) {
   );
 }
 
-export async function prepareCorrection(bundle, state, previousReceipt, metadata, itemFor) {
+export async function prepareCorrection(
+  bundle,
+  state,
+  previousReceipt,
+  metadata,
+  itemFor,
+  verifier = verifyReceipt
+) {
   const prior = deepFreeze(clone(previousReceipt));
-  const verified = await verifyReceipt(prior);
+  const verified = await verifier(prior);
   const itemIds = bundle.packet.itemIds;
   if (
     !verified.ok ||

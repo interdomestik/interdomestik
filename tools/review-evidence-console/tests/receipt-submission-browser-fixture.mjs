@@ -1,3 +1,5 @@
+import { loginReviewer } from './browser-auth-fixture.mjs';
+
 const itemIds = [
   'M03A-PRIVACY-OWNER',
   'M03A-MEDICAL-BOUNDARY',
@@ -78,7 +80,7 @@ async function fillRequired(page) {
 }
 
 export async function submitCompleteReview(page, origin) {
-  await page.goto(origin);
+  await loginReviewer(page, origin);
   await page.getByRole('button', { name: 'Vazhdo paketën' }).click();
   for (const itemId of itemIds) {
     if (!decodeURIComponent(new URL(page.url()).hash).endsWith(`/${itemId}`)) {
@@ -95,7 +97,7 @@ export async function submitCompleteReview(page, origin) {
 export async function submissionArtifacts(page) {
   return page.evaluate(() => {
     const receiptKey = Object.keys(localStorage).find(key =>
-      key.startsWith('review-console:v1:receipt:')
+      key.startsWith('review-console:v2:receipt:')
     );
     return {
       probe: globalThis.directoryProbe,

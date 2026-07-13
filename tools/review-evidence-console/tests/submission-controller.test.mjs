@@ -90,6 +90,27 @@ for (const failurePoint of ['build', 'store']) {
   });
 }
 
+test('expired session during receipt build clears stale authenticated access', async () => {
+  const events = [];
+  const deps = submissionDeps(events, {
+    buildReceipt: async () =>
+      Promise.reject(Object.assign(new Error('expired'), { code: 'session_expired' })),
+    onSessionExpired: () => events.push(['expired']),
+  });
+
+  const result = await createSubmissionController(deps).submit(state, true);
+
+  assert.equal(result.code, 'session_expired');
+  assert.equal(
+    events.some(event => event[0] === 'expired'),
+    true
+  );
+  assert.equal(
+    events.some(event => ['inbox', 'receipt'].includes(event[0])),
+    false
+  );
+});
+
 test('duplicate pending submit shares one picker and one store', async () => {
   const events = [];
   let release;

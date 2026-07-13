@@ -3,25 +3,25 @@ import test from 'node:test';
 import { composeDraftKey, createDraftStore } from '../public/src/state/draft-store.mjs';
 import { makeStorage } from './state-fixtures.mjs';
 import { contextualFixtures } from './contextual-draft-fixtures.mjs';
-
 const keyParts = {
   assignmentId: 'assign_a',
   reviewerFixtureId: 'reviewer_a',
+  draftScope: 'draft_account_a',
   packetVersion: '2',
 };
-const key = 'review-console:v1:draft:assign_a:reviewer_a:2';
+const key = 'review-console:v2:draft:assign_a:reviewer_a:draft_account_a:2';
 const draft = {
   schemaVersion: 1,
   assignmentId: 'assign_a',
   packetId: 'mob-03a-part-a',
   reviewerFixtureId: 'reviewer_a',
+  draftScope: 'draft_account_a',
   packetVersion: '2',
   itemDecisions: { item_a: { decision: 'approve' } },
   activeItem: 'item_a',
   updatedAt: '2026-07-09T12:00:00.000Z',
   editorId: 'tab_a',
 };
-
 test('composes isolated draft keys from safe segments', () => {
   assert.equal(composeDraftKey(keyParts), key);
   for (const value of ['../bad', 'bad/value', '', 'bad value']) {

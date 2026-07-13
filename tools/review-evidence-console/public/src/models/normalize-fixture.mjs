@@ -21,7 +21,9 @@ function stringList(value, key) {
 export function normalizeReviewer(reviewer) {
   for (const key of ['id', 'displayName', 'role']) requiredString(reviewer, key);
   if (reviewer.repoSafe !== true) throw new TypeError('repoSafe must be true.');
-  return { ...reviewer };
+  const draftScope = reviewer.draftScope ?? `draft_fixture_${reviewer.id}`;
+  requiredString({ draftScope }, 'draftScope');
+  return { ...reviewer, draftScope };
 }
 
 export function normalizeAssignment(assignment) {

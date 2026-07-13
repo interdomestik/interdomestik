@@ -8,16 +8,19 @@ export async function startCorrection({
   metadata,
   storage = globalThis.localStorage,
   getLocalDate,
+  verifyReceipt,
 }) {
   try {
     const session = createReviewSession(bundle, undefined, {
       applySuggestions: false,
       getLocalDate,
+      verifyReceipt,
     });
     const state = await session.createCorrection(receipt, metadata);
     const key = composeDraftKey({
       assignmentId: receipt.assignmentId,
       reviewerFixtureId: receipt.reviewerFixtureId,
+      draftScope: bundle.reviewer.draftScope ?? `draft_fixture_${receipt.reviewerFixtureId}`,
       packetVersion: receipt.packetVersion,
     });
     const store = createDraftStore({

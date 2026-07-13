@@ -30,6 +30,17 @@ test('correction receipt preserves canonical ancestry and raw enums', async () =
   assert.equal(correction.decisions.item_a.decision, 'approve');
 });
 
+test('first named correction migrates a verified legacy receipt to stable account attribution', async () => {
+  const legacy = await buildReceipt({ ...receiptInput, submittedAt });
+  const correction = await buildReceipt({
+    ...receiptInput, reviewerAccountId: 'acct_gazmend', previousReceipt: legacy,
+    correctionItemId: 'item_a', correctionReason: 'Migrate lineage.',
+    correctionImpact: 'Adds stable named-account attribution.',
+  });
+  assert.equal(correction.reviewerAccountId, 'acct_gazmend');
+  assert.equal(correction.previousReceiptId, legacy.receiptId);
+});
+
 test('rejects a valid but unrelated previous receipt', async () => {
   const fields = [
     'schemaVersion',

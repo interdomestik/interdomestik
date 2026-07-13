@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import medical from '../public/data/items/m03a-medical-boundary.mjs';
+import medical from '../server/fixtures/data/items/m03a-medical-boundary.mjs';
 import { setDocument } from '../public/src/components/dom.mjs';
 import { renderDecision } from '../public/src/components/decision.mjs';
 import { byId, fakeDocument } from './fake-dom.mjs';

@@ -13,6 +13,7 @@ const TAGS = new Set([
   'label',
   'legend',
   'fieldset',
+  'form',
   'li',
   'main',
   'nav',
@@ -36,7 +37,9 @@ const ATTRIBUTES = new Set([
   'aria-atomic',
   'aria-busy',
   'aria-disabled',
+  'aria-invalid',
   'class',
+  'autocomplete',
   'checked',
   'data-item-id',
   'data-status',
@@ -58,7 +61,7 @@ const ATTRIBUTES = new Set([
   'type',
   'value',
 ]);
-const EVENTS = new Set(['click', 'change', 'input']);
+const EVENTS = new Set(['click', 'change', 'input', 'submit']);
 let activeDocument = typeof document === 'undefined' ? null : document;
 
 export function setDocument(value) {

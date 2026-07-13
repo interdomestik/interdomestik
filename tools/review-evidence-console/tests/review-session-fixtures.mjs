@@ -58,6 +58,7 @@ export const bundle = {
     displayName: 'Privacy reviewer',
     role: 'privacy',
     repoSafe: true,
+    draftScope: 'draft_account_a',
   },
   packet: {
     id: 'packet_a',

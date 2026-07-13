@@ -1,70 +1,44 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
 import test from 'node:test';
 
-import middleware from '../middleware.js';
+import middleware, { config, createMiddleware } from '../middleware.js';
 
-const KEYS = [
-  'REVIEW_PORTAL_AUTH_MODE',
-  'REVIEW_PORTAL_BASIC_USER',
-  'REVIEW_PORTAL_BASIC_PASSWORD_HASH',
-];
+test('middleware is explicitly Node-scoped to private API routes', () => {
+  assert.deepEqual(config, { runtime: 'nodejs', matcher: '/api/:path*' });
+});
 
-const passwordHash = value => createHash('sha256').update(value).digest('hex');
-const authorization = (user, password) =>
-  `Basic ${Buffer.from(`${user}:${password}`, 'utf8').toString('base64')}`;
-
-async function withEnvironment(values, run) {
-  const before = Object.fromEntries(KEYS.map(key => [key, process.env[key]]));
-  for (const key of KEYS) {
-    if (values[key] === undefined) delete process.env[key];
-    else process.env[key] = values[key];
-  }
-  try {
-    return await run();
-  } finally {
-    for (const key of KEYS) {
-      if (before[key] === undefined) delete process.env[key];
-      else process.env[key] = before[key];
-    }
-  }
-}
-
-const request = header =>
-  new Request('https://reviewer.example.test/', {
-    headers: header ? { authorization: header } : {},
+test('middleware leaves public assets alone and delegates only API requests', async () => {
+  assert.equal(typeof createMiddleware, 'function');
+  const seen = [];
+  const scoped = createMiddleware({
+    handler: async request => {
+      seen.push(new URL(request.url).pathname);
+      return new Response('private', { status: 200 });
+    },
   });
-
-const configured = {
-  REVIEW_PORTAL_AUTH_MODE: 'basic',
-  REVIEW_PORTAL_BASIC_USER: 'reviewer',
-  REVIEW_PORTAL_BASIC_PASSWORD_HASH: passwordHash('correct-password'),
-};
-
-async function expectUnauthorized(values, header) {
-  const response = await withEnvironment(values, () => middleware(request(header)));
-  assert.equal(response.status, 401);
-  assert.equal(response.headers.get('cache-control'), 'no-store');
-  assert.match(response.headers.get('www-authenticate'), /^Basic realm=/);
-  assert.doesNotMatch(await response.text(), /reviewer|correct-password|sha256/i);
-}
-
-test('middleware fails closed when mode, user, hash, or authorization is missing', async () => {
-  await expectUnauthorized({}, null);
-  await expectUnauthorized({ ...configured, REVIEW_PORTAL_BASIC_USER: undefined }, null);
-  await expectUnauthorized({ ...configured, REVIEW_PORTAL_BASIC_PASSWORD_HASH: undefined }, null);
-  await expectUnauthorized(configured, null);
-});
-
-test('middleware rejects malformed, wrong-user, and wrong-password credentials', async () => {
-  await expectUnauthorized(configured, 'Basic !!!');
-  await expectUnauthorized(configured, authorization('other', 'correct-password'));
-  await expectUnauthorized(configured, authorization('reviewer', 'wrong-password'));
-});
-
-test('middleware allows only the exact configured user and password hash', async () => {
-  const result = await withEnvironment(configured, () =>
-    middleware(request(authorization('reviewer', 'correct-password')))
+  assert.equal(await scoped(new Request('https://reviewer.example.test/')), undefined);
+  assert.equal(
+    await scoped(new Request('https://reviewer.example.test/styles/base.css')),
+    undefined
   );
-  assert.equal(result, undefined);
+  assert.equal((await scoped(new Request('https://reviewer.example.test/api'))).status, 200);
+  assert.equal(
+    (await scoped(new Request('https://reviewer.example.test/api/session'))).status,
+    200
+  );
+  assert.deepEqual(seen, ['/api', '/api/session']);
+});
+
+test('default middleware fails closed without named-account configuration', async () => {
+  const before = process.env.REVIEW_PORTAL_ACCOUNTS_JSON;
+  delete process.env.REVIEW_PORTAL_ACCOUNTS_JSON;
+  try {
+    const response = await middleware(new Request('https://reviewer.example.test/api/session'));
+    assert.equal(response.status, 503);
+    assert.equal(response.headers.get('cache-control'), 'private, no-store');
+    assert.deepEqual(await response.json(), { code: 'service_unavailable' });
+  } finally {
+    if (before === undefined) delete process.env.REVIEW_PORTAL_ACCOUNTS_JSON;
+    else process.env.REVIEW_PORTAL_ACCOUNTS_JSON = before;
+  }
 });

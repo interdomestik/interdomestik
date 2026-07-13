@@ -35,9 +35,22 @@ test('listAll scans storage once and verifies each receipt once before returning
   assert.equal(count(), 2);
 });
 
+test('signed receipt storage ignores legacy unsigned v1 receipt records', async () => {
+  const storage = makeStorage();
+  const legacy = await buildReceipt({ ...receiptInput, submittedAt });
+  storage.setItem(`review-console:v1:receipt:${legacy.receiptId}`, JSON.stringify(legacy));
+  const store = createReceiptStore({
+    storage,
+    schemaVersion: 1,
+    verifyReceipt: async () => ({ ok: false, code: 'invalid_signature' }),
+  });
+
+  assert.deepEqual(await store.listAll(), { ok: true, value: [] });
+});
+
 test('listAll fails closed on any invalid evidence and returns no partial status batch', async () => {
   const { storage, store, first } = await setup();
-  const key = `review-console:v1:receipt:${first.receiptId}`;
+  const key = `review-console:v2:receipt:${first.receiptId}`;
   const corrupted = JSON.parse(storage.getItem(key));
   corrupted.structuredResponses.item_a.ownerRole = 'Changed';
   storage.setItem(key, JSON.stringify(corrupted));

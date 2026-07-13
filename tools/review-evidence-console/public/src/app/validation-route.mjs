@@ -12,15 +12,19 @@ export async function loadValidationRoute({
   render,
   navigate,
   focus,
+  onSessionExpired = () => {},
   current = () => true,
 }) {
   const loaded = await repository.loadAssignmentBundle(route.assignmentId);
   if (!current()) return;
-  if (!loaded.ok) return navigate({ name: 'inbox' });
+  if (!loaded.ok) {
+    return loaded.code === 'session_expired' ? onSessionExpired() : navigate({ name: 'inbox' });
+  }
   const bundle = loaded.value;
   const key = composeDraftKey({
     assignmentId: bundle.assignment.id,
     reviewerFixtureId: bundle.reviewer.id,
+    draftScope: bundle.reviewer.draftScope ?? `draft_fixture_${bundle.reviewer.id}`,
     packetVersion: bundle.packet.version,
   });
   const stored = createDraftStore({
@@ -34,8 +38,10 @@ export async function loadValidationRoute({
     bundle,
     receiptStore,
     directoryWriter,
+    ...(repository.buildReceipt ? { buildReceipt: repository.buildReceipt } : {}),
     onInbox: () => current() && navigate({ name: 'inbox' }),
     onReceipt: receiptId => current() && navigate({ name: 'receipt', receiptId }),
+    onSessionExpired: () => current() && onSessionExpired(),
     onStatus: () => current() && draw(false),
   });
   function draw(focusHeading = false) {

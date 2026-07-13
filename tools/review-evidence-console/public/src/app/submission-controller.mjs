@@ -41,6 +41,7 @@ export function createSubmissionController({
   directoryWriter,
   onInbox = () => {},
   onReceipt = () => {},
+  onSessionExpired = () => {},
   onStatus = () => {},
 }) {
   let submitting = false;
@@ -93,8 +94,12 @@ export function createSubmissionController({
       if (written.ok) onInbox();
       else onReceipt(receipt.receiptId);
       return saved;
-    } catch {
-      error = { ok: false, code: 'unavailable', message: 'Vërtetimi nuk mund të krijohej.' };
+    } catch (cause) {
+      error =
+        cause?.code === 'session_expired'
+          ? { ok: false, code: 'session_expired', message: 'Sesioni ka përfunduar. Hyni përsëri.' }
+          : { ok: false, code: 'unavailable', message: 'Vërtetimi nuk mund të krijohej.' };
+      if (error.code === 'session_expired') onSessionExpired();
       return error;
     } finally {
       submitting = false;

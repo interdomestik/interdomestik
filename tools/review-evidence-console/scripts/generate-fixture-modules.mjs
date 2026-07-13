@@ -4,18 +4,18 @@ import { fileURLToPath } from 'node:url';
 
 const toolRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SOURCES = Object.freeze([
-  'public/data/assignments.json',
-  'public/data/reviewers.json',
-  'public/data/packets/mob-03a-part-a.json',
-  'public/data/packets/mob-03a-part-b.json',
-  'public/data/items/m03a-access-roles.json',
-  'public/data/items/m03a-consent-fields.json',
-  'public/data/items/m03a-document-boundary.json',
-  'public/data/items/m03a-erasure-revocation.json',
-  'public/data/items/m03a-medical-boundary.json',
-  'public/data/items/m03a-privacy-owner.json',
-  'public/data/items/m03a-scope-stops.json',
-  'public/data/items/m03a-threat-recheck.json',
+  'server/fixtures/data/assignments.json',
+  'server/fixtures/data/reviewers.json',
+  'server/fixtures/data/packets/mob-03a-part-a.json',
+  'server/fixtures/data/packets/mob-03a-part-b.json',
+  'server/fixtures/data/items/m03a-access-roles.json',
+  'server/fixtures/data/items/m03a-consent-fields.json',
+  'server/fixtures/data/items/m03a-document-boundary.json',
+  'server/fixtures/data/items/m03a-erasure-revocation.json',
+  'server/fixtures/data/items/m03a-medical-boundary.json',
+  'server/fixtures/data/items/m03a-privacy-owner.json',
+  'server/fixtures/data/items/m03a-scope-stops.json',
+  'server/fixtures/data/items/m03a-threat-recheck.json',
 ]);
 
 export function renderFixtureModule(jsonText) {

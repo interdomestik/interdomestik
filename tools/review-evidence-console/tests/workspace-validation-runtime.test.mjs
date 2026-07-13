@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createWorkspaceRuntime } from '../public/src/app/workspace-runtime.mjs';
-import { createFixtureRepository } from '../public/src/data/fixture-repository.mjs';
+import { createFixtureRepository } from './static-fixture-repository.mjs';
 import { composeDraftKey } from '../public/src/state/draft-store.mjs';
 import { bundle } from './review-session-fixtures.mjs';
 test('restored autosaved draft opens validation exactly once without another edit', async () => {
@@ -23,7 +23,6 @@ test('restored autosaved draft opens validation exactly once without another edi
   firstRenders[0].onField('item_a', 'concreteAnswer', 'already saved');
   await new Promise(resolve => setTimeout(resolve, 500));
   first.dispose();
-
   const restoredRenders = [];
   let validations = 0;
   const restored = createWorkspaceRuntime({
@@ -44,6 +43,7 @@ test('restored completed Part A invokes validation from the Access item', async 
   const key = composeDraftKey({
     assignmentId: actual.assignment.id,
     reviewerFixtureId: actual.reviewer.id,
+    draftScope: actual.reviewer.draftScope,
     packetVersion: actual.packet.version,
   });
   const decisions = Object.fromEntries(
@@ -56,6 +56,7 @@ test('restored completed Part A invokes validation from the Access item', async 
         assignmentId: actual.assignment.id,
         packetId: actual.packet.id,
         reviewerFixtureId: actual.reviewer.id,
+        draftScope: actual.reviewer.draftScope,
         packetVersion: actual.packet.version,
         activeItem: 'M03A-ACCESS-ROLES',
         itemDecisions: decisions,
