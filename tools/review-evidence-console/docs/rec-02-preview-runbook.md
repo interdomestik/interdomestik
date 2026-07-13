@@ -8,14 +8,24 @@ route, database, upload, Supabase, or Interdomestik runtime integration.
 
 1. Confirm the linked project exactly matches team `team_zZnOjQLylAZArqxcUhLbHDHc`, project
    `prj_Yn7w7tQEAJYaALs2gL2FR9UWgHCc`, and `interdomestik-reviewer-portal`.
-2. Run `pnpm accounts:check` with `REVIEW_PORTAL_ACCOUNTS_JSON` supplied privately. Record only
+2. Confirm `.vercel/output/functions/api/index.func` exists after `vercel build`, root
+   `middleware.js` is absent, and `/api` plus `/api/*` are the only paths rewritten to the
+   Node.js function. Confirm direct `/api/index` is denied with `404` before the rewrite so the
+   login Firewall path cannot be bypassed. Stop if Vercel reports an Edge Function or unsupported
+   Node module.
+3. Run `pnpm accounts:check` with `REVIEW_PORTAL_ACCOUNTS_JSON` supplied privately. Record only
    its fingerprint, never registry content, hashes, passwords, keys, receipts, or cookies.
-3. Configure preview-only `REVIEW_PORTAL_ACCOUNTS_JSON`, a 32–64-byte base64url
+4. Configure preview-only `REVIEW_PORTAL_ACCOUNTS_JSON`, a 32–64-byte base64url
    `REVIEW_PORTAL_SESSION_SECRET`, PKCS8 `REVIEW_PORTAL_RECEIPT_PRIVATE_KEY`, and trusted
    `REVIEW_PORTAL_RECEIPT_KEYS_JSON`. Publish and verify the public key before activating its
    matching private key.
-4. Keep Vercel Deployment Protection enabled. Add a Vercel Firewall rule limiting
+5. Keep Vercel Deployment Protection enabled. Add a Vercel Firewall rule limiting
    `POST /api/session/login` to five requests per source IP per minute.
+
+The 2026-07-13 first attempt stopped safely during remote validation because Vercel classified
+the former root middleware as Edge code. REC-02a replaces only that deployment entrypoint; it
+does not change authentication, assignment isolation, fixture, receipt, or production-alias
+behavior.
 
 ## Verification
 
