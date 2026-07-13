@@ -38,11 +38,17 @@ export async function createPortalHandlerFromEnv(env = process.env, writeEvent) 
   });
 }
 
-export function createEnvironmentPortalHandler(environment = () => process.env, writeEvent = () => {}) {
+export function createEnvironmentPortalHandler(
+  environment = () => process.env,
+  writeEvent = () => {}
+) {
   let handlerPromise;
   return async request => {
     try {
-      handlerPromise ??= createPortalHandlerFromEnv(environment(), writeEvent);
+      handlerPromise ??= createPortalHandlerFromEnv(environment(), writeEvent).catch(error => {
+        handlerPromise = undefined;
+        throw error;
+      });
       const handler = await handlerPromise;
       return await handler(request);
     } catch {

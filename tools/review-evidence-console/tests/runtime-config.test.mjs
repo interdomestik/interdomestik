@@ -49,11 +49,17 @@ test('complete environment creates a private API handler with receipt keys', asy
   assert.equal(response.headers.get('cache-control'), 'private, no-store');
 });
 
-test('lazy environment handler fails closed when receipt key configuration is missing', async () => {
+test('lazy environment handler fails closed and retries corrected configuration', async () => {
   const env = await environment();
+  const privateKey = env.REVIEW_PORTAL_RECEIPT_PRIVATE_KEY;
   delete env.REVIEW_PORTAL_RECEIPT_PRIVATE_KEY;
   const handler = createEnvironmentPortalHandler(() => env);
   const response = await handler(new Request('https://reviewer.example.test/api/session'));
   assert.equal(response.status, 503);
   assert.deepEqual(await response.json(), { code: 'service_unavailable' });
+  env.REVIEW_PORTAL_RECEIPT_PRIVATE_KEY = privateKey;
+  assert.equal(
+    (await handler(new Request('https://reviewer.example.test/api/session'))).status,
+    401
+  );
 });

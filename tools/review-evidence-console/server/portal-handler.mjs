@@ -1,18 +1,17 @@
 import { verifyPassword } from './auth/password.mjs';
+import { createLoginLimiter } from './auth/login-limiter.mjs';
 import { notFoundResponse, jsonResponse } from './http/responses.mjs';
 import { routeAssignments } from './routes/assignment-routes.mjs';
 import { routeSession } from './routes/session-routes.mjs';
 import { routeReceipts } from './routes/receipt-routes.mjs';
 import { silentSecurityEvents } from './security/events.mjs';
 
-const permissiveLimiter = Object.freeze({ consume: () => ({ allowed: true, retryAfter: 0 }) });
-
 export function createPortalHandler({
   registry,
   sessionSecret,
   fixtureService,
   verifyCredentials = verifyPassword,
-  limiter = permissiveLimiter,
+  limiter = createLoginLimiter(),
   now,
   receiptService,
   events = silentSecurityEvents,
