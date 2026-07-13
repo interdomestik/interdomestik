@@ -449,8 +449,19 @@ all focused, repository, CI, independent-review, and protected-preview gates are
 green. Shared cross-device storage, server receipt persistence, customer data,
 uploads, `apps/web`, runtime integration, schema/RLS, paid Vercel upgrades, and
 broad UI redesign remain excluded.
-The next active governed implementation goal is exactly one canonical tracker
-slice: `REC-02b`, legacy receipt continuity and local review history.
+Rev 110 closeout: `REC-02b` completed in PR `#1338` / squash merge
+`5f3307c02455a636d96e413ce346bc081f7fb444`, recorded in
+`docs/plans/2026-07-13-rec-02b-closeout.md`. The standalone console now offers
+authenticated explicit-confirmation migration for the two already accepted
+MOB-03a receipts, current Ed25519 attestation with immutable source lineage,
+and Albanian-first local history and correction navigation. Clean-head proof
+passed `441` unit tests; the PR passed `13` browser tests and all required CI,
+security, review, SonarCloud, and finalizer gates. The production alias was not
+reassigned, and no shared storage, server persistence, Blob, Drive integration,
+customer data, upload, `apps/web`, or Interdomestik runtime work was added. No
+replacement implementation slice is promoted; expected resolver state is
+`blocked_requires_current_authority`, `activeSlice=null` until a fresh gate
+promotes exactly one next governed action.
 
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
