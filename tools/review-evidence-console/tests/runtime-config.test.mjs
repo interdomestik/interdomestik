@@ -63,3 +63,14 @@ test('lazy environment handler fails closed and retries corrected configuration'
     401
   );
 });
+
+test('lazy environment handler forwards the node adapter route path', async () => {
+  const env = await environment();
+  const handler = createEnvironmentPortalHandler(() => env);
+  const response = await handler(
+    new Request('http://127.0.0.1:4177/api'),
+    '/api/session'
+  );
+  assert.equal(response.status, 401);
+  assert.equal(response.headers.get('cache-control'), 'private, no-store');
+});

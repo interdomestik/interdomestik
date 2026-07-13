@@ -43,14 +43,14 @@ export function createEnvironmentPortalHandler(
   writeEvent = () => {}
 ) {
   let handlerPromise;
-  return async request => {
+  return async (request, routePath) => {
     try {
       handlerPromise ??= createPortalHandlerFromEnv(environment(), writeEvent).catch(error => {
         handlerPromise = undefined;
         throw error;
       });
       const handler = await handlerPromise;
-      return await handler(request);
+      return await handler(request, routePath);
     } catch {
       createSecurityEvents(writeEvent).emit('configuration_failed');
       return jsonResponse(503, { code: 'service_unavailable' });
