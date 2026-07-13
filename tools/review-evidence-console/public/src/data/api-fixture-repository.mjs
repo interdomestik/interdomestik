@@ -49,7 +49,9 @@ function normalizeBundle(value) {
     reviewer.role !== packet.reviewerRole ||
     assignment.packetId !== packet.id
   ) {
-    throw Object.assign(new TypeError(), { code: 'unavailable' });
+    throw Object.assign(new TypeError('Assignment bundle authority mismatch.'), {
+      code: 'unavailable',
+    });
   }
   return { assignment, reviewer, packet };
 }

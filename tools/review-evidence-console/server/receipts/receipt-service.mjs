@@ -3,6 +3,11 @@ import { buildServerCorrection, buildServerReceipt } from './receipt-envelope.mj
 import { signReceipt, verifySignedReceipt } from './receipt-signature.mjs';
 
 const invalid = code => ({ ok: false, code });
+const withoutAttestation = receipt => {
+  const unsigned = { ...receipt };
+  delete unsigned.attestation;
+  return unsigned;
+};
 
 export function createReceiptService({ keyring, now = () => new Date().toISOString() }) {
   function trustedKeys() {
@@ -28,7 +33,7 @@ export function createReceiptService({ keyring, now = () => new Date().toISOStri
   async function verify(receipt) {
     const signature = await verifySignedReceipt(receipt, keyring);
     if (!signature.ok) return signature;
-    const { attestation: _attestation, ...unsigned } = receipt;
+    const unsigned = withoutAttestation(receipt);
     const content = await verifyReceipt(unsigned);
     return content.ok ? { ok: true, value: receipt } : invalid('invalid_receipt');
   }
@@ -37,7 +42,7 @@ export function createReceiptService({ keyring, now = () => new Date().toISOStri
     const previous = await verify(submission?.previousReceipt);
     if (!previous.ok) return invalid('invalid_receipt');
     try {
-      const { attestation: _attestation, ...unsigned } = previous.value;
+      const unsigned = withoutAttestation(previous.value);
       const payload = await buildServerCorrection(account, bundle, submission, unsigned, { now });
       return { ok: true, value: await signReceipt(payload, keyring) };
     } catch {

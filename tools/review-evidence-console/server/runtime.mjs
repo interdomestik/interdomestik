@@ -14,11 +14,13 @@ function receiptKeyConfiguration(env) {
   } catch {
     throw new TypeError('Invalid receipt key configuration.');
   }
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new TypeError();
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new TypeError('Invalid receipt key configuration.');
+  }
   return value;
 }
 
-export async function createPortalHandlerFromEnv(env = process.env, writeEvent) {
+export async function createPortalHandlerFromEnv(env = process.env, writeEvent = () => {}) {
   const registry = parseAccountRegistry(env.REVIEW_PORTAL_ACCOUNTS_JSON ?? '');
   const sessionSecret = env.REVIEW_PORTAL_SESSION_SECRET ?? '';
   decodeBase64url(sessionSecret, { min: 32, max: 64 });

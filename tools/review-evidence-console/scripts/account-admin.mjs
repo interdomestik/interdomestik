@@ -43,9 +43,10 @@ export function parseAdminArgs(args) {
 async function readStdin() {
   const chunks = [];
   for await (const chunk of process.stdin) chunks.push(chunk);
-  return Buffer.concat(chunks)
-    .toString('utf8')
-    .replace(/[\r\n]+$/u, '');
+  const value = Buffer.concat(chunks).toString('utf8');
+  let end = value.length;
+  while (end > 0 && ['\r', '\n'].includes(value[end - 1])) end -= 1;
+  return value.slice(0, end);
 }
 
 export async function runAdmin(args, env = process.env) {
@@ -56,11 +57,10 @@ export async function runAdmin(args, env = process.env) {
     const project = JSON.parse(await readFile(resolve(TOOL_ROOT, '.vercel/project.json'), 'utf8'));
     assertProjectPin(project);
   }
-  const source = options.apply
-    ? await readRemoteRegistry({ cwd: TOOL_ROOT })
-    : option(args, '--registry-file')
-      ? await readFile(option(args, '--registry-file'), 'utf8')
-      : env.REVIEW_PORTAL_ACCOUNTS_JSON;
+  let source = env.REVIEW_PORTAL_ACCOUNTS_JSON;
+  const registryFile = option(args, '--registry-file');
+  if (registryFile) source = await readFile(registryFile, 'utf8');
+  if (options.apply) source = await readRemoteRegistry({ cwd: TOOL_ROOT });
   if (!source) throw new Error('Registry input is required.');
   const validated = [...parseAccountRegistry(source).byId.values()];
   if (options.action === 'check')
@@ -91,10 +91,11 @@ export async function runAdmin(args, env = process.env) {
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-  runAdmin(process.argv.slice(2))
-    .then(result => process.stdout.write(`${JSON.stringify(result)}\n`))
-    .catch(error => {
-      process.stderr.write(`${error.message}\n`);
-      process.exitCode = 1;
-    });
+  try {
+    const result = await runAdmin(process.argv.slice(2));
+    process.stdout.write(`${JSON.stringify(result)}\n`);
+  } catch (error) {
+    process.stderr.write(`${error.message}\n`);
+    process.exitCode = 1;
+  }
 }

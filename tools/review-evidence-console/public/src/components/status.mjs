@@ -5,7 +5,7 @@ let liveRegion;
 export function createHeader(
   reviewerRole = 'Rishikues privatësie',
   saveStatus = 'Ruajtja lokale aktive',
-  accountMenu
+  accountMenu = undefined
 ) {
   liveRegion = element('span', {
     attributes: {

@@ -4,48 +4,58 @@ import { verifyReceipt } from '../state/receipt-builder.mjs';
 const ATTESTATION_KEYS = ['algorithm', 'keyFingerprint', 'keyId', 'signature', 'version'];
 const KEY_ENTRY_KEYS = ['fingerprint', 'id', 'publicKeySpki'];
 const KEY_ID = /^[a-z0-9][a-z0-9_-]{2,63}$/u;
-const compare = (left, right) => (left < right ? -1 : left > right ? 1 : 0);
+const compare = (left, right) => {
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
+};
 const invalid = code => ({ ok: false, code });
 
+function asBase64url(value) {
+  return value.replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
+}
+
 function decodeBase64url(value, min, max) {
-  if (typeof value !== 'string' || !/^[A-Za-z0-9_-]+$/u.test(value)) throw new TypeError();
+  if (typeof value !== 'string' || !/^[A-Za-z0-9_-]+$/u.test(value)) {
+    throw new TypeError('Invalid base64url value.');
+  }
   const padded = value
-    .replace(/-/gu, '+')
-    .replace(/_/gu, '/')
+    .replaceAll('-', '+')
+    .replaceAll('_', '/')
     .padEnd(Math.ceil(value.length / 4) * 4, '=');
   const binary = atob(padded);
-  const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
-  const canonical = btoa(String.fromCharCode(...bytes))
-    .replace(/\+/gu, '-')
-    .replace(/\//gu, '_')
-    .replace(/=+$/u, '');
-  if (bytes.length < min || bytes.length > max || canonical !== value) throw new TypeError();
+  const bytes = Uint8Array.from(binary, character => character.codePointAt(0));
+  const canonical = asBase64url(btoa(String.fromCodePoint(...bytes)));
+  if (bytes.length < min || bytes.length > max || canonical !== value) {
+    throw new TypeError('Invalid base64url value.');
+  }
   return bytes;
 }
 
 async function fingerprint(spki) {
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', spki));
-  return `sha256:${btoa(String.fromCharCode(...digest))
-    .replace(/\+/gu, '-')
-    .replace(/\//gu, '_')
-    .replace(/=+$/u, '')}`;
+  return `sha256:${asBase64url(btoa(String.fromCodePoint(...digest)))}`;
 }
 
 async function normalizeTrustedKeys(bundle) {
   if (bundle?.version !== 1 || bundle.algorithm !== 'Ed25519' || !Array.isArray(bundle.keys)) {
-    throw new TypeError();
+    throw new TypeError('Invalid trusted key bundle.');
   }
   const trusted = new Map();
   for (const entry of bundle.keys) {
     if (!entry || Object.keys(entry).sort(compare).join(',') !== KEY_ENTRY_KEYS.join(','))
-      throw new TypeError();
-    if (!KEY_ID.test(entry.id) || trusted.has(entry.id)) throw new TypeError();
+      throw new TypeError('Invalid trusted key entry.');
+    if (!KEY_ID.test(entry.id) || trusted.has(entry.id)) {
+      throw new TypeError('Invalid trusted key identifier.');
+    }
     const spki = decodeBase64url(entry.publicKeySpki, 44, 128);
-    if (entry.fingerprint !== (await fingerprint(spki))) throw new TypeError();
+    if (entry.fingerprint !== (await fingerprint(spki))) {
+      throw new TypeError('Trusted key fingerprint mismatch.');
+    }
     const key = await crypto.subtle.importKey('spki', spki, { name: 'Ed25519' }, false, ['verify']);
     trusted.set(entry.id, Object.freeze({ key, fingerprint: entry.fingerprint }));
   }
-  if (trusted.size === 0) throw new TypeError();
+  if (trusted.size === 0) throw new TypeError('Trusted key bundle is empty.');
   return trusted;
 }
 

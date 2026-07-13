@@ -19,12 +19,17 @@ export function decodeCredential(value, min, max, label) {
 }
 
 export function normalizeAccount(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new TypeError('Invalid account.');
+  if (!value || typeof value !== 'object' || Array.isArray(value))
+    throw new TypeError('Invalid account.');
   const username = typeof value.username === 'string' ? value.username.trim().toLowerCase() : '';
   requiredString(username, USERNAME, 'username');
   const role = requiredString(value.role, IDENTIFIER, 'role');
   if (!ROLES.has(role)) throw new TypeError('Invalid role.');
-  if (typeof value.displayName !== 'string' || !value.displayName.trim() || value.displayName.length > 100) {
+  if (
+    typeof value.displayName !== 'string' ||
+    !value.displayName.trim() ||
+    value.displayName.length > 100
+  ) {
     throw new TypeError('Invalid display name.');
   }
   if (typeof value.disabled !== 'boolean') throw new TypeError('Invalid disabled state.');
@@ -32,8 +37,12 @@ export function normalizeAccount(value) {
     throw new TypeError('Invalid session version.');
   }
   const password = value.password;
-  if (!password || password.algorithm !== 'PBKDF2-SHA256') throw new TypeError('Invalid password.');
-  if (!Number.isSafeInteger(password.iterations) || password.iterations < 600_000 || password.iterations > 1_000_000) {
+  if (password?.algorithm !== 'PBKDF2-SHA256') throw new TypeError('Invalid password.');
+  if (
+    !Number.isSafeInteger(password.iterations) ||
+    password.iterations < 600_000 ||
+    password.iterations > 1_000_000
+  ) {
     throw new TypeError('Invalid iterations.');
   }
   decodeCredential(password.salt, 16, 32, 'salt');

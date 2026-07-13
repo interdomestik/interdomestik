@@ -8,17 +8,13 @@ import {
 import { fixtureCatalog } from './fixtures/catalog.mjs';
 
 const notFound = () => ({ ok: false, code: 'not_found', message: 'Detyra nuk u gjet.' });
+const matchesAccount = (assignment, account) =>
+  assignment.reviewerFixtureId === account?.fixtureId && assignment.reviewerRole === account?.role;
 
 export function createFixtureService({ catalog = fixtureCatalog } = {}) {
   const reviewers = catalog.reviewers.map(normalizeReviewer);
   const assignments = validateAssignmentContinuations(catalog.assignments.map(normalizeAssignment));
   const packets = new Map(catalog.packets.map(value => [value.id, normalizePacket(value)]));
-
-  function matchesAccount(assignment, account) {
-    return (
-      assignment.reviewerFixtureId === account?.fixtureId && assignment.reviewerRole === account?.role
-    );
-  }
 
   async function listAssignments(account) {
     return {

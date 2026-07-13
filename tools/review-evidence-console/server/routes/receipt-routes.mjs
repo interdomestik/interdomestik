@@ -5,16 +5,23 @@ import { jsonResponse, notFoundResponse, unauthorizedResponse } from '../http/re
 
 const ASSIGNMENT_ID = /^[a-z0-9_-]{3,100}$/u;
 
-export async function routeReceipts(request, pathname, context) {
-  if (pathname === '/api/receipts/keys') {
-    if (request.method !== 'GET') {
-      return jsonResponse(405, { code: 'method_not_allowed' }, { allow: 'GET' });
-    }
-    const session = await authenticateRequest(request, context);
-    return session.ok
-      ? jsonResponse(200, context.receiptService.trustedKeys())
-      : unauthorizedResponse();
+async function routeKeys(request, context) {
+  if (request.method !== 'GET') {
+    return jsonResponse(405, { code: 'method_not_allowed' }, { allow: 'GET' });
   }
+  const session = await authenticateRequest(request, context);
+  return session.ok
+    ? jsonResponse(200, context.receiptService.trustedKeys())
+    : unauthorizedResponse();
+}
+
+function resultResponse(created) {
+  if (created.ok) return jsonResponse(200, created.value);
+  const status = created.code === 'invalid_receipt' ? 422 : 400;
+  return jsonResponse(status, { code: created.code });
+}
+
+async function routeMutation(request, pathname, context) {
   if (request.method !== 'POST') {
     return jsonResponse(405, { code: 'method_not_allowed' }, { allow: 'POST' });
   }
@@ -43,7 +50,11 @@ export async function routeReceipts(request, pathname, context) {
       ? await context.receiptService.correct(session.account, bundle.value, body.value)
       : await context.receiptService.create(session.account, bundle.value, body.value);
   if (!created.ok) context.events.emit('receipt_failed');
-  return created.ok
-    ? jsonResponse(200, created.value)
-    : jsonResponse(created.code === 'invalid_receipt' ? 422 : 400, { code: created.code });
+  return resultResponse(created);
+}
+
+export function routeReceipts(request, pathname, context) {
+  return pathname === '/api/receipts/keys'
+    ? routeKeys(request, context)
+    : routeMutation(request, pathname, context);
 }

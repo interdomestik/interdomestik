@@ -15,7 +15,9 @@ export function createJsonFixtureRepository(loadJson) {
         loadJson('/data/reviewers.json'),
         loadJson('/data/assignments.json'),
       ]);
-      if (!Array.isArray(reviewers) || !Array.isArray(assignments)) throw new TypeError();
+      if (!Array.isArray(reviewers) || !Array.isArray(assignments)) {
+        throw new TypeError('Fixture indexes must be arrays.');
+      }
       return {
         ok: true,
         value: {
@@ -40,7 +42,10 @@ export function createJsonFixtureRepository(loadJson) {
   async function listAssignments(reviewerId) {
     const all = await loadAll();
     return all.ok
-      ? { ok: true, value: all.value.assignments.filter(row => row.reviewerFixtureId === reviewerId) }
+      ? {
+          ok: true,
+          value: all.value.assignments.filter(row => row.reviewerFixtureId === reviewerId),
+        }
       : all;
   }
   async function loadReviewerProfile(reviewerId) {
@@ -61,7 +66,8 @@ export function createJsonFixtureRepository(loadJson) {
       assignment.packetId !== packet.value.id ||
       assignment.reviewerRole !== reviewer.role ||
       reviewer.role !== packet.value.reviewerRole
-    ) return invalid('Rolet e detyrës, shqyrtuesit dhe paketës nuk përputhen.');
+    )
+      return invalid('Rolet e detyrës, shqyrtuesit dhe paketës nuk përputhen.');
     return { ok: true, value: { assignment, reviewer, packet: packet.value } };
   }
   return { listAssignments, loadPacket, loadReviewerProfile, loadAssignmentBundle };
