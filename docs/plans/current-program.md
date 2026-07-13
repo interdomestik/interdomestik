@@ -463,6 +463,24 @@ replacement implementation slice is promoted; expected resolver state is
 `blocked_requires_current_authority`, `activeSlice=null` until a fresh gate
 promotes exactly one next governed action.
 
+Rev 111 current-authority/design-gate: `IDA-DG05` in
+`docs/plans/2026-07-13-ida-dg05-public-entry-portal-design-gate.md` records
+Arben's approved Option 3 public-entry direction and promotes exactly one Tier 2
+implementation slice: `IDA-UI01a`. The slice replaces only the active
+above-fold `HeroSection` composition with a membership-first primary action,
+immediately visible Help Now and case-organization secondary actions, preserved
+settled-member continuation behavior, equivalent SQ/EN/SR/MK messages, and
+focused component, accessibility, responsive, translation, and browser proof.
+It may split the current hero into one new route-local presentation component
+and correct the stale active-hero E2E marker. It must not change
+`apps/web/src/proxy.ts`, routes, auth/session, tenancy, database/schema/RLS,
+billing/Paddle, analytics/provider state, production aliases/deploy, header,
+page shell, below-fold homepage, shared tokens, canonical role surfaces, or any
+dashboard. The selected UI direction is new presentation on the completed M0-M5
+architecture, not a parallel portal or architectural rewrite. Human linguistic
+and legal/commercial disposition for final SQ/EN/SR/MK copy remains a merge
+gate. No second UI slice is promoted.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
