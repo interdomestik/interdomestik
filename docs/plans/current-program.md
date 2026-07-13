@@ -410,6 +410,22 @@ uploads, server-side receipt storage, product route, proxy, tenancy, billing, or
 runtime behavior. The gate permits implementation and one protected preview only;
 production alias cutover requires separate operational approval.
 
+Rev 107 closeout: `REC-02` completed in PR `#1335` / squash merge
+`e4c39385c24f371e6f42b95eca0d999d1d722207`, recorded in
+`docs/plans/2026-07-13-rec-02-closeout.md`. The merged implementation replaced
+shared reviewer access with administrator-managed named accounts, signed
+short-lived sessions, server-enforced account/role assignment isolation,
+server-only fixtures, and canonical server-attested Ed25519 receipts while
+remaining isolated under `tools/review-evidence-console/`. Final console proof
+passed `426` unit and `13` browser tests; local Phase C gates and current-head
+CI, full PR E2E, Pilot Gate, SonarCloud, CodeQL, gitleaks, pnpm-audit,
+Dependency Review, OSV, Semgrep, commitlint, reviewdog, and `pr-finalizer`
+were green before merge. Live Vercel Firewall/alert correlation is not claimed
+and remains required before any separately authorized production cutover. No
+replacement implementation slice is promoted; expected resolver state is
+`blocked_requires_current_authority`, `activeSlice=null` until a fresh
+current-authority/design gate promotes exactly one next governed action.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
