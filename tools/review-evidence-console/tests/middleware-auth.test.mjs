@@ -70,6 +70,25 @@ test('Node function restores path and query while preserving request security in
   ]);
 });
 
+test('Node function rejects rewritten paths that can normalize outside private API scope', async () => {
+  let calls = 0;
+  const api = createVercelApiFunction({
+    handler: async () => {
+      calls += 1;
+      return new Response('unsafe', { status: 200 });
+    },
+  });
+  for (const rewrittenPath of ['..%2Fadmin', '.%2Fsession', 'receipts%5C..%5Cadmin']) {
+    const response = await api.fetch(
+      new Request(`https://reviewer.example.test/api/index?__rec_path=${rewrittenPath}`)
+    );
+    assert.equal(response.status, 404);
+    assert.equal(response.headers.get('cache-control'), 'private, no-store');
+    assert.deepEqual(await response.json(), { code: 'not_found' });
+  }
+  assert.equal(calls, 0);
+});
+
 test('default Node function fails closed without named-account configuration', async () => {
   const before = process.env.REVIEW_PORTAL_ACCOUNTS_JSON;
   delete process.env.REVIEW_PORTAL_ACCOUNTS_JSON;
