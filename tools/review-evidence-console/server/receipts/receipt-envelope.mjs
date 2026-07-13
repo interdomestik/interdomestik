@@ -1,4 +1,5 @@
 import { buildReceipt } from '../../public/src/state/receipt-builder.mjs';
+import { validateSafeText } from '../../public/src/validation/input-guards.mjs';
 import { validatePacket } from '../../public/src/validation/packet.mjs';
 
 const INITIAL_KEYS = ['assignmentId', 'decisions', 'safeEvidenceConfirmed', 'structuredResponses'];
@@ -18,6 +19,14 @@ function isRecord(value) {
   return value && typeof value === 'object' && !Array.isArray(value);
 }
 
+function isSafeCorrectionText(value) {
+  return (
+    typeof value === 'string' &&
+    value.trim() !== '' &&
+    validateSafeText(value, { maxLength: 1000 }).ok
+  );
+}
+
 export function isInitialSubmission(value) {
   return (
     isRecord(value) &&
@@ -34,7 +43,9 @@ function validateJudgments(bundle, submission) {
   const exactPacketKeys = record => {
     const actual = Object.keys(record).sort(compareStrings);
     const expected = [...itemIds].sort(compareStrings);
-    return actual.length === expected.length && actual.every((key, index) => key === expected[index]);
+    return (
+      actual.length === expected.length && actual.every((key, index) => key === expected[index])
+    );
   };
   if (!exactPacketKeys(submission.decisions) || !exactPacketKeys(submission.structuredResponses)) {
     throw new TypeError('Receipt judgments do not match the assigned packet.');
@@ -91,11 +102,13 @@ export async function buildServerCorrection(
     !isRecord(submission) ||
     Object.keys(submission).sort(compareStrings).join(',') !== CORRECTION_KEYS.join(',') ||
     submission.assignmentId !== bundle.assignment.id ||
-    ['correctionItemId', 'correctionReason', 'correctionImpact'].some(
-      key => typeof submission[key] !== 'string' || !submission[key].trim()
-    ) ||
+    submission.safeEvidenceConfirmed !== true ||
+    typeof submission.correctionItemId !== 'string' ||
+    !isSafeCorrectionText(submission.correctionReason) ||
+    !isSafeCorrectionText(submission.correctionImpact) ||
     !bundle.packet.itemIds.includes(submission.correctionItemId)
-  ) throw new TypeError('Invalid receipt correction.');
+  )
+    throw new TypeError('Invalid receipt correction.');
   validateJudgments(bundle, submission);
   return buildReceipt(
     {
