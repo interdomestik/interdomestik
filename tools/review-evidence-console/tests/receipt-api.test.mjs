@@ -97,27 +97,25 @@ test('receipt API rejects identity and envelope overrides', async () => {
 test('receipt API rejects extra packet fields and invalid correction targets', async () => {
   const { fixtureService, post } = await setup();
   const base = await judgments(fixtureService);
-  const extraDecision = { ...base, decisions: { ...base.decisions, OTHER: base.decisions[Object.keys(base.decisions)[0]] }, safeEvidenceConfirmed: true };
+  const extraDecision = {
+    ...base,
+    decisions: { ...base.decisions, OTHER: base.decisions[Object.keys(base.decisions)[0]] },
+    safeEvidenceConfirmed: true,
+  };
   assert.equal((await post('/api/receipts', extraDecision)).status, 400);
-  const first = await (await post('/api/receipts', { ...base, safeEvidenceConfirmed: true })).json();
+  const first = await (
+    await post('/api/receipts', { ...base, safeEvidenceConfirmed: true })
+  ).json();
   assert.equal(first.reviewerAccountId, account.id);
   const invalidCorrection = {
-    ...base, safeEvidenceConfirmed: true, previousReceipt: first, correctionItemId: 'OTHER',
-    correctionReason: 'Korrigjim', correctionImpact: 'Pa ndikim',
+    ...base,
+    safeEvidenceConfirmed: true,
+    previousReceipt: first,
+    correctionItemId: 'OTHER',
+    correctionReason: 'Korrigjim',
+    correctionImpact: 'Pa ndikim',
   };
   assert.equal((await post('/api/receipts/correct', invalidCorrection)).status, 400);
-});
-
-test('receipt verify API accepts trusted signatures and rejects tampering', async () => {
-  const { fixtureService, post } = await setup();
-  const created = await post('/api/receipts', {
-    ...(await judgments(fixtureService)),
-    safeEvidenceConfirmed: true,
-  });
-  const receipt = await created.json();
-  assert.equal((await post('/api/receipts/verify', { receipt })).status, 200);
-  const tampered = { ...receipt, reviewerDisplayName: 'Other' };
-  assert.equal((await post('/api/receipts/verify', { receipt: tampered })).status, 422);
 });
 
 test('correction API verifies prior signature and derives immutable lineage', async () => {

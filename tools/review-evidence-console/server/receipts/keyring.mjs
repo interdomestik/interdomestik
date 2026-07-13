@@ -34,11 +34,19 @@ export async function createReceiptKeyring({ activeKeyId, privateKeyPkcs8, publi
   }
   const trusted = new Map();
   for (const entry of publicKeys) {
-    if (!entry || !KEY_ID.test(entry.id) || trusted.has(entry.id)) throw new TypeError('Invalid key ID.');
+    if (!entry || !KEY_ID.test(entry.id) || trusted.has(entry.id))
+      throw new TypeError('Invalid key ID.');
     const spki = decodeKey(entry.publicKeySpki, 'PUBLIC KEY', 44, 128);
     const fingerprint = await fingerprintPublicKey(spki);
     if (entry.fingerprint !== fingerprint) throw new TypeError('Public key fingerprint mismatch.');
-    trusted.set(entry.id, Object.freeze({ key: await importPublic(spki), fingerprint }));
+    trusted.set(
+      entry.id,
+      Object.freeze({
+        key: await importPublic(spki),
+        fingerprint,
+        publicKeySpki: encodeBase64url(spki),
+      })
+    );
   }
   const active = trusted.get(activeKeyId);
   if (!active) throw new TypeError('Active public key is not trusted.');

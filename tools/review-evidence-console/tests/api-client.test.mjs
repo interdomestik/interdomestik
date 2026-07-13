@@ -73,13 +73,14 @@ test('login and logout send bounded JSON without a reviewer identity field', asy
   assert.equal(calls[1][0], '/api/session/logout');
 });
 
-test('receipt client submits judgments and verifies signed receipts through private APIs', async () => {
+test('receipt client submits judgments and fetches only public verification keys', async () => {
   const calls = [];
   const receipt = { receiptId: 'rec_0123456789abcdef01234567', attestation: { keyId: 'test' } };
+  const keys = { version: 1, algorithm: 'Ed25519', keys: [] };
   const client = createApiClient({
     fetchImpl: async (path, options) => {
       calls.push([path, options]);
-      return response(200, receipt);
+      return response(200, path.endsWith('/keys') ? keys : receipt);
     },
   });
   const judgments = {
@@ -89,13 +90,20 @@ test('receipt client submits judgments and verifies signed receipts through priv
     safeEvidenceConfirmed: true,
   };
   assert.deepEqual(await client.submitReceipt(judgments), receipt);
-  assert.deepEqual(await client.verifyReceipt(receipt), receipt);
-  assert.deepEqual(await client.correctReceipt({ ...judgments, previousReceipt: receipt }), receipt);
+  assert.deepEqual(await client.receiptKeys(), keys);
   assert.deepEqual(
-    calls.map(([path, options]) => [path, options.method, JSON.parse(options.body)]),
+    await client.correctReceipt({ ...judgments, previousReceipt: receipt }),
+    receipt
+  );
+  assert.deepEqual(
+    calls.map(([path, options]) => [
+      path,
+      options.method,
+      options.body === undefined ? undefined : JSON.parse(options.body),
+    ]),
     [
       ['/api/receipts', 'POST', judgments],
-      ['/api/receipts/verify', 'POST', { receipt }],
+      ['/api/receipts/keys', 'GET', undefined],
       ['/api/receipts/correct', 'POST', { ...judgments, previousReceipt: receipt }],
     ]
   );

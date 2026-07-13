@@ -4,6 +4,15 @@ import { readJsonBody } from '../http/read-body.mjs';
 import { jsonResponse, notFoundResponse, unauthorizedResponse } from '../http/responses.mjs';
 
 export async function routeReceipts(request, pathname, context) {
+  if (pathname === '/api/receipts/keys') {
+    if (request.method !== 'GET') {
+      return jsonResponse(405, { code: 'method_not_allowed' }, { allow: 'GET' });
+    }
+    const session = await authenticateRequest(request, context);
+    return session.ok
+      ? jsonResponse(200, context.receiptService.trustedKeys())
+      : unauthorizedResponse();
+  }
   if (request.method !== 'POST') {
     return jsonResponse(405, { code: 'method_not_allowed' }, { allow: 'POST' });
   }
@@ -12,16 +21,6 @@ export async function routeReceipts(request, pathname, context) {
   if (!session.ok) return unauthorizedResponse();
   const body = await readJsonBody(request, 262_144);
   if (!body.ok) return jsonResponse(body.status, { code: body.code });
-  if (pathname === '/api/receipts/verify') {
-    if (Object.keys(body.value).join(',') !== 'receipt') {
-      return jsonResponse(400, { code: 'invalid_request' });
-    }
-    const verified = await context.receiptService.verify(body.value.receipt);
-    if (!verified.ok) context.events.emit('receipt_failed');
-    return verified.ok
-      ? jsonResponse(200, verified.value)
-      : jsonResponse(422, { code: 'invalid_receipt' });
-  }
   if (
     !['/api/receipts', '/api/receipts/correct'].includes(pathname) ||
     typeof body.value.assignmentId !== 'string'

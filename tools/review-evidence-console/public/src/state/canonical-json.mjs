@@ -8,7 +8,8 @@ function normalize(value) {
     throw new TypeError('Value is not canonical JSON.');
   }
   const normalized = Object.create(null);
-  for (const key of Object.keys(value).sort((left, right) => left.localeCompare(right))) {
+  const compare = (left, right) => (left < right ? -1 : left > right ? 1 : 0);
+  for (const key of Object.keys(value).sort(compare)) {
     if (value[key] === undefined) throw new TypeError('Value is not canonical JSON.');
     normalized[key] = normalize(value[key]);
   }

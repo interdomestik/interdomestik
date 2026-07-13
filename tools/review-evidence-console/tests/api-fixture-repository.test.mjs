@@ -52,7 +52,7 @@ test('API repository maps typed failures without accepting fallback fixture data
   assert.equal((await repository.loadAssignmentBundle('assigned')).code, 'session_expired');
 });
 
-test('API repository strips browser-owned receipt identity and verifies through the server', async () => {
+test('API repository strips browser-owned receipt identity and never uploads local receipt evidence', async () => {
   const calls = [];
   const signed = { receiptId: 'rec_0123456789abcdef01234567', attestation: { keyId: 'test' } };
   const repository = createFixtureRepository({
@@ -61,9 +61,9 @@ test('API repository strips browser-owned receipt identity and verifies through 
         calls.push(['submit', value]);
         return signed;
       },
-      verifyReceipt: async value => {
-        calls.push(['verify', value]);
-        return value;
+      receiptKeys: async () => {
+        calls.push(['keys']);
+        throw new Error('Unavailable test key bundle');
       },
       correctReceipt: async value => {
         calls.push(['correct', value]);
@@ -87,7 +87,13 @@ test('API repository strips browser-owned receipt identity and verifies through 
       safeEvidenceConfirmed: true,
     },
   ]);
-  assert.deepEqual(await repository.verifyReceipt(signed), { ok: true, value: signed });
+  const callCount = calls.length;
+  assert.equal((await repository.verifyReceipt(signed)).ok, false);
+  assert.equal(calls.length, callCount);
+  assert.equal(
+    calls.some(call => call[0] === 'verify'),
+    false
+  );
   await repository.buildReceipt({
     assignmentId: 'assign_mob03a_part_a',
     decisions: { ITEM: { decision: 'approve' } },

@@ -5,6 +5,17 @@ import { signReceipt, verifySignedReceipt } from './receipt-signature.mjs';
 const invalid = code => ({ ok: false, code });
 
 export function createReceiptService({ keyring, now = () => new Date().toISOString() }) {
+  function trustedKeys() {
+    const compare = (left, right) => left.id.localeCompare(right.id, 'en');
+    const keys = [...keyring.publicKeys]
+      .map(([id, value]) => ({
+        id,
+        fingerprint: value.fingerprint,
+        publicKeySpki: value.publicKeySpki,
+      }))
+      .sort(compare);
+    return { version: 1, algorithm: 'Ed25519', keys };
+  }
   async function create(account, bundle, submission) {
     try {
       const payload = await buildServerReceipt(account, bundle, submission, { now });
@@ -34,5 +45,5 @@ export function createReceiptService({ keyring, now = () => new Date().toISOStri
     }
   }
 
-  return Object.freeze({ correct, create, verify });
+  return Object.freeze({ correct, create, trustedKeys, verify });
 }

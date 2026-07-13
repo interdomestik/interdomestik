@@ -4,6 +4,7 @@ import {
   normalizeReviewer,
   validateAssignmentContinuations,
 } from '../models/normalize-fixture.mjs';
+import { createSignedReceiptVerifier } from './receipt-signature-verifier.mjs';
 
 const MESSAGES = Object.freeze({
   session_expired: 'Sesioni ka përfunduar. Hyni përsëri.',
@@ -54,6 +55,7 @@ function normalizeBundle(value) {
 }
 
 export function createApiFixtureRepository(client) {
+  const verifySignedReceipt = createSignedReceiptVerifier(client.receiptKeys);
   return Object.freeze({
     loadReviewerProfile: () => resultOf(client.session, normalizeSession),
     listAssignments: () =>
@@ -80,6 +82,6 @@ export function createApiFixtureRepository(client) {
         ? client.correctReceipt(submission)
         : client.submitReceipt(submission);
     },
-    verifyReceipt: receipt => resultOf(() => client.verifyReceipt(receipt)),
+    verifyReceipt: verifySignedReceipt,
   });
 }
