@@ -5,8 +5,14 @@ import { parseAccountRegistry } from '../auth/account-registry.mjs';
 
 const pbkdf2 = promisify(pbkdf2Callback);
 
+function compareAccountIds(a, b) {
+  if (a.id < b.id) return -1;
+  if (a.id > b.id) return 1;
+  return 0;
+}
+
 export function registryFingerprint(accounts) {
-  const canonical = JSON.stringify([...accounts].sort((a, b) => a.id.localeCompare(b.id)));
+  const canonical = JSON.stringify([...accounts].sort(compareAccountIds));
   return createHash('sha256').update(canonical).digest('base64url');
 }
 

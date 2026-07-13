@@ -78,6 +78,21 @@ test('fingerprints are deterministic and password input is stdin-only', () => {
   );
 });
 
+test('registry fingerprints do not depend on host locale collation', t => {
+  const localeCompare = String.prototype.localeCompare;
+  t.after(() => {
+    String.prototype.localeCompare = localeCompare;
+  });
+  String.prototype.localeCompare = () => {
+    throw new Error('locale-dependent comparison used');
+  };
+
+  assert.equal(
+    registryFingerprint([{ ...gazmend, id: 'acct_z' }, { ...gazmend, id: 'acct_a' }]),
+    registryFingerprint([{ ...gazmend, id: 'acct_a' }, { ...gazmend, id: 'acct_z' }])
+  );
+});
+
 test('check validates the complete registry instead of fingerprinting malformed JSON', async () => {
   const { runAdmin } = await import('../scripts/account-admin.mjs');
   await assert.rejects(() => runAdmin(['check'], { REVIEW_PORTAL_ACCOUNTS_JSON: '[{"id":"x"}]' }));
