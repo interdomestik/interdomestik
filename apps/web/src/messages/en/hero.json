@@ -59,6 +59,22 @@
         "Published annual terms"
       ],
       "trustCues": ["Shqip / English support", "Hotline + WhatsApp", "Claim-first scope published"]
+    },
+    "publicEntry": {
+      "eyebrow": "Interdomestik membership",
+      "title": "A clearer way to prepare for what comes next.",
+      "subtitle": "Annual membership gives you practical guidance and one organized place for your information.",
+      "membershipLabel": "View annual membership",
+      "utilityPrompt": "Need something useful right now?",
+      "helpNowTitle": "Use the Help Now checklist",
+      "helpNowDescription": "Follow a clear checklist you can use on your own.",
+      "caseTitle": "Organize my case information",
+      "caseDescription": "Collect and organize the facts and documents in one place.",
+      "memberEyebrow": "Member space",
+      "memberTitle": "Continue where you left off.",
+      "memberSubtitle": "Open your space to review your cases and next step, or start a new case.",
+      "memberPrimary": "Open my member space",
+      "memberSecondary": "Start a new case"
     }
   }
 }

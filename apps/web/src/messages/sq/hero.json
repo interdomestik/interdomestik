@@ -63,6 +63,22 @@
         "Hotline + WhatsApp",
         "Fusha claim-first e publikuar"
       ]
+    },
+    "publicEntry": {
+      "eyebrow": "Anëtarësimi Interdomestik",
+      "title": "Një mënyrë më e qartë për t’u përgatitur për atë që vjen më pas.",
+      "subtitle": "Anëtarësimi vjetor ju jep qasje në udhëzime praktike dhe një vend të organizuar për informacionin tuaj.",
+      "membershipLabel": "Shih anëtarësimin vjetor",
+      "utilityPrompt": "Ju duhet diçka e dobishme tani?",
+      "helpNowTitle": "Përdor listën Ndihmë Tani",
+      "helpNowDescription": "Ndiq një listë të qartë që mund ta përdorësh vetë.",
+      "caseTitle": "Organizo të dhënat e rastit",
+      "caseDescription": "Mblidh dhe sistemo faktet dhe dokumentet në një vend.",
+      "memberEyebrow": "Hapësira e anëtarit",
+      "memberTitle": "Vazhdo nga aty ku e ke lënë.",
+      "memberSubtitle": "Hap hapësirën tënde për të parë rastet dhe hapin e ardhshëm, ose nis një rast të ri.",
+      "memberPrimary": "Hap hapësirën time",
+      "memberSecondary": "Nis një rast të ri"
     }
   }
 }

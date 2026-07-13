@@ -63,6 +63,22 @@
         "Hotline + WhatsApp",
         "Objavljen claim-first opseg"
       ]
+    },
+    "publicEntry": {
+      "eyebrow": "Interdomestik članstvo",
+      "title": "Jasniji način da se pripremite za ono što sledi.",
+      "subtitle": "Godišnje članstvo vam pruža praktična uputstva i jedno uređeno mesto za vaše informacije.",
+      "membershipLabel": "Pogledajte godišnje članstvo",
+      "utilityPrompt": "Treba vam nešto korisno odmah?",
+      "helpNowTitle": "Koristite listu Pomoć sada",
+      "helpNowDescription": "Pratite jasnu listu koju možete samostalno da koristite.",
+      "caseTitle": "Organizujte podatke o slučaju",
+      "caseDescription": "Prikupite i uredite činjenice i dokumenta na jednom mestu.",
+      "memberEyebrow": "Prostor za članove",
+      "memberTitle": "Nastavite tamo gde ste stali.",
+      "memberSubtitle": "Otvorite svoj prostor da pregledate slučajeve i sledeći korak ili pokrenite novi slučaj.",
+      "memberPrimary": "Otvorite moj prostor",
+      "memberSecondary": "Pokrenite novi slučaj"
     }
   }
 }

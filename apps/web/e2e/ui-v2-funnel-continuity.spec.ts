@@ -14,10 +14,7 @@ test.describe('UI_V2 landing funnel continuity', () => {
       await expect(landing).toHaveAttribute('data-experiment', 'home-funnel');
       const variant = await landing.getAttribute('data-variant');
       expect(variant === 'hero_v1' || variant === 'hero_v2').toBeTruthy();
-
-      if (variant === 'hero_v2') {
-        await expect(page.getByTestId('hero-v2-start-claim')).toBeVisible();
-      }
+      await expect(page.getByTestId('public-entry-hero')).toBeVisible();
 
       await expect(page.getByTestId('pricing-plan-link-standard')).toHaveAttribute(
         'href',
