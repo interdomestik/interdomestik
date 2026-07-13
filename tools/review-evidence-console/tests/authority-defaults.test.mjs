@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { access } from 'node:fs/promises';
 import test from 'node:test';
 
-import { createFixtureRepository } from '../public/src/data/fixture-repository.mjs';
+import { createFixtureRepository } from './static-fixture-repository.mjs';
 
 const owner = 'docs/product/2026-07-11-mob-03a-owner-jurisdiction-attestation.md';
 const partA = 'docs/product/2026-07-09-mob-03a-authority-evidence-request-part-a.md';
@@ -75,9 +75,16 @@ test('prefills every MOB-03a item from specific authority evidence without auto-
   ]);
   const items = bundles.flatMap(bundle => bundle.value.packet.items);
 
-  assert.deepEqual(bundles.map(bundle => bundle.value.packet.version), ['3', '3']);
   assert.deepEqual(
-    bundles.map(bundle => [bundle.value.reviewer.id, bundle.value.reviewer.displayName, bundle.value.reviewer.role]),
+    bundles.map(bundle => bundle.value.packet.version),
+    ['3', '3']
+  );
+  assert.deepEqual(
+    bundles.map(bundle => [
+      bundle.value.reviewer.id,
+      bundle.value.reviewer.displayName,
+      bundle.value.reviewer.role,
+    ]),
     [
       ['reviewer_governance_mk', 'Gazmend Abazi', 'governance'],
       ['reviewer_governance_mk', 'Gazmend Abazi', 'governance'],

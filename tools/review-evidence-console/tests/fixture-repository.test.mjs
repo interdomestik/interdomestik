@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createFixtureRepository } from '../public/src/data/fixture-repository.mjs';
+import { createFixtureRepository } from './static-fixture-repository.mjs';
 import {
   normalizeAssignment,
   normalizePacket,

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { setDocument } from '../public/src/components/dom.mjs';
 import { renderPacketRail } from '../public/src/components/packet-rail.mjs';
-import { createFixtureRepository } from '../public/src/data/fixture-repository.mjs';
+import { createFixtureRepository } from './static-fixture-repository.mjs';
 import { copy, fakeDocument, walk } from './fake-dom.mjs';
 import { bundle } from './review-session-fixtures.mjs';
 

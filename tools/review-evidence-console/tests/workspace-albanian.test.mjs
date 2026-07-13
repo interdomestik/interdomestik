@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { setDocument } from '../public/src/components/dom.mjs';
-import { createFixtureRepository } from '../public/src/data/fixture-repository.mjs';
+import { createFixtureRepository } from './static-fixture-repository.mjs';
 import { renderWorkspace } from '../public/src/views/workspace.mjs';
 import { copy, fakeDocument, walk } from './fake-dom.mjs';
 

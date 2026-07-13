@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createFixtureRepository } from '../public/src/data/fixture-repository.mjs';
+import { createFixtureRepository } from './static-fixture-repository.mjs';
 import { fixtureCatalog } from '../server/fixtures/catalog.mjs';
 
 test('API repository ignores caller-selected reviewer identity', async () => {

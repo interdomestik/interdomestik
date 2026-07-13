@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createFixtureRepository } from '../public/src/data/fixture-repository.mjs';
+import { createFixtureRepository } from './static-fixture-repository.mjs';
 import { normalizeAssignment } from '../public/src/models/normalize-fixture.mjs';
 import { assignments, fakeLoader, reviewer } from './validation-fixtures.mjs';
 
@@ -23,10 +23,7 @@ test('normalizes an optional continuation ID and rejects its wrong type', () => 
 for (const [label, mutate] of [
   ['unknown', rows => [{ ...rows[0], continuesWithAssignmentId: 'assign_missing' }, rows[1]]],
   ['self', rows => [{ ...rows[0], continuesWithAssignmentId: rows[0].id }, rows[1]]],
-  [
-    'cross-reviewer',
-    rows => [rows[0], { ...rows[1], reviewerFixtureId: 'reviewer_other' }],
-  ],
+  ['cross-reviewer', rows => [rows[0], { ...rows[1], reviewerFixtureId: 'reviewer_other' }]],
 ]) {
   test(`rejects ${label} continuation authority`, async () => {
     const loadJson = path =>

@@ -1,5 +1,14 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+
+test('browser fixture repository has no server fixture import boundary', async () => {
+  const source = await readFile(
+    new URL('../public/src/data/fixture-repository.mjs', import.meta.url),
+    'utf8'
+  );
+  assert.doesNotMatch(source, /server\//u);
+});
 
 test('loads every bundled fixture without invoking fetch or XMLHttpRequest', async () => {
   const originalFetch = globalThis.fetch;
@@ -18,7 +27,7 @@ test('loads every bundled fixture without invoking fetch or XMLHttpRequest', asy
   };
   try {
     const { defaultJsonLoader } = await import(
-      `../public/src/data/fixture-repository.mjs?static-loader-test=${Date.now()}`
+      `./static-fixture-repository.mjs?static-loader-test=${Date.now()}`
     );
     const reviewers = await defaultJsonLoader('/data/reviewers.json');
     const assignments = await defaultJsonLoader('/data/assignments.json');

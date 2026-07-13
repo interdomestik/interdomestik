@@ -1,15 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createFixtureRepository } from '../public/src/data/fixture-repository.mjs';
+import { createFixtureRepository } from './static-fixture-repository.mjs';
 import { normalizeAssignment } from '../public/src/models/normalize-fixture.mjs';
 import { loadInboxRows } from '../public/src/views/inbox-data.mjs';
 import { assignments, fakeLoader, reviewer } from './validation-fixtures.mjs';
 
 const invalidLoader = (field, value) => async path =>
-  path === '/data/assignments.json'
-    ? [{ ...assignments[0], [field]: value }]
-    : fakeLoader(path);
+  path === '/data/assignments.json' ? [{ ...assignments[0], [field]: value }] : fakeLoader(path);
 
 test('requires nonempty string assignment titleSq and purposeSq', () => {
   for (const field of ['titleSq', 'purposeSq']) {

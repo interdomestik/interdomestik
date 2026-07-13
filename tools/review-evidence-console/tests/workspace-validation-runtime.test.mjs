@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createWorkspaceRuntime } from '../public/src/app/workspace-runtime.mjs';
-import { createFixtureRepository } from '../public/src/data/fixture-repository.mjs';
+import { createFixtureRepository } from './static-fixture-repository.mjs';
 import { composeDraftKey } from '../public/src/state/draft-store.mjs';
 import { bundle } from './review-session-fixtures.mjs';
 test('restored autosaved draft opens validation exactly once without another edit', async () => {
