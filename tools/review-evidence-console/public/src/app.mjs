@@ -143,8 +143,8 @@ function route() {
   if (current.name === 'workspace') loadWorkspace(current, token);
   else if (current.name === 'validation') reviewRoutes.validation(current, token);
   else if (current.name === 'receipt') reviewRoutes.receipt(current, token);
+  else if (current.name === 'history') reviewRoutes.history(current, token);
   else loadInbox(token);
 }
-
 window.addEventListener('hashchange', route);
 auth.start();

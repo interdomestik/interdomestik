@@ -1,4 +1,5 @@
 import { importedReceiptMatchesPacket } from '../validation/receipt-packet.mjs';
+import { applyLegacySubmission } from './legacy-submissions.mjs';
 import { receiptStatus } from './receipt-status.mjs';
 
 const PROGRESS = Object.freeze({
@@ -51,6 +52,7 @@ export async function loadInboxRows(repository, reviewerId, receiptStore) {
       receiptIdentity(bundles[index].value)
     ),
   }));
+  rows = rows.map(applyLegacySubmission);
   for (const row of rows) {
     if (row.submissionStatus !== 'submitted' || !row.continuesWithAssignmentId) continue;
     const nextIndex = rows.findIndex(candidate => candidate.id === row.continuesWithAssignmentId);

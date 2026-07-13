@@ -31,7 +31,7 @@ async function routeMutation(request, pathname, context) {
   const body = await readJsonBody(request, 262_144);
   if (!body.ok) return jsonResponse(body.status, { code: body.code });
   if (
-    !['/api/receipts', '/api/receipts/correct'].includes(pathname) ||
+    !['/api/receipts', '/api/receipts/correct', '/api/receipts/migrate'].includes(pathname) ||
     typeof body.value.assignmentId !== 'string' ||
     !ASSIGNMENT_ID.test(body.value.assignmentId)
   ) {
@@ -45,10 +45,14 @@ async function routeMutation(request, pathname, context) {
     context.events.emit('role_boundary_denied');
     return notFoundResponse();
   }
-  const created =
-    pathname === '/api/receipts/correct'
-      ? await context.receiptService.correct(session.account, bundle.value, body.value)
-      : await context.receiptService.create(session.account, bundle.value, body.value);
+  let operation = 'create';
+  if (pathname === '/api/receipts/correct') operation = 'correct';
+  if (pathname === '/api/receipts/migrate') operation = 'migrate';
+  const created = await context.receiptService[operation](
+    session.account,
+    bundle.value,
+    body.value
+  );
   if (!created.ok) context.events.emit('receipt_failed');
   return resultResponse(created);
 }

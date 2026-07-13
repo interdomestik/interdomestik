@@ -18,6 +18,12 @@ function stringList(value, key) {
   return value;
 }
 
+function normalizeLegacySubmission(value) {
+  if (value === undefined) return undefined;
+  for (const key of ['receiptId', 'submittedAt']) requiredString(value, key);
+  return { receiptId: value.receiptId, submittedAt: value.submittedAt };
+}
+
 export function normalizeReviewer(reviewer) {
   for (const key of ['id', 'displayName', 'role']) requiredString(reviewer, key);
   if (reviewer.repoSafe !== true) throw new TypeError('repoSafe must be true.');
@@ -44,7 +50,8 @@ export function normalizeAssignment(assignment) {
     requiredString(assignment, 'continuesWithAssignmentId');
   }
   if (assignment.fixture !== true) throw new TypeError('fixture must be true.');
-  return { ...assignment };
+  const legacySubmission = normalizeLegacySubmission(assignment.legacySubmission);
+  return { ...assignment, ...(legacySubmission ? { legacySubmission } : {}) };
 }
 
 export function validateAssignmentContinuations(assignments) {

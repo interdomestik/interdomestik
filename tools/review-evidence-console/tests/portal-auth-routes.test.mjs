@@ -58,6 +58,7 @@ test('login, session probe, and logout use a secure private session', async () =
   assert.deepEqual(
     { ...loginBody, draftScope: '<opaque>' },
     {
+      accountId: 'acct_gazmend',
       displayName: 'Gazmend Abazi',
       role: 'governance',
       fixtureId: 'reviewer_governance_mk',
@@ -124,7 +125,6 @@ test('rate limit returns retry guidance before password verification', async () 
   assert.equal(response.headers.get('retry-after'), '60');
   assert.equal(verifications(), 0);
 });
-
 test('default handler throttles the sixth login attempt from one source', async () => {
   let verifications = 0;
   const handler = serverApp.createPortalHandler({

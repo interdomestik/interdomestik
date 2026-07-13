@@ -5,14 +5,17 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 const consoleRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const generatedDirectories = new Set(['.vercel', 'node_modules']);
 
 async function sourceFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
   const nested = await Promise.all(
-    entries.map(entry => {
-      const entryPath = path.join(directory, entry.name);
-      return entry.isDirectory() ? sourceFiles(entryPath) : [entryPath];
-    })
+    entries
+      .filter(entry => !generatedDirectories.has(entry.name))
+      .map(entry => {
+        const entryPath = path.join(directory, entry.name);
+        return entry.isDirectory() ? sourceFiles(entryPath) : [entryPath];
+      })
   );
   return nested.flat();
 }

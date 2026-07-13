@@ -5,7 +5,7 @@ import { loadInboxRows } from '../public/src/views/inbox-data.mjs';
 
 const reviewerId = 'reviewer_a';
 
-function bundle(id, packetId, version = '3', continuesWithAssignmentId) {
+function bundle(id, packetId, version = '3', continuesWithAssignmentId, legacySubmission) {
   const assignment = {
     id,
     packetId,
@@ -15,6 +15,7 @@ function bundle(id, packetId, version = '3', continuesWithAssignmentId) {
     titleSq: `Title ${id}`,
     purposeSq: `Purpose ${id}`,
     ...(continuesWithAssignmentId ? { continuesWithAssignmentId } : {}),
+    ...(legacySubmission ? { legacySubmission } : {}),
   };
   return {
     assignment,
@@ -76,6 +77,27 @@ test('keeps legacy inbox rows free of receipt status when no store is supplied',
   assert.equal(result.ok, true);
   assert.equal('submissionStatus' in result.value[0], false);
   assert.equal('nextAction' in result.value[0], false);
+});
+
+test('marks accepted MOB-03a receipts as delivered before local migration', async () => {
+  const partA = bundle('assign_mob03a_part_a', 'mob-03a-part-a', '3', undefined, {
+    receiptId: 'rec_51f0d862d5f41cf26e3e60fc',
+    submittedAt: '2026-07-12T06:40:12.669Z',
+  });
+  const partB = bundle('assign_mob03a_part_b', 'mob-03a-part-b', '3', undefined, {
+    receiptId: 'rec_1298f380aa840d71c2970a99',
+    submittedAt: '2026-07-12T10:35:28.062Z',
+  });
+  const result = await loadInboxRows(repositoryFor(partA, partB), reviewerId, {
+    listAll: async () => ({ ok: true, value: [] }),
+  });
+  assert.deepEqual(
+    result.value.map(row => [row.submissionStatus, row.legacyReceiptId]),
+    [
+      ['legacy_submitted', 'rec_51f0d862d5f41cf26e3e60fc'],
+      ['legacy_submitted', 'rec_1298f380aa840d71c2970a99'],
+    ]
+  );
 });
 
 test('invalid receipt evidence fails inbox closed without potentially false statuses', async () => {

@@ -1,6 +1,8 @@
 import { element, text } from '../components/dom.mjs';
 import { displaySeverity } from '../components/display-labels.mjs';
 import { cardAction, submissionDetails } from './inbox-card-status.mjs';
+import { renderInboxSummary } from './inbox-summary.mjs';
+import { renderReceiptPicker } from './receipt-picker.mjs';
 
 const RISK = { high: 'Rrezik i lartë', medium: 'Rrezik mesatar', low: 'Rrezik i ulët' };
 const riskCopy = value => RISK[value] ?? `Rrezik ${displaySeverity(value)}`;
@@ -17,6 +19,7 @@ export function renderInbox({
     element('span', { attributes: { class: 'eyebrow' } }, [text('Detyrat e mia')]),
     element('h1', { attributes: { id: 'inbox-title' } }, [text('Paketat për rishikim')]),
     element('p', {}, [text('Përfundo një paketë provash me vendime të qarta dhe të sigurta.')]),
+    renderInboxSummary(assignments),
   ]);
   if (state === 'loading') return inboxSection(heading, statePanel('Po ngarkohen detyrat…'));
   if (state === 'empty') return inboxSection(heading, statePanel('Nuk ka paketa të caktuara.'));
@@ -41,61 +44,57 @@ function inboxSection(...children) {
 }
 
 function assignmentCard(assignment, onOpen, onOpenReceipt, onImport) {
-  const helpId = `import-help-${assignment.id}`;
-  const fileId = `receipt-file-${assignment.id}`;
-  const file = element('input', {
-    attributes: {
-      id: fileId,
-      class: 'receipt-picker__input',
-      type: 'file',
-      accept: 'application/json,.json',
-      'aria-describedby': helpId,
-      'aria-label': `Importo vërtetimin lokal JSON — ${assignment.packetId} — ${assignment.id}`,
-    },
-    on: { change: event => event.target.files?.[0] && onImport(assignment, event.target.files[0]) },
-  });
   const action = cardAction(assignment);
+  const legacy = assignment.submissionStatus === 'legacy_submitted';
   const open =
     assignment.submissionStatus === 'submitted'
       ? () => onOpenReceipt(assignment.receiptId)
       : () => onOpen(assignment);
-  return element('article', { attributes: { class: 'assignment-card' } }, [
-    element('span', { attributes: { class: 'canonical-id' } }, [text(assignment.packetId)]),
-    element('h2', {}, [text(assignment.title)]),
-    element('p', { attributes: { class: 'card-purpose' } }, [text(assignment.purpose)]),
-    element('div', { attributes: { class: 'card-meta' } }, [
-      label(riskCopy(assignment.risk), `risk risk--${assignment.risk}`, assignment.risk),
-      assignment.submissionStatus === 'submitted' ? null : label(assignment.progress, 'progress'),
-      label(`Afati: ${assignment.dueDate}`, 'due-date'),
-      ...submissionDetails(assignment),
-    ]),
-    element(
-      'button',
-      {
-        attributes: {
-          class: 'primary-action',
-          type: 'button',
-          'aria-label': `${action} — ${assignment.packetId} — ${assignment.id}`,
-        },
-        on: { click: open },
-      },
-      [text(action)]
-    ),
-    element('div', { attributes: { class: 'import-receipt' } }, [
-      element('label', { attributes: { class: 'receipt-picker', for: fileId } }, [
-        element('span', { attributes: { class: 'receipt-picker__label' } }, [
-          text('Importo vërtetimin lokal JSON'),
+  const submitted = assignment.submissionStatus === 'submitted';
+  const complete = submitted || legacy;
+  const part = assignment.packetId.toLowerCase().endsWith('part-b') ? 'B' : 'A';
+  return element(
+    'article',
+    {
+    attributes: { class: `assignment-card${complete ? ' assignment-card--submitted' : ''}` },
+    },
+    [
+      element('div', { attributes: { class: 'card-header' } }, [
+        element('span', { attributes: { class: 'packet-mark', 'aria-label': `Pjesa ${part}` } }, [
+          text(part),
         ]),
-        element('span', { attributes: { class: 'receipt-picker__button' } }, [
-          text('Zgjidh vërtetimin JSON'),
+        element('div', {}, [
+          element('span', { attributes: { class: 'canonical-id' } }, [text(assignment.packetId)]),
+          element('span', { attributes: { class: 'card-state' } }, [
+          text(submitted ? 'E përfunduar' : legacy ? 'Dorëzuar më parë' : 'Për veprim'),
+          ]),
         ]),
-        file,
       ]),
-      element('p', { attributes: { id: helpId } }, [
-        text('Lexohet në këtë pajisje; nuk ngarkohet kurrë'),
+      element('h2', {}, [text(assignment.title)]),
+      element('p', { attributes: { class: 'card-purpose' } }, [text(assignment.purpose)]),
+      element('div', { attributes: { class: 'card-meta' } }, [
+        label(riskCopy(assignment.risk), `risk risk--${assignment.risk}`, assignment.risk),
+      complete ? null : label(assignment.progress, 'progress'),
+        label(`Afati: ${assignment.dueDate}`, 'due-date'),
+        ...submissionDetails(assignment),
       ]),
-    ]),
-  ]);
+    legacy
+      ? null
+      : element(
+          'button',
+          {
+            attributes: {
+              class: 'primary-action',
+              type: 'button',
+              'aria-label': `${action} — ${assignment.packetId} — ${assignment.id}`,
+            },
+            on: { click: open },
+          },
+          [text(action)]
+        ),
+    renderReceiptPicker(assignment, onImport, legacy),
+    ]
+  );
 }
 
 function label(copy, className, raw) {

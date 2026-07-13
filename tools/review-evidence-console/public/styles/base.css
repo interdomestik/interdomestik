@@ -12,12 +12,14 @@ html {
 body {
   margin: 0;
   min-width: 320px;
+  background: linear-gradient(hsl(171 58% 96% / 0.45), transparent 22rem), var(--canvas);
 }
 
 button,
 summary,
 a {
   font: inherit;
+  -webkit-tap-highlight-color: transparent;
 }
 
 button,
@@ -40,6 +42,7 @@ h1,
 h2,
 .brand__title {
   font-family: var(--font-heading);
+  letter-spacing: -0.025em;
 }
 
 .sr-only {

@@ -1,39 +1,131 @@
 import assert from 'node:assert/strict';
+import { access, readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-import middleware, { config, createMiddleware } from '../middleware.js';
+import vercelApi, { createVercelApiFunction } from '../api/index.mjs';
 
-test('middleware is explicitly Node-scoped to private API routes', () => {
-  assert.deepEqual(config, { runtime: 'nodejs', matcher: '/api/:path*' });
+const TOOL_ROOT = new URL('../', import.meta.url);
+
+test('Vercel blocks the physical function path before routing private API paths', async () => {
+  const config = JSON.parse(await readFile(new URL('vercel.json', TOOL_ROOT), 'utf8'));
+  assert.deepEqual(config.routes, [
+    { src: '^/api/index(?:/.*)?$', status: 404 },
+    {
+      src: '^/api$',
+      dest: '/api/index',
+      headers: { 'x-rec-rewrite-kind': 'root', 'x-rec-rewrite-path': '-' },
+    },
+    {
+      src: '^/api/(.*)$',
+      dest: '/api/index',
+      headers: { 'x-rec-rewrite-kind': 'path', 'x-rec-rewrite-path': '$1' },
+    },
+    { handle: 'filesystem' },
+  ]);
+  await assert.rejects(access(new URL('middleware.js', TOOL_ROOT)));
+  await assert.rejects(access(new URL('api/[...path].mjs', TOOL_ROOT)));
 });
 
-test('middleware leaves public assets alone and delegates only API requests', async () => {
-  assert.equal(typeof createMiddleware, 'function');
+test('Node function preserves the original Web Request for the private handler', async () => {
   const seen = [];
-  const scoped = createMiddleware({
+  const api = createVercelApiFunction({
     handler: async request => {
-      seen.push(new URL(request.url).pathname);
+      seen.push(request);
       return new Response('private', { status: 200 });
     },
   });
-  assert.equal(await scoped(new Request('https://reviewer.example.test/')), undefined);
-  assert.equal(
-    await scoped(new Request('https://reviewer.example.test/styles/base.css')),
-    undefined
-  );
-  assert.equal((await scoped(new Request('https://reviewer.example.test/api'))).status, 200);
-  assert.equal(
-    (await scoped(new Request('https://reviewer.example.test/api/session'))).status,
-    200
-  );
-  assert.deepEqual(seen, ['/api', '/api/session']);
+  const request = new Request('https://reviewer.example.test/api/session?fresh=1', {
+    headers: { cookie: 'review_portal_session=opaque' },
+  });
+  assert.equal((await api.fetch(request)).status, 200);
+  assert.deepEqual(seen, [request]);
 });
 
-test('default middleware fails closed without named-account configuration', async () => {
+test('Node function restores path and query while preserving request security inputs', async () => {
+  const seen = [];
+  const api = createVercelApiFunction({
+    handler: async request => {
+      seen.push({
+        url: request.url,
+        method: request.method,
+        body: await request.text(),
+        cookie: request.headers.get('cookie'),
+        origin: request.headers.get('origin'),
+      });
+      return new Response('private', { status: 200 });
+    },
+  });
+  const request = new Request('https://reviewer.example.test/api/index?fresh=1', {
+    method: 'POST',
+    body: '{"decision":"approve"}',
+    headers: {
+      cookie: 'review_portal_session=opaque',
+      origin: 'https://reviewer.example.test',
+      'x-rec-rewrite-kind': 'path',
+      'x-rec-rewrite-path': 'receipts/rec_1',
+    },
+  });
+  assert.equal((await api.fetch(request)).status, 200);
+  assert.deepEqual(seen, [
+    {
+      url: 'https://reviewer.example.test/api/receipts/rec_1?fresh=1',
+      method: 'POST',
+      body: '{"decision":"approve"}',
+      cookie: 'review_portal_session=opaque',
+      origin: 'https://reviewer.example.test',
+    },
+  ]);
+});
+
+test('Node function rejects rewritten paths that can normalize outside private API scope', async () => {
+  let calls = 0;
+  const api = createVercelApiFunction({
+    handler: async () => {
+      calls += 1;
+      return new Response('unsafe', { status: 200 });
+    },
+  });
+  for (const rewrittenPath of ['..%2Fadmin', '.%2Fsession', 'receipts%5C..%5Cadmin']) {
+    const response = await api.fetch(
+      new Request('https://reviewer.example.test/api/index', {
+        headers: { 'x-rec-rewrite-kind': 'path', 'x-rec-rewrite-path': rewrittenPath },
+      })
+    );
+    assert.equal(response.status, 404);
+    assert.equal(response.headers.get('cache-control'), 'private, no-store');
+    assert.deepEqual(await response.json(), { code: 'not_found' });
+  }
+  assert.equal(calls, 0);
+});
+
+test('client query sentinels cannot bypass the public login Firewall path', async () => {
+  const seen = [];
+  const api = createVercelApiFunction({
+    handler: request => {
+      seen.push(request.url);
+      return new Response('private');
+    },
+  });
+  const response = await api.fetch(
+    new Request('https://reviewer.example.test/api/index?__rec_path=session%2Flogin', {
+      method: 'POST',
+      headers: {
+        'x-rec-rewrite-kind': 'root',
+        'x-rec-rewrite-path': '-',
+      },
+    })
+  );
+  assert.equal(response.status, 200);
+  assert.deepEqual(seen, ['https://reviewer.example.test/api?__rec_path=session%2Flogin']);
+});
+
+test('default Node function fails closed without named-account configuration', async () => {
   const before = process.env.REVIEW_PORTAL_ACCOUNTS_JSON;
   delete process.env.REVIEW_PORTAL_ACCOUNTS_JSON;
   try {
-    const response = await middleware(new Request('https://reviewer.example.test/api/session'));
+    const response = await vercelApi.fetch(
+      new Request('https://reviewer.example.test/api/session')
+    );
     assert.equal(response.status, 503);
     assert.equal(response.headers.get('cache-control'), 'private, no-store');
     assert.deepEqual(await response.json(), { code: 'service_unavailable' });
