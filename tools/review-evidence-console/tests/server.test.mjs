@@ -118,9 +118,9 @@ test('serves every external shell reference from the real public root', async t 
 test('delegates API requests to the shared Fetch handler', async t => {
   const server = createConsoleServer({
     publicRoot,
-    portalHandler: async request =>
+    portalHandler: async (request, pathname) =>
       new Response(
-        JSON.stringify({ method: request.method, body: await request.json() }),
+        JSON.stringify({ method: request.method, body: await request.json(), pathname, url: request.url }),
         { status: 201, headers: { 'content-type': 'application/json', 'cache-control': 'private, no-store' } }
       ),
   });
@@ -129,10 +129,13 @@ test('delegates API requests to the shared Fetch handler', async t => {
   t.after(() => server.close());
   const response = await fetch(`http://127.0.0.1:${server.address().port}/api/echo`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', origin: 'http://127.0.0.1' },
+    headers: { 'content-type': 'application/json', host: 'attacker.example', origin: 'http://127.0.0.1' },
     body: JSON.stringify({ ok: true }),
   });
   assert.equal(response.status, 201);
   assert.equal(response.headers.get('cache-control'), 'private, no-store');
-  assert.deepEqual(await response.json(), { method: 'POST', body: { ok: true } });
+  assert.deepEqual(await response.json(), {
+    method: 'POST', body: { ok: true }, pathname: '/api/echo',
+    url: `http://127.0.0.1:${server.address().port}/api`,
+  });
 });

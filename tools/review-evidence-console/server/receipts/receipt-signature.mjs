@@ -3,6 +3,7 @@ import { canonicalReceiptBytes } from './canonical-json.mjs';
 
 const invalid = () => ({ ok: false, code: 'invalid_signature' });
 const ATTESTATION_KEYS = ['algorithm', 'keyFingerprint', 'keyId', 'signature', 'version'];
+const compareStrings = (left, right) => left.localeCompare(right, 'en');
 
 function deepFreeze(value) {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {
@@ -41,7 +42,7 @@ export async function verifySignedReceipt(receipt, keyring) {
     const { attestation, ...payload } = receipt;
     if (
       !attestation ||
-      Object.keys(attestation).sort().join(',') !== ATTESTATION_KEYS.join(',') ||
+      Object.keys(attestation).sort(compareStrings).join(',') !== ATTESTATION_KEYS.join(',') ||
       attestation.version !== 1 ||
       attestation.algorithm !== 'Ed25519'
     ) return invalid();

@@ -27,9 +27,9 @@ export function createPortalHandler({
     receiptService,
     events,
   };
-  return async function handlePortalRequest(request) {
+  return async function handlePortalRequest(request, routePath) {
     try {
-      const pathname = new URL(request.url).pathname;
+      const pathname = routePath ?? new URL(request.url).pathname;
       const session = routeSession(request, pathname, context);
       if (session) return session;
       if (pathname === '/api/assignments' || pathname.startsWith('/api/assignments/')) {

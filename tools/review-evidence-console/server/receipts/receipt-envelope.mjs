@@ -12,6 +12,7 @@ const CORRECTION_KEYS = [
   'safeEvidenceConfirmed',
   'structuredResponses',
 ];
+const compareStrings = (left, right) => left.localeCompare(right, 'en');
 
 function isRecord(value) {
   return value && typeof value === 'object' && !Array.isArray(value);
@@ -20,7 +21,7 @@ function isRecord(value) {
 export function isInitialSubmission(value) {
   return (
     isRecord(value) &&
-    Object.keys(value).sort().join(',') === INITIAL_KEYS.join(',') &&
+    Object.keys(value).sort(compareStrings).join(',') === INITIAL_KEYS.join(',') &&
     typeof value.assignmentId === 'string' &&
     isRecord(value.decisions) &&
     isRecord(value.structuredResponses) &&
@@ -31,8 +32,8 @@ export function isInitialSubmission(value) {
 function validateJudgments(bundle, submission) {
   const itemIds = bundle.packet.itemIds;
   const exactPacketKeys = record => {
-    const actual = Object.keys(record).sort();
-    const expected = [...itemIds].sort();
+    const actual = Object.keys(record).sort(compareStrings);
+    const expected = [...itemIds].sort(compareStrings);
     return actual.length === expected.length && actual.every((key, index) => key === expected[index]);
   };
   if (!exactPacketKeys(submission.decisions) || !exactPacketKeys(submission.structuredResponses)) {
@@ -88,7 +89,7 @@ export async function buildServerCorrection(
 ) {
   if (
     !isRecord(submission) ||
-    Object.keys(submission).sort().join(',') !== CORRECTION_KEYS.join(',') ||
+    Object.keys(submission).sort(compareStrings).join(',') !== CORRECTION_KEYS.join(',') ||
     submission.assignmentId !== bundle.assignment.id ||
     ['correctionItemId', 'correctionReason', 'correctionImpact'].some(
       key => typeof submission[key] !== 'string' || !submission[key].trim()

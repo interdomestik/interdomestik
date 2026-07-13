@@ -5,6 +5,7 @@ import { decodeBase64url, encodeBase64url } from './base64url.mjs';
 const encoder = new TextEncoder();
 const invalid = () => ({ ok: false, code: 'invalid_session' });
 const currentSeconds = () => Math.floor(Date.now() / 1000);
+const compareStrings = (left, right) => left.localeCompare(right, 'en');
 
 async function signature(value, secret) {
   const bytes = decodeBase64url(secret, { min: 32, max: 64 });
@@ -46,7 +47,7 @@ function validPayload(value) {
     value &&
     typeof value === 'object' &&
     !Array.isArray(value) &&
-    Object.keys(value).sort().join(',') === keys.join(',') &&
+    Object.keys(value).sort(compareStrings).join(',') === keys.join(',') &&
     value.v === 1 &&
     typeof value.aid === 'string' &&
     typeof value.fid === 'string' &&
