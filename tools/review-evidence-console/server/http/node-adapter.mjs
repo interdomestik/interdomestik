@@ -1,7 +1,6 @@
 import { notFoundResponse } from './responses.mjs';
 
 const API_PATH = /^\/api(?:\/[a-z0-9_-]{1,100}){0,3}$/u;
-const LOOPBACK_HOSTS = Object.freeze(['127.0.0.1', 'localhost', '[::1]']);
 
 function requestPath(request) {
   if (typeof request.url !== 'string' || request.url.length > 512) return null;
@@ -13,8 +12,10 @@ function serverUrl(request) {
   const port = request.socket?.localPort;
   if (!Number.isInteger(port) || port < 1 || port > 65_535) return null;
   const host = request.headers?.host?.toLowerCase();
-  if (!LOOPBACK_HOSTS.some(name => host === `${name}:${port}`)) return null;
-  return `http://${host}/api`;
+  if (host === `localhost:${port}`) return `http://localhost:${port}/api`;
+  if (host === `127.0.0.1:${port}`) return `http://127.0.0.1:${port}/api`;
+  if (host === `[::1]:${port}`) return `http://[::1]:${port}/api`;
+  return null;
 }
 
 function toFetchRequest(request) {
