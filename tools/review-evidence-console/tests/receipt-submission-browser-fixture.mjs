@@ -97,7 +97,7 @@ export async function submitCompleteReview(page, origin) {
 export async function submissionArtifacts(page) {
   return page.evaluate(() => {
     const receiptKey = Object.keys(localStorage).find(key =>
-      key.startsWith('review-console:v1:receipt:')
+      key.startsWith('review-console:v2:receipt:')
     );
     return {
       probe: globalThis.directoryProbe,

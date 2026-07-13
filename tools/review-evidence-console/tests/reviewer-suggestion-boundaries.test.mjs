@@ -82,7 +82,7 @@ test('rejects rehashed suggestion metadata across verification and acceptance pa
       'invalid_data',
       `${key}: import`
     );
-    storage.setItem(`review-console:v1:receipt:${malformed.receiptId}`, JSON.stringify(malformed));
+    storage.setItem(`review-console:v2:receipt:${malformed.receiptId}`, JSON.stringify(malformed));
     assert.equal((await store.load(malformed.receiptId)).code, 'invalid_data', `${key}: load`);
     await assert.rejects(
       () =>

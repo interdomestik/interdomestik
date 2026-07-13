@@ -2,7 +2,7 @@ import { canonicalStringify } from './canonical-json.mjs';
 import { matchesMetadata, validateReceipt } from './receipt-schema.mjs';
 import { failure, storageFailure } from './storage-results.mjs';
 
-const PREFIX = 'review-console:v1:receipt:';
+const PREFIX = 'review-console:v2:receipt:';
 const keyFor = receiptId => `${PREFIX}${receiptId}`;
 
 export function createReceiptStore({

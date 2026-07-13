@@ -93,7 +93,7 @@ test('load rejects directly stored rehashed receipts with nested suggestion meta
   for (const mutation of mutations) {
     const { storage, store } = storeFor();
     const receipt = await poisonedReceipt(mutation.apply);
-    storage.setItem(`review-console:v1:receipt:${receipt.receiptId}`, JSON.stringify(receipt));
+    storage.setItem(`review-console:v2:receipt:${receipt.receiptId}`, JSON.stringify(receipt));
     assert.equal((await store.load(receipt.receiptId)).code, 'invalid_data', mutation.label);
   }
 });

@@ -10,7 +10,9 @@ test.beforeAll(async () => {
 test.afterAll(async () => {
   await new Promise(resolve => server.close(resolve));
 });
-test('loads complete fixture bundles only through the authenticated same-origin API', async ({ page }) => {
+test('loads complete fixture bundles only through the authenticated same-origin API', async ({
+  page,
+}) => {
   await loginReviewer(page, origin);
   const result = await page.evaluate(async () => {
     const { createFixtureRepository } = await import('/src/data/fixture-repository.mjs');
@@ -107,7 +109,7 @@ async function proveSuggestionFlow(page, viewport) {
   await expect(page.getByRole('heading', { name: 'Vërtetimi i shqyrtimit' })).toBeVisible();
   const receipt = await page.evaluate(() => {
     const key = Object.keys(localStorage).find(value =>
-      value.startsWith('review-console:v1:receipt:')
+      value.startsWith('review-console:v2:receipt:')
     );
     return JSON.parse(localStorage.getItem(key));
   });
