@@ -1,4 +1,5 @@
 const EXPLICIT_LOGIN_FAILURES = new Set(['forbidden', 'rate_limited', 'unavailable']);
+const EXPLICIT_SESSION_FAILURES = new Set(['forbidden', 'unavailable']);
 
 export function createAuthRuntime({
   client,
@@ -25,8 +26,11 @@ export function createAuthRuntime({
     emit({ status: 'checking' });
     try {
       emit({ status: 'authenticated', account: await client.session() });
-    } catch {
-      emit({ status: 'anonymous', reason: 'session_expired' });
+    } catch (error) {
+      emit({
+        status: 'anonymous',
+        reason: EXPLICIT_SESSION_FAILURES.has(error?.code) ? error.code : 'session_expired',
+      });
     }
   }
   async function login(credentials) {

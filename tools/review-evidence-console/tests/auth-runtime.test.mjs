@@ -77,6 +77,20 @@ test('auth runtime preserves service and origin failures during login', async ()
   }
 });
 
+test('auth runtime preserves service and permission failures during session restoration', async () => {
+  for (const code of ['unavailable', 'forbidden']) {
+    const states = [];
+    const runtime = createAuthRuntime({
+      client: {
+        session: async () => Promise.reject(Object.assign(new Error(), { code })),
+      },
+      onState: state => states.push(state),
+    });
+    await runtime.start();
+    assert.deepEqual(states.at(-1), { status: 'anonymous', reason: code });
+  }
+});
+
 test('auth runtime clears rendered access at the server session expiry', async () => {
   const states = [];
   let expire;

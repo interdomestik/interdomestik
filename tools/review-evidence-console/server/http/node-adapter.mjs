@@ -1,3 +1,5 @@
+import { notFoundResponse } from './responses.mjs';
+
 const API_PATH = /^\/api(?:\/[a-z0-9_-]{1,100}){0,3}$/u;
 
 function requestPath(request) {
@@ -26,9 +28,7 @@ function toFetchRequest(request) {
 
 export async function handleNodePortalRequest(request, response, handler) {
   const pathname = requestPath(request);
-  const result = pathname
-    ? await handler(toFetchRequest(request), pathname)
-    : new Response(null, { status: 404 });
+  const result = pathname ? await handler(toFetchRequest(request), pathname) : notFoundResponse();
   const headers = Object.fromEntries(result.headers.entries());
   const body = Buffer.from(await result.arrayBuffer());
   response.writeHead(result.status, { ...headers, 'content-length': body.length });
