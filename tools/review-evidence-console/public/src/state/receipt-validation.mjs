@@ -113,9 +113,12 @@ function validateCorrection(receipt) {
 function validateMigration(receipt) {
   if (receipt.migration === undefined) return null;
   const value = receipt.migration;
+  const keys = isRecord(value) ? Object.keys(value) : [];
+  const hasExactKeys =
+    keys.length === MIGRATION_KEYS.length && MIGRATION_KEYS.every(key => keys.includes(key));
   if (
     !isRecord(value) ||
-    Object.keys(value).sort().join(',') !== [...MIGRATION_KEYS].sort().join(',') ||
+    !hasExactKeys ||
     !ID.test(value.sourceReceiptId) ||
     value.sourceReceiptId === receipt.receiptId ||
     !Number.isInteger(value.sourceReceiptVersion) ||

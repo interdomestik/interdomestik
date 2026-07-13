@@ -45,12 +45,9 @@ async function routeMutation(request, pathname, context) {
     context.events.emit('role_boundary_denied');
     return notFoundResponse();
   }
-  const operation =
-    pathname === '/api/receipts/correct'
-      ? 'correct'
-      : pathname === '/api/receipts/migrate'
-        ? 'migrate'
-        : 'create';
+  let operation = 'create';
+  if (pathname === '/api/receipts/correct') operation = 'correct';
+  if (pathname === '/api/receipts/migrate') operation = 'migrate';
   const created = await context.receiptService[operation](
     session.account,
     bundle.value,

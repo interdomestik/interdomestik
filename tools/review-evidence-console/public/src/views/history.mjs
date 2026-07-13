@@ -76,14 +76,14 @@ export function renderHistory({
       ),
     ]),
   ]);
-  const content =
-    state === 'loading'
-      ? [statePanel('Po ngarkohet historia…')]
-      : state === 'unavailable'
-        ? [statePanel('Historia nuk mund të hapet.', message)]
-        : state === 'empty'
-          ? [statePanel('Nuk ka ende shqyrtime të ruajtura.', 'Importo një vërtetim te Detyrat.')]
-          : rows.map(row => historyCard(row, onOpenReceipt, onRequestChange));
+  let content = rows.map(row => historyCard(row, onOpenReceipt, onRequestChange));
+  if (state === 'loading') content = [statePanel('Po ngarkohet historia…')];
+  if (state === 'unavailable') content = [statePanel('Historia nuk mund të hapet.', message)];
+  if (state === 'empty') {
+    content = [
+      statePanel('Nuk ka ende shqyrtime të ruajtura.', 'Importo një vërtetim te Detyrat.'),
+    ];
+  }
   return element(
     'section',
     { attributes: { class: 'history', 'aria-labelledby': 'history-title' } },

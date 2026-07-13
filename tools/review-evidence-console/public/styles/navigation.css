@@ -22,7 +22,7 @@
 
 .primary-nav__link:hover {
   color: white;
-  background: hsl(0 0% 100% / 0.08);
+  background: var(--blue-800);
 }
 
 .primary-nav__link--active {

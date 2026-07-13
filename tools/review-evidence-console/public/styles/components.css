@@ -36,10 +36,6 @@
 .role-badge,
 .save-state {
   font-size: 0.86rem;
-}
-
-.role-badge,
-.save-state {
   padding: 0.35rem 0.65rem;
   border: 1px solid hsl(200 35% 65% / 0.45);
   border-radius: 999px;

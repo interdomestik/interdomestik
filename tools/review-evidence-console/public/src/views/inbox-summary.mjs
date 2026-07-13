@@ -1,11 +1,11 @@
 import { element, text } from '../components/dom.mjs';
 
 function metric(value, label, tone = '') {
-  return element(
-    'div',
-    { attributes: { class: `queue-metric${tone ? ` queue-metric--${tone}` : ''}` } },
-    [element('strong', {}, [text(value)]), element('span', {}, [text(label)])]
-  );
+  const modifier = tone ? ` queue-metric--${tone}` : '';
+  return element('div', { attributes: { class: `queue-metric${modifier}` } }, [
+    element('strong', {}, [text(value)]),
+    element('span', {}, [text(label)]),
+  ]);
 }
 
 export function renderInboxSummary(assignments) {

@@ -25,7 +25,9 @@ function restorePublicRequest(request) {
   if (url.pathname !== '/api/index') return request;
   const kind = request.headers.get('x-rec-rewrite-kind');
   const rewrittenPath = request.headers.get('x-rec-rewrite-path');
-  const pathname = kind === 'root' ? '/api' : kind === 'path' ? publicApiPath(rewrittenPath) : null;
+  let pathname = null;
+  if (kind === 'root') pathname = '/api';
+  if (kind === 'path') pathname = publicApiPath(rewrittenPath);
   if (pathname === null) return null;
   url.pathname = pathname;
   const restored = new Request(url, request);
