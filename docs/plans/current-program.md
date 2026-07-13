@@ -438,7 +438,18 @@ fixture, receipt, origin, cache, and logging boundary. It permits one protected
 preview retry only. It does not authorize `reviewer-ecohub.vercel.app` alias
 reassignment, `apps/web`, Interdomestik runtime integration, schema/RLS,
 customer data, uploads, or UI/UX redesign.
-The next active governed implementation goal is exactly one canonical tracker slice: `REC-02a`, the API routing/auth compatibility fix.
+Rev 109 current-authority/design-gate: `REC-DG05` in
+`docs/plans/2026-07-13-rec-dg05-legacy-receipt-migration-current-authority.md`
+records the working named-account preview and promotes exactly one implementation
+slice: `REC-02b`. It migrates only the two already accepted MOB-03a legacy
+receipts through explicit Gazmend confirmation, preserves signed immutable
+lineage, adds local receipt history and correction navigation, completes
+Hobby-native Firewall/log proof, and permits production alias cutover only after
+all focused, repository, CI, independent-review, and protected-preview gates are
+green. Shared cross-device storage, server receipt persistence, customer data,
+uploads, `apps/web`, runtime integration, schema/RLS, paid Vercel upgrades, and
+broad UI redesign remain excluded.
+The next active governed implementation goal is exactly one canonical tracker slice: `REC-02b`, legacy receipt continuity and local review history.
 
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
