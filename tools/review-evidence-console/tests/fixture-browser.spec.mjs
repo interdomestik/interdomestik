@@ -60,6 +60,7 @@ async function openItem(page, itemId) {
   if (decodeURIComponent(new URL(page.url()).hash).endsWith(`/${itemId}`)) return;
   await page.locator(`[data-item-id="${itemId}"]`).click();
   await expect(page.locator('.save-state')).toHaveText('Drafti u rikthye');
+  await expect(page.locator('#item-heading')).toBeFocused();
 }
 
 async function proveSuggestionFlow(page, viewport) {
@@ -73,6 +74,7 @@ async function proveSuggestionFlow(page, viewport) {
   await expect(page.locator('#response-ownerDisplayName')).toHaveValue('Sanja Jovanovska');
 
   await page.locator('.decision-form input[type="radio"][value="change"]').check();
+  await expect(page.locator('.decision-form input[type="radio"][value="change"]')).toBeFocused();
   await expect(page.locator('#requestedChange')).toHaveValue(
     'Ndrysho ose blloko nëse autoriteti i Sanjës ose ndarja e roleve nuk përputhet me strukturën MK.'
   );

@@ -3,6 +3,7 @@ import { renderAuthView } from './app/auth-view.mjs';
 import { applicationShell, focusControl } from './app/application-shell.mjs';
 import { createReviewRouteLoaders } from './app/review-routes.mjs';
 import { createRouteCoordinator } from './app/route-coordinator.mjs';
+import { workspaceFocusTarget } from './app/workspace-focus.mjs';
 import { createWorkspaceRuntime } from './app/workspace-runtime.mjs';
 import { announce } from './components/status.mjs';
 import { replaceChildren } from './components/dom.mjs';
@@ -121,7 +122,7 @@ async function loadWorkspace(current, token) {
       })),
     onRender: props => {
       render(renderWorkspace(props), account.role, props.saveStatus);
-      const focus = reviewRoutes.takePendingFocus();
+      const focus = workspaceFocusTarget(props, reviewRoutes.takePendingFocus());
       if (focus) queueMicrotask(() => focusControl(focus));
     },
   });
