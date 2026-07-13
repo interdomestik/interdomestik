@@ -2,7 +2,14 @@ import { createEnvironmentPortalHandler } from '../server/runtime.mjs';
 import { notFoundResponse } from '../server/http/responses.mjs';
 
 function publicApiPath(rewrittenPath) {
-  const segments = rewrittenPath.split('/');
+  if (typeof rewrittenPath !== 'string') return null;
+  let decoded;
+  try {
+    decoded = decodeURIComponent(rewrittenPath);
+  } catch {
+    return null;
+  }
+  const segments = decoded.split('/');
   if (
     segments.some(
       segment => !segment || segment === '.' || segment === '..' || segment.includes('\\')
@@ -16,15 +23,15 @@ function publicApiPath(rewrittenPath) {
 function restorePublicRequest(request) {
   const url = new URL(request.url);
   if (url.pathname !== '/api/index') return request;
-  const isRoot = url.searchParams.has('__rec_root');
-  const rewrittenPath = url.searchParams.get('__rec_path');
-  if (!isRoot && rewrittenPath === null) return request;
-  url.searchParams.delete('__rec_root');
-  url.searchParams.delete('__rec_path');
-  const pathname = rewrittenPath === null ? '/api' : publicApiPath(rewrittenPath);
+  const kind = request.headers.get('x-rec-rewrite-kind');
+  const rewrittenPath = request.headers.get('x-rec-rewrite-path');
+  const pathname = kind === 'root' ? '/api' : kind === 'path' ? publicApiPath(rewrittenPath) : null;
   if (pathname === null) return null;
   url.pathname = pathname;
-  return new Request(url, request);
+  const restored = new Request(url, request);
+  restored.headers.delete('x-rec-rewrite-kind');
+  restored.headers.delete('x-rec-rewrite-path');
+  return restored;
 }
 
 export function createVercelApiFunction({ handler }) {

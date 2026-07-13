@@ -449,7 +449,8 @@ all focused, repository, CI, independent-review, and protected-preview gates are
 green. Shared cross-device storage, server receipt persistence, customer data,
 uploads, `apps/web`, runtime integration, schema/RLS, paid Vercel upgrades, and
 broad UI redesign remain excluded.
-The next active governed implementation goal is exactly one canonical tracker slice: `REC-02b`, legacy receipt continuity and local review history.
+The next active governed implementation goal is exactly one canonical tracker
+slice: `REC-02b`, legacy receipt continuity and local review history.
 
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the

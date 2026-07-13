@@ -15,8 +15,12 @@ export function parseRoute(hash) {
   const values = segments(hash);
   if (!values) return INBOX;
   if (values.length === 0) return INBOX;
+  if (values.length === 1 && values[0] === 'history') return { name: 'history' };
   if (values.length === 2 && values[0] === 'receipt') {
     return { name: 'receipt', receiptId: values[1] };
+  }
+  if (values.length === 3 && values[0] === 'receipt' && values[2] === 'correct') {
+    return { name: 'receipt', receiptId: values[1], correcting: true };
   }
   if (values.length === 3 && values[0] === 'review') {
     return values[2] === 'validate'
@@ -32,6 +36,10 @@ function safe(value) {
 
 export function formatRoute(route) {
   if (route?.name === 'inbox') return '#/';
+  if (route?.name === 'history') return '#/history';
+  if (route?.name === 'receipt' && route.correcting === true && safe(route.receiptId)) {
+    return `#/receipt/${route.receiptId}/correct`;
+  }
   if (route?.name === 'receipt' && safe(route.receiptId)) return `#/receipt/${route.receiptId}`;
   if (route?.name === 'validation' && safe(route.assignmentId)) {
     return `#/review/${route.assignmentId}/validate`;

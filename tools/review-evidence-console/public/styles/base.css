@@ -12,6 +12,7 @@ html {
 body {
   margin: 0;
   min-width: 320px;
+  background: linear-gradient(hsl(171 58% 96% / 0.45), transparent 22rem), var(--canvas);
 }
 
 button,
@@ -23,6 +24,12 @@ a {
 button,
 summary {
   min-height: 44px;
+}
+
+button,
+a,
+summary {
+  -webkit-tap-highlight-color: transparent;
 }
 
 :focus-visible {
@@ -40,6 +47,7 @@ h1,
 h2,
 .brand__title {
   font-family: var(--font-heading);
+  letter-spacing: -0.025em;
 }
 
 .sr-only {

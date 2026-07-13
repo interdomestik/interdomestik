@@ -30,6 +30,7 @@ async function resultOf(operation, normalize = value => value) {
 
 function normalizeSession(value) {
   return normalizeReviewer({
+    accountId: value.accountId,
     id: value.fixtureId,
     displayName: value.displayName,
     role: value.role,
@@ -84,6 +85,7 @@ export function createApiFixtureRepository(client) {
         ? client.correctReceipt(submission)
         : client.submitReceipt(submission);
     },
+    migrateReceipt: migration => client.migrateReceipt(migration),
     verifyReceipt: verifySignedReceipt,
   });
 }
