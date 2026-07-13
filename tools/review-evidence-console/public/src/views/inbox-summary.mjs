@@ -9,7 +9,9 @@ function metric(value, label, tone = '') {
 }
 
 export function renderInboxSummary(assignments) {
-  const delivered = assignments.filter(row => row.submissionStatus === 'submitted').length;
+  const delivered = assignments.filter(row =>
+    ['submitted', 'legacy_submitted'].includes(row.submissionStatus)
+  ).length;
   const active = assignments.length - delivered;
   return element(
     'aside',

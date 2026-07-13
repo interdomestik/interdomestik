@@ -6,10 +6,15 @@ import {
 } from '../public/src/models/normalize-fixture.mjs';
 
 import { fixtureCatalog } from './fixtures/catalog.mjs';
+import { legacySubmissionForAssignment } from './receipts/legacy-receipt-migration.mjs';
 
 const notFound = () => ({ ok: false, code: 'not_found', message: 'Detyra nuk u gjet.' });
 const matchesAccount = (assignment, account) =>
   assignment.reviewerFixtureId === account?.fixtureId && assignment.reviewerRole === account?.role;
+const withLegacySubmission = assignment => {
+  const legacySubmission = legacySubmissionForAssignment(assignment.id);
+  return legacySubmission ? { ...assignment, legacySubmission } : assignment;
+};
 
 export function createFixtureService({ catalog = fixtureCatalog } = {}) {
   const reviewers = catalog.reviewers.map(normalizeReviewer);
@@ -19,7 +24,7 @@ export function createFixtureService({ catalog = fixtureCatalog } = {}) {
   async function listAssignments(account) {
     return {
       ok: true,
-      value: structuredClone(assignments.filter(row => matchesAccount(row, account))),
+      value: structuredClone(assignments.filter(row => matchesAccount(row, account)).map(withLegacySubmission)),
     };
   }
 
@@ -42,7 +47,7 @@ export function createFixtureService({ catalog = fixtureCatalog } = {}) {
     return {
       ok: true,
       value: structuredClone({
-        assignment,
+        assignment: withLegacySubmission(assignment),
         packet,
         reviewer: {
           id: reviewer.id,

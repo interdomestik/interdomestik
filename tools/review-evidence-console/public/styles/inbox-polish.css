@@ -112,6 +112,12 @@
   cursor: pointer;
 }
 
+.receipt-picker--legacy .receipt-picker__button {
+  color: white;
+  background: var(--blue-800);
+  border-color: var(--blue-800);
+}
+
 .receipt-picker:has(.receipt-picker__input:focus-visible) .receipt-picker__button {
   outline: 3px solid var(--teal-700);
   outline-offset: 3px;

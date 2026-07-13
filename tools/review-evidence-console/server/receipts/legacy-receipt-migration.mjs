@@ -18,6 +18,22 @@ export const ACCEPTED_LEGACY_RECEIPTS = new Map([
   ['rec_1298f380aa840d71c2970a99', 'assign_mob03a_part_b'],
 ]);
 
+const ACCEPTED_LEGACY_SUBMISSIONS = new Map([
+  [
+    'assign_mob03a_part_a',
+    { receiptId: 'rec_51f0d862d5f41cf26e3e60fc', submittedAt: '2026-07-12T06:40:12.669Z' },
+  ],
+  [
+    'assign_mob03a_part_b',
+    { receiptId: 'rec_1298f380aa840d71c2970a99', submittedAt: '2026-07-12T10:35:28.062Z' },
+  ],
+]);
+
+export function legacySubmissionForAssignment(assignmentId) {
+  const submission = ACCEPTED_LEGACY_SUBMISSIONS.get(assignmentId);
+  return submission ? { ...submission } : undefined;
+}
+
 function isRecord(value) {
   return value && typeof value === 'object' && !Array.isArray(value);
 }

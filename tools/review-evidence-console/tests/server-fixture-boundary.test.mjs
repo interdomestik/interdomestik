@@ -52,3 +52,14 @@ test('fixture service denies direct cross-account assignment access', async () =
 
   assert.deepEqual(result, { ok: false, code: 'not_found', message: 'Detyra nuk u gjet.' });
 });
+
+test('only the assigned governance session receives pending legacy migration metadata', async () => {
+  const service = serverApp.createFixtureService();
+  const visible = await service.listAssignments(governanceAccount);
+  assert.deepEqual(
+    visible.value.map(row => row.legacySubmission?.receiptId),
+    ['rec_51f0d862d5f41cf26e3e60fc', 'rec_1298f380aa840d71c2970a99']
+  );
+  const hidden = await service.listAssignments({ ...governanceAccount, fixtureId: 'other' });
+  assert.deepEqual(hidden, { ok: true, value: [] });
+});

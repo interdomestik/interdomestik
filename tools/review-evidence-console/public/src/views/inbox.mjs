@@ -45,16 +45,18 @@ function inboxSection(...children) {
 
 function assignmentCard(assignment, onOpen, onOpenReceipt, onImport) {
   const action = cardAction(assignment);
+  const legacy = assignment.submissionStatus === 'legacy_submitted';
   const open =
     assignment.submissionStatus === 'submitted'
       ? () => onOpenReceipt(assignment.receiptId)
       : () => onOpen(assignment);
   const submitted = assignment.submissionStatus === 'submitted';
+  const complete = submitted || legacy;
   const part = assignment.packetId.toLowerCase().endsWith('part-b') ? 'B' : 'A';
   return element(
     'article',
     {
-      attributes: { class: `assignment-card${submitted ? ' assignment-card--submitted' : ''}` },
+    attributes: { class: `assignment-card${complete ? ' assignment-card--submitted' : ''}` },
     },
     [
       element('div', { attributes: { class: 'card-header' } }, [
@@ -64,7 +66,7 @@ function assignmentCard(assignment, onOpen, onOpenReceipt, onImport) {
         element('div', {}, [
           element('span', { attributes: { class: 'canonical-id' } }, [text(assignment.packetId)]),
           element('span', { attributes: { class: 'card-state' } }, [
-            text(submitted ? 'E përfunduar' : 'Për veprim'),
+          text(submitted ? 'E përfunduar' : legacy ? 'Dorëzuar më parë' : 'Për veprim'),
           ]),
         ]),
       ]),
@@ -72,23 +74,25 @@ function assignmentCard(assignment, onOpen, onOpenReceipt, onImport) {
       element('p', { attributes: { class: 'card-purpose' } }, [text(assignment.purpose)]),
       element('div', { attributes: { class: 'card-meta' } }, [
         label(riskCopy(assignment.risk), `risk risk--${assignment.risk}`, assignment.risk),
-        assignment.submissionStatus === 'submitted' ? null : label(assignment.progress, 'progress'),
+      complete ? null : label(assignment.progress, 'progress'),
         label(`Afati: ${assignment.dueDate}`, 'due-date'),
         ...submissionDetails(assignment),
       ]),
-      element(
-        'button',
-        {
-          attributes: {
-            class: 'primary-action',
-            type: 'button',
-            'aria-label': `${action} — ${assignment.packetId} — ${assignment.id}`,
+    legacy
+      ? null
+      : element(
+          'button',
+          {
+            attributes: {
+              class: 'primary-action',
+              type: 'button',
+              'aria-label': `${action} — ${assignment.packetId} — ${assignment.id}`,
+            },
+            on: { click: open },
           },
-          on: { click: open },
-        },
-        [text(action)]
-      ),
-      renderReceiptPicker(assignment, onImport),
+          [text(action)]
+        ),
+    renderReceiptPicker(assignment, onImport, legacy),
     ]
   );
 }

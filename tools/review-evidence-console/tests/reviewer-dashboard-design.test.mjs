@@ -8,7 +8,7 @@ import { inboxRow } from './inbox-view-fixtures.mjs';
 
 setDocument(fakeDocument);
 
-test('reviewer dashboard presents work summary and keeps migration secondary', () => {
+test('reviewer dashboard counts accepted legacy reviews as delivered pending migration', () => {
   const node = renderInbox({
     state: 'populated',
     assignments: [
@@ -31,4 +31,23 @@ test('reviewer dashboard presents work summary and keeps migration secondary', (
   assert.equal(details.length, 2);
   const cards = walk(node).filter(entry => entry.attributes.class?.includes('assignment-card'));
   assert.equal(cards.length, 2);
+});
+
+test('legacy delivered cards never appear as active work', () => {
+  const node = renderInbox({
+    state: 'populated',
+    assignments: [
+      inboxRow({
+        submissionStatus: 'legacy_submitted',
+        legacyReceiptId: 'rec_51f0d862d5f41cf26e3e60fc',
+        legacySubmittedAt: '2026-07-12T06:40:12.669Z',
+      }),
+    ],
+  });
+  const visible = copy(node);
+  assert.match(visible, /0\s+Në punë/);
+  assert.match(visible, /1\s+Dorëzuar/);
+  assert.match(visible, /Dorëzuar më parë — migrimi në pritje/);
+  assert.match(visible, /Migro vërtetimin e dorëzuar/);
+  assert.doesNotMatch(visible, /Vazhdo paketën/);
 });
