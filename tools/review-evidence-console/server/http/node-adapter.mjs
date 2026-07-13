@@ -35,7 +35,11 @@ export async function handleNodePortalRequest(request, response, handler) {
   const fetchRequest = pathname ? toFetchRequest(request) : null;
   const result = fetchRequest ? await handler(fetchRequest, pathname) : notFoundResponse();
   const headers = Object.fromEntries(result.headers.entries());
+  if (request.method === 'HEAD') {
+    response.writeHead(result.status, headers);
+    return response.end();
+  }
   const body = Buffer.from(await result.arrayBuffer());
   response.writeHead(result.status, { ...headers, 'content-length': body.length });
-  response.end(request.method === 'HEAD' ? undefined : body);
+  response.end(body);
 }

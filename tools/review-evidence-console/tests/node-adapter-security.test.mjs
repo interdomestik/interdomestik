@@ -106,3 +106,31 @@ test('API root and query stay inside the private API handler', async t => {
   assert.equal(response.statusCode, 204);
   assert.deepEqual(seen, ['/api']);
 });
+
+test('HEAD API requests do not buffer the handler response body', async t => {
+  const server = createConsoleServer({
+    portalHandler: async () => {
+      const result = new Response('not-consumed', {
+        headers: { 'content-length': '12' },
+      });
+      result.arrayBuffer = async () => {
+        throw new Error('HEAD body was consumed');
+      };
+      return result;
+    },
+  });
+  server.listen(0, '127.0.0.1');
+  await new Promise(resolve => server.once('listening', resolve));
+  t.after(() => server.close());
+
+  const port = server.address().port;
+  const response = await requestServer({
+    port,
+    pathname: '/api',
+    method: 'HEAD',
+    host: `127.0.0.1:${port}`,
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.headers['content-length'], '12');
+});
