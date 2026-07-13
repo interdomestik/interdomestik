@@ -4,6 +4,7 @@ const EXPLICIT_SESSION_FAILURES = new Set(['forbidden', 'unavailable']);
 export function createAuthRuntime({
   client,
   onState,
+  onLogoutError = () => {},
   now = () => Date.now(),
   setTimer = setTimeout,
   clearTimer = clearTimeout,
@@ -48,9 +49,12 @@ export function createAuthRuntime({
   async function logout() {
     try {
       await client.logout();
-    } finally {
-      emit({ status: 'anonymous', reason: 'logout' });
+    } catch {
+      onLogoutError();
+      return false;
     }
+    emit({ status: 'anonymous', reason: 'logout' });
+    return true;
   }
   return Object.freeze({
     start,

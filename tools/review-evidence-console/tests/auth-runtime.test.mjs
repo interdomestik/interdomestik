@@ -23,6 +23,24 @@ test('auth runtime restores a live session and handles explicit logout', async (
   assert.deepEqual(states.at(-1), { status: 'anonymous', reason: 'logout' });
 });
 
+test('failed logout keeps authenticated access visible and requests a retry', async () => {
+  const states = [];
+  let logoutFailures = 0;
+  const runtime = createAuthRuntime({
+    client: {
+      session: async () => account,
+      logout: async () => Promise.reject(new Error('offline')),
+    },
+    onState: state => states.push(state),
+    onLogoutError: () => (logoutFailures += 1),
+  });
+
+  await runtime.start();
+  assert.equal(await runtime.logout(), false);
+  assert.deepEqual(states.at(-1), { status: 'authenticated', account });
+  assert.equal(logoutFailures, 1);
+});
+
 test('auth runtime renders generic login failure and explicit session expiry', async () => {
   const states = [];
   const expired = Object.assign(new Error(), { code: 'session_expired' });

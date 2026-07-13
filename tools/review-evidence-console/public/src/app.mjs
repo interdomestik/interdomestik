@@ -47,12 +47,16 @@ function renderLoginState(state) {
   workspaceRuntime?.dispose();
   workspaceRuntime = undefined;
   account = undefined;
-  render(renderAuthView(state, credentials => auth.login(credentials)), 'Qasje e sigurt');
+  render(
+    renderAuthView(state, credentials => auth.login(credentials)),
+    'Qasje e sigurt'
+  );
   if (state.reason === 'authentication_failed') queueMicrotask(() => focusControl('login-error'));
 }
 
 const auth = createAuthRuntime({
   client,
+  onLogoutError: () => announce('Dalja nuk u krye. Kontrolloni lidhjen dhe provoni përsëri.'),
   onState: state => {
     if (state.status !== 'authenticated') return renderLoginState(state);
     account = state.account;
@@ -110,7 +114,10 @@ async function loadWorkspace(current, token) {
       if (target) target.textContent = status;
     },
     onValidate: () =>
-      (window.location.hash = formatRoute({ name: 'validation', assignmentId: current.assignmentId })),
+      (window.location.hash = formatRoute({
+        name: 'validation',
+        assignmentId: current.assignmentId,
+      })),
     onRender: props => {
       render(renderWorkspace(props), account.role, props.saveStatus);
       const focus = reviewRoutes.takePendingFocus();
