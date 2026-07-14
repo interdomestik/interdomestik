@@ -1,0 +1,77 @@
+{
+  "accidentJourney": {
+    "eyebrow": "POMOĆ SADA",
+    "intro": "Prvo proveravamo da li su svi bezbedni. Zatim vam pokazujemo šta da sačuvate i koji je najjasniji sledeći korak.",
+    "privacy": "Odgovori se koriste samo da vas usmere na ovoj stranici. Ne čuvaju se i ne šalju.",
+    "title": "Da li je neko povređen?",
+    "changeAnswer": "Promeni odgovor",
+    "injury": {
+      "yes": "Da, neko je povređen",
+      "materialOnly": "Ne, samo materijalna šteta",
+      "unsure": "Nisam siguran/na"
+    },
+    "injured": {
+      "title": "Bezbednost je na prvom mestu.",
+      "body": "Udaljite se od neposredne opasnosti samo kada je bezbedno. Ne nastavljajte dokumentovanje dok situacija nije pod kontrolom.",
+      "emergency": "Kontaktirajte lokalne hitne službe i pratite uputstva operatera."
+    },
+    "unsure": {
+      "title": "Postupajte kao da je povreda moguća.",
+      "body": "Ne nastavljajte putem materijalne štete dok situacija ne bude jasna.",
+      "emergency": "Odmah zatražite stručnu ili hitnu procenu."
+    },
+    "vehicleSafety": {
+      "title": "Da li vozilo može bezbedno da se pomeri?",
+      "hint": "Ako sumnjate u točkove, upravljanje ili kočnice, ne pomerajte ga.",
+      "yes": "Da, može bezbedno da se pomeri",
+      "no": "Ne, ne može da se pomeri",
+      "unsure": "Nisam siguran/na za vozilo"
+    },
+    "unsafeVehicle": {
+      "title": "Ne pomerajte vozilo.",
+      "body": "Držite se dalje od saobraćaja i koristite signalizaciju samo kada je to bezbedno.",
+      "emergency": "Zatražite lokalnu pomoć na putu ili kontaktirajte hitne službe."
+    },
+    "countries": {
+      "placeholder": "Izaberite državu",
+      "continue": "Nastavi",
+      "incidentTitle": "U kojoj državi se dogodila nezgoda?",
+      "incidentHint": "Vi to potvrđujete; ne zaključujemo na osnovu jezika, prebivališta ili lokacije.",
+      "incidentLabel": "Država u kojoj se dogodila nezgoda",
+      "registrationTitle": "Gde je vaše vozilo registrovano?",
+      "registrationHint": "To može biti druga država od one u kojoj se nezgoda dogodila.",
+      "registrationLabel": "Država registracije vozila",
+      "counterpartyTitle": "Iz koje države je osiguravač ili drugo vozilo?",
+      "counterpartyHint": "Ako ne znate, izaberite „Nisam siguran/na“.",
+      "counterpartyLabel": "Država osiguravača ili druge strane",
+      "options": {
+        "XK": "Kosovo",
+        "AL": "Albanija",
+        "MK": "Severna Makedonija",
+        "DE": "Nemačka",
+        "IT": "Italija",
+        "AT": "Austrija",
+        "CH": "Švajcarska",
+        "RS": "Srbija",
+        "ME": "Crna Gora",
+        "HR": "Hrvatska",
+        "SI": "Slovenija",
+        "OTHER": "Druga država",
+        "UNKNOWN": "Nisam siguran/na"
+      }
+    },
+    "evidence": {
+      "title": "Sačuvajte važne činjenice.",
+      "body": "Kada je mesto bezbedno, prikupite dokaze bez izlaganja riziku. Ovo su opšti koraci; pravni postupak može da se razlikuje po državi.",
+      "items": {
+        "scene": "Fotografije mesta, vozila, štete i registarskih tablica.",
+        "insurance": "Podaci o osiguranju ili Green Card-u učesnika.",
+        "context": "Datum, vreme, mesto i podaci o svedocima.",
+        "reference": "Broj policijskog ili EAS zapisnika samo kada je primenljiv i izdat."
+      },
+      "diasporaTitle": "Van svoje zemlje? Uz vas smo.",
+      "diasporaBody": "Država nezgode, registracija vozila i druga strana ostaju odvojene da bi vaš put bio jasan.",
+      "continue": "Organizuj podatke o slučaju"
+    }
+  }
+}

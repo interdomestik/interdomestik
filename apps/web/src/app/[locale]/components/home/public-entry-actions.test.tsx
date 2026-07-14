@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import sqHeroMessages from '@/messages/sq/hero.json';
 import { createUseTranslationsMock } from '@/test/next-intl-mock';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { PublicEntryActions } from './public-entry-actions';
 
@@ -74,5 +74,19 @@ describe('PublicEntryActions', () => {
     expect(
       situations.compareDocumentPosition(membership) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
+  });
+
+  it('hands off only the vehicle action as a one-shot local intent', () => {
+    const received: unknown[] = [];
+    const listener = (event: Event) => received.push((event as CustomEvent).detail);
+    window.addEventListener('interdomestik:public-intent', listener);
+
+    render(<PublicEntryActions />);
+    fireEvent.click(screen.getByTestId('public-entry-vehicle'));
+    fireEvent.click(screen.getByTestId('public-entry-injury'));
+    fireEvent.click(screen.getByTestId('public-entry-property'));
+
+    expect(received).toEqual([{ intent: 'vehicle' }]);
+    window.removeEventListener('interdomestik:public-intent', listener);
   });
 });

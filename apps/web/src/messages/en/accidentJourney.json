@@ -1,0 +1,77 @@
+{
+  "accidentJourney": {
+    "eyebrow": "HELP NOW",
+    "intro": "First, we make sure everyone is safe. Then we show you what to preserve and the clearest next step.",
+    "privacy": "Your answers are used only to guide you on this page. They are not saved or sent.",
+    "title": "Is anyone injured?",
+    "changeAnswer": "Change answer",
+    "injury": {
+      "yes": "Yes, someone is injured",
+      "materialOnly": "No, material damage only",
+      "unsure": "I am not sure"
+    },
+    "injured": {
+      "title": "Safety comes first.",
+      "body": "Move away from immediate danger only when it is safe. Do not continue documenting until the situation is under control.",
+      "emergency": "Contact local emergency services and follow the operator’s instructions."
+    },
+    "unsure": {
+      "title": "Treat this as a possible injury.",
+      "body": "Do not continue down the material-damage path until the situation is clear.",
+      "emergency": "Seek immediate professional or emergency assessment."
+    },
+    "vehicleSafety": {
+      "title": "Can the vehicle be moved safely?",
+      "hint": "If you have any concern about the wheels, steering, or brakes, do not move it.",
+      "yes": "Yes, it can be moved safely",
+      "no": "No, it cannot be moved",
+      "unsure": "I am not sure about the vehicle"
+    },
+    "unsafeVehicle": {
+      "title": "Do not move the vehicle.",
+      "body": "Stay clear of traffic and use warning signals only when you can do so safely.",
+      "emergency": "Request local roadside help or contact emergency services."
+    },
+    "countries": {
+      "placeholder": "Select a country",
+      "continue": "Continue",
+      "incidentTitle": "In which country did the accident happen?",
+      "incidentHint": "You confirm this yourself; we do not infer it from language, residence, or location.",
+      "incidentLabel": "Country where the accident happened",
+      "registrationTitle": "Where is your vehicle registered?",
+      "registrationHint": "This may be different from the country where the accident happened.",
+      "registrationLabel": "Vehicle registration country",
+      "counterpartyTitle": "Which country is the insurer or other vehicle from?",
+      "counterpartyHint": "If you do not know, select “I am not sure”.",
+      "counterpartyLabel": "Insurer or counterparty country",
+      "options": {
+        "XK": "Kosovo",
+        "AL": "Albania",
+        "MK": "North Macedonia",
+        "DE": "Germany",
+        "IT": "Italy",
+        "AT": "Austria",
+        "CH": "Switzerland",
+        "RS": "Serbia",
+        "ME": "Montenegro",
+        "HR": "Croatia",
+        "SI": "Slovenia",
+        "OTHER": "Another country",
+        "UNKNOWN": "I am not sure"
+      }
+    },
+    "evidence": {
+      "title": "Preserve the important facts.",
+      "body": "When the scene is safe, collect evidence without putting yourself at risk. These are universal steps; legal procedure may differ by country.",
+      "items": {
+        "scene": "Photos of the scene, vehicles, damage, and number plates.",
+        "insurance": "Insurance or Green Card details for the parties.",
+        "context": "The date, time, location, and witness details.",
+        "reference": "A police or EAS reference only when applicable and provided."
+      },
+      "diasporaTitle": "Away from home? We are with you.",
+      "diasporaBody": "The accident country, vehicle registration, and other party stay separate so your route remains clear.",
+      "continue": "Organize my case information"
+    }
+  }
+}

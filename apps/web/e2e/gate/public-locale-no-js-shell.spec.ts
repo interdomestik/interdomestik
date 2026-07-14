@@ -1,5 +1,6 @@
 import { expect, test, type Browser, type Page, type TestInfo } from '@playwright/test';
 
+import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 
 const localeViewports = [
@@ -73,7 +74,6 @@ async function expectServerVisibleFallback(page: Page) {
 
 test.describe('public locale shell without JavaScript', () => {
   test('keeps the direct Free Start fallback visible', async ({ browser }, testInfo) => {
-    test.skip(testInfo.project.name !== 'gate-ks-sq', 'The shell proof runs once in the KS gate.');
     await withNoJsPage(browser, testInfo, { width: 375, height: 812 }, async page => {
       await openFallback(page, testInfo, 'sq');
       await expectServerVisibleFallback(page);
@@ -81,12 +81,23 @@ test.describe('public locale shell without JavaScript', () => {
   });
 
   test('keeps every approved locale visible across the width matrix', async ({ browser }, info) => {
-    test.skip(info.project.name !== 'gate-ks-sq', 'The shell proof runs once in the KS gate.');
     for (const { locale, width, height } of localeViewports) {
       await withNoJsPage(browser, info, { width, height }, async page => {
         await openFallback(page, info, locale);
         await expectServerVisibleFallback(page);
       });
     }
+  });
+
+  test('keeps the vehicle hero link on the ordinary fallback without JavaScript', async ({
+    browser,
+  }, info) => {
+    await withNoJsPage(browser, info, { width: 375, height: 812 }, async page => {
+      await gotoApp(page, routes.home('sq'), info, { marker: 'public-entry-hero' });
+      await page.getByTestId('public-entry-vehicle').click();
+      await expect(page).toHaveURL(/#free-start-intake$/);
+      await expectServerVisibleFallback(page);
+      await expect(page.getByTestId('accident-safety-journey')).toHaveCount(0);
+    });
   });
 });

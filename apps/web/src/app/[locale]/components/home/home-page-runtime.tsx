@@ -83,7 +83,12 @@ export function HomePageRuntime({ locale, uiV2Enabled }: HomePageRuntimeProps) {
         secondaryHref={secondaryHref}
         tenantId={tenantId}
       />
-      <FreeStartIntakeShell continueHref={continueHref} locale={locale} tenantId={tenantId} />
+      <FreeStartIntakeShell
+        continueHref={continueHref}
+        locale={locale}
+        publicEntryEnabled={landingSession === null}
+        tenantId={tenantId}
+      />
     </>
   );
 }

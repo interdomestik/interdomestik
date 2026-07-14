@@ -91,6 +91,7 @@ describe('HomePageRuntime', () => {
       expect(hoisted.freeStartIntakeShellMock).toHaveBeenCalledWith({
         continueHref: '/pricing',
         locale: 'sq',
+        publicEntryEnabled: true,
         tenantId: 'tenant_mk',
       });
     });
@@ -120,6 +121,7 @@ describe('HomePageRuntime', () => {
       expect(hoisted.freeStartIntakeShellMock).toHaveBeenCalledWith({
         continueHref: '/member/claims/new',
         locale: 'sq',
+        publicEntryEnabled: false,
         tenantId: 'tenant_ks',
       });
     });

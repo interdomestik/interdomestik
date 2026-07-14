@@ -2,6 +2,7 @@ import { routing } from './routing';
 
 export const MESSAGE_NAMESPACES = [
   'about',
+  'accidentJourney',
   'admin',
   'admin-branches',
   'admin-claims',
@@ -64,6 +65,7 @@ export type MessageNamespace = (typeof MESSAGE_NAMESPACES)[number];
 
 export const BASE_NAMESPACES = ['common'] as const;
 export const HOME_NAMESPACES = [
+  'accidentJourney',
   'nav',
   'hero',
   'freeStart',
@@ -153,9 +155,7 @@ export const ADMIN_NAMESPACES = [
 
 import { mergeMessages } from './utils/merge';
 
-type LoadAllMessagesOptions = {
-  strict?: boolean;
-};
+type LoadAllMessagesOptions = { strict?: boolean };
 
 async function loadNamespaceMessages(
   locale: string,
@@ -216,8 +216,6 @@ export async function loadAllMessages(locale: string, options: LoadAllMessagesOp
 
   return modules.reduce((acc, curr) => mergeMessages(acc, curr), {});
 }
-// Force reload
-
 export function pickMessages(
   messages: Record<string, unknown>,
   namespaces: readonly MessageNamespace[]
