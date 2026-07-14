@@ -101,7 +101,7 @@ test.describe('Golden Gate: Critical Path', () => {
       await loginAs('member');
 
       // Navigate to admin - expect 404 page (Strict Isolation Contract)
-      await gotoApp(page, routes.admin(testInfo), testInfo, { marker: 'body' });
+      await gotoApp(page, routes.admin(testInfo), testInfo, { marker: 'not-found-page' });
 
       // Verify isolation contract (404 UI or fallback template)
       const notFound = page.getByTestId('not-found-page');
@@ -151,7 +151,7 @@ test.describe('Golden Gate: Critical Path', () => {
       await expect(page).toHaveURL(/\/staff\/claims/);
 
       // Verify Restrictions - Try Admin Branches (should redirect or 404)
-      await gotoApp(page, routes.adminBranches(testInfo), testInfo, { marker: 'body' });
+      await gotoApp(page, routes.adminBranches(testInfo), testInfo, { marker: 'not-found-page' });
       const notFound = page.getByTestId('not-found-page');
       const fallback404 = page.locator('template[data-dgst*="404"]');
       await expect(notFound.or(fallback404)).toBeAttached({ timeout: 15000 });

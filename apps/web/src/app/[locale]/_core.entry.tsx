@@ -17,7 +17,6 @@ import { connection } from 'next/server';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
-import { Suspense } from 'react';
 import { Toaster } from 'sonner';
 
 const inter = Inter({
@@ -139,21 +138,19 @@ export default async function RootLayout({ children, params }: Props) {
             `}
           </style>
         ) : null}
-        <Suspense>
-          <PostHogProvider>
-            <NextIntlClientProvider messages={messages} locale={locale}>
-              <QueryProvider>
-                {children}
-                <Toaster position="top-right" richColors />
-                {enableAxe ? <AxeProvider /> : null}
-                <ReferralTracker />
-                <PwaRegistrar />
-                <AnalyticsScripts nonce={cspNonce ?? undefined} />
-                <CookieConsentBanner />
-              </QueryProvider>
-            </NextIntlClientProvider>
-          </PostHogProvider>
-        </Suspense>
+        <PostHogProvider>
+          <NextIntlClientProvider messages={messages} locale={locale}>
+            <QueryProvider>
+              {children}
+              <Toaster position="top-right" richColors />
+              {enableAxe ? <AxeProvider /> : null}
+              <ReferralTracker />
+              <PwaRegistrar />
+              <AnalyticsScripts nonce={cspNonce ?? undefined} />
+              <CookieConsentBanner />
+            </QueryProvider>
+          </NextIntlClientProvider>
+        </PostHogProvider>
       </body>
     </html>
   );

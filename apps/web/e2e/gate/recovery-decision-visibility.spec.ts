@@ -52,10 +52,14 @@ test.describe('Recovery decision visibility', () => {
         marker: 'member-claim-recovery-decision',
       });
 
-      await expect(memberPage.getByTestId('member-claim-recovery-decision')).toBeVisible();
-      await expect(memberPage.getByText('Accepted for staff-led recovery')).toBeVisible();
+      const memberDecisionCard = memberPage.locator(
+        '[data-testid="member-claim-recovery-decision"]:visible'
+      );
+
+      await expect(memberDecisionCard).toBeVisible();
+      await expect(memberDecisionCard.getByText('Accepted for staff-led recovery')).toBeVisible();
       await expect(
-        memberPage.getByText('We accepted this matter for staff-led recovery.')
+        memberDecisionCard.getByText('We accepted this matter for staff-led recovery.')
       ).toBeVisible();
       await expect(memberPage.getByText(internalExplanation)).toHaveCount(0);
 
@@ -63,7 +67,9 @@ test.describe('Recovery decision visibility', () => {
         marker: 'staff-recovery-decision-summary',
       });
 
-      const staffDecisionSummary = staffPage.getByTestId('staff-recovery-decision-summary');
+      const staffDecisionSummary = staffPage.locator(
+        '[data-testid="staff-recovery-decision-summary"]:visible'
+      );
 
       await expect(staffDecisionSummary).toBeVisible();
       await expect(staffDecisionSummary.getByText('Accepted for staff-led recovery')).toBeVisible();

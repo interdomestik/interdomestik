@@ -401,9 +401,9 @@ test.describe('CRM01 staff support handoff receiving queue', () => {
         .locator('[data-testid="member-support-handoff-form"][data-hydrated="true"]:visible')
         .last();
       await expect(supportForm).toBeVisible();
-      await expect(memberPage.getByTestId('member-support-handoff-claim-context')).toContainText(
-        claimLabel
-      );
+      await expect(
+        memberPage.locator('[data-testid="member-support-handoff-claim-context"]:visible')
+      ).toContainText(claimLabel);
       await expect(supportForm.getByTestId('member-support-handoff-claim')).toHaveValue(claimId);
       await supportForm.getByTestId('member-support-handoff-subject').fill(subject);
       await supportForm.getByTestId('member-support-handoff-message').fill(message);
