@@ -67,7 +67,7 @@ export function AccidentJourneyStage(props: Readonly<AccidentJourneyStageProps>)
           hint={t('countries.incidentHint')}
           label={t('countries.incidentLabel')}
           onBack={focus => props.moveTo('vehicleSafety', focus)}
-          onChange={(country, focus) => {
+          onChange={country => {
             props.setIncidentCountry(country);
             props.setRegistrationCountry('');
             props.setCounterpartyCountry('');
@@ -84,7 +84,7 @@ export function AccidentJourneyStage(props: Readonly<AccidentJourneyStageProps>)
           hint={t('countries.registrationHint')}
           label={t('countries.registrationLabel')}
           onBack={focus => props.moveTo('incidentCountry', focus)}
-          onChange={(country, focus) => {
+          onChange={country => {
             props.setRegistrationCountry(country);
             props.setCounterpartyCountry('');
           }}
@@ -100,7 +100,7 @@ export function AccidentJourneyStage(props: Readonly<AccidentJourneyStageProps>)
           hint={t('countries.counterpartyHint')}
           label={t('countries.counterpartyLabel')}
           onBack={focus => props.moveTo('registrationCountry', focus)}
-          onChange={(country, focus) => {
+          onChange={country => {
             props.setCounterpartyCountry(country);
           }}
           onContinue={focus => props.moveTo('evidence', focus)}
