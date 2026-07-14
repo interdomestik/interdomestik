@@ -46,8 +46,8 @@ current-authority/design gate promotes exactly one next governed action.
   browser tests plus eight not-applicable skips, and `13` PR smoke tests plus nine
   skips.
 - Local `pnpm security:guard` passed, including the modularity and protected-
-  boundary guards. Independent `pnpm e2e:gate` passed with `168` passed, eight
-  skipped and zero failed.
+  boundary guards. Independent `pnpm e2e:gate` passed (`168` tests; eight
+  skipped; zero failed).
 - Current-head PR checks were green before merge, including CI, full PR E2E,
   Pilot Gate, SonarCloud, CodeQL, gitleaks, pnpm-audit, Dependency Review, OSV,
   Semgrep, commitlint, reviewdog and `pr-finalizer`. The skipped AI-eval and
