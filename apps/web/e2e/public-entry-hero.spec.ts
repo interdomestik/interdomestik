@@ -2,7 +2,6 @@ import { expect, test, type Locator, type Page, type TestInfo } from '@playwrigh
 import { routes, type Locale } from './routes';
 import { withAnonymousPage } from './utils/anonymous-context';
 import { gotoApp } from './utils/navigation';
-
 const viewports = [
   { width: 375, height: 812 },
   { width: 390, height: 844 },
@@ -81,9 +80,10 @@ test.describe('public entry hero', () => {
       const actions = ['public-entry-membership', 'public-entry-help-now'] as const;
       for (const testId of actions) {
         const action = page.getByTestId(testId);
-        await action.focus();
+        await action.press('Shift+Tab');
+        await page.keyboard.press('Tab');
         await expect(action).toBeFocused();
-        expect(await action.evaluate(element => getComputedStyle(element).outlineStyle)).not.toBe(
+        expect(await action.evaluate(element => getComputedStyle(element).boxShadow)).not.toBe(
           'none'
         );
         await page.keyboard.press('Enter');

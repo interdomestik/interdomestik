@@ -28,7 +28,7 @@ export function PublicMembershipAction() {
     <Link
       data-testid="public-entry-membership"
       href={PUBLIC_MEMBERSHIP_ENTRY_HREF}
-      className="mt-9 inline-flex min-h-14 w-full max-w-[44rem] items-center justify-between gap-4 rounded-md bg-[hsl(var(--primary))] px-5 py-3 text-left text-base font-semibold text-[hsl(var(--primary-foreground))] shadow-sm transition-colors hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 sm:px-7 sm:text-lg"
+      className="mt-9 inline-flex min-h-14 w-full max-w-[44rem] items-center justify-between gap-4 rounded-md bg-[hsl(var(--primary))] px-5 py-3 text-left text-base font-semibold text-[hsl(var(--primary-foreground))] shadow-sm transition-colors hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 motion-reduce:transition-none sm:px-7 sm:text-lg"
     >
       <span>{t('membershipLabel')}</span>
       <ArrowRight aria-hidden="true" className="h-5 w-5 shrink-0" />
@@ -65,7 +65,7 @@ export function PublicEntrySecondaryActions() {
               </span>
               <ArrowRight
                 aria-hidden="true"
-                className="mt-1 h-5 w-5 shrink-0 text-[hsl(var(--primary))] transition-transform group-hover:translate-x-1 motion-reduce:transform-none motion-reduce:transition-none"
+                className="mt-1 h-5 w-5 shrink-0 text-[hsl(var(--primary))] transition-transform group-hover:translate-x-1 motion-reduce:transform-none motion-reduce:transition-none motion-reduce:duration-0"
               />
             </Link>
           </li>
