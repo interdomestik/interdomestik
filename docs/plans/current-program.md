@@ -599,6 +599,26 @@ replacement implementation slice is promoted by this closeout. Expected resolver
 state is `blocked_requires_current_authority`, `activeSlice=null` until a fresh gate
 explicitly promotes exactly one next governed action.
 
+Rev 118 portfolio/current-authority gate: `IDA-DG09` in
+`docs/plans/2026-07-14-ida-dg09-complete-public-help-now-journey-map.md` accepts the
+shared Help Now portfolio sequence `vehicle → injury → property → flight` without
+authorizing a mega-slice. `IDA-DG10` in
+`docs/plans/2026-07-14-ida-dg10-public-injury-safety-journey-design-gate.md` promotes
+exactly one Tier 3 implementation slice, `IDA-UI01d`. It is limited to an anonymous,
+client-only injury safety/orientation journey: fail-closed urgent/unsure handling;
+source rather than diagnosis; specialist/referral boundaries for suspected treatment
+issues and assault; separate ephemeral incident/residence countries; universal
+evidence guidance; and a fresh explicit category-only handoff to the existing Free
+Start intake after the free result. No triage answer may be stored, transmitted,
+logged or carried into intake. JavaScript-off preserves the ordinary visible Free
+Start fallback. AI OS state aligned with the pre-promotion repo authority while Brain
+retrieval remained stale; Sonnet 4.6 returned `ACCEPT WITH CONDITIONS`, Gemini 3.1
+Pro Preview returned `ACCEPT`, and all conditions were reconciled in the gate.
+`IDA-UI01b` stays frozen. Property, flight,
+German, channels, durable health data, country-law rules, referral-fee expansion,
+proxy/routes/auth/tenancy/data/schema/RLS/billing/deploy/dashboards and any second
+slice remain unpromoted.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
