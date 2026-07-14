@@ -32,8 +32,8 @@ an explicit organizational/commercial continuation only after a useful safe resu
 
 1. The existing injury hero action emits one route-local intent and moves focus to
    the existing Free Start region.
-2. Ask: `A jeni tani në rrezik, keni nevojë për ndihmë urgjente, ose nuk jeni të
-sigurt?` Answers: `Po`, `Jo`, `Nuk jam i sigurt`.
+2. Ask: “A jeni tani në rrezik, keni nevojë për ndihmë urgjente, ose nuk jeni të
+   sigurt?” Answers: `Po`, `Jo`, `Nuk jam i sigurt`.
 3. `Po` or `Nuk jam i sigurt` shows a fail-closed static result: contact local
    emergency services; mention `112` only as the EU emergency number. No sales CTA.
 4. `Jo` asks the incident source: traffic, workplace, fall/premises,

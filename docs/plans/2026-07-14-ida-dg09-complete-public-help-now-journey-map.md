@@ -66,7 +66,7 @@ sinjal diaspora dhe handoff vetëm për veturën. Gjendja është route-local dh
 ### Siguria
 
 Pyetja nuk kërkon vlerësim mjekësor: `A jeni tani në rrezik, keni nevojë për ndihmë
-urgjente, ose nuk jeni të sigurt?` `Po` dhe `nuk jam i sigurt` japin rezultat statik
+urgjente, ose nuk jeni të sigurt?` `Po` dhe `Nuk jam i sigurt` japin rezultat statik
 fail-closed: shërbimet lokale të emergjencës; `112` vetëm me cilësimin se vlen në BE;
 asnjë CTA shitjeje në atë rezultat.
 
