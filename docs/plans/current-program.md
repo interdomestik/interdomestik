@@ -463,6 +463,26 @@ replacement implementation slice is promoted; expected resolver state is
 `blocked_requires_current_authority`, `activeSlice=null` until a fresh gate
 promotes exactly one next governed action.
 
+Rev 111 current-authority/design-gate, amended 2026-07-14: `IDA-DG05` in
+`docs/plans/2026-07-13-ida-dg05-public-entry-portal-design-gate.md` records
+Arben's final help-first public-entry direction and promotes exactly one Tier 2
+implementation slice: `IDA-UI01a`. The unmerged membership-first Option 3 target
+is superseded, not retained as a parallel implementation. The slice replaces the
+active anonymous public header and above-fold `HeroSection` with the approved
+premium editorial composition: `NDIHMË TANI`, the personalized question, three
+real scenario links into the existing Free Start intake, an honest noninteractive
+flight `Së shpejti` row, compact asynchronous WhatsApp and diaspora paths, emergency
+and privacy safeguards, and annual membership as the secondary commercial path.
+It preserves settled-member continuation, existing routes and funnel/clarity
+markers, equivalent SQ/EN/SR/MK messages, and focused component, accessibility,
+responsive, translation, and browser proof. It must not change
+`apps/web/src/proxy.ts`, routes, auth/session, tenancy, database/schema/RLS,
+billing/Paddle, analytics/provider state, production aliases/deploy, page shell,
+below-fold homepage, shared tokens, canonical role surfaces, or any dashboard.
+This is new presentation on the completed M0-M5 architecture, not a parallel
+portal or architectural rewrite. Human linguistic and legal/commercial disposition
+for final SQ/EN/SR/MK copy remains a merge gate. No second UI slice is promoted.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the

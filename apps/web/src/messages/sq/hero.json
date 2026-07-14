@@ -63,6 +63,31 @@
         "Hotline + WhatsApp",
         "Fusha claim-first e publikuar"
       ]
+    },
+    "publicEntry": {
+      "eyebrow": "NDIHMË TANI",
+      "title": "Çfarë ju ka ndodhur?",
+      "subtitle": "Nuk duhet ta përballoni vetëm. Zgjidhni situatën dhe nisni me hapin e duhur.",
+      "vehicle": "Kam pasur aksident me veturë",
+      "injury": "Jam lënduar",
+      "property": "Kam dëm në pronë",
+      "flight": "Fluturimi im u vonua ose u anulua",
+      "soon": "Së shpejti",
+      "whatsappLink": "Nuk jeni të sigurt? Na lini një mesazh në WhatsApp.",
+      "availability": "Përgjigjemi gjatë orarit të punës.",
+      "diasporaEyebrow": "PËR DIASPORËN",
+      "diasporaLink": "Jetoni jashtë vendit? Na shkruani në WhatsApp.",
+      "emergency": "Në rrezik të menjëhershëm, kontaktoni shërbimet lokale të emergjencës.",
+      "privacyTitle": "Pa llogari. Pa pagesë.",
+      "privacyBody": "Ju vendosni kur dërgohen të dhënat.",
+      "membershipPrompt": "Nuk ju duhet ndihmë tani?",
+      "membershipBody": "Me anëtarësimin Interdomestik, e qartësoni situatën, i organizoni të dhënat e rastit dhe vazhdoni përpara pa e përballuar gjithçka vetëm.",
+      "membershipLabel": "Shihni anëtarësimin vjetor",
+      "memberEyebrow": "Hapësira e anëtarit",
+      "memberTitle": "Vazhdo nga aty ku e ke lënë.",
+      "memberSubtitle": "Hap hapësirën tënde për të parë rastet dhe hapin e ardhshëm, ose nis një rast të ri.",
+      "memberPrimary": "Hap hapësirën time",
+      "memberSecondary": "Nis një rast të ri"
     }
   }
 }

@@ -59,6 +59,31 @@
         "Published annual terms"
       ],
       "trustCues": ["Shqip / English support", "Hotline + WhatsApp", "Claim-first scope published"]
+    },
+    "publicEntry": {
+      "eyebrow": "HELP NOW",
+      "title": "What happened to you?",
+      "subtitle": "You do not have to face it alone. Choose your situation and start with the right next step.",
+      "vehicle": "I was in a car accident",
+      "injury": "I was injured",
+      "property": "My property was damaged",
+      "flight": "My flight was delayed or cancelled",
+      "soon": "Coming soon",
+      "whatsappLink": "Not sure where to start? Leave us a message on WhatsApp.",
+      "availability": "We reply during business hours.",
+      "diasporaEyebrow": "FOR THE DIASPORA",
+      "diasporaLink": "Living abroad? Message us on WhatsApp.",
+      "emergency": "If you are in immediate danger, contact your local emergency services.",
+      "privacyTitle": "No account. No payment.",
+      "privacyBody": "You decide when your information is sent.",
+      "membershipPrompt": "Do not need help right now?",
+      "membershipBody": "With Interdomestik membership, you can clarify your situation, organize your case information, and move forward without facing everything alone.",
+      "membershipLabel": "View annual membership",
+      "memberEyebrow": "Member space",
+      "memberTitle": "Continue where you left off.",
+      "memberSubtitle": "Open your space to review your cases and next step, or start a new case.",
+      "memberPrimary": "Open my member space",
+      "memberSecondary": "Start a new case"
     }
   }
 }

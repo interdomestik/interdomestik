@@ -63,6 +63,31 @@
         "Hotline + WhatsApp",
         "Objavljen claim-first opseg"
       ]
+    },
+    "publicEntry": {
+      "eyebrow": "POMOĆ SADA",
+      "title": "Šta vam se dogodilo?",
+      "subtitle": "Ne morate kroz ovo sami. Izaberite svoju situaciju i počnite odgovarajućim sledećim korakom.",
+      "vehicle": "Imao/la sam saobraćajnu nezgodu",
+      "injury": "Povređen/a sam",
+      "property": "Imam štetu na imovini",
+      "flight": "Moj let je kasnio ili je otkazan",
+      "soon": "Uskoro",
+      "whatsappLink": "Niste sigurni odakle da počnete? Ostavite nam poruku na WhatsAppu.",
+      "availability": "Odgovaramo tokom radnog vremena.",
+      "diasporaEyebrow": "ZA DIJASPORU",
+      "diasporaLink": "Živite u inostranstvu? Pišite nam na WhatsAppu.",
+      "emergency": "Ako ste u neposrednoj opasnosti, obratite se lokalnim hitnim službama.",
+      "privacyTitle": "Bez naloga. Bez plaćanja.",
+      "privacyBody": "Vi odlučujete kada se vaši podaci šalju.",
+      "membershipPrompt": "Pomoć vam sada nije potrebna?",
+      "membershipBody": "Uz Interdomestik članstvo možete razjasniti situaciju, organizovati podatke o slučaju i nastaviti dalje bez toga da sve prolazite sami.",
+      "membershipLabel": "Pogledajte godišnje članstvo",
+      "memberEyebrow": "Prostor za članove",
+      "memberTitle": "Nastavite tamo gde ste stali.",
+      "memberSubtitle": "Otvorite svoj prostor da pregledate slučajeve i sledeći korak ili pokrenite novi slučaj.",
+      "memberPrimary": "Otvorite moj prostor",
+      "memberSecondary": "Pokrenite novi slučaj"
     }
   }
 }
