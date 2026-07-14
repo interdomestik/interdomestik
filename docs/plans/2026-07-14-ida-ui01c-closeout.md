@@ -34,8 +34,9 @@ current-authority/design gate promotes exactly one next governed action.
 
 ## Verification And Reviewer Disposition
 
-- Focused implementation proof passed `23` tests. Focused KS/MK browser proof
-  passed `16` tests, and focused Firefox/WebKit evidence passed `2` tests.
+- Focused implementation proof passed `23` tests. Focused KS-tenant/SQ and
+  MK-tenant/MK host-matrix browser proof passed `16` tests, and focused
+  Firefox/WebKit evidence passed `2` tests.
 - Local `pnpm pr:verify` passed with `330/330` contract checks, `148/148` release
   checks, `26/26` RLS checks, `2,874` web unit tests plus one skip, `158` full-gate
   browser tests plus eight not-applicable skips, and `13` PR smoke tests plus nine
