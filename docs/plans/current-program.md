@@ -554,6 +554,31 @@ closeout. Expected resolver state is `blocked_requires_current_authority`,
 `activeSlice=null` until a fresh gate explicitly promotes exactly one next
 governed action.
 
+Rev 116 current-authority/design-gate: `IDA-DG08` in
+`docs/plans/2026-07-14-ida-dg08-dynamic-accident-safety-journey-design-gate.md`
+records Arben's approval of the dynamic Help Now accident-safety tree and promotes
+exactly one Tier 3 implementation slice: `IDA-UI01c`. The next active governed
+implementation goal is exactly one canonical tracker slice: `IDA-UI01c`.
+
+The slice is limited to an anonymous, client-only, ephemeral vehicle-accident
+orientation journey: injury
+`yes / material only / unsure`, vehicle-safety branching, universal safety and
+evidence guidance, user-confirmed incident/vehicle/insurer country roles, and an
+explicit diaspora/cross-border signal. It removes the false fixed step count,
+fails closed for uncertain injury, unsafe vehicles, unsupported countries, and
+unsigned legal-rule content, and must not persist or transmit injury, country, or
+answer state. Sonnet 4.6 returned `REVISE`; all two blockers and four conditions
+were reconciled. Gemini 3.1 Pro Preview returned `ACCEPT WITH CONDITIONS`; its
+no-egress, fail-closed, and final-copy conditions remain mandatory. Required proof
+includes SQ/EN/SR/MK parity, client-only no-egress assertions, keyboard/focus and
+screen-reader behavior, mobile/landscape/200% zoom, JavaScript-on/off behavior,
+Chromium plus proportionate WebKit/Firefox evidence, focused tests, and all Phase C
+gates. `IDA-UI01b` remains frozen. This promotion does not authorize durable
+health data, country-rule engine or signed-content expansion, German, uploads,
+claims/CRM/handoff, analytics/provider state, `apps/web/src/proxy.ts`, routes,
+auth/session, tenancy, database/schema/RLS, billing/Paddle, deployment/aliases,
+dashboards, README, AGENTS, architecture authority, or a second active slice.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
