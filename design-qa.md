@@ -73,11 +73,11 @@ responsive contract, and protected-surface exclusions.
 - Canonical planning/documentation checks passed: `plan:status`, `plan:audit`,
   `track:audit`, and `docs:verify`.
 - Browser console: 0 errors; two existing development CSS-preload warnings.
-- Manual browser zoom at 200 percent remains the named human merge check and is not
-  represented as automated certification.
+- Manual browser zoom at 200 percent: passed on 2026-07-14. Arben Lila inspected
+  the local SQ public entry in Chrome and reported the layout acceptable.
 
 **implementation QA result: passed**
 
 Merge readiness still requires the gate's named human SQ/EN/SR/MK linguistic and
-legal/commercial copy disposition plus the manual 200 percent zoom check. No merge
-or production-alias claim is made by this QA record.
+legal/commercial copy disposition. No merge or production-alias claim is made by
+this QA record.
