@@ -1,0 +1,73 @@
+{
+  "injuryJourney": {
+    "eyebrow": "HELP NOW",
+    "intro": "We check safety first. Then we show you what to preserve and how to continue without giving a diagnosis or identity.",
+    "privacy": "Your answers are used only to guide you on this page. They are not saved or sent.",
+    "title": "Are you in danger now, do you need urgent help, or are you unsure?",
+    "changeAnswer": "Change answer",
+    "urgency": { "yes": "Yes", "no": "No", "unsure": "I am not sure" },
+    "urgent": {
+      "title": "Your safety comes first.",
+      "body": "Do not continue organizing the case until you are out of danger and have the help you need.",
+      "emergency": "Contact local emergency services. In the European Union, you can call 112 free of charge. Outside the EU, use the local emergency number."
+    },
+    "source": {
+      "title": "How did the injury happen?",
+      "hint": "Choose the situation that best describes what happened; we do not ask for a diagnosis.",
+      "traffic": "Road traffic accident",
+      "workplace": "Injury at work",
+      "fall": "Fall or incident on premises",
+      "product": "Product or equipment",
+      "treatment": "Suspected problem during treatment",
+      "assault": "Assault or another danger",
+      "unsure": "I am not sure"
+    },
+    "referral": {
+      "treatmentTitle": "This needs specialist assessment.",
+      "treatmentBody": "Preserve documents you already have and seek advice from an appropriate professional. Interdomestik does not promise handling or recovery for this category.",
+      "assaultTitle": "Safety and specialist support come first.",
+      "assaultBody": "If danger continues, contact local emergency services. Seek specialist local support before organizing a claim.",
+      "unsureTitle": "You can begin without knowing the category.",
+      "unsureBody": "Preserve the date, place, and facts you already know. Seek professional guidance when the situation is unclear; this page does not decide whether a claim exists."
+    },
+    "countries": {
+      "placeholder": "Select a country",
+      "continue": "Continue",
+      "incidentTitle": "In which country did the incident happen?",
+      "incidentHint": "You confirm this yourself; we do not infer it from language, residence, or location.",
+      "incidentLabel": "Country where the incident happened",
+      "residenceTitle": "In which country do you usually live?",
+      "residenceHint": "This may be different from the country where the incident happened.",
+      "residenceLabel": "Country of usual residence",
+      "options": {
+        "XK": "Kosovo",
+        "AL": "Albania",
+        "MK": "North Macedonia",
+        "DE": "Germany",
+        "IT": "Italy",
+        "AT": "Austria",
+        "CH": "Switzerland",
+        "RS": "Serbia",
+        "ME": "Montenegro",
+        "HR": "Croatia",
+        "SI": "Slovenia",
+        "OTHER": "Another country",
+        "UNKNOWN": "I am not sure"
+      }
+    },
+    "evidence": {
+      "title": "Preserve the facts you may need.",
+      "body": "When you are safe, preserve these general facts. This is not a diagnosis, liability assessment, or promise of compensation.",
+      "items": {
+        "incident": "The date, place, and incident report, if one was provided.",
+        "photos": "Safe photographs and witness details.",
+        "costs": "Bills and costs connected with the incident.",
+        "impact": "A timeline of the financial and practical impact."
+      },
+      "diasporaTitle": "Did the incident happen outside the country where you live?",
+      "diasporaBody": "The incident country and residence stay separate so cross-border context is clear, without giving a legal conclusion.",
+      "handoff": "The established Free Start intake begins now. None of these orientation answers are carried over; you choose what to submit.",
+      "continue": "Organize my case information"
+    }
+  }
+}

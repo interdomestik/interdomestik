@@ -1,5 +1,4 @@
 import { routing } from './routing';
-
 export const MESSAGE_NAMESPACES = [
   'about',
   'accidentJourney',
@@ -39,6 +38,7 @@ export const MESSAGE_NAMESPACES = [
   'hero',
   'howItWorks',
   'howMembershipWorks',
+  'injuryJourney',
   'legal',
   'memberBenefits',
   'membership',
@@ -66,6 +66,7 @@ export type MessageNamespace = (typeof MESSAGE_NAMESPACES)[number];
 export const BASE_NAMESPACES = ['common'] as const;
 export const HOME_NAMESPACES = [
   'accidentJourney',
+  'injuryJourney',
   'nav',
   'hero',
   'freeStart',
@@ -152,9 +153,7 @@ export const ADMIN_NAMESPACES = [
   'messaging',
   'notifications',
 ] as const;
-
 import { mergeMessages } from './utils/merge';
-
 type LoadAllMessagesOptions = { strict?: boolean };
 
 async function loadNamespaceMessages(

@@ -76,7 +76,7 @@ describe('PublicEntryActions', () => {
     ).toBeTruthy();
   });
 
-  it('hands off only the vehicle action as a one-shot local intent', () => {
+  it('hands off vehicle and injury as one-shot local intents while property stays fallback', () => {
     const received: unknown[] = [];
     const listener = (event: Event) => received.push((event as CustomEvent).detail);
     window.addEventListener('interdomestik:public-intent', listener);
@@ -86,7 +86,7 @@ describe('PublicEntryActions', () => {
     fireEvent.click(screen.getByTestId('public-entry-injury'));
     fireEvent.click(screen.getByTestId('public-entry-property'));
 
-    expect(received).toEqual([{ intent: 'vehicle' }]);
+    expect(received).toEqual([{ intent: 'vehicle' }, { intent: 'injury' }]);
     window.removeEventListener('interdomestik:public-intent', listener);
   });
 });
