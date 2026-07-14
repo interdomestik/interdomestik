@@ -498,6 +498,28 @@ changed. No replacement implementation slice is promoted; expected resolver
 state is `blocked_requires_current_authority`, `activeSlice=null` until a fresh
 gate promotes exactly one next governed action.
 
+Rev 113 current-authority/design-gate: `IDA-DG06` in
+`docs/plans/2026-07-14-ida-dg06-selected-intent-handoff-design-gate.md` records
+Arben's explicit approval and promotes exactly one Tier 2 implementation slice:
+`IDA-UI01b`. The slice carries the anonymous visitor's allowlisted vehicle,
+injury, or property selection from the approved help-first hero into the existing
+Free Start intake as an ephemeral one-shot route-local handoff, bypassing the
+repeated category question and opening the existing `details` state. It preserves
+the real `#free-start-intake` no-JavaScript fallback, clears pending intent on
+consumption, `Ndrysho`, and authenticated settlement, and adds no URL, cookie,
+storage, analytics, telemetry, log, server-action, or provider persistence. The
+premium presentation is limited to selected-intent confirmation and `details`;
+the ordinary `category`, `preview`, and `complete` states remain disclosed legacy
+seams for later separately gated work. Fable returned ACCEPT WITH CONDITIONS and
+its conditions were reconciled; Codex Sol Ultra returned ACCEPT after bounded
+post-remediation review. Required proof includes SQ/EN/SR/MK parity, mobile and
+200% zoom, deterministic pointer/non-pointer focus, screen-reader semantics,
+no-egress and actual JavaScript-disabled fallback evidence, focused tests,
+modularity, and all mandatory Phase C gates. `apps/web/src/proxy.ts`, routes,
+auth/session, tenancy, data/schema/RLS, billing/Paddle, production aliases/deploy,
+shared tokens, German, flight activation, dashboards, and any second slice remain
+excluded.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
