@@ -78,8 +78,11 @@ responsive contract, and protected-surface exclusions.
 - Named human linguistic disposition: provisionally accepted on 2026-07-14 by
   Arben Lila, product owner, for the current SQ/EN/SR/MK copy. This is not
   represented as professional translation certification.
+- Named human legal/commercial disposition: accepted on 2026-07-14 by Arben
+  Lila, product owner, for the current IDA-UI01a copy.
 
 **implementation QA result: passed**
 
-Merge readiness still requires the gate's legal/commercial copy disposition. No
-merge or production-alias claim is made by this QA record.
+All named human pre-merge dispositions are recorded. Merge still requires clean
+current-head remote checks and feedback. No production-alias claim is made by
+this QA record.
