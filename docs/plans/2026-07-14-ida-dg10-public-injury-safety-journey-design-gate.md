@@ -89,8 +89,8 @@ answers from storage/history.
 
 Expected narrow files, refined only to respect the 150-line rule:
 
-- `apps/web/src/app/[locale]/components/public-entry-intent.ts`
-- `apps/web/src/app/[locale]/components/public-entry-actions.tsx` or an extracted
+- `apps/web/src/app/[locale]/components/home/public-entry-intent.ts`
+- `apps/web/src/app/[locale]/components/home/public-entry-actions.tsx` or an extracted
   injury action component so the grandfathered file does not grow
 - `apps/web/src/app/[locale]/components/home/free-start-intake-shell.tsx`
 - new focused `injury-safety-journey*.tsx` components beside the vehicle journey
