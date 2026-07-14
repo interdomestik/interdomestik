@@ -564,7 +564,10 @@ The slice is limited to an anonymous, client-only, ephemeral vehicle-accident
 orientation journey: injury
 `yes / material only / unsure`, vehicle-safety branching, universal safety and
 evidence guidance, user-confirmed incident/vehicle/insurer country roles, and an
-explicit diaspora/cross-border signal. It removes the false fixed step count,
+explicit diaspora/cross-border signal. It also adopts only the previously reviewed
+one-shot route-local selected-intent contract needed for the vehicle hero action;
+injury/property hero actions keep the ordinary category fallback, so the broader
+frozen `IDA-UI01b` slice is not resumed. It removes the false fixed step count,
 fails closed for uncertain injury, unsafe vehicles, unsupported countries, and
 unsigned legal-rule content, and must not persist or transmit injury, country, or
 answer state. Sonnet 4.6 returned `REVISE`; all two blockers and four conditions

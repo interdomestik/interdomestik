@@ -157,9 +157,12 @@ safety guidance and human support.
 ### Entry contract
 
 The visitor selects `Aksident me veturë` from the approved help-first hero. The
-existing one-shot, allowlisted, route-local selected-intent handoff remains the
-proposed entry mechanism. Direct anchor visits, invalid input, and JavaScript-off
-navigation retain the ordinary Free Start category fallback.
+one-shot, allowlisted, route-local selected-intent contract reviewed in `IDA-DG06`
+is adopted here only for the vehicle entry and becomes part of `IDA-UI01c`; it is
+not present on current `main` and must not be described as existing runtime.
+Direct anchor visits, invalid input, the injury/property hero actions, and
+JavaScript-off navigation retain the ordinary Free Start category fallback. This
+vehicle-only adoption does not resume the broader frozen `IDA-UI01b` slice.
 
 ### Branch A — someone is injured
 
@@ -239,6 +242,7 @@ browser or persist.
 ### In scope
 
 - the approved premium selected-vehicle composition;
+- one vehicle-only, allowlisted, one-shot route-local handoff from the approved hero;
 - removal of the fixed `Hapi 1 nga 4` copy;
 - the injury `yes / material only / unsure` branch;
 - the material-only vehicle-safety branch;
@@ -266,6 +270,8 @@ browser or persist.
   cookies, URL/query state, local/session storage, or third-party provider state;
 - changes to proxy, canonical routes, auth/session, tenancy, billing/Paddle, deployment,
   production aliases, dashboards, README, AGENTS, or architecture authority.
+- selected-intent handoff for the injury or property hero actions, or general
+  resumption of the frozen `IDA-UI01b` slice;
 
 ## Health-data and persistence boundary
 
