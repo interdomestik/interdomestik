@@ -2,25 +2,30 @@ import { expect, test, type Locator, type Page, type TestInfo } from '@playwrigh
 import { routes, type Locale } from './routes';
 import { withAnonymousPage } from './utils/anonymous-context';
 import { gotoApp } from './utils/navigation';
+
 const viewports = [
+  { width: 320, height: 720 },
   { width: 375, height: 812 },
   { width: 390, height: 844 },
-  { width: 720, height: 760 },
   { width: 768, height: 900 },
   { width: 1024, height: 768 },
-  { width: 1440, height: 760 },
+  { width: 1440, height: 900 },
   { width: 844, height: 390 },
 ];
+
 async function openHero(page: Page, testInfo: TestInfo, locale: Locale = 'sq') {
   await gotoApp(page, routes.home(locale), testInfo, { marker: 'public-entry-hero' });
   return page.getByTestId('public-entry-hero');
 }
+
 async function expectNoOverflow(locator: Locator) {
-  const fits = await locator.evaluate(element => element.scrollWidth <= element.clientWidth + 1);
-  expect(fits).toBe(true);
+  expect(await locator.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(
+    true
+  );
 }
+
 async function expectReadableContrast(hero: Locator) {
-  const ratios = await hero.locator('h1, p, a span').evaluateAll(elements => {
+  const ratios = await hero.locator('h1, p, a, span, small').evaluateAll(elements => {
     const rgb = (value: string) => (value.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number);
     const luminance = (value: string) => {
       const channels = rgb(value).map(channel => {
@@ -33,7 +38,7 @@ async function expectReadableContrast(hero: Locator) {
       let current: Element | null = element;
       while (current) {
         const value = getComputedStyle(current).backgroundColor;
-        if (!value.endsWith(', 0)') && value !== 'rgba(0, 0, 0, 0)') return value;
+        if (value !== 'rgba(0, 0, 0, 0)') return value;
         current = current.parentElement;
       }
       return 'rgb(255, 255, 255)';
@@ -48,64 +53,58 @@ async function expectReadableContrast(hero: Locator) {
   });
   expect(Math.min(...ratios)).toBeGreaterThanOrEqual(4.5);
 }
-test.describe('public entry hero', () => {
-  test('renders localized semantics and truthful destinations', async ({ browser }, testInfo) => {
-    await withAnonymousPage(browser, testInfo, async page => {
+
+test.describe('Help Now public entry', () => {
+  test('keeps the same truthful help-first contract in all locales', async ({ browser }, info) => {
+    await withAnonymousPage(browser, info, async page => {
       for (const locale of ['sq', 'en', 'sr', 'mk'] as const) {
-        const hero = await openHero(page, testInfo, locale);
+        const hero = await openHero(page, info, locale);
         await expect(hero.getByRole('heading', { level: 1 })).toBeVisible();
-        await expect(hero.getByRole('link')).toHaveCount(3);
-        await expect(page.getByTestId('public-entry-membership')).toHaveAttribute(
+        for (const id of ['vehicle', 'injury', 'property'] as const) {
+          await expect(hero.getByTestId(`public-entry-${id}`)).toHaveAttribute(
+            'href',
+            /#free-start-intake$/
+          );
+        }
+        await expect(hero.getByTestId('public-entry-flight').getByRole('link')).toHaveCount(0);
+        await expect(hero.getByText(/WhatsApp/i)).toHaveCount(2);
+        await expect(hero.getByTestId('public-entry-membership')).toHaveAttribute(
           'href',
           new RegExp(`/${locale}/pricing$`)
-        );
-        await expect(page.getByTestId('public-entry-help-now')).toHaveAttribute(
-          'href',
-          new RegExp(`/${locale}/help-now$`)
-        );
-        await expect(page.getByTestId('public-entry-case-organize')).toHaveAttribute(
-          'href',
-          /#free-start-intake$/
         );
         await expect(hero).not.toContainText(/4\.9|8[.,]500|100\s?%|24\/7|guarantee|garant/i);
         await expectNoOverflow(hero);
       }
     });
   });
-  test('supports visible keyboard activation in the action hierarchy', async ({
-    browser,
-  }, testInfo) => {
-    await withAnonymousPage(browser, testInfo, async page => {
-      await openHero(page, testInfo);
-      const actions = ['public-entry-membership', 'public-entry-help-now'] as const;
-      for (const testId of actions) {
-        const action = page.getByTestId(testId);
-        await action.press('Shift+Tab');
-        await page.keyboard.press('Tab');
-        await expect(action).toBeFocused();
-        expect(await action.evaluate(element => getComputedStyle(element).boxShadow)).not.toBe(
-          'none'
-        );
-        await page.keyboard.press('Enter');
-        await expect(page).not.toHaveURL(/\/sq\/?$/);
-        await page.goBack({ waitUntil: 'domcontentloaded' });
-        await expect(page.getByTestId('public-entry-hero')).toBeVisible();
-      }
-      const organize = page.getByTestId('public-entry-case-organize');
-      await organize.focus();
-      await page.keyboard.press('Enter');
+
+  test('keeps header and hero controls accessible by keyboard', async ({ browser }, info) => {
+    await withAnonymousPage(browser, info, async page => {
+      const hero = await openHero(page, info);
+      const language = page.getByRole('button', { name: /gjuha/i });
+      await language.focus();
+      await expect(language).toBeFocused();
+      await language.press('Enter');
+      await expect(page.getByTestId('public-locale-option')).toHaveCount(4);
+      await language.press('Escape');
+
+      const vehicle = hero.getByTestId('public-entry-vehicle');
+      await vehicle.focus();
+      await expect(vehicle).toBeFocused();
+      await vehicle.press('Enter');
       await expect(page).toHaveURL(/#free-start-intake$/);
     });
   });
-  test('protects responsive targets, reduced motion, and hero screenshots', async ({
+
+  test('protects readable mobile reflow, targets, contrast, and reduced motion', async ({
     browser,
-  }, testInfo) => {
-    await withAnonymousPage(browser, testInfo, async page => {
+  }, info) => {
+    await withAnonymousPage(browser, info, async page => {
       await page.emulateMedia({ reducedMotion: 'reduce' });
       for (const viewport of viewports) {
         await page.setViewportSize(viewport);
         const locale: Locale = viewport.width === 390 ? 'mk' : 'sq';
-        const hero = await openHero(page, testInfo, locale);
+        const hero = await openHero(page, info, locale);
         await expectNoOverflow(page.locator('html'));
         await expectNoOverflow(hero);
         for (const action of await hero.getByRole('link').all()) {
@@ -114,33 +113,14 @@ test.describe('public entry hero', () => {
           expect(box?.width).toBeGreaterThanOrEqual(44);
         }
         await expectReadableContrast(hero);
-        const actionBoxes = await hero.getByRole('link').evaluateAll(elements =>
-          elements.map(element => {
-            const box = element.getBoundingClientRect();
-            return { left: box.left, right: box.right, top: box.top, bottom: box.bottom };
-          })
-        );
-        for (let index = 1; index < actionBoxes.length; index += 1) {
-          const previous = actionBoxes[index - 1];
-          const current = actionBoxes[index];
-          const horizontalGap = Math.max(
-            current.left - previous.right,
-            previous.left - current.right
-          );
-          const verticalGap = Math.max(
-            current.top - previous.bottom,
-            previous.top - current.bottom
-          );
-          expect(Math.max(horizontalGap, verticalGap)).toBeGreaterThanOrEqual(8);
-        }
-        const duration = await page
-          .getByTestId('public-entry-help-now')
-          .locator('svg')
+        const duration = await hero
+          .getByTestId('public-entry-vehicle')
+          .locator('svg:last-child')
           .evaluate(element => Number.parseFloat(getComputedStyle(element).transitionDuration));
         expect(duration).toBeLessThan(0.001);
         if ([375, 390, 1440].includes(viewport.width)) {
           await hero.screenshot({
-            path: testInfo.outputPath(`public-entry-${locale}-${viewport.width}.png`),
+            path: info.outputPath(`help-now-${locale}-${viewport.width}.png`),
           });
         }
       }

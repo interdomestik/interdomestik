@@ -22,37 +22,57 @@ vi.mock('@/i18n/routing', () => ({
 }));
 
 describe('PublicEntryActions', () => {
-  it('keeps membership first and exposes exactly three truthful destinations', () => {
-    render(<PublicEntryActions />);
+  it('makes three immediate-help situations primary and keeps flight honest', () => {
+    render(<PublicEntryActions whatsappHref="https://wa.me/38349900600" />);
 
-    const links = screen.getAllByRole('link');
+    const situations = screen.getByTestId('public-entry-situations');
+    const links = within(situations).getAllByRole('link');
     expect(links).toHaveLength(3);
     expect(links.map(link => link.getAttribute('href'))).toEqual([
-      '/pricing',
-      '/help-now',
+      '#free-start-intake',
+      '#free-start-intake',
       '#free-start-intake',
     ]);
-    expect(links[0]).toHaveAccessibleName(/Shih anëtarësimin vjetor/i);
+    expect(links.map(link => link.textContent)).toEqual([
+      expect.stringMatching(/aksident me veturë/i),
+      expect.stringMatching(/Jam lënduar/i),
+      expect.stringMatching(/dëm në pronë/i),
+    ]);
+
+    const flight = screen.getByTestId('public-entry-flight');
+    expect(flight).toHaveTextContent(/Fluturimi im u vonua ose u anulua/i);
+    expect(flight).toHaveTextContent(/Së shpejti/i);
+    expect(within(flight).queryByRole('link')).not.toBeInTheDocument();
+    expect(within(flight).queryByRole('button')).not.toBeInTheDocument();
+    expect(flight).not.toHaveAttribute('aria-disabled');
   });
 
-  it('makes each secondary title, description, and arrow one generous link target', () => {
-    render(<PublicEntryActions />);
+  it('offers two clearly named asynchronous WhatsApp paths and safety copy', () => {
+    render(<PublicEntryActions whatsappHref="https://wa.me/38349900600" />);
 
-    const help = screen.getByTestId('public-entry-help-now');
-    expect(within(help).getByText(/Ndihmë Tani/i)).toBeInTheDocument();
-    expect(within(help).getByText(/listë të qartë/i)).toBeInTheDocument();
-    expect(help).toHaveClass('min-h-32');
-    expect(help.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
-
-    const organize = screen.getByTestId('public-entry-case-organize');
-    expect(within(organize).getByText(/Organizo të dhënat e rastit/i)).toBeInTheDocument();
-    expect(within(organize).getByText(/Mblidh dhe sistemo/i)).toBeInTheDocument();
-    expect(organize).toHaveClass('min-h-32');
+    expect(screen.getByRole('link', { name: /mesazh në WhatsApp/i })).toHaveAttribute(
+      'href',
+      'https://wa.me/38349900600'
+    );
+    expect(screen.getByRole('link', { name: /Jetoni jashtë vendit/i })).toHaveAttribute(
+      'href',
+      'https://wa.me/38349900600'
+    );
+    expect(screen.getByText(/Përgjigjemi gjatë orarit të punës/i)).toBeInTheDocument();
+    expect(screen.getByText(/shërbimet lokale të emergjencës/i)).toBeInTheDocument();
+    expect(screen.getByText(/Pa llogari\. Pa pagesë\./i)).toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent(/24\/7|garant/i);
   });
 
-  it('does not introduce unsupported quantitative or guarantee claims', () => {
-    render(<PublicEntryActions />);
+  it('places annual membership after the immediate-help journey', () => {
+    render(<PublicEntryActions whatsappHref="https://wa.me/38349900600" />);
 
-    expect(document.body).not.toHaveTextContent(/4\.9|8[.,]500|100\s?%|24\/7|garant/i);
+    const situations = screen.getByTestId('public-entry-situations');
+    const membership = screen.getByTestId('public-entry-membership');
+    expect(membership).toHaveAttribute('href', '/pricing');
+    expect(membership).toHaveAccessibleName(/Shihni anëtarësimin vjetor/i);
+    expect(
+      situations.compareDocumentPosition(membership) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
   });
 });

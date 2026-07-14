@@ -6,13 +6,87 @@ slice: IDA-DG05
 proposed_implementation_slice: IDA-UI01a
 owner: platform + product + design + qa
 date: 2026-07-13
-last_reviewed: 2026-07-13
+last_reviewed: 2026-07-14
 ---
 
 # IDA-DG05 — M0–M5 Public Entry UI Foundation Design Gate
 
 > Status: accepted current-authority/design gate. Matching canonical program and
 > tracker records promote exactly one implementation slice: `IDA-UI01a`.
+
+## 2026-07-14 controlling help-first amendment
+
+Arben rejected the unmerged membership-first Option 3 implementation as the final
+public face and approved the premium help-first baseline. This amendment supersedes
+every conflicting membership-first hierarchy, three-link action-set, no-header,
+and no-direct-contact statement below. Historical reviewer evidence remains intact;
+it is not authority to revive the superseded composition. There is still exactly
+one active slice, `IDA-UI01a`, and one PR/branch.
+
+The controlling anonymous public composition is:
+
+1. a simplified midnight public header using the existing logo, locale control,
+   and sign-in destination, with no phone, response-time, or availability claim;
+2. `NDIHMË TANI` followed by the direct-address question `Çfarë ju ka ndodhur?`;
+3. three full-row links for vehicle accident, injury, and property damage, each
+   entering the existing `#free-start-intake` journey without new routes;
+4. a fourth, fully legible, non-focusable static flight row with visible text status
+   `Së shpejti`; it is not a link, button, disabled control, or live region;
+5. compact asynchronous WhatsApp contact plus a second, purpose-specific
+   `PËR DIASPORËN` WhatsApp link, both using locale/tenant-aware support data and
+   distinct accessible names, without 24/7 or response-time claims;
+6. local-emergency and privacy/no-account/no-payment safeguards; and
+7. annual membership as the secondary commercial path after immediate help.
+
+The following local visual files are review provenance, not portable CI or merge
+authority. Their dimensions and hashes identify exactly what Arben approved during
+this supervised task. The durable controlling contract is the semantic composition,
+copy, behavior, scope, palette, and responsive evidence specified in this amendment:
+
+- desktop reference, `1280x911`, SHA-256
+  `6892e290222d79f490ad2bcdf8a0bff5025c8f73514c3a8caa920233cbab0aad`:
+  `/Users/arbenlila/Library/Containers/net.whatsapp.WhatsApp/Data/tmp/documents/540810BA-452F-417D-BB92-9C527DE6D477/PHOTO-2026-07-14-05-27-22.jpg`;
+- mobile baseline, `862x1824`, SHA-256
+  `65754c1c0509c09042140cea3ee79fa0247d56d2d6481e1fa770ff7678d06d20`:
+  `/Users/arbenlila/.codex/generated_images/019f5c11-d767-7b60-9972-b1e393df5b89/exec-1b0b1bcb-9a4c-4699-983e-b946de34f118.png`.
+
+The desktop reference is a composition baseline; the later mobile baseline and
+approved refinements control copy and interaction where they differ: omit
+`Zgjidhni situatën`, omit the large phone/contact block, keep WhatsApp asynchronous,
+make `NDIHMË TANI` prominent, and keep flight noninteractive. The root
+`product-guidelines.md` membership-first cold-hero rule conflicts with this explicit
+help-now entry exception; matching current program/tracker authority controls this
+slice while membership remains the honest secondary commercial action.
+
+The anonymous header is explicitly logo + locale + sign-in only; support contact is
+present once in the hero and is not duplicated in the header. The route-local palette
+is midnight `#001A33`, warm ivory `#F9F6F0`, and an AA-compliant teal selected and
+measured against its actual background. No shared token is changed. The composition
+must reflow without clipping, overlap, or horizontal overflow at 320/375/390/768/
+1024/1440 CSS pixels and at the longest natural SQ/EN/SR/MK copy; text may wrap and
+must remain readable rather than being truncated.
+
+The amendment authorizes only presentation changes in the existing public header,
+hero, route-local components, hero messages, and focused tests. It does not authorize
+`proxy.ts`, route creation or renaming, auth/session, tenancy, data/schema/RLS,
+billing/Paddle, analytics/provider state, production aliases/deploy, shared tokens,
+below-fold redesign, role dashboards, or a parallel UI architecture.
+
+### Bounded help-first amendment review
+
+The repository-owned Sonnet 4.6 review completed in `139.322s` with verdict
+**REVISE** and no provider blocker. The revision is closed as follows:
+
+- local screenshot paths are provenance only; the tracked semantic and evidence
+  contract above is durable authority;
+- `personalized` is replaced by direct-address, second-person editorial language;
+- flight is a static non-focusable row with a visible, full-contrast status;
+- diaspora is an independently named WhatsApp link, not audience-derived authority;
+- the public header has no duplicated contact or availability claim; and
+- four-locale responsive no-overflow proof is explicit.
+
+No unresolved reviewer finding requires Fable or Opus adjudication before the
+test-first implementation starts.
 
 ## Gate outcome sought
 
@@ -672,7 +746,7 @@ Stop and return to design/current authority if implementation would require:
 - a new route, analytics event/provider, persisted selection, cookie, or data write;
 - country/diaspora/campaign/referral-derived behavior;
 - an unsupported claim or unreviewed locale;
-- shared token, header, page-shell, Playwright-config, or gate-infrastructure change;
+- shared token, page-shell, Playwright-config, or gate-infrastructure change;
 - a file-scope expansion beyond the named presentation components and evidence.
 
 If copy review or any residual cannot be resolved inside this boundary, stop and
