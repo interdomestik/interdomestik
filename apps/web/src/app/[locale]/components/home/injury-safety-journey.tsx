@@ -17,8 +17,11 @@ export function InjurySafetyJourney({ onContinue = () => undefined }: InjurySafe
   const [liveMode, setLiveMode] = useState<'off' | 'polite' | 'assertive'>('polite');
   const { contentRef, requestHeadingFocus } = useJourneyHeadingFocus(stage);
   const moveTo = (next: InjuryStage, focus: boolean, urgent = false) => {
+    let nextLiveMode: 'off' | 'polite' | 'assertive' = 'polite';
+    if (focus) nextLiveMode = 'off';
+    else if (urgent) nextLiveMode = 'assertive';
     requestHeadingFocus(focus);
-    setLiveMode(focus ? 'off' : urgent ? 'assertive' : 'polite');
+    setLiveMode(nextLiveMode);
     setStage(next);
   };
 

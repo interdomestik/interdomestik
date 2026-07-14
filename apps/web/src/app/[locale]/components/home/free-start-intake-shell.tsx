@@ -74,12 +74,9 @@ export function FreeStartIntakeShell({
     );
   }
 
-  const initialCategory =
-    mode === 'vehicleDetails'
-      ? 'vehicle'
-      : mode === 'injuryDetails'
-        ? 'injury'
-        : props.initialCategory;
+  let initialCategory = props.initialCategory;
+  if (mode === 'vehicleDetails') initialCategory = 'vehicle';
+  if (mode === 'injuryDetails') initialCategory = 'injury';
   return (
     <LegacyFreeStartIntakeShell
       {...props}
