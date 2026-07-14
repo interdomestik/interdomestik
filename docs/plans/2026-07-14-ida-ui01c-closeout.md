@@ -59,9 +59,19 @@ current-authority/design gate promotes exactly one next governed action.
 ## Post-Merge Main Health
 
 Post-merge checks for `1bc98f55ac6fb4d50cf96f13bdf8b001a479f516`
-must be green before this closeout merges. The final main run IDs and dispositions
-are recorded in the closeout PR after they complete. No manual Vercel deployment,
-production workflow dispatch, or production-alias change is authorized or claimed.
+are recorded before this closeout merges:
+
+- main CI run `29369688998` passed, including audit, static, unit/coverage,
+  AI-eval, and the full E2E gate (`13m14s`);
+- Sonar Main Gate run `29369689354` passed;
+- Secret Scan run `29369689101` passed;
+- CodeQL runs `29369688399` and `29369688196` passed.
+
+Automatic CD run `29369689105` was cancelled during Docker Buildx setup, before
+registry login, image build, staging deploy, or staging E2E, to preserve Arben's
+explicit no-Vercel-deploy boundary for this workstream. This cancelled deployment
+context is not product-readiness evidence. No manual Vercel deployment, production
+workflow dispatch, staging or production alias change is authorized or claimed.
 
 ## No-Touch And Residual Boundary
 
