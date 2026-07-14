@@ -100,4 +100,16 @@ test.describe('public locale shell without JavaScript', () => {
       await expect(page.getByTestId('accident-safety-journey')).toHaveCount(0);
     });
   });
+
+  test('keeps the injury hero link on the ordinary fallback without JavaScript', async ({
+    browser,
+  }, info) => {
+    await withNoJsPage(browser, info, { width: 375, height: 812 }, async page => {
+      await gotoApp(page, routes.home('sq'), info, { marker: 'public-entry-hero' });
+      await page.getByTestId('public-entry-injury').click();
+      await expect(page).toHaveURL(/#free-start-intake$/);
+      await expectServerVisibleFallback(page);
+      await expect(page.getByTestId('injury-safety-journey')).toHaveCount(0);
+    });
+  });
 });

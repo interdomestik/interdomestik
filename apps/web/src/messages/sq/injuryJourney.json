@@ -1,0 +1,77 @@
+{
+  "injuryJourney": {
+    "eyebrow": "NDIHMË TANI",
+    "intro": "Së pari kontrollojmë sigurinë. Pastaj ju tregojmë çfarë të ruani dhe si të vazhdoni pa dhënë diagnozë ose identitet.",
+    "privacy": "Përgjigjet përdoren vetëm për t’ju orientuar në këtë faqe. Nuk ruhen dhe nuk dërgohen.",
+    "title": "A jeni tani në rrezik, keni nevojë për ndihmë urgjente, ose nuk jeni të sigurt?",
+    "changeAnswer": "Ndrysho përgjigjen",
+    "urgency": {
+      "yes": "Po",
+      "no": "Jo",
+      "unsure": "Nuk jam i sigurt"
+    },
+    "urgent": {
+      "title": "Siguria juaj vjen e para.",
+      "body": "Mos vazhdoni me organizimin e rastit derisa të jeni jashtë rrezikut dhe të keni marrë ndihmën që ju duhet.",
+      "emergency": "Kontaktoni shërbimet lokale të emergjencës. Në Bashkimin Evropian mund të telefononi falas 112. Jashtë BE-së përdorni numrin lokal të emergjencës."
+    },
+    "source": {
+      "title": "Si ndodhi lëndimi?",
+      "hint": "Zgjidhni situatën që përshkruan më mirë çfarë ndodhi; nuk ju kërkojmë diagnozë.",
+      "traffic": "Aksident në trafik",
+      "workplace": "Lëndim në punë",
+      "fall": "Rrëzim ose incident në një hapësirë",
+      "product": "Produkt ose pajisje",
+      "treatment": "Problem i dyshuar gjatë trajtimit",
+      "assault": "Sulm ose rrezik tjetër",
+      "unsure": "Nuk jam i sigurt"
+    },
+    "referral": {
+      "treatmentTitle": "Kjo kërkon vlerësim specialisti.",
+      "treatmentBody": "Ruani dokumentet që tashmë i keni dhe kërkoni këshillë nga një profesionist i përshtatshëm. Interdomestik nuk premton trajtim ose recovery për këtë kategori.",
+      "assaultTitle": "Siguria dhe mbështetja e specializuar vijnë të parat.",
+      "assaultBody": "Nëse rreziku vazhdon, kontaktoni shërbimet lokale të emergjencës. Kërkoni mbështetje të specializuar lokale para organizimit të një kërkese.",
+      "unsureTitle": "Mund të filloni pa e ditur kategorinë.",
+      "unsureBody": "Ruani datën, vendin dhe faktet që tashmë i dini. Kërkoni orientim profesional kur situata nuk është e qartë; kjo faqe nuk vendos nëse ekziston një kërkesë."
+    },
+    "countries": {
+      "placeholder": "Zgjidhni shtetin",
+      "continue": "Vazhdo",
+      "incidentTitle": "Në cilin shtet ndodhi incidenti?",
+      "incidentHint": "Zgjidheni vetë; nuk e përcaktojmë nga gjuha, vendbanimi ose vendndodhja.",
+      "incidentLabel": "Shteti ku ndodhi incidenti",
+      "residenceTitle": "Në cilin shtet banoni zakonisht?",
+      "residenceHint": "Ky mund të jetë shtet tjetër nga vendi ku ndodhi incidenti.",
+      "residenceLabel": "Shteti i vendbanimit të zakonshëm",
+      "options": {
+        "XK": "Kosovë",
+        "AL": "Shqipëri",
+        "MK": "Maqedoni e Veriut",
+        "DE": "Gjermani",
+        "IT": "Itali",
+        "AT": "Austri",
+        "CH": "Zvicër",
+        "RS": "Serbi",
+        "ME": "Mal i Zi",
+        "HR": "Kroaci",
+        "SI": "Slloveni",
+        "OTHER": "Shtet tjetër",
+        "UNKNOWN": "Nuk jam i sigurt"
+      }
+    },
+    "evidence": {
+      "title": "Ruani faktet që mund t’ju duhen.",
+      "body": "Kur jeni të sigurt, ruani këto fakte të përgjithshme. Kjo nuk është diagnozë, vlerësim përgjegjësie ose premtim kompensimi.",
+      "items": {
+        "incident": "Datën, vendin dhe raportin e incidentit, nëse ju është dhënë.",
+        "photos": "Fotografi të sigurta dhe të dhënat e dëshmitarëve.",
+        "costs": "Faturat dhe shpenzimet e lidhura me incidentin.",
+        "impact": "Një vijë kohore të ndikimit financiar dhe praktik."
+      },
+      "diasporaTitle": "Incidenti ndodhi jashtë vendit ku banoni?",
+      "diasporaBody": "Vendi i incidentit dhe vendbanimi mbeten të ndara që konteksti ndërkufitar të jetë i qartë, pa dhënë përfundim ligjor.",
+      "handoff": "Tani fillon intake-i ekzistues Free Start. Asnjë përgjigje nga ky orientim nuk bartet; ju zgjidhni çfarë të dërgoni.",
+      "continue": "Organizo të dhënat e rastit tim"
+    }
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "injuryJourney": {
+    "eyebrow": "POMOĆ SADA",
+    "intro": "Prvo proveravamo bezbednost. Zatim pokazujemo šta da sačuvate i kako da nastavite bez navođenja dijagnoze ili identiteta.",
+    "privacy": "Odgovori se koriste samo da vas usmere na ovoj stranici. Ne čuvaju se i ne šalju.",
+    "title": "Da li ste sada u opasnosti, potrebna vam je hitna pomoć ili niste sigurni?",
+    "changeAnswer": "Promeni odgovor",
+    "urgency": { "yes": "Da", "no": "Ne", "unsure": "Nisam siguran/na" },
+    "urgent": {
+      "title": "Vaša bezbednost je na prvom mestu.",
+      "body": "Ne nastavljajte organizovanje slučaja dok ne budete van opasnosti i ne dobijete potrebnu pomoć.",
+      "emergency": "Kontaktirajte lokalne hitne službe. U Evropskoj uniji možete besplatno pozvati 112. Van EU koristite lokalni broj za hitne slučajeve."
+    },
+    "source": {
+      "title": "Kako je došlo do povrede?",
+      "hint": "Izaberite situaciju koja najbolje opisuje događaj; ne tražimo dijagnozu.",
+      "traffic": "Saobraćajna nezgoda",
+      "workplace": "Povreda na radu",
+      "fall": "Pad ili incident u nekom prostoru",
+      "product": "Proizvod ili oprema",
+      "treatment": "Sumnja na problem tokom lečenja",
+      "assault": "Napad ili druga opasnost",
+      "unsure": "Nisam siguran/na"
+    },
+    "referral": {
+      "treatmentTitle": "Ovo zahteva procenu stručnjaka.",
+      "treatmentBody": "Sačuvajte dokumenta koja već imate i potražite savet odgovarajućeg stručnjaka. Interdomestik ne obećava vođenje ili recovery za ovu kategoriju.",
+      "assaultTitle": "Bezbednost i stručna podrška su na prvom mestu.",
+      "assaultBody": "Ako opasnost traje, kontaktirajte lokalne hitne službe. Potražite stručnu lokalnu podršku pre organizovanja zahteva.",
+      "unsureTitle": "Možete početi i bez poznavanja kategorije.",
+      "unsureBody": "Sačuvajte datum, mesto i činjenice koje već znate. Kada situacija nije jasna, potražite stručne smernice; ova stranica ne odlučuje da li zahtev postoji."
+    },
+    "countries": {
+      "placeholder": "Izaberite državu",
+      "continue": "Nastavi",
+      "incidentTitle": "U kojoj državi se dogodio incident?",
+      "incidentHint": "Vi to potvrđujete; ne zaključujemo na osnovu jezika, prebivališta ili lokacije.",
+      "incidentLabel": "Država u kojoj se dogodio incident",
+      "residenceTitle": "U kojoj državi obično živite?",
+      "residenceHint": "To može biti druga država od one u kojoj se incident dogodio.",
+      "residenceLabel": "Država uobičajenog prebivališta",
+      "options": {
+        "XK": "Kosovo (XK)",
+        "AL": "Albanija",
+        "MK": "Severna Makedonija",
+        "DE": "Nemačka",
+        "IT": "Italija",
+        "AT": "Austrija",
+        "CH": "Švajcarska",
+        "RS": "Srbija",
+        "ME": "Crna Gora",
+        "HR": "Hrvatska",
+        "SI": "Slovenija",
+        "OTHER": "Druga država",
+        "UNKNOWN": "Nisam siguran/na"
+      }
+    },
+    "evidence": {
+      "title": "Sačuvajte činjenice koje vam mogu biti potrebne.",
+      "body": "Kada ste bezbedni, sačuvajte ove opšte činjenice. Ovo nije dijagnoza, procena odgovornosti niti obećanje naknade.",
+      "items": {
+        "incident": "Datum, mesto i izveštaj o incidentu, ako je izdat.",
+        "photos": "Bezbedno snimljene fotografije i podatke o svedocima.",
+        "costs": "Račune i troškove povezane sa incidentom.",
+        "impact": "Vremensku liniju finansijskog i praktičnog uticaja."
+      },
+      "diasporaTitle": "Da li se incident dogodio van države u kojoj živite?",
+      "diasporaBody": "Država incidenta i prebivalište ostaju odvojeni da bi prekogranični kontekst bio jasan, bez pravnog zaključka.",
+      "handoff": "Sada počinje postojeći Free Start unos. Nijedan odgovor iz ovog usmeravanja se ne prenosi; vi birate šta šaljete.",
+      "continue": "Organizuj podatke o mom slučaju"
+    }
+  }
+}

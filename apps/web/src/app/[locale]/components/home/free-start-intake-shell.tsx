@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { AccidentSafetyJourney } from './accident-safety-journey';
 import { FreeStartIntakeShell as LegacyFreeStartIntakeShell } from './free-start-intake-shell/index';
 import type { FreeStartIntakeShellProps } from './free-start-intake-shell/types';
+import { InjurySafetyJourney } from './injury-safety-journey';
 import {
   PUBLIC_INTENT_EVENT,
   readPublicEntryIntent,
@@ -17,7 +18,10 @@ export function FreeStartIntakeShell({
   publicEntryEnabled = true,
   ...props
 }: DynamicFreeStartIntakeShellProps) {
-  const [mode, setMode] = useState<'fallback' | 'accident' | 'vehicleDetails'>('fallback');
+  const [mode, setMode] = useState<
+    'fallback' | 'accident' | 'injury' | 'vehicleDetails' | 'injuryDetails'
+  >('fallback');
+  const [journeyKey, setJourneyKey] = useState(0);
 
   useEffect(() => {
     if (!publicEntryEnabled) {
@@ -27,9 +31,11 @@ export function FreeStartIntakeShell({
     }
 
     const onIntent = (event: Event) => {
-      if (readPublicEntryIntent(event) === 'vehicle') {
+      const intent = readPublicEntryIntent(event);
+      if (intent === 'vehicle' || intent === 'injury') {
         takePendingPublicEntryIntent();
-        setMode('accident');
+        setJourneyKey(key => key + 1);
+        setMode(intent === 'vehicle' ? 'accident' : 'injury');
       }
     };
     const onHashChange = () => {
@@ -40,8 +46,9 @@ export function FreeStartIntakeShell({
 
     window.addEventListener(PUBLIC_INTENT_EVENT, onIntent);
     window.addEventListener('hashchange', onHashChange);
-    if (takePendingPublicEntryIntent() === 'vehicle') {
-      setMode('accident');
+    const pendingIntent = takePendingPublicEntryIntent();
+    if (pendingIntent === 'vehicle' || pendingIntent === 'injury') {
+      setMode(pendingIntent === 'vehicle' ? 'accident' : 'injury');
     }
     return () => {
       window.removeEventListener(PUBLIC_INTENT_EVENT, onIntent);
@@ -50,10 +57,26 @@ export function FreeStartIntakeShell({
   }, [publicEntryEnabled]);
 
   if (mode === 'accident') {
-    return <AccidentSafetyJourney onContinue={() => setMode('vehicleDetails')} />;
+    return (
+      <AccidentSafetyJourney
+        key={`accident-${props.locale}-${journeyKey}`}
+        onContinue={() => setMode('vehicleDetails')}
+      />
+    );
   }
 
-  const initialCategory = mode === 'vehicleDetails' ? 'vehicle' : props.initialCategory;
+  if (mode === 'injury') {
+    return (
+      <InjurySafetyJourney
+        key={`injury-${props.locale}-${journeyKey}`}
+        onContinue={() => setMode('injuryDetails')}
+      />
+    );
+  }
+
+  let initialCategory = props.initialCategory;
+  if (mode === 'vehicleDetails') initialCategory = 'vehicle';
+  if (mode === 'injuryDetails') initialCategory = 'injury';
   return (
     <LegacyFreeStartIntakeShell
       {...props}

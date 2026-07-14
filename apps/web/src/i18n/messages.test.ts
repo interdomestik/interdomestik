@@ -61,6 +61,15 @@ describe('i18n shell namespace coverage', () => {
     expect(home).toContain("'freeStart'");
   });
 
+  it('loads the injury journey only on the public home shell', () => {
+    const source = fs.readFileSync(path.resolve(__dirname, 'messages.ts'), 'utf8');
+    const allNamespaces = getArrayBlock(source, 'MESSAGE_NAMESPACES');
+    const home = getArrayBlock(source, 'HOME_NAMESPACES');
+
+    expect(allNamespaces).toContain("'injuryJourney'");
+    expect(home).toContain("'injuryJourney'");
+  });
+
   it('can load only the namespaces a standalone route needs', async () => {
     const messages = await loadMessagesForNamespaces('mk', ['claims-tracking']);
 
