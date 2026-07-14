@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 import baseConfig from './playwright.config';
 
+// NOSONAR -- this opt-in evidence config targets only the local Playwright loopback server.
 const baseURL = 'http://ks.127.0.0.1.nip.io:3000/sq';
 const extraHTTPHeaders = { 'x-forwarded-host': 'ks.127.0.0.1.nip.io:3000' };
 const testMatch = ['evidence/public-accident-safety-cross-browser.evidence.ts'];

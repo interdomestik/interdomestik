@@ -74,7 +74,6 @@ async function expectServerVisibleFallback(page: Page) {
 
 test.describe('public locale shell without JavaScript', () => {
   test('keeps the direct Free Start fallback visible', async ({ browser }, testInfo) => {
-    test.skip(testInfo.project.name !== 'gate-ks-sq', 'The shell proof runs once in the KS gate.');
     await withNoJsPage(browser, testInfo, { width: 375, height: 812 }, async page => {
       await openFallback(page, testInfo, 'sq');
       await expectServerVisibleFallback(page);
@@ -82,7 +81,6 @@ test.describe('public locale shell without JavaScript', () => {
   });
 
   test('keeps every approved locale visible across the width matrix', async ({ browser }, info) => {
-    test.skip(info.project.name !== 'gate-ks-sq', 'The shell proof runs once in the KS gate.');
     for (const { locale, width, height } of localeViewports) {
       await withNoJsPage(browser, info, { width, height }, async page => {
         await openFallback(page, info, locale);
@@ -94,7 +92,6 @@ test.describe('public locale shell without JavaScript', () => {
   test('keeps the vehicle hero link on the ordinary fallback without JavaScript', async ({
     browser,
   }, info) => {
-    test.skip(info.project.name !== 'gate-ks-sq', 'The shell proof runs once in the KS gate.');
     await withNoJsPage(browser, info, { width: 375, height: 812 }, async page => {
       await gotoApp(page, routes.home('sq'), info, { marker: 'public-entry-hero' });
       await page.getByTestId('public-entry-vehicle').click();

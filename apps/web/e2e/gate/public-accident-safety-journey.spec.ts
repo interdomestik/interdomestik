@@ -31,10 +31,6 @@ async function expectNoOverflow(locator: Locator) {
 }
 
 test.describe('public accident safety journey', () => {
-  test.beforeEach(({}, info) => {
-    test.skip(info.project.name !== 'gate-ks-sq', 'Journey proof runs once in the KS gate.');
-  });
-
   test('starts in every locale and reflows at the required mobile widths', async ({
     browser,
   }, info) => {
