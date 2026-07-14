@@ -75,9 +75,11 @@ responsive contract, and protected-surface exclusions.
 - Browser console: 0 errors; two existing development CSS-preload warnings.
 - Manual browser zoom at 200 percent: passed on 2026-07-14. Arben Lila inspected
   the local SQ public entry in Chrome and reported the layout acceptable.
+- Named human linguistic disposition: provisionally accepted on 2026-07-14 by
+  Arben Lila, product owner, for the current SQ/EN/SR/MK copy. This is not
+  represented as professional translation certification.
 
 **implementation QA result: passed**
 
-Merge readiness still requires the gate's named human SQ/EN/SR/MK linguistic and
-legal/commercial copy disposition. No merge or production-alias claim is made by
-this QA record.
+Merge readiness still requires the gate's legal/commercial copy disposition. No
+merge or production-alias claim is made by this QA record.
