@@ -520,6 +520,24 @@ auth/session, tenancy, data/schema/RLS, billing/Paddle, production aliases/deplo
 shared tokens, German, flight activation, dashboards, and any second slice remain
 excluded.
 
+Rev 114 current-authority/design-gate: `IDA-DG07` in
+`docs/plans/2026-07-14-ida-dg07-no-js-page-shell-restoration-design-gate.md`
+records the real JavaScript-disabled production failure discovered while verifying
+`IDA-UI01b`. The ordinary public page and Free Start category fallback are present
+in the SSR DOM but remain inside a hidden page-wide React streaming segment because
+the locale shell wraps the complete provider/page subtree in a fallback-less
+`Suspense`; without JavaScript, the reveal script never runs and the viewport is
+blank. Arben explicitly instructed that `IDA-UI01b` be frozen and a separate narrow
+gate be promoted. Exactly one Tier 2 corrective slice, `IDA-SH01`, is now active.
+It is limited to removing or narrowing the page-wide shell boundary so server-
+rendered locale content is visible without JavaScript, plus focused real-browser,
+build, locale, mobile, accessibility, and no-regression evidence. It does not
+authorize `apps/web/src/proxy.ts`, routes, auth/session, tenancy, data/schema/RLS,
+billing/Paddle, providers or analytics semantics, production aliases/deploy, hero or
+Free Start redesign, shared tokens, German, flight activation, dashboards, or any
+concurrent resumption of `IDA-UI01b`. `IDA-UI01b` may resume only after `IDA-SH01`
+merge/closeout and a fresh current-authority decision.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
