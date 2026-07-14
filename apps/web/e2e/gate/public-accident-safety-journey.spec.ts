@@ -16,12 +16,13 @@ const localeMatrix = [
 
 async function openJourney(page: Page, info: TestInfo, locale: Locale = 'sq') {
   await gotoApp(page, routes.home(locale), info, { marker: 'public-entry-hero' });
-  await page.waitForFunction(() => {
-    const vehicle = document.querySelector('[data-testid="public-entry-vehicle"]');
-    return vehicle ? Object.keys(vehicle).some(key => key.startsWith('__reactProps$')) : false;
-  });
-  await page.getByTestId('public-entry-vehicle').click();
-  return page.getByTestId('accident-safety-journey');
+  const vehicle = page.getByTestId('public-entry-vehicle');
+  const journey = page.getByTestId('accident-safety-journey');
+  await expect(async () => {
+    await vehicle.click();
+    await expect(journey).toBeVisible({ timeout: 1_000 });
+  }).toPass({ timeout: 10_000 });
+  return journey;
 }
 
 async function expectNoOverflow(locator: Locator) {
@@ -75,8 +76,11 @@ test.describe('public accident safety journey', () => {
 
       await journey.getByRole('button', { name: /Po, mund të lëvizet/i }).click();
       await journey.getByLabel('Shteti ku ndodhi aksidenti').selectOption('IT');
+      await journey.getByRole('button', { name: 'Vazhdo' }).click();
       await journey.getByLabel('Shteti i regjistrimit të veturës').selectOption('DE');
+      await journey.getByRole('button', { name: 'Vazhdo' }).click();
       await journey.getByLabel('Shteti i siguruesit ose palës tjetër').selectOption('XK');
+      await journey.getByRole('button', { name: 'Vazhdo' }).click();
       await expect(
         journey.getByRole('heading', { name: 'Ruani faktet e rëndësishme.' })
       ).toBeVisible();

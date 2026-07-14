@@ -59,7 +59,6 @@ describe('AccidentSafetyJourney', () => {
   it('stops ordinary preparation when someone is injured', () => {
     render(<AccidentSafetyJourney />);
     fireEvent.click(screen.getByRole('button', { name: 'Po, dikush është lënduar' }));
-
     expect(screen.getByRole('heading', { name: 'Siguria vjen e para.' })).toBeInTheDocument();
     expect(screen.getByText(/shërbimet lokale të emergjencës/i)).toBeInTheDocument();
     expect(screen.queryByText(/Organizo të dhënat e rastit/i)).not.toBeInTheDocument();
@@ -69,7 +68,6 @@ describe('AccidentSafetyJourney', () => {
   it('routes uncertainty to the precautionary outcome', () => {
     render(<AccidentSafetyJourney />);
     fireEvent.click(screen.getByRole('button', { name: 'Nuk jam i sigurt' }));
-
     expect(
       screen.getByRole('heading', { name: 'Trajtojeni si lëndim të mundshëm.' })
     ).toBeInTheDocument();
@@ -80,7 +78,6 @@ describe('AccidentSafetyJourney', () => {
   it('asks about vehicle safety only after material-damage confirmation', () => {
     render(<AccidentSafetyJourney />);
     fireEvent.click(screen.getByRole('button', { name: 'Jo, vetëm dëm material' }));
-
     expect(
       screen.getByRole('heading', { name: 'A mund të lëvizet vetura pa rrezik?' })
     ).toBeInTheDocument();
@@ -121,12 +118,15 @@ describe('AccidentSafetyJourney', () => {
     fireEvent.change(screen.getByLabelText('Shteti ku ndodhi aksidenti'), {
       target: { value: 'IT' },
     });
+    fireEvent.click(screen.getByRole('button', { name: 'Vazhdo' }));
     fireEvent.change(screen.getByLabelText('Shteti i regjistrimit të veturës'), {
       target: { value: 'DE' },
     });
+    fireEvent.click(screen.getByRole('button', { name: 'Vazhdo' }));
     fireEvent.change(screen.getByLabelText('Shteti i siguruesit ose palës tjetër'), {
       target: { value: 'XK' },
     });
+    fireEvent.click(screen.getByRole('button', { name: 'Vazhdo' }));
 
     expect(
       screen.getByRole('heading', { name: 'Ruani faktet e rëndësishme.' })

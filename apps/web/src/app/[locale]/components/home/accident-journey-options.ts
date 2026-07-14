@@ -15,6 +15,7 @@ export const ACCIDENT_COUNTRY_CODES = [
 ] as const;
 
 export const INJURY_ANSWERS = ['yes', 'materialOnly', 'unsure'] as const;
+export const VEHICLE_SAFETY_ANSWERS = ['yes', 'no', 'unsure'] as const;
 
 export type AccidentStage =
   | 'injury'
@@ -37,7 +38,7 @@ export function getAccidentJourneyOptions(t: (key: string) => string) {
       id: answer,
       label: t(`injury.${answer}`),
     })),
-    vehicleSafetyOptions: (['yes', 'no', 'unsure'] as const).map(answer => ({
+    vehicleSafetyOptions: VEHICLE_SAFETY_ANSWERS.map(answer => ({
       id: answer,
       label: t(`vehicleSafety.${answer}`),
     })),

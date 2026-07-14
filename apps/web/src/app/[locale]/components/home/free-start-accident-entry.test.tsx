@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-intl', () => ({
@@ -15,11 +16,14 @@ vi.mock('next-intl', () => ({
 }));
 
 vi.mock('./free-start-intake-shell/index', () => ({
-  FreeStartIntakeShell: ({ initialCategory }: { initialCategory?: string }) => (
-    <section data-initial-category={initialCategory} data-testid="legacy-free-start">
-      Fallback
-    </section>
-  ),
+  FreeStartIntakeShell: ({ initialCategory }: { initialCategory?: string }) => {
+    const [mountedCategory] = useState(initialCategory);
+    return (
+      <section data-initial-category={mountedCategory} data-testid="legacy-free-start">
+        Fallback
+      </section>
+    );
+  },
 }));
 
 vi.mock('./accident-safety-journey', () => ({
@@ -34,7 +38,7 @@ vi.mock('./accident-safety-journey', () => ({
 }));
 
 import { FreeStartIntakeShell } from './free-start-intake-shell';
-import { dispatchPublicEntryIntent } from './public-entry-intent';
+import { dispatchPublicEntryIntent, takePendingPublicEntryIntent } from './public-entry-intent';
 
 describe('FreeStart accident entry', () => {
   it('consumes a vehicle intent dispatched before the intake listener mounts', () => {
@@ -102,5 +106,40 @@ describe('FreeStart accident entry', () => {
     expect(
       screen.queryByRole('heading', { name: 'A është dikush i lënduar?' })
     ).not.toBeInTheDocument();
+  });
+
+  it('remounts the legacy intake without vehicle state after authentication settles', () => {
+    const { rerender } = render(
+      <FreeStartIntakeShell continueHref="/pricing" locale="sq" publicEntryEnabled />
+    );
+    act(() => dispatchPublicEntryIntent('vehicle'));
+    fireEvent.click(screen.getByRole('button', { name: 'Organizo të dhënat e rastit' }));
+    expect(screen.getByTestId('legacy-free-start')).toHaveAttribute(
+      'data-initial-category',
+      'vehicle'
+    );
+
+    rerender(
+      <FreeStartIntakeShell continueHref="/member" locale="sq" publicEntryEnabled={false} />
+    );
+
+    expect(screen.getByTestId('legacy-free-start')).not.toHaveAttribute('data-initial-category');
+  });
+
+  it('ignores intent dispatch outside a browser context', () => {
+    const browserWindow = window;
+    let thrown: unknown;
+    vi.stubGlobal('window', undefined);
+    try {
+      dispatchPublicEntryIntent('vehicle');
+    } catch (error) {
+      thrown = error;
+    } finally {
+      vi.stubGlobal('window', browserWindow);
+      takePendingPublicEntryIntent();
+      vi.unstubAllGlobals();
+    }
+
+    expect(thrown).toBeUndefined();
   });
 });

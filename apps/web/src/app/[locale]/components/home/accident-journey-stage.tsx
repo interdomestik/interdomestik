@@ -71,7 +71,6 @@ export function AccidentJourneyStage(props: Readonly<AccidentJourneyStageProps>)
             props.setIncidentCountry(country);
             props.setRegistrationCountry('');
             props.setCounterpartyCountry('');
-            if (country) props.moveTo('registrationCountry', focus);
           }}
           onContinue={focus => props.moveTo('registrationCountry', focus)}
           title={t('countries.incidentTitle')}
@@ -88,7 +87,6 @@ export function AccidentJourneyStage(props: Readonly<AccidentJourneyStageProps>)
           onChange={(country, focus) => {
             props.setRegistrationCountry(country);
             props.setCounterpartyCountry('');
-            if (country) props.moveTo('counterpartyCountry', focus);
           }}
           onContinue={focus => props.moveTo('counterpartyCountry', focus)}
           title={t('countries.registrationTitle')}
@@ -104,7 +102,6 @@ export function AccidentJourneyStage(props: Readonly<AccidentJourneyStageProps>)
           onBack={focus => props.moveTo('registrationCountry', focus)}
           onChange={(country, focus) => {
             props.setCounterpartyCountry(country);
-            if (country) props.moveTo('evidence', focus);
           }}
           onContinue={focus => props.moveTo('evidence', focus)}
           title={t('countries.counterpartyTitle')}

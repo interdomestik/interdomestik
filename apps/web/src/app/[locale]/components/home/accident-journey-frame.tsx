@@ -1,6 +1,8 @@
 import { ShieldCheck } from 'lucide-react';
 import type { ReactNode, RefObject } from 'react';
 
+export const ACCIDENT_JOURNEY_HEADING_ID = 'accident-journey-heading';
+
 type AccidentJourneyFrameProps = Readonly<{
   children: ReactNode;
   contentRef: RefObject<HTMLDivElement | null>;
@@ -40,7 +42,7 @@ export function AccidentJourneyFrame({
           ref={contentRef}
           aria-live={liveMode}
           aria-atomic="true"
-          aria-labelledby="accident-journey-heading"
+          aria-labelledby={ACCIDENT_JOURNEY_HEADING_ID}
         >
           {children}
         </div>

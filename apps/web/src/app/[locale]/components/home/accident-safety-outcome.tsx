@@ -1,4 +1,5 @@
 import { ShieldAlert } from 'lucide-react';
+import { ACCIDENT_JOURNEY_HEADING_ID } from './accident-journey-frame';
 
 type AccidentSafetyOutcomeProps = Readonly<{
   body: string;
@@ -19,7 +20,7 @@ export function AccidentSafetyOutcome({
     <div className="space-y-5">
       <ShieldAlert aria-hidden="true" className="h-9 w-9 text-[#8A5500]" />
       <h2
-        id="accident-journey-heading"
+        id={ACCIDENT_JOURNEY_HEADING_ID}
         tabIndex={-1}
         className="font-serif text-[clamp(2rem,7vw,3.75rem)] font-semibold leading-[1.03]"
       >

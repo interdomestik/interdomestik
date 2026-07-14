@@ -1,4 +1,5 @@
 import { ArrowLeft, ArrowRight, Globe2 } from 'lucide-react';
+import { ACCIDENT_JOURNEY_HEADING_ID } from './accident-journey-frame';
 
 type AccidentEvidenceOutcomeProps = Readonly<{
   backLabel: string;
@@ -26,7 +27,7 @@ export function AccidentEvidenceOutcome({
   return (
     <div className="space-y-6">
       <h2
-        id="accident-journey-heading"
+        id={ACCIDENT_JOURNEY_HEADING_ID}
         tabIndex={-1}
         className="font-serif text-[clamp(2rem,7vw,3.75rem)] font-semibold leading-[1.03]"
       >

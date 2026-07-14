@@ -5,6 +5,7 @@ export type PublicEntryIntent = 'vehicle';
 let pendingIntent: PublicEntryIntent | null = null;
 
 export function dispatchPublicEntryIntent(intent: PublicEntryIntent): void {
+  if (typeof window === 'undefined') return;
   pendingIntent = intent;
   window.dispatchEvent(
     new CustomEvent(PUBLIC_INTENT_EVENT, {

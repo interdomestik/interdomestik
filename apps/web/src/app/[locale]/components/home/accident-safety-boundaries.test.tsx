@@ -35,15 +35,18 @@ describe('AccidentSafetyJourney boundaries', () => {
     fireEvent.change(screen.getByLabelText('Shteti ku ndodhi aksidenti'), {
       target: { value: 'IT' },
     });
+    fireEvent.click(screen.getByRole('button', { name: 'Vazhdo' }));
     fireEvent.change(screen.getByLabelText('Shteti i regjistrimit të veturës'), {
       target: { value: 'DE' },
     });
+    fireEvent.click(screen.getByRole('button', { name: 'Vazhdo' }));
     fireEvent.click(screen.getByRole('button', { name: 'Ndrysho përgjigjen' }));
     expect(screen.getByLabelText('Shteti i regjistrimit të veturës')).toHaveValue('DE');
     fireEvent.click(screen.getByRole('button', { name: 'Ndrysho përgjigjen' }));
     fireEvent.change(screen.getByLabelText('Shteti ku ndodhi aksidenti'), {
       target: { value: 'DE' },
     });
+    fireEvent.click(screen.getByRole('button', { name: 'Vazhdo' }));
 
     expect(screen.getByLabelText('Shteti i regjistrimit të veturës')).toHaveValue('');
   });
@@ -62,12 +65,15 @@ describe('AccidentSafetyJourney boundaries', () => {
     fireEvent.change(screen.getByLabelText('Shteti ku ndodhi aksidenti'), {
       target: { value: 'IT' },
     });
+    fireEvent.click(screen.getByRole('button', { name: 'Vazhdo' }));
     fireEvent.change(screen.getByLabelText('Shteti i regjistrimit të veturës'), {
       target: { value: 'DE' },
     });
+    fireEvent.click(screen.getByRole('button', { name: 'Vazhdo' }));
     fireEvent.change(screen.getByLabelText('Shteti i siguruesit ose palës tjetër'), {
       target: { value: 'XK' },
     });
+    fireEvent.click(screen.getByRole('button', { name: 'Vazhdo' }));
 
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(storageSpy).not.toHaveBeenCalled();
@@ -83,12 +89,15 @@ describe('AccidentSafetyJourney boundaries', () => {
     fireEvent.change(screen.getByLabelText('Shteti ku ndodhi aksidenti'), {
       target: { value: 'IT' },
     });
+    fireEvent.click(screen.getByRole('button', { name: 'Vazhdo' }));
     fireEvent.change(screen.getByLabelText('Shteti i regjistrimit të veturës'), {
       target: { value: 'DE' },
     });
+    fireEvent.click(screen.getByRole('button', { name: 'Vazhdo' }));
     fireEvent.change(screen.getByLabelText('Shteti i siguruesit ose palës tjetër'), {
       target: { value: 'XK' },
     });
+    fireEvent.click(screen.getByRole('button', { name: 'Vazhdo' }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Ndrysho përgjigjen' }));
 

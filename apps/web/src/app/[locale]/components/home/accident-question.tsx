@@ -1,4 +1,5 @@
 import { ArrowRight } from 'lucide-react';
+import { ACCIDENT_JOURNEY_HEADING_ID } from './accident-journey-frame';
 
 type AccidentQuestionProps<T extends string> = Readonly<{
   backLabel?: string;
@@ -20,7 +21,7 @@ export function AccidentQuestion<T extends string>({
   return (
     <>
       <h2
-        id="accident-journey-heading"
+        id={ACCIDENT_JOURNEY_HEADING_ID}
         tabIndex={-1}
         className="font-serif text-[clamp(2rem,7vw,3.75rem)] font-semibold leading-[1.03]"
       >

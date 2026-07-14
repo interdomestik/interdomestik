@@ -53,10 +53,12 @@ export function FreeStartIntakeShell({
     return <AccidentSafetyJourney onContinue={() => setMode('vehicleDetails')} />;
   }
 
+  const initialCategory = mode === 'vehicleDetails' ? 'vehicle' : props.initialCategory;
   return (
     <LegacyFreeStartIntakeShell
       {...props}
-      initialCategory={mode === 'vehicleDetails' ? 'vehicle' : props.initialCategory}
+      key={initialCategory ?? 'fallback'}
+      initialCategory={initialCategory}
     />
   );
 }

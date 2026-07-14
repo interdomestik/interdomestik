@@ -15,15 +15,35 @@ function reachEvidence() {
   fireEvent.change(screen.getByLabelText('Shteti ku ndodhi aksidenti'), {
     target: { value: 'IT' },
   });
+  fireEvent.click(screen.getByRole('button', { name: 'Vazhdo' }));
   fireEvent.change(screen.getByLabelText('Shteti i regjistrimit të veturës'), {
     target: { value: 'DE' },
   });
+  fireEvent.click(screen.getByRole('button', { name: 'Vazhdo' }));
   fireEvent.change(screen.getByLabelText('Shteti i siguruesit ose palës tjetër'), {
     target: { value: 'XK' },
   });
+  fireEvent.click(screen.getByRole('button', { name: 'Vazhdo' }));
 }
 
 describe('AccidentSafetyJourney navigation', () => {
+  it('lets the visitor review each country before continuing', () => {
+    render(<AccidentSafetyJourney />);
+    fireEvent.click(screen.getByRole('button', { name: 'Jo, vetëm dëm material' }));
+    fireEvent.click(screen.getByRole('button', { name: /Po, mund të lëvizet/i }));
+    fireEvent.change(screen.getByLabelText('Shteti ku ndodhi aksidenti'), {
+      target: { value: 'IT' },
+    });
+
+    expect(
+      screen.getByRole('heading', { name: 'Në cilin shtet ndodhi aksidenti?' })
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Vazhdo' }));
+    expect(
+      screen.getByRole('heading', { name: 'Ku është e regjistruar vetura juaj?' })
+    ).toBeInTheDocument();
+  });
+
   it('lets the visitor revise the material-damage answer', () => {
     render(<AccidentSafetyJourney />);
     fireEvent.click(screen.getByRole('button', { name: 'Jo, vetëm dëm material' }));

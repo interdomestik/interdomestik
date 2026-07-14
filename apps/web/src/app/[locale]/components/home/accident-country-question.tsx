@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { ACCIDENT_JOURNEY_HEADING_ID } from './accident-journey-frame';
 
 type CountryOption = Readonly<{ code: string; label: string }>;
 
@@ -34,7 +35,7 @@ export function AccidentCountryQuestion({
   return (
     <div className="space-y-5">
       <h2
-        id="accident-journey-heading"
+        id={ACCIDENT_JOURNEY_HEADING_ID}
         tabIndex={-1}
         className="font-serif text-[clamp(2rem,7vw,3.75rem)] font-semibold leading-[1.03]"
       >
