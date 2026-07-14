@@ -1,5 +1,7 @@
 import { expect, test, type Browser, type Page, type TestInfo } from '@playwright/test';
 
+import { gotoApp } from '../utils/navigation';
+
 const localeViewports = [
   { locale: 'sq', width: 320, height: 720 },
   { locale: 'en', width: 375, height: 812 },
@@ -29,9 +31,8 @@ async function withNoJsPage(
 }
 
 async function openFallback(page: Page, testInfo: TestInfo, locale: string) {
-  const origin = new URL(testInfo.project.use.baseURL ?? 'http://127.0.0.1:3000').origin;
-  const response = await page.goto(`${origin}/${locale}#free-start-intake`, {
-    waitUntil: 'domcontentloaded',
+  const response = await gotoApp(page, `/${locale}/#free-start-intake`, testInfo, {
+    marker: 'landing-page-ready',
   });
 
   expect(response?.ok()).toBe(true);
