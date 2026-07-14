@@ -483,6 +483,21 @@ This is new presentation on the completed M0-M5 architecture, not a parallel
 portal or architectural rewrite. Human linguistic and legal/commercial disposition
 for final SQ/EN/SR/MK copy remains a merge gate. No second UI slice is promoted.
 
+Rev 112 closeout: `IDA-UI01a` completed through PR `#1343` / merge-main SHA
+`2f279fc6042f6be7f4de0c4fd87705d9485e1eee`, recorded in
+`docs/plans/2026-07-14-ida-ui01a-closeout.md`. The merged presentation replaces
+only the anonymous public header and above-fold hero with the approved help-first
+entry, three existing-intake situation links, honest flight-soon state,
+asynchronous WhatsApp and diaspora contact, emergency/privacy safeguards, and
+secondary annual membership. Settled-member continuation, SQ/EN/SR/MK contracts,
+mobile/accessibility behavior, and existing funnel/clarity markers remain
+preserved. Human 200% zoom, provisional language, and legal/commercial
+dispositions were recorded; local mandatory gates and all current-head PR checks
+were green before merge. Protected surfaces and production aliases were not
+changed. No replacement implementation slice is promoted; expected resolver
+state is `blocked_requires_current_authority`, `activeSlice=null` until a fresh
+gate promotes exactly one next governed action.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
