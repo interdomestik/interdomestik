@@ -538,6 +538,22 @@ Free Start redesign, shared tokens, German, flight activation, dashboards, or an
 concurrent resumption of `IDA-UI01b`. `IDA-UI01b` may resume only after `IDA-SH01`
 merge/closeout and a fresh current-authority decision.
 
+Rev 115 closeout: `IDA-SH01` completed through PR `#1345` / merge-main SHA
+`0728c1f8b7f2fc5e38de3b2b8b817bb848d6b6d6`, recorded in
+`docs/plans/2026-07-14-ida-sh01-closeout.md`. The merged correction removes only
+the locale root's page-wide fallback-less `Suspense` wrapper so the existing
+server-rendered public page and ordinary Free Start category fallback remain
+visible when JavaScript is unavailable. Provider order, JavaScript-enabled
+behavior, SQ/EN/SR/MK content, canonical role routes, and clarity markers remain
+preserved. Real no-JavaScript mobile/desktop browser proof, local mandatory
+Phase C gates, current-head CI/security/Sonar/CodeQL/Pilot/full-E2E checks,
+bounded senior review, and resolved Copilot feedback were green before merge.
+Protected surfaces and production aliases were not changed. `IDA-UI01b` remains
+preserved and frozen; no replacement implementation slice is promoted by this
+closeout. Expected resolver state is `blocked_requires_current_authority`,
+`activeSlice=null` until a fresh gate explicitly promotes exactly one next
+governed action.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
