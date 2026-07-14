@@ -619,6 +619,28 @@ German, channels, durable health data, country-law rules, referral-fee expansion
 proxy/routes/auth/tenancy/data/schema/RLS/billing/deploy/dashboards and any second
 slice remain unpromoted.
 
+Rev 119 closeout: `IDA-UI01d` completed through PR `#1350` / merge-main SHA
+`42dc98e466f9d110a6b0e1fd8bf9a44f22c1e0a8`, recorded in
+`docs/plans/2026-07-14-ida-ui01d-closeout.md`. The merged implementation consumes
+the sole `IDA-DG10` promotion and delivers the anonymous, client-only public injury
+safety journey: fail-closed urgent/unsure handling; source rather than diagnosis;
+treatment, assault and unsure referral limits; separate ephemeral incident and
+residence countries; universal evidence guidance; and an explicit fresh
+category-only handoff to the established Free Start intake. No journey answer is
+stored, transmitted, logged, placed in history or carried into intake.
+SQ/EN/SR/MK, mobile/accessibility/200% zoom, JavaScript-on/off and
+Chromium/Firefox/WebKit proof passed. Local mandatory Phase C gates and current-head
+CI/security/Sonar/CodeQL/Pilot/full-E2E checks were green; Copilot reviewed all
+changed files with no comments, and Sonar's two maintainability findings were fixed.
+Provider review blockers are recorded in the closeout and do not replace repository
+evidence. Protected surfaces and production aliases were not changed, and automatic
+CD was cancelled before deploy. AI OS refresh/state checks passed but Brain retrieval
+remained stale, conflicted with repo authority and produced no demonstrated time or
+token saving for this slice. `IDA-UI01b` remains frozen. No replacement
+implementation slice is promoted by this closeout; expected resolver state is
+`blocked_requires_current_authority`, `activeSlice=null` until a fresh gate promotes
+exactly one next governed action.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
