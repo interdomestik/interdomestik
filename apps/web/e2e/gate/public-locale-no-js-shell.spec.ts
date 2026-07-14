@@ -1,5 +1,6 @@
 import { expect, test, type Browser, type Page, type TestInfo } from '@playwright/test';
 
+import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 
 const localeViewports = [
@@ -88,5 +89,18 @@ test.describe('public locale shell without JavaScript', () => {
         await expectServerVisibleFallback(page);
       });
     }
+  });
+
+  test('keeps the vehicle hero link on the ordinary fallback without JavaScript', async ({
+    browser,
+  }, info) => {
+    test.skip(info.project.name !== 'gate-ks-sq', 'The shell proof runs once in the KS gate.');
+    await withNoJsPage(browser, info, { width: 375, height: 812 }, async page => {
+      await gotoApp(page, routes.home('sq'), info, { marker: 'public-entry-hero' });
+      await page.getByTestId('public-entry-vehicle').click();
+      await expect(page).toHaveURL(/#free-start-intake$/);
+      await expectServerVisibleFallback(page);
+      await expect(page.getByTestId('accident-safety-journey')).toHaveCount(0);
+    });
   });
 });

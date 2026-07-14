@@ -20,6 +20,7 @@ import {
   getSelectedIssueLabel,
   getSelectedOutcomeLabel,
 } from './helpers';
+import { hasIncompleteDraft } from './intake-validation';
 import { FreeStartMainPanel } from './main-panel';
 import { FreeStartSidebar } from './sidebar';
 import type {
@@ -39,27 +40,19 @@ const ClaimPackResultLazy = dynamic(
 
 const PROGRESS_STEPS = ['choose', 'details', 'preview'] as const;
 
-function hasIncompleteDraft(selectedCategory: CategoryId | null, draft: DraftState): boolean {
-  return (
-    selectedCategory === null ||
-    draft.issueType.trim().length === 0 ||
-    draft.incidentDate.trim().length === 0 ||
-    draft.counterparty.trim().length === 0 ||
-    draft.desiredOutcome.trim().length === 0 ||
-    draft.summary.trim().length === 0
-  );
-}
-
 export function FreeStartIntakeShell({
   continueHref,
+  initialCategory,
   locale,
   tenantId,
 }: FreeStartIntakeShellProps) {
   const t = useTranslations('freeStart');
   const tCommon = useTranslations('common');
   const contacts = getSupportContacts({ locale, tenantId });
-  const [step, setStep] = useState<StepId>('category');
-  const [selectedCategory, setSelectedCategory] = useState<CategoryId | null>(null);
+  const [step, setStep] = useState<StepId>(initialCategory ? 'details' : 'category');
+  const [selectedCategory, setSelectedCategory] = useState<CategoryId | null>(
+    initialCategory ?? null
+  );
   const [draft, setDraft] = useState<DraftState>(EMPTY_DRAFT);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isFinishingIntake, setIsFinishingIntake] = useState(false);

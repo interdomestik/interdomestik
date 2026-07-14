@@ -7,6 +7,7 @@ import type { getSupportContacts } from '@/lib/support-contacts';
 
 export type FreeStartIntakeShellProps = Readonly<{
   continueHref: string;
+  initialCategory?: CategoryId;
   locale: string;
   tenantId?: string | null;
 }>;

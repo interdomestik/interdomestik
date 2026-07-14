@@ -5,7 +5,6 @@ import {
 } from '@/lib/public-membership-entry';
 import {
   ArrowRight,
-  CarFront,
   Globe2,
   HeartPulse,
   House,
@@ -15,9 +14,9 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { PublicEntryVehicleAction } from './public-entry-vehicle-action';
 
 const situations = [
-  { icon: CarFront, label: 'vehicle' },
   { icon: HeartPulse, label: 'injury' },
   { icon: House, label: 'property' },
 ] as const;
@@ -29,6 +28,9 @@ export function PublicSituationActions() {
 
   return (
     <ul data-testid="public-entry-situations" className="border-t border-[#B8C7C7]">
+      <li className="border-b border-[#B8C7C7]">
+        <PublicEntryVehicleAction label={t('vehicle')} />
+      </li>
       {situations.map(({ icon: Icon, label }) => (
         <li key={label} className="border-b border-[#B8C7C7]">
           <Link

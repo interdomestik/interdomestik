@@ -1,0 +1,77 @@
+{
+  "accidentJourney": {
+    "eyebrow": "NDIHMË TANI",
+    "intro": "Së pari sigurohemi që të gjithë janë të sigurt. Pastaj ju tregojmë çfarë të ruani dhe cili është hapi i qartë i radhës.",
+    "privacy": "Përgjigjet përdoren vetëm për t’ju orientuar në këtë faqe. Nuk ruhen dhe nuk dërgohen.",
+    "title": "A është dikush i lënduar?",
+    "changeAnswer": "Ndrysho përgjigjen",
+    "injury": {
+      "yes": "Po, dikush është lënduar",
+      "materialOnly": "Jo, vetëm dëm material",
+      "unsure": "Nuk jam i sigurt"
+    },
+    "injured": {
+      "title": "Siguria vjen e para.",
+      "body": "Largohuni nga rreziku vetëm kur është e sigurt. Mos vazhdoni me dokumentimin derisa situata të jetë nën kontroll.",
+      "emergency": "Kontaktoni shërbimet lokale të emergjencës dhe ndiqni udhëzimet e operatorit."
+    },
+    "unsure": {
+      "title": "Trajtojeni si lëndim të mundshëm.",
+      "body": "Mos vazhdoni në rrugën e dëmit material derisa situata të jetë e qartë.",
+      "emergency": "Kërkoni menjëherë vlerësim profesional ose emergjent."
+    },
+    "vehicleSafety": {
+      "title": "A mund të lëvizet vetura pa rrezik?",
+      "hint": "Nëse dyshoni për rrotat, timonin ose frenat, mos e lëvizni.",
+      "yes": "Po, mund të lëvizet në mënyrë të sigurt",
+      "no": "Jo, nuk mund të lëvizet",
+      "unsure": "Nuk jam i sigurt për veturën"
+    },
+    "unsafeVehicle": {
+      "title": "Mos e lëvizni veturën.",
+      "body": "Qëndroni larg trafikut dhe përdorni sinjalizimin vetëm kur mund ta bëni pa rrezik.",
+      "emergency": "Kërkoni ndihmë lokale në rrugë ose kontaktoni shërbimet e emergjencës."
+    },
+    "countries": {
+      "placeholder": "Zgjidhni shtetin",
+      "continue": "Vazhdo",
+      "incidentTitle": "Në cilin shtet ndodhi aksidenti?",
+      "incidentHint": "Zgjidheni vetë; nuk e përcaktojmë nga gjuha, vendbanimi ose vendndodhja.",
+      "incidentLabel": "Shteti ku ndodhi aksidenti",
+      "registrationTitle": "Ku është e regjistruar vetura juaj?",
+      "registrationHint": "Ky mund të jetë shtet tjetër nga vendi ku ndodhi aksidenti.",
+      "registrationLabel": "Shteti i regjistrimit të veturës",
+      "counterpartyTitle": "Nga cili shtet është siguruesi ose vetura tjetër?",
+      "counterpartyHint": "Nëse nuk e dini, zgjidhni “Nuk jam i sigurt”.",
+      "counterpartyLabel": "Shteti i siguruesit ose palës tjetër",
+      "options": {
+        "XK": "Kosovë",
+        "AL": "Shqipëri",
+        "MK": "Maqedoni e Veriut",
+        "DE": "Gjermani",
+        "IT": "Itali",
+        "AT": "Austri",
+        "CH": "Zvicër",
+        "RS": "Serbi",
+        "ME": "Mal i Zi",
+        "HR": "Kroaci",
+        "SI": "Slloveni",
+        "OTHER": "Shtet tjetër",
+        "UNKNOWN": "Nuk jam i sigurt"
+      }
+    },
+    "evidence": {
+      "title": "Ruani faktet e rëndësishme.",
+      "body": "Kur vendi është i sigurt, mblidhni provat pa u vënë në rrezik. Këto janë hapa të përgjithshëm; procedura ligjore mund të ndryshojë sipas shtetit.",
+      "items": {
+        "scene": "Fotografi të vendit, veturave, dëmit dhe targave.",
+        "insurance": "Të dhënat e sigurimit ose Green Card të palëve.",
+        "context": "Datën, orën, vendin dhe të dhënat e dëshmitarëve.",
+        "reference": "Referencën e policisë ose EAS vetëm kur zbatohet dhe ju është dhënë."
+      },
+      "diasporaTitle": "Jashtë vendit? Jemi me ju.",
+      "diasporaBody": "Vendi i aksidentit, regjistrimi i veturës dhe pala tjetër mbeten të ndara që rruga juaj të jetë e qartë.",
+      "continue": "Organizo të dhënat e rastit"
+    }
+  }
+}
