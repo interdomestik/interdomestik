@@ -556,9 +556,9 @@ governed action.
 
 Rev 116 current-authority/design-gate: `IDA-DG08` in
 `docs/plans/2026-07-14-ida-dg08-dynamic-accident-safety-journey-design-gate.md`
-records Arben's approval of the dynamic Help Now accident-safety tree and promotes
-exactly one Tier 3 implementation slice: `IDA-UI01c`. The next active governed
-implementation goal is exactly one canonical tracker slice: `IDA-UI01c`.
+records Arben's approval of the dynamic Help Now accident-safety tree and
+historically selected the Tier 3 `IDA-UI01c` implementation slice. That selection
+is consumed by the Rev 117 closeout below and is no longer active.
 
 The slice is limited to an anonymous, client-only, ephemeral vehicle-accident
 orientation journey: injury
@@ -581,6 +581,23 @@ health data, country-rule engine or signed-content expansion, German, uploads,
 claims/CRM/handoff, analytics/provider state, `apps/web/src/proxy.ts`, routes,
 auth/session, tenancy, database/schema/RLS, billing/Paddle, deployment/aliases,
 dashboards, README, AGENTS, architecture authority, or a second active slice.
+
+Rev 117 closeout: `IDA-UI01c` completed through PR `#1347` / merge-main SHA
+`1bc98f55ac6fb4d50cf96f13bdf8b001a479f516`, recorded in
+`docs/plans/2026-07-14-ida-ui01c-closeout.md`. The merged implementation consumes
+the sole `IDA-DG08` promotion and delivers the anonymous, client-only dynamic
+vehicle-accident safety journey: fail-closed injury and vehicle-safety branches,
+separate user-confirmed country roles, diaspora/cross-border context, universal
+evidence guidance, and a vehicle-only one-shot handoff to the existing Free Start
+intake. Injury and country answers remain route-local and are not stored or
+transmitted; JavaScript-off visitors retain the ordinary category fallback.
+Focused tests, SQ/EN/SR/MK parity, mobile/accessibility/200% zoom and cross-browser
+proof, local mandatory Phase C gates, current-head CI/security/Sonar/CodeQL/Pilot/
+full-E2E checks, and resolved Copilot feedback were green before merge. Protected
+surfaces and production aliases were not changed. `IDA-UI01b` remains frozen; no
+replacement implementation slice is promoted by this closeout. Expected resolver
+state is `blocked_requires_current_authority`, `activeSlice=null` until a fresh gate
+explicitly promotes exactly one next governed action.
 
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
