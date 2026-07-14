@@ -15,7 +15,7 @@ test.describe('C0.5: Staff Clarity Hardening', () => {
     await expect(page).toHaveURL(new RegExp(`${target}$`));
 
     // V3 Markers check
-    await expect(page.getByTestId('staff-page-ready')).toBeVisible();
+    await expect(page.locator('[data-testid="staff-page-ready"]:visible')).toBeVisible();
     await expect(page.getByTestId('portal-surface-indicator')).toBeVisible();
 
     // No Legacy Banner check

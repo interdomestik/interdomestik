@@ -73,6 +73,23 @@ Candidate changed files are limited to:
 
 - `apps/web/src/app/[locale]/_core.entry.tsx`;
 - one focused browser spec proving JavaScript-disabled locale-shell visibility;
+- `apps/web/e2e/gate/golden-gate.spec.ts` only for the two expected-404 marker
+  corrections if the restored shell makes the existing member-to-admin or
+  staff-to-admin RBAC 404 visible before `gotoApp` returns; no helper, auth,
+  route, or assertion semantics may change;
+- `apps/web/e2e/gate/staff-support-handoffs.spec.ts` only to scope the existing
+  claim-context assertion to visible DOM and prove exactly one visible copy if a
+  normal hidden React streaming segment contains a transitional duplicate; no
+  handoff behavior, route, data, or acceptance semantics may change;
+- `apps/web/e2e/gate/recovery-decision-visibility.spec.ts` only to scope the existing
+  member decision card and staff decision summary to visible DOM after trace evidence
+  proves that the second matching node is beneath React's native
+  `<div hidden id="S:0">` streaming container; both locators remain strict, so two
+  visible decision surfaces still fail;
+- `apps/web/e2e/gate/staff-clarity.spec.ts` only to scope the existing
+  `staff-page-ready` assertion to visible DOM after the same trace-proven native
+  hidden streaming duplicate; its URL, portal indicator, and no-legacy assertions
+  remain unchanged, and two visible readiness markers still fail;
 - a focused source/unit regression guard only if browser/build proof alone cannot
   prevent recurrence;
 - `scripts/repo-size-budget.json` only if the governed inventory check requires it.
@@ -149,6 +166,15 @@ in HTML or the DOM.
   JavaScript-enabled smokes and mandatory gates prove behavior.
 - **Role-surface blast radius:** the locale shell is shared. Canonical role markers
   and E2E gates are mandatory even though no role UI is redesigned.
+- **Expected-404 gate race:** the restored shell can make the existing custom 404
+  visible before `gotoApp` returns. The two existing RBAC checks already expect
+  that 404; their navigation markers may be aligned to `not-found-page` without
+  changing access control or accepting a different result.
+- **Hidden streaming duplicate:** a hydrated dynamic page can retain a transitional
+  copy beneath React's native `hidden` streaming container. A gate assertion may
+  ignore hidden DOM only when trace evidence proves the hidden ancestor and the
+  visible locator remains strict; two visible claim contexts, member or staff
+  decision surfaces, or readiness markers remain a failure.
 - **False no-JS proof:** SSR DOM presence alone is insufficient. Browser visibility
   and computed hidden-ancestor checks are required.
 - **Framework-internal CSS hack:** rejected because React streaming IDs and reveal
