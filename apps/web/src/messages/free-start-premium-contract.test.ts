@@ -52,7 +52,7 @@ describe('premium Free Start copy contract', () => {
     const publicCopy = [
       ...collectCopyValues(sq.freeStart),
       ...collectCopyValues(sqInjuryJourney.injuryJourney.evidence),
-      ...collectCopyValues(sqPropertyJourney.propertyJourney.result),
+      ...collectCopyValues(sqPropertyJourney.propertyJourney.evidence),
     ].join(' ');
 
     expect(publicCopy).not.toMatch(/intake/i);
