@@ -30,11 +30,11 @@ health-data, billing, dashboard, German, flight activation, or production alias.
 
 ## Verification
 
-- PR `pnpm pr:verify`: passed; 330 CI-contract tests, 148 release-gate tests, 26 live
+- `pnpm pr:verify`: passed; 330 CI-contract tests, 148 release-gate tests, 26 live
   RLS checks, 2,963 web tests passed / 1 skipped, 84.92% line coverage, 202 PR
   E2E tests passed / 8 skipped, and 13 smoke tests passed / 9 skipped.
-- PR `pnpm security:guard`: passed.
-- PR `pnpm e2e:gate`: passed; production build/performance/state checks and 202 E2E
+- `pnpm security:guard`: passed.
+- `pnpm e2e:gate`: passed; production build/performance/state checks and 202 E2E
   tests passed / 8 skipped.
 - Final current-head CI checks for PR `#1361` were green, including CI, full PR
   E2E, Pilot Gate, Secret Scan/gitleaks, pnpm-audit, CodeQL, Semgrep, commitlint,
