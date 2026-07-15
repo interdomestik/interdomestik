@@ -5,6 +5,7 @@ import baseConfig from './playwright.config';
 const baseURL = 'http://ks.127.0.0.1.nip.io:3000/sq'; // NOSONAR -- local test transport only.
 const extraHTTPHeaders = { 'x-forwarded-host': 'ks.127.0.0.1.nip.io:3000' };
 const testMatch = [
+  'gate/premium-free-start-result.spec.ts',
   'evidence/public-accident-safety-cross-browser.evidence.ts',
   'evidence/public-injury-safety-cross-browser.evidence.ts',
   'evidence/public-property-safety-cross-browser.evidence.ts',

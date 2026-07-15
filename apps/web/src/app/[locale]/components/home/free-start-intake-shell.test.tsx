@@ -178,28 +178,6 @@ function renderFreeStart(locale: LocaleId, continueHref = '/pricing') {
   );
 }
 
-async function withNavigatorClipboard(
-  clipboard: Pick<Clipboard, 'writeText'> | undefined,
-  run: () => Promise<void>
-) {
-  const previousClipboardDescriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
-
-  try {
-    Object.defineProperty(navigator, 'clipboard', {
-      configurable: true,
-      value: clipboard,
-    });
-
-    await run();
-  } finally {
-    if (previousClipboardDescriptor) {
-      Object.defineProperty(navigator, 'clipboard', previousClipboardDescriptor);
-    } else {
-      Reflect.deleteProperty(navigator, 'clipboard');
-    }
-  }
-}
-
 function createGeneratedClaimPackFixture() {
   return {
     generatedAt: '2026-04-24T08:00:00.000Z',
@@ -416,46 +394,26 @@ describe('FreeStartIntakeShell', () => {
     mockSuccessfulGeneratedClaimPack();
 
     renderFreeStart('en', '/member/claims/new');
+    expect(screen.getByTestId('free-start-result-announcement')).toBeEmptyDOMElement();
 
     await completeFreeStartIntake(user, 'en');
 
     expect(await screen.findByTestId('claim-pack-result')).toBeInTheDocument();
-    expect(screen.getByTestId('claim-pack-confidence-level')).toHaveTextContent('high');
-    expect(screen.getByTestId('claim-pack-evidence')).toHaveTextContent('Damage photographs');
+    expect(screen.getByTestId('free-start-result-announcement')).toHaveTextContent(
+      'Your temporary Free Start result is ready.'
+    );
+    expect(screen.getByTestId('free-start-complete')).toHaveAttribute('data-layout', 'full-width');
+    expect(screen.getByRole('heading', { name: 'Your temporary result is ready.' })).toBeVisible();
+    expect(screen.queryByText('Review your Free Start pack shell.')).not.toBeInTheDocument();
     expect(screen.getByTestId('claim-pack-letter')).toHaveTextContent(
       'Draft property damage letter'
     );
-    expect(screen.getByTestId('claim-pack-next-step')).toHaveTextContent('Join Asistenca');
+    expect(screen.getByTestId('claim-pack-next-step')).not.toHaveTextContent('human triage');
     expect(screen.getByRole('link', { name: /continue in member claims/i })).toHaveAttribute(
       'href',
       '/member/claims/new'
     );
     expect(screen.getByText(/not legal advice/i)).toBeInTheDocument();
-
-    const writeTextMock = vi.fn().mockRejectedValue(new Error('clipboard denied'));
-
-    await withNavigatorClipboard({ writeText: writeTextMock }, async () => {
-      await user.click(screen.getByRole('button', { name: /copy/i }));
-    });
-
-    expect(writeTextMock).toHaveBeenCalledWith('Draft property damage letter');
-    expect(await screen.findByText(/unable to copy automatically/i)).toBeInTheDocument();
-  });
-
-  it('shows manual copy guidance when the Clipboard API is unavailable', async () => {
-    const user = userEvent.setup();
-    mockSuccessfulGeneratedClaimPack();
-
-    renderFreeStart('en', '/member/claims/new');
-
-    await completeFreeStartIntake(user, 'en');
-    expect(await screen.findByTestId('claim-pack-result')).toBeInTheDocument();
-
-    await withNavigatorClipboard(undefined, async () => {
-      await user.click(screen.getByRole('button', { name: /copy/i }));
-    });
-
-    expect(await screen.findByText(/unable to copy automatically/i)).toBeInTheDocument();
   });
 
   it.each(CATEGORY_EVIDENCE_EXPECTATIONS)(

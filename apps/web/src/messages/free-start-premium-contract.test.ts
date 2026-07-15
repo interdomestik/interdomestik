@@ -16,6 +16,15 @@ function collectCopyValues(value: unknown): string[] {
   return Object.values(value).flatMap(collectCopyValues);
 }
 
+function collectKeyPaths(value: unknown, prefix = ''): string[] {
+  if (!value || typeof value !== 'object') return [];
+
+  return Object.entries(value).flatMap(([key, child]) => {
+    const path = prefix ? `${prefix}.${key}` : key;
+    return child && typeof child === 'object' ? collectKeyPaths(child, path) : [path];
+  });
+}
+
 describe('premium Free Start copy contract', () => {
   it.each(Object.entries(localeMessages))(
     '%s states that the summary is temporary, unsaved and does not open a case',
@@ -36,6 +45,16 @@ describe('premium Free Start copy contract', () => {
       Object.keys(messages.freeStart.selectedSituation).sort()
     );
 
+    expect(keys).toEqual([keys[0], keys[0], keys[0], keys[0]]);
+  });
+
+  it('keeps the complete successful-result contract in every locale', () => {
+    const resultCopies = Object.values(localeMessages).map(
+      messages => (messages.freeStart as { result?: unknown }).result
+    );
+
+    expect(resultCopies.every(Boolean)).toBe(true);
+    const keys = resultCopies.map(result => collectKeyPaths(result).sort());
     expect(keys).toEqual([keys[0], keys[0], keys[0], keys[0]]);
   });
 

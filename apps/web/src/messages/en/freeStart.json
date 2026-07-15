@@ -142,6 +142,188 @@
         }
       }
     },
+    "result": {
+      "announcement": "Your temporary Free Start result is ready.",
+      "badge": "Free Start complete",
+      "heading": "Your temporary result is ready.",
+      "body": "Use this result to organize what you know and prepare the next step. Nothing has been saved and no case has been opened.",
+      "disclaimer": "This result is general information, not legal advice or a decision about your claim.",
+      "preparation": {
+        "eyebrow": "Preparation indicator",
+        "note": "This number only reflects how complete the information you entered is. It does not predict eligibility or an outcome.",
+        "levels": {
+          "high": "Well prepared",
+          "medium": "Useful starting point",
+          "low": "Early starting point"
+        }
+      },
+      "nextStep": {
+        "eyebrow": "Your next step",
+        "heading": "Continue when you are ready.",
+        "defaultCta": "Continue",
+        "levels": {
+          "high": "Your facts are organized for the review option shown below.",
+          "medium": "A document review can help you check the pack before sending a letter.",
+          "low": "A short guidance call can help you choose the clearest next step."
+        }
+      },
+      "evidence": {
+        "heading": "Evidence checklist",
+        "summary": "You marked {available} items as available. {required} items are important for this pack.",
+        "status": {
+          "available": "Marked as available",
+          "required": "Important to gather",
+          "optional": "Useful if available"
+        },
+        "items": {
+          "vehicle_photos": {
+            "name": "Photos of the vehicle damage",
+            "description": "Include close views and the wider scene where possible."
+          },
+          "vehicle_police_report": {
+            "name": "Police or incident report",
+            "description": "Keep the report or reference number if one exists."
+          },
+          "vehicle_insurance_details": {
+            "name": "Insurance details",
+            "description": "Keep the policy, claim number, and insurer messages together."
+          },
+          "vehicle_repair_estimate": {
+            "name": "Repair estimate",
+            "description": "Use an estimate or invoice that shows the expected cost."
+          },
+          "vehicle_registration": {
+            "name": "Vehicle registration",
+            "description": "Keep a readable copy of the current registration."
+          },
+          "vehicle_driver_license": {
+            "name": "Driver licence",
+            "description": "Keep a readable copy for the driver involved."
+          },
+          "property_photos": {
+            "name": "Photos of the property damage",
+            "description": "Capture each affected area before cleanup where possible."
+          },
+          "property_ownership": {
+            "name": "Ownership or tenancy document",
+            "description": "Use the record that connects you to the damaged property."
+          },
+          "property_damage_report": {
+            "name": "Damage report",
+            "description": "Keep any building, emergency, or contractor report."
+          },
+          "property_insurance_policy": {
+            "name": "Property insurance policy",
+            "description": "Keep the relevant policy pages and claim reference."
+          },
+          "property_repair_quotes": {
+            "name": "Repair quotes",
+            "description": "Collect clear estimates for the work that is needed."
+          },
+          "property_correspondence": {
+            "name": "Messages with the responsible party",
+            "description": "Keep relevant emails, letters, or message records."
+          },
+          "injury_medical_records": {
+            "name": "Medical records",
+            "description": "Keep treatment notes, discharge papers, and summaries."
+          },
+          "injury_incident_report": {
+            "name": "Incident report",
+            "description": "Keep the report that records when and how the injury happened."
+          },
+          "injury_witness_statements": {
+            "name": "Witness details",
+            "description": "Keep names, contact details, and any written statements."
+          },
+          "injury_expense_receipts": {
+            "name": "Expense receipts",
+            "description": "Keep receipts for treatment, travel, and other related costs."
+          },
+          "injury_photos": {
+            "name": "Relevant photographs",
+            "description": "Keep dated photos of the scene or visible effects where appropriate."
+          },
+          "injury_lost_income": {
+            "name": "Lost-income records",
+            "description": "Keep employer or payment records that show missed income."
+          },
+          "unknown": {
+            "name": "Supporting document",
+            "description": "Keep a clear copy if it helps explain what happened or the loss."
+          }
+        }
+      },
+      "letter": {
+        "heading": "Your draft letter",
+        "helper": "Review every detail before you use it. The draft remains temporary and is not sent or saved here.",
+        "copy": "Copy letter",
+        "copied": "Letter copied.",
+        "copyError": "Copying was unavailable. Select the letter text and copy it manually.",
+        "download": "Download letter",
+        "placeholders": "Complete these placeholders before using the letter:"
+      },
+      "timeline": {
+        "heading": "Planning timeline",
+        "intro": "These are planning ranges, not promised response or resolution dates.",
+        "ranges": {
+          "days": "{start}–{end} days",
+          "weeks": "{start}–{end} weeks",
+          "months": "{start}–{end} months",
+          "businessDays": "{start}–{end} business days",
+          "afterResponse": "After the other party responds",
+          "unknown": "Timing depends on the next step"
+        },
+        "items": {
+          "evidence_collection": {
+            "label": "Gather the evidence",
+            "description": "Collect the records shown in the checklist and keep originals safe."
+          },
+          "first_letter": {
+            "label": "Review and send the first letter",
+            "description": "Check the draft, complete every placeholder, and choose how to send it."
+          },
+          "expected_response": {
+            "label": "Allow time for a response",
+            "description": "Keep proof of delivery and note any reply you receive."
+          },
+          "insurer_assessment": {
+            "label": "Insurer assessment",
+            "description": "Keep the assessment, questions, and any updated offer together."
+          },
+          "damage_assessment": {
+            "label": "Damage assessment",
+            "description": "Record inspections, estimates, and changes to the repair scope."
+          },
+          "medical_documentation": {
+            "label": "Update medical records",
+            "description": "Keep the treatment timeline and related costs up to date."
+          },
+          "escalation_window": {
+            "label": "Review the next option",
+            "description": "If the issue remains unresolved, use the available support route to review what comes next."
+          },
+          "resolution": {
+            "vehicle": {
+              "label": "Track repair or payment progress",
+              "description": "Keep written confirmation of the agreed repair, payment, or next action."
+            },
+            "property": {
+              "label": "Track repair or payment progress",
+              "description": "Keep written confirmation of the agreed works, payment, or next action."
+            },
+            "injury": {
+              "label": "Track treatment and response progress",
+              "description": "Keep written confirmation of decisions, payments, and remaining steps."
+            }
+          },
+          "unknown": {
+            "label": "Planning step",
+            "description": "Keep the relevant record and confirm what needs to happen next."
+          }
+        }
+      }
+    },
     "support": {
       "badge": "Why this helps",
       "heading": "Keep the first step clean and consistent.",
