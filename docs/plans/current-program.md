@@ -701,7 +701,7 @@ delivers an airline-first free result with official current-rights guidance,
 neutral diaspora context and an explicit inactive Interdomestik flight-service
 boundary. It creates no case, commercial handoff, eligibility or compensation
 decision and sends no answer outside the component. Direct fragment and reload,
-SQ/EN/SR/MK, mobile/accessibility/200% zoom/text spacing, JavaScript-on/off and
+SQ/EN/SR/MK, mobile/accessibility/200% zoom/text-spacing, JavaScript-on/off and
 Chromium/Firefox/WebKit proof passed. Local mandatory Phase C gates and
 current-head CI/security/Sonar/CodeQL/Pilot/full-E2E checks were green; all review
 findings were remediated and resolved. Protected surfaces and production aliases
