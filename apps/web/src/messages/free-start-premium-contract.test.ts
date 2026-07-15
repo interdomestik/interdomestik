@@ -21,6 +21,7 @@ describe('premium Free Start copy contract', () => {
       const boundary = messages.freeStart.trustBoundary;
 
       expect(boundary.heading.trim()).not.toHaveLength(0);
+      expect(boundary.heading).not.toMatch(/stays|remain|mbeten|ostaju|остануваат/i);
       expect(boundary.body.trim()).not.toHaveLength(0);
       expect(boundary.body).toMatch(/temporary|përkohshme|privremen|привремен/i);
       expect(boundary.body).toMatch(/not saved|nuk është ruajtur|nije sačuvan|не се зачувува/i);

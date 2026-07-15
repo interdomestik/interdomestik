@@ -90,8 +90,12 @@ export function getSelectedOutcomeLabel(
   return t('preview.notProvided');
 }
 
-export function getContinueLabel(t: FreeStartCopy, continueHref: string): string {
-  return t(`completion.cta.${getContinueRouteKey(continueHref)}.medium`);
+export function getContinueLabel(
+  t: FreeStartCopy,
+  continueHref: string,
+  level: Extract<ConfidenceLevel, 'high' | 'medium'>
+): string {
+  return t(`completion.cta.${getContinueRouteKey(continueHref)}.${level}`);
 }
 
 export function getContinueRouteKey(continueHref: string): ContinueRouteKey {
@@ -104,14 +108,6 @@ export function getContinueRouteKey(continueHref: string): ContinueRouteKey {
   }
 
   return 'portal';
-}
-
-export function getRecommendedContinueLabel(
-  t: FreeStartCopy,
-  continueHref: string,
-  level: Extract<ConfidenceLevel, 'high' | 'medium'>
-): string {
-  return t(`completion.cta.${getContinueRouteKey(continueHref)}.${level}`);
 }
 
 export function getConfidenceLevel(

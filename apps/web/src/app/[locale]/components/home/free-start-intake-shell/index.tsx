@@ -29,7 +29,11 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
   const issueLabel = getSelectedIssueLabel(t, flow.selectedCategory, flow.draft.issueType);
   const outcomeLabel = getSelectedOutcomeLabel(t, flow.draft.desiredOutcome);
   const confidenceLevel = getConfidenceLevel(flow.selectedCategory, flow.draft);
-  const continueLabel = getContinueLabel(t, props.continueHref);
+  const continueLabel = getContinueLabel(
+    t,
+    props.continueHref,
+    confidenceLevel === 'high' ? 'high' : 'medium'
+  );
   const validationMessage = t('validation.completeIntake');
   const finishIntake = useOrganizerSubmit({
     draft: flow.draft,

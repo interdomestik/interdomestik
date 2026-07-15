@@ -42,6 +42,15 @@ vi.mock('@/actions/claim-pack.core', () => ({
 }));
 
 import { FreeStartIntakeShell } from './free-start-intake-shell/index';
+import { getContinueLabel } from './free-start-intake-shell/helpers';
+import type { FreeStartCopy } from './free-start-intake-shell/types';
+
+const translate = ((key: string) => {
+  return key.split('.').reduce<unknown>((value, segment) => {
+    if (!value || typeof value !== 'object') return undefined;
+    return (value as Record<string, unknown>)[segment];
+  }, enMessages.freeStart) as string;
+}) as FreeStartCopy;
 
 describe('premium Free Start organizer', () => {
   beforeEach(() => {
@@ -81,5 +90,11 @@ describe('premium Free Start organizer', () => {
     expect(screen.getByTestId('free-start-category-vehicle')).toBeInTheDocument();
     expect(screen.getByTestId('free-start-category-property')).toBeInTheDocument();
     expect(screen.getByTestId('free-start-category-injury')).toBeInTheDocument();
+  });
+
+  it('keeps the generated-pack CTA aligned with high confidence guidance', () => {
+    expect(getContinueLabel(translate, '/pricing', 'high')).toBe(
+      'Join Asistenca for a team review'
+    );
   });
 });

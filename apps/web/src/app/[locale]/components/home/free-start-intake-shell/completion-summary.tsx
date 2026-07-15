@@ -1,7 +1,6 @@
 import { Link } from '@/i18n/routing';
 import { ArrowRight, CheckCircle2, PhoneCall } from 'lucide-react';
 
-import { getRecommendedContinueLabel } from './helpers';
 import { PRIMARY_ACTION_CLASS, SECONDARY_ACTION_CLASS } from './organizer-styles';
 import type { ConfidenceLevel, FreeStartCopy, SupportContacts } from './types';
 
@@ -36,11 +35,6 @@ export function CompletionIntro({ t }: { t: FreeStartCopy }) {
 
 export function CompletionSummary(props: Props) {
   const hotlineFirst = props.confidenceLevel === 'low';
-  const recommended =
-    props.confidenceLevel === 'low'
-      ? props.continueLabel
-      : getRecommendedContinueLabel(props.t, props.continueHref, props.confidenceLevel);
-
   return (
     <div data-testid="free-start-complete-pending-pack" className="space-y-5">
       <CompletionIntro t={props.t} />
@@ -74,7 +68,7 @@ export function CompletionSummary(props: Props) {
           </a>
         ) : (
           <Link href={props.continueHref} className={PRIMARY_ACTION_CLASS}>
-            {recommended}
+            {props.continueLabel}
             <ArrowRight aria-hidden="true" className="h-4 w-4" />
           </Link>
         )}
