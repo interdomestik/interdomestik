@@ -54,6 +54,9 @@ describe('PropertySafetyJourney', () => {
       screen.getByRole('heading', { name: 'Mbroni njerëzit dhe ruani faktet e dëmit.' })
     ).toBeInTheDocument();
     expect(screen.getByText(/Rregullat e vendit, policës dhe kontratës/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Tani vazhdoni me organizimin e të dhënave të dëmit/i)
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Organizo të dhënat e dëmit tim' }));
     expect(onContinue).toHaveBeenCalledOnce();
   });

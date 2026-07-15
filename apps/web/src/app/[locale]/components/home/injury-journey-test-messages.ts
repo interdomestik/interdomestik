@@ -52,7 +52,8 @@ export const injuryJourneyTestMessages = {
       },
       diasporaTitle: 'Incidenti ndodhi jashtë vendit ku banoni?',
       diasporaBody: 'I mbajmë dy vendet të ndara pa dhënë përfundim ligjor.',
-      handoff: 'Tani fillon intake-i. Ju zgjidhni çfarë të dërgoni.',
+      handoff:
+        'Tani vazhdoni me organizimin e të dhënave të rastit në Free Start. Ju vendosni çfarë të dërgoni.',
       continue: 'Organizo të dhënat e rastit tim',
     },
   },

@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import en from './en/freeStart.json';
 import mk from './mk/freeStart.json';
 import sq from './sq/freeStart.json';
+import sqInjuryJourney from './sq/injuryJourney.json';
+import sqPropertyJourney from './sq/propertyJourney.json';
 import sr from './sr/freeStart.json';
 
 const localeMessages = { en, mk, sq, sr } as const;
@@ -46,8 +48,12 @@ describe('premium Free Start copy contract', () => {
     }
   );
 
-  it('keeps internal intake jargon out of the Albanian public journey', () => {
-    const publicCopy = collectCopyValues(sq.freeStart).join(' ');
+  it('keeps internal intake jargon out of Albanian public organizer handoffs', () => {
+    const publicCopy = [
+      ...collectCopyValues(sq.freeStart),
+      ...collectCopyValues(sqInjuryJourney.injuryJourney.evidence),
+      ...collectCopyValues(sqPropertyJourney.propertyJourney.evidence),
+    ].join(' ');
 
     expect(publicCopy).not.toMatch(/intake/i);
   });
