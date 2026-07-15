@@ -14,6 +14,11 @@ import { useJourneyHeadingFocus } from './use-journey-heading-focus';
 
 type PropertySafetyJourneyProps = Readonly<{ onContinue?: () => void }>;
 
+function resolveLiveMode(focus: boolean, urgent: boolean) {
+  if (focus) return 'off';
+  return urgent ? 'assertive' : 'polite';
+}
+
 export function PropertySafetyJourney({
   onContinue = () => undefined,
 }: PropertySafetyJourneyProps) {
@@ -28,7 +33,7 @@ export function PropertySafetyJourney({
   const { contentRef, requestHeadingFocus } = useJourneyHeadingFocus(stage);
   const moveTo = (next: PropertyStage, focus: boolean, urgent = false) => {
     requestHeadingFocus(focus);
-    setLiveMode(focus ? 'off' : urgent ? 'assertive' : 'polite');
+    setLiveMode(resolveLiveMode(focus, urgent));
     setStage(next);
   };
 
