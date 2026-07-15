@@ -728,6 +728,27 @@ resumed or overwritten. SQ/EN/SR/MK, mobile/accessibility/200% zoom/text-spacing
 JavaScript-on/off, cross-browser, mandatory Phase C gates and current-head review
 evidence are required.
 
+Rev 125 closeout: `IDA-UI02a` completed through implementation PR `#1358` /
+merge-main SHA `690bc28b381d9659e36f1c03414f94942f78c5d3` and the bounded Albanian
+plain-language correction PR `#1359` / merge-main SHA
+`70e8606f3f9da5b20ca227d5c1f355e9940580fd`, recorded in
+`docs/plans/2026-07-15-ida-ui02a-closeout.md`. The merged premium Free Start
+organizer unifies category, details, preview and completion while preserving the
+existing fields, validation, server action, idempotency, analytics, claim-pack and
+continuation behavior. Completion is explicit that the result is temporary, is
+not saved and did not open a case. SQ/EN/SR/MK, mobile/accessibility/200% zoom,
+text-spacing, JavaScript-on/off and cross-browser proof passed. Public Albanian
+avoids `triazh` and `intake`; injury/property handoffs use plain organizer language
+and state that prior answers do not transfer automatically. Mandatory local gates,
+current-head CI/security/Sonar/CodeQL/Pilot/full-E2E checks and reviewer
+remediation were green. Protected surfaces and production aliases were not
+changed, and automatic CD was cancelled before deploy. AI OS remained advisory
+and stale because Git facts were unavailable; repo authority governed the
+conflict and no Brain time/token saving is claimed. `IDA-UI01b` remains frozen.
+No replacement implementation slice is promoted; expected resolver state is
+`blocked_requires_current_authority`, `activeSlice=null` until a fresh gate
+promotes exactly one next governed action.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
