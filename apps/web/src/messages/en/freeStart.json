@@ -122,14 +122,14 @@
       "nextStep": {
         "heading": "Recommended next step",
         "levels": {
-          "high": "Join Asistenca for human triage within 24 business hours.",
+          "high": "Join Asistenca for a team review within 24 business hours.",
           "medium": "Upgrade for document review before you send the first complaint or notice.",
           "low": "Use the hotline for routing support and the clearest next step before you escalate."
         }
       },
       "cta": {
         "membership": {
-          "high": "Join Asistenca for human triage",
+          "high": "Join Asistenca for a team review",
           "medium": "Upgrade for document review"
         },
         "member": {
@@ -165,7 +165,7 @@
         "badge": "Evidence to gather next",
         "placeholder": {
           "heading": "Choose a claim type to see the strongest evidence for the first pack.",
-          "body": "Free Start stays lightweight, but the right photos, reports, and cost proof make later triage faster."
+          "body": "Free Start stays lightweight, but the right photos, reports, and cost proof make the later review faster."
         },
         "vehicle": {
           "heading": "Vehicle claims move faster with scene, insurer, and repair proof.",
@@ -198,12 +198,12 @@
       "privacy": {
         "badge": "Private by default",
         "heading": "Gather first, share later.",
-        "body": "You do not need to upload documents in Free Start. Start with the minimum facts, and share evidence later only if you want membership triage or hotline follow-up."
+        "body": "You do not need to upload documents in Free Start. Start with the minimum facts, and share evidence later only if you want a team review through membership or hotline follow-up."
       },
       "triage": {
-        "badge": "Human triage timing",
+        "badge": "Team review timing",
         "heading": "Membership starts the review clock.",
-        "body": "Asistenca members receive a human triage response within 24 business hours after a complete claim pack arrives. If something is missing, we ask for it within the same window. Free Start stays informational, and the hotline stays routing-only."
+        "body": "Asistenca members receive a response from the team within 24 business hours after a complete claim pack arrives. If something is missing, we ask for it within the same window. Free Start stays informational, and the hotline stays routing-only."
       }
     },
     "validation": {

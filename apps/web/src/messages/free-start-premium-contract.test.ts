@@ -7,6 +7,13 @@ import sr from './sr/freeStart.json';
 
 const localeMessages = { en, mk, sq, sr } as const;
 
+function collectCopyValues(value: unknown): string[] {
+  if (typeof value === 'string') return [value];
+  if (!value || typeof value !== 'object') return [];
+
+  return Object.values(value).flatMap(collectCopyValues);
+}
+
 describe('premium Free Start copy contract', () => {
   it.each(Object.entries(localeMessages))(
     '%s states that the summary is temporary, unsaved and does not open a case',
@@ -27,5 +34,20 @@ describe('premium Free Start copy contract', () => {
     );
 
     expect(keys).toEqual([keys[0], keys[0], keys[0], keys[0]]);
+  });
+
+  it.each(Object.entries(localeMessages))(
+    '%s uses plain-language review copy instead of public triage jargon',
+    (_locale, messages) => {
+      const publicCopy = collectCopyValues(messages.freeStart).join(' ');
+
+      expect(publicCopy).not.toMatch(/triage|triage-u|trija[zž]|trijaža|тријаж/i);
+    }
+  );
+
+  it('keeps internal intake jargon out of the Albanian public journey', () => {
+    const publicCopy = collectCopyValues(sq.freeStart).join(' ');
+
+    expect(publicCopy).not.toMatch(/intake/i);
   });
 });

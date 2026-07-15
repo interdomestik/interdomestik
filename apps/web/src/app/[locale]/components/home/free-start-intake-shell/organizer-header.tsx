@@ -8,7 +8,7 @@ export function OrganizerHeader({ step, t }: { step: StepId; t: FreeStartCopy })
 
   return (
     <header className="grid gap-7 border-b border-[#001a33]/15 pb-8 lg:grid-cols-[0.7fr_1.3fr]">
-      <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-[0.22em] text-[#007f82]">
+      <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-[0.22em] text-[#006f72]">
         <span aria-hidden="true" className="h-px w-10 bg-[#008f91]" />
         {t('eyebrow')}
       </div>

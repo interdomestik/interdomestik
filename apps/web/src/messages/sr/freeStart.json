@@ -122,14 +122,14 @@
       "nextStep": {
         "heading": "Preporučeni sledeći korak",
         "levels": {
-          "high": "Pridruži se Asistenca za ljudski trijaž u roku od 24 radna sata.",
+          "high": "Pridruži se Asistenca za pregled tima u roku od 24 radna sata.",
           "medium": "Nadogradi za pregled dokumenata pre nego što pošalješ prvi prigovor ili obaveštenje.",
           "low": "Koristi hotline za usmeravanje i najjasniji sledeći korak pre nego što eskaliraš."
         }
       },
       "cta": {
         "membership": {
-          "high": "Pridruži se Asistenca za ljudski trijaž",
+          "high": "Pridruži se Asistenca za pregled tima",
           "medium": "Nadogradi za pregled dokumenata"
         },
         "member": {
@@ -165,7 +165,7 @@
         "badge": "Dokazi koje treba prikupiti",
         "placeholder": {
           "heading": "Izaberi tip zahteva da vidiš najjače dokaze za prvi paket.",
-          "body": "Free Start ostaje lagan, ali prave fotografije, izveštaji i dokaz o trošku ubrzavaju kasniju trijažu."
+          "body": "Free Start ostaje lagan, ali prave fotografije, izveštaji i dokaz o trošku ubrzavaju kasniji pregled."
         },
         "vehicle": {
           "heading": "Slučajevi vozila idu brže uz dokaz sa mesta, od osiguravača i iz popravke.",
@@ -198,12 +198,12 @@
       "privacy": {
         "badge": "Privatno po difoltu",
         "heading": "Prikupi prvo, podeli kasnije.",
-        "body": "Ne moraš da otpremaš dokumenta u Free Start. Počni sa minimalnim činjenicama, a dokaze podeli kasnije samo ako želiš člansku trijažu ili hotline follow-up."
+        "body": "Ne moraš da otpremaš dokumenta u Free Start. Počni sa minimalnim činjenicama, a dokaze podeli kasnije samo ako želiš pregled tima kroz članstvo ili hotline follow-up."
       },
       "triage": {
-        "badge": "Vreme za ljudsku trijažu",
+        "badge": "Vreme za pregled tima",
         "heading": "Članstvo pokreće sat za pregled.",
-        "body": "Članovi Asistenca dobijaju odgovor ljudske trijaže u roku od 24 radna sata nakon što stigne kompletan paket zahteva. Ako nešto nedostaje, tražimo to u istom roku. Free Start ostaje informativan, a hotline ostaje samo za usmeravanje."
+        "body": "Članovi Asistenca dobijaju odgovor tima u roku od 24 radna sata nakon što stigne kompletan paket zahteva. Ako nešto nedostaje, tražimo to u istom roku. Free Start ostaje informativan, a hotline ostaje samo za usmeravanje."
       }
     },
     "validation": {

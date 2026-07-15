@@ -49,7 +49,7 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
     <section
       id="free-start-intake"
       data-testid="free-start-intake-shell"
-      className="border-b border-[#001a33]/15 bg-[#f9f6f0] text-[#001a33]"
+      className="scroll-mt-24 border-b border-[#001a33]/15 bg-[#f9f6f0] text-[#001a33]"
     >
       <div
         data-testid="premium-free-start-organizer"

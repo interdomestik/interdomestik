@@ -33,6 +33,9 @@ test.describe('premium Free Start organizer', () => {
         await expect(organizer.getByRole('heading', { name: entry.heading })).toBeVisible();
         await expect(organizer).toHaveAttribute('data-save-behavior', 'temporary');
         await expect(organizer.getByTestId('free-start-trust-boundary')).toBeVisible();
+        const anchorTarget = page.getByTestId('free-start-intake-shell');
+        await anchorTarget.evaluate(element => element.scrollIntoView({ block: 'start' }));
+        expect((await anchorTarget.boundingBox())?.y).toBeGreaterThanOrEqual(72);
         await expectNoOverflow(page.locator('html'));
         await expectNoOverflow(organizer);
 

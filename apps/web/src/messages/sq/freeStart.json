@@ -13,13 +13,13 @@
     },
     "steps": {
       "choose": "Zgjidh llojin e rastit",
-      "details": "Intake i udhëzuar",
+      "details": "Të dhënat kryesore",
       "preview": "Paraqitja e paketës"
     },
     "choose": {
       "heading": "Nise me problemin që duhet zgjidhur.",
-      "body": "Ky intake publik mbulon vetëm rastet në kufirin e nisjes. Zgjidh së pari kategorinë që përputhet me situatën tënde.",
-      "continue": "Vazhdo te intake i udhëzuar"
+      "body": "Ky hap fillestar mbulon vetëm rastet që mund t'i trajtojmë në këtë fazë. Zgjidh së pari kategorinë që përputhet me situatën tënde.",
+      "continue": "Vazhdo te të dhënat kryesore"
     },
     "categories": {
       "vehicle": {
@@ -39,7 +39,7 @@
       }
     },
     "details": {
-      "heading": "Përgjigju intake-ut të udhëzuar.",
+      "heading": "Plotëso të dhënat kryesore.",
       "body": "Na duhen vetëm faktet bazë për skeletin e paketës: çfarë ndodhi, kur ndodhi, kush është i përfshirë dhe çfarë dëshiron të rikuperosh.",
       "issueType": "Çfarë ndodhi?",
       "incidentDate": "Kur ndodhi?",
@@ -80,7 +80,7 @@
     },
     "preview": {
       "heading": "Rishiko skeletin e paketës Free Start.",
-      "body": "Ky skelet i mban bashkë faktet e intake-ut para udhëzimit më të thellë, kërkesave për prova ose përshkallëzimit te stafi.",
+      "body": "Ky skelet i mban bashkë faktet e mbledhura para udhëzimit më të thellë, kërkesave për prova ose përshkallëzimit te stafi.",
       "packBadge": "Skeleti i paketës u krijua",
       "categoryLabel": "Lloji i rastit",
       "issueLabel": "Problemi",
@@ -90,46 +90,46 @@
       "summaryLabel": "Përmbledhja",
       "includesHeading": "Ky skelet tashmë të jep",
       "includes": {
-        "summary": "Një përmbledhje të strukturuar të intake-ut që mund ta ripërdorësh pa rishkruar faktet.",
+        "summary": "Një përmbledhje të strukturuar të të dhënave që mund ta ripërdorësh pa rishkruar faktet.",
         "timeline": "Një bazë të qartë kohe me datën, llojin e problemit dhe palën përgjegjëse.",
         "handoff": "Një pikë të qëndrueshme dorëzimi për anëtarësim, telefonatë ose përshkallëzim të mëvonshëm."
       },
       "notProvided": "Nuk është dhënë",
-      "back": "Kthehu te intake-u",
+      "back": "Kthehu te të dhënat",
       "finish": "Krijoni përmbledhjen time"
     },
     "completion": {
       "badge": "Free Start u përfundua",
-      "heading": "Intake-u yt u përfundua.",
+      "heading": "Hapi fillestar u përfundua.",
       "body": "Përmbledhja juaj e përkohshme është gati. Nuk është ruajtur dhe nuk është hapur asnjë rast.",
       "confidence": {
         "eyebrow": "Besueshmëria e përshtatshmërisë",
         "levels": {
           "high": {
             "label": "E lartë",
-            "body": "Intake-u yt tregon një rrugë të qartë rikuperimi me palë të përcaktuar dhe rezultat konkret."
+            "body": "Të dhënat e tua tregojnë një rrugë të qartë rikuperimi me palë të përcaktuar dhe rezultat konkret."
           },
           "medium": {
             "label": "Mesatare",
-            "body": "Intake-u yt është i përdorshëm, por faktet sugjerojnë rishikim dokumentesh para përshkallëzimit."
+            "body": "Të dhënat e tua janë të përdorshme, por faktet sugjerojnë rishikim dokumentesh para përshkallëzimit."
           },
           "low": {
             "label": "E ulët",
-            "body": "Intake-u yt duket më afër udhëzimit fillestar ose mbështetjes për drejtimin e rastit sesa një rruge të qartë rikuperimi."
+            "body": "Të dhënat e tua tregojnë se nevojitet më shumë orientim fillestar para se të përcaktohet një rrugë e qartë rikuperimi."
           }
         }
       },
       "nextStep": {
         "heading": "Hapi i rekomanduar i radhës",
         "levels": {
-          "high": "Bashkohu me Asistenca për triage njerëzor brenda 24 orëve të punës.",
+          "high": "Bashkohu me Asistenca për rishikim nga ekipi brenda 24 orëve të punës.",
           "medium": "Përmirësoje për rishikim dokumentesh para se të dërgosh ankesën ose njoftimin e parë.",
           "low": "Përdor linjën telefonike për drejtim dhe hapin më të qartë të radhës para se të përshkallëzosh."
         }
       },
       "cta": {
         "membership": {
-          "high": "Bashkohu me Asistenca për triage njerëzor",
+          "high": "Bashkohu me Asistenca për rishikim nga ekipi",
           "medium": "Përmirësoje për rishikim dokumentesh"
         },
         "member": {
@@ -153,10 +153,10 @@
     "support": {
       "badge": "Pse ndihmon",
       "heading": "Mbaje hapin e parë të pastër dhe të qëndrueshëm.",
-      "body": "Ky skelet e mban intake-un e parë publik të shkurtër, të përsëritshëm dhe gati për hapat e ardhshëm pa rihapur faktet.",
+      "body": "Ky hap i parë i mban të dhënat të shkurtra, të qarta dhe gati për hapat e ardhshëm pa i mbledhur faktet nga fillimi.",
       "points": {
         "lane": "Së pari zgjedh kategorinë e duhur komerciale: automjet, pronë ose lëndim.",
-        "facts": "Intake-u kap vetëm faktet thelbësore për të ecur përpara qartë.",
+        "facts": "Ky hap mbledh vetëm faktet thelbësore për të ecur përpara qartë.",
         "handoff": "Të njëjtat fakte mund të kalojnë në anëtarësim ose follow-up pa ndryshim rruge."
       }
     },
@@ -165,7 +165,7 @@
         "badge": "Dëshmitë që duhen mbledhur",
         "placeholder": {
           "heading": "Zgjidh llojin e rastit për të parë dëshmitë më të forta për paketën e parë.",
-          "body": "Free Start mbetet i lehtë, por fotot, raportet dhe provat e kostos e bëjnë triage-un e mëvonshëm më të shpejtë."
+          "body": "Free Start mbetet i lehtë, por fotot, raportet dhe provat e kostos e bëjnë rishikimin e mëvonshëm më të shpejtë."
         },
         "vehicle": {
           "heading": "Rastet e automjetit ecin më shpejt me prova nga vendi, siguruesi dhe riparimi.",
@@ -198,17 +198,17 @@
       "privacy": {
         "badge": "Privatësi si parazgjedhje",
         "heading": "Mblidh së pari, ndaj më vonë.",
-        "body": "Nuk ke nevojë të ngarkosh dokumente në Free Start. Nise me faktet minimale dhe ndaj dëshmitë më vonë vetëm nëse do triage nga anëtarësimi ose follow-up nga linja telefonike."
+        "body": "Nuk ke nevojë të ngarkosh dokumente në Free Start. Nise me faktet minimale dhe ndaj dëshmitë më vonë vetëm nëse do rishikim nga ekipi përmes anëtarësimit ose follow-up nga linja telefonike."
       },
       "triage": {
-        "badge": "Koha e triage-it njerëzor",
+        "badge": "Koha e rishikimit nga ekipi",
         "heading": "Anëtarësimi e nis orën e rishikimit.",
-        "body": "Anëtarët e Asistenca marrin përgjigje triage nga njeriu brenda 24 orëve të punës pasi të mbërrijë një paketë e plotë kërkese. Nëse mungon diçka, ta kërkojmë brenda të njëjtit afat. Free Start mbetet informues dhe linja telefonike mbetet vetëm për drejtim."
+        "body": "Anëtarët e Asistenca marrin përgjigje nga ekipi brenda 24 orëve të punës pasi të mbërrijë një paketë e plotë kërkese. Nëse mungon diçka, ta kërkojmë brenda të njëjtit afat. Free Start mbetet informues dhe linja telefonike mbetet vetëm për drejtim."
       }
     },
     "validation": {
       "chooseCategory": "Zgjidh automjet, pronë ose lëndim para se të vazhdosh.",
-      "completeIntake": "Plotëso çdo fushë të intake-ut të udhëzuar para se të shohësh paketën Free Start."
+      "completeIntake": "Plotëso çdo fushë me të dhënat kryesore para se të shohësh paketën Free Start."
     }
   }
 }
