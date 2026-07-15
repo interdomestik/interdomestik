@@ -93,6 +93,11 @@ claimed.
 - The merge-readiness refresh/state observations were
   `3f2417fcccb73269bc3a89437b1397939544841a5ca7c2a19c2e1ec10ca49128` and
   `734e5482eeead3e52c1e659badfb3ca8d60fe961391b41e60c62a775ffd3ce27`.
+- The closeout-PR merge-readiness refresh/state observations were
+  `a3d1fb63546c16b38f101fdf38c8873de4067588126c15f707021f9c1c16546c` and
+  `81917886fda371211d5dfe43fcaae54ba6354efe89cc29153ce8d94f5c3c0d55`.
+  Brain remained stale with `2,773` added sources and `26` modified sources;
+  generated `.next` output again dominated the reported additions.
 - The advisory projection reported `activeSlice=none` and runtime not authorized
   because Git facts were unavailable. This conflicted with the repo-canonical
   `IDA-DG13` / `IDA-UI02a` authority, which the worktree-scoped resolver correctly
