@@ -59,7 +59,7 @@ describe('InjurySafetyJourney', () => {
     expect(screen.getByLabelText('Shteti i vendbanimit të zakonshëm')).toHaveValue('');
   });
 
-  it('shows a useful free result before the explicit intake handoff', () => {
+  it('shows a useful free result before the explicit organizer handoff', () => {
     const onContinue = vi.fn();
     render(<InjurySafetyJourney onContinue={onContinue} />);
     reachEvidence();
@@ -67,7 +67,9 @@ describe('InjurySafetyJourney', () => {
     expect(
       screen.getByRole('heading', { name: 'Ruani faktet që mund t’ju duhen.' })
     ).toBeInTheDocument();
-    expect(screen.getByText(/Tani fillon intake-i/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Tani vazhdoni me organizimin e të dhënave të rastit/i)
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Organizo të dhënat e rastit tim' }));
     expect(onContinue).toHaveBeenCalledOnce();
   });

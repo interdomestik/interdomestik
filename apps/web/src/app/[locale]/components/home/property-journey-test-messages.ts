@@ -80,7 +80,8 @@ export const propertyJourneyTestMessages = {
       diasporaTitle: 'Prona ndodhet jashtë vendit ku banoni?',
       diasporaBody:
         'Rregullat e vendit, policës dhe kontratës kërkojnë shqyrtim të veçantë; nuk supozojmë pse vendet ndryshojnë.',
-      handoff: 'Tani fillon intake-i i ri Free Start. Asnjë përgjigje nga ky orientim nuk bartet.',
+      handoff:
+        'Tani vazhdoni me organizimin e të dhënave të dëmit në Free Start. Asnjë përgjigje nuk kalon automatikisht.',
       continue: 'Organizo të dhënat e dëmit tim',
     },
   },
