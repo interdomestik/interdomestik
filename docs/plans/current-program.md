@@ -749,6 +749,24 @@ No replacement implementation slice is promoted; expected resolver state is
 `blocked_requires_current_authority`, `activeSlice=null` until a fresh gate
 promotes exactly one next governed action.
 
+Rev 126 current authority: `IDA-DG14` in
+`docs/plans/2026-07-15-ida-dg14-premium-free-start-result-design-gate.md`
+promotes exactly one Tier 2 presentation/localization/accessibility slice,
+`IDA-UI02b`, after Arben's explicit approval and fresh AI OS/repository-authority
+checks. The slice replaces only the successful Free Start claim-pack result's
+legacy narrow dark dashboard with a full-width help-first result document;
+localizes its evidence, timeline, controls, next-step framing and disclaimer for
+SQ/EN/SR/MK; removes raw confidence-factor/recommendation prose from public
+display; and preserves the existing score/level as a neutral preparation
+indicator with explicit no-eligibility/no-prediction copy. Domain payloads and
+generators, letter content, server actions, validation, rate limiting,
+idempotency, analytics, continuation destinations, pack-failure fallback and
+temporary/no-save/no-case semantics remain unchanged. No proxy, route,
+auth/session, tenancy, database/schema/RLS, persistence, upload, health-data
+expansion, billing, dashboard, German, flight activation or deploy is promoted.
+`IDA-UI01b` remains frozen. Runtime work may proceed only while the
+worktree-scoped resolver returns `IDA-UI02b` alone.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the

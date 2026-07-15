@@ -1,0 +1,99 @@
+{
+  "freeStart": {
+    "result": {
+      "announcement": "Rezultati juaj i përkohshëm Free Start është gati.",
+      "badge": "Free Start u përfundua",
+      "heading": "Përmbledhja juaj e përkohshme është gati.",
+      "body": "Përdoreni këtë përmbledhje për të organizuar ato që dini dhe për të përgatitur hapin e radhës. Asgjë nuk është ruajtur dhe nuk është hapur asnjë rast.",
+      "disclaimer": "Kjo përmbledhje është informacion i përgjithshëm, jo këshillë ligjore apo vendim për kërkesën tuaj.",
+      "preparation": {
+        "eyebrow": "Treguesi i përgatitjes",
+        "note": "Ky numër tregon vetëm sa të plota janë të dhënat që keni vendosur. Nuk parashikon pranueshmërinë apo rezultatin.",
+        "levels": {
+          "high": "E përgatitur mirë",
+          "medium": "Pikënisje e dobishme",
+          "low": "Pikënisje fillestare"
+        }
+      },
+      "nextStep": {
+        "eyebrow": "Hapi juaj i radhës",
+        "heading": "Vazhdoni kur të jeni gati.",
+        "defaultCta": "Vazhdoni",
+        "levels": {
+          "high": "Faktet tuaja janë organizuar për mundësinë e rishikimit më poshtë.",
+          "medium": "Rishikimi i dokumenteve mund t'ju ndihmojë ta kontrolloni paketën para dërgimit të letrës.",
+          "low": "Një telefonatë e shkurtër orientuese mund t'ju ndihmojë të zgjidhni hapin më të qartë."
+        }
+      },
+      "letter": {
+        "heading": "Projektletra juaj",
+        "helper": "Kontrolloni çdo hollësi para përdorimit. Projektletra mbetet e përkohshme dhe nuk dërgohet apo ruhet këtu.",
+        "copy": "Kopjoni letrën",
+        "copied": "Letra u kopjua.",
+        "copyError": "Kopjimi nuk ishte i mundur. Përzgjidhni tekstin e letrës dhe kopjojeni vetë.",
+        "download": "Shkarkoni letrën",
+        "placeholders": "Plotësoni këto vende para përdorimit të letrës:"
+      },
+      "timeline": {
+        "heading": "Afatet për planifikim",
+        "intro": "Këto janë afate orientuese për planifikim, jo premtime për përgjigje apo zgjidhje.",
+        "ranges": {
+          "days": "{start}–{end} ditë",
+          "weeks": "{start}–{end} javë",
+          "months": "{start}–{end} muaj",
+          "businessDays": "{start}–{end} ditë pune",
+          "afterResponse": "Pasi të përgjigjet pala tjetër",
+          "unknown": "Afati varet nga hapi i radhës"
+        },
+        "items": {
+          "evidence_collection": {
+            "label": "Mblidhni dokumentet dhe provat",
+            "description": "Mblidhni ato që shfaqen në listë dhe ruajini dokumentet origjinale."
+          },
+          "first_letter": {
+            "label": "Kontrolloni dhe dërgoni letrën e parë",
+            "description": "Kontrolloni projektletrën, plotësoni çdo vend bosh dhe zgjidhni mënyrën e dërgimit."
+          },
+          "expected_response": {
+            "label": "Lini kohë për përgjigje",
+            "description": "Ruani provën e dërgimit dhe shënoni çdo përgjigje që merrni."
+          },
+          "insurer_assessment": {
+            "label": "Vlerësimi i siguruesit",
+            "description": "Mbani bashkë vlerësimin, pyetjet dhe çdo ofertë të përditësuar."
+          },
+          "damage_assessment": {
+            "label": "Vlerësimi i dëmit",
+            "description": "Regjistroni inspektimet, preventivët dhe ndryshimet e punëve të riparimit."
+          },
+          "medical_documentation": {
+            "label": "Përditësoni dokumentet mjekësore",
+            "description": "Mbani të përditësuara trajtimet dhe kostot përkatëse."
+          },
+          "escalation_window": {
+            "label": "Shikoni mundësinë e radhës",
+            "description": "Nëse çështja mbetet e pazgjidhur, përdorni rrugën e disponueshme të mbështetjes për të parë çfarë vijon."
+          },
+          "resolution": {
+            "vehicle": {
+              "label": "Ndiqni riparimin ose pagesën",
+              "description": "Ruani konfirmimin me shkrim për riparimin, pagesën ose veprimin e radhës."
+            },
+            "property": {
+              "label": "Ndiqni riparimin ose pagesën",
+              "description": "Ruani konfirmimin me shkrim për punimet, pagesën ose veprimin e radhës."
+            },
+            "injury": {
+              "label": "Ndiqni trajtimin dhe përgjigjen",
+              "description": "Ruani konfirmimin me shkrim për vendimet, pagesat dhe hapat e mbetur."
+            }
+          },
+          "unknown": {
+            "label": "Hap planifikimi",
+            "description": "Ruani dokumentin përkatës dhe konfirmoni se çfarë duhet të ndodhë më pas."
+          }
+        }
+      }
+    }
+  }
+}

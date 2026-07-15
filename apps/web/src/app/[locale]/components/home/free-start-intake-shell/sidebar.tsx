@@ -1,17 +1,8 @@
-import type { ClaimPack } from '@interdomestik/domain-claims/claim-pack';
-import dynamic from 'next/dynamic';
-
-import { CompletionIntro, CompletionSummary } from './completion-summary';
+import { CompletionSummary } from './completion-summary';
 import { TrustGuidance } from './trust-guidance';
 import type { CategoryId, ConfidenceLevel, FreeStartCopy, StepId, SupportContacts } from './types';
 
-const ClaimPackResult = dynamic(
-  () => import('../claim-pack-result').then(module => module.ClaimPackResult),
-  { ssr: false, loading: () => <div className="h-32 animate-pulse rounded-2xl bg-[#eaf1f4]" /> }
-);
-
 type Props = Readonly<{
-  claimPack: ClaimPack | null;
   confidenceLevel: ConfidenceLevel;
   contacts: SupportContacts;
   continueHref: string;
@@ -41,19 +32,6 @@ function SupportIntro({ t }: { t: FreeStartCopy }) {
 }
 
 export function FreeStartSidebar(props: Props) {
-  if (props.step === 'complete' && props.claimPack) {
-    return (
-      <div data-testid="free-start-complete" className="space-y-5">
-        <CompletionIntro t={props.t} />
-        <ClaimPackResult
-          ctaHref={props.continueHref}
-          ctaLabel={props.continueLabel}
-          pack={props.claimPack}
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       {props.step === 'complete' ? (

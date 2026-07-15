@@ -1,6 +1,7 @@
 'use client';
 
 import { getSupportContacts } from '@/lib/support-contacts';
+import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 
 import {
@@ -18,6 +19,19 @@ import { TrustBoundary } from './trust-boundary';
 import type { FreeStartIntakeShellProps } from './types';
 import { useOrganizerFlow } from './use-organizer-flow';
 import { useOrganizerSubmit } from './use-organizer-submit';
+
+const ClaimPackResult = dynamic(
+  () => import('../claim-pack-result').then(module => module.ClaimPackResult),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        aria-hidden="true"
+        className="h-40 animate-pulse rounded-3xl bg-[#eaf1f4] motion-reduce:animate-none"
+      />
+    ),
+  }
+);
 
 export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
   const t = useTranslations('freeStart');
@@ -61,6 +75,15 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
         className="mx-auto max-w-6xl space-y-8 px-4 py-12 sm:px-6 md:py-16"
       >
         <OrganizerHeader step={flow.step} t={t} />
+        <p
+          data-testid="free-start-result-announcement"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          className="sr-only"
+        >
+          {flow.step === 'complete' && flow.claimPack ? t('result.announcement') : ''}
+        </p>
         {flow.validationError ? (
           <p
             ref={flow.validationErrorRef}
@@ -72,41 +95,50 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
             {flow.validationError}
           </p>
         ) : null}
-        <div className="grid gap-8 lg:grid-cols-[1.35fr_0.65fr]">
-          <div className="rounded-3xl border border-[#001a33]/15 bg-[#fffdf9] p-5 sm:p-7">
-            <FreeStartMainPanel
-              categoryLabel={categoryLabel}
-              draft={flow.draft}
-              headingRef={flow.stageHeadingRef}
-              issueIds={issueIds}
-              issueLabel={issueLabel}
-              isFinishing={flow.isFinishingIntake}
-              outcomeLabel={outcomeLabel}
-              selectedCategory={flow.selectedCategory}
-              setDraftField={flow.setDraftField}
-              step={flow.step}
-              t={t}
-              onBackToCategory={() => flow.navigate('category')}
-              onBackToDetails={() => flow.navigate('details')}
-              onCategorySelect={flow.selectCategory}
-              onFinish={finishIntake}
-              onMoveToDetails={() => flow.moveToDetails(t('validation.chooseCategory'))}
-              onMoveToPreview={() => flow.moveToPreview(validationMessage)}
+        {flow.step === 'complete' && flow.claimPack ? (
+          <div data-testid="free-start-complete" data-layout="full-width">
+            <ClaimPackResult
+              ctaHref={props.continueHref}
+              ctaLabel={continueLabel}
+              pack={flow.claimPack}
             />
           </div>
-          <aside className="rounded-3xl border border-[#001a33]/15 bg-white p-5 sm:p-6">
-            <FreeStartSidebar
-              claimPack={flow.claimPack}
-              confidenceLevel={confidenceLevel}
-              contacts={contacts}
-              continueHref={props.continueHref}
-              continueLabel={continueLabel}
-              selectedCategory={flow.selectedCategory}
-              step={flow.step}
-              t={t}
-            />
-          </aside>
-        </div>
+        ) : (
+          <div className="grid gap-8 lg:grid-cols-[1.35fr_0.65fr]">
+            <div className="rounded-3xl border border-[#001a33]/15 bg-[#fffdf9] p-5 sm:p-7">
+              <FreeStartMainPanel
+                categoryLabel={categoryLabel}
+                draft={flow.draft}
+                headingRef={flow.stageHeadingRef}
+                issueIds={issueIds}
+                issueLabel={issueLabel}
+                isFinishing={flow.isFinishingIntake}
+                outcomeLabel={outcomeLabel}
+                selectedCategory={flow.selectedCategory}
+                setDraftField={flow.setDraftField}
+                step={flow.step}
+                t={t}
+                onBackToCategory={() => flow.navigate('category')}
+                onBackToDetails={() => flow.navigate('details')}
+                onCategorySelect={flow.selectCategory}
+                onFinish={finishIntake}
+                onMoveToDetails={() => flow.moveToDetails(t('validation.chooseCategory'))}
+                onMoveToPreview={() => flow.moveToPreview(validationMessage)}
+              />
+            </div>
+            <aside className="rounded-3xl border border-[#001a33]/15 bg-white p-5 sm:p-6">
+              <FreeStartSidebar
+                confidenceLevel={confidenceLevel}
+                contacts={contacts}
+                continueHref={props.continueHref}
+                continueLabel={continueLabel}
+                selectedCategory={flow.selectedCategory}
+                step={flow.step}
+                t={t}
+              />
+            </aside>
+          </div>
+        )}
         <TrustBoundary t={t} />
       </div>
     </section>

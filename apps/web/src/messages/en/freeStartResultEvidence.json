@@ -1,0 +1,93 @@
+{
+  "freeStart": {
+    "result": {
+      "evidence": {
+        "heading": "Evidence checklist",
+        "summary": "You marked {available} items as available. {required} items are important for this pack.",
+        "status": {
+          "available": "Marked as available",
+          "required": "Important to gather",
+          "optional": "Useful if available"
+        },
+        "items": {
+          "vehicle_photos": {
+            "name": "Photos of the vehicle damage",
+            "description": "Include close views and the wider scene where possible."
+          },
+          "vehicle_police_report": {
+            "name": "Police or incident report",
+            "description": "Keep the report or reference number if one exists."
+          },
+          "vehicle_insurance_details": {
+            "name": "Insurance details",
+            "description": "Keep the policy, claim number, and insurer messages together."
+          },
+          "vehicle_repair_estimate": {
+            "name": "Repair estimate",
+            "description": "Use an estimate or invoice that shows the expected cost."
+          },
+          "vehicle_registration": {
+            "name": "Vehicle registration",
+            "description": "Keep a readable copy of the current registration."
+          },
+          "vehicle_driver_license": {
+            "name": "Driver licence",
+            "description": "Keep a readable copy for the driver involved."
+          },
+          "property_photos": {
+            "name": "Photos of the property damage",
+            "description": "Capture each affected area before cleanup where possible."
+          },
+          "property_ownership": {
+            "name": "Ownership or tenancy document",
+            "description": "Use the record that connects you to the damaged property."
+          },
+          "property_damage_report": {
+            "name": "Damage report",
+            "description": "Keep any building, emergency, or contractor report."
+          },
+          "property_insurance_policy": {
+            "name": "Property insurance policy",
+            "description": "Keep the relevant policy pages and claim reference."
+          },
+          "property_repair_quotes": {
+            "name": "Repair quotes",
+            "description": "Collect clear estimates for the work that is needed."
+          },
+          "property_correspondence": {
+            "name": "Messages with the responsible party",
+            "description": "Keep relevant emails, letters, or message records."
+          },
+          "injury_medical_records": {
+            "name": "Medical records",
+            "description": "Keep treatment notes, discharge papers, and summaries."
+          },
+          "injury_incident_report": {
+            "name": "Incident report",
+            "description": "Keep the report that records when and how the injury happened."
+          },
+          "injury_witness_statements": {
+            "name": "Witness details",
+            "description": "Keep names, contact details, and any written statements."
+          },
+          "injury_expense_receipts": {
+            "name": "Expense receipts",
+            "description": "Keep receipts for treatment, travel, and other related costs."
+          },
+          "injury_photos": {
+            "name": "Relevant photographs",
+            "description": "Keep dated photos of the scene or visible effects where appropriate."
+          },
+          "injury_lost_income": {
+            "name": "Lost-income records",
+            "description": "Keep employer or payment records that show missed income."
+          },
+          "unknown": {
+            "name": "Supporting document",
+            "description": "Keep a clear copy if it helps explain what happened or the loss."
+          }
+        }
+      }
+    }
+  }
+}

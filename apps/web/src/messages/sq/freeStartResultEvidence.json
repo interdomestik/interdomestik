@@ -1,0 +1,93 @@
+{
+  "freeStart": {
+    "result": {
+      "evidence": {
+        "heading": "Lista e dokumenteve dhe provave",
+        "summary": "Keni shënuar {available} dokumente si të gatshme. {required} dokumente janë të rëndësishme për këtë paketë.",
+        "status": {
+          "available": "E shënuar si e gatshme",
+          "required": "E rëndësishme për t'u mbledhur",
+          "optional": "E dobishme nëse është e gatshme"
+        },
+        "items": {
+          "vehicle_photos": {
+            "name": "Fotografi të dëmit në automjet",
+            "description": "Përfshini pamje nga afër dhe vendin më të gjerë, kur është e mundur."
+          },
+          "vehicle_police_report": {
+            "name": "Raporti i policisë ose i ngjarjes",
+            "description": "Ruani raportin ose numrin e referencës, nëse ekziston."
+          },
+          "vehicle_insurance_details": {
+            "name": "Të dhënat e sigurimit",
+            "description": "Mbani bashkë policën, numrin e kërkesës dhe mesazhet e siguruesit."
+          },
+          "vehicle_repair_estimate": {
+            "name": "Preventivi i riparimit",
+            "description": "Përdorni preventivin ose faturën që tregon koston e pritshme."
+          },
+          "vehicle_registration": {
+            "name": "Leja e qarkullimit",
+            "description": "Ruani një kopje të lexueshme të dokumentit aktual."
+          },
+          "vehicle_driver_license": {
+            "name": "Leja e drejtimit",
+            "description": "Ruani një kopje të lexueshme për drejtuesin e përfshirë."
+          },
+          "property_photos": {
+            "name": "Fotografi të dëmit në pronë",
+            "description": "Dokumentoni çdo zonë të prekur para pastrimit, kur është e mundur."
+          },
+          "property_ownership": {
+            "name": "Dokument pronësie ose qiraje",
+            "description": "Përdorni dokumentin që ju lidh me pronën e dëmtuar."
+          },
+          "property_damage_report": {
+            "name": "Raporti i dëmit",
+            "description": "Ruani çdo raport nga ndërtesa, emergjenca ose kontraktori."
+          },
+          "property_insurance_policy": {
+            "name": "Polica e sigurimit të pronës",
+            "description": "Ruani faqet përkatëse të policës dhe referencën e kërkesës."
+          },
+          "property_repair_quotes": {
+            "name": "Preventivët e riparimit",
+            "description": "Mblidhni vlerësime të qarta për punët e nevojshme."
+          },
+          "property_correspondence": {
+            "name": "Komunikimi me palën përgjegjëse",
+            "description": "Ruani email-et, letrat ose mesazhet përkatëse."
+          },
+          "injury_medical_records": {
+            "name": "Dokumentet mjekësore",
+            "description": "Ruani shënimet e trajtimit, fletëdaljet dhe përmbledhjet."
+          },
+          "injury_incident_report": {
+            "name": "Raporti i ngjarjes",
+            "description": "Ruani raportin që tregon kur dhe si ndodhi lëndimi."
+          },
+          "injury_witness_statements": {
+            "name": "Të dhënat e dëshmitarëve",
+            "description": "Ruani emrat, kontaktet dhe çdo deklaratë me shkrim."
+          },
+          "injury_expense_receipts": {
+            "name": "Faturat e shpenzimeve",
+            "description": "Ruani faturat e trajtimit, udhëtimit dhe kostove të lidhura."
+          },
+          "injury_photos": {
+            "name": "Fotografi përkatëse",
+            "description": "Ruani fotografi me datë të vendit ose pasojave të dukshme, kur është e përshtatshme."
+          },
+          "injury_lost_income": {
+            "name": "Dokumentet e të ardhurave të humbura",
+            "description": "Ruani dokumente nga punëdhënësi ose pagesat që tregojnë të ardhurat e humbura."
+          },
+          "unknown": {
+            "name": "Dokument mbështetës",
+            "description": "Ruani një kopje të qartë nëse ndihmon të shpjegohet ngjarja ose humbja."
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "freeStart": {
+    "result": {
+      "announcement": "Vaš privremeni Free Start rezultat je spreman.",
+      "badge": "Free Start je završen",
+      "heading": "Vaš privremeni rezultat je spreman.",
+      "body": "Koristite ovaj rezultat da organizujete ono što znate i pripremite sledeći korak. Ništa nije sačuvano i nijedan slučaj nije otvoren.",
+      "disclaimer": "Ovaj rezultat je opšta informacija, a ne pravni savet niti odluka o vašem zahtevu.",
+      "preparation": {
+        "eyebrow": "Pokazatelj pripremljenosti",
+        "note": "Ovaj broj pokazuje samo koliko su potpuni podaci koje ste uneli. Ne predviđa prihvatljivost niti ishod.",
+        "levels": {
+          "high": "Dobro pripremljeno",
+          "medium": "Korisna polazna tačka",
+          "low": "Početna polazna tačka"
+        }
+      },
+      "nextStep": {
+        "eyebrow": "Vaš sledeći korak",
+        "heading": "Nastavite kada budete spremni.",
+        "defaultCta": "Nastavite",
+        "levels": {
+          "high": "Vaše činjenice su organizovane za mogućnost pregleda prikazanu ispod.",
+          "medium": "Pregled dokumenata može pomoći da proverite paket pre slanja pisma.",
+          "low": "Kratak poziv za smernice može pomoći da izaberete najjasniji sledeći korak."
+        }
+      },
+      "letter": {
+        "heading": "Nacrt vašeg pisma",
+        "helper": "Proverite svaki detalj pre upotrebe. Nacrt ostaje privremen i ovde se ne šalje niti čuva.",
+        "copy": "Kopirajte pismo",
+        "copied": "Pismo je kopirano.",
+        "copyError": "Kopiranje nije bilo dostupno. Označite tekst pisma i kopirajte ga ručno.",
+        "download": "Preuzmite pismo",
+        "placeholders": "Popunite ova mesta pre korišćenja pisma:"
+      },
+      "timeline": {
+        "heading": "Vremenski okvir za planiranje",
+        "intro": "Ovo su okvirni periodi za planiranje, a ne obećani datumi odgovora ili rešenja.",
+        "ranges": {
+          "days": "{start}–{end} dana",
+          "weeks": "{start}–{end} nedelja",
+          "months": "{start}–{end} meseci",
+          "businessDays": "{start}–{end} radnih dana",
+          "afterResponse": "Nakon odgovora druge strane",
+          "unknown": "Vreme zavisi od sledećeg koraka"
+        },
+        "items": {
+          "evidence_collection": {
+            "label": "Prikupite dokaze",
+            "description": "Prikupite stavke sa spiska i čuvajte originale na sigurnom."
+          },
+          "first_letter": {
+            "label": "Proverite i pošaljite prvo pismo",
+            "description": "Proverite nacrt, popunite svako prazno mesto i izaberite način slanja."
+          },
+          "expected_response": {
+            "label": "Ostavite vreme za odgovor",
+            "description": "Sačuvajte potvrdu slanja i zabeležite svaki odgovor."
+          },
+          "insurer_assessment": {
+            "label": "Procena osiguravača",
+            "description": "Držite procenu, pitanja i svaku novu ponudu zajedno."
+          },
+          "damage_assessment": {
+            "label": "Procena štete",
+            "description": "Zabeležite preglede, procene i promene obima popravke."
+          },
+          "medical_documentation": {
+            "label": "Ažurirajte medicinsku dokumentaciju",
+            "description": "Redovno dopunjujte tok lečenja i povezane troškove."
+          },
+          "escalation_window": {
+            "label": "Pregledajte sledeću mogućnost",
+            "description": "Ako problem nije rešen, koristite dostupnu podršku da proverite šta sledi."
+          },
+          "resolution": {
+            "vehicle": {
+              "label": "Pratite popravku ili isplatu",
+              "description": "Sačuvajte pisanu potvrdu dogovorene popravke, isplate ili sledeće radnje."
+            },
+            "property": {
+              "label": "Pratite popravku ili isplatu",
+              "description": "Sačuvajte pisanu potvrdu dogovorenih radova, isplate ili sledeće radnje."
+            },
+            "injury": {
+              "label": "Pratite lečenje i odgovor",
+              "description": "Sačuvajte pisanu potvrdu odluka, isplata i preostalih koraka."
+            }
+          },
+          "unknown": {
+            "label": "Korak planiranja",
+            "description": "Sačuvajte relevantan dokument i potvrdite šta treba da se dogodi sledeće."
+          }
+        }
+      }
+    }
+  }
+}
