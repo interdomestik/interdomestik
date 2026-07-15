@@ -35,6 +35,8 @@ export const MESSAGE_NAMESPACES = [
   'flightJourney',
   'footer',
   'freeStart',
+  'freeStartResult',
+  'freeStartResultEvidence',
   'help',
   'hero',
   'howItWorks',
@@ -215,14 +217,5 @@ export async function loadAllMessages(locale: string, options: LoadAllMessagesOp
 
   return modules.reduce((acc, curr) => mergeMessages(acc, curr), {});
 }
-export function pickMessages(
-  messages: Record<string, unknown>,
-  namespaces: readonly MessageNamespace[]
-) {
-  return namespaces.reduce<Record<string, unknown>>((acc, namespace) => {
-    if (namespace in messages) {
-      acc[namespace] = messages[namespace];
-    }
-    return acc;
-  }, {});
-}
+
+export { pickMessages } from './pick-messages';

@@ -58,7 +58,20 @@ describe('i18n shell namespace coverage', () => {
     const home = getArrayBlock(source, 'HOME_NAMESPACES');
 
     expect(allNamespaces).toContain("'freeStart'");
+    expect(allNamespaces).toContain("'freeStartResult'");
+    expect(allNamespaces).toContain("'freeStartResultEvidence'");
     expect(home).toContain("'freeStart'");
+  });
+
+  it('merges the split successful result into the Free Start namespace', async () => {
+    const messages = await loadMessagesForNamespaces('en', [
+      'freeStart',
+      'freeStartResult',
+      'freeStartResultEvidence',
+    ]);
+
+    expect(messages).toHaveProperty('freeStart.result.heading');
+    expect(messages).toHaveProperty('freeStart.result.evidence.items.property_photos.name');
   });
 
   it('loads the injury journey only on the public home shell', () => {

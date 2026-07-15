@@ -1,0 +1,93 @@
+{
+  "freeStart": {
+    "result": {
+      "evidence": {
+        "heading": "Spisak dokaza",
+        "summary": "Označili ste {available} stavki kao dostupne. {required} stavki su važne za ovaj paket.",
+        "status": {
+          "available": "Označeno kao dostupno",
+          "required": "Važno je prikupiti",
+          "optional": "Korisno ako je dostupno"
+        },
+        "items": {
+          "vehicle_photos": {
+            "name": "Fotografije oštećenja vozila",
+            "description": "Uključite snimke izbliza i širi prikaz mesta kada je moguće."
+          },
+          "vehicle_police_report": {
+            "name": "Policijski ili zapisnik o događaju",
+            "description": "Sačuvajte izveštaj ili referentni broj ako postoji."
+          },
+          "vehicle_insurance_details": {
+            "name": "Podaci o osiguranju",
+            "description": "Držite polisu, broj zahteva i poruke osiguravača zajedno."
+          },
+          "vehicle_repair_estimate": {
+            "name": "Procena popravke",
+            "description": "Koristite procenu ili račun koji prikazuje očekivani trošak."
+          },
+          "vehicle_registration": {
+            "name": "Saobraćajna dozvola",
+            "description": "Sačuvajte čitljivu kopiju važećeg dokumenta."
+          },
+          "vehicle_driver_license": {
+            "name": "Vozačka dozvola",
+            "description": "Sačuvajte čitljivu kopiju za vozača koji je učestvovao."
+          },
+          "property_photos": {
+            "name": "Fotografije štete na imovini",
+            "description": "Snimite svako pogođeno područje pre čišćenja kada je moguće."
+          },
+          "property_ownership": {
+            "name": "Dokument o vlasništvu ili zakupu",
+            "description": "Koristite dokument koji vas povezuje sa oštećenom imovinom."
+          },
+          "property_damage_report": {
+            "name": "Izveštaj o šteti",
+            "description": "Sačuvajte izveštaj zgrade, hitne službe ili izvođača."
+          },
+          "property_insurance_policy": {
+            "name": "Polisa osiguranja imovine",
+            "description": "Sačuvajte relevantne strane polise i referencu zahteva."
+          },
+          "property_repair_quotes": {
+            "name": "Ponude za popravku",
+            "description": "Prikupite jasne procene za potrebne radove."
+          },
+          "property_correspondence": {
+            "name": "Poruke sa odgovornom stranom",
+            "description": "Sačuvajte relevantne imejlove, pisma ili poruke."
+          },
+          "injury_medical_records": {
+            "name": "Medicinska dokumentacija",
+            "description": "Sačuvajte beleške o lečenju, otpusne liste i sažetke."
+          },
+          "injury_incident_report": {
+            "name": "Izveštaj o događaju",
+            "description": "Sačuvajte izveštaj o tome kada i kako je nastala povreda."
+          },
+          "injury_witness_statements": {
+            "name": "Podaci o svedocima",
+            "description": "Sačuvajte imena, kontakte i svaku pisanu izjavu."
+          },
+          "injury_expense_receipts": {
+            "name": "Računi troškova",
+            "description": "Sačuvajte račune za lečenje, putovanja i povezane troškove."
+          },
+          "injury_photos": {
+            "name": "Relevantne fotografije",
+            "description": "Sačuvajte datirane fotografije mesta ili vidljivih posledica kada je prikladno."
+          },
+          "injury_lost_income": {
+            "name": "Dokazi o izgubljenoj zaradi",
+            "description": "Sačuvajte evidenciju poslodavca ili isplata koja prikazuje izgubljeni prihod."
+          },
+          "unknown": {
+            "name": "Prateći dokument",
+            "description": "Sačuvajte jasnu kopiju ako pomaže da se objasni događaj ili gubitak."
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,8 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import enFreeStartMessages from '@/messages/en/freeStart.json';
-import sqFreeStartMessages from '@/messages/sq/freeStart.json';
+import { enFreeStartMessages, sqFreeStartMessages } from '@/messages/free-start-test-messages';
 import { createUseTranslationsMock } from '@/test/next-intl-mock';
 
 const hoisted = vi.hoisted(() => ({

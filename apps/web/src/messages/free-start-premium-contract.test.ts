@@ -1,13 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import en from './en/freeStart.json';
-import mk from './mk/freeStart.json';
-import sq from './sq/freeStart.json';
 import sqInjuryJourney from './sq/injuryJourney.json';
 import sqPropertyJourney from './sq/propertyJourney.json';
-import sr from './sr/freeStart.json';
-
-const localeMessages = { en, mk, sq, sr } as const;
+import {
+  freeStartLocaleMessages as localeMessages,
+  sqFreeStartMessages as sq,
+} from './free-start-test-messages';
 
 function collectCopyValues(value: unknown): string[] {
   if (typeof value === 'string') return [value];

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import en from '@/messages/en/freeStart.json';
+import { enFreeStartMessages as en } from '@/messages/free-start-test-messages';
 import { createUseTranslationsMock } from '@/test/next-intl-mock';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 

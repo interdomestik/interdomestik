@@ -1,15 +1,11 @@
 import { cleanup, render, screen } from '@testing-library/react';
+import { freeStartLocaleMessages as messages } from '@/messages/free-start-test-messages';
 import { createUseTranslationsMock } from '@/test/next-intl-mock';
-import en from '@/messages/en/freeStart.json';
-import mk from '@/messages/mk/freeStart.json';
-import sq from '@/messages/sq/freeStart.json';
-import sr from '@/messages/sr/freeStart.json';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createClaimPack, type ResultLocale } from './claim-pack-result.test-fixtures';
 
 const hoisted = vi.hoisted(() => ({ locale: 'sq' as ResultLocale }));
-const messages = { en, mk, sq, sr } as const;
 
 vi.mock('next-intl', () => ({
   useTranslations: createUseTranslationsMock(() => messages[hoisted.locale]),
