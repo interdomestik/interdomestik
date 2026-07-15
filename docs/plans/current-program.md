@@ -659,6 +659,26 @@ are mandatory. `IDA-UI01b` remains frozen. Flight, German, channels,
 proxy/routes/auth/tenancy/data/schema/RLS/billing/deploy/dashboards and any second
 slice remain unpromoted.
 
+Rev 121 closeout: `IDA-UI01e` completed through PR `#1353` / merge-main SHA
+`8db4f22eddf535334cb711414bb46a15d70e8ae1`, recorded in
+`docs/plans/2026-07-15-ida-ui01e-closeout.md`. The merged client-only property
+journey fails closed for active or uncertain danger; keeps damage type,
+third-party involvement, role, property country and residence country distinct;
+shows only neutral cross-border context; gives a safety-qualified free result;
+and hands off only a fresh confirmed `property` category to Free Start. Answers
+are not stored, transmitted, logged, written to history/URL or carried into
+intake. SQ/EN/SR/MK, mobile/accessibility/200% zoom/text spacing,
+JavaScript-on/off and Chromium/Firefox/WebKit proof passed. Local mandatory Phase
+C gates and current-head CI/security/Sonar/CodeQL/Pilot/full-E2E checks were
+green; Sonar's initial maintainability and duplication findings were remediated,
+and feedback intake was clean. Protected surfaces and production aliases were not
+changed, and automatic CD was cancelled before deploy. AI OS refresh/state checks
+passed but Brain retrieval remained stale, conflicted with repo authority and
+produced no demonstrated time or token saving for this slice. `IDA-UI01b` remains
+frozen. No replacement implementation slice is promoted by this closeout;
+expected resolver state is `blocked_requires_current_authority`,
+`activeSlice=null` until a fresh gate promotes exactly one next governed action.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
