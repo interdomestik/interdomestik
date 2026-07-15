@@ -24,17 +24,14 @@
     "categories": {
       "vehicle": {
         "title": "Šteta na vozilu",
-        "description": "Saobraćajne nezgode, krađa, vandalizam i kašnjenje osiguravača za popravku ili isplatu.",
         "examples": "Sudar, šteta na parkingu, kašnjenje osiguravača"
       },
       "property": {
         "title": "Šteta na imovini",
-        "description": "Šteta na kući, stanu ili objektu sa jasnim putem naplate.",
         "examples": "Šteta od vode, oluja, provala"
       },
       "injury": {
         "title": "Lična povreda",
-        "description": "Slučajevi povrede sa novčanom putanjom naplate i jasnom odgovornom stranom.",
         "examples": "Povreda na radu, saobraćajna povreda, nemar"
       }
     },
@@ -81,7 +78,6 @@
     "preview": {
       "heading": "Pregledaj kostur Free Start paketa.",
       "body": "Ovaj kostur drži činjenice intake-a na jednom mestu pre dubljih smernica, zahteva za dokazima ili eskalacije ka timu.",
-      "packBadge": "Kostur paketa je napravljen",
       "categoryLabel": "Tip zahteva",
       "issueLabel": "Problem",
       "dateLabel": "Datum događaja",
@@ -144,11 +140,7 @@
           "low": "Pozovi hotline za sledeći korak",
           "secondary": "Pozovi hotline"
         }
-      },
-      "continueMembership": "Nastavi ka članstvu",
-      "continueMember": "Nastavi u članskim zahtevima",
-      "continuePortal": "Nastavi u portal",
-      "hotline": "Pozovi hotline"
+      }
     },
     "support": {
       "badge": "Zašto pomaže",

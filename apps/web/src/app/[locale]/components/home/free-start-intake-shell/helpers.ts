@@ -91,17 +91,7 @@ export function getSelectedOutcomeLabel(
 }
 
 export function getContinueLabel(t: FreeStartCopy, continueHref: string): string {
-  const routeKey = getContinueRouteKey(continueHref);
-
-  if (routeKey === 'membership') {
-    return t('completion.continueMembership');
-  }
-
-  if (routeKey === 'member') {
-    return t('completion.continueMember');
-  }
-
-  return t('completion.continuePortal');
+  return t(`completion.cta.${getContinueRouteKey(continueHref)}.medium`);
 }
 
 export function getContinueRouteKey(continueHref: string): ContinueRouteKey {

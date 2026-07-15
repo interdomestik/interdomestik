@@ -24,17 +24,14 @@
     "categories": {
       "vehicle": {
         "title": "Vehicle damage",
-        "description": "Traffic accidents, theft, vandalism, and insurer delay on repairs or payout.",
         "examples": "Collision, parking damage, insurer delay"
       },
       "property": {
         "title": "Property damage",
-        "description": "Home, apartment, or building damage with a clear recovery path.",
         "examples": "Water damage, storm, burglary"
       },
       "injury": {
         "title": "Personal injury",
-        "description": "Injury matters with a monetary recovery path and a clear responsible party.",
         "examples": "Workplace injury, traffic injury, negligence"
       }
     },
@@ -81,7 +78,6 @@
     "preview": {
       "heading": "Review your Free Start pack shell.",
       "body": "This shell keeps the intake facts together before deeper guidance, evidence prompts, or staff escalation.",
-      "packBadge": "Pack shell generated",
       "categoryLabel": "Claim type",
       "issueLabel": "Issue",
       "dateLabel": "Incident date",
@@ -144,11 +140,7 @@
           "low": "Call the hotline for next-step guidance",
           "secondary": "Call the hotline"
         }
-      },
-      "continueMembership": "Continue to membership",
-      "continueMember": "Continue in member claims",
-      "continuePortal": "Continue to portal",
-      "hotline": "Call the hotline"
+      }
     },
     "support": {
       "badge": "Why this helps",

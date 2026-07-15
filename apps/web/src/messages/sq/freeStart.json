@@ -24,17 +24,14 @@
     "categories": {
       "vehicle": {
         "title": "Dëmtim i automjetit",
-        "description": "Aksidente trafiku, vjedhje, vandalizëm dhe vonesa të siguruesit për riparim ose pagesë.",
         "examples": "Përplasje, dëmtim në parking, vonesë e siguruesit"
       },
       "property": {
         "title": "Dëmtim i pronës",
-        "description": "Dëme në shtëpi, banesë ose objekt me rrugë të qartë rikuperimi.",
         "examples": "Dëmtim nga uji, stuhi, vjedhje"
       },
       "injury": {
         "title": "Lëndim personal",
-        "description": "Raste lëndimi me rrugë monetare rikuperimi dhe palë përgjegjëse të qartë.",
         "examples": "Lëndim në punë, lëndim në trafik, neglizhencë"
       }
     },
@@ -81,7 +78,6 @@
     "preview": {
       "heading": "Rishiko skeletin e paketës Free Start.",
       "body": "Ky skelet i mban bashkë faktet e mbledhura para udhëzimit më të thellë, kërkesave për prova ose përshkallëzimit te stafi.",
-      "packBadge": "Skeleti i paketës u krijua",
       "categoryLabel": "Lloji i rastit",
       "issueLabel": "Problemi",
       "dateLabel": "Data e incidentit",
@@ -144,11 +140,7 @@
           "low": "Telefono linjën për hapin e radhës",
           "secondary": "Telefono linjën"
         }
-      },
-      "continueMembership": "Vazhdo te anëtarësimi",
-      "continueMember": "Vazhdo te kërkesat e anëtarit",
-      "continuePortal": "Vazhdo në portal",
-      "hotline": "Telefono linjën"
+      }
     },
     "support": {
       "badge": "Pse ndihmon",
