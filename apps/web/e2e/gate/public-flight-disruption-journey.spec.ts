@@ -37,6 +37,18 @@ async function reachDelayResult(journey: Locator) {
 }
 
 test.describe('public flight disruption journey', () => {
+  test('restores the journey from its public fragment URL', async ({ browser }, info) => {
+    await withAnonymousPage(browser, info, async page => {
+      await gotoApp(page, `${routes.home('sq')}/#flight-guidance`, info, {
+        marker: 'flight-disruption-journey',
+      });
+      await expect(page.locator('#flight-guidance')).toBeVisible();
+      await expect(page.getByTestId('flight-disruption-journey')).toBeVisible();
+      await page.reload();
+      await expect(page.getByTestId('flight-disruption-journey')).toBeVisible();
+    });
+  });
+
   test('starts in every locale with readable mobile controls', async ({ browser }, info) => {
     await withAnonymousPage(browser, info, async page => {
       for (const entry of localeMatrix) {

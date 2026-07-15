@@ -55,7 +55,7 @@ export function FlightResult(props: FlightResultProps) {
       <a
         href="https://europa.eu/youreurope/citizens/travel/passenger-rights/air/index_en.htm"
         target="_blank"
-        rel="noreferrer"
+        rel="noopener noreferrer"
         className="inline-flex min-h-11 items-center gap-2 font-semibold text-[#005F64] underline decoration-[#65A9A5] underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006A70]"
       >
         {props.officialLabel}

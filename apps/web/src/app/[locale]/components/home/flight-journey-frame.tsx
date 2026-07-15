@@ -10,10 +10,12 @@ type FlightJourneyFrameProps = Omit<
 
 export function FlightJourneyFrame(props: FlightJourneyFrameProps) {
   return (
-    <PublicJourneyFrame
-      {...props}
-      headingId={FLIGHT_JOURNEY_HEADING_ID}
-      testId="flight-disruption-journey"
-    />
+    <div id="flight-guidance">
+      <PublicJourneyFrame
+        {...props}
+        headingId={FLIGHT_JOURNEY_HEADING_ID}
+        testId="flight-disruption-journey"
+      />
+    </div>
   );
 }

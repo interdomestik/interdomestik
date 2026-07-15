@@ -20,6 +20,7 @@ function chooseDisruption(name: string) {
 describe('FlightDisruptionJourney', () => {
   it('puts immediate help before the disruption question while travel is active', () => {
     render(<FlightDisruptionJourney />);
+    expect(document.getElementById('flight-guidance')).toBeInTheDocument();
     chooseTravelState();
     expect(screen.getByText('Kërkoni ndihmën që ju duhet tani.')).toBeInTheDocument();
     expect(screen.getByText(/Nëse kompania nuk mund ose nuk pranon/i)).toBeInTheDocument();
@@ -74,6 +75,10 @@ describe('FlightDisruptionJourney', () => {
     expect(screen.getByRole('link', { name: /të drejtat zyrtare/i })).toHaveAttribute(
       'href',
       expect.stringContaining('europa.eu')
+    );
+    expect(screen.getByRole('link', { name: /të drejtat zyrtare/i })).toHaveAttribute(
+      'rel',
+      'noopener noreferrer'
     );
     expect(screen.getByText(/nuk është aktiv.*nuk u krijua asnjë rast/i)).toBeInTheDocument();
     expect(screen.queryByText(/anëtarësim|Free Start|WhatsApp/i)).not.toBeInTheDocument();

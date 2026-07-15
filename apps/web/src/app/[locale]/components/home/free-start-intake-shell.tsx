@@ -54,10 +54,11 @@ export function FreeStartIntakeShell({
       }
     };
     const onHashChange = () => {
-      if (
-        window.location.hash !== '#free-start-intake' &&
-        window.location.hash !== '#flight-guidance'
-      ) {
+      if (window.location.hash === '#flight-guidance') {
+        setMode('flight');
+        return;
+      }
+      if (window.location.hash !== '#free-start-intake') {
         setMode('fallback');
       }
     };
@@ -72,6 +73,8 @@ export function FreeStartIntakeShell({
       pendingIntent === 'flight'
     ) {
       setMode(pendingIntent === 'vehicle' ? 'accident' : pendingIntent);
+    } else {
+      onHashChange();
     }
     return () => {
       window.removeEventListener(PUBLIC_INTENT_EVENT, onIntent);
