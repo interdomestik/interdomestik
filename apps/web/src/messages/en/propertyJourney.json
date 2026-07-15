@@ -1,0 +1,96 @@
+{
+  "propertyJourney": {
+    "eyebrow": "HELP NOW",
+    "intro": "We check safety first. Then we help you preserve the facts and find a possible contact without deciding fault or coverage.",
+    "privacy": "Your answers are used only to guide you on this page. They are not stored or sent.",
+    "title": "Is there still an active danger, or are you unsure whether the property is safe to use?",
+    "changeAnswer": "Change answer",
+    "safety": { "yes": "Yes", "no": "No", "unsure": "I’m not sure" },
+    "danger": {
+      "title": "Move away from danger before continuing.",
+      "body": "Do not re-enter or restore gas, electricity, or water until local services or qualified experts say it is safe.",
+      "emergency": "Contact the appropriate local emergency, utility, or safety service. If you are in the EU, you can call 112 free of charge."
+    },
+    "damage": {
+      "title": "What type of damage occurred?",
+      "hint": "Choose the closest description; you do not need to know the cause.",
+      "water": "Water, leak, or flood",
+      "fire": "Fire or smoke",
+      "storm": "Storm or natural event",
+      "theft": "Theft, attempted theft, or vandalism",
+      "product": "Product, appliance, or equipment",
+      "other": "Other damage",
+      "unsure": "I’m not sure"
+    },
+    "thirdParty": {
+      "title": "Is a neighbour, tenant, or another person involved?",
+      "hint": "This only helps us suggest what to preserve. It does not decide fault or liability.",
+      "yes": "Yes",
+      "no": "No",
+      "unsure": "I’m not sure"
+    },
+    "role": {
+      "title": "What is your role in relation to the property?",
+      "owner": "Owner",
+      "tenant": "Tenant",
+      "business": "Business user",
+      "acting": "I am acting for someone else with authority",
+      "unsure": "I’m not sure"
+    },
+    "countries": {
+      "placeholder": "Select a country",
+      "continue": "Continue",
+      "propertyTitle": "Which country is the property in?",
+      "propertyHint": "Choose it yourself; we do not infer it from language, residence, or location.",
+      "propertyLabel": "Country where the property is located",
+      "residenceTitle": "Which country do you usually live in?",
+      "residenceHint": "This may be different from the country where the property is located.",
+      "residenceLabel": "Usual country of residence",
+      "options": {
+        "XK": "Kosovo",
+        "AL": "Albania",
+        "MK": "North Macedonia",
+        "DE": "Germany",
+        "IT": "Italy",
+        "AT": "Austria",
+        "CH": "Switzerland",
+        "RS": "Serbia",
+        "ME": "Montenegro",
+        "HR": "Croatia",
+        "SI": "Slovenia",
+        "OTHER": "Another country",
+        "UNKNOWN": "I’m not sure"
+      }
+    },
+    "evidence": {
+      "title": "Protect people and preserve the damage facts.",
+      "body": "Take only safe steps. Do not delay urgent work or keep dangerous items only as evidence. This does not decide coverage, fault, repair method, or compensation.",
+      "items": {
+        "safePhotos": "Photos or video of affected areas and items only when it is safe.",
+        "inventory": "A list of damaged or stolen items, dates, serial numbers, and relevant messages.",
+        "receipts": "Receipts, estimates, and costs for emergency measures or temporary accommodation. Keep temporary damage-limitation work separate from permanent repair."
+      },
+      "type": {
+        "water": "Where needed, contact a utility or qualified service; do not touch contaminated water or unsafe installations.",
+        "fire": "Do not re-enter until local services or qualified experts say the area is safe.",
+        "storm": "Limit further damage only when safe and keep receipts for temporary measures.",
+        "theft": "The police may be an appropriate contact; keep the report reference if one is provided.",
+        "product": "Stop using the item if it may be unsafe. Keep it only when safe and contact the seller, manufacturer, utility, or a qualified service when appropriate.",
+        "other": "Preserve the date, place, and facts you already know and seek a qualified assessment when needed.",
+        "unsure": "Seek a qualified inspection or guidance when the type or safety of the damage is unclear."
+      },
+      "thirdParty": "Preserve messages and contact facts without accepting or assigning fault.",
+      "role": {
+        "owner": "Notify the insurer or property manager when appropriate.",
+        "tenant": "Notify the owner or property manager and the insurer when appropriate.",
+        "business": "Notify the person responsible for the premises and the insurer when appropriate.",
+        "acting": "The insurer, property owner or manager, and police are parallel possible contacts. This page does not prove authority.",
+        "unsure": "The insurer, property owner or manager, and police are parallel possible contacts; choose according to the situation."
+      },
+      "diasporaTitle": "Is the property outside the country where you live?",
+      "diasporaBody": "Country, policy, and contract rules need separate review. We do not assume why the countries differ or draw a legal conclusion.",
+      "handoff": "A new Free Start intake begins now. None of these guidance answers carry over; you choose what to submit.",
+      "continue": "Organize my damage information"
+    }
+  }
+}

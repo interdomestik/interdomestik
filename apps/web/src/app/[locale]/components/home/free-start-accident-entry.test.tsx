@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) =>
@@ -37,10 +37,15 @@ vi.mock('./accident-safety-journey', () => ({
   ),
 }));
 
+vi.mock('./property-safety-journey', () => ({
+  PropertySafetyJourney: () => <section data-testid="property-safety-journey" />,
+}));
+
 import { FreeStartIntakeShell } from './free-start-intake-shell';
 import { dispatchPublicEntryIntent, takePendingPublicEntryIntent } from './public-entry-intent';
 
 describe('FreeStart accident entry', () => {
+  beforeEach(() => takePendingPublicEntryIntent());
   it('consumes a vehicle intent dispatched before the intake listener mounts', () => {
     dispatchPublicEntryIntent('vehicle');
 
@@ -50,7 +55,7 @@ describe('FreeStart accident entry', () => {
     expect(screen.queryByTestId('legacy-free-start')).not.toBeInTheDocument();
   });
 
-  it('keeps direct entry on fallback and opens the safety question only for vehicle intent', () => {
+  it('keeps direct entry on fallback and routes each supported intent explicitly', () => {
     render(<FreeStartIntakeShell continueHref="/pricing" locale="sq" />);
     expect(screen.getByTestId('legacy-free-start')).toBeInTheDocument();
 
@@ -59,7 +64,7 @@ describe('FreeStart accident entry', () => {
         new CustomEvent('interdomestik:public-intent', { detail: { intent: 'property' } })
       );
     });
-    expect(screen.getByTestId('legacy-free-start')).toBeInTheDocument();
+    expect(screen.getByTestId('property-safety-journey')).toBeInTheDocument();
 
     act(() => {
       window.dispatchEvent(

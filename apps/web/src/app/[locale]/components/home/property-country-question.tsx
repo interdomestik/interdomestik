@@ -1,16 +1,16 @@
-import { INJURY_JOURNEY_HEADING_ID } from './injury-journey-frame';
+import { PROPERTY_JOURNEY_HEADING_ID } from './property-journey-frame';
 import { PublicCountryQuestion, type PublicCountryQuestionProps } from './public-country-question';
 
-type InjuryCountryQuestionProps = Omit<
+type PropertyCountryQuestionProps = Omit<
   PublicCountryQuestionProps,
   'headingId' | 'selectionFocusOnContinue'
 >;
 
-export function InjuryCountryQuestion(props: InjuryCountryQuestionProps) {
+export function PropertyCountryQuestion(props: PropertyCountryQuestionProps) {
   return (
     <PublicCountryQuestion
       {...props}
-      headingId={INJURY_JOURNEY_HEADING_ID}
+      headingId={PROPERTY_JOURNEY_HEADING_ID}
       selectionFocusOnContinue
     />
   );

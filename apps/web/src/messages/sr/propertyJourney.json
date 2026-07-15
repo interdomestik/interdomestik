@@ -1,0 +1,96 @@
+{
+  "propertyJourney": {
+    "eyebrow": "POMOĆ SADA",
+    "intro": "Najpre proveravamo bezbednost. Zatim vam pomažemo da sačuvate činjenice i pronađete mogući kontakt, bez odlučivanja o krivici ili pokriću.",
+    "privacy": "Odgovori se koriste samo za usmeravanje na ovoj stranici. Ne čuvaju se i ne šalju.",
+    "title": "Da li i dalje postoji neposredna opasnost ili niste sigurni da li je imovina bezbedna za korišćenje?",
+    "changeAnswer": "Promenite odgovor",
+    "safety": { "yes": "Da", "no": "Ne", "unsure": "Nisam siguran/na" },
+    "danger": {
+      "title": "Udaljite se od opasnosti pre nego što nastavite.",
+      "body": "Ne vraćajte se i ne uključujte gas, struju ili vodu dok lokalne službe ili kvalifikovani stručnjaci ne kažu da je bezbedno.",
+      "emergency": "Kontaktirajte odgovarajuću lokalnu hitnu, komunalnu ili bezbednosnu službu. Ako ste u EU, možete besplatno pozvati 112."
+    },
+    "damage": {
+      "title": "Koja vrsta štete je nastala?",
+      "hint": "Izaberite najbliži opis; ne morate znati uzrok.",
+      "water": "Voda, curenje ili poplava",
+      "fire": "Požar ili dim",
+      "storm": "Oluja ili prirodni događaj",
+      "theft": "Krađa, pokušaj krađe ili vandalizam",
+      "product": "Proizvod, uređaj ili oprema",
+      "other": "Druga šteta",
+      "unsure": "Nisam siguran/na"
+    },
+    "thirdParty": {
+      "title": "Da li je uključen komšija, zakupac ili druga osoba?",
+      "hint": "Ovo samo pomaže da predložimo šta da sačuvate. Ne određuje krivicu ili odgovornost.",
+      "yes": "Da",
+      "no": "Ne",
+      "unsure": "Nisam siguran/na"
+    },
+    "role": {
+      "title": "Koja je vaša uloga u vezi sa imovinom?",
+      "owner": "Vlasnik",
+      "tenant": "Zakupac",
+      "business": "Poslovni korisnik",
+      "acting": "Postupam za drugu osobu uz ovlašćenje",
+      "unsure": "Nisam siguran/na"
+    },
+    "countries": {
+      "placeholder": "Izaberite državu",
+      "continue": "Nastavi",
+      "propertyTitle": "U kojoj državi se nalazi imovina?",
+      "propertyHint": "Izaberite sami; ne zaključujemo na osnovu jezika, prebivališta ili lokacije.",
+      "propertyLabel": "Država u kojoj se nalazi imovina",
+      "residenceTitle": "U kojoj državi obično živite?",
+      "residenceHint": "To može biti druga država od one u kojoj se nalazi imovina.",
+      "residenceLabel": "Uobičajena država prebivališta",
+      "options": {
+        "XK": "Kosovo (XK)",
+        "AL": "Albanija",
+        "MK": "Severna Makedonija",
+        "DE": "Nemačka",
+        "IT": "Italija",
+        "AT": "Austrija",
+        "CH": "Švajcarska",
+        "RS": "Srbija",
+        "ME": "Crna Gora",
+        "HR": "Hrvatska",
+        "SI": "Slovenija",
+        "OTHER": "Druga država",
+        "UNKNOWN": "Nisam siguran/na"
+      }
+    },
+    "evidence": {
+      "title": "Zaštitite ljude i sačuvajte činjenice o šteti.",
+      "body": "Preduzimajte samo bezbedne korake. Ne odlažite hitne radove i ne čuvajte opasne predmete samo kao dokaz. Ovo ne određuje pokriće, krivicu, način popravke ili naknadu.",
+      "items": {
+        "safePhotos": "Fotografije ili video pogođenih područja i predmeta samo kada je bezbedno.",
+        "inventory": "Spisak oštećenih ili ukradenih predmeta, datume, serijske brojeve i relevantne poruke.",
+        "receipts": "Račune, procene i troškove hitnih mera ili privremenog smeštaja. Odvojite privremeno ograničavanje štete od trajne popravke."
+      },
+      "type": {
+        "water": "Po potrebi kontaktirajte komunalnu ili kvalifikovanu službu; ne dodirujte zagađenu vodu ili nebezbedne instalacije.",
+        "fire": "Ne vraćajte se dok lokalne službe ili kvalifikovani stručnjaci ne kažu da je područje bezbedno.",
+        "storm": "Ograničite dalju štetu samo kada je bezbedno i sačuvajte račune za privremene mere.",
+        "theft": "Policija može biti odgovarajući kontakt; sačuvajte broj prijave ako ga dobijete.",
+        "product": "Prestanite da koristite predmet ako može biti nebezbedan. Sačuvajte ga samo kada je bezbedno i kontaktirajte prodavca, proizvođača, komunalnu ili kvalifikovanu službu kada je primereno.",
+        "other": "Sačuvajte datum, mesto i činjenice koje već znate i zatražite kvalifikovanu procenu kada je potrebno.",
+        "unsure": "Zatražite kvalifikovani pregled ili usmeravanje kada vrsta ili bezbednost štete nije jasna."
+      },
+      "thirdParty": "Sačuvajte poruke i kontaktne činjenice bez prihvatanja ili određivanja krivice.",
+      "role": {
+        "owner": "Obavestite osiguravača ili upravnika imovine kada je primereno.",
+        "tenant": "Obavestite vlasnika ili upravnika i osiguravača kada je primereno.",
+        "business": "Obavestite osobu odgovornu za prostor i osiguravača kada je primereno.",
+        "acting": "Osiguravač, vlasnik ili upravnik i policija su paralelni mogući kontakti. Ova stranica ne dokazuje ovlašćenje.",
+        "unsure": "Osiguravač, vlasnik ili upravnik i policija su paralelni mogući kontakti; izaberite prema situaciji."
+      },
+      "diasporaTitle": "Da li je imovina izvan države u kojoj živite?",
+      "diasporaBody": "Pravila države, polise i ugovora zahtevaju posebnu proveru. Ne pretpostavljamo zašto se države razlikuju i ne donosimo pravni zaključak.",
+      "handoff": "Sada počinje novi Free Start unos. Nijedan odgovor iz ovog usmeravanja se ne prenosi; vi birate šta šaljete.",
+      "continue": "Organizujte podatke o mojoj šteti"
+    }
+  }
+}
