@@ -10,6 +10,7 @@ import packageJson from '../../package.json' with { type: 'json' };
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '../..');
 const auditScript = path.join(repoRoot, 'scripts/repo-size-audit.mjs');
+const AUDIT_OUTPUT_BUFFER_BYTES = 4 * 1024 * 1024;
 const categories = [
   'large support/generated-ish',
   'source/scripts',
@@ -23,6 +24,7 @@ function runAudit(args) {
   return spawnSync(process.execPath, [auditScript, ...args], {
     cwd: repoRoot,
     encoding: 'utf8',
+    maxBuffer: AUDIT_OUTPUT_BUFFER_BYTES,
   });
 }
 
@@ -30,6 +32,7 @@ function runAuditFrom(cwd, args) {
   return spawnSync(process.execPath, [auditScript, ...args], {
     cwd,
     encoding: 'utf8',
+    maxBuffer: AUDIT_OUTPUT_BUFFER_BYTES,
   });
 }
 
