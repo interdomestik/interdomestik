@@ -767,6 +767,23 @@ expansion, billing, dashboard, German, flight activation or deploy is promoted.
 `IDA-UI01b` remains frozen. Runtime work may proceed only while the
 worktree-scoped resolver returns `IDA-UI02b` alone.
 
+Rev 127 closeout: `IDA-UI02b` completed through implementation PR `#1361` /
+merge-main SHA `ea29ab90f1ff56a2068d45a55dc4114190cab959`, recorded in
+`docs/plans/2026-07-15-ida-ui02b-closeout.md`. The merged result is the approved
+full-width premium localized Free Start claim-pack document with SQ/EN/SR/MK
+parity, plain Albanian, evidence/timeline/letter/continuation copy, keyboard and
+screen-reader support, visible focus, mobile/200% zoom/text-spacing,
+reduced-motion/forced-colors, JavaScript-on/off, and Chromium/Firefox/WebKit
+proof. Existing payloads, generators, letter content, server actions, validation,
+rate limiting, idempotency, analytics, continuation destinations, failure
+fallback, and temporary/no-save/no-case semantics are unchanged. Required PR
+gates and current-head CI, Sonar, CodeQL, security, Copilot and reviewer signals
+were green. Automatic CD run `29425747127` was canceled before staging or
+production deployment; no Vercel deployment or production alias changed.
+`IDA-UI01b` remains frozen. No replacement implementation slice is promoted;
+expected resolver state is `blocked_requires_current_authority`,
+`activeSlice=null` until a fresh gate promotes exactly one next governed action.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
