@@ -641,6 +641,24 @@ implementation slice is promoted by this closeout; expected resolver state is
 `blocked_requires_current_authority`, `activeSlice=null` until a fresh gate promotes
 exactly one next governed action.
 
+Rev 120 current authority: `docs/plans/2026-07-14-ida-dg11-public-property-safety-journey-design-gate.md`
+promotes exactly one Tier 3 slice, `IDA-UI01e`, after the `IDA-UI01d` closeout and a
+fresh AI OS/repo-authority check both returned no active implementation slice. The
+slice is limited to the anonymous client-only property safety and evidence journey:
+active danger first; damage type; separate third-party involvement; role; distinct
+property and usual-residence countries; a safety-qualified free result; and a fresh
+explicit `property` category handoff to the established Free Start intake. Journey
+answers remain component-local and may not be stored, transmitted, logged, written to
+history/URL or carried into intake. Result branching may use damage type,
+third-party involvement and role only; country values may show the neutral
+cross-border/diaspora note but may not select law, coverage, police, utility, product
+or limitation rules. Bounded Sonnet 4.6 review completed twice; its repo-backed
+corrections are reconciled and the final gate has no open review blocker. SQ/EN/SR/MK,
+mobile/accessibility/200% zoom/text-spacing, JavaScript-on/off and cross-browser proof
+are mandatory. `IDA-UI01b` remains frozen. Flight, German, channels,
+proxy/routes/auth/tenancy/data/schema/RLS/billing/deploy/dashboards and any second
+slice remain unpromoted.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
