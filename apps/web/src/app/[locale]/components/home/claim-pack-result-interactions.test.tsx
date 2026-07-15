@@ -97,3 +97,11 @@ describe('ClaimPackResult letter interactions', () => {
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:claim-letter');
   });
 });
+
+describe('ClaimPackResult action accessibility', () => {
+  it('preserves a visible result CTA outline in forced-colors mode', () => {
+    render(<ClaimPackResult ctaHref="/pricing" ctaLabel="Continue" pack={createClaimPack()} />);
+
+    expect(screen.getByRole('link', { name: 'Continue' })).toHaveClass('forced-colors:outline');
+  });
+});

@@ -82,7 +82,14 @@ test.describe('premium Free Start result', () => {
         ).toBeGreaterThanOrEqual(16);
       }
 
-      await result.getByRole('link').focus();
+      const primaryAction = result.getByRole('link');
+      await primaryAction.focus();
+      await page.keyboard.press('Shift+Tab');
+      await page.keyboard.press('Tab');
+      await expect(primaryAction).toBeFocused();
+      expect(await primaryAction.evaluate(node => getComputedStyle(node).outlineStyle)).not.toBe(
+        'none'
+      );
       await page.keyboard.press('Tab');
       await expect(result.getByRole('button', { name: 'Copy letter' })).toBeFocused();
       await page.keyboard.press('Tab');
