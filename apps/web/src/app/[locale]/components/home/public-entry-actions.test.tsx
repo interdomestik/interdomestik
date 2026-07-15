@@ -4,6 +4,7 @@ import { createUseTranslationsMock } from '@/test/next-intl-mock';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { PublicEntryActions } from './public-entry-actions';
+import { takePendingPublicEntryIntent } from './public-entry-intent';
 
 vi.mock('next-intl', () => ({
   useTranslations: createUseTranslationsMock(() => ({ hero: sqHeroMessages.hero })),
@@ -76,7 +77,7 @@ describe('PublicEntryActions', () => {
     ).toBeTruthy();
   });
 
-  it('hands off vehicle and injury as one-shot local intents while property stays fallback', () => {
+  it('hands off vehicle, injury, and property as one-shot local intents', () => {
     const received: unknown[] = [];
     const listener = (event: Event) => received.push((event as CustomEvent).detail);
     window.addEventListener('interdomestik:public-intent', listener);
@@ -86,7 +87,8 @@ describe('PublicEntryActions', () => {
     fireEvent.click(screen.getByTestId('public-entry-injury'));
     fireEvent.click(screen.getByTestId('public-entry-property'));
 
-    expect(received).toEqual([{ intent: 'vehicle' }, { intent: 'injury' }]);
+    expect(received).toEqual([{ intent: 'vehicle' }, { intent: 'injury' }, { intent: 'property' }]);
+    takePendingPublicEntryIntent();
     window.removeEventListener('interdomestik:public-intent', listener);
   });
 });

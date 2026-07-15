@@ -49,6 +49,7 @@ export const MESSAGE_NAMESPACES = [
   'notifications',
   'partners',
   'pricing',
+  'propertyJourney',
   'services',
   'servicesPage',
   'settings',
@@ -62,11 +63,11 @@ export const MESSAGE_NAMESPACES = [
   'wizard',
 ] as const;
 export type MessageNamespace = (typeof MESSAGE_NAMESPACES)[number];
-
 export const BASE_NAMESPACES = ['common'] as const;
 export const HOME_NAMESPACES = [
   'accidentJourney',
   'injuryJourney',
+  'propertyJourney',
   'nav',
   'hero',
   'freeStart',
@@ -155,7 +156,6 @@ export const ADMIN_NAMESPACES = [
 ] as const;
 import { mergeMessages } from './utils/merge';
 type LoadAllMessagesOptions = { strict?: boolean };
-
 async function loadNamespaceMessages(
   locale: string,
   namespace: MessageNamespace,

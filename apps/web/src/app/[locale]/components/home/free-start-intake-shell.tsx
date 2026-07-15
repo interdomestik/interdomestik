@@ -5,6 +5,7 @@ import { AccidentSafetyJourney } from './accident-safety-journey';
 import { FreeStartIntakeShell as LegacyFreeStartIntakeShell } from './free-start-intake-shell/index';
 import type { FreeStartIntakeShellProps } from './free-start-intake-shell/types';
 import { InjurySafetyJourney } from './injury-safety-journey';
+import { PropertySafetyJourney } from './property-safety-journey';
 import {
   PUBLIC_INTENT_EVENT,
   readPublicEntryIntent,
@@ -19,7 +20,13 @@ export function FreeStartIntakeShell({
   ...props
 }: DynamicFreeStartIntakeShellProps) {
   const [mode, setMode] = useState<
-    'fallback' | 'accident' | 'injury' | 'vehicleDetails' | 'injuryDetails'
+    | 'fallback'
+    | 'accident'
+    | 'injury'
+    | 'property'
+    | 'vehicleDetails'
+    | 'injuryDetails'
+    | 'propertyDetails'
   >('fallback');
   const [journeyKey, setJourneyKey] = useState(0);
 
@@ -32,10 +39,10 @@ export function FreeStartIntakeShell({
 
     const onIntent = (event: Event) => {
       const intent = readPublicEntryIntent(event);
-      if (intent === 'vehicle' || intent === 'injury') {
+      if (intent === 'vehicle' || intent === 'injury' || intent === 'property') {
         takePendingPublicEntryIntent();
         setJourneyKey(key => key + 1);
-        setMode(intent === 'vehicle' ? 'accident' : 'injury');
+        setMode(intent === 'vehicle' ? 'accident' : intent);
       }
     };
     const onHashChange = () => {
@@ -47,8 +54,8 @@ export function FreeStartIntakeShell({
     window.addEventListener(PUBLIC_INTENT_EVENT, onIntent);
     window.addEventListener('hashchange', onHashChange);
     const pendingIntent = takePendingPublicEntryIntent();
-    if (pendingIntent === 'vehicle' || pendingIntent === 'injury') {
-      setMode(pendingIntent === 'vehicle' ? 'accident' : 'injury');
+    if (pendingIntent === 'vehicle' || pendingIntent === 'injury' || pendingIntent === 'property') {
+      setMode(pendingIntent === 'vehicle' ? 'accident' : pendingIntent);
     }
     return () => {
       window.removeEventListener(PUBLIC_INTENT_EVENT, onIntent);
@@ -74,9 +81,19 @@ export function FreeStartIntakeShell({
     );
   }
 
+  if (mode === 'property') {
+    return (
+      <PropertySafetyJourney
+        key={`property-${props.locale}-${journeyKey}`}
+        onContinue={() => setMode('propertyDetails')}
+      />
+    );
+  }
+
   let initialCategory = props.initialCategory;
   if (mode === 'vehicleDetails') initialCategory = 'vehicle';
   if (mode === 'injuryDetails') initialCategory = 'injury';
+  if (mode === 'propertyDetails') initialCategory = 'property';
   return (
     <LegacyFreeStartIntakeShell
       {...props}

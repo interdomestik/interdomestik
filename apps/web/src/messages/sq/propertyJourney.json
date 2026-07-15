@@ -1,0 +1,96 @@
+{
+  "propertyJourney": {
+    "eyebrow": "NDIHMË TANI",
+    "intro": "Së pari kontrollojmë sigurinë. Pastaj ju ndihmojmë të ruani faktet dhe të gjeni kontaktin e mundshëm, pa vendosur faj ose mbulim.",
+    "privacy": "Përgjigjet përdoren vetëm për t’ju orientuar në këtë faqe. Nuk ruhen dhe nuk dërgohen.",
+    "title": "A ka ende rrezik aktiv, ose nuk jeni të sigurt nëse prona është e sigurt për t'u përdorur?",
+    "changeAnswer": "Ndrysho përgjigjen",
+    "safety": { "yes": "Po", "no": "Jo", "unsure": "Nuk jam i sigurt" },
+    "danger": {
+      "title": "Largohuni nga rreziku para se të vazhdoni.",
+      "body": "Mos hyni përsëri dhe mos i riktheni gazin, energjinë ose ujin derisa shërbimet lokale ose ekspertët e kualifikuar të thonë se është e sigurt.",
+      "emergency": "Kontaktoni shërbimin e duhur lokal të emergjencës, utility ose sigurisë. Nëse ndodheni në BE, mund të telefononi falas në 112."
+    },
+    "damage": {
+      "title": "Çfarë lloj dëmi ka ndodhur?",
+      "hint": "Zgjidhni përshkrimin më të afërt; nuk keni nevojë ta dini shkakun.",
+      "water": "Ujë, rrjedhje ose përmbytje",
+      "fire": "Zjarr ose tym",
+      "storm": "Stuhi ose ngjarje natyrore",
+      "theft": "Vjedhje, tentativë vjedhjeje ose vandalizëm",
+      "product": "Produkt, pajisje ose instalim",
+      "other": "Dëm tjetër",
+      "unsure": "Nuk jam i sigurt"
+    },
+    "thirdParty": {
+      "title": "A përfshihet një fqinj, qiramarrës ose person tjetër?",
+      "hint": "Kjo na ndihmon vetëm të sugjerojmë çfarë të ruani. Nuk përcakton fajin ose përgjegjësinë.",
+      "yes": "Po",
+      "no": "Jo",
+      "unsure": "Nuk jam i sigurt"
+    },
+    "role": {
+      "title": "Cili është roli juaj në lidhje me pronën?",
+      "owner": "Pronar",
+      "tenant": "Qiramarrës",
+      "business": "Përdorues biznesi",
+      "acting": "Po veproj për dikë tjetër me autorizim",
+      "unsure": "Nuk jam i sigurt"
+    },
+    "countries": {
+      "placeholder": "Zgjidhni shtetin",
+      "continue": "Vazhdo",
+      "propertyTitle": "Në cilin shtet ndodhet prona?",
+      "propertyHint": "Zgjidheni vetë; nuk e përcaktojmë nga gjuha, vendbanimi ose vendndodhja juaj.",
+      "propertyLabel": "Shteti ku ndodhet prona",
+      "residenceTitle": "Në cilin shtet banoni zakonisht?",
+      "residenceHint": "Ky mund të jetë shtet tjetër nga vendi ku ndodhet prona.",
+      "residenceLabel": "Shteti i vendbanimit të zakonshëm",
+      "options": {
+        "XK": "Kosovë",
+        "AL": "Shqipëri",
+        "MK": "Maqedoni e Veriut",
+        "DE": "Gjermani",
+        "IT": "Itali",
+        "AT": "Austri",
+        "CH": "Zvicër",
+        "RS": "Serbi",
+        "ME": "Mal i Zi",
+        "HR": "Kroaci",
+        "SI": "Slloveni",
+        "OTHER": "Shtet tjetër",
+        "UNKNOWN": "Nuk jam i sigurt"
+      }
+    },
+    "evidence": {
+      "title": "Mbroni njerëzit dhe ruani faktet e dëmit.",
+      "body": "Bëni vetëm hapa që janë të sigurt. Mos vononi masat urgjente dhe mos mbani sende të rrezikshme vetëm si provë. Kjo nuk vendos mbulim, faj, metodë riparimi ose kompensim.",
+      "items": {
+        "safePhotos": "Fotografi ose video të zonave dhe sendeve vetëm kur është e sigurt.",
+        "inventory": "Listën e sendeve të dëmtuara ose të vjedhura, datat, numrat serikë dhe mesazhet përkatëse.",
+        "receipts": "Faturat, vlerësimet dhe shpenzimet për masa urgjente ose strehim të përkohshëm. Dalloni masat e përkohshme nga riparimi i përhershëm."
+      },
+      "type": {
+        "water": "Kur është e nevojshme, kontaktoni utility ose një shërbim të kualifikuar; mos prekni ujë të ndotur ose instalime të pasigurta.",
+        "fire": "Mos hyni përsëri derisa shërbimet lokale ose ekspertët e kualifikuar të thonë se zona është e sigurt.",
+        "storm": "Kufizoni dëmin e mëtejshëm vetëm kur është e sigurt dhe ruani faturat e masave të përkohshme.",
+        "theft": "Policia mund të jetë një kontakt i përshtatshëm; ruani numrin e raportit nëse ju jepet.",
+        "product": "Mos e përdorni pajisjen nëse mund të jetë e pasigurt. Ruajeni vetëm kur është e sigurt dhe kontaktoni shitësin, prodhuesin, utility ose shërbimin e kualifikuar kur është e përshtatshme.",
+        "other": "Ruani datën, vendin dhe faktet që tashmë i dini dhe kërkoni vlerësim të kualifikuar kur duhet.",
+        "unsure": "Kërkoni inspektim ose orientim të kualifikuar kur lloji ose siguria e dëmit nuk është e qartë."
+      },
+      "thirdParty": "Ruani mesazhet dhe faktet e kontaktit pa pranuar ose caktuar faj.",
+      "role": {
+        "owner": "Njoftoni siguruesin ose menaxherin e pronës kur është e përshtatshme.",
+        "tenant": "Njoftoni pronarin ose menaxherin dhe siguruesin kur është e përshtatshme.",
+        "business": "Njoftoni përgjegjësin e objektit dhe siguruesin kur është e përshtatshme.",
+        "acting": "Siguruesi, pronari ose menaxheri dhe policia janë kontakte të mundshme paralele. Kjo faqe nuk provon autorizimin.",
+        "unsure": "Siguruesi, pronari ose menaxheri dhe policia janë kontakte të mundshme paralele; zgjidhni sipas situatës."
+      },
+      "diasporaTitle": "Prona ndodhet jashtë vendit ku banoni?",
+      "diasporaBody": "Rregullat e vendit, policës dhe kontratës kërkojnë shqyrtim të veçantë. Nuk supozojmë pse vendet ndryshojnë dhe nuk nxjerrim përfundim ligjor.",
+      "handoff": "Tani fillon një intake i ri Free Start. Asnjë përgjigje nga ky orientim nuk bartet; ju zgjidhni çfarë të dërgoni.",
+      "continue": "Organizo të dhënat e dëmit tim"
+    }
+  }
+}
