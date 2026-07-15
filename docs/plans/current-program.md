@@ -712,6 +712,22 @@ remains frozen. No replacement implementation slice is promoted by this
 closeout; expected resolver state is `blocked_requires_current_authority`,
 `activeSlice=null` until a fresh gate promotes exactly one next governed action.
 
+Rev 124 current authority: `IDA-DG13` in
+`docs/plans/2026-07-15-ida-dg13-premium-free-start-organizer-design-gate.md`
+promotes exactly one Tier 2 presentation slice, `IDA-UI02a`, after Arben's explicit
+approval and fresh AI OS/repository-authority checks. The slice replaces the legacy
+dark SaaS presentation of the existing Free Start `category`, `details`, `preview`
+and `complete` states with the approved help-first visual language. Existing fields,
+validation, server action, idempotency, analytics, claim-pack generation and
+continuation destinations remain behaviorally unchanged. Completion must state that
+the result is temporary, is not saved and did not open a case. No durable storage,
+new field, upload, identity/contact capture, route, proxy, auth/session, tenancy,
+database/schema/RLS, billing, dashboard, German, channel landing page, flight
+commercial activation or deploy is promoted. `IDA-UI01b` remains frozen and is not
+resumed or overwritten. SQ/EN/SR/MK, mobile/accessibility/200% zoom/text-spacing,
+JavaScript-on/off, cross-browser, mandatory Phase C gates and current-head review
+evidence are required.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
