@@ -30,11 +30,11 @@ health-data, billing, dashboard, German, flight activation, or production alias.
 
 ## Verification
 
-- PR `pr:verify`: passed; 330 CI-contract tests, 148 release-gate tests, 26 live
+- PR `pnpm pr:verify`: passed; 330 CI-contract tests, 148 release-gate tests, 26 live
   RLS checks, 2,963 web tests passed / 1 skipped, 84.92% line coverage, 202 PR
   E2E tests passed / 8 skipped, and 13 smoke tests passed / 9 skipped.
-- PR `security:guard`: passed.
-- PR `e2e:gate`: passed; production build/performance/state checks and 202 E2E
+- PR `pnpm security:guard`: passed.
+- PR `pnpm e2e:gate`: passed; production build/performance/state checks and 202 E2E
   tests passed / 8 skipped.
 - Final current-head CI checks for PR `#1361` were green, including CI, full PR
   E2E, Pilot Gate, Secret Scan/gitleaks, pnpm-audit, CodeQL, Semgrep, commitlint,
@@ -61,9 +61,9 @@ health-data, billing, dashboard, German, flight activation, or production alias.
 
 The post-merge main commit was checked at `ea29ab90f1ff56a2068d45a55dc4114190cab959`.
 Main CI, Sonar Main Gate, Secret Scan, Code Quality and Push-on-main health
-checks were monitored. Automatic CD run `29425747127` was canceled before any
+checks were monitored. Automatic CD run `29425747127` was cancelled before any
 staging or production deployment job executed; its staging build and all
-downstream deployment/verification jobs are canceled. No Vercel deployment or
+downstream deployment/verification jobs are cancelled. No Vercel deployment or
 production alias was changed. Rollback is the parent commit
 `7ac09c1eac5f23097e9baf371842a1d0aa59ad7a` through the normal revert path.
 

@@ -778,7 +778,7 @@ proof. Existing payloads, generators, letter content, server actions, validation
 rate limiting, idempotency, analytics, continuation destinations, failure
 fallback, and temporary/no-save/no-case semantics are unchanged. Required PR
 gates and current-head CI, Sonar, CodeQL, security, Copilot and reviewer signals
-were green. Automatic CD run `29425747127` was canceled before staging or
+were green. Automatic CD run `29425747127` was cancelled before staging or
 production deployment; no Vercel deployment or production alias changed.
 `IDA-UI01b` remains frozen. No replacement implementation slice is promoted;
 expected resolver state is `blocked_requires_current_authority`,
