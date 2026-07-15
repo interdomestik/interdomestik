@@ -1,8 +1,16 @@
 {
   "freeStart": {
-    "eyebrow": "Free Start claim pack",
-    "title": "Build your first claim pack before you escalate.",
-    "subtitle": "Choose your lane, answer a short guided intake, and leave with a structured Free Start pack shell you can carry into membership or follow-up support.",
+    "eyebrow": "ORGANIZE YOUR CASE",
+    "title": "Gather the key facts in one place.",
+    "subtitle": "You do not have to keep the whole situation in your head. Add only what you know now.",
+    "selectedSituation": {
+      "label": "You are continuing with:",
+      "change": "Change situation"
+    },
+    "trustBoundary": {
+      "heading": "Your information stays in this step",
+      "body": "This summary is temporary. It is not saved and no case has been opened."
+    },
     "steps": {
       "choose": "Choose claim type",
       "details": "Guided intake",
@@ -42,7 +50,7 @@
       "summaryPlaceholder": "Add the core facts you would want repeated consistently in a complaint, notice, or follow-up call.",
       "selectPlaceholder": "Select one option",
       "back": "Back to claim type",
-      "continue": "Preview your Free Start pack"
+      "continue": "Review your summary"
     },
     "issues": {
       "vehicle": {
@@ -88,12 +96,12 @@
       },
       "notProvided": "Not provided",
       "back": "Back to intake",
-      "finish": "Finish Free Start"
+      "finish": "Create my summary"
     },
     "completion": {
       "badge": "Free Start complete",
       "heading": "Your intake is complete.",
-      "body": "You now have a structured claim-pack shell based on the facts you entered. Continue when you want formal follow-up or membership handling.",
+      "body": "Your temporary summary is ready. It has not been saved and no case has been opened.",
       "confidence": {
         "eyebrow": "Eligibility confidence",
         "levels": {

@@ -1,8 +1,16 @@
 {
   "freeStart": {
-    "eyebrow": "Free Start paket",
-    "title": "Napravi prvi paket zahteva pre eskalacije.",
-    "subtitle": "Izaberi kategoriju, popuni kratak vođeni intake i dobiješ početni paket koji možeš preneti u članstvo ili dalju podršku.",
+    "eyebrow": "ORGANIZUJTE SLUČAJ",
+    "title": "Sakupite ključne činjenice na jednom mestu.",
+    "subtitle": "Ne morate držati celu situaciju u glavi. Unesite samo ono što sada znate.",
+    "selectedSituation": {
+      "label": "Nastavljate sa:",
+      "change": "Promenite situaciju"
+    },
+    "trustBoundary": {
+      "heading": "Vaši podaci ostaju u ovom koraku",
+      "body": "Ovaj sažetak je privremen. Nije sačuvan i nijedan slučaj nije otvoren."
+    },
     "steps": {
       "choose": "Izaberi tip zahteva",
       "details": "Vođeni intake",
@@ -42,7 +50,7 @@
       "summaryPlaceholder": "Dodaj ključne činjenice koje treba dosledno ponavljati u prigovoru, obaveštenju ili narednom pozivu.",
       "selectPlaceholder": "Izaberi jednu opciju",
       "back": "Nazad na tip zahteva",
-      "continue": "Pregledaj Free Start paket"
+      "continue": "Pregledajte sažetak"
     },
     "issues": {
       "vehicle": {
@@ -88,12 +96,12 @@
       },
       "notProvided": "Nije uneto",
       "back": "Nazad na intake",
-      "finish": "Završi Free Start"
+      "finish": "Napravite moj sažetak"
     },
     "completion": {
       "badge": "Free Start je završen",
       "heading": "Tvoj intake je završen.",
-      "body": "Sada imaš strukturiran kostur paketa zahteva zasnovan na unetim činjenicama. Nastavi kada želiš formalan follow-up ili obradu kroz članstvo.",
+      "body": "Vaš privremeni sažetak je spreman. Nije sačuvan i nijedan slučaj nije otvoren.",
       "confidence": {
         "eyebrow": "Pouzdanost podobnosti",
         "levels": {

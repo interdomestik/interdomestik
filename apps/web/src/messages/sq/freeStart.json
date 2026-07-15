@@ -1,8 +1,16 @@
 {
   "freeStart": {
-    "eyebrow": "Paketa Free Start",
-    "title": "Ndërto paketën e parë të kërkesës para përshkallëzimit.",
-    "subtitle": "Zgjidh kategorinë, plotëso një intake të shkurtër të udhëzuar dhe dil me një paketë fillestare që mund ta çosh në anëtarësim ose në mbështetje pasuese.",
+    "eyebrow": "ORGANIZONI RASTIN",
+    "title": "Mblidhni faktet kryesore në një vend.",
+    "subtitle": "Nuk duhet ta mbani gjithë situatën në mendje. Plotësoni vetëm atë që dini tani.",
+    "selectedSituation": {
+      "label": "Po vazhdoni për:",
+      "change": "Ndryshoni situatën"
+    },
+    "trustBoundary": {
+      "heading": "Të dhënat mbeten në këtë hap",
+      "body": "Kjo përmbledhje është e përkohshme. Nuk është ruajtur dhe nuk është hapur asnjë rast."
+    },
     "steps": {
       "choose": "Zgjidh llojin e rastit",
       "details": "Intake i udhëzuar",
@@ -42,7 +50,7 @@
       "summaryPlaceholder": "Shto faktet kryesore që duhet të përsëriten njësoj në ankesë, njoftim ose telefonatë pasuese.",
       "selectPlaceholder": "Zgjidh një opsion",
       "back": "Kthehu te lloji i rastit",
-      "continue": "Shiko paketën Free Start"
+      "continue": "Shikoni përmbledhjen"
     },
     "issues": {
       "vehicle": {
@@ -88,12 +96,12 @@
       },
       "notProvided": "Nuk është dhënë",
       "back": "Kthehu te intake-u",
-      "finish": "Përfundo Free Start"
+      "finish": "Krijoni përmbledhjen time"
     },
     "completion": {
       "badge": "Free Start u përfundua",
       "heading": "Intake-u yt u përfundua.",
-      "body": "Tani ke një skelet të strukturuar të paketës së kërkesës bazuar në faktet që dhe. Vazhdo kur të duash trajtim formal ose anëtarësim.",
+      "body": "Përmbledhja juaj e përkohshme është gati. Nuk është ruajtur dhe nuk është hapur asnjë rast.",
       "confidence": {
         "eyebrow": "Besueshmëria e përshtatshmërisë",
         "levels": {
