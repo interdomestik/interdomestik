@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { AccidentSafetyJourney } from './accident-safety-journey';
+import { FlightDisruptionJourney } from './flight-disruption-journey';
+import { FlightNoScriptGuidance } from './flight-no-script-guidance';
 import { FreeStartIntakeShell as LegacyFreeStartIntakeShell } from './free-start-intake-shell/index';
 import type { FreeStartIntakeShellProps } from './free-start-intake-shell/types';
 import { InjurySafetyJourney } from './injury-safety-journey';
@@ -24,6 +26,7 @@ export function FreeStartIntakeShell({
     | 'accident'
     | 'injury'
     | 'property'
+    | 'flight'
     | 'vehicleDetails'
     | 'injuryDetails'
     | 'propertyDetails'
@@ -39,14 +42,22 @@ export function FreeStartIntakeShell({
 
     const onIntent = (event: Event) => {
       const intent = readPublicEntryIntent(event);
-      if (intent === 'vehicle' || intent === 'injury' || intent === 'property') {
+      if (
+        intent === 'vehicle' ||
+        intent === 'injury' ||
+        intent === 'property' ||
+        intent === 'flight'
+      ) {
         takePendingPublicEntryIntent();
         setJourneyKey(key => key + 1);
         setMode(intent === 'vehicle' ? 'accident' : intent);
       }
     };
     const onHashChange = () => {
-      if (window.location.hash !== '#free-start-intake') {
+      if (
+        window.location.hash !== '#free-start-intake' &&
+        window.location.hash !== '#flight-guidance'
+      ) {
         setMode('fallback');
       }
     };
@@ -54,7 +65,12 @@ export function FreeStartIntakeShell({
     window.addEventListener(PUBLIC_INTENT_EVENT, onIntent);
     window.addEventListener('hashchange', onHashChange);
     const pendingIntent = takePendingPublicEntryIntent();
-    if (pendingIntent === 'vehicle' || pendingIntent === 'injury' || pendingIntent === 'property') {
+    if (
+      pendingIntent === 'vehicle' ||
+      pendingIntent === 'injury' ||
+      pendingIntent === 'property' ||
+      pendingIntent === 'flight'
+    ) {
       setMode(pendingIntent === 'vehicle' ? 'accident' : pendingIntent);
     }
     return () => {
@@ -90,15 +106,24 @@ export function FreeStartIntakeShell({
     );
   }
 
+  if (mode === 'flight') {
+    return <FlightDisruptionJourney key={`flight-${props.locale}-${journeyKey}`} />;
+  }
+
   let initialCategory = props.initialCategory;
   if (mode === 'vehicleDetails') initialCategory = 'vehicle';
   if (mode === 'injuryDetails') initialCategory = 'injury';
   if (mode === 'propertyDetails') initialCategory = 'property';
   return (
-    <LegacyFreeStartIntakeShell
-      {...props}
-      key={initialCategory ?? 'fallback'}
-      initialCategory={initialCategory}
-    />
+    <>
+      <noscript>
+        <FlightNoScriptGuidance />
+      </noscript>
+      <LegacyFreeStartIntakeShell
+        {...props}
+        key={initialCategory ?? 'fallback'}
+        initialCategory={initialCategory}
+      />
+    </>
   );
 }

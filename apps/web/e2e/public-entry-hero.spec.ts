@@ -66,7 +66,10 @@ test.describe('Help Now public entry', () => {
             /#free-start-intake$/
           );
         }
-        await expect(hero.getByTestId('public-entry-flight').getByRole('link')).toHaveCount(0);
+        await expect(hero.getByTestId('public-entry-flight')).toHaveAttribute(
+          'href',
+          /#flight-guidance$/
+        );
         await expect(hero.getByText(/WhatsApp/i)).toHaveCount(2);
         await expect(hero.getByTestId('public-entry-membership')).toHaveAttribute(
           'href',

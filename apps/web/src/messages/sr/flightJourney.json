@@ -1,0 +1,75 @@
+{
+  "flightJourney": {
+    "eyebrow": "POMOĆ SADA",
+    "intro": "Prvo razjasnite šta vam je sada potrebno, a zatim sačuvajte trag putovanja.",
+    "privacy": "Vaši odgovori se ne čuvaju niti šalju.",
+    "title": "Da li ste još na aerodromu ili pokušavate da nastavite putovanje?",
+    "changeAnswer": "Promenite odgovor",
+    "answers": { "yes": "Da", "no": "Ne", "unsure": "Nisam siguran/na" },
+    "priority": {
+      "title": "Zatražite pomoć koja vam je sada potrebna.",
+      "body": "Proverite zvanični kanal aviokompanije koja obavlja let i zatražite opcije u pisanom obliku.",
+      "expenses": "Ako aviokompanija ne može ili neće da pomogne, zabeležite šta ste tražili i sačuvajte detaljne račune za nužne, razumne troškove koje sami platite.",
+      "emergency": "Ako postoji rizik po zdravlje ili bezbednost, odmah zatražite lokalnu pomoć."
+    },
+    "disruption": {
+      "title": "Koji problem ste imali sa letom ili prtljagom?",
+      "hint": "Izaberite najsličniju situaciju.",
+      "delay": "Let je kasnio",
+      "cancellation": "Let je otkazan ili je red letenja značajno promenjen",
+      "denied": "Odbijen mi je ukrcaj ili je let bio prebukiran",
+      "connection": "Propustio/la sam vezu ili je let preusmeren",
+      "baggage": "Prtljag je kasnio, izgubljen je ili oštećen",
+      "assistance": "Potrebna pomoć zbog invaliditeta ili smanjene pokretljivosti nije ispoštovana",
+      "other": "Nešto drugo ili nisam siguran/na"
+    },
+    "connection": { "title": "Da li su svi pogođeni letovi bili u jednoj rezervaciji?" },
+    "baggage": { "title": "Da li ste prijavili prtljag i dobili referencu kao što je PIR?" },
+    "notice": { "title": "Da li vam je aviokompanija dala pisano obaveštenje, razlog ili opciju?" },
+    "result": {
+      "title": "Preduzmite sledeći korak i sačuvajte dokaze.",
+      "current": "Koristite zvanični kanal operativne aviokompanije i tražite pomoć ili opcije u pisanom obliku.",
+      "complete": "Obratite se operativnoj aviokompaniji pisanim putem i sačuvajte odgovor.",
+      "evidenceTitle": "Sačuvajte trag putovanja",
+      "evidence": {
+        "booking": "Potvrdu rezervacije i karte za ukrcavanje.",
+        "messages": "Poruke aviokompanije i stvarno vreme polaska ili dolaska.",
+        "choices": "Razlog, obaveštenje i opcije koje su vam ponuđene.",
+        "receipts": "Detaljne račune za nužne i razumne troškove."
+      },
+      "type": {
+        "delay": "Sačuvajte stvarno vreme dolaska i tražite obaveštenje o pravima putnika.",
+        "cancellation": "Tražite opcije pisanim putem; ova stranica ne bira povraćaj novca ili preusmeravanje za vas.",
+        "denied": "Sačuvajte dokaz da ste se pojavili i tražite razlog u pisanom obliku.",
+        "connection": "Sačuvajte podatke o oba leta i činjenicu da li su bili u jednoj rezervaciji.",
+        "baggage": "Prijavite odmah i sačuvajte oznaku prtljaga i PIR referencu.",
+        "assistance": "Odmah kontaktirajte službu za pomoć; zdravlje i bezbednost su prvi.",
+        "other": "Tražite pisano objašnjenje događaja i dostupnih opcija."
+      },
+      "conditional": {
+        "connection_yes": "Jedna rezervacija može biti važna činjenica; ova stranica ne odlučuje o vašim pravima.",
+        "connection_no": "Odvojene karte mogu se tretirati drugačije; ne pretpostavljajte isti ishod.",
+        "connection_unsure": "Proverite potvrdu da utvrdite da li su letovi bili u jednoj rezervaciji.",
+        "baggage_yes": "Sačuvajte referencu prijave i proverite status u zvaničnom kanalu.",
+        "baggage_no": "Prijavite odmah; relevantni zvanični rokovi mogu biti kratki.",
+        "baggage_unsure": "Proverite da li imate PIR ili referencu i prijavite bez odlaganja ako je nemate.",
+        "notice_yes": "Sačuvajte obaveštenje i svaku ponuđenu opciju.",
+        "notice_no": "Tražite obaveštenje, razlog i opcije u pisanom obliku.",
+        "notice_unsure": "Proverite poruke i zatražite pisano pojašnjenje."
+      },
+      "diasporaTitle": "Putujete li između država?",
+      "diasporaBody": "Ruta, operativna aviokompanija, rezervacija i primenljiva pravila zahtevaju posebnu proveru, bez obzira na državljanstvo ili pasoš.",
+      "reform": "Pravila EU se menjaju; izmene iz jula 2026. još se ne primenjuju. Proverite aktuelni zvanični izvor za svoje putovanje.",
+      "distinctions": "Pomoć, nadoknada troškova i kompenzacija su različita pitanja; jedno ne dokazuje drugo.",
+      "official": "Pogledajte zvanična prava putnika — otvara spoljnu stranicu",
+      "boundary": "Ovo usmeravanje je besplatno. Interdomestik usluga za vođenje zahteva u vezi sa letom nije aktivna u trenutnoj ponudi i ovde nije otvoren predmet."
+    },
+    "noScript": {
+      "title": "Pomoć kod problema sa letom",
+      "body": "Kontaktirajte operativnu aviokompaniju, tražite opcije pisanim putem i sačuvajte obaveštenja i račune.",
+      "baggage": "Za prtljag, prijavite odmah i sačuvajte oznaku i PIR referencu.",
+      "emergency": "Ako postoji rizik po zdravlje ili bezbednost, odmah potražite lokalnu pomoć.",
+      "boundary": "Interdomestik ne otvara predmet za let u trenutnoj ponudi."
+    }
+  }
+}

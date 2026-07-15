@@ -1,6 +1,6 @@
 export const PUBLIC_INTENT_EVENT = 'interdomestik:public-intent';
 
-export type PublicEntryIntent = 'vehicle' | 'injury' | 'property';
+export type PublicEntryIntent = 'vehicle' | 'injury' | 'property' | 'flight';
 
 let pendingIntent: PublicEntryIntent | null = null;
 
@@ -27,7 +27,10 @@ export function readPublicEntryIntent(event: Event): PublicEntryIntent | null {
     return null;
   }
 
-  return detail.intent === 'vehicle' || detail.intent === 'injury' || detail.intent === 'property'
+  return detail.intent === 'vehicle' ||
+    detail.intent === 'injury' ||
+    detail.intent === 'property' ||
+    detail.intent === 'flight'
     ? detail.intent
     : null;
 }

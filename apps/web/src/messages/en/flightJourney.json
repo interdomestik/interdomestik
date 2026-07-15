@@ -1,0 +1,75 @@
+{
+  "flightJourney": {
+    "eyebrow": "HELP NOW",
+    "intro": "First clarify what you need now, then preserve the travel record.",
+    "privacy": "Your answers are not stored or sent.",
+    "title": "Are you still at the airport or trying to continue your journey?",
+    "changeAnswer": "Change answer",
+    "answers": { "yes": "Yes", "no": "No", "unsure": "I’m not sure" },
+    "priority": {
+      "title": "Ask for the help you need now.",
+      "body": "Check the official channel of the airline operating the flight and ask for your options in writing.",
+      "expenses": "If the airline cannot or will not help, record what you asked for and keep itemized receipts for necessary, reasonable arrangements you pay for yourself.",
+      "emergency": "For a health or safety risk, seek local assistance immediately."
+    },
+    "disruption": {
+      "title": "What problem did you have with the flight or baggage?",
+      "hint": "Choose the closest situation.",
+      "delay": "The flight was delayed",
+      "cancellation": "The flight was cancelled or the schedule changed significantly",
+      "denied": "I was denied boarding or the flight was overbooked",
+      "connection": "I missed a connection or the flight was diverted",
+      "baggage": "My baggage was delayed, lost or damaged",
+      "assistance": "Required disability or reduced-mobility assistance was not respected",
+      "other": "Something else or I’m not sure"
+    },
+    "connection": { "title": "Were the affected flights on one reservation?" },
+    "baggage": { "title": "Did you report the baggage and receive a reference such as a PIR?" },
+    "notice": { "title": "Did the airline give you a written notice, reason or option?" },
+    "result": {
+      "title": "Take the next step and preserve the evidence.",
+      "current": "Use the operating airline’s official channel and ask for assistance or options in writing.",
+      "complete": "Contact the operating airline in writing and keep its response.",
+      "evidenceTitle": "Preserve the travel record",
+      "evidence": {
+        "booking": "The booking confirmation and boarding passes.",
+        "messages": "Airline messages and actual departure or arrival times.",
+        "choices": "The reason, notice and options you were offered.",
+        "receipts": "Itemized receipts for necessary, reasonable expenses."
+      },
+      "type": {
+        "delay": "Keep the actual arrival time and ask for the passenger-rights notice.",
+        "cancellation": "Ask for the options in writing; this page does not choose a refund or rerouting for you.",
+        "denied": "Keep proof that you presented yourself and ask for the reason in writing.",
+        "connection": "Keep both flight records and whether they were on one reservation.",
+        "baggage": "Report promptly and keep the baggage tag and PIR reference.",
+        "assistance": "Contact the assistance desk immediately; health and safety come first.",
+        "other": "Ask in writing what happened and which options are available."
+      },
+      "conditional": {
+        "connection_yes": "One reservation can be an important fact; this page does not decide your rights.",
+        "connection_no": "Separate tickets may be treated differently; do not assume the same result.",
+        "connection_unsure": "Check the confirmation to see whether the flights were on one reservation.",
+        "baggage_yes": "Keep the report reference and check its status in the official channel.",
+        "baggage_no": "Report it promptly; the relevant official deadlines can be short.",
+        "baggage_unsure": "Check for a PIR or reference and report without delay if you do not have one.",
+        "notice_yes": "Keep the notice and every option offered.",
+        "notice_no": "Ask for the notice, reason and options in writing.",
+        "notice_unsure": "Check your messages and ask for written clarification."
+      },
+      "diasporaTitle": "Are you travelling between countries?",
+      "diasporaBody": "The route, operating airline, booking and applicable rules need separate verification, regardless of citizenship or passport.",
+      "reform": "EU rules are changing; the July 2026 changes do not apply yet. Check the current official source for your journey.",
+      "distinctions": "Care, reimbursement and compensation are different questions; one does not prove another.",
+      "official": "View official passenger rights — opens an external page",
+      "boundary": "This orientation is free. Interdomestik flight-claim handling is not active in the current offer, and no case was created here."
+    },
+    "noScript": {
+      "title": "Help with a flight problem",
+      "body": "Contact the operating airline, ask for options in writing, and keep notices and receipts.",
+      "baggage": "For baggage, report promptly and keep the tag and PIR reference.",
+      "emergency": "For a health or safety risk, seek local help immediately.",
+      "boundary": "Interdomestik does not open a flight case in the current offer."
+    }
+  }
+}

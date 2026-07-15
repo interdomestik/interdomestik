@@ -23,29 +23,29 @@ vi.mock('@/i18n/routing', () => ({
 }));
 
 describe('PublicEntryActions', () => {
-  it('makes three immediate-help situations primary and keeps flight honest', () => {
+  it('makes all four immediate-help situations real and keeps flight orientation honest', () => {
     render(<PublicEntryActions whatsappHref="https://wa.me/38349900600" />);
 
     const situations = screen.getByTestId('public-entry-situations');
     const links = within(situations).getAllByRole('link');
-    expect(links).toHaveLength(3);
+    expect(links).toHaveLength(4);
     expect(links.map(link => link.getAttribute('href'))).toEqual([
       '#free-start-intake',
       '#free-start-intake',
       '#free-start-intake',
+      '#flight-guidance',
     ]);
     expect(links.map(link => link.textContent)).toEqual([
       expect.stringMatching(/aksident me veturë/i),
       expect.stringMatching(/Jam lënduar/i),
       expect.stringMatching(/dëm në pronë/i),
+      expect.stringMatching(/Fluturimi im u vonua ose u anulua/i),
     ]);
 
     const flight = screen.getByTestId('public-entry-flight');
     expect(flight).toHaveTextContent(/Fluturimi im u vonua ose u anulua/i);
-    expect(flight).toHaveTextContent(/Së shpejti/i);
-    expect(within(flight).queryByRole('link')).not.toBeInTheDocument();
-    expect(within(flight).queryByRole('button')).not.toBeInTheDocument();
-    expect(flight).not.toHaveAttribute('aria-disabled');
+    expect(flight).not.toHaveTextContent(/Së shpejti/i);
+    expect(flight).toHaveAttribute('href', '#flight-guidance');
   });
 
   it('offers two clearly named asynchronous WhatsApp paths and safety copy', () => {
@@ -77,7 +77,7 @@ describe('PublicEntryActions', () => {
     ).toBeTruthy();
   });
 
-  it('hands off vehicle, injury, and property as one-shot local intents', () => {
+  it('hands off all four situations as one-shot local intents', () => {
     const received: unknown[] = [];
     const listener = (event: Event) => received.push((event as CustomEvent).detail);
     window.addEventListener('interdomestik:public-intent', listener);
@@ -86,8 +86,14 @@ describe('PublicEntryActions', () => {
     fireEvent.click(screen.getByTestId('public-entry-vehicle'));
     fireEvent.click(screen.getByTestId('public-entry-injury'));
     fireEvent.click(screen.getByTestId('public-entry-property'));
+    fireEvent.click(screen.getByTestId('public-entry-flight'));
 
-    expect(received).toEqual([{ intent: 'vehicle' }, { intent: 'injury' }, { intent: 'property' }]);
+    expect(received).toEqual([
+      { intent: 'vehicle' },
+      { intent: 'injury' },
+      { intent: 'property' },
+      { intent: 'flight' },
+    ]);
     takePendingPublicEntryIntent();
     window.removeEventListener('interdomestik:public-intent', listener);
   });
