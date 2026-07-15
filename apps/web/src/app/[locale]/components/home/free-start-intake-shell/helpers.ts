@@ -90,18 +90,12 @@ export function getSelectedOutcomeLabel(
   return t('preview.notProvided');
 }
 
-export function getContinueLabel(t: FreeStartCopy, continueHref: string): string {
-  const routeKey = getContinueRouteKey(continueHref);
-
-  if (routeKey === 'membership') {
-    return t('completion.continueMembership');
-  }
-
-  if (routeKey === 'member') {
-    return t('completion.continueMember');
-  }
-
-  return t('completion.continuePortal');
+export function getContinueLabel(
+  t: FreeStartCopy,
+  continueHref: string,
+  level: Extract<ConfidenceLevel, 'high' | 'medium'>
+): string {
+  return t(`completion.cta.${getContinueRouteKey(continueHref)}.${level}`);
 }
 
 export function getContinueRouteKey(continueHref: string): ContinueRouteKey {
@@ -114,14 +108,6 @@ export function getContinueRouteKey(continueHref: string): ContinueRouteKey {
   }
 
   return 'portal';
-}
-
-export function getRecommendedContinueLabel(
-  t: FreeStartCopy,
-  continueHref: string,
-  level: Extract<ConfidenceLevel, 'high' | 'medium'>
-): string {
-  return t(`completion.cta.${getContinueRouteKey(continueHref)}.${level}`);
 }
 
 export function getConfidenceLevel(

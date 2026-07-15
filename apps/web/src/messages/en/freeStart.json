@@ -1,8 +1,16 @@
 {
   "freeStart": {
-    "eyebrow": "Free Start claim pack",
-    "title": "Build your first claim pack before you escalate.",
-    "subtitle": "Choose your lane, answer a short guided intake, and leave with a structured Free Start pack shell you can carry into membership or follow-up support.",
+    "eyebrow": "ORGANIZE YOUR CASE",
+    "title": "Gather the key facts in one place.",
+    "subtitle": "You do not have to keep the whole situation in your head. Add only what you know now.",
+    "selectedSituation": {
+      "label": "You are continuing with:",
+      "change": "Change situation"
+    },
+    "trustBoundary": {
+      "heading": "Nothing is saved or opened yet",
+      "body": "This summary is temporary. It is not saved and no case has been opened."
+    },
     "steps": {
       "choose": "Choose claim type",
       "details": "Guided intake",
@@ -16,17 +24,14 @@
     "categories": {
       "vehicle": {
         "title": "Vehicle damage",
-        "description": "Traffic accidents, theft, vandalism, and insurer delay on repairs or payout.",
         "examples": "Collision, parking damage, insurer delay"
       },
       "property": {
         "title": "Property damage",
-        "description": "Home, apartment, or building damage with a clear recovery path.",
         "examples": "Water damage, storm, burglary"
       },
       "injury": {
         "title": "Personal injury",
-        "description": "Injury matters with a monetary recovery path and a clear responsible party.",
         "examples": "Workplace injury, traffic injury, negligence"
       }
     },
@@ -42,7 +47,7 @@
       "summaryPlaceholder": "Add the core facts you would want repeated consistently in a complaint, notice, or follow-up call.",
       "selectPlaceholder": "Select one option",
       "back": "Back to claim type",
-      "continue": "Preview your Free Start pack"
+      "continue": "Review your summary"
     },
     "issues": {
       "vehicle": {
@@ -73,7 +78,6 @@
     "preview": {
       "heading": "Review your Free Start pack shell.",
       "body": "This shell keeps the intake facts together before deeper guidance, evidence prompts, or staff escalation.",
-      "packBadge": "Pack shell generated",
       "categoryLabel": "Claim type",
       "issueLabel": "Issue",
       "dateLabel": "Incident date",
@@ -88,12 +92,12 @@
       },
       "notProvided": "Not provided",
       "back": "Back to intake",
-      "finish": "Finish Free Start"
+      "finish": "Create my summary"
     },
     "completion": {
       "badge": "Free Start complete",
       "heading": "Your intake is complete.",
-      "body": "You now have a structured claim-pack shell based on the facts you entered. Continue when you want formal follow-up or membership handling.",
+      "body": "Your temporary summary is ready. It has not been saved and no case has been opened.",
       "confidence": {
         "eyebrow": "Eligibility confidence",
         "levels": {
@@ -114,14 +118,14 @@
       "nextStep": {
         "heading": "Recommended next step",
         "levels": {
-          "high": "Join Asistenca for human triage within 24 business hours.",
+          "high": "Join Asistenca for a team review within 24 business hours.",
           "medium": "Upgrade for document review before you send the first complaint or notice.",
           "low": "Use the hotline for routing support and the clearest next step before you escalate."
         }
       },
       "cta": {
         "membership": {
-          "high": "Join Asistenca for human triage",
+          "high": "Join Asistenca for a team review",
           "medium": "Upgrade for document review"
         },
         "member": {
@@ -136,11 +140,7 @@
           "low": "Call the hotline for next-step guidance",
           "secondary": "Call the hotline"
         }
-      },
-      "continueMembership": "Continue to membership",
-      "continueMember": "Continue in member claims",
-      "continuePortal": "Continue to portal",
-      "hotline": "Call the hotline"
+      }
     },
     "support": {
       "badge": "Why this helps",
@@ -157,7 +157,7 @@
         "badge": "Evidence to gather next",
         "placeholder": {
           "heading": "Choose a claim type to see the strongest evidence for the first pack.",
-          "body": "Free Start stays lightweight, but the right photos, reports, and cost proof make later triage faster."
+          "body": "Free Start stays lightweight, but the right photos, reports, and cost proof make the later review faster."
         },
         "vehicle": {
           "heading": "Vehicle claims move faster with scene, insurer, and repair proof.",
@@ -190,12 +190,12 @@
       "privacy": {
         "badge": "Private by default",
         "heading": "Gather first, share later.",
-        "body": "You do not need to upload documents in Free Start. Start with the minimum facts, and share evidence later only if you want membership triage or hotline follow-up."
+        "body": "You do not need to upload documents in Free Start. Start with the minimum facts, and share evidence later only if you want a team review through membership or hotline follow-up."
       },
       "triage": {
-        "badge": "Human triage timing",
+        "badge": "Team review timing",
         "heading": "Membership starts the review clock.",
-        "body": "Asistenca members receive a human triage response within 24 business hours after a complete claim pack arrives. If something is missing, we ask for it within the same window. Free Start stays informational, and the hotline stays routing-only."
+        "body": "Asistenca members receive a response from the team within 24 business hours after a complete claim pack arrives. If something is missing, we ask for it within the same window. Free Start stays informational, and the hotline stays routing-only."
       }
     },
     "validation": {
