@@ -692,6 +692,26 @@ German, channel landing pages, proxy/routes/auth/tenancy/data/schema/RLS/billing
 dashboards, commercial coverage/pricing, analytics/provider semantics and deploy
 remain unpromoted.
 
+Rev 123 closeout: `IDA-UI01f` completed through PR `#1356` / merge-main SHA
+`e298bf2615186ccc2b63f11078d894e081bf9eb4`, recorded in
+`docs/plans/2026-07-15-ida-ui01f-closeout.md`. The merged client-only flight
+journey prioritizes people still travelling; distinguishes seven disruption
+branches; keeps booking, baggage-report and written-notice facts separate; and
+delivers an airline-first free result with official current-rights guidance,
+neutral diaspora context and an explicit inactive Interdomestik flight-service
+boundary. It creates no case, commercial handoff, eligibility or compensation
+decision and sends no answer outside the component. Direct fragment and reload,
+SQ/EN/SR/MK, mobile/accessibility/200% zoom/text-spacing, JavaScript-on/off and
+Chromium/Firefox/WebKit proof passed. Local mandatory Phase C gates and
+current-head CI/security/Sonar/CodeQL/Pilot/full-E2E checks were green; all review
+findings were remediated and resolved. Protected surfaces and production aliases
+were not changed, and automatic CD was cancelled before deploy. AI OS remained
+advisory and stale because Git facts were unavailable, conflicted with canonical
+repo authority and produced no demonstrated time or token saving. `IDA-UI01b`
+remains frozen. No replacement implementation slice is promoted by this
+closeout; expected resolver state is `blocked_requires_current_authority`,
+`activeSlice=null` until a fresh gate promotes exactly one next governed action.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
