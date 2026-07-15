@@ -679,6 +679,19 @@ frozen. No replacement implementation slice is promoted by this closeout;
 expected resolver state is `blocked_requires_current_authority`,
 `activeSlice=null` until a fresh gate promotes exactly one next governed action.
 
+Rev 122 current authority: `IDA-DG12` in
+`docs/plans/2026-07-15-ida-dg12-public-flight-disruption-journey-design-gate.md`
+promotes exactly one Tier 3 slice, `IDA-UI01f`, after the `IDA-UI01e` closeout and
+a fresh AI OS/repository-authority check. `IDA-UI01f` may activate only an
+anonymous client-only flight-disruption orientation tree with a useful static
+JavaScript-off fallback, SQ/EN/SR/MK, no answer egress and no case creation. The
+commercial matrix remains authoritative that flight claim handling is later phase;
+therefore no flight category, intake, membership benefit, fee, eligibility,
+compensation, representation or referral is authorized. `IDA-UI01b` remains frozen.
+German, channel landing pages, proxy/routes/auth/tenancy/data/schema/RLS/billing,
+dashboards, commercial coverage/pricing, analytics/provider semantics and deploy
+remain unpromoted.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
