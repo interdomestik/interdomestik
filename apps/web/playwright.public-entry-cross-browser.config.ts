@@ -8,6 +8,7 @@ const testMatch = [
   'evidence/public-accident-safety-cross-browser.evidence.ts',
   'evidence/public-injury-safety-cross-browser.evidence.ts',
   'evidence/public-property-safety-cross-browser.evidence.ts',
+  'evidence/public-flight-disruption-cross-browser.evidence.ts',
 ];
 
 export default defineConfig({

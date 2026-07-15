@@ -124,4 +124,24 @@ test.describe('public locale shell without JavaScript', () => {
       await expect(page.getByTestId('property-safety-journey')).toHaveCount(0);
     });
   });
+
+  test('opens useful static flight guidance without JavaScript or a flight intake', async ({
+    browser,
+  }, info) => {
+    await withNoJsPage(browser, info, { width: 320, height: 720 }, async page => {
+      await gotoApp(page, routes.home('sq'), info, { marker: 'public-entry-hero' });
+      await page.getByTestId('public-entry-flight').click();
+      await expect(page).toHaveURL(/#flight-guidance$/);
+      const guidance = page.locator('#flight-guidance');
+      await expect(
+        guidance.getByRole('heading', { name: /Ndihmë për problem me fluturimin/i })
+      ).toBeVisible();
+      await expect(guidance).toContainText('referencën PIR');
+      await expect(guidance).toContainText('nuk hap rast fluturimi');
+      await expect(page.getByTestId('flight-disruption-journey')).toHaveCount(0);
+      expect(
+        await page.locator('html').evaluate(element => element.scrollWidth <= innerWidth + 1)
+      ).toBe(true);
+    });
+  });
 });

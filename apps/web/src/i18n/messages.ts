@@ -32,6 +32,7 @@ export const MESSAGE_NAMESPACES = [
   'evidence',
   'faq',
   'features',
+  'flightJourney',
   'footer',
   'freeStart',
   'help',
@@ -66,6 +67,7 @@ export type MessageNamespace = (typeof MESSAGE_NAMESPACES)[number];
 export const BASE_NAMESPACES = ['common'] as const;
 export const HOME_NAMESPACES = [
   'accidentJourney',
+  'flightJourney',
   'injuryJourney',
   'propertyJourney',
   'nav',
@@ -180,13 +182,11 @@ async function loadNamespaceMessages(
         // Fallback might fail if the file doesn't exist, just use what we have.
       }
     }
-
     return messages;
   } catch {
     if (strict) {
       throw new Error(`[i18n] Missing messages file for locale=${locale} namespace=${namespace}`);
     }
-
     try {
       const fallback = await import(`../messages/${routing.defaultLocale}/${namespace}.json`);
       return fallback.default;
