@@ -5,7 +5,7 @@ import { getEvidenceCopy, type ResultCopy } from './result-copy';
 
 type Item = ClaimPack['evidenceChecklist']['items'][number];
 
-function EvidenceIcon({ item }: { item: Item }) {
+function EvidenceIcon({ item }: Readonly<{ item: Item }>) {
   if (item.likelyAvailable) {
     return <CheckCircle2 aria-hidden="true" className="mt-1 h-5 w-5 shrink-0 text-[#006f72]" />;
   }
