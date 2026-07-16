@@ -40,60 +40,80 @@ runs:
       id: changed-files
       env:
         GH_TOKEN: ${{ github.token }}
+        INPUT_DISPATCH_BASE_REF: ${{ inputs.dispatch-base-ref }}
+        INPUT_EVENT_NAME: ${{ inputs.event-name }}
+        INPUT_EVENT_PATH: ${{ inputs.event-path }}
       shell: bash
       run: |
         set -u
         changed_files_path="${RUNNER_TEMP}/pr-gate-${GITHUB_RUN_ID}-${GITHUB_JOB}.txt"
         : >"${changed_files_path}"
-        if [[ "${{ inputs.event-name }}" == "pull_request" ]]; then
+        if [[ "${INPUT_EVENT_NAME}" == "pull_request" ]]; then
           if ! node scripts/ci/github-pr-files.mjs \
-            --event-path "${{ inputs.event-path }}" >"${changed_files_path}"; then
+            --event-path "${INPUT_EVENT_PATH}" >"${changed_files_path}"; then
             echo "::warning::Changed-file lookup failed; policy will fail full."
             : >"${changed_files_path}"
           fi
-        elif [[ "${{ inputs.event-name }}" == "workflow_dispatch" && -n "${{ inputs.dispatch-base-ref }}" ]]; then
-          git fetch --no-tags origin "${{ inputs.dispatch-base-ref }}" --depth=1
-          git diff --name-only "origin/${{ inputs.dispatch-base-ref }}"...HEAD >"${changed_files_path}"
+        elif [[ "${INPUT_EVENT_NAME}" == "workflow_dispatch" && -n "${INPUT_DISPATCH_BASE_REF}" ]]; then
+          git fetch --no-tags origin "${INPUT_DISPATCH_BASE_REF}" --depth=1
+          git diff --name-only "origin/${INPUT_DISPATCH_BASE_REF}"...HEAD >"${changed_files_path}"
         fi
         echo "path=${changed_files_path}" >>"$GITHUB_OUTPUT"
 
     - name: Evaluate validation surface
       id: validation
+      env:
+        CHANGED_FILES_PATH: ${{ steps.changed-files.outputs.path }}
+        INPUT_EVENT_NAME: ${{ inputs.event-name }}
+        INPUT_EVENT_PATH: ${{ inputs.event-path }}
       shell: bash
       run: |
         node scripts/ci/validation-surface-policy.mjs \
-          --event-name "${{ inputs.event-name }}" \
-          --event-path "${{ inputs.event-path }}" \
-          --changed-files-path "${{ steps.changed-files.outputs.path }}" >>"$GITHUB_OUTPUT"
+          --event-name "${INPUT_EVENT_NAME}" \
+          --event-path "${INPUT_EVENT_PATH}" \
+          --changed-files-path "${CHANGED_FILES_PATH}" >>"$GITHUB_OUTPUT"
 
     - name: Evaluate draft policy
       id: policy
+      env:
+        CHANGED_FILES_PATH: ${{ steps.changed-files.outputs.path }}
+        INPUT_EVENT_NAME: ${{ inputs.event-name }}
+        INPUT_EVENT_PATH: ${{ inputs.event-path }}
       shell: bash
       run: |
         node scripts/ci/pr-gate-policy.mjs \
-          --event-name "${{ inputs.event-name }}" \
-          --event-path "${{ inputs.event-path }}" \
-          --changed-files-path "${{ steps.changed-files.outputs.path }}" >>"$GITHUB_OUTPUT"
+          --event-name "${INPUT_EVENT_NAME}" \
+          --event-path "${INPUT_EVENT_PATH}" \
+          --changed-files-path "${CHANGED_FILES_PATH}" >>"$GITHUB_OUTPUT"
 
     - name: Resolve effective validation surface
       id: effective
+      env:
+        POLICY_FORCE_FULL: ${{ steps.policy.outputs.force_full }}
+        POLICY_REASON: ${{ steps.policy.outputs.reason }}
+        POLICY_RUN_FULL: ${{ steps.policy.outputs.run_full }}
+        VALIDATION_REASON: ${{ steps.validation.outputs.reason }}
+        VALIDATION_SHOULD_RUN: ${{ steps.validation.outputs.should_run }}
       shell: bash
       run: |
-        if [[ "${{ steps.policy.outputs.run_full }}" != "true" ]]; then
+        if [[ "${POLICY_RUN_FULL}" != "true" ]]; then
           echo "should_run=false" >>"$GITHUB_OUTPUT"
-          echo "reason=${{ steps.policy.outputs.reason }}" >>"$GITHUB_OUTPUT"
-        elif [[ "${{ steps.policy.outputs.force_full }}" == "true" ]]; then
+          echo "reason=${POLICY_REASON}" >>"$GITHUB_OUTPUT"
+        elif [[ "${POLICY_FORCE_FULL}" == "true" ]]; then
           echo "should_run=true" >>"$GITHUB_OUTPUT"
-          echo "reason=${{ steps.policy.outputs.reason }}" >>"$GITHUB_OUTPUT"
+          echo "reason=${POLICY_REASON}" >>"$GITHUB_OUTPUT"
         else
-          echo "should_run=${{ steps.validation.outputs.should_run }}" >>"$GITHUB_OUTPUT"
-          echo "reason=${{ steps.validation.outputs.reason }}" >>"$GITHUB_OUTPUT"
+          echo "should_run=${VALIDATION_SHOULD_RUN}" >>"$GITHUB_OUTPUT"
+          echo "reason=${VALIDATION_REASON}" >>"$GITHUB_OUTPUT"
         fi
 
     - name: Evaluate AI eval surface
       id: ai-eval
+      env:
+        CHANGED_FILES_PATH: ${{ steps.changed-files.outputs.path }}
+        INPUT_EVENT_NAME: ${{ inputs.event-name }}
       shell: bash
       run: |
         node scripts/ci/ai-eval-surface.mjs \
-          --event-name "${{ inputs.event-name }}" \
-          --changed-files-path "${{ steps.changed-files.outputs.path }}" >>"$GITHUB_OUTPUT"
+          --event-name "${INPUT_EVENT_NAME}" \
+          --changed-files-path "${CHANGED_FILES_PATH}" >>"$GITHUB_OUTPUT"

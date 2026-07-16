@@ -20,6 +20,12 @@ function readWorkflow(name) {
   return yaml.load(fs.readFileSync(path.join(rootDir, '.github/workflows', name), 'utf8'));
 }
 
+function readAction(name) {
+  return yaml.load(
+    fs.readFileSync(path.join(rootDir, '.github/actions', name, 'action.yml'), 'utf8')
+  );
+}
+
 function findStep(job, name) {
   return job.steps.find(step => step?.name === name);
 }
@@ -40,6 +46,15 @@ test('draft-aware workflows react to lifecycle and full-gate label events', () =
   }
 });
 
+test('shared policy action keeps event data out of interpolated shell scripts', () => {
+  const action = readAction('pr-gate-policy');
+  const scripts = action.runs.steps.map(step => step.run).filter(Boolean);
+
+  for (const script of scripts) {
+    assert.doesNotMatch(script, /\$\{\{\s*(?:github|inputs|steps)\./u);
+  }
+});
+
 test('CI exposes one effective heavy-lane decision while keeping required audit materialized', () => {
   const workflow = readWorkflow('ci.yml');
   const preflight = workflow.jobs['validation-surface'];
@@ -50,7 +65,10 @@ test('CI exposes one effective heavy-lane decision while keeping required audit 
   assert.equal(preflight.outputs.should_run, '${{ steps.gate_policy.outputs.should_run }}');
   assert.equal(preflight.outputs.run_full, '${{ steps.gate_policy.outputs.run_full }}');
   assert.ok(needs(audit, 'validation-surface'));
-  assert.equal(findStep(audit, 'Run Audits').if, "needs.validation-surface.outputs.should_run == 'true'");
+  assert.equal(
+    findStep(audit, 'Run Audits').if,
+    "needs.validation-surface.outputs.should_run == 'true'"
+  );
   assert.ok(findStep(audit, 'Report quick draft lane'));
 });
 
@@ -83,10 +101,21 @@ test('pilot and optional deterministic backstops honor the shared full-lane deci
 
   const backstops = readWorkflow('pr-deterministic-backstops.yml');
   assert.ok(backstops.jobs['draft-policy']);
-  for (const name of ['dependency-review', 'osv-scanner', 'semgrep-ce', 'reviewdog-eslint']) {
+  for (const name of ['osv-scanner', 'semgrep-ce', 'reviewdog-eslint']) {
     assert.ok(needs(backstops.jobs[name], 'draft-policy'), name);
     assert.equal(backstops.jobs[name].if, "needs.draft-policy.outputs.run_full == 'true'", name);
   }
+  assert.equal(
+    backstops.jobs['dependency-review'].if,
+    "needs.draft-policy.outputs.run_full == 'true' && github.event.repository.private == false"
+  );
+  assert.equal(backstops.jobs['osv-scanner'].with['upload-sarif'], false);
+  const semgrepSteps = backstops.jobs['semgrep-ce'].steps;
+  assert.ok(semgrepSteps.find(step => step?.name === 'Preserve Semgrep SARIF artifact'));
+  assert.match(
+    semgrepSteps.find(step => step?.name === 'Upload Semgrep SARIF').if,
+    /repository\.private == false/u
+  );
 });
 
 test('PR finalizer stays required but only attests full-lane current heads', () => {
