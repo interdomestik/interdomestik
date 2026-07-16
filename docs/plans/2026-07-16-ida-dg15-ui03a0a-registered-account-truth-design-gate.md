@@ -1,9 +1,9 @@
 ---
 title: IDA-DG15 UI03a0a Registered Account Truth Design Gate
 date: 2026-07-16
-status: promoted_waiting_implementation_authority
+status: complete
 authority: current_authority
-runtime_authorized: false
+runtime_authorized: true
 promoted_slice: IDA-UI03a0a
 risk_tier: 3
 owner: platform + product + legal + privacy + accessibility + qa
@@ -22,10 +22,16 @@ and separately authorized this canonical promotion after the final blocker
 consolidation SHA-256
 `548ffd23d9a02e9bcaec96e6ee91d1e5ba4fc84cedddf284b149b189b0665afd`.
 
-This promotion does not authorize implementation. Runtime work may start only
-after the worktree-scoped resolver returns `IDA-UI03a0a` alone and Arben
-separately confirms implementation authority. It authorizes no rollout or
+At promotion time, this authority did not authorize implementation. Runtime
+work remained held until the worktree-scoped resolver returned `IDA-UI03a0a`
+alone and Arben separately confirmed implementation authority. Neither that
+promotion nor the later implementation authority authorized rollout or
 deployment.
+
+That separate implementation authority was later granted. The slice completed
+through PR `#1364` / merge-main SHA
+`397f6e07ad6c1cd43869a0d7d09549cc50f5212f`; the authoritative completion
+evidence is recorded in `docs/plans/2026-07-16-ida-ui03a0a-closeout.md`.
 
 `IDA-UI03a0b`, `IDA-UI03a1`, `IDA-UI03a2`, `IDA-UI03b`, and the working
 Paddle-correlation candidate `IDA-UI03a0c` remain unapproved.
