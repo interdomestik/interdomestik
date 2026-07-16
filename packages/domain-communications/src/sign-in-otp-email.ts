@@ -104,7 +104,10 @@ export async function sendViaResend(
 
   if (!response.data?.id) {
     telemetry.failed('resend', 'delivery');
-    return { success: false, error: 'No email ID returned from Resend' };
+    return {
+      success: false,
+      error: telemetry.contentFree ? 'email_provider_failed' : 'No email ID returned from Resend',
+    };
   }
 
   telemetry.sent('resend');

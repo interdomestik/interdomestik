@@ -13,6 +13,9 @@ const INPUT_CLASS =
 export function PricingOtpContent(props: OtpCheckoutStepProps) {
   const busy = props.sending || props.verifying;
   const errorId = props.error ? 'pricing-otp-error' : undefined;
+  const emailErrorId = ['missingEmail', 'sendFailed'].includes(props.error ?? '')
+    ? errorId
+    : undefined;
   const statusId = props.status === 'sent' ? 'pricing-otp-status' : undefined;
   const codeErrorId = props.error === 'verify' ? errorId : undefined;
   const codeDescription = [statusId, codeErrorId].filter(Boolean).join(' ') || undefined;
@@ -52,7 +55,7 @@ export function PricingOtpContent(props: OtpCheckoutStepProps) {
               placeholder="name@example.com"
               autoComplete="email"
               aria-invalid={props.error === 'missingEmail' || props.error === 'sendFailed'}
-              aria-describedby={['pricing-otp-truth', errorId].filter(Boolean).join(' ')}
+              aria-describedby={['pricing-otp-truth', emailErrorId].filter(Boolean).join(' ')}
             />
           </label>
           <Button

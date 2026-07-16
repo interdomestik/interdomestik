@@ -89,6 +89,8 @@ describe('OtpCheckoutStep neutral truth and recovery', () => {
     const email = screen.getByLabelText('Email');
     expect(screen.getByLabelText('6-digit code')).not.toHaveAttribute('aria-describedby');
     expect(screen.queryByRole('link', { name: 'Contact support' })).not.toBeInTheDocument();
+    rerender(<OtpCheckoutStep {...baseProps} error="verify" />);
+    expect(screen.getByLabelText('Email')).toHaveAttribute('aria-describedby', 'pricing-otp-truth');
     rerender(<OtpCheckoutStep {...baseProps} destinationLocked status="sent" error="verify" />);
     const code = screen.getByLabelText('6-digit code');
     expect(email).toHaveAttribute('autocomplete', 'email');

@@ -18,16 +18,8 @@ const m = vi.hoisted(() => ({
 }));
 // prettier-ignore
 vi.mock('nodemailer', () => ({ default: { createTransport: m.createTransport }, createTransport: m.createTransport }));
-vi.mock('resend', () => ({
-  Resend: function MockResend(...args: unknown[]) {
-    m.resendConstructor(...args);
-    return {
-      emails: {
-        send: m.resendSend,
-      },
-    };
-  },
-}));
+// prettier-ignore
+vi.mock('resend', () => ({ Resend: function MockResend(...args: unknown[]) { m.resendConstructor(...args); return { emails: { send: m.resendSend } }; } }));
 // prettier-ignore
 vi.mock('@interdomestik/database', () => ({ db: { insert: m.dbInsert, query: { emailCampaignLogs: { findMany: m.findManyLogs } } }, inArray: m.inArray, withTenantContext: m.withTenantContext }));
 // prettier-ignore
@@ -104,6 +96,15 @@ describe('email delivery fallback', () => {
         'RAW_PROVIDER_FAILURE',
       ]) {
         expect(logs).not.toContain(forbidden);
+      }
+      if (provider === 'resend') {
+        m.resendSend.mockResolvedValueOnce({ data: {}, error: null });
+        const missingId = await sendEmail(
+          'private@example.com',
+          { subject: '', html: '', text: '' },
+          { telemetryPolicy: 'content-free' }
+        );
+        expect(missingId).toEqual({ success: false, error: 'email_provider_failed' });
       }
     }
   );
