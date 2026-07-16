@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url';
 import yaml from 'js-yaml';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const TRUSTED_GATE_ACTION =
+  'interdomestik/interdomestik/.github/actions/pr-gate-policy@9a81dd9767aabeef25889eb791f20e9496a52205';
 const EVENT_TYPES = [
   'opened',
   'synchronize',
@@ -67,7 +69,7 @@ test('CI exposes one effective heavy-lane decision while keeping required audit 
   const audit = workflow.jobs.audit;
 
   const policy = findStep(preflight, 'Evaluate PR gate policy');
-  assert.equal(policy.uses, './.github/actions/pr-gate-policy');
+  assert.equal(policy.uses, TRUSTED_GATE_ACTION);
   assert.equal(preflight.outputs.should_run, '${{ steps.gate_policy.outputs.should_run }}');
   assert.equal(preflight.outputs.run_full, '${{ steps.gate_policy.outputs.run_full }}');
   assert.ok(needs(audit, 'validation-surface'));
@@ -141,7 +143,7 @@ test('PR finalizer stays required but only attests full-lane current heads', () 
 
   assert.ok(policy);
   assert.ok(findStep(job, 'Report quick draft lane'));
-  assert.equal(policy.uses, './.github/actions/pr-gate-policy');
+  assert.equal(policy.uses, TRUSTED_GATE_ACTION);
   assert.equal(finalizer.if, "steps.gate_policy.outputs.run_full == 'true'");
   assert.equal(finalizer.env.PR_FINALIZER_SKIP_CHECK_POLLING, 'false');
 });

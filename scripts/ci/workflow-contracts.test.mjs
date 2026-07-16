@@ -13,7 +13,8 @@ import {
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, '../..');
-
+const TRUSTED_GATE_ACTION =
+  'interdomestik/interdomestik/.github/actions/pr-gate-policy@9a81dd9767aabeef25889eb791f20e9496a52205';
 function readWorkflow(relativePath) {
   const content = fs.readFileSync(path.join(rootDir, relativePath), 'utf8');
   return yaml.load(content);
@@ -206,7 +207,7 @@ test('CI materializes AI eval as a blocking surface-gated lane', () => {
   );
 
   const gatePolicyStep = findStep(validationSurfaceJob.steps, 'Evaluate PR gate policy');
-  assert.equal(gatePolicyStep.uses, './.github/actions/pr-gate-policy');
+  assert.equal(gatePolicyStep.uses, TRUSTED_GATE_ACTION);
 
   assert.ok(aiEvalJob);
   assert.ok(normalizeNeeds(aiEvalJob.needs).includes('validation-surface'));
@@ -350,7 +351,7 @@ test('Pilot gate moves validation-surface, secrets, and PR Sonar checks into a l
   );
   assert.equal(
     findStep(preflightSteps, 'Evaluate PR gate policy').uses,
-    './.github/actions/pr-gate-policy'
+    TRUSTED_GATE_ACTION
   );
   assert.ok(findStep(preflightSteps, 'Validate required gate secrets'));
   assert.ok(awaitSonarStep);
