@@ -79,6 +79,10 @@ describe('usePricingEmailOtp recovery boundary', () => {
 
     expect(auth.send).toHaveBeenCalledTimes(2);
     expect(anchor).toHaveFocus();
+    act(() => vi.advanceTimersByTime(60_000));
+    auth.send.mockRejectedValueOnce(new Error('RAW_RESEND_DETAIL'));
+    await act(async () => result.current.send());
+    expect(result.current).toMatchObject({ error: 'sendFailed', status: null });
   });
 
   it('keeps provider details generic and restores focus while changing email clears local state', async () => {

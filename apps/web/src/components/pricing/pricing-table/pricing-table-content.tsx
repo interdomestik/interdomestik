@@ -13,6 +13,9 @@ const INPUT_CLASS =
 export function PricingOtpContent(props: OtpCheckoutStepProps) {
   const busy = props.sending || props.verifying;
   const errorId = props.error ? 'pricing-otp-error' : undefined;
+  const statusId = props.status === 'sent' ? 'pricing-otp-status' : undefined;
+  const codeErrorId = props.error === 'verify' ? errorId : undefined;
+  const codeDescription = [statusId, codeErrorId].filter(Boolean).join(' ') || undefined;
 
   return (
     <>
@@ -92,7 +95,7 @@ export function PricingOtpContent(props: OtpCheckoutStepProps) {
           inputMode="numeric"
           autoComplete="one-time-code"
           aria-invalid={props.error === 'verify'}
-          aria-describedby={['pricing-otp-status', errorId].filter(Boolean).join(' ')}
+          aria-describedby={codeDescription}
         />
       </label>
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">

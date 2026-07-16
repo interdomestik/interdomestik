@@ -87,14 +87,16 @@ describe('OtpCheckoutStep neutral truth and recovery', () => {
   it('uses explicit labels, autocomplete, descriptions, and paste-friendly numeric input', () => {
     const { rerender } = renderStep({ error: 'missingEmail' });
     const email = screen.getByLabelText('Email');
+    expect(screen.getByLabelText('6-digit code')).not.toHaveAttribute('aria-describedby');
     expect(screen.queryByRole('link', { name: 'Contact support' })).not.toBeInTheDocument();
-    rerender(<OtpCheckoutStep {...baseProps} destinationLocked error="verify" />);
+    rerender(<OtpCheckoutStep {...baseProps} destinationLocked status="sent" error="verify" />);
     const code = screen.getByLabelText('6-digit code');
     expect(email).toHaveAttribute('autocomplete', 'email');
     expect(code).toHaveAttribute('autocomplete', 'one-time-code');
     expect(code).toHaveAttribute('inputmode', 'numeric');
     expect(code).toHaveAttribute('aria-invalid', 'true');
     expect(code).toHaveAttribute('aria-describedby', expect.stringContaining('otp-error'));
+    expect(code).toHaveAttribute('aria-describedby', expect.stringContaining('otp-status'));
   });
 
   it('locks and masks a successfully sent destination until Change email is chosen', async () => {

@@ -33,7 +33,6 @@ export function usePricingEmailOtp(args: PricingEmailOtpArgs) {
     return () => globalThis.clearInterval(timer);
   }, [cooldownSeconds]);
   const focus = (ref: typeof emailRef) => queueMicrotask(() => ref.current?.focus());
-
   const send = async () => {
     if (pendingRef.current) return;
     const destination = (lockedEmail ?? email).trim().toLowerCase();
@@ -68,13 +67,11 @@ export function usePricingEmailOtp(args: PricingEmailOtpArgs) {
       pendingRef.current = false;
     }
   };
-
   const failVerification = (nextError: OtpError) => {
     setError(nextError);
     setPhase('sent');
     focus(codeRef);
   };
-
   const verify = async () => {
     if (pendingRef.current || continuationRef.current) return;
     if (!lockedEmail) {
@@ -142,7 +139,10 @@ export function usePricingEmailOtp(args: PricingEmailOtpArgs) {
     cooldownSeconds: visibleCooldown,
     destinationLocked: Boolean(lockedEmail),
     maskedEmail: lockedEmail ? maskEmail(lockedEmail) : '',
-    status: lockedEmail && error !== 'accountStop' ? ('sent' as const) : null,
+    status:
+      lockedEmail && !['accountStop', 'sendFailed'].includes(error ?? '')
+        ? ('sent' as const)
+        : null,
     sending: phase === 'sending',
     verifying: phase === 'verifying',
     ...actions,
