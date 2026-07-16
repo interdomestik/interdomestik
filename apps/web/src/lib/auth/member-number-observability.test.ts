@@ -12,10 +12,8 @@ describe('captureMemberNumberLifecycleEvent', () => {
     vi.clearAllMocks();
   });
 
-  it('records info-level lifecycle events with auth hook tags', () => {
+  it('records info-level lifecycle events with content-free operational fields', () => {
     captureMemberNumberLifecycleEvent('self_heal_invoked', {
-      userId: 'user-1',
-      tenantId: 'tenant-1',
       createdYear: 2025,
     });
 
@@ -25,22 +23,16 @@ describe('captureMemberNumberLifecycleEvent', () => {
         component: 'auth.databaseHooks',
         domain: 'member-number',
         event: 'self_heal_invoked',
+        outcome: 'started',
       },
       extra: {
-        userId: 'user-1',
-        tenantId: 'tenant-1',
         createdYear: 2025,
       },
     });
   });
 
-  it('records error-level lifecycle events for failures', () => {
-    captureMemberNumberLifecycleEvent('self_heal_failed', {
-      userId: 'user-2',
-      tenantId: 'tenant-2',
-      createdYear: 2024,
-      errorMessage: 'boom',
-    });
+  it('records failures without raw error content', () => {
+    captureMemberNumberLifecycleEvent('self_heal_failed');
 
     expect(Sentry.captureMessage).toHaveBeenCalledWith('member-number.self_heal_failed', {
       level: 'error',
@@ -48,13 +40,28 @@ describe('captureMemberNumberLifecycleEvent', () => {
         component: 'auth.databaseHooks',
         domain: 'member-number',
         event: 'self_heal_failed',
+        outcome: 'failure',
       },
-      extra: {
-        userId: 'user-2',
-        tenantId: 'tenant-2',
-        createdYear: 2024,
-        errorMessage: 'boom',
-      },
+      extra: {},
     });
+  });
+
+  it('drops forbidden identifiers and raw errors even when a caller supplies them', () => {
+    captureMemberNumberLifecycleEvent('user_create_after_assigned', {
+      createdYear: 2026,
+      isNew: true,
+      userId: 'user-secret',
+      tenantId: 'tenant-secret',
+      email: 'private@example.com',
+      memberNumber: 'MEM-SECRET',
+      errorMessage: 'raw provider error',
+    } as never);
+
+    const payload = JSON.stringify(vi.mocked(Sentry.captureMessage).mock.calls[0]);
+    expect(payload).toContain('"createdYear":2026');
+    expect(payload).toContain('"isNew":true');
+    expect(payload).not.toMatch(
+      /user-secret|tenant-secret|private@example|MEM-SECRET|raw provider/
+    );
   });
 });

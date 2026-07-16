@@ -37,6 +37,7 @@ describe('Funnel trackers', () => {
   it('tracks activation with plan metadata', () => {
     render(
       <FunnelActivationTracker
+        enabled={true}
         tenantId="tenant_mk"
         locale="en"
         uiV2Enabled={true}
@@ -65,5 +66,21 @@ describe('Funnel trackers', () => {
         plan_id: 'standard',
       }
     );
+  });
+
+  it('does not track activation or membership-start events for a neutral account state', () => {
+    render(
+      <FunnelActivationTracker
+        enabled={false}
+        tenantId="tenant_ks"
+        locale="sq"
+        uiV2Enabled={false}
+        planId="forged-plan"
+      />
+    );
+
+    expect(mockResolveFunnelVariant).not.toHaveBeenCalled();
+    expect(mockActivationCompleted).not.toHaveBeenCalled();
+    expect(mockMembershipStarted).not.toHaveBeenCalled();
   });
 });

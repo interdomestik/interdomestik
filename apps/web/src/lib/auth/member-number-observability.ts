@@ -7,29 +7,29 @@ export type MemberNumberLifecycleEvent =
   | 'self_heal_resolved'
   | 'self_heal_failed';
 
-export type MemberNumberLifecycleContext = Record<string, unknown> & {
-  userId: string;
-  tenantId?: string | null;
-  email?: string | null;
-  memberNumber?: string | null;
+export type MemberNumberLifecycleContext = {
   createdYear?: number;
   isNew?: boolean;
-  errorMessage?: string;
 };
 
 export function captureMemberNumberLifecycleEvent(
   event: MemberNumberLifecycleEvent,
-  context: MemberNumberLifecycleContext
-) {
-  const level = event.endsWith('failed') ? 'error' : 'info';
+  context: MemberNumberLifecycleContext = {}
+): void {
+  const failed = event.endsWith('failed');
+  const outcome = failed ? 'failure' : event === 'self_heal_invoked' ? 'started' : 'success';
+  const safeContext: MemberNumberLifecycleContext = {};
+  if (typeof context.createdYear === 'number') safeContext.createdYear = context.createdYear;
+  if (typeof context.isNew === 'boolean') safeContext.isNew = context.isNew;
 
   Sentry.captureMessage(`member-number.${event}`, {
-    level,
+    level: failed ? 'error' : 'info',
     tags: {
       component: 'auth.databaseHooks',
       domain: 'member-number',
       event,
+      outcome,
     },
-    extra: context,
+    extra: safeContext,
   });
 }

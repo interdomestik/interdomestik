@@ -1,0 +1,14 @@
+{
+  "membership": {
+    "success": {
+      "registered_title": "Your account is ready",
+      "registered_status": "Membership not yet confirmed",
+      "registered_body": "We can't yet confirm an active membership from this page. If you just completed payment, check the status again shortly. Benefits and claim access become available only after membership is confirmed active.",
+      "registered_primary_cta": "Check membership status",
+      "registered_secondary_cta": "Open my account",
+      "registered_helper": "Checking the status only refreshes the current status. It does not open the payment page or charge you.",
+      "registered_recheck_pending": "Status checked. Membership is not yet confirmed.",
+      "registered_recheck_active": "Status checked. Membership is now active."
+    }
+  }
+}

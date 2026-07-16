@@ -45,6 +45,7 @@ export const MESSAGE_NAMESPACES = [
   'legal',
   'memberBenefits',
   'membership',
+  'membership-success',
   'messaging',
   'metadata',
   'nav',
@@ -94,6 +95,7 @@ export const APP_NAMESPACES = [
   'dashboard',
   'diaspora',
   'membership',
+  'membership-success',
   'claims',
   'claims-tracking',
   'claimCategories',
@@ -169,7 +171,6 @@ async function loadNamespaceMessages(
   try {
     const mod = await import(`../messages/${locale}/${namespace}.json`);
     let messages = mod.default;
-
     if (locale !== routing.defaultLocale) {
       try {
         const fallback = await import(`../messages/${routing.defaultLocale}/${namespace}.json`);
@@ -180,7 +181,6 @@ async function loadNamespaceMessages(
             `[i18n] Missing fallback messages file for locale=${routing.defaultLocale} namespace=${namespace}`
           );
         }
-
         // Fallback might fail if the file doesn't exist, just use what we have.
       }
     }
@@ -206,7 +206,6 @@ export async function loadMessagesForNamespaces(
   const modules = await Promise.all(
     namespaces.map(namespace => loadNamespaceMessages(locale, namespace, options))
   );
-
   return modules.reduce((acc, curr) => mergeMessages(acc, curr), {});
 }
 

@@ -10,6 +10,7 @@ type FunnelTrackerBaseProps = {
 };
 
 type FunnelActivationTrackerProps = FunnelTrackerBaseProps & {
+  enabled: boolean;
   planId?: string | null;
 };
 
@@ -26,12 +27,15 @@ export function FunnelLandingTracker({ tenantId, locale, uiV2Enabled }: FunnelTr
 }
 
 export function FunnelActivationTracker({
+  enabled,
   tenantId,
   locale,
   uiV2Enabled,
   planId,
 }: FunnelActivationTrackerProps) {
   useEffect(() => {
+    if (!enabled) return;
+
     const context = {
       tenantId: tenantId ?? null,
       variant: resolveFunnelVariant(uiV2Enabled),
@@ -43,7 +47,7 @@ export function FunnelActivationTracker({
 
     FunnelEvents.activationCompleted(context, properties);
     CommercialFunnelEvents.membershipStarted(context, properties);
-  }, [locale, planId, tenantId, uiV2Enabled]);
+  }, [enabled, locale, planId, tenantId, uiV2Enabled]);
 
   return null;
 }
