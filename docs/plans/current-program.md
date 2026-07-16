@@ -821,6 +821,26 @@ promoted; expected resolver state is `blocked_requires_current_authority`,
 `activeSlice=null`. Future full-page redesigns remain advisory and require
 separate benchmarked UI/UX gates.
 
+Rev 130 current authority: `IDA-DG16` in
+`docs/plans/2026-07-16-ida-dg16-ui03a0b1-neutral-otp-truth-design-gate.md`
+canonically binds exact gate v0.4 SHA-256
+`92598a166b3d68e36591d7a278bbbc85820d823bd4f74b94617a155e3fd0abfc`
+and promotes exactly one prospective Tier 3 implementation slice,
+`IDA-UI03a0b1`. The slice is limited to truthful neutral email/OTP UI and
+delivered-email copy, generic client errors, email lock/change/retry/cooldown,
+accessible recovery, SQ/EN/SR/MK delivery and OTP-only content-free sender
+telemetry within the exact 13 production/i18n-file, 7 test/spec-file, 16 authored
+focused-case and 3-engineering-day ceiling. Supabase Auth remains the declared
+identity/session system of record, Better Auth remains the current
+orchestrator/execution path and Drizzle adapter tables are not reclassified.
+Auth routes, tenant/default-public provisioning, verifier/provider options,
+rate limits, sessions, shared-auth, schema/RLS, proxy/routing, Paddle, rollout
+and deployment remain unchanged and unauthorized. `IDA-UI03a0b2` is ordered but
+unpromoted and may not start. The next active governed implementation goal is
+exactly one canonical tracker slice: `IDA-UI03a0b1`. Runtime remains held until
+the worktree-scoped resolver returns that slice alone and the orchestrator gives
+separate explicit implementation authority.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
