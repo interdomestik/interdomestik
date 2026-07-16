@@ -53,7 +53,11 @@ describe('MembershipSuccessPage access-active regression', () => {
   });
 
   it('keeps mock activation behind both test parameters and the runtime guard', async () => {
-    const searchParams = { test: 'true', planId: 'standard', priceId: 'price-standard' };
+    const searchParams = {
+      test: ['true', 'false'],
+      planId: ['standard', 'forged'],
+      priceId: ['price-standard', 'forged'],
+    };
     await renderSuccessPage({ searchParams });
     expect(hoisted.mockActivationTriggerMock).not.toHaveBeenCalled();
     cleanup();

@@ -81,14 +81,14 @@ describe('MembershipSuccessPage registered-account state', () => {
   });
 
   it('rechecks only canonical subscription truth and converges without checkout state', async () => {
-    await renderSuccessPage({ searchParams: { check: '1' } });
+    await renderSuccessPage({ searchParams: { check: ['1', '1'] } });
     expect(screen.getByRole('status')).toHaveTextContent(
       'membership.success.registered_recheck_pending'
     );
     cleanup();
 
     hoisted.getActiveSubscriptionMock.mockResolvedValue(activeSubscription);
-    await renderSuccessPage({ searchParams: { check: '1' } });
+    await renderSuccessPage({ searchParams: { check: ['1', '1'] } });
 
     expect(screen.getByRole('status')).toHaveTextContent(
       'membership.success.registered_recheck_active'

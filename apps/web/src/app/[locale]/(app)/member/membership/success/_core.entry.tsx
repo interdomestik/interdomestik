@@ -16,7 +16,11 @@ import { SuccessStatusActions } from './success-status-actions';
 
 interface SuccessPageProps {
   params: Promise<{ locale: string }>;
-  searchParams?: Promise<Record<string, string | undefined>>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}
+
+function firstQueryValue(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
 }
 
 export default async function MembershipSuccessPage({ params, searchParams }: SuccessPageProps) {
@@ -25,6 +29,10 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
   if (!session) redirect(`/${locale}/login`);
 
   const query = searchParams ? await searchParams : {};
+  const testParam = firstQueryValue(query.test);
+  const planId = firstQueryValue(query.planId);
+  const priceId = firstQueryValue(query.priceId);
+  const checkParam = firstQueryValue(query.check);
   const tenantId = session.user.tenantId ?? null;
   const classificationPending =
     (session.user as { tenantClassificationPending?: boolean | null })
@@ -38,20 +46,20 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
     tenantId: classificationPending ? null : tenantId,
     locale,
   });
-  const canMockActivate = query.test === 'true' && isBillingTestActivationEnabled();
+  const canMockActivate = testParam === 'true' && isBillingTestActivationEnabled();
   const activeTopNote = classificationPending ? t('classification_note') : t('active_note');
 
   return (
     <div className="container min-h-svh max-w-4xl px-4 py-12" data-testid="success-page-ready">
-      {canMockActivate && query.planId && query.priceId ? (
-        <MockActivationTrigger planId={query.planId} priceId={query.priceId} />
+      {canMockActivate && planId && priceId ? (
+        <MockActivationTrigger planId={planId} priceId={priceId} />
       ) : null}
       <FunnelActivationTracker
         enabled={membershipActive}
         tenantId={tenantId}
         locale={locale}
         uiV2Enabled={isUiV2Enabled()}
-        planId={query.planId ?? null}
+        planId={planId ?? null}
       />
 
       <div className="mb-12 text-center motion-reduce:animate-none">
@@ -115,7 +123,7 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
       <SuccessStatusActions
         locale={locale}
         membershipActive={membershipActive}
-        checkRequested={query.check === '1'}
+        checkRequested={checkParam === '1'}
         copy={{
           activeAccount: t('cta_open_dashboard'),
           activeClaim: t('cta_start_claim'),

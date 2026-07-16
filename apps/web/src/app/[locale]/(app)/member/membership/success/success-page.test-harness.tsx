@@ -130,7 +130,7 @@ export function resetSuccessHarness(): void {
 
 export async function renderSuccessPage(args: {
   locale?: string;
-  searchParams?: Record<string, string>;
+  searchParams?: Record<string, string | string[]>;
 }) {
   const tree = await MembershipSuccessPage({
     params: Promise.resolve({ locale: args.locale ?? 'en' }),
