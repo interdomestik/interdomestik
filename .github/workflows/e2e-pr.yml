@@ -15,10 +15,6 @@ on:
     # policy below skips heavy work for docs-only and other non-product changes.
   workflow_dispatch: {}
 
-permissions:
-  contents: read
-  pull-requests: read
-
 concurrency:
   group: e2e-pr-${{ github.ref }}
   cancel-in-progress: true
@@ -26,6 +22,9 @@ concurrency:
 jobs:
   e2e-preflight:
     name: PR E2E Preflight
+    permissions:
+      contents: read
+      pull-requests: read
     runs-on: ubuntu-latest
     outputs:
       should_run: ${{ steps.gate_policy.outputs.should_run }}
@@ -50,6 +49,8 @@ jobs:
 
   e2e-runner:
     name: PR E2E Runner
+    permissions:
+      contents: read
     needs:
       - e2e-preflight
     if: needs.e2e-preflight.outputs.should_run == 'true'

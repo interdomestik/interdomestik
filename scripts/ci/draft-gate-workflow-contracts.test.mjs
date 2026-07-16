@@ -78,6 +78,12 @@ test('required PR E2E context wraps a service-free preflight and conditional hea
   const runner = workflow.jobs['e2e-runner'];
   const wrapper = workflow.jobs.e2e;
 
+  assert.equal(workflow.permissions, undefined);
+  assert.deepEqual(preflight.permissions, {
+    contents: 'read',
+    'pull-requests': 'read',
+  });
+  assert.deepEqual(runner.permissions, { contents: 'read' });
   assert.equal(preflight.services, undefined);
   assert.ok(findStep(preflight, 'Evaluate PR gate policy'));
   assert.ok(needs(runner, 'e2e-preflight'));
