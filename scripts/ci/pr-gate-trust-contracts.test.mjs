@@ -13,6 +13,7 @@ const action = yaml.load(
 const step = id => action.runs.steps.find(candidate => candidate.id === id);
 
 test('the shared gate action executes policy scripts from its pinned checkout', () => {
+  const changedFiles = step('changed-files');
   const trustedRoot = '${{ github.action_path }}/../../..';
 
   for (const policyStep of [
@@ -24,4 +25,6 @@ test('the shared gate action executes policy scripts from its pinned checkout', 
     assert.equal(policyStep.env.POLICY_ROOT, trustedRoot);
     assert.match(policyStep.run, /"\$\{POLICY_ROOT\}\/scripts\/ci/u);
   }
+  assert.match(changedFiles.run, /set -euo pipefail/u);
+  assert.match(changedFiles.run, /Dispatch changed-file lookup failed/u);
 });
