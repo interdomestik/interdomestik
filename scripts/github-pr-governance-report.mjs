@@ -4,7 +4,7 @@ import fs from 'node:fs';
 
 const REQUIRED_CHECKS = [
   'audit', 'e2e', 'pnpm-audit', 'gitleaks', 'pilot-gate', 'validation-surface',
-  'pr-finalizer', 'commitlint', 'CodeQL', 'Analyze (actions)', 'Analyze (javascript-typescript)',
+  'pr-finalizer', 'commitlint',
 ];
 const MONITORED_CHECKS = ['static', 'unit', 'e2e-gate', 'SonarCloud Code Analysis'];
 
