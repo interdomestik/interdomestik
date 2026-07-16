@@ -797,10 +797,29 @@ the existing access-active subscription lookup as the only entitlement authority
 and changes no auth/session/OTP, role, tenant, route, schema/RLS, Paddle,
 checkout, provider, Free Start draft, upload, claim or protected staff/admin
 behavior. `IDA-UI03a0b`, `IDA-UI03a1`, `IDA-UI03a2`, `IDA-UI03b` and
-`IDA-UI03a0c` remain unapproved. The next active governed implementation goal is
-exactly one canonical tracker slice: `IDA-UI03a0a`. Runtime work remains held
-until the worktree resolver returns it alone and Arben separately confirms
-implementation authority. No rollout or deployment is authorized.
+`IDA-UI03a0c` remain unapproved. That sole promotion is now consumed by the
+Rev 129 closeout below; there is no active replacement implementation slice.
+The historical implementation hold required the worktree resolver to return
+`IDA-UI03a0a` alone and separate Arben authority. No rollout or deployment was
+authorized.
+
+Rev 129 closeout: `IDA-UI03a0a` completed through implementation PR `#1364` /
+merge-main SHA `397f6e07ad6c1cd43869a0d7d09549cc50f5212f`, recorded in
+`docs/plans/2026-07-16-ida-ui03a0a-closeout.md`. The merged surface distinguishes
+a verified registered account from canonical access-active membership without
+asserting payment, benefits, claim access or contracting entity for the neutral
+state; preserves access-active truth; makes status checking refresh-only; and
+keeps member-number observability content-free. The approved v3.3 modularity
+addendum raised only the file ceiling to 18; final scope was 14 production/i18n
+files and exactly 22 authored focused cases. Local mandatory gates, browser /
+SQ/EN/SR/MK / accessibility evidence, strict review readiness and current-head
+CI, full E2E, Pilot, Sonar, CodeQL, security and Copilot evidence were green.
+Post-merge main CI, Sonar Main, CodeQL and Secret Scan were green. Automatic CD
+run `29501696327` was cancelled during checkout before build or deploy; no
+deployment or production alias changed. No replacement implementation slice is
+promoted; expected resolver state is `blocked_requires_current_authority`,
+`activeSlice=null`. Future full-page redesigns remain advisory and require
+separate benchmarked UI/UX gates.
 
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
