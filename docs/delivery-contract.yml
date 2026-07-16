@@ -63,7 +63,7 @@ checks:
     type: regex
     scope: ANY_TARGET
     targets:
-      - apps/web/src/lib/auth/hooks.ts
+      - apps/web/src/lib/auth/member-number-*-hook.ts
     must_not_match:
       - "generateMemberNumberWithRetry\\([\\s\\S]*?\\{[\\s\\S]*?year:\\s*new Date\\(\\)\\.getFullYear\\(\\)[\\s\\S]*?\\}[\\s\\S]*?\\)"
 
@@ -708,7 +708,7 @@ checks:
     description: Auth hooks must use race-safe member number generator.
     type: regex
     targets:
-      - apps/web/src/lib/auth/hooks.ts
+      - apps/web/src/lib/auth/member-number-*-hook.ts
     must_match:
       - 'generateMemberNumberWithRetry'
 

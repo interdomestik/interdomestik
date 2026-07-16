@@ -1,0 +1,14 @@
+{
+  "membership": {
+    "success": {
+      "registered_title": "Vaš nalog je spreman",
+      "registered_status": "Članstvo još nije potvrđeno",
+      "registered_body": "Još ne možemo da potvrdimo aktivno članstvo sa ove stranice. Ako ste upravo završili plaćanje, proverite status ponovo uskoro. Pogodnosti i pristup prijavi zahteva postaju dostupni tek kada članstvo bude potvrđeno kao aktivno.",
+      "registered_primary_cta": "Proveri status članstva",
+      "registered_secondary_cta": "Otvori moj nalog",
+      "registered_helper": "Provera statusa samo osvežava trenutno stanje. Ne otvara postupak plaćanja i ne naplaćuje vam ništa.",
+      "registered_recheck_pending": "Status je proveren. Članstvo još nije potvrđeno.",
+      "registered_recheck_active": "Status je proveren. Članstvo je sada aktivno."
+    }
+  }
+}

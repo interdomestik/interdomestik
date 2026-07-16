@@ -1,0 +1,14 @@
+{
+  "membership": {
+    "success": {
+      "registered_title": "Llogaria juaj është gati",
+      "registered_status": "Anëtarësimi ende nuk është konfirmuar",
+      "registered_body": "Nuk mund ta konfirmojmë ende një anëtarësi aktive nga kjo faqe. Nëse sapo e përfunduat pagesën, kontrollojeni statusin përsëri pas pak. Përfitimet dhe qasja për hapjen e një rasti bëhen të disponueshme vetëm pasi anëtarësimi të konfirmohet aktiv.",
+      "registered_primary_cta": "Kontrollo statusin e anëtarësimit",
+      "registered_secondary_cta": "Hap llogarinë time",
+      "registered_helper": "Kontrollimi i statusit vetëm rifreskon gjendjen. Nuk hap pagesën dhe nuk ju tarifon.",
+      "registered_recheck_pending": "Statusi u kontrollua. Anëtarësimi ende nuk është konfirmuar.",
+      "registered_recheck_active": "Statusi u kontrollua. Anëtarësimi tani është aktiv."
+    }
+  }
+}
