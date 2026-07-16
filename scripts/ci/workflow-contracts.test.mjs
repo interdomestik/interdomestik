@@ -207,6 +207,7 @@ test('CI materializes AI eval as a blocking surface-gated lane', () => {
   );
 
   const gatePolicyStep = findStep(validationSurfaceJob.steps, 'Evaluate PR gate policy');
+  assert.ok(gatePolicyStep);
   assert.equal(gatePolicyStep.uses, TRUSTED_GATE_ACTION);
 
   assert.ok(aiEvalJob);
@@ -335,6 +336,7 @@ test('Pilot gate moves validation-surface, secrets, and PR Sonar checks into a l
 
   assert.ok(pilotGatePreflightJob);
   const preflightSteps = pilotGatePreflightJob.steps;
+  const gatePolicyStep = findStep(preflightSteps, 'Evaluate PR gate policy');
   assert.equal(pilotGatePreflightJob['runs-on'], 'ubuntu-latest');
   assert.equal(pilotGatePreflightJob.services, undefined);
   assert.equal(
@@ -349,10 +351,8 @@ test('Pilot gate moves validation-surface, secrets, and PR Sonar checks into a l
     pilotGatePreflightJob.outputs.needs_manual_sonar_fallback,
     '${{ steps.sonar_strategy.outputs.needs_manual_sonar_fallback }}'
   );
-  assert.equal(
-    findStep(preflightSteps, 'Evaluate PR gate policy').uses,
-    TRUSTED_GATE_ACTION
-  );
+  assert.ok(gatePolicyStep);
+  assert.equal(gatePolicyStep.uses, TRUSTED_GATE_ACTION);
   assert.ok(findStep(preflightSteps, 'Validate required gate secrets'));
   assert.ok(awaitSonarStep);
   assert.equal(awaitSonarStep['continue-on-error'], true);

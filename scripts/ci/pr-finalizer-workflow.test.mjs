@@ -22,6 +22,7 @@ test('PR finalizer forces current-head required-check polling for the full lane'
     step => step?.name === 'Run PR finalizer gate'
   );
 
+  assert.ok(checkout);
   assert.equal(checkout.with['fetch-depth'], 1);
   assert.ok(runStep);
   assert.equal(runStep.env.PR_FINALIZER_SKIP_CHECK_POLLING, 'false');

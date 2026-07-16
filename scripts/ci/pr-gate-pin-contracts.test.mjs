@@ -23,6 +23,7 @@ test('all PR gate callers pin the trusted bootstrap action SHA', () => {
       fs.readFileSync(path.join(root, '.github/workflows', workflowName), 'utf8')
     );
     const policy = workflow.jobs[jobName].steps.find(step => step.id === 'gate_policy');
+    assert.ok(policy, `${workflowName}/${jobName} must define gate_policy`);
     assert.equal(policy.uses, trustedAction, workflowName);
   }
 });
