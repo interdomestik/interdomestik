@@ -33,6 +33,10 @@ export function SuccessStatusActions(props: {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
       return;
     event.preventDefault();
+    if (props.checkRequested) {
+      router.refresh();
+      return;
+    }
     router.replace(`/${props.locale}/member/membership/success?check=1`, { scroll: false });
   }
 

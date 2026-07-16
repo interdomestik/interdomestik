@@ -41,11 +41,12 @@ const hoisted = vi.hoisted(() => ({
   successEntityDisclosureMock: vi.fn(),
   redirectMock: vi.fn(),
   routerReplaceMock: vi.fn(),
+  routerRefreshMock: vi.fn(),
 }));
 
 vi.mock('next/navigation', () => ({
   redirect: hoisted.redirectMock,
-  useRouter: () => ({ replace: hoisted.routerReplaceMock }),
+  useRouter: () => ({ replace: hoisted.routerReplaceMock, refresh: hoisted.routerRefreshMock }),
 }));
 vi.mock('next-intl/server', () => ({
   getTranslations: vi.fn(async (options?: { namespace?: string } | string) =>

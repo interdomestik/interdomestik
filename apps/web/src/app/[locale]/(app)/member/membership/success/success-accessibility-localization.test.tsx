@@ -53,6 +53,12 @@ describe('MembershipSuccessPage accessibility and localization', () => {
       'membership.success.registered_recheck_pending'
     );
     expect(hoisted.getActiveSubscriptionMock).toHaveBeenCalledTimes(2);
+
+    fireEvent.click(
+      screen.getByRole('link', { name: 'membership.success.registered_primary_cta' })
+    );
+    expect(hoisted.routerRefreshMock).toHaveBeenCalledOnce();
+    expect(hoisted.routerReplaceMock).toHaveBeenCalledOnce();
   });
 
   it('keeps the exact approved neutral contract aligned in SQ, EN, SR, and MK', () => {
