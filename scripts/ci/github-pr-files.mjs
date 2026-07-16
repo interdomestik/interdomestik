@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { appendFileSync } from 'node:fs';
+
 import { fetchPullRequestFiles, readPullRequestContext } from './github-pr-files-lib.mjs';
 
 function fail(message) {
@@ -54,11 +56,16 @@ if (!pullRequestContext) {
 }
 
 try {
-  const files = await fetchPullRequestFiles({
+  const evidence = await fetchPullRequestFiles({
     repositoryFullName: pullRequestContext.repositoryFullName,
     pullRequestNumber: pullRequestContext.pullRequestNumber,
     token,
   });
+  const { files, fileCount } = evidence;
+
+  if (process.env.GITHUB_OUTPUT) {
+    appendFileSync(process.env.GITHUB_OUTPUT, `changed_file_count=${fileCount}\n`);
+  }
 
   if (files.length > 0) {
     process.stdout.write(`${files.join('\n')}\n`);

@@ -58,6 +58,7 @@ export async function fetchPullRequestFiles({
     throw new TypeError('fetch implementation is required');
   }
   const files = [];
+  let fileCount = 0;
   for (let nextPage = 1; ; nextPage += 1) {
     const requestUrl = buildPullRequestFilesUrl({
       repositoryFullName,
@@ -81,14 +82,19 @@ export async function fetchPullRequestFiles({
     }
 
     const page = await response.json();
-    files.push(...page.map(file => String(file?.filename || '').trim()).filter(Boolean));
+    fileCount += page.length;
+    for (const file of page) {
+      const paths = [file?.filename];
+      if (file?.status === 'renamed') paths.push(file?.previous_filename);
+      files.push(...paths.map(value => String(value || '').trim()).filter(Boolean));
+    }
 
     if (page.length < PER_PAGE) {
       break;
     }
   }
 
-  return files;
+  return { files, fileCount };
 }
 
 export async function fetchRepositoryFileContent({

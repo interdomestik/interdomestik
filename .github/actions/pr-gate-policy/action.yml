@@ -1,0 +1,128 @@
+name: Evaluate PR gate policy
+description: Resolve draft-aware and validation-surface decisions without starting heavy jobs.
+
+inputs:
+  event-name:
+    description: GitHub event name.
+    required: true
+  event-path:
+    description: Path to the GitHub event payload.
+    required: true
+  dispatch-base-ref:
+    description: Optional base ref used to classify workflow_dispatch changes.
+    required: false
+    default: ''
+
+outputs:
+  should_run:
+    value: ${{ steps.effective.outputs.should_run }}
+  reason:
+    value: ${{ steps.effective.outputs.reason }}
+  non_product_only_paths:
+    value: ${{ steps.validation.outputs.non_product_only_paths }}
+  run_full:
+    value: ${{ steps.policy.outputs.run_full }}
+  force_full:
+    value: ${{ steps.policy.outputs.force_full }}
+  high_risk_paths:
+    value: ${{ steps.policy.outputs.high_risk_paths }}
+  ai_eval_should_run:
+    value: ${{ steps.ai-eval.outputs.should_run }}
+  ai_eval_reason:
+    value: ${{ steps.ai-eval.outputs.reason }}
+  ai_eval_matched_paths:
+    value: ${{ steps.ai-eval.outputs.matched_paths }}
+
+runs:
+  using: composite
+  steps:
+    - name: Collect changed files
+      id: changed-files
+      env:
+        GH_TOKEN: ${{ github.token }}
+        INPUT_DISPATCH_BASE_REF: ${{ inputs.dispatch-base-ref }}
+        INPUT_EVENT_NAME: ${{ inputs.event-name }}
+        INPUT_EVENT_PATH: ${{ inputs.event-path }}
+        POLICY_ROOT: ${{ github.action_path }}/../../..
+      shell: bash
+      run: |
+        set -u
+        changed_files_path="${RUNNER_TEMP}/pr-gate-${GITHUB_RUN_ID}-${GITHUB_JOB}.txt"
+        : >"${changed_files_path}"
+        if [[ "${INPUT_EVENT_NAME}" == "pull_request" ]]; then
+          if ! node "${POLICY_ROOT}/scripts/ci/github-pr-files.mjs" \
+            --event-path "${INPUT_EVENT_PATH}" >"${changed_files_path}"; then
+            echo "::warning::Changed-file lookup failed; policy will fail full."
+            : >"${changed_files_path}"
+          fi
+        elif [[ "${INPUT_EVENT_NAME}" == "workflow_dispatch" && -n "${INPUT_DISPATCH_BASE_REF}" ]]; then
+          git fetch --no-tags origin "${INPUT_DISPATCH_BASE_REF}" --depth=1
+          git diff --name-only "origin/${INPUT_DISPATCH_BASE_REF}"...HEAD >"${changed_files_path}"
+        fi
+        echo "path=${changed_files_path}" >>"$GITHUB_OUTPUT"
+
+    - name: Evaluate validation surface
+      id: validation
+      env:
+        CHANGED_FILES_PATH: ${{ steps.changed-files.outputs.path }}
+        INPUT_EVENT_NAME: ${{ inputs.event-name }}
+        INPUT_EVENT_PATH: ${{ inputs.event-path }}
+        POLICY_ROOT: ${{ github.action_path }}/../../..
+      shell: bash
+      run: |
+        node "${POLICY_ROOT}/scripts/ci/validation-surface-policy.mjs" \
+          --event-name "${INPUT_EVENT_NAME}" \
+          --event-path "${INPUT_EVENT_PATH}" \
+          --changed-files-path "${CHANGED_FILES_PATH}" >>"$GITHUB_OUTPUT"
+
+    - name: Evaluate draft policy
+      id: policy
+      env:
+        CHANGED_FILES_PATH: ${{ steps.changed-files.outputs.path }}
+        INPUT_EVENT_NAME: ${{ inputs.event-name }}
+        INPUT_EVENT_PATH: ${{ inputs.event-path }}
+        POLICY_ROOT: ${{ github.action_path }}/../../..
+        PR_GATE_CHANGED_FILE_COUNT: ${{ steps.changed-files.outputs.changed_file_count }}
+      shell: bash
+      run: |
+        node "${POLICY_ROOT}/scripts/ci/pr-gate-policy.mjs" \
+          --event-name "${INPUT_EVENT_NAME}" \
+          --event-path "${INPUT_EVENT_PATH}" \
+          --changed-files-path "${CHANGED_FILES_PATH}" >>"$GITHUB_OUTPUT"
+
+    - name: Resolve effective validation surface
+      id: effective
+      env:
+        INPUT_EVENT_NAME: ${{ inputs.event-name }}
+        POLICY_FORCE_FULL: ${{ steps.policy.outputs.force_full }}
+        POLICY_REASON: ${{ steps.policy.outputs.reason }}
+        POLICY_RUN_FULL: ${{ steps.policy.outputs.run_full }}
+        VALIDATION_REASON: ${{ steps.validation.outputs.reason }}
+        VALIDATION_SHOULD_RUN: ${{ steps.validation.outputs.should_run }}
+      shell: bash
+      run: |
+        if [[ "${INPUT_EVENT_NAME}" != "pull_request" ]]; then
+          echo "should_run=true" >>"$GITHUB_OUTPUT"
+          echo "reason=${POLICY_REASON}" >>"$GITHUB_OUTPUT"
+        elif [[ "${POLICY_RUN_FULL}" != "true" ]]; then
+          echo "should_run=false" >>"$GITHUB_OUTPUT"
+          echo "reason=${POLICY_REASON}" >>"$GITHUB_OUTPUT"
+        elif [[ "${POLICY_FORCE_FULL}" == "true" ]]; then
+          echo "should_run=true" >>"$GITHUB_OUTPUT"
+          echo "reason=${POLICY_REASON}" >>"$GITHUB_OUTPUT"
+        else
+          echo "should_run=${VALIDATION_SHOULD_RUN}" >>"$GITHUB_OUTPUT"
+          echo "reason=${VALIDATION_REASON}" >>"$GITHUB_OUTPUT"
+        fi
+
+    - name: Evaluate AI eval surface
+      id: ai-eval
+      env:
+        CHANGED_FILES_PATH: ${{ steps.changed-files.outputs.path }}
+        INPUT_EVENT_NAME: ${{ inputs.event-name }}
+        POLICY_ROOT: ${{ github.action_path }}/../../..
+      shell: bash
+      run: |
+        node "${POLICY_ROOT}/scripts/ci/ai-eval-surface.mjs" \
+          --event-name "${INPUT_EVENT_NAME}" \
+          --changed-files-path "${CHANGED_FILES_PATH}" >>"$GITHUB_OUTPUT"
