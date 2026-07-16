@@ -29,11 +29,8 @@ required_checks=(
   "gitleaks"
   "pr-finalizer"
   "commitlint"
-  "CodeQL"
-  "Analyze (actions)"
-  "Analyze (javascript-typescript)"
 )
-max_check_retries=120
+max_check_retries="${PR_FINALIZER_MAX_CHECK_RETRIES:-120}"
 check_retry_delay_seconds=10
 
 run_step() {

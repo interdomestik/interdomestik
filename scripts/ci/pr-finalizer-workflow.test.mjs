@@ -13,14 +13,15 @@ function readWorkflow(relativePath) {
   return yaml.load(fs.readFileSync(path.join(rootDir, relativePath), 'utf8'));
 }
 
-test('PR finalizer workflow does not force duplicate required-check polling in CI', () => {
+test('PR finalizer forces current-head required-check polling for the full lane', () => {
   const workflow = readWorkflow('.github/workflows/pr-finalizer.yml');
   const runStep = workflow.jobs['pr-finalizer'].steps.find(
     step => step?.name === 'Run PR finalizer gate'
   );
 
   assert.ok(runStep);
-  assert.equal(runStep.env.PR_FINALIZER_SKIP_CHECK_POLLING, undefined);
+  assert.equal(runStep.env.PR_FINALIZER_SKIP_CHECK_POLLING, 'false');
+  assert.equal(runStep.env.PR_FINALIZER_MAX_CHECK_RETRIES, '420');
 });
 
 test('PR finalizer delegates Sonar validation to governance monitoring in CI', () => {

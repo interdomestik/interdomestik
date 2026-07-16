@@ -4,13 +4,42 @@ on:
   pull_request:
     branches:
       - '**'
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+      - converted_to_draft
+      - labeled
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
+  draft-policy:
+    name: Deterministic Backstops Draft Policy
+    runs-on: ubuntu-latest
+    outputs:
+      run_full: ${{ steps.gate_policy.outputs.run_full }}
+      reason: ${{ steps.gate_policy.outputs.reason }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Evaluate PR gate policy
+        id: gate_policy
+        uses: ./.github/actions/pr-gate-policy
+        with:
+          event-name: ${{ github.event_name }}
+          event-path: ${{ github.event_path }}
+      - name: Report quick draft lane
+        if: steps.gate_policy.outputs.run_full != 'true'
+        run: echo "Deterministic backstops skipped (${{ steps.gate_policy.outputs.reason }})."
+
   dependency-review:
     name: Dependency Review
+    needs:
+      - draft-policy
+    if: needs.draft-policy.outputs.run_full == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -24,6 +53,9 @@ jobs:
 
   osv-scanner:
     name: OSV Scanner PR
+    needs:
+      - draft-policy
+    if: needs.draft-policy.outputs.run_full == 'true'
     permissions:
       actions: read
       contents: read
@@ -37,6 +69,9 @@ jobs:
 
   semgrep-ce:
     name: Semgrep CE Diff Scan
+    needs:
+      - draft-policy
+    if: needs.draft-policy.outputs.run_full == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -71,6 +106,9 @@ jobs:
 
   reviewdog-eslint:
     name: reviewdog ESLint Annotations
+    needs:
+      - draft-policy
+    if: needs.draft-policy.outputs.run_full == 'true'
     runs-on: ubuntu-latest
     permissions:
       checks: write

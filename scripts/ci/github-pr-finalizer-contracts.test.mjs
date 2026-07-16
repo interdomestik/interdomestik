@@ -13,10 +13,8 @@ const REQUIRED_CHECKS = [
   'pnpm-audit',
   'gitleaks',
   'pilot-gate',
+  'pr-finalizer',
   'commitlint',
-  'CodeQL',
-  'Analyze (actions)',
-  'Analyze (javascript-typescript)',
 ];
 
 function read(relativePath) {

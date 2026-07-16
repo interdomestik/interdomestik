@@ -4,6 +4,13 @@ on:
   pull_request:
     branches:
       - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+      - converted_to_draft
+      - labeled
     # Protected checks must always materialize on PRs; the validation-surface
     # policy below skips heavy work for docs-only and other non-product changes.
   workflow_dispatch:
@@ -21,9 +28,11 @@ jobs:
       pull-requests: read
     runs-on: ubuntu-latest
     outputs:
-      should_run: ${{ steps.validation_surface.outputs.should_run }}
-      reason: ${{ steps.validation_surface.outputs.reason }}
-      non_product_only_paths: ${{ steps.validation_surface.outputs.non_product_only_paths }}
+      should_run: ${{ steps.gate_policy.outputs.should_run }}
+      reason: ${{ steps.gate_policy.outputs.reason }}
+      non_product_only_paths: ${{ steps.gate_policy.outputs.non_product_only_paths }}
+      run_full: ${{ steps.gate_policy.outputs.run_full }}
+      force_full: ${{ steps.gate_policy.outputs.force_full }}
       sonar_gate_enabled: ${{ steps.validate_secrets.outputs.sonar_gate_enabled }}
       needs_manual_sonar_fallback: ${{ steps.sonar_strategy.outputs.needs_manual_sonar_fallback }}
       needs_dependabot_better_auth_fallback: ${{ steps.validate_secrets.outputs.needs_dependabot_better_auth_fallback }}
@@ -44,38 +53,27 @@ jobs:
           node-version-file: '.nvmrc'
           package-manager-cache: false
 
-      - name: Evaluate validation surface
-        id: validation_surface
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          changed_files_path="$(mktemp)"
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            node scripts/ci/github-pr-files.mjs \
-              --event-path "${GITHUB_EVENT_PATH}" >"${changed_files_path}"
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            git fetch --no-tags origin main --depth=1
-            git diff --name-only origin/main...HEAD >"${changed_files_path}"
-          fi
-          node scripts/ci/validation-surface-policy.mjs \
-            --event-name "${{ github.event_name }}" --event-path "${GITHUB_EVENT_PATH}" \
-            --changed-files-path "${changed_files_path}" >>"$GITHUB_OUTPUT"
+      - name: Evaluate PR gate policy
+        id: gate_policy
+        uses: ./.github/actions/pr-gate-policy
+        with:
+          event-name: ${{ github.event_name }}
+          event-path: ${{ github.event_path }}
+          dispatch-base-ref: main
 
       - name: Skip pilot gate for non-product-only changes
-        if: steps.validation_surface.outputs.should_run != 'true'
+        if: steps.gate_policy.outputs.should_run != 'true'
         run: |
           echo "Skipping pilot gate."
-          echo "Reason: ${{ steps.validation_surface.outputs.reason }}"
-          echo "Non-product-only paths: ${{ steps.validation_surface.outputs.non_product_only_paths }}"
+          echo "Reason: ${{ steps.gate_policy.outputs.reason }}"
+          echo "Non-product-only paths: ${{ steps.gate_policy.outputs.non_product_only_paths }}"
 
       - name: Validate required gate secrets
         id: validate_secrets
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${{ steps.validation_surface.outputs.should_run }}" != "true" ]]; then
+          if [[ "${{ steps.gate_policy.outputs.should_run }}" != "true" ]]; then
             echo "sonar_gate_enabled=false" >> "$GITHUB_OUTPUT"
             echo "needs_dependabot_better_auth_fallback=false" >> "$GITHUB_OUTPUT"
             exit 0
@@ -114,7 +112,7 @@ jobs:
 
       - name: Await SonarCloud Code Analysis check
         id: await_sonar_check
-        if: github.event_name == 'pull_request' && steps.validation_surface.outputs.should_run == 'true' && steps.validate_secrets.outputs.sonar_gate_enabled == 'true'
+        if: github.event_name == 'pull_request' && steps.gate_policy.outputs.should_run == 'true' && steps.validate_secrets.outputs.sonar_gate_enabled == 'true'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
@@ -134,7 +132,7 @@ jobs:
             sonarcloud_automatic_analysis=true
           fi
 
-          if [[ "${{ steps.validation_surface.outputs.should_run }}" == "true" && \
+          if [[ "${{ steps.gate_policy.outputs.should_run }}" == "true" && \
                 "${{ steps.validate_secrets.outputs.sonar_gate_enabled }}" == "true" && \
                 "${{ github.event_name }}" == "pull_request" && \
                 "${{ steps.await_sonar_check.outcome }}" != "success" ]]; then

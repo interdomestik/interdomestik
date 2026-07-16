@@ -1,0 +1,99 @@
+name: Evaluate PR gate policy
+description: Resolve draft-aware and validation-surface decisions without starting heavy jobs.
+
+inputs:
+  event-name:
+    description: GitHub event name.
+    required: true
+  event-path:
+    description: Path to the GitHub event payload.
+    required: true
+  dispatch-base-ref:
+    description: Optional base ref used to classify workflow_dispatch changes.
+    required: false
+    default: ''
+
+outputs:
+  should_run:
+    value: ${{ steps.effective.outputs.should_run }}
+  reason:
+    value: ${{ steps.effective.outputs.reason }}
+  non_product_only_paths:
+    value: ${{ steps.validation.outputs.non_product_only_paths }}
+  run_full:
+    value: ${{ steps.policy.outputs.run_full }}
+  force_full:
+    value: ${{ steps.policy.outputs.force_full }}
+  high_risk_paths:
+    value: ${{ steps.policy.outputs.high_risk_paths }}
+  ai_eval_should_run:
+    value: ${{ steps.ai-eval.outputs.should_run }}
+  ai_eval_reason:
+    value: ${{ steps.ai-eval.outputs.reason }}
+  ai_eval_matched_paths:
+    value: ${{ steps.ai-eval.outputs.matched_paths }}
+
+runs:
+  using: composite
+  steps:
+    - name: Collect changed files
+      id: changed-files
+      env:
+        GH_TOKEN: ${{ github.token }}
+      shell: bash
+      run: |
+        set -u
+        changed_files_path="${RUNNER_TEMP}/pr-gate-${GITHUB_RUN_ID}-${GITHUB_JOB}.txt"
+        : >"${changed_files_path}"
+        if [[ "${{ inputs.event-name }}" == "pull_request" ]]; then
+          if ! node scripts/ci/github-pr-files.mjs \
+            --event-path "${{ inputs.event-path }}" >"${changed_files_path}"; then
+            echo "::warning::Changed-file lookup failed; policy will fail full."
+            : >"${changed_files_path}"
+          fi
+        elif [[ "${{ inputs.event-name }}" == "workflow_dispatch" && -n "${{ inputs.dispatch-base-ref }}" ]]; then
+          git fetch --no-tags origin "${{ inputs.dispatch-base-ref }}" --depth=1
+          git diff --name-only "origin/${{ inputs.dispatch-base-ref }}"...HEAD >"${changed_files_path}"
+        fi
+        echo "path=${changed_files_path}" >>"$GITHUB_OUTPUT"
+
+    - name: Evaluate validation surface
+      id: validation
+      shell: bash
+      run: |
+        node scripts/ci/validation-surface-policy.mjs \
+          --event-name "${{ inputs.event-name }}" \
+          --event-path "${{ inputs.event-path }}" \
+          --changed-files-path "${{ steps.changed-files.outputs.path }}" >>"$GITHUB_OUTPUT"
+
+    - name: Evaluate draft policy
+      id: policy
+      shell: bash
+      run: |
+        node scripts/ci/pr-gate-policy.mjs \
+          --event-name "${{ inputs.event-name }}" \
+          --event-path "${{ inputs.event-path }}" \
+          --changed-files-path "${{ steps.changed-files.outputs.path }}" >>"$GITHUB_OUTPUT"
+
+    - name: Resolve effective validation surface
+      id: effective
+      shell: bash
+      run: |
+        if [[ "${{ steps.policy.outputs.run_full }}" != "true" ]]; then
+          echo "should_run=false" >>"$GITHUB_OUTPUT"
+          echo "reason=${{ steps.policy.outputs.reason }}" >>"$GITHUB_OUTPUT"
+        elif [[ "${{ steps.policy.outputs.force_full }}" == "true" ]]; then
+          echo "should_run=true" >>"$GITHUB_OUTPUT"
+          echo "reason=${{ steps.policy.outputs.reason }}" >>"$GITHUB_OUTPUT"
+        else
+          echo "should_run=${{ steps.validation.outputs.should_run }}" >>"$GITHUB_OUTPUT"
+          echo "reason=${{ steps.validation.outputs.reason }}" >>"$GITHUB_OUTPUT"
+        fi
+
+    - name: Evaluate AI eval surface
+      id: ai-eval
+      shell: bash
+      run: |
+        node scripts/ci/ai-eval-surface.mjs \
+          --event-name "${{ inputs.event-name }}" \
+          --changed-files-path "${{ steps.changed-files.outputs.path }}" >>"$GITHUB_OUTPUT"
