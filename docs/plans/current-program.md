@@ -830,7 +830,7 @@ and promotes exactly one prospective Tier 3 implementation slice,
 delivered-email copy, generic client errors, email lock/change/retry/cooldown,
 accessible recovery, SQ/EN/SR/MK delivery and OTP-only content-free sender
 telemetry within the exact 13 production/i18n-file, 7 test/spec-file, 16 authored
-focused-case and 3-engineering-day ceiling. Supabase Auth remains the declared
+focused cases and 3-engineering-day ceiling. Supabase Auth remains the declared
 identity/session system of record, Better Auth remains the current
 orchestrator/execution path and Drizzle adapter tables are not reclassified.
 Auth routes, tenant/default-public provisioning, verifier/provider options,
