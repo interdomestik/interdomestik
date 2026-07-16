@@ -81,6 +81,32 @@ test('fetchPullRequestFiles paginates GitHub PR files API results', async () => 
   assert.equal(files.at(-1), 'README.md');
 });
 
+test('fetchPullRequestFiles includes the previous path for renamed files', async () => {
+  async function fetchImpl() {
+    return {
+      ok: true,
+      async json() {
+        return [
+          {
+            filename: 'docs/proxy.ts',
+            previous_filename: 'apps/web/src/proxy.ts',
+            status: 'renamed',
+          },
+        ];
+      },
+    };
+  }
+
+  const files = await fetchPullRequestFiles({
+    repositoryFullName: 'interdomestik/interdomestik',
+    pullRequestNumber: 235,
+    token: 'test-token',
+    fetchImpl,
+  });
+
+  assert.deepEqual(files, ['docs/proxy.ts', 'apps/web/src/proxy.ts']);
+});
+
 test('CLI exits cleanly for non pull request events', () => {
   const root = createTempRoot('github-pr-files-cli-');
   const eventPath = path.join(root, 'event.json');

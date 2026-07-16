@@ -81,7 +81,11 @@ export async function fetchPullRequestFiles({
     }
 
     const page = await response.json();
-    files.push(...page.map(file => String(file?.filename || '').trim()).filter(Boolean));
+    for (const file of page) {
+      const paths = [file?.filename];
+      if (file?.status === 'renamed') paths.push(file?.previous_filename);
+      files.push(...paths.map(value => String(value || '').trim()).filter(Boolean));
+    }
 
     if (page.length < PER_PAGE) {
       break;
