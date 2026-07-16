@@ -90,6 +90,7 @@ runs:
     - name: Resolve effective validation surface
       id: effective
       env:
+        INPUT_EVENT_NAME: ${{ inputs.event-name }}
         POLICY_FORCE_FULL: ${{ steps.policy.outputs.force_full }}
         POLICY_REASON: ${{ steps.policy.outputs.reason }}
         POLICY_RUN_FULL: ${{ steps.policy.outputs.run_full }}
@@ -97,7 +98,10 @@ runs:
         VALIDATION_SHOULD_RUN: ${{ steps.validation.outputs.should_run }}
       shell: bash
       run: |
-        if [[ "${POLICY_RUN_FULL}" != "true" ]]; then
+        if [[ "${INPUT_EVENT_NAME}" != "pull_request" ]]; then
+          echo "should_run=true" >>"$GITHUB_OUTPUT"
+          echo "reason=${POLICY_REASON}" >>"$GITHUB_OUTPUT"
+        elif [[ "${POLICY_RUN_FULL}" != "true" ]]; then
           echo "should_run=false" >>"$GITHUB_OUTPUT"
           echo "reason=${POLICY_REASON}" >>"$GITHUB_OUTPUT"
         elif [[ "${POLICY_FORCE_FULL}" == "true" ]]; then

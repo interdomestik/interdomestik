@@ -50,14 +50,15 @@ test('shared policy action keeps event data out of interpolated shell scripts', 
   const action = readAction('pr-gate-policy');
   const scripts = action.runs.steps.map(step => step.run).filter(Boolean);
   const policy = action.runs.steps.find(step => step.id === 'policy');
+  const effective = action.runs.steps.find(step => step.id === 'effective');
+  const countOutput = '${{ steps.changed-files.outputs.changed_file_count }}';
 
   for (const script of scripts) {
     assert.doesNotMatch(script, /\$\{\{\s*(?:github|inputs|steps)\./u);
   }
-  assert.equal(
-    policy.env.PR_GATE_CHANGED_FILE_COUNT,
-    '${{ steps.changed-files.outputs.changed_file_count }}'
-  );
+  assert.equal(policy.env.PR_GATE_CHANGED_FILE_COUNT, countOutput);
+  assert.equal(effective.env.INPUT_EVENT_NAME, '${{ inputs.event-name }}');
+  assert.match(effective.run, /INPUT_EVENT_NAME.*!=.*pull_request/u);
 });
 
 test('CI exposes one effective heavy-lane decision while keeping required audit materialized', () => {
@@ -80,6 +81,7 @@ test('CI exposes one effective heavy-lane decision while keeping required audit 
 test('required PR E2E context wraps a service-free preflight and conditional heavy runner', () => {
   const workflow = readWorkflow('e2e-pr.yml');
   const preflight = workflow.jobs['e2e-preflight'];
+  const checkout = preflight.steps.find(step => step.uses?.startsWith('actions/checkout@'));
   const runner = workflow.jobs['e2e-runner'];
   const wrapper = workflow.jobs.e2e;
 
@@ -90,6 +92,7 @@ test('required PR E2E context wraps a service-free preflight and conditional hea
   });
   assert.deepEqual(runner.permissions, { contents: 'read' });
   assert.equal(preflight.services, undefined);
+  assert.equal(checkout.with['fetch-depth'], 1);
   assert.ok(findStep(preflight, 'Evaluate PR gate policy'));
   assert.ok(needs(runner, 'e2e-preflight'));
   assert.equal(runner.if, "needs.e2e-preflight.outputs.should_run == 'true'");

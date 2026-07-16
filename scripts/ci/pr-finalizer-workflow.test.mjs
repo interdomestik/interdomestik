@@ -15,10 +15,14 @@ function readWorkflow(relativePath) {
 
 test('PR finalizer forces current-head required-check polling for the full lane', () => {
   const workflow = readWorkflow('.github/workflows/pr-finalizer.yml');
+  const checkout = workflow.jobs['pr-finalizer'].steps.find(step =>
+    step.uses?.startsWith('actions/checkout@')
+  );
   const runStep = workflow.jobs['pr-finalizer'].steps.find(
     step => step?.name === 'Run PR finalizer gate'
   );
 
+  assert.equal(checkout.with['fetch-depth'], 1);
   assert.ok(runStep);
   assert.equal(runStep.env.PR_FINALIZER_SKIP_CHECK_POLLING, 'false');
   assert.equal(runStep.env.PR_FINALIZER_MAX_CHECK_RETRIES, '360');
