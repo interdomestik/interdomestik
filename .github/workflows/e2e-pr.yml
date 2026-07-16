@@ -4,23 +4,58 @@ on:
   pull_request:
     branches:
       - '**'
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+      - converted_to_draft
+      - labeled
     # Protected checks must always materialize on PRs; the validation-surface
     # policy below skips heavy work for docs-only and other non-product changes.
   workflow_dispatch: {}
-
-permissions:
-  contents: read
-  pull-requests: read
 
 concurrency:
   group: e2e-pr-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  e2e:
+  e2e-preflight:
+    name: PR E2E Preflight
+    permissions:
+      contents: read
+      pull-requests: read
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.gate_policy.outputs.should_run }}
+      reason: ${{ steps.gate_policy.outputs.reason }}
+      run_full: ${{ steps.gate_policy.outputs.run_full }}
+      force_full: ${{ steps.gate_policy.outputs.force_full }}
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          fetch-depth: 1
+
+      - name: Evaluate PR gate policy
+        id: gate_policy
+        uses: interdomestik/interdomestik/.github/actions/pr-gate-policy@9a81dd9767aabeef25889eb791f20e9496a52205
+        with:
+          event-name: ${{ github.event_name }}
+          event-path: ${{ github.event_path }}
+
+      - name: Report quick draft lane
+        if: steps.gate_policy.outputs.should_run != 'true'
+        run: echo "PR E2E heavy runner skipped (${{ steps.gate_policy.outputs.reason }})."
+
+  e2e-runner:
+    name: PR E2E Runner
+    permissions:
+      contents: read
+    needs:
+      - e2e-preflight
+    if: needs.e2e-preflight.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
-
     services:
       postgres:
         image: postgres:16
@@ -35,7 +70,6 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
-
     env:
       CI: '1'
       PLAYWRIGHT: '1'
@@ -48,58 +82,27 @@ jobs:
       NODE_OPTIONS: --max-old-space-size=4096
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.TURBO_TEAM || secrets.TURBO_TEAM }}
-
     steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-node@v5
-        with:
-          node-version-file: '.nvmrc'
-          package-manager-cache: false
-
-      - name: Evaluate validation surface
-        id: validation_surface
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          changed_files_path="$(mktemp)"
-          node scripts/ci/github-pr-files.mjs \
-            --event-path "${GITHUB_EVENT_PATH}" >"${changed_files_path}"
-          node scripts/ci/validation-surface-policy.mjs \
-            --event-name "${{ github.event_name }}" --event-path "${GITHUB_EVENT_PATH}" \
-            --changed-files-path "${changed_files_path}" >>"$GITHUB_OUTPUT"
-
-      - name: Skip strict PR E2E for non-product-only changes
-        if: steps.validation_surface.outputs.should_run != 'true'
-        run: |
-          echo "Skipping strict PR E2E."
-          echo "Reason: ${{ steps.validation_surface.outputs.reason }}"
-          echo "Non-product-only paths: ${{ steps.validation_surface.outputs.non_product_only_paths }}"
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - uses: ./.github/actions/setup
-        if: steps.validation_surface.outputs.should_run == 'true'
         with:
           install-playwright: true
 
       - name: Generate ephemeral E2E credentials
-        if: steps.validation_surface.outputs.should_run == 'true'
         run: bash scripts/ci/export-e2e-credentials.sh
 
       - name: Strict Rule Guards (golden/gate)
-        if: steps.validation_surface.outputs.should_run == 'true'
         run: pnpm --filter @interdomestik/web run e2e:guards
 
       - name: Run PR E2E Gate
-        if: steps.validation_surface.outputs.should_run == 'true'
         env:
           E2E_DATABASE_URL: ${{ env.DATABASE_URL }}
           E2E_DATABASE_URL_RLS: ${{ env.DATABASE_URL }}
         run: pnpm e2e:gate:pr
 
       - name: Upload Playwright Artifacts
-        if: always() && steps.validation_surface.outputs.should_run == 'true'
+        if: always()
         continue-on-error: true
         uses: actions/upload-artifact@v6
         with:
@@ -108,3 +111,36 @@ jobs:
             apps/web/playwright-report
             apps/web/test-results
           retention-days: 7
+
+  e2e:
+    name: e2e
+    if: always()
+    needs:
+      - e2e-preflight
+      - e2e-runner
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Enforce PR E2E preflight/result contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          preflight_result="${{ needs.e2e-preflight.result }}"
+          should_run="${{ needs.e2e-preflight.outputs.should_run }}"
+          reason="${{ needs.e2e-preflight.outputs.reason }}"
+          runner_result="${{ needs.e2e-runner.result }}"
+
+          if [[ "${preflight_result}" != "success" ]]; then
+            echo "::error::PR E2E preflight failed before the heavy runner became eligible."
+            exit 1
+          fi
+
+          if [[ "${should_run}" != "true" ]]; then
+            echo "PR E2E heavy runner skipped (${reason})."
+            exit 0
+          fi
+
+          if [[ "${runner_result}" != "success" ]]; then
+            echo "::error::PR E2E runner did not complete successfully (result=${runner_result})."
+            exit 1
+          fi

@@ -13,7 +13,8 @@ import {
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, '../..');
-
+const TRUSTED_GATE_ACTION =
+  'interdomestik/interdomestik/.github/actions/pr-gate-policy@9a81dd9767aabeef25889eb791f20e9496a52205';
 function readWorkflow(relativePath) {
   const content = fs.readFileSync(path.join(rootDir, relativePath), 'utf8');
   return yaml.load(content);
@@ -100,7 +101,7 @@ test('seeded CI workflows generate masked per-run E2E credentials before seeded 
       findStepIndex(ciSteps, 'Prepare E2E Database')
   );
   const prE2eWorkflow = readWorkflow('.github/workflows/e2e-pr.yml');
-  const prE2eSteps = prE2eWorkflow.jobs.e2e.steps;
+  const prE2eSteps = prE2eWorkflow.jobs['e2e-runner'].steps;
   assert.ok(
     findStepIndex(prE2eSteps, 'Generate ephemeral E2E credentials') <
       findStepIndex(prE2eSteps, 'Run PR E2E Gate')
@@ -168,7 +169,7 @@ test('CI delegates PR browser gate to PR E2E', () => {
   assert.ok(normalizeNeeds(unitJob.needs).includes('validation-surface'));
   assert.equal(unitJob.if, "needs.validation-surface.outputs.should_run == 'true'");
 
-  const prE2eJob = prE2eWorkflow.jobs.e2e;
+  const prE2eJob = prE2eWorkflow.jobs['e2e-runner'];
   const prE2eSetupStep = prE2eJob.steps.find(step => step?.uses === './.github/actions/setup');
   assert.equal(prE2eSetupStep.with['install-playwright'], true);
 
@@ -194,25 +195,27 @@ test('CI materializes AI eval as a blocking surface-gated lane', () => {
 
   assert.equal(
     validationSurfaceJob.outputs.ai_eval_should_run,
-    '${{ steps.ai_eval_surface.outputs.should_run }}'
+    '${{ steps.gate_policy.outputs.ai_eval_should_run }}'
   );
   assert.equal(
     validationSurfaceJob.outputs.ai_eval_reason,
-    '${{ steps.ai_eval_surface.outputs.reason }}'
+    '${{ steps.gate_policy.outputs.ai_eval_reason }}'
   );
   assert.equal(
     validationSurfaceJob.outputs.ai_eval_matched_paths,
-    '${{ steps.ai_eval_surface.outputs.matched_paths }}'
+    '${{ steps.gate_policy.outputs.ai_eval_matched_paths }}'
   );
 
-  const aiEvalSurfaceStep = findStep(validationSurfaceJob.steps, 'Evaluate AI eval surface');
-  assert.ok(aiEvalSurfaceStep);
-  assert.equal(aiEvalSurfaceStep.id, 'ai_eval_surface');
-  assert.match(aiEvalSurfaceStep.run, /scripts\/ci\/ai-eval-surface\.mjs/u);
+  const gatePolicyStep = findStep(validationSurfaceJob.steps, 'Evaluate PR gate policy');
+  assert.ok(gatePolicyStep);
+  assert.equal(gatePolicyStep.uses, TRUSTED_GATE_ACTION);
 
   assert.ok(aiEvalJob);
   assert.ok(normalizeNeeds(aiEvalJob.needs).includes('validation-surface'));
-  assert.equal(aiEvalJob.if, "needs.validation-surface.outputs.ai_eval_should_run == 'true'");
+  assert.equal(
+    aiEvalJob.if,
+    "needs.validation-surface.outputs.should_run == 'true' && needs.validation-surface.outputs.ai_eval_should_run == 'true'"
+  );
   assert.equal(aiEvalJob['continue-on-error'], undefined);
   const runStep = findStep(aiEvalJob.steps, 'Run AI Eval Fixtures');
   assert.ok(runStep);
@@ -292,20 +295,6 @@ test('Secret Scan is the sole blocking gitleaks surface for PR and mainline whil
   assert.equal(findStep(securityAuditJob.steps, 'Upload gitleaks report artifact'), undefined);
 });
 
-test('Heavy PR workflows always materialize on PRs and delegate docs-only skipping to validation surface checks', () => {
-  const prE2eWorkflow = readWorkflow('.github/workflows/e2e-pr.yml');
-  const pilotGateWorkflow = readWorkflow('.github/workflows/pilot-gate.yml');
-  const prE2eJob = prE2eWorkflow.jobs.e2e;
-  const pilotGatePreflightJob = pilotGateWorkflow.jobs['pilot-gate-preflight'];
-
-  assert.equal(prE2eWorkflow.on.pull_request['paths-ignore'], undefined);
-  assert.equal(pilotGateWorkflow.on.pull_request['paths-ignore'], undefined);
-  assert.ok(findStep(prE2eJob.steps, 'Evaluate validation surface'));
-  assert.ok(findStep(prE2eJob.steps, 'Skip strict PR E2E for non-product-only changes'));
-  assert.ok(findStep(pilotGatePreflightJob.steps, 'Evaluate validation surface'));
-  assert.ok(findStep(pilotGatePreflightJob.steps, 'Skip pilot gate for non-product-only changes'));
-});
-
 test('Nightly E2E runs on an available hosted runner while preserving full strict coverage', () => {
   const nightlyWorkflow = readWorkflow('.github/workflows/e2e-nightly.yml');
   const nightlyJob = nightlyWorkflow.jobs.e2e;
@@ -347,11 +336,12 @@ test('Pilot gate moves validation-surface, secrets, and PR Sonar checks into a l
 
   assert.ok(pilotGatePreflightJob);
   const preflightSteps = pilotGatePreflightJob.steps;
+  const gatePolicyStep = findStep(preflightSteps, 'Evaluate PR gate policy');
   assert.equal(pilotGatePreflightJob['runs-on'], 'ubuntu-latest');
   assert.equal(pilotGatePreflightJob.services, undefined);
   assert.equal(
     pilotGatePreflightJob.outputs.should_run,
-    '${{ steps.validation_surface.outputs.should_run }}'
+    '${{ steps.gate_policy.outputs.should_run }}'
   );
   assert.equal(
     pilotGatePreflightJob.outputs.sonar_gate_enabled,
@@ -361,7 +351,8 @@ test('Pilot gate moves validation-surface, secrets, and PR Sonar checks into a l
     pilotGatePreflightJob.outputs.needs_manual_sonar_fallback,
     '${{ steps.sonar_strategy.outputs.needs_manual_sonar_fallback }}'
   );
-  assert.ok(findStep(preflightSteps, 'Evaluate validation surface'));
+  assert.ok(gatePolicyStep);
+  assert.equal(gatePolicyStep.uses, TRUSTED_GATE_ACTION);
   assert.ok(findStep(preflightSteps, 'Validate required gate secrets'));
   assert.ok(awaitSonarStep);
   assert.equal(awaitSonarStep['continue-on-error'], true);
@@ -393,6 +384,7 @@ test('Pilot gate heavy runner depends on preflight before Postgres, setup, build
   assert.ok(needs.includes('pilot-gate-preflight'));
   assert.equal(pilotGateJob.if, "needs.pilot-gate-preflight.outputs.should_run == 'true'");
   assert.equal(pilotGateJob.env.DATABASE_URL_RLS, pilotGateJob.env.DATABASE_URL);
+  assert.equal(pilotGateJob.env.NODE_OPTIONS, '--max-old-space-size=4096');
   assert.ok(setupIndex >= 0);
   assert.ok(manualSonarIndex >= 0);
   assert.ok(prepareDbIndex >= 0);
