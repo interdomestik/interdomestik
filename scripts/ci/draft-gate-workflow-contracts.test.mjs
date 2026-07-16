@@ -110,6 +110,7 @@ test('pilot and optional deterministic backstops honor the shared full-lane deci
     "needs.draft-policy.outputs.run_full == 'true' && github.event.repository.private == false"
   );
   assert.equal(backstops.jobs['osv-scanner'].with['upload-sarif'], false);
+  assert.equal(backstops.jobs['osv-scanner'].permissions['security-events'], 'write');
   const semgrepSteps = backstops.jobs['semgrep-ce'].steps;
   assert.ok(semgrepSteps.find(step => step?.name === 'Preserve Semgrep SARIF artifact'));
   assert.match(
