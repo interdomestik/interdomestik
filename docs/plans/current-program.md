@@ -784,6 +784,24 @@ production deployment; no Vercel deployment or production alias changed.
 expected resolver state is `blocked_requires_current_authority`,
 `activeSlice=null` until a fresh gate promotes exactly one next governed action.
 
+Rev 128 current authority: `IDA-DG15` in
+`docs/plans/2026-07-16-ida-dg15-ui03a0a-registered-account-truth-design-gate.md`
+promotes exactly one prospective Tier 3 implementation slice,
+`IDA-UI03a0a`, after Arben's exact v3.2 gate approval, final blocker
+consolidation and separate canonical-promotion authority. The slice is limited to
+truthful registered-account versus access-active membership presentation,
+suppression of pre-purchase member-number/benefit/company cues, content-free
+member-number observability, focused decomposition of the success/auth paths,
+SQ/EN/SR/MK, accessibility and the exact 13-file/22-test/6-day ceiling. It uses
+the existing access-active subscription lookup as the only entitlement authority
+and changes no auth/session/OTP, role, tenant, route, schema/RLS, Paddle,
+checkout, provider, Free Start draft, upload, claim or protected staff/admin
+behavior. `IDA-UI03a0b`, `IDA-UI03a1`, `IDA-UI03a2`, `IDA-UI03b` and
+`IDA-UI03a0c` remain unapproved. The next active governed implementation goal is
+exactly one canonical tracker slice: `IDA-UI03a0a`. Runtime work remains held
+until the worktree resolver returns it alone and Arben separately confirms
+implementation authority. No rollout or deployment is authorized.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
