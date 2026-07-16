@@ -4,13 +4,42 @@ on:
   pull_request:
     branches:
       - '**'
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+      - converted_to_draft
+      - labeled
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
+  draft-policy:
+    name: Deterministic Backstops Draft Policy
+    runs-on: ubuntu-latest
+    outputs:
+      run_full: ${{ steps.gate_policy.outputs.run_full }}
+      reason: ${{ steps.gate_policy.outputs.reason }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Evaluate PR gate policy
+        id: gate_policy
+        uses: interdomestik/interdomestik/.github/actions/pr-gate-policy@9a81dd9767aabeef25889eb791f20e9496a52205
+        with:
+          event-name: ${{ github.event_name }}
+          event-path: ${{ github.event_path }}
+      - name: Report quick draft lane
+        if: steps.gate_policy.outputs.run_full != 'true'
+        run: echo "Deterministic backstops skipped (${{ steps.gate_policy.outputs.reason }})."
+
   dependency-review:
     name: Dependency Review
+    needs:
+      - draft-policy
+    if: needs.draft-policy.outputs.run_full == 'true' && github.event.repository.private == false
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -24,6 +53,9 @@ jobs:
 
   osv-scanner:
     name: OSV Scanner PR
+    needs:
+      - draft-policy
+    if: needs.draft-policy.outputs.run_full == 'true'
     permissions:
       actions: read
       contents: read
@@ -34,9 +66,13 @@ jobs:
       scan-args: |-
         --recursive
         ./
+      upload-sarif: false
 
   semgrep-ce:
     name: Semgrep CE Diff Scan
+    needs:
+      - draft-policy
+    if: needs.draft-policy.outputs.run_full == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -64,20 +100,30 @@ jobs:
             --output semgrep.sarif \
             .
       - name: Upload Semgrep SARIF
-        if: always() && hashFiles('semgrep.sarif') != ''
+        if: always() && github.event.repository.private == false && hashFiles('semgrep.sarif') != ''
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: semgrep.sarif
+      - name: Preserve Semgrep SARIF artifact
+        if: always() && hashFiles('semgrep.sarif') != ''
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: semgrep-sarif
+          path: semgrep.sarif
+          retention-days: 5
 
   reviewdog-eslint:
     name: reviewdog ESLint Annotations
+    needs:
+      - draft-policy
+    if: needs.draft-policy.outputs.run_full == 'true'
     runs-on: ubuntu-latest
     permissions:
       checks: write
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - uses: ./.github/actions/setup
       - uses: reviewdog/action-setup@38a8d76742a75eeb6c6ffc616bde64179fd09ebf # v1.5.0
       - name: Annotate web ESLint findings

@@ -4,6 +4,13 @@ on:
   pull_request:
     branches:
       - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+      - converted_to_draft
+      - labeled
 
 concurrency:
   group: pr-finalizer-${{ github.event.pull_request.number }}
@@ -17,15 +24,30 @@ jobs:
       checks: read
       statuses: read
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+      - name: Evaluate PR gate policy
+        id: gate_policy
+        uses: interdomestik/interdomestik/.github/actions/pr-gate-policy@9a81dd9767aabeef25889eb791f20e9496a52205
+        with:
+          event-name: ${{ github.event_name }}
+          event-path: ${{ github.event_path }}
+      - name: Report quick draft lane
+        if: steps.gate_policy.outputs.run_full != 'true'
+        run: echo "PR finalizer attestation deferred (${{ steps.gate_policy.outputs.reason }})."
       - uses: ./.github/actions/setup
+        if: steps.gate_policy.outputs.run_full == 'true'
       - name: Run PR finalizer gate
+        if: steps.gate_policy.outputs.run_full == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_FINALIZER_SKIP_CHECK_POLLING: 'false'
+          PR_FINALIZER_MAX_CHECK_RETRIES: '360'
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || secrets.SONAR_HOST_URL }}
           SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY || secrets.SONAR_PROJECT_KEY }}

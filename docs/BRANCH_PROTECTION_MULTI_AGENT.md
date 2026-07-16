@@ -14,9 +14,6 @@ Require these exact check names:
 6. `pilot-gate`
 7. `pr-finalizer`
 8. `commitlint`
-9. `CodeQL`
-10. `Analyze (actions)`
-11. `Analyze (javascript-typescript)`
 
 `Pilot Gate Preflight` and `Pilot Gate Runner` are monitored as evidence, but
 `pilot-gate` is the stable branch-protection context. Do not require `ai-eval`
@@ -26,6 +23,9 @@ validation-surface gated and validly skipped for non-product PRs. Do not require
 `SonarCloud Code Analysis` globally because Sonar materialization is not
 deterministic across governance-only commits; the governance report still
 records its presence, absence, and result.
+CodeQL is unavailable without GitHub Code Security on the current private Team
+repository. Do not require its contexts; the governance report still records
+their presence, absence, and result as monitored evidence.
 
 ## Reviewer And Feedback Monitoring
 

@@ -21,19 +21,10 @@ EOF
 }
 
 required_checks=(
-  "validation-surface"
-  "audit"
-  "e2e"
-  "pilot-gate"
-  "pnpm-audit"
-  "gitleaks"
-  "pr-finalizer"
-  "commitlint"
-  "CodeQL"
-  "Analyze (actions)"
-  "Analyze (javascript-typescript)"
+  "validation-surface" "audit" "e2e" "pilot-gate"
+  "pnpm-audit" "gitleaks" "pr-finalizer" "commitlint"
 )
-max_check_retries=120
+max_check_retries="${PR_FINALIZER_MAX_CHECK_RETRIES:-120}"
 check_retry_delay_seconds=10
 
 run_step() {
@@ -99,6 +90,9 @@ require_gh_checks() {
   if [[ "${skip_polling}" == "true" ]]; then
     echo "[pr-finalizer] INFO: skipping required-check polling (handled by branch protection)."
     return 0
+  fi
+  if [[ ! "${max_check_retries}" =~ ^[1-9][0-9]*$ ]]; then
+    fail "invalid PR_FINALIZER_MAX_CHECK_RETRIES value: ${max_check_retries}"
   fi
 
   local gh_token="${GITHUB_TOKEN:-${GH_TOKEN:-}}"

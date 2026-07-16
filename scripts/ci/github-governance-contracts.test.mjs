@@ -18,9 +18,6 @@ const REQUIRED_CHECKS = [
   'pilot-gate',
   'pr-finalizer',
   'commitlint',
-  'CodeQL',
-  'Analyze (actions)',
-  'Analyze (javascript-typescript)',
 ];
 
 function read(relativePath) {
@@ -44,6 +41,8 @@ test('branch-protection documentation and PR template list current governance ch
     assert.match(protectionDoc, new RegExp(`\`${escapedName}\``));
     assert.match(prTemplate, new RegExp(`\`${escapedName}\``));
   }
+  assert.doesNotMatch(protectionDoc, /\`(?:CodeQL|Analyze)/);
+  assert.doesNotMatch(prTemplate, /\`(?:CodeQL|Analyze)/);
 
   assert.match(prTemplate, /@codex review/);
   assert.match(prTemplate, /current-head Copilot review/);
@@ -87,6 +86,7 @@ test('governance report script is wired and names external reviewer signals', ()
   const monitoredChecksBlock = reportScript.match(/const MONITORED_CHECKS = \[[\s\S]*?\];/)?.[0];
   assert.ok(requiredChecksBlock);
   assert.ok(monitoredChecksBlock);
+  assert.doesNotMatch(requiredChecksBlock, /CodeQL|Analyze/);
   for (const monitoredCheck of ['static', 'unit', 'e2e-gate', 'SonarCloud Code Analysis']) {
     assert.doesNotMatch(requiredChecksBlock, new RegExp(`'${escapeRegexLiteral(monitoredCheck)}'`));
     assert.match(monitoredChecksBlock, new RegExp(`'${escapeRegexLiteral(monitoredCheck)}'`));

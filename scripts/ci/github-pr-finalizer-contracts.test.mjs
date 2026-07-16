@@ -13,10 +13,8 @@ const REQUIRED_CHECKS = [
   'pnpm-audit',
   'gitleaks',
   'pilot-gate',
+  'pr-finalizer',
   'commitlint',
-  'CodeQL',
-  'Analyze (actions)',
-  'Analyze (javascript-typescript)',
 ];
 
 function read(relativePath) {
@@ -36,6 +34,8 @@ test('PR finalizer local polling covers current deterministic required checks', 
   }
 
   assert.match(finalizer, /\[\[ "\$\{check_name\}" == "pr-finalizer" \]\]/);
+  assert.match(finalizer, /\$\{max_check_retries\}.*\^\[1-9\]\[0-9\]\*\$/);
+  assert.match(finalizer, /invalid PR_FINALIZER_MAX_CHECK_RETRIES value/);
   assert.match(finalizer, /\(\.name \/\/ \.workflow_name \/\/ ""\) == \$NAME/);
   assert.match(
     finalizerLib,
