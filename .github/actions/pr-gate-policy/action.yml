@@ -43,13 +43,14 @@ runs:
         INPUT_DISPATCH_BASE_REF: ${{ inputs.dispatch-base-ref }}
         INPUT_EVENT_NAME: ${{ inputs.event-name }}
         INPUT_EVENT_PATH: ${{ inputs.event-path }}
+        POLICY_ROOT: ${{ github.action_path }}/../../..
       shell: bash
       run: |
         set -u
         changed_files_path="${RUNNER_TEMP}/pr-gate-${GITHUB_RUN_ID}-${GITHUB_JOB}.txt"
         : >"${changed_files_path}"
         if [[ "${INPUT_EVENT_NAME}" == "pull_request" ]]; then
-          if ! node scripts/ci/github-pr-files.mjs \
+          if ! node "${POLICY_ROOT}/scripts/ci/github-pr-files.mjs" \
             --event-path "${INPUT_EVENT_PATH}" >"${changed_files_path}"; then
             echo "::warning::Changed-file lookup failed; policy will fail full."
             : >"${changed_files_path}"
@@ -66,9 +67,10 @@ runs:
         CHANGED_FILES_PATH: ${{ steps.changed-files.outputs.path }}
         INPUT_EVENT_NAME: ${{ inputs.event-name }}
         INPUT_EVENT_PATH: ${{ inputs.event-path }}
+        POLICY_ROOT: ${{ github.action_path }}/../../..
       shell: bash
       run: |
-        node scripts/ci/validation-surface-policy.mjs \
+        node "${POLICY_ROOT}/scripts/ci/validation-surface-policy.mjs" \
           --event-name "${INPUT_EVENT_NAME}" \
           --event-path "${INPUT_EVENT_PATH}" \
           --changed-files-path "${CHANGED_FILES_PATH}" >>"$GITHUB_OUTPUT"
@@ -79,10 +81,11 @@ runs:
         CHANGED_FILES_PATH: ${{ steps.changed-files.outputs.path }}
         INPUT_EVENT_NAME: ${{ inputs.event-name }}
         INPUT_EVENT_PATH: ${{ inputs.event-path }}
+        POLICY_ROOT: ${{ github.action_path }}/../../..
         PR_GATE_CHANGED_FILE_COUNT: ${{ steps.changed-files.outputs.changed_file_count }}
       shell: bash
       run: |
-        node scripts/ci/pr-gate-policy.mjs \
+        node "${POLICY_ROOT}/scripts/ci/pr-gate-policy.mjs" \
           --event-name "${INPUT_EVENT_NAME}" \
           --event-path "${INPUT_EVENT_PATH}" \
           --changed-files-path "${CHANGED_FILES_PATH}" >>"$GITHUB_OUTPUT"
@@ -117,8 +120,9 @@ runs:
       env:
         CHANGED_FILES_PATH: ${{ steps.changed-files.outputs.path }}
         INPUT_EVENT_NAME: ${{ inputs.event-name }}
+        POLICY_ROOT: ${{ github.action_path }}/../../..
       shell: bash
       run: |
-        node scripts/ci/ai-eval-surface.mjs \
+        node "${POLICY_ROOT}/scripts/ci/ai-eval-surface.mjs" \
           --event-name "${INPUT_EVENT_NAME}" \
           --changed-files-path "${CHANGED_FILES_PATH}" >>"$GITHUB_OUTPUT"
