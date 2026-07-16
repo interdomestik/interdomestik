@@ -5,7 +5,13 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
-function runCli({ draft, changedFiles, expectedCount = changedFiles.length, includeFile = true }) {
+function runCli({
+  draft,
+  changedFiles,
+  expectedCount = changedFiles.length,
+  actualCount = changedFiles.length,
+  includeFile = true,
+}) {
   const directory = mkdtempSync(path.join(os.tmpdir(), 'pr-gate-policy-'));
   const eventPath = path.join(directory, 'event.json');
   const changedFilesPath = path.join(directory, 'changed-files.txt');
@@ -26,7 +32,10 @@ function runCli({ draft, changedFiles, expectedCount = changedFiles.length, incl
       '--changed-files-path',
       changedFilesPath,
     ],
-    { encoding: 'utf8' }
+    {
+      encoding: 'utf8',
+      env: { ...process.env, PR_GATE_CHANGED_FILE_COUNT: String(actualCount) },
+    }
   );
   rmSync(directory, { recursive: true, force: true });
   assert.equal(result.status, 0, result.stderr);
@@ -53,6 +62,18 @@ test('CLI fails full when changed-file evidence is incomplete', () => {
     changedFiles: [],
     expectedCount: 1,
     includeFile: false,
+  });
+  assert.equal(result.run_full, 'true');
+  assert.equal(result.force_full, 'true');
+  assert.equal(result.reason, 'changed-files-incomplete');
+});
+
+test('CLI counts renamed entries as one changed file', () => {
+  const result = runCli({
+    draft: true,
+    changedFiles: ['docs/new-name.md', 'docs/old-name.md'],
+    expectedCount: 2,
+    actualCount: 1,
   });
   assert.equal(result.run_full, 'true');
   assert.equal(result.force_full, 'true');

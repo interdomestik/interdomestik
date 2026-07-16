@@ -44,6 +44,9 @@ test('full-gate label forces the full lane on a draft', () => {
 test('high-risk paths force the full lane on a draft', () => {
   const paths = [
     'apps/web/src/proxy.ts',
+    'apps/web/src/lib/proxy-gate.ts',
+    'apps/web/src/lib/proxy-logic.ts',
+    'apps/web/src/lib/proxy-session-state.ts',
     'apps/web/src/lib/auth.ts',
     'apps/web/src/server/domains/tenant-cache.ts',
     'apps/web/src/app/api/webhooks/paddle/route.ts',

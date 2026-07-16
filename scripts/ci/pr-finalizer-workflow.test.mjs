@@ -21,7 +21,7 @@ test('PR finalizer forces current-head required-check polling for the full lane'
 
   assert.ok(runStep);
   assert.equal(runStep.env.PR_FINALIZER_SKIP_CHECK_POLLING, 'false');
-  assert.equal(runStep.env.PR_FINALIZER_MAX_CHECK_RETRIES, '420');
+  assert.equal(runStep.env.PR_FINALIZER_MAX_CHECK_RETRIES, '360');
 });
 
 test('PR finalizer delegates Sonar validation to governance monitoring in CI', () => {

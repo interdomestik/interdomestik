@@ -10,6 +10,7 @@ const HIGH_RISK_EXACT_PATHS = new Set([
 
 const HIGH_RISK_PREFIXES = [
   'apps/web/src/lib/auth/',
+  'apps/web/src/lib/proxy-',
   'apps/web/src/server/auth/',
   'apps/web/src/lib/tenant/',
   'packages/shared-auth/',

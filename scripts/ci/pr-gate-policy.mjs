@@ -27,11 +27,16 @@ const event = readJson(valueFor('--event-path') || process.env.GITHUB_EVENT_PATH
 const eventName = valueFor('--event-name') || process.env.GITHUB_EVENT_NAME || 'unknown';
 const changed = readChangedFiles(valueFor('--changed-files-path'));
 const expectedChangedFiles = event.pull_request?.changed_files;
+const actualChangedFilesText = process.env.PR_GATE_CHANGED_FILE_COUNT?.trim() || '';
+const actualChangedFiles = /^\d+$/u.test(actualChangedFilesText)
+  ? Number(actualChangedFilesText)
+  : Number.NaN;
 const changedFilesComplete =
   eventName !== 'pull_request' ||
   (changed.exists &&
     Number.isInteger(expectedChangedFiles) &&
-    changed.files.length >= expectedChangedFiles);
+    Number.isInteger(actualChangedFiles) &&
+    actualChangedFiles >= expectedChangedFiles);
 const labels = (event.pull_request?.labels || []).map(label => label.name).filter(Boolean);
 
 const decision = evaluatePrGatePolicy({

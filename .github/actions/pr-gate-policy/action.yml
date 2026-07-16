@@ -79,6 +79,7 @@ runs:
         CHANGED_FILES_PATH: ${{ steps.changed-files.outputs.path }}
         INPUT_EVENT_NAME: ${{ inputs.event-name }}
         INPUT_EVENT_PATH: ${{ inputs.event-path }}
+        PR_GATE_CHANGED_FILE_COUNT: ${{ steps.changed-files.outputs.changed_file_count }}
       shell: bash
       run: |
         node scripts/ci/pr-gate-policy.mjs \

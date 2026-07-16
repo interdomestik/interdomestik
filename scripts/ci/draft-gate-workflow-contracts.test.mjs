@@ -49,10 +49,15 @@ test('draft-aware workflows react to lifecycle and full-gate label events', () =
 test('shared policy action keeps event data out of interpolated shell scripts', () => {
   const action = readAction('pr-gate-policy');
   const scripts = action.runs.steps.map(step => step.run).filter(Boolean);
+  const policy = action.runs.steps.find(step => step.id === 'policy');
 
   for (const script of scripts) {
     assert.doesNotMatch(script, /\$\{\{\s*(?:github|inputs|steps)\./u);
   }
+  assert.equal(
+    policy.env.PR_GATE_CHANGED_FILE_COUNT,
+    '${{ steps.changed-files.outputs.changed_file_count }}'
+  );
 });
 
 test('CI exposes one effective heavy-lane decision while keeping required audit materialized', () => {
