@@ -46,7 +46,7 @@ runs:
         POLICY_ROOT: ${{ github.action_path }}/../../..
       shell: bash
       run: |
-        set -u
+        set -euo pipefail
         changed_files_path="${RUNNER_TEMP}/pr-gate-${GITHUB_RUN_ID}-${GITHUB_JOB}.txt"
         : >"${changed_files_path}"
         if [[ "${INPUT_EVENT_NAME}" == "pull_request" ]]; then
@@ -56,8 +56,11 @@ runs:
             : >"${changed_files_path}"
           fi
         elif [[ "${INPUT_EVENT_NAME}" == "workflow_dispatch" && -n "${INPUT_DISPATCH_BASE_REF}" ]]; then
-          git fetch --no-tags origin "${INPUT_DISPATCH_BASE_REF}" --depth=1
-          git diff --name-only "origin/${INPUT_DISPATCH_BASE_REF}"...HEAD >"${changed_files_path}"
+          if ! git fetch --no-tags origin "${INPUT_DISPATCH_BASE_REF}" --depth=1 ||
+            ! git diff --name-only "origin/${INPUT_DISPATCH_BASE_REF}"...HEAD >"${changed_files_path}"; then
+            echo "::warning::Dispatch changed-file lookup failed; policy will fail full."
+            : >"${changed_files_path}"
+          fi
         fi
         echo "path=${changed_files_path}" >>"$GITHUB_OUTPUT"
 

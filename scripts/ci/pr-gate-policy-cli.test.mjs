@@ -72,6 +72,18 @@ test('CLI counts renamed entries as one changed file', () => {
   const result = runCli({
     draft: true,
     changedFiles: ['docs/new-name.md', 'docs/old-name.md'],
+    expectedCount: 1,
+    actualCount: 1,
+  });
+  assert.equal(result.run_full, 'false');
+  assert.equal(result.force_full, 'false');
+  assert.equal(result.reason, 'ordinary-draft');
+});
+
+test('CLI does not let expanded rename paths hide incomplete evidence', () => {
+  const result = runCli({
+    draft: true,
+    changedFiles: ['docs/new-name.md', 'docs/old-name.md'],
     expectedCount: 2,
     actualCount: 1,
   });
