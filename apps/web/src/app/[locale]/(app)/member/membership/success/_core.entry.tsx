@@ -116,7 +116,7 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
           disclaimerTitle: t('hotline_disclaimer.title'),
           disclaimerBody: t('hotline_disclaimer.body'),
           benefitsTitle: t('benefits_title'),
-          benefits: [1, 2, 3, 4].map(i => t(`benefits_${i}` as never)),
+          benefits: membershipActive ? [1, 2, 3, 4].map(i => t(`benefits_${i}` as never)) : [],
         }}
       />
 
