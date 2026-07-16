@@ -66,7 +66,7 @@ test('fetchPullRequestFiles paginates GitHub PR files API results', async () => 
     };
   }
 
-  const files = await fetchPullRequestFiles({
+  const evidence = await fetchPullRequestFiles({
     repositoryFullName: 'interdomestik/interdomestik',
     pullRequestNumber: 235,
     token: 'test-token',
@@ -77,8 +77,36 @@ test('fetchPullRequestFiles paginates GitHub PR files API results', async () => 
   assert.match(requests[0].url, /page=1$/);
   assert.match(requests[1].url, /page=2$/);
   assert.equal(requests[0].options.headers.authorization, 'Bearer test-token');
-  assert.equal(files.length, 101);
-  assert.equal(files.at(-1), 'README.md');
+  assert.equal(evidence.fileCount, 101);
+  assert.equal(evidence.files.length, 101);
+  assert.equal(evidence.files.at(-1), 'README.md');
+});
+
+test('fetchPullRequestFiles includes the previous path for renamed files', async () => {
+  async function fetchImpl() {
+    return {
+      ok: true,
+      async json() {
+        return [
+          {
+            filename: 'docs/proxy.ts',
+            previous_filename: 'apps/web/src/proxy.ts',
+            status: 'renamed',
+          },
+        ];
+      },
+    };
+  }
+
+  const evidence = await fetchPullRequestFiles({
+    repositoryFullName: 'interdomestik/interdomestik',
+    pullRequestNumber: 235,
+    token: 'test-token',
+    fetchImpl,
+  });
+
+  assert.equal(evidence.fileCount, 1);
+  assert.deepEqual(evidence.files, ['docs/proxy.ts', 'apps/web/src/proxy.ts']);
 });
 
 test('CLI exits cleanly for non pull request events', () => {
