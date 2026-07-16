@@ -71,7 +71,7 @@ describe('member-number auth hooks', () => {
       createdYear: 2026,
       isNew: true,
     });
-    expect(JSON.stringify(log.mock.calls)).not.toMatch(/user-secret|MEM-2026|private@example/);
+    expect(log).not.toHaveBeenCalled();
     log.mockRestore();
   });
 
@@ -97,7 +97,7 @@ describe('member-number auth hooks', () => {
       ['self_heal_invoked', { createdYear: 2025 }],
       ['self_heal_resolved', { createdYear: 2025, isNew: true }],
     ]);
-    expect(JSON.stringify(log.mock.calls)).not.toMatch(/user-secret|MEM-2026|private@example/);
+    expect(log).not.toHaveBeenCalled();
     log.mockRestore();
   });
 });
