@@ -21,11 +21,24 @@ import {
   renderStatusChangedEmail,
   renderWelcomeEmail,
 } from './email-templates';
+import {
+  createEmailTelemetry,
+  normalizeSignInOtpLocale,
+  renderSignInOtpEmail,
+  sendViaResend,
+  type EmailResult,
+  type EmailSendOptions,
+  type EmailTelemetry,
+  type SignInOtpLocale,
+} from './sign-in-otp-email';
+
+export { normalizeSignInOtpLocale };
+export type { EmailResult };
 
 let resendClient: Resend | null = null;
 let smtpTransporter: nodemailer.Transporter | null = null;
 
-function getResendClient() {
+function getResendClient(telemetry = createEmailTelemetry()) {
   if (resendClient) return resendClient;
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
@@ -36,12 +49,14 @@ function getResendClient() {
     resendClient = new Resend(apiKey);
     return resendClient;
   } catch (error) {
-    console.warn('Failed to initialize Resend client:', error);
+    telemetry.failed('resend', 'client_initialization', () =>
+      console.warn('Failed to initialize Resend client:', error)
+    );
     return null;
   }
 }
 
-function getEmailClient() {
+function getEmailClient(telemetry: EmailTelemetry) {
   // Priority 0: Automated Testing (Mock)
   // Always return null to force mock path in sendEmail
   if (process.env.INTERDOMESTIK_AUTOMATED === '1' || process.env.PLAYWRIGHT === '1') {
@@ -63,11 +78,13 @@ function getEmailClient() {
 
   // Priority 2: Resend (Production / Preview)
   if (!process.env.RESEND_API_KEY) {
-    console.warn('Resend API key not configured. Emails will be skipped.');
+    telemetry.unavailable('none', () =>
+      console.warn('Resend API key not configured. Emails will be skipped.')
+    );
     return null;
   }
 
-  const resend = getResendClient();
+  const resend = getResendClient(telemetry);
   if (resend) return { type: 'resend', client: resend };
 
   return null;
@@ -82,45 +99,19 @@ function getSenderAddress() {
   );
 }
 
-export type EmailResult = { success: true; id: string } | { success: false; error: string };
-
-async function sendViaResend(
-  client: Resend,
-  to: string,
-  template: { subject: string; html: string; text: string },
-  options: { attachments?: { filename: string; content: Buffer | string }[] } = {}
-): Promise<EmailResult> {
-  const response = await client.emails.send({
-    from: getSenderAddress(),
-    to,
-    subject: template.subject,
-    html: template.html,
-    text: template.text,
-    attachments: options.attachments,
-  });
-
-  if (response.error) {
-    console.error('Resend error:', response.error);
-    return { success: false, error: response.error.message };
-  }
-
-  if (!response.data?.id) {
-    return { success: false, error: 'No email ID returned from Resend' };
-  }
-
-  return { success: true, id: response.data.id };
-}
-
 export async function sendEmail(
   to: string,
   template: { subject: string; html: string; text: string },
-  options: { attachments?: { filename: string; content: Buffer | string }[] } = {}
+  options: EmailSendOptions = {}
 ): Promise<EmailResult> {
-  const provider = getEmailClient();
+  const telemetry = createEmailTelemetry(options.telemetryPolicy);
+  const provider = getEmailClient(telemetry);
   if (!provider) {
     // If testing and no provider, just mock success
     if (process.env.INTERDOMESTIK_AUTOMATED === '1') {
-      console.log(`[MockEmail] To: ${to}, Subject: ${template.subject}`);
+      telemetry.sent('mock', () =>
+        console.log(`[MockEmail] To: ${to}, Subject: ${template.subject}`)
+      );
       return { success: true, id: 'mock-id' };
     }
     return { success: false, error: 'Email provider not configured' };
@@ -137,21 +128,25 @@ export async function sendEmail(
           text: template.text,
           attachments: options.attachments,
         });
-        console.log(`[SMTP] Email sent to ${to}: ${info.messageId}`);
+        telemetry.sent('smtp', () => console.log(`[SMTP] Email sent to ${to}: ${info.messageId}`));
         return { success: true, id: info.messageId };
       } catch (smtpError) {
-        const resend = getResendClient();
+        const resend = getResendClient(telemetry);
         if (!resend) throw smtpError;
 
-        console.warn('SMTP delivery failed, falling back to Resend:', smtpError);
-        return sendViaResend(resend, to, template, options);
+        telemetry.fallback('smtp', () =>
+          console.warn('SMTP delivery failed, falling back to Resend:', smtpError)
+        );
+        return sendViaResend(resend, getSenderAddress(), to, template, options, telemetry);
       }
     } else {
       const client = provider.client as Resend;
-      return sendViaResend(client, to, template, options);
+      return sendViaResend(client, getSenderAddress(), to, template, options, telemetry);
     }
   } catch (error) {
-    console.error('Failed to send email:', error);
+    telemetry.failed(provider.type === 'smtp' ? 'smtp' : 'resend', 'delivery', () =>
+      console.error('Failed to send email:', error)
+    );
     return { success: false, error: 'Failed to send email' };
   }
 }
@@ -293,21 +288,14 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string): Prom
   return sendEmail(to, renderPasswordResetEmail({ resetUrl }));
 }
 
-export async function sendSignInOtpEmail(to: string, otp: string): Promise<EmailResult> {
+export async function sendSignInOtpEmail(
+  to: string,
+  otp: string,
+  locale: SignInOtpLocale = 'en'
+): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
-  return sendEmail(to, {
-    subject: 'Your Interdomestik sign-in code',
-    html: `
-      <div style="font-family: sans-serif; padding: 20px; color: #0f172a;">
-        <h2 style="margin: 0 0 16px;">Your sign-in code</h2>
-        <p style="margin: 0 0 16px;">Use this code to continue your Interdomestik membership checkout.</p>
-        <div style="font-size: 32px; font-weight: 700; letter-spacing: 0.24em; margin: 24px 0; color: #0f172a;">
-          ${otp}
-        </div>
-        <p style="margin: 16px 0 0; color: #475569;">This code expires in a few minutes. If you did not request it, you can ignore this email.</p>
-      </div>
-    `,
-    text: `Use this Interdomestik sign-in code to continue your membership checkout: ${otp}`,
+  return sendEmail(to, renderSignInOtpEmail(otp, locale), {
+    telemetryPolicy: 'content-free',
   });
 }
 

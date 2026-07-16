@@ -1,111 +1,68 @@
 'use client';
 
+import { contactInfo } from '@/lib/contact';
 import { Button } from '@interdomestik/ui';
-import { Loader2 } from 'lucide-react';
 import { forwardRef } from 'react';
 
+import { OTP_ACTION_CLASS, PricingOtpContent } from './pricing-table-content';
 import type { OtpCheckoutStepProps } from './types';
 
-export const OtpCheckoutStep = forwardRef<HTMLElement, OtpCheckoutStepProps>(
-  function OtpCheckoutStep(
-    {
-      plan,
-      email,
-      code,
-      error,
-      success,
-      sending,
-      verifying,
-      t,
-      onEmailChange,
-      onCodeChange,
-      onSend,
-      onBack,
-      onVerify,
-    },
-    ref
-  ) {
+export const OtpCheckoutStep = forwardRef<HTMLHeadingElement, OtpCheckoutStepProps>(
+  function OtpCheckoutStep(props, headingRef) {
+    const busy = props.sending || props.verifying;
+    const errorText = props.error ? props.t(`otpStep.errors.${props.error}`) : null;
+    const showSupport = ['sendFailed', 'verify', 'accountStop'].includes(props.error ?? '');
+
     return (
       <section
-        ref={ref}
-        tabIndex={-1}
         data-testid="pricing-otp-step"
-        className="mx-auto max-w-3xl rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl"
+        aria-labelledby="pricing-otp-heading"
+        className="mx-auto max-w-3xl rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl forced-colors:border"
       >
-        <div className="space-y-2">
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-700">
-            {t('joinSecurely')}
-          </p>
-          <h2 className="text-3xl font-black tracking-tight text-slate-950">
-            {t('otpStep.title')}
-          </h2>
-          <p className="text-base font-medium text-slate-600">
-            {t('otpStep.subtitle', { planName: plan.name })}
-          </p>
-        </div>
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-700">
+          {props.t('joinSecurely')}
+        </p>
+        <h2
+          ref={headingRef}
+          id="pricing-otp-heading"
+          tabIndex={-1}
+          className="mt-2 text-3xl font-black tracking-tight text-slate-950 focus-visible:outline forced-colors:outline"
+        >
+          {props.t('otpStep.title')}
+        </h2>
+        <p
+          id="pricing-otp-truth"
+          className="mt-3 text-base text-slate-700 [overflow-wrap:anywhere]"
+        >
+          {props.t('otpStep.truth')}
+        </p>
 
         <div className="mt-6 space-y-4">
-          <label className="block space-y-2">
-            <span className="text-sm font-bold text-slate-700">{t('otpStep.emailLabel')}</span>
-            <input
-              data-testid="pricing-otp-email-input"
-              type="email"
-              value={email}
-              onChange={event => onEmailChange(event.target.value)}
-              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-base"
-              placeholder={t('otpStep.emailPlaceholder')}
-              autoComplete="email"
-            />
-          </label>
-
+          <PricingOtpContent {...props} />
+          {errorText ? (
+            <p id="pricing-otp-error" role="alert" className="text-sm font-semibold text-red-700">
+              {errorText}
+            </p>
+          ) : null}
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button
               type="button"
-              data-testid="pricing-otp-send-cta"
-              className="min-h-[44px] touch-manipulation rounded-2xl px-6"
-              disabled={sending}
-              onClick={onSend}
-            >
-              {sending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-              {t('otpStep.send')}
-            </Button>
-            <Button
-              type="button"
               variant="outline"
-              className="min-h-[44px] touch-manipulation rounded-2xl px-6"
-              onClick={onBack}
+              className={OTP_ACTION_CLASS}
+              disabled={busy}
+              onClick={props.onBack}
             >
-              {t('otpStep.back')}
+              {props.t('preCheckout.cancel')}
             </Button>
+            {showSupport ? (
+              <a
+                href={contactInfo.telHref}
+                className={`${OTP_ACTION_CLASS} inline-flex items-center justify-center border border-slate-400 font-semibold`}
+              >
+                {props.t('disclaimers.hotline.title')}
+              </a>
+            ) : null}
           </div>
-
-          <label className="block space-y-2">
-            <span className="text-sm font-bold text-slate-700">{t('otpStep.codeLabel')}</span>
-            <input
-              data-testid="pricing-otp-code-input"
-              type="text"
-              value={code}
-              onChange={event => onCodeChange(event.target.value)}
-              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-base tracking-[0.3em]"
-              placeholder={t('otpStep.codePlaceholder')}
-              inputMode="numeric"
-              autoComplete="one-time-code"
-            />
-          </label>
-
-          <Button
-            type="button"
-            data-testid="pricing-otp-verify-cta"
-            className="min-h-[44px] touch-manipulation rounded-2xl px-6"
-            disabled={verifying}
-            onClick={onVerify}
-          >
-            {verifying ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-            {t('otpStep.verify')}
-          </Button>
-
-          {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
-          {success ? <p className="text-sm font-medium text-emerald-700">{success}</p> : null}
         </div>
       </section>
     );

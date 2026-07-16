@@ -120,7 +120,7 @@
         "body": "Free Start ju jep udhëzim informues, modele dhe mjete për hapat e radhës. Nuk nis shqyrtim njerëzor, këshillë ligjore ose rikuperim të drejtuar nga stafi."
       },
       "hotline": {
-        "title": "Linja është për orientim dhe mbështetje",
+        "title": "Kontakto mbështetjen",
         "body": "Linja shërben për orientim urgjent, mbështetje dhe hapin e radhës. Nuk do të thotë shqyrtim të menjëhershëm ligjor, pranim të rastit ose trajtim nga stafi."
       }
     },
@@ -190,33 +190,33 @@
     },
     "mainHeading1": "Zgjidhni anëtarësimin",
     "mainHeading2": "që ju përshtatet.",
-    "joinSecurely": "Fillo i sigurt",
+    "joinSecurely": "Kontrolli i email-it",
     "preCheckout": {
       "planSummary": "Përmbledhja e planit",
       "responsePromise": "Objektivi i triagimit prioritar: nën 24 orë pune",
       "continue": "Vazhdo te pagesa",
-      "cancel": "Jo tani"
+      "cancel": "Kthehu"
     },
     "localCheckout": {
       "title": "Pagesa lokale nuk është e konfiguruar",
       "body": "{planName} nuk mund të hapë pagesë reale në këtë mjedis lokal. Shtoni një Paddle client token për ta testuar pagesën lokalisht."
     },
     "otpStep": {
-      "title": "Vazhdo me email",
-      "subtitle": "Shkruani email-in tuaj për të marrë kodin e hyrjes për {planName}.",
+      "title": "Konfirmoni email-in për të vazhduar",
+      "truth": "Do t’ju dërgojmë një kod me 6 shifra. Kodi konfirmon email-in dhe hap ose krijon llogarinë tuaj. Nuk konfirmon pagesë, anëtarësi aktive, kërkesë për dëm apo rast të pranuar.",
       "emailLabel": "Adresa e email-it",
-      "emailPlaceholder": "emri@example.com",
-      "send": "Dërgo kodin e hyrjes",
-      "sendSuccess": "Ju dërguam një kod hyrjeje në email.",
-      "codeLabel": "Kodi",
-      "codePlaceholder": "Shkruani kodin 6-shifror",
-      "verify": "Verifiko dhe vazhdo",
-      "back": "Kthehu",
+      "send": "Dërgo kodin",
+      "sent": "Nëse ajo adresë mund të marrë mesazhe nga ne, kodi është nisur. Vlen 5 minuta. Vlen vetëm kodi më i ri.",
+      "codeLabel": "Kodi me 6 shifra",
+      "verify": "Konfirmo email-in",
+      "changeEmail": "Ndrysho email-in",
+      "resend": "Dërgo kod të ri",
+      "resendCooldown": "Dërgo kod të ri pas {seconds} sekondash",
       "errors": {
         "missingEmail": "Shkruani email-in për të vazhduar.",
-        "sendFailed": "Nuk u dërgua kodi i hyrjes.",
-        "missingCode": "Shkruani kodin që ju dërguam për të vazhduar.",
-        "invalidCode": "Kodi i hyrjes nuk është i vlefshëm."
+        "sendFailed": "Nuk mundëm ta dërgonim kodin tani. Provoni përsëri.",
+        "verify": "Nuk e konfirmuam dot kodin. Kontrolloni kodin më të ri ose dërgoni një të ri.",
+        "accountStop": "Email-i u konfirmua. Kjo llogari nuk mund të vazhdojë me këtë blerje. Hapni llogarinë tuaj ose kontaktoni mbështetjen."
       }
     },
     "businessLead": {

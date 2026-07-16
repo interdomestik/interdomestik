@@ -325,13 +325,13 @@ describe('PricingTable', () => {
     fireEvent.click(screen.getByTestId('pricing-otp-send-cta'));
 
     await waitFor(() => {
-      expect(authClient.emailOtp.sendVerificationOtp).toHaveBeenCalledWith({
-        email: 'member@example.com',
-        type: 'sign-in',
-      });
+      expect(authClient.emailOtp.sendVerificationOtp).toHaveBeenCalledWith(
+        { email: 'member@example.com', type: 'sign-in' },
+        { headers: { 'x-interdomestik-locale': 'en' } }
+      );
     });
 
-    expect(await screen.findByText('otpStep.sendSuccess')).toBeInTheDocument();
+    expect(await screen.findByText('otpStep.sent')).toBeInTheDocument();
   });
 
   it('verifies the OTP with default acquisition tenant fields and continues into checkout for the selected plan', async () => {
@@ -345,6 +345,8 @@ describe('PricingTable', () => {
     fireEvent.change(screen.getByTestId('pricing-otp-email-input'), {
       target: { value: 'member@example.com' },
     });
+    fireEvent.click(screen.getByTestId('pricing-otp-send-cta'));
+    await screen.findByTestId('pricing-otp-code-input');
     fireEvent.change(screen.getByTestId('pricing-otp-code-input'), {
       target: { value: '123456' },
     });
@@ -378,19 +380,15 @@ describe('PricingTable', () => {
     expect(mockRouterPush).not.toHaveBeenCalled();
   });
 
-  it('shows the missing email error when OTP verification is attempted without an email', async () => {
+  it('shows the missing email error when OTP send is attempted without an email', async () => {
     render(<PricingTable billingTestMode={false} checkoutConfig={checkoutConfig} />);
 
     fireEvent.click(screen.getByTestId('plan-cta-standard'));
     fireEvent.click(screen.getByTestId('precheckout-continue-cta'));
-    fireEvent.change(screen.getByTestId('pricing-otp-code-input'), {
-      target: { value: '123456' },
-    });
-
-    fireEvent.click(screen.getByTestId('pricing-otp-verify-cta'));
+    fireEvent.click(screen.getByTestId('pricing-otp-send-cta'));
 
     expect(screen.getByText('otpStep.errors.missingEmail')).toBeInTheDocument();
-    expect(authClient.signIn.emailOtp).not.toHaveBeenCalled();
+    expect(authClient.emailOtp.sendVerificationOtp).not.toHaveBeenCalled();
   });
 
   it('routes anonymous business users to the assisted business entry path', () => {
@@ -455,9 +453,10 @@ describe('PricingTable', () => {
     fireEvent.click(screen.getByTestId('precheckout-continue-cta'));
 
     const otpStep = await screen.findByTestId('pricing-otp-step');
+    const heading = within(otpStep).getByRole('heading', { name: 'otpStep.title' });
 
     await waitFor(() => {
-      expect(otpStep).toHaveFocus();
+      expect(heading).toHaveFocus();
     });
   });
 

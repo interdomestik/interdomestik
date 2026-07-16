@@ -120,7 +120,7 @@
         "body": "Free Start vam daje informativne smernice, obrasce i alate za sledeći korak. Ne pokreće ljudski pregled, pravni savet ili naplatu koju vodi tim."
       },
       "hotline": {
-        "title": "Linija služi za usmeravanje i podršku",
+        "title": "Kontaktirajte podršku",
         "body": "Linija služi za hitno usmeravanje, podršku i sledeći korak. Ne znači hitan pravni pregled, prihvatanje predmeta ili obradu koju vodi tim."
       }
     },
@@ -190,33 +190,33 @@
     },
     "mainHeading1": "Izaberite zaštitu",
     "mainHeading2": "koja vam odgovara.",
-    "joinSecurely": "Pridružite se bezbedno",
+    "joinSecurely": "Provera e-adrese",
     "preCheckout": {
       "planSummary": "Pregled plana",
       "responsePromise": "Cilj prioritetne trijaže: ispod 24 radna sata",
       "continue": "Nastavi na naplatu",
-      "cancel": "Ne sada"
+      "cancel": "Nazad"
     },
     "localCheckout": {
       "title": "Lokalna naplata nije podešena",
       "body": "{planName} još ne može da otvori stvarno plaćanje u ovom lokalnom okruženju. Dodajte Paddle client token da biste lokalno testirali naplatu."
     },
     "otpStep": {
-      "title": "Nastavi putem emaila",
-      "subtitle": "Unesite svoj email da biste dobili kod za prijavu za {planName}.",
+      "title": "Potvrdite e-adresu da nastavite",
+      "truth": "Poslaćemo kod od 6 cifara. Kod potvrđuje vašu e-adresu i otvara ili kreira nalog. Ne potvrđuje uplatu, aktivno članstvo, zahtev niti prihvaćen predmet.",
       "emailLabel": "Adresa e-pošte",
-      "emailPlaceholder": "ime@example.com",
-      "send": "Pošalji kod za prijavu",
-      "sendSuccess": "Poslali smo kod za prijavu na vaš email.",
-      "codeLabel": "Kod",
-      "codePlaceholder": "Unesite šestocifreni kod",
-      "verify": "Potvrdi i nastavi",
-      "back": "Nazad",
+      "send": "Pošalji kod",
+      "sent": "Ako ta adresa može da primi našu poruku, kod je na putu. Važi 5 minuta. Važi samo najnoviji kod.",
+      "codeLabel": "Kod od 6 cifara",
+      "verify": "Potvrdi e-adresu",
+      "changeEmail": "Promeni e-adresu",
+      "resend": "Pošalji novi kod",
+      "resendCooldown": "Pošalji novi kod za {seconds} s",
       "errors": {
         "missingEmail": "Unesite email da biste nastavili.",
-        "sendFailed": "Nije moguće poslati kod za prijavu.",
-        "missingCode": "Unesite kod koji smo vam poslali da biste nastavili.",
-        "invalidCode": "Kod za prijavu nije važeći."
+        "sendFailed": "Trenutno nismo mogli da pošaljemo kod. Pokušajte ponovo.",
+        "verify": "Nismo uspeli da potvrdimo kod. Proverite najnoviji kod ili pošaljite novi.",
+        "accountStop": "E-adresa je potvrđena. Ovaj nalog ne može da nastavi ovom kupovinom. Otvorite svoj nalog ili kontaktirajte podršku."
       }
     },
     "businessLead": {
