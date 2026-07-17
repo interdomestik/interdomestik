@@ -42,7 +42,6 @@ describe('IDA-UI03a0b2 OTP abuse limits', () => {
     });
     return mocks.limit.mock.calls.map(([key]) => key);
   }
-
   it('C13 applies independent 3/IP/60s and 3/HMAC-email/60s send budgets', async () => {
     expect(getOtpRateLimitPolicies('send')).toEqual([
       { dimension: 'ip', limit: 3, windowSeconds: 60 },
@@ -57,7 +56,6 @@ describe('IDA-UI03a0b2 OTP abuse limits', () => {
       expect.objectContaining({ analytics: false, limiter: { limit: 3, window: '60 s' } }),
     ]);
   });
-
   it('C14 applies independent 3/IP/10s and 3/HMAC-email/10s verify budgets', async () => {
     expect(getOtpRateLimitPolicies('verify')).toEqual([
       { dimension: 'ip', limit: 3, windowSeconds: 10 },
@@ -72,7 +70,6 @@ describe('IDA-UI03a0b2 OTP abuse limits', () => {
       expect.objectContaining({ analytics: false, limiter: { limit: 3, window: '10 s' } }),
     ]);
   });
-
   it('C15 HMACs tenant NUL lowercase email and disables identity analytics', async () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('UPSTASH_REDIS_REST_URL', 'https://mock.upstash.io');
