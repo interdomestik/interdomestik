@@ -882,6 +882,30 @@ session. After promotion merge, the resolver must return only `IDA-UI03a0b2`
 and separate orchestrator runtime authority is required. Later IDA slices remain
 unpromoted.
 
+Rev 133 material addendum current authority:
+`docs/plans/2026-07-17-ida-dg17-material-addendum-tenant-pricing-neutral-ida.md`
+is accepted at exact SHA-256
+`11665d3764661a64964658179070505e83691bf5e693d6cb1638b45541ae92a8`, bound
+only to the Rev 132 parent design and `IDA-UI03a0b2`. Tenant pricing remains
+visible, but its anonymous membership/OTP continuation must make one deliberate
+top-level navigation to the server-pinned canonical neutral IDA
+`/{locale}/pricing` origin before OTP begins. The destination may carry only an
+allowlisted `standard` or `family` presentation slug; that value is removed from
+history before analytics and cannot influence tenant, classification, entity,
+price, Paddle, custom data, session or identity. The destination GET remains
+idempotent, an existing IDA session wins and no cross-origin API, CORS, cookie or
+session bridge is introduced. The cumulative ceiling is 20 production files, 17
+test/spec/support files, exactly 32 authored focused cases and five engineering
+days, with only the named six-production/four-test addendum map and the already
+authorized deterministic repository-size metadata. The 150-line rule remains
+unchanged. `proxy.ts`, proxy logic, the live-login redirect builder, the OTP
+allowlist/auth routes, shared-auth public API, schema/RLS/migrations, Supabase,
+Paddle authority/modules, provider resources, rollout, deployment and production
+aliases remain forbidden. This docs-only promotion sets
+`runtime_authorized:false`; PR `#1372` and its current P1 remain stopped until
+canonical merge, exact resolver proof and separate orchestrator runtime authority
+for C27-C32 and the revised ceilings. Later IDA slices remain unpromoted.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
