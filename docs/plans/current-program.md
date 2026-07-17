@@ -913,10 +913,15 @@ exact neutral IDA OTP route/host authority, server-resolved neutral tenant
 context, hashed rotating Better Auth 1.6.22 OTPs, split IP/private identity abuse
 budgets, exact fresh-session continuation cleanup and server-pinned tenant
 pricing to neutral-IDA navigation with a presentation-only two-value plan hint.
-Final scope was 21 production/config files, 17 test/spec/support files, exactly
-32 authored focused cases, the separately governed `.env.example` and only the
-deterministic repository-size metadata file, within five engineering days. Local
-mandatory proof, current-head full E2E/Pilot/Sonar/CodeQL/security/reviews,
+The material-addendum ceiling of 20 production files was revised only by the
+later independent Sol XHigh one-file namespace amendment, receipt SHA-256
+`f29b1dcc9aaf8b3430379a2e65ea5737bad70a140d3b4a0fcee65d5132c3946b`, to an
+effective 21/17/32/5 ceiling for exact `apps/web/src/i18n/messages.ts`
+registration. Final scope used that exact 21 production/config files, 17
+test/spec/support files, 32 authored focused cases, the separately governed
+`.env.example` and only deterministic repository-size metadata, within five
+engineering days. Local mandatory proof, current-head full
+E2E/Pilot/Sonar/CodeQL/security/reviews,
 independent Sol XHigh visual acceptance and post-merge main health were green.
 Automatic CD run `29620366103` was cancelled before deployment; no deployment or
 alias changed. The accepted concurrent-email Option A residual remains explicit

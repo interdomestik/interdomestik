@@ -31,15 +31,20 @@ entity, price, Paddle, session or identity authority.
 
 ## Scope and preserved architecture
 
-The final implementation diff contains 21 production/config files, 17
-test/spec/support files, the separately governed `.env.example`, and only the
-deterministically generated `scripts/repo-size-budget.json` metadata file. It
-preserves exactly 32 authored focused cases, C01-C32, and the five-engineering-day
-ceiling. The accepted Sol XHigh namespace amendment added only existing
-`entityDisclosure` registration in `apps/web/src/i18n/messages.ts`; it did not
-invent copy or broaden localization architecture. The separate C25/C26
-evidence-equivalent refactor retained the complete behavioral inventory while
-keeping the E2E file within the unchanged 150-line rule.
+The DG17 material addendum set a cumulative ceiling of 20 production files. The
+later independent Sol XHigh namespace amendment, authorized under Arben's
+standing delegation and preserved at receipt SHA-256
+`f29b1dcc9aaf8b3430379a2e65ea5737bad70a140d3b4a0fcee65d5132c3946b`, raised
+only that effective ceiling to 21 production/config files for the exact existing
+`entityDisclosure` registration in `apps/web/src/i18n/messages.ts`; its revised
+cumulative ceiling is 21/17/32/5. No locale JSON, copy, loader function, layout,
+new case or other production/config file was authorized. The final diff uses
+that exact 21-production/config ceiling, 17 test/spec/support files, the
+separately governed `.env.example`, and only the deterministically generated
+`scripts/repo-size-budget.json` metadata file. It preserves exactly 32 authored
+focused cases, C01-C32, and the five-engineering-day ceiling. The separate
+C25/C26 evidence-equivalent refactor retained the complete behavioral inventory
+while keeping the E2E file within the unchanged 150-line rule.
 
 Supabase Auth remains the identity/session system of record, Better Auth 1.6.22
 remains the active orchestrator, and `@interdomestik/shared-auth` remains the
@@ -124,13 +129,14 @@ verification jobs were cancelled without deployment. Vercel failed before
 deployment because the private organization is on a Hobby plan. No deployment
 or production alias change occurred.
 
-The mandatory Brain measurement began mid-task in session
-`sess_2026-07-17T07-19-58-673Z_IDA-UI03a0b2`. Pass one returned only current
-`AGENTS.md` sections instead of current-program/tracker/resolver authority. Pass
-two returned the prior DG16 gate/closeout rather than the exact DG17 source/test
-seam. One narrow repository-authority recovery was used. Repo authority then
-governed every architecture and runtime decision. The measurement cannot prove
-full-task time/token savings and no savings claim is made. `humanUseful` remains
+The mandatory Brain measurement began mid-task on 2026-07-17; its ephemeral
+session identity remains in the external measurement receipt rather than this
+canonical closeout. Pass one returned only current `AGENTS.md` sections instead
+of current-program/tracker/resolver authority. Pass two returned the prior DG16
+gate/closeout rather than the exact DG17 source/test seam. One narrow
+repository-authority recovery was used. Repo authority then governed every
+architecture and runtime decision. The measurement cannot prove full-task
+time/token savings and no savings claim is made. `humanUseful` remains
 `unknown/not_confirmed` until Arben explicitly labels the Brain measurement.
 
 Fresh AI OS observation
