@@ -87,7 +87,8 @@ export const HOME_NAMESPACES = [
   'faq',
   'footer',
 ] as const;
-export const SITE_NAMESPACES = ['about', 'pricing', 'services', 'legal'] as const;
+// prettier-ignore
+export const SITE_NAMESPACES = ['about', 'pricing', 'services', 'legal', 'entityDisclosure'] as const;
 export const AUTH_NAMESPACES = ['auth'] as const;
 export const APP_NAMESPACES = [
   'common',
@@ -216,5 +217,4 @@ export async function loadAllMessages(locale: string, options: LoadAllMessagesOp
 
   return modules.reduce((acc, curr) => mergeMessages(acc, curr), {});
 }
-
 export { pickMessages } from './pick-messages';

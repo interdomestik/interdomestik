@@ -1,12 +1,9 @@
 'use client';
-
 import { authClient } from '@/lib/auth-client';
 import { useEffect, useRef, useState } from 'react';
 import type { OtpError, PricingEmailOtpArgs } from './types';
-const OTP_LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
-const COOLDOWN_SECONDS = 60;
 function allowlistedLocale(locale: string) {
-  return OTP_LOCALES.includes(locale as (typeof OTP_LOCALES)[number]) ? locale : 'en';
+  return ['sq', 'en', 'sr', 'mk'].includes(locale) ? locale : 'en';
 }
 function maskEmail(email: string) {
   const [name = '', domain = ''] = email.split('@');
@@ -19,20 +16,25 @@ export function usePricingEmailOtp(args: PricingEmailOtpArgs) {
   const [error, setError] = useState<OtpError | null>(null);
   const [phase, setPhase] = useState<'editing' | 'sending' | 'sent' | 'verifying'>('editing');
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
-  const emailRef = useRef<HTMLInputElement>(null);
-  const codeRef = useRef<HTMLInputElement>(null);
+  const [emailRef, codeRef] = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
   const pendingRef = useRef(false);
   const continuationRef = useRef(false);
   const cooldownEmailRef = useRef<string | null>(null);
   useEffect(() => {
     if (cooldownSeconds <= 0) return;
-    const timer = globalThis.setInterval(
-      () => setCooldownSeconds(value => Math.max(0, value - 1)),
-      1000
-    );
+    const tick = () => setCooldownSeconds(value => Math.max(0, value - 1));
+    const timer = globalThis.setInterval(tick, 1000);
     return () => globalThis.clearInterval(timer);
   }, [cooldownSeconds]);
-  const focus = (ref: typeof emailRef) => queueMicrotask(() => ref.current?.focus());
+  const focus = (ref: typeof emailRef) => {
+    ref.current?.focus();
+    globalThis.requestAnimationFrame?.(() => ref.current?.focus());
+  };
+  useEffect(() => {
+    const timer =
+      phase === 'sent' && error ? globalThis.setTimeout(() => codeRef.current?.focus()) : 0;
+    return () => globalThis.clearTimeout(timer);
+  }, [error, phase]);
   const send = async () => {
     if (pendingRef.current) return;
     const destination = (lockedEmail ?? email).trim().toLowerCase();
@@ -42,7 +44,6 @@ export function usePricingEmailOtp(args: PricingEmailOtpArgs) {
       return;
     }
     if (cooldownSeconds > 0 && destination === cooldownEmailRef.current) return;
-
     const wasLocked = Boolean(lockedEmail);
     pendingRef.current = true;
     setPhase('sending');
@@ -56,7 +57,7 @@ export function usePricingEmailOtp(args: PricingEmailOtpArgs) {
       setEmail(destination);
       setLockedEmail(destination);
       cooldownEmailRef.current = destination;
-      setCooldownSeconds(COOLDOWN_SECONDS);
+      setCooldownSeconds(60);
       setPhase('sent');
       if (!wasLocked) focus(codeRef);
     } catch {
@@ -70,7 +71,6 @@ export function usePricingEmailOtp(args: PricingEmailOtpArgs) {
   const failVerification = (nextError: OtpError) => {
     setError(nextError);
     setPhase('sent');
-    focus(codeRef);
   };
   const verify = async () => {
     if (pendingRef.current || continuationRef.current) return;
@@ -83,7 +83,6 @@ export function usePricingEmailOtp(args: PricingEmailOtpArgs) {
       failVerification('verify');
       return;
     }
-
     pendingRef.current = true;
     setPhase('verifying');
     setError(null);
@@ -94,12 +93,18 @@ export function usePricingEmailOtp(args: PricingEmailOtpArgs) {
         ...(args.tenantId ? { tenantClassificationPending: true, tenantId: args.tenantId } : {}),
       });
       if (result.error) {
-        failVerification('verify');
+        const code = (result.error as { code?: string }).code;
+        failVerification(code === 'ACCOUNT_STOP' ? 'accountStop' : 'verify');
+        return;
+      }
+      const userId = result.data?.user?.id;
+      if (typeof userId !== 'string' || !userId) {
+        failVerification('accountStop');
         return;
       }
       continuationRef.current = true;
       try {
-        await args.onVerified({ email: lockedEmail, userId: result.data?.user?.id });
+        await args.onVerified({ email: lockedEmail, userId });
         setPhase('sent');
       } catch {
         failVerification('accountStop');
@@ -110,7 +115,6 @@ export function usePricingEmailOtp(args: PricingEmailOtpArgs) {
       pendingRef.current = false;
     }
   };
-
   const changeEmail = () => {
     setEmail('');
     setCode('');
@@ -120,7 +124,6 @@ export function usePricingEmailOtp(args: PricingEmailOtpArgs) {
     continuationRef.current = false;
     focus(emailRef);
   };
-
   const reset = () => {
     setEmail(args.initialEmail ?? '');
     setCode('');
@@ -129,20 +132,17 @@ export function usePricingEmailOtp(args: PricingEmailOtpArgs) {
     setPhase('editing');
     continuationRef.current = false;
   };
-
   const form = { email, setEmail, code, setCode, error, cooldownSeconds, emailRef, codeRef };
   const actions = { send, verify, changeEmail, reset };
   const visibleCooldown =
     lockedEmail || email.trim().toLowerCase() === cooldownEmailRef.current ? cooldownSeconds : 0;
+  const hasStatus = lockedEmail && !['accountStop', 'sendFailed'].includes(error ?? '');
   return {
     ...form,
     cooldownSeconds: visibleCooldown,
     destinationLocked: Boolean(lockedEmail),
     maskedEmail: lockedEmail ? maskEmail(lockedEmail) : '',
-    status:
-      lockedEmail && !['accountStop', 'sendFailed'].includes(error ?? '')
-        ? ('sent' as const)
-        : null,
+    status: hasStatus ? ('sent' as const) : null,
     sending: phase === 'sending',
     verifying: phase === 'verifying',
     ...actions,

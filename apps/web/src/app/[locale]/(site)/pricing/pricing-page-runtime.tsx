@@ -6,13 +6,17 @@ import { CommercialFunnelEvents } from '@/lib/analytics';
 import { authClient } from '@/lib/auth-client';
 import type { PublicBillingCheckoutConfig } from '@interdomestik/domain-membership-billing/paddle-server';
 import { useLocale } from 'next-intl';
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
+
+import type { SelfServePlanId } from '@/components/pricing/pricing-table/types';
 
 type PricingPageRuntimeProps = Readonly<{
   billingTestMode: boolean;
   billingTenantId?: string | null;
   checkoutConfig: PublicBillingCheckoutConfig | null;
   entityDisclosure?: EntityDisclosureNoticeModel | null;
+  neutralEntryPlan?: SelfServePlanId | null;
+  neutralPricingEntryUrl?: string;
 }>;
 
 export function PricingPageRuntime({
@@ -20,10 +24,24 @@ export function PricingPageRuntime({
   billingTenantId,
   checkoutConfig,
   entityDisclosure,
+  neutralEntryPlan,
+  neutralPricingEntryUrl,
 }: PricingPageRuntimeProps) {
   const { data: session, isPending } = authClient.useSession();
   const user = session?.user;
   const locale = useLocale();
+  const [acceptedEntryPlan, setAcceptedEntryPlan] = useState<SelfServePlanId | null>(null);
+
+  useLayoutEffect(() => {
+    if (!neutralPricingEntryUrl) return setAcceptedEntryPlan(neutralEntryPlan ?? null);
+    const trustedEntry = new URL(neutralPricingEntryUrl);
+    const isTrustedEntry =
+      location.origin === trustedEntry.origin && location.pathname === trustedEntry.pathname;
+    const hasPlanAttempt = new URLSearchParams(location.search).has('plan');
+    if (isTrustedEntry && hasPlanAttempt)
+      history.replaceState(history.state, '', location.pathname);
+    setAcceptedEntryPlan(neutralEntryPlan ?? null);
+  }, [neutralEntryPlan, neutralPricingEntryUrl]);
 
   useEffect(() => {
     CommercialFunnelEvents.pricingPageViewed(
@@ -45,6 +63,8 @@ export function PricingPageRuntime({
       email={user?.email}
       entityDisclosure={entityDisclosure}
       isSessionPending={isPending}
+      {...(acceptedEntryPlan ? { neutralEntryPlan: acceptedEntryPlan } : {})}
+      {...(neutralPricingEntryUrl ? { neutralPricingEntryUrl } : {})}
       tenantId={billingTenantId}
       userId={user?.id}
     />

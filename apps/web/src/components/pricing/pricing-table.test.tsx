@@ -139,21 +139,25 @@ describe('PricingTable', () => {
     );
   });
 
-  it('marks the query-selected plan card for continuity after hydration', async () => {
-    window.history.replaceState({}, '', '/pricing?plan=family');
-    render(
-      <PricingTable
-        userId="user-123"
-        email="test@example.com"
-        billingTestMode={false}
-        checkoutConfig={checkoutConfig}
-      />
+  it('marks only the server-validated presentation plan and ignores the raw query', async () => {
+    window.history.replaceState({}, '', '/pricing?plan=business&tenantId=tenant_mk');
+    const first = render(<PricingTable userId="user-123" checkoutConfig={checkoutConfig} />);
+    expect(screen.getByTestId('plan-card-business')).toHaveAttribute('data-selected-plan', '0');
+    first.unmount();
+    const p = { checkoutConfig, neutralEntryPlan: 'family' as const };
+    const entry = (url: string) => <PricingTable {...p} neutralPricingEntryUrl={url} />;
+    const view = render(entry('https://ida.interdomestik.test/pricing'));
+    await waitFor(() =>
+      expect(screen.getByTestId('plan-card-family')).toHaveAttribute('data-selected-plan', '1')
     );
-
-    await waitFor(() => {
-      expect(screen.getByTestId('plan-card-family')).toHaveAttribute('data-selected-plan', '1');
-    });
-    expect(screen.getByTestId('plan-card-standard')).toHaveAttribute('data-selected-plan', '0');
+    expect(screen.queryByTestId('pricing-otp-step')).not.toBeInTheDocument();
+    view.rerender(entry('http://localhost:3000/not-pricing'));
+    expect(screen.queryByTestId('pricing-otp-step')).not.toBeInTheDocument();
+    view.rerender(entry('http://localhost:3000/pricing'));
+    expect(await screen.findByTestId('pricing-otp-step')).toBeInTheDocument();
+    view.rerender(<PricingTable checkoutConfig={checkoutConfig} />);
+    expect(screen.queryByTestId('pricing-otp-step')).not.toBeInTheDocument();
+    expect(screen.getByTestId('plan-card-family')).toHaveAttribute('data-selected-plan', '0');
   });
 
   it('derives anonymous pricing CTA routing decisions from plan type and session state', () => {
@@ -271,8 +275,10 @@ describe('PricingTable', () => {
     });
   });
 
-  it('opens a self-serve confirmation for anonymous standard plan before continuing to email OTP onboarding', async () => {
-    render(<PricingTable billingTestMode={false} checkoutConfig={checkoutConfig} />);
+  it('C30 navigates an anonymous tenant continuation once to trusted IDA without OTP or Paddle', async () => {
+    const navigateTopLevel = vi.fn();
+    const neutralPricingEntryUrl = 'https://ida.interdomestik.test/en/pricing';
+    render(<PricingTable {...{ checkoutConfig, navigateTopLevel, neutralPricingEntryUrl }} />);
 
     const standardCta = screen.getByTestId('plan-cta-standard');
     expect(standardCta.tagName).toBe('BUTTON');
@@ -281,35 +287,29 @@ describe('PricingTable', () => {
 
     const confirmation = screen.getByTestId('pricing-precheckout-confirmation');
     expect(confirmation).toBeInTheDocument();
-    expect(within(confirmation).getByText('joinSecurely')).toBeInTheDocument();
-    expect(within(confirmation).getByText('standard.name')).toBeInTheDocument();
-    expect(within(confirmation).getByText('€20')).toBeInTheDocument();
-    expect(within(confirmation).getByText('preCheckout.responsePromise')).toBeInTheDocument();
-    expect(within(confirmation).getByText('disclaimers.eyebrow')).toBeInTheDocument();
+    for (const text of ['joinSecurely', 'standard.name', '€20', 'preCheckout.responsePromise']) {
+      expect(within(confirmation).getByText(text)).toBeInTheDocument();
+    }
 
     fireEvent.click(screen.getByTestId('precheckout-continue-cta'));
 
-    expect(screen.getByTestId('pricing-otp-step')).toBeInTheDocument();
-    expect(screen.getByTestId('pricing-otp-email-input')).toBeInTheDocument();
-    expect(screen.getByTestId('pricing-otp-send-cta')).toBeInTheDocument();
+    expect(navigateTopLevel).toHaveBeenCalledOnce();
+    expect(navigateTopLevel).toHaveBeenCalledWith(`${neutralPricingEntryUrl}?plan=standard`);
+    expect(screen.queryByTestId('pricing-otp-step')).not.toBeInTheDocument();
+    expect(authClient.emailOtp.sendVerificationOtp).not.toHaveBeenCalled();
     expect(mockRouterPush).not.toHaveBeenCalled();
     expect(mockPaddle.Checkout.open).not.toHaveBeenCalled();
   });
 
-  it('opens a self-serve confirmation for anonymous family plan before continuing to email OTP onboarding', async () => {
-    render(<PricingTable billingTestMode={false} checkoutConfig={checkoutConfig} />);
-
-    fireEvent.click(screen.getByTestId('plan-cta-family'));
-
-    const confirmation = screen.getByTestId('pricing-precheckout-confirmation');
-    expect(confirmation).toBeInTheDocument();
-    expect(within(confirmation).getByText('family.name')).toBeInTheDocument();
-    expect(within(confirmation).getByText('€35')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByTestId('precheckout-continue-cta'));
-
-    expect(screen.getByTestId('pricing-otp-step')).toBeInTheDocument();
-    expect(mockRouterPush).not.toHaveBeenCalled();
+  it('keeps an existing IDA member session ahead of the presentation-only plan reference', async () => {
+    render(
+      <PricingTable checkoutConfig={checkoutConfig} neutralEntryPlan="family" userId="member-1" />
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('plan-card-family')).toHaveAttribute('data-selected-plan', '1')
+    );
+    expect(screen.queryByTestId('pricing-otp-step')).not.toBeInTheDocument();
+    expect(authClient.emailOtp.sendVerificationOtp).not.toHaveBeenCalled();
     expect(mockPaddle.Checkout.open).not.toHaveBeenCalled();
   });
 

@@ -15,11 +15,10 @@ import { resolveSignInAdditionalTenantHint } from './sign-in-tenant-hint';
 export type AuthMethod = 'GET' | 'POST';
 export type AuthRateLimitConfig = { name: string; limit: number; windowSeconds: number };
 
-const EMAIL_SIGN_IN_PATH_SUFFIXES = ['/api/auth/sign-in/email', '/api/auth/sign-in/email-otp'];
+const EMAIL_SIGN_IN_PATH_SUFFIX = '/api/auth/sign-in/email';
 
-function getAuthPathname(url: string): string | null {
-  return URL.canParse(url) ? new URL(url).pathname : null;
-}
+const getAuthPathname = (url: string): string | null =>
+  URL.canParse(url) ? new URL(url).pathname : null;
 
 export function getAuthRateLimitConfig(method: AuthMethod, url: string): AuthRateLimitConfig {
   const pathname = getAuthPathname(url);
@@ -32,7 +31,7 @@ export function getAuthRateLimitConfig(method: AuthMethod, url: string): AuthRat
     return { name: 'api/auth/sign-out', limit: 20, windowSeconds: 60 };
   }
 
-  if (pathname && EMAIL_SIGN_IN_PATH_SUFFIXES.some(suffix => pathname.endsWith(suffix))) {
+  if (pathname?.endsWith(EMAIL_SIGN_IN_PATH_SUFFIX)) {
     return { name: 'api/auth/sign-in/email', limit: 20, windowSeconds: 60 };
   }
 
@@ -165,7 +164,7 @@ export function resolveTenantIdForPasswordResetAudit(
 
 export function isEmailSignInUrl(url: string): boolean {
   const pathname = getAuthPathname(url);
-  return pathname ? EMAIL_SIGN_IN_PATH_SUFFIXES.some(suffix => pathname.endsWith(suffix)) : false;
+  return pathname?.endsWith(EMAIL_SIGN_IN_PATH_SUFFIX) ?? false;
 }
 
 export function resolveTenantIdForEmailSignIn(headers: Headers, body?: unknown): TenantId | null {

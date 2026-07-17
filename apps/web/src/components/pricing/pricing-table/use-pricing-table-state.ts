@@ -4,12 +4,18 @@ import { CommercialFunnelEvents } from '@/lib/analytics';
 import { useEffect, useRef, useState } from 'react';
 
 import { runCheckoutAction } from './checkout-actions';
-import { getSelectedPlanIdFromSearch } from './checkout-helpers';
 import type { PricingTableProps } from './types';
 
 type PricingTableStateArgs = Pick<
   PricingTableProps,
-  'checkoutConfig' | 'email' | 'tenantId' | 'userId'
+  | 'checkoutConfig'
+  | 'email'
+  | 'isSessionPending'
+  | 'navigateTopLevel'
+  | 'neutralEntryPlan'
+  | 'neutralPricingEntryUrl'
+  | 'tenantId'
+  | 'userId'
 > &
   Readonly<{
     locale: string;
@@ -32,12 +38,21 @@ export function usePricingTableState(args: PricingTableStateArgs) {
   const otpHeadingRef = useRef<HTMLHeadingElement | null>(null);
 
   useEffect(() => {
-    const sync = () =>
-      setSelectedPlanId(getSelectedPlanIdFromSearch(globalThis.location?.search ?? ''));
-    sync();
-    globalThis.addEventListener('popstate', sync);
-    return () => globalThis.removeEventListener('popstate', sync);
-  }, []);
+    if (!args.neutralEntryPlan) {
+      setSelectedPlanId(null);
+      setOtpPlanId(null);
+      return;
+    }
+    setSelectedPlanId(args.neutralEntryPlan);
+    if (args.isSessionPending || userId || !args.neutralPricingEntryUrl) return;
+    const trustedEntry = new URL(args.neutralPricingEntryUrl);
+    if (
+      globalThis.location?.origin !== trustedEntry.origin ||
+      globalThis.location.pathname !== trustedEntry.pathname
+    )
+      return;
+    setOtpPlanId(args.neutralEntryPlan);
+  }, [args.isSessionPending, args.neutralEntryPlan, args.neutralPricingEntryUrl, userId]);
 
   useEffect(() => {
     if (!preCheckoutPlanId) return;
@@ -77,6 +92,19 @@ export function usePricingTableState(args: PricingTableStateArgs) {
       checkoutOverrides,
     });
 
+  const continueAnonymousPlan = (planId: string): boolean => {
+    if (!args.neutralPricingEntryUrl || (planId !== 'standard' && planId !== 'family'))
+      return false;
+    const target = new URL(args.neutralPricingEntryUrl);
+    if (globalThis.location?.origin === target.origin) return false;
+    target.search = '';
+    target.hash = '';
+    target.searchParams.set('plan', planId);
+    const navigate = args.navigateTopLevel ?? (href => globalThis.location?.assign(href));
+    navigate(target.href);
+    return true;
+  };
+
   return {
     loading,
     setLoading,
@@ -90,5 +118,6 @@ export function usePricingTableState(args: PricingTableStateArgs) {
     preCheckoutSectionRef,
     otpHeadingRef,
     handleAction,
+    continueAnonymousPlan,
   };
 }

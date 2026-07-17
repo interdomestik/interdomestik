@@ -5,7 +5,17 @@ const hoisted = vi.hoisted(() => ({
   getMessagesMock: vi.fn(async () => ({
     common: { loading: 'Loading' },
     pricing: { title: 'Pricing' },
+    entityDisclosure: {
+      title: 'Entity',
+      contractingCompany: 'Company',
+      governingLaw: 'Law',
+      unavailableTitle: 'Unavailable',
+      unavailableBody: 'Try again',
+    },
   })),
+  providerMock: vi.fn(
+    ({ children }: { children: ReactNode; messages?: Record<string, unknown> }) => children
+  ),
   setRequestLocaleMock: vi.fn(),
 }));
 
@@ -15,20 +25,16 @@ vi.mock('next-intl/server', () => ({
 }));
 
 vi.mock('next-intl', () => ({
-  NextIntlClientProvider: ({ children }: { children: ReactNode }) => children,
+  NextIntlClientProvider: hoisted.providerMock,
 }));
-
-vi.mock('@/i18n/messages', () => ({
-  BASE_NAMESPACES: ['common'],
-  SITE_NAMESPACES: ['pricing'],
-  pickMessages: (messages: Record<string, unknown>) => messages,
-}));
+vi.mock('next-intl/navigation', () => ({ createNavigation: () => ({}) }));
+vi.mock('next-intl/routing', () => ({ defineRouting: (config: unknown) => config }));
 
 import SiteLayout from './_core.entry';
 
 describe('SiteLayout i18n initialization', () => {
   it('sets request locale before loading messages', async () => {
-    await SiteLayout({
+    const result = await SiteLayout({
       children: null,
       params: Promise.resolve({ locale: 'en' }),
     });
@@ -38,5 +44,14 @@ describe('SiteLayout i18n initialization', () => {
     expect(hoisted.setRequestLocaleMock.mock.invocationCallOrder[0]).toBeLessThan(
       hoisted.getMessagesMock.mock.invocationCallOrder[0]
     );
+    expect(result.props.messages).toMatchObject({
+      entityDisclosure: {
+        title: 'Entity',
+        contractingCompany: 'Company',
+        governingLaw: 'Law',
+        unavailableTitle: 'Unavailable',
+        unavailableBody: 'Try again',
+      },
+    });
   });
 });

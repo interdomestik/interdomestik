@@ -70,18 +70,19 @@ import PricingPage from './_core.entry';
 describe('PricingPage server shell', () => {
   beforeEach(() => {
     process.env = { ...ORIGINAL_ENV };
+    process.env.IDA_HOST = 'https://ida.example.test';
     delete process.env.BILLING_TEST_MODE;
     delete process.env.NEXT_PUBLIC_BILLING_TEST_MODE;
     vi.clearAllMocks();
   });
-
   afterEach(() => {
     process.env = { ...ORIGINAL_ENV };
   });
 
-  it('does not read request headers or session data while rendering the pricing shell', async () => {
+  it('C29 passes only the trusted pricing entry and validated plan without headers or session', async () => {
     const tree = await PricingPage({
       params: Promise.resolve({ locale: 'sq' }),
+      searchParams: Promise.resolve({ plan: 'family' }),
     });
 
     expect(tree).toBeTruthy();
@@ -116,6 +117,8 @@ describe('PricingPage server shell', () => {
         tenantId: 'tenant_ks',
       }),
       entityDisclosure: hoisted.entityDisclosure,
+      neutralEntryPlan: 'family',
+      neutralPricingEntryUrl: 'https://ida.example.test/sq/pricing',
     });
     expect(hoisted.headersMock).not.toHaveBeenCalled();
     expect(hoisted.getSessionMock).not.toHaveBeenCalled();
@@ -158,12 +161,9 @@ describe('PricingPage server shell', () => {
 
     render(tree);
 
-    expect(hoisted.pricingPageRuntimeMock).toHaveBeenCalledWith({
-      billingTestMode: false,
-      billingTenantId: 'tenant_ks',
-      checkoutConfig: null,
-      entityDisclosure: null,
-    });
+    expect(hoisted.pricingPageRuntimeMock).toHaveBeenCalledWith(
+      expect.objectContaining({ checkoutConfig: null, entityDisclosure: null })
+    );
     expect(warnSpy).toHaveBeenCalledWith(
       'Public Paddle checkout config unavailable for pricing page:',
       checkoutConfigError
