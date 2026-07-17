@@ -858,6 +858,30 @@ were green. Post-merge main CI `29558327808`, Sonar Main `29558327817`, CodeQL
 changed. No replacement implementation slice is promoted; expected resolver
 state is `blocked_requires_current_authority`, `activeSlice=null`.
 
+Rev 132 current authority: `IDA-DG17` in
+`docs/plans/2026-07-17-ida-dg17-ui03a0b2-protected-otp-hardening-design-gate.md`
+binds accepted design SHA-256
+`ed9654ec78f1a2c246742bdb151a9dbf6d18d86a219049e346271918e8364f5c`
+and promotes exactly one prospective Tier 3 implementation slice,
+`IDA-UI03a0b2`. The slice is limited to route-local exact IDA host gating,
+server-resolved existing neutral-tenant hints, hashed five-minute Better Auth
+verifiers, three attempts plus atomic consume/replay proof, distinct 3/IP/60s
+send and 3/IP/10s verify limits with private no-analytics identity budgets,
+provider-independent deferred send, exact just-created Better Auth session
+cleanup and an authoritative no-cookie-cache continuation guard. The hard
+ceiling is 14 production files, 13 test/spec files, exactly 26 authored focused
+cases and four engineering days. Supabase Auth remains the declared system of
+record, Better Auth remains the orchestrator and `@interdomestik/shared-auth`
+remains unchanged. Proxy, schema/RLS/migrations, tenancy architecture, Paddle,
+provider resources, rollout and deployment remain forbidden. Runtime is not
+authorized by this docs-only promotion. Before any product edit, frozen 1.6.22
+RED contracts must prove the raw response token, new-cookie request header,
+exact-row revocation, real-adapter registered/unregistered trace, no parallel
+Supabase session call, unconditional cookie stripping and authoritative fresh
+session. After promotion merge, the resolver must return only `IDA-UI03a0b2`
+and separate orchestrator runtime authority is required. Later IDA slices remain
+unpromoted.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
