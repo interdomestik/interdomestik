@@ -1,8 +1,12 @@
-import { Ratelimit } from '@upstash/ratelimit';
-import { Redis } from '@upstash/redis';
 import { NextResponse } from 'next/server';
+import {
+  buildRateLimitKey,
+  createRatelimit,
+  emitRateLimitBackendTelemetry,
+  type RateLimitKeyMode,
+} from './rate-limit-upstash';
 
-type RateLimitOptions = {
+export type RateLimitOptions = {
   /** A stable name for the protected action, e.g. "api/uploads" */
   name: string;
   /** Requests allowed per window */
@@ -13,19 +17,22 @@ type RateLimitOptions = {
   headers: Headers;
   /** Optional suffix to disambiguate identities that share one source IP. */
   keySuffix?: string | null;
+  /** Key composition; generic callers retain the existing suffix+IP default. */
+  keyMode?: RateLimitKeyMode;
+  /** Upstash analytics defaults on; identity-sensitive OTP callers disable it. */
+  analytics?: boolean;
+  /** Omit backend exception text from security-sensitive telemetry. */
+  contentFreeTelemetry?: boolean;
   /** Enforce fail-closed behavior on production-sensitive endpoints. */
   productionSensitive?: boolean;
 };
 
 // Server-action-safe variant that returns structured data instead of NextResponse
 export type RateLimitResult =
-  | { limited: false }
-  | { limited: true; status: 429 | 503; retryAfter?: number; error: string };
+  { limited: false } | { limited: true; status: 429 | 503; retryAfter?: number; error: string };
 
 let warnedMissingUpstashEnv = false;
 let warnedUnavailableBackendFailOpen = false;
-
-const RATE_LIMIT_BACKEND_MISSING_FINGERPRINT = 'RATE_LIMIT_BACKEND_MISSING';
 
 function isAutomatedTestRun(): boolean {
   return (
@@ -38,23 +45,6 @@ function isAutomatedTestRun(): boolean {
 
 function shouldFailClosed(productionSensitive?: boolean): boolean {
   return process.env.NODE_ENV === 'production' && productionSensitive === true;
-}
-
-function emitBackendMissingTelemetry(args: {
-  name: string;
-  reason: 'missing_env' | 'backend_unavailable';
-  error?: unknown;
-}): void {
-  const { name, reason, error } = args;
-  const errorMessage =
-    error instanceof Error ? error.message : typeof error === 'string' ? error : undefined;
-
-  console.error(`[rate-limit] ${RATE_LIMIT_BACKEND_MISSING_FINGERPRINT}`, {
-    name,
-    reason,
-    nodeEnv: process.env.NODE_ENV,
-    errorMessage,
-  });
 }
 
 function serviceUnavailableResponse(windowSeconds: number): NextResponse {
@@ -78,37 +68,15 @@ function serviceUnavailableResult(windowSeconds: number): RateLimitResult {
   };
 }
 
-function getClientIp(headers: Headers): string {
-  const forwardedFor = headers.get('x-forwarded-for');
-  const ip = forwardedFor?.split(',')[0]?.trim() || headers.get('x-real-ip') || 'unknown';
-  return ip;
-}
-
-function getRatelimitInstance(limit: number, windowSeconds: number) {
-  const redis = Redis.fromEnv();
-  return new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(limit, `${windowSeconds} s`),
-    prefix: 'interdomestik',
-    analytics: true,
-  });
-}
-
-function buildRateLimitKey(name: string, headers: Headers, keySuffix?: string | null): string {
-  const ip = getClientIp(headers);
-  const normalizedSuffix = typeof keySuffix === 'string' ? keySuffix.trim() : '';
-  if (normalizedSuffix.length > 0) {
-    return `${name}:${normalizedSuffix}:ip:${ip}`;
-  }
-  return `${name}:${ip}`;
-}
-
 export async function enforceRateLimit({
   name,
   limit,
   windowSeconds,
   headers,
   keySuffix,
+  keyMode,
+  analytics,
+  contentFreeTelemetry,
   productionSensitive,
 }: RateLimitOptions) {
   // Skip rate limiting entirely for automated test runs (Playwright, CI, etc.)
@@ -123,7 +91,11 @@ export async function enforceRateLimit({
   // Treat empty strings as unset (for E2E testing)
   if (!url || url === '' || !token || token === '') {
     if (failClosed) {
-      emitBackendMissingTelemetry({ name, reason: 'missing_env' });
+      emitRateLimitBackendTelemetry({
+        name,
+        reason: 'missing_env',
+        contentFree: contentFreeTelemetry,
+      });
       return serviceUnavailableResponse(windowSeconds);
     }
 
@@ -137,8 +109,8 @@ export async function enforceRateLimit({
   }
 
   try {
-    const ratelimit = getRatelimitInstance(limit, windowSeconds);
-    const key = buildRateLimitKey(name, headers, keySuffix);
+    const ratelimit = createRatelimit(limit, windowSeconds, analytics);
+    const key = buildRateLimitKey({ name, headers, keySuffix, keyMode });
 
     const result = await ratelimit.limit(key);
 
@@ -161,7 +133,12 @@ export async function enforceRateLimit({
     );
   } catch (error) {
     if (failClosed) {
-      emitBackendMissingTelemetry({ name, reason: 'backend_unavailable', error });
+      emitRateLimitBackendTelemetry({
+        name,
+        reason: 'backend_unavailable',
+        error,
+        contentFree: contentFreeTelemetry,
+      });
       return serviceUnavailableResponse(windowSeconds);
     }
 
@@ -182,6 +159,9 @@ export async function enforceRateLimitForAction({
   windowSeconds,
   headers,
   keySuffix,
+  keyMode,
+  analytics,
+  contentFreeTelemetry,
   productionSensitive,
 }: RateLimitOptions): Promise<RateLimitResult> {
   // Skip rate limiting entirely for automated test runs (Playwright, CI, etc.)
@@ -196,7 +176,11 @@ export async function enforceRateLimitForAction({
   // Treat empty strings as unset (for E2E testing)
   if (!url || url === '' || !token || token === '') {
     if (failClosed) {
-      emitBackendMissingTelemetry({ name, reason: 'missing_env' });
+      emitRateLimitBackendTelemetry({
+        name,
+        reason: 'missing_env',
+        contentFree: contentFreeTelemetry,
+      });
       return serviceUnavailableResult(windowSeconds);
     }
 
@@ -210,8 +194,8 @@ export async function enforceRateLimitForAction({
   }
 
   try {
-    const ratelimit = getRatelimitInstance(limit, windowSeconds);
-    const key = buildRateLimitKey(name, headers, keySuffix);
+    const ratelimit = createRatelimit(limit, windowSeconds, analytics);
+    const key = buildRateLimitKey({ name, headers, keySuffix, keyMode });
     const result = await ratelimit.limit(key);
 
     if (result.success) return { limited: false };
@@ -220,7 +204,12 @@ export async function enforceRateLimitForAction({
     return { limited: true, status: 429, retryAfter: resetSeconds, error: 'Too many requests' };
   } catch (error) {
     if (failClosed) {
-      emitBackendMissingTelemetry({ name, reason: 'backend_unavailable', error });
+      emitRateLimitBackendTelemetry({
+        name,
+        reason: 'backend_unavailable',
+        error,
+        contentFree: contentFreeTelemetry,
+      });
       return serviceUnavailableResult(windowSeconds);
     }
 

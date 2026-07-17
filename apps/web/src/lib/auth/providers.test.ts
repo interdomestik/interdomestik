@@ -7,6 +7,11 @@ const mocks = vi.hoisted(() => ({
   ),
   sendPasswordResetEmail: vi.fn(),
   sendSignInOtpEmail: vi.fn(),
+  callbacks: [] as Array<() => Promise<void> | void>,
+}));
+
+vi.mock('next/server', () => ({
+  after: (callback: () => Promise<void> | void) => mocks.callbacks.push(callback),
 }));
 
 vi.mock('better-auth/plugins/email-otp', () => ({
@@ -48,9 +53,10 @@ describe('authProviders email OTP plugin', () => {
     mocks.sendPasswordResetEmail.mockReset();
     mocks.sendSignInOtpEmail.mockReset();
     mocks.sendSignInOtpEmail.mockResolvedValue({ success: true });
+    mocks.callbacks.length = 0;
   });
 
-  it('throws when sign-in OTP email delivery fails', async () => {
+  it('contains sign-in OTP email delivery failure after scheduling', async () => {
     mocks.sendSignInOtpEmail.mockResolvedValue({
       success: false,
       error: 'Email provider unavailable',
@@ -62,7 +68,8 @@ describe('authProviders email OTP plugin', () => {
         otp: '123456',
         type: 'sign-in',
       })
-    ).rejects.toThrow('Email provider unavailable');
+    ).resolves.toBeUndefined();
+    await expect(mocks.callbacks[0]?.()).resolves.toBeUndefined();
   });
 
   it('ignores non sign-in OTP types', async () => {
@@ -89,6 +96,7 @@ describe('authProviders email OTP plugin', () => {
         }),
       }
     );
+    await mocks.callbacks[0]?.();
 
     expect(mocks.sendSignInOtpEmail).toHaveBeenCalledWith('member@example.com', '123456', expected);
   });

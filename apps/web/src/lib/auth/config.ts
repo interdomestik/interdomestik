@@ -19,6 +19,8 @@ export const authConfig = {
     // special rule here to avoid double-throttling canonical operator logins.
     customRules: {
       '/sign-in/email': false,
+      '/sign-in/email-otp': false,
+      '/email-otp/send-verification-otp': false,
     },
   },
 } satisfies Partial<BetterAuthOptions>;

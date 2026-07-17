@@ -6,7 +6,7 @@ import { Loader2 } from 'lucide-react';
 import type { OtpCheckoutStepProps } from './types';
 
 export const OTP_ACTION_CLASS =
-  'min-h-[44px] touch-manipulation rounded-2xl px-6 forced-colors:outline';
+  'min-h-[44px] min-w-0 touch-manipulation whitespace-normal rounded-2xl px-6 text-center [overflow-wrap:anywhere] forced-colors:outline';
 const INPUT_CLASS =
   'w-full rounded-2xl border border-slate-300 px-4 py-3 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 forced-colors:border';
 

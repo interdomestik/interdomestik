@@ -4,6 +4,14 @@ import { lookupUserTenantByEmail } from '@/lib/auth/tenant-lookup';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { toNextJsHandler } from 'better-auth/next-js';
 import {
+  enforcePostAuthRateLimit,
+  parseAuthJsonBody,
+  prepareNeutralOtpRequest,
+  shouldBypassAuthRateLimit,
+} from './auth-route-utils';
+import { classifyNeutralOtpRequest } from './neutral-otp-boundary';
+import { handleNeutralOtpPost } from './neutral-otp-route';
+import {
   evaluateEmailSignInTenantGuard,
   getAuthRateLimitConfig,
   getAuthRateLimitKeySuffix,
@@ -14,32 +22,6 @@ import {
 import { evaluateEmailSignUpTenantGuard, isEmailSignUpUrl } from './sign-up-tenant-guard';
 
 const handler = toNextJsHandler(auth);
-function isLocalLoopbackAuthHost(headers: Headers): boolean {
-  const host = (headers.get('x-forwarded-host') ?? headers.get('host') ?? '').toLowerCase();
-  const hostname = host.split(':')[0];
-
-  return (
-    hostname === '127.0.0.1' || hostname === 'localhost' || hostname.endsWith('.127.0.0.1.nip.io')
-  );
-}
-
-function shouldBypassAuthRateLimit(headers: Headers): boolean {
-  return process.env.NODE_ENV !== 'production' && isLocalLoopbackAuthHost(headers);
-}
-async function parseJsonBody(req: Request): Promise<unknown> {
-  try {
-    return await req.clone().json();
-  } catch {
-    return null;
-  }
-}
-async function enforcePostAuthRateLimit(req: Request) {
-  return enforceRateLimit({
-    ...getAuthRateLimitConfig('POST', req.url),
-    headers: req.headers,
-    productionSensitive: true,
-  });
-}
 export async function GET(req: Request) {
   if (!shouldBypassAuthRateLimit(req.headers)) {
     const limited = await enforceRateLimit({
@@ -52,9 +34,22 @@ export async function GET(req: Request) {
   return handler.GET(req as unknown as Parameters<typeof handler.GET>[0]);
 }
 export async function POST(req: Request) {
+  const neutral = await prepareNeutralOtpRequest(req);
+  if (neutral && 'response' in neutral) return neutral.response;
+  if (neutral) {
+    const neutralOtp = classifyNeutralOtpRequest(req.url, neutral.body);
+    if (neutralOtp) {
+      return handleNeutralOtpPost({
+        request: req,
+        body: neutral.body,
+        kind: neutralOtp,
+        handler: request => handler.POST(request as unknown as Parameters<typeof handler.POST>[0]),
+      });
+    }
+  }
   const emailSignIn = isEmailSignInUrl(req.url);
   const emailSignUp = isEmailSignUpUrl(req.url);
-  const authBody = emailSignIn || emailSignUp ? await parseJsonBody(req) : null;
+  const authBody = emailSignIn || emailSignUp ? await parseAuthJsonBody(req) : null;
   const postRateLimitConfig = getAuthRateLimitConfig('POST', req.url);
 
   if (!shouldBypassAuthRateLimit(req.headers)) {

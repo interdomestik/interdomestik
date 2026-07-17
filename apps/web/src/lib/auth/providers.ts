@@ -1,5 +1,6 @@
 import { compare, hash } from 'bcryptjs';
 import { emailOTP } from 'better-auth/plugins/email-otp';
+import { after } from 'next/server';
 import { normalizeSignInOtpLocale, sendPasswordResetEmail, sendSignInOtpEmail } from '../email';
 import { getGitHubSocialProvider } from './social-providers';
 
@@ -7,6 +8,28 @@ type GitHubOAuthEnv = {
   GITHUB_CLIENT_ID?: string;
   GITHUB_CLIENT_SECRET?: string;
 };
+
+function logOtpDelivery(category: 'success' | 'failure'): void {
+  if (process.env.OTP_CONTENT_FREE_LOGGING !== '1') return;
+  const message = `[auth][email-otp] deferred_delivery_${category}`;
+  if (category === 'failure') console.error(message);
+  else console.info(message);
+}
+
+function scheduleSignInOtpDelivery(
+  email: string,
+  otp: string,
+  locale: 'sq' | 'en' | 'sr' | 'mk'
+): void {
+  after(async () => {
+    try {
+      const result = await sendSignInOtpEmail(email, otp, locale);
+      logOtpDelivery(result.success ? 'success' : 'failure');
+    } catch {
+      logOtpDelivery('failure');
+    }
+  });
+}
 
 export function buildAuthProviders(env: GitHubOAuthEnv = process.env as GitHubOAuthEnv) {
   const githubProvider = getGitHubSocialProvider({
@@ -40,11 +63,12 @@ export function buildAuthProviders(env: GitHubOAuthEnv = process.env as GitHubOA
           const locale = normalizeSignInOtpLocale(
             context?.request?.headers.get('x-interdomestik-locale')
           );
-          const emailResult = await sendSignInOtpEmail(email, otp, locale);
-          if (!emailResult.success) {
-            throw new Error(emailResult.error || 'Failed to send sign-in OTP email.');
-          }
+          scheduleSignInOtpDelivery(email, otp, locale);
         },
+        storeOTP: 'hashed',
+        expiresIn: 300,
+        allowedAttempts: 3,
+        resendStrategy: 'rotate',
         disableSignUp: false,
       }),
     ],

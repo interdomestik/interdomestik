@@ -87,15 +87,15 @@ describe('getAuthRateLimitConfig', () => {
     });
   });
 
-  it('uses the same dedicated bucket for email OTP sign-in', () => {
+  it('leaves email OTP sign-in to its protected neutral-route limiter', () => {
     expect(
       getAuthRateLimitConfig(
         'POST',
         'https://interdomestik-web.vercel.app/api/auth/sign-in/email-otp'
       )
     ).toEqual({
-      name: 'api/auth/sign-in/email',
-      limit: 20,
+      name: 'api/auth',
+      limit: 5,
       windowSeconds: 60,
     });
   });
@@ -137,7 +137,7 @@ describe('getAuthRateLimitKeySuffix', () => {
     ).toBe('tenant:tenant_ks:email_hash:a3b3cdfa6ffbc6575b5f');
   });
 
-  it('keys email OTP sign-in rate limiting by tenant and normalized email', () => {
+  it('leaves email OTP identity keys to the HMAC neutral-route limiter', () => {
     const headers = new Headers({ host: 'ks.localhost:3000' });
 
     expect(
@@ -147,7 +147,7 @@ describe('getAuthRateLimitKeySuffix', () => {
         headers,
         body: { email: '  STAFF.KS@interdomestik.com ' },
       })
-    ).toBe('tenant:tenant_ks:email_hash:a3b3cdfa6ffbc6575b5f');
+    ).toBeNull();
   });
 });
 
@@ -462,17 +462,15 @@ describe('evaluateEmailSignInTenantGuard', () => {
       body: { email: 'admin.ks@interdomestik.com' },
       lookupUserTenantByEmail: async () => 'tenant_ks',
     });
-
     expect(result).toEqual({ decision: 'allow' });
   });
-
   it.each([
     {
       name: 'denies sign-in when user tenant and request tenant mismatch',
       url: 'https://interdomestik-web.vercel.app/api/auth/sign-in/email',
     },
     {
-      name: 'denies email OTP sign-in when user tenant and request tenant mismatch',
+      name: 'leaves email OTP sign-in to the post-verification neutral tenant guard',
       url: 'https://interdomestik-web.vercel.app/api/auth/sign-in/email-otp',
     },
   ])('$name', async ({ url }) => {
@@ -482,7 +480,10 @@ describe('evaluateEmailSignInTenantGuard', () => {
       body: { email: 'admin.ks@interdomestik.com' },
       lookupUserTenantByEmail: async () => 'tenant_ks',
     });
-
+    if (url.endsWith('/sign-in/email-otp')) {
+      expect(result).toBeNull();
+      return;
+    }
     expect(result).toEqual({
       decision: 'deny',
       code: 'WRONG_TENANT_CONTEXT',
@@ -491,7 +492,6 @@ describe('evaluateEmailSignInTenantGuard', () => {
       resolvedTenantId: 'tenant_mk',
     });
   });
-
   it('allows sign-in when tenant matches', async () => {
     const result = await evaluateEmailSignInTenantGuard({
       url: 'https://interdomestik-web.vercel.app/api/auth/sign-in/email',
