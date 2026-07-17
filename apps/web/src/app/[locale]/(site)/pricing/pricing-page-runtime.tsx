@@ -33,14 +33,14 @@ export function PricingPageRuntime({
   const [acceptedEntryPlan, setAcceptedEntryPlan] = useState<SelfServePlanId | null>(null);
 
   useLayoutEffect(() => {
-    if (!neutralPricingEntryUrl) return setAcceptedEntryPlan(null);
+    if (!neutralPricingEntryUrl) return setAcceptedEntryPlan(neutralEntryPlan ?? null);
     const trustedEntry = new URL(neutralPricingEntryUrl);
-    if (location.origin !== trustedEntry.origin || location.pathname !== trustedEntry.pathname) {
-      return setAcceptedEntryPlan(null);
-    }
+    const isTrustedEntry =
+      location.origin === trustedEntry.origin && location.pathname === trustedEntry.pathname;
     const hasPlanAttempt = new URLSearchParams(location.search).has('plan');
-    if (hasPlanAttempt) history.replaceState(history.state, '', location.pathname);
-    setAcceptedEntryPlan(hasPlanAttempt ? (neutralEntryPlan ?? null) : null);
+    if (isTrustedEntry && hasPlanAttempt)
+      history.replaceState(history.state, '', location.pathname);
+    setAcceptedEntryPlan(neutralEntryPlan ?? null);
   }, [neutralEntryPlan, neutralPricingEntryUrl]);
 
   useEffect(() => {

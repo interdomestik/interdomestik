@@ -65,20 +65,16 @@ export function PricingTable({
   });
   const preCheckoutPlan = findPlanById(plans, view.preCheckoutPlanId);
   const unavailablePlan = findPlanById(plans, view.localCheckoutUnavailablePlanId);
-  const openOtpStepForPlan = (planId: PlanId) => {
-    view.setPreCheckoutPlanId(null);
+  const setOtpStep = (planId: PlanId | null) => {
+    if (planId) view.setPreCheckoutPlanId(null);
     view.setOtpPlanId(planId);
-    otp.reset();
-  };
-  const closeOtpStep = () => {
-    view.setOtpPlanId(null);
     otp.reset();
   };
   const handlePreCheckoutContinue = () => {
     if (!preCheckoutPlan?.priceId) return;
     if (!userId) {
       if (view.continueAnonymousPlan(preCheckoutPlan.id)) return;
-      return openOtpStepForPlan(preCheckoutPlan.id);
+      return setOtpStep(preCheckoutPlan.id);
     }
     void view.handleAction(preCheckoutPlan.id, preCheckoutPlan.priceId);
   };
@@ -139,7 +135,7 @@ export function PricingTable({
           onEmailChange={otp.setEmail}
           onCodeChange={otp.setCode}
           onSend={otp.send}
-          onBack={closeOtpStep}
+          onBack={() => setOtpStep(null)}
           onVerify={otp.verify}
           onChangeEmail={otp.changeEmail}
           onResend={otp.send}

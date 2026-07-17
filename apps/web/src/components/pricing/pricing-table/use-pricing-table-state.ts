@@ -40,9 +40,15 @@ export function usePricingTableState(args: PricingTableStateArgs) {
   useEffect(() => {
     if (!args.neutralEntryPlan) return;
     setSelectedPlanId(args.neutralEntryPlan);
-    if (args.isSessionPending || userId) return;
+    if (args.isSessionPending || userId || !args.neutralPricingEntryUrl) return;
+    const trustedEntry = new URL(args.neutralPricingEntryUrl);
+    if (
+      globalThis.location?.origin !== trustedEntry.origin ||
+      globalThis.location.pathname !== trustedEntry.pathname
+    )
+      return;
     setOtpPlanId(args.neutralEntryPlan);
-  }, [args.isSessionPending, args.neutralEntryPlan, userId]);
+  }, [args.isSessionPending, args.neutralEntryPlan, args.neutralPricingEntryUrl, userId]);
 
   useEffect(() => {
     if (!preCheckoutPlanId) return;

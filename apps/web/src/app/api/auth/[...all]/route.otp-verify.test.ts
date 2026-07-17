@@ -95,17 +95,36 @@ describe('IDA-UI03a0b2 neutral OTP verify route', () => {
   });
 
   it('C08 rejects conflicting or malformed neutral hints generically before Better Auth', async () => {
-    const response = await POST(
-      verifyRequest({ tenantId: 'tenant_mk', tenantClassificationPending: false })
-    );
+    const responses = await Promise.all([
+      POST(verifyRequest({ tenantId: 'tenant_mk', tenantClassificationPending: false })),
+      POST(
+        verifyRequest({
+          otp: undefined,
+          tenantId: 'tenant_ks',
+          tenantClassificationPending: true,
+        })
+      ),
+      POST(
+        verifyRequest({
+          otp: '   ',
+          tenantId: 'tenant_ks',
+          tenantClassificationPending: true,
+        })
+      ),
+    ]);
 
-    expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ code: 'OTP_UNAVAILABLE', message: 'Unable to verify' });
+    for (const response of responses) {
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({
+        code: 'OTP_UNAVAILABLE',
+        message: 'Unable to verify',
+      });
+    }
     expect(mocks.lookupTenant).not.toHaveBeenCalled();
     expect(mocks.handlerPost).not.toHaveBeenCalled();
-    expect(mocks.enforceOtpRateLimits).toHaveBeenCalledTimes(1);
-    expect(mocks.enforceOtpRateLimits).toHaveBeenCalledWith(
-      expect.objectContaining({ kind: 'verify', dimensions: ['ip'] })
-    );
+    expect(mocks.enforceOtpRateLimits).toHaveBeenCalledTimes(3);
+    for (const [input] of mocks.enforceOtpRateLimits.mock.calls) {
+      expect(input).toEqual(expect.objectContaining({ kind: 'verify', dimensions: ['ip'] }));
+    }
   });
 });

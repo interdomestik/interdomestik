@@ -72,6 +72,8 @@ export async function handleNeutralOtpPost(args: {
   if (!evaluateNeutralOtpHost(request.headers)) return otpUnavailable();
   const email = extractNeutralOtpEmail(body);
   if (!email) return otpUnavailable();
+  const otp = body && typeof body === 'object' ? (body as Record<string, unknown>).otp : null;
+  if (kind === 'verify' && (typeof otp !== 'string' || !otp.trim())) return otpUnavailable();
 
   const tenantId = resolveDefaultPublicTenantId();
   if (kind === 'verify' && !hasValidNeutralVerifyHints(body, tenantId)) {

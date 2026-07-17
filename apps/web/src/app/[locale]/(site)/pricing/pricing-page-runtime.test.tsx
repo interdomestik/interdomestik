@@ -38,6 +38,8 @@ const checkoutConfig = {
     businessYear: 'pri_business_year',
   },
 } as const;
+const renderRuntime = (props: Partial<Parameters<typeof PricingPageRuntime>[0]> = {}) =>
+  render(<PricingPageRuntime billingTestMode={false} checkoutConfig={checkoutConfig} {...props} />);
 describe('PricingPageRuntime', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -48,14 +50,10 @@ describe('PricingPageRuntime', () => {
       data: null,
       isPending: true,
     });
-    render(
-      <PricingPageRuntime
-        billingTenantId="tenant_ks"
-        billingTestMode={false}
-        checkoutConfig={checkoutConfig}
-        entityDisclosure={checkoutConfig.entityDisclosure}
-      />
-    );
+    renderRuntime({
+      billingTenantId: 'tenant_ks',
+      entityDisclosure: checkoutConfig.entityDisclosure,
+    });
     await waitFor(() => {
       expect(hoisted.pricingTableMock).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -82,14 +80,11 @@ describe('PricingPageRuntime', () => {
       },
       isPending: false,
     });
-    render(
-      <PricingPageRuntime
-        billingTenantId="tenant_mk"
-        billingTestMode
-        checkoutConfig={checkoutConfig}
-        entityDisclosure={checkoutConfig.entityDisclosure}
-      />
-    );
+    renderRuntime({
+      billingTenantId: 'tenant_mk',
+      billingTestMode: true,
+      entityDisclosure: checkoutConfig.entityDisclosure,
+    });
     await waitFor(() => {
       expect(hoisted.pricingTableMock).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -113,14 +108,10 @@ describe('PricingPageRuntime', () => {
     });
     hoisted.useSessionMock.mockReturnValue({ data: null, isPending: false });
     window.history.replaceState({}, '', '/sq/pricing?plan=family#email=private@example.com');
-    const first = render(
-      <PricingPageRuntime
-        billingTestMode={false}
-        checkoutConfig={checkoutConfig}
-        neutralEntryPlan="family"
-        neutralPricingEntryUrl="http://localhost:3000/sq/pricing"
-      />
-    );
+    const first = renderRuntime({
+      neutralEntryPlan: 'family',
+      neutralPricingEntryUrl: 'http://localhost:3000/sq/pricing',
+    });
     await waitFor(() => {
       expect(window.location.href).toBe('http://localhost:3000/sq/pricing');
       expect(hoisted.pricingTableMock).toHaveBeenLastCalledWith(
@@ -130,18 +121,24 @@ describe('PricingPageRuntime', () => {
     expect(hrefsAtAnalytics).toEqual(['http://localhost:3000/sq/pricing']);
     first.unmount();
     window.history.replaceState({}, '', '/sq/pricing?plan=family&tenantId=tenant_mk#private');
-    render(
-      <PricingPageRuntime
-        billingTestMode={false}
-        checkoutConfig={checkoutConfig}
-        neutralPricingEntryUrl="http://localhost:3000/sq/pricing"
-      />
-    );
+    renderRuntime({ neutralPricingEntryUrl: 'http://localhost:3000/sq/pricing' });
     await waitFor(() => expect(window.location.href).toBe('http://localhost:3000/sq/pricing'));
     expect(hrefsAtAnalytics).toEqual([
       'http://localhost:3000/sq/pricing',
       'http://localhost:3000/sq/pricing',
     ]);
+
+    window.history.replaceState({}, '', '/sq/pricing?plan=standard');
+    renderRuntime({
+      neutralEntryPlan: 'standard',
+      neutralPricingEntryUrl: 'https://ida.interdomestik.test/sq/pricing',
+    });
+    await waitFor(() =>
+      expect(hoisted.pricingTableMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({ neutralEntryPlan: 'standard' })
+      )
+    );
+    expect(window.location.href).toBe('http://localhost:3000/sq/pricing?plan=standard');
     expect(hoisted.useSessionMock).toHaveBeenCalled();
   });
 });
