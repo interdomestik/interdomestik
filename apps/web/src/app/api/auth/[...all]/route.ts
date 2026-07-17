@@ -9,7 +9,7 @@ import {
   prepareNeutralOtpRequest,
   shouldBypassAuthRateLimit,
 } from './auth-route-utils';
-import { classifyNeutralOtpRequest } from './neutral-otp-boundary';
+import { classifyNeutralOtpRequest, otpUnavailable } from './neutral-otp-boundary';
 import { handleNeutralOtpPost } from './neutral-otp-route';
 import {
   evaluateEmailSignInTenantGuard,
@@ -38,14 +38,13 @@ export async function POST(req: Request) {
   if (neutral && 'response' in neutral) return neutral.response;
   if (neutral) {
     const neutralOtp = classifyNeutralOtpRequest(req.url, neutral.body);
-    if (neutralOtp) {
-      return handleNeutralOtpPost({
-        request: req,
-        body: neutral.body,
-        kind: neutralOtp,
-        handler: request => handler.POST(request as unknown as Parameters<typeof handler.POST>[0]),
-      });
-    }
+    if (!neutralOtp) return otpUnavailable();
+    return handleNeutralOtpPost({
+      request: req,
+      body: neutral.body,
+      kind: neutralOtp,
+      handler: request => handler.POST(request as unknown as Parameters<typeof handler.POST>[0]),
+    });
   }
   const emailSignIn = isEmailSignInUrl(req.url);
   const emailSignUp = isEmailSignUpUrl(req.url);

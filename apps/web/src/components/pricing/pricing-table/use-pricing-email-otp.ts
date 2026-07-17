@@ -28,7 +28,7 @@ export function usePricingEmailOtp(args: PricingEmailOtpArgs) {
   }, [cooldownSeconds]);
   const focus = (ref: typeof emailRef) => {
     ref.current?.focus();
-    globalThis.requestAnimationFrame(() => ref.current?.focus());
+    globalThis.requestAnimationFrame?.(() => ref.current?.focus());
   };
   useEffect(() => {
     const timer =

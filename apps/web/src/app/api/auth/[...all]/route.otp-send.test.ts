@@ -68,6 +68,11 @@ describe('IDA-UI03a0b2 neutral OTP send route', () => {
     );
     const forwarded = mocks.handlerPost.mock.calls[0]?.[0] as Request;
     expect(await forwarded.json()).toEqual({ email: 'member@example.com', type: 'sign-in' });
+
+    const rejected = await POST(sendRequest('member@example.com', { type: 'password-reset' }));
+    expect(rejected.status).toBe(400);
+    expect(await rejected.json()).toEqual({ code: 'OTP_UNAVAILABLE', message: 'Unable to verify' });
+    expect(mocks.handlerPost).toHaveBeenCalledTimes(1);
   });
 
   it('C06 keeps registered and unregistered requests on one generic pre-response trace', async () => {

@@ -38,7 +38,10 @@ describe('IDA-UI03a0b2 Paddle continuation stop', () => {
     auth.send.mockReset().mockResolvedValue({ data: { success: true }, error: null });
     auth.verify.mockReset();
   });
-  afterEach(() => document.body.replaceChildren());
+  afterEach(() => {
+    document.body.replaceChildren();
+    vi.unstubAllGlobals();
+  });
 
   it('C23 maps the protected account-stop response without opening Paddle', async () => {
     auth.verify.mockResolvedValue({
@@ -54,6 +57,7 @@ describe('IDA-UI03a0b2 Paddle continuation stop', () => {
   });
 
   it('C24 refuses a malformed success without an authoritative user id', async () => {
+    vi.stubGlobal('requestAnimationFrame', undefined);
     auth.verify.mockResolvedValue({ data: { token: 'token', user: {} }, error: null });
     const { result, onVerified } = setup();
     await reachVerify(result);
