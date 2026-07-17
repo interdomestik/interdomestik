@@ -906,6 +906,24 @@ aliases remain forbidden. This docs-only promotion sets
 canonical merge, exact resolver proof and separate orchestrator runtime authority
 for C27-C32 and the revised ceilings. Later IDA slices remain unpromoted.
 
+Rev 134 closeout: `IDA-UI03a0b2` completed through implementation PR `#1372` /
+merge-main SHA `486de47c3c9b3df8f181974875877736f18e6e10`, recorded in
+`docs/plans/2026-07-18-ida-ui03a0b2-closeout.md`. The merged Tier 3 seam enforces
+exact neutral IDA OTP route/host authority, server-resolved neutral tenant
+context, hashed rotating Better Auth 1.6.22 OTPs, split IP/private identity abuse
+budgets, exact fresh-session continuation cleanup and server-pinned tenant
+pricing to neutral-IDA navigation with a presentation-only two-value plan hint.
+Final scope was 21 production/config files, 17 test/spec/support files, exactly
+32 authored focused cases, the separately governed `.env.example` and only the
+deterministic repository-size metadata file, within five engineering days. Local
+mandatory proof, current-head full E2E/Pilot/Sonar/CodeQL/security/reviews,
+independent Sol XHigh visual acceptance and post-merge main health were green.
+Automatic CD run `29620366103` was cancelled before deployment; no deployment or
+alias changed. The accepted concurrent-email Option A residual remains explicit
+and no deterministic latest-email ordering is claimed. No replacement
+implementation slice is promoted; expected resolver state is
+`blocked_requires_current_authority`, `activeSlice=null`.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
