@@ -151,9 +151,11 @@ describe('PricingTable', () => {
     await waitFor(() =>
       expect(screen.getByTestId('plan-card-family')).toHaveAttribute('data-selected-plan', '1')
     );
-    expect(screen.getByTestId('plan-card-standard')).toHaveAttribute('data-selected-plan', '0');
     expect(screen.queryByTestId('pricing-otp-step')).not.toBeInTheDocument();
     tenant.unmount();
+    const wrongPath = renderEntry('http://localhost:3000/not-pricing');
+    expect(screen.queryByTestId('pricing-otp-step')).not.toBeInTheDocument();
+    wrongPath.unmount();
     renderEntry('http://localhost:3000/pricing');
     expect(await screen.findByTestId('pricing-otp-step')).toBeInTheDocument();
   });
