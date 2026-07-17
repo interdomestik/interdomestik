@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   classifyNeutralOtpRequest,
   evaluateNeutralOtpHost,
+  extractNeutralOtpEmail,
   neutralOtpPathKind,
 } from './neutral-otp-boundary';
 
@@ -50,6 +51,8 @@ describe('IDA-UI03a0b2 neutral OTP boundary', () => {
       )
     ).toBeNull();
     expect(classifyNeutralOtpRequest('not a url', {})).toBeNull();
+    expect(extractNeutralOtpEmail({ email: ' Member@Example.com ' })).toBe('member@example.com');
+    expect(extractNeutralOtpEmail({ email: '   ' })).toBeNull();
   });
 
   it('C03 accepts only canonical/local IDA hosts and the exact configured IDA_HOST', () => {

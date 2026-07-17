@@ -62,7 +62,9 @@ export function evaluateNeutralOtpHost(headers: Headers, env?: { IDA_HOST?: stri
 
 export function extractNeutralOtpEmail(body: unknown): string | null {
   const email = record(body)?.email;
-  return typeof email === 'string' && email.length > 0 ? email.toLowerCase() : null;
+  if (typeof email !== 'string') return null;
+  const normalized = email.trim().toLowerCase();
+  return normalized || null;
 }
 
 export function hasValidNeutralVerifyHints(body: unknown, defaultTenantId: string): boolean {

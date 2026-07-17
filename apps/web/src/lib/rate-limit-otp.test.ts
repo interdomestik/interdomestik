@@ -85,6 +85,9 @@ describe('IDA-UI03a0b2 OTP abuse limits', () => {
       email: 'Member@Example.com',
     });
     expect(key).toBe('ad22b349e1ba090922697667684d22ab04b2eb5ed59caf6325dabf75922f5882');
+    expect(
+      buildOtpIdentityKey({ secret, tenantId: 'tenant_ks', email: ' member@example.com ' })
+    ).toBe(key);
     expect(key).not.toContain('member@example.com');
 
     await enforceOtpRateLimits({

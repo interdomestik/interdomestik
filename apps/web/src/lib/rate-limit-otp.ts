@@ -22,7 +22,7 @@ export function buildOtpIdentityKey(args: {
   email: string;
 }): string {
   return createHmac('sha256', args.secret)
-    .update(`${args.tenantId}\0${args.email.toLowerCase()}`)
+    .update(`${args.tenantId}\0${args.email.trim().toLowerCase()}`)
     .digest('hex');
 }
 
