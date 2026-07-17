@@ -27,9 +27,12 @@ function parseConfiguredIdaOrigin(value: string): URL {
   ) {
     throw new Error('invalid_ida_host');
   }
-  const candidate = /^[a-z][a-z\d+.-]*:\/\//i.test(configured)
-    ? configured
-    : `${isLoopbackHost(configured.split(':')[0]!.toLowerCase()) ? 'http' : 'https'}://${configured}`;
+  let candidate = configured;
+  if (!/^[a-z][a-z\d+.-]*:\/\//i.test(configured)) {
+    const hostname = configured.split(':')[0]!.toLowerCase();
+    const protocol = isLoopbackHost(hostname) ? 'http' : 'https';
+    candidate = `${protocol}://${configured}`;
+  }
   let url: URL;
   try {
     url = new URL(candidate);
@@ -54,7 +57,8 @@ function localIdaOrigin(appUrl?: string): string | null {
   try {
     const app = new URL(appUrl);
     if (app.protocol !== 'http:' || !isLoopbackHost(app.hostname)) return null;
-    return `http://ida.localhost${app.port ? `:${app.port}` : ''}`;
+    const port = app.port ? `:${app.port}` : '';
+    return `http://ida.localhost${port}`;
   } catch {
     return null;
   }
