@@ -141,18 +141,21 @@ describe('PricingTable', () => {
 
   it('marks only the server-validated presentation plan and ignores the raw query', async () => {
     window.history.replaceState({}, '', '/pricing?plan=business&tenantId=tenant_mk');
-    const first = render(
-      <PricingTable userId="user-123" billingTestMode={false} checkoutConfig={checkoutConfig} />
-    );
+    const first = render(<PricingTable userId="user-123" checkoutConfig={checkoutConfig} />);
     expect(screen.getByTestId('plan-card-business')).toHaveAttribute('data-selected-plan', '0');
     first.unmount();
-    render(
-      <PricingTable checkoutConfig={checkoutConfig} neutralEntryPlan="family" userId="user-123" />
-    );
+    const entryProps = { checkoutConfig, neutralEntryPlan: 'family' as const };
+    const renderEntry = (neutralPricingEntryUrl: string) =>
+      render(<PricingTable {...entryProps} {...{ neutralPricingEntryUrl }} />);
+    const tenant = renderEntry('https://ida.interdomestik.test/pricing');
     await waitFor(() =>
       expect(screen.getByTestId('plan-card-family')).toHaveAttribute('data-selected-plan', '1')
     );
     expect(screen.getByTestId('plan-card-standard')).toHaveAttribute('data-selected-plan', '0');
+    expect(screen.queryByTestId('pricing-otp-step')).not.toBeInTheDocument();
+    tenant.unmount();
+    renderEntry('http://localhost:3000/pricing');
+    expect(await screen.findByTestId('pricing-otp-step')).toBeInTheDocument();
   });
 
   it('derives anonymous pricing CTA routing decisions from plan type and session state', () => {
