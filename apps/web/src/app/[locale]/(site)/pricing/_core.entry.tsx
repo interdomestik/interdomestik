@@ -18,13 +18,16 @@ import {
 import { Button } from '@interdomestik/ui';
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
+import {
+  buildNeutralPricingEntryUrl,
+  parseNeutralPricingPlan,
+} from './neutral-pricing-entry.server';
 import { PricingPageRuntime } from './pricing-page-runtime';
 
 type PricingPageProps = Readonly<{
   params: Promise<{ locale: string }>;
-  searchParams?: Promise<{ entry?: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }>;
-
 export async function generateMetadata({ params }: PricingPageProps): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'pricing.meta' });
@@ -33,25 +36,24 @@ export async function generateMetadata({ params }: PricingPageProps): Promise<Me
     description: t('description'),
   };
 }
-
 export default async function PricingPage({ params, searchParams }: PricingPageProps) {
   const { locale } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const isRegisterEntry = resolvedSearchParams?.entry === 'register';
+  const neutralEntryPlan = parseNeutralPricingPlan(resolvedSearchParams);
+  const neutralPricingEntryUrl = buildNeutralPricingEntryUrl(locale);
   const [t, hero, coverageMatrix, commercialTerms] = await Promise.all([
     getTranslations({ locale, namespace: 'pricing' }),
     getTranslations({ locale, namespace: 'hero' }),
     getTranslations({ locale, namespace: 'coverageMatrix' }),
     getTranslations({ locale, namespace: 'commercialTerms' }),
   ]);
-
   const billingTestMode = process.env.NEXT_PUBLIC_BILLING_TEST_MODE === '1';
   const billingEntity = resolveBillingEntityFromPathSegment(
     process.env.PADDLE_DEFAULT_BILLING_ENTITY
   );
   const billingTenantId = billingEntity ? resolveBillingTenantIdForEntity(billingEntity) : null;
   let checkoutConfig: PublicBillingCheckoutConfig | null = null;
-
   if (!billingTestMode) {
     try {
       checkoutConfig = getPublicBillingCheckoutConfig();
@@ -67,7 +69,6 @@ export default async function PricingPage({ params, searchParams }: PricingPageP
     }
   }
   const resolvedBillingTenantId = checkoutConfig?.tenantId ?? billingTenantId;
-
   return (
     <div
       className="container py-20 px-4 md:px-6"
@@ -90,7 +91,6 @@ export default async function PricingPage({ params, searchParams }: PricingPageP
           </Link>
         </div>
       </div>
-
       <CommercialDisclaimerNotice
         sectionTestId="pricing-commercial-disclaimers"
         eyebrow={t('disclaimers.eyebrow')}
@@ -105,14 +105,14 @@ export default async function PricingPage({ params, searchParams }: PricingPageP
           },
         ]}
       />
-
       <PricingPageRuntime
         billingTenantId={resolvedBillingTenantId}
         billingTestMode={billingTestMode}
         checkoutConfig={checkoutConfig}
         entityDisclosure={checkoutConfig?.entityDisclosure ?? null}
+        neutralEntryPlan={neutralEntryPlan}
+        neutralPricingEntryUrl={neutralPricingEntryUrl}
       />
-
       <FeeSheet
         entity={checkoutConfig?.entityDisclosure}
         locale={locale}
@@ -120,7 +120,6 @@ export default async function PricingPage({ params, searchParams }: PricingPageP
         surface="pricing"
         t={t}
       />
-
       <div className="mt-16">
         <div data-testid={isRegisterEntry ? 'register-billing-terms' : undefined}>
           <CommercialBillingTerms
@@ -128,7 +127,6 @@ export default async function PricingPage({ params, searchParams }: PricingPageP
           />
         </div>
       </div>
-
       <div className="mt-16">
         <div data-testid={isRegisterEntry ? 'register-coverage-matrix' : undefined}>
           <CoverageMatrix
@@ -136,13 +134,11 @@ export default async function PricingPage({ params, searchParams }: PricingPageP
           />
         </div>
       </div>
-
       <div className="mt-16">
         <ClaimScopeTree {...buildClaimScopeTreeProps(t, 'pricing-scope-tree')} />
       </div>
     </div>
   );
 }
-
 export { generateViewport } from '@/app/_segment-exports';
 export const generateStaticParams = generateLocaleStaticParams;

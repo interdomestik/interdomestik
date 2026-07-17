@@ -1,10 +1,8 @@
 'use client';
-
 import { CommercialFunnelEvents } from '@/lib/analytics';
 import { useRouter } from '@/i18n/routing';
 import { Badge } from '@interdomestik/ui';
 import { useLocale, useTranslations } from 'next-intl';
-
 import { FALLBACK_CHECKOUT_PRICE_IDS, hasUsablePaddleClientToken } from './checkout-helpers';
 import { LocalCheckoutWarning } from './local-checkout-warning';
 import { OtpCheckoutStep } from './otp-checkout-step';
@@ -15,7 +13,6 @@ import { isSelfServePlanId, shouldOpenSelfServePrecheckout } from './pricing-dec
 import type { PlanId, PricingPlan, PricingTableProps } from './types';
 import { usePricingEmailOtp } from './use-pricing-email-otp';
 import { usePricingTableState } from './use-pricing-table-state';
-
 export function PricingTable({
   userId,
   email,
@@ -24,10 +21,11 @@ export function PricingTable({
   isSessionPending = false,
   checkoutConfig,
   entityDisclosure,
+  neutralEntryPlan,
+  neutralPricingEntryUrl,
+  navigateTopLevel,
 }: PricingTableProps) {
-  const t = useTranslations('pricing');
-  const locale = useLocale();
-  const router = useRouter();
+  const [t, locale, router] = [useTranslations('pricing'), useLocale(), useRouter()];
   const priceIds = {
     standardYear: checkoutConfig?.priceIds.standardYear ?? FALLBACK_CHECKOUT_PRICE_IDS.standardYear,
     familyYear: checkoutConfig?.priceIds.familyYear ?? FALLBACK_CHECKOUT_PRICE_IDS.familyYear,
@@ -36,24 +34,25 @@ export function PricingTable({
   const plans = buildPricingPlans({ t, priceIds });
   const isPilotMode = process.env.NEXT_PUBLIC_PILOT_MODE === 'true';
   const isBillingTestMode = billingTestMode ?? process.env.NEXT_PUBLIC_BILLING_TEST_MODE === '1';
-  const paddleClientToken = checkoutConfig?.clientToken.trim() ?? '';
-  const resolvedEntityDisclosure = entityDisclosure ?? checkoutConfig?.entityDisclosure ?? null;
   const shouldUseDevCheckoutFallback =
     process.env.NODE_ENV === 'development' &&
     !isBillingTestMode &&
-    !hasUsablePaddleClientToken(paddleClientToken);
+    !hasUsablePaddleClientToken(checkoutConfig?.clientToken.trim() ?? '');
   const view = usePricingTableState({
     locale,
     email,
     userId,
     tenantId,
     checkoutConfig,
+    isSessionPending,
+    neutralEntryPlan,
+    neutralPricingEntryUrl,
+    navigateTopLevel,
     isPilotMode,
     isBillingTestMode,
     shouldUseDevCheckoutFallback,
     push: router.push,
   });
-
   const otpPlan = findPlanById(plans, view.otpPlanId);
   const otp = usePricingEmailOtp({
     initialEmail: email,
@@ -66,7 +65,6 @@ export function PricingTable({
   });
   const preCheckoutPlan = findPlanById(plans, view.preCheckoutPlanId);
   const unavailablePlan = findPlanById(plans, view.localCheckoutUnavailablePlanId);
-
   const openOtpStepForPlan = (planId: PlanId) => {
     view.setPreCheckoutPlanId(null);
     view.setOtpPlanId(planId);
@@ -78,7 +76,10 @@ export function PricingTable({
   };
   const handlePreCheckoutContinue = () => {
     if (!preCheckoutPlan?.priceId) return;
-    if (!userId) return openOtpStepForPlan(preCheckoutPlan.id);
+    if (!userId) {
+      if (view.continueAnonymousPlan(preCheckoutPlan.id)) return;
+      return openOtpStepForPlan(preCheckoutPlan.id);
+    }
     void view.handleAction(preCheckoutPlan.id, preCheckoutPlan.priceId);
   };
   const handlePlanCtaClick = (plan: PricingPlan) => {
@@ -96,7 +97,6 @@ export function PricingTable({
       void view.handleAction(plan.id, plan.priceId);
     }
   };
-
   return (
     <div
       data-testid="pricing-table-root"
@@ -124,7 +124,7 @@ export function PricingTable({
         <PrecheckoutConfirmation
           ref={view.preCheckoutSectionRef}
           plan={preCheckoutPlan}
-          entityDisclosure={resolvedEntityDisclosure}
+          entityDisclosure={entityDisclosure ?? checkoutConfig?.entityDisclosure ?? null}
           loading={view.loading === preCheckoutPlan.priceId}
           t={t}
           onContinue={handlePreCheckoutContinue}

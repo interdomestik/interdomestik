@@ -11,6 +11,9 @@ export type PricingTableProps = Readonly<{
   isSessionPending?: boolean;
   checkoutConfig?: PublicBillingCheckoutConfig | null;
   entityDisclosure?: EntityDisclosureNoticeModel | null;
+  neutralEntryPlan?: SelfServePlanId | null;
+  neutralPricingEntryUrl?: string;
+  navigateTopLevel?: (href: string) => void;
 }>;
 
 export const PLAN_IDS = ['standard', 'family', 'business'] as const;
