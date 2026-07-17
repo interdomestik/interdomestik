@@ -126,9 +126,11 @@ visual-isolation hypothesis to this slice.
    content-free revocation-failed category is emitted. No Supabase revocation is
    claimed.
 3. Before Paddle continuation, call
-   `auth.api.getSession({headers,query:{disableCookieCache:true,
-disableRefresh:true}})` with the new cookie. No React, Next Data Cache or
-   process cache wrapper is allowed; an adapter spy must prove `findSession`.
+   `auth.api.getSession({ headers, query: freshSessionQuery })` with the new
+   cookie, where `freshSessionQuery` is exactly
+   `{ disableCookieCache: true, disableRefresh: true }`. No React, Next Data
+   Cache or process cache wrapper is allowed; an adapter spy must prove
+   `findSession`.
 4. Continue only when that authoritative row matches the verify response user,
    a fresh server resolution of the default-public tenant, and
    `tenantClassificationPending:true`. Missing, revoked, mismatched,
