@@ -107,7 +107,7 @@ export async function sendEmail(
   const provider = getEmailClient(telemetry);
   if (!provider) {
     // If testing and no provider, just mock success
-    if (process.env.INTERDOMESTIK_AUTOMATED === '1') {
+    if (process.env.INTERDOMESTIK_AUTOMATED === '1' || process.env.PLAYWRIGHT === '1') {
       telemetry.sent('mock', () =>
         console.log(`[MockEmail] To: ${to}, Subject: ${template.subject}`)
       );

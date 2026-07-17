@@ -60,11 +60,12 @@ describe('email delivery fallback', () => {
     expect(m.resendConstructor).toHaveBeenCalledWith('re_test_key');
     expect(m.resendSend).toHaveBeenCalledOnce();
   });
-  it.each(['mock', 'smtp', 'resend', 'fallback'] as const)(
+  it.each(['mock', 'playwright', 'smtp', 'resend', 'fallback'] as const)(
     'keeps %s OTP telemetry content-free',
     async provider => {
       vi.resetModules();
       vi.stubEnv('INTERDOMESTIK_AUTOMATED', provider === 'mock' ? '1' : '0');
+      vi.stubEnv('PLAYWRIGHT', provider === 'playwright' ? '1' : '0');
       vi.stubEnv('SMTP_HOST', ['smtp', 'fallback'].includes(provider) ? 'localhost' : '');
       vi.stubEnv('RESEND_API_KEY', ['resend', 'fallback'].includes(provider) ? 're_key' : '');
       m.sendMail.mockReset();
@@ -85,7 +86,7 @@ describe('email delivery fallback', () => {
         { telemetryPolicy: 'content-free' }
       );
       const logs = JSON.stringify(spies.flatMap(spy => spy.mock.calls));
-      expect(logs).toContain(provider);
+      expect(logs).toContain(provider === 'playwright' ? 'mock' : provider);
       expect(logs).not.toMatch(
         /private@example\.com|PRIVATE SUBJECT|654321|private-(?:message|resend)-id|RAW_PROVIDER_FAILURE/
       );
