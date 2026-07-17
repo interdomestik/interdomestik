@@ -1,6 +1,7 @@
 import type { PublicBillingCheckoutConfig } from '@interdomestik/domain-membership-billing/paddle-server';
 import type { EntityDisclosureNoticeModel } from '@/components/commercial/entity-disclosure-notice';
 import type { LucideIcon } from 'lucide-react';
+import type { RefObject } from 'react';
 
 export type PricingTableProps = Readonly<{
   userId?: string;
@@ -77,18 +78,32 @@ export type PrecheckoutConfirmationProps = Readonly<{
   onCancel: () => void;
 }>;
 
+export type OtpError = 'missingEmail' | 'sendFailed' | 'verify' | 'accountStop';
+export type PricingEmailOtpArgs = Readonly<{
+  initialEmail?: string;
+  locale: string;
+  tenantId?: string | null;
+  onVerified: (identity: { email: string; userId?: string }) => Promise<void>;
+}>;
+
 export type OtpCheckoutStepProps = Readonly<{
-  plan: PricingPlan;
   email: string;
+  maskedEmail: string;
   code: string;
-  error: string | null;
-  success: string | null;
+  destinationLocked: boolean;
+  error: OtpError | null;
+  status: 'sent' | null;
+  cooldownSeconds: number;
   sending: boolean;
   verifying: boolean;
+  emailRef: RefObject<HTMLInputElement | null>;
+  codeRef: RefObject<HTMLInputElement | null>;
   t: TranslateFn;
   onEmailChange: (email: string) => void;
   onCodeChange: (code: string) => void;
   onSend: () => void;
   onBack: () => void;
   onVerify: () => void;
+  onChangeEmail: () => void;
+  onResend: () => void;
 }>;

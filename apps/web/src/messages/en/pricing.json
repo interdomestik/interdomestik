@@ -120,7 +120,7 @@
         "body": "Free Start gives you informational guidance, templates, and next-step tools. It does not start human review, legal advice, or staff-led recovery."
       },
       "hotline": {
-        "title": "Hotline means routing and support",
+        "title": "Contact support",
         "body": "The hotline is for urgent routing, support, and next-step guidance. It does not mean immediate legal review, claim acceptance, or staff-led handling."
       }
     },
@@ -190,33 +190,33 @@
     },
     "mainHeading1": "Choose your",
     "mainHeading2": "membership plan.",
-    "joinSecurely": "Start securely",
+    "joinSecurely": "Email check",
     "preCheckout": {
       "planSummary": "Plan summary",
       "responsePromise": "Priority triage target: under 24 business hours",
       "continue": "Continue to checkout",
-      "cancel": "Not now"
+      "cancel": "Back"
     },
     "localCheckout": {
       "title": "Local checkout is not configured",
       "body": "{planName} cannot open real payment in this local environment yet. Add a Paddle client token to test checkout locally."
     },
     "otpStep": {
-      "title": "Continue with email",
-      "subtitle": "Enter your email to receive a sign-in code for {planName}.",
+      "title": "Confirm your email to continue",
+      "truth": "We’ll send a 6-digit code. The code confirms your email and opens or creates your account. It does not confirm payment, active membership, a claim, or an accepted case.",
       "emailLabel": "Email",
-      "emailPlaceholder": "name@example.com",
-      "send": "Send sign-in code",
-      "sendSuccess": "We sent a sign-in code to your email.",
-      "codeLabel": "Code",
-      "codePlaceholder": "123456",
-      "verify": "Verify and continue",
-      "back": "Back",
+      "send": "Send code",
+      "sent": "If that address can receive email from us, a code is on its way. It expires in 5 minutes. Only the newest code works.",
+      "codeLabel": "6-digit code",
+      "verify": "Confirm email",
+      "changeEmail": "Change email",
+      "resend": "Send a new code",
+      "resendCooldown": "Send a new code in {seconds}s",
       "errors": {
         "missingEmail": "Enter your email to continue.",
-        "sendFailed": "Unable to send sign-in code.",
-        "missingCode": "Enter the code we sent to continue.",
-        "invalidCode": "Invalid sign-in code."
+        "sendFailed": "We couldn’t send a code right now. Try again.",
+        "verify": "We couldn’t confirm that code. Check the newest code or send a new one.",
+        "accountStop": "Email confirmed. This account cannot continue with this checkout. Use your account or contact support."
       }
     },
     "businessLead": {

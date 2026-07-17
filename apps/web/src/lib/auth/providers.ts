@@ -1,6 +1,6 @@
 import { compare, hash } from 'bcryptjs';
 import { emailOTP } from 'better-auth/plugins/email-otp';
-import { sendPasswordResetEmail, sendSignInOtpEmail } from '../email';
+import { normalizeSignInOtpLocale, sendPasswordResetEmail, sendSignInOtpEmail } from '../email';
 import { getGitHubSocialProvider } from './social-providers';
 
 type GitHubOAuthEnv = {
@@ -32,12 +32,15 @@ export function buildAuthProviders(env: GitHubOAuthEnv = process.env as GitHubOA
     },
     plugins: [
       emailOTP({
-        sendVerificationOTP: async ({ email, otp, type }) => {
+        sendVerificationOTP: async ({ email, otp, type }, context) => {
           if (type !== 'sign-in') {
             return;
           }
 
-          const emailResult = await sendSignInOtpEmail(email, otp);
+          const locale = normalizeSignInOtpLocale(
+            context?.request?.headers.get('x-interdomestik-locale')
+          );
+          const emailResult = await sendSignInOtpEmail(email, otp, locale);
           if (!emailResult.success) {
             throw new Error(emailResult.error || 'Failed to send sign-in OTP email.');
           }
