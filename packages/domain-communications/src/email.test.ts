@@ -44,7 +44,6 @@ describe('email delivery fallback', () => {
     vi.restoreAllMocks();
     vi.unstubAllEnvs();
   });
-
   it('falls back to Resend when SMTP transport fails', async () => {
     m.sendMail.mockRejectedValueOnce(new Error('ECONNREFUSED'));
     m.resendSend.mockResolvedValueOnce({
@@ -87,24 +86,24 @@ describe('email delivery fallback', () => {
       );
       const logs = JSON.stringify(spies.flatMap(spy => spy.mock.calls));
       expect(logs).toContain(provider);
-      for (const forbidden of [
-        'private@example.com',
-        'PRIVATE SUBJECT',
-        '654321',
-        'private-message-id',
-        'private-resend-id',
-        'RAW_PROVIDER_FAILURE',
-      ]) {
-        expect(logs).not.toContain(forbidden);
-      }
+      expect(logs).not.toMatch(
+        /private@example\.com|PRIVATE SUBJECT|654321|private-(?:message|resend)-id|RAW_PROVIDER_FAILURE/
+      );
       if (provider === 'resend') {
-        m.resendSend.mockResolvedValueOnce({ data: {}, error: null });
-        const missingId = await sendEmail(
-          'private@example.com',
-          { subject: '', html: '', text: '' },
-          { telemetryPolicy: 'content-free' }
+        const message = { subject: '', html: '', text: '' };
+        const contentFree = { telemetryPolicy: 'content-free' } as const;
+        for (const failure of [{ data: {}, error: null }, new Error('RAW_PROVIDER_FAILURE')]) {
+          const response =
+            failure instanceof Error ? Promise.reject(failure) : Promise.resolve(failure);
+          m.resendSend.mockReturnValueOnce(response);
+          expect(await sendEmail('private@example.com', message, contentFree)).toEqual({
+            success: false,
+            error: 'email_provider_failed',
+          });
+        }
+        expect(JSON.stringify(spies.flatMap(spy => spy.mock.calls))).not.toContain(
+          'RAW_PROVIDER_FAILURE'
         );
-        expect(missingId).toEqual({ success: false, error: 'email_provider_failed' });
       }
     }
   );

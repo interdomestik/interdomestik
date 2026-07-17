@@ -85,33 +85,32 @@ export async function sendViaResend(
   options: EmailSendOptions,
   telemetry: EmailTelemetry
 ): Promise<EmailResult> {
-  const response = await client.emails.send({
-    from,
-    to,
-    subject: template.subject,
-    html: template.html,
-    text: template.text,
-    attachments: options.attachments,
-  });
-
-  if (response.error) {
-    telemetry.failed('resend', 'delivery', () => console.error('Resend error:', response.error));
+  const fail = (error: unknown, fallback: string): EmailResult => {
+    telemetry.failed('resend', 'delivery', () => console.error('Resend error:', error));
+    const providerError = error instanceof Error ? error.message : fallback;
     return {
       success: false,
-      error: telemetry.contentFree ? 'email_provider_failed' : response.error.message,
+      error: telemetry.contentFree ? 'email_provider_failed' : providerError,
     };
+  };
+  try {
+    const response = await client.emails.send({
+      from,
+      to,
+      subject: template.subject,
+      html: template.html,
+      text: template.text,
+      attachments: options.attachments,
+    });
+    if (response.error) return fail(response.error, 'Email delivery failed');
+    if (!response.data?.id) {
+      return fail('No email ID returned from Resend', 'No email ID returned from Resend');
+    }
+    telemetry.sent('resend');
+    return { success: true, id: response.data.id };
+  } catch (error) {
+    return fail(error, 'Email delivery failed');
   }
-
-  if (!response.data?.id) {
-    telemetry.failed('resend', 'delivery');
-    return {
-      success: false,
-      error: telemetry.contentFree ? 'email_provider_failed' : 'No email ID returned from Resend',
-    };
-  }
-
-  telemetry.sent('resend');
-  return { success: true, id: response.data.id };
 }
 
 export function normalizeSignInOtpLocale(value: unknown): SignInOtpLocale {

@@ -23,7 +23,6 @@ import {
 } from './email-templates';
 import {
   createEmailTelemetry,
-  normalizeSignInOtpLocale,
   renderSignInOtpEmail,
   sendViaResend,
   type EmailResult,
@@ -32,7 +31,7 @@ import {
   type SignInOtpLocale,
 } from './sign-in-otp-email';
 
-export { normalizeSignInOtpLocale };
+export { normalizeSignInOtpLocale } from './sign-in-otp-email';
 export type { EmailResult };
 
 let resendClient: Resend | null = null;

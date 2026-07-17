@@ -10,6 +10,10 @@ export const OTP_ACTION_CLASS =
 const INPUT_CLASS =
   'w-full rounded-2xl border border-slate-300 px-4 py-3 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 forced-colors:border';
 
+function deliveryActionKey(seconds: number, readyKey: 'otpStep.send' | 'otpStep.resend') {
+  return seconds > 0 ? 'otpStep.resendCooldown' : readyKey;
+}
+
 export function PricingOtpContent(props: OtpCheckoutStepProps) {
   const busy = props.sending || props.verifying;
   const errorId = props.error ? 'pricing-otp-error' : undefined;
@@ -67,7 +71,7 @@ export function PricingOtpContent(props: OtpCheckoutStepProps) {
             onClick={props.onSend}
           >
             {props.sending ? <PendingIcon /> : null}
-            {props.t(props.cooldownSeconds > 0 ? 'otpStep.resendCooldown' : 'otpStep.send', {
+            {props.t(deliveryActionKey(props.cooldownSeconds, 'otpStep.send'), {
               seconds: props.cooldownSeconds,
             })}
           </Button>
@@ -123,7 +127,7 @@ export function PricingOtpContent(props: OtpCheckoutStepProps) {
             onClick={props.onResend}
           >
             {props.sending ? <PendingIcon /> : null}
-            {props.t(props.cooldownSeconds > 0 ? 'otpStep.resendCooldown' : 'otpStep.resend', {
+            {props.t(deliveryActionKey(props.cooldownSeconds, 'otpStep.resend'), {
               seconds: props.cooldownSeconds,
             })}
           </Button>
