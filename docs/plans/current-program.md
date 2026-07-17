@@ -836,10 +836,27 @@ orchestrator/execution path and Drizzle adapter tables are not reclassified.
 Auth routes, tenant/default-public provisioning, verifier/provider options,
 rate limits, sessions, shared-auth, schema/RLS, proxy/routing, Paddle, rollout
 and deployment remain unchanged and unauthorized. `IDA-UI03a0b2` is ordered but
-unpromoted and may not start. The next active governed implementation goal is
-exactly one canonical tracker slice: `IDA-UI03a0b1`. Runtime remains held until
-the worktree-scoped resolver returns that slice alone and the orchestrator gives
-separate explicit implementation authority.
+unpromoted and may not start. That sole promotion is now consumed by the Rev 131
+closeout below; there is no active replacement implementation slice. The
+historical runtime hold required the worktree-scoped resolver to return
+`IDA-UI03a0b1` alone and separate orchestrator implementation authority.
+
+Rev 131 closeout: `IDA-UI03a0b1` completed through implementation PR `#1369` /
+merge-main SHA `29de3fd464c07fb5383b10dc3ba74a46141aec7a`, recorded in
+`docs/plans/2026-07-17-ida-ui03a0b1-closeout.md`. The merged seam presents
+neutral SQ/EN/SR/MK UI and delivered-email truth, accessible recovery and
+destination controls, ordinary-flow duplicate protection and OTP-only
+content-free sender telemetry without claiming payment, active membership,
+claim entitlement, accepted case or protected server hardening. Final scope was
+exactly 13 production/i18n files, 6 test/spec files, 16 authored focused blocks
+and the separately authorized deterministic repository-size metadata file,
+within the 3-day ceiling. Local mandatory gates, browser/accessibility proof,
+current-head CI/E2E/Pilot/Sonar/CodeQL/security and resolved Copilot feedback
+were green. Post-merge main CI `29558327808`, Sonar Main `29558327817`, CodeQL
+`29558327225` and Secret Scan `29558327827` were green. Automatic CD run
+`29558327788` was cancelled before image build or deploy; no deployment or alias
+changed. No replacement implementation slice is promoted; expected resolver
+state is `blocked_requires_current_authority`, `activeSlice=null`.
 
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the

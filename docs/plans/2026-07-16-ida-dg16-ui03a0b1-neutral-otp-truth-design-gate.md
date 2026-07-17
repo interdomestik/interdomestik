@@ -1,9 +1,9 @@
 ---
 title: IDA-DG16 UI03a0b1 Neutral OTP Truth Design Gate
 date: 2026-07-16
-status: accepted
+status: complete
 authority: current_authority
-runtime_authorized: false
+runtime_authorized: true
 promoted_slice: IDA-UI03a0b1
 ordered_follow_up_unpromoted: IDA-UI03a0b2
 risk_tier: 3
@@ -24,10 +24,16 @@ The exact canonical-promotion authority request has SHA-256
 The timestamped delegated-orchestrator authority receipt has SHA-256
 `25598a3b7ef828b9c679119b84ba235e5020f983883594ce44039cb638ff6ed3`.
 
-This docs-only promotion does not authorize implementation. Runtime remains
-held until the worktree-scoped resolver returns `IDA-UI03a0b1` alone and the
-orchestrator gives separate explicit implementation authority. It authorizes no
+At promotion time, this docs-only authority did not authorize implementation.
+Runtime remained held until the worktree-scoped resolver returned
+`IDA-UI03a0b1` alone and the orchestrator gave separate explicit implementation
+authority. Neither promotion nor the later implementation authority authorized
 provider/resource mutation, rollout or deployment.
+
+That separate implementation authority was later granted. The slice completed
+through PR `#1369` / merge-main SHA
+`29de3fd464c07fb5383b10dc3ba74a46141aec7a`; authoritative completion evidence
+is recorded in `docs/plans/2026-07-17-ida-ui03a0b1-closeout.md`.
 
 `IDA-UI03a0b2 — Neutral OTP route, tenant and verifier hardening` is ordered but
 unpromoted. It may not start. `IDA-UI03a1`, `IDA-UI03a2`, `IDA-UI03b` and
@@ -304,6 +310,7 @@ Supabase/Better Auth source mismatch; no token or time saving is claimed.
 Repository source, ADR-06, the canonical trackers and the exact accepted gate
 govern.
 
-After this promotion merges, the worktree-scoped resolver must return
-`IDA-UI03a0b1` alone. Runtime remains held until the orchestrator gives separate
-explicit implementation authority. No rollout or deployment is authorized.
+After promotion merged, the worktree-scoped resolver returned `IDA-UI03a0b1`
+alone and the orchestrator gave separate explicit implementation authority.
+After this closeout, the resolver must return `blocked_requires_current_authority`
+with `activeSlice=null`. No rollout or deployment was authorized.
