@@ -1,7 +1,6 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({ constructors: [] as unknown[], limit: vi.fn() }));
-
 vi.mock('@upstash/ratelimit', () => ({
   Ratelimit: class {
     static slidingWindow(limit: number, window: string) {
@@ -23,6 +22,7 @@ import {
 } from './rate-limit-otp';
 
 describe('IDA-UI03a0b2 OTP abuse limits', () => {
+  beforeEach(() => vi.stubEnv('CI', 'false'));
   afterEach(() => {
     mocks.constructors.length = 0;
     mocks.limit.mockReset();

@@ -11,8 +11,9 @@ export function emitRateLimitBackendTelemetry(args: {
   contentFree?: boolean;
 }): void {
   const { name, reason, error, contentFree } = args;
-  const errorMessage =
-    error instanceof Error ? error.message : typeof error === 'string' ? error : undefined;
+  let errorMessage: string | undefined;
+  if (error instanceof Error) errorMessage = error.message;
+  else if (typeof error === 'string') errorMessage = error;
   console.error(`[rate-limit] ${BACKEND_MISSING}`, {
     name,
     reason,

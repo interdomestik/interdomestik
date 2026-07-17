@@ -15,12 +15,13 @@ function parseHostAuthority(
 ): { authority: string; hostname: string } | null {
   const value = raw?.trim();
   if (!value || /[,/@\\?#\s]/.test(value) || value.includes('://')) return null;
-  const match = /^([a-z0-9](?:[a-z0-9.-]*[a-z0-9])?\.?)(?::([0-9]{1,5}))?$/i.exec(value);
+  const match = /^([a-z\d](?:[a-z\d.-]*[a-z\d])?\.?)(?::(\d{1,5}))?$/i.exec(value);
   if (!match) return null;
   const hostname = match[1]!.toLowerCase().replace(/\.$/, '');
   const port = match[2] ? Number(match[2]) : null;
   if (!hostname || (port !== null && (port < 1 || port > 65535))) return null;
-  return { hostname, authority: `${hostname}${port === null ? '' : `:${port}`}` };
+  const portSuffix = port === null ? '' : `:${port}`;
+  return { hostname, authority: hostname + portSuffix };
 }
 
 function parseConfiguredAuthority(raw: string | undefined) {
@@ -48,12 +49,9 @@ export function classifyNeutralOtpRequest(url: string, body: unknown): NeutralOt
   return kind === 'send' && record(body)?.type !== 'sign-in' ? null : kind;
 }
 
-export function evaluateNeutralOtpHost(
-  headers: Headers,
-  env: { IDA_HOST?: string } = { IDA_HOST: process.env.IDA_HOST }
-): boolean {
+export function evaluateNeutralOtpHost(headers: Headers, env?: { IDA_HOST?: string }): boolean {
   const direct = parseHostAuthority(headers.get('host'));
-  const configured = parseConfiguredAuthority(env.IDA_HOST);
+  const configured = parseConfiguredAuthority(env ? env.IDA_HOST : process.env.IDA_HOST);
   const allowed =
     direct !== null &&
     (FIXED_HOSTS.has(direct.hostname) || direct.authority === configured?.authority);

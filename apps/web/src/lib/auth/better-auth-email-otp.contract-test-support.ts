@@ -8,9 +8,12 @@ import postgres from 'postgres';
 
 import { userSchemaConfig } from './schema';
 
-export const sqlClient = postgres('postgresql://postgres:postgres@127.0.0.1:54322/postgres', {
-  max: 1,
-});
+export const sqlClient = postgres(
+  process.env.BETTER_AUTH_CONTRACT_DATABASE_URL ??
+    process.env.DATABASE_URL ??
+    'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
+  { max: 1 }
+);
 export const queryTrace: string[] = [];
 const cleanupEmails = new Set<string>();
 const db = drizzle(sqlClient, {
@@ -96,7 +99,8 @@ export async function insertRegisteredUser(email: string) {
 
 export async function cleanupContractRows() {
   for (const email of cleanupEmails) {
-    await sqlClient`delete from "verification" where "identifier" like ${`%${email}`}`;
+    const identifierPattern = `%${email}`;
+    await sqlClient`delete from "verification" where "identifier" like ${identifierPattern}`;
     const users = await sqlClient<{ id: string }[]>`
       select "id" from "user" where "email" = ${email}
     `;

@@ -2,9 +2,8 @@
 import { authClient } from '@/lib/auth-client';
 import { useEffect, useRef, useState } from 'react';
 import type { OtpError, PricingEmailOtpArgs } from './types';
-const OTP_LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
 function allowlistedLocale(locale: string) {
-  return OTP_LOCALES.includes(locale as (typeof OTP_LOCALES)[number]) ? locale : 'en';
+  return ['sq', 'en', 'sr', 'mk'].includes(locale) ? locale : 'en';
 }
 function maskEmail(email: string) {
   const [name = '', domain = ''] = email.split('@');
@@ -17,8 +16,7 @@ export function usePricingEmailOtp(args: PricingEmailOtpArgs) {
   const [error, setError] = useState<OtpError | null>(null);
   const [phase, setPhase] = useState<'editing' | 'sending' | 'sent' | 'verifying'>('editing');
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
-  const emailRef = useRef<HTMLInputElement>(null);
-  const codeRef = useRef<HTMLInputElement>(null);
+  const [emailRef, codeRef] = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
   const pendingRef = useRef(false);
   const continuationRef = useRef(false);
   const cooldownEmailRef = useRef<string | null>(null);
@@ -33,7 +31,9 @@ export function usePricingEmailOtp(args: PricingEmailOtpArgs) {
     globalThis.requestAnimationFrame(() => ref.current?.focus());
   };
   useEffect(() => {
-    if (phase === 'sent' && error) globalThis.setTimeout(() => codeRef.current?.focus());
+    const timer =
+      phase === 'sent' && error ? globalThis.setTimeout(() => codeRef.current?.focus()) : 0;
+    return () => globalThis.clearTimeout(timer);
   }, [error, phase]);
   const send = async () => {
     if (pendingRef.current) return;

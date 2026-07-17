@@ -1,4 +1,4 @@
-import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import { expect, test, type Page, type Route, type TestInfo } from '@playwright/test';
 
 import { routes, type Locale } from './routes';
 import { withAnonymousPage } from './utils/anonymous-context';
@@ -45,9 +45,8 @@ async function enterOtpStep(page: Page, locale: Locale, info: TestInfo, keyboard
 }
 
 async function expectNoCheckoutContinuation(page: Page) {
-  await page.waitForTimeout(1100);
-  expect(page.url()).not.toContain('/member/membership/success');
   await expect(page.getByTestId('pricing-otp-verify-cta')).toBeDisabled();
+  await expect(page).not.toHaveURL(/\/member\/membership\/success/);
 }
 
 test.describe('IDA-UI03a0b2 protected OTP journey', () => {
@@ -83,22 +82,25 @@ test.describe('IDA-UI03a0b2 protected OTP journey', () => {
       await page.route('**/api/auth/email-otp/send-verification-otp', route =>
         route.fulfill({ status: 200, contentType: 'application/json', body: '{"success":true}' })
       );
-      await page.route('**/api/auth/sign-in/email-otp', async route => {
-        await page.waitForTimeout(500);
-        await route.fulfill({
-          status: 409,
-          contentType: 'application/json',
-          body: '{"code":"ACCOUNT_STOP","message":"Unable to continue"}',
-        });
+      let pendingVerify: Route | null = null;
+      await page.route('**/api/auth/sign-in/email-otp', route => {
+        pendingVerify = route;
       });
       for (const locale of ['sr', 'mk'] as const) {
+        pendingVerify = null;
         await page.setViewportSize({ width: 640, height: 900 });
         await enterOtpStep(page, locale, info, true);
         const spinner = page.getByTestId('pricing-otp-verify-cta').locator('svg');
         await expect(spinner).toBeVisible();
+        await expect.poll(() => pendingVerify !== null).toBe(true);
         expect(await spinner.evaluate(element => getComputedStyle(element).animationName)).toBe(
           'none'
         );
+        await pendingVerify!.fulfill({
+          status: 409,
+          contentType: 'application/json',
+          body: '{"code":"ACCOUNT_STOP","message":"Unable to continue"}',
+        });
         const alert = page.locator('#pricing-otp-error');
         await expect(alert).toHaveAttribute('role', 'alert');
         await expect(alert).toHaveText(accountStop[locale]);
