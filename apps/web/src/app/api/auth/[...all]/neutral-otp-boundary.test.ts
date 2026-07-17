@@ -72,10 +72,13 @@ describe('IDA-UI03a0b2 neutral OTP boundary', () => {
       'attacker@ida.interdomestik.com',
       'ida.interdomestik.com/path',
       'https://ida.interdomestik.com',
+      'ida.interdomestik.com:8443',
       'ida.interdomestik.com:99999',
     ]) {
       expect(evaluateNeutralOtpHost(new Headers({ host }))).toBe(false);
     }
+    vi.stubEnv('IDA_HOST', 'ida.interdomestik.com:8443');
+    expect(evaluateNeutralOtpHost(new Headers({ host: 'ida.interdomestik.com:8443' }))).toBe(false);
   });
 
   it('C04 requires direct Host approval and lets forwarded host restrict but never grant', () => {

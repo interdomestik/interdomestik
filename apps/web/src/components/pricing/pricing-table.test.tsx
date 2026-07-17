@@ -144,20 +144,20 @@ describe('PricingTable', () => {
     const first = render(<PricingTable userId="user-123" checkoutConfig={checkoutConfig} />);
     expect(screen.getByTestId('plan-card-business')).toHaveAttribute('data-selected-plan', '0');
     first.unmount();
-    const entryProps = { checkoutConfig, neutralEntryPlan: 'family' as const };
-    const renderEntry = (neutralPricingEntryUrl: string) =>
-      render(<PricingTable {...entryProps} {...{ neutralPricingEntryUrl }} />);
-    const tenant = renderEntry('https://ida.interdomestik.test/pricing');
+    const p = { checkoutConfig, neutralEntryPlan: 'family' as const };
+    const entry = (url: string) => <PricingTable {...p} neutralPricingEntryUrl={url} />;
+    const view = render(entry('https://ida.interdomestik.test/pricing'));
     await waitFor(() =>
       expect(screen.getByTestId('plan-card-family')).toHaveAttribute('data-selected-plan', '1')
     );
     expect(screen.queryByTestId('pricing-otp-step')).not.toBeInTheDocument();
-    tenant.unmount();
-    const wrongPath = renderEntry('http://localhost:3000/not-pricing');
+    view.rerender(entry('http://localhost:3000/not-pricing'));
     expect(screen.queryByTestId('pricing-otp-step')).not.toBeInTheDocument();
-    wrongPath.unmount();
-    renderEntry('http://localhost:3000/pricing');
+    view.rerender(entry('http://localhost:3000/pricing'));
     expect(await screen.findByTestId('pricing-otp-step')).toBeInTheDocument();
+    view.rerender(<PricingTable checkoutConfig={checkoutConfig} />);
+    expect(screen.queryByTestId('pricing-otp-step')).not.toBeInTheDocument();
+    expect(screen.getByTestId('plan-card-family')).toHaveAttribute('data-selected-plan', '0');
   });
 
   it('derives anonymous pricing CTA routing decisions from plan type and session state', () => {

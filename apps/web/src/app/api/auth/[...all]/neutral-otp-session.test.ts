@@ -45,16 +45,18 @@ describe('IDA-UI03a0b2 fresh Better Auth session guard', () => {
   it('C21 strips every session cookie even when in-process revocation throws', async () => {
     const auth = fakeAuth({ revokeError: new Error('PRIVATE_DB_ERROR') });
     const log = vi.fn();
+    const headers = responseHeaders();
+    headers.append('set-cookie', 'app.better-auth.session_token_backup=keep; Path=/; HttpOnly');
     const result = await protectNeutralOtpSession({
       auth,
       log,
-      responseHeaders: responseHeaders(),
+      responseHeaders: headers,
       verifyData: { token: 'new-row-token', user: { id: 'user-1', tenantId: 'tenant_mk' } },
       resolveDefaultTenantId: () => 'tenant_ks',
     });
 
     expect(result).toMatchObject({ decision: 'accountStop' });
-    expect(result.headers.get('set-cookie')).toBeNull();
+    expect(result.headers.get('set-cookie')).toContain('app.better-auth.session_token_backup=keep');
     expect(log).toHaveBeenCalledWith('otp_session_revoke_failed');
   });
 

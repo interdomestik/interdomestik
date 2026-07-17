@@ -52,9 +52,13 @@ export function classifyNeutralOtpRequest(url: string, body: unknown): NeutralOt
 export function evaluateNeutralOtpHost(headers: Headers, env?: { IDA_HOST?: string }): boolean {
   const direct = parseHostAuthority(headers.get('host'));
   const configured = parseConfiguredAuthority(env ? env.IDA_HOST : process.env.IDA_HOST);
-  const allowed =
-    direct !== null &&
-    (FIXED_HOSTS.has(direct.hostname) || direct.authority === configured?.authority);
+  const fixedHostAllowed =
+    direct?.hostname === 'ida.interdomestik.com'
+      ? direct.authority === 'ida.interdomestik.com'
+      : direct !== null && FIXED_HOSTS.has(direct.hostname);
+  const configuredHostAllowed =
+    direct?.hostname !== 'ida.interdomestik.com' && direct?.authority === configured?.authority;
+  const allowed = direct !== null && (fixedHostAllowed || configuredHostAllowed);
   if (!allowed) return false;
   const forwardedRaw = headers.get('x-forwarded-host');
   return !forwardedRaw || parseHostAuthority(forwardedRaw)?.authority === direct.authority;

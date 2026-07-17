@@ -1,3 +1,9 @@
+const BETTER_AUTH_SESSION_COOKIE_NAMES = new Set([
+  'better-auth.session_token',
+  'better-auth.session_data',
+  'better-auth.dont_remember',
+]);
+
 function setCookieValues(headers: Headers): string[] {
   const extended = headers as Headers & { getSetCookie?: () => string[] };
   const values = extended.getSetCookie?.() ?? [];
@@ -17,12 +23,7 @@ function normalizedCookieName(value: string): string {
 }
 
 function isBetterAuthSessionCookie(value: string): boolean {
-  const name = normalizedCookieName(value);
-  return (
-    name.includes('better-auth.session_token') ||
-    name.includes('better-auth.session_data') ||
-    name.includes('better-auth.dont_remember')
-  );
+  return BETTER_AUTH_SESSION_COOKIE_NAMES.has(normalizedCookieName(value));
 }
 
 export function cookieHeaderFromSetCookie(headers: Headers): string | null {

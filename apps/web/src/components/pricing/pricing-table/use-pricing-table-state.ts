@@ -38,7 +38,11 @@ export function usePricingTableState(args: PricingTableStateArgs) {
   const otpHeadingRef = useRef<HTMLHeadingElement | null>(null);
 
   useEffect(() => {
-    if (!args.neutralEntryPlan) return;
+    if (!args.neutralEntryPlan) {
+      setSelectedPlanId(null);
+      setOtpPlanId(null);
+      return;
+    }
     setSelectedPlanId(args.neutralEntryPlan);
     if (args.isSessionPending || userId || !args.neutralPricingEntryUrl) return;
     const trustedEntry = new URL(args.neutralPricingEntryUrl);
