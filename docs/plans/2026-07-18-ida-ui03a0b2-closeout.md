@@ -129,14 +129,14 @@ verification jobs were cancelled without deployment. Vercel failed before
 deployment because the private organization is on a Hobby plan. No deployment
 or production alias change occurred.
 
-The mandatory Brain measurement began mid-task on 2026-07-17; its ephemeral
-session identity remains in the external measurement receipt rather than this
-canonical closeout. Pass one returned only current `AGENTS.md` sections instead
-of current-program/tracker/resolver authority. Pass two returned the prior DG16
-gate/closeout rather than the exact DG17 source/test seam. One narrow
-repository-authority recovery was used. Repo authority then governed every
-architecture and runtime decision. The measurement cannot prove full-task
-time/token savings and no savings claim is made. `humanUseful` remains
+The mandatory Brain measurement began mid-task in a dedicated session on
+2026-07-17; its ephemeral identity remains in the external measurement receipt
+rather than this canonical closeout. Pass one returned only current `AGENTS.md`
+sections instead of current-program/tracker/resolver authority. Pass two
+returned the prior DG16 gate/closeout rather than the exact DG17 source/test
+seam. One narrow repository-authority recovery was used. Repo authority then
+governed every architecture and runtime decision. The measurement cannot prove
+full-task time/token savings and no savings claim is made. `humanUseful` remains
 `unknown/not_confirmed` until Arben explicitly labels the Brain measurement.
 
 Fresh AI OS observation
