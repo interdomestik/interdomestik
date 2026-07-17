@@ -31,7 +31,7 @@ entity, price, Paddle, session or identity authority.
 
 ## Scope and preserved architecture
 
-The final implementation diff contains 21 production/config files, 17
+The final implementation diff contains 20 production/config files, 17
 test/spec/support files, the separately governed `.env.example`, and only the
 deterministically generated `scripts/repo-size-budget.json` metadata file. It
 preserves exactly 32 authored focused cases, C01-C32, and the five-engineering-day
@@ -124,8 +124,8 @@ verification jobs were cancelled without deployment. Vercel failed before
 deployment because the private organization is on a Hobby plan. No deployment
 or production alias change occurred.
 
-The mandatory Brain measurement began mid-task in session
-`sess_2026-07-17T07-19-58-673Z_IDA-UI03a0b2`. Pass one returned only current
+The mandatory Brain measurement began mid-task in a dedicated session. Pass one
+returned only current
 `AGENTS.md` sections instead of current-program/tracker/resolver authority. Pass
 two returned the prior DG16 gate/closeout rather than the exact DG17 source/test
 seam. One narrow repository-authority recovery was used. Repo authority then

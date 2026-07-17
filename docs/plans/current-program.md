@@ -913,7 +913,7 @@ exact neutral IDA OTP route/host authority, server-resolved neutral tenant
 context, hashed rotating Better Auth 1.6.22 OTPs, split IP/private identity abuse
 budgets, exact fresh-session continuation cleanup and server-pinned tenant
 pricing to neutral-IDA navigation with a presentation-only two-value plan hint.
-Final scope was 21 production/config files, 17 test/spec/support files, exactly
+Final scope was 20 production/config files, 17 test/spec/support files, exactly
 32 authored focused cases, the separately governed `.env.example` and only the
 deterministic repository-size metadata file, within five engineering days. Local
 mandatory proof, current-head full E2E/Pilot/Sonar/CodeQL/security/reviews,
