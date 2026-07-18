@@ -67,7 +67,7 @@ is required between opening review and confirmation.
 4. Confirmation accepts only draft UUID, expected version and supported locale. The
    server re-resolves every authority and ignores client-rendered fact values.
 5. Success links to the canonical member claim surface and retains the draft in the saved
-   list with an `Claim created` link. Retry or a second tab returns that same claim.
+   list with a `Claim created` link. Retry or a second tab returns that same claim.
 6. Editing the draft later does not rewrite the claim. Deleting the draft later deletes
    only the draft; the claim retains its copied facts and historical source identifier.
 7. Public SQ uses plain Albanian and never uses `triazh` or `intake`. SQ/EN/SR/MK carry
@@ -198,7 +198,7 @@ Excluded: UI03b different-email recovery; UI03a0c Paddle correlation; uploads, d
 compression, storage or provider provisioning; injury/health persistence; German;
 dashboards or broad member/agent/staff/admin redesign; `proxy.ts`; canonical routes;
 auth/session/OTP, tenancy/routing or RLS architecture; Paddle/provider resources; rollout;
-deployment; and frozen UI01b.
+deployment; and frozen `IDA-UI01b`.
 
 STOP for a material new protected surface, legal/DPO authority, resource/provider mutation,
 deployment, genuine scope expansion, second material addendum, ceiling breach, inability to

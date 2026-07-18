@@ -1003,7 +1003,7 @@ implementation slice is promoted; expected resolver state is
 Rev 137 current authority: `IDA-DG19` in
 `docs/plans/2026-07-18-ida-dg19-ui03a2-draft-to-claim-handoff-design-gate.md`
 canonically preserves the delegated-orchestrator accepted prospective design at
-exact SHA-256 `39404f5d589760aadf97ecffcbc5c95589ec645bdbe92f8e761789036fd51cb3`.
+exact review-corrected SHA-256 `553921412065bebe92d58aec8eae060b666d7ba2e375a26c8911bb9c7441d430`.
 Its contemporaneous four-operator benchmark/approval receipt passed the
 advisory UI/UX governance checker at SHA-256
 `3a009168a4b342e0db97eb468d3fa542a002f353d40c47716171ee041d488eba`.
@@ -1031,7 +1031,7 @@ observed and a separate exact orchestrator authority is recorded. UI03b,
 UI03a0c, uploads/documents/compression/storage/provider provisioning,
 injury/health persistence, German, dashboards/redesign, `proxy.ts`, canonical
 routes, auth/session/OTP, tenancy/routing/RLS architecture, Paddle/provider
-resources, rollout, deployment and frozen UI01b remain excluded. Public SQ must
+resources, rollout, deployment and frozen `IDA-UI01b` remain excluded. Public SQ must
 not use `triazh` or `intake`. Automatic CD must be cancelled before deploy; no
 production environment or alias change is authorized.
 
