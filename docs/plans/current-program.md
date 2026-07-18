@@ -951,10 +951,11 @@ owner-requested draft hard delete; broader account deletion/audit anonymization
 remains separately governed. Drafts remain until the owner explicitly deletes
 them; no automatic expiry or purge is promised. C13-C18 requires default
 no-action owner-FK user-delete proof, not cascade behavior. This acceptance
-authorizes this docs-only promotion only.
-Tier 3 auth/schema authority: the next active governed implementation goal is exactly one
-canonical tracker slice: `IDA-UI03a1` — verified secure save, resume and manage for the neutral
-pre-membership vehicle/property Free Start organizer. It is limited to an
+authorized the docs-only promotion only; that sole promotion is now consumed by
+the Rev 136 closeout below and no replacement implementation slice is active.
+The historical Tier 3 auth/schema authority selected exactly one canonical
+tracker slice: `IDA-UI03a1` — verified secure save, resume and manage for the
+neutral pre-membership vehicle/property Free Start organizer. It was limited to an
 optional deliberate save boundary, existing neutral Better Auth email OTP,
 same-email authenticated cross-session/device resume, owner-isolated list,
 versioned update/conflict handling, hard delete, content-free atomic lifecycle
@@ -975,6 +976,29 @@ injury/health persistence, German, dashboards/full redesign, proxy/routes,
 shared auth/session or tenancy architecture, Paddle, provider resources,
 rollout and deployment remain excluded and unpromoted. Automatic CD must be
 cancelled before any deploy; no deployment or alias change is authorized.
+
+Rev 136 closeout: `IDA-UI03a1` completed through implementation PR `#1376` /
+merge-main SHA `8254549a284a4d8d8584e22f7d7d8f4cd6327b3b`, recorded in
+`docs/plans/2026-07-18-ida-ui03a1-closeout.md`. P00 first proved stable
+same-email owner identity against the real Better Auth/Postgres adapter. The
+merged Tier 3 seam provides deliberate neutral-OTP secure save, same-owner
+cross-session/device six-fact resume without re-entry, owner-isolated manage,
+optimistic version conflict handling, content-free atomic audit and permanent
+owner-requested delete. Tenant/owner RLS, default no-action owner FK behavior
+and 101-owner isolation are proved without making an account/user deletion,
+automatic-expiry or purge promise. The cumulative DG18/DG18A/DG18B/DG18C plus
+metadata envelope completed at exactly 35 production/config/migration/i18n and
+15 test/spec/support files, C01-C36 plus P00, within the seven-day and 150-line
+ceilings. Local mandatory gates, independent Sol XHigh visual/accessibility and
+Tier-3 security review, current-head Copilot/review readiness and post-merge
+CI/Sonar/CodeQL/security were green. GitHub Codex was quota-blocked before
+analysis and the accepted independent Sol XHigh review supplied the bounded
+fallback. Automatic CD run `29638455077` was cancelled during Docker Buildx
+setup before any image build or deployment; no environment or alias changed.
+Supabase Auth, Better Auth and `@interdomestik/shared-auth` retain their M0-M5
+roles, and all protected exclusions remain unchanged. No replacement
+implementation slice is promoted; expected resolver state is
+`blocked_requires_current_authority`, `activeSlice=null`.
 
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
