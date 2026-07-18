@@ -5,7 +5,7 @@ import {
   quoteSqlLiteral,
   TEST_DB_PASSWORD,
   TEST_DB_ROLE,
-} from './rls-test-connection.ts';
+} from './rls-test-connection';
 
 type Sql = ReturnType<typeof postgres>;
 

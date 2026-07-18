@@ -3,14 +3,14 @@ import { randomUUID } from 'node:crypto';
 import test from 'node:test';
 import postgres from 'postgres';
 
-import { applyRlsTestConnectionEnv } from './rls-test-connection.ts';
+import { applyRlsTestConnectionEnv } from './rls-test-connection';
 import {
   CLAIM_FACTS,
   cleanupHandoffProof,
   OTHER_TENANT,
   seedHandoffProof,
   TENANT,
-} from './free-start-draft-claim-handoff-support.ts';
+} from './free-start-draft-claim-handoff-support';
 
 test('C04/C13-C20 live handoff is isolated, atomic, idempotent and source-independent', async t => {
   const databaseUrl = process.env.DATABASE_URL;
@@ -27,7 +27,7 @@ test('C04/C13-C20 live handoff is isolated, atomic, idempotent and source-indepe
   try {
     const before = await seedHandoffProof(admin, users, draftId);
     restore = applyRlsTestConnectionEnv(databaseUrl);
-    const domain = await import('../../domain-claims/src/claims/free-start-draft-handoff.ts');
+    const domain = await import('../../domain-claims/src/claims/free-start-draft-handoff');
     const context = {
       accessTenantId: TENANT,
       actorRole: 'member',
