@@ -1035,6 +1035,64 @@ resources, rollout, deployment and frozen `IDA-UI01b` remain excluded. Public SQ
 not use `triazh` or `intake`. Automatic CD must be cancelled before deploy; no
 production environment or alias change is authorized.
 
+Rev 138 protected-path split authority: accepted addendum `IDA-DG19-A1` in
+`docs/plans/2026-07-18-ida-dg19a-ui03a2-p0-claim-number-tenant-code-authority.md`
+preserves the exact 8,677-byte canonical JSON payload at SHA-256
+`d76a4da5190145d9571e718c0ab2aa9522a12d65b17fe940ee80eb5ddd5cea9e`, bound
+to base `5a1829971ad94b950aad45291f4f920007cbf176` and parent-gate SHA-256
+`553921412065bebe92d58aec8eae060b666d7ba2e375a26c8911bb9c7441d430`.
+The deterministic live PostgreSQL stop in the parent exposed that existing
+claim-number generation cannot read canonical stored `tenants.code` inside the
+required NOBYPASSRLS member transaction. The parent `IDA-UI03a2` implementation
+is therefore paused, preserved dirty and frozen; it is not an active slice and
+must not resume until this prerequisite merges and closes green, followed by a
+separate exact replan and runtime authority.
+
+Parent product work was authorized only after promotion PR `#1378`, green main
+health and dual-resolver proof. Source-thread turn
+`019f7509-5703-7a13-a95a-046e17f7197b` preserves the exact request at SHA-256
+`581e8a1ce15c1d0c16e5aae22ac5c069d07b86fbcf66f35697df6c1119347441` and the
+explicit orchestrator disposition at SHA-256
+`2dc8a9c439598606253f309aa07b7ecd93a5d429f7160a302bef3ec2dcd41425`.
+The content-complete live-stop handback in source turn
+`019f752a-634b-7532-8251-2032f9255a9d` hashes to
+`fb35e0eeeeddfd8a7d526640c591ebeeeb682591ba114b8ae119a5cb794b6fef`.
+Frozen-parent preservation observation
+`4a8fe4fcb99f995e92e6b1bba259c06e66bcf8411b39445bd24ba400d769ba98`
+confirms that the parent worktree, branch, 23 dirty paths and local database were
+not mutated during freeze. These receipts supersede the former pre-authority
+`not started` proof state.
+
+The only active governed implementation slice is `IDA-UI03a2-P0` — an RLS-safe
+claim-number tenant-code authority. It is limited to the zero-argument scalar
+`private.current_claim_number_tenant_code()` SECURITY DEFINER function, an
+opaque transaction-bound TypeScript authority, the optional generator seam,
+one journaled SQL-only `0093` migration with no Drizzle snapshot, required-test
+wiring and deterministic size metadata. The hard ceiling is exactly six
+production/config/migration files, two test/spec/support files, 1.5 engineering
+days, one backend outcome and one principal live RLS proof surface. Runtime
+remains unauthorized until this docs-only promotion merges, canonical main and
+this dedicated worktree both resolve only `IDA-UI03a2-P0`, AI OS is freshly
+observed and the delegated orchestrator records a separate exact runtime receipt.
+
+No tenant-row SELECT policy, tenant-ID/session-derived code, dbAdmin or
+pretransaction read, duplicate projection, public or argument-taking SECURITY
+DEFINER RPC, broad tenancy/RLS architecture, UI claim, deployment or production
+alias change is authorized. The frozen parent worktree and its default local
+PostgreSQL ledger are excluded; P0 implementation and live proof must use an
+isolated clean database. All parent exclusions remain binding.
+
+Clean main already journals generated migration `0092_ida_free_start_drafts`,
+so P0 owns the next canonical slot, `0093`; 0088–0091 are cited only as the
+custom journaled-SQL style precedent. The live rollback matrix uses canonical
+existing claim-number/schema APIs and a synthetic enclosing transaction, never
+the frozen parent implementation. The later parent replan must remove or
+consolidate at least one planned path so its deterministic size metadata fits
+inside 18 production/config/migration paths; inability to do so is a stop.
+Member-only authority is intentional for the future UI03a2 consumer, while all
+nonmember actors fail closed. Missing-runtime-role deployment preflight is a
+future release validation requirement and grants no deployment authority here.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
