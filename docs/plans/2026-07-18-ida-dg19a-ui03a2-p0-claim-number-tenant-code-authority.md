@@ -74,6 +74,30 @@ exactly 8,677 ASCII bytes and must produce the SHA-256 recorded in frontmatter.
   `public."user"`; migration SQL must use that fully qualified quoted identifier for every
   table, column and ownership reference. This clarification changes no accepted payload
   byte and does not authorize an alternative relation.
+- The accepted concurrent same-claim proof remains binding. P0 must serialize contenders
+  on the existing claim row before counter mutation so the winner alone increments the
+  counter; it must still retain the conditional `claimNumber IS NULL` update and loser
+  re-read/retry behavior. This is the narrow generator change already required by the
+  accepted single-increment case, not authority for broader claim workflow serialization.
+- Active Queue `in_progress` means P0 is the sole resolver-selected governed slice. The
+  proof ledger's `pending_runtime_authority` means runtime implementation has not started;
+  these are complementary governance and execution states, not competing runtime claims.
+
+## Promotion review correction
+
+The single-line JSON below is the exact 2,211-byte Option A correction payload at SHA-256
+`1a12c726fb73c3062adbe2eb593554d05a40b7c3e9854ec71ed74a00bc9e3395`. Hash its bytes
+only, excluding the Markdown fence and line terminators. It is bound to, and does not alter,
+the accepted 8,677-byte payload above.
+
+```text
+{"schemaVersion":"ida.protected-path-promotion-correction.v1","documentId":"IDA-DG19-A1-PC1","disposition":"option_a_authorized","boundAcceptedPayloadSha256":"d76a4da5190145d9571e718c0ab2aa9522a12d65b17fe940ee80eb5ddd5cea9e","freshAiOsObservation":"09d2837e9b5a88d78104cd32fa5cc111c07fb94e7b84c2faf5fde98aea8a52f9","runtimeAuthorized":false,"mechanism":["0093 executes CREATE SCHEMA IF NOT EXISTS private as idempotent prerequisite function infrastructure","0093 does not ALTER SCHEMA owner or rewrite, normalize, revoke, or broaden an existing private schema ACL","an existing Supabase storage-plane private schema keeps its owner and existing USAGE grants catalog-equivalent except for the new function and its explicitly authorized privileges","when private is absent, the ordinary Drizzle migration creates it under the migration owner with no extra broad grant, and interdomestik_runtime_rls remains nonowner","function EXECUTE is revoked from PUBLIC, anon, and authenticated and granted only to interdomestik_runtime_rls when that canonical role exists","no public.tenants SELECT grant or policy, new table, data mutation, broad RLS or tenancy architecture, provider dependency, or second outcome is authorized","live proof covers schema-absent and existing-Supabase-schema paths, including migration success, schema owner and ACL preservation, runtime nonownership, function catalog contract, direct tenant SELECT denial, and every accepted RED and security case","rollback revokes and drops only the P0 function and removes P0 wiring; it never drops the shared private schema","the immutable concurrent same-claim single-increment case remains binding through the authorized claim-number.ts seam","any new material mechanism or scope expansion is a stop condition"],"reviewLineage":{"pullRequest":1379,"reviewHead":"c706834427dffee40b46d2fb8662b95202b57ef8","sourceThreadId":"019f6586-34cc-7311-900c-9989770f4d29","finding":"ordinary Drizzle chain through 0092 does not create private while the Supabase storage migration does","resolution":"Option A authorized before runtime implementation"},"parentPreservation":"The frozen IDA-UI03a2 worktree, branch, files, and default database remain untouched."}
+```
+
+The correction does not authorize runtime or product implementation. It makes the
+function-only Drizzle migration self-contained on a clean database while treating
+`private` as a potentially shared namespace. Existing storage-plane schema privileges do
+not confer EXECUTE on the new function, and rollback must never drop the namespace.
 
 ## Current review disposition
 
@@ -85,6 +109,13 @@ exactly 8,677 ASCII bytes and must produce the SHA-256 recorded in frontmatter.
   above without changing the accepted payload bytes. The 252.5-second post-remediation
   review confirmed all eight resolutions and found only the missing full parent-preservation
   observation value; that minor traceability wording is fixed above.
+- Copilot's quoted-`user` and tracker-state findings are reconciled by the explicit
+  `public."user"` mapping and governance-versus-runtime state clarification above.
+- GitHub Codex identified the clean-Drizzle `private` namespace dependency and questioned
+  the accepted concurrency case. The namespace finding produced exact orchestrator Option A
+  correction `IDA-DG19-A1-PC1`; the concurrency case remains binding and its narrow
+  claim-row serialization boundary is explicit above. Neither review changes the original
+  accepted payload bytes.
 
 No UI/operator benchmark is asserted for this backend security prerequisite. The parent
 UI03a2 worktree, branch, dirty files and local database remain frozen and out of scope.

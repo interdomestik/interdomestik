@@ -1041,6 +1041,18 @@ preserves the exact 8,677-byte canonical JSON payload at SHA-256
 `d76a4da5190145d9571e718c0ab2aa9522a12d65b17fe940ee80eb5ddd5cea9e`, bound
 to base `5a1829971ad94b950aad45291f4f920007cbf176` and parent-gate SHA-256
 `553921412065bebe92d58aec8eae060b666d7ba2e375a26c8911bb9c7441d430`.
+Current-head promotion review exposed that the ordinary Drizzle chain does not
+create the canonical `private` namespace. The orchestrator's exact Option A
+correction is preserved as a 2,211-byte JSON payload at SHA-256
+`1a12c726fb73c3062adbe2eb593554d05a40b7c3e9854ec71ed74a00bc9e3395`, bound to
+the accepted payload and fresh advisory observation `09d2837e…`. The corrected
+canonical gate file hashes to SHA-256
+`a63d053873f951a97372bbad73b32df422f7fb96143576f1ee024d97d0760841`.
+It authorizes only idempotent `CREATE SCHEMA IF NOT EXISTS private` inside 0093:
+an existing schema's owner and ACL remain unchanged, an absent schema is created
+under the migration owner with no broad grant, function EXECUTE remains restricted,
+both paths require live proof and rollback never drops the shared namespace. Runtime
+implementation remains separately held.
 The deterministic live PostgreSQL stop in the parent exposed that existing
 claim-number generation cannot read canonical stored `tenants.code` inside the
 required NOBYPASSRLS member transaction. The parent `IDA-UI03a2` implementation
@@ -1092,6 +1104,9 @@ inside 18 production/config/migration paths; inability to do so is a stop.
 Member-only authority is intentional for the future UI03a2 consumer, while all
 nonmember actors fail closed. Missing-runtime-role deployment preflight is a
 future release validation requirement and grants no deployment authority here.
+The accepted concurrent same-claim proof is also unchanged: P0 must serialize on
+the existing claim row before counter mutation while preserving the conditional
+claim-number update and loser re-read behavior.
 
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
