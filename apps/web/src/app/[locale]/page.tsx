@@ -1,8 +1,10 @@
 import { BASE_NAMESPACES, HOME_NAMESPACES, pickMessages } from '@/i18n/messages';
+import { evaluateNeutralOtpHost } from '@/app/api/auth/[...all]/neutral-otp-boundary';
 import { PUBLIC_MEMBERSHIP_ENTRY_HREF } from '@/lib/public-membership-entry';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { isUiV2Enabled } from '@/lib/flags';
+import { resolveDefaultPublicTenantId } from '@/lib/tenant/tenant-hosts';
 import dynamic from 'next/dynamic';
 
 // Vercel Best Practice: Direct Imports (bundle-barrel-imports)
@@ -33,10 +35,26 @@ type Props = {
   params: Promise<{ locale: string }>;
 };
 
+function resolveNeutralOtpHost(): string | null {
+  const configured = process.env.IDA_HOST?.trim();
+  if (!configured) return null;
+  try {
+    const url = new URL(configured.includes('://') ? configured : `http://${configured}`);
+    const authority = url.host.toLowerCase();
+    return evaluateNeutralOtpHost(new Headers({ host: authority }), { IDA_HOST: configured })
+      ? authority
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function HomePage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
   const uiV2Enabled = isUiV2Enabled();
+  const defaultPublicTenantId = resolveDefaultPublicTenantId();
+  const neutralOtpHost = resolveNeutralOtpHost();
 
   const [allMessages] = await Promise.all([getMessages()]);
   const messages = {
@@ -54,7 +72,12 @@ export default async function HomePage({ params }: Props) {
       >
         <div data-testid="page-ready" className="sr-only" aria-hidden="true" />
         <Header />
-        <HomePageRuntime locale={locale} uiV2Enabled={uiV2Enabled} />
+        <HomePageRuntime
+          defaultPublicTenantId={defaultPublicTenantId}
+          locale={locale}
+          neutralOtpHost={neutralOtpHost}
+          uiV2Enabled={uiV2Enabled}
+        />
         {uiV2Enabled ? (
           <>
             <TrustStrip />
@@ -70,7 +93,12 @@ export default async function HomePage({ params }: Props) {
         ) : (
           <>
             <HeroSection />
-            <FreeStartIntakeShell continueHref={PUBLIC_MEMBERSHIP_ENTRY_HREF} locale={locale} />
+            <FreeStartIntakeShell
+              continueHref={PUBLIC_MEMBERSHIP_ENTRY_HREF}
+              locale={locale}
+              neutralOtpHost={neutralOtpHost}
+              neutralOtpTenantId={defaultPublicTenantId}
+            />
             <TrustStrip />
             <VoiceClaimSection />
             <MemberBenefitsSection />

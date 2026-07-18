@@ -112,5 +112,26 @@ describe.runIf(process.env.REQUIRE_BETTER_AUTH_OTP_CONTRACT === '1')(
       expect((await verify(auth, email, '123456')).status).toBe(400);
       expect(fetch).not.toHaveBeenCalled();
     });
+
+    it('P00 reuses one stable owner for two completed same-email sign-ins', async () => {
+      const auth = contractAuth();
+      const email = uniqueEmail('stable-owner');
+
+      await send(auth, email);
+      const first = await verify(auth, email, '123456');
+      expect(first.status).toBe(200);
+      const firstData = (await first.json()) as { user: { id: string } };
+
+      await send(auth, email);
+      const second = await verify(auth, email, '123456');
+      expect(second.status).toBe(200);
+      const secondData = (await second.json()) as { user: { id: string } };
+
+      expect(secondData.user.id).toBe(firstData.user.id);
+      const owners = await sqlClient<{ id: string }[]>`
+        select "id" from "user" where "email" = ${email}
+      `;
+      expect(owners).toEqual([{ id: firstData.user.id }]);
+    });
   }
 );

@@ -12,9 +12,10 @@ export type ClaimPackResultProps = Readonly<{
   ctaHref?: string;
   ctaLabel?: string;
   pack: ClaimPack;
+  truthBody?: string;
 }>;
 
-export function ClaimPackResult({ ctaHref, ctaLabel, pack }: ClaimPackResultProps) {
+export function ClaimPackResult({ ctaHref, ctaLabel, pack, truthBody }: ClaimPackResultProps) {
   const t = useTranslations('freeStart.result');
   const resolvedHref = ctaHref ?? pack.recommendedNextStep.ctaHref;
   const resolvedLabel = ctaLabel ?? t('nextStep.defaultCta');
@@ -33,7 +34,7 @@ export function ClaimPackResult({ ctaHref, ctaLabel, pack }: ClaimPackResultProp
         >
           {t('heading')}
         </h3>
-        <p className="max-w-3xl text-base leading-7 text-[#405267]">{t('body')}</p>
+        <p className="max-w-3xl text-base leading-7 text-[#405267]">{truthBody ?? t('body')}</p>
       </header>
       <ResultOverview
         confidence={pack.confidence}
