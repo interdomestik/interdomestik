@@ -1047,10 +1047,11 @@ correction is preserved as a 2,211-byte JSON payload at SHA-256
 `1a12c726fb73c3062adbe2eb593554d05a40b7c3e9854ec71ed74a00bc9e3395`, bound to
 the accepted payload and fresh advisory observation `09d2837e…`. The corrected
 canonical gate file hashes to SHA-256
-`a63d053873f951a97372bbad73b32df422f7fb96143576f1ee024d97d0760841`.
+`0b0e1e70b0d329da0bd9bb94e536a0aeb2138fa31749a8cd6f33c5bad9eb406d`.
 It authorizes only idempotent `CREATE SCHEMA IF NOT EXISTS private` inside 0093:
-an existing schema's owner and ACL remain unchanged, an absent schema is created
-under the migration owner with no broad grant, function EXECUTE remains restricted,
+an existing schema's owner and every pre-existing ACL entry remain unchanged, with the
+accepted runtime-role `USAGE` grant as the sole schema-ACL addition; an absent schema is
+created under the migration owner with no broad grant, function EXECUTE remains restricted,
 both paths require live proof and rollback never drops the shared namespace. Runtime
 implementation remains separately held.
 The deterministic live PostgreSQL stop in the parent exposed that existing

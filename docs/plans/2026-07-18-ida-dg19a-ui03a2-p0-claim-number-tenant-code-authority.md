@@ -98,6 +98,10 @@ The correction does not authorize runtime or product implementation. It makes th
 function-only Drizzle migration self-contained on a clean database while treating
 `private` as a potentially shared namespace. Existing storage-plane schema privileges do
 not confer EXECUTE on the new function, and rollback must never drop the namespace.
+For avoidance of doubt, owner/ACL preservation means every pre-existing schema ACL entry
+remains unchanged; the sole authorized schema-ACL addition is `USAGE` for
+`interdomestik_runtime_rls`, paired with EXECUTE on the new function. No other schema grant,
+revocation, normalization or ownership change is permitted.
 
 ## Current review disposition
 
@@ -116,6 +120,9 @@ not confer EXECUTE on the new function, and rollback must never drop the namespa
   correction `IDA-DG19-A1-PC1`; the concurrency case remains binding and its narrow
   claim-row serialization boundary is explicit above. Neither review changes the original
   accepted payload bytes.
+- The final Opus architecture/security review found no blocker and one informational ACL
+  wording ambiguity. The explicit sole-runtime-role schema `USAGE` carve-out above closes
+  it without changing either hash-bound JSON payload.
 
 No UI/operator benchmark is asserted for this backend security prerequisite. The parent
 UI03a2 worktree, branch, dirty files and local database remain frozen and out of scope.
