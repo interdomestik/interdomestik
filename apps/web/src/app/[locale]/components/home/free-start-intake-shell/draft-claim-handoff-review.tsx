@@ -31,7 +31,7 @@ export type HandoffCopy = {
 };
 
 export const parseHandoffCopy = (value: unknown): HandoffCopy =>
-  JSON.parse(String(value)) as HandoffCopy;
+  (typeof value === 'string' ? JSON.parse(value) : value) as HandoffCopy;
 
 export function LinkedDraftClaim(props: {
   claimId: string;

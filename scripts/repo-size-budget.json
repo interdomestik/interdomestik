@@ -5,10 +5,10 @@
   "maxCategoryBytes": {
     "other": 18856395,
     "large support/generated-ish": 17099654,
-    "source/scripts": 7755952,
+    "source/scripts": 7760720,
     "docs/text": 7421498,
     "tests/e2e": 5798581,
-    "config/data/messages": 1760406
+    "config/data/messages": 1760426
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

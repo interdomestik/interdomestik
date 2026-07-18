@@ -14,7 +14,7 @@ import {
   parseHandoffCopy,
   type HandoffFacts,
 } from './draft-claim-handoff-review';
-import type { SavedDraft } from './types';
+import { parseSecureSaveReviewCopy, type SavedDraft } from './types';
 
 type Props = Readonly<{ draft: SavedDraft & { claimId?: string | null } }>;
 type State = 'idle' | 'loading' | 'ready' | 'confirming' | 'error';
@@ -23,7 +23,7 @@ type ClaimNotice = 'already' | 'created';
 export function DraftClaimHandoff({ draft }: Props) {
   const t = useTranslations('freeStart');
   const locale = useLocale() as 'en' | 'sq' | 'sr' | 'mk';
-  const copy = parseHandoffCopy(t.raw('draftHandoff'));
+  const copy = parseHandoffCopy(parseSecureSaveReviewCopy(t.raw('secureSaveReviewCopy')).handoff);
   const regionId = useId();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [expanded, setExpanded] = useState(false);

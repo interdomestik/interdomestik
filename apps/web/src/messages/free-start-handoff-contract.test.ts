@@ -18,8 +18,8 @@ type HandoffCopy = {
 };
 
 function handoff(locale: keyof typeof freeStartLocaleMessages): HandoffCopy {
-  const messages = freeStartLocaleMessages[locale].freeStart as { draftHandoff?: unknown };
-  return JSON.parse(String(messages.draftHandoff)) as HandoffCopy;
+  const messages = freeStartLocaleMessages[locale].freeStart as { secureSaveReviewCopy: string };
+  return (JSON.parse(messages.secureSaveReviewCopy) as { handoff: HandoffCopy }).handoff;
 }
 
 describe('free-start draft handoff locale contract C22-C24', () => {

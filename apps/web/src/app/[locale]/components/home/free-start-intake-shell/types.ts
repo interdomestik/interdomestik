@@ -74,7 +74,9 @@ export function parseSecureSaveCopy(value: unknown): SecureSaveCopy {
   return JSON.parse(String(value)) as SecureSaveCopy;
 }
 
-export type SecureSaveReviewCopy = Record<'accountContext' | 'invalid' | 'unsupported', string>;
+export type SecureSaveReviewCopy = Record<'accountContext' | 'invalid' | 'unsupported', string> & {
+  handoff?: unknown;
+};
 
 export function parseSecureSaveReviewCopy(value: unknown): SecureSaveReviewCopy {
   return JSON.parse(String(value)) as SecureSaveReviewCopy;
