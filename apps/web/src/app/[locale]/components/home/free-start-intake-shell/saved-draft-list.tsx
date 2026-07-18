@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { parseSecureSaveCopy, type DraftSaveState, type SavedDraft } from './types';
+import { DraftClaimHandoff } from './draft-claim-handoff';
 
 type Props = Readonly<{
   items: SavedDraft[];
@@ -16,6 +17,7 @@ type Props = Readonly<{
 
 function isReady(draft: SavedDraft) {
   return Boolean(
+    draft.resumeStep === 'preview' &&
     draft.issueType &&
     draft.incidentDate &&
     draft.counterparty &&
@@ -109,6 +111,9 @@ export function SavedDraftList(props: Props) {
                 </button>
               </div>
             </div>
+            {isReady(draft) ? (
+              <DraftClaimHandoff draft={draft as SavedDraft & { claimId?: string | null }} />
+            ) : null}
           </li>
         ))}
       </ul>

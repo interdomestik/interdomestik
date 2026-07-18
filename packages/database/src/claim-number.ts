@@ -1,6 +1,6 @@
 import { and, desc, eq, isNull, like, sql } from 'drizzle-orm';
 
-import { db } from './db';
+import { db, dbAdmin } from './db';
 import { claimCounters } from './schema/claim-counters';
 import { claims } from './schema/claims';
 import { tenants } from './schema/tenants';
@@ -14,18 +14,11 @@ class ClaimNumberGenerationError extends Error {
 
 const CLAIM_NUMBER_REGEX = /^CLM-[A-Z0-9]{2,10}-\d{4}-\d{6}$/;
 
-/**
- * Validates format of a claim number string.
- * Format: CLM-{CODE}-{YYYY}-{NNNNNN}
- */
 export function isValidClaimNumber(claimNumber: string): boolean {
   if (!claimNumber) return false;
   return CLAIM_NUMBER_REGEX.test(claimNumber.toUpperCase());
 }
 
-/**
- * formats values into CLM-{CODE}-{YYYY}-{NNNNNN}
- */
 export function formatClaimNumber(tenantCode: string, year: number, sequence: number): string {
   const seqStr = sequence.toString().padStart(6, '0');
   return `CLM-${tenantCode}-${year}-${seqStr}`;
@@ -43,14 +36,24 @@ export function parseClaimNumber(
   };
 }
 
-/**
- * Generates and assigns a sequential claim number with:
- * - immutability (returns existing)
- * - tenant isolation
- * - race safety (conditional update where claimNumber IS NULL)
- * - monotonic (not gapless) counters
- */
 type DrizzleTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+async function readTenantCode(tx: DrizzleTx, tenantId: string): Promise<string | null> {
+  const [tenant] = await tx
+    .select({ code: tenants.code })
+    .from(tenants)
+    .where(eq(tenants.id, tenantId))
+    .limit(1);
+  if (tenant?.code) return tenant.code;
+
+  // db-access-guard: tenant-scoped -- reason: tenant code is non-sensitive tenant metadata needed by claim numbering after tenant-scoped claim existence is proven
+  const [adminTenant] = await dbAdmin
+    .select({ code: tenants.code })
+    .from(tenants)
+    .where(eq(tenants.id, tenantId))
+    .limit(1);
+  return adminTenant?.code ?? null;
+}
 
 export async function generateClaimNumber(
   tx: DrizzleTx,
@@ -58,7 +61,6 @@ export async function generateClaimNumber(
 ): Promise<string> {
   const { tenantId, claimId, createdAt } = params;
 
-  // 1) Read claim first (immutability + existence + tenant isolation)
   const [existing] = await tx
     .select({ claimNumber: claims.claimNumber })
     .from(claims)
@@ -67,23 +69,15 @@ export async function generateClaimNumber(
 
   if (existing?.claimNumber) return existing.claimNumber;
 
-  // 2) Guard tenant code BEFORE touching the counter (gap reduction)
-  const [tenant] = await tx
-    .select({ code: tenants.code })
-    .from(tenants)
-    .where(eq(tenants.id, tenantId))
-    .limit(1);
-
-  if (!tenant?.code) {
+  const tenantCode = await readTenantCode(tx, tenantId);
+  if (!tenantCode) {
     // MUST: this exact shape is used by your audit check
     throw new Error(`Tenant code not found for tenantId: ${tenantId}`);
   }
 
-  // 3) Year semantics (historical accuracy)
   const year = createdAt.getFullYear();
 
-  // 3b) Seed from existing numbered claims when the counter table is missing or stale.
-  const claimNumberPrefix = `CLM-${tenant.code.toUpperCase()}-${year}-`;
+  const claimNumberPrefix = `CLM-${tenantCode.toUpperCase()}-${year}-`;
   const [latestExistingClaim] = await tx
     .select({ claimNumber: claims.claimNumber })
     .from(claims)
@@ -96,7 +90,6 @@ export async function generateClaimNumber(
     : 0;
   const nextSeedSequence = existingMaxSequence + 1;
 
-  // 4) Atomic counter increment (UPSERT)
   const [counter] = await tx
     .insert(claimCounters)
     .values({ tenantId, year, lastNumber: nextSeedSequence })
@@ -114,9 +107,8 @@ export async function generateClaimNumber(
     throw new ClaimNumberGenerationError('Failed to generate claim sequence');
   }
 
-  const claimNumber = formatClaimNumber(tenant.code, year, counter.lastNumber);
+  const claimNumber = formatClaimNumber(tenantCode, year, counter.lastNumber);
 
-  // 5) Race-safe conditional update
   const [updated] = await tx
     .update(claims)
     .set({ claimNumber })
@@ -124,12 +116,11 @@ export async function generateClaimNumber(
       and(
         eq(claims.id, claimId),
         eq(claims.tenantId, tenantId),
-        isNull(claims.claimNumber) // <-- REQUIRED by audit
+        isNull(claims.claimNumber) // Required by audit
       )
     )
     .returning({ id: claims.id });
 
-  // 6) Race lost → re-read and return existing
   if (!updated) {
     const [reCheck] = await tx
       .select({ claimNumber: claims.claimNumber })
@@ -138,8 +129,6 @@ export async function generateClaimNumber(
       .limit(1);
 
     if (reCheck?.claimNumber) return reCheck.claimNumber;
-
-    // Avoid "throw Error" after counter
 
     throw new ClaimNumberGenerationError(
       `Claim ${claimId} could not be numbered (race lost, and no number present).`

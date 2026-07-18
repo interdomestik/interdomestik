@@ -81,6 +81,9 @@ export const claims = pgTable(
     ),
     index('idx_claims_access_tenant').on(table.accessTenantId),
     uniqueIndex('idx_claims_tenant_number').on(table.tenantId, table.claimNumber),
+    uniqueIndex('claim_free_start_draft_origin_uq')
+      .on(table.tenantId, table.userId, table.origin, table.originRefId)
+      .where(sql`${table.origin} = 'free_start_draft'`),
     check(
       'claim_case_lifecycle_state_check',
       sql`${table.caseLifecycleState} is null or ${table.caseLifecycleState} in ('draft', 'submitted', 'verification', 'evaluation', 'recovery', 'resolved', 'rejected')`

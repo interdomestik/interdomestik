@@ -64,13 +64,16 @@ test('C13 migration and schema preserve the exact free-start draft boundary', as
   }
 
   const journal = JSON.parse(journalText) as { entries: Array<{ idx: number; tag: string }> };
-  assert.deepEqual(journal.entries.at(-1), {
-    idx: 92,
-    version: '7',
-    when: 1784332800000,
-    tag: '0092_ida_free_start_drafts',
-    breakpoints: true,
-  });
+  assert.deepEqual(
+    journal.entries.find(entry => entry.idx === 92),
+    {
+      idx: 92,
+      version: '7',
+      when: 1784332800000,
+      tag: '0092_ida_free_start_drafts',
+      breakpoints: true,
+    }
+  );
   const snapshot = JSON.parse(snapshotText) as { tables: Record<string, unknown> };
   assert.ok(snapshot.tables['public.free_start_drafts']);
 });

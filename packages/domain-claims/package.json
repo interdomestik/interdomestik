@@ -19,6 +19,7 @@
     "./claims/transition": "./src/claims/transition.ts",
     "./claims/transition-guard": "./src/claims/transition-guard.ts",
     "./claims/draft": "./src/claims/draft.ts",
+    "./claims/free-start-draft-handoff": "./src/claims/free-start-draft-handoff.ts",
     "./admin-claims/status-transition": "./src/admin-claims/status-transition.ts",
     "./agent-claims/assign": "./src/agent-claims/assign.ts",
     "./agent-claims/update-status": "./src/agent-claims/update-status.ts",
