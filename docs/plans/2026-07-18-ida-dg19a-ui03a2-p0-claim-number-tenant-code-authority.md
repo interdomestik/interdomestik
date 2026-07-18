@@ -70,6 +70,10 @@ exactly 8,677 ASCII bytes and must produce the SHA-256 recorded in frontmatter.
 - Member-only resolution is intentional because the sole future consumer is the member
   UI03a2 handoff. Agent, staff, admin, missing and foreign actors must return null; any
   nonmember claim-number authority needs a separate gate.
+- Payload predicate tokens `public.user` denote the existing quoted PostgreSQL relation
+  `public."user"`; migration SQL must use that fully qualified quoted identifier for every
+  table, column and ownership reference. This clarification changes no accepted payload
+  byte and does not authorize an alternative relation.
 
 ## Current review disposition
 
