@@ -929,6 +929,53 @@ and no deterministic latest-email ordering is claimed. No replacement
 implementation slice is promoted; expected resolver state is
 `blocked_requires_current_authority`, `activeSlice=null`.
 
+Rev 135 current authority: `IDA-DG18` in
+`docs/plans/2026-07-18-ida-dg18-ui03a1-secure-free-start-drafts-design-gate.md`
+and its separately hash-bound protected addendum `IDA-DG18A` in
+`docs/plans/2026-07-18-ida-dg18a-ui03a1-protected-draft-storage-auth-addendum.md`
+canonically preserve the delegated-orchestrator accepted prospective bytes at
+exact SHA-256 `1138cb80e9def6fbbe041f333dcee16269bed9a8a95dabb00f2084ec467e1e78`
+and `972c307c4400722ff45fbc086400afc0202f878f173ee9a6e8a6a66cb6db1061`.
+The contemporaneous four-operator benchmark/approval receipt passed the
+advisory checker at SHA-256
+`b5f4fc2650697dc5410b908cd3b6d94dcf3c1a049585f87037cf8bd53776608b`.
+Under Arben Lila's standing delegation, the Interdomestik UI/UX Orchestrator
+accepted the formatting-stable parent and then the exact corrected addendum
+hash after current-head reviews exposed an invalid unquoted `"user"` FK token,
+a false home-tenant source and impossible user-removal promises against the
+retained audit actor FK and default no-action owner FK. The corrected documents bind
+`resolveDefaultPublicTenantId()` as independent neutral-home authority and
+fail closed when the authoritative fresh-session access tenant diverges. They
+keep the owner FK's default no-action user-delete behavior while requiring
+owner-requested draft hard delete; broader account deletion/audit anonymization
+remains separately governed. Drafts remain until the owner explicitly deletes
+them; no automatic expiry or purge is promised. C13-C18 requires default
+no-action owner-FK user-delete proof, not cascade behavior. This acceptance
+authorizes this docs-only promotion only.
+Tier 3 auth/schema authority: the next active governed implementation goal is exactly one
+canonical tracker slice: `IDA-UI03a1` — verified secure save, resume and manage for the neutral
+pre-membership vehicle/property Free Start organizer. It is limited to an
+optional deliberate save boundary, existing neutral Better Auth email OTP,
+same-email authenticated cross-session/device resume, owner-isolated list,
+versioned update/conflict handling, hard delete, content-free atomic lifecycle
+audit, six normalized facts and 101-owner live isolation proof. Supabase Auth
+remains the identity/session system of record, Better Auth remains the active
+orchestrator and `@interdomestik/shared-auth` remains the provider-agnostic
+boundary. Before any schema, migration or product edit, test-only precondition
+`P00` must prove two completed same-email OTP sign-ins return one stable user id
+and one user row; failure is STOP. The exact ceiling is 30 allocated
+production/config/migration/i18n files, at most 15 test/spec/support files,
+C01-C36 plus P00, seven engineering days and at most 150 lines for every new or
+substantially refactored production file. This docs-only promotion records
+`runtime_authorized:false`; after merge, both canonical main and the dedicated
+worktree resolver must select `IDA-UI03a1` alone, AI OS must be refreshed and a
+separate exact runtime-authority disposition is required before implementation.
+`IDA-UI03a2`, `IDA-UI03b`, `IDA-UI03a0c`, uploads/documents/compression,
+injury/health persistence, German, dashboards/full redesign, proxy/routes,
+shared auth/session or tenancy architecture, Paddle, provider resources,
+rollout and deployment remain excluded and unpromoted. Automatic CD must be
+cancelled before any deploy; no deployment or alias change is authorized.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
