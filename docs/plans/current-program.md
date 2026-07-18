@@ -1000,6 +1000,41 @@ roles, and all protected exclusions remain unchanged. No replacement
 implementation slice is promoted; expected resolver state is
 `blocked_requires_current_authority`, `activeSlice=null`.
 
+Rev 137 current authority: `IDA-DG19` in
+`docs/plans/2026-07-18-ida-dg19-ui03a2-draft-to-claim-handoff-design-gate.md`
+canonically preserves the delegated-orchestrator accepted prospective design at
+exact review-corrected SHA-256 `553921412065bebe92d58aec8eae060b666d7ba2e375a26c8911bb9c7441d430`.
+Its contemporaneous four-operator benchmark/approval receipt passed the
+advisory UI/UX governance checker at SHA-256
+`3a009168a4b342e0db97eb468d3fa542a002f353d40c47716171ee041d488eba`.
+The gate promotes only the next active governed implementation goal, exactly one
+canonical tracker slice: `IDA-UI03a2` — deliberate, zero-repeat handoff from an
+eligible saved vehicle/property Free Start draft to member claim creation.
+
+The same verified owner must explicitly open review and confirm; the server
+re-resolves session, owner, authoritative home/access tenant, draft version and
+current subscription lifecycle. Confirmation serializes on fixed subscription
+then draft locks, reuses existing claim `origin`/`origin_ref_id` linkage and a
+tenant/owner-scoped partial unique index, initializes lifecycle/event/audit only
+for the winning insert and returns the same claim on retry or race. The source
+draft is never silently updated or deleted. Later draft edit/delete does not
+rewrite/delete the independent claim, which retains copied facts and its
+historical source identifier. The measurable target is six repeated saved facts
+to zero.
+
+The hard ceiling is 18 production/config/i18n/migration files, 10
+test/spec/support files, four engineering days, one visible saved-draft handoff
+outcome and its principal proof surface. Runtime/schema/RLS/migration work
+remains unauthorized until this docs-only promotion merges, canonical main and
+the dedicated worktree resolver both select only `IDA-UI03a2`, AI OS is freshly
+observed and a separate exact orchestrator authority is recorded. UI03b,
+UI03a0c, uploads/documents/compression/storage/provider provisioning,
+injury/health persistence, German, dashboards/redesign, `proxy.ts`, canonical
+routes, auth/session/OTP, tenancy/routing/RLS architecture, Paddle/provider
+resources, rollout, deployment and frozen `IDA-UI01b` remain excluded. Public SQ must
+not use `triazh` or `intake`. Automatic CD must be cancelled before deploy; no
+production environment or alias change is authorized.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
