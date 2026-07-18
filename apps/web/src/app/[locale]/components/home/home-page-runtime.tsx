@@ -12,11 +12,18 @@ import { FreeStartIntakeShell } from './free-start-intake-shell';
 import { HeroSection } from './hero-section';
 
 type HomePageRuntimeProps = Readonly<{
+  defaultPublicTenantId: string;
   locale: string;
+  neutralOtpHost: string | null;
   uiV2Enabled: boolean;
 }>;
 
-export function HomePageRuntime({ locale, uiV2Enabled }: HomePageRuntimeProps) {
+export function HomePageRuntime({
+  defaultPublicTenantId,
+  locale,
+  neutralOtpHost,
+  uiV2Enabled,
+}: HomePageRuntimeProps) {
   const router = useRouter();
   const { data: session } = authClient.useSession();
   const [hostTenantId, setHostTenantId] = useState<string | null | undefined>(undefined);
@@ -86,6 +93,8 @@ export function HomePageRuntime({ locale, uiV2Enabled }: HomePageRuntimeProps) {
       <FreeStartIntakeShell
         continueHref={continueHref}
         locale={locale}
+        neutralOtpHost={neutralOtpHost}
+        neutralOtpTenantId={defaultPublicTenantId}
         publicEntryEnabled={landingSession === null}
         tenantId={tenantId}
       />

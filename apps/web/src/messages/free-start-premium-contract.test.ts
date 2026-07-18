@@ -23,18 +23,25 @@ function collectKeyPaths(value: unknown, prefix = ''): string[] {
   });
 }
 
+function secureSaveCopy(messages: (typeof localeMessages)[keyof typeof localeMessages]) {
+  return JSON.parse((messages.freeStart as { secureSave: string }).secureSave) as unknown;
+}
+
 describe('premium Free Start copy contract', () => {
   it.each(Object.entries(localeMessages))(
-    '%s states that the summary is temporary, unsaved and does not open a case',
+    '%s distinguishes optional saved facts from the temporary generated result',
     (_locale, messages) => {
       const boundary = messages.freeStart.trustBoundary;
+      const truth = messages.freeStart.trustBoundary.body;
 
       expect(boundary.heading.trim()).not.toHaveLength(0);
-      expect(boundary.heading).not.toMatch(/stays|remain|mbeten|ostaju|остануваат/i);
-      expect(boundary.body.trim()).not.toHaveLength(0);
-      expect(boundary.body).toMatch(/temporary|përkohshme|privremen|привремен/i);
-      expect(boundary.body).toMatch(/not saved|nuk është ruajtur|nije sačuvan|не се зачувува/i);
-      expect(boundary.body).toMatch(/no case|nuk është hapur|nije otvoren|не е отворен/i);
+      expect(boundary.heading).toMatch(/result|rezultat|rezultat|резултат/i);
+      expect(truth).toMatch(/automatic|automatik|automatski|автоматски/i);
+      expect(truth).toMatch(/successful|suksessh|uspešn|успешн/i);
+      expect(truth).toMatch(/facts|fakte|činjenic|факт/i);
+      expect(truth).toMatch(/temporary|përkohsh|privremen|привремен/i);
+      expect(truth).toMatch(/not saved|nuk ruhet|nije sačuvan|не се зачувува/i);
+      expect(truth).toMatch(/no case|nuk hap|nije otvoren|не се отвора/i);
     }
   );
 
@@ -74,4 +81,33 @@ describe('premium Free Start copy contract', () => {
 
     expect(publicCopy).not.toMatch(/intake/i);
   });
+
+  it('C29 keeps the secure-save lifecycle keys identical in SQ, EN, SR and MK', () => {
+    const secureSaveCopies = Object.values(localeMessages).map(secureSaveCopy);
+    const reviewCopies = Object.values(localeMessages).map(messages =>
+      JSON.parse((messages.freeStart as { secureSaveReviewCopy: string }).secureSaveReviewCopy)
+    );
+
+    expect(secureSaveCopies.every(Boolean)).toBe(true);
+    const keys = secureSaveCopies.map(copy => collectKeyPaths(copy).sort());
+    expect(keys).toEqual([keys[0], keys[0], keys[0], keys[0]]);
+    const reviewKeys = reviewCopies.map(copy => collectKeyPaths(copy).sort());
+    expect(reviewKeys).toEqual([reviewKeys[0], reviewKeys[0], reviewKeys[0], reviewKeys[0]]);
+  });
+
+  it.each(Object.entries(localeMessages))(
+    'C29 %s states verified-email resume, bounded storage, conflict and permanent deletion truth',
+    (locale, messages) => {
+      const copy = collectCopyValues(secureSaveCopy(messages)).join(' ');
+
+      expect(copy).toMatch(/email|e-pošt|е-пошт/i);
+      expect(copy).toMatch(/device|pajisje|uređaj|уред/i);
+      expect(copy).toMatch(/vehicle|property|automjet|pron|vozil|imovin|возил|имот/i);
+      expect(copy).toMatch(/medical|mjek|zdrav|медицин|здрав/i);
+      expect(copy).toMatch(/document|dokument|документ/i);
+      expect(copy).toMatch(/conflict|changed|ndrysh|sukob|konflikt|izmen|конфликт|измен/i);
+      expect(copy).toMatch(/permanent|përfundim|trajno|trajno|трајно/i);
+      if (locale === 'sq') expect(copy).not.toMatch(/triazh|intake/i);
+    }
+  );
 });

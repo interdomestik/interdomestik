@@ -17,6 +17,7 @@ const CRITICAL_TABLES = [
   'crm_task_history',
   'crm_tasks',
   'documents',
+  'free_start_drafts',
   'user',
 ] as const;
 

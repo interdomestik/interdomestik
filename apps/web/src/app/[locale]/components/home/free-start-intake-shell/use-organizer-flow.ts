@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { EMPTY_DRAFT } from './constants';
 import { hasIncompleteDraft } from './intake-validation';
-import type { CategoryId, DraftState, SetDraftField, StepId } from './types';
+import type { CategoryId, DraftState, SavedDraft, SetDraftField, StepId } from './types';
 
 export function useOrganizerFlow(initialCategory?: CategoryId) {
   const [step, setStep] = useState<StepId>(initialCategory ? 'details' : 'category');
@@ -54,6 +54,29 @@ export function useOrganizerFlow(initialCategory?: CategoryId) {
     setStep(nextStep);
   };
 
+  const resumeDraft = (saved: SavedDraft) => {
+    setSelectedCategory(saved.category);
+    setDraft({
+      counterparty: saved.counterparty,
+      desiredOutcome: saved.desiredOutcome,
+      incidentDate: saved.incidentDate,
+      issueType: saved.issueType,
+      summary: saved.summary,
+    });
+    setStep(saved.resumeStep);
+    setClaimPack(null);
+    setValidationError(null);
+  };
+
+  const resetDraft = () => {
+    setSelectedCategory(initialCategory ?? null);
+    setDraft(EMPTY_DRAFT);
+    setStep(initialCategory ? 'details' : 'category');
+    setClaimPack(null);
+    setValidationError(null);
+    setIsFinishingIntake(false);
+  };
+
   return {
     claimPack,
     draft,
@@ -61,6 +84,8 @@ export function useOrganizerFlow(initialCategory?: CategoryId) {
     navigate,
     moveToDetails,
     moveToPreview,
+    resetDraft,
+    resumeDraft,
     selectedCategory,
     selectCategory,
     setClaimPack,

@@ -17,37 +17,34 @@ import { OrganizerHeader } from './organizer-header';
 import { FreeStartSidebar } from './sidebar';
 import { TrustBoundary } from './trust-boundary';
 import type { FreeStartIntakeShellProps } from './types';
+import { useDraftLifecycle } from './use-draft-lifecycle';
 import { useOrganizerFlow } from './use-organizer-flow';
 import { useOrganizerSubmit } from './use-organizer-submit';
 
-const ClaimPackResult = dynamic(
-  () => import('../claim-pack-result').then(module => module.ClaimPackResult),
-  {
-    ssr: false,
-    loading: () => (
-      <div
-        aria-hidden="true"
-        className="h-40 animate-pulse rounded-3xl bg-[#eaf1f4] motion-reduce:animate-none"
-      />
-    ),
-  }
-);
+// prettier-ignore
+const ClaimPackResult = dynamic(() => import('../claim-pack-result').then(module => module.ClaimPackResult), { ssr: false });
+// prettier-ignore
+const SecureSaveBand = dynamic(() => import('./secure-save-band').then(module => module.SecureSaveBand), { ssr: false });
 
 export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
   const t = useTranslations('freeStart');
   const tCommon = useTranslations('common');
   const flow = useOrganizerFlow(props.initialCategory);
+  const draftLifecycle = useDraftLifecycle({
+    category: flow.selectedCategory,
+    draft: flow.draft,
+    onReset: flow.resetDraft,
+    onResume: flow.resumeDraft,
+    step: flow.step,
+  });
   const contacts = getSupportContacts({ locale: props.locale, tenantId: props.tenantId });
   const issueIds = getIssueIds(flow.selectedCategory);
   const categoryLabel = getSelectedCategoryLabel(t, flow.selectedCategory);
   const issueLabel = getSelectedIssueLabel(t, flow.selectedCategory, flow.draft.issueType);
   const outcomeLabel = getSelectedOutcomeLabel(t, flow.draft.desiredOutcome);
   const confidenceLevel = getConfidenceLevel(flow.selectedCategory, flow.draft);
-  const continueLabel = getContinueLabel(
-    t,
-    props.continueHref,
-    confidenceLevel === 'high' ? 'high' : 'medium'
-  );
+  // prettier-ignore
+  const continueLabel = getContinueLabel(t, props.continueHref, confidenceLevel === 'high' ? 'high' : 'medium');
   const validationMessage = t('validation.completeIntake');
   const finishIntake = useOrganizerSubmit({
     draft: flow.draft,
@@ -101,6 +98,7 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
               ctaHref={props.continueHref}
               ctaLabel={continueLabel}
               pack={flow.claimPack}
+              truthBody={t('trustBoundary.body')}
             />
           </div>
         ) : (
@@ -139,6 +137,8 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
             </aside>
           </div>
         )}
+        {/* prettier-ignore */}
+        <SecureSaveBand lifecycle={draftLifecycle} locale={props.locale} neutralOtpHost={props.neutralOtpHost} tenantId={props.neutralOtpTenantId} />
         <TrustBoundary t={t} />
       </div>
     </section>

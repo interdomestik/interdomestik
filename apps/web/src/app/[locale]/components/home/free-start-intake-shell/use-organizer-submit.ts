@@ -5,7 +5,14 @@ import { useCallback, useRef } from 'react';
 
 import { CommercialFunnelEvents, resolveFunnelVariant } from '@/lib/analytics';
 import { hasIncompleteDraft } from './intake-validation';
-import type { CategoryId, DraftState, IssueId, OutcomeId, StepId } from './types';
+import {
+  createUuidV4,
+  type CategoryId,
+  type DraftState,
+  type IssueId,
+  type OutcomeId,
+  type StepId,
+} from './types';
 
 type SubmitOptions = Readonly<{
   draft: DraftState;
@@ -31,7 +38,7 @@ export function useOrganizerSubmit(options: SubmitOptions) {
       return;
     }
 
-    const submissionKey = submissionKeyRef.current ?? crypto.randomUUID();
+    const submissionKey = submissionKeyRef.current ?? createUuidV4();
     submissionKeyRef.current = submissionKey;
     options.setIsFinishing(true);
     let result: Awaited<ReturnType<typeof submitFreeStartIntake>>;

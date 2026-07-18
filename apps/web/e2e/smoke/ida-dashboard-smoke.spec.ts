@@ -1,35 +1,27 @@
+import { E2E_PASSWORD, E2E_USERS } from '@interdomestik/database';
+import type { BrowserContext, Page } from '@playwright/test';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
+const canonicalDashboardCases = [
+  { role: 'member', route: routes.member, marker: 'member-dashboard-ready' },
+  { role: 'admin', route: routes.admin, marker: 'admin-page-ready' },
+  { role: 'agent', route: routes.agentMembers, marker: 'agent-members-ready' },
+  { role: 'staff', route: routes.staffClaims, marker: 'staff-page-ready' },
+] as const;
 
-type SmokeRole = 'member' | 'admin' | 'agent' | 'staff';
-
-const canonicalDashboardCases: Array<{
-  role: SmokeRole;
-  route: (input: Parameters<typeof routes.member>[0]) => string;
-  marker: string;
-}> = [
-  {
-    role: 'member',
-    route: routes.member,
-    marker: 'member-dashboard-ready',
-  },
-  {
-    role: 'admin',
-    route: routes.admin,
-    marker: 'admin-page-ready',
-  },
-  {
-    role: 'agent',
-    route: routes.agentMembers,
-    marker: 'agent-members-ready',
-  },
-  {
-    role: 'staff',
-    route: routes.staffClaims,
-    marker: 'staff-page-ready',
-  },
-];
+async function signInMember(page: Page, origin: string, headers: Record<string, string>) {
+  const response = await page.request.post(`${origin}/api/auth/sign-in/email`, {
+    data: { email: E2E_USERS.KS_MEMBER_EMPTY.email, password: E2E_PASSWORD },
+    headers: { Origin: origin, Referer: `${origin}${routes.login('en')}`, ...headers },
+  });
+  expect(response.ok(), await response.text()).toBe(true);
+  const session = await page.request.get(`${origin}/api/auth/get-session`, {
+    headers: { Origin: origin, ...headers },
+  });
+  expect(session.ok(), await session.text()).toBe(true);
+  return (await session.json()) as { user: { id: string } };
+}
 
 function assertNoHostTenantContext(
   responseHeaders: Record<string, string>,
@@ -73,20 +65,86 @@ test.describe('@smoke ida.localhost canonical dashboard smoke', () => {
         await page.context().cookies(origin)
       );
       await expect(page.getByTestId(scenario.marker).first()).toBeVisible();
-      await expect(
-        page
-          .locator(
-            [
-              '[data-testid="portal-surface-indicator"]',
-              '[data-testid="sidebar-user-menu-button"]',
-              '[data-testid="user-nav"]',
-            ].join(',')
-          )
-          .first()
-      ).toBeVisible();
+      // prettier-ignore
+      await expect(page.locator('[data-testid="portal-surface-indicator"],[data-testid="sidebar-user-menu-button"],[data-testid="user-nav"]').first()).toBeVisible();
       await expect(page.getByTestId('tenant-chooser')).toHaveCount(0);
       await expect(page.getByTestId('legacy-banner')).toHaveCount(0);
       await expect(page.getByTestId('legacy-surface-ready')).toHaveCount(0);
     });
   }
+  test('C31 resumes six facts in a fresh same-account session and permanently deletes', async ({
+    browser,
+  }, testInfo) => {
+    const baseURL = testInfo.project.use.baseURL?.toString();
+    if (!baseURL) throw new Error('smoke-ida requires project.use.baseURL');
+    const origin = new URL(baseURL).origin;
+    test.skip(!new URL(origin).hostname.startsWith('ida.'), 'C31 runs only on neutral IDA'); // NOSONAR -- intentional neutral-host gate.
+    const headers = testInfo.project.use.extraHTTPHeaders ?? {};
+    const empty = { cookies: [], origins: [] };
+    const createContext = () =>
+      browser.newContext({ baseURL, extraHTTPHeaders: headers, storageState: empty });
+    let first: BrowserContext | null = await createContext();
+    let second: BrowserContext | null = null;
+    try {
+      const firstPage = await first.newPage();
+      await gotoApp(firstPage, routes.home('en'), testInfo, { marker: 'free-start-intake-shell' });
+      const firstSession = await signInMember(firstPage, origin, headers);
+      const organizer = firstPage.getByTestId('premium-free-start-organizer');
+      await organizer.getByTestId('free-start-manage-open').click();
+      await expect(organizer.getByRole('heading', { name: 'Your saved drafts' })).toBeFocused();
+      await expect(organizer.getByText('No saved drafts yet')).toBeVisible();
+      await organizer.getByTestId('free-start-category-property').click();
+      await organizer.getByRole('button', { name: 'Continue to guided intake' }).click();
+      await organizer.getByLabel('What happened?').selectOption('water_damage');
+      await organizer.getByLabel('When did it happen?').fill('2026-03-01');
+      await organizer.getByLabel('Who are you dealing with?').fill('C31 Building Insurer');
+      await organizer.getByLabel('What do you want to recover?').selectOption('repair');
+      await organizer.getByLabel('Brief summary').fill('C31 water damaged two rooms.');
+      await organizer.getByRole('button', { name: 'Review your summary' }).click();
+      await organizer.getByTestId('free-start-save-open').click();
+      const status = organizer.getByTestId('free-start-save-status');
+      await expect(status).toHaveAttribute('data-state', 'saved');
+      await expect(organizer.getByTestId('free-start-save-otp')).toHaveCount(0);
+      // prettier-ignore
+      const token = (await first.cookies(origin)).find(cookie => cookie.name.includes('session_token'))?.value;
+      expect(token).toBeTruthy();
+      await first.close();
+      first = null;
+      second = await createContext();
+      const secondPage = await second.newPage();
+      await gotoApp(secondPage, routes.home('en'), testInfo, { marker: 'free-start-intake-shell' });
+      const secondSession = await signInMember(secondPage, origin, headers);
+      expect(secondSession.user.id).toBe(firstSession.user.id);
+      // prettier-ignore
+      const nextToken = (await second.cookies(origin)).find(cookie => cookie.name.includes('session_token'))?.value;
+      expect(token && nextToken).toBeTruthy();
+      expect(nextToken).not.toBe(token);
+      const resumed = secondPage.getByTestId('premium-free-start-organizer');
+      await resumed.getByTestId('free-start-manage-open').click();
+      await expect(resumed.getByRole('heading', { name: 'Your saved drafts' })).toBeFocused();
+      await expect(resumed.getByText('C31 water damaged two rooms.')).toBeVisible();
+      await resumed.getByRole('button', { name: 'Resume', exact: true }).first().click();
+      const preview = resumed.locator('dl');
+      for (const fact of [
+        'Property damage',
+        'Water damage',
+        '2026-03-01',
+        'C31 Building Insurer',
+        'Repair or replacement costs',
+        'C31 water damaged two rooms.',
+      ])
+        await expect(preview).toContainText(fact);
+      await resumed.getByRole('button', { name: 'Create my summary' }).click();
+      await expect(resumed.getByTestId('claim-pack-result')).toContainText(
+        'The generated result itself remains temporary and is not saved'
+      );
+      await resumed.getByTestId('free-start-manage-open').click();
+      await resumed.getByRole('button', { name: 'Delete' }).first().click();
+      await resumed.getByTestId('free-start-delete-confirm').click();
+      const nextStatus = resumed.getByTestId('free-start-save-status');
+      await expect(nextStatus).toHaveAttribute('data-state', 'deleted');
+    } finally {
+      await Promise.all([first?.close(), second?.close()]);
+    }
+  });
 });

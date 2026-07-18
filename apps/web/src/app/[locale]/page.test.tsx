@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { render } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   headersMock: vi.fn(async () => new Headers([['host', 'mk.localhost:3000']])),
@@ -14,7 +15,11 @@ const hoisted = vi.hoisted(() => ({
     common: { loading: 'Loading' },
     home: { title: 'Home' },
   })),
+  homePageRuntimeMock: vi.fn((_: unknown) => null),
+  freeStartIntakeShellMock: vi.fn((_: unknown) => null),
+  resolveDefaultPublicTenantIdMock: vi.fn(() => 'tenant_ks'),
   setRequestLocaleMock: vi.fn(),
+  uiV2Enabled: true,
 }));
 
 vi.mock('next/dynamic', () => ({
@@ -49,16 +54,24 @@ vi.mock('@/i18n/messages', () => ({
 }));
 
 vi.mock('@/lib/flags', () => ({
-  isUiV2Enabled: () => true,
+  isUiV2Enabled: () => hoisted.uiV2Enabled,
+}));
+
+vi.mock('@/lib/tenant/tenant-hosts', () => ({
+  resolveDefaultPublicTenantId: hoisted.resolveDefaultPublicTenantIdMock,
 }));
 
 vi.mock('./components/home/cta-section', () => ({ CTASection: () => null }));
 vi.mock('./components/home/footer', () => ({ Footer: () => null }));
-vi.mock('./components/home/free-start-intake-shell', () => ({ FreeStartIntakeShell: () => null }));
+vi.mock('./components/home/free-start-intake-shell', () => ({
+  FreeStartIntakeShell: (props: unknown) => hoisted.freeStartIntakeShellMock(props),
+}));
 vi.mock('./components/home/header', () => ({ Header: () => null }));
 vi.mock('./components/home/hero-section', () => ({ HeroSection: () => null }));
 vi.mock('./components/home/hero-v2', () => ({ HeroV2: () => null }));
-vi.mock('./components/home/home-page-runtime', () => ({ HomePageRuntime: () => null }));
+vi.mock('./components/home/home-page-runtime', () => ({
+  HomePageRuntime: (props: unknown) => hoisted.homePageRuntimeMock(props),
+}));
 vi.mock('./components/home/how-membership-works-section', () => ({
   HowMembershipWorksSection: () => null,
 }));
@@ -78,6 +91,13 @@ import HomePage from './page';
 import * as HomePageModule from './page';
 
 describe('HomePage server shell', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.IDA_HOST = 'https://front-door.localhost:3000';
+    hoisted.uiV2Enabled = true;
+    hoisted.resolveDefaultPublicTenantIdMock.mockReturnValue('tenant_ks');
+  });
+
   it('exports locale static params for public prerendering', () => {
     expect(HomePageModule.generateStaticParams()).toEqual([
       { locale: 'sq' },
@@ -96,5 +116,35 @@ describe('HomePage server shell', () => {
     expect(hoisted.setRequestLocaleMock).toHaveBeenCalledWith('sq');
     expect(hoisted.headersMock).not.toHaveBeenCalled();
     expect(hoisted.getSessionMock).not.toHaveBeenCalled();
+  });
+
+  it('AX1 resolves one server authority and propagates it to the UI-v2 Free Start seam', async () => {
+    const tree = await HomePage({ params: Promise.resolve({ locale: 'sq' }) });
+    render(tree);
+
+    expect(hoisted.resolveDefaultPublicTenantIdMock).toHaveBeenCalledOnce();
+    // prettier-ignore
+    expect(hoisted.homePageRuntimeMock).toHaveBeenCalledWith({ defaultPublicTenantId: 'tenant_ks', locale: 'sq', neutralOtpHost: 'front-door.localhost:3000', uiV2Enabled: true });
+    expect(hoisted.freeStartIntakeShellMock).not.toHaveBeenCalled();
+  });
+
+  it('AX1 propagates the same server authority to the direct non-UI-v2 seam', async () => {
+    hoisted.uiV2Enabled = false;
+    const tree = await HomePage({ params: Promise.resolve({ locale: 'en' }) });
+    render(tree);
+
+    expect(hoisted.resolveDefaultPublicTenantIdMock).toHaveBeenCalledOnce();
+    // prettier-ignore
+    expect(hoisted.homePageRuntimeMock).toHaveBeenCalledWith({ defaultPublicTenantId: 'tenant_ks', locale: 'en', neutralOtpHost: 'front-door.localhost:3000', uiV2Enabled: false });
+    // prettier-ignore
+    expect(hoisted.freeStartIntakeShellMock).toHaveBeenCalledWith({ continueHref: '/pricing', locale: 'en', neutralOtpHost: 'front-door.localhost:3000', neutralOtpTenantId: 'tenant_ks' });
+  });
+
+  it('AX1 rejects malformed configured IDA authority instead of exposing the save seam', async () => {
+    process.env.IDA_HOST = 'https://front-door.localhost:3000/unexpected';
+    render(await HomePage({ params: Promise.resolve({ locale: 'sq' }) }));
+    expect(hoisted.homePageRuntimeMock).toHaveBeenCalledWith(
+      expect.objectContaining({ neutralOtpHost: null })
+    );
   });
 });
