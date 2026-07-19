@@ -26,10 +26,17 @@ function digestMatches(value: string, expected: string): boolean {
 function authorityMatches(options: Options, kind: string, authority: AdminConnectionAuthority) {
   const keys = Object.keys(authority).sort().join(',');
   const ssl = options.ssl && typeof options.ssl === 'object' ? options.ssl : undefined;
+  const receipt = JSON.stringify({
+    environmentClass: authority.environmentClass,
+    endpointSha256: authority.endpointSha256,
+    caSha256: authority.caSha256,
+    expectedRolsuper: authority.expectedRolsuper,
+    expectedRolbypassrls: authority.expectedRolbypassrls,
+  });
   return (
     keys ===
       'caSha256,endpointSha256,environmentClass,expectedRolbypassrls,expectedRolsuper,receiptSha256' &&
-    HEX.test(authority.receiptSha256) &&
+    digestMatches(receipt, authority.receiptSha256) &&
     authority.environmentClass === kind &&
     digestMatches(`${String(options.host)}:${String(options.port)}`, authority.endpointSha256) &&
     digestMatches(ssl && 'ca' in ssl ? String(ssl.ca) : '', authority.caSha256)

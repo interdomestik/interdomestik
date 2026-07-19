@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { after, before, test } from 'node:test';
 import { inspect } from 'node:util';
 import { withPreflightedAdminConnection } from '../src/admin-connection-preflight';
-import { type AdminFixture, startAdminFixture } from './admin-connection-preflight.support';
+import {
+  findAdminPreflightImports,
+  type AdminFixture,
+  startAdminFixture,
+} from './admin-connection-preflight.support';
 const SOURCE = readFileSync(
   new URL('../src/admin-connection-preflight.ts', import.meta.url),
   'utf8'
@@ -38,14 +41,7 @@ test('keeps the wrapper internal, fixed-query-only, and free of forbidden capabi
     SOURCE,
     /\.unsafe\(|\b(?:drizzle|migration)\b|node:(?:fs|path)|console\.|process\.(?:stdout|stderr)/i
   );
-  const imports = execFileSync(
-    'rg',
-    ['-l', 'from [\'"][^\'"]*admin-connection-preflight[\'"]', 'packages'],
-    { encoding: 'utf8', cwd: '../..' }
-  )
-    .trim()
-    .split('\n');
-  assert.deepEqual(imports.sort(), [
+  assert.deepEqual(findAdminPreflightImports(), [
     'packages/database/test/admin-connection-preflight.support.ts',
     'packages/database/test/admin-connection-preflight.test.ts',
   ]);
@@ -80,19 +76,23 @@ test('accepts the disposable owner once on one reserved plaintext PostgreSQL 16 
   });
   await fixture.waitForNoSession(pid);
 });
-test('rejects an unbound endpoint before connect and a connected nonowner before operation', async () => {
+test('rejects unbound or unsealed authority before connect and a connected nonowner before operation', async () => {
   let calls = 0;
-  const wrongAuthority = { ...fixture.authority, endpointSha256: '0'.repeat(64) };
-  const authorityResult = await run(
-    fixture.ownerEnv,
-    new AbortController().signal,
-    wrongAuthority,
-    async () => {
-      calls += 1;
-    }
-  );
-  assert.equal(failureCode(authorityResult), 'ADMIN_DB_PREFLIGHT_AUTHORITY_REJECTED');
-  await fixture.waitForNoSession();
+  for (const authority of [
+    { ...fixture.authority, endpointSha256: '0'.repeat(64) },
+    { ...fixture.authority, receiptSha256: 'f'.repeat(64) },
+  ]) {
+    const authorityResult = await run(
+      fixture.ownerEnv,
+      new AbortController().signal,
+      authority,
+      async () => {
+        calls += 1;
+      }
+    );
+    assert.equal(failureCode(authorityResult), 'ADMIN_DB_PREFLIGHT_AUTHORITY_REJECTED');
+    await fixture.waitForNoSession();
+  }
   const ownerResult = await run(
     fixture.nonownerEnv,
     new AbortController().signal,

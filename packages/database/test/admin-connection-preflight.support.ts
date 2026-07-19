@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { execFile } from 'node:child_process';
+import { readdirSync, readFileSync } from 'node:fs';
 import { promisify } from 'node:util';
 import postgres from 'postgres';
 import type { AdminConnectionAuthority } from '../src/admin-connection-preflight';
@@ -7,6 +8,7 @@ import type { AdminConnectionAuthority } from '../src/admin-connection-preflight
 const exec = promisify(execFile);
 const sha256 = (value: string) => createHash('sha256').update(value).digest('hex');
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const IMPORT = /from ['"][^'"]*admin-connection-preflight['"]/;
 
 export type FixtureReceipt = Readonly<{
   imageId: string;
@@ -20,6 +22,21 @@ export type FixtureReceipt = Readonly<{
 }>;
 
 export type AdminFixture = Awaited<ReturnType<typeof startAdminFixture>>;
+
+export function findAdminPreflightImports() {
+  const files: string[] = [];
+  const scan = (dir: URL, prefix: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const relative = `${prefix}/${entry.name}`;
+      const next = new URL(entry.isDirectory() ? `${entry.name}/` : entry.name, dir);
+      if (entry.isDirectory()) scan(next, relative);
+      else if (relative.endsWith('.ts') && IMPORT.test(readFileSync(next, 'utf8')))
+        files.push(relative);
+    }
+  };
+  scan(new URL('../../', import.meta.url), 'packages');
+  return files.sort();
+}
 
 async function docker(...args: string[]): Promise<string> {
   return (await exec('docker', args, { timeout: 60_000 })).stdout.trim();
