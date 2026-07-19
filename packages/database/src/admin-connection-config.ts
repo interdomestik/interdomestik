@@ -113,7 +113,7 @@ class AdminConnectionConfig {
       keep_alive: 30,
       prepare: false,
       debug: false,
-      fetch_types: false,
+      fetch_types: true,
       publications: 'none',
       target_session_attrs: 'primary',
       types: Object.freeze({}),
