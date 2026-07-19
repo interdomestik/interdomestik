@@ -1218,9 +1218,11 @@ baseline heads, while the isolated case passed on both; current-head remote PR E
 Pilot Gate, CI unit/static/e2e-gate, CodeQL, Sonar with zero issues or hotspots,
 security backstops and `pr-finalizer` all passed before merge. Opus 4.8 passed after a
 LOW remediation. Sonnet no-output/inconclusive routes and unverified Fable access
-remain NON-PASS; the Codex 5.6 ultra architecture/security fallback passed the
-material remediation and final change. Automatic CD run `29704661336` was cancelled
-before registry login, image build or any staging/production deploy or alias.
+remain NON-PASS. A bounded internal Codex 5.6 ultra fallback reported no blockers on
+the material remediation and final change, but no `code_review.md` route receipt was
+materialized, so it is not counted as repo-canonical PASS evidence. Automatic CD run
+`29704661336` was cancelled before registry login, image build or any staging/
+production deploy or alias.
 
 P0a0b is complete. Remote readiness remains NON-PASS until a separate provider-contact
 receipt authorizes an explicitly disposable non-production Supabase direct endpoint;
