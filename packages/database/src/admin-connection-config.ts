@@ -133,7 +133,7 @@ export function resolveAdminConnectionConfig(
   if (typeof raw !== 'string') return reject('ADMIN_DB_CONFIG_URL_INVALID', 'url');
   const values = parseUrl(raw);
   if (!values) return reject('ADMIN_DB_CONFIG_URL_INVALID', 'url');
-  const local = values.host === '127.0.0.1' || values.host === '[::1]';
+  const local = values.host === '127.0.0.1';
   if (!local && (!DIRECT_HOST.test(values.host) || values.port !== 5432))
     return reject('ADMIN_DB_CONFIG_ENDPOINT_REJECTED', 'endpoint');
   const scratch = env.ADMIN_DB_LOCAL_SCRATCH === '1';

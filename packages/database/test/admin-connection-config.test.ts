@@ -37,41 +37,38 @@ test('statically enforces the pure no-I/O boundary', () => {
   assert.match(SOURCE, /import type postgres from 'postgres'/);
 });
 test('locks loopback options and keeps the configuration opaque and immutable', () => {
+  const result = resolveAdminConnectionConfig(localEnv(), VALID_NOW);
+  if (!result.ok) assert.fail('expected accepted loopback configuration');
   // prettier-ignore
-  for (const url of [LOCAL_URL, 'postgresql://admin:secret@[::1]:5439/interdomestik_admin_config_test']) {
-    const result = resolveAdminConnectionConfig(localEnv(url), VALID_NOW);
-    if (!result.ok) assert.fail('expected accepted loopback configuration');
-    // prettier-ignore
-    assert.equal(JSON.stringify(result.config), '{"contract_version":"admin_connection_config_v1","endpoint_class":"local_scratch","transport_policy":"unauthenticated_loopback_test_only","connection_count":1,"target_session":"primary"}');
-    assert.deepEqual(Object.keys(result.config), []);
-    assert(Object.isFrozen(result.config));
-    const first = result.config.toPostgresOptions();
-    const second = result.config.toPostgresOptions();
-    const host = url.includes('[::1]') ? '[::1]' : '127.0.0.1';
-    assert.notEqual(first, second);
-    // prettier-ignore
-    assert.equal(Object.keys(first).sort().join(','), 'backoff,connect_timeout,connection,database,debug,fetch_types,host,idle_timeout,keep_alive,max,max_lifetime,max_pipeline,onnotice,onparameter,password,path,port,prepare,publications,ssl,sslnegotiation,target_session_attrs,transform,types,username');
-    // prettier-ignore
-    assert.equal(JSON.stringify(first), `{"host":"${host}","port":5439,"database":"interdomestik_admin_config_test","username":"admin","password":"secret","ssl":false,"sslnegotiation":null,"max":1,"idle_timeout":0,"connect_timeout":5,"max_lifetime":null,"max_pipeline":1,"backoff":false,"keep_alive":30,"prepare":false,"debug":false,"fetch_types":false,"publications":"none","target_session_attrs":"primary","types":{},"transform":{},"connection":{"application_name":"interdomestik_admin_config_v1"}}`);
-    assert.equal(first.path, undefined);
-    assert.equal(first.transform?.undefined, undefined);
-    assert.equal(typeof first.onnotice, 'function');
-    assert.equal(typeof first.onparameter, 'function');
-    for (const value of [first, first.types, first.transform, first.connection]) assert(Object.isFrozen(value));
-    assert(!JSON.stringify(result).includes('secret'));
-    assert(!inspect(result).includes('secret'));
-  }
+  assert.equal(JSON.stringify(result.config), '{"contract_version":"admin_connection_config_v1","endpoint_class":"local_scratch","transport_policy":"unauthenticated_loopback_test_only","connection_count":1,"target_session":"primary"}');
+  assert.deepEqual(Object.keys(result.config), []);
+  assert(Object.isFrozen(result.config));
+  const first = result.config.toPostgresOptions();
+  const second = result.config.toPostgresOptions();
+  assert.notEqual(first, second);
+  // prettier-ignore
+  assert.equal(Object.keys(first).sort().join(','), 'backoff,connect_timeout,connection,database,debug,fetch_types,host,idle_timeout,keep_alive,max,max_lifetime,max_pipeline,onnotice,onparameter,password,path,port,prepare,publications,ssl,sslnegotiation,target_session_attrs,transform,types,username');
+  // prettier-ignore
+  assert.equal(JSON.stringify(first), '{"host":"127.0.0.1","port":5439,"database":"interdomestik_admin_config_test","username":"admin","password":"secret","ssl":false,"sslnegotiation":null,"max":1,"idle_timeout":0,"connect_timeout":5,"max_lifetime":null,"max_pipeline":1,"backoff":false,"keep_alive":30,"prepare":false,"debug":false,"fetch_types":false,"publications":"none","target_session_attrs":"primary","types":{},"transform":{},"connection":{"application_name":"interdomestik_admin_config_v1"}}');
+  assert.equal(first.path, undefined);
+  assert.equal(first.transform?.undefined, undefined);
+  assert.equal(typeof first.onnotice, 'function');
+  assert.equal(typeof first.onparameter, 'function');
+  for (const value of [first, first.types, first.transform, first.connection])
+    assert(Object.isFrozen(value));
+  assert(!JSON.stringify(result).includes('secret'));
+  assert(!inspect(result).includes('secret'));
 });
 test('rejects ambiguous URLs, endpoints, and implicit loopback authority', () => {
   const encodedInvalidUrls =
-    'POSTGRES://a:b@127.0.0.1:5432/interdomestik_admin_config_x|postgres://a@127.0.0.1:5432/interdomestik_admin_config_x|postgres://a:b@127.0.0.1/interdomestik_admin_config_x|postgres://a:b@127.0.0.1:5432/db/extra|postgres://a:b@127.0.0.1:5432/db?sslmode=require|postgres://a:b@127.0.0.1:5432/db#fragment|postgres://a:b@127.0.0.1,127.0.0.2:5432/db|postgres://a:b@@127.0.0.1:5432/db|postgres://a:b@%31%32%37.0.0.1:5432/db|postgres://a:%40b@127.0.0.1:5432/db|postgres://a:b@127.0.0.1:5432/db%2Fother|postgres://a:b@127.0.0.1:5432/db%ZZ|postgres://a:b@db.ABC123def456ghi789jk.supabase.co:5432/db|postgres://a:b@db.abc123def456ghi789jk.supabase.co.:5432/db';
+    'POSTGRES://a:b@127.0.0.1:5432/interdomestik_admin_config_x|postgres://a:b@::1:5439/interdomestik_admin_config_x|postgres://a@127.0.0.1:5432/interdomestik_admin_config_x|postgres://a:b@127.0.0.1/interdomestik_admin_config_x|postgres://a:b@127.0.0.1:5432/db/extra|postgres://a:b@127.0.0.1:5432/db?sslmode=require|postgres://a:b@127.0.0.1:5432/db#fragment|postgres://a:b@127.0.0.1,127.0.0.2:5432/db|postgres://a:b@@127.0.0.1:5432/db|postgres://a:b@%31%32%37.0.0.1:5432/db|postgres://a:%40b@127.0.0.1:5432/db|postgres://a:b@127.0.0.1:5432/db%2Fother|postgres://a:b@127.0.0.1:5432/db%ZZ|postgres://a:b@db.ABC123def456ghi789jk.supabase.co:5432/db|postgres://a:b@db.abc123def456ghi789jk.supabase.co.:5432/db';
   const invalidUrls: unknown[] = [undefined, 123, '', ...encodedInvalidUrls.split('|'), 'bad\n'];
   for (const DATABASE_URL of invalidUrls) {
     // prettier-ignore
     fail({ ...localEnv(), DATABASE_URL }, DATABASE_URL === undefined ? 'ADMIN_DB_CONFIG_MISSING' : 'ADMIN_DB_CONFIG_URL_INVALID', 'url');
   }
   const rejectedHosts =
-    'localhost:5432|127.0.0.2:5432|aws-0-eu.pooler.supabase.com:6543|db.abc123def456ghi789jk.supabase.co:6543';
+    '[::1]:5439|localhost:5432|127.0.0.2:5432|aws-0-eu.pooler.supabase.com:6543|db.abc123def456ghi789jk.supabase.co:6543';
   for (const host of rejectedHosts.split('|')) {
     // prettier-ignore
     fail(localEnv(`postgres://a:b@${host}/interdomestik_admin_config_x`), 'ADMIN_DB_CONFIG_ENDPOINT_REJECTED', 'endpoint');
