@@ -20,9 +20,10 @@ previously selected `IDA-UI03a2-P0` without resuming or changing its frozen runt
 state. No source, test, database, migration, provider, deployment or production alias
 work is authorized.
 
-The JSON between the fences is the exact accepted UTF-8 payload. Hash only the payload
-bytes, excluding the Markdown fence and its surrounding line terminators. The payload is
-exactly 25,466 bytes and its SHA-256 is recorded in frontmatter.
+The JSON between the fences is the exact accepted UTF-8 payload. Hash the bytes after
+the opening fence's LF through and including the payload's terminal LF immediately
+before the closing fence; exclude only the fence bytes. The payload is exactly 25,466
+bytes and its SHA-256 is recorded in frontmatter.
 
 ```text
 {
