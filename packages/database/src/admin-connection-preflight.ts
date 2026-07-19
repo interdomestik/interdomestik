@@ -11,6 +11,7 @@ type Probe = Record<'identity_ok' | 'owner_ok' | 'role_ok' | 'state_ok' | 'tls',
 const ABORT = Symbol('abort');
 const HEX = /^[a-f0-9]{64}$/;
 const APPLICATION = 'interdomestik_admin_config_v1';
+const alphabetic = (left: string, right: string) => left.localeCompare(right);
 
 function fail(code: string, cleanup = false) {
   const cleanupCode = cleanup && code !== 'ADMIN_DB_PREFLIGHT_CLEANUP_FAILED';
@@ -24,19 +25,12 @@ function digestMatches(value: string, expected: string): boolean {
   return timingSafeEqual(createHash('sha256').update(value).digest(), Buffer.from(expected, 'hex'));
 }
 function authorityMatches(options: Options, kind: string, authority: AdminConnectionAuthority) {
-  const keys = Object.keys(authority)
-    .sort((left, right) => left.localeCompare(right))
-    .join(',');
+  const keys = Object.keys(authority).sort(alphabetic).join(',');
   const ssl = options.ssl && typeof options.ssl === 'object' ? options.ssl : undefined;
-  const receipt = {
-    environmentClass: authority.environmentClass,
-    endpointSha256: authority.endpointSha256,
-    caSha256: authority.caSha256,
-    expectedRolsuper: authority.expectedRolsuper,
-    expectedRolbypassrls: authority.expectedRolbypassrls,
-  };
+  // prettier-ignore
+  const receipt = { environmentClass: authority.environmentClass, endpointSha256: authority.endpointSha256, caSha256: authority.caSha256, expectedRolsuper: authority.expectedRolsuper, expectedRolbypassrls: authority.expectedRolbypassrls };
   return (
-    keys === `${Object.keys(receipt).sort().join(',')},receiptSha256` &&
+    keys === `${Object.keys(receipt).sort(alphabetic).join(',')},receiptSha256` &&
     digestMatches(JSON.stringify(receipt), authority.receiptSha256) &&
     authority.environmentClass === kind &&
     digestMatches(`${String(options.host)}:${String(options.port)}`, authority.endpointSha256) &&
