@@ -332,3 +332,47 @@ After separate runtime authority only:
 
 The ceiling remains at most two production/config paths, one test/support path, 0.75
 engineering day and one backend configuration-proof outcome.
+
+## Runtime implementation and closeout receipt
+
+The immutable 25,466-byte accepted payload above is unchanged. The delegated
+orchestrator later accepted one narrow semantic addendum for the implementation:
+`local_scratch` admits only IPv4 loopback `127.0.0.1`; bracketed `[::1]` and bare `::1`
+fail with deterministic, non-secret validation errors. Scalar `host: string` and
+`port: number` remain unchanged, and Postgres.js-compatible IPv6 normalization,
+client construction and live proof remain owned by unpromoted `IDA-UI03a2-P0a0b`.
+
+PR `#1382` implemented the authorized three-path map from source head
+`3844940e60a79c3b7955fc96a1c28eab62ae8f75` and merged as
+`b4b4ee5c874100fa8c26e406e2aceabd44cbedbe` on 2026-07-19. The merged module stays
+pure and synchronous: it creates no client, socket, database session, SQL, DDL,
+migration, export or caller. Focused tests passed 5/5, package type-check and the
+modularity, database-access, size, formatting and security guards passed, and exact
+current architecture plus Tier-3 security reviews returned PASS. Current-head Codex
+findings were resolved or rejected with evidence; Sonnet's hash-verification refusal,
+Gemini's quota block, unverified Fable and a bounded Copilot route with no retained
+review remain non-PASS rather than approval.
+
+Mandatory local parity ran only against the disposable PostgreSQL target
+`127.0.0.1:55532/interdomestik_p0a0a`: `pnpm pr:verify` and the separate
+`pnpm e2e:gate` passed, including 41/41 RLS checks and the complete E2E gate. The
+disposable container had no shared volume and was removed after post-merge health.
+An earlier gate selected the default local database `127.0.0.1:54322/postgres` before
+the conflict was detected; the content-free incident receipt is 4,643 bytes at
+SHA-256 `9e51e0c650974a22e3c82daeea338559b7cd9bab00b49b9bd5e92c28b521cc1f`.
+No ad hoc rollback, inspection or repair followed, and no production, remote, frozen,
+provider or deployment database was touched. All later database gates used explicit
+isolated URLs.
+
+PR-head required CI, E2E, Pilot, Sonar, CodeQL and security checks passed. At the
+merge SHA, CI run `29696995652`, Sonar Main Gate `29696995662`, CodeQL
+`29696995347` and Secret Scan `29696995637` passed. Automatic CD run `29696995645`
+was cancelled during registry login: metadata extraction and image build were skipped,
+and staging plus production deploy jobs ran zero steps. No deployment or production
+alias changed.
+
+This closeout completes only `IDA-UI03a2-P0a0a`. It promotes no replacement slice.
+`IDA-UI03a2-P0a0b`, `IDA-UI03a2-P0a1`, `IDA-UI03a2-P0a2`, frozen P0 and parent
+UI03a2 remain blocked or unpromoted under their existing authorities. Expected
+post-closeout resolver semantics are `blocked_requires_current_authority` with
+`activeSlice=null`. `humanUseful` remains `unknown_not_confirmed`.
