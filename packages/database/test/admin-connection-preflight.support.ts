@@ -30,7 +30,7 @@ export function findAdminPreflightImports() {
       const relative = `${prefix}/${entry.name}`;
       const next = new URL(entry.isDirectory() ? `${entry.name}/` : entry.name, dir);
       if (entry.isDirectory()) scan(next, relative);
-      else if (relative.endsWith('.ts') && IMPORT.test(readFileSync(next, 'utf8')))
+      else if (/\.tsx?$/.test(relative) && IMPORT.test(readFileSync(next, 'utf8')))
         files.push(relative);
     }
   };
