@@ -1195,6 +1195,41 @@ remain blocked or unpromoted. No default/frozen database, provider environment,
 workflow, compose, migration, DDL/DML, rollout, deployment or production alias is
 authorized; automatic CD must be cancelled before deploy.
 
+Rev 142 closeout supersedes only the active-status, runtime-authorization and future-
+implementation statements in Rev 141. PR `#1385` completed
+`IDA-UI03a2-P0a0b` and squash-merged as
+`72a4ee80be98b5576ad3276ee88d5ac9865d919f`. The separately accepted
+configuration-compatibility amendment sets Postgres.js 3.4.9 `fetch_types:true`
+because the required live RED proof showed `sql.reserve()` can hang with
+`fetch_types:false`; no unreserved priming query was added. The merged preflight
+resolves the sealed configuration first, constructs one max-one pool only after
+acceptance and runs its fixed probes, trusted operation and postflight on exactly one
+reserved session. Rejections use stable redacted codes, execute the operation zero
+times and perform bounded teardown; accepted proof executes the operation exactly
+once.
+
+Focused live proof passed only against fresh disposable no-volume PostgreSQL 16
+fixtures on random loopback ports. The implementation did not contact a default,
+frozen, remote or provider database. The config and preflight suites, database type
+check, modularity and database-access guards, repo-size sync/check, security guard and
+required local gates passed. A sequence-dependent local browser failure at
+`premium-free-start-result.spec.ts:124` reproduced on clean implementation and clean
+baseline heads, while the isolated case passed on both; current-head remote PR E2E,
+Pilot Gate, CI unit/static/e2e-gate, CodeQL, Sonar with zero issues or hotspots,
+security backstops and `pr-finalizer` all passed before merge. Opus 4.8 passed after a
+LOW remediation. Sonnet no-output/inconclusive routes and unverified Fable access
+remain NON-PASS; the Codex 5.6 ultra architecture/security fallback passed the
+material remediation and final change. Automatic CD run `29704661336` was cancelled
+before registry login, image build or any staging/production deploy or alias.
+
+P0a0b is complete. Remote readiness remains NON-PASS until a separate provider-contact
+receipt authorizes an explicitly disposable non-production Supabase direct endpoint;
+this closeout grants no such contact. No replacement implementation slice is promoted.
+The canonical resolver must return `blocked_requires_current_authority`,
+`activeSlice=null` until a fresh current-authority/design gate promotes exactly one
+next action. P0a1, P0a2, frozen P0 and parent UI03a2 remain blocked or unpromoted, and
+no runtime, database, provider or deployment authority is granted to them here.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
