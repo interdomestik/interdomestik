@@ -1109,6 +1109,41 @@ The accepted concurrent same-claim proof is also unchanged: P0 must serialize on
 the existing claim row before counter mutation while preserving the conditional
 claim-number update and loser re-read behavior.
 
+Rev 139 current authority: accepted prerequisite gate `IDA-DG19-A2a0a` in
+`docs/plans/2026-07-19-ida-dg19a2a0a-ui03a2-p0a0a-admin-db-connection-config.md`
+preserves the exact 25,466-byte UTF-8 design payload at SHA-256
+`2419d382d99c5742be5a8810a518f5ab928be99e857c06ce9fb0735f7f47fbfb`,
+bound to clean `origin/main` base
+`46878f2b9920a6dc54635f8f9ff404f0c031acf0`. Independent architecture and
+Tier-3 security reviewers both passed the exact hash and byte count. Sonnet's original
+short no-output route and promotion-time inline wrapper timeout, Gemini's original
+isolated-path refusal and promotion-time inline wrapper `missing_cli`, and unverified
+Fable remain declared non-PASS evidence; `pnpm review:preflight` itself passed, and the
+accepted internal exact-hash reviews are the strongest clean fallback for this narrow
+configuration-only gate.
+
+`IDA-UI03a2-P0` is now blocked and frozen behind the new prerequisite; it is not
+resumed or modified here. The only active governed implementation slice is
+`IDA-UI03a2-P0a0a` — a pure administrative database connection configuration
+contract. Its future implementation is limited to parsing and validating explicit
+`DATABASE_URL` components, exact numeric-loopback or documented Supabase-direct
+classification, explicit nonloopback CA/TLS policy, complete Postgres.js 3.4.9
+fallback-bearing option construction and redaction-safe diagnostics. It may add only
+`packages/database/src/admin-connection-config.ts`,
+`packages/database/test/admin-connection-config.test.ts` and deterministic
+`scripts/repo-size-budget.json` metadata if the unchanged generator requires it. The
+hard ceiling is two production/config paths, one test/support path, 0.75 engineering
+day and one backend configuration-proof outcome.
+
+P0a0a performs no I/O: no client, socket, DNS, TLS handshake, filesystem,
+subprocess, database, SQL, DDL, migration, reserved session or scratch fixture. Runtime
+remains unauthorized until this docs-only promotion merges, canonical main and the
+dedicated clean worktree resolvers select only `IDA-UI03a2-P0a0a`, AI OS is freshly
+observed and a separate exact orchestrator runtime-authority receipt is recorded.
+`IDA-UI03a2-P0a0b`, `IDA-UI03a2-P0a1`, `IDA-UI03a2-P0a2`, frozen P0 and the frozen
+parent UI03a2 remain unpromoted. Automatic CD must be cancelled before deploy; no
+provider, environment, rollout, deployment or production alias change is authorized.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
