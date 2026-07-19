@@ -1163,6 +1163,38 @@ fresh current-authority/design gate promotes exactly one next action. P0a0b, P0a
 P0a2, frozen P0 and parent UI03a2 remain blocked or unpromoted; this closeout grants
 none of them runtime, database, provider or deployment authority.
 
+Rev 141 current authority: accepted prerequisite gate `IDA-DG19-A2a0b` in
+`docs/plans/2026-07-19-ida-dg19a2a0b-ui03a2-p0a0b-admin-db-connection-preflight.md`
+preserves the exact 29,083-byte UTF-8 design payload at SHA-256
+`9fd547f0ba5442e52c9910dd42f11715ec959990fe045afee88c7c25d1b85cac`,
+bound to clean `origin/main` base
+`5ff6c1b56eac1fa095f63e11d8b6109a330ff701`. Internal Sol XHigh architecture
+and security reviews passed the exact file. Opus 4.8 returned
+PASS/CONDITIONAL_PASS with only an inline-transport hash limitation closed by those
+exact-file reviews. Gemini's predecessor corrections are incorporated. Sonnet's
+no-output route and unconfirmed Fable access remain declared NON-PASS evidence.
+
+The only active governed implementation slice is `IDA-UI03a2-P0a0b`, the
+reserved-session live preflight for the explicit administrative database connection.
+After separate runtime authority, it may add only
+`packages/database/src/admin-connection-preflight.ts`,
+`packages/database/test/admin-connection-preflight.test.ts`,
+`packages/database/test/admin-connection-preflight.support.ts` and deterministic
+`scripts/repo-size-budget.json` metadata if the unchanged generator requires it. The
+hard ceiling is two production/config paths, two test/support paths, one engineering
+day, one backend preflight outcome and 150 lines per new source/test file.
+
+This promotion authorizes no runtime or live proof. Runtime remains unauthorized until
+the docs-only promotion merges, canonical-main and dedicated-worktree resolvers select
+only `IDA-UI03a2-P0a0b`, AI OS is freshly observed and a separate exact orchestrator
+runtime-authority receipt is recorded. Future local proof is limited to the accepted
+fresh disposable PostgreSQL 16 fixture; future remote readiness additionally requires
+a separate provider-contact receipt for an explicitly authorized disposable
+non-production Supabase project. P0a1, P0a2 implementation, frozen P0 and parent UI03a2
+remain blocked or unpromoted. No default/frozen database, provider environment,
+workflow, compose, migration, DDL/DML, rollout, deployment or production alias is
+authorized; automatic CD must be cancelled before deploy.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
