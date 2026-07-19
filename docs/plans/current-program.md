@@ -1144,6 +1144,25 @@ observed and a separate exact orchestrator runtime-authority receipt is recorded
 parent UI03a2 remain unpromoted. Automatic CD must be cancelled before deploy; no
 provider, environment, rollout, deployment or production alias change is authorized.
 
+Rev 140 closeout supersedes only the active-status and future-implementation statements
+in Rev 139. PR `#1382` completed `IDA-UI03a2-P0a0a` from source head
+`3844940e60a79c3b7955fc96a1c28eab62ae8f75` and merged as
+`b4b4ee5c874100fa8c26e406e2aceabd44cbedbe`. The approved semantic addendum admits
+only IPv4 `127.0.0.1` for `local_scratch`; IPv6 loopback is rejected and remains a
+P0a0b concern. The implementation stayed inside the one-module, one-test and
+deterministic-size-metadata map, with no client, socket, database session, SQL, DDL,
+migration, export or caller. Focused and isolated mandatory gates, current-head review,
+Sonar, CodeQL and security evidence passed. The content-free default-local-DB incident
+receipt remains explicit; no repair or further default-DB contact occurred. Post-merge
+CI, Sonar Main Gate, CodeQL and Secret Scan passed, and automatic CD was cancelled
+before image build or deploy with no alias change.
+
+P0a0a is complete and no replacement implementation slice is promoted. The canonical
+resolver must return `blocked_requires_current_authority`, `activeSlice=null` until a
+fresh current-authority/design gate promotes exactly one next action. P0a0b, P0a1,
+P0a2, frozen P0 and parent UI03a2 remain blocked or unpromoted; this closeout grants
+none of them runtime, database, provider or deployment authority.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
