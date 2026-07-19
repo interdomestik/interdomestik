@@ -7,7 +7,7 @@ type LockedOptions = postgres.Options<Record<never, never>> & {
   max_pipeline: 1;
 };
 const NOOP = (): void => {};
-const STRUCTURAL = /[\u0000-\u0020\u007f:/?#\[\]@,\\]/;
+const STRUCTURAL = /[\u0000-\u0020\u007f:/?#[\]@,\\]/;
 const DIRECT_HOST = /^db\.[a-z0-9]{20}\.supabase\.co$/;
 const BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 const MAX_CA_BYTES = 65_536;
@@ -25,8 +25,8 @@ function parseUrl(raw: string) {
   if (separator < 1 || separator === credentials.length - 1 || rawHostPort.includes('%'))
     return null;
   const hostMatch = rawHostPort.startsWith('[')
-    ? /^(\[[0-9a-f:.]+\]):([0-9]+)$/.exec(rawHostPort)
-    : /^([^:]+):([0-9]+)$/.exec(rawHostPort);
+    ? /^(\[[\da-f:.]+\]):(\d+)$/.exec(rawHostPort)
+    : /^([^:]+):(\d+)$/.exec(rawHostPort);
   if (!hostMatch || !/^[\x21-\x7e]+$/.test(hostMatch[1]) || hostMatch[1].endsWith('.')) return null;
   const port = Number(hostMatch[2]);
   if (String(port) !== hostMatch[2] || port < 1 || port > 65_535) return null;
