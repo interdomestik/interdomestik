@@ -35,7 +35,7 @@ export function findAdminPreflightImports() {
     }
   };
   scan(new URL('../../', import.meta.url), 'packages');
-  return files.sort();
+  return files.sort((left, right) => left.localeCompare(right));
 }
 
 async function docker(...args: string[]): Promise<string> {
