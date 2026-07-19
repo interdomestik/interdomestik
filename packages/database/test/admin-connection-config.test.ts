@@ -49,7 +49,7 @@ test('locks loopback options and keeps the configuration opaque and immutable', 
   // prettier-ignore
   assert.equal(Object.keys(first).sort().join(','), 'backoff,connect_timeout,connection,database,debug,fetch_types,host,idle_timeout,keep_alive,max,max_lifetime,max_pipeline,onnotice,onparameter,password,path,port,prepare,publications,ssl,sslnegotiation,target_session_attrs,transform,types,username');
   // prettier-ignore
-  assert.equal(JSON.stringify(first), '{"host":"127.0.0.1","port":5439,"database":"interdomestik_admin_config_test","username":"admin","password":"secret","ssl":false,"sslnegotiation":null,"max":1,"idle_timeout":0,"connect_timeout":5,"max_lifetime":null,"max_pipeline":1,"backoff":false,"keep_alive":30,"prepare":false,"debug":false,"fetch_types":false,"publications":"none","target_session_attrs":"primary","types":{},"transform":{},"connection":{"application_name":"interdomestik_admin_config_v1"}}');
+  assert.equal(JSON.stringify(first), '{"host":"127.0.0.1","port":5439,"database":"interdomestik_admin_config_test","username":"admin","password":"secret","ssl":false,"sslnegotiation":null,"max":1,"idle_timeout":0,"connect_timeout":5,"max_lifetime":null,"max_pipeline":1,"backoff":false,"keep_alive":30,"prepare":false,"debug":false,"fetch_types":true,"publications":"none","target_session_attrs":"primary","types":{},"transform":{},"connection":{"application_name":"interdomestik_admin_config_v1"}}');
   assert.equal(first.path, undefined);
   assert.equal(first.transform?.undefined, undefined);
   assert.equal(typeof first.onnotice, 'function');
