@@ -24,7 +24,9 @@ function digestMatches(value: string, expected: string): boolean {
   return timingSafeEqual(createHash('sha256').update(value).digest(), Buffer.from(expected, 'hex'));
 }
 function authorityMatches(options: Options, kind: string, authority: AdminConnectionAuthority) {
-  const keys = Object.keys(authority).sort().join(',');
+  const keys = Object.keys(authority)
+    .sort((left, right) => left.localeCompare(right))
+    .join(',');
   const ssl = options.ssl && typeof options.ssl === 'object' ? options.ssl : undefined;
   const receipt = {
     environmentClass: authority.environmentClass,
@@ -66,14 +68,19 @@ async function probe(sql: Reserved, options: Options, authority: AdminConnection
   if (!rows[0]) throw new Error('PROBE_EMPTY');
   return rows[0];
 }
-function classify(row: Probe, kind: string): string | null {
+function classify(row: Probe, kind: string, expectedPid?: number): string | null {
   if (!row.identity_ok) return 'ADMIN_DB_PREFLIGHT_IDENTITY_REJECTED';
   if (!row.owner_ok || !row.role_ok) return 'ADMIN_DB_PREFLIGHT_ROLE_REJECTED';
   if (!row.state_ok) return 'ADMIN_DB_PREFLIGHT_STATE_REJECTED';
   if (row.tls !== (kind === 'supabase_direct')) return 'ADMIN_DB_PREFLIGHT_TRANSPORT_REJECTED';
   if (row.server_major !== 15 && row.server_major !== 16)
     return 'ADMIN_DB_PREFLIGHT_VERSION_REJECTED';
+  if (expectedPid && row.pid !== expectedPid) return 'ADMIN_DB_PREFLIGHT_SESSION_CHANGED';
   return null;
+}
+function caughtCode(error: unknown, phase: number): string {
+  if (error === ABORT) return 'ADMIN_DB_PREFLIGHT_ABORTED';
+  return phase === 2 ? 'ADMIN_DB_PREFLIGHT_OPERATION_FAILED' : 'ADMIN_DB_PREFLIGHT_CONNECT_FAILED';
 }
 
 export async function withPreflightedAdminConnection(
@@ -129,12 +136,11 @@ export async function withPreflightedAdminConnection(
       await race(operation(reserved, signal));
       phase = 3;
       const postflight = await race(probe(reserved, options, authority));
-      code = classify(postflight, kind);
-      if (!code && postflight.pid !== preflight.pid) code = 'ADMIN_DB_PREFLIGHT_SESSION_CHANGED';
-    } else if (signal.aborted) throw ABORT;
+      code = classify(postflight, kind, preflight.pid);
+    }
+    if (signal.aborted) throw ABORT;
   } catch (error) {
-    // prettier-ignore
-    code = error === ABORT ? 'ADMIN_DB_PREFLIGHT_ABORTED' : phase === 2 ? 'ADMIN_DB_PREFLIGHT_OPERATION_FAILED' : 'ADMIN_DB_PREFLIGHT_CONNECT_FAILED';
+    code = caughtCode(error, phase);
   } finally {
     await closeOnce();
     closed = true;
