@@ -1232,6 +1232,45 @@ The canonical resolver must return `blocked_requires_current_authority`,
 next action. P0a1, P0a2, frozen P0 and parent UI03a2 remain blocked or unpromoted, and
 no runtime, database, provider or deployment authority is granted to them here.
 
+Rev 143 current authority: accepted prerequisite gate `IDA-DG19-A2a1a0a-R1` in
+`docs/plans/2026-07-20-ida-dg19a2a1a0a-ui03a2-p0a1a0a-migration-corpus-integrity.md`
+preserves the exact 35,062-byte UTF-8 design payload at SHA-256
+`b85accc78ae562b673bcec72cd12dff4ca22f7b4cfa1404027d9f0ff554cffb8`,
+bound to clean `origin/main` base
+`fccf91848898063bc434b97230808efa4d84f5b5`. Codex 5.6 Sol Ultra architecture
+and contracts/security reviewers passed that exact byte count and hash with no
+acceptance blocker. Sonnet 4.6 and Opus 4.8 no-output routes and unavailable or
+unverified Fable remain NON-PASS evidence; Gemini's PASS applies only to the
+superseded predecessor hash and is informational, not promotion evidence.
+
+The only active governed implementation slice is `IDA-UI03a2-P0a1a0a`, the
+canonical migration-corpus integrity capability. After separate exact runtime
+authority, it may add only the eight production and six test/support files named in
+the accepted gate plus deterministic `scripts/repo-size-budget.json` metadata if the
+unchanged generator requires it. Every new source/test/support file stays below 150
+physical lines; the absolute allocation is 1,880 lines, three engineering days and
+one backend integrity outcome.
+
+The slice is limited to one module-relative canonical migration root; mandatory
+fail-closed no-follow, realpath and identity containment; exact journal digest,
+schema and order; exact 93 journaled plus four excluded-orphan topology; 97 exact
+per-file hashes; one domain-separated aggregate digest; and one stable redacted
+opaque capability. It authorizes no Drizzle dependency resolution or chunk
+derivation, pg-proxy/dialect source binding, callback construction, pending
+selection, database semantics, live database, migration execution or provider
+contact. P0a1a0b remains the later generic-reader/source-binding and flattened-plan
+slice; P0a1a1 remains the live database-state selection/equality/execution slice.
+
+This docs-only promotion authorizes no source, test or runtime work. Runtime remains
+unauthorized until the promotion merges, canonical-main and dedicated-worktree
+resolvers select only `IDA-UI03a2-P0a1a0a`, AI OS is freshly observed and a
+separate exact orchestrator runtime-authority receipt is recorded. P0a1a0b, P0a1a1,
+P0a2, frozen P0 and parent UI03a2 remain blocked or unpromoted. No current migration
+or journal mutation, `src/migrate.ts`, workflow, Docker/compose, default/frozen
+database, role/ACL/membership, seed/fixture, proxy/route/auth/session/OTP/tenancy/RLS,
+UI, billing, rollout, deployment or production alias change is authorized;
+automatic CD must be cancelled before deploy.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
