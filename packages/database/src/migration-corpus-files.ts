@@ -1,9 +1,9 @@
-import type {
-  MigrationCorpusErrorCode,
-  CorpusFsOps,
-  CorpusStat,
+import {
+  CorpusFault,
+  type CorpusFsOps,
+  type CorpusStat,
+  type MigrationCorpusErrorCode,
 } from './migration-corpus-contracts';
-import { CorpusFault } from './migration-corpus-contracts';
 import { corpusChild, isContained } from './migration-corpus-root';
 
 const MAX_FILE_BYTES = 65_536n;
@@ -28,6 +28,46 @@ async function stage(
   await ops.onStage?.(value, name);
 }
 
+function acceptable(stat: CorpusStat, maximumBytes: bigint): boolean {
+  return (
+    stat.kind === 'file' &&
+    stat.nlink === 1n &&
+    stat.size >= 0n &&
+    stat.size <= MAX_FILE_BYTES &&
+    stat.size <= maximumBytes &&
+    stat.size <= BigInt(Number.MAX_SAFE_INTEGER)
+  );
+}
+
+function classifyFault(
+  error: unknown,
+  observed: boolean,
+  initialCode: MigrationCorpusErrorCode
+): CorpusFault {
+  if (error instanceof CorpusFault) return error;
+  if (observed) return new CorpusFault('MIGRATION_CORPUS_CHANGED_DURING_READ');
+  return new CorpusFault(initialCode);
+}
+
+async function closeFile(
+  handle: Awaited<ReturnType<CorpusFsOps['openFile']>>,
+  relativeName: string,
+  ops: Readonly<CorpusFsOps>
+): Promise<boolean> {
+  let failed = false;
+  try {
+    await stage(ops, relativeName, 'before_close');
+  } catch {
+    failed = true;
+  }
+  try {
+    await handle.close();
+  } catch {
+    failed = true;
+  }
+  return failed;
+}
+
 export async function readCorpusFile(
   parent: string,
   realRoot: string,
@@ -46,16 +86,7 @@ export async function readCorpusFile(
   try {
     await stage(ops, relativeName, 'before_lstat');
     const before = await ops.lstatBigint(candidate);
-    if (
-      before.kind !== 'file' ||
-      before.nlink !== 1n ||
-      before.size < 0n ||
-      before.size > MAX_FILE_BYTES ||
-      before.size > maximumBytes ||
-      before.size > BigInt(Number.MAX_SAFE_INTEGER)
-    ) {
-      throw new CorpusFault(initialCode);
-    }
+    if (!acceptable(before, maximumBytes)) throw new CorpusFault(initialCode);
     await stage(ops, relativeName, 'after_lstat');
     if ((await ops.realpath(candidate)) !== candidate) {
       throw new CorpusFault('MIGRATION_CORPUS_CHANGED_DURING_READ');
@@ -86,25 +117,10 @@ export async function readCorpusFile(
     }
     output = Object.freeze({ bytes, stat: before });
   } catch (error) {
-    fault =
-      error instanceof CorpusFault
-        ? error
-        : new CorpusFault(observed ? 'MIGRATION_CORPUS_CHANGED_DURING_READ' : initialCode);
+    fault = classifyFault(error, observed, initialCode);
   } finally {
-    if (handle) {
-      let cleanupFailed = false;
-      try {
-        await stage(ops, relativeName, 'before_close');
-      } catch {
-        cleanupFailed = true;
-      }
-      try {
-        await handle.close();
-      } catch {
-        cleanupFailed = true;
-      }
-      if (cleanupFailed) fault = new CorpusFault('MIGRATION_CORPUS_CLEANUP_FAILED');
-    }
+    if (handle && (await closeFile(handle, relativeName, ops)))
+      fault = new CorpusFault('MIGRATION_CORPUS_CLEANUP_FAILED');
   }
   if (fault) throw fault;
   if (!output) throw new CorpusFault(initialCode);

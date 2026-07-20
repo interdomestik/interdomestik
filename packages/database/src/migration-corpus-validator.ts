@@ -1,15 +1,16 @@
 import { createHash } from 'node:crypto';
 
-import type {
-  CorpusFsOps,
-  InternalVerificationResult,
-  MigrationCorpusState,
-} from './migration-corpus-contracts';
-import { CorpusFault } from './migration-corpus-contracts';
+// prettier-ignore
+import { CorpusFault, type CorpusFsOps, type InternalVerificationResult, type MigrationCorpusState } from './migration-corpus-contracts';
 import { withCorpusDirectories } from './migration-corpus-directories';
 import { readCorpusFile } from './migration-corpus-files';
-import { CORPUS_DOMAIN, CORPUS_SHA256, JOURNAL_SHA256 } from './migration-corpus-manifest';
-import { EXCLUDED_MIGRATION_FILES, MIGRATION_FILE_HASHES } from './migration-corpus-manifest';
+import {
+  CORPUS_DOMAIN,
+  CORPUS_SHA256,
+  EXCLUDED_MIGRATION_FILES,
+  JOURNAL_SHA256,
+  MIGRATION_FILE_HASHES,
+} from './migration-corpus-manifest';
 
 type Entry = Readonly<{ breakpoints: true; idx: number; tag: string; version: '7'; when: number }>;
 const JOURNAL_ERROR = 'MIGRATION_CORPUS_JOURNAL_REJECTED';
@@ -20,7 +21,7 @@ function rejectJournal(): never {
 }
 
 function keys(value: object, expected: readonly string[]): boolean {
-  const actual = Object.keys(value).sort();
+  const actual = Object.keys(value).sort((left, right) => left.localeCompare(right));
   return actual.length === expected.length && actual.every((key, index) => key === expected[index]);
 }
 
@@ -108,7 +109,8 @@ export async function verifyMigrationCorpusRoot(
       if (digest(journal.bytes) !== JOURNAL_SHA256) rejectJournal();
       const names = journalNames(journal.bytes);
       const allNames = Object.freeze([...names, ...EXCLUDED_MIGRATION_FILES]);
-      const expected = [`meta:directory`, ...allNames.map(name => `${name}:file`)].sort();
+      // prettier-ignore
+      const expected = [`meta:directory`, ...allNames.map(name => `${name}:file`)].sort((left, right) => left.localeCompare(right));
       if (
         expected.length !== directories.rootSnapshot.length ||
         expected.some((entry, index) => entry !== directories.rootSnapshot[index])

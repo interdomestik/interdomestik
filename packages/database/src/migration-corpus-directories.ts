@@ -1,8 +1,7 @@
 import { resolve } from 'node:path';
 
-import type { CorpusFsOps, CorpusHandle } from './migration-corpus-contracts';
-import type { CorpusStage, CorpusStat } from './migration-corpus-contracts';
-import { CorpusFault } from './migration-corpus-contracts';
+// prettier-ignore
+import { CorpusFault, type CorpusFsOps, type CorpusHandle, type CorpusStage, type CorpusStat } from './migration-corpus-contracts';
 import { corpusChild } from './migration-corpus-root';
 
 type Ops = Readonly<CorpusFsOps>;
@@ -47,7 +46,8 @@ async function snapshot(path: string, maximum: number, ops: Ops): Promise<readon
     }
   }
   if (fault) throw fault;
-  return Object.freeze(entries.sort());
+  entries.sort((left, right) => left.localeCompare(right));
+  return Object.freeze(entries);
 }
 
 async function openDirectory(path: string, name: string, ops: Ops, opened: Opened[]) {
@@ -75,6 +75,27 @@ async function closeAll(opened: readonly Opened[], ops: Ops): Promise<boolean> {
     failed = !(await attempt(() => item.handle.close())) || failed;
   }
   return failed;
+}
+
+// prettier-ignore
+async function postcheck(path: string, name: string, prior: readonly string[], before: CorpusStat, handle: CorpusHandle, maximum: number, ops: Ops) {
+  await stage(ops, name, 'before_postcheck');
+  const current = await snapshot(path, maximum, ops);
+  // prettier-ignore
+  const [after, real, descriptor] = await Promise.all([ops.lstatBigint(path), ops.realpath(path), handle.fstatBigint()]);
+  // prettier-ignore
+  const changed = !same(before, after) || !same(before, descriptor) || real !== path || current.length !== prior.length || current.some((entry, index) => entry !== prior[index]);
+  if (changed) throw new CorpusFault('MIGRATION_CORPUS_CHANGED_DURING_READ');
+}
+
+function classifyFault(prior: unknown, current: unknown, observed: boolean): unknown {
+  if (prior instanceof CorpusFault && prior.code === 'MIGRATION_CORPUS_CLEANUP_FAILED')
+    return prior;
+  if (current instanceof CorpusFault && current.code === 'MIGRATION_CORPUS_CLEANUP_FAILED')
+    return current;
+  if (observed) return new CorpusFault('MIGRATION_CORPUS_CHANGED_DURING_READ');
+  if (current instanceof CorpusFault) return current;
+  return new CorpusFault('MIGRATION_CORPUS_ROOT_REJECTED');
 }
 
 export async function withCorpusDirectories<T>(
@@ -112,30 +133,10 @@ export async function withCorpusDirectories<T>(
     } catch (error) {
       fault = error;
     }
-    for (const [name, path, before, handle, prior, maximum] of [
-      ['.', lexicalRoot, rootDir.before, rootDir.handle, rootBefore, 98],
-      ['meta', metaPath, metaDir.before, metaDir.handle, metaBefore, 128],
-    ] as const) {
-      await stage(ops, name, 'before_postcheck');
-      const current = await snapshot(path, maximum, ops);
-      const [after, real, descriptor] = await Promise.all([
-        ops.lstatBigint(path),
-        ops.realpath(path),
-        handle.fstatBigint(),
-      ]);
-      if (
-        !same(before, after) ||
-        !same(before, descriptor) ||
-        real !== path ||
-        current.length !== prior.length ||
-        current.some((entry, index) => entry !== prior[index])
-      ) {
-        throw new CorpusFault('MIGRATION_CORPUS_CHANGED_DURING_READ');
-      }
-    }
+    await postcheck(lexicalRoot, '.', rootBefore, rootDir.before, rootDir.handle, 98, ops);
+    await postcheck(metaPath, 'meta', metaBefore, metaDir.before, metaDir.handle, 128, ops);
   } catch (error) {
-    // prettier-ignore
-    fault = fault instanceof CorpusFault && fault.code === 'MIGRATION_CORPUS_CLEANUP_FAILED' ? fault : error instanceof CorpusFault && error.code === 'MIGRATION_CORPUS_CLEANUP_FAILED' ? error : observed ? new CorpusFault('MIGRATION_CORPUS_CHANGED_DURING_READ') : error instanceof CorpusFault ? error : new CorpusFault('MIGRATION_CORPUS_ROOT_REJECTED');
+    fault = classifyFault(fault, error, observed);
   } finally {
     if (await closeAll(opened, ops)) fault = new CorpusFault('MIGRATION_CORPUS_CLEANUP_FAILED');
   }
