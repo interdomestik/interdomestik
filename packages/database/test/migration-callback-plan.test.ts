@@ -7,6 +7,7 @@ import { migrate as proxyMigrate } from 'drizzle-orm/pg-proxy/migrator';
 import { verifyCanonicalMigrationCorpus } from '../src/migration-corpus-capability';
 import { CANONICAL_ROOT } from '../src/migration-corpus-root';
 import { buildOwnedMigrationCallbackPlan } from '../src/migration-callback-plan-builder';
+import { CallbackPlanFault } from '../src/migration-callback-plan-contracts';
 import {
   buildCanonicalMigrationCallbackPlan,
   testMigrationCallbackPlanWithDependencies,
@@ -141,4 +142,7 @@ test('reader runs once before the required unequal post-corpus scan rejects', as
     dependencies(() => drift, true)
   );
   assert.equal(code, 'MIGRATION_CALLBACK_DEPENDENCY_SOURCE_REJECTED');
+  const cleanup = () => Promise.reject(new CallbackPlanFault('MIGRATION_CALLBACK_CLEANUP_FAILED'));
+  code = await testMigrationCallbackPlanWithDependencies(input, dependencies(cleanup));
+  assert.equal(code, 'MIGRATION_CALLBACK_CLEANUP_FAILED');
 });

@@ -14,7 +14,6 @@ import {
   recheckMigrationCallbackSources,
   verifyMigrationCallbackSources,
 } from './migration-callback-source-verifier';
-
 type CorpusResult = Awaited<ReturnType<typeof verifyCanonicalMigrationCorpus>>;
 type StateResult =
   | Readonly<{ ok: true; state: MigrationCallbackPlanState }>
@@ -31,7 +30,6 @@ const DEFAULTS: MigrationCallbackPlanDependencies = Object.freeze({
   bindSources: () => verifyMigrationCallbackSources(),
   recheckSources: recheckMigrationCallbackSources,
 });
-
 function sameStat(
   left: MigrationCorpusState['rootIdentity'],
   right: MigrationCorpusState['rootIdentity']
@@ -39,9 +37,8 @@ function sameStat(
   // prettier-ignore
   return left.dev === right.dev && left.ino === right.ino && left.nlink === right.nlink && left.size === right.size && left.mtimeNs === right.mtimeNs && left.ctimeNs === right.ctimeNs && left.kind === right.kind;
 }
-function sameList(left: readonly string[], right: readonly string[]): boolean {
-  return left.length === right.length && left.every((value, index) => value === right[index]);
-}
+// prettier-ignore
+function sameList(left: readonly string[], right: readonly string[]): boolean { return left.length === right.length && left.every((value, index) => value === right[index]); }
 function sameCorpus(left: MigrationCorpusState, right: MigrationCorpusState): boolean {
   // prettier-ignore
   return left.realRoot === right.realRoot && left.journalSha256 === right.journalSha256 && left.corpusSha256 === right.corpusSha256 && sameList(left.journalNames, right.journalNames) && sameList(left.excludedNames, right.excludedNames) && sameStat(left.rootIdentity, right.rootIdentity);
@@ -49,7 +46,18 @@ function sameCorpus(left: MigrationCorpusState, right: MigrationCorpusState): bo
 function failure(code: MigrationCallbackPlanErrorCode): Extract<StateResult, { ok: false }> {
   return Object.freeze({ ok: false, error: Object.freeze({ code }) });
 }
-
+const needsPostScan = (code?: MigrationCallbackPlanErrorCode) =>
+  !code || code === 'MIGRATION_CALLBACK_PLAN_REJECTED';
+async function readPostCorpus(
+  dependencies: MigrationCallbackPlanDependencies
+): Promise<Readonly<MigrationCorpusState> | null> {
+  try {
+    const post = await dependencies.verifyCorpus();
+    return post.ok ? dependencies.readCorpus(post.capability) : null;
+  } catch {
+    return null;
+  }
+}
 async function buildState(
   capability: unknown,
   dependencies: MigrationCallbackPlanDependencies
@@ -70,17 +78,12 @@ async function buildState(
     } catch (error) {
       deferred = error instanceof CallbackPlanFault ? error.code : phase;
     }
-    let postCorpus: Readonly<MigrationCorpusState> | null = null;
-    let corpusChanged = false;
-    if (!deferred || deferred === 'MIGRATION_CALLBACK_PLAN_REJECTED') {
+    let postCorpus: Readonly<MigrationCorpusState> | null = null,
+      corpusChanged = false;
+    if (needsPostScan(deferred)) {
       phase = 'MIGRATION_CALLBACK_CORPUS_CHANGED_DURING_READ';
-      try {
-        const post = await dependencies.verifyCorpus();
-        postCorpus = post.ok ? dependencies.readCorpus(post.capability) : null;
-        corpusChanged = !postCorpus || !sameCorpus(preCorpus, postCorpus);
-      } catch {
-        corpusChanged = true;
-      }
+      postCorpus = await readPostCorpus(dependencies);
+      corpusChanged = !postCorpus || !sameCorpus(preCorpus, postCorpus);
     }
     phase = 'MIGRATION_CALLBACK_DEPENDENCY_SOURCE_REJECTED';
     await dependencies.recheckSources(sources);
@@ -103,7 +106,6 @@ async function buildState(
     return failure(code);
   }
 }
-
 export async function testMigrationCallbackPlanWithDependencies(
   capability: unknown,
   dependencies: MigrationCallbackPlanDependencies
@@ -111,7 +113,6 @@ export async function testMigrationCallbackPlanWithDependencies(
   const result = await buildState(capability, dependencies);
   return result.ok ? null : result.error.code;
 }
-
 export async function buildCanonicalMigrationCallbackPlan(
   capability: MigrationCorpusCapability
 ): Promise<MigrationCallbackPlanResult> {

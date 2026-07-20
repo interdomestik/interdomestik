@@ -4,19 +4,16 @@ import { lstat, open, realpath } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { basename, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-
 // prettier-ignore
 import { CallbackPlanFault, type CallbackSourceBinding, type CallbackSourceHandle, type CallbackSourceOps, type CallbackSourceStat } from './migration-callback-plan-contracts';
 // prettier-ignore
 import { CALLBACK_SOURCE_MANIFEST, MAX_CALLBACK_SOURCE_BYTES } from './migration-callback-plan-manifest';
-
 function convert(value: Awaited<ReturnType<typeof lstat>>): CallbackSourceStat {
   // prettier-ignore
   const item = value as typeof value & { dev: bigint; ino: bigint; nlink: bigint; size: bigint; mtimeNs: bigint; ctimeNs: bigint };
   // prettier-ignore
   return Object.freeze({ dev: item.dev, ino: item.ino, nlink: item.nlink, size: item.size, mtimeNs: item.mtimeNs, ctimeNs: item.ctimeNs, isFile: item.isFile() });
 }
-
 const requireFromHere = createRequire(import.meta.url);
 export function resolveCallbackSource(
   specifier: string,
@@ -30,7 +27,6 @@ export function resolveCallbackSource(
   const resolved = requireResolve(specifier);
   return pathToFileURL(resolved.endsWith('.cjs') ? `${resolved.slice(0, -4)}.js` : resolved).href;
 }
-
 export const CALLBACK_SOURCE_OPS: Readonly<CallbackSourceOps> = Object.freeze({
   noFollowFlag: typeof constants.O_NOFOLLOW === 'number' ? constants.O_NOFOLLOW : 0,
   resolve: resolveCallbackSource,
@@ -47,12 +43,10 @@ export const CALLBACK_SOURCE_OPS: Readonly<CallbackSourceOps> = Object.freeze({
   },
   importModule: (url: string) => import(url),
 });
-
 function same(left: CallbackSourceStat, right: CallbackSourceStat): boolean {
   // prettier-ignore
   return left.dev === right.dev && left.ino === right.ino && left.nlink === right.nlink && left.size === right.size && left.mtimeNs === right.mtimeNs && left.ctimeNs === right.ctimeNs && left.isFile === right.isFile;
 }
-
 function rejected(): never {
   throw new CallbackPlanFault('MIGRATION_CALLBACK_DEPENDENCY_SOURCE_REJECTED');
 }
@@ -92,6 +86,26 @@ async function readBoundSource(
   if (!bytes) rejected();
   return bytes;
 }
+async function bindExpectedSource(
+  expected: (typeof CALLBACK_SOURCE_MANIFEST)[number],
+  ops: Readonly<CallbackSourceOps>
+): Promise<Readonly<{ root: string; hash: string; url: string }>> {
+  const url = new URL(await ops.resolve(expected.specifier));
+  if (url.protocol !== 'file:' || url.search || url.hash) rejected();
+  const path = fileURLToPath(url);
+  const root = path.slice(0, -expected.suffix.length - 1);
+  if (
+    basename(root) !== 'drizzle-orm' ||
+    join(root, ...expected.suffix.split('/')) !== path ||
+    (await ops.realpath(path)) !== path
+  )
+    rejected();
+  const hash = createHash('sha256')
+    .update(await readBoundSource(path, ops))
+    .digest('hex');
+  if (hash !== expected.sha256) rejected();
+  return Object.freeze({ root, hash, url: url.href });
+}
 
 export async function verifyMigrationCallbackSources(
   ops: Readonly<CallbackSourceOps> = CALLBACK_SOURCE_OPS,
@@ -103,23 +117,11 @@ export async function verifyMigrationCallbackSources(
       urls: string[] = [];
     let packageRoot: string | undefined;
     for (const expected of CALLBACK_SOURCE_MANIFEST) {
-      const url = new URL(await ops.resolve(expected.specifier));
-      if (url.protocol !== 'file:' || url.search || url.hash) rejected();
-      const path = fileURLToPath(url);
-      const root = path.slice(0, -expected.suffix.length - 1);
-      if (
-        basename(root) !== 'drizzle-orm' ||
-        join(root, ...expected.suffix.split('/')) !== path ||
-        (await ops.realpath(path)) !== path
-      )
-        rejected();
-      if (packageRoot !== undefined && root !== packageRoot) rejected();
-      packageRoot = root;
-      const bytes = await readBoundSource(path, ops);
-      const hash = createHash('sha256').update(bytes).digest('hex');
-      if (hash !== expected.sha256) rejected();
-      hashes.push(hash);
-      urls.push(url.href);
+      const source = await bindExpectedSource(expected, ops);
+      if (packageRoot !== undefined && source.root !== packageRoot) rejected();
+      packageRoot = source.root;
+      hashes.push(source.hash);
+      urls.push(source.url);
     }
     let reader = null;
     if (loadReader) {

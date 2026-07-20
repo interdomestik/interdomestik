@@ -27,7 +27,7 @@ function reject(code: typeof READER | typeof PLAN): never {
 }
 function exactKeys(value: object): boolean {
   if (Object.getOwnPropertySymbols(value).length) return false;
-  const names = Object.getOwnPropertyNames(value).sort();
+  const names = Object.getOwnPropertyNames(value).sort((left, right) => left.localeCompare(right));
   if (
     names.length !== 4 ||
     names.some((name, index) => name !== ['bps', 'folderMillis', 'hash', 'sql'][index])
@@ -53,6 +53,21 @@ function plainArray(value: unknown[]): boolean {
 function sha(bytes: string): string {
   return createHash('sha256').update(bytes).digest('hex');
 }
+function ownMigration(value: unknown, index: number, seenTimes: Set<number>): OwnedMigration {
+  if (!value || typeof value !== 'object' || !exactKeys(value)) reject(READER);
+  const item = value as { bps: unknown; folderMillis: unknown; hash: unknown; sql: unknown };
+  // prettier-ignore
+  if (typeof item.bps !== 'boolean' || typeof item.folderMillis !== 'number' || typeof item.hash !== 'string' || !Array.isArray(item.sql) || !plainArray(item.sql) || item.sql.some(chunk => typeof chunk !== 'string')) reject(READER);
+  // prettier-ignore
+  if (item.bps !== true || !Number.isSafeInteger(item.folderMillis) || item.folderMillis <= 0 || seenTimes.has(item.folderMillis) || !/^[a-f0-9]{64}$/.test(item.hash) || item.hash !== MIGRATION_FILE_HASHES[index]) reject(PLAN);
+  seenTimes.add(item.folderMillis);
+  return Object.freeze({
+    bps: true,
+    folderMillis: item.folderMillis,
+    hash: item.hash,
+    sql: Object.freeze([...item.sql]),
+  });
+}
 
 export function buildOwnedMigrationCallbackPlan(input: unknown): OwnedCallbackPlan {
   if (!Array.isArray(input)) reject(READER);
@@ -63,38 +78,14 @@ export function buildOwnedMigrationCallbackPlan(input: unknown): OwnedCallbackPl
   let chunks = 0,
     sqlBytes = 0;
   for (let index = 0; index < input.length; index += 1) {
-    const value = input[index];
-    if (!value || typeof value !== 'object' || !exactKeys(value)) reject(READER);
-    const item = value as { bps: unknown; folderMillis: unknown; hash: unknown; sql: unknown };
-    if (
-      typeof item.bps !== 'boolean' ||
-      typeof item.folderMillis !== 'number' ||
-      typeof item.hash !== 'string' ||
-      !Array.isArray(item.sql) ||
-      !plainArray(item.sql) ||
-      item.sql.some(chunk => typeof chunk !== 'string')
-    )
-      reject(READER);
-    if (
-      item.bps !== true ||
-      !Number.isSafeInteger(item.folderMillis) ||
-      item.folderMillis <= 0 ||
-      seenTimes.has(item.folderMillis) ||
-      !/^[a-f0-9]{64}$/.test(item.hash) ||
-      item.hash !== MIGRATION_FILE_HASHES[index]
-    )
-      reject(PLAN);
-    seenTimes.add(item.folderMillis);
-    const ownedSql = Object.freeze([...item.sql]) as readonly string[];
-    for (const chunk of ownedSql) {
+    const migration = ownMigration(input[index], index, seenTimes);
+    for (const chunk of migration.sql) {
       const length = Buffer.byteLength(chunk);
       if (length > MAX_CALLBACK_ITEM_BYTES) reject(PLAN);
       sqlBytes += length;
     }
-    chunks += ownedSql.length;
-    migrations.push(
-      Object.freeze({ bps: true, folderMillis: item.folderMillis, hash: item.hash, sql: ownedSql })
-    );
+    chunks += migration.sql.length;
+    migrations.push(migration);
   }
   if (chunks !== CALLBACK_STATEMENTS || sqlBytes > MAX_CALLBACK_SQL_BYTES) reject(PLAN);
   const callbackItems: string[] = [],

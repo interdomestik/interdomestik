@@ -50,7 +50,7 @@ export function sourceOps(overrides: Partial<CallbackSourceOps>): Readonly<Callb
   return Object.freeze({ ...CALLBACK_SOURCE_OPS, ...overrides });
 }
 
-export async function callbackCode(task: () => unknown | Promise<unknown>): Promise<string> {
+export async function callbackCode(task: () => void | Promise<unknown>): Promise<string> {
   try {
     await task();
   } catch (error) {
