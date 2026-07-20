@@ -19,6 +19,14 @@ test('installed sources bind the three exact hashes and one package root', async
   assert.equal(binding.urls.length, 3);
   assert.equal(typeof binding.reader, 'function');
   assert.ok(binding.urls.every(url => url.startsWith('file:') && url.endsWith('.js')));
+  const linked = sourceOps({
+    lstat: async path => ({ ...(await CALLBACK_SOURCE_OPS.lstat(path)), nlink: 2n }),
+    open: async path => {
+      const handle = await CALLBACK_SOURCE_OPS.open(path);
+      return { ...handle, stat: async () => ({ ...(await handle.stat()), nlink: 2n }) };
+    },
+  });
+  assert.equal(await callbackCode(() => verifyMigrationCallbackSources(linked)), 'NO_ERROR');
 });
 
 test('resolver prefers native semantics and bounds the tsx fallback', () => {

@@ -61,7 +61,7 @@ async function readBoundSource(
   try {
     const before = await ops.lstat(path);
     // prettier-ignore
-    if (!before.isFile || before.nlink !== 1n || before.size < 0n || before.size > MAX_CALLBACK_SOURCE_BYTES || before.size > BigInt(Number.MAX_SAFE_INTEGER)) rejected();
+    if (!before.isFile || before.size < 0n || before.size > MAX_CALLBACK_SOURCE_BYTES || before.size > BigInt(Number.MAX_SAFE_INTEGER)) rejected();
     if ((await ops.realpath(path)) !== path) rejected();
     handle = await ops.open(path);
     if (!same(before, await handle.stat())) rejected();
