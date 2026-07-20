@@ -1326,6 +1326,38 @@ grants no Drizzle resolution/chunk, pg-proxy/dialect/callback, pending-selection
 database, migration-execution, provider, frozen/default-state, rollout or deployment
 authority.
 
+Rev 145 current authority promotes exactly one next active governed implementation
+goal, `IDA-UI03a2-P0a1a0b`, under accepted gate `IDA-DG19-A2a1a0b` at
+`docs/plans/2026-07-20-ida-dg19-a2a1a0b-ui03a2-p0a1a0b-callback-plan-binding.md`.
+The canonical gate is exactly 25,404 UTF-8 bytes at SHA-256
+`a5ffbb84f90b9c58bd840e7b171f5bc19506b4adb91beb46fe37029c84ec5c54`, bound to
+clean `origin/main` `ed514881663e9e902865cc7167ea6d1e8e222fb9`. Opus 4.8 passed
+same-hash architecture and contracts/security review without blockers. Sonnet's
+no-output route and unavailable/unverified Fable remain NON-PASS. Brain measurement
+was blocked or missed and remains advisory only.
+
+The next active governed implementation goal is exactly one canonical tracker slice:
+`IDA-UI03a2-P0a1a0b`. It may later accept only the authentic P0a1a0a corpus
+capability and bind the exact Drizzle 0.45.2 generic reader, pg-proxy migrator and
+`PgDialect` sources; derive exactly 93 migrations, 750 chunks and one flat 843-item
+full-corpus callback list; bind domain digest `f4486654…`; return an opaque no-export
+WeakMap plan capability; repeat the authentic corpus scan after the reader; and
+retain the honest non-atomic/local-writer residual. The accepted ceiling is six
+production files, five new tests plus one no-growth existing test, exactly 1,628
+allocated lines, every new file below 150 physical lines and three engineering days.
+
+This docs-only promotion keeps `runtime_authorized:false` and authorizes no source,
+test, runtime, live/default/frozen/provider database, network, migration execution or
+deployment work. Runtime remains held until this promotion merges, canonical-main and
+dedicated-worktree resolvers select only `IDA-UI03a2-P0a1a0b`, AI OS is freshly
+observed and a separate exact orchestrator runtime-authority receipt is recorded.
+P0a1a1 remains the only later slice for live database-state pending selection,
+callback equality and execution. P0a2, frozen P0 and parent UI03a2 remain blocked or
+unpromoted. No current migration or journal mutation, `src/migrate.ts`, workflow,
+Docker/compose, role/ACL/membership, seed/fixture, proxy/route/auth/session/OTP/
+tenancy/RLS, UI, billing, rollout, production alias or deployment change is
+authorized; automatic CD must be cancelled before deploy.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
