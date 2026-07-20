@@ -1,0 +1,135 @@
+name: Repository Traffic Alerts
+
+on:
+  fork:
+  schedule:
+    - cron: '15 7 * * *'
+  workflow_dispatch:
+    inputs:
+      report:
+        description: Report to send
+        required: true
+        default: traffic
+        type: choice
+        options:
+          - traffic
+          - email-test
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repository-traffic-alerts-${{ github.event_name }}
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      EVENT_NAME: ${{ github.event_name }}
+      REPORT_MODE: ${{ inputs.report || 'traffic' }}
+      REPOSITORY: ${{ github.repository }}
+      FORK_OWNER: ${{ github.event.forkee.owner.login }}
+      FORK_REPOSITORY: ${{ github.event.forkee.full_name }}
+      FORK_URL: ${{ github.event.forkee.html_url }}
+      FORK_CREATED_AT: ${{ github.event.forkee.created_at }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      TRAFFIC_READ_TOKEN: ${{ secrets.TRAFFIC_READ_TOKEN }}
+      ALERT_TO: ${{ vars.REPOSITORY_ALERT_EMAIL }}
+      ALERT_FROM: ${{ vars.RESEND_FROM_EMAIL }}
+    steps:
+      - name: Build and send repository report
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const required = name => {
+            const value = process.env[name]?.trim();
+            if (!value) throw new Error(`Missing required configuration: ${name}`);
+            return value;
+          };
+
+          const githubHeaders = token => ({
+            Accept: 'application/vnd.github+json',
+            Authorization: `Bearer ${token}`,
+            'X-GitHub-Api-Version': '2026-03-10',
+          });
+
+          async function githubTraffic(kind) {
+            const repository = required('REPOSITORY');
+            const token = required('TRAFFIC_READ_TOKEN');
+            const response = await fetch(`https://api.github.com/repos/${repository}/traffic/${kind}`, {
+              headers: githubHeaders(token),
+            });
+            if (!response.ok) throw new Error(`GitHub ${kind} request failed: ${response.status}`);
+            return response.json();
+          }
+
+          function forkReport() {
+            const owner = required('FORK_OWNER');
+            return {
+              subject: `[Interdomestik] New GitHub fork by ${owner}`,
+              text: [
+                `A new fork of ${required('REPOSITORY')} was created.`,
+                `Account: ${owner}`,
+                `Fork: ${required('FORK_REPOSITORY')}`,
+                `URL: ${required('FORK_URL')}`,
+                `Created: ${required('FORK_CREATED_AT')}`,
+                '',
+                'GitHub identifies fork owners, but not accounts or IP addresses behind clones or ZIP downloads.',
+              ].join('\n'),
+            };
+          }
+
+          async function trafficReport() {
+            const [clones, views] = await Promise.all([
+              githubTraffic('clones'),
+              githubTraffic('views'),
+            ]);
+            const latest = clones.clones?.at(-1) ?? { timestamp: 'No clone data', count: 0, uniques: 0 };
+            return {
+              subject: `[Interdomestik] Daily repository traffic — ${latest.timestamp.slice(0, 10)}`,
+              text: [
+                `Repository: ${required('REPOSITORY')}`,
+                `Latest clone day: ${latest.timestamp}`,
+                `Latest clones: ${latest.count} (${latest.uniques} unique)`,
+                `Last 14 days — clones: ${clones.count} (${clones.uniques} unique)`,
+                `Last 14 days — views: ${views.count} (${views.uniques} unique)`,
+                '',
+                'Counts are GitHub aggregates. GitHub does not expose clone/download identities.',
+              ].join('\n'),
+            };
+          }
+
+          async function sendEmail(message) {
+            const response = await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${required('RESEND_API_KEY')}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                from: required('ALERT_FROM'),
+                to: [required('ALERT_TO')],
+                ...message,
+              }),
+            });
+            if (!response.ok) throw new Error(`Resend request failed: ${response.status}`);
+            const result = await response.json();
+            console.log(`Repository alert sent successfully (${result.id ?? 'no message id'}).`);
+          }
+
+          const eventName = required('EVENT_NAME');
+          const mode = process.env.REPORT_MODE;
+          let message;
+          if (eventName === 'fork') message = forkReport();
+          else if (mode === 'email-test') {
+            message = {
+              subject: '[Interdomestik] Repository alert test',
+              text: `Repository email alerts are configured for ${required('REPOSITORY')}.`,
+            };
+          } else message = await trafficReport();
+
+          await sendEmail(message);
+          NODE
