@@ -12,16 +12,8 @@ import {
 } from '../src/migration-corpus-capability';
 
 const PACKAGE_ROOT = fileURLToPath(new URL('../', import.meta.url));
-const PRODUCTION = [
-  'migration-corpus-manifest.ts',
-  'migration-corpus-contracts.ts',
-  'migration-corpus-root.ts',
-  'migration-corpus-node-fs.ts',
-  'migration-corpus-directories.ts',
-  'migration-corpus-files.ts',
-  'migration-corpus-validator.ts',
-  'migration-corpus-capability.ts',
-] as const;
+// prettier-ignore
+const PRODUCTION = ['migration-corpus-manifest.ts', 'migration-corpus-contracts.ts', 'migration-corpus-root.ts', 'migration-corpus-node-fs.ts', 'migration-corpus-directories.ts', 'migration-corpus-files.ts', 'migration-corpus-validator.ts', 'migration-corpus-capability.ts', 'migration-callback-plan.ts'] as const;
 const TESTS = [
   'migration-corpus.test.ts',
   'migration-corpus-journal.test.ts',
@@ -113,13 +105,13 @@ test('imports and syntax preserve the exact no-runtime boundary', async () => {
   ]);
   assert.ok(validatorConsumers.every(path => allowedValidator.has(path)));
   // prettier-ignore
-  assert.deepEqual(unwrapConsumers, [join(PACKAGE_ROOT, 'test', 'migration-corpus-boundary.test.ts')]);
+  assert.deepEqual(unwrapConsumers, [join(PACKAGE_ROOT, 'src', 'migration-callback-plan.ts'), join(PACKAGE_ROOT, 'test', 'migration-corpus-boundary.test.ts')]);
 });
 
 test('index exports and physical line ceilings stay closed', async () => {
   const index = await readFile(join(PACKAGE_ROOT, 'src', 'index.ts'), 'utf8');
   assert.equal(index.includes('migration-corpus'), false);
-  const ceilings = [125, 125, 80, 125, 145, 149, 149, 125, 135, 145, 149, 149, 130, 149];
+  const ceilings = [125, 125, 80, 125, 145, 149, 149, 125, 125, 135, 145, 149, 149, 130, 149];
   const files = [...PRODUCTION, ...TESTS];
   for (let index = 0; index < files.length; index += 1) {
     const folder = index < PRODUCTION.length ? 'src' : 'test';
