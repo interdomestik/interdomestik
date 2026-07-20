@@ -1,4 +1,3 @@
-import type { MigrationCallbackPlanCapability } from './migration-callback-plan-capability';
 import { readMigrationCallbackPlanState } from './migration-callback-plan-capability';
 import { inspectMigrationLedgerCatalog, readMigrationLedgerRows } from './migration-ledger-catalog';
 import {
@@ -61,7 +60,7 @@ function summary(
 }
 
 export async function inspectMigrationLedger(
-  capability: MigrationCallbackPlanCapability,
+  capability: unknown,
   sql: LedgerSql,
   signal: AbortSignal
 ): Promise<MigrationLedgerResult> {

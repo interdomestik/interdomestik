@@ -99,11 +99,15 @@ export async function startLedgerHarness() {
     }
   };
   const close = async (): Promise<FixtureReceipt> => {
+    let setupError: unknown;
     try {
       if (!setupClosed) await setup.end({ timeout: 1 });
-    } finally {
-      return fixture.stop();
+    } catch (error) {
+      setupError = error;
     }
+    const receipt = await fixture.stop();
+    if (setupError) throw setupError;
+    return receipt;
   };
   return Object.freeze({
     capability,

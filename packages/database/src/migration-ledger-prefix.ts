@@ -6,7 +6,7 @@ import {
 } from './migration-ledger-contracts';
 
 const HASH = /^[a-f0-9]{64}$/;
-const ID = /^[1-9][0-9]{0,9}$/;
+const ID = /^[1-9]\d{0,9}$/;
 const MAX_INT4 = 2_147_483_647n;
 const reject = (): never => {
   throw new MigrationLedgerFault('MIGRATION_LEDGER_PREFIX_REJECTED');
