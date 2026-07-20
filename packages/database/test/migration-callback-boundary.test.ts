@@ -18,6 +18,10 @@ const PRODUCTION = [
   'migration-callback-plan-builder.ts',
   'migration-callback-plan-capability.ts',
   'migration-callback-plan.ts',
+  'migration-ledger-contracts.ts',
+  'migration-ledger-prefix.ts',
+  'migration-ledger-catalog.ts',
+  'migration-ledger-inspection.ts',
 ] as const;
 const TESTS = [
   'migration-callback-plan.test.ts',
@@ -25,6 +29,10 @@ const TESTS = [
   'migration-callback-validation.test.ts',
   'migration-callback-boundary.test.ts',
   'migration-callback.support.ts',
+  'migration-ledger-prefix.test.ts',
+  'migration-ledger-inspection.test.ts',
+  'migration-ledger-inspection-faults.test.ts',
+  'migration-ledger-inspection.support.ts',
 ] as const;
 
 test('plan authority is private, redacted and rejects lookalikes', async () => {
@@ -54,7 +62,6 @@ test('plan authority is private, redacted and rejects lookalikes', async () => {
 
 test('imports, consumers and package exports keep the no-runtime boundary closed', async () => {
   const forbidden = [
-    /^postgres(?:\/|$)/,
     /^node:(?:child_process|http|https|net|tls|dns)$/,
     /(?:^|\/)src\/migrate$/,
     /p0a0b/i,
@@ -70,21 +77,33 @@ test('imports, consumers and package exports keep the no-runtime boundary closed
     ...TESTS.map(name => join(ROOT, 'test', name)),
   ];
   for (const path of paths) {
+    const contents = await readFile(path, 'utf8');
     const source = ts.createSourceFile(
       path,
-      await readFile(path, 'utf8'),
+      contents,
       ts.ScriptTarget.Latest,
       true,
       ts.ScriptKind.TS
     );
+    if (path.includes('/src/migration-ledger-')) assert.doesNotMatch(contents, /\.unsafe\(/);
     const visit = (node: ts.Node): void => {
+      if (path.includes('/src/migration-ledger-') && ts.isTaggedTemplateExpression(node)) {
+        const command = node.template.getText(source).slice(1, -1).trim();
+        assert.match(command, /^(?:BEGIN|SET LOCAL|SELECT|WITH|COMMIT|ROLLBACK)\b/);
+        if (ts.isTemplateExpression(node.template))
+          assert.equal(node.template.templateSpans.length, 0);
+      }
       if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
         const module = node.moduleSpecifier.text;
+        const testSupport = path.endsWith('migration-ledger-inspection.support.ts');
+        const permittedPostgres =
+          module === 'postgres' && (node.importClause?.isTypeOnly || testSupport);
         assert.equal(
           forbidden.some(pattern => pattern.test(module)),
           false,
           `${path}: ${module}`
         );
+        assert.equal(module === 'postgres' && !permittedPostgres, false, `${path}: ${module}`);
         if (module.startsWith('drizzle-orm')) drizzleImports.push(`${path}:${module}`);
         const names = node.importClause?.namedBindings;
         if (names && ts.isNamedImports(names))
@@ -101,7 +120,11 @@ test('imports, consumers and package exports keep the no-runtime boundary closed
     };
     visit(source);
   }
-  assert.deepEqual(unwrapConsumers, [join(ROOT, 'test', 'migration-callback-boundary.test.ts')]);
+  assert.deepEqual(unwrapConsumers, [
+    join(ROOT, 'src', 'migration-ledger-inspection.ts'),
+    join(ROOT, 'test', 'migration-callback-boundary.test.ts'),
+    join(ROOT, 'test', 'migration-ledger-inspection.support.ts'),
+  ]);
   assert.deepEqual(corpusConsumers, [join(ROOT, 'src', 'migration-callback-plan.ts')]);
   assert.deepEqual(seamConsumers, [join(ROOT, 'test', 'migration-callback-plan.test.ts')]);
   assert.deepEqual(issuerConsumers, [join(ROOT, 'src', 'migration-callback-plan.ts')]);
@@ -110,10 +133,13 @@ test('imports, consumers and package exports keep the no-runtime boundary closed
   ]);
   const index = await readFile(join(ROOT, 'src', 'index.ts'), 'utf8');
   assert.equal(index.includes('migration-callback'), false);
+  assert.equal(index.includes('migration-ledger'), false);
 });
 
 test('all exact files retain their accepted physical ceilings', async () => {
-  const ceilings = [125, 80, 149, 149, 125, 125, 149, 149, 149, 149, 149];
+  const ceilings = [
+    125, 80, 149, 149, 125, 125, 110, 125, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149,
+  ];
   const files = [...PRODUCTION, ...TESTS];
   for (let index = 0; index < files.length; index += 1) {
     const folder = index < PRODUCTION.length ? 'src' : 'test';
