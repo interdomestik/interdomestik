@@ -1514,6 +1514,56 @@ fresh current-authority/design gate selects exactly one next governed action.
 `IDA-UI03a2-P0a1a1b`, P0a2, frozen P0 and parent UI03a2 remain blocked or
 unpromoted and gain no authority from this closeout.
 
+Rev 149 current authority promotes exactly one next active governed implementation
+goal, `IDA-UI03a3`, under accepted UI/UX gate `IDA-DG20` at
+`docs/plans/2026-07-20-ida-dg20-ui03a3-claim-draft-intake-design-gate.json`.
+The canonical gate is byte-identical to the accepted external packet: exactly
+35,370 UTF-8 bytes at SHA-256
+`0476298bb60e59cd5bc0f6f57ff4b6a1c0702f8b1d2095e3d9baa1064924c7a4`,
+bound to clean base `8586ccef4582c3449627c255f077009cfe110157`. Arben accepted
+that exact path, byte count, hash, gate and sole slice in orchestrator task
+`019f6586-34cc-7311-900c-9989770f4d29`; the contemporaneous structured receipt
+passed the UI/UX governance checker with four operators, two accounted blocked
+source classes and no conditions.
+
+The next active governed implementation goal is exactly one canonical tracker
+slice: `IDA-UI03a3`. The accepted outcome is limited to an active member on the
+existing canonical neutral IDA host whose access tenant equals the configured
+default public tenant. It may compose the existing owner-scoped
+`free_start_drafts` create/list/resume/update/delete lifecycle at the existing
+`/member/claims/new` route for vehicle/property preparation only. Submission must
+remain disabled, inert and truthfully labeled. It may create no claim row, claim
+number, counter, lifecycle/event/audit as a claim, document, upload, AI run,
+notification, provider call, payment, callback, migration or deployment behavior.
+
+The accepted P00 stop gate is binding. Before product edits, a separately
+authorized future implementation task must prove that the exact pilot host/account
+can use the existing free-start action boundary unchanged. If that proof needs any
+proxy, route, auth, session, OTP, host evaluation, shared-auth, tenancy, schema,
+migration, RLS, grant or policy change, `IDA-UI03a3` stops as infeasible and returns
+to current authority. General tenant-host support is not authorized by this gate.
+The exact future ceiling is eight production/config files, four test/spec files,
+2.5 engineering days and one visible outcome; every new code file remains below
+150 lines.
+
+This docs-only Tier 0 promotion keeps `runtime_authorized:false`. Prospective
+implementation is Tier 3 because it exposes persistent owner-scoped incident facts,
+and it may not begin from this promotion. A separate exact runtime-authority request
+must be accepted after canonical promotion and satisfaction of the P00 feasibility
+requirements. Promotion-time AI OS observation
+`3fd953688ffa444aaf3e5747758c43e3ef28bc367ebb0d1d3372418e547d1605`
+remains advisory. Brain returned an oversized approximately 263,392-token context,
+was not used as authority and required narrow repository recovery reads; no Brain
+ROI, authority-correctness or human-usefulness claim is made.
+
+No implementation, source, test, runtime, browser, database, provider, callback,
+deployment, CD, production-alias or successor work is authorized by this promotion.
+`apps/web/src/proxy.ts`, canonical routes and clarity markers, auth/session/OTP,
+tenancy, schema/migrations/RLS, claim creation/numbering/events, billing/Paddle,
+uploads/documents, AI, notifications and every unlisted surface remain unchanged.
+`IDA-UI03a2-P0a1a1b`, P0a2, frozen P0, parent UI03a2 and `IDA-UI03b` remain blocked
+or unpromoted and gain no authority from Rev 149.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the

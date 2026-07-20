@@ -1,0 +1,520 @@
+{
+  "schemaVersion": 1,
+  "packetSchemaVersion": "ida.design-gate-candidate.v1",
+  "gateId": "IDA-DG20",
+  "soleSlice": "IDA-UI03a3",
+  "title": "Claim Draft Intake — no-schema / no-execution / submission-dormant",
+  "status": "candidate_requires_exact_arben_approval_and_docs_only_promotion",
+  "exactSeam": "Replace only the active-member body of /member/claims/new with a neutral-IDA, owner-scoped, resumable preparation draft that reuses free_start_drafts and exposes no executable submission path.",
+  "promotionCheckedAt": "2026-07-20T16:36:00Z",
+  "authority": {
+    "packet": "advisory_design_candidate_only",
+    "repository": "docs/plans/current-program.md plus docs/plans/current-tracker.md",
+    "runtimeAuthorization": "not_authorized",
+    "activeSlice": null,
+    "promotionEffect": "none_without_a_separate_docs_only_canonical_promotion",
+    "conflictRule": "Repository authority wins over Obsidian, AI OS, Brain, MCP context, and bundled resolver output."
+  },
+  "classification": "promotion/design-gate; current work Tier 0 discovery only; no repository mutation",
+  "riskTier": "Tier 0 for this packet; Tier 3 for any future implementation because it exposes owner-scoped persistent incident facts behind RLS even though the accepted file map changes no schema, migration, RLS, proxy, auth, or tenancy file",
+  "scope": "A smallest product-visible Phase C pilot on canonical neutral IDA hosts for an active member whose access tenant equals the configured default public tenant: explicitly save, resume, update, and delete supported vehicle/property preparation facts across sessions while claim submission remains disabled and dormant.",
+  "scopeDetail": {
+    "route": "/member/claims/new",
+    "hostEnvelope": [
+      "ida.interdomestik.com",
+      "ida.localhost",
+      "ida.127.0.0.1.nip.io",
+      "an already-configured neutral OTP host accepted by the existing boundary"
+    ],
+    "accountEnvelope": "Existing authenticated active member; existing free-start session resolver must prove accessTenantId equals the configured default public tenant.",
+    "supportedCategories": [
+      "vehicle",
+      "property"
+    ],
+    "persistedFacts": [
+      "category",
+      "issueType",
+      "incidentDate",
+      "counterparty",
+      "desiredOutcome",
+      "bounded summary"
+    ],
+    "storageAuthority": "Existing free_start_drafts table and existing create/list/resume/update/delete server actions only.",
+    "submissionState": "Always dormant: disabled, inert, truthfully labeled, and not wired to any server action.",
+    "generalTenantHostRollout": "infeasible_inside_this_no-protected-change_slice"
+  },
+  "changedAreas": [
+    "Planned member claim-intake presentation at the existing canonical route",
+    "Planned composition of existing free-start organizer and secure-draft primitives without importing either submission action",
+    "Planned EN/SQ/SR/MK claim-draft truth copy",
+    "Planned focused unit, boundary, route, and E2E gate proof"
+  ],
+  "currentAuthority": {
+    "expectedCloseoutSha": "8586ccef4582c3449627c255f077009cfe110157",
+    "worktreeHead": "8586ccef4582c3449627c255f077009cfe110157",
+    "localOriginMain": "8586ccef4582c3449627c255f077009cfe110157",
+    "originMainMovedFromExpected": false,
+    "closeoutPr1396Included": true,
+    "closeoutTipSubject": "docs: close out IDA-UI03a2-P0a1a1a (#1396)",
+    "remoteFreshnessQualification": "No network fetch was performed because this discovery forbids runtime/provider/network contact; origin/main here is the locally available remote-tracking ref.",
+    "programRevision": "Rev 148 records IDA-UI03a2-P0a1a1a completed and promotes no successor.",
+    "trackerState": "IDA-UI03a2-P0a1a1a is completed; there is no in_progress IDA row.",
+    "aiOsObservationAtDiscoveryStart": "6ab61b07b768f88d341e4b7912ef8d71668d5b07f7e1076a0a320ac586a3a376",
+    "aiOsObservationAtCloseout": "664f5a36d640cc81254ab065ed052d7561ec39ceeb666560e66ea0199d7013b2",
+    "aiOsState": "authority=current; activeSlice=none; runtimeAuthorization=not_authorized",
+    "staleResolverDebt": "The bundled next-slice diagnostic selected completed IDA-UI03a2-P0a1a0b. This conflicts with Rev 148/current-tracker and is ignored.",
+    "reservedIdentifier": "IDA-UI03b remains the existing different-email recovery follow-on and is not reused by this packet."
+  },
+  "preflightDisposition": {
+    "actualDelegatedWorktree": "clean detached HEAD at the closeout SHA; expected preflight branch/upstream checks fail because this Tier 0 task explicitly forbids creating an implementation branch",
+    "canonicalMcpRoot": "/Users/arbenlila/development/interdomestik-crystal-home",
+    "canonicalMcpContext": "dirty branch codex/ida-ui03a2-p0a-promotion at 46878f2b9920a6dc54635f8f9ff404f0c031acf0 with four unrelated changes",
+    "mcpDisposition": "interdomestik_qa was used first as required, but its mismatched root was treated as context only; all controlling reads were re-run against this clean delegated worktree",
+    "defaultOrFrozenCheckoutMutation": "none"
+  },
+  "feasibility": {
+    "verdict": "feasible_limited_neutral_ida_pilot",
+    "reason": "The repository already contains an owner-scoped, RLS-protected, cross-session store and complete draft lifecycle for exactly the supported non-health facts. The member route and clarity marker already exist, so the product-visible slice can be composed without a claim row or protected-surface change.",
+    "universalMemberHostVerdict": "not_feasible_under_this_gate",
+    "universalMemberHostReason": "The existing free-start action boundary allows only neutral IDA hosts and requires the default public tenant to equal the session access tenant. Broadening that boundary would be an auth/tenancy change and is forbidden here.",
+    "failClosedQualification": "Future implementation starts with P00. If the exact pilot host/account cannot save and resume through the existing boundary unchanged, IDA-UI03a3 stops as infeasible; it may not modify proxy, session resolution, neutral-host evaluation, tenant concepts, schema, migration, or RLS."
+  },
+  "existingSurfaceEvidence": [
+    {
+      "path": "apps/web/src/app/[locale]/(app)/member/claims/new/_core.entry.tsx",
+      "fact": "Existing canonical member route requires a session and active membership, derives tenantId, preserves new-claim-page-ready, and currently renders ClaimWizard."
+    },
+    {
+      "path": "apps/web/src/components/claims/claim-wizard.tsx",
+      "fact": "Current wizard is a 250-line legacy file, persists only to localStorage key claim-wizard-draft, and calls the real submitClaim action; it cannot be the dormant implementation shell."
+    },
+    {
+      "path": "packages/database/src/schema/free-start-drafts.ts",
+      "fact": "Existing schema stores the six supported fact groups with access-tenant and owner-user RLS predicates and enforces tenantId equals accessTenantId."
+    },
+    {
+      "path": "packages/database/src/free-start-drafts/create.ts",
+      "fact": "Existing create path is owner-scoped, request-id idempotent, capped at 200 drafts, and emits only content-free free_start_draft.created audit metadata."
+    },
+    {
+      "path": "packages/database/src/free-start-drafts/read.ts",
+      "fact": "Existing list/resume path is owner-scoped, paginated, and emits only free_start_draft.resumed audit metadata."
+    },
+    {
+      "path": "packages/database/src/free-start-drafts/mutate.ts",
+      "fact": "Existing update/delete path is owner-scoped and version-checked, with content-free update/delete audit metadata."
+    },
+    {
+      "path": "apps/web/src/actions/free-start-drafts/session.core.ts",
+      "fact": "Existing action context fails closed outside an accepted neutral host or when default public tenant and session access tenant differ."
+    },
+    {
+      "path": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/use-draft-lifecycle.ts",
+      "fact": "Existing 147-line hook already supplies explicit save, resume, update with conflict handling, delete, pagination, and start-another behavior."
+    },
+    {
+      "path": "apps/web/src/messages/en/freeStart.json",
+      "fact": "Existing save copy already states no claim, case, payment, membership, or coverage decision is created and that supported draft facts remain until permanent deletion."
+    },
+    {
+      "path": "packages/domain-claims/src/claims/create.ts",
+      "fact": "Rejected claims-row path generates a claim number, records case.created, and writes claim.created audit even at draft lifecycle state."
+    },
+    {
+      "path": "packages/domain-claims/src/claims/list.ts",
+      "fact": "Agent queue filtering requires an assigned agent but does not independently exclude draft lifecycle, so a claims-row draft is not a safely isolated preparation store."
+    }
+  ],
+  "productContract": {
+    "heading": "Prepare your claim draft",
+    "supportingCopy": "Save the facts you have now and return later.",
+    "truthPanel": "Draft only — this does not create or submit a claim, assign a case, notify a team, or start review.",
+    "primarySafeActions": [
+      "Save securely",
+      "Save changes",
+      "Resume",
+      "Delete permanently",
+      "Start another draft"
+    ],
+    "disabledActionLabel": "Submit claim — not available yet",
+    "disabledActionExplanation": "Submission will be enabled only after the claim safety checks are ready.",
+    "stateModel": [
+      "unsaved page state",
+      "saving",
+      "saved",
+      "dirty",
+      "loading",
+      "conflict",
+      "limit",
+      "unsupported",
+      "account-context stop",
+      "error",
+      "deleted"
+    ],
+    "accessibility": "Disabled submission remains perceivable with adjacent explanation; save/manage controls remain keyboard reachable; async status uses existing live-region behavior; focus moves to validation or resumed content; no color-only state; 200% zoom and mobile reflow preserve action order."
+  },
+  "acceptanceCriteria": [
+    "P00 proves the existing free-start action boundary works unchanged for the exact canonical neutral-IDA pilot host and default-public-tenant active member; otherwise stop.",
+    "The canonical route, session redirect, active-membership gate, diaspora query parsing, and new-claim-page-ready marker remain intact.",
+    "The active-member route body no longer renders or imports ClaimWizard for this slice.",
+    "Only vehicle and property may be saved; injury/health is visibly unsupported and never persisted.",
+    "An explicit save stores only the six existing free_start_drafts fact groups; nothing saves automatically.",
+    "The same verified member can close the browser context, return to /member/claims/new in a fresh context on the accepted host, list the draft, resume every stored fact, update with CAS conflict safety, and delete permanently.",
+    "Submit remains disabled and inert in every state and locale; no submit handler, keyboard activation, form fallback, URL transition, or server action exists.",
+    "No claims row, claim number, claim counter, claim lifecycle/event, document, upload, AI run, notification, provider call, billing action, callback, or deployment behavior occurs.",
+    "No draft is visible in member claims tracking, agent/staff/admin queues, or claim detail because no claim entity exists.",
+    "Unsupported host/account context fails honestly with the existing accountContext copy and performs no write.",
+    "EN, SQ, SR, and MK expose equivalent draft-versus-submit truth; German remains outside pilot scope.",
+    "Every new code file remains below 150 lines, and the 250-line legacy ClaimWizard is not modified or enlarged.",
+    "The measurable cross-session-resume target reaches at least 90 percent in the defined 10-session protocol while zero claim-side effects are proven."
+  ],
+  "hardStopConditions": [
+    "P00 needs any edit to apps/web/src/proxy.ts, neutral-otp-boundary, session resolution, shared-auth, tenant concepts, canonical routes, or host policy.",
+    "Any required fact cannot round-trip through the existing free_start_drafts contract.",
+    "Cross-session resume requires localStorage, a new table/column/index, a migration, an RLS policy, a broad grant, or a claim row.",
+    "The UI cannot make submission inert without importing or wiring submitClaim, createClaim, updateDraftClaim, submitFreeStartIntake, or an equivalent writer.",
+    "Any supported-host failure is hidden, mislabeled as saved, or silently falls back to device-local persistence.",
+    "The accepted 8 production/config and 4 test/spec file ceilings would be exceeded; return to design gate rather than expand."
+  ],
+  "exclusions": [
+    "apps/web/src/proxy.ts and any route rename, bypass, redirect architecture, or clarity-marker change",
+    "auth, better-auth, Supabase Auth, OTP, session, host evaluation, tenancy concepts, shared-auth, and tenant isolation",
+    "schema, migrations, RLS, database grants, roles, policies, backfills, and seed changes",
+    "claims rows, claim numbers, claim_counters, claim lifecycle, case.created, claim.created, assignment, queues, and claim tracking",
+    "real submission and all claim, free-start, migration, callback, provider, AI, document, upload, notification, billing, Paddle, email, SMS, and deployment behavior",
+    "injury, health/medical facts, evidence files, documents, compression, claim amount, currency, coverage, liability, eligibility, legal advice, and success confirmation",
+    "general tenant-host support, agent/staff/admin UI, dashboards, broad redesign, German localization, and analytics expansion",
+    "IDA-UI03a2-P0a1a1b, IDA-UI03a2-P0a2, frozen IDA-UI03a2-P0, parent IDA-UI03a2 runtime work, IDA-UI03b, and all other unpromoted slices",
+    "README, AGENTS.md, architecture docs, current-program, current-tracker, or any repository file during this Tier 0 discovery"
+  ],
+  "rejectedAlternatives": [
+    {
+      "alternative": "Persist a lifecycle=draft row in claims",
+      "reason": "It generates a claim number, records case/claim events, enters claim read surfaces, touches the blocked P0 safety chain, and is therefore neither submission-dormant nor a no-execution preparation seam."
+    },
+    {
+      "alternative": "Keep or extend claim-wizard-draft localStorage",
+      "reason": "It cannot provide honest cross-session/device resumability and would preserve the current 0 percent fresh-context resume baseline."
+    },
+    {
+      "alternative": "Reuse FreeStartIntakeShell directly",
+      "reason": "That shell imports useOrganizerSubmit, calls submitFreeStartIntake, and generates a result; the new member composition must import only organizer/draft primitives and supply a dormant preview."
+    },
+    {
+      "alternative": "Add a generic member-host wrapper or relax neutral host/default tenant checks",
+      "reason": "That changes the protected auth/tenancy boundary. It is outside this slice; general tenant-host support must be separately designed and approved."
+    },
+    {
+      "alternative": "Add incident or document fields to claims/free-start schema",
+      "reason": "The six supported facts already round-trip. Any additional fact is a schema expansion and must stop this slice rather than be smuggled."
+    }
+  ],
+  "fileMap": {
+    "productionConfigMigration": [
+      {
+        "action": "MOD",
+        "path": "apps/web/src/app/[locale]/(app)/member/claims/new/_core.entry.tsx",
+        "purpose": "Preserve all route/session/membership/handoff/clarity contracts and render the dormant draft intake only for the active-member body."
+      },
+      {
+        "action": "NEW",
+        "path": "apps/web/src/components/claims/claim-draft-intake/index.tsx",
+        "purpose": "Compose existing organizer flow and existing secure draft lifecycle without either submission hook/action."
+      },
+      {
+        "action": "NEW",
+        "path": "apps/web/src/components/claims/claim-draft-intake/main-panel.tsx",
+        "purpose": "Reuse category/details primitives and switch preview to the dormant claim-draft contract."
+      },
+      {
+        "action": "NEW",
+        "path": "apps/web/src/components/claims/claim-draft-intake/dormant-preview.tsx",
+        "purpose": "Render review, explicit save guidance, and disabled submit with adjacent explanation; no form submit or writer callback."
+      },
+      {
+        "action": "MOD",
+        "path": "apps/web/src/messages/en/claims.json",
+        "purpose": "English claim-draft truth copy."
+      },
+      {
+        "action": "MOD",
+        "path": "apps/web/src/messages/sq/claims.json",
+        "purpose": "Albanian claim-draft truth copy."
+      },
+      {
+        "action": "MOD",
+        "path": "apps/web/src/messages/sr/claims.json",
+        "purpose": "Serbian claim-draft truth copy."
+      },
+      {
+        "action": "MOD",
+        "path": "apps/web/src/messages/mk/claims.json",
+        "purpose": "Macedonian claim-draft truth copy."
+      }
+    ],
+    "testSpecSupport": [
+      {
+        "action": "NEW",
+        "path": "apps/web/src/components/claims/claim-draft-intake/claim-draft-intake.test.tsx",
+        "purpose": "Render, state, dormant submission, locale-equivalence, save/resume/error, keyboard, and focus contracts."
+      },
+      {
+        "action": "NEW",
+        "path": "apps/web/src/components/claims/claim-draft-intake/claim-draft-intake.boundary.test.ts",
+        "purpose": "Static denylist proving no claim/free-start submission writer or ClaimWizard import reaches the new component tree."
+      },
+      {
+        "action": "MOD",
+        "path": "apps/web/src/app/[locale]/(app)/member/claims/new/page.test.tsx",
+        "purpose": "Preserve route, membership, handoff, tenant, and clarity-marker behavior while asserting the new dormant body."
+      },
+      {
+        "action": "NEW",
+        "path": "apps/web/e2e/gate/member-claim-draft-intake.spec.ts",
+        "purpose": "Neutral-host cross-session resume, no-claim side effects, dormant submit, account-context stop, locale, accessibility, and responsive evidence."
+      }
+    ],
+    "ceilings": {
+      "productionConfigMigration": 8,
+      "testSpecSupport": 4,
+      "engineeringDays": 2.5,
+      "visibleOutcomes": 1,
+      "newCodeFileMaximumLines": 150,
+      "principalProofSurface": "apps/web/e2e/gate/member-claim-draft-intake.spec.ts"
+    },
+    "prohibitedChanges": "Any file not listed above requires a new exact design gate. Existing free-start storage/actions/hooks/components are reuse-only under this gate."
+  },
+  "proofPlan": [
+    {
+      "id": "P00",
+      "state": "mandatory_future_stop_gate_not_run",
+      "proof": "On the exact canonical neutral IDA pilot host with the exact default-public-tenant active member, prove existing list/create/resume/update/delete actions succeed unchanged; prove tenant-host, mismatched-access-tenant, missing-session, and unsupported account contexts fail closed with zero writes.",
+      "stop": "Any protected-surface edit or non-neutral rollout requirement ends IDA-UI03a3 as infeasible."
+    },
+    {
+      "id": "P01",
+      "state": "future",
+      "proof": "Boundary test walks the new component import graph and fails on ClaimWizard, claims.core, submitClaim, createClaim, updateDraftClaim, submitFreeStartIntake, provider, upload, AI, notification, billing, or callback imports."
+    },
+    {
+      "id": "P02",
+      "state": "future",
+      "proof": "Focused Vitest covers supported/unsupported categories, every save state, version conflict, permanent delete, truthful failures, no autosave, disabled button semantics, Enter/Space/form fallback inertness, focus/live status, and four-locale equivalence."
+    },
+    {
+      "id": "P03",
+      "state": "future_isolated_database_only_after_authority",
+      "proof": "In a disposable local database, snapshot claims, claim_counters, case/domain events, documents, AI runs, and notifications; execute save/resume/update/delete; prove only owner-scoped free_start_drafts plus content-free free_start_draft.* audits change and all claim-side snapshots remain byte-for-byte/count-for-count unchanged."
+    },
+    {
+      "id": "P04",
+      "state": "future_playwright_mcp_first",
+      "proof": "Use Playwright MCP on the accepted neutral host: save all six fact groups, close the context, open a fresh context as the same verified member, resume exact values, update, conflict safely, delete, and observe no claim number/list row/detail/queue state or submission request."
+    },
+    {
+      "id": "P05",
+      "state": "future",
+      "proof": "Keyboard-only and screen-reader-name checks plus 320px/mobile, desktop, reduced-motion, dark-mode where supported, and 200 percent zoom validate action order, visible focus, status announcements, disabled-submit explanation, and new-claim-page-ready."
+    },
+    {
+      "id": "P06",
+      "state": "future_heavy_job_lease_required",
+      "proof": "After focused proof, run pnpm pr:verify, pnpm security:guard, and pnpm e2e:gate under the repository heavy-job lease; no deploy, alias, callback, provider, or production-resource verification belongs to this slice."
+    }
+  ],
+  "benchmark": {
+    "operators": [
+      {
+        "name": "Progressive",
+        "sourceUrl": "https://www.progressive.com/claims/faq/how-to-report-a-claim/",
+        "observedAt": "2026-07-20T16:33:20Z",
+        "observations": "Users review details before submitting; confirmation, claim number, representative activity, and tracking begin only once the claim is filed. New-report and existing-claim actions remain distinct.",
+        "receipts": [
+          {
+            "kind": "url",
+            "locator": "https://www.progressive.com/claims/faq/how-to-report-a-claim/"
+          }
+        ]
+      },
+      {
+        "name": "GEICO",
+        "sourceUrl": "https://www.geico.com/claims/claimsprocess/online-claim-reporting/",
+        "observedAt": "2026-07-20T16:33:20Z",
+        "observations": "The public flow asks for a small core fact set, treats additional facts as helpful rather than universally blocking, separates report from track, and starts confirmation/management only after completion of the report.",
+        "receipts": [
+          {
+            "kind": "url",
+            "locator": "https://www.geico.com/claims/claimsprocess/online-claim-reporting/"
+          }
+        ]
+      },
+      {
+        "name": "State Farm",
+        "sourceUrl": "https://www.statefarm.com/claims/auto",
+        "observedAt": "2026-07-20T16:33:20Z",
+        "observations": "File a claim and Track a claim are separate primary actions; review, estimates, payment, and claim-team behavior are described as downstream of filing.",
+        "receipts": [
+          {
+            "kind": "url",
+            "locator": "https://www.statefarm.com/claims/auto"
+          }
+        ]
+      },
+      {
+        "name": "Sun Life eClaims",
+        "sourceUrl": "https://suncentral.sunlife.ca/en/client-service/claims/sun-life-eclaims/",
+        "observedAt": "2026-07-20T16:33:20Z",
+        "observations": "The flow supports save-for-later and dashboard resume for in-progress work, preserves a summary/review step, and distinguishes saved work from the final Submit Form action and confirmation.",
+        "receipts": [
+          {
+            "kind": "url",
+            "locator": "https://suncentral.sunlife.ca/en/client-service/claims/sun-life-eclaims/"
+          }
+        ]
+      }
+    ],
+    "blockedSources": [
+      {
+        "name": "Authenticated Progressive, GEICO, and State Farm live claim dashboards",
+        "reason": "Policyholder login and an existing policy/claim were required, so only contemporaneous public operator documentation was observed; no account was created and no claim flow was executed."
+      },
+      {
+        "name": "Sonnet save-online-claim page",
+        "reason": "The available official-looking result was hosted on a QA AEM domain rather than a stable production surface, so it was not counted as a benchmark operator."
+      }
+    ],
+    "comparisonCriteria": [
+      "Truth boundary between preparation draft, filed/submitted claim, and tracked claim",
+      "Cross-session resume discoverability and recovery without duplicate entry",
+      "Progressive disclosure of a minimum useful fact set before submission",
+      "Separation and accessibility of save/manage actions from the irreversible submit action"
+    ],
+    "betterThanBaseline": {
+      "metric": "Successful fresh-browser-context resume of a supported saved draft without creating or submitting a claim",
+      "unit": "percent",
+      "direction": "higher",
+      "baseline": 0,
+      "target": 90,
+      "method": "Run 10 bounded same-member sessions on the accepted neutral IDA host. Save in one browser context, clear device-local state by opening a fresh context, return to /member/claims/new, and score success only when every persisted fact resumes and claim/event/counter side-effect snapshots remain unchanged. The current localStorage-only ClaimWizard baseline is 0 percent in a fresh context by construction."
+    },
+    "antiCopyTradeDressBoundary": "Adopt only abstract interaction principles: explicit draft truth, separate reversible save/resume from irreversible submission, progressive disclosure, and a visible review boundary. Do not copy operator wording, screen order, component geometry, colors, icons, imagery, branding, illustrations, motion, typography, or trade dress."
+  },
+  "uiUxGovernance": {
+    "checker": "/Users/arbenlila/.codex/skills/interdomestik-slice-runner/scripts/ui-ux-governance-check.mjs",
+    "expectedStatusBeforeApproval": "advisory_blocking",
+    "expectedCondition": "UI_UX_APPROVAL_REQUIRED",
+    "benchmarkStatus": "complete_current_4_operators_2_blocked_source_receipts",
+    "approvalStatus": "missing_exact_arben_receipt",
+    "docsPromotionBlocker": true,
+    "repoAuthorityUnchanged": true
+  },
+  "reviewerPlan": {
+    "currentTier0Discovery": "No external model or reviewer route was invoked; Tier 0 requires no debate, and this packet authorizes no implementation.",
+    "futureTier3Implementation": [
+      "Product/UX/accessibility review for copy truth, action hierarchy, keyboard/focus, responsive behavior, and benchmark metric",
+      "Security/tenancy review for owner/access-tenant context, RLS reuse, neutral-host fail-closed behavior, privacy, abuse, retention, and zero claim-side effects",
+      "Architecture/contracts review for the import denylist, exact file map, no protected changes, and rollback residuals",
+      "Performance review for bounded list pagination and no request/render regression",
+      "One bounded Sonnet 4.6 signal and one bounded Gemini signal after focused proof, then gatekeeper/reviewer-pool convergence",
+      "Codex Security diff scan plus pnpm security:guard",
+      "Human approval before merge because this exposes persistent user incident facts"
+    ],
+    "copilot": "No writer route. If a future PR exists, Copilot may supply ordinary PR-review feedback only.",
+    "fable": "Advisory only; no Fable writer or authority route."
+  },
+  "reviewDisposition": {
+    "sonnet": "skipped_current_tier0; required_bounded_signal_future_tier3",
+    "gemini": "skipped_current_tier0; required_bounded_signal_future_tier3",
+    "reviewerPool": "skipped_current_tier0; future product_ux_accessibility_security_tenancy_architecture_contracts_performance_gatekeeper",
+    "sonarReviewer": "not_applicable_current_no_diff",
+    "human": "exact Arben approval missing; no promotion"
+  },
+  "securityDisposition": "Design-only conditional pass for the limited neutral-IDA/default-public-tenant reuse seam. Non-pass for claims-row persistence, generic tenant-host support, or any protected-surface change. Future implementation is Tier 3 and must prove zero claim-side effects and owner/access-tenant isolation in a disposable database.",
+  "verification": [
+    "Read interdomestik-slice-runner SKILL.md and required Phase C, risk, reviewer, UI/UX, troubleshooting, and reporting references.",
+    "Read repo AGENTS.md, .codex/config.toml, canonical current-program/current-tracker authority, and all mandatory Obsidian advisory files.",
+    "Confirmed clean detached worktree HEAD and local origin/main are both 8586ccef4582c3449627c255f077009cfe110157 and include closeout PR #1396.",
+    "Confirmed no canonical successor promotion and no in_progress IDA row; recorded stale next-slice selection as non-authoritative debt.",
+    "Used interdomestik_qa first, detected its dirty wrong-root context, and revalidated all controlling evidence in the delegated worktree.",
+    "Inspected the member route, ClaimWizard/localStorage/submit path, claims-row creation/list hazards, existing free-start RLS store/actions/session boundary, save lifecycle, and copy.",
+    "Observed four contemporaneous public operator sources and recorded two blocked-source classes without executing a claim.",
+    "No repo files, branches, commits, pushes, PRs, canonical plans, database, provider API, deployment, or CD resources were mutated or contacted. Public web access was used only for the mandated UI/UX benchmark."
+  ],
+  "browserEvidence": [],
+  "accessibilityEvidence": [],
+  "edgeCases": {
+    "considered": [
+      "fresh browser/device-local storage",
+      "missing or stale session",
+      "inactive membership",
+      "tenant-host request",
+      "access/default tenant mismatch",
+      "unsupported injury category",
+      "200-draft limit",
+      "concurrent version conflict",
+      "duplicate request retry",
+      "delete of active draft",
+      "network/action failure",
+      "keyboard activation of disabled submit",
+      "locale equivalence",
+      "agent/staff/admin visibility",
+      "rollback with residual stored drafts"
+    ],
+    "verified": [
+      "Existing source has owner/access-tenant predicates, request-id idempotency, CAS update/delete, pagination, supported-category validation, a 200-draft cap, and content-free audit events.",
+      "Existing source rejects non-neutral or account-context-mismatched action sessions.",
+      "Claims-row creation would generate claim-number/event/audit side effects and is rejected."
+    ]
+  },
+  "retentionAndPrivacy": {
+    "retention": "Existing drafts have no TTL in this slice and remain until the owner permanently deletes them; the UI must say so. No retention claim beyond existing behavior is permitted.",
+    "dataMinimization": "Only the six existing vehicle/property fact groups; no health, documents, claim pack, claim amount, payment, or coverage data.",
+    "audit": "Existing content-free free_start_draft.created/resumed/updated/deleted metadata only; no new analytics or content logging.",
+    "abuseControls": "Existing neutral-host boundary, verified session, access/default tenant equality, owner RLS, request-id idempotency, 200-draft cap, bounded summary validation, and CAS mutation."
+  },
+  "rollbackOrMitigation": "Revert the route-body composition and remove the new UI/copy/tests. No migration or backfill exists. Previously saved owner-scoped free_start_drafts remain valid and manageable through the existing Free Start surface; do not delete user drafts during rollback. If P00 or any zero-side-effect proof fails, do not merge and leave the current route untouched.",
+  "operationalEvidence": "No implementation or runtime operation occurred. A future slice may use only existing content-free free_start_draft.* audit events for supportability; it adds no metric, provider dependency, callback, cron, queue, or deployment behavior.",
+  "residualRisks": [
+    "The candidate is intentionally limited to canonical neutral IDA/default-public-tenant accounts; other member hosts remain unsupported and must fail honestly.",
+    "Existing drafts persist until owner deletion; there is no automatic retention window in this slice.",
+    "Deep reuse of existing organizer primitives must remain import-bounded so FreeStartIntakeShell/useOrganizerSubmit cannot enter the member component graph.",
+    "Public operator documentation cannot prove authenticated dashboard ergonomics; the future 10-session metric supplies local evidence.",
+    "Exact Arben approval and canonical docs-only promotion are absent, so implementation remains unauthorized.",
+    "The canonical interdomestik_qa root is dirty/wrong-context for this child; future implementation must revalidate the accepted clean worktree and MCP root before any edit."
+  ],
+  "fableAdvisoryDisposition": "Applied only as a prioritization principle: reduce perceived product stall through visible reversible save/resume value while leaving the P0 claim-number/migration safety chain untouched. Fable supplied no authority, approval, code, or runtime instruction.",
+  "brain": {
+    "measurementSession": "sess_2026-07-20T16-17-00-117Z_CLAIM-DRAFT-INTAKE-DISCOVERY",
+    "brainRun": "2026-07-20T16-17-01-352Z-CLAIM-DRAFT-INTAKE-DISCOVERY",
+    "startResult": "8 spans and approximately 2223 tokens; not oversized",
+    "authorityCorrect": false,
+    "humanUseful": false,
+    "reason": "All returned spans were generic AGENTS.md material from dirty canonical index 46878f2b9920a6dc54635f8f9ff404f0c031acf0; no current-program, current-tracker, claim surface, draft store, or proof evidence was returned.",
+    "recoverySearchUsed": true,
+    "closeResult": {
+      "materializedRunId": "brain-substitution_sess_2026-07-20T16-17-00-117Z_CLAIM-DRAFT-INTAKE-DISCOVERY",
+      "workflowTokensApprox": 2223,
+      "humanUseful": false,
+      "taskCompleted": true,
+      "evidenceCriteriaPassed": true,
+      "brainAuthorityCorrect": false,
+      "recoverySearchUsed": true,
+      "substitutionByAbsence": null
+    }
+  },
+  "trackerSync": "No tracker/program edit is authorized. If Arben accepts this exact packet, a separate Tier 0 docs-only promotion must select only IDA-UI03a3 and preserve every listed exclusion before implementation can start.",
+  "cleanup": "No branch/worktree/runtime resource was created. The only artifact is this external /tmp packet; repository cleanup is not required.",
+  "nextSlicePrompt": "None. Do not start IDA-UI03a3 or any other slice. Await an exact Arben receipt and separate canonical docs-only promotion; then re-run resolver/preflight/Brain and execute P00 before code edits.",
+  "exactAcceptanceRequest": {
+    "approver": "Arben",
+    "status": "requested_not_received",
+    "request": "Accept or reject promotion of only IDA-UI03a3 under IDA-DG20 by citing the exact absolute packet path, byte count, and SHA-256 supplied in the orchestrator handoff. No silence, prior approval, branch state, AI OS state, or advisory statement counts as acceptance.",
+    "effectIfAccepted": "Acceptance permits only a separate docs-only canonical promotion. It does not authorize implementation, runtime contact, migration, deployment, or any other slice.",
+    "requiredPromotionText": "Promote only IDA-UI03a3 inside the neutral-IDA/default-public-tenant envelope and exact 8+4 file map; future runtime remains not_authorized until canonical promotion resolves exactly this slice and P00 passes."
+  },
+  "integrity": {
+    "hashAlgorithm": "SHA-256",
+    "hashScope": "entire JSON file as stored",
+    "receipt": "The final orchestrator handoff reports the exact absolute path, byte count, and SHA-256 after Brain closeout is patched and both governance validators are rerun."
+  }
+}
