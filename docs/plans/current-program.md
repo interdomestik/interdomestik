@@ -1358,6 +1358,69 @@ Docker/compose, role/ACL/membership, seed/fixture, proxy/route/auth/session/OTP/
 tenancy/RLS, UI, billing, rollout, production alias or deployment change is
 authorized; automatic CD must be cancelled before deploy.
 
+Rev 146 closeout supersedes only the active-status, runtime-authorization and future-
+implementation statements in Rev 145. PR `#1391` completed
+`IDA-UI03a2-P0a1a0b` from restored final branch head
+`3c78a852d028941eeb82f6271c37cd163fa28bd0` and squash-merged as
+`1871fd24cec170ee2ec27b0aca67c411adff9e2d`. Four Copilot writer-route commits had
+changed the accepted import mechanism to a generated data URL and were rejected as
+out of gate. One auditable non-force revert restored the accepted mechanism; final
+tree `c705a43c551d328cabf8976e560f11896a81dd31` is byte-for-byte identical to
+accepted implementation head `80320ef7d8752590a2e113175cce47407a3cd9ea`.
+
+The merged no-DB seam accepts only the authentic P0a1a0a corpus capability, binds
+the exact Drizzle 0.45.2 generic-reader, pg-proxy migrator and `PgDialect` sources,
+derives exactly 93 migrations, 750 chunks and one flat 843-item callback list, binds
+domain digest `f4486654346a7e7c66a5cdbff57f4611268b1c5144e0ab7cea3ac3a1b7e2ab3f`,
+returns only the opaque no-export WeakMap capability and repeats the authentic corpus
+scan after the reader. The narrow transpiler compatibility addendum remains exactly
+1,079 bytes at SHA-256
+`7ebcb4d3038018c66e21704ccd2cfed36bd32d0967e1f8cbb8bdf76878a1fe4c`; native
+`import.meta.resolve` remains preferred and the bounded `createRequire` fallback
+normalizes only the three accepted export specifiers back to the same hash-bound
+JavaScript source artifacts. The canonical gate remains exactly 25,404 bytes at
+SHA-256 `a5ffbb84f90b9c58bd840e7b171f5bc19506b4adb91beb46fe37029c84ec5c54`.
+
+Focused callback/corpus proof passed 17/17 tests together with database type-check,
+modularity, database-access and journal guards, deterministic repo-size checks,
+`pnpm security:guard`, formatting and diff checks. The six production and five new
+test/support files remained below 150 physical lines; the existing corpus-boundary
+test shrank from 130 to 122 lines. Local `pnpm pr:verify` was intentionally stopped
+before its excluded default-DB/live lanes and local `pnpm e2e:gate` was not run; full
+current-head remote CI, database-backed E2E, PR E2E, Pilot, Sonar, CodeQL, security,
+secret scan, deterministic backstops and `pr-finalizer` supplied the accepted no-DB
+replacement proof. Final governed `pr:review-ready` passed with 23/23 package type-
+checks and 3,034 web unit tests. Exact-current internal Codex architecture and
+contracts/security reviews passed. Sonnet/Opus no-output, Gemini route denial and
+unverified Fable remained NON-PASS implementation routes; the accepted same-hash
+design Opus 4.8 PASS remains valid. Current-head GitHub Codex's stronger loader-
+atomicity suggestion was classified non-actionable because it is the gate's explicit
+non-atomic/local-writer residual and would require a new gate. Copilot is recorded as
+a reviewer-route hazard/NON-PASS, never as approval.
+
+Post-merge main CI run `29730749259`, Sonar Main Gate `29730749305`, CodeQL
+`29730748755` and Secret Scan `29730749256` all passed on exact merge commit
+`1871fd24cec170ee2ec27b0aca67c411adff9e2d`; CI included unit and database-backed
+E2E-gate proof. Automatic CD run `29730749288` was cancelled during registry-login
+setup; image build and every staging/production deploy or verification job were
+skipped, so no deployment or alias change occurred. Brain's measured-session start
+was missed because the stale earlier product session remained open; both authorized
+`brain-task --require-active-execution` passes missed, one narrow recovery search was
+used, and no full-task ROI, authority correctness, human usefulness or time/token
+saving is claimed.
+
+P0a1a0b is complete. No replacement implementation slice is promoted. The canonical
+resolver must return `blocked_requires_current_authority`, `activeSlice=null` until a
+fresh current-authority/design gate promotes exactly one next action. P0a1a1 remains
+unpromoted for live database-state pending selection, callback equality and execution;
+P0a2, frozen P0 and parent UI03a2 remain blocked or unpromoted. This closeout grants no
+database, migration-execution, provider, frozen/default-state, rollout, deployment or
+production-alias authority. AI OS observation
+`30b6a9938bd5729c7c70f0c9863cbe9783e85452fe6ffb22bd88c0f0bce60f65` confirms
+exact lifecycle status `blocked_requires_current_authority`, `activeSlice=null`,
+`runtimeAuthorization=not_authorized` and next valid action
+`fresh current-authority/design-gate selection`.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
