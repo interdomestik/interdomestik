@@ -1433,38 +1433,86 @@ observation `2261b3c5d71be5c6642ae1d44187eee383c49518e12589c95fb87a647da9af9f`
 remains advisory; the measured Brain session exposed no usable spans, required
 recovery search and supports no ROI, authority-correctness or human-usefulness claim.
 
-The next active governed implementation goal is exactly one canonical tracker
-slice: `IDA-UI03a2-P0a1a1a`. When separately runtime-authorized, it may accept only
-the authentic P0a1a0b callback-plan capability, one already preflighted reserved
-administrative session and one `AbortSignal`; open one bounded repeatable-read,
-read-only transaction; apply fixed local timeouts and search path; acquire
-`pg_advisory_xact_lock(673167055, -773281837)`; prove the exact Drizzle namespace,
-ledger table, serial sequence, owner, ACL and catalog shape; and compare at most 94
-rows against the exact authenticated 0..93 migration prefix. Success returns only a
-frozen redacted summary with `execution_authorized:false`; it is not an execution
-capability. The accepted ceiling is four production files, four new test/support
+Rev 147 promoted exactly one canonical tracker slice:
+`IDA-UI03a2-P0a1a1a`. Its separately authorized implementation contract accepted
+only the authentic P0a1a0b callback-plan capability, one already preflighted reserved
+administrative session and one `AbortSignal`; opened one bounded repeatable-read,
+read-only transaction; applied fixed local timeouts and search path; acquired
+`pg_advisory_xact_lock(673167055, -773281837)`; proved the exact Drizzle namespace,
+ledger table, serial sequence, owner, ACL and catalog shape; and compared at most 94
+rows against the exact authenticated 0..93 migration prefix. Success returned only a
+frozen redacted summary with `execution_authorized:false`; it was not an execution
+capability. The accepted ceiling was four production files, four new test/support
 files, one existing no-overflow boundary test at or below 149 physical lines, at
 most one conditional deterministic size-metadata file, 1,278 allocated physical
 lines, one backend outcome and two engineering days.
 
-This docs-only Tier 0 promotion keeps `runtime_authorized:false`. Prospective
-implementation is a Tier 3 backend protected prerequisite and may not begin until
-this promotion merges, canonical-main and dedicated-worktree authority select only
-`IDA-UI03a2-P0a1a1a`, AI OS is freshly observed and a separate exact orchestrator
-runtime-authority receipt is accepted. The known bundled resolver may continue to
-reselect stale P0a1a0b prose; if so, that result is diagnostic lifecycle-tooling debt
-and the canonical current-program/current-tracker rows govern. Because this gate
-changes no UI, UX, workflow, copy or accessibility surface, no new UI benchmark or
-approval receipt is required.
+At promotion, this docs-only Tier 0 record kept `runtime_authorized:false`. The
+prospective implementation was a Tier 3 backend protected prerequisite and could not
+begin until this promotion merged, canonical-main and dedicated-worktree authority
+selected only `IDA-UI03a2-P0a1a1a`, AI OS was freshly observed and a separate exact
+orchestrator runtime-authority receipt was accepted. The known bundled resolver may
+continue to reselect stale P0a1a0b prose; if so, that result is diagnostic lifecycle-
+tooling debt and the canonical current-program/current-tracker rows govern. Because
+this gate changes no UI, UX, workflow, copy or accessibility surface, no new UI
+benchmark or approval receipt is required.
 
-No current source, test, runtime, live/disposable/default/frozen/remote/provider
-database, bootstrap DDL/DML, migration SQL execution, ledger mutation, callback
-suffix/equality/execution, provider contact, deployment or rollout is authorized.
+At promotion, no current source, test, runtime, live/disposable/default/frozen/remote/
+provider database, bootstrap DDL/DML, migration SQL execution, ledger mutation,
+callback suffix/equality/execution, provider contact, deployment or rollout was
+authorized.
 `migrate.ts`, `db.ts`, package exports/scripts, workflows, CLI, Docker/compose,
 canonical migrations/journal, roles/owners/ACLs/RLS, protected app/proxy/route/auth/
-session/OTP/tenancy/UI/i18n/billing surfaces and production aliases remain excluded.
-P0a1a1b, P0a2, frozen P0 and parent UI03a2 remain blocked or unpromoted and gain no
-successor authority from this promotion.
+session/OTP/tenancy/UI/i18n/billing surfaces and production aliases remained
+excluded. P0a1a1b, P0a2, frozen P0 and parent UI03a2 remained blocked or unpromoted
+and gained no successor authority from that promotion.
+
+Rev 148 closeout: `IDA-UI03a2-P0a1a1a` completed through implementation PR
+`#1394` from final head `b7b512bb3a73eb32d4d9b2af125667ecb0f36d3f` and squash
+merge `3acee0a2a5f36b5d813595d541036f808a390e2c`. The exact implementation
+patch from authorized base `12c2a1708d9940bb74a5cda532f3b4c6cc955afb` is 41,360
+bytes at SHA-256
+`e8bb791f74f64878a2fed49f2015665b4d100d807ad1a2783a9d9968a2cf4311`
+across only the accepted four production files, five test/support files and
+conditional deterministic size metadata. The private seam accepts only the authentic
+callback-plan capability, the already preflighted reserved session and the same abort
+signal; uses one repeatable-read read-only transaction, fixed local guards and lock
+`(673167055, -773281837)`; validates the exact Drizzle namespace, table, sequence,
+owner, ACL and canonical serial shape; reads at most 94 rows for the exact 0..93
+prefix; and returns only a frozen redacted `execution_authorized:false` summary.
+
+Test-first RED preceded implementation. Final focused proof passed 12/12 cases on one
+fresh force-removed loopback PostgreSQL 16 fixture, and the no-default-DB static,
+database type-check, modularity, DB-access, architecture, migration-journal,
+security and repository-size guards passed. Exact-current Opus 4.8 architecture and
+contracts/security review passed with no actionable P1/P2 findings; current-head
+Copilot reported no actionable findings, PR Sonar passed with security rating A, and
+all four review threads were resolved. Current-head CI, unit, database-backed E2E,
+Pilot, CodeQL, security and `pr-finalizer` checks were green before merge.
+
+Post-merge main CI run `29752712403` passed validation, static, unit/coverage,
+AI-eval, audit, RLS integration and E2E-gate on the exact implementation merge.
+CodeQL runs `29752711128` and `29752711442`, gitleaks/Secret Scan run
+`29752712409` and Supabase Preview also passed. Sonar Main Gate run `29752712577`
+remains explicitly NON-PASS because the rolling 30-day new-code period beginning
+2026-06-28 counts pre-existing issue `AZ-ACoVO5G2i53uX0BTV` /
+`githubactions:S8544` at `.github/workflows/pr-deterministic-backstops.yml:88`,
+introduced on 2026-06-30 by `29397f184b`; the slice did not touch that workflow and
+its PR-specific Sonar analysis passed at A. This is pre-existing mainline tooling/
+workflow debt, not slice-attributable evidence, and no workflow or Sonar remediation
+is authorized here. Automatic CD run `29752712354` was cancelled during setup before
+image build or any staging/production deploy step; no deployment or alias change
+occurred.
+
+`IDA-UI03a2-P0a1a1a` is complete and its exact runtime authority is consumed by this
+closeout; `execution_authorized:false` remained binding. No pre-existing, default,
+frozen, shared, remote or provider database was contacted, and no migration SQL,
+callback, suffix, equality or execution, provider contact, protected-app mutation or
+deployment occurred. No replacement implementation slice is promoted; the expected
+resolver state is `blocked_requires_current_authority`, `activeSlice=null` until a
+fresh current-authority/design gate selects exactly one next governed action.
+`IDA-UI03a2-P0a1a1b`, P0a2, frozen P0 and parent UI03a2 remain blocked or
+unpromoted and gain no authority from this closeout.
 
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
