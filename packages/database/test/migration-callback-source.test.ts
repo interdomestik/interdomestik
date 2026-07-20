@@ -10,6 +10,8 @@ import {
 import { CALLBACK_SOURCE_MANIFEST } from '../src/migration-callback-plan-manifest';
 import { callbackCode, sourceOps } from './migration-callback.support';
 
+const R = 'MIGRATION_CALLBACK_DEPENDENCY_SOURCE_REJECTED';
+
 test('installed sources bind the three exact hashes and one package root', async () => {
   const binding = await verifyMigrationCallbackSources();
   assert.deepEqual(
@@ -63,10 +65,7 @@ test('path, bytes, identity, export and cleanup faults fail closed', async () =>
     resolve: specifier =>
       specifier === first ? 'file:///missing/migrator.js' : CALLBACK_SOURCE_OPS.resolve(specifier),
   });
-  assert.equal(
-    await callbackCode(() => verifyMigrationCallbackSources(missing)),
-    'MIGRATION_CALLBACK_DEPENDENCY_SOURCE_REJECTED'
-  );
+  assert.equal(await callbackCode(() => verifyMigrationCallbackSources(missing)), R);
   for (const target of CALLBACK_SOURCE_MANIFEST) {
     const collision = sourceOps({
       resolve: specifier =>
@@ -75,16 +74,10 @@ test('path, bytes, identity, export and cleanup faults fail closed', async () =>
           : CALLBACK_SOURCE_OPS.resolve(specifier),
       realpath: async path => path,
     });
-    assert.equal(
-      await callbackCode(() => verifyMigrationCallbackSources(collision)),
-      'MIGRATION_CALLBACK_DEPENDENCY_SOURCE_REJECTED'
-    );
+    assert.equal(await callbackCode(() => verifyMigrationCallbackSources(collision)), R);
   }
   const symlinked = sourceOps({ realpath: async path => `${path}.elsewhere` });
-  assert.equal(
-    await callbackCode(() => verifyMigrationCallbackSources(symlinked)),
-    'MIGRATION_CALLBACK_DEPENDENCY_SOURCE_REJECTED'
-  );
+  assert.equal(await callbackCode(() => verifyMigrationCallbackSources(symlinked)), R);
   const changed = sourceOps({
     open: async path => {
       const handle = await CALLBACK_SOURCE_OPS.open(path);
@@ -98,40 +91,25 @@ test('path, bytes, identity, export and cleanup faults fail closed', async () =>
       };
     },
   });
-  assert.equal(
-    await callbackCode(() => verifyMigrationCallbackSources(changed)),
-    'MIGRATION_CALLBACK_DEPENDENCY_SOURCE_REJECTED'
-  );
+  assert.equal(await callbackCode(() => verifyMigrationCallbackSources(changed)), R);
   let stats = 0;
   const replaced = sourceOps({
     lstat: async path => ({ ...(await CALLBACK_SOURCE_OPS.lstat(path)), ino: BigInt(++stats) }),
   });
-  assert.equal(
-    await callbackCode(() => verifyMigrationCallbackSources(replaced)),
-    'MIGRATION_CALLBACK_DEPENDENCY_SOURCE_REJECTED'
-  );
+  assert.equal(await callbackCode(() => verifyMigrationCallbackSources(replaced)), R);
   const oversized = sourceOps({
     lstat: async path => ({ ...(await CALLBACK_SOURCE_OPS.lstat(path)), size: 2_097_153n }),
   });
-  assert.equal(
-    await callbackCode(() => verifyMigrationCallbackSources(oversized)),
-    'MIGRATION_CALLBACK_DEPENDENCY_SOURCE_REJECTED'
-  );
+  assert.equal(await callbackCode(() => verifyMigrationCallbackSources(oversized)), R);
   const badExport = sourceOps({ importModule: async () => ({ readMigrationFiles: 1 }) });
-  assert.equal(
-    await callbackCode(() => verifyMigrationCallbackSources(badExport)),
-    'MIGRATION_CALLBACK_DEPENDENCY_SOURCE_REJECTED'
-  );
+  assert.equal(await callbackCode(() => verifyMigrationCallbackSources(badExport)), R);
   const extraExport = sourceOps({
     importModule: async () => ({
       readMigrationFiles: () => [],
       extra: true,
     }),
   });
-  assert.equal(
-    await callbackCode(() => verifyMigrationCallbackSources(extraExport)),
-    'MIGRATION_CALLBACK_DEPENDENCY_SOURCE_REJECTED'
-  );
+  assert.equal(await callbackCode(() => verifyMigrationCallbackSources(extraExport)), R);
   const badClose = sourceOps({
     open: async path => ({
       ...(await CALLBACK_SOURCE_OPS.open(path)),

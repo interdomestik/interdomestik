@@ -4,12 +4,11 @@ import { lstat, open, realpath } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { basename, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-
 // prettier-ignore
 import { CallbackPlanFault, type CallbackSourceBinding, type CallbackSourceHandle, type CallbackSourceOps, type CallbackSourceStat } from './migration-callback-plan-contracts';
 // prettier-ignore
 import { CALLBACK_SOURCE_MANIFEST, MAX_CALLBACK_SOURCE_BYTES } from './migration-callback-plan-manifest';
-
+const R = 'MIGRATION_CALLBACK_DEPENDENCY_SOURCE_REJECTED';
 function convert(value: Awaited<ReturnType<typeof lstat>>): CallbackSourceStat {
   // prettier-ignore
   const item = value as typeof value & { dev: bigint; ino: bigint; nlink: bigint; size: bigint; mtimeNs: bigint; ctimeNs: bigint };
@@ -50,12 +49,9 @@ function same(left: CallbackSourceStat, right: CallbackSourceStat): boolean {
   return left.dev === right.dev && left.ino === right.ino && left.nlink === right.nlink && left.size === right.size && left.mtimeNs === right.mtimeNs && left.ctimeNs === right.ctimeNs && left.isFile === right.isFile;
 }
 function rejected(): never {
-  throw new CallbackPlanFault('MIGRATION_CALLBACK_DEPENDENCY_SOURCE_REJECTED');
+  throw new CallbackPlanFault(R);
 }
-async function readBoundSource(
-  path: string,
-  ops: Readonly<CallbackSourceOps>
-): Promise<Uint8Array> {
+async function readBoundSource(path: string, ops: Readonly<CallbackSourceOps>) {
   let handle: CallbackSourceHandle | undefined, bytes: Uint8Array | undefined, fault: unknown;
   try {
     const before = await ops.lstat(path);
@@ -81,17 +77,14 @@ async function readBoundSource(
       }
   }
   // prettier-ignore
-  if (fault) throw fault instanceof CallbackPlanFault ? fault : new CallbackPlanFault('MIGRATION_CALLBACK_DEPENDENCY_SOURCE_REJECTED');
+  if (fault) throw fault instanceof CallbackPlanFault ? fault : new CallbackPlanFault(R);
   if (!bytes) rejected();
   return bytes;
-}
-function toModuleUrl(bytes: Uint8Array): string {
-  return `data:text/javascript;base64,${Buffer.from(bytes).toString('base64')}`;
 }
 async function bindExpectedSource(
   expected: (typeof CALLBACK_SOURCE_MANIFEST)[number],
   ops: Readonly<CallbackSourceOps>
-): Promise<Readonly<{ root: string; hash: string; url: string; moduleUrl: string }>> {
+) {
   const url = new URL(await ops.resolve(expected.specifier));
   if (url.protocol !== 'file:' || url.search || url.hash) rejected();
   const path = fileURLToPath(url),
@@ -105,7 +98,12 @@ async function bindExpectedSource(
   const bytes = await readBoundSource(path, ops),
     hash = createHash('sha256').update(bytes).digest('hex');
   if (hash !== expected.sha256) rejected();
-  return Object.freeze({ root, hash, url: url.href, moduleUrl: toModuleUrl(bytes) });
+  return {
+    root,
+    hash,
+    url: url.href,
+    moduleUrl: `data:text/javascript;base64,${Buffer.from(bytes).toString('base64')}`,
+  };
 }
 export async function verifyMigrationCallbackSources(
   ops: Readonly<CallbackSourceOps> = CALLBACK_SOURCE_OPS,
@@ -136,7 +134,7 @@ export async function verifyMigrationCallbackSources(
     return Object.freeze({ packageRoot: packageRoot!, hashes: Object.freeze(hashes), urls: Object.freeze(urls), reader });
   } catch (error) {
     if (error instanceof CallbackPlanFault) throw error;
-    throw new CallbackPlanFault('MIGRATION_CALLBACK_DEPENDENCY_SOURCE_REJECTED');
+    throw new CallbackPlanFault(R);
   }
 }
 export async function recheckMigrationCallbackSources(
