@@ -15,13 +15,13 @@ function convert(value: Awaited<ReturnType<typeof lstat>>): CallbackSourceStat {
   // prettier-ignore
   return Object.freeze({ dev: item.dev, ino: item.ino, nlink: item.nlink, size: item.size, mtimeNs: item.mtimeNs, ctimeNs: item.ctimeNs, isFile: item.isFile() });
 }
-const requireFromHere = createRequire(import.meta.url);
+const r = createRequire(import.meta.url);
 export function resolveCallbackSource(
   specifier: string,
   nativeResolve: ((value: string) => string) | undefined = typeof import.meta.resolve === 'function'
     ? import.meta.resolve.bind(import.meta)
     : undefined,
-  requireResolve: (value: string) => string = requireFromHere.resolve.bind(requireFromHere)
+  requireResolve: (value: string) => string = r.resolve.bind(r)
 ): string {
   if (!CALLBACK_SOURCE_MANIFEST.some(item => item.specifier === specifier)) rejected();
   if (nativeResolve) return nativeResolve(specifier);
