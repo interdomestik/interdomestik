@@ -1271,6 +1271,61 @@ database, role/ACL/membership, seed/fixture, proxy/route/auth/session/OTP/tenanc
 UI, billing, rollout, deployment or production alias change is authorized;
 automatic CD must be cancelled before deploy.
 
+Rev 144 closeout supersedes only the active-status, runtime-authorization and future-
+implementation statements in Rev 143. PR `#1388` completed
+`IDA-UI03a2-P0a1a0a` from final branch head
+`29d61fcb3546ae94d5a3d3c0915f97537dbf5b53` and squash-merged as
+`aebcfb22cabbdf7fef54e60648877ddfddd545ea`. The merged capability resolves its
+canonical migration root relative to its own module, rejects root streaming beyond
+98 entries, fails closed across no-follow, realpath, inode/device identity and root
+containment checks, validates the exact journal schema/order/digest and 93+4 topology
+with all 97 per-file hashes, derives the domain-separated corpus digest, and returns
+only a stable redacted opaque capability. The accepted root-bound precedence
+clarification remains exact at SHA-256
+`de14c35c673b22e45e17ca102cab13ac540ef1e1f43ff7e4a913f39a0dddb6d2` and the
+canonical gate remains 35,062 bytes at SHA-256
+`b85accc78ae562b673bcec72cd12dff4ca22f7b4cfa1404027d9f0ff554cffb8`.
+
+Focused corpus proof passed 24/24 tests together with type-check, modularity,
+database-access and journal guards, deterministic repo-size sync/check,
+`pnpm security:guard`, formatting and diff checks. All production files remained
+within the accepted map and below the 150-line ceiling; the three Sonar-remediated
+production files finished at 145, 128 and 149 lines. Sonar's real cognitive-
+complexity, comparator/sort, duplicate-import and nested-conditional findings were
+fixed without behavior or scope expansion, and PR-head Sonar then passed with zero
+issues and zero hotspots. Current-head CI, CodeQL, secret/security backstops,
+`pr-finalizer`, Copilot review and feedback intake were green before merge. The
+required post-remediation Sol Ultra full-branch and isolated reviewer routes remained
+`BLOCKED_NO_OUTPUT/NON_PASS` and `BLOCKED_QUOTA/NON_PASS`; prior Sonnet, Gemini, Opus
+and Fable routes also remain NON-PASS, so the remediation push and merge do not claim
+an independent reviewer PASS. Copilot returned no finding on the exact final head.
+The native Codex Security workspace scan remains
+`BLOCKED_SETUP_TIMEOUT/NON_PASS` with no scan submission, scan ID or finding; the
+mandatory repository security guard passed. Local `pnpm pr:verify` stopped only at
+the explicitly excluded default-database `ECONNREFUSED` boundary and did not contact
+or mutate any default, frozen, live or provider database.
+
+Post-merge main Sonar run `29715561116`, CodeQL run `29715560919` and Secret Scan
+run `29715561124` passed. CI run `29715561104` attempt 1 passed static, unit, audit,
+AI-eval and validation but failed the unrelated MK premium Free Start result lane
+after 153 tests passed: two attempts recorded a failed `POST /en`, and the third hit
+the already-known sequence-dependent focus assertion at
+`premium-free-start-result.spec.ts:124`. The exact merged head changed no Free Start,
+route or browser code, and PR-head E2E had passed. A bounded unchanged-head CI rerun
+passed attempt 2, including all 205 E2E tests with nine skips, so the first attempt is
+retained as a non-slice lane flake rather than hidden or treated as product proof.
+Automatic CD run `29715561129` was cancelled while the staging image build was still
+in progress; all deploy and production-evidence jobs were cancelled with zero steps,
+so no staging or production deployment or alias change occurred.
+
+P0a1a0a is complete. No replacement implementation slice is promoted. The canonical
+resolver must return `blocked_requires_current_authority`, `activeSlice=null` until a
+fresh current-authority/design gate promotes exactly one next action. P0a1a0b,
+P0a1a1, P0a2, frozen P0 and parent UI03a2 remain blocked or unpromoted. This closeout
+grants no Drizzle resolution/chunk, pg-proxy/dialect/callback, pending-selection,
+database, migration-execution, provider, frozen/default-state, rollout or deployment
+authority.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
