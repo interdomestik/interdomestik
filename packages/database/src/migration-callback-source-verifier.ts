@@ -1,11 +1,15 @@
+import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
 import { lstat, open, realpath } from 'node:fs/promises';
 import { createRequire } from 'node:module';
-import { pathToFileURL } from 'node:url';
+import { basename, join } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
 // prettier-ignore
 import { CallbackPlanFault, type CallbackSourceBinding, type CallbackSourceHandle, type CallbackSourceOps, type CallbackSourceStat } from './migration-callback-plan-contracts';
-import { bindExpectedSource } from './migration-callback-bound-source';
-import { CALLBACK_SOURCE_MANIFEST } from './migration-callback-plan-manifest';
+// prettier-ignore
+import { CALLBACK_SOURCE_MANIFEST, MAX_CALLBACK_SOURCE_BYTES } from './migration-callback-plan-manifest';
+
 function convert(value: Awaited<ReturnType<typeof lstat>>): CallbackSourceStat {
   // prettier-ignore
   const item = value as typeof value & { dev: bigint; ino: bigint; nlink: bigint; size: bigint; mtimeNs: bigint; ctimeNs: bigint };
@@ -41,10 +45,68 @@ export const CALLBACK_SOURCE_OPS: Readonly<CallbackSourceOps> = Object.freeze({
   },
   importModule: (url: string) => import(url),
 });
+function same(left: CallbackSourceStat, right: CallbackSourceStat): boolean {
+  // prettier-ignore
+  return left.dev === right.dev && left.ino === right.ino && left.nlink === right.nlink && left.size === right.size && left.mtimeNs === right.mtimeNs && left.ctimeNs === right.ctimeNs && left.isFile === right.isFile;
+}
 function rejected(): never {
   throw new CallbackPlanFault('MIGRATION_CALLBACK_DEPENDENCY_SOURCE_REJECTED');
 }
-
+async function readBoundSource(
+  path: string,
+  ops: Readonly<CallbackSourceOps>
+): Promise<Uint8Array> {
+  let handle: CallbackSourceHandle | undefined, bytes: Uint8Array | undefined, fault: unknown;
+  try {
+    const before = await ops.lstat(path);
+    // prettier-ignore
+    if (!before.isFile || before.size < 0n || before.size > MAX_CALLBACK_SOURCE_BYTES || before.size > BigInt(Number.MAX_SAFE_INTEGER)) rejected();
+    if ((await ops.realpath(path)) !== path) rejected();
+    handle = await ops.open(path);
+    if (!same(before, await handle.stat())) rejected();
+    bytes = new Uint8Array(Number(before.size));
+    if ((await handle.read(bytes, 0, bytes.length, 0)) !== bytes.length) rejected();
+    if ((await handle.read(new Uint8Array(1), 0, 1, bytes.length)) !== 0) rejected();
+    // prettier-ignore
+    const [descriptor, after, resolved] = await Promise.all([handle.stat(), ops.lstat(path), ops.realpath(path)]);
+    if (!same(before, descriptor) || !same(before, after) || resolved !== path) rejected();
+  } catch (error) {
+    fault = error;
+  } finally {
+    if (handle)
+      try {
+        await handle.close();
+      } catch {
+        fault = new CallbackPlanFault('MIGRATION_CALLBACK_CLEANUP_FAILED');
+      }
+  }
+  // prettier-ignore
+  if (fault) throw fault instanceof CallbackPlanFault ? fault : new CallbackPlanFault('MIGRATION_CALLBACK_DEPENDENCY_SOURCE_REJECTED');
+  if (!bytes) rejected();
+  return bytes;
+}
+function toModuleUrl(bytes: Uint8Array): string {
+  return `data:text/javascript;base64,${Buffer.from(bytes).toString('base64')}`;
+}
+async function bindExpectedSource(
+  expected: (typeof CALLBACK_SOURCE_MANIFEST)[number],
+  ops: Readonly<CallbackSourceOps>
+): Promise<Readonly<{ root: string; hash: string; url: string; moduleUrl: string }>> {
+  const url = new URL(await ops.resolve(expected.specifier));
+  if (url.protocol !== 'file:' || url.search || url.hash) rejected();
+  const path = fileURLToPath(url),
+    root = path.slice(0, -expected.suffix.length - 1);
+  if (
+    basename(root) !== 'drizzle-orm' ||
+    join(root, ...expected.suffix.split('/')) !== path ||
+    (await ops.realpath(path)) !== path
+  )
+    rejected();
+  const bytes = await readBoundSource(path, ops),
+    hash = createHash('sha256').update(bytes).digest('hex');
+  if (hash !== expected.sha256) rejected();
+  return Object.freeze({ root, hash, url: url.href, moduleUrl: toModuleUrl(bytes) });
+}
 export async function verifyMigrationCallbackSources(
   ops: Readonly<CallbackSourceOps> = CALLBACK_SOURCE_OPS,
   loadReader = true
@@ -53,18 +115,18 @@ export async function verifyMigrationCallbackSources(
     if (!Number.isFinite(ops.noFollowFlag) || ops.noFollowFlag === 0) rejected();
     const hashes: string[] = [],
       urls: string[] = [];
-    let moduleUrl: string | undefined, packageRoot: string | undefined;
+    let packageRoot: string | undefined, readerUrl: string | undefined;
     for (const expected of CALLBACK_SOURCE_MANIFEST) {
       const source = await bindExpectedSource(expected, ops);
       if (packageRoot !== undefined && source.root !== packageRoot) rejected();
-      if (moduleUrl === undefined) moduleUrl = source.moduleUrl;
+      if (readerUrl === undefined) readerUrl = source.moduleUrl;
       packageRoot = source.root;
       hashes.push(source.hash);
       urls.push(source.url);
     }
     let reader = null;
     if (loadReader) {
-      const namespace = await ops.importModule(moduleUrl!);
+      const namespace = await ops.importModule(readerUrl!);
       // prettier-ignore
       if (!namespace || typeof namespace !== 'object' || Object.getOwnPropertyNames(namespace).length !== 1 || !Object.hasOwn(namespace, 'readMigrationFiles') || typeof (namespace as { readMigrationFiles?: unknown }).readMigrationFiles !== 'function') rejected();
       reader = (namespace as { readMigrationFiles: CallbackSourceBinding['reader'] })
@@ -77,7 +139,6 @@ export async function verifyMigrationCallbackSources(
     throw new CallbackPlanFault('MIGRATION_CALLBACK_DEPENDENCY_SOURCE_REJECTED');
   }
 }
-
 export async function recheckMigrationCallbackSources(
   prior: CallbackSourceBinding,
   ops?: Readonly<CallbackSourceOps>
