@@ -59,6 +59,12 @@ export async function inspectMigrationLedgerCatalog(sql: LedgerSql): Promise<Led
           pg_catalog.acldefault('r', t.relowner))) acl
         WHERE acl.grantee <> t.relowner
           AND acl.privilege_type IN ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE')
+      ) AND NOT EXISTS (
+        SELECT 1 FROM pg_catalog.pg_attribute a
+        CROSS JOIN LATERAL pg_catalog.aclexplode(a.attacl) acl
+        WHERE a.attrelid = t.oid AND a.attnum > 0 AND NOT a.attisdropped
+          AND acl.grantee <> t.relowner
+          AND acl.privilege_type IN ('INSERT', 'UPDATE')
       ) FROM tab t) AS table_acl_ok,
       (SELECT NOT EXISTS (
         SELECT 1 FROM pg_catalog.aclexplode(COALESCE(s.relacl,

@@ -66,6 +66,8 @@ test('rejects live ACL, shape, overflow and non-prefix states', async () => {
   const cases: readonly [string, () => Promise<void>][] = [
     ['MIGRATION_LEDGER_ACL_REJECTED', async () => { await harness.reset('table_absent'); await harness.execute(`GRANT CREATE ON SCHEMA drizzle TO ${harness.nonowner}`); }],
     ['MIGRATION_LEDGER_ACL_REJECTED', tableChange(`GRANT INSERT ON drizzle.__drizzle_migrations TO ${harness.nonowner}`)],
+    ['MIGRATION_LEDGER_ACL_REJECTED', tableChange(`GRANT INSERT (hash) ON drizzle.__drizzle_migrations TO ${harness.nonowner}`)],
+    ['MIGRATION_LEDGER_ACL_REJECTED', tableChange(`GRANT UPDATE (hash) ON drizzle.__drizzle_migrations TO ${harness.nonowner}`)],
     ['MIGRATION_LEDGER_ACL_REJECTED', tableChange(`GRANT USAGE ON SEQUENCE drizzle.__drizzle_migrations_id_seq TO ${harness.nonowner}`)],
     ['MIGRATION_LEDGER_SHAPE_REJECTED', tableChange('ALTER TABLE drizzle.__drizzle_migrations ADD COLUMN extra text')],
     ['MIGRATION_LEDGER_SHAPE_REJECTED', tableChange('CREATE INDEX extra_index ON drizzle.__drizzle_migrations (hash)')],
