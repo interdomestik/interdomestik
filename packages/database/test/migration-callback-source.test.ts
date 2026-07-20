@@ -27,6 +27,13 @@ test('installed sources bind the three exact hashes and one package root', async
     },
   });
   assert.equal(await callbackCode(() => verifyMigrationCallbackSources(linked)), 'NO_ERROR');
+  let moduleUrl = '';
+  await verifyMigrationCallbackSources(
+    sourceOps({
+      importModule: async url => ((moduleUrl = url), CALLBACK_SOURCE_OPS.importModule(url)),
+    })
+  );
+  assert.ok(moduleUrl.startsWith('data:text/javascript;base64,'));
 });
 
 test('resolver prefers native semantics and bounds the tsx fallback', () => {
