@@ -122,6 +122,10 @@ jobs:
 
           const eventName = required('EVENT_NAME');
           const mode = process.env.REPORT_MODE;
+          if (eventName !== 'fork' && mode === 'traffic' && !process.env.TRAFFIC_READ_TOKEN?.trim()) {
+            console.log('Traffic report skipped: TRAFFIC_READ_TOKEN is not configured.');
+            process.exit(0);
+          }
           let message;
           if (eventName === 'fork') message = forkReport();
           else if (mode === 'email-test') {

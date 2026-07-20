@@ -43,6 +43,11 @@ test('repository alerts report aggregate traffic and identifiable forks by email
   assert.doesNotThrow(() => new Function(`return (async () => {\n${script}\n});`));
 });
 
+test('traffic reports exit cleanly until the scoped traffic token is configured', () => {
+  assert.match(script, /Traffic report skipped: TRAFFIC_READ_TOKEN is not configured/u);
+  assert.match(script, /eventName !== 'fork'.+mode === 'traffic'.+TRAFFIC_READ_TOKEN/u);
+});
+
 test('repository alert files remain concise', () => {
   const lineCount = value => value.trimEnd().split('\n').length;
   assert.ok(lineCount(source) < 150, 'workflow must stay below 150 lines');
