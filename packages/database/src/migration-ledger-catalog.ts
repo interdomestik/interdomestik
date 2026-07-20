@@ -58,7 +58,7 @@ export async function inspectMigrationLedgerCatalog(sql: LedgerSql): Promise<Led
         SELECT 1 FROM pg_catalog.aclexplode(COALESCE(t.relacl,
           pg_catalog.acldefault('r', t.relowner))) acl
         WHERE acl.grantee <> t.relowner
-          AND acl.privilege_type IN ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE')
+          AND acl.privilege_type IN ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'TRIGGER')
       ) AND NOT EXISTS (
         SELECT 1 FROM pg_catalog.pg_attribute a
         CROSS JOIN LATERAL pg_catalog.aclexplode(a.attacl) acl
@@ -75,6 +75,11 @@ export async function inspectMigrationLedgerCatalog(sql: LedgerSql): Promise<Led
         t.relkind = 'r' AND t.relpersistence = 'p' AND NOT t.relispartition
         AND NOT t.relrowsecurity AND NOT t.relforcerowsecurity
         AND s.relkind = 'S' AND s.relpersistence = 'p'
+        AND (SELECT q.seqtypid = 'pg_catalog.int4'::pg_catalog.regtype
+          AND q.seqstart = 1 AND q.seqincrement = 1
+          AND q.seqmax = 2147483647 AND q.seqmin = 1
+          AND q.seqcache = 1 AND NOT q.seqcycle
+          FROM pg_catalog.pg_sequence q WHERE q.seqrelid = s.oid)
         AND (SELECT count(*) = 3 AND bool_and(CASE a.attnum
           WHEN 1 THEN a.attname = 'id' AND a.atttypid = 'pg_catalog.int4'::pg_catalog.regtype
             AND a.attnotnull AND a.attidentity = '' AND a.attgenerated = ''
