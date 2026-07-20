@@ -1421,6 +1421,51 @@ exact lifecycle status `blocked_requires_current_authority`, `activeSlice=null`,
 `runtimeAuthorization=not_authorized` and next valid action
 `fresh current-authority/design-gate selection`.
 
+Rev 147 current authority promotes exactly one next active governed implementation
+goal, `IDA-UI03a2-P0a1a1a`, under accepted gate `IDA-DG19-A2a1a1a` at
+`docs/plans/2026-07-20-ida-dg19-a2a1a1a-ui03a2-p0a1a1a-live-migration-ledger-prefix-inspection.md`.
+The materialized gate is byte-identical to the accepted external packet: exactly
+19,976 UTF-8 bytes at SHA-256
+`9d6ef03eb93dc8d263f34ecf2a531c7a36f33a15ef6b22fa0abb00fae2abec77`, bound to
+clean base `fc3f948f42e1e5f509882e6554dbc132d4e3eac8`. Sonnet 4.6 passed same-hash
+architecture and contracts/security review without blockers. Promotion-time AI OS
+observation `2261b3c5d71be5c6642ae1d44187eee383c49518e12589c95fb87a647da9af9f`
+remains advisory; the measured Brain session exposed no usable spans, required
+recovery search and supports no ROI, authority-correctness or human-usefulness claim.
+
+The next active governed implementation goal is exactly one canonical tracker
+slice: `IDA-UI03a2-P0a1a1a`. When separately runtime-authorized, it may accept only
+the authentic P0a1a0b callback-plan capability, one already preflighted reserved
+administrative session and one `AbortSignal`; open one bounded repeatable-read,
+read-only transaction; apply fixed local timeouts and search path; acquire
+`pg_advisory_xact_lock(673167055, -773281837)`; prove the exact Drizzle namespace,
+ledger table, serial sequence, owner, ACL and catalog shape; and compare at most 94
+rows against the exact authenticated 0..93 migration prefix. Success returns only a
+frozen redacted summary with `execution_authorized:false`; it is not an execution
+capability. The accepted ceiling is four production files, four new test/support
+files, one existing no-overflow boundary test at or below 149 physical lines, at
+most one conditional deterministic size-metadata file, 1,278 allocated physical
+lines, one backend outcome and two engineering days.
+
+This docs-only Tier 0 promotion keeps `runtime_authorized:false`. Prospective
+implementation is a Tier 3 backend protected prerequisite and may not begin until
+this promotion merges, canonical-main and dedicated-worktree authority select only
+`IDA-UI03a2-P0a1a1a`, AI OS is freshly observed and a separate exact orchestrator
+runtime-authority receipt is accepted. The known bundled resolver may continue to
+reselect stale P0a1a0b prose; if so, that result is diagnostic lifecycle-tooling debt
+and the canonical current-program/current-tracker rows govern. Because this gate
+changes no UI, UX, workflow, copy or accessibility surface, no new UI benchmark or
+approval receipt is required.
+
+No current source, test, runtime, live/disposable/default/frozen/remote/provider
+database, bootstrap DDL/DML, migration SQL execution, ledger mutation, callback
+suffix/equality/execution, provider contact, deployment or rollout is authorized.
+`migrate.ts`, `db.ts`, package exports/scripts, workflows, CLI, Docker/compose,
+canonical migrations/journal, roles/owners/ACLs/RLS, protected app/proxy/route/auth/
+session/OTP/tenancy/UI/i18n/billing surfaces and production aliases remain excluded.
+P0a1a1b, P0a2, frozen P0 and parent UI03a2 remain blocked or unpromoted and gain no
+successor authority from this promotion.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
