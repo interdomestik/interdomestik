@@ -1644,6 +1644,63 @@ and requires a separate exact gate, canonical promotion and runtime authority.
 `IDA-UI03a2-P0a1a1b`, P0a2, frozen P0, parent UI03a2, `IDA-UI03b` and every other
 successor remain blocked or unpromoted and gain no authority from this closeout.
 
+Rev 151 current authority promotes exactly one next governed implementation goal,
+`IDA-CW01`, under accepted retirement gate `IDA-DG21` at
+`docs/plans/2026-07-21-ida-dg21-ida-cw01-claimwizard-retirement-gate.md`.
+The canonical gate is byte-identical to the accepted external packet: exactly
+22,079 UTF-8 bytes at SHA-256
+`c84734f482f73682c1f7123ac3cef8e8b58057615ef8d189a4ac7b401e550736`,
+bound to clean base `9a3d3d1748a0f8e5ee6e66cb848fcb29b2d7758a`. Arben
+accepted that exact byte count, hash, gate and sole slice in orchestrator task
+`019f6586-34cc-7311-900c-9989770f4d29` for canonical docs-only promotion only;
+the acceptance expressly authorizes neither runtime implementation nor deployment.
+Opus 4.8 returned architecture and contracts/security PASS with four textual
+hardening requirements, all incorporated before the final hash. Final exact-hash
+Sonnet 4.6 returned architecture, contracts/security and overall PASS with no
+blocking correction. Gemini remained blocked by absent authentication and is not
+claimed as PASS.
+
+The next active governed implementation goal is exactly one canonical tracker
+slice: `IDA-CW01`. Its sole future outcome is retirement of the two production-
+orphaned ClaimWizard trees, their direct unit tests and the mapped obsolete
+executable E2E/pilot contracts, while updating only the mapped surviving generic
+contracts to describe the existing dormant Claim Draft Intake. The exact future
+implementation map contains 33 paths: 24 deletions and 9 modifications, including
+deterministic repository-size metadata. No new file is allocated. The existing
+claim action/domain writers remain present, read-only and tested for a separately
+designed future submission slice; this promotion does not authorize their use.
+
+The accepted P00 stop gate is binding. Before deletion or test mutation, a
+separately authorized future implementation task must reproduce the per-path
+TypeScript importer closure for all 12 production deletion candidates; prove no
+dangling named Playwright config entry for any deleted spec; and classify every
+assertion in `c1-04`, `c1-05` and `scenario-01` as submission-dependent or map its
+writer-independent behavior to an exact surviving contract. If any current
+behavior is absent, weaker, skipped or requires a new path or protected surface,
+the slice stops and returns for one consolidated design disposition.
+
+This docs-only Tier 0 promotion keeps `runtime_authorized:false` and
+`deployment_authorized:false`. Prospective implementation is Tier 3 because it
+changes shared Playwright, E2E and pilot contract surfaces, and it may not begin
+from this promotion. A separate exact runtime-authority request must be accepted
+after canonical promotion and must bind the then-current main. Promotion-time AI
+OS observation
+`165216a4e17eeb4a62bbbffba05f7ac99fbcf2a48cdcaf6dd356666bb0c9d867`
+remains advisory and reported current authority with no active slice and runtime
+not authorized before this canonical mutation. Brain active-execution registration
+is coordination evidence only; no Brain authority, usefulness or ROI claim is made.
+
+No implementation, source/test deletion, runtime, browser, database, provider,
+callback, deployment, CD, production-alias or successor work is authorized by this
+promotion. `apps/web/src/proxy.ts`, the current Claim Draft Intake production files,
+`apps/web/src/actions/claims.core.ts`,
+`apps/web/src/actions/claims/submit.core.ts`, claim create/submit action boundaries,
+`packages/domain-claims/**`, canonical routes and clarity markers, auth/session/OTP,
+tenancy, schema/migrations/RLS, claim creation/numbering/events, billing/Paddle,
+uploads/documents, AI, notifications and every unlisted surface remain unchanged.
+All previously blocked or unpromoted architecture/product successors remain blocked
+or unpromoted and gain no authority from Rev 151.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
