@@ -13,7 +13,8 @@ let savedDraftId: string | null = null;
 const isMkProject = (testInfo: TestInfo) => testInfo.project.name.includes('mk');
 
 function resolveIdaTarget(testInfo: TestInfo) {
-  const authority = process.env.IDA_HOST?.trim() || 'ida.127.0.0.1.nip.io:3000';
+  const configured = process.env.IDA_HOST?.trim() || 'ida.127.0.0.1.nip.io:3000';
+  const authority = new URL(configured.includes('://') ? configured : `http://${configured}`).host;
   const baseURL = `http://${authority}/${routes.getLocale(testInfo)}`;
   return {
     ...testInfo,
