@@ -1,10 +1,12 @@
 import { CATEGORY_CONFIG } from '@/app/[locale]/components/home/free-start-intake-shell/constants';
 import { DetailsStep } from '@/app/[locale]/components/home/free-start-intake-shell/details-step';
+import { parseSecureSaveReviewCopy } from '@/app/[locale]/components/home/free-start-intake-shell/types';
 import type {
   FreeStartCopy,
   IssueId,
 } from '@/app/[locale]/components/home/free-start-intake-shell/types';
 import type { useOrganizerFlow } from '@/app/[locale]/components/home/free-start-intake-shell/use-organizer-flow';
+import { useEffect, useState } from 'react';
 
 import { DormantPreview, type ClaimDraftCopy } from './dormant-preview';
 
@@ -13,13 +15,29 @@ type Props = Readonly<{
   flow: ReturnType<typeof useOrganizerFlow>;
   issueIds: ReadonlyArray<IssueId>;
   labels: { category: string; issue: string; outcome: string };
-  tFree: FreeStartCopy;
+  neutralOtpHost?: string | null;
+  tFree: FreeStartCopy & { raw: (key: string) => unknown };
 }>;
 
+const NEUTRAL_HOSTS = new Set(['ida.interdomestik.com', 'ida.localhost', 'ida.127.0.0.1.nip.io']);
 const ACTION_CLASS =
   'inline-flex min-h-12 items-center justify-center rounded-xl bg-[#006b7b] px-5 py-3 font-bold text-white focus-visible:ring-3 focus-visible:ring-[#008f91] disabled:opacity-60';
 
-export function ClaimDraftMainPanel({ copy, flow, issueIds, labels, tFree }: Props) {
+function isNeutralHost(configured?: string | null) {
+  return (
+    NEUTRAL_HOSTS.has(globalThis.location.hostname) ||
+    Boolean(configured && globalThis.location.host.toLowerCase() === configured)
+  );
+}
+
+export function ClaimDraftMainPanel(props: Props) {
+  const { copy, flow, issueIds, labels, neutralOtpHost, tFree } = props;
+  const [showAccountContext, setShowAccountContext] = useState(false);
+  const accountContext = parseSecureSaveReviewCopy(
+    tFree.raw('secureSaveReviewCopy')
+  ).accountContext;
+  useEffect(() => setShowAccountContext(!isNeutralHost(neutralOtpHost)), [neutralOtpHost]);
+
   if (flow.step === 'preview' || flow.step === 'complete') {
     return (
       <div className="space-y-4">
@@ -47,6 +65,15 @@ export function ClaimDraftMainPanel({ copy, flow, issueIds, labels, tFree }: Pro
       data-testid="claim-draft-main-panel"
       className="space-y-6 rounded-3xl border border-[#001a33]/15 bg-[#fffdf9] p-5 sm:p-7"
     >
+      {showAccountContext ? (
+        <p
+          role="status"
+          data-testid="claim-draft-account-context"
+          className="rounded-xl border border-amber-300 bg-amber-50 p-3 font-semibold text-amber-950"
+        >
+          {accountContext}
+        </p>
+      ) : null}
       <div className="space-y-2">
         <h3
           ref={flow.stageHeadingRef}

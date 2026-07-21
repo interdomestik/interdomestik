@@ -120,6 +120,7 @@ function ClaimDraftIntakeBody({
         flow={flow}
         issueIds={issueIds}
         labels={labels}
+        neutralOtpHost={neutralOtpHost}
         tFree={tFree}
       />
       <SecureSaveBand {...saveBandProps} />

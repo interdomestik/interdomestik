@@ -124,6 +124,7 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
       const intake = page.locator('[data-testid="claim-draft-intake"]:visible').first();
       const panel = intake.getByTestId('claim-draft-main-panel');
       await expect(intake).toBeVisible();
+      await expect(intake.getByTestId('claim-draft-account-context')).toBeVisible();
       await intake.getByTestId('claim-draft-category-vehicle').click();
       await intake.getByTestId('claim-draft-category-continue').click();
       await panel.locator('select').nth(0).selectOption('collision');

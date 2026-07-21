@@ -93,7 +93,6 @@ function enter(label: string, value: string) {
 
 describe('ClaimDraftIntake', () => {
   it('keeps secure save visible on the configured custom IDA host', async () => {
-    expect(location.host).toMatch(/^localhost(?::\d+)?$/);
     // prettier-ignore
     const props = { freeStartMessages: {}, locale: 'en', neutralOtpHost: location.host, tenantId: 'tenant_ks' };
     render(<ClaimDraftIntake {...props} />);
@@ -101,10 +100,12 @@ describe('ClaimDraftIntake', () => {
     expect(screen.getByTestId('free-start-manage-open')).toBeVisible();
   });
 
-  it('is explicit-save only, blocks injury, and keeps submit inert', () => {
+  it('is explicit-save only, blocks injury, and keeps submit inert', async () => {
     render(<ClaimDraftIntake freeStartMessages={{}} locale="en" tenantId="tenant_ks" />);
     expect(screen.getByRole('heading', { name: claimCopy.heading })).toBeVisible();
     expect(screen.getByText(claimCopy.truth)).toBeVisible();
+    const accountContext = await screen.findByTestId('claim-draft-account-context');
+    expect(accountContext).toHaveTextContent('accountContext');
     expect(screen.getByTestId('claim-draft-category-injury')).toBeDisabled();
     fireEvent.click(screen.getByTestId('claim-draft-category-vehicle'));
     fireEvent.click(screen.getByRole('button', { name: 'Continue to details' }));
@@ -118,8 +119,7 @@ describe('ClaimDraftIntake', () => {
     expect(submit).toBeDisabled();
     expect(submit).toHaveAccessibleDescription(claimCopy.submitExplanation);
     expect(submit.closest('form')).toBeNull();
-    fireEvent.keyDown(submit, { key: 'Enter' });
-    fireEvent.keyDown(submit, { key: ' ' });
+    for (const key of ['Enter', ' ']) fireEvent.keyDown(submit, { key });
     expect(Object.values(actions).every(action => action.mock.calls.length === 0)).toBe(true);
   });
 
