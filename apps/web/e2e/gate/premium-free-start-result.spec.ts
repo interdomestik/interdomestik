@@ -16,7 +16,7 @@ function watchRuntime(page: Page) {
   page.on('console', message => message.type() === 'error' && failures.push(message.text()));
   page.on('pageerror', error => failures.push(error.message));
   // prettier-ignore
-  page.on('requestfailed', request => { const expected = request.failure()?.errorText === 'net::ERR_ABORTED' && request.headers()['next-router-prefetch'] === '1'; if (!expected && sameOrigin(request.url())) failures.push(`${request.method()} ${request.url()} failed`); });
+  page.on('requestfailed', request => { const [error, headers, response, own] = [request.failure()?.errorText, request.headers(), request.existingResponse(), sameOrigin(request.url())]; const actionOk = request.method() === 'POST' && Boolean(headers['next-action']) && response?.ok() === true; const expected = own && error === 'net::ERR_ABORTED' && (headers['next-router-prefetch'] === '1' || actionOk); if (!expected && own) failures.push(`${request.method()} ${request.url()} failed: ${error ?? 'NA'}; action=${headers['next-action'] ?? '-'}; response=${response?.status() ?? '-'}`); });
   // prettier-ignore
   page.on('response', response => { if (sameOrigin(response.url()) && response.status() >= 400) failures.push(`${response.status()} ${response.url()}`); });
   return failures;
