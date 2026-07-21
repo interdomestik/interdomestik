@@ -98,18 +98,15 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
       );
     });
 
-    test('Member (KS) can login, see dashboard, and create a claim', async ({ page }, testInfo) => {
+    test('Member (KS) prepares a dormant claim draft without creating a claim', async ({
+      page,
+    }, testInfo) => {
       const CLAIM_TITLE = getClaimTitle(testInfo);
-      // Debug: Listen to console logs
-      page.on('console', msg => console.log(`[Browser] ${msg.text()}`));
-
-      // 1. Login
       const memberUser = isMkProject(testInfo)
         ? { ...MEMBER_MK, tenant: 'tenant_mk' }
         : { ...MEMBER_KS, tenant: 'tenant_ks' };
       await loginAs(page, memberUser, testInfo);
 
-      // 2. Verify Dashboard (Member lands on /member)
       await expect(page).toHaveURL(/\/member/);
       await page.evaluate(() => {
         localStorage.clear();
@@ -117,7 +114,6 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
         document.cookie = 'cookie_consent=accepted; Path=/; SameSite=Lax';
       });
 
-      // 3. Wizard
       await gotoApp(page, routes.memberNewClaim(testInfo), testInfo, {
         marker: 'new-claim-page-ready',
       });
@@ -125,150 +121,52 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
       const bodyText = await page.textContent('body');
       expect(bodyText).not.toContain('MISSING_MESSAGE');
 
-      // 4. Create Claim
-      const categoryCard = page.getByTestId('category-vehicle').first();
-      const nextBtn = page.getByTestId('wizard-next').first();
-      const claimTitleInput = page.getByTestId('claim-title-input');
-      await categoryCard.scrollIntoViewIfNeeded();
-      await expect(categoryCard).toBeVisible();
+      const intake = page.locator('[data-testid="claim-draft-intake"]:visible').first();
+      const panel = intake.getByTestId('claim-draft-main-panel');
+      await expect(intake).toBeVisible();
+      await intake.getByTestId('claim-draft-category-vehicle').click();
+      await intake.getByTestId('claim-draft-category-continue').click();
+      await panel.locator('select').nth(0).selectOption('collision');
+      await panel.locator('input[type="date"]').fill('2026-07-20');
+      await panel.locator('input[type="text"]').fill('Test Company');
+      await panel.locator('select').nth(1).selectOption('repair');
+      await panel.locator('textarea').fill(CLAIM_TITLE);
+      await panel.locator('button').last().click();
 
-      // Retry-aware transition: if hydration/rerender swallows the first click, re-attempt
-      // until the details step is actually visible.
-      await expect(async () => {
-        const detailsVisible = await claimTitleInput.isVisible().catch(() => false);
-        if (!detailsVisible) {
-          await categoryCard.click();
-          await nextBtn.click();
-        }
-        await expect(claimTitleInput).toBeVisible({ timeout: 3000 });
-      }).toPass({ timeout: 20000 });
-
-      // Step 2: Details
-      await page.getByTestId('claim-title-input').fill(CLAIM_TITLE);
-      await page.getByTestId('claim-company-input').fill('Test Company');
-      await page.getByTestId('claim-date-input').fill('2024-01-01');
-      await page
-        .getByTestId('claim-description-input')
-        .fill('Smoke test automation description that is long enough');
-      await page.getByTestId('claim-amount-input').fill('100');
-
-      // Step 3: Evidence
-      const evidenceTitle = page.getByTestId('step-evidence-title');
-      await expect(async () => {
-        const evidenceVisible = await evidenceTitle.isVisible().catch(() => false);
-        if (!evidenceVisible) {
-          await page.getByTestId('wizard-next').first().click();
-        }
-        await expect(evidenceTitle).toBeVisible({ timeout: 3000 });
-      }).toPass({ timeout: 20000 });
-
-      await page.getByTestId('wizard-next').first().click();
-
-      // Step 4: Review & Submit
-      const submitButton = page.getByTestId('wizard-submit');
-      try {
-        await submitButton.waitFor({ state: 'visible', timeout: 5000 });
-        if (await submitButton.isEnabled()) {
-          await submitButton.click();
-        }
-      } catch {
-        // Wizard may have auto-submitted on some versions
-      }
-
-      // 5. Verify whichever post-submit contract is active for this environment
-      const successCard = page.getByTestId('claim-created-success').first();
-      const claimListLink = page.getByRole('link', { name: CLAIM_TITLE }).first();
-      const resolvePostSubmitState = async () => {
-        const pathname = new URL(page.url()).pathname;
-
-        if (await successCard.isVisible().catch(() => false)) {
-          return 'ui-v2-success';
-        }
-
-        if (
-          pathname.endsWith('/member/claims') &&
-          (await claimListLink.isVisible().catch(() => false))
-        ) {
-          return 'claims-list';
-        }
-
-        return 'pending';
-      };
-
-      await expect.poll(resolvePostSubmitState, { timeout: 30000 }).not.toBe('pending');
-      const postSubmitState = await resolvePostSubmitState();
-
-      if (postSubmitState === 'ui-v2-success') {
-        await expect
-          .poll(() => new URL(page.url()).pathname.endsWith('/member/claims/new'), {
-            timeout: 30000,
-          })
-          .toBe(true);
-
-        const createdClaimLink = page.getByTestId('claim-created-go-to-claim').first();
-        const createdClaimHref = await createdClaimLink.getAttribute('href');
-        expect(createdClaimHref).toBeTruthy();
-        const createdClaimPath = new URL(createdClaimHref!, 'http://localhost').pathname;
-        const createdClaimSegments = createdClaimPath.split('/').filter(Boolean);
-        expect(createdClaimSegments[createdClaimSegments.length - 2]).toBe('claims');
-        expect(createdClaimSegments[createdClaimSegments.length - 1]).not.toBe('new');
-
-        await createdClaimLink.click();
-
-        await expect
-          .poll(
-            () => {
-              const pathname = new URL(page.url()).pathname;
-              const claimSegments = pathname.split('/').filter(Boolean);
-              return (
-                claimSegments.length >= 4 &&
-                claimSegments[claimSegments.length - 2] === 'claims' &&
-                claimSegments[claimSegments.length - 1] !== 'new'
-              );
-            },
-            { timeout: 30000 }
-          )
-          .toBe(true);
-        await expect(page.getByRole('heading', { name: CLAIM_TITLE })).toBeVisible({
-          timeout: 10000,
-        });
-      } else {
-        await expect(page).toHaveURL(/\/member\/claims(?:\?.*)?$/, { timeout: 30000 });
-        await expect(claimListLink).toBeVisible({ timeout: 10000 });
-      }
+      const preview = intake.getByTestId('claim-draft-dormant-preview');
+      await expect(preview).toBeVisible();
+      await expect(preview).toContainText(CLAIM_TITLE);
+      await expect(intake.getByTestId('claim-draft-submit-disabled')).toBeDisabled();
+      await expect(page.getByTestId('claim-created-success')).toHaveCount(0);
     });
   });
 
   test.describe('Phase B: Administrative Visibility', () => {
-    test('Admin (KS) can find the newly created claim', async ({ page }, testInfo) => {
+    test('Admin (KS) cannot see the dormant draft as a claim', async ({ page }, testInfo) => {
       const CLAIM_TITLE = getClaimTitle(testInfo);
-      // Login Admin
       const adminUser = isMkProject(testInfo)
         ? { ...ADMIN_MK, tenant: 'tenant_mk' }
         : { ...ADMIN_KS, tenant: 'tenant_ks' };
       await loginAs(page, adminUser, testInfo);
 
-      // Navigate to claims list view explicitly to use filters
       await gotoApp(page, `${routes.adminClaims(testInfo)}?view=list`, testInfo, {
         marker: 'admin-claims-v2-ready',
       });
 
-      // Readiness Check: Wait for Admin V2 filters to load
-      await expect(page.getByTestId('admin-claims-v2-ready').first()).toBeVisible({
-        timeout: 15000,
-      });
+      const adminSurface = page.locator('[data-testid="admin-claims-v2-ready"]:visible').first();
+      await expect(adminSurface).toBeVisible({ timeout: 15000 });
 
-      // Scope to the active admin claims surface to avoid duplicate test id matches.
-      const searchInput = page
-        .getByTestId('admin-claims-v2-ready')
-        .getByTestId('claims-search-input')
-        .first();
+      const searchInput = adminSurface.getByTestId('claims-search-input').first();
       await searchInput.fill(CLAIM_TITLE);
-
-      // Verify at least one matching result is visible.
-      await expect(page.getByRole('heading', { name: CLAIM_TITLE }).first()).toBeVisible({
-        timeout: 15000,
-      });
+      await expect.poll(() => new URL(page.url()).searchParams.get('search')).toBe(CLAIM_TITLE);
+      await expect(searchInput).toHaveValue(CLAIM_TITLE);
+      await expect(adminSurface.getByTestId('admin-claims-filter-region').first()).toHaveAttribute(
+        'aria-busy',
+        'false'
+      );
+      await expect(adminSurface.getByRole('heading', { level: 3 }).first()).toBeVisible();
+      await expect(adminSurface.getByTestId('claim-operational-card')).toHaveCount(0);
+      await expect(adminSurface.getByRole('heading', { name: CLAIM_TITLE })).toHaveCount(0);
     });
   });
 

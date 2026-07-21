@@ -1,100 +1,63 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
-  claimWizardMock: vi.fn(
-    ({
-      initialCategory,
-      tenantId,
-      handoffContext,
-    }: {
-      initialCategory?: string;
-      tenantId?: string | null;
-      handoffContext?: unknown;
-    }) => (
-      <div data-testid="claim-wizard-props">
-        {JSON.stringify({
-          initialCategory,
-          tenantId,
-          handoffContext,
-        })}
-      </div>
-    )
-  ),
-  getSessionSafeMock: vi.fn(async () => ({
-    user: {
-      id: 'member-1',
-      tenantId: 'tenant-ks',
-    },
-  })),
-  hasActiveMembershipMock: vi.fn(async () => true),
-  ensureTenantIdMock: vi.fn(() => 'tenant-ks'),
-  redirectMock: vi.fn(),
+  intake: vi.fn((props: Record<string, unknown>) => (
+    <div data-testid="claim-draft-intake-props">{JSON.stringify(props)}</div>
+  )),
+  session: vi.fn(),
+  membership: vi.fn(),
+  ensureTenant: vi.fn(() => 'tenant-ks'),
+  messages: vi.fn(async () => ({ freeStart: { marker: 'page-scoped' } })),
+  translations: vi.fn(async () => (key: string) => key),
+  redirect: vi.fn(() => {
+    throw new Error('NEXT_REDIRECT');
+  }),
 }));
 
 vi.mock('next-intl/server', () => ({
-  getTranslations: vi.fn(async () => (key: string) => key),
+  getTranslations: hoisted.translations,
 }));
-
-vi.mock('next/navigation', () => ({
-  redirect: hoisted.redirectMock,
+vi.mock('next/navigation', () => ({ redirect: hoisted.redirect }));
+vi.mock('@/components/claims/claim-draft-intake', () => ({
+  ClaimDraftIntake: (props: Record<string, unknown>) => hoisted.intake(props),
 }));
-
 vi.mock('@/components/claims/claim-wizard', () => ({
-  ClaimWizard: (props: Parameters<typeof hoisted.claimWizardMock>[0]) =>
-    hoisted.claimWizardMock(props),
+  ClaimWizard: () => <div data-testid="forbidden-claim-wizard" />,
 }));
-
-vi.mock('@/components/shell/session', () => ({
-  getSessionSafe: hoisted.getSessionSafeMock,
-}));
-
+vi.mock('@/components/shell/session', () => ({ getSessionSafe: hoisted.session }));
+vi.mock('@/i18n/messages', () => ({ loadMessagesForNamespaces: hoisted.messages }));
 vi.mock('@interdomestik/domain-membership-billing/subscription', () => ({
-  hasActiveMembership: hoisted.hasActiveMembershipMock,
+  hasActiveMembership: hoisted.membership,
 }));
-
-vi.mock('@interdomestik/shared-auth', () => ({
-  ensureTenantId: hoisted.ensureTenantIdMock,
-}));
-
+vi.mock('@interdomestik/shared-auth', () => ({ ensureTenantId: hoisted.ensureTenant }));
 vi.mock('@interdomestik/ui', () => ({
   Button: ({ children }: { children: React.ReactNode }) => <button>{children}</button>,
 }));
-
 vi.mock('@/i18n/routing', () => ({
-  Link: ({ children, href = '#' }: { children: React.ReactNode; href?: string }) => {
-    const localizedHref =
-      typeof href === 'string' && href.startsWith('/') ? `/en${href}` : String(href);
-
-    return <a href={localizedHref}>{children}</a>;
-  },
-}));
-
-vi.mock('next/link', () => ({
-  default: ({ children, href = '#' }: { children: React.ReactNode; href?: string }) => (
-    <a href={href}>{children}</a>
+  Link: ({ children, href = '#' }: { children: React.ReactNode; href?: string }) => (
+    <a href={typeof href === 'string' && href.startsWith('/') ? `/en${href}` : href}>{children}</a>
   ),
 }));
 
 import NewClaimPage from './page';
 import { resolveClaimStartHandoff } from './_core.entry';
 
-describe('NewClaimPage diaspora claim handoff', () => {
-  it('parses diaspora handoff params into normalized claim-start context', () => {
+describe('NewClaimPage dormant draft intake', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    hoisted.session.mockResolvedValue({ user: { id: 'member-1', tenantId: 'tenant-ks' } });
+    hoisted.membership.mockResolvedValue(true);
+  });
+
+  it('normalizes the accepted diaspora handoff only', () => {
     expect(
       resolveClaimStartHandoff({
         source: 'diaspora-green-card',
         country: 'IT',
         incidentLocation: 'abroad',
       })
-    ).toEqual({
-      source: 'diaspora-green-card',
-      country: 'IT',
-      incidentLocation: 'abroad',
-    });
-  });
-
-  it('ignores incomplete or invalid diaspora handoff params', () => {
+    ).toEqual({ source: 'diaspora-green-card', country: 'IT', incidentLocation: 'abroad' });
     expect(
       resolveClaimStartHandoff({
         source: 'diaspora-green-card',
@@ -104,47 +67,55 @@ describe('NewClaimPage diaspora claim handoff', () => {
     ).toBeNull();
   });
 
-  it('passes the normalized handoff context into ClaimWizard', async () => {
+  it('preserves route context and renders no ClaimWizard for an active member', async () => {
+    const handoffContext = {
+      source: 'diaspora-green-card',
+      country: 'IT',
+      incidentLocation: 'abroad',
+    } as const;
     const tree = await NewClaimPage({
       params: Promise.resolve({ locale: 'en' }),
-      searchParams: Promise.resolve({
-        category: 'travel',
-        source: 'diaspora-green-card',
-        country: 'IT',
-        incidentLocation: 'abroad',
-      }),
+      searchParams: Promise.resolve({ category: 'travel', ...handoffContext }),
     });
-
     render(tree);
-
-    expect(hoisted.getSessionSafeMock).toHaveBeenCalledWith('MemberNewClaimPage');
-    expect(hoisted.claimWizardMock).toHaveBeenCalledWith({
+    expect(hoisted.session).toHaveBeenCalledWith('MemberNewClaimPage');
+    expect(hoisted.translations).toHaveBeenCalledWith({ locale: 'en', namespace: 'claims' });
+    expect(hoisted.membership).toHaveBeenCalledWith('member-1', 'tenant-ks');
+    expect(hoisted.intake).toHaveBeenCalledWith({
+      freeStartMessages: { freeStart: { marker: 'page-scoped' } },
+      handoffContext,
       initialCategory: 'travel',
+      locale: 'en',
       tenantId: 'tenant-ks',
-      handoffContext: {
-        source: 'diaspora-green-card',
-        country: 'IT',
-        incidentLocation: 'abroad',
-      },
     });
     expect(screen.getByTestId('new-claim-page-ready')).toBeInTheDocument();
-    expect(screen.getByTestId('claim-wizard-props')).toBeInTheDocument();
+    expect(screen.queryByTestId('forbidden-claim-wizard')).not.toBeInTheDocument();
   });
 
-  it('routes inactive members to the localized pricing page', async () => {
-    hoisted.hasActiveMembershipMock.mockResolvedValueOnce(false);
+  it('preserves the unauthenticated redirect', async () => {
+    hoisted.session.mockResolvedValueOnce(null);
+    await expect(
+      NewClaimPage({
+        params: Promise.resolve({ locale: 'en' }),
+        searchParams: Promise.resolve({}),
+      })
+    ).rejects.toThrow('NEXT_REDIRECT');
+    expect(hoisted.redirect).toHaveBeenCalledWith('/en/login');
+  });
 
+  it('preserves the active-membership gate and localized pricing link', async () => {
+    hoisted.membership.mockResolvedValueOnce(false);
     const tree = await NewClaimPage({
       params: Promise.resolve({ locale: 'en' }),
       searchParams: Promise.resolve({}),
     });
-
     render(tree);
-
     expect(screen.getByTestId('new-claim-page-ready')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'gate.view_plans' })).toHaveAttribute(
       'href',
       '/en/pricing'
     );
+    expect(hoisted.intake).not.toHaveBeenCalled();
+    expect(hoisted.messages).not.toHaveBeenCalled();
   });
 });

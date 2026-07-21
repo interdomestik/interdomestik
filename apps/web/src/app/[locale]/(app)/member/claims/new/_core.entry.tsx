@@ -1,5 +1,6 @@
-import { ClaimWizard } from '@/components/claims/claim-wizard';
+import { ClaimDraftIntake } from '@/components/claims/claim-draft-intake';
 import { getSessionSafe } from '@/components/shell/session';
+import { loadMessagesForNamespaces } from '@/i18n/messages';
 import { Link } from '@/i18n/routing';
 import { hasActiveMembership } from '@interdomestik/domain-membership-billing/subscription';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -62,7 +63,7 @@ type Props = {
 
 export default async function NewClaimPage({ params, searchParams }: Props) {
   const { locale } = await params;
-  const t = await getTranslations('claims');
+  const t = await getTranslations({ locale, namespace: 'claims' });
   const query = await searchParams;
   const preselectedCategory = query.category;
   const handoffContext = resolveClaimStartHandoff(query);
@@ -100,6 +101,8 @@ export default async function NewClaimPage({ params, searchParams }: Props) {
     );
   }
 
+  const freeStartMessages = await loadMessagesForNamespaces(locale, ['freeStart']);
+
   return (
     <div className="flex flex-col h-full" data-testid="new-claim-page-ready">
       <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -108,7 +111,9 @@ export default async function NewClaimPage({ params, searchParams }: Props) {
         </div>
       </div>
       <div className="flex-1 p-6">
-        <ClaimWizard
+        <ClaimDraftIntake
+          freeStartMessages={freeStartMessages}
+          locale={locale}
           initialCategory={preselectedCategory}
           tenantId={tenantId}
           handoffContext={handoffContext}
