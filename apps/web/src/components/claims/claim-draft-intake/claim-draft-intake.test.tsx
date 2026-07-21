@@ -105,7 +105,7 @@ describe('ClaimDraftIntake', () => {
     expect(screen.getByRole('heading', { name: claimCopy.heading })).toBeVisible();
     expect(screen.getByText(claimCopy.truth)).toBeVisible();
     const accountContext = await screen.findByTestId('claim-draft-account-context');
-    expect(accountContext).toHaveTextContent('accountContext');
+    expect(screen.getByText('accountContext', { selector: 'output' })).toBe(accountContext);
     expect(screen.getByTestId('claim-draft-category-injury')).toBeDisabled();
     fireEvent.click(screen.getByTestId('claim-draft-category-vehicle'));
     fireEvent.click(screen.getByRole('button', { name: 'Continue to details' }));

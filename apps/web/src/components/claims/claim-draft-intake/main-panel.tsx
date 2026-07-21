@@ -66,13 +66,12 @@ export function ClaimDraftMainPanel(props: Props) {
       className="space-y-6 rounded-3xl border border-[#001a33]/15 bg-[#fffdf9] p-5 sm:p-7"
     >
       {showAccountContext ? (
-        <p
-          role="status"
+        <output
           data-testid="claim-draft-account-context"
-          className="rounded-xl border border-amber-300 bg-amber-50 p-3 font-semibold text-amber-950"
+          className="block rounded-xl border border-amber-300 bg-amber-50 p-3 font-semibold text-amber-950"
         >
           {accountContext}
-        </p>
+        </output>
       ) : null}
       <div className="space-y-2">
         <h3
