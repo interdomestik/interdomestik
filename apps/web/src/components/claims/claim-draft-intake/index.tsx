@@ -20,7 +20,6 @@ type HandoffContext = Readonly<{
   country: 'DE' | 'CH' | 'AT' | 'IT';
   incidentLocation: 'abroad';
 }>;
-
 type Props = Readonly<{
   freeStartMessages: AbstractIntlMessages;
   handoffContext?: HandoffContext | null;
@@ -54,6 +53,7 @@ function ClaimDraftIntakeBody({
 }: BodyProps) {
   const tFree = useTranslations('freeStart');
   const flow = useOrganizerFlow(supportedCategory(initialCategory));
+  const isUnsupportedTravel = initialCategory === 'travel';
   const lifecycle = useDraftLifecycle({
     category: flow.selectedCategory,
     draft: flow.draft,
@@ -82,6 +82,7 @@ function ClaimDraftIntakeBody({
       <div className="rounded-2xl border border-[#006f72]/30 bg-[#eaf5f2] p-4 text-sm font-semibold leading-6 text-[#173b43]">
         {copy.truth}
       </div>
+      {isUnsupportedTravel && <p data-testid="claim-draft-travel">{copy.unsupported}</p>}
       {handoffContext ? (
         <aside
           data-testid="claim-wizard-handoff"

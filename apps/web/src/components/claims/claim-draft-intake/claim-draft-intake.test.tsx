@@ -94,8 +94,9 @@ function enter(label: string, value: string) {
 describe('ClaimDraftIntake', () => {
   it('keeps secure save visible on the configured custom IDA host', async () => {
     // prettier-ignore
-    const props = { freeStartMessages: {}, locale: 'en', neutralOtpHost: location.host, tenantId: 'tenant_ks' };
+    const props = { freeStartMessages: {}, initialCategory: 'travel', locale: 'en', neutralOtpHost: location.host, tenantId: 'tenant_ks' };
     render(<ClaimDraftIntake {...props} />);
+    expect(screen.getByTestId('claim-draft-travel')).toHaveTextContent(claimCopy.unsupported);
     await waitFor(() => expect(screen.getByTestId('free-start-save-open')).toBeVisible());
     expect(screen.getByTestId('free-start-manage-open')).toBeVisible();
   });
