@@ -44,7 +44,8 @@ async function freshLogin(page: Page, origin: string, loginPath: string) {
 
 function resolveIdaTarget(testInfo: TestInfo) {
   const locale = routes.getLocale(testInfo);
-  const authority = process.env.IDA_HOST?.trim() || 'ida.127.0.0.1.nip.io:3000';
+  const configured = process.env.IDA_HOST?.trim() || 'ida.127.0.0.1.nip.io:3000';
+  const authority = new URL(configured.includes('://') ? configured : `http://${configured}`).host;
   const baseURL = `http://${authority}/${locale}`;
   return {
     origin: new URL(baseURL).origin,
