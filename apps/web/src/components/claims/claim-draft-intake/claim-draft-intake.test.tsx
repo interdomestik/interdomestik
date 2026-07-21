@@ -104,8 +104,6 @@ describe('ClaimDraftIntake', () => {
     render(<ClaimDraftIntake freeStartMessages={{}} locale="en" tenantId="tenant_ks" />);
     expect(screen.getByRole('heading', { name: claimCopy.heading })).toBeVisible();
     expect(screen.getByText(claimCopy.truth)).toBeVisible();
-    const accountContext = await screen.findByTestId('claim-draft-account-context');
-    expect(screen.getByText('accountContext', { selector: 'output' })).toBe(accountContext);
     expect(screen.getByTestId('claim-draft-category-injury')).toBeDisabled();
     fireEvent.click(screen.getByTestId('claim-draft-category-vehicle'));
     fireEvent.click(screen.getByRole('button', { name: 'Continue to details' }));
@@ -115,6 +113,7 @@ describe('ClaimDraftIntake', () => {
     enter('details.desiredOutcome', 'repair');
     enter('details.summary', 'Prepared facts.');
     fireEvent.click(screen.getByRole('button', { name: 'details.continue' }));
+    expect(await screen.findByTestId('claim-draft-account-context')).toBeVisible();
     const submit = screen.getByRole('button', { name: claimCopy.submitDisabled });
     expect(submit).toBeDisabled();
     expect(submit).toHaveAccessibleDescription(claimCopy.submitExplanation);

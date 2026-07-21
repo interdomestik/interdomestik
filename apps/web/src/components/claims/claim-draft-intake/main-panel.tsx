@@ -37,10 +37,19 @@ export function ClaimDraftMainPanel(props: Props) {
     tFree.raw('secureSaveReviewCopy')
   ).accountContext;
   useEffect(() => setShowAccountContext(!isNeutralHost(neutralOtpHost)), [neutralOtpHost]);
+  const accountContextNotice = showAccountContext ? (
+    <output
+      data-testid="claim-draft-account-context"
+      className="block rounded-xl border border-amber-300 bg-amber-50 p-3 font-semibold text-amber-950"
+    >
+      {accountContext}
+    </output>
+  ) : null;
 
   if (flow.step === 'preview' || flow.step === 'complete') {
     return (
       <div className="space-y-4">
+        {accountContextNotice}
         <DormantPreview
           copy={copy}
           draft={flow.draft}
@@ -65,14 +74,7 @@ export function ClaimDraftMainPanel(props: Props) {
       data-testid="claim-draft-main-panel"
       className="space-y-6 rounded-3xl border border-[#001a33]/15 bg-[#fffdf9] p-5 sm:p-7"
     >
-      {showAccountContext ? (
-        <output
-          data-testid="claim-draft-account-context"
-          className="block rounded-xl border border-amber-300 bg-amber-50 p-3 font-semibold text-amber-950"
-        >
-          {accountContext}
-        </output>
-      ) : null}
+      {accountContextNotice}
       <div className="space-y-2">
         <h3
           ref={flow.stageHeadingRef}
