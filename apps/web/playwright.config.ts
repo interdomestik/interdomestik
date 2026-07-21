@@ -42,7 +42,6 @@ const GATE_SECURITY_MATCH = [
 ];
 const PILOT_MATRIX_MATCH_GUARD = '/pilot/';
 const RUNNING_PILOT_MATRIX = process.argv.some(arg => arg.includes(PILOT_MATRIX_MATCH_GUARD));
-const GATE_KS_PILOT_MATCH = ['pilot/scenario-01-ks-e2e.spec.ts'];
 const GATE_MK_PILOT_MATCH = [
   'pilot/c2-02-cross-tenant-artifact-isolation.spec.ts',
   'pilot/c2-03-cross-tenant-write-isolation.spec.ts',
@@ -56,9 +55,7 @@ const GATE_MK_CONTRACT_MATCH = [
 ];
 const GATE_AL_PILOT_MATCH = ['pilot/c2-03-cross-tenant-write-isolation.spec.ts'];
 
-const GATE_KS_TEST_MATCH = RUNNING_PILOT_MATRIX
-  ? [...GATE_DEFAULT_MATCH, ...GATE_SECURITY_MATCH, ...GATE_KS_PILOT_MATCH]
-  : [...GATE_DEFAULT_MATCH, ...GATE_SECURITY_MATCH];
+const GATE_KS_TEST_MATCH = [...GATE_DEFAULT_MATCH, ...GATE_SECURITY_MATCH];
 const GATE_MK_TEST_MATCH = RUNNING_PILOT_MATRIX
   ? [...GATE_DEFAULT_MATCH, ...GATE_SECURITY_MATCH, ...GATE_MK_PILOT_MATCH]
   : [...GATE_DEFAULT_MATCH, ...GATE_SECURITY_MATCH];

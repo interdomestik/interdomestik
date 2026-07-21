@@ -14,12 +14,6 @@ describe('commercial write-path retirement', () => {
     expect(
       readSource('app/[locale]/components/home/free-start-intake-shell/use-organizer-submit.ts')
     ).toContain("from '@/actions/free-start.core'");
-    expect(readSource('components/claims/claim-wizard.tsx')).toContain(
-      "from '@/actions/claims.core'"
-    );
-    expect(readSource('components/dashboard/claims/claim-wizard.tsx')).toContain(
-      "from '@/actions/claims.core'"
-    );
     expect(
       readSource('components/staff/claim-action-panel/use-claim-action-panel-handlers.ts')
     ).toContain("from '@/actions/staff-claims.core'");
@@ -42,6 +36,10 @@ describe('commercial write-path retirement', () => {
     expect(existsSync(path.join(SRC_ROOT, 'actions/staff-claims.ts'))).toBe(false);
     expect(existsSync(path.join(SRC_ROOT, 'actions/subscription.ts'))).toBe(false);
     expect(existsSync(path.join(SRC_ROOT, 'actions/memberships.ts'))).toBe(false);
+    expect(existsSync(path.join(SRC_ROOT, 'components/claims/claim-wizard.tsx'))).toBe(false);
+    expect(existsSync(path.join(SRC_ROOT, 'components/dashboard/claims/claim-wizard.tsx'))).toBe(
+      false
+    );
 
     expect(readSource('actions/claims.ts')).not.toContain('submitClaim');
   });

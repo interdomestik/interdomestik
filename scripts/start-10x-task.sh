@@ -795,7 +795,6 @@ detect_related_files() {
     
     if [[ "$TASK_LOWER" == *"wizard"* ]]; then
         RELATED_FILES="$RELATED_FILES
-- apps/web/src/components/claims/claim-wizard.tsx
 - apps/web/src/components/claims/wizard-*.tsx
 - apps/web/src/lib/validators/claims.ts"
     fi
