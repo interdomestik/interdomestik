@@ -1326,8 +1326,8 @@ grants no Drizzle resolution/chunk, pg-proxy/dialect/callback, pending-selection
 database, migration-execution, provider, frozen/default-state, rollout or deployment
 authority.
 
-Rev 145 current authority promotes exactly one next active governed implementation
-goal, `IDA-UI03a2-P0a1a0b`, under accepted gate `IDA-DG19-A2a1a0b` at
+Rev 145 current authority promoted exactly one governed implementation goal,
+`IDA-UI03a2-P0a1a0b`, under accepted gate `IDA-DG19-A2a1a0b` at
 `docs/plans/2026-07-20-ida-dg19-a2a1a0b-ui03a2-p0a1a0b-callback-plan-binding.md`.
 The canonical gate is exactly 25,404 UTF-8 bytes at SHA-256
 `a5ffbb84f90b9c58bd840e7b171f5bc19506b4adb91beb46fe37029c84ec5c54`, bound to
@@ -1336,27 +1336,27 @@ same-hash architecture and contracts/security review without blockers. Sonnet's
 no-output route and unavailable/unverified Fable remain NON-PASS. Brain measurement
 was blocked or missed and remains advisory only.
 
-The next active governed implementation goal is exactly one canonical tracker slice:
-`IDA-UI03a2-P0a1a0b`. It may later accept only the authentic P0a1a0a corpus
+Rev 145 promoted exactly one canonical tracker slice: `IDA-UI03a2-P0a1a0b`. It
+could later accept only the authentic P0a1a0a corpus
 capability and bind the exact Drizzle 0.45.2 generic reader, pg-proxy migrator and
 `PgDialect` sources; derive exactly 93 migrations, 750 chunks and one flat 843-item
 full-corpus callback list; bind domain digest `f4486654…`; return an opaque no-export
 WeakMap plan capability; repeat the authentic corpus scan after the reader; and
-retain the honest non-atomic/local-writer residual. The accepted ceiling is six
+retain the honest non-atomic/local-writer residual. The accepted ceiling was six
 production files, five new tests plus one no-growth existing test, exactly 1,628
 allocated lines, every new file below 150 physical lines and three engineering days.
 
-This docs-only promotion keeps `runtime_authorized:false` and authorizes no source,
+This docs-only promotion kept `runtime_authorized:false` and authorized no source,
 test, runtime, live/default/frozen/provider database, network, migration execution or
-deployment work. Runtime remains held until this promotion merges, canonical-main and
+deployment work. Runtime remained held until this promotion merged, canonical-main and
 dedicated-worktree resolvers select only `IDA-UI03a2-P0a1a0b`, AI OS is freshly
 observed and a separate exact orchestrator runtime-authority receipt is recorded.
-P0a1a1 remains the only later slice for live database-state pending selection,
-callback equality and execution. P0a2, frozen P0 and parent UI03a2 remain blocked or
+P0a1a1 remained the only later slice for live database-state pending selection,
+callback equality and execution. P0a2, frozen P0 and parent UI03a2 remained blocked or
 unpromoted. No current migration or journal mutation, `src/migrate.ts`, workflow,
 Docker/compose, role/ACL/membership, seed/fixture, proxy/route/auth/session/OTP/
 tenancy/RLS, UI, billing, rollout, production alias or deployment change is
-authorized; automatic CD must be cancelled before deploy.
+authorized; automatic CD had to be cancelled before deploy.
 
 Rev 146 closeout supersedes only the active-status, runtime-authorization and future-
 implementation statements in Rev 145. PR `#1391` completed
@@ -1514,8 +1514,8 @@ fresh current-authority/design gate selects exactly one next governed action.
 `IDA-UI03a2-P0a1a1b`, P0a2, frozen P0 and parent UI03a2 remain blocked or
 unpromoted and gain no authority from this closeout.
 
-Rev 149 current authority promotes exactly one next active governed implementation
-goal, `IDA-UI03a3`, under accepted UI/UX gate `IDA-DG20` at
+Rev 149 current authority promoted exactly one governed implementation goal,
+`IDA-UI03a3`, under accepted UI/UX gate `IDA-DG20` at
 `docs/plans/2026-07-20-ida-dg20-ui03a3-claim-draft-intake-design-gate.json`.
 The canonical gate is byte-identical to the accepted external packet: exactly
 35,370 UTF-8 bytes at SHA-256
@@ -1526,30 +1526,30 @@ that exact path, byte count, hash, gate and sole slice in orchestrator task
 passed the UI/UX governance checker with four operators, two accounted blocked
 source classes and no conditions.
 
-The next active governed implementation goal is exactly one canonical tracker
-slice: `IDA-UI03a3`. The accepted outcome is limited to an active member on the
-existing canonical neutral IDA host whose access tenant equals the configured
-default public tenant. It may compose the existing owner-scoped
+Rev 149 promoted exactly one canonical tracker slice: `IDA-UI03a3`. The accepted
+outcome was limited to an active member on the
+existing canonical neutral IDA host whose access tenant equalled the configured
+default public tenant. It could compose the existing owner-scoped
 `free_start_drafts` create/list/resume/update/delete lifecycle at the existing
-`/member/claims/new` route for vehicle/property preparation only. Submission must
-remain disabled, inert and truthfully labeled. It may create no claim row, claim
+`/member/claims/new` route for vehicle/property preparation only. Submission had to
+remain disabled, inert and truthfully labeled. The promotion authorized no claim row, claim
 number, counter, lifecycle/event/audit as a claim, document, upload, AI run,
 notification, provider call, payment, callback, migration or deployment behavior.
 
-The accepted P00 stop gate is binding. Before product edits, a separately
-authorized future implementation task must prove that the exact pilot host/account
-can use the existing free-start action boundary unchanged. If that proof needs any
+The accepted P00 stop gate was binding. Before product edits, the separately
+authorized implementation task had to prove that the exact pilot host/account
+could use the existing free-start action boundary unchanged. If that proof needed any
 proxy, route, auth, session, OTP, host evaluation, shared-auth, tenancy, schema,
-migration, RLS, grant or policy change, `IDA-UI03a3` stops as infeasible and returns
-to current authority. General tenant-host support is not authorized by this gate.
-The exact future ceiling is eight production/config files, four test/spec files,
+migration, RLS, grant or policy change, `IDA-UI03a3` would stop as infeasible and
+return to current authority. General tenant-host support was not authorized by this
+gate. The exact future ceiling was eight production/config files, four test/spec files,
 2.5 engineering days and one visible outcome; every new code file remains below
 150 lines.
 
-This docs-only Tier 0 promotion keeps `runtime_authorized:false`. Prospective
-implementation is Tier 3 because it exposes persistent owner-scoped incident facts,
-and it may not begin from this promotion. A separate exact runtime-authority request
-must be accepted after canonical promotion and satisfaction of the P00 feasibility
+This docs-only Tier 0 promotion kept `runtime_authorized:false`. Prospective
+implementation was Tier 3 because it exposed persistent owner-scoped incident facts,
+and it could not begin from this promotion. A separate exact runtime-authority request
+had to be accepted after canonical promotion and satisfaction of the P00 feasibility
 requirements. Promotion-time AI OS observation
 `3fd953688ffa444aaf3e5747758c43e3ef28bc367ebb0d1d3372418e547d1605`
 remains advisory. Brain returned an oversized approximately 263,392-token context,
@@ -1557,12 +1557,92 @@ was not used as authority and required narrow repository recovery reads; no Brai
 ROI, authority-correctness or human-usefulness claim is made.
 
 No implementation, source, test, runtime, browser, database, provider, callback,
-deployment, CD, production-alias or successor work is authorized by this promotion.
+deployment, CD, production-alias or successor work was authorized by this promotion.
 `apps/web/src/proxy.ts`, canonical routes and clarity markers, auth/session/OTP,
 tenancy, schema/migrations/RLS, claim creation/numbering/events, billing/Paddle,
 uploads/documents, AI, notifications and every unlisted surface remain unchanged.
 `IDA-UI03a2-P0a1a1b`, P0a2, frozen P0, parent UI03a2 and `IDA-UI03b` remain blocked
 or unpromoted and gain no authority from Rev 149.
+
+Rev 150 closeout: `IDA-UI03a3` completed through implementation PR `#1400`
+from final head `b46608b9d5aba4b9091706497ab7347ed7110fc8` and squash merge
+`4d53593b87f401403803ff9e3e33696877d8e8fb`. The implementation remained
+bound to canonical gate `IDA-DG20`, exactly 35,370 UTF-8 bytes at SHA-256
+`0476298bb60e59cd5bc0f6f57ff4b6a1c0702f8b1d2095e3d9baa1064924c7a4`,
+and the accepted 24,863-byte exact runtime-authority request at SHA-256
+`204bb5949a8b882fd142c54ff824a2d4043cbe62cb9723f103822c8ff9229a8a`.
+P00 passed first for `ida.127.0.0.1.nip.io:3000`, `E2E_USERS.KS_MEMBER` and
+access/default tenant `tenant_ks` without proxy, route, auth, shared-auth,
+session, host-evaluation, tenancy, schema, migration or RLS change.
+
+The exact authorized-base patch from
+`d763638e0b808265499e7e83c67505661a383259` is 101,829 bytes at SHA-256
+`947d8fd506bec923f78bc1c8165cd61c442d4832b52cd8a63ab6940dedf1804d`:
+23 files, 1,122 insertions and 606 deletions. It comprises the accepted dormant
+claim-draft intake and six-fact organizer, existing protected draft lifecycle,
+four locale message files, bounded component/route/boundary and browser proof,
+the consolidated retirement of obsolete live-claim expectations in six existing
+E2E contracts, the accepted custom `IDA_HOST` read-only forwarding, the two-file
+OTP focus/watcher stabilization, exact `brace-expansion` 5.0.7 security override
+and lockfile entries, and deterministic repository-size metadata. The successive
+test-contract, metadata, dependency-security, lockfile-restore, custom-host and
+full-E2E stabilization dispositions governed those mechanical additions without
+expanding product behavior.
+
+The merged member route now supports vehicle/property category selection, six
+preparation facts, optional protected save, same-account fresh-browser-context
+resume, dormant preview and permanent draft deletion. Personal injury remains
+unavailable. Submission is a native disabled button with no submit action or
+handler and no success state. The unique dormant draft content is absent from
+admin claims. No claim row, number, counter, event, notification, document,
+upload, provider/API callback, payment, migration or deployment behavior was
+created or invoked.
+
+Final focused proof passed 22/22 component/route/boundary tests and the exact
+stabilization spec 6/6 across three `gate-ks-sq` plus three `gate-mk-contract`
+runs with zero retries. `pnpm pr:verify:hosts` passed with 85.13% coverage,
+207 integrated E2E passes and 9 expected skips; final smoke passed 13 with 11
+project/policy skips. `pnpm security:guard`, repository-size tracked and normal
+sync checks, modularity, formatting, lint, type, production build and explicit
+E2E gates passed. Current-head PR CI, unit, static, Full E2E, Pilot Gate, Sonar,
+CodeQL, gitleaks, dependency review, Semgrep, OSV, pnpm-audit and
+`pr-finalizer` were green before merge.
+
+Exact-current Codex 5.6 Sol Ultra review passed after the asynchronous Playwright
+watcher was made synchronous through the public `existingResponse()` boundary.
+The fresh current-head Codex PR review's sole P2 was proven a false positive from
+the isolated `tenant_ks` fixture and resolved; all review threads were closed.
+The repo-owned Copilot reviewer route was requested repeatedly but GitHub produced
+no request, review, comment or run receipt within the bounded wait. That missing
+feedback is recorded as unavailable rather than approval; Arben explicitly directed
+merge after all required current-head checks were green. PR-specific Sonar passed.
+
+Post-merge main CI run `29842351057` passed validation, static, unit/coverage,
+audit, AI-eval and E2E-gate on the exact merge. Secret Scan run `29842350974`
+and CodeQL runs `29842349345` and `29842349506` also passed. Sonar Main Gate
+run `29842350828` is NON-PASS only because the rolling new-code window still counts
+pre-existing issue `AZ-ACoVO5G2i53uX0BTV` / `githubactions:S8544` at untouched
+`.github/workflows/pr-deterministic-backstops.yml:88`, introduced by
+`29397f184b`; the slice changed no `.github`, Docker or workflow surface and its
+PR-specific Sonar analysis passed. Automatic CD run `29842351114` was cancelled
+while `build-staging` was still in its setup step; every later staging,
+production-evidence, production-build, deployment and verification job was cancelled
+with zero steps. No deployment completed and no alias change occurred.
+
+Brain P00 session `sess_2026-07-20T17-56-13-796Z_IDA-UI03a3-P00` closed with
+`humanUseful:null`, `humanUsefulSource:"unknown"`, `brainAuthorityCorrect:false`, recovery search
+used and evidence criteria not passed: it returned only generic `AGENTS.md` spans,
+not the exact runtime-authority or P00 evidence. The product result came from repo,
+browser and CI evidence. The row is excluded from usefulness comparison pending a
+human label; no Brain usefulness or ROI claim is made.
+
+`IDA-UI03a3` is complete and its exact runtime authority is consumed. No replacement
+implementation slice is promoted. The expected resolver state after this closeout is
+`blocked_requires_current_authority`, `activeSlice=null`; ClaimWizard Retirement /
+Legacy Claim Contract Cleanup is only the recommended next design-discovery target
+and requires a separate exact gate, canonical promotion and runtime authority.
+`IDA-UI03a2-P0a1a1b`, P0a2, frozen P0, parent UI03a2, `IDA-UI03b` and every other
+successor remain blocked or unpromoted and gain no authority from this closeout.
 
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
