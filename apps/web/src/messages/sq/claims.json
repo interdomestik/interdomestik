@@ -3,6 +3,7 @@
     "title": "Paneli i Kërkesave të Mia",
     "description": "Ndiq rrjedhën e verifikimit dhe vendimet për kërkesat e tua.",
     "new": "Kërkesë e Re për Dëmshpërblim",
+    "draftIntakeCopy": "{\"heading\":\"Përgatitni skicën e kërkesës suaj\",\"supporting\":\"Ruani faktet që keni tani dhe kthehuni më vonë.\",\"truth\":\"Vetëm skicë — kjo nuk krijon ose dorëzon një kërkesë, nuk cakton një rast, nuk njofton ekipin dhe nuk nis shqyrtimin.\",\"categoryHeading\":\"Zgjidhni çfarë ndodhi\",\"categoryBody\":\"Përgatitja për automjet dhe pronë është e disponueshme. Dëmtimi personal nuk është i disponueshëm në këtë skicë.\",\"categoryContinue\":\"Vazhdoni te hollësitë\",\"unsupported\":\"Nuk disponohet në këtë skicë\",\"previewHeading\":\"Shqyrtoni faktet e përgatitura\",\"previewBody\":\"Ruajini qartësisht kur këto fakte të jenë gati.\",\"backToDetails\":\"Kthehu te hollësitë\",\"submitDisabled\":\"Dorëzo kërkesën — ende e padisponueshme\",\"submitExplanation\":\"Dorëzimi do të aktivizohet vetëm pasi të jenë gati kontrollet e sigurisë së kërkesës.\"}",
     "empty": {
       "title": "Nuk ka kërkesa aktive",
       "description": "Nuk keni paraqitur ende asnjë kërkesë. Nisni një rast të ri.",
@@ -104,7 +105,6 @@
       "submit_success": "Rasti u dërgua dhe u ruajt. Mund ta ndiqni nga paneli.",
       "submit_failed": "Dërgimi nuk mund të përfundohej. Provoni përsëri ose kontaktoni mbështetjen.",
       "submit_unexpected": "Ndodhi diçka e papritur. Provoni edhe një herë ose kontaktoni mbështetjen.",
-      "submitClaim": "Dërgo Kërkesën për Dëmshpërblim",
       "help": {
         "title": "Ke nevojë për ndihmë?",
         "call_60s": "Merr ndihmë tani (60 sek)",

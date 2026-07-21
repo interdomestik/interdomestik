@@ -3,6 +3,7 @@
     "title": "Moji Zahtevi",
     "description": "Upravljajte svojim zahtevima za odštetu i pratite njihov status.",
     "new": "Novi Zahtev",
+    "draftIntakeCopy": "{\"heading\":\"Pripremite nacrt zahteva\",\"supporting\":\"Sačuvajte činjenice koje sada imate i vratite se kasnije.\",\"truth\":\"Samo nacrt — ovo ne kreira niti podnosi zahtev, ne dodeljuje predmet, ne obaveštava tim i ne pokreće pregled.\",\"categoryHeading\":\"Izaberite šta se dogodilo\",\"categoryBody\":\"Dostupna je priprema za vozilo i imovinu. Telesna povreda nije dostupna u ovom nacrtu.\",\"categoryContinue\":\"Nastavite na detalje\",\"unsupported\":\"Nije dostupno u ovom nacrtu\",\"previewHeading\":\"Pregledajte pripremljene činjenice\",\"previewBody\":\"Izričito sačuvajte kada su ove činjenice spremne.\",\"backToDetails\":\"Nazad na detalje\",\"submitDisabled\":\"Podnesi zahtev — još nije dostupno\",\"submitExplanation\":\"Podnošenje će biti omogućeno tek kada provere bezbednosti zahteva budu spremne.\"}",
     "empty": {
       "title": "Nema pronađenih zahteva",
       "description": "Još uvek niste podneli zahtev. Započnite kreiranjem vašeg prvog zahteva.",
@@ -104,7 +105,6 @@
       "submit_success": "Slučaj je podnet i sačuvan. Možete ga pratiti sa kontrolne table.",
       "submit_failed": "Podnošenje nije moglo da se završi. Pokušajte ponovo ili kontaktirajte podršku.",
       "submit_unexpected": "Dogodilo se nešto neočekivano. Pokušajte još jednom ili kontaktirajte podršku.",
-      "submitClaim": "Podnesi Zahtev",
       "help": {
         "title": "Treba vam pomoć?",
         "call_60s": "Zatraži pomoć sada (60 sek)",

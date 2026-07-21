@@ -2,32 +2,34 @@ import { E2E_PASSWORD } from '@interdomestik/database';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { routes } from './routes';
 import { gotoApp } from './utils/navigation';
-// Credentials from seed script
+
 const MEMBER_KS = { email: 'member.ks.a1@interdomestik.com', password: E2E_PASSWORD };
 const MEMBER_MK = { email: 'member.mk.1@interdomestik.com', password: E2E_PASSWORD };
 const ADMIN_KS = { email: 'admin.ks@interdomestik.com', password: E2E_PASSWORD };
 const ADMIN_MK = { email: 'admin.mk@interdomestik.com', password: E2E_PASSWORD };
-
-// Claim Data - use a unique title per project run to avoid parallel collision
-// Using a fixed timestamp for the entire spec file to keep it stable during serial execution
 const RUN_ID = Date.now();
-function getClaimTitle(testInfo: TestInfo) {
-  return `Auto Smoke ${testInfo.project.name} ${RUN_ID}`;
-}
+let savedDraftId: string | null = null;
 
-function isMkProject(testInfo: TestInfo): boolean {
-  return testInfo.project.name.includes('mk');
+const isMkProject = (testInfo: TestInfo) => testInfo.project.name.includes('mk');
+
+function resolveIdaTarget(testInfo: TestInfo) {
+  const configured = process.env.IDA_HOST?.trim() || 'ida.127.0.0.1.nip.io:3000';
+  const authority = new URL(configured.includes('://') ? configured : `http://${configured}`).host;
+  const baseURL = `http://${authority}/${routes.getLocale(testInfo)}`;
+  return {
+    ...testInfo,
+    project: { ...testInfo.project, use: { ...testInfo.project.use, baseURL } },
+  } as TestInfo;
 }
 
 async function dismissCookieConsentIfVisible(page: Page): Promise<void> {
-  const banner = page.getByTestId('cookie-consent-banner');
-  if (!(await banner.count())) return;
-
-  const acceptButton = page.getByTestId('cookie-consent-accept').first();
-  if (!(await acceptButton.isVisible().catch(() => false))) return;
-
-  await acceptButton.click();
-  await expect(banner).toHaveCount(0);
+  await page.evaluate(() => {
+    localStorage.setItem('interdomestik_cookie_consent_v1', 'accepted');
+    document.cookie = 'cookie_consent=accepted; Path=/; SameSite=Lax';
+    const event = 'interdomestik:cookie-consent-updated';
+    window.dispatchEvent(new CustomEvent(event, { detail: 'accepted' }));
+  });
+  await expect(page.getByTestId('cookie-consent-banner')).toHaveCount(0);
 }
 
 async function loginAs(
@@ -35,38 +37,29 @@ async function loginAs(
   user: { email: string; password?: string; tenant?: string },
   testInfo: TestInfo
 ) {
-  // Use project baseURL to ensure correct domain (e.g. nip.io) vs localhost
   const baseURL =
     testInfo.project.use.baseURL || process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
   const origin = new URL(baseURL).origin;
-  const loginURL = `${origin}/api/auth/sign-in/email`;
-
-  // Force clear cookies to ensure no session leak from global setup or previous serial tests
   await page.context().clearCookies();
-
-  const res = await page.request.post(loginURL, {
-    data: { email: user.email, password: user.password || E2E_PASSWORD },
-    headers: {
-      Origin: origin,
-      Referer: `${origin}/login`,
+  const res = await page.request.post(`${origin}/api/auth/sign-in/email`, {
+    data: {
+      email: user.email,
+      password: user.password || E2E_PASSWORD,
+      ...(user.tenant ? { additionalData: { tenantId: user.tenant } } : {}),
     },
+    headers: { Origin: origin, Referer: `${origin}/login` },
   });
-
   if (!res.ok()) {
     throw new Error(`API login failed for ${user.email}: ${res.status()} ${await res.text()}`);
   }
-
   let targetPath = routes.member(testInfo);
   if (user.email.includes('admin')) targetPath = routes.admin(testInfo);
   else if (user.email.includes('agent')) targetPath = routes.agent(testInfo);
   else if (user.email.includes('staff')) targetPath = routes.staff(testInfo);
-
-  // Navigate to target path
   await gotoApp(page, targetPath, testInfo, { marker: 'dashboard-page-ready' });
   await dismissCookieConsentIfVisible(page);
 }
 
-// Use serial to ensure Phase A creates claim before Phase B/C try to view it
 test.describe.serial('@smoke Production Smoke Test Plan', () => {
   test.describe('Phase A: Authentication & Routing (Member) @smoke', () => {
     test('Member (KS) sees v3 dashboard without legacy claims list', async ({ page }, testInfo) => {
@@ -74,201 +67,107 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
         ? { ...MEMBER_MK, tenant: 'tenant_mk' }
         : { ...MEMBER_KS, tenant: 'tenant_ks' };
       await loginAs(page, memberUser, testInfo);
-
-      const dashboardReady = page.getByTestId('dashboard-page-ready');
-      await expect(dashboardReady).toBeVisible();
+      const dashboard = page.getByTestId('dashboard-page-ready');
+      await expect(dashboard).toBeVisible();
       await expect(page.getByTestId('portal-surface-indicator')).toBeVisible();
-      const primaryActions = dashboardReady.getByTestId('member-primary-actions');
-      const activeClaim = dashboardReady.getByTestId('member-active-claim');
-      const supportLink = dashboardReady.getByTestId('member-support-link');
-
-      await expect(primaryActions).toHaveCount(1);
-      await expect(primaryActions).toBeVisible();
-      await expect(activeClaim).toHaveCount(1);
-      await expect(activeClaim).toBeVisible();
+      for (const id of ['member-primary-actions', 'member-active-claim', 'member-support-link']) {
+        await expect(dashboard.getByTestId(id)).toBeVisible();
+      }
       await expect(page.getByTestId('member-claims-list')).toHaveCount(0);
-      await expect(supportLink).toHaveCount(1);
-      await expect(supportLink).toBeVisible();
-
-      const cta = primaryActions.getByTestId('hero-cta-open-active-case');
-      await expect(cta).toHaveCount(1);
-      await expect(cta).toHaveAttribute(
+      await expect(dashboard.getByTestId('hero-cta-open-active-case')).toHaveAttribute(
         'href',
         new RegExp(`${routes.memberClaims(testInfo)}/[^/]+$`)
       );
     });
 
-    test('Member (KS) can login, see dashboard, and create a claim', async ({ page }, testInfo) => {
-      const CLAIM_TITLE = getClaimTitle(testInfo);
-      // Debug: Listen to console logs
-      page.on('console', msg => console.log(`[Browser] ${msg.text()}`));
-
-      // 1. Login
-      const memberUser = isMkProject(testInfo)
-        ? { ...MEMBER_MK, tenant: 'tenant_mk' }
-        : { ...MEMBER_KS, tenant: 'tenant_ks' };
-      await loginAs(page, memberUser, testInfo);
-
-      // 2. Verify Dashboard (Member lands on /member)
-      await expect(page).toHaveURL(/\/member/);
-      await page.evaluate(() => {
-        localStorage.clear();
-        localStorage.setItem('interdomestik_cookie_consent_v1', 'accepted');
-        document.cookie = 'cookie_consent=accepted; Path=/; SameSite=Lax';
-      });
-
-      // 3. Wizard
-      await gotoApp(page, routes.memberNewClaim(testInfo), testInfo, {
+    test('Member (KS) saves a dormant draft without creating a claim', async ({
+      page,
+    }, testInfo) => {
+      const title = `Auto Smoke ${testInfo.project.name} ${RUN_ID}`;
+      const idaTestInfo = resolveIdaTarget(testInfo);
+      await page.context().setExtraHTTPHeaders({ 'x-tenant-id': 'tenant_ks' });
+      await loginAs(page, { ...MEMBER_KS, tenant: 'tenant_ks' }, idaTestInfo);
+      await gotoApp(page, routes.memberNewClaim(idaTestInfo), idaTestInfo, {
         marker: 'new-claim-page-ready',
       });
-      await dismissCookieConsentIfVisible(page);
-      const bodyText = await page.textContent('body');
-      expect(bodyText).not.toContain('MISSING_MESSAGE');
-
-      // 4. Create Claim
-      const categoryCard = page.getByTestId('category-vehicle').first();
-      const nextBtn = page.getByTestId('wizard-next').first();
-      const claimTitleInput = page.getByTestId('claim-title-input');
-      await categoryCard.scrollIntoViewIfNeeded();
-      await expect(categoryCard).toBeVisible();
-
-      // Retry-aware transition: if hydration/rerender swallows the first click, re-attempt
-      // until the details step is actually visible.
-      await expect(async () => {
-        const detailsVisible = await claimTitleInput.isVisible().catch(() => false);
-        if (!detailsVisible) {
-          await categoryCard.click();
-          await nextBtn.click();
-        }
-        await expect(claimTitleInput).toBeVisible({ timeout: 3000 });
-      }).toPass({ timeout: 20000 });
-
-      // Step 2: Details
-      await page.getByTestId('claim-title-input').fill(CLAIM_TITLE);
-      await page.getByTestId('claim-company-input').fill('Test Company');
-      await page.getByTestId('claim-date-input').fill('2024-01-01');
-      await page
-        .getByTestId('claim-description-input')
-        .fill('Smoke test automation description that is long enough');
-      await page.getByTestId('claim-amount-input').fill('100');
-
-      // Step 3: Evidence
-      const evidenceTitle = page.getByTestId('step-evidence-title');
-      await expect(async () => {
-        const evidenceVisible = await evidenceTitle.isVisible().catch(() => false);
-        if (!evidenceVisible) {
-          await page.getByTestId('wizard-next').first().click();
-        }
-        await expect(evidenceTitle).toBeVisible({ timeout: 3000 });
-      }).toPass({ timeout: 20000 });
-
-      await page.getByTestId('wizard-next').first().click();
-
-      // Step 4: Review & Submit
-      const submitButton = page.getByTestId('wizard-submit');
-      try {
-        await submitButton.waitFor({ state: 'visible', timeout: 5000 });
-        if (await submitButton.isEnabled()) {
-          await submitButton.click();
-        }
-      } catch {
-        // Wizard may have auto-submitted on some versions
+      const intake = page.locator('[data-testid="claim-draft-intake"]:visible').first();
+      const panel = intake.getByTestId('claim-draft-main-panel');
+      await intake.getByTestId('free-start-manage-open').click();
+      // prettier-ignore
+      const staleDrafts = page.locator('li').filter({ hasText: /^Auto Smoke/ }).getByTestId(/^free-start-delete-/);
+      for (let count = await staleDrafts.count(); count > 0; count--) {
+        await staleDrafts.first().click();
+        await page.getByTestId('free-start-delete-confirm').click();
+        await expect(staleDrafts).toHaveCount(count - 1);
       }
-
-      // 5. Verify whichever post-submit contract is active for this environment
-      const successCard = page.getByTestId('claim-created-success').first();
-      const claimListLink = page.getByRole('link', { name: CLAIM_TITLE }).first();
-      const resolvePostSubmitState = async () => {
-        const pathname = new URL(page.url()).pathname;
-
-        if (await successCard.isVisible().catch(() => false)) {
-          return 'ui-v2-success';
-        }
-
-        if (
-          pathname.endsWith('/member/claims') &&
-          (await claimListLink.isVisible().catch(() => false))
-        ) {
-          return 'claims-list';
-        }
-
-        return 'pending';
-      };
-
-      await expect.poll(resolvePostSubmitState, { timeout: 30000 }).not.toBe('pending');
-      const postSubmitState = await resolvePostSubmitState();
-
-      if (postSubmitState === 'ui-v2-success') {
-        await expect
-          .poll(() => new URL(page.url()).pathname.endsWith('/member/claims/new'), {
-            timeout: 30000,
-          })
-          .toBe(true);
-
-        const createdClaimLink = page.getByTestId('claim-created-go-to-claim').first();
-        const createdClaimHref = await createdClaimLink.getAttribute('href');
-        expect(createdClaimHref).toBeTruthy();
-        const createdClaimPath = new URL(createdClaimHref!, 'http://localhost').pathname;
-        const createdClaimSegments = createdClaimPath.split('/').filter(Boolean);
-        expect(createdClaimSegments[createdClaimSegments.length - 2]).toBe('claims');
-        expect(createdClaimSegments[createdClaimSegments.length - 1]).not.toBe('new');
-
-        await createdClaimLink.click();
-
-        await expect
-          .poll(
-            () => {
-              const pathname = new URL(page.url()).pathname;
-              const claimSegments = pathname.split('/').filter(Boolean);
-              return (
-                claimSegments.length >= 4 &&
-                claimSegments[claimSegments.length - 2] === 'claims' &&
-                claimSegments[claimSegments.length - 1] !== 'new'
-              );
-            },
-            { timeout: 30000 }
-          )
-          .toBe(true);
-        await expect(page.getByRole('heading', { name: CLAIM_TITLE })).toBeVisible({
-          timeout: 10000,
-        });
-      } else {
-        await expect(page).toHaveURL(/\/member\/claims(?:\?.*)?$/, { timeout: 30000 });
-        await expect(claimListLink).toBeVisible({ timeout: 10000 });
-      }
+      await intake.getByTestId('claim-draft-category-vehicle').click();
+      await intake.getByTestId('claim-draft-category-continue').click();
+      await panel.locator('select').nth(0).selectOption('collision');
+      await panel.locator('input[type="date"]').fill('2026-07-20');
+      await panel.locator('input[type="text"]').fill('Test Company');
+      await panel.locator('select').nth(1).selectOption('repair');
+      await panel.locator('textarea').fill(title);
+      await panel.locator('button').last().click();
+      await expect(intake.getByTestId('claim-draft-dormant-preview')).toContainText(title);
+      await expect(intake.getByTestId('claim-draft-submit-disabled')).toBeDisabled();
+      await expect(page.getByTestId('claim-created-success')).toHaveCount(0);
+      await intake.getByTestId('free-start-save-open').click();
+      await expect(intake.getByTestId('free-start-save-status')).toHaveAttribute(
+        'data-state',
+        'saved'
+      );
+      await intake.getByTestId('free-start-manage-open').click();
+      const resume = page
+        .locator('li')
+        .filter({ hasText: title })
+        .getByTestId(/^free-start-resume-/);
+      await expect(resume).toBeVisible();
+      const testId = await resume.getAttribute('data-testid');
+      savedDraftId = testId?.replace('free-start-resume-', '') || null;
+      if (!savedDraftId) throw new Error('saved_draft_id_missing');
     });
   });
 
   test.describe('Phase B: Administrative Visibility', () => {
-    test('Admin (KS) can find the newly created claim', async ({ page }, testInfo) => {
-      const CLAIM_TITLE = getClaimTitle(testInfo);
-      // Login Admin
+    test('Admin (KS) cannot see the saved dormant draft as a claim', async ({ page }, testInfo) => {
+      const title = `Auto Smoke ${testInfo.project.name} ${RUN_ID}`;
+      const draftId = savedDraftId;
+      if (!draftId) throw new Error('saved_draft_id_missing');
       const adminUser = isMkProject(testInfo)
         ? { ...ADMIN_MK, tenant: 'tenant_mk' }
         : { ...ADMIN_KS, tenant: 'tenant_ks' };
       await loginAs(page, adminUser, testInfo);
-
-      // Navigate to claims list view explicitly to use filters
-      await gotoApp(page, `${routes.adminClaims(testInfo)}?view=list`, testInfo, {
-        marker: 'admin-claims-v2-ready',
-      });
-
-      // Readiness Check: Wait for Admin V2 filters to load
-      await expect(page.getByTestId('admin-claims-v2-ready').first()).toBeVisible({
-        timeout: 15000,
-      });
-
-      // Scope to the active admin claims surface to avoid duplicate test id matches.
-      const searchInput = page
-        .getByTestId('admin-claims-v2-ready')
-        .getByTestId('claims-search-input')
-        .first();
-      await searchInput.fill(CLAIM_TITLE);
-
-      // Verify at least one matching result is visible.
-      await expect(page.getByRole('heading', { name: CLAIM_TITLE }).first()).toBeVisible({
-        timeout: 15000,
-      });
+      try {
+        await gotoApp(page, `${routes.adminClaims(testInfo)}?view=list`, testInfo, {
+          marker: 'admin-claims-v2-ready',
+        });
+        const admin = page.locator('[data-testid="admin-claims-v2-ready"]:visible').first();
+        const search = admin.getByTestId('claims-search-input').first();
+        await search.fill(title);
+        await expect.poll(() => new URL(page.url()).searchParams.get('search')).toBe(title);
+        await expect(admin.getByTestId('admin-claims-filter-region').first()).toHaveAttribute(
+          'aria-busy',
+          'false'
+        );
+        await expect(admin.getByTestId('claim-operational-card')).toHaveCount(0);
+        await expect(admin.getByRole('heading', { name: title })).toHaveCount(0);
+      } finally {
+        const idaTestInfo = resolveIdaTarget(testInfo);
+        await page.context().setExtraHTTPHeaders({ 'x-tenant-id': 'tenant_ks' });
+        await loginAs(page, { ...MEMBER_KS, tenant: 'tenant_ks' }, idaTestInfo);
+        await gotoApp(page, routes.memberNewClaim(idaTestInfo), idaTestInfo, {
+          marker: 'new-claim-page-ready',
+        });
+        const intake = page.locator('[data-testid="claim-draft-intake"]:visible').first();
+        await intake.getByTestId('free-start-manage-open').click();
+        await page.getByTestId(`free-start-delete-${draftId}`).click();
+        await page.getByTestId('free-start-delete-confirm').click();
+        await expect(intake.getByTestId('free-start-save-status')).toHaveAttribute(
+          'data-state',
+          'deleted'
+        );
+        savedDraftId = null;
+      }
     });
   });
 

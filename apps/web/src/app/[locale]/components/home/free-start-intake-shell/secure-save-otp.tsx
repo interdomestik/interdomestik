@@ -27,9 +27,12 @@ export function SecureSaveOtp({ locale, onVerified, tenantId }: Props) {
   }, [otp.emailRef]);
   useEffect(() => {
     if (!otp.destinationLocked) return;
-    globalThis.requestAnimationFrame(() =>
-      otp.codeRef.current?.scrollIntoView({ block: 'center', behavior: 'auto' })
-    );
+    const frame = requestAnimationFrame(() => {
+      otp.codeRef.current?.focus();
+
+      otp.codeRef.current?.scrollIntoView({ block: 'center', behavior: 'auto' });
+    });
+    return () => cancelAnimationFrame(frame);
   }, [otp.codeRef, otp.destinationLocked]);
 
   const error = otp.error ? copy.otp.errors[otp.error] : null;
