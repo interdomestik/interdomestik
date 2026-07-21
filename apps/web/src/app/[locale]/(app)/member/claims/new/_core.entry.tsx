@@ -1,5 +1,6 @@
 import { ClaimDraftIntake } from '@/components/claims/claim-draft-intake';
 import { getSessionSafe } from '@/components/shell/session';
+import { evaluateNeutralOtpHost } from '@/app/api/auth/[...all]/neutral-otp-boundary';
 import { loadMessagesForNamespaces } from '@/i18n/messages';
 import { Link } from '@/i18n/routing';
 import { hasActiveMembership } from '@interdomestik/domain-membership-billing/subscription';
@@ -45,6 +46,20 @@ export function resolveClaimStartHandoff(query: {
   };
 }
 
+export function resolveNeutralOtpHost(): string | null {
+  const configured = process.env.IDA_HOST?.trim();
+  if (!configured) return null;
+  try {
+    const url = new URL(configured.includes('://') ? configured : `http://${configured}`);
+    const authority = url.host.toLowerCase();
+    return evaluateNeutralOtpHost(new Headers({ host: authority }), { IDA_HOST: configured })
+      ? authority
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   return {
     title: `New Claim | Interdomestik`,
@@ -67,6 +82,7 @@ export default async function NewClaimPage({ params, searchParams }: Props) {
   const query = await searchParams;
   const preselectedCategory = query.category;
   const handoffContext = resolveClaimStartHandoff(query);
+  const neutralOtpHost = resolveNeutralOtpHost();
 
   const session = await getSessionSafe('MemberNewClaimPage');
 
@@ -116,6 +132,7 @@ export default async function NewClaimPage({ params, searchParams }: Props) {
           locale={locale}
           initialCategory={preselectedCategory}
           tenantId={tenantId}
+          neutralOtpHost={neutralOtpHost}
           handoffContext={handoffContext}
         />
       </div>

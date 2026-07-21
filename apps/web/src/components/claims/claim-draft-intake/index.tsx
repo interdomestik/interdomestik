@@ -26,6 +26,7 @@ type Props = Readonly<{
   handoffContext?: HandoffContext | null;
   initialCategory?: string;
   locale: string;
+  neutralOtpHost?: string | null;
   tenantId: string;
 }>;
 
@@ -47,6 +48,7 @@ function ClaimDraftIntakeBody({
   handoffCountryLabel,
   initialCategory,
   locale,
+  neutralOtpHost,
   t,
   tenantId,
 }: BodyProps) {
@@ -65,6 +67,7 @@ function ClaimDraftIntakeBody({
     issue: getSelectedIssueLabel(tFree, flow.selectedCategory, flow.draft.issueType),
     outcome: getSelectedOutcomeLabel(tFree, flow.draft.desiredOutcome),
   };
+  const saveBandProps = { lifecycle, locale, neutralOtpHost, tenantId };
 
   return (
     <section
@@ -119,7 +122,7 @@ function ClaimDraftIntakeBody({
         labels={labels}
         tFree={tFree}
       />
-      <SecureSaveBand lifecycle={lifecycle} locale={locale} tenantId={tenantId} />
+      <SecureSaveBand {...saveBandProps} />
     </section>
   );
 }

@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   intake: vi.fn((props: Record<string, unknown>) => (
@@ -41,9 +41,11 @@ vi.mock('@/i18n/routing', () => ({
 }));
 
 import NewClaimPage from './page';
-import { resolveClaimStartHandoff } from './_core.entry';
+import { resolveClaimStartHandoff, resolveNeutralOtpHost } from './_core.entry';
 
 describe('NewClaimPage dormant draft intake', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.session.mockResolvedValue({ user: { id: 'member-1', tenantId: 'tenant-ks' } });
@@ -67,7 +69,17 @@ describe('NewClaimPage dormant draft intake', () => {
     ).toBeNull();
   });
 
+  it.each([
+    ['front-door.localhost:3000', 'front-door.localhost:3000'],
+    ['https://front-door.localhost:3000', 'front-door.localhost:3000'],
+    ['https://front-door.localhost:3000/path', null],
+  ])('normalizes only an accepted configured IDA host: %s', (configured, expected) => {
+    vi.stubEnv('IDA_HOST', configured);
+    expect(resolveNeutralOtpHost()).toBe(expected);
+  });
+
   it('preserves route context and renders no ClaimWizard for an active member', async () => {
+    vi.stubEnv('IDA_HOST', 'https://front-door.localhost:3000');
     const handoffContext = {
       source: 'diaspora-green-card',
       country: 'IT',
@@ -86,6 +98,7 @@ describe('NewClaimPage dormant draft intake', () => {
       handoffContext,
       initialCategory: 'travel',
       locale: 'en',
+      neutralOtpHost: 'front-door.localhost:3000',
       tenantId: 'tenant-ks',
     });
     expect(screen.getByTestId('new-claim-page-ready')).toBeInTheDocument();

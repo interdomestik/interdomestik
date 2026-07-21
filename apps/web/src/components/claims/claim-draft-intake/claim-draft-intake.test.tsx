@@ -92,6 +92,15 @@ function enter(label: string, value: string) {
 }
 
 describe('ClaimDraftIntake', () => {
+  it('keeps secure save visible on the configured custom IDA host', async () => {
+    expect(location.host).toMatch(/^localhost(?::\d+)?$/);
+    // prettier-ignore
+    const props = { freeStartMessages: {}, locale: 'en', neutralOtpHost: location.host, tenantId: 'tenant_ks' };
+    render(<ClaimDraftIntake {...props} />);
+    await waitFor(() => expect(screen.getByTestId('free-start-save-open')).toBeVisible());
+    expect(screen.getByTestId('free-start-manage-open')).toBeVisible();
+  });
+
   it('is explicit-save only, blocks injury, and keeps submit inert', () => {
     render(<ClaimDraftIntake freeStartMessages={{}} locale="en" tenantId="tenant_ks" />);
     expect(screen.getByRole('heading', { name: claimCopy.heading })).toBeVisible();
