@@ -25,12 +25,15 @@ describe('isEmailSignUpUrl', () => {
 
 describe('evaluateEmailSignUpTenantGuard', () => {
   const url = 'https://ida.localhost:3000/api/auth/sign-up/email';
+  const onboarding = (tenant: string, mode: 'resolved' | 'deferred' = 'resolved') => ({
+    onboarding: { tenant, mode },
+  });
 
   it('allows signup when country host and payload tenant match', () => {
     const result = evaluateEmailSignUpTenantGuard({
       url,
       headers: new Headers({ host: 'ks.localhost:3000' }),
-      body: { tenantId: 'tenant_ks' },
+      body: onboarding('tenant_ks'),
     });
 
     expect(result).toEqual({ decision: 'allow' });
@@ -40,7 +43,7 @@ describe('evaluateEmailSignUpTenantGuard', () => {
     const result = evaluateEmailSignUpTenantGuard({
       url,
       headers: new Headers({ host: 'ks.localhost:3000' }),
-      body: { tenantId: 'tenant_mk' },
+      body: onboarding('tenant_mk'),
     });
 
     expect(result).toEqual({
@@ -58,7 +61,7 @@ describe('evaluateEmailSignUpTenantGuard', () => {
     const result = evaluateEmailSignUpTenantGuard({
       url,
       headers: new Headers({ host: 'ida.localhost:3000' }),
-      body: { tenantId: 'tenant_mk' },
+      body: onboarding('tenant_mk', 'deferred'),
     });
 
     expect(result).toEqual({ decision: 'allow' });
@@ -73,7 +76,7 @@ describe('evaluateEmailSignUpTenantGuard', () => {
         host: 'ida.localhost:3000',
         'x-forwarded-host': 'ks.localhost:3000',
       }),
-      body: { tenantId: 'tenant_mk' },
+      body: onboarding('tenant_mk', 'deferred'),
     });
 
     expect(result).toEqual({
@@ -94,10 +97,34 @@ describe('evaluateEmailSignUpTenantGuard', () => {
     const malformed = evaluateEmailSignUpTenantGuard({
       url,
       headers: new Headers({ host: 'ks.localhost:3000' }),
-      body: { tenantId: 'not-a-tenant' },
+      body: onboarding('not-a-tenant'),
     });
 
     expect(missing?.decision).toBe('deny');
     expect(malformed?.decision).toBe('deny');
+  });
+
+  it('enforces host-owned mode and accepts the deferred social selector shape', () => {
+    expect(
+      evaluateEmailSignUpTenantGuard({
+        url,
+        headers: new Headers({ host: 'ks.localhost:3000' }),
+        body: onboarding('tenant_ks', 'deferred'),
+      })?.decision
+    ).toBe('deny');
+    expect(
+      evaluateEmailSignUpTenantGuard({
+        url,
+        headers: new Headers({ host: 'ida.localhost:3000' }),
+        body: onboarding('tenant_ks', 'resolved'),
+      })?.decision
+    ).toBe('deny');
+    expect(
+      evaluateEmailSignUpTenantGuard({
+        url,
+        headers: new Headers({ host: 'ida.localhost:3000' }),
+        body: { additionalData: onboarding('tenant_ks', 'deferred') },
+      })
+    ).toEqual({ decision: 'allow' });
   });
 });

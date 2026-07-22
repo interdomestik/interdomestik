@@ -31,4 +31,27 @@ describe('auth database adapter', () => {
       expect.objectContaining({ provider: 'pg' })
     );
   });
+
+  it('C01 keeps every authority field server-owned with non-privileged defaults', async () => {
+    const { userSchemaConfig } = await import('./schema');
+    const fields = userSchemaConfig.additionalFields;
+    const authorityKeys = [
+      'role',
+      'tenantId',
+      'branchId',
+      'memberNumber',
+      'tenantClassificationPending',
+      'agentId',
+      'referralCode',
+    ] as const;
+
+    expect(Object.keys(fields).sort()).toEqual([...authorityKeys].sort());
+    for (const key of authorityKeys) {
+      expect(fields[key].input).toBe(false);
+      expect(fields[key]).not.toHaveProperty('validator.input');
+      expect(fields[key]).not.toHaveProperty('transform.input');
+    }
+    expect(fields.role.defaultValue).toBe('member');
+    expect(fields.tenantClassificationPending.defaultValue).toBe(false);
+  });
 });

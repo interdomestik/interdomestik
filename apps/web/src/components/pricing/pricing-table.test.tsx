@@ -334,7 +334,7 @@ describe('PricingTable', () => {
     expect(await screen.findByText('otpStep.sent')).toBeInTheDocument();
   });
 
-  it('verifies the OTP with default acquisition tenant fields and continues into checkout for the selected plan', async () => {
+  it('verifies the OTP with the deferred onboarding selector and continues into checkout for the selected plan', async () => {
     render(
       <PricingTable billingTestMode={false} checkoutConfig={checkoutConfig} tenantId="tenant_ks" />
     );
@@ -356,8 +356,7 @@ describe('PricingTable', () => {
       expect(authClient.signIn.emailOtp).toHaveBeenCalledWith({
         email: 'member@example.com',
         otp: '123456',
-        tenantClassificationPending: true,
-        tenantId: 'tenant_ks',
+        onboarding: { tenant: 'tenant_ks', mode: 'deferred' },
       });
     });
 

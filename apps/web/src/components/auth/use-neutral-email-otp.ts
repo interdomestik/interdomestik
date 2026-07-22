@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { authClient } from '@/lib/auth-client';
+import { buildEmailOnboardingPayload } from './register-onboarding-payload';
 export type NeutralEmailOtpError = 'missingEmail' | 'sendFailed' | 'verify' | 'accountStop';
 type VerifiedIdentity = { email: string; userId: string };
 // prettier-ignore
@@ -107,7 +108,7 @@ export function useNeutralEmailOtp(args: NeutralEmailOtpArgs) {
       const result = await authClient.signIn.emailOtp({
         email: lockedEmail,
         otp: code.trim(),
-        ...(args.tenantId ? { tenantClassificationPending: true, tenantId: args.tenantId } : {}),
+        ...(args.tenantId ? buildEmailOnboardingPayload(args.tenantId, true) : {}),
       });
       if (result.error) {
         const providerCode = (result.error as { code?: string }).code;

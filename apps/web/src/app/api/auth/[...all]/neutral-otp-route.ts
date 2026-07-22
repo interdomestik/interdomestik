@@ -28,8 +28,7 @@ function sanitizedRequest(args: {
       : {
           email: args.email,
           otp: typeof value.otp === 'string' ? value.otp : undefined,
-          tenantId: args.tenantId,
-          tenantClassificationPending: true,
+          onboarding: { tenant: args.tenantId, mode: 'deferred' },
         };
   const headers = new Headers(args.request.headers);
   headers.set('content-type', 'application/json');
