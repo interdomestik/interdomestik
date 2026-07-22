@@ -55,15 +55,12 @@ const TENANT_HOST_FILE_ALLOWLIST = new Map([
     'apps/web/e2e/gate/v1-live-surface-revalidation.spec.ts',
     'pilot/live host revalidation contract',
   ],
-  ['apps/web/e2e/live/pilot-day1-drive.spec.ts', 'live pilot host alias check'],
-  ['apps/web/e2e/live/pilot-day1-lifecycle.spec.ts', 'live pilot host alias check'],
   ['apps/web/e2e/live/temp-check-claims.spec.ts', 'temporary live host diagnostic'],
   ['apps/web/e2e/pilot/_host.ts', 'pilot helper resolving actor host aliases'],
   [
     'apps/web/e2e/pilot/c1-03-pilot-member-provisioning.spec.ts',
     'pilot cross-host provisioning check',
   ],
-  ['apps/web/e2e/pilot/c1-04-pilot-staff-triage.spec.ts', 'pilot cross-host staff triage check'],
   [
     'apps/web/e2e/pilot/c2-02-cross-tenant-artifact-isolation.spec.ts',
     'cross-tenant isolation check',
@@ -76,7 +73,6 @@ const TENANT_HOST_FILE_ALLOWLIST = new Map([
     'apps/web/e2e/pilot/c2-04-cross-tenant-staff-member-write-isolation.spec.ts',
     'cross-tenant staff/member write isolation check',
   ],
-  ['apps/web/e2e/pilot/scenario-01-ks-e2e.spec.ts', 'pilot scenario cross-tenant actor check'],
   [
     'apps/web/e2e/support/admin-tenant-classification.ts',
     'admin tenant classification support helper',

@@ -3,7 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   intake: vi.fn((props: Record<string, unknown>) => (
-    <div data-testid="claim-draft-intake-props">{JSON.stringify(props)}</div>
+    <div data-testid="claim-draft-intake-props">
+      {JSON.stringify(props)}
+      <button data-testid="claim-draft-submit-disabled" type="button" disabled>
+        Dormant submit
+      </button>
+    </div>
   )),
   session: vi.fn(),
   membership: vi.fn(),
@@ -21,9 +26,6 @@ vi.mock('next-intl/server', () => ({
 vi.mock('next/navigation', () => ({ redirect: hoisted.redirect }));
 vi.mock('@/components/claims/claim-draft-intake', () => ({
   ClaimDraftIntake: (props: Record<string, unknown>) => hoisted.intake(props),
-}));
-vi.mock('@/components/claims/claim-wizard', () => ({
-  ClaimWizard: () => <div data-testid="forbidden-claim-wizard" />,
 }));
 vi.mock('@/components/shell/session', () => ({ getSessionSafe: hoisted.session }));
 vi.mock('@/i18n/messages', () => ({ loadMessagesForNamespaces: hoisted.messages }));
@@ -78,7 +80,7 @@ describe('NewClaimPage dormant draft intake', () => {
     expect(resolveNeutralOtpHost()).toBe(expected);
   });
 
-  it('preserves route context and renders no ClaimWizard for an active member', async () => {
+  it('preserves route context and renders the dormant intake for an active member', async () => {
     vi.stubEnv('IDA_HOST', 'https://front-door.localhost:3000');
     const handoffContext = {
       source: 'diaspora-green-card',
@@ -102,7 +104,8 @@ describe('NewClaimPage dormant draft intake', () => {
       tenantId: 'tenant-ks',
     });
     expect(screen.getByTestId('new-claim-page-ready')).toBeInTheDocument();
-    expect(screen.queryByTestId('forbidden-claim-wizard')).not.toBeInTheDocument();
+    expect(screen.getByTestId('claim-draft-intake-props')).toBeInTheDocument();
+    expect(screen.getByTestId('claim-draft-submit-disabled')).toBeDisabled();
   });
 
   it('preserves the unauthenticated redirect', async () => {
