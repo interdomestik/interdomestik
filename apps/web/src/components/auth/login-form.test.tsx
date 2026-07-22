@@ -292,15 +292,14 @@ describe('LoginForm', () => {
     });
   });
 
-  it('handles GitHub OAuth sign in', async () => {
+  it('uses resolved onboarding for GitHub OAuth with server tenant context', async () => {
     const originalLocation = globalThis.location;
     Object.defineProperty(globalThis, 'location', {
       value: { origin: 'http://localhost:3000' },
       writable: true,
     });
 
-    render(<LoginForm githubOAuthEnabled />);
-
+    render(<LoginForm githubOAuthEnabled tenantId="tenant_ks" />);
     const githubButton = screen.getByText('GitHub');
     fireEvent.click(githubButton);
 
@@ -308,13 +307,14 @@ describe('LoginForm', () => {
       expect(mockSignInSocial).toHaveBeenCalledWith({
         provider: 'github',
         callbackURL: 'http://localhost:3000/en/login',
+        additionalData: { onboarding: { tenant: 'tenant_ks', mode: 'resolved' } },
       });
     });
 
     Object.defineProperty(globalThis, 'location', { value: originalLocation });
   });
 
-  it('preserves the current login URL as the GitHub callback', async () => {
+  it('preserves the GitHub callback and defers a neutral tenant hint', async () => {
     const originalLocation = globalThis.location;
     mockSearchParams = new URLSearchParams('tenantId=tenant_ks&next=%2Fen%2Fmember%2Fclaims');
     Object.defineProperty(globalThis, 'location', {
@@ -334,7 +334,7 @@ describe('LoginForm', () => {
         provider: 'github',
         callbackURL:
           'http://localhost:3000/en/login?tenantId=tenant_ks&next=%2Fen%2Fmember%2Fclaims',
-        additionalData: { tenantId: 'tenant_ks' },
+        additionalData: { onboarding: { tenant: 'tenant_ks', mode: 'deferred' } },
       });
     });
 
