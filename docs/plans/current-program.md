@@ -1701,6 +1701,42 @@ uploads/documents, AI, notifications and every unlisted surface remain unchanged
 All previously blocked or unpromoted architecture/product successors remain blocked
 or unpromoted and gain no authority from Rev 151.
 
+Rev 152 closeout consumes the sole `IDA-CW01` promotion through PR `#1405`, final
+implementation head `2030d7904d526948c9d8f004c40714c5697b0ea4` and squash
+merge `8d41e82da30c91017d8121a8ae2388c660832b83`. The exact base-to-head
+implementation diff contains 25 deletions, 10 modifications, zero new repository
+files and SHA-256 digest
+`f5a93724983aaf53b71c5b65729d51c50a2719f0a67382e0605711cb318fb01d`.
+`docs/plans/2026-07-22-ida-cw01-closeout.md` records the exact accepted gate,
+runtime-authority and live-lifecycle disposition identities; P00 importer,
+Playwright-config and assertion-level contract-loss proof; retained visible-UI
+navigation contract; focused and mandatory gates; Tier-3 Opus/Codex Security
+evidence; resolved review threads; current-head PR checks; merge and deployment
+containment.
+
+The dormant Claim Draft Intake remains unchanged and submission-inert. Canonical
+claim writers/actions/domain/upload/provider/event/notification surfaces,
+`apps/web/src/proxy.ts`, auth/session/shared-auth, tenancy, schema/migrations/RLS,
+billing and every other protected surface remain unchanged. No database or provider
+contact, dependency/workflow change or deployment occurred. Automatic CD run
+`29961496696` was cancelled during Docker Buildx setup before registry login, image
+build, staging or production deployment.
+
+Post-merge main CI `29961496730`, CodeQL `29961495615` / `29961495696` and
+Secret Scan `29961496638` passed. Sonar Main Gate `29961496726` is NON-PASS only
+because its rolling new-code period counts pre-existing issue
+`AZ-ACoVO5G2i53uX0BTV` / `githubactions:S8544` at untouched
+`.github/workflows/pr-deterministic-backstops.yml:88`; no Sonar/workflow
+remediation is authorized or attributable to this slice.
+
+`IDA-CW01` is complete and its exact runtime authority is consumed. No replacement
+implementation slice or successor is promoted. Authority Sync / AI OS adapter
+correction, CD/Staging stabilization, remaining UI/product slices, runtime AI,
+Eval v2, frozen claim-handoff work and every other follow-on remain blocked or
+unpromoted here. The expected resolver state is
+`blocked_requires_current_authority`, `activeSlice=null`; a fresh current-authority
+decision and separate exact authority are required before any successor work.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
