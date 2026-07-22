@@ -24,22 +24,23 @@ export type OnboardingFailure =
 export type OnboardingResolution =
   | { ok: true; intent: OnboardingIntent }
   | { ok: false; reason: OnboardingFailure; resolvedTenantId: TenantId | null };
+type SelectorCandidate = { present: boolean; value?: unknown; conflict?: boolean };
 
 const MAX_INTENT_AGE_MS = 10 * 60 * 1000;
 const FUTURE_SKEW_MS = 30 * 1000;
 
-function selectorCandidate(body: unknown): {
-  present: boolean;
-  value?: unknown;
-  conflict?: boolean;
-} {
+function sortedKeys(value: Record<string, unknown>): string {
+  return Object.keys(value)
+    .sort((a, b) => a.localeCompare(b))
+    .join(',');
+}
+
+function selectorCandidate(body: unknown): SelectorCandidate {
   const root = recordValue(body);
   if (!root) return { present: false };
-  const direct = Object.prototype.hasOwnProperty.call(root, 'onboarding');
+  const direct = Object.hasOwn(root, 'onboarding');
   const additional = recordValue(root.additionalData);
-  const nested = Boolean(
-    additional && Object.prototype.hasOwnProperty.call(additional, 'onboarding')
-  );
+  const nested = Boolean(additional && Object.hasOwn(additional, 'onboarding'));
   if (direct && nested) return { present: true, conflict: true };
   if (direct) return { present: true, value: root.onboarding };
   return nested ? { present: true, value: additional?.onboarding } : { present: false };
@@ -52,7 +53,7 @@ export function parseOnboardingSelector(
   if (!candidate.present) return { kind: 'absent' };
   const value = recordValue(candidate.value);
   if (candidate.conflict || !value) return { kind: 'invalid' };
-  if (Object.keys(value).sort().join(',') !== 'mode,tenant') return { kind: 'invalid' };
+  if (sortedKeys(value) !== 'mode,tenant') return { kind: 'invalid' };
   const tenant = typeof value.tenant === 'string' ? coerceTenantId(value.tenant.trim()) : null;
   const mode = value.mode;
   if (!tenant || (mode !== 'resolved' && mode !== 'deferred')) return { kind: 'invalid' };
@@ -77,6 +78,12 @@ function observedHost(headers: Headers): {
   return { host, tenant, conflict: !host };
 }
 
+function countryHostFailure(s: OnboardingSelector, host: TenantId): OnboardingResolution | null {
+  if (s.tenant === host && s.mode === 'resolved') return null;
+  const reason = s.tenant === host ? 'forbidden_mode' : 'tenant_mismatch';
+  return { ok: false, reason, resolvedTenantId: host };
+}
+
 export function resolveOnboardingAuthority(args: {
   headers: Headers;
   body: unknown;
@@ -94,10 +101,8 @@ export function resolveOnboardingAuthority(args: {
   if (observed.conflict)
     return { ok: false, reason: 'host_conflict', resolvedTenantId: observed.tenant };
   if (observed.tenant) {
-    if (parsed.selector.tenant !== observed.tenant)
-      return { ok: false, reason: 'tenant_mismatch', resolvedTenantId: observed.tenant };
-    if (parsed.selector.mode !== 'resolved')
-      return { ok: false, reason: 'forbidden_mode', resolvedTenantId: observed.tenant };
+    const failure = countryHostFailure(parsed.selector, observed.tenant);
+    if (failure) return failure;
   } else if (isKnownIdaFrontDoorHost(observed.host)) {
     if (parsed.selector.mode !== 'deferred')
       return { ok: false, reason: 'forbidden_mode', resolvedTenantId: null };
@@ -123,8 +128,7 @@ export function revalidateOnboardingIntent(
   now = Date.now()
 ): OnboardingIntent | null {
   const intent = recordValue(value);
-  if (!intent || Object.keys(intent).sort().join(',') !== 'host,issuedAt,mode,tenant,version')
-    return null;
+  if (!intent || sortedKeys(intent) !== 'host,issuedAt,mode,tenant,version') return null;
   if (
     intent.version !== 1 ||
     typeof intent.host !== 'string' ||
