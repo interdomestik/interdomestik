@@ -116,7 +116,7 @@ describe('usePricingEmailOtp recovery boundary', () => {
     expect(auth.send).toHaveBeenCalledTimes(2);
   });
 
-  it('continues once with existing tenant fields and stops generically when checkout cannot open', async () => {
+  it('continues once with the deferred onboarding selector and stops generically on failure', async () => {
     const onVerified = vi.fn().mockRejectedValue(new Error('PRIVATE_CHECKOUT_DETAIL'));
     const { result } = setup({ onVerified });
     await act(async () => result.current.send());
@@ -128,8 +128,7 @@ describe('usePricingEmailOtp recovery boundary', () => {
     expect(auth.verify).toHaveBeenCalledWith({
       email: 'member@example.com',
       otp: '123456',
-      tenantClassificationPending: true,
-      tenantId: 'tenant_ks',
+      onboarding: { tenant: 'tenant_ks', mode: 'deferred' },
     });
     expect(onVerified).toHaveBeenCalledOnce();
     expect(result.current.error).toBe('accountStop');

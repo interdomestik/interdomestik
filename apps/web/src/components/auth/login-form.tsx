@@ -26,14 +26,11 @@ import { Code, Eye, EyeOff, Shield } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { usePathname, useSearchParams } from 'next/navigation';
 import * as React from 'react';
+import { buildSocialOnboardingPayload } from './register-onboarding-payload';
 
 const SESSION_SYNC_RETRY_COUNT = 2;
 const SESSION_SYNC_RETRY_DELAY_MS = 250;
-
-type ResolvedAuthenticatedRole = {
-  role?: string;
-  timedOut: boolean;
-};
+type ResolvedAuthenticatedRole = { role?: string; timedOut: boolean };
 
 function getAllowedSurfacePrefix(role: string, locale: string): string | null {
   if (role === 'agent') {
@@ -332,7 +329,9 @@ export function LoginForm({
                     provider: 'github',
                     callbackURL:
                       globalThis.location.href || `${globalThis.location.origin}/${locale}/login`,
-                    ...(resolvedTenantId ? { additionalData: { tenantId: resolvedTenantId } } : {}),
+                    ...(resolvedTenantId
+                      ? buildSocialOnboardingPayload(resolvedTenantId, tenantId === undefined)
+                      : {}),
                   });
                 }}
               >

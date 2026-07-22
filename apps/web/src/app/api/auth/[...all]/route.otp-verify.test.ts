@@ -60,8 +60,7 @@ describe('IDA-UI03a0b2 neutral OTP verify route', () => {
   it('C07 accepts only matching creation hints without a pre-verification tenant lookup', async () => {
     const response = await POST(
       verifyRequest({
-        tenantId: 'tenant_ks',
-        tenantClassificationPending: true,
+        onboarding: { tenant: 'tenant_ks', mode: 'deferred' },
         role: 'admin',
         branchId: 'attacker-branch',
         memberNumber: 'attacker-member',
@@ -89,26 +88,23 @@ describe('IDA-UI03a0b2 neutral OTP verify route', () => {
     expect(await forwarded.json()).toEqual({
       email: 'member@example.com',
       otp: '123456',
-      tenantId: 'tenant_ks',
-      tenantClassificationPending: true,
+      onboarding: { tenant: 'tenant_ks', mode: 'deferred' },
     });
   });
 
   it('C08 rejects conflicting or malformed neutral hints generically before Better Auth', async () => {
     const responses = await Promise.all([
-      POST(verifyRequest({ tenantId: 'tenant_mk', tenantClassificationPending: false })),
+      POST(verifyRequest({ onboarding: { tenant: 'tenant_mk', mode: 'resolved' } })),
       POST(
         verifyRequest({
           otp: undefined,
-          tenantId: 'tenant_ks',
-          tenantClassificationPending: true,
+          onboarding: { tenant: 'tenant_ks', mode: 'deferred' },
         })
       ),
       POST(
         verifyRequest({
           otp: '   ',
-          tenantId: 'tenant_ks',
-          tenantClassificationPending: true,
+          onboarding: { tenant: 'tenant_ks', mode: 'deferred' },
         })
       ),
     ]);

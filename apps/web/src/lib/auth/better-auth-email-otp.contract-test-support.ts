@@ -6,6 +6,8 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import { randomUUID } from 'node:crypto';
 import postgres from 'postgres';
 
+import { authRequestAuthority } from './auth-request-authority';
+import { databaseHooks } from './hooks';
 import { userSchemaConfig } from './schema';
 
 export const sqlClient = postgres(
@@ -41,6 +43,9 @@ export function contractAuth(delivery: () => Promise<void> = async () => {}) {
       },
     }),
     user: userSchemaConfig,
+    hooks: { before: authRequestAuthority },
+    databaseHooks,
+    emailAndPassword: { enabled: true },
     rateLimit: { enabled: false },
     session: { cookieCache: { enabled: true, maxAge: 300 } },
     plugins: [
@@ -57,10 +62,15 @@ export function contractAuth(delivery: () => Promise<void> = async () => {}) {
   });
 }
 
-function request(path: string, body: Record<string, unknown>) {
+function request(path: string, body: Record<string, unknown>, cookie?: string) {
   return new Request(`http://localhost:3000/api/auth/${path}`, {
     method: 'POST',
-    headers: { host: 'localhost:3000', 'content-type': 'application/json' },
+    headers: {
+      host: 'ida.localhost:3000',
+      origin: 'http://localhost:3000',
+      'content-type': 'application/json',
+      ...(cookie ? { cookie } : {}),
+    },
     body: JSON.stringify(body),
   });
 }
@@ -69,15 +79,31 @@ export function send(auth: ReturnType<typeof contractAuth>, email: string) {
   return auth.handler(request('email-otp/send-verification-otp', { email, type: 'sign-in' }));
 }
 
-export function verify(auth: ReturnType<typeof contractAuth>, email: string, otp: string) {
+export function verify(
+  auth: ReturnType<typeof contractAuth>,
+  email: string,
+  otp: string,
+  withOnboarding = true
+) {
   return auth.handler(
     request('sign-in/email-otp', {
       email,
       otp,
-      tenantId: 'tenant_ks',
-      tenantClassificationPending: true,
+      ...(withOnboarding ? { onboarding: { tenant: 'tenant_ks', mode: 'deferred' } } : {}),
     })
   );
+}
+
+export function signUp(auth: ReturnType<typeof contractAuth>, body: Record<string, unknown>) {
+  return auth.handler(request('sign-up/email', body));
+}
+
+export function updateUser(
+  auth: ReturnType<typeof contractAuth>,
+  body: Record<string, unknown>,
+  cookie: string
+) {
+  return auth.handler(request('update-user', body, cookie));
 }
 
 export function cookieHeaderFrom(response: Response) {
@@ -93,7 +119,7 @@ export async function insertRegisteredUser(email: string) {
     insert into "user"
       ("id", "tenant_id", "name", "email", "emailVerified", "role", "tenant_classification_pending", "createdAt", "updatedAt")
     values
-      (${randomUUID()}, 'tenant_ks', 'Registered', ${email}, true, 'user', false, now(), now())
+      (${randomUUID()}, 'tenant_ks', 'Registered', ${email}, true, 'member', false, now(), now())
   `;
 }
 

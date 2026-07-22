@@ -17,6 +17,10 @@ import { Code, Eye, EyeOff, Shield } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
+import {
+  buildEmailOnboardingPayload,
+  buildSocialOnboardingPayload,
+} from './register-onboarding-payload';
 
 export function RegisterForm({
   githubOAuthEnabled = false,
@@ -65,8 +69,7 @@ export function RegisterForm({
         password,
         name,
         callbackURL: loginHref,
-        tenantId: resolvedTenantId,
-        tenantClassificationPending,
+        ...buildEmailOnboardingPayload(resolvedTenantId, tenantClassificationPending),
       };
 
       const { error: signUpError } = await authClient.signUp.email(signUpPayload);
@@ -95,12 +98,7 @@ export function RegisterForm({
       provider,
       callbackURL: `${window.location.origin}${loginHref}`,
       ...(resolvedTenantId
-        ? {
-            additionalData: {
-              tenantId: resolvedTenantId,
-              tenantClassificationPending,
-            },
-          }
+        ? buildSocialOnboardingPayload(resolvedTenantId, tenantClassificationPending)
         : {}),
     });
   };

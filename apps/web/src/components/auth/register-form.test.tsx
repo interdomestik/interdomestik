@@ -5,7 +5,6 @@ import { authClient } from '@/lib/auth-client';
 
 let mockSearchParams = new URLSearchParams('');
 
-// Mock authClient
 vi.mock('@/lib/auth-client', () => ({
   authClient: {
     signUp: {
@@ -17,7 +16,6 @@ vi.mock('@/lib/auth-client', () => ({
   },
 }));
 
-// Mock next-intl
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => {
     const translations: Record<string, string> = {
@@ -44,7 +42,6 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/en/register',
 }));
 
-// Mock routing
 vi.mock('@/i18n/routing', () => ({
   Link: ({ children, href }: { children: React.ReactNode; href: string }) => (
     <a href={href}>{children}</a>
@@ -58,59 +55,26 @@ describe('RegisterForm', () => {
     mockSearchParams = new URLSearchParams('');
   });
 
-  it('renders the title and subtitle', () => {
+  it('renders the complete default registration surface', () => {
     render(<RegisterForm />);
-
     expect(screen.getByText('Create Account')).toBeInTheDocument();
     expect(screen.getByText('Get started with your account')).toBeInTheDocument();
-  });
-
-  it('renders all form fields', () => {
-    render(<RegisterForm />);
-
     expect(screen.getByLabelText('Full Name')).toBeInTheDocument();
     expect(screen.getByLabelText('Email')).toBeInTheDocument();
     expect(screen.getByLabelText('Password')).toBeInTheDocument();
-  });
-
-  it('renders terms checkbox', () => {
-    render(<RegisterForm />);
-
     expect(screen.getByText('I agree to the Terms of Service')).toBeInTheDocument();
-  });
-
-  it('does not render GitHub OAuth button by default', () => {
-    render(<RegisterForm />);
-
     expect(screen.queryByText('GitHub')).not.toBeInTheDocument();
-  });
-
-  it('renders GitHub OAuth button when enabled', () => {
-    render(<RegisterForm githubOAuthEnabled />);
-
-    expect(screen.getByText('GitHub')).toBeInTheDocument();
-  });
-
-  it('has login link for existing users', () => {
-    render(<RegisterForm />);
-
     expect(screen.getByText('Already have an account?')).toBeInTheDocument();
-    const loginLink = screen.getByText('Sign in');
-    expect(loginLink.closest('a')).toHaveAttribute('href', '/login');
-  });
-
-  it('renders submit button', () => {
-    render(<RegisterForm />);
-
+    expect(screen.getByText('Sign in').closest('a')).toHaveAttribute('href', '/login');
     expect(screen.getByText('Sign Up')).toBeInTheDocument();
     expect(
       screen.getByText('Your account keeps cases, documents, and history safe. No spam.')
     ).toBeInTheDocument();
   });
 
-  it('shows "or" divider for social login when GitHub OAuth is enabled', () => {
+  it('renders optional GitHub affordances', () => {
     render(<RegisterForm githubOAuthEnabled />);
-
+    expect(screen.getByText('GitHub')).toBeInTheDocument();
     expect(screen.getByText('or')).toBeInTheDocument();
   });
 
@@ -122,8 +86,17 @@ describe('RegisterForm', () => {
     expect(loginLink).toHaveAttribute('href', '/login?plan=family');
   });
 
-  it('persists deferred tenant-classification flag during signup', async () => {
-    render(<RegisterForm tenantId="tenant_ks" tenantClassificationPending />);
+  it('sends only a distinct onboarding selector for email and social registration', async () => {
+    render(<RegisterForm tenantId="tenant_ks" tenantClassificationPending githubOAuthEnabled />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'GitHub' }));
+    await vi.waitFor(() =>
+      expect(authClient.signIn.social).toHaveBeenCalledWith(
+        expect.objectContaining({
+          additionalData: { onboarding: { tenant: 'tenant_ks', mode: 'deferred' } },
+        })
+      )
+    );
 
     fireEvent.change(screen.getByLabelText('Full Name'), { target: { value: 'John Doe' } });
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'john@example.com' } });
@@ -136,10 +109,14 @@ describe('RegisterForm', () => {
         expect.objectContaining({
           email: 'john@example.com',
           name: 'John Doe',
-          tenantId: 'tenant_ks',
-          tenantClassificationPending: true,
+          onboarding: { tenant: 'tenant_ks', mode: 'deferred' },
         })
       )
+    );
+    expect(authClient.signUp.email).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: expect.anything(),
+      })
     );
   });
 });

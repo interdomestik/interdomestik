@@ -1,3 +1,5 @@
+import { parseOnboardingSelector } from '@/lib/auth/onboarding-authority';
+
 export type NeutralOtpKind = 'send' | 'verify';
 
 const SEND_PATH = '/api/auth/email-otp/send-verification-otp';
@@ -72,8 +74,12 @@ export function extractNeutralOtpEmail(body: unknown): string | null {
 }
 
 export function hasValidNeutralVerifyHints(body: unknown, defaultTenantId: string): boolean {
-  const value = record(body);
-  return value?.tenantId === defaultTenantId && value.tenantClassificationPending === true;
+  const parsed = parseOnboardingSelector(body);
+  return (
+    parsed.kind === 'valid' &&
+    parsed.selector.tenant === defaultTenantId &&
+    parsed.selector.mode === 'deferred'
+  );
 }
 
 export function otpUnavailable(status = 400): Response {
