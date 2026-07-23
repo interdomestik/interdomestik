@@ -253,8 +253,8 @@ describe('TaskQueueControls', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Try again')).toBeTruthy();
+      expect(screen.getByTestId('agent-crm-task-queue-start')).not.toBeDisabled();
     });
-    expect(screen.getByTestId('agent-crm-task-queue-start')).not.toBeDisabled();
     expect(hoisted.refreshMock).not.toHaveBeenCalled();
   });
 
@@ -303,8 +303,7 @@ describe('TaskQueueControls', () => {
 
   it('suppresses duplicate priority submissions while the row is pending', async () => {
     let resolvePriority:
-      | ((value: { readonly priority: 'urgent'; readonly success: true }) => void)
-      | undefined;
+      ((value: { readonly priority: 'urgent'; readonly success: true }) => void) | undefined;
     hoisted.prioritySubmitMock.mockReturnValueOnce(
       new Promise(resolve => {
         resolvePriority = resolve;
