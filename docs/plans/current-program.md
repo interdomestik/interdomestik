@@ -1916,6 +1916,31 @@ runner/CD use, UI/product, runtime AI, Eval v2 and every successor remain blocke
 or unpromoted. A fresh current-authority/design gate must disposition the new
 Sonar security signal before creating the next implementation child.
 
+Rev 157 supersedes the Rev 156 terminal no-promotion sentence above.
+The next active governed implementation goal is exactly one canonical tracker
+slice: `IDA-SEC02`, a future Tier-3 security prerequisite promoted by
+`IDA-SEC-DG02` and limited to removing confidential-data exposure from
+`scripts/ci/wait-for-vercel-health.mjs` while preserving polling, provenance and
+hard-failure semantics. The future writer map is exactly the poller, its existing
+focused test and deterministic `scripts/repo-size-budget.json`; any fourth path
+stops. The gate is bound to clean exact main
+`1be91a6814b00afb87424f7a67b877d87194c309` / tree
+`4007d7e791aadd08bee80dc0c715e07238b1a2e5` and the newly surfaced critical
+Sonar issue `AZ-PjPUTEQjECzTb2IEc` / `jssecurity:S8689`.
+The accepted gate artifact is exactly 10,808 UTF-8 bytes at SHA-256
+`c03eb9882810d513cd786541f82b485b3e1bd1d25a77bb13831d1f146b43eccd`;
+same-hash Sonnet 4.6 and Gemini 3.1 Pro final reviews passed with no remaining
+actionable finding.
+
+This docs-only promotion keeps runtime, workflow dispatch, provider contact,
+alias/environment mutation, deployment, production and database authority
+false. Implementation requires a separate exact runtime-authority receipt on
+the then-current main and exactly one fresh worktree-backed child. The future
+child is assigned `gpt-5.6-sol` with `xhigh` reasoning for the narrow but
+security-sensitive shared CI boundary. The historical workflow Sonar issue,
+frozen `IDA-UI03a2`, Z620 runner/CD use, UI/product, runtime AI, Eval v2 and all
+other successors remain blocked or unpromoted.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
