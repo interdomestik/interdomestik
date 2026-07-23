@@ -10,7 +10,6 @@ const read = relativePath => fs.readFileSync(path.join(root, relativePath), 'utf
 test('Playwright accepts an isolated port and propagates it to trusted origins', () => {
   const source = read('apps/web/playwright.config.ts');
   assert.match(source, /process\.env\.PW_PORT/);
-  assert.match(source, /process\.env\.PILOT_HOST = PILOT_HOST/);
   assert.match(source, /127\.0\.0\.1:\$\{PORT\}/);
   assert.doesNotMatch(source, /127\.0\.0\.1:3000/);
 });
@@ -34,6 +33,7 @@ test('resource runner keeps gatekeeper and Playwright build modes aligned', () =
   assert.match(source, /BILLING_TEST_MODE: '1'/);
   assert.match(source, /DATABASE_URL: databaseConnection/);
   assert.match(source, /DATABASE_URL_RLS: databaseConnection/);
+  assert.match(source, /PILOT_HOST: `pilot\.127\.0\.0\.1\.nip\.io:\$\{reservation\.port\}`/);
   assert.match(source, /HOSTNAME: '127\.0\.0\.1'/);
   assert.match(source, /E2E_PASSWORD: e2ePassword/);
   assert.match(source, /RELEASE_GATE_ADMIN_MK_PASSWORD: e2ePassword/);

@@ -62,6 +62,7 @@ try {
       E2E_DATABASE_URL: databaseConnection,
       E2E_DATABASE_URL_RLS: databaseConnection,
       PW_PORT: String(reservation.port),
+      PILOT_HOST: `pilot.127.0.0.1.nip.io:${reservation.port}`,
       HOSTNAME: '127.0.0.1',
       INTERDOMESTIK_TASK_OWNS_PORT: '1',
       SKIP_DOCKER_DOCTOR: '1',

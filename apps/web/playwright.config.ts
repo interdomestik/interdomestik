@@ -208,7 +208,6 @@ const PILOT_HOST = normalizeLoopbackTenantHost(
 const IDA_HOST = normalizeLoopbackTenantHost(
   envOrFallback('IDA_HOST', `ida.${BIND_HOST}.nip.io:${PORT}`)
 );
-process.env.PILOT_HOST = PILOT_HOST;
 process.env.IDA_HOST = IDA_HOST;
 
 fs.mkdirSync(TEST_RESULTS_DIR, { recursive: true });
