@@ -41,6 +41,14 @@ test('redaction removes provider secrets and database passwords', () => {
   assert.match(output, /\[REDACTED\]/);
 });
 
+test('redaction removes Playwright session cookies and bearer values', () => {
+  const output = redact(
+    '{"name":"better-auth.session_token","value":"local-session-value"}\nAuthorization: Bearer abc'
+  );
+  assert.doesNotMatch(output, /local-session-value|Bearer abc/);
+  assert.match(output, /"value":"\[REDACTED\]"/);
+});
+
 test('captured command output is redacted without shell evaluation', () => {
   const result = captureCommand(
     process.execPath,

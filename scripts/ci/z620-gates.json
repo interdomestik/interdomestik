@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "lanes": {
+    "validation": {
+      "commands": [["node", "scripts/ci/z620-validation-surface.mjs"]]
+    },
+    "audit": {
+      "commands": [
+        ["pnpm", "repo:size:check"],
+        ["node", "scripts/check-env-ci.mjs"],
+        ["pnpm", "test:ci:contracts"],
+        ["pnpm", "check:e2e-contracts:base"],
+        ["pnpm", "lint:production-warnings"],
+        ["pnpm", "track:audit"],
+        ["pnpm", "plan:audit"],
+        ["pnpm", "purity:audit"],
+        ["pnpm", "db:migrations:check-journal"],
+        ["pnpm", "check:e2e-quarantine-budget"]
+      ]
+    },
+    "static": {
+      "commands": [
+        ["pnpm", "-w", "lint"],
+        ["pnpm", "-w", "type-check"],
+        ["pnpm", "-w", "check:entrypoints:strict"],
+        ["pnpm", "-w", "i18n:check"],
+        ["pnpm", "-w", "i18n:purity:check"]
+      ]
+    },
+    "unit": {
+      "commands": [
+        ["pnpm", "coverage:gate"],
+        ["pnpm", "test:release-gate"]
+      ]
+    },
+    "ai-eval": {
+      "conditional": true,
+      "commands": [["pnpm", "ai:eval"]]
+    },
+    "database": {
+      "commands": [
+        ["pnpm", "db:migrate"],
+        ["pnpm", "db:rls:test:required"]
+      ]
+    },
+    "build": {
+      "commands": [["pnpm", "--filter", "@interdomestik/web", "build"]]
+    },
+    "security": {
+      "commands": [
+        ["pnpm", "security:guard"],
+        ["node", "scripts/ci/z620-security-audit.mjs"]
+      ]
+    },
+    "e2e-pr": {
+      "resourceOwned": true,
+      "commands": [["pnpm", "e2e:gate:pr"]]
+    },
+    "e2e-merge": {
+      "resourceOwned": true,
+      "commands": [["pnpm", "e2e:gate"]]
+    },
+    "pilot": {
+      "resourceOwned": true,
+      "commands": [["pnpm", "release:gate:p0"]]
+    }
+  },
+  "jobCoverage": {
+    ".github/workflows/ci.yml#validation-surface": ["validation"],
+    ".github/workflows/ci.yml#audit": ["audit"],
+    ".github/workflows/ci.yml#static": ["static"],
+    ".github/workflows/ci.yml#unit": ["unit"],
+    ".github/workflows/ci.yml#ai-eval": ["ai-eval"],
+    ".github/workflows/ci.yml#e2e-gate": ["database", "e2e-merge"],
+    ".github/workflows/security.yml#pnpm-audit": ["security"],
+    ".github/workflows/e2e-pr.yml#e2e-preflight": ["validation"],
+    ".github/workflows/e2e-pr.yml#e2e-runner": ["database", "e2e-pr"],
+    ".github/workflows/e2e-pr.yml#e2e": ["e2e-pr"],
+    ".github/workflows/pilot-gate.yml#pilot-gate-preflight": ["validation"],
+    ".github/workflows/pilot-gate.yml#pilot-gate-runner": ["build", "pilot"],
+    ".github/workflows/pilot-gate.yml#pilot-gate": ["pilot"]
+  }
+}

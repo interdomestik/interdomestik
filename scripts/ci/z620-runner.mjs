@@ -13,6 +13,7 @@ import {
   validateParity,
   writeJson,
 } from './z620-runner-lib.mjs';
+import { validateGateCoverage, validateWorkflowDigests } from './z620-parity-lib.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const args = Object.fromEntries(
@@ -31,8 +32,13 @@ const sha = String(
 const runsRoot = path.resolve(String(args['runs-root'] || '/home/arben/ci/interdomestik/runs'));
 const stateRoot = path.resolve(String(args['state-root'] || '/home/arben/ci/interdomestik/state'));
 const parity = JSON.parse(fs.readFileSync(path.join(root, 'scripts/ci/z620-parity.json'), 'utf8'));
+const gates = JSON.parse(fs.readFileSync(path.join(root, 'scripts/ci/z620-gates.json'), 'utf8'));
 
-const problems = validateParity(root, parity);
+const problems = [
+  ...validateParity(root, parity),
+  ...validateWorkflowDigests(root, parity),
+  ...validateGateCoverage(parity, gates),
+];
 if (problems.length) {
   console.error(problems.join('\n'));
   process.exit(1);
@@ -66,6 +72,9 @@ try {
   const parityEvidence = {
     status: 'pass',
     workflows: parity.workflows,
+    workflowDigests: parity.workflowDigests,
+    jobCoverage: gates.jobCoverage,
+    lanes: Object.keys(gates.lanes).sort(),
     requiredSecretNames: parity.requiredSecretNames,
   };
   const results = {

@@ -18,7 +18,12 @@ export function redact(text, env = process.env) {
     if (!/(token|secret|password|private|api_key|dsn)/i.test(name) || !value) continue;
     output = output.split(String(value)).join('[REDACTED]');
   }
-  return output.replace(/(postgres(?:ql)?:\/\/[^:\s/]+:)[^@\s]+@/gi, '$1[REDACTED]@');
+  output = output.replace(/(postgres(?:ql)?:\/\/[^:\s/]+:)[^@\s]+@/gi, '$1[REDACTED]@');
+  output = output.replace(
+    /("name"\s*:\s*"better-auth\.session_token"[\s\S]{0,200}?"value"\s*:\s*")[^"]+/gi,
+    '$1[REDACTED]'
+  );
+  return output.replace(/(authorization:\s*bearer\s+)\S+/gi, '$1[REDACTED]');
 }
 
 export function workflowJobs(root, workflowPath) {
