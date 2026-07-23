@@ -40,7 +40,7 @@ export function appendPullRequestScannerProperties(
 }
 
 export function buildNativeScannerArgs(scannerProperties) {
-  return ['dlx', '--package=@sonar/scan', 'sonar-scanner', ...scannerProperties];
+  return ['dlx', '--package=@sonar/scan', 'sonar-scanner-npm', ...scannerProperties];
 }
 
 const SONARCLOUD_HOST_URL = 'https://sonarcloud.io';

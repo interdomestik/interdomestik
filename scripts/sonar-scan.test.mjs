@@ -66,7 +66,7 @@ test('buildNativeScannerArgs places dlx before package selection', () => {
   assert.deepEqual(buildNativeScannerArgs(['-Dsonar.host.url=https://sonarcloud.io']), [
     'dlx',
     '--package=@sonar/scan',
-    'sonar-scanner',
+    'sonar-scanner-npm',
     '-Dsonar.host.url=https://sonarcloud.io',
   ]);
 });
