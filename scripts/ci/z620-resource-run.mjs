@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
 import { execFileSync } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 import {
   createTaskDatabase,
@@ -33,6 +34,7 @@ const stateRoot = path.resolve(
 const database = taskDatabaseName(sha, lane, attempt);
 const reservation = await reserveE2ePort(stateRoot, `${database}:${process.pid}`);
 const databaseConnection = databaseUrl(database);
+const authSecret = process.env.BETTER_AUTH_SECRET || randomBytes(32).toString('base64url');
 let created = false;
 let forgejoFailures = 0;
 
@@ -62,6 +64,7 @@ try {
       SKIP_DOCKER_DOCTOR: '1',
       BILLING_TEST_MODE: '1',
       NEXT_PUBLIC_BILLING_TEST_MODE: '1',
+      BETTER_AUTH_SECRET: authSecret,
     },
   });
   const monitor = setInterval(checkForgejo, 2000);

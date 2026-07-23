@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
+import { availableMemoryGiB, hasFullWarmHit, turboCacheSummary } from './z620-benchmark-lib.mjs';
 
 const source = fs.readFileSync(new URL('./z620-p4-benchmark.mjs', import.meta.url), 'utf8');
 
@@ -20,4 +21,11 @@ test('requires memory headroom and stable PostgreSQL restart count', () => {
   assert.match(source, /availableGiB < 12/);
   assert.match(source, /postgresBefore\.output === postgresAfter\.output/);
   assert.match(source, /warm\.durationMs < cold\.durationMs/);
+});
+
+test('parses ANSI Turbo summaries and requires a full warm hit', () => {
+  const summary = turboCacheSummary('\u001b[32m Cached:\u001b[0m    2 cached, 2 total');
+  assert.equal(summary, 'Cached:    2 cached, 2 total');
+  assert.equal(hasFullWarmHit(summary), true);
+  assert.equal(availableMemoryGiB('MemAvailable:    12582912 kB\n'), 12);
 });

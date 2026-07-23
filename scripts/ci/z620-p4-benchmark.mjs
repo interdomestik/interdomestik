@@ -2,6 +2,7 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { availableMemoryGiB, hasFullWarmHit, turboCacheSummary } from './z620-benchmark-lib.mjs';
 import { captureCommand, redact, safeId, writeJson } from './z620-runner-lib.mjs';
 
 const args = Object.fromEntries(
@@ -25,10 +26,7 @@ if (!cacheDir.startsWith(`${cacheRoot}${path.sep}`) || fs.existsSync(cacheDir)) 
 fs.mkdirSync(path.join(evidenceDir, 'logs'), { recursive: true, mode: 0o700 });
 fs.mkdirSync(cacheDir, { recursive: true, mode: 0o700 });
 
-const memAvailableKiB = Number(
-  fs.readFileSync('/proc/meminfo', 'utf8').match(/^MemAvailable:\s+(\d+)/m)?.[1] || 0
-);
-const availableGiB = memAvailableKiB / 1024 ** 2;
+const availableGiB = availableMemoryGiB();
 if (availableGiB < 12)
   throw new Error(`P4 requires 12 GiB available; found ${availableGiB.toFixed(1)}`);
 const postgresBefore = captureCommand('docker', [
@@ -64,7 +62,7 @@ function runTask(name, cpuList, command, commandArgs, round) {
         status: code === 0 ? 'pass' : 'fail',
         exitCode: code ?? 1,
         durationMs: Date.now() - started,
-        cacheSummary: output.match(/Cached:\\s+[^\\n]+/)?.[0] || 'not-reported',
+        cacheSummary: turboCacheSummary(output),
         log: `logs/${log}`,
       });
     });
@@ -122,6 +120,7 @@ const evidence = {
     rounds.flat().every(result => result.status === 'pass') &&
     postgresBefore.output === postgresAfter.output &&
     forgejo.output === '200' &&
+    hasFullWarmHit(warm.cacheSummary) &&
     warm.durationMs < cold.durationMs
       ? 'pass'
       : 'fail',
