@@ -69,19 +69,23 @@ test('deploy action exports rollback controls without expanding historical job o
 test('preimage is uploaded before checks and atomically confirms alias movement', () => {
   const steps = cd.jobs['deploy-staging'].steps;
   const upload = findStep(steps, 'Upload staging alias preimage receipt');
+  const download = findStep(rollback.steps, 'Download staging alias preimage receipt');
+  const deployReceipt = cd.jobs['deploy-staging'].env.STAGING_PREIMAGE_RECEIPT_PATH;
+  const downloadedReceipt = `${download.with.path}/${path.posix.basename(deployReceipt)}`;
   const deployIndex = stepIndex(steps, 'Deploy Staging to Vercel');
   const uploadIndex = stepIndex(steps, upload.name);
   const healthIndex = stepIndex(steps, 'Wait for Staging Health');
   assert.ok(deployIndex < uploadIndex && uploadIndex < healthIndex);
+  assert.equal(upload.with.name, download.with.name);
+  assert.equal(upload.with.path, '${{ env.STAGING_PREIMAGE_RECEIPT_PATH }}');
+  assert.equal(rollback.env.STAGING_PREIMAGE_RECEIPT_PATH, downloadedReceipt);
   assert.match(upload.if, /always\(\)/u);
   assert.doesNotMatch(upload.if, /alias_moved/u);
   assert.equal(upload.with['if-no-files-found'], 'ignore');
   const snapshot = configure.indexOf('aliasMoved: false');
   const assignment = configure.indexOf('await aliasStagingDeployment', snapshot);
   const moved = configure.indexOf('aliasMoved: true', assignment);
-  const snapshotPrecedesAssignment = snapshot < assignment;
-  const assignmentPrecedesMovement = assignment < moved;
-  assert.ok(snapshotPrecedesAssignment && assignmentPrecedesMovement);
+  assert.ok(snapshot < assignment && assignment < moved);
 });
 
 test('post-alias red deploy job restores only from a confirmed receipt', () => {
