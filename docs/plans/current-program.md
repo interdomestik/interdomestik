@@ -1872,6 +1872,50 @@ production action, product/UI, proxy/auth/routing/tenancy, schema/RLS/database,
 package/lockfile, AI/Eval, Brain/AI OS adapter, frozen `IDA-UI03a2` chain or other
 successor work is authorized by Rev 155.
 
+Rev 156 closeout consumes the sole `IDA-CD01` promotion through implementation PR
+`#1415`, final head `8ded18d9f9869f027f7831f4deae5ac6ab9a6a52` and squash
+merge/main SHA `280ea41908639e3e9807191a711553276d5c650d`. The accepted R1
+gate remains exact at 12,974 UTF-8 bytes / SHA-256
+`87e3683f1150cc5eb7a2fca4638cc6bb865d9cf850017594b1ca96bd5ad83357`;
+the exact 8,257-byte runtime-authority receipt remains SHA-256
+`544156dda6b15836061219e3a2a880ad135a4bc7680df8221a049b622a2dde5a`.
+The exact seven-path implementation contains 622 insertions / 224 deletions and
+canonical full-index binary base-to-head diff SHA-256
+`0256e002a450efb1c4c43c86bce502eafb2188ec1450229e3348c46bd1f4a99c`;
+the exact generating command is preserved in the canonical closeout.
+It preserves the frozen attestation test, ordinary-push production skips,
+cancellation incident stop and fail-closed provider boundary.
+
+Focused proof, current-head CI/E2E/Pilot/Sonar/CodeQL/security/finalizer,
+zero-blocker feedback intake, resolved threads, Opus final-delta PASS and Copilot
+current-head clean disposition passed. Final-head Codex remained unavailable
+after a bounded acknowledged request and is not claimed as approval; Sonnet
+no-output and Gemini plan/quota blockers are also NON-PASS. Exact CD run
+`30019447228` was cancelled with every job at `steps: []`, before checkout,
+registry login, image build, provider mutation or deploy. Exact-main CI
+`30019443596`, CodeQL `30019439797` / `30019440069` and Secret Scan
+`30019447158` passed; audit is high `0` / critical `0`.
+
+Sonar Main `30019443913` is NON-PASS for historical untouched issue
+`AZ-ACoVO5G2i53uX0BTV` and newly surfaced issue
+`AZ-PjPUTEQjECzTb2IEc` at untouched
+`scripts/ci/wait-for-vercel-health.mjs:29`. The latter file has identical base and
+merge blob `c6d8e7d144de3adc1c47417a3406cb1e5682a19b`, is outside the
+seven-path map and requires separate current authority rather than an eighth-path
+closeout edit. AI OS observation
+`10f5cfe85345d0b1f1a1eb3eac17fce84b861db64dce3ed16d376dee4405a92b`
+confirms clean exact main and runtime not authorized; its pre-closeout
+`activeSlice=null` inference conflicted with the canonical resolver, so repo
+authority governed. Brain failed closed once on a stale source snapshot and makes
+no usefulness/ROI claim.
+
+The runtime authority is consumed. No replacement slice is promoted; expected
+resolver state is `blocked_requires_current_authority`, `activeSlice=null`.
+Provider, alias, deployment, production, database, frozen `IDA-UI03a2`, Z620
+runner/CD use, UI/product, runtime AI, Eval v2 and every successor remain blocked
+or unpromoted. A fresh current-authority/design gate must disposition the new
+Sonar security signal before creating the next implementation child.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
