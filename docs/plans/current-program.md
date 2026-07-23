@@ -1819,6 +1819,46 @@ promoted; expected resolver state is `blocked_requires_current_authority`,
 `activeSlice=null`. PR `#1410` remains a separate unmerged current-authority
 candidate and grants no `IDA-CD01` implementation authority.
 
+Rev 155 current authority promotes exactly one next governed implementation goal,
+`IDA-CD01`, under accepted CD/Staging stabilization gate `IDA-CD-DG01` at
+`docs/plans/2026-07-23-ida-cd-dg01-staging-alias-rollback-gate.md`. The canonical
+gate is byte-identical to the accepted external packet: exactly 11,131 UTF-8 bytes
+at SHA-256
+`7402ae763f5d89085ef4d8fdeaa7b82068258f5a186b77103653fce7dd253507`,
+bound to clean base `0b85b20af3ce8cf2b28608a1c9e47a7499704291`. The root
+orchestrator selected that exact gate and sole successor after fresh repository,
+AI OS, CD-history, runner and Vercel-control evidence. Final Sonnet 4.6 review
+passed after all findings were incorporated.
+
+The sole future outcome is a fail-closed preimage and rollback control for
+`staging.interdomestik.com`: snapshot and verify the exact same-project/team
+deployment and commit before alias mutation, preserve the existing verified
+candidate and attestation contracts, restore the exact preimage when post-alias
+staging E2E fails, verify canonical health against the prior commit, and leave a
+bounded redacted receipt without converting rollback failure to success.
+Cancellation after alias movement does not claim automatic recovery; it freezes
+staging and returns to fresh incident authority with the captured preimage.
+
+Future implementation is limited to exactly seven writer paths:
+`.github/workflows/cd.yml`,
+`.github/actions/trigger-digest-verified-deploy/action.yml`,
+`scripts/ci/configure-vercel-gate-url.mjs`,
+new `scripts/ci/vercel-staging-alias-state.mjs`,
+new `scripts/ci/vercel-staging-alias-state.test.mjs`,
+`scripts/ci/cd-deploy-env-scope.test.mjs`, and deterministic-only
+`scripts/repo-size-budget.json`. Any eighth writer path stops for a fresh exact
+disposition. `scripts/ci/cd-attestation-contract.test.mjs` is frozen read-only
+proof, and `cd-deploy-env-scope.test.mjs` is the only authorized workflow-contract
+test home.
+
+This docs-only Tier 0 promotion keeps `runtime_authorized:false`,
+`deployment_authorized:false`, and `production_authorized:false`. Prospective
+implementation is Tier 3 and requires separate exact authority on the then-current
+main. No deployment, rerun, alias/provider call, runner migration, HP Z620 change,
+production action, product/UI, proxy/auth/routing/tenancy, schema/RLS/database,
+package/lockfile, AI/Eval, Brain/AI OS adapter, frozen `IDA-UI03a2` chain or other
+successor work is authorized by Rev 155.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
