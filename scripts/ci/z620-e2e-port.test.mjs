@@ -8,8 +8,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const read = relativePath => fs.readFileSync(path.join(root, relativePath), 'utf8');
 
 test('Playwright accepts an isolated port and propagates it to trusted origins', () => {
-  const source = read('apps/web/playwright.config.ts');
-  assert.match(source, /process\.env\.PW_PORT/);
+  const source = `${read('apps/web/playwright.config.ts')}\n${read('apps/web/playwright-network.ts')}`;
+  assert.match(source, /environment\.PW_PORT/);
   assert.match(source, /127\.0\.0\.1:\$\{PORT\}/);
   assert.doesNotMatch(source, /127\.0\.0\.1:3000/);
 });
@@ -21,7 +21,7 @@ test('webserver tenant origins use the selected port', () => {
 });
 
 test('gatekeeper checks only the selected task port', () => {
-  const source = read('scripts/m4-gatekeeper.sh');
+  const source = `${read('scripts/m4-gatekeeper.sh')}\n${read('scripts/e2e-port-guard.sh')}`;
   assert.match(source, /E2E_PORT="\$\{PW_PORT:-\$\{PORT:-3000\}\}"/);
   assert.match(source, /lsof -ti:"\$\{E2E_PORT\}"/);
   assert.doesNotMatch(source, /lsof -ti:3000/);

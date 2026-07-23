@@ -89,12 +89,12 @@ test('validation-orchestration scripts require an explicit label before full mul
     evaluateMultiAgentPolicy({
       eventName: 'pull_request',
       labels: [],
-      changedFiles: ['scripts/m4-gatekeeper.sh'],
+      changedFiles: ['scripts/e2e-port-guard.sh', 'scripts/sonar-scan-runtime.mjs'],
     }),
     {
       shouldRun: false,
       reason: 'label_required_for_high_risk_paths',
-      matchedPaths: ['scripts/m4-gatekeeper.sh'],
+      matchedPaths: ['scripts/e2e-port-guard.sh', 'scripts/sonar-scan-runtime.mjs'],
     }
   );
 });

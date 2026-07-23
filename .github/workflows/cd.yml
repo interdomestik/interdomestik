@@ -277,34 +277,29 @@ jobs:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
       - uses: ./.github/actions/setup
         with: { install-playwright: 'true' }
-
       - name: Validate optional Sentry Seer configuration
         shell: bash
         run: |
           set -euo pipefail
           sentry_vars=(SENTRY_AUTH_TOKEN SENTRY_ORG SENTRY_PROJECT)
           sentry_missing=()
-
           for name in "${sentry_vars[@]}"; do
             if [[ -z "${!name:-}" ]]; then
               sentry_missing+=("${name}")
             fi
           done
-
           if (( ${#sentry_missing[@]} == 0 )); then
             echo "SENTRY_SEER_ENABLED=true" >> "$GITHUB_ENV"
           else
             echo "::warning::Skipping Sentry Seer sweep due to missing configuration: ${sentry_missing[*]}"
             echo "SENTRY_SEER_ENABLED=false" >> "$GITHUB_ENV"
           fi
-
       - name: Open Sentry Seer sweep window
         if: env.SENTRY_SEER_ENABLED == 'true'
         shell: bash
         env:
           SENTRY_SWEEP_CONTEXT: post-deploy verification
         run: bash scripts/sentry-seer-sweep.sh pre
-
       - name: Health Check
         shell: bash
         run: |
@@ -316,7 +311,6 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/ci/fetch-vercel-health.mjs "${BASE_URL}/api/health" "${EXPECTED_COMMIT_SHA}"
-
       - name: Run Production Release Gate
         shell: bash
         run: |
@@ -328,7 +322,6 @@ jobs:
             --baseUrl "${BASE_URL}" \
             --outDir "${EVIDENCE_DIR}/release-gates" \
             2>&1 | tee "${EVIDENCE_DIR}/logs/release-gate-production.log"
-
       - name: Close Sentry Seer sweep window
         if: always() && env.SENTRY_SEER_ENABLED == 'true'
         continue-on-error: true
@@ -336,7 +329,6 @@ jobs:
         env:
           SENTRY_SWEEP_CONTEXT: post-deploy verification
         run: bash scripts/sentry-seer-sweep.sh post
-
       - name: Upload production verification artifacts
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6

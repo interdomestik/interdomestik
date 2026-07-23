@@ -7,7 +7,7 @@
     ".github/workflows/sonar-main-gate.yml": "626baa9e4bc3df173f297829076a2ec4711f36fac3de26e66d3cd1fdde7cc0ef",
     ".github/workflows/pilot-gate.yml": "18a7223afc1c750ed454f29d42576676ecfe35c76f935c8646b3bb33681875d4",
     ".github/workflows/release-candidate.yml": "ec03f5eb63d19bff1e8502257e36d264fed70733ca682f5820cd74af93f99bac",
-    ".github/workflows/cd.yml": "fd28850977bb235ababda420b4eb7280370d28a0f1c54a04c5afca4b98167a78"
+    ".github/workflows/cd.yml": "cc4b291d6d8bd06a4ea86bbf58ceee9a0608fe1a9ae4c466fd51a18fbf264289"
   },
   "workflows": {
     ".github/workflows/ci.yml": {
