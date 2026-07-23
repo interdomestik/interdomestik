@@ -26,3 +26,9 @@ test('gatekeeper checks only the selected task port', () => {
   assert.match(source, /lsof -ti:"\$\{E2E_PORT\}"/);
   assert.doesNotMatch(source, /lsof -ti:3000/);
 });
+
+test('resource runner keeps gatekeeper and Playwright build modes aligned', () => {
+  const source = read('scripts/ci/z620-resource-run.mjs');
+  assert.match(source, /NEXT_PUBLIC_BILLING_TEST_MODE: '1'/);
+  assert.match(source, /BILLING_TEST_MODE: '1'/);
+});

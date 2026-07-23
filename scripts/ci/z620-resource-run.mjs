@@ -58,6 +58,8 @@ try {
       PW_PORT: String(reservation.port),
       INTERDOMESTIK_TASK_OWNS_PORT: '1',
       SKIP_DOCKER_DOCTOR: '1',
+      BILLING_TEST_MODE: '1',
+      NEXT_PUBLIC_BILLING_TEST_MODE: '1',
     },
   });
   const monitor = setInterval(checkForgejo, 2000);
