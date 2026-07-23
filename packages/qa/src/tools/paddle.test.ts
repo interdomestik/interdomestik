@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { getPaddleResource } from './paddle';
+import { getPaddleResource } from './paddle.js';
 
 const ORIGINAL_FETCH = globalThis.fetch;
 const ORIGINAL_PADDLE_KEY = process.env.PADDLE_API_KEY;
