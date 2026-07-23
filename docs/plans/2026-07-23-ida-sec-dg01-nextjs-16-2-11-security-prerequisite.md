@@ -4,7 +4,7 @@ status: accepted_by_orchestrator
 project: interdomestik
 gate: IDA-SEC-DG01
 slice: IDA-SEC01
-revision: R0
+revision: R1
 date: 2026-07-23
 authority: root-orchestrator
 ---
@@ -17,9 +17,10 @@ Promote exactly one security prerequisite slice: `IDA-SEC01`.
 
 `IDA-SEC01` raises the repository's reachable Next.js 16.2 patch floor from
 vulnerable 16.2.6/16.2.9 resolutions to 16.2.11. It is a narrow package,
-peer-floor and lockfile correction. It does not authorize a framework migration,
-codemod, product change, protected architecture change, database or provider
-contact, or deployment.
+peer-floor and lockfile correction plus one exact pre-existing NodeNext
+test-import repair required by the unchanged repository build. It does not
+authorize a framework migration, codemod, product change, protected architecture
+change, database or provider contact, or deployment.
 
 The four current high-severity advisories are real and non-waivable:
 
@@ -77,6 +78,31 @@ must not be copied or treated as acceptance proof.
    repository's React 19 line.
 8. No evidence requires a Next major/minor migration, React change, Inngest
    manifest change, codemod or application-source compatibility edit.
+9. In the sole fresh-worktree child, the unchanged `pnpm build` command failed
+   before a completed Next build at
+   `packages/qa/src/tools/paddle.test.ts:4` with TypeScript `TS2835` because
+   `./paddle` lacks the `.js` extension required by that package's existing
+   NodeNext module resolution. The file, QA manifest and QA TypeScript config
+   are byte-identical to the exact base; the import dates to commit
+   `0318b7acd6521a012bf0f98802465e098578e47d`; TypeScript remains 5.9.3; and
+   this is the sole extensionless relative import in that NodeNext package.
+   Root `pnpm build` includes the QA package through `turbo build`, while the
+   current PR/release workflows build only the filtered web app with `build:ci`
+   and never invoke root `pnpm build`; therefore current main CI did not expose
+   the existing QA error.
+10. No existing open PR owns the repair. A separate QA PR cannot merge first
+    because it inherits the same non-waivable Next.js audit failure, while a
+    build waiver would bypass this gate's acceptance contract. The root asked
+    for approval to revise PR `#1411` to R1, add only
+    `packages/qa/src/tools/paddle.test.ts`, authorize only
+    `./paddle` to `./paddle.js`, issue a new hash/review and rebind the existing
+    child. Arben replied exactly `Po` in root task
+    `019f8dc2-a54d-76c2-b860-1167dace09a6`.
+11. The exact first-build failure is preserved in the 2,645-byte external
+    receipt at
+    `/Users/arbenlila/Documents/Knowledge Manager and Systems Architect/Notes/decisions/2026-07-23-interdomestik-ida-sec01-wrapped-build-blocker-receipt.md`,
+    SHA-256
+    `bbedd503d94ed215c556b22d2d877dab78870d59536f4f76cda4b06703e223cb`.
 
 ## Goal And Outcome
 
@@ -95,23 +121,26 @@ Exit state:
 - no `next@16.2.6` or `next@16.2.9` resolution remains reachable;
 - the unchanged high/critical audit gate passes with the four advisory IDs
   absent;
+- the QA package and repository build pass after the exact import-only NodeNext
+  correction, with the test body and Paddle behavior unchanged;
 - the existing application, route, proxy, auth, tenancy, schema, provider and
   deployment behavior remains unchanged.
 
 ## Exact Future Writer Map
 
-Only these four repository paths may change:
+Only these five repository paths may change:
 
 1. `apps/web/package.json`
 2. `packages/database/package.json`
 3. `pnpm-lock.yaml`
-4. `scripts/repo-size-budget.json` — deterministic sync only
+4. `packages/qa/src/tools/paddle.test.ts` — exact import suffix only
+5. `scripts/repo-size-budget.json` — deterministic sync only
 
-Any fifth writer path stops the slice for a fresh exact disposition. In
+Any sixth writer path stops the slice for a fresh exact disposition. In
 particular, if compatibility evidence requires changing
-`packages/domain-communications/package.json`, application source, tests,
-configuration, workflows or an audit policy, the child must stop without
-making that change.
+`packages/domain-communications/package.json`, application source, any other
+test line or file, configuration, workflows or an audit policy, the child must
+stop without making that change.
 
 ## Required Manifest And Lockfile Behavior
 
@@ -151,20 +180,42 @@ upgrade, unrelated package refresh or speculative deduplication. A broad
 `pnpm update`, `pnpm audit fix --force`, lockfile-only hand edit or copied
 Dependabot lockfile is prohibited.
 
+### Exact QA NodeNext repair
+
+In `packages/qa/src/tools/paddle.test.ts`, change only:
+
+```ts
+import { getPaddleResource } from './paddle';
+```
+
+to:
+
+```ts
+import { getPaddleResource } from './paddle.js';
+```
+
+Do not change the test body, QA runtime source, package manifest, TypeScript
+configuration, Paddle behavior or any other import. The 58-line test file
+remains 58 lines.
+
 ### Deterministic size metadata
 
 Run the repository's tracked-only deterministic size synchronization only after
-the other three files are stable. No hand-authored budget increase is accepted.
+the other four files are stable. No hand-authored budget increase is accepted.
 
 ## Test-First And Acceptance Evidence
 
 The child must preserve the exact-base failing high/critical audit result as RED
-evidence before mutation. No new test file is authorized. The smallest GREEN
-proof is the unchanged repository audit gate passing after the manifest and
-lockfile correction.
+evidence before mutation and the first wrapped `pnpm build` failure as separate
+pre-existing build-baseline evidence. No new test file is authorized. The
+smallest GREEN proof is the unchanged repository audit gate passing after the
+manifest and lockfile correction plus the QA and repository builds passing
+after the exact import-only repair.
 
 Focused deterministic proof must include:
 
+0. preservation of the exact-base audit RED receipt and the exact wrapped-build
+   receipt above; neither baseline command is rerun after its evidence is bound;
 1. exact manifest-value assertions for all five changed declarations;
 2. `pnpm install --frozen-lockfile`;
 3. `pnpm --filter @interdomestik/web why next`;
@@ -175,12 +226,15 @@ Focused deterministic proof must include:
    `pnpm audit --prod --audit-level=high --json` output and exiting zero;
 8. a structured assertion that advisory IDs `1124170`, `1124171`, `1124184`
    and `1124192` are absent from the fresh audit result;
-9. `pnpm security:guard`;
-10. `pnpm type-check`;
-11. `pnpm lint`;
-12. `pnpm build`;
-13. `pnpm repo:size:check`;
-14. `git diff --check`.
+9. an exact assertion that the sole authorized QA import is
+   `from './paddle.js'` and no other QA line changed;
+10. `pnpm --filter @interdomestik/qa build`;
+11. `pnpm security:guard`;
+12. `pnpm type-check`;
+13. `pnpm lint`;
+14. `pnpm build`;
+15. `pnpm repo:size:check`;
+16. `git diff --check`.
 
 Before merge, the exact current head must also pass the repository's mandatory
 Phase C gates:
@@ -202,13 +256,13 @@ following occurs:
 - Next 16.2.11 cannot satisfy an existing package peer contract;
 - the Inngest peer path cannot resolve to 16.2.11 without changing its manifest;
 - type-check, lint, build, unit, E2E or security proof requires a source,
-  configuration, workflow or test edit;
+  configuration, workflow or test edit beyond the exact QA import suffix above;
 - the lockfile changes an unrelated direct dependency or package family;
 - a React, React DOM, Node, TypeScript, ESLint, Turborepo or pnpm change appears
   necessary;
 - a protected routing, proxy, auth, session, tenancy, schema, RLS, database,
   provider or deployment surface appears necessary;
-- a fifth repository writer path appears.
+- a sixth repository writer path appears.
 
 A stop produces a fresh gate amendment or separate slice. It does not authorize
 the root or child to improvise a compatibility fix.
@@ -223,12 +277,44 @@ new `origin/main`, sole resolver selection of `IDA-SEC01`, AI OS runtime
 issue a separate exact runtime authority bound to that new main.
 
 Only after that runtime authority exists may the root create exactly one fresh
-worktree-backed child as the sole bounded writer. The child owns only the four
+worktree-backed child as the sole bounded writer. The child owns only the five
 paths above, test-first execution, focused/full proof, commit and PR handback.
 The root retains scope, milestones, heartbeat, reviews, current-head checks,
 merge, exact automatic-CD containment, main-health proof, cleanup, AI OS/Brain
 closeout and child archival. No overlapping writer or competing recovery child
 is permitted.
+
+## R1 Bootstrap Ordering Exception
+
+The standard canonical-merge-first lifecycle above remains the default. This
+gate's `runtime_authorized:false` flag is unchanged.
+
+For this exact audit deadlock only, Arben separately authorized a hash-bound
+bootstrap runtime receipt that may temporarily order the five-path
+implementation before canonical gate merge. The receipt must bind the final R1
+bytes, SHA-256, PR head, exact main base and the existing single child before the
+QA import is changed. The superseded R0 artifact, review and receipt do not
+authorize the fifth path.
+
+The canonical external receipt path is
+`/Users/arbenlila/Documents/Knowledge Manager and Systems Architect/Notes/decisions/2026-07-23-interdomestik-ida-sec01-bootstrap-runtime-authority-receipt.md`.
+It is a Markdown receipt with YAML frontmatter naming type, project, gate, slice,
+revision, authority, status and runtime/deployment/production/provider/database
+booleans. Its body must bind the R1 byte count and SHA-256, PR `#1411` head,
+exact main base, root task, child, worktree, five-path map, proof state, stop
+conditions and expiry. Before the child resumes, the root must hash the receipt
+and mirror that hash plus all binding identities in a PR `#1411` comment.
+
+The exception authorizes no merge bypass: the implementation PR must make
+`pnpm-audit` and `pr-finalizer` green on its exact current head before merge.
+After that implementation merge is contained and exact-main health passes,
+PR `#1411` must be updated onto the new main and merge only on its own green
+current-head evidence.
+
+Any compatibility stop after receipt issuance immediately voids that receipt.
+The implementation branch and PR, if already open, must be held without merge;
+any amended gate requires a new exact-artifact review and a newly hashed receipt
+before the same child may resume.
 
 ## Merge And Deployment Containment
 
@@ -243,11 +329,16 @@ If the exact run cannot be identified, cancellation cannot be proved before the
 unsafe boundary, or another writer changes the accepted head, the lifecycle
 stops for incident classification.
 
+No deployment-skip label or workflow bypass is claimed: no repository-enforced
+mechanism for that exists in this authority, and introducing one would be an
+unauthorized sixth path. Exact-run cancellation remains mandatory; inability to
+contain it is a stop, never implicit deployment authority.
+
 ## Explicit Exclusions
 
 This gate does not authorize:
 
-- any path outside the four-path future writer map;
+- any path outside the five-path future writer map;
 - `apps/web/src/proxy.ts` or canonical route changes;
 - auth, session, OTP, shared-auth or tenant-isolation changes;
 - application, Server Action, API route, middleware or rewrite source changes;
@@ -278,4 +369,6 @@ The gate becomes implementation authority only after:
 5. exact new-main health, resolver and clean-worktree proof passes; and
 6. a separate exact runtime authority bound to that new main is accepted.
 
-Until all six conditions hold, no manifest or lockfile mutation is authorized.
+Until all six conditions hold, no manifest, lockfile or test mutation is
+authorized by this gate alone. The separately accepted, exact-hash R1 bootstrap
+receipt is the sole ordering exception and cannot expand the five-path map.
