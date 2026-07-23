@@ -20,6 +20,13 @@ echo "🚧 [Gatekeeper] Starting Deterministic Reset..."
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"
 
+E2E_PORT="${PW_PORT:-${PORT:-3000}}"
+if [[ ! "${E2E_PORT}" =~ ^[0-9]+$ ]] || ((E2E_PORT < 1 || E2E_PORT > 65535)); then
+  echo "❌ [Gatekeeper] PW_PORT/PORT must be a numeric TCP port between 1 and 65535."
+  exit 1
+fi
+export PW_PORT="${E2E_PORT}"
+
 # Preserve explicit shell-provided values before sourcing local env files.
 INHERITED_DATABASE_URL="${DATABASE_URL:-}"
 INHERITED_NEXT_PUBLIC_BILLING_TEST_MODE="${NEXT_PUBLIC_BILLING_TEST_MODE:-}"
@@ -137,14 +144,20 @@ cleanup_stale_supabase_containers() {
 }
 
 # 0. Kill stale processes
-cleanup_stale_playwright_processes
+if [[ "${INTERDOMESTIK_TASK_OWNS_PORT:-0}" == "1" ]]; then
+  cleanup_stale_playwright_processes
+fi
 
-echo "💀 [Gatekeeper] Killing stale processes on port 3000..."
-PIDS="$(lsof -ti:3000 2>/dev/null || true)"
+echo "🧭 [Gatekeeper] Checking task E2E port ${E2E_PORT}..."
+PIDS="$(lsof -ti:"${E2E_PORT}" 2>/dev/null || true)"
 if [ -n "$PIDS" ]; then
+  if [[ "${INTERDOMESTIK_TASK_OWNS_PORT:-0}" != "1" ]]; then
+    echo "❌ [Gatekeeper] Port ${E2E_PORT} is occupied and is not task-owned."
+    exit 1
+  fi
   kill -9 $PIDS 2>/dev/null || true
 fi
-echo "✅ [Gatekeeper] Port 3000 clear."
+echo "✅ [Gatekeeper] Port ${E2E_PORT} clear."
 
 ensure_disk_space
 
@@ -249,9 +262,13 @@ echo "   - Data: Deterministic (Version: E2E-Golden)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # 0. Kill stale processes to ensure fresh env/config
-echo "💀 Killing any stale processes on port 3000..."
-PIDS="$(lsof -ti:3000 2>/dev/null || true)"
+echo "🧭 Checking task E2E port ${E2E_PORT} before Playwright..."
+PIDS="$(lsof -ti:"${E2E_PORT}" 2>/dev/null || true)"
 if [ -n "$PIDS" ]; then
+  if [[ "${INTERDOMESTIK_TASK_OWNS_PORT:-0}" != "1" ]]; then
+    echo "❌ Port ${E2E_PORT} became occupied by a non-task process."
+    exit 1
+  fi
   kill -9 $PIDS 2>/dev/null || true
 fi
-echo "✅ Port 3000 clear."
+echo "✅ Port ${E2E_PORT} clear."
