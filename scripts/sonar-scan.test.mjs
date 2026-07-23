@@ -20,6 +20,7 @@ test('sonar scan has a static contract against event-path PR context reads', () 
 
   assert.doesNotMatch(sonarScan, /GITHUB_EVENT_PATH/);
   assert.doesNotMatch(sonarScan, /readFileSync/);
+  assert.doesNotMatch(sonarScan, /-Dsonar\.(?:login|token)=/);
   assert.match(sonarScan, /SONAR_PULLREQUEST_KEY/);
   assert.match(sonarScan, /GITHUB_HEAD_REF/);
   assert.match(sonarScan, /GITHUB_BASE_REF/);

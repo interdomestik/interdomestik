@@ -50,9 +50,8 @@ if (!sonarToken) {
 }
 
 // Run the scanner via Docker so we don't require a global `sonar-scanner` or Java.
-// SonarCloud and current servers read auth from `SONAR_TOKEN`. The local 9.9 LTA
-// compatibility path below uses the legacy `sonar.login` property required by
-// that server. Normal scanner output redacts it; CI additionally checks logs.
+// Authentication is passed only through `SONAR_TOKEN`, never through process
+// arguments, so it cannot appear in process listings or scanner command logs.
 const cwd = process.cwd();
 
 const sonarHostUrl = normalizeSonarHostUrl(process.env.SONAR_HOST_URL);
@@ -60,9 +59,6 @@ const skipJreProvisioning = process.env.SONAR_SCANNER_SKIP_JRE_PROVISIONING === 
 const scannerProperties = appendScannerProperties([`-Dsonar.host.url=${sonarHostUrl}`], {
   skipJreProvisioning,
 });
-if (sonarHostUrl !== 'https://sonarcloud.io') {
-  scannerProperties.push(`-Dsonar.login=${sonarToken}`);
-}
 
 if (sonarProjectKey) {
   scannerProperties.push(`-Dsonar.projectKey=${sonarProjectKey}`);
