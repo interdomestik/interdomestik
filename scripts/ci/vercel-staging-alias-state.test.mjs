@@ -15,11 +15,12 @@ const ENV = {
   VERCEL_PROJECT_ID: 'prj_expected',
   VERCEL_TOKEN: 'token-secret',
 };
-
+const DIRECT_HEALTH = `health:https://${HOST}/api/health:${COMMIT}`;
+const ALIAS_MOVE = `alias:${HOST}:${CANONICAL_STAGING_ALIAS}:true`;
+const CANONICAL_HEALTH = `health:https://${CANONICAL_STAGING_ALIAS}/api/health:${COMMIT}`;
 function response(body, status = 200) {
   return new Response(typeof body === 'string' ? body : JSON.stringify(body), { status });
 }
-
 function snapshotFetch({
   alias = { alias: CANONICAL_STAGING_ALIAS, deployment: { url: HOST }, redirect: null },
   deployment = { projectId: ENV.VERCEL_PROJECT_ID, teamId: ENV.VERCEL_ORG_ID, url: HOST },
@@ -35,7 +36,25 @@ function snapshotFetch({
     },
   };
 }
-
+function restoreFixture(failOnHealth = 0) {
+  const calls = [];
+  let healthChecks = 0;
+  return {
+    calls,
+    options: {
+      commitSha: COMMIT,
+      deploymentHostname: HOST,
+      env: ENV,
+      aliasImpl: async (hostname, alias, env) =>
+        calls.push(`alias:${hostname}:${alias}:${env === ENV}`),
+      healthImpl: async ({ healthUrl, expectedCommitSha }) => {
+        healthChecks += 1;
+        calls.push(`health:${healthUrl}:${expectedCommitSha}`);
+        if (healthChecks === failOnHealth) throw new Error('Deployed build provenance mismatch');
+      },
+    },
+  };
+}
 test('snapshot authenticates alias/deployment ownership and captures exact commit', async () => {
   const fixture = snapshotFetch();
   const result = await snapshotStagingAlias({
@@ -53,7 +72,6 @@ test('snapshot authenticates alias/deployment ownership and captures exact commi
     assert.match(call.url, new RegExp(`teamId=${ENV.VERCEL_ORG_ID}`));
   }
 });
-
 test('snapshot fails closed for missing, redirected, or malformed aliases', async () => {
   for (const alias of [
     {},
@@ -71,7 +89,6 @@ test('snapshot fails closed for missing, redirected, or malformed aliases', asyn
     );
   }
 });
-
 test('snapshot rejects foreign project or team ownership', async () => {
   for (const deployment of [
     { projectId: 'prj_foreign', teamId: ENV.VERCEL_ORG_ID, url: HOST },
@@ -84,7 +101,6 @@ test('snapshot rejects foreign project or team ownership', async () => {
     );
   }
 });
-
 test('snapshot rejects missing or malformed build commits', async () => {
   const fixture = snapshotFetch();
   for (const commitSha of [undefined, 'ABC123', 'b'.repeat(39)]) {
@@ -98,7 +114,6 @@ test('snapshot rejects missing or malformed build commits', async () => {
     );
   }
 });
-
 test('provider errors are bounded and redact secrets', async () => {
   await assert.rejects(
     snapshotStagingAlias({
@@ -113,33 +128,22 @@ test('provider errors are bounded and redact secrets', async () => {
     }
   );
 });
-
 test('restore assigns only the canonical alias and verifies the exact preimage commit', async () => {
-  const calls = [];
-  await restoreStagingAlias({
-    commitSha: COMMIT,
-    deploymentHostname: HOST,
-    env: ENV,
-    aliasImpl: async (...args) => calls.push(args),
-    healthImpl: async ({ healthUrl, expectedCommitSha }) => {
-      assert.equal(healthUrl, `https://${CANONICAL_STAGING_ALIAS}/api/health`);
-      assert.equal(expectedCommitSha, COMMIT);
-    },
+  const fixture = restoreFixture();
+  await restoreStagingAlias(fixture.options);
+  assert.deepEqual(fixture.calls, [DIRECT_HEALTH, ALIAS_MOVE, CANONICAL_HEALTH]);
+});
+for (const [name, failOnHealth, expectedCalls] of [
+  ['never moves the alias when direct preimage health fails', 1, [DIRECT_HEALTH]],
+  [
+    'keeps a post-move canonical mismatch hard red',
+    2,
+    [DIRECT_HEALTH, ALIAS_MOVE, CANONICAL_HEALTH],
+  ],
+]) {
+  test(`restore ${name}`, async () => {
+    const fixture = restoreFixture(failOnHealth);
+    await assert.rejects(restoreStagingAlias(fixture.options), /provenance mismatch/u);
+    assert.deepEqual(fixture.calls, expectedCalls);
   });
-  assert.deepEqual(calls, [[HOST, CANONICAL_STAGING_ALIAS, ENV]]);
-});
-
-test('restore mismatch stays hard red', async () => {
-  await assert.rejects(
-    restoreStagingAlias({
-      commitSha: COMMIT,
-      deploymentHostname: HOST,
-      env: ENV,
-      aliasImpl: async () => {},
-      healthImpl: async () => {
-        throw new Error('Deployed build provenance mismatch');
-      },
-    }),
-    /provenance mismatch/u
-  );
-});
+}

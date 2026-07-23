@@ -114,13 +114,11 @@ export async function snapshotStagingAlias({
     'Vercel deployment lookup'
   );
   const resolvedTeam = deployment.teamId || deployment.team?.id;
-  if (
-    deploymentHost(deployment.url) !== deploymentHostname ||
-    deployment.projectId !== projectId ||
-    resolvedTeam !== teamId
-  ) {
-    throw new Error('Vercel deployment project/team ownership mismatch');
-  }
+  const ownershipMatches =
+    deploymentHost(deployment.url) === deploymentHostname &&
+    deployment.projectId === projectId &&
+    resolvedTeam === teamId;
+  if (!ownershipMatches) throw new Error('Vercel deployment project/team ownership mismatch');
   const body = await healthImpl({ healthUrl: `https://${deploymentHostname}/api/health` });
   const commitSha = JSON.parse(body)?.build?.commitSha;
   if (!/^[a-f0-9]{40}$/u.test(commitSha || '')) {
@@ -138,6 +136,7 @@ export async function restoreStagingAlias({
   const hostname = deploymentHost(deploymentHostname);
   if (!/^[a-f0-9]{40}$/u.test(commitSha || '')) throw new Error('invalid preimage commit SHA');
   const alias = canonicalAlias(env.STAGING_ALIAS_DOMAIN);
+  await healthImpl({ healthUrl: `https://${hostname}/api/health`, expectedCommitSha: commitSha });
   await aliasImpl(hostname, alias, env);
   await healthImpl({ healthUrl: `https://${alias}/api/health`, expectedCommitSha: commitSha });
 }
