@@ -1737,6 +1737,88 @@ unpromoted here. The expected resolver state is
 `blocked_requires_current_authority`, `activeSlice=null`; a fresh current-authority
 decision and separate exact authority are required before any successor work.
 
+Rev 153 current authority promotes exactly one next governed implementation goal,
+`IDA-SEC01`, under accepted Next.js security prerequisite gate `IDA-SEC-DG01` at
+`docs/plans/2026-07-23-ida-sec-dg01-nextjs-16-2-11-security-prerequisite.md`.
+The R1 gate is exactly 16,937 UTF-8 bytes at SHA-256
+`5e5f025f189f6ddd3ce0eca8d2cba4304403079e0dfc6b555dd5a3341930401e`,
+bound to clean base `0b85b20af3ce8cf2b28608a1c9e47a7499704291`. The root
+orchestrator selected the sole prerequisite after fresh exact-main repository,
+package-graph, registry, audit and AI OS evidence. The first R1 Sonnet route
+returned complete hardenings only after its no-output timeout and is not PASS;
+all findings were incorporated. Same-hash Sonnet 4.6 re-review then passed the
+exact R1 artifact with no blocker or hardening. Brain failed closed on a stale
+current-source snapshot and is advisory only; no usefulness or ROI claim is
+made.
+
+The exact-base production audit reports four non-waivable high-severity Next.js
+advisories—npm IDs `1124170`, `1124171`, `1124184` and `1124192`—on each of
+three reachable resolution paths: the web app at 16.2.9, the database
+auto-installed peer at 16.2.6 and the Inngest peer at 16.2.9. The accepted
+outcome raises the web `next`, bundle-analyzer, Next ESLint plugin and Next
+ESLint config declarations to `^16.2.11`, raises only the database Next peer
+floor to `>=16.2.11`, and regenerates a causally bounded lockfile in which all
+three reachable Next paths resolve exactly to 16.2.11. The unchanged
+high/critical audit gate must pass with all four advisory IDs absent. Broad,
+stale Dependabot PR `#1407` is not implementation authority.
+
+Future implementation is limited to exactly five writer paths:
+`apps/web/package.json`, `packages/database/package.json`, `pnpm-lock.yaml` and
+the exact import-only `packages/qa/src/tools/paddle.test.ts` repair, plus
+deterministic-only `scripts/repo-size-budget.json`. Any sixth writer path stops
+for a fresh exact disposition. An Inngest manifest change, application source,
+any other test/config/workflow edit, audit waiver/override, unrelated dependency
+change, framework migration or compatibility remediation is not silently
+admitted.
+
+This docs-only Tier 0 promotion keeps `runtime_authorized:false`,
+`deployment_authorized:false` and `production_authorized:false`. Arben's exact
+R1 `Po` disposition authorizes one external, hash-bound bootstrap receipt as the
+sole ordering exception: only the existing fresh-worktree child may complete
+the five-path Tier-3 implementation before canonical gate merge, with no merge
+bypass. No provider/database contact, registry/image/deploy action, product/UI,
+proxy/routing/auth/session/tenancy, schema/RLS, IDA-CD01, runtime AI, Eval v2,
+frozen `IDA-UI03a2`, Z620 runner/CD use or other successor work is authorized by
+Rev 153.
+
+Rev 154 closeout consumes the sole `IDA-SEC01` promotion through implementation
+PR `#1412`, final head
+`1b64dbd79735546017bd71b1c07154843d3c567f`, and squash-merge/main SHA
+`6a7e03dbf328d1587af20cf0187053aab20c46e9`. The accepted R1 gate remains
+byte-identical at 16,937 UTF-8 bytes / SHA-256
+`5e5f025f189f6ddd3ce0eca8d2cba4304403079e0dfc6b555dd5a3341930401e`.
+The exact five-path implementation raises all three reachable Next.js paths to
+16.2.11, preserves lockfile SHA-256
+`8985445e890a916c9776cb99a54d237dd2c48c89ce9d4f4bda29246afcc8acc0`,
+and applies only the accepted QA `./paddle.js` import repair. Exact-base audit
+RED and final audit GREEN are preserved at SHA-256
+`79c5ab2ae1f507bf88d7b307581923129123f893fdba7c032c7cf33fc1aed793`
+and `ed36dac6e9fa45bfca3b919f200fc7439f8cbce9bb68b1f916b63101aac9c4cf`;
+final audit reports high `0`, critical `0`, with advisory IDs `1124170`,
+`1124171`, `1124184` and `1124192` absent. Focused proof, `security:guard`,
+full `pr:verify`, full `e2e:gate`, current-head CI/E2E/Pilot/Sonar/CodeQL/
+security/finalizer checks, Sonnet 4.6 PASS, Codex current-head review and zero
+unresolved threads passed. Copilot remained unavailable after the documented
+bounded request and is classified as unavailable evidence, not approval.
+
+Post-merge main CI `30000262062`, CodeQL `30000261676` /
+`30000261896` and Secret Scan `30000262027` passed. Sonar Main Gate
+`30000262078` is NON-PASS only for pre-existing rolling-window issue
+`AZ-ACoVO5G2i53uX0BTV` / `githubactions:S8544` at untouched
+`.github/workflows/pr-deterministic-backstops.yml:88`; base and merge retain
+identical blob `5dda794c823fa5997a2cad774389d3c7e9e94f66`, so no out-of-scope
+workflow remediation is admitted. Exact CD run `30000262033` was cancelled
+with every job at `steps: []`, before checkout, registry login, image build,
+provider mutation or deploy. The sole child returned a clean handback and its
+worktree/branch were archived. AI OS observation
+`5302878f3fdd011e9d152057da9634f20b7e882a3d8bc2c15523bcdf8dfa97b8`
+confirms `runtime_authorized:not_authorized`; Brain retrieval failed closed
+once on a stale snapshot and makes no usefulness/ROI claim. The bootstrap
+runtime authority is consumed. No replacement implementation slice is
+promoted; expected resolver state is `blocked_requires_current_authority`,
+`activeSlice=null`. PR `#1410` remains a separate unmerged current-authority
+candidate and grants no `IDA-CD01` implementation authority.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
