@@ -26,6 +26,8 @@ const runEnv = {
 };
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'interdomestik-pilot-'));
 const serverLogPath = path.join(tempRoot, 'server.log');
+const reportDir = path.resolve(process.env.Z620_EVIDENCE_DIR || tempRoot, 'pilot-reports');
+fs.mkdirSync(reportDir, { recursive: true, mode: 0o700 });
 let server;
 
 function run(command, args) {
@@ -79,7 +81,7 @@ try {
   });
   fs.closeSync(serverLog);
   await waitForHealth();
-  run('pnpm', ['-s', 'release:gate:p0:raw', '--baseUrl', baseUrl]);
+  run('pnpm', ['-s', 'release:gate:p0:raw', '--baseUrl', baseUrl, '--outDir', reportDir]);
 } catch (error) {
   const serverLog = fs.existsSync(serverLogPath) ? fs.readFileSync(serverLogPath, 'utf8') : '';
   if (serverLog) process.stderr.write(serverLog.slice(-20_000));

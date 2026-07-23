@@ -39,7 +39,7 @@ for (const lane of requested) {
     const started = Date.now();
     const result = spawnSync(command, commandArgs, {
       cwd: root,
-      env: { ...process.env, CI: 'true' },
+      env: { ...process.env, CI: 'true', Z620_EVIDENCE_DIR: evidenceDir },
       encoding: 'utf8',
       maxBuffer: 100 * 1024 * 1024,
     });
