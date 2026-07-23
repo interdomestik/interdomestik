@@ -16,6 +16,8 @@ test('workflow content matches the reviewed parity digests', () => {
 
 test('every non-provider blocking job has known local lane coverage', () => {
   assert.deepEqual(validateGateCoverage(parity, gates), []);
+  assert.equal(gates.lanes.database.resourceOwned, true);
+  assert.equal(gates.lanes.build.resourceOwned, true);
 });
 
 test('workflow changes fail closed until parity is reviewed', () => {

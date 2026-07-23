@@ -38,12 +38,14 @@
       "commands": [["pnpm", "ai:eval"]]
     },
     "database": {
+      "resourceOwned": true,
       "commands": [
         ["pnpm", "db:migrate"],
         ["pnpm", "db:rls:test:required"]
       ]
     },
     "build": {
+      "resourceOwned": true,
       "commands": [["pnpm", "--filter", "@interdomestik/web", "build"]]
     },
     "security": {

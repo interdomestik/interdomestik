@@ -1,10 +1,19 @@
 #!/usr/bin/env node
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-const baseRef = process.env.CI_LOCAL_BASE_REF || 'origin/main';
+const candidates = [
+  process.env.CI_LOCAL_BASE_SHA,
+  process.env.CI_LOCAL_BASE_REF,
+  'origin/main',
+].filter(Boolean);
+const baseRef = candidates.find(candidate => {
+  const result = spawnSync('git', ['rev-parse', '--verify', candidate], { stdio: 'ignore' });
+  return result.status === 0;
+});
+if (!baseRef) throw new Error('No verified CI base SHA/ref; validation fails closed');
 const changed = execFileSync('git', ['diff', '--name-only', `${baseRef}...HEAD`], {
   encoding: 'utf8',
 });
