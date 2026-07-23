@@ -35,6 +35,8 @@ const database = taskDatabaseName(sha, lane, attempt);
 const reservation = await reserveE2ePort(stateRoot, `${database}:${process.pid}`);
 const databaseConnection = databaseUrl(database);
 const authSecret = process.env.BETTER_AUTH_SECRET || randomBytes(32).toString('base64url');
+const e2ePassword = randomBytes(24).toString('base64url');
+const e2eApiSecret = randomBytes(32).toString('base64url');
 let created = false;
 let forgejoFailures = 0;
 
@@ -65,6 +67,22 @@ try {
       BILLING_TEST_MODE: '1',
       NEXT_PUBLIC_BILLING_TEST_MODE: '1',
       BETTER_AUTH_SECRET: authSecret,
+      E2E_PASSWORD: e2ePassword,
+      E2E_API_SECRET: e2eApiSecret,
+      RELEASE_GATE_MEMBER_EMAIL: 'member.ks.a1@interdomestik.com',
+      RELEASE_GATE_MEMBER_PASSWORD: e2ePassword,
+      RELEASE_GATE_AGENT_EMAIL: 'agent.ks.a1@interdomestik.com',
+      RELEASE_GATE_AGENT_PASSWORD: e2ePassword,
+      RELEASE_GATE_OFFICE_AGENT_EMAIL: 'agent.ks.b1@interdomestik.com',
+      RELEASE_GATE_STAFF_EMAIL: 'staff.ks@interdomestik.com',
+      RELEASE_GATE_STAFF_PASSWORD: e2ePassword,
+      RELEASE_GATE_ADMIN_KS_EMAIL: 'admin.ks@interdomestik.com',
+      RELEASE_GATE_ADMIN_KS_PASSWORD: e2ePassword,
+      RELEASE_GATE_ADMIN_MK_EMAIL: 'admin.mk@interdomestik.com',
+      RELEASE_GATE_ADMIN_MK_PASSWORD: e2ePassword,
+      UPSTASH_REDIS_REST_URL: 'http://127.0.0.1:8080',
+      UPSTASH_REDIS_REST_TOKEN: 'local-ci-placeholder',
+      PLAYWRIGHT: '1',
     },
   });
   const monitor = setInterval(checkForgejo, 2000);

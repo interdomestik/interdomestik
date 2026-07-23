@@ -31,7 +31,7 @@
     },
     ".github/workflows/pilot-gate.yml": {
       "pilot-gate-preflight": ["policy", "pilot gate policy"],
-      "pilot-gate-runner": ["equivalent", "pnpm release:gate:p0"],
+      "pilot-gate-runner": ["equivalent", "node scripts/ci/z620-pilot-run.mjs"],
       "pilot-gate": ["contract", "local result aggregation"]
     },
     ".github/workflows/release-candidate.yml": {

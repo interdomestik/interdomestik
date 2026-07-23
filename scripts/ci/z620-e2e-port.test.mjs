@@ -33,4 +33,19 @@ test('resource runner keeps gatekeeper and Playwright build modes aligned', () =
   assert.match(source, /BILLING_TEST_MODE: '1'/);
   assert.match(source, /DATABASE_URL: databaseConnection/);
   assert.match(source, /DATABASE_URL_RLS: databaseConnection/);
+  assert.match(source, /E2E_PASSWORD: e2ePassword/);
+  assert.match(source, /RELEASE_GATE_ADMIN_MK_PASSWORD: e2ePassword/);
+  assert.match(source, /PLAYWRIGHT: '1'/);
+});
+
+test('pilot gate owns its selected port, database, server, and release preparation', () => {
+  const source = read('scripts/ci/z620-pilot-run.mjs');
+  const gates = JSON.parse(read('scripts/ci/z620-gates.json'));
+  assert.match(source, /port < 3100 \|\| port > 3199/);
+  assert.match(source, /process\.env\.E2E_DATABASE_URL/);
+  assert.match(source, /INTERDOMESTIK_TASK_OWNS_PORT/);
+  assert.match(source, /\['--filter', '@interdomestik\/web', 'run', 'build:ci'\]/);
+  assert.match(source, /release:gate:p0:raw/);
+  assert.match(source, /process\.kill\(-server\.pid, 'SIGTERM'\)/);
+  assert.deepEqual(gates.lanes.pilot.commands, [['node', 'scripts/ci/z620-pilot-run.mjs']]);
 });

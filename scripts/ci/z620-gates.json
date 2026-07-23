@@ -64,7 +64,7 @@
     },
     "pilot": {
       "resourceOwned": true,
-      "commands": [["pnpm", "release:gate:p0"]]
+      "commands": [["node", "scripts/ci/z620-pilot-run.mjs"]]
     }
   },
   "jobCoverage": {
