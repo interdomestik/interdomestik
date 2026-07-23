@@ -121,8 +121,10 @@ async function deploy() {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const command =
-    process.argv[2] === 'guard' ? guardRollback : process.argv[2] === 'restore' ? restore : deploy;
+  const requestedCommand = process.argv[2];
+  let command = deploy;
+  if (requestedCommand === 'guard') command = guardRollback;
+  else if (requestedCommand === 'restore') command = restore;
   await command().catch(error => {
     console.error(error);
     process.exitCode = 1;

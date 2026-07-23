@@ -80,7 +80,9 @@ test('preimage is uploaded before checks and atomically confirms alias movement'
   const snapshot = configure.indexOf('aliasMoved: false');
   const assignment = configure.indexOf('await aliasStagingDeployment', snapshot);
   const moved = configure.indexOf('aliasMoved: true', assignment);
-  assert.ok(snapshot < assignment && assignment < moved);
+  const snapshotPrecedesAssignment = snapshot < assignment;
+  const assignmentPrecedesMovement = assignment < moved;
+  assert.ok(snapshotPrecedesAssignment && assignmentPrecedesMovement);
 });
 
 test('post-alias red deploy job restores only from a confirmed receipt', () => {

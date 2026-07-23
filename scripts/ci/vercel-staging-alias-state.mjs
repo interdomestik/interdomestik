@@ -51,7 +51,8 @@ async function providerJson(response, label) {
     throw new Error(`${label} failed (${response.status}): ${boundedProviderText(body)}`);
   try {
     const parsed = JSON.parse(body);
-    if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') throw new Error();
+    if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object')
+      throw new Error('Provider response must be a JSON object');
     return parsed;
   } catch {
     throw new Error(`${label} returned an invalid response`);
