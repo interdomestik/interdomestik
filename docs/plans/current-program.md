@@ -1781,6 +1781,44 @@ proxy/routing/auth/session/tenancy, schema/RLS, IDA-CD01, runtime AI, Eval v2,
 frozen `IDA-UI03a2`, Z620 runner/CD use or other successor work is authorized by
 Rev 153.
 
+Rev 154 closeout consumes the sole `IDA-SEC01` promotion through implementation
+PR `#1412`, final head
+`1b64dbd79735546017bd71b1c07154843d3c567f`, and squash-merge/main SHA
+`6a7e03dbf328d1587af20cf0187053aab20c46e9`. The accepted R1 gate remains
+byte-identical at 16,937 UTF-8 bytes / SHA-256
+`5e5f025f189f6ddd3ce0eca8d2cba4304403079e0dfc6b555dd5a3341930401e`.
+The exact five-path implementation raises all three reachable Next.js paths to
+16.2.11, preserves lockfile SHA-256
+`8985445e890a916c9776cb99a54d237dd2c48c89ce9d4f4bda29246afcc8acc0`,
+and applies only the accepted QA `./paddle.js` import repair. Exact-base audit
+RED and final audit GREEN are preserved at SHA-256
+`79c5ab2ae1f507bf88d7b307581923129123f893fdba7c032c7cf33fc1aed793`
+and `ed36dac6e9fa45bfca3b919f200fc7439f8cbce9bb68b1f916b63101aac9c4cf`;
+final audit reports high `0`, critical `0`, with advisory IDs `1124170`,
+`1124171`, `1124184` and `1124192` absent. Focused proof, `security:guard`,
+full `pr:verify`, full `e2e:gate`, current-head CI/E2E/Pilot/Sonar/CodeQL/
+security/finalizer checks, Sonnet 4.6 PASS, Codex current-head review and zero
+unresolved threads passed. Copilot remained unavailable after the documented
+bounded request and is classified as unavailable evidence, not approval.
+
+Post-merge main CI `30000262062`, CodeQL `30000261676` /
+`30000261896` and Secret Scan `30000262027` passed. Sonar Main Gate
+`30000262078` is NON-PASS only for pre-existing rolling-window issue
+`AZ-ACoVO5G2i53uX0BTV` / `githubactions:S8544` at untouched
+`.github/workflows/pr-deterministic-backstops.yml:88`; base and merge retain
+identical blob `5dda794c823fa5997a2cad774389d3c7e9e94f66`, so no out-of-scope
+workflow remediation is admitted. Exact CD run `30000262033` was cancelled
+with every job at `steps: []`, before checkout, registry login, image build,
+provider mutation or deploy. The sole child returned a clean handback and its
+worktree/branch were archived. AI OS observation
+`5302878f3fdd011e9d152057da9634f20b7e882a3d8bc2c15523bcdf8dfa97b8`
+confirms `runtime_authorized:not_authorized`; Brain retrieval failed closed
+once on a stale snapshot and makes no usefulness/ROI claim. The bootstrap
+runtime authority is consumed. No replacement implementation slice is
+promoted; expected resolver state is `blocked_requires_current_authority`,
+`activeSlice=null`. PR `#1410` remains a separate unmerged current-authority
+candidate and grants no `IDA-CD01` implementation authority.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
