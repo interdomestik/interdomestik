@@ -3,6 +3,9 @@ import { pathToFileURL } from 'node:url';
 
 import { fetchVercelHealth } from './fetch-vercel-health.mjs';
 
+const HEALTH_CHECK_FAILED = 'Vercel health check failed';
+const LOG_PREFIX = '[vercel-health]';
+
 function positiveInt(value, fallback) {
   const parsed = Number.parseInt(value || '', 10);
   if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
@@ -17,20 +20,18 @@ export async function waitForVercelHealth({
   fetchImpl = fetchVercelHealth,
   log = console.log,
 }) {
-  let lastError;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    log(`Attempt ${attempt}/${attempts}: checking ${healthUrl}`);
+    log(`${LOG_PREFIX} attempt ${attempt}/${attempts}`);
     try {
       const body = await fetchImpl({ healthUrl, expectedCommitSha });
-      log('Vercel health check succeeded.');
+      log(`${LOG_PREFIX} result=success`);
       return body;
-    } catch (error) {
-      lastError = error;
-      log(`Vercel health check failed: ${error.message}`);
+    } catch {
+      log(`${LOG_PREFIX} result=health_check_failed`);
       if (attempt < attempts) await sleep(sleepMs);
     }
   }
-  throw lastError || new Error('Vercel health check failed');
+  throw new Error(HEALTH_CHECK_FAILED);
 }
 
 async function main() {
@@ -39,15 +40,14 @@ async function main() {
   if (process.argv.length > 3 && !expectedCommitSha) {
     throw new Error('expectedCommitSha must not be empty when provided');
   }
-  const body = await waitForVercelHealth({ healthUrl, expectedCommitSha });
-  process.stdout.write(`${body}\n`);
+  await waitForVercelHealth({ healthUrl, expectedCommitSha });
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
     await main();
-  } catch (error) {
-    console.error(error);
-    process.exit(1);
+  } catch {
+    process.stderr.write(`${HEALTH_CHECK_FAILED}\n`);
+    process.exitCode = 1;
   }
 }
