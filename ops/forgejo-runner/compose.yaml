@@ -1,0 +1,54 @@
+name: interdomestik-forgejo-runner
+
+services:
+  docker-in-docker:
+    image: docker@sha256:d95427251fd155cd69a03311a8c4edf6d0778595444afc2d2c800a156eb2ecac
+    privileged: true
+    command: ['dockerd', '-H', 'tcp://0.0.0.0:2375', '--tls=false']
+    restart: unless-stopped
+    cpuset: '0-5,12-17'
+    mem_limit: 10g
+    networks:
+      - runner-private
+      - runner-egress
+    volumes:
+      - runner-docker:/var/lib/docker
+    healthcheck:
+      test: ['CMD', 'docker', '-H', 'tcp://127.0.0.1:2375', 'info']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  runner:
+    image: data.forgejo.org/forgejo/runner@sha256:e070b166b921f12a2abef432cf6108e63519d0183722c2a14ecbb8d0b0621652
+    user: '1000:1000'
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    depends_on:
+      docker-in-docker:
+        condition: service_healthy
+    environment:
+      DOCKER_HOST: tcp://docker-in-docker:2375
+    command: forgejo-runner daemon --config /data/runner-config.yml
+    networks:
+      - runner-private
+      - forgejo
+    volumes:
+      - /home/arben/services/forgejo-runner/data:/data
+    tmpfs:
+      - /tmp
+
+networks:
+  runner-private:
+    internal: true
+  runner-egress:
+  forgejo:
+    external: true
+    name: forgejo_default
+
+volumes:
+  runner-docker:
