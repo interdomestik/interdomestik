@@ -1941,6 +1941,29 @@ security-sensitive shared CI boundary. The historical workflow Sonar issue,
 frozen `IDA-UI03a2`, Z620 runner/CD use, UI/product, runtime AI, Eval v2 and all
 other successors remain blocked or unpromoted.
 
+Rev 158 supersedes the Rev 157 active-selection sentence above. `IDA-SEC02` is
+complete through PR `#1418` / squash merge
+`40efa5a747713961f6fba37e568876376a2d3975`; its exact runtime authority is
+consumed and its sole implementation child is terminal. The exact three-path
+implementation preserves polling, retry, inter-attempt sleep, provenance,
+imported success-body return and hard-red failure while preventing raw URL,
+response body and arbitrary error payloads from crossing diagnostic boundaries.
+Current-head CI, E2E, Pilot, Sonar, CodeQL, security and finalizer proof passed.
+
+Exact CD run `30034794556` was cancelled, but cancellation lost the pre-checkout
+race: setup and checkout completed before Docker Buildx failed. Registry login,
+metadata, image build and every provider/deploy job remained skipped or at
+`steps: []`. Arben accepted the incident as contained before
+registry/image/provider/deploy and authorized only read-only closeout and
+cleanup. Exact-main CI, CodeQL, Secret Scan and high/critical audit passed; Sonar
+Main's remaining C-rating signal is historical at an unchanged workflow blob.
+
+No replacement slice is promoted. Canonical resolver state must be
+`blocked_requires_current_authority`, `activeSlice=null`; runtime, workflow
+dispatch, provider, alias/environment, deployment, production, database, frozen
+`IDA-UI03a2`, Z620 runner/CD use, UI/product, runtime AI, Eval v2 and every
+successor remain blocked or unpromoted.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
