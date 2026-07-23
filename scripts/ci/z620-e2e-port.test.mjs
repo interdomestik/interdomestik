@@ -31,4 +31,6 @@ test('resource runner keeps gatekeeper and Playwright build modes aligned', () =
   const source = read('scripts/ci/z620-resource-run.mjs');
   assert.match(source, /NEXT_PUBLIC_BILLING_TEST_MODE: '1'/);
   assert.match(source, /BILLING_TEST_MODE: '1'/);
+  assert.match(source, /DATABASE_URL: databaseConnection/);
+  assert.match(source, /DATABASE_URL_RLS: databaseConnection/);
 });

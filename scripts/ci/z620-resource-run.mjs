@@ -53,6 +53,8 @@ try {
     stdio: 'inherit',
     env: {
       ...process.env,
+      DATABASE_URL: databaseConnection,
+      DATABASE_URL_RLS: databaseConnection,
       E2E_DATABASE_URL: databaseConnection,
       E2E_DATABASE_URL_RLS: databaseConnection,
       PW_PORT: String(reservation.port),
