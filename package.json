@@ -105,6 +105,7 @@
     "ci:z620:dry-run": "node scripts/ci/z620-runner.mjs --lane=verify",
     "ci:z620:resource-run": "node scripts/ci/z620-resource-run.mjs",
     "ci:z620:resource-smoke": "node scripts/ci/z620-resource-smoke.mjs",
+    "e2e:z620:p2-contract": "node scripts/ci/z620-p2-e2e.mjs",
     "test:z620-e2e-port": "node --test scripts/ci/z620-e2e-port.test.mjs",
     "test:z620-runner": "node --test scripts/ci/z620-runner.test.mjs",
     "test:z620-resources": "node --test scripts/ci/z620-resource.test.mjs",
