@@ -1737,6 +1737,46 @@ unpromoted here. The expected resolver state is
 `blocked_requires_current_authority`, `activeSlice=null`; a fresh current-authority
 decision and separate exact authority are required before any successor work.
 
+Rev 153 current authority promotes exactly one next governed implementation goal,
+`IDA-SEC01`, under accepted Next.js security prerequisite gate `IDA-SEC-DG01` at
+`docs/plans/2026-07-23-ida-sec-dg01-nextjs-16-2-11-security-prerequisite.md`.
+The canonical gate is exactly 11,717 UTF-8 bytes at SHA-256
+`a6333b04a4dccc605597ff757121e5dfff7f3789fc2c4a14229f4782b395e390`,
+bound to clean base `0b85b20af3ce8cf2b28608a1c9e47a7499704291`. The root
+orchestrator selected the sole prerequisite after fresh exact-main repository,
+package-graph, registry, audit and AI OS evidence. Same-hash Sonnet 4.6
+security/architecture review passed the exact artifact with no blockers. Brain
+failed closed on a stale current-source snapshot and is advisory only; no
+usefulness or ROI claim is made.
+
+The exact-base production audit reports four non-waivable high-severity Next.js
+advisories—npm IDs `1124170`, `1124171`, `1124184` and `1124192`—on each of
+three reachable resolution paths: the web app at 16.2.9, the database
+auto-installed peer at 16.2.6 and the Inngest peer at 16.2.9. The accepted
+outcome raises the web `next`, bundle-analyzer, Next ESLint plugin and Next
+ESLint config declarations to `^16.2.11`, raises only the database Next peer
+floor to `>=16.2.11`, and regenerates a causally bounded lockfile in which all
+three reachable Next paths resolve exactly to 16.2.11. The unchanged
+high/critical audit gate must pass with all four advisory IDs absent. Broad,
+stale Dependabot PR `#1407` is not implementation authority.
+
+Future implementation is limited to exactly four writer paths:
+`apps/web/package.json`, `packages/database/package.json`, `pnpm-lock.yaml` and
+deterministic-only `scripts/repo-size-budget.json`. Any fifth writer path stops
+for a fresh exact disposition. An Inngest manifest change, source/config/test or
+workflow edit, audit waiver/override, unrelated dependency change, framework
+migration or compatibility remediation is not silently admitted.
+
+This docs-only Tier 0 promotion keeps `runtime_authorized:false`,
+`deployment_authorized:false` and `production_authorized:false`. Prospective
+implementation is Tier 3 and requires canonical gate merge, exact new-main
+health and sole resolver proof, then a separate exact runtime authority bound to
+that new main before exactly one fresh-worktree child may write. No manifest,
+lockfile or source mutation, provider/database contact, registry/image/deploy
+action, product/UI, proxy/routing/auth/session/tenancy, schema/RLS, IDA-CD01,
+runtime AI, Eval v2, frozen `IDA-UI03a2`, Z620 runner/CD use or other successor
+work is authorized by Rev 153.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
