@@ -16,9 +16,7 @@ const buildCpus = Number.parseInt(process.env.NEXT_BUILD_CPUS ?? '', 10);
 const nextBuildWorkerLimit =
   Number.isInteger(buildCpus) && buildCpus > 0 ? { cpus: buildCpus } : {};
 const webpackMemoryOptimizations =
-  process.env.NEXT_WEBPACK_MEMORY_OPTIMIZATIONS === '1'
-    ? { webpackMemoryOptimizations: true }
-    : {};
+  process.env.NEXT_WEBPACK_MEMORY_OPTIMIZATIONS === '1' ? { webpackMemoryOptimizations: true } : {};
 const validateSentrySourceMaps = process.env.SENTRY_VALIDATE_SOURCEMAPS === 'true';
 
 /** @type {import('next').NextConfig} */
@@ -39,7 +37,6 @@ const nextConfig = {
     ],
   },
   output: 'standalone',
-  productionBrowserSourceMaps: validateSentrySourceMaps,
   // Silence Next.js dev origin warning for local dev and Playwright
   allowedDevOrigins: [
     '127.0.0.1',
@@ -62,6 +59,12 @@ const nextConfig = {
     optimizePackageImports: ['lucide-react'],
   },
   serverExternalPackages: ['import-in-the-middle', 'require-in-the-middle'],
+  webpack(config, { isServer }) {
+    if (validateSentrySourceMaps) {
+      config.devtool = isServer ? 'source-map' : 'hidden-source-map';
+    }
+    return config;
+  },
   async redirects() {
     return [
       {
@@ -95,8 +98,9 @@ export default withSentryConfig(withAxiom(finalConfig), {
   release: validateSentrySourceMaps
     ? { name: sentryRelease, create: false, finalize: false }
     : undefined,
-  sourcemaps: validateSentrySourceMaps ? { disable: 'disable-upload' } : undefined,
-  deleteSourcemapsAfterUpload: !validateSentrySourceMaps,
+  sourcemaps: validateSentrySourceMaps
+    ? { disable: 'disable-upload', deleteSourcemapsAfterUpload: false }
+    : undefined,
 
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,
@@ -111,9 +115,6 @@ export default withSentryConfig(withAxiom(finalConfig), {
   // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
   // This can increase your server load as well as your Sentry bill.
   tunnelRoute: '/api/monitoring',
-
-  // Hides source maps from visitors
-  hideSourceMaps: true,
 
   // Webpack-specific options (fixes deprecation warnings)
   webpack: {
