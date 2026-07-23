@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "workflows": {
+    ".github/workflows/ci.yml": {
+      "validation-surface": ["policy", "pnpm validation-surface"],
+      "audit": ["exact", "pnpm test:ci:contracts"],
+      "static": ["exact", "pnpm lint && pnpm type-check"],
+      "unit": ["exact", "pnpm coverage:gate && pnpm test:release-gate"],
+      "ai-eval": ["conditional", "pnpm ai:eval"],
+      "e2e-gate": ["equivalent", "pnpm e2e:gate"]
+    },
+    ".github/workflows/security.yml": {
+      "pnpm-audit": ["exact", "pnpm security:guard && pnpm audit --prod"]
+    },
+    ".github/workflows/e2e-pr.yml": {
+      "e2e-preflight": ["policy", "pnpm validation-surface"],
+      "e2e-runner": ["equivalent", "pnpm e2e:gate:pr"],
+      "e2e": ["contract", "local result aggregation"]
+    },
+    ".github/workflows/sonar-main-gate.yml": {
+      "sonar-gate": ["provider", "pnpm sonar:gate"]
+    },
+    ".github/workflows/pilot-gate.yml": {
+      "pilot-gate-preflight": ["policy", "pilot gate policy"],
+      "pilot-gate-runner": ["equivalent", "pnpm release:gate:p0"],
+      "pilot-gate": ["contract", "local result aggregation"]
+    },
+    ".github/workflows/release-candidate.yml": {
+      "rc-gate": ["release-only", "GitHub protected release candidate gate"]
+    },
+    ".github/workflows/cd.yml": {
+      "build-staging": ["release-only", "GitHub protected CD"],
+      "deploy-staging": ["release-only", "GitHub protected CD"],
+      "e2e-staging": ["release-only", "GitHub protected CD"],
+      "production-evidence": ["release-only", "GitHub protected CD"],
+      "build-production": ["release-only", "GitHub protected CD"],
+      "deploy-production": ["release-only", "GitHub protected CD"],
+      "verify-production": ["release-only", "GitHub protected CD"]
+    }
+  },
+  "knownFailures": [
+    "repo-size budget exceeded on main 0b85b20",
+    "packages/qa NodeNext import extension failure on main 0b85b20",
+    "member claim draft cookie banner click flake",
+    "Help Now protected-request watcher timing flake"
+  ],
+  "requiredSecretNames": [
+    "SONAR_TOKEN",
+    "SONAR_HOST_URL",
+    "SONAR_PROJECT_KEY",
+    "SONAR_ORGANIZATION",
+    "SENTRY_AUTH_TOKEN",
+    "SENTRY_ORG",
+    "SENTRY_PROJECT",
+    "GH_TOKEN"
+  ]
+}

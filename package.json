@@ -102,6 +102,8 @@
     "ci:local:sonar:pr": "node scripts/run-with-dotenv.mjs bash scripts/ci-local-parity.sh sonar-pr",
     "ci:local:ready": "node scripts/run-with-dotenv.mjs bash scripts/ci-local-parity.sh ready",
     "ci:local:clean": "bash scripts/ci-local-parity.sh clean",
+    "ci:z620:dry-run": "node scripts/ci/z620-runner.mjs --lane=verify",
+    "test:z620-runner": "node --test scripts/ci/z620-runner.test.mjs",
     "test:ci:contracts": "node --test --test-concurrency=1 scripts/ci/*.test.mjs scripts/check-modularity-guard.test.mjs",
     "sonar:start": "docker compose --profile sonar up -d sonarqube db",
     "sonar:stop": "docker compose --profile sonar stop sonarqube db",
