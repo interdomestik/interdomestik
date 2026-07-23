@@ -19,6 +19,7 @@ const runEnv = {
   ...process.env,
   CI: 'true',
   PORT: String(port),
+  HOSTNAME: '127.0.0.1',
   NEXT_PUBLIC_APP_URL: baseUrl,
   BETTER_AUTH_URL: baseUrl,
   PLAYWRIGHT: '1',

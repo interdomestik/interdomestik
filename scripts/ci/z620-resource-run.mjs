@@ -80,8 +80,8 @@ try {
       RELEASE_GATE_ADMIN_KS_PASSWORD: e2ePassword,
       RELEASE_GATE_ADMIN_MK_EMAIL: 'admin.mk@interdomestik.com',
       RELEASE_GATE_ADMIN_MK_PASSWORD: e2ePassword,
-      UPSTASH_REDIS_REST_URL: 'http://127.0.0.1:8080',
-      UPSTASH_REDIS_REST_TOKEN: 'local-ci-placeholder',
+      UPSTASH_REDIS_REST_URL: '',
+      UPSTASH_REDIS_REST_TOKEN: '',
       PLAYWRIGHT: '1',
     },
   });

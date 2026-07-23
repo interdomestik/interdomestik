@@ -44,6 +44,7 @@ test('pilot gate owns its selected port, database, server, and release preparati
   assert.match(source, /port < 3100 \|\| port > 3199/);
   assert.match(source, /process\.env\.E2E_DATABASE_URL/);
   assert.match(source, /INTERDOMESTIK_TASK_OWNS_PORT/);
+  assert.match(source, /HOSTNAME: '127\.0\.0\.1'/);
   assert.match(source, /\['--filter', '@interdomestik\/web', 'run', 'build:ci'\]/);
   assert.match(source, /release:gate:p0:raw/);
   assert.match(source, /process\.kill\(-server\.pid, 'SIGTERM'\)/);
