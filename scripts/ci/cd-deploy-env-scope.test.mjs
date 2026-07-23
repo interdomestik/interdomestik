@@ -69,11 +69,10 @@ test('deploy action exports rollback controls without expanding historical job o
 test('preimage is uploaded before checks and atomically confirms alias movement', () => {
   const steps = cd.jobs['deploy-staging'].steps;
   const upload = findStep(steps, 'Upload staging alias preimage receipt');
-  assert.ok(
-    stepIndex(steps, 'Deploy Staging to Vercel') <
-      stepIndex(steps, upload.name) <
-      stepIndex(steps, 'Wait for Staging Health')
-  );
+  const deployIndex = stepIndex(steps, 'Deploy Staging to Vercel');
+  const uploadIndex = stepIndex(steps, upload.name);
+  const healthIndex = stepIndex(steps, 'Wait for Staging Health');
+  assert.ok(deployIndex < uploadIndex && uploadIndex < healthIndex);
   assert.match(upload.if, /always\(\)/u);
   assert.doesNotMatch(upload.if, /alias_moved/u);
   assert.equal(upload.with['if-no-files-found'], 'ignore');
