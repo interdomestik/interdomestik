@@ -1822,20 +1822,33 @@ candidate and grants no `IDA-CD01` implementation authority.
 Rev 155 current authority promotes exactly one next governed implementation goal,
 `IDA-CD01`, under accepted CD/Staging stabilization gate `IDA-CD-DG01` at
 `docs/plans/2026-07-23-ida-cd-dg01-staging-alias-rollback-gate.md`. The canonical
-gate is byte-identical to the accepted external packet: exactly 11,131 UTF-8 bytes
-at SHA-256
-`7402ae763f5d89085ef4d8fdeaa7b82068258f5a186b77103653fce7dd253507`,
-bound to clean base `0b85b20af3ce8cf2b28608a1c9e47a7499704291`. The root
-orchestrator selected that exact gate and sole successor after fresh repository,
-AI OS, CD-history, runner and Vercel-control evidence. Final Sonnet 4.6 review
-passed after all findings were incorporated.
+R1 gate is exactly 12,974 UTF-8 bytes at SHA-256
+`87e3683f1150cc5eb7a2fca4638cc6bb865d9cf850017594b1ca96bd5ad83357`,
+bound to clean base `0b85b20af3ce8cf2b28608a1c9e47a7499704291`. R1 supersedes
+the original 11,131-byte / `7402ae76…` artifact and its review claim after
+current-head Codex P2 `PRRT_kwDOQ0Mhjc6TKlHo`; the old hash is historical only.
+The root orchestrator selected R1 and the sole successor after fresh repository,
+AI OS, CD-history, runner and Vercel-control evidence. Same-hash Sonnet 4.6 R1
+review passed the exact 12,974-byte / `87e3683f…` artifact with no blockers.
+Canonical prerequisite closeout PR `#1411` merged exact reviewed head
+`6e0a2715f5905b08c602a7d7db5bfb303edbbcbd` as exact main
+`f86ed12a7a2582ee0ee6cf5fdfbda166a83fd830`; exact CD run `30002841039`
+was cancelled while queued with all seven jobs at `steps: []`. Rev 155 rebases
+the unchanged R1 artifact and review claim onto that exact main without changing
+the gate hash or future writer map. AI OS observation
+`57a9ac2456cf6090bfb6e4ba5cffc4f90c875081a1a43486fefd24a7a6fe31e5`
+reports authority current, `activeSlice=none` before this promotion and runtime
+`not_authorized`; Brain remains stale advisory context and is failed closed.
 
 The sole future outcome is a fail-closed preimage and rollback control for
 `staging.interdomestik.com`: snapshot and verify the exact same-project/team
 deployment and commit before alias mutation, preserve the existing verified
-candidate and attestation contracts, restore the exact preimage when post-alias
-staging E2E fails, verify canonical health against the prior commit, and leave a
-bounded redacted receipt without converting rollback failure to success.
+candidate and attestation contracts, restore the exact preimage for every
+non-cancellation failure after confirmed alias movement—including later health,
+build-provenance, canonical-alias or staging E2E failure—verify canonical health
+against the prior commit, and leave a bounded redacted receipt without converting
+rollback failure to success. Failures before confirmed alias movement never run
+rollback.
 Cancellation after alias movement does not claim automatic recovery; it freezes
 staging and returns to fresh incident authority with the captured preimage.
 

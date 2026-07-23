@@ -4,6 +4,7 @@ status: accepted_by_orchestrator
 project: interdomestik
 gate: IDA-CD-DG01
 slice: IDA-CD01
+revision: R1
 date: 2026-07-23
 authority: root-orchestrator
 ---
@@ -19,10 +20,17 @@ staging alias. It does not run a deployment from this gate and does not authoriz
 production.
 
 The implementation must snapshot the exact deployment currently serving
-`staging.interdomestik.com` before the alias is moved. If the newly deployed
-current-main candidate fails staging E2E after the alias move, one bounded
-rollback job must restore the exact preimage deployment and verify that the
-canonical staging health endpoint is reachable again.
+`staging.interdomestik.com` before the alias is moved. After confirmed alias
+movement, any later non-cancellation failure in the same staging attempt,
+including health, build-provenance, canonical-alias or staging E2E failure, must
+run one bounded rollback job that restores the exact preimage deployment and
+verifies that the canonical staging health endpoint is reachable again. Failure
+before confirmed alias movement must not run rollback.
+
+Revision R1 supersedes the original 11,131-byte artifact at SHA-256
+`7402ae763f5d89085ef4d8fdeaa7b82068258f5a186b77103653fce7dd253507`
+after current-head Codex P2 `PRRT_kwDOQ0Mhjc6TKlHo`. That superseded hash and
+its review receipt are historical only and do not approve this revision.
 
 ## Authority Base
 
@@ -48,8 +56,10 @@ and no usefulness or ROI claim is made.
    `e2e-staging` runs.
 2. `scripts/ci/configure-vercel-gate-url.mjs` performs the canonical staging alias
    assignment.
-3. The current workflow has no job that restores the prior alias target when
-   `e2e-staging` fails.
+3. Alias assignment occurs before the deploy action's remaining health,
+   build-provenance and canonical-alias checks. A failure in those checks makes
+   `deploy-staging` red and skips `e2e-staging` after alias movement; the current
+   workflow restores no prior target for that path or for failed staging E2E.
 4. Main CD run `28699456479` built and deployed staging, after which both staging
    E2E attempts failed. That is direct evidence that post-alias verification can
    fail.
@@ -80,8 +90,11 @@ Entry point: the existing push-to-`main` staging CD lane.
 
 Exit state:
 
-- successful staging E2E keeps the new alias target;
-- failed staging E2E restores the exact pre-run alias target;
+- successful post-alias deploy verification plus staging E2E keeps the new alias
+  target;
+- any non-cancellation failure after confirmed alias movement restores the exact
+  pre-run alias target, including deploy verification or staging E2E failure;
+- a failure before confirmed alias movement leaves the existing alias unchanged;
 - a missing, ambiguous or unverifiable preimage fails before alias mutation;
 - rollback failure is a hard red operational incident with bounded evidence;
 - production remains skipped for ordinary push events.
@@ -126,14 +139,24 @@ the new focused module.
 ### Alias move
 
 - Preserve the current verified-candidate alias assignment and retry semantics.
+- Emit a normalized, non-secret same-run alias-moved control immediately after
+  canonical assignment succeeds and before post-alias verification. Preserve it
+  for downstream evaluation even when a later deploy-action check fails.
 - Do not weaken the Vercel output attestation, image digest, health, provenance or
   canonical-alias verification.
 - Do not introduce shell interpolation of provider response fields.
 
 ### Rollback
 
-- Add one staging-only rollback job that evaluates after `e2e-staging`.
-- It may run only when `deploy-staging` succeeded and `e2e-staging` failed.
+- Add one staging-only rollback job that evaluates after the terminal
+  `deploy-staging` state and, when scheduled, the terminal `e2e-staging` state.
+- It may run only when the same run confirms alias movement, the run is not
+  cancelled, and either a later `deploy-staging` check failed or
+  `e2e-staging` failed.
+- It must not require successful `deploy-staging` as a prerequisite when the
+  same run proves alias movement before the later deploy-action failure.
+- It must not run for a failure before alias movement or for a fully successful
+  staging path.
 - It must use the exact preimage hostname and commit captured by the same run.
 - It must restore only `staging.interdomestik.com`.
 - It must verify canonical `/api/health` against the captured preimage commit.
@@ -159,14 +182,16 @@ Required deterministic tests:
 6. restore assigns only the canonical staging alias;
 7. restore verifies the exact preimage commit;
 8. restore mismatch fails hard;
-9. workflow rollback job requires successful deploy plus failed staging E2E;
-10. cancelled-after-alias movement does not claim automatic recovery and exposes
+9. each post-alias health, build-provenance or canonical-alias failure triggers
+   rollback even when `deploy-staging` is red and `e2e-staging` is skipped;
+10. failed staging E2E after successful deploy verification triggers rollback;
+11. cancelled-after-alias movement does not claim automatic recovery and exposes
     the bounded preimage receipt for fresh incident authority;
-11. normal push events keep every production job skipped;
-12. successful staging E2E does not execute rollback;
-13. credentials remain job/action scoped;
-14. current attestation and digest contracts remain intact;
-15. rollback exits non-zero even when its redacted receipt uploads successfully.
+12. normal push events keep every production job skipped;
+13. successful deploy verification plus staging E2E does not execute rollback;
+14. credentials remain job/action scoped;
+15. current attestation and digest contracts remain intact;
+16. rollback exits non-zero even when its redacted receipt uploads successfully.
 
 Focused proof:
 
@@ -201,6 +226,8 @@ resource failure and return to fresh authority for one runner-capacity slice.
 - Snapshot failure: no alias movement; stop.
 - Build failure or `exit 137`: no alias movement; capture evidence; stop.
 - Deploy failure before alias movement: capture evidence; stop.
+- Health, build-provenance or canonical-alias failure after confirmed alias
+  movement: restore exact preimage and verify it.
 - E2E failure after alias movement: restore exact preimage and verify it.
 - Cancellation after alias movement: do not claim automatic rollback; freeze
   staging, keep production untouched, surface the bounded preimage receipt and
