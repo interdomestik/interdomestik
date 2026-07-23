@@ -37,9 +37,12 @@ test('ordinary CI rejects Sentry apply, release, and upload modes', () => {
 
 test('source maps are hidden and upload is disabled without provider credentials', () => {
   const nextConfig = read('apps/web/next.config.mjs');
-  assert.match(nextConfig, /disable:\s*!enableSentryBuildUpload/u);
+  assert.match(nextConfig, /disable:\s*!enableSentryBuildUpload && !validateSentrySourceMaps/u);
   assert.match(nextConfig, /hideSourceMaps:\s*true/u);
   assert.match(nextConfig, /Boolean\(sentryOrg && sentryProject && sentryAuthToken\)/u);
+  assert.match(nextConfig, /disable:\s*'disable-upload'/u);
+  assert.match(nextConfig, /create:\s*false/u);
+  assert.match(nextConfig, /SENTRY_RELEASE must equal the exact 40-character candidate SHA/u);
 });
 
 test('Docker code gate strips all Sentry provider credentials', () => {

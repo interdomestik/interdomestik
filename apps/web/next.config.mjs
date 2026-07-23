@@ -76,6 +76,12 @@ const sentryOrg = process.env.SENTRY_ORG?.trim();
 const sentryProject = process.env.SENTRY_PROJECT?.trim();
 const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN?.trim();
 const enableSentryBuildUpload = Boolean(sentryOrg && sentryProject && sentryAuthToken);
+const validateSentrySourceMaps = process.env.SENTRY_VALIDATE_SOURCEMAPS === 'true';
+const sentryRelease = process.env.SENTRY_RELEASE?.trim();
+
+if (validateSentrySourceMaps && !/^[0-9a-f]{40}$/u.test(sentryRelease ?? '')) {
+  throw new Error('SENTRY_RELEASE must equal the exact 40-character candidate SHA.');
+}
 
 export default withSentryConfig(withAxiom(finalConfig), {
   // For all available options, see:
@@ -84,7 +90,12 @@ export default withSentryConfig(withAxiom(finalConfig), {
   org: sentryOrg,
   project: sentryProject,
   authToken: sentryAuthToken,
-  disable: !enableSentryBuildUpload,
+  disable: !enableSentryBuildUpload && !validateSentrySourceMaps,
+  release: validateSentrySourceMaps
+    ? { name: sentryRelease, create: false, finalize: false }
+    : undefined,
+  sourcemaps: validateSentrySourceMaps ? { disable: 'disable-upload' } : undefined,
+  deleteSourcemapsAfterUpload: !validateSentrySourceMaps,
 
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,
