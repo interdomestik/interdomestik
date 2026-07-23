@@ -46,6 +46,8 @@ export function buildNativeScannerArgs(scannerProperties) {
 const SONARCLOUD_HOST_URL = 'https://sonarcloud.io';
 const LOCAL_SONAR_PROTOCOL = 'http:';
 const LOCAL_SONAR_URLS = new Map([
+  ['127.0.0.1:9000', `${LOCAL_SONAR_PROTOCOL}//127.0.0.1:9000`],
+  ['localhost:9000', `${LOCAL_SONAR_PROTOCOL}//localhost:9000`],
   ['host.docker.internal:9000', `${LOCAL_SONAR_PROTOCOL}//host.docker.internal:9000`],
   ['sonarqube:9000', `${LOCAL_SONAR_PROTOCOL}//sonarqube:9000`],
 ]);
@@ -95,6 +97,12 @@ export function normalizeSonarHostUrl(rawHostUrl = SONARCLOUD_HOST_URL) {
 }
 
 export function resolveSonarStatusTarget({ sonarHostUrl, forceNative = false } = {}) {
+  if (
+    sonarHostUrl === `${LOCAL_SONAR_PROTOCOL}//127.0.0.1:9000` ||
+    sonarHostUrl === `${LOCAL_SONAR_PROTOCOL}//localhost:9000`
+  ) {
+    return 'loopback-native';
+  }
   if (sonarHostUrl === `${LOCAL_SONAR_PROTOCOL}//host.docker.internal:9000`) {
     return forceNative ? 'host-docker-native' : 'local-docker';
   }
@@ -108,6 +116,8 @@ function fetchSonarStatus(target) {
   const options = { signal: AbortSignal.timeout(2500) };
 
   switch (target) {
+    case 'loopback-native':
+      return fetch(`${LOCAL_SONAR_PROTOCOL}//127.0.0.1:9000/api/system/status`, options);
     case 'local-docker':
       return fetch(`${LOCAL_SONAR_PROTOCOL}//localhost:9000/api/system/status`, options);
     case 'host-docker-native':

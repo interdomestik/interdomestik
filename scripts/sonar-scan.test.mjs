@@ -108,6 +108,8 @@ test('normalizeSonarHostUrl rejects malformed URLs with a redacted error', () =>
 test('normalizeSonarHostUrl defaults to SonarCloud and rejects arbitrary hosts', () => {
   assert.equal(normalizeSonarHostUrl(), 'https://sonarcloud.io');
   assert.equal(normalizeSonarHostUrl('https://sonarcloud.io/'), 'https://sonarcloud.io');
+  assert.equal(normalizeSonarHostUrl('http://127.0.0.1:9000/'), 'http://127.0.0.1:9000');
+  assert.equal(normalizeSonarHostUrl('http://localhost:9000/'), 'http://localhost:9000');
   assert.throws(
     () => normalizeSonarHostUrl('https://example.test'),
     /approved local SonarQube URL/u
@@ -118,6 +120,10 @@ test('resolveSonarStatusTarget returns fixed targets only for approved local hos
   const localUrl = host => `${'http:'}//${host}`;
 
   assert.equal(resolveSonarStatusTarget({ sonarHostUrl: 'https://sonarcloud.io' }), null);
+  assert.equal(
+    resolveSonarStatusTarget({ sonarHostUrl: localUrl('127.0.0.1:9000'), forceNative: true }),
+    'loopback-native'
+  );
   assert.equal(
     resolveSonarStatusTarget({
       sonarHostUrl: localUrl('host.docker.internal:9000'),
