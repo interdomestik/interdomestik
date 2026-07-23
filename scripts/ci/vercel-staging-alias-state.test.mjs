@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import {
   CANONICAL_STAGING_ALIAS,
   restoreStagingAlias,
@@ -8,23 +7,26 @@ import {
 } from './vercel-staging-alias-state.mjs';
 
 const COMMIT = 'a'.repeat(40);
+const DEPLOYMENT_ID = 'dpl_previous';
 const HOST = 'interdomestik-web-old-ecohub.vercel.app';
+const ALIAS_NAME = CANONICAL_STAGING_ALIAS;
+const PROJECT_ID = 'prj_expected';
+const TEAM_ID = 'team_expected';
 const ENV = {
   VERCEL_AUTOMATION_BYPASS_SECRET: 'bypass-secret',
-  VERCEL_ORG_ID: 'team_expected',
-  VERCEL_PROJECT_ID: 'prj_expected',
+  VERCEL_ORG_ID: TEAM_ID,
+  VERCEL_PROJECT_ID: PROJECT_ID,
   VERCEL_TOKEN: 'token-secret',
 };
+const ALIAS_STATE = { alias: ALIAS_NAME, deploymentId: DEPLOYMENT_ID, projectId: PROJECT_ID };
+const DEPLOYMENT = { id: DEPLOYMENT_ID, projectId: PROJECT_ID, teamId: TEAM_ID, url: HOST };
 const DIRECT_HEALTH = `health:https://${HOST}/api/health:${COMMIT}`;
-const ALIAS_MOVE = `alias:${HOST}:${CANONICAL_STAGING_ALIAS}:true`;
-const CANONICAL_HEALTH = `health:https://${CANONICAL_STAGING_ALIAS}/api/health:${COMMIT}`;
+const ALIAS_MOVE = `alias:${HOST}:${ALIAS_NAME}:true`;
+const CANONICAL_HEALTH = `health:https://${ALIAS_NAME}/api/health:${COMMIT}`;
 function response(body, status = 200) {
   return new Response(typeof body === 'string' ? body : JSON.stringify(body), { status });
 }
-function snapshotFetch({
-  alias = { alias: CANONICAL_STAGING_ALIAS, deployment: { url: HOST }, redirect: null },
-  deployment = { projectId: ENV.VERCEL_PROJECT_ID, teamId: ENV.VERCEL_ORG_ID, url: HOST },
-} = {}) {
+function snapshotFetch({ alias = ALIAS_STATE, deployment = DEPLOYMENT } = {}) {
   const calls = [];
   return {
     calls,
@@ -67,6 +69,7 @@ test('snapshot authenticates alias/deployment ownership and captures exact commi
   });
   assert.deepEqual(result, { deploymentHostname: HOST, commitSha: COMMIT });
   assert.equal(fixture.calls.length, 2);
+  assert.equal(new URL(fixture.calls[1].url).pathname, `/v13/deployments/${DEPLOYMENT_ID}`);
   for (const call of fixture.calls) {
     assert.equal(call.init.headers.authorization, `Bearer ${ENV.VERCEL_TOKEN}`);
     assert.match(call.url, new RegExp(`teamId=${ENV.VERCEL_ORG_ID}`));
@@ -75,29 +78,27 @@ test('snapshot authenticates alias/deployment ownership and captures exact commi
 test('snapshot fails closed for missing, redirected, or malformed aliases', async () => {
   for (const alias of [
     {},
-    { alias: CANONICAL_STAGING_ALIAS, deployment: { url: HOST }, redirect: 'other.example' },
-    {
-      alias: CANONICAL_STAGING_ALIAS,
-      deployment: { url: 'staging.interdomestik.com' },
-      redirect: null,
-    },
+    { ...ALIAS_STATE, redirect: 'other.example' },
+    { alias: ALIAS_NAME, projectId: PROJECT_ID },
   ]) {
     const fixture = snapshotFetch({ alias });
     await assert.rejects(
       snapshotStagingAlias({ env: ENV, fetchImpl: fixture.fetchImpl }),
-      /canonical staging alias|redirect|Vercel deployment hostname/u
+      /canonical staging alias|redirect|deploymentId/u
     );
   }
 });
-test('snapshot rejects foreign project or team ownership', async () => {
-  for (const deployment of [
-    { projectId: 'prj_foreign', teamId: ENV.VERCEL_ORG_ID, url: HOST },
-    { projectId: ENV.VERCEL_PROJECT_ID, teamId: 'team_foreign', url: HOST },
+test('snapshot rejects alias project and foreign deployment ownership', async () => {
+  for (const [alias, deployment] of [
+    [{ ...ALIAS_STATE, projectId: 'prj_foreign' }],
+    [undefined, { ...DEPLOYMENT, id: 'dpl_foreign' }],
+    [undefined, { ...DEPLOYMENT, projectId: 'prj_foreign' }],
+    [undefined, { ...DEPLOYMENT, teamId: 'team_foreign' }],
   ]) {
-    const fixture = snapshotFetch({ deployment });
+    const fixture = snapshotFetch({ alias, deployment });
     await assert.rejects(
       snapshotStagingAlias({ env: ENV, fetchImpl: fixture.fetchImpl }),
-      /project\/team ownership mismatch/u
+      /project ownership mismatch|deployment project\/team ownership mismatch/u
     );
   }
 });

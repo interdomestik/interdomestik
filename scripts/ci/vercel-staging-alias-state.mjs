@@ -105,19 +105,20 @@ export async function snapshotStagingAlias({
   );
   if (aliasState.alias !== alias) throw new Error('canonical staging alias missing');
   if (aliasState.redirect) throw new Error('canonical staging alias must not redirect');
-  const deploymentHostname = deploymentHost(aliasState.deployment?.url);
+  const deploymentId = requireValue('Vercel alias deploymentId', aliasState.deploymentId);
+  if (aliasState.projectId !== projectId)
+    throw new Error('Vercel alias project ownership mismatch');
   const deployment = await providerJson(
     await fetchImpl(
-      scopedUrl(`/v13/deployments/${encodeURIComponent(deploymentHostname)}`, teamId),
+      scopedUrl(`/v13/deployments/${encodeURIComponent(deploymentId)}`, teamId),
       init
     ),
     'Vercel deployment lookup'
   );
+  const deploymentHostname = deploymentHost(deployment.url);
   const resolvedTeam = deployment.teamId || deployment.team?.id;
   const ownershipMatches =
-    deploymentHost(deployment.url) === deploymentHostname &&
-    deployment.projectId === projectId &&
-    resolvedTeam === teamId;
+    deployment.id === deploymentId && deployment.projectId === projectId && resolvedTeam === teamId;
   if (!ownershipMatches) throw new Error('Vercel deployment project/team ownership mismatch');
   const body = await healthImpl({ healthUrl: `https://${deploymentHostname}/api/health` });
   const commitSha = JSON.parse(body)?.build?.commitSha;
