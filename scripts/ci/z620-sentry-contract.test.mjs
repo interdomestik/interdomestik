@@ -39,6 +39,7 @@ test('source maps are hidden and upload is disabled without provider credentials
   const nextConfig = read('apps/web/next.config.mjs');
   assert.match(nextConfig, /disable:\s*!enableSentryBuildUpload && !validateSentrySourceMaps/u);
   assert.match(nextConfig, /hideSourceMaps:\s*true/u);
+  assert.match(nextConfig, /productionBrowserSourceMaps:\s*validateSentrySourceMaps/u);
   assert.match(nextConfig, /Boolean\(sentryOrg && sentryProject && sentryAuthToken\)/u);
   assert.match(nextConfig, /disable:\s*'disable-upload'/u);
   assert.match(nextConfig, /create:\s*false/u);

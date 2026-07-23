@@ -19,6 +19,7 @@ const webpackMemoryOptimizations =
   process.env.NEXT_WEBPACK_MEMORY_OPTIMIZATIONS === '1'
     ? { webpackMemoryOptimizations: true }
     : {};
+const validateSentrySourceMaps = process.env.SENTRY_VALIDATE_SOURCEMAPS === 'true';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -38,6 +39,7 @@ const nextConfig = {
     ],
   },
   output: 'standalone',
+  productionBrowserSourceMaps: validateSentrySourceMaps,
   // Silence Next.js dev origin warning for local dev and Playwright
   allowedDevOrigins: [
     '127.0.0.1',
@@ -76,7 +78,6 @@ const sentryOrg = process.env.SENTRY_ORG?.trim();
 const sentryProject = process.env.SENTRY_PROJECT?.trim();
 const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN?.trim();
 const enableSentryBuildUpload = Boolean(sentryOrg && sentryProject && sentryAuthToken);
-const validateSentrySourceMaps = process.env.SENTRY_VALIDATE_SOURCEMAPS === 'true';
 const sentryRelease = process.env.SENTRY_RELEASE?.trim();
 
 if (validateSentrySourceMaps && !/^[0-9a-f]{40}$/u.test(sentryRelease ?? '')) {
