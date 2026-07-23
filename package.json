@@ -103,6 +103,7 @@
     "ci:local:ready": "node scripts/run-with-dotenv.mjs bash scripts/ci-local-parity.sh ready",
     "ci:local:clean": "bash scripts/ci-local-parity.sh clean",
     "ci:z620:dry-run": "node scripts/ci/z620-runner.mjs --lane=verify",
+    "ci:z620:resource-run": "node scripts/ci/z620-resource-run.mjs",
     "ci:z620:resource-smoke": "node scripts/ci/z620-resource-smoke.mjs",
     "test:z620-e2e-port": "node --test scripts/ci/z620-e2e-port.test.mjs",
     "test:z620-runner": "node --test scripts/ci/z620-runner.test.mjs",
