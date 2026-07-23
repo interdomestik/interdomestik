@@ -1880,8 +1880,9 @@ gate remains exact at 12,974 UTF-8 bytes / SHA-256
 the exact 8,257-byte runtime-authority receipt remains SHA-256
 `544156dda6b15836061219e3a2a880ad135a4bc7680df8221a049b622a2dde5a`.
 The exact seven-path implementation contains 622 insertions / 224 deletions and
-base-to-head diff SHA-256
-`4be7e59123067e042a0f86847d7332db46bf10b83ab76703e83849c4f7f97206`.
+canonical full-index binary base-to-head diff SHA-256
+`0256e002a450efb1c4c43c86bce502eafb2188ec1450229e3348c46bd1f4a99c`;
+the exact generating command is preserved in the canonical closeout.
 It preserves the frozen attestation test, ordinary-push production skips,
 cancellation incident stop and fail-closed provider boundary.
 

@@ -29,8 +29,10 @@ implementing, reviewing, merging or closing this slice.
   `280ea41908639e3e9807191a711553276d5c650d`.
 - Exact merge tree:
   `40fde0b7769baf3d3806f12e77bf7d1419060e26`.
-- Exact base-to-head diff digest: SHA-256
-  `4be7e59123067e042a0f86847d7332db46bf10b83ab76703e83849c4f7f97206`.
+- Canonical full-index binary base-to-head diff digest: SHA-256
+  `0256e002a450efb1c4c43c86bce502eafb2188ec1450229e3348c46bd1f4a99c`.
+  The exact command is
+  `git -c color.ui=false diff --no-ext-diff --no-textconv --full-index --binary --src-prefix=a/ --dst-prefix=b/ 483dc33015515400d7e784976893407ce78c6f41 280ea41908639e3e9807191a711553276d5c650d | shasum -a 256`.
 
 The runtime authority is consumed. No replacement slice is promoted by this
 closeout.
