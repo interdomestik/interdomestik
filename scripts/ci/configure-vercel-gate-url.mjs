@@ -1,130 +1,130 @@
+import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 
-const VERCEL_TEAM_SLUG = 'ecohub';
-const DEFAULT_ALIAS_ATTEMPTS = 4;
-const DEFAULT_ALIAS_RETRY_MS = 5_000;
+import * as state from './vercel-staging-alias-state.mjs';
 
+export const aliasStagingDeployment = state.aliasStagingDeployment;
 export function cleanHostname(value) {
-  return String(value || '')
-    .replace(/^https?:\/\//u, '')
-    .split('/')[0]
-    .split(':')[0]
-    .toLowerCase();
+  const text = String(value || '').replace(/^https?:\/\//u, '');
+  return text.split(/[/:]/u)[0].toLowerCase();
 }
-
 export function requireHostname(label, value) {
   const hostname = cleanHostname(value);
-  const validLabels = hostname
-    .split('.')
-    .every(label => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/u.test(label));
-  if (hostname.length > 253 || !validLabels) {
-    throw new Error(`${label} must be a valid hostname`);
-  }
+  const valid =
+    hostname.length <= 253 &&
+    hostname.split('.').every(part => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/u.test(part));
+  if (!valid) throw new Error(`${label} must be a valid hostname`);
   return hostname;
-}
-
-function positiveInteger(value, fallback) {
-  const parsed = Number.parseInt(String(value || ''), 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-}
-
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function aliasEndpoint(deploymentHostname, env) {
-  const endpoint = new URL(
-    `https://api.vercel.com/v2/deployments/${encodeURIComponent(deploymentHostname)}/aliases`
-  );
-  endpoint.searchParams.set('slug', VERCEL_TEAM_SLUG);
-  return endpoint;
-}
-
-function compactBody(body) {
-  return body.replace(/\s+/gu, ' ').trim().slice(0, 800);
-}
-
-function isTransientAliasFailure(status, body) {
-  return (
-    status === 400 &&
-    /(cert .*not ready|deployment .*not ready|not READY|can not be aliased)/iu.test(body)
-  );
-}
-
-export async function aliasStagingDeployment(
-  deploymentHostname,
-  aliasHostname,
-  env = process.env,
-  fetchImpl = fetch,
-  waitImpl = delay
-) {
-  const token = env.VERCEL_TOKEN;
-  if (!token) throw new Error('VERCEL_TOKEN is required to assign the staging alias');
-
-  console.error('Assigning canonical staging alias to the verified Vercel deployment');
-  const endpoint = aliasEndpoint(deploymentHostname, env);
-  const attempts = positiveInteger(env.STAGING_ALIAS_ATTEMPTS, DEFAULT_ALIAS_ATTEMPTS);
-  const retryMs = positiveInteger(env.STAGING_ALIAS_RETRY_MS, DEFAULT_ALIAS_RETRY_MS);
-
-  for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    const response = await fetchImpl(endpoint, {
-      method: 'POST',
-      headers: {
-        authorization: `Bearer ${token}`,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({ alias: aliasHostname, redirect: null }),
-    });
-    if (response.ok) return;
-
-    const body = await response.text();
-    if (response.status === 409 && /already assigned/iu.test(body)) {
-      console.error('Canonical staging alias is already assigned to the verified Vercel deployment');
-      return;
-    }
-    if (attempt < attempts && isTransientAliasFailure(response.status, body)) {
-      console.error(`Canonical staging alias not ready yet; retrying (${attempt}/${attempts})`);
-      await waitImpl(retryMs);
-      continue;
-    }
-    throw new Error(
-      `Failed to assign canonical staging alias: ${response.status} ${compactBody(body)}`
-    );
-  }
 }
 
 export async function resolveGateUrl(
   baseUrl,
-  deploymentHostname,
+  hostname,
   env = process.env,
-  aliasImpl = aliasStagingDeployment
+  assign = aliasStagingDeployment
 ) {
-  const deployEnvironment = env.DEPLOY_ENVIRONMENT || '';
-  const deployProduction = env.DEPLOY_PRODUCTION || '';
-  if (deployEnvironment !== 'staging' || deployProduction === 'true') {
-    return { gateBaseUrl: baseUrl, gateHostname: deploymentHostname };
+  if (env.DEPLOY_ENVIRONMENT !== 'staging' || env.DEPLOY_PRODUCTION === 'true') {
+    return { gateBaseUrl: baseUrl, gateHostname: hostname };
   }
-  const aliasHostname = requireHostname(
-    'STAGING_ALIAS_DOMAIN',
-    env.STAGING_ALIAS_DOMAIN || 'staging.interdomestik.com'
-  );
-  await aliasImpl(deploymentHostname, aliasHostname, env);
-  return { gateBaseUrl: `https://${aliasHostname}`, gateHostname: aliasHostname };
+  const requested = env.STAGING_ALIAS_DOMAIN || state.CANONICAL_STAGING_ALIAS;
+  const alias = requireHostname('STAGING_ALIAS_DOMAIN', requested);
+  if (alias !== state.CANONICAL_STAGING_ALIAS) {
+    throw new Error(`STAGING_ALIAS_DOMAIN must be ${state.CANONICAL_STAGING_ALIAS}`);
+  }
+  await assign(hostname, alias, env);
+  return { gateBaseUrl: `https://${alias}`, gateHostname: alias };
 }
 
-async function main() {
+function receiptPath(name) {
+  const result = process.env[name]?.trim();
+  if (!result) throw new Error(`${name} is required`);
+  return result;
+}
+
+export function validatePreimageReceipt(value) {
+  const hostname = requireHostname('preimage deployment hostname', value?.deploymentHostname);
+  const receipt = { ...value, deploymentHostname: hostname };
+  if (
+    receipt.version !== 1 ||
+    receipt.alias !== state.CANONICAL_STAGING_ALIAS ||
+    value?.deploymentHostname !== hostname ||
+    !receipt.deploymentHostname.endsWith('.vercel.app') ||
+    !/^[a-f0-9]{40}$/u.test(receipt.commitSha || '') ||
+    typeof receipt.aliasMoved !== 'boolean'
+  )
+    throw new Error('invalid staging alias preimage receipt');
+  return receipt;
+}
+
+async function readPreimage() {
+  const source = await readFile(receiptPath('STAGING_PREIMAGE_RECEIPT_PATH'), 'utf8');
+  return validatePreimageReceipt(JSON.parse(source));
+}
+async function writeRollback(receipt, outcome, error) {
+  await state.writeAliasReceipt(receiptPath('STAGING_ROLLBACK_RECEIPT_PATH'), {
+    ...receipt,
+    outcome,
+    ...(error ? { error: state.boundedProviderText(error?.message) } : {}),
+  });
+}
+
+async function guardRollback() {
+  let receipt = { alias: state.CANONICAL_STAGING_ALIAS };
+  try {
+    receipt = await readPreimage();
+    if (!receipt.aliasMoved) await writeRollback(receipt, 'not-required');
+    process.stdout.write(`should_restore=${receipt.aliasMoved}\n`);
+  } catch (error) {
+    await writeRollback(receipt, 'failed', error);
+    throw error;
+  }
+}
+
+async function restore() {
+  let receipt = { alias: state.CANONICAL_STAGING_ALIAS };
+  try {
+    receipt = await readPreimage();
+    if (!receipt.aliasMoved) throw new Error('staging alias movement was not confirmed');
+    await state.restoreStagingAlias(receipt);
+    await writeRollback(receipt, 'restored');
+  } catch (error) {
+    await writeRollback(receipt, 'failed', error);
+    throw error;
+  }
+}
+
+async function deploy() {
   const baseUrl = process.argv[2];
-  const deploymentHostname = requireHostname('deployment hostname', process.argv[3]);
+  const hostname = requireHostname('deployment hostname', process.argv[3]);
   if (!baseUrl?.startsWith('https://')) throw new Error('base URL must use https');
-  const { gateBaseUrl, gateHostname } = await resolveGateUrl(baseUrl, deploymentHostname);
-  process.stdout.write(`gate_base_url=${gateBaseUrl}\ngate_hostname=${gateHostname}\n`);
+  let receipt;
+  let aliasImpl = aliasStagingDeployment;
+  if (process.env.DEPLOY_ENVIRONMENT === 'staging' && process.env.DEPLOY_PRODUCTION !== 'true') {
+    const preimage = await state.snapshotStagingAlias();
+    const target = receiptPath('STAGING_PREIMAGE_RECEIPT_PATH');
+    receipt = { alias: state.CANONICAL_STAGING_ALIAS, ...preimage, aliasMoved: false };
+    await state.writeAliasReceipt(target, receipt);
+    console.error(`Staging alias preimage: ${preimage.deploymentHostname} ${preimage.commitSha}`);
+    aliasImpl = async (...args) => {
+      await aliasStagingDeployment(...args);
+      receipt = { ...receipt, aliasMoved: true };
+      await state.writeAliasReceipt(target, receipt);
+    };
+  }
+  const gate = await resolveGateUrl(baseUrl, hostname, process.env, aliasImpl);
+  let output = `gate_base_url=${gate.gateBaseUrl}\ngate_hostname=${gate.gateHostname}\n`;
+  if (receipt) {
+    output += `previous_deployment_hostname=${receipt.deploymentHostname}\n`;
+    output += `previous_commit_sha=${receipt.commitSha}\nalias_moved=true\n`;
+  }
+  process.stdout.write(output);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  try {
-    await main();
-  } catch (error) {
+  const command =
+    process.argv[2] === 'guard' ? guardRollback : process.argv[2] === 'restore' ? restore : deploy;
+  await command().catch(error => {
     console.error(error);
-    process.exit(1);
-  }
+    process.exitCode = 1;
+  });
 }

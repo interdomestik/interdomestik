@@ -1,30 +1,24 @@
 name: Deploy Vercel Prebuilt Artifact
 description: Pulls Vercel env, builds locally, and deploys a prebuilt artifact.
 inputs:
-  environment:
-    required: true
-  production:
-    required: true
-  commit-sha:
-    required: true
-  attested-image-digest:
-    required: true
+  environment: { required: true }
+  production: { required: true }
+  commit-sha: { required: true }
+  attested-image-digest: { required: true }
   vercel-automation-bypass-secret:
     required: false
     default: ''
 outputs:
-  deployment_url:
-    value: ${{ steps.deploy.outputs.deployment_url }}
-  base_url:
-    value: ${{ steps.deploy.outputs.base_url }}
-  hostname:
-    value: ${{ steps.deploy.outputs.hostname }}
-  gate_base_url:
-    value: ${{ steps.deploy.outputs.gate_base_url }}
-  gate_hostname:
-    value: ${{ steps.deploy.outputs.gate_hostname }}
-  vercel_output_digest:
-    value: ${{ steps.deploy.outputs.vercel_output_digest }}
+  deployment_url: { value: '${{ steps.deploy.outputs.deployment_url }}' }
+  base_url: { value: '${{ steps.deploy.outputs.base_url }}' }
+  hostname: { value: '${{ steps.deploy.outputs.hostname }}' }
+  gate_base_url: { value: '${{ steps.deploy.outputs.gate_base_url }}' }
+  gate_hostname: { value: '${{ steps.deploy.outputs.gate_hostname }}' }
+  previous_deployment_hostname:
+    value: ${{ steps.deploy.outputs.previous_deployment_hostname }}
+  previous_commit_sha: { value: '${{ steps.deploy.outputs.previous_commit_sha }}' }
+  alias_moved: { value: '${{ steps.deploy.outputs.alias_moved }}' }
+  vercel_output_digest: { value: '${{ steps.deploy.outputs.vercel_output_digest }}' }
 runs:
   using: composite
   steps:
