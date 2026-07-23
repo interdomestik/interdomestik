@@ -12,7 +12,8 @@ const accessScript = path.join(repoRoot, 'scripts/ci/model-review-access.mjs');
 const evidenceScript = path.join(repoRoot, 'scripts/ci/model-review-evidence.mjs');
 
 function addFakeClaude(binDir) {
-  fs.symlinkSync('/bin/echo', path.join(binDir, 'claude'));
+  const executable = path.join(binDir, 'claude');
+  fs.writeFileSync(executable, '#!/bin/sh\nprintf "OK\\n"\n', { mode: 0o755 });
 }
 
 function withReceipt(receipt, callback) {
