@@ -1964,6 +1964,33 @@ dispatch, provider, alias/environment, deployment, production, database, frozen
 `IDA-UI03a2`, Z620 runner/CD use, UI/product, runtime AI, Eval v2 and every
 successor remain blocked or unpromoted.
 
+Rev 159 supersedes the Rev 158 terminal no-promotion sentence above. The next
+active governed implementation goal is exactly one canonical tracker slice:
+`IDA-SEC03`, a future Tier-3 shared CI/security prerequisite promoted by
+`IDA-SEC-DG03`. The exact 9,601-byte gate at SHA-256
+`897651b165afbdb3efb2770e93b4be4b818a223fabb5a70029ec251d7ef56605`
+is bound to clean main
+`19fd318cf72de44313de68842af9552d2a81f1de`, tree
+`c0ba91c18844cd123179044c933bd50834076e93`, unchanged workflow blob
+`5dda794c823fa5997a2cad774389d3c7e9e94f66` and Sonar issue
+`AZ-ACoVO5G2i53uX0BTV` / `githubactions:S8544`.
+
+The future implementation replaces only the floating
+`python -m pip install --upgrade semgrep` command with exact
+`python -m pip install semgrep==1.171.0`, the version installed by successful
+deterministic-backstops run `30037180334` and confirmed by contemporaneous PyPI
+metadata. It adds a focused regression contract while preserving the existing
+scan flags, base-SHA behavior, SARIF upload, permissions, conditions and draft
+policy. The future writer map is exactly the workflow, its existing focused
+contract test and deterministic repo-size metadata; any fourth path stops.
+
+This docs-only promotion keeps runtime, workflow dispatch, provider contact,
+alias/environment mutation, deployment, production, database and Z620 runner/CD
+authority false. Separate exact runtime authority and exactly one fresh
+worktree-backed `gpt-5.6-sol` xhigh child are required before implementation.
+Frozen `IDA-UI03a2`, UI/product, runtime AI, Eval v2 and every other successor
+remain blocked or unpromoted.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
