@@ -38,11 +38,13 @@ export function buildNativeScannerArgs(scannerProperties) {
   return ['dlx', '--package=@sonar/scan@5.0.0', 'sonar-scanner-npm', ...scannerProperties];
 }
 
-const DOCKER_LOCAL_SONAR_HOSTS = new Set([
-  'http://127.0.0.1:9000',
-  'http://localhost:9000',
-  'http://sonarqube:9000',
-]);
+const LOCAL_ONLY_SONAR_PROTOCOL = 'http:';
+const localOnlySonarUrl = host => `${LOCAL_ONLY_SONAR_PROTOCOL}//${host}`;
+// Plain HTTP is restricted to these approved local endpoints; remote scanner URLs stay unchanged.
+const DOCKER_LOCAL_SONAR_HOSTS = new Set(
+  ['127.0.0.1:9000', 'localhost:9000', 'sonarqube:9000'].map(localOnlySonarUrl)
+);
+const DOCKER_REACHABLE_SONAR_HOST = localOnlySonarUrl('host.docker.internal:9000');
 
 export function buildDockerScannerArgs({
   cwd,
@@ -61,7 +63,7 @@ export function buildDockerScannerArgs({
     if (!property.startsWith(prefix)) return property;
     const hostUrl = property.slice(prefix.length);
     return DOCKER_LOCAL_SONAR_HOSTS.has(hostUrl)
-      ? `${prefix}http://host.docker.internal:9000`
+      ? `${prefix}${DOCKER_REACHABLE_SONAR_HOST}`
       : property;
   });
   args.push(

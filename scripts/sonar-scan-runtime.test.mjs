@@ -104,7 +104,8 @@ test('Docker scans translate local-only Sonar hosts without mutating properties'
 });
 
 test('Docker scanner arguments preserve remote hosts and map Linux host gateway only', () => {
-  const properties = ['-Dsonar.host.url=https://sonarcloud.io'];
+  const remoteHostUrl = 'https://sonarcloud.io';
+  const properties = [`-Dsonar.host.url=${remoteHostUrl}`];
   const linuxArgs = buildDockerScannerArgs({
     cwd: '/repo',
     dockerPlatform: 'linux/amd64',
@@ -120,7 +121,10 @@ test('Docker scanner arguments preserve remote hosts and map Linux host gateway 
   });
 
   assert.ok(linuxArgs.includes('host.docker.internal:host-gateway'));
-  assert.ok(linuxArgs.includes('https://sonarcloud.io') === false);
+  assert.equal(
+    linuxArgs.some(argument => argument === remoteHostUrl),
+    false
+  );
   assert.ok(linuxArgs.includes('-Dsonar.host.url=https://sonarcloud.io'));
   assert.ok(linuxArgs.includes('linux/amd64'));
   assert.ok(!linuxArgs.includes('--network'));
