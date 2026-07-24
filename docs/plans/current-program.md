@@ -2005,7 +2005,7 @@ CD run `30133922802` was contained during Buildx setup; registry login, image
 build and all provider/deploy jobs remained skipped or at `steps: []`.
 `docs/plans/2026-07-25-ida-sec03-closeout.md` is the canonical receipt.
 
-No replacement implementation slice is promoted. Resolver expectation returns
+No replacement slice is promoted. Resolver expectation returns
 to `blocked_requires_current_authority`, `activeSlice=null`. Dependabot alert
 `#154` / `protobufjs` patched in `7.6.5` is the next bounded security candidate
 only; this closeout does not authorize its design gate, branch, writer,

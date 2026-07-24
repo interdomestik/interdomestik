@@ -1253,7 +1253,7 @@ preserves scan/SARIF/base-SHA/draft-policy semantics and closes the historical
 CodeQL, Secret Scan, audit and review evidence passed. CD run `30133922802` was
 contained before registry/image/provider/deploy.
 
-No replacement implementation slice is promoted by this closeout. Expected
+No replacement slice is promoted by this closeout. Expected
 resolver state is `blocked_requires_current_authority`, `activeSlice=null`.
 Dependabot alert `#154` / `protobufjs` patched in `7.6.5` is recorded only as
 the next bounded security candidate; no design gate, branch, writer, mutation
