@@ -2,69 +2,60 @@
   "version": 1,
   "lanes": {
     "validation": {
-      "commands": [["node", "scripts/ci/z620-validation-surface.mjs"]]
+      "commands": ["validation-surface"]
     },
     "audit": {
       "commands": [
-        ["pnpm", "repo:size:check"],
-        ["node", "scripts/check-env-ci.mjs"],
-        ["pnpm", "test:ci:contracts"],
-        ["pnpm", "check:e2e-contracts:base"],
-        ["pnpm", "lint:production-warnings"],
-        ["pnpm", "track:audit"],
-        ["pnpm", "plan:audit"],
-        ["pnpm", "purity:audit"],
-        ["pnpm", "db:migrations:check-journal"],
-        ["pnpm", "check:e2e-quarantine-budget"]
+        "repo-size-check",
+        "check-env-ci",
+        "test-ci-contracts",
+        "check-e2e-contracts-base",
+        "lint-production-warnings",
+        "track-audit",
+        "plan-audit",
+        "purity-audit",
+        "migration-journal-check",
+        "e2e-quarantine-budget"
       ]
     },
     "static": {
       "commands": [
-        ["pnpm", "-w", "lint"],
-        ["pnpm", "-w", "type-check"],
-        ["pnpm", "-w", "check:entrypoints:strict"],
-        ["pnpm", "-w", "i18n:check"],
-        ["pnpm", "-w", "i18n:purity:check"]
+        "workspace-lint",
+        "workspace-type-check",
+        "workspace-entrypoints",
+        "workspace-i18n",
+        "workspace-i18n-purity"
       ]
     },
     "unit": {
-      "commands": [
-        ["pnpm", "coverage:gate"],
-        ["pnpm", "test:release-gate"]
-      ]
+      "commands": ["coverage-gate", "release-gate-tests"]
     },
     "ai-eval": {
       "conditional": true,
-      "commands": [["pnpm", "ai:eval"]]
+      "commands": ["ai-eval"]
     },
     "database": {
       "resourceOwned": true,
-      "commands": [
-        ["pnpm", "db:migrate"],
-        ["pnpm", "db:rls:test:required"]
-      ]
+      "commands": ["db-migrate", "db-rls-required"]
     },
     "build": {
       "resourceOwned": true,
-      "commands": [["pnpm", "--filter", "@interdomestik/web", "build"]]
+      "commands": ["web-build"]
     },
     "security": {
-      "commands": [
-        ["pnpm", "security:guard"],
-        ["node", "scripts/ci/z620-security-audit.mjs"]
-      ]
+      "commands": ["security-guard", "z620-security-audit"]
     },
     "e2e-pr": {
       "resourceOwned": true,
-      "commands": [["pnpm", "e2e:gate:pr"]]
+      "commands": ["e2e-gate-pr"]
     },
     "e2e-merge": {
       "resourceOwned": true,
-      "commands": [["pnpm", "e2e:gate"]]
+      "commands": ["e2e-gate"]
     },
     "pilot": {
       "resourceOwned": true,
-      "commands": [["node", "scripts/ci/z620-pilot-run.mjs"]]
+      "commands": ["pilot-run"]
     }
   },
   "jobCoverage": {

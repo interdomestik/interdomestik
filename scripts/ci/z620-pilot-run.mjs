@@ -4,6 +4,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { Z620_EXECUTABLES } from './managed-executables.mjs';
+import { safeId } from './z620-runner-lib.mjs';
+import { evidenceDirectoryForRunId, prepareEvidenceSubdirectory } from './z620-resource-policy.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const port = Number(process.env.PW_PORT);
@@ -26,18 +29,29 @@ const runEnv = {
 };
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'interdomestik-pilot-'));
 const serverLogPath = path.join(tempRoot, 'server.log');
-const reportDir = path.resolve(process.env.Z620_EVIDENCE_DIR || tempRoot, 'pilot-reports');
-fs.mkdirSync(reportDir, { recursive: true, mode: 0o700 });
+const evidenceRunId = process.env.Z620_EVIDENCE_RUN_ID
+  ? safeId(process.env.Z620_EVIDENCE_RUN_ID, 'evidence run id')
+  : null;
+const reportDir = evidenceRunId
+  ? prepareEvidenceSubdirectory(
+      evidenceDirectoryForRunId(evidenceRunId, root),
+      'pilot-reports',
+      root,
+      undefined,
+      { fresh: true }
+    )
+  : path.join(tempRoot, 'pilot-reports');
+if (!evidenceRunId) fs.mkdirSync(reportDir, { mode: 0o700 });
 let server;
 
-function run(command, args) {
-  const result = spawnSync(command, args, {
+function runPnpm(args) {
+  const result = spawnSync(Z620_EXECUTABLES.pnpm, args, {
     cwd: root,
     env: runEnv,
     stdio: 'inherit',
   });
   if (result.status !== 0) {
-    throw new Error(`${command} ${args.join(' ')} failed with ${result.status ?? 1}`);
+    throw new Error(`pnpm ${args.join(' ')} failed with ${result.status ?? 1}`);
   }
 }
 
@@ -58,7 +72,7 @@ async function waitForHealth() {
 }
 
 function stopServer() {
-  if (!server || server.exitCode !== null) return;
+  if (server?.exitCode !== null) return;
   try {
     process.kill(-server.pid, 'SIGTERM');
   } catch {
@@ -67,13 +81,13 @@ function stopServer() {
 }
 
 try {
-  run('pnpm', ['db:migrate']);
-  run('pnpm', ['seed:e2e']);
-  run('pnpm', ['seed:assert-e2e']);
-  run('pnpm', ['--filter', '@interdomestik/web', 'run', 'build:ci']);
+  runPnpm(['db:migrate']);
+  runPnpm(['seed:e2e']);
+  runPnpm(['seed:assert-e2e']);
+  runPnpm(['--filter', '@interdomestik/web', 'run', 'build:ci']);
 
   const serverLog = fs.openSync(serverLogPath, 'a', 0o600);
-  server = spawn('bash', ['scripts/e2e-webserver.sh'], {
+  server = spawn(Z620_EXECUTABLES.bash, ['scripts/e2e-webserver.sh'], {
     cwd: root,
     detached: true,
     env: { ...runEnv, STANDALONE_AUTOREBUILD: 'false' },
@@ -81,7 +95,7 @@ try {
   });
   fs.closeSync(serverLog);
   await waitForHealth();
-  run('pnpm', ['-s', 'release:gate:p0:raw', '--baseUrl', baseUrl, '--outDir', reportDir]);
+  runPnpm(['-s', 'release:gate:p0:raw', '--baseUrl', baseUrl, '--outDir', reportDir]);
 } catch (error) {
   const serverLog = fs.existsSync(serverLogPath) ? fs.readFileSync(serverLogPath, 'utf8') : '';
   if (serverLog) process.stderr.write(serverLog.slice(-20_000));

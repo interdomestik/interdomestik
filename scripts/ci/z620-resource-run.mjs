@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-import { spawn } from 'node:child_process';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { Z620_EXECUTABLES } from './managed-executables.mjs';
 import {
   createTaskDatabase,
   databaseUrl,
@@ -10,27 +11,21 @@ import {
   reserveE2ePort,
   taskDatabaseName,
 } from './z620-resource-lib.mjs';
+import { resolveStateRoot, resourceGateArguments } from './z620-resource-policy.mjs';
+import { parseResourceOptions } from './z620-resource-options.mjs';
 
-const separator = process.argv.indexOf('--');
-if (separator < 0 || separator === process.argv.length - 1) {
-  throw new Error('Usage: z620-resource-run.mjs [options] -- command [args...]');
-}
-const options = Object.fromEntries(
-  process.argv.slice(2, separator).map(argument => {
-    const [key, ...value] = argument.replace(/^--/, '').split('=');
-    return [key, value.join('=') || true];
-  })
-);
-const command = process.argv[separator + 1];
-const commandArgs = process.argv.slice(separator + 2);
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const options = parseResourceOptions(process.argv.slice(2));
+const invocation = resourceGateArguments(options, root);
 const sha = String(
-  options.sha || execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
+  options.sha ||
+    execFileSync(Z620_EXECUTABLES.git, ['-C', root, 'rev-parse', 'HEAD'], {
+      encoding: 'utf8',
+    }).trim()
 );
 const lane = String(options.lane || 'e2e');
 const attempt = String(options.attempt || 'r1');
-const stateRoot = path.resolve(
-  String(options['state-root'] || '/home/arben/ci/interdomestik/state')
-);
+const stateRoot = resolveStateRoot(options['state-root'], root);
 const database = taskDatabaseName(sha, lane, attempt);
 const reservation = await reserveE2ePort(stateRoot, `${database}:${process.pid}`);
 const databaseConnection = databaseUrl(database);
@@ -53,7 +48,8 @@ try {
   createTaskDatabase(database);
   created = true;
   await checkForgejo();
-  const child = spawn(command, commandArgs, {
+  const child = spawn(process.execPath, invocation.args, {
+    cwd: root,
     stdio: 'inherit',
     env: {
       ...process.env,
@@ -99,6 +95,7 @@ try {
       status: exitCode === 0 && forgejoFailures === 0 ? 'pass' : 'fail',
       database,
       port: reservation.port,
+      lanes: invocation.lanes,
       commandExitCode: exitCode,
       forgejoFailures,
     })

@@ -2,6 +2,8 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
+import { Z620_EXECUTABLES } from './managed-executables.mjs';
+import { prepareManagedSubdirectory } from './managed-paths.mjs';
 import { safeId } from './z620-runner-lib.mjs';
 
 const DB_PREFIX = 'interdomestik_ci_';
@@ -28,7 +30,7 @@ export function assertTaskDatabase(name) {
 }
 
 export function createTaskDatabase(name, container = 'supabase_db_interdomestik') {
-  execFileSync('docker', [
+  execFileSync(Z620_EXECUTABLES.docker, [
     'exec',
     container,
     'createdb',
@@ -39,7 +41,7 @@ export function createTaskDatabase(name, container = 'supabase_db_interdomestik'
 }
 
 export function dropTaskDatabase(name, container = 'supabase_db_interdomestik') {
-  execFileSync('docker', [
+  execFileSync(Z620_EXECUTABLES.docker, [
     'exec',
     container,
     'dropdb',
@@ -65,8 +67,7 @@ export function canListen(port, host = '127.0.0.1') {
 }
 
 export async function reserveE2ePort(stateRoot, owner, start = 3100, end = 3199) {
-  const portRoot = path.join(stateRoot, 'ports');
-  fs.mkdirSync(portRoot, { recursive: true, mode: 0o700 });
+  const portRoot = prepareManagedSubdirectory(stateRoot, 'ports', stateRoot);
   for (let port = start; port <= end; port += 1) {
     const lockPath = path.join(portRoot, `${port}.lock`);
     try {

@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { resolvePlaywrightNetwork } from './playwright-network';
 
-const { BASE_HOST, BASE_URL, BIND_HOST, PORT } = resolvePlaywrightNetwork();
+const { BASE_URL, BIND_HOST, PORT } = resolvePlaywrightNetwork();
 const WEB_SERVER_SCRIPT = path.resolve(__dirname, '../../scripts/e2e-webserver.sh');
 
 function tenantBaseUrl(hostWithPort: string, locale: string): string {

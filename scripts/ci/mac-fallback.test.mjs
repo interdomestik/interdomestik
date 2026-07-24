@@ -2,7 +2,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 
-import { MAC_FALLBACK_EXECUTOR, macFallbackDisposition } from './mac-fallback-lib.mjs';
+import {
+  MAC_FALLBACK_EXECUTOR,
+  macFallbackDisposition,
+  validatedSshHost,
+} from './mac-fallback-lib.mjs';
 
 const now = Date.parse('2026-07-24T10:00:00.000Z');
 const ready = {
@@ -75,4 +79,12 @@ test('diagnostic preflight has no service mutation or permit capability', () => 
     /issuePermit|push-permit|docker\s+(start|stop)|open\s+-a|kill|supabase\s+start/iu
   );
   assert.match(source, /macFallbackDisposition/u);
+});
+
+test('diagnostic preflight rejects SSH option injection before probing the host', () => {
+  const source = fs.readFileSync(new URL('./mac-fallback-preflight.mjs', import.meta.url), 'utf8');
+  assert.equal(validatedSshHost('interdomestik-z620.local'), 'interdomestik-z620.local');
+  assert.throws(() => validatedSshHost('-oProxyCommand=touch /tmp/pwned'), /Invalid SSH host/);
+  assert.match(source, /validatedSshHost/u);
+  assert.match(source, /MAC_EXECUTABLES\.ssh[\s\S]*?'--',[\s\S]*?host/u);
 });

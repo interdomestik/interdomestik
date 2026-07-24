@@ -12,8 +12,12 @@ export function workflowDigest(root, workflowPath) {
 
 export function validateWorkflowDigests(root, parity) {
   const problems = [];
-  const workflows = Object.keys(parity.workflows ?? {}).sort();
-  const digestPaths = Object.keys(parity.workflowDigests ?? {}).sort();
+  const workflows = Object.keys(parity.workflows ?? {}).sort((left, right) =>
+    left.localeCompare(right)
+  );
+  const digestPaths = Object.keys(parity.workflowDigests ?? {}).sort((left, right) =>
+    left.localeCompare(right)
+  );
   if (JSON.stringify(workflows) !== JSON.stringify(digestPaths)) {
     problems.push('Workflow digest inventory does not match parity inventory');
     return problems;
@@ -33,12 +37,14 @@ export function requiredJobKeys(parity) {
       if (!excludedModes.has(definition[0])) keys.push(`${workflowPath}#${job}`);
     }
   }
-  return keys.sort();
+  return keys.sort((left, right) => left.localeCompare(right));
 }
 
 export function validateGateCoverage(parity, gates) {
   const required = requiredJobKeys(parity);
-  const covered = Object.keys(gates.jobCoverage ?? {}).sort();
+  const covered = Object.keys(gates.jobCoverage ?? {}).sort((left, right) =>
+    left.localeCompare(right)
+  );
   const problems = [];
   for (const key of required) {
     if (!covered.includes(key)) problems.push(`${key}: missing local gate coverage`);

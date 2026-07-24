@@ -2,7 +2,12 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import net from 'node:net';
 
-import { DEFAULT_FALLBACK_PORTS, macFallbackDisposition } from './mac-fallback-lib.mjs';
+import { MAC_EXECUTABLES } from './managed-executables.mjs';
+import {
+  DEFAULT_FALLBACK_PORTS,
+  macFallbackDisposition,
+  validatedSshHost,
+} from './mac-fallback-lib.mjs';
 
 const args = Object.fromEntries(
   process.argv.slice(2).map(argument => {
@@ -22,13 +27,14 @@ function capture(command, commandArgs) {
 
 function probePrimary(host) {
   const results = [1, 2].map(() =>
-    capture('ssh', [
+    capture(MAC_EXECUTABLES.ssh, [
       '-o',
       'BatchMode=yes',
       '-o',
       'ConnectTimeout=3',
       '-o',
       'ConnectionAttempts=1',
+      '--',
       host,
       'true',
     ])
@@ -57,7 +63,7 @@ function canListen(port) {
 
 function gitValue(commandArgs) {
   try {
-    return execFileSync('git', commandArgs, { encoding: 'utf8' }).trim();
+    return execFileSync(MAC_EXECUTABLES.git, commandArgs, { encoding: 'utf8' }).trim();
   } catch {
     return '';
   }
@@ -66,8 +72,10 @@ function gitValue(commandArgs) {
 const fallbackPorts = String(args.ports || DEFAULT_FALLBACK_PORTS.join(','))
   .split(',')
   .map(value => Number.parseInt(value, 10));
-const z620Unreachable = probePrimary(String(args.host || 'z620'));
-const dockerReady = capture('docker', ['info', '--format', '{{.ServerVersion}}']).status === 0;
+const host = validatedSshHost(args.host || 'z620');
+const z620Unreachable = probePrimary(host);
+const dockerReady =
+  capture(MAC_EXECUTABLES.docker, ['info', '--format', '{{.ServerVersion}}']).status === 0;
 const sha = gitValue(['rev-parse', 'HEAD']);
 const clean = gitValue(['status', '--porcelain']) === '';
 const portsValid = fallbackPorts.every(
@@ -94,7 +102,7 @@ console.log(
     {
       ...result,
       sha,
-      host: String(args.host || 'z620'),
+      host,
       fallbackPorts,
       checks: {
         primaryConfirmedUnreachable: z620Unreachable === true,

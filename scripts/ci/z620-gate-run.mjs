@@ -3,8 +3,15 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveGateCommand, validateGateCommandIds } from './z620-gate-command-lib.mjs';
 import { redact, safeId, writeJson } from './z620-runner-lib.mjs';
 import { validateGateCoverage, validateWorkflowDigests } from './z620-parity-lib.mjs';
+import {
+  evidenceRunId,
+  gateEnvironment,
+  prepareEvidenceSubdirectory,
+  resolveEvidenceDirectory,
+} from './z620-resource-policy.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const args = Object.fromEntries(
@@ -18,10 +25,15 @@ const parity = JSON.parse(fs.readFileSync(path.join(root, 'scripts/ci/z620-parit
 const requested = String(args.lanes || 'validation,audit,static,unit,database,build,security')
   .split(',')
   .map(lane => safeId(lane, 'lane'));
-const evidenceDir = path.resolve(String(args['evidence-dir'] || path.join(root, 'tmp/z620-gates')));
-const problems = [...validateWorkflowDigests(root, parity), ...validateGateCoverage(parity, gates)];
+const evidenceDir = resolveEvidenceDirectory(args['evidence-dir'], root);
+const runId = evidenceRunId(evidenceDir, root);
+const problems = [
+  ...validateWorkflowDigests(root, parity),
+  ...validateGateCoverage(parity, gates),
+  ...validateGateCommandIds(gates),
+];
 if (problems.length) throw new Error(problems.join('\n'));
-fs.mkdirSync(path.join(evidenceDir, 'logs'), { recursive: true, mode: 0o700 });
+const logsDir = prepareEvidenceSubdirectory(evidenceDir, 'logs', root);
 const results = [];
 
 for (const lane of requested) {
@@ -35,21 +47,24 @@ for (const lane of requested) {
     throw new Error(`${lane} requires task-owned database and PW_PORT`);
   }
   const laneResult = { lane, status: 'pass', commands: [] };
-  for (const [command, ...commandArgs] of definition.commands) {
+  for (const commandId of definition.commands) {
+    const { command, args: commandArgs } = resolveGateCommand(commandId);
     const started = Date.now();
     const result = spawnSync(command, commandArgs, {
       cwd: root,
-      env: { ...process.env, CI: 'true', Z620_EVIDENCE_DIR: evidenceDir },
+      env: gateEnvironment(process.env, runId),
       encoding: 'utf8',
       maxBuffer: 100 * 1024 * 1024,
     });
     const logName = `${lane}-${laneResult.commands.length + 1}.log`;
     fs.writeFileSync(
-      path.join(evidenceDir, 'logs', logName),
-      redact(`${result.stdout || ''}${result.stderr || ''}`)
+      path.join(logsDir, logName),
+      redact(`${result.stdout || ''}${result.stderr || ''}`),
+      { flag: 'wx', mode: 0o600 }
     );
     const status = result.status === 0 ? 'pass' : 'fail';
     laneResult.commands.push({
+      commandId,
       command: [command, ...commandArgs],
       status,
       exitCode: result.status ?? 1,
@@ -71,6 +86,6 @@ const evidence = {
   sha: process.env.CI_LOCAL_HEAD_SHA || '',
   results,
 };
-writeJson(path.join(evidenceDir, 'gate-results.json'), evidence);
+writeJson(path.join(evidenceDir, 'gate-results.json'), evidence, { exclusive: true });
 console.log(JSON.stringify({ status: evidence.status, evidenceDir }));
 if (evidence.status !== 'pass') process.exitCode = 1;

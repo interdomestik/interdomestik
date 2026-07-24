@@ -12,6 +12,7 @@ test('pins verify and E2E preparation to different NUMA CPU lists', () => {
 
 test('uses a shared local-only Turbo cache with bounded concurrency and summaries', () => {
   assert.match(source, /--cache-dir=/);
+  assert.match(source, /prepareCacheNamespace/);
   assert.match(source, /--concurrency=6/);
   assert.match(source, /--summarize/);
   assert.match(source, /--no-daemon/);
@@ -21,6 +22,13 @@ test('requires memory headroom and stable PostgreSQL restart count', () => {
   assert.match(source, /availableGiB < 12/);
   assert.match(source, /postgresBefore\.output === postgresAfter\.output/);
   assert.match(source, /warm\.durationMs < cold\.durationMs/);
+});
+
+test('writes benchmark evidence with exclusive no-follow semantics', () => {
+  assert.match(
+    source,
+    /writeJson\(path\.join\(evidenceDir, 'benchmark\.json'\), evidence, \{ exclusive: true \}\)/u
+  );
 });
 
 test('parses ANSI Turbo summaries and requires a full warm hit', () => {

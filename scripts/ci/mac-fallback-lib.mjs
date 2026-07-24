@@ -5,6 +5,14 @@ export const MAC_FALLBACK_EXECUTOR = 'macos-arm64-diagnostic';
 export const DEFAULT_FALLBACK_PORTS = [55321, 55322, 55323, 3200];
 export const BASELINE_TUNNEL_PORTS = [3000, 54321, 54322, 54323, 11434, 2222];
 
+export function validatedSshHost(value) {
+  const host = String(value ?? '').trim();
+  if (!/^[a-zA-Z0-9](?:[a-zA-Z0-9.-]{0,251}[a-zA-Z0-9])?$/u.test(host) || host.includes('..')) {
+    throw new Error('Invalid SSH host or alias');
+  }
+  return host;
+}
+
 function authorizationProblem(input, now, ttlMs) {
   if (!String(input.authorizedBy ?? '').trim()) return 'authorization_missing';
   const authorizedAt = Date.parse(String(input.authorizedAt ?? ''));

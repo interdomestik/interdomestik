@@ -49,8 +49,9 @@ test('pilot gate owns its selected port, database, server, and release preparati
   assert.match(source, /HOSTNAME: '127\.0\.0\.1'/);
   assert.match(source, /\['--filter', '@interdomestik\/web', 'run', 'build:ci'\]/);
   assert.match(source, /release:gate:p0:raw/);
-  assert.match(source, /Z620_EVIDENCE_DIR/);
+  assert.match(source, /Z620_EVIDENCE_RUN_ID/);
+  assert.doesNotMatch(source, /Z620_EVIDENCE_DIR/);
   assert.match(source, /'--outDir'/);
   assert.match(source, /process\.kill\(-server\.pid, 'SIGTERM'\)/);
-  assert.deepEqual(gates.lanes.pilot.commands, [['node', 'scripts/ci/z620-pilot-run.mjs']]);
+  assert.deepEqual(gates.lanes.pilot.commands, ['pilot-run']);
 });

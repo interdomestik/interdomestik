@@ -29,6 +29,52 @@ function hasAssociatedJavaScript(mapPath) {
     );
 }
 
+function inspectSourceMap(mapPath) {
+  const problems = [];
+  try {
+    const sourceMap = JSON.parse(fs.readFileSync(mapPath, 'utf8'));
+    if (sourceMap.version !== 3) problems.push(`invalid_version:${mapPath}`);
+    if (!Array.isArray(sourceMap.sources) || sourceMap.sources.length === 0) {
+      problems.push(`missing_sources:${mapPath}`);
+    }
+  } catch {
+    problems.push(`invalid_json:${mapPath}`);
+  }
+  if (mapPath.endsWith('.js.map') && !hasAssociatedJavaScript(mapPath)) {
+    problems.push(`missing_asset:${mapPath}`);
+  }
+  return problems;
+}
+
+function inspectJavaScript(files, buildDirectory, releaseSha, validReleaseSha) {
+  let exposedClientSourceMappingUrls = 0;
+  let jsFilesWithExactRelease = 0;
+  for (const filePath of files.filter(candidate => candidate.endsWith('.js'))) {
+    const source = fs.readFileSync(filePath, 'utf8');
+    if (isClientFile(buildDirectory, filePath) && /\/\/# sourceMappingURL=/u.test(source)) {
+      exposedClientSourceMappingUrls += 1;
+    }
+    if (validReleaseSha && source.includes(releaseSha)) jsFilesWithExactRelease += 1;
+  }
+  return { exposedClientSourceMappingUrls, jsFilesWithExactRelease };
+}
+
+function completenessProblems({
+  clientMaps,
+  exposedClientSourceMappingUrls,
+  jsFilesWithExactRelease,
+  maps,
+  validReleaseSha,
+}) {
+  const problems = [];
+  if (!validReleaseSha) problems.push('invalid_release_sha');
+  if (maps.length === 0) problems.push('missing_source_maps');
+  if (clientMaps.length === 0) problems.push('missing_client_source_maps');
+  if (exposedClientSourceMappingUrls > 0) problems.push('public_source_map_references');
+  if (jsFilesWithExactRelease === 0) problems.push('missing_exact_release');
+  return problems;
+}
+
 export function validateSentrySourceMaps({ buildDirectory, expectedSha }) {
   const normalizedSha = String(expectedSha ?? '')
     .trim()
@@ -39,46 +85,23 @@ export function validateSentrySourceMaps({ buildDirectory, expectedSha }) {
   const clientMaps = maps.filter(
     filePath => isClientFile(buildDirectory, filePath) && filePath.endsWith('.js.map')
   );
-  const problems = [];
-
-  for (const mapPath of maps) {
-    try {
-      const sourceMap = JSON.parse(fs.readFileSync(mapPath, 'utf8'));
-      if (sourceMap.version !== 3) problems.push(`invalid_version:${mapPath}`);
-      if (!Array.isArray(sourceMap.sources) || sourceMap.sources.length === 0) {
-        problems.push(`missing_sources:${mapPath}`);
-      }
-    } catch {
-      problems.push(`invalid_json:${mapPath}`);
-    }
-    if (mapPath.endsWith('.js.map') && !hasAssociatedJavaScript(mapPath)) {
-      problems.push(`missing_asset:${mapPath}`);
-    }
-  }
-
-  let exposedClientSourceMappingUrls = 0;
-  let jsFilesWithExactRelease = 0;
-  for (const filePath of files.filter(candidate => candidate.endsWith('.js'))) {
-    const source = fs.readFileSync(filePath, 'utf8');
-    if (isClientFile(buildDirectory, filePath) && /\/\/# sourceMappingURL=/u.test(source)) {
-      exposedClientSourceMappingUrls += 1;
-    }
-    if (validReleaseSha && source.includes(normalizedSha)) jsFilesWithExactRelease += 1;
-  }
-
-  if (!validReleaseSha) problems.push('invalid_release_sha');
-  if (maps.length === 0) problems.push('missing_source_maps');
-  if (clientMaps.length === 0) problems.push('missing_client_source_maps');
-  if (exposedClientSourceMappingUrls > 0) problems.push('public_source_map_references');
-  if (jsFilesWithExactRelease === 0) problems.push('missing_exact_release');
+  const metrics = inspectJavaScript(files, buildDirectory, normalizedSha, validReleaseSha);
+  const problems = maps.flatMap(inspectSourceMap);
+  problems.push(
+    ...completenessProblems({
+      clientMaps,
+      maps,
+      validReleaseSha,
+      ...metrics,
+    })
+  );
 
   return {
     status: problems.length === 0 ? 'pass' : 'fail',
     release: normalizedSha,
     mapCount: maps.length,
     clientMapCount: clientMaps.length,
-    exposedClientSourceMappingUrls,
-    jsFilesWithExactRelease,
+    ...metrics,
     problems,
   };
 }

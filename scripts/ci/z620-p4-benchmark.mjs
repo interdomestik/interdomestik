@@ -2,9 +2,17 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { Z620_EXECUTABLES } from './managed-executables.mjs';
 import { availableMemoryGiB, hasFullWarmHit, turboCacheSummary } from './z620-benchmark-lib.mjs';
 import { captureCommand, redact, safeId, writeJson } from './z620-runner-lib.mjs';
+import {
+  prepareCacheNamespace,
+  prepareEvidenceSubdirectory,
+  resolveEvidenceDirectory,
+} from './z620-resource-policy.mjs';
 
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const args = Object.fromEntries(
   process.argv.slice(2).map(argument => {
     const [key, ...value] = argument.replace(/^--/, '').split('=');
@@ -15,39 +23,36 @@ if (!args.namespace || !args['evidence-dir']) {
   throw new Error('--namespace and --evidence-dir are required');
 }
 const namespace = safeId(args.namespace, 'cache namespace');
-const evidenceDir = path.resolve(String(args['evidence-dir']));
-const cacheRoot = path.resolve(
-  String(args['cache-root'] || '/home/arben/ci/interdomestik/cache/turbo')
-);
-const cacheDir = path.join(cacheRoot, namespace);
-if (!cacheDir.startsWith(`${cacheRoot}${path.sep}`) || fs.existsSync(cacheDir)) {
-  throw new Error('Benchmark cache namespace must be new and inside cache root');
-}
-fs.mkdirSync(path.join(evidenceDir, 'logs'), { recursive: true, mode: 0o700 });
-fs.mkdirSync(cacheDir, { recursive: true, mode: 0o700 });
+const evidenceDir = resolveEvidenceDirectory(args['evidence-dir'], root);
+const cacheDir = prepareCacheNamespace(args['cache-root'], namespace, root);
+const logsDir = prepareEvidenceSubdirectory(evidenceDir, 'logs', root);
 
 const availableGiB = availableMemoryGiB();
 if (availableGiB < 12)
   throw new Error(`P4 requires 12 GiB available; found ${availableGiB.toFixed(1)}`);
-const postgresBefore = captureCommand('docker', [
+const postgresBefore = captureCommand(Z620_EXECUTABLES.docker, [
   'inspect',
   '-f',
   '{{.State.Health.Status}}/{{.RestartCount}}',
   'supabase_db_interdomestik',
 ]);
 
-function runTask(name, cpuList, command, commandArgs, round) {
+function runTask(name, cpuList, commandArgs, round) {
   const started = Date.now();
-  const child = spawn('taskset', ['--cpu-list', cpuList, command, ...commandArgs], {
-    env: {
-      ...process.env,
-      NEXT_BUILD_CPUS: '6',
-      PLAYWRIGHT_WORKERS: '6',
-      TURBO_CONCURRENCY: '6',
-      VITEST_MAX_WORKERS: '6',
-    },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
+  const child = spawn(
+    Z620_EXECUTABLES.taskset,
+    ['--cpu-list', cpuList, Z620_EXECUTABLES.pnpm, ...commandArgs],
+    {
+      env: {
+        ...process.env,
+        NEXT_BUILD_CPUS: '6',
+        PLAYWRIGHT_WORKERS: '6',
+        TURBO_CONCURRENCY: '6',
+        VITEST_MAX_WORKERS: '6',
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }
+  );
   let output = '';
   child.stdout.on('data', chunk => (output += chunk));
   child.stderr.on('data', chunk => (output += chunk));
@@ -55,7 +60,7 @@ function runTask(name, cpuList, command, commandArgs, round) {
     child.once('error', reject);
     child.once('exit', code => {
       const log = `round-${round}-${name}.log`;
-      fs.writeFileSync(path.join(evidenceDir, 'logs', log), redact(output));
+      fs.writeFileSync(path.join(logsDir, log), redact(output), { flag: 'wx', mode: 0o600 });
       resolve({
         name,
         cpuList,
@@ -73,7 +78,6 @@ async function runRound(round) {
   const verify = runTask(
     'verify',
     '0-5,12-17',
-    'pnpm',
     [
       'exec',
       'turbo',
@@ -90,7 +94,6 @@ async function runRound(round) {
   const e2ePrep = runTask(
     'e2e-prep',
     '6-11,18-23',
-    'pnpm',
     ['--filter', '@interdomestik/web', 'run', 'e2e:guards'],
     round
   );
@@ -99,13 +102,13 @@ async function runRound(round) {
 
 const startedAt = new Date().toISOString();
 const rounds = [await runRound(1), await runRound(2)];
-const postgresAfter = captureCommand('docker', [
+const postgresAfter = captureCommand(Z620_EXECUTABLES.docker, [
   'inspect',
   '-f',
   '{{.State.Health.Status}}/{{.RestartCount}}',
   'supabase_db_interdomestik',
 ]);
-const forgejo = captureCommand('curl', [
+const forgejo = captureCommand(Z620_EXECUTABLES.curl, [
   '-fsS',
   '-o',
   '/dev/null',
@@ -133,6 +136,6 @@ const evidence = {
   rounds,
   warmImprovementPercent: Number((100 * (1 - warm.durationMs / cold.durationMs)).toFixed(1)),
 };
-writeJson(path.join(evidenceDir, 'benchmark.json'), evidence);
+writeJson(path.join(evidenceDir, 'benchmark.json'), evidence, { exclusive: true });
 console.log(JSON.stringify({ status: evidence.status, evidenceDir }));
 if (evidence.status !== 'pass') process.exitCode = 1;

@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import yaml from 'js-yaml';
+import { Z620_EXECUTABLES } from './managed-executables.mjs';
 
 export function safeId(value, label = 'identifier') {
   const normalized = String(value ?? '').trim();
@@ -28,11 +29,13 @@ export function redact(text, env = process.env) {
 
 export function workflowJobs(root, workflowPath) {
   const document = yaml.load(fs.readFileSync(path.join(root, workflowPath), 'utf8'));
-  return Object.keys(document?.jobs ?? {}).sort();
+  return Object.keys(document?.jobs ?? {}).sort((left, right) => left.localeCompare(right));
 }
 
 export function validateParity(root, parity) {
-  const configured = Object.keys(parity.workflows ?? {}).sort();
+  const configured = Object.keys(parity.workflows ?? {}).sort((left, right) =>
+    left.localeCompare(right)
+  );
   const problems = [];
   for (const workflowPath of configured) {
     if (!fs.existsSync(path.join(root, workflowPath))) {
@@ -40,7 +43,9 @@ export function validateParity(root, parity) {
       continue;
     }
     const actual = workflowJobs(root, workflowPath);
-    const expected = Object.keys(parity.workflows[workflowPath]).sort();
+    const expected = Object.keys(parity.workflows[workflowPath]).sort((left, right) =>
+      left.localeCompare(right)
+    );
     if (JSON.stringify(actual) !== JSON.stringify(expected)) {
       problems.push(
         `${workflowPath}: jobs actual=${actual.join(',')} expected=${expected.join(',')}`
@@ -72,22 +77,27 @@ export function acquireLaneLock(stateRoot, lane) {
 }
 
 export function materializeClone(source, destination, sha) {
-  execFileSync('git', ['clone', '--no-checkout', '--shared', source, destination], {
+  execFileSync(Z620_EXECUTABLES.git, ['clone', '--no-checkout', '--shared', source, destination], {
     stdio: 'pipe',
   });
-  execFileSync('git', ['-C', destination, 'checkout', '--detach', sha], { stdio: 'pipe' });
-  const resolved = execFileSync('git', ['-C', destination, 'rev-parse', 'HEAD'], {
+  execFileSync(Z620_EXECUTABLES.git, ['-C', destination, 'checkout', '--detach', sha], {
+    stdio: 'pipe',
+  });
+  const resolved = execFileSync(Z620_EXECUTABLES.git, ['-C', destination, 'rev-parse', 'HEAD'], {
     encoding: 'utf8',
   }).trim();
-  const dirty = execFileSync('git', ['-C', destination, 'status', '--porcelain'], {
+  const dirty = execFileSync(Z620_EXECUTABLES.git, ['-C', destination, 'status', '--porcelain'], {
     encoding: 'utf8',
   }).trim();
   if (resolved !== sha || dirty) throw new Error('Materialized clone is not the exact clean SHA');
   return resolved;
 }
 
-export function writeJson(filePath, value) {
-  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, { mode: 0o600 });
+export function writeJson(filePath, value, { exclusive = false } = {}) {
+  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, {
+    flag: exclusive ? 'wx' : 'w',
+    mode: 0o600,
+  });
 }
 
 export function captureCommand(command, args = [], env = process.env) {
@@ -114,7 +124,7 @@ export function captureCommand(command, args = [], env = process.env) {
 
 export function checksumEvidence(runDir, relativePaths) {
   const checksums = {};
-  for (const relativePath of relativePaths.sort()) {
+  for (const relativePath of relativePaths.sort((left, right) => left.localeCompare(right))) {
     const content = fs.readFileSync(path.join(runDir, relativePath));
     checksums[relativePath] = createHash('sha256').update(content).digest('hex');
   }

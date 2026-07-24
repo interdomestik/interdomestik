@@ -19,7 +19,11 @@ test('workflow uses the isolated runner with cancellation and read-only contents
 });
 
 test('workflow uses the official checkout action and only runs contract tests', () => {
-  assert.match(workflow, /https:\/\/data\.forgejo\.org\/actions\/checkout@v6/u);
+  assert.match(
+    workflow,
+    /https:\/\/data\.forgejo\.org\/actions\/checkout@d23441a48e516b6c34aea4fa41551a30e30af803/u
+  );
+  assert.doesNotMatch(workflow, /actions\/checkout@v\d+/u);
   assert.match(workflow, /node --test scripts\/ci\/z620-push-permit\.test\.mjs/u);
   assert.doesNotMatch(workflow, /\b(?:deploy|docker push|release|upload|apply)\b/iu);
   assert.doesNotMatch(workflow, /\bsecrets?\./iu);
