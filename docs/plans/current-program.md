@@ -1819,6 +1819,178 @@ promoted; expected resolver state is `blocked_requires_current_authority`,
 `activeSlice=null`. PR `#1410` remains a separate unmerged current-authority
 candidate and grants no `IDA-CD01` implementation authority.
 
+Rev 155 current authority promotes exactly one next governed implementation goal,
+`IDA-CD01`, under accepted CD/Staging stabilization gate `IDA-CD-DG01` at
+`docs/plans/2026-07-23-ida-cd-dg01-staging-alias-rollback-gate.md`. The canonical
+R1 gate is exactly 12,974 UTF-8 bytes at SHA-256
+`87e3683f1150cc5eb7a2fca4638cc6bb865d9cf850017594b1ca96bd5ad83357`,
+bound to clean base `0b85b20af3ce8cf2b28608a1c9e47a7499704291`. R1 supersedes
+the original 11,131-byte / `7402ae76…` artifact and its review claim after
+current-head Codex P2 `PRRT_kwDOQ0Mhjc6TKlHo`; the old hash is historical only.
+The root orchestrator selected R1 and the sole successor after fresh repository,
+AI OS, CD-history, runner and Vercel-control evidence. Same-hash Sonnet 4.6 R1
+review passed the exact 12,974-byte / `87e3683f…` artifact with no blockers.
+Canonical prerequisite closeout PR `#1411` merged exact reviewed head
+`6e0a2715f5905b08c602a7d7db5bfb303edbbcbd` as exact main
+`f86ed12a7a2582ee0ee6cf5fdfbda166a83fd830`; exact CD run `30002841039`
+was cancelled while queued with all seven jobs at `steps: []`. Rev 155 rebases
+the unchanged R1 artifact and review claim onto that exact main without changing
+the gate hash or future writer map. AI OS observation
+`57a9ac2456cf6090bfb6e4ba5cffc4f90c875081a1a43486fefd24a7a6fe31e5`
+reports authority current, `activeSlice=none` before this promotion and runtime
+`not_authorized`; Brain remains stale advisory context and is failed closed.
+
+The sole future outcome is a fail-closed preimage and rollback control for
+`staging.interdomestik.com`: snapshot and verify the exact same-project/team
+deployment and commit before alias mutation, preserve the existing verified
+candidate and attestation contracts, restore the exact preimage for every
+non-cancellation failure after confirmed alias movement—including later health,
+build-provenance, canonical-alias or staging E2E failure—verify canonical health
+against the prior commit, and leave a bounded redacted receipt without converting
+rollback failure to success. Failures before confirmed alias movement never run
+rollback.
+Cancellation after alias movement does not claim automatic recovery; it freezes
+staging and returns to fresh incident authority with the captured preimage.
+
+Future implementation is limited to exactly seven writer paths:
+`.github/workflows/cd.yml`,
+`.github/actions/trigger-digest-verified-deploy/action.yml`,
+`scripts/ci/configure-vercel-gate-url.mjs`,
+new `scripts/ci/vercel-staging-alias-state.mjs`,
+new `scripts/ci/vercel-staging-alias-state.test.mjs`,
+`scripts/ci/cd-deploy-env-scope.test.mjs`, and deterministic-only
+`scripts/repo-size-budget.json`. Any eighth writer path stops for a fresh exact
+disposition. `scripts/ci/cd-attestation-contract.test.mjs` is frozen read-only
+proof, and `cd-deploy-env-scope.test.mjs` is the only authorized workflow-contract
+test home.
+
+This docs-only Tier 0 promotion keeps `runtime_authorized:false`,
+`deployment_authorized:false`, and `production_authorized:false`. Prospective
+implementation is Tier 3 and requires separate exact authority on the then-current
+main. No deployment, rerun, alias/provider call, runner migration, HP Z620 change,
+production action, product/UI, proxy/auth/routing/tenancy, schema/RLS/database,
+package/lockfile, AI/Eval, Brain/AI OS adapter, frozen `IDA-UI03a2` chain or other
+successor work is authorized by Rev 155.
+
+Rev 156 closeout consumes the sole `IDA-CD01` promotion through implementation PR
+`#1415`, final head `8ded18d9f9869f027f7831f4deae5ac6ab9a6a52` and squash
+merge/main SHA `280ea41908639e3e9807191a711553276d5c650d`. The accepted R1
+gate remains exact at 12,974 UTF-8 bytes / SHA-256
+`87e3683f1150cc5eb7a2fca4638cc6bb865d9cf850017594b1ca96bd5ad83357`;
+the exact 8,257-byte runtime-authority receipt remains SHA-256
+`544156dda6b15836061219e3a2a880ad135a4bc7680df8221a049b622a2dde5a`.
+The exact seven-path implementation contains 622 insertions / 224 deletions and
+canonical full-index binary base-to-head diff SHA-256
+`0256e002a450efb1c4c43c86bce502eafb2188ec1450229e3348c46bd1f4a99c`;
+the exact generating command is preserved in the canonical closeout.
+It preserves the frozen attestation test, ordinary-push production skips,
+cancellation incident stop and fail-closed provider boundary.
+
+Focused proof, current-head CI/E2E/Pilot/Sonar/CodeQL/security/finalizer,
+zero-blocker feedback intake, resolved threads, Opus final-delta PASS and Copilot
+current-head clean disposition passed. Final-head Codex remained unavailable
+after a bounded acknowledged request and is not claimed as approval; Sonnet
+no-output and Gemini plan/quota blockers are also NON-PASS. Exact CD run
+`30019447228` was cancelled with every job at `steps: []`, before checkout,
+registry login, image build, provider mutation or deploy. Exact-main CI
+`30019443596`, CodeQL `30019439797` / `30019440069` and Secret Scan
+`30019447158` passed; audit is high `0` / critical `0`.
+
+Sonar Main `30019443913` is NON-PASS for historical untouched issue
+`AZ-ACoVO5G2i53uX0BTV` and newly surfaced issue
+`AZ-PjPUTEQjECzTb2IEc` at untouched
+`scripts/ci/wait-for-vercel-health.mjs:29`. The latter file has identical base and
+merge blob `c6d8e7d144de3adc1c47417a3406cb1e5682a19b`, is outside the
+seven-path map and requires separate current authority rather than an eighth-path
+closeout edit. AI OS observation
+`10f5cfe85345d0b1f1a1eb3eac17fce84b861db64dce3ed16d376dee4405a92b`
+confirms clean exact main and runtime not authorized; its pre-closeout
+`activeSlice=null` inference conflicted with the canonical resolver, so repo
+authority governed. Brain failed closed once on a stale source snapshot and makes
+no usefulness/ROI claim.
+
+The runtime authority is consumed. No replacement slice is promoted; expected
+resolver state is `blocked_requires_current_authority`, `activeSlice=null`.
+Provider, alias, deployment, production, database, frozen `IDA-UI03a2`, Z620
+runner/CD use, UI/product, runtime AI, Eval v2 and every successor remain blocked
+or unpromoted. A fresh current-authority/design gate must disposition the new
+Sonar security signal before creating the next implementation child.
+
+Rev 157 supersedes the Rev 156 terminal no-promotion sentence above.
+The next active governed implementation goal is exactly one canonical tracker
+slice: `IDA-SEC02`, a future Tier-3 security prerequisite promoted by
+`IDA-SEC-DG02` and limited to removing confidential-data exposure from
+`scripts/ci/wait-for-vercel-health.mjs` while preserving polling, provenance and
+hard-failure semantics. The future writer map is exactly the poller, its existing
+focused test and deterministic `scripts/repo-size-budget.json`; any fourth path
+stops. The gate is bound to clean exact main
+`1be91a6814b00afb87424f7a67b877d87194c309` / tree
+`4007d7e791aadd08bee80dc0c715e07238b1a2e5` and the newly surfaced critical
+Sonar issue `AZ-PjPUTEQjECzTb2IEc` / `jssecurity:S8689`.
+The accepted gate artifact is exactly 10,808 UTF-8 bytes at SHA-256
+`c03eb9882810d513cd786541f82b485b3e1bd1d25a77bb13831d1f146b43eccd`;
+same-hash Sonnet 4.6 and Gemini 3.1 Pro final reviews passed with no remaining
+actionable finding.
+
+This docs-only promotion keeps runtime, workflow dispatch, provider contact,
+alias/environment mutation, deployment, production and database authority
+false. Implementation requires a separate exact runtime-authority receipt on
+the then-current main and exactly one fresh worktree-backed child. The future
+child is assigned `gpt-5.6-sol` with `xhigh` reasoning for the narrow but
+security-sensitive shared CI boundary. The historical workflow Sonar issue,
+frozen `IDA-UI03a2`, Z620 runner/CD use, UI/product, runtime AI, Eval v2 and all
+other successors remain blocked or unpromoted.
+
+Rev 158 supersedes the Rev 157 active-selection sentence above. `IDA-SEC02` is
+complete through PR `#1418` / squash merge
+`40efa5a747713961f6fba37e568876376a2d3975`; its exact runtime authority is
+consumed and its sole implementation child is terminal. The exact three-path
+implementation preserves polling, retry, inter-attempt sleep, provenance,
+imported success-body return and hard-red failure while preventing raw URL,
+response body and arbitrary error payloads from crossing diagnostic boundaries.
+Current-head CI, E2E, Pilot, Sonar, CodeQL, security and finalizer proof passed.
+
+Exact CD run `30034794556` was cancelled, but cancellation lost the pre-checkout
+race: setup and checkout completed before Docker Buildx failed. Registry login,
+metadata, image build and every provider/deploy job remained skipped or at
+`steps: []`. Arben accepted the incident as contained before
+registry/image/provider/deploy and authorized only read-only closeout and
+cleanup. Exact-main CI, CodeQL, Secret Scan and high/critical audit passed; Sonar
+Main's remaining C-rating signal is historical at an unchanged workflow blob.
+
+No replacement slice is promoted. Canonical resolver state must be
+`blocked_requires_current_authority`, `activeSlice=null`; runtime, workflow
+dispatch, provider, alias/environment, deployment, production, database, frozen
+`IDA-UI03a2`, Z620 runner/CD use, UI/product, runtime AI, Eval v2 and every
+successor remain blocked or unpromoted.
+
+Rev 159 supersedes the Rev 158 terminal no-promotion sentence above. The next
+active governed implementation goal is exactly one canonical tracker slice:
+`IDA-SEC03`, a future Tier-3 shared CI/security prerequisite promoted by
+`IDA-SEC-DG03`. The exact 9,601-byte gate at SHA-256
+`897651b165afbdb3efb2770e93b4be4b818a223fabb5a70029ec251d7ef56605`
+is bound to clean main
+`19fd318cf72de44313de68842af9552d2a81f1de`, tree
+`c0ba91c18844cd123179044c933bd50834076e93`, unchanged workflow blob
+`5dda794c823fa5997a2cad774389d3c7e9e94f66` and Sonar issue
+`AZ-ACoVO5G2i53uX0BTV` / `githubactions:S8544`.
+
+The future implementation replaces only the floating
+`python -m pip install --upgrade semgrep` command with exact
+`python -m pip install semgrep==1.171.0`, the version installed by successful
+deterministic-backstops run `30037180334` and confirmed by contemporaneous PyPI
+metadata. It adds a focused regression contract while preserving the existing
+scan flags, base-SHA behavior, SARIF upload, permissions, conditions and draft
+policy. The future writer map is exactly the workflow, its existing focused
+contract test and deterministic repo-size metadata; any fourth path stops.
+
+This docs-only promotion keeps runtime, workflow dispatch, provider contact,
+alias/environment mutation, deployment, production, database and Z620 runner/CD
+authority false. Separate exact runtime authority and exactly one fresh
+worktree-backed `gpt-5.6-sol` xhigh child are required before implementation.
+Frozen `IDA-UI03a2`, UI/product, runtime AI, Eval v2 and every other successor
+remain blocked or unpromoted.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the

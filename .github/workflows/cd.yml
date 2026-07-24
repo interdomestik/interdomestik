@@ -2,16 +2,10 @@ name: CD
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-    tags:
-      - 'v*'
-concurrency:
-  group: cd-staging-canonical-${{ github.repository }}
-  cancel-in-progress: false
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+    branches: [main]
+    tags: ['v*']
+concurrency: { group: 'cd-staging-canonical-${{ github.repository }}', cancel-in-progress: false }
+env: { REGISTRY: ghcr.io, IMAGE_NAME: '${{ github.repository }}' }
 jobs:
   build-staging:
     runs-on: [self-hosted, interdomestik-mac]
@@ -21,12 +15,10 @@ jobs:
       image_tag: ${{ steps.meta.outputs.version }}
       image_digest: ${{ steps.build.outputs.digest }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
-        with:
-          driver: docker-container
+        with: { driver: docker-container }
       - name: Log in to the Container registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
@@ -38,8 +30,7 @@ jobs:
         uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=raw,value=staging-${{ github.sha }}
+          tags: type=raw,value=staging-${{ github.sha }}
       - name: Build, attest, and verify Docker image
         id: build
         uses: ./.github/actions/build-attested-image
@@ -57,8 +48,7 @@ jobs:
     needs: build-staging
     runs-on: [self-hosted, interdomestik-mac]
     timeout-minutes: 25
-    environment:
-      name: staging
+    environment: { name: staging }
     permissions: { contents: read, id-token: write, attestations: write }
     outputs:
       base_url: ${{ steps.vercel.outputs.base_url }}
@@ -67,9 +57,9 @@ jobs:
       gate_hostname: ${{ steps.vercel.outputs.gate_hostname }}
     env:
       EXPECTED_COMMIT_SHA: ${{ github.sha }}
+      STAGING_PREIMAGE_RECEIPT_PATH: tmp/cd-evidence/${{ github.run_id }}/staging-alias-preimage.json
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
       - name: Deploy Staging to Vercel
         id: vercel
         uses: ./.github/actions/trigger-digest-verified-deploy
@@ -86,30 +76,32 @@ jobs:
           commit-sha: ${{ github.sha }}
           attested-image-digest: ${{ needs.build-staging.outputs.image_digest }}
           vercel-automation-bypass-secret: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+      - name: Upload staging alias preimage receipt
+        if: ${{ always() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: staging-alias-preimage-${{ github.run_id }}
+          path: ${{ env.STAGING_PREIMAGE_RECEIPT_PATH }}
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Wait for Staging Health
         shell: bash
         env:
           BASE_URL: ${{ steps.vercel.outputs.base_url }}
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-        run: |
-          set -euo pipefail
-          node scripts/ci/wait-for-vercel-health.mjs "${BASE_URL}/api/health"
+        run: node scripts/ci/wait-for-vercel-health.mjs "${BASE_URL}/api/health"
       - name: Verify Staging Build Provenance
         shell: bash
         env:
           BASE_URL: ${{ steps.vercel.outputs.base_url }}
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-        run: |
-          set -euo pipefail
-          node scripts/ci/fetch-vercel-health.mjs "${BASE_URL}/api/health" "${EXPECTED_COMMIT_SHA}"
+        run: node scripts/ci/fetch-vercel-health.mjs "${BASE_URL}/api/health" "${EXPECTED_COMMIT_SHA}"
       - name: Verify Staging Canonical Alias Provenance
         shell: bash
         env:
           BASE_URL: ${{ steps.vercel.outputs.gate_base_url }}
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-        run: |
-          set -euo pipefail
-          node scripts/ci/wait-for-vercel-health.mjs "${BASE_URL}/api/health" "${EXPECTED_COMMIT_SHA}"
+        run: node scripts/ci/wait-for-vercel-health.mjs "${BASE_URL}/api/health" "${EXPECTED_COMMIT_SHA}"
   e2e-staging:
     needs: deploy-staging
     runs-on: [self-hosted, interdomestik-mac]
@@ -141,22 +133,55 @@ jobs:
         shell: bash
         env:
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-        run: |
-          set -euo pipefail
-          mkdir -p "${EVIDENCE_DIR}/logs" "${EVIDENCE_DIR}/release-gates"
-          pnpm -s release:gate:raw \
-            --envName staging \
-            --suite p0 \
-            --baseUrl "${BASE_URL}" \
-            --authBaseUrl "${AUTH_BASE_URL}" \
-            --outDir "${EVIDENCE_DIR}/release-gates" \
-            2>&1 | tee "${EVIDENCE_DIR}/logs/release-gate-staging.log"
+        run: >-
+          set -euo pipefail; mkdir -p "${EVIDENCE_DIR}/logs" "${EVIDENCE_DIR}/release-gates"; pnpm -s release:gate:raw --envName staging --suite p0 --baseUrl "${BASE_URL}" --authBaseUrl "${AUTH_BASE_URL}" --outDir "${EVIDENCE_DIR}/release-gates" 2>&1 | tee "${EVIDENCE_DIR}/logs/release-gate-staging.log"
       - name: Upload staging verification artifacts
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: staging-verification-${{ github.run_id }}
           path: ${{ env.EVIDENCE_DIR }}/**
+          if-no-files-found: error
+          retention-days: 14
+  rollback-staging-alias:
+    if: >-
+      ${{ always() && !cancelled() && (needs.deploy-staging.result == 'failure' || needs.e2e-staging.result == 'failure') }}
+    needs: [deploy-staging, e2e-staging]
+    runs-on: [self-hosted, interdomestik-mac]
+    timeout-minutes: 10
+    environment: { name: staging, deployment: false }
+    permissions: { contents: read }
+    env:
+      STAGING_PREIMAGE_RECEIPT_PATH: tmp/cd-evidence/${{ github.run_id }}/staging-alias-preimage/staging-alias-preimage.json
+      STAGING_ROLLBACK_RECEIPT_PATH: tmp/cd-evidence/${{ github.run_id }}/staging-alias-rollback.json
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
+      - name: Download staging alias preimage receipt
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: staging-alias-preimage-${{ github.run_id }}
+          path: tmp/cd-evidence/${{ github.run_id }}/staging-alias-preimage
+      - name: Validate staging alias rollback authority
+        id: rollback_guard
+        if: ${{ always() }}
+        shell: bash
+        run: node scripts/ci/configure-vercel-gate-url.mjs guard >> "${GITHUB_OUTPUT}"
+      - name: Restore exact staging alias preimage
+        if: ${{ success() && steps.rollback_guard.outputs.should_restore == 'true' }}
+        shell: bash
+        env:
+          STAGING_ALIAS_DOMAIN: staging.interdomestik.com
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+        run: node scripts/ci/configure-vercel-gate-url.mjs restore
+      - name: Upload staging alias rollback receipt
+        if: ${{ always() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: staging-alias-rollback-${{ github.run_id }}
+          path: tmp/cd-evidence/${{ github.run_id }}/staging-alias-rollback.json
           if-no-files-found: error
           retention-days: 14
   production-evidence:
@@ -171,9 +196,7 @@ jobs:
         with: { install-playwright: 'false' }
       - name: Check Production Human Evidence
         shell: bash
-        run: |
-          set -euo pipefail
-          pnpm release:evidence:check
+        run: pnpm release:evidence:check
   build-production:
     if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     needs: production-evidence
@@ -184,12 +207,10 @@ jobs:
       image_tag: ${{ steps.meta.outputs.version }}
       image_digest: ${{ steps.build.outputs.digest }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
-        with:
-          driver: docker-container
+        with: { driver: docker-container }
       - name: Log in to the Container registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
@@ -227,8 +248,7 @@ jobs:
     environment: { name: production, url: https://www.interdomestik.com }
     permissions: { contents: read, id-token: write, attestations: write }
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
       - name: Deploy Production to Vercel
         id: vercel
         uses: ./.github/actions/trigger-digest-verified-deploy
@@ -281,12 +301,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          sentry_vars=(SENTRY_AUTH_TOKEN SENTRY_ORG SENTRY_PROJECT)
           sentry_missing=()
-          for name in "${sentry_vars[@]}"; do
-            if [[ -z "${!name:-}" ]]; then
-              sentry_missing+=("${name}")
-            fi
+          for name in SENTRY_AUTH_TOKEN SENTRY_ORG SENTRY_PROJECT; do
+            [[ -n "${!name:-}" ]] || sentry_missing+=("${name}")
           done
           if (( ${#sentry_missing[@]} == 0 )); then
             echo "SENTRY_SEER_ENABLED=true" >> "$GITHUB_ENV"
@@ -302,26 +319,15 @@ jobs:
         run: bash scripts/sentry-seer-sweep.sh pre
       - name: Health Check
         shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "${EVIDENCE_DIR}/logs" "${EVIDENCE_DIR}/notes" "${EVIDENCE_DIR}/release-gates"
-          node scripts/ci/wait-for-vercel-health.mjs "${BASE_URL}/api/health"
+        run: >-
+          set -euo pipefail; mkdir -p "${EVIDENCE_DIR}/logs" "${EVIDENCE_DIR}/notes" "${EVIDENCE_DIR}/release-gates"; node scripts/ci/wait-for-vercel-health.mjs "${BASE_URL}/api/health"
       - name: Verify Production Build Provenance
         shell: bash
-        run: |
-          set -euo pipefail
-          node scripts/ci/fetch-vercel-health.mjs "${BASE_URL}/api/health" "${EXPECTED_COMMIT_SHA}"
+        run: node scripts/ci/fetch-vercel-health.mjs "${BASE_URL}/api/health" "${EXPECTED_COMMIT_SHA}"
       - name: Run Production Release Gate
         shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "${EVIDENCE_DIR}/logs" "${EVIDENCE_DIR}/release-gates"
-          pnpm -s release:gate:raw \
-            --envName production \
-            --suite all \
-            --baseUrl "${BASE_URL}" \
-            --outDir "${EVIDENCE_DIR}/release-gates" \
-            2>&1 | tee "${EVIDENCE_DIR}/logs/release-gate-production.log"
+        run: >-
+          set -euo pipefail; mkdir -p "${EVIDENCE_DIR}/logs" "${EVIDENCE_DIR}/release-gates"; pnpm -s release:gate:raw --envName production --suite all --baseUrl "${BASE_URL}" --outDir "${EVIDENCE_DIR}/release-gates" 2>&1 | tee "${EVIDENCE_DIR}/logs/release-gate-production.log"
       - name: Close Sentry Seer sweep window
         if: always() && env.SENTRY_SEER_ENABLED == 'true'
         continue-on-error: true
