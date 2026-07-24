@@ -18,4 +18,4 @@ jobs:
     steps:
       - uses: https://data.forgejo.org/actions/checkout@v6
       - name: Verify fail-closed permit contract
-        run: node --test scripts/ci/z620-push-permit.test.mjs
+        run: node --test scripts/ci/z620-push-permit.test.mjs scripts/ci/mac-fallback.test.mjs

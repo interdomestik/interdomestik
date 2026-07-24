@@ -127,6 +127,26 @@ Runs in the background on the Z620 and binds evidence to one exact SHA:
 A failure blocks automatic push permission. It does not block the developer from
 continuing unrelated work on the Mac.
 
+### Emergency Mac Cold Standby
+
+Mac fallback is a manual, diagnostic-only continuity path when two bounded SSH
+probes confirm that the Z620 is unreachable. It requires a named authorization
+receipt no older than 60 minutes, a clean exact SHA, Docker Desktop started
+manually, and native `darwin/arm64` dependencies. The read-only preflight never
+starts or stops Docker, SSH tunnels, databases or services.
+
+Fallback services use ports `55321-55323` and web ports beginning at `3200`.
+They must not reuse or terminate the baseline tunnel listeners on `3000`,
+`54321-54323`, `11434` or `2222`. Databases are rebuilt only from migrations
+and deterministic seeds; Mac and Z620 volumes, `node_modules`, `.next` and
+caches are never copied across architectures.
+
+The fallback runner is structurally separate from push-permit code and reports
+`executor=macos-arm64-diagnostic`. It cannot issue or satisfy a Z620 permit.
+Only evidence from `executor=z620-linux-amd64` may receive the ordinary local
+permit. GitHub checks remain authoritative if the user separately authorizes a
+degraded push while the primary executor is unavailable.
+
 ### Lane D — GitHub Final Gate
 
 After an authorized push:
@@ -467,6 +487,8 @@ Exit: the user accepts the evidence and the specification changes to
 14. Windows/NTFS/HDD remain untouched.
 15. Two consecutive full pipelines pass before the system is declared complete.
 16. One explicitly approved GitHub branch push confirms final-cloud parity.
+17. Mac fallback is manual, port-isolated and structurally unable to issue a
+    Z620 push permit.
 
 ## Stop Conditions
 
