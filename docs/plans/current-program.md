@@ -1991,6 +1991,27 @@ worktree-backed `gpt-5.6-sol` xhigh child are required before implementation.
 Frozen `IDA-UI03a2`, UI/product, runtime AI, Eval v2 and every other successor
 remain blocked or unpromoted.
 
+Rev 160 supersedes the Rev 159 active-selection sentence above. `IDA-SEC03` is
+complete through PR `#1423` / squash merge
+`6981f8a27982488ba0b00d90f00a424d2faf1a1e`. Its exact three-path
+implementation pins the deterministic-backstops Semgrep install to `1.171.0`,
+adds the focused floating-regression contract and preserves scan, SARIF,
+base-SHA and draft-policy behavior. The exact runtime authority is consumed.
+
+Exact-current-head GitHub checks passed 28/28 with zero failures or pending
+checks. Exact-main CI `30133922780`, Sonar Main `30133922774`, CodeQL
+`30133922546` / `30133922587` and Secret Scan `30133922844` passed. Automatic
+CD run `30133922802` was contained during Buildx setup; registry login, image
+build and all provider/deploy jobs remained skipped or at `steps: []`.
+`docs/plans/2026-07-25-ida-sec03-closeout.md` is the canonical receipt.
+
+No replacement implementation slice is promoted. Resolver expectation returns
+to `blocked_requires_current_authority`, `activeSlice=null`. Dependabot alert
+`#154` / `protobufjs` patched in `7.6.5` is the next bounded security candidate
+only; this closeout does not authorize its design gate, branch, writer,
+implementation or PR. The completed pre-push/P8 acceptance remains closed and
+is not reopened by that separate medium advisory.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
