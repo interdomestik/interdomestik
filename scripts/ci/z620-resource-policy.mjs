@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import {
   assertManagedPath,
@@ -21,8 +22,19 @@ function evidenceContext(value, root, homeDir) {
   const rootAnchor = path.resolve(root);
   const localRoot = path.resolve(root, 'tmp/z620-gates');
   const runsRoot = path.resolve(home, 'ci/interdomestik/runs');
-  const candidate = path.resolve(String(value || localRoot));
-  if (candidate === localRoot) {
+  const requested = path.resolve(String(value || localRoot));
+  const candidate =
+    requested === localRoot
+      ? path.join(localRoot, `run-${process.pid}-${randomUUID()}`)
+      : requested;
+  const localRelative = path.relative(localRoot, candidate);
+  if (
+    localRelative &&
+    !localRelative.startsWith('..') &&
+    !path.isAbsolute(localRelative) &&
+    !localRelative.includes(path.sep)
+  ) {
+    safeId(localRelative, 'local evidence run id');
     assertManagedPath(candidate, rootAnchor);
     return { anchor: rootAnchor, directory: candidate, runId: null };
   }

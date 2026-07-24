@@ -9,6 +9,7 @@ import {
   appendPullRequestScannerProperties,
   appendScannerProperties,
   appendSonarAnalysisProperties,
+  buildDockerScannerArgs,
   buildNativeScannerArgs,
   resolveSonarAnalysisContext,
   runCommand as run,
@@ -115,28 +116,12 @@ const dockerPlatform = process.env.SONAR_DOCKER_PLATFORM?.trim() ?? '';
 const scannerImage =
   process.env.SONAR_SCANNER_IMAGE?.trim() || 'sonarsource/sonar-scanner-cli:11.5';
 
-const dockerArgs = ['run', '--rm'];
-
-if (dockerPlatform) {
-  dockerArgs.push('--platform', dockerPlatform);
-}
-
-// On Linux hosts, `host.docker.internal` may require an explicit mapping.
-if (process.platform === 'linux') {
-  dockerArgs.push('--add-host', 'host.docker.internal:host-gateway');
-}
-
-dockerArgs.push(
-  '-e',
-  'SONAR_TOKEN',
-  '-v',
-  `${cwd}:/usr/src`,
-  '-w',
-  '/usr/src',
+const dockerArgs = buildDockerScannerArgs({
+  cwd,
+  dockerPlatform,
   scannerImage,
-  'sonar-scanner',
-  ...scannerPropertiesWithAnalysisContext
-);
+  scannerProperties: scannerPropertiesWithAnalysisContext,
+});
 
 try {
   run('docker', dockerArgs);

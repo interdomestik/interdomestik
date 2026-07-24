@@ -6,6 +6,7 @@ import test from 'node:test';
 import { resolveGateCommand, validateGateCommandIds } from './z620-gate-command-lib.mjs';
 import {
   evidenceRunId,
+  prepareEvidenceSubdirectory,
   resolveCacheRoot,
   resolveEvidenceDirectory,
   resolveRunsRoot,
@@ -52,6 +53,37 @@ test('resource runner builds only the fixed Node gate-runner invocation', t => {
   assert.equal(invocation.args[0], path.join(root, 'scripts/ci/z620-gate-run.mjs'));
   assert.match(invocation.args.join(' '), /--lanes=database,e2e-pr/);
   assert.doesNotMatch(invocation.args.join(' '), /\bbash\b|(?:^|\s)-c(?:\s|$)/);
+});
+
+test('default evidence directories are unique task-owned local children', t => {
+  const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'z620-evidence-'));
+  t.after(() => fs.rmSync(fixture, { recursive: true, force: true }));
+  const fakeRoot = path.join(fixture, 'repo');
+  const localRoot = path.join(fakeRoot, 'tmp/z620-gates');
+  fs.mkdirSync(fakeRoot);
+  const first = resolveEvidenceDirectory(undefined, fakeRoot);
+  const second = resolveEvidenceDirectory(localRoot, fakeRoot);
+
+  assert.notEqual(first, second);
+  assert.equal(path.dirname(first), localRoot);
+  assert.equal(path.dirname(second), localRoot);
+  for (const evidenceDir of [first, second]) {
+    const logsDir = prepareEvidenceSubdirectory(evidenceDir, 'logs', fakeRoot);
+    fs.writeFileSync(path.join(logsDir, 'validation-1.log'), 'pass', { flag: 'wx' });
+    fs.writeFileSync(path.join(evidenceDir, 'gate-results.json'), '{}', { flag: 'wx' });
+  }
+
+  const invocation = resourceGateArguments({}, fakeRoot);
+  assert.ok(invocation.args.includes(`--evidence-dir=${invocation.evidenceDir}`));
+  assert.equal(path.dirname(invocation.evidenceDir), localRoot);
+  assert.throws(
+    () => resolveEvidenceDirectory(path.join(localRoot, 'nested/run'), fakeRoot),
+    /managed evidence root/
+  );
+  assert.throws(
+    () => resolveEvidenceDirectory(path.join(fakeRoot, 'tmp/z620-other/run'), fakeRoot),
+    /managed evidence root/
+  );
 });
 
 test('managed evidence and state paths reject traversal and nested run paths', t => {

@@ -38,6 +38,46 @@ export function buildNativeScannerArgs(scannerProperties) {
   return ['dlx', '--package=@sonar/scan@5.0.0', 'sonar-scanner-npm', ...scannerProperties];
 }
 
+const DOCKER_LOCAL_SONAR_HOSTS = new Set([
+  'http://127.0.0.1:9000',
+  'http://localhost:9000',
+  'http://sonarqube:9000',
+]);
+
+export function buildDockerScannerArgs({
+  cwd,
+  dockerPlatform = '',
+  scannerImage,
+  scannerProperties,
+  platform = process.platform,
+}) {
+  const args = ['run', '--rm'];
+  if (dockerPlatform) args.push('--platform', dockerPlatform);
+  if (platform === 'linux') {
+    args.push('--add-host', 'host.docker.internal:host-gateway');
+  }
+  const dockerProperties = scannerProperties.map(property => {
+    const prefix = '-Dsonar.host.url=';
+    if (!property.startsWith(prefix)) return property;
+    const hostUrl = property.slice(prefix.length);
+    return DOCKER_LOCAL_SONAR_HOSTS.has(hostUrl)
+      ? `${prefix}http://host.docker.internal:9000`
+      : property;
+  });
+  args.push(
+    '-e',
+    'SONAR_TOKEN',
+    '-v',
+    `${cwd}:/usr/src`,
+    '-w',
+    '/usr/src',
+    scannerImage,
+    'sonar-scanner',
+    ...dockerProperties
+  );
+  return args;
+}
+
 export function resolveSonarAnalysisContext(environment = process.env) {
   const projectVersion = environmentValue(environment, 'SONAR_PROJECT_VERSION');
   const qualityGateWait = environmentValue(environment, 'SONAR_QUALITYGATE_WAIT');

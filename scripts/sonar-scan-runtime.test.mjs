@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 
 import {
   appendSonarAnalysisProperties,
+  buildDockerScannerArgs,
+  buildNativeScannerArgs,
   resolveSonarAnalysisContext,
 } from './sonar-scan-runtime.mjs';
 
@@ -23,6 +25,7 @@ test('scan sources never read event files or pass credentials as scanner propert
   assert.match(sonarScan, /SONAR_PULLREQUEST_KEY/);
   assert.match(sonarScan, /GITHUB_HEAD_REF/);
   assert.match(sonarScan, /GITHUB_BASE_REF/);
+  assert.match(sonarScan, /buildDockerScannerArgs/);
 });
 
 test('resolves exact-SHA project version and explicit quality-gate wait mode', () => {
@@ -78,4 +81,49 @@ test('appends version and wait properties without duplication', () => {
     ),
     [`-Dsonar.projectVersion=${SHA}`, '-Dsonar.qualitygate.wait=false']
   );
+});
+
+test('Docker scans translate local-only Sonar hosts without mutating properties', () => {
+  for (const host of ['127.0.0.1', 'localhost', 'sonarqube']) {
+    const properties = [`-Dsonar.host.url=http://${host}:9000`, `-Dsonar.projectVersion=${SHA}`];
+    const args = buildDockerScannerArgs({
+      cwd: '/repo',
+      scannerImage: 'scanner:test',
+      scannerProperties: properties,
+      platform: 'linux',
+    });
+
+    assert.ok(args.includes('-Dsonar.host.url=http://host.docker.internal:9000'));
+    assert.ok(args.includes(`-Dsonar.projectVersion=${SHA}`));
+    assert.ok(buildNativeScannerArgs(properties).includes(properties[0]));
+    assert.deepEqual(properties, [
+      `-Dsonar.host.url=http://${host}:9000`,
+      `-Dsonar.projectVersion=${SHA}`,
+    ]);
+  }
+});
+
+test('Docker scanner arguments preserve remote hosts and map Linux host gateway only', () => {
+  const properties = ['-Dsonar.host.url=https://sonarcloud.io'];
+  const linuxArgs = buildDockerScannerArgs({
+    cwd: '/repo',
+    dockerPlatform: 'linux/amd64',
+    scannerImage: 'scanner:test',
+    scannerProperties: properties,
+    platform: 'linux',
+  });
+  const darwinArgs = buildDockerScannerArgs({
+    cwd: '/repo',
+    scannerImage: 'scanner:test',
+    scannerProperties: ['-Dsonar.host.url=http://host.docker.internal:9000'],
+    platform: 'darwin',
+  });
+
+  assert.ok(linuxArgs.includes('host.docker.internal:host-gateway'));
+  assert.ok(linuxArgs.includes('https://sonarcloud.io') === false);
+  assert.ok(linuxArgs.includes('-Dsonar.host.url=https://sonarcloud.io'));
+  assert.ok(linuxArgs.includes('linux/amd64'));
+  assert.ok(!linuxArgs.includes('--network'));
+  assert.ok(!darwinArgs.includes('host.docker.internal:host-gateway'));
+  assert.ok(darwinArgs.includes('-Dsonar.host.url=http://host.docker.internal:9000'));
 });

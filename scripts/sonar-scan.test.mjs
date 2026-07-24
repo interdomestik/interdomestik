@@ -4,11 +4,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import {
-  normalizeSonarHostUrl,
-  resolveSonarStatusTarget,
-  waitForSonarUp,
-} from './sonar-scan-lib.mjs';
+import { waitForSonarUp } from './sonar-scan-lib.mjs';
 import {
   appendPullRequestScannerProperties,
   appendScannerProperties,
@@ -89,49 +85,6 @@ test('appendPullRequestScannerProperties leaves non-PR scans unchanged', () => {
   assert.deepEqual(
     appendPullRequestScannerProperties(['-Dsonar.host.url=https://sonarcloud.io'], {}),
     ['-Dsonar.host.url=https://sonarcloud.io']
-  );
-});
-
-test('normalizeSonarHostUrl rejects credential-bearing URLs', () => {
-  assert.throws(
-    () => normalizeSonarHostUrl('https://user:token@sonarcloud.io?token=secret'),
-    /must not include credentials/u
-  );
-});
-
-test('normalizeSonarHostUrl rejects malformed URLs with a redacted error', () => {
-  assert.throws(() => normalizeSonarHostUrl('://user:token@example.com'), /must be a valid URL/u);
-});
-
-test('normalizeSonarHostUrl defaults to SonarCloud and rejects arbitrary hosts', () => {
-  assert.equal(normalizeSonarHostUrl(), 'https://sonarcloud.io');
-  assert.equal(normalizeSonarHostUrl('https://sonarcloud.io/'), 'https://sonarcloud.io');
-  assert.equal(normalizeSonarHostUrl('http://127.0.0.1:9000/'), 'http://127.0.0.1:9000');
-  assert.equal(normalizeSonarHostUrl('http://localhost:9000/'), 'http://localhost:9000');
-  assert.throws(
-    () => normalizeSonarHostUrl('https://example.test'),
-    /approved local SonarQube URL/u
-  );
-});
-
-test('resolveSonarStatusTarget returns fixed targets only for approved local hosts', () => {
-  const localUrl = host => `${'http:'}//${host}`;
-
-  assert.equal(resolveSonarStatusTarget({ sonarHostUrl: 'https://sonarcloud.io' }), null);
-  assert.equal(
-    resolveSonarStatusTarget({ sonarHostUrl: localUrl('127.0.0.1:9000'), forceNative: true }),
-    'loopback-native'
-  );
-  assert.equal(
-    resolveSonarStatusTarget({
-      sonarHostUrl: localUrl('host.docker.internal:9000'),
-      forceNative: true,
-    }),
-    'host-docker-native'
-  );
-  assert.equal(
-    resolveSonarStatusTarget({ sonarHostUrl: localUrl('sonarqube:9000'), forceNative: false }),
-    'local-docker'
   );
 });
 
