@@ -26,7 +26,9 @@ test('PR deterministic backstops run free scanner gates without AI review depend
     'actions/dependency-review-action@v5.0.0'
   );
   assert.equal(
-    dependencyReview.steps.find(step => step?.name === 'Dependency Review').with['fail-on-severity'],
+    dependencyReview.steps.find(step => step?.name === 'Dependency Review').with[
+      'fail-on-severity'
+    ],
     'high'
   );
 
@@ -39,8 +41,14 @@ test('PR deterministic backstops run free scanner gates without AI review depend
   assert.match(osv.with['scan-args'], /--recursive/u);
 
   const semgrep = workflow.jobs['semgrep-ce'];
-  const semgrepRun = semgrep.steps.find(step => step?.name === 'Run Semgrep against new PR findings');
+  const installSemgrep = semgrep.steps.find(step => step?.name === 'Install Semgrep');
+  const semgrepRun = semgrep.steps.find(
+    step => step?.name === 'Run Semgrep against new PR findings'
+  );
   assert.equal(semgrep.permissions['security-events'], 'write');
+  assert.equal(installSemgrep.run, 'python -m pip install semgrep==1.171.0');
+  assert.doesNotMatch(installSemgrep.run, /--upgrade\s+semgrep/u);
+  assert.doesNotMatch(installSemgrep.run, /pip install semgrep(?:\s|$)/u);
   assert.match(semgrepRun.run, /--baseline-commit "\$\{BASE_SHA\}"/u);
   assert.match(semgrepRun.run, /--config p\/ci/u);
   assert.match(semgrepRun.run, /--sarif/u);
