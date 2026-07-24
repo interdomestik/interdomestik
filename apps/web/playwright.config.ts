@@ -1,11 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
+import { resolvePlaywrightNetwork } from './playwright-network';
 
-const PORT = 3000;
-const BASE_HOST = '127.0.0.1';
-const BIND_HOST = '127.0.0.1';
-const BASE_URL = `http://${BASE_HOST}:${PORT}`;
+const { BASE_URL, BIND_HOST, PORT } = resolvePlaywrightNetwork();
 const WEB_SERVER_SCRIPT = path.resolve(__dirname, '../../scripts/e2e-webserver.sh');
 
 function tenantBaseUrl(hostWithPort: string, locale: string): string {
@@ -461,7 +459,7 @@ export default defineConfig({
             .join(' '),
           NEXT_PUBLIC_APP_URL: BASE_URL,
           BETTER_AUTH_URL: BASE_URL,
-          BETTER_AUTH_TRUSTED_ORIGINS: `http://127.0.0.1:3000,http://localhost:3000,http://${KS_HOST},http://${MK_HOST},http://${AL_HOST},http://${PILOT_HOST},http://${IDA_HOST},${BASE_URL}`,
+          BETTER_AUTH_TRUSTED_ORIGINS: `http://127.0.0.1:${PORT},http://localhost:${PORT},http://${KS_HOST},http://${MK_HOST},http://${AL_HOST},http://${PILOT_HOST},http://${IDA_HOST},${BASE_URL}`,
           INTERDOMESTIK_AUTOMATED: '1',
           INTERDOMESTIK_LOCAL_E2E: '1',
           INTERDOMESTIK_E2E_DIAGNOSTICS: '1',

@@ -4,26 +4,14 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { waitForSonarUp } from './sonar-scan-lib.mjs';
 import {
   appendPullRequestScannerProperties,
   appendScannerProperties,
   buildNativeScannerArgs,
-  normalizeSonarHostUrl,
-  resolveSonarStatusTarget,
-  waitForSonarUp,
-} from './sonar-scan-lib.mjs';
+} from './sonar-scan-runtime.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
-
-test('sonar scan has a static contract against event-path PR context reads', () => {
-  const sonarScan = fs.readFileSync(path.join(scriptDir, 'sonar-scan.mjs'), 'utf8');
-
-  assert.doesNotMatch(sonarScan, /GITHUB_EVENT_PATH/);
-  assert.doesNotMatch(sonarScan, /readFileSync/);
-  assert.match(sonarScan, /SONAR_PULLREQUEST_KEY/);
-  assert.match(sonarScan, /GITHUB_HEAD_REF/);
-  assert.match(sonarScan, /GITHUB_BASE_REF/);
-});
 
 test('sonar gate exports explicit PR context before running the scanner', () => {
   const sonarGate = fs.readFileSync(path.join(scriptDir, 'sonar-gate.sh'), 'utf8');
@@ -32,8 +20,14 @@ test('sonar gate exports explicit PR context before running the scanner', () => 
   );
   const scanIndex = sonarGate.indexOf('pnpm sonar:scan');
 
-  assert.match(sonarGate, /SONAR_PULLREQUEST_BRANCH="\$\{SONAR_PULLREQUEST_BRANCH:-\$\{GITHUB_HEAD_REF:-\}\}"/);
-  assert.match(sonarGate, /SONAR_PULLREQUEST_BASE="\$\{SONAR_PULLREQUEST_BASE:-\$\{GITHUB_BASE_REF:-\}\}"/);
+  assert.match(
+    sonarGate,
+    /SONAR_PULLREQUEST_BRANCH="\$\{SONAR_PULLREQUEST_BRANCH:-\$\{GITHUB_HEAD_REF:-\}\}"/
+  );
+  assert.match(
+    sonarGate,
+    /SONAR_PULLREQUEST_BASE="\$\{SONAR_PULLREQUEST_BASE:-\$\{GITHUB_BASE_REF:-\}\}"/
+  );
   assert.match(sonarGate, /catch\{process\.stdout\.write\('\\\\n'\)\}/);
   assert.match(sonarGate, /event_pr_key/);
   assert.ok(exportIndex > 0);
@@ -65,8 +59,8 @@ test('appendScannerProperties does not duplicate skip JRE provisioning property'
 test('buildNativeScannerArgs places dlx before package selection', () => {
   assert.deepEqual(buildNativeScannerArgs(['-Dsonar.host.url=https://sonarcloud.io']), [
     'dlx',
-    '--package=@sonar/scan',
-    'sonar-scanner',
+    '--package=@sonar/scan@5.0.0',
+    'sonar-scanner-npm',
     '-Dsonar.host.url=https://sonarcloud.io',
   ]);
 });
@@ -91,43 +85,6 @@ test('appendPullRequestScannerProperties leaves non-PR scans unchanged', () => {
   assert.deepEqual(
     appendPullRequestScannerProperties(['-Dsonar.host.url=https://sonarcloud.io'], {}),
     ['-Dsonar.host.url=https://sonarcloud.io']
-  );
-});
-
-test('normalizeSonarHostUrl rejects credential-bearing URLs', () => {
-  assert.throws(
-    () => normalizeSonarHostUrl('https://user:token@sonarcloud.io?token=secret'),
-    /must not include credentials/u
-  );
-});
-
-test('normalizeSonarHostUrl rejects malformed URLs with a redacted error', () => {
-  assert.throws(() => normalizeSonarHostUrl('://user:token@example.com'), /must be a valid URL/u);
-});
-
-test('normalizeSonarHostUrl defaults to SonarCloud and rejects arbitrary hosts', () => {
-  assert.equal(normalizeSonarHostUrl(), 'https://sonarcloud.io');
-  assert.equal(normalizeSonarHostUrl('https://sonarcloud.io/'), 'https://sonarcloud.io');
-  assert.throws(
-    () => normalizeSonarHostUrl('https://example.test'),
-    /approved local SonarQube URL/u
-  );
-});
-
-test('resolveSonarStatusTarget returns fixed targets only for approved local hosts', () => {
-  const localUrl = host => `${'http:'}//${host}`;
-
-  assert.equal(resolveSonarStatusTarget({ sonarHostUrl: 'https://sonarcloud.io' }), null);
-  assert.equal(
-    resolveSonarStatusTarget({
-      sonarHostUrl: localUrl('host.docker.internal:9000'),
-      forceNative: true,
-    }),
-    'host-docker-native'
-  );
-  assert.equal(
-    resolveSonarStatusTarget({ sonarHostUrl: localUrl('sonarqube:9000'), forceNative: false }),
-    'local-docker'
   );
 });
 

@@ -20,6 +20,9 @@ echo "🚧 [Gatekeeper] Starting Deterministic Reset..."
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"
 
+source "${SCRIPT_DIR}/e2e-port-guard.sh"
+configure_e2e_port
+
 # Preserve explicit shell-provided values before sourcing local env files.
 INHERITED_DATABASE_URL="${DATABASE_URL:-}"
 INHERITED_NEXT_PUBLIC_BILLING_TEST_MODE="${NEXT_PUBLIC_BILLING_TEST_MODE:-}"
@@ -137,14 +140,11 @@ cleanup_stale_supabase_containers() {
 }
 
 # 0. Kill stale processes
-cleanup_stale_playwright_processes
-
-echo "💀 [Gatekeeper] Killing stale processes on port 3000..."
-PIDS="$(lsof -ti:3000 2>/dev/null || true)"
-if [ -n "$PIDS" ]; then
-  kill -9 $PIDS 2>/dev/null || true
+if [[ "${INTERDOMESTIK_TASK_OWNS_PORT:-0}" == "1" ]]; then
+  cleanup_stale_playwright_processes
 fi
-echo "✅ [Gatekeeper] Port 3000 clear."
+
+clear_task_e2e_port "[Gatekeeper]"
 
 ensure_disk_space
 
@@ -249,9 +249,4 @@ echo "   - Data: Deterministic (Version: E2E-Golden)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # 0. Kill stale processes to ensure fresh env/config
-echo "💀 Killing any stale processes on port 3000..."
-PIDS="$(lsof -ti:3000 2>/dev/null || true)"
-if [ -n "$PIDS" ]; then
-  kill -9 $PIDS 2>/dev/null || true
-fi
-echo "✅ Port 3000 clear."
+clear_task_e2e_port "[Gatekeeper pre-Playwright]"

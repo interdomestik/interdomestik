@@ -13,7 +13,7 @@ services:
       - interdomestik-net
 
   sonarqube:
-    image: sonarqube:lts-community
+    image: sonarqube:26.7.0.124771-community
     profiles:
       - sonar
     depends_on:

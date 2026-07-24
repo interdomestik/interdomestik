@@ -11,7 +11,7 @@ const AUTO_RUN_HIGH_RISK_PATTERNS = [
 const LABEL_GATED_HIGH_RISK_PATTERNS = [
   /^scripts\/multi-agent\//,
   /^scripts\/release-gate\//,
-  /^scripts\/(?:security-guard|pr-verify-hosts|m4-gatekeeper|docker-gate|sentry-seer-sweep|sonar-gate|sonar-scan(?:-lib)?)\.(?:mjs|sh)$/,
+  /^scripts\/(?:e2e-port-guard|security-guard|pr-verify-hosts|m4-gatekeeper|docker-gate|sentry-seer-sweep|sonar-gate|sonar-scan(?:-(?:lib|runtime))?)\.(?:mjs|sh)$/,
   /^pnpm-lock\.yaml$/,
   /^packages\/database\/drizzle\//,
   /^packages\/database\/src\//,

@@ -1,36 +1,19 @@
-import { spawnSync } from 'node:child_process';
 import process from 'node:process';
 
 import {
-  appendPullRequestScannerProperties,
-  appendScannerProperties,
-  buildNativeScannerArgs,
   normalizeSonarHostUrl,
   resolveSonarStatusTarget,
   waitForSonarUp,
 } from './sonar-scan-lib.mjs';
-
-function run(cmd, args, opts = {}) {
-  const { allowFailure = false, ...spawnOptions } = opts;
-  const result = spawnSync(cmd, args, {
-    stdio: 'inherit',
-    ...spawnOptions,
-  });
-
-  if (result.error) {
-    // Common case: command not found (docker missing)
-    throw result.error;
-  }
-
-  if (typeof result.status === 'number' && result.status !== 0) {
-    if (allowFailure) {
-      return result.status;
-    }
-    process.exit(result.status);
-  }
-
-  return result.status ?? 0;
-}
+import {
+  appendPullRequestScannerProperties,
+  appendScannerProperties,
+  appendSonarAnalysisProperties,
+  buildDockerScannerArgs,
+  buildNativeScannerArgs,
+  resolveSonarAnalysisContext,
+  runCommand as run,
+} from './sonar-scan-runtime.mjs';
 
 const sonarToken = process.env.SONAR_TOKEN;
 const sonarProjectKey = process.env.SONAR_PROJECT_KEY;
@@ -50,8 +33,8 @@ if (!sonarToken) {
 }
 
 // Run the scanner via Docker so we don't require a global `sonar-scanner` or Java.
-// IMPORTANT: do NOT pass `-Dsonar.token=...` because SonarScanner logs the value.
-// We pass auth only through the `SONAR_TOKEN` env var.
+// Authentication is passed only through `SONAR_TOKEN`, never through process
+// arguments, so it cannot appear in process listings or scanner command logs.
 const cwd = process.cwd();
 
 const sonarHostUrl = normalizeSonarHostUrl(process.env.SONAR_HOST_URL);
@@ -79,31 +62,18 @@ if (isSonarCloud) {
   scannerProperties.push(`-Dsonar.organization=${sonarOrganization}`);
 }
 
-const pullRequestKey = String(process.env.SONAR_PULLREQUEST_KEY || '').trim();
-const pullRequestBranch = String(
-  process.env.SONAR_PULLREQUEST_BRANCH || process.env.GITHUB_HEAD_REF || ''
-).trim();
-const pullRequestBase = String(
-  process.env.SONAR_PULLREQUEST_BASE || process.env.GITHUB_BASE_REF || ''
-).trim();
-
-if (pullRequestKey && (!pullRequestBranch || !pullRequestBase)) {
-  console.error(
-    [
-      'Missing pull request branch context for Sonar PR analysis.',
-      `pull request key present: ${pullRequestKey ? 'yes' : 'no'}`,
-      `pull request branch present: ${pullRequestBranch ? 'yes' : 'no'}`,
-      `pull request base present: ${pullRequestBase ? 'yes' : 'no'}`,
-    ].join('\n')
-  );
+let analysisContext;
+try {
+  analysisContext = resolveSonarAnalysisContext();
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error));
   process.exit(2);
 }
 
-const scannerPropertiesWithAnalysisContext = appendPullRequestScannerProperties(scannerProperties, {
-  pullRequestBase,
-  pullRequestBranch,
-  pullRequestKey,
-});
+const scannerPropertiesWithAnalysisContext = appendPullRequestScannerProperties(
+  appendSonarAnalysisProperties(scannerProperties, analysisContext),
+  analysisContext
+);
 
 const forceDocker = process.env.SONAR_SCANNER_FORCE_DOCKER === 'true';
 const forceNative = process.env.SONAR_SCANNER_FORCE_NATIVE === 'true';
@@ -146,28 +116,12 @@ const dockerPlatform = process.env.SONAR_DOCKER_PLATFORM?.trim() ?? '';
 const scannerImage =
   process.env.SONAR_SCANNER_IMAGE?.trim() || 'sonarsource/sonar-scanner-cli:11.5';
 
-const dockerArgs = ['run', '--rm'];
-
-if (dockerPlatform) {
-  dockerArgs.push('--platform', dockerPlatform);
-}
-
-// On Linux hosts, `host.docker.internal` may require an explicit mapping.
-if (process.platform === 'linux') {
-  dockerArgs.push('--add-host', 'host.docker.internal:host-gateway');
-}
-
-dockerArgs.push(
-  '-e',
-  'SONAR_TOKEN',
-  '-v',
-  `${cwd}:/usr/src`,
-  '-w',
-  '/usr/src',
+const dockerArgs = buildDockerScannerArgs({
+  cwd,
+  dockerPlatform,
   scannerImage,
-  'sonar-scanner',
-  ...scannerPropertiesWithAnalysisContext
-);
+  scannerProperties: scannerPropertiesWithAnalysisContext,
+});
 
 try {
   run('docker', dockerArgs);

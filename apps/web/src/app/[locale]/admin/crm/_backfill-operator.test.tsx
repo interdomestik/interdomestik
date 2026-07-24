@@ -148,7 +148,7 @@ describe('AdminCrmForecastBackfillOperator', () => {
       })
     );
     expect(screen.getByText('Backfill result')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Confirm write' })).toBeEnabled();
+    expect(await screen.findByRole('button', { name: 'Confirm write' })).toBeEnabled();
     expect(document.body.textContent).not.toContain('token-1');
   });
 

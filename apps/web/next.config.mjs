@@ -16,9 +16,8 @@ const buildCpus = Number.parseInt(process.env.NEXT_BUILD_CPUS ?? '', 10);
 const nextBuildWorkerLimit =
   Number.isInteger(buildCpus) && buildCpus > 0 ? { cpus: buildCpus } : {};
 const webpackMemoryOptimizations =
-  process.env.NEXT_WEBPACK_MEMORY_OPTIMIZATIONS === '1'
-    ? { webpackMemoryOptimizations: true }
-    : {};
+  process.env.NEXT_WEBPACK_MEMORY_OPTIMIZATIONS === '1' ? { webpackMemoryOptimizations: true } : {};
+const validateSentrySourceMaps = process.env.SENTRY_VALIDATE_SOURCEMAPS === 'true';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -60,6 +59,12 @@ const nextConfig = {
     optimizePackageImports: ['lucide-react'],
   },
   serverExternalPackages: ['import-in-the-middle', 'require-in-the-middle'],
+  webpack(config, { isServer }) {
+    if (validateSentrySourceMaps) {
+      config.devtool = isServer ? 'source-map' : 'hidden-source-map';
+    }
+    return config;
+  },
   async redirects() {
     return [
       {
@@ -76,6 +81,11 @@ const sentryOrg = process.env.SENTRY_ORG?.trim();
 const sentryProject = process.env.SENTRY_PROJECT?.trim();
 const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN?.trim();
 const enableSentryBuildUpload = Boolean(sentryOrg && sentryProject && sentryAuthToken);
+const sentryRelease = process.env.SENTRY_RELEASE?.trim();
+
+if (validateSentrySourceMaps && !/^[0-9a-f]{40}$/u.test(sentryRelease ?? '')) {
+  throw new Error('SENTRY_RELEASE must equal the exact 40-character candidate SHA.');
+}
 
 export default withSentryConfig(withAxiom(finalConfig), {
   // For all available options, see:
@@ -84,7 +94,13 @@ export default withSentryConfig(withAxiom(finalConfig), {
   org: sentryOrg,
   project: sentryProject,
   authToken: sentryAuthToken,
-  disable: !enableSentryBuildUpload,
+  disable: !enableSentryBuildUpload && !validateSentrySourceMaps,
+  release: validateSentrySourceMaps
+    ? { name: sentryRelease, create: false, finalize: false }
+    : undefined,
+  sourcemaps: validateSentrySourceMaps
+    ? { disable: 'disable-upload', deleteSourcemapsAfterUpload: false }
+    : undefined,
 
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,
@@ -99,9 +115,6 @@ export default withSentryConfig(withAxiom(finalConfig), {
   // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
   // This can increase your server load as well as your Sentry bill.
   tunnelRoute: '/api/monitoring',
-
-  // Hides source maps from visitors
-  hideSourceMaps: true,
 
   // Webpack-specific options (fixes deprecation warnings)
   webpack: {
