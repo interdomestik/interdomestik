@@ -1341,3 +1341,27 @@ resolver state is `blocked_requires_current_authority`, `activeSlice=null`.
 Alerts `#157` / `#158`, grouped PRs `#1422` / `#1432`, frozen
 `IDA-UI03a2`, UI/product and every architecture successor remain separate,
 blocked or unpromoted until a fresh current-authority decision.
+
+Rev 165 supersedes the Rev 164 terminal no-promotion sentence. The next active
+governed implementation goal is exactly one canonical tracker slice:
+`IDA-SEC06`, a prospective Tier-1 dependency-security patch promoted by
+`IDA-SEC-DG06`. Gate R0 is exact at 11,581 bytes / SHA-256
+`cf440d257de50f524123188e984977c82add06b1f5d9adef828fed7da4feb66c`,
+bound to clean main `aae2ef761d61772fb6932e8233aa80a45a00e422` / tree
+`c45e3eef53ebaab103e8d3152dd00fce60d5a4d0`, open Dependabot alert `#158`,
+`GHSA-frvp-7c67-39w9`, current transitive
+`@hono/node-server@1.19.13` and first patched release `2.0.5`.
+
+The future writer map is exactly `pnpm-workspace.yaml`, `pnpm-lock.yaml` and
+deterministic `scripts/repo-size-budget.json`; any fourth path stops. The slice
+must add only the exact `@hono/node-server: 2.0.5` override, preserve
+`@modelcontextprotocol/sdk`, `@upstash/context7-mcp`, `hono` and every
+unrelated resolution, pass frozen install and QA package compilation, and
+prove the target advisory absent without an audit allowlist or suppression.
+This docs-only gate keeps runtime, workflow dispatch, provider,
+alias/environment mutation, deployment, production, database and Z620
+authority false. `IDA-SEC06` remains `blocked` until the gate is canonical and
+a separate exact runtime-authority receipt binds then-current main. Alert
+`#157`, grouped PRs `#1422` / `#1432`, frozen `IDA-UI03a2`, UI/product,
+runtime AI, Eval v2 and every other successor remain separate, blocked or
+unpromoted.

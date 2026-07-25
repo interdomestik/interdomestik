@@ -2099,6 +2099,35 @@ Alerts `#157` / `#158`, grouped PRs `#1422` / `#1432`, frozen
 `IDA-UI03a2`, UI/product and every architecture successor remain separate,
 blocked or unpromoted until a fresh current-authority decision.
 
+Rev 165 supersedes the Rev 164 terminal no-promotion sentence above. The next
+active governed implementation goal is exactly one canonical tracker slice:
+`IDA-SEC06`, a prospective Tier-1 dependency-security patch promoted by
+`IDA-SEC-DG06`.
+
+The accepted-by-orchestrator R0 gate is exact at 11,581 UTF-8 bytes / SHA-256
+`cf440d257de50f524123188e984977c82add06b1f5d9adef828fed7da4feb66c`,
+bound to clean main `aae2ef761d61772fb6932e8233aa80a45a00e422` / tree
+`c45e3eef53ebaab103e8d3152dd00fce60d5a4d0`. The current trigger is open
+Dependabot alert `#158`, `GHSA-frvp-7c67-39w9`: transitive development/QA
+`@hono/node-server@1.19.13` can allow an encoded Windows backslash to bypass
+prefix-mounted middleware around `serve-static`; the first patched release is
+`2.0.5`.
+
+The future implementation may change only `pnpm-workspace.yaml`,
+`pnpm-lock.yaml` and deterministic `scripts/repo-size-budget.json`; any fourth
+path stops. It must add only the exact `@hono/node-server: 2.0.5` override,
+preserve `@modelcontextprotocol/sdk`, `@upstash/context7-mcp`, `hono` and every
+unrelated package resolution, pass frozen install and QA package compilation,
+and prove the target advisory absent without suppression or allowlisting.
+
+This docs-only promotion keeps runtime, workflow dispatch, provider,
+alias/environment mutation, deployment, production, database and Z620
+authority false. `IDA-SEC06` remains blocked until `IDA-SEC-DG06` is canonical
+and a separate exact runtime-authority receipt binds then-current main. Alert
+`#157`, grouped PRs `#1422` / `#1432`, frozen `IDA-UI03a2`, UI/product,
+runtime AI, Eval v2 and all other successors remain separate, blocked or
+unpromoted.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
