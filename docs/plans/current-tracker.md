@@ -1385,3 +1385,30 @@ resolver state is `blocked_requires_current_authority`, `activeSlice=null`.
 Alert `#157`, grouped PRs `#1422` / `#1432`, frozen `IDA-UI03a2`,
 UI/product and every architecture successor remain separate, blocked or
 unpromoted until a fresh current-authority decision.
+
+Rev 167 supersedes the Rev 166 terminal no-promotion sentence. The next active
+governed implementation goal is exactly one canonical tracker slice:
+`IDA-SEC07`, a prospective Tier-1 dependency-security patch promoted by
+`IDA-SEC-DG07`. Gate R0 is exact at 13,663 bytes / SHA-256
+`5bc950c34ea82b2b541acc56aae1cc17f4a590c033f1633d98f8361e95211dc1`,
+bound to clean main `4db29eea8f3be08708ca5c003ba8527d26216ece` / tree
+`00f880754e6066510caf8ff5493acf0d77fcf8e4`, open Dependabot alert `#157`,
+`GHSA-v422-hmwv-36x6` / `CVE-2026-12590`, current transitive
+`body-parser@2.2.2` and patched 2.x release `2.3.0`.
+
+The future writer map is exactly `pnpm-workspace.yaml`, `pnpm-lock.yaml` and
+deterministic `scripts/repo-size-budget.json`; any fourth path stops. The slice
+must add only exact `body-parser: 2.3.0`, preserve `express`, `inngest`,
+`@modelcontextprotocol/sdk`, `@upstash/context7-mcp` and every unrelated
+resolution, pass frozen install and compatibility proof, and prove the target
+advisory absent without an audit allowlist or suppression.
+
+The live Inngest path selects the FULL pre-push profile with task-isolated Z620
+resources, while release/deploy lanes remain separately unauthorized. This
+docs-only gate keeps runtime, workflow dispatch, provider, alias/environment
+mutation, deployment, production, database and Z620 authority false.
+`IDA-SEC07` remains `blocked` until the gate is canonical and a separate exact
+runtime-authority receipt binds then-current main. Grouped PRs `#1422` /
+`#1432`, frozen `IDA-UI03a2`, the pre-push profile resolver follow-up,
+UI/product, runtime AI, Eval v2 and every other successor remain separate,
+blocked or unpromoted.
