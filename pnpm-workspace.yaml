@@ -12,6 +12,7 @@ allowBuilds:
 
 overrides:
   axios: ^1.13.5
+  body-parser: 2.3.0
   fast-xml-parser: 5.7.0
   kysely: 0.28.17
   qs: ^6.14.2
