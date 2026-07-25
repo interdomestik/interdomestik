@@ -2055,6 +2055,34 @@ merge candidates; each needs current-main reconciliation and bounded authority.
 Expected resolver state is `blocked_requires_current_authority`,
 `activeSlice=null`.
 
+Rev 163 supersedes the Rev 162 terminal no-promotion sentence above. The next
+active governed implementation goal is exactly one canonical tracker slice:
+`IDA-SEC05`, a prospective Tier-1 dependency-security patch promoted by
+`IDA-SEC-DG05`.
+
+The accepted-by-orchestrator R0 gate is exact at 10,851 UTF-8 bytes / SHA-256
+`bed35e7013983055667849369de279a69d2d875b79ba1997e7ea529d8a3b9085`,
+bound to clean main `f53ded0a15ed28f4c07637bc433883f0a71d1bdf` / tree
+`5f82869fd219b12695f73a286110486b3bdccdb1`. The current trigger is open
+Dependabot alert `#159`, `GHSA-c2j3-45gr-mqc4`: transitive runtime
+`dompurify@3.4.11` can allow a custom element admitted through
+`CUSTOM_ELEMENT_HANDLING` to bypass `afterSanitizeElements`; the first patched
+compatible release is `3.4.12`.
+
+The future implementation may change only `pnpm-workspace.yaml`,
+`pnpm-lock.yaml` and deterministic `scripts/repo-size-budget.json`; any fourth
+path stops. It must move only the existing exact override to `3.4.12`, preserve
+`posthog-js` and every unrelated package resolution, pass frozen install and
+prove the target advisory absent without suppression or allowlisting.
+
+This docs-only promotion keeps runtime, workflow dispatch, provider,
+alias/environment mutation, deployment, production, database and Z620
+authority false. `IDA-SEC05` remains blocked until `IDA-SEC-DG05` is canonical
+and a separate exact runtime-authority receipt binds then-current main. Alerts
+`#157` / `#158`, grouped PRs `#1422` / `#1432`, frozen `IDA-UI03a2`,
+UI/product, runtime AI, Eval v2 and all other successors remain separate,
+blocked or unpromoted.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
