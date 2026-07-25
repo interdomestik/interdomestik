@@ -2083,6 +2083,22 @@ and a separate exact runtime-authority receipt binds then-current main. Alerts
 UI/product, runtime AI, Eval v2 and all other successors remain separate,
 blocked or unpromoted.
 
+Rev 164 supersedes the Rev 163 active-selection sentence above. `IDA-SEC05` is
+complete through PR `#1436` / squash merge
+`494d54ada453563d16c6c7e74e23eb2a68b64ca1`; its exact runtime authority is
+consumed. The exact two-path implementation pins `dompurify@3.4.12`, preserves
+`posthog-js` and unrelated resolutions, and fixes Dependabot alert `#159`.
+Focused proof, exact-SHA Z620 pre-push, exact-head PR checks, Sonar, Copilot and
+Codex review passed. Automatic CD run `30161388554` failed at Docker Buildx
+after checkout, while registry login, metadata, image build and every
+provider/deploy job remained skipped.
+
+No replacement implementation slice is promoted by this closeout. Expected
+resolver state is `blocked_requires_current_authority`, `activeSlice=null`.
+Alerts `#157` / `#158`, grouped PRs `#1422` / `#1432`, frozen
+`IDA-UI03a2`, UI/product and every architecture successor remain separate,
+blocked or unpromoted until a fresh current-authority decision.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
