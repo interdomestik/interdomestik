@@ -2012,6 +2012,32 @@ only; this closeout does not authorize its design gate, branch, writer,
 implementation or PR. The completed pre-push/P8 acceptance remains closed and
 is not reopened by that separate medium advisory.
 
+Rev 161 supersedes the Rev 160 terminal no-promotion sentence above. The next
+active governed implementation goal is exactly one canonical tracker slice:
+`IDA-SEC04`, a prospective Tier-1 dependency-security patch promoted by
+`IDA-SEC-DG04`.
+
+The accepted-by-orchestrator R0 gate is exact at 10,351 UTF-8 bytes / SHA-256
+`44688b85aaa39d2cf2899f34d40b5f6145203ad8287e05437cec5e34b9c4d5ae`,
+bound to clean main `2c3961f6471987b9901d2579ce66681cbda4fbf4` / tree
+`88d2252d7d506313170ea6cb05af93f5a1470b39`. The current trigger is open
+Dependabot alert `#154`, `GHSA-j3f2-48v5-ccww` / `CVE-2026-59877`:
+`protobufjs@7.6.3` can loop indefinitely while parsing crafted `.proto` option
+syntax; the first patched compatible release is `7.6.5`.
+
+The future implementation may change only `pnpm-workspace.yaml`,
+`pnpm-lock.yaml` and deterministic `scripts/repo-size-budget.json`; any fourth
+path stops. It must move only the existing exact override to `7.6.5`, preserve
+every unrelated package resolution, pass frozen install and prove the target
+advisory absent without suppression or allowlisting.
+
+This docs-only promotion keeps runtime, workflow dispatch, provider,
+alias/environment mutation, deployment, production, database and Z620
+authority false. `IDA-SEC04` remains blocked until `IDA-SEC-DG04` is canonical
+and a separate exact runtime-authority receipt binds then-current main. Frozen
+`IDA-UI03a2`, UI/product, runtime AI, Eval v2 and all other successors remain
+blocked or unpromoted.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
