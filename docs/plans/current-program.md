@@ -2038,6 +2038,23 @@ and a separate exact runtime-authority receipt binds then-current main. Frozen
 `IDA-UI03a2`, UI/product, runtime AI, Eval v2 and all other successors remain
 blocked or unpromoted.
 
+Rev 162 supersedes the Rev 161 active-selection sentence above. `IDA-SEC04` is
+complete through PR `#1430` / squash merge
+`2b930cff5fe8c547f2f5d0bf7a4cebdd45e7fa9d`. The exact implementation head
+`befd5eeedc4f91ad46b8055e0b8fb8b5018bb997` changed only
+`pnpm-workspace.yaml` and `pnpm-lock.yaml`, selecting exact
+`protobufjs@7.6.5` while preserving unrelated resolutions. Dependabot alert
+`#154` is fixed. Focused, Z620 pre-push, exact-head CI/E2E/Pilot/Sonar/security
+and Codex review evidence passed. Runtime authority is consumed and automatic
+CD `30149452914` was contained before checkout, registry, image, provider or
+deploy.
+
+No replacement implementation slice is promoted. Broad stale grouped
+Dependabot PRs `#1427` and `#1422` remain separate intake and are not direct
+merge candidates; each needs current-main reconciliation and bounded authority.
+Expected resolver state is `blocked_requires_current_authority`,
+`activeSlice=null`.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
