@@ -2128,6 +2128,25 @@ and a separate exact runtime-authority receipt binds then-current main. Alert
 runtime AI, Eval v2 and all other successors remain separate, blocked or
 unpromoted.
 
+Rev 166 supersedes the Rev 165 active-selection sentence above. `IDA-SEC06` is
+complete through PR `#1439` / squash merge
+`18f2c130f19bd9985ad7f68a4f639f15ef8047eb`; its exact runtime authority and
+continuity receipts are consumed. The exact three-path implementation pins
+`@hono/node-server@2.0.10`, removes both `GHSA-frvp-7c67-39w9` and
+`GHSA-9mqv-5hh9-4cgg`, and fixes Dependabot alert `#158`.
+
+Focused proof, proportional exact-SHA Z620 FAST proof, exact-head PR checks,
+Sonar and Codex review passed. Copilot was unavailable and remains NON-PASS.
+Automatic CD run `30170136526` was cancelled with every job at `steps: []`.
+Exact-main CI `30170136553`, Sonar `30170136557`, CodeQL `30170136405` /
+`30170136442` and Secret Scan `30170136548` passed.
+
+No replacement implementation slice is promoted by this closeout. Expected
+resolver state is `blocked_requires_current_authority`, `activeSlice=null`.
+Alert `#157`, grouped PRs `#1422` / `#1432`, frozen `IDA-UI03a2`,
+UI/product and every architecture successor remain separate, blocked or
+unpromoted until a fresh current-authority decision.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
