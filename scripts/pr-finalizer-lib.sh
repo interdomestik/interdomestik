@@ -5,11 +5,14 @@ PR_TYPE_RUNTIME="runtime"
 pr_type="${PR_TYPE_RUNTIME}"
 pr_type_reason="unclassified"
 changed_files_path=""
+changed_files_root=""
 
 collect_changed_files() {
-  changed_files_path="$(mktemp)"
+  changed_files_root="$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/pr-finalizer.XXXXXX")"
+  changed_files_path="${changed_files_root}/changed-files.txt"
   if [[ -n "${GITHUB_EVENT_PATH:-}" && -f "${GITHUB_EVENT_PATH}" ]]; then
-    node scripts/ci/github-pr-files.mjs --event-path "${GITHUB_EVENT_PATH}" >"${changed_files_path}"
+    RUNNER_TEMP="${RUNNER_TEMP:-${changed_files_root}}" \
+      node scripts/ci/github-pr-files.mjs --event-path "${GITHUB_EVENT_PATH}" >"${changed_files_path}"
     return 0
   fi
   if command -v gh >/dev/null 2>&1; then
@@ -31,12 +34,17 @@ collect_changed_files() {
 classify_pr() {
   collect_changed_files
   local output should_run reason
-  output="$(
-    node scripts/ci/validation-surface-policy.mjs \
+  if ! output="$(
+    RUNNER_TEMP="${RUNNER_TEMP:-${changed_files_root}}" \
+      node scripts/ci/validation-surface-policy.mjs \
       --event-name pull_request \
       --event-path "${GITHUB_EVENT_PATH:-}" \
       --changed-files-path "${changed_files_path}"
-  )"
+  )"; then
+    rm -rf -- "${changed_files_root}"
+    return 1
+  fi
+  rm -rf -- "${changed_files_root}"
   should_run="$(echo "${output}" | awk -F= '$1 == "should_run" { print $2 }')"
   reason="$(echo "${output}" | awk -F= '$1 == "reason" { print $2 }')"
   if [[ "${should_run}" == "false" ]]; then

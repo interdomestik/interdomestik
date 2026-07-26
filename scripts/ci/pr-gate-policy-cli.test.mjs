@@ -34,7 +34,11 @@ function runCli({
     ],
     {
       encoding: 'utf8',
-      env: { ...process.env, PR_GATE_CHANGED_FILE_COUNT: String(actualCount) },
+      env: {
+        ...process.env,
+        PR_GATE_CHANGED_FILE_COUNT: String(actualCount),
+        RUNNER_TEMP: directory,
+      },
     }
   );
   rmSync(directory, { recursive: true, force: true });

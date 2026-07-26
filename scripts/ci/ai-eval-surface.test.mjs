@@ -116,12 +116,12 @@ test('AI eval surface CLI prints GitHub output fields', () => {
 
   writeFile(root, 'changed-files.txt', 'packages/domain-ai/src/telemetry.ts\nREADME.md\n');
 
-  const result = runScript('scripts/ci/ai-eval-surface.mjs', root, [
-    '--event-name',
-    'pull_request',
-    '--changed-files-path',
-    changedFilesPath,
-  ]);
+  const result = runScript(
+    'scripts/ci/ai-eval-surface.mjs',
+    root,
+    ['--event-name', 'pull_request', '--changed-files-path', changedFilesPath],
+    { env: { RUNNER_TEMP: root } }
+  );
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /^should_run=true$/m);

@@ -275,13 +275,10 @@ run_ci_audit() {
 }
 
 run_validation_surface_check() {
-  local changed_files_path
-  local output
-  changed_files_path="$(mktemp)"
+  local changed_files_path validation_surface_root output; validation_surface_root="$(mktemp -d)"; changed_files_path="${validation_surface_root}/changed-files.txt"
   changed_files_for_validation_surface >"${changed_files_path}"
-  output="$(node scripts/ci/validation-surface-policy.mjs --event-name pull_request --changed-files-path "${changed_files_path}")"
-  rm -f "${changed_files_path}"
-
+  output="$(RUNNER_TEMP="${validation_surface_root}" node scripts/ci/validation-surface-policy.mjs --event-name pull_request --changed-files-path "${changed_files_path}")" || { rm -rf -- "${validation_surface_root}"; return 1; }
+  rm -rf -- "${validation_surface_root}"
   printf '%s\n' "${output}"
   CI_LOCAL_VALIDATION_SHOULD_RUN="$(printf '%s\n' "${output}" | awk -F= '$1 == "should_run" {print $2}' | tail -n 1)"
   CI_LOCAL_VALIDATION_REASON="$(printf '%s\n' "${output}" | awk -F= '$1 == "reason" {print $2}' | tail -n 1)"

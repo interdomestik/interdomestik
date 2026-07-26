@@ -3,20 +3,25 @@
 import { existsSync, readFileSync } from 'node:fs';
 
 import { evaluatePrGatePolicy } from './pr-gate-policy-lib.mjs';
+import { trustedRunnerFile } from './trusted-runner-file.mjs';
 
 function valueFor(flag) {
   const index = process.argv.indexOf(flag);
   return index === -1 ? undefined : process.argv[index + 1];
 }
 
-function readJson(path) {
-  if (!path || !existsSync(path)) return {};
-  return JSON.parse(readFileSync(path, 'utf8'));
+function readJson(filePath) {
+  if (!filePath) return {};
+  const trustedPath = trustedRunnerFile(filePath);
+  if (!existsSync(trustedPath)) return {};
+  return JSON.parse(readFileSync(trustedPath, 'utf8'));
 }
 
-function readChangedFiles(path) {
-  if (!path || !existsSync(path)) return { files: [], exists: false };
-  const files = readFileSync(path, 'utf8')
+function readChangedFiles(filePath) {
+  if (!filePath) return { files: [], exists: false };
+  const trustedPath = trustedRunnerFile(filePath);
+  if (!existsSync(trustedPath)) return { files: [], exists: false };
+  const files = readFileSync(trustedPath, 'utf8')
     .split('\n')
     .map(value => value.trim())
     .filter(Boolean);

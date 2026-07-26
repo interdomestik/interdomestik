@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 
 import { evaluateAiEvalSurface } from './ai-eval-surface-lib.mjs';
+import { trustedRunnerFile } from './trusted-runner-file.mjs';
 
 function fail(message) {
   process.stderr.write(`ai-eval-surface failed: ${message}\n`);
@@ -40,9 +41,10 @@ if (!eventName) {
   fail('--event-name is required');
 }
 
+const trustedChangedFilesPath = changedFilesPath ? trustedRunnerFile(changedFilesPath) : '';
 const changedFiles =
-  changedFilesPath && fs.existsSync(changedFilesPath)
-    ? fs.readFileSync(changedFilesPath, 'utf8').split(/\r?\n/)
+  trustedChangedFilesPath && fs.existsSync(trustedChangedFilesPath)
+    ? fs.readFileSync(trustedChangedFilesPath, 'utf8').split(/\r?\n/)
     : [];
 
 const result = evaluateAiEvalSurface({ eventName, changedFiles });

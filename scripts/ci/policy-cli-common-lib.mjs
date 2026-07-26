@@ -2,6 +2,7 @@ import fs from 'node:fs';
 
 import { fetchRepositoryFileContent } from './github-pr-files-lib.mjs';
 import { readPackageJsonFixture } from './package-json-fixture-lib.mjs';
+import { trustedRunnerFile } from './trusted-runner-file.mjs';
 
 export function fail(commandName, message) {
   process.stderr.write(`${commandName} failed: ${message}\n`);
@@ -41,20 +42,24 @@ export function parsePolicyArgs(argv, commandName) {
 }
 
 export function readEvent(eventPath) {
-  if (!eventPath || !fs.existsSync(eventPath)) {
+  if (!eventPath) {
     return null;
   }
 
-  return JSON.parse(fs.readFileSync(eventPath, 'utf8'));
+  const trustedPath = trustedRunnerFile(eventPath);
+  if (!fs.existsSync(trustedPath)) return null;
+  return JSON.parse(fs.readFileSync(trustedPath, 'utf8'));
 }
 
 export function readChangedFiles(changedFilesPath) {
-  if (!changedFilesPath || !fs.existsSync(changedFilesPath)) {
+  if (!changedFilesPath) {
     return [];
   }
 
+  const trustedPath = trustedRunnerFile(changedFilesPath);
+  if (!fs.existsSync(trustedPath)) return [];
   return fs
-    .readFileSync(changedFilesPath, 'utf8')
+    .readFileSync(trustedPath, 'utf8')
     .split('\n')
     .map(line => line.trim())
     .filter(Boolean);

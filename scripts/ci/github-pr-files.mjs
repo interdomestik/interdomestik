@@ -3,6 +3,7 @@
 import { appendFileSync } from 'node:fs';
 
 import { fetchPullRequestFiles, readPullRequestContext } from './github-pr-files-lib.mjs';
+import { trustedRunnerFile } from './trusted-runner-file.mjs';
 
 function fail(message) {
   process.stderr.write(`github-pr-files failed: ${message}\n`);
@@ -40,7 +41,9 @@ function parseArgs(argv) {
   return parsed;
 }
 
-const { eventPath, repositoryFullName } = parseArgs(process.argv.slice(2));
+const parsed = parseArgs(process.argv.slice(2));
+const eventPath = trustedRunnerFile(parsed.eventPath);
+const { repositoryFullName } = parsed;
 const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
 
 let pullRequestContext;
@@ -64,7 +67,10 @@ try {
   const { files, fileCount } = evidence;
 
   if (process.env.GITHUB_OUTPUT) {
-    appendFileSync(process.env.GITHUB_OUTPUT, `changed_file_count=${fileCount}\n`);
+    appendFileSync(
+      trustedRunnerFile(process.env.GITHUB_OUTPUT),
+      `changed_file_count=${fileCount}\n`
+    );
   }
 
   if (files.length > 0) {

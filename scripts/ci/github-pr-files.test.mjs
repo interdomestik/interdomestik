@@ -124,7 +124,9 @@ test('CLI exits cleanly for non pull request events', () => {
     })
   );
 
-  const result = runScript('scripts/ci/github-pr-files.mjs', root, ['--event-path', eventPath]);
+  const result = runScript('scripts/ci/github-pr-files.mjs', root, ['--event-path', eventPath], {
+    env: { RUNNER_TEMP: root },
+  });
 
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.stdout, '');

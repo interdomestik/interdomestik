@@ -38,7 +38,13 @@ test('CLI resolves safe package.json changes from GitHub contents', async () => 
       '--changed-files-path',
       changedFilesPath,
     ],
-    { env: { GH_TOKEN: 'test-token', GITHUB_PACKAGE_JSON_FIXTURE_DIR: fixturesPath } }
+    {
+      env: {
+        GH_TOKEN: 'test-token',
+        GITHUB_PACKAGE_JSON_FIXTURE_DIR: fixturesPath,
+        RUNNER_TEMP: root,
+      },
+    }
   );
 
   assert.equal(result.status, 0, result.stderr);
