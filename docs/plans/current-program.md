@@ -1514,6 +1514,29 @@ fresh current-authority/design gate selects exactly one next governed action.
 `IDA-UI03a2-P0a1a1b`, P0a2, frozen P0 and parent UI03a2 remain blocked or
 unpromoted and gain no authority from this closeout.
 
+Rev 148a prospective current authority records the exact next sequential database
+candidate as `IDA-UI03a2-P0a1a1b`, governed by blocked design gate
+`IDA-DG19-A2a1a1b` in
+`docs/plans/2026-07-26-ida-dg19-a2a1a1b-ui03a2-p0a1a1b-migration-execution-kernel.md`.
+The 18,198-byte UTF-8 packet at SHA-256
+`b70b06411d5c124a04328ec7e6f8f83ee7059b4242224a6200633148f658bbed`
+is bound to clean main `bf350cdafaa1b4603f915404f71fc82b0652db81` / tree
+`6bcd4ffd73fc8ab6825aa43b526f40b0a30ce414` and proposes only the
+same-session migration execution kernel that follows completed P0a1a1a. It does
+not promote implementation. Same-hash Opus 4.8 architecture,
+contracts/security review passed R2 and found the packet safe for exact-hash human
+acceptance after R0's pre-lock-snapshot defect was corrected. Its non-blocking
+runtime-proof advisories require timeout rationale, real Postgres.js proof that no
+snapshot-taking statement occurs between `BEGIN` and the first locked catalog
+read, and P0a0b close-on-success coverage. The packet remains blocked pending
+Arben's explicit acceptance of the exact path/bytes/hash/future writer map and
+sole proposed slice, canonical merge, and a separate exact runtime-authority
+receipt. P0a2 retains the Docker/CI runtime-role fixture, PostgreSQL 15/16 matrix,
+workflow wiring and public runner. Frozen P0, parent UI03a2,
+`apps/web/src/proxy.ts`, canonical routing/auth/tenancy, product UI, billing and
+deployment remain forbidden. Until every blocker clears, the expected resolver
+state remains `blocked_requires_current_authority`, `activeSlice=null`.
+
 Rev 149 current authority promoted exactly one governed implementation goal,
 `IDA-UI03a3`, under accepted UI/UX gate `IDA-DG20` at
 `docs/plans/2026-07-20-ida-dg20-ui03a3-claim-draft-intake-design-gate.json`.
@@ -2339,6 +2362,41 @@ implementation slice is promoted. Expected resolver state is
 action is a fresh current-authority/design gate selecting exactly one product
 or architecture slice. Frozen `IDA-UI03a2`, UI/product and every architecture
 successor remain separate and unpromoted until that gate exists.
+
+Rev 173 supersedes the Rev 172 terminal no-promotion sentence. Arben's
+2026-07-26 instruction `resume, authorized` accepts exact gate
+`IDA-DG19-A2a1a1b` at
+`docs/plans/2026-07-26-ida-dg19-a2a1a1b-ui03a2-p0a1a1b-migration-execution-kernel.md`,
+exactly 18,198 UTF-8 bytes at SHA-256
+`b70b06411d5c124a04328ec7e6f8f83ee7059b4242224a6200633148f658bbed`,
+including its writer map, nine-path/1,150-line/2.5-day ceiling and sole
+prospective slice. Same-hash Opus 4.8 R2 architecture,
+contracts/security review passed and found the packet safe for exact-hash human
+acceptance. Canonical docs-only promotion PR `#1452` carries this accepted
+authority record.
+
+The next active governed implementation goal is exactly one canonical tracker
+slice: `IDA-UI03a2-P0a1a1b`, the Tier-3 same-session migration execution kernel
+promoted by Rev 173 and accepted gate `IDA-DG19-A2a1a1b`. Its
+future writer map is exactly four production files
+(`migration-execution-contracts.ts`, `migration-execution-bootstrap.ts`,
+`migration-execution-plan.ts`, `migration-execution-kernel.ts`), four
+test/support paths named in the gate, and deterministic
+`scripts/repo-size-budget.json` only if the unchanged staged-scope generator
+changes it. The first implementation action is the gate's failing
+`schema_absent` atomic-commit/rollback test before any production edit.
+
+This Tier-0 promotion keeps `runtime_authorized:false`. Implementation cannot
+begin until this exact gate PR merges, clean then-current main and the resolver
+select only `IDA-UI03a2-P0a1a1b`, AI OS is freshly observed, and a separate
+exact runtime-authority receipt binds that main SHA, branch, writer map,
+forbidden surfaces, first RED action and required gates. P0a2 retains the
+Docker/CI runtime-role fixture, PostgreSQL 15/16 execution matrix, privilege and
+default-ACL manifest, workflow wiring and public runner. Frozen P0, parent
+UI03a2, source/tests before runtime authority, any database/provider contact,
+`migrate.ts`, package/workflow/Docker wiring, canonical migrations/journal,
+proxy/routes/auth/session/tenancy/RLS, product UI, billing and deployment remain
+forbidden.
 
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
