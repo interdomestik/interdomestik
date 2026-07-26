@@ -112,13 +112,18 @@ Brain index, retrieval, ranking, MCP, hook or memory truth was changed.
    currently creates its changed-file artifact under an isolated temporary
    directory but does not pass that directory as `RUNNER_TEMP`; it must make
    that existing task-owned directory the explicit trusted-root handoff.
-9. CodeQL's official remediation guidance for complex paths is to normalize
-   with `path.resolve` or `fs.realpathSync`, then prove the result remains
-   under a safe root. A prefix check must use a path-separator boundary, not a
-   naive string prefix.
-10. Rev 169 closed the dependency-maintenance bridge and explicitly left these
+9. `pr-finalizer-lib.sh` and `ci-local-parity.sh` also create changed-file
+   artifacts with bare `mktemp` before calling the shared validation reader.
+   Each caller must create or reuse a private task-owned temporary directory,
+   place the artifact inside it, pass that exact directory as `RUNNER_TEMP`,
+   and clean only its own artifact/root.
+10. CodeQL's official remediation guidance for complex paths is to normalize
+    with `path.resolve` or `fs.realpathSync`, then prove the result remains
+    under a safe root. A prefix check must use a path-separator boundary, not a
+    naive string prefix.
+11. Rev 169 closed the dependency-maintenance bridge and explicitly left these
     three alerts unpromoted pending fresh current authority.
-11. Live GitHub REST reports zero open Dependabot alerts and zero open
+12. Live GitHub REST reports zero open Dependabot alerts and zero open
     secret-scanning alerts. These CodeQL findings are therefore the smallest
     concrete remaining security batch.
 
@@ -142,12 +147,14 @@ The implementation must provide one shared helper with these properties:
 9. never fall back to the current directory, repository root, filesystem root,
    `os.tmpdir()` or a caller-controlled parent as the trust root.
 
-All four path-consuming gate CLIs must:
+All five path-consuming gate CLIs must:
 
 - `github-pr-files.mjs` must validate its event input and `GITHUB_OUTPUT`;
 - `pr-gate-policy.mjs` must validate its event and changed-file inputs;
 - `validation-surface-policy.mjs` must receive validated event and
   changed-file inputs through `policy-cli-common-lib.mjs`;
+- `multi-agent-policy.mjs` must receive validated event and changed-file
+  inputs through `policy-cli-common-lib.mjs`;
 - `ai-eval-surface.mjs` must validate its changed-file input;
 - preserve existing CLI outputs, pagination, rename accounting, changed-file
   completeness, validation-surface and AI-eval selection, and fail-full policy;
@@ -160,7 +167,7 @@ No suppression, CodeQL dismissal, allowlist or inline query waiver is allowed.
 RED on the exact authority base is:
 
 - CodeQL alerts `#181`, `#182` and `#183` are open;
-- four gate CLIs reach filesystem APIs from externally supplied paths without
+- five gate CLIs reach filesystem APIs from externally supplied paths without
   one canonical containment boundary;
 - no shared `RUNNER_TEMP` containment helper exists;
 - no focused negative test covers traversal, prefix-collision, symlink escape,
@@ -183,7 +190,7 @@ GREEN for `IDA-SEC08a` must prove:
 
 ## Future Writer Map
 
-The future `IDA-SEC08a` writer map is exactly fourteen paths:
+The future `IDA-SEC08a` writer map is exactly seventeen paths:
 
 1. `scripts/ci/trusted-runner-file.mjs` — new shared containment helper
 2. `scripts/ci/trusted-runner-file.test.mjs` — new negative/positive contracts
@@ -198,9 +205,12 @@ The future `IDA-SEC08a` writer map is exactly fourteen paths:
 11. `scripts/ci/z620-validation-surface.mjs`
 12. `scripts/ci/multi-agent-policy.test.mjs`
 13. `scripts/ci/validation-surface-package-cli.test.mjs`
-14. `scripts/repo-size-budget.json` — deterministic synchronization only
+14. `scripts/pr-finalizer-lib.sh`
+15. `scripts/ci-local-parity.sh`
+16. `scripts/ci/trusted-root-callers.test.mjs` — new focused caller contracts
+17. `scripts/repo-size-budget.json` — deterministic synchronization only
 
-Any fifteenth path stops the slice and returns to current authority. In
+Any eighteenth path stops the slice and returns to current authority. In
 particular, the future writer must not edit:
 
 - `.github/actions/pr-gate-policy/action.yml` or any workflow;
@@ -243,7 +253,7 @@ operationally complete.
 After canonical gate merge and separate exact runtime authority, the sole
 `IDA-SEC08a` writer must run:
 
-1. exact fourteen-path scope audit and `git diff --check`;
+1. exact seventeen-path scope audit and `git diff --check`;
 2. focused RED tests proving the vulnerable boundary;
 3. focused GREEN:
    `node --test scripts/ci/trusted-runner-file.test.mjs
@@ -252,7 +262,8 @@ scripts/ci/pr-gate-policy-cli.test.mjs
 scripts/ci/validation-surface-policy.test.mjs
 scripts/ci/ai-eval-surface.test.mjs
 scripts/ci/multi-agent-policy.test.mjs
-scripts/ci/validation-surface-package-cli.test.mjs`;
+scripts/ci/validation-surface-package-cli.test.mjs
+scripts/ci/trusted-root-callers.test.mjs`;
 4. `pnpm test:ci:contracts`;
 5. `pnpm check:modularity-guard`;
 6. `pnpm repo:size:check`;
@@ -303,7 +314,7 @@ exact-main health, cleanup and tracker closeout.
 
 `IDA-SEC08a` is ready to merge only when:
 
-- the exact current head retains the fourteen-path writer map;
+- the exact current head retains the seventeen-path writer map;
 - focused containment and regression tests pass;
 - all three CodeQL alerts are closed or the exact head contains evidence that
   the next main scan will close them;
@@ -341,7 +352,7 @@ and off.
 
 Stop and return to current authority on:
 
-- any fifteenth implementation path;
+- any eighteenth implementation path;
 - any workflow change in `IDA-SEC08a` or any policy-semantic change;
 - any fallback trust root or path suppression;
 - any application/runtime integration, database, provider or deployment need;
