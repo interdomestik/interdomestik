@@ -69,7 +69,7 @@ export function trustedRunnerFile(
     ? path.resolve(candidatePath)
     : path.resolve(resolvedRoot, candidatePath);
   if (!resolvedCandidate.startsWith(`${resolvedRoot}${path.sep}`)) {
-    fail('runner file is outside the trusted root');
+    throw new Error('runner file is outside the trusted root');
   }
 
   const existingPath = nearestExistingPath(resolvedCandidate);
@@ -84,7 +84,7 @@ export function trustedRunnerFile(
   const canonicalCandidate = path.resolve(canonicalExisting, unresolvedSuffix);
 
   if (!canonicalCandidate.startsWith(`${canonicalRoot}${path.sep}`)) {
-    fail('runner file is outside the trusted root');
+    throw new Error('runner file is outside the trusted root');
   }
 
   rejectSymlinkComponents(resolvedRoot, resolvedCandidate);
