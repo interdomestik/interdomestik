@@ -2245,8 +2245,8 @@ remain separate and require a fresh current-authority decision.
 Rev 170 supersedes the Rev 169 terminal no-promotion sentence above. The next
 active governed implementation goal is exactly one canonical tracker slice:
 `IDA-SEC08a`, a prospective Tier-3 CI-security path-boundary foundation
-promoted by `IDA-SEC-DG08`. Gate R1 is exact at 16,876 bytes / SHA-256
-`a807e1e8cf2d61234985aa3f659a7230accb1953a5280cfe46b134107fd9f0c5`,
+promoted by `IDA-SEC-DG08`. Gate R1 is exact at 17,059 bytes / SHA-256
+`a343c4c1c2e578bb7998a1eb951a5ea1de736f7f969582507e59a8e3e32e6c13`,
 bound to clean main `7ce597ae2e47bfd6223ea2cce534e2477ae0c41c` / tree
 `6886418d657810ee5c293f90293b259c629c6479` and CodeQL high alerts
 `#181`, `#182` and `#183` (`js/path-injection`).
@@ -2265,11 +2265,12 @@ The future seventeen-path writer map is exactly the new
 `scripts/ci/trusted-root-callers.test.mjs`, plus deterministic-only
 `scripts/repo-size-budget.json`. Any eighteenth path stops. The implementation
 must normalize and canonicalize runner file paths, enforce real containment
-under `RUNNER_TEMP`, reject symlink/non-regular/out-of-root inputs across all
-five path-consuming gate CLIs, pass explicit private task-owned temporary roots
-from the Z620 validation lane, PR finalizer and local CI parity callers, and
-preserve existing fail-full, validation-surface, multi-agent and AI-eval
-semantics without workflow changes, suppression or CodeQL dismissal.
+under `RUNNER_TEMP`, reject symlink, hard-linked, non-regular and out-of-root
+inputs across all five path-consuming gate CLIs, pass explicit private
+task-owned temporary roots from the Z620 validation lane, PR finalizer and
+local CI parity callers, and preserve existing fail-full, validation-surface,
+multi-agent and AI-eval semantics without workflow changes, suppression or
+CodeQL dismissal.
 
 The complete operational remediation is a mandatory two-slice chain. After
 `IDA-SEC08a` merges, a separate fresh gate must promote `IDA-SEC08b` to replace

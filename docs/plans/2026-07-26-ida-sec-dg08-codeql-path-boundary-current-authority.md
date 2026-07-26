@@ -141,7 +141,8 @@ The implementation must provide one shared helper with these properties:
 4. canonicalize the existing candidate or its existing parent directory;
 5. prove the canonical candidate is either the root itself or starts with the
    canonical root plus `path.sep`;
-6. reject symbolic links and non-regular existing files;
+6. reject symbolic links, hard-linked files with `stat.nlink !== 1`, and
+   non-regular existing files;
 7. return only the canonical contained path to the caller;
 8. preserve fail-closed behavior when evidence is absent or invalid;
 9. never fall back to the current directory, repository root, filesystem root,
@@ -171,7 +172,7 @@ RED on the exact authority base is:
   one canonical containment boundary;
 - no shared `RUNNER_TEMP` containment helper exists;
 - no focused negative test covers traversal, prefix-collision, symlink escape,
-  missing safe root or non-regular-file rejection.
+  hard-link aliasing, missing safe root or non-regular-file rejection.
 
 GREEN for `IDA-SEC08a` must prove:
 
@@ -179,6 +180,8 @@ GREEN for `IDA-SEC08a` must prove:
 - traversal and absolute out-of-root candidates fail closed;
 - sibling prefix collisions such as `<root>-outside` fail closed;
 - symlink escapes fail closed;
+- existing hard-linked files fail closed even when one directory entry is
+  inside the trusted root;
 - missing `RUNNER_TEMP` fails closed when a filesystem path is required;
 - a missing optional changed-files artifact inside the trusted root continues
   to select the existing fail-full policy;
@@ -302,8 +305,9 @@ disposable task database, unique task port and task-owned evidence namespace.
   operations and insignificant relative to API and gate work.
 - Observability: concise path-boundary errors are sufficient; no new telemetry
   or product metric is warranted.
-- Abuse case: a caller supplies traversal, absolute external, prefix-collision
-  or symlink paths. Expected result is rejection before the filesystem sink.
+- Abuse case: a caller supplies traversal, absolute external, prefix-collision,
+  symlink or hard-linked paths. Expected result is rejection before the
+  filesystem sink.
 - Rollback: revert the exact slice. A rollback that reopens CodeQL alerts must
   not be merged as normal recovery.
 
