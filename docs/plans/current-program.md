@@ -2291,8 +2291,11 @@ complete through PR `#1448`, exact head
 `caa712b75920fe026324b65c1ef2176da2481790` and squash merge
 `2a5d9fa14334766e0668c7b160ea065a0c25ec19`. The exact seventeen-path
 source/caller/test foundation fixes CodeQL alerts `#181`, `#182` and `#183`
-without dismissal. Focused proof, Z620 FAST, current-head GitHub checks,
-Sonar, CodeQL, security and Codex review passed; Copilot remained unavailable
+without dismissal. Exact runtime-authority receipt
+`a959a2b0070ab4c2d64bd8fb652ab740d5ef49899bbcc4332b18f35df9874da7`
+bound implementation base `12e669de6022288182505073fff9148c7c3f963d`
+and is consumed. Focused proof, Z620 FAST, current-head GitHub checks, Sonar,
+CodeQL, security and Codex review passed; Copilot remained unavailable
 NON-PASS. CD `30213106659` was cancelled before checkout and exact-main health
 passed.
 

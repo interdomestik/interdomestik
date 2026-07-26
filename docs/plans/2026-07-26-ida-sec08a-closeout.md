@@ -16,8 +16,12 @@ CodeQL alerts `#181`, `#182` and `#183` transitioned to `fixed` at
 
 - Gate `IDA-SEC-DG08` R1: 17,059 UTF-8 bytes, SHA-256
   `a343c4c1c2e578bb7998a1eb951a5ea1de736f7f969582507e59a8e3e32e6c13`.
+- Runtime-authority receipt:
+  `Notes/decisions/2026-07-26-interdomestik-ida-sec08a-runtime-authority-receipt.md`,
+  8,691 UTF-8 bytes, SHA-256
+  `a959a2b0070ab4c2d64bd8fb652ab740d5ef49899bbcc4332b18f35df9874da7`.
 - Final implementation base:
-  `7ce597ae2e47bfd6223ea2cce534e2477ae0c41c`.
+  `12e669de6022288182505073fff9148c7c3f963d`.
 - Final implementation head:
   `caa712b75920fe026324b65c1ef2176da2481790`.
 - Squash-merge main SHA:
@@ -28,6 +32,14 @@ CodeQL alerts `#181`, `#182` and `#183` transitioned to `fixed` at
 The implementation changed exactly the seventeen paths authorized by
 `IDA-SEC-DG08`. It changed no workflow, routing, auth, tenancy, product,
 database, provider, deployment or release surface.
+
+The external receipt binds the exact implementation base above, gate PR
+`#1447`, final gate head `94bc35fe12a462486ab7d940a8ffb46660820969`,
+gate merge `12e669de6022288182505073fff9148c7c3f963d`, the complete seventeen-path
+writer map and task-isolated Z620 FAST authority. It explicitly keeps workflow
+dispatch/rerun, provider, alias/environment, deployment, production, release,
+product-database mutation and `IDA-SEC08b` authority false. The receipt is
+consumed by this closeout.
 
 ## Verification and review
 
