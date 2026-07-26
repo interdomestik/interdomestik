@@ -3,8 +3,8 @@ type: design-gate
 status: accepted_by_orchestrator
 project: interdomestik
 gate: IDA-SEC-DG08
-slice: IDA-SEC08
-revision: R0
+slice: IDA-SEC08a
+revision: R1
 date: 2026-07-26
 authority: arben-and-root-orchestrator
 ---
@@ -13,14 +13,23 @@ authority: arben-and-root-orchestrator
 
 ## Decision
 
-Promote exactly one security implementation slice: `IDA-SEC08`.
+Promote exactly one security implementation slice: `IDA-SEC08a`.
 
-`IDA-SEC08` closes CodeQL alerts `#181`, `#182` and `#183` by making the
-runner-owned file boundary explicit for the two CI policy CLIs that consume
-GitHub event, changed-file and output paths. The implementation must normalize
-each candidate path, resolve symlinks, prove containment under the canonical
-`RUNNER_TEMP` root, reject non-regular files and fail closed before reading or
-appending.
+`IDA-SEC08a` establishes the source-level path-boundary foundation for CodeQL
+alerts `#181`, `#182` and `#183` by making the runner-owned file boundary
+explicit for the two CI policy CLIs that consume GitHub event, changed-file and
+output paths. The implementation must normalize each candidate path, resolve
+symlinks, prove containment under the canonical `RUNNER_TEMP` root, reject
+non-regular files and fail closed before reading or appending.
+
+The complete operational remediation is a mandatory two-slice chain. After
+`IDA-SEC08a` merges, a fresh current-authority gate must promote
+`IDA-SEC08b` to update the five pinned workflow callers to the exact canonical
+merge SHA containing the new source boundary. `IDA-SEC08b` is not promoted by
+this gate and cannot begin until `IDA-SEC08a` is terminal. This split avoids an
+impossible self-reference to the final commit and avoids pinning mandatory
+gates to a transient intermediate commit that may not remain reachable after a
+squash merge.
 
 This docs-only gate authorizes no implementation. Repository implementation may
 begin only after this gate is canonical and a separate exact runtime-authority
@@ -43,8 +52,9 @@ receipt binds the then-current `main`.
   merge authority.
 
 The implementation escalates and stops if repository evidence requires a
-workflow YAML change, a third consumer, product runtime, database, provider,
-deployment or protected-surface change.
+workflow YAML change inside `IDA-SEC08a`, a third consumer, product runtime,
+database, provider, deployment or protected-surface change. Workflow pin
+activation belongs only to the mandatory successor `IDA-SEC08b`.
 
 ## Authority Base
 
@@ -101,7 +111,8 @@ Brain index, retrieval, ranking, MCP, hook or memory truth was changed.
    concrete remaining security batch.
 
 Frozen `IDA-UI03a2`, every product/UI slice and every architecture successor
-remain separate and unpromoted. `IDA-SEC08` must not absorb them.
+remain separate and unpromoted. `IDA-SEC08a` and its mandatory pin-activation
+successor must not absorb them.
 
 ## Security Contract
 
@@ -140,7 +151,7 @@ RED on the exact authority base is:
 - no focused negative test covers traversal, prefix-collision, symlink escape,
   missing safe root or non-regular-file rejection.
 
-GREEN must prove:
+GREEN for `IDA-SEC08a` must prove:
 
 - valid runner-owned event, changed-files and output files still work;
 - traversal and absolute out-of-root candidates fail closed;
@@ -151,11 +162,13 @@ GREEN must prove:
   to select the existing fail-full policy;
 - existing PR-file and PR-policy behavior remains unchanged;
 - CodeQL current-head analysis closes or supersedes alerts `#181`-`#183`
-  without dismissal or suppression.
+  without dismissal or suppression, while operational activation remains
+  incomplete until `IDA-SEC08b` pins all mandatory callers to the canonical
+  merged source.
 
 ## Future Writer Map
 
-The future `IDA-SEC08` writer map is exactly seven paths:
+The future `IDA-SEC08a` writer map is exactly seven paths:
 
 1. `scripts/ci/trusted-runner-file.mjs` — new shared containment helper
 2. `scripts/ci/trusted-runner-file.test.mjs` — new negative/positive contracts
@@ -176,10 +189,37 @@ particular, the future writer must not edit:
 - README, AGENTS, architecture docs, Brain/AI OS tooling or product UI;
 - preserved worktrees, stashes or Z620 evidence/state.
 
+## Mandatory Activation Successor
+
+After `IDA-SEC08a` is merged and exact-main health is proved, root must issue a
+fresh hash-bound current-authority decision for `IDA-SEC08b`. That decision
+must bind the exact canonical merge SHA containing the path-boundary helper and
+must promote only the workflow pin activation.
+
+The expected `IDA-SEC08b` writer map is exactly:
+
+1. `.github/workflows/ci.yml`
+2. `.github/workflows/e2e-pr.yml`
+3. `.github/workflows/pilot-gate.yml`
+4. `.github/workflows/pr-deterministic-backstops.yml`
+5. `.github/workflows/pr-finalizer.yml`
+6. `scripts/ci/pr-gate-pin-contracts.test.mjs`
+7. `scripts/ci/workflow-contracts.test.mjs`
+8. `scripts/ci/draft-gate-workflow-contracts.test.mjs`
+9. `scripts/repo-size-budget.json` — deterministic synchronization only
+
+The successor may replace only the existing
+`interdomestik/interdomestik/.github/actions/pr-gate-policy@...` commit with
+the exact canonical `IDA-SEC08a` merge SHA and update the three existing pin
+contracts to require the same SHA. Any tenth path or any workflow-semantic
+change stops. `IDA-SEC08b` must prove all five mandatory callers execute the
+new canonical source before the overall `IDA-SEC08` remediation can be called
+operationally complete.
+
 ## Required Implementation Proof
 
 After canonical gate merge and separate exact runtime authority, the sole
-writer must run:
+`IDA-SEC08a` writer must run:
 
 1. exact seven-path scope audit and `git diff --check`;
 2. focused RED tests proving the vulnerable boundary;
@@ -199,11 +239,10 @@ scripts/ci/pr-gate-policy-cli.test.mjs`;
     dependency/security and finalizer checks;
 12. current-head Codex review and zero unresolved actionable review threads.
 
-Because this is shared CI infrastructure, run one bounded Opus 4.8 senior
-review when available and one independent Gemini 3.1 Pro signal. A blocked
-route is recorded with exact evidence and does not become approval. Copilot is
-unavailable until its quota renews and must be recorded as NON-PASS, never as
-approval.
+Because this is shared CI infrastructure, current-head Codex review is
+mandatory. A blocked optional review route is recorded with exact evidence and
+does not become approval. Copilot is unavailable until its quota renews and
+must be recorded as NON-PASS, never as approval.
 
 No local full release lane, provider call or deploy is selected. Mac Docker
 remains off. If a mandatory repository gate needs Docker, database or browser
@@ -236,7 +275,7 @@ disposable task database, unique task port and task-owned evidence namespace.
 Root owns scope, current-head review, merge, automatic-CD containment,
 exact-main health, cleanup and tracker closeout.
 
-The implementation is ready to merge only when:
+`IDA-SEC08a` is ready to merge only when:
 
 - the exact current head retains the seven-path writer map;
 - focused containment and regression tests pass;
@@ -277,7 +316,7 @@ and off.
 Stop and return to current authority on:
 
 - any eighth implementation path;
-- any workflow or policy-semantic change;
+- any workflow change in `IDA-SEC08a` or any policy-semantic change;
 - any fallback trust root or path suppression;
 - any application/runtime integration, database, provider or deployment need;
 - any protected-surface or product/UI need;

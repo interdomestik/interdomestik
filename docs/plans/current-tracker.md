@@ -1488,9 +1488,9 @@ a fresh current-authority decision.
 
 Rev 170 supersedes the Rev 169 terminal no-promotion sentence. The next active
 governed implementation goal is exactly one canonical tracker slice:
-`IDA-SEC08`, a prospective Tier-3 CI-security hardening slice promoted by
-`IDA-SEC-DG08`. Gate R0 is exact at 12,507 bytes / SHA-256
-`4163575ffda50556482e1d80bfa75d673e47dcba72242128545ac32123ca3fe8`,
+`IDA-SEC08a`, a prospective Tier-3 CI-security path-boundary foundation
+promoted by `IDA-SEC-DG08`. Gate R1 is exact at 14,629 bytes / SHA-256
+`e500593165ce441593dc779802c85313c607f3c4230237675eefeab0b4b631a7`,
 bound to clean main `7ce597ae2e47bfd6223ea2cce534e2477ae0c41c` / tree
 `6886418d657810ee5c293f90293b259c629c6479` and CodeQL high alerts
 `#181`, `#182` and `#183` (`js/path-injection`).
@@ -1508,9 +1508,16 @@ prefix-collision, symlink, non-regular and out-of-root inputs, and preserve
 existing PR-policy outputs and fail-full behavior without workflow changes,
 suppression or CodeQL dismissal.
 
+The complete operational remediation is a mandatory two-slice chain. After
+`IDA-SEC08a` merges, a separate fresh gate must promote `IDA-SEC08b` to pin
+exactly five mandatory workflow callers and the three existing pin contracts
+to the canonical `IDA-SEC08a` merge SHA. `IDA-SEC08b` is not promoted now.
+This avoids both a circular self-pin and a transient intermediate commit trust
+anchor.
+
 This docs-only gate keeps runtime, workflow dispatch, provider,
 alias/environment mutation, deployment, production, release, product database
-and Z620 authority false. `IDA-SEC08` remains `blocked` until the gate is
+and Z620 authority false. `IDA-SEC08a` remains `blocked` until the gate is
 canonical and a separate exact runtime-authority receipt binds then-current
 main. Frozen `IDA-UI03a2`, UI/product and every architecture successor remain
 separate, blocked or unpromoted.
