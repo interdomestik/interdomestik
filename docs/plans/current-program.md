@@ -2179,6 +2179,32 @@ exact runtime-authority receipt binds then-current main. Grouped PRs `#1422` /
 UI/product, runtime AI, Eval v2 and all other successors remain separate,
 blocked or unpromoted.
 
+Rev 168 supersedes the Rev 167 active-selection sentence above. `IDA-SEC07` is
+complete through PR `#1442` / squash merge
+`10d59b279fec82e9b4e2c8f65eb2af415cd187b5`; its exact gate and R5 runtime
+authority are consumed. The exact three-path implementation selects
+`body-parser@2.3.0`, removes `GHSA-v422-hmwv-36x6` /
+`CVE-2026-12590` without suppression, and fixes Dependabot alert `#157`.
+
+Focused proof, exact-SHA Z620 FULL proof, exact-head GitHub checks, Sonar and
+Codex review passed. Copilot was unavailable and remains NON-PASS. Retained
+negative evidence covers the classified audit-invocation defect and the known
+Help Now watcher flake; no passing group was repeated. Automatic CD run
+`30177459000` failed during Docker Buildx after checkout, while registry login,
+metadata, image build and all staging/rollback/production/deploy jobs remained
+skipped. It is classified failed-contained before
+registry/image/provider/deploy. Exact-main CI `30177458997`, Sonar
+`30177459001`, CodeQL `30177458725` / `30177458749` and Secret Scan
+`30177459040` passed.
+
+No replacement implementation slice is promoted by this closeout. Expected
+resolver state is `blocked_requires_current_authority`, `activeSlice=null`.
+Grouped PRs `#1422` and `#1432` are terminally closed as superseded. Their live
+replacements `#1443` and `#1444` require fresh bounded current-main
+reconciliation, in that order and one at a time. Frozen `IDA-UI03a2`,
+UI/product and every architecture successor remain separate, blocked or
+unpromoted until a fresh current-authority decision.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
