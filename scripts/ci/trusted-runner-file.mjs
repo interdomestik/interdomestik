@@ -5,10 +5,6 @@ function fail(message) {
   throw new Error(message);
 }
 
-function isContained(root, candidate) {
-  return candidate === root || candidate.startsWith(`${root}${path.sep}`);
-}
-
 function nearestExistingPath(candidate) {
   let current = candidate;
 
@@ -24,19 +20,24 @@ function nearestExistingPath(candidate) {
 }
 
 function rejectSymlinkComponents(root, candidate) {
-  const relativePath = path.relative(root, candidate);
-  let current = root;
+  let current = candidate;
 
-  for (const segment of relativePath.split(path.sep).filter(Boolean)) {
-    current = path.join(current, segment);
+  while (current !== root) {
     try {
       if (fs.lstatSync(current).isSymbolicLink()) {
         fail('runner file symlinks are not allowed');
       }
     } catch (error) {
-      if (error && typeof error === 'object' && error.code === 'ENOENT') return;
-      throw error;
+      if (!(error && typeof error === 'object' && error.code === 'ENOENT')) {
+        throw error;
+      }
     }
+
+    const parent = path.dirname(current);
+    if (parent === current) {
+      fail('runner file is outside the trusted root');
+    }
+    current = parent;
   }
 }
 
@@ -49,12 +50,13 @@ export function trustedRunnerFile(
   }
 
   const resolvedRoot = path.resolve(runnerTemp);
+  if (resolvedRoot === path.parse(resolvedRoot).root) {
+    fail('trusted runner root is invalid');
+  }
+
   let canonicalRoot;
   try {
-    canonicalRoot = fs.realpathSync(resolvedRoot);
-    if (!fs.statSync(canonicalRoot).isDirectory()) {
-      fail('trusted runner root is invalid');
-    }
+    canonicalRoot = fs.realpathSync(`${resolvedRoot}${path.sep}.`);
   } catch {
     fail('trusted runner root is invalid');
   }
@@ -66,10 +68,10 @@ export function trustedRunnerFile(
   const resolvedCandidate = path.isAbsolute(candidatePath)
     ? path.resolve(candidatePath)
     : path.resolve(resolvedRoot, candidatePath);
-  if (!isContained(resolvedRoot, resolvedCandidate)) {
+  if (!resolvedCandidate.startsWith(`${resolvedRoot}${path.sep}`)) {
     fail('runner file is outside the trusted root');
   }
-  rejectSymlinkComponents(resolvedRoot, resolvedCandidate);
+
   const existingPath = nearestExistingPath(resolvedCandidate);
   const existingMetadata = fs.lstatSync(existingPath);
 
@@ -81,9 +83,11 @@ export function trustedRunnerFile(
   const unresolvedSuffix = path.relative(existingPath, resolvedCandidate);
   const canonicalCandidate = path.resolve(canonicalExisting, unresolvedSuffix);
 
-  if (!isContained(canonicalRoot, canonicalCandidate)) {
+  if (!canonicalCandidate.startsWith(`${canonicalRoot}${path.sep}`)) {
     fail('runner file is outside the trusted root');
   }
+
+  rejectSymlinkComponents(resolvedRoot, resolvedCandidate);
 
   if (existingPath === resolvedCandidate) {
     if (!existingMetadata.isFile()) {
