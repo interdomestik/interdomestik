@@ -1,9 +1,7 @@
 #!/usr/bin/env node
 
-import { existsSync, readFileSync } from 'node:fs';
-
 import { evaluatePrGatePolicy } from './pr-gate-policy-lib.mjs';
-import { trustedRunnerFile } from './trusted-runner-file.mjs';
+import { readTrustedRunnerFile } from './trusted-runner-file.mjs';
 
 function valueFor(flag) {
   const index = process.argv.indexOf(flag);
@@ -12,16 +10,26 @@ function valueFor(flag) {
 
 function readJson(filePath) {
   if (!filePath) return {};
-  const trustedPath = trustedRunnerFile(filePath);
-  if (!existsSync(trustedPath)) return {};
-  return JSON.parse(readFileSync(trustedPath, 'utf8'));
+  try {
+    return JSON.parse(readTrustedRunnerFile(filePath));
+  } catch (error) {
+    if (error && typeof error === 'object' && error.code === 'ENOENT') return {};
+    throw error;
+  }
 }
 
 function readChangedFiles(filePath) {
   if (!filePath) return { files: [], exists: false };
-  const trustedPath = trustedRunnerFile(filePath);
-  if (!existsSync(trustedPath)) return { files: [], exists: false };
-  const files = readFileSync(trustedPath, 'utf8')
+  let changedFiles;
+  try {
+    changedFiles = readTrustedRunnerFile(filePath);
+  } catch (error) {
+    if (error && typeof error === 'object' && error.code === 'ENOENT') {
+      return { files: [], exists: false };
+    }
+    throw error;
+  }
+  const files = changedFiles
     .split('\n')
     .map(value => value.trim())
     .filter(Boolean);

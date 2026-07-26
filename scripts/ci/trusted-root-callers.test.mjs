@@ -16,7 +16,7 @@ test('all untrusted-path policy CLIs use the shared trusted-file boundary', () =
 
   for (const cli of clis) {
     const script = source(cli);
-    assert.match(script, /trustedRunnerFile/);
+    assert.match(script, /(read|append)TrustedRunnerFile/);
     assert.match(script, /from '\.\/trusted-runner-file\.mjs'/);
   }
 });

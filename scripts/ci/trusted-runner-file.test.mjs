@@ -4,7 +4,11 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { trustedRunnerFile } from './trusted-runner-file.mjs';
+import {
+  appendTrustedRunnerFile,
+  readTrustedRunnerFile,
+  trustedRunnerFile,
+} from './trusted-runner-file.mjs';
 
 function tempRoot(prefix = 'trusted-runner-file-') {
   return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -93,4 +97,41 @@ test('rejects existing hard-linked and non-regular files', () => {
   assert.throws(() => trustedRunnerFile(directory, { runnerTemp: root }), {
     message: 'runner file must be regular',
   });
+});
+
+test('reads and appends through the validated descriptor', () => {
+  const root = tempRoot();
+  const file = path.join(root, 'runner.txt');
+  fs.writeFileSync(file, 'first');
+
+  assert.equal(readTrustedRunnerFile(file, { runnerTemp: root }), 'first');
+  appendTrustedRunnerFile(file, '-second', { runnerTemp: root });
+  assert.equal(fs.readFileSync(file, 'utf8'), 'first-second');
+});
+
+test('rejects an ancestor replaced after path validation', () => {
+  const root = tempRoot();
+  const outside = tempRoot('trusted-runner-outside-');
+  const directory = path.join(root, 'nested');
+  const movedDirectory = path.join(root, 'nested-safe');
+  const file = path.join(directory, 'event.json');
+  fs.mkdirSync(directory);
+  fs.writeFileSync(file, '{}');
+  fs.writeFileSync(path.join(outside, 'event.json'), '{"outside":true}');
+
+  const originalOpenSync = fs.openSync;
+  fs.openSync = function swapBeforeOpen(filePath, flags, mode) {
+    fs.renameSync(directory, movedDirectory);
+    fs.symlinkSync(outside, directory);
+    fs.openSync = originalOpenSync;
+    return originalOpenSync(filePath, flags, mode);
+  };
+
+  try {
+    assert.throws(() => readTrustedRunnerFile(file, { runnerTemp: root }), {
+      message: /runner file (?:symlinks are not allowed|is outside the trusted root)/,
+    });
+  } finally {
+    fs.openSync = originalOpenSync;
+  }
 });
