@@ -2205,6 +2205,43 @@ reconciliation, in that order and one at a time. Frozen `IDA-UI03a2`,
 UI/product and every architecture successor remain separate, blocked or
 unpromoted until a fresh current-authority decision.
 
+Rev 169 supersedes only the Rev 168 replacement-pending sentence above. The
+bounded existing-issue dependency bridge is terminal: grouped PRs `#1422` and
+`#1432` remain closed as superseded, and their current-main replacements
+`#1443` and `#1444` are merged.
+
+PR `#1443` merged approved head
+`deaa4f8600e0896d9afb75784161aa0a3547810d` as
+`acd9680463d97585e606a419df1cfeef0af3cb19` after exact 28-path development
+dependency reconciliation, including the effective PostCSS `8.5.23`
+alignment. Focused proof, current-head GitHub gates, Sonar and Codex review
+passed; CD `30188302706` was cancelled with every job at `steps: []`; and
+exact-main CI, Sonar, both CodeQL runs and Secret Scan passed.
+
+PR `#1444` merged approved head
+`59cf156ff954d7d0a115937fcdd2582cbc18bd49` as
+`2c8d4131be371174128d8635aae89331f5755bb5`, with an approved/merge tree of
+`37aaaeb3e9d9afd1516f3831b2e22357e91ad062`. Its exact nine-path production
+dependency reconciliation aligns the database Next peer floor with the sole
+`next@16.2.12` resolution and passed focused proof, 31 current-head checks,
+Sonar and Codex review; Copilot was unavailable and remains NON-PASS. CD
+`30189636128` was cancelled after checkout and a failed Docker Buildx setup,
+before registry login, image build, provider or deploy; every downstream job
+has `steps: []`. Exact-main CI `30189636118`, Sonar `30189636136`, CodeQL
+`30189635752` / `30189635819` and Secret Scan `30189636117` passed.
+
+Live GitHub REST now reports zero open Dependabot alerts and zero open
+secret-scanning alerts. CodeQL alerts `#181`, `#182` and `#183` remain open
+and are not promoted or waived by this closeout. Detached clean-tree
+repo-size synchronization/audit passes. A red local measurement caused by the
+preserved skip-worktree `.codex/config.toml` (+902 bytes) is local
+contamination and must not be converted into false canonical budget growth.
+
+No replacement implementation slice is promoted. Expected resolver state is
+`blocked_requires_current_authority`, `activeSlice=null`; the three CodeQL
+alerts, frozen `IDA-UI03a2`, UI/product and every architecture successor
+remain separate and require a fresh current-authority decision.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the

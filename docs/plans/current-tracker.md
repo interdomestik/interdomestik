@@ -1440,3 +1440,48 @@ replacements `#1443` and `#1444` require fresh bounded current-main
 reconciliation, in that order and one at a time. Frozen `IDA-UI03a2`,
 UI/product and every architecture successor remain separate, blocked or
 unpromoted until a fresh current-authority decision.
+
+Rev 169 supersedes only the Rev 168 replacement-pending sentence. The bounded
+existing-issue dependency bridge is terminal: stale grouped PRs `#1422` and
+`#1432` remain closed as superseded, while their current-main replacements
+`#1443` and `#1444` are merged.
+
+Development bundle PR `#1443` merged approved head
+`deaa4f8600e0896d9afb75784161aa0a3547810d` as
+`acd9680463d97585e606a419df1cfeef0af3cb19`. Its 28-path reconciliation
+preserved current-main intent, aligned the effective PostCSS override at
+`8.5.23`, and passed frozen install, focused security/contracts/size proof,
+current-head GitHub gates, Sonar and Codex review. Automatic CD run
+`30188302706` was cancelled with every job at `steps: []`; exact-main CI
+`30188302711`, Sonar `30188302713`, CodeQL `30188302469` /
+`30188302473` and Secret Scan `30188302716` passed.
+
+Production bundle PR `#1444` merged approved head
+`59cf156ff954d7d0a115937fcdd2582cbc18bd49` as
+`2c8d4131be371174128d8635aae89331f5755bb5`; merge and approved-head trees are
+identical at `37aaaeb3e9d9afd1516f3831b2e22357e91ad062`. The exact nine-path
+reconciliation aligns the database Next peer floor with the sole
+`next@16.2.12` resolution and passed focused proof, 31 current-head checks,
+Sonar and Codex review. Copilot was unavailable and remains NON-PASS.
+Automatic CD run `30189636128` lost the pre-checkout cancellation race:
+checkout completed and Docker Buildx failed, while registry login, metadata,
+image build and every staging/rollback/production/deploy step remained
+skipped; all seven downstream jobs have `steps: []`. It is classified
+failed-contained before registry/image/provider/deploy. Exact-main CI
+`30189636118`, Sonar `30189636136`, CodeQL `30189635752` /
+`30189635819` and Secret Scan `30189636117` passed.
+
+Live GitHub REST reports zero open Dependabot alerts and zero open
+secret-scanning alerts. CodeQL alerts `#181`, `#182` and `#183` remain open
+and require a separate fresh current-authority decision; this closeout neither
+waives nor promotes them. Detached clean-tree proof reports
+`scripts/repo-size-budget.json` synchronized and the repo-size audit passing.
+The preserved skip-worktree `.codex/config.toml` can make a local
+worktree-scoped measurement red by 902 bytes; that is local measurement
+contamination, not authority to inflate canonical budget metadata.
+
+No replacement implementation slice is promoted by this closeout. Expected
+resolver state remains `blocked_requires_current_authority`,
+`activeSlice=null`. The three CodeQL alerts, frozen `IDA-UI03a2`, UI/product
+and every architecture successor remain separate, blocked or unpromoted until
+a fresh current-authority decision.
