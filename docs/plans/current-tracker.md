@@ -1489,13 +1489,13 @@ a fresh current-authority decision.
 Rev 170 supersedes the Rev 169 terminal no-promotion sentence. The next active
 governed implementation goal is exactly one canonical tracker slice:
 `IDA-SEC08a`, a prospective Tier-3 CI-security path-boundary foundation
-promoted by `IDA-SEC-DG08`. Gate R1 is exact at 15,580 bytes / SHA-256
-`418733af0d481238bcbf436695b127611b4cdfbff4f88651553232462aaf5e30`,
+promoted by `IDA-SEC-DG08`. Gate R1 is exact at 16,212 bytes / SHA-256
+`48d1e46fae9e9f60f92cd07fe4b72471a7ebac98b5c226853ac50fe97b9a56af`,
 bound to clean main `7ce597ae2e47bfd6223ea2cce534e2477ae0c41c` / tree
 `6886418d657810ee5c293f90293b259c629c6479` and CodeQL high alerts
 `#181`, `#182` and `#183` (`js/path-injection`).
 
-The future eleven-path writer map is exactly:
+The future fourteen-path writer map is exactly:
 `scripts/ci/trusted-runner-file.mjs`,
 `scripts/ci/trusted-runner-file.test.mjs`,
 `scripts/ci/github-pr-files.mjs`,
@@ -1505,13 +1505,17 @@ The future eleven-path writer map is exactly:
 `scripts/ci/policy-cli-common-lib.mjs`,
 `scripts/ci/validation-surface-policy.test.mjs`,
 `scripts/ci/ai-eval-surface.mjs`,
-`scripts/ci/ai-eval-surface.test.mjs` and deterministic-only
-`scripts/repo-size-budget.json`. Any twelfth path stops. The implementation
+`scripts/ci/ai-eval-surface.test.mjs`,
+`scripts/ci/z620-validation-surface.mjs`,
+`scripts/ci/multi-agent-policy.test.mjs`,
+`scripts/ci/validation-surface-package-cli.test.mjs` and deterministic-only
+`scripts/repo-size-budget.json`. Any fifteenth path stops. The implementation
 must enforce canonical containment under `RUNNER_TEMP` across all four
-path-consuming gate CLIs, reject traversal, prefix-collision, symlink,
+path-consuming gate CLIs, pass the existing Z620 task-owned temporary directory
+as the explicit trusted root, reject traversal, prefix-collision, symlink,
 non-regular and out-of-root inputs, and preserve existing PR-policy,
-validation-surface and AI-eval outputs without workflow changes, suppression
-or CodeQL dismissal.
+validation-surface, multi-agent and AI-eval outputs without workflow changes,
+suppression or CodeQL dismissal.
 
 The complete operational remediation is a mandatory two-slice chain. After
 `IDA-SEC08a` merges, a separate fresh gate must promote `IDA-SEC08b` to pin

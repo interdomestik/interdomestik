@@ -107,13 +107,18 @@ Brain index, retrieval, ranking, MCP, hook or memory truth was changed.
    `policy-cli-common-lib.mjs`, while `ai-eval-surface.mjs` reads directly.
    Those consumers therefore need the same shared boundary even though the
    current three CodeQL alerts point only to the other two CLIs.
-8. CodeQL's official remediation guidance for complex paths is to normalize
+8. `multi-agent-policy.mjs` also consumes the shared policy reader, so its CLI
+   fixtures must provide the same trusted root. The local Z620 validation lane
+   currently creates its changed-file artifact under an isolated temporary
+   directory but does not pass that directory as `RUNNER_TEMP`; it must make
+   that existing task-owned directory the explicit trusted-root handoff.
+9. CodeQL's official remediation guidance for complex paths is to normalize
    with `path.resolve` or `fs.realpathSync`, then prove the result remains
    under a safe root. A prefix check must use a path-separator boundary, not a
    naive string prefix.
-9. Rev 169 closed the dependency-maintenance bridge and explicitly left these
-   three alerts unpromoted pending fresh current authority.
-10. Live GitHub REST reports zero open Dependabot alerts and zero open
+10. Rev 169 closed the dependency-maintenance bridge and explicitly left these
+    three alerts unpromoted pending fresh current authority.
+11. Live GitHub REST reports zero open Dependabot alerts and zero open
     secret-scanning alerts. These CodeQL findings are therefore the smallest
     concrete remaining security batch.
 
@@ -178,7 +183,7 @@ GREEN for `IDA-SEC08a` must prove:
 
 ## Future Writer Map
 
-The future `IDA-SEC08a` writer map is exactly eleven paths:
+The future `IDA-SEC08a` writer map is exactly fourteen paths:
 
 1. `scripts/ci/trusted-runner-file.mjs` — new shared containment helper
 2. `scripts/ci/trusted-runner-file.test.mjs` — new negative/positive contracts
@@ -190,9 +195,12 @@ The future `IDA-SEC08a` writer map is exactly eleven paths:
 8. `scripts/ci/validation-surface-policy.test.mjs`
 9. `scripts/ci/ai-eval-surface.mjs`
 10. `scripts/ci/ai-eval-surface.test.mjs`
-11. `scripts/repo-size-budget.json` — deterministic synchronization only
+11. `scripts/ci/z620-validation-surface.mjs`
+12. `scripts/ci/multi-agent-policy.test.mjs`
+13. `scripts/ci/validation-surface-package-cli.test.mjs`
+14. `scripts/repo-size-budget.json` — deterministic synchronization only
 
-Any twelfth path stops the slice and returns to current authority. In
+Any fifteenth path stops the slice and returns to current authority. In
 particular, the future writer must not edit:
 
 - `.github/actions/pr-gate-policy/action.yml` or any workflow;
@@ -235,14 +243,16 @@ operationally complete.
 After canonical gate merge and separate exact runtime authority, the sole
 `IDA-SEC08a` writer must run:
 
-1. exact eleven-path scope audit and `git diff --check`;
+1. exact fourteen-path scope audit and `git diff --check`;
 2. focused RED tests proving the vulnerable boundary;
 3. focused GREEN:
    `node --test scripts/ci/trusted-runner-file.test.mjs
 scripts/ci/github-pr-files.test.mjs
 scripts/ci/pr-gate-policy-cli.test.mjs
 scripts/ci/validation-surface-policy.test.mjs
-scripts/ci/ai-eval-surface.test.mjs`;
+scripts/ci/ai-eval-surface.test.mjs
+scripts/ci/multi-agent-policy.test.mjs
+scripts/ci/validation-surface-package-cli.test.mjs`;
 4. `pnpm test:ci:contracts`;
 5. `pnpm check:modularity-guard`;
 6. `pnpm repo:size:check`;
@@ -293,7 +303,7 @@ exact-main health, cleanup and tracker closeout.
 
 `IDA-SEC08a` is ready to merge only when:
 
-- the exact current head retains the eleven-path writer map;
+- the exact current head retains the fourteen-path writer map;
 - focused containment and regression tests pass;
 - all three CodeQL alerts are closed or the exact head contains evidence that
   the next main scan will close them;
@@ -331,7 +341,7 @@ and off.
 
 Stop and return to current authority on:
 
-- any twelfth implementation path;
+- any fifteenth implementation path;
 - any workflow change in `IDA-SEC08a` or any policy-semantic change;
 - any fallback trust root or path suppression;
 - any application/runtime integration, database, provider or deployment need;
