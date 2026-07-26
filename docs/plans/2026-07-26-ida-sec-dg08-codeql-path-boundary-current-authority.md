@@ -1,0 +1,287 @@
+---
+type: design-gate
+status: accepted_by_orchestrator
+project: interdomestik
+gate: IDA-SEC-DG08
+slice: IDA-SEC08
+revision: R0
+date: 2026-07-26
+authority: arben-and-root-orchestrator
+---
+
+# IDA-SEC-DG08 — CodeQL CI Path-Boundary Remediation
+
+## Decision
+
+Promote exactly one security implementation slice: `IDA-SEC08`.
+
+`IDA-SEC08` closes CodeQL alerts `#181`, `#182` and `#183` by making the
+runner-owned file boundary explicit for the two CI policy CLIs that consume
+GitHub event, changed-file and output paths. The implementation must normalize
+each candidate path, resolve symlinks, prove containment under the canonical
+`RUNNER_TEMP` root, reject non-regular files and fail closed before reading or
+appending.
+
+This docs-only gate authorizes no implementation. Repository implementation may
+begin only after this gate is canonical and a separate exact runtime-authority
+receipt binds the then-current `main`.
+
+## Classification
+
+- Gate class: current-authority/design-gate promotion.
+- Gate risk: Tier 0 because it changes only canonical plan/tracker evidence and
+  deterministic repository-size metadata.
+- Prospective implementation class: CI security hardening.
+- Prospective implementation risk: Tier 3 because the selected scripts decide
+  PR gate policy and write GitHub Actions outputs.
+- Product behavior: unchanged.
+- Routing, auth, tenancy, schema, RLS, billing, provider and deployment impact:
+  none.
+- Pre-push profile: `FAST` after focused local proof. The change has no product
+  runtime, database, build, browser or dependency-graph behavior. GitHub
+  current-head CI, E2E, Pilot, Sonar, CodeQL, security and finalizer remain
+  merge authority.
+
+The implementation escalates and stops if repository evidence requires a
+workflow YAML change, a third consumer, product runtime, database, provider,
+deployment or protected-surface change.
+
+## Authority Base
+
+- Repository:
+  `/Users/arbenlila/development/interdomestik-crystal-home`
+- Clean base and `origin/main`:
+  `7ce597ae2e47bfd6223ea2cce534e2477ae0c41c`
+- Base tree:
+  `6886418d657810ee5c293f90293b259c629c6479`
+- Gate branch:
+  `codex/ida-sec-dg08-codeql-path-boundary`
+- Upstream before branch creation: `origin/main`
+- Ahead/behind before branch creation: `0/0`
+- Resolver before gate: `blocked_requires_current_authority`
+- Resolver reason: `umbrella_without_concrete_promoted_slice`
+- Active slice before gate: `null`
+- AI OS observation:
+  `343676bb9a5c7385142f5efff7613593220339139ef71edbf24a1e434abf2884`
+- AI OS authority state before gate: `current`
+- AI OS runtime state before gate: `not_authorized`
+- Active-execution authority: `advisory_only`
+
+The Obsidian/Wiki dashboard was used only for orientation. AI OS supplied
+current-state, integrity and approval-hold context. Repository source, tests,
+current program/tracker, GitHub alert evidence and CodeQL's documented
+containment guidance are authority for this decision. Brain retrieval was
+stale and failed closed after detecting current-program/tracker changes; no
+Brain index, retrieval, ranking, MCP, hook or memory truth was changed.
+
+## Trigger Evidence
+
+1. GitHub CodeQL alerts `#181`, `#182` and `#183` are open on `main`.
+2. All three alerts use rule `js/path-injection`, severity `high`, with security
+   severity `7.5`.
+3. Alert `#181` points to `scripts/ci/github-pr-files.mjs:67`, where
+   `GITHUB_OUTPUT` reaches `appendFileSync`.
+4. Alerts `#182` and `#183` point to
+   `scripts/ci/pr-gate-policy.mjs:13-14`, where command-line file paths reach
+   `existsSync` and `readFileSync`.
+5. The composite action already creates the changed-files artifact under
+   `${RUNNER_TEMP}`. GitHub's event file and output command file are also
+   runner-owned temporary artifacts.
+6. Existing tests prove ordinary PR policy, incomplete evidence, rename
+   accounting, PR-file pagination and non-PR behavior, but do not prove
+   traversal, symlink or out-of-root rejection.
+7. CodeQL's official remediation guidance for complex paths is to normalize
+   with `path.resolve` or `fs.realpathSync`, then prove the result remains
+   under a safe root. A prefix check must use a path-separator boundary, not a
+   naive string prefix.
+8. Rev 169 closed the dependency-maintenance bridge and explicitly left these
+   three alerts unpromoted pending fresh current authority.
+9. Live GitHub REST reports zero open Dependabot alerts and zero open
+   secret-scanning alerts. These CodeQL findings are therefore the smallest
+   concrete remaining security batch.
+
+Frozen `IDA-UI03a2`, every product/UI slice and every architecture successor
+remain separate and unpromoted. `IDA-SEC08` must not absorb them.
+
+## Security Contract
+
+The implementation must provide one shared helper with these properties:
+
+1. require a non-empty `RUNNER_TEMP` safe root;
+2. canonicalize the root with `fs.realpathSync`;
+3. normalize the candidate with `path.resolve`;
+4. canonicalize the existing candidate or its existing parent directory;
+5. prove the canonical candidate is either the root itself or starts with the
+   canonical root plus `path.sep`;
+6. reject symbolic links and non-regular existing files;
+7. return only the canonical contained path to the caller;
+8. preserve fail-closed behavior when evidence is absent or invalid;
+9. never fall back to the current directory, repository root, filesystem root,
+   `os.tmpdir()` or a caller-controlled parent as the trust root.
+
+The two CLIs must:
+
+- validate `--event-path` before passing it to PR-event parsing;
+- validate `--changed-files-path` before existence or read checks;
+- validate `GITHUB_OUTPUT` before append;
+- preserve existing CLI outputs, pagination, rename accounting, changed-file
+  completeness and fail-full policy;
+- emit no path contents, secrets or event payloads in failures.
+
+No suppression, CodeQL dismissal, allowlist or inline query waiver is allowed.
+
+## RED → GREEN Proof
+
+RED on the exact authority base is:
+
+- CodeQL alerts `#181`, `#182` and `#183` are open;
+- both CLIs pass externally supplied paths directly to filesystem APIs;
+- no shared `RUNNER_TEMP` containment helper exists;
+- no focused negative test covers traversal, prefix-collision, symlink escape,
+  missing safe root or non-regular-file rejection.
+
+GREEN must prove:
+
+- valid runner-owned event, changed-files and output files still work;
+- traversal and absolute out-of-root candidates fail closed;
+- sibling prefix collisions such as `<root>-outside` fail closed;
+- symlink escapes fail closed;
+- missing `RUNNER_TEMP` fails closed when a filesystem path is required;
+- a missing optional changed-files artifact inside the trusted root continues
+  to select the existing fail-full policy;
+- existing PR-file and PR-policy behavior remains unchanged;
+- CodeQL current-head analysis closes or supersedes alerts `#181`-`#183`
+  without dismissal or suppression.
+
+## Future Writer Map
+
+The future `IDA-SEC08` writer map is exactly seven paths:
+
+1. `scripts/ci/trusted-runner-file.mjs` — new shared containment helper
+2. `scripts/ci/trusted-runner-file.test.mjs` — new negative/positive contracts
+3. `scripts/ci/github-pr-files.mjs`
+4. `scripts/ci/github-pr-files.test.mjs`
+5. `scripts/ci/pr-gate-policy.mjs`
+6. `scripts/ci/pr-gate-policy-cli.test.mjs`
+7. `scripts/repo-size-budget.json` — deterministic synchronization only
+
+Any eighth path stops the slice and returns to current authority. In
+particular, the future writer must not edit:
+
+- `.github/actions/pr-gate-policy/action.yml` or any workflow;
+- `scripts/ci/github-pr-files-lib.mjs` or policy evaluation semantics;
+- application, package, database, migration, RLS or product test source;
+- `apps/web/src/proxy.ts`, canonical routes, auth or tenancy;
+- provider, alias, environment, deployment, production or release surfaces;
+- README, AGENTS, architecture docs, Brain/AI OS tooling or product UI;
+- preserved worktrees, stashes or Z620 evidence/state.
+
+## Required Implementation Proof
+
+After canonical gate merge and separate exact runtime authority, the sole
+writer must run:
+
+1. exact seven-path scope audit and `git diff --check`;
+2. focused RED tests proving the vulnerable boundary;
+3. focused GREEN:
+   `node --test scripts/ci/trusted-runner-file.test.mjs
+scripts/ci/github-pr-files.test.mjs
+scripts/ci/pr-gate-policy-cli.test.mjs`;
+4. `pnpm test:ci:contracts`;
+5. `pnpm check:modularity-guard`;
+6. `pnpm repo:size:check`;
+7. `pnpm security:guard`;
+8. `pnpm slice:verify`;
+9. repository-mandatory `pnpm pr:verify` and `pnpm e2e:gate`;
+10. one exact-SHA proportional FAST pre-push proof on Z620 when the canonical
+    runner is available, using only task-owned evidence and no product DB;
+11. current-head GitHub CI, E2E, Pilot, Sonar, CodeQL, secret scan,
+    dependency/security and finalizer checks;
+12. current-head Codex review and zero unresolved actionable review threads.
+
+Because this is shared CI infrastructure, run one bounded Opus 4.8 senior
+review when available and one independent Gemini 3.1 Pro signal. A blocked
+route is recorded with exact evidence and does not become approval. Copilot is
+unavailable until its quota renews and must be recorded as NON-PASS, never as
+approval.
+
+No local full release lane, provider call or deploy is selected. Mac Docker
+remains off. If a mandatory repository gate needs Docker, database or browser
+resources, it must use the canonical task-isolated Z620 runner with a
+disposable task database, unique task port and task-owned evidence namespace.
+
+## Multi-Tenant, Privacy and Operations Assessment
+
+- Data ownership and tenancy: no product data is read or written.
+- Authorization: no product auth decision changes.
+- Routing/proxy: untouched.
+- Billing/entitlements: untouched.
+- Retention/deletion: runner-temporary files retain their existing lifecycle.
+- Privacy: the helper reduces the reachable filesystem surface and must not log
+  event or file contents.
+- Concurrency: each job keeps its existing runner-owned unique command files.
+- Resilience: invalid or missing paths fail closed; incomplete changed-file
+  evidence continues to force the full gate.
+- Performance: realpath/stat checks are constant bounded local filesystem
+  operations and insignificant relative to API and gate work.
+- Observability: concise path-boundary errors are sufficient; no new telemetry
+  or product metric is warranted.
+- Abuse case: a caller supplies traversal, absolute external, prefix-collision
+  or symlink paths. Expected result is rejection before the filesystem sink.
+- Rollback: revert the exact slice. A rollback that reopens CodeQL alerts must
+  not be merged as normal recovery.
+
+## Review and Merge
+
+Root owns scope, current-head review, merge, automatic-CD containment,
+exact-main health, cleanup and tracker closeout.
+
+The implementation is ready to merge only when:
+
+- the exact current head retains the seven-path writer map;
+- focused containment and regression tests pass;
+- all three CodeQL alerts are closed or the exact head contains evidence that
+  the next main scan will close them;
+- all current-head GitHub required checks are terminal green or explicitly
+  classified by current authority;
+- no current-head reviewer, Sonar, CodeQL, security or finalizer blocker
+  remains.
+
+Immediately after merge, root must identify and cancel only the exact automatic
+CD run before registry login, image build, provider contact or deploy.
+Cancellation is containment, not deployment authority. If cancellation loses
+that boundary, root records the exact failed-containment evidence and stops
+before any new slice.
+
+## Explicit Non-Authority
+
+```yaml
+runtime_authorized: false
+workflow_dispatch_authorized: false
+provider_contact_authorized: false
+alias_mutation_authorized: false
+environment_mutation_authorized: false
+deployment_authorized: false
+production_authorized: false
+release_authorized: false
+product_database_authorized: false
+z620_runner_or_cd_authorized: false
+```
+
+Z620 remains the sole primary local Docker/Supabase/PostgreSQL host but is
+local-only and untouched by this docs-only gate. Mac Docker remains retired
+and off.
+
+## Stop Conditions
+
+Stop and return to current authority on:
+
+- any eighth implementation path;
+- any workflow or policy-semantic change;
+- any fallback trust root or path suppression;
+- any application/runtime integration, database, provider or deployment need;
+- any protected-surface or product/UI need;
+- base drift before runtime authority;
+- failed containment or regression proof;
+- unresolved current-head Sonar, CodeQL, security, finalizer or reviewer
+  finding.

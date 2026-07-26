@@ -2242,6 +2242,32 @@ No replacement implementation slice is promoted. Expected resolver state is
 alerts, frozen `IDA-UI03a2`, UI/product and every architecture successor
 remain separate and require a fresh current-authority decision.
 
+Rev 170 supersedes the Rev 169 terminal no-promotion sentence above. The next
+active governed implementation goal is exactly one canonical tracker slice:
+`IDA-SEC08`, a prospective Tier-3 CI-security hardening slice promoted by
+`IDA-SEC-DG08`. Gate R0 is exact at 12,507 bytes / SHA-256
+`4163575ffda50556482e1d80bfa75d673e47dcba72242128545ac32123ca3fe8`,
+bound to clean main `7ce597ae2e47bfd6223ea2cce534e2477ae0c41c` / tree
+`6886418d657810ee5c293f90293b259c629c6479` and CodeQL high alerts
+`#181`, `#182` and `#183` (`js/path-injection`).
+
+The future seven-path writer map is exactly the new
+`scripts/ci/trusted-runner-file.mjs` helper and its test,
+`scripts/ci/github-pr-files.mjs` and its test,
+`scripts/ci/pr-gate-policy.mjs` and its CLI test, plus deterministic-only
+`scripts/repo-size-budget.json`. Any eighth path stops. The implementation
+must normalize and canonicalize runner file paths, enforce real containment
+under `RUNNER_TEMP`, reject symlink/non-regular/out-of-root inputs and preserve
+existing fail-full PR policy semantics without workflow changes, suppression
+or CodeQL dismissal.
+
+This docs-only gate keeps runtime, workflow dispatch, provider,
+alias/environment mutation, deployment, production, release, product database
+and Z620 authority false. `IDA-SEC08` remains `blocked` until the gate is
+canonical and a separate exact runtime-authority receipt binds then-current
+main. Frozen `IDA-UI03a2`, UI/product and every architecture successor remain
+separate, blocked or unpromoted.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
