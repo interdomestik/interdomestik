@@ -2372,7 +2372,8 @@ exactly 18,198 UTF-8 bytes at SHA-256
 including its writer map, nine-path/1,150-line/2.5-day ceiling and sole
 prospective slice. Same-hash Opus 4.8 R2 architecture,
 contracts/security review passed and found the packet safe for exact-hash human
-acceptance.
+acceptance. Canonical docs-only promotion PR `#1452` carries this accepted
+authority record.
 
 The next active governed implementation goal is exactly one canonical tracker
 slice: `IDA-UI03a2-P0a1a1b`, the Tier-3 same-session migration execution kernel
