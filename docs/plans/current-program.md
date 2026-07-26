@@ -2322,6 +2322,24 @@ canonical and a separate exact runtime-authority receipt binds then-current
 main. Frozen `IDA-UI03a2`, UI/product and every architecture successor remain
 separate, blocked or unpromoted.
 
+Rev 172 closeout supersedes the Rev 171 active-selection sentence.
+`IDA-SEC-DG08B` completed through PR `#1449` / squash merge `8b53a193…`; its
+sole promotion is consumed. `IDA-SEC08b` completed through PR `#1450`, exact
+head `11860cc916c5db97a4a81f6228e1095d29d8604a` and squash merge
+`e35f00c28a3c0167ed0366ec79de7b91e166522b`. The five mandatory PR workflows,
+three existing pin contracts and deterministic Z620 parity metadata now agree
+on canonical `IDA-SEC08a` merge SHA `2a5d9fa1…`. Focused proof, full contracts,
+exact-SHA Z620 FAST, exact-head GitHub checks, Sonar, security and Codex review
+passed; Copilot remained unavailable NON-PASS. CD `30217214379` was cancelled
+before checkout.
+
+This completes the CodeQL `#181`-`#183` remediation chain. No replacement
+implementation slice is promoted. Expected resolver state is
+`blocked_requires_current_authority`, `activeSlice=null`; the next valid
+action is a fresh current-authority/design gate selecting exactly one product
+or architecture slice. Frozen `IDA-UI03a2`, UI/product and every architecture
+successor remain separate and unpromoted until that gate exists.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
