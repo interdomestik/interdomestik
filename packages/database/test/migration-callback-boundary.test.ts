@@ -11,29 +11,10 @@ import { buildCanonicalMigrationCallbackPlan } from '../src/migration-callback-p
 import { readMigrationCallbackPlanState } from '../src/migration-callback-plan-capability';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
-const PRODUCTION = [
-  'migration-callback-plan-contracts.ts',
-  'migration-callback-plan-manifest.ts',
-  'migration-callback-source-verifier.ts',
-  'migration-callback-plan-builder.ts',
-  'migration-callback-plan-capability.ts',
-  'migration-callback-plan.ts',
-  'migration-ledger-contracts.ts',
-  'migration-ledger-prefix.ts',
-  'migration-ledger-catalog.ts',
-  'migration-ledger-inspection.ts',
-] as const;
-const TESTS = [
-  'migration-callback-plan.test.ts',
-  'migration-callback-source.test.ts',
-  'migration-callback-validation.test.ts',
-  'migration-callback-boundary.test.ts',
-  'migration-callback.support.ts',
-  'migration-ledger-prefix.test.ts',
-  'migration-ledger-inspection.test.ts',
-  'migration-ledger-inspection-faults.test.ts',
-  'migration-ledger-inspection.support.ts',
-] as const;
+// prettier-ignore
+const PRODUCTION = ['migration-callback-plan-contracts.ts', 'migration-callback-plan-manifest.ts', 'migration-callback-source-verifier.ts', 'migration-callback-plan-builder.ts', 'migration-callback-plan-capability.ts', 'migration-callback-plan.ts', 'migration-ledger-contracts.ts', 'migration-ledger-prefix.ts', 'migration-ledger-catalog.ts', 'migration-ledger-inspection.ts', 'migration-execution-contracts.ts', 'migration-execution-bootstrap.ts', 'migration-execution-plan.ts', 'migration-execution-kernel.ts'] as const;
+// prettier-ignore
+const TESTS = ['migration-callback-plan.test.ts', 'migration-callback-source.test.ts', 'migration-callback-validation.test.ts', 'migration-callback-boundary.test.ts', 'migration-callback.support.ts', 'migration-ledger-prefix.test.ts', 'migration-ledger-inspection.test.ts', 'migration-ledger-inspection-faults.test.ts', 'migration-ledger-inspection.support.ts', 'migration-execution-kernel.test.ts', 'migration-execution-faults.test.ts', 'migration-execution.support.ts'] as const;
 
 test('plan authority is private, redacted and rejects lookalikes', async () => {
   const corpus = await verifyCanonicalMigrationCorpus();
@@ -85,17 +66,21 @@ test('imports, consumers and package exports keep the no-runtime boundary closed
       true,
       ts.ScriptKind.TS
     );
-    if (path.includes('/src/migration-ledger-')) assert.doesNotMatch(contents, /\.unsafe\(/);
+    const privateSource = /\/src\/migration-(?:ledger|execution)-/.test(path);
+    if (privateSource && !path.endsWith('migration-execution-kernel.ts'))
+      assert.doesNotMatch(contents, /\.unsafe\(/);
+    if (path.endsWith('migration-execution-kernel.ts'))
+      assert.equal(contents.match(/\.unsafe\(/g)?.length, 1);
     const visit = (node: ts.Node): void => {
-      if (path.includes('/src/migration-ledger-') && ts.isTaggedTemplateExpression(node)) {
+      if (privateSource && ts.isTaggedTemplateExpression(node)) {
         const command = node.template.getText(source).slice(1, -1).trim();
-        assert.match(command, /^(?:BEGIN|SET LOCAL|SELECT|WITH|COMMIT|ROLLBACK)\b/);
+        assert.match(command, /^(?:BEGIN|SET LOCAL|SELECT|WITH|CREATE|COMMIT|ROLLBACK)\b/);
         if (ts.isTemplateExpression(node.template))
           assert.equal(node.template.templateSpans.length, 0);
       }
       if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
         const module = node.moduleSpecifier.text;
-        const testSupport = path.endsWith('migration-ledger-inspection.support.ts');
+        const testSupport = /migration-(?:ledger-inspection|execution)\.support\.ts$/.test(path);
         const permittedPostgres =
           module === 'postgres' && (node.importClause?.isTypeOnly || testSupport);
         assert.equal(
@@ -122,8 +107,10 @@ test('imports, consumers and package exports keep the no-runtime boundary closed
   }
   assert.deepEqual(unwrapConsumers, [
     join(ROOT, 'src', 'migration-ledger-inspection.ts'),
+    join(ROOT, 'src', 'migration-execution-plan.ts'),
     join(ROOT, 'test', 'migration-callback-boundary.test.ts'),
     join(ROOT, 'test', 'migration-ledger-inspection.support.ts'),
+    join(ROOT, 'test', 'migration-execution.support.ts'),
   ]);
   assert.deepEqual(corpusConsumers, [join(ROOT, 'src', 'migration-callback-plan.ts')]);
   assert.deepEqual(seamConsumers, [join(ROOT, 'test', 'migration-callback-plan.test.ts')]);
@@ -134,12 +121,12 @@ test('imports, consumers and package exports keep the no-runtime boundary closed
   const index = await readFile(join(ROOT, 'src', 'index.ts'), 'utf8');
   assert.equal(index.includes('migration-callback'), false);
   assert.equal(index.includes('migration-ledger'), false);
+  assert.equal(index.includes('migration-execution'), false);
 });
 
 test('all exact files retain their accepted physical ceilings', async () => {
-  const ceilings = [
-    125, 80, 149, 149, 125, 125, 110, 125, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149,
-  ];
+  // prettier-ignore
+  const ceilings = [125, 80, 149, 149, 125, 125, 110, 125, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149];
   const files = [...PRODUCTION, ...TESTS];
   for (let index = 0; index < files.length; index += 1) {
     const folder = index < PRODUCTION.length ? 'src' : 'test';
