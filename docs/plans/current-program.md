@@ -2245,20 +2245,24 @@ remain separate and require a fresh current-authority decision.
 Rev 170 supersedes the Rev 169 terminal no-promotion sentence above. The next
 active governed implementation goal is exactly one canonical tracker slice:
 `IDA-SEC08a`, a prospective Tier-3 CI-security path-boundary foundation
-promoted by `IDA-SEC-DG08`. Gate R1 is exact at 14,629 bytes / SHA-256
-`e500593165ce441593dc779802c85313c607f3c4230237675eefeab0b4b631a7`,
+promoted by `IDA-SEC-DG08`. Gate R1 is exact at 15,580 bytes / SHA-256
+`418733af0d481238bcbf436695b127611b4cdfbff4f88651553232462aaf5e30`,
 bound to clean main `7ce597ae2e47bfd6223ea2cce534e2477ae0c41c` / tree
 `6886418d657810ee5c293f90293b259c629c6479` and CodeQL high alerts
 `#181`, `#182` and `#183` (`js/path-injection`).
 
-The future seven-path writer map is exactly the new
+The future eleven-path writer map is exactly the new
 `scripts/ci/trusted-runner-file.mjs` helper and its test,
 `scripts/ci/github-pr-files.mjs` and its test,
-`scripts/ci/pr-gate-policy.mjs` and its CLI test, plus deterministic-only
-`scripts/repo-size-budget.json`. Any eighth path stops. The implementation
+`scripts/ci/pr-gate-policy.mjs` and its CLI test,
+`scripts/ci/policy-cli-common-lib.mjs`,
+`scripts/ci/validation-surface-policy.test.mjs`,
+`scripts/ci/ai-eval-surface.mjs` and its test, plus deterministic-only
+`scripts/repo-size-budget.json`. Any twelfth path stops. The implementation
 must normalize and canonicalize runner file paths, enforce real containment
-under `RUNNER_TEMP`, reject symlink/non-regular/out-of-root inputs and preserve
-existing fail-full PR policy semantics without workflow changes, suppression
+under `RUNNER_TEMP`, reject symlink/non-regular/out-of-root inputs across all
+four path-consuming gate CLIs, and preserve existing fail-full,
+validation-surface and AI-eval semantics without workflow changes, suppression
 or CodeQL dismissal.
 
 The complete operational remediation is a mandatory two-slice chain. After

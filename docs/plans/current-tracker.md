@@ -1489,24 +1489,29 @@ a fresh current-authority decision.
 Rev 170 supersedes the Rev 169 terminal no-promotion sentence. The next active
 governed implementation goal is exactly one canonical tracker slice:
 `IDA-SEC08a`, a prospective Tier-3 CI-security path-boundary foundation
-promoted by `IDA-SEC-DG08`. Gate R1 is exact at 14,629 bytes / SHA-256
-`e500593165ce441593dc779802c85313c607f3c4230237675eefeab0b4b631a7`,
+promoted by `IDA-SEC-DG08`. Gate R1 is exact at 15,580 bytes / SHA-256
+`418733af0d481238bcbf436695b127611b4cdfbff4f88651553232462aaf5e30`,
 bound to clean main `7ce597ae2e47bfd6223ea2cce534e2477ae0c41c` / tree
 `6886418d657810ee5c293f90293b259c629c6479` and CodeQL high alerts
 `#181`, `#182` and `#183` (`js/path-injection`).
 
-The future writer map is exactly:
+The future eleven-path writer map is exactly:
 `scripts/ci/trusted-runner-file.mjs`,
 `scripts/ci/trusted-runner-file.test.mjs`,
 `scripts/ci/github-pr-files.mjs`,
 `scripts/ci/github-pr-files.test.mjs`,
 `scripts/ci/pr-gate-policy.mjs`,
-`scripts/ci/pr-gate-policy-cli.test.mjs` and deterministic-only
-`scripts/repo-size-budget.json`. Any eighth path stops. The implementation
-must enforce canonical containment under `RUNNER_TEMP`, reject traversal,
-prefix-collision, symlink, non-regular and out-of-root inputs, and preserve
-existing PR-policy outputs and fail-full behavior without workflow changes,
-suppression or CodeQL dismissal.
+`scripts/ci/pr-gate-policy-cli.test.mjs`,
+`scripts/ci/policy-cli-common-lib.mjs`,
+`scripts/ci/validation-surface-policy.test.mjs`,
+`scripts/ci/ai-eval-surface.mjs`,
+`scripts/ci/ai-eval-surface.test.mjs` and deterministic-only
+`scripts/repo-size-budget.json`. Any twelfth path stops. The implementation
+must enforce canonical containment under `RUNNER_TEMP` across all four
+path-consuming gate CLIs, reject traversal, prefix-collision, symlink,
+non-regular and out-of-root inputs, and preserve existing PR-policy,
+validation-surface and AI-eval outputs without workflow changes, suppression
+or CodeQL dismissal.
 
 The complete operational remediation is a mandatory two-slice chain. After
 `IDA-SEC08a` merges, a separate fresh gate must promote `IDA-SEC08b` to pin

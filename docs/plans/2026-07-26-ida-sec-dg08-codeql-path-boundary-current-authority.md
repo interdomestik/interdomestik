@@ -17,10 +17,10 @@ Promote exactly one security implementation slice: `IDA-SEC08a`.
 
 `IDA-SEC08a` establishes the source-level path-boundary foundation for CodeQL
 alerts `#181`, `#182` and `#183` by making the runner-owned file boundary
-explicit for the two CI policy CLIs that consume GitHub event, changed-file and
-output paths. The implementation must normalize each candidate path, resolve
-symlinks, prove containment under the canonical `RUNNER_TEMP` root, reject
-non-regular files and fail closed before reading or appending.
+explicit for every CI gate CLI that consumes the shared GitHub event,
+changed-file or output paths. The implementation must normalize each candidate
+path, resolve symlinks, prove containment under the canonical `RUNNER_TEMP`
+root, reject non-regular files and fail closed before reading or appending.
 
 The complete operational remediation is a mandatory two-slice chain. After
 `IDA-SEC08a` merges, a fresh current-authority gate must promote
@@ -52,9 +52,10 @@ receipt binds the then-current `main`.
   merge authority.
 
 The implementation escalates and stops if repository evidence requires a
-workflow YAML change inside `IDA-SEC08a`, a third consumer, product runtime,
-database, provider, deployment or protected-surface change. Workflow pin
-activation belongs only to the mandatory successor `IDA-SEC08b`.
+workflow YAML change inside `IDA-SEC08a`, another path-consuming gate CLI,
+product runtime, database, provider, deployment or protected-surface change.
+Workflow pin activation belongs only to the mandatory successor
+`IDA-SEC08b`.
 
 ## Authority Base
 
@@ -100,15 +101,21 @@ Brain index, retrieval, ranking, MCP, hook or memory truth was changed.
 6. Existing tests prove ordinary PR policy, incomplete evidence, rename
    accounting, PR-file pagination and non-PR behavior, but do not prove
    traversal, symlink or out-of-root rejection.
-7. CodeQL's official remediation guidance for complex paths is to normalize
+7. The composite action passes the same event and changed-file paths to
+   `validation-surface-policy.mjs` and `ai-eval-surface.mjs`.
+   `validation-surface-policy.mjs` reads through
+   `policy-cli-common-lib.mjs`, while `ai-eval-surface.mjs` reads directly.
+   Those consumers therefore need the same shared boundary even though the
+   current three CodeQL alerts point only to the other two CLIs.
+8. CodeQL's official remediation guidance for complex paths is to normalize
    with `path.resolve` or `fs.realpathSync`, then prove the result remains
    under a safe root. A prefix check must use a path-separator boundary, not a
    naive string prefix.
-8. Rev 169 closed the dependency-maintenance bridge and explicitly left these
+9. Rev 169 closed the dependency-maintenance bridge and explicitly left these
    three alerts unpromoted pending fresh current authority.
-9. Live GitHub REST reports zero open Dependabot alerts and zero open
-   secret-scanning alerts. These CodeQL findings are therefore the smallest
-   concrete remaining security batch.
+10. Live GitHub REST reports zero open Dependabot alerts and zero open
+    secret-scanning alerts. These CodeQL findings are therefore the smallest
+    concrete remaining security batch.
 
 Frozen `IDA-UI03a2`, every product/UI slice and every architecture successor
 remain separate and unpromoted. `IDA-SEC08a` and its mandatory pin-activation
@@ -130,13 +137,15 @@ The implementation must provide one shared helper with these properties:
 9. never fall back to the current directory, repository root, filesystem root,
    `os.tmpdir()` or a caller-controlled parent as the trust root.
 
-The two CLIs must:
+All four path-consuming gate CLIs must:
 
-- validate `--event-path` before passing it to PR-event parsing;
-- validate `--changed-files-path` before existence or read checks;
-- validate `GITHUB_OUTPUT` before append;
+- `github-pr-files.mjs` must validate its event input and `GITHUB_OUTPUT`;
+- `pr-gate-policy.mjs` must validate its event and changed-file inputs;
+- `validation-surface-policy.mjs` must receive validated event and
+  changed-file inputs through `policy-cli-common-lib.mjs`;
+- `ai-eval-surface.mjs` must validate its changed-file input;
 - preserve existing CLI outputs, pagination, rename accounting, changed-file
-  completeness and fail-full policy;
+  completeness, validation-surface and AI-eval selection, and fail-full policy;
 - emit no path contents, secrets or event payloads in failures.
 
 No suppression, CodeQL dismissal, allowlist or inline query waiver is allowed.
@@ -146,7 +155,8 @@ No suppression, CodeQL dismissal, allowlist or inline query waiver is allowed.
 RED on the exact authority base is:
 
 - CodeQL alerts `#181`, `#182` and `#183` are open;
-- both CLIs pass externally supplied paths directly to filesystem APIs;
+- four gate CLIs reach filesystem APIs from externally supplied paths without
+  one canonical containment boundary;
 - no shared `RUNNER_TEMP` containment helper exists;
 - no focused negative test covers traversal, prefix-collision, symlink escape,
   missing safe root or non-regular-file rejection.
@@ -168,7 +178,7 @@ GREEN for `IDA-SEC08a` must prove:
 
 ## Future Writer Map
 
-The future `IDA-SEC08a` writer map is exactly seven paths:
+The future `IDA-SEC08a` writer map is exactly eleven paths:
 
 1. `scripts/ci/trusted-runner-file.mjs` — new shared containment helper
 2. `scripts/ci/trusted-runner-file.test.mjs` — new negative/positive contracts
@@ -176,9 +186,13 @@ The future `IDA-SEC08a` writer map is exactly seven paths:
 4. `scripts/ci/github-pr-files.test.mjs`
 5. `scripts/ci/pr-gate-policy.mjs`
 6. `scripts/ci/pr-gate-policy-cli.test.mjs`
-7. `scripts/repo-size-budget.json` — deterministic synchronization only
+7. `scripts/ci/policy-cli-common-lib.mjs`
+8. `scripts/ci/validation-surface-policy.test.mjs`
+9. `scripts/ci/ai-eval-surface.mjs`
+10. `scripts/ci/ai-eval-surface.test.mjs`
+11. `scripts/repo-size-budget.json` — deterministic synchronization only
 
-Any eighth path stops the slice and returns to current authority. In
+Any twelfth path stops the slice and returns to current authority. In
 particular, the future writer must not edit:
 
 - `.github/actions/pr-gate-policy/action.yml` or any workflow;
@@ -221,12 +235,14 @@ operationally complete.
 After canonical gate merge and separate exact runtime authority, the sole
 `IDA-SEC08a` writer must run:
 
-1. exact seven-path scope audit and `git diff --check`;
+1. exact eleven-path scope audit and `git diff --check`;
 2. focused RED tests proving the vulnerable boundary;
 3. focused GREEN:
    `node --test scripts/ci/trusted-runner-file.test.mjs
 scripts/ci/github-pr-files.test.mjs
-scripts/ci/pr-gate-policy-cli.test.mjs`;
+scripts/ci/pr-gate-policy-cli.test.mjs
+scripts/ci/validation-surface-policy.test.mjs
+scripts/ci/ai-eval-surface.test.mjs`;
 4. `pnpm test:ci:contracts`;
 5. `pnpm check:modularity-guard`;
 6. `pnpm repo:size:check`;
@@ -277,7 +293,7 @@ exact-main health, cleanup and tracker closeout.
 
 `IDA-SEC08a` is ready to merge only when:
 
-- the exact current head retains the seven-path writer map;
+- the exact current head retains the eleven-path writer map;
 - focused containment and regression tests pass;
 - all three CodeQL alerts are closed or the exact head contains evidence that
   the next main scan will close them;
@@ -315,7 +331,7 @@ and off.
 
 Stop and return to current authority on:
 
-- any eighth implementation path;
+- any twelfth implementation path;
 - any workflow change in `IDA-SEC08a` or any policy-semantic change;
 - any fallback trust root or path suppression;
 - any application/runtime integration, database, provider or deployment need;
