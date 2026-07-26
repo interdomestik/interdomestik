@@ -7,11 +7,11 @@
 `e35f00c28a3c0167ed0366ec79de7b91e166522b`, tree
 `1b9d748883eaca15f9519d495425616628b0b0c1`.
 
-The five mandatory PR workflows now invoke the shared
-`trigger-digest-verified-deploy` action from the canonical `IDA-SEC08a` merge
-SHA `2a5d9fa14334766e0668c7b160ea065a0c25ec19`. The three existing pin
-contracts require the same exact SHA. No trigger, permission, concurrency,
-job graph, input, output, draft policy or deployment behavior changed.
+The five mandatory PR workflows now invoke the shared `pr-gate-policy` action
+from the canonical `IDA-SEC08a` merge SHA
+`2a5d9fa14334766e0668c7b160ea065a0c25ec19`. The three existing pin contracts
+require the same exact SHA. No trigger, permission, concurrency, job graph,
+input, output, draft policy or deployment behavior changed.
 
 The implementation changed exactly nine paths: five workflows, three contract
 tests and deterministic Z620 workflow-parity metadata. The authorized
