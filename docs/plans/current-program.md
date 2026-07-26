@@ -2286,6 +2286,39 @@ canonical and a separate exact runtime-authority receipt binds then-current
 main. Frozen `IDA-UI03a2`, UI/product and every architecture successor remain
 separate, blocked or unpromoted.
 
+Rev 171 supersedes the Rev 170 active-selection sentence. `IDA-SEC08a` is
+complete through PR `#1448`, exact head
+`caa712b75920fe026324b65c1ef2176da2481790` and squash merge
+`2a5d9fa14334766e0668c7b160ea065a0c25ec19`. The exact seventeen-path
+source/caller/test foundation fixes CodeQL alerts `#181`, `#182` and `#183`
+without dismissal. Focused proof, Z620 FAST, current-head GitHub checks,
+Sonar, CodeQL, security and Codex review passed; Copilot remained unavailable
+NON-PASS. CD `30213106659` was cancelled before checkout and exact-main health
+passed.
+
+The next active governed implementation goal is exactly one canonical tracker
+slice: `IDA-SEC08b`, a prospective Tier-3 workflow trust-anchor activation
+promoted by `IDA-SEC-DG08B`. Gate R0 is exact at 5,304 bytes / SHA-256
+`df83485dd0064b9579e79f642d429fc3b99a617a1b087472f68950e3fd73ff11`,
+bound to clean main `2a5d9fa14334766e0668c7b160ea065a0c25ec19` / tree
+`82c10d0a702f9c01b3927f2275e11a39237dfe56`.
+
+Its future writer map is exactly five mandatory workflows, the three existing
+pin-contract test files and deterministic-only
+`scripts/repo-size-budget.json`, as enumerated in the gate. Any tenth path
+stops. The only semantic change allowed is replacing the existing
+`pr-gate-policy` action pin in all five workflows and three contracts with
+exact canonical SHA `2a5d9fa14334766e0668c7b160ea065a0c25ec19`;
+triggers, permissions, concurrency, job graphs, inputs, outputs and policy
+semantics remain unchanged.
+
+This docs-only gate keeps runtime, workflow dispatch/rerun, provider,
+alias/environment mutation, deployment, production, release, product database
+and Z620 authority false. `IDA-SEC08b` remains blocked until the gate is
+canonical and a separate exact runtime-authority receipt binds then-current
+main. Frozen `IDA-UI03a2`, UI/product and every architecture successor remain
+separate, blocked or unpromoted.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
