@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 
-import fs from 'node:fs';
-
 import { evaluateAiEvalSurface } from './ai-eval-surface-lib.mjs';
+import { readTrustedRunnerFile } from './trusted-runner-file.mjs';
 
 function fail(message) {
   process.stderr.write(`ai-eval-surface failed: ${message}\n`);
@@ -40,10 +39,14 @@ if (!eventName) {
   fail('--event-name is required');
 }
 
-const changedFiles =
-  changedFilesPath && fs.existsSync(changedFilesPath)
-    ? fs.readFileSync(changedFilesPath, 'utf8').split(/\r?\n/)
-    : [];
+let changedFiles = [];
+if (changedFilesPath) {
+  try {
+    changedFiles = readTrustedRunnerFile(changedFilesPath).split(/\r?\n/);
+  } catch (error) {
+    if (!(error && typeof error === 'object' && error.code === 'ENOENT')) throw error;
+  }
+}
 
 const result = evaluateAiEvalSurface({ eventName, changedFiles });
 

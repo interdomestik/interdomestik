@@ -34,7 +34,10 @@ try {
       '--changed-files-path',
       changedPath,
     ],
-    { encoding: 'utf8' }
+    {
+      encoding: 'utf8',
+      env: { ...process.env, RUNNER_TEMP: tempDir },
+    }
   );
   process.stdout.write(output);
 } finally {

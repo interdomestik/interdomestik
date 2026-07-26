@@ -1,11 +1,9 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
 import path from 'node:path';
-
+import test from 'node:test';
 import { evaluateMultiAgentPolicy, evaluatePackageJsonRisk } from './multi-agent-policy-lib.mjs';
 import { runScriptAsync } from './run-script-async-test-helper.mjs';
 import { createTempRoot, runScript, writeFile } from '../plan-test-helpers.mjs';
-
 test('manual dispatch defaults to full multi-agent hardening when changed files are unavailable', () => {
   assert.deepEqual(
     evaluateMultiAgentPolicy({
@@ -20,7 +18,6 @@ test('manual dispatch defaults to full multi-agent hardening when changed files 
     }
   );
 });
-
 test('manual dispatch skips full multi-agent hardening for docs-only branches when changed files are available', () => {
   assert.deepEqual(
     evaluateMultiAgentPolicy({
@@ -35,7 +32,6 @@ test('manual dispatch skips full multi-agent hardening for docs-only branches wh
     }
   );
 });
-
 test('manual dispatch still runs full multi-agent hardening for high-risk branches when changed files are available', () => {
   assert.deepEqual(
     evaluateMultiAgentPolicy({
@@ -50,7 +46,6 @@ test('manual dispatch still runs full multi-agent hardening for high-risk branch
     }
   );
 });
-
 test('explicit CI label forces full multi-agent hardening', () => {
   assert.deepEqual(
     evaluateMultiAgentPolicy({
@@ -65,7 +60,6 @@ test('explicit CI label forces full multi-agent hardening', () => {
     }
   );
 });
-
 test('high-risk multi-agent infrastructure changes trigger full multi-agent hardening', () => {
   assert.deepEqual(
     evaluateMultiAgentPolicy({
@@ -83,7 +77,6 @@ test('high-risk multi-agent infrastructure changes trigger full multi-agent hard
     }
   );
 });
-
 test('validation-orchestration scripts require an explicit label before full multi-agent hardening', () => {
   assert.deepEqual(
     evaluateMultiAgentPolicy({
@@ -345,6 +338,7 @@ test('CLI resolves safe package.json changes from GitHub file contents and skips
       env: {
         GH_TOKEN: 'test-token',
         GITHUB_PACKAGE_JSON_FIXTURE_DIR: fixturesPath,
+        RUNNER_TEMP: root,
       },
     }
   );
@@ -371,14 +365,19 @@ test('CLI prints GitHub output fields for risky PR changes', () => {
   );
   writeFile(root, 'changed-files.txt', 'scripts/multi-agent/orchestrator.sh\n');
 
-  const result = runScript('scripts/ci/multi-agent-policy.mjs', root, [
-    '--event-name',
-    'pull_request',
-    '--event-path',
-    eventPath,
-    '--changed-files-path',
-    changedFilesPath,
-  ]);
+  const result = runScript(
+    'scripts/ci/multi-agent-policy.mjs',
+    root,
+    [
+      '--event-name',
+      'pull_request',
+      '--event-path',
+      eventPath,
+      '--changed-files-path',
+      changedFilesPath,
+    ],
+    { env: { RUNNER_TEMP: root } }
+  );
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /^should_run=false$/m);

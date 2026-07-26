@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 
-import { appendFileSync } from 'node:fs';
-
-import { fetchPullRequestFiles, readPullRequestContext } from './github-pr-files-lib.mjs';
+import { fetchPullRequestFiles } from './github-pr-files-lib.mjs';
+import { appendTrustedRunnerFile, readTrustedRunnerFile } from './trusted-runner-file.mjs';
 
 function fail(message) {
   process.stderr.write(`github-pr-files failed: ${message}\n`);
@@ -40,13 +39,24 @@ function parseArgs(argv) {
   return parsed;
 }
 
-const { eventPath, repositoryFullName } = parseArgs(process.argv.slice(2));
+const parsed = parseArgs(process.argv.slice(2));
+const { repositoryFullName } = parsed;
 const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
 
 let pullRequestContext;
 
 try {
-  pullRequestContext = readPullRequestContext(eventPath, repositoryFullName);
+  const event = JSON.parse(readTrustedRunnerFile(parsed.eventPath));
+  const pullRequestNumber = event.pull_request?.number;
+  const resolvedRepository =
+    repositoryFullName.trim() || String(event.repository?.full_name || '').trim();
+
+  pullRequestContext = Number.isInteger(pullRequestNumber)
+    ? { repositoryFullName: resolvedRepository, pullRequestNumber }
+    : null;
+  if (pullRequestContext && !pullRequestContext.repositoryFullName.includes('/')) {
+    throw new TypeError('repository full name is required for pull request file discovery');
+  }
 } catch (error) {
   fail(error instanceof Error ? error.message : String(error));
 }
@@ -64,7 +74,7 @@ try {
   const { files, fileCount } = evidence;
 
   if (process.env.GITHUB_OUTPUT) {
-    appendFileSync(process.env.GITHUB_OUTPUT, `changed_file_count=${fileCount}\n`);
+    appendTrustedRunnerFile(process.env.GITHUB_OUTPUT, `changed_file_count=${fileCount}\n`);
   }
 
   if (files.length > 0) {

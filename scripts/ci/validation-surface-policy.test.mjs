@@ -119,12 +119,12 @@ test('CLI prints GitHub output fields for docs-only PRs', () => {
 
   writeFile(root, 'changed-files.txt', 'docs/plans/current-program.md\nREADME.md\n');
 
-  const result = runScript('scripts/ci/validation-surface-policy.mjs', root, [
-    '--event-name',
-    'pull_request',
-    '--changed-files-path',
-    changedFilesPath,
-  ]);
+  const result = runScript(
+    'scripts/ci/validation-surface-policy.mjs',
+    root,
+    ['--event-name', 'pull_request', '--changed-files-path', changedFilesPath],
+    { env: { RUNNER_TEMP: root } }
+  );
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /^should_run=false$/m);
