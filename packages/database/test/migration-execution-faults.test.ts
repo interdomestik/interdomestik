@@ -14,11 +14,10 @@ import { authenticCorpus } from './migration-callback.support';
 import { startMigrationExecutionHarness } from './migration-execution.support';
 
 let capability: MigrationCallbackPlanCapability;
+// prettier-ignore
 before(async () => {
-  const plan = await buildCanonicalMigrationCallbackPlan(await authenticCorpus());
-  assert.equal(plan.ok, true);
-  if (!plan.ok) throw new Error('CANONICAL_CALLBACK_PLAN_UNAVAILABLE');
-  capability = plan.capability;
+  const plan = await buildCanonicalMigrationCallbackPlan(await authenticCorpus()); assert.equal(plan.ok, true);
+  if (!plan.ok) throw new Error('CANONICAL_CALLBACK_PLAN_UNAVAILABLE'); capability = plan.capability;
 });
 function sqlTag(run: (query: string) => Promise<unknown>): MigrationExecutionSql {
   const sql = ((parts: TemplateStringsArray) => run(parts.join(' '))) as MigrationExecutionSql;
@@ -27,7 +26,6 @@ function sqlTag(run: (query: string) => Promise<unknown>): MigrationExecutionSql
 }
 const shown = (value: unknown) => `${String(value)} ${JSON.stringify(value)} ${inspect(value)}`;
 const failure = (code: MigrationExecutionErrorCode) => ({ ok: false, error: { code } });
-
 test('rejects forged capability and pre-abort without issuing SQL', async () => {
   let calls = 0;
   const sql = sqlTag(async () => {
@@ -42,7 +40,6 @@ test('rejects forged capability and pre-abort without issuing SQL', async () => 
   assert.deepEqual(aborted, failure('MIGRATION_EXECUTION_ABORTED'));
   assert.equal(calls, 0);
 });
-
 test('fails lock contention before BEGIN without an unlock attempt', async () => {
   const queries: string[] = [];
   const result = await executeMigrationKernel(
@@ -58,27 +55,30 @@ test('fails lock contention before BEGIN without an unlock attempt', async () =>
   assert.match(queries[0], /pg_try_advisory_lock/);
   assert.doesNotMatch(queries[0], /BEGIN/);
 });
-
-test('unlocks once when abort lands after successful lock acquisition', async () => {
-  const controller = new AbortController();
-  const queries: string[] = [];
-  const result = await executeMigrationKernel(
-    capability,
-    sqlTag(async query => {
-      queries.push(query);
-      if (query.includes('pg_try_advisory_lock')) {
-        controller.abort();
-        return [{ locked: true, pid: 42 }];
-      }
-      return [{ unlocked: true, pid: 42 }];
-    }),
-    controller.signal
-  );
-  assert.deepEqual(result, failure('MIGRATION_EXECUTION_ABORTED'));
-  assert.equal(queries.filter(query => query.includes('pg_advisory_unlock')).length, 1);
-  assert(!queries.some(query => query.includes('BEGIN')));
-});
-
+for (const abortAfter of ['lock', 'begin'] as const)
+  test(`aborts after ${abortAfter} with ordered transaction cleanup`, async () => {
+    const controller = new AbortController();
+    const queries: string[] = [];
+    const result = await executeMigrationKernel(
+      capability,
+      sqlTag(async query => {
+        queries.push(query);
+        if (query.includes('pg_try_advisory_lock')) {
+          if (abortAfter === 'lock') controller.abort();
+          return [{ locked: true, pid: 42 }];
+        }
+        if (query.includes('BEGIN') && abortAfter === 'begin') controller.abort();
+        return query.includes('pg_advisory_unlock') ? [{ unlocked: true, pid: 42 }] : [];
+      }),
+      controller.signal
+    );
+    assert.deepEqual(result, failure('MIGRATION_EXECUTION_ABORTED'));
+    const rollback = queries.findIndex(query => query.includes('ROLLBACK'));
+    const unlock = queries.findIndex(query => query.includes('pg_advisory_unlock'));
+    assert.equal(queries.filter(query => query.includes('pg_advisory_unlock')).length, 1);
+    if (abortAfter === 'lock') assert.equal(rollback, -1);
+    else assert(rollback >= 0 && unlock > rollback);
+  });
 test('BEGIN failure preserves its code unless fixed unlock cleanup fails', async () => {
   const run = async (unlockFails: boolean) => {
     const queries: string[] = [];

@@ -11,6 +11,7 @@ import { buildCanonicalMigrationCallbackPlan } from '../src/migration-callback-p
 import { readMigrationCallbackPlanState } from '../src/migration-callback-plan-capability';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
+const PRIVILEGED_SQL = /\/src\/migration-(?:ledger|execution)-/;
 // prettier-ignore
 const PRODUCTION = [
   'migration-callback-plan-contracts.ts', 'migration-callback-plan-manifest.ts',
@@ -57,7 +58,6 @@ test('plan authority is private, redacted and rejects lookalikes', async () => {
     assert.equal(readMigrationCallbackPlanState(forgery), null);
   assert.ok(Object.isFrozen(state.callbackItems));
 });
-
 test('imports, consumers, unsafe sink and package exports keep the boundary closed', async () => {
   const forbidden = [
     /^node:(?:child_process|http|https|net|tls|dns)$/,
@@ -71,8 +71,8 @@ test('imports, consumers, unsafe sink and package exports keep the boundary clos
     ['testMigrationCallbackPlanWithDependencies', []],
     ['issueMigrationCallbackPlanCapability', []],
   ]);
-  const drizzleImports: string[] = [];
-  const unsafeSinks: string[] = [];
+  const drizzleImports: string[] = [],
+    unsafeSinks: string[] = [];
   const paths = [
     ...PRODUCTION.map(name => join(ROOT, 'src', name)),
     ...TESTS.map(name => join(ROOT, 'test', name)),
@@ -83,6 +83,11 @@ test('imports, consumers, unsafe sink and package exports keep the boundary clos
     if (path.includes('/src/') && contents.includes('.unsafe(')) unsafeSinks.push(path);
     if (path.includes('/src/migration-ledger-')) assert.doesNotMatch(contents, /\.unsafe\(/);
     const visit = (node: ts.Node): void => {
+      if (PRIVILEGED_SQL.test(path) && ts.isTaggedTemplateExpression(node)) {
+        const command = node.template.getText(source).slice(1, -1).trim();
+        assert.match(command, /^(?:BEGIN|SET LOCAL|SELECT|WITH|CREATE|COMMIT|ROLLBACK)\b/);
+        assert.equal(ts.isNoSubstitutionTemplateLiteral(node.template), true);
+      }
       if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
         const module = node.moduleSpecifier.text;
         const fixture = /migration-(?:ledger-inspection|execution)\.support\.ts$/.test(path);

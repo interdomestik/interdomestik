@@ -127,8 +127,9 @@ export async function executeMigrationKernel(
     if (lock[0]?.locked !== true)
       throw new MigrationExecutionFault('MIGRATION_EXECUTION_LOCK_CONTENDED');
     abort(signal);
-    await checked(signal, () => sql`BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ WRITE`);
+    await sql`BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ WRITE`;
     began = true;
+    abort(signal);
     const transaction = await runTransaction(state, sql, signal, pid);
     abort(signal);
     await sql`COMMIT`;
