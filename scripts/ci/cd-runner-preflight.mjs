@@ -6,6 +6,7 @@ export const GIB = 1024 ** 3;
 const DISK_FLOOR = 30 * GIB;
 const MEMORY_FLOOR = 8 * GIB;
 const EXPECTED_RUNNER = 'interdomestik-z620-staging';
+const DOCKER_COMMAND = '/usr/bin/docker';
 export const EXPECTED_RUNNER_TEMP = '/home/arben/actions-runner-interdomestik-staging/_work/_temp';
 export const EXPECTED_DOCKER_ROOT = '/var/lib/docker';
 export const DEDICATED_PRUNE_ARGS = Object.freeze([
@@ -36,7 +37,7 @@ function availableMemoryBytes() {
 
 function dockerState() {
   try {
-    const output = execFileSync('docker', ['info', '--format', '{{json .DockerRootDir}}'], {
+    const output = execFileSync(DOCKER_COMMAND, ['info', '--format', '{{json .DockerRootDir}}'], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout: 15_000,
@@ -103,7 +104,7 @@ export function evaluateDedicatedBuilderInspection(output) {
 }
 
 export function verifyDedicatedBuilder(executor = execFileSync) {
-  const output = executor('docker', ['buildx', 'inspect', DEDICATED_BUILDER], {
+  const output = executor(DOCKER_COMMAND, ['buildx', 'inspect', DEDICATED_BUILDER], {
     encoding: 'utf8',
     shell: false,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -113,7 +114,7 @@ export function verifyDedicatedBuilder(executor = execFileSync) {
 }
 
 export function pruneDedicatedBuilder(executor = execFileSync) {
-  executor('docker', DEDICATED_PRUNE_ARGS, {
+  executor(DOCKER_COMMAND, DEDICATED_PRUNE_ARGS, {
     shell: false,
     stdio: 'inherit',
     timeout: 300_000,
@@ -121,19 +122,16 @@ export function pruneDedicatedBuilder(executor = execFileSync) {
   return { status: 'pruned', builder: DEDICATED_BUILDER, olderThan: '168h' };
 }
 
+function runMode(mode) {
+  if (mode === 'preflight') return evaluateRunnerPreflight(collectRunnerSnapshot());
+  if (mode === 'verify-builder') return verifyDedicatedBuilder();
+  if (mode === 'prune') return pruneDedicatedBuilder();
+  throw new Error(`unsupported Z620 staging runner operation: ${mode}`);
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
-    const mode = process.argv[2] || 'preflight';
-    const result =
-      mode === 'preflight'
-        ? evaluateRunnerPreflight(collectRunnerSnapshot())
-        : mode === 'verify-builder'
-          ? verifyDedicatedBuilder()
-          : mode === 'prune'
-            ? pruneDedicatedBuilder()
-            : (() => {
-                throw new Error(`unsupported Z620 staging runner operation: ${mode}`);
-              })();
+    const result = runMode(process.argv[2] || 'preflight');
     process.stdout.write(`${JSON.stringify(result)}\n`);
   } catch (error) {
     console.error(error?.message || 'Z620 staging runner preflight failed');

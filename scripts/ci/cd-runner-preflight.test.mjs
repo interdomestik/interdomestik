@@ -108,7 +108,7 @@ test('executes only the bounded dedicated-builder prune command', () => {
   const calls = [];
   pruneDedicatedBuilder((command, args, options) => calls.push({ command, args, options }));
   assert.equal(calls.length, 1);
-  assert.equal(calls[0].command, 'docker');
+  assert.equal(calls[0].command, '/usr/bin/docker');
   assert.deepEqual(calls[0].args, DEDICATED_PRUNE_ARGS);
   assert.equal(calls[0].options.shell, false);
   assert.equal(calls[0].options.timeout, 300_000);
@@ -125,7 +125,7 @@ test('inspects the exact dedicated builder without a shell', () => {
     ].join('\n');
   });
   assert.equal(calls.length, 1);
-  assert.equal(calls[0].command, 'docker');
+  assert.equal(calls[0].command, '/usr/bin/docker');
   assert.deepEqual(calls[0].args, ['buildx', 'inspect', 'interdomestik-cd-staging']);
   assert.equal(calls[0].options.shell, false);
   assert.equal(calls[0].options.timeout, 30_000);
