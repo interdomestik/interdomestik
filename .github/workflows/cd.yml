@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
       - run: node scripts/ci/cd-runner-preflight.mjs
-      - { name: Set up Docker Buildx, uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f, with: { driver: docker-container, name: interdomestik-cd-staging, keep-state: true, cleanup: false } } # v3
+      - { name: Set up Docker Buildx, uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f, with: { driver: docker-container, name: interdomestik-cd-staging, keep-state: true, cleanup: true } } # v3
       - { name: Verify dedicated Docker builder, run: 'node scripts/ci/cd-runner-preflight.mjs verify-builder' }
       - name: Log in to the Container registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
@@ -42,7 +42,6 @@ jobs:
           supabase-url: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
           supabase-anon-key: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           supabase-production-project-ref: ${{ vars.SUPABASE_PRODUCTION_PROJECT_REF || secrets.SUPABASE_PRODUCTION_PROJECT_REF }}
-      - { name: Prune stale dedicated build cache, if: '${{ always() && !cancelled() }}', run: 'node scripts/ci/cd-runner-preflight.mjs prune' }
   deploy-staging:
     needs: build-staging
     runs-on: [self-hosted, interdomestik-z620-staging]

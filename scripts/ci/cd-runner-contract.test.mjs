@@ -39,17 +39,11 @@ test('preflights every staging job directly after checkout and bounds heavy jobs
   const buildx = step(cd.jobs['build-staging'], 'Set up Docker Buildx');
   assert.equal(buildx.with.name, 'interdomestik-cd-staging');
   assert.equal(buildx.with['keep-state'], true);
-  assert.equal(buildx.with.cleanup, false);
+  assert.equal(buildx.with.cleanup, true);
   const verifyBuilder = step(cd.jobs['build-staging'], 'Verify dedicated Docker builder');
   assert.match(verifyBuilder.run, /cd-runner-preflight\.mjs verify-builder/u);
   assert.equal(stepIndex(cd.jobs['build-staging'], /Verify dedicated Docker builder/u), 3);
-  const pruneBuilder = step(cd.jobs['build-staging'], 'Prune stale dedicated build cache');
-  assert.match(pruneBuilder.if, /always\(\).*!\s*cancelled\(\)/u);
-  assert.match(pruneBuilder.run, /cd-runner-preflight\.mjs prune/u);
-  assert.equal(
-    stepIndex(cd.jobs['build-staging'], /Prune stale dedicated build cache/u),
-    cd.jobs['build-staging'].steps.length - 1
-  );
+  assert.equal(step(cd.jobs['build-staging'], 'Prune stale dedicated build cache'), undefined);
 });
 
 test('propagates alias movement independently and always reaches the local guard', () => {
