@@ -33,6 +33,41 @@ function acquisitionCode(error: unknown, signal: AbortSignal): MigrationLedgerEr
   if (sqlState(error) === '55P03') return 'MIGRATION_LEDGER_LOCK_TIMEOUT';
   return 'MIGRATION_LEDGER_TRANSACTION_FAILED';
 }
+async function cleanupAcquisition(
+  sql: LedgerSql,
+  transactionOpen: boolean,
+  acquired: boolean,
+  pid: number
+): Promise<boolean> {
+  let failed = false;
+  if (transactionOpen) {
+    try {
+      await sql`ROLLBACK`;
+    } catch {
+      failed = true;
+    }
+  }
+  if (acquired) {
+    try {
+      await releaseMigrationLedgerReadLock(sql, pid);
+    } catch {
+      failed = true;
+    }
+  }
+  return failed;
+}
+function throwAcquisitionFault(
+  error: unknown,
+  signal: AbortSignal,
+  lockStage: boolean,
+  cleanupFailed: boolean
+): never {
+  if (cleanupFailed) throw new MigrationLedgerFault('MIGRATION_LEDGER_CLEANUP_FAILED');
+  if (lockStage && sqlState(error) === '55P03') {
+    throw new MigrationLedgerFault('MIGRATION_LEDGER_LOCK_TIMEOUT');
+  }
+  throw new MigrationLedgerFault(acquisitionCode(error, signal));
+}
 
 export async function releaseMigrationLedgerReadLock(sql: LedgerSql, pid: number): Promise<void> {
   const rows = await sql<UnlockRow[]>`
@@ -75,22 +110,7 @@ export async function acquireMigrationLedgerReadLock(
     abort(signal);
     return Object.freeze({ pid });
   } catch (error) {
-    let cleanupFailed = false;
-    if (transactionOpen)
-      try {
-        await sql`ROLLBACK`;
-      } catch {
-        cleanupFailed = true;
-      }
-    if (acquired)
-      try {
-        await releaseMigrationLedgerReadLock(sql, pid);
-      } catch {
-        cleanupFailed = true;
-      }
-    if (cleanupFailed) throw new MigrationLedgerFault('MIGRATION_LEDGER_CLEANUP_FAILED');
-    if (lockStage && sqlState(error) === '55P03')
-      throw new MigrationLedgerFault('MIGRATION_LEDGER_LOCK_TIMEOUT');
-    throw new MigrationLedgerFault(acquisitionCode(error, signal));
+    const cleanupFailed = await cleanupAcquisition(sql, transactionOpen, acquired, pid);
+    throwAcquisitionFault(error, signal, lockStage, cleanupFailed);
   }
 }
