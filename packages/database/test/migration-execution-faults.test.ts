@@ -8,6 +8,7 @@ import { buildCanonicalMigrationCallbackPlan } from '../src/migration-callback-p
 import type { MigrationExecutionSql } from '../src/migration-execution-contracts';
 import { executeMigrationKernel } from '../src/migration-execution-kernel';
 import { authenticCorpus } from './migration-callback.support';
+import { startMigrationExecutionHarness } from './migration-execution.support';
 
 let capability: MigrationCallbackPlanCapability;
 before(async () => {
@@ -115,6 +116,26 @@ test('BEGIN failure preserves its code unless fixed unlock cleanup fails', async
     error: { code: 'MIGRATION_EXECUTION_CLEANUP_FAILED' },
   });
   assert.doesNotMatch(shown(cleanup.result), /BEGIN_SENTINEL|UNLOCK_SENTINEL/);
+});
+
+test('preserves cleanup failure when abort lands during post-commit unlock', async () => {
+  const harness = await startMigrationExecutionHarness();
+  try {
+    await harness.reset('table');
+    await harness.fill(93);
+    const controller = new AbortController();
+    const result = await harness.run({
+      signal: controller.signal,
+      failUnlock: true,
+      onUnlock: () => controller.abort(),
+    });
+    assert.deepEqual(result.execution, {
+      ok: false,
+      error: { code: 'MIGRATION_EXECUTION_CLEANUP_FAILED' },
+    });
+  } finally {
+    await harness.close();
+  }
 });
 
 test('binds the session lock to the accepted canonical preimage', () => {

@@ -10,6 +10,8 @@ import { pendingMigrationCallbacks, readAuthenticatedExecutionPlan, rebuildMigra
 type Stage = 'lock' | 'transaction' | 'public' | 'ledger' | 'bootstrap' | 'callback' | 'postcheck' | 'cleanup';
 type LockRow = Readonly<{ locked: boolean; pid: number }>;
 type UnlockRow = Readonly<{ unlocked: boolean; pid: number }>;
+type ExecutionState = ReturnType<typeof readAuthenticatedExecutionPlan>;
+type TransactionResult = Readonly<{ state: ExecutionState; applied: number }>;
 // prettier-ignore
 const abort = (signal: AbortSignal): void => { if (signal.aborted) throw new MigrationExecutionFault('MIGRATION_EXECUTION_ABORTED'); };
 // prettier-ignore
@@ -31,6 +33,7 @@ function ledgerCode(code: string): MigrationExecutionErrorCode {
 }
 // prettier-ignore
 function failureCode(error: unknown, stage: Stage, signal: AbortSignal): MigrationExecutionErrorCode {
+  if (stage === 'cleanup') return 'MIGRATION_EXECUTION_CLEANUP_FAILED';
   if (signal.aborted) return 'MIGRATION_EXECUTION_ABORTED';
   if (error instanceof MigrationExecutionFault) return error.code;
   if (error instanceof MigrationLedgerFault) return ledgerCode(error.code);
@@ -40,7 +43,6 @@ function failureCode(error: unknown, stage: Stage, signal: AbortSignal): Migrati
   if (stage === 'bootstrap') return 'MIGRATION_EXECUTION_BOOTSTRAP_FAILED';
   if (stage === 'callback') return 'MIGRATION_EXECUTION_CALLBACK_FAILED';
   if (stage === 'postcheck') return 'MIGRATION_EXECUTION_POSTCHECK_FAILED';
-  if (stage === 'cleanup') return 'MIGRATION_EXECUTION_CLEANUP_FAILED';
   return 'MIGRATION_EXECUTION_TRANSACTION_FAILED';
 }
 async function unlock(sql: MigrationExecutionSql, pid: number): Promise<void> {
@@ -50,6 +52,53 @@ async function unlock(sql: MigrationExecutionSql, pid: number): Promise<void> {
   `;
   // prettier-ignore
   if (rows.length !== 1 || rows[0]?.unlocked !== true || rows[0].pid !== pid) throw new MigrationExecutionFault('MIGRATION_EXECUTION_CLEANUP_FAILED');
+}
+// prettier-ignore
+async function runTransaction(state: ExecutionState, sql: MigrationExecutionSql, signal: AbortSignal, pid: number): Promise<TransactionResult> {
+  let stage: Stage = 'transaction';
+  try {
+    await checked(signal, () => sql`SET LOCAL search_path = pg_catalog, pg_temp`);
+    await checked(signal, () => sql`SET LOCAL lock_timeout = '10s'`);
+    await checked(signal, () => sql`SET LOCAL statement_timeout = '60s'`);
+    await checked(signal, () => sql`SET LOCAL idle_in_transaction_session_timeout = '30s'`);
+    stage = 'public';
+    await checked(signal, () => validatePublicSchema(sql, pid));
+    state = await rebuildMigrationExecutionPlan(state);
+    stage = 'ledger';
+    const catalog = await checked(signal, () => inspectMigrationLedgerCatalog(sql));
+    const rows = catalog === 'table_present' ? await checked(signal, () => readMigrationLedgerRows(sql)) : [];
+    const initial = validateMigrationLedgerPrefix(rows, state.migrations);
+    stage = 'bootstrap';
+    await checked(signal, () => bootstrapMigrationLedger(sql, catalog));
+    const callbacks = pendingMigrationCallbacks(state, initial.appliedMigrations);
+    if (callbacks.length > 0) {
+      stage = 'public';
+      await checked(signal, () => validatePublicSchema(sql, pid));
+      stage = 'callback';
+      await checked(signal, () => sql`SET LOCAL search_path = public, pg_temp`);
+    }
+    for (const item of callbacks) await checked(signal, () => sql.unsafe(item));
+    stage = 'postcheck';
+    await checked(signal, () => sql`SET LOCAL search_path = pg_catalog, pg_temp`);
+    if ((await checked(signal, () => inspectMigrationLedgerCatalog(sql))) !== 'table_present') throw new MigrationExecutionFault('MIGRATION_EXECUTION_POSTCHECK_FAILED');
+    const final = validateMigrationLedgerPrefix(await checked(signal, () => readMigrationLedgerRows(sql)), state.migrations);
+    if (final.ledgerState !== 'all_applied') throw new MigrationExecutionFault('MIGRATION_EXECUTION_POSTCHECK_FAILED');
+    await rebuildMigrationExecutionPlan(state);
+    const finalPid = await checked(signal, () => sql<{ pid: number }[]>`SELECT pg_catalog.pg_backend_pid()::int AS pid`);
+    if (finalPid.length !== 1 || finalPid[0]?.pid !== pid) throw new MigrationExecutionFault('MIGRATION_EXECUTION_SESSION_CHANGED');
+    return Object.freeze({ state, applied: initial.appliedMigrations });
+  } catch (error) {
+    throw new MigrationExecutionFault(failureCode(error, stage, signal));
+  }
+}
+// prettier-ignore
+async function cleanup(sql: MigrationExecutionSql, pid: number, rollback: boolean, release: boolean): Promise<boolean> {
+  let failed = false;
+  // prettier-ignore
+  if (rollback) try { await sql`ROLLBACK`; } catch { failed = true; }
+  // prettier-ignore
+  if (release) try { await unlock(sql, pid); } catch { failed = true; }
+  return failed;
 }
 export async function executeMigrationKernel(
   capability: unknown,
@@ -64,7 +113,7 @@ export async function executeMigrationKernel(
   }
   if (signal.aborted) return migrationExecutionFailure('MIGRATION_EXECUTION_ABORTED');
   // prettier-ignore
-  let acquired = false, began = false, committed = false, pid = 0, stage: Stage = 'lock';
+  let acquired = false, began = false, committed = false, cleanupStage = false, pid = 0;
   try {
     abort(signal);
     const lock = await sql<LockRow[]>`
@@ -78,71 +127,18 @@ export async function executeMigrationKernel(
     acquired = true;
     pid = lock[0].pid;
     abort(signal);
-    stage = 'transaction';
     await checked(signal, () => sql`BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ WRITE`);
     began = true;
-    await checked(signal, () => sql`SET LOCAL search_path = pg_catalog, pg_temp`);
-    await checked(signal, () => sql`SET LOCAL lock_timeout = '10s'`);
-    await checked(signal, () => sql`SET LOCAL statement_timeout = '60s'`);
-    await checked(signal, () => sql`SET LOCAL idle_in_transaction_session_timeout = '30s'`);
-    stage = 'public';
-    await checked(signal, () => validatePublicSchema(sql, pid));
-    state = await rebuildMigrationExecutionPlan(state);
-    stage = 'ledger';
-    const catalog = await checked(signal, () => inspectMigrationLedgerCatalog(sql));
-    const initialRows =
-      catalog === 'table_present' ? await checked(signal, () => readMigrationLedgerRows(sql)) : [];
-    const initial = validateMigrationLedgerPrefix(initialRows, state.migrations);
-    stage = 'bootstrap';
-    await checked(signal, () => bootstrapMigrationLedger(sql, catalog));
-    const callbacks = pendingMigrationCallbacks(state, initial.appliedMigrations);
-    if (callbacks.length > 0) {
-      stage = 'public';
-      await checked(signal, () => validatePublicSchema(sql, pid));
-      stage = 'callback';
-      await checked(signal, () => sql`SET LOCAL search_path = public, pg_temp`);
-    }
-    for (const item of callbacks) await checked(signal, () => sql.unsafe(item));
-    stage = 'postcheck';
-    await checked(signal, () => sql`SET LOCAL search_path = pg_catalog, pg_temp`);
-    if ((await checked(signal, () => inspectMigrationLedgerCatalog(sql))) !== 'table_present')
-      throw new MigrationExecutionFault('MIGRATION_EXECUTION_POSTCHECK_FAILED');
-    const final = validateMigrationLedgerPrefix(
-      await checked(signal, () => readMigrationLedgerRows(sql)),
-      state.migrations
-    );
-    if (final.ledgerState !== 'all_applied')
-      throw new MigrationExecutionFault('MIGRATION_EXECUTION_POSTCHECK_FAILED');
-    await rebuildMigrationExecutionPlan(state);
-    stage = 'transaction';
-    const finalPid = await checked(
-      signal,
-      () => sql<{ pid: number }[]>`
-      SELECT pg_catalog.pg_backend_pid()::int AS pid
-    `
-    );
-    if (finalPid.length !== 1 || finalPid[0]?.pid !== pid)
-      throw new MigrationExecutionFault('MIGRATION_EXECUTION_SESSION_CHANGED');
+    const transaction = await runTransaction(state, sql, signal, pid);
     abort(signal);
     await sql`COMMIT`;
-    [committed, began, stage, acquired] = [true, false, 'cleanup', false];
+    [committed, began, cleanupStage, acquired] = [true, false, true, false];
     await unlock(sql, pid);
-    return migrationExecutionSuccess(state.callbackPlanSha256, initial.appliedMigrations);
+    return migrationExecutionSuccess(transaction.state.callbackPlanSha256, transaction.applied);
   } catch (error) {
-    const code = failureCode(error, stage, signal);
-    let cleanupFailed = false;
-    if (began && !committed)
-      try {
-        await sql`ROLLBACK`;
-      } catch {
-        cleanupFailed = true;
-      }
-    if (acquired)
-      try {
-        await unlock(sql, pid);
-      } catch {
-        cleanupFailed = true;
-      }
+    // prettier-ignore
+    const code = cleanupStage ? 'MIGRATION_EXECUTION_CLEANUP_FAILED' : failureCode(error, 'transaction', signal);
+    const cleanupFailed = await cleanup(sql, pid, began && !committed, acquired);
     return migrationExecutionFailure(cleanupFailed ? 'MIGRATION_EXECUTION_CLEANUP_FAILED' : code);
   }
 }

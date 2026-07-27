@@ -16,8 +16,7 @@ type PublicProbe = Readonly<{
 
 function validPublic(row: PublicProbe | undefined, expectedPid: number): boolean {
   return Boolean(
-    row &&
-    row.pid === expectedPid &&
+    row?.pid === expectedPid &&
     row.public_count === 1 &&
     row.owner_ok === true &&
     row.acl_ok === true &&

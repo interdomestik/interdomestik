@@ -16,6 +16,7 @@ export type MigrationRunOptions = Readonly<{
   signal?: AbortSignal;
   failCallbackAt?: number;
   failUnlock?: boolean;
+  onUnlock?: () => void;
   finalPid?: number;
   taggedQueries?: string[];
 }>;
@@ -29,8 +30,10 @@ function instrument(
     apply(target, _this, args) {
       const query = (args[0] as TemplateStringsArray).join(' ');
       options.taggedQueries?.push(query);
-      if (options.failUnlock && query.includes('pg_advisory_unlock'))
-        throw new Error('INJECTED_UNLOCK_FAILURE');
+      if (query.includes('pg_advisory_unlock')) {
+        options.onUnlock?.();
+        if (options.failUnlock) throw new Error('INJECTED_UNLOCK_FAILURE');
+      }
       if (
         options.finalPid !== undefined &&
         query.trim() === 'SELECT pg_catalog.pg_backend_pid()::int AS pid'
