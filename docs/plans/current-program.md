@@ -2511,6 +2511,52 @@ resolved and no new blocker, high or medium issue. This reviewer evidence is
 advisory; exact-file acceptance, canonical merge, fresh authority proof and a
 replacement runtime receipt remain mandatory.
 
+Rev 176 supersedes only the Rev 175/R4 runtime-resume and test-allocation
+contract. R4 merged through docs-only PR `#1454` at canonical main
+`852946f5263abd0eed2b90e5b3a6f960c518e0e6`. Arben accepted its exact
+32,532-byte gate at SHA-256
+`53d0e07d5570423e8d9c97e075f34d434ab9eea58568a9851f3ee0a550f19073`
+and its 14,201-byte runtime receipt at SHA-256
+`af91848ff14ecf08b8587d4cd38d814e886b5ef35307f666518406faa1dc64b8`.
+The preserved implementation is clean at head
+`5f581610c2b7a5ea7661e1ed7c106a7c4c4bb39c`, tree
+`3f456230680786d2579da1bf843104512fb12814`, on the same existing branch,
+worktree and PR `#1455`. Its nine-path patch against R4 main is 52,877 bytes /
+SHA-256
+`5c6dd1b483b097aee83c50895616f1bc22fd1dafea8d82115f66a38105e11026`;
+preserved stash object `9fe4703b7bc36f70f279cc414c65878a4c7c209a` remains recovery
+evidence.
+
+Current-head review found two bounded blockers. PostgreSQL 15 rejects
+`pg_has_role(..., 'SET')`, while its `MEMBER` mode means the right to perform
+`SET ROLE`; PostgreSQL 16 separates the exact `SET` option. R5 requires one
+fixed qualified numeric `server_version_num >= 160000` branch: use `SET` on 16
+and later, `MEMBER` on 15, and fail closed on lookup/query/shape failure.
+Separately, the candidate replaced the structural
+`migration-callback-boundary.test.ts` assertions with integration cases. R5
+restores that file's exact private-reader/issuer/consumer, no-export, sole
+`.unsafe` and line-ceiling proofs, and moves the integration/collision cases
+into one new sub-150-line
+`migration-execution-boundary.test.ts`.
+
+R5 keeps all four production writers, the 1,150 changed-line and 2.5-day
+ceilings, one outcome, corrected R4 search paths, stale-object/collision
+invariant and every forbidden surface. It expands only test/support allocation
+from four to five and total paths from nine to ten, including optional
+deterministic size metadata. The mandatory first implementation mutation after
+a replacement receipt is a test-only version-aware SQL contract RED against
+unchanged `5f581610…`; production may change only after that receipt.
+Task-owned no-volume PostgreSQL 15 and 16 focused proof and current Z620 are
+authorized, but permanent matrix, Docker/compose, workflow/CI, package command,
+runtime-role fixture and public runner remain P0a2-only.
+
+Arben's 2026-07-27 instruction authorizes the canonical docs-only R5 PR and
+merge, then a replacement receipt bound to the preserved identity, the RED,
+bounded implementation, focused PG15/16 proof, Z620 gates and current-head
+review. It explicitly withholds implementation merge authority. The same
+existing implementation branch/worktree/PR is the sole writer and must stop at
+the final approval checkpoint after all exact-head evidence is green.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
