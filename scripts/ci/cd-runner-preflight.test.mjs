@@ -3,6 +3,8 @@ import test from 'node:test';
 
 import {
   DEDICATED_PRUNE_ARGS,
+  EXPECTED_DOCKER_ROOT,
+  EXPECTED_RUNNER_TEMP,
   GIB,
   evaluateDedicatedBuilderInspection,
   evaluateRunnerPreflight,
@@ -14,7 +16,8 @@ const ready = overrides => ({
   runnerName: 'interdomestik-z620-staging',
   runnerOs: 'Linux',
   runnerArch: 'X64',
-  dockerRoot: '/var/lib/docker',
+  runnerTemp: EXPECTED_RUNNER_TEMP,
+  dockerRoot: EXPECTED_DOCKER_ROOT,
   dockerAvailable: true,
   runnerTempFreeBytes: 31 * GIB,
   dockerRootFreeBytes: 31 * GIB,
@@ -47,6 +50,17 @@ test('enforces independent 30 GiB runner-temp and Docker-root floors', () => {
   assert.throws(
     () => evaluateRunnerPreflight(ready({ dockerRootFreeBytes: 30 * GIB - 1 })),
     /Docker data root.*30 GiB/u
+  );
+});
+
+test('rejects untrusted runner-temp and Docker-root paths', () => {
+  assert.throws(
+    () => evaluateRunnerPreflight(ready({ runnerTemp: '/tmp/attacker-controlled' })),
+    /RUNNER_TEMP.*exclusive runner path/u
+  );
+  assert.throws(
+    () => evaluateRunnerPreflight(ready({ dockerRoot: '/tmp/attacker-controlled' })),
+    /Docker data root.*exclusive runner path/u
   );
 });
 

@@ -6,6 +6,8 @@ export const GIB = 1024 ** 3;
 const DISK_FLOOR = 30 * GIB;
 const MEMORY_FLOOR = 8 * GIB;
 const EXPECTED_RUNNER = 'interdomestik-z620-staging';
+export const EXPECTED_RUNNER_TEMP = '/home/arben/actions-runner-interdomestik-staging/_work/_temp';
+export const EXPECTED_DOCKER_ROOT = '/var/lib/docker';
 export const DEDICATED_PRUNE_ARGS = Object.freeze([
   'buildx',
   '--builder',
@@ -17,9 +19,13 @@ export const DEDICATED_PRUNE_ARGS = Object.freeze([
 ]);
 const DEDICATED_BUILDER = 'interdomestik-cd-staging';
 
-function freeBytes(target) {
-  if (!target) return 0;
-  const stats = statfsSync(target, { bigint: true });
+function runnerTempFreeBytes() {
+  const stats = statfsSync(EXPECTED_RUNNER_TEMP, { bigint: true });
+  return Number(stats.bavail * stats.bsize);
+}
+
+function dockerRootFreeBytes() {
+  const stats = statfsSync(EXPECTED_DOCKER_ROOT, { bigint: true });
   return Number(stats.bavail * stats.bsize);
 }
 
@@ -47,8 +53,9 @@ export function collectRunnerSnapshot(env = process.env) {
     runnerName: env.RUNNER_NAME,
     runnerOs: env.RUNNER_OS,
     runnerArch: env.RUNNER_ARCH,
-    runnerTempFreeBytes: freeBytes(env.RUNNER_TEMP),
-    dockerRootFreeBytes: freeBytes(docker.dockerRoot),
+    runnerTemp: env.RUNNER_TEMP,
+    runnerTempFreeBytes: env.RUNNER_TEMP === EXPECTED_RUNNER_TEMP ? runnerTempFreeBytes() : 0,
+    dockerRootFreeBytes: docker.dockerRoot === EXPECTED_DOCKER_ROOT ? dockerRootFreeBytes() : 0,
     availableMemoryBytes: availableMemoryBytes(),
     ...docker,
   };
@@ -61,6 +68,10 @@ export function evaluateRunnerPreflight(snapshot) {
   if (snapshot.runnerOs !== 'Linux') failures.push('runner OS must be Linux');
   if (snapshot.runnerArch !== 'X64') failures.push('runner architecture must be X64');
   if (!snapshot.dockerAvailable) failures.push('Docker must be available');
+  if (snapshot.runnerTemp !== EXPECTED_RUNNER_TEMP)
+    failures.push('RUNNER_TEMP must use the exclusive runner path');
+  if (snapshot.dockerRoot !== EXPECTED_DOCKER_ROOT)
+    failures.push('Docker data root must use the exclusive runner path');
   if (snapshot.runnerTempFreeBytes < DISK_FLOOR)
     failures.push('RUNNER_TEMP must have at least 30 GiB free');
   if (snapshot.dockerRootFreeBytes < DISK_FLOOR)
