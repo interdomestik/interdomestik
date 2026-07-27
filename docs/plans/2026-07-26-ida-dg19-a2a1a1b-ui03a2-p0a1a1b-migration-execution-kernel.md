@@ -11,15 +11,16 @@ last_reviewed: 2026-07-27
 
 # IDA-DG19-A2a1a1b — Same-Session Migration Execution Kernel Gate
 
-> Status: R4 current-authority amendment in review. R3 merged through docs-only
-> PR `#1453`, and its replacement runtime receipt authorized one bounded resume,
-> but diff-scoped security review then confirmed that R3's explicit
-> `public, pg_catalog, pg_temp` callback path permits a stale `public` routine to
-> shadow a trusted catalog routine. The implementation task is archived and its
-> sole worktree is frozen. R3 runtime authority is superseded for resume purposes
-> until this exact R4 file is reviewed and explicitly accepted, the canonical
-> docs-only amendment merges, clean then-current main resolves only this slice,
-> AI OS is refreshed, and a new exact runtime-authority receipt is accepted.
+> Status: R5 preparation and canonical docs-only merge are user-authorized; R5
+> has not yet merged. R4 merged through docs-only PR `#1454` at main
+> `852946f5…`, and its exact
+> runtime receipt authorized one bounded resume in the preserved implementation
+> worktree. Current-head review then found one PostgreSQL-15 incompatibility and
+> one test-boundary regression. Implementation is frozen at clean head
+> `5f581610…` until R5 merges, clean then-current main resolves only this slice,
+> AI OS is refreshed, and a new exact runtime receipt binds the same branch,
+> worktree, head, patch and preserved stash. R5 changes no production writer,
+> outcome, line/time ceiling, public surface or implementation-merge authority.
 
 ## Decision
 
@@ -44,8 +45,9 @@ runner, any provider contact, or any application/product work.
 - Future implementation: Tier 3 because it would execute schema migrations,
   create administrative ledger objects when absent, hold an advisory lock, and
   depend on database ownership and ACL posture.
-- Current implementation authority: paused; the accepted R3 runtime receipt is
-  superseded for resume purposes by the confirmed stale-object collision below.
+- Current implementation authority: paused; the accepted R4 runtime receipt is
+  superseded for resume purposes by the two current-head findings recorded in
+  the R5 amendment below.
 - Current database/provider/deployment authority: false.
 
 ## Bound authority and evidence
@@ -166,6 +168,89 @@ R4 stops for a different authority decision.
   authority continuity, with no new blocker, high or medium finding.
 - Fable 5 is skipped because access is suspended/unverified. No second-signal
   model is required while the bounded fallback disposition is clean.
+
+### R5 compatibility and test-boundary amendment
+
+- R4 merged through docs-only PR `#1454` at canonical main
+  `852946f5263abd0eed2b90e5b3a6f960c518e0e6`. Arben accepted its exact
+  32,532-byte gate at SHA-256
+  `53d0e07d5570423e8d9c97e075f34d434ab9eea58568a9851f3ee0a550f19073`
+  and the 14,201-byte runtime receipt at SHA-256
+  `af91848ff14ecf08b8587d4cd38d814e886b5ef35307f666518406faa1dc64b8`.
+- The preserved implementation is clean at
+  `/Users/arbenlila/development/interdomestik-ida-ui03a2-p0a1a1b-migration-execution-kernel`,
+  branch `codex/ida-ui03a2-p0a1a1b-migration-execution-kernel`, head
+  `5f581610c2b7a5ea7661e1ed7c106a7c4c4bb39c`, tree
+  `3f456230680786d2579da1bf843104512fb12814`, and open PR `#1455`. Its
+  nine-path patch against R4 main is 52,877 bytes at SHA-256
+  `5c6dd1b483b097aee83c50895616f1bc22fd1dafea8d82115f66a38105e11026`.
+  Preserved stash object
+  `9fe4703b7bc36f70f279cc414c65878a4c7c209a` remains recovery evidence and
+  must not be dropped before terminal implementation merge or closeout.
+- Current-head Codex review thread `discussion_r3656804940` is binding P1 stop
+  evidence. PostgreSQL 15 accepts only `MEMBER` and `USAGE` for
+  `pg_catalog.pg_has_role`, while PostgreSQL 16 adds `SET`. The current fixed
+  `'SET'` probe therefore rejects every PostgreSQL-15 execution before the
+  callback transition even though the accepted preflight supports majors 15
+  and 16.
+- R5 requires one fixed version-aware expression inside the existing qualified
+  stale-object/role probe:
+
+  ```sql
+  CASE
+    WHEN pg_catalog.current_setting('server_version_num')::integer >= 160000
+      THEN pg_catalog.pg_has_role(role_oid, owner_oid, 'SET')
+    ELSE pg_catalog.pg_has_role(role_oid, owner_oid, 'MEMBER')
+  END
+  ```
+
+  On PostgreSQL 15, `MEMBER` means the right to perform `SET ROLE`; on
+  PostgreSQL 16 and later, `SET` is the exact separated option. The result is
+  used only as a fail-closed rejection predicate. Version lookup, cast, query or
+  result-shape failure rejects before callbacks. No version text is parsed, no
+  dynamic SQL or identifier is introduced, and no caller may provide a
+  version, role or privilege keyword.
+
+- Primary specification anchors are the PostgreSQL
+  [15 access-privilege inquiry functions](https://www.postgresql.org/docs/15/functions-info.html)
+  and
+  [16 access-privilege inquiry functions](https://www.postgresql.org/docs/16/functions-info.html).
+  PostgreSQL 15 defines `MEMBER` as direct or indirect membership carrying the
+  right to `SET ROLE`; PostgreSQL 16 distinguishes `MEMBER`, `USAGE` and
+  `SET`.
+- On PostgreSQL 16+, an inherit-only membership without the `SET` option is
+  intentionally excluded by this specific “can assume owner” probe. Its
+  effective schema privilege is still rejected by the separate non-owner
+  `CREATE` check, and any object it creates remains non-owner-owned and is
+  rejected by the stale-object inventory.
+- Current-head Codex review thread `discussion_r3656804943` is binding P2 stop
+  evidence. The candidate replaced
+  `packages/database/test/migration-callback-boundary.test.ts` with integration
+  cases, removing the accepted structural proof for exact private
+  readers/issuers and consumers, absent package/runtime exports, the sole
+  `.unsafe` sink and per-file ceilings.
+- R5 restores `migration-callback-boundary.test.ts` to that structural role,
+  updated for the four execution modules and the new integration-test path.
+  Existing PostgreSQL execution/collision cases move without semantic loss to
+  one new
+  `packages/database/test/migration-execution-boundary.test.ts`. This is a
+  test-allocation correction, not a production or outcome expansion.
+- Arben's 2026-07-27 instruction explicitly authorizes preparation and
+  canonical merge of docs-only R5, a replacement receipt bound to the preserved
+  identity, mandatory test-only RED, the compatibility fix, test split,
+  PostgreSQL 15/16 focused evidence, Z620 gates and current-head review. It
+  explicitly withholds implementation merge authority: final merge requires a
+  new human approval after all exact-head evidence is green.
+- That forward instruction authorizes the final reviewed R5 bytes and SHA-256
+  when, and only when, they preserve this exact scope. The docs PR records the
+  final bytes/hash before merge, and the replacement receipt rebinds them after
+  merge. Any substantive contract, writer-map, ceiling or authority change
+  invalidates the forward authorization and requires a new user decision.
+
+R5 supersedes only R4's version-difference stop and four-test/nine-path
+allocation. The corrected search-path contract, stale-object collision
+invariant, four production writers, 1,150 changed-line ceiling, 2.5-day ceiling,
+one outcome and every protected exclusion remain unchanged.
 
 The preserved branch `codex/ida-ui03a2-p0-implementation` is not reusable
 implementation authority. Its single commit `b658dcb…` is based on
@@ -297,7 +382,10 @@ administrative identities are outside the non-owner threat boundary and their
 compromise cannot be repaired by search-path ordering. The advisory lock
 coordinates cooperating migration workers only. Any ambiguous role membership,
 effective non-owner `CREATE` capability or catalog result fails closed before
-the callback transition.
+the callback transition. “Able to assume” is evaluated by the fixed R5
+version-aware contract: PostgreSQL 15 uses `pg_has_role(..., 'MEMBER')`, while
+PostgreSQL 16 and later use `pg_has_role(..., 'SET')`, selected only from
+qualified numeric `server_version_num`.
 
 ### Exact success summary
 
@@ -358,25 +446,29 @@ After a separate accepted runtime receipt only:
 4. `packages/database/src/migration-execution-kernel.ts` — one transaction,
    lock, validation, execution, post-validation, commit/rollback.
 
-### Test/support — maximum four
+### Test/support — maximum five
 
 5. `packages/database/test/migration-execution-kernel.test.ts` — positive
    schema-absent, table-absent, empty-prefix, partial-prefix and all-applied
-   PostgreSQL 16 cases.
+   cases.
 6. `packages/database/test/migration-execution-faults.test.ts` — abort, lock,
    callback, drift, catalog, ACL, session and cleanup failures.
 7. `packages/database/test/migration-execution.support.ts` — fresh no-volume
    disposable fixture and content-free removal receipt.
-8. `packages/database/test/migration-callback-boundary.test.ts` — exact new
-   private consumers, `.unsafe` sole-use boundary and line/file ceilings.
+8. `packages/database/test/migration-callback-boundary.test.ts` — restored
+   structural proof for exact private readers/issuers and consumers, absent
+   package/runtime exports, the sole `.unsafe` sink and line/file ceilings.
+9. `packages/database/test/migration-execution-boundary.test.ts` — moved
+   execution-path, stale-object/collision and version-aware PostgreSQL 15/16
+   boundary cases.
 
 ### Deterministic only
 
-9. `scripts/repo-size-budget.json`, only when changed by the unchanged
-   repository-size sync generator after all intended paths are staged.
+10. `scripts/repo-size-budget.json`, only when changed by the unchanged
+    repository-size sync generator after all intended paths are staged.
 
-Nine paths is the absolute ceiling. Any fifth production/config path, fifth
-test/support path, tenth total path, `migrate.ts`, `package.json`, package
+Ten paths is the absolute ceiling. Any fifth production/config path, sixth
+test/support path, eleventh total path, `migrate.ts`, `package.json`, package
 export/script, workflow, Docker/compose, CI, canonical migration/journal,
 database client, seed, app, proxy, route, auth/session/OTP, tenancy/RLS,
 billing, UI/i18n, provider, deployment, README, AGENTS or architecture-doc
@@ -397,15 +489,28 @@ substantially refactored source/test/support file above 150. If that allocation
 does not fit after formatting and review, the unchanged writer-map claim fails
 and implementation stops.
 
+At R5 stop, the preserved candidate has nine changed paths and 1,137 changed
+lines. Its replacement boundary diff accounts for 275 of those lines (137
+additions plus 138 removals). Restoring the base structural body removes that
+275-line replacement diff, leaving 862 changed lines before R5. The new
+integration file may add at most 149 lines, while all structural-list and
+version-aware production adjustments together may consume at most 40 changed
+lines. The resulting bounded projection is at most 1,051 changed lines, leaving
+99 lines of contingency under the unchanged 1,150 ceiling. The final ten-path
+patch, including optional deterministic metadata, must still measure at or
+below 1,150 changed lines; this projection is not a waiver. R5 authorizes
+neither an additional production file nor a line/time ceiling increase.
+
 ## Test-first and proof plan
 
-The first R4 implementation action, after a separate accepted runtime receipt,
-is test-only: extend the disposable PostgreSQL 16 fixture to grant a non-owner
-temporary `CREATE` on `public`, create a side-effecting `public.now()` owned by
-that role, revoke `CREATE`, and prove the unchanged frozen R3 production
-candidate does not reject it before callback execution. That focused RED receipt
-must show no production edit after R4 authority, redact function body and marker
-details, and clean the disposable database. Only then may production code change.
+The first R5 implementation mutation, after a separate accepted runtime receipt,
+is test-only: add the version-aware SQL contract assertion to the newly
+authorized `migration-execution-boundary.test.ts` and prove it fails against
+unchanged head `5f581610…` because the bootstrap probe contains fixed `'SET'`
+without the `server_version_num >= 160000` discriminator and PostgreSQL-15
+`'MEMBER'` branch. The RED receipt must show the production tree and preserved
+stash unchanged. Only then may production code change or the remainder of the
+test split proceed.
 
 Focused proof must cover:
 
@@ -416,6 +521,9 @@ Focused proof must cover:
 - extra, reordered, mismatched, malformed or 94th rows rejected before
   callback execution;
 - public/drizzle schema, table, sequence, column ACL and owner violations;
+- the same version-aware role-capability probe passes on disposable
+  PostgreSQL 15 and 16, rejecting a role that can assume the owner while
+  admitting the fixture only after that membership is removed;
 - create-then-revoke stale `public.now()` owned by a non-owner is rejected before
   the callback path, with zero marker side effect (no externally observable
   write from the planted function body) and total rollback;
@@ -468,6 +576,18 @@ and all exact-head CI/Sonar/CodeQL/Secret/security/finalizer contexts. Z620 is
 supporting pre-push evidence when relevant, never merge authority. P8
 infrastructure certification is not repeated.
 
+R5 additionally authorizes focused proof on task-owned disposable PostgreSQL 15
+and 16 instances and the current canonical Z620 profile. Each instance must be
+created for this task, receive no volume, provider credential or default
+database URL, and be removed with content-free evidence. This is local evidence
+authority only: no repository Docker/compose, workflow, CI matrix, package
+command or public-runner change is allowed.
+
+For this docs-only R5 patch, `scripts/repo-size-budget.json` is deterministic
+metadata produced by the unchanged
+`node scripts/repo-size-budget-sync.mjs --tracked-only` generator after the
+three intended docs were staged. The generator and its contract are untouched.
+
 ## P0a2 and P0 boundary
 
 `P0a1a1b` adds no caller and is inert after merge.
@@ -485,11 +605,12 @@ The P0a1a1b kernel uses PostgreSQL primitives and catalog fields already accepte
 by the P0a0b/P0a1a1a contracts for server majors 15 and 16: reserved-session
 identity, `pg_try_advisory_lock`/`pg_advisory_unlock`, repeatable-read
 transactions, `SET LOCAL`, qualified `pg_catalog` owner/ACL reads, schemas,
-tables and serial sequences. This gate makes no PostgreSQL-15 execution
-certification claim. The kernel remains inert, and P0a2 must execute the exact
-merged kernel and catalog assumptions on both PostgreSQL 15 and 16 before adding
-any caller. A version difference is a P0a2 stop requiring fresh authority; it
-may not silently expand or rewrite P0a1a1b.
+tables and serial sequences. R5 resolves only the discovered
+`pg_has_role` privilege-keyword difference and requires focused PostgreSQL 15/16
+evidence for that bounded contract. The kernel remains inert. P0a2 still owns
+the permanent executable matrix, runtime-role fixture, workflow/Docker wiring
+and complete certification of the exact merged kernel before adding any caller.
+Any other server-major difference stops for fresh authority.
 
 Only after P0a2 merges and closes green may fresh authority replan frozen
 `IDA-UI03a2-P0` from then-current main. The old P0 implementation branch remains
@@ -504,36 +625,33 @@ is read or written.
 
 Stop and return to current authority if review shows:
 
-- the nine-path/1,150-line/2.5-day envelope is not credible;
+- the ten-path/1,150-line/2.5-day envelope is not credible;
 - safe execution needs `migrate.ts`, package/workflow/Docker wiring or P0a2;
 - any callback can escape the one reserved transaction or the session lock
   cannot be acquired before `BEGIN` and reliably released afterward;
 - public-schema posture cannot be proved before using it in `search_path`;
 - callback/source/corpus equality cannot be rechecked before commit;
 - the kernel would expose SQL, identifiers, credentials or raw errors;
-- PostgreSQL 15/16 differences must be resolved here rather than in P0a2;
+- safe completion requires resolving any PostgreSQL 15/16 difference beyond
+  the exact `pg_has_role` `MEMBER`/`SET` compatibility branch here;
 - any default, retained, frozen, remote or provider database is needed;
 - any second outcome or successor is requested.
 
 ## Current gate blockers
 
-1. Arben has not explicitly accepted this exact R4 path, byte count, SHA-256,
-   corrected search-path contract, stale-object/collision invariant, unchanged
-   writer map/ceilings and sole
-   implementation slice.
-2. The canonical docs-only R4 amendment PR has not merged.
-3. Clean then-current main has not been re-proved synchronized and the repo
+1. The canonical docs-only R5 amendment PR has not merged.
+2. Clean then-current main has not been re-proved synchronized and the repo
    resolver has not re-proved exactly `IDA-UI03a2-P0a1a1b`.
-4. AI OS has not been freshly observed after the R4 merge and its advisory drift classified
-   against canonical repo authority.
-5. The R3 implementation/runtime receipt is superseded for resume purposes; a
-   replacement exact receipt does not yet bind accepted R4, the frozen
-   worktree/staged-patch identity and then-current main.
-6. The first R4 test-only RED receipt has not proved that the frozen R3
-   production candidate admits the create-then-revoke stale-object fixture
-   without executing any unauthorized production edit.
+3. AI OS has not been freshly observed after the R5 merge and its advisory drift
+   classified against canonical repo authority.
+4. The R4 runtime receipt is superseded for resume purposes; a replacement
+   exact receipt does not yet bind merged R5, preserved worktree/branch/head,
+   exact patch and stash identities, first RED, writer map, ceilings, forbidden
+   surfaces and final human-merge hold.
+5. The first R5 test-only RED receipt has not proved the unchanged
+   `5f581610…` production candidate lacks the version-aware SQL contract.
 
-Until all six are closed, the repo resolver may continue to identify the sole
+Until all five are closed, the repo resolver may continue to identify the sole
 promoted `IDA-UI03a2-P0a1a1b` slice, but implementation remains paused. No
 implementation edit, branch push, PR, database/provider contact or deployment
 action is authorized by this amendment.
