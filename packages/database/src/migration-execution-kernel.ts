@@ -120,12 +120,12 @@ export async function executeMigrationKernel(
       SELECT pg_catalog.pg_try_advisory_lock(673167055, -773281837) AS locked,
         pg_catalog.pg_backend_pid()::int AS pid
     `;
+    acquired = lock[0]?.locked === true;
+    if (Number.isInteger(lock[0]?.pid)) pid = lock[0].pid;
     // prettier-ignore
     if (lock.length !== 1 || !Number.isInteger(lock[0]?.pid)) throw new MigrationExecutionFault('MIGRATION_EXECUTION_TRANSACTION_FAILED');
     if (lock[0]?.locked !== true)
       throw new MigrationExecutionFault('MIGRATION_EXECUTION_LOCK_CONTENDED');
-    acquired = true;
-    pid = lock[0].pid;
     abort(signal);
     await checked(signal, () => sql`BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ WRITE`);
     began = true;

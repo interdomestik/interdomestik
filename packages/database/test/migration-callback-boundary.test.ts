@@ -17,7 +17,7 @@ const PRODUCTION = [
   'migration-callback-source-verifier.ts', 'migration-callback-plan-builder.ts',
   'migration-callback-plan-capability.ts', 'migration-callback-plan.ts',
   'migration-ledger-contracts.ts', 'migration-ledger-prefix.ts',
-  'migration-ledger-catalog.ts', 'migration-ledger-inspection.ts',
+  'migration-ledger-catalog.ts', 'migration-ledger-lock.ts', 'migration-ledger-inspection.ts',
   'migration-execution-contracts.ts', 'migration-execution-bootstrap.ts',
   'migration-execution-plan.ts', 'migration-execution-kernel.ts',
 ] as const;
@@ -30,6 +30,7 @@ const TESTS = [
   'migration-ledger-inspection.support.ts', 'migration-execution-kernel.test.ts',
   'migration-execution-faults.test.ts', 'migration-execution.support.ts',
   'migration-execution-boundary.test.ts',
+  'migration-ledger-lock-order.test.ts',
 ] as const;
 
 test('plan authority is private, redacted and rejects lookalikes', async () => {
@@ -132,7 +133,7 @@ test('all exact files retain their accepted physical ceilings', async () => {
   // prettier-ignore
   const ceilings = [
     125, 80, 149, 149, 125, 125, 110, 125, 149, 149, 149, 149, 149, 149,
-    149, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149,
+    149, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149,
   ];
   const files = [...PRODUCTION, ...TESTS];
   for (let index = 0; index < files.length; index += 1) {

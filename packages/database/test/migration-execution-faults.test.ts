@@ -5,7 +5,10 @@ import { inspect } from 'node:util';
 
 import type { MigrationCallbackPlanCapability } from '../src/migration-callback-plan-capability';
 import { buildCanonicalMigrationCallbackPlan } from '../src/migration-callback-plan';
-import type { MigrationExecutionSql } from '../src/migration-execution-contracts';
+import type {
+  MigrationExecutionErrorCode,
+  MigrationExecutionSql,
+} from '../src/migration-execution-contracts';
 import { executeMigrationKernel } from '../src/migration-execution-kernel';
 import { authenticCorpus } from './migration-callback.support';
 import { startMigrationExecutionHarness } from './migration-execution.support';
@@ -17,13 +20,13 @@ before(async () => {
   if (!plan.ok) throw new Error('CANONICAL_CALLBACK_PLAN_UNAVAILABLE');
   capability = plan.capability;
 });
-type Run = (query: string) => Promise<unknown>;
-function sqlTag(run: Run): MigrationExecutionSql {
+function sqlTag(run: (query: string) => Promise<unknown>): MigrationExecutionSql {
   const sql = ((parts: TemplateStringsArray) => run(parts.join(' '))) as MigrationExecutionSql;
   Object.defineProperty(sql, 'unsafe', { value: (query: string) => run(query) });
   return sql;
 }
 const shown = (value: unknown) => `${String(value)} ${JSON.stringify(value)} ${inspect(value)}`;
+const failure = (code: MigrationExecutionErrorCode) => ({ ok: false, error: { code } });
 
 test('rejects forged capability and pre-abort without issuing SQL', async () => {
   let calls = 0;
@@ -31,16 +34,12 @@ test('rejects forged capability and pre-abort without issuing SQL', async () => 
     calls += 1;
     return [];
   });
-  assert.deepEqual(await executeMigrationKernel({}, sql, new AbortController().signal), {
-    ok: false,
-    error: { code: 'MIGRATION_EXECUTION_PLAN_CAPABILITY_REJECTED' },
-  });
+  const forged = await executeMigrationKernel({}, sql, new AbortController().signal);
+  assert.deepEqual(forged, failure('MIGRATION_EXECUTION_PLAN_CAPABILITY_REJECTED'));
   const controller = new AbortController();
   controller.abort();
-  assert.deepEqual(await executeMigrationKernel(capability, sql, controller.signal), {
-    ok: false,
-    error: { code: 'MIGRATION_EXECUTION_ABORTED' },
-  });
+  const aborted = await executeMigrationKernel(capability, sql, controller.signal);
+  assert.deepEqual(aborted, failure('MIGRATION_EXECUTION_ABORTED'));
   assert.equal(calls, 0);
 });
 
@@ -54,10 +53,7 @@ test('fails lock contention before BEGIN without an unlock attempt', async () =>
     }),
     new AbortController().signal
   );
-  assert.deepEqual(result, {
-    ok: false,
-    error: { code: 'MIGRATION_EXECUTION_LOCK_CONTENDED' },
-  });
+  assert.deepEqual(result, failure('MIGRATION_EXECUTION_LOCK_CONTENDED'));
   assert.equal(queries.length, 1);
   assert.match(queries[0], /pg_try_advisory_lock/);
   assert.doesNotMatch(queries[0], /BEGIN/);
@@ -78,12 +74,9 @@ test('unlocks once when abort lands after successful lock acquisition', async ()
     }),
     controller.signal
   );
-  assert.deepEqual(result, { ok: false, error: { code: 'MIGRATION_EXECUTION_ABORTED' } });
+  assert.deepEqual(result, failure('MIGRATION_EXECUTION_ABORTED'));
   assert.equal(queries.filter(query => query.includes('pg_advisory_unlock')).length, 1);
-  assert.equal(
-    queries.some(query => query.includes('BEGIN')),
-    false
-  );
+  assert(!queries.some(query => query.includes('BEGIN')));
 });
 
 test('BEGIN failure preserves its code unless fixed unlock cleanup fails', async () => {
@@ -104,17 +97,11 @@ test('BEGIN failure preserves its code unless fixed unlock cleanup fails', async
     return { queries, result };
   };
   const timeout = await run(false);
-  assert.deepEqual(timeout.result, {
-    ok: false,
-    error: { code: 'MIGRATION_EXECUTION_TIMEOUT' },
-  });
+  assert.deepEqual(timeout.result, failure('MIGRATION_EXECUTION_TIMEOUT'));
   assert.equal(timeout.queries.filter(query => query.includes('pg_advisory_unlock')).length, 1);
   assert.doesNotMatch(shown(timeout.result), /BEGIN_SENTINEL/);
   const cleanup = await run(true);
-  assert.deepEqual(cleanup.result, {
-    ok: false,
-    error: { code: 'MIGRATION_EXECUTION_CLEANUP_FAILED' },
-  });
+  assert.deepEqual(cleanup.result, failure('MIGRATION_EXECUTION_CLEANUP_FAILED'));
   assert.doesNotMatch(shown(cleanup.result), /BEGIN_SENTINEL|UNLOCK_SENTINEL/);
 });
 
@@ -129,13 +116,29 @@ test('preserves cleanup failure when abort lands during post-commit unlock', asy
       failUnlock: true,
       onUnlock: () => controller.abort(),
     });
-    assert.deepEqual(result.execution, {
-      ok: false,
-      error: { code: 'MIGRATION_EXECUTION_CLEANUP_FAILED' },
-    });
+    assert.deepEqual(result.execution, failure('MIGRATION_EXECUTION_CLEANUP_FAILED'));
   } finally {
     await harness.close();
   }
+});
+
+test('unlocks once for a malformed successful writer-lock response', async () => {
+  const queries: string[] = [];
+  // prettier-ignore
+  const malformed = [{ locked: true, pid: 44 }, { locked: false, pid: 44 }];
+  const result = await executeMigrationKernel(
+    capability,
+    sqlTag(async query => {
+      queries.push(query);
+      if (query.includes('pg_try_advisory_lock')) return malformed;
+      if (query.includes('pg_advisory_unlock')) return [{ unlocked: true, pid: 44 }];
+      return [];
+    }),
+    new AbortController().signal
+  );
+  assert.deepEqual(result, failure('MIGRATION_EXECUTION_TRANSACTION_FAILED'));
+  assert.equal(queries.filter(query => query.includes('pg_advisory_unlock')).length, 1);
+  assert(!queries.some(query => query.includes('BEGIN')));
 });
 
 test('binds the session lock to the accepted canonical preimage', () => {
