@@ -11,16 +11,15 @@ last_reviewed: 2026-07-27
 
 # IDA-DG19-A2a1a1b — Same-Session Migration Execution Kernel Gate
 
-> Status: R5 preparation and canonical docs-only merge are user-authorized; R5
-> has not yet merged. R4 merged through docs-only PR `#1454` at main
-> `852946f5…`, and its exact
-> runtime receipt authorized one bounded resume in the preserved implementation
-> worktree. Current-head review then found one PostgreSQL-15 incompatibility and
-> one test-boundary regression. Implementation is frozen at clean head
-> `5f581610…` until R5 merges, clean then-current main resolves only this slice,
-> AI OS is refreshed, and a new exact runtime receipt binds the same branch,
-> worktree, head, patch and preserved stash. R5 changes no production writer,
-> outcome, line/time ceiling, public surface or implementation-merge authority.
+> Status: final consolidated closure authority is in preparation and supersedes
+> R2 through R5 for every future resume decision. R5 merged through docs-only PR
+> `#1456` at main `3bc8b0da…`; the preserved implementation is clean at
+> `cc3231a9…` in the same worktree, branch and unmerged PR `#1455`. A complete
+> advisory-key audit and PostgreSQL 15/16 interleaving matrix proved the reader
+> snapshot-order defect and the bounded shared-session-lock repair before this
+> authority change. Runtime remains frozen until this final authority merges and
+> a new exact receipt is accepted. Implementation merge remains separately
+> human-gated.
 
 ## Decision
 
@@ -45,9 +44,9 @@ runner, any provider contact, or any application/product work.
 - Future implementation: Tier 3 because it would execute schema migrations,
   create administrative ledger objects when absent, hold an advisory lock, and
   depend on database ownership and ACL posture.
-- Current implementation authority: paused; the accepted R4 runtime receipt is
-  superseded for resume purposes by the two current-head findings recorded in
-  the R5 amendment below.
+- Current implementation authority: paused; every R2-R5 runtime receipt is
+  superseded for resume purposes by the complete lock-closure findings recorded
+  in the final consolidated amendment below.
 - Current database/provider/deployment authority: false.
 
 ## Bound authority and evidence
@@ -252,6 +251,111 @@ allocation. The corrected search-path contract, stale-object collision
 invariant, four production writers, 1,150 changed-line ceiling, 2.5-day ceiling,
 one outcome and every protected exclusion remain unchanged.
 
+### Final consolidated lock-closure amendment — supersedes R2 through R5
+
+This section is the sole prospective authority for completing
+`IDA-UI03a2-P0a1a1b`. Earlier R2-R5 hashes and receipts remain historical
+evidence only and cannot authorize another implementation action.
+
+The final closure is bound to clean canonical main
+`3bc8b0da35bc309f89b5fd3ac67e3ce52dcb0f75`, tree
+`64efb336ac9dfbfbca7cdffefe4c78b4d3b54ff5`, and the preserved sole
+implementation worktree
+`/Users/arbenlila/development/interdomestik-ida-ui03a2-p0a1a1b-migration-execution-kernel`.
+That worktree is clean on branch
+`codex/ida-ui03a2-p0a1a1b-migration-execution-kernel`, head
+`cc3231a97e64c2683403ba67ff39062f08d316b0`, tree
+`96c6b372faa0739c521e077821462779465edf06`, and unmerged PR `#1455`.
+Its ten-path patch against the bound main is 55,417 bytes at SHA-256
+`b52c1e62bf817c8a6723a844673e77e4a2fb9ae98887e4b5d798b29c0cd7b612`:
+1,055 insertions and 59 deletions. Recovery stash
+`9fe4703b7bc36f70f279cc414c65878a4c7c209a` remains preserved.
+
+The complete executable fixed-key graph has exactly two production consumers:
+
+1. the candidate kernel takes the exclusive session-level
+   `pg_try_advisory_lock(673167055, -773281837)` before its repeatable-read
+   write transaction, commits or rolls back, then explicitly unlocks;
+2. the merged ledger inspector currently begins repeatable read first and then
+   waits on `pg_advisory_xact_lock(673167055, -773281837)`.
+
+No app, package export, workflow or command imports either consumer; both remain
+inert. The legacy `src/migrate.ts` Drizzle command and `apply-migration.ts` SQL
+directory runner do not consume this key and remain explicit non-cooperating
+writers outside this slice. This amendment neither coordinates nor modifies
+them. P0a2 continues to own later caller, command, runtime-role and permanent
+matrix integration. Free-start-draft advisory locks use a different hashed
+owner keyspace and are not part of this graph.
+
+The current reader order is defective. PostgreSQL repeatable read freezes its
+snapshot at the first query/data-modification statement; the advisory-lock
+`SELECT` freezes that snapshot before it waits. Task-owned no-volume evidence on
+both PostgreSQL 15 and 16 observed a waiting reader return value `0` after its
+exclusive writer committed value `1`. The corrected order on both majors used a
+shared session-level reader lock before repeatable read and observed the
+writer's committed value `2`. Both majors additionally proved two shared
+readers coexist, the exclusive writer is excluded, every shared unlock succeeds,
+lock timeout is SQLSTATE `55P03` with zero retained reader lock, and closing a
+waiting session rejects the request and removes the session. Both task
+containers were removed.
+
+The 8,320-byte proof harness is SHA-256
+`334955362665a118d372b0ce185047de1d89ad719d5209bd6d6b07b2bef964e1`.
+The final 10,519-byte audit/review packet is SHA-256
+`f9ecf14d353e3544a91b9281ad2f35154583e353f1d0062593d6c80109dfe39b`.
+Priority Opus 4.8 found the concurrency design sound, required one internal
+reader-lock helper contingency to prevent another amendment at the physical-file
+ceiling, and then passed the remediated exact packet with no blocker.
+
+The corrected reader contract is:
+
+1. authenticate capability and empty-prefix shape before SQL;
+2. begin one short read-only acquisition transaction on the reserved session;
+3. apply fixed local `pg_catalog, pg_temp`, 2-second lock, 5-second statement and
+   5-second idle-in-transaction guards;
+4. execute fixed qualified blocking
+   `pg_catalog.pg_advisory_lock_shared(673167055, -773281837)` together with
+   `pg_catalog.pg_backend_pid()`;
+5. mark the shared session lock acquired immediately after the query resolves,
+   before post-await abort or result-shape validation, require one integer PID,
+   and commit the acquisition transaction;
+6. while that session lock remains held, begin the existing repeatable-read
+   read-only inspection transaction, reapply fixed local guards, and make the
+   qualified same-PID check its first snapshot-taking statement;
+7. perform the existing catalog/prefix inspection, final same-PID check and
+   commit;
+8. attempt exactly one fixed qualified
+   `pg_catalog.pg_advisory_unlock_shared(...)`, require one true result and the
+   same PID, then perform the final abort check before success.
+
+On failure, roll back any open transaction before the one allowed shared-unlock
+attempt. Rollback or unlock failure dominates as
+`MIGRATION_LEDGER_CLEANUP_FAILED`; `55P03` while waiting remains
+`MIGRATION_LEDGER_LOCK_TIMEOUT`; reserved-session close is the final release
+backstop. If the response itself reports successful acquisition but malformed
+PID/row shape, cleanup still attempts the fixed unlock. If transport corruption
+makes acquisition unknowable, fail closed and rely on mandatory session close.
+
+The integrated writer cleanup repair is also required: when the exclusive lock
+response reports exact `locked:true`, record acquisition before validating PID
+and row count. A malformed success response must make one fixed unlock attempt;
+normal `locked:false` contention still makes none. This is inside the declared
+kernel cleanup boundary and adds no caller or behavior outcome.
+
+The existing version-aware PostgreSQL 15 `MEMBER` / PostgreSQL 16+ `SET`
+contract, corrected
+`pg_catalog, pg_temp → public, pg_temp → pg_catalog, pg_temp` search paths,
+stale-object/collision inventory, callback-plan equality, ledger-prefix proof,
+redaction, rollback and postcheck contracts remain binding without
+reinterpretation.
+
+Findings and fixes inside the exact lock/inspection boundary, named writer map
+and ceilings below do not require another authority amendment. A fresh amendment
+is required only if closure exposes a fundamentally different architecture
+problem: a new caller/outcome, a non-cooperating writer that must be changed,
+another keyspace, public API/workflow integration, or a protected surface outside
+the declared map.
+
 The preserved branch `codex/ida-ui03a2-p0-implementation` is not reusable
 implementation authority. Its single commit `b658dcb…` is based on
 `46878f2b…`, spans thirteen paths, predates the completed prerequisite chain,
@@ -431,7 +535,7 @@ items, retry an item, accept dynamic identifiers, call an app/runtime role, or
 continue after abort. PostgreSQL transaction rollback is the only mutation
 recovery mechanism.
 
-## Exact future writer map
+## Historical R5 writer map — superseded by final closure
 
 After a separate accepted runtime receipt only:
 
@@ -501,16 +605,69 @@ patch, including optional deterministic metadata, must still measure at or
 below 1,150 changed lines; this projection is not a waiver. R5 authorizes
 neither an additional production file nor a line/time ceiling increase.
 
+## Final consolidated implementation writer map and budget
+
+After this authority merges and a new exact runtime receipt is accepted, only
+the following required/current candidate paths may differ from the final
+authority base:
+
+1. `packages/database/src/migration-execution-contracts.ts`
+2. `packages/database/src/migration-execution-bootstrap.ts`
+3. `packages/database/src/migration-execution-plan.ts`
+4. `packages/database/src/migration-execution-kernel.ts`
+5. `packages/database/src/migration-ledger-inspection.ts`
+6. `packages/database/test/migration-execution-kernel.test.ts`
+7. `packages/database/test/migration-execution-faults.test.ts`
+8. `packages/database/test/migration-execution.support.ts`
+9. `packages/database/test/migration-callback-boundary.test.ts`
+10. `packages/database/test/migration-execution-boundary.test.ts`
+11. `packages/database/test/migration-ledger-inspection-faults.test.ts`
+12. `packages/database/test/migration-ledger-lock-order.test.ts` — new live
+    stale-then-fresh regression proof
+13. `scripts/repo-size-budget.json` — unchanged deterministic generator output
+    only
+
+Two named contingencies are pre-authorized inside the same boundary:
+
+14. `packages/database/src/migration-ledger-lock.ts` only when required to keep
+    the reader lock/acquisition/cleanup state machine internal and
+    `migration-ledger-inspection.ts` below 150 physical lines; it may have no
+    package export, caller or semantic expansion;
+15. `packages/database/test/migration-execution-lock-faults.test.ts` only when
+    execution-fault proof must split to keep every touched test below its
+    physical ceiling.
+
+Fifteen diff paths is the absolute ceiling. The final patch may contain at most
+1,500 insertions and 1,900 total inserted-plus-deleted lines against the final
+authority base, at most 40,000 additional tracked bytes and two additional
+tracked files against preserved head `cc3231a9…`, and at most three engineering
+days. Every new or modified source/test/support file must remain at or below 149
+physical lines. The one outcome remains an inert execution kernel plus a
+coherent reader/writer lock contract.
+
+The current ten-path candidate consumes 1,055 insertions, 59 deletions, 1,114
+total changed lines, 59,158,692 tracked bytes and 5,607 tracked files. The
+read-only generator check and `pnpm repo:size:check` pass. The final reserve is
+therefore 445 insertions, 786 total changed lines, 40,000 tracked bytes and two
+files. Any net growth must be synchronized through the unchanged deterministic
+size generator in this PR; unrelated inflation is forbidden.
+
+Any sixteenth path, ceiling overflow, `migrate.ts`, `apply-migration.ts`,
+package export/script, migration/journal, database client, workflow/Docker/CI,
+caller, app, proxy/routing/auth/tenancy/RLS, UI/i18n, billing, provider,
+deployment, README, AGENTS or architecture-doc change stops. A helper/test split
+inside paths 14-15 is contingency use, not an amendment trigger.
+
 ## Test-first and proof plan
 
-The first R5 implementation mutation, after a separate accepted runtime receipt,
-is test-only: add the version-aware SQL contract assertion to the newly
-authorized `migration-execution-boundary.test.ts` and prove it fails against
-unchanged head `5f581610…` because the bootstrap probe contains fixed `'SET'`
-without the `server_version_num >= 160000` discriminator and PostgreSQL-15
-`'MEMBER'` branch. The RED receipt must show the production tree and preserved
-stash unchanged. Only then may production code change or the remainder of the
-test split proceed.
+The first final-closure implementation mutation, after a separate accepted
+runtime receipt, is test-only: add the live waiting-reader regression to
+`migration-ledger-lock-order.test.ts` and prove it fails against unchanged
+production head `cc3231a9…` because the current inspector freezes its
+repeatable-read snapshot before waiting on the transaction lock. The RED must
+show the reader returning the stale prefix after the cooperating writer commits,
+with production files and preserved stash unchanged. Only then may production
+code or the writer cleanup path change.
 
 Focused proof must cover:
 
@@ -576,14 +733,14 @@ and all exact-head CI/Sonar/CodeQL/Secret/security/finalizer contexts. Z620 is
 supporting pre-push evidence when relevant, never merge authority. P8
 infrastructure certification is not repeated.
 
-R5 additionally authorizes focused proof on task-owned disposable PostgreSQL 15
-and 16 instances and the current canonical Z620 profile. Each instance must be
+The final closure additionally authorizes focused proof on task-owned disposable
+PostgreSQL 15 and 16 instances and the current canonical Z620 profile. Each instance must be
 created for this task, receive no volume, provider credential or default
 database URL, and be removed with content-free evidence. This is local evidence
 authority only: no repository Docker/compose, workflow, CI matrix, package
 command or public-runner change is allowed.
 
-For this docs-only R5 patch, `scripts/repo-size-budget.json` is deterministic
+For this docs-only final-authority patch, `scripts/repo-size-budget.json` is deterministic
 metadata produced by the unchanged
 `node scripts/repo-size-budget-sync.mjs --tracked-only` generator after the
 three intended docs were staged. The generator and its contract are untouched.
@@ -605,7 +762,7 @@ The P0a1a1b kernel uses PostgreSQL primitives and catalog fields already accepte
 by the P0a0b/P0a1a1a contracts for server majors 15 and 16: reserved-session
 identity, `pg_try_advisory_lock`/`pg_advisory_unlock`, repeatable-read
 transactions, `SET LOCAL`, qualified `pg_catalog` owner/ACL reads, schemas,
-tables and serial sequences. R5 resolves only the discovered
+tables and serial sequences. R5 resolved the discovered
 `pg_has_role` privilege-keyword difference and requires focused PostgreSQL 15/16
 evidence for that bounded contract. The kernel remains inert. P0a2 still owns
 the permanent executable matrix, runtime-role fixture, workflow/Docker wiring
@@ -623,33 +780,40 @@ environment, deploy, production alias or frozen state is touched by this gate.
 No tenant, member, claim, draft, document, billing, health or other product data
 is read or written.
 
-Stop and return to current authority if review shows:
+Stop and return to current authority only if review shows:
 
-- the ten-path/1,150-line/2.5-day envelope is not credible;
+- the fifteen-path/1,500-insertion/1,900-total-change/40,000-byte/three-day
+  envelope is exceeded;
 - safe execution needs `migrate.ts`, package/workflow/Docker wiring or P0a2;
 - any callback can escape the one reserved transaction or the session lock
   cannot be acquired before `BEGIN` and reliably released afterward;
 - public-schema posture cannot be proved before using it in `search_path`;
 - callback/source/corpus equality cannot be rechecked before commit;
 - the kernel would expose SQL, identifiers, credentials or raw errors;
-- safe completion requires resolving any PostgreSQL 15/16 difference beyond
-  the exact `pg_has_role` `MEMBER`/`SET` compatibility branch here;
 - any default, retained, frozen, remote or provider database is needed;
-- any second outcome or successor is requested.
+- any second outcome or successor is requested;
+- closure requires a fundamentally different architecture: a new caller,
+  non-cooperating writer mutation, another lock keyspace, public API/workflow
+  integration or protected path outside the final map.
+
+An implementation correction inside the named lock/inspection files, same
+reader/writer contract and ceilings is already authorized contingency and is not
+an amendment trigger.
 
 ## Current gate blockers
 
-1. The canonical docs-only R5 amendment PR has not merged.
+1. The canonical docs-only final consolidated authority has not merged.
 2. Clean then-current main has not been re-proved synchronized and the repo
    resolver has not re-proved exactly `IDA-UI03a2-P0a1a1b`.
-3. AI OS has not been freshly observed after the R5 merge and its advisory drift
+3. AI OS has not been freshly observed after the final authority merge and its advisory drift
    classified against canonical repo authority.
-4. The R4 runtime receipt is superseded for resume purposes; a replacement
-   exact receipt does not yet bind merged R5, preserved worktree/branch/head,
+4. Every R2-R5 runtime receipt is superseded for resume purposes; a replacement
+   exact receipt does not yet bind merged final authority, preserved worktree/branch/head,
    exact patch and stash identities, first RED, writer map, ceilings, forbidden
    surfaces and final human-merge hold.
-5. The first R5 test-only RED receipt has not proved the unchanged
-   `5f581610…` production candidate lacks the version-aware SQL contract.
+5. The first final-closure test-only RED receipt has not proved unchanged
+   production head `cc3231a9…` returns the stale ledger prefix after a waiting
+   reader's cooperating writer commits.
 
 Until all five are closed, the repo resolver may continue to identify the sole
 promoted `IDA-UI03a2-P0a1a1b` slice, but implementation remains paused. No
