@@ -10,9 +10,14 @@ import {
   type MigrationLedgerResult,
   type MigrationLedgerSummary,
 } from './migration-ledger-contracts';
+import {
+  acquireMigrationLedgerReadLock,
+  releaseMigrationLedgerReadLock,
+  type MigrationLedgerReadLock,
+} from './migration-ledger-lock';
 import { validateMigrationLedgerPrefix } from './migration-ledger-prefix';
 
-type Stage = 'transaction' | 'lock' | 'catalog' | 'prefix';
+type Stage = 'transaction' | 'catalog' | 'prefix';
 const abortCheck = (signal: AbortSignal): void => {
   if (signal.aborted) throw new MigrationLedgerFault('MIGRATION_LEDGER_ABORTED');
 };
@@ -22,21 +27,9 @@ async function checked<T>(signal: AbortSignal, operation: () => Promise<T>): Pro
   abortCheck(signal);
   return result;
 }
-function sqlState(error: unknown): string | null {
-  try {
-    return error &&
-      typeof error === 'object' &&
-      typeof (error as { code?: unknown }).code === 'string'
-      ? (error as { code: string }).code
-      : null;
-  } catch {
-    return null;
-  }
-}
 function failureCode(error: unknown, stage: Stage, signal: AbortSignal): MigrationLedgerErrorCode {
   if (signal.aborted) return 'MIGRATION_LEDGER_ABORTED';
   if (error instanceof MigrationLedgerFault) return error.code;
-  if (stage === 'lock' && sqlState(error) === '55P03') return 'MIGRATION_LEDGER_LOCK_TIMEOUT';
   if (stage === 'catalog') return 'MIGRATION_LEDGER_CATALOG_REJECTED';
   if (stage === 'prefix') return 'MIGRATION_LEDGER_PREFIX_REJECTED';
   return 'MIGRATION_LEDGER_TRANSACTION_FAILED';
@@ -58,6 +51,42 @@ function summary(
     execution_authorized: false,
   });
 }
+async function assertBackendPid(
+  sql: LedgerSql,
+  signal: AbortSignal,
+  expectedPid: number
+): Promise<void> {
+  const rows = await checked(
+    signal,
+    () => sql<{ pid: number }[]>`SELECT pg_catalog.pg_backend_pid()::int AS pid`
+  );
+  if (rows.length !== 1 || rows[0]?.pid !== expectedPid) {
+    throw new MigrationLedgerFault('MIGRATION_LEDGER_TRANSACTION_FAILED');
+  }
+}
+async function cleanupInspection(
+  sql: LedgerSql,
+  transactionOpen: boolean,
+  lock: MigrationLedgerReadLock | undefined,
+  unlockAttempted: boolean
+): Promise<boolean> {
+  let failed = false;
+  if (transactionOpen) {
+    try {
+      await sql`ROLLBACK`;
+    } catch {
+      failed = true;
+    }
+  }
+  if (lock && !unlockAttempted) {
+    try {
+      await releaseMigrationLedgerReadLock(sql, lock.pid);
+    } catch {
+      failed = true;
+    }
+  }
+  return failed;
+}
 
 export async function inspectMigrationLedger(
   capability: unknown,
@@ -74,25 +103,19 @@ export async function inspectMigrationLedger(
   }
   if (signal.aborted) return migrationLedgerFailure('MIGRATION_LEDGER_ABORTED');
   let stage: Stage = 'transaction';
-  let began = false;
-  let committed = false;
+  let transactionOpen = false;
+  let lock: MigrationLedgerReadLock | undefined;
+  let unlockAttempted = false;
   try {
+    lock = await acquireMigrationLedgerReadLock(sql, signal);
     await sql`BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY`;
-    began = true;
+    transactionOpen = true;
     abortCheck(signal);
     await checked(signal, () => sql`SET LOCAL search_path = pg_catalog, pg_temp`);
     await checked(signal, () => sql`SET LOCAL lock_timeout = '2s'`);
     await checked(signal, () => sql`SET LOCAL statement_timeout = '5s'`);
     await checked(signal, () => sql`SET LOCAL idle_in_transaction_session_timeout = '5s'`);
-    stage = 'lock';
-    await checked(signal, () => sql`SELECT pg_advisory_xact_lock(673167055, -773281837)`);
-    stage = 'transaction';
-    const firstPid = await checked(
-      signal,
-      () => sql<{ pid: number }[]>`SELECT pg_backend_pid()::int AS pid`
-    );
-    if (!Number.isInteger(firstPid[0]?.pid))
-      throw new MigrationLedgerFault('MIGRATION_LEDGER_TRANSACTION_FAILED');
+    await assertBackendPid(sql, signal, lock.pid);
     stage = 'catalog';
     const catalog = await checked(signal, () => inspectMigrationLedgerCatalog(sql));
     let prefix = emptyPrefix;
@@ -102,26 +125,18 @@ export async function inspectMigrationLedger(
       prefix = validateMigrationLedgerPrefix(rows, state.migrations);
     }
     stage = 'transaction';
-    const finalPid = await checked(
-      signal,
-      () => sql<{ pid: number }[]>`SELECT pg_backend_pid()::int AS pid`
-    );
-    if (finalPid[0]?.pid !== firstPid[0]?.pid)
-      throw new MigrationLedgerFault('MIGRATION_LEDGER_TRANSACTION_FAILED');
+    await assertBackendPid(sql, signal, lock.pid);
     abortCheck(signal);
     await sql`COMMIT`;
-    committed = true;
+    transactionOpen = false;
+    unlockAttempted = true;
+    await releaseMigrationLedgerReadLock(sql, lock.pid);
+    lock = undefined;
     abortCheck(signal);
     return Object.freeze({ ok: true, summary: summary(catalog, prefix, state.callbackPlanSha256) });
   } catch (error) {
     const code = failureCode(error, stage, signal);
-    if (began && !committed) {
-      try {
-        await sql`ROLLBACK`;
-      } catch {
-        return migrationLedgerFailure('MIGRATION_LEDGER_CLEANUP_FAILED');
-      }
-    }
-    return migrationLedgerFailure(code);
+    const cleanupFailed = await cleanupInspection(sql, transactionOpen, lock, unlockAttempted);
+    return migrationLedgerFailure(cleanupFailed ? 'MIGRATION_LEDGER_CLEANUP_FAILED' : code);
   }
 }
