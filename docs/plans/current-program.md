@@ -2557,6 +2557,74 @@ review. It explicitly withholds implementation merge authority. The same
 existing implementation branch/worktree/PR is the sole writer and must stop at
 the final approval checkpoint after all exact-head evidence is green.
 
+Rev 177 supersedes the R2-R5 resume contracts with one final consolidated
+lock-closure authority for `IDA-UI03a2-P0a1a1b`. R5 is canonical through PR
+`#1456` at main `3bc8b0da35bc309f89b5fd3ac67e3ce52dcb0f75`, tree
+`64efb336ac9dfbfbca7cdffefe4c78b4d3b54ff5`. The final authority packet is
+exactly 48,888 UTF-8 bytes at SHA-256
+`6501c1009111b389713a2b40a772d1f28f0866845575c426071a979f4cd32728`. The same sole implementation
+worktree, branch and unmerged PR `#1455` are preserved clean at
+`cc3231a97e64c2683403ba67ff39062f08d316b0`, tree
+`96c6b372faa0739c521e077821462779465edf06`; its ten-path patch is 55,417
+bytes / SHA-256
+`b52c1e62bf817c8a6723a844673e77e4a2fb9ae98887e4b5d798b29c0cd7b612`,
+with 1,055 insertions and 59 deletions. Recovery stash `9fe4703b…` remains
+preserved.
+
+The complete fixed advisory-key graph has exactly two production consumers:
+the candidate writer kernel, which takes an exclusive session lock before its
+repeatable-read write transaction, and the merged ledger inspector, which
+currently begins repeatable read before waiting on a transaction lock. No
+application, package export, workflow or command imports either consumer.
+`migrate.ts` and `apply-migration.ts` remain explicit non-cooperating writers
+outside this inert slice and are not modified or claimed as coordinated.
+
+Task-owned no-volume PostgreSQL 15 and 16 evidence reproduced the defect:
+after a reader's lock SELECT froze its snapshot and waited, the writer committed
+value `1` but the reader observed stale value `0`. On both majors, a shared
+session reader lock acquired before repeatable read made the waiting reader
+observe committed value `2`; shared readers coexisted, the exclusive writer was
+excluded, `55P03` timeout left no reader lock, session close removed a waiting
+reader, every unlock succeeded and both containers were removed. The exact
+8,320-byte harness is SHA-256 `33495536…`.
+
+The bounded repair acquires one qualified shared session lock in a short
+read-only acquisition transaction with fixed local guards, commits that
+transaction, begins repeatable-read inspection while retaining the lock, makes
+the same-PID query the first snapshot-taking statement, holds the lock through
+catalog/prefix inspection and commit, then attempts one qualified shared
+unlock. Rollback precedes unlock; cleanup failure dominates; client close is the
+final release backstop. The integrated writer repair records an exact
+`locked:true` response before PID/row-shape validation so malformed successful
+acquisition still receives one unlock attempt.
+
+Priority Opus 4.8 found the concurrency contract sound, required one internal
+reader-lock helper contingency to prevent another amendment at the physical
+file ceiling, and passed the remediated exact 10,519-byte packet at SHA-256
+`f9ecf14d…` with no blocker. The final full candidate map is thirteen expected
+paths plus only two named contingencies:
+`migration-ledger-lock.ts` for an internal sub-150-line extraction and
+`migration-execution-lock-faults.test.ts` for a sub-150-line test split.
+Absolute ceilings are 15 paths, 1,500 insertions, 1,900 total changed lines,
+40,000 additional tracked bytes, two additional tracked files and three days.
+The current exact repo-size budget passes at 59,158,692 bytes / 5,607 files.
+
+This final authority preserves the R5 version-aware PG15/16 role probe, R4
+search-path and stale-object/collision contract, callback/ledger integrity,
+redaction, inert/no-caller outcome and every protected exclusion. Findings
+inside the named lock/inspection map and ceilings require no further amendment.
+Only a fundamentally different architecture problem—new caller or outcome,
+non-cooperating writer mutation, another keyspace, workflow/public integration
+or protected path outside the map—returns to current authority.
+
+Runtime remains frozen. Resume requires this docs-only final authority to merge,
+fresh clean-main/resolver/AI OS proof and one new exact receipt superseding every
+R2-R5 receipt. The mandatory first implementation mutation is test-only RED
+showing the unchanged `cc3231a9…` inspector returns the stale prefix after its
+waiting writer commits. PR `#1455` must remain unmerged through integrated
+focused/PG15/PG16/Z620/Phase-C/security/current-head review evidence and one
+final human merge approval.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
