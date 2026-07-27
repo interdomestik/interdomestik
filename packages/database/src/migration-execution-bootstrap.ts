@@ -4,7 +4,6 @@ import {
   MigrationExecutionFault,
   type MigrationExecutionSql,
 } from './migration-execution-contracts';
-
 type PublicProbe = Readonly<{
   pid: number;
   public_count: number;
@@ -118,7 +117,9 @@ export async function validatePublicSchema(
       ) AND NOT EXISTS (
         SELECT 1 FROM pg_catalog.pg_roles r WHERE r.oid <> n.nspowner
           AND r.rolsuper IS NOT TRUE
-          AND pg_catalog.pg_has_role(r.oid, n.nspowner, 'SET') IS NOT TRUE
+          AND CASE WHEN pg_catalog.current_setting('server_version_num')::integer >= 160000
+            THEN pg_catalog.pg_has_role(r.oid, n.nspowner, 'SET')
+            ELSE pg_catalog.pg_has_role(r.oid, n.nspowner, 'MEMBER') END IS NOT TRUE
           AND pg_catalog.has_schema_privilege(r.oid, n.oid, 'CREATE') IS NOT FALSE
       )) AS acl_ok,
       (SELECT count(*)::int FROM foreign_owned) AS foreign_owner_count,

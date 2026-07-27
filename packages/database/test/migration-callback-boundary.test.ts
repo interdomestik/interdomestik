@@ -1,148 +1,143 @@
 import assert from 'node:assert/strict';
-import { after, before, test } from 'node:test';
-import postgres from 'postgres';
-import {
-  startMigrationExecutionHarness,
-  type MigrationExecutionHarness,
-} from './migration-execution.support';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import test from 'node:test';
+import { inspect } from 'node:util';
+import { fileURLToPath } from 'node:url';
+import ts from 'typescript';
 
-let harness: MigrationExecutionHarness;
+import { verifyCanonicalMigrationCorpus } from '../src/migration-corpus-capability';
+import { buildCanonicalMigrationCallbackPlan } from '../src/migration-callback-plan';
+import { readMigrationCallbackPlanState } from '../src/migration-callback-plan-capability';
 
-before(async () => {
-  harness = await startMigrationExecutionHarness();
+const ROOT = fileURLToPath(new URL('../', import.meta.url));
+// prettier-ignore
+const PRODUCTION = [
+  'migration-callback-plan-contracts.ts', 'migration-callback-plan-manifest.ts',
+  'migration-callback-source-verifier.ts', 'migration-callback-plan-builder.ts',
+  'migration-callback-plan-capability.ts', 'migration-callback-plan.ts',
+  'migration-ledger-contracts.ts', 'migration-ledger-prefix.ts',
+  'migration-ledger-catalog.ts', 'migration-ledger-inspection.ts',
+  'migration-execution-contracts.ts', 'migration-execution-bootstrap.ts',
+  'migration-execution-plan.ts', 'migration-execution-kernel.ts',
+] as const;
+// prettier-ignore
+const TESTS = [
+  'migration-callback-plan.test.ts', 'migration-callback-source.test.ts',
+  'migration-callback-validation.test.ts', 'migration-callback-boundary.test.ts',
+  'migration-callback.support.ts', 'migration-ledger-prefix.test.ts',
+  'migration-ledger-inspection.test.ts', 'migration-ledger-inspection-faults.test.ts',
+  'migration-ledger-inspection.support.ts', 'migration-execution-kernel.test.ts',
+  'migration-execution-faults.test.ts', 'migration-execution.support.ts',
+  'migration-execution-boundary.test.ts',
+] as const;
+
+test('plan authority is private, redacted and rejects lookalikes', async () => {
+  const corpus = await verifyCanonicalMigrationCorpus();
+  assert.equal(corpus.ok, true);
+  if (!corpus.ok) return;
+  const result = await buildCanonicalMigrationCallbackPlan(corpus.capability);
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  const value = result.capability;
+  const state = readMigrationCallbackPlanState(value);
+  assert.ok(state);
+  assert.equal(state.callbackItems.length, 843);
+  const shown = `${inspect(value)} ${JSON.stringify(value)} ${String(value)}`;
+  assert.equal(shown.includes('INSERT'), false);
+  assert.equal(shown.includes(state.preCorpus.realRoot), false);
+  const clone = structuredClone(value);
+  for (const forgery of [
+    {},
+    clone,
+    new Proxy(value, {}),
+    Object.create(Object.getPrototypeOf(value)),
+  ])
+    assert.equal(readMigrationCallbackPlanState(forgery), null);
+  assert.ok(Object.isFrozen(state.callbackItems));
 });
 
-after(async () => {
-  const receipt = await harness.close();
-  assert(receipt.removedAt);
-});
-
-test('rejects a stale non-owner public collision before callback execution', async () => {
-  await harness.reset('schema_absent');
-  await harness.setup.unsafe('CREATE TABLE public.stale_now_marker (hit boolean NOT NULL)');
-  await harness.setup.unsafe(`GRANT CREATE ON SCHEMA public TO ${harness.nonowner}`);
-  const nonowner = postgres(harness.fixture.nonownerEnv.DATABASE_URL, {
-    max: 1,
-    onnotice: () => {},
-  });
-  try {
-    await nonowner.unsafe(`
-      CREATE FUNCTION public.now() RETURNS timestamptz
-      LANGUAGE plpgsql VOLATILE AS $function$
-      BEGIN
-        INSERT INTO public.stale_now_marker VALUES (true);
-        RETURN pg_catalog.clock_timestamp();
-      END
-      $function$
-    `);
-  } finally {
-    await nonowner.end({ timeout: 1 });
-  }
-  await harness.setup.unsafe(`REVOKE CREATE ON SCHEMA public FROM ${harness.nonowner}`);
-
-  const inventory = await harness.setup<
-    { collision_count: number; owned_by_nonowner: boolean | null }[]
-  >`
-    SELECT count(*)::int AS collision_count,
-      bool_and(r.rolname = ${harness.nonowner}) AS owned_by_nonowner
-    FROM pg_catalog.pg_proc p
-    JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
-    JOIN pg_catalog.pg_roles r ON r.oid = p.proowner
-    WHERE n.nspname = 'public' AND p.proname = 'now'
-      AND pg_catalog.pg_get_function_identity_arguments(p.oid) = ''
-  `;
-  assert.equal(inventory.length, 1);
-  assert.equal(inventory[0]?.collision_count, 1);
-  assert.equal(inventory[0]?.owned_by_nonowner, true);
-
-  const result = await harness.run({ failCallbackAt: 0 });
-  assert.equal(result.outer.ok, true);
-  assert.deepEqual(result.execution, {
-    ok: false,
-    error: { code: 'MIGRATION_EXECUTION_PUBLIC_SCHEMA_REJECTED' },
-  });
-  const marker = await harness.setup<{ count: number }[]>`
-    SELECT count(*)::int AS count FROM public.stale_now_marker
-  `;
-  assert.equal(marker[0]?.count, 0);
-  assert.deepEqual(await harness.snapshot(), {
-    schemaExists: false,
-    tableExists: false,
-    ledgerRows: 0,
-  });
-});
-
-test('rejects an owner-created catalog collision before callbacks', async () => {
-  await harness.reset('schema_absent');
-  await harness.setup.unsafe(`
-    CREATE FUNCTION public.now() RETURNS timestamptz
-    LANGUAGE sql VOLATILE AS 'SELECT pg_catalog.clock_timestamp()'
-  `);
-  const result = await harness.run({ failCallbackAt: 0 });
-  assert.equal(result.outer.ok, true);
-  assert.deepEqual(result.execution, {
-    ok: false,
-    error: { code: 'MIGRATION_EXECUTION_PUBLIC_SCHEMA_REJECTED' },
-  });
-  assert.deepEqual(await harness.snapshot(), {
-    schemaExists: false,
-    tableExists: false,
-    ledgerRows: 0,
-  });
-});
-
-test('allows an owner application object and runs both fixed inventory probes', async () => {
-  await harness.reset('schema_absent');
-  await harness.setup.unsafe('CREATE TABLE public.owner_application_marker (id integer)');
-  const taggedQueries: string[] = [];
-  const result = await harness.run({ taggedQueries });
-  assert.equal(result.outer.ok, true);
-  assert.equal(result.execution?.ok, true, JSON.stringify(result.execution));
-  const probes = taggedQueries.filter(query => query.includes('foreign_owned(object_oid)'));
-  assert.equal(probes.length, 2);
-  const catalogs = [
-    'pg_class',
-    'pg_type',
-    'pg_proc',
-    'pg_operator',
-    'pg_collation',
-    'pg_conversion',
-    'pg_opclass',
-    'pg_opfamily',
-    'pg_ts_config',
-    'pg_ts_dict',
-    'pg_ts_parser',
-    'pg_ts_template',
+test('imports, consumers, unsafe sink and package exports keep the boundary closed', async () => {
+  const forbidden = [
+    /^node:(?:child_process|http|https|net|tls|dns)$/,
+    /(?:^|\/)src\/migrate$/,
+    /p0a0b/i,
+    /sql-executor|migration-runner|provider-client/i,
   ];
-  for (const catalog of catalogs)
-    assert(probes.every(query => query.includes(`pg_catalog.${catalog}`)));
-  assert.deepEqual(
-    taggedQueries
-      .filter(query => query.includes('SET LOCAL search_path'))
-      .map(query => query.trim()),
-    [
-      'SET LOCAL search_path = pg_catalog, pg_temp',
-      'SET LOCAL search_path = public, pg_temp',
-      'SET LOCAL search_path = pg_catalog, pg_temp',
-    ]
-  );
+  const consumers = new Map<string, string[]>([
+    ['readMigrationCallbackPlanState', []],
+    ['readMigrationCorpusState', []],
+    ['testMigrationCallbackPlanWithDependencies', []],
+    ['issueMigrationCallbackPlanCapability', []],
+  ]);
+  const drizzleImports: string[] = [];
+  const unsafeSinks: string[] = [];
+  const paths = [
+    ...PRODUCTION.map(name => join(ROOT, 'src', name)),
+    ...TESTS.map(name => join(ROOT, 'test', name)),
+  ];
+  for (const path of paths) {
+    const contents = await readFile(path, 'utf8');
+    const source = ts.createSourceFile(path, contents, ts.ScriptTarget.Latest, true);
+    if (path.includes('/src/') && contents.includes('.unsafe(')) unsafeSinks.push(path);
+    if (path.includes('/src/migration-ledger-')) assert.doesNotMatch(contents, /\.unsafe\(/);
+    const visit = (node: ts.Node): void => {
+      if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
+        const module = node.moduleSpecifier.text;
+        const fixture = /migration-(?:ledger-inspection|execution)\.support\.ts$/.test(path);
+        const boundary = path.endsWith('migration-execution-boundary.test.ts');
+        const permittedPostgres =
+          module === 'postgres' && (node.importClause?.isTypeOnly || fixture || boundary);
+        assert.equal(
+          forbidden.some(pattern => pattern.test(module)),
+          false,
+          `${path}: ${module}`
+        );
+        assert.equal(module === 'postgres' && !permittedPostgres, false, `${path}: ${module}`);
+        if (module.startsWith('drizzle-orm')) drizzleImports.push(`${path}:${module}`);
+        const names = node.importClause?.namedBindings;
+        if (names && ts.isNamedImports(names))
+          for (const item of names.elements) consumers.get(item.name.text)?.push(path);
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+  }
+  assert.deepEqual(consumers.get('readMigrationCallbackPlanState'), [
+    join(ROOT, 'src', 'migration-ledger-inspection.ts'),
+    join(ROOT, 'src', 'migration-execution-plan.ts'),
+    join(ROOT, 'test', 'migration-callback-boundary.test.ts'),
+    join(ROOT, 'test', 'migration-ledger-inspection.support.ts'),
+    join(ROOT, 'test', 'migration-execution.support.ts'),
+  ]);
+  assert.deepEqual(consumers.get('readMigrationCorpusState'), [
+    join(ROOT, 'src', 'migration-callback-plan.ts'),
+  ]);
+  assert.deepEqual(consumers.get('testMigrationCallbackPlanWithDependencies'), [
+    join(ROOT, 'test', 'migration-callback-plan.test.ts'),
+  ]);
+  assert.deepEqual(consumers.get('issueMigrationCallbackPlanCapability'), [
+    join(ROOT, 'src', 'migration-callback-plan.ts'),
+  ]);
+  assert.deepEqual(unsafeSinks, [join(ROOT, 'src', 'migration-execution-kernel.ts')]);
+  assert.deepEqual(drizzleImports, [
+    `${join(ROOT, 'test', 'migration-callback-plan.test.ts')}:drizzle-orm/pg-proxy/migrator`,
+  ]);
+  const index = await readFile(join(ROOT, 'src', 'index.ts'), 'utf8');
+  for (const boundary of ['migration-callback', 'migration-ledger', 'migration-execution'])
+    assert.equal(index.includes(boundary), false);
 });
 
-test('post-commit unlock failure makes exactly one fixed unlock attempt', async () => {
-  await harness.reset('schema_absent');
-  const taggedQueries: string[] = [];
-  const result = await harness.run({ failUnlock: true, taggedQueries });
-  assert.deepEqual(result.execution, {
-    ok: false,
-    error: { code: 'MIGRATION_EXECUTION_CLEANUP_FAILED' },
-  });
-  assert.equal(taggedQueries.filter(query => query.includes('pg_advisory_unlock')).length, 1);
-  assert.deepEqual(await harness.snapshot(), {
-    schemaExists: true,
-    tableExists: true,
-    ledgerRows: 93,
-  });
-  const changed = await harness.run({ finalPid: -1 });
-  assert(changed.execution && !changed.execution.ok);
-  assert.equal(changed.execution.error.code, 'MIGRATION_EXECUTION_SESSION_CHANGED');
+test('all exact files retain their accepted physical ceilings', async () => {
+  // prettier-ignore
+  const ceilings = [
+    125, 80, 149, 149, 125, 125, 110, 125, 149, 149, 149, 149, 149, 149,
+    149, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149,
+  ];
+  const files = [...PRODUCTION, ...TESTS];
+  for (let index = 0; index < files.length; index += 1) {
+    const folder = index < PRODUCTION.length ? 'src' : 'test';
+    const lines = (await readFile(join(ROOT, folder, files[index]), 'utf8')).split('\n').length - 1;
+    assert.ok(lines <= ceilings[index], `${files[index]}: ${lines} > ${ceilings[index]}`);
+  }
 });
