@@ -1,12 +1,18 @@
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
-
 import {
   startMigrationExecutionHarness,
   type MigrationExecutionHarness,
 } from './migration-execution.support';
-
 let harness: MigrationExecutionHarness;
+const ENTRY_PATH = 'SET LOCAL search_path = pg_catalog, pg_temp';
+const CALLBACK_PATH = 'SET LOCAL search_path = public, pg_temp';
+const POSTCHECK_PATH = 'SET LOCAL search_path = pg_catalog, pg_temp';
+const UNQUALIFIED = /(?<!pg_catalog\.)pg_(?:try_advisory_lock|advisory_unlock|backend_pid)\(/;
+const searchPaths = (queries: string[]) =>
+  queries.filter(query => query.includes('SET LOCAL search_path')).map(query => query.trim());
+const indexOf = (queries: string[], text: string) =>
+  queries.findIndex(query => query.includes(text));
 before(async () => {
   harness = await startMigrationExecutionHarness();
 });
@@ -17,9 +23,13 @@ after(async () => {
 
 test('schema_absent commits the exact plan once or rolls every mutation back', async () => {
   await harness.reset('schema_absent');
-  const committed = await harness.run();
+  const taggedQueries: string[] = [];
+  const committed = await harness.run({ taggedQueries });
+  assert.deepEqual(searchPaths(taggedQueries), [ENTRY_PATH, CALLBACK_PATH, POSTCHECK_PATH]);
+  assert.doesNotMatch(taggedQueries.join('\n'), UNQUALIFIED);
   assert.equal(committed.outer.ok, true);
   assert.equal(committed.execution?.ok, true, `callback ${committed.callbackFailureIndex}`);
+  assert.equal(committed.callbackFailureIndex, undefined);
   assert.deepEqual(committed.execution, {
     ok: true,
     summary: {
@@ -41,12 +51,14 @@ test('schema_absent commits the exact plan once or rolls every mutation back', a
   });
 
   await harness.reset('schema_absent');
-  const rejected = await harness.run({ failCallbackAt: 0 });
+  const failureQueries: string[] = [];
+  const rejected = await harness.run({ failCallbackAt: 0, taggedQueries: failureQueries });
   assert.equal(rejected.outer.ok, true);
   assert.deepEqual(rejected.execution, {
     ok: false,
     error: { code: 'MIGRATION_EXECUTION_CALLBACK_FAILED' },
   });
+  assert.ok(indexOf(failureQueries, 'ROLLBACK') < indexOf(failureQueries, 'pg_advisory_unlock'));
   assert.deepEqual(await harness.snapshot(), {
     schemaExists: false,
     tableExists: false,
@@ -64,7 +76,13 @@ test('executes only the exact pending suffix and is idempotent at all_applied', 
   for (const item of cases) {
     await harness.reset(item.setup);
     if (item.setup === 'table') await harness.fill(item.applied);
-    const result = await harness.run();
+    const taggedQueries: string[] = [];
+    const result = await harness.run({ taggedQueries });
+    const expectedPaths =
+      item.applied === 93
+        ? [ENTRY_PATH, POSTCHECK_PATH]
+        : [ENTRY_PATH, CALLBACK_PATH, POSTCHECK_PATH];
+    assert.deepEqual(searchPaths(taggedQueries), expectedPaths);
     assert.equal(result.outer.ok, true);
     assert(result.execution?.ok);
     assert.equal(result.execution.summary.applied_before, item.applied);
@@ -83,13 +101,15 @@ test('executes only the exact pending suffix and is idempotent at all_applied', 
 });
 
 test('rejects unsafe public, ledger shape and prefix state before callbacks', async () => {
-  await harness.reset('schema_absent');
-  await harness.setup.unsafe(`GRANT CREATE ON SCHEMA public TO ${harness.nonowner}`);
-  const publicAcl = await harness.run();
-  assert.deepEqual(publicAcl.execution, {
-    ok: false,
-    error: { code: 'MIGRATION_EXECUTION_PUBLIC_SCHEMA_REJECTED' },
-  });
+  for (const grantee of [harness.nonowner, 'PUBLIC']) {
+    await harness.reset('schema_absent');
+    await harness.setup.unsafe(`GRANT CREATE ON SCHEMA public TO ${grantee}`);
+    const publicAcl = await harness.run();
+    assert.deepEqual(publicAcl.execution, {
+      ok: false,
+      error: { code: 'MIGRATION_EXECUTION_PUBLIC_SCHEMA_REJECTED' },
+    });
+  }
 
   await harness.reset('table');
   await harness.setup.unsafe('ALTER TABLE drizzle.__drizzle_migrations ADD COLUMN extra text');

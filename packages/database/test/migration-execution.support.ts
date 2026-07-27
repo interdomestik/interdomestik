@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import postgres from 'postgres';
-
 import { readMigrationCallbackPlanState } from '../src/migration-callback-plan-capability';
 import { buildCanonicalMigrationCallbackPlan } from '../src/migration-callback-plan';
 import type {
@@ -10,30 +9,40 @@ import type {
 import { executeMigrationKernel } from '../src/migration-execution-kernel';
 import { authenticCorpus } from './migration-callback.support';
 import { startAdminFixture, type FixtureReceipt } from './admin-connection-preflight.support';
-
 export type MigrationExecutionHarness = Awaited<ReturnType<typeof startMigrationExecutionHarness>>;
 export type MigrationExecutionSetup = 'schema_absent' | 'table_absent' | 'table';
 export type MigrationRunOptions = Readonly<{
   capability?: unknown;
   signal?: AbortSignal;
   failCallbackAt?: number;
+  failUnlock?: boolean;
+  finalPid?: number;
+  taggedQueries?: string[];
 }>;
-
 function instrument(
   sql: MigrationExecutionSql,
-  failAt: number | undefined,
+  options: MigrationRunOptions,
   failed: (index: number) => void
 ): MigrationExecutionSql {
   let callbacks = 0;
   return new Proxy(sql, {
     apply(target, _this, args) {
+      const query = (args[0] as TemplateStringsArray).join(' ');
+      options.taggedQueries?.push(query);
+      if (options.failUnlock && query.includes('pg_advisory_unlock'))
+        throw new Error('INJECTED_UNLOCK_FAILURE');
+      if (
+        options.finalPid !== undefined &&
+        query.trim() === 'SELECT pg_catalog.pg_backend_pid()::int AS pid'
+      )
+        return Promise.resolve([{ pid: options.finalPid }]);
       return Reflect.apply(target, target, args);
     },
     get(target, property, receiver) {
       if (property !== 'unsafe') return Reflect.get(target, property, receiver);
       return (...args: unknown[]) => {
         const index = callbacks++;
-        if (index === failAt) throw new Error('INJECTED_CALLBACK_FAILURE');
+        if (index === options.failCallbackAt) throw new Error('INJECTED_CALLBACK_FAILURE');
         const result = Reflect.apply(
           target.unsafe as unknown as (...items: unknown[]) => unknown,
           target,
@@ -61,7 +70,8 @@ export async function startMigrationExecutionHarness() {
   const nonowner = new URL(fixture.nonownerEnv.DATABASE_URL).username;
   const reset = async (kind: MigrationExecutionSetup): Promise<void> => {
     await setup.unsafe('DROP SCHEMA IF EXISTS drizzle CASCADE');
-    await setup.unsafe(`ALTER SCHEMA public OWNER TO ${owner}`);
+    await setup.unsafe('DROP SCHEMA IF EXISTS public CASCADE');
+    await setup.unsafe(`CREATE SCHEMA public AUTHORIZATION ${owner}`);
     await setup.unsafe('REVOKE CREATE ON SCHEMA public FROM PUBLIC');
     await setup.unsafe(`REVOKE CREATE ON SCHEMA public FROM ${nonowner}`);
     if (kind === 'schema_absent') return;
@@ -73,12 +83,9 @@ export async function startMigrationExecutionHarness() {
   };
   const fill = async (length: number): Promise<void> => {
     for (let index = 0; index < length; index += 1) {
-      const migration = state.migrations[index];
-      assert(migration);
-      await setup`
-        INSERT INTO drizzle.__drizzle_migrations (hash, created_at)
-        VALUES (${migration.hash}, ${migration.folderMillis})
-      `;
+      const end = state.entryOffsets[index + 1] ?? state.callbackItems.length;
+      for (const item of state.callbackItems.slice(state.entryOffsets[index], end))
+        await setup.unsafe(item);
     }
   };
   const snapshot = async () => {
@@ -113,7 +120,7 @@ export async function startMigrationExecutionHarness() {
       async (reserved, sameSignal) => {
         execution = await executeMigrationKernel(
           options.capability ?? capability,
-          instrument(reserved, options.failCallbackAt, index => {
+          instrument(reserved, options, index => {
             callbackFailureIndex = index;
           }),
           sameSignal
@@ -133,17 +140,6 @@ export async function startMigrationExecutionHarness() {
     if (setupError) throw setupError;
     return receipt;
   };
-  return Object.freeze({
-    capability,
-    state,
-    fixture,
-    setup,
-    reset,
-    fill,
-    snapshot,
-    run,
-    owner,
-    nonowner,
-    close,
-  });
+  // prettier-ignore
+  return Object.freeze({ capability, state, fixture, setup, reset, fill, snapshot, run, owner, nonowner, close });
 }
