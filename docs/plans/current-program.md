@@ -2440,6 +2440,77 @@ receipt. P0a2, frozen P0, parent UI03a2 and every unlisted source, test,
 migration, journal, package, workflow, Docker, product, provider and deployment
 surface remain forbidden.
 
+Rev 175 supersedes only the Rev 174/R3 runtime-resume contract. R3 merged
+through docs-only PR `#1453` at canonical main
+`19ae941a49eb933ce2c82d8261ab9d5b9892330e`, and Arben accepted its exact
+13,183-byte runtime receipt at SHA-256
+`e310fce880caae71b55f8057c77b5efa5aa39e3534d38242ed983c6c8d4185ec`.
+The existing sole implementation branch was rebased directly onto that main as
+local head `2056c9642e8234bfd8f0ce4746fc72823feb0dc1`. Its current full patch is
+38,622 bytes / SHA-256
+`ab1d9d319b6333072593519df58aebac291a91fa1c7488babaf4570f7be57c05`;
+its five-path staged R3 delta is 11,975 bytes / SHA-256
+`e6462900085f0e533569978df447422524b5623dcda6222d121ff7421262118e`.
+There is no remote implementation branch or PR.
+
+Diff-scoped security review then confirmed a new executable contradiction
+before branch push: R3's explicit
+`SET LOCAL search_path = public, pg_catalog, pg_temp` allows a stale routine
+created in `public` while a non-owner held `CREATE` to survive later privilege
+revocation and resolve before the trusted catalog routine. The current
+`validatePublicSchema()` proves only current schema owner and ACL posture, and
+the current disposable fixture drops/recreates `public`, so neither proves the
+historical object posture. The broken execution task
+`019fa030-700c-7803-9b02-cc64faa3c7e8` is archived; the implementation
+worktree, branch, head and staged patch remain frozen as evidence. No database,
+migration or security-scan process remains active.
+
+`IDA-DG19-A2a1a1b` R4 is docs/design-gate only. It replaces the callback path
+with fixed `SET LOCAL search_path = public, pg_temp`: PostgreSQL implicitly
+searches omitted `pg_catalog` before the named entries, explicitly named
+`pg_temp` remains last, and `public` remains the first named valid creation
+schema for the authenticated unqualified DDL. Validation and postcheck stay at
+fixed `pg_catalog, pg_temp`. Immediately before the callback transition, the
+kernel must re-prove owner/ACL posture and a fixed qualified catalog inventory
+with zero non-owner-owned resolution-visible objects in `public` and zero
+`public` relation/type/routine/operator/collation/conversion/operator-class,
+operator-family or text-search identities colliding with `pg_catalog`.
+Counts/booleans only may cross that probe; no object names, SQL or dynamic
+identifiers may enter results or errors. The advisory lock coordinates only
+cooperating migration workers: after the repeated probe, any effective
+non-owner `CREATE` capability or ambiguous role membership rejects before the
+callback path; compromise of the trusted owner/superuser boundary is explicitly
+out of scope.
+
+The first R4 runtime action, after exact-file review/acceptance, canonical
+docs-only merge, fresh main/resolver/AI OS proof and a new runtime receipt, is
+test-only. On disposable PostgreSQL 16 it grants a non-owner temporary
+`CREATE`, plants a side-effecting `public.now()`, revokes `CREATE`, and captures
+RED against the unchanged frozen R3 production candidate before any production
+edit. GREEN must reject the stale object before callback execution with no
+marker side effect and total rollback; also reject an owner-created catalog
+collision, admit a non-colliding owner object, prove the probe repeats
+immediately before callbacks, and prove exact
+`pg_catalog, pg_temp → public, pg_temp → pg_catalog, pg_temp` transitions.
+
+The writer map, nine-path/1,150-line/2.5-day ceiling, single outcome and every
+forbidden surface remain unchanged. If the complete stale-object invariant
+cannot fit those paths and ceilings, implementation stops for different
+authority. AI OS observation
+`74c32274f209474e6b05424463498a8c45c69627888d63125fee3354c97785cc`
+passes with repository authority current, active slice none and runtime not
+authorized; Brain/session-integrity diagnostics remain advisory. The repo
+resolver may still identify only `IDA-UI03a2-P0a1a1b`, but R3 runtime authority
+is superseded and grants no resume.
+
+Priority Opus 4.8 review was attempted and blocked with
+`reviewer_no_output_timeout` after 300,643 ms. Approved Sonnet 4.6 fallback
+passed the R4 draft, identified one medium catalog-family completeness gap and
+two low clarifications, then passed the remediated packet with all findings
+resolved and no new blocker, high or medium issue. This reviewer evidence is
+advisory; exact-file acceptance, canonical merge, fresh authority proof and a
+replacement runtime receipt remain mandatory.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the

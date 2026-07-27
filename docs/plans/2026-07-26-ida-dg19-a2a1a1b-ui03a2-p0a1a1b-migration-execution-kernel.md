@@ -11,13 +11,15 @@ last_reviewed: 2026-07-27
 
 # IDA-DG19-A2a1a1b — Same-Session Migration Execution Kernel Gate
 
-> Status: R3 current-authority amendment in review. The accepted R2 packet
-> promoted only `IDA-UI03a2-P0a1a1b`, but focused PostgreSQL 16 proof exposed a
-> callback-search-path contradiction before any branch push or PR. Implementation
-> is paused. R2 runtime authority is superseded for resume purposes until this
-> exact R3 file is reviewed and explicitly accepted, the canonical docs-only
-> amendment merges, clean then-current main resolves only that slice, AI OS is
-> refreshed, and a replacement exact runtime-authority receipt is accepted.
+> Status: R4 current-authority amendment in review. R3 merged through docs-only
+> PR `#1453`, and its replacement runtime receipt authorized one bounded resume,
+> but diff-scoped security review then confirmed that R3's explicit
+> `public, pg_catalog, pg_temp` callback path permits a stale `public` routine to
+> shadow a trusted catalog routine. The implementation task is archived and its
+> sole worktree is frozen. R3 runtime authority is superseded for resume purposes
+> until this exact R4 file is reviewed and explicitly accepted, the canonical
+> docs-only amendment merges, clean then-current main resolves only this slice,
+> AI OS is refreshed, and a new exact runtime-authority receipt is accepted.
 
 ## Decision
 
@@ -42,8 +44,8 @@ runner, any provider contact, or any application/product work.
 - Future implementation: Tier 3 because it would execute schema migrations,
   create administrative ledger objects when absent, hold an advisory lock, and
   depend on database ownership and ACL posture.
-- Current implementation authority: paused; the accepted R2 runtime receipt is
-  superseded for resume purposes by the executable contradiction below.
+- Current implementation authority: paused; the accepted R3 runtime receipt is
+  superseded for resume purposes by the confirmed stale-object collision below.
 - Current database/provider/deployment authority: false.
 
 ## Bound authority and evidence
@@ -93,6 +95,78 @@ unqualified DDL and is already content-hash bound. Qualifying or regenerating it
 would cross the explicit migration/journal forbidden surface and requires a
 different authority decision.
 
+### R4 stop evidence
+
+- R3 merged through docs-only PR `#1453`; canonical `main` and `origin/main`
+  are exact at `19ae941a49eb933ce2c82d8261ab9d5b9892330e`.
+- Arben accepted the exact R3 runtime receipt at 13,183 bytes / SHA-256
+  `e310fce880caae71b55f8057c77b5efa5aa39e3534d38242ed983c6c8d4185ec`.
+  That receipt authorized only the existing implementation branch and
+  worktree, disposable PostgreSQL 16 proof and canonical Z620 pre-push.
+- The candidate was rebased directly onto accepted main as local head
+  `2056c9642e8234bfd8f0ce4746fc72823feb0dc1`, tree
+  `cb211e5312d4df1357b66debf52770de5afa653e`. Its full current patch is
+  38,622 bytes / SHA-256
+  `ab1d9d319b6333072593519df58aebac291a91fa1c7488babaf4570f7be57c05`.
+  The 11,975-byte staged R3 delta is SHA-256
+  `e6462900085f0e533569978df447422524b5623dcda6222d121ff7421262118e`.
+- The sole worktree remains
+  `/Users/arbenlila/development/interdomestik-ida-ui03a2-p0a1a1b-migration-execution-kernel`
+  on `codex/ida-ui03a2-p0a1a1b-migration-execution-kernel`. Five approved
+  paths are staged; there is no unstaged product edit, remote implementation
+  branch or PR. No database, migration or security-scan process remains active.
+- The archived execution task is
+  `019fa030-700c-7803-9b02-cc64faa3c7e8`. Its app-server transport failed with
+  `EPIPE`; the restart could not recover the conversation state. The durable
+  worktree, not the broken task, is the implementation evidence.
+- `validatePublicSchema()` currently proves only schema owner and current
+  `CREATE` ACL posture. The test fixture drops and recreates `public`, so it
+  cannot detect an object created while a non-owner held `CREATE` and retained
+  after that privilege was revoked.
+- Exact-current GPT-5.6 Sol Ultra read-only adjudication confirmed a component
+  blocker: a stale `public.now()` can survive `REVOKE CREATE`, resolve before
+  `pg_catalog.now()` under R3's explicit public-first path, and execute with the
+  privileged migration caller's rights. Current deployed exposure is not
+  established because the kernel has no non-test caller and remains inert.
+- PostgreSQL 16 documents that `pg_catalog` is searched implicitly before named
+  path entries when it is omitted, that explicitly naming it changes its search
+  position, that the first named valid schema remains the creation target, and
+  that revoking schema `CREATE` does not remove existing objects. R4 therefore
+  corrects name resolution and adds a fail-closed stale-object inventory instead
+  of treating current ACL state as historical proof. Primary specification
+  anchors:
+  [search_path](https://www.postgresql.org/docs/16/runtime-config-client.html),
+  [schemas and secure usage](https://www.postgresql.org/docs/16/ddl-schemas.html),
+  and
+  [function resolution](https://www.postgresql.org/docs/16/typeconv-func.html).
+- AI OS observation
+  `74c32274f209474e6b05424463498a8c45c69627888d63125fee3354c97785cc`
+  passes its current-state check with repository authority current,
+  `activeSlice=none` and runtime not authorized. Brain freshness and session
+  integrity drift remain advisory and grant no runtime authority.
+
+This is a contract defect in R3, not permission to expand the writer map or
+rewrite the authenticated migration corpus. The correction must stay inside the
+same four production files, four test/support files and optional deterministic
+size metadata. If a complete stale-object invariant cannot fit that boundary,
+R4 stops for a different authority decision.
+
+### R4 reviewer disposition
+
+- Priority Opus 4.8 was attempted through the bounded no-tools route and blocked
+  with `reviewer_no_output_timeout` after 300,643 ms. It is NON-PASS and is not
+  counted as approval.
+- Approved Sonnet 4.6 fallback completed in 244,011 ms with PASS/no blockers,
+  one medium completeness finding and two low clarifications. R4 expanded
+  collision coverage to every inventoried catalog family, documented the
+  concurrency/trust boundary and defined the marker side effect.
+- Post-remediation Sonnet 4.6 completed in 208,734 ms with PASS. It confirmed
+  all three findings resolved, the corrected PostgreSQL 16 path semantics,
+  fail-closed inventory, test-first RED, writer-map/line-ceiling stop and
+  authority continuity, with no new blocker, high or medium finding.
+- Fable 5 is skipped because access is suspended/unverified. No second-signal
+  model is required while the bounded fallback disposition is clean.
+
 The preserved branch `codex/ida-ui03a2-p0-implementation` is not reusable
 implementation authority. Its single commit `b658dcb…` is based on
 `46878f2b…`, spans thirteen paths, predates the completed prerequisite chain,
@@ -133,7 +207,17 @@ The kernel must:
    statements;
 5. recheck the backend PID and validate through qualified `pg_catalog` reads
    that `public` is the single ordinary schema, is owned by `current_user`, and
-   grants no `CREATE` to any non-owner; retain
+   grants no `CREATE` to any non-owner; also fail closed unless the catalog
+   inventory proves both zero non-`current_user`-owned resolution-visible
+   objects in `public` and zero `public` relation, type, routine, operator,
+   collation, conversion, operator-class/family or text-search-object identities
+   that collide with `pg_catalog`; the ownership inventory must cover the
+   owner-bearing relation, type, routine, operator, collation, conversion,
+   operator-class/family and text-search configuration/dictionary catalogs
+   available on PostgreSQL 16, while the collision inventory must also reject
+   namespace-only text-search parser/template collisions regardless of owner;
+   use only fixed qualified catalog reads, and return counts/booleans rather
+   than names; retain
    `search_path = pg_catalog, pg_temp` throughout validation, plan rebuild,
    ledger inspection and bootstrap; every kernel-owned statement in this phase
    uses fixed `pg_catalog` or `drizzle` qualification, except the fixed
@@ -151,16 +235,19 @@ The kernel must:
 9. derive the pending callback suffix only from the validated applied count
    and `entryOffsets`; never use Drizzle's historical last-created-at-only
    selection;
-10. when the pending suffix is nonempty, immediately before its first callback,
-    and only after every capability, plan, public-schema and ledger-prefix check
-    has passed, transition from the catalog-only validation path to the
+10. when the pending suffix is nonempty, re-run the complete public-schema ACL,
+    owner, stale-object and collision probe immediately before its first
+    callback; only after every capability, plan, public-schema and ledger-prefix
+    check has passed, transition from the catalog-only validation path to the
     callback-only path with fixed
-    `SET LOCAL search_path = public, pg_catalog, pg_temp`; an empty suffix never
-    enters the callback-only path;
+    `SET LOCAL search_path = public, pg_temp`; omitting `pg_catalog` makes
+    PostgreSQL search it implicitly before `public`, while the first named valid
+    schema remains `public` for unqualified object creation and explicitly named
+    `pg_temp` remains last; an empty suffix never enters the callback-only path;
 11. execute each bounded authenticated callback item sequentially through the
     reserved session, checking the in-process `AbortSignal` before and after
     every item without issuing abort-check SQL, then immediately transition with
-    fixed `SET LOCAL search_path = pg_catalog, public, pg_temp` to the
+    fixed `SET LOCAL search_path = pg_catalog, pg_temp` to the
     post-execution validation path before any post-execution catalog, ledger,
     plan or PID validation; when the pending suffix is empty, perform that same
     fixed transition directly from the catalog-only validation path before
@@ -189,15 +276,28 @@ object, all PID/lock/unlock calls are explicitly `pg_catalog`-qualified, and
 the redacted in-process result builder issues no SQL. Cleanup therefore cannot
 resolve a caller-controlled or `public`-shadowed kernel object.
 
-The callback-only `public`-first window is safe only because all of the
-following are simultaneously true: the callback list comes from the genuine
-prototype-plus-`WeakMap` capability; the corpus, offsets, callback items and
-dependency sources are hash-bound and freshly revalidated; no caller input,
-dynamic identifier or arbitrary SQL is accepted; `public` is owned by
-`current_user`; and no non-owner has `CREATE` on `public`. The window begins
-only after those checks and ends immediately after the final callback. All
-kernel-owned catalog and post-execution reads remain qualified and execute
-under a catalog-first validation path.
+The callback-only path is creation-target-first but resolution-safe only because
+all of the following are simultaneously true: PostgreSQL implicitly resolves
+`pg_catalog` before the named `public, pg_temp` entries; `pg_temp` is explicitly
+last; the callback list comes from the genuine prototype-plus-`WeakMap`
+capability; the corpus, offsets, callback items and dependency sources are
+hash-bound and freshly revalidated; no caller input, dynamic identifier or
+arbitrary SQL is accepted; `public` is owned by `current_user`; no non-owner has
+`CREATE` on `public`; and the stale-object/collision inventory passes
+immediately before callback execution. The path begins only after those checks
+and ends immediately after the final callback. All kernel-owned catalog and
+post-execution reads remain qualified and execute under
+`pg_catalog, pg_temp`.
+
+The repeated probe is not a claim that the advisory lock blocks arbitrary
+schema DDL. After the probe, current ACL posture leaves no non-owner able to
+create in `public`; an external connection that can still create must be the
+trusted `current_user`, a superuser or a role able to assume that owner. Those
+administrative identities are outside the non-owner threat boundary and their
+compromise cannot be repaired by search-path ordering. The advisory lock
+coordinates cooperating migration workers only. Any ambiguous role membership,
+effective non-owner `CREATE` capability or catalog result fails closed before
+the callback transition.
 
 ### Exact success summary
 
@@ -226,7 +326,8 @@ Stable codes must distinguish:
 - abort before mutation, during callback execution, or before commit;
 - transaction, timeout, session-lock contention/unlock or session-change
   failure;
-- unsafe `public` schema owner/ACL/search-path posture;
+- unsafe `public` schema owner/ACL/search-path, stale-object or catalog-collision
+  posture;
 - ledger owner, ACL, shape, prefix or post-execution rejection;
 - bootstrap failure;
 - callback execution failure;
@@ -285,12 +386,26 @@ Every new source/test/support file must stay below 150 physical lines. The hard
 allocation is 1,150 changed lines, 2.5 engineering days and one backend
 execution-kernel outcome.
 
+The frozen R3 candidate currently measures 61 lines for
+`migration-execution-bootstrap.ts`, 148 for `migration-execution-kernel.ts`,
+125 for `migration-execution-faults.test.ts`, 147 for
+`migration-execution-kernel.test.ts`, and 141 for
+`migration-execution.support.ts`. R4 must place the fixed inventory in the
+bootstrap module, keep kernel path/revalidation changes within 150 lines, and
+use the existing faults/support test paths without pushing any new or
+substantially refactored source/test/support file above 150. If that allocation
+does not fit after formatting and review, the unchanged writer-map claim fails
+and implementation stops.
+
 ## Test-first and proof plan
 
-The first implementation action is a failing `schema_absent` test proving that
-the authenticated 93-migration plan either commits the exact canonical ledger
-and database state once or leaves neither schema nor ledger after an injected
-callback failure. No production file is edited before that RED receipt.
+The first R4 implementation action, after a separate accepted runtime receipt,
+is test-only: extend the disposable PostgreSQL 16 fixture to grant a non-owner
+temporary `CREATE` on `public`, create a side-effecting `public.now()` owned by
+that role, revoke `CREATE`, and prove the unchanged frozen R3 production
+candidate does not reject it before callback execution. That focused RED receipt
+must show no production edit after R4 authority, redact function body and marker
+details, and clean the disposable database. Only then may production code change.
 
 Focused proof must cover:
 
@@ -301,15 +416,23 @@ Focused proof must cover:
 - extra, reordered, mismatched, malformed or 94th rows rejected before
   callback execution;
 - public/drizzle schema, table, sequence, column ACL and owner violations;
+- create-then-revoke stale `public.now()` owned by a non-owner is rejected before
+  the callback path, with zero marker side effect (no externally observable
+  write from the planted function body) and total rollback;
+- an owner-created catalog-colliding `public` routine is also rejected, while an
+  owner-owned non-colliding application object does not create a false positive;
+- the public-schema stale-object/collision probe runs once during validation and
+  again immediately before the callback-path transition;
 - forged/stale capability, corpus drift and dependency-source drift;
 - exact pending offset and no replay of an applied callback;
 - exact path transitions
-  `pg_catalog, pg_temp → public, pg_catalog, pg_temp → pg_catalog, public, pg_temp`,
-  with the public-first path confined to authenticated callback execution and
-  restored before the first post-execution read;
+  `pg_catalog, pg_temp → public, pg_temp → pg_catalog, pg_temp`, with implicit
+  catalog-first resolution and public as the unqualified creation target only
+  during authenticated callback execution, restored before the first
+  post-execution read;
 - an empty pending suffix never enters the callback-only path; ledger, plan and
   PID checks in steps 12 through 14 are observed only after a direct
-  `pg_catalog, pg_temp → pg_catalog, public, pg_temp` transition to the
+  `pg_catalog, pg_temp → pg_catalog, pg_temp` transition to the
   post-execution validation path;
 - every transaction-local path transition uses fixed `SET LOCAL`, and commit or
   rollback proves no callback or post-execution path leaks into the reserved
@@ -394,20 +517,21 @@ Stop and return to current authority if review shows:
 
 ## Current gate blockers
 
-1. This exact R3 file has not received same-hash architecture and
-   contracts/security review through priority Opus 4.8, or through the approved
-   Sonnet 4.6 fallback if the Opus route is recorded blocked.
-2. Arben has not explicitly accepted this exact R3 path, byte count, SHA-256,
-   amended search-path contract, unchanged writer map/ceilings and sole
+1. Arben has not explicitly accepted this exact R4 path, byte count, SHA-256,
+   corrected search-path contract, stale-object/collision invariant, unchanged
+   writer map/ceilings and sole
    implementation slice.
-3. The canonical docs-only R3 amendment PR has not merged.
-4. Clean then-current main has not been re-proved synchronized and the repo
+2. The canonical docs-only R4 amendment PR has not merged.
+3. Clean then-current main has not been re-proved synchronized and the repo
    resolver has not re-proved exactly `IDA-UI03a2-P0a1a1b`.
-5. AI OS has not been freshly observed and its advisory drift classified
+4. AI OS has not been freshly observed after the R4 merge and its advisory drift classified
    against canonical repo authority.
-6. The R2 implementation/runtime receipt is superseded for resume purposes; a
-   replacement exact receipt does not yet bind accepted R3 and then-current
-   main.
+5. The R3 implementation/runtime receipt is superseded for resume purposes; a
+   replacement exact receipt does not yet bind accepted R4, the frozen
+   worktree/staged-patch identity and then-current main.
+6. The first R4 test-only RED receipt has not proved that the frozen R3
+   production candidate admits the create-then-revoke stale-object fixture
+   without executing any unauthorized production edit.
 
 Until all six are closed, the repo resolver may continue to identify the sole
 promoted `IDA-UI03a2-P0a1a1b` slice, but implementation remains paused. No
