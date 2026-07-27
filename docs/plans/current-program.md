@@ -2676,7 +2676,7 @@ to Z620.
 Production evidence stays on GitHub-hosted Ubuntu. Production build, deploy and
 verify remain on `interdomestik-mac` until a later current-authority decision
 reviews green exact-SHA Z620 staging and rollback-control evidence. The exact
-future repository writer map is eight paths and the external mutation map is
+future repository writer map is nine paths and the external mutation map is
 limited to one non-root repository runner registration/service plus bounded
 dedicated-builder cache reclamation. The pre-claimed `interdomestik-linux`
 label remains untouched so release-candidate and weekly benchmark workflows
@@ -2685,7 +2685,10 @@ Docker service configuration, database, P0a2, provider configuration and
 protected product surfaces remain excluded.
 This docs-only promotion keeps runtime, runner registration, deployment and
 production authority false until the gate merges and a separate exact receipt
-binds clean then-current main.
+binds clean then-current main. R1 is exact at 18,192 UTF-8 bytes and SHA-256
+`7c0a34ccc8fafbf92df7ef8c06f080b73549c4f0f79d87219f17add3dfc2418b`; it
+supersedes only the R0 writer map after first RED execution discovered the
+already-blocking exact-output and deterministic parity contracts.
 
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the

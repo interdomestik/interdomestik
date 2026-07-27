@@ -116,20 +116,21 @@ container image; this gate preserves exact per-job digest/provenance checks but
 does not claim cross-architecture image parity. Moving production to Linux X64
 is the later parity decision.
 
-## Exact Future Repository Writer Map
+## Exact Future Repository Writer Map (R1)
 
-Only these eight repository paths may change:
+Only these nine repository paths may change:
 
 1. `.github/workflows/cd.yml`
 2. `scripts/ci/cd-runner-preflight.mjs` — new
 3. `scripts/ci/cd-runner-preflight.test.mjs` — new
 4. `scripts/ci/cd-runner-contract.test.mjs` — new
 5. `scripts/ci/configure-vercel-gate-url.mjs`
-6. `scripts/ci/configure-vercel-gate-url.test.mjs`
-7. `scripts/ci/cd-deploy-env-scope.test.mjs`
-8. `scripts/repo-size-budget.json` — deterministic sync only
+6. `scripts/ci/cd-deploy-env-scope.test.mjs`
+7. `scripts/ci/workflow-contracts.test.mjs`
+8. `scripts/ci/z620-parity.json` — deterministic digest synchronization only
+9. `scripts/repo-size-budget.json` — deterministic sync only
 
-Any ninth repository path stops implementation for a fresh exact disposition.
+Any tenth repository path stops implementation for a fresh exact disposition.
 New production and test files must stay below 150 lines. The existing
 `cd-deploy-env-scope.test.mjs` must not grow above 150 lines.
 Rollback movement-signal, missing-artifact and staging/production label
@@ -137,6 +138,21 @@ contracts belong in the new `cd-runner-contract.test.mjs`. The existing
 `cd-deploy-env-scope.test.mjs` may only be kept within its ceiling through
 equivalent tightening, not by losing current coverage. The modified
 `configure-vercel-gate-url.mjs` must also remain below 150 lines.
+
+R1 supersedes only the R0 writer map. Test-first execution on exact merged main
+proved that R0 omitted two already-blocking repository contracts:
+
+- `workflow-contracts.test.mjs` has a second exact `deploy-staging.outputs`
+  `deepEqual` that must gain the same required `alias_moved` output; and
+- `z620-parity.json` fails closed whenever `cd.yml` changes and therefore must
+  receive the deterministic reviewed digest.
+
+The unused R0 allowance for `configure-vercel-gate-url.test.mjs` is removed.
+The resulting map grows from eight to nine actual implementation paths, not
+ten. The initial `security:guard` also proved that legacy `cd.yml` could not
+grow above its 348-line base. The implementation compacted equivalent YAML
+only and reached 347 lines with Prettier, modularity and focused contracts
+green; no modularity baseline or tenth implementation path is admitted.
 
 ## Exact External Mutation Map
 
@@ -349,6 +365,6 @@ This docs-only gate sets:
 - `production_authorized:false`
 
 After this exact gate is merged and the resolver selects only `IDA-CD02`, a
-separate exact runtime receipt may authorize the eight-path repository map and
+separate exact runtime receipt may authorize the nine-path repository map and
 the six-item external mutation map. The next active governed implementation
 goal is exactly one canonical tracker slice: `IDA-CD02`.
