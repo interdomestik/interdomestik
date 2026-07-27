@@ -2398,6 +2398,48 @@ UI03a2, source/tests before runtime authority, any database/provider contact,
 proxy/routes/auth/session/tenancy/RLS, product UI, billing and deployment remain
 forbidden.
 
+Rev 174 supersedes only the Rev 173 runtime-resume contract. Focused Z620
+PostgreSQL 16 proof against the clean local implementation candidate
+`9b6e274b6b5bffa08ff6ef6296369a20b9da4457` exposed an executable
+search-path contradiction before branch push or PR: the first two canonical
+callbacks are qualified `CREATE TYPE "public"...` statements and pass, while
+callback index `2`, the first unqualified `CREATE TABLE "account"...`, fails
+under R2's `pg_catalog, public, pg_temp` callback path. The redacted
+`MIGRATION_EXECUTION_CALLBACK_FAILED` result rolled back the transaction. The
+candidate remains clean in its parked worktree, with no remote branch and no
+PR; it is evidence only and receives no edit while the authority amendment is
+open.
+
+`IDA-DG19-A2a1a1b` R3 now proposes one bounded correction without expanding
+the implementation writer map, ceilings, outcome or successor authority:
+retain `pg_catalog, pg_temp` through qualified validation, authenticated plan
+rebuild, ledger inspection and bootstrap; after proving `public` ownership and
+no non-owner `CREATE`, use `public, pg_catalog, pg_temp` only for execution of
+the hash-bound callback items; and transition to
+`pg_catalog, public, pg_temp` before post-execution catalog, ledger, plan and
+PID validation. Every in-transaction transition uses fixed `SET LOCAL`; an
+empty suffix skips the callback-only path and transitions directly to the
+post-execution validation path. All kernel-owned bootstrap, PID, lock, unlock,
+catalog and ledger statements stay fixed and qualified as defined by the gate;
+abort checks are in-process and issue no SQL. The canonical migration
+corpus/journal stays untouched.
+
+Fresh clean-main proof binds `main == origin/main` at
+`7fabf26ede0420456857883860404834848dc279`; the repo resolver still selects
+only `IDA-UI03a2-P0a1a1b`. AI OS observation
+`984a9fdd7c3d41b06d2dd5d3fcf7237775004499864989ea92e73ace3bc32ede`
+passes with authority current; its active-none/runtime-unauthorized result and
+session-integrity drift remain advisory and grant no runtime authority.
+
+Implementation is paused. The R2 runtime receipt is superseded for resume
+purposes. Resume requires exact-current priority Opus 4.8 R3 review, or the
+approved Sonnet 4.6 fallback when Opus is recorded blocked; Arben's explicit
+acceptance of the final R3 bytes/hash; canonical docs-only amendment merge;
+fresh clean-main resolver and AI OS proof; and a replacement exact runtime
+receipt. P0a2, frozen P0, parent UI03a2 and every unlisted source, test,
+migration, journal, package, workflow, Docker, product, provider and deployment
+surface remain forbidden.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the

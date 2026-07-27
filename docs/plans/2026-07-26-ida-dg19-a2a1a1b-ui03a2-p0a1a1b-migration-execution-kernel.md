@@ -6,16 +6,18 @@ slice: IDA-DG19-A2a1a1b
 proposed_implementation_slice: IDA-UI03a2-P0a1a1b
 owner: platform + security + database + qa
 date: 2026-07-26
-last_reviewed: 2026-07-26
+last_reviewed: 2026-07-27
 ---
 
 # IDA-DG19-A2a1a1b — Same-Session Migration Execution Kernel Gate
 
-> Status: exact current-authority proposal only. This packet promotes no
-> implementation. `IDA-UI03a2-P0a1a1b` remains blocked until this exact file is
-> reviewed and explicitly accepted, the canonical docs-only gate merges, clean
-> then-current main resolves only that slice, AI OS is refreshed, and a separate
-> exact runtime-authority receipt is accepted.
+> Status: R3 current-authority amendment in review. The accepted R2 packet
+> promoted only `IDA-UI03a2-P0a1a1b`, but focused PostgreSQL 16 proof exposed a
+> callback-search-path contradiction before any branch push or PR. Implementation
+> is paused. R2 runtime authority is superseded for resume purposes until this
+> exact R3 file is reviewed and explicitly accepted, the canonical docs-only
+> amendment merges, clean then-current main resolves only that slice, AI OS is
+> refreshed, and a replacement exact runtime-authority receipt is accepted.
 
 ## Decision
 
@@ -40,7 +42,8 @@ runner, any provider contact, or any application/product work.
 - Future implementation: Tier 3 because it would execute schema migrations,
   create administrative ledger objects when absent, hold an advisory lock, and
   depend on database ownership and ACL posture.
-- Current implementation authority: false.
+- Current implementation authority: paused; the accepted R2 runtime receipt is
+  superseded for resume purposes by the executable contradiction below.
 - Current database/provider/deployment authority: false.
 
 ## Bound authority and evidence
@@ -57,6 +60,38 @@ runner, any provider contact, or any application/product work.
 | Drizzle source      | Current locked and hash-bound `pg-core/dialect` source; current official source documentation confirms one transaction around all pending PostgreSQL migrations and ledger inserts. | Design input; the repo's authenticated sources and tests remain stronger.                                                    |
 | AI OS               | Observation `1407fb1205cc6ae5204096597e7f7d8b35a4d8200fa9d7bed3fedde0bdde670a`: authority current, active none, runtime not authorized.                                             | Advisory and aligned.                                                                                                        |
 | Brain/Obsidian/Wiki | Brain snapshot freshness and session integrity drift are NON-PASS; Obsidian/Wiki remain orientation only.                                                                           | Never product or runtime authority.                                                                                          |
+
+### R3 revalidation evidence
+
+- R2 merged through docs-only PR `#1452`; canonical main and `origin/main` are
+  exact at `7fabf26ede0420456857883860404834848dc279`.
+- Fresh repo resolution is `ready` with exactly one active implementation slice,
+  `IDA-UI03a2-P0a1a1b`. The resolver's heuristic tier is non-authoritative; the
+  accepted gate's Tier 3 classification remains binding.
+- AI OS observation
+  `984a9fdd7c3d41b06d2dd5d3fcf7237775004499864989ea92e73ace3bc32ede`
+  passes its current-state check with repo authority current. Its
+  `activeSlice=none`, `runtime=not_authorized` result is advisory adapter drift
+  against canonical repo authority and correctly grants no runtime permission.
+- The sole implementation candidate is retained locally and clean at
+  `9b6e274b6b5bffa08ff6ef6296369a20b9da4457`, with no remote branch and no PR.
+  Its exact nine-path patch remains evidence only while this amendment is open.
+- Focused Z620 PostgreSQL 16 proof showed that callback items `0` and `1`, the
+  fully qualified `CREATE TYPE "public"...` statements from migration `0000`,
+  succeed. Callback item `2`, the first unqualified
+  `CREATE TABLE "account"...`, then fails under the R2 callback path
+  `pg_catalog, public, pg_temp`. The kernel returns only the redacted
+  `MIGRATION_EXECUTION_CALLBACK_FAILED` code and the transaction rolls back.
+- The focused rerun recorded two passing and two failing assertions, identified
+  callback index `2`, and left no task container. Z620 remains supporting
+  pre-push evidence, not merge authority; P8 infrastructure certification is not
+  repeated.
+
+This is a contract defect in R2, not permission to rewrite the authenticated
+migration corpus or journal. The canonical 93-migration corpus contains
+unqualified DDL and is already content-hash bound. Qualifying or regenerating it
+would cross the explicit migration/journal forbidden surface and requires a
+different authority decision.
 
 The preserved branch `codex/ida-ui03a2-p0-implementation` is not reusable
 implementation authority. Its single commit `b658dcb…` is based on
@@ -86,19 +121,24 @@ The kernel must:
 1. authenticate the exact capability with the existing prototype-plus-`WeakMap`
    `readMigrationCallbackPlanState` reader and reject a forged or stale value
    before issuing SQL;
-2. on the reserved session, call fixed
-   `pg_try_advisory_lock(673167055, -773281837)` and record the backend PID in
-   the same statement; contention fails immediately before `BEGIN`;
+2. on the reserved session, call fixed, qualified
+   `pg_catalog.pg_try_advisory_lock(673167055, -773281837)` and record
+   `pg_catalog.pg_backend_pid()` in the same statement; contention fails
+   immediately before `BEGIN`;
 3. while that session lock is held, begin one `REPEATABLE READ` read-write
    transaction, so its first MVCC snapshot cannot predate lock acquisition;
 4. set `search_path = pg_catalog, pg_temp`, `lock_timeout = '10s'`,
    `statement_timeout = '60s'`, and
    `idle_in_transaction_session_timeout = '30s'` with fixed `SET LOCAL`
    statements;
-5. recheck the backend PID, validate through qualified `pg_catalog` reads that
-   `public` is the single ordinary schema, is owned by `current_user`, and
-   grants no `CREATE` to any non-owner, then and only then set
-   `search_path = pg_catalog, public, pg_temp`;
+5. recheck the backend PID and validate through qualified `pg_catalog` reads
+   that `public` is the single ordinary schema, is owned by `current_user`, and
+   grants no `CREATE` to any non-owner; retain
+   `search_path = pg_catalog, pg_temp` throughout validation, plan rebuild,
+   ledger inspection and bootstrap; every kernel-owned statement in this phase
+   uses fixed `pg_catalog` or `drizzle` qualification, except the fixed
+   `CREATE SCHEMA drizzle` target, creates no `public` object and accepts no
+   dynamic identifier;
 6. while the lock and transaction are held, rebuild the authentic corpus and
    callback plan and require exact equality with the input plan digest,
    migration metadata, callback offsets, callback items and dependency hashes;
@@ -111,15 +151,29 @@ The kernel must:
 9. derive the pending callback suffix only from the validated applied count
    and `entryOffsets`; never use Drizzle's historical last-created-at-only
    selection;
-10. execute each bounded callback item sequentially through the reserved
-    session, checking abort before and after every item;
-11. re-read the ledger and require `all_applied` with all 93 exact ordered
-    hash/timestamp pairs;
-12. rebuild and compare the corpus/callback plan again after execution and
+10. when the pending suffix is nonempty, immediately before its first callback,
+    and only after every capability, plan, public-schema and ledger-prefix check
+    has passed, transition from the catalog-only validation path to the
+    callback-only path with fixed
+    `SET LOCAL search_path = public, pg_catalog, pg_temp`; an empty suffix never
+    enters the callback-only path;
+11. execute each bounded authenticated callback item sequentially through the
+    reserved session, checking the in-process `AbortSignal` before and after
+    every item without issuing abort-check SQL, then immediately transition with
+    fixed `SET LOCAL search_path = pg_catalog, public, pg_temp` to the
+    post-execution validation path before any post-execution catalog, ledger,
+    plan or PID validation; when the pending suffix is empty, perform that same
+    fixed transition directly from the catalog-only validation path before
+    step 12;
+12. under the post-execution validation path, re-read the ledger and require
+    `all_applied` with all 93 exact ordered hash/timestamp pairs;
+13. rebuild and compare the corpus/callback plan again after execution and
     before commit, so source or corpus drift rolls back the transaction;
-13. recheck backend PID and abort state, commit once, call fixed
-    `pg_advisory_unlock(673167055, -773281837)` on that same PID, and require
-    exactly one successful unlock before returning a frozen redacted summary.
+14. recheck backend PID through qualified `pg_catalog.pg_backend_pid()`, recheck
+    abort state, commit once, call fixed qualified
+    `pg_catalog.pg_advisory_unlock(673167055, -773281837)` on that same PID, and
+    require exactly one successful unlock before returning a frozen redacted
+    summary.
 
 Any failure after `BEGIN` rolls back. Every path after successful lock
 acquisition attempts exactly one fixed unlock, including `BEGIN`, rollback and
@@ -127,6 +181,23 @@ commit failures. Rollback or unlock failure dominates the original error as
 `MIGRATION_EXECUTION_CLEANUP_FAILED`; the P0a0b wrapper then closes the reserved
 client, which releases any surviving session lock. No partial success or pending
 suffix is returned.
+
+If a callback or its post-item abort check fails before the success transition,
+the callback-only path remains local to the doomed transaction. The failure
+branch issues `ROLLBACK` before unlock; rollback and commit resolve no schema
+object, all PID/lock/unlock calls are explicitly `pg_catalog`-qualified, and
+the redacted in-process result builder issues no SQL. Cleanup therefore cannot
+resolve a caller-controlled or `public`-shadowed kernel object.
+
+The callback-only `public`-first window is safe only because all of the
+following are simultaneously true: the callback list comes from the genuine
+prototype-plus-`WeakMap` capability; the corpus, offsets, callback items and
+dependency sources are hash-bound and freshly revalidated; no caller input,
+dynamic identifier or arbitrary SQL is accepted; `public` is owned by
+`current_user`; and no non-owner has `CREATE` on `public`. The window begins
+only after those checks and ends immediately after the final callback. All
+kernel-owned catalog and post-execution reads remain qualified and execute
+under a catalog-first validation path.
 
 ### Exact success summary
 
@@ -232,6 +303,24 @@ Focused proof must cover:
 - public/drizzle schema, table, sequence, column ACL and owner violations;
 - forged/stale capability, corpus drift and dependency-source drift;
 - exact pending offset and no replay of an applied callback;
+- exact path transitions
+  `pg_catalog, pg_temp → public, pg_catalog, pg_temp → pg_catalog, public, pg_temp`,
+  with the public-first path confined to authenticated callback execution and
+  restored before the first post-execution read;
+- an empty pending suffix never enters the callback-only path; ledger, plan and
+  PID checks in steps 12 through 14 are observed only after a direct
+  `pg_catalog, pg_temp → pg_catalog, public, pg_temp` transition to the
+  post-execution validation path;
+- every transaction-local path transition uses fixed `SET LOCAL`, and commit or
+  rollback proves no callback or post-execution path leaks into the reserved
+  session;
+- every kernel-owned bootstrap, PID, lock, unlock, catalog and ledger statement
+  satisfies the fixed-identifier/qualification contract, while callback failure
+  proves rollback occurs before qualified unlock without error-path SQL under
+  an attacker-resolvable name;
+- the canonical migration `0000` callback sequence proves qualified callback
+  items `0` and `1` and unqualified callback item `2` execute under the
+  callback-only path, closing the focused Z620 RED contradiction;
 - failure at the first, middle and last pending item with total rollback;
 - abort at pre-BEGIN, pre-bootstrap, mid-callback and pre-commit boundaries;
 - advisory-lock contention, statement timeout, session change and rollback
@@ -305,13 +394,22 @@ Stop and return to current authority if review shows:
 
 ## Current gate blockers
 
-1. This exact file has not received same-hash architecture and
-   contracts/security review.
-2. Arben has not explicitly accepted this exact path, byte count, SHA-256,
-   writer map, ceilings and sole prospective slice.
-3. The canonical docs-only promotion PR has not merged.
-4. A separate implementation/runtime receipt does not exist.
+1. This exact R3 file has not received same-hash architecture and
+   contracts/security review through priority Opus 4.8, or through the approved
+   Sonnet 4.6 fallback if the Opus route is recorded blocked.
+2. Arben has not explicitly accepted this exact R3 path, byte count, SHA-256,
+   amended search-path contract, unchanged writer map/ceilings and sole
+   implementation slice.
+3. The canonical docs-only R3 amendment PR has not merged.
+4. Clean then-current main has not been re-proved synchronized and the repo
+   resolver has not re-proved exactly `IDA-UI03a2-P0a1a1b`.
+5. AI OS has not been freshly observed and its advisory drift classified
+   against canonical repo authority.
+6. The R2 implementation/runtime receipt is superseded for resume purposes; a
+   replacement exact receipt does not yet bind accepted R3 and then-current
+   main.
 
-Until all four are closed, resolver state must remain
-`blocked_requires_current_authority`, `activeSlice=null`, and no implementation
-branch/worktree, database, provider or deployment action is authorized.
+Until all six are closed, the repo resolver may continue to identify the sole
+promoted `IDA-UI03a2-P0a1a1b` slice, but implementation remains paused. No
+implementation edit, branch push, PR, database/provider contact or deployment
+action is authorized by this amendment.
