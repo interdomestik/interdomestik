@@ -2664,6 +2664,29 @@ authorized. Fresh current-authority/design-gate selection is required before
 P0a2 or any follow-on implementation starts. Detailed evidence is recorded in
 `docs/plans/2026-07-27-ida-ui03a2-p0a1a1b-closeout.md`.
 
+Rev 179 supersedes the Rev 178 terminal no-promotion sentence. Arben's
+2026-07-27 instruction accepts the staged resource split recorded in
+`docs/plans/2026-07-27-ida-cd-dg02-z620-staging-runner-current-authority.md`.
+The next active governed implementation goal is exactly one canonical tracker
+slice: `IDA-CD02`, a Tier-3 runner/CD infrastructure slice that registers the
+HP Z620 as exclusive `interdomestik-z620-staging` and moves only `build-staging`,
+`deploy-staging`, `e2e-staging` and `rollback-staging-alias` from the Mac runner
+to Z620.
+
+Production evidence stays on GitHub-hosted Ubuntu. Production build, deploy and
+verify remain on `interdomestik-mac` until a later current-authority decision
+reviews green exact-SHA Z620 staging and rollback-control evidence. The exact
+future repository writer map is eight paths and the external mutation map is
+limited to one non-root repository runner registration/service plus bounded
+dedicated-builder cache reclamation. The pre-claimed `interdomestik-linux`
+label remains untouched so release-candidate and weekly benchmark workflows
+cannot schedule on this runner. PostgreSQL, Supabase, Forgejo, tunnels, backups,
+Docker service configuration, database, P0a2, provider configuration and
+protected product surfaces remain excluded.
+This docs-only promotion keeps runtime, runner registration, deployment and
+production authority false until the gate merges and a separate exact receipt
+binds clean then-current main.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
