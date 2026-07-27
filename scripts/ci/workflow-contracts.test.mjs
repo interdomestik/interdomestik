@@ -32,7 +32,6 @@ function normalizeNeeds(needs) {
   if (Array.isArray(needs)) {
     return needs;
   }
-
   if (typeof needs === 'string') {
     return [needs];
   }
@@ -494,7 +493,7 @@ test('V3 onboarding and env docs describe Paddle-only runtime and Vercel deploym
     /NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY|STRIPE_SECRET_KEY|STRIPE_WEBHOOK_SECRET/
   );
 });
-
+// prettier-ignore
 test('CD builds distinct staging and production artifacts with explicit Supabase environment separation', () => {
   const cdWorkflowSource = fs.readFileSync(path.join(rootDir, '.github/workflows/cd.yml'), 'utf8');
   const cdWorkflow = readWorkflow('.github/workflows/cd.yml');
@@ -531,6 +530,7 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   assert.deepEqual(normalizeNeeds(deployStagingJob.needs), ['build-staging']);
   assert.equal(deployStagingJob['timeout-minutes'], 25);
   assert.deepEqual(deployStagingJob.outputs, {
+    alias_moved: '${{ steps.vercel.outputs.alias_moved }}',
     base_url: '${{ steps.vercel.outputs.base_url }}',
     hostname: '${{ steps.vercel.outputs.hostname }}',
     gate_base_url: '${{ steps.vercel.outputs.gate_base_url }}',

@@ -68,15 +68,25 @@ async function writeRollback(receipt, outcome, error) {
   });
 }
 
-async function guardRollback() {
+export async function guardRollback() {
   let receipt = { alias: state.CANONICAL_STAGING_ALIAS };
   try {
     receipt = await readPreimage();
     if (!receipt.aliasMoved) await writeRollback(receipt, 'not-required');
     process.stdout.write(`should_restore=${receipt.aliasMoved}\n`);
+    return receipt.aliasMoved;
   } catch (error) {
-    await writeRollback(receipt, 'failed', error);
-    throw error;
+    if (error?.code === 'ENOENT' && process.env.STAGING_ALIAS_MOVED_SIGNAL !== 'true') {
+      await writeRollback(receipt, 'not-required');
+      process.stdout.write('should_restore=false\n');
+      return false;
+    }
+    const failure =
+      error?.code === 'ENOENT'
+        ? new Error('confirmed alias movement has no usable staging preimage receipt')
+        : error;
+    await writeRollback(receipt, 'failed', failure);
+    throw failure;
   }
 }
 
