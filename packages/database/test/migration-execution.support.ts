@@ -44,6 +44,7 @@ function instrument(
     get(target, property, receiver) {
       if (property !== 'unsafe') return Reflect.get(target, property, receiver);
       return (...args: unknown[]) => {
+        options.taggedQueries?.push(String(args[0]));
         const index = callbacks++;
         if (index === options.failCallbackAt) throw new Error('INJECTED_CALLBACK_FAILURE');
         const result = Reflect.apply(

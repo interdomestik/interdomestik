@@ -1,9 +1,7 @@
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
-import {
-  startMigrationExecutionHarness,
-  type MigrationExecutionHarness,
-} from './migration-execution.support';
+// prettier-ignore
+import { startMigrationExecutionHarness, type MigrationExecutionHarness } from './migration-execution.support';
 let harness: MigrationExecutionHarness;
 const ENTRY_PATH = 'SET LOCAL search_path = pg_catalog, pg_temp';
 const CALLBACK_PATH = 'SET LOCAL search_path = public, pg_temp';
@@ -26,6 +24,8 @@ test('schema_absent commits the exact plan once or rolls every mutation back', a
   const taggedQueries: string[] = [];
   const committed = await harness.run({ taggedQueries });
   assert.deepEqual(searchPaths(taggedQueries), [ENTRY_PATH, CALLBACK_PATH, POSTCHECK_PATH]);
+  const reset = indexOf(taggedQueries, 'RESET statement_timeout');
+  assert.ok(indexOf(taggedQueries.slice(reset + 1), "SET LOCAL statement_timeout = '60s'") >= 0);
   assert.doesNotMatch(taggedQueries.join('\n'), UNQUALIFIED);
   assert.equal(committed.outer.ok, true);
   assert.equal(committed.execution?.ok, true, `callback ${committed.callbackFailureIndex}`);

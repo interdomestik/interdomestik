@@ -77,7 +77,11 @@ async function runTransaction(state: ExecutionState, sql: MigrationExecutionSql,
       stage = 'callback';
       await checked(signal, () => sql`SET LOCAL search_path = public, pg_temp`);
     }
-    for (const item of callbacks) await checked(signal, () => sql.unsafe(item));
+    for (const item of callbacks) {
+      await checked(signal, () => sql.unsafe(item));
+      // prettier-ignore
+      if (/^\s*RESET\s+statement_timeout\s*;\s*$/iu.test(item)) await checked(signal, () => sql`SET LOCAL statement_timeout = '60s'`);
+    }
     stage = 'postcheck';
     await checked(signal, () => sql`SET LOCAL search_path = pg_catalog, pg_temp`);
     if ((await checked(signal, () => inspectMigrationLedgerCatalog(sql))) !== 'table_present') throw new MigrationExecutionFault('MIGRATION_EXECUTION_POSTCHECK_FAILED');
