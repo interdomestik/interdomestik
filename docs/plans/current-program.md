@@ -2625,6 +2625,45 @@ waiting writer commits. PR `#1455` must remain unmerged through integrated
 focused/PG15/PG16/Z620/Phase-C/security/current-head review evidence and one
 final human merge approval.
 
+Rev 178 closeout supersedes the Rev 177 active implementation and resume
+contract. `IDA-UI03a2-P0a1a1b` completed through PR `#1455`, final
+implementation head `430bd5a0a0ae2d59c621e317af17a00e750357f6`, and squash
+merge `46e5e00c4f968edd2eeb7e5aed37b94dc5674552`. The merged internal
+same-session kernel verifies the canonical Drizzle corpus, plan and ledger,
+executes the authenticated suffix atomically, coordinates cooperating readers
+and writers with the accepted advisory-lock graph, preserves the version-aware
+PostgreSQL 15/16 role probe and fixed search-path/collision defenses, rolls back
+on failure, dominates cleanup errors, redacts diagnostics, and restores its
+60-second execution timeout after migration `0062` resets it.
+
+Focused migration proof passed `30/30`; type-check, modularity, repository-size,
+migration-journal and `pnpm security:guard` proof passed. Exact-head CI, PR E2E,
+Pilot Gate, CodeQL, gitleaks, pnpm-audit, Dependency Review, OSV, Semgrep,
+SonarCloud, reviewdog, commitlint, Vercel preview and `pr-finalizer` were green,
+Sonar reported zero new issues, and all actionable review threads were resolved
+before explicit human merge approval. The first Docker-backed GitHub Actions
+attempt hit an external image-pull failure; its unchanged-head rerun passed. No
+Codex Security diff scan is claimed.
+
+Post-merge CD run `30297612032` built the staging image and attestations, then
+failed during the local Vercel prebuild on the Mac runner with `ENOSPC` before
+deploy or canonical-alias mutation. No alias preimage existed, rollback restored
+nothing, and all production jobs remained skipped. This is a separately
+governed runner/CD residual; it is not a kernel defect and grants no P0a2 or
+deployment authority.
+
+The kernel remains inert and is not the complete legacy-to-target architecture
+migration: it has no public caller, production command, package/workflow/Docker
+wiring, provider contact or deployment authority. P0a2 retains the permanent
+PostgreSQL 15/16 executable matrix, distinct least-privilege runtime-role
+fixture, ownership/default-ACL manifest, seed/runtime propagation, workflow and
+Docker integration, and any public internal runner. No replacement
+implementation slice is promoted by this closeout. Expected resolver state is
+`blocked_requires_current_authority`, `activeSlice=null`, runtime not
+authorized. Fresh current-authority/design-gate selection is required before
+P0a2 or any follow-on implementation starts. Detailed evidence is recorded in
+`docs/plans/2026-07-27-ida-ui03a2-p0a1a1b-closeout.md`.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
