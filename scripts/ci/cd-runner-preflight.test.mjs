@@ -8,6 +8,7 @@ import {
   GIB,
   evaluateDedicatedBuilderInspection,
   evaluateRunnerPreflight,
+  installStagingIpv4Dns,
   pruneDedicatedBuilder,
   verifyDedicatedBuilder,
 } from './cd-runner-preflight.mjs';
@@ -69,6 +70,21 @@ test('enforces the 8 GiB available-memory floor', () => {
     () => evaluateRunnerPreflight(ready({ availableMemoryBytes: 8 * GIB - 1 })),
     /available memory.*8 GiB/u
   );
+});
+
+test('forces IPv4 DNS only for the opted-in staging deploy process', () => {
+  const calls = [];
+  const dnsApi = {
+    lookup: (hostname, options, callback) => calls.push({ hostname, options, callback }),
+  };
+  assert.equal(installStagingIpv4Dns({}, dnsApi), false);
+  assert.equal(installStagingIpv4Dns({ INTERDOMESTIK_VERCEL_IPV4_ONLY: '1' }, dnsApi), true);
+  const callback = () => {};
+  dnsApi.lookup('api.vercel.com', { all: true }, callback);
+  dnsApi.lookup('vercel.com', callback);
+  // prettier-ignore
+  assert.deepEqual(calls[0], { hostname: 'api.vercel.com', options: { all: true, family: 4 }, callback });
+  assert.deepEqual(calls[1], { hostname: 'vercel.com', options: { family: 4 }, callback });
 });
 
 test('publishes only the bounded dedicated-builder prune command', () => {
