@@ -46,6 +46,27 @@ test('preflights every staging job directly after checkout and bounds heavy jobs
   assert.equal(step(cd.jobs['build-staging'], 'Prune stale dedicated build cache'), undefined);
 });
 
+test('generates staging image metadata offline from exact trusted inputs', () => {
+  const build = cd.jobs['build-staging'];
+  const metadata = step(build, 'Generate deterministic image metadata');
+  assert.match(metadata.run, /set -euo pipefail/u);
+  assert.match(metadata.run, /GITHUB_SHA.*\^\[a-f0-9\]\{40\}\$/u);
+  assert.match(metadata.run, /REGISTRY.*ghcr\.io/u);
+  assert.match(metadata.run, /IMAGE_NAME.*GITHUB_REPOSITORY/u);
+  assert.match(metadata.run, /GITHUB_SERVER_URL.*https:\/\/github\.com/u);
+  assert.match(metadata.run, /tags=.*REGISTRY.*IMAGE_NAME.*version/u);
+  assert.match(metadata.run, /org\.opencontainers\.image\.(source|revision|version)/u);
+  assert.match(metadata.run, /GITHUB_OUTPUT/u);
+  assert.equal(
+    build.steps.some(candidate => /docker\/metadata-action@/u.test(candidate.uses || '')),
+    false
+  );
+  assert.match(
+    step(cd.jobs['build-production'], 'Extract metadata (tags, labels) for Docker').uses,
+    /^docker\/metadata-action@[a-f0-9]{40}$/u
+  );
+});
+
 test('propagates alias movement independently and always reaches the local guard', () => {
   const deploy = cd.jobs['deploy-staging'];
   const rollback = cd.jobs['rollback-staging-alias'];
