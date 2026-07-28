@@ -1,10 +1,10 @@
 const { TIMEOUTS } = require('./config.ts');
-const { gotoWithTransientRetry, loginAs, normalizeBaseUrl, sleep } = require('./shared.ts');
+const { gotoWithTransientRetry } = require('./navigation-retry.ts');
+const { loginAs, normalizeBaseUrl, sleep } = require('./shared.ts');
 const {
   assertTrustedReleaseGateProbeOrigin,
   normalizeTrustedVercelDeploymentBaseUrl,
 } = require('./url-policy.ts');
-
 const REACHABILITY_RETRY_ATTEMPTS = 3;
 const REACHABILITY_RETRY_DELAY_MS = 1_000;
 

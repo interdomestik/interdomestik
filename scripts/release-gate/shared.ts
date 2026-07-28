@@ -9,17 +9,7 @@ const {
   postLoginRequestWithTrustedRedirect,
   resolveForwardedForIp,
 } = require('./login-request-guard.ts');
-
-const TRANSIENT_NAVIGATION_ERROR_PATTERNS = [
-  /ERR_CONNECTION_REFUSED/i,
-  /ECONNREFUSED/i,
-  /ETIMEDOUT/i,
-  /Timeout \d+ms exceeded/i,
-  /ECONNRESET/i,
-  /ENOTFOUND/i,
-  /EAI_AGAIN/i,
-  /socket hang up/i,
-];
+const { gotoWithTransientRetry, isTransientNavigationError } = require('./navigation-retry.ts');
 
 function normalizeBaseUrl(baseUrl) {
   return baseUrl.replace(/\/+$/, '');
@@ -407,29 +397,6 @@ function markerSummary(route, markerState) {
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function isTransientNavigationError(raw) {
-  const message = String(raw || '')
-    .replaceAll(/\s+/g, ' ')
-    .trim();
-  if (!message) return false;
-  return TRANSIENT_NAVIGATION_ERROR_PATTERNS.some(pattern => pattern.test(message));
-}
-
-async function gotoWithTransientRetry({ navigate, maxAttempts = 4, delayMs = 1_000 }) {
-  let attempt = 0;
-  while (attempt < maxAttempts) {
-    attempt += 1;
-    try {
-      return await navigate();
-    } catch (error) {
-      if (!isTransientNavigationError(error?.message || error) || attempt >= maxAttempts) {
-        throw error;
-      }
-      await sleep(delayMs * attempt);
-    }
-  }
 }
 
 async function checkPortalMarkers(page) {
