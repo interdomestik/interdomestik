@@ -50,15 +50,23 @@ function sanitizeHealthBody(body) {
     .slice(0, 1_200);
 }
 
-async function requestVercelHealth(url, headers, timeoutMs, execFileImpl = execFile) {
-  const args = [
+export async function requestVercelHealth(
+  url,
+  headers,
+  timeoutMs,
+  execFileImpl = execFile,
+  env = process.env
+) {
+  const args = [];
+  if (env.INTERDOMESTIK_VERCEL_IPV4_ONLY === '1') args.push('--ipv4');
+  args.push(
     '--silent',
     '--show-error',
     '--max-time',
     String(Math.max(1, Math.ceil(timeoutMs / 1000))),
     '--write-out',
-    `${STATUS_MARKER}%{http_code}`,
-  ];
+    `${STATUS_MARKER}%{http_code}`
+  );
   for (const [name, value] of Object.entries(headers)) {
     args.push('--header', `${name}: ${value}`);
   }
