@@ -1,6 +1,14 @@
 # IDA-DG22 Web Locks Addendum
 
-Status: proposed; exact-byte user approval and canonical merge required before implementation
+Status: R2 proposed; exact-byte user approval and canonical merge required before implementation
+
+Revision: `R2`
+
+Historical R1: 17,831 UTF-8 bytes / SHA-256
+`ec478df602410c30cc94b4eca384c8fde5ae4bd56da55b1aa7c66aaf56e90424`, approved by
+Arben at `2026-07-28T19:20:22Z`. R1 remains valid historical evidence but is not merge-ready
+because exact-head GitHub review found that its default HTTP `*.127.0.0.1.nip.io` browser route
+could exercise only the fail-closed branch rather than real Web Locks in every required browser.
 
 Addendum ID: `IDA-DG22-A2`
 
@@ -77,6 +85,27 @@ that becomes ineligible can leave the old local record and visible `saved` state
 edit is not persisted. That truth defect is already prohibited by parent rule 6 and requires no
 new authority. Its valid → invalid → valid remediation remains mandatory.
 
+After R1 approval, exact-head PR `#1475` review thread
+<https://github.com/interdomestik/interdomestik/pull/1475#discussion_r3668651583> found a
+`workflow/gate` plus `authority evidence gap`: the repository's default
+`http://*.127.0.0.1.nip.io` host is not a trustworthy browser origin, so it cannot prove actual
+Web Locks success semantics. The existing public cross-browser configuration also excludes this
+recovery spec. R1 approval, exact-head checks and all unchanged implementation checkpoints remain
+frozen; merge readiness, finalizer disposition and cross-browser evidence are invalidated only
+for this gap.
+
+A cheap exact-environment probe on exclusive `interdomestik-z620-staging` first proved that trying
+to override the HTTP `Host` header while retaining a loopback URL is rejected by Chromium with
+`ERR_INVALID_ARGUMENT`; that mechanism is forbidden rather than browser-special-cased. A second
+probe proved the bounded standards-correct route: a task-owned HTTPS reverse proxy on
+`ida.127.0.0.1.nip.io`, with an ephemeral one-day SAN certificate and
+`ignoreHTTPSErrors:true`, preserved the neutral IDA host and produced
+`isSecureContext === true` plus real `navigator.locks.request` in actual Chromium, Firefox and
+WebKit. The full-app canary then returned HTTP 200 and visible `free-start-intake-shell` on `/en`
+with the same origin and capability assertions in all three browsers. Fresh resource preflight
+observed 45 GiB free disk and 25,030 MiB available memory; the exclusive runner was online,
+idle and had no conflicting heavy-job lease.
+
 ## Exact amended behavior
 
 1. One fixed, non-content-bearing lock resource name is used for the one anonymous draft key. The
@@ -134,6 +163,43 @@ new authority. Its valid → invalid → valid remediation remains mandatory.
 
 The first implementation mutation after canonical addendum merge is RED-only inside existing
 writer-map test paths.
+
+### Trustworthy-origin cross-browser contract
+
+The configured proof for this slice is the existing recovery spec executed through an exact,
+task-owned ephemeral Playwright configuration on exclusive `interdomestik-z620-staging`. It must:
+
+1. start the canonical app on a task-isolated loopback port;
+2. create a task-temporary one-day self-signed certificate whose SAN is exactly
+   `ida.127.0.0.1.nip.io`, without installing it into any machine or browser trust store;
+3. expose the app through a task-isolated HTTPS reverse proxy at
+   `https://ida.127.0.0.1.nip.io:<task-port>`, preserving that neutral `Host` value upstream and
+   setting only truthful `x-forwarded-proto:https` / `x-forwarded-host` evidence headers;
+4. configure actual Chromium, Firefox and WebKit projects with `ignoreHTTPSErrors:true`, an exact
+   generic non-IDA project `baseURL`, the HTTPS neutral-IDA origin as the spec's explicit IDA
+   target, the exact recovery spec as their only `testMatch`, zero retries, no inherited tenant
+   header and no policy skip;
+5. propagate the project `ignoreHTTPSErrors` value inside writer-map path 16 to every manually
+   created `BrowserContext`, including anonymous and no-JavaScript contexts; this must be
+   spec-local and may not change the shared anonymous-context helper or add a twentieth path;
+6. assert before every recovery-enabled IDA path that the visible route returns 200, the
+   `free-start-intake-shell` marker is visible, `location.origin` is the exact HTTPS neutral IDA
+   origin, `window.isSecureContext === true` and `navigator.locks.request` exists;
+7. run the complete recovery spec, including every same-context held-lock barrier, in all three
+   projects; recovery-enabled paths use the HTTPS IDA target, while the existing generic-tenant
+   negative remains on the configured non-IDA origin and must still prove recovery absent; and
+8. record the ephemeral driver/config bytes, SHA-256, commands, browser versions, app head, proxy
+   authority and results in the task evidence ledger, then remove the certificate, key, proxy,
+   config and report artifacts from active task/run directories through exact recoverable task
+   cleanup.
+
+The existing authorized E2E path may accept the exact HTTPS origin/scheme from task-scoped
+environment input instead of hard-coding HTTP. This is evidence wiring inside writer-map path 16,
+not route authority. The repository Playwright configuration, `apps/web/src/proxy.ts`, machine
+trust store, DNS, `/etc/hosts`, dependencies and workflows remain unchanged. A `Host` override,
+plain HTTP for a recovery-enabled IDA path, a loopback-only canary, isolated browser contexts, a
+fail-closed-only result or a configuration that does not collect this spec in all three browser
+projects does not satisfy the proof.
 
 ### Atomic two-context proof
 
@@ -202,6 +268,11 @@ pnpm check:modularity-guard
 pnpm repo:size:check
 ```
 
+The ordinary focused command remains useful for same-browser regression, but merge evidence must
+also include the exact trustworthy-origin three-browser invocation defined above. Browser proof
+is one Z620 heavy lease and is rerun only when the implementation head, recovery spec, ephemeral
+driver/config, browser image/version or app/proxy environment changes.
+
 The parent gate's mandatory Phase C proof remains unchanged:
 
 ```bash
@@ -219,6 +290,13 @@ count zero and `pr-finalizer` remain required.
 The cumulative implementation ceiling remains exactly 19 paths. This addendum authorizes Web
 Locks remediation only inside already-authorized recovery implementation/test/E2E paths. Any
 twentieth path stops for fresh authority.
+
+Task-owned ephemeral certificate/key, HTTPS reverse-proxy driver, Playwright configuration and
+reports under the runner's exact temporary evidence directory are not repository writers. They
+must be content-addressed in the evidence ledger and moved out of active task/run directories to
+an exact recoverable Trash location at closeout. Final Trash purge is not authorized by this
+addendum. These artifacts do not authorize changes to repository configuration, workflow, proxy,
+DNS or machine trust.
 
 The authority PR itself may update `scripts/repo-size-budget.json` only to the exact deterministic
 inventory required after adding this document. That file is already parent writer-map path 17;
@@ -249,6 +327,11 @@ This docs-only addendum keeps `runtime_authorized:false`. Implementation may res
 Runner allocation remains unchanged. Mac is for operator/editing/light proof, GitHub-hosted Ubuntu
 for lightweight production evidence, and exclusive `interdomestik-z620-staging` for configured
 staging-heavy/CD/browser proof. No production execution moves to Z620.
+
+Before the trustworthy-origin proof, Z620 must freshly satisfy 30 GiB disk, 8 GiB available
+memory, online exclusive-label and no-conflicting-heavy-lease floors. The HTTPS proxy and
+certificate are browser-test evidence only: they may not bind a public interface, contact Vercel,
+mutate an alias/provider, deploy, install a root certificate or change production execution.
 
 ## Rollout and rollback
 
@@ -281,16 +364,30 @@ review is invalid. Model review remains advisory and does not replace repository
 
 Review must cover the standards boundary, lock scope/name, atomic mutation graph, unmount/queue
 races, fail-closed behavior, valid → invalid → valid product truth, secure-save handoff, full
-dependency wiring, test determinism, privacy and the unchanged 19-path ceiling.
+dependency wiring, trustworthy-origin transport, exact three-browser spec collection, ephemeral
+artifact custody/cleanup, test determinism, privacy and the unchanged 19-path ceiling.
 
 ## Stop conditions
 
-Stop before implementation or merge if:
+Stop before implementation begins if:
 
 - the exact addendum hash is not user-approved and canonically merged;
 - runtime authority does not bind exactly `IDA-UI03a4`, this addendum and the existing 19 paths;
 - `navigator.locks` is missing or cannot prove exclusive cross-agent serialization in any
   configured browser;
+- the trustworthy-origin capability/app canary cannot satisfy the exact HTTPS neutral IDA,
+  route-marker, secure-context and Web Locks prerequisites in any required browser;
+- the evidence requires a `Host` override, plain HTTP for an IDA recovery-enabled path,
+  repository Playwright/proxy/workflow changes, shared-helper mutation, machine trust-store
+  installation or a twentieth writer path.
+
+Stop before implementation merge if:
+
+- the full recovery spec is not collected in actual Chromium, Firefox and WebKit, any
+  recovery-enabled path does not use the exact HTTPS neutral IDA origin, the generic-tenant
+  negative does not remain on a non-IDA origin, or any lane proves only fail-closed behavior;
+- the ephemeral driver/config bytes and SHA-256 are not recorded, or the exact active-artifact to
+  recoverable-Trash cleanup receipt is missing;
 - any mutation can reach localStorage outside the exclusive lock;
 - lock failure falls back to an unlocked write/removal or reports saved;
 - temporary denial permanently poisons later eligible recovery or replays an uncommitted candidate;

@@ -2829,6 +2829,28 @@ map. Arben approved the exact
 17,831-byte SHA-256 at `2026-07-28T19:20:22Z`; GPT-5.6 Sol Ultra exact-set
 review passed with no actionable finding. No second slice is promoted.
 
+Rev 184 preserves Rev 183 as exact-approved R1 history but supersedes its merge-readiness claim.
+Exact-head PR `#1475` review thread
+<https://github.com/interdomestik/interdomestik/pull/1475#discussion_r3668651583> correctly found
+that default HTTP `*.127.0.0.1.nip.io` cannot exercise successful Web Locks semantics and that the
+existing public cross-browser config excludes the recovery spec. This is classified as
+`workflow/gate` plus `authority evidence gap`; clean implementation head `2f02bf4877…`, all
+unaffected focused proof and the green PR `#1475` checks are frozen rather than restarted.
+
+`IDA-DG22-A2` R2 binds the full recovery spec to an exact task-owned, content-addressed,
+task-temporary HTTPS neutral-IDA proxy/config on exclusive `interdomestik-z620-staging`. Fresh
+preflight observed 45 GiB disk and 25,030 MiB available memory with the runner online and idle.
+The first cheap probe proved browser `Host` override invalid and forbids it. The next capability
+and full-app canaries passed actual Chromium, Firefox and WebKit: HTTPS neutral IDA host preserved,
+HTTP 200 on `/en`, visible `free-start-intake-shell`, `isSecureContext === true`, and real
+`navigator.locks.request`. R2 adds no repository writer path, proxy/config/workflow change,
+machine trust installation, deployment or production authority. R2 is exact at 24,799 UTF-8
+bytes / SHA-256
+`ebf579a54fb8bb3eec640d12d07b4f74c558ae6ce38a9b48047dd7abe4f0483a`.
+GPT-5.6 Sol Ultra exact-set review passed after manual-context TLS propagation, lifecycle
+sequencing and recoverable cleanup were closed. Arben approved the exact R2 artifact at
+`2026-07-28T20:08:53Z`. Canonical PR update/merge and runtime receipt rebind remain required.
+
 The next active governed implementation goal is exactly one canonical tracker slice:
 `IDA-UI03a4`
 
@@ -6002,3 +6024,19 @@ implementation writer map remains exactly 19 paths. Runtime remains
 unauthorized until canonical addendum merge and exact receipt rebind. Arben
 approved the exact hash at `2026-07-28T19:20:22Z`; GPT-5.6 Sol Ultra exact-set
 review passed. No replacement goal or second UI-tree node is promoted.
+
+Rev 184 keeps the Rev 183 artifact and approval as historical R1 evidence but
+supersedes its merge-readiness claim after exact-head PR `#1475` review proved
+the default HTTP `nip.io` origin cannot exercise real Web Locks and the existing
+public cross-browser config excludes the recovery spec. R2 authorizes only a
+content-addressed task-temporary HTTPS neutral-IDA proxy/config on the exclusive
+Z620 browser runner and requires later collection of the full recovery spec in
+actual Chromium, Firefox and WebKit before implementation merge. The
+exact-origin capability and full-app canaries passed in all three browsers with
+HTTP 200, the canonical shell marker,
+`isSecureContext === true` and real Web Locks. R2 adds no repository writer
+path or protected/runtime surface. Exact R2 is 24,799 UTF-8 bytes / SHA-256
+`ebf579a54fb8bb3eec640d12d07b4f74c558ae6ce38a9b48047dd7abe4f0483a`;
+GPT-5.6 Sol Ultra exact-set review passed and Arben approved it at
+`2026-07-28T20:08:53Z`. Canonical merge and runtime receipt rebind remain
+required.
