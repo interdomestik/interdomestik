@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { afterEach, test } from 'node:test';
 
 const { buildRoute } = require('./shared.ts');
-const { resolveReachableBaseUrl } = require('./session-navigation.ts');
+const { gotoWithSessionRetry, resolveReachableBaseUrl } = require('./session-navigation.ts');
 
 const originalFetch = globalThis.fetch;
 const originalExtraHostname = process.env.RELEASE_GATE_EXTRA_HOSTNAME;
@@ -50,4 +50,57 @@ test('resolveReachableBaseUrl normalizes accepted deployment fallback URLs', asy
     buildRoute(resolved.baseUrl, 'en', '/agent'),
     'https://deploy.example.vercel.app/en/agent'
   );
+});
+
+test('gotoWithSessionRetry settles a navigation race without forcing a fresh login', async () => {
+  let navigationAttempts = 0;
+  let loginAttempts = 0;
+  const intendedRoute = 'https://staging.interdomestik.com/en/member';
+
+  const result = await gotoWithSessionRetry({
+    page: {
+      url: () => intendedRoute,
+    },
+    navigate: async () => {
+      navigationAttempts += 1;
+      if (navigationAttempts === 1) {
+        throw new Error(
+          `page.goto: Navigation to "${intendedRoute}" is interrupted by another navigation to ` +
+            '"https://staging.interdomestik.com/en/admin/overview"'
+        );
+      }
+    },
+    retryLogin: async () => {
+      loginAttempts += 1;
+    },
+  });
+
+  assert.equal(result, intendedRoute);
+  assert.equal(navigationAttempts, 2);
+  assert.equal(loginAttempts, 0);
+});
+
+test('gotoWithSessionRetry keeps ERR_ABORTED on the existing fresh-login path', async () => {
+  let navigationAttempts = 0;
+  let loginAttempts = 0;
+  const intendedRoute = 'https://staging.interdomestik.com/en/admin';
+
+  const result = await gotoWithSessionRetry({
+    page: {
+      url: () => intendedRoute,
+    },
+    navigate: async () => {
+      navigationAttempts += 1;
+      if (navigationAttempts === 1) {
+        throw new Error(`page.goto: net::ERR_ABORTED at ${intendedRoute}`);
+      }
+    },
+    retryLogin: async () => {
+      loginAttempts += 1;
+    },
+  });
+
+  assert.equal(result, intendedRoute);
+  assert.equal(navigationAttempts, 2);
+  assert.equal(loginAttempts, 1);
 });
