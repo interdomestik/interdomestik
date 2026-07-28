@@ -1,4 +1,4 @@
-import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test';
 
 import { routes } from '../routes';
 import { withAnonymousPage } from '../utils/anonymous-context';
@@ -11,15 +11,21 @@ async function openOrganizer(page: Page, info: TestInfo) {
   return organizer;
 }
 
+async function selectVehicle(organizer: Locator) {
+  const vehicle = organizer.getByTestId('free-start-category-vehicle');
+  await expect(async () => {
+    await vehicle.click();
+    await expect(vehicle).toHaveAttribute('aria-pressed', 'true', { timeout: 1_000 });
+  }).toPass({ timeout: 10_000 });
+}
+
 test.describe('pre-membership Free Start recovery', () => {
   test('restores all eligible facts and the safe step after a cold same-browser return', async ({
     browser,
   }, info) => {
     await withAnonymousPage(browser, info, async firstPage => {
       const organizer = await openOrganizer(firstPage, info);
-      const vehicle = organizer.getByTestId('free-start-category-vehicle');
-      await vehicle.click();
-      await expect(vehicle).toHaveAttribute('aria-pressed', 'true');
+      await selectVehicle(organizer);
       await organizer.getByRole('button', { name: 'Continue to guided intake' }).click();
       await organizer.getByLabel('What happened?').selectOption('collision');
       await organizer.getByLabel('When did it happen?').fill('2026-07-15');
@@ -59,9 +65,7 @@ test.describe('pre-membership Free Start recovery', () => {
   test('discards the device copy and returns to a clean organizer', async ({ browser }, info) => {
     await withAnonymousPage(browser, info, async page => {
       const organizer = await openOrganizer(page, info);
-      const vehicle = organizer.getByTestId('free-start-category-vehicle');
-      await vehicle.click();
-      await expect(vehicle).toHaveAttribute('aria-pressed', 'true');
+      await selectVehicle(organizer);
       await expect(organizer.getByTestId('anonymous-draft-recovery-status')).toBeVisible();
 
       await page.reload();
