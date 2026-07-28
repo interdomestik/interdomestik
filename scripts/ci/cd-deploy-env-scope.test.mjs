@@ -59,6 +59,7 @@ test('deploy action exports rollback controls without expanding historical job o
   ])
     assert.match(action.outputs[output].value, new RegExp(`steps\\.deploy\\.outputs\\.${output}`));
   assert.deepEqual(cd.jobs['deploy-staging'].outputs, {
+    alias_moved: '${{ steps.vercel.outputs.alias_moved }}',
     base_url: '${{ steps.vercel.outputs.base_url }}',
     hostname: '${{ steps.vercel.outputs.hostname }}',
     gate_base_url: '${{ steps.vercel.outputs.gate_base_url }}',

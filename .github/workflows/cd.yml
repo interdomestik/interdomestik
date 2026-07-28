@@ -1,24 +1,22 @@
 name: CD
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    tags: ['v*']
+  push: { branches: [main], tags: ['v*'] }
 concurrency: { group: 'cd-staging-canonical-${{ github.repository }}', cancel-in-progress: false }
 env: { REGISTRY: ghcr.io, IMAGE_NAME: '${{ github.repository }}' }
+# prettier-ignore
 jobs:
   build-staging:
-    runs-on: [self-hosted, interdomestik-mac]
+    runs-on: [self-hosted, interdomestik-z620-staging]
+    timeout-minutes: 45
     environment: { name: staging }
     permissions: { contents: read, packages: write, id-token: write, attestations: write }
-    outputs:
-      image_tag: ${{ steps.meta.outputs.version }}
-      image_digest: ${{ steps.build.outputs.digest }}
+    outputs: { image_tag: '${{ steps.meta.outputs.version }}', image_digest: '${{ steps.build.outputs.digest }}' }
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
-        with: { driver: docker-container }
+      - run: node scripts/ci/cd-runner-preflight.mjs
+      - { name: Set up Docker Buildx, uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f, with: { driver: docker-container, name: interdomestik-cd-staging, keep-state: true, cleanup: true } } # v3
+      - { name: Verify dedicated Docker builder, run: 'node scripts/ci/cd-runner-preflight.mjs verify-builder' }
       - name: Log in to the Container registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
@@ -46,20 +44,20 @@ jobs:
           supabase-production-project-ref: ${{ vars.SUPABASE_PRODUCTION_PROJECT_REF || secrets.SUPABASE_PRODUCTION_PROJECT_REF }}
   deploy-staging:
     needs: build-staging
-    runs-on: [self-hosted, interdomestik-mac]
+    runs-on: [self-hosted, interdomestik-z620-staging]
     timeout-minutes: 25
     environment: { name: staging }
     permissions: { contents: read, id-token: write, attestations: write }
     outputs:
+      alias_moved: ${{ steps.vercel.outputs.alias_moved }}
       base_url: ${{ steps.vercel.outputs.base_url }}
       hostname: ${{ steps.vercel.outputs.hostname }}
       gate_base_url: ${{ steps.vercel.outputs.gate_base_url }}
       gate_hostname: ${{ steps.vercel.outputs.gate_hostname }}
-    env:
-      EXPECTED_COMMIT_SHA: ${{ github.sha }}
-      STAGING_PREIMAGE_RECEIPT_PATH: tmp/cd-evidence/${{ github.run_id }}/staging-alias-preimage.json
+    env: { EXPECTED_COMMIT_SHA: '${{ github.sha }}', STAGING_PREIMAGE_RECEIPT_PATH: 'tmp/cd-evidence/${{ github.run_id }}/staging-alias-preimage.json' }
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
+      - run: node scripts/ci/cd-runner-preflight.mjs
       - name: Deploy Staging to Vercel
         id: vercel
         uses: ./.github/actions/trigger-digest-verified-deploy
@@ -104,7 +102,8 @@ jobs:
         run: node scripts/ci/wait-for-vercel-health.mjs "${BASE_URL}/api/health" "${EXPECTED_COMMIT_SHA}"
   e2e-staging:
     needs: deploy-staging
-    runs-on: [self-hosted, interdomestik-mac]
+    runs-on: [self-hosted, interdomestik-z620-staging]
+    timeout-minutes: 30
     environment: { name: staging, deployment: false }
     permissions: { contents: read }
     env:
@@ -127,6 +126,7 @@ jobs:
       RELEASE_GATE_ADMIN_MK_PASSWORD: ${{ secrets.RELEASE_GATE_ADMIN_MK_PASSWORD }}
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
+      - run: node scripts/ci/cd-runner-preflight.mjs
       - uses: ./.github/actions/setup
         with: { install-playwright: 'true' }
       - name: Run Staging Release Gate
@@ -144,19 +144,18 @@ jobs:
           if-no-files-found: error
           retention-days: 14
   rollback-staging-alias:
-    if: >-
-      ${{ always() && !cancelled() && (needs.deploy-staging.result == 'failure' || needs.e2e-staging.result == 'failure') }}
+    if: ${{ always() && !cancelled() && (needs.deploy-staging.result == 'failure' || needs.e2e-staging.result == 'failure') }}
     needs: [deploy-staging, e2e-staging]
-    runs-on: [self-hosted, interdomestik-mac]
+    runs-on: [self-hosted, interdomestik-z620-staging]
     timeout-minutes: 10
     environment: { name: staging, deployment: false }
     permissions: { contents: read }
-    env:
-      STAGING_PREIMAGE_RECEIPT_PATH: tmp/cd-evidence/${{ github.run_id }}/staging-alias-preimage/staging-alias-preimage.json
-      STAGING_ROLLBACK_RECEIPT_PATH: tmp/cd-evidence/${{ github.run_id }}/staging-alias-rollback.json
+    env: { STAGING_PREIMAGE_RECEIPT_PATH: 'tmp/cd-evidence/${{ github.run_id }}/staging-alias-preimage/staging-alias-preimage.json', STAGING_ROLLBACK_RECEIPT_PATH: 'tmp/cd-evidence/${{ github.run_id }}/staging-alias-rollback.json' }
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
+      - run: node scripts/ci/cd-runner-preflight.mjs
       - name: Download staging alias preimage receipt
+        continue-on-error: true
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: staging-alias-preimage-${{ github.run_id }}
@@ -165,6 +164,7 @@ jobs:
         id: rollback_guard
         if: ${{ always() }}
         shell: bash
+        env: { STAGING_ALIAS_MOVED_SIGNAL: '${{ needs.deploy-staging.outputs.alias_moved }}' }
         run: node scripts/ci/configure-vercel-gate-url.mjs guard >> "${GITHUB_OUTPUT}"
       - name: Restore exact staging alias preimage
         if: ${{ success() && steps.rollback_guard.outputs.should_restore == 'true' }}
@@ -203,9 +203,7 @@ jobs:
     runs-on: [self-hosted, interdomestik-mac]
     environment: { name: production }
     permissions: { contents: read, packages: write, id-token: write, attestations: write }
-    outputs:
-      image_tag: ${{ steps.meta.outputs.version }}
-      image_digest: ${{ steps.build.outputs.digest }}
+    outputs: { image_tag: '${{ steps.meta.outputs.version }}', image_digest: '${{ steps.build.outputs.digest }}' }
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
       - name: Set up Docker Buildx
