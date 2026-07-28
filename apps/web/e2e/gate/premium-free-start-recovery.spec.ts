@@ -132,13 +132,14 @@ test.describe('pre-membership Free Start recovery', () => {
     const idaInfo = resolveIdaTarget(info);
     await withAnonymousPage(browser, idaInfo, async page => {
       await page.addInitScript(() => {
-        const getItem = Storage.prototype.getItem;
-        Storage.prototype.getItem = function (key: string) {
-          if (key === 'interdomestik_free_start_recovery_v1') throw new DOMException('blocked');
-          return getItem.call(this, key);
-        };
+        Object.defineProperty(window, 'localStorage', {
+          get: () => {
+            throw new DOMException('blocked', 'SecurityError');
+          },
+        });
       });
       const organizer = await openOrganizer(page, idaInfo);
+      await selectVehicle(organizer);
       await expect(organizer).toHaveAttribute('data-save-behavior', 'explicit-only');
       await expect(organizer).toContainText('Browser recovery is unavailable');
       await expect(organizer).toContainText('nothing saves automatically');

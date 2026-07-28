@@ -21,6 +21,7 @@ describe('cookie consent helpers', () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     localStorage.clear();
     resetCookie(COOKIE_CONSENT_COOKIE_NAME);
   });
@@ -40,15 +41,66 @@ describe('cookie consent helpers', () => {
     expect(getCookieConsent()).toBe('accepted');
   });
 
+  it('falls back to the cookie when the storage accessor is denied', () => {
+    document.cookie = `${COOKIE_CONSENT_COOKIE_NAME}=accepted`;
+    vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => {
+      throw new DOMException('blocked', 'SecurityError');
+    });
+
+    expect(getCookieConsent()).toBe('accepted');
+  });
+
+  it('falls back to the cookie when storage reads throw', () => {
+    document.cookie = `${COOKIE_CONSENT_COOKIE_NAME}=necessary`;
+    vi.spyOn(window, 'localStorage', 'get').mockReturnValue({
+      getItem: () => {
+        throw new DOMException('blocked', 'SecurityError');
+      },
+    } as unknown as Storage);
+
+    expect(getCookieConsent()).toBe('necessary');
+  });
+
   it('persists consent and emits update event', () => {
-    const listener = vi.fn();
-    window.addEventListener(COOKIE_CONSENT_UPDATED_EVENT, listener);
+    const dispatch = vi.spyOn(window, 'dispatchEvent');
 
     setCookieConsent('necessary');
 
     expect(localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY)).toBe('necessary');
     expect(document.cookie).toContain(`${COOKIE_CONSENT_COOKIE_NAME}=necessary`);
-    expect(listener).toHaveBeenCalledTimes(1);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps cookie and event behavior when the storage accessor is denied', () => {
+    const dispatch = vi.spyOn(window, 'dispatchEvent');
+    vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => {
+      throw new DOMException('blocked', 'SecurityError');
+    });
+
+    expect(() => setCookieConsent('accepted')).not.toThrow();
+    expect(document.cookie).toContain(`${COOKIE_CONSENT_COOKIE_NAME}=accepted`);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch.mock.calls[0]?.[0]).toMatchObject({
+      type: COOKIE_CONSENT_UPDATED_EVENT,
+      detail: 'accepted',
+    });
+  });
+
+  it('keeps cookie and event behavior when storage writes throw', () => {
+    const dispatch = vi.spyOn(window, 'dispatchEvent');
+    vi.spyOn(window, 'localStorage', 'get').mockReturnValue({
+      setItem: () => {
+        throw new DOMException('blocked', 'SecurityError');
+      },
+    } as unknown as Storage);
+
+    expect(() => setCookieConsent('necessary')).not.toThrow();
+    expect(document.cookie).toContain(`${COOKIE_CONSENT_COOKIE_NAME}=necessary`);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch.mock.calls[0]?.[0]).toMatchObject({
+      type: COOKIE_CONSENT_UPDATED_EVENT,
+      detail: 'necessary',
+    });
   });
 
   it('subscribes to consent updates from custom event', () => {
