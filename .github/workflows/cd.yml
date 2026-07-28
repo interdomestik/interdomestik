@@ -49,7 +49,7 @@ jobs:
     permissions: { contents: read, id-token: write, attestations: write }
     # prettier-ignore
     outputs: { alias_moved: '${{ steps.vercel.outputs.alias_moved }}', base_url: '${{ steps.vercel.outputs.base_url }}', hostname: '${{ steps.vercel.outputs.hostname }}', gate_base_url: '${{ steps.vercel.outputs.gate_base_url }}', gate_hostname: '${{ steps.vercel.outputs.gate_hostname }}' }
-    env: { EXPECTED_COMMIT_SHA: '${{ github.sha }}', STAGING_PREIMAGE_RECEIPT_PATH: 'tmp/cd-evidence/${{ github.run_id }}/staging-alias-preimage.json' }
+    env: { EXPECTED_COMMIT_SHA: '${{ github.sha }}', INTERDOMESTIK_VERCEL_IPV4_ONLY: '1', STAGING_PREIMAGE_RECEIPT_PATH: 'tmp/cd-evidence/${{ github.run_id }}/staging-alias-preimage.json' }
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
       - run: node scripts/ci/cd-runner-preflight.mjs
@@ -166,12 +166,7 @@ jobs:
       - name: Restore exact staging alias preimage
         if: ${{ success() && steps.rollback_guard.outputs.should_restore == 'true' }}
         shell: bash
-        env:
-          STAGING_ALIAS_DOMAIN: staging.interdomestik.com
-          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+        env: { INTERDOMESTIK_VERCEL_IPV4_ONLY: '1', NODE_OPTIONS: '--import=${{ github.workspace }}/scripts/ci/cd-runner-preflight.mjs', STAGING_ALIAS_DOMAIN: staging.interdomestik.com, VERCEL_AUTOMATION_BYPASS_SECRET: '${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}', VERCEL_TOKEN: '${{ secrets.VERCEL_TOKEN }}', VERCEL_ORG_ID: '${{ vars.VERCEL_ORG_ID }}', VERCEL_PROJECT_ID: '${{ vars.VERCEL_PROJECT_ID }}' }
         run: node scripts/ci/configure-vercel-gate-url.mjs restore
       - name: Upload staging alias rollback receipt
         if: ${{ always() }}
