@@ -2850,6 +2850,10 @@ bytes / SHA-256
 GPT-5.6 Sol Ultra exact-set review passed after manual-context TLS propagation, lifecycle
 sequencing and recoverable cleanup were closed. Arben approved the exact R2 artifact at
 `2026-07-28T20:08:53Z`. Canonical PR update/merge and runtime receipt rebind remain required.
+Because an exact-byte artifact cannot self-record a later approval without invalidating its own
+hash, this canonical program/tracker receipt supersedes R2's preapproval `Status: R2 proposed`
+snapshot for lifecycle state. The canonical resolver reads current program/tracker authority, not
+that immutable artifact header.
 
 The next active governed implementation goal is exactly one canonical tracker slice:
 `IDA-UI03a4`
@@ -6039,4 +6043,7 @@ path or protected/runtime surface. Exact R2 is 24,799 UTF-8 bytes / SHA-256
 `ebf579a54fb8bb3eec640d12d07b4f74c558ae6ce38a9b48047dd7abe4f0483a`;
 GPT-5.6 Sol Ultra exact-set review passed and Arben approved it at
 `2026-07-28T20:08:53Z`. Canonical merge and runtime receipt rebind remain
-required.
+required. This canonical receipt supersedes the immutable artifact's
+preapproval `Status: R2 proposed` snapshot; changing that line would invalidate
+the approved exact-byte hash, and the resolver reads current program/tracker
+authority instead.
