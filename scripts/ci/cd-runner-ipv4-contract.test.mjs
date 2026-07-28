@@ -10,8 +10,9 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const cd = yaml.load(fs.readFileSync(path.join(root, '.github/workflows/cd.yml'), 'utf8'));
 const step = (job, name) => job.steps.find(candidate => candidate.name === name);
 
-test('forces IPv4 DNS only across staging deploy and rollback execution', () => {
+test('forces IPv4 DNS only across staging execution', () => {
   const stagingDeploy = step(cd.jobs['deploy-staging'], 'Deploy Staging to Vercel');
+  const stagingGate = step(cd.jobs['e2e-staging'], 'Run Staging Release Gate');
   const stagingRollback = step(
     cd.jobs['rollback-staging-alias'],
     'Restore exact staging alias preimage'
@@ -23,11 +24,13 @@ test('forces IPv4 DNS only across staging deploy and rollback execution', () => 
       cd.jobs['deploy-staging'].env.INTERDOMESTIK_VERCEL_IPV4_ONLY,
       stagingDeploy.env.INTERDOMESTIK_VERCEL_IPV4_ONLY,
       stagingDeploy.env.NODE_OPTIONS,
+      stagingGate.env.INTERDOMESTIK_VERCEL_IPV4_ONLY,
+      stagingGate.env.NODE_OPTIONS,
       stagingRollback.env.INTERDOMESTIK_VERCEL_IPV4_ONLY,
       stagingRollback.env.NODE_OPTIONS,
       productionDeploy.env?.INTERDOMESTIK_VERCEL_IPV4_ONLY,
       productionDeploy.env?.NODE_OPTIONS,
     ],
-    ['1', '1', preload, '1', preload, undefined, undefined]
+    ['1', '1', preload, '1', preload, '1', preload, undefined, undefined]
   );
 });
