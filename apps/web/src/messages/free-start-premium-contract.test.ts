@@ -127,7 +127,7 @@ describe('premium Free Start copy contract', () => {
       expect(copy).toMatch(/secure|sigurt|bezbed|безбед/i);
       expect(copy).toMatch(/device|pajisje|uređaj|уред/i);
       expect(secure).toMatch(/browser|shfletues|pregledač|прелистувач/i);
-      expect(idle).toMatch(/browser|shfletues|pregledač|прелистувач/i);
+      expect(idle).toMatch(/when browser|kur rikthimi|kada je vraćanje|кога враќањето/i);
       expect(idle).not.toMatch(/automatic|automatik|automatski|автоматски/i);
     }
   );
