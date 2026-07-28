@@ -27,6 +27,14 @@ function secureSaveCopy(messages: (typeof localeMessages)[keyof typeof localeMes
   return JSON.parse((messages.freeStart as { secureSave: string }).secureSave) as unknown;
 }
 
+function recoveryCopy(messages: (typeof localeMessages)[keyof typeof localeMessages]) {
+  return (
+    JSON.parse((messages.freeStart as { secureSave: string }).secureSave) as {
+      recovery: Record<string, unknown>;
+    }
+  ).recovery;
+}
+
 describe('premium Free Start copy contract', () => {
   it.each(Object.entries(localeMessages))(
     '%s distinguishes optional saved facts from the temporary generated result',
@@ -94,6 +102,29 @@ describe('premium Free Start copy contract', () => {
     const reviewKeys = reviewCopies.map(copy => collectKeyPaths(copy).sort());
     expect(reviewKeys).toEqual([reviewKeys[0], reviewKeys[0], reviewKeys[0], reviewKeys[0]]);
   });
+
+  it('C33 keeps the browser-recovery keys identical in SQ, EN, SR and MK', () => {
+    const copies = Object.values(localeMessages).map(recoveryCopy);
+    const keys = copies.map(copy => collectKeyPaths(copy).sort());
+
+    expect(keys).toEqual([keys[0], keys[0], keys[0], keys[0]]);
+  });
+
+  it.each(Object.entries(localeMessages))(
+    'C33 %s distinguishes local recovery, discard and verified secure save',
+    (_locale, messages) => {
+      const copy = collectCopyValues(recoveryCopy(messages)).join(' ');
+      const secure = collectCopyValues(secureSaveCopy(messages)).join(' ');
+
+      expect(copy).toMatch(/browser|shfletues|pregledač|прелистувач/i);
+      expect(copy).toMatch(/30/);
+      expect(copy).toMatch(/private|privat|приват/i);
+      expect(copy).toMatch(/discard|hidh|odbaci|отфрли/i);
+      expect(copy).toMatch(/secure|sigurt|bezbed|безбед/i);
+      expect(copy).toMatch(/device|pajisje|uređaj|уред/i);
+      expect(secure).toMatch(/browser|shfletues|pregledač|прелистувач/i);
+    }
+  );
 
   it.each(Object.entries(localeMessages))(
     'C29 %s states verified-email resume, bounded storage, conflict and permanent deletion truth',
