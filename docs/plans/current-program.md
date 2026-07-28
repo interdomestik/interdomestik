@@ -2690,6 +2690,29 @@ binds clean then-current main. R1 is exact at 18,192 UTF-8 bytes and SHA-256
 supersedes only the R0 writer map after first RED execution discovered the
 already-blocking exact-output and deterministic parity contracts.
 
+Rev 180 closeout supersedes the Rev 179 active-selection sentence.
+`IDA-CD-DG02` is canonical through PRs `#1461` and `#1462`; `IDA-CD02` is
+complete through implementation PRs `#1463`-`#1469`, ending at exact main
+`6e6ab13b4ef706a5baaec7ca2bbfc47eaa82b416`. Automatic push CD run
+`30341298354` used that exact SHA and passed `build-staging`,
+`deploy-staging`, and `e2e-staging` on exclusive runner
+`interdomestik-z620-staging`; healthy-path rollback and every production job
+were skipped. The job durations were 19m41s, 14m40s, and 14m05s respectively,
+with the full workflow completing in 50m02s. Root-observed capacity stayed
+above the accepted floors at a minimum 57 GiB free disk and 17,988 MiB
+available memory.
+
+Fail-closed rollback was separately proven on exact-main run `30335858120`:
+build and deploy passed, staging E2E failed on the subsequently remediated
+bounded Playwright navigation race, `rollback-staging-alias` restored the
+preimage successfully in 3m27s, and all production jobs remained skipped. The
+final release artifact reports `GO` with P0.1, P0.2, P0.3, P0.4, and P0.6 all
+`PASS`. Production evidence remains GitHub-hosted Ubuntu and production
+build/deploy/verify remain on `interdomestik-mac`; moving production requires
+a separate future current-authority decision. No replacement implementation
+slice is promoted. The expected resolver state is
+`blocked_requires_current_authority`, `activeSlice=null`.
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
