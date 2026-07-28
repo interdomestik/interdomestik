@@ -20,7 +20,7 @@ const ClaimPackResult = dynamic(() => import('../claim-pack-result').then(module
 const SecureSaveBand = dynamic(() => import('./secure-save-band').then(module => module.SecureSaveBand), { ssr: false });
 
 // prettier-ignore
-export function resetAfterRecoveryClear(clear: () => boolean, reset: () => void): boolean { if (!clear()) return false; reset(); return true; }
+export async function resetAfterRecoveryClear(clear: () => Promise<boolean> | boolean, reset: () => void): Promise<boolean> { if (!(await clear())) return false; reset(); return true; }
 
 export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
   const t = useTranslations('freeStart');
@@ -53,7 +53,7 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
   const secureLifecycle = {
     ...draftLifecycle,
     startAnother: () =>
-      resetAfterRecoveryClear(recovery.clearBeforeReset, draftLifecycle.startAnother),
+      void resetAfterRecoveryClear(recovery.clearBeforeReset, draftLifecycle.startAnother),
   };
 
   return (
