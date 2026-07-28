@@ -128,8 +128,7 @@ jobs:
         with: { install-playwright: 'true' }
       - name: Run Staging Release Gate
         shell: bash
-        env:
-          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        env: { INTERDOMESTIK_VERCEL_IPV4_ONLY: '1', NODE_OPTIONS: '--import=${{ github.workspace }}/scripts/ci/cd-runner-preflight.mjs', VERCEL_AUTOMATION_BYPASS_SECRET: '${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}' }
         run: >-
           set -euo pipefail; mkdir -p "${EVIDENCE_DIR}/logs" "${EVIDENCE_DIR}/release-gates"; pnpm -s release:gate:raw --envName staging --suite p0 --baseUrl "${BASE_URL}" --authBaseUrl "${AUTH_BASE_URL}" --outDir "${EVIDENCE_DIR}/release-gates" 2>&1 | tee "${EVIDENCE_DIR}/logs/release-gate-staging.log"
       - name: Upload staging verification artifacts
