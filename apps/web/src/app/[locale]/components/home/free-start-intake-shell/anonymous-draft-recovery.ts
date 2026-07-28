@@ -25,33 +25,31 @@ export type AnonymousDraftRecord = AnonymousDraftSnapshot &
   Readonly<{ updatedAt: string; expiresAt: string }>;
 
 type RecoveryStorage = Pick<Storage, 'getItem' | 'removeItem' | 'setItem'>;
-export type ReadResult =
-  { status: 'available'; record: AnonymousDraftRecord } | { status: 'none' | 'unavailable' };
+// prettier-ignore
+export type ReadResult = { status: 'available'; record: AnonymousDraftRecord } | { status: 'none' } | { status: 'unavailable' };
 export type WriteResult =
   | { status: 'saved'; updatedAt: string }
   | { status: 'conflict'; record: AnonymousDraftRecord }
   | { status: 'stale' }
   | { status: 'unavailable' };
+export type RemoveResult =
+  | { status: 'changed'; record: AnonymousDraftRecord }
+  | { status: 'none' | 'removed' | 'unavailable' };
 
 // prettier-ignore
 export function getAnonymousDraftStorage(): RecoveryStorage | null { try { return globalThis.localStorage; } catch { return null; } }
 
-function safeStep(step: StepId): AnonymousDraftSnapshot['resumeStep'] {
-  return step === 'complete' ? 'preview' : step;
-}
-
-export function createAnonymousDraftSnapshot(
-  category: CategoryId,
-  draft: DraftState,
-  step: StepId
-): AnonymousDraftSnapshot | null {
-  if (category !== 'vehicle' && category !== 'property') return null;
-  return { category, draft, resumeStep: safeStep(step) };
-}
+// prettier-ignore
+export function createAnonymousDraftSnapshot(category: CategoryId, draft: DraftState, step: StepId): AnonymousDraftSnapshot | null { if (category !== 'vehicle' && category !== 'property') return null; return { category, draft, resumeStep: step === 'complete' ? 'preview' : step }; }
 
 function decode(raw: string, now: number): AnonymousDraftRecord | null {
   try {
-    const parsed = storedRecordSchema.safeParse(JSON.parse(raw));
+    const input: unknown = JSON.parse(raw);
+    if (!input || typeof input !== 'object') return null;
+    const draft = (input as { draft?: unknown }).draft;
+    if (!draft || typeof draft !== 'object') return null;
+    if (!Object.prototype.hasOwnProperty.call(draft, 'resumeStep')) return null;
+    const parsed = storedRecordSchema.safeParse(input);
     if (!parsed.success) return null;
     const updatedAt = Date.parse(parsed.data.updatedAt);
     const expiresAt = Date.parse(parsed.data.expiresAt);
@@ -135,12 +133,18 @@ export function writeAnonymousDraft(
   }
 }
 
-export function removeAnonymousDraft(storage: RecoveryStorage | null): boolean {
-  if (!storage) return false;
+// prettier-ignore
+export function removeAnonymousDraft(storage: RecoveryStorage | null, expected?: AnonymousDraftRecord, now = Date.now()): RemoveResult {
+  if (!storage) return { status: 'unavailable' };
+  const current = readAnonymousDraft(storage, now);
+  if (current.status !== 'available') return current;
+  if (expected && JSON.stringify(current.record) !== JSON.stringify(expected)) {
+    return { status: 'changed', record: current.record };
+  }
   try {
     storage.removeItem(ANONYMOUS_DRAFT_KEY);
-    return true;
+    return { status: 'removed' };
   } catch {
-    return false;
+    return { status: 'unavailable' };
   }
 }

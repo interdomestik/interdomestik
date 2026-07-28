@@ -41,7 +41,12 @@ vi.mock('@/actions/claim-pack.core', () => ({
   generateClaimPackAction: (...args: unknown[]) => hoisted.generate(...args),
 }));
 
-import { FreeStartIntakeShell } from './free-start-intake-shell/index';
+import { FreeStartIntakeShell, resetAfterRecoveryClear } from './free-start-intake-shell/index';
+import {
+  ANONYMOUS_DRAFT_KEY,
+  getAnonymousDraftStorage,
+  removeAnonymousDraft,
+} from './free-start-intake-shell/anonymous-draft-recovery';
 import { getContinueLabel } from './free-start-intake-shell/helpers';
 import type { FreeStartCopy } from './free-start-intake-shell/types';
 
@@ -54,6 +59,8 @@ const translate = ((key: string) => {
 
 describe('premium Free Start organizer', () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
+    localStorage.clear();
     hoisted.submit.mockReset();
     hoisted.generate.mockReset();
   });
@@ -97,4 +104,29 @@ describe('premium Free Start organizer', () => {
       'Join Asistenca for a team review'
     );
   });
+
+  it.each(['accessor denial', 'remove failure'])(
+    'does not start another draft after %s',
+    failure => {
+      localStorage.setItem(ANONYMOUS_DRAFT_KEY, 'eligible-notes');
+      const available = localStorage;
+      if (failure === 'accessor denial') {
+        vi.spyOn(globalThis, 'localStorage', 'get').mockImplementation(() => {
+          throw new DOMException('blocked');
+        });
+      } else {
+        // prettier-ignore
+        vi.spyOn(globalThis, 'localStorage', 'get').mockReturnValue({ getItem: available.getItem.bind(available), removeItem: () => { throw new DOMException('blocked'); }, setItem: available.setItem.bind(available) } as unknown as Storage);
+      }
+      const startAnother = vi.fn();
+      const clear = () => {
+        const result = removeAnonymousDraft(getAnonymousDraftStorage());
+        return result.status === 'none' || result.status === 'removed';
+      };
+      expect(resetAfterRecoveryClear(clear, startAnother)).toBe(false);
+      expect(startAnother).not.toHaveBeenCalled();
+      vi.restoreAllMocks();
+      expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toBe('eligible-notes');
+    }
+  );
 });

@@ -2,36 +2,31 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import {
-  ANONYMOUS_DRAFT_KEY,
-  createAnonymousDraftSnapshot,
-  getAnonymousDraftStorage,
-  readAnonymousDraft,
-  removeAnonymousDraft,
-  writeAnonymousDraft,
-  type AnonymousDraftRecord,
-  type AnonymousDraftSnapshot,
-} from './anonymous-draft-recovery';
+// prettier-ignore
+import { ANONYMOUS_DRAFT_KEY, createAnonymousDraftSnapshot, getAnonymousDraftStorage, readAnonymousDraft, removeAnonymousDraft, writeAnonymousDraft, type AnonymousDraftRecord, type AnonymousDraftSnapshot } from './anonymous-draft-recovery';
+import { EMPTY_DRAFT } from './constants';
 import type { CategoryId, DraftSaveState, DraftState, StepId } from './types';
 
 type RecoveryState =
   'idle' | 'saved' | 'offer' | 'conflict' | 'unavailable' | 'discarded' | 'secure';
 // prettier-ignore
 type Args = Readonly<{ activeId: string | null; category: CategoryId | null; draft: DraftState; lifecycleState: DraftSaveState; neutralHost?: string | null; onReset: () => void; onRestore: (draft: AnonymousDraftSnapshot) => void; resetCategory: CategoryId | null; step: StepId }>;
-
 // prettier-ignore
 function isNeutralRecoveryHost(configured?: string | null) { return typeof globalThis.location !== 'undefined' && (['ida.interdomestik.com', 'ida.localhost', 'ida.127.0.0.1.nip.io'].includes(globalThis.location.hostname) || Boolean(configured && globalThis.location.host.toLowerCase() === configured)); }
+// prettier-ignore
+function fingerprint(category: CategoryId | null, draft: DraftState, step: StepId) { return JSON.stringify([category, draft, step === 'complete' ? 'preview' : step]); }
+// prettier-ignore
+function recordFingerprint(record: AnonymousDraftSnapshot) { return fingerprint(record.category, record.draft, record.resumeStep); }
 
 export function useAnonymousDraftRecovery(args: Args) {
-  const [enabled, setEnabled] = useState(false);
-  const [offer, setOffer] = useState<AnonymousDraftRecord | null>(null);
-  const [ready, setReady] = useState(false);
-  const [state, setState] = useState<RecoveryState>('idle');
-  const invalidated = useRef(false);
-  const knownUpdatedAt = useRef<string | null>(null);
-  const skipWrite = useRef(false);
-  const previousLifecycleState = useRef(args.lifecycleState);
-  const fingerprint = JSON.stringify([args.category, args.draft, args.step]);
+  // prettier-ignore
+  const [enabled, setEnabled] = useState(false), [offer, setOffer] = useState<AnonymousDraftRecord | null>(null), [ready, setReady] = useState(false), [state, setState] = useState<RecoveryState>('idle');
+  // prettier-ignore
+  const invalidated = useRef(false), knownUpdatedAt = useRef<string | null>(null), suppression = useRef<{ from: string; to: string } | null>(null), promotionCandidate = useRef<AnonymousDraftRecord | null>(null), previousLifecycleState = useRef(args.lifecycleState);
+  const currentFingerprint = fingerprint(args.category, args.draft, args.step);
+  // prettier-ignore
+  const resetFingerprint = fingerprint(args.resetCategory, EMPTY_DRAFT, args.resetCategory ? 'details' : 'category');
+  const pending = args.lifecycleState === 'saving' || args.lifecycleState === 'loading';
   // prettier-ignore
   const markUnavailable = useCallback(() => { setEnabled(false); setOffer(null); setState('unavailable'); }, []);
 
@@ -44,33 +39,22 @@ export function useAnonymousDraftRecovery(args: Args) {
       knownUpdatedAt.current = result.record.updatedAt;
       setOffer(result.record);
       setState('offer');
-    } else if (result.status === 'unavailable') {
-      markUnavailable();
-    }
+    } else if (result.status === 'unavailable') markUnavailable();
     setReady(true);
   }, [args.neutralHost, markUnavailable]);
 
   useEffect(() => {
     if (!isNeutralRecoveryHost(args.neutralHost)) return;
     const onStorage = (event: StorageEvent) => {
-      if (event.key !== ANONYMOUS_DRAFT_KEY) return;
-      const result = readAnonymousDraft(getAnonymousDraftStorage());
+      if (event.key !== ANONYMOUS_DRAFT_KEY && event.key !== null) return;
+      const storage = getAnonymousDraftStorage();
+      if (event.storageArea && event.storageArea !== storage) return;
+      const result = readAnonymousDraft(storage);
       // prettier-ignore
       if (result.status === 'unavailable') { markUnavailable(); return; }
       setEnabled(true);
-      if (result.status === 'none') {
-        invalidated.current = true;
-        knownUpdatedAt.current = null;
-        setOffer(null);
-        setState('discarded');
-        return;
-      }
-      if (result.status === 'available' && result.record.updatedAt !== knownUpdatedAt.current) {
-        invalidated.current = false;
-        knownUpdatedAt.current = result.record.updatedAt;
-        setOffer(result.record);
-        setState('conflict');
-      }
+      // prettier-ignore
+      if (result.status === 'none') { invalidated.current = true; knownUpdatedAt.current = null; setOffer(null); setState('discarded'); } else if (result.record.updatedAt !== knownUpdatedAt.current) { invalidated.current = false; knownUpdatedAt.current = result.record.updatedAt; setOffer(result.record); setState('conflict'); }
     };
     globalThis.addEventListener('storage', onStorage);
     return () => globalThis.removeEventListener('storage', onStorage);
@@ -79,72 +63,80 @@ export function useAnonymousDraftRecovery(args: Args) {
   useEffect(() => {
     if (!isNeutralRecoveryHost(args.neutralHost) || !enabled || invalidated.current) return;
     if (!ready || offer || !args.category) return;
-    // prettier-ignore
-    if (skipWrite.current) { skipWrite.current = false; return; }
+    if (suppression.current) {
+      const { from, to } = suppression.current;
+      if (currentFingerprint === to) {
+        suppression.current = null;
+        return;
+      }
+      if (currentFingerprint === from && from !== to) return;
+      suppression.current = null;
+    }
     const snapshot = createAnonymousDraftSnapshot(args.category, args.draft, args.step);
     if (!snapshot) return;
+    const result = writeAnonymousDraft(
+      getAnonymousDraftStorage(),
+      snapshot,
+      knownUpdatedAt.current
+    );
     // prettier-ignore
-    const result = writeAnonymousDraft(getAnonymousDraftStorage(), snapshot, knownUpdatedAt.current);
-    if (result.status === 'saved') {
-      knownUpdatedAt.current = result.updatedAt;
-      setState('saved');
-    } else if (result.status === 'conflict') {
-      knownUpdatedAt.current = result.record.updatedAt;
-      setOffer(result.record);
-      setState('conflict');
-    } else if (result.status === 'stale') {
-      invalidated.current = true;
-      setState('discarded');
-    } else {
-      markUnavailable();
-    }
-  }, [args.category, args.neutralHost, enabled, fingerprint, markUnavailable, offer, ready]);
+    if (result.status === 'saved') { knownUpdatedAt.current = result.updatedAt; setState('saved'); } else if (result.status === 'conflict') { knownUpdatedAt.current = result.record.updatedAt; setOffer(result.record); setState('conflict'); } else if (result.status === 'stale') { invalidated.current = true; setState('discarded'); } else markUnavailable();
+  }, [args.category, args.neutralHost, currentFingerprint, enabled, markUnavailable, offer, ready]);
 
   useEffect(() => {
     if (!isNeutralRecoveryHost(args.neutralHost)) return;
     const previous = previousLifecycleState.current;
     previousLifecycleState.current = args.lifecycleState;
-    if (previous !== 'saving' || args.lifecycleState !== 'saved' || !args.activeId) return;
-    // prettier-ignore
-    if (!removeAnonymousDraft(getAnonymousDraftStorage())) { markUnavailable(); return; }
-    knownUpdatedAt.current = null;
-    setOffer(null);
-    setState('secure');
-  }, [args.activeId, args.lifecycleState, args.neutralHost, markUnavailable]);
-
-  const clearDeviceCopy = useCallback(() => {
-    if (!isNeutralRecoveryHost(args.neutralHost)) return false;
-    const removed = removeAnonymousDraft(getAnonymousDraftStorage());
-    if (removed) {
-      knownUpdatedAt.current = null;
-      setOffer(null);
-    } else {
-      markUnavailable();
-    }
-    return removed;
-  }, [args.neutralHost, markUnavailable]);
-
-  const clearBeforeReset = useCallback(() => {
-    skipWrite.current = Boolean(args.resetCategory);
-    return clearDeviceCopy();
-  }, [args.resetCategory, clearDeviceCopy]);
-
-  const discard = useCallback(() => {
-    if (!clearBeforeReset()) {
-      skipWrite.current = false;
+    if (previous !== 'saving' && args.lifecycleState === 'saving') {
+      const current = readAnonymousDraft(getAnonymousDraftStorage());
+      promotionCandidate.current =
+        current.status === 'available' &&
+        !offer &&
+        state !== 'conflict' &&
+        recordFingerprint(current.record) === currentFingerprint
+          ? current.record
+          : null;
+      if (current.status === 'unavailable') markUnavailable();
       return;
     }
+    if (previous !== 'saving' || args.lifecycleState !== 'saved' || !args.activeId) return;
+    const candidate = promotionCandidate.current;
+    promotionCandidate.current = null;
+    if (!candidate) return;
+    const result = removeAnonymousDraft(getAnonymousDraftStorage(), candidate);
+    // prettier-ignore
+    if (result.status === 'changed') { knownUpdatedAt.current = result.record.updatedAt; setOffer(result.record); setState('conflict'); } else if (result.status === 'unavailable') markUnavailable(); else { knownUpdatedAt.current = null; setOffer(null); setState('secure'); }
+  }, [
+    args.activeId,
+    args.lifecycleState,
+    args.neutralHost,
+    currentFingerprint,
+    markUnavailable,
+    offer,
+    state,
+  ]);
+
+  // prettier-ignore
+  const clearDeviceCopy = useCallback(() => { if (!isNeutralRecoveryHost(args.neutralHost)) return true; const result = removeAnonymousDraft(getAnonymousDraftStorage()); if (result.status === 'unavailable') { markUnavailable(); return false; } knownUpdatedAt.current = null; setOffer(null); return true; }, [args.neutralHost, markUnavailable]);
+
+  const clearBeforeReset = useCallback(() => {
+    if (pending || !clearDeviceCopy()) return false;
+    suppression.current = { from: currentFingerprint, to: resetFingerprint };
     setState('discarded');
-    args.onReset();
-  }, [args.onReset, clearBeforeReset]);
+    return true;
+  }, [clearDeviceCopy, currentFingerprint, pending, resetFingerprint]);
+
+  // prettier-ignore
+  const discard = useCallback(() => { if (clearBeforeReset()) args.onReset(); }, [args.onReset, clearBeforeReset]);
 
   const resume = useCallback(() => {
-    if (!offer) return;
-    skipWrite.current = true;
-    args.onRestore(offer);
-    setOffer(null);
-    setState('saved');
-  }, [args.onRestore, offer]);
+    if (pending || !offer) return;
+    const result = readAnonymousDraft(getAnonymousDraftStorage());
+    // prettier-ignore
+    if (result.status === 'unavailable') { markUnavailable(); return; }
+    // prettier-ignore
+    if (result.status === 'none') { knownUpdatedAt.current = null; setOffer(null); setState('discarded'); } else if (JSON.stringify(result.record) !== JSON.stringify(offer)) { knownUpdatedAt.current = result.record.updatedAt; setOffer(result.record); setState('conflict'); } else { suppression.current = { from: currentFingerprint, to: recordFingerprint(result.record) }; args.onReset(); args.onRestore(result.record); setOffer(null); setState('saved'); }
+  }, [args.onReset, args.onRestore, currentFingerprint, markUnavailable, offer, pending]);
 
   return { clearBeforeReset, clearDeviceCopy, discard, enabled, offer, resume, state };
 }

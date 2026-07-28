@@ -19,6 +19,9 @@ const ClaimPackResult = dynamic(() => import('../claim-pack-result').then(module
 // prettier-ignore
 const SecureSaveBand = dynamic(() => import('./secure-save-band').then(module => module.SecureSaveBand), { ssr: false });
 
+// prettier-ignore
+export function resetAfterRecoveryClear(clear: () => boolean, reset: () => void): boolean { if (!clear()) return false; reset(); return true; }
+
 export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
   const t = useTranslations('freeStart');
   const tCommon = useTranslations('common');
@@ -36,7 +39,7 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
     draft: flow.draft,
     lifecycleState: draftLifecycle.state,
     neutralHost: props.neutralOtpHost,
-    onReset: flow.resetDraft,
+    onReset: draftLifecycle.startAnother,
     onRestore: flow.restoreAnonymousDraft,
     resetCategory: props.initialCategory ?? null,
     step: flow.step,
@@ -49,10 +52,8 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
     key === 'trustBoundary.body' && !recovery.enabled ? noRecoveryBody : t(key);
   const secureLifecycle = {
     ...draftLifecycle,
-    startAnother: () => {
-      recovery.clearBeforeReset();
-      draftLifecycle.startAnother();
-    },
+    startAnother: () =>
+      resetAfterRecoveryClear(recovery.clearBeforeReset, draftLifecycle.startAnother),
   };
 
   return (
