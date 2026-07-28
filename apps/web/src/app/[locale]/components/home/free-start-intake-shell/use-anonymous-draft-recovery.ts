@@ -136,7 +136,7 @@ export function useAnonymousDraftRecovery(args: Args) {
     // prettier-ignore
     if (result.status === 'unavailable') { markUnavailable(); return; }
     // prettier-ignore
-    if (result.status === 'none') { knownRecord.current = null; setOffer(null); setState('discarded'); } else if (!sameAnonymousDraftRecord(result.record, offer)) { knownRecord.current = result.record; setOffer(result.record); setState('conflict'); } else { knownRecord.current = result.record; suppression.current = { from: currentFingerprint, to: recordFingerprint(result.record) }; args.onReset(); args.onRestore(result.record); setOffer(null); setState('saved'); }
+    if (result.status === 'none') { invalidated.current = true; knownRecord.current = null; setOffer(null); setState('discarded'); } else if (!sameAnonymousDraftRecord(result.record, offer)) { knownRecord.current = result.record; setOffer(result.record); setState('conflict'); } else { knownRecord.current = result.record; suppression.current = { from: currentFingerprint, to: recordFingerprint(result.record) }; args.onReset(); args.onRestore(result.record); setOffer(null); setState('saved'); }
   }, [args.onReset, args.onRestore, currentFingerprint, markUnavailable, offer, pending]);
 
   return { clearBeforeReset, clearDeviceCopy, discard, enabled, offer, resume, state };
