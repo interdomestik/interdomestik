@@ -23,6 +23,7 @@ type Args = Readonly<{
   lifecycleState: DraftSaveState;
   onReset: () => void;
   onRestore: (draft: AnonymousDraftSnapshot) => void;
+  resetCategory: CategoryId | null;
   step: StepId;
 }>;
 
@@ -110,9 +111,10 @@ export function useAnonymousDraftRecovery(args: Args) {
 
   const discard = useCallback(() => {
     if (!clearDeviceCopy()) return;
+    skipWrite.current = Boolean(args.resetCategory);
     setState('discarded');
     args.onReset();
-  }, [args.onReset, clearDeviceCopy]);
+  }, [args.onReset, args.resetCategory, clearDeviceCopy]);
 
   const resume = useCallback(() => {
     if (!offer) return;

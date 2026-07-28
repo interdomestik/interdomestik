@@ -1,4 +1,4 @@
-import { render, renderHook, screen, waitFor } from '@testing-library/react';
+import { act, render, renderHook, screen, waitFor } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -6,6 +6,7 @@ import { ClaimDraftIntake } from '@/components/claims/claim-draft-intake';
 
 import {
   ANONYMOUS_DRAFT_KEY,
+  ANONYMOUS_DRAFT_TTL_MS,
   createAnonymousDraftSnapshot,
   readAnonymousDraft,
   writeAnonymousDraft,
@@ -41,15 +42,10 @@ const NOW = Date.parse('2026-07-28T12:00:00.000Z');
 const snapshot: AnonymousDraftSnapshot = { category: 'property', draft: { counterparty: 'Northwind Insurance', desiredOutcome: 'repair', incidentDate: '2026-07-15', issueType: 'water_damage', summary: 'Water damaged two rooms.' }, resumeStep: 'preview' };
 type HookProps = Parameters<typeof useAnonymousDraftRecovery>[0];
 
-function rawRecord(
-  recordPatch: Record<string, unknown> = {},
-  draftPatch: Record<string, unknown> = {}
-) {
-  writeAnonymousDraft(localStorage, snapshot, null, NOW);
-  const record = JSON.parse(localStorage.getItem(ANONYMOUS_DRAFT_KEY)!);
-  // prettier-ignore
-  return JSON.stringify({ ...record, ...recordPatch, draft: { ...record.draft, ...draftPatch } });
-}
+// prettier-ignore
+function rawRecord(recordPatch: Record<string, unknown> = {}, draftPatch: Record<string, unknown> = {}) { writeAnonymousDraft(localStorage, snapshot, null, NOW); const record = JSON.parse(localStorage.getItem(ANONYMOUS_DRAFT_KEY)!); return JSON.stringify({ ...record, ...recordPatch, draft: { ...record.draft, ...draftPatch } }); }
+// prettier-ignore
+const invalidRecords = [['malformed', '{'], ['unknown version', rawRecord({ version: 2 })], ['expired', rawRecord({ expiresAt: new Date(NOW - 1).toISOString() })], ['extended TTL', rawRecord({ expiresAt: new Date(NOW + ANONYMOUS_DRAFT_TTL_MS + 1).toISOString() })], ['future timestamp', rawRecord({ updatedAt: new Date(NOW + 120_000).toISOString(), expiresAt: new Date(NOW + 120_000 + ANONYMOUS_DRAFT_TTL_MS).toISOString() })], ['category mismatch', rawRecord({}, { issueType: 'collision' })], ['over-limit text', rawRecord({}, { summary: 'x'.repeat(1001) })]];
 
 describe('anonymous Free Start recovery', () => {
   beforeEach(() => {
@@ -74,13 +70,7 @@ describe('anonymous Free Start recovery', () => {
     expect(localStorage).toHaveLength(0);
   });
 
-  it.each([
-    ['malformed', '{'],
-    ['unknown version', rawRecord({ version: 2 })],
-    ['expired', rawRecord({ expiresAt: new Date(NOW - 1).toISOString() })],
-    ['category mismatch', rawRecord({}, { issueType: 'collision' })],
-    ['over-limit text', rawRecord({}, { summary: 'x'.repeat(1001) })],
-  ])('removes %s records without restoring', (_name, candidate) => {
+  it.each(invalidRecords)('removes %s records without restoring', (_name, candidate) => {
     localStorage.setItem(ANONYMOUS_DRAFT_KEY, candidate);
     expect(readAnonymousDraft(localStorage, NOW).status).toBe('none');
     expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toBeNull();
@@ -93,6 +83,7 @@ describe('anonymous Free Start recovery', () => {
     expect(writeAnonymousDraft(broken, snapshot, null, NOW).status).toBe('unavailable');
     const first = writeAnonymousDraft(localStorage, snapshot, null, NOW);
     const firstStamp = first.status === 'saved' ? first.updatedAt : '';
+    expect(writeAnonymousDraft(localStorage, snapshot, null, NOW + 50).status).toBe('conflict');
     expect(writeAnonymousDraft(localStorage, snapshot, firstStamp, NOW + 100).status).toBe('saved');
     const stale = writeAnonymousDraft(localStorage, snapshot, firstStamp, NOW + 200);
     expect(stale.status).toBe('conflict');
@@ -104,9 +95,10 @@ describe('anonymous Free Start recovery', () => {
     const callbacks = { onReset: vi.fn(), onRestore: vi.fn() };
     const initial: HookProps = {
       activeId: null,
-      category: null,
+      category: 'property',
       draft: snapshot.draft,
       lifecycleState: 'idle',
+      resetCategory: 'property',
       step: 'category',
       ...callbacks,
     };
@@ -114,18 +106,27 @@ describe('anonymous Free Start recovery', () => {
       initialProps: initial,
     });
     await waitFor(() => expect(hook.result.current.state).toBe('offer'));
+    act(() => hook.result.current.discard());
+    expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toBeNull();
+    hook.unmount();
+    writeAnonymousDraft(localStorage, snapshot, null, NOW);
+    const secureInitial: HookProps = { ...initial, category: null, resetCategory: null };
+    const secureHook = renderHook(props => useAnonymousDraftRecovery(props), {
+      initialProps: secureInitial,
+    });
+    await waitFor(() => expect(secureHook.result.current.state).toBe('offer'));
     const next = (lifecycleState: HookProps['lifecycleState']): HookProps => ({
-      ...initial,
+      ...secureInitial,
       activeId: 'server-draft',
       lifecycleState,
     });
-    hook.rerender(next('saved'));
+    secureHook.rerender(next('saved'));
     expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).not.toBeNull();
-    hook.rerender(next('saving'));
-    hook.rerender(next('error'));
+    secureHook.rerender(next('saving'));
+    secureHook.rerender(next('error'));
     expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).not.toBeNull();
-    hook.rerender(next('saving'));
-    hook.rerender(next('saved'));
+    secureHook.rerender(next('saving'));
+    secureHook.rerender(next('saved'));
     await waitFor(() => expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toBeNull());
   });
 

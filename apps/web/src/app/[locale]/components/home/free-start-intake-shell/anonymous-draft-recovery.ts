@@ -105,11 +105,7 @@ export function writeAnonymousDraft(
   if (!storage) return { status: 'unavailable' };
   const current = readAnonymousDraft(storage, now);
   if (current.status === 'unavailable') return { status: 'unavailable' };
-  if (
-    current.status === 'available' &&
-    current.record.updatedAt !== expectedUpdatedAt &&
-    Date.parse(current.record.updatedAt) > Date.parse(expectedUpdatedAt ?? '')
-  ) {
+  if (current.status === 'available' && current.record.updatedAt !== expectedUpdatedAt) {
     return { status: 'conflict', record: current.record };
   }
   const updatedAt = new Date(now).toISOString();

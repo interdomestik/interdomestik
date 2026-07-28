@@ -37,6 +37,7 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
     lifecycleState: draftLifecycle.state,
     onReset: flow.resetDraft,
     onRestore: flow.restoreAnonymousDraft,
+    resetCategory: props.initialCategory ?? null,
     step: flow.step,
   });
   const view = useFreeStartViewModel({ flow, props, t, tCommon });
