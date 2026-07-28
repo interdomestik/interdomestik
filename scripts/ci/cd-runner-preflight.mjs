@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import dns from 'node:dns';
 import { readFileSync, statfsSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
@@ -9,16 +10,22 @@ const EXPECTED_RUNNER = 'interdomestik-z620-staging';
 const DOCKER_COMMAND = '/usr/bin/docker';
 export const EXPECTED_RUNNER_TEMP = '/home/arben/actions-runner-interdomestik-staging/_work/_temp';
 export const EXPECTED_DOCKER_ROOT = '/var/lib/docker';
-export const DEDICATED_PRUNE_ARGS = Object.freeze([
-  'buildx',
-  '--builder',
-  'interdomestik-cd-staging',
-  'prune',
-  '--filter',
-  'until=168h',
-  '--force',
-]);
+// prettier-ignore
+export const DEDICATED_PRUNE_ARGS = Object.freeze(['buildx', '--builder', 'interdomestik-cd-staging', 'prune', '--filter', 'until=168h', '--force']);
 const DEDICATED_BUILDER = 'interdomestik-cd-staging';
+
+export function installStagingIpv4Dns(env = process.env, dnsApi = dns) {
+  if (env.INTERDOMESTIK_VERCEL_IPV4_ONLY !== '1') return false;
+  const lookup = dnsApi.lookup.bind(dnsApi);
+  dnsApi.lookup = (hostname, options, callback) => {
+    if (typeof options === 'function') return lookup(hostname, { family: 4 }, options);
+    if (typeof options === 'number') return lookup(hostname, 4, callback);
+    const ipv4Options = options ? { ...options, family: 4 } : { family: 4 };
+    return lookup(hostname, ipv4Options, callback);
+  };
+  return true;
+}
+installStagingIpv4Dns();
 
 function runnerTempFreeBytes() {
   const stats = statfsSync(EXPECTED_RUNNER_TEMP, { bigint: true });
