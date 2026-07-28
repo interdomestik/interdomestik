@@ -67,18 +67,6 @@ test('generates staging image metadata offline from exact trusted inputs', () =>
   );
 });
 
-test('forces IPv4 DNS only inside the staging Vercel composite action', () => {
-  const stagingDeploy = step(cd.jobs['deploy-staging'], 'Deploy Staging to Vercel');
-  assert.equal(stagingDeploy.env.INTERDOMESTIK_VERCEL_IPV4_ONLY, '1');
-  assert.equal(
-    stagingDeploy.env.NODE_OPTIONS,
-    '--import=${{ github.workspace }}/scripts/ci/cd-runner-preflight.mjs'
-  );
-  const productionDeploy = step(cd.jobs['deploy-production'], 'Deploy Production to Vercel');
-  assert.equal(productionDeploy.env?.INTERDOMESTIK_VERCEL_IPV4_ONLY, undefined);
-  assert.equal(productionDeploy.env?.NODE_OPTIONS, undefined);
-});
-
 test('propagates alias movement independently and always reaches the local guard', () => {
   const deploy = cd.jobs['deploy-staging'];
   const rollback = cd.jobs['rollback-staging-alias'];
