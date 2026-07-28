@@ -8,10 +8,13 @@ import {
   ANONYMOUS_DRAFT_KEY,
   ANONYMOUS_DRAFT_TTL_MS,
   createAnonymousDraftSnapshot,
+  getAnonymousDraftStorage,
   readAnonymousDraft,
+  removeAnonymousDraft,
   writeAnonymousDraft,
   type AnonymousDraftSnapshot,
 } from './anonymous-draft-recovery';
+import { resetAfterRecoveryClear } from './index';
 import { useAnonymousDraftRecovery } from './use-anonymous-draft-recovery';
 
 vi.mock('next-intl', async () => {
@@ -32,6 +35,8 @@ vi.mock('next-intl', async () => {
     })),
   };
 });
+// prettier-ignore
+vi.mock('@/i18n/routing', () => ({ Link: ({ children }: { children: ReactNode }) => children }));
 // prettier-ignore
 const actions = vi.hoisted(() => ({ create: vi.fn(), delete: vi.fn(), list: vi.fn(), resume: vi.fn(), update: vi.fn() }));
 // prettier-ignore
@@ -76,20 +81,28 @@ describe('anonymous Free Start recovery', () => {
     expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toBeNull();
   });
 
-  it('fails closed on storage errors and blocks a stale tab', () => {
+  it('fails closed and blocks a same-millisecond stale tab', () => {
     // prettier-ignore
     const broken = { getItem: () => null, removeItem: vi.fn(), setItem: () => { throw new DOMException('quota'); } } as Pick<Storage, 'getItem' | 'removeItem' | 'setItem'>;
     expect(writeAnonymousDraft(null, snapshot, null, NOW).status).toBe('unavailable');
     expect(writeAnonymousDraft(broken, snapshot, null, NOW).status).toBe('unavailable');
     const first = writeAnonymousDraft(localStorage, snapshot, null, NOW);
-    const firstStamp = first.status === 'saved' ? first.updatedAt : '';
+    if (first.status !== 'saved') throw new Error('first write failed');
     expect(writeAnonymousDraft(localStorage, snapshot, null, NOW + 50).status).toBe('conflict');
-    expect(writeAnonymousDraft(localStorage, snapshot, firstStamp, NOW + 100).status).toBe('saved');
-    const stale = writeAnonymousDraft(localStorage, snapshot, firstStamp, NOW + 200);
+    // prettier-ignore
+    const newer = writeAnonymousDraft(localStorage, { ...snapshot, draft: { ...snapshot.draft, counterparty: 'newer tab' } }, first.record, NOW);
+    expect(newer.status).toBe('saved');
+    if (newer.status !== 'saved') throw new Error('newer write failed');
+    expect(newer.record.updatedAt).toBe(new Date(NOW + 1).toISOString());
+    // prettier-ignore
+    const stale = writeAnonymousDraft(localStorage, { ...snapshot, draft: { ...snapshot.draft, counterparty: 'stale overwrite' } }, first.record, NOW);
     expect(stale.status).toBe('conflict');
-    expect((stale as { record: { draft: unknown } }).record.draft).toEqual(snapshot.draft);
+    const final = readAnonymousDraft(localStorage, NOW);
+    expect(final.status === 'available' && final.record.draft.counterparty).toBe('newer tab');
     localStorage.removeItem(ANONYMOUS_DRAFT_KEY);
-    expect(writeAnonymousDraft(localStorage, snapshot, firstStamp, NOW + 300).status).toBe('stale');
+    expect(writeAnonymousDraft(localStorage, snapshot, newer.record, NOW + 300).status).toBe(
+      'stale'
+    );
   });
 
   // prettier-ignore
@@ -99,49 +112,29 @@ describe('anonymous Free Start recovery', () => {
   it('does not resurrect a draft removed by a sibling tab', async () => { const props = { activeId: null, category: 'property' as const, draft: snapshot.draft, lifecycleState: 'idle' as const, neutralHost: globalThis.location.host, onReset: vi.fn(), onRestore: vi.fn(), resetCategory: 'property' as const, step: 'details' as const }; const hook = renderHook(value => useAnonymousDraftRecovery(value), { initialProps: props }); await waitFor(() => expect(hook.result.current.state).toBe('saved')); act(() => { localStorage.removeItem(ANONYMOUS_DRAFT_KEY); globalThis.dispatchEvent(new StorageEvent('storage', { key: ANONYMOUS_DRAFT_KEY })); }); hook.rerender({ ...props, draft: { ...snapshot.draft, summary: 'A stale tab edit must stay local only.' } }); await act(async () => Promise.resolve()); expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toBeNull(); });
 
   // prettier-ignore
-  it('withdraws a recovery offer when storage becomes unavailable', async () => { writeAnonymousDraft(localStorage, snapshot, null, NOW); const props = { activeId: null, category: null, draft: snapshot.draft, lifecycleState: 'idle' as const, neutralHost: globalThis.location.host, onReset: vi.fn(), onRestore: vi.fn(), resetCategory: null, step: 'details' as const }; const hook = renderHook(value => useAnonymousDraftRecovery(value), { initialProps: props }); await waitFor(() => expect(hook.result.current.state).toBe('offer')); const blocked = { getItem: () => { throw new DOMException('blocked'); }, removeItem: vi.fn(), setItem: vi.fn() }; vi.spyOn(globalThis, 'localStorage', 'get').mockReturnValue(blocked as unknown as Storage); act(() => globalThis.dispatchEvent(new StorageEvent('storage', { key: ANONYMOUS_DRAFT_KEY }))); await waitFor(() => expect(hook.result.current.state).toBe('unavailable')); expect(hook.result.current.offer).toBeNull(); expect(hook.result.current.enabled).toBe(false); });
+  it('withdraws a recovery offer when storage becomes unavailable', async () => { writeAnonymousDraft(localStorage, snapshot, null, NOW); const props = { activeId: null, category: null, draft: snapshot.draft, lifecycleState: 'idle' as const, neutralHost: globalThis.location.host, onReset: vi.fn(), onRestore: vi.fn(), resetCategory: null, step: 'details' as const }; const hook = renderHook(value => useAnonymousDraftRecovery(value), { initialProps: props }); await waitFor(() => expect(hook.result.current.state).toBe('offer')); const available = localStorage; vi.spyOn(globalThis, 'localStorage', 'get').mockImplementation(() => { throw new DOMException('blocked'); }); const event = new StorageEvent('storage', { key: ANONYMOUS_DRAFT_KEY }); Object.defineProperty(event, 'storageArea', { value: available }); act(() => globalThis.dispatchEvent(event)); await waitFor(() => expect(hook.result.current.state).toBe('unavailable')); expect(hook.result.current.offer).toBeNull(); expect(hook.result.current.enabled).toBe(false); });
 
-  it('clears only after saving to saved with an active id', async () => {
-    writeAnonymousDraft(localStorage, snapshot, null, NOW);
-    const callbacks = { onReset: vi.fn(), onRestore: vi.fn() };
-    const initial: HookProps = {
-      activeId: null,
-      category: 'property',
-      draft: snapshot.draft,
-      lifecycleState: 'idle',
-      neutralHost: globalThis.location.host,
-      resetCategory: 'property',
-      step: 'category',
-      ...callbacks,
-    };
-    const hook = renderHook(props => useAnonymousDraftRecovery(props), {
-      initialProps: initial,
-    });
-    await waitFor(() => expect(hook.result.current.state).toBe('offer'));
-    act(() => hook.result.current.discard());
-    expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toBeNull();
-    hook.unmount();
-    writeAnonymousDraft(localStorage, snapshot, null, NOW);
-    // prettier-ignore
-    const secureInitial: HookProps = { ...initial, category: 'property', resetCategory: 'property', step: 'preview' };
-    const secureHook = renderHook(props => useAnonymousDraftRecovery(props), {
-      initialProps: secureInitial,
-    });
-    await waitFor(() => expect(secureHook.result.current.state).toBe('offer'));
-    act(() => secureHook.result.current.resume());
-    const next = (lifecycleState: HookProps['lifecycleState']): HookProps => ({
-      ...secureInitial,
-      activeId: 'server-draft',
-      lifecycleState,
-    });
-    secureHook.rerender(next('saved'));
-    expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).not.toBeNull();
-    secureHook.rerender(next('saving'));
-    secureHook.rerender(next('error'));
-    expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).not.toBeNull();
-    secureHook.rerender(next('saving'));
-    secureHook.rerender(next('saved'));
-    await waitFor(() => expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toBeNull());
+  // prettier-ignore
+  it('clears only after saving to saved with an active id', async () => { writeAnonymousDraft(localStorage, snapshot, null, NOW); const initial: HookProps = { activeId: null, category: 'property', draft: snapshot.draft, lifecycleState: 'idle', neutralHost: globalThis.location.host, onReset: vi.fn(), onRestore: vi.fn(), resetCategory: 'property', step: 'category' }; const hook = renderHook(props => useAnonymousDraftRecovery(props), { initialProps: initial }); await waitFor(() => expect(hook.result.current.state).toBe('offer')); act(() => hook.result.current.discard()); expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toBeNull(); hook.unmount(); writeAnonymousDraft(localStorage, snapshot, null, NOW); const secureInitial: HookProps = { ...initial, draft: { ...snapshot.draft, counterparty: '  Northwind Insurance  ', summary: 'Water damaged two rooms.\r\n' }, step: 'preview' }; const secureHook = renderHook(props => useAnonymousDraftRecovery(props), { initialProps: secureInitial }); await waitFor(() => expect(secureHook.result.current.state).toBe('offer')); act(() => secureHook.result.current.resume()); const next = (lifecycleState: HookProps['lifecycleState']): HookProps => ({ ...secureInitial, activeId: 'server-draft', lifecycleState }); secureHook.rerender(next('saved')); expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).not.toBeNull(); secureHook.rerender(next('saving')); secureHook.rerender(next('error')); expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).not.toBeNull(); secureHook.rerender(next('saving')); secureHook.rerender(next('saved')); await waitFor(() => expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toBeNull()); });
+
+  it.each(['accessor denial', 'remove failure'])('does not reset after %s', failure => {
+    localStorage.setItem(ANONYMOUS_DRAFT_KEY, 'eligible-notes');
+    const available = localStorage;
+    if (failure === 'accessor denial') {
+      vi.spyOn(globalThis, 'localStorage', 'get').mockImplementation(() => {
+        throw new DOMException('blocked');
+      });
+    } else {
+      // prettier-ignore
+      vi.spyOn(globalThis, 'localStorage', 'get').mockReturnValue({ getItem: available.getItem.bind(available), removeItem: () => { throw new DOMException('blocked'); }, setItem: available.setItem.bind(available) } as unknown as Storage);
+    }
+    const startAnother = vi.fn();
+    const clear = () =>
+      ['none', 'removed'].includes(removeAnonymousDraft(getAnonymousDraftStorage()).status);
+    expect(resetAfterRecoveryClear(clear, startAnother)).toBe(false);
+    expect(startAnother).not.toHaveBeenCalled();
+    vi.restoreAllMocks();
+    expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toBe('eligible-notes');
   });
 
   // prettier-ignore

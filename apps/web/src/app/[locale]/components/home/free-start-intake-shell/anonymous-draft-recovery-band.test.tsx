@@ -5,7 +5,7 @@ import en from '@/messages/en/freeStart.json';
 
 import { AnonymousDraftRecoveryBand } from './anonymous-draft-recovery-band';
 // prettier-ignore
-import { ANONYMOUS_DRAFT_KEY, ANONYMOUS_DRAFT_TTL_MS, writeAnonymousDraft, type AnonymousDraftSnapshot } from './anonymous-draft-recovery';
+import { ANONYMOUS_DRAFT_KEY, ANONYMOUS_DRAFT_TTL_MS, readAnonymousDraft, writeAnonymousDraft, type AnonymousDraftSnapshot } from './anonymous-draft-recovery';
 import { useAnonymousDraftRecovery } from './use-anonymous-draft-recovery';
 
 // prettier-ignore
@@ -70,12 +70,11 @@ describe('anonymous recovery race contracts', () => {
     act(() => globalThis.dispatchEvent(clearEvent(localStorage)));
     await waitFor(() => expect(hook.result.current.state).toBe('discarded'));
     const current = writeAnonymousDraft(localStorage, snapshot, null);
-    const stamp = current.status === 'saved' ? current.updatedAt : '';
     hook.unmount();
     const changed = setupRecovery();
     await waitFor(() => expect(changed.result.current.state).toBe('offer'));
     // prettier-ignore
-    writeAnonymousDraft(localStorage, { ...snapshot, draft: { ...snapshot.draft, summary: 'Newer tab copy.' } }, stamp || null, Date.now() + 10);
+    writeAnonymousDraft(localStorage, { ...snapshot, draft: { ...snapshot.draft, summary: 'Newer tab copy.' } }, current.status === 'saved' ? current.record : null, Date.now() + 10);
     act(() => changed.result.current.resume());
     expect(changed.onRestore).not.toHaveBeenCalled();
     expect(changed.result.current.offer?.draft.summary).toBe('Newer tab copy.');
@@ -92,9 +91,10 @@ describe('anonymous recovery race contracts', () => {
     const restored = { ...hook.props, category: 'property' as const, step: 'preview' as const };
     hook.rerender(restored);
     hook.rerender({ ...restored, activeId: 'server', lifecycleState: 'saving' });
-    const raw = JSON.parse(localStorage.getItem(ANONYMOUS_DRAFT_KEY)!);
+    const current = readAnonymousDraft(localStorage);
+    if (current.status !== 'available') throw new Error('missing recovery record');
     // prettier-ignore
-    writeAnonymousDraft(localStorage, { ...snapshot, draft: { ...snapshot.draft, summary: 'Edit during save.' } }, raw.updatedAt, Date.now() + 10);
+    writeAnonymousDraft(localStorage, { ...snapshot, draft: { ...snapshot.draft, summary: 'Edit during save.' } }, current.record, Date.now() + 10);
     hook.rerender({ ...restored, activeId: 'server', lifecycleState: 'saved' });
     await waitFor(() => expect(hook.result.current.state).toBe('conflict'));
     expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toContain('Edit during save.');
@@ -137,6 +137,11 @@ describe('anonymous recovery race contracts', () => {
     const hook = setupRecovery();
     hook.rerender({ ...hook.props, category: 'property', draft: empty, resetCategory: 'property' });
     await waitFor(() => expect(hook.result.current.state).toBe('saved'));
+    localStorage.clear();
+    act(() => globalThis.dispatchEvent(clearEvent(localStorage)));
+    // prettier-ignore
+    hook.rerender({ ...hook.props, category: 'property', draft: { ...empty, summary: 'Stale edit.' }, resetCategory: 'property' });
+    expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toBeNull();
     act(() => hook.result.current.discard());
     // prettier-ignore
     hook.rerender({ ...hook.props, category: 'property', draft: { ...empty, summary: 'First edit.' }, resetCategory: 'property' });

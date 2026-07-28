@@ -28,7 +28,7 @@ type RecoveryStorage = Pick<Storage, 'getItem' | 'removeItem' | 'setItem'>;
 // prettier-ignore
 export type ReadResult = { status: 'available'; record: AnonymousDraftRecord } | { status: 'none' } | { status: 'unavailable' };
 export type WriteResult =
-  | { status: 'saved'; updatedAt: string }
+  | { status: 'saved'; record: AnonymousDraftRecord }
   | { status: 'conflict'; record: AnonymousDraftRecord }
   | { status: 'stale' }
   | { status: 'unavailable' };
@@ -40,8 +40,13 @@ export type RemoveResult =
 export function getAnonymousDraftStorage(): RecoveryStorage | null { try { return globalThis.localStorage; } catch { return null; } }
 
 // prettier-ignore
-export function createAnonymousDraftSnapshot(category: CategoryId, draft: DraftState, step: StepId): AnonymousDraftSnapshot | null { if (category !== 'vehicle' && category !== 'property') return null; return { category, draft, resumeStep: step === 'complete' ? 'preview' : step }; }
+function snapshotFromPayload(value: z.infer<typeof freeStartDraftPayloadSchema>): AnonymousDraftSnapshot { return { category: value.category, draft: { counterparty: value.counterparty ?? '', desiredOutcome: value.desiredOutcome ?? '', incidentDate: value.incidentDate ?? '', issueType: value.issueType ?? '', summary: value.summary ?? '' }, resumeStep: value.resumeStep }; }
 
+// prettier-ignore
+export function createAnonymousDraftSnapshot(category: CategoryId, draft: DraftState, step: StepId): AnonymousDraftSnapshot | null { if (category !== 'vehicle' && category !== 'property') return null; const parsed = freeStartDraftPayloadSchema.safeParse({ category, counterparty: draft.counterparty || undefined, desiredOutcome: draft.desiredOutcome || undefined, incidentDate: draft.incidentDate || undefined, issueType: draft.issueType || undefined, resumeStep: step === 'complete' ? 'preview' : step, summary: draft.summary || undefined }); return parsed.success ? snapshotFromPayload(parsed.data) : null; }
+
+// prettier-ignore
+export function sameAnonymousDraftRecord(left: AnonymousDraftRecord, right: AnonymousDraftRecord) { return JSON.stringify(left) === JSON.stringify(right); }
 function decode(raw: string, now: number): AnonymousDraftRecord | null {
   try {
     const input: unknown = JSON.parse(raw);
@@ -62,17 +67,9 @@ function decode(raw: string, now: number): AnonymousDraftRecord | null {
     ) {
       return null;
     }
-    const value = parsed.data.draft;
+    const value = snapshotFromPayload(parsed.data.draft);
     return {
-      category: value.category,
-      draft: {
-        counterparty: value.counterparty ?? '',
-        desiredOutcome: value.desiredOutcome ?? '',
-        incidentDate: value.incidentDate ?? '',
-        issueType: value.issueType ?? '',
-        summary: value.summary ?? '',
-      },
-      resumeStep: value.resumeStep,
+      ...value,
       updatedAt: parsed.data.updatedAt,
       expiresAt: parsed.data.expiresAt,
     };
@@ -95,39 +92,42 @@ export function readAnonymousDraft(storage: RecoveryStorage | null, now = Date.n
   }
 }
 
-export function writeAnonymousDraft(
-  storage: RecoveryStorage | null,
-  snapshot: AnonymousDraftSnapshot,
-  expectedUpdatedAt: string | null,
-  now = Date.now()
-): WriteResult {
+// prettier-ignore
+export function writeAnonymousDraft(storage: RecoveryStorage | null, snapshot: AnonymousDraftSnapshot, expected: AnonymousDraftRecord | null, now = Date.now()): WriteResult {
   if (!storage) return { status: 'unavailable' };
   const current = readAnonymousDraft(storage, now);
   if (current.status === 'unavailable') return { status: 'unavailable' };
-  if (current.status === 'none' && expectedUpdatedAt) return { status: 'stale' };
-  if (current.status === 'available' && current.record.updatedAt !== expectedUpdatedAt) {
+  if (current.status === 'none' && expected) return { status: 'stale' };
+  // prettier-ignore
+  if (current.status === 'available' && (!expected || !sameAnonymousDraftRecord(current.record, expected))) {
     return { status: 'conflict', record: current.record };
   }
-  const updatedAt = new Date(now).toISOString();
+  // prettier-ignore
+  const canonical = createAnonymousDraftSnapshot(snapshot.category, snapshot.draft, snapshot.resumeStep);
+  if (!canonical) return { status: 'unavailable' };
+  const revisionNow =
+    current.status === 'available' ? Math.max(now, Date.parse(current.record.updatedAt) + 1) : now;
   const record = {
     version: 1,
     draft: {
-      category: snapshot.category,
-      counterparty: snapshot.draft.counterparty || undefined,
-      desiredOutcome: snapshot.draft.desiredOutcome || undefined,
-      incidentDate: snapshot.draft.incidentDate || undefined,
-      issueType: snapshot.draft.issueType || undefined,
-      resumeStep: snapshot.resumeStep,
-      summary: snapshot.draft.summary || undefined,
+      category: canonical.category,
+      counterparty: canonical.draft.counterparty || undefined,
+      desiredOutcome: canonical.draft.desiredOutcome || undefined,
+      incidentDate: canonical.draft.incidentDate || undefined,
+      issueType: canonical.draft.issueType || undefined,
+      resumeStep: canonical.resumeStep,
+      summary: canonical.draft.summary || undefined,
     },
-    updatedAt,
-    expiresAt: new Date(now + ANONYMOUS_DRAFT_TTL_MS).toISOString(),
+    updatedAt: new Date(revisionNow).toISOString(),
+    expiresAt: new Date(revisionNow + ANONYMOUS_DRAFT_TTL_MS).toISOString(),
   } as const;
   const validated = storedRecordSchema.safeParse(record);
   if (!validated.success) return { status: 'unavailable' };
+  const saved = decode(JSON.stringify(validated.data), revisionNow);
+  if (!saved) return { status: 'unavailable' };
   try {
     storage.setItem(ANONYMOUS_DRAFT_KEY, JSON.stringify(validated.data));
-    return { status: 'saved', updatedAt };
+    return { status: 'saved', record: saved };
   } catch {
     return { status: 'unavailable' };
   }
@@ -138,7 +138,7 @@ export function removeAnonymousDraft(storage: RecoveryStorage | null, expected?:
   if (!storage) return { status: 'unavailable' };
   const current = readAnonymousDraft(storage, now);
   if (current.status !== 'available') return current;
-  if (expected && JSON.stringify(current.record) !== JSON.stringify(expected)) {
+  if (expected && !sameAnonymousDraftRecord(current.record, expected)) {
     return { status: 'changed', record: current.record };
   }
   try {
