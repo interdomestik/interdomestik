@@ -19,10 +19,15 @@ type RecoveryCopy = Readonly<{
 
 export function AnonymousDraftRecoveryBand({ recovery }: Props) {
   const t = useTranslations('freeStart');
-  const copy = (JSON.parse(String(t.raw('secureSave'))) as { recovery: RecoveryCopy }).recovery;
+  const secureCopy = JSON.parse(String(t.raw('secureSave'))) as {
+    recovery: RecoveryCopy;
+    startAnother: string;
+  };
+  const copy = secureCopy.recovery;
   if (recovery.state === 'idle') return null;
 
   const hasOffer = Boolean(recovery.offer);
+  const canStartFresh = recovery.state === 'discarded';
   const hasRecoverableCopy =
     hasOffer || recovery.state === 'saved' || recovery.state === 'conflict';
   const status =
@@ -68,13 +73,13 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) {
             {copy.continue}
           </button>
         ) : null}
-        {hasRecoverableCopy ? (
+        {hasRecoverableCopy || canStartFresh ? (
           <button
             type="button"
             onClick={recovery.discard}
             className="min-h-11 rounded-xl border border-[#006f72] bg-white px-4 font-bold text-[#006f72] outline-none focus-visible:ring-3 focus-visible:ring-[#008f91]"
           >
-            {copy.discard}
+            {canStartFresh ? secureCopy.startAnother : copy.discard}
           </button>
         ) : null}
       </div>

@@ -1,4 +1,5 @@
 import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
+import { useLayoutEffect } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import en from '@/messages/en/freeStart.json';
@@ -10,7 +11,6 @@ import { useAnonymousDraftRecovery } from './use-anonymous-draft-recovery';
 vi.mock('next-intl', () => ({ useTranslations: () => ({ raw: () => en.freeStart.secureSave }) }));
 // prettier-ignore
 function recovery(state: 'discarded' | 'offer' | 'saved' | 'secure' | 'unavailable') { return { clearDeviceCopy: vi.fn(), discard: vi.fn(), offer: state === 'offer' ? { category: 'property', draft: {}, expiresAt: '2026-08-27T12:00:00.000Z', resumeStep: 'preview', updatedAt: '2026-07-28T12:00:00.000Z' } : null, resume: vi.fn(), state }; }
-
 // prettier-ignore
 const snapshot: AnonymousDraftSnapshot = { category: 'property', draft: { counterparty: 'Insurer', desiredOutcome: 'repair', incidentDate: '2026-07-15', issueType: 'water_damage', summary: 'Water damaged two rooms.' }, resumeStep: 'preview' };
 type HookProps = Parameters<typeof useAnonymousDraftRecovery>[0];
@@ -27,7 +27,6 @@ function setupRecovery(lifecycleState: 'idle' | 'loading' | 'saved' | 'saving' =
 function clearEvent(storageArea: Storage) { const event = new StorageEvent('storage', { key: null }); Object.defineProperty(event, 'storageArea', { value: storageArea }); return event; }
 // prettier-ignore
 beforeEach(() => { vi.restoreAllMocks(); localStorage.clear(); Object.defineProperty(navigator, 'locks', { configurable: true, value: { request: vi.fn(async (_name, _options, callback) => callback()) } }); });
-
 describe('AnonymousDraftRecoveryBand', () => {
   // prettier-ignore
   it('offers explicit keyboard-reachable resume and discard actions', () => { const value = recovery('offer'); render(<AnonymousDraftRecoveryBand recovery={value as never} />); expect(screen.getByTestId('anonymous-draft-recovery-offer')).toHaveAccessibleName('Continue notes from this browser?'); const resume = screen.getByRole('button', { name: 'Continue with these notes' }); const discard = screen.getByRole('button', { name: 'Discard from this device' }); expect(resume).toHaveClass('min-h-11'); expect(discard).toHaveClass('min-h-11'); fireEvent.click(resume); fireEvent.click(discard); expect(value.resume).toHaveBeenCalledOnce(); expect(value.discard).toHaveBeenCalledOnce(); });
@@ -35,8 +34,9 @@ describe('AnonymousDraftRecoveryBand', () => {
   it('states the same-browser boundary after a successful local write', () => { render(<AnonymousDraftRecoveryBand recovery={recovery('saved') as never} />); const region = screen.getByTestId('anonymous-draft-recovery-status'); expect(region).toHaveTextContent('only in this browser'); expect(region).toHaveTextContent('not secure save'); expect(region).toHaveTextContent('30 days'); expect(region).toHaveTextContent('private device'); });
   // prettier-ignore
   it.each(['unavailable', 'discarded', 'secure'] as const)('does not claim that a browser copy is saved after the %s terminal state', state => { render(<AnonymousDraftRecoveryBand recovery={recovery(state) as never} />); const region = screen.getByTestId('anonymous-draft-recovery-status'); expect(region).not.toHaveTextContent('Saved on this browser'); expect(region).not.toHaveTextContent('can recover here for 30 days'); expect(region).not.toHaveTextContent('saved automatically only in this browser'); });
+  // prettier-ignore
+  it('offers an explicit fresh epoch after a sibling discard', () => { const value = recovery('discarded'); render(<AnonymousDraftRecoveryBand recovery={value as never} />); fireEvent.click(screen.getByRole('button', { name: 'Start another draft' })); expect(value.discard).toHaveBeenCalledOnce(); });
 });
-
 describe('anonymous recovery race contracts', () => {
   it('treats localStorage.clear as invalidation and revalidates a changed offer on resume', async () => {
     writeAnonymousDraft(localStorage, snapshot, null);
@@ -59,7 +59,6 @@ describe('anonymous recovery race contracts', () => {
     );
     expect(changed.onRestore).not.toHaveBeenCalled();
   });
-
   // prettier-ignore
   it.each(['expired', 'denied'] as const)('does not restore an offer that became %s', async mode => { const now = Date.now(), clock = vi.spyOn(Date, 'now').mockReturnValue(now); writeAnonymousDraft(localStorage, snapshot, null, now); const hook = setupRecovery(); await waitFor(() => expect(hook.result.current.state).toBe('offer')); if (mode === 'expired') clock.mockReturnValue(now + ANONYMOUS_DRAFT_TTL_MS + 1); else vi.spyOn(globalThis, 'localStorage', 'get').mockImplementation(() => { throw new DOMException('blocked'); }); act(() => hook.result.current.resume()); await waitFor(() => expect(hook.result.current.state).toBe(mode === 'expired' ? 'discarded' : 'unavailable')); expect(hook.onRestore).not.toHaveBeenCalled(); });
 
@@ -80,7 +79,22 @@ describe('anonymous recovery race contracts', () => {
     await waitFor(() => expect(hook.result.current.state).toBe('conflict'));
     expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toContain('Edit during save.');
   });
-
+  // prettier-ignore
+  it('does not commit a queued snapshot after a newer render', async () => {
+    let grant: (() => void) | undefined, calls = 0;
+    // prettier-ignore
+    const request = vi.fn((_name, _options, callback) => { calls += 1; if (calls !== 2) return Promise.resolve(callback()); return new Promise(resolve => { grant = () => resolve(callback()); }); });
+    Object.defineProperty(navigator, 'locks', { configurable: true, value: { request } });
+    const writes = vi.spyOn(Storage.prototype, 'setItem');
+    // prettier-ignore
+    function Harness({ layoutGrant, value }: { layoutGrant?: boolean; value: HookProps }) { useAnonymousDraftRecovery(value); useLayoutEffect(() => { if (layoutGrant) grant?.(); }, [layoutGrant]); return null; }
+    const first: HookProps = { activeId: null, category: 'property', draft: { ...snapshot.draft, summary: 'Queued stale facts.' }, lifecycleState: 'idle', neutralHost: globalThis.location.host, onReset: vi.fn(), onRestore: vi.fn(), resetCategory: null, step: 'details' };
+    const view = render(<Harness value={first} />);
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
+    view.rerender(<Harness layoutGrant value={{ ...first, draft: { ...snapshot.draft, summary: 'Current facts.' } }} />);
+    await waitFor(() => expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toContain('Current facts.'));
+    expect(writes.mock.calls.some(([, value]) => String(value).includes('Queued stale facts.'))).toBe(false);
+  });
   it('reports unavailable when exact-revision removal fails after secure promotion', async () => {
     writeAnonymousDraft(localStorage, snapshot, null);
     const hook = setupRecovery();
@@ -97,7 +111,6 @@ describe('anonymous recovery race contracts', () => {
     await waitFor(() => expect(hook.result.current.state).toBe('unavailable'));
     expect(available.getItem(ANONYMOUS_DRAFT_KEY)).not.toBeNull();
   });
-
   it('detaches before resume and blocks resume or discard while secure work is pending', async () => {
     writeAnonymousDraft(localStorage, snapshot, null);
     const hook = setupRecovery();
@@ -112,7 +125,6 @@ describe('anonymous recovery race contracts', () => {
     expect(pending.calls).toEqual([]);
     expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).not.toBeNull();
   });
-
   it('writes the first real edit after an already-identical preselected reset', async () => {
     // prettier-ignore
     const empty: AnonymousDraftSnapshot['draft'] = { counterparty: '', desiredOutcome: '', incidentDate: '', issueType: '', summary: '' };
@@ -129,13 +141,10 @@ describe('anonymous recovery race contracts', () => {
     hook.rerender({ ...hook.props, category: 'property', draft: { ...empty, summary: 'First edit.' }, resetCategory: 'property' });
     await waitFor(() => expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toContain('First edit.'));
   });
-
   // prettier-ignore
   it('retains the last valid record and retries only after a later valid correction', async () => { const hook = setupRecovery(); hook.rerender({ ...hook.props, category: 'property', draft: snapshot.draft }); await waitFor(() => expect(hook.result.current.state).toBe('saved')); const valid = localStorage.getItem(ANONYMOUS_DRAFT_KEY); hook.rerender({ ...hook.props, category: 'property', draft: { ...snapshot.draft, summary: 'Hospital treatment' } }); await waitFor(() => expect(hook.result.current.state).toBe('idle')); expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toBe(valid); hook.rerender({ ...hook.props, category: 'property', draft: { ...snapshot.draft, summary: 'Corrected property facts.' } }); await waitFor(() => expect(hook.result.current.state).toBe('saved')); expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toContain('Corrected property facts.'); });
-
   // prettier-ignore
   it('recovers on a later interaction after temporary lock denial', async () => { const request = vi.fn().mockRejectedValueOnce(new Error('denied')).mockImplementation(async (_name, _options, callback) => callback()); Object.defineProperty(navigator, 'locks', { configurable: true, value: { request } }); const hook = setupRecovery(); await waitFor(() => expect(hook.result.current.state).toBe('unavailable')); hook.rerender({ ...hook.props, category: 'property', draft: { ...snapshot.draft, summary: 'Reconcile first.' } }); await waitFor(() => expect(hook.result.current.state).toBe('idle')); expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toBeNull(); hook.rerender({ ...hook.props, category: 'property', draft: { ...snapshot.draft, summary: 'Retry succeeds.' } }); await waitFor(() => expect(hook.result.current.state).toBe('saved')); expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toContain('Retry succeeds.'); expect(request).toHaveBeenCalledTimes(3); });
-
   // prettier-ignore
   it('reconciles a newer sibling copy after temporary denial before retrying', async () => { const seed = writeAnonymousDraft(localStorage, snapshot, null); if (seed.status !== 'saved') throw new Error('seed failed'); const hook = setupRecovery(); await waitFor(() => expect(hook.result.current.state).toBe('offer')); const request = vi.fn().mockRejectedValueOnce(new Error('denied')).mockImplementation(async (_name, _options, callback) => callback()); Object.defineProperty(navigator, 'locks', { configurable: true, value: { request } }); act(() => hook.result.current.resume()); await waitFor(() => expect(hook.result.current.state).toBe('unavailable')); writeAnonymousDraft(localStorage, { ...snapshot, draft: { ...snapshot.draft, summary: 'Newer sibling copy.' } }, seed.record, Date.now() + 10); hook.rerender({ ...hook.props, category: 'property', draft: { ...snapshot.draft, summary: 'Denied candidate.' } }); await waitFor(() => expect(hook.result.current.offer?.draft.summary).toBe('Newer sibling copy.')); expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).not.toContain('Denied candidate.'); act(() => hook.result.current.resume()); await waitFor(() => expect(hook.onRestore).toHaveBeenCalled()); hook.rerender({ ...hook.props, category: 'property', draft: { ...snapshot.draft, summary: 'Fresh retry.' } }); await waitFor(() => expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toContain('Fresh retry.')); });
 });
