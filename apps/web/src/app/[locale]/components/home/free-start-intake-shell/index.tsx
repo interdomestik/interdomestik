@@ -44,7 +44,7 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
   const secureLifecycle = {
     ...draftLifecycle,
     startAnother: () => {
-      recovery.clearDeviceCopy();
+      recovery.clearBeforeReset();
       draftLifecycle.startAnother();
     },
   };

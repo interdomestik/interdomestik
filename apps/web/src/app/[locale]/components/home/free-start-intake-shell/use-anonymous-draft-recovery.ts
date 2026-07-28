@@ -109,12 +109,19 @@ export function useAnonymousDraftRecovery(args: Args) {
     return removed;
   }, []);
 
-  const discard = useCallback(() => {
-    if (!clearDeviceCopy()) return;
+  const clearBeforeReset = useCallback(() => {
     skipWrite.current = Boolean(args.resetCategory);
+    return clearDeviceCopy();
+  }, [args.resetCategory, clearDeviceCopy]);
+
+  const discard = useCallback(() => {
+    if (!clearBeforeReset()) {
+      skipWrite.current = false;
+      return;
+    }
     setState('discarded');
     args.onReset();
-  }, [args.onReset, args.resetCategory, clearDeviceCopy]);
+  }, [args.onReset, clearBeforeReset]);
 
   const resume = useCallback(() => {
     if (!offer) return;
@@ -124,5 +131,5 @@ export function useAnonymousDraftRecovery(args: Args) {
     setState('saved');
   }, [args.onRestore, offer]);
 
-  return { clearDeviceCopy, discard, offer, resume, state };
+  return { clearBeforeReset, clearDeviceCopy, discard, offer, resume, state };
 }
