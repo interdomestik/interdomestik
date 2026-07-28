@@ -30,6 +30,7 @@ export type ReadResult =
 export type WriteResult =
   | { status: 'saved'; updatedAt: string }
   | { status: 'conflict'; record: AnonymousDraftRecord }
+  | { status: 'stale' }
   | { status: 'unavailable' };
 
 // prettier-ignore
@@ -105,6 +106,7 @@ export function writeAnonymousDraft(
   if (!storage) return { status: 'unavailable' };
   const current = readAnonymousDraft(storage, now);
   if (current.status === 'unavailable') return { status: 'unavailable' };
+  if (current.status === 'none' && expectedUpdatedAt) return { status: 'stale' };
   if (current.status === 'available' && current.record.updatedAt !== expectedUpdatedAt) {
     return { status: 'conflict', record: current.record };
   }

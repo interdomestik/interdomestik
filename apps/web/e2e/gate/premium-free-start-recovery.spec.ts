@@ -4,6 +4,16 @@ import { routes } from '../routes';
 import { withAnonymousPage } from '../utils/anonymous-context';
 import { gotoApp } from '../utils/navigation';
 
+function resolveIdaTarget(info: TestInfo): TestInfo {
+  const configured = process.env.IDA_HOST?.trim() || 'ida.127.0.0.1.nip.io:3000';
+  const authority = new URL(configured.includes('://') ? configured : `http://${configured}`).host;
+  const baseURL = `http://${authority}/${routes.getLocale(info)}`;
+  return {
+    ...info,
+    project: { ...info.project, use: { ...info.project.use, baseURL } },
+  } as TestInfo;
+}
+
 async function openOrganizer(page: Page, info: TestInfo) {
   await gotoApp(page, routes.home('en'), info, { marker: 'free-start-intake-shell' });
   const organizer = page.getByTestId('premium-free-start-organizer');
@@ -23,8 +33,9 @@ test.describe('pre-membership Free Start recovery', () => {
   test('restores all eligible facts and the safe step after a cold same-browser return', async ({
     browser,
   }, info) => {
-    await withAnonymousPage(browser, info, async firstPage => {
-      const organizer = await openOrganizer(firstPage, info);
+    const idaInfo = resolveIdaTarget(info);
+    await withAnonymousPage(browser, idaInfo, async firstPage => {
+      const organizer = await openOrganizer(firstPage, idaInfo);
       await selectVehicle(organizer);
       await organizer.getByRole('button', { name: 'Continue to guided intake' }).click();
       await organizer.getByLabel('What happened?').selectOption('collision');
@@ -43,7 +54,7 @@ test.describe('pre-membership Free Start recovery', () => {
       const context = firstPage.context();
       await firstPage.close();
       const returnedPage = await context.newPage();
-      const returnedOrganizer = await openOrganizer(returnedPage, info);
+      const returnedOrganizer = await openOrganizer(returnedPage, idaInfo);
 
       await expect(returnedOrganizer.getByTestId('anonymous-draft-recovery-offer')).toBeVisible();
       await returnedOrganizer.getByRole('button', { name: 'Continue with these notes' }).click();
@@ -63,8 +74,9 @@ test.describe('pre-membership Free Start recovery', () => {
   });
 
   test('discards the device copy and returns to a clean organizer', async ({ browser }, info) => {
-    await withAnonymousPage(browser, info, async page => {
-      const organizer = await openOrganizer(page, info);
+    const idaInfo = resolveIdaTarget(info);
+    await withAnonymousPage(browser, idaInfo, async page => {
+      const organizer = await openOrganizer(page, idaInfo);
       await selectVehicle(organizer);
       await expect(organizer.getByTestId('anonymous-draft-recovery-status')).toBeVisible();
 
@@ -78,6 +90,59 @@ test.describe('pre-membership Free Start recovery', () => {
       expect(
         await page.evaluate(() => localStorage.getItem('interdomestik_free_start_recovery_v1'))
       ).toBeNull();
+    });
+  });
+
+  test('keeps device recovery off generic tenant hosts', async ({ browser }, info) => {
+    await withAnonymousPage(browser, info, async page => {
+      const organizer = await openOrganizer(page, info);
+      await selectVehicle(organizer);
+      await expect(organizer.getByTestId('anonymous-draft-recovery-status')).toHaveCount(0);
+      await expect(organizer).toHaveAttribute('data-save-behavior', 'explicit-only');
+      await expect(organizer.getByTestId('free-start-trust-boundary')).toContainText(
+        'nothing saves automatically'
+      );
+      expect(
+        await page.evaluate(() => localStorage.getItem('interdomestik_free_start_recovery_v1'))
+      ).toBeNull();
+    });
+  });
+
+  test('makes no device-recovery promise without JavaScript', async ({ browser }, info) => {
+    const idaInfo = resolveIdaTarget(info);
+    const context = await browser.newContext({
+      baseURL: idaInfo.project.use.baseURL,
+      extraHTTPHeaders: idaInfo.project.use.extraHTTPHeaders,
+      javaScriptEnabled: false,
+      storageState: undefined,
+    });
+    const page = await context.newPage();
+
+    try {
+      await gotoApp(page, routes.home('en'), idaInfo, { marker: 'free-start-intake-shell' });
+      const organizer = page.getByTestId('premium-free-start-organizer');
+      await expect(organizer).not.toContainText('can recover here for 30 days');
+      await expect(organizer).not.toContainText('saved automatically only in this browser');
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('fails closed when browser storage is unavailable', async ({ browser }, info) => {
+    const idaInfo = resolveIdaTarget(info);
+    await withAnonymousPage(browser, idaInfo, async page => {
+      await page.addInitScript(() => {
+        const getItem = Storage.prototype.getItem;
+        Storage.prototype.getItem = function (key: string) {
+          if (key === 'interdomestik_free_start_recovery_v1') throw new DOMException('blocked');
+          return getItem.call(this, key);
+        };
+      });
+      const organizer = await openOrganizer(page, idaInfo);
+      await expect(organizer).toHaveAttribute('data-save-behavior', 'explicit-only');
+      await expect(organizer).toContainText('Browser recovery is unavailable');
+      await expect(organizer).toContainText('nothing saves automatically');
+      await expect(organizer).toContainText('Browser recovery availability is shown above');
     });
   });
 });

@@ -10,13 +10,10 @@ import {
 function collectCopyValues(value: unknown): string[] {
   if (typeof value === 'string') return [value];
   if (!value || typeof value !== 'object') return [];
-
   return Object.values(value).flatMap(collectCopyValues);
 }
-
 function collectKeyPaths(value: unknown, prefix = ''): string[] {
   if (!value || typeof value !== 'object') return [];
-
   return Object.entries(value).flatMap(([key, child]) => {
     const path = prefix ? `${prefix}.${key}` : key;
     return child && typeof child === 'object' ? collectKeyPaths(child, path) : [path];
@@ -41,7 +38,9 @@ describe('premium Free Start copy contract', () => {
     (_locale, messages) => {
       const boundary = messages.freeStart.trustBoundary;
       const truth = messages.freeStart.trustBoundary.body;
-
+      const noRecoveryTruth = (
+        JSON.parse(messages.freeStart.secureSaveReviewCopy) as { noRecovery?: string }
+      ).noRecovery;
       expect(boundary.heading.trim()).not.toHaveLength(0);
       expect(boundary.heading).toMatch(/result|rezultat|rezultat|резултат/i);
       expect(truth).toMatch(/automatic|automatik|automatski|автоматски/i);
@@ -50,6 +49,11 @@ describe('premium Free Start copy contract', () => {
       expect(truth).toMatch(/temporary|përkohsh|privremen|привремен/i);
       expect(truth).toMatch(/not saved|nuk ruhet|nije sačuvan|не се зачувува/i);
       expect(truth).toMatch(/no case|nuk hap|nije otvoren|не се отвора/i);
+      // prettier-ignore
+      expect(noRecoveryTruth).toMatch(/nothing saves automatically|asgjë nuk ruhet automatikisht|ništa se ne čuva automatski|ништо не се зачувува автоматски/i);
+      expect(noRecoveryTruth).toMatch(/temporary|përkohsh|privremen|привремен/i);
+      expect(noRecoveryTruth).toMatch(/not saved|nuk ruhet|nije sačuvan|не се зачувува/i);
+      expect(noRecoveryTruth).toMatch(/no case|nuk hap|nije otvoren|не се отвора/i);
     }
   );
 
@@ -115,7 +119,7 @@ describe('premium Free Start copy contract', () => {
     (_locale, messages) => {
       const copy = collectCopyValues(recoveryCopy(messages)).join(' ');
       const secure = collectCopyValues(secureSaveCopy(messages)).join(' ');
-
+      const idle = (secureSaveCopy(messages) as { status: { idle: string } }).status.idle;
       expect(copy).toMatch(/browser|shfletues|pregledač|прелистувач/i);
       expect(copy).toMatch(/30/);
       expect(copy).toMatch(/private|privat|приват/i);
@@ -123,6 +127,8 @@ describe('premium Free Start copy contract', () => {
       expect(copy).toMatch(/secure|sigurt|bezbed|безбед/i);
       expect(copy).toMatch(/device|pajisje|uređaj|уред/i);
       expect(secure).toMatch(/browser|shfletues|pregledač|прелистувач/i);
+      expect(idle).toMatch(/browser|shfletues|pregledač|прелистувач/i);
+      expect(idle).not.toMatch(/automatic|automatik|automatski|автоматски/i);
     }
   );
 

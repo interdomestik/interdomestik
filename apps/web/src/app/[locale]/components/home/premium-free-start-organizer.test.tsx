@@ -70,7 +70,7 @@ describe('premium Free Start organizer', () => {
 
     expect(screen.getByTestId('premium-free-start-organizer')).toHaveAttribute(
       'data-save-behavior',
-      'device-recovery'
+      'explicit-only'
     );
     expect(
       screen.getByRole('heading', { name: 'Gather the key facts in one place.' })
@@ -80,7 +80,7 @@ describe('premium Free Start organizer', () => {
     expect(screen.queryByTestId('free-start-category-injury')).not.toBeInTheDocument();
     expect(screen.getByLabelText('What happened?')).toBeInTheDocument();
     expect(screen.getByTestId('free-start-trust-boundary')).toHaveTextContent(
-      'Eligible vehicle or property facts'
+      'nothing saves automatically'
     );
   });
 

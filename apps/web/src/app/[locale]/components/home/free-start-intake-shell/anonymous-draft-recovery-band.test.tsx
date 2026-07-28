@@ -11,7 +11,7 @@ vi.mock('next-intl', () => ({
   }),
 }));
 
-function recovery(state: 'offer' | 'saved') {
+function recovery(state: 'discarded' | 'offer' | 'saved' | 'secure' | 'unavailable') {
   return {
     clearDeviceCopy: vi.fn(),
     discard: vi.fn(),
@@ -55,4 +55,15 @@ describe('AnonymousDraftRecoveryBand', () => {
     expect(region).toHaveTextContent('30 days');
     expect(region).toHaveTextContent('private device');
   });
+
+  it.each(['unavailable', 'discarded', 'secure'] as const)(
+    'does not claim that a browser copy is saved after the %s terminal state',
+    state => {
+      render(<AnonymousDraftRecoveryBand recovery={recovery(state) as never} />);
+      const region = screen.getByTestId('anonymous-draft-recovery-status');
+      expect(region).not.toHaveTextContent('Saved on this browser');
+      expect(region).not.toHaveTextContent('can recover here for 30 days');
+      expect(region).not.toHaveTextContent('saved automatically only in this browser');
+    }
+  );
 });

@@ -49,8 +49,8 @@ const invalidRecords = [['malformed', '{'], ['unknown version', rawRecord({ vers
 
 describe('anonymous Free Start recovery', () => {
   beforeEach(() => {
-    localStorage.clear();
     vi.restoreAllMocks();
+    localStorage.clear();
   });
 
   it('round-trips only eligible allowlisted facts', () => {
@@ -88,7 +88,18 @@ describe('anonymous Free Start recovery', () => {
     const stale = writeAnonymousDraft(localStorage, snapshot, firstStamp, NOW + 200);
     expect(stale.status).toBe('conflict');
     expect((stale as { record: { draft: unknown } }).record.draft).toEqual(snapshot.draft);
+    localStorage.removeItem(ANONYMOUS_DRAFT_KEY);
+    expect(writeAnonymousDraft(localStorage, snapshot, firstStamp, NOW + 300).status).toBe('stale');
   });
+
+  // prettier-ignore
+  it('never mounts device recovery on a generic tenant host', async () => { const getItem = vi.spyOn(Storage.prototype, 'getItem'); const props = { activeId: null, category: 'property' as const, draft: snapshot.draft, lifecycleState: 'idle' as const, neutralHost: 'ida.interdomestik.com', onReset: vi.fn(), onRestore: vi.fn(), resetCategory: 'property' as const, step: 'details' as const }; const hook = renderHook(value => useAnonymousDraftRecovery(value), { initialProps: props }); await act(async () => Promise.resolve()); expect(hook.result.current.state).toBe('idle'); expect(getItem).not.toHaveBeenCalled(); });
+
+  // prettier-ignore
+  it('does not resurrect a draft removed by a sibling tab', async () => { const props = { activeId: null, category: 'property' as const, draft: snapshot.draft, lifecycleState: 'idle' as const, neutralHost: globalThis.location.host, onReset: vi.fn(), onRestore: vi.fn(), resetCategory: 'property' as const, step: 'details' as const }; const hook = renderHook(value => useAnonymousDraftRecovery(value), { initialProps: props }); await waitFor(() => expect(hook.result.current.state).toBe('saved')); act(() => { localStorage.removeItem(ANONYMOUS_DRAFT_KEY); globalThis.dispatchEvent(new StorageEvent('storage', { key: ANONYMOUS_DRAFT_KEY })); }); hook.rerender({ ...props, draft: { ...snapshot.draft, summary: 'A stale tab edit must stay local only.' } }); await act(async () => Promise.resolve()); expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toBeNull(); });
+
+  // prettier-ignore
+  it('withdraws a recovery offer when storage becomes unavailable', async () => { writeAnonymousDraft(localStorage, snapshot, null, NOW); const props = { activeId: null, category: null, draft: snapshot.draft, lifecycleState: 'idle' as const, neutralHost: globalThis.location.host, onReset: vi.fn(), onRestore: vi.fn(), resetCategory: null, step: 'details' as const }; const hook = renderHook(value => useAnonymousDraftRecovery(value), { initialProps: props }); await waitFor(() => expect(hook.result.current.state).toBe('offer')); const blocked = { getItem: () => { throw new DOMException('blocked'); }, removeItem: vi.fn(), setItem: vi.fn() }; vi.spyOn(globalThis, 'localStorage', 'get').mockReturnValue(blocked as unknown as Storage); act(() => globalThis.dispatchEvent(new StorageEvent('storage', { key: ANONYMOUS_DRAFT_KEY }))); await waitFor(() => expect(hook.result.current.state).toBe('unavailable')); expect(hook.result.current.offer).toBeNull(); expect(hook.result.current.enabled).toBe(false); });
 
   it('clears only after saving to saved with an active id', async () => {
     writeAnonymousDraft(localStorage, snapshot, null, NOW);
@@ -98,6 +109,7 @@ describe('anonymous Free Start recovery', () => {
       category: 'property',
       draft: snapshot.draft,
       lifecycleState: 'idle',
+      neutralHost: globalThis.location.host,
       resetCategory: 'property',
       step: 'category',
       ...callbacks,
@@ -130,21 +142,6 @@ describe('anonymous Free Start recovery', () => {
     await waitFor(() => expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toBeNull());
   });
 
-  it('keeps the member intake explicit-only and storage-neutral', () => {
-    writeAnonymousDraft(localStorage, snapshot, null, NOW);
-    const raw = localStorage.getItem(ANONYMOUS_DRAFT_KEY);
-    const spies = ['getItem', 'setItem', 'removeItem'].map(method =>
-      vi.spyOn(Storage.prototype, method as 'getItem')
-    );
-    const props = { freeStartMessages: {}, locale: 'en', tenantId: 'tenant_ks' };
-    render(createElement(ClaimDraftIntake, props));
-    expect(screen.getByTestId('claim-draft-intake')).toHaveAttribute(
-      'data-save-behavior',
-      'explicit-only'
-    );
-    expect(screen.queryByTestId('anonymous-draft-recovery-offer')).not.toBeInTheDocument();
-    spies.forEach(spy => expect(spy).not.toHaveBeenCalled());
-    vi.restoreAllMocks();
-    expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toBe(raw);
-  });
+  // prettier-ignore
+  it('keeps the member intake explicit-only and storage-neutral', () => { writeAnonymousDraft(localStorage, snapshot, null, NOW); const raw = localStorage.getItem(ANONYMOUS_DRAFT_KEY); const spies = ['getItem', 'setItem', 'removeItem'].map(method => vi.spyOn(Storage.prototype, method as 'getItem')); const props = { freeStartMessages: {}, locale: 'en', tenantId: 'tenant_ks' }; render(createElement(ClaimDraftIntake, props)); expect(screen.getByTestId('claim-draft-intake')).toHaveAttribute('data-save-behavior', 'explicit-only'); expect(screen.queryByTestId('anonymous-draft-recovery-offer')).not.toBeInTheDocument(); spies.forEach(spy => expect(spy).not.toHaveBeenCalled()); vi.restoreAllMocks(); expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toBe(raw); });
 });

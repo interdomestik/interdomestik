@@ -9,7 +9,7 @@ import { FreeStartMainPanel } from './main-panel';
 import { OrganizerHeader } from './organizer-header';
 import { FreeStartSidebar } from './sidebar';
 import { TrustBoundary } from './trust-boundary';
-import type { FreeStartIntakeShellProps } from './types';
+import type { FreeStartCopy, FreeStartIntakeShellProps } from './types';
 import { useAnonymousDraftRecovery } from './use-anonymous-draft-recovery';
 import { useDraftLifecycle } from './use-draft-lifecycle';
 import { useOrganizerFlow } from './use-organizer-flow';
@@ -35,12 +35,18 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
     category: flow.selectedCategory,
     draft: flow.draft,
     lifecycleState: draftLifecycle.state,
+    neutralHost: props.neutralOtpHost,
     onReset: flow.resetDraft,
     onRestore: flow.restoreAnonymousDraft,
     resetCategory: props.initialCategory ?? null,
     step: flow.step,
   });
   const view = useFreeStartViewModel({ flow, props, t, tCommon });
+  const noRecoveryBody = (
+    JSON.parse(String(t.raw('secureSaveReviewCopy'))) as { noRecovery: string }
+  ).noRecovery;
+  const trustBoundaryT: FreeStartCopy = key =>
+    key === 'trustBoundary.body' && !recovery.enabled ? noRecoveryBody : t(key);
   const secureLifecycle = {
     ...draftLifecycle,
     startAnother: () => {
@@ -57,7 +63,7 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
     >
       <div
         data-testid="premium-free-start-organizer"
-        data-save-behavior="device-recovery"
+        data-save-behavior={recovery.enabled ? 'device-recovery' : 'explicit-only'}
         className="mx-auto max-w-6xl space-y-8 px-4 py-12 sm:px-6 md:py-16"
       >
         <AnonymousDraftRecoveryBand recovery={recovery} />
@@ -88,7 +94,7 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
               ctaHref={props.continueHref}
               ctaLabel={view.continueLabel}
               pack={flow.claimPack}
-              truthBody={t('trustBoundary.body')}
+              truthBody={trustBoundaryT('trustBoundary.body')}
             />
           </div>
         ) : (
@@ -129,7 +135,7 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
         )}
         {/* prettier-ignore */}
         <SecureSaveBand lifecycle={secureLifecycle} locale={props.locale} neutralOtpHost={props.neutralOtpHost} tenantId={props.neutralOtpTenantId} />
-        <TrustBoundary t={t} />
+        <TrustBoundary t={trustBoundaryT} />
       </div>
     </section>
   );

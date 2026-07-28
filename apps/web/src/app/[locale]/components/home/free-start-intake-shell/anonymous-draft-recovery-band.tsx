@@ -23,6 +23,8 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) {
   if (recovery.state === 'idle') return null;
 
   const hasOffer = Boolean(recovery.offer);
+  const hasRecoverableCopy =
+    hasOffer || recovery.state === 'saved' || recovery.state === 'conflict';
   const status =
     recovery.state === 'offer'
       ? copy.offerBody
@@ -34,13 +36,26 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) {
       aria-labelledby="anonymous-draft-recovery-heading"
       className="rounded-2xl border border-[#006f72]/25 bg-[#eef8f5] p-4 text-[#173b43]"
     >
-      <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#006f72]">{copy.eyebrow}</p>
+      {hasRecoverableCopy ? (
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#006f72]">
+          {copy.eyebrow}
+        </p>
+      ) : null}
       <h3 id="anonymous-draft-recovery-heading" className="mt-1 text-lg font-bold text-[#001a33]">
-        {hasOffer ? copy.offerHeading : copy.heading}
+        {hasOffer ? copy.offerHeading : hasRecoverableCopy ? copy.heading : status}
       </h3>
-      <p className="mt-1 text-sm leading-6">{hasOffer ? copy.offerBody : copy.body}</p>
-      <p className="mt-1 text-xs leading-5 text-[#526274]">{copy.privateDevice}</p>
-      <p role="status" aria-live="polite" aria-atomic="true" className="mt-2 text-sm font-semibold">
+      {hasRecoverableCopy ? (
+        <>
+          <p className="mt-1 text-sm leading-6">{hasOffer ? copy.offerBody : copy.body}</p>
+          <p className="mt-1 text-xs leading-5 text-[#526274]">{copy.privateDevice}</p>
+        </>
+      ) : null}
+      <p
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className={hasRecoverableCopy ? 'mt-2 text-sm font-semibold' : 'sr-only'}
+      >
         {status}
       </p>
       <div className="mt-3 flex flex-wrap gap-3">
@@ -53,7 +68,7 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) {
             {copy.continue}
           </button>
         ) : null}
-        {recovery.state !== 'secure' ? (
+        {hasRecoverableCopy ? (
           <button
             type="button"
             onClick={recovery.discard}
