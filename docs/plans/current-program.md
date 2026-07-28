@@ -2713,6 +2713,66 @@ a separate future current-authority decision. No replacement implementation
 slice is promoted. The expected resolver state is
 `blocked_requires_current_authority`, `activeSlice=null`.
 
+Rev 181 current authority: `IDA-DG22` in
+`docs/plans/2026-07-28-ida-dg22-premembership-draft-continuity-design-gate.md`
+is the exact approved docs-only design gate bound to clean base
+`4dbb1d094de4b1ae80c5e375d21a2a1f06fa6824`. The exact R3 gate is 30,743 UTF-8
+bytes at SHA-256
+`baf97ad76a21df381b806403dc50d2b477637e1e58c45c4ca2e16708113ab4a8`.
+It proposes only `IDA-UI03a4`, a Tier-3 privacy-sensitive product UI slice
+that automatically preserves eligible vehicle/property Free Start notes on
+the current browser for a 30-day logical recovery window, offers an explicit
+resume-or-discard choice after exit, and clears that browser copy only after
+the existing verified-email secure save succeeds.
+
+This selection supersedes the earlier unapproved local `IDA-UI05a` draft after
+Arben clarified the higher-value pre-membership continuity requirement.
+`IDA-UI05a` was never approved, committed, pushed, opened, merged or promoted.
+Completed `IDA-UI03a1` secure-save evidence is reused without reopening it:
+browser recovery remains same-origin/same-browser only, while existing OTP
+secure save remains the sole cross-device authority and creates no membership,
+claim or case.
+
+Opus 4.8 R0 completed in 328.500 seconds and R1 completed in 338.183 seconds.
+Their bounded gate-contract findings are closed in R2. Local-copy deletion is
+now bound solely to the observable lifecycle transition `saving` → `saved`
+with a server draft id; `active.id`, OTP, `verified`, manage, load, or resume
+alone cannot delete it. All four locale copies must distinguish automatic
+same-browser fact recovery from deliberate secure save and the never-persisted
+generated result. The shared member claim intake is named as a read-only
+consumer: organizer restore is passive/default-off, public home is the only
+opt-in composition, and a pre-seeded member-flow neutrality regression is
+mandatory within existing test path 11. R2 also requires canonical validator
+enum/limit reuse and a cold public-entry reopen E2E assertion. Exact-current R2
+senior review passed in 232.570 seconds with no blocker or required hardening.
+R3 adds only that immutable review receipt; exact-current final same-route
+confirmation passed in 62.647 seconds with no substantive scope/contract drift.
+Across the 17 valid Opus calls in this goal's carried timing ledger, the
+updated interim average is 146.920 seconds; the 300.459-second no-output
+wrapper failure is excluded. Arben approved exact SHA-256
+`baf97ad76a21df381b806403dc50d2b477637e1e58c45c4ca2e16708113ab4a8`
+at `2026-07-28T11:59:11.000Z`.
+
+The exact prospective implementation map is limited to six Free Start
+composition/recovery files, four existing locale files, six focused
+test/E2E-contract files and deterministic-only repository-size metadata.
+Injury/medical and generated-result persistence, auth/session/OTP behavior,
+schema/RLS/database, routes/proxy, membership, claims, billing, analytics,
+providers, deployment and every other product surface remain forbidden.
+`IDA-UI03a2`, `IDA-UI03b`, PR `#1455`, `IDA-CD-DG02` and `IDA-CD02` remain
+untouched.
+
+The UI/UX benchmark has three current operators and a numeric `0/10` to `10/10`
+same-browser restore target. The exact-hash Arben receipt and exact-current
+senior review are complete, and the advisory checker returns `pass`. This
+docs-only promotion keeps `runtime_authorized:false`; product implementation
+must not begin until the gate PR merges, clean exact main resolves this one
+slice, AI OS/Brain are refreshed and a separate exact runtime-authority receipt
+is accepted.
+
+The next active governed implementation goal is exactly one canonical tracker slice:
+`IDA-UI03a4`
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
@@ -5854,3 +5914,14 @@ Committed work is only considered inspectable when the tracker can answer this c
 2. execution mode and run identity
 3. `sonar` / `docker` / `sentry` status
 4. learning status and evidence refs
+
+Rev 181 supersedes the Rev 180 terminal no-promotion sentence. Exact approved
+`IDA-DG22` promotes one Tier-3 product/privacy implementation slice only.
+The next active governed implementation goal is exactly one canonical tracker
+slice: `IDA-UI03a4`. This docs-only authority keeps
+`runtime_authorized:false` until its gate PR merges, clean exact main and the
+implementation worktree resolver select only this slice, AI OS/Brain are
+fresh, and a separate runtime-authority receipt is accepted. No second UI-tree
+node, member flow, auth/session/OTP behavior, route/proxy, schema/RLS/database,
+claim, membership, billing, provider, deployment, runner, or production
+surface is promoted.
