@@ -2770,6 +2770,34 @@ must not begin until the gate PR merges, clean exact main resolves this one
 slice, AI OS/Brain are refreshed and a separate exact runtime-authority receipt
 is accepted.
 
+Rev 182 current-slice addendum: exact-browser verification of `IDA-UI03a4`
+proved that globally denied `window.localStorage` still reaches the public
+critical error boundary through the pre-existing direct access in
+`apps/web/src/lib/cookie-consent.ts`. Parent-gate browser rule 6 and acceptance
+criterion 5 require disabled/security-failing storage to leave the page usable,
+so this is a product blocker and scope expansion, not a post-merge residual.
+
+Arben approved the bounded same-slice addendum in task
+`019fa824-2676-7c22-9dcb-d21af1c354e6`. Exact addendum
+`docs/plans/2026-07-28-ida-dg22-global-storage-denial-addendum.md` is 9,102
+UTF-8 bytes at SHA-256
+`28bbeabd728e1c5b6d170fc48c287ed4a2edfde945f6e308be883dc076865509`.
+It extends the cumulative writer ceiling from 17 to exactly 19 paths by adding
+only `apps/web/src/lib/cookie-consent.ts` and
+`apps/web/src/lib/cookie-consent.test.ts`. The fix must make only the existing
+consent-key localStorage read/write fail closed, preserve the existing cookie
+fallback/write and update event, and prove the public organizer remains usable
+with no false recovery-save state under global accessor denial.
+
+This docs-only addendum does not restart or replace `IDA-UI03a4`, promote a
+second tree node, change cookie policy, authorize a generic storage framework,
+or widen proxy/routes/auth/session/tenancy/schema/RLS/database/claim/
+membership/billing/provider/deployment/runner/production scope. Runtime remains
+held until the addendum merges and a fresh exact receipt rebinds the same
+implementation to the cumulative 19-path map. The clean unpushed implementation
+checkpoint at `8d253a0289532869716d007f35482d09a512a5fb` is preserved; only evidence
+invalidated by the two-path remediation and new head must rerun.
+
 The next active governed implementation goal is exactly one canonical tracker slice:
 `IDA-UI03a4`
 
@@ -5925,3 +5953,12 @@ fresh, and a separate runtime-authority receipt is accepted. No second UI-tree
 node, member flow, auth/session/OTP behavior, route/proxy, schema/RLS/database,
 claim, membership, billing, provider, deployment, runner, or production
 surface is promoted.
+
+Rev 182 does not supersede the Rev 181 slice selection. It adds only the exact
+9,102-byte / SHA-256
+`28bbeabd728e1c5b6d170fc48c287ed4a2edfde945f6e308be883dc076865509`
+global-storage-denial addendum to the same `IDA-DG22` / `IDA-UI03a4`. The
+cumulative implementation writer map is 19 paths, adding only
+`apps/web/src/lib/cookie-consent.ts` and its existing focused test. Runtime
+remains unauthorized until canonical addendum merge and exact receipt rebind.
+No replacement goal or second UI-tree node is promoted.
