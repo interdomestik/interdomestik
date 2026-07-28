@@ -2798,6 +2798,37 @@ implementation to the cumulative 19-path map. The clean unpushed implementation
 checkpoint at `8d253a0289532869716d007f35482d09a512a5fb` is preserved; only evidence
 invalidated by the two-path remediation and new head must rerun.
 
+Rev 183 approved current-slice addendum: exact-current review of clean unpushed
+implementation head `2f02bf4877b6a0a2ca22f861bfe498fe1383142f` proved that Web Storage
+read/compare/mutate is not atomic across agent clusters. Two tabs can read the
+same record and both pass the comparison before the stale candidate completes
+last. The same race can remove a later edit during invalid cleanup, discard,
+reset or verified secure-save promotion. Repeating sequential evidence cannot
+satisfy parent rule 9, browser acceptance criterion 6 or the existing
+multi-tab stop condition.
+
+Approved addendum `IDA-DG22-A2` is
+`docs/plans/2026-07-28-ida-dg22-web-locks-addendum.md`, exactly 17,831 UTF-8
+bytes at SHA-256
+`ec478df602410c30cc94b4eca384c8fde5ae4bd56da55b1aa7c66aaf56e90424`.
+It authorizes only one fixed same-origin Web Locks exclusive resource around
+every mutation-capable access to the existing anonymous draft key. Missing,
+throwing or rejected lock support fails recovery closed; no unlocked,
+spinlock, memory-mutex, BroadcastChannel, worker or IndexedDB fallback is
+allowed. True two-context writer, secure-removal and invalid-cleanup barrier
+proof is required in Chromium, Firefox and WebKit.
+
+The addendum adds no writer path: the cumulative ceiling remains exactly 19.
+It also preserves the already-required no-false-save correction for
+valid-to-ineligible-to-valid edits and malformed empty-string cleanup. It
+changes no schema/key/TTL, dependency, route/proxy/auth/tenancy/database,
+membership/claim, server action, provider, deployment, runner or production
+authority. Runtime stays stopped until the docs-only PR merges, AI OS/Brain
+refresh succeeds and a new receipt rebinds the same `IDA-UI03a4` and 19-path
+map. Arben approved the exact
+17,831-byte SHA-256 at `2026-07-28T19:20:22Z`; GPT-5.6 Sol Ultra exact-set
+review passed with no actionable finding. No second slice is promoted.
+
 The next active governed implementation goal is exactly one canonical tracker slice:
 `IDA-UI03a4`
 
@@ -5962,3 +5993,12 @@ cumulative implementation writer map is 19 paths, adding only
 `apps/web/src/lib/cookie-consent.ts` and its existing focused test. Runtime
 remains unauthorized until canonical addendum merge and exact receipt rebind.
 No replacement goal or second UI-tree node is promoted.
+
+Rev 183 does not supersede the Rev 181 slice selection. It adds only the exact
+exact 17,831-byte / SHA-256
+`ec478df602410c30cc94b4eca384c8fde5ae4bd56da55b1aa7c66aaf56e90424`
+Web Locks addendum to the same `IDA-DG22` / `IDA-UI03a4`. The cumulative
+implementation writer map remains exactly 19 paths. Runtime remains
+unauthorized until canonical addendum merge and exact receipt rebind. Arben
+approved the exact hash at `2026-07-28T19:20:22Z`; GPT-5.6 Sol Ultra exact-set
+review passed. No replacement goal or second UI-tree node is promoted.
