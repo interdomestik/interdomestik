@@ -73,7 +73,7 @@ export function useAnonymousDraftRecovery(args: Args) {
       void runLocked((current, now) => current() ? readAnonymousDraft(getAnonymousDraftStorage(), now) : null).then(({ current, result }) => { if (!current) return; if (result.status === 'unavailable' || !result.value) return markUnavailable(); if (result.value.status === 'none') { reconciliation.current = false; invalidated.current = false; setEnabled(true); setState('idle'); } else applyRead(result.value, true); });
       return;
     }
-    const expected = knownRecord.current, now = captureTime(); if (now === null) return markUnavailable();
+    const expected = knownRecord.current, captured = captureTime(), now = captured === null || !expected ? captured : Math.max(captured, Date.parse(expected.updatedAt) + 1); if (now === null) return markUnavailable();
     setState(value => value === 'saved' ? 'idle' : value);
     localWrites.current += 1;
     void runLocked((current, executionNow) => current() ? writeAnonymousDraft(getAnonymousDraftStorage(), snapshot, expected, now, executionNow) : null, currentContext).then(({ current, result }) => {
