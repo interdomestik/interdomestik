@@ -2849,11 +2849,47 @@ bytes / SHA-256
 `ebf579a54fb8bb3eec640d12d07b4f74c558ae6ce38a9b48047dd7abe4f0483a`.
 GPT-5.6 Sol Ultra exact-set review passed after manual-context TLS propagation, lifecycle
 sequencing and recoverable cleanup were closed. Arben approved the exact R2 artifact at
-`2026-07-28T20:08:53Z`. Canonical PR update/merge and runtime receipt rebind remain required.
+`2026-07-28T20:08:53Z`. PR `#1475` merged the exact R2 authority as
+`7cc5149c0fc4cc0b2ce26af6d5c3091d2fa25b15`; the A2 merge condition and implementation
+runtime-receipt rebind were satisfied before product head `2d3e3b3f…`. A3 now freezes that
+checkpoint and requires its own fresh receipt rebind.
 Because an exact-byte artifact cannot self-record a later approval without invalidating its own
 hash, this canonical program/tracker receipt supersedes R2's preapproval `Status: R2 proposed`
 snapshot for lifecycle state. The canonical resolver reads current program/tracker authority, not
 that immutable artifact header.
+
+Rev 185 proposed current-slice addendum: exact Z620 browser verification at implementation head
+`c17d9e063dba0fa2b3b994421e40f5888bc1960d` proved that the parent gate's absolute
+whole-document overflow predicate cannot attribute the public page's existing responsive defect
+to `IDA-UI03a4`. At the literal 320 CSS-pixel Playwright layout viewport with CSS `zoom:2`,
+`innerWidth=320`, `(max-width: 320px)=true` and `(min-width: 321px)=false`. The page is
+`clientWidth=320` / `scrollWidth=760` both with and without the recovery offer. The recovery
+region remains within `left=20` / `right=276`, its actions remain within `left=54` / maximum
+`right=269.59375`, and neither has internal overflow. The existing public-header actions extend
+from `left=451.6875` to `right=760.28125`.
+
+Proposed `IDA-DG22-A3` is
+`docs/plans/2026-07-29-ida-dg22-accessibility-overflow-attribution-addendum.md`, exact at 17,152
+UTF-8 bytes / SHA-256
+`9bdf42ba1919cc23459c2005e6a209c21837ef8c5b94aef8e0b86baf6de09d4b`.
+Arben approved the bounded direction and then the exact 17,152-byte artifact at
+`2026-07-29T11:21:11Z`. GPT-5.6 Sol Ultra exact-hash review passed without a remaining blocker
+after 28m 27s. Canonical merge and runtime receipt rebind remain required. A3 retains all four
+literal CSS layout widths,
+200%/text-spacing, forced-colors, reduced-motion, keyboard, visible-focus, accessible-name,
+rendered 44-CSS-pixel target-size, initial no-focus-steal and internal no-overflow proof. Both
+baseline and offer measurements require recovery-state readiness, loaded fonts and a two-frame
+layout settle. Each viewport asserts `innerWidth` and matching max-width/next-pixel min-width
+media-query identity. Its rollback is bound to known stopped/non-merge-ready head `c17d9e063…`
+and invalidates A3 receipts. A3 supersedes only the parent absolute page-level no-document-overflow
+clause for this slice, records that clause as unmet and deferred, and replaces it with an exact
+same-page no-offer baseline comparison: recovery may not create or increase document overflow.
+
+A3 adds no writer path or runtime behavior; the cumulative ceiling remains exactly 19. The
+public-header/document overflow remains an explicit unpromoted candidate in the unfinished UI
+journey tree and may not be marked fixed, waived or completed. A later current-authority selection
+must score and either promote or explicitly defer it. This goal still promotes only
+`IDA-UI03a4`; implementation remains stopped until A3 is merged and freshly rebound.
 
 The next active governed implementation goal is exactly one canonical tracker slice:
 `IDA-UI03a4`
@@ -6042,8 +6078,11 @@ HTTP 200, the canonical shell marker,
 path or protected/runtime surface. Exact R2 is 24,799 UTF-8 bytes / SHA-256
 `ebf579a54fb8bb3eec640d12d07b4f74c558ae6ce38a9b48047dd7abe4f0483a`;
 GPT-5.6 Sol Ultra exact-set review passed and Arben approved it at
-`2026-07-28T20:08:53Z`. Canonical merge and runtime receipt rebind remain
-required. This canonical receipt supersedes the immutable artifact's
+`2026-07-28T20:08:53Z`. PR `#1475` merged the exact R2 authority as
+`7cc5149c0fc4cc0b2ce26af6d5c3091d2fa25b15`; the A2 merge condition and
+implementation runtime-receipt rebind were satisfied before product head
+`2d3e3b3f…`. This canonical receipt supersedes the immutable artifact's
 preapproval `Status: R2 proposed` snapshot; changing that line would invalidate
 the approved exact-byte hash, and the resolver reads current program/tracker
-authority instead.
+authority instead. Rev 185/A3 freezes that checkpoint and requires a fresh A3
+receipt before implementation resumes.
