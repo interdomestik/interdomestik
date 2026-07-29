@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
-
+import { useRef, useState } from 'react';
 import { AnonymousDraftRecoveryBand } from './anonymous-draft-recovery-band';
 import { EMPTY_DRAFT } from './constants';
 import { useFreeStartViewModel } from './free-start-view-model';
@@ -24,6 +24,10 @@ export async function resetAfterRecoveryClear(clear: () => Promise<boolean> | bo
 export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
   const t = useTranslations('freeStart'),
     tCommon = useTranslations('common');
+  const [secureEpoch, setSecureEpoch] = useState(0),
+    secureEpochRef = useRef(0);
+  // prettier-ignore
+  const invalidateSecureIntent = () => { secureEpochRef.current += 1; setSecureEpoch(secureEpochRef.current); };
   const flow = useOrganizerFlow(props.initialCategory);
   const draftLifecycle = useDraftLifecycle({
     category: flow.selectedCategory,
@@ -48,6 +52,8 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
   // prettier-ignore
   const view = useFreeStartViewModel({ flow, props, t, tCommon }), recoveryPending = !recovery.ready || recovery.busy || Boolean(recovery.offer), secureActionsBlocked = recoveryPending || recovery.state === 'retained';
   // prettier-ignore
+  const recoveryView = { ...recovery, discard: () => { invalidateSecureIntent(); recovery.discard(); }, resume: () => { invalidateSecureIntent(); recovery.resume(); } };
+  // prettier-ignore
   const selectCategory = (category: CategoryId) => recovery.neutralHost && flow.selectedCategory === 'injury' && (category === 'vehicle' || category === 'property') ? flow.restoreAnonymousDraft({ category, draft: EMPTY_DRAFT, resumeStep: flow.step === 'complete' ? 'preview' : flow.step }) : flow.selectCategory(category);
   const noRecoveryBody = (
     JSON.parse(String(t.raw('secureSaveReviewCopy'))) as { noRecovery: string }
@@ -55,7 +61,7 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
   const trustBoundaryT: FreeStartCopy = key =>
     key === 'trustBoundary.body' && !recovery.enabled ? noRecoveryBody : t(key);
   // prettier-ignore
-  const secureLifecycle = { ...draftLifecycle, startAnother: () => void resetAfterRecoveryClear(recovery.clearBeforeReset, draftLifecycle.startAnother) };
+  const secureLifecycle = { ...draftLifecycle, onVerified: async () => { if (secureEpochRef.current !== secureEpoch) throw new Error('secure_save_intent_failed'); await draftLifecycle.onVerified(); }, startAnother: () => { invalidateSecureIntent(); void resetAfterRecoveryClear(recovery.clearBeforeReset, draftLifecycle.startAnother); } };
   return (
     <section
       id="free-start-intake"
@@ -67,7 +73,7 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
         data-save-behavior={recovery.enabled ? 'device-recovery' : 'explicit-only'}
         className="mx-auto max-w-6xl space-y-8 px-4 py-12 sm:px-6 md:py-16"
       >
-        <AnonymousDraftRecoveryBand recovery={recovery} />
+        <AnonymousDraftRecoveryBand recovery={recoveryView} />
         <OrganizerHeader step={flow.step} t={t} />
         <p
           data-testid="free-start-result-announcement"
@@ -136,7 +142,7 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
           </div>
         )}
         {/* prettier-ignore */}
-        <div data-testid="free-start-recovery-secure-actions" aria-describedby={secureActionsBlocked ? 'anonymous-draft-recovery-heading' : undefined} inert={secureActionsBlocked || undefined}><SecureSaveBand lifecycle={secureLifecycle} locale={props.locale} neutralOtpHost={props.neutralOtpHost} tenantId={props.neutralOtpTenantId} /></div>
+        <div data-testid="free-start-recovery-secure-actions" aria-describedby={secureActionsBlocked ? 'anonymous-draft-recovery-heading' : undefined} inert={secureActionsBlocked || undefined}><SecureSaveBand key={secureEpoch} lifecycle={secureLifecycle} locale={props.locale} neutralOtpHost={props.neutralOtpHost} tenantId={props.neutralOtpTenantId} /></div>
         <TrustBoundary t={trustBoundaryT} />
       </div>
     </section>

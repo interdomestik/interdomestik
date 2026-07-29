@@ -1,10 +1,20 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import enMessages from '@/messages/en/freeStart.json';
 import { createUseTranslationsMock } from '@/test/next-intl-mock';
 
-const hoisted = vi.hoisted(() => ({ submit: vi.fn(), generate: vi.fn() }));
+const hoisted = vi.hoisted(() => ({
+  create: vi.fn(),
+  deleteDraft: vi.fn(),
+  generate: vi.fn(),
+  list: vi.fn(),
+  resume: vi.fn(),
+  send: vi.fn(),
+  submit: vi.fn(),
+  update: vi.fn(),
+  verify: vi.fn(),
+}));
 
 vi.mock('next-intl', () => ({
   useTranslations: createUseTranslationsMock(() => ({
@@ -41,6 +51,21 @@ vi.mock('@/actions/claim-pack.core', () => ({
   generateClaimPackAction: (...args: unknown[]) => hoisted.generate(...args),
 }));
 
+vi.mock('@/actions/free-start-drafts', () => ({
+  createFreeStartDraft: (...args: unknown[]) => hoisted.create(...args),
+  deleteFreeStartDraft: (...args: unknown[]) => hoisted.deleteDraft(...args),
+  listFreeStartDrafts: (...args: unknown[]) => hoisted.list(...args),
+  resumeFreeStartDraft: (...args: unknown[]) => hoisted.resume(...args),
+  updateFreeStartDraft: (...args: unknown[]) => hoisted.update(...args),
+}));
+
+vi.mock('@/lib/auth-client', () => ({
+  authClient: {
+    emailOtp: { sendVerificationOtp: (...args: unknown[]) => hoisted.send(...args) },
+    signIn: { emailOtp: (...args: unknown[]) => hoisted.verify(...args) },
+  },
+}));
+
 import { writeAnonymousDraft } from './free-start-intake-shell/anonymous-draft-recovery';
 import { getContinueLabel } from './free-start-intake-shell/helpers';
 import { FreeStartIntakeShell } from './free-start-intake-shell/index';
@@ -55,7 +80,7 @@ const translate = ((key: string) => {
 
 describe('premium Free Start organizer', () => {
   // prettier-ignore
-  beforeEach(() => { vi.restoreAllMocks(); localStorage.clear(); hoisted.submit.mockReset(); hoisted.generate.mockReset(); });
+  beforeEach(() => { vi.restoreAllMocks(); localStorage.clear(); hoisted.submit.mockReset(); hoisted.generate.mockReset(); hoisted.create.mockReset().mockResolvedValue({ ok: false, code: 'authRequired' }); hoisted.send.mockReset().mockResolvedValue({ data: {}, error: null }); hoisted.verify.mockReset().mockResolvedValue({ data: { user: { id: 'user-a' } }, error: null }); });
 
   it('continues a selected situation in the premium organizer without asking twice', () => {
     render(
@@ -99,4 +124,7 @@ describe('premium Free Start organizer', () => {
 
   // prettier-ignore
   it('blocks secure actions until a pending device discard settles', async () => { writeAnonymousDraft(localStorage, { category: 'property', draft: { counterparty: 'Insurer', desiredOutcome: 'repair', incidentDate: '2026-07-15', issueType: 'water_damage', summary: 'Water damaged two rooms.' }, resumeStep: 'preview' }, null); const request = vi.fn((_name, options: { signal: AbortSignal }, callback: () => unknown) => request.mock.calls.length === 1 ? Promise.resolve(callback()) : new Promise((_resolve, reject) => options.signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')), { once: true }))); Object.defineProperty(navigator, 'locks', { configurable: true, value: { request } }); render(<FreeStartIntakeShell continueHref="/pricing" locale="en" neutralOtpHost={globalThis.location.host} tenantId="tenant_public" />); fireEvent.click(await screen.findByRole('button', { name: 'Discard from this device' })); await waitFor(() => expect(request).toHaveBeenCalledTimes(2)); expect(screen.getByTestId('free-start-recovery-secure-actions')).toHaveAttribute('inert'); });
+
+  // prettier-ignore
+  it('prevents a pending OTP verification from saving facts after discard', async () => { let finishVerify!: () => void; hoisted.verify.mockReturnValue(new Promise(resolve => { finishVerify = () => resolve({ data: { user: { id: 'user-a' } }, error: null }); })); Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { configurable: true, value: vi.fn() }); Object.defineProperty(navigator, 'locks', { configurable: true, value: { request: vi.fn(async (_name, _options, callback) => callback()) } }); render(<FreeStartIntakeShell continueHref="/pricing" initialCategory="property" locale="en" neutralOtpHost={globalThis.location.host} tenantId="tenant_public" />); await waitFor(() => expect(localStorage.length).toBe(1)); fireEvent.click(await screen.findByRole('button', { name: 'Save securely' })); fireEvent.change(await screen.findByLabelText('Email address'), { target: { value: 'owner@example.com' } }); fireEvent.click(screen.getByRole('button', { name: 'Send code' })); await waitFor(() => expect(hoisted.send).toHaveBeenCalledOnce()); fireEvent.change(screen.getByLabelText('Verification code'), { target: { value: '123456' } }); fireEvent.click(screen.getByRole('button', { name: 'Verify and continue' })); await waitFor(() => expect(hoisted.verify).toHaveBeenCalledOnce()); const record = JSON.parse(localStorage.getItem('interdomestik_free_start_recovery_v1')!); record.draft.summary = 'Newer sibling facts.'; record.updatedAt = new Date(Date.parse(record.updatedAt) + 1).toISOString(); record.expiresAt = new Date(Date.parse(record.expiresAt) + 1).toISOString(); localStorage.setItem('interdomestik_free_start_recovery_v1', JSON.stringify(record)); const event = new Event('storage') as StorageEvent; Object.defineProperties(event, { key: { value: 'interdomestik_free_start_recovery_v1' }, storageArea: { value: localStorage } }); globalThis.dispatchEvent(event); fireEvent.click(await screen.findByRole('button', { name: 'Discard from this device' })); await act(async () => finishVerify()); expect(hoisted.create).toHaveBeenCalledOnce(); });
 });
