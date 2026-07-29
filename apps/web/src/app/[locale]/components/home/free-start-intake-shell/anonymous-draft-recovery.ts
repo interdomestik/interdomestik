@@ -24,13 +24,8 @@ export type AnonymousDraftSnapshot = Readonly<{
 export type AnonymousDraftRecord = AnonymousDraftSnapshot &
   Readonly<{ updatedAt: string; expiresAt: string }>;
 type RecoveryStorage = Pick<Storage, 'getItem' | 'removeItem' | 'setItem'>;
-type Locks = Readonly<{
-  request: <T>(
-    name: string,
-    options: { mode: 'exclusive'; signal: AbortSignal },
-    callback: () => T
-  ) => Promise<T>;
-}>;
+// prettier-ignore
+type Locks = Readonly<{ request: <T>(name: string, options: { mode: 'exclusive'; signal: AbortSignal }, callback: () => T | Promise<T>) => Promise<T> }>;
 // prettier-ignore
 export type ReadResult = { status: 'available'; record: AnonymousDraftRecord } | { status: 'none' } | { status: 'unavailable' };
 export type WriteResult =
@@ -62,9 +57,12 @@ export async function runAnonymousDraftLocked<T>(
     const value = await locks.request(
       ANONYMOUS_DRAFT_LOCK_NAME,
       { mode: 'exclusive', signal: controller.signal },
-      () => {
+      async () => {
         granted = true;
         clearTimeout(timeout);
+        // Let Firefox expose prior cross-context storage writes before this mutation reads.
+        await new Promise<void>(resolve => setTimeout(resolve));
+        await new Promise<void>(resolve => setTimeout(resolve));
         return task();
       }
     );
