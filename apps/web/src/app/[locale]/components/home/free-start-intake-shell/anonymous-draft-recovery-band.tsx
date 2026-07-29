@@ -70,7 +70,7 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) {
           <button
             type="button"
             onClick={recovery.resume}
-            className="min-h-11 rounded-xl bg-[#006f72] px-4 font-bold text-white outline-none focus-visible:ring-3 focus-visible:ring-[#008f91] focus-visible:ring-offset-2"
+            className="min-h-12 rounded-xl bg-[#006f72] px-4 font-bold text-white outline-none focus-visible:ring-3 focus-visible:ring-[#008f91] focus-visible:ring-offset-2"
           >
             {copy.continue}
           </button>
@@ -79,7 +79,7 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) {
           <button
             type="button"
             onClick={recovery.discard}
-            className="min-h-11 rounded-xl border border-[#006f72] bg-white px-4 font-bold text-[#006f72] outline-none focus-visible:ring-3 focus-visible:ring-[#008f91]"
+            className="min-h-12 rounded-xl border border-[#006f72] bg-white px-4 font-bold text-[#006f72] outline-none focus-visible:ring-3 focus-visible:ring-[#008f91]"
           >
             {fresh ? secureCopy.startAnother : copy.discard}
           </button>
