@@ -98,7 +98,7 @@ test.describe('pre-membership Free Start recovery', () => {
       const organizer = await openOrganizer(first, ida); await enterVehicleDetails(organizer);
       await organizer.getByLabel('What happened?').selectOption('collision'); await organizer.getByLabel('When did it happen?').fill('2026-07-15');
       await organizer.getByLabel('Who are you dealing with?').fill('Northwind Insurance'); await organizer.getByLabel('What do you want to recover?').selectOption('repair'); await organizer.getByLabel('Brief summary').fill('Rear bumper damage after a low-speed collision.');
-      await organizer.getByRole('button', { name: 'Review your summary' }).click(); await expect(organizer.getByTestId('anonymous-draft-recovery-status')).toContainText('Saved on this browser');
+      await organizer.getByRole('button', { name: 'Review your summary' }).click(); await expect(organizer.getByTestId('anonymous-draft-recovery-status')).toContainText('Saved on this browser'); await expect.poll(() => first.evaluate(key => { try { return (JSON.parse(localStorage.getItem(key) ?? '{}') as { draft?: { resumeStep?: string } }).draft?.resumeStep ?? null; } catch { return null; } }, KEY)).toBe('preview');
       const context = first.context(); await first.close(); const returned = await context.newPage(), next = await openOrganizer(returned, ida);
       await next.getByRole('button', { name: 'Continue with these notes' }).click();
       await expect(next.getByRole('heading', { name: 'Review your Free Start pack shell.' })).toBeVisible();
