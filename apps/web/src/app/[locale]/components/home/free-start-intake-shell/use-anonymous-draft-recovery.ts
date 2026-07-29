@@ -20,7 +20,7 @@ export function useAnonymousDraftRecovery(args: Args) {
   // prettier-ignore
   const [enabled, setEnabled] = useState(false), [offer, setOffer] = useState<AnonymousDraftRecord | null>(null), [ready, setReady] = useState(false), [state, setState] = useState<RecoveryState>('idle');
   // prettier-ignore
-  const abortRef = useRef<AbortController | null>(null), currentFingerprintRef = useRef(''), currentSnapshotRef = useRef<AnonymousDraftSnapshot | null>(null), generation = useRef(0), interaction = useRef(false), invalidated = useRef(false), knownRecord = useRef<AnonymousDraftRecord | null>(null), mounted = useRef(true), promotionFingerprint = useRef<string | null>(null), reconciliation = useRef(false), suppression = useRef<{ from: string; to: string } | null>(null), previousLifecycle = useRef(args.lifecycleState);
+  const abortRef = useRef<AbortController | null>(null), currentFingerprintRef = useRef(''), currentSnapshotRef = useRef<AnonymousDraftSnapshot | null>(null), generation = useRef(0), interaction = useRef(false), invalidated = useRef(false), knownRecord = useRef<AnonymousDraftRecord | null>(null), mounted = useRef(true), promotionFingerprint = useRef<string | null>(null), reconcileAbortRef = useRef<AbortController | null>(null), reconciliation = useRef(false), suppression = useRef<{ from: string; to: string } | null>(null), previousLifecycle = useRef(args.lifecycleState);
   const currentSnapshot = args.category ? createAnonymousDraftSnapshot(args.category, args.draft, args.step) : null, currentFingerprint = currentSnapshot ? recordFingerprint(currentSnapshot) : fingerprint(args.category, args.draft, args.step); currentFingerprintRef.current = currentFingerprint; currentSnapshotRef.current = currentSnapshot;
   // prettier-ignore
   const resetFingerprint = fingerprint(args.resetCategory, EMPTY_DRAFT, args.resetCategory ? 'details' : 'category');
@@ -28,9 +28,11 @@ export function useAnonymousDraftRecovery(args: Args) {
   // prettier-ignore
   const markUnavailable = useCallback(() => { reconciliation.current = true; setEnabled(false); setOffer(null); setState('unavailable'); }, []);
   // prettier-ignore
-  const supersede = useCallback(() => { generation.current += 1; abortRef.current?.abort(); abortRef.current = null; }, []);
+  const supersede = useCallback(() => { generation.current += 1; abortRef.current?.abort(); reconcileAbortRef.current?.abort(); abortRef.current = null; reconcileAbortRef.current = null; }, []);
   // prettier-ignore
-  const runLocked = useCallback(async <T,>(task: (current: () => boolean) => T, boundFingerprint?: string): Promise<LockedRun<T>> => { const id = ++generation.current; abortRef.current?.abort(); const controller = new AbortController(); abortRef.current = controller; const current = () => mounted.current && generation.current === id && (!boundFingerprint || currentFingerprintRef.current === boundFingerprint); const result = await runAnonymousDraftLocked(() => (current() ? task(current) : null), controller.signal); if (abortRef.current === controller) abortRef.current = null; return { current: current(), result }; }, []);
+  const runLocked = useCallback(async <T,>(task: (current: () => boolean) => T, boundFingerprint?: string): Promise<LockedRun<T>> => { const id = ++generation.current; abortRef.current?.abort(); reconcileAbortRef.current?.abort(); const controller = new AbortController(); abortRef.current = controller; const current = () => mounted.current && generation.current === id && (!boundFingerprint || currentFingerprintRef.current === boundFingerprint); const result = await runAnonymousDraftLocked(() => (current() ? task(current) : null), controller.signal); if (abortRef.current === controller) abortRef.current = null; return { current: current(), result }; }, []);
+  // prettier-ignore
+  const runReconcile = useCallback(async <T,>(task: (current: () => boolean) => T): Promise<LockedRun<T>> => { const id = generation.current; reconcileAbortRef.current?.abort(); const controller = new AbortController(); reconcileAbortRef.current = controller; const current = () => mounted.current && generation.current === id; const result = await runAnonymousDraftLocked(() => (current() ? task(current) : null), controller.signal); if (reconcileAbortRef.current === controller) reconcileAbortRef.current = null; return { current: current(), result }; }, []);
   // prettier-ignore
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; supersede(); }; }, [supersede]);
   const applyRead = useCallback((result: ReadResult, fromEvent = false) => {
@@ -53,15 +55,14 @@ export function useAnonymousDraftRecovery(args: Args) {
       if (!storage) return void markUnavailable();
       if (event.storageArea && event.storageArea !== storage) return;
       invalidated.current = true;
-      void runLocked(current => current() ? readAnonymousDraft(storage) : null).then(({ current, result }) => {
+      void runReconcile(current => current() ? readAnonymousDraft(storage) : null).then(({ current, result }) => {
         if (!current) return;
         if (result.status === 'unavailable' || !result.value) markUnavailable();
         else applyRead(result.value, true);
       });
     };
-    addEventListener('storage', onStorage);
-    return () => removeEventListener('storage', onStorage);
-  }, [args.neutralHost, applyRead, markUnavailable, runLocked]);
+    addEventListener('storage', onStorage); return () => removeEventListener('storage', onStorage);
+  }, [args.neutralHost, applyRead, markUnavailable, runReconcile]);
   useEffect(() => {
     if (!isNeutralHost(args.neutralHost) || !ready || args.activeId || offer || interaction.current || invalidated.current || pending) return;
     const snapshot = args.category ? createAnonymousDraftSnapshot(args.category, args.draft, args.step) : null;
@@ -84,7 +85,7 @@ export function useAnonymousDraftRecovery(args: Args) {
       if (result.value.status === 'unavailable') return markUnavailable();
       setEnabled(true);
       const value = result.value;
-      if (value.status === 'saved') { knownRecord.current = value.record; setOffer(null); setState('saved'); }
+      if (value.status === 'saved') { invalidated.current = false; knownRecord.current = value.record; setOffer(null); setState('saved'); }
       else if (value.status === 'conflict') { knownRecord.current = value.record; setOffer(value.record); setState('conflict'); }
       else { invalidated.current = true; setState('discarded'); }
     });
