@@ -1,4 +1,5 @@
 import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
+import { useLayoutEffect } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import en from '@/messages/en/freeStart.json';
@@ -24,13 +25,17 @@ function setupRecovery(lifecycleState: 'idle' | 'loading' | 'saved' | 'saving' =
 }
 // prettier-ignore
 function clearEvent(storageArea: Storage) { const event = new StorageEvent('storage', { key: null }); Object.defineProperty(event, 'storageArea', { value: storageArea }); return event; }
-type HeldRequest = Readonly<{ grant: () => void; reject: (error: unknown) => void }>;
-function installHeldLocks() {
+type HeldRequest = Readonly<{
+  grant: () => void;
+  reject: (error: unknown) => void;
+  settle: () => void;
+}>;
+function installHeldLocks(delayed = false) {
   const pending: HeldRequest[] = [],
     aborts: string[] = [];
   let calls = 0;
   // prettier-ignore
-  const request = vi.fn((_name: string, options: { signal: AbortSignal }, callback: () => unknown) => { calls += 1; if (calls === 1) return Promise.resolve(callback()); return new Promise((resolve, reject) => { const entry = { grant: () => { if (!options.signal.aborted) resolve(callback()); }, reject }; pending.push(entry); options.signal.addEventListener('abort', () => { aborts.push('AbortError'); reject(new DOMException('aborted', 'AbortError')); }, { once: true }); }); });
+  const request = vi.fn((_name: string, options: { signal: AbortSignal }, callback: () => unknown) => { calls += 1; if (calls === 1) return Promise.resolve(callback()); return new Promise((resolve, reject) => { let granted = false, value: unknown; const settle = () => { if (granted) resolve(value); }, entry = { grant: () => { if (options.signal.aborted || granted) return; granted = true; try { value = callback(); if (!delayed) settle(); } catch (error) { reject(error); } }, reject, settle }; pending.push(entry); options.signal.addEventListener('abort', () => { aborts.push('AbortError'); if (!granted) reject(new DOMException('aborted', 'AbortError')); }, { once: true }); }); });
   Object.defineProperty(navigator, 'locks', { configurable: true, value: { request } });
   return { aborts, pending, request };
 }
@@ -59,21 +64,25 @@ describe('anonymous recovery race contracts', () => {
     const writes = vi.spyOn(Storage.prototype, 'setItem');
     // prettier-ignore
     const first: HookProps = { activeId: null, category: 'property', draft: { ...snapshot.draft, summary: 'Queued stale facts.' }, lifecycleState: 'idle', neutralHost: globalThis.location.host, onReset: vi.fn(), onRestore: vi.fn(), resetCategory: null, step: 'details' };
-    let locks = installHeldLocks(), hook = renderHook(value => useAnonymousDraftRecovery(value), { initialProps: first });
+    let locks = installHeldLocks(true);
+    // prettier-ignore
+    function Harness({ grantStale, value }: { grantStale?: boolean; value: HookProps }) { const recovery = useAnonymousDraftRecovery(value); useLayoutEffect(() => { if (grantStale) locks.pending[0]?.grant(); }, [grantStale]); return <output data-testid="held-state">{recovery.state}</output>; }
+    const view = render(<Harness value={first} />);
     await waitFor(() => expect(locks.request).toHaveBeenCalledTimes(2));
-    hook.rerender({ ...first, draft: { ...snapshot.draft, summary: 'Current facts.' } });
+    view.rerender(<Harness grantStale value={{ ...first, draft: { ...snapshot.draft, summary: 'Current facts.' } }} />);
     await waitFor(() => expect(locks.request).toHaveBeenCalledTimes(3));
-    act(() => locks.pending[1]?.grant());
+    act(() => { locks.pending[1]?.grant(); locks.pending[1]?.settle(); });
     await waitFor(() => expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toContain('Current facts.'));
-    act(() => locks.pending[0]?.grant());
-    expect(locks.aborts).toContain('AbortError');
+    await waitFor(() => expect(screen.getByTestId('held-state')).toHaveTextContent('saved'));
+    act(() => locks.pending[0]?.settle());
     expect(writes.mock.calls.some(([, value]) => String(value).includes('Queued stale facts.'))).toBe(false);
-    hook.unmount(); localStorage.clear(); locks = installHeldLocks();
-    hook = renderHook(value => useAnonymousDraftRecovery(value), { initialProps: first });
+    view.unmount(); localStorage.clear(); locks = installHeldLocks();
+    let hook = renderHook(value => useAnonymousDraftRecovery(value), { initialProps: first });
     await waitFor(() => expect(locks.request).toHaveBeenCalledTimes(2));
     hook.rerender({ ...first, draft: { ...snapshot.draft, summary: 'Hospital treatment' } });
     act(() => locks.pending[0]?.grant());
     await waitFor(() => expect(hook.result.current.state).toBe('idle'));
+    expect(locks.aborts).toContain('AbortError');
     expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toBeNull();
     hook.unmount(); locks = installHeldLocks();
     hook = renderHook(value => useAnonymousDraftRecovery(value), { initialProps: first });
@@ -87,7 +96,12 @@ describe('anonymous recovery race contracts', () => {
     await waitFor(() => expect(locks.request).toHaveBeenCalledTimes(2));
     hook.unmount(); act(() => locks.pending[0]?.grant());
     expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toBeNull();
-    locks = installHeldLocks(); hook = renderHook(value => useAnonymousDraftRecovery(value), { initialProps: first });
+    locks = installHeldLocks(true); hook = renderHook(value => useAnonymousDraftRecovery(value), { initialProps: first });
+    await waitFor(() => expect(locks.request).toHaveBeenCalledTimes(2));
+    act(() => locks.pending[0]?.grant()); const granted = localStorage.getItem(ANONYMOUS_DRAFT_KEY), calls = writes.mock.calls.length;
+    hook.unmount(); act(() => locks.pending[0]?.settle()); await act(async () => Promise.resolve());
+    expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toBe(granted); expect(writes).toHaveBeenCalledTimes(calls);
+    localStorage.clear(); locks = installHeldLocks(); hook = renderHook(value => useAnonymousDraftRecovery(value), { initialProps: first });
     await waitFor(() => expect(locks.request).toHaveBeenCalledTimes(2));
     act(() => locks.pending[0]?.reject(new Error('denied')));
     await waitFor(() => expect(hook.result.current.state).toBe('unavailable'));
