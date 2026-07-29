@@ -62,10 +62,6 @@ describe('anonymous Free Start recovery', () => {
     const final = readAnonymousDraft(localStorage, NOW);
     expect(final.status === 'available' && final.record.draft.counterparty).toBe('newer tab');
     localStorage.removeItem(ANONYMOUS_DRAFT_KEY);
-    expect(writeAnonymousDraft(localStorage, snapshot, newer.record, NOW + 1).status).toBe('stale');
-    localStorage.setItem(ANONYMOUS_DRAFT_KEY, '{');
-    expect(writeAnonymousDraft(localStorage, snapshot, newer.record, NOW + 1).status).toBe('saved');
-    localStorage.removeItem(ANONYMOUS_DRAFT_KEY);
     expect(writeAnonymousDraft(localStorage, snapshot, newer.record, NOW + 300).status).toBe('saved');
   });
 

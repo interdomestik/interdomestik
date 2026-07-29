@@ -32,7 +32,7 @@ type Locks = Readonly<{
   ) => Promise<T>;
 }>;
 // prettier-ignore
-export type ReadResult = { status: 'available'; record: AnonymousDraftRecord } | { status: 'none'; invalid?: true } | { status: 'unavailable' };
+export type ReadResult = { status: 'available'; record: AnonymousDraftRecord } | { status: 'none' } | { status: 'unavailable' };
 export type WriteResult =
   | { status: 'saved'; record: AnonymousDraftRecord }
   | { status: 'conflict'; record: AnonymousDraftRecord }
@@ -120,7 +120,7 @@ export function readAnonymousDraft(storage: RecoveryStorage | null, now = Date.n
     const record = decode(raw, now);
     if (record) return { status: 'available', record };
     storage.removeItem(ANONYMOUS_DRAFT_KEY);
-    return { status: 'none', invalid: true };
+    return { status: 'none' };
   } catch {
     return { status: 'unavailable' };
   }
@@ -131,7 +131,7 @@ export function writeAnonymousDraft(storage: RecoveryStorage | null, snapshot: A
   if (!storage) return { status: 'unavailable' };
   const current = readAnonymousDraft(storage, now);
   if (current.status === 'unavailable') return current;
-  if (current.status === 'none' && !current.invalid && expected && now <= Date.parse(expected.updatedAt)) return { status: 'stale' };
+  if (current.status === 'none' && expected && now <= Date.parse(expected.updatedAt)) return { status: 'stale' };
   if (current.status === 'available' && (!expected || (!sameAnonymousDraftRecord(current.record, expected) && Date.parse(current.record.updatedAt) >= now))) return { status: 'conflict', record: current.record };
   const canonical = createAnonymousDraftSnapshot(snapshot.category, snapshot.draft, snapshot.resumeStep);
   if (!canonical) return { status: 'unavailable' };
