@@ -2858,7 +2858,7 @@ hash, this canonical program/tracker receipt supersedes R2's preapproval `Status
 snapshot for lifecycle state. The canonical resolver reads current program/tracker authority, not
 that immutable artifact header.
 
-Rev 185 proposed current-slice addendum: exact Z620 browser verification at implementation head
+Rev 185 completed current-slice addendum: exact Z620 browser verification at implementation head
 `c17d9e063dba0fa2b3b994421e40f5888bc1960d` proved that the parent gate's absolute
 whole-document overflow predicate cannot attribute the public page's existing responsive defect
 to `IDA-UI03a4`. At the literal 320 CSS-pixel Playwright layout viewport with CSS `zoom:2`,
@@ -2868,13 +2868,15 @@ region remains within `left=20` / `right=276`, its actions remain within `left=5
 `right=269.59375`, and neither has internal overflow. The existing public-header actions extend
 from `left=451.6875` to `right=760.28125`.
 
-Proposed `IDA-DG22-A3` is
+Approved `IDA-DG22-A3` is
 `docs/plans/2026-07-29-ida-dg22-accessibility-overflow-attribution-addendum.md`, exact at 17,152
 UTF-8 bytes / SHA-256
 `9bdf42ba1919cc23459c2005e6a209c21837ef8c5b94aef8e0b86baf6de09d4b`.
 Arben approved the bounded direction and then the exact 17,152-byte artifact at
 `2026-07-29T11:21:11Z`. GPT-5.6 Sol Ultra exact-hash review passed without a remaining blocker
-after 28m 27s. Canonical merge and runtime receipt rebind remain required. A3 retains all four
+after 28m 27s. PR `#1476` merged the exact authority as
+`682eaf66918e1738661a41d10bba87a612d991f5`; its merge condition and runtime receipt rebind were
+satisfied before runtime head `91a8cdf4e80249ca2fe4e97c543765b72ad17b56`. A3 retains all four
 literal CSS layout widths,
 200%/text-spacing, forced-colors, reduced-motion, keyboard, visible-focus, accessible-name,
 rendered 44-CSS-pixel target-size, initial no-focus-steal and internal no-overflow proof. Both
@@ -2889,7 +2891,34 @@ A3 adds no writer path or runtime behavior; the cumulative ceiling remains exact
 public-header/document overflow remains an explicit unpromoted candidate in the unfinished UI
 journey tree and may not be marked fixed, waived or completed. A later current-authority selection
 must score and either promote or explicitly defer it. This goal still promotes only
-`IDA-UI03a4`; implementation remains stopped until A3 is merged and freshly rebound.
+`IDA-UI03a4`; A4 now freezes implementation until its exact authority merges and is freshly
+rebound.
+
+Rev 186 approved current-slice correction: exact-head GPT-5.6 Ultra review of clean unpushed
+implementation checkpoint `bff8cd7540070e5545fdc1943e3eb8bf94883cb8` proved that its two
+post-grant timer turns are required by exact Firefox cross-agent-cluster localStorage evidence but
+contradict `IDA-DG22-A2`'s literal synchronous/no-`await` callback rule. Reverting the turns would
+restore the reproduced stale overwrite; adding focus/visibility cancellation would discard valid
+newer candidates and violate the both-grant-order outcome.
+
+Approved `IDA-DG22-A4` R4 is
+`docs/plans/2026-07-29-ida-dg22-post-grant-coherence-addendum.md`, exactly 16,460 UTF-8 bytes at
+SHA-256 `add1cab400c2a610a51b435494a1d2c1a0190a55af210b119f2339322c00303d`.
+Arben approved that exact artifact at `2026-07-29T15:17:30Z`; GPT-5.6 Ultra exact-hash review
+passed after 31m 31s. R4 authorizes only two sequential
+`globalThis.setTimeout(callback, 0)` turns inside the existing one-request Web Lock callback,
+preserves the captured pre-lock timestamp solely for inter-candidate ordering, and requires fresh
+post-turn execution-time validation of current expiry, the 60,000 ms future bound, exact TTL and
+would-be expiry before mutation or saved UI.
+
+The granted hold is task-count-bounded, not wall-clock-bounded. A stalled holder may retain the
+lock until JavaScript resumes; sibling requests fail closed after five seconds with no mutation.
+Exact first/second-turn unit barriers and the existing HTTPS Z620 Chromium/Firefox/WebKit matrix
+must prove real-lock ownership, sibling timeout/no-mutation, safe release, fresh-time expiry and
+both grant orders. The recovery spec must remain at most 149 lines. A4 adds no writer path or
+product outcome; the cumulative ceiling remains 19 and all proxy/routes/auth/tenancy/schema/
+RLS/billing/provider/deployment/production boundaries remain unchanged. Runtime remains stopped
+until this docs-only authority merges and resolver/scorecard rebind exactly `IDA-UI03a4`.
 
 The next active governed implementation goal is exactly one canonical tracker slice:
 `IDA-UI03a4`
@@ -6084,5 +6113,25 @@ implementation runtime-receipt rebind were satisfied before product head
 `2d3e3b3f…`. This canonical receipt supersedes the immutable artifact's
 preapproval `Status: R2 proposed` snapshot; changing that line would invalidate
 the approved exact-byte hash, and the resolver reads current program/tracker
-authority instead. Rev 185/A3 freezes that checkpoint and requires a fresh A3
-receipt before implementation resumes.
+authority instead.
+
+Rev 185 completed the same-slice accessibility attribution correction through
+PR `#1476` / merge `682eaf66918e1738661a41d10bba87a612d991f5`. Exact A3 is
+17,152 bytes / SHA-256
+`9bdf42ba1919cc23459c2005e6a209c21837ef8c5b94aef8e0b86baf6de09d4b`;
+Arben approved it at `2026-07-29T11:21:11Z`, and GPT-5.6 Sol Ultra passed after
+28m 27s. It adds no writer path and preserves the public-header overflow as an
+unpromoted remaining UI-tree candidate.
+
+Rev 186 does not supersede the Rev 181 slice selection. It adds only exact
+`IDA-DG22-A4` R4, 16,460 bytes / SHA-256
+`add1cab400c2a610a51b435494a1d2c1a0190a55af210b119f2339322c00303d`,
+to the same `IDA-DG22` / `IDA-UI03a4`. Arben approved it at
+`2026-07-29T15:17:30Z`; GPT-5.6 Ultra exact-hash review passed after 31m 31s.
+R4 authorizes only the empirically required two sequential zero-delay timer
+turns inside the existing exclusive Web Lock and fresh post-turn time/TTL
+validation. It records the granted-holder stall as availability-only residual:
+siblings fail closed after five seconds without mutation, while no candidate is
+dropped for focus/visibility. The cumulative implementation writer map remains
+exactly 19 paths. Runtime remains stopped until canonical A4 merge and exact
+receipt rebind. No replacement goal or second UI-tree node is promoted.
