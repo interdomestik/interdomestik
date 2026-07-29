@@ -23,7 +23,12 @@ function getCookieValue(name: string): string | null {
   if (!match) return null;
 
   const [, rawValue = ''] = match.split('=');
-  return rawValue ? decodeURIComponent(rawValue) : null;
+  if (!rawValue) return null;
+  try {
+    return decodeURIComponent(rawValue);
+  } catch {
+    return null;
+  }
 }
 
 export function parseCookieConsentValue(
@@ -53,7 +58,10 @@ export function setCookieConsent(value: CookieConsentValue): void {
   try {
     localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, value);
   } catch {
-    // Keep the existing cookie and same-window event behavior when browser storage is unavailable.
+    // Remove a readable stale choice before falling back to the newer cookie.
+    try {
+      localStorage.removeItem(COOKIE_CONSENT_STORAGE_KEY);
+    } catch {}
   }
   document.cookie =
     `${COOKIE_CONSENT_COOKIE_NAME}=${encodeURIComponent(value)}; ` +

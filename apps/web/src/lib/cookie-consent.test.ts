@@ -67,6 +67,11 @@ describe('cookie consent helpers', () => {
     expect(getCookieConsent()).toBe('necessary');
   });
 
+  it('treats malformed cookie encoding as absent consent', () => {
+    document.cookie = `${COOKIE_CONSENT_COOKIE_NAME}=%E0%A4%A`;
+    expect(getCookieConsent()).toBeNull();
+  });
+
   it('persists consent and emits update event', () => {
     const dispatch = vi.spyOn(window, 'dispatchEvent');
 
@@ -98,6 +103,7 @@ describe('cookie consent helpers', () => {
     const available = localStorage;
     vi.spyOn(window, 'localStorage', 'get').mockReturnValue({
       getItem: available.getItem.bind(available),
+      removeItem: available.removeItem.bind(available),
       setItem: () => {
         throw new DOMException('blocked', 'SecurityError');
       },
@@ -110,7 +116,8 @@ describe('cookie consent helpers', () => {
       type: COOKIE_CONSENT_UPDATED_EVENT,
       detail: 'necessary',
     });
-    expect(getCookieConsent()).toBe('accepted');
+    expect(localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY)).toBeNull();
+    expect(getCookieConsent()).toBe('necessary');
   });
 
   it('subscribes to consent updates from custom event', () => {
@@ -123,5 +130,5 @@ describe('cookie consent helpers', () => {
     unsubscribe();
   });
   // prettier-ignore
-  it('preserves exact custom-event detail and storage-event newValue handling', () => { localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, 'necessary'); const handler = vi.fn(), unsubscribe = subscribeCookieConsent(handler); window.dispatchEvent(new CustomEvent(COOKIE_CONSENT_UPDATED_EVENT, { detail: 'accepted' })); expect(handler).toHaveBeenLastCalledWith('accepted'); window.dispatchEvent(new StorageEvent('storage', { key: COOKIE_CONSENT_STORAGE_KEY, newValue: 'accepted' })); expect(handler).toHaveBeenLastCalledWith('accepted'); unsubscribe(); });
+  it('preserves exact custom-event detail and storage-event newValue handling', () => { localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, 'necessary'); const handler = vi.fn(), unsubscribe = subscribeCookieConsent(handler); window.dispatchEvent(new CustomEvent(COOKIE_CONSENT_UPDATED_EVENT, { detail: 'accepted' })); expect(handler).toHaveBeenLastCalledWith('accepted'); const event = new Event('storage') as StorageEvent; Object.defineProperties(event, { key: { value: COOKIE_CONSENT_STORAGE_KEY }, newValue: { value: 'accepted' } }); window.dispatchEvent(event); expect(handler).toHaveBeenLastCalledWith('accepted'); unsubscribe(); });
 });
