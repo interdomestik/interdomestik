@@ -22,8 +22,13 @@ function getCookieValue(name: string): string | null {
 
   if (!match) return null;
 
-  const [, rawValue = ''] = match.split('=');
-  return rawValue ? decodeURIComponent(rawValue) : null;
+  const rawValue = match.slice(match.indexOf('=') + 1);
+  if (!rawValue) return null;
+  try {
+    return decodeURIComponent(rawValue);
+  } catch {
+    return null;
+  }
 }
 
 export function parseCookieConsentValue(
@@ -36,14 +41,16 @@ export function parseCookieConsentValue(
 export function getCookieConsent(): CookieConsentValue | null {
   if (!isBrowser()) return null;
 
+  let storageValue: CookieConsentValue | null = null;
   try {
-    const storageValue = parseCookieConsentValue(localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY));
-    if (storageValue) return storageValue;
+    storageValue = parseCookieConsentValue(localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY));
   } catch {
     // Browser policy may deny the storage accessor or read; the existing cookie is the fallback.
   }
 
-  return parseCookieConsentValue(getCookieValue(COOKIE_CONSENT_COOKIE_NAME));
+  const cookieValue = parseCookieConsentValue(getCookieValue(COOKIE_CONSENT_COOKIE_NAME));
+  if (storageValue && cookieValue && storageValue !== cookieValue) return 'necessary';
+  return storageValue ?? cookieValue;
 }
 
 export function setCookieConsent(value: CookieConsentValue): void {

@@ -6,7 +6,7 @@ import { gotoApp } from '../utils/navigation';
 const KEY = 'interdomestik_free_start_recovery_v1';
 const LOCK = 'interdomestik:free-start:anonymous-draft:v1';
 // prettier-ignore
-type BarrierWindow = Window & { __idaHeld?: boolean; __idaRelease?: () => void };
+type BarrierWindow = Window & { __idaArm?: () => void; __idaHeld?: boolean; __idaRelease?: () => void; __idaReleaseTurn?: (expire: boolean) => void; __idaRestore?: () => void; __idaSeam?: () => { held: boolean; owned: boolean; turn: number } };
 // prettier-ignore
 function resolveIdaTarget(info: TestInfo): TestInfo {
   const explicit = process.env.IDA_RECOVERY_ORIGIN?.trim();
@@ -32,22 +32,18 @@ async function openOrganizer(page: Page, info: TestInfo, recovery = true) {
   }
   return organizer;
 }
-
 // prettier-ignore
 async function enterVehicleDetails(organizer: Locator) {
   const summary = organizer.getByLabel('Brief summary'); if (await summary.isVisible()) return;
   await organizer.getByTestId('free-start-category-vehicle').click(); const next = organizer.getByRole('button', { name: 'Continue to guided intake' }); if (await next.isVisible()) await next.click(); await expect(summary).toBeVisible();
 }
-
 // prettier-ignore
 async function holdLock(page: Page) {
   await page.evaluate(lock => { const view = window as BarrierWindow; view.__idaHeld = false; void navigator.locks.request(lock, { mode: 'exclusive' }, () => new Promise<void>(resolve => { view.__idaHeld = true; view.__idaRelease = resolve; })); }, LOCK);
   await expect.poll(() => page.evaluate(() => Boolean((window as BarrierWindow).__idaHeld))).toBe(true);
 }
-
 // prettier-ignore
 async function releaseLock(page: Page, count = 2) { const observed = await page.evaluate(async ({ lock, pending }) => { const view = window as BarrierWindow; for (let attempt = 0; attempt < 100; attempt += 1) { const state = await navigator.locks.query(), current = (state.pending ?? []).filter(item => item.name === lock).length; if (current === pending) { view.__idaRelease?.(); view.__idaRelease = undefined; view.__idaHeld = false; return current; } await new Promise(resolve => setTimeout(resolve, 10)); } return -1; }, { lock: LOCK, pending: count }); expect(observed).toBe(count); }
-
 // prettier-ignore
 async function expectPending(page: Page, count: number) {
   await expect.poll(() => page.evaluate(lock => navigator.locks.query().then(value => (value.pending ?? []).filter(item => item.name === lock).length), LOCK)).toBe(count);
@@ -57,12 +53,14 @@ type Pair = Readonly<{ first: Page; firstOrganizer: Locator; second: Page; secon
 type AuthState = Readonly<{ cookie: string; token: string }>;
 const authStates = new WeakMap<BrowserContext, AuthState>();
 // prettier-ignore
+async function installPostGrantSeam(page: Page, phase: 1 | 2) { await page.addInitScript(({ lock, phase, ttl }: { lock: string; phase: number; ttl: number }) => { const view = window as BarrierWindow, locks = navigator.locks, realRequest = locks.request.bind(locks), realSet = globalThis.setTimeout, realClear = globalThis.clearTimeout, realNow = Date.now.bind(Date), ownRequest = Object.getOwnPropertyDescriptor(locks, 'request'), sentinel = 2_147_483_646; let armed = false, held = false, owned = false, turn = 0, offset = 0, release = () => undefined; Object.defineProperty(locks, 'request', { configurable: true, value: (name: string, options: LockOptions, callback: LockGrantedCallback<unknown>) => realRequest(name, options, async token => { const target = name === lock; if (target) owned = true; try { return await callback(token); } finally { if (target) owned = false; } }) }); globalThis.setTimeout = ((callback: TimerHandler, delay?: number, ...args: unknown[]) => { if (armed && owned && delay === 0) { turn += 1; if (turn === phase) { armed = false; held = true; release = () => { held = false; realSet(callback, 0, ...args); }; return sentinel; } } return realSet(callback, delay, ...args); }) as typeof setTimeout; globalThis.clearTimeout = ((id?: number) => { if (id !== sentinel) realClear(id); }) as typeof clearTimeout; Date.now = () => realNow() + offset; view.__idaArm = () => { armed = true; held = false; offset = 0; turn = 0; }; view.__idaReleaseTurn = expire => { if (!held) throw new Error('coherence turn is not held'); if (expire) offset = ttl + 1; release(); }; view.__idaSeam = () => ({ held, owned, turn }); view.__idaRestore = () => { globalThis.setTimeout = realSet; globalThis.clearTimeout = realClear; Date.now = realNow; if (ownRequest) Object.defineProperty(locks, 'request', ownRequest); else delete (locks as unknown as { request?: LockManager['request'] }).request; delete view.__idaArm; delete view.__idaReleaseTurn; delete view.__idaRestore; delete view.__idaSeam; }; }, { lock: LOCK, phase, ttl: 30 * 24 * 60 * 60 * 1_000 }); }
+// prettier-ignore
 function parseAuthCookie(raw: string, origin: string) { const [pair, ...parts] = raw.split(';').map(value => value.trim()), separator = pair.indexOf('='), attributes = new Map(parts.map(value => { const index = value.indexOf('='); return [value.slice(0, index < 0 ? undefined : index).toLowerCase(), index < 0 ? '' : value.slice(index + 1)]; })), sameSite = attributes.get('samesite')?.toLowerCase(); if (separator < 1) throw new Error('fresh login failed: invalid session cookie'); return { api: pair, browser: { httpOnly: attributes.has('httponly'), name: pair.slice(0, separator), sameSite: sameSite === 'strict' ? 'Strict' as const : sameSite === 'none' ? 'None' as const : 'Lax' as const, secure: attributes.has('secure'), url: origin, value: pair.slice(separator + 1) } }; }
 // prettier-ignore
-async function seededPair(context: BrowserContext, info: TestInfo, summary: string): Promise<Pair> {
+async function seededPair(context: BrowserContext, info: TestInfo, summary: string, barrier?: 1 | 2): Promise<Pair> {
   const seed = await context.newPage(); await seed.addInitScript(key => localStorage.removeItem(key), KEY);
   const seedOrganizer = await openOrganizer(seed, info); await enterVehicleDetails(seedOrganizer); await seedOrganizer.getByLabel('Brief summary').fill(summary); await expect.poll(() => seed.evaluate(key => localStorage.getItem(key), KEY)).toContain(summary);
-  const first = await context.newPage(), firstOrganizer = await openOrganizer(first, info); const second = await context.newPage(), secondOrganizer = await openOrganizer(second, info); await seed.close();
+  const first = await context.newPage(); if (barrier) await installPostGrantSeam(first, barrier); const firstOrganizer = await openOrganizer(first, info); const second = await context.newPage(), secondOrganizer = await openOrganizer(second, info); await seed.close();
   await expect(firstOrganizer.getByTestId('free-start-recovery-editor')).toHaveAttribute('inert', ''); await expect(firstOrganizer.getByTestId('free-start-recovery-secure-actions')).toHaveAttribute('inert', ''); await firstOrganizer.getByRole('button', { name: 'Continue with these notes' }).click(); await secondOrganizer.getByRole('button', { name: 'Continue with these notes' }).click(); await expect(firstOrganizer.getByTestId('anonymous-draft-recovery-offer')).toHaveCount(0); await expect(secondOrganizer.getByTestId('anonymous-draft-recovery-offer')).toHaveCount(0);
   await expect(firstOrganizer.getByTestId('anonymous-draft-recovery-status')).toContainText('Saved on this browser'); await expect(secondOrganizer.getByTestId('anonymous-draft-recovery-status')).toContainText('Saved on this browser'); await expectLockIdle(first);
   return { first, firstOrganizer, second, secondOrganizer };
@@ -91,9 +89,10 @@ async function deleteSavedDrafts(page: Page, organizer: Locator, summaries: stri
 async function expectSurvivor(offer: Locator, writer: Locator, summary: string, resume = true) {
   await expect(writer.getByTestId('anonymous-draft-recovery-status')).toContainText('Saved on this browser'); await expect(offer.getByTestId('anonymous-draft-recovery-offer')).toBeVisible(); if (!resume) return; await offer.getByRole('button', { name: 'Continue with these notes' }).click(); await expect(offer.getByLabel('Brief summary')).toHaveValue(summary);
 }
-
 test.use({ trace: 'off' });
 test.describe('pre-membership Free Start recovery', () => {
+  // prettier-ignore
+  test('holds both real post-grant turns, times siblings out and rejects an expired holder', async ({ browser }, info) => { test.setTimeout(240_000); const ida = resolveIdaTarget(info); await withPage(browser, ida, async keeper => { for (const phase of [1, 2] as const) await test.step(`turn ${phase}`, async () => { const seed = `Barrier seed ${phase}.`, holder = `Barrier holder ${phase}.`, sibling = `Barrier sibling ${phase}.`, expire = phase === 2, pair = await seededPair(keeper.context(), ida, seed, phase), before = await pair.first.evaluate(key => localStorage.getItem(key), KEY); await pair.first.evaluate(() => (window as BarrierWindow).__idaArm?.()); await pair.firstOrganizer.getByLabel('Brief summary').fill(holder); await expect.poll(() => pair.first.evaluate(() => (window as BarrierWindow).__idaSeam?.())).toEqual({ held: true, owned: true, turn: phase }); await expect.poll(() => pair.first.evaluate(lock => navigator.locks.query().then(value => (value.held ?? []).filter(item => item.name === lock).length), LOCK)).toBe(1); await pair.secondOrganizer.getByLabel('Brief summary').fill(sibling); await expectPending(pair.first, 1); await expect(pair.secondOrganizer.getByTestId('anonymous-draft-recovery-status')).toContainText('Browser recovery is unavailable', { timeout: 7_000 }); expect(await pair.first.evaluate(key => localStorage.getItem(key), KEY)).toBe(before); await pair.first.evaluate(expire => (window as BarrierWindow).__idaReleaseTurn?.(expire), expire); if (expire) { await expect.poll(() => pair.first.evaluate(key => localStorage.getItem(key), KEY)).toBe(before); await expect(pair.firstOrganizer.getByTestId('anonymous-draft-recovery-status')).not.toContainText('Saved on this browser'); } else await expect.poll(() => pair.first.evaluate(key => localStorage.getItem(key), KEY)).toContain(holder); await expectLockIdle(pair.first); expect(await pair.first.evaluate(() => (window as BarrierWindow).__idaSeam?.())).toEqual({ held: false, owned: false, turn: phase }); await pair.first.evaluate(() => (window as BarrierWindow).__idaRestore?.()); await closePair(pair); }); }); });
   // prettier-ignore
   test('restores every eligible fact after a cold same-browser return', async ({ browser }, info) => {
     const ida = resolveIdaTarget(info);

@@ -28,22 +28,26 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) {
 
   const hasOffer = Boolean(recovery.offer);
   const fresh = recovery.state === 'discarded';
-  const recoverable = hasOffer || recovery.state === 'saved' || recovery.state === 'conflict';
-  const status =
-    recovery.state === 'offer'
+  const retained = recovery.state === 'retained';
+  const recoverable =
+    hasOffer || retained || recovery.state === 'saved' || recovery.state === 'conflict';
+  const status = retained
+    ? copy.status.unavailable
+    : recovery.state === 'offer'
       ? copy.offerBody
       : copy.status[recovery.state as keyof RecoveryCopy['status']];
   let heading = status;
-  if (recoverable) heading = copy.heading;
+  if (recoverable && !retained) heading = copy.heading;
   if (hasOffer) heading = copy.offerHeading;
 
   return (
     <section
       data-testid={hasOffer ? 'anonymous-draft-recovery-offer' : 'anonymous-draft-recovery-status'}
       aria-labelledby="anonymous-draft-recovery-heading"
+      aria-busy={recovery.pending}
       className="rounded-2xl border border-[#006f72]/25 bg-[#eef8f5] p-4 text-[#173b43]"
     >
-      {recoverable ? (
+      {recoverable && !retained ? (
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#006f72]">
           {copy.eyebrow}
         </p>
@@ -53,7 +57,9 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) {
       </h3>
       {recoverable ? (
         <>
-          <p className="mt-1 text-sm leading-6">{hasOffer ? copy.offerBody : copy.body}</p>
+          {!retained ? (
+            <p className="mt-1 text-sm leading-6">{hasOffer ? copy.offerBody : copy.body}</p>
+          ) : null}
           <p className="mt-1 text-xs leading-5 text-[#526274]">{copy.privateDevice}</p>
         </>
       ) : null}
@@ -69,6 +75,7 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) {
         {hasOffer ? (
           <button
             type="button"
+            disabled={recovery.pending}
             onClick={recovery.resume}
             className="min-h-12 rounded-xl bg-[#006f72] px-4 font-bold text-white outline-none focus-visible:ring-3 focus-visible:ring-[#008f91] focus-visible:ring-offset-2"
           >
@@ -78,6 +85,7 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) {
         {recoverable || fresh ? (
           <button
             type="button"
+            disabled={recovery.pending}
             onClick={recovery.discard}
             className="min-h-12 rounded-xl border border-[#006f72] bg-white px-4 font-bold text-[#006f72] outline-none focus-visible:ring-3 focus-visible:ring-[#008f91]"
           >

@@ -52,17 +52,17 @@ export async function runAnonymousDraftLocked<T>(
   };
   if (externalSignal?.aborted) abortPending();
   else externalSignal?.addEventListener('abort', abortPending, { once: true });
-  const timeout = setTimeout(abortPending, 5_000);
+  const timeout = globalThis.setTimeout(abortPending, 5_000);
   try {
     const value = await locks.request(
       ANONYMOUS_DRAFT_LOCK_NAME,
       { mode: 'exclusive', signal: controller.signal },
       async () => {
         granted = true;
-        clearTimeout(timeout);
+        globalThis.clearTimeout(timeout);
         // Let Firefox expose prior cross-context storage writes before this mutation reads.
-        await new Promise<void>(resolve => setTimeout(resolve));
-        await new Promise<void>(resolve => setTimeout(resolve));
+        await new Promise<void>(resolve => globalThis.setTimeout(resolve, 0));
+        await new Promise<void>(resolve => globalThis.setTimeout(resolve, 0));
         return task();
       }
     );
@@ -70,7 +70,7 @@ export async function runAnonymousDraftLocked<T>(
   } catch {
     return { status: 'unavailable' };
   } finally {
-    clearTimeout(timeout);
+    globalThis.clearTimeout(timeout);
     externalSignal?.removeEventListener('abort', abortPending);
   }
 }
@@ -125,20 +125,22 @@ export function readAnonymousDraft(storage: RecoveryStorage | null, now = Date.n
 }
 
 // prettier-ignore
-export function writeAnonymousDraft(storage: RecoveryStorage | null, snapshot: AnonymousDraftSnapshot, expected: AnonymousDraftRecord | null, now = Date.now()): WriteResult {
+export function writeAnonymousDraft(storage: RecoveryStorage | null, snapshot: AnonymousDraftSnapshot, expected: AnonymousDraftRecord | null, orderingNow = Date.now(), executionNow = Date.now()): WriteResult {
   if (!storage) return { status: 'unavailable' };
-  const current = readAnonymousDraft(storage, now);
+  if (!Number.isFinite(orderingNow) || !Number.isFinite(executionNow)) return { status: 'unavailable' };
+  if (orderingNow > executionNow + 60_000 || orderingNow + ANONYMOUS_DRAFT_TTL_MS <= executionNow) return { status: 'stale' };
+  const current = readAnonymousDraft(storage, executionNow);
   if (current.status === 'unavailable') return current;
-  if (current.status === 'none' && expected && now <= Date.parse(expected.updatedAt)) return { status: 'stale' };
-  if (current.status === 'available' && (!expected || (!sameAnonymousDraftRecord(current.record, expected) && Date.parse(current.record.updatedAt) >= now))) return { status: 'conflict', record: current.record };
+  if (current.status === 'none' && expected && orderingNow <= Date.parse(expected.updatedAt)) return { status: 'stale' };
+  if (current.status === 'available' && (!expected || (!sameAnonymousDraftRecord(current.record, expected) && Date.parse(current.record.updatedAt) >= orderingNow))) return { status: 'conflict', record: current.record };
   const canonical = createAnonymousDraftSnapshot(snapshot.category, snapshot.draft, snapshot.resumeStep);
   if (!canonical) return { status: 'unavailable' };
-  const revision = current.status === 'available' ? Math.max(now, Date.parse(current.record.updatedAt) + 1) : now;
-  if (revision > now + 60_000 && current.status === 'available') return { status: 'conflict', record: current.record };
+  const revision = current.status === 'available' ? Math.max(orderingNow, Date.parse(current.record.updatedAt) + 1) : orderingNow;
+  if (revision > executionNow + 60_000 || revision + ANONYMOUS_DRAFT_TTL_MS <= executionNow) return current.status === 'available' ? { status: 'conflict', record: current.record } : { status: 'stale' };
   const draft = { category: canonical.category, counterparty: canonical.draft.counterparty || undefined, desiredOutcome: canonical.draft.desiredOutcome || undefined, incidentDate: canonical.draft.incidentDate || undefined, issueType: canonical.draft.issueType || undefined, resumeStep: canonical.resumeStep, summary: canonical.draft.summary || undefined };
   const data = storedRecordSchema.safeParse({ version: 1, draft, updatedAt: new Date(revision).toISOString(), expiresAt: new Date(revision + ANONYMOUS_DRAFT_TTL_MS).toISOString() });
   if (!data.success) return { status: 'unavailable' };
-  const saved = decode(JSON.stringify(data.data), now);
+  const saved = decode(JSON.stringify(data.data), executionNow);
   if (!saved) return current.status === 'available' ? { status: 'conflict', record: current.record } : { status: 'unavailable' };
   try { storage.setItem(ANONYMOUS_DRAFT_KEY, JSON.stringify(data.data)); return { status: 'saved', record: saved }; } catch { return { status: 'unavailable' }; }
 }

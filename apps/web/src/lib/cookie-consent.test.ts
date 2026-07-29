@@ -41,6 +41,20 @@ describe('cookie consent helpers', () => {
     expect(getCookieConsent()).toBe('accepted');
   });
 
+  it('fails malformed cookie values closed without truncating or throwing', () => {
+    document.cookie = `${COOKIE_CONSENT_COOKIE_NAME}=accepted=garbage`;
+    expect(getCookieConsent()).toBeNull();
+    document.cookie = `${COOKIE_CONSENT_COOKIE_NAME}=%E0%A4%A`;
+    expect(() => getCookieConsent()).not.toThrow();
+    expect(getCookieConsent()).toBeNull();
+  });
+
+  it('uses the least-permissive value when durable consent signals disagree', () => {
+    localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, 'accepted');
+    document.cookie = `${COOKIE_CONSENT_COOKIE_NAME}=necessary`;
+    expect(getCookieConsent()).toBe('necessary');
+  });
+
   it('falls back to the cookie when the storage accessor is denied', () => {
     document.cookie = `${COOKIE_CONSENT_COOKIE_NAME}=accepted`;
     vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => {
@@ -88,7 +102,10 @@ describe('cookie consent helpers', () => {
 
   it('keeps cookie and event behavior when storage writes throw', () => {
     const dispatch = vi.spyOn(window, 'dispatchEvent');
+    localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, 'accepted');
+    const available = localStorage;
     vi.spyOn(window, 'localStorage', 'get').mockReturnValue({
+      getItem: available.getItem.bind(available),
       setItem: () => {
         throw new DOMException('blocked', 'SecurityError');
       },
@@ -101,6 +118,7 @@ describe('cookie consent helpers', () => {
       type: COOKIE_CONSENT_UPDATED_EVENT,
       detail: 'necessary',
     });
+    expect(getCookieConsent()).toBe('necessary');
   });
 
   it('subscribes to consent updates from custom event', () => {
