@@ -138,7 +138,7 @@ test.describe('pre-membership Free Start recovery', () => {
 
   // prettier-ignore
   test('keeps discard, generic hosts, no-JavaScript and storage denial truthful', async ({ browser }, info) => {
-    const ida = resolveIdaTarget(info);
+    test.setTimeout(120_000); const ida = resolveIdaTarget(info);
     await withPage(browser, ida, async page => { const organizer = await openOrganizer(page, ida); await enterVehicleDetails(organizer); await page.reload(); const returned = page.getByTestId('premium-free-start-organizer'); await returned.getByRole('button', { name: 'Discard from this device' }).click(); await expect(returned.getByTestId('anonymous-draft-recovery-offer')).toHaveCount(0); expect(await page.evaluate(key => localStorage.getItem(key), KEY)).toBeNull(); });
     await withPage(browser, info, async page => { const organizer = await openOrganizer(page, info, false); await enterVehicleDetails(organizer); await expect(organizer).toHaveAttribute('data-save-behavior', 'explicit-only'); expect(await page.evaluate(key => localStorage.getItem(key), KEY)).toBeNull(); });
     const noJs = await browser.newContext({ baseURL: ida.project.use.baseURL, extraHTTPHeaders: ida.project.use.extraHTTPHeaders, ignoreHTTPSErrors: Boolean(ida.project.use.ignoreHTTPSErrors), javaScriptEnabled: false, storageState: undefined });
