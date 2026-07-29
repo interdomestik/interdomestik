@@ -74,7 +74,6 @@ describe('premium Free Start copy contract', () => {
     const keys = resultCopies.map(result => collectKeyPaths(result).sort());
     expect(keys).toEqual([keys[0], keys[0], keys[0], keys[0]]);
   });
-
   it.each(Object.entries(localeMessages))(
     '%s uses plain-language review copy instead of public triage jargon',
     (_locale, messages) => {
@@ -120,15 +119,13 @@ describe('premium Free Start copy contract', () => {
       const recovery = recoveryCopy(messages) as { body: string; privateDevice: string }, copy = collectCopyValues(recovery).join(' '), secure = collectCopyValues(secureSaveCopy(messages)).join(' '), idle = (secureSaveCopy(messages) as { status: { idle: string } }).status.idle, truth = messages.freeStart.trustBoundary.body;
       expect(copy).toMatch(/browser|shfletues|pregledač|прелистувач/i);
       expect(copy).toMatch(/30/);
-      expect(copy).toMatch(/private|privat|приват/i);
       expect(copy).toMatch(/discard|hidh|odbaci|отфрли/i);
       expect(copy).toMatch(/secure|sigurt|bezbed|безбед/i);
       expect(copy).toMatch(/device|pajisje|uređaj|уред/i);
       expect(secure).toMatch(/browser|shfletues|pregledač|прелистувач/i);
-      expect(idle).toMatch(/when browser|kur rikthimi|kada je vraćanje|кога враќањето/i);
       expect(idle).not.toMatch(/automatic|automatik|automatski|автоматски/i);
       // prettier-ignore
-      expect([/only in this browser|vetëm në këtë shfletues|samo u ovom pregledaču|само во овој прелистувач/i.test(recovery.body), /cross-device|ndërmjet pajisjeve|drugim uređajima|други уреди/i.test(recovery.body), /cleared site data|pastrimi i të dhënave|brisanje podataka|бришењето податоци/i.test(recovery.privateDevice), /browser policy|politika e shfletuesit|pravila pregledača|правилата на прелистувачот/i.test(recovery.privateDevice), /deliberate|zgjedhur|namerno|намерно/i.test(truth), /verified-email|email të verifikuar|potvrđenim emailom|потврдена е-пошта/i.test(truth), /devices|pajisjeve|uređaja|уреди/i.test(truth)]).not.toContain(false);
+      expect([/only in this browser|vetëm në këtë shfletues|samo u ovom pregledaču|само во овој прелистувач/i.test(recovery.body), /not secure save.*cross-device|nuk është ruajtje e sigurt.*ndërmjet pajisjeve|nije bezbedno čuvanje.*drugim uređajima|не е безбедно зачувување.*други уреди/i.test(recovery.body), /use a private device|përdor pajisje private|koristite privatan uređaj|користете приватен уред/i.test(recovery.privateDevice), /cleared site data|pastrimi i të dhënave|brisanje podataka|бришењето податоци/i.test(recovery.privateDevice), /browser policy|politika e shfletuesit|pravila pregledača|правилата на прелистувачот/i.test(recovery.privateDevice), /no secure or cross-device|nuk ka ndodhur ruajtje e sigurt ose ndërmjet pajisjeve|nije izvršeno bezbedno čuvanje niti čuvanje na drugim uređajima|нема безбедно зачувување ниту зачувување на други уреди/i.test(idle), /deliberate|zgjedhur|namerno|намерно/i.test(truth), /verified-email|email të verifikuar|potvrđenim emailom|потврдена е-пошта/i.test(truth), /devices|pajisjeve|uređaja|уреди/i.test(truth)]).not.toContain(false);
     }
   );
 
