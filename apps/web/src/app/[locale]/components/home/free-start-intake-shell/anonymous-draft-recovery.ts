@@ -28,7 +28,7 @@ type Locks = Readonly<{
   request: <T>(
     name: string,
     options: { mode: 'exclusive'; signal: AbortSignal },
-    callback: () => T
+    callback: () => T | Promise<T>
   ) => Promise<T>;
 }>;
 // prettier-ignore
@@ -45,7 +45,7 @@ export type LockedResult<T> = { status: 'acquired'; value: T } | { status: 'unav
 // prettier-ignore
 function getLocks(): Locks | null { try { return typeof navigator === 'undefined' ? null : ((navigator as Navigator & { locks?: Locks }).locks ?? null); } catch { return null; } }
 export async function runAnonymousDraftLocked<T>(
-  task: () => T,
+  task: () => T | Promise<T>,
   externalSignal?: AbortSignal
 ): Promise<LockedResult<T>> {
   const locks = getLocks();
