@@ -1,20 +1,23 @@
 import { freeStartDraftPayloadSchema } from '@/lib/validators/free-start-draft';
 import { z } from 'zod';
-
 import type { CategoryId, DraftState, StepId } from './types';
-
 export const ANONYMOUS_DRAFT_KEY = 'interdomestik_free_start_recovery_v1';
 export const ANONYMOUS_DRAFT_LOCK_NAME = 'interdomestik:free-start:anonymous-draft:v1';
 export const ANONYMOUS_DRAFT_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+// prettier-ignore
+const RECOVERY_MEDICAL_WORD = /^(?:injur(?:y|ed|ies|ing)?|fractur(?:e|ed|es|ing)?|doctor(?:s)?|hospital(?:s)?|pain(?:ful)?|blood(?:y|ing)?|bled|medical|diagnos(?:is|ed|es|ing)|treat(?:ed|ing|ment|ments)|wound(?:ed|s)?|ambulance|surgery|lënd\p{L}*|mjek\p{L}*|spital\p{L}*|dhimb\p{L}*|gjak\p{L}*|diagnoz\p{L}*|trajt\p{L}*|povred\p{L}*|lekar\p{L}*|doktor\p{L}*|bolnica|bol|krv|medicin\p{L}*|dijagnoz\p{L}*|lečen\p{L}*|prelom\p{L}*|повред\p{L}*|лекар\p{L}*|доктор\p{L}*|болниц\p{L}*|болка|крв|медицин\p{L}*|дијагноз\p{L}*|лекува\p{L}*)$/iu;
+// prettier-ignore
+function containsMedicalFact(...values: Array<string | null | undefined>) { return values.some(value => (value?.normalize('NFKC').toLowerCase().match(/\p{L}+/gu) ?? []).some(word => RECOVERY_MEDICAL_WORD.test(word))); }
+// prettier-ignore
+const recoverableDraftSchema = freeStartDraftPayloadSchema.refine(value => !containsMedicalFact(value.counterparty, value.summary), { message: 'removeMedicalDetails' });
 const storedRecordSchema = z
   .object({
     version: z.literal(1),
-    draft: freeStartDraftPayloadSchema,
+    draft: recoverableDraftSchema,
     updatedAt: z.string(),
     expiresAt: z.string(),
   })
   .strict();
-
 export type AnonymousDraftSnapshot = Readonly<{
   category: 'vehicle' | 'property';
   draft: DraftState;
@@ -30,7 +33,7 @@ export type ReadResult = { status: 'available'; record: AnonymousDraftRecord } |
 export type WriteResult =
   | { status: 'saved'; record: AnonymousDraftRecord }
   | { status: 'conflict'; record: AnonymousDraftRecord }
-  | { status: 'stale' | 'unavailable' };
+  | { status: 'invalid' | 'stale' | 'unavailable' };
 export type RemoveResult =
   | { status: 'changed'; record: AnonymousDraftRecord }
   | { status: 'invalid' | 'none' | 'removed' | 'unavailable' };
@@ -77,9 +80,9 @@ export async function runAnonymousDraftLocked<T>(
 // prettier-ignore
 export function getAnonymousDraftStorage(): RecoveryStorage | null { try { return globalThis.localStorage; } catch { return null; } }
 // prettier-ignore
-function snapshotFromPayload(value: z.infer<typeof freeStartDraftPayloadSchema>): AnonymousDraftSnapshot { return { category: value.category, draft: { counterparty: value.counterparty ?? '', desiredOutcome: value.desiredOutcome ?? '', incidentDate: value.incidentDate ?? '', issueType: value.issueType ?? '', summary: value.summary ?? '' }, resumeStep: value.resumeStep }; }
+function snapshotFromPayload(value: z.infer<typeof recoverableDraftSchema>): AnonymousDraftSnapshot { return { category: value.category, draft: { counterparty: value.counterparty ?? '', desiredOutcome: value.desiredOutcome ?? '', incidentDate: value.incidentDate ?? '', issueType: value.issueType ?? '', summary: value.summary ?? '' }, resumeStep: value.resumeStep }; }
 // prettier-ignore
-export function createAnonymousDraftSnapshot(category: CategoryId, draft: DraftState, step: StepId): AnonymousDraftSnapshot | null { if (category !== 'vehicle' && category !== 'property') return null; const parsed = freeStartDraftPayloadSchema.safeParse({ category, counterparty: draft.counterparty || undefined, desiredOutcome: draft.desiredOutcome || undefined, incidentDate: draft.incidentDate || undefined, issueType: draft.issueType || undefined, resumeStep: step === 'complete' ? 'preview' : step, summary: draft.summary || undefined }); return parsed.success ? snapshotFromPayload(parsed.data) : null; }
+export function createAnonymousDraftSnapshot(category: CategoryId, draft: DraftState, step: StepId): AnonymousDraftSnapshot | null { if (category !== 'vehicle' && category !== 'property') return null; const parsed = recoverableDraftSchema.safeParse({ category, counterparty: draft.counterparty || undefined, desiredOutcome: draft.desiredOutcome || undefined, incidentDate: draft.incidentDate || undefined, issueType: draft.issueType || undefined, resumeStep: step === 'complete' ? 'preview' : step, summary: draft.summary || undefined }); return parsed.success ? snapshotFromPayload(parsed.data) : null; }
 // prettier-ignore
 export function sameAnonymousDraftRecord(left: AnonymousDraftRecord, right: AnonymousDraftRecord) { return JSON.stringify(left) === JSON.stringify(right); }
 function decode(raw: string, now: number): AnonymousDraftRecord | null {
@@ -121,14 +124,13 @@ export function readAnonymousDraft(storage: RecoveryStorage | null, now = Date.n
     return { status: 'unavailable' };
   }
 }
-
 // prettier-ignore
 export function writeAnonymousDraft(storage: RecoveryStorage | null, snapshot: AnonymousDraftSnapshot, expected: AnonymousDraftRecord | null, orderingNow = Date.now(), executionNow = Date.now()): WriteResult {
   if (!storage) return { status: 'unavailable' };
   if (!Number.isFinite(orderingNow) || !Number.isFinite(executionNow)) return { status: 'unavailable' };
   if (orderingNow > executionNow + 60_000 || orderingNow + ANONYMOUS_DRAFT_TTL_MS <= executionNow) return { status: 'stale' };
   const current = readAnonymousDraft(storage, executionNow);
-  if (current.status === 'unavailable' || current.status === 'invalid') return { status: 'unavailable' };
+  if (current.status === 'unavailable' || current.status === 'invalid') return current;
   if (current.status === 'none' && expected && orderingNow < Date.parse(expected.updatedAt)) return { status: 'stale' };
   if (current.status === 'available' && (!expected || !sameAnonymousDraftRecord(current.record, expected)) && Date.parse(current.record.updatedAt) >= orderingNow) return { status: 'conflict', record: current.record };
   const canonical = createAnonymousDraftSnapshot(snapshot.category, snapshot.draft, snapshot.resumeStep);
@@ -143,6 +145,5 @@ export function writeAnonymousDraft(storage: RecoveryStorage | null, snapshot: A
   if (!saved) return current.status === 'available' ? { status: 'conflict', record: current.record } : { status: 'unavailable' };
   try { storage.setItem(ANONYMOUS_DRAFT_KEY, JSON.stringify(data.data)); return { status: 'saved', record: saved }; } catch { return { status: 'unavailable' }; }
 }
-
 // prettier-ignore
 export function removeAnonymousDraft(storage: RecoveryStorage | null, expected?: AnonymousDraftRecord, now = Date.now()): RemoveResult { if (!storage) return { status: 'unavailable' }; const current = readAnonymousDraft(storage, now); if (current.status !== 'available') return current; if (expected && !sameAnonymousDraftRecord(current.record, expected)) return { status: 'changed', record: current.record }; try { storage.removeItem(ANONYMOUS_DRAFT_KEY); return { status: 'removed' }; } catch { return { status: 'unavailable' }; } }
