@@ -130,4 +130,6 @@ describe('cookie consent helpers', () => {
 
     unsubscribe();
   });
+  // prettier-ignore
+  it('reconciles failed writes and stale cross-tab events to the least-permissive durable consent', () => { localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, 'necessary'); const available = localStorage, handler = vi.fn(), unsubscribe = subscribeCookieConsent(handler); vi.spyOn(window, 'localStorage', 'get').mockReturnValue({ getItem: available.getItem.bind(available), setItem: () => { throw new DOMException('blocked', 'SecurityError'); } } as unknown as Storage); setCookieConsent('accepted'); expect(handler).toHaveBeenLastCalledWith('necessary'); vi.restoreAllMocks(); localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, 'accepted'); document.cookie = `${COOKIE_CONSENT_COOKIE_NAME}=necessary`; window.dispatchEvent(new StorageEvent('storage', { key: COOKIE_CONSENT_STORAGE_KEY, newValue: 'accepted' })); expect(handler).toHaveBeenLastCalledWith('necessary'); unsubscribe(); });
 });

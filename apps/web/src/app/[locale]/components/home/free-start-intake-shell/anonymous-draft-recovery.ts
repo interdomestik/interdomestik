@@ -6,7 +6,6 @@ import type { CategoryId, DraftState, StepId } from './types';
 export const ANONYMOUS_DRAFT_KEY = 'interdomestik_free_start_recovery_v1';
 export const ANONYMOUS_DRAFT_LOCK_NAME = 'interdomestik:free-start:anonymous-draft:v1';
 export const ANONYMOUS_DRAFT_TTL_MS = 30 * 24 * 60 * 60 * 1000;
-
 const storedRecordSchema = z
   .object({
     version: z.literal(1),
@@ -27,7 +26,7 @@ type RecoveryStorage = Pick<Storage, 'getItem' | 'removeItem' | 'setItem'>;
 // prettier-ignore
 type Locks = Readonly<{ request: <T>(name: string, options: { mode: 'exclusive'; signal: AbortSignal }, callback: () => T | Promise<T>) => Promise<T> }>;
 // prettier-ignore
-export type ReadResult = { status: 'available'; record: AnonymousDraftRecord } | { status: 'none' } | { status: 'unavailable' };
+export type ReadResult = { status: 'available'; record: AnonymousDraftRecord } | { status: 'none'; retained?: boolean } | { status: 'unavailable' };
 export type WriteResult =
   | { status: 'saved'; record: AnonymousDraftRecord }
   | { status: 'conflict'; record: AnonymousDraftRecord }
@@ -36,7 +35,6 @@ export type RemoveResult =
   | { status: 'changed'; record: AnonymousDraftRecord }
   | { status: 'none' | 'removed' | 'unavailable' };
 export type LockedResult<T> = { status: 'acquired'; value: T } | { status: 'unavailable' };
-
 // prettier-ignore
 function getLocks(): Locks | null { try { return typeof navigator === 'undefined' ? null : ((navigator as Navigator & { locks?: Locks }).locks ?? null); } catch { return null; } }
 export async function runAnonymousDraftLocked<T>(
@@ -50,10 +48,12 @@ export async function runAnonymousDraftLocked<T>(
   const abortPending = () => {
     if (!granted) controller.abort();
   };
-  if (externalSignal?.aborted) abortPending();
-  else externalSignal?.addEventListener('abort', abortPending, { once: true });
-  const timeout = globalThis.setTimeout(abortPending, 5_000);
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  // prettier-ignore
   try {
+    if (externalSignal?.aborted) abortPending();
+    else externalSignal?.addEventListener('abort', abortPending, { once: true });
+    timeout = globalThis.setTimeout(abortPending, 5_000);
     const value = await locks.request(
       ANONYMOUS_DRAFT_LOCK_NAME,
       { mode: 'exclusive', signal: controller.signal },
@@ -70,11 +70,10 @@ export async function runAnonymousDraftLocked<T>(
   } catch {
     return { status: 'unavailable' };
   } finally {
-    globalThis.clearTimeout(timeout);
-    externalSignal?.removeEventListener('abort', abortPending);
+    try { if (timeout !== undefined) globalThis.clearTimeout(timeout); } catch {}
+    try { externalSignal?.removeEventListener('abort', abortPending); } catch {}
   }
 }
-
 // prettier-ignore
 export function getAnonymousDraftStorage(): RecoveryStorage | null { try { return globalThis.localStorage; } catch { return null; } }
 // prettier-ignore
@@ -118,7 +117,7 @@ export function readAnonymousDraft(storage: RecoveryStorage | null, now = Date.n
     const record = decode(raw, now);
     if (record) return { status: 'available', record };
     if (cleanInvalid) storage.removeItem(ANONYMOUS_DRAFT_KEY);
-    return { status: 'none' };
+    return { status: 'none', retained: !cleanInvalid || undefined };
   } catch {
     return { status: 'unavailable' };
   }
@@ -131,11 +130,12 @@ export function writeAnonymousDraft(storage: RecoveryStorage | null, snapshot: A
   if (orderingNow > executionNow + 60_000 || orderingNow + ANONYMOUS_DRAFT_TTL_MS <= executionNow) return { status: 'stale' };
   const current = readAnonymousDraft(storage, executionNow);
   if (current.status === 'unavailable') return current;
-  if (current.status === 'none' && expected && orderingNow <= Date.parse(expected.updatedAt)) return { status: 'stale' };
+  if (current.status === 'none' && expected && orderingNow < Date.parse(expected.updatedAt)) return { status: 'stale' };
   if (current.status === 'available' && (!expected || (!sameAnonymousDraftRecord(current.record, expected) && Date.parse(current.record.updatedAt) >= orderingNow))) return { status: 'conflict', record: current.record };
   const canonical = createAnonymousDraftSnapshot(snapshot.category, snapshot.draft, snapshot.resumeStep);
   if (!canonical) return { status: 'unavailable' };
-  const revision = current.status === 'available' ? Math.max(orderingNow, Date.parse(current.record.updatedAt) + 1) : orderingNow;
+  const basis = current.status === 'available' ? current.record : expected;
+  const revision = basis ? Math.max(orderingNow, Date.parse(basis.updatedAt) + 1) : orderingNow;
   if (revision > executionNow + 60_000 || revision + ANONYMOUS_DRAFT_TTL_MS <= executionNow) return current.status === 'available' ? { status: 'conflict', record: current.record } : { status: 'stale' };
   const draft = { category: canonical.category, counterparty: canonical.draft.counterparty || undefined, desiredOutcome: canonical.draft.desiredOutcome || undefined, incidentDate: canonical.draft.incidentDate || undefined, issueType: canonical.draft.issueType || undefined, resumeStep: canonical.resumeStep, summary: canonical.draft.summary || undefined };
   const data = storedRecordSchema.safeParse({ version: 1, draft, updatedAt: new Date(revision).toISOString(), expiresAt: new Date(revision + ANONYMOUS_DRAFT_TTL_MS).toISOString() });

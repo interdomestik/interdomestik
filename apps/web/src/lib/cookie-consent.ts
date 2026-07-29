@@ -76,14 +76,11 @@ export function subscribeCookieConsent(
 ): () => void {
   if (!isBrowser()) return () => undefined;
 
-  const handleCustomUpdate = (event: Event) => {
-    const detail = (event as CustomEvent<CookieConsentValue>).detail;
-    onChange(parseCookieConsentValue(detail));
-  };
+  const handleCustomUpdate = () => onChange(getCookieConsent());
 
   const handleStorage = (event: StorageEvent) => {
     if (event.key !== COOKIE_CONSENT_STORAGE_KEY) return;
-    onChange(parseCookieConsentValue(event.newValue));
+    onChange(getCookieConsent());
   };
 
   window.addEventListener(COOKIE_CONSENT_UPDATED_EVENT, handleCustomUpdate as EventListener);

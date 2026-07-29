@@ -14,7 +14,6 @@ import type { CategoryId, FreeStartCopy, FreeStartIntakeShellProps } from './typ
 import { useAnonymousDraftRecovery } from './use-anonymous-draft-recovery';
 import { useDraftLifecycle } from './use-draft-lifecycle';
 import { useOrganizerFlow } from './use-organizer-flow';
-
 // prettier-ignore
 const ClaimPackResult = dynamic(() => import('../claim-pack-result').then(module => module.ClaimPackResult), { ssr: false });
 // prettier-ignore
@@ -46,9 +45,9 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
     step: flow.step,
   });
   const view = useFreeStartViewModel({ flow, props, t, tCommon });
-  const recoveryPending = !recovery.ready || recovery.pending || Boolean(recovery.offer);
+  const recoveryPending = !recovery.ready || recovery.busy || Boolean(recovery.offer);
   const secureActionsBlocked =
-    recoveryPending || recovery.state === 'retained' || recovery.state === 'unavailable';
+    !recovery.ready || Boolean(recovery.offer) || recovery.state === 'retained';
   // prettier-ignore
   const selectCategory = (category: CategoryId) => recovery.neutralHost && flow.selectedCategory === 'injury' && (category === 'vehicle' || category === 'property') ? flow.restoreAnonymousDraft({ category, draft: EMPTY_DRAFT, resumeStep: flow.step === 'complete' ? 'preview' : flow.step }) : flow.selectCategory(category);
   const noRecoveryBody = (
@@ -58,7 +57,6 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
     key === 'trustBoundary.body' && !recovery.enabled ? noRecoveryBody : t(key);
   // prettier-ignore
   const secureLifecycle = { ...draftLifecycle, startAnother: () => void resetAfterRecoveryClear(recovery.clearBeforeReset, draftLifecycle.startAnother) };
-
   return (
     <section
       id="free-start-intake"
@@ -139,7 +137,7 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
           </div>
         )}
         {/* prettier-ignore */}
-        <div data-testid="free-start-recovery-secure-actions" aria-describedby={secureActionsBlocked ? 'anonymous-draft-recovery-heading' : undefined} inert={secureActionsBlocked ? true : undefined}><SecureSaveBand lifecycle={secureLifecycle} locale={props.locale} neutralOtpHost={props.neutralOtpHost} tenantId={props.neutralOtpTenantId} /></div>
+        <div data-testid="free-start-recovery-secure-actions" aria-describedby={secureActionsBlocked ? 'anonymous-draft-recovery-heading' : undefined} inert={secureActionsBlocked || undefined}><SecureSaveBand lifecycle={secureLifecycle} locale={props.locale} neutralOtpHost={props.neutralOtpHost} tenantId={props.neutralOtpTenantId} /></div>
         <TrustBoundary t={trustBoundaryT} />
       </div>
     </section>

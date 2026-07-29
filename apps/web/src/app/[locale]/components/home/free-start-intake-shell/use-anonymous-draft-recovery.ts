@@ -20,14 +20,14 @@ type LockedRun<T> = Readonly<{ current: boolean; result: LockedResult<T | null> 
 // prettier-ignore
 export function useAnonymousDraftRecovery(args: Args) {
   // prettier-ignore
-  const [enabled, setEnabled] = useState(false), [offer, setOffer] = useState<AnonymousDraftRecord | null>(null), [ready, setReady] = useState(false), [state, setState] = useState<RecoveryState>('idle');
+  const [busy, setBusy] = useState(false), [enabled, setEnabled] = useState(false), [offer, setOffer] = useState<AnonymousDraftRecord | null>(null), [ready, setReady] = useState(false), [state, setState] = useState<RecoveryState>('idle');
   // prettier-ignore
-  const abortRef = useRef<AbortController | null>(null), contextEpoch = useRef(0), contextValueRef = useRef(''), currentContextRef = useRef(''), currentFingerprintRef = useRef(''), currentSnapshotRef = useRef<AnonymousDraftSnapshot | null>(null), generation = useRef(0), interaction = useRef(false), invalidated = useRef(false), knownRecord = useRef<AnonymousDraftRecord | null>(null), localWrites = useRef(0), mounted = useRef(true), promotionFingerprint = useRef<string | null>(null), reconcileAbortRef = useRef<AbortController | null>(null), reconciliation = useRef(false), suppression = useRef<{ from: string; to: string } | null>(null), previousLifecycle = useRef(args.lifecycleState);
+  const abortRef = useRef<AbortController | null>(null), actionBusy = useRef(false), contextEpoch = useRef(0), contextValueRef = useRef(''), currentContextRef = useRef(''), currentFingerprintRef = useRef(''), currentSnapshotRef = useRef<AnonymousDraftSnapshot | null>(null), generation = useRef(0), interaction = useRef(false), invalidated = useRef(false), knownRecord = useRef<AnonymousDraftRecord | null>(null), localWrites = useRef(0), mounted = useRef(true), promotionFingerprint = useRef<string | null>(null), reconcileAbortRef = useRef<AbortController | null>(null), reconciliation = useRef(false), suppression = useRef<{ from: string; to: string } | null>(null), previousLifecycle = useRef(args.lifecycleState);
   const neutralHost = isNeutralHost(args.neutralHost), currentSnapshot = args.category ? createAnonymousDraftSnapshot(args.category, args.draft, args.step) : null, currentFingerprint = currentSnapshot ? recordFingerprint(currentSnapshot) : fingerprint(args.category, args.draft, args.step), contextValue = JSON.stringify([currentFingerprint, args.activeId, args.lifecycleState]); if (contextValueRef.current !== contextValue) { contextValueRef.current = contextValue; contextEpoch.current += 1; } const currentContext = JSON.stringify([contextEpoch.current, contextValue]); currentContextRef.current = currentContext; currentFingerprintRef.current = currentFingerprint; currentSnapshotRef.current = currentSnapshot;
   // prettier-ignore
-  const resetFingerprint = fingerprint(args.resetCategory, EMPTY_DRAFT, args.resetCategory ? 'details' : 'category'), pending = args.lifecycleState === 'saving' || args.lifecycleState === 'loading', activeCopyCurrent = Boolean(args.activeId && (args.lifecycleState === 'saved' || !knownRecord.current || recordFingerprint(knownRecord.current) === currentFingerprint));
+  const resetFingerprint = fingerprint(args.resetCategory, EMPTY_DRAFT, args.resetCategory ? 'details' : 'category'), pending = args.lifecycleState === 'saving' || args.lifecycleState === 'loading', activeCopyCurrent = Boolean(args.activeId && ((!knownRecord.current && args.lifecycleState === 'saved') || (knownRecord.current && recordFingerprint(knownRecord.current) === currentFingerprint)));
   // prettier-ignore
-  const markUnavailable = useCallback(() => { reconciliation.current = true; setEnabled(false); setOffer(null); setState('unavailable'); }, []);
+  const markUnavailable = useCallback(() => { reconciliation.current = true; setEnabled(false); setOffer(null); setState(knownRecord.current ? 'retained' : 'unavailable'); }, []);
   // prettier-ignore
   const markRetained = useCallback(() => { reconciliation.current = true; setEnabled(false); setOffer(null); setState('retained'); }, []);
   // prettier-ignore
@@ -39,7 +39,7 @@ export function useAnonymousDraftRecovery(args: Args) {
   // prettier-ignore
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; supersede(); }; }, [supersede]);
   // prettier-ignore
-  const applyRead = useCallback((result: ReadResult, fromEvent = false) => { if (result.status === 'unavailable') return markUnavailable(); reconciliation.current = false; setEnabled(true); if (result.status === 'none') { knownRecord.current = null; setOffer(null); if (fromEvent) { invalidated.current = true; setEnabled(false); } setState(fromEvent ? 'discarded' : 'idle'); return; } const matches = recordFingerprint(result.record) === currentFingerprintRef.current; knownRecord.current = result.record; if (fromEvent && matches) invalidated.current = false; setOffer(fromEvent && matches ? null : result.record); setState(fromEvent ? (matches ? 'saved' : 'conflict') : 'offer'); }, [markUnavailable]);
+  const applyRead = useCallback((result: ReadResult, fromEvent = false) => { if (result.status === 'unavailable') return markUnavailable(); reconciliation.current = false; setEnabled(true); if (result.status === 'none') { knownRecord.current = null; setOffer(null); if (result.retained) return markRetained(); if (fromEvent) { invalidated.current = true; setEnabled(false); } setState(fromEvent ? 'discarded' : 'idle'); return; } const matches = recordFingerprint(result.record) === currentFingerprintRef.current; knownRecord.current = result.record; if (fromEvent && matches) invalidated.current = false; setOffer(fromEvent && matches ? null : result.record); setState(fromEvent ? (matches ? 'saved' : 'conflict') : 'offer'); }, [markRetained, markUnavailable]);
   // prettier-ignore
   useEffect(() => { if (!neutralHost) { supersede(); setEnabled(false); setOffer(null); setReady(true); setState('idle'); return; } void runLocked((current, now) => current() ? readAnonymousDraft(getAnonymousDraftStorage(), now) : null).then(({ current, result }) => { if (!current) return; if (result.status === 'unavailable' || !result.value) markUnavailable(); else applyRead(result.value); setReady(true); }); }, [applyRead, markUnavailable, neutralHost, runLocked, supersede]);
   useEffect(() => {
@@ -61,6 +61,7 @@ export function useAnonymousDraftRecovery(args: Args) {
   }, [applyRead, markUnavailable, neutralHost, runReconcile]);
   useEffect(() => {
     if (!neutralHost || !ready || activeCopyCurrent || offer || interaction.current || invalidated.current || pending) return;
+    if (args.activeId && args.lifecycleState === 'saved' && knownRecord.current && recordFingerprint(knownRecord.current) !== currentFingerprint) { setOffer(knownRecord.current); setState('conflict'); return; }
     const snapshot = args.category ? createAnonymousDraftSnapshot(args.category, args.draft, args.step) : null;
     if (!snapshot) { supersede(); setState(value => value === 'saved' && knownRecord.current ? 'retained' : value); return; }
     if (suppression.current) {
@@ -73,7 +74,7 @@ export function useAnonymousDraftRecovery(args: Args) {
       void runLocked((current, now) => current() ? readAnonymousDraft(getAnonymousDraftStorage(), now) : null).then(({ current, result }) => { if (!current) return; if (result.status === 'unavailable' || !result.value) return markUnavailable(); if (result.value.status === 'none') { reconciliation.current = false; invalidated.current = false; setEnabled(true); setState('idle'); } else applyRead(result.value, true); });
       return;
     }
-    const expected = knownRecord.current, captured = captureTime(), now = captured === null || !expected ? captured : Math.max(captured, Date.parse(expected.updatedAt) + 1); if (now === null) return markUnavailable();
+    const expected = knownRecord.current, now = captureTime(); if (now === null) return markUnavailable();
     setState(value => value === 'saved' ? 'idle' : value);
     localWrites.current += 1;
     void runLocked((current, executionNow) => current() ? writeAnonymousDraft(getAnonymousDraftStorage(), snapshot, expected, now, executionNow) : null, currentContext).then(({ current, result }) => {
@@ -85,7 +86,7 @@ export function useAnonymousDraftRecovery(args: Args) {
       const value = result.value;
       if (value.status === 'saved') { invalidated.current = false; knownRecord.current = value.record; setOffer(null); setState('saved'); }
       else if (value.status === 'conflict') { knownRecord.current = value.record; setOffer(value.record); setState('conflict'); }
-      else { invalidated.current = true; setState('discarded'); }
+      else { invalidated.current = true; if (expected) markRetained(); else setState('unavailable'); }
     }).finally(() => { localWrites.current -= 1; });
   }, [activeCopyCurrent, applyRead, args.category, args.draft, args.step, currentContext, currentFingerprint, markUnavailable, neutralHost, offer, pending, ready, runLocked, supersede]);
   useEffect(() => {
@@ -112,38 +113,25 @@ export function useAnonymousDraftRecovery(args: Args) {
       else { knownRecord.current = null; setOffer(null); setState('secure'); }
     })();
   }, [args.activeId, args.lifecycleState, currentContext, currentFingerprint, markRetained, markUnavailable, offer, runLocked, state]);
-  const clearDeviceCopy = useCallback(async () => {
-    if (!neutralHost) return true;
-    const expected = offer ?? knownRecord.current;
-    const output = await runLocked((current, executionNow) => {
-      if (!current()) return null;
-      if (expected) return removeAnonymousDraft(getAnonymousDraftStorage(), expected, executionNow);
-      const value = readAnonymousDraft(getAnonymousDraftStorage(), executionNow);
-      return value.status === 'available' ? { status: 'changed' as const, record: value.record } : value;
-    }, currentContext);
-    if (!output.current) return false;
-    if (output.result.status === 'unavailable' || !output.result.value) { if (expected) markRetained(); else markUnavailable(); return false; }
-    const value = output.result.value;
-    if (value.status === 'unavailable') { if (expected) markRetained(); else markUnavailable(); return false; }
-    if (value.status === 'changed') { knownRecord.current = value.record; setOffer(value.record); setState('conflict'); return false; }
-    knownRecord.current = null; setOffer(null); return true;
-  }, [currentContext, markRetained, markUnavailable, neutralHost, offer, runLocked]);
+  // prettier-ignore
+  const clearDeviceCopy = useCallback(async () => { if (!neutralHost) return true; const expected = offer ?? knownRecord.current; const output = await runLocked((current, executionNow) => { if (!current()) return null; if (expected) return removeAnonymousDraft(getAnonymousDraftStorage(), expected, executionNow); const value = readAnonymousDraft(getAnonymousDraftStorage(), executionNow); return value.status === 'available' ? { status: 'changed' as const, record: value.record } : value; }, currentContext); if (!output.current) return false; if (output.result.status === 'unavailable' || !output.result.value) { if (expected) markRetained(); else markUnavailable(); return false; } const value = output.result.value; if (value.status === 'unavailable') { if (expected) markRetained(); else markUnavailable(); return false; } if (value.status === 'changed') { knownRecord.current = value.record; setOffer(value.record); setState('conflict'); return false; } knownRecord.current = null; setOffer(null); return true; }, [currentContext, markRetained, markUnavailable, neutralHost, offer, runLocked]);
   const clearBeforeReset = useCallback(async () => {
-    if (pending || !(await clearDeviceCopy())) return false;
-    invalidated.current = false; suppression.current = { from: currentFingerprint, to: resetFingerprint }; setState('discarded'); return true;
+    if (pending || actionBusy.current) return false; actionBusy.current = true; setBusy(true);
+    try { if (!(await clearDeviceCopy())) return false; invalidated.current = false; suppression.current = { from: currentFingerprint, to: resetFingerprint }; setState('discarded'); return true; }
+    finally { actionBusy.current = false; setBusy(false); }
   }, [clearDeviceCopy, currentFingerprint, pending, resetFingerprint]);
   // prettier-ignore
   const discard = useCallback(() => { void clearBeforeReset().then(cleared => { if (cleared) args.onReset(); }); }, [args.onReset, clearBeforeReset]);
   const resume = useCallback(() => {
-    if (pending || !offer) return;
-    interaction.current = true;
+    if (pending || actionBusy.current || !offer) return;
+    interaction.current = true; actionBusy.current = true; setBusy(true);
     void runLocked((current, now) => current() ? readAnonymousDraft(getAnonymousDraftStorage(), now) : null, currentContext).then(({ current, result }) => {
       if (!current) return;
       if (result.status === 'unavailable' || !result.value || result.value.status === 'unavailable') return markUnavailable();
       if (result.value.status === 'none') { invalidated.current = true; knownRecord.current = null; setOffer(null); setState('discarded'); }
       else if (!sameAnonymousDraftRecord(result.value.record, offer)) { knownRecord.current = result.value.record; setOffer(result.value.record); setState('conflict'); }
       else { invalidated.current = false; knownRecord.current = result.value.record; suppression.current = { from: currentFingerprint, to: recordFingerprint(result.value.record) }; args.onReset(); args.onRestore(result.value.record); setOffer(null); setState('saved'); }
-    }).finally(() => { interaction.current = false; });
+    }).finally(() => { interaction.current = false; actionBusy.current = false; setBusy(false); });
   }, [args.onReset, args.onRestore, currentContext, currentFingerprint, markUnavailable, offer, pending, runLocked]);
-  return { clearBeforeReset, clearDeviceCopy, discard, enabled, neutralHost, offer, pending, ready, resume, state };
+  return { busy, clearBeforeReset, clearDeviceCopy, discard, enabled, neutralHost, offer, pending: pending || busy, ready, resume, state };
 }
