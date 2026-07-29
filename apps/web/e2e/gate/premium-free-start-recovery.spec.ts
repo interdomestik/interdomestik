@@ -78,9 +78,9 @@ async function installInvalid(page: Page, kind: 'empty' | 'expired' | 'future' |
 }
 // prettier-ignore
 async function freshLogin(page: Page, info: TestInfo) {
-  const origin = new URL(String(info.project.use.baseURL)).origin;
-  const response = await page.request.post(`${origin}/api/auth/sign-in/email`, { data: { email: E2E_USERS.KS_MEMBER.email, password: E2E_PASSWORD, additionalData: { tenantId: 'tenant_ks' } }, headers: { Origin: origin, Referer: `${origin}${routes.login(info)}`, 'x-tenant-id': 'tenant_ks' } });
-  expect(response.ok()).toBe(true);
+  const origin = new URL(String(info.project.use.baseURL)).origin, authOrigin = process.env.BETTER_AUTH_URL?.trim() || origin;
+  const response = await page.request.post(`${origin}/api/auth/sign-in/email`, { data: { email: E2E_USERS.KS_MEMBER.email, password: E2E_PASSWORD, additionalData: { tenantId: 'tenant_ks' } }, headers: { Origin: authOrigin, Referer: `${origin}${routes.login(info)}`, 'x-tenant-id': 'tenant_ks' } });
+  expect(response.ok(), `fresh login: ${response.status()} ${await response.text()}`).toBe(true);
 }
 // prettier-ignore
 async function deleteSavedDraft(page: Page, organizer: Locator, summary: string) {
