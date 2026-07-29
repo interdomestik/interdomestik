@@ -1,4 +1,5 @@
 import { getSupportContacts } from '@/lib/support-contacts';
+import { useCallback, useRef, useState } from 'react';
 
 import {
   getConfidenceLevel,
@@ -18,6 +19,16 @@ type Args = Readonly<{
   t: FreeStartCopy;
   tCommon: FreeStartCopy;
 }>;
+
+export function useSecureIntentGuard(onVerified: () => Promise<void>) {
+  const [epoch, setEpoch] = useState(0),
+    epochRef = useRef(0);
+  // prettier-ignore
+  const invalidate = useCallback(() => { epochRef.current += 1; setEpoch(epochRef.current); }, []);
+  // prettier-ignore
+  const verify = async () => { if (epochRef.current !== epoch) throw new Error('secure_save_intent_failed'); await onVerified(); };
+  return { epoch, invalidate, onVerified: verify };
+}
 
 export function useFreeStartViewModel({ flow, props, t, tCommon }: Args) {
   const confidenceLevel = getConfidenceLevel(flow.selectedCategory, flow.draft);

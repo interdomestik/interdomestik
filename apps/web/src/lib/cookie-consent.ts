@@ -36,7 +36,9 @@ export function getCookieConsent(): CookieConsentValue | null {
 
   try {
     const storageValue = parseCookieConsentValue(localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY));
-    if (storageValue) return storageValue;
+    const cookieValue = parseCookieConsentValue(getCookieValue(COOKIE_CONSENT_COOKIE_NAME));
+    if (storageValue && cookieValue && storageValue !== cookieValue) return 'necessary';
+    return storageValue ?? cookieValue;
   } catch {
     // Browser policy may deny the storage accessor or read; the existing cookie is the fallback.
   }

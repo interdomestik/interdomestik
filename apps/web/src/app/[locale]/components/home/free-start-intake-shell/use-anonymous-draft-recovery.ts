@@ -7,7 +7,7 @@ import type { CategoryId, DraftSaveState, DraftState, StepId } from './types';
 // prettier-ignore
 type RecoveryState = 'idle' | 'saved' | 'offer' | 'conflict' | 'retained' | 'unavailable' | 'discarded' | 'secure';
 // prettier-ignore
-type Args = Readonly<{ activeFingerprint?: string | null; activeId: string | null; category: CategoryId | null; draft: DraftState; lifecycleState: DraftSaveState; neutralHost?: string | null; onReset: () => void; onRestore: (draft: AnonymousDraftSnapshot) => void; resetCategory: CategoryId | null; step: StepId }>;
+type Args = Readonly<{ activeFingerprint?: string | null; activeId: string | null; category: CategoryId | null; draft: DraftState; lifecycleState: DraftSaveState; neutralHost?: string | null; onExternalChange?: () => void; onReset: () => void; onRestore: (draft: AnonymousDraftSnapshot) => void; resetCategory: CategoryId | null; step: StepId }>;
 // prettier-ignore
 function isNeutralHost(configured?: string | null) { return typeof location !== 'undefined' && (location.hostname.toLowerCase() === 'ida.localhost' || Boolean(configured && location.host.toLowerCase() === configured.toLowerCase())); }
 // prettier-ignore
@@ -49,6 +49,7 @@ export function useAnonymousDraftRecovery(args: Args) {
       const storage = getAnonymousDraftStorage();
       if (!storage) return void markUnavailable();
       if (event.storageArea && event.storageArea !== storage) return;
+      args.onExternalChange?.();
       if (localWrites.current) return;
       invalidated.current = true;
       void runReconcile((current, now) => current() ? readAnonymousDraft(storage, now) : null).then(({ current, result }) => {
@@ -58,7 +59,7 @@ export function useAnonymousDraftRecovery(args: Args) {
       });
     };
     addEventListener('storage', onStorage); return () => removeEventListener('storage', onStorage);
-  }, [applyRead, markUnavailable, neutralHost, runReconcile]);
+  }, [applyRead, args.onExternalChange, markUnavailable, neutralHost, runReconcile]);
   useEffect(() => {
     if (!neutralHost || !ready || activeCopyCurrent || copyCurrent || offer || interaction.current || (invalidated.current && !reconciliation.current) || pending) return;
     if (args.activeId && args.lifecycleState === 'saved' && knownRecord.current && recordFingerprint(knownRecord.current) !== currentFingerprint) { setOffer(knownRecord.current); setState('conflict'); return; }

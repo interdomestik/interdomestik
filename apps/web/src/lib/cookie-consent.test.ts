@@ -86,7 +86,10 @@ describe('cookie consent helpers', () => {
 
   it('keeps cookie and event behavior when storage writes throw', () => {
     const dispatch = vi.spyOn(window, 'dispatchEvent');
+    const storage = localStorage;
+    storage.setItem(COOKIE_CONSENT_STORAGE_KEY, 'accepted');
     vi.spyOn(window, 'localStorage', 'get').mockReturnValue({
+      getItem: storage.getItem.bind(storage),
       setItem: () => {
         throw new DOMException('blocked', 'SecurityError');
       },
@@ -94,6 +97,7 @@ describe('cookie consent helpers', () => {
 
     expect(() => setCookieConsent('necessary')).not.toThrow();
     expect(document.cookie).toContain(`${COOKIE_CONSENT_COOKIE_NAME}=necessary`);
+    expect(getCookieConsent()).toBe('necessary');
     expect(dispatch).toHaveBeenCalledTimes(1);
     expect(dispatch.mock.calls[0]?.[0]).toMatchObject({
       type: COOKIE_CONSENT_UPDATED_EVENT,
