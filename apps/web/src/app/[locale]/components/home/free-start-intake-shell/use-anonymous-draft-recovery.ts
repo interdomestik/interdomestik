@@ -135,7 +135,7 @@ export function useAnonymousDraftRecovery(args: Args) {
       if (!current) return;
       if (result.status === 'unavailable' || !result.value || result.value.status === 'unavailable') return markUnavailable();
       if (result.value.status === 'invalid') return markUnavailable(false);
-      if (result.value.status === 'none') { invalidated.current = true; knownRecord.current = null; setOffer(null); setState('discarded'); }
+      if (result.value.status === 'none') { invalidated.current = true; knownRecord.current = null; setEnabled(false); setOffer(null); setState('discarded'); }
       else if (!sameAnonymousDraftRecord(result.value.record, offer)) { knownRecord.current = result.value.record; setOffer(result.value.record); setState('conflict'); }
       else { invalidated.current = false; knownRecord.current = result.value.record; suppression.current = { from: currentFingerprint, to: recordFingerprint(result.value.record) }; args.onReset(); args.onRestore(result.value.record); setOffer(null); setState('saved'); }
     }).finally(() => { interaction.current = false; actionBusy.current = false; setBusy(false); });
