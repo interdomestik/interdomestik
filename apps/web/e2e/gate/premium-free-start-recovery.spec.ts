@@ -1,5 +1,6 @@
+import { E2E_PASSWORD, E2E_USERS } from '@interdomestik/database';
 // prettier-ignore
-import { expect, test, type Browser, type Locator, type Page, type TestInfo } from '@playwright/test';
+import { expect, test, type Browser, type BrowserContext, type Locator, type Page, type TestInfo } from '@playwright/test';
 
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
@@ -58,6 +59,36 @@ async function releaseLock(page: Page) {
 async function expectPending(page: Page, count: number) {
   await expect.poll(() => page.evaluate(lock => navigator.locks.query().then(value => (value.pending ?? []).filter(item => item.name === lock).length), LOCK)).toBe(count);
 }
+type Pair = Readonly<{
+  first: Page;
+  firstOrganizer: Locator;
+  second: Page;
+  secondOrganizer: Locator;
+}>;
+// prettier-ignore
+async function seededPair(context: BrowserContext, info: TestInfo, summary: string): Promise<Pair> {
+  const seed = await context.newPage(); await seed.addInitScript(key => localStorage.removeItem(key), KEY);
+  const seedOrganizer = await openOrganizer(seed, info); await selectVehicle(seedOrganizer); await seedOrganizer.getByRole('button', { name: 'Continue to guided intake' }).click(); await seedOrganizer.getByLabel('Brief summary').fill(summary); await expect.poll(() => seed.evaluate(key => localStorage.getItem(key), KEY)).toContain(summary);
+  const first = await context.newPage(), firstOrganizer = await openOrganizer(first, info); const second = await context.newPage(), secondOrganizer = await openOrganizer(second, info); await seed.close();
+  await firstOrganizer.getByRole('button', { name: 'Continue with these notes' }).click(); await secondOrganizer.getByRole('button', { name: 'Continue with these notes' }).click(); await expect(firstOrganizer.getByTestId('anonymous-draft-recovery-offer')).toHaveCount(0); await expect(secondOrganizer.getByTestId('anonymous-draft-recovery-offer')).toHaveCount(0);
+  return { first, firstOrganizer, second, secondOrganizer };
+}
+// prettier-ignore
+async function closePair(pair: Pair) { await pair.second.close(); await pair.first.close(); }
+// prettier-ignore
+async function installInvalid(page: Page, kind: 'empty' | 'expired' | 'future' | 'malformed') {
+  await page.evaluate(({ key, kind, ttl }) => { const now = Date.now(); if (kind === 'empty' || kind === 'malformed') return localStorage.setItem(key, kind === 'empty' ? '' : '{'); const record = JSON.parse(localStorage.getItem(key) ?? '{}') as { expiresAt: string; updatedAt: string }; const updated = kind === 'expired' ? now - ttl - 1 : now + 60_001; record.updatedAt = new Date(updated).toISOString(); record.expiresAt = new Date(updated + ttl).toISOString(); localStorage.setItem(key, JSON.stringify(record)); }, { key: KEY, kind, ttl: 30 * 24 * 60 * 60 * 1_000 });
+}
+// prettier-ignore
+async function freshLogin(page: Page, info: TestInfo) {
+  const origin = new URL(String(info.project.use.baseURL)).origin;
+  const response = await page.request.post(`${origin}/api/auth/sign-in/email`, { data: { email: E2E_USERS.KS_MEMBER.email, password: E2E_PASSWORD, additionalData: { tenantId: 'tenant_ks' } }, headers: { Origin: origin, Referer: `${origin}${routes.login(info)}`, 'x-tenant-id': 'tenant_ks' } });
+  expect(response.ok()).toBe(true);
+}
+// prettier-ignore
+async function deleteSavedDraft(page: Page, organizer: Locator, summary: string) {
+  await organizer.getByTestId('free-start-manage-open').click(); const row = page.locator('[data-testid^="free-start-draft-"]').filter({ hasText: summary }); await expect(row).toHaveCount(1); await row.locator('[data-testid^="free-start-delete-"]').click(); await page.getByTestId('free-start-delete-confirm').click(); await expect(organizer.getByTestId('free-start-save-status')).toHaveAttribute('data-state', 'deleted'); await expect(row).toHaveCount(0);
+}
 
 test.describe('pre-membership Free Start recovery', () => {
   // prettier-ignore
@@ -76,65 +107,29 @@ test.describe('pre-membership Free Start recovery', () => {
   });
 
   // prettier-ignore
-  test('serializes production writes in both page orders and starts a fresh epoch after sibling discard', async ({ browser }, info) => {
-    test.setTimeout(300_000);
-    const ida = resolveIdaTarget(info);
-    for (const reverse of [false, true]) {
-      await withPage(browser, ida, async seed => {
-        const seedOrganizer = await openOrganizer(seed, ida);
-        await selectVehicle(seedOrganizer);
-        await seedOrganizer.getByRole('button', { name: 'Continue to guided intake' }).click();
-        await seedOrganizer.getByLabel('Brief summary').fill('Shared seed.');
-        await expect.poll(() => seed.evaluate(key => localStorage.getItem(key), KEY)).toContain('Shared seed.');
-        const first = await seed.context().newPage(), firstOrganizer = await openOrganizer(first, ida);
-        const second = await seed.context().newPage(), secondOrganizer = await openOrganizer(second, ida);
-        await seed.close();
-        await firstOrganizer.getByRole('button', { name: 'Continue with these notes' }).click();
-        await secondOrganizer.getByRole('button', { name: 'Continue with these notes' }).click();
-        await expect(firstOrganizer.getByTestId('anonymous-draft-recovery-offer')).toHaveCount(0);
-        await expect(secondOrganizer.getByTestId('anonymous-draft-recovery-offer')).toHaveCount(0);
-        const fields = reverse ? [secondOrganizer, firstOrganizer] : [firstOrganizer, secondOrganizer];
-        await holdLock(first);
-        await fields[0].getByLabel('Brief summary').fill(`Older ${reverse}.`);
-        await expectPending(first, 1);
-        await fields[1].getByLabel('Brief summary').fill(`Newest ${reverse}.`);
-        await expectPending(first, 2);
-        await releaseLock(first);
-        await expect.poll(() => first.evaluate(key => localStorage.getItem(key), KEY)).toContain(`Newest ${reverse}.`);
-      });
-    }
-    for (const reverse of [false, true]) {
-      await withPage(browser, ida, async seed => {
-        const seedOrganizer = await openOrganizer(seed, ida); await selectVehicle(seedOrganizer); await seedOrganizer.getByRole('button', { name: 'Continue to guided intake' }).click(); await seedOrganizer.getByLabel('Brief summary').fill('Discard seed.');
-        const first = await seed.context().newPage(), firstOrganizer = await openOrganizer(first, ida); const second = await seed.context().newPage(), secondOrganizer = await openOrganizer(second, ida); await seed.close(); await firstOrganizer.getByRole('button', { name: 'Continue with these notes' }).click(); await secondOrganizer.getByRole('button', { name: 'Continue with these notes' }).click(); await expect(firstOrganizer.getByTestId('anonymous-draft-recovery-offer')).toHaveCount(0); await expect(secondOrganizer.getByTestId('anonymous-draft-recovery-offer')).toHaveCount(0); await holdLock(first);
-        const discard = () => secondOrganizer.getByRole('button', { name: 'Discard from this device' }).evaluate(button => (button as HTMLButtonElement).click()), edit = () => firstOrganizer.getByLabel('Brief summary').fill(`Edit survives discard ${reverse}.`); if (reverse) { await edit(); await expectPending(first, 1); await discard(); } else { await discard(); await expectPending(first, 1); await edit(); } await expectPending(first, 2); await releaseLock(first);
-        await expect.poll(() => first.evaluate(key => localStorage.getItem(key), KEY)).toContain(`Edit survives discard ${reverse}.`);
-      });
-    }
-    for (const reverse of [false, true]) {
-      await withPage(browser, ida, async seed => {
-        const seedOrganizer = await openOrganizer(seed, ida); await selectVehicle(seedOrganizer); await seedOrganizer.getByRole('button', { name: 'Continue to guided intake' }).click(); await seedOrganizer.getByLabel('Brief summary').fill('Cleanup seed.');
-        const first = await seed.context().newPage(), firstOrganizer = await openOrganizer(first, ida); const second = await seed.context().newPage(), secondOrganizer = await openOrganizer(second, ida); await seed.close(); await firstOrganizer.getByRole('button', { name: 'Continue with these notes' }).click(); await secondOrganizer.getByRole('button', { name: 'Continue with these notes' }).click(); await expect(firstOrganizer.getByTestId('anonymous-draft-recovery-offer')).toHaveCount(0); await expect(secondOrganizer.getByTestId('anonymous-draft-recovery-offer')).toHaveCount(0); await holdLock(first);
-        const corrupt = () => first.evaluate(key => localStorage.setItem(key, '{'), KEY), edit = () => firstOrganizer.getByLabel('Brief summary').fill(`Edit survives cleanup ${reverse}.`); if (reverse) { await edit(); await expectPending(first, 1); await corrupt(); } else { await corrupt(); await expectPending(first, 1); await edit(); } await expectPending(first, 2); await releaseLock(first);
-        await expect.poll(() => first.evaluate(key => localStorage.getItem(key), KEY)).toContain(`Edit survives cleanup ${reverse}.`);
-      });
-    }
-    await withPage(browser, ida, async first => {
-      const firstOrganizer = await openOrganizer(first, ida);
-      await selectVehicle(firstOrganizer);
-      const second = await first.context().newPage(), secondOrganizer = await openOrganizer(second, ida);
-      await secondOrganizer.getByRole('button', { name: 'Continue with these notes' }).click();
-      await secondOrganizer.getByRole('button', { name: 'Discard from this device' }).click();
-      await expect(firstOrganizer).toHaveAttribute('data-save-behavior', 'explicit-only');
-      await firstOrganizer.getByRole('button', { name: 'Start another draft' }).click();
-      await selectVehicle(firstOrganizer);
-      await firstOrganizer.getByRole('button', { name: 'Continue to guided intake' }).click();
-      await firstOrganizer.getByLabel('Brief summary').fill('Fresh epoch facts.');
-      await expect.poll(() => first.evaluate(key => localStorage.getItem(key), KEY)).toContain('Fresh epoch facts.');
-      await first.evaluate(key => localStorage.setItem(key, '{'), KEY);
-      await first.reload();
-      await openOrganizer(first, ida);
-      await expect.poll(() => first.evaluate(key => localStorage.getItem(key), KEY)).toBeNull();
+  test('serializes writes and discard in both page orders and starts a fresh epoch', async ({ browser }, info) => {
+    test.setTimeout(300_000); const ida = resolveIdaTarget(info);
+    await withPage(browser, ida, async keeper => {
+      for (const reverse of [false, true]) { const pair = await seededPair(keeper.context(), ida, `Shared seed ${reverse}.`); const fields = reverse ? [pair.secondOrganizer, pair.firstOrganizer] : [pair.firstOrganizer, pair.secondOrganizer]; await holdLock(pair.first); await fields[0].getByLabel('Brief summary').fill(`Older ${reverse}.`); await expectPending(pair.first, 1); await fields[1].getByLabel('Brief summary').fill(`Newest ${reverse}.`); await expectPending(pair.first, 2); await releaseLock(pair.first); await expect.poll(() => pair.first.evaluate(key => localStorage.getItem(key), KEY)).toContain(`Newest ${reverse}.`); await closePair(pair); }
+      for (const reverse of [false, true]) { const pair = await seededPair(keeper.context(), ida, `Discard seed ${reverse}.`); await holdLock(pair.first); const discard = () => pair.secondOrganizer.getByRole('button', { name: 'Discard from this device' }).evaluate(button => (button as HTMLButtonElement).click()), edit = () => pair.firstOrganizer.getByLabel('Brief summary').fill(`Edit survives discard ${reverse}.`); if (reverse) { await edit(); await expectPending(pair.first, 1); await discard(); } else { await discard(); await expectPending(pair.first, 1); await edit(); } await expectPending(pair.first, 2); await releaseLock(pair.first); await expect.poll(() => pair.first.evaluate(key => localStorage.getItem(key), KEY)).toContain(`Edit survives discard ${reverse}.`); await closePair(pair); }
+      const pair = await seededPair(keeper.context(), ida, 'Fresh epoch seed.'); await pair.secondOrganizer.getByRole('button', { name: 'Discard from this device' }).click(); await expect(pair.firstOrganizer).toHaveAttribute('data-save-behavior', 'explicit-only'); await pair.firstOrganizer.getByRole('button', { name: 'Start another draft' }).click(); await selectVehicle(pair.firstOrganizer); await pair.firstOrganizer.getByRole('button', { name: 'Continue to guided intake' }).click(); await pair.firstOrganizer.getByLabel('Brief summary').fill('Fresh epoch facts.'); await expect.poll(() => pair.first.evaluate(key => localStorage.getItem(key), KEY)).toContain('Fresh epoch facts.'); await pair.first.evaluate(key => localStorage.setItem(key, '{'), KEY); await pair.first.reload(); await openOrganizer(pair.first, ida); await expect.poll(() => pair.first.evaluate(key => localStorage.getItem(key), KEY)).toBeNull(); await closePair(pair);
+    });
+  });
+
+  // prettier-ignore
+  test('conditionally cleans every invalid record without deleting a concurrent valid write', async ({ browser }, info) => {
+    test.setTimeout(600_000); const ida = resolveIdaTarget(info);
+    await withPage(browser, ida, async keeper => {
+      for (const kind of ['malformed', 'empty', 'expired', 'future'] as const) for (const reverse of [false, true]) { const pair = await seededPair(keeper.context(), ida, `${kind} seed ${reverse}.`); await holdLock(pair.first); const cleanup = () => installInvalid(pair.second, kind), edit = () => pair.secondOrganizer.getByLabel('Brief summary').fill(`${kind} valid edit ${reverse}.`); if (reverse) { await edit(); await expectPending(pair.first, 1); await cleanup(); } else { await cleanup(); await expectPending(pair.first, 1); await edit(); } await expectPending(pair.first, 2); await releaseLock(pair.first); await expect.poll(() => pair.first.evaluate(key => localStorage.getItem(key), KEY)).toContain(`${kind} valid edit ${reverse}.`); await expect(pair.firstOrganizer.getByTestId('anonymous-draft-recovery-offer')).toBeVisible(); await pair.firstOrganizer.getByRole('button', { name: 'Continue with these notes' }).click(); await expect(pair.firstOrganizer.getByLabel('Brief summary')).toHaveValue(`${kind} valid edit ${reverse}.`); await closePair(pair); }
+    });
+  });
+
+  // prettier-ignore
+  test('keeps later edits across secure promotion and deliberate reset in both orders', async ({ browser }, info) => {
+    test.setTimeout(600_000); const ida = resolveIdaTarget(info);
+    await withPage(browser, ida, async keeper => {
+      await freshLogin(keeper, ida);
+      for (const reverse of [false, true]) { const seed = `Secure seed ${reverse}-${Date.now()}.`, pair = await seededPair(keeper.context(), ida, seed); await holdLock(pair.first); const save = () => pair.firstOrganizer.getByTestId('free-start-save-open').evaluate(button => (button as HTMLButtonElement).click()), edit = () => pair.secondOrganizer.getByLabel('Brief summary').fill(`Promotion edit ${reverse}.`); if (reverse) { await edit(); await expectPending(pair.first, 1); await save(); } else { await save(); await expectPending(pair.first, 1); await edit(); } await expectPending(pair.first, 2); await releaseLock(pair.first); await expect.poll(() => pair.first.evaluate(key => localStorage.getItem(key), KEY)).toContain(`Promotion edit ${reverse}.`); await expect(pair.firstOrganizer.getByTestId('free-start-save-status')).toHaveAttribute('data-state', 'saved'); await holdLock(pair.first); const reset = () => pair.firstOrganizer.getByTestId('free-start-start-another').evaluate(button => (button as HTMLButtonElement).click()), later = () => pair.secondOrganizer.getByLabel('Brief summary').fill(`Reset edit ${reverse}.`); if (reverse) { await later(); await expectPending(pair.first, 1); await reset(); } else { await reset(); await expectPending(pair.first, 1); await later(); } await expectPending(pair.first, 2); await releaseLock(pair.first); await expect.poll(() => pair.first.evaluate(key => localStorage.getItem(key), KEY)).toContain(`Reset edit ${reverse}.`); await expectPending(pair.first, 0); await deleteSavedDraft(pair.first, pair.firstOrganizer, seed); await closePair(pair); }
     });
   });
 
