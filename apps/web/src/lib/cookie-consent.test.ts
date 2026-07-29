@@ -119,6 +119,21 @@ describe('cookie consent helpers', () => {
     expect(localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY)).toBeNull();
     expect(getCookieConsent()).toBe('necessary');
   });
+  it('keeps the newer cookie authoritative when stale storage is fully read-only', () => {
+    localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, 'accepted');
+    const available = localStorage;
+    vi.spyOn(window, 'localStorage', 'get').mockReturnValue({
+      getItem: available.getItem.bind(available),
+      removeItem: () => {
+        throw new DOMException('blocked', 'SecurityError');
+      },
+      setItem: () => {
+        throw new DOMException('blocked', 'SecurityError');
+      },
+    } as unknown as Storage);
+    setCookieConsent('necessary');
+    expect(getCookieConsent()).toBe('necessary');
+  });
 
   it('subscribes to consent updates from custom event', () => {
     const handler = vi.fn();

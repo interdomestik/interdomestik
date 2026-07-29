@@ -9,7 +9,7 @@ type RecoveryState = 'idle' | 'saved' | 'offer' | 'conflict' | 'retained' | 'una
 // prettier-ignore
 type Args = Readonly<{ activeFingerprint?: string | null; activeId: string | null; category: CategoryId | null; draft: DraftState; lifecycleState: DraftSaveState; neutralHost?: string | null; onReset: () => void; onRestore: (draft: AnonymousDraftSnapshot) => void; resetCategory: CategoryId | null; step: StepId }>;
 // prettier-ignore
-function isNeutralHost(configured?: string | null) { return typeof location !== 'undefined' && Boolean(configured && location.host.toLowerCase() === configured.toLowerCase()); }
+function isNeutralHost(configured?: string | null) { return typeof location !== 'undefined' && Boolean(configured && (location.host.toLowerCase() === configured.toLowerCase() || location.hostname.toLowerCase() === 'ida.localhost')); }
 // prettier-ignore
 function recordFingerprint(value: AnonymousDraftSnapshot) { const { draft } = value; return JSON.stringify([value.category, draft.counterparty, draft.desiredOutcome, draft.incidentDate, draft.issueType, value.resumeStep, draft.summary]); }
 // prettier-ignore
@@ -20,14 +20,14 @@ type LockedRun<T> = Readonly<{ current: boolean; result: LockedResult<T | null> 
 // prettier-ignore
 export function useAnonymousDraftRecovery(args: Args) {
   // prettier-ignore
-  const [busy, setBusy] = useState(false), [enabled, setEnabled] = useState(false), [offer, setOffer] = useState<AnonymousDraftRecord | null>(null), [ready, setReady] = useState(false), [state, setState] = useState<RecoveryState>('idle');
+  const [busy, setBusy] = useState(false), [enabled, setEnabled] = useState(false), [offer, setOffer] = useState<AnonymousDraftRecord | null>(null), [ready, setReady] = useState(false), [retry, setRetry] = useState(0), [state, setState] = useState<RecoveryState>('idle');
   // prettier-ignore
   const abortRef = useRef<AbortController | null>(null), actionBusy = useRef(false), activeIdRef = useRef(args.activeId), contextEpoch = useRef(0), contextValueRef = useRef(''), currentContextRef = useRef(''), currentFingerprintRef = useRef(''), currentSnapshotRef = useRef<AnonymousDraftSnapshot | null>(null), generation = useRef(0), interaction = useRef(false), invalidated = useRef(false), knownRecord = useRef<AnonymousDraftRecord | null>(null), localWrites = useRef(0), mounted = useRef(true), promotionFingerprint = useRef<{ source: string; targetId: string | null } | null>(null), reconcileAbortRef = useRef<AbortController | null>(null), reconciliation = useRef(false), suppression = useRef<{ from: string; to: string } | null>(null), previousLifecycle = useRef(args.lifecycleState);
   const neutralHost = isNeutralHost(args.neutralHost), currentSnapshot = args.category ? createAnonymousDraftSnapshot(args.category, args.draft, args.step) : null, currentFingerprint = currentSnapshot ? recordFingerprint(currentSnapshot) : fingerprint(args.category, args.draft, args.step), contextValue = JSON.stringify([currentFingerprint, args.activeId, args.lifecycleState]); if (contextValueRef.current !== contextValue) { contextValueRef.current = contextValue; contextEpoch.current += 1; } const currentContext = JSON.stringify([contextEpoch.current, contextValue]); activeIdRef.current = args.activeId; currentContextRef.current = currentContext; currentFingerprintRef.current = currentFingerprint; currentSnapshotRef.current = currentSnapshot;
   // prettier-ignore
   const resetFingerprint = fingerprint(args.resetCategory, EMPTY_DRAFT, args.resetCategory ? 'details' : 'category'), pending = args.lifecycleState === 'saving' || args.lifecycleState === 'loading', promotion = promotionFingerprint.current, copyCurrent = Boolean(knownRecord.current && recordFingerprint(knownRecord.current) === currentFingerprint), activeCopyCurrent = Boolean(args.activeId && ((args.lifecycleState === 'saved' && promotion && (!promotion.targetId || promotion.targetId === args.activeId)) || (!knownRecord.current && args.lifecycleState === 'saved') || copyCurrent));
   // prettier-ignore
-  const markUnavailable = useCallback(() => { reconciliation.current = true; setEnabled(false); setOffer(null); setState(knownRecord.current ? 'retained' : 'unavailable'); }, []);
+  const markUnavailable = useCallback((retainKnown = true) => { reconciliation.current = true; setEnabled(false); setOffer(null); if (!retainKnown) knownRecord.current = null; setState(retainKnown && knownRecord.current ? 'retained' : 'unavailable'); }, []);
   // prettier-ignore
   const markRetained = useCallback(() => { reconciliation.current = true; setEnabled(false); setOffer(null); setState('retained'); }, []);
   // prettier-ignore
@@ -39,7 +39,7 @@ export function useAnonymousDraftRecovery(args: Args) {
   // prettier-ignore
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; supersede(); }; }, [supersede]);
   // prettier-ignore
-  const applyRead = useCallback((result: ReadResult, fromEvent = false) => { if (result.status === 'unavailable') return markUnavailable(); reconciliation.current = false; setEnabled(true); if (result.status === 'none') { knownRecord.current = null; setOffer(null); if (fromEvent) { invalidated.current = true; setEnabled(false); } setState(fromEvent ? 'discarded' : 'idle'); return; } const matches = recordFingerprint(result.record) === currentFingerprintRef.current; knownRecord.current = result.record; if (fromEvent && matches) invalidated.current = false; setOffer(fromEvent && matches ? null : result.record); setState(fromEvent ? (matches ? 'saved' : 'conflict') : 'offer'); }, [markUnavailable]);
+  const applyRead = useCallback((result: ReadResult, fromEvent = false) => { if (result.status === 'unavailable' || result.status === 'invalid') return markUnavailable(result.status !== 'invalid'); reconciliation.current = false; setEnabled(true); if (result.status === 'none') { knownRecord.current = null; setOffer(null); if (fromEvent) { invalidated.current = true; setEnabled(false); } setState(fromEvent ? 'discarded' : 'idle'); return; } const matches = recordFingerprint(result.record) === currentFingerprintRef.current; knownRecord.current = result.record; if (fromEvent && matches) invalidated.current = false; setOffer(fromEvent && matches ? null : result.record); setState(fromEvent ? (matches ? 'saved' : 'conflict') : 'offer'); }, [markUnavailable]);
   // prettier-ignore
   useEffect(() => { if (!neutralHost) { supersede(); setEnabled(false); setOffer(null); setReady(true); setState('idle'); return; } void runLocked((current, now) => current() ? readAnonymousDraft(getAnonymousDraftStorage(), now) : null).then(({ current, result }) => { if (!current) return; if (result.status === 'unavailable' || !result.value) markUnavailable(); else applyRead(result.value); setReady(true); }); }, [applyRead, markUnavailable, neutralHost, runLocked, supersede]);
   useEffect(() => {
@@ -71,7 +71,7 @@ export function useAnonymousDraftRecovery(args: Args) {
       suppression.current = null;
     }
     if (reconciliation.current) {
-      void runLocked((current, now) => current() ? readAnonymousDraft(getAnonymousDraftStorage(), now) : null).then(({ current, result }) => { if (!current) return; if (result.status === 'unavailable' || !result.value) return markUnavailable(); const value = result.value; if (value.status === 'none' || (value.status === 'available' && knownRecord.current && sameAnonymousDraftRecord(value.record, knownRecord.current))) { reconciliation.current = false; invalidated.current = false; if (value.status === 'available') knownRecord.current = value.record; setEnabled(true); setOffer(null); setState('idle'); } else applyRead(value, true); });
+      void runLocked((current, now) => current() ? readAnonymousDraft(getAnonymousDraftStorage(), now) : null).then(({ current, result }) => { if (!current) return; if (result.status === 'unavailable' || !result.value) return markUnavailable(); const value = result.value; if (value.status === 'none' || (value.status === 'available' && knownRecord.current && sameAnonymousDraftRecord(value.record, knownRecord.current))) { reconciliation.current = false; invalidated.current = false; if (value.status === 'available') knownRecord.current = value.record; setEnabled(true); setOffer(null); setState('idle'); setRetry(count => count + 1); } else applyRead(value, true); });
       return;
     }
     const expected = knownRecord.current, now = captureTime(); if (now === null) return markUnavailable();
@@ -88,7 +88,7 @@ export function useAnonymousDraftRecovery(args: Args) {
       else if (value.status === 'conflict') { knownRecord.current = value.record; setOffer(value.record); setState('conflict'); }
       else { invalidated.current = true; if (expected) markRetained(); else markUnavailable(); }
     }).finally(() => { localWrites.current -= 1; });
-  }, [activeCopyCurrent, applyRead, args.category, args.draft, args.step, copyCurrent, currentContext, currentFingerprint, markUnavailable, neutralHost, offer, pending, ready, runLocked, supersede]);
+  }, [activeCopyCurrent, applyRead, args.category, args.draft, args.step, copyCurrent, currentContext, currentFingerprint, markUnavailable, neutralHost, offer, pending, ready, retry, runLocked, supersede]);
   useEffect(() => {
     const previous = previousLifecycle.current; previousLifecycle.current = args.lifecycleState;
     if (previous !== 'saving' && args.lifecycleState === 'saving') {
@@ -109,6 +109,7 @@ export function useAnonymousDraftRecovery(args: Args) {
       }); if (promotionFingerprint.current === activePromotion) promotionFingerprint.current = null;
       if (!output.current || activeIdRef.current !== promotedId) return;
       if (output.result.status === 'unavailable' || !output.result.value || output.result.value.status === 'unavailable') return knownRecord.current ? markRetained() : markUnavailable();
+      if (output.result.value.status === 'invalid') return markUnavailable(false);
       const value = output.result.value;
       if (value.status === 'changed' || value.status === 'conflict') { knownRecord.current = value.record; setOffer(value.record); setState('conflict'); }
       else if (value.status === 'saved') { knownRecord.current = value.record; setOffer(null); setState('saved'); }
@@ -117,7 +118,7 @@ export function useAnonymousDraftRecovery(args: Args) {
     })();
   }, [args.activeFingerprint, args.activeId, args.lifecycleState, currentFingerprint, markRetained, markUnavailable, offer, runLocked, state]);
   // prettier-ignore
-  const clearDeviceCopy = useCallback(async () => { if (!neutralHost) return true; const expected = offer ?? knownRecord.current; const output = await runLocked((current, executionNow) => { if (!current()) return null; if (expected) return removeAnonymousDraft(getAnonymousDraftStorage(), expected, executionNow); const value = readAnonymousDraft(getAnonymousDraftStorage(), executionNow); return value.status === 'available' ? { status: 'changed' as const, record: value.record } : value; }, currentContext); if (!output.current) return false; if (output.result.status === 'unavailable' || !output.result.value) { if (expected) markRetained(); else markUnavailable(); return false; } const value = output.result.value; if (value.status === 'unavailable') { if (expected) markRetained(); else markUnavailable(); return false; } if (value.status === 'changed') { knownRecord.current = value.record; setOffer(value.record); setState('conflict'); return false; } invalidated.current = false; reconciliation.current = false; promotionFingerprint.current = null; knownRecord.current = null; setEnabled(true); setOffer(null); return true; }, [currentContext, markRetained, markUnavailable, neutralHost, offer, runLocked]);
+  const clearDeviceCopy = useCallback(async () => { if (!neutralHost) return true; const expected = offer ?? knownRecord.current; const output = await runLocked((current, executionNow) => { if (!current()) return null; if (expected) return removeAnonymousDraft(getAnonymousDraftStorage(), expected, executionNow); const value = readAnonymousDraft(getAnonymousDraftStorage(), executionNow); return value.status === 'available' ? { status: 'changed' as const, record: value.record } : value; }, currentContext); if (!output.current) return false; if (output.result.status === 'unavailable' || !output.result.value) { if (expected) markRetained(); else markUnavailable(); return false; } const value = output.result.value; if (value.status === 'invalid') { markUnavailable(false); return false; } if (value.status === 'unavailable') { if (expected) markRetained(); else markUnavailable(); return false; } if (value.status === 'changed') { knownRecord.current = value.record; setOffer(value.record); setState('conflict'); return false; } invalidated.current = false; reconciliation.current = false; promotionFingerprint.current = null; knownRecord.current = null; setEnabled(true); setOffer(null); return true; }, [currentContext, markRetained, markUnavailable, neutralHost, offer, runLocked]);
   const clearBeforeReset = useCallback(async () => {
     if (pending || actionBusy.current) return false; actionBusy.current = true; setBusy(true);
     try { if (!(await clearDeviceCopy())) return false; invalidated.current = false; suppression.current = { from: currentFingerprint, to: resetFingerprint }; setState('discarded'); return true; }
@@ -131,6 +132,7 @@ export function useAnonymousDraftRecovery(args: Args) {
     void runLocked((current, now) => current() ? readAnonymousDraft(getAnonymousDraftStorage(), now) : null, currentContext).then(({ current, result }) => {
       if (!current) return;
       if (result.status === 'unavailable' || !result.value || result.value.status === 'unavailable') return markUnavailable();
+      if (result.value.status === 'invalid') return markUnavailable(false);
       if (result.value.status === 'none') { invalidated.current = true; knownRecord.current = null; setOffer(null); setState('discarded'); }
       else if (!sameAnonymousDraftRecord(result.value.record, offer)) { knownRecord.current = result.value.record; setOffer(result.value.record); setState('conflict'); }
       else { invalidated.current = false; knownRecord.current = result.value.record; suppression.current = { from: currentFingerprint, to: recordFingerprint(result.value.record) }; args.onReset(); args.onRestore(result.value.record); setOffer(null); setState('saved'); }

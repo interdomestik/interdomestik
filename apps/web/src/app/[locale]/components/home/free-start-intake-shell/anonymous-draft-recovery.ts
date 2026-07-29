@@ -26,14 +26,14 @@ type RecoveryStorage = Pick<Storage, 'getItem' | 'removeItem' | 'setItem'>;
 // prettier-ignore
 type Locks = Readonly<{ request: <T>(name: string, options: { mode: 'exclusive'; signal: AbortSignal }, callback: () => T | Promise<T>) => Promise<T> }>;
 // prettier-ignore
-export type ReadResult = { status: 'available'; record: AnonymousDraftRecord } | { status: 'none' } | { status: 'unavailable' };
+export type ReadResult = { status: 'available'; record: AnonymousDraftRecord } | { status: 'none' } | { status: 'invalid' } | { status: 'unavailable' };
 export type WriteResult =
   | { status: 'saved'; record: AnonymousDraftRecord }
   | { status: 'conflict'; record: AnonymousDraftRecord }
   | { status: 'stale' | 'unavailable' };
 export type RemoveResult =
   | { status: 'changed'; record: AnonymousDraftRecord }
-  | { status: 'none' | 'removed' | 'unavailable' };
+  | { status: 'invalid' | 'none' | 'removed' | 'unavailable' };
 export type LockedResult<T> = { status: 'acquired'; value: T } | { status: 'unavailable' };
 // prettier-ignore
 function getLocks(): Locks | null { try { return typeof navigator === 'undefined' ? null : ((navigator as Navigator & { locks?: Locks }).locks ?? null); } catch { return null; } }
@@ -116,8 +116,7 @@ export function readAnonymousDraft(storage: RecoveryStorage | null, now = Date.n
     if (raw === null) return { status: 'none' };
     const record = decode(raw, now);
     if (record) return { status: 'available', record };
-    storage.removeItem(ANONYMOUS_DRAFT_KEY);
-    return { status: 'none' };
+    try { storage.removeItem(ANONYMOUS_DRAFT_KEY); return { status: 'none' }; } catch { return { status: 'invalid' }; }
   } catch {
     return { status: 'unavailable' };
   }
@@ -129,7 +128,7 @@ export function writeAnonymousDraft(storage: RecoveryStorage | null, snapshot: A
   if (!Number.isFinite(orderingNow) || !Number.isFinite(executionNow)) return { status: 'unavailable' };
   if (orderingNow > executionNow + 60_000 || orderingNow + ANONYMOUS_DRAFT_TTL_MS <= executionNow) return { status: 'stale' };
   const current = readAnonymousDraft(storage, executionNow);
-  if (current.status === 'unavailable') return current;
+  if (current.status === 'unavailable' || current.status === 'invalid') return { status: 'unavailable' };
   if (current.status === 'none' && expected && orderingNow < Date.parse(expected.updatedAt)) return { status: 'stale' };
   if (current.status === 'available' && (!expected || !sameAnonymousDraftRecord(current.record, expected)) && Date.parse(current.record.updatedAt) >= orderingNow) return { status: 'conflict', record: current.record };
   const canonical = createAnonymousDraftSnapshot(snapshot.category, snapshot.draft, snapshot.resumeStep);
