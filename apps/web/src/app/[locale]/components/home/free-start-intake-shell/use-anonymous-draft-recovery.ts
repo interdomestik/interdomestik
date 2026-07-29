@@ -31,7 +31,7 @@ export function useAnonymousDraftRecovery(args: Args) {
   // prettier-ignore
   const runLocked = useCallback(async <T,>(task: (current: () => boolean) => T, boundContext?: string): Promise<LockedRun<T>> => { const id = ++generation.current; abortRef.current?.abort(); reconcileAbortRef.current?.abort(); const controller = new AbortController(); abortRef.current = controller; const current = () => mounted.current && generation.current === id && (!boundContext || currentContextRef.current === boundContext); const result = await runAnonymousDraftLocked(() => (current() ? task(current) : null), controller.signal); if (abortRef.current === controller) abortRef.current = null; return { current: current(), result }; }, []);
   // prettier-ignore
-  const runReconcile = useCallback(async <T,>(task: (current: () => boolean) => Promise<T>): Promise<LockedRun<T>> => { const id = generation.current; reconcileAbortRef.current?.abort(); const controller = new AbortController(); reconcileAbortRef.current = controller; const current = () => mounted.current && generation.current === id; const result = await runAnonymousDraftLocked(() => (current() ? task(current) : null), controller.signal); if (reconcileAbortRef.current === controller) reconcileAbortRef.current = null; return { current: current(), result }; }, []);
+  const runReconcile = useCallback(async <T,>(task: (current: () => boolean) => T): Promise<LockedRun<T>> => { const id = generation.current; reconcileAbortRef.current?.abort(); const controller = new AbortController(); reconcileAbortRef.current = controller; const current = () => mounted.current && generation.current === id; const result = await runAnonymousDraftLocked(() => (current() ? task(current) : null), controller.signal); if (reconcileAbortRef.current === controller) reconcileAbortRef.current = null; return { current: current(), result }; }, []);
   // prettier-ignore
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; supersede(); }; }, [supersede]);
   // prettier-ignore
@@ -47,7 +47,7 @@ export function useAnonymousDraftRecovery(args: Args) {
       if (event.storageArea && event.storageArea !== storage) return;
       if (localWrites.current) return;
       invalidated.current = true;
-      void runReconcile(async current => { await new Promise<void>(resolve => setTimeout(resolve)); return current() ? readAnonymousDraft(storage) : null; }).then(({ current, result }) => {
+      void runReconcile(current => current() ? readAnonymousDraft(storage, Date.now(), false) : null).then(({ current, result }) => {
         if (!current) return;
         if (result.status === 'unavailable' || !result.value) markUnavailable();
         else applyRead(result.value, true);

@@ -28,7 +28,7 @@ type Locks = Readonly<{
   request: <T>(
     name: string,
     options: { mode: 'exclusive'; signal: AbortSignal },
-    callback: () => T | Promise<T>
+    callback: () => T
   ) => Promise<T>;
 }>;
 // prettier-ignore
@@ -45,7 +45,7 @@ export type LockedResult<T> = { status: 'acquired'; value: T } | { status: 'unav
 // prettier-ignore
 function getLocks(): Locks | null { try { return typeof navigator === 'undefined' ? null : ((navigator as Navigator & { locks?: Locks }).locks ?? null); } catch { return null; } }
 export async function runAnonymousDraftLocked<T>(
-  task: () => T | Promise<T>,
+  task: () => T,
   externalSignal?: AbortSignal
 ): Promise<LockedResult<T>> {
   const locks = getLocks();
@@ -111,15 +111,15 @@ function decode(raw: string, now: number): AnonymousDraftRecord | null {
     return null;
   }
 }
-
-export function readAnonymousDraft(storage: RecoveryStorage | null, now = Date.now()): ReadResult {
+// prettier-ignore
+export function readAnonymousDraft(storage: RecoveryStorage | null, now = Date.now(), cleanInvalid = true): ReadResult {
   if (!storage) return { status: 'unavailable' };
   try {
     const raw = storage.getItem(ANONYMOUS_DRAFT_KEY);
     if (raw === null) return { status: 'none' };
     const record = decode(raw, now);
     if (record) return { status: 'available', record };
-    storage.removeItem(ANONYMOUS_DRAFT_KEY);
+    if (cleanInvalid) storage.removeItem(ANONYMOUS_DRAFT_KEY);
     return { status: 'none' };
   } catch {
     return { status: 'unavailable' };
