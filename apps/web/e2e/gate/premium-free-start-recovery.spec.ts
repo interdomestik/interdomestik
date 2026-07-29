@@ -64,18 +64,11 @@ test.describe('pre-membership Free Start recovery', () => {
   test('restores every eligible fact after a cold same-browser return', async ({ browser }, info) => {
     const ida = resolveIdaTarget(info);
     await withPage(browser, ida, async first => {
-      const organizer = await openOrganizer(first, ida);
-      await selectVehicle(organizer);
-      await organizer.getByRole('button', { name: 'Continue to guided intake' }).click();
-      await organizer.getByLabel('What happened?').selectOption('collision');
-      await organizer.getByLabel('When did it happen?').fill('2026-07-15');
-      await organizer.getByLabel('Who are you dealing with?').fill('Northwind Insurance');
-      await organizer.getByLabel('What do you want to recover?').selectOption('repair');
-      await organizer.getByLabel('Brief summary').fill('Rear bumper damage after a low-speed collision.');
+      const organizer = await openOrganizer(first, ida); await selectVehicle(organizer);
+      await organizer.getByRole('button', { name: 'Continue to guided intake' }).click(); await organizer.getByLabel('What happened?').selectOption('collision'); await organizer.getByLabel('When did it happen?').fill('2026-07-15');
+      await organizer.getByLabel('Who are you dealing with?').fill('Northwind Insurance'); await organizer.getByLabel('What do you want to recover?').selectOption('repair'); await organizer.getByLabel('Brief summary').fill('Rear bumper damage after a low-speed collision.');
       await organizer.getByRole('button', { name: 'Review your summary' }).click();
-      const returned = await first.context().newPage();
-      await first.close();
-      const next = await openOrganizer(returned, ida);
+      const returned = await first.context().newPage(); await first.close(); const next = await openOrganizer(returned, ida);
       await next.getByRole('button', { name: 'Continue with these notes' }).click();
       await expect(next.getByRole('heading', { name: 'Review your Free Start pack shell.' })).toBeVisible();
       await Promise.all(['Vehicle damage', 'Collision damage', '2026-07-15', 'Northwind Insurance', 'Repair or replacement costs', 'Rear bumper damage after a low-speed collision.'].map(value => expect(next).toContainText(value)));
@@ -84,16 +77,22 @@ test.describe('pre-membership Free Start recovery', () => {
 
   // prettier-ignore
   test('serializes production writes in both page orders and starts a fresh epoch after sibling discard', async ({ browser }, info) => {
+    test.setTimeout(60_000);
     const ida = resolveIdaTarget(info);
     for (const reverse of [false, true]) {
-      await withPage(browser, ida, async first => {
-        const firstOrganizer = await openOrganizer(first, ida);
-        await selectVehicle(firstOrganizer);
-        await firstOrganizer.getByRole('button', { name: 'Continue to guided intake' }).click();
-        await firstOrganizer.getByLabel('Brief summary').fill('Shared seed.');
-        await expect.poll(() => first.evaluate(key => localStorage.getItem(key), KEY)).toContain('Shared seed.');
-        const second = await first.context().newPage(), secondOrganizer = await openOrganizer(second, ida);
+      await withPage(browser, ida, async seed => {
+        const seedOrganizer = await openOrganizer(seed, ida);
+        await selectVehicle(seedOrganizer);
+        await seedOrganizer.getByRole('button', { name: 'Continue to guided intake' }).click();
+        await seedOrganizer.getByLabel('Brief summary').fill('Shared seed.');
+        await expect.poll(() => seed.evaluate(key => localStorage.getItem(key), KEY)).toContain('Shared seed.');
+        const first = await seed.context().newPage(), firstOrganizer = await openOrganizer(first, ida);
+        const second = await seed.context().newPage(), secondOrganizer = await openOrganizer(second, ida);
+        await seed.close();
+        await firstOrganizer.getByRole('button', { name: 'Continue with these notes' }).click();
         await secondOrganizer.getByRole('button', { name: 'Continue with these notes' }).click();
+        await expect(firstOrganizer.getByTestId('anonymous-draft-recovery-offer')).toHaveCount(0);
+        await expect(secondOrganizer.getByTestId('anonymous-draft-recovery-offer')).toHaveCount(0);
         const fields = reverse ? [secondOrganizer, firstOrganizer] : [firstOrganizer, secondOrganizer];
         await holdLock(first);
         await fields[0].getByLabel('Brief summary').fill(`Older ${reverse}.`);
@@ -102,6 +101,22 @@ test.describe('pre-membership Free Start recovery', () => {
         await expectPending(first, 2);
         await releaseLock(first);
         await expect.poll(() => first.evaluate(key => localStorage.getItem(key), KEY)).toContain(`Newest ${reverse}.`);
+      });
+    }
+    for (const reverse of [false, true]) {
+      await withPage(browser, ida, async seed => {
+        const seedOrganizer = await openOrganizer(seed, ida); await selectVehicle(seedOrganizer); await seedOrganizer.getByRole('button', { name: 'Continue to guided intake' }).click(); await seedOrganizer.getByLabel('Brief summary').fill('Discard seed.');
+        const first = await seed.context().newPage(), firstOrganizer = await openOrganizer(first, ida); const second = await seed.context().newPage(), secondOrganizer = await openOrganizer(second, ida); await seed.close(); await firstOrganizer.getByRole('button', { name: 'Continue with these notes' }).click(); await secondOrganizer.getByRole('button', { name: 'Continue with these notes' }).click(); await holdLock(first);
+        const discard = () => secondOrganizer.getByRole('button', { name: 'Discard from this device' }).click(), edit = () => firstOrganizer.getByLabel('Brief summary').fill(`Edit survives discard ${reverse}.`); if (reverse) { await edit(); await expectPending(first, 1); await discard(); } else { await discard(); await expectPending(first, 1); await edit(); } await expectPending(first, 2); await releaseLock(first);
+        await expect.poll(() => first.evaluate(key => localStorage.getItem(key), KEY)).toContain(`Edit survives discard ${reverse}.`);
+      });
+    }
+    for (const reverse of [false, true]) {
+      await withPage(browser, ida, async seed => {
+        const seedOrganizer = await openOrganizer(seed, ida); await selectVehicle(seedOrganizer); await seedOrganizer.getByRole('button', { name: 'Continue to guided intake' }).click(); await seedOrganizer.getByLabel('Brief summary').fill('Cleanup seed.');
+        const first = await seed.context().newPage(), firstOrganizer = await openOrganizer(first, ida); const second = await seed.context().newPage(), secondOrganizer = await openOrganizer(second, ida); await seed.close(); await firstOrganizer.getByRole('button', { name: 'Continue with these notes' }).click(); await secondOrganizer.getByRole('button', { name: 'Continue with these notes' }).click(); await holdLock(first);
+        const corrupt = () => first.evaluate(key => localStorage.setItem(key, '{'), KEY), edit = () => firstOrganizer.getByLabel('Brief summary').fill(`Edit survives cleanup ${reverse}.`); if (reverse) { await edit(); await expectPending(first, 1); await corrupt(); } else { await corrupt(); await expectPending(first, 1); await edit(); } await expectPending(first, 2); await releaseLock(first);
+        await expect.poll(() => first.evaluate(key => localStorage.getItem(key), KEY)).toContain(`Edit survives cleanup ${reverse}.`);
       });
     }
     await withPage(browser, ida, async first => {
