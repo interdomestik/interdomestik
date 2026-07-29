@@ -45,16 +45,14 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
     step: flow.step,
   });
   const view = useFreeStartViewModel({ flow, props, t, tCommon });
+  const recoveryPending = !recovery.ready || Boolean(recovery.offer);
   const noRecoveryBody = (
     JSON.parse(String(t.raw('secureSaveReviewCopy'))) as { noRecovery: string }
   ).noRecovery;
   const trustBoundaryT: FreeStartCopy = key =>
     key === 'trustBoundary.body' && !recovery.enabled ? noRecoveryBody : t(key);
-  const secureLifecycle = {
-    ...draftLifecycle,
-    startAnother: () =>
-      void resetAfterRecoveryClear(recovery.clearBeforeReset, draftLifecycle.startAnother),
-  };
+  // prettier-ignore
+  const secureLifecycle = { ...draftLifecycle, startAnother: () => void resetAfterRecoveryClear(recovery.clearBeforeReset, draftLifecycle.startAnother) };
 
   return (
     <section
@@ -100,11 +98,8 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
           </div>
         ) : (
           <div className="grid gap-8 lg:grid-cols-[1.35fr_0.65fr]">
-            <div
-              data-testid="free-start-recovery-editor"
-              inert={recovery.offer ? true : undefined}
-              className="rounded-3xl border border-[#001a33]/15 bg-[#fffdf9] p-5 sm:p-7"
-            >
+            {/* prettier-ignore */}
+            <div data-testid="free-start-recovery-editor" inert={recoveryPending ? true : undefined} className="rounded-3xl border border-[#001a33]/15 bg-[#fffdf9] p-5 sm:p-7">
               <FreeStartMainPanel
                 categoryLabel={view.categoryLabel}
                 draft={flow.draft}
@@ -139,7 +134,7 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
           </div>
         )}
         {/* prettier-ignore */}
-        <SecureSaveBand lifecycle={secureLifecycle} locale={props.locale} neutralOtpHost={props.neutralOtpHost} tenantId={props.neutralOtpTenantId} />
+        <div data-testid="free-start-recovery-secure-actions" inert={recoveryPending ? true : undefined}><SecureSaveBand lifecycle={secureLifecycle} locale={props.locale} neutralOtpHost={props.neutralOtpHost} tenantId={props.neutralOtpTenantId} /></div>
         <TrustBoundary t={trustBoundaryT} />
       </div>
     </section>

@@ -1,4 +1,4 @@
-import { act, render, renderHook, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import enMessages from '@/messages/en/freeStart.json';
@@ -44,7 +44,7 @@ vi.mock('@/actions/claim-pack.core', () => ({
 import { FreeStartIntakeShell } from './free-start-intake-shell/index';
 import { getContinueLabel } from './free-start-intake-shell/helpers';
 import type { FreeStartCopy } from './free-start-intake-shell/types';
-import { useOrganizerFlow } from './free-start-intake-shell/use-organizer-flow';
+
 const translate = ((key: string) => {
   return key.split('.').reduce<unknown>((value, segment) => {
     if (!value || typeof value !== 'object') return undefined;
@@ -95,6 +95,4 @@ describe('premium Free Start organizer', () => {
       'Join Asistenca for a team review'
     );
   });
-  // prettier-ignore
-  it('drops injury facts before enabling an eligible recovery category', () => { const hook = renderHook(() => useOrganizerFlow()); act(() => hook.result.current.selectCategory('injury')); act(() => hook.result.current.setDraftField('summary', 'Fractured my arm at work.')); act(() => hook.result.current.selectCategory('vehicle')); expect(hook.result.current.draft.summary).toBe(''); });
 });
