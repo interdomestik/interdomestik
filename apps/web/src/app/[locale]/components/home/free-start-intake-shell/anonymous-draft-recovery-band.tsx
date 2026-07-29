@@ -27,13 +27,15 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) {
   if (recovery.state === 'idle') return null;
 
   const hasOffer = Boolean(recovery.offer);
-  const canStartFresh = recovery.state === 'discarded';
-  const hasRecoverableCopy =
-    hasOffer || recovery.state === 'saved' || recovery.state === 'conflict';
+  const fresh = recovery.state === 'discarded';
+  const recoverable = hasOffer || recovery.state === 'saved' || recovery.state === 'conflict';
   const status =
     recovery.state === 'offer'
       ? copy.offerBody
       : copy.status[recovery.state as keyof RecoveryCopy['status']];
+  let heading = status;
+  if (recoverable) heading = copy.heading;
+  if (hasOffer) heading = copy.offerHeading;
 
   return (
     <section
@@ -41,15 +43,15 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) {
       aria-labelledby="anonymous-draft-recovery-heading"
       className="rounded-2xl border border-[#006f72]/25 bg-[#eef8f5] p-4 text-[#173b43]"
     >
-      {hasRecoverableCopy ? (
+      {recoverable ? (
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#006f72]">
           {copy.eyebrow}
         </p>
       ) : null}
       <h3 id="anonymous-draft-recovery-heading" className="mt-1 text-lg font-bold text-[#001a33]">
-        {hasOffer ? copy.offerHeading : hasRecoverableCopy ? copy.heading : status}
+        {heading}
       </h3>
-      {hasRecoverableCopy ? (
+      {recoverable ? (
         <>
           <p className="mt-1 text-sm leading-6">{hasOffer ? copy.offerBody : copy.body}</p>
           <p className="mt-1 text-xs leading-5 text-[#526274]">{copy.privateDevice}</p>
@@ -59,7 +61,7 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) {
         role="status"
         aria-live="polite"
         aria-atomic="true"
-        className={hasRecoverableCopy ? 'mt-2 text-sm font-semibold' : 'sr-only'}
+        className={recoverable ? 'mt-2 text-sm font-semibold' : 'sr-only'}
       >
         {status}
       </p>
@@ -73,13 +75,13 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) {
             {copy.continue}
           </button>
         ) : null}
-        {hasRecoverableCopy || canStartFresh ? (
+        {recoverable || fresh ? (
           <button
             type="button"
             onClick={recovery.discard}
             className="min-h-11 rounded-xl border border-[#006f72] bg-white px-4 font-bold text-[#006f72] outline-none focus-visible:ring-3 focus-visible:ring-[#008f91]"
           >
-            {canStartFresh ? secureCopy.startAnother : copy.discard}
+            {fresh ? secureCopy.startAnother : copy.discard}
           </button>
         ) : null}
       </div>
