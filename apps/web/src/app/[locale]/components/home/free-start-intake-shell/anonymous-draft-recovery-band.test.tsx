@@ -116,24 +116,8 @@ describe('anonymous recovery race contracts', () => {
     await waitFor(() => expect(hook.result.current.state).toBe('unavailable'));
     expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toBeNull(); hook.unmount();
   });
-  it('fails the held component lane closed at the five-second timeout', async () => {
-    vi.useFakeTimers();
-    const locks = installHeldLocks();
-    // prettier-ignore
-    const props: HookProps = { activeId: null, category: 'property', draft: snapshot.draft, lifecycleState: 'idle', neutralHost: globalThis.location.host, onReset: vi.fn(), onRestore: vi.fn(), resetCategory: null, step: 'details' };
-    const hook = renderHook(value => useAnonymousDraftRecovery(value), { initialProps: props });
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(0);
-    });
-    expect(locks.request).toHaveBeenCalledTimes(2);
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(5_001);
-    });
-    expect(hook.result.current.state).toBe('unavailable');
-    expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toBeNull();
-    hook.unmount();
-    vi.useRealTimers();
-  });
+  // prettier-ignore
+  it('fails the held component lane closed at the five-second timeout', async () => { vi.useFakeTimers(); const locks = installHeldLocks(), props: HookProps = { activeId: null, category: 'property', draft: snapshot.draft, lifecycleState: 'idle', neutralHost: globalThis.location.host, onReset: vi.fn(), onRestore: vi.fn(), resetCategory: null, step: 'details' }, hook = renderHook(value => useAnonymousDraftRecovery(value), { initialProps: props }); try { await act(async () => { await vi.advanceTimersByTimeAsync(2); }); expect(locks.request).toHaveBeenCalledTimes(2); await act(async () => { await vi.advanceTimersByTimeAsync(5_001); }); expect(hook.result.current.state).toBe('unavailable'); expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toBeNull(); } finally { hook.unmount(); vi.useRealTimers(); } });
   // prettier-ignore
   it('reports unavailable when exact-revision removal fails after secure promotion', async () => { writeAnonymousDraft(localStorage, snapshot, null); const hook = setupRecovery(); await waitFor(() => expect(hook.result.current.state).toBe('offer')); act(() => hook.result.current.resume()); await waitFor(() => expect(hook.onRestore).toHaveBeenCalled()); const restored = { ...hook.props, category: 'property' as const, step: 'preview' as const }; hook.rerender(restored); hook.rerender({ ...restored, activeId: 'server', lifecycleState: 'saving' }); const available = localStorage; vi.spyOn(globalThis, 'localStorage', 'get').mockReturnValue({ getItem: available.getItem.bind(available), removeItem: () => { throw new DOMException('blocked'); }, setItem: available.setItem.bind(available) } as unknown as Storage); hook.rerender({ ...restored, activeId: 'server', lifecycleState: 'saved' }); await waitFor(() => expect(hook.result.current.state).toBe('unavailable')); expect(available.getItem(ANONYMOUS_DRAFT_KEY)).not.toBeNull(); });
   // prettier-ignore
