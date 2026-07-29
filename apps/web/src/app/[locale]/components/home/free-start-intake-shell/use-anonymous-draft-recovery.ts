@@ -20,7 +20,7 @@ export function useAnonymousDraftRecovery(args: Args) {
   // prettier-ignore
   const [enabled, setEnabled] = useState(false), [offer, setOffer] = useState<AnonymousDraftRecord | null>(null), [ready, setReady] = useState(false), [state, setState] = useState<RecoveryState>('idle');
   // prettier-ignore
-  const abortRef = useRef<AbortController | null>(null), contextEpoch = useRef(0), contextValueRef = useRef(''), currentContextRef = useRef(''), currentFingerprintRef = useRef(''), currentSnapshotRef = useRef<AnonymousDraftSnapshot | null>(null), generation = useRef(0), interaction = useRef(false), invalidated = useRef(false), knownRecord = useRef<AnonymousDraftRecord | null>(null), mounted = useRef(true), promotionFingerprint = useRef<string | null>(null), reconcileAbortRef = useRef<AbortController | null>(null), reconciliation = useRef(false), suppression = useRef<{ from: string; to: string } | null>(null), previousLifecycle = useRef(args.lifecycleState);
+  const abortRef = useRef<AbortController | null>(null), contextEpoch = useRef(0), contextValueRef = useRef(''), currentContextRef = useRef(''), currentFingerprintRef = useRef(''), currentSnapshotRef = useRef<AnonymousDraftSnapshot | null>(null), generation = useRef(0), interaction = useRef(false), invalidated = useRef(false), knownRecord = useRef<AnonymousDraftRecord | null>(null), localWrites = useRef(0), mounted = useRef(true), promotionFingerprint = useRef<string | null>(null), reconcileAbortRef = useRef<AbortController | null>(null), reconciliation = useRef(false), suppression = useRef<{ from: string; to: string } | null>(null), previousLifecycle = useRef(args.lifecycleState);
   const neutralHost = isNeutralHost(args.neutralHost), currentSnapshot = args.category ? createAnonymousDraftSnapshot(args.category, args.draft, args.step) : null, currentFingerprint = currentSnapshot ? recordFingerprint(currentSnapshot) : fingerprint(args.category, args.draft, args.step), contextValue = JSON.stringify([currentFingerprint, args.activeId, args.lifecycleState]); if (contextValueRef.current !== contextValue) { contextValueRef.current = contextValue; contextEpoch.current += 1; } const currentContext = JSON.stringify([contextEpoch.current, contextValue]); currentContextRef.current = currentContext; currentFingerprintRef.current = currentFingerprint; currentSnapshotRef.current = currentSnapshot;
   // prettier-ignore
   const resetFingerprint = fingerprint(args.resetCategory, EMPTY_DRAFT, args.resetCategory ? 'details' : 'category'), pending = args.lifecycleState === 'saving' || args.lifecycleState === 'loading', activeCopyCurrent = Boolean(args.activeId && (args.lifecycleState === 'saved' || !knownRecord.current || recordFingerprint(knownRecord.current) === currentFingerprint));
@@ -45,6 +45,7 @@ export function useAnonymousDraftRecovery(args: Args) {
       const storage = getAnonymousDraftStorage();
       if (!storage) return void markUnavailable();
       if (event.storageArea && event.storageArea !== storage) return;
+      if (localWrites.current) return;
       invalidated.current = true;
       void runReconcile(current => current() ? readAnonymousDraft(storage) : null).then(({ current, result }) => {
         if (!current) return;
@@ -70,6 +71,7 @@ export function useAnonymousDraftRecovery(args: Args) {
     }
     const expected = knownRecord.current, now = Date.now();
     setState(value => value === 'saved' ? 'idle' : value);
+    localWrites.current += 1;
     void runLocked(current => current() ? writeAnonymousDraft(getAnonymousDraftStorage(), snapshot, expected, now) : null, currentContext).then(({ current, result }) => {
       if (!current) return;
       if (result.status === 'unavailable') return markUnavailable();
@@ -80,7 +82,7 @@ export function useAnonymousDraftRecovery(args: Args) {
       if (value.status === 'saved') { invalidated.current = false; knownRecord.current = value.record; setOffer(null); setState('saved'); }
       else if (value.status === 'conflict') { knownRecord.current = value.record; setOffer(value.record); setState('conflict'); }
       else { invalidated.current = true; setState('discarded'); }
-    });
+    }).finally(() => { localWrites.current -= 1; });
   }, [activeCopyCurrent, applyRead, args.category, args.draft, args.step, currentContext, currentFingerprint, markUnavailable, neutralHost, offer, pending, ready, runLocked, supersede]);
   useEffect(() => {
     const previous = previousLifecycle.current; previousLifecycle.current = args.lifecycleState;

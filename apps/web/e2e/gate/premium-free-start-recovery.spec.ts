@@ -64,11 +64,13 @@ async function seededPair(context: BrowserContext, info: TestInfo, summary: stri
   const seedOrganizer = await openOrganizer(seed, info); await enterVehicleDetails(seedOrganizer); await seedOrganizer.getByLabel('Brief summary').fill(summary); await expect.poll(() => seed.evaluate(key => localStorage.getItem(key), KEY)).toContain(summary);
   const first = await context.newPage(), firstOrganizer = await openOrganizer(first, info); const second = await context.newPage(), secondOrganizer = await openOrganizer(second, info); await seed.close();
   await expect(firstOrganizer.getByTestId('free-start-recovery-editor')).toHaveAttribute('inert', ''); await expect(firstOrganizer.getByTestId('free-start-recovery-secure-actions')).toHaveAttribute('inert', ''); await firstOrganizer.getByRole('button', { name: 'Continue with these notes' }).click(); await secondOrganizer.getByRole('button', { name: 'Continue with these notes' }).click(); await expect(firstOrganizer.getByTestId('anonymous-draft-recovery-offer')).toHaveCount(0); await expect(secondOrganizer.getByTestId('anonymous-draft-recovery-offer')).toHaveCount(0);
-  await expect(firstOrganizer.getByTestId('anonymous-draft-recovery-status')).toContainText('Saved on this browser'); await expect(secondOrganizer.getByTestId('anonymous-draft-recovery-status')).toContainText('Saved on this browser'); await expectPending(first, 0);
+  await expect(firstOrganizer.getByTestId('anonymous-draft-recovery-status')).toContainText('Saved on this browser'); await expect(secondOrganizer.getByTestId('anonymous-draft-recovery-status')).toContainText('Saved on this browser'); await expectLockIdle(first);
   return { first, firstOrganizer, second, secondOrganizer };
 }
 // prettier-ignore
-async function closePair(pair: Pair) { await pair.second.close(); await pair.first.close(); }
+async function expectLockIdle(page: Page) { await expect.poll(() => page.evaluate(lock => navigator.locks.query().then(value => ({ held: (value.held ?? []).filter(item => item.name === lock).length, pending: (value.pending ?? []).filter(item => item.name === lock).length })), LOCK)).toEqual({ held: 0, pending: 0 }); }
+// prettier-ignore
+async function closePair(pair: Pair) { await expectLockIdle(pair.first); await pair.second.close(); await pair.first.close(); }
 // prettier-ignore
 async function installInvalid(page: Page, kind: 'empty' | 'expired' | 'future' | 'malformed', fixedNow?: number) {
   await page.evaluate(({ key, kind, now, ttl }) => { if (kind === 'empty' || kind === 'malformed') return localStorage.setItem(key, kind === 'empty' ? '' : '{'); const record = JSON.parse(localStorage.getItem(key) ?? '{}') as { expiresAt: string; updatedAt: string }; const updated = kind === 'expired' ? now - ttl - 1 : now + 60_001; record.updatedAt = new Date(updated).toISOString(); record.expiresAt = new Date(updated + ttl).toISOString(); localStorage.setItem(key, JSON.stringify(record)); }, { key: KEY, kind, now: fixedNow ?? Date.now(), ttl: 30 * 24 * 60 * 60 * 1_000 });
