@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import enMessages from '@/messages/en/freeStart.json';
@@ -41,8 +41,9 @@ vi.mock('@/actions/claim-pack.core', () => ({
   generateClaimPackAction: (...args: unknown[]) => hoisted.generate(...args),
 }));
 
-import { FreeStartIntakeShell } from './free-start-intake-shell/index';
+import { writeAnonymousDraft } from './free-start-intake-shell/anonymous-draft-recovery';
 import { getContinueLabel } from './free-start-intake-shell/helpers';
+import { FreeStartIntakeShell } from './free-start-intake-shell/index';
 import type { FreeStartCopy } from './free-start-intake-shell/types';
 
 const translate = ((key: string) => {
@@ -95,4 +96,7 @@ describe('premium Free Start organizer', () => {
       'Join Asistenca for a team review'
     );
   });
+
+  // prettier-ignore
+  it('blocks secure actions until a pending device discard settles', async () => { writeAnonymousDraft(localStorage, { category: 'property', draft: { counterparty: 'Insurer', desiredOutcome: 'repair', incidentDate: '2026-07-15', issueType: 'water_damage', summary: 'Water damaged two rooms.' }, resumeStep: 'preview' }, null); const request = vi.fn((_name, options: { signal: AbortSignal }, callback: () => unknown) => request.mock.calls.length === 1 ? Promise.resolve(callback()) : new Promise((_resolve, reject) => options.signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')), { once: true }))); Object.defineProperty(navigator, 'locks', { configurable: true, value: { request } }); render(<FreeStartIntakeShell continueHref="/pricing" locale="en" neutralOtpHost={globalThis.location.host} tenantId="tenant_public" />); fireEvent.click(await screen.findByRole('button', { name: 'Discard from this device' })); await waitFor(() => expect(request).toHaveBeenCalledTimes(2)); expect(screen.getByTestId('free-start-recovery-secure-actions')).toHaveAttribute('inert'); });
 });

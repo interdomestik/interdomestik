@@ -5,7 +5,6 @@ export const COOKIE_CONSENT_COOKIE_NAME = 'cookie_consent';
 export const COOKIE_CONSENT_UPDATED_EVENT = 'interdomestik:cookie-consent-updated';
 export type CookieConsentValue = 'accepted' | 'necessary';
 const COOKIE_CONSENT_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
-const COOKIE_CONSENT_CHANNEL = 'interdomestik:cookie-consent:v1';
 
 function isBrowser(): boolean {
   return typeof window !== 'undefined';
@@ -22,12 +21,7 @@ function getCookieValue(name: string): string | null {
   if (!match) return null;
 
   const [, rawValue = ''] = match.split('=');
-  if (!rawValue) return null;
-  try {
-    return decodeURIComponent(rawValue);
-  } catch {
-    return null;
-  }
+  return rawValue ? decodeURIComponent(rawValue) : null;
 }
 
 export function parseCookieConsentValue(
@@ -40,40 +34,23 @@ export function parseCookieConsentValue(
 export function getCookieConsent(): CookieConsentValue | null {
   if (!isBrowser()) return null;
 
-  const cookieValue = parseCookieConsentValue(getCookieValue(COOKIE_CONSENT_COOKIE_NAME));
-  let storageValue: CookieConsentValue | null = null;
   try {
-    storageValue = parseCookieConsentValue(localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY));
+    const storageValue = parseCookieConsentValue(localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY));
+    if (storageValue) return storageValue;
   } catch {
     // Browser policy may deny the storage accessor or read; the existing cookie is the fallback.
   }
 
-  if (storageValue && cookieValue && storageValue !== cookieValue) return 'necessary';
-  return storageValue ?? cookieValue;
-}
-
-function broadcastCookieConsent(value: CookieConsentValue): void {
-  try {
-    const channel = new BroadcastChannel(COOKIE_CONSENT_CHANNEL);
-    channel.postMessage(value);
-    globalThis.setTimeout(() => channel.close(), 0);
-  } catch {
-    // BroadcastChannel is optional; storage events and focus rechecks remain available.
-  }
+  return parseCookieConsentValue(getCookieValue(COOKIE_CONSENT_COOKIE_NAME));
 }
 
 export function setCookieConsent(value: CookieConsentValue): void {
   if (!isBrowser()) return;
 
-  let storageFallback = false;
   try {
     localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, value);
   } catch {
-    storageFallback = true;
-    // Remove a readable stale choice before falling back to the newer cookie.
-    try {
-      localStorage.removeItem(COOKIE_CONSENT_STORAGE_KEY);
-    } catch {}
+    // Keep the existing cookie and same-window event behavior when browser storage is unavailable.
   }
   document.cookie =
     `${COOKIE_CONSENT_COOKIE_NAME}=${encodeURIComponent(value)}; ` +
@@ -83,7 +60,6 @@ export function setCookieConsent(value: CookieConsentValue): void {
       detail: value,
     })
   );
-  if (storageFallback) broadcastCookieConsent(value);
 }
 
 export function subscribeCookieConsent(
@@ -98,26 +74,15 @@ export function subscribeCookieConsent(
 
   const handleStorage = (event: StorageEvent) => {
     if (event.key !== COOKIE_CONSENT_STORAGE_KEY) return;
-    onChange(getCookieConsent());
+    onChange(parseCookieConsentValue(event.newValue));
   };
-  const handleBroadcast = () => onChange(getCookieConsent());
-  const handleFocus = () => onChange(getCookieConsent());
-  let channel: BroadcastChannel | null = null;
-  try {
-    channel = new BroadcastChannel(COOKIE_CONSENT_CHANNEL);
-    channel.addEventListener('message', handleBroadcast);
-  } catch {}
 
   window.addEventListener(COOKIE_CONSENT_UPDATED_EVENT, handleCustomUpdate as EventListener);
   window.addEventListener('storage', handleStorage);
-  window.addEventListener('focus', handleFocus);
 
   return () => {
     window.removeEventListener(COOKIE_CONSENT_UPDATED_EVENT, handleCustomUpdate as EventListener);
     window.removeEventListener('storage', handleStorage);
-    window.removeEventListener('focus', handleFocus);
-    channel?.removeEventListener('message', handleBroadcast);
-    channel?.close();
   };
 }
 
