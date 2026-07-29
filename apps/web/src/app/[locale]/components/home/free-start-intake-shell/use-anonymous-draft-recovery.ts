@@ -63,7 +63,7 @@ export function useAnonymousDraftRecovery(args: Args) {
     if (!neutralHost || !ready || activeCopyCurrent || copyCurrent || offer || interaction.current || (invalidated.current && !reconciliation.current) || pending) return;
     if (args.activeId && args.lifecycleState === 'saved' && knownRecord.current && recordFingerprint(knownRecord.current) !== currentFingerprint) { setOffer(knownRecord.current); setState('conflict'); return; }
     const snapshot = args.category ? createAnonymousDraftSnapshot(args.category, args.draft, args.step) : null;
-    if (!snapshot) { supersede(); setEnabled(false); setOffer(null); if (!reconciliation.current) setState(knownRecord.current ? 'retained' : 'idle'); return; }
+    if (!snapshot) { supersede(); if (args.category) setEnabled(false); setOffer(null); if (!reconciliation.current) setState(knownRecord.current ? 'retained' : 'idle'); return; }
     if (suppression.current) {
       const { from, to } = suppression.current;
       if (currentFingerprint === to) { suppression.current = null; return; }
