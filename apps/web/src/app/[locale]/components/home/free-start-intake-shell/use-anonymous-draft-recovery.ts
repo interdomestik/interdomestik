@@ -21,7 +21,7 @@ export function useAnonymousDraftRecovery(args: Args) {
   const [enabled, setEnabled] = useState(false), [offer, setOffer] = useState<AnonymousDraftRecord | null>(null), [ready, setReady] = useState(false), [state, setState] = useState<RecoveryState>('idle');
   // prettier-ignore
   const abortRef = useRef<AbortController | null>(null), contextEpoch = useRef(0), contextValueRef = useRef(''), currentContextRef = useRef(''), currentFingerprintRef = useRef(''), currentSnapshotRef = useRef<AnonymousDraftSnapshot | null>(null), generation = useRef(0), interaction = useRef(false), invalidated = useRef(false), knownRecord = useRef<AnonymousDraftRecord | null>(null), mounted = useRef(true), promotionFingerprint = useRef<string | null>(null), reconcileAbortRef = useRef<AbortController | null>(null), reconciliation = useRef(false), suppression = useRef<{ from: string; to: string } | null>(null), previousLifecycle = useRef(args.lifecycleState);
-  const currentSnapshot = args.category ? createAnonymousDraftSnapshot(args.category, args.draft, args.step) : null, currentFingerprint = currentSnapshot ? recordFingerprint(currentSnapshot) : fingerprint(args.category, args.draft, args.step), contextValue = JSON.stringify([currentFingerprint, args.activeId, args.lifecycleState]); if (contextValueRef.current !== contextValue) { contextValueRef.current = contextValue; contextEpoch.current += 1; } const currentContext = JSON.stringify([contextEpoch.current, contextValue]); currentContextRef.current = currentContext; currentFingerprintRef.current = currentFingerprint; currentSnapshotRef.current = currentSnapshot;
+  const neutralHost = isNeutralHost(args.neutralHost), currentSnapshot = args.category ? createAnonymousDraftSnapshot(args.category, args.draft, args.step) : null, currentFingerprint = currentSnapshot ? recordFingerprint(currentSnapshot) : fingerprint(args.category, args.draft, args.step), contextValue = JSON.stringify([currentFingerprint, args.activeId, args.lifecycleState]); if (contextValueRef.current !== contextValue) { contextValueRef.current = contextValue; contextEpoch.current += 1; } const currentContext = JSON.stringify([contextEpoch.current, contextValue]); currentContextRef.current = currentContext; currentFingerprintRef.current = currentFingerprint; currentSnapshotRef.current = currentSnapshot;
   // prettier-ignore
   const resetFingerprint = fingerprint(args.resetCategory, EMPTY_DRAFT, args.resetCategory ? 'details' : 'category'), pending = args.lifecycleState === 'saving' || args.lifecycleState === 'loading', activeCopyCurrent = Boolean(args.activeId && (args.lifecycleState === 'saved' || !knownRecord.current || recordFingerprint(knownRecord.current) === currentFingerprint));
   // prettier-ignore
@@ -37,9 +37,9 @@ export function useAnonymousDraftRecovery(args: Args) {
   // prettier-ignore
   const applyRead = useCallback((result: ReadResult, fromEvent = false) => { if (result.status === 'unavailable') return markUnavailable(); reconciliation.current = false; setEnabled(true); if (result.status === 'none') { knownRecord.current = null; setOffer(null); if (fromEvent) { invalidated.current = true; setEnabled(false); } setState(fromEvent ? 'discarded' : 'idle'); return; } const matches = recordFingerprint(result.record) === currentFingerprintRef.current; knownRecord.current = result.record; if (fromEvent && matches) invalidated.current = false; setOffer(fromEvent && matches ? null : result.record); setState(fromEvent ? (matches ? 'saved' : 'conflict') : 'offer'); }, [markUnavailable]);
   // prettier-ignore
-  useEffect(() => { if (!isNeutralHost(args.neutralHost)) { supersede(); setEnabled(false); setOffer(null); setReady(true); setState('idle'); return; } void runLocked(current => current() ? readAnonymousDraft(getAnonymousDraftStorage()) : null).then(({ current, result }) => { if (!current) return; if (result.status === 'unavailable' || !result.value) markUnavailable(); else applyRead(result.value); setReady(true); }); }, [args.neutralHost, applyRead, markUnavailable, runLocked, supersede]);
+  useEffect(() => { if (!neutralHost) { supersede(); setEnabled(false); setOffer(null); setReady(true); setState('idle'); return; } void runLocked(current => current() ? readAnonymousDraft(getAnonymousDraftStorage()) : null).then(({ current, result }) => { if (!current) return; if (result.status === 'unavailable' || !result.value) markUnavailable(); else applyRead(result.value); setReady(true); }); }, [applyRead, markUnavailable, neutralHost, runLocked, supersede]);
   useEffect(() => {
-    if (!isNeutralHost(args.neutralHost)) return;
+    if (!neutralHost) return;
     const onStorage = (event: StorageEvent) => {
       if (event.key !== ANONYMOUS_DRAFT_KEY && event.key !== null) return;
       const storage = getAnonymousDraftStorage();
@@ -53,9 +53,9 @@ export function useAnonymousDraftRecovery(args: Args) {
       });
     };
     addEventListener('storage', onStorage); return () => removeEventListener('storage', onStorage);
-  }, [args.neutralHost, applyRead, markUnavailable, runReconcile]);
+  }, [applyRead, markUnavailable, neutralHost, runReconcile]);
   useEffect(() => {
-    if (!isNeutralHost(args.neutralHost) || !ready || activeCopyCurrent || offer || interaction.current || invalidated.current || pending) return;
+    if (!neutralHost || !ready || activeCopyCurrent || offer || interaction.current || invalidated.current || pending) return;
     const snapshot = args.category ? createAnonymousDraftSnapshot(args.category, args.draft, args.step) : null;
     if (!snapshot) { supersede(); setState(value => value === 'saved' ? 'idle' : value); return; }
     if (suppression.current) {
@@ -81,7 +81,7 @@ export function useAnonymousDraftRecovery(args: Args) {
       else if (value.status === 'conflict') { knownRecord.current = value.record; setOffer(value.record); setState('conflict'); }
       else { invalidated.current = true; setState('discarded'); }
     });
-  }, [activeCopyCurrent, applyRead, args.category, args.draft, args.neutralHost, args.step, currentContext, currentFingerprint, markUnavailable, offer, pending, ready, runLocked, supersede]);
+  }, [activeCopyCurrent, applyRead, args.category, args.draft, args.step, currentContext, currentFingerprint, markUnavailable, neutralHost, offer, pending, ready, runLocked, supersede]);
   useEffect(() => {
     const previous = previousLifecycle.current; previousLifecycle.current = args.lifecycleState;
     if (previous !== 'saving' && args.lifecycleState === 'saving') {
@@ -106,7 +106,7 @@ export function useAnonymousDraftRecovery(args: Args) {
     })();
   }, [args.activeId, args.lifecycleState, currentContext, currentFingerprint, markUnavailable, offer, runLocked, state]);
   const clearDeviceCopy = useCallback(async () => {
-    if (!isNeutralHost(args.neutralHost)) return true;
+    if (!neutralHost) return true;
     const expected = offer ?? knownRecord.current;
     const output = await runLocked(current => {
       if (!current()) return null;
@@ -120,7 +120,7 @@ export function useAnonymousDraftRecovery(args: Args) {
     if (value.status === 'unavailable') { markUnavailable(); return false; }
     if (value.status === 'changed') { knownRecord.current = value.record; setOffer(value.record); setState('conflict'); return false; }
     knownRecord.current = null; setOffer(null); return true;
-  }, [args.neutralHost, currentContext, markUnavailable, offer, runLocked]);
+  }, [currentContext, markUnavailable, neutralHost, offer, runLocked]);
   const clearBeforeReset = useCallback(async () => {
     if (pending || !(await clearDeviceCopy())) return false;
     invalidated.current = false; suppression.current = { from: currentFingerprint, to: resetFingerprint }; setState('discarded'); return true;
@@ -138,5 +138,5 @@ export function useAnonymousDraftRecovery(args: Args) {
       else { invalidated.current = false; knownRecord.current = result.value.record; suppression.current = { from: currentFingerprint, to: recordFingerprint(result.value.record) }; args.onReset(); args.onRestore(result.value.record); setOffer(null); setState('saved'); }
     }).finally(() => { interaction.current = false; });
   }, [args.onReset, args.onRestore, currentContext, currentFingerprint, markUnavailable, offer, pending, runLocked]);
-  return { clearBeforeReset, clearDeviceCopy, discard, enabled, offer, ready, resume, state };
+  return { clearBeforeReset, clearDeviceCopy, discard, enabled, neutralHost, offer, ready, resume, state };
 }

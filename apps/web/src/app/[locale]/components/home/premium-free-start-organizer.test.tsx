@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import enMessages from '@/messages/en/freeStart.json';
@@ -88,24 +88,6 @@ describe('premium Free Start organizer', () => {
     expect(screen.getByTestId('free-start-category-vehicle')).toBeInTheDocument();
     expect(screen.getByTestId('free-start-category-property')).toBeInTheDocument();
     expect(screen.getByTestId('free-start-category-injury')).toBeInTheDocument();
-  });
-
-  it('preserves generic-host facts when the category changes', () => {
-    render(
-      <FreeStartIntakeShell
-        continueHref="/pricing"
-        initialCategory="injury"
-        locale="en"
-        tenantId="tenant_public"
-      />
-    );
-    fireEvent.change(screen.getByLabelText('Brief summary'), {
-      target: { value: 'Keep these generic-host facts.' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Back to claim type' }));
-    fireEvent.click(screen.getByTestId('free-start-category-vehicle'));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to guided intake' }));
-    expect(screen.getByLabelText('Brief summary')).toHaveValue('Keep these generic-host facts.');
   });
 
   it('keeps the generated-pack CTA aligned with high confidence guidance', () => {

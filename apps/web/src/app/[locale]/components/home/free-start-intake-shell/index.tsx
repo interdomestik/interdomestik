@@ -48,7 +48,7 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
   const view = useFreeStartViewModel({ flow, props, t, tCommon });
   const recoveryPending = !recovery.ready || Boolean(recovery.offer);
   // prettier-ignore
-  const selectCategory = (category: CategoryId) => recovery.enabled && flow.selectedCategory === 'injury' && (category === 'vehicle' || category === 'property') ? flow.restoreAnonymousDraft({ category, draft: EMPTY_DRAFT, resumeStep: flow.step === 'complete' ? 'preview' : flow.step }) : flow.selectCategory(category);
+  const selectCategory = (category: CategoryId) => recovery.neutralHost && flow.selectedCategory === 'injury' && (category === 'vehicle' || category === 'property') ? flow.restoreAnonymousDraft({ category, draft: EMPTY_DRAFT, resumeStep: flow.step === 'complete' ? 'preview' : flow.step }) : flow.selectCategory(category);
   const noRecoveryBody = (
     JSON.parse(String(t.raw('secureSaveReviewCopy'))) as { noRecovery: string }
   ).noRecovery;
