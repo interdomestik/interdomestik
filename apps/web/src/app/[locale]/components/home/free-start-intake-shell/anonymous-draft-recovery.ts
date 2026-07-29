@@ -5,7 +5,7 @@ export const ANONYMOUS_DRAFT_KEY = 'interdomestik_free_start_recovery_v1';
 export const ANONYMOUS_DRAFT_LOCK_NAME = 'interdomestik:free-start:anonymous-draft:v1';
 export const ANONYMOUS_DRAFT_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 // prettier-ignore
-const RECOVERY_MEDICAL_WORD = /^(?:injur(?:y|ed|ies|ing)?|fractur(?:e|ed|es|ing)?|doctor(?:s)?|hospital(?:s)?|pain(?:ful)?|blood(?:y|ing)?|bled|medical|diagnos(?:is|ed|es|ing)|treat(?:ed|ing|ment|ments)|wound(?:ed|s)?|ambulance|surgery|lënd\p{L}*|mjek\p{L}*|spital\p{L}*|dhimb\p{L}*|gjak\p{L}*|diagnoz\p{L}*|trajt\p{L}*|povred\p{L}*|lekar\p{L}*|doktor\p{L}*|bolnica|bol|krv|medicin\p{L}*|dijagnoz\p{L}*|lečen\p{L}*|prelom\p{L}*|повред\p{L}*|лекар\p{L}*|доктор\p{L}*|болниц\p{L}*|болка|крв|медицин\p{L}*|дијагноз\p{L}*|лекува\p{L}*)$/iu;
+const RECOVERY_MEDICAL_WORD = /^(?:injur\p{L}*|fractur\p{L}*|doctor(?:s|ed|ing)?|hospital(?:s|i[sz](?:e|ed|es|ing|ations?))?|pain(?:s|ful(?:ly)?)?|blood\p{L}*|bleed\p{L}*|bled|medic(?:s|al\p{L}*|in\p{L}*|at\p{L}*)?|diagnos\p{L}*|treat(?:s|ed|ing|ment|ments)?|wound\p{L}*|ambulanc\p{L}*|surger\p{L}*|lënd\p{L}*|mjek\p{L}*|spital\p{L}*|dhimb\p{L}*|gjak\p{L}*|diagnoz\p{L}*|trajt\p{L}*|povred\p{L}*|lekar\p{L}*|doktor\p{L}*|bolnic\p{L}*|bol(?:i|om)?|krv\p{L}*|medicin\p{L}*|dijagnoz\p{L}*|le[cč]en\p{L}*|prelom\p{L}*|повред\p{L}*|лекар\p{L}*|доктор\p{L}*|болниц\p{L}*|болка|крв\p{L}*|медицин\p{L}*|дијагноз\p{L}*|лекува\p{L}*)$/iu;
 // prettier-ignore
 function containsMedicalFact(...values: Array<string | null | undefined>) { return values.some(value => (value?.normalize('NFKC').toLowerCase().match(/\p{L}+/gu) ?? []).some(word => RECOVERY_MEDICAL_WORD.test(word))); }
 // prettier-ignore

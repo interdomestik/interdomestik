@@ -9,7 +9,8 @@ import {
   setCookieConsent,
   subscribeCookieConsent,
 } from './cookie-consent';
-
+// prettier-ignore
+function storageEvent(key: string | null, newValue: string | null) { const event = new Event('storage') as StorageEvent; Object.defineProperties(event, { key: { value: key }, newValue: { value: newValue } }); return event; }
 function resetCookie(name: string) {
   document.cookie = `${name}=; Max-Age=0; path=/`;
 }
@@ -145,5 +146,5 @@ describe('cookie consent helpers', () => {
     unsubscribe();
   });
   // prettier-ignore
-  it('preserves exact events and broadcasts a storage-fallback decision across tabs', () => { const listeners: Array<(event: { data: unknown }) => void> = [], posted = vi.fn(); class Channel { addEventListener(_type: string, listener: (event: { data: unknown }) => void) { listeners.push(listener); } close() {} postMessage(value: unknown) { posted(value); listeners.forEach(listener => listener({ data: value })); } removeEventListener() {} } vi.stubGlobal('BroadcastChannel', Channel); const handler = vi.fn(), unsubscribe = subscribeCookieConsent(handler); window.dispatchEvent(new CustomEvent(COOKIE_CONSENT_UPDATED_EVENT, { detail: 'accepted' })); expect(handler).toHaveBeenLastCalledWith('accepted'); localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, 'accepted'); document.cookie = `${COOKIE_CONSENT_COOKIE_NAME}=necessary`; window.dispatchEvent(new StorageEvent('storage', { key: COOKIE_CONSENT_STORAGE_KEY, newValue: 'accepted' })); expect(handler).toHaveBeenLastCalledWith('necessary'); vi.spyOn(globalThis, 'localStorage', 'get').mockImplementation(() => { throw new DOMException('blocked'); }); setCookieConsent('necessary'); expect(posted).toHaveBeenCalledWith('necessary'); expect(handler).toHaveBeenLastCalledWith('necessary'); expect(getCookieConsent()).toBe('necessary'); expect(document.cookie).not.toContain('storage-fallback'); unsubscribe(); });
+  it('preserves exact events and broadcasts a storage-fallback decision across tabs', () => { const listeners: Array<(event: { data: unknown }) => void> = [], posted = vi.fn(); class Channel { addEventListener(_type: string, listener: (event: { data: unknown }) => void) { listeners.push(listener); } close() {} postMessage(value: unknown) { posted(value); listeners.forEach(listener => listener({ data: value })); } removeEventListener() {} } vi.stubGlobal('BroadcastChannel', Channel); const handler = vi.fn(), unsubscribe = subscribeCookieConsent(handler); window.dispatchEvent(new CustomEvent(COOKIE_CONSENT_UPDATED_EVENT, { detail: 'accepted' })); expect(handler).toHaveBeenLastCalledWith('accepted'); localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, 'accepted'); document.cookie = `${COOKIE_CONSENT_COOKIE_NAME}=necessary`; window.dispatchEvent(storageEvent(COOKIE_CONSENT_STORAGE_KEY, 'accepted')); expect(handler).toHaveBeenLastCalledWith('necessary'); vi.spyOn(globalThis, 'localStorage', 'get').mockImplementation(() => { throw new DOMException('blocked'); }); setCookieConsent('necessary'); expect(posted).toHaveBeenCalledWith('necessary'); expect(handler).toHaveBeenLastCalledWith('necessary'); expect(getCookieConsent()).toBe('necessary'); expect(document.cookie).not.toContain('storage-fallback'); unsubscribe(); });
 });

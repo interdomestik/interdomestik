@@ -23,7 +23,7 @@ function setupRecovery(lifecycleState: 'idle' | 'loading' | 'saved' | 'saving' =
   return { ...hook, calls, onReset, onRestore, props };
 }
 // prettier-ignore
-function clearEvent(storageArea: Storage) { const event = new StorageEvent('storage', { key: null }); Object.defineProperty(event, 'storageArea', { value: storageArea }); return event; }
+function clearEvent(storageArea: Storage) { const event = new Event('storage') as StorageEvent; Object.defineProperties(event, { key: { value: null }, storageArea: { value: storageArea } }); return event; }
 type HeldRequest = Readonly<{
   grant: () => void;
   reject: (error: unknown) => void;
