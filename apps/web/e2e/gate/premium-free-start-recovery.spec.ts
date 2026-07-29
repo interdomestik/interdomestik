@@ -87,7 +87,7 @@ async function freshLogin(page: Page, info: TestInfo) {
 }
 // prettier-ignore
 async function deleteSavedDraft(page: Page, organizer: Locator, summary: string) {
-  await organizer.getByTestId('free-start-manage-open').click(); await expect(organizer.getByTestId('free-start-save-status')).not.toHaveAttribute('data-state', 'loading', { timeout: 10_000 }); const row = page.locator('[data-testid^="free-start-draft-"]').filter({ hasText: summary }), count = await row.count(); expect(count).toBeLessThanOrEqual(1); if (!count) return false; await row.locator('[data-testid^="free-start-delete-"]').click(); await page.getByTestId('free-start-delete-confirm').click(); await expect(organizer.getByTestId('free-start-save-status')).toHaveAttribute('data-state', 'deleted'); await expect(row).toHaveCount(0); return true;
+  await organizer.getByTestId('free-start-manage-open').click(); await expect(page.locator('#free-start-manage-heading')).toBeVisible({ timeout: 10_000 }); const row = page.locator('[data-testid^="free-start-draft-"]').filter({ hasText: summary }), count = await row.count(); expect(count).toBeLessThanOrEqual(1); if (!count) return false; await row.locator('[data-testid^="free-start-delete-"]').click(); await page.getByTestId('free-start-delete-confirm').click(); await expect(organizer.getByTestId('free-start-save-status')).toHaveAttribute('data-state', 'deleted'); await expect(row).toHaveCount(0); return true;
 }
 
 test.describe('pre-membership Free Start recovery', () => {
