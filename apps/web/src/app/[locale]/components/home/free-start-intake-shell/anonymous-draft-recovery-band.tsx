@@ -61,7 +61,7 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) {
         role="status"
         aria-live="polite"
         aria-atomic="true"
-        className={recoverable ? 'mt-2 text-sm font-semibold' : 'sr-only'}
+        className={hasOffer || !recoverable ? 'sr-only' : 'mt-2 text-sm font-semibold'}
       >
         {status}
       </p>

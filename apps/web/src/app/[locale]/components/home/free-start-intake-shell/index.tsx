@@ -4,12 +4,13 @@ import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 
 import { AnonymousDraftRecoveryBand } from './anonymous-draft-recovery-band';
+import { EMPTY_DRAFT } from './constants';
 import { useFreeStartViewModel } from './free-start-view-model';
 import { FreeStartMainPanel } from './main-panel';
 import { OrganizerHeader } from './organizer-header';
 import { FreeStartSidebar } from './sidebar';
 import { TrustBoundary } from './trust-boundary';
-import type { FreeStartCopy, FreeStartIntakeShellProps } from './types';
+import type { CategoryId, FreeStartCopy, FreeStartIntakeShellProps } from './types';
 import { useAnonymousDraftRecovery } from './use-anonymous-draft-recovery';
 import { useDraftLifecycle } from './use-draft-lifecycle';
 import { useOrganizerFlow } from './use-organizer-flow';
@@ -46,6 +47,8 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
   });
   const view = useFreeStartViewModel({ flow, props, t, tCommon });
   const recoveryPending = !recovery.ready || Boolean(recovery.offer);
+  // prettier-ignore
+  const selectCategory = (category: CategoryId) => flow.selectedCategory === 'injury' && (category === 'vehicle' || category === 'property') ? flow.restoreAnonymousDraft({ category, draft: EMPTY_DRAFT, resumeStep: flow.step === 'complete' ? 'preview' : flow.step }) : flow.selectCategory(category);
   const noRecoveryBody = (
     JSON.parse(String(t.raw('secureSaveReviewCopy'))) as { noRecovery: string }
   ).noRecovery;
@@ -114,7 +117,7 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
                 t={t}
                 onBackToCategory={() => flow.navigate('category')}
                 onBackToDetails={() => flow.navigate('details')}
-                onCategorySelect={flow.selectCategory}
+                onCategorySelect={selectCategory}
                 onFinish={view.finishIntake}
                 onMoveToDetails={() => flow.moveToDetails(t('validation.chooseCategory'))}
                 onMoveToPreview={() => flow.moveToPreview(view.validationMessage)}

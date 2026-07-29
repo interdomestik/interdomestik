@@ -110,16 +110,14 @@ describe('premium Free Start copy contract', () => {
   it('C33 keeps the browser-recovery keys identical in SQ, EN, SR and MK', () => {
     const copies = Object.values(localeMessages).map(recoveryCopy);
     const keys = copies.map(copy => collectKeyPaths(copy).sort());
-
     expect(keys).toEqual([keys[0], keys[0], keys[0], keys[0]]);
   });
 
   it.each(Object.entries(localeMessages))(
     'C33 %s distinguishes local recovery, discard and verified secure save',
     (_locale, messages) => {
-      const copy = collectCopyValues(recoveryCopy(messages)).join(' ');
-      const secure = collectCopyValues(secureSaveCopy(messages)).join(' ');
-      const idle = (secureSaveCopy(messages) as { status: { idle: string } }).status.idle;
+      // prettier-ignore
+      const recovery = recoveryCopy(messages) as { body: string; privateDevice: string }, copy = collectCopyValues(recovery).join(' '), secure = collectCopyValues(secureSaveCopy(messages)).join(' '), idle = (secureSaveCopy(messages) as { status: { idle: string } }).status.idle, truth = messages.freeStart.trustBoundary.body;
       expect(copy).toMatch(/browser|shfletues|pregledač|прелистувач/i);
       expect(copy).toMatch(/30/);
       expect(copy).toMatch(/private|privat|приват/i);
@@ -129,6 +127,8 @@ describe('premium Free Start copy contract', () => {
       expect(secure).toMatch(/browser|shfletues|pregledač|прелистувач/i);
       expect(idle).toMatch(/when browser|kur rikthimi|kada je vraćanje|кога враќањето/i);
       expect(idle).not.toMatch(/automatic|automatik|automatski|автоматски/i);
+      // prettier-ignore
+      expect([/only in this browser|vetëm në këtë shfletues|samo u ovom pregledaču|само во овој прелистувач/i.test(recovery.body), /cross-device|ndërmjet pajisjeve|drugim uređajima|други уреди/i.test(recovery.body), /cleared site data|pastrimi i të dhënave|brisanje podataka|бришењето податоци/i.test(recovery.privateDevice), /browser policy|politika e shfletuesit|pravila pregledača|правилата на прелистувачот/i.test(recovery.privateDevice), /deliberate|zgjedhur|namerno|намерно/i.test(truth), /verified-email|email të verifikuar|potvrđenim emailom|потврдена е-пошта/i.test(truth), /devices|pajisjeve|uređaja|уреди/i.test(truth)]).not.toContain(false);
     }
   );
 

@@ -3,7 +3,6 @@ import { E2E_PASSWORD, E2E_USERS } from '@interdomestik/database';
 import { expect, test, type Browser, type BrowserContext, type Locator, type Page, type TestInfo } from '@playwright/test';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
-
 const KEY = 'interdomestik_free_start_recovery_v1';
 const LOCK = 'interdomestik:free-start:anonymous-draft:v1';
 // prettier-ignore
@@ -21,7 +20,6 @@ async function withPage(browser: Browser, info: TestInfo, callback: (page: Page)
   const context = await browser.newContext({ baseURL: info.project.use.baseURL, extraHTTPHeaders: info.project.use.extraHTTPHeaders, ignoreHTTPSErrors: Boolean(info.project.use.ignoreHTTPSErrors), storageState: undefined });
   try { await callback(await context.newPage()); } finally { await context.close(); }
 }
-
 // prettier-ignore
 async function openOrganizer(page: Page, info: TestInfo, recovery = true) {
   const response = await gotoApp(page, routes.home('en'), info, { marker: 'free-start-intake-shell' });
@@ -60,6 +58,8 @@ type Pair = Readonly<{
   second: Page;
   secondOrganizer: Locator;
 }>;
+type AuthState = Readonly<{ cookie: string; token: string }>;
+const authStates = new WeakMap<BrowserContext, AuthState>();
 // prettier-ignore
 async function seededPair(context: BrowserContext, info: TestInfo, summary: string): Promise<Pair> {
   const seed = await context.newPage(); await seed.addInitScript(key => localStorage.removeItem(key), KEY);
@@ -75,13 +75,11 @@ async function installInvalid(page: Page, kind: 'empty' | 'expired' | 'future' |
   await page.evaluate(({ key, kind, now, ttl }) => { if (kind === 'empty' || kind === 'malformed') return localStorage.setItem(key, kind === 'empty' ? '' : '{'); const record = JSON.parse(localStorage.getItem(key) ?? '{}') as { expiresAt: string; updatedAt: string }; const updated = kind === 'expired' ? now - ttl - 1 : now + 60_001; record.updatedAt = new Date(updated).toISOString(); record.expiresAt = new Date(updated + ttl).toISOString(); localStorage.setItem(key, JSON.stringify(record)); }, { key: KEY, kind, now: fixedNow ?? Date.now(), ttl: 30 * 24 * 60 * 60 * 1_000 });
 }
 // prettier-ignore
-async function freshLogin(page: Page, info: TestInfo) {
-  const origin = new URL(String(info.project.use.baseURL)).origin, authOrigin = process.env.BETTER_AUTH_URL?.trim() || origin;
-  const response = await page.request.post(`${origin}/api/auth/sign-in/email`, { data: { email: E2E_USERS.KS_MEMBER.email, password: E2E_PASSWORD, additionalData: { tenantId: 'tenant_ks' } }, headers: { Origin: authOrigin, Referer: `${origin}${routes.login(info)}`, 'x-tenant-id': 'tenant_ks' } });
-  if (!response.ok()) throw new Error(`fresh login failed: ${response.status()} ${response.statusText()}`);
-}
+async function authPost(info: TestInfo, path: string, data: unknown, cookie?: string) { const origin = new URL(String(info.project.use.baseURL)).origin, authOrigin = process.env.BETTER_AUTH_URL?.trim() || origin, response = await fetch(`${origin}/api/auth/${path}`, { body: JSON.stringify(data), headers: { 'content-type': 'application/json', ...(cookie ? { cookie } : {}), Origin: authOrigin, Referer: `${origin}${routes.login(info)}`, 'x-tenant-id': 'tenant_ks' }, method: 'POST', redirect: 'manual' }); let body: unknown; try { body = await response.json(); } catch { body = null; } const setCookies = (response.headers as Headers & { getSetCookie?: () => string[] }).getSetCookie?.() ?? []; return { body, ok: response.ok, origin, setCookies, status: response.status, statusText: response.statusText }; }
 // prettier-ignore
-async function freshLogout(page: Page, info: TestInfo) { const origin = new URL(String(info.project.use.baseURL)).origin, authOrigin = process.env.BETTER_AUTH_URL?.trim() || origin; const response = await page.request.post(`${origin}/api/auth/sign-out`, { data: {}, headers: { Origin: authOrigin, 'x-tenant-id': 'tenant_ks' } }); if (!response.ok()) throw new Error(`fresh logout failed: ${response.status()} ${response.statusText()}`); await page.context().clearCookies(); }
+async function freshLogin(page: Page, info: TestInfo) { const result = await authPost(info, 'sign-in/email', { email: E2E_USERS.KS_MEMBER.email, password: E2E_PASSWORD, additionalData: { tenantId: 'tenant_ks' } }), token = (result.body as { token?: unknown } | null)?.token, cookie = result.setCookies.find(value => /session_token=/i.test(value))?.split(';', 1)[0]; if (!result.ok || typeof token !== 'string' || !cookie) throw new Error(`fresh login failed: ${result.status} ${result.statusText}`); const separator = cookie.indexOf('='); await page.context().addCookies([{ name: cookie.slice(0, separator), value: cookie.slice(separator + 1), url: result.origin }]); authStates.set(page.context(), { cookie, token }); }
+// prettier-ignore
+async function freshLogout(page: Page, info: TestInfo) { const context = page.context(), state = authStates.get(context); if (!state) throw new Error('fresh logout failed: missing in-memory session'); const result = await authPost(info, 'revoke-session', { token: state.token }, state.cookie); if (!result.ok || (result.body as { status?: unknown } | null)?.status !== true) throw new Error(`fresh logout failed: ${result.status} ${result.statusText}`); authStates.delete(context); await context.clearCookies(); }
 // prettier-ignore
 async function deleteSavedDraft(page: Page, organizer: Locator, summary: string) {
   await organizer.getByTestId('free-start-manage-open').click(); await expect(page.locator('#free-start-manage-heading')).toBeVisible({ timeout: 10_000 }); const row = page.locator('[data-testid^="free-start-draft-"]').filter({ hasText: summary }), count = await row.count(); expect(count).toBeLessThanOrEqual(1); if (!count) return false; await row.locator('[data-testid^="free-start-delete-"]').click(); await page.getByTestId('free-start-delete-confirm').click(); await expect(organizer.getByTestId('free-start-save-status')).toHaveAttribute('data-state', 'deleted'); await expect(row).toHaveCount(0); return true;
@@ -109,7 +107,8 @@ test.describe('pre-membership Free Start recovery', () => {
       await Promise.all(['Vehicle damage', 'Collision damage', '2026-07-15', 'Northwind Insurance', 'Repair or replacement costs', 'Rear bumper damage after a low-speed collision.'].map(value => expect(next).toContainText(value)));
     });
   });
-
+  // prettier-ignore
+  test('keeps recovery controls usable at 320px, 200% presentation and forced accessibility media', async ({ browser }, info) => { const ida = resolveIdaTarget(info); await withPage(browser, ida, async page => { await page.setViewportSize({ width: 320, height: 720 }); const organizer = await openOrganizer(page, ida), next = organizer.getByRole('button', { name: 'Continue to guided intake' }); await organizer.getByTestId('free-start-category-injury').click(); await next.click(); await organizer.getByLabel('Brief summary').fill('Fractured my arm at work.'); await organizer.getByRole('button', { name: 'Back to claim type' }).click(); await organizer.getByTestId('free-start-category-vehicle').click(); await expect(next).toBeVisible(); await next.click(); await expect(organizer.getByLabel('Brief summary')).toHaveValue(''); await organizer.getByLabel('Brief summary').fill('Accessible recovery facts.'); await page.reload(); await page.emulateMedia({ forcedColors: 'active', reducedMotion: 'reduce' }); await page.addStyleTag({ content: '*{line-height:1.5!important;letter-spacing:.12em!important;word-spacing:.16em!important}html{zoom:2}' }); const offer = page.getByTestId('anonymous-draft-recovery-offer'), resume = offer.getByRole('button', { name: 'Continue with these notes' }), discard = offer.getByRole('button', { name: 'Discard from this device' }); await expect(offer).toHaveAccessibleName('Continue notes from this browser?'); await resume.focus(); await expect(resume).toBeFocused(); expect(await resume.evaluate(element => { const style = getComputedStyle(element, ':focus-visible'); return style.outlineStyle !== 'none' && style.outlineWidth !== '0px'; })).toBe(true); await expect(discard).toBeVisible(); expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true); }); });
   // prettier-ignore
   test('serializes writes and discard in both page orders and starts a fresh epoch', async ({ browser }, info) => {
     test.setTimeout(300_000); const ida = resolveIdaTarget(info);
