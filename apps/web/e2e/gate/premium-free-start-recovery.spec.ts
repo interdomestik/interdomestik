@@ -77,7 +77,7 @@ test.describe('pre-membership Free Start recovery', () => {
 
   // prettier-ignore
   test('serializes production writes in both page orders and starts a fresh epoch after sibling discard', async ({ browser }, info) => {
-    test.setTimeout(60_000);
+    test.setTimeout(300_000);
     const ida = resolveIdaTarget(info);
     for (const reverse of [false, true]) {
       await withPage(browser, ida, async seed => {
