@@ -74,7 +74,8 @@ describe('anonymous recovery race contracts', () => {
     act(() => { locks.pending[1]?.grant(); locks.pending[1]?.settle(); });
     await waitFor(() => expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toContain('Current facts.'));
     await waitFor(() => expect(screen.getByTestId('held-state')).toHaveTextContent('saved'));
-    act(() => locks.pending[0]?.settle());
+    act(() => locks.pending[0]?.settle()); await act(async () => Promise.resolve());
+    await waitFor(() => expect(screen.getByTestId('held-state')).toHaveTextContent('saved'));
     expect(writes.mock.calls.some(([, value]) => String(value).includes('Queued stale facts.'))).toBe(false);
     view.unmount(); localStorage.clear(); locks = installHeldLocks();
     let hook = renderHook(value => useAnonymousDraftRecovery(value), { initialProps: first });
