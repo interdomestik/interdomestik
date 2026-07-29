@@ -14,7 +14,10 @@ type RecoveryCopy = Readonly<{
   offerBody: string;
   offerHeading: string;
   privateDevice: string;
-  status: Record<'conflict' | 'discarded' | 'saved' | 'secure' | 'unavailable', string>;
+  status: Record<
+    'conflict' | 'discarded' | 'retained' | 'saved' | 'secure' | 'unavailable',
+    string
+  >;
 }>;
 
 export function AnonymousDraftRecoveryBand({ recovery }: Props) {
@@ -32,7 +35,7 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) {
   const recoverable =
     hasOffer || retained || recovery.state === 'saved' || recovery.state === 'conflict';
   const status = retained
-    ? copy.status.unavailable
+    ? copy.status.retained
     : recovery.state === 'offer'
       ? copy.offerBody
       : copy.status[recovery.state as keyof RecoveryCopy['status']];

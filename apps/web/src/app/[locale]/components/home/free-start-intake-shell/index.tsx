@@ -10,21 +10,20 @@ import { FreeStartMainPanel } from './main-panel';
 import { OrganizerHeader } from './organizer-header';
 import { FreeStartSidebar } from './sidebar';
 import { TrustBoundary } from './trust-boundary';
-import type { CategoryId, FreeStartCopy, FreeStartIntakeShellProps } from './types';
+// prettier-ignore
+import { draftFingerprint, type CategoryId, type FreeStartCopy, type FreeStartIntakeShellProps } from './types';
 import { useAnonymousDraftRecovery } from './use-anonymous-draft-recovery';
 import { useDraftLifecycle } from './use-draft-lifecycle';
 import { useOrganizerFlow } from './use-organizer-flow';
 // prettier-ignore
-const ClaimPackResult = dynamic(() => import('../claim-pack-result').then(module => module.ClaimPackResult), { ssr: false });
-// prettier-ignore
-const SecureSaveBand = dynamic(() => import('./secure-save-band').then(module => module.SecureSaveBand), { ssr: false });
+const ClaimPackResult = dynamic(() => import('../claim-pack-result').then(module => module.ClaimPackResult), { ssr: false }), SecureSaveBand = dynamic(() => import('./secure-save-band').then(module => module.SecureSaveBand), { ssr: false });
 
 // prettier-ignore
 export async function resetAfterRecoveryClear(clear: () => Promise<boolean> | boolean, reset: () => void): Promise<boolean> { if (!(await clear())) return false; reset(); return true; }
 
 export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
-  const t = useTranslations('freeStart');
-  const tCommon = useTranslations('common');
+  const t = useTranslations('freeStart'),
+    tCommon = useTranslations('common');
   const flow = useOrganizerFlow(props.initialCategory);
   const draftLifecycle = useDraftLifecycle({
     category: flow.selectedCategory,
@@ -33,7 +32,9 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
     onResume: flow.resumeDraft,
     step: flow.step,
   });
+  // prettier-ignore
   const recovery = useAnonymousDraftRecovery({
+    activeFingerprint: draftLifecycle.active ? draftFingerprint(draftLifecycle.active.category, draftLifecycle.active, draftLifecycle.active.resumeStep) : null,
     activeId: draftLifecycle.active?.id ?? null,
     category: flow.selectedCategory,
     draft: flow.draft,
@@ -44,10 +45,8 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
     resetCategory: props.initialCategory ?? null,
     step: flow.step,
   });
-  const view = useFreeStartViewModel({ flow, props, t, tCommon });
-  const recoveryPending = !recovery.ready || recovery.busy || Boolean(recovery.offer);
-  const secureActionsBlocked =
-    !recovery.ready || Boolean(recovery.offer) || recovery.state === 'retained';
+  // prettier-ignore
+  const view = useFreeStartViewModel({ flow, props, t, tCommon }), recoveryPending = !recovery.ready || recovery.busy || Boolean(recovery.offer), secureActionsBlocked = !recovery.ready || Boolean(recovery.offer) || recovery.state === 'retained';
   // prettier-ignore
   const selectCategory = (category: CategoryId) => recovery.neutralHost && flow.selectedCategory === 'injury' && (category === 'vehicle' || category === 'property') ? flow.restoreAnonymousDraft({ category, draft: EMPTY_DRAFT, resumeStep: flow.step === 'complete' ? 'preview' : flow.step }) : flow.selectCategory(category);
   const noRecoveryBody = (

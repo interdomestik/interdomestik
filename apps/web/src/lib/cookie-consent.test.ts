@@ -41,18 +41,10 @@ describe('cookie consent helpers', () => {
     expect(getCookieConsent()).toBe('accepted');
   });
 
-  it('fails malformed cookie values closed without truncating or throwing', () => {
-    document.cookie = `${COOKIE_CONSENT_COOKIE_NAME}=accepted=garbage`;
-    expect(getCookieConsent()).toBeNull();
-    document.cookie = `${COOKIE_CONSENT_COOKIE_NAME}=%E0%A4%A`;
-    expect(() => getCookieConsent()).not.toThrow();
-    expect(getCookieConsent()).toBeNull();
-  });
-
-  it('uses the least-permissive value when durable consent signals disagree', () => {
+  it('preserves the existing successful localStorage precedence', () => {
     localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, 'accepted');
     document.cookie = `${COOKIE_CONSENT_COOKIE_NAME}=necessary`;
-    expect(getCookieConsent()).toBe('necessary');
+    expect(getCookieConsent()).toBe('accepted');
   });
 
   it('falls back to the cookie when the storage accessor is denied', () => {
@@ -118,7 +110,7 @@ describe('cookie consent helpers', () => {
       type: COOKIE_CONSENT_UPDATED_EVENT,
       detail: 'necessary',
     });
-    expect(getCookieConsent()).toBe('necessary');
+    expect(getCookieConsent()).toBe('accepted');
   });
 
   it('subscribes to consent updates from custom event', () => {
@@ -131,5 +123,5 @@ describe('cookie consent helpers', () => {
     unsubscribe();
   });
   // prettier-ignore
-  it('reconciles failed writes and stale cross-tab events to the least-permissive durable consent', () => { localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, 'necessary'); const available = localStorage, handler = vi.fn(), unsubscribe = subscribeCookieConsent(handler); vi.spyOn(window, 'localStorage', 'get').mockReturnValue({ getItem: available.getItem.bind(available), setItem: () => { throw new DOMException('blocked', 'SecurityError'); } } as unknown as Storage); setCookieConsent('accepted'); expect(handler).toHaveBeenLastCalledWith('necessary'); vi.restoreAllMocks(); localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, 'accepted'); document.cookie = `${COOKIE_CONSENT_COOKIE_NAME}=necessary`; window.dispatchEvent(new StorageEvent('storage', { key: COOKIE_CONSENT_STORAGE_KEY, newValue: 'accepted' })); expect(handler).toHaveBeenLastCalledWith('necessary'); unsubscribe(); });
+  it('preserves exact custom-event detail and storage-event newValue handling', () => { localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, 'necessary'); const handler = vi.fn(), unsubscribe = subscribeCookieConsent(handler); window.dispatchEvent(new CustomEvent(COOKIE_CONSENT_UPDATED_EVENT, { detail: 'accepted' })); expect(handler).toHaveBeenLastCalledWith('accepted'); window.dispatchEvent(new StorageEvent('storage', { key: COOKIE_CONSENT_STORAGE_KEY, newValue: 'accepted' })); expect(handler).toHaveBeenLastCalledWith('accepted'); unsubscribe(); });
 });

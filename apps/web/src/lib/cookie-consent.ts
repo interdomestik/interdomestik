@@ -22,13 +22,8 @@ function getCookieValue(name: string): string | null {
 
   if (!match) return null;
 
-  const rawValue = match.slice(match.indexOf('=') + 1);
-  if (!rawValue) return null;
-  try {
-    return decodeURIComponent(rawValue);
-  } catch {
-    return null;
-  }
+  const [, rawValue = ''] = match.split('=');
+  return rawValue ? decodeURIComponent(rawValue) : null;
 }
 
 export function parseCookieConsentValue(
@@ -48,9 +43,8 @@ export function getCookieConsent(): CookieConsentValue | null {
     // Browser policy may deny the storage accessor or read; the existing cookie is the fallback.
   }
 
-  const cookieValue = parseCookieConsentValue(getCookieValue(COOKIE_CONSENT_COOKIE_NAME));
-  if (storageValue && cookieValue && storageValue !== cookieValue) return 'necessary';
-  return storageValue ?? cookieValue;
+  if (storageValue) return storageValue;
+  return parseCookieConsentValue(getCookieValue(COOKIE_CONSENT_COOKIE_NAME));
 }
 
 export function setCookieConsent(value: CookieConsentValue): void {
@@ -76,11 +70,14 @@ export function subscribeCookieConsent(
 ): () => void {
   if (!isBrowser()) return () => undefined;
 
-  const handleCustomUpdate = () => onChange(getCookieConsent());
+  const handleCustomUpdate = (event: Event) => {
+    const detail = (event as CustomEvent<CookieConsentValue>).detail;
+    onChange(parseCookieConsentValue(detail));
+  };
 
   const handleStorage = (event: StorageEvent) => {
     if (event.key !== COOKIE_CONSENT_STORAGE_KEY) return;
-    onChange(getCookieConsent());
+    onChange(parseCookieConsentValue(event.newValue));
   };
 
   window.addEventListener(COOKIE_CONSENT_UPDATED_EVENT, handleCustomUpdate as EventListener);
