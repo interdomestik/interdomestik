@@ -23,8 +23,7 @@ export function useAnonymousDraftRecovery(args: Args) {
   const abortRef = useRef<AbortController | null>(null), currentFingerprintRef = useRef(''), currentSnapshotRef = useRef<AnonymousDraftSnapshot | null>(null), generation = useRef(0), interaction = useRef(false), invalidated = useRef(false), knownRecord = useRef<AnonymousDraftRecord | null>(null), mounted = useRef(true), promotionFingerprint = useRef<string | null>(null), reconcileAbortRef = useRef<AbortController | null>(null), reconciliation = useRef(false), suppression = useRef<{ from: string; to: string } | null>(null), previousLifecycle = useRef(args.lifecycleState);
   const currentSnapshot = args.category ? createAnonymousDraftSnapshot(args.category, args.draft, args.step) : null, currentFingerprint = currentSnapshot ? recordFingerprint(currentSnapshot) : fingerprint(args.category, args.draft, args.step); currentFingerprintRef.current = currentFingerprint; currentSnapshotRef.current = currentSnapshot;
   // prettier-ignore
-  const resetFingerprint = fingerprint(args.resetCategory, EMPTY_DRAFT, args.resetCategory ? 'details' : 'category');
-  const pending = args.lifecycleState === 'saving' || args.lifecycleState === 'loading';
+  const resetFingerprint = fingerprint(args.resetCategory, EMPTY_DRAFT, args.resetCategory ? 'details' : 'category'), pending = args.lifecycleState === 'saving' || args.lifecycleState === 'loading', activeCopyCurrent = Boolean(args.activeId && (args.lifecycleState === 'saved' || !knownRecord.current || recordFingerprint(knownRecord.current) === currentFingerprint));
   // prettier-ignore
   const markUnavailable = useCallback(() => { reconciliation.current = true; setEnabled(false); setOffer(null); setState('unavailable'); }, []);
   // prettier-ignore
@@ -64,7 +63,7 @@ export function useAnonymousDraftRecovery(args: Args) {
     addEventListener('storage', onStorage); return () => removeEventListener('storage', onStorage);
   }, [args.neutralHost, applyRead, markUnavailable, runReconcile]);
   useEffect(() => {
-    if (!isNeutralHost(args.neutralHost) || !ready || args.activeId || offer || interaction.current || invalidated.current || pending) return;
+    if (!isNeutralHost(args.neutralHost) || !ready || activeCopyCurrent || offer || interaction.current || invalidated.current || pending) return;
     const snapshot = args.category ? createAnonymousDraftSnapshot(args.category, args.draft, args.step) : null;
     if (!snapshot) { supersede(); setState(value => value === 'saved' ? 'idle' : value); return; }
     if (suppression.current) {
@@ -89,7 +88,7 @@ export function useAnonymousDraftRecovery(args: Args) {
       else if (value.status === 'conflict') { knownRecord.current = value.record; setOffer(value.record); setState('conflict'); }
       else { invalidated.current = true; setState('discarded'); }
     });
-  }, [applyRead, args.activeId, args.category, args.draft, args.neutralHost, args.step, currentFingerprint, markUnavailable, offer, pending, ready, runLocked, supersede]);
+  }, [activeCopyCurrent, applyRead, args.category, args.draft, args.neutralHost, args.step, currentFingerprint, markUnavailable, offer, pending, ready, runLocked, supersede]);
   useEffect(() => {
     const previous = previousLifecycle.current; previousLifecycle.current = args.lifecycleState;
     if (previous !== 'saving' && args.lifecycleState === 'saving') {
