@@ -67,7 +67,7 @@ async function seededPair(context: BrowserContext, info: TestInfo, summary: stri
   const seed = await context.newPage(); await seed.addInitScript(key => localStorage.removeItem(key), KEY);
   const seedOrganizer = await openOrganizer(seed, info); await enterVehicleDetails(seedOrganizer); await seedOrganizer.getByLabel('Brief summary').fill(summary); await expect.poll(() => seed.evaluate(key => localStorage.getItem(key), KEY)).toContain(summary);
   const first = await context.newPage(), firstOrganizer = await openOrganizer(first, info); const second = await context.newPage(), secondOrganizer = await openOrganizer(second, info); await seed.close();
-  await firstOrganizer.getByRole('button', { name: 'Continue with these notes' }).click(); await secondOrganizer.getByRole('button', { name: 'Continue with these notes' }).click(); await expect(firstOrganizer.getByTestId('anonymous-draft-recovery-offer')).toHaveCount(0); await expect(secondOrganizer.getByTestId('anonymous-draft-recovery-offer')).toHaveCount(0);
+  await expect(firstOrganizer.getByTestId('free-start-recovery-editor')).toHaveAttribute('inert', ''); await firstOrganizer.getByRole('button', { name: 'Continue with these notes' }).click(); await secondOrganizer.getByRole('button', { name: 'Continue with these notes' }).click(); await expect(firstOrganizer.getByTestId('anonymous-draft-recovery-offer')).toHaveCount(0); await expect(secondOrganizer.getByTestId('anonymous-draft-recovery-offer')).toHaveCount(0);
   return { first, firstOrganizer, second, secondOrganizer };
 }
 // prettier-ignore

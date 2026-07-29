@@ -30,7 +30,11 @@ export function useOrganizerFlow(initialCategory?: CategoryId) {
 
   const selectCategory = (category: CategoryId) => {
     setSelectedCategory(category);
-    setDraft(current => ({ ...current, issueType: '' }));
+    setDraft(current =>
+      selectedCategory === 'injury' && category !== 'injury'
+        ? EMPTY_DRAFT
+        : { ...current, issueType: '' }
+    );
     setValidationError(null);
   };
 

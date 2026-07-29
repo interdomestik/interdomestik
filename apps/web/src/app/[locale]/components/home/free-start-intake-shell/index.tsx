@@ -100,7 +100,11 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
           </div>
         ) : (
           <div className="grid gap-8 lg:grid-cols-[1.35fr_0.65fr]">
-            <div className="rounded-3xl border border-[#001a33]/15 bg-[#fffdf9] p-5 sm:p-7">
+            <div
+              data-testid="free-start-recovery-editor"
+              inert={recovery.offer ? true : undefined}
+              className="rounded-3xl border border-[#001a33]/15 bg-[#fffdf9] p-5 sm:p-7"
+            >
               <FreeStartMainPanel
                 categoryLabel={view.categoryLabel}
                 draft={flow.draft}

@@ -77,6 +77,7 @@ export function useAnonymousDraftRecovery(args: Args) {
       return;
     }
     const expected = knownRecord.current, now = Date.now();
+    setState(value => value === 'saved' ? 'idle' : value);
     void runLocked(current => current() ? writeAnonymousDraft(getAnonymousDraftStorage(), snapshot, expected, now) : null, currentFingerprint).then(({ current, result }) => {
       if (!current) return;
       if (result.status === 'unavailable') return markUnavailable();
