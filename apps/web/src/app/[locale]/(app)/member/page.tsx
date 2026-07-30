@@ -16,7 +16,7 @@ import { getMemberDashboardCore } from './_core';
 import { withMemberActorRoleOnSession } from './actor-role-on-session';
 
 // prettier-ignore
-export const canOfferDraftManager = (requestHeaders: Headers, rawRole: string | null | undefined, tenantId: string | null | undefined) => evaluateNeutralOtpHost(requestHeaders) && (rawRole === 'member' || rawRole === 'user') && tenantId === resolveDefaultPublicTenantId();
+const canOfferDraftManager = (requestHeaders: Headers, rawRole: string | null | undefined, tenantId: string | null | undefined) => evaluateNeutralOtpHost(requestHeaders) && (rawRole === 'member' || rawRole === 'user') && tenantId === resolveDefaultPublicTenantId();
 
 export default async function DashboardPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;

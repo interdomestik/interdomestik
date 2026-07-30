@@ -50,7 +50,7 @@ vi.mock('./_core', () => ({
   getMemberDashboardCore: vi.fn(() => ({ kind: 'ok', userId: 'member-1' })),
 }));
 
-import DashboardPage, { canOfferDraftManager } from './page';
+import DashboardPage from './page';
 
 describe('DashboardPage', () => {
   beforeEach(() => {
@@ -78,16 +78,13 @@ describe('DashboardPage', () => {
   });
 
   // prettier-ignore
-  it.each([
-    ['member', 'tenant_ks', true, true], ['user', 'tenant_ks', true, true],
-    ['agent', 'tenant_ks', true, false], ['member', 'tenant_mk', true, false],
-    ['member', 'tenant_ks', false, false],
-  ])('limits dashboard draft entry for %s/%s/host=%s', (role, tenantId, neutral, expected) => {
-    h.neutralHost = neutral;
-    expect(canOfferDraftManager(new Headers(), role, tenantId)).toBe(expected);
+  it.each([['member','tenant_ks',true,true],['user','tenant_ks',true,true],['agent','tenant_ks',true,false],['member','tenant_mk',true,false],['member','tenant_ks',false,false]])('limits dashboard draft entry',async(role,tenantId,neutral,expected)=>{
+    h.neutralHost=neutral; h.session.mockResolvedValueOnce({user:{id:'m',role,tenantId}});
+    render(await DashboardPage({params:Promise.resolve({locale:'sq'})}));
+    expect(h.view).toHaveBeenLastCalledWith(expect.objectContaining({draftManagerAvailable:expected}));
   });
 
-  it('renders the richer member dashboard view for the canonical member route', async () => {
+  it('renders the canonical member dashboard', async () => {
     const tree = await DashboardPage({
       params: Promise.resolve({ locale: 'mk' }),
     });
@@ -102,7 +99,7 @@ describe('DashboardPage', () => {
     });
   });
 
-  it('passes the exercised member role to dashboard data for agent sessions', async () => {
+  it('coerces agent view and hides draft entry', async () => {
     h.session.mockResolvedValueOnce({
       user: {
         id: 'agent-1',
