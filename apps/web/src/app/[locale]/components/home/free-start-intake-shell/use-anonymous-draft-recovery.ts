@@ -47,7 +47,7 @@ export function useAnonymousDraftRecovery(args: Args) {
     const onStorage = (event: StorageEvent) => {
       if (event.key !== ANONYMOUS_DRAFT_KEY && event.key !== null) return;
       const storage = getAnonymousDraftStorage();
-      if (!storage) return void markUnavailable();
+      if (!storage) return invalidated.current && !reconciliation.current ? undefined : void markUnavailable();
       if (event.storageArea && event.storageArea !== storage) return;
       args.onExternalChange?.();
       if (localWrites.current) return;

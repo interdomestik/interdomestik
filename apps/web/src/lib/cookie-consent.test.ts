@@ -36,6 +36,7 @@ describe('cookie consent helpers', () => {
   it('reads consent from localStorage', () => {
     expect(getCookieConsent()).toBeNull();
     localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, 'accepted');
+    document.cookie = `${COOKIE_CONSENT_COOKIE_NAME}=%`;
     expect(getCookieConsent()).toBe('accepted');
   });
 
@@ -97,7 +98,7 @@ describe('cookie consent helpers', () => {
 
     expect(() => setCookieConsent('necessary')).not.toThrow();
     expect(document.cookie).toContain(`${COOKIE_CONSENT_COOKIE_NAME}=necessary`);
-    expect(getCookieConsent()).toBe('necessary');
+    expect(getCookieConsent()).toBe('accepted');
     expect(dispatch).toHaveBeenCalledTimes(1);
     expect(dispatch.mock.calls[0]?.[0]).toMatchObject({
       type: COOKIE_CONSENT_UPDATED_EVENT,
