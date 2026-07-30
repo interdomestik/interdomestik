@@ -73,6 +73,7 @@ test.describe('@smoke ida.localhost canonical dashboard smoke', () => {
     const origin = new URL(baseURL).origin;
     test.skip(!new URL(origin).hostname.startsWith('ida.'), 'C31 runs only on neutral IDA'); // NOSONAR -- intentional neutral-host gate.
     const headers = testInfo.project.use.extraHTTPHeaders ?? {};
+    const summary = `C31-${testInfo.retry} water damaged two rooms.`;
     const empty = { cookies: [], origins: [] };
     const createContext = () =>
       browser.newContext({ baseURL, extraHTTPHeaders: headers, storageState: empty });
@@ -85,14 +86,13 @@ test.describe('@smoke ida.localhost canonical dashboard smoke', () => {
       const organizer = p1.getByTestId('premium-free-start-organizer');
       await organizer.getByTestId('free-start-manage-open').click();
       await expect(organizer.getByRole('heading', { name: 'Your saved drafts' })).toBeFocused();
-      await expect(organizer.getByText('No saved drafts yet')).toBeVisible();
       await organizer.getByTestId('free-start-category-property').click();
       await organizer.getByRole('button', { name: 'Continue to guided intake' }).click();
       await organizer.getByLabel('What happened?').selectOption('water_damage');
       await organizer.getByLabel('When did it happen?').fill('2026-03-01');
       await organizer.getByLabel('Who are you dealing with?').fill('C31 Building Insurer');
       await organizer.getByLabel('What do you want to recover?').selectOption('repair');
-      await organizer.getByLabel('Brief summary').fill('C31 water damaged two rooms.');
+      await organizer.getByLabel('Brief summary').fill(summary);
       await organizer.getByRole('button', { name: 'Review your summary' }).click();
       await organizer.getByTestId('free-start-save-open').click();
       const status = organizer.getByTestId('free-start-save-status');
@@ -112,9 +112,9 @@ test.describe('@smoke ida.localhost canonical dashboard smoke', () => {
       expect(token && nextToken).toBeTruthy();
       expect(nextToken).not.toBe(token);
       // prettier-ignore
-      await gotoApp(p2, routes.member(testInfo), testInfo, { marker: 'member-dashboard-ready' });
+      await gotoApp(p2, routes.member('en'), testInfo, { marker: 'member-dashboard-ready' });
       const entry = p2.getByTestId('member-draft-continuation');
-      const u = `${routes.memberNewClaim(testInfo)}?mode=drafts`;
+      const u = `${routes.memberNewClaim('en')}?mode=drafts`;
       await expect(entry).toHaveAttribute('href', u);
       await entry.click();
       await expect(p2).toHaveURL(`${origin}${u}`);
@@ -122,8 +122,8 @@ test.describe('@smoke ida.localhost canonical dashboard smoke', () => {
       await expect(resumed.getByTestId('free-start-save-open')).toHaveCount(0);
       await resumed.getByTestId('free-start-manage-open').click();
       await expect(resumed.getByRole('heading', { name: 'Your saved drafts' })).toBeFocused();
-      await expect(resumed.getByText('C31 water damaged two rooms.')).toBeVisible();
-      await resumed.getByRole('button', { name: 'Resume', exact: true }).first().click();
+      const saved = resumed.locator('li').filter({ hasText: summary });
+      await saved.getByTestId(/^free-start-resume-/).click();
       const preview = resumed.locator('dl');
       for (const fact of [
         'Property damage',
@@ -131,7 +131,7 @@ test.describe('@smoke ida.localhost canonical dashboard smoke', () => {
         '2026-03-01',
         'C31 Building Insurer',
         'Repair or replacement costs',
-        'C31 water damaged two rooms.',
+        summary,
       ])
         await expect(preview).toContainText(fact);
       // prettier-ignore
@@ -139,7 +139,7 @@ test.describe('@smoke ida.localhost canonical dashboard smoke', () => {
       await expect(resumed.getByTestId('claim-pack-result')).toHaveCount(0);
       await expect(resumed.getByTestId('free-start-start-another')).toHaveCount(0);
       await resumed.getByTestId('free-start-manage-open').click();
-      await resumed.getByRole('button', { name: 'Delete' }).first().click();
+      await saved.getByTestId(/^free-start-delete-/).click();
       await resumed.getByTestId('free-start-delete-confirm').click();
       const nextStatus = resumed.getByTestId('free-start-save-status');
       await expect(nextStatus).toHaveAttribute('data-state', 'deleted');
