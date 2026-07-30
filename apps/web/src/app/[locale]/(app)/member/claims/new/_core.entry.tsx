@@ -75,7 +75,7 @@ export default async function NewClaimPage({ params, searchParams }: Props) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'claims' });
   const query = await searchParams;
-  const preselectedCategory = query.category;
+  const preselectedCategory = typeof query.category === 'string' ? query.category : undefined;
   const handoffContext = resolveClaimStartHandoff(query);
   const neutralOtpHost = resolveNeutralOtpHost();
 
