@@ -89,6 +89,7 @@ export default async function NewClaimPage({ params, searchParams }: Props) {
   const hasAccess = await hasActiveMembership(session.user.id, tenantId);
   const managerOnly =
     !hasAccess &&
+    Object.getPrototypeOf(query) === Object.prototype &&
     Object.keys(query).length === 1 &&
     query.mode === 'drafts' &&
     evaluateNeutralOtpHost(await headers()) &&

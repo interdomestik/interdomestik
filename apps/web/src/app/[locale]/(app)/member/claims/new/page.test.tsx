@@ -43,8 +43,8 @@ import NewClaimPage from './page';
 import { resolveClaimStartHandoff, resolveNeutralOtpHost } from './_core.entry';
 
 type Query = Record<string, string | string[] | undefined>;
-const loadPage = (query: Query = {}) =>
-  NewClaimPage({ params: Promise.resolve({ locale: 'en' }), searchParams: Promise.resolve(query) });
+// prettier-ignore
+const loadPage = (query: Query = {}) => NewClaimPage({ params: Promise.resolve({ locale: 'en' }), searchParams: Promise.resolve(query) }), poisonedQuery = Object.setPrototypeOf({ mode: 'drafts' }, ['__proto__', 'x']), ok = ['member', 'tenant_ks', new Headers({ host: 'ida.localhost' })] as const;
 
 describe('NewClaimPage dormant draft intake', () => {
   afterEach(() => vi.unstubAllEnvs());
@@ -117,10 +117,11 @@ describe('NewClaimPage dormant draft intake', () => {
 
   // prettier-ignore
   it.each([
-    ['array mode', { mode: ['drafts'] }, 'member', 'tenant_ks', new Headers({ host: 'ida.localhost' })],
-    ['extra key', { mode: 'drafts', source: 'x' }, 'member', 'tenant_ks', new Headers({ host: 'ida.localhost' })],
-    ['case drift', { mode: 'Drafts' }, 'member', 'tenant_ks', new Headers({ host: 'ida.localhost' })],
-    ['whitespace', { mode: ' drafts' }, 'member', 'tenant_ks', new Headers({ host: 'ida.localhost' })],
+    ['array mode', { mode: ['drafts'] }, ...ok],
+    ['hidden key', poisonedQuery, ...ok],
+    ['extra key', { mode: 'drafts', source: 'x' }, ...ok],
+    ['case drift', { mode: 'Drafts' }, ...ok],
+    ['whitespace', { mode: ' drafts' }, ...ok],
     ['other role', { mode: 'drafts' }, 'agent', 'tenant_ks', new Headers({ host: 'ida.localhost' })],
     ['tenant mismatch', { mode: 'drafts' }, 'member', 'tenant_mk', new Headers({ host: 'ida.localhost' })],
     ['spoofed host', { mode: 'drafts' }, 'member', 'tenant_ks', new Headers({ host: 'ida.attacker.example' })],

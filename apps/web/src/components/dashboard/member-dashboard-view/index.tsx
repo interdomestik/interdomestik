@@ -222,7 +222,7 @@ export async function getDashboardSupplementalData({ memberId, tenantId }: { mem
 }
 
 // prettier-ignore
-function MemberTopBar({ isActive, locale, t }: { isActive: boolean; locale: string; t: DashboardTranslator }) {
+function MemberTopBar({ isActive, locale, t }: Readonly<{ isActive: boolean; locale: string; t: DashboardTranslator }>) {
   const brand = t('header.brand');
   const mobileBrand = brand.split(' ')[0] ?? brand;
 
@@ -273,7 +273,7 @@ aria-label={t('header.profile')}
 }
 
 // prettier-ignore
-function MemberHero({ draftManagerHref, draftManagerLabel, hero, isActive, t }: { draftManagerHref: string | null; draftManagerLabel: string; hero: MemberHomeHeroModel; isActive: boolean; t: DashboardTranslator }) {
+function MemberHero({ draftManagerHref, draftManagerLabel, hero, isActive, t }: Readonly<{ draftManagerHref: string | null; draftManagerLabel: string; hero: MemberHomeHeroModel; isActive: boolean; t: DashboardTranslator }>) {
   const ctaKey = hero.ctaKey ?? `${hero.copyKey}.cta`;
   const ctaText = t(ctaKey, hero.translationValues);
   const ariaLabel = hero.ariaLabelKey ? t(hero.ariaLabelKey, hero.translationValues) : undefined;

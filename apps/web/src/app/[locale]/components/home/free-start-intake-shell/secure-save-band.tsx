@@ -10,6 +10,8 @@ import type { useDraftLifecycle } from './use-draft-lifecycle';
 
 // prettier-ignore
 type Props = Readonly<{ lifecycle: ReturnType<typeof useDraftLifecycle>; locale: string; manageOnly?: boolean; neutralOtpHost?: string | null; tenantId?: string | null }>;
+// prettier-ignore
+const hasSaveableChanges = (lifecycle: ReturnType<typeof useDraftLifecycle>) => ['dirty', 'error'].includes(lifecycle.state) || (lifecycle.state === 'deleted' && lifecycle.hasUnsavedChanges);
 
 export function SecureSaveBand({ lifecycle, locale, manageOnly, neutralOtpHost, tenantId }: Props) {
   const t = useTranslations('freeStart');
@@ -96,8 +98,7 @@ onVerified={lifecycle.onVerified}
 ) : null}
 {lifecycle.active ? (
 <div className="mt-4 flex flex-wrap gap-3">
-{['dirty', 'error'].includes(lifecycle.state) ||
-(lifecycle.state === 'deleted' && lifecycle.hasUnsavedChanges) ? (
+{hasSaveableChanges(lifecycle) ? (
 <button
 type="button"
 data-testid="free-start-save-changes"
