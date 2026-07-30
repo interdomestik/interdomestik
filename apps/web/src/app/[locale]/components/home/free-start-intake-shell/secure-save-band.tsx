@@ -11,7 +11,7 @@ import type { useDraftLifecycle } from './use-draft-lifecycle';
 // prettier-ignore
 type Props = Readonly<{ lifecycle: ReturnType<typeof useDraftLifecycle>; locale: string; manageOnly?: boolean; neutralOtpHost?: string | null; tenantId?: string | null }>;
 // prettier-ignore
-const hasSaveableChanges = (lifecycle: ReturnType<typeof useDraftLifecycle>) => ['dirty', 'error'].includes(lifecycle.state) || (lifecycle.state === 'deleted' && lifecycle.hasUnsavedChanges), isNeutralFrontDoor = (neutralOtpHost?: string | null) => ['ida.interdomestik.com', 'ida.localhost', 'ida.127.0.0.1.nip.io'].includes(globalThis.location.hostname) || Boolean(neutralOtpHost && globalThis.location.host.toLowerCase() === neutralOtpHost);
+const hasSaveableChanges = (lifecycle: ReturnType<typeof useDraftLifecycle>) => ['dirty', 'error'].includes(lifecycle.state) || (lifecycle.state === 'deleted' && lifecycle.hasUnsavedChanges), isNeutralFrontDoor = (neutralOtpHost?: string | null) => ['ida.interdomestik.com', 'ida.localhost', 'ida.127.0.0.1.nip.io'].includes(globalThis.location.hostname) || Boolean(neutralOtpHost && globalThis.location.host.toLowerCase() === neutralOtpHost), resolveStatus = (lifecycle: ReturnType<typeof useDraftLifecycle>, locale: string, copy: ReturnType<typeof parseSecureSaveCopy>, reviewCopy: ReturnType<typeof parseSecureSaveReviewCopy>) => { const directStatus = lifecycle.state === 'unsupported' || lifecycle.state === 'invalid' || lifecycle.state === 'accountContext' ? reviewCopy[lifecycle.state] : copy.status[lifecycle.state]; return (directStatus ?? copy.status.error ?? '').replace('{date}', lifecycle.active ? new Date(lifecycle.active.updatedAt).toLocaleString(locale) : ''); };
 
 export function SecureSaveBand({ lifecycle, locale, manageOnly, neutralOtpHost, tenantId }: Props) {
   const t = useTranslations('freeStart');
@@ -30,8 +30,7 @@ export function SecureSaveBand({ lifecycle, locale, manageOnly, neutralOtpHost, 
   // prettier-ignore
   const alert = ['conflict', 'limit', 'invalid', 'unsupported', 'accountContext', 'error'].includes(lifecycle.state);
   const pending = ['saving', 'loading'].includes(lifecycle.state);
-  // prettier-ignore
-  const directStatus = lifecycle.state === 'unsupported' || lifecycle.state === 'invalid' || lifecycle.state === 'accountContext' ? reviewCopy[lifecycle.state] : copy.status[lifecycle.state], status = (directStatus ?? copy.status.error ?? '').replace('{date}', lifecycle.active ? new Date(lifecycle.active.updatedAt).toLocaleString(locale) : '');
+  const status = resolveStatus(lifecycle, locale, copy, reviewCopy);
   // prettier-ignore
   return (
 <section
