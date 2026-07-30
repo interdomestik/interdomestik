@@ -17,7 +17,7 @@ import { useOrganizerFlow } from './use-organizer-flow';
 // prettier-ignore
 const ClaimPackResult = dynamic(() => import('../claim-pack-result').then(module => module.ClaimPackResult), { ssr: false }), SecureSaveBand = dynamic(() => import('./secure-save-band').then(module => module.SecureSaveBand), { ssr: false });
 // prettier-ignore
-export async function resetAfterRecoveryClear(clear: () => Promise<boolean> | boolean, reset: () => void): Promise<boolean> { if (!(await clear())) return false; reset(); return true; }
+export async function resetAfterRecoveryClear(clear: () => Promise<boolean> | boolean, reset: () => void): Promise<boolean> { if (!(await clear())) { return false; } reset(); return true; }
 export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
   const t = useTranslations('freeStart'),
     tCommon = useTranslations('common');

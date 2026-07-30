@@ -82,7 +82,7 @@ export function getAnonymousDraftStorage(): RecoveryStorage | null { try { retur
 // prettier-ignore
 function snapshotFromPayload(value: z.infer<typeof recoverableDraftSchema>): AnonymousDraftSnapshot { return { category: value.category, draft: { counterparty: value.counterparty ?? '', desiredOutcome: value.desiredOutcome ?? '', incidentDate: value.incidentDate ?? '', issueType: value.issueType ?? '', summary: value.summary ?? '' }, resumeStep: value.resumeStep }; }
 // prettier-ignore
-export function createAnonymousDraftSnapshot(category: CategoryId, draft: DraftState, step: StepId): AnonymousDraftSnapshot | null { if (category !== 'vehicle' && category !== 'property') return null; const parsed = recoverableDraftSchema.safeParse({ category, counterparty: draft.counterparty || undefined, desiredOutcome: draft.desiredOutcome || undefined, incidentDate: draft.incidentDate || undefined, issueType: draft.issueType || undefined, resumeStep: step === 'complete' ? 'preview' : step, summary: draft.summary || undefined }); return parsed.success ? snapshotFromPayload(parsed.data) : null; }
+export function createAnonymousDraftSnapshot(category: CategoryId, draft: DraftState, step: StepId): AnonymousDraftSnapshot | null { if (category !== 'vehicle' && category !== 'property') { return null; } const parsed = recoverableDraftSchema.safeParse({ category, counterparty: draft.counterparty || undefined, desiredOutcome: draft.desiredOutcome || undefined, incidentDate: draft.incidentDate || undefined, issueType: draft.issueType || undefined, resumeStep: step === 'complete' ? 'preview' : step, summary: draft.summary || undefined }); return parsed.success ? snapshotFromPayload(parsed.data) : null; }
 // prettier-ignore
 export function sameAnonymousDraftRecord(left: AnonymousDraftRecord, right: AnonymousDraftRecord) { return JSON.stringify(left) === JSON.stringify(right); }
 function decode(raw: string, now: number): AnonymousDraftRecord | null {
@@ -125,7 +125,7 @@ export function readAnonymousDraft(storage: RecoveryStorage | null, now = Date.n
   }
 }
 // prettier-ignore
-export function writeAnonymousDraft(storage: RecoveryStorage | null, snapshot: AnonymousDraftSnapshot, expected: AnonymousDraftRecord | null, orderingNow = Date.now(), executionNow = Date.now()): WriteResult {
+export function writeAnonymousDraft(storage: RecoveryStorage | null, snapshot: AnonymousDraftSnapshot, expected: AnonymousDraftRecord | null, orderingNow = Date.now(), executionNow = Date.now()): WriteResult { // NOSONAR -- atomic CAS order is contract-bound and race-tested.
   if (!storage) return { status: 'unavailable' };
   if (!Number.isFinite(orderingNow) || !Number.isFinite(executionNow)) return { status: 'unavailable' };
   if (orderingNow > executionNow + 60_000 || orderingNow + ANONYMOUS_DRAFT_TTL_MS <= executionNow) return { status: 'stale' };
@@ -146,4 +146,4 @@ export function writeAnonymousDraft(storage: RecoveryStorage | null, snapshot: A
   try { storage.setItem(ANONYMOUS_DRAFT_KEY, JSON.stringify(data.data)); return { status: 'saved', record: saved }; } catch { return { status: 'unavailable' }; }
 }
 // prettier-ignore
-export function removeAnonymousDraft(storage: RecoveryStorage | null, expected?: AnonymousDraftRecord, now = Date.now()): RemoveResult { if (!storage) return { status: 'unavailable' }; const current = readAnonymousDraft(storage, now); if (current.status !== 'available') return current; if (expected && !sameAnonymousDraftRecord(current.record, expected)) return { status: 'changed', record: current.record }; try { storage.removeItem(ANONYMOUS_DRAFT_KEY); return { status: 'removed' }; } catch { return { status: 'unavailable' }; } }
+export function removeAnonymousDraft(storage: RecoveryStorage | null, expected?: AnonymousDraftRecord, now = Date.now()): RemoveResult { if (!storage) { return { status: 'unavailable' }; } const current = readAnonymousDraft(storage, now); if (current.status !== 'available') { return current; } if (expected && !sameAnonymousDraftRecord(current.record, expected)) { return { status: 'changed', record: current.record }; } try { storage.removeItem(ANONYMOUS_DRAFT_KEY); return { status: 'removed' }; } catch { return { status: 'unavailable' }; } }

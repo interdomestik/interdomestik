@@ -26,7 +26,7 @@ export function useSecureIntentGuard(onVerified: () => Promise<void>) {
   // prettier-ignore
   const invalidate = useCallback(() => { epochRef.current += 1; setEpoch(epochRef.current); }, []);
   // prettier-ignore
-  const verify = async () => { if (epochRef.current !== epoch) throw new Error('secure_save_intent_failed'); await onVerified(); };
+  const verify = async () => { if (epochRef.current !== epoch) { throw new Error('secure_save_intent_failed'); } await onVerified(); };
   return { epoch, invalidate, onVerified: verify };
 }
 

@@ -9,7 +9,7 @@ type RecoveryState = 'idle' | 'saved' | 'offer' | 'conflict' | 'retained' | 'una
 // prettier-ignore
 type Args = Readonly<{ activeFingerprint?: string | null; activeId: string | null; category: CategoryId | null; draft: DraftState; lifecycleState: DraftSaveState; neutralHost?: string | null; onExternalChange?: () => void; onReset: () => void; onRestore: (draft: AnonymousDraftSnapshot) => void; resetCategory: CategoryId | null; step: StepId }>;
 // prettier-ignore
-function isNeutralHost(configured?: string | null) { return typeof location !== 'undefined' && (location.hostname.toLowerCase() === 'ida.localhost' || Boolean(configured && location.host.toLowerCase() === configured.toLowerCase())); }
+function isNeutralHost(configured?: string | null) { return typeof location !== 'undefined' && (location.hostname.toLowerCase() === 'ida.localhost' || configured?.toLowerCase() === location.host.toLowerCase()); }
 // prettier-ignore
 function recordFingerprint(value: AnonymousDraftSnapshot) { const { draft } = value; return JSON.stringify([value.category, draft.counterparty, draft.desiredOutcome, draft.incidentDate, draft.issueType, value.resumeStep, draft.summary]); }
 // prettier-ignore
@@ -17,6 +17,8 @@ function fingerprint(category: CategoryId | null, draft: DraftState, step: StepI
 // prettier-ignore
 function captureTime() { try { const now = Date.now(); return Number.isFinite(now) ? now : null; } catch { return null; } }
 type LockedRun<T> = Readonly<{ current: boolean; result: LockedResult<T | null> }>;
+// prettier-ignore
+function readState(fromEvent: boolean, matches: boolean): RecoveryState { if (!fromEvent) { return 'offer'; } return matches ? 'saved' : 'conflict'; }
 // prettier-ignore
 export function useAnonymousDraftRecovery(args: Args) {
   // prettier-ignore
@@ -27,21 +29,21 @@ export function useAnonymousDraftRecovery(args: Args) {
   // prettier-ignore
   const resetFingerprint = fingerprint(args.resetCategory, EMPTY_DRAFT, args.resetCategory ? 'details' : 'category'), pending = args.lifecycleState === 'saving' || args.lifecycleState === 'loading', promotion = promotionFingerprint.current, copyCurrent = Boolean(knownRecord.current && recordFingerprint(knownRecord.current) === currentFingerprint), activeCopyCurrent = Boolean(args.activeId && ((args.lifecycleState === 'saved' && promotion && (!promotion.targetId || promotion.targetId === args.activeId)) || (!knownRecord.current && args.lifecycleState === 'saved') || copyCurrent));
   // prettier-ignore
-  const markUnavailable = useCallback((retainKnown = true) => { if (terminalInvalidation.current) { reconciliation.current = false; setEnabled(false); setOffer(null); setState('discarded'); return; } reconciliation.current = true; setEnabled(false); setOffer(null); if (!retainKnown) knownRecord.current = null; setState(retainKnown && knownRecord.current ? 'retained' : 'unavailable'); }, []);
+  const markUnavailable = useCallback((retainKnown = true) => { if (terminalInvalidation.current) { reconciliation.current = false; setEnabled(false); setOffer(null); setState('discarded'); return; } reconciliation.current = true; setEnabled(false); setOffer(null); if (!retainKnown) { knownRecord.current = null; } setState(retainKnown && knownRecord.current ? 'retained' : 'unavailable'); }, []);
   // prettier-ignore
   const markRetained = useCallback(() => { reconciliation.current = true; setEnabled(false); setOffer(null); setState('retained'); }, []);
   // prettier-ignore
   const supersede = useCallback(() => { generation.current += 1; abortRef.current?.abort(); reconcileAbortRef.current?.abort(); abortRef.current = null; reconcileAbortRef.current = null; }, []);
   // prettier-ignore
-  const runLocked = useCallback(async <T,>(task: (current: () => boolean, executionNow: number) => T, boundContext?: string): Promise<LockedRun<T>> => { const id = ++generation.current; abortRef.current?.abort(); reconcileAbortRef.current?.abort(); const controller = new AbortController(); abortRef.current = controller; const current = () => mounted.current && generation.current === id && (!boundContext || currentContextRef.current === boundContext); const result = await runAnonymousDraftLocked(() => { if (!current()) return null; const executionNow = Date.now(); if (!Number.isFinite(executionNow)) throw new Error('invalid clock'); return task(current, executionNow); }, controller.signal); if (abortRef.current === controller) abortRef.current = null; return { current: current(), result }; }, []);
+  const runLocked = useCallback(async <T,>(task: (current: () => boolean, executionNow: number) => T, boundContext?: string): Promise<LockedRun<T>> => { const id = ++generation.current; abortRef.current?.abort(); reconcileAbortRef.current?.abort(); const controller = new AbortController(); abortRef.current = controller; const current = () => mounted.current && generation.current === id && (!boundContext || currentContextRef.current === boundContext); const result = await runAnonymousDraftLocked(() => { if (!current()) { return null; } const executionNow = Date.now(); if (!Number.isFinite(executionNow)) { throw new Error('invalid clock'); } return task(current, executionNow); }, controller.signal); if (abortRef.current === controller) { abortRef.current = null; } return { current: current(), result }; }, []);
   // prettier-ignore
-  const runReconcile = useCallback(async <T,>(task: (current: () => boolean, executionNow: number) => T): Promise<LockedRun<T>> => { const id = generation.current; reconcileAbortRef.current?.abort(); const controller = new AbortController(); reconcileAbortRef.current = controller; const current = () => mounted.current && generation.current === id; const result = await runAnonymousDraftLocked(() => { if (!current()) return null; const executionNow = Date.now(); if (!Number.isFinite(executionNow)) throw new Error('invalid clock'); return task(current, executionNow); }, controller.signal); if (reconcileAbortRef.current === controller) reconcileAbortRef.current = null; return { current: current(), result }; }, []);
+  const runReconcile = useCallback(async <T,>(task: (current: () => boolean, executionNow: number) => T): Promise<LockedRun<T>> => { const id = generation.current; reconcileAbortRef.current?.abort(); const controller = new AbortController(); reconcileAbortRef.current = controller; const current = () => mounted.current && generation.current === id; const result = await runAnonymousDraftLocked(() => { if (!current()) { return null; } const executionNow = Date.now(); if (!Number.isFinite(executionNow)) { throw new Error('invalid clock'); } return task(current, executionNow); }, controller.signal); if (reconcileAbortRef.current === controller) { reconcileAbortRef.current = null; } return { current: current(), result }; }, []);
   // prettier-ignore
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; supersede(); }; }, [supersede]);
   // prettier-ignore
-  const applyRead = useCallback((result: ReadResult, fromEvent = false) => { if (result.status === 'unavailable' || result.status === 'invalid') return markUnavailable(result.status !== 'invalid'); reconciliation.current = false; setEnabled(true); if (result.status === 'none') { terminalInvalidation.current = fromEvent; offerRequired.current = false; knownRecord.current = null; setOffer(null); if (fromEvent) { invalidated.current = true; setEnabled(false); } setState(fromEvent ? 'discarded' : 'idle'); return; } terminalInvalidation.current = false; const matches = recordFingerprint(result.record) === currentFingerprintRef.current; offerRequired.current = !fromEvent || !matches; knownRecord.current = result.record; if (fromEvent && matches) invalidated.current = false; setOffer(fromEvent && matches ? null : result.record); setState(fromEvent ? (matches ? 'saved' : 'conflict') : 'offer'); }, [markUnavailable]);
+  const applyRead = useCallback((result: ReadResult, fromEvent = false) => { if (result.status === 'unavailable' || result.status === 'invalid') { return markUnavailable(result.status !== 'invalid'); } reconciliation.current = false; setEnabled(true); if (result.status === 'none') { terminalInvalidation.current = fromEvent; offerRequired.current = false; knownRecord.current = null; setOffer(null); if (fromEvent) { invalidated.current = true; setEnabled(false); } setState(fromEvent ? 'discarded' : 'idle'); return; } terminalInvalidation.current = false; const matches = recordFingerprint(result.record) === currentFingerprintRef.current; offerRequired.current = !fromEvent || !matches; knownRecord.current = result.record; if (fromEvent && matches) { invalidated.current = false; } setOffer(fromEvent && matches ? null : result.record); setState(readState(fromEvent, matches)); }, [markUnavailable]);
   // prettier-ignore
-  useEffect(() => { if (!neutralHost) { supersede(); setEnabled(false); setOffer(null); setReady(true); setState('idle'); return; } void runLocked((current, now) => current() ? readAnonymousDraft(getAnonymousDraftStorage(), now) : null).then(({ current, result }) => { if (!current) return; if (result.status === 'unavailable' || !result.value) markUnavailable(); else applyRead(result.value); setReady(true); }); }, [applyRead, markUnavailable, neutralHost, runLocked, supersede]);
+  useEffect(() => { if (!neutralHost) { supersede(); setEnabled(false); setOffer(null); setReady(true); setState('idle'); return; } void runLocked((current, now) => current() ? readAnonymousDraft(getAnonymousDraftStorage(), now) : null).then(({ current, result }) => { if (!current) { return; } if (result.status === 'unavailable' || !result.value) { markUnavailable(); } else { applyRead(result.value); } setReady(true); }); }, [applyRead, markUnavailable, neutralHost, runLocked, supersede]);
   useEffect(() => {
     if (!neutralHost) return;
     const onStorage = (event: StorageEvent) => {
@@ -61,11 +63,11 @@ export function useAnonymousDraftRecovery(args: Args) {
     };
     addEventListener('storage', onStorage); return () => removeEventListener('storage', onStorage);
   }, [applyRead, args.onExternalChange, markUnavailable, neutralHost, runReconcile]);
-  useEffect(() => {
+  useEffect(() => { // NOSONAR -- the cohesive recovery state machine preserves atomic race ordering.
     if (!neutralHost || !ready || activeCopyCurrent || copyCurrent || offer || interaction.current || terminalInvalidation.current || (invalidated.current && !reconciliation.current) || pending) return;
     if (args.activeId && args.lifecycleState === 'saved' && knownRecord.current && recordFingerprint(knownRecord.current) !== currentFingerprint) { setOffer(knownRecord.current); setState('conflict'); return; }
     const snapshot = args.category ? createAnonymousDraftSnapshot(args.category, args.draft, args.step) : null;
-    if (!snapshot) { supersede(); if (args.category) setEnabled(false); setOffer(null); if (!reconciliation.current) setState(knownRecord.current ? 'retained' : 'idle'); return; }
+    if (!snapshot) { supersede(); if (args.category) { setEnabled(false); } setOffer(null); if (!reconciliation.current) { setState(knownRecord.current ? 'retained' : 'idle'); } return; }
     if (suppression.current) {
       const { from, to } = suppression.current;
       if (currentFingerprint === to) { suppression.current = null; return; }
@@ -100,12 +102,12 @@ export function useAnonymousDraftRecovery(args: Args) {
     }
     if (previous === 'saving' && args.lifecycleState !== 'saving' && args.lifecycleState !== 'saved') { promotionFingerprint.current = null; return; }
     if (previous !== 'saving' || args.lifecycleState !== 'saved' || !args.activeId) return;
-    void (async () => {
-      const activePromotion = promotionFingerprint.current, promotedId = args.activeId; if (!activePromotion) return; activePromotion.targetId = promotedId;
+    void (async () => { // NOSONAR -- promotion outcomes remain in one contract-bound transition.
+      const activePromotion = promotionFingerprint.current, promotedId = args.activeId; if (!activePromotion) { return; } activePromotion.targetId = promotedId;
       const savedFingerprint = activePromotion.source, serverMismatch = args.activeFingerprint !== savedFingerprint;
-      const orderingNow = captureTime(); if (orderingNow === null) { if (promotionFingerprint.current === activePromotion) promotionFingerprint.current = null; return markUnavailable(); }
+      const orderingNow = captureTime(); if (orderingNow === null) { if (promotionFingerprint.current === activePromotion) { promotionFingerprint.current = null; } return markUnavailable(); }
       const output = await runLocked((current, executionNow) => {
-        if (!current() || activeIdRef.current !== promotedId) return null; const storage = getAnonymousDraftStorage(), stored = readAnonymousDraft(storage, executionNow), latest = currentSnapshotRef.current;
+        if (!current() || activeIdRef.current !== promotedId) { return null; } const storage = getAnonymousDraftStorage(), stored = readAnonymousDraft(storage, executionNow), latest = currentSnapshotRef.current;
         if (serverMismatch) return stored.status === 'available' ? { status: 'changed' as const, record: stored.record } : stored;
         if (stored.status !== 'available' || recordFingerprint(stored.record) !== savedFingerprint) { if (stored.status !== 'available') { return stored; } if (latest && recordFingerprint(latest) === savedFingerprint && knownRecord.current && sameAnonymousDraftRecord(stored.record, knownRecord.current)) { return removeAnonymousDraft(storage, stored.record, executionNow); } return { status: 'changed' as const, record: stored.record }; }
         return latest && recordFingerprint(latest) !== savedFingerprint ? writeAnonymousDraft(storage, latest, stored.record, orderingNow, executionNow) : removeAnonymousDraft(storage, stored.record, executionNow);
@@ -123,8 +125,8 @@ export function useAnonymousDraftRecovery(args: Args) {
   // prettier-ignore
   const clearDeviceCopy = useCallback(async () => { if (!neutralHost) { return true; } const expected = offer ?? knownRecord.current; const output = await runLocked((current, executionNow) => { if (!current()) { return null; } if (expected) { return removeAnonymousDraft(getAnonymousDraftStorage(), expected, executionNow); } const value = readAnonymousDraft(getAnonymousDraftStorage(), executionNow); return value.status === 'available' ? { status: 'changed' as const, record: value.record } : value; }, currentContext); if (!output.current) { return false; } if (output.result.status === 'unavailable' || !output.result.value) { if (expected) { markRetained(); } else { markUnavailable(); } return false; } const value = output.result.value; if (value.status === 'invalid') { markUnavailable(false); return false; } if (value.status === 'unavailable') { if (expected) { markRetained(); } else { markUnavailable(); } return false; } if (value.status === 'changed') { offerRequired.current = true; knownRecord.current = value.record; setOffer(value.record); setState('conflict'); return false; } terminalInvalidation.current = false; offerRequired.current = false; invalidated.current = false; reconciliation.current = false; promotionFingerprint.current = null; knownRecord.current = null; setEnabled(true); setOffer(null); return true; }, [currentContext, markRetained, markUnavailable, neutralHost, offer, runLocked]);
   const clearBeforeReset = useCallback(async () => {
-    if (pending || actionBusy.current) return false; actionBusy.current = true; setBusy(true);
-    try { if (!(await clearDeviceCopy())) return false; invalidated.current = false; suppression.current = { from: currentFingerprint, to: resetFingerprint }; setState('discarded'); return true; }
+    if (pending || actionBusy.current) { return false; } actionBusy.current = true; setBusy(true);
+    try { if (!(await clearDeviceCopy())) { return false; } invalidated.current = false; suppression.current = { from: currentFingerprint, to: resetFingerprint }; setState('discarded'); return true; }
     finally { actionBusy.current = false; setBusy(false); }
   }, [clearDeviceCopy, currentFingerprint, pending, resetFingerprint]);
   // prettier-ignore

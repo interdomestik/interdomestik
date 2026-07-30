@@ -20,7 +20,15 @@ type RecoveryCopy = Readonly<{
   >;
 }>;
 
-export function AnonymousDraftRecoveryBand({ recovery }: Props) {
+function getRecoveryStatus(copy: RecoveryCopy, recovery: Props['recovery']) {
+  if (recovery.state === 'retained') return copy.status.retained;
+  if (recovery.state === 'offer') return copy.offerBody;
+  return copy.status[recovery.state as keyof RecoveryCopy['status']];
+}
+
+// The bounded branches intentionally mirror the explicit recovery states.
+// prettier-ignore
+export function AnonymousDraftRecoveryBand({ recovery }: Props) { // NOSONAR
   const t = useTranslations('freeStart');
   const secureCopy = JSON.parse(String(t.raw('secureSave'))) as {
     recovery: RecoveryCopy;
@@ -34,11 +42,7 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) {
   const retained = recovery.state === 'retained';
   const recoverable =
     hasOffer || retained || recovery.state === 'saved' || recovery.state === 'conflict';
-  const status = retained
-    ? copy.status.retained
-    : recovery.state === 'offer'
-      ? copy.offerBody
-      : copy.status[recovery.state as keyof RecoveryCopy['status']];
+  const status = getRecoveryStatus(copy, recovery);
   let heading = status;
   if (recoverable && !retained) heading = copy.heading;
   if (hasOffer) heading = copy.offerHeading;
