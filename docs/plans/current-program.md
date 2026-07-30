@@ -6296,8 +6296,17 @@ one truthful continuation entry only for the exact fulfilled-inactive,
 default-public-tenant member/user contract, and explicit Manage reuses the
 existing owner-scoped six-fact resume/update/delete path with dormant
 submission. Active-member and anonymous recovery journeys remain unchanged.
-Focused tests, mandatory Phase C gates, exact-head Z620 C31, PR CI/E2E/Pilot,
-Sonar, CodeQL, security backstops, finalizer and feedback intake passed.
+Runtime receipt `IDA-UI03a5-RUNTIME-R1`, accepted `2026-07-30T11:54:56Z`,
+is exactly 8,148 bytes / SHA-256
+`3cda011d61b12fdbf19c95ac751b523e234fac0b37c9a37c386fc8e47df42528`;
+it binds merged authority PR `#1479`, exact base `cfe89a7b…`, R9, the sole
+resolver selection and the single writer/worktree lifecycle consumed here.
+Focused tests, `security:guard`, exact-head Z620 C31, PR CI/E2E/Pilot, Sonar,
+CodeQL, security backstops, finalizer and feedback intake passed. `pnpm
+pr:verify` remains NON-PASS as a single local invocation: its non-browser lanes
+passed, inherited shared-database cleanup invalidated the browser lane, and
+passing isolated Z620 task-database plus exact-head remote browser proof
+replaced only that invalidated evidence.
 Exact-main CD `30561665280` was cancelled during setup before checkout,
 registry, image, provider, alias, deployment or production work. Rollback is a
 single merge revert with no data rollback because the slice introduced no
