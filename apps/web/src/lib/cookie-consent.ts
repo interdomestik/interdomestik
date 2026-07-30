@@ -21,7 +21,11 @@ function getCookieValue(name: string): string | null {
   if (!match) return null;
 
   const [, rawValue = ''] = match.split('=');
-  return rawValue ? decodeURIComponent(rawValue) : null;
+  try {
+    return rawValue ? decodeURIComponent(rawValue) : null;
+  } catch {
+    return null;
+  }
 }
 
 export function parseCookieConsentValue(

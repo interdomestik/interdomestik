@@ -60,6 +60,16 @@ describe('cookie consent helpers', () => {
     expect(getCookieConsent()).toBe('necessary');
   });
 
+  it('treats malformed cookie encoding as absent when storage is denied', () => {
+    document.cookie = `${COOKIE_CONSENT_COOKIE_NAME}=%`;
+    vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => {
+      throw new DOMException('blocked', 'SecurityError');
+    });
+
+    expect(() => getCookieConsent()).not.toThrow();
+    expect(getCookieConsent()).toBeNull();
+  });
+
   it('persists consent and emits update event', () => {
     const dispatch = vi.spyOn(window, 'dispatchEvent');
 
