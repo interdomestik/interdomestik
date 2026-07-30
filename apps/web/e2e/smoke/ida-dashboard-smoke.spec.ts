@@ -11,23 +11,17 @@ const canonicalDashboardCases = [
 ] as const;
 
 async function signInMember(page: Page, origin: string, headers: Record<string, string>) {
-  const response = await page.request.post(`${origin}/api/auth/sign-in/email`, {
-    data: { email: E2E_USERS.KS_MEMBER_EMPTY.email, password: E2E_PASSWORD },
-    headers: { Origin: origin, Referer: `${origin}${routes.login('en')}`, ...headers },
-  });
+  // prettier-ignore
+  const response = await page.request.post(`${origin}/api/auth/sign-in/email`, { data: { email: E2E_USERS.KS_MEMBER_EMPTY.email, password: E2E_PASSWORD }, headers: { Origin: origin, Referer: `${origin}${routes.login('en')}`, ...headers } });
   expect(response.ok(), await response.text()).toBe(true);
-  const session = await page.request.get(`${origin}/api/auth/get-session`, {
-    headers: { Origin: origin, ...headers },
-  });
+  // prettier-ignore
+  const session = await page.request.get(`${origin}/api/auth/get-session`, { headers: { Origin: origin, ...headers } });
   expect(session.ok(), await session.text()).toBe(true);
   return (await session.json()) as { user: { id: string } };
 }
 
-function assertNoHostTenantContext(
-  responseHeaders: Record<string, string>,
-  origin: string,
-  cookies: Array<{ name: string }>
-) {
+// prettier-ignore
+function assertNoHostTenantContext(responseHeaders: Record<string, string>, origin: string, cookies: Array<{ name: string }>) {
   expect(responseHeaders['x-e2e-tenant']).toBe('none');
   expect(responseHeaders['x-e2e-tenant-context']).toBe('public');
   expect(cookies.find(cookie => cookie.name === 'tenantId')).toBeUndefined();
@@ -51,7 +45,6 @@ test.describe('@smoke ida.localhost canonical dashboard smoke', () => {
 
       expect(projectHeaders[forwardedHostHeader]).toBeUndefined();
       expect(projectHeaders['x-tenant-id']).toBe('tenant_ks');
-
       await loginAs(scenario.role);
 
       const response = await gotoApp(page, scenario.route(testInfo), testInfo, {
@@ -86,10 +79,10 @@ test.describe('@smoke ida.localhost canonical dashboard smoke', () => {
     let first: BrowserContext | null = await createContext();
     let second: BrowserContext | null = null;
     try {
-      const firstPage = await first.newPage();
-      await gotoApp(firstPage, routes.home('en'), testInfo, { marker: 'free-start-intake-shell' });
-      const firstSession = await signInMember(firstPage, origin, headers);
-      const organizer = firstPage.getByTestId('premium-free-start-organizer');
+      const p1 = await first.newPage();
+      await gotoApp(p1, routes.home('en'), testInfo, { marker: 'free-start-intake-shell' });
+      const firstSession = await signInMember(p1, origin, headers);
+      const organizer = p1.getByTestId('premium-free-start-organizer');
       await organizer.getByTestId('free-start-manage-open').click();
       await expect(organizer.getByRole('heading', { name: 'Your saved drafts' })).toBeFocused();
       await expect(organizer.getByText('No saved drafts yet')).toBeVisible();
@@ -111,15 +104,22 @@ test.describe('@smoke ida.localhost canonical dashboard smoke', () => {
       await first.close();
       first = null;
       second = await createContext();
-      const secondPage = await second.newPage();
-      await gotoApp(secondPage, routes.home('en'), testInfo, { marker: 'free-start-intake-shell' });
-      const secondSession = await signInMember(secondPage, origin, headers);
+      const p2 = await second.newPage();
+      const secondSession = await signInMember(p2, origin, headers);
       expect(secondSession.user.id).toBe(firstSession.user.id);
       // prettier-ignore
       const nextToken = (await second.cookies(origin)).find(cookie => cookie.name.includes('session_token'))?.value;
       expect(token && nextToken).toBeTruthy();
       expect(nextToken).not.toBe(token);
-      const resumed = secondPage.getByTestId('premium-free-start-organizer');
+      // prettier-ignore
+      await gotoApp(p2, routes.member(testInfo), testInfo, { marker: 'member-dashboard-ready' });
+      const entry = p2.getByTestId('member-draft-continuation');
+      const u = `${routes.memberNewClaim(testInfo)}?mode=drafts`;
+      await expect(entry).toHaveAttribute('href', u);
+      await entry.click();
+      await expect(p2).toHaveURL(`${origin}${u}`);
+      const resumed = p2.getByTestId('claim-draft-intake');
+      await expect(resumed.getByTestId('free-start-save-open')).toHaveCount(0);
       await resumed.getByTestId('free-start-manage-open').click();
       await expect(resumed.getByRole('heading', { name: 'Your saved drafts' })).toBeFocused();
       await expect(resumed.getByText('C31 water damaged two rooms.')).toBeVisible();
@@ -134,10 +134,10 @@ test.describe('@smoke ida.localhost canonical dashboard smoke', () => {
         'C31 water damaged two rooms.',
       ])
         await expect(preview).toContainText(fact);
-      await resumed.getByRole('button', { name: 'Create my summary' }).click();
-      await expect(resumed.getByTestId('claim-pack-result')).toContainText(
-        'The generated result itself remains temporary and is not saved'
-      );
+      // prettier-ignore
+      await expect(resumed.getByRole('button', { name: 'Submit claim — not available yet' })).toBeDisabled();
+      await expect(resumed.getByTestId('claim-pack-result')).toHaveCount(0);
+      await expect(resumed.getByTestId('free-start-start-another')).toHaveCount(0);
       await resumed.getByTestId('free-start-manage-open').click();
       await resumed.getByRole('button', { name: 'Delete' }).first().click();
       await resumed.getByTestId('free-start-delete-confirm').click();
