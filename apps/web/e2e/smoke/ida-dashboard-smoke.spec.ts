@@ -37,12 +37,10 @@ test.describe('@smoke ida.localhost canonical dashboard smoke', () => {
       const baseURL = testInfo.project.use.baseURL?.toString();
       const projectHeaders = testInfo.project.use.extraHTTPHeaders ?? {};
       if (!baseURL) throw new Error('smoke-ida requires project.use.baseURL');
-
       const origin = new URL(baseURL).origin;
       const isIdaHost = new URL(origin).hostname.startsWith('ida.');
       const forwardedHostHeader = ['x-forwarded', 'host'].join('-');
       test.skip(!isIdaHost, 'ida dashboard smoke only runs in ida projects');
-
       expect(projectHeaders[forwardedHostHeader]).toBeUndefined();
       expect(projectHeaders['x-tenant-id']).toBe('tenant_ks');
       await loginAs(scenario.role);
@@ -82,6 +80,7 @@ test.describe('@smoke ida.localhost canonical dashboard smoke', () => {
     try {
       const p1 = await first.newPage();
       await gotoApp(p1, routes.home('en'), testInfo, { marker: 'free-start-intake-shell' });
+      await p1.getByTestId('cookie-consent-accept').click();
       const firstSession = await signInMember(p1, origin, headers);
       const organizer = p1.getByTestId('premium-free-start-organizer');
       await organizer.getByTestId('free-start-manage-open').click();
@@ -113,6 +112,7 @@ test.describe('@smoke ida.localhost canonical dashboard smoke', () => {
       expect(nextToken).not.toBe(token);
       // prettier-ignore
       await gotoApp(p2, routes.member('en'), testInfo, { marker: 'member-dashboard-ready' });
+      await p2.getByTestId('cookie-consent-accept').click();
       const entry = p2.getByTestId('member-draft-continuation');
       const u = `${routes.memberNewClaim('en')}?mode=drafts`;
       await expect(entry).toHaveAttribute('href', u);
