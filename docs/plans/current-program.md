@@ -2920,8 +2920,76 @@ product outcome; the cumulative ceiling remains 19 and all proxy/routes/auth/ten
 RLS/billing/provider/deployment/production boundaries remain unchanged. Runtime remains stopped
 until this docs-only authority merges and resolver/scorecard rebind exactly `IDA-UI03a4`.
 
-The next active governed implementation goal is exactly one canonical tracker slice:
-`IDA-UI03a4`
+Rev 187 closeout supersedes only the active-status and future-implementation
+statements in Rev 186. `IDA-UI03a4` completed through implementation PR
+`#1473`, final exact reviewed head
+`90c6bb057b4acd1bf06275b9e7c9d4921f646297` and squash merge/main
+`d810758fed387a2fcfe42b384c783c6e27581f6d`. Canonical authority PR `#1477`
+merged exact `IDA-DG22-A4` R4 first as
+`ae755991ee11c15cf8eef3d11878ffec05994bc9`; the final implementation stayed
+inside the cumulative 19-path map and consumed only the `IDA-DG22` product
+outcome.
+
+The merged public Free Start organizer preserves eligible vehicle/property
+notes for same-browser, pre-membership recovery, offers an explicit
+resume-or-discard choice after a cold return and removes only the matching
+local copy after the existing verified-email secure save reaches `saving` →
+`saved` with a server draft id. Same-browser recovery creates no membership,
+claim, case, document or cross-device record; completed `IDA-UI03a1` remains
+the sole cross-device secure-save authority.
+
+Final focused proof passed 81/81 unit/component/contract tests plus type,
+format, lint, modularity, repository-size, diff and `security:guard` checks.
+Exact-head CI `30506278743`, PR E2E `30506278746` with 225 passed / 9 policy
+skips / zero retries, Pilot Gate `30506278745`, finalizer `30506278742`,
+Sonar A/A/A with zero open or accepted issues/hotspots/duplication, CodeQL,
+gitleaks, pnpm audit, dependency review, Semgrep, OSV and reviewdog passed.
+All 22 review threads are resolved. The final check rollup was 29 success,
+2 policy skips, 0 pending and 0 failed.
+
+Opus 4.8 and GPT-5.6 Ultra were quota-blocked. Claude Sonnet 4.6 supplied the
+approved low-risk fallback and passed the final patch, Sonar-remediation delta
+and final TypeError delta in 94.266, 77.280 and 35.336 seconds. Gemini produced
+no valid review evidence. The carried valid Opus ledger is 22 calls /
+4,529.178 seconds, average 205.872 seconds; quota failures, invalid routes and
+no-output calls are excluded. Codex Security diff scan was explicitly waived
+by Arben, while every applicable repo-native security surface remained green.
+No current-head Copilot review materialized after the final push; the route is
+classified unavailable rather than approval, and all earlier feedback is
+resolved.
+
+Exact-main CI `30507056833`, Sonar Main `30507056846`, CodeQL
+`30507056367` / `30507056382`, Secret Scan `30507056836` and automatic
+exact-main CD `30507056853` are bound to merge
+`d810758fed387a2fcfe42b384c783c6e27581f6d` and completed `success`.
+CD build/attestation job `90758996463` passed in 19m31s, deploy/health/
+provenance job `90761786077` passed in 15m17s, and staging release-gate job
+`90763972865` passed in 10m27s with P0.1/P0.2/P0.3/P0.4/P0.6 all `PASS`.
+Healthy-path rollback and every production job skipped. The published staging
+image digest is
+`sha256:0b8b492b5417c7083eeb5a789f1283ecdb862d568d453b3e5c9df15dde527e1a`.
+Fresh CD preflight observed the exclusive `interdomestik-z620-staging` runner
+online with the exact build job as its only busy owner. Operator samples across
+the exact run recorded conservative minima of 52 GiB free disk and 17,640 MiB
+available memory, above the 30 GiB / 8 GiB thresholds. Z620 retains staging
+build/attestation, Vercel prebuild/deploy, E2E and rollback; production
+evidence remains GitHub-hosted Ubuntu and production build/deploy/verify
+remains Mac-only under separate tag/manual authority.
+
+`docs/plans/2026-07-30-ida-ui03a4-closeout.md` records the complete authority,
+scope, verification, reviewer/security, runner, rollback and residual-risk
+ledger. `apps/web/src/proxy.ts`, canonical routes and page-ready markers,
+auth/session/OTP, tenancy, schema/RLS, billing, claims, membership, providers
+and production authority remain unchanged.
+
+The pre-existing public-header/document overflow at literal 320 CSS pixels
+remains an explicit unpromoted UI-journey-tree candidate. The accepted
+consent-downgrade stale-readable-copy and stalled Web Lock holder
+availability-only boundaries remain documented residuals. No replacement
+implementation slice is promoted by this closeout. Expected terminal resolver
+state is `blocked_requires_current_authority`, `activeSlice=null`; the next
+valid action is a fresh current-authority selection for the remaining UI
+journey tree, outside this goal.
 
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
@@ -6135,3 +6203,16 @@ siblings fail closed after five seconds without mutation, while no candidate is
 dropped for focus/visibility. The cumulative implementation writer map remains
 exactly 19 paths. Runtime remains stopped until canonical A4 merge and exact
 receipt rebind. No replacement goal or second UI-tree node is promoted.
+
+Rev 187 supersedes the Rev 181 active-selection sentence. `IDA-UI03a4`
+completed through authority PR `#1477` / main
+`ae755991ee11c15cf8eef3d11878ffec05994bc9` and implementation PR `#1473`,
+final head `90c6bb057b4acd1bf06275b9e7c9d4921f646297`, squash merge
+`d810758fed387a2fcfe42b384c783c6e27581f6d`. The exact 19-path product change,
+focused 81/81 proof, current-head CI/E2E/Pilot/Sonar/CodeQL/security/finalizer
+and zero unresolved threads passed. Exact-main CI/Sonar/CodeQL/Secret/CD
+terminal proof passed on `d810758fed387a2fcfe42b384c783c6e27581f6d`;
+CD `30507056853` completed healthy Z620 build/deploy/E2E, skipped rollback and
+kept production skipped. Runtime authority is consumed. No replacement slice
+is promoted; the intended terminal resolver state is
+`blocked_requires_current_authority`, `activeSlice=null`.
