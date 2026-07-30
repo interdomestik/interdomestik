@@ -6287,3 +6287,24 @@ proof and a separate exact runtime receipt. No second UI-tree node, protected
 surface, provider, deployment or production authority is promoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03a5` (Tier 3 privacy/routing; `runtime_authorized:false`).
+
+Rev 189 closes the sole `IDA-DG23` promotion. Implementation PR `#1480`
+completed `IDA-UI03a5` from final reviewed head
+`aa29350ec08fd427c43fe7315d42cc3d00da3bbb` and squash merge
+`85321d1ffd00eb23c9196a255daf45358eff6c72`. The neutral dashboard now exposes
+one truthful continuation entry only for the exact fulfilled-inactive,
+default-public-tenant member/user contract, and explicit Manage reuses the
+existing owner-scoped six-fact resume/update/delete path with dormant
+submission. Active-member and anonymous recovery journeys remain unchanged.
+Focused tests, mandatory Phase C gates, exact-head Z620 C31, PR CI/E2E/Pilot,
+Sonar, CodeQL, security backstops, finalizer and feedback intake passed.
+Exact-main CD `30561665280` was cancelled during setup before checkout,
+registry, image, provider, alias, deployment or production work. Rollback is a
+single merge revert with no data rollback because the slice introduced no
+schema, persistence-contract or production-state mutation. The final GPT-5.6
+Max advisory rerun produced no terminal output within the single extended
+30-minute window and is recorded NON-PASS; repository-native merge authority
+remained green. Runtime authority is consumed. No replacement implementation
+slice or second UI-tree node is promoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
