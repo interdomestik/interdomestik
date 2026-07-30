@@ -2,9 +2,8 @@ name: CI
 
 on:
   push:
-    branches:
-      - main
-      - master
+    branches: [main, master]
+    paths-ignore: ['docs/**', 'scripts/repo-size-budget.json']
   pull_request:
     branches:
       - '**'
