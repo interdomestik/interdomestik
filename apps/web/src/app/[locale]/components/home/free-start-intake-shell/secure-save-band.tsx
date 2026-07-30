@@ -11,7 +11,7 @@ import type { useDraftLifecycle } from './use-draft-lifecycle';
 // prettier-ignore
 type Props = Readonly<{ lifecycle: ReturnType<typeof useDraftLifecycle>; locale: string; manageOnly?: boolean; neutralOtpHost?: string | null; tenantId?: string | null }>;
 // prettier-ignore
-const hasSaveableChanges = (lifecycle: ReturnType<typeof useDraftLifecycle>) => ['dirty', 'error'].includes(lifecycle.state) || (lifecycle.state === 'deleted' && lifecycle.hasUnsavedChanges);
+const hasSaveableChanges = (lifecycle: ReturnType<typeof useDraftLifecycle>) => ['dirty', 'error'].includes(lifecycle.state) || (lifecycle.state === 'deleted' && lifecycle.hasUnsavedChanges), isNeutralFrontDoor = (neutralOtpHost?: string | null) => ['ida.interdomestik.com', 'ida.localhost', 'ida.127.0.0.1.nip.io'].includes(globalThis.location.hostname) || Boolean(neutralOtpHost && globalThis.location.host.toLowerCase() === neutralOtpHost);
 
 export function SecureSaveBand({ lifecycle, locale, manageOnly, neutralOtpHost, tenantId }: Props) {
   const t = useTranslations('freeStart');
@@ -21,7 +21,7 @@ export function SecureSaveBand({ lifecycle, locale, manageOnly, neutralOtpHost, 
   const [deleteTarget, setDeleteTarget] = useState<SavedDraft | null>(null);
   const statusRef = useRef<HTMLParagraphElement>(null);
   // prettier-ignore
-  useEffect(() => { setNeutralFrontDoor(['ida.interdomestik.com', 'ida.localhost', 'ida.127.0.0.1.nip.io'].includes(globalThis.location.hostname) || Boolean(neutralOtpHost && globalThis.location.host.toLowerCase() === neutralOtpHost)); }, [neutralOtpHost]);
+  useEffect(() => { setNeutralFrontDoor(isNeutralFrontDoor(neutralOtpHost)); }, [neutralOtpHost]);
   useEffect(() => {
     if (['saved', 'conflict', 'deleted'].includes(lifecycle.state)) statusRef.current?.focus();
   }, [lifecycle.state]);
