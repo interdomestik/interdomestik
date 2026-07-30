@@ -2991,6 +2991,62 @@ state is `blocked_requires_current_authority`, `activeSlice=null`; the next
 valid action is a fresh current-authority selection for the remaining UI
 journey tree, outside this goal.
 
+Rev 188 current authority: `IDA-DG23` in
+`docs/plans/2026-07-30-ida-dg23-ida-ui03a5-membership-aware-draft-continuation-entry.md`
+is the exact approved docs-only design gate bound to clean base
+`027f6db9327b14faf12c9d33d156824d794906c2`. The immutable R9 candidate is
+32,337 UTF-8 bytes at SHA-256
+`0379b150ce2ccaf807cf000cca32a4dd009355f7942b893f1c2e6011c24a6914`.
+Merge is conditioned on Arben approving those exact bytes, hash, gate and sole
+slice `IDA-UI03a5` in task `019fa824-2676-7c22-9dcb-d21af1c354e6`; the literal
+thread receipt must pass without inferred punctuation or timestamp.
+
+The three-operator benchmark inputs have zero blocked sources. Merge still
+requires the exact R9 UI/UX approval receipt to pass. The R9 admission receipt
+is `ready`: one product outcome, eleven writer paths, three independently
+invalidatable proof surfaces, one shared runtime consumer and one special proof
+environment. The read-only C31 collector canary passed.
+GPT-5.6 Sol Max R7 senior review passed the exact semantic artifact after
+1,442.612 seconds. The later exact-PR-head review returned `REVISE` after
+1,146.111 seconds: R8 corrected the malformed role union, formatter drift,
+literal receipt and Tier-3 resolver classification. R8's remediation review
+returned `REVISE` after 981.584 seconds because a preserved skip-worktree file
+had inflated canonical size metadata by 902 local-only bytes. R9 removes that
+contamination and requires proof from the exact staged Git tree.
+The preceding current-contract R6 review returned `REVISE` after 964.779
+seconds and all semantic findings were closed in R7; two wrapper/tool failures
+and the stopped no-terminal Opus attempt are excluded. The carried valid Opus
+ledger remains 26 calls / 6,496.961 seconds, average 249.883 seconds; quota
+failures, stopped/no-output calls and GPT-5.6 reviews are excluded.
+
+The sole promoted Tier-3 product/privacy/UI outcome is verified inactive-account
+saved-draft continuation. On the current neutral host, only a raw
+`member|user` in the default public tenant with a fulfilled inactive-membership
+result may see one secondary dashboard link and enter the existing canonical
+`/member/claims/new?mode=drafts` route. The route remains fail-closed for host,
+role, tenant, query and membership-dependency failures. Explicit Manage →
+Resume reuses the existing owner-scoped list, six-fact details, update,
+conflict and permanent-delete behavior while claim submission stays dormant.
+Active-member `IDA-UI03a3` and anonymous `IDA-UI03a4` behavior remain unchanged.
+
+The future implementation is fixed to eleven existing paths and may add,
+delete or rename no file. `apps/web/src/proxy.ts`, routes, auth/session/OTP,
+tenant resolution, membership semantics, schema/RLS/database, draft storage,
+claim creation/submission, messages, billing, providers, deployment,
+production, README, AGENTS, architecture documents and every second UI-tree
+node remain forbidden. Post-authority implementation ceilings are exactly
+5,633 tracked files, source/scripts at most 7,953,805 bytes, tests/E2E at most
+6,024,848 bytes and config/data/messages exactly 1,824,440 bytes.
+
+This docs-only promotion keeps `runtime_authorized:false`. Product editing
+must not begin until this authority PR merges, exact clean main resolves only
+`IDA-UI03a5`, AI OS/Brain lifecycle checks are attempted, one exact runtime
+receipt binds the merged authority, and one implementation worktree/writer is
+created. No second implementation slice is promoted.
+
+The next active governed implementation goal is exactly one canonical tracker slice:
+`IDA-UI03a5`
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
@@ -6216,3 +6272,18 @@ CD `30507056853` completed healthy Z620 build/deploy/E2E, skipped rollback and
 kept production skipped. Runtime authority is consumed. No replacement slice
 is promoted; the intended terminal resolver state is
 `blocked_requires_current_authority`, `activeSlice=null`.
+
+Rev 188 supersedes the Rev 187 terminal no-promotion sentence. Exact approved
+`IDA-DG23` R9, 32,337 bytes / SHA-256
+`0379b150ce2ccaf807cf000cca32a4dd009355f7942b893f1c2e6011c24a6914`,
+promotes one Tier-3 product/privacy/UI implementation slice only:
+`IDA-UI03a5`. It adds verified inactive-account discovery and explicit
+management of existing owner-scoped saved preparation while preserving active
+`IDA-UI03a3`, anonymous `IDA-UI03a4`, dormant claim submission and all
+protected boundaries. The future writer map is eleven existing paths with no
+tracked-file addition, deletion or rename. This docs-only authority keeps
+`runtime_authorized:false` until merge, exact-main resolver/AI OS lifecycle
+proof and a separate exact runtime receipt. No second UI-tree node, protected
+surface, provider, deployment or production authority is promoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03a5` (Tier 3 privacy/routing; `runtime_authorized:false`).
