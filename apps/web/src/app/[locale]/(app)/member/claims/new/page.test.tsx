@@ -1,42 +1,39 @@
 import { render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const hoisted = vi.hoisted(() => ({
-  intake: vi.fn((props: Record<string, unknown>) => (
-    <div data-testid="claim-draft-intake-props">
-      {JSON.stringify(props)}
-      <button data-testid="claim-draft-submit-disabled" type="button" disabled>
-        Dormant submit
-      </button>
-    </div>
-  )),
+const h = vi.hoisted(() => ({
+  // prettier-ignore
+  intake: vi.fn((props: Record<string, unknown>) => <div data-testid="claim-draft-intake-props">{JSON.stringify(props)}<button data-testid="claim-draft-submit-disabled" type="button" disabled>Dormant submit</button></div>),
   session: vi.fn(),
-  membership: vi.fn(),
-  ensureTenant: vi.fn(() => 'tenant-ks'),
-  messages: vi.fn(async () => ({ freeStart: { marker: 'page-scoped' } })),
-  translations: vi.fn(async () => (key: string) => key),
-  redirect: vi.fn(() => {
+  member: vi.fn(),
+  tenant: vi.fn(() => 'tenant_ks'),
+  msg: vi.fn(async () => ({ freeStart: { marker: 'page-scoped' } })),
+  t: vi.fn(async () => (key: string) => key),
+  head: vi.fn(async () => new Headers({ host: 'ida.localhost' })),
+  go: vi.fn(() => {
     throw new Error('NEXT_REDIRECT');
   }),
 }));
 
 vi.mock('next-intl/server', () => ({
-  getTranslations: hoisted.translations,
+  getTranslations: h.t,
 }));
-vi.mock('next/navigation', () => ({ redirect: hoisted.redirect }));
+vi.mock('next/navigation', () => ({ redirect: h.go }));
+vi.mock('next/headers', () => ({ headers: h.head }));
 vi.mock('@/components/claims/claim-draft-intake', () => ({
-  ClaimDraftIntake: (props: Record<string, unknown>) => hoisted.intake(props),
+  ClaimDraftIntake: (props: Record<string, unknown>) => h.intake(props),
 }));
-vi.mock('@/components/shell/session', () => ({ getSessionSafe: hoisted.session }));
-vi.mock('@/i18n/messages', () => ({ loadMessagesForNamespaces: hoisted.messages }));
+vi.mock('@/components/shell/session', () => ({ getSessionSafe: h.session }));
+vi.mock('@/i18n/messages', () => ({ loadMessagesForNamespaces: h.msg }));
 vi.mock('@interdomestik/domain-membership-billing/subscription', () => ({
-  hasActiveMembership: hoisted.membership,
+  hasActiveMembership: h.member,
 }));
-vi.mock('@interdomestik/shared-auth', () => ({ ensureTenantId: hoisted.ensureTenant }));
+vi.mock('@interdomestik/shared-auth', () => ({ ensureTenantId: h.tenant }));
 vi.mock('@interdomestik/ui', () => ({
   Button: ({ children }: { children: React.ReactNode }) => <button>{children}</button>,
 }));
 vi.mock('@/i18n/routing', () => ({
+  // prettier-ignore
   Link: ({ children, href = '#' }: { children: React.ReactNode; href?: string }) => (
     <a href={typeof href === 'string' && href.startsWith('/') ? `/en${href}` : href}>{children}</a>
   ),
@@ -45,30 +42,28 @@ vi.mock('@/i18n/routing', () => ({
 import NewClaimPage from './page';
 import { resolveClaimStartHandoff, resolveNeutralOtpHost } from './_core.entry';
 
+type Query = Record<string, string | string[] | undefined>;
+// prettier-ignore
+const loadPage = (query: Query = {}) => NewClaimPage({ params: Promise.resolve({ locale: 'en' }), searchParams: Promise.resolve(query) }), poisonedQuery = Object.setPrototypeOf({ mode: 'drafts' }, ['__proto__', 'x']), ok = ['member', 'tenant_ks', new Headers({ host: 'ida.localhost' })] as const;
+
 describe('NewClaimPage dormant draft intake', () => {
   afterEach(() => vi.unstubAllEnvs());
 
   beforeEach(() => {
     vi.clearAllMocks();
-    hoisted.session.mockResolvedValue({ user: { id: 'member-1', tenantId: 'tenant-ks' } });
-    hoisted.membership.mockResolvedValue(true);
+    h.head.mockReset();
+    h.head.mockResolvedValue(new Headers({ host: 'ida.localhost' }));
+    // prettier-ignore
+    h.session.mockResolvedValue({ user: { id: 'member-1', role: 'member', tenantId: 'tenant_ks' } });
+    h.member.mockResolvedValue(true);
   });
 
   it('normalizes the accepted diaspora handoff only', () => {
-    expect(
-      resolveClaimStartHandoff({
-        source: 'diaspora-green-card',
-        country: 'IT',
-        incidentLocation: 'abroad',
-      })
-    ).toEqual({ source: 'diaspora-green-card', country: 'IT', incidentLocation: 'abroad' });
-    expect(
-      resolveClaimStartHandoff({
-        source: 'diaspora-green-card',
-        country: 'FR',
-        incidentLocation: 'abroad',
-      })
-    ).toBeNull();
+    // prettier-ignore
+    expect(resolveClaimStartHandoff({ source: 'diaspora-green-card', country: 'IT', incidentLocation: 'abroad' }))
+      .toEqual({ source: 'diaspora-green-card', country: 'IT', incidentLocation: 'abroad' });
+    // prettier-ignore
+    expect(resolveClaimStartHandoff({ source: 'diaspora-green-card', country: 'FR', incidentLocation: 'abroad' })).toBeNull();
   });
 
   it.each([
@@ -87,51 +82,69 @@ describe('NewClaimPage dormant draft intake', () => {
       country: 'IT',
       incidentLocation: 'abroad',
     } as const;
-    const tree = await NewClaimPage({
-      params: Promise.resolve({ locale: 'en' }),
-      searchParams: Promise.resolve({ category: 'travel', ...handoffContext }),
-    });
+    const tree = await loadPage({ category: 'travel', ...handoffContext });
     render(tree);
-    expect(hoisted.session).toHaveBeenCalledWith('MemberNewClaimPage');
-    expect(hoisted.translations).toHaveBeenCalledWith({ locale: 'en', namespace: 'claims' });
-    expect(hoisted.membership).toHaveBeenCalledWith('member-1', 'tenant-ks');
-    expect(hoisted.intake).toHaveBeenCalledWith({
-      freeStartMessages: { freeStart: { marker: 'page-scoped' } },
-      handoffContext,
-      initialCategory: 'travel',
-      locale: 'en',
-      neutralOtpHost: 'front-door.localhost:3000',
-      tenantId: 'tenant-ks',
-    });
+    expect(h.session).toHaveBeenCalledWith('MemberNewClaimPage');
+    expect(h.t).toHaveBeenCalledWith({ locale: 'en', namespace: 'claims' });
+    expect(h.member).toHaveBeenCalledWith('member-1', 'tenant_ks');
+    // prettier-ignore
+    expect(h.intake).toHaveBeenCalledWith({ freeStartMessages: { freeStart: { marker: 'page-scoped' } }, handoffContext, initialCategory: 'travel', locale: 'en', managerOnly: false, neutralOtpHost: 'front-door.localhost:3000', tenantId: 'tenant_ks' });
     expect(screen.getByTestId('new-claim-page-ready')).toBeInTheDocument();
     expect(screen.getByTestId('claim-draft-intake-props')).toBeInTheDocument();
     expect(screen.getByTestId('claim-draft-submit-disabled')).toBeDisabled();
   });
 
-  it('preserves the unauthenticated redirect', async () => {
-    hoisted.session.mockResolvedValueOnce(null);
-    await expect(
-      NewClaimPage({
-        params: Promise.resolve({ locale: 'en' }),
-        searchParams: Promise.resolve({}),
-      })
-    ).rejects.toThrow('NEXT_REDIRECT');
-    expect(hoisted.redirect).toHaveBeenCalledWith('/en/login');
+  it('preserves the unauthenticated go', async () => {
+    h.session.mockResolvedValueOnce(null);
+    await expect(loadPage()).rejects.toThrow('NEXT_REDIRECT');
+    expect(h.go).toHaveBeenCalledWith('/en/login');
+    expect(h.head).not.toHaveBeenCalled();
+    expect(h.member).not.toHaveBeenCalled();
   });
 
-  it('preserves the active-membership gate and localized pricing link', async () => {
-    hoisted.membership.mockResolvedValueOnce(false);
-    const tree = await NewClaimPage({
-      params: Promise.resolve({ locale: 'en' }),
-      searchParams: Promise.resolve({}),
-    });
+  it('preserves the active-member gate and localized pricing link', async () => {
+    h.member.mockResolvedValueOnce(false);
+    const tree = await loadPage();
     render(tree);
     expect(screen.getByTestId('new-claim-page-ready')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'gate.view_plans' })).toHaveAttribute(
       'href',
       '/en/pricing'
     );
-    expect(hoisted.intake).not.toHaveBeenCalled();
-    expect(hoisted.messages).not.toHaveBeenCalled();
+    expect(h.intake).not.toHaveBeenCalled();
+    expect(h.msg).not.toHaveBeenCalled();
+  });
+
+  // prettier-ignore
+  it.each([
+    ['array mode', { mode: ['drafts'] }, ...ok],
+    ['hidden key', poisonedQuery, ...ok],
+    ['extra key', { mode: 'drafts', source: 'x' }, ...ok],
+    ['case drift', { mode: 'Drafts' }, ...ok],
+    ['whitespace', { mode: ' drafts' }, ...ok],
+    ['other role', { mode: 'drafts' }, 'agent', 'tenant_ks', new Headers({ host: 'ida.localhost' })],
+    ['tenant mismatch', { mode: 'drafts' }, 'member', 'tenant_mk', new Headers({ host: 'ida.localhost' })],
+    ['spoofed host', { mode: 'drafts' }, 'member', 'tenant_ks', new Headers({ host: 'ida.attacker.example' })],
+    ['forwarded mismatch', { mode: 'drafts' }, 'member', 'tenant_ks', new Headers({ host: 'ida.localhost', 'x-forwarded-host': 'attacker.example' })],
+  ])('fails closed for %s', async (_case, query, role, tenantId, requestHeaders) => {
+    h.member.mockResolvedValueOnce(false);
+    h.session.mockResolvedValueOnce({ user: { id: 'member-1', role, tenantId } });
+    h.tenant.mockReturnValueOnce(tenantId);
+    h.head.mockResolvedValueOnce(requestHeaders);
+    render(await loadPage(query));
+    expect(h.intake).not.toHaveBeenCalled();
+  });
+
+  it.each(['member', 'user'])('admits fulfilled inactive %s to exact manager mode', async role => {
+    h.session.mockResolvedValueOnce({
+      user: { id: 'member-1', role, tenantId: 'tenant_ks' },
+    });
+    h.member.mockResolvedValueOnce(false);
+    const tree = await loadPage({ mode: 'drafts' });
+    render(tree);
+    expect(h.intake).toHaveBeenCalledWith(expect.objectContaining({ managerOnly: true }));
+
+    h.member.mockRejectedValueOnce(new Error('member unavailable'));
+    await expect(loadPage({ mode: 'drafts' })).rejects.toThrow('member unavailable');
   });
 });

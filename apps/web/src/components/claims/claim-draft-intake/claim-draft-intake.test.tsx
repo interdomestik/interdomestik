@@ -9,52 +9,37 @@ import { SecureSaveBand } from '@/app/[locale]/components/home/free-start-intake
 import type { DraftSaveState } from '@/app/[locale]/components/home/free-start-intake-shell/types';
 import { ClaimDraftIntake } from './index';
 
-const actions = vi.hoisted(() => ({
-  create: vi.fn(),
-  delete: vi.fn(),
-  list: vi.fn(),
-  resume: vi.fn(),
-  update: vi.fn(),
-}));
+// prettier-ignore
+const a = vi.hoisted(() => ({ create: vi.fn(), delete: vi.fn(), list: vi.fn(), resume: vi.fn(), update: vi.fn() }));
 vi.mock('@/actions/free-start-drafts', () => ({
-  createFreeStartDraft: actions.create,
-  deleteFreeStartDraft: actions.delete,
-  listFreeStartDrafts: actions.list,
-  resumeFreeStartDraft: actions.resume,
-  updateFreeStartDraft: actions.update,
+  createFreeStartDraft: a.create,
+  deleteFreeStartDraft: a.delete,
+  listFreeStartDrafts: a.list,
+  resumeFreeStartDraft: a.resume,
+  updateFreeStartDraft: a.update,
 }));
 
 // prettier-ignore
-const saveStates: DraftSaveState[] = [
-  'idle', 'saving', 'saved', 'dirty', 'loading', 'conflict', 'limit', 'invalid',
-  'unsupported', 'accountContext', 'error', 'deleted',
-];
+const saveStates: DraftSaveState[] = ['idle', 'saving', 'saved', 'dirty', 'loading', 'conflict', 'limit', 'invalid', 'unsupported', 'accountContext', 'error', 'deleted'];
+// prettier-ignore
 const claimCopy = {
-  heading: 'Prepare your claim draft',
-  supporting: 'Save the facts you have now and return later.',
-  truth: 'Draft only — this does not create or submit a claim.',
-  categoryHeading: 'Choose what happened',
-  categoryBody: 'Vehicle and property preparation are available.',
-  categoryContinue: 'Continue to details',
-  unsupported: 'Not available in this draft',
-  previewHeading: 'Review your preparation facts',
-  previewBody: 'Save explicitly when these facts are ready.',
-  backToDetails: 'Back to details',
-  submitDisabled: 'Submit claim — not available yet',
-  submitExplanation: 'Submission waits for claim safety checks.',
+  heading: 'Prepare your claim draft', supporting: 'Save the facts you have now and return later.',
+  truth: 'Draft only — this does not create or submit a claim.', categoryHeading: 'Choose what happened',
+  categoryBody: 'Vehicle and property preparation are available.', categoryContinue: 'Continue to details',
+  unsupported: 'Not available in this draft', previewHeading: 'Review your preparation facts',
+  previewBody: 'Save explicitly when these facts are ready.', backToDetails: 'Back to details',
+  submitDisabled: 'Submit claim — not available yet', submitExplanation: 'Submission waits for claim safety checks.',
 };
 // prettier-ignore
 const secureCopy = {
   eyebrow: 'Draft', heading: 'Secure save', body: 'Body', privacy: 'Privacy', save: 'Save',
   saveChanges: 'Save changes', startAnother: 'Start another',
   status: Object.fromEntries(saveStates.map(state => [state, state])),
-  manage: { delete: 'Delete', emptyBody: 'None', emptyHeading: 'None', heading: 'Manage',
-    inProgress: 'In progress', loadMore: 'More', loading: 'Loading', open: 'Manage',
-    ready: 'Ready', resume: 'Resume' },
+  manage: { delete: 'Delete', emptyBody: 'None', emptyHeading: 'None', heading: 'Manage', inProgress: 'In progress',
+    loadMore: 'More', loading: 'Loading', open: 'Manage', ready: 'Ready', resume: 'Resume' },
   delete: { body: 'Body', cancel: 'Cancel', confirm: 'Delete', heading: 'Delete?' },
-  otp: { body: 'Body', changeEmail: 'Change', codeLabel: 'Code', emailLabel: 'Email',
-    heading: 'Verify', send: 'Send', sending: 'Sending', sent: 'Sent', verify: 'Verify',
-    verifying: 'Verifying', errors: {} },
+  otp: { body: 'Body', changeEmail: 'Change', codeLabel: 'Code', emailLabel: 'Email', heading: 'Verify',
+    send: 'Send', sending: 'Sending', sent: 'Sent', verify: 'Verify', verifying: 'Verifying', errors: {} },
 };
 vi.mock('next-intl', () => ({
   NextIntlClientProvider: ({ children }: { children: React.ReactNode }) => children,
@@ -92,13 +77,25 @@ function enter(label: string, value: string) {
 }
 
 describe('ClaimDraftIntake', () => {
-  it('keeps secure save visible on the configured custom IDA host', async () => {
+  it('keeps manager-only closed until explicit Manage then Resume', async () => {
     // prettier-ignore
-    const props = { freeStartMessages: {}, initialCategory: 'travel', locale: 'en', neutralOtpHost: location.host, tenantId: 'tenant_ks' };
-    render(<ClaimDraftIntake {...props} />);
-    expect(screen.getByTestId('claim-draft-travel')).toHaveTextContent(claimCopy.unsupported);
-    await waitFor(() => expect(screen.getByTestId('free-start-save-open')).toBeVisible());
-    expect(screen.getByTestId('free-start-manage-open')).toBeVisible();
+    const draft = { category: 'property', clientRequestId: 'req-1', counterparty: 'Insurer', createdAt: '2026-07-01T00:00:00.000Z', desiredOutcome: 'repair', id: 'draft-1', incidentDate: '2026-07-01', issueType: 'water_damage', resumeStep: 'preview', summary: 'Saved facts.', updatedAt: '2026-07-02T00:00:00.000Z', version: 1 };
+    a.list.mockResolvedValueOnce({ items: [draft], nextCursor: null, ok: true });
+    a.resume.mockResolvedValueOnce({ draft, ok: true });
+    // prettier-ignore
+    render(<ClaimDraftIntake freeStartMessages={{}} locale="en" managerOnly neutralOtpHost={location.host} tenantId="tenant_ks" />);
+    expect(screen.queryByTestId('claim-draft-main-panel')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('free-start-save-open')).not.toBeInTheDocument();
+    expect(Object.values(a).every(action => action.mock.calls.length === 0)).toBe(true);
+    fireEvent.click(await screen.findByTestId('free-start-manage-open'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Resume' }));
+    expect(await screen.findByRole('button', { name: claimCopy.submitDisabled })).toBeDisabled();
+    expect(screen.getByText('Saved facts.')).toBeVisible();
+    expect(screen.queryByTestId('free-start-start-another')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: claimCopy.backToDetails }));
+    enter('details.summary', 'Changed facts.');
+    expect(await screen.findByTestId('free-start-save-changes')).toBeVisible();
+    vi.clearAllMocks();
   });
 
   it('is explicit-save only, blocks injury, and keeps submit inert', async () => {
@@ -120,7 +117,7 @@ describe('ClaimDraftIntake', () => {
     expect(submit).toHaveAccessibleDescription(claimCopy.submitExplanation);
     expect(submit.closest('form')).toBeNull();
     for (const key of ['Enter', ' ']) fireEvent.keyDown(submit, { key });
-    expect(Object.values(actions).every(action => action.mock.calls.length === 0)).toBe(true);
+    expect(Object.values(a).every(action => action.mock.calls.length === 0)).toBe(true);
   });
 
   it.each(saveStates)('keeps the reused live save state perceivable: %s', async state => {
