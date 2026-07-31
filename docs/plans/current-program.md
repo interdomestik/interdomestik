@@ -6346,8 +6346,14 @@ Rev 191 supersedes the Rev 190 active-selection sentence. `IDA-UI03a6` is
 complete through authority PR `#1483` / base
 `b71b8a8d93337b369bb4ee91f6ebf347aabe52e8` and implementation PR `#1484`,
 final reviewed head `144df5bdc611271c4d48f5aa96a1046b17a53480`, squash merge
-`57a9b12dfbf98a2c59834797f24b3fcc5449048c`. The active-member dashboard now
-shows one explicit saved-work capability entry only when the existing
+`57a9b12dfbf98a2c59834797f24b3fcc5449048c`. Exact runtime receipt
+`IDA-UI03a6-RUNTIME-R1`, SHA-256
+`da36e74c4367b2ab72579ff771876f8f1d15f2e1a552f758eb3b27a9054933b8`,
+was accepted at `2026-07-31T06:56:38Z` on base
+`b71b8a8d93337b369bb4ee91f6ebf347aabe52e8` after the resolver selected only
+`IDA-UI03a6`; it binds task `019fa824-2676-7c22-9dcb-d21af1c354e6`, the exact
+four-path writer map and forbidden runtime surfaces. The active-member dashboard
+now shows one explicit saved-work capability entry only when the existing
 fail-closed access-active/default-public-tenant contract is satisfied. It opens
 the normal Claim Draft Intake while keeping Manage separate, preserves the
 inactive `?mode=drafts` journey and primary-case priority, and does not claim
