@@ -6391,3 +6391,35 @@ authority. Runtime authority is consumed. No replacement implementation slice
 or second UI-tree node is promoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+
+Rev 192 supersedes the Rev 191 terminal no-promotion sentence. Exact docs-only
+authority `IDA-DG25` in
+`docs/plans/2026-07-31-ida-dg25-ui06a-public-header-overflow-containment.md`
+is 22,535 bytes / SHA-256
+`9c86c616f3c18bb9a04dd2cd77e93a18d78d3d415489da1e9438574fcd6fba2e`
+and was approved by Arben in task
+`019fa824-2676-7c22-9dcb-d21af1c354e6` at `2026-07-31T12:44:14Z`.
+The UI/UX governance receipt passes, slice admission is `ready`, and the final
+same-packet GPT-5.6 Sol Max R2 review reports no remaining semantic defect.
+Fresh Z620 admission evidence observed about 44.8 GiB free disk and 24.9 GiB
+available memory and passed the exact header overflow collector in Chromium,
+Firefox and WebKit using the existing Playwright 1.62.0 container; three earlier
+canary attempts remain honestly classified as tooling/environment corrections,
+not product defects.
+
+This gate promotes exactly one Tier 2 product UI/accessibility slice:
+`IDA-UI06a`, limited to the existing public header's document-overflow
+containment under CSS zoom 2 plus WCAG text spacing at literal 320/360/390/430
+CSS-pixel widths for SQ/EN/SR/MK. The prospective runtime writer map is exactly
+`header.tsx`, `header.test.tsx`, `public-header-overflow.spec.ts` and
+`scripts/repo-size-budget.json`. It preserves the brand, language and sign-in
+capabilities, 44-CSS-pixel targets, ordinary disclosure keyboard/focus
+semantics, canonical routes, saved-progress journeys and every completed slice.
+`apps/web/src/proxy.ts`, auth/session/tenancy, schema/RLS, billing, membership,
+claim writers, deployment/workflows and production remain forbidden. Runtime,
+deployment and production authority remain false until this docs-only gate is
+merged, the exact-main resolver selects only `IDA-UI06a`, and a separate exact
+runtime receipt is accepted. No second UI-tree node or replacement slice is
+promoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI06a` (Tier 2 product UI/accessibility; `runtime_authorized:false`).
