@@ -6317,3 +6317,27 @@ remained green. Runtime authority is consumed. No replacement implementation
 slice or second UI-tree node is promoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+
+Rev 190 current authority: exact `IDA-DG24` in
+`docs/plans/2026-07-30-ida-dg24-ui03a6-active-member-draft-manager-entry.md`
+is 8,821 bytes / SHA-256
+`4be59edf412bd485f6e9abcfd6d7dc5d2ad213d4809a8d04057e73ffb95e2352`
+and was approved by Arben in task
+`019fa824-2676-7c22-9dcb-d21af1c354e6` at `2026-07-31T06:37:02Z`.
+Its four-operator UI/UX receipt passes, admission is ready, focused Tier-0
+checks pass, and the same-route GPT-5.6 Sol Max rereview found no remaining
+semantic defect after its sole exact-approval condition was satisfied. It
+scores the remaining saved-progress UI-tree nodes after completed
+`IDA-UI03a4` and `IDA-UI03a5`. It promotes exactly one smallest continuation:
+`IDA-UI03a6`, one explicit access-active-member saved-work capability entry.
+The active entry opens the existing normal Claim Draft Intake, where Manage
+remains a separate deliberate action; it does not claim that a draft exists or
+expose a count. The prospective implementation is limited to four dashboard
+helper/view/unit/E2E paths, retains the current primary case/action priority and
+the completed inactive `?mode=drafts` behavior, and adds no draft read, copy,
+persistence, claim writer, route, schema, auth, tenancy, billing or protected
+surface. On docs-only PR merge, this authority promotes exactly `IDA-UI03a6`;
+implementation remains blocked until exact resolver selection and acceptance of
+its separate runtime receipt. Deployment and production remain unauthorized.
+The next active governed implementation goal is exactly one canonical tracker
+slice: `IDA-UI03a6`.
