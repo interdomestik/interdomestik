@@ -6341,3 +6341,47 @@ implementation remains blocked until exact resolver selection and acceptance of
 its separate runtime receipt. Deployment and production remain unauthorized.
 The next active governed implementation goal is exactly one canonical tracker
 slice: `IDA-UI03a6`.
+
+Rev 191 supersedes the Rev 190 active-selection sentence. `IDA-UI03a6` is
+complete through authority PR `#1483` / base
+`b71b8a8d93337b369bb4ee91f6ebf347aabe52e8` and implementation PR `#1484`,
+final reviewed head `144df5bdc611271c4d48f5aa96a1046b17a53480`, squash merge
+`57a9b12dfbf98a2c59834797f24b3fcc5449048c`. The active-member dashboard now
+shows one explicit saved-work capability entry only when the existing
+fail-closed access-active/default-public-tenant contract is satisfied. It opens
+the normal Claim Draft Intake while keeping Manage separate, preserves the
+inactive `?mode=drafts` journey and primary-case priority, and does not claim
+that a draft exists or expose a count.
+
+The implementation remained within the exact four-path writer map, net-reduced
+the diff by 16 lines and changed no proxy, route, auth, tenancy, subscription,
+schema/RLS, persistence, claim writer, billing, provider or production
+surface. Focused proof passed 62/62 and 16/16 tests plus type-check, lint,
+modularity, repository-size, formatting and security guards. Exact-head Z620
+proof passed `security:guard`, the Z620 security audit and full `e2e:gate`
+with 224 passed, nine configured skips and one recovered retry. All 31 PR
+checks, all eight protected required checks, Sonar, CodeQL, gitleaks,
+pnpm-audit, deterministic security backstops and `pr-finalizer` passed, with
+zero unresolved threads. The sole Sonar S3358 issue was fixed and closed before
+merge. Two complete GPT-5.6 Sol Max reviews passed with no findings. One
+current-head Copilot review request was made without duplication; GitHub
+accepted the command but exposed no requested reviewer or review, so repository
+gates and the senior fallback remain the recorded review evidence.
+
+Exact-main CI `30620567265`, Sonar Main Gate `30620559931`, Secret Scan
+`30620559714` and CodeQL runs `30620558523` / `30620558450` passed.
+Automatic push CD `30620559562` completed the authorized Z620 staging
+build/attestation, Vercel deploy, health/provenance and P0 release gate. The
+lowest observed capacity was 43 GiB free disk and about 19.4 GiB available
+memory, above the 30/8 GiB floors. Healthy-path rollback was skipped and the
+exact staging-alias preimage remains in artifact `8790084928`; production
+evidence/build/deploy/verify were all skipped with no production mutation.
+Rollback for this presentation-only slice is the merge revert plus the retained
+staging-alias preimage; no data rollback is needed.
+
+The pre-existing missing partner-image warning and one recovered legacy E2E
+retry remain maintenance signals outside this slice and grant no expansion
+authority. Runtime authority is consumed. No replacement implementation slice
+or second UI-tree node is promoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
