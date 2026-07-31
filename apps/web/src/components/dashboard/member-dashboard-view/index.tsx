@@ -275,7 +275,7 @@ function MemberHero({ draftManagerHref, draftManagerLabel, hero, isActive, t }: 
   const ctaText = t(ctaKey, hero.translationValues);
   const ariaLabel = hero.ariaLabelKey ? t(hero.ariaLabelKey, hero.translationValues) : undefined;
   // prettier-ignore
-  const draftManagerLink = draftManagerHref ? <a data-testid="member-draft-continuation" href={draftManagerHref} className="flex min-h-12 w-full items-center justify-center rounded-[1.1rem] border border-[#0e5c2b] bg-white px-5 py-3 text-sm font-extrabold text-[#0e5c2b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-900 focus-visible:ring-offset-2">{draftManagerLabel}</a> : null;
+  const entry = draftManagerHref ? <a data-testid="member-draft-continuation" href={draftManagerHref} className="flex min-h-12 w-full items-center justify-center rounded-[1.1rem] border border-[#0e5c2b] bg-white px-5 py-3 text-sm font-extrabold text-[#0e5c2b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-900 focus-visible:ring-offset-2">{draftManagerLabel}</a> : null;
 
   // prettier-ignore
 return (
@@ -347,7 +347,7 @@ className="flex min-h-14 w-full items-center justify-between rounded-[1.1rem] bg
 </span>
 <ChevronRight className="h-4 w-4" aria-hidden="true" />
 </a>
-{draftManagerLink}
+{entry}
 </div>
 </div>
 </section>

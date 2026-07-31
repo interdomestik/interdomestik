@@ -4,4 +4,7 @@ export function getRoleRedirect(role: string | null | undefined): '/admin' | '/s
 }
 
 // prettier-ignore
-export const getDraftManagerHref = (available: boolean, resolved: boolean, active: boolean, locale: string): string | null => available && resolved ? `/${locale}/member/claims/new${active ? '' : '?mode=drafts'}` : null;
+export function getDraftManagerHref(available: boolean, resolved: boolean, active: boolean, locale: string): string | null {
+  if (!available || !resolved) return null;
+  return `/${locale}/member/claims/new${active ? '' : '?mode=drafts'}`;
+}
