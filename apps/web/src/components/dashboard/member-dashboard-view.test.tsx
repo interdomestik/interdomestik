@@ -34,9 +34,7 @@ const h = vi.hoisted(() => ({
 
 type DashboardMessages =
   typeof enMessages | typeof mkMessages | typeof sqMessages | typeof srMessages;
-
 type DashboardClaim = MemberDashboardData['claims'][number];
-
 let currentMessages: DashboardMessages = mkMessages;
 
 vi.mock('next/navigation', () => ({
@@ -204,7 +202,7 @@ describe('MemberDashboardView assistance dashboard', () => {
     expect(byId('member-welcome-status')).toHaveTextContent('Активно');
     expectHeroState('member_active_no_case');
     expectHref('hero-cta-open-first-case', '/mk/member/claims/new');
-    expect(screen.queryByTestId('member-draft-continuation')).not.toBeInTheDocument();
+    expectHref('member-draft-continuation', '/mk/member/claims/new');
     expect(byId('member-hero-value-row')).toHaveTextContent('Активна асистенција');
     expect(screen.queryByTestId('hero-cta-visitor_general')).not.toBeInTheDocument();
     expect(byId('member-primary-action-panel')).toBeInTheDocument();
@@ -385,7 +383,6 @@ describe('MemberDashboardView assistance dashboard', () => {
 
   it('shows only one priority case on the dashboard home', async () => {
     mockActiveMembership();
-
     await renderDashboard(
       makeData({
         activeClaimId: 'claim-action',
@@ -403,7 +400,6 @@ describe('MemberDashboardView assistance dashboard', () => {
         ],
       })
     );
-
     expect(screen.getAllByTestId('active-case-card')).toHaveLength(1);
     expectHeroState('member_active_has_open_case');
     expectHref('hero-cta-open-active-case', '/mk/member/claims/claim-action');
