@@ -8,7 +8,7 @@ import { redirect } from 'next/navigation';
 import { ActiveCaseSummary } from './active-case-summary';
 import { getCachedClaimDocumentCount } from './data';
 import { DocumentVaultSummary } from './document-vault-summary';
-import { getRoleRedirect } from './helpers';
+import { getDraftManagerHref, getRoleRedirect } from './helpers';
 // prettier-ignore
 import { resolveClaimActionKind, resolveMemberHomeHero, type MemberHomeHeroModel } from './hero-resolver';
 import { MainServiceCard } from './main-service-card';
@@ -29,10 +29,9 @@ export async function MemberDashboardView({
   supplementalDataPromise,
   locale,
 }: Readonly<MemberDashboardViewProps>) {
-  const memberHomeTranslationsPromise = getTranslations('dashboard.member_assistance');
   // prettier-ignore
-  const [memberHomeTranslations, freeStartTranslations, data, supplementalData] = await Promise.all([memberHomeTranslationsPromise, getTranslations('freeStart'), dataPromise, supplementalDataPromise]);
-  const t = memberHomeTranslations as unknown as DashboardTranslator;
+  const [memberTranslations, freeStartTranslations, data, supplementalData] = await Promise.all([getTranslations('dashboard.member_assistance'), getTranslations('freeStart'), dataPromise, supplementalDataPromise]);
+  const t = memberTranslations as unknown as DashboardTranslator;
   const { member, claims } = data;
   const activeClaim = data.activeClaimId
     ? (claims.find(claim => claim.id === data.activeClaimId) ?? null)
@@ -43,25 +42,23 @@ export async function MemberDashboardView({
     redirect(redirectPath);
   }
 
-  const [claimEligibleSubscription, documentsCount, subscriptionResolved = false] =
-    supplementalData;
+  const [subscription, documentsCount, subscriptionResolved = false] = supplementalData;
   // prettier-ignore
-  const draftManagerHref = draftManagerAvailable && subscriptionResolved && !claimEligibleSubscription ? `/${locale}/member/claims/new?mode=drafts` : null;
+  const draftManagerHref = getDraftManagerHref(draftManagerAvailable, subscriptionResolved, Boolean(subscription), locale);
   const draftManagerLabel = parseSecureSaveCopy(freeStartTranslations.raw('secureSave')).manage
     .open;
 
-  const isActive = Boolean(claimEligibleSubscription);
-  const hasAssistanceAccess = isActive || member.role === 'agent';
+  const hasAccess = Boolean(subscription) || member.role === 'agent';
   const activeCases = claims.filter(claim => OPEN_STATUSES.has(claim.status));
   const hero = resolveMemberHomeHero({
     activeClaim,
-    isActive: hasAssistanceAccess,
+    isActive: hasAccess,
     locale,
   });
   const nextStep = getNextStep({
     activeClaim,
     hasClaims: claims.length > 0,
-    isActive: hasAssistanceAccess,
+    isActive: hasAccess,
     locale,
     t,
   });
@@ -83,17 +80,17 @@ className="min-h-dvh min-w-0 overflow-x-hidden bg-[#f4f7f5] px-3 py-2 text-slate
 data-testid="member-dashboard-ready"
 >
 <div className="mx-auto flex max-w-[920px] flex-col gap-2 pb-[6.5rem] md:block md:space-y-4 md:pb-10">
-<MemberTopBar isActive={hasAssistanceAccess} locale={locale} t={t} />
+<MemberTopBar isActive={hasAccess} locale={locale} t={t} />
 
 <div className="space-y-1.5 md:space-y-4" data-testid="member-dashboard-priority-region">
 {/* prettier-ignore */}
-<MemberHero draftManagerHref={draftManagerHref} draftManagerLabel={draftManagerLabel} hero={hero} isActive={hasAssistanceAccess} t={t} />
+<MemberHero draftManagerHref={draftManagerHref} draftManagerLabel={draftManagerLabel} hero={hero} isActive={hasAccess} t={t} />
 
 <div className="hidden md:block">
 <NextStepCard nextStep={nextStep} t={t} />
 </div>
 
-{!hasAssistanceAccess ? (
+{!hasAccess ? (
 <section
 className="hidden rounded-[1.5rem] border border-amber-300 bg-amber-50 p-5 md:block"
 data-testid="member-inactive-boundary"

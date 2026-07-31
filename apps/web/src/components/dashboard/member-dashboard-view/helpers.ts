@@ -1,11 +1,7 @@
 export function getRoleRedirect(role: string | null | undefined): '/admin' | '/staff' | null {
-  if (role === 'admin' || role === 'super_admin' || role === 'tenant_admin') {
-    return '/admin';
-  }
-
-  if (role === 'staff' || role === 'branch_manager') {
-    return '/staff';
-  }
-
-  return null;
+  if (role === 'admin' || role === 'super_admin' || role === 'tenant_admin') return '/admin';
+  return role === 'staff' || role === 'branch_manager' ? '/staff' : null;
 }
+
+// prettier-ignore
+export const getDraftManagerHref = (available: boolean, resolved: boolean, active: boolean, locale: string): string | null => available && resolved ? `/${locale}/member/claims/new${active ? '' : '?mode=drafts'}` : null;
