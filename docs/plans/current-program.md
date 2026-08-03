@@ -2690,6 +2690,363 @@ binds clean then-current main. R1 is exact at 18,192 UTF-8 bytes and SHA-256
 supersedes only the R0 writer map after first RED execution discovered the
 already-blocking exact-output and deterministic parity contracts.
 
+Rev 180 closeout supersedes the Rev 179 active-selection sentence.
+`IDA-CD-DG02` is canonical through PRs `#1461` and `#1462`; `IDA-CD02` is
+complete through implementation PRs `#1463`-`#1469`, ending at exact main
+`6e6ab13b4ef706a5baaec7ca2bbfc47eaa82b416`. Automatic push CD run
+`30341298354` used that exact SHA and passed `build-staging`,
+`deploy-staging`, and `e2e-staging` on exclusive runner
+`interdomestik-z620-staging`; healthy-path rollback and every production job
+were skipped. The job durations were 19m41s, 14m40s, and 14m05s respectively,
+with the full workflow completing in 50m02s. Root-observed capacity stayed
+above the accepted floors at a minimum 57 GiB free disk and 17,988 MiB
+available memory.
+
+Fail-closed rollback was separately proven on exact-main run `30335858120`:
+build and deploy passed, staging E2E failed on the subsequently remediated
+bounded Playwright navigation race, `rollback-staging-alias` restored the
+preimage successfully in 3m27s, and all production jobs remained skipped. The
+final release artifact reports `GO` with P0.1, P0.2, P0.3, P0.4, and P0.6 all
+`PASS`. Production evidence remains GitHub-hosted Ubuntu and production
+build/deploy/verify remain on `interdomestik-mac`; moving production requires
+a separate future current-authority decision. No replacement implementation
+slice is promoted. The expected resolver state is
+`blocked_requires_current_authority`, `activeSlice=null`.
+
+Rev 181 current authority: `IDA-DG22` in
+`docs/plans/2026-07-28-ida-dg22-premembership-draft-continuity-design-gate.md`
+is the exact approved docs-only design gate bound to clean base
+`4dbb1d094de4b1ae80c5e375d21a2a1f06fa6824`. The exact R3 gate is 30,743 UTF-8
+bytes at SHA-256
+`baf97ad76a21df381b806403dc50d2b477637e1e58c45c4ca2e16708113ab4a8`.
+It proposes only `IDA-UI03a4`, a Tier-3 privacy-sensitive product UI slice
+that automatically preserves eligible vehicle/property Free Start notes on
+the current browser for a 30-day logical recovery window, offers an explicit
+resume-or-discard choice after exit, and clears that browser copy only after
+the existing verified-email secure save succeeds.
+
+This selection supersedes the earlier unapproved local `IDA-UI05a` draft after
+Arben clarified the higher-value pre-membership continuity requirement.
+`IDA-UI05a` was never approved, committed, pushed, opened, merged or promoted.
+Completed `IDA-UI03a1` secure-save evidence is reused without reopening it:
+browser recovery remains same-origin/same-browser only, while existing OTP
+secure save remains the sole cross-device authority and creates no membership,
+claim or case.
+
+Opus 4.8 R0 completed in 328.500 seconds and R1 completed in 338.183 seconds.
+Their bounded gate-contract findings are closed in R2. Local-copy deletion is
+now bound solely to the observable lifecycle transition `saving` → `saved`
+with a server draft id; `active.id`, OTP, `verified`, manage, load, or resume
+alone cannot delete it. All four locale copies must distinguish automatic
+same-browser fact recovery from deliberate secure save and the never-persisted
+generated result. The shared member claim intake is named as a read-only
+consumer: organizer restore is passive/default-off, public home is the only
+opt-in composition, and a pre-seeded member-flow neutrality regression is
+mandatory within existing test path 11. R2 also requires canonical validator
+enum/limit reuse and a cold public-entry reopen E2E assertion. Exact-current R2
+senior review passed in 232.570 seconds with no blocker or required hardening.
+R3 adds only that immutable review receipt; exact-current final same-route
+confirmation passed in 62.647 seconds with no substantive scope/contract drift.
+Across the 17 valid Opus calls in this goal's carried timing ledger, the
+updated interim average is 146.920 seconds; the 300.459-second no-output
+wrapper failure is excluded. Arben approved exact SHA-256
+`baf97ad76a21df381b806403dc50d2b477637e1e58c45c4ca2e16708113ab4a8`
+at `2026-07-28T11:59:11.000Z`.
+
+The exact prospective implementation map is limited to six Free Start
+composition/recovery files, four existing locale files, six focused
+test/E2E-contract files and deterministic-only repository-size metadata.
+Injury/medical and generated-result persistence, auth/session/OTP behavior,
+schema/RLS/database, routes/proxy, membership, claims, billing, analytics,
+providers, deployment and every other product surface remain forbidden.
+`IDA-UI03a2`, `IDA-UI03b`, PR `#1455`, `IDA-CD-DG02` and `IDA-CD02` remain
+untouched.
+
+The UI/UX benchmark has three current operators and a numeric `0/10` to `10/10`
+same-browser restore target. The exact-hash Arben receipt and exact-current
+senior review are complete, and the advisory checker returns `pass`. This
+docs-only promotion keeps `runtime_authorized:false`; product implementation
+must not begin until the gate PR merges, clean exact main resolves this one
+slice, AI OS/Brain are refreshed and a separate exact runtime-authority receipt
+is accepted.
+
+Rev 182 current-slice addendum: exact-browser verification of `IDA-UI03a4`
+proved that globally denied `window.localStorage` still reaches the public
+critical error boundary through the pre-existing direct access in
+`apps/web/src/lib/cookie-consent.ts`. Parent-gate browser rule 6 and acceptance
+criterion 5 require disabled/security-failing storage to leave the page usable,
+so this is a product blocker and scope expansion, not a post-merge residual.
+
+Arben approved the bounded same-slice addendum in task
+`019fa824-2676-7c22-9dcb-d21af1c354e6`. Exact addendum
+`docs/plans/2026-07-28-ida-dg22-global-storage-denial-addendum.md` is 9,102
+UTF-8 bytes at SHA-256
+`28bbeabd728e1c5b6d170fc48c287ed4a2edfde945f6e308be883dc076865509`.
+It extends the cumulative writer ceiling from 17 to exactly 19 paths by adding
+only `apps/web/src/lib/cookie-consent.ts` and
+`apps/web/src/lib/cookie-consent.test.ts`. The fix must make only the existing
+consent-key localStorage read/write fail closed, preserve the existing cookie
+fallback/write and update event, and prove the public organizer remains usable
+with no false recovery-save state under global accessor denial.
+
+This docs-only addendum does not restart or replace `IDA-UI03a4`, promote a
+second tree node, change cookie policy, authorize a generic storage framework,
+or widen proxy/routes/auth/session/tenancy/schema/RLS/database/claim/
+membership/billing/provider/deployment/runner/production scope. Runtime remains
+held until the addendum merges and a fresh exact receipt rebinds the same
+implementation to the cumulative 19-path map. The clean unpushed implementation
+checkpoint at `8d253a0289532869716d007f35482d09a512a5fb` is preserved; only evidence
+invalidated by the two-path remediation and new head must rerun.
+
+Rev 183 approved current-slice addendum: exact-current review of clean unpushed
+implementation head `2f02bf4877b6a0a2ca22f861bfe498fe1383142f` proved that Web Storage
+read/compare/mutate is not atomic across agent clusters. Two tabs can read the
+same record and both pass the comparison before the stale candidate completes
+last. The same race can remove a later edit during invalid cleanup, discard,
+reset or verified secure-save promotion. Repeating sequential evidence cannot
+satisfy parent rule 9, browser acceptance criterion 6 or the existing
+multi-tab stop condition.
+
+Approved addendum `IDA-DG22-A2` is
+`docs/plans/2026-07-28-ida-dg22-web-locks-addendum.md`, exactly 17,831 UTF-8
+bytes at SHA-256
+`ec478df602410c30cc94b4eca384c8fde5ae4bd56da55b1aa7c66aaf56e90424`.
+It authorizes only one fixed same-origin Web Locks exclusive resource around
+every mutation-capable access to the existing anonymous draft key. Missing,
+throwing or rejected lock support fails recovery closed; no unlocked,
+spinlock, memory-mutex, BroadcastChannel, worker or IndexedDB fallback is
+allowed. True two-context writer, secure-removal and invalid-cleanup barrier
+proof is required in Chromium, Firefox and WebKit.
+
+The addendum adds no writer path: the cumulative ceiling remains exactly 19.
+It also preserves the already-required no-false-save correction for
+valid-to-ineligible-to-valid edits and malformed empty-string cleanup. It
+changes no schema/key/TTL, dependency, route/proxy/auth/tenancy/database,
+membership/claim, server action, provider, deployment, runner or production
+authority. Runtime stays stopped until the docs-only PR merges, AI OS/Brain
+refresh succeeds and a new receipt rebinds the same `IDA-UI03a4` and 19-path
+map. Arben approved the exact
+17,831-byte SHA-256 at `2026-07-28T19:20:22Z`; GPT-5.6 Sol Ultra exact-set
+review passed with no actionable finding. No second slice is promoted.
+
+Rev 184 preserves Rev 183 as exact-approved R1 history but supersedes its merge-readiness claim.
+Exact-head PR `#1475` review thread
+<https://github.com/interdomestik/interdomestik/pull/1475#discussion_r3668651583> correctly found
+that default HTTP `*.127.0.0.1.nip.io` cannot exercise successful Web Locks semantics and that the
+existing public cross-browser config excludes the recovery spec. This is classified as
+`workflow/gate` plus `authority evidence gap`; clean implementation head `2f02bf4877…`, all
+unaffected focused proof and the green PR `#1475` checks are frozen rather than restarted.
+
+`IDA-DG22-A2` R2 binds the full recovery spec to an exact task-owned, content-addressed,
+task-temporary HTTPS neutral-IDA proxy/config on exclusive `interdomestik-z620-staging`. Fresh
+preflight observed 45 GiB disk and 25,030 MiB available memory with the runner online and idle.
+The first cheap probe proved browser `Host` override invalid and forbids it. The next capability
+and full-app canaries passed actual Chromium, Firefox and WebKit: HTTPS neutral IDA host preserved,
+HTTP 200 on `/en`, visible `free-start-intake-shell`, `isSecureContext === true`, and real
+`navigator.locks.request`. R2 adds no repository writer path, proxy/config/workflow change,
+machine trust installation, deployment or production authority. R2 is exact at 24,799 UTF-8
+bytes / SHA-256
+`ebf579a54fb8bb3eec640d12d07b4f74c558ae6ce38a9b48047dd7abe4f0483a`.
+GPT-5.6 Sol Ultra exact-set review passed after manual-context TLS propagation, lifecycle
+sequencing and recoverable cleanup were closed. Arben approved the exact R2 artifact at
+`2026-07-28T20:08:53Z`. PR `#1475` merged the exact R2 authority as
+`7cc5149c0fc4cc0b2ce26af6d5c3091d2fa25b15`; the A2 merge condition and implementation
+runtime-receipt rebind were satisfied before product head `2d3e3b3f…`. A3 now freezes that
+checkpoint and requires its own fresh receipt rebind.
+Because an exact-byte artifact cannot self-record a later approval without invalidating its own
+hash, this canonical program/tracker receipt supersedes R2's preapproval `Status: R2 proposed`
+snapshot for lifecycle state. The canonical resolver reads current program/tracker authority, not
+that immutable artifact header.
+
+Rev 185 completed current-slice addendum: exact Z620 browser verification at implementation head
+`c17d9e063dba0fa2b3b994421e40f5888bc1960d` proved that the parent gate's absolute
+whole-document overflow predicate cannot attribute the public page's existing responsive defect
+to `IDA-UI03a4`. At the literal 320 CSS-pixel Playwright layout viewport with CSS `zoom:2`,
+`innerWidth=320`, `(max-width: 320px)=true` and `(min-width: 321px)=false`. The page is
+`clientWidth=320` / `scrollWidth=760` both with and without the recovery offer. The recovery
+region remains within `left=20` / `right=276`, its actions remain within `left=54` / maximum
+`right=269.59375`, and neither has internal overflow. The existing public-header actions extend
+from `left=451.6875` to `right=760.28125`.
+
+Approved `IDA-DG22-A3` is
+`docs/plans/2026-07-29-ida-dg22-accessibility-overflow-attribution-addendum.md`, exact at 17,152
+UTF-8 bytes / SHA-256
+`9bdf42ba1919cc23459c2005e6a209c21837ef8c5b94aef8e0b86baf6de09d4b`.
+Arben approved the bounded direction and then the exact 17,152-byte artifact at
+`2026-07-29T11:21:11Z`. GPT-5.6 Sol Ultra exact-hash review passed without a remaining blocker
+after 28m 27s. PR `#1476` merged the exact authority as
+`682eaf66918e1738661a41d10bba87a612d991f5`; its merge condition and runtime receipt rebind were
+satisfied before runtime head `91a8cdf4e80249ca2fe4e97c543765b72ad17b56`. A3 retains all four
+literal CSS layout widths,
+200%/text-spacing, forced-colors, reduced-motion, keyboard, visible-focus, accessible-name,
+rendered 44-CSS-pixel target-size, initial no-focus-steal and internal no-overflow proof. Both
+baseline and offer measurements require recovery-state readiness, loaded fonts and a two-frame
+layout settle. Each viewport asserts `innerWidth` and matching max-width/next-pixel min-width
+media-query identity. Its rollback is bound to known stopped/non-merge-ready head `c17d9e063…`
+and invalidates A3 receipts. A3 supersedes only the parent absolute page-level no-document-overflow
+clause for this slice, records that clause as unmet and deferred, and replaces it with an exact
+same-page no-offer baseline comparison: recovery may not create or increase document overflow.
+
+A3 adds no writer path or runtime behavior; the cumulative ceiling remains exactly 19. The
+public-header/document overflow remains an explicit unpromoted candidate in the unfinished UI
+journey tree and may not be marked fixed, waived or completed. A later current-authority selection
+must score and either promote or explicitly defer it. This goal still promotes only
+`IDA-UI03a4`; A4 now freezes implementation until its exact authority merges and is freshly
+rebound.
+
+Rev 186 approved current-slice correction: exact-head GPT-5.6 Ultra review of clean unpushed
+implementation checkpoint `bff8cd7540070e5545fdc1943e3eb8bf94883cb8` proved that its two
+post-grant timer turns are required by exact Firefox cross-agent-cluster localStorage evidence but
+contradict `IDA-DG22-A2`'s literal synchronous/no-`await` callback rule. Reverting the turns would
+restore the reproduced stale overwrite; adding focus/visibility cancellation would discard valid
+newer candidates and violate the both-grant-order outcome.
+
+Approved `IDA-DG22-A4` R4 is
+`docs/plans/2026-07-29-ida-dg22-post-grant-coherence-addendum.md`, exactly 16,460 UTF-8 bytes at
+SHA-256 `add1cab400c2a610a51b435494a1d2c1a0190a55af210b119f2339322c00303d`.
+Arben approved that exact artifact at `2026-07-29T15:17:30Z`; GPT-5.6 Ultra exact-hash review
+passed after 31m 31s. R4 authorizes only two sequential
+`globalThis.setTimeout(callback, 0)` turns inside the existing one-request Web Lock callback,
+preserves the captured pre-lock timestamp solely for inter-candidate ordering, and requires fresh
+post-turn execution-time validation of current expiry, the 60,000 ms future bound, exact TTL and
+would-be expiry before mutation or saved UI.
+
+The granted hold is task-count-bounded, not wall-clock-bounded. A stalled holder may retain the
+lock until JavaScript resumes; sibling requests fail closed after five seconds with no mutation.
+Exact first/second-turn unit barriers and the existing HTTPS Z620 Chromium/Firefox/WebKit matrix
+must prove real-lock ownership, sibling timeout/no-mutation, safe release, fresh-time expiry and
+both grant orders. The recovery spec must remain at most 149 lines. A4 adds no writer path or
+product outcome; the cumulative ceiling remains 19 and all proxy/routes/auth/tenancy/schema/
+RLS/billing/provider/deployment/production boundaries remain unchanged. Runtime remains stopped
+until this docs-only authority merges and resolver/scorecard rebind exactly `IDA-UI03a4`.
+
+Rev 187 closeout supersedes only the active-status and future-implementation
+statements in Rev 186. `IDA-UI03a4` completed through implementation PR
+`#1473`, final exact reviewed head
+`90c6bb057b4acd1bf06275b9e7c9d4921f646297` and squash merge/main
+`d810758fed387a2fcfe42b384c783c6e27581f6d`. Canonical authority PR `#1477`
+merged exact `IDA-DG22-A4` R4 first as
+`ae755991ee11c15cf8eef3d11878ffec05994bc9`; the final implementation stayed
+inside the cumulative 19-path map and consumed only the `IDA-DG22` product
+outcome.
+
+The merged public Free Start organizer preserves eligible vehicle/property
+notes for same-browser, pre-membership recovery, offers an explicit
+resume-or-discard choice after a cold return and removes only the matching
+local copy after the existing verified-email secure save reaches `saving` →
+`saved` with a server draft id. Same-browser recovery creates no membership,
+claim, case, document or cross-device record; completed `IDA-UI03a1` remains
+the sole cross-device secure-save authority.
+
+Final focused proof passed 81/81 unit/component/contract tests plus type,
+format, lint, modularity, repository-size, diff and `security:guard` checks.
+Exact-head CI `30506278743`, PR E2E `30506278746` with 225 passed / 9 policy
+skips / zero retries, Pilot Gate `30506278745`, finalizer `30506278742`,
+Sonar A/A/A with zero open or accepted issues/hotspots/duplication, CodeQL,
+gitleaks, pnpm audit, dependency review, Semgrep, OSV and reviewdog passed.
+All 22 review threads are resolved. The final check rollup was 29 success,
+2 policy skips, 0 pending and 0 failed.
+
+Opus 4.8 and GPT-5.6 Ultra were quota-blocked. Claude Sonnet 4.6 supplied the
+approved low-risk fallback and passed the final patch, Sonar-remediation delta
+and final TypeError delta in 94.266, 77.280 and 35.336 seconds. Gemini produced
+no valid review evidence. The carried valid Opus ledger is 22 calls /
+4,529.178 seconds, average 205.872 seconds; quota failures, invalid routes and
+no-output calls are excluded. Codex Security diff scan was explicitly waived
+by Arben, while every applicable repo-native security surface remained green.
+No current-head Copilot review materialized after the final push; the route is
+classified unavailable rather than approval, and all earlier feedback is
+resolved.
+
+Exact-main CI `30507056833`, Sonar Main `30507056846`, CodeQL
+`30507056367` / `30507056382`, Secret Scan `30507056836` and automatic
+exact-main CD `30507056853` are bound to merge
+`d810758fed387a2fcfe42b384c783c6e27581f6d` and completed `success`.
+CD build/attestation job `90758996463` passed in 19m31s, deploy/health/
+provenance job `90761786077` passed in 15m17s, and staging release-gate job
+`90763972865` passed in 10m27s with P0.1/P0.2/P0.3/P0.4/P0.6 all `PASS`.
+Healthy-path rollback and every production job skipped. The published staging
+image digest is
+`sha256:0b8b492b5417c7083eeb5a789f1283ecdb862d568d453b3e5c9df15dde527e1a`.
+Fresh CD preflight observed the exclusive `interdomestik-z620-staging` runner
+online with the exact build job as its only busy owner. Operator samples across
+the exact run recorded conservative minima of 52 GiB free disk and 17,640 MiB
+available memory, above the 30 GiB / 8 GiB thresholds. Z620 retains staging
+build/attestation, Vercel prebuild/deploy, E2E and rollback; production
+evidence remains GitHub-hosted Ubuntu and production build/deploy/verify
+remains Mac-only under separate tag/manual authority.
+
+`docs/plans/2026-07-30-ida-ui03a4-closeout.md` records the complete authority,
+scope, verification, reviewer/security, runner, rollback and residual-risk
+ledger. `apps/web/src/proxy.ts`, canonical routes and page-ready markers,
+auth/session/OTP, tenancy, schema/RLS, billing, claims, membership, providers
+and production authority remain unchanged.
+
+The pre-existing public-header/document overflow at literal 320 CSS pixels
+remains an explicit unpromoted UI-journey-tree candidate. The accepted
+consent-downgrade stale-readable-copy and stalled Web Lock holder
+availability-only boundaries remain documented residuals. No replacement
+implementation slice is promoted by this closeout. Expected terminal resolver
+state is `blocked_requires_current_authority`, `activeSlice=null`; the next
+valid action is a fresh current-authority selection for the remaining UI
+journey tree, outside this goal.
+
+Rev 188 current authority: `IDA-DG23` in
+`docs/plans/2026-07-30-ida-dg23-ida-ui03a5-membership-aware-draft-continuation-entry.md`
+is the exact approved docs-only design gate bound to clean base
+`027f6db9327b14faf12c9d33d156824d794906c2`. The immutable R9 candidate is
+32,337 UTF-8 bytes at SHA-256
+`0379b150ce2ccaf807cf000cca32a4dd009355f7942b893f1c2e6011c24a6914`.
+Merge is conditioned on Arben approving those exact bytes, hash, gate and sole
+slice `IDA-UI03a5` in task `019fa824-2676-7c22-9dcb-d21af1c354e6`; the literal
+thread receipt must pass without inferred punctuation or timestamp.
+
+The three-operator benchmark inputs have zero blocked sources. Merge still
+requires the exact R9 UI/UX approval receipt to pass. The R9 admission receipt
+is `ready`: one product outcome, eleven writer paths, three independently
+invalidatable proof surfaces, one shared runtime consumer and one special proof
+environment. The read-only C31 collector canary passed.
+GPT-5.6 Sol Max R7 senior review passed the exact semantic artifact after
+1,442.612 seconds. The later exact-PR-head review returned `REVISE` after
+1,146.111 seconds: R8 corrected the malformed role union, formatter drift,
+literal receipt and Tier-3 resolver classification. R8's remediation review
+returned `REVISE` after 981.584 seconds because a preserved skip-worktree file
+had inflated canonical size metadata by 902 local-only bytes. R9 removes that
+contamination and requires proof from the exact staged Git tree.
+The preceding current-contract R6 review returned `REVISE` after 964.779
+seconds and all semantic findings were closed in R7; two wrapper/tool failures
+and the stopped no-terminal Opus attempt are excluded. The carried valid Opus
+ledger remains 26 calls / 6,496.961 seconds, average 249.883 seconds; quota
+failures, stopped/no-output calls and GPT-5.6 reviews are excluded.
+
+The sole promoted Tier-3 product/privacy/UI outcome is verified inactive-account
+saved-draft continuation. On the current neutral host, only a raw
+`member|user` in the default public tenant with a fulfilled inactive-membership
+result may see one secondary dashboard link and enter the existing canonical
+`/member/claims/new?mode=drafts` route. The route remains fail-closed for host,
+role, tenant, query and membership-dependency failures. Explicit Manage →
+Resume reuses the existing owner-scoped list, six-fact details, update,
+conflict and permanent-delete behavior while claim submission stays dormant.
+Active-member `IDA-UI03a3` and anonymous `IDA-UI03a4` behavior remain unchanged.
+
+The future implementation is fixed to eleven existing paths and may add,
+delete or rename no file. `apps/web/src/proxy.ts`, routes, auth/session/OTP,
+tenant resolution, membership semantics, schema/RLS/database, draft storage,
+claim creation/submission, messages, billing, providers, deployment,
+production, README, AGENTS, architecture documents and every second UI-tree
+node remain forbidden. Post-authority implementation ceilings are exactly
+5,633 tracked files, source/scripts at most 7,953,805 bytes, tests/E2E at most
+6,024,848 bytes and config/data/messages exactly 1,824,440 bytes.
+
+This docs-only promotion keeps `runtime_authorized:false`. Product editing
+must not begin until this authority PR merges, exact clean main resolves only
+`IDA-UI03a5`, AI OS/Brain lifecycle checks are attempted, one exact runtime
+receipt binds the merged authority, and one implementation worktree/writer is
+created. No second implementation slice is promoted.
+
+The next active governed implementation goal is exactly one canonical tracker slice:
+`IDA-UI03a5`
+
 Retained M4 product-model closeout: `T-401` completed in PR `#1010` / squash
 merge `956bf21a77d4be46d8e7c05be434577cf8d69705`, closing the
 `grace_period` membership-card lockout. The canonical tracker row remains the
@@ -5831,3 +6188,238 @@ Committed work is only considered inspectable when the tracker can answer this c
 2. execution mode and run identity
 3. `sonar` / `docker` / `sentry` status
 4. learning status and evidence refs
+
+Rev 181 supersedes the Rev 180 terminal no-promotion sentence. Exact approved
+`IDA-DG22` promotes one Tier-3 product/privacy implementation slice only.
+The next active governed implementation goal is exactly one canonical tracker
+slice: `IDA-UI03a4`. This docs-only authority keeps
+`runtime_authorized:false` until its gate PR merges, clean exact main and the
+implementation worktree resolver select only this slice, AI OS/Brain are
+fresh, and a separate runtime-authority receipt is accepted. No second UI-tree
+node, member flow, auth/session/OTP behavior, route/proxy, schema/RLS/database,
+claim, membership, billing, provider, deployment, runner, or production
+surface is promoted.
+
+Rev 182 does not supersede the Rev 181 slice selection. It adds only the exact
+9,102-byte / SHA-256
+`28bbeabd728e1c5b6d170fc48c287ed4a2edfde945f6e308be883dc076865509`
+global-storage-denial addendum to the same `IDA-DG22` / `IDA-UI03a4`. The
+cumulative implementation writer map is 19 paths, adding only
+`apps/web/src/lib/cookie-consent.ts` and its existing focused test. Runtime
+remains unauthorized until canonical addendum merge and exact receipt rebind.
+No replacement goal or second UI-tree node is promoted.
+
+Rev 183 does not supersede the Rev 181 slice selection. It adds only the exact
+exact 17,831-byte / SHA-256
+`ec478df602410c30cc94b4eca384c8fde5ae4bd56da55b1aa7c66aaf56e90424`
+Web Locks addendum to the same `IDA-DG22` / `IDA-UI03a4`. The cumulative
+implementation writer map remains exactly 19 paths. Runtime remains
+unauthorized until canonical addendum merge and exact receipt rebind. Arben
+approved the exact hash at `2026-07-28T19:20:22Z`; GPT-5.6 Sol Ultra exact-set
+review passed. No replacement goal or second UI-tree node is promoted.
+
+Rev 184 keeps the Rev 183 artifact and approval as historical R1 evidence but
+supersedes its merge-readiness claim after exact-head PR `#1475` review proved
+the default HTTP `nip.io` origin cannot exercise real Web Locks and the existing
+public cross-browser config excludes the recovery spec. R2 authorizes only a
+content-addressed task-temporary HTTPS neutral-IDA proxy/config on the exclusive
+Z620 browser runner and requires later collection of the full recovery spec in
+actual Chromium, Firefox and WebKit before implementation merge. The
+exact-origin capability and full-app canaries passed in all three browsers with
+HTTP 200, the canonical shell marker,
+`isSecureContext === true` and real Web Locks. R2 adds no repository writer
+path or protected/runtime surface. Exact R2 is 24,799 UTF-8 bytes / SHA-256
+`ebf579a54fb8bb3eec640d12d07b4f74c558ae6ce38a9b48047dd7abe4f0483a`;
+GPT-5.6 Sol Ultra exact-set review passed and Arben approved it at
+`2026-07-28T20:08:53Z`. PR `#1475` merged the exact R2 authority as
+`7cc5149c0fc4cc0b2ce26af6d5c3091d2fa25b15`; the A2 merge condition and
+implementation runtime-receipt rebind were satisfied before product head
+`2d3e3b3f…`. This canonical receipt supersedes the immutable artifact's
+preapproval `Status: R2 proposed` snapshot; changing that line would invalidate
+the approved exact-byte hash, and the resolver reads current program/tracker
+authority instead.
+
+Rev 185 completed the same-slice accessibility attribution correction through
+PR `#1476` / merge `682eaf66918e1738661a41d10bba87a612d991f5`. Exact A3 is
+17,152 bytes / SHA-256
+`9bdf42ba1919cc23459c2005e6a209c21837ef8c5b94aef8e0b86baf6de09d4b`;
+Arben approved it at `2026-07-29T11:21:11Z`, and GPT-5.6 Sol Ultra passed after
+28m 27s. It adds no writer path and preserves the public-header overflow as an
+unpromoted remaining UI-tree candidate.
+
+Rev 186 does not supersede the Rev 181 slice selection. It adds only exact
+`IDA-DG22-A4` R4, 16,460 bytes / SHA-256
+`add1cab400c2a610a51b435494a1d2c1a0190a55af210b119f2339322c00303d`,
+to the same `IDA-DG22` / `IDA-UI03a4`. Arben approved it at
+`2026-07-29T15:17:30Z`; GPT-5.6 Ultra exact-hash review passed after 31m 31s.
+R4 authorizes only the empirically required two sequential zero-delay timer
+turns inside the existing exclusive Web Lock and fresh post-turn time/TTL
+validation. It records the granted-holder stall as availability-only residual:
+siblings fail closed after five seconds without mutation, while no candidate is
+dropped for focus/visibility. The cumulative implementation writer map remains
+exactly 19 paths. Runtime remains stopped until canonical A4 merge and exact
+receipt rebind. No replacement goal or second UI-tree node is promoted.
+
+Rev 187 supersedes the Rev 181 active-selection sentence. `IDA-UI03a4`
+completed through authority PR `#1477` / main
+`ae755991ee11c15cf8eef3d11878ffec05994bc9` and implementation PR `#1473`,
+final head `90c6bb057b4acd1bf06275b9e7c9d4921f646297`, squash merge
+`d810758fed387a2fcfe42b384c783c6e27581f6d`. The exact 19-path product change,
+focused 81/81 proof, current-head CI/E2E/Pilot/Sonar/CodeQL/security/finalizer
+and zero unresolved threads passed. Exact-main CI/Sonar/CodeQL/Secret/CD
+terminal proof passed on `d810758fed387a2fcfe42b384c783c6e27581f6d`;
+CD `30507056853` completed healthy Z620 build/deploy/E2E, skipped rollback and
+kept production skipped. Runtime authority is consumed. No replacement slice
+is promoted; the intended terminal resolver state is
+`blocked_requires_current_authority`, `activeSlice=null`.
+
+Rev 188 supersedes the Rev 187 terminal no-promotion sentence. Exact approved
+`IDA-DG23` R9, 32,337 bytes / SHA-256
+`0379b150ce2ccaf807cf000cca32a4dd009355f7942b893f1c2e6011c24a6914`,
+promotes one Tier-3 product/privacy/UI implementation slice only:
+`IDA-UI03a5`. It adds verified inactive-account discovery and explicit
+management of existing owner-scoped saved preparation while preserving active
+`IDA-UI03a3`, anonymous `IDA-UI03a4`, dormant claim submission and all
+protected boundaries. The future writer map is eleven existing paths with no
+tracked-file addition, deletion or rename. This docs-only authority keeps
+`runtime_authorized:false` until merge, exact-main resolver/AI OS lifecycle
+proof and a separate exact runtime receipt. No second UI-tree node, protected
+surface, provider, deployment or production authority is promoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03a5` (Tier 3 privacy/routing; `runtime_authorized:false`).
+
+Rev 189 closes the sole `IDA-DG23` promotion. Implementation PR `#1480`
+completed `IDA-UI03a5` from final reviewed head
+`aa29350ec08fd427c43fe7315d42cc3d00da3bbb` and squash merge
+`85321d1ffd00eb23c9196a255daf45358eff6c72`. The neutral dashboard now exposes
+one truthful continuation entry only for the exact fulfilled-inactive,
+default-public-tenant member/user contract, and explicit Manage reuses the
+existing owner-scoped six-fact resume/update/delete path with dormant
+submission. Active-member and anonymous recovery journeys remain unchanged.
+Runtime receipt `IDA-UI03a5-RUNTIME-R1`, accepted `2026-07-30T11:54:56Z`,
+is exactly 8,148 bytes / SHA-256
+`3cda011d61b12fdbf19c95ac751b523e234fac0b37c9a37c386fc8e47df42528`;
+it binds merged authority PR `#1479`, exact base `cfe89a7b…`, R9, the sole
+resolver selection and the single writer/worktree lifecycle consumed here.
+Focused tests, `security:guard`, exact-head Z620 C31, PR CI/E2E/Pilot, Sonar,
+CodeQL, security backstops, finalizer and feedback intake passed. `pnpm
+pr:verify` remains NON-PASS as a single local invocation: its non-browser lanes
+passed, inherited shared-database cleanup invalidated the browser lane, and
+passing isolated Z620 task-database plus exact-head remote browser proof
+replaced only that invalidated evidence.
+Exact-main CD `30561665280` was cancelled during setup before checkout,
+registry, image, provider, alias, deployment or production work. Rollback is a
+single merge revert with no data rollback because the slice introduced no
+schema, persistence-contract or production-state mutation. The final GPT-5.6
+Max advisory rerun produced no terminal output within the single extended
+30-minute window and is recorded NON-PASS; repository-native merge authority
+remained green. Runtime authority is consumed. No replacement implementation
+slice or second UI-tree node is promoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+
+Rev 190 current authority: exact `IDA-DG24` in
+`docs/plans/2026-07-30-ida-dg24-ui03a6-active-member-draft-manager-entry.md`
+is 8,821 bytes / SHA-256
+`4be59edf412bd485f6e9abcfd6d7dc5d2ad213d4809a8d04057e73ffb95e2352`
+and was approved by Arben in task
+`019fa824-2676-7c22-9dcb-d21af1c354e6` at `2026-07-31T06:37:02Z`.
+Its four-operator UI/UX receipt passes, admission is ready, focused Tier-0
+checks pass, and the same-route GPT-5.6 Sol Max rereview found no remaining
+semantic defect after its sole exact-approval condition was satisfied. It
+scores the remaining saved-progress UI-tree nodes after completed
+`IDA-UI03a4` and `IDA-UI03a5`. It promotes exactly one smallest continuation:
+`IDA-UI03a6`, one explicit access-active-member saved-work capability entry.
+The active entry opens the existing normal Claim Draft Intake, where Manage
+remains a separate deliberate action; it does not claim that a draft exists or
+expose a count. The prospective implementation is limited to four dashboard
+helper/view/unit/E2E paths, retains the current primary case/action priority and
+the completed inactive `?mode=drafts` behavior, and adds no draft read, copy,
+persistence, claim writer, route, schema, auth, tenancy, billing or protected
+surface. On docs-only PR merge, this authority promotes exactly `IDA-UI03a6`;
+implementation remains blocked until exact resolver selection and acceptance of
+its separate runtime receipt. Deployment and production remain unauthorized.
+The next active governed implementation goal is exactly one canonical tracker
+slice: `IDA-UI03a6`.
+
+Rev 191 supersedes the Rev 190 active-selection sentence. `IDA-UI03a6` is
+complete through authority PR `#1483` / base
+`b71b8a8d93337b369bb4ee91f6ebf347aabe52e8` and implementation PR `#1484`,
+final reviewed head `144df5bdc611271c4d48f5aa96a1046b17a53480`, squash merge
+`57a9b12dfbf98a2c59834797f24b3fcc5449048c`. Exact runtime receipt
+`IDA-UI03a6-RUNTIME-R1`, SHA-256
+`da36e74c4367b2ab72579ff771876f8f1d15f2e1a552f758eb3b27a9054933b8`,
+was accepted at `2026-07-31T06:56:38Z` on base
+`b71b8a8d93337b369bb4ee91f6ebf347aabe52e8` after the resolver selected only
+`IDA-UI03a6`; it binds task `019fa824-2676-7c22-9dcb-d21af1c354e6`, the exact
+four-path writer map and forbidden runtime surfaces. The active-member dashboard
+now shows one explicit saved-work capability entry only when the existing
+fail-closed access-active/default-public-tenant contract is satisfied. It opens
+the normal Claim Draft Intake while keeping Manage separate, preserves the
+inactive `?mode=drafts` journey and primary-case priority, and does not claim
+that a draft exists or expose a count.
+
+The implementation remained within the exact four-path writer map, net-reduced
+the diff by 16 lines and changed no proxy, route, auth, tenancy, subscription,
+schema/RLS, persistence, claim writer, billing, provider or production
+surface. Focused proof passed 62/62 and 16/16 tests plus type-check, lint,
+modularity, repository-size, formatting and security guards. Exact-head Z620
+proof passed `security:guard`, the Z620 security audit and full `e2e:gate`
+with 224 passed, nine configured skips and one recovered retry. All 31 PR
+checks, all eight protected required checks, Sonar, CodeQL, gitleaks,
+pnpm-audit, deterministic security backstops and `pr-finalizer` passed, with
+zero unresolved threads. The sole Sonar S3358 issue was fixed and closed before
+merge. Two complete GPT-5.6 Sol Max reviews passed with no findings. One
+current-head Copilot review request was made without duplication; GitHub
+accepted the command but exposed no requested reviewer or review, so repository
+gates and the senior fallback remain the recorded review evidence.
+
+Exact-main CI `30620567265`, Sonar Main Gate `30620559931`, Secret Scan
+`30620559714` and CodeQL runs `30620558523` / `30620558450` passed.
+Automatic push CD `30620559562` completed the authorized Z620 staging
+build/attestation, Vercel deploy, health/provenance and P0 release gate. The
+lowest observed capacity was 43 GiB free disk and about 19.4 GiB available
+memory, above the 30/8 GiB floors. Healthy-path rollback was skipped and the
+exact staging-alias preimage remains in artifact `8790084928`; production
+evidence/build/deploy/verify were all skipped with no production mutation.
+Rollback for this presentation-only slice is the merge revert plus the retained
+staging-alias preimage; no data rollback is needed.
+
+The pre-existing missing partner-image warning and one recovered legacy E2E
+retry remain maintenance signals outside this slice and grant no expansion
+authority. Runtime authority is consumed. No replacement implementation slice
+or second UI-tree node is promoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+
+Rev 192 supersedes the Rev 191 terminal no-promotion sentence. Exact docs-only
+authority `IDA-DG25` in
+`docs/plans/2026-07-31-ida-dg25-ui06a-public-header-overflow-containment.md`
+is 22,535 bytes / SHA-256
+`9c86c616f3c18bb9a04dd2cd77e93a18d78d3d415489da1e9438574fcd6fba2e`
+and was approved by Arben in task
+`019fa824-2676-7c22-9dcb-d21af1c354e6` at `2026-07-31T12:44:14Z`.
+The UI/UX governance receipt passes, slice admission is `ready`, and the final
+same-packet GPT-5.6 Sol Max R2 review reports no remaining semantic defect.
+Fresh Z620 admission evidence observed about 44.8 GiB free disk and 24.9 GiB
+available memory and passed the exact header overflow collector in Chromium,
+Firefox and WebKit using the existing Playwright 1.62.0 container; three earlier
+canary attempts remain honestly classified as tooling/environment corrections,
+not product defects.
+
+This gate promotes exactly one Tier 2 product UI/accessibility slice:
+`IDA-UI06a`, limited to the existing public header's document-overflow
+containment under CSS zoom 2 plus WCAG text spacing at literal 320/360/390/430
+CSS-pixel widths for SQ/EN/SR/MK. The prospective runtime writer map is exactly
+`header.tsx`, `header.test.tsx`, `public-header-overflow.spec.ts` and
+`scripts/repo-size-budget.json`. It preserves the brand, language and sign-in
+capabilities, 44-CSS-pixel targets, ordinary disclosure keyboard/focus
+semantics, canonical routes, saved-progress journeys and every completed slice.
+`apps/web/src/proxy.ts`, auth/session/tenancy, schema/RLS, billing, membership,
+claim writers, deployment/workflows and production remain forbidden. Runtime,
+deployment and production authority remain false until this docs-only gate is
+merged, the exact-main resolver selects only `IDA-UI06a`, and a separate exact
+runtime receipt is accepted. No second UI-tree node or replacement slice is
+promoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI06a` (Tier 2 product UI/accessibility; `runtime_authorized:false`).

@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "gateId": "IDA-DG22",
+  "soleSlice": "IDA-UI03a4",
+  "exactSeam": "Anonymous same-browser Free Start recovery followed by existing verified-email secure save",
+  "promotionCheckedAt": "2026-07-28T11:59:12.000Z",
+  "benchmark": {
+    "operators": [
+      {
+        "name": "Typeform autosave progress",
+        "observedAt": "2026-07-28T11:12:00.000Z",
+        "sourceUrl": "https://help.typeform.com/hc/en-us/articles/13064754462228-Enable-or-disable-autosave-progress-for-your-respondents",
+        "receipts": [
+          {
+            "kind": "url",
+            "locator": "https://help.typeform.com/hc/en-us/articles/13064754462228-Enable-or-disable-autosave-progress-for-your-respondents"
+          }
+        ]
+      },
+      {
+        "name": "Google Forms response drafts",
+        "observedAt": "2026-07-28T11:14:00.000Z",
+        "sourceUrl": "https://support.google.com/docs/answer/10952360?hl=en",
+        "receipts": [
+          {
+            "kind": "url",
+            "locator": "https://support.google.com/docs/answer/10952360?hl=en"
+          }
+        ]
+      },
+      {
+        "name": "GOV.UK One Login save progress",
+        "observedAt": "2026-07-28T11:16:00.000Z",
+        "sourceUrl": "https://www.sign-in.service.gov.uk/documentation/design-recommendations/save-progress",
+        "receipts": [
+          {
+            "kind": "url",
+            "locator": "https://www.sign-in.service.gov.uk/documentation/design-recommendations/save-progress"
+          }
+        ]
+      }
+    ],
+    "blockedSources": [],
+    "comparisonCriteria": [
+      "Ordinary exit and same-browser return avoid re-entry without a false cross-device claim",
+      "Browser recovery, identity-bound secure save, and final submission remain distinguishable",
+      "Expiry, discard, private/shared-device risk, and unavailable storage are truthful",
+      "Successful secure save removes the weaker device copy without data loss"
+    ],
+    "betterThanBaseline": {
+      "metric": "Successful restoration after same-browser exit without deliberate secure save",
+      "unit": "successful sessions out of 10 eligible seeded sessions",
+      "direction": "higher",
+      "baseline": 0,
+      "target": 10,
+      "method": "Enter all six eligible vehicle/property facts anonymously, close without secure save, reopen the same neutral-IDA origin within 30 days, choose resume, and require all facts plus the safe step; expired, malformed, wrong-version, injury, discarded, and post-secure-save records must restore zero"
+    },
+    "antiCopyTradeDressBoundary": "Use principles only; do not copy wording, layout, branding, interaction geometry, illustration, icons, motion, or distinctive trade dress."
+  },
+  "approval": {
+    "status": "approved",
+    "approver": "Arben",
+    "approvedAt": "2026-07-28T11:59:11.000Z",
+    "gateId": "IDA-DG22",
+    "soleSlice": "IDA-UI03a4",
+    "gateSha256": "baf97ad76a21df381b806403dc50d2b477637e1e58c45c4ca2e16708113ab4a8",
+    "receipt": {
+      "kind": "thread",
+      "locator": "019fa824-2676-7c22-9dcb-d21af1c354e6"
+    }
+  }
+}

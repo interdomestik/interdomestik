@@ -3,9 +3,7 @@ import { useEffect, useState } from 'react';
 export const COOKIE_CONSENT_STORAGE_KEY = 'interdomestik_cookie_consent_v1';
 export const COOKIE_CONSENT_COOKIE_NAME = 'cookie_consent';
 export const COOKIE_CONSENT_UPDATED_EVENT = 'interdomestik:cookie-consent-updated';
-
 export type CookieConsentValue = 'accepted' | 'necessary';
-
 const COOKIE_CONSENT_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
 function isBrowser(): boolean {
@@ -23,7 +21,11 @@ function getCookieValue(name: string): string | null {
   if (!match) return null;
 
   const [, rawValue = ''] = match.split('=');
-  return rawValue ? decodeURIComponent(rawValue) : null;
+  try {
+    return rawValue ? decodeURIComponent(rawValue) : null;
+  } catch {
+    return null;
+  }
 }
 
 export function parseCookieConsentValue(
@@ -36,8 +38,12 @@ export function parseCookieConsentValue(
 export function getCookieConsent(): CookieConsentValue | null {
   if (!isBrowser()) return null;
 
-  const storageValue = parseCookieConsentValue(localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY));
-  if (storageValue) return storageValue;
+  try {
+    const storageValue = parseCookieConsentValue(localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY));
+    if (storageValue) return storageValue;
+  } catch {
+    // Browser policy may deny the storage accessor or read; the existing cookie is the fallback.
+  }
 
   return parseCookieConsentValue(getCookieValue(COOKIE_CONSENT_COOKIE_NAME));
 }
@@ -45,7 +51,11 @@ export function getCookieConsent(): CookieConsentValue | null {
 export function setCookieConsent(value: CookieConsentValue): void {
   if (!isBrowser()) return;
 
-  localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, value);
+  try {
+    localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, value);
+  } catch {
+    // Keep the existing cookie and same-window event behavior when browser storage is unavailable.
+  }
   document.cookie =
     `${COOKIE_CONSENT_COOKIE_NAME}=${encodeURIComponent(value)}; ` +
     `Max-Age=${COOKIE_CONSENT_MAX_AGE_SECONDS}; Path=/; SameSite=Lax`;

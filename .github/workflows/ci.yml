@@ -2,9 +2,8 @@ name: CI
 
 on:
   push:
-    branches:
-      - main
-      - master
+    branches: [main, master]
+    paths-ignore: ['docs/**', 'scripts/repo-size-budget.json']
   pull_request:
     branches:
       - '**'
@@ -67,9 +66,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-        if: needs.validation-surface.outputs.should_run == 'true'
       - uses: ./.github/actions/setup
-        if: needs.validation-surface.outputs.should_run == 'true'
+      - name: Run lightweight governance audits
+        run: >-
+          pnpm track:audit && pnpm plan:audit && pnpm repo:size:check && node --test scripts/ci/docs-closeout-main-push-contract.test.mjs scripts/ci/z620-parity-policy.test.mjs
       - name: Run Audits
         if: needs.validation-surface.outputs.should_run == 'true'
         run: |
@@ -77,8 +77,6 @@ jobs:
           pnpm test:ci:contracts
           pnpm check:e2e-contracts:base
           pnpm lint:production-warnings
-          pnpm track:audit
-          pnpm plan:audit
           pnpm purity:audit
           pnpm db:migrations:check-journal
           # Contract Compliance: pnpm check remains the Golden Path marker.

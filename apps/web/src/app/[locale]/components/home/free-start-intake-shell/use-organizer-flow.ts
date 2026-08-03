@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { EMPTY_DRAFT } from './constants';
 import { hasIncompleteDraft } from './intake-validation';
+import type { AnonymousDraftSnapshot } from './anonymous-draft-recovery';
 import type { CategoryId, DraftState, SavedDraft, SetDraftField, StepId } from './types';
 
 export function useOrganizerFlow(initialCategory?: CategoryId) {
@@ -68,6 +69,14 @@ export function useOrganizerFlow(initialCategory?: CategoryId) {
     setValidationError(null);
   };
 
+  const restoreAnonymousDraft = (saved: AnonymousDraftSnapshot) => {
+    setSelectedCategory(saved.category);
+    setDraft(saved.draft);
+    setStep(saved.resumeStep);
+    setClaimPack(null);
+    setValidationError(null);
+  };
+
   const resetDraft = () => {
     setSelectedCategory(initialCategory ?? null);
     setDraft(EMPTY_DRAFT);
@@ -85,6 +94,7 @@ export function useOrganizerFlow(initialCategory?: CategoryId) {
     moveToDetails,
     moveToPreview,
     resetDraft,
+    restoreAnonymousDraft,
     resumeDraft,
     selectedCategory,
     selectCategory,

@@ -1,34 +1,26 @@
 'use client';
 
-import { getSupportContacts } from '@/lib/support-contacts';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
-
-import {
-  getConfidenceLevel,
-  getContinueLabel,
-  getIssueIds,
-  getSelectedCategoryLabel,
-  getSelectedIssueLabel,
-  getSelectedOutcomeLabel,
-} from './helpers';
+import { AnonymousDraftRecoveryBand } from './anonymous-draft-recovery-band';
+import { EMPTY_DRAFT } from './constants';
+import { useFreeStartViewModel, useSecureIntentGuard } from './free-start-view-model';
 import { FreeStartMainPanel } from './main-panel';
 import { OrganizerHeader } from './organizer-header';
 import { FreeStartSidebar } from './sidebar';
 import { TrustBoundary } from './trust-boundary';
-import type { FreeStartIntakeShellProps } from './types';
+// prettier-ignore
+import { draftFingerprint, type CategoryId, type FreeStartCopy, type FreeStartIntakeShellProps } from './types';
+import { useAnonymousDraftRecovery } from './use-anonymous-draft-recovery';
 import { useDraftLifecycle } from './use-draft-lifecycle';
 import { useOrganizerFlow } from './use-organizer-flow';
-import { useOrganizerSubmit } from './use-organizer-submit';
-
 // prettier-ignore
-const ClaimPackResult = dynamic(() => import('../claim-pack-result').then(module => module.ClaimPackResult), { ssr: false });
+const ClaimPackResult = dynamic(() => import('../claim-pack-result').then(module => module.ClaimPackResult), { ssr: false }), SecureSaveBand = dynamic(() => import('./secure-save-band').then(module => module.SecureSaveBand), { ssr: false });
 // prettier-ignore
-const SecureSaveBand = dynamic(() => import('./secure-save-band').then(module => module.SecureSaveBand), { ssr: false });
-
+export async function resetAfterRecoveryClear(clear: () => Promise<boolean> | boolean, reset: () => void): Promise<boolean> { if (!(await clear())) { return false; } reset(); return true; }
 export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
-  const t = useTranslations('freeStart');
-  const tCommon = useTranslations('common');
+  const t = useTranslations('freeStart'),
+    tCommon = useTranslations('common');
   const flow = useOrganizerFlow(props.initialCategory);
   const draftLifecycle = useDraftLifecycle({
     category: flow.selectedCategory,
@@ -37,29 +29,34 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
     onResume: flow.resumeDraft,
     step: flow.step,
   });
-  const contacts = getSupportContacts({ locale: props.locale, tenantId: props.tenantId });
-  const issueIds = getIssueIds(flow.selectedCategory);
-  const categoryLabel = getSelectedCategoryLabel(t, flow.selectedCategory);
-  const issueLabel = getSelectedIssueLabel(t, flow.selectedCategory, flow.draft.issueType);
-  const outcomeLabel = getSelectedOutcomeLabel(t, flow.draft.desiredOutcome);
-  const confidenceLevel = getConfidenceLevel(flow.selectedCategory, flow.draft);
+  const secureIntent = useSecureIntentGuard(draftLifecycle.onVerified);
   // prettier-ignore
-  const continueLabel = getContinueLabel(t, props.continueHref, confidenceLevel === 'high' ? 'high' : 'medium');
-  const validationMessage = t('validation.completeIntake');
-  const finishIntake = useOrganizerSubmit({
+  const recovery = useAnonymousDraftRecovery({
+    activeFingerprint: draftLifecycle.active ? draftFingerprint(draftLifecycle.active.category, draftLifecycle.active, draftLifecycle.active.resumeStep) : null,
+    activeId: draftLifecycle.active?.id ?? null,
+    category: flow.selectedCategory,
     draft: flow.draft,
-    isFinishing: flow.isFinishingIntake,
-    locale: props.locale,
-    retryMessage: tCommon('errors.retry'),
-    selectedCategory: flow.selectedCategory,
-    setClaimPack: flow.setClaimPack,
-    setError: flow.setValidationError,
-    setIsFinishing: flow.setIsFinishingIntake,
-    setStep: flow.setStep,
-    tenantId: props.tenantId,
-    validationMessage,
+    lifecycleState: draftLifecycle.state,
+    neutralHost: props.neutralOtpHost,
+    onExternalChange: secureIntent.invalidate,
+    onReset: draftLifecycle.startAnother,
+    onRestore: flow.restoreAnonymousDraft,
+    resetCategory: props.initialCategory ?? null,
+    step: flow.step,
   });
-
+  // prettier-ignore
+  const view = useFreeStartViewModel({ flow, props, t, tCommon }), recoveryPending = !recovery.ready || recovery.busy || Boolean(recovery.offer), secureActionsBlocked = recoveryPending || recovery.state === 'retained';
+  // prettier-ignore
+  const recoveryView = { ...recovery, discard: () => { secureIntent.invalidate(); recovery.discard(); }, resume: () => { secureIntent.invalidate(); recovery.resume(); } };
+  // prettier-ignore
+  const selectCategory = (category: CategoryId) => recovery.neutralHost && flow.selectedCategory === 'injury' && (category === 'vehicle' || category === 'property') ? flow.restoreAnonymousDraft({ category, draft: EMPTY_DRAFT, resumeStep: flow.step === 'complete' ? 'preview' : flow.step }) : flow.selectCategory(category);
+  const noRecoveryBody = (
+    JSON.parse(String(t.raw('secureSaveReviewCopy'))) as { noRecovery: string }
+  ).noRecovery;
+  const trustBoundaryT: FreeStartCopy = key =>
+    key === 'trustBoundary.body' && !recovery.enabled ? noRecoveryBody : t(key);
+  // prettier-ignore
+  const secureLifecycle = { ...draftLifecycle, onVerified: secureIntent.onVerified, startAnother: () => { secureIntent.invalidate(); void resetAfterRecoveryClear(recovery.clearBeforeReset, draftLifecycle.startAnother); } };
   return (
     <section
       id="free-start-intake"
@@ -68,9 +65,10 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
     >
       <div
         data-testid="premium-free-start-organizer"
-        data-save-behavior="temporary"
+        data-save-behavior={recovery.enabled ? 'device-recovery' : 'explicit-only'}
         className="mx-auto max-w-6xl space-y-8 px-4 py-12 sm:px-6 md:py-16"
       >
+        <AnonymousDraftRecoveryBand recovery={recoveryView} />
         <OrganizerHeader step={flow.step} t={t} />
         <p
           data-testid="free-start-result-announcement"
@@ -96,40 +94,41 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
           <div data-testid="free-start-complete" data-layout="full-width">
             <ClaimPackResult
               ctaHref={props.continueHref}
-              ctaLabel={continueLabel}
+              ctaLabel={view.continueLabel}
               pack={flow.claimPack}
-              truthBody={t('trustBoundary.body')}
+              truthBody={trustBoundaryT('trustBoundary.body')}
             />
           </div>
         ) : (
           <div className="grid gap-8 lg:grid-cols-[1.35fr_0.65fr]">
-            <div className="rounded-3xl border border-[#001a33]/15 bg-[#fffdf9] p-5 sm:p-7">
+            {/* prettier-ignore */}
+            <div data-testid="free-start-recovery-editor" inert={recoveryPending ? true : undefined} className="rounded-3xl border border-[#001a33]/15 bg-[#fffdf9] p-5 sm:p-7">
               <FreeStartMainPanel
-                categoryLabel={categoryLabel}
+                categoryLabel={view.categoryLabel}
                 draft={flow.draft}
                 headingRef={flow.stageHeadingRef}
-                issueIds={issueIds}
-                issueLabel={issueLabel}
+                issueIds={view.issueIds}
+                issueLabel={view.issueLabel}
                 isFinishing={flow.isFinishingIntake}
-                outcomeLabel={outcomeLabel}
+                outcomeLabel={view.outcomeLabel}
                 selectedCategory={flow.selectedCategory}
                 setDraftField={flow.setDraftField}
                 step={flow.step}
                 t={t}
                 onBackToCategory={() => flow.navigate('category')}
                 onBackToDetails={() => flow.navigate('details')}
-                onCategorySelect={flow.selectCategory}
-                onFinish={finishIntake}
+                onCategorySelect={selectCategory}
+                onFinish={view.finishIntake}
                 onMoveToDetails={() => flow.moveToDetails(t('validation.chooseCategory'))}
-                onMoveToPreview={() => flow.moveToPreview(validationMessage)}
+                onMoveToPreview={() => flow.moveToPreview(view.validationMessage)}
               />
             </div>
             <aside className="rounded-3xl border border-[#001a33]/15 bg-white p-5 sm:p-6">
               <FreeStartSidebar
-                confidenceLevel={confidenceLevel}
-                contacts={contacts}
+                confidenceLevel={view.confidenceLevel}
+                contacts={view.contacts}
                 continueHref={props.continueHref}
-                continueLabel={continueLabel}
+                continueLabel={view.continueLabel}
                 selectedCategory={flow.selectedCategory}
                 step={flow.step}
                 t={t}
@@ -138,8 +137,8 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
           </div>
         )}
         {/* prettier-ignore */}
-        <SecureSaveBand lifecycle={draftLifecycle} locale={props.locale} neutralOtpHost={props.neutralOtpHost} tenantId={props.neutralOtpTenantId} />
-        <TrustBoundary t={t} />
+        <div data-testid="free-start-recovery-secure-actions" aria-describedby={secureActionsBlocked ? 'anonymous-draft-recovery-heading' : undefined} inert={secureActionsBlocked || undefined}><SecureSaveBand key={secureIntent.epoch} lifecycle={secureLifecycle} locale={props.locale} neutralOtpHost={props.neutralOtpHost} tenantId={props.neutralOtpTenantId} /></div>
+        <TrustBoundary t={trustBoundaryT} />
       </div>
     </section>
   );

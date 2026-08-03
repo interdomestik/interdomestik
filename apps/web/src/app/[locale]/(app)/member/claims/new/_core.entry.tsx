@@ -3,11 +3,13 @@ import { getSessionSafe } from '@/components/shell/session';
 import { evaluateNeutralOtpHost } from '@/app/api/auth/[...all]/neutral-otp-boundary';
 import { loadMessagesForNamespaces } from '@/i18n/messages';
 import { Link } from '@/i18n/routing';
+import { resolveDefaultPublicTenantId } from '@/lib/tenant/tenant-hosts';
 import { hasActiveMembership } from '@interdomestik/domain-membership-billing/subscription';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { Button } from '@interdomestik/ui';
 import { ShieldAlert } from 'lucide-react';
 import { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 
@@ -21,11 +23,9 @@ export type ClaimStartHandoffContext = {
   incidentLocation: (typeof DIASPORA_INCIDENT_LOCATIONS)[number];
 };
 
-export function resolveClaimStartHandoff(query: {
-  source?: string;
-  country?: string;
-  incidentLocation?: string;
-}): ClaimStartHandoffContext | null {
+type ClaimQuery = Record<string, string | string[] | undefined>;
+
+export function resolveClaimStartHandoff(query: ClaimQuery): ClaimStartHandoffContext | null {
   if (
     !query.source ||
     !query.country ||
@@ -68,19 +68,14 @@ export async function generateMetadata(): Promise<Metadata> {
 
 type Props = {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{
-    category?: string;
-    source?: string;
-    country?: string;
-    incidentLocation?: string;
-  }>;
+  searchParams: Promise<ClaimQuery>;
 };
 
 export default async function NewClaimPage({ params, searchParams }: Props) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'claims' });
   const query = await searchParams;
-  const preselectedCategory = query.category;
+  const preselectedCategory = typeof query.category === 'string' ? query.category : undefined;
   const handoffContext = resolveClaimStartHandoff(query);
   const neutralOtpHost = resolveNeutralOtpHost();
 
@@ -92,8 +87,16 @@ export default async function NewClaimPage({ params, searchParams }: Props) {
 
   const tenantId = ensureTenantId(session);
   const hasAccess = await hasActiveMembership(session.user.id, tenantId);
+  const managerOnly =
+    !hasAccess &&
+    Object.getPrototypeOf(query) === Object.prototype &&
+    Object.keys(query).length === 1 &&
+    query.mode === 'drafts' &&
+    evaluateNeutralOtpHost(await headers()) &&
+    (session.user.role === 'member' || session.user.role === 'user') &&
+    tenantId === resolveDefaultPublicTenantId();
 
-  if (!hasAccess) {
+  if (!hasAccess && !managerOnly) {
     return (
       <div className="flex flex-col h-full" data-testid="new-claim-page-ready">
         <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -134,6 +137,7 @@ export default async function NewClaimPage({ params, searchParams }: Props) {
           tenantId={tenantId}
           neutralOtpHost={neutralOtpHost}
           handoffContext={handoffContext}
+          managerOnly={managerOnly}
         />
       </div>
     </div>
