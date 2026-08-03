@@ -2,7 +2,6 @@ import type { TestInfo } from '@playwright/test';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
-
 function projectOrigin(testInfo: TestInfo): string {
   const baseURL = testInfo.project.use.baseURL?.toString();
   if (!baseURL) {
@@ -19,6 +18,7 @@ function normalizeHost(rawHost: string | undefined, fallback: string): string {
   return value.split('/')[0] ?? fallback;
 }
 
+const e2ePort = process.env.PW_PORT ?? process.env.PORT ?? '3000';
 test.describe('P21-QA01 v1.0.0 live surface revalidation', () => {
   test('public launch entry surfaces serve without server errors', async ({
     browser,
@@ -73,7 +73,7 @@ test.describe('P21-QA01 v1.0.0 live surface revalidation', () => {
       'Pilot host smoke is project-independent; run it once in the KS gate lane.'
     );
 
-    const pilotHost = normalizeHost(process.env.PILOT_HOST, 'pilot.127.0.0.1.nip.io:3000');
+    const pilotHost = normalizeHost(process.env.PILOT_HOST, `pilot.127.0.0.1.nip.io:${e2ePort}`);
     const pilotOrigin = `http://${pilotHost}`;
     const context = await browser.newContext({
       baseURL: `${pilotOrigin}${routes.home(testInfo)}`,
