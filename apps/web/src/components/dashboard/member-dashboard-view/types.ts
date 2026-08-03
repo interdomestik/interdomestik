@@ -4,8 +4,9 @@ import type { getActiveSubscription } from '@interdomestik/domain-membership-bil
 
 export type MemberDashboardViewProps = {
   dataPromise: Promise<MemberDashboardData>;
+  draftManagerAvailable?: boolean;
   supplementalDataPromise: Promise<
-    readonly [Awaited<ReturnType<typeof getActiveSubscription>>, number]
+    readonly [Awaited<ReturnType<typeof getActiveSubscription>>, number, boolean?]
   >;
   locale: string;
 };

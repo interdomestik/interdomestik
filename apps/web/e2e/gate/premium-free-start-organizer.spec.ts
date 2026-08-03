@@ -31,7 +31,7 @@ test.describe('premium Free Start organizer', () => {
         await page.setViewportSize({ width: entry.width, height: 844 });
         const organizer = await openOrganizer(page, info, entry.locale);
         await expect(organizer.getByRole('heading', { name: entry.heading })).toBeVisible();
-        await expect(organizer).toHaveAttribute('data-save-behavior', 'temporary');
+        await expect(organizer).toHaveAttribute('data-save-behavior', 'explicit-only');
         await expect(organizer.getByTestId('free-start-trust-boundary')).toBeVisible();
         const anchorTarget = page.getByTestId('free-start-intake-shell');
         await anchorTarget.evaluate(element => element.scrollIntoView({ block: 'start' }));
