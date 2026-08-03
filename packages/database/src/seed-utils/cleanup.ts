@@ -21,11 +21,9 @@ export async function cleanupByPrefixes(
   if (!prefixes.length) return;
 
   const likePatterns = prefixes.map(p => `${p}%`);
-  // const orClause = (col: any) => or(...likePatterns.map((p) => like(col, p))); // Helper if needed, but we'll map manually for typing
 
   console.log(`🧹 Cleaning up data with prefixes: ${prefixes.join(', ')}...`);
 
-  // 1. Identify Claims and clean up related children first (Manual cascade)
   const claimIdPrefixes = likePatterns;
   const claimIdsToDelete = await db.query.claims.findMany({
     where: or(...claimIdPrefixes.map(p => like(dbSchema.claims.id, p))),
@@ -68,14 +66,10 @@ export async function cleanupByPrefixes(
       .where(inArray(dbSchema.claimStageHistory.claimId, allClaimIds));
   }
 
-  // Now delete the claims themselves
   await db
     .delete(dbSchema.claims)
     .where(or(...claimIdPrefixes.map(p => like(dbSchema.claims.id, p))));
 
-  // 1b. Delete Claim Counters (Reset generation state) for cleanliness
-  // We delete all claimCounters if this looks like a full reset (golden/pack prefixes)
-  // This ensures generateClaimNumber starts fresh for the tenant.
   const isGoldenReset = prefixes.some(p => p.includes('golden') || p.includes('pack'));
   if (isGoldenReset && dbSchema.claimCounters) {
     // We can't easily filter by tenant without knowing them, implies full reset is safe for these prefixes
@@ -152,6 +146,12 @@ export async function cleanupByPrefixes(
 
   if (allUserIds.length > 0) {
     console.log(`  Found ${allUserIds.length} users to clean up. removing dependencies...`);
+
+    if (dbSchema.freeStartDrafts) {
+      await db
+        .delete(dbSchema.freeStartDrafts)
+        .where(inArray(dbSchema.freeStartDrafts.ownerUserId, allUserIds));
+    }
 
     if (dbSchema.supportHandoffs) {
       await db
