@@ -9,14 +9,14 @@ Runs local finalization checks for PR readiness:
   - verifies clean git working tree
   - classifies the PR validation surface before choosing local/runtime gates
   - runs runtime local checks for runtime-sensitive PRs
-  - validates required GitHub checks, Sonar issues/hotspots, and review threads
+  - validates required checks, Sonar issues/hotspots, and review threads
 
 Environment:
   PR_FINALIZER_SKIP_CHECK_POLLING=true|false
-    - default in CI (GITHUB_ACTIONS=true): true (avoid duplicate waiting for checks already enforced by branch protection)
+    - default in CI (GITHUB_ACTIONS=true): true (branch protection handles checks)
     - default locally (no GITHUB_ACTIONS): false
     - when set, this variable overrides the default in all environments
-      (for example, set PR_FINALIZER_SKIP_CHECK_POLLING=false in CI to force polling)
+      (for example, false in CI forces polling)
 EOF
 }
 
@@ -38,7 +38,7 @@ resolve_matching_checks() {
   local check_name="$1"
   local checks="$2"
 
-  echo "${checks}" | jq --arg NAME "$check_name" '[.check_runs | .[] | select((.name // .workflow_name // "") == $NAME)]'
+  echo "${checks}" | jq --arg NAME "$check_name" '[.check_runs[] | select((.name//.workflow_name//"")==$NAME)] | sort_by(.started_at//.completed_at//.created_at//"") | if length>0 then [.[-1]] else [] end'
 }
 
 fail() {

@@ -36,7 +36,10 @@ test('PR finalizer local polling covers current deterministic required checks', 
   assert.match(finalizer, /\[\[ "\$\{check_name\}" == "pr-finalizer" \]\]/);
   assert.match(finalizer, /\$\{max_check_retries\}.*\^\[1-9\]\[0-9\]\*\$/);
   assert.match(finalizer, /invalid PR_FINALIZER_MAX_CHECK_RETRIES value/);
-  assert.match(finalizer, /\(\.name \/\/ \.workflow_name \/\/ ""\) == \$NAME/);
+  assert.match(
+    finalizer,
+    /select\(\(\.name\/\/\.workflow_name\/\/""\)==\$NAME\).*sort_by\(\.started_at\/\/\.completed_at\/\/\.created_at\/\/""\).*if length>0 then \[\.\[-1\]\] else \[\] end/
+  );
   assert.match(
     finalizerLib,
     /gh api --paginate "repos\/\$\{repo\}\/pulls\/\$\{current_pr\}\/files\?per_page=100"/
