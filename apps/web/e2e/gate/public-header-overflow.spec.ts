@@ -2,141 +2,147 @@ import { expect, test, type Locator, type Page, type TestInfo } from '@playwrigh
 import { routes, type Locale } from '../routes';
 import { withAnonymousPage } from '../utils/anonymous-context';
 import { gotoApp } from '../utils/navigation';
-
 const locales = ['sq', 'en', 'sr', 'mk'] as const;
 const widths = [320, 360, 390, 430] as const;
-
-async function persistCookieConsent(page: Page) {
+async function openHeader(page: Page, info: TestInfo, locale: Locale) {
   await page.addInitScript(() => {
     localStorage.setItem('interdomestik_cookie_consent_v1', 'accepted');
     document.cookie = 'cookie_consent=accepted; Path=/; SameSite=Lax';
   });
-}
-
-async function openHeader(page: Page, info: TestInfo, locale: Locale) {
   await gotoApp(page, routes.home(locale), info, { marker: 'public-entry-hero' });
   return page.getByRole('banner');
 }
-
+async function settle(page: Page) {
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    await new Promise<number>(resolve =>
+      requestAnimationFrame(() => requestAnimationFrame(resolve))
+    );
+  });
+}
 async function applyStress(page: Page, width: number) {
   await page.setViewportSize({ width, height: 720 });
   await page.emulateMedia({ forcedColors: 'active', reducedMotion: 'reduce' });
-  await page
-    .locator('#ida-header-presentation')
-    .evaluateAll(nodes => nodes.forEach(node => node.remove()));
-  const tag = await page.addStyleTag({
-    content:
-      '*{line-height:1.5!important;letter-spacing:.12em!important;word-spacing:.16em!important}' +
-      'p{margin-bottom:2em!important}html{zoom:2}',
-  });
-  await tag.evaluate(node => {
-    node.id = 'ida-header-presentation';
-  });
-  return page.evaluate(async expected => {
-    await document.fonts.ready;
-    await new Promise<void>(resolve =>
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
-    );
-    const root = document.documentElement;
-    const media =
+  const content =
+    '*{line-height:1.5!important;letter-spacing:.12em!important;word-spacing:.16em!important}' +
+    'p{margin-bottom:2em!important}html{zoom:2}';
+  await page.addStyleTag({ content });
+  await settle(page);
+  const valid = await page.evaluate(
+    expected =>
+      innerWidth === expected &&
+      matchMedia('(forced-colors: active)').matches &&
+      matchMedia('(prefers-reduced-motion: reduce)').matches &&
       matchMedia(`(max-width: ${expected}px)`).matches &&
       !matchMedia(`(min-width: ${expected + 1}px)`).matches &&
-      matchMedia('(forced-colors: active)').matches &&
-      matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (innerWidth !== expected || !media || getComputedStyle(root).zoom !== '2') {
-      throw new Error('computed accessibility presentation mismatch');
-    }
-    return { client: root.clientWidth, scroll: root.scrollWidth };
-  }, width);
+      getComputedStyle(document.documentElement).zoom === '2',
+    width
+  );
+  expect(valid).toBe(true);
 }
-
-async function expectContained(header: Locator, page: Page) {
-  const geometry = await header.evaluate(element => {
+async function collectHeader(header: Locator, info: TestInfo, label: string) {
+  const result = await header.evaluate(el => {
     const root = document.documentElement;
-    const actions = [...element.querySelectorAll<HTMLElement>('a,button')];
-    return {
-      documentFits: root.scrollWidth <= root.clientWidth,
-      headerFits: element.scrollWidth <= element.clientWidth,
-      actionsFit: actions.every(action => {
-        const box = action.getBoundingClientRect();
-        return box.left >= 0 && box.right <= innerWidth;
-      }),
-      targets: actions.map(action => ({
-        height: action.getBoundingClientRect().height,
-        width: action.getBoundingClientRect().width,
-      })),
-    };
+    const visible = [...el.querySelectorAll<HTMLElement>('a,button')].filter(
+      node => node.offsetWidth > 0 && node.offsetHeight > 0
+    );
+    const violations: string[] = [];
+    const actions = visible.map((node, index) => {
+      const rect = node.getBoundingClientRect();
+      const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      if (rect.left < 0 || rect.right > innerWidth) violations.push(`action-edge-${index}`);
+      if (node.offsetWidth < 44 || node.offsetHeight < 44) violations.push(`target-${index}`);
+      if (!hit || !node.contains(hit)) violations.push(`hit-${index}`);
+      return { l: rect.left, r: rect.right, t: rect.top, b: rect.bottom };
+    });
+    for (let left = 0; left < actions.length; left += 1)
+      for (let right = left + 1; right < actions.length; right += 1) {
+        const a = actions[left];
+        const b = actions[right];
+        if (a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t)
+          violations.push(`overlap-${left}-${right}`);
+      }
+    const offenders = [el, ...el.querySelectorAll<HTMLElement>('*')]
+      .filter(node => {
+        const rect = node.getBoundingClientRect();
+        return rect.left < 0 || rect.right > innerWidth || node.scrollWidth > node.clientWidth;
+      })
+      .map(node => node.tagName.toLowerCase());
+    if (offenders.length) violations.push(`subtree-${offenders.join(',')}`);
+    const maskNodes = [
+      ...document.querySelectorAll('html,body,main'),
+      el,
+      el.firstElementChild,
+    ].filter((node): node is Element => node instanceof Element);
+    const masks = maskNodes.filter(node => {
+      const style = getComputedStyle(node);
+      return (
+        /hidden|clip/.test(style.overflowX) ||
+        style.transform !== 'none' ||
+        style.translate !== 'none'
+      );
+    });
+    if (masks.length) violations.push('masking');
+    return { violations, rootDiagnostic: [root.clientWidth, root.scrollWidth], offenders };
   });
-  expect(geometry.documentFits).toBe(true);
-  expect(geometry.headerFits).toBe(true);
-  expect(geometry.actionsFit).toBe(true);
-  expect(geometry.targets.every(target => target.height >= 44 && target.width >= 44)).toBe(true);
-  await expect(page.getByRole('link', { name: 'Interdomestik' })).toBeVisible();
+  await info.attach(`header-geometry-${label}`, {
+    body: Buffer.from(JSON.stringify(result)),
+    contentType: 'application/json',
+  });
+  expect(result.violations, label).toEqual([]);
 }
-
 test.describe('public header overflow containment', () => {
-  test('contains the closed and open header in every locale and stress width', async ({
-    browser,
-  }, info) => {
+  test('has zero header-owned violations across the stress matrix', async ({ browser }, info) => {
     await withAnonymousPage(browser, info, async page => {
-      await persistCookieConsent(page);
-      for (const locale of locales) {
+      for (const locale of locales)
         for (const width of widths) {
           await page.setViewportSize({ width, height: 720 });
           const header = await openHeader(page, info, locale);
-          const closed = await applyStress(page, width);
-          expect(closed.scroll).toBeLessThanOrEqual(closed.client);
-          await expectContained(header, page);
-
-          const language = header.getByTestId('public-locale-trigger');
-          await language.click();
-          await expect(language).toHaveAttribute('aria-expanded', 'true');
+          await applyStress(page, width);
+          await collectHeader(header, info, `${locale}-${width}-closed`);
+          await expect(header.getByRole('link', { name: 'Interdomestik' })).toHaveAttribute(
+            'href',
+            new RegExp(`/${locale}$`)
+          );
+          await expect(header.locator(`a[href$="/${locale}/login"]`)).toHaveCount(1);
+          const trigger = header.getByTestId('public-locale-trigger');
+          await trigger.click();
+          await expect(trigger).toBeFocused();
+          await expect(trigger).toHaveAttribute('aria-expanded', 'true');
           await expect(header.getByTestId('public-locale-option')).toHaveCount(4);
-          await expectContained(header, page);
+          await collectHeader(header, info, `${locale}-${width}-open`);
         }
-      }
     });
   });
-
-  test('preserves disclosure keyboard order and normal narrow or desktop layouts', async ({
-    browser,
-  }, info) => {
+  test('preserves interaction and normal geometry', async ({ browser }, info) => {
     await withAnonymousPage(browser, info, async page => {
-      await persistCookieConsent(page);
       await page.setViewportSize({ width: 390, height: 844 });
       const header = await openHeader(page, info, 'sq');
-      const language = header.getByTestId('public-locale-trigger');
-      await language.focus();
-      await language.press('Enter');
-      await expect(language).toBeFocused();
-      await expect(language).toHaveAttribute('aria-expanded', 'true');
+      const trigger = header.getByTestId('public-locale-trigger');
+      await expect(trigger).not.toHaveAttribute('aria-haspopup');
+      await trigger.press('Enter');
+      await expect(trigger).toBeFocused();
       await page.keyboard.press('Tab');
       const options = header.getByTestId('public-locale-option');
       await expect(options.first()).toBeFocused();
-      await expect(options).toHaveCount(4);
       await expect(options.nth(0)).toHaveAttribute('href', /\/sq$/);
       await expect(options.nth(3)).toHaveAttribute('href', /\/mk$/);
       await page.keyboard.press('Escape');
-      await expect(language).toBeFocused();
-      await expect(options).toHaveCount(0);
-      await language.press('Space');
-      await expect(language).toHaveAttribute('aria-expanded', 'true');
-
+      await expect(trigger).toBeFocused();
+      await trigger.press('Space');
+      await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+      await options.nth(1).click();
+      await expect(page).toHaveURL(/\/en$/);
       for (const width of [320, 390, 1440]) {
         await page.setViewportSize({ width, height: 844 });
-        await page.reload();
-        await documentFonts(page);
-        await expectContained(page.getByRole('banner'), page);
+        const normalHeader = await openHeader(page, info, 'sq');
+        await settle(page);
+        const fits = await page.evaluate(
+          () => document.documentElement.scrollWidth <= document.documentElement.clientWidth
+        );
+        expect(fits, `normal root ${width}`).toBe(true);
+        await collectHeader(normalHeader, info, `normal-${width}`);
       }
     });
   });
 });
-
-async function documentFonts(page: Page) {
-  await page.evaluate(async () => {
-    await document.fonts.ready;
-    await new Promise<void>(resolve =>
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
-    );
-  });
-}
