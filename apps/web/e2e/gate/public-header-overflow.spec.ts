@@ -75,16 +75,11 @@ async function collectHeader(header: Locator, info: TestInfo, label: string) {
     if (offenders.length) violations.push(`subtree-${offenders.join(',')}`);
     // prettier-ignore
     const maskNodes = [...document.querySelectorAll('html,body,main'), el, el.firstElementChild].filter((node): node is Element => node instanceof Element);
-    const masks = maskNodes.filter(node => {
-      const style = getComputedStyle(node);
-      return (
-        /hidden|clip/.test(style.overflowX) ||
-        style.transform !== 'none' ||
-        style.translate !== 'none'
-      );
-    });
+    // prettier-ignore
+    const masks = maskNodes.filter(node => { const style = getComputedStyle(node); return /hidden|clip/.test(style.overflowX) || style.transform !== 'none' || style.translate !== 'none'; });
     if (masks.length) violations.push('masking');
-    return { violations, offenders };
+    // prettier-ignore
+    return { violations, offenders, root: { clientWidth: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth } };
   });
   // prettier-ignore
   await info.attach(`header-geometry-${label}`, { body: Buffer.from(JSON.stringify(result)), contentType: 'application/json' });
@@ -108,6 +103,7 @@ test.describe('public header overflow containment', () => {
           await expect(trigger).toBeFocused();
           await expect(trigger).toHaveAttribute('aria-expanded', 'true');
           await expect(header.getByTestId('public-locale-option')).toHaveCount(4);
+          await settle(page);
           await collectHeader(header, info, `${locale}-${width}-open`);
         }
     });
