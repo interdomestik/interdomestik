@@ -6518,3 +6518,35 @@ cohort claim is made. Runtime authority is consumed and no successor is
 promoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+
+Rev 197 closeout consumes the sole `IDA-UI06b` promotion through authority PR
+`#1496` and implementation PR `#1498`, final reviewed head
+`f7509c0eb5ff3467016a3fd988cb55aaaeb445d4`, squash merge
+`6fbc381995f265a11a0021dc962961ec8426c52c`. Exact runtime receipt
+`IDA-UI06b-RUNTIME-R1` is 19,701 bytes / SHA-256
+`c4dbbdf83d95b3453318fc2aa43b05a2b83abbe77291c03eb27922a7ef7a6750`.
+The six-path implementation removes only anonymous-Hero
+`PublicMembershipAction` and preserves immediate help, support, member
+continuation, intake, routes, copy/i18n and every outside-Hero section.
+
+Focused unit proof passed `6/6`; exact exclusive-Z620 Hero proof passed `6/6`
+with zero retries; full exact-head Z620 E2E passed `227` with `9` skipped and two
+inherited recovered retries. All 31 exact-head PR checks, Sonar with zero new
+issues/hotspots, CodeQL, gitleaks, audit, repo-native security, finalizer and
+zero-thread feedback passed. GPT-5.6 Sol Max final exact-head review passed;
+the correct Opus 5 route was blocked before execution by expired OAuth, Copilot
+remained unavailable after one bounded fallback request, and Codex Security
+diff scan was user-waived. Mac remained control/light-writer only; Z620 supplied
+heavy browser proof with observed minima 43 GiB disk and 20,124 MiB available
+memory; GitHub-hosted Ubuntu supplied merge authority.
+
+Exact-main evidence is bound to CI `31047649698`, Sonar `31047649695`, CodeQL
+`31047649613` / `31047649235` and Secret Scan `31047649728`. Automatic CD
+`31047649680` was cancelled with every job at `steps: []`, before checkout,
+registry, image, provider, alias, deployment or production effect. Rollback is
+the single implementation merge revert; no data rollback is required. The two
+recovered legacy E2E fingerprints, legacy non-header overflow and full Hero
+redesign remain unpromoted residuals. Runtime authority is consumed. No
+replacement implementation slice or second UI-tree node is promoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
