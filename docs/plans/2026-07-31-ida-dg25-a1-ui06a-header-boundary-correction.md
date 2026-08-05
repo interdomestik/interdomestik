@@ -96,11 +96,12 @@ observed legacy-page accessibility signal.
 
 ## Authority PR contract
 
-The corrective docs-only authority PR has exactly three writers:
+The corrective docs-only authority PR has exactly four writers:
 
 1. `docs/plans/2026-07-31-ida-dg25-a1-ui06a-header-boundary-correction.md`
 2. `docs/plans/current-program.md`
 3. `docs/plans/current-tracker.md`
+4. `scripts/repo-size-budget.json` only through the deterministic size-sync command
 
 `current-program.md` must append one superseding current-authority revision that names A1's exact
 bytes/hash/approval and corrected metric, retains exactly `IDA-UI06a`, sets
