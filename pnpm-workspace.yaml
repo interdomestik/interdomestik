@@ -20,13 +20,13 @@ overrides:
   bn.js: ^4.12.3
   ajv@^6.12.4: 6.14.0
   lodash: ^4.18.1
-  undici: 7.28.0
+  undici: 7.29.0
   seroval: '>=1.4.1'
   tar: 7.5.11
   '@isaacs/brace-expansion': ^5.0.1
-  brace-expansion: 5.0.8
+  brace-expansion: 5.0.9
   cross-spawn: ^7.0.6
-  fast-uri: 3.1.4
+  fast-uri: 3.1.5
   sharp: 0.35.3
   handlebars: 4.7.9
   minimatch: '>=10.2.3'
@@ -38,7 +38,7 @@ overrides:
   flatted: 3.4.2
   rollup: 4.59.0
   express-rate-limit: 8.3.0
-  hono: ^4.12.25
+  hono: ^4.12.34
   '@hono/node-server': 2.0.10
   postcss: 8.5.23
   defu: ^6.1.5
@@ -49,7 +49,7 @@ overrides:
   ws: 8.21.0
   smol-toml: 1.6.1
   yaml@>=2.0.0 <2.8.3: 2.8.3
-  ip-address: 10.1.1
+  ip-address: 10.3.1
   shell-quote: 1.8.4
   dompurify: 3.4.12
   '@babel/core': 7.29.7
