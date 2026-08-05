@@ -10,7 +10,7 @@ async function openHeader(page: Page, info: TestInfo, locale: Locale) {
     document.cookie = 'cookie_consent=accepted; Path=/; SameSite=Lax';
   });
   await gotoApp(page, routes.home(locale), info, { marker: 'public-entry-hero' });
-  return page.getByRole('banner');
+  return page.getByTestId('public-header');
 }
 async function settle(page: Page) {
   await page.evaluate(async () => {
@@ -118,6 +118,7 @@ test.describe('public header overflow containment', () => {
     await withAnonymousPage(browser, info, async page => {
       await page.setViewportSize({ width: 390, height: 844 });
       const header = await openHeader(page, info, 'sq');
+      await expect(page.getByRole('banner')).toHaveCount(0);
       const trigger = header.getByTestId('public-locale-trigger');
       await expect(trigger).not.toHaveAttribute('aria-haspopup');
       await trigger.press('Enter');

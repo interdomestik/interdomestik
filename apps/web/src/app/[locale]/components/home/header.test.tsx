@@ -33,7 +33,11 @@ vi.mock('@/i18n/routing', () => ({
 
 describe('Header', () => {
   it('keeps the public header calm: brand, locale, and sign-in only', () => {
-    render(<Header />);
+    render(
+      <main>
+        <Header />
+      </main>
+    );
 
     expect(screen.getByRole('link', { name: /Interdomestik/i })).toHaveAttribute('href', '/');
     expect(screen.getByRole('link', { name: enNavMessages.nav.login })).toHaveAttribute(
@@ -43,6 +47,7 @@ describe('Header', () => {
     expect(screen.queryByRole('link', { name: /WhatsApp|\+383|\+389/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/60 seconds|60 sekonda|24\/7/i)).not.toBeInTheDocument();
     expect(document.querySelector('a button, button a')).not.toBeInTheDocument();
+    expect(screen.getByTestId('public-header')).not.toHaveAttribute('role');
   });
 
   it('opens a real four-locale control with 44px targets', () => {
@@ -83,7 +88,7 @@ describe('Header', () => {
       </main>
     );
 
-    const header = screen.getByRole('banner');
+    const header = screen.getByTestId('public-header');
     const shell = header.firstElementChild;
     const brand = screen.getByRole('link', { name: 'Interdomestik' });
     const language = screen.getByRole('button', { name: enNavMessages.nav.language });

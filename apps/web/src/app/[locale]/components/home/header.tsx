@@ -15,7 +15,7 @@ export function Header() {
 
   return (
     <header
-      role="banner"
+      data-testid="public-header"
       className="sticky top-0 z-50 border-b border-white/10 bg-[#001A33] text-white"
     >
       <div className="mx-auto flex min-h-[4.75rem] w-full max-w-[90rem] flex-wrap items-center justify-between gap-x-2 gap-y-1 px-2 py-1 sm:flex-nowrap sm:gap-y-0 sm:px-6 sm:py-0 lg:px-10 xl:px-14">
