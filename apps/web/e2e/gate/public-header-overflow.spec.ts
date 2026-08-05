@@ -19,11 +19,11 @@ async function settle(page: Page) {
 async function expectForcedFocus(locator: Locator) {
   await expect(locator).toBeFocused();
   await locator.blur();
-  expect(await locator.evaluate(node => parseFloat(getComputedStyle(node).outlineWidth))).toBe(0);
-  await locator.focus();
-  await expect(locator).toBeFocused();
   // prettier-ignore
-  expect(await locator.evaluate(node => parseFloat(getComputedStyle(node).outlineWidth))).toBeGreaterThan(0);
+  expect(await locator.evaluate(node => !node.matches(':focus-visible') && getComputedStyle(node).outlineStyle === 'none')).toBe(true);
+  await locator.focus();
+  // prettier-ignore
+  expect(await locator.evaluate(node => node.matches(':focus-visible') && getComputedStyle(node).outlineStyle !== 'none' && parseFloat(getComputedStyle(node).outlineWidth) > 0)).toBe(true);
 }
 async function applyStress(page: Page, width: number) {
   await page.setViewportSize({ width, height: 720 });
