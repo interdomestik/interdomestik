@@ -18,8 +18,12 @@ async function settle(page: Page) {
 }
 async function expectForcedFocus(locator: Locator) {
   await expect(locator).toBeFocused();
-  const visible = await locator.evaluate(node => getComputedStyle(node).outlineStyle !== 'none');
-  expect(visible).toBe(true);
+  await locator.blur();
+  expect(await locator.evaluate(node => parseFloat(getComputedStyle(node).outlineWidth))).toBe(0);
+  await locator.focus();
+  await expect(locator).toBeFocused();
+  // prettier-ignore
+  expect(await locator.evaluate(node => parseFloat(getComputedStyle(node).outlineWidth))).toBeGreaterThan(0);
 }
 async function applyStress(page: Page, width: number) {
   await page.setViewportSize({ width, height: 720 });
@@ -43,7 +47,6 @@ async function applyStress(page: Page, width: number) {
 }
 async function collectHeader(header: Locator, info: TestInfo, label: string) {
   const result = await header.evaluate(el => {
-    const root = document.documentElement;
     const visible = [...el.querySelectorAll<HTMLElement>('a,button')].filter(
       node => node.offsetWidth > 0 && node.offsetHeight > 0
     );
@@ -81,12 +84,10 @@ async function collectHeader(header: Locator, info: TestInfo, label: string) {
       );
     });
     if (masks.length) violations.push('masking');
-    return { violations, rootDiagnostic: [root.clientWidth, root.scrollWidth], offenders };
+    return { violations, offenders };
   });
-  await info.attach(`header-geometry-${label}`, {
-    body: Buffer.from(JSON.stringify(result)),
-    contentType: 'application/json',
-  });
+  // prettier-ignore
+  await info.attach(`header-geometry-${label}`, { body: Buffer.from(JSON.stringify(result)), contentType: 'application/json' });
   expect(result.violations, label).toEqual([]);
 }
 test.describe('public header overflow containment', () => {
@@ -99,10 +100,8 @@ test.describe('public header overflow containment', () => {
           const header = await openHeader(page, info, locale);
           await applyStress(page, width);
           await collectHeader(header, info, `${locale}-${width}-closed`);
-          await expect(header.getByRole('link', { name: 'Interdomestik' })).toHaveAttribute(
-            'href',
-            new RegExp(`/${locale}$`)
-          );
+          const brand = header.getByRole('link', { name: 'Interdomestik' });
+          await expect(brand).toHaveAttribute('href', new RegExp(`/${locale}$`));
           await expect(header.locator(`a[href$="/${locale}/login"]`)).toHaveCount(1);
           const trigger = header.getByTestId('public-locale-trigger');
           await trigger.click();
@@ -134,13 +133,14 @@ test.describe('public header overflow containment', () => {
       await expect(trigger).toHaveAttribute('aria-expanded', 'true');
       await options.nth(1).click();
       await expect(page).toHaveURL(/\/en$/);
+      await page.emulateMedia({ forcedColors: null });
+      expect(await page.evaluate(() => matchMedia('(forced-colors: active)').matches)).toBe(false);
       for (const width of [320, 390, 1440]) {
         await page.setViewportSize({ width, height: 844 });
         const normalHeader = await openHeader(page, info, 'sq');
         await settle(page);
-        const fits = await page.evaluate(
-          () => document.documentElement.scrollWidth <= document.documentElement.clientWidth
-        );
+        // prettier-ignore
+        const fits = await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
         expect(fits, `normal root ${width}`).toBe(true);
         await collectHeader(normalHeader, info, `normal-${width}`);
       }

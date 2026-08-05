@@ -22,7 +22,7 @@ export function Header() {
         <Link
           href="/"
           aria-label="Interdomestik"
-          className="group inline-flex min-h-11 min-w-11 shrink-0 items-center gap-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5DE0D7] focus-visible:ring-offset-2 focus-visible:ring-offset-[#001A33] forced-colors:outline sm:gap-3"
+          className="group inline-flex min-h-11 min-w-11 shrink-0 items-center gap-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5DE0D7] focus-visible:ring-offset-2 focus-visible:ring-offset-[#001A33] forced-colors:focus-visible:outline sm:gap-3"
         >
           <ShieldCheck
             aria-hidden="true"
@@ -49,7 +49,7 @@ export function Header() {
                 event.preventDefault();
                 setLocaleOpen(false);
               }}
-              className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-sm px-1 text-xs font-semibold uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5DE0D7] forced-colors:outline sm:min-w-14 sm:px-3 sm:text-sm"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-sm px-1 text-xs font-semibold uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5DE0D7] forced-colors:focus-visible:outline sm:min-w-14 sm:px-3 sm:text-sm"
             >
               {locale}
               <ChevronDown aria-hidden="true" className="h-4 w-4" />
@@ -73,7 +73,7 @@ export function Header() {
                     setLocaleOpen(false);
                     localeTrigger.current?.focus();
                   }}
-                  className="flex min-h-11 items-center px-4 text-sm font-semibold uppercase hover:bg-[#E8F7F5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#006A70] forced-colors:outline"
+                  className="flex min-h-11 items-center px-4 text-sm font-semibold uppercase hover:bg-[#E8F7F5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#006A70] forced-colors:focus-visible:outline"
                 >
                   {option}
                 </Link>
@@ -82,7 +82,7 @@ export function Header() {
           ) : null}
           <Link
             href="/login"
-            className="inline-flex min-h-11 min-w-11 items-center justify-center border border-white/70 px-1 text-xs font-semibold transition-colors hover:bg-white hover:text-[#001A33] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5DE0D7] motion-reduce:transition-none forced-colors:outline sm:px-6 sm:text-sm"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center border border-white/70 px-1 text-xs font-semibold transition-colors hover:bg-white hover:text-[#001A33] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5DE0D7] motion-reduce:transition-none forced-colors:focus-visible:outline sm:px-6 sm:text-sm"
           >
             {t('login')}
           </Link>

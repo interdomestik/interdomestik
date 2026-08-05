@@ -81,9 +81,11 @@ describe('Header', () => {
       ...localeLinks,
       screen.getByRole('link', { name: enNavMessages.nav.login }),
     ]);
-    expect(orderedActions.every(action => action.className.includes('forced-colors:outline'))).toBe(
-      true
-    );
+    expect(
+      orderedActions.every(action =>
+        action.className.includes('forced-colors:focus-visible:outline')
+      )
+    ).toBe(true);
 
     for (let index = 0; index < 4; index += 1) {
       if (index > 0) fireEvent.click(toggle);
