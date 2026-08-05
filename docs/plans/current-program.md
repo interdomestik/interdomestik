@@ -6318,6 +6318,39 @@ slice or second UI-tree node is promoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
 
+Rev 195 proposed current authority: `IDA-DG26` selects exactly one Tier 2
+product UI/accessibility slice, `IDA-UI06b`, from clean main
+`515bec77997091f2f2fb0697cb71ddad9ad5f27f`. Arben approved the verbatim scope
+in task `019fa824-2676-7c22-9dcb-d21af1c354e6`: remove only
+`PublicMembershipAction` from the anonymous `HeroSection` while preserving
+`PublicSituationActions`, `PublicSupportPanel`, member continuation, header,
+intake, routes, copy/i18n and every outside-Hero section.
+
+Candidate `docs/plans/2026-08-05-ida-dg26-ui06b-anonymous-hero-membership-row-retirement.md`
+is 16,274 UTF-8 bytes / SHA-256
+`7ae4b97a79fa5ad3e110dd8f2b5e3b68c5e15319e6519dbe04aa39d8d7f5fb79`.
+Its exact-approval-bound three-operator UI/UX receipt passes at SHA-256
+`e92b847561221820ee310b79bc40e50138085d8c08bf57caa2cbbc1242d59616`;
+slice admission is ready at SHA-256
+`021d0cbb08b36005162d34bf3c23d8d5ca2fcea080c396a0afc61415a58de57d`
+with one outcome, six writers, three proof surfaces, no shared runtime consumer
+and no special proof environment. Claude Opus 5 was blocked before review by an
+expired OAuth token; the one read-only GPT-5.6 Sol Max fallback returned `PASS`
+with no blocker or hardening item. Arben approved the exact 16,274-byte artifact
+at SHA-256 `7ae4b97a79fa5ad3e110dd8f2b5e3b68c5e15319e6519dbe04aa39d8d7f5fb79`
+at `2026-08-05T18:24:09Z`; this unmerged branch still grants no canonical or
+runtime effect.
+
+The implementation writer map is exactly `hero-section.tsx`, its test,
+`public-entry-actions.tsx`, its test, `public-entry-hero.spec.ts` and deterministic
+`scripts/repo-size-budget.json`. Legacy non-header overflow, Hero redesign,
+copy/i18n, page/header/intake/pricing, routes/auth/tenancy/schema/RLS/billing,
+analytics, workflows, deployment and production remain excluded. M6/M7 are not
+activated. After exact approval and docs-only merge, a governed publication/check
+must precede fresh resolver/scorecard proof and a separate runtime receipt.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI06b` (Tier 2 product UI/accessibility; `runtime_authorized:false`; exact-approved authority `IDA-DG26`; docs-only merge pending).
+
 Rev 190 current authority: exact `IDA-DG24` in
 `docs/plans/2026-07-30-ida-dg24-ui03a6-active-member-draft-manager-entry.md`
 is 8,821 bytes / SHA-256
