@@ -65,16 +65,13 @@ describe('PublicEntryActions', () => {
     expect(document.body).not.toHaveTextContent(/24\/7|garant/i);
   });
 
-  it('places annual membership after the immediate-help journey', () => {
+  it('keeps only the immediate-help and support groups without the retired membership row', () => {
     render(<PublicEntryActions whatsappHref="https://wa.me/38349900600" />);
 
-    const situations = screen.getByTestId('public-entry-situations');
-    const membership = screen.getByTestId('public-entry-membership');
-    expect(membership).toHaveAttribute('href', '/pricing');
-    expect(membership).toHaveAccessibleName(/Shihni anëtarësimin vjetor/i);
-    expect(
-      situations.compareDocumentPosition(membership) & Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy();
+    expect(screen.getByTestId('public-entry-situations')).toBeInTheDocument();
+    expect(screen.getAllByText(/WhatsApp/i)).toHaveLength(2);
+    expect(screen.queryByTestId('public-entry-membership')).not.toBeInTheDocument();
+    expect(document.querySelector('a[href*="/pricing"]')).toBeNull();
   });
 
   it('hands off all four situations as one-shot local intents', () => {

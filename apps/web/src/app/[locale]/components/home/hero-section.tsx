@@ -3,11 +3,7 @@ import { PUBLIC_FREE_START_ANCHOR_HREF } from '@/lib/public-membership-entry';
 import { getSupportContacts } from '@/lib/support-contacts';
 import { ArrowRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import {
-  PublicMembershipAction,
-  PublicSituationActions,
-  PublicSupportPanel,
-} from './public-entry-actions';
+import { PublicSituationActions, PublicSupportPanel } from './public-entry-actions';
 
 type HeroSectionProps = Readonly<{
   locale?: string;
@@ -92,9 +88,6 @@ export function HeroSection({
           <div className="min-w-0">
             <PublicSituationActions />
             <PublicSupportPanel whatsappHref={contacts.whatsappHref} />
-          </div>
-          <div className="min-w-0 lg:col-span-2">
-            <PublicMembershipAction />
           </div>
         </div>
       )}

@@ -34,16 +34,16 @@ vi.mock('@/i18n/routing', () => ({
 }));
 
 describe('HeroSection', () => {
-  it('renders the approved Help Now hierarchy for an anonymous visitor', () => {
+  it('renders anonymous Help Now hierarchy', () => {
     render(<HeroSection locale="sq" tenantId="tenant_ks" />);
-
     const hero = screen.getByTestId('public-entry-hero');
     expect(within(hero).getByText('NDIHMË TANI')).toBeInTheDocument();
     expect(
       within(hero).getByRole('heading', { level: 1, name: 'Çfarë ju ka ndodhur?' })
     ).toBeInTheDocument();
     expect(within(hero).getByTestId('public-entry-situations')).toBeInTheDocument();
-    expect(within(hero).getByTestId('public-entry-membership')).toHaveAttribute('href', '/pricing');
+    expect(hero.querySelector('a[href*="/pricing"]')).toBeNull();
+    expect(hero.firstElementChild?.children).toHaveLength(2);
     expect(getSupportContacts).toHaveBeenCalledWith({ locale: 'sq', tenantId: 'tenant_ks' });
     expect(
       within(hero).queryByText(/udhëzime praktike|4\.9|8[.,]500|100\s?%|24\/7/i)
