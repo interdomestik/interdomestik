@@ -6423,3 +6423,38 @@ runtime receipt is accepted. No second UI-tree node or replacement slice is
 promoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI06a` (Tier 2 product UI/accessibility; `runtime_authorized:false`).
+
+Rev 193 supersedes only the Rev 192 acceptance boundary and tree-closeout
+claims. Exact corrective authority `IDA-DG25-A1` in
+`docs/plans/2026-07-31-ida-dg25-a1-ui06a-header-boundary-correction.md`
+is 17,611 UTF-8 bytes / SHA-256
+`fa2646776775c38554f41fd4ba65f4ee7a3ba8c1f75175942f6f8c9964ad7d83`
+and was approved by Arben in task
+`019fa824-2676-7c22-9dcb-d21af1c354e6` at `2026-08-05T07:50:16Z`.
+The fresh A1 UI/UX receipt passes at SHA-256
+`4c1ea58f6086a9dae1bbe1d2104caa1d896d16a891203ad2235e491a196f389d`,
+and fresh slice admission is `ready` at SHA-256
+`f92dd28870014450fe15769ebd4584124a7aaeda53ae5476e06c55101f7b06e2`:
+one product outcome, four runtime writers, three proof surfaces, zero shared
+runtime consumers and one special browser environment.
+
+A1 retains exactly `IDA-UI06a` and the existing header/test/E2E/repository-size
+writer map. It corrects the stressed pass/fail metric to zero header-owned
+viewport, internal-scroll, action-edge, normalized target-size, overlap/hit and
+header-subtree violations. Stressed root geometry and exhaustive header-subtree
+offender evidence remain mandatory diagnostics, but legacy overflow outside the
+header writer map is not an `IDA-UI06a` failure and grants no page mutation or
+masking authority. Normal unzoomed 320/390/1440 root geometry remains a required
+no-regression assertion. The legacy public-page overflow signal is unpromoted
+and must be rescored later; this revision does not close the whole UI tree or
+promote a successor.
+
+Contradiction evidence is exact at SHA-256
+`35df3e91298348e05f2e9d0554e9a9f7bdc66564b123ae71e371c02510339c1b`.
+The preserved pre-A1 implementation checkpoint is exact at SHA-256
+`347291b1c21924dae62afadd2865bb0c485cd688c42c14240ae12f7b8a8b2b19`;
+it is not merge evidence and may not be mutated, stashed, discarded or rebased
+until a replacement exact runtime receipt binds the post-A1 main and checkpoint.
+Runtime, provider contact, deployment and production authority remain false.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI06a` (Tier 2 product UI/accessibility; `runtime_authorized:false`; acceptance authority `IDA-DG25-A1`).
