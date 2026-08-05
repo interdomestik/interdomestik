@@ -49,10 +49,14 @@ describe('Header', () => {
     render(<Header />);
 
     const toggle = screen.getByRole('button', { name: enNavMessages.nav.language });
+    expect(toggle).toHaveAttribute('data-testid', 'public-locale-trigger');
     expect(toggle).toHaveClass('min-h-11');
+    expect(toggle).toHaveAttribute('aria-controls', 'public-locale-options');
+    expect(toggle).not.toHaveAttribute('aria-haspopup');
     fireEvent.click(toggle);
 
     const localeLinks = screen.getAllByTestId('public-locale-option');
+    expect(document.getElementById('public-locale-options')).toHaveClass('-right-1', 'sm:right-0');
     expect(localeLinks).toHaveLength(4);
     expect(localeLinks.map(link => link.getAttribute('data-locale'))).toEqual([
       'sq',
@@ -61,5 +65,32 @@ describe('Header', () => {
       'mk',
     ]);
     expect(localeLinks.every(link => link.className.includes('min-h-11'))).toBe(true);
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(localeLinks.every(link => !link.hasAttribute('role'))).toBe(true);
+
+    localeLinks[0].focus();
+    fireEvent.keyDown(localeLinks[0], { key: 'Escape' });
+    expect(toggle).toHaveFocus();
+    expect(screen.queryAllByTestId('public-locale-option')).toHaveLength(0);
+  });
+
+  it('uses local wrapping and compact targets without masking document overflow', () => {
+    render(
+      <main>
+        <Header />
+      </main>
+    );
+
+    const header = screen.getByRole('banner');
+    const shell = header.firstElementChild;
+    const brand = screen.getByRole('link', { name: 'Interdomestik' });
+    const language = screen.getByRole('button', { name: enNavMessages.nav.language });
+    const login = screen.getByRole('link', { name: enNavMessages.nav.login });
+
+    expect(shell).toHaveClass('flex-wrap');
+    expect(brand).toHaveClass('min-w-11');
+    expect(language).toHaveClass('min-w-11');
+    expect(login).toHaveClass('min-w-11');
+    expect(header.className).not.toMatch(/overflow-x-hidden|overflow-hidden|\bclip\b/);
   });
 });
