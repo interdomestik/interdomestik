@@ -6427,14 +6427,14 @@ The next active governed implementation goal is exactly one canonical tracker sl
 Rev 193 supersedes only the Rev 192 acceptance boundary and tree-closeout
 claims. Exact corrective authority `IDA-DG25-A1` in
 `docs/plans/2026-07-31-ida-dg25-a1-ui06a-header-boundary-correction.md`
-is 17,694 UTF-8 bytes / SHA-256
-`8592a7386099728d224c59f5ee8ba4438796dcad90726a40b1ef7fb64914980b`
+is 18,143 UTF-8 bytes / SHA-256
+`0aab9b751bc37b00bd40a3326fd2d15854c6546f29ef71cddc5cad98c1286dee`
 and was approved by Arben in task
-`019fa824-2676-7c22-9dcb-d21af1c354e6` at `2026-08-05T09:41:14Z`.
-The fresh A1 UI/UX receipt passes at SHA-256
-`bf1743027cab1d17d36f7966a13aaa38a4388f9bbda7e46be81e4b405f9a876d`,
-and fresh slice admission is `ready` at SHA-256
-`b03279f83cb7c40136946df529499e04628e8c602532df5efc11266e9b0ed831`:
+`019fa824-2676-7c22-9dcb-d21af1c354e6` at `2026-08-05T10:16:51Z`.
+The fresh A1 R2 UI/UX receipt passes at SHA-256
+`916a1a08b31904dd886b3ee55daec3ff94d8436b1a8dc73a587407bad3876c0a`,
+and fresh R2 slice admission is `ready` at SHA-256
+`f5d347f2959f659c2ae9573505637d356e0f3c5c1b626d42b002f6fa45d0c533`:
 one product outcome, four runtime writers, three proof surfaces, zero shared
 runtime consumers and one special browser environment.
 
