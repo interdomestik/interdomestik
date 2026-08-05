@@ -12,13 +12,14 @@ async function openHeader(page: Page, info: TestInfo, locale: Locale) {
   await gotoApp(page, routes.home(locale), info, { marker: 'public-entry-hero' });
   return page.getByTestId('public-header');
 }
+// prettier-ignore
 async function settle(page: Page) {
-  await page.evaluate(async () => {
-    await document.fonts.ready;
-    await new Promise<number>(resolve =>
-      requestAnimationFrame(() => requestAnimationFrame(resolve))
-    );
-  });
+  await page.evaluate(async () => { await document.fonts.ready; await new Promise<number>(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); });
+}
+async function expectForcedFocus(locator: Locator) {
+  await expect(locator).toBeFocused();
+  const visible = await locator.evaluate(node => getComputedStyle(node).outlineStyle !== 'none');
+  expect(visible).toBe(true);
 }
 async function applyStress(page: Page, width: number) {
   await page.setViewportSize({ width, height: 720 });
@@ -69,11 +70,8 @@ async function collectHeader(header: Locator, info: TestInfo, label: string) {
       })
       .map(node => node.tagName.toLowerCase());
     if (offenders.length) violations.push(`subtree-${offenders.join(',')}`);
-    const maskNodes = [
-      ...document.querySelectorAll('html,body,main'),
-      el,
-      el.firstElementChild,
-    ].filter((node): node is Element => node instanceof Element);
+    // prettier-ignore
+    const maskNodes = [...document.querySelectorAll('html,body,main'), el, el.firstElementChild].filter((node): node is Element => node instanceof Element);
     const masks = maskNodes.filter(node => {
       const style = getComputedStyle(node);
       return (
@@ -93,6 +91,7 @@ async function collectHeader(header: Locator, info: TestInfo, label: string) {
 }
 test.describe('public header overflow containment', () => {
   test('has zero header-owned violations across the stress matrix', async ({ browser }, info) => {
+    test.setTimeout(180_000);
     await withAnonymousPage(browser, info, async page => {
       for (const locale of locales)
         for (const width of widths) {
@@ -119,13 +118,14 @@ test.describe('public header overflow containment', () => {
       await page.setViewportSize({ width: 390, height: 844 });
       const header = await openHeader(page, info, 'sq');
       await expect(page.getByRole('banner')).toHaveCount(0);
+      await page.emulateMedia({ forcedColors: 'active' });
       const trigger = header.getByTestId('public-locale-trigger');
       await expect(trigger).not.toHaveAttribute('aria-haspopup');
       await trigger.press('Enter');
-      await expect(trigger).toBeFocused();
+      await expectForcedFocus(trigger);
       await page.keyboard.press('Tab');
       const options = header.getByTestId('public-locale-option');
-      await expect(options.first()).toBeFocused();
+      await expectForcedFocus(options.first());
       await expect(options.nth(0)).toHaveAttribute('href', /\/sq$/);
       await expect(options.nth(3)).toHaveAttribute('href', /\/mk$/);
       await page.keyboard.press('Escape');

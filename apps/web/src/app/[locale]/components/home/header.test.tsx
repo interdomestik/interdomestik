@@ -74,11 +74,29 @@ describe('Header', () => {
     expect(localeLinks.every(link => link.className.includes('min-h-11'))).toBe(true);
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
     expect(localeLinks.every(link => !link.hasAttribute('role'))).toBe(true);
+    const orderedActions = [...screen.getByTestId('public-header').querySelectorAll('a,button')];
+    expect(orderedActions).toEqual([
+      screen.getByRole('link', { name: 'Interdomestik' }),
+      toggle,
+      ...localeLinks,
+      screen.getByRole('link', { name: enNavMessages.nav.login }),
+    ]);
+    expect(orderedActions.every(action => action.className.includes('forced-colors:outline'))).toBe(
+      true
+    );
 
-    localeLinks[0].focus();
-    fireEvent.keyDown(localeLinks[0], { key: 'Escape' });
+    for (let index = 0; index < 4; index += 1) {
+      if (index > 0) fireEvent.click(toggle);
+      const option = screen.getAllByTestId('public-locale-option')[index];
+      option.focus();
+      fireEvent.keyDown(option, { key: 'Escape' });
+      expect(toggle).toHaveFocus();
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    }
+    fireEvent.click(toggle);
+    fireEvent.keyDown(toggle, { key: 'Escape' });
     expect(toggle).toHaveFocus();
-    expect(screen.queryAllByTestId('public-locale-option')).toHaveLength(0);
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('uses local wrapping and compact targets without masking document overflow', () => {
