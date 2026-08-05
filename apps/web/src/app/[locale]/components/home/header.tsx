@@ -34,16 +34,7 @@ export function Header() {
           </span>
         </Link>
 
-        <div
-          className="relative ml-auto flex max-w-full items-center gap-1 sm:gap-4"
-          onKeyDown={event => {
-            if (event.key !== 'Escape' || !localeOpen) return;
-            event.preventDefault();
-            event.stopPropagation();
-            setLocaleOpen(false);
-            localeTrigger.current?.focus();
-          }}
-        >
+        <div className="relative ml-auto flex max-w-full items-center gap-1 sm:gap-4">
           <div>
             <button
               ref={localeTrigger}
@@ -71,6 +62,12 @@ export function Header() {
                   locale={option}
                   data-testid="public-locale-option"
                   onClick={() => setLocaleOpen(false)}
+                  onKeyDown={event => {
+                    if (event.key !== 'Escape') return;
+                    event.preventDefault();
+                    setLocaleOpen(false);
+                    localeTrigger.current?.focus();
+                  }}
                   className="flex min-h-11 items-center px-4 text-sm font-semibold uppercase hover:bg-[#E8F7F5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#006A70]"
                 >
                   {option}
