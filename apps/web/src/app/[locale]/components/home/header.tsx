@@ -34,17 +34,17 @@ export function Header() {
           </span>
         </Link>
 
-        <div className="ml-auto flex max-w-full items-center gap-1 sm:gap-4">
-          <div
-            className="relative"
-            onKeyDown={event => {
-              if (event.key !== 'Escape' || !localeOpen) return;
-              event.preventDefault();
-              event.stopPropagation();
-              setLocaleOpen(false);
-              localeTrigger.current?.focus();
-            }}
-          >
+        <div
+          className="relative ml-auto flex max-w-full items-center gap-1 sm:gap-4"
+          onKeyDown={event => {
+            if (event.key !== 'Escape' || !localeOpen) return;
+            event.preventDefault();
+            event.stopPropagation();
+            setLocaleOpen(false);
+            localeTrigger.current?.focus();
+          }}
+        >
+          <div>
             <button
               ref={localeTrigger}
               type="button"
@@ -58,26 +58,26 @@ export function Header() {
               {locale}
               <ChevronDown aria-hidden="true" className="h-4 w-4" />
             </button>
-            {localeOpen ? (
-              <div
-                id="public-locale-options"
-                className="absolute -right-1 top-full mt-2 grid min-w-28 border border-slate-200 bg-white p-1 text-[#001A33] shadow-xl sm:right-0 sm:min-w-32"
-              >
-                {publicLocales.map(option => (
-                  <Link
-                    key={option}
-                    href="/"
-                    locale={option}
-                    data-testid="public-locale-option"
-                    onClick={() => setLocaleOpen(false)}
-                    className="flex min-h-11 items-center px-4 text-sm font-semibold uppercase hover:bg-[#E8F7F5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#006A70]"
-                  >
-                    {option}
-                  </Link>
-                ))}
-              </div>
-            ) : null}
           </div>
+          {localeOpen ? (
+            <div
+              id="public-locale-options"
+              className="absolute right-0 top-full mt-2 grid min-w-28 border border-slate-200 bg-white p-1 text-[#001A33] shadow-xl sm:min-w-32"
+            >
+              {publicLocales.map(option => (
+                <Link
+                  key={option}
+                  href="/"
+                  locale={option}
+                  data-testid="public-locale-option"
+                  onClick={() => setLocaleOpen(false)}
+                  className="flex min-h-11 items-center px-4 text-sm font-semibold uppercase hover:bg-[#E8F7F5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#006A70]"
+                >
+                  {option}
+                </Link>
+              ))}
+            </div>
+          ) : null}
           <Link
             href="/login"
             className="inline-flex min-h-11 min-w-11 items-center justify-center border border-white/70 px-1 text-xs font-semibold transition-colors hover:bg-white hover:text-[#001A33] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5DE0D7] motion-reduce:transition-none sm:px-6 sm:text-sm"

@@ -56,7 +56,9 @@ describe('Header', () => {
     fireEvent.click(toggle);
 
     const localeLinks = screen.getAllByTestId('public-locale-option');
-    expect(document.getElementById('public-locale-options')).toHaveClass('-right-1', 'sm:right-0');
+    const localeOptions = document.getElementById('public-locale-options');
+    expect(localeOptions).toHaveClass('right-0');
+    expect(localeOptions?.parentElement).toContainElement(toggle);
     expect(localeLinks).toHaveLength(4);
     expect(localeLinks.map(link => link.getAttribute('data-locale'))).toEqual([
       'sq',
