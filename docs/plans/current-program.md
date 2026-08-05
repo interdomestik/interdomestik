@@ -6458,3 +6458,27 @@ until a replacement exact runtime receipt binds the post-A1 main and checkpoint.
 Runtime, provider contact, deployment and production authority remain false.
 <!-- prettier-ignore -->
 The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI06a` (Tier 2 product UI/accessibility; `runtime_authorized:false`; acceptance authority `IDA-DG25-A1`).
+
+Rev 194 closeout: `IDA-UI06a` completed through authority PR `#1490` / main
+`cec2054b3def047d601c81dd02fb5139aa530254` and implementation PR `#1494`,
+final reviewed head `e2969fe327413c52b64501cbe3296e494910374d`, squash merge
+`6c7bfe2ada5315b2ae5b4955754af9c74a16786a`. Runtime receipt
+`IDA-UI06a-RUNTIME-R2` is exact at 25,020 bytes / SHA-256
+`ecc760f554e441c8ea910c27f953ce3f4651c398d461d4a0d1b9e959fc5e5809`.
+The four-path header implementation passed focused and mandatory Phase C proof,
+the exact three-browser stress/focus/normal-geometry matrix, all terminal PR
+checks, Sonar, CodeQL, repo-native security, finalizer, zero-thread intake and
+GPT-5.6 Sol Max exact-head review. Exact-main CI `31020596390`, Sonar
+`31020595293`, CodeQL `31020595927` / `31020596029` and Secret Scan
+`31020596028` passed.
+
+Automatic exact-main CD `31020595269` is NON-PASS only because queued Z620 job
+`92355994309` was cancelled before acquiring a runner or executing any step;
+checkout, registry, image, provider, alias, deployment, rollback and production
+effects are zero. The legacy non-header page-overflow diagnostic, Hero redesign
+and every second UI-tree node remain unpromoted. Brain session start failed
+before coding on stale production retrieval, so no retroactive session or M7
+cohort claim is made. Runtime authority is consumed and no successor is
+promoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
