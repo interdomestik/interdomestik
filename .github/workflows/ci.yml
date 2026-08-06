@@ -75,7 +75,9 @@ jobs:
         run: |
           node scripts/check-env-ci.mjs
           pnpm test:ci:contracts
-          pnpm check:e2e-contracts:base
+          pnpm check:e2e-contracts
+          pnpm check:db-access
+          pnpm check:architecture-boundaries
           pnpm lint:production-warnings
           pnpm purity:audit
           pnpm db:migrations:check-journal
@@ -190,6 +192,7 @@ jobs:
       - name: RLS Integration Test
         env:
           REQUIRE_RLS_INTEGRATION: '1'
+          REQUIRE_RLS_COVERAGE: '1'
         run: pnpm db:rls:test
 
       - name: E2E Gate Suite

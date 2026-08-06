@@ -142,6 +142,16 @@ test('CI delegates PR browser gate to PR E2E', () => {
   const ciSteps = ciE2eGateJob.steps;
   const ciE2eNeeds = normalizeNeeds(ciE2eGateJob.needs);
 
+  const auditRun = findStep(ciWorkflow.jobs.audit.steps, 'Run Audits').run;
+  assert.match(auditRun, /pnpm check:e2e-contracts\b/u);
+  assert.doesNotMatch(auditRun, /check:e2e-contracts:base/u);
+  assert.match(auditRun, /pnpm check:db-access/u);
+  assert.match(auditRun, /pnpm check:architecture-boundaries/u);
+
+  const rls = findStep(ciWorkflow.jobs['e2e-gate'].steps, 'RLS Integration Test');
+  assert.equal(rls.env.REQUIRE_RLS_INTEGRATION, '1');
+  assert.equal(rls.env.REQUIRE_RLS_COVERAGE, '1');
+
   assert.ok(ciE2eNeeds.includes('validation-surface'));
   assert.equal(ciE2eGateJob.if, "needs.validation-surface.outputs.should_run == 'true'");
 
@@ -462,7 +472,7 @@ test('CI audit job runs the scripts/ci contract suite', () => {
   assert.ok(auditRunStep);
   assert.match(auditRunStep.run, /\bpnpm test:ci:contracts\b/);
   assert.doesNotMatch(auditRunStep.run, /playbook-contracts\.mjs/);
-  assert.match(auditRunStep.run, /\bpnpm check:e2e-contracts:base\b/);
+  assert.match(auditRunStep.run, /\bpnpm check:e2e-contracts\b/);
   assert.match(auditRunStep.run, /\bpnpm lint:production-warnings\b/);
   assert.ok(quarantineBudgetStep);
   assert.equal(quarantineBudgetStep.run, 'pnpm check:e2e-quarantine-budget');
