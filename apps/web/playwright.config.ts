@@ -13,24 +13,34 @@ function normalizeLoopbackTenantHost(hostWithPort: string): string {
   if (!normalized.includes('.localhost')) {
     return trimmed;
   }
-
   return trimmed.replace(/\.localhost(?=:\d+$|$)/i, `.${BIND_HOST}.nip.io`);
 }
 const AUTH_DIR = path.resolve(__dirname, './e2e/.auth');
 const KS_MEMBER_STATE = path.join(AUTH_DIR, 'ks', 'member.json');
 const MK_MEMBER_STATE = path.join(AUTH_DIR, 'mk', 'member.json');
 const IDA_KS_MEMBER_STATE = path.join(AUTH_DIR, 'ida-ks', 'member.json');
-
 const GATE_STATE_DIR = path.resolve(__dirname, '.playwright', 'state');
 const GATE_KS_STATE = path.join(GATE_STATE_DIR, 'ks.json');
 const GATE_MK_STATE = path.join(GATE_STATE_DIR, 'mk.json');
-const EVIDENCE_LANE = process.env.PW_EVIDENCE_LANE ?? 'default';
-if (!/^[a-z0-9-]+$/.test(EVIDENCE_LANE)) throw new Error('PW_EVIDENCE_LANE_INVALID');
+const REQUESTED_EVIDENCE_LANE = process.env.PW_EVIDENCE_LANE ?? 'default';
+let EVIDENCE_LANE: 'default' | 'pr-gate' | 'pr-smoke';
+switch (REQUESTED_EVIDENCE_LANE) {
+  case 'default':
+    EVIDENCE_LANE = 'default';
+    break;
+  case 'pr-gate':
+    EVIDENCE_LANE = 'pr-gate';
+    break;
+  case 'pr-smoke':
+    EVIDENCE_LANE = 'pr-smoke';
+    break;
+  default:
+    throw new Error('PW_EVIDENCE_LANE_INVALID');
+}
 const TEST_RESULTS_DIR = path.resolve(__dirname, 'test-results', EVIDENCE_LANE);
 const HTML_REPORT_DIR = path.resolve(__dirname, 'playwright-report', EVIDENCE_LANE);
 const JUNIT_REPORT_FILE = path.join(TEST_RESULTS_DIR, 'junit.xml');
 const JSON_REPORT_FILE = path.join(TEST_RESULTS_DIR, 'report.json');
-
 const GATE_DEFAULT_MATCH = ['gate/**/*.spec.ts'];
 const GATE_SECURITY_MATCH = [
   'security/headers.spec.ts',
@@ -51,7 +61,6 @@ const GATE_MK_CONTRACT_MATCH = [
   'gate/tenant-resolution.spec.ts',
 ];
 const GATE_AL_PILOT_MATCH = ['pilot/c2-03-cross-tenant-write-isolation.spec.ts'];
-
 const GATE_KS_TEST_MATCH = [...GATE_DEFAULT_MATCH, ...GATE_SECURITY_MATCH];
 const GATE_MK_TEST_MATCH = RUNNING_PILOT_MATRIX
   ? [...GATE_DEFAULT_MATCH, ...GATE_SECURITY_MATCH, ...GATE_MK_PILOT_MATCH]
@@ -68,7 +77,6 @@ const STRICT_DESKTOP_TIMEOUTS = {
   actionTimeout: 20 * 1000,
   navigationTimeout: 60 * 1000,
 };
-
 function strictDesktopUse(
   baseURL: string,
   extraHTTPHeaders: Record<string, string>,
@@ -82,7 +90,6 @@ function strictDesktopUse(
     ...extraUse,
   };
 }
-
 function setupUse(baseURL: string, extraHTTPHeaders: Record<string, string>) {
   return {
     ...devices['Desktop Chrome'],
@@ -90,7 +97,6 @@ function setupUse(baseURL: string, extraHTTPHeaders: Record<string, string>) {
     extraHTTPHeaders,
   };
 }
-
 function requireState(statePath: string) {
   if (fs.existsSync(statePath)) return;
   throw new Error(
@@ -101,17 +107,14 @@ function requireState(statePath: string) {
     ].join('\n')
   );
 }
-
 // Fail fast when running the fast gate lanes locally/CI.
 // This prevents confusing auth redirect cascades.
 if (process.env.PW_FAST_GATES === '1') {
   requireState(GATE_KS_STATE);
   requireState(GATE_MK_STATE);
 }
-
 process.env.NEXT_PUBLIC_APP_URL = BASE_URL;
 process.env.BETTER_AUTH_URL = BASE_URL;
-
 // Manual env loading to satisfy track:audit (forbidden patterns avoided)
 const envPaths = [
   path.resolve(__dirname, '../../.env'),
@@ -119,11 +122,9 @@ const envPaths = [
   path.resolve(__dirname, '.env'),
   path.resolve(__dirname, '.env.local'),
 ];
-
 // Preserve explicit caller-provided env (including empty values), while still
 // allowing later env files (e.g. .env.local) to override earlier ones.
 const inheritedEnvKeys = new Set(Object.keys(process.env));
-
 function loadEnvManual(envPath: string) {
   if (!fs.existsSync(envPath)) return;
   const content = fs.readFileSync(envPath, 'utf8');
@@ -138,7 +139,6 @@ function loadEnvManual(envPath: string) {
     }
   });
 }
-
 envPaths.forEach(loadEnvManual);
 
 function envOrFallback(name: string, fallback: string): string {
