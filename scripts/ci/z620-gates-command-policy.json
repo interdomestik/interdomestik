@@ -1,0 +1,50 @@
+{
+  "substitutableCommands": [
+    "check-architecture-boundaries",
+    "check-db-access",
+    "check-e2e-contracts-base",
+    "coverage-gate",
+    "e2e-gate-pr",
+    "e2e-quarantine-budget",
+    "e2e-smoke",
+    "lint-production-warnings",
+    "migration-journal-check",
+    "release-gate-tests",
+    "repo-size-check",
+    "security-guard",
+    "test-ci-contracts",
+    "workspace-i18n"
+  ],
+  "commandMetadata": {
+    "check-architecture-boundaries": { "env": {}, "projects": [], "specs": [] },
+    "check-db-access": { "env": {}, "projects": [], "specs": [] },
+    "check-e2e-contracts-base": { "env": {}, "projects": [], "specs": [] },
+    "coverage-gate": { "env": {}, "projects": [], "specs": [] },
+    "e2e-gate-pr": {
+      "env": {
+        "E2E_DATABASE_URL": "${{ env.DATABASE_URL }}",
+        "E2E_DATABASE_URL_RLS": "${{ env.DATABASE_URL }}",
+        "PW_EVIDENCE_LANE": "pr-gate"
+      },
+      "projects": ["gate-ks-sq", "gate-mk-contract", "gate-mk-mk", "setup-ks", "setup-mk"],
+      "specs": ["e2e/gate", "e2e/setup.state.spec.ts"]
+    },
+    "e2e-quarantine-budget": { "env": {}, "projects": [], "specs": [] },
+    "e2e-smoke": {
+      "env": {
+        "E2E_DATABASE_URL": "${{ env.DATABASE_URL }}",
+        "E2E_DATABASE_URL_RLS": "${{ env.DATABASE_URL }}",
+        "PW_EVIDENCE_LANE": "pr-smoke"
+      },
+      "projects": ["ks-sq", "mk-mk"],
+      "specs": []
+    },
+    "lint-production-warnings": { "env": {}, "projects": [], "specs": [] },
+    "migration-journal-check": { "env": {}, "projects": [], "specs": [] },
+    "release-gate-tests": { "env": {}, "projects": [], "specs": [] },
+    "repo-size-check": { "env": {}, "projects": [], "specs": [] },
+    "security-guard": { "env": {}, "projects": [], "specs": [] },
+    "test-ci-contracts": { "env": {}, "projects": [], "specs": [] },
+    "workspace-i18n": { "env": {}, "projects": [], "specs": [] }
+  }
+}

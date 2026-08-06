@@ -3,14 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import * as gateCommands from './z620-gate-command-lib.mjs';
+import { paritySourcePaths } from './z620-parity-sources.mjs';
 const excludedModes = new Set(['provider', 'release-only']);
-const sourcePaths = [
-  'apps/web/playwright.config.ts',
-  'package.json',
-  'scripts/ci-local-parity.sh',
-  'scripts/ci/z620-gate-command-lib.mjs',
-  'scripts/run-e2e-lane.mjs',
-];
 export function workflowDigest(root, workflowPath) {
   return createHash('sha256')
     .update(fs.readFileSync(path.join(root, workflowPath)))
@@ -34,7 +28,7 @@ function validateDigestSet(root, inventory, expectedPaths, kind) {
   return problems;
 }
 export function validateSourceDigests(root, parity) {
-  return validateDigestSet(root, parity.sourceDigests, sourcePaths, 'Source');
+  return validateDigestSet(root, parity.sourceDigests, paritySourcePaths, 'Source');
 }
 export function validateWorkflowDigests(root, parity) {
   const workflows = gateCommands.sortedGateStrings(Object.keys(parity.workflows ?? {}));

@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { resolveGateCommand, validateGateCommandIds } from './z620-gate-command-lib.mjs';
+import { loadZ620Gates } from './z620-gates-loader.mjs';
 import {
   evidenceRunId,
   prepareEvidenceSubdirectory,
@@ -16,7 +17,7 @@ import {
 import { parseResourceOptions } from './z620-resource-options.mjs';
 
 const root = path.resolve(import.meta.dirname, '../..');
-const gates = JSON.parse(fs.readFileSync(path.join(root, 'scripts/ci/z620-gates.json')));
+const gates = loadZ620Gates(root);
 
 test('gate configuration can select only statically approved command identifiers', () => {
   assert.deepEqual(validateGateCommandIds(gates), []);

@@ -59,7 +59,6 @@ jobs:
         with:
           event-name: ${{ github.event_name }}
           event-path: ${{ github.event_path }}
-
   audit:
     needs:
       - validation-surface
@@ -84,7 +83,6 @@ jobs:
           # Contract Compliance: pnpm check remains the Golden Path marker.
           # Browser PR coverage lives in the dedicated PR E2E workflow.
           # Push/mainline gate coverage stays in the e2e-gate job below.
-
       - name: Check E2E quarantine budget
         if: needs.validation-surface.outputs.should_run == 'true'
         run: pnpm check:e2e-quarantine-budget
@@ -93,7 +91,6 @@ jobs:
         run: |
           echo "Heavy audit lane skipped."
           echo "Reason: ${{ needs.validation-surface.outputs.reason }}"
-
   static:
     needs:
       - validation-surface

@@ -5,6 +5,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import yaml from 'js-yaml';
+import './ci-audit-rls-workflow-contracts.mjs';
 
 import {
   hasE2EApiPlaceholder,
@@ -142,16 +143,6 @@ test('CI delegates PR browser gate to PR E2E', () => {
   const ciSteps = ciE2eGateJob.steps;
   const ciE2eNeeds = normalizeNeeds(ciE2eGateJob.needs);
 
-  const auditRun = findStep(ciWorkflow.jobs.audit.steps, 'Run Audits').run;
-  assert.match(auditRun, /pnpm check:e2e-contracts\b/u);
-  assert.doesNotMatch(auditRun, /check:e2e-contracts:base/u);
-  assert.match(auditRun, /pnpm check:db-access/u);
-  assert.match(auditRun, /pnpm check:architecture-boundaries/u);
-
-  const rls = findStep(ciWorkflow.jobs['e2e-gate'].steps, 'RLS Integration Test');
-  assert.equal(rls.env.REQUIRE_RLS_INTEGRATION, '1');
-  assert.equal(rls.env.REQUIRE_RLS_COVERAGE, '1');
-
   assert.ok(ciE2eNeeds.includes('validation-surface'));
   assert.equal(ciE2eGateJob.if, "needs.validation-surface.outputs.should_run == 'true'");
 
@@ -187,11 +178,6 @@ test('CI delegates PR browser gate to PR E2E', () => {
 
   const prGateStep = findStep(prE2eJob.steps, 'Run PR E2E Gate');
   assert.equal(prGateStep.run, 'pnpm e2e:gate:pr');
-  assert.deepEqual(prGateStep.env, {
-    E2E_DATABASE_URL: '${{ env.DATABASE_URL }}',
-    E2E_DATABASE_URL_RLS: '${{ env.DATABASE_URL }}',
-    PW_EVIDENCE_LANE: 'pr-gate',
-  });
 
   assert.equal(findStep(prE2eJob.steps, 'Generate Playwright Gate Auth State (KS+MK)'), undefined);
   assert.equal(findStep(prE2eJob.steps, 'E2E Subscription Lifecycle (KS+MK)'), undefined);

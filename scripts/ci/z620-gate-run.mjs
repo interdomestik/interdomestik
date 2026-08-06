@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resolveGateCommand, validateGateCommandIds } from './z620-gate-command-lib.mjs';
+import { loadZ620Gates } from './z620-gates-loader.mjs';
 import { redact, safeId, writeJson } from './z620-runner-lib.mjs';
 import { validateGateCoverage, validateWorkflowDigests } from './z620-parity-lib.mjs';
 import {
@@ -20,7 +21,7 @@ const args = Object.fromEntries(
     return [key, value.join('=') || true];
   })
 );
-const gates = JSON.parse(fs.readFileSync(path.join(root, 'scripts/ci/z620-gates.json')));
+const gates = loadZ620Gates(root);
 const parity = JSON.parse(fs.readFileSync(path.join(root, 'scripts/ci/z620-parity.json')));
 const requested = String(args.lanes || 'validation,audit,static,unit,database,build,security')
   .split(',')

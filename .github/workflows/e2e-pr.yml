@@ -1,16 +1,8 @@
 name: PR E2E (Full Gate)
-
 on:
   pull_request:
-    branches:
-      - '**'
-    types:
-      - opened
-      - synchronize
-      - reopened
-      - ready_for_review
-      - converted_to_draft
-      - labeled
+    branches: ['**']
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, labeled]
     # Protected checks must always materialize on PRs; the validation-surface
     # policy below skips heavy work for docs-only and other non-product changes.
   workflow_dispatch: {}
@@ -35,14 +27,12 @@ jobs:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 1
-
       - name: Evaluate PR gate policy
         id: gate_policy
         uses: interdomestik/interdomestik/.github/actions/pr-gate-policy@2a5d9fa14334766e0668c7b160ea065a0c25ec19
         with:
           event-name: ${{ github.event_name }}
           event-path: ${{ github.event_path }}
-
       - name: Report quick draft lane
         if: steps.gate_policy.outputs.should_run != 'true'
         run: echo "PR E2E heavy runner skipped (${{ steps.gate_policy.outputs.reason }})."
@@ -51,8 +41,7 @@ jobs:
     name: PR E2E Runner
     permissions:
       contents: read
-    needs:
-      - e2e-preflight
+    needs: [e2e-preflight]
     if: needs.e2e-preflight.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -88,28 +77,22 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1
-
       - uses: ./.github/actions/setup
         with:
           install-playwright: true
-
       - name: Generate ephemeral E2E credentials
         run: bash scripts/ci/export-e2e-credentials.sh
-
       - name: Strict Rule Guards (golden/gate)
         run: pnpm --filter @interdomestik/web run e2e:guards
-
       - name: Run PR E2E Gate
         env:
           E2E_DATABASE_URL: ${{ env.DATABASE_URL }}
           E2E_DATABASE_URL_RLS: ${{ env.DATABASE_URL }}
           PW_EVIDENCE_LANE: pr-gate
         run: pnpm e2e:gate:pr
-
       - name: Summarize PR Gate E2E Evidence
         if: always()
         run: node scripts/ci/playwright-lane-evidence.mjs --report=apps/web/test-results/pr-gate/report.json --head=${EVIDENCE_HEAD_SHA} --lane=pr-gate --out=tmp/verification-evidence/pr-gate.json
-
       - name: Run PR Smoke E2E
         env:
           E2E_DATABASE_URL: ${{ env.DATABASE_URL }}
@@ -120,7 +103,6 @@ jobs:
       - name: Summarize PR Smoke E2E Evidence
         if: always()
         run: node scripts/ci/playwright-lane-evidence.mjs --report=apps/web/test-results/pr-smoke/report.json --head=${EVIDENCE_HEAD_SHA} --lane=pr-smoke --out=tmp/verification-evidence/pr-smoke.json
-
       - name: Upload PR E2E Verification Evidence
         if: always()
         uses: actions/upload-artifact@v6

@@ -1,0 +1,77 @@
+{
+  "lanes": {
+    "validation": {
+      "commands": ["validation-surface"]
+    },
+    "audit": {
+      "commands": [
+        "repo-size-check",
+        "check-env-ci",
+        "test-ci-contracts",
+        "check-e2e-contracts-base",
+        "check-db-access",
+        "check-architecture-boundaries",
+        "lint-production-warnings",
+        "track-audit",
+        "plan-audit",
+        "purity-audit",
+        "migration-journal-check",
+        "e2e-quarantine-budget"
+      ]
+    },
+    "static": {
+      "commands": [
+        "workspace-lint",
+        "workspace-type-check",
+        "workspace-entrypoints",
+        "workspace-i18n",
+        "workspace-i18n-purity"
+      ]
+    },
+    "unit": {
+      "commands": ["coverage-gate", "release-gate-tests"]
+    },
+    "ai-eval": {
+      "conditional": true,
+      "commands": ["ai-eval"]
+    },
+    "database": {
+      "resourceOwned": true,
+      "commands": ["db-migrate", "db-rls-required"]
+    },
+    "build": {
+      "resourceOwned": true,
+      "commands": ["web-build"]
+    },
+    "security": {
+      "commands": ["security-guard", "z620-security-audit"]
+    },
+    "e2e-pr": {
+      "resourceOwned": true,
+      "commands": ["e2e-gate-pr", "e2e-smoke"]
+    },
+    "e2e-merge": {
+      "resourceOwned": true,
+      "commands": ["e2e-gate"]
+    },
+    "pilot": {
+      "resourceOwned": true,
+      "commands": ["pilot-run"]
+    }
+  },
+  "jobCoverage": {
+    ".github/workflows/ci.yml#validation-surface": ["validation"],
+    ".github/workflows/ci.yml#audit": ["audit"],
+    ".github/workflows/ci.yml#static": ["static"],
+    ".github/workflows/ci.yml#unit": ["unit"],
+    ".github/workflows/ci.yml#ai-eval": ["ai-eval"],
+    ".github/workflows/ci.yml#e2e-gate": ["database", "e2e-merge"],
+    ".github/workflows/security.yml#pnpm-audit": ["security"],
+    ".github/workflows/e2e-pr.yml#e2e-preflight": ["validation"],
+    ".github/workflows/e2e-pr.yml#e2e-runner": ["database", "e2e-pr"],
+    ".github/workflows/e2e-pr.yml#e2e": ["e2e-pr"],
+    ".github/workflows/pilot-gate.yml#pilot-gate-preflight": ["validation"],
+    ".github/workflows/pilot-gate.yml#pilot-gate-runner": ["build", "pilot"],
+    ".github/workflows/pilot-gate.yml#pilot-gate": ["pilot"]
+  }
+}

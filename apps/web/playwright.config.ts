@@ -2,14 +2,11 @@ import { defineConfig, devices } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
 import { resolvePlaywrightNetwork } from './playwright-network';
-
 const { BASE_URL, BIND_HOST, PORT } = resolvePlaywrightNetwork();
 const WEB_SERVER_SCRIPT = path.resolve(__dirname, '../../scripts/e2e-webserver.sh');
-
 function tenantBaseUrl(hostWithPort: string, locale: string): string {
   return `http://${hostWithPort}/${locale}`;
 }
-
 function normalizeLoopbackTenantHost(hostWithPort: string): string {
   const trimmed = hostWithPort.trim();
   const normalized = trimmed.toLowerCase();
@@ -19,7 +16,6 @@ function normalizeLoopbackTenantHost(hostWithPort: string): string {
 
   return trimmed.replace(/\.localhost(?=:\d+$|$)/i, `.${BIND_HOST}.nip.io`);
 }
-
 const AUTH_DIR = path.resolve(__dirname, './e2e/.auth');
 const KS_MEMBER_STATE = path.join(AUTH_DIR, 'ks', 'member.json');
 const MK_MEMBER_STATE = path.join(AUTH_DIR, 'mk', 'member.json');

@@ -5,11 +5,11 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import yaml from 'js-yaml';
+import './pr-e2e-evidence-workflow-contracts.mjs';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const TRUSTED_GATE_ACTION =
   'interdomestik/interdomestik/.github/actions/pr-gate-policy@2a5d9fa14334766e0668c7b160ea065a0c25ec19';
-const EVIDENCE_HEAD_EXPRESSION = '${{ github.event.pull_request.head.sha || github.sha }}';
 const EVENT_TYPES = [
   'opened',
   'synchronize',
@@ -87,8 +87,6 @@ test('required PR E2E context wraps a service-free preflight and conditional hea
   const checkout = preflight.steps.find(step => step.uses?.startsWith('actions/checkout@'));
   const runner = workflow.jobs['e2e-runner'];
   const wrapper = workflow.jobs.e2e;
-  const gate = findStep(runner, 'Run PR E2E Gate');
-  const smoke = findStep(runner, 'Run PR Smoke E2E');
 
   assert.equal(workflow.permissions, undefined);
   assert.deepEqual(preflight.permissions, {
@@ -102,51 +100,11 @@ test('required PR E2E context wraps a service-free preflight and conditional hea
   assert.ok(needs(runner, 'e2e-preflight'));
   assert.equal(runner.if, "needs.e2e-preflight.outputs.should_run == 'true'");
   assert.ok(runner.services.postgres);
-  assert.ok(smoke);
-  assert.equal(smoke.run, 'pnpm --filter @interdomestik/web run e2e:smoke');
-  assert.equal(gate.env.PW_EVIDENCE_LANE, 'pr-gate');
-  assert.equal(smoke.env.PW_EVIDENCE_LANE, 'pr-smoke');
   assert.equal(wrapper.name, 'e2e');
   assert.equal(wrapper.if, 'always()');
   assert.equal(wrapper.services, undefined);
   assert.ok(needs(wrapper, 'e2e-preflight'));
   assert.ok(needs(wrapper, 'e2e-runner'));
-});
-
-test('PR E2E uploads exact-head lane reports and canonical evidence summaries', () => {
-  const runner = readWorkflow('e2e-pr.yml').jobs['e2e-runner'];
-  const checkout = runner.steps.find(step => step.uses?.startsWith('actions/checkout@'));
-  const gateIndex = runner.steps.findIndex(step => step?.name === 'Run PR E2E Gate');
-  const smokeIndex = runner.steps.findIndex(step => step?.name === 'Run PR Smoke E2E');
-  const gateEvidence = runner.steps[gateIndex + 1];
-  const smokeEvidence = runner.steps[smokeIndex + 1];
-  const evidenceRuns = runner.steps
-    .filter(step => step?.run?.startsWith('node scripts/ci/playwright-lane-evidence.mjs'))
-    .map(step => step.run);
-
-  assert.equal(gateEvidence.name, 'Summarize PR Gate E2E Evidence');
-  assert.equal(gateEvidence.if, 'always()');
-  assert.equal(smokeEvidence.name, 'Summarize PR Smoke E2E Evidence');
-  assert.equal(smokeEvidence.if, 'always()');
-  assert.equal(runner.env.EVIDENCE_HEAD_SHA, EVIDENCE_HEAD_EXPRESSION);
-  assert.equal(checkout.with.ref, EVIDENCE_HEAD_EXPRESSION);
-  assert.equal(checkout.with['fetch-depth'], 1);
-  assert.deepEqual(evidenceRuns, [
-    'node scripts/ci/playwright-lane-evidence.mjs --report=apps/web/test-results/pr-gate/report.json --head=${EVIDENCE_HEAD_SHA} --lane=pr-gate --out=tmp/verification-evidence/pr-gate.json',
-    'node scripts/ci/playwright-lane-evidence.mjs --report=apps/web/test-results/pr-smoke/report.json --head=${EVIDENCE_HEAD_SHA} --lane=pr-smoke --out=tmp/verification-evidence/pr-smoke.json',
-  ]);
-  assert.ok(evidenceRuns.every(run => run.match(/--head=\$\{EVIDENCE_HEAD_SHA\}/gu)?.length === 1));
-
-  const upload = findStep(runner, 'Upload PR E2E Verification Evidence');
-  assert.equal(upload.if, 'always()');
-  assert.equal(upload.with.name, 'verification-evidence-e2e-pr');
-  assert.equal(upload.with['if-no-files-found'], 'error');
-  assert.deepEqual(upload.with.path.trim().split(/\s*\n\s*/u), [
-    'tmp/verification-evidence/pr-gate.json',
-    'tmp/verification-evidence/pr-smoke.json',
-    'apps/web/test-results/pr-gate/report.json',
-    'apps/web/test-results/pr-smoke/report.json',
-  ]);
 });
 
 test('pilot and optional deterministic backstops honor the shared full-lane decision', () => {
