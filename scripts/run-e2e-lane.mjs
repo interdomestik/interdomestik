@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ensureLocalTestHosts } from './ci/ensure-local-test-hosts.mjs';
+import { playwrightReportArgs } from './ci/playwright-lane-evidence.mjs';
 import { runDetachedCommand } from './ci/run-detached-command.mjs';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -37,7 +38,7 @@ function loadSecret() {
     return assertSecret(readSecret(), secretPath);
   }
 }
-const reportArgs = ['--trace=retain-on-failure', '--reporter=line'];
+const reportArgs = playwrightReportArgs(process.env.PW_EVIDENCE_LANE);
 const strictArgs = ['--max-failures=1', ...reportArgs];
 const workerArgs = ['--workers=1', ...reportArgs];
 const strictWorkers = ['--workers=1', ...strictArgs];
@@ -64,9 +65,9 @@ const projectLane = (project, env) => ({
 const laneDefinitions = {
   state: { playwrightArgs: [...setupArgs, ...strictWorkers] },
   gate: gateLane([ksSq, mkMk], true),
-  pr: gateLane([ksSq, mkContract], true),
+  pr: gateLane([ksSq, mkContract, mkMk], true),
   'gate-fast': gateLane([ksSq, mkMk]),
-  'pr-fast': gateLane([ksSq, mkContract]),
+  'pr-fast': gateLane([ksSq, mkContract, mkMk]),
   merge: {
     gatekeeper: true,
     playwrightArgs: [...mergeArgs, '--project=ks-sq', '--project=mk-mk', ...workerArgs],

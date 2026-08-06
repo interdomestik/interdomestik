@@ -28,7 +28,10 @@ const IDA_KS_MEMBER_STATE = path.join(AUTH_DIR, 'ida-ks', 'member.json');
 const GATE_STATE_DIR = path.resolve(__dirname, '.playwright', 'state');
 const GATE_KS_STATE = path.join(GATE_STATE_DIR, 'ks.json');
 const GATE_MK_STATE = path.join(GATE_STATE_DIR, 'mk.json');
-const TEST_RESULTS_DIR = path.resolve(__dirname, 'test-results');
+const EVIDENCE_LANE = process.env.PW_EVIDENCE_LANE ?? 'default';
+if (!/^[a-z0-9-]+$/.test(EVIDENCE_LANE)) throw new Error('PW_EVIDENCE_LANE_INVALID');
+const TEST_RESULTS_DIR = path.resolve(__dirname, 'test-results', EVIDENCE_LANE);
+const HTML_REPORT_DIR = path.resolve(__dirname, 'playwright-report', EVIDENCE_LANE);
 const JUNIT_REPORT_FILE = path.join(TEST_RESULTS_DIR, 'junit.xml');
 const JSON_REPORT_FILE = path.join(TEST_RESULTS_DIR, 'report.json');
 
@@ -230,7 +233,7 @@ export default defineConfig({
   workers: process.env.CI ? 4 : '50%',
   reporter: process.env.CI
     ? [
-        ['html'],
+        ['html', { outputFolder: HTML_REPORT_DIR }],
         ['list'],
         ['junit', { outputFile: JUNIT_REPORT_FILE }],
         ['json', { outputFile: JSON_REPORT_FILE }],
@@ -241,6 +244,7 @@ export default defineConfig({
         ['json', { outputFile: JSON_REPORT_FILE }],
       ],
   timeout: 60 * 1000,
+  outputDir: path.join(TEST_RESULTS_DIR, 'artifacts'),
   snapshotDir: './e2e/snapshots',
   expect: {
     timeout: 5 * 1000,
