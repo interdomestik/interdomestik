@@ -55,6 +55,15 @@ test('marks known unexpected Playwright outcomes as failed evidence', () => {
   );
 });
 
+test('records safe test source modules that do not use the spec filename suffix', () => {
+  const report = makeReport();
+  report.suites[0].specs[0].file = 'support/admin-tenant-classification.ts';
+  assert.deepEqual(
+    summarizePlaywrightReport({ report: encode(report), headSha: HEAD, lane: 'pr-gate' }).specs,
+    [SPEC, 'e2e/support/admin-tenant-classification.ts']
+  );
+});
+
 test('rejects malformed identity, report shape, outcomes, and duplicates', () => {
   const cases = [
     { mutate: () => {}, headSha: 'abc', lane: 'pr-gate', error: /HEAD_SHA_INVALID/u },

@@ -33,7 +33,7 @@ function safeSpec(file) {
     return fail('SPEC_PATH_INVALID');
   }
   const normalized = file.startsWith('e2e/') ? file : `e2e/${file}`;
-  if (!/\.spec\.[cm]?[jt]sx?$/u.test(normalized)) return fail('SPEC_PATH_INVALID');
+  if (!/\.[cm]?[jt]sx?$/u.test(normalized)) return fail('SPEC_PATH_INVALID');
   return normalized;
 }
 
