@@ -40,12 +40,13 @@ test('PR lane includes both MK contract and full MK gate projects', () => {
   assert.match(runner, /'pr-fast': gateLane\(\[ksSq, mkContract, mkMk\]\)/u);
 });
 
-test('Playwright evidence lanes have distinct result and report directories', () => {
+test('Playwright evidence lanes are isolated without moving legacy default reports', () => {
   assert.match(
     playwrightConfig,
     /const REQUESTED_EVIDENCE_LANE = process\.env\.PW_EVIDENCE_LANE \?\? 'default'/u
   );
   assert.match(playwrightConfig, /case 'default':[\s\S]*case 'pr-gate':[\s\S]*case 'pr-smoke':/u);
+  assert.match(playwrightConfig, /case 'default':\s*EVIDENCE_LANE = ''/u);
   assert.match(playwrightConfig, /throw new Error\('PW_EVIDENCE_LANE_INVALID'\)/u);
   assert.match(playwrightConfig, /'test-results', EVIDENCE_LANE/u);
   assert.match(playwrightConfig, /'playwright-report', EVIDENCE_LANE/u);

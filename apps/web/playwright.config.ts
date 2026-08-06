@@ -23,10 +23,10 @@ const GATE_STATE_DIR = path.resolve(__dirname, '.playwright', 'state');
 const GATE_KS_STATE = path.join(GATE_STATE_DIR, 'ks.json');
 const GATE_MK_STATE = path.join(GATE_STATE_DIR, 'mk.json');
 const REQUESTED_EVIDENCE_LANE = process.env.PW_EVIDENCE_LANE ?? 'default';
-let EVIDENCE_LANE: 'default' | 'pr-gate' | 'pr-smoke';
+let EVIDENCE_LANE: '' | 'pr-gate' | 'pr-smoke';
 switch (REQUESTED_EVIDENCE_LANE) {
   case 'default':
-    EVIDENCE_LANE = 'default';
+    EVIDENCE_LANE = '';
     break;
   case 'pr-gate':
     EVIDENCE_LANE = 'pr-gate';
