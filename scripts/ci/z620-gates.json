@@ -10,6 +10,8 @@
         "check-env-ci",
         "test-ci-contracts",
         "check-e2e-contracts-base",
+        "check-db-access",
+        "check-architecture-boundaries",
         "lint-production-warnings",
         "track-audit",
         "plan-audit",
@@ -47,7 +49,7 @@
     },
     "e2e-pr": {
       "resourceOwned": true,
-      "commands": ["e2e-gate-pr"]
+      "commands": ["e2e-gate-pr", "e2e-smoke"]
     },
     "e2e-merge": {
       "resourceOwned": true,
@@ -57,6 +59,188 @@
       "resourceOwned": true,
       "commands": ["pilot-run"]
     }
+  },
+  "substitutableCommands": [
+    "check-architecture-boundaries",
+    "check-db-access",
+    "check-e2e-contracts-base",
+    "coverage-gate",
+    "e2e-gate-pr",
+    "e2e-quarantine-budget",
+    "e2e-smoke",
+    "lint-production-warnings",
+    "migration-journal-check",
+    "release-gate-tests",
+    "repo-size-check",
+    "security-guard",
+    "test-ci-contracts",
+    "workspace-i18n"
+  ],
+  "commandMetadata": {
+    "check-architecture-boundaries": { "env": {}, "projects": [], "specs": [] },
+    "check-db-access": { "env": {}, "projects": [], "specs": [] },
+    "check-e2e-contracts-base": { "env": {}, "projects": [], "specs": [] },
+    "coverage-gate": { "env": {}, "projects": [], "specs": [] },
+    "e2e-gate-pr": {
+      "env": {
+        "E2E_DATABASE_URL": "${{ env.DATABASE_URL }}",
+        "E2E_DATABASE_URL_RLS": "${{ env.DATABASE_URL }}",
+        "PW_EVIDENCE_LANE": "pr-gate"
+      },
+      "projects": ["gate-ks-sq", "gate-mk-contract", "gate-mk-mk", "setup-ks", "setup-mk"],
+      "specs": ["e2e/gate", "e2e/setup.state.spec.ts"]
+    },
+    "e2e-quarantine-budget": { "env": {}, "projects": [], "specs": [] },
+    "e2e-smoke": {
+      "env": {
+        "E2E_DATABASE_URL": "${{ env.DATABASE_URL }}",
+        "E2E_DATABASE_URL_RLS": "${{ env.DATABASE_URL }}",
+        "PW_EVIDENCE_LANE": "pr-smoke"
+      },
+      "projects": ["ks-sq", "mk-mk"],
+      "specs": []
+    },
+    "lint-production-warnings": { "env": {}, "projects": [], "specs": [] },
+    "migration-journal-check": { "env": {}, "projects": [], "specs": [] },
+    "release-gate-tests": { "env": {}, "projects": [], "specs": [] },
+    "repo-size-check": { "env": {}, "projects": [], "specs": [] },
+    "security-guard": { "env": {}, "projects": [], "specs": [] },
+    "test-ci-contracts": { "env": {}, "projects": [], "specs": [] },
+    "workspace-i18n": { "env": {}, "projects": [], "specs": [] }
+  },
+  "jobCommands": {
+    ".github/workflows/ci.yml#audit": [
+      {
+        "commandId": "check-architecture-boundaries",
+        "argv": ["pnpm", "check:architecture-boundaries"],
+        "env": {},
+        "projects": [],
+        "specs": []
+      },
+      {
+        "commandId": "check-db-access",
+        "argv": ["pnpm", "check:db-access"],
+        "env": {},
+        "projects": [],
+        "specs": []
+      },
+      {
+        "commandId": "check-e2e-contracts-base",
+        "argv": ["pnpm", "check:e2e-contracts"],
+        "env": {},
+        "projects": [],
+        "specs": []
+      },
+      {
+        "commandId": "e2e-quarantine-budget",
+        "argv": ["pnpm", "check:e2e-quarantine-budget"],
+        "env": {},
+        "projects": [],
+        "specs": []
+      },
+      {
+        "commandId": "lint-production-warnings",
+        "argv": ["pnpm", "lint:production-warnings"],
+        "env": {},
+        "projects": [],
+        "specs": []
+      },
+      {
+        "commandId": "migration-journal-check",
+        "argv": ["pnpm", "db:migrations:check-journal"],
+        "env": {},
+        "projects": [],
+        "specs": []
+      },
+      {
+        "commandId": "repo-size-check",
+        "argv": ["pnpm", "repo:size:check"],
+        "env": {},
+        "projects": [],
+        "specs": []
+      },
+      {
+        "commandId": "test-ci-contracts",
+        "argv": ["pnpm", "test:ci:contracts"],
+        "env": {},
+        "projects": [],
+        "specs": []
+      }
+    ],
+    ".github/workflows/ci.yml#static": [
+      {
+        "commandId": "workspace-i18n",
+        "argv": ["pnpm", "-w", "i18n:check"],
+        "env": {},
+        "projects": [],
+        "specs": []
+      }
+    ],
+    ".github/workflows/ci.yml#unit": [
+      {
+        "commandId": "coverage-gate",
+        "argv": ["pnpm", "coverage:gate"],
+        "env": {},
+        "projects": [],
+        "specs": []
+      },
+      {
+        "commandId": "release-gate-tests",
+        "argv": ["pnpm", "test:release-gate"],
+        "env": {},
+        "projects": [],
+        "specs": []
+      }
+    ],
+    ".github/workflows/e2e-pr.yml#e2e-runner": [
+      {
+        "commandId": "e2e-gate-pr",
+        "argv": ["pnpm", "e2e:gate:pr"],
+        "env": {
+          "E2E_DATABASE_URL": "${{ env.DATABASE_URL }}",
+          "E2E_DATABASE_URL_RLS": "${{ env.DATABASE_URL }}",
+          "PW_EVIDENCE_LANE": "pr-gate"
+        },
+        "projects": ["gate-ks-sq", "gate-mk-contract", "gate-mk-mk", "setup-ks", "setup-mk"],
+        "specs": ["e2e/gate", "e2e/setup.state.spec.ts"]
+      },
+      {
+        "commandId": "e2e-smoke",
+        "argv": ["pnpm", "--filter", "@interdomestik/web", "run", "e2e:smoke"],
+        "env": {
+          "E2E_DATABASE_URL": "${{ env.DATABASE_URL }}",
+          "E2E_DATABASE_URL_RLS": "${{ env.DATABASE_URL }}",
+          "PW_EVIDENCE_LANE": "pr-smoke"
+        },
+        "projects": ["ks-sq", "mk-mk"],
+        "specs": []
+      }
+    ],
+    ".github/workflows/security.yml#pnpm-audit": [
+      {
+        "commandId": "security-guard",
+        "argv": ["pnpm", "security:guard"],
+        "env": {},
+        "projects": [],
+        "specs": []
+      }
+    ]
+  },
+  "commandCoverage": {
+    "check-architecture-boundaries": [".github/workflows/ci.yml#audit"],
+    "check-db-access": [".github/workflows/ci.yml#audit"],
+    "check-e2e-contracts-base": [".github/workflows/ci.yml#audit"],
+    "coverage-gate": [".github/workflows/ci.yml#unit"],
+    "e2e-gate-pr": [".github/workflows/e2e-pr.yml#e2e-runner"],
+    "e2e-quarantine-budget": [".github/workflows/ci.yml#audit"],
+    "e2e-smoke": [".github/workflows/e2e-pr.yml#e2e-runner"],
+    "lint-production-warnings": [".github/workflows/ci.yml#audit"],
+    "migration-journal-check": [".github/workflows/ci.yml#audit"],
+    "release-gate-tests": [".github/workflows/ci.yml#unit"],
+    "repo-size-check": [".github/workflows/ci.yml#audit"],
+    "security-guard": [".github/workflows/security.yml#pnpm-audit"],
+    "test-ci-contracts": [".github/workflows/ci.yml#audit"],
+    "workspace-i18n": [".github/workflows/ci.yml#static"]
   },
   "jobCoverage": {
     ".github/workflows/ci.yml#validation-surface": ["validation"],

@@ -1,13 +1,20 @@
 {
   "version": 1,
   "workflowDigests": {
-    ".github/workflows/ci.yml": "a4d58fefa937b7eeb95066edec78e59493a9be38aa71eac45328b1452dc06cd9",
+    ".github/workflows/ci.yml": "5583dff9892ab2927886ac53a2f13d30905a711e5e3735462f82a2022f509ae7",
     ".github/workflows/security.yml": "72e957bba4773deb3212d6db1d16f398c8fed53e538c6a060ca04f07f688195a",
-    ".github/workflows/e2e-pr.yml": "2cb54c57c1df0237beb97252d00315f2f84a861f0fd869f72e1a0eb3d802d50a",
+    ".github/workflows/e2e-pr.yml": "de83578bf89da45d93f0f35731f9a71258167e19df2ba5b7d6d01d8f3e04c55c",
     ".github/workflows/sonar-main-gate.yml": "626baa9e4bc3df173f297829076a2ec4711f36fac3de26e66d3cd1fdde7cc0ef",
     ".github/workflows/pilot-gate.yml": "4b9ad1e56df586849ad3b02111178322297ab6d56fa730083ebc1e60e8148bc3",
     ".github/workflows/release-candidate.yml": "ec03f5eb63d19bff1e8502257e36d264fed70733ca682f5820cd74af93f99bac",
     ".github/workflows/cd.yml": "b865817353226d4a372357b004f546100c37d9c3690edbd57bfad5192f2410e2"
+  },
+  "sourceDigests": {
+    "apps/web/playwright.config.ts": "070c797ef70b5176965ef1e045def272d2e1e80b01a0f7ec8808a87ce3e447e4",
+    "package.json": "ac5bda506b0b2fd288dbc1f6dd4dc522efb563cbf21133fae70da845e0161b06",
+    "scripts/ci-local-parity.sh": "ed415efa1ecd772408959df535e5a70c686b9842c672ce666e4385af60fba8d2",
+    "scripts/ci/z620-gate-command-lib.mjs": "ca1d1fa82bd5cdbd2480144b4074f4a8390e3112091a93736aec76d73a058d10",
+    "scripts/run-e2e-lane.mjs": "9beb625efc7ffb6cadf88809063ee8b1b15cd5080c1419de5aa888db504cf685"
   },
   "workflows": {
     ".github/workflows/ci.yml": {

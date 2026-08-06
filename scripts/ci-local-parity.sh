@@ -265,7 +265,9 @@ run_ci_audit() {
   run pnpm repo:size:check
   run node scripts/check-env-ci.mjs
   run pnpm test:ci:contracts
-  run pnpm check:e2e-contracts:base
+  run pnpm check:e2e-contracts
+  run pnpm check:db-access
+  run pnpm check:architecture-boundaries
   run pnpm lint:production-warnings
   run pnpm track:audit
   run pnpm plan:audit
@@ -273,7 +275,6 @@ run_ci_audit() {
   run pnpm db:migrations:check-journal
   run pnpm check:e2e-quarantine-budget
 }
-
 run_validation_surface_check() {
   local changed_files_path validation_surface_root output; validation_surface_root="$(mktemp -d)"; changed_files_path="${validation_surface_root}/changed-files.txt"
   changed_files_for_validation_surface >"${changed_files_path}"
@@ -414,14 +415,13 @@ run_optional_sonar_pr_checks() {
 run_strict_e2e_guards() {
   run pnpm --filter @interdomestik/web run e2e:guards
 }
-
 run_pr_e2e_gate() {
   install_playwright_chromium
   load_e2e_credentials
   run_strict_e2e_guards
-  run pnpm e2e:gate:pr
+  run env PW_EVIDENCE_LANE=pr-gate pnpm e2e:gate:pr
+  run env PW_EVIDENCE_LANE=pr-smoke pnpm --filter @interdomestik/web run e2e:smoke
 }
-
 run_merge_e2e_gate() {
   install_playwright_chromium
   load_e2e_credentials
