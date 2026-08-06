@@ -1,7 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { evaluatePrGatePolicy } from './pr-gate-policy-lib.mjs';
+import { evaluatePrGatePolicy, isHighRiskPath } from './pr-gate-policy-lib.mjs';
+
+const PRIVACY_AND_AI_TRUST_PATHS = [
+  'apps/web/src/lib/ai/policy-analyzer.ts',
+  'apps/web/src/app/api/ai/runs/[id]/route.ts',
+  'apps/web/src/app/api/privacy/data-deletion/route.ts',
+  'apps/web/src/features/claims/components/ai-extraction-consent-field.tsx',
+  'apps/web/src/components/privacy/cookie-consent-banner.tsx',
+  'packages/domain-privacy/src/consent.ts',
+  'packages/domain-ai/src/ai-call-context-required.compile-fail.ts',
+];
 
 function evaluate(overrides = {}) {
   return evaluatePrGatePolicy({
@@ -22,6 +32,20 @@ test('ordinary draft pull requests use the quick lane', () => {
     reason: 'ordinary-draft',
     highRiskPaths: [],
   });
+});
+
+for (const changedPath of PRIVACY_AND_AI_TRUST_PATHS) {
+  test(`privacy and AI trust path is high risk: ${changedPath}`, () => {
+    assert.equal(isHighRiskPath(changedPath), true);
+  });
+}
+
+test('ordinary UI and documentation paths are not high risk', () => {
+  const ordinaryPaths = ['apps/web/src/components/card.tsx', 'docs/operations/overview.md'];
+
+  for (const changedPath of ordinaryPaths) {
+    assert.equal(isHighRiskPath(changedPath), false, changedPath);
+  }
 });
 
 test('ready pull requests use the full lane', () => {
