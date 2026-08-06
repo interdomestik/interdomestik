@@ -1,4 +1,5 @@
 export const paritySourcePaths = [
+  'apps/web/package.json',
   'apps/web/playwright.config.ts',
   'package.json',
   'scripts/ci-local-parity.sh',

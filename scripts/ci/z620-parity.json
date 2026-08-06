@@ -10,6 +10,7 @@
     ".github/workflows/cd.yml": "b865817353226d4a372357b004f546100c37d9c3690edbd57bfad5192f2410e2"
   },
   "sourceDigests": {
+    "apps/web/package.json": "8baf9b8fdb7e6a716c65c24b166029bda0b28321c523ccdba71f4b2f43f22cea",
     "apps/web/playwright.config.ts": "994533a71e3a3f9aba3bf04c300ce58465f9cdb934e40d1b6fea244c241b80ec",
     "package.json": "ac5bda506b0b2fd288dbc1f6dd4dc522efb563cbf21133fae70da845e0161b06",
     "scripts/ci-local-parity.sh": "ed415efa1ecd772408959df535e5a70c686b9842c672ce666e4385af60fba8d2",
