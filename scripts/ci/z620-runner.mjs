@@ -14,7 +14,7 @@ import {
   validateParity,
   writeJson,
 } from './z620-runner-lib.mjs';
-import { validateGateCommandIds } from './z620-gate-command-lib.mjs';
+import { validateGateCommandIds } from './z620-gate-command-policy.mjs';
 import { loadZ620Gates } from './z620-gates-loader.mjs';
 import { validateGateCoverage, validateWorkflowDigests } from './z620-parity-lib.mjs';
 import { resolveRunsRoot, resolveStateRoot } from './z620-resource-policy.mjs';
@@ -36,7 +36,7 @@ const sha = String(
 const runsRoot = resolveRunsRoot(args['runs-root'], root);
 const stateRoot = resolveStateRoot(args['state-root'], root);
 const parity = JSON.parse(fs.readFileSync(path.join(root, 'scripts/ci/z620-parity.json'), 'utf8'));
-const gates = loadZ620Gates(root);
+const gates = loadZ620Gates(root, parity.sourceDigests);
 
 const problems = [
   ...validateParity(root, parity),

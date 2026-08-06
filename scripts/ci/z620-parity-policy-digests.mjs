@@ -12,28 +12,44 @@ const expectedSourcePaths = [
   'apps/web/playwright.config.ts',
   'package.json',
   'scripts/ci-local-parity.sh',
+  'scripts/ci/managed-executables.mjs',
   'scripts/ci/z620-gate-command-lib.mjs',
+  'scripts/ci/z620-gate-command-policy.mjs',
+  'scripts/ci/z620-gate-run.mjs',
   'scripts/ci/z620-gates-command-coverage.json',
   'scripts/ci/z620-gates-command-policy.json',
   'scripts/ci/z620-gates-job-commands.json',
   'scripts/ci/z620-gates-lanes.json',
   'scripts/ci/z620-gates-loader.mjs',
   'scripts/ci/z620-gates.json',
+  'scripts/ci/z620-resource-policy.mjs',
+  'scripts/ci/z620-resource-run.mjs',
+  'scripts/ci/z620-source-contract-lib.mjs',
   'scripts/run-e2e-lane.mjs',
 ];
 
-test('web smoke package manifest is bound into the exact source inventory', () => {
+test('direct command and environment authorities are bound into the exact source inventory', () => {
   assert.deepEqual(paritySourcePaths, expectedSourcePaths);
   assert.deepEqual(
     Object.keys(parity.sourceDigests).sort((left, right) => left.localeCompare(right)),
     expectedSourcePaths
   );
 
-  const changed = structuredClone(parity);
-  changed.sourceDigests['apps/web/package.json'] = '0'.repeat(64);
-  assert.deepEqual(validateSourceDigests(root, changed), [
-    'apps/web/package.json: source changed without parity digest update',
-  ]);
+  const newlyBound = [
+    'scripts/ci/managed-executables.mjs',
+    'scripts/ci/z620-gate-command-policy.mjs',
+    'scripts/ci/z620-gate-run.mjs',
+    'scripts/ci/z620-resource-policy.mjs',
+    'scripts/ci/z620-resource-run.mjs',
+    'scripts/ci/z620-source-contract-lib.mjs',
+  ];
+  for (const sourcePath of newlyBound) {
+    const changed = structuredClone(parity);
+    changed.sourceDigests[sourcePath] = '0'.repeat(64);
+    assert.deepEqual(validateSourceDigests(root, changed), [
+      `${sourcePath}: source changed without parity digest update`,
+    ]);
+  }
 });
 
 test('reviewed command sources fail closed on inventory or content drift', () => {

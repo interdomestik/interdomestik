@@ -2,8 +2,9 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
-import * as gateCommands from './z620-gate-command-lib.mjs';
+import * as gateCommands from './z620-gate-command-policy.mjs';
 import { paritySourcePaths } from './z620-parity-sources.mjs';
+import { validateSourceCommandRecords } from './z620-source-contract-lib.mjs';
 const excludedModes = new Set(['provider', 'release-only']);
 export function workflowDigest(root, workflowPath) {
   return createHash('sha256')
@@ -140,4 +141,5 @@ export function validateCommandCoverage(parity, gates) {
 export const validateGateCoverage = (parity, gates) => [
   ...gateCommands.validateLaneCoverage(requiredJobKeys(parity), gates),
   ...validateCommandCoverage(parity, gates),
+  ...validateSourceCommandRecords(undefined, gates),
 ];

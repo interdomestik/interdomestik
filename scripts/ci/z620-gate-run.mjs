@@ -3,7 +3,8 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { resolveGateCommand, validateGateCommandIds } from './z620-gate-command-lib.mjs';
+import { gateCommandEnvironment, resolveGateCommand } from './z620-gate-command-lib.mjs';
+import { validateGateCommandIds } from './z620-gate-command-policy.mjs';
 import { loadZ620Gates } from './z620-gates-loader.mjs';
 import { redact, safeId, writeJson } from './z620-runner-lib.mjs';
 import { validateGateCoverage, validateWorkflowDigests } from './z620-parity-lib.mjs';
@@ -21,8 +22,8 @@ const args = Object.fromEntries(
     return [key, value.join('=') || true];
   })
 );
-const gates = loadZ620Gates(root);
 const parity = JSON.parse(fs.readFileSync(path.join(root, 'scripts/ci/z620-parity.json')));
+const gates = loadZ620Gates(root, parity.sourceDigests);
 const requested = String(args.lanes || 'validation,audit,static,unit,database,build,security')
   .split(',')
   .map(lane => safeId(lane, 'lane'));
@@ -53,7 +54,7 @@ for (const lane of requested) {
     const started = Date.now();
     const result = spawnSync(command, commandArgs, {
       cwd: root,
-      env: gateEnvironment(process.env, runId),
+      env: gateCommandEnvironment(gateEnvironment(process.env, runId), commandId),
       encoding: 'utf8',
       maxBuffer: 100 * 1024 * 1024,
     });

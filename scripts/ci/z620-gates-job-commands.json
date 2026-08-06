@@ -71,7 +71,10 @@
       {
         "commandId": "coverage-gate",
         "argv": ["pnpm", "coverage:gate"],
-        "env": {},
+        "env": {
+          "UPSTASH_REDIS_REST_TOKEN": "dummy-token",
+          "UPSTASH_REDIS_REST_URL": "http://localhost:8080"
+        },
         "projects": [],
         "specs": []
       },
@@ -88,8 +91,8 @@
         "commandId": "e2e-gate-pr",
         "argv": ["pnpm", "e2e:gate:pr"],
         "env": {
-          "E2E_DATABASE_URL": "${{ env.DATABASE_URL }}",
-          "E2E_DATABASE_URL_RLS": "${{ env.DATABASE_URL }}",
+          "E2E_DATABASE_URL": "$TASK_DATABASE_URL",
+          "E2E_DATABASE_URL_RLS": "$TASK_DATABASE_URL",
           "PW_EVIDENCE_LANE": "pr-gate"
         },
         "projects": ["gate-ks-sq", "gate-mk-contract", "gate-mk-mk", "setup-ks", "setup-mk"],
@@ -99,8 +102,8 @@
         "commandId": "e2e-smoke",
         "argv": ["pnpm", "--filter", "@interdomestik/web", "run", "e2e:smoke"],
         "env": {
-          "E2E_DATABASE_URL": "${{ env.DATABASE_URL }}",
-          "E2E_DATABASE_URL_RLS": "${{ env.DATABASE_URL }}",
+          "E2E_DATABASE_URL": "$TASK_DATABASE_URL",
+          "E2E_DATABASE_URL_RLS": "$TASK_DATABASE_URL",
           "PW_EVIDENCE_LANE": "pr-smoke"
         },
         "projects": ["ks-sq", "mk-mk"],

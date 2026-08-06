@@ -1,7 +1,9 @@
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
 const DEFAULT_ROOT = path.resolve(import.meta.dirname, '../..');
+const MANIFEST_PATH = 'scripts/ci/z620-gates.json';
 const FRAGMENTS = [
   ['z620-gates-lanes.json', ['jobCoverage', 'lanes']],
   ['z620-gates-command-policy.json', ['commandMetadata', 'substitutableCommands']],
@@ -9,8 +11,8 @@ const FRAGMENTS = [
   ['z620-gates-command-coverage.json', ['commandCoverage']],
 ];
 
-function fail(code) {
-  throw new Error(code);
+function fail(code, relativePath = '') {
+  throw new Error(relativePath ? `${code} ${relativePath}` : code);
 }
 
 function sameStrings(actual, expected) {
@@ -21,17 +23,32 @@ function sameStrings(actual, expected) {
   );
 }
 
-function readJson(filePath, code) {
+function readReviewedJson(root, relativePath, expectedDigests, invalidCode) {
+  const expected = expectedDigests?.[relativePath];
+  if (typeof expected !== 'string') fail('GATE_SOURCE_DIGEST_MISMATCH', relativePath);
+  let bytes;
   try {
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    bytes = fs.readFileSync(path.join(root, relativePath));
   } catch {
-    return fail(code);
+    return fail('GATE_SOURCE_DIGEST_MISMATCH', relativePath);
+  }
+  const actual = createHash('sha256').update(bytes).digest('hex');
+  if (actual !== expected) fail('GATE_SOURCE_DIGEST_MISMATCH', relativePath);
+  try {
+    return JSON.parse(bytes.toString('utf8'));
+  } catch {
+    return fail(invalidCode);
   }
 }
 
-export function loadZ620Gates(root = DEFAULT_ROOT) {
-  const manifestPath = path.join(root, 'scripts/ci/z620-gates.json');
-  const manifest = readJson(manifestPath, 'GATE_MANIFEST_INVALID');
+function deepFreeze(value) {
+  if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
+  for (const child of Object.values(value)) deepFreeze(child);
+  return Object.freeze(value);
+}
+
+export function loadZ620Gates(root = DEFAULT_ROOT, expectedDigests) {
+  const manifest = readReviewedJson(root, MANIFEST_PATH, expectedDigests, 'GATE_MANIFEST_INVALID');
   const manifestKeys = Object.keys(manifest ?? {}).sort();
   const fragmentNames = FRAGMENTS.map(([name]) => name);
   if (
@@ -42,10 +59,9 @@ export function loadZ620Gates(root = DEFAULT_ROOT) {
     fail('GATE_MANIFEST_INVALID');
   }
   const gates = { version: manifest.version };
-
   for (const [fragment, expectedKeys] of FRAGMENTS) {
-    const fragmentPath = path.join(root, 'scripts/ci', fragment);
-    const contents = readJson(fragmentPath, 'GATE_FRAGMENT_INVALID');
+    const relativePath = `scripts/ci/${fragment}`;
+    const contents = readReviewedJson(root, relativePath, expectedDigests, 'GATE_FRAGMENT_INVALID');
     if (
       !contents ||
       typeof contents !== 'object' ||
@@ -56,5 +72,5 @@ export function loadZ620Gates(root = DEFAULT_ROOT) {
     }
     Object.assign(gates, contents);
   }
-  return gates;
+  return deepFreeze(gates);
 }

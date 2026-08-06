@@ -4,25 +4,18 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { loadZ620Gates } from './z620-gates-loader.mjs';
 
 const root = path.resolve(import.meta.dirname, '../..');
-const LOGICAL_DIGEST = '2a42dcd2bf2ce836dec706710fc9303b5c11088ebfa342d5b97795f0422e1e97';
-const TOP_LEVEL_KEYS = [
-  'commandCoverage',
-  'commandMetadata',
-  'jobCommands',
-  'jobCoverage',
-  'lanes',
-  'substitutableCommands',
-  'version',
+const parity = JSON.parse(fs.readFileSync(path.join(root, 'scripts/ci/z620-parity.json')));
+const LOGICAL_DIGEST = '917c106609a10afcfa475c4cc854abb53c5492d4a291ad28b768e0cdcfc3da8b';
+const GATE_FILES = [
+  'z620-gates.json',
+  'z620-gates-lanes.json',
+  'z620-gates-command-policy.json',
+  'z620-gates-job-commands.json',
+  'z620-gates-command-coverage.json',
 ];
-
-let loadZ620Gates;
-try {
-  ({ loadZ620Gates } = await import('./z620-gates-loader.mjs'));
-} catch {
-  // The first RED proves the loader does not exist yet.
-}
 
 function canonicalize(value) {
   if (Array.isArray(value)) return value.map(canonicalize);
@@ -34,57 +27,89 @@ function canonicalize(value) {
   );
 }
 
-test('split gate loader preserves the complete reviewed logical contract', () => {
-  assert.equal(typeof loadZ620Gates, 'function', 'loader module must export loadZ620Gates');
-  const gates = loadZ620Gates(root);
-  const digest = createHash('sha256')
-    .update(JSON.stringify(canonicalize(gates)))
-    .digest('hex');
-
-  assert.deepEqual(Object.keys(gates).sort(), TOP_LEVEL_KEYS);
-  assert.equal(digest, LOGICAL_DIGEST);
-  assert.deepEqual(gates.lanes.pilot.commands, ['pilot-run']);
-  assert.deepEqual(gates.jobCoverage['.github/workflows/ci.yml#e2e-gate'], [
-    'database',
-    'e2e-merge',
-  ]);
-});
+function digest(value) {
+  return createHash('sha256').update(value).digest('hex');
+}
 
 function copyGateFiles(targetRoot) {
   const targetDir = path.join(targetRoot, 'scripts/ci');
   fs.mkdirSync(targetDir, { recursive: true });
-  for (const name of fs.readdirSync(path.join(root, 'scripts/ci'))) {
-    if (name.startsWith('z620-gates') && name.endsWith('.json')) {
-      fs.copyFileSync(path.join(root, 'scripts/ci', name), path.join(targetDir, name));
-    }
+  for (const name of GATE_FILES) {
+    fs.copyFileSync(path.join(root, 'scripts/ci', name), path.join(targetDir, name));
   }
   return targetDir;
 }
 
-test('split gate loader rejects path, fragment, and top-level schema drift', t => {
+function fixtureDigests(fixtureRoot) {
+  return Object.fromEntries(
+    GATE_FILES.map(name => {
+      const relative = `scripts/ci/${name}`;
+      return [relative, digest(fs.readFileSync(path.join(fixtureRoot, relative)))];
+    })
+  );
+}
+
+function assertDeepFrozen(value) {
+  assert.equal(Object.isFrozen(value), true);
+  if (value && typeof value === 'object') {
+    for (const child of Object.values(value)) assertDeepFrozen(child);
+  }
+}
+
+test('reviewed bytes load as the canonical deeply immutable gate graph', () => {
+  const gates = loadZ620Gates(root, parity.sourceDigests);
+  assert.equal(digest(JSON.stringify(canonicalize(gates))), LOGICAL_DIGEST);
+  assertDeepFrozen(gates);
+  assert.throws(() => gates.lanes.audit.commands.push('unreviewed'), TypeError);
+});
+
+test('digest mismatch is rejected before malformed fragment bytes are parsed', t => {
   const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'z620-gates-loader-'));
   t.after(() => fs.rmSync(fixtureRoot, { recursive: true, force: true }));
   const fixtureDir = copyGateFiles(fixtureRoot);
-  const manifestPath = path.join(fixtureDir, 'z620-gates.json');
-  const policyPath = path.join(fixtureDir, 'z620-gates-command-policy.json');
-  const originalManifest = fs.readFileSync(manifestPath, 'utf8');
-  const originalPolicy = fs.readFileSync(policyPath, 'utf8');
+  const expected = fixtureDigests(fixtureRoot);
+  fs.writeFileSync(path.join(fixtureDir, 'z620-gates-command-policy.json'), '{invalid');
+  assert.throws(
+    () => loadZ620Gates(fixtureRoot, expected),
+    /GATE_SOURCE_DIGEST_MISMATCH.*z620-gates-command-policy\.json/u
+  );
+});
 
-  const manifest = JSON.parse(originalManifest);
+test('mixed-version fragments fail against one reviewed digest inventory', t => {
+  const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'z620-gates-mixed-'));
+  t.after(() => fs.rmSync(fixtureRoot, { recursive: true, force: true }));
+  const fixtureDir = copyGateFiles(fixtureRoot);
+  const expected = fixtureDigests(fixtureRoot);
+  const coveragePath = path.join(fixtureDir, 'z620-gates-command-coverage.json');
+  const coverage = JSON.parse(fs.readFileSync(coveragePath));
+  coverage.commandCoverage['coverage-gate'] = ['.github/workflows/ci.yml#audit'];
+  fs.writeFileSync(coveragePath, JSON.stringify(coverage));
+  assert.throws(
+    () => loadZ620Gates(fixtureRoot, expected),
+    /GATE_SOURCE_DIGEST_MISMATCH.*z620-gates-command-coverage\.json/u
+  );
+});
+
+test('reviewed but structurally invalid manifest and fragments still fail closed', t => {
+  const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'z620-gates-schema-'));
+  t.after(() => fs.rmSync(fixtureRoot, { recursive: true, force: true }));
+  const fixtureDir = copyGateFiles(fixtureRoot);
+  const manifestPath = path.join(fixtureDir, 'z620-gates.json');
+  const manifest = JSON.parse(fs.readFileSync(manifestPath));
   manifest.fragments[0] = '../outside.json';
   fs.writeFileSync(manifestPath, JSON.stringify(manifest));
-  assert.throws(() => loadZ620Gates(fixtureRoot), /GATE_MANIFEST_INVALID/u);
+  assert.throws(
+    () => loadZ620Gates(fixtureRoot, fixtureDigests(fixtureRoot)),
+    /GATE_MANIFEST_INVALID/u
+  );
 
-  fs.writeFileSync(manifestPath, originalManifest);
-  const policy = JSON.parse(originalPolicy);
+  copyGateFiles(fixtureRoot);
+  const policyPath = path.join(fixtureDir, 'z620-gates-command-policy.json');
+  const policy = JSON.parse(fs.readFileSync(policyPath));
   policy.lanes = {};
   fs.writeFileSync(policyPath, JSON.stringify(policy));
-  assert.throws(() => loadZ620Gates(fixtureRoot), /GATE_FRAGMENT_INVALID/u);
-
-  fs.writeFileSync(policyPath, originalPolicy);
-  const coveragePath = path.join(fixtureDir, 'z620-gates-command-coverage.json');
-  const coverage = JSON.parse(fs.readFileSync(coveragePath, 'utf8'));
-  coverage.unreviewed = true;
-  fs.writeFileSync(coveragePath, JSON.stringify(coverage));
-  assert.throws(() => loadZ620Gates(fixtureRoot), /GATE_FRAGMENT_INVALID/u);
+  assert.throws(
+    () => loadZ620Gates(fixtureRoot, fixtureDigests(fixtureRoot)),
+    /GATE_FRAGMENT_INVALID/u
+  );
 });

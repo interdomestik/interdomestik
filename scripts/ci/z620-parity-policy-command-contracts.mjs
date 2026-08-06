@@ -1,7 +1,63 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import * as gateCommands from './z620-gate-command-lib.mjs';
+import { validateGateCommandMetadata } from './z620-gate-command-policy.mjs';
 import { validateCommandCoverage } from './z620-parity-lib.mjs';
 import { gates, parity } from './z620-parity-policy-fixtures.mjs';
+
+const TASK_DATABASE_ENV = {
+  E2E_DATABASE_URL: '$TASK_DATABASE_URL',
+  E2E_DATABASE_URL_RLS: '$TASK_DATABASE_URL',
+};
+
+test('static command authority owns execution and normalized environment contracts', () => {
+  const coverage = gateCommands.resolveGateCommand('coverage-gate');
+  assert.equal(Object.isFrozen(coverage), true);
+  assert.equal(Object.isFrozen(coverage.args), true);
+  assert.equal(Object.isFrozen(coverage.executionEnv), true);
+  assert.equal(Object.isFrozen(coverage.normalizedEnvContract), true);
+  assert.deepEqual(coverage.executionEnv, {
+    UPSTASH_REDIS_REST_TOKEN: 'dummy-token',
+    UPSTASH_REDIS_REST_URL: 'http://localhost:8080',
+  });
+  assert.deepEqual(gateCommands.resolveGateCommand('e2e-gate-pr').executionEnv, {
+    PW_EVIDENCE_LANE: 'pr-gate',
+  });
+  assert.deepEqual(gateCommands.resolveGateCommand('e2e-gate-pr').normalizedEnvContract, {
+    ...TASK_DATABASE_ENV,
+    PW_EVIDENCE_LANE: 'pr-gate',
+  });
+  assert.deepEqual(gateCommands.resolveGateCommand('e2e-smoke').normalizedEnvContract, {
+    ...TASK_DATABASE_ENV,
+    PW_EVIDENCE_LANE: 'pr-smoke',
+  });
+});
+
+test('static execution env overrides task base env without accepting JSON metadata', () => {
+  assert.equal(typeof gateCommands.gateCommandEnvironment, 'function');
+  const taskBase = {
+    E2E_DATABASE_URL: 'postgresql://task-owned',
+    PW_EVIDENCE_LANE: 'unreviewed',
+    UNRELATED_TASK_VALUE: 'preserved',
+  };
+  assert.deepEqual(gateCommands.gateCommandEnvironment(taskBase, 'e2e-gate-pr'), {
+    ...taskBase,
+    PW_EVIDENCE_LANE: 'pr-gate',
+  });
+});
+
+test('expected records derive env from static authority and metadata env drift is rejected', () => {
+  const metadata = { env: { PW_EVIDENCE_LANE: 'unreviewed' }, projects: [], specs: [] };
+  const record = gateCommands.expectedGateCommandRecord('coverage-gate', metadata);
+  assert.deepEqual(record.env, {
+    UPSTASH_REDIS_REST_TOKEN: 'dummy-token',
+    UPSTASH_REDIS_REST_URL: 'http://localhost:8080',
+  });
+  assert.match(
+    validateGateCommandMetadata('coverage-gate', metadata).join('\n'),
+    /static command env contract/u
+  );
+});
 
 test('only exact command contracts are eligible for substitution', () => {
   assert.deepEqual(gates.substitutableCommands, [
