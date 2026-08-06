@@ -190,6 +190,7 @@ test('CI delegates PR browser gate to PR E2E', () => {
   assert.deepEqual(prGateStep.env, {
     E2E_DATABASE_URL: '${{ env.DATABASE_URL }}',
     E2E_DATABASE_URL_RLS: '${{ env.DATABASE_URL }}',
+    PW_EVIDENCE_LANE: 'pr-gate',
   });
 
   assert.equal(findStep(prE2eJob.steps, 'Generate Playwright Gate Auth State (KS+MK)'), undefined);
