@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
-
 import { runCli, summarizePlaywrightReport } from './playwright-lane-evidence.mjs';
-
 const HEAD = 'a'.repeat(40);
 const SPEC = 'e2e/gate/public-header-overflow.spec.ts';
 const PROJECTS = ['gate-ks-sq', 'gate-mk-contract', 'gate-mk-mk'];
@@ -79,10 +80,12 @@ test('records final-pass retries and quarantined specs without changing pass sta
     { retry: 0, status: 'failed' },
     { retry: 1, status: 'passed' },
   ];
-  report.suites[0].specs[1].tags = ['quarantine'];
+  report.suites[0].specs[1].tags = ['@quarantine'];
   const summary = summarizePlaywrightReport({ report: encode(report), headSha: HEAD, lane: 'pr-gate' });
   assert.deepEqual(summary.retryRecovered, [SPEC]);
   assert.deepEqual(summary.quarantined, [SPEC]);
+  report.suites[0].specs[1].tags = ['prefix@quarantine', '@@quarantine'];
+  assert.deepEqual(summarizePlaywrightReport({ report: encode(report), headSha: HEAD, lane: 'pr-gate' }).quarantined, []);
 });
 
 test('marks known unexpected Playwright outcomes as failed evidence', () => {
@@ -129,7 +132,7 @@ test('CLI validates arguments and paths, then writes exact canonical bytes', () 
     },
     realpathSync: filePath => filePath,
     mkdirSync() {},
-    writeFileSync: (filePath, data) => writes.push([filePath, data]),
+    writeFileSync: (filePath, data, options) => writes.push([filePath, data, options]),
   };
   const args = [
     '--report=apps/web/test-results/pr-gate/report.json',
@@ -138,7 +141,7 @@ test('CLI validates arguments and paths, then writes exact canonical bytes', () 
     '--out=tmp/verification-evidence/pr-gate.json',
   ];
   runCli(args, io);
-  assert.deepEqual(writes, [[outputPath, `${JSON.stringify(expectedSummary(reportBytes), null, 2)}\n`]]);
+  assert.deepEqual(writes, [[outputPath, `${JSON.stringify(expectedSummary(reportBytes), null, 2)}\n`, { flag: 'wx', mode: 0o600 }]]);
 
   for (const invalidArgs of [
     args.slice(1),
@@ -161,4 +164,36 @@ test('CLI validates arguments and paths, then writes exact canonical bytes', () 
     () => runCli(args, { ...io, realpathSync: filePath => filePath === '/repo/tmp/verification-evidence' ? '/outside/evidence' : filePath }),
     /OUTPUT_PATH_OUTSIDE/u
   );
+});
+
+test('CLI refuses existing regular and symlink evidence destinations without mutation', t => {
+  const tempRoot = mkdtempSync(path.join(tmpdir(), 'playwright-evidence-'));
+  t.after(() => rmSync(tempRoot, { recursive: true, force: true }));
+  for (const kind of ['symlink', 'regular']) {
+    const repoRoot = path.join(tempRoot, kind);
+    const reportPath = path.join(repoRoot, 'apps/web/test-results/pr-gate/report.json');
+    const outputPath = path.join(repoRoot, 'tmp/verification-evidence/pr-gate.json');
+    mkdirSync(path.dirname(reportPath), { recursive: true });
+    mkdirSync(path.dirname(outputPath), { recursive: true });
+    writeFileSync(reportPath, encode());
+    const target = kind === 'regular' ? outputPath : path.join(tempRoot, 'outside.json');
+    writeFileSync(target, 'sentinel');
+    if (kind === 'symlink') symlinkSync(target, outputPath);
+    let error = null;
+    try {
+      runCli([
+        '--report=apps/web/test-results/pr-gate/report.json',
+        `--head=${HEAD}`,
+        '--lane=pr-gate',
+        '--out=tmp/verification-evidence/pr-gate.json',
+      ], { repoRoot });
+    } catch (caught) {
+      error = caught.message;
+    }
+    assert.deepEqual({ kind, error, content: readFileSync(target, 'utf8') }, {
+      kind,
+      error: 'OUTPUT_EXISTS',
+      content: 'sentinel',
+    });
+  }
 });

@@ -4,17 +4,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const REPO_ROOT = path.resolve(path.dirname(SCRIPT_PATH), '../..');
 const SAFE_NAME = /^[a-z0-9-]+$/u;
 const TEST_OUTCOMES = new Set(['skipped', 'expected', 'unexpected', 'flaky']);
 const RESULT_OUTCOMES = new Set(['passed', 'failed', 'timedOut', 'skipped', 'interrupted']);
-
 function fail(code) {
   throw new Error(code);
 }
-
 export function playwrightReportArgs(evidenceLane) {
   const args = ['--trace=retain-on-failure'];
   if (typeof evidenceLane !== 'string' || !SAFE_NAME.test(evidenceLane)) {
@@ -22,7 +19,6 @@ export function playwrightReportArgs(evidenceLane) {
   }
   return args;
 }
-
 function rawReport(report) {
   if (Buffer.isBuffer(report)) return report;
   if (report instanceof Uint8Array) return Buffer.from(report);
@@ -30,7 +26,6 @@ function rawReport(report) {
   if (report && typeof report === 'object') return Buffer.from(JSON.stringify(report));
   return fail('REPORT_INVALID');
 }
-
 function safeSpec(file) {
   if (typeof file !== 'string' || !file || file.includes('\\') || path.posix.isAbsolute(file)) {
     return fail('SPEC_PATH_INVALID');
@@ -43,7 +38,6 @@ function safeSpec(file) {
   if (!/\.spec\.[cm]?[jt]sx?$/u.test(normalized)) return fail('SPEC_PATH_INVALID');
   return normalized;
 }
-
 export function summarizePlaywrightReport({ report, headSha, lane }) {
   if (typeof headSha !== 'string' || !/^[0-9a-f]{40}$/iu.test(headSha)) {
     fail('HEAD_SHA_INVALID');
@@ -64,7 +58,6 @@ export function summarizePlaywrightReport({ report, headSha, lane }) {
       fail('PROJECT_DUPLICATE');
     }
   }
-
   const projects = new Set();
   const specs = new Set();
   const specIds = new Set();
@@ -72,7 +65,6 @@ export function summarizePlaywrightReport({ report, headSha, lane }) {
   const quarantined = new Set();
   let total = 0;
   let failed = Array.isArray(parsed.errors) && parsed.errors.length > 0;
-
   function visitSuite(suite) {
     if (!suite || typeof suite !== 'object' || !Array.isArray(suite.specs)) fail('SUITES_INVALID');
     for (const spec of suite.specs) {
@@ -84,7 +76,7 @@ export function summarizePlaywrightReport({ report, headSha, lane }) {
       const specFile = safeSpec(spec.file);
       specs.add(specFile);
       if (!Array.isArray(spec.tests) || spec.tests.length === 0) fail('SPEC_INVALID');
-      if (Array.isArray(spec.tags) && spec.tags.includes('quarantine')) quarantined.add(specFile);
+      if (Array.isArray(spec.tags) && spec.tags.some(tag => typeof tag === 'string' && tag.replace(/^@/u, '') === 'quarantine')) quarantined.add(specFile);
       const specProjects = new Set();
       for (const currentTest of spec.tests) {
         const project = currentTest?.projectName;
@@ -108,7 +100,6 @@ export function summarizePlaywrightReport({ report, headSha, lane }) {
     if (suite.suites !== undefined && !Array.isArray(suite.suites)) fail('SUITES_INVALID');
     for (const nested of suite.suites ?? []) visitSuite(nested);
   }
-
   for (const suite of parsed.suites) visitSuite(suite);
   if (total === 0) fail('REPORT_EMPTY');
   return {
@@ -124,7 +115,6 @@ export function summarizePlaywrightReport({ report, headSha, lane }) {
     reportSha256: createHash('sha256').update(bytes).digest('hex'),
   };
 }
-
 function parseArgs(args) {
   const expected = new Set(['report', 'head', 'lane', 'out']);
   const values = {};
@@ -137,7 +127,6 @@ function parseArgs(args) {
   for (const name of expected) if (values[name] === undefined) fail('ARGUMENT_MISSING');
   return values;
 }
-
 function resolveSafe(root, value, code) {
   const segments = value.split('/');
   if (
@@ -152,10 +141,18 @@ function resolveSafe(root, value, code) {
   if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) fail(code);
   return resolved;
 }
-
 function isInside(root, target, allowRoot = false) {
   const relative = path.relative(root, target);
   return (allowRoot && relative === '') || (!!relative && !relative.startsWith('..') && !path.isAbsolute(relative));
+}
+function assertOutputMissing(api, outputPath) {
+  try {
+    api.lstatSync(outputPath);
+  } catch (error) {
+    if (error?.code === 'ENOENT') return;
+    throw error;
+  }
+  fail('OUTPUT_EXISTS');
 }
 
 export function runCli(args, io = {}) {
@@ -182,7 +179,13 @@ export function runCli(args, io = {}) {
     fail('OUTPUT_PATH_OUTSIDE');
   }
   const summary = summarizePlaywrightReport({ report, headSha: values.head, lane: values.lane });
-  api.writeFileSync(outputPath, `${JSON.stringify(summary, null, 2)}\n`);
+  assertOutputMissing(api, outputPath);
+  try {
+    api.writeFileSync(outputPath, `${JSON.stringify(summary, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
+  } catch (error) {
+    if (error?.code === 'EEXIST') fail('OUTPUT_EXISTS');
+    throw error;
+  }
   return summary;
 }
 
