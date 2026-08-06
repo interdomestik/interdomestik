@@ -82,8 +82,12 @@ jobs:
       NODE_OPTIONS: --max-old-space-size=4096
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.TURBO_TEAM || secrets.TURBO_TEAM }}
+      EVIDENCE_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
 
       - uses: ./.github/actions/setup
         with:
@@ -104,7 +108,7 @@ jobs:
 
       - name: Summarize PR Gate E2E Evidence
         if: always()
-        run: node scripts/ci/playwright-lane-evidence.mjs --report=apps/web/test-results/pr-gate/report.json --head=${{ github.event.pull_request.head.sha }} --lane=pr-gate --out=tmp/verification-evidence/pr-gate.json
+        run: node scripts/ci/playwright-lane-evidence.mjs --report=apps/web/test-results/pr-gate/report.json --head=${EVIDENCE_HEAD_SHA} --lane=pr-gate --out=tmp/verification-evidence/pr-gate.json
 
       - name: Run PR Smoke E2E
         env:
@@ -115,7 +119,7 @@ jobs:
 
       - name: Summarize PR Smoke E2E Evidence
         if: always()
-        run: node scripts/ci/playwright-lane-evidence.mjs --report=apps/web/test-results/pr-smoke/report.json --head=${{ github.event.pull_request.head.sha }} --lane=pr-smoke --out=tmp/verification-evidence/pr-smoke.json
+        run: node scripts/ci/playwright-lane-evidence.mjs --report=apps/web/test-results/pr-smoke/report.json --head=${EVIDENCE_HEAD_SHA} --lane=pr-smoke --out=tmp/verification-evidence/pr-smoke.json
 
       - name: Upload PR E2E Verification Evidence
         if: always()

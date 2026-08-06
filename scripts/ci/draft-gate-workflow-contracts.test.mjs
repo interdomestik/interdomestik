@@ -9,6 +9,7 @@ import yaml from 'js-yaml';
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const TRUSTED_GATE_ACTION =
   'interdomestik/interdomestik/.github/actions/pr-gate-policy@2a5d9fa14334766e0668c7b160ea065a0c25ec19';
+const EVIDENCE_HEAD_EXPRESSION = '${{ github.event.pull_request.head.sha || github.sha }}';
 const EVENT_TYPES = [
   'opened',
   'synchronize',
@@ -114,6 +115,7 @@ test('required PR E2E context wraps a service-free preflight and conditional hea
 
 test('PR E2E uploads exact-head lane reports and canonical evidence summaries', () => {
   const runner = readWorkflow('e2e-pr.yml').jobs['e2e-runner'];
+  const checkout = runner.steps.find(step => step.uses?.startsWith('actions/checkout@'));
   const gateIndex = runner.steps.findIndex(step => step?.name === 'Run PR E2E Gate');
   const smokeIndex = runner.steps.findIndex(step => step?.name === 'Run PR Smoke E2E');
   const gateEvidence = runner.steps[gateIndex + 1];
@@ -126,11 +128,14 @@ test('PR E2E uploads exact-head lane reports and canonical evidence summaries', 
   assert.equal(gateEvidence.if, 'always()');
   assert.equal(smokeEvidence.name, 'Summarize PR Smoke E2E Evidence');
   assert.equal(smokeEvidence.if, 'always()');
+  assert.equal(runner.env.EVIDENCE_HEAD_SHA, EVIDENCE_HEAD_EXPRESSION);
+  assert.equal(checkout.with.ref, EVIDENCE_HEAD_EXPRESSION);
+  assert.equal(checkout.with['fetch-depth'], 1);
   assert.deepEqual(evidenceRuns, [
-    'node scripts/ci/playwright-lane-evidence.mjs --report=apps/web/test-results/pr-gate/report.json --head=${{ github.event.pull_request.head.sha }} --lane=pr-gate --out=tmp/verification-evidence/pr-gate.json',
-    'node scripts/ci/playwright-lane-evidence.mjs --report=apps/web/test-results/pr-smoke/report.json --head=${{ github.event.pull_request.head.sha }} --lane=pr-smoke --out=tmp/verification-evidence/pr-smoke.json',
+    'node scripts/ci/playwright-lane-evidence.mjs --report=apps/web/test-results/pr-gate/report.json --head=${EVIDENCE_HEAD_SHA} --lane=pr-gate --out=tmp/verification-evidence/pr-gate.json',
+    'node scripts/ci/playwright-lane-evidence.mjs --report=apps/web/test-results/pr-smoke/report.json --head=${EVIDENCE_HEAD_SHA} --lane=pr-smoke --out=tmp/verification-evidence/pr-smoke.json',
   ]);
-  assert.ok(evidenceRuns.every(run => !run.includes('github.sha')));
+  assert.ok(evidenceRuns.every(run => run.match(/--head=\$\{EVIDENCE_HEAD_SHA\}/gu)?.length === 1));
 
   const upload = findStep(runner, 'Upload PR E2E Verification Evidence');
   assert.equal(upload.if, 'always()');
