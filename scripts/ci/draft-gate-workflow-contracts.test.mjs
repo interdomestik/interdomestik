@@ -5,6 +5,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import yaml from 'js-yaml';
+import './pr-e2e-evidence-workflow-contracts.mjs';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const TRUSTED_GATE_ACTION =

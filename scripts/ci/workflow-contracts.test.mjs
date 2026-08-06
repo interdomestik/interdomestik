@@ -5,6 +5,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import yaml from 'js-yaml';
+import './ci-audit-rls-workflow-contracts.mjs';
 
 import {
   hasE2EApiPlaceholder,
@@ -177,10 +178,6 @@ test('CI delegates PR browser gate to PR E2E', () => {
 
   const prGateStep = findStep(prE2eJob.steps, 'Run PR E2E Gate');
   assert.equal(prGateStep.run, 'pnpm e2e:gate:pr');
-  assert.deepEqual(prGateStep.env, {
-    E2E_DATABASE_URL: '${{ env.DATABASE_URL }}',
-    E2E_DATABASE_URL_RLS: '${{ env.DATABASE_URL }}',
-  });
 
   assert.equal(findStep(prE2eJob.steps, 'Generate Playwright Gate Auth State (KS+MK)'), undefined);
   assert.equal(findStep(prE2eJob.steps, 'E2E Subscription Lifecycle (KS+MK)'), undefined);
@@ -462,7 +459,7 @@ test('CI audit job runs the scripts/ci contract suite', () => {
   assert.ok(auditRunStep);
   assert.match(auditRunStep.run, /\bpnpm test:ci:contracts\b/);
   assert.doesNotMatch(auditRunStep.run, /playbook-contracts\.mjs/);
-  assert.match(auditRunStep.run, /\bpnpm check:e2e-contracts:base\b/);
+  assert.match(auditRunStep.run, /\bpnpm check:e2e-contracts\b/);
   assert.match(auditRunStep.run, /\bpnpm lint:production-warnings\b/);
   assert.ok(quarantineBudgetStep);
   assert.equal(quarantineBudgetStep.run, 'pnpm check:e2e-quarantine-budget');

@@ -9,6 +9,13 @@ const HIGH_RISK_EXACT_PATHS = new Set([
 ]);
 
 const HIGH_RISK_PREFIXES = [
+  'packages/domain-privacy/',
+  'packages/domain-ai/',
+  'apps/web/src/lib/ai/',
+  'apps/web/src/app/api/ai/',
+  'apps/web/src/app/api/privacy/',
+  'apps/web/src/components/privacy/',
+  'apps/web/src/features/claims/components/ai-extraction-consent-',
   'apps/web/src/lib/auth/',
   'apps/web/src/lib/proxy-',
   'apps/web/src/server/auth/',

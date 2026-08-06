@@ -2,8 +2,14 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
+import { playwrightReportArgs } from './playwright-lane-evidence.mjs';
+
 const runner = readFileSync(new URL('../run-e2e-lane.mjs', import.meta.url), 'utf8');
 const helper = readFileSync(new URL('run-detached-command.mjs', import.meta.url), 'utf8');
+const playwrightConfig = readFileSync(
+  new URL('../../apps/web/playwright.config.ts', import.meta.url),
+  'utf8'
+);
 const packageJson = JSON.parse(
   readFileSync(new URL('../../package.json', import.meta.url), 'utf8')
 );
@@ -27,6 +33,32 @@ test('detached command helper terminates active process groups on exit and cance
 
 test('root package script exposes the hardened E2E state setup lane', () => {
   assert.equal(packageJson.scripts['e2e:state:setup'], 'node scripts/run-e2e-lane.mjs state');
+});
+
+test('PR lane includes both MK contract and full MK gate projects', () => {
+  assert.match(runner, /pr: gateLane\(\[ksSq, mkContract, mkMk\], true\)/u);
+  assert.match(runner, /'pr-fast': gateLane\(\[ksSq, mkContract, mkMk\]\)/u);
+});
+
+test('Playwright evidence lanes are isolated without moving legacy default reports', () => {
+  assert.match(
+    playwrightConfig,
+    /const REQUESTED_EVIDENCE_LANE = process\.env\.PW_EVIDENCE_LANE \?\? 'default'/u
+  );
+  assert.match(playwrightConfig, /case 'default':[\s\S]*case 'pr-gate':[\s\S]*case 'pr-smoke':/u);
+  assert.match(playwrightConfig, /case 'default':\s*EVIDENCE_LANE = ''/u);
+  assert.match(playwrightConfig, /throw new Error\('PW_EVIDENCE_LANE_INVALID'\)/u);
+  assert.match(playwrightConfig, /'test-results', EVIDENCE_LANE/u);
+  assert.match(playwrightConfig, /'playwright-report', EVIDENCE_LANE/u);
+  assert.match(playwrightConfig, /outputDir: path\.join\(TEST_RESULTS_DIR, 'artifacts'\)/u);
+});
+
+test('only safe evidence lanes defer to configured Playwright reporters', () => {
+  const defaultArgs = ['--trace=retain-on-failure', '--reporter=line'];
+  assert.deepEqual(playwrightReportArgs(undefined), defaultArgs);
+  assert.deepEqual(playwrightReportArgs('../unsafe'), defaultArgs);
+  assert.deepEqual(playwrightReportArgs('pr-gate'), ['--trace=retain-on-failure']);
+  assert.match(runner, /playwrightReportArgs\(process\.env\.PW_EVIDENCE_LANE\)/u);
 });
 
 test('root package script serializes CI contracts without dropping files', () => {
