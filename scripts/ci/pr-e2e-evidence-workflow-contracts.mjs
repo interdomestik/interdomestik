@@ -53,7 +53,7 @@ test('PR E2E uploads exact-head lane reports and canonical evidence summaries', 
   assert.equal(upload.if, 'always()');
   assert.equal(upload.with.name, 'verification-evidence-e2e-pr');
   assert.equal(upload.with['if-no-files-found'], 'error');
-  assert.deepEqual(upload.with.path.trim().split(/\s*\n\s*/u), [
+  assert.deepEqual(upload.with.path.trim().split('\n').map(line => line.trim()), [
     'tmp/verification-evidence/pr-gate.json',
     'tmp/verification-evidence/pr-smoke.json',
     'apps/web/test-results/pr-gate/report.json',
