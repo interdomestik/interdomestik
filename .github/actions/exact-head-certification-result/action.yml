@@ -1,0 +1,33 @@
+name: Enforce exact-head certification result
+description: Fail closed unless the trusted exact-head admission and selected runner passed.
+
+inputs:
+  preflight-result:
+    description: Result of the trusted admission job.
+    required: true
+  run-broad:
+    description: Whether the broad runner was selected.
+    required: true
+  certification-required:
+    description: Whether the current head still needs broad certification.
+    required: true
+  certification-reason:
+    description: Trusted reason emitted by exact-head admission.
+    required: true
+  runner-result:
+    description: Result of the conditional broad runner job.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        CERTIFICATION_REASON: ${{ inputs.certification-reason }}
+        CERTIFICATION_REQUIRED: ${{ inputs.certification-required }}
+        GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+        POLICY_ROOT: ${{ github.action_path }}/../../..
+        PREFLIGHT_RESULT: ${{ inputs.preflight-result }}
+        RUN_BROAD: ${{ inputs.run-broad }}
+        RUNNER_RESULT: ${{ inputs.runner-result }}
+      run: node "${POLICY_ROOT}/scripts/ci/exact-head-certification-result.mjs"
