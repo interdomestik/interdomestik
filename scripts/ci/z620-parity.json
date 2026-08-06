@@ -11,7 +11,7 @@
   },
   "sourceDigests": {
     "apps/web/package.json": "8baf9b8fdb7e6a716c65c24b166029bda0b28321c523ccdba71f4b2f43f22cea",
-    "apps/web/playwright.config.ts": "994533a71e3a3f9aba3bf04c300ce58465f9cdb934e40d1b6fea244c241b80ec",
+    "apps/web/playwright.config.ts": "c1fffdb0e110e94eeae6221da02c36023c72c38945d2b8a663b1eb98e6744f67",
     "package.json": "ac5bda506b0b2fd288dbc1f6dd4dc522efb563cbf21133fae70da845e0161b06",
     "scripts/ci-local-parity.sh": "ed415efa1ecd772408959df535e5a70c686b9842c672ce666e4385af60fba8d2",
     "scripts/ci/managed-executables.mjs": "35a57e88c3e0e0b0c345d320d83b6c0a0138c80025ca182900c29a72a9945bd6",
