@@ -46,7 +46,8 @@ test('PR E2E uploads exact-head lane reports and canonical evidence summaries', 
     'node scripts/ci/playwright-lane-evidence.mjs --report=apps/web/test-results/pr-gate/report.json --head=${EVIDENCE_HEAD_SHA} --lane=pr-gate --out=tmp/verification-evidence/pr-gate.json',
     'node scripts/ci/playwright-lane-evidence.mjs --report=apps/web/test-results/pr-smoke/report.json --head=${EVIDENCE_HEAD_SHA} --lane=pr-smoke --out=tmp/verification-evidence/pr-smoke.json',
   ]);
-  assert.ok(evidenceRuns.every(run => run.match(/--head=\$\{EVIDENCE_HEAD_SHA\}/gu)?.length === 1));
+  const headArgument = '--head=${EVIDENCE_HEAD_SHA}';
+  assert.ok(evidenceRuns.every(run => run.split(headArgument).length === 2));
 
   const upload = findStep('Upload PR E2E Verification Evidence');
   assert.equal(upload.if, 'always()');

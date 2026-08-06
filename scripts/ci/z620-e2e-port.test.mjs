@@ -3,11 +3,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { loadZ620Gates } from './z620-gates-loader.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const read = relativePath => fs.readFileSync(path.join(root, relativePath), 'utf8');
-const parity = JSON.parse(read('scripts/ci/z620-parity.json'));
 
 test('Playwright accepts an isolated port and propagates it to trusted origins', () => {
   const source = `${read('apps/web/playwright.config.ts')}\n${read('apps/web/playwright-network.ts')}`;
@@ -44,7 +42,7 @@ test('resource runner keeps gatekeeper and Playwright build modes aligned', () =
 
 test('pilot gate owns its selected port, database, server, and release preparation', () => {
   const source = read('scripts/ci/z620-pilot-run.mjs');
-  const gates = loadZ620Gates(root, parity.sourceDigests);
+  const gates = JSON.parse(read('scripts/ci/z620-gates.json'));
   assert.match(source, /port < 3100 \|\| port > 3199/);
   assert.match(source, /process\.env\.E2E_DATABASE_URL/);
   assert.match(source, /INTERDOMESTIK_TASK_OWNS_PORT/);

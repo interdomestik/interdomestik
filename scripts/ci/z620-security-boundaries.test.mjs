@@ -3,9 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { resolveGateCommand } from './z620-gate-command-lib.mjs';
-import { validateGateCommandIds } from './z620-gate-command-policy.mjs';
-import { loadZ620Gates } from './z620-gates-loader.mjs';
+import { resolveGateCommand, validateGateCommandIds } from './z620-gate-command-lib.mjs';
 import {
   evidenceRunId,
   prepareEvidenceSubdirectory,
@@ -18,16 +16,13 @@ import {
 import { parseResourceOptions } from './z620-resource-options.mjs';
 
 const root = path.resolve(import.meta.dirname, '../..');
-const parity = JSON.parse(fs.readFileSync(path.join(root, 'scripts/ci/z620-parity.json')));
-const gates = loadZ620Gates(root, parity.sourceDigests);
+const gates = JSON.parse(fs.readFileSync(path.join(root, 'scripts/ci/z620-gates.json')));
 
 test('gate configuration can select only statically approved command identifiers', () => {
   assert.deepEqual(validateGateCommandIds(gates), []);
   assert.deepEqual(resolveGateCommand('repo-size-check'), {
     command: '/usr/local/bin/pnpm',
     args: ['repo:size:check'],
-    executionEnv: {},
-    normalizedEnvContract: {},
   });
   const commandIds = Object.values(gates.lanes).flatMap(lane => lane.commands);
   assert.equal(
