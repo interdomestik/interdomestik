@@ -146,19 +146,22 @@ failure to persist the initial planned-name/fixed-label receipt stops before
 the container must not start and database work must not begin; the helper uses
 the in-memory exact ID for cleanup and retains the already-durable planned
 receipt unless exact-ID absence and planned-receipt deletion are both proven.
-A retained planned receipt is reconciled later only by exact-name inspection,
-label verification and immutable-ID capture before deletion. A
+A retained planned receipt from that known-ID failure is reconciled later only
+by exact-name inspection, label verification and immutable-ID capture before
+deletion. A
 non-success, timeout or lost response from `docker create` is ambiguous, not proof
 that no container exists. The helper must inspect the exact planned name (never a
 label-only or glob lookup): a matching fixed-label container recovers and persists
-its immutable ID before exact-ID cleanup; a definite no-such-container result
-deletes the planned receipt and returns the fixed construction failure; a label
-mismatch or indeterminate inspection never deletes a container and retains the
-planned-name/fixed-label receipt under `CONTAINER_IDENTITY_UNRESOLVED` for
-separately authorized exact-name reinspection. A construction failure with a
-known ID must attempt removal of that exact ID before returning. Exact-ID removal
-failure or ambiguity is governed by the retained-receipt contract below and must
-dominate the result.
+its immutable ID before exact-ID cleanup; no-such-container, label mismatch or
+indeterminate inspection retains the planned-name/fixed-label receipt under
+`CONTAINER_IDENTITY_UNRESOLVED` and returns the fixed construction failure. A
+single or repeated no-such result in the original invocation never deletes that
+receipt because the daemon request may still complete. Receipt-only cleanup after
+a proven terminal create client plus a separately defined daemon-quiescence
+window is outside this child and requires separate authority. A construction
+failure with a known ID must attempt removal of that exact ID before returning.
+Exact-ID removal failure or ambiguity is governed by the retained-receipt
+contract below and must dominate the result.
 The fixture helper opens one trust-auth container-local control bootstrap session
 against `postgres` to create the migration owner, canonical runtime role and
 disposable database. It then opens a separate trust-auth target bootstrap
@@ -287,10 +290,11 @@ entries.
   exact-ID removal is also reconciled by inspecting that exact ID: definite
   absence completes cleanup and deletes the receipt; presence or indeterminate
   inspection retains the immutable receipt and fails. A planned receipt is
-  deleted only after definite no-such-container reconciliation, while a verified
-  immutable receipt is deleted only after proven exact-ID absence. Label-only,
-  globbed or broad deletion is forbidden. Receipts are never serialized into
-  TAP, errors, stdout/stderr or CI artifacts.
+  deleted in this child only after a known or recovered immutable ID has been
+  removed and exact-ID absence is proven; an ambiguous create that yields
+  no-such retains it. A verified immutable receipt is likewise deleted only after
+  proven exact-ID absence. Label-only, globbed or broad deletion is forbidden.
+  Receipts are never serialized into TAP, errors, stdout/stderr or CI artifacts.
 - Every Docker and PostgreSQL rejection is caught by the new helpers, which
   discard raw command/provider text and emit only fixed identifier-free codes.
 - An initial planned-receipt failure proves that `docker create` was never
@@ -301,10 +305,12 @@ entries.
   case instead proves FAIL, proves that no broader container deletion was
   attempted and retains the verified immutable receipt. An unresolved create
   identity retains only the planned-name/fixed-label receipt and permits no
-  deletion until separately authorized exact-name inspection verifies labels and
-  captures the immutable ID. Neither case makes a false absence claim for a
-  retained container or an unproved session; container and session absence are
-  asserted only after exact identity is reconciled and exact-ID recovery
+  deletion in this child. Separately authorized recovery either proves the
+  terminal-client/daemon-quiescence contract for receipt-only cleanup or verifies
+  labels and captures the immutable ID before container deletion. Neither case
+  makes a false absence claim for a retained container or an unproved session;
+  container and session absence are asserted only after exact identity is
+  reconciled and exact-ID recovery
   succeeds.
 - Missing Docker, missing image, wrong server major, insufficient resource
   floor, unavailable Z620 or a skipped required case is a failed proof, not a
@@ -403,10 +409,12 @@ identity is known but cleanup cannot be proven, retain only the mode-`0600`
 out-of-repo receipt's immutable container ID, generated name, verified fixed
 labels and timestamp, then require separately authorized exact-ID cleanup. If
 create identity itself is indeterminate, retain only planned name, fixed labels
-and timestamp, then require separately authorized exact-name inspection, label
-verification and ID capture before any deletion. Never infer or broaden the
-cleanup command. A fixture, identity or cleanup failure invalidates the manifest
-as evidence.
+and timestamp. A no-such result in the original invocation does not delete it;
+later receipt-only cleanup requires separate authority and a separately defined
+terminal-client/daemon-quiescence proof, while any discovered container still
+requires exact-name inspection, label verification and ID capture before
+deletion. Never infer or broaden the cleanup command. A fixture, identity or
+cleanup failure invalidates the manifest as evidence.
 
 The promotion is withdrawn if implementation requires a kernel edit, canonical
 migration/journal change, persistent role/provider mutation, second PostgreSQL
