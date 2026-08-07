@@ -41,6 +41,7 @@ jobs:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.TURBO_TEAM || secrets.TURBO_TEAM }}
       TURBO_REMOTE_CACHE_SIGNATURE_KEY: ${{ secrets.TURBO_REMOTE_CACHE_SIGNATURE_KEY }}
+      INTERDOMESTIK_TURBO_REMOTE_CACHE_READ_ONLY: '1'
       BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
       GH_TOKEN: ${{ github.token }}
       GITHUB_TOKEN: ${{ github.token }}

@@ -16,10 +16,10 @@ export function createTurboCacheKey() {
   };
 }
 
-export function writeTurboCacheKey(cwd = process.cwd()) {
+export function writeTurboCacheKey(cwd = process.cwd(), key = createTurboCacheKey()) {
   const destination = path.join(cwd, TURBO_CACHE_KEY_FILE);
   const temporary = `${destination}.${process.pid}.${randomUUID()}.tmp`;
-  const serialized = `${JSON.stringify(createTurboCacheKey())}\n`;
+  const serialized = `${JSON.stringify(key)}\n`;
 
   try {
     writeFileSync(temporary, serialized, { mode: 0o600 });
@@ -28,7 +28,7 @@ export function writeTurboCacheKey(cwd = process.cwd()) {
     rmSync(temporary, { force: true });
   }
 
-  return destination;
+  return key;
 }
 
 const invokedPath = process.argv[1] ? path.resolve(process.argv[1]) : '';

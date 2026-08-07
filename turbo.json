@@ -2,7 +2,14 @@
   "$schema": "https://turbo.build/schema.json",
   "ui": "stream",
   "cacheDir": ".turbo/cache",
+  "remoteCache": {
+    "signature": true
+  },
+  "futureFlags": {
+    "longerSignatureKey": true
+  },
   "globalEnv": [
+    "INTERDOMESTIK_TURBO_PLATFORM_KEY",
     "DATABASE_URL",
     "DATABASE_URL_RLS",
     "NEXT_PUBLIC_APP_URL",
@@ -34,7 +41,7 @@
     "UPSTASH_REDIS_REST_TOKEN",
     "UPSTASH_REDIS_REST_URL"
   ],
-  "globalDependencies": ["**/.env.*local", "turbo-cache-key.json"],
+  "globalDependencies": ["**/.env.*local"],
   "globalPassThroughEnv": [
     "DB_MAX_CONNECTIONS",
     "SENTRY_AUTH_TOKEN",

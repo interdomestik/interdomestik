@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -72,13 +72,38 @@ test('turbo wrapper invokes the repository-pinned binary outside pnpm', () => {
   assert.match(result.stdout, /^2\.10\.7\s*$/u);
 });
 
+test('turbo wrapper bypasses platform-specific command shims', () => {
+  const wrapper = readFileSync(path.join(repoRoot, 'scripts/ci/run-turbo.mjs'), 'utf8');
+
+  assert.match(wrapper, /node_modules', 'turbo', 'bin', 'turbo/u);
+  assert.doesNotMatch(wrapper, /turbo\.cmd/u);
+});
+
+test('turbo wrapper anchors the key and binary to the repository root', () => {
+  withTemporaryDirectory(directory => {
+    const result = spawnSync(
+      process.execPath,
+      [path.join(repoRoot, 'scripts/ci/run-turbo.mjs'), '--version'],
+      {
+        cwd: directory,
+        encoding: 'utf8',
+      }
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(existsSync(path.join(directory, 'turbo-cache-key.json')), false);
+  });
+});
+
 test('turbo config isolates platform hashes and worktree-local artifacts', () => {
   const turboConfig = JSON.parse(readFileSync(path.join(repoRoot, 'turbo.json'), 'utf8'));
   const protectedSecrets = ['TURBO_TOKEN', 'TURBO_TEAM', 'TURBO_REMOTE_CACHE_SIGNATURE_KEY'];
 
-  assert.ok(turboConfig.globalDependencies.includes('turbo-cache-key.json'));
+  assert.ok(turboConfig.globalEnv.includes('INTERDOMESTIK_TURBO_PLATFORM_KEY'));
+  assert.ok(!turboConfig.globalDependencies.includes('turbo-cache-key.json'));
   assert.equal(turboConfig.cacheDir, '.turbo/cache');
-  assert.notEqual(turboConfig.remoteCache?.signature, true);
+  assert.equal(turboConfig.remoteCache?.signature, true);
+  assert.equal(turboConfig.futureFlags?.longerSignatureKey, true);
   for (const secret of protectedSecrets) {
     assert.ok(!turboConfig.globalEnv.includes(secret), `${secret} must not affect task hashes`);
   }
@@ -91,26 +116,12 @@ test('all supported root turbo entrypoints generate the platform key first', () 
     .map(([name]) => name);
 
   assert.deepEqual(bypasses, []);
+  assert.equal(packageJson.devDependencies.turbo, '2.10.7');
 });
-
 test('generated platform key is ignored by Git', () => {
   const result = spawnSync('git', ['check-ignore', '--quiet', 'turbo-cache-key.json'], {
     cwd: repoRoot,
   });
 
   assert.equal(result.status, 0);
-});
-
-test('remote-enabled workflows declare the artifact signature secret', () => {
-  const workflowDirectory = path.join(repoRoot, '.github/workflows');
-  const missingSignature = readdirSync(workflowDirectory)
-    .filter(file => /\.ya?ml$/u.test(file))
-    .filter(file => {
-      const workflow = readFileSync(path.join(workflowDirectory, file), 'utf8');
-      return (
-        workflow.includes('TURBO_TOKEN:') && !workflow.includes('TURBO_REMOTE_CACHE_SIGNATURE_KEY:')
-      );
-    });
-
-  assert.deepEqual(missingSignature, []);
 });

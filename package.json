@@ -254,7 +254,7 @@
     "prettier": "^3.9.6",
     "release-it": "^19.2.4",
     "tsx": "^4.23.1",
-    "turbo": "^2.10.7",
+    "turbo": "2.10.7",
     "typescript": "^5.9.3"
   },
   "engines": {
