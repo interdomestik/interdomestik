@@ -70,8 +70,10 @@ One focused-test-owned disposable PostgreSQL 16 fixture must:
    preflighted migration-owner session;
 4. produce a bounded, redacted manifest of role posture, database/schema/object
    ownership, schema privileges and default ACLs; and
-5. remove its exact container, database sessions and dynamic identifiers on
-   success, failure, abort and assertion failure.
+5. attempt exact cleanup on success, failure, abort and assertion failure; PASS
+   only after its container, sessions and dynamic identifiers are absent, or
+   fail closed with the exact-target receipt retained when removal cannot be
+   completed.
 
 The fixture proves the separation boundary and current post-migration manifest.
 It does not grant the runtime role application privileges, claim that seeding or
@@ -86,9 +88,11 @@ command.
 - The existing private migration callback-plan, ledger inspection and execution
   kernel APIs remain unchanged and non-exported.
 - A new bounded lifecycle helper owns container create/start/identity/cleanup. A
-  container-local `postgres` bootstrap session may create the disposable roles
-  and database and normalize `public` ownership before closing. After bootstrap,
-  the migration owner is the only executor of canonical migration DDL. The
+  container-local control bootstrap session connected to `postgres` may create
+  the disposable roles and database. A separate target bootstrap session then
+  connects to that disposable database to normalize `public` ownership. Both
+  close before preflight. After bootstrap, the migration owner is the only
+  executor of canonical migration DDL. The
   application runtime role never receives database ownership, schema ownership,
   `BYPASSRLS`, `SUPERUSER`, replication or migration capability.
 - The fixture may contact only its own loopback disposable PostgreSQL 16
@@ -140,15 +144,19 @@ atomically persists the ID/name/labels in a mode-`0600` out-of-repo receipt. A
 construction failure after create must attempt removal of that exact ID before
 returning; an exact-ID removal failure is governed by the retained-receipt
 contract below and must dominate the result.
-The fixture helper opens one trust-auth container-local bootstrap session. That
-bootstrap creates the migration owner, canonical runtime role and disposable
-database, recreates `public` under the migration owner, revokes `CREATE` from
-`PUBLIC` and the runtime role, then closes before preflight. The existing
+The fixture helper opens one trust-auth container-local control bootstrap session
+against `postgres` to create the migration owner, canonical runtime role and
+disposable database. It then opens a separate trust-auth target bootstrap
+session against that disposable database to recreate `public` under the
+migration owner and revoke `CREATE` from `PUBLIC` and the runtime role. Both
+bootstrap sessions close before preflight. The existing
 authenticated callback-plan capability and dynamic-import preflighted
 owner-session/kernel seam perform the canonical migration work. The manifest
 helper uses the preflighted migration-owner session or its own loopback observer
-session. Every new session pid is closed and proved absent before lifecycle
-cleanup. The manifest returns a frozen redacted summary and never returns URLs,
+session. Every session close is attempted before lifecycle cleanup. A successful
+close must have its pid proved absent before cleanup; a failed close must not
+block exact-ID removal and follows the cleanup state machine below. The manifest
+returns a frozen redacted summary and never returns URLs,
 passwords, dynamic role/container names, SQL bodies or object names outside the
 fixed allowlist.
 
@@ -169,8 +177,8 @@ entries.
 
 ### A. Role and endpoint isolation
 
-- The bootstrap/observer session reports server major exactly 16 before any
-  migration callback; the post-operation summary confirms the same major.
+- Both bootstrap sessions and the observer report server major exactly 16 before
+  any migration callback; the post-operation summary confirms the same major.
 - The container is owned by the exact focused test invocation, loopback-only and
   randomly named by the new lifecycle helper. Host is exactly `127.0.0.1`,
   `NODE_ENV=test`,
@@ -235,11 +243,13 @@ entries.
 ### D. Cleanup and negative paths
 
 - Success, preflight rejection, kernel failure, manifest rejection,
-  `AbortSignal`-driven abort and assertion failure all close bootstrap,
-  observer and owner sessions, prove their pids absent, then invoke lifecycle
-  cleanup exactly once. Cleanup attempts exact-ID removal in `finally` even if a
-  session-close step fails. Process-signal recovery where test hooks cannot run
-  is outside this child.
+  `AbortSignal`-driven abort and assertion failure all attempt to close both
+  bootstrap sessions plus observer and owner sessions, then invoke lifecycle
+  cleanup exactly once. Successful closes prove their pids absent before
+  cleanup. A failed close does not require an impossible pre-removal absence
+  proof: exact-ID removal still runs in `finally`; successful removal then proves
+  the owned container and all of its sessions absent. Process-signal recovery
+  where test hooks cannot run is outside this child.
 - Cleanup failure dominates the result and leaves a safe identifier-free error
   code plus an operator-visible cleanup receipt; it never reports PASS. Before
   start, the lifecycle helper atomically writes a mode-`0600` out-of-repo receipt
@@ -253,11 +263,12 @@ entries.
   discard raw command/provider text and emit only fixed identifier-free codes.
 - The test proves no matching lifecycle-owned container or session remains after
   each terminal case in which exact-ID removal succeeds, including
-  create/start/readiness/bootstrap and observer-close failures. A removal-failure
-  case instead proves FAIL, proves all database sessions absent, proves that no
-  broader container deletion was attempted and retains the exact-target receipt;
-  container absence is asserted only after separately authorized exact-ID
-  recovery succeeds.
+  create/start/readiness/bootstrap and session-close failures. A removal-failure
+  case instead proves FAIL, proves that no broader container deletion was
+  attempted and retains the exact-target receipt. It makes no false absence claim
+  for the retained container or for any session whose close was not proved;
+  container and session absence are asserted only after separately authorized
+  exact-ID recovery succeeds.
 - Missing Docker, missing image, wrong server major, insufficient resource
   floor, unavailable Z620 or a skipped required case is a failed proof, not a
   waiver.
@@ -270,8 +281,9 @@ entries.
 3. The fixture accidentally invokes the kernel under the runtime role.
 4. Dynamic credentials, role names, URLs, SQL or catalog details escape through
    output, thrown errors or test diagnostics.
-5. Cleanup removes a container other than the exact lifecycle-owned fixture or leaves
-   its container/session running after failure.
+5. Cleanup removes a container other than the exact lifecycle-owned fixture, or
+   leaves its container/session without fail-closed status and a retained
+   exact-target recovery receipt.
 6. A PostgreSQL 15 result is presented as PostgreSQL 16 evidence, or this
    single-version proof is presented as the permanent 15/16 matrix.
 7. The fixture reaches a shared, Supabase, provider or production database.
