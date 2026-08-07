@@ -100,12 +100,15 @@ export async function proveOwnerGraphAndConcurrentWriter() {
   });
   await ready;
   const blockedConfirm = store.confirmReplacementProof(owner.id, () => 'blocked-r', new Date(0));
+  let serialized = false;
   for (let attempt = 0; attempt < 50; attempt += 1) {
     const [waiting] =
       await recoverySql`select exists(select 1 from pg_stat_activity where wait_event_type = 'Lock' and query ilike 'lock table %user%') as value`;
-    if (waiting?.value) break;
+    // prettier-ignore
+    if (waiting?.value) { serialized = true; break; }
     await new Promise(resolve => setTimeout(resolve, 20));
   }
+  expect(serialized).toBe(true);
   releaseWriter();
   await writer;
   expect(await blockedConfirm).toEqual({ ok: false });
