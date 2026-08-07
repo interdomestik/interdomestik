@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 
+import { DifferentEmailRecovery } from './different-email-recovery';
 import { parseSecureSaveCopy, type DraftSaveState, type SavedDraft } from './types';
 
 type Props = Readonly<{
@@ -51,6 +52,7 @@ export function SavedDraftList(props: Props) {
         </h4>
         <p className="mt-2 font-bold text-[#001a33]">{copy.manage.emptyHeading}</p>
         <p className="mt-2 text-sm leading-6 text-[#526274]">{copy.manage.emptyBody}</p>
+        <DifferentEmailRecovery />
       </div>
     );
   }
@@ -122,6 +124,7 @@ export function SavedDraftList(props: Props) {
           {copy.manage.loadMore}
         </button>
       ) : null}
+      <DifferentEmailRecovery />
     </div>
   );
 }

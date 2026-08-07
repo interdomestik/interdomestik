@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import {
   activateCurrentProof,
@@ -15,8 +14,8 @@ import {
   ownerSnapshot,
   recoverySql,
 } from './different-email-recovery-store.contract-test-support';
-const now = new Date('2026-08-07T12:00:00.000Z');
-const nonce = () => randomUUID();
+const now = new Date('2026-08-07T12:00:00.000Z'),
+  nonce = () => crypto.randomUUID();
 afterEach(cleanupRecoveryRows);
 afterAll(() => recoverySql.end());
 describe.runIf(process.env.REQUIRE_DIFFERENT_EMAIL_RECOVERY_CONTRACT === '1')(
@@ -82,14 +81,16 @@ describe.runIf(process.env.REQUIRE_DIFFERENT_EMAIL_RECOVERY_CONTRACT === '1')(
       ).toEqual({ ok: true });
       expect(await activateReplacementProof(owner.id, replacement, now)).toBe(true);
       for (let attempt = 0; attempt < 3; attempt += 1) {
-        expect(await confirmReplacementProof(owner.id, 'wrong', now)).toEqual({ ok: false });
+        expect(await confirmReplacementProof(owner.id, () => 'wrong', now)).toEqual({ ok: false });
       }
       expect(await challengeRows(owner.id)).toHaveLength(0);
-      expect(await confirmReplacementProof(owner.id, 'replacement-ok', now)).toEqual({ ok: false });
+      expect(await confirmReplacementProof(owner.id, () => 'replacement-ok', now)).toEqual({
+        ok: false,
+      });
     });
     it('contains mixed-case collision and lets exactly one concurrent CAS win', async () => {
       const owner = await createRecoveryOwner('cas');
-      const collision = `Collision-${randomUUID()}@Example.com`;
+      const collision = `Collision-${crypto.randomUUID()}@Example.com`;
       await createRecoveryOwner('collision', collision);
       const current = nonce();
       await reserveCurrentProof({
@@ -132,8 +133,8 @@ describe.runIf(process.env.REQUIRE_DIFFERENT_EMAIL_RECOVERY_CONTRACT === '1')(
       });
       await activateReplacementProof(owner.id, replacement, now);
       const results = await Promise.all([
-        confirmReplacementProof(owner.id, 'r2', now),
-        confirmReplacementProof(owner.id, 'r2', now),
+        confirmReplacementProof(owner.id, () => 'r2', now),
+        confirmReplacementProof(owner.id, () => 'r2', now),
       ]);
       expect(results.filter(result => result.ok)).toHaveLength(1);
       expect(await ownerSnapshot(owner.id)).toEqual({
