@@ -6643,3 +6643,52 @@ docs-only authority PR merges and the exact-main resolver confirms
 separate exact-main-bound runtime receipt.
 <!-- prettier-ignore -->
 The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03b` (Tier 3 protected auth/ownership/privacy product slice; `runtime_authorized:false`; exact-approved R6 authority `IDA-DG28`; docs-only merge pending).
+
+Rev 203 closeout supersedes the Rev 202 pending-merge sentence and consumes the
+sole `IDA-UI03b` promotion. Authority PR `#1503` merged exact head
+`69909b61d169d3f6ec1d99c5a8dca7aca1d0b25d` as
+`49c583f783baa1211d17a6d42a86e3836ebb4df5`. Implementation PR `#1504`
+merged exact reviewed head `cb68572b55ff92626e4de65a98fafa6f6b0e00a7`
+as `fad5d78045f945ce1d5ec010928cdc823672f8ae`. Exact runtime receipt
+`IDA-UI03b-RUNTIME-R1` is 15,266 bytes / SHA-256
+`7d4f3e78ff1fa297125d8df410b51159c2e0c256c92701f23efe297cd0c31229`.
+
+The seventeen-path implementation requires proof of both the original draft
+mailbox and the replacement mailbox before one same-user email compare-and-swap.
+It preserves the same `user.id` and every draft owner key and adds no account
+merge, unproved transfer, draft disclosure, claim conversion, membership
+mutation, schema, route, provider or production writer. Closeout PR `#1505`
+corrected a prematurely inferred acceptance claim by adding the missing exact
+PostgreSQL 16 owner-graph, dual-target, concurrent-confirm, concurrent-user-writer
+and post-CAS owner-RLS proof; all four contract cases passed on correction commit
+`85106b949ad61883970a1d0eb1aeeca88530c267`. Focused unit, real-PostgreSQL
+contract and security proof passed. Exact-head PR E2E
+`31185193526`, Pilot `31185193115`, all 28 successful checks, Sonar zero new
+issues/hotspots, CodeQL, gitleaks, audit, repo-native security, finalizer and
+zero unresolved threads passed. Two current-head Copilot requests returned no
+review output and were not repeated; the bounded Sol Max route was unavailable
+by quota and remains NON-PASS advisory evidence without overriding repository
+merge authority. Codex Security diff scan remained user-waived.
+
+Exact-main CI `31187009980`, Sonar `31187009601`, CodeQL `31187007468` /
+`31187007229` and Secret Scan `31187010982` passed. Automatic CD
+`31187009700` was cancelled with every job at `steps: []`, before checkout,
+registry, image, provider, alias, deployment or production effect. Mac remained
+control/light-writer only. Z620 supplied real-PostgreSQL and exact-environment
+diagnostic proof with observed minima about 45.0 GiB free disk and 26,928 MiB
+available memory; GitHub-hosted Ubuntu supplied current-head and merge
+authority. Rollback is the single implementation merge revert; no schema or
+data rollback is required, and an already confirmed same-user email is not
+automatically reversed.
+
+The prospective Brain session
+`sess_2026-08-07T11-19-28-830Z_IDA-UI03b` is real product-work measurement but
+is not formal M7 cohort evidence because no authorized enrollment existed before
+mutation; Atlas remained excluded. Closeout retains only outcomes, evidence
+links, approved decisions and failure fingerprints for authority-revision loops,
+reviewer no-output/quota, full CI before an exact-environment canary, incomplete
+Z620 probe preflight, a missing verified-session E2E prerequisite and closeout
+acceptance inferred from partial contract coverage. Runtime authority is
+consumed. No replacement implementation slice is promoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
