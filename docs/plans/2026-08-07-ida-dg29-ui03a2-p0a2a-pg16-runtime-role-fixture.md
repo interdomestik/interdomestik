@@ -119,14 +119,21 @@ The future implementation may touch only these seven paths:
 7. `scripts/repo-size-budget.json` — deterministic inventory delta only if the
    unchanged canonical sync requires it.
 
-No eighth path is allowed. Existing migration-execution and admin-connection
-support may be imported read-only but not modified. The new lifecycle helper
-owns only container mechanics and is reused by the new fixture helper; it does
-not copy migration plan or kernel logic. The fixture reaches the admin preflight
-only through the existing dynamic-import seam so the static import sentinel
-remains unchanged. Every new TypeScript file must remain at or below 150 lines.
-Discovering that the fixture cannot fit this map is a stop-and-re-gate condition,
-not permission to modify the kernel or an existing 147–150-line file.
+No eighth path is allowed. The four runtime roots must not import the existing
+`migration-execution.support.ts` or `admin-connection-preflight.support.ts`
+fixtures; those helpers own different Docker/session behavior. They may reuse the
+exact read-only migration corpus/callback capability, preflight and execution
+contract/kernel modules whose recursive closure passes the boundary, including
+`migration-callback.support.ts` only for its authenticated corpus capability. The
+static boundary alone may import `findAdminPreflightImports()` from the existing
+admin support to enforce the unchanged sentinel; it must not invoke that
+support's fixture. The new lifecycle helper owns only container mechanics and is
+reused by the new fixture helper; it does not copy migration plan or kernel
+logic. The fixture reaches the admin preflight only through the existing
+dynamic-import seam so the static import sentinel remains unchanged. Every new
+TypeScript file must remain at or below 150 lines. Discovering that the fixture
+cannot fit this map is a stop-and-re-gate condition, not permission to modify the
+kernel or an existing 147–150-line file.
 
 ## Contract and dependency graph
 
