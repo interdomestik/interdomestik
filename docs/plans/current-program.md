@@ -6550,3 +6550,84 @@ redesign remain unpromoted residuals. Runtime authority is consumed. No
 replacement implementation slice or second UI-tree node is promoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+
+Rev 198 proposed current authority: `IDA-DG28` selects exactly one Tier 3
+protected auth/ownership/privacy product slice, `IDA-UI03b`, from clean main
+`919d10f269e0a498114b5eeacdda140388f59bbd`. Arben approved the exact outcome
+sentence in task `019fa824-2676-7c22-9dcb-d21af1c354e6`: require proof of the
+original draft email and the replacement email before recovery, with no account
+merge, unproved transfer, draft disclosure, claim conversion or membership
+change.
+
+Candidate
+`docs/plans/2026-08-07-ida-dg28-ui03b-different-email-recovery.md` R3 binds the
+lock-resolved Better Auth 1.6.25 current-email plus replacement-email OTP contract to
+the same sensitive-session user. It supports only a user who controls both
+mailboxes, preserves `user.id` and `free_start_drafts.owner_user_id`, returns no
+draft data from the different-email endpoints and rejects any new schema,
+custom auth endpoint or `@interdomestik/shared-auth` mutation API. The exact R3
+bytes, SHA-256, UI/UX receipt and admission digest remain pending final
+recalculation and Arben approval after exact-head review corrections.
+
+The prospective implementation writer map is exactly fourteen paths: provider
+configuration/copy, one no-identity-input current-email action, the saved-draft
+manager mount, one bounded recovery component, four locale files, deterministic
+repo-size metadata and five focused proof files. The real-adapter contract
+imports the exact production provider configuration through the bounded
+existing harness and also covers the current-email action. This is one
+explicitly approved size-budget exception: splitting provider activation from
+the recovery UI would create no complete user outcome. `apps/web/src/proxy.ts`,
+neutral-OTP routes/boundaries, shared-auth, tenancy, schema/RLS, account
+merge, draft owner rewrites, claim/membership/billing writers, deployment and
+production remain excluded. This unmerged proposal has no canonical or runtime
+effect. After exact approval and docs-only merge, fresh resolver/scorecard proof
+and a separate exact runtime receipt are mandatory before product mutation.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03b` (Tier 3 protected auth/ownership/privacy product slice; `runtime_authorized:false`; proposed authority `IDA-DG28`; docs-only merge pending).
+
+Rev 199 proposed-current-authority correction: the GPT-5.6 Sol Max R3 review
+invalidated the stock Better Auth change-email endpoint assumption. Its exact
+1.6.25 implementation swallows delivery failure before the endpoint response,
+serializes only one target identifier rather than all targets for a user, and
+can log a raw Postgres unique-collision error. No product mutation occurred.
+
+`IDA-DG28` R4 preserves exactly the approved `IDA-UI03b` user outcome but uses a
+bounded server-action family over the existing authoritative session,
+`verification`/`user` tables, content-free awaited mail primitive, per-user
+PostgreSQL advisory lock and old-email compare-and-swap. It adds no schema,
+migration, route, provider, account, draft, claim or membership writer. The
+seventeen-path map separates action/session policy, transaction storage,
+purpose email copy, accessible UI and their focused/real-Postgres proof. The
+sole exceeded admission dimension is writer count; its exact-hash disposition,
+updated receipts, final fallback review and Arben approval remain pending.
+Runtime, deployment, production and product mutation remain false.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03b` (Tier 3 protected auth/ownership/privacy product slice; `runtime_authorized:false`; proposed R4 authority `IDA-DG28`; docs-only merge pending).
+
+Rev 200 proposed-current-authority correction: GPT-5.6 Sol Max R4 found that
+current-mail delivery before reservation could leave a prior proof usable and
+that case-sensitive uniqueness did not prove global canonical collision
+containment. `IDA-DG28` R5 fixes only those defects: both stages use disabled
+nonce reservations before awaited delivery and exact activation afterward;
+final confirmation briefly locks the `user` table, checks trimmed-lowercase
+collision globally, then performs the same-user old-email CAS. The writer map
+remains exactly seventeen and no schema, migration, route, provider, account,
+draft, claim or membership writer is added. Exact R5 hash, updated receipts,
+bounded same-session disposition and Arben approval remain pending. Runtime,
+deployment, production and product mutation remain false.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03b` (Tier 3 protected auth/ownership/privacy product slice; `runtime_authorized:false`; proposed R5 authority `IDA-DG28`; docs-only merge pending).
+
+Rev 201 proposed-current-authority proof correction: the bounded same-session R5
+disposition found one contradictory test sentence, not a new state-machine
+defect. `IDA-DG28` R6 now requires preflight rollback to send/activate nothing
+and preserve the exact prior challenge; only failure after a successful
+superseding reservation commit must leave neither prior nor new proof active.
+The outcome, state machine, seventeen writers and exclusions are unchanged.
+Exact R6 is 19,290 bytes / SHA-256
+`2339bc59b4b679f70201f95e14733513e3c595068fe1f6bed48862c26df4f9a4`.
+Admission `ee2de4ae` is ready, UI/UX `63bcb516` passes and the Sol Max
+same-session R6 disposition passes in 23.491 seconds. Arben exact-hash approval
+remains pending; runtime and product mutation remain false.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03b` (Tier 3 protected auth/ownership/privacy product slice; `runtime_authorized:false`; proposed R6 authority `IDA-DG28`; docs-only merge pending).
