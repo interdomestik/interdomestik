@@ -1,6 +1,7 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "stream",
+  "cacheDir": ".turbo/cache",
   "globalEnv": [
     "DATABASE_URL",
     "DATABASE_URL_RLS",
@@ -33,7 +34,7 @@
     "UPSTASH_REDIS_REST_TOKEN",
     "UPSTASH_REDIS_REST_URL"
   ],
-  "globalDependencies": ["**/.env.*local"],
+  "globalDependencies": ["**/.env.*local", "turbo-cache-key.json"],
   "globalPassThroughEnv": [
     "DB_MAX_CONNECTIONS",
     "SENTRY_AUTH_TOKEN",
