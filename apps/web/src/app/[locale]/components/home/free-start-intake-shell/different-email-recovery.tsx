@@ -4,12 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 
-import {
-  confirmReplacementEmail,
-  startDifferentEmailRecovery,
-  submitCurrentEmailProof,
-} from '@/actions/different-email-recovery';
-
 type Stage = 'closed' | 'start' | 'current' | 'replacement' | 'complete';
 // prettier-ignore
 const copyKeys = ['body', 'close', 'codeLabel', 'complete', 'confirm', 'currentBody', 'currentHeading', 'emailLabel', 'error', 'heading', 'open', 'pending', 'replacementBody', 'replacementHeading', 'start', 'submitCurrent'] as const;
@@ -107,9 +101,10 @@ export function DifferentEmailRecovery() {
   );
 
   const { body, title } = stageText(stage, copy);
-  const submit = () => {
-    if (stage === 'current') return submitCurrentEmailProof({ code, email, locale });
-    return confirmReplacementEmail({ code });
+  const submit = async () => {
+    const actions = await import('@/actions/different-email-recovery');
+    if (stage === 'current') return actions.submitCurrentEmailProof({ code, email, locale });
+    return actions.confirmReplacementEmail({ code });
   };
   // prettier-ignore
   return (
@@ -120,7 +115,7 @@ export function DifferentEmailRecovery() {
         <>
           <p className="mt-2 text-sm leading-6 text-[#526274]">{body}</p>
           {stage === 'start' ? (
-            <button type="button" disabled={pending} onClick={() => void run(() => startDifferentEmailRecovery({ locale }))}
+            <button type="button" disabled={pending} onClick={() => void run(async () => (await import('@/actions/different-email-recovery')).startDifferentEmailRecovery({ locale }))}
               className="mt-3 min-h-11 rounded-xl bg-[#006f72] px-4 font-bold text-white disabled:opacity-60">
               {pending ? copy.pending : copy.start}
             </button>

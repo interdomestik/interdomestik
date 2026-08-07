@@ -67,6 +67,9 @@ test.describe('IDA-UI03b different-email recovery entry', () => {
       token = await login(page, info);
       const organizer = await openOrganizer(page, info);
       await organizer.getByTestId('free-start-manage-open').click();
+      await expect(
+        organizer.getByRole('heading', { name: /your saved drafts|draftet e ruajtura/i })
+      ).toBeFocused({ timeout: 20_000 });
       const entry = organizer.getByTestId('different-email-recovery-open');
       await expect(entry).toBeVisible();
       expect((await entry.boundingBox())?.height).toBeGreaterThanOrEqual(44);

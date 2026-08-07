@@ -1,15 +1,10 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import dynamic from 'next/dynamic';
 import { useLocale, useTranslations } from 'next-intl';
 
+import { DifferentEmailRecovery } from './different-email-recovery';
 import { parseSecureSaveCopy, type DraftSaveState, type SavedDraft } from './types';
-
-const DifferentEmailRecovery = dynamic(
-  () => import('./different-email-recovery').then(module => module.DifferentEmailRecovery),
-  { ssr: false }
-);
 
 type Props = Readonly<{
   items: SavedDraft[];
