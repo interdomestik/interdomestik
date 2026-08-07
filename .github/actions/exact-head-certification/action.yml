@@ -1,0 +1,44 @@
+name: Resolve exact-head certification
+description: Combine pinned risk policy with one-shot exact-head certification events.
+
+inputs:
+  policy-json:
+    description: JSON outputs from the pinned PR gate policy action.
+    required: true
+  consume-full-gate:
+    description: Remove a newly applied full-gate label after admission.
+    required: false
+    default: 'false'
+
+outputs:
+  run_broad:
+    description: Whether the broad verification lane must run.
+    value: ${{ steps.admission.outputs.run_broad }}
+  certification_required:
+    description: Whether the current head still needs broad certification.
+    value: ${{ steps.admission.outputs.certification_required }}
+  consume_full_gate:
+    description: Whether this event consumed a one-shot full-gate command.
+    value: ${{ steps.admission.outputs.consume_full_gate }}
+  certification_reason:
+    description: Trusted reason for the exact-head admission decision.
+    value: ${{ steps.admission.outputs.certification_reason }}
+
+runs:
+  using: composite
+  steps:
+    - id: admission
+      shell: bash
+      env:
+        GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+        POLICY_JSON: ${{ inputs.policy-json }}
+        POLICY_ROOT: ${{ github.action_path }}/../../..
+      run: node "${POLICY_ROOT}/scripts/ci/exact-head-certification.mjs" >>"$GITHUB_OUTPUT"
+    - name: Consume full-gate certification command
+      if: inputs.consume-full-gate == 'true' && steps.admission.outputs.consume_full_gate == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        REPOSITORY: ${{ github.repository }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+      run: gh api --method DELETE "repos/${REPOSITORY}/issues/${PR_NUMBER}/labels/full-gate"
