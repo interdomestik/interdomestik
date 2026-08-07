@@ -12,14 +12,27 @@ import {
 
 type Stage = 'closed' | 'start' | 'current' | 'replacement' | 'complete';
 // prettier-ignore
-type Copy = Record<'body' | 'close' | 'codeLabel' | 'complete' | 'confirm' | 'currentBody' | 'currentHeading' | 'emailLabel' | 'error' | 'heading' | 'open' | 'pending' | 'replacementBody' | 'replacementHeading' | 'start' | 'submitCurrent', string>;
+const copyKeys = ['body', 'close', 'codeLabel', 'complete', 'confirm', 'currentBody', 'currentHeading', 'emailLabel', 'error', 'heading', 'open', 'pending', 'replacementBody', 'replacementHeading', 'start', 'submitCurrent'] as const;
+type Copy = Record<(typeof copyKeys)[number], string>;
+
+function parseCopy(value: unknown): Copy | null {
+  try {
+    const candidate = (
+      JSON.parse(String(value)) as { manage?: { differentEmailRecovery?: unknown } }
+    ).manage?.differentEmailRecovery;
+    if (!candidate || typeof candidate !== 'object') return null;
+    return copyKeys.every(key => typeof (candidate as Record<string, unknown>)[key] === 'string')
+      ? (candidate as Copy)
+      : null;
+  } catch {
+    return null;
+  }
+}
 
 export function DifferentEmailRecovery() {
   const locale = useLocale() as 'sq' | 'en' | 'sr' | 'mk';
   const t = useTranslations('freeStart');
-  const copy = (
-    JSON.parse(String(t.raw('secureSave'))) as { manage: { differentEmailRecovery: Copy } }
-  ).manage.differentEmailRecovery;
+  const copy = parseCopy(t.raw('secureSave'));
   const router = useRouter();
   const [stage, setStage] = useState<Stage>('closed');
   const [code, setCode] = useState('');
@@ -40,6 +53,8 @@ export function DifferentEmailRecovery() {
       else { setStage('complete'); router.refresh(); }
     } catch { setFailed(true); } finally { setPending(false); }
   };
+
+  if (!copy) return null;
 
   // prettier-ignore
   if (stage === 'closed') return (
