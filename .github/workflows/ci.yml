@@ -7,13 +7,7 @@ on:
   pull_request:
     branches:
       - '**'
-    types:
-      - opened
-      - synchronize
-      - reopened
-      - ready_for_review
-      - converted_to_draft
-      - labeled
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, labeled]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -38,10 +32,9 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       should_run: ${{ steps.gate_policy.outputs.should_run }}
-      reason: ${{ steps.gate_policy.outputs.reason }}
       non_product_only_paths: ${{ steps.gate_policy.outputs.non_product_only_paths }}
-      run_full: ${{ steps.gate_policy.outputs.run_full }}
-      force_full: ${{ steps.gate_policy.outputs.force_full }}
+      run_broad: ${{ steps.certification.outputs.run_broad }}
+      certification_reason: ${{ steps.certification.outputs.certification_reason }}
       ai_eval_should_run: ${{ steps.gate_policy.outputs.ai_eval_should_run }}
       ai_eval_reason: ${{ steps.gate_policy.outputs.ai_eval_reason }}
       ai_eval_matched_paths: ${{ steps.gate_policy.outputs.ai_eval_matched_paths }}
@@ -55,10 +48,15 @@ jobs:
           package-manager-cache: false
       - name: Evaluate PR gate policy
         id: gate_policy
-        uses: interdomestik/interdomestik/.github/actions/pr-gate-policy@2a5d9fa14334766e0668c7b160ea065a0c25ec19
+        uses: interdomestik/interdomestik/.github/actions/pr-gate-policy@f4b39fc4f7fed7e875363807faea11cc2c4cf717
         with:
           event-name: ${{ github.event_name }}
           event-path: ${{ github.event_path }}
+      - name: Resolve exact-head certification admission
+        id: certification
+        uses: interdomestik/interdomestik/.github/actions/exact-head-certification@ecd31cf47a5d2fbd6c164aea0c0c6fcfb686011b
+        with:
+          policy-json: ${{ toJSON(steps.gate_policy.outputs) }}
   audit:
     needs:
       - validation-surface
@@ -70,7 +68,7 @@ jobs:
         run: >-
           pnpm track:audit && pnpm plan:audit && pnpm repo:size:check && node --test scripts/ci/docs-closeout-main-push-contract.test.mjs scripts/ci/z620-parity-policy.test.mjs
       - name: Run Audits
-        if: needs.validation-surface.outputs.should_run == 'true'
+        if: needs.validation-surface.outputs.run_broad == 'true'
         run: |
           node scripts/check-env-ci.mjs
           pnpm test:ci:contracts
@@ -84,17 +82,17 @@ jobs:
           # Browser PR coverage lives in the dedicated PR E2E workflow.
           # Push/mainline gate coverage stays in the e2e-gate job below.
       - name: Check E2E quarantine budget
-        if: needs.validation-surface.outputs.should_run == 'true'
+        if: needs.validation-surface.outputs.run_broad == 'true'
         run: pnpm check:e2e-quarantine-budget
       - name: Report quick draft lane
-        if: needs.validation-surface.outputs.should_run != 'true'
+        if: needs.validation-surface.outputs.run_broad != 'true'
         run: |
           echo "Heavy audit lane skipped."
-          echo "Reason: ${{ needs.validation-surface.outputs.reason }}"
+          echo "Reason: ${{ needs.validation-surface.outputs.certification_reason }}"
   static:
     needs:
       - validation-surface
-    if: needs.validation-surface.outputs.should_run == 'true'
+    if: needs.validation-surface.outputs.run_broad == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -119,7 +117,7 @@ jobs:
   unit:
     needs:
       - validation-surface
-    if: needs.validation-surface.outputs.should_run == 'true'
+    if: needs.validation-surface.outputs.run_broad == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -135,7 +133,7 @@ jobs:
   ai-eval:
     needs:
       - validation-surface
-    if: needs.validation-surface.outputs.should_run == 'true' && needs.validation-surface.outputs.ai_eval_should_run == 'true'
+    if: needs.validation-surface.outputs.run_broad == 'true' && needs.validation-surface.outputs.ai_eval_should_run == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -146,7 +144,7 @@ jobs:
   e2e-gate:
     needs:
       - validation-surface
-    if: needs.validation-surface.outputs.should_run == 'true'
+    if: needs.validation-surface.outputs.run_broad == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     services:

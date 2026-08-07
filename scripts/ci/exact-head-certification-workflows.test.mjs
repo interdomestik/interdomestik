@@ -52,7 +52,10 @@ test('result enforcement receives only explicit certification evidence', () => {
   assert.match(source, /GITHUB_RUN_ATTEMPT: \$\{\{ github\.run_attempt \}\}/u);
 });
 
-test('bootstrap remains inert until callers can pin its merged SHA', () => {
+const trustedBootstrap =
+  'interdomestik/interdomestik/.github/actions/exact-head-certification@ecd31cf47a5d2fbd6c164aea0c0c6fcfb686011b';
+
+test('all five callers pin exact-head admission to the bootstrap SHA', () => {
   for (const name of [
     'ci.yml',
     'e2e-pr.yml',
@@ -60,6 +63,16 @@ test('bootstrap remains inert until callers can pin its merged SHA', () => {
     'pr-deterministic-backstops.yml',
     'pr-finalizer.yml',
   ]) {
-    assert.doesNotMatch(workflow(name), /exact-head-certification/u, name);
+    assert.match(workflow(name), new RegExp(trustedBootstrap.replaceAll('.', '\\.'), 'u'), name);
   }
+});
+
+test('PR E2E pins result authority and removes its colliding manual trigger', () => {
+  const source = workflow('e2e-pr.yml');
+  assert.match(
+    source,
+    /interdomestik\/interdomestik\/\.github\/actions\/exact-head-certification-result@ecd31cf47a5d2fbd6c164aea0c0c6fcfb686011b/u
+  );
+  assert.doesNotMatch(source, /^  workflow_dispatch:/mu);
+  assert.match(source, /if: needs\.e2e-preflight\.outputs\.run_broad == 'true'/u);
 });

@@ -5,7 +5,6 @@ on:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, labeled]
     # Protected checks must always materialize on PRs; the validation-surface
     # policy below skips heavy work for docs-only and other non-product changes.
-  workflow_dispatch: {}
 
 concurrency:
   group: e2e-pr-${{ github.ref }}
@@ -16,33 +15,35 @@ jobs:
     name: PR E2E Preflight
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write
     runs-on: ubuntu-latest
     outputs:
-      should_run: ${{ steps.gate_policy.outputs.should_run }}
-      reason: ${{ steps.gate_policy.outputs.reason }}
-      run_full: ${{ steps.gate_policy.outputs.run_full }}
-      force_full: ${{ steps.gate_policy.outputs.force_full }}
+      run_broad: ${{ steps.certification.outputs.run_broad }}
+      certification_required: ${{ steps.certification.outputs.certification_required }}
+      certification_reason: ${{ steps.certification.outputs.certification_reason }}
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 1
       - name: Evaluate PR gate policy
         id: gate_policy
-        uses: interdomestik/interdomestik/.github/actions/pr-gate-policy@2a5d9fa14334766e0668c7b160ea065a0c25ec19
+        uses: interdomestik/interdomestik/.github/actions/pr-gate-policy@f4b39fc4f7fed7e875363807faea11cc2c4cf717
         with:
           event-name: ${{ github.event_name }}
           event-path: ${{ github.event_path }}
-      - name: Report quick draft lane
-        if: steps.gate_policy.outputs.should_run != 'true'
-        run: echo "PR E2E heavy runner skipped (${{ steps.gate_policy.outputs.reason }})."
+      - name: Resolve exact-head certification admission
+        id: certification
+        uses: interdomestik/interdomestik/.github/actions/exact-head-certification@ecd31cf47a5d2fbd6c164aea0c0c6fcfb686011b
+        with:
+          policy-json: ${{ toJSON(steps.gate_policy.outputs) }}
+          consume-full-gate: 'true'
 
   e2e-runner:
     name: PR E2E Runner
     permissions:
       contents: read
     needs: [e2e-preflight]
-    if: needs.e2e-preflight.outputs.should_run == 'true'
+    if: needs.e2e-preflight.outputs.run_broad == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     services:
@@ -126,25 +127,10 @@ jobs:
     permissions: {}
     steps:
       - name: Enforce PR E2E preflight/result contract
-        shell: bash
-        run: |
-          set -euo pipefail
-          preflight_result="${{ needs.e2e-preflight.result }}"
-          should_run="${{ needs.e2e-preflight.outputs.should_run }}"
-          reason="${{ needs.e2e-preflight.outputs.reason }}"
-          runner_result="${{ needs.e2e-runner.result }}"
-
-          if [[ "${preflight_result}" != "success" ]]; then
-            echo "::error::PR E2E preflight failed before the heavy runner became eligible."
-            exit 1
-          fi
-
-          if [[ "${should_run}" != "true" ]]; then
-            echo "PR E2E heavy runner skipped (${reason})."
-            exit 0
-          fi
-
-          if [[ "${runner_result}" != "success" ]]; then
-            echo "::error::PR E2E runner did not complete successfully (result=${runner_result})."
-            exit 1
-          fi
+        uses: interdomestik/interdomestik/.github/actions/exact-head-certification-result@ecd31cf47a5d2fbd6c164aea0c0c6fcfb686011b
+        with:
+          preflight-result: ${{ needs.e2e-preflight.result }}
+          run-broad: ${{ needs.e2e-preflight.outputs.run_broad }}
+          certification-required: ${{ needs.e2e-preflight.outputs.certification_required }}
+          certification-reason: ${{ needs.e2e-preflight.outputs.certification_reason }}
+          runner-result: ${{ needs.e2e-runner.result }}

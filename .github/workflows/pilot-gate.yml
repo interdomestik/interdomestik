@@ -4,13 +4,7 @@ on:
   pull_request:
     branches:
       - main
-    types:
-      - opened
-      - synchronize
-      - reopened
-      - ready_for_review
-      - converted_to_draft
-      - labeled
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, labeled]
     # Protected checks must always materialize on PRs; the validation-surface
     # policy below skips heavy work for docs-only and other non-product changes.
   workflow_dispatch:
@@ -29,10 +23,9 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       should_run: ${{ steps.gate_policy.outputs.should_run }}
-      reason: ${{ steps.gate_policy.outputs.reason }}
       non_product_only_paths: ${{ steps.gate_policy.outputs.non_product_only_paths }}
-      run_full: ${{ steps.gate_policy.outputs.run_full }}
-      force_full: ${{ steps.gate_policy.outputs.force_full }}
+      run_broad: ${{ steps.certification.outputs.run_broad }}
+      certification_reason: ${{ steps.certification.outputs.certification_reason }}
       sonar_gate_enabled: ${{ steps.validate_secrets.outputs.sonar_gate_enabled }}
       needs_manual_sonar_fallback: ${{ steps.sonar_strategy.outputs.needs_manual_sonar_fallback }}
       needs_dependabot_better_auth_fallback: ${{ steps.validate_secrets.outputs.needs_dependabot_better_auth_fallback }}
@@ -55,17 +48,23 @@ jobs:
 
       - name: Evaluate PR gate policy
         id: gate_policy
-        uses: interdomestik/interdomestik/.github/actions/pr-gate-policy@2a5d9fa14334766e0668c7b160ea065a0c25ec19
+        uses: interdomestik/interdomestik/.github/actions/pr-gate-policy@f4b39fc4f7fed7e875363807faea11cc2c4cf717
         with:
           event-name: ${{ github.event_name }}
           event-path: ${{ github.event_path }}
           dispatch-base-ref: main
 
+      - name: Resolve exact-head certification admission
+        id: certification
+        uses: interdomestik/interdomestik/.github/actions/exact-head-certification@ecd31cf47a5d2fbd6c164aea0c0c6fcfb686011b
+        with:
+          policy-json: ${{ toJSON(steps.gate_policy.outputs) }}
+
       - name: Skip pilot gate for non-product-only changes
-        if: steps.gate_policy.outputs.should_run != 'true'
+        if: steps.certification.outputs.run_broad != 'true'
         run: |
           echo "Skipping pilot gate."
-          echo "Reason: ${{ steps.gate_policy.outputs.reason }}"
+          echo "Reason: ${{ steps.certification.outputs.certification_reason }}"
           echo "Non-product-only paths: ${{ steps.gate_policy.outputs.non_product_only_paths }}"
 
       - name: Validate required gate secrets
@@ -73,7 +72,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${{ steps.gate_policy.outputs.should_run }}" != "true" ]]; then
+          if [[ "${{ steps.certification.outputs.run_broad }}" != "true" ]]; then
             echo "sonar_gate_enabled=false" >> "$GITHUB_OUTPUT"
             echo "needs_dependabot_better_auth_fallback=false" >> "$GITHUB_OUTPUT"
             exit 0
@@ -112,7 +111,7 @@ jobs:
 
       - name: Await SonarCloud Code Analysis check
         id: await_sonar_check
-        if: github.event_name == 'pull_request' && steps.gate_policy.outputs.should_run == 'true' && steps.validate_secrets.outputs.sonar_gate_enabled == 'true'
+        if: github.event_name == 'pull_request' && steps.certification.outputs.run_broad == 'true' && steps.validate_secrets.outputs.sonar_gate_enabled == 'true'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
@@ -132,7 +131,7 @@ jobs:
             sonarcloud_automatic_analysis=true
           fi
 
-          if [[ "${{ steps.gate_policy.outputs.should_run }}" == "true" && \
+          if [[ "${{ steps.certification.outputs.run_broad }}" == "true" && \
                 "${{ steps.validate_secrets.outputs.sonar_gate_enabled }}" == "true" && \
                 "${{ github.event_name }}" == "pull_request" && \
                 "${{ steps.await_sonar_check.outcome }}" != "success" ]]; then
@@ -150,7 +149,7 @@ jobs:
     name: Pilot Gate Runner
     needs:
       - pilot-gate-preflight
-    if: needs.pilot-gate-preflight.outputs.should_run == 'true'
+    if: needs.pilot-gate-preflight.outputs.run_broad == 'true'
     permissions:
       checks: read
       contents: read
@@ -312,8 +311,8 @@ jobs:
         run: |
           set -euo pipefail
           preflight_result="${{ needs.pilot-gate-preflight.result }}"
-          should_run="${{ needs.pilot-gate-preflight.outputs.should_run }}"
-          reason="${{ needs.pilot-gate-preflight.outputs.reason }}"
+          run_broad="${{ needs.pilot-gate-preflight.outputs.run_broad }}"
+          reason="${{ needs.pilot-gate-preflight.outputs.certification_reason }}"
           runner_result="${{ needs.pilot-gate-runner.result }}"
 
           if [[ "${preflight_result}" != "success" ]]; then
@@ -321,7 +320,7 @@ jobs:
             exit 1
           fi
 
-          if [[ "${should_run}" != "true" ]]; then
+          if [[ "${run_broad}" != "true" ]]; then
             echo "Pilot gate skipped."
             echo "Reason: ${reason}"
             exit 0

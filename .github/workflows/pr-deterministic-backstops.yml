@@ -4,13 +4,7 @@ on:
   pull_request:
     branches:
       - '**'
-    types:
-      - opened
-      - synchronize
-      - reopened
-      - ready_for_review
-      - converted_to_draft
-      - labeled
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, labeled]
 
 permissions:
   contents: read
@@ -21,25 +15,30 @@ jobs:
     name: Deterministic Backstops Draft Policy
     runs-on: ubuntu-latest
     outputs:
-      run_full: ${{ steps.gate_policy.outputs.run_full }}
-      reason: ${{ steps.gate_policy.outputs.reason }}
+      run_broad: ${{ steps.certification.outputs.run_broad }}
+      certification_reason: ${{ steps.certification.outputs.certification_reason }}
     steps:
       - uses: actions/checkout@v5
       - name: Evaluate PR gate policy
         id: gate_policy
-        uses: interdomestik/interdomestik/.github/actions/pr-gate-policy@2a5d9fa14334766e0668c7b160ea065a0c25ec19
+        uses: interdomestik/interdomestik/.github/actions/pr-gate-policy@f4b39fc4f7fed7e875363807faea11cc2c4cf717
         with:
           event-name: ${{ github.event_name }}
           event-path: ${{ github.event_path }}
+      - name: Resolve exact-head certification admission
+        id: certification
+        uses: interdomestik/interdomestik/.github/actions/exact-head-certification@ecd31cf47a5d2fbd6c164aea0c0c6fcfb686011b
+        with:
+          policy-json: ${{ toJSON(steps.gate_policy.outputs) }}
       - name: Report quick draft lane
-        if: steps.gate_policy.outputs.run_full != 'true'
-        run: echo "Deterministic backstops skipped (${{ steps.gate_policy.outputs.reason }})."
+        if: steps.certification.outputs.run_broad != 'true'
+        run: echo "Deterministic backstops skipped (${{ steps.certification.outputs.certification_reason }})."
 
   dependency-review:
     name: Dependency Review
     needs:
       - draft-policy
-    if: needs.draft-policy.outputs.run_full == 'true' && github.event.repository.private == false
+    if: needs.draft-policy.outputs.run_broad == 'true' && github.event.repository.private == false
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -55,7 +54,7 @@ jobs:
     name: OSV Scanner PR
     needs:
       - draft-policy
-    if: needs.draft-policy.outputs.run_full == 'true'
+    if: needs.draft-policy.outputs.run_broad == 'true'
     permissions:
       actions: read
       contents: read
@@ -72,7 +71,7 @@ jobs:
     name: Semgrep CE Diff Scan
     needs:
       - draft-policy
-    if: needs.draft-policy.outputs.run_full == 'true'
+    if: needs.draft-policy.outputs.run_broad == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -116,7 +115,7 @@ jobs:
     name: reviewdog ESLint Annotations
     needs:
       - draft-policy
-    if: needs.draft-policy.outputs.run_full == 'true'
+    if: needs.draft-policy.outputs.run_broad == 'true'
     runs-on: ubuntu-latest
     permissions:
       checks: write
