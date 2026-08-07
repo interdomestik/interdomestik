@@ -7,22 +7,16 @@ import {
   reserveCurrentProof,
   reserveReplacementProof,
 } from './different-email-recovery-store';
-import {
-  challengeRows,
-  cleanupRecoveryRows,
-  createRecoveryOwner,
-  ownerSnapshot,
-  recoverySql,
-} from './different-email-recovery-store.contract-test-support';
+import * as support from './different-email-recovery-store.contract-test-support';
 const now = new Date('2026-08-07T12:00:00.000Z'),
   nonce = () => crypto.randomUUID();
-afterEach(cleanupRecoveryRows);
-afterAll(() => recoverySql.end());
+afterEach(support.cleanupRecoveryRows);
+afterAll(() => support.recoverySql.end());
 describe.runIf(process.env.REQUIRE_DIFFERENT_EMAIL_RECOVERY_CONTRACT === '1')(
   'IDA-UI03b real PostgreSQL recovery store',
   () => {
     it('preserves a committed proof on preflight drift and disables superseded reservations', async () => {
-      const owner = await createRecoveryOwner('reservation');
+      const owner = await support.createRecoveryOwner('reservation');
       const first = nonce();
       expect(
         await reserveCurrentProof({
@@ -43,7 +37,7 @@ describe.runIf(process.env.REQUIRE_DIFFERENT_EMAIL_RECOVERY_CONTRACT === '1')(
           userId: owner.id,
         })
       ).toEqual({ ok: false });
-      expect(JSON.parse((await challengeRows(owner.id))[0]!.value).active).toBe(true);
+      expect(JSON.parse((await support.challengeRows(owner.id))[0]!.value).active).toBe(true);
       const second = nonce();
       await reserveCurrentProof({
         currentEmail: owner.email,
@@ -55,10 +49,10 @@ describe.runIf(process.env.REQUIRE_DIFFERENT_EMAIL_RECOVERY_CONTRACT === '1')(
       expect(await activateCurrentProof(owner.id, first, owner.email, now)).toBe(false);
       expect(await activateCurrentProof(owner.id, second, owner.email, now)).toBe(true);
       await discardProof(owner.id, 'current', second);
-      expect(await challengeRows(owner.id)).toHaveLength(0);
+      expect(await support.challengeRows(owner.id)).toHaveLength(0);
     });
     it('rotates stages, exhausts three attempts and rejects replay', async () => {
-      const owner = await createRecoveryOwner('attempts');
+      const owner = await support.createRecoveryOwner('attempts');
       const current = nonce();
       await reserveCurrentProof({
         currentEmail: owner.email,
@@ -83,15 +77,15 @@ describe.runIf(process.env.REQUIRE_DIFFERENT_EMAIL_RECOVERY_CONTRACT === '1')(
       for (let attempt = 0; attempt < 3; attempt += 1) {
         expect(await confirmReplacementProof(owner.id, () => 'wrong', now)).toEqual({ ok: false });
       }
-      expect(await challengeRows(owner.id)).toHaveLength(0);
+      expect(await support.challengeRows(owner.id)).toHaveLength(0);
       expect(await confirmReplacementProof(owner.id, () => 'replacement-ok', now)).toEqual({
         ok: false,
       });
     });
     it('contains mixed-case collision and lets exactly one concurrent CAS win', async () => {
-      const owner = await createRecoveryOwner('cas');
+      const owner = await support.createRecoveryOwner('cas');
       const collision = `Collision-${crypto.randomUUID()}@Example.com`;
-      await createRecoveryOwner('collision', collision);
+      await support.createRecoveryOwner('collision', collision);
       const current = nonce();
       await reserveCurrentProof({
         currentEmail: owner.email,
@@ -111,7 +105,7 @@ describe.runIf(process.env.REQUIRE_DIFFERENT_EMAIL_RECOVERY_CONTRACT === '1')(
           userId: owner.id,
         })
       ).toEqual({ ok: false });
-      expect(await challengeRows(owner.id)).toHaveLength(0);
+      expect(await support.challengeRows(owner.id)).toHaveLength(0);
       const nextCurrent = nonce(),
         replacement = nonce(),
         target = `next-${owner.email}`;
@@ -137,14 +131,18 @@ describe.runIf(process.env.REQUIRE_DIFFERENT_EMAIL_RECOVERY_CONTRACT === '1')(
         confirmReplacementProof(owner.id, () => 'r2', now),
       ]);
       expect(results.filter(result => result.ok)).toHaveLength(1);
-      expect(await ownerSnapshot(owner.id)).toEqual({
+      expect(await support.ownerSnapshot(owner.id)).toEqual({
         email: target,
         emailVerified: true,
         id: owner.id,
         role: 'user',
         tenantId: 'tenant_ks',
       });
-      expect(await challengeRows(owner.id)).toHaveLength(0);
+      expect(await support.challengeRows(owner.id)).toHaveLength(0);
     });
+    it(
+      'preserves the owner graph and serializes a concurrent identity writer',
+      support.proveOwnerGraphAndConcurrentWriter
+    );
   }
 );
