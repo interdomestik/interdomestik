@@ -9,7 +9,7 @@ import './pr-e2e-evidence-workflow-contracts.mjs';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const TRUSTED_GATE_ACTION =
-  'interdomestik/interdomestik/.github/actions/pr-gate-policy@2a5d9fa14334766e0668c7b160ea065a0c25ec19';
+  'interdomestik/interdomestik/.github/actions/pr-gate-policy@f4b39fc4f7fed7e875363807faea11cc2c4cf717';
 const EVENT_TYPES = [
   'opened',
   'synchronize',
@@ -72,11 +72,11 @@ test('CI exposes one effective heavy-lane decision while keeping required audit 
   const policy = findStep(preflight, 'Evaluate PR gate policy');
   assert.equal(policy.uses, TRUSTED_GATE_ACTION);
   assert.equal(preflight.outputs.should_run, '${{ steps.gate_policy.outputs.should_run }}');
-  assert.equal(preflight.outputs.run_full, '${{ steps.gate_policy.outputs.run_full }}');
+  assert.equal(preflight.outputs.run_broad, '${{ steps.certification.outputs.run_broad }}');
   assert.ok(needs(audit, 'validation-surface'));
   assert.equal(
     findStep(audit, 'Run Audits').if,
-    "needs.validation-surface.outputs.should_run == 'true'"
+    "needs.validation-surface.outputs.run_broad == 'true'"
   );
   assert.ok(findStep(audit, 'Report quick draft lane'));
 });
@@ -91,14 +91,14 @@ test('required PR E2E context wraps a service-free preflight and conditional hea
   assert.equal(workflow.permissions, undefined);
   assert.deepEqual(preflight.permissions, {
     contents: 'read',
-    'pull-requests': 'read',
+    'pull-requests': 'write',
   });
   assert.deepEqual(runner.permissions, { contents: 'read' });
   assert.equal(preflight.services, undefined);
   assert.equal(checkout.with['fetch-depth'], 1);
   assert.ok(findStep(preflight, 'Evaluate PR gate policy'));
   assert.ok(needs(runner, 'e2e-preflight'));
-  assert.equal(runner.if, "needs.e2e-preflight.outputs.should_run == 'true'");
+  assert.equal(runner.if, "needs.e2e-preflight.outputs.run_broad == 'true'");
   assert.ok(runner.services.postgres);
   assert.equal(wrapper.name, 'e2e');
   assert.equal(wrapper.if, 'always()');
@@ -113,18 +113,18 @@ test('pilot and optional deterministic backstops honor the shared full-lane deci
   assert.ok(findStep(pilotPreflight, 'Evaluate PR gate policy'));
   assert.equal(
     pilot.jobs['pilot-gate-runner'].if,
-    "needs.pilot-gate-preflight.outputs.should_run == 'true'"
+    "needs.pilot-gate-preflight.outputs.run_broad == 'true'"
   );
 
   const backstops = readWorkflow('pr-deterministic-backstops.yml');
   assert.ok(backstops.jobs['draft-policy']);
   for (const name of ['osv-scanner', 'semgrep-ce', 'reviewdog-eslint']) {
     assert.ok(needs(backstops.jobs[name], 'draft-policy'), name);
-    assert.equal(backstops.jobs[name].if, "needs.draft-policy.outputs.run_full == 'true'", name);
+    assert.equal(backstops.jobs[name].if, "needs.draft-policy.outputs.run_broad == 'true'", name);
   }
   assert.equal(
     backstops.jobs['dependency-review'].if,
-    "needs.draft-policy.outputs.run_full == 'true' && github.event.repository.private == false"
+    "needs.draft-policy.outputs.run_broad == 'true' && github.event.repository.private == false"
   );
   assert.equal(backstops.jobs['osv-scanner'].with['upload-sarif'], false);
   assert.equal(backstops.jobs['osv-scanner'].permissions['security-events'], 'write');
@@ -145,6 +145,6 @@ test('PR finalizer stays required but only attests full-lane current heads', () 
   assert.ok(policy);
   assert.ok(findStep(job, 'Report quick draft lane'));
   assert.equal(policy.uses, TRUSTED_GATE_ACTION);
-  assert.equal(finalizer.if, "steps.gate_policy.outputs.run_full == 'true'");
+  assert.equal(finalizer.if, "steps.certification.outputs.run_broad == 'true'");
   assert.equal(finalizer.env.PR_FINALIZER_SKIP_CHECK_POLLING, 'false');
 });

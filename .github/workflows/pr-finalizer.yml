@@ -4,13 +4,7 @@ on:
   pull_request:
     branches:
       - main
-    types:
-      - opened
-      - synchronize
-      - reopened
-      - ready_for_review
-      - converted_to_draft
-      - labeled
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, labeled]
 
 concurrency:
   group: pr-finalizer-${{ github.event.pull_request.number }}
@@ -31,17 +25,22 @@ jobs:
           fetch-depth: 1
       - name: Evaluate PR gate policy
         id: gate_policy
-        uses: interdomestik/interdomestik/.github/actions/pr-gate-policy@2a5d9fa14334766e0668c7b160ea065a0c25ec19
+        uses: interdomestik/interdomestik/.github/actions/pr-gate-policy@f4b39fc4f7fed7e875363807faea11cc2c4cf717
         with:
           event-name: ${{ github.event_name }}
           event-path: ${{ github.event_path }}
+      - name: Resolve exact-head certification admission
+        id: certification
+        uses: interdomestik/interdomestik/.github/actions/exact-head-certification@ecd31cf47a5d2fbd6c164aea0c0c6fcfb686011b
+        with:
+          policy-json: ${{ toJSON(steps.gate_policy.outputs) }}
       - name: Report quick draft lane
-        if: steps.gate_policy.outputs.run_full != 'true'
-        run: echo "PR finalizer attestation deferred (${{ steps.gate_policy.outputs.reason }})."
+        if: steps.certification.outputs.run_broad != 'true'
+        run: echo "PR finalizer attestation deferred (${{ steps.certification.outputs.certification_reason }})."
       - uses: ./.github/actions/setup
-        if: steps.gate_policy.outputs.run_full == 'true'
+        if: steps.certification.outputs.run_broad == 'true'
       - name: Run PR finalizer gate
-        if: steps.gate_policy.outputs.run_full == 'true'
+        if: steps.certification.outputs.run_broad == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

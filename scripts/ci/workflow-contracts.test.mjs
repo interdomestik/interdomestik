@@ -15,7 +15,7 @@ import {
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, '../..');
 const TRUSTED_GATE_ACTION =
-  'interdomestik/interdomestik/.github/actions/pr-gate-policy@2a5d9fa14334766e0668c7b160ea065a0c25ec19';
+  'interdomestik/interdomestik/.github/actions/pr-gate-policy@f4b39fc4f7fed7e875363807faea11cc2c4cf717';
 function readWorkflow(relativePath) {
   const content = fs.readFileSync(path.join(rootDir, relativePath), 'utf8');
   return yaml.load(content);
@@ -144,7 +144,7 @@ test('CI delegates PR browser gate to PR E2E', () => {
   const ciE2eNeeds = normalizeNeeds(ciE2eGateJob.needs);
 
   assert.ok(ciE2eNeeds.includes('validation-surface'));
-  assert.equal(ciE2eGateJob.if, "needs.validation-surface.outputs.should_run == 'true'");
+  assert.equal(ciE2eGateJob.if, "needs.validation-surface.outputs.run_broad == 'true'");
 
   const setupStep = ciSteps.find(step => step?.uses === './.github/actions/setup');
   assert.equal(setupStep.with['install-playwright'], "${{ github.event_name != 'pull_request' }}");
@@ -163,11 +163,11 @@ test('CI delegates PR browser gate to PR E2E', () => {
 
   const staticJob = ciWorkflow.jobs.static;
   assert.ok(normalizeNeeds(staticJob.needs).includes('validation-surface'));
-  assert.equal(staticJob.if, "needs.validation-surface.outputs.should_run == 'true'");
+  assert.equal(staticJob.if, "needs.validation-surface.outputs.run_broad == 'true'");
 
   const unitJob = ciWorkflow.jobs.unit;
   assert.ok(normalizeNeeds(unitJob.needs).includes('validation-surface'));
-  assert.equal(unitJob.if, "needs.validation-surface.outputs.should_run == 'true'");
+  assert.equal(unitJob.if, "needs.validation-surface.outputs.run_broad == 'true'");
 
   const prE2eJob = prE2eWorkflow.jobs['e2e-runner'];
   const prE2eSetupStep = prE2eJob.steps.find(step => step?.uses === './.github/actions/setup');
@@ -210,7 +210,7 @@ test('CI materializes AI eval as a blocking surface-gated lane', () => {
   assert.ok(normalizeNeeds(aiEvalJob.needs).includes('validation-surface'));
   assert.equal(
     aiEvalJob.if,
-    "needs.validation-surface.outputs.should_run == 'true' && needs.validation-surface.outputs.ai_eval_should_run == 'true'"
+    "needs.validation-surface.outputs.run_broad == 'true' && needs.validation-surface.outputs.ai_eval_should_run == 'true'"
   );
   assert.equal(aiEvalJob['continue-on-error'], undefined);
   const runStep = findStep(aiEvalJob.steps, 'Run AI Eval Fixtures');
@@ -248,7 +248,7 @@ test('CI unit lane runs the blocking repository coverage gate', () => {
 
   assert.ok(unitJob);
   assert.ok(normalizeNeeds(unitJob.needs).includes('validation-surface'));
-  assert.equal(unitJob.if, "needs.validation-surface.outputs.should_run == 'true'");
+  assert.equal(unitJob.if, "needs.validation-surface.outputs.run_broad == 'true'");
 
   const coverageStep = findStep(unitJob.steps, 'Coverage Gate');
   assert.ok(coverageStep);
@@ -378,7 +378,7 @@ test('Pilot gate heavy runner depends on preflight before Postgres, setup, build
   const buildIndex = findStepIndex(steps, 'Build web standalone artifact');
 
   assert.ok(needs.includes('pilot-gate-preflight'));
-  assert.equal(pilotGateJob.if, "needs.pilot-gate-preflight.outputs.should_run == 'true'");
+  assert.equal(pilotGateJob.if, "needs.pilot-gate-preflight.outputs.run_broad == 'true'");
   assert.equal(pilotGateJob.env.DATABASE_URL_RLS, pilotGateJob.env.DATABASE_URL);
   assert.equal(pilotGateJob.env.NODE_OPTIONS, '--max-old-space-size=4096');
   assert.ok(setupIndex >= 0);
