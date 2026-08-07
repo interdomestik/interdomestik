@@ -66,7 +66,7 @@ export async function proveOwnerGraphAndConcurrentWriter() {
   const owner = await createRecoveryOwner('continuity');
   // prettier-ignore
   const [accountId, subscriptionId, cardId, draftId] = Array.from({ length: 4 }, () => randomUUID()) as [string, string, string, string];
-  await recoverySql`update "user" set "role" = 'member', "member_number" = ${`IDA-${owner.id}`} where "id" = ${owner.id}`;
+  await recoverySql`update "user" set "role" = 'member', "member_number" = ${'IDA-' + owner.id} where "id" = ${owner.id}`;
   await recoverySql`insert into "account" ("id", "accountId", "providerId", "userId", "createdAt", "updatedAt") values (${accountId}, ${accountId}, 'credential', ${owner.id}, now(), now())`;
   await recoverySql`insert into "subscriptions" ("id", "tenant_id", "user_id", "status", "plan_id", "provider") values (${subscriptionId}, 'tenant_ks', ${owner.id}, 'active', 'ida-proof', 'paddle')`;
   await recoverySql`insert into "membership_cards" ("id", "tenant_id", "user_id", "subscription_id", "status", "card_number", "qr_code_token") values (${cardId}, 'tenant_ks', ${owner.id}, ${subscriptionId}, 'active', ${cardId}, ${randomUUID()})`;
