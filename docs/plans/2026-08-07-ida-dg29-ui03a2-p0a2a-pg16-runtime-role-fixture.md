@@ -141,6 +141,13 @@ The dynamic proof is invalid without that non-self-issued receipt.
 The lifecycle helper generates one random name with fixed P0a2a labels, uses
 `docker create` to obtain the immutable container ID before `docker start`, then
 atomically persists the ID/name/labels in a mode-`0600` out-of-repo receipt. A
+failure to persist the initial planned-name/fixed-label receipt stops before
+`docker create`. If create returns a known ID but atomic receipt upgrade fails,
+the container must not start and database work must not begin; the helper uses
+the in-memory exact ID for cleanup and retains the already-durable planned
+receipt unless exact-ID absence and planned-receipt deletion are both proven.
+A retained planned receipt is reconciled later only by exact-name inspection,
+label verification and immutable-ID capture before deletion. A
 non-success, timeout or lost response from `docker create` is ambiguous, not proof
 that no container exists. The helper must inspect the exact planned name (never a
 label-only or glob lookup): a matching fixed-label container recovers and persists
@@ -160,11 +167,16 @@ migration owner and revoke `CREATE` from `PUBLIC` and the runtime role. Both
 bootstrap sessions close before preflight. The existing
 authenticated callback-plan capability and dynamic-import preflighted
 owner-session/kernel seam perform the canonical migration work. The manifest
-helper uses the preflighted migration-owner session or its own loopback observer
-session. Every session close is attempted before lifecycle cleanup. A successful
-close must have its pid proved absent before cleanup; a failed close must not
-block exact-ID removal and follows the cleanup state machine below. The manifest
-returns a frozen redacted summary and never returns URLs,
+helper uses the preflighted migration-owner session or its own loopback final
+verifier session. The verifier captures/proves absence for exposed bootstrap,
+owner and manifest-session pids after their successful closes. Because rejected
+admin preflight exposes no pid, the verifier instead polls the isolated container
+for zero rows with exact application name `interdomestik_admin_config_v1` after
+the rejection returns; callback count remains zero. The verifier then closes;
+its own absence is proven by successful exact-ID container removal, avoiding an
+infinite observer-of-observer contract. Any failed close must not block removal
+and follows the cleanup state machine below. The manifest returns a frozen
+redacted summary and never returns URLs,
 passwords, dynamic role/container names, SQL bodies or object names outside the
 fixed allowlist.
 
@@ -204,7 +216,10 @@ entries.
   privileged role.
 - The runtime role is rejected through the admin-connection seam with exact code
   `ADMIN_DB_PREFLIGHT_ROLE_REJECTED` and cannot invoke the kernel through the
-  fixture; the operation callback call count remains exactly `0`.
+  fixture; the operation callback call count remains exactly `0`. Because that
+  seam does not expose the rejected pid, the final verifier proves cleanup by
+  polling `pg_stat_activity` to zero rows for exact application name
+  `interdomestik_admin_config_v1` inside the isolated container.
 
 ### B. Existing kernel execution
 
@@ -252,18 +267,23 @@ entries.
 
 - Success, preflight rejection, kernel failure, manifest rejection,
   `AbortSignal`-driven abort and assertion failure all attempt to close both
-  bootstrap sessions plus observer and owner sessions, then invoke lifecycle
-  cleanup exactly once. Successful closes prove their pids absent before
-  cleanup. A failed close does not require an impossible pre-removal absence
-  proof: exact-ID removal still runs in `finally`; successful removal then proves
-  the owned container and all of its sessions absent. Process-signal recovery
-  where test hooks cannot run is outside this child.
+  bootstrap sessions plus owner/manifest sessions. The final verifier proves
+  captured pids absent after successful closes and proves zero exact
+  `interdomestik_admin_config_v1` rows for the rejected preflight session, then
+  closes before lifecycle cleanup runs exactly once. The verifier does not make
+  an impossible proof about its own closed pid; successful exact-ID removal
+  proves it and every remaining owned session absent. Any failed close still
+  proceeds to removal in `finally`. Process-signal recovery where test hooks
+  cannot run is outside this child.
 - Identity or cleanup failure dominates the result and leaves a safe
   identifier-free error code plus an operator-visible receipt; it never reports
   PASS. Before start, the lifecycle helper atomically writes a mode-`0600`
   out-of-repo receipt with planned name/fixed labels; after a successful or
   reconciled `docker create`, it replaces that receipt with immutable container
-  ID/name/verified labels before start or database work. A failed or timed-out
+  ID/name/verified labels before start or database work. Initial planned-receipt
+  failure stops before create. Receipt-upgrade failure stops before start, uses
+  the in-memory ID for exact cleanup and retains the durable planned receipt if
+  either absence or receipt deletion cannot be proven. A failed or timed-out
   exact-ID removal is also reconciled by inspecting that exact ID: definite
   absence completes cleanup and deletes the receipt; presence or indeterminate
   inspection retains the immutable receipt and fails. A planned receipt is
@@ -273,9 +293,11 @@ entries.
   TAP, errors, stdout/stderr or CI artifacts.
 - Every Docker and PostgreSQL rejection is caught by the new helpers, which
   discard raw command/provider text and emit only fixed identifier-free codes.
-- The test proves no matching lifecycle-owned container or session remains after
-  each terminal case in which exact-ID removal succeeds, including
-  create/start/readiness/bootstrap and session-close failures. A removal-failure
+- An initial planned-receipt failure proves that `docker create` was never
+  invoked. For every later terminal case in which exact-ID removal succeeds, the
+  test proves no matching lifecycle-owned container or session remains,
+  including receipt-upgrade, create/start/readiness/bootstrap and session-close
+  failures. A removal-failure
   case instead proves FAIL, proves that no broader container deletion was
   attempted and retains the verified immutable receipt. An unresolved create
   identity retains only the planned-name/fixed-label receipt and permits no
@@ -410,9 +432,12 @@ Forbidden:
 
 A Sonar duplication finding caused by moving the dynamic proof below
 `test/pg16/`, or any need to edit `sonar-project.properties`, is a
-stop-and-re-gate condition. The two new support files must not declare a local
-binding named `db`, `dbAdmin` or `dbRls`; credential-shaped values must remain
-inside the bounded fixture construction seam.
+stop-and-re-gate condition. Each of the three named support files—
+`migration-runtime-role-lifecycle.support.ts`,
+`migration-runtime-role-fixture.support.ts` and
+`migration-runtime-role-manifest.support.ts`—must not declare a local binding
+named `db`, `dbAdmin` or `dbRls`; credential-shaped values must remain inside the
+bounded fixture construction seam.
 
 No Codex Security diff scan is required at this docs-only checkpoint. Future
 implementation still requires applicable repo-native security evidence. Brain
