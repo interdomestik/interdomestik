@@ -137,7 +137,9 @@ The dynamic proof is invalid without that non-self-issued receipt.
 The lifecycle helper generates one random name with fixed P0a2a labels, uses
 `docker create` to obtain the immutable container ID before `docker start`, then
 atomically persists the ID/name/labels in a mode-`0600` out-of-repo receipt. A
-construction failure after create must remove that exact ID before returning.
+construction failure after create must attempt removal of that exact ID before
+returning; an exact-ID removal failure is governed by the retained-receipt
+contract below and must dominate the result.
 The fixture helper opens one trust-auth container-local bootstrap session. That
 bootstrap creates the migration owner, canonical runtime role and disposable
 database, recreates `public` under the migration owner, revokes `CREATE` from
@@ -250,8 +252,12 @@ entries.
 - Every Docker and PostgreSQL rejection is caught by the new helpers, which
   discard raw command/provider text and emit only fixed identifier-free codes.
 - The test proves no matching lifecycle-owned container or session remains after
-  each terminal case, including create/start/readiness/bootstrap/observer-close
-  and removal failures.
+  each terminal case in which exact-ID removal succeeds, including
+  create/start/readiness/bootstrap and observer-close failures. A removal-failure
+  case instead proves FAIL, proves all database sessions absent, proves that no
+  broader container deletion was attempted and retains the exact-target receipt;
+  container absence is asserted only after separately authorized exact-ID
+  recovery succeeds.
 - Missing Docker, missing image, wrong server major, insufficient resource
   floor, unavailable Z620 or a skipped required case is a failed proof, not a
   waiver.
@@ -341,9 +347,10 @@ Copilot feedback and finalizer remain authoritative.
 ## Rollback and mitigation
 
 Rollback is one revert of the future implementation merge. The fixture creates
-only test-invocation-owned disposable state and must delete it in every
-in-process terminal path, so there is no schema, data, user, provider or
-production rollback. If cleanup cannot be proven, retain only the mode-`0600`
+only test-invocation-owned disposable state and must attempt exact-ID deletion
+in every in-process terminal path; successful removal is asserted before PASS,
+so there is no schema, data, user, provider or production rollback. If cleanup
+cannot be proven, retain only the mode-`0600`
 out-of-repo receipt's immutable container ID, generated name, verified fixed
 labels and timestamp, then require separately authorized exact-ID cleanup; never
 infer or broaden the cleanup command. A fixture or cleanup failure invalidates
