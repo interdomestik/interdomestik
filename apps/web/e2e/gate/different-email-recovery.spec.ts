@@ -34,13 +34,24 @@ async function authPost(page: Page, info: TestInfo, path: string, data: unknown)
 
 async function login(page: Page, info: TestInfo) {
   const response = await authPost(page, info, 'sign-in/email', {
-    email: E2E_USERS.KS_MEMBER.email,
+    email: E2E_USERS.KS_MEMBER_EMPTY.email,
     password: E2E_PASSWORD,
-    additionalData: { tenantId: 'tenant_ks' },
   });
-  expect(response.ok()).toBe(true);
+  expect(response.ok(), await response.text()).toBe(true);
   const token = ((await response.json()) as { token?: unknown }).token;
   if (typeof token !== 'string') throw new Error('different_email_recovery_login_failed');
+
+  const origin = new URL(String(info.project.use.baseURL)).origin;
+  const sessionResponse = await page.request.get(`${origin}/api/auth/get-session`, {
+    failOnStatusCode: false,
+    headers: { Origin: origin, ...pilotHeaders },
+  });
+  expect(sessionResponse.ok(), await sessionResponse.text()).toBe(true);
+  const session = (await sessionResponse.json()) as {
+    user?: { id?: unknown; tenantId?: unknown };
+  } | null;
+  expect(typeof session?.user?.id).toBe('string');
+  expect(session?.user?.tenantId).toBe('tenant_ks');
   return token;
 }
 
@@ -64,8 +75,8 @@ test.describe('IDA-UI03b different-email recovery entry', () => {
     const page = await context.newPage();
     let token: string | null = null;
     try {
-      token = await login(page, info);
       const organizer = await openOrganizer(page, info);
+      token = await login(page, info);
       await organizer.getByTestId('free-start-manage-open').click();
       await expect(
         organizer.getByRole('heading', { name: /your saved drafts|draftet e ruajtura/i })
@@ -80,7 +91,7 @@ test.describe('IDA-UI03b different-email recovery entry', () => {
         name: /different email|email tjetër|e-adresu|е-пошта/i,
       });
       await expect(heading).toBeFocused();
-      await expect(recovery).not.toContainText(E2E_USERS.KS_MEMBER.email);
+      await expect(recovery).not.toContainText(E2E_USERS.KS_MEMBER_EMPTY.email);
       await expect(recovery.locator('input')).toHaveCount(0);
       await page.setViewportSize({ width: 320, height: 720 });
       await page.emulateMedia({ reducedMotion: 'reduce' });
