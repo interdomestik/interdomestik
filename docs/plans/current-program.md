@@ -6657,8 +6657,12 @@ The seventeen-path implementation requires proof of both the original draft
 mailbox and the replacement mailbox before one same-user email compare-and-swap.
 It preserves the same `user.id` and every draft owner key and adds no account
 merge, unproved transfer, draft disclosure, claim conversion, membership
-mutation, schema, route, provider or production writer. Focused unit, real-
-PostgreSQL contract and security proof passed. Exact-head PR E2E
+mutation, schema, route, provider or production writer. Closeout PR `#1505`
+corrected a prematurely inferred acceptance claim by adding the missing exact
+PostgreSQL 16 owner-graph, dual-target, concurrent-confirm, concurrent-user-writer
+and post-CAS owner-RLS proof; all four contract cases passed on correction commit
+`85106b949ad61883970a1d0eb1aeeca88530c267`. Focused unit, real-PostgreSQL
+contract and security proof passed. Exact-head PR E2E
 `31185193526`, Pilot `31185193115`, all 28 successful checks, Sonar zero new
 issues/hotspots, CodeQL, gitleaks, audit, repo-native security, finalizer and
 zero unresolved threads passed. Two current-head Copilot requests returned no
@@ -6683,7 +6687,8 @@ is not formal M7 cohort evidence because no authorized enrollment existed before
 mutation; Atlas remained excluded. Closeout retains only outcomes, evidence
 links, approved decisions and failure fingerprints for authority-revision loops,
 reviewer no-output/quota, full CI before an exact-environment canary, incomplete
-Z620 probe preflight and a missing verified-session E2E prerequisite. Runtime
-authority is consumed. No replacement implementation slice is promoted.
+Z620 probe preflight, a missing verified-session E2E prerequisite and closeout
+acceptance inferred from partial contract coverage. Runtime authority is
+consumed. No replacement implementation slice is promoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
