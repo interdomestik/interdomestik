@@ -72,8 +72,8 @@ One focused-test-owned disposable PostgreSQL 16 fixture must:
    ownership, schema privileges and default ACLs; and
 5. attempt exact cleanup on success, failure, abort and assertion failure; PASS
    only after its container, sessions and dynamic identifiers are absent, or
-   fail closed with the exact-target receipt retained when removal cannot be
-   completed.
+   fail closed with the identity/cleanup receipt retained when container identity
+   or removal cannot be resolved safely.
 
 The fixture proves the separation boundary and current post-migration manifest.
 It does not grant the runtime role application privileges, claim that seeding or
@@ -141,9 +141,17 @@ The dynamic proof is invalid without that non-self-issued receipt.
 The lifecycle helper generates one random name with fixed P0a2a labels, uses
 `docker create` to obtain the immutable container ID before `docker start`, then
 atomically persists the ID/name/labels in a mode-`0600` out-of-repo receipt. A
-construction failure after create must attempt removal of that exact ID before
-returning; an exact-ID removal failure is governed by the retained-receipt
-contract below and must dominate the result.
+non-success, timeout or lost response from `docker create` is ambiguous, not proof
+that no container exists. The helper must inspect the exact planned name (never a
+label-only or glob lookup): a matching fixed-label container recovers and persists
+its immutable ID before exact-ID cleanup; a definite no-such-container result
+deletes the planned receipt and returns the fixed construction failure; a label
+mismatch or indeterminate inspection never deletes a container and retains the
+planned-name/fixed-label receipt under `CONTAINER_IDENTITY_UNRESOLVED` for
+separately authorized exact-name reinspection. A construction failure with a
+known ID must attempt removal of that exact ID before returning. Exact-ID removal
+failure or ambiguity is governed by the retained-receipt contract below and must
+dominate the result.
 The fixture helper opens one trust-auth container-local control bootstrap session
 against `postgres` to create the migration owner, canonical runtime role and
 disposable database. It then opens a separate trust-auth target bootstrap
@@ -250,25 +258,32 @@ entries.
   proof: exact-ID removal still runs in `finally`; successful removal then proves
   the owned container and all of its sessions absent. Process-signal recovery
   where test hooks cannot run is outside this child.
-- Cleanup failure dominates the result and leaves a safe identifier-free error
-  code plus an operator-visible cleanup receipt; it never reports PASS. Before
-  start, the lifecycle helper atomically writes a mode-`0600` out-of-repo receipt
-  with planned name/fixed labels; immediately after `docker create`, it replaces
-  that receipt with immutable container ID/name/verified labels before start or
-  database work. The receipt is deleted only after successful exact-ID removal
-  and retained only after cleanup failure for separately authorized exact-target
-  recovery. It is never serialized into TAP, errors, stdout/stderr or CI
-  artifacts.
+- Identity or cleanup failure dominates the result and leaves a safe
+  identifier-free error code plus an operator-visible receipt; it never reports
+  PASS. Before start, the lifecycle helper atomically writes a mode-`0600`
+  out-of-repo receipt with planned name/fixed labels; after a successful or
+  reconciled `docker create`, it replaces that receipt with immutable container
+  ID/name/verified labels before start or database work. A failed or timed-out
+  exact-ID removal is also reconciled by inspecting that exact ID: definite
+  absence completes cleanup and deletes the receipt; presence or indeterminate
+  inspection retains the immutable receipt and fails. A planned receipt is
+  deleted only after definite no-such-container reconciliation, while a verified
+  immutable receipt is deleted only after proven exact-ID absence. Label-only,
+  globbed or broad deletion is forbidden. Receipts are never serialized into
+  TAP, errors, stdout/stderr or CI artifacts.
 - Every Docker and PostgreSQL rejection is caught by the new helpers, which
   discard raw command/provider text and emit only fixed identifier-free codes.
 - The test proves no matching lifecycle-owned container or session remains after
   each terminal case in which exact-ID removal succeeds, including
   create/start/readiness/bootstrap and session-close failures. A removal-failure
   case instead proves FAIL, proves that no broader container deletion was
-  attempted and retains the exact-target receipt. It makes no false absence claim
-  for the retained container or for any session whose close was not proved;
-  container and session absence are asserted only after separately authorized
-  exact-ID recovery succeeds.
+  attempted and retains the verified immutable receipt. An unresolved create
+  identity retains only the planned-name/fixed-label receipt and permits no
+  deletion until separately authorized exact-name inspection verifies labels and
+  captures the immutable ID. Neither case makes a false absence claim for a
+  retained container or an unproved session; container and session absence are
+  asserted only after exact identity is reconciled and exact-ID recovery
+  succeeds.
 - Missing Docker, missing image, wrong server major, insufficient resource
   floor, unavailable Z620 or a skipped required case is a failed proof, not a
   waiver.
@@ -281,9 +296,9 @@ entries.
 3. The fixture accidentally invokes the kernel under the runtime role.
 4. Dynamic credentials, role names, URLs, SQL or catalog details escape through
    output, thrown errors or test diagnostics.
-5. Cleanup removes a container other than the exact lifecycle-owned fixture, or
-   leaves its container/session without fail-closed status and a retained
-   exact-target recovery receipt.
+5. Ambiguous create/removal results are treated as absence, cleanup removes a
+   container other than the exact lifecycle-owned fixture, or retained state
+   lacks the bounded identity/recovery receipt needed for safe reconciliation.
 6. A PostgreSQL 15 result is presented as PostgreSQL 16 evidence, or this
    single-version proof is presented as the permanent 15/16 matrix.
 7. The fixture reaches a shared, Supabase, provider or production database.
@@ -361,12 +376,15 @@ Copilot feedback and finalizer remain authoritative.
 Rollback is one revert of the future implementation merge. The fixture creates
 only test-invocation-owned disposable state and must attempt exact-ID deletion
 in every in-process terminal path; successful removal is asserted before PASS,
-so there is no schema, data, user, provider or production rollback. If cleanup
-cannot be proven, retain only the mode-`0600`
+so there is no schema, data, user, provider or production rollback. If exact
+identity is known but cleanup cannot be proven, retain only the mode-`0600`
 out-of-repo receipt's immutable container ID, generated name, verified fixed
-labels and timestamp, then require separately authorized exact-ID cleanup; never
-infer or broaden the cleanup command. A fixture or cleanup failure invalidates
-the manifest as evidence.
+labels and timestamp, then require separately authorized exact-ID cleanup. If
+create identity itself is indeterminate, retain only planned name, fixed labels
+and timestamp, then require separately authorized exact-name inspection, label
+verification and ID capture before any deletion. Never infer or broaden the
+cleanup command. A fixture, identity or cleanup failure invalidates the manifest
+as evidence.
 
 The promotion is withdrawn if implementation requires a kernel edit, canonical
 migration/journal change, persistent role/provider mutation, second PostgreSQL
