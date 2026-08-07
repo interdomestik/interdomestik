@@ -186,20 +186,27 @@ fixed allowlist.
 The non-globbed dynamic test is the sole runtime consumer. The root-level
 boundary test is intentionally collected by the ordinary `test/*.test.ts` lane
 but is static and must not start Docker. Existing migration tests and application
-runtime code do not import any new helper. The dynamic test fails when
+runtime code do not import any new helper. The import-graph roots are all four
+runtime files: the dynamic test plus the lifecycle, fixture and manifest support
+files. The boundary recursively resolves every repo-local edge from those roots,
+including static imports, re-exports, namespace/default imports, dynamic imports
+and `require`; a cycle-safe visited set prevents incomplete traversal. Any direct
+or transitive edge reaching `packages/database/src/index.ts`, `src/db.ts` or a
+module that reaches either is rejected, so wrappers such as `src/tenant.ts`
+cannot hide a production client. Package specifiers `@interdomestik/database`
+and `@interdomestik/database/db` are rejected at every root or transitive node.
+The dynamic test fails when
 `IDA_PG16_FIXTURE` is absent or not exactly `1`, or when Docker/PostgreSQL/
 capability evidence is missing. The boundary test statically rejects `skip`, `todo`,
 conditional skip guards or a command that does not name the exact dynamic file;
 it pins the complete package script literal and proves the script does not set
-the opt-in itself. Across static imports, re-exports, namespace/default imports,
-dynamic imports and `require`, it resolves module identity rather than trusting
-local binding names: `@interdomestik/database`, `@interdomestik/database/db` and
-relative paths resolving to `packages/database/src/index.ts` or `src/db.ts` are
-forbidden in all three support files, and original symbols `db`, `dbAdmin` and
-`dbRls` are rejected even when aliased. The only external live SQL client those
-helpers may construct is `postgres`; Drizzle PostgreSQL and Supabase clients are
-forbidden. The controller receipt is validated separately before its result can
-count as Z620 evidence.
+the opt-in itself. Original symbols `db`, `dbAdmin` and `dbRls` are rejected even
+when aliased. The only external live SQL client in the complete closure is
+`postgres`; value imports are allowed only in the new fixture/manifest helpers
+and existing `admin-connection-preflight.ts`. Type-only imports in existing
+contracts remain allowed. Drizzle PostgreSQL and Supabase clients are forbidden
+throughout the closure. The controller receipt is validated separately before
+its result can count as Z620 evidence.
 `findAdminPreflightImports()` must continue to return exactly its two existing
 entries.
 
@@ -350,19 +357,25 @@ contract. No support implementation may precede that RED.
 
 Evidence order is fixed:
 
-1. focused static boundary RED/GREEN;
-2. exact Z620 PostgreSQL 16 resource/image/query canary;
-3. controller receipt proving runner id/exclusive label, host key, exact head and
-   command digest, followed by focused dynamic fixture RED/GREEN with
+1. add only the exact package command and dynamic test, then record its first
+   local/light RED before any support implementation; missing fail-closed support
+   or the explicit not-implemented sentinel must prevent Docker from starting;
+2. add the static boundary RED, then introduce only inert fail-closed support
+   stubs until the recursive import boundary is GREEN while the dynamic contract
+   remains RED;
+3. run the exact Z620 PostgreSQL 16 resource/image/query canary;
+4. record the controller receipt proving runner id/exclusive label, host key,
+   exact head and command digest, then reproduce the focused dynamic RED in the
+   exact environment before implementing it to GREEN with
    `IDA_PG16_FIXTURE=1` and zero skipped cases;
-4. local/Z620 `pnpm --filter @interdomestik/database test:unit` enforcement of
+5. local/Z620 `pnpm --filter @interdomestik/database test:unit` enforcement of
    the static boundary, followed by modularity, DB-access guard and
    repository-size checks; the boundary is deliberately not yet wired into a
    GitHub merge-authority lane because public CI wiring belongs to a later child;
-5. early exact-head reviewer/Sonar/feedback intake after PR creation;
-6. `pnpm pr:verify`, `pnpm security:guard` and one `pnpm e2e:gate` authority
+6. early exact-head reviewer/Sonar/feedback intake after PR creation;
+7. `pnpm pr:verify`, `pnpm security:guard` and one `pnpm e2e:gate` authority
    lane through CI on the exact PR head; and
-7. final exact-head CodeQL, gitleaks, pnpm-audit, Sonar, reviewer threads and
+8. final exact-head CodeQL, gitleaks, pnpm-audit, Sonar, reviewer threads and
    `pr-finalizer` disposition.
 
 Only evidence invalidated by a changed head, path, contract surface or
@@ -450,13 +463,15 @@ A Sonar duplication finding caused by moving the dynamic proof below
 stop-and-re-gate condition. Each of the three named support files—
 `migration-runtime-role-lifecycle.support.ts`,
 `migration-runtime-role-fixture.support.ts` and
-`migration-runtime-role-manifest.support.ts`—must reject the production database
-package root/db module and relative `src/index.ts`/`src/db.ts` identities across
-every import/re-export/require form, including namespace, default and aliased
-imports. Imported source symbols `db`, `dbAdmin` and `dbRls` remain forbidden
-regardless of local name. Only `postgres` may construct a live SQL client;
-credential-shaped values must remain inside the bounded fixture construction
-seam.
+`migration-runtime-role-manifest.support.ts`—plus the dynamic test form the
+recursive import-graph roots. The boundary must reject the production database
+package root/db module and any transitive path to relative
+`src/index.ts`/`src/db.ts` identities across every import/re-export/require form,
+including namespace, default and aliased imports. Imported source symbols `db`,
+`dbAdmin` and `dbRls` remain forbidden regardless of local name. Only `postgres`
+may construct a live SQL client, at the enumerated fixture/manifest/preflight
+sites; credential-shaped values must remain inside the bounded fixture
+construction seam.
 
 No Codex Security diff scan is required at this docs-only checkpoint. Future
 implementation still requires applicable repo-native security evidence. Brain
