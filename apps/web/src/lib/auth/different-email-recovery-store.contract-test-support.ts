@@ -15,6 +15,11 @@ export async function createRecoveryOwner(label: string, email?: string) {
   const address = email ?? `ida-ui03b-${label}-${randomUUID()}@example.com`;
   owners.add(id);
   await recoverySql`
+    insert into "tenants" ("id", "name", "legal_name", "code", "country_code")
+    values ('tenant_ks', 'Kosovo', 'Interdomestik Kosovo', 'KS', 'XK')
+    on conflict ("id") do nothing
+  `;
+  await recoverySql`
     insert into "user"
       ("id", "tenant_id", "name", "email", "emailVerified", "role",
        "tenant_classification_pending", "createdAt", "updatedAt")
