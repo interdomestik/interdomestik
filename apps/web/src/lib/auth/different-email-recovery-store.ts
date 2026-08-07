@@ -75,7 +75,7 @@ export async function reserveCurrentProof(args: CurrentReservation): Promise<Sto
 // prettier-ignore
 export async function activateCurrentProof(userId: string, nonce: string, expectedEmail: string, now: Date) {
   return withUserLock(userId, async tx => {
-    const row = await challenge(tx, userId, 'current'); if (!row || row.id !== nonce || row.data.active || row.expiresAt <= now) return false;
+    const row = await challenge(tx, userId, 'current'); if (row?.id !== nonce || row.data.active || row.expiresAt <= now) return false;
     const current = await owner(tx, userId);
     // db-access-guard: system-exempt -- reason: activation drift removes only the exact random recovery nonce
     if (!current || canonical(current.email) !== canonical(expectedEmail)) { await tx.delete(verification).where(eq(verification.id, nonce)); return false; }
@@ -97,7 +97,7 @@ export async function reserveReplacementProof(args: ReplacementReservation): Pro
 // prettier-ignore
 export async function activateReplacementProof(userId: string, nonce: string, now: Date) {
   return withUserLock(userId, async tx => {
-    const row = await challenge(tx, userId, 'replacement'); if (!row || row.id !== nonce || row.data.active || row.expiresAt <= now) return false;
+    const row = await challenge(tx, userId, 'replacement'); if (row?.id !== nonce || row.data.active || row.expiresAt <= now) return false;
     // db-access-guard: system-exempt -- reason: replacement activation compares exact nonce and prior serialized disabled proof
     const [activated] = await tx.update(verification).set({ value: JSON.stringify({ ...row.data, active: true }), updatedAt: now }).where(and(eq(verification.id, nonce), eq(verification.value, row.value))).returning({ id: verification.id });
     return Boolean(activated);

@@ -54,7 +54,7 @@ describe('IDA-UI03b different-email recovery', () => {
     expect(await screen.findByRole('heading', { name: copy.replacementHeading })).toBeVisible();
     fireEvent.change(screen.getByLabelText(copy.codeLabel), { target: { value: '654321' } });
     fireEvent.submit(screen.getByRole('button', { name: copy.confirm }).closest('form')!);
-    expect(await screen.findByText(copy.complete)).toHaveAttribute('role', 'status');
+    expect(await screen.findByRole('status')).toHaveTextContent(copy.complete);
     expect(refresh).toHaveBeenCalledOnce();
   });
 

@@ -14,6 +14,12 @@ type Stage = 'closed' | 'start' | 'current' | 'replacement' | 'complete';
 // prettier-ignore
 const copyKeys = ['body', 'close', 'codeLabel', 'complete', 'confirm', 'currentBody', 'currentHeading', 'emailLabel', 'error', 'heading', 'open', 'pending', 'replacementBody', 'replacementHeading', 'start', 'submitCurrent'] as const;
 type Copy = Record<(typeof copyKeys)[number], string>;
+type ActionResult = { ok: boolean; stage?: string };
+type RecoverySetters = Record<'failed' | 'pending', (value: boolean) => void> & {
+  code: (value: string) => void;
+  email: (value: string) => void;
+  stage: (value: Stage) => void;
+};
 
 function parseCopy(value: unknown): Copy | null {
   try {
@@ -29,11 +35,51 @@ function parseCopy(value: unknown): Copy | null {
   }
 }
 
+function stageText(stage: Stage, copy: Copy) {
+  if (stage === 'current') return { body: copy.currentBody, title: copy.currentHeading };
+  if (stage === 'replacement') {
+    return { body: copy.replacementBody, title: copy.replacementHeading };
+  }
+  return { body: copy.body, title: copy.heading };
+}
+
+function submitText(stage: Stage, pending: boolean, copy: Copy) {
+  if (pending) return copy.pending;
+  return stage === 'current' ? copy.submitCurrent : copy.confirm;
+}
+
+function useRecoveryRunner(isPending: boolean, set: RecoverySetters) {
+  const router = useRouter();
+  return async (task: () => Promise<ActionResult>) => {
+    if (isPending) return;
+    set.pending(true);
+    set.failed(false);
+    try {
+      const result = await task();
+      if (!result.ok) set.failed(true);
+      else if (result.stage === 'current') {
+        set.code('');
+        set.stage('current');
+      } else if (result.stage === 'replacement') {
+        set.code('');
+        set.email('');
+        set.stage('replacement');
+      } else {
+        set.stage('complete');
+        router.refresh();
+      }
+    } catch {
+      set.failed(true);
+    } finally {
+      set.pending(false);
+    }
+  };
+}
+
 export function DifferentEmailRecovery() {
   const locale = useLocale() as 'sq' | 'en' | 'sr' | 'mk';
   const t = useTranslations('freeStart');
   const copy = parseCopy(t.raw('secureSave'));
-  const router = useRouter();
   const [stage, setStage] = useState<Stage>('closed');
   const [code, setCode] = useState('');
   const [email, setEmail] = useState('');
@@ -42,17 +88,13 @@ export function DifferentEmailRecovery() {
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => heading.current?.focus(), [stage]);
 
-  // prettier-ignore
-  const run = async (task: () => Promise<{ ok: boolean; stage?: string }>) => {
-    if (pending) return; setPending(true); setFailed(false);
-    try {
-      const result = await task();
-      if (!result.ok) setFailed(true);
-      else if (result.stage === 'current') { setCode(''); setStage('current'); }
-      else if (result.stage === 'replacement') { setCode(''); setEmail(''); setStage('replacement'); }
-      else { setStage('complete'); router.refresh(); }
-    } catch { setFailed(true); } finally { setPending(false); }
-  };
+  const run = useRecoveryRunner(pending, {
+    code: setCode,
+    email: setEmail,
+    failed: setFailed,
+    pending: setPending,
+    stage: setStage,
+  });
 
   if (!copy) return null;
 
@@ -64,24 +106,17 @@ export function DifferentEmailRecovery() {
     </button>
   );
 
-  const title =
-    stage === 'current'
-      ? copy.currentHeading
-      : stage === 'replacement'
-        ? copy.replacementHeading
-        : copy.heading;
-  const body =
-    stage === 'current'
-      ? copy.currentBody
-      : stage === 'replacement'
-        ? copy.replacementBody
-        : copy.body;
+  const { body, title } = stageText(stage, copy);
+  const submit = () => {
+    if (stage === 'current') return submitCurrentEmailProof({ code, email, locale });
+    return confirmReplacementEmail({ code });
+  };
   // prettier-ignore
   return (
     <section data-testid="different-email-recovery" aria-labelledby="different-email-recovery-heading"
       className="mt-4 rounded-2xl border border-[#006f72]/25 bg-[#f7fbfa] p-4">
       <h5 ref={heading} tabIndex={-1} id="different-email-recovery-heading" className="font-bold text-[#001a33] outline-none">{title}</h5>
-      {stage === 'complete' ? <p role="status" className="mt-2 text-sm text-[#173b43]">{copy.complete}</p> : (
+      {stage === 'complete' ? <output className="mt-2 block text-sm text-[#173b43]">{copy.complete}</output> : (
         <>
           <p className="mt-2 text-sm leading-6 text-[#526274]">{body}</p>
           {stage === 'start' ? (
@@ -90,7 +125,7 @@ export function DifferentEmailRecovery() {
               {pending ? copy.pending : copy.start}
             </button>
           ) : (
-            <form className="mt-3 space-y-3" onSubmit={event => { event.preventDefault(); void run(() => stage === 'current' ? submitCurrentEmailProof({ code, email, locale }) : confirmReplacementEmail({ code })); }}>
+            <form className="mt-3 space-y-3" onSubmit={event => { event.preventDefault(); void run(submit); }}>
               <label className="block text-sm font-bold text-[#001a33]">{copy.codeLabel}
                 <input required inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" value={code} onChange={event => setCode(event.target.value)}
                   className="mt-1 block min-h-11 w-full rounded-xl border border-[#001a33]/25 px-3" />
@@ -100,7 +135,7 @@ export function DifferentEmailRecovery() {
                   className="mt-1 block min-h-11 w-full rounded-xl border border-[#001a33]/25 px-3" />
               </label> : null}
               <button type="submit" disabled={pending} className="min-h-11 rounded-xl bg-[#006f72] px-4 font-bold text-white disabled:opacity-60">
-                {pending ? copy.pending : stage === 'current' ? copy.submitCurrent : copy.confirm}
+                {submitText(stage, pending, copy)}
               </button>
             </form>
           )}

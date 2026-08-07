@@ -9,6 +9,7 @@ export const recoverySql = postgres(
 );
 
 const owners = new Set<string>();
+const challengePattern = (userId: string) => `ida-ui03b:${userId}:%`;
 
 export async function createRecoveryOwner(label: string, email?: string) {
   const id = randomUUID();
@@ -31,9 +32,10 @@ export async function createRecoveryOwner(label: string, email?: string) {
 }
 
 export async function challengeRows(userId: string) {
+  const pattern = challengePattern(userId);
   return recoverySql<{ identifier: string; value: string }[]>`
     select "identifier", "value" from "verification"
-    where "identifier" like ${`ida-ui03b:${userId}:%`}
+    where "identifier" like ${pattern}
     order by "identifier"
   `;
 }
@@ -50,7 +52,8 @@ export async function ownerSnapshot(userId: string) {
 
 export async function cleanupRecoveryRows() {
   for (const id of owners) {
-    await recoverySql`delete from "verification" where "identifier" like ${`ida-ui03b:${id}:%`}`;
+    const pattern = challengePattern(id);
+    await recoverySql`delete from "verification" where "identifier" like ${pattern}`;
     await recoverySql`delete from "session" where "userId" = ${id}`;
     await recoverySql`delete from "account" where "userId" = ${id}`;
     await recoverySql`delete from "user" where "id" = ${id}`;
