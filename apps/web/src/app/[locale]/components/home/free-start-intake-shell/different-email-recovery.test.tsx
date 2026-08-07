@@ -74,4 +74,20 @@ describe('IDA-UI03b different-email recovery', () => {
     expect(screen.queryByText('private@example.com')).not.toBeInTheDocument();
     await waitFor(() => expect(actions.submit).toHaveBeenCalledOnce());
   });
+
+  it('clears the replacement address when recovery is cancelled', async () => {
+    actions.start.mockResolvedValue({ ok: true, stage: 'current' });
+    render(<DifferentEmailRecovery />);
+    fireEvent.click(screen.getByRole('button', { name: copy.open }));
+    fireEvent.click(screen.getByRole('button', { name: copy.start }));
+    await screen.findByRole('heading', { name: copy.currentHeading });
+    fireEvent.change(screen.getByLabelText(copy.emailLabel), {
+      target: { value: 'private@example.com' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: copy.close }));
+    fireEvent.click(screen.getByRole('button', { name: copy.open }));
+    fireEvent.click(screen.getByRole('button', { name: copy.start }));
+    await screen.findByRole('heading', { name: copy.currentHeading });
+    expect(screen.getByLabelText(copy.emailLabel)).toHaveValue('');
+  });
 });

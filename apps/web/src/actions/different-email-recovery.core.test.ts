@@ -98,6 +98,34 @@ describe('IDA-UI03b recovery action boundary', () => {
     expect(deps.rate).toHaveBeenCalledTimes(4);
   });
 
+  it('attempts exact proof cleanup when either activation throws', async () => {
+    const current = dependencies({ activateCurrent: vi.fn().mockRejectedValue(new Error('lost')) });
+    expect(
+      await startDifferentEmailRecoveryCore(requestHeaders, { locale: 'en' }, current)
+    ).toEqual({ ok: false, code: 'unavailable' });
+    expect(current.discard).toHaveBeenCalledWith(
+      context.userId,
+      'current',
+      '11111111-1111-4111-8111-111111111111'
+    );
+
+    const replacement = dependencies({
+      activateReplacement: vi.fn().mockRejectedValue(new Error('lost')),
+    });
+    expect(
+      await submitCurrentEmailProofCore(
+        requestHeaders,
+        { code: '654321', email: 'new@example.com', locale: 'en' },
+        replacement
+      )
+    ).toEqual({ ok: false, code: 'unavailable' });
+    expect(replacement.discard).toHaveBeenCalledWith(
+      context.userId,
+      'replacement',
+      '11111111-1111-4111-8111-111111111111'
+    );
+  });
+
   it('expires only Better Auth session-data cache cookie names', () => {
     const remove = vi.fn();
     expireRecoverySessionCache({ delete: remove });

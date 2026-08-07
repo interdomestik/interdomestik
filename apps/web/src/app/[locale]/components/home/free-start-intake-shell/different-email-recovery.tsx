@@ -142,7 +142,7 @@ export function DifferentEmailRecovery() {
           {failed ? <p role="alert" className="mt-3 text-sm font-semibold text-[#8a2f43]">{copy.error}</p> : null}
         </>
       )}
-      {stage !== 'complete' ? <button type="button" disabled={pending} onClick={() => { setStage('closed'); setFailed(false); }}
+      {stage !== 'complete' ? <button type="button" disabled={pending} onClick={() => { setCode(''); setEmail(''); setStage('closed'); setFailed(false); }}
         className="mt-3 min-h-11 px-2 text-sm font-bold text-[#526274] underline">{copy.close}</button> : null}
     </section>
   );

@@ -79,6 +79,11 @@ const defaults: RecoveryDependencies = {
   secret: () => process.env.OTP_RATE_LIMIT_HMAC_SECRET ?? null, send: deliverRecoveryCode,
 };
 
+// prettier-ignore
+async function discardQuietly(deps: RecoveryDependencies, userId: string, stage: Stage, nonce: string) {
+  try { await deps.discard(userId, stage, nonce); } catch { /* exact-nonce cleanup is best effort */ }
+}
+
 export function recoveryDigest(secret: string, stage: Stage, email: string, code: string) {
   return createHmac('sha256', secret)
     .update(`IDA-UI03b\0${stage}\0${email.trim().toLowerCase()}\0${code}`)
@@ -104,7 +109,7 @@ export async function startDifferentEmailRecoveryCore(headers: Headers, input: u
     if (!(await deps.send({ code, email: authz.context.email, locale: parsed.data.locale, stage: 'current' }))) { await deps.discard(authz.context.userId, 'current', nonce); return failure(); }
     if (!(await deps.activateCurrent(authz.context.userId, nonce, authz.context.email, deps.now()))) { await deps.discard(authz.context.userId, 'current', nonce); return failure(); }
     return { ok: true, stage: 'current' };
-  } catch { return failure(); }
+  } catch { await discardQuietly(deps, authz.context.userId, 'current', nonce); return failure(); }
 }
 
 // prettier-ignore
@@ -120,7 +125,7 @@ export async function submitCurrentEmailProofCore(headers: Headers, input: unkno
     if (!(await deps.send({ code, email: parsed.data.email, locale: parsed.data.locale, stage: 'replacement' }))) { await deps.discard(authz.context.userId, 'replacement', nonce); return failure(); }
     if (!(await deps.activateReplacement(authz.context.userId, nonce, deps.now()))) { await deps.discard(authz.context.userId, 'replacement', nonce); return failure(); }
     return { ok: true, stage: 'replacement' };
-  } catch { return failure(); }
+  } catch { await discardQuietly(deps, authz.context.userId, 'replacement', nonce); return failure(); }
 }
 
 // prettier-ignore
