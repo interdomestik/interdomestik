@@ -2037,3 +2037,15 @@ exact-hash approval remains pending, so this proposal grants no
 canonical/runtime effect.
 <!-- prettier-ignore -->
 The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03b` (Tier 3 protected auth/ownership/privacy product slice; `runtime_authorized:false`; proposed R6 authority `IDA-DG28`; docs-only merge pending).
+
+Rev 202 exact design-gate approval: Arben approved immutable `IDA-DG28` R6 in
+task `019fa824-2676-7c22-9dcb-d21af1c354e6` on 2026-08-07 at 19,290 bytes /
+SHA-256
+`2339bc59b4b679f70201f95e14733513e3c595068fe1f6bed48862c26df4f9a4`,
+including the sole seventeen-writer admission disposition. The approved gate
+artifact is unchanged. Canonical promotion takes effect only after the
+docs-only authority PR merges and the exact-main resolver confirms
+`IDA-UI03b`; runtime and product mutation remain unauthorized pending a
+separate exact-main-bound runtime receipt.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03b` (Tier 3 protected auth/ownership/privacy product slice; `runtime_authorized:false`; exact-approved R6 authority `IDA-DG28`; docs-only merge pending).
