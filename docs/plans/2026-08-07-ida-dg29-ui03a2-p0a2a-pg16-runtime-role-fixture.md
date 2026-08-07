@@ -191,8 +191,15 @@ runtime code do not import any new helper. The dynamic test fails when
 capability evidence is missing. The boundary test statically rejects `skip`, `todo`,
 conditional skip guards or a command that does not name the exact dynamic file;
 it pins the complete package script literal and proves the script does not set
-the opt-in itself. The controller receipt is validated separately before its
-result can count as Z620 evidence.
+the opt-in itself. Across static imports, re-exports, namespace/default imports,
+dynamic imports and `require`, it resolves module identity rather than trusting
+local binding names: `@interdomestik/database`, `@interdomestik/database/db` and
+relative paths resolving to `packages/database/src/index.ts` or `src/db.ts` are
+forbidden in all three support files, and original symbols `db`, `dbAdmin` and
+`dbRls` are rejected even when aliased. The only external live SQL client those
+helpers may construct is `postgres`; Drizzle PostgreSQL and Supabase clients are
+forbidden. The controller receipt is validated separately before its result can
+count as Z620 evidence.
 `findAdminPreflightImports()` must continue to return exactly its two existing
 entries.
 
@@ -443,9 +450,13 @@ A Sonar duplication finding caused by moving the dynamic proof below
 stop-and-re-gate condition. Each of the three named support files—
 `migration-runtime-role-lifecycle.support.ts`,
 `migration-runtime-role-fixture.support.ts` and
-`migration-runtime-role-manifest.support.ts`—must not declare a local binding
-named `db`, `dbAdmin` or `dbRls`; credential-shaped values must remain inside the
-bounded fixture construction seam.
+`migration-runtime-role-manifest.support.ts`—must reject the production database
+package root/db module and relative `src/index.ts`/`src/db.ts` identities across
+every import/re-export/require form, including namespace, default and aliased
+imports. Imported source symbols `db`, `dbAdmin` and `dbRls` remain forbidden
+regardless of local name. Only `postgres` may construct a live SQL client;
+credential-shaped values must remain inside the bounded fixture construction
+seam.
 
 No Codex Security diff scan is required at this docs-only checkpoint. Future
 implementation still requires applicable repo-native security evidence. Brain
