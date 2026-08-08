@@ -30,9 +30,9 @@ async function persist(path: string, value: object): Promise<void> {
   await rename(next, path);
 }
 const REAL: RuntimeRoleLifecycleOps = Object.freeze({
-  docker: async args => (await exec('docker', args, { timeout: 60_000 })).stdout.trim(),
+  docker: async (args: string[]) => (await exec('docker', args, { timeout: 60_000 })).stdout.trim(),
   persist,
-  discard: path => rm(path),
+  discard: (path: string) => rm(path),
   suffix: () => randomBytes(8).toString('hex'),
 });
 const fixed = (error: unknown, fallback: string) => {
@@ -118,7 +118,7 @@ async function run<T>(
       });
       throw new Error('CONTAINER_CREATE_FAILED');
     }
-    if (!identity || identity.name !== name) throw new Error('CONTAINER_IDENTITY_UNRESOLVED');
+    if (identity?.name !== name) throw new Error('CONTAINER_IDENTITY_UNRESOLVED');
     await ops.persist(receipt, { state: 'created', ...identity, labels: LABELS }).catch(() => {
       throw new Error('CONTAINER_RECEIPT_WRITE_FAILED');
     });

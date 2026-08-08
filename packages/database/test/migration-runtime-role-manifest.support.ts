@@ -80,7 +80,7 @@ export async function inspectRuntimeRoleManifest(url:string,owner:string,runtime
     `;
     if (signal.aborted) throw new Error('MIGRATION_RUNTIME_ROLE_ABORTED');
     const row = rows[0];
-    if (!row || row.server_major !== 16 || !row.owner || !row.runtime)
+    if (row?.server_major !== 16 || !row.owner || !row.runtime)
       throw new Error('MIGRATION_RUNTIME_ROLE_MANIFEST_REJECTED');
     const privileges = Object.freeze(
       Object.fromEntries(PRIVILEGES.map(key => [key, row[key]])) as Record<Privilege, boolean>
