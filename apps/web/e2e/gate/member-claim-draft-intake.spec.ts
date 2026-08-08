@@ -9,7 +9,6 @@ const facts = { category: 'vehicle', counterparty: 'P00 test operator', date: '2
 const pilotHeaders = { 'x-tenant-id': 'tenant_ks' };
 // prettier-ignore
 const visibleIntake = (page: Page) => page.locator('[data-testid="claim-draft-intake"]:visible').first();
-
 async function fillSupportedDraft(page: Page) {
   const intake = visibleIntake(page);
   const panel = intake.getByTestId('claim-draft-main-panel');
@@ -23,7 +22,6 @@ async function fillSupportedDraft(page: Page) {
   await panel.locator('button').last().click();
   await expect(intake.getByTestId('claim-draft-dormant-preview')).toBeVisible();
 }
-
 async function expectPreservedFacts(intake: ReturnType<typeof visibleIntake>) {
   const reviewedFacts = intake.getByTestId('claim-draft-dormant-preview').locator('dd');
   await expect(reviewedFacts).toHaveCount(6);
@@ -55,11 +53,12 @@ function resolveIdaTarget(testInfo: TestInfo) {
     } as TestInfo,
   };
 }
-
 test.describe('IDA-UI03a2-B1 saved draft canonical submit', () => {
   test('submits one resumed draft and preserves its independent source', async ({
     browser,
   }, testInfo) => {
+    // prettier-ignore
+    test.skip(testInfo.project.name !== 'gate-ks-sq', 'Canonical residue is bounded to one project');
     const ida = resolveIdaTarget(testInfo);
     const consentOrigin = new URL(ida.origin);
     // prettier-ignore

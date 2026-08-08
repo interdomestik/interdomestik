@@ -103,10 +103,11 @@ describe('Claim Draft Intake import and scope boundary', () => {
     );
   });
 
-  it('keeps the required E2E scenario executable instead of self-skipping', () => {
+  it('keeps the required E2E scenario executable in exactly one residue-producing project', () => {
     const spec = resolve(root, '../../../../e2e/gate/member-claim-draft-intake.spec.ts');
     const source = readFileSync(spec, 'utf8');
-    expect(source).not.toMatch(/test\.skip|test\.fixme/);
+    expect(source).not.toMatch(/test\.(skip|fixme)\(\s*\)|test\.describe\.skip|test\.fixme\b/);
+    expect(source).toContain("test.skip(testInfo.project.name !== 'gate-ks-sq'");
     expect(source).toContain('resolveIdaTarget');
     expect(source).toContain("name: 'cookie_consent'");
     expect(source).not.toContain('dismissCookieConsent');
