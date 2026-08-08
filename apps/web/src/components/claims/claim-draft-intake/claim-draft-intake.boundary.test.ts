@@ -88,6 +88,9 @@ describe('Claim Draft Intake import and scope boundary', () => {
     const mainPanel = readFileSync(join(root, 'main-panel.tsx'), 'utf8');
     expect(mainPanel).toMatch(/key=.*activeDraftId.*activeDraftVersion/);
     expect(mainPanel).toContain('managerOnly={props.managerOnly}');
+    const index = readFileSync(join(root, 'index.tsx'), 'utf8');
+    expect(index).toContain("flow.step !== 'preview' && flow.step !== 'complete'");
+    expect(index).not.toContain('lifecycle.active?.id && /^[0-9a-f]');
     const action = readFileSync(
       resolve(root, '../../../actions/claims/create-from-saved-draft.ts'),
       'utf8'

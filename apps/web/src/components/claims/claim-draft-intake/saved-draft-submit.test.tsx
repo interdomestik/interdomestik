@@ -32,6 +32,7 @@ const copy = {
 const submitCopy = {
   failed: 'Submission failed.',
   goToClaim: 'Open claim',
+  goToClaims: 'My claims',
   label: 'Submit claim',
   success: 'Case submitted and saved.',
   unexpected: 'Unexpected failure.',
@@ -128,7 +129,7 @@ describe('saved draft canonical submit', () => {
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent(submitCopy.failed);
     expect(alert).toHaveFocus();
-    expect(screen.getByRole('link', { name: submitCopy.goToClaim })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: submitCopy.goToClaims })).toHaveAttribute(
       'href',
       '/en/member/claims'
     );

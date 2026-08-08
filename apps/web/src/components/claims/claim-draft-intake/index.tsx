@@ -60,7 +60,7 @@ className="mx-auto max-w-5xl space-y-6"
 <h2 className="text-3xl font-bold tracking-tight text-[#001a33]">{copy.heading}</h2>
 <p className="text-lg text-[#365265]">{copy.supporting}</p>
 </header>
-{!(!managerOnly && (flow.step === 'preview' || flow.step === 'complete') && lifecycle.active?.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(lifecycle.active.id) && lifecycle.active.version && !lifecycle.hasUnsavedChanges && [flow.draft.issueType, flow.draft.incidentDate, flow.draft.counterparty, flow.draft.desiredOutcome, flow.draft.summary].every(value => value.trim())) ? <div className="rounded-2xl border border-[#006f72]/30 bg-[#eaf5f2] p-4 text-sm font-semibold leading-6 text-[#173b43]">
+{flow.step !== 'preview' && flow.step !== 'complete' ? <div className="rounded-2xl border border-[#006f72]/30 bg-[#eaf5f2] p-4 text-sm font-semibold leading-6 text-[#173b43]">
 {copy.truth}
 </div> : null}
 {isUnsupportedTravel && <p data-testid="claim-draft-travel">{copy.unsupported}</p>}
@@ -124,7 +124,7 @@ export function ClaimDraftIntake({ freeStartMessages, ...props }: Props) {
   // prettier-ignore
   const handoffCountryLabel = props.handoffContext ? tDiaspora(`selector.options.${props.handoffContext.country}`) : null;
   // prettier-ignore
-  const submitCopy = { failed: t('wizard.submit_failed'), goToClaim: t('success.go_to_claim'), label: t('wizard.submit_label'), success: t('wizard.submit_success'), unexpected: t('wizard.submit_unexpected') };
+  const submitCopy = { failed: t('wizard.submit_failed'), goToClaim: t('success.go_to_claim'), goToClaims: t('title'), label: t('wizard.submit_label'), success: t('wizard.submit_success'), unexpected: t('wizard.submit_unexpected') };
   // prettier-ignore
   return (
 <NextIntlClientProvider locale={props.locale} messages={freeStartMessages}>

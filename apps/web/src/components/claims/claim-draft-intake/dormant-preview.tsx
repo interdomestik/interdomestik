@@ -15,7 +15,7 @@ export function parseClaimDraftCopy(value: unknown): ClaimDraftCopy {
 }
 
 // prettier-ignore
-export type SavedDraftSubmitCopy = Readonly<{ failed: string; goToClaim: string; label: string; success: string; unexpected: string }>;
+export type SavedDraftSubmitCopy = Readonly<{ failed: string; goToClaim: string; goToClaims: string; label: string; success: string; unexpected: string }>;
 
 // prettier-ignore
 type Props = Readonly<{ activeDraftId?: string | null; activeDraftVersion?: number | null; copy: ClaimDraftCopy; draft: DraftState; hasUnsavedChanges?: boolean; headingRef: RefObject<HTMLHeadingElement | null>; labels: { category: string; issue: string; outcome: string }; managerOnly?: boolean; submitCopy: SavedDraftSubmitCopy; tFree: FreeStartCopy }>;
@@ -136,7 +136,7 @@ export function DormantPreview(props: Props) {
             >
               {failure}{' '}
               <Link className="underline" href={`/${locale}/member/claims`}>
-                {submitCopy.goToClaim}
+                {submitCopy.goToClaims}
               </Link>
             </p>
           ) : null}

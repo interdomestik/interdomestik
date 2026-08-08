@@ -33,10 +33,14 @@ function deterministicClaimId(tenantId: string, actorId: string, draftId: string
   return `fsd_${digest}`;
 }
 
+function ownValue(record: Readonly<Record<string, string>>, key: string | null) {
+  return key && Object.hasOwn(record, key) ? record[key] : null;
+}
+
 function mapDraft(draft: FreeStartDraft): CreateClaimValues | null {
-  const category = CATEGORY[draft.category];
-  const issue = draft.issueType ? ISSUE[draft.issueType] : null;
-  const outcome = draft.desiredOutcome ? OUTCOME[draft.desiredOutcome] : null;
+  const category = ownValue(CATEGORY, draft.category);
+  const issue = ownValue(ISSUE, draft.issueType);
+  const outcome = ownValue(OUTCOME, draft.desiredOutcome);
   const counterparty = draft.counterparty.trim();
   const summary = draft.summary.trim();
   if (!category || !issue || !outcome || counterparty.length < 2 || !summary) return null;

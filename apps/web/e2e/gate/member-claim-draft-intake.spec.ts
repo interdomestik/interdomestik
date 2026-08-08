@@ -6,9 +6,7 @@ import { gotoApp } from '../utils/navigation';
 
 // prettier-ignore
 const facts = { category: 'vehicle', counterparty: 'P00 test operator', date: '2026-07-20', issue: 'collision', outcome: 'repair', summary: 'Bounded vehicle preparation facts.' };
-
 const pilotHeaders = { 'x-tenant-id': 'tenant_ks' };
-
 // prettier-ignore
 const visibleIntake = (page: Page) => page.locator('[data-testid="claim-draft-intake"]:visible').first();
 
@@ -24,6 +22,15 @@ async function fillSupportedDraft(page: Page) {
   await panel.locator('textarea').fill(facts.summary);
   await panel.locator('button').last().click();
   await expect(intake.getByTestId('claim-draft-dormant-preview')).toBeVisible();
+}
+
+async function expectPreservedFacts(intake: ReturnType<typeof visibleIntake>) {
+  const reviewedFacts = intake.getByTestId('claim-draft-dormant-preview').locator('dd');
+  await expect(reviewedFacts).toHaveCount(6);
+  for (const index of [0, 1, 4]) await expect(reviewedFacts.nth(index)).not.toBeEmpty();
+  await expect(reviewedFacts.nth(2)).toHaveText(facts.date);
+  await expect(reviewedFacts.nth(3)).toHaveText(facts.counterparty);
+  await expect(reviewedFacts.nth(5)).toHaveText(facts.summary);
 }
 
 async function freshLogin(page: Page, origin: string, loginPath: string) {
@@ -104,13 +111,7 @@ test.describe('IDA-UI03a2-B1 saved draft canonical submit', () => {
         const resumedIntake = visibleIntake(resumedPage);
         await resumedIntake.getByTestId('free-start-manage-open').click();
         await resumedPage.getByTestId(`free-start-resume-${exactDraftId}`).click();
-        const preview = resumedIntake.getByTestId('claim-draft-dormant-preview');
-        const reviewedFacts = preview.locator('dd');
-        await expect(reviewedFacts).toHaveCount(6);
-        for (const index of [0, 1, 4]) await expect(reviewedFacts.nth(index)).not.toBeEmpty();
-        await expect(reviewedFacts.nth(2)).toHaveText(facts.date);
-        await expect(reviewedFacts.nth(3)).toHaveText(facts.counterparty);
-        await expect(reviewedFacts.nth(5)).toHaveText(facts.summary);
+        await expectPreservedFacts(resumedIntake);
         const submit = resumedIntake.getByTestId('claim-draft-submit');
         await expect(submit).toBeEnabled();
         await submit.click();
@@ -132,8 +133,13 @@ test.describe('IDA-UI03a2-B1 saved draft canonical submit', () => {
         await gotoApp(resumedPage, routes.memberNewClaim(ida.testInfo), ida.testInfo, {
           marker: 'new-claim-page-ready',
         });
-        await visibleIntake(resumedPage).getByTestId('free-start-manage-open').click();
-        await expect(resumedPage.getByTestId(`free-start-resume-${exactDraftId}`)).toBeVisible();
+        const retainedIntake = visibleIntake(resumedPage);
+        await retainedIntake.getByTestId('free-start-manage-open').click();
+        const retainedResume = resumedPage.getByTestId(`free-start-resume-${exactDraftId}`);
+        await expect(retainedResume).toBeVisible();
+        await retainedResume.click();
+        await expectPreservedFacts(retainedIntake);
+        await expect(retainedIntake.getByTestId('claim-draft-submit')).toBeEnabled();
       } finally {
         await freshContext.close();
       }

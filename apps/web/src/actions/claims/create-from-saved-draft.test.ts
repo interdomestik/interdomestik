@@ -102,14 +102,14 @@ describe('createClaimFromSavedDraft', () => {
       })
     );
   });
+  // prettier-ignore
   it.each([
     ['fresh-session mismatch', { ...context, ownerUserId: 'other' }, draft, false],
     ['access-tenant mismatch', { ...context, accessTenantId: 'tenant_mk' }, draft, false],
     ['stale version', context, { ...draft, version: 4 }, false],
     ['incomplete draft', context, { ...draft, summary: '' }, false],
     ['short counterparty', context, { ...draft, counterparty: 'x' }, false],
-    ['unsupported category', context, { ...draft, category: 'injury' }, false],
-    ['outer rate limit', context, draft, true],
+    ['unsupported category', context, { ...draft, category: 'injury' }, false], ['prototype category', context, { ...draft, category: 'constructor' }, false], ['prototype issue', context, { ...draft, issueType: 'toString' }, false], ['prototype outcome', context, { ...draft, desiredOutcome: 'constructor' }, false], ['outer rate limit', context, draft, true],
   ])('fails closed for %s', async (_name, freshContext, savedDraft, limited) => {
     h.resolveSession.mockResolvedValue({ ok: true, context: freshContext });
     h.resumeDraft.mockResolvedValue({ ok: true, draft: savedDraft });
