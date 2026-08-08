@@ -6692,3 +6692,30 @@ acceptance inferred from partial contract coverage. Runtime authority is
 consumed. No replacement implementation slice is promoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+
+Rev 204 current-authority correction supersedes only the Rev 203 terminal
+no-promotion sentence. Arben approved immutable `IDA-DG29` R7 in task
+`019fa824-2676-7c22-9dcb-d21af1c354e6` at 29,282 bytes / SHA-256
+`00ba0c4d146035a4aa020c9010f3eae3118eb4c1a6fca52fed665aa78d78610c`,
+with no further scope expansion. Authority PR `#1506` preserved that exact gate
+artifact, reached final rebased head
+`85067e8089d268d9e54f9bc2619f8548624396ed`, and squash-merged as
+`325eb5237e8efd896f1d2628f2323e67a29f5130`. Its transient high-severity
+`nanoid` audit blocker was removed separately by non-product security PR `#1507`
+/ merge `acf945b005e234035af5e0cd792740f9fc7d4df5`; this does not enlarge the
+product slice.
+
+The only promoted implementation slice is `IDA-UI03a2-P0a2a`, the Tier 3
+architecture/security prerequisite defined by the merged gate: one disposable
+PostgreSQL 16 migration-owner/runtime-role fixture and bounded redacted
+ownership/default-ACL manifest. The exact seven-path writer map, PostgreSQL 16
+only boundary, Z620-only governed dynamic proof, rollback/retained-receipt
+contract, forbidden surfaces and stop conditions remain unchanged. Runtime,
+Docker execution, database contact, product mutation, deployment and production
+remain unauthorized until a separate exact-main runtime receipt binds the task,
+thread, fresh worktree, writer map and admission digest. P0a2 successors, frozen
+P0 and parent UI03a2, PostgreSQL 15 parity, seed/application propagation, public
+runner/CI integration, Hero redesign, membership dashboard and every second
+slice remain unpromoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03a2-P0a2a` (Tier 3 architecture/security prerequisite; `runtime_authorized:false`; exact-approved merged authority `IDA-DG29` R7).
