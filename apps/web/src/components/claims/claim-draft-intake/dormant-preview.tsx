@@ -5,21 +5,16 @@ import type {
 import { createClaimFromSavedDraft } from '@/actions/claims/create-from-saved-draft';
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
-import { useEffect, useRef, useState, useTransition, type RefObject } from 'react';
-
+import { useEffect, useRef, useState, useTransition, type ReactNode, type RefObject } from 'react';
 // prettier-ignore
 export type ClaimDraftCopy = Readonly<{ backToDetails: string; categoryBody: string; categoryContinue: string; categoryHeading: string; heading: string; previewBody: string; previewHeading: string; submitDisabled: string; submitExplanation: string; supporting: string; truth: string; unsupported: string }>;
-
 export function parseClaimDraftCopy(value: unknown): ClaimDraftCopy {
   return JSON.parse(String(value)) as ClaimDraftCopy;
 }
-
 // prettier-ignore
 export type SavedDraftSubmitCopy = Readonly<{ failed: string; goToClaim: string; goToClaims: string; label: string; success: string; unexpected: string }>;
-
 // prettier-ignore
 type Props = Readonly<{ activeDraftId?: string | null; activeDraftVersion?: number | null; copy: ClaimDraftCopy; draft: DraftState; hasUnsavedChanges?: boolean; headingRef: RefObject<HTMLHeadingElement | null>; labels: { category: string; issue: string; outcome: string }; managerOnly?: boolean; submitCopy: SavedDraftSubmitCopy; tFree: FreeStartCopy }>;
-
 export function DormantPreview(props: Props) {
   // prettier-ignore
   const { activeDraftId, activeDraftVersion, copy, draft, hasUnsavedChanges, headingRef, labels, managerOnly, submitCopy, tFree } = props;
@@ -35,7 +30,6 @@ export function DormantPreview(props: Props) {
   const eligible = Boolean(!managerOnly && activeDraftId && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(activeDraftId) && activeDraftVersion && !hasUnsavedChanges && [draft.issueType, draft.incidentDate, draft.counterparty, draft.desiredOutcome, draft.summary].every(value => value.trim()));
   // prettier-ignore
   useEffect(() => { if (failure) failureRef.current?.focus(); else if (createdClaim) document.querySelector<HTMLElement>('[data-testid="claim-created-success"]')?.focus(); }, [failure, createdClaim]);
-
   function submit() {
     if (!eligible || !activeDraftId || !activeDraftVersion || submitting.current) return;
     submitting.current = true;
@@ -53,7 +47,50 @@ export function DormantPreview(props: Props) {
       }
     });
   }
-
+  let submitAction: ReactNode;
+  if (createdClaim) {
+    submitAction = (
+      <output
+        data-testid="claim-created-success"
+        data-claim-number={createdClaim.number}
+        tabIndex={-1}
+        className="block space-y-3 text-left"
+      >
+        <p className="font-bold text-[#173b43]">{submitCopy.success}</p>
+        <Link
+          className="font-bold text-[#006b7b] underline"
+          href={`/${locale}/member/claims/${createdClaim.id}`}
+        >
+          {submitCopy.goToClaim}
+        </Link>
+      </output>
+    );
+  } else if (eligible) {
+    submitAction = (
+      <button
+        type="button"
+        data-testid="claim-draft-submit"
+        disabled={pending}
+        aria-busy={pending}
+        onClick={submit}
+        className="min-h-12 rounded-xl bg-[#006b7b] px-5 font-bold text-white disabled:opacity-60"
+      >
+        {submitCopy.label}
+      </button>
+    );
+  } else {
+    submitAction = (
+      <button
+        type="button"
+        disabled
+        data-testid="claim-draft-submit-disabled"
+        aria-describedby="claim-draft-submit-explanation"
+        className="min-h-12 cursor-not-allowed rounded-xl bg-slate-300 px-5 font-bold text-slate-700"
+      >
+        {copy.submitDisabled}
+      </button>
+    );
+  }
   return (
     <div
       data-testid="claim-draft-dormant-preview"
@@ -84,44 +121,7 @@ export function DormantPreview(props: Props) {
       ) : null}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="max-w-sm text-right">
-          {createdClaim ? (
-            <div
-              data-testid="claim-created-success"
-              data-claim-number={createdClaim.number}
-              role="status"
-              tabIndex={-1}
-              className="space-y-3 text-left"
-            >
-              <p className="font-bold text-[#173b43]">{submitCopy.success}</p>
-              <Link
-                className="font-bold text-[#006b7b] underline"
-                href={`/${locale}/member/claims/${createdClaim.id}`}
-              >
-                {submitCopy.goToClaim}
-              </Link>
-            </div>
-          ) : eligible ? (
-            <button
-              type="button"
-              data-testid="claim-draft-submit"
-              disabled={pending}
-              aria-busy={pending}
-              onClick={submit}
-              className="min-h-12 rounded-xl bg-[#006b7b] px-5 font-bold text-white disabled:opacity-60"
-            >
-              {submitCopy.label}
-            </button>
-          ) : (
-            <button
-              type="button"
-              disabled
-              data-testid="claim-draft-submit-disabled"
-              aria-describedby="claim-draft-submit-explanation"
-              className="min-h-12 cursor-not-allowed rounded-xl bg-slate-300 px-5 font-bold text-slate-700"
-            >
-              {copy.submitDisabled}
-            </button>
-          )}
+          {submitAction}
           {!eligible ? (
             <p id="claim-draft-submit-explanation" className="mt-2 text-sm text-[#526274]">
               {copy.submitExplanation}
