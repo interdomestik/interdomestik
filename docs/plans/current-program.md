@@ -6767,3 +6767,46 @@ Runtime authority is consumed and no replacement implementation slice is
 promoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+
+Rev 206 current-authority selection supersedes only the Rev 205 terminal
+no-promotion sentence above. Arben approved immutable
+`IDA-DG19-B1-SAVED-DRAFT-CANONICAL-SUBMIT-RECUT` in task
+`019fe16c-4bd0-75d1-86dd-6f6b7cf3eb6c` on 2026-08-08 at 27,054 bytes /
+SHA-256
+`7732e76cbe322faaa25177f15991d70c47a2e479907eac68cf2c91e261277db8`,
+bound to clean main `3ffe2b52cc2044f78fb7c51425c87a9622042390` and parent-gate
+SHA-256 `553921412065bebe92d58aec8eae060b666d7ba2e375a26c8911bb9c7441d430`.
+The canonical artifact is byte-identical to the approved external candidate.
+
+This promotes exactly `IDA-UI03a2-B1`, the Tier 3 product/UI/security/privacy
+transition that lets one access-active member submit one complete saved vehicle
+or property Free Start draft through the existing canonical numbered-claim
+writer without retyping its six facts while leaving the source draft separate
+and independently available. Its writer map is frozen at exactly six production
+and five focused test/spec paths. It adds no schema, migration, RLS policy,
+route/proxy, locale, generic idempotency, generic claim-number, provider,
+deployment or production surface and does not reopen completed
+`IDA-UI06a`, `IDA-UI06b`, `IDA-UI03b`, `IDA-UI03a2-P0a2a` or PR `#1514`.
+
+Admission receipt SHA-256
+`0c94e8071d734f645c3f0a9b7ebab2ff94f805c229051ce7356eccea2d2e72f3`
+is `ready` with one outcome, eleven writer paths, three proof surfaces, one
+shared runtime consumer and no exceeded budget. UI/UX governance receipt
+SHA-256
+`5be1e61117f28e7ba6153c0c2e37870d85f25801469a44fcf7d0a9a63797566d`
+passes with three current operator observations, two blocked sources, a
+zero-retyped-field target and the exact Arben approval. The two bounded Opus 5
+reviews are dispositioned in the immutable gate; the final six-production-path
+candidate consolidates the required prop conduit and exact non-RLS recovery
+guard without another scope-expanding review series.
+
+AI OS check-first reported global `published-state-drift`, classified here as
+generated-publication drift rather than an Interdomestik repository-authority
+conflict; Brain remains current and Interdomestik authority remains current.
+Direct refresh and baseline acceptance remain forbidden. This docs-only
+selection supplies stable repository evidence for the governed post-merge
+publication/check, while runtime and product execution remain fail-closed until
+that check, exact resolver selection and a separate exact-main runtime receipt
+all pass.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03a2-B1` (Tier 3 product/UI/security/privacy; `runtime_authorized:false`; exact-approved merged authority `IDA-DG19-B1-SAVED-DRAFT-CANONICAL-SUBMIT-RECUT`).
