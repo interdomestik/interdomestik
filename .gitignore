@@ -40,6 +40,7 @@ inspect_pdf_parse.js
 
 # Turbo
 .turbo
+turbo-cache-key.json
 
 # Testing
 coverage

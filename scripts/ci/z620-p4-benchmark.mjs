@@ -37,11 +37,11 @@ const postgresBefore = captureCommand(Z620_EXECUTABLES.docker, [
   'supabase_db_interdomestik',
 ]);
 
-function runTask(name, cpuList, commandArgs, round) {
+function runTask(name, cpuList, commandArgs, round, executable = Z620_EXECUTABLES.pnpm) {
   const started = Date.now();
   const child = spawn(
     Z620_EXECUTABLES.taskset,
-    ['--cpu-list', cpuList, Z620_EXECUTABLES.pnpm, ...commandArgs],
+    ['--cpu-list', cpuList, executable, ...commandArgs],
     {
       env: {
         ...process.env,
@@ -79,8 +79,7 @@ async function runRound(round) {
     'verify',
     '0-5,12-17',
     [
-      'exec',
-      'turbo',
+      'scripts/ci/run-turbo.mjs',
       'run',
       'build',
       '--filter=@interdomestik/web...',
@@ -89,7 +88,8 @@ async function runRound(round) {
       '--summarize',
       '--no-daemon',
     ],
-    round
+    round,
+    Z620_EXECUTABLES.node
   );
   const e2ePrep = runTask(
     'e2e-prep',

@@ -11,6 +11,8 @@ test('pins verify and E2E preparation to different NUMA CPU lists', () => {
 });
 
 test('uses a shared local-only Turbo cache with bounded concurrency and summaries', () => {
+  assert.match(source, /scripts\/ci\/run-turbo\.mjs/);
+  assert.doesNotMatch(source, /'exec',\s*'turbo'/);
   assert.match(source, /--cache-dir=/);
   assert.match(source, /prepareCacheNamespace/);
   assert.match(source, /--concurrency=6/);

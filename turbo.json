@@ -1,7 +1,15 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "stream",
+  "cacheDir": ".turbo/cache",
+  "remoteCache": {
+    "signature": true
+  },
+  "futureFlags": {
+    "longerSignatureKey": true
+  },
   "globalEnv": [
+    "INTERDOMESTIK_TURBO_PLATFORM_KEY",
     "DATABASE_URL",
     "DATABASE_URL_RLS",
     "NEXT_PUBLIC_APP_URL",

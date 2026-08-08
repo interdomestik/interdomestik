@@ -179,8 +179,10 @@ jobs:
       BETTER_AUTH_URL: http://127.0.0.1:3000
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
       DATABASE_URL_RLS: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ vars.TURBO_TEAM || secrets.TURBO_TEAM }}
+      TURBO_TOKEN: ${{ github.event_name == 'workflow_dispatch' && secrets.TURBO_TOKEN || '' }}
+      TURBO_TEAM: ${{ github.event_name == 'workflow_dispatch' && (vars.TURBO_TEAM || secrets.TURBO_TEAM) || '' }}
+      TURBO_REMOTE_CACHE_SIGNATURE_KEY: ${{ github.event_name == 'workflow_dispatch' && secrets.TURBO_REMOTE_CACHE_SIGNATURE_KEY || '' }}
+      INTERDOMESTIK_TURBO_REMOTE_CACHE_READ_ONLY: ${{ github.event_name == 'pull_request' && '1' || '0' }}
       BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
       SONAR_GATE_ENABLED: ${{ needs.pilot-gate-preflight.outputs.sonar_gate_enabled }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -208,7 +210,6 @@ jobs:
       EVIDENCE_DIR: tmp/pilot-evidence/${{ github.run_id }}
     steps:
       - uses: actions/checkout@v5
-
       - name: Generate BETTER_AUTH_SECRET fallback for Dependabot
         if: needs.pilot-gate-preflight.outputs.needs_dependabot_better_auth_fallback == 'true'
         shell: bash
@@ -244,7 +245,6 @@ jobs:
             ${{ env.EVIDENCE_DIR }}/notes/sonar-summary.md
           if-no-files-found: warn
           retention-days: 14
-
       - name: Prepare CI database
         shell: bash
         run: |
