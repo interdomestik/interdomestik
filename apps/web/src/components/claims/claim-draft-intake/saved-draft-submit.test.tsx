@@ -100,6 +100,8 @@ describe('saved draft canonical submit', () => {
       'CLM-KS-2026-000001'
     );
     expect(screen.getByTestId('claim-created-success').tagName).toBe('OUTPUT');
+    expect(screen.getByTestId('claim-created-success').querySelector('p')).toBeNull();
+    expect(screen.getByRole('status')).toHaveTextContent(submitCopy.success);
     expect(screen.getByRole('link', { name: submitCopy.goToClaim })).toHaveAttribute(
       'href',
       '/en/member/claims/claim-1'

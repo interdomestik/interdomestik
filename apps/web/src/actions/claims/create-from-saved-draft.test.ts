@@ -26,12 +26,8 @@ import { createClaimFromSavedDraft } from './create-from-saved-draft';
 const session = {
   user: { id: 'member-1', role: 'member', tenantId: 'tenant_ks', email: 'm@example.com' },
 };
-const context = {
-  accessTenantId: 'tenant_ks',
-  actorRole: 'member',
-  ownerUserId: 'member-1',
-  tenantId: 'tenant_ks',
-};
+// prettier-ignore
+const context = { accessTenantId: 'tenant_ks', actorRole: 'member', ownerUserId: 'member-1', tenantId: 'tenant_ks' };
 // prettier-ignore
 const draft = { category: 'vehicle', clientRequestId: 'request-1', counterparty: 'Example Insurer', createdAt: '2026-08-08T00:00:00.000Z', desiredOutcome: 'repair', id: '63ffc31e-8c64-4758-995a-c57f40de7568', incidentDate: '2026-07-20', issueType: 'collision', resumeStep: 'preview', summary: 'The vehicle was damaged and needs a documented repair.', updatedAt: '2026-08-08T00:00:00.000Z', version: 3 };
 const input = { id: draft.id, expectedVersion: 3 };
@@ -142,9 +138,11 @@ describe('createClaimFromSavedDraft', () => {
     await expect(createClaimFromSavedDraft(input)).resolves.toMatchObject({ success: false });
     expect(h.submit).not.toHaveBeenCalled();
   });
-  it('returns truthful failure when canonical membership denial has no exact claim', async () => {
+  it('returns truthful failure for canonical denial or a mismatched reservation', async () => {
     h.submit.mockResolvedValue({ success: false, code: 'MEMBERSHIP_REQUIRED' });
     await expect(createClaimFromSavedDraft(input)).resolves.toMatchObject({ success: false });
-    expect(h.limit).toHaveBeenCalledTimes(2);
+    h.submit.mockResolvedValue({ ...success, claimId: 'other-claim' });
+    await expect(createClaimFromSavedDraft(input)).resolves.toMatchObject({ success: false });
+    expect(h.limit).toHaveBeenCalledTimes(4);
   });
 });

@@ -22,6 +22,7 @@ export function DormantPreview(props: Props) {
   const [createdClaim, setCreatedClaim] = useState<{ id: string; number: string } | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const failureRef = useRef<HTMLParagraphElement>(null);
+  const successRef = useRef<HTMLOutputElement>(null);
   const submitting = useRef(false);
   const locale = useLocale();
   // prettier-ignore
@@ -29,7 +30,7 @@ export function DormantPreview(props: Props) {
   // prettier-ignore
   const eligible = Boolean(!managerOnly && activeDraftId && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(activeDraftId) && activeDraftVersion && !hasUnsavedChanges && [draft.issueType, draft.incidentDate, draft.counterparty, draft.desiredOutcome, draft.summary].every(value => value.trim()));
   // prettier-ignore
-  useEffect(() => { if (failure) failureRef.current?.focus(); else if (createdClaim) document.querySelector<HTMLElement>('[data-testid="claim-created-success"]')?.focus(); }, [failure, createdClaim]);
+  useEffect(() => { if (failure) failureRef.current?.focus(); else if (createdClaim) successRef.current?.focus(); }, [failure, createdClaim]);
   function submit() {
     if (!eligible || !activeDraftId || !activeDraftVersion || submitting.current) return;
     submitting.current = true;
@@ -51,12 +52,13 @@ export function DormantPreview(props: Props) {
   if (createdClaim) {
     submitAction = (
       <output
+        ref={successRef}
         data-testid="claim-created-success"
         data-claim-number={createdClaim.number}
         tabIndex={-1}
         className="block space-y-3 text-left"
       >
-        <p className="font-bold text-[#173b43]">{submitCopy.success}</p>
+        <span className="block font-bold text-[#173b43]">{submitCopy.success}</span>
         <Link
           className="font-bold text-[#006b7b] underline"
           href={`/${locale}/member/claims/${createdClaim.id}`}

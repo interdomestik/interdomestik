@@ -132,7 +132,7 @@ export async function createClaimFromSavedDraft(input: unknown): Promise<SavedDr
         session,
         trustedClaimId: claimId,
       });
-      if (result.success)
+      if (result.success && result.claimId === claimId)
         return { success: true as const, claimId, claimNumber: result.claimNumber };
     } catch {
       // Ambiguous writer outcomes use the same bounded exact recovery below.
