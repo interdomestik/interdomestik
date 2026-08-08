@@ -21,7 +21,6 @@ export interface LifecycleCleanup {
 }
 // prettier-ignore
 export interface RuntimeRoleLifecycleOps { docker(args:string[]):Promise<string>; persist(path:string,value:object):Promise<void>; discard(path:string):Promise<void>; suffix():string }
-
 async function persist(path: string, value: object): Promise<void> {
   await mkdir(RECEIPTS, { recursive: true, mode: 0o700 });
   await chmod(RECEIPTS, 0o700);
@@ -42,7 +41,6 @@ const fixed = (error: unknown, fallback: string) => {
 const aborted = (signal: AbortSignal) => {
   if (signal.aborted) throw new Error('CONTAINER_ABORTED');
 };
-
 async function inspect(ops: RuntimeRoleLifecycleOps, target: string): Promise<Identity | null> {
   try {
     const value = await ops.docker([
@@ -92,7 +90,8 @@ async function run<T>(
   } catch {
     throw new Error('CONTAINER_RECEIPT_WRITE_FAILED');
   }
-  let identity: Identity | null = null;
+  let identity: Identity | null = null,
+    cleanupAttempted = false;
   try {
     try {
       const id = await ops.docker([
@@ -132,9 +131,11 @@ async function run<T>(
     aborted(signal);
     const value = await operation(port);
     aborted(signal);
+    cleanupAttempted = true;
     return { value, cleanup: await remove(ops, identity, receipt) };
   } catch (error) {
     if (!identity) throw new Error(fixed(error, 'CONTAINER_OPERATION_FAILED'));
+    if (cleanupAttempted) throw new Error('CONTAINER_CLEANUP_FAILED');
     try {
       await remove(ops, identity, receipt);
     } catch {

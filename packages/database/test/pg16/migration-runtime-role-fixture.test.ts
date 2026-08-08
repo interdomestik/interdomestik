@@ -40,7 +40,7 @@ test('runs the canonical kernel only as migration owner and emits a redacted man
 });
 
 // prettier-ignore
-type Scenario = 'planned'|'start'|'lost-create'|'unresolved-create'|'upgrade'|'cleanup'|'cleanup-absent'|'label'|'name'|'port';
+type Scenario = 'planned'|'start'|'lost-create'|'unresolved-create'|'upgrade'|'cleanup'|'cleanup-transient'|'cleanup-absent'|'label'|'name'|'port';
 function lifecycleOps(scenario: Scenario) {
   const id = 'a'.repeat(64),
     name = `ida-p0a2a-${'b'.repeat(16)}`;
@@ -87,6 +87,8 @@ function lifecycleOps(scenario: Scenario) {
           exists = false;
           throw new Error(`raw ${name}`);
         }
+        if (scenario === 'cleanup-transient' && removals.length === 1)
+          throw new Error(`raw ${name}`);
         if (scenario === 'cleanup') throw new Error(`raw ${name}`);
         exists = false;
         return id;
@@ -112,6 +114,7 @@ test('fails closed and reconciles only exact identity on every lifecycle branch'
     ['unresolved-create', 'CONTAINER_IDENTITY_UNRESOLVED', true],
     ['upgrade', 'CONTAINER_RECEIPT_WRITE_FAILED', false],
     ['cleanup', 'CONTAINER_CLEANUP_FAILED', true],
+    ['cleanup-transient', 'CONTAINER_CLEANUP_FAILED', true],
     ['label', 'CONTAINER_IDENTITY_UNRESOLVED', true],
     ['name', 'CONTAINER_IDENTITY_UNRESOLVED', false],
     ['port', 'CONTAINER_PORT_REJECTED', false],
@@ -126,6 +129,7 @@ test('fails closed and reconciles only exact identity on every lifecycle branch'
       ]);
     for (const removal of fixture.removals)
       assert.deepEqual(removal, ['rm', '--force', 'a'.repeat(64)]);
+    if (scenario === 'cleanup-transient') assert.equal(fixture.removals.length, 1);
   }
   const absent = lifecycleOps('cleanup-absent');
   const cleaned = await run(absent.ops);
