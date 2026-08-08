@@ -6810,3 +6810,49 @@ that check, exact resolver selection and a separate exact-main runtime receipt
 all pass.
 <!-- prettier-ignore -->
 The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03a2-B1` (Tier 3 product/UI/security/privacy; `runtime_authorized:false`; exact-approved merged authority `IDA-DG19-B1-SAVED-DRAFT-CANONICAL-SUBMIT-RECUT`).
+
+Rev 207 authority correction supersedes only Rev 206's eleven-path writer-map
+sentence while preserving its sole active product slice and every product
+contract. Arben exact-approved
+`IDA-DG19-B1-A1-REPO-SIZE-METADATA-CORRECTION` in task
+`019fe16c-4bd0-75d1-86dd-6f6b7cf3eb6c` on 2026-08-08 at 11,547 bytes /
+SHA-256
+`7d6814f99b181caa2970df26643c1d84a529d76e4b1c5ca4010c23c10a6b071b`.
+The canonical artifact is byte-identical to the approved candidate.
+
+Z620 exact-head evidence proved that the approved three new files necessarily
+raise the pre-correction exact-main tracked-file count from 5,686 to 5,689;
+byte compaction cannot satisfy that file-count contract. The addendum's
+5,689-file / `670ab8cd9eaadf035d52c6c6b5f3d802072f4d522e974d25794c6a56537f1b09`
+snapshot is pre-correction evidence at base `aa500f07ec011788d87364f5dc6398271b82bcad`.
+After this correction merges, exact-main is 5,687 files; the rebased product
+head must be re-measured by the unchanged generator (expected 5,690), and that
+output—not the recorded snapshot—is authoritative. Scope-local modularity
+findings were fixed inside the approved map at preserved product head
+`cf71a502d2d5affb5a69e104e50a31df400c3b53`, with the new action test at
+150 lines, the legacy domain test reduced from 384 to 382 lines, focused tests
+passing 16/16 and 9/9, and `security:guard` passing. The same Z620 run passed
+static, required database/RLS and production build supporting lanes, selected
+no E2E and completed no E2E.
+
+The corrected implementation mutation ceiling is exactly the existing six
+production and five focused test/spec paths plus conditional deterministic
+`scripts/repo-size-budget.json`, written only by unchanged
+`node scripts/repo-size-budget-sync.mjs --tracked-only` after the product
+head is rebased to the correction merge. No hand edit, reserve, thirteenth path,
+generator/workflow change, second product outcome or second slice is
+authorized. All Rev 206 exclusions, acceptance contracts and stop conditions
+remain binding.
+
+The previously approved runtime receipt
+`eb1849880f1f6e0b8c509bdc882e8f6366ed033329f6164cd2071cbcd95766fc`
+is suspended because it binds the obsolete eleven-path ceiling. This correction
+PR itself changes four paths: the three authority documents plus the same
+deterministic `scripts/repo-size-budget.json`, written only by unchanged
+`node scripts/repo-size-budget-sync.mjs --tracked-only`. After this authority
+correction merges, execution must rerun AI OS check, preflight,
+resolver and scorecard, then stop for a replacement exact-main runtime receipt
+and Arben exact-hash approval before any product mutation. The preserved product
+branch remains unpushed and no product PR exists.
+<!-- prettier-ignore -->
+The next active governed implementation goal remains exactly one canonical tracker slice: `IDA-UI03a2-B1` (Tier 3 product/UI/security/privacy; `runtime_authorized:false`; exact-approved merged parent authority plus exact-approved `IDA-DG19-B1-A1-REPO-SIZE-METADATA-CORRECTION`).
