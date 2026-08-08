@@ -111,7 +111,11 @@ export async function createClaimFromSavedDraft(input: unknown): Promise<SavedDr
         claimNumber: existing.claimNumber,
       };
     }
-    if (existing.kind === 'invalid' || resumed.draft.version !== parsed.data.expectedVersion) {
+    if (
+      existing.kind === 'invalid' ||
+      resumed.draft.version !== parsed.data.expectedVersion ||
+      resumed.draft.resumeStep !== 'preview'
+    ) {
       return unavailable();
     }
     const data = mapDraft(resumed.draft);

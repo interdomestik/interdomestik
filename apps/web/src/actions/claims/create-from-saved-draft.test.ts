@@ -105,7 +105,7 @@ describe('createClaimFromSavedDraft', () => {
     ['stale version', context, { ...draft, version: 4 }, false],
     ['incomplete draft', context, { ...draft, summary: '' }, false],
     ['short counterparty', context, { ...draft, counterparty: 'x' }, false],
-    ['unsupported category', context, { ...draft, category: 'injury' }, false], ['prototype category', context, { ...draft, category: 'constructor' }, false], ['prototype issue', context, { ...draft, issueType: 'toString' }, false], ['prototype outcome', context, { ...draft, desiredOutcome: 'constructor' }, false], ['outer rate limit', context, draft, true],
+    ['unsupported category', context, { ...draft, category: 'injury' }, false], ['non-preview step', context, { ...draft, resumeStep: 'details' }, false], ['prototype category', context, { ...draft, category: 'constructor' }, false], ['prototype issue', context, { ...draft, issueType: 'toString' }, false], ['prototype outcome', context, { ...draft, desiredOutcome: 'constructor' }, false], ['outer rate limit', context, draft, true],
   ])('fails closed for %s', async (_name, freshContext, savedDraft, limited) => {
     h.resolveSession.mockResolvedValue({ ok: true, context: freshContext });
     h.resumeDraft.mockResolvedValue({ ok: true, draft: savedDraft });
@@ -119,8 +119,9 @@ describe('createClaimFromSavedDraft', () => {
     await expect(createClaimFromSavedDraft(input)).resolves.toMatchObject({ success: false });
     expect(h.submit).not.toHaveBeenCalled();
   });
-  it('returns an exact recovered claim before stale-version rejection', async () => {
-    h.resumeDraft.mockResolvedValue({ ok: true, draft: { ...draft, version: 4 } });
+  it('returns an exact recovered claim before stale-version or preview rejection', async () => {
+    // prettier-ignore
+    h.resumeDraft.mockResolvedValue({ ok: true, draft: { ...draft, resumeStep: 'details', version: 4 } });
     h.limit.mockResolvedValue([{ id: claimId, claimNumber: success.claimNumber }]);
     await expect(createClaimFromSavedDraft(input)).resolves.toEqual(success);
     expect(h.submit).not.toHaveBeenCalled();
