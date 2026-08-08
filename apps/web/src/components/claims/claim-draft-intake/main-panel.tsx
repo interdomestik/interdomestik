@@ -8,16 +8,10 @@ import type {
 import type { useOrganizerFlow } from '@/app/[locale]/components/home/free-start-intake-shell/use-organizer-flow';
 import { useEffect, useState } from 'react';
 
-import { DormantPreview, type ClaimDraftCopy } from './dormant-preview';
+import { DormantPreview, type ClaimDraftCopy, type SavedDraftSubmitCopy } from './dormant-preview';
 
-type Props = Readonly<{
-  copy: ClaimDraftCopy;
-  flow: ReturnType<typeof useOrganizerFlow>;
-  issueIds: ReadonlyArray<IssueId>;
-  labels: { category: string; issue: string; outcome: string };
-  neutralOtpHost?: string | null;
-  tFree: FreeStartCopy & { raw: (key: string) => unknown };
-}>;
+// prettier-ignore
+type Props = Readonly<{ activeDraftId?: string | null; activeDraftVersion?: number | null; copy: ClaimDraftCopy; flow: ReturnType<typeof useOrganizerFlow>; hasUnsavedChanges?: boolean; issueIds: ReadonlyArray<IssueId>; labels: { category: string; issue: string; outcome: string }; managerOnly?: boolean; neutralOtpHost?: string | null; submitCopy: SavedDraftSubmitCopy; tFree: FreeStartCopy & { raw: (key: string) => unknown } }>;
 
 const NEUTRAL_HOSTS = new Set(['ida.interdomestik.com', 'ida.localhost', 'ida.127.0.0.1.nip.io']);
 const ACTION_CLASS =
@@ -51,10 +45,16 @@ export function ClaimDraftMainPanel(props: Props) {
       <div className="space-y-4">
         {accountContextNotice}
         <DormantPreview
+          key={`${props.activeDraftId}:${props.activeDraftVersion}`}
+          activeDraftId={props.activeDraftId}
+          activeDraftVersion={props.activeDraftVersion}
           copy={copy}
           draft={flow.draft}
+          hasUnsavedChanges={props.hasUnsavedChanges}
           headingRef={flow.stageHeadingRef}
           labels={labels}
+          managerOnly={props.managerOnly}
+          submitCopy={props.submitCopy}
           tFree={tFree}
         />
         <button

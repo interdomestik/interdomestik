@@ -329,12 +329,10 @@ describe('submitClaimCore', () => {
       })
     );
   });
-
   it('records claim attribution audit metadata', async () => {
     await submitClaimCore(buildSubmitArgs({ files: [] }), {
       logAuditEvent: hoisted.logAuditEvent,
     });
-
     expect(hoisted.logAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'claim.submitted',
@@ -347,7 +345,6 @@ describe('submitClaimCore', () => {
       })
     );
   });
-
   it('prefers active agent_clients ownership for assignment', async () => {
     hoisted.getActiveSubscription.mockResolvedValue({
       branchId: null,
@@ -357,14 +354,14 @@ describe('submitClaimCore', () => {
       agentId: 'agent-canonical',
     });
     hoisted.db.query.user.findFirst.mockResolvedValue({ branchId: 'branch-canonical' });
-
-    await submitClaimCore(buildSubmitArgs({ files: [] }), {
-      logAuditEvent: hoisted.logAuditEvent,
-    });
-
+    await submitClaimCore(
+      { ...buildSubmitArgs({ files: [] }), trustedClaimId: 'fsd_authorized-claim-id' },
+      { logAuditEvent: hoisted.logAuditEvent }
+    );
     expect(hoisted.txInsertValues).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
+        id: 'fsd_authorized-claim-id',
         branchId: 'branch-canonical',
         agentId: 'agent-canonical',
       })
@@ -380,5 +377,6 @@ describe('submitClaimCore', () => {
         }),
       })
     );
+    expect(hoisted.nanoid).not.toHaveBeenCalled();
   });
 });

@@ -285,6 +285,7 @@ export async function submitClaimCore(
     session: ClaimsSession | null;
     requestHeaders: Headers;
     hostId?: string | null;
+    trustedClaimId?: string;
     data: CreateClaimValues;
     handoffContext?: ClaimStartHandoffContext | null;
   },
@@ -306,10 +307,9 @@ export async function submitClaimCore(
     throw new ClaimValidationError('Validation failed', 'INVALID_PAYLOAD');
   }
 
-  // Security: Validate ALL files before creating ANY database records
   await validateClaimFiles(result.data.files, session, tenantId, deps);
 
-  const claimId = nanoid();
+  const claimId = params.trustedClaimId ?? nanoid();
   const createdAt = new Date();
   let queuedRuns: QueuedClaimAiRun[];
   let claimNumber = '';

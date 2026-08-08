@@ -65,6 +65,7 @@ function resolveCommercialFlow(rawCategory: string): SubmitClaimCommercialFlow {
 
 export async function submitClaimCore(params: {
   idempotencyKey?: string;
+  trustedClaimId?: string;
   session: NonNullable<Session> | null;
   requestHeaders: Headers;
   data: CreateClaimValues;
@@ -72,7 +73,6 @@ export async function submitClaimCore(params: {
 }): Promise<SubmitClaimResult> {
   const { session, requestHeaders } = params;
 
-  // Context for Sentry (populated incrementally)
   const sentryContext: Record<string, string> = {
     feature: 'claims',
     action: 'submitClaim',

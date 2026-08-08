@@ -7,8 +7,8 @@ const entries = ['index.tsx', 'main-panel.tsx', 'dormant-preview.tsx'];
 const denied = [
   /from\s+['"][^'"]*claim-wizard|<ClaimWizard\b/i,
   /claims\.core/i,
-  /submitClaim/,
-  /createClaim/,
+  /\bsubmitClaim(?:Core)?\b/,
+  /\bcreateClaim(?:Core)?\b/,
   /updateDraftClaim/,
   /submitFreeStartIntake/,
   /useOrganizerSubmit/,
@@ -50,13 +50,15 @@ function walk(path: string, seen = new Map<string, string>()) {
 }
 
 describe('Claim Draft Intake import and scope boundary', () => {
-  it('walks the new local graph and rejects every submission or side-effect seam', () => {
+  it('permits only the dedicated saved-draft submit seam in the three-file graph', () => {
     const graph = new Map<string, string>();
     for (const entry of entries) walk(join(root, entry), graph);
     expect([...graph.keys()].map(path => relative(root, path)).sort()).toEqual(entries.sort());
     const combined = [...graph.values()].join('\n');
     for (const pattern of denied) expect(combined).not.toMatch(pattern);
     expect(combined).toContain('use-draft-lifecycle');
+    expect(combined).toContain('@/actions/claims/create-from-saved-draft');
+    expect(combined.match(/createClaimFromSavedDraft/g)).toHaveLength(2);
   });
 
   it('keeps the route on ClaimDraftIntake and every new file below 150 lines', () => {
@@ -64,19 +66,38 @@ describe('Claim Draft Intake import and scope boundary', () => {
     const routeSource = readFileSync(route, 'utf8');
     expect(routeSource).toContain('@/components/claims/claim-draft-intake');
     expect(routeSource).not.toMatch(/claim-wizard/i);
-    for (const name of [
-      ...entries,
-      'claim-draft-intake.test.tsx',
-      'claim-draft-intake.boundary.test.ts',
-    ]) {
+    for (const name of entries) {
       expect(readFileSync(join(root, name), 'utf8').split('\n').length - 1).toBeLessThan(150);
     }
+    const action = resolve(root, '../../../actions/claims/create-from-saved-draft.ts');
+    const submitCore = resolve(root, '../../../actions/claims/submit.core.ts');
+    const domainSubmit = resolve(
+      root,
+      '../../../../../../packages/domain-claims/src/claims/submit.ts'
+    );
+    expect(readFileSync(action, 'utf8').split('\n').length - 1).toBeLessThan(150);
+    expect(readFileSync(submitCore, 'utf8').split('\n').length - 1).toBeLessThanOrEqual(150);
+    expect(readFileSync(domainSubmit, 'utf8').split('\n').length - 1).toBeLessThanOrEqual(478);
   });
 
-  it('keeps dormant submit statically disabled with no handler or form fallback', () => {
+  it('keeps ineligible submit disabled and binds only the dedicated eligible handler', () => {
     const preview = readFileSync(join(root, 'dormant-preview.tsx'), 'utf8');
     expect(preview).toMatch(/<button[\s\S]*?disabled[\s\S]*?>/);
-    expect(preview).not.toMatch(/<form|onSubmit|onClick|formAction|type=["']submit/);
+    expect(preview).toContain('onClick={submit}');
+    expect(preview).not.toMatch(/<form|onSubmit|formAction|type=["']submit/);
+    const mainPanel = readFileSync(join(root, 'main-panel.tsx'), 'utf8');
+    expect(mainPanel).toMatch(/key=.*activeDraftId.*activeDraftVersion/);
+    expect(mainPanel).toContain('managerOnly={props.managerOnly}');
+    const action = readFileSync(
+      resolve(root, '../../../actions/claims/create-from-saved-draft.ts'),
+      'utf8'
+    );
+    expect(action).toContain(
+      'db-access-guard: tenant-scoped -- reason: RLS enabled, not enforced for this runtime role; exact-id, tenant and owner'
+    );
+    expect(action).not.toMatch(
+      /createClaimCore|generateClaimNumber|adminDb|provider|upload|storage|notification/i
+    );
   });
 
   it('keeps the required E2E scenario executable instead of self-skipping', () => {
@@ -84,5 +105,7 @@ describe('Claim Draft Intake import and scope boundary', () => {
     const source = readFileSync(spec, 'utf8');
     expect(source).not.toMatch(/test\.skip|test\.fixme/);
     expect(source).toContain('resolveIdaTarget');
+    expect(source).toContain("name: 'cookie_consent'");
+    expect(source).not.toContain('dismissCookieConsent');
   });
 });

@@ -4,27 +4,23 @@ import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 
-const facts = {
-  counterparty: 'P00 test operator',
-  date: '2026-07-20',
-  summary: 'Bounded vehicle preparation facts.',
-};
+// prettier-ignore
+const facts = { category: 'vehicle', counterparty: 'P00 test operator', date: '2026-07-20', issue: 'collision', outcome: 'repair', summary: 'Bounded vehicle preparation facts.' };
 
 const pilotHeaders = { 'x-tenant-id': 'tenant_ks' };
 
-function visibleIntake(page: Page) {
-  return page.locator('[data-testid="claim-draft-intake"]:visible').first();
-}
+// prettier-ignore
+const visibleIntake = (page: Page) => page.locator('[data-testid="claim-draft-intake"]:visible').first();
 
 async function fillSupportedDraft(page: Page) {
   const intake = visibleIntake(page);
   const panel = intake.getByTestId('claim-draft-main-panel');
-  await intake.getByTestId('claim-draft-category-vehicle').click();
+  await intake.getByTestId(`claim-draft-category-${facts.category}`).click();
   await intake.getByTestId('claim-draft-category-continue').click();
-  await panel.locator('select').nth(0).selectOption('collision');
+  await panel.locator('select').nth(0).selectOption(facts.issue);
   await panel.locator('input[type="date"]').fill(facts.date);
   await panel.locator('input[type="text"]').fill(facts.counterparty);
-  await panel.locator('select').nth(1).selectOption('repair');
+  await panel.locator('select').nth(1).selectOption(facts.outcome);
   await panel.locator('textarea').fill(facts.summary);
   await panel.locator('button').last().click();
   await expect(intake.getByTestId('claim-draft-dormant-preview')).toBeVisible();
@@ -32,11 +28,8 @@ async function fillSupportedDraft(page: Page) {
 
 async function freshLogin(page: Page, origin: string, loginPath: string) {
   const response = await page.request.post(`${origin}/api/auth/sign-in/email`, {
-    data: {
-      email: E2E_USERS.KS_MEMBER.email,
-      password: E2E_PASSWORD,
-      additionalData: { tenantId: 'tenant_ks' },
-    },
+    // prettier-ignore
+    data: { email: E2E_USERS.KS_MEMBER.email, password: E2E_PASSWORD, additionalData: { tenantId: 'tenant_ks' } },
     headers: { Origin: origin, Referer: `${origin}${loginPath}`, ...pilotHeaders },
   });
   expect(response.ok()).toBe(true);
@@ -56,42 +49,28 @@ function resolveIdaTarget(testInfo: TestInfo) {
   };
 }
 
-async function dismissCookieConsent(page: Page) {
-  const banner = page.getByTestId('cookie-consent-banner');
-  if (!(await banner.isVisible().catch(() => false))) return;
-  await page.getByTestId('cookie-consent-accept').click();
-  await expect(banner).toHaveCount(0);
-}
-
-async function deleteSavedDraft(page: Page, draftId: string) {
-  const intake = visibleIntake(page);
-  await intake.getByTestId('free-start-manage-open').click();
-  const remove = page.getByTestId(`free-start-delete-${draftId}`);
-  await expect(remove).toBeVisible();
-  await remove.click();
-  await page.getByTestId('free-start-delete-confirm').click();
-  await expect(intake.getByTestId('free-start-save-status')).toHaveAttribute(
-    'data-state',
-    'deleted'
-  );
-  await expect(remove).toHaveCount(0);
-}
-
-test.describe('IDA-UI03a3 neutral Claim Draft Intake', () => {
-  test('saves and resumes in a fresh context while submit stays dormant', async ({
+test.describe('IDA-UI03a2-B1 saved draft canonical submit', () => {
+  test('submits one resumed draft and preserves its independent source', async ({
     browser,
   }, testInfo) => {
     const ida = resolveIdaTarget(testInfo);
-    const primaryContext = await browser.newContext({
-      extraHTTPHeaders: pilotHeaders,
-      storageState: { cookies: [], origins: [] },
-    });
+    const consentOrigin = new URL(ida.origin);
+    // prettier-ignore
+    const consentCookie = { domain: consentOrigin.hostname, expires: -1, httpOnly: false, name: 'cookie_consent', path: '/', sameSite: 'Lax' as const, secure: consentOrigin.protocol === 'https:', value: 'necessary' };
+    // prettier-ignore
+    const primaryContext = await browser.newContext({ extraHTTPHeaders: pilotHeaders, storageState: { cookies: [consentCookie], origins: [] } });
     const page = await primaryContext.newPage();
-    let draftId: string | undefined;
-    let deleted = false;
-
     try {
       await freshLogin(page, ida.origin, routes.login(ida.testInfo));
+      await gotoApp(page, routes.memberMembership(ida.testInfo), ida.testInfo, {
+        marker: 'membership-page-ready',
+      });
+      await expect(
+        page
+          .getByTestId('ops-status-badge')
+          .filter({ hasText: /active|aktiv|актив/i })
+          .first()
+      ).toBeVisible();
       await gotoApp(page, routes.memberNewClaim(ida.testInfo), ida.testInfo, {
         marker: 'new-claim-page-ready',
       });
@@ -113,12 +92,8 @@ test.describe('IDA-UI03a3 neutral Claim Draft Intake', () => {
         ''
       );
       if (!exactDraftId) throw new Error('saved_draft_id_missing');
-      draftId = exactDraftId;
-
-      const freshContext = await browser.newContext({
-        extraHTTPHeaders: pilotHeaders,
-        storageState: { cookies: [], origins: [] },
-      });
+      // prettier-ignore
+      const freshContext = await browser.newContext({ extraHTTPHeaders: pilotHeaders, storageState: { cookies: [consentCookie], origins: [] } });
       const resumedPage = await freshContext.newPage();
       try {
         await freshLogin(resumedPage, ida.origin, routes.login(ida.testInfo));
@@ -126,23 +101,43 @@ test.describe('IDA-UI03a3 neutral Claim Draft Intake', () => {
           marker: 'new-claim-page-ready',
         });
         expect(await resumedPage.evaluate(() => localStorage.length)).toBe(0);
-        await dismissCookieConsent(resumedPage);
         const resumedIntake = visibleIntake(resumedPage);
         await resumedIntake.getByTestId('free-start-manage-open').click();
         await resumedPage.getByTestId(`free-start-resume-${exactDraftId}`).click();
         const preview = resumedIntake.getByTestId('claim-draft-dormant-preview');
-        await expect(preview).toContainText(facts.counterparty);
-        await expect(preview).toContainText(facts.date);
-        await expect(preview).toContainText(facts.summary);
-        await expect(resumedIntake.getByTestId('claim-draft-submit-disabled')).toBeDisabled();
-        await expect(resumedPage.getByTestId('claim-created-success')).toHaveCount(0);
-        await deleteSavedDraft(resumedPage, exactDraftId);
-        deleted = true;
+        const reviewedFacts = preview.locator('dd');
+        await expect(reviewedFacts).toHaveCount(6);
+        for (const index of [0, 1, 4]) await expect(reviewedFacts.nth(index)).not.toBeEmpty();
+        await expect(reviewedFacts.nth(2)).toHaveText(facts.date);
+        await expect(reviewedFacts.nth(3)).toHaveText(facts.counterparty);
+        await expect(reviewedFacts.nth(5)).toHaveText(facts.summary);
+        const submit = resumedIntake.getByTestId('claim-draft-submit');
+        await expect(submit).toBeEnabled();
+        await submit.click();
+        const success = resumedPage.getByTestId('claim-created-success');
+        await expect(success).toBeVisible({ timeout: 15_000 });
+        const claimNumber = await success.getAttribute('data-claim-number');
+        expect(claimNumber).toMatch(/^CLM-[A-Z0-9]{2,10}-\d{4}-\d{6}$/);
+        testInfo.annotations.push({
+          type: 'permanent-residue',
+          description: `Canonical claim ${claimNumber} and normal member notification retained; source draft ${exactDraftId} retained.`,
+        });
+        const claimLink = success.locator('a');
+        const claimHref = await claimLink.getAttribute('href');
+        expect(claimHref).toMatch(
+          new RegExp(`^/${routes.getLocale(ida.testInfo)}/member/claims/fsd_[a-f0-9]{64}$`)
+        );
+        await claimLink.click();
+        await expect(resumedPage.getByTestId('member-claim-progress-summary')).toBeVisible();
+        await gotoApp(resumedPage, routes.memberNewClaim(ida.testInfo), ida.testInfo, {
+          marker: 'new-claim-page-ready',
+        });
+        await visibleIntake(resumedPage).getByTestId('free-start-manage-open').click();
+        await expect(resumedPage.getByTestId(`free-start-resume-${exactDraftId}`)).toBeVisible();
       } finally {
         await freshContext.close();
       }
     } finally {
-      if (!deleted && draftId) await deleteSavedDraft(page, draftId).catch(() => undefined);
       await primaryContext.close();
     }
   });
