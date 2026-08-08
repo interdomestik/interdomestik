@@ -2111,3 +2111,41 @@ integration, frozen P0 and parent UI03a2, Hero redesign, membership dashboard
 and every second slice remain unpromoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03a2-P0a2a` (Tier 3 architecture/security prerequisite; `runtime_authorized:false`; exact-approved merged authority `IDA-DG29` R7).
+
+Rev 205 closeout consumes `IDA-UI03a2-P0a2a`. Authority PR `#1506` merged
+exact head `85067e8089d268d9e54f9bc2619f8548624396ed` as
+`325eb5237e8efd896f1d2628f2323e67a29f5130`; promotion correction PR `#1511`
+merged exact head `85011eeb0918469eae29df691b66898d60ded906` as
+`4f27e45c29937d3c38d99eaf626ed26d4d662de2`. Runtime receipt
+`IDA-UI03a2-P0a2a-RUNTIME-R1` is 17,022 bytes / SHA-256
+`2206d0a7746ce930fb0f7f2749ca52bb491591b7d36fef4c8bbc78223bdd0b0e`.
+Implementation PR `#1512` merged final reviewed head
+`d37ae8c5d42f92f17a835a38fac832b03499b6f0` as
+`f457f983231cf27ae79d26b2e0e5b6489a5bba66`.
+
+The seven-path PostgreSQL 16 fixture/manifest and single-attempt retained-receipt
+cleanup contract passed focused lifecycle, boundary and type proof plus governed
+Z620 dynamic proof `2/2`. Exact-head CI `31247820320`, E2E `31247820306`,
+Pilot `31247820308`, finalizer `31247820310`, Sonar zero new issues/hotspots,
+CodeQL, gitleaks, audit, dependency review, OSV, Semgrep and zero unresolved
+threads passed. The current-head cleanup-retry finding was reproduced, fixed by
+the transient-failure regression in exact head
+`d37ae8c5d42f92f17a835a38fac832b03499b6f0`, and resolved. Opus 5 R3 and
+focused R4 returned `PASS` with no blockers or required hardening; Codex
+Security diff scan remained user-waived.
+
+Exact-main CI `31248632930`, Sonar `31248632895`, CodeQL `31248632593` /
+`31248632729` and Secret Scan `31248632905` passed. CD `31248632900` was
+cancelled at setup: build-staging executed only cancelled `Set up job`; every
+downstream staging/rollback/production job had `steps: []`. Mac performed no
+heavy runtime or Docker work. Z620 observed minima 43.4 GiB free disk and
+26,924 MiB available memory. Rollback is revert of merge
+`f457f983231cf27ae79d26b2e0e5b6489a5bba66`; no schema or data rollback is
+needed. PostgreSQL 15 parity, propagation and CI consumption remain unpromoted.
+
+Brain session `sess_2026-08-08T05-41-30-912Z_IDA-UI03a2-P0a2a` is measured
+evidence but not formal M7 cohort evidence; Atlas remained excluded and no
+M4/M4.5/M5/M6 candidate was fabricated. Runtime authority is consumed. No
+replacement slice is promoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
