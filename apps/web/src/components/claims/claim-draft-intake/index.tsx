@@ -12,7 +12,8 @@ import { useDraftLifecycle } from '@/app/[locale]/components/home/free-start-int
 import { useOrganizerFlow } from '@/app/[locale]/components/home/free-start-intake-shell/use-organizer-flow';
 import { NextIntlClientProvider, useTranslations, type AbstractIntlMessages } from 'next-intl';
 
-import { parseClaimDraftCopy, type ClaimDraftCopy } from './dormant-preview';
+// prettier-ignore
+import { parseClaimDraftCopy, type ClaimDraftCopy, type SavedDraftSubmitCopy } from './dormant-preview';
 import { ClaimDraftMainPanel } from './main-panel';
 
 // prettier-ignore
@@ -20,29 +21,16 @@ type HandoffContext = Readonly<{ source: 'diaspora-green-card'; country: 'DE' | 
 // prettier-ignore
 type Props = Readonly<{ freeStartMessages: AbstractIntlMessages; handoffContext?: HandoffContext | null; initialCategory?: string; locale: string; managerOnly?: boolean; neutralOtpHost?: string | null; tenantId: string }>;
 
-type BodyProps = Omit<Props, 'freeStartMessages'> &
-  Readonly<{
-    copy: ClaimDraftCopy;
-    handoffCountryLabel: string | null;
-    t: (key: string) => string;
-  }>;
+// prettier-ignore
+type BodyProps = Omit<Props, 'freeStartMessages'> & Readonly<{ copy: ClaimDraftCopy; handoffCountryLabel: string | null; submitCopy: SavedDraftSubmitCopy; t: (key: string) => string }>;
 
 function supportedCategory(value?: string): CategoryId | undefined {
   if (value === 'auto' || value === 'vehicle') return 'vehicle';
   return value === 'property' ? 'property' : undefined;
 }
 
-function ClaimDraftIntakeBody({
-  copy,
-  handoffContext,
-  handoffCountryLabel,
-  initialCategory,
-  locale,
-  managerOnly,
-  neutralOtpHost,
-  t,
-  tenantId,
-}: BodyProps) {
+// prettier-ignore
+function ClaimDraftIntakeBody({ copy, handoffContext, handoffCountryLabel, initialCategory, locale, managerOnly, neutralOtpHost, submitCopy, t, tenantId }: BodyProps) {
   const tFree = useTranslations('freeStart');
   const flow = useOrganizerFlow(supportedCategory(initialCategory));
   const isUnsupportedTravel = initialCategory === 'travel';
@@ -72,9 +60,9 @@ className="mx-auto max-w-5xl space-y-6"
 <h2 className="text-3xl font-bold tracking-tight text-[#001a33]">{copy.heading}</h2>
 <p className="text-lg text-[#365265]">{copy.supporting}</p>
 </header>
-<div className="rounded-2xl border border-[#006f72]/30 bg-[#eaf5f2] p-4 text-sm font-semibold leading-6 text-[#173b43]">
+{flow.step !== 'preview' && flow.step !== 'complete' ? <div className="rounded-2xl border border-[#006f72]/30 bg-[#eaf5f2] p-4 text-sm font-semibold leading-6 text-[#173b43]">
 {copy.truth}
-</div>
+</div> : null}
 {isUnsupportedTravel && <p data-testid="claim-draft-travel">{copy.unsupported}</p>}
 {handoffContext ? (
 <aside
@@ -111,11 +99,16 @@ className="rounded-xl border border-rose-300 bg-rose-50 p-3 font-semibold text-r
 ) : null}
 {!managerOnly || lifecycle.active ? (
 <ClaimDraftMainPanel
+activeDraftId={lifecycle.active?.id}
+activeDraftVersion={lifecycle.active?.version}
 copy={copy}
 flow={flow}
+hasUnsavedChanges={lifecycle.hasUnsavedChanges}
 issueIds={issueIds}
 labels={labels}
+managerOnly={managerOnly}
 neutralOtpHost={neutralOtpHost}
+submitCopy={submitCopy}
 tFree={tFree}
 />
 ) : null}
@@ -128,9 +121,10 @@ export function ClaimDraftIntake({ freeStartMessages, ...props }: Props) {
   const t = useTranslations('claims');
   const tDiaspora = useTranslations('diaspora');
   const copy = parseClaimDraftCopy(t.raw('draftIntakeCopy'));
-  const handoffCountryLabel = props.handoffContext
-    ? tDiaspora(`selector.options.${props.handoffContext.country}`)
-    : null;
+  // prettier-ignore
+  const handoffCountryLabel = props.handoffContext ? tDiaspora(`selector.options.${props.handoffContext.country}`) : null;
+  // prettier-ignore
+  const submitCopy = { failed: t('wizard.submit_failed'), goToClaim: t('success.go_to_claim'), goToClaims: t('title'), label: t('wizard.submit_label'), success: t('wizard.submit_success'), unexpected: t('wizard.submit_unexpected') };
   // prettier-ignore
   return (
 <NextIntlClientProvider locale={props.locale} messages={freeStartMessages}>
@@ -138,6 +132,7 @@ export function ClaimDraftIntake({ freeStartMessages, ...props }: Props) {
 {...props}
 copy={copy}
 handoffCountryLabel={handoffCountryLabel}
+submitCopy={submitCopy}
 t={t}
 />
 </NextIntlClientProvider>
