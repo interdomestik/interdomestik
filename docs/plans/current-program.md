@@ -7059,3 +7059,53 @@ badges, per-cause disabled branching and every second UI-tree node remain
 unpromoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03a2-B3` (Tier 2 product/copy/i18n; `runtime_authorized:false`; exact-approved merged authority `IDA-DG31-UI03a2-B3-PRE-SUBMIT-AVAILABILITY-TRUTH`).
+
+Rev 212 closeout consumes the sole `IDA-UI03a2-B3` promotion. Exact-approved
+authority `IDA-DG31-UI03a2-B3-PRE-SUBMIT-AVAILABILITY-TRUTH` is 32,902 bytes /
+SHA-256 `18fdb1f582a0f5a301c712c1e2546ef9b68004b5025706f799bbd6d819622161`.
+Exact runtime receipt `IDA-UI03a2-B3-RUNTIME-R1` is 22,521 bytes / SHA-256
+`c7687b8469ccaebc80067aee0dcbee0c9077f80f56193d19c1cbb2a0222acac1`.
+Implementation PR `#1523` merged exact reviewed head
+`1adb72dd155d8e75f3a71f2d8cec812ee924a504` as
+`a813676e724114d9351cc97fbb5bcdccd7e7475d`.
+
+The exact eight-path change replaces obsolete future safety-check wording in
+EN/SQ/MK/SR with the current pre-submit truth: active membership, one complete
+saved draft, no unsaved changes and saving does not submit. It changes only the
+existing four locale messages, three focused tests/specs and deterministic
+repository-size metadata. No component, action, eligibility rule, claim/draft
+writer, route/proxy, auth/session/tenant boundary, schema/RLS, provider,
+deployment or production behavior changed.
+
+Focused proof passed `15/15`; governed Z620 focused gate passed `1/1`; focused
+smoke/setup passed `2/2`; and responsive EN/SQ/MK/SR proof passed at 390px with
+no overflow. Bounded Claude Opus 5 senior review found no blocker after one
+responsive hardening. GitHub Copilot was requested once but produced no review
+or thread. Feedback intake found zero blockers and zero unresolved threads.
+Exactly one full PR E2E completed on final head: run `31340841049`, runner job
+`93314256852`, passed in 19m 44s with `343` passed / `17` policy skips plus
+smoke `13` passed / `11` policy skips and no rerun. CI, Pilot, Sonar with zero
+issues/hotspots, CodeQL, gitleaks, audit, security and finalizer passed.
+
+Exact-main CI `31341749139` passed, including automatic `230` passed / `10`
+skipped E2E; Sonar Main `31341749186`, Code Quality `31341748830` and Secret
+Scan `31341749160` passed. Automatic CD `31341749171` was cancelled against the
+exact merge SHA with all eight jobs at `steps: []`, so no checkout, build,
+registry, provider, alias, deployment or production effect occurred. Mac
+performed no Docker or heavy build/E2E.
+
+One unnecessary local direct gate bypassed the established task-isolated Z620
+resource runner. It supplied no merge authority; task-owned temporary/session
+state was invalidated and cleaned, and no local rerun followed the green
+terminal result. This is process evidence only and does not expand this slice.
+Brain session `sess_2026-08-09T20-22-07-619Z_IDA-UI03a2-B3` remains advisory
+measured product-work evidence. M1 stayed current; M2 and M3 are terminal;
+M4-M6 report no qualified candidate; M7 reports no authorized enrollment.
+Atlas remained off and outside every cohort. Brain improved authority safety
+but did not shorten this cycle. Rollback is a single revert of merge
+`a813676e724114d9351cc97fbb5bcdccd7e7475d`; no data rollback is required.
+Hero redesign, membership dashboard, handoff-context persistence and every
+second journey node remain separate and unpromoted. Runtime is consumed and no
+replacement implementation slice is promoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
