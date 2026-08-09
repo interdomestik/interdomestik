@@ -2244,3 +2244,66 @@ and Arben exact-hash approval before any product mutation. The preserved product
 branch remains unpushed and no product PR exists.
 <!-- prettier-ignore -->
 The next active governed implementation goal remains exactly one canonical tracker slice: `IDA-UI03a2-B1` (Tier 3 product/UI/security/privacy; `runtime_authorized:false`; exact-approved merged parent authority plus exact-approved `IDA-DG19-B1-A1-REPO-SIZE-METADATA-CORRECTION`).
+
+Rev 208 closeout consumes the sole `IDA-UI03a2-B1` promotion. Parent authority
+PR `#1515` merged as `aa500f07ec011788d87364f5dc6398271b82bcad`; repository-size
+authority correction PR `#1516` merged as
+`e78faae2a91019948ef706cdaa4b15378fa19654`. Exact replacement runtime receipt
+`IDA-UI03a2-B1-RUNTIME-R2` is 17,307 bytes / SHA-256
+`1deda6fe2d776b169f72961ca77e80353b96205c54174262391aa2c773cc672c`.
+Implementation PR `#1517` merged final reviewed head
+`cfb6ec887eccaf93d229bd464b8e5c02e0edebec` as
+`42f25edfba0bf88c164b8128879b3aab0e78fb5d`.
+
+The exact twelve-path product change lets one access-active member submit one
+complete owner-scoped saved vehicle or property Free Start draft through the
+existing canonical numbered-claim writer without retyping its six facts. The
+server re-authorizes fresh session, tenant, owner, version and preview state;
+deterministic claim identity plus the existing idempotency boundary preserves
+at-most-one creation and bounded post-commit recovery. The source draft remains
+separate and available after claim creation and re-entry. No route, proxy,
+schema, migration, RLS policy, locale, generic idempotency, provider,
+deployment or production surface changed.
+
+Focused action/boundary proof passed `24/24`; domain submit proof passed `9/9`;
+the two existing import-edge graph files passed `61/61`. Modularity,
+E2E-contract, exact repo-size and `security:guard` checks passed. Claude Opus 5
+returned code `GO` on exact final head in 679,474 ms after its added graph proof
+passed. Copilot was requested once on exact final head but produced no review,
+comment or requested-reviewer artifact in the bounded window and is classified
+`requested/unavailable`. Final feedback intake recorded zero blockers; Sonar
+reported zero open issues and zero hotspots. The exact-head Codex Security scan
+inspected all `12/12` surfaces with zero plausible candidates but its completion
+was tool-blocked by missing `scan.target.snapshotDigest`; the prior unchanged
+product-head scan completed `12/12` with zero findings, and repo-native plus
+remote security gates passed.
+
+Exactly one full PR E2E completed on final head: run `31283835570` passed the
+360-test gate inventory (`343` passed, `17` intentional project/policy skips)
+and 24 smoke tests with zero unexpected, flaky, retry-recovered or quarantined
+tests. `member-claim-draft-intake.spec.ts` executed in `gate-ks-sq`, passed on
+retry `0`, and recorded the required `permanent-residue` annotation for the
+canonical claim, normal member notification and preserved source draft.
+Superseded ready attempts were cancelled before full completion; draft runners
+were skipped and do not count.
+
+Exact-main health at `42f25edfba0bf88c164b8128879b3aab0e78fb5d` passed CI
+`31284706115` including DB-backed E2E, Sonar Main Gate `31284706070`, Secret
+Scan `31284706049` and CodeQL runs `31284705803` / `31284705847`. Automatic CD
+`31284706055` was cancelled immediately; every staging, rollback and production
+job recorded zero steps, so no checkout, build, provider, alias, deployment or
+production effect occurred. Mac performed no Docker or heavy build/E2E; the
+required full runtime proof came from exact-head CI after Z620 remained
+unavailable.
+
+Rollback is a single revert of merge
+`42f25edfba0bf88c164b8128879b3aab0e78fb5d`; no migration, backfill or source
+draft cleanup is required. Hero redesign, membership dashboard, handoff-context
+persistence, edit-after-success copy and every further journey transition
+remain separate, unpromoted slices. Brain session
+`sess_2026-08-08T15-48-47-076Z_IDA-UI03a2-B1` is measured product-work evidence;
+Atlas remained outside the cohort and no authorized M7 enrollment existed. No
+qualified M4/M4.5/M5/M6 candidate was fabricated. Runtime authority is consumed
+and no replacement implementation slice is promoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
