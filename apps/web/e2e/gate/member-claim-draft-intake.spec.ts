@@ -8,6 +8,7 @@ import { gotoApp } from '../utils/navigation';
 // prettier-ignore
 const facts = { category: 'vehicle', counterparty: 'P00 test operator', date: '2026-07-20', issue: 'collision', outcome: 'repair', summary: 'Bounded vehicle preparation facts.' };
 const pilotHeaders = { 'x-tenant-id': 'tenant_ks' };
+const sqCopy = JSON.parse(sq.claims.draftIntakeCopy) as Record<string, string>;
 // prettier-ignore
 const visibleIntake = (page: Page) => page.locator('[data-testid="claim-draft-intake"]:visible').first();
 async function fillSupportedDraft(page: Page) {
@@ -31,7 +32,6 @@ async function expectPreservedFacts(intake: ReturnType<typeof visibleIntake>) {
   await expect(reviewedFacts.nth(3)).toHaveText(facts.counterparty);
   await expect(reviewedFacts.nth(5)).toHaveText(facts.summary);
 }
-
 async function freshLogin(page: Page, origin: string, loginPath: string) {
   const response = await page.request.post(`${origin}/api/auth/sign-in/email`, {
     // prettier-ignore
@@ -86,7 +86,7 @@ test.describe('IDA-UI03a2-B1 saved draft canonical submit', () => {
       await fillSupportedDraft(page);
       const submit = intake.getByTestId('claim-draft-submit-disabled');
       await expect(submit).toBeDisabled();
-      await expect(submit).toHaveAttribute('aria-describedby', 'claim-draft-submit-explanation');
+      await expect(submit).toHaveAccessibleDescription(sqCopy.submitExplanation);
       await intake.getByTestId('free-start-save-open').click();
       await expect(intake.getByTestId('free-start-save-status')).toHaveAttribute(
         'data-state',
