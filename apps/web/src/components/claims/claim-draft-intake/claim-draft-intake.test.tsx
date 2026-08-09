@@ -142,5 +142,7 @@ describe('ClaimDraftIntake', () => {
       heading: 'Prepare your claim draft',
       submitDisabled: 'Submit claim — not available yet',
     });
+    // prettier-ignore
+    expect([en.claims.wizard.submit_success, sq.claims.wizard.submit_success, mk.claims.wizard.submit_success, sr.claims.wizard.submit_success]).toEqual(['Case submitted. You can track it from the dashboard. Your saved draft stays separate; later edits to the draft do not change this case.', 'Rasti u dërgua. Mund ta ndiqni nga paneli. Skica juaj e ruajtur mbetet e veçantë; ndryshimet e mëvonshme në skicë nuk e ndryshojnë këtë rast.', 'Случајот е поднесен. Можете да го следите од контролната табла. Зачуваниот нацрт останува одделен; подоцнежните измени во нацртот не го менуваат овој случај.', 'Slučaj je podnet. Možete ga pratiti sa kontrolne table. Sačuvani nacrt ostaje odvojen; kasnije izmene nacrta ne menjaju ovaj slučaj.']);
   });
 });

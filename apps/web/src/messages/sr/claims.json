@@ -102,7 +102,7 @@
       "continue_review": "Nastavi -> Pregled",
       "submit_label": "Podnesi slučaj",
       "required_fields": "Popunite obavezna polja",
-      "submit_success": "Slučaj je podnet i sačuvan. Možete ga pratiti sa kontrolne table.",
+      "submit_success": "Slučaj je podnet. Možete ga pratiti sa kontrolne table. Sačuvani nacrt ostaje odvojen; kasnije izmene nacrta ne menjaju ovaj slučaj.",
       "submit_failed": "Podnošenje nije moglo da se završi. Pokušajte ponovo ili kontaktirajte podršku.",
       "submit_unexpected": "Dogodilo se nešto neočekivano. Pokušajte još jednom ili kontaktirajte podršku.",
       "help": {

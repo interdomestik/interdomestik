@@ -34,7 +34,8 @@ const submitCopy = {
   goToClaim: 'Open claim',
   goToClaims: 'My claims',
   label: 'Submit claim',
-  success: 'Case submitted and saved.',
+  // prettier-ignore
+  success: 'Case submitted. You can track it from the dashboard. Your saved draft stays separate; later edits to the draft do not change this case.',
   unexpected: 'Unexpected failure.',
 };
 const id = '63ffc31e-8c64-4758-995a-c57f40de7568';

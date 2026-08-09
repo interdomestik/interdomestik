@@ -102,7 +102,7 @@
       "continue_review": "Vazhdo -> Rishikimi",
       "submit_label": "Dërgo rastin",
       "required_fields": "Plotëso fushat e detyrueshme",
-      "submit_success": "Rasti u dërgua dhe u ruajt. Mund ta ndiqni nga paneli.",
+      "submit_success": "Rasti u dërgua. Mund ta ndiqni nga paneli. Skica juaj e ruajtur mbetet e veçantë; ndryshimet e mëvonshme në skicë nuk e ndryshojnë këtë rast.",
       "submit_failed": "Dërgimi nuk mund të përfundohej. Provoni përsëri ose kontaktoni mbështetjen.",
       "submit_unexpected": "Ndodhi diçka e papritur. Provoni edhe një herë ose kontaktoni mbështetjen.",
       "help": {
