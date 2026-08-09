@@ -6961,3 +6961,54 @@ Hero redesign, membership dashboard, handoff-context persistence, source-link
 badges, disabled-state copy and every second UI-tree node remain unpromoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03a2-B2` (Tier 2 product/copy/i18n; `runtime_authorized:false`; exact-approved merged authority `IDA-DG30-UI03a2-B2-POST-SUBMIT-DRAFT-TRUTH`).
+
+Rev 210 closeout consumes the sole `IDA-UI03a2-B2` promotion. Exact-approved
+authority `IDA-DG30-UI03a2-B2-POST-SUBMIT-DRAFT-TRUTH` is 29,003 bytes /
+SHA-256 `521c0960f2dfc7b716f5f23a82d0c7f5cf40c7ea802e346e162ca2f3748e7698`.
+Exact runtime receipt `IDA-UI03a2-B2-RUNTIME-R1` is 22,047 bytes / SHA-256
+`46c49bd085110c8ef7468c286423eec584ce2b584f22aa6aeb895312ccca835c`.
+Implementation PR `#1520` merged exact reviewed head
+`8982f4cdb1cf3f07c5990a654d86eb6df39760e8` as
+`71f335dc3c21e8bf6b8150c14416c43e4d11f721`.
+
+The exact eight-path change states in EN/SQ/MK/SR that the case was submitted,
+is trackable from the dashboard, remains separate from the saved draft and is
+not changed by later draft edits. It changes only the existing four locale
+messages, three focused tests/specs and deterministic repository-size metadata.
+No component, action, domain writer, route/proxy, auth/session/tenant boundary,
+schema/RLS, claim/draft record, provider, deployment or production behavior
+changed.
+
+Focused proof passed `23/23`; full web unit passed `3181` with `12` skips;
+i18n purity/completeness, modularity, E2E contracts, repository size, diff and
+security gates passed. Governed Z620 production build plus the exact focused SQ
+browser case passed `1/1`. GPT-5.6 Sol high senior review found no finding. The
+single GitHub Codex P1 misread the approved test ceiling as strictly below 150;
+the authority permits exactly 150 lines, the thread was answered with exact
+gate evidence and resolved without code mutation. GitHub Copilot reviewer
+assignment returned HTTP 422; its one fallback request produced no review and
+was not repeated.
+
+Exactly one full PR E2E completed on final head: run `31326352254`, job
+`93277279376`, passed in 19m 26s with no rerun. Every exact-head PR gate passed,
+including Pilot, Sonar with zero issues/hotspots, CodeQL, gitleaks, audit,
+security, feedback intake and finalizer attempt 2 after the resolved review
+thread. Exact-main CI `31327513480` passed, including automatic `230` passed /
+`10` skipped E2E; Sonar Main `31327513490`, CodeQL `31327513134` and Secret
+Scan `31327513470` passed. Automatic CD `31327513476` was cancelled against the
+exact merge SHA with all eight jobs at `steps: []`, so no checkout, registry,
+image, provider, alias, deployment, rollback or production effect occurred.
+Mac performed no Docker or heavy build/E2E.
+
+Brain session `sess_2026-08-09T16-32-49-526Z_IDA-UI03a2-B2` remains advisory
+measured product-work evidence. M1 was verified current; M2 and M3 were
+terminal; M4-M6 truthfully reported no qualified candidate; M7 reported no
+authorized enrollment. Atlas remained off and outside every cohort. Brain
+improved authority safety but did not measurably shorten the implementation
+cycle. Rollback is a single revert of merge
+`71f335dc3c21e8bf6b8150c14416c43e4d11f721`; no data rollback is required.
+Hero redesign, membership dashboard, handoff-context persistence and every
+second journey node remain separate and unpromoted. Runtime is consumed and no
+replacement implementation slice is promoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
