@@ -127,7 +127,7 @@ test.describe('@smoke ida.localhost canonical dashboard smoke', () => {
       ])
         await expect(preview).toContainText(fact);
       // prettier-ignore
-      await expect(resumed.getByRole('button', { name: 'Submit claim — not available yet' })).toBeDisabled();
+      await expect(resumed.getByRole('button', { name: 'Submit claim — requirements not met' })).toBeDisabled();
       await expect(resumed.getByTestId('claim-pack-result')).toHaveCount(0);
       await expect(resumed.getByTestId('free-start-start-another')).toHaveCount(0);
       await resumed.getByTestId('free-start-manage-open').click();

@@ -28,7 +28,7 @@ const claimCopy = {
   categoryBody: 'Vehicle and property preparation are available.', categoryContinue: 'Continue to details',
   unsupported: 'Not available in this draft', previewHeading: 'Review your preparation facts',
   previewBody: 'Save explicitly when these facts are ready.', backToDetails: 'Back to details',
-  submitDisabled: 'Submit claim — not available yet', submitExplanation: 'Submission waits for claim safety checks.',
+  submitDisabled: 'Submit claim — requirements not met', submitExplanation: 'Submitting a claim requires active membership and a complete, saved draft with no unsaved changes. Saving the draft does not submit the claim.',
 };
 // prettier-ignore
 const secureCopy = {
@@ -134,14 +134,13 @@ describe('ClaimDraftIntake', () => {
   });
 
   it('keeps required truth keys present across EN, SQ, SR, and MK', () => {
-    for (const messages of [en, sq, sr, mk]) {
-      const copy = JSON.parse(messages.claims.draftIntakeCopy) as Record<string, string>;
+    // prettier-ignore
+    const copies = [en, sq, mk, sr].map(messages => JSON.parse(messages.claims.draftIntakeCopy) as Record<string, string>);
+    for (const copy of copies) {
       expect(Object.values(copy).every(value => value.trim())).toBe(true);
     }
-    expect(JSON.parse(en.claims.draftIntakeCopy)).toMatchObject({
-      heading: 'Prepare your claim draft',
-      submitDisabled: 'Submit claim — not available yet',
-    });
+    // prettier-ignore
+    expect([copies[0].heading, ...copies.flatMap(copy => [copy.submitDisabled, copy.submitExplanation])]).toEqual(['Prepare your claim draft', 'Submit claim — requirements not met', 'Submitting a claim requires active membership and a complete, saved draft with no unsaved changes. Saving the draft does not submit the claim.', 'Dorëzo kërkesën — kushtet nuk janë plotësuar', 'Për dorëzim duhen anëtarësim aktiv dhe një skicë e plotë e ruajtur, pa ndryshime të paruajtura. Ruajtja e skicës nuk e dorëzon kërkesën.', 'Поднеси барање — условите не се исполнети', 'За поднесување се потребни активно членство и целосен зачуван нацрт без незачувани измени. Зачувувањето на нацртот не го поднесува барањето.', 'Podnesi zahtev — uslovi nisu ispunjeni', 'Za podnošenje su potrebni aktivno članstvo i potpun sačuvan nacrt bez nesačuvanih izmena. Čuvanje nacrta ne podnosi zahtev.']);
     // prettier-ignore
     expect([en.claims.wizard.submit_success, sq.claims.wizard.submit_success, mk.claims.wizard.submit_success, sr.claims.wizard.submit_success]).toEqual(['Case submitted. You can track it from the dashboard. Your saved draft stays separate; later edits to the draft do not change this case.', 'Rasti u dërgua. Mund ta ndiqni nga paneli. Skica juaj e ruajtur mbetet e veçantë; ndryshimet e mëvonshme në skicë nuk e ndryshojnë këtë rast.', 'Случајот е поднесен. Можете да го следите од контролната табла. Зачуваниот нацрт останува одделен; подоцнежните измени во нацртот не го менуваат овој случај.', 'Slučaj je podnet. Možete ga pratiti sa kontrolne table. Sačuvani nacrt ostaje odvojen; kasnije izmene nacrta ne menjaju ovaj slučaj.']);
   });
