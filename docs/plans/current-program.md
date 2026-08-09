@@ -7012,3 +7012,50 @@ second journey node remain separate and unpromoted. Runtime is consumed and no
 replacement implementation slice is promoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+
+Rev 211 current-authority selection supersedes only the Rev 210 terminal
+no-promotion sentence above. Arben approved immutable
+`IDA-DG31-UI03a2-B3-PRE-SUBMIT-AVAILABILITY-TRUTH` in task
+`019fe16c-4bd0-75d1-86dd-6f6b7cf3eb6c` on 2026-08-09 at exactly 32,902
+UTF-8 bytes / SHA-256
+`18fdb1f582a0f5a301c712c1e2546ef9b68004b5025706f799bbd6d819622161`,
+bound to clean main `56d30e30e01ceb980d528508b6376fc9c0a46a97`. The canonical gate
+artifact is byte-identical to the approved external candidate; its preapproval
+status text remains an immutable snapshot, while this program/tracker record
+owns approval and promotion.
+
+This promotes exactly `IDA-UI03a2-B3`, a Tier 2 copy/i18n continuation of the
+completed B1/B2 transition. When saved-draft submission is unavailable, EN,
+SQ, MK and SR must replace obsolete future safety-check wording with the
+current active-membership, complete-saved-draft, no-unsaved-change and
+save-does-not-submit truth. The product writer map is frozen at exactly the
+four locale `claims.json` files, three existing focused test/spec files and
+conditional deterministic `scripts/repo-size-budget.json`. No component,
+action, route/proxy, auth/session/tenant boundary, schema/RLS, claim/draft
+record, event, provider, deployment or production surface is authorized.
+
+Admission receipt SHA-256
+`29b938f9421f7ef1ef36d50a6489a9a5bf096fb0a4f8f733329766e23b59cdc9`
+is `ready` with one outcome, eight writer paths, three proof surfaces, zero
+shared runtime consumers and one governed Z620 focused-browser environment.
+The canary used process-scoped worker-power authority, proved hostname
+`interdomestik-z620`, Docker `29.6.2` and `33,554,040` KiB root availability,
+then cleared its marker, requested suspend and left the controller idle. UI/UX
+governance receipt SHA-256
+`896f8f2172b2b0926bea8769404f474b0106316c8a02a1060eb1d882d1b979f7`
+passes with three current official operator observations, one blocked
+authenticated-source class, a zero-to-four explicit-fact target and exact
+Arben task approval. Bounded Opus 5 review remediated manager-only authority,
+writer closure, temporal wording and test packing within one consolidated
+scope; final exact-current review found no blocker and its three hardenings are
+bound in the approved artifact.
+
+This docs-only authority grants no runtime. After merge, execution must publish
+the new repository authority only through the governed task-publication path,
+then rerun AI OS check, preflight, resolver and scorecard and stop for one
+separately exact-hash-approved runtime receipt on the then-current exact main.
+Hero redesign, membership dashboard, handoff-context persistence, source-link
+badges, per-cause disabled branching and every second UI-tree node remain
+unpromoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03a2-B3` (Tier 2 product/copy/i18n; `runtime_authorized:false`; exact-approved merged authority `IDA-DG31-UI03a2-B3-PRE-SUBMIT-AVAILABILITY-TRUTH`).

@@ -2376,3 +2376,21 @@ second journey node remain separate and unpromoted. Runtime is consumed and no
 replacement implementation slice is promoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+
+Rev 211 supersedes only the terminal no-promotion sentence above. Exact-approved
+`IDA-DG31-UI03a2-B3-PRE-SUBMIT-AVAILABILITY-TRUTH` is 32,902 bytes /
+SHA-256 `18fdb1f582a0f5a301c712c1e2546ef9b68004b5025706f799bbd6d819622161`,
+bound to clean main `56d30e30e01ceb980d528508b6376fc9c0a46a97` and Arben's approval in
+task `019fe16c-4bd0-75d1-86dd-6f6b7cf3eb6c`. Admission
+`29b938f9421f7ef1ef36d50a6489a9a5bf096fb0a4f8f733329766e23b59cdc9`
+is ready and UI/UX receipt
+`896f8f2172b2b0926bea8769404f474b0106316c8a02a1060eb1d882d1b979f7`
+passes. This promotes only the eight-path Tier 2 copy/i18n slice
+`IDA-UI03a2-B3`: four EN/SQ/MK/SR locale files, three existing focused
+test/spec files and conditional deterministic repository-size metadata. The
+disabled action must state active membership, a complete saved draft, zero
+unsaved changes and that saving does not submit. Components, eligibility,
+runtime writers, protected surfaces, deployment, production and every second
+slice remain unauthorized pending a separate exact-main runtime receipt.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03a2-B3` (Tier 2 product/copy/i18n; `runtime_authorized:false`; exact-approved merged authority `IDA-DG31-UI03a2-B3-PRE-SUBMIT-AVAILABILITY-TRUTH`).
