@@ -6919,3 +6919,45 @@ qualified M4/M4.5/M5/M6 candidate was fabricated. Runtime authority is consumed
 and no replacement implementation slice is promoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+
+Rev 209 current-authority selection supersedes only the Rev 208 terminal
+no-promotion sentence above. Arben approved immutable
+`IDA-DG30-UI03a2-B2-POST-SUBMIT-DRAFT-TRUTH` in task
+`019fe16c-4bd0-75d1-86dd-6f6b7cf3eb6c` on 2026-08-09 at exactly 29,003
+UTF-8 bytes / SHA-256
+`521c0960f2dfc7b716f5f23a82d0c7f5cf40c7ea802e346e162ca2f3748e7698`,
+bound to clean main `c43380bc4ee68da3e1363780697ab3bfaa0b5c9b`. The canonical gate
+artifact is byte-identical to the approved external candidate; its preapproval
+status text is an immutable snapshot, while this program/tracker record owns the
+approval and promotion decision.
+
+This promotes exactly `IDA-UI03a2-B2`, a Tier 2 copy/i18n continuation of the
+completed B1 transition. After the existing canonical saved-draft submit
+succeeds, the current success region must state that the case was submitted,
+is trackable from the dashboard, remains separate from the saved draft, and is
+not changed by later draft edits. The product writer map is frozen at exactly
+the four EN/SQ/MK/SR `claims.json` files, three existing focused test/spec files
+and conditional deterministic `scripts/repo-size-budget.json`. No component,
+action, domain writer, route, proxy, auth/session/tenant boundary, schema, RLS,
+claim/draft record, event, provider, deployment or production surface is
+authorized.
+
+Admission receipt SHA-256
+`dc1b9c39e6b020edf15765be269fba81cfc983b8da109754914c5ddbb4ef34b8`
+is `ready` with one outcome, eight writer paths, three proof surfaces, zero
+shared runtime consumers beyond entry and one governed Z620 focused-browser
+environment. UI/UX governance receipt SHA-256
+`0895c58b26b567b1da2492be38b8afcdc5fe987ed47f6d54234210e45a57aca0`
+passes with four current operator observations, one blocked authenticated-source
+class, a two-to-four explicit-fact target and the exact Arben task approval.
+Claude Opus 5 returned P0/P1, then P1, then final PASS with no P0/P1 after the
+single consolidated scope was remediated; its final P2 packet wording correction
+did not change product scope or implementation.
+
+This docs-only authority grants no runtime. After merge, execution must rerun
+AI OS check, preflight, resolver and scorecard, then prepare and stop for one
+separately exact-hash-approved runtime receipt on the then-current exact main.
+Hero redesign, membership dashboard, handoff-context persistence, source-link
+badges, disabled-state copy and every second UI-tree node remain unpromoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03a2-B2` (Tier 2 product/copy/i18n; `runtime_authorized:false`; exact-approved merged authority `IDA-DG30-UI03a2-B2-POST-SUBMIT-DRAFT-TRUTH`).
