@@ -1,5 +1,6 @@
 import { E2E_PASSWORD, E2E_USERS } from '@interdomestik/database';
 import type { Page, TestInfo } from '@playwright/test';
+import sq from '../../src/messages/sq/claims.json';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
@@ -115,7 +116,7 @@ test.describe('IDA-UI03a2-B1 saved draft canonical submit', () => {
         await expect(submit).toBeEnabled();
         await submit.click();
         const success = resumedPage.getByTestId('claim-created-success');
-        await expect(success).toBeVisible({ timeout: 15_000 });
+        await expect(success).toContainText(sq.claims.wizard.submit_success, { timeout: 15_000 });
         const claimNumber = await success.getAttribute('data-claim-number');
         expect(claimNumber).toMatch(/^CLM-[A-Z0-9]{2,10}-\d{4}-\d{6}$/);
         testInfo.annotations.push({
