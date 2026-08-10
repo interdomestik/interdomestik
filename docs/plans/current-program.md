@@ -7109,3 +7109,57 @@ second journey node remain separate and unpromoted. Runtime is consumed and no
 replacement implementation slice is promoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+
+Rev 213 current-authority selection supersedes only the Rev 212 terminal
+no-promotion sentence above. Arben approved immutable
+`IDA-DG32-UI03a2-B4-REENTRY-EXISTING-CLAIM-TRUTH` in task
+`019fe16c-4bd0-75d1-86dd-6f6b7cf3eb6c` on 2026-08-10 at exactly 39,469
+UTF-8 bytes / SHA-256
+`4346e3e118ed2574664fe2f720017825fa0f7a1f8f3d49754a4910a64a92a68e`,
+bound to clean main `ea7c76d2d96a3644fadd06c5920478bb5faa8a4c`. The canonical gate
+artifact is byte-identical to the approved external candidate; its preapproval
+status text remains an immutable snapshot, while this program/tracker record
+owns approval and promotion.
+
+This promotes exactly `IDA-UI03a2-B4`, a Tier 3 privacy-adjacent continuation
+of completed B1/B2/B3. When the verified default-public-tenant owner re-enters
+a retained saved Free Start draft that already created its deterministic B1
+claim, the existing canonical claim link must appear without another Submit
+activation. The source draft remains independent. The lookup is one strict,
+read-only id+tenant+owner claim read; it cannot call the draft or claim writer.
+
+The production writer map is frozen at four paths: new deterministic identity/
+read helper, the existing saved-draft create action, a new client lifecycle
+hook and the existing dormant preview. Five focused test/spec paths plus
+conditional deterministic `scripts/repo-size-budget.json` close the proof map.
+No route/proxy, auth/session/tenant architecture, schema/RLS/migration, shared
+claim writer, origin field, locale, provider, deployment or production surface
+is authorized.
+
+Admission receipt SHA-256
+`6d20a07d05390f95259429a83628b4a434d555d7ee68be0ea4a914d3a4b960c6`
+is `ready` with one outcome, ten writer paths, three proof surfaces, zero shared
+runtime consumers and one governed Z620 browser environment. The canary receipt
+SHA-256
+`1c7411b15174f228e3c72341b4450d84ad0566768dae77b83f88bcbd5cb6ea51`
+proved connected/listening Z620, hostname `interdomestik-z620`, Docker `29.6.2`,
+`33,136,076` KiB root availability and `27,165,476` KiB available memory, then
+cleared its marker, requested suspend and left the controller idle. UI/UX
+governance receipt SHA-256
+`c1bd29b5d1858ebcfe75459f8ca17b22cd01993a79b3ce86ee877418e010e4d7`
+passes with three official public operator observations, one blocked private
+source class and a one-to-zero repeat-submit target.
+
+Bounded Claude Opus 5 review and a Tier 3 Gemini second signal remediated the
+test map, checking truth, focus provenance, manager-only found presentation,
+boundary guards and file ceilings without expanding the one outcome. Final
+affected-section Opus review passed in `201983 ms` with no approval blocker.
+
+This docs-only authority grants no runtime. After merge, execution must publish
+the new repository authority only through the governed task-publication path,
+then rerun AI OS check, preflight, resolver and scorecard and stop for one
+separately exact-hash-approved runtime receipt on the then-current exact main.
+Hero redesign, membership dashboard, generic source badges/origin linkage and
+every second journey node remain unpromoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03a2-B4` (Tier 3 privacy-adjacent product slice; `runtime_authorized:false`; exact-approved merged authority `IDA-DG32-UI03a2-B4-REENTRY-EXISTING-CLAIM-TRUTH`).
