@@ -4,7 +4,6 @@ import sq from '../../src/messages/sq/claims.json';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
-
 // prettier-ignore
 const facts = { category: 'vehicle', counterparty: 'P00 test operator', date: '2026-07-20', issue: 'collision', outcome: 'repair', summary: 'Bounded vehicle preparation facts.' };
 const pilotHeaders = { 'x-tenant-id': 'tenant_ks' };
@@ -32,6 +31,15 @@ async function expectPreservedFacts(intake: ReturnType<typeof visibleIntake>) {
   await expect(reviewedFacts.nth(3)).toHaveText(facts.counterparty);
   await expect(reviewedFacts.nth(5)).toHaveText(facts.summary);
 }
+async function resumeSavedDraft(page: Page, draftId: string) {
+  const intake = visibleIntake(page);
+  await intake.getByTestId('free-start-manage-open').click();
+  const resume = page.getByTestId(`free-start-resume-${draftId}`);
+  await expect(resume).toBeVisible();
+  await resume.click();
+  await expectPreservedFacts(intake);
+  return intake;
+}
 async function freshLogin(page: Page, origin: string, loginPath: string) {
   const response = await page.request.post(`${origin}/api/auth/sign-in/email`, {
     // prettier-ignore
@@ -40,7 +48,6 @@ async function freshLogin(page: Page, origin: string, loginPath: string) {
   });
   expect(response.ok()).toBe(true);
 }
-
 function resolveIdaTarget(testInfo: TestInfo) {
   const locale = routes.getLocale(testInfo);
   const configured = process.env.IDA_HOST?.trim() || 'ida.127.0.0.1.nip.io:3000';
@@ -94,10 +101,8 @@ test.describe('IDA-UI03a2-B1 saved draft canonical submit', () => {
       );
       await intake.getByTestId('free-start-manage-open').click();
       const savedResume = page.locator('[data-testid^="free-start-resume-"]').first();
-      const exactDraftId = (await savedResume.getAttribute('data-testid'))?.replace(
-        'free-start-resume-',
-        ''
-      );
+      // prettier-ignore
+      const exactDraftId = (await savedResume.getAttribute('data-testid'))?.replace('free-start-resume-', '');
       if (!exactDraftId) throw new Error('saved_draft_id_missing');
       // prettier-ignore
       const freshContext = await browser.newContext({ extraHTTPHeaders: pilotHeaders, storageState: { cookies: [consentCookie], origins: [] } });
@@ -108,10 +113,7 @@ test.describe('IDA-UI03a2-B1 saved draft canonical submit', () => {
           marker: 'new-claim-page-ready',
         });
         expect(await resumedPage.evaluate(() => localStorage.length)).toBe(0);
-        const resumedIntake = visibleIntake(resumedPage);
-        await resumedIntake.getByTestId('free-start-manage-open').click();
-        await resumedPage.getByTestId(`free-start-resume-${exactDraftId}`).click();
-        await expectPreservedFacts(resumedIntake);
+        const resumedIntake = await resumeSavedDraft(resumedPage, exactDraftId);
         const submit = resumedIntake.getByTestId('claim-draft-submit');
         await expect(submit).toBeEnabled();
         await submit.click();
@@ -133,13 +135,11 @@ test.describe('IDA-UI03a2-B1 saved draft canonical submit', () => {
         await gotoApp(resumedPage, routes.memberNewClaim(ida.testInfo), ida.testInfo, {
           marker: 'new-claim-page-ready',
         });
-        const retainedIntake = visibleIntake(resumedPage);
-        await retainedIntake.getByTestId('free-start-manage-open').click();
-        const retainedResume = resumedPage.getByTestId(`free-start-resume-${exactDraftId}`);
-        await expect(retainedResume).toBeVisible();
-        await retainedResume.click();
-        await expectPreservedFacts(retainedIntake);
-        await expect(retainedIntake.getByTestId('claim-draft-submit')).toBeEnabled();
+        const retainedIntake = await resumeSavedDraft(resumedPage, exactDraftId);
+        const restored = retainedIntake.getByTestId('claim-created-success');
+        await expect(restored).toHaveAttribute('data-claim-number', claimNumber!);
+        await expect(restored.locator('a')).toHaveAttribute('href', claimHref!);
+        await expect(retainedIntake.getByTestId('claim-draft-submit')).toHaveCount(0);
       } finally {
         await freshContext.close();
       }

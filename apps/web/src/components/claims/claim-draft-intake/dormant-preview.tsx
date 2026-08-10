@@ -2,10 +2,10 @@ import type {
   DraftState,
   FreeStartCopy,
 } from '@/app/[locale]/components/home/free-start-intake-shell/types';
-import { createClaimFromSavedDraft } from '@/actions/claims/create-from-saved-draft';
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
-import { useEffect, useRef, useState, useTransition, type ReactNode, type RefObject } from 'react';
+import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
+import { useSavedDraftClaim } from './use-saved-draft-claim';
 // prettier-ignore
 export type ClaimDraftCopy = Readonly<{ backToDetails: string; categoryBody: string; categoryContinue: string; categoryHeading: string; heading: string; previewBody: string; previewHeading: string; submitDisabled: string; submitExplanation: string; supporting: string; truth: string; unsupported: string }>;
 export function parseClaimDraftCopy(value: unknown): ClaimDraftCopy {
@@ -18,50 +18,36 @@ type Props = Readonly<{ activeDraftId?: string | null; activeDraftVersion?: numb
 export function DormantPreview(props: Props) {
   // prettier-ignore
   const { activeDraftId, activeDraftVersion, copy, draft, hasUnsavedChanges, headingRef, labels, managerOnly, submitCopy, tFree } = props;
-  const [pending, startTransition] = useTransition();
-  const [createdClaim, setCreatedClaim] = useState<{ id: string; number: string } | null>(null);
-  const [failure, setFailure] = useState<string | null>(null);
   const failureRef = useRef<HTMLParagraphElement>(null);
   const successRef = useRef<HTMLOutputElement>(null);
-  const submitting = useRef(false);
   const locale = useLocale();
   // prettier-ignore
   const facts = [[tFree('preview.categoryLabel'), labels.category], [tFree('preview.issueLabel'), labels.issue], [tFree('preview.dateLabel'), draft.incidentDate], [tFree('preview.counterpartyLabel'), draft.counterparty], [tFree('preview.outcomeLabel'), labels.outcome], [tFree('preview.summaryLabel'), draft.summary]];
   // prettier-ignore
   const eligible = Boolean(!managerOnly && activeDraftId && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(activeDraftId) && activeDraftVersion && !hasUnsavedChanges && [draft.issueType, draft.incidentDate, draft.counterparty, draft.desiredOutcome, draft.summary].every(value => value.trim()));
+  const { claim, failure, lookupStatus, origin, pending, submit } = useSavedDraftClaim({
+    draftId: activeDraftId,
+    draftVersion: activeDraftVersion,
+    eligible,
+    failedCopy: submitCopy.failed,
+    unexpectedCopy: submitCopy.unexpected,
+  });
   // prettier-ignore
-  useEffect(() => { if (failure) failureRef.current?.focus(); else if (createdClaim) successRef.current?.focus(); }, [failure, createdClaim]);
-  function submit() {
-    if (!eligible || !activeDraftId || !activeDraftVersion || submitting.current) return;
-    submitting.current = true;
-    setFailure(null);
-    startTransition(async () => {
-      try {
-        // prettier-ignore
-        const result = await createClaimFromSavedDraft({ id: activeDraftId, expectedVersion: activeDraftVersion });
-        if (result.success) setCreatedClaim({ id: result.claimId, number: result.claimNumber });
-        else setFailure(submitCopy.failed);
-      } catch {
-        setFailure(submitCopy.unexpected);
-      } finally {
-        submitting.current = false;
-      }
-    });
-  }
+  useEffect(() => { if (failure) failureRef.current?.focus(); else if (claim && origin === 'user_submit') successRef.current?.focus(); }, [failure, claim, origin]);
   let submitAction: ReactNode;
-  if (createdClaim) {
+  if (claim) {
     submitAction = (
       <output
         ref={successRef}
         data-testid="claim-created-success"
-        data-claim-number={createdClaim.number}
+        data-claim-number={claim.number}
         tabIndex={-1}
         className="block space-y-3 text-left"
       >
         <span className="block font-bold text-[#173b43]">{submitCopy.success}</span>
         <Link
           className="font-bold text-[#006b7b] underline"
-          href={`/${locale}/member/claims/${createdClaim.id}`}
+          href={`/${locale}/member/claims/${claim.id}`}
         >
           {submitCopy.goToClaim}
         </Link>
@@ -72,8 +58,8 @@ export function DormantPreview(props: Props) {
       <button
         type="button"
         data-testid="claim-draft-submit"
-        disabled={pending}
-        aria-busy={pending}
+        disabled={pending || lookupStatus === 'checking'}
+        aria-busy={pending || lookupStatus === 'checking'}
         onClick={submit}
         className="min-h-12 rounded-xl bg-[#006b7b] px-5 font-bold text-white disabled:opacity-60"
       >
@@ -116,7 +102,7 @@ export function DormantPreview(props: Props) {
           </div>
         ))}
       </dl>
-      {!eligible ? (
+      {!claim && !eligible ? (
         <div className="rounded-2xl border border-[#006f72]/30 bg-[#eaf5f2] p-4 font-semibold leading-6 text-[#173b43]">
           {copy.truth}
         </div>
@@ -124,7 +110,7 @@ export function DormantPreview(props: Props) {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="max-w-sm text-right">
           {submitAction}
-          {!eligible ? (
+          {!claim && !eligible ? (
             <p id="claim-draft-submit-explanation" className="mt-2 text-sm text-[#526274]">
               {copy.submitExplanation}
             </p>

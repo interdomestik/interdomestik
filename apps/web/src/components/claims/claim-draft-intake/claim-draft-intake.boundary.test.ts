@@ -3,7 +3,7 @@ import { dirname, extname, join, relative, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const root = resolve(__dirname);
-const entries = ['index.tsx', 'main-panel.tsx', 'dormant-preview.tsx'];
+const entries = ['index.tsx', 'main-panel.tsx', 'dormant-preview.tsx', 'use-saved-draft-claim.ts'];
 const denied = [
   /from\s+['"][^'"]*claim-wizard|<ClaimWizard\b/i,
   /claims\.core/i,
@@ -59,6 +59,7 @@ describe('Claim Draft Intake import and scope boundary', () => {
     expect(combined).toContain('use-draft-lifecycle');
     expect(combined).toContain('@/actions/claims/create-from-saved-draft');
     expect(combined.match(/createClaimFromSavedDraft/g)).toHaveLength(2);
+    expect(graph.get(join(root, 'use-saved-draft-claim.ts'))).not.toContain('useCallback');
   });
 
   it('keeps the route on ClaimDraftIntake and every new file below 150 lines', () => {
@@ -70,12 +71,14 @@ describe('Claim Draft Intake import and scope boundary', () => {
       expect(readFileSync(join(root, name), 'utf8').split('\n').length - 1).toBeLessThan(150);
     }
     const action = resolve(root, '../../../actions/claims/create-from-saved-draft.ts');
+    const identity = resolve(root, '../../../actions/claims/saved-draft-claim-identity.ts');
     const submitCore = resolve(root, '../../../actions/claims/submit.core.ts');
     const domainSubmit = resolve(
       root,
       '../../../../../../packages/domain-claims/src/claims/submit.ts'
     );
     expect(readFileSync(action, 'utf8').split('\n').length - 1).toBeLessThan(150);
+    expect(readFileSync(identity, 'utf8').split('\n').length - 1).toBeLessThan(150);
     expect(readFileSync(submitCore, 'utf8').split('\n').length - 1).toBeLessThanOrEqual(150);
     expect(readFileSync(domainSubmit, 'utf8').split('\n').length - 1).toBeLessThanOrEqual(478);
   });
@@ -91,14 +94,14 @@ describe('Claim Draft Intake import and scope boundary', () => {
     const index = readFileSync(join(root, 'index.tsx'), 'utf8');
     expect(index).toContain("flow.step !== 'preview' && flow.step !== 'complete'");
     expect(index).not.toContain('lifecycle.active?.id && /^[0-9a-f]');
-    const action = readFileSync(
-      resolve(root, '../../../actions/claims/create-from-saved-draft.ts'),
+    const identity = readFileSync(
+      resolve(root, '../../../actions/claims/saved-draft-claim-identity.ts'),
       'utf8'
     );
-    expect(action).toContain(
+    expect(identity).toContain(
       'db-access-guard: tenant-scoped -- reason: RLS enabled, not enforced for this runtime role; exact-id, tenant and owner'
     );
-    expect(action).not.toMatch(
+    expect(identity).not.toMatch(
       /createClaimCore|generateClaimNumber|adminDb|provider|upload|storage|notification/i
     );
   });
