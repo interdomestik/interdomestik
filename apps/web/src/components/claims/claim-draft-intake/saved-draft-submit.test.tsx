@@ -137,7 +137,7 @@ describe('saved draft canonical submit', () => {
     fireEvent.click(button);
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent(submitCopy.failed);
-    expect(alert).toHaveFocus();
+    await waitFor(() => expect(alert).toHaveFocus());
     expect(screen.getByRole('link', { name: submitCopy.goToClaims })).toHaveAttribute(
       'href',
       '/en/member/claims'
