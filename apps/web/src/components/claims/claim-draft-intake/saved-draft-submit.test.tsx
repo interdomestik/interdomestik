@@ -3,9 +3,10 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DormantPreview } from './dormant-preview';
 
-const h = vi.hoisted(() => ({ submit: vi.fn() }));
+const h = vi.hoisted(() => ({ lookup: vi.fn(), submit: vi.fn() }));
 vi.mock('@/actions/claims/create-from-saved-draft', () => ({
   createClaimFromSavedDraft: h.submit,
+  lookupSavedDraftClaim: h.lookup,
 }));
 vi.mock('next-intl', () => ({ useLocale: () => 'en' }));
 const draft = {
@@ -56,10 +57,10 @@ function view(overrides: Partial<React.ComponentProps<typeof DormantPreview>> = 
     />
   );
 }
-
 describe('saved draft canonical submit', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    h.lookup.mockResolvedValue({ claim: null });
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390 });
   });
 
@@ -86,6 +87,7 @@ describe('saved draft canonical submit', () => {
     view();
     expect(screen.queryByText(copy.truth)).not.toBeInTheDocument();
     const button = screen.getByRole('button', { name: submitCopy.label });
+    await waitFor(() => expect(button).toBeEnabled());
     fireEvent.click(button);
     fireEvent.click(button);
     expect(h.submit).toHaveBeenCalledTimes(1);
@@ -118,6 +120,7 @@ describe('saved draft canonical submit', () => {
     });
     view();
     const button = screen.getByRole('button', { name: submitCopy.label });
+    await waitFor(() => expect(button).toBeEnabled());
     button.focus();
     await userEvent.keyboard('{Enter}');
     expect(h.submit).toHaveBeenCalledTimes(1);
@@ -129,10 +132,12 @@ describe('saved draft canonical submit', () => {
   it('shows focused truthful failure and permits a bounded retry', async () => {
     h.submit.mockResolvedValueOnce({ success: false }).mockRejectedValueOnce(new Error('boom'));
     view();
-    fireEvent.click(screen.getByRole('button', { name: submitCopy.label }));
+    const button = screen.getByRole('button', { name: submitCopy.label });
+    await waitFor(() => expect(button).toBeEnabled());
+    fireEvent.click(button);
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent(submitCopy.failed);
-    expect(alert).toHaveFocus();
+    await waitFor(() => expect(alert).toHaveFocus());
     expect(screen.getByRole('link', { name: submitCopy.goToClaims })).toHaveAttribute(
       'href',
       '/en/member/claims'

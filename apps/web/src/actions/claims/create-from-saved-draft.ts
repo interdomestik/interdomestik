@@ -1,22 +1,20 @@
 'use server';
 
-import { createHash } from 'node:crypto';
 import { resolveFreeStartDraftSession } from '@/actions/free-start-drafts/session.core';
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
 import { runAuthenticatedAction } from '@/lib/safe-action';
 // prettier-ignore
 import { createClaimSchema, type CreateClaimValues } from '@interdomestik/domain-claims/validators/claims';
-import { claims, db } from '@interdomestik/database';
-import { isValidClaimNumber } from '@interdomestik/database/claim-number';
 // prettier-ignore
 import { resumeFreeStartDraft, type FreeStartDraft } from '@interdomestik/database/free-start-drafts';
-import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
+import { readSavedDraftClaim, savedDraftClaimId } from './saved-draft-claim-identity';
 import { submitClaimCore } from './submit.core';
 
 const inputSchema = z
   .object({ id: z.string().uuid(), expectedVersion: z.number().int().positive() })
   .strict();
+const lookupSchema = z.object({ id: z.string().uuid() }).strict();
 const CATEGORY = { vehicle: 'Vehicle', property: 'Property' } as const;
 // prettier-ignore
 const ISSUE = { collision: 'Collision', theft: 'Theft', parking_damage: 'Parking damage', insurer_delay: 'Insurer delay', water_damage: 'Water damage', storm_fire: 'Storm or fire', burglary: 'Burglary', landlord_dispute: 'Landlord dispute' } as const;
@@ -25,14 +23,8 @@ const OUTCOME = { repair: 'Repair', reimbursement: 'Reimbursement', compensation
 const unavailable = () => ({ success: false as const, error: 'Claim submission unavailable.' });
 export type SavedDraftClaimResult =
   ReturnType<typeof unavailable> | { success: true; claimId: string; claimNumber: string };
-
-function deterministicClaimId(tenantId: string, actorId: string, draftId: string) {
-  const digest = createHash('sha256')
-    .update(JSON.stringify([tenantId, actorId, draftId]))
-    .digest('hex');
-  return `fsd_${digest}`;
-}
-
+export type SavedDraftClaimLookup = { claim: { id: string; number: string } | null };
+const noClaim = (): SavedDraftClaimLookup => ({ claim: null });
 function ownValue(record: Readonly<Record<string, string>>, key: string | null) {
   return key && Object.hasOwn(record, key) ? record[key] : null;
 }
@@ -64,26 +56,34 @@ function mapDraft(draft: FreeStartDraft): CreateClaimValues | null {
   const parsed = createClaimSchema.safeParse(data);
   return parsed.success ? parsed.data : null;
 }
-
-type ExactClaim =
-  { kind: 'absent' | 'invalid' } | { kind: 'found'; claimId: string; claimNumber: string };
-
-async function readExactClaim(
-  claimId: string,
-  tenantId: string,
-  actorId: string
-): Promise<ExactClaim> {
-  // db-access-guard: tenant-scoped -- reason: RLS enabled, not enforced for this runtime role; exact-id, tenant and owner predicates are mandatory.
-  const [row] = await db
-    .select({ id: claims.id, claimNumber: claims.claimNumber })
-    .from(claims)
-    .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId), eq(claims.userId, actorId)))
-    .limit(1);
-  if (!row) return { kind: 'absent' };
-  if (typeof row.claimNumber !== 'string' || !isValidClaimNumber(row.claimNumber)) {
-    return { kind: 'invalid' };
+export async function lookupSavedDraftClaim(input: unknown): Promise<SavedDraftClaimLookup> {
+  const parsed = lookupSchema.safeParse(input);
+  if (!parsed.success) return noClaim();
+  try {
+    const result = await runAuthenticatedAction(async ({ session, tenantId, requestHeaders }) => {
+      const actorId = session.user.id;
+      const fresh = await resolveFreeStartDraftSession(requestHeaders);
+      if (
+        !fresh.ok ||
+        session.user.tenantId !== tenantId ||
+        fresh.context.ownerUserId !== actorId ||
+        fresh.context.tenantId !== tenantId ||
+        fresh.context.accessTenantId !== tenantId
+      )
+        return noClaim();
+      const claimId = savedDraftClaimId(tenantId, actorId, parsed.data.id);
+      const claim = await readSavedDraftClaim(claimId, tenantId, actorId);
+      return claim.kind === 'found'
+        ? { claim: { id: claim.claimId, number: claim.claimNumber } }
+        : noClaim();
+    });
+    return result.success && result.data ? result.data : noClaim();
+  } catch (error) {
+    const redirect = error as { digest?: unknown; message?: unknown };
+    if (redirect.message === 'NEXT_REDIRECT' || String(redirect.digest).startsWith('NEXT_REDIRECT'))
+      throw error;
+    return noClaim();
   }
-  return { kind: 'found', claimId, claimNumber: row.claimNumber };
 }
 
 export async function createClaimFromSavedDraft(input: unknown): Promise<SavedDraftClaimResult> {
@@ -102,8 +102,8 @@ export async function createClaimFromSavedDraft(input: unknown): Promise<SavedDr
       return unavailable();
     const resumed = await resumeFreeStartDraft(fresh.context, parsed.data.id);
     if (!resumed.ok) return unavailable();
-    const claimId = deterministicClaimId(tenantId, actorId, resumed.draft.id);
-    const existing = await readExactClaim(claimId, tenantId, actorId);
+    const claimId = savedDraftClaimId(tenantId, actorId, resumed.draft.id);
+    const existing = await readSavedDraftClaim(claimId, tenantId, actorId);
     if (existing.kind === 'found') {
       return {
         success: true as const,
@@ -141,7 +141,7 @@ export async function createClaimFromSavedDraft(input: unknown): Promise<SavedDr
     } catch {
       // Ambiguous writer outcomes use the same bounded exact recovery below.
     }
-    const recovered = await readExactClaim(claimId, tenantId, actorId);
+    const recovered = await readSavedDraftClaim(claimId, tenantId, actorId);
     return recovered.kind === 'found'
       ? { success: true as const, claimId: recovered.claimId, claimNumber: recovered.claimNumber }
       : unavailable();
