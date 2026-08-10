@@ -25,7 +25,6 @@ export type SavedDraftClaimResult =
   ReturnType<typeof unavailable> | { success: true; claimId: string; claimNumber: string };
 export type SavedDraftClaimLookup = { claim: { id: string; number: string } | null };
 const noClaim = (): SavedDraftClaimLookup => ({ claim: null });
-
 function ownValue(record: Readonly<Record<string, string>>, key: string | null) {
   return key && Object.hasOwn(record, key) ? record[key] : null;
 }
@@ -57,7 +56,6 @@ function mapDraft(draft: FreeStartDraft): CreateClaimValues | null {
   const parsed = createClaimSchema.safeParse(data);
   return parsed.success ? parsed.data : null;
 }
-
 export async function lookupSavedDraftClaim(input: unknown): Promise<SavedDraftClaimLookup> {
   const parsed = lookupSchema.safeParse(input);
   if (!parsed.success) return noClaim();
@@ -80,7 +78,10 @@ export async function lookupSavedDraftClaim(input: unknown): Promise<SavedDraftC
         : noClaim();
     });
     return result.success && result.data ? result.data : noClaim();
-  } catch {
+  } catch (error) {
+    const redirect = error as { digest?: unknown; message?: unknown };
+    if (redirect.message === 'NEXT_REDIRECT' || String(redirect.digest).startsWith('NEXT_REDIRECT'))
+      throw error;
     return noClaim();
   }
 }

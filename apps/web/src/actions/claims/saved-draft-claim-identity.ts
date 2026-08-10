@@ -1,3 +1,4 @@
+import 'server-only';
 import { createHash } from 'node:crypto';
 import { claims, db } from '@interdomestik/database';
 import { isValidClaimNumber } from '@interdomestik/database/claim-number';

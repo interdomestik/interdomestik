@@ -5,7 +5,7 @@ import type {
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
 import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
-import { useSavedDraftClaim } from './use-saved-draft-claim';
+import { isSavedDraftId, useSavedDraftClaim } from './use-saved-draft-claim';
 // prettier-ignore
 export type ClaimDraftCopy = Readonly<{ backToDetails: string; categoryBody: string; categoryContinue: string; categoryHeading: string; heading: string; previewBody: string; previewHeading: string; submitDisabled: string; submitExplanation: string; supporting: string; truth: string; unsupported: string }>;
 export function parseClaimDraftCopy(value: unknown): ClaimDraftCopy {
@@ -24,7 +24,7 @@ export function DormantPreview(props: Props) {
   // prettier-ignore
   const facts = [[tFree('preview.categoryLabel'), labels.category], [tFree('preview.issueLabel'), labels.issue], [tFree('preview.dateLabel'), draft.incidentDate], [tFree('preview.counterpartyLabel'), draft.counterparty], [tFree('preview.outcomeLabel'), labels.outcome], [tFree('preview.summaryLabel'), draft.summary]];
   // prettier-ignore
-  const eligible = Boolean(!managerOnly && activeDraftId && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(activeDraftId) && activeDraftVersion && !hasUnsavedChanges && [draft.issueType, draft.incidentDate, draft.counterparty, draft.desiredOutcome, draft.summary].every(value => value.trim()));
+  const eligible = Boolean(!managerOnly && isSavedDraftId(activeDraftId) && activeDraftVersion && !hasUnsavedChanges && [draft.issueType, draft.incidentDate, draft.counterparty, draft.desiredOutcome, draft.summary].every(value => value.trim()));
   const { claim, failure, lookupStatus, origin, pending, submit } = useSavedDraftClaim({
     draftId: activeDraftId,
     draftVersion: activeDraftVersion,

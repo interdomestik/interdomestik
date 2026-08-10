@@ -114,6 +114,14 @@ describe('lookupSavedDraftClaim', () => {
     expect(h.select).not.toHaveBeenCalled();
   });
 
+  it('preserves framework redirects instead of converting them to an absent claim', async () => {
+    const redirect = Object.assign(new Error('NEXT_REDIRECT'), {
+      digest: 'NEXT_REDIRECT;replace;/en/login;307;',
+    });
+    h.runAuthenticated.mockRejectedValueOnce(redirect);
+    await expect(lookupSavedDraftClaim({ id: draftId })).rejects.toBe(redirect);
+  });
+
   it('collapses session/action tenant mismatch and database errors', async () => {
     h.runAuthenticated.mockImplementationOnce(async callback => ({
       success: true,

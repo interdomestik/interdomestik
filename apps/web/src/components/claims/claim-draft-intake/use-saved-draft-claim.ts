@@ -22,10 +22,11 @@ type Options = Readonly<{
   unexpectedCopy: string;
 }>;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+export const isSavedDraftId = (value?: string | null) => Boolean(value && UUID.test(value));
 
 export function useSavedDraftClaim(options: Options) {
   const { draftId, draftVersion, eligible, failedCopy, unexpectedCopy } = options;
-  const validId = Boolean(draftId && UUID.test(draftId));
+  const validId = isSavedDraftId(draftId);
   const identity = validId && draftVersion ? `${draftId!.toLowerCase()}:${draftVersion}` : null;
   const initialStatus: LookupStatus = identity ? 'checking' : 'idle';
   const [lookup, setLookup] = useState<LookupState>({

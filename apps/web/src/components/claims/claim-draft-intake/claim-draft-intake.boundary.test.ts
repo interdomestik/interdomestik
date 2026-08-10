@@ -59,6 +59,8 @@ describe('Claim Draft Intake import and scope boundary', () => {
     expect(combined).toContain('use-draft-lifecycle');
     expect(combined).toContain('@/actions/claims/create-from-saved-draft');
     expect(combined.match(/createClaimFromSavedDraft/g)).toHaveLength(2);
+    expect(combined.match(/const UUID =/g)).toHaveLength(1);
+    expect(graph.get(join(root, 'dormant-preview.tsx'))).toContain('isSavedDraftId(activeDraftId)');
     expect(graph.get(join(root, 'use-saved-draft-claim.ts'))).not.toContain('useCallback');
   });
 
@@ -98,6 +100,7 @@ describe('Claim Draft Intake import and scope boundary', () => {
       resolve(root, '../../../actions/claims/saved-draft-claim-identity.ts'),
       'utf8'
     );
+    expect(identity).toContain("import 'server-only'");
     expect(identity).toContain(
       'db-access-guard: tenant-scoped -- reason: RLS enabled, not enforced for this runtime role; exact-id, tenant and owner'
     );
