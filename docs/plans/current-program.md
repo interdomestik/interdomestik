@@ -7163,3 +7163,51 @@ Hero redesign, membership dashboard, generic source badges/origin linkage and
 every second journey node remain unpromoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03a2-B4` (Tier 3 privacy-adjacent product slice; `runtime_authorized:false`; exact-approved merged authority `IDA-DG32-UI03a2-B4-REENTRY-EXISTING-CLAIM-TRUTH`).
+
+Rev 214 closeout consumes the sole `IDA-UI03a2-B4` promotion. Exact-approved
+authority `IDA-DG32-UI03a2-B4-REENTRY-EXISTING-CLAIM-TRUTH` is 39,469 bytes /
+SHA-256 `4346e3e118ed2574664fe2f720017825fa0f7a1f8f3d49754a4910a64a92a68e`.
+Exact runtime receipt `IDA-UI03a2-B4-RUNTIME-R1` is 26,448 bytes / SHA-256
+`8aaf4c9d030e9b8209bef4e51a1a96737b60c6f62838b3883e113bc5cd5b787a`.
+Authority PR `#1525` merged as
+`730b538f5ace5f0671e5b21d4626edcc8595c563`; implementation PR `#1526`
+merged exact reviewed head `1abdab16de39ded9412df24eb659c709c034b0c6` as
+`0fc526dbd14f6f1ccf24e29d03032385700eed03`.
+
+The frozen ten-path implementation restores only the existing deterministic B1
+claim link when the verified default-public-tenant owner re-enters the retained
+saved Free Start draft. The lookup is one strict read-only id+tenant+owner claim
+read. The source draft remains independent; there is no second Submit activation
+and no new route, proxy, auth/session/tenant architecture, schema/RLS/migration,
+shared claim writer, origin field, locale, provider or deployment surface.
+
+Focused unit proof passed `46/46`; current-head affected regression passed
+`19/19`; build and focused browser `1/1` passed. Canonical Z620
+`pnpm pr:verify:hosts` R7 passed in `59m20s` and was not rerun. Exactly one full
+final-head PR E2E completed in run `31385088051` with `343` passed / `17` policy
+skips plus smoke `13` passed / `11` policy skips and no rerun. Bounded Claude
+Opus 5 and Gemini 3.1 Pro reviews plus exact-head delta reviews passed; GitHub
+Copilot/Codex review found no major issue. CI, Pilot, Sonar zero new issues or
+hotspots, CodeQL, repository-native security, feedback and finalizer passed.
+The supplemental Codex Security delta route is unavailable rather than pass
+because its finalizer rejected missing `scan.target.snapshotDigest`; required
+exact-head security surfaces remained green.
+
+Exact-main CI `31387910055`, Sonar `31387910635`, Code Quality `31387906640`,
+CodeQL `31387906769` and Secret Scan `31387910627` passed. Automatic CD
+`31387911166` was cancelled with all eight jobs at `steps: []`, before checkout,
+build, registry, provider, alias or deployment effect. One accidental local
+`pr:review-ready` invocation was cancelled before Vitest, supplied no evidence
+and changed no file or head.
+
+M2 records the execution correction permanently: on the 24-thread Z620, CPU
+affinity may constrain only the Vitest coverage process; build keeps available
+machine capacity and independent E2E work uses isolated parallel shards.
+Whole-command affinity and serial multi-project E2E are prohibited. Brain
+session `sess_2026-08-10T07-35-03-182Z_IDA-UI03a2-B4` remains advisory. M1
+stayed current; M2/M3 are terminal; M4-M6 have no qualified candidate; M7 has
+no authorized enrollment; Atlas remained off and outside cohorts. Runtime is
+consumed, Hero redesign and membership dashboard remain separate, and no
+successor is promoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
