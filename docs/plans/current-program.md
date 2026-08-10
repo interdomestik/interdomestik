@@ -7200,10 +7200,11 @@ build, registry, provider, alias or deployment effect. One accidental local
 `pr:review-ready` invocation was cancelled before Vitest, supplied no evidence
 and changed no file or head.
 
-M2 records the execution correction permanently: on the 24-thread Z620, CPU
-affinity may constrain only the Vitest coverage process; build keeps available
-machine capacity and independent E2E work uses isolated parallel shards.
-Whole-command affinity and serial multi-project E2E are prohibited. Brain
+M2 records a separately authorized runner-improvement requirement: constrain
+CPU affinity only around Vitest coverage, keep build capacity available and
+provide isolated parallel E2E shards across the 24-thread Z620. Until that
+change lands under its own authority, the canonical runner and repository
+gates remain binding; B4 does not modify or bypass them. Brain
 session `sess_2026-08-10T07-35-03-182Z_IDA-UI03a2-B4` remains advisory. M1
 stayed current; M2/M3 are terminal; M4-M6 have no qualified candidate; M7 has
 no authorized enrollment; Atlas remained off and outside cohorts. Runtime is
