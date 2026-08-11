@@ -61,10 +61,8 @@ function resolveIdaTarget(testInfo: TestInfo) {
     } as TestInfo,
   };
 }
-test.describe('IDA-UI03a2-B1 saved draft canonical submit', () => {
-  test('submits one resumed draft and preserves its independent source', async ({
-    browser,
-  }, testInfo) => {
+test.describe('IDA-UI03a2-B5 existing-case copy truth', () => {
+  test('preserves the independent source through re-entry', async ({ browser }, testInfo) => {
     // prettier-ignore
     test.skip(testInfo.project.name !== 'gate-ks-sq', 'Canonical residue is bounded to one project');
     const ida = resolveIdaTarget(testInfo);
@@ -137,6 +135,7 @@ test.describe('IDA-UI03a2-B1 saved draft canonical submit', () => {
         });
         const retainedIntake = await resumeSavedDraft(resumedPage, exactDraftId);
         const restored = retainedIntake.getByTestId('claim-created-success');
+        await expect(restored).toContainText(sqCopy.existingCaseSuccess);
         await expect(restored).toHaveAttribute('data-claim-number', claimNumber!);
         await expect(restored.locator('a')).toHaveAttribute('href', claimHref!);
         await expect(retainedIntake.getByTestId('claim-draft-submit')).toHaveCount(0);
