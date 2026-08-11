@@ -7212,3 +7212,48 @@ consumed, Hero redesign and membership dashboard remain separate, and no
 successor is promoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+
+Rev 215 current-authority selection supersedes only the Rev 214 terminal
+no-promotion sentence above. Arben approved immutable
+`IDA-DG33-UI03a2-B5-REENTRY-EXISTING-CASE-COPY-TRUTH` in task
+`019fe16c-4bd0-75d1-86dd-6f6b7cf3eb6c` on 2026-08-11 at exactly 22,695
+UTF-8 bytes / SHA-256
+`2c8bc76af549dc5ddaf2bd0860f5f52c6a6589f401e9df235bddfc8beaffa8c1`,
+bound to clean main `1d3c04c339a3f50483b313da5a71d35288b0c737`. The canonical gate
+artifact is byte-identical to the approved external candidate; its preapproval
+status text remains an immutable snapshot, while this program/tracker record
+owns approval and promotion.
+
+This promotes exactly `IDA-UI03a2-B5`, a Tier 2 copy/i18n continuation of
+completed B1/B2/B3/B4. When a verified member re-enters a retained saved draft
+whose deterministic B1 case already exists, the existing success message must
+state that a submitted case already exists for this saved draft, that it is
+trackable from the dashboard, and that later saved-draft edits do not change
+the case. There is no runtime transition change.
+
+The product writer map is frozen at the existing
+`claims.wizard.submit_success` value in the EN, SQ, MK and SR claims locale
+files. Four existing focused unit/E2E files plus conditional deterministic
+`scripts/repo-size-budget.json` close the nine-path implementation map. No
+component, action, claim or draft reader/writer, route/proxy, auth/session,
+tenancy, schema/RLS/migration, dashboard, provider, deployment or production
+surface is authorized.
+
+Admission receipt SHA-256
+`f1836d66a91655d0e61114a46340e17d1d470abbe7cb625e1bd195408d8c88da`
+is `ready` with one outcome, nine writer paths, three proof surfaces, zero
+shared runtime consumers and zero special proof environments. UI/UX governance
+receipt SHA-256
+`f43ffaf1588bd37afcb7586c6b05ff880d68b08f90288e446b6b0256138f04ab`
+passes with three official public operator observations, zero blocked sources
+and the frozen one-to-zero ambiguity target. The bounded internal senior review
+accepted the consolidated gate; no external model or reviewer was called.
+
+This docs-only authority grants no runtime. After merge, execution must publish
+the repository authority only through the governed task-publication path, then
+rerun AI OS check, preflight, resolver and scorecard and stop for one separately
+exact-hash-approved runtime receipt on the then-current exact main. Hero
+redesign, membership dashboard, generic source/provenance and every second
+journey node remain unpromoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03a2-B5` (Tier 2 product/copy/i18n; `runtime_authorized:false`; exact-approved merged authority `IDA-DG33-UI03a2-B5-REENTRY-EXISTING-CASE-COPY-TRUTH`).
