@@ -18,6 +18,8 @@ const copy = {
   categoryBody: 'Body',
   categoryContinue: 'Continue',
   categoryHeading: 'Category',
+  // prettier-ignore
+  existingCaseSuccess: 'There is already a submitted case for this saved draft. You can track it from the dashboard. Later edits to the saved draft do not change the case.',
   heading: 'Draft',
   previewBody: 'Review',
   previewHeading: 'Review facts',
@@ -32,7 +34,8 @@ const submitCopy = {
   goToClaim: 'Open claim',
   goToClaims: 'My claims',
   label: 'Submit claim',
-  success: 'Case submitted.',
+  // prettier-ignore
+  success: 'Case submitted. You can track it from the dashboard. Your saved draft stays separate; later edits to the draft do not change this case.',
   unexpected: 'Unexpected failure.',
 };
 const baseProps = {
@@ -82,6 +85,8 @@ describe('saved draft existing claim re-entry', () => {
       'href',
       '/en/member/claims/claim-a'
     );
+    expect(screen.getByTestId('claim-created-success')).toHaveTextContent(copy.existingCaseSuccess);
+    expect(screen.getByTestId('claim-created-success')).not.toHaveTextContent(submitCopy.success);
     expect(screen.queryByRole('button', { name: submitCopy.label })).not.toBeInTheDocument();
     expect(screen.getByTestId('claim-created-success')).not.toHaveFocus();
   });

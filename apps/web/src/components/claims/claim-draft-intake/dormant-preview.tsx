@@ -7,7 +7,7 @@ import { useLocale } from 'next-intl';
 import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
 import { isSavedDraftId, useSavedDraftClaim } from './use-saved-draft-claim';
 // prettier-ignore
-export type ClaimDraftCopy = Readonly<{ backToDetails: string; categoryBody: string; categoryContinue: string; categoryHeading: string; heading: string; previewBody: string; previewHeading: string; submitDisabled: string; submitExplanation: string; supporting: string; truth: string; unsupported: string }>;
+export type ClaimDraftCopy = Readonly<{ backToDetails: string; categoryBody: string; categoryContinue: string; categoryHeading: string; existingCaseSuccess: string; heading: string; previewBody: string; previewHeading: string; submitDisabled: string; submitExplanation: string; supporting: string; truth: string; unsupported: string }>;
 export function parseClaimDraftCopy(value: unknown): ClaimDraftCopy {
   return JSON.parse(String(value)) as ClaimDraftCopy;
 }
@@ -44,7 +44,9 @@ export function DormantPreview(props: Props) {
         tabIndex={-1}
         className="block space-y-3 text-left"
       >
-        <span className="block font-bold text-[#173b43]">{submitCopy.success}</span>
+        <span className="block font-bold text-[#173b43]">
+          {origin === 'background_lookup' ? copy.existingCaseSuccess : submitCopy.success}
+        </span>
         <Link
           className="font-bold text-[#006b7b] underline"
           href={`/${locale}/member/claims/${claim.id}`}

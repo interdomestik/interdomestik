@@ -29,6 +29,7 @@ const claimCopy = {
   unsupported: 'Not available in this draft', previewHeading: 'Review your preparation facts',
   previewBody: 'Save explicitly when these facts are ready.', backToDetails: 'Back to details',
   submitDisabled: 'Submit claim — requirements not met', submitExplanation: 'Submitting a claim requires active membership and a complete, saved draft with no unsaved changes. Saving the draft does not submit the claim.',
+  existingCaseSuccess: 'There is already a submitted case for this saved draft.',
 };
 // prettier-ignore
 const secureCopy = {
@@ -143,5 +144,7 @@ describe('ClaimDraftIntake', () => {
     expect([copies[0].heading, ...copies.flatMap(copy => [copy.submitDisabled, copy.submitExplanation])]).toEqual(['Prepare your claim draft', 'Submit claim — requirements not met', 'Submitting a claim requires active membership and a complete, saved draft with no unsaved changes. Saving the draft does not submit the claim.', 'Dorëzo kërkesën — kushtet nuk janë plotësuar', 'Për dorëzim duhen anëtarësim aktiv dhe një skicë e plotë e ruajtur, pa ndryshime të paruajtura. Ruajtja e skicës nuk e dorëzon kërkesën.', 'Поднеси барање — условите не се исполнети', 'За поднесување се потребни активно членство и целосен зачуван нацрт без незачувани измени. Зачувувањето на нацртот не го поднесува барањето.', 'Podnesi zahtev — uslovi nisu ispunjeni', 'Za podnošenje su potrebni aktivno članstvo i potpun sačuvan nacrt bez nesačuvanih izmena. Čuvanje nacrta ne podnosi zahtev.']);
     // prettier-ignore
     expect([en.claims.wizard.submit_success, sq.claims.wizard.submit_success, mk.claims.wizard.submit_success, sr.claims.wizard.submit_success]).toEqual(['Case submitted. You can track it from the dashboard. Your saved draft stays separate; later edits to the draft do not change this case.', 'Rasti u dërgua. Mund ta ndiqni nga paneli. Skica juaj e ruajtur mbetet e veçantë; ndryshimet e mëvonshme në skicë nuk e ndryshojnë këtë rast.', 'Случајот е поднесен. Можете да го следите од контролната табла. Зачуваниот нацрт останува одделен; подоцнежните измени во нацртот не го менуваат овој случај.', 'Slučaj je podnet. Možete ga pratiti sa kontrolne table. Sačuvani nacrt ostaje odvojen; kasnije izmene nacrta ne menjaju ovaj slučaj.']);
+    // prettier-ignore
+    expect(copies.map(copy => copy.existingCaseSuccess)).toEqual(['There is already a submitted case for this saved draft. You can track it from the dashboard. Later edits to the saved draft do not change the case.', 'Për këtë skicë të ruajtur ekziston tashmë një rast i dërguar. Mund ta ndiqni nga paneli. Ndryshimet e mëvonshme në skicën e ruajtur nuk e ndryshojnë rastin.', 'За овој зачуван нацрт веќе постои поднесен случај. Можете да го следите од контролната табла. Подоцнежните измени на зачуваниот нацрт не го менуваат случајот.', 'Za ovaj sačuvani nacrt već postoji podnet slučaj. Možete ga pratiti sa kontrolne table. Kasnije izmene sačuvanog nacrta ne menjaju slučaj.']);
   });
 });

@@ -2,7 +2,6 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DormantPreview } from './dormant-preview';
-
 const h = vi.hoisted(() => ({ lookup: vi.fn(), submit: vi.fn() }));
 vi.mock('@/actions/claims/create-from-saved-draft', () => ({
   createClaimFromSavedDraft: h.submit,
@@ -21,6 +20,7 @@ const copy = {
   categoryBody: 'Body',
   categoryContinue: 'Continue',
   categoryHeading: 'Category',
+  existingCaseSuccess: 'There is already a submitted case for this saved draft.',
   heading: 'Draft',
   previewBody: 'Review',
   previewHeading: 'Review facts',
@@ -40,7 +40,6 @@ const submitCopy = {
   unexpected: 'Unexpected failure.',
 };
 const id = '63ffc31e-8c64-4758-995a-c57f40de7568';
-
 function view(overrides: Partial<React.ComponentProps<typeof DormantPreview>> = {}) {
   return render(
     <DormantPreview
@@ -63,7 +62,6 @@ describe('saved draft canonical submit', () => {
     h.lookup.mockResolvedValue({ claim: null });
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390 });
   });
-
   it.each([
     ['dirty', { hasUnsavedChanges: true }],
     ['not persisted', { activeDraftId: null, activeDraftVersion: null }],
@@ -97,6 +95,9 @@ describe('saved draft canonical submit', () => {
     finish({ success: true, claimId: 'claim-1', claimNumber: 'CLM-KS-2026-000001' });
     expect(await screen.findByTestId('claim-created-success')).toHaveTextContent(
       submitCopy.success
+    );
+    expect(screen.getByTestId('claim-created-success')).not.toHaveTextContent(
+      copy.existingCaseSuccess
     );
     expect(screen.getByTestId('claim-created-success')).toHaveAttribute(
       'data-claim-number',
