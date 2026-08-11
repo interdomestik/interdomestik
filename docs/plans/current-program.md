@@ -7257,3 +7257,41 @@ redesign, membership dashboard, generic source/provenance and every second
 journey node remain unpromoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03a2-B5` (Tier 2 product/copy/i18n; `runtime_authorized:false`; exact-approved merged authority `IDA-DG33-UI03a2-B5-REENTRY-EXISTING-CASE-COPY-TRUTH`).
+
+Rev 216 supersedes only the Rev 215 shared-success-copy contract after the
+valid product-review finding on PR `#1532`, discussion
+`discussion_r3756416898`, proved that fresh Submit and existing-case re-entry
+must not share one success string. Arben exact-approved the consolidated
+immutable recut
+`IDA-DG33-UI03a2-B5-DUAL-ORIGIN-SUCCESS-COPY-TRUTH-RECUT` in task
+`019fe16c-4bd0-75d1-86dd-6f6b7cf3eb6c` on 2026-08-11 at 22,236 UTF-8 bytes /
+SHA-256 `116078217f4a0a300669844598421b06f68969bcb65105f543f837bc5c38adcf`,
+bound to clean main `d4248799dab8f2fafaa229808e5303695e24103e`.
+
+The recut keeps exactly one Tier 2 product outcome: fresh `user_submit` keeps
+the current submitted-case success copy, while `background_lookup` receives a
+new localized existing-case success value. The frozen product map is
+`dormant-preview.tsx` plus the EN, SQ, MK and SR claims locale files. Four
+existing focused unit/E2E files and conditional deterministic
+`scripts/repo-size-budget.json` complete the ten-path writer map. Actions,
+state machines, claim/draft readers or writers, persistence, routes/proxy,
+auth/session, tenancy, schema/RLS, dashboard behavior, provider, deployment,
+production and every second journey node remain excluded.
+
+Admission receipt SHA-256
+`a9e0bf38c7651fd169b914b9a4ffdc550fa5056e7368b26d9820bc0a160c54cd`
+is `ready` with one outcome, ten writer paths, three proof surfaces, zero
+shared runtime consumers and zero special environments. UI/UX receipt SHA-256
+`3054c5b47ed8a75637f27f2d31ec8e07cf7123fb3cbfcdbf6452c334c6c2de6b`
+passes. The bounded internal review accepted the consolidated recut; no
+external model/reviewer was called.
+
+Arben also exact-approved conditional runtime receipt
+`IDA-UI03a2-B5-RUNTIME-R2`, 21,372 bytes / SHA-256
+`f35ea96d6a264c0ba5126d5487e73f5a746fc41ceabf5df98dfe3b8874340919`.
+That receipt does not become executable until this authority merges, governed
+publication records the merged authority, and AI OS plus the canonical resolver
+simultaneously prove Brain current, Integrity clear, zero contradictions,
+verified M1-M7, `activeSlice=IDA-UI03a2-B5` and runtime not authorized.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03a2-B5` (Tier 2 product/copy/i18n; `runtime_authorized:false`; exact-approved consolidated recut authority `IDA-DG33-UI03a2-B5-DUAL-ORIGIN-SUCCESS-COPY-TRUTH-RECUT`).
