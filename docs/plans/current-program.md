@@ -7295,3 +7295,32 @@ simultaneously prove Brain current, Integrity clear, zero contradictions,
 verified M1-M7, `activeSlice=IDA-UI03a2-B5` and runtime not authorized.
 <!-- prettier-ignore -->
 The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03a2-B5` (Tier 2 product/copy/i18n; `runtime_authorized:false`; exact-approved consolidated recut authority `IDA-DG33-UI03a2-B5-DUAL-ORIGIN-SUCCESS-COPY-TRUTH-RECUT`).
+
+Rev 217 closeout consumes the sole `IDA-UI03a2-B5` promotion. The exact-approved
+consolidated gate is 22,236 bytes / SHA-256
+`116078217f4a0a300669844598421b06f68969bcb65105f543f837bc5c38adcf`;
+the exact-approved runtime receipt is 21,372 bytes / SHA-256
+`f35ea96d6a264c0ba5126d5487e73f5a746fc41ceabf5df98dfe3b8874340919`.
+Product PR `#1532` merged exact reviewed head
+`6ec895576a79ae414038f7fb2ef053dca4160d09` as squash merge
+`2874a828e657a0f90e2c877a1bfdb1ff0bf22d83`.
+
+The frozen ten-path recut preserves fresh `user_submit` truth and gives
+`background_lookup` a distinct localized existing-case truth in EN/SQ/MK/SR.
+Focused unit proof passed `28/28`; repository-native Z620 pre-push phases passed,
+and the only invalidated smoke surface passed on canonical task-owned port `3101`
+with `13` passes and `11` policy skips. Exactly one full exact-head CI E2E
+authority lane completed and passed in run `31483135438`; its runner took
+`19m35s`. CI run `31483135526`, Pilot run `31483135448`, Sonar, CodeQL,
+Semgrep, gitleaks, pnpm-audit, security, feedback intake and finalizer run
+`31483135445` attempt 2 passed. The original review thread was remediated and
+resolved. GitHub Copilot was requested but retained no request or review, so it
+is recorded as `unavailable`, not pass.
+
+No route/proxy, auth/session, tenancy, schema/RLS, persistence, billing,
+provider, deployment or production surface changed. Runtime authority is
+consumed and this closeout promotes no successor. Governed publication and
+terminal AI OS/Brain verification remain post-merge closeout actions and are
+not claimed by this repository record.
+<!-- prettier-ignore -->
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
