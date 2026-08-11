@@ -42,8 +42,8 @@ describe('ARCH-M1-12 deferred-backfills', () => {
     });
   });
 
-  describe('claims.ts schema — claimNumber uniqueIndex', () => {
-    const src = readFileSync(join(DB_ROOT, 'src', 'schema', 'claims.ts'), 'utf-8');
+  describe('claim schema — claimNumber uniqueIndex', () => {
+    const src = readFileSync(join(DB_ROOT, 'src', 'schema', 'claim-core.ts'), 'utf-8');
 
     it('uniqueIndex idx_claims_tenant_number has no "Enable after backfill" comment', () => {
       assert.doesNotMatch(src, /Enable after backfill/);
