@@ -7324,3 +7324,41 @@ terminal AI OS/Brain verification remain post-merge closeout actions and are
 not claimed by this repository record.
 <!-- prettier-ignore -->
 The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+
+Rev 218 current-authority selection supersedes only the Rev 217 terminal
+no-promotion sentence. Arben exact-approved immutable
+`IDA-DG34-UI03a2-B6-UNSAVED-CHANGES-SUBMIT-TRUTH` in task
+`019fe16c-4bd0-75d1-86dd-6f6b7cf3eb6c` on 2026-08-12 at exactly 27,785
+UTF-8 bytes / SHA-256
+`504df5869c336f1989441f27f475b269a970bc2af5897eb6a4b658a4466a30b4`,
+bound to clean main `ac386b2adfd2090a1dbc34b898ea58263e6ae5e6`.
+
+This promotes exactly one Tier 2 product/copy/i18n/accessibility slice:
+`IDA-UI03a2-B6-UNSAVED-CHANGES-SUBMIT-TRUTH`. For an access-active member on
+the canonical neutral Claim Draft Intake route, the future component may select
+one new locale-owned dirty-only Submit explanation only when the existing saved
+id is valid, saved version is truthy, every required fact is complete, normal
+mode is active and the existing draft fingerprint has drifted. Submit remains
+disabled and inert. Every other disabled cause keeps B3's generic explanation.
+Secure Save availability and recovery remain separate and unchanged.
+
+The frozen product map is `dormant-preview.tsx` plus four EN/SQ/MK/SR claims
+locale files. Three existing focused test fixtures/collectors and conditional
+deterministic repository-size metadata complete the nine-path map. Admission
+SHA-256 `1531bb6d1a140f70491f705c60e7f9c1c6b1a14aa15e857d5c3be6c6a546a634`
+is `ready`; UI/UX governance SHA-256
+`3c2798e00e8216c94d374eea3260a94c91ee3c9c68bf790becd9b060206ca704`
+passes. Bounded Opus review exposed cause-precedence, locale, fixture-closure,
+save-availability, Boolean/version and truth-table defects; all exact findings
+are incorporated in the single consolidated artifact, and Arben's exact
+approval accepts that explicit disposition.
+
+This docs-only authority grants no runtime. After merge, publish only through
+the governed task path, rerun AI OS check, preflight, resolver and scorecard,
+and stop for one separately exact-hash-approved runtime receipt on then-current
+main. No product branch, active execution, Brain product session or product
+mutation may begin before that approval. Hero redesign, membership dashboard,
+handoff persistence, source/origin linkage and every second journey node remain
+unpromoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03a2-B6-UNSAVED-CHANGES-SUBMIT-TRUTH` (Tier 2 product/copy/i18n/accessibility; `runtime_authorized:false`; exact-approved `IDA-DG34-UI03a2-B6-UNSAVED-CHANGES-SUBMIT-TRUTH` authority pending docs-only merge).
