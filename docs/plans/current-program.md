@@ -7362,3 +7362,44 @@ handoff persistence, source/origin linkage and every second journey node remain
 unpromoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03a2-B6-UNSAVED-CHANGES-SUBMIT-TRUTH` (Tier 2 product/copy/i18n/accessibility; `runtime_authorized:false`; exact-approved `IDA-DG34-UI03a2-B6-UNSAVED-CHANGES-SUBMIT-TRUTH` authority pending docs-only merge).
+
+Rev 219 closeout consumes the sole
+`IDA-UI03a2-B6-UNSAVED-CHANGES-SUBMIT-TRUTH` promotion. The exact-approved gate
+is 27,785 bytes / SHA-256
+`504df5869c336f1989441f27f475b269a970bc2af5897eb6a4b658a4466a30b4`;
+the exact-approved runtime receipt `IDA-UI03a2-B6-RUNTIME-R1` is 20,254 bytes /
+SHA-256 `52b612d4e320e74c5a98fb6f4445ec32b9ee8b75224f8d4310dc75d76d67045c`.
+Product PR `#1536` merged exact reviewed head
+`350b46031c90eb364368b30cdb7daf0417b07108` as squash merge
+`9fb8c64d2c5ca956901bff73a8fd526c5f79fc8b`.
+
+The frozen nine-path implementation adds one dedicated EN/SQ/MK/SR
+dirty-only Submit explanation and selects it only when every non-dirty Submit
+prerequisite is true and the retained draft fingerprint has drifted. Focused
+unit proof passed `29/29`. The exact-head Z620 composite passed
+`pnpm pr:verify`, `pnpm security:guard` and `pnpm e2e:gate`; its final gate
+reported `230` passed / `10` policy skips on task-owned port `3136`. Exactly one
+full exact-head CI E2E authority lane passed in run `31601286079`; CI
+`31601286100`, Pilot `31601286096`, Sonar, CodeQL, Semgrep, gitleaks,
+pnpm-audit, feedback intake with zero unresolved threads and finalizer
+`31601286073` passed. Bounded exact-diff senior review found no actionable
+issue. GitHub Copilot was requested once but retained no request or review, so
+it is recorded as `unavailable`, not pass.
+
+The first exact-head Z620 composite was invalidated only by a shared port-3000
+collision after its tests and build had passed; the required composite was
+re-run once with canonical `PW_PORT=3136`. No CI E2E was re-run. Additional M2
+fingerprints record missing worktree dependency links, `git am` SHA drift,
+missing task-clone identity, an interrupted frontend polling session and one
+accidental Mac `pr:review-ready` invocation stopped before completion; none
+changed product files or supplied merge authority. CD run `31605691095` was
+cancelled with all eight jobs at `steps: []`, before checkout, build, registry,
+provider, alias, deployment or production effect.
+
+No eligibility, Secure Save recovery, action, persistence, route/proxy,
+auth/session, tenancy, schema/RLS, billing or provider surface changed. Runtime
+authority is consumed and this closeout promotes no successor. Governed
+publication and terminal AI OS/Brain verification remain post-merge closeout
+actions and are not claimed by this repository record.
+<!-- prettier-ignore -->
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
