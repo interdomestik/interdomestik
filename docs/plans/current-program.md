@@ -7403,3 +7403,40 @@ publication and terminal AI OS/Brain verification remain post-merge closeout
 actions and are not claimed by this repository record.
 <!-- prettier-ignore -->
 The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+
+Rev 220 current-authority selection supersedes only the Rev 219 terminal
+no-promotion sentence. Arben exact-approved immutable
+`IDA-DG35-UI03a2-B7-SAVED-DRAFT-DELETE-INDEPENDENCE-TRUTH` in task
+`019fe16c-4bd0-75d1-86dd-6f6b7cf3eb6c` on 2026-08-12 at exactly 29,229
+UTF-8 bytes / SHA-256
+`5abb2b28404ff1422225df489515c3249cd75966dd5df1d7ab3a6af0b4ccad24`,
+bound to clean main `da7a2173ac2159a5755e002921f63228799596c0`.
+
+This promotes exactly one Tier 2 product/copy/i18n slice:
+`IDA-UI03a2-B7-SAVED-DRAFT-DELETE-INDEPENDENCE-TRUTH`. Both existing success
+origins must state that the retained saved draft remains separate and that
+editing or deleting it later does not change or delete the submitted case.
+Fresh submit and existing-case re-entry remain distinct. The component,
+actions, readers, writers and record-independence behavior remain unchanged.
+
+The frozen product map is four existing EN/SQ/MK/SR claims locale files, one
+existing locale unit collector and conditional deterministic repository-size
+metadata. Admission SHA-256
+`fc5862269b043cb0f37e73daf725b7d64b8f35e66877431711e9e71ec8aa5bf9`
+is `ready` with one outcome, six writer paths, three proof surfaces, one shared
+read-only runtime consumer and zero special environments. UI/UX governance
+SHA-256 `119638888b87d933dca3150336be0c06cc682b62d9f593e7532a785b752d4c1f`
+passes with four benchmark operators and the target raised from zero of two to
+two of two success origins. Bounded Opus 5 review completed in 297.129 seconds
+with `CONDITIONAL_PASS`; its four source-grounded findings are incorporated in
+the single exact-approved artifact.
+
+This docs-only authority grants no runtime. After merge, publish only through
+the governed task path, rerun AI OS check, preflight, resolver and scorecard,
+and stop for one separately exact-hash-approved runtime receipt on then-current
+main. No product branch, active execution, Brain product session or product
+mutation may begin before that approval. Hero redesign, membership dashboard,
+source badges, persistence expansion and every second journey node remain
+unpromoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03a2-B7-SAVED-DRAFT-DELETE-INDEPENDENCE-TRUTH` (Tier 2 product/copy/i18n; `runtime_authorized:false`; exact-approved `IDA-DG35-UI03a2-B7-SAVED-DRAFT-DELETE-INDEPENDENCE-TRUTH` authority pending docs-only merge).
