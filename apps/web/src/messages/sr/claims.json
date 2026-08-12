@@ -3,7 +3,7 @@
     "title": "Moji Zahtevi",
     "description": "Upravljajte svojim zahtevima za odštetu i pratite njihov status.",
     "new": "Novi Zahtev",
-    "draftIntakeCopy": "{\"heading\":\"Pripremite nacrt zahteva\",\"supporting\":\"Sačuvajte činjenice koje sada imate i vratite se kasnije.\",\"truth\":\"Samo nacrt — ovo ne kreira niti podnosi zahtev, ne dodeljuje predmet, ne obaveštava tim i ne pokreće pregled.\",\"categoryHeading\":\"Izaberite šta se dogodilo\",\"categoryBody\":\"Dostupna je priprema za vozilo i imovinu. Telesna povreda nije dostupna u ovom nacrtu.\",\"categoryContinue\":\"Nastavite na detalje\",\"unsupported\":\"Nije dostupno u ovom nacrtu\",\"previewHeading\":\"Pregledajte pripremljene činjenice\",\"previewBody\":\"Izričito sačuvajte kada su ove činjenice spremne.\",\"backToDetails\":\"Nazad na detalje\",\"submitDisabled\":\"Podnesi zahtev — uslovi nisu ispunjeni\",\"submitExplanation\":\"Za podnošenje su potrebni aktivno članstvo i potpun sačuvan nacrt bez nesačuvanih izmena. Čuvanje nacrta ne podnosi zahtev.\",\"submitUnsavedExplanation\":\"Sačuvajte izmene pre podnošenja. Čuvanje izmena ne podnosi zahtev.\",\"existingCaseSuccess\":\"Za ovaj sačuvani nacrt već postoji podnet slučaj. Možete ga pratiti sa kontrolne table. Kasnije izmene sačuvanog nacrta ne menjaju slučaj.\"}",
+    "draftIntakeCopy": "{\"heading\":\"Pripremite nacrt zahteva\",\"supporting\":\"Sačuvajte činjenice koje sada imate i vratite se kasnije.\",\"truth\":\"Samo nacrt — ovo ne kreira niti podnosi zahtev, ne dodeljuje predmet, ne obaveštava tim i ne pokreće pregled.\",\"categoryHeading\":\"Izaberite šta se dogodilo\",\"categoryBody\":\"Dostupna je priprema za vozilo i imovinu. Telesna povreda nije dostupna u ovom nacrtu.\",\"categoryContinue\":\"Nastavite na detalje\",\"unsupported\":\"Nije dostupno u ovom nacrtu\",\"previewHeading\":\"Pregledajte pripremljene činjenice\",\"previewBody\":\"Izričito sačuvajte kada su ove činjenice spremne.\",\"backToDetails\":\"Nazad na detalje\",\"submitDisabled\":\"Podnesi zahtev — uslovi nisu ispunjeni\",\"submitExplanation\":\"Za podnošenje su potrebni aktivno članstvo i potpun sačuvan nacrt bez nesačuvanih izmena. Čuvanje nacrta ne podnosi zahtev.\",\"submitUnsavedExplanation\":\"Sačuvajte izmene pre podnošenja. Čuvanje izmena ne podnosi zahtev.\",\"existingCaseSuccess\":\"Za ovaj sačuvani nacrt već postoji podnet slučaj. Možete ga pratiti sa kontrolne table. Ako kasnije izmenite ili izbrišete sačuvani nacrt, to ne menja niti briše slučaj.\"}",
     "empty": {
       "title": "Nema pronađenih zahteva",
       "description": "Još uvek niste podneli zahtev. Započnite kreiranjem vašeg prvog zahteva.",
@@ -102,7 +102,7 @@
       "continue_review": "Nastavi -> Pregled",
       "submit_label": "Podnesi slučaj",
       "required_fields": "Popunite obavezna polja",
-      "submit_success": "Slučaj je podnet. Možete ga pratiti sa kontrolne table. Sačuvani nacrt ostaje odvojen; kasnije izmene nacrta ne menjaju ovaj slučaj.",
+      "submit_success": "Slučaj je podnet. Možete ga pratiti sa kontrolne table. Sačuvani nacrt ostaje odvojen; ako nacrt kasnije izmenite ili izbrišete, to ne menja niti briše ovaj slučaj.",
       "submit_failed": "Podnošenje nije moglo da se završi. Pokušajte ponovo ili kontaktirajte podršku.",
       "submit_unexpected": "Dogodilo se nešto neočekivano. Pokušajte još jednom ili kontaktirajte podršku.",
       "help": {
