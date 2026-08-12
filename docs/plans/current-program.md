@@ -7481,3 +7481,38 @@ OS/Brain verification remain post-merge closeout actions and are not claimed by
 this repository record.
 <!-- prettier-ignore -->
 The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+
+Rev 222 current-authority selection supersedes only the Rev 221 terminal
+no-promotion sentence. Arben exact-approved immutable
+`IDA-DG36-UI03a2-B8-INACTIVE-MEMBERSHIP-SUBMIT-TRUTH` in task
+`019fe16c-4bd0-75d1-86dd-6f6b7cf3eb6c` on 2026-08-12 at exactly 33,626
+UTF-8 bytes / SHA-256
+`c651485da46c6c8fd61fa2d34cb097b1e9cf7ae618781e8599250ac952f6527c`,
+bound to clean main `e374be8479d4191cb7b96d66d7b5836a403655be`.
+
+This promotes exactly one Tier 2 product/copy/i18n/accessibility slice:
+`IDA-UI03a2-B8-INACTIVE-MEMBERSHIP-SUBMIT-TRUTH`. An inactive `member|user`
+who resumes an existing draft through the manager-only journey must receive a
+specific localized inactive-membership explanation for disabled Submit while
+retaining truthful draft management. Submit remains disabled and inert.
+
+The frozen map is `dormant-preview.tsx`, four EN/SQ/MK/SR claims locale files,
+four existing focused unit/E2E files and conditional deterministic
+repository-size metadata. Admission SHA-256
+`7bc1d0b4de06bb98320a0f568a32b863f829d2d1426fdf7b84f09d227a1d1810`
+is `ready` with one outcome, ten writer paths, three proof surfaces, one shared
+read-only runtime consumer and zero special environments. UI/UX governance
+SHA-256 `b4e7fe7ae5f50dc9abf8005dba2fbfb9b505c8c6036280768163ec5a431e52ee`
+passes. Bounded Opus 5 review completed in 365.372 seconds with
+`CONDITIONAL_PASS`; its six source-grounded findings are incorporated in the
+single exact-approved artifact.
+
+This docs-only authority grants no runtime. After merge, publish only through
+the governed task path, rerun AI OS check, preflight, resolver and scorecard,
+and stop for one separately exact-hash-approved runtime receipt on then-current
+main. No product branch, active execution, Brain product session or product
+mutation may begin before that approval. Hero redesign, membership dashboard,
+membership resolution, source badges, persistence expansion and every second
+journey node remain unpromoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03a2-B8-INACTIVE-MEMBERSHIP-SUBMIT-TRUTH` (Tier 2 product/copy/i18n/accessibility; `runtime_authorized:false`; exact-approved `IDA-DG36-UI03a2-B8-INACTIVE-MEMBERSHIP-SUBMIT-TRUTH` authority pending docs-only merge).
