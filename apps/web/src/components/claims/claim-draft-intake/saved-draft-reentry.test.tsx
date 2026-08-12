@@ -25,6 +25,7 @@ const copy = {
   previewHeading: 'Review facts',
   submitDisabled: 'Not available',
   submitExplanation: 'Save a complete draft first.',
+  submitUnsavedExplanation: 'Save changes before submitting.',
   supporting: 'Support',
   truth: 'Draft truth',
   unsupported: 'Unsupported',

@@ -7,7 +7,7 @@ import { useLocale } from 'next-intl';
 import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
 import { isSavedDraftId, useSavedDraftClaim } from './use-saved-draft-claim';
 // prettier-ignore
-export type ClaimDraftCopy = Readonly<{ backToDetails: string; categoryBody: string; categoryContinue: string; categoryHeading: string; existingCaseSuccess: string; heading: string; previewBody: string; previewHeading: string; submitDisabled: string; submitExplanation: string; supporting: string; truth: string; unsupported: string }>;
+export type ClaimDraftCopy = Readonly<{ backToDetails: string; categoryBody: string; categoryContinue: string; categoryHeading: string; existingCaseSuccess: string; heading: string; previewBody: string; previewHeading: string; submitDisabled: string; submitExplanation: string; submitUnsavedExplanation: string; supporting: string; truth: string; unsupported: string }>;
 export function parseClaimDraftCopy(value: unknown): ClaimDraftCopy {
   return JSON.parse(String(value)) as ClaimDraftCopy;
 }
@@ -24,7 +24,8 @@ export function DormantPreview(props: Props) {
   // prettier-ignore
   const facts = [[tFree('preview.categoryLabel'), labels.category], [tFree('preview.issueLabel'), labels.issue], [tFree('preview.dateLabel'), draft.incidentDate], [tFree('preview.counterpartyLabel'), draft.counterparty], [tFree('preview.outcomeLabel'), labels.outcome], [tFree('preview.summaryLabel'), draft.summary]];
   // prettier-ignore
-  const eligible = Boolean(!managerOnly && isSavedDraftId(activeDraftId) && activeDraftVersion && !hasUnsavedChanges && [draft.issueType, draft.incidentDate, draft.counterparty, draft.desiredOutcome, draft.summary].every(value => value.trim()));
+  const readyExceptUnsavedChanges = Boolean(!managerOnly && isSavedDraftId(activeDraftId) && activeDraftVersion && [draft.issueType, draft.incidentDate, draft.counterparty, draft.desiredOutcome, draft.summary].every(value => value.trim()));
+  const eligible = readyExceptUnsavedChanges && !hasUnsavedChanges;
   const { claim, failure, lookupStatus, origin, pending, submit } = useSavedDraftClaim({
     draftId: activeDraftId,
     draftVersion: activeDraftVersion,
@@ -114,7 +115,9 @@ export function DormantPreview(props: Props) {
           {submitAction}
           {!claim && !eligible ? (
             <p id="claim-draft-submit-explanation" className="mt-2 text-sm text-[#526274]">
-              {copy.submitExplanation}
+              {readyExceptUnsavedChanges && hasUnsavedChanges
+                ? copy.submitUnsavedExplanation
+                : copy.submitExplanation}
             </p>
           ) : null}
           {failure ? (
