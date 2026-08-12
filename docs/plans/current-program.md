@@ -7440,3 +7440,44 @@ source badges, persistence expansion and every second journey node remain
 unpromoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03a2-B7-SAVED-DRAFT-DELETE-INDEPENDENCE-TRUTH` (Tier 2 product/copy/i18n; `runtime_authorized:false`; exact-approved `IDA-DG35-UI03a2-B7-SAVED-DRAFT-DELETE-INDEPENDENCE-TRUTH` authority pending docs-only merge).
+
+Rev 221 closeout consumes the sole
+`IDA-UI03a2-B7-SAVED-DRAFT-DELETE-INDEPENDENCE-TRUTH` promotion. The
+exact-approved gate is 29,229 bytes / SHA-256
+`5abb2b28404ff1422225df489515c3249cd75966dd5df1d7ab3a6af0b4ccad24`;
+the exact-approved runtime receipt `IDA-UI03a2-B7-RUNTIME-R1` is 28,356 bytes /
+SHA-256 `c243dd7632c7b098c8bd1b4135e0596a25916da49ade5263397895ed9704c9c9`.
+Product PR `#1539` merged exact reviewed head
+`18b43873ed61f0cdb475c7c111ba1a2275698576` as squash merge
+`5752c7f750d52a35b5273429b2ecb100f5a9fd6d`.
+
+The frozen six-path implementation updates the two existing success values in
+each EN/SQ/MK/SR claims locale and their production-locale collector so fresh
+submit and existing-case re-entry both state that later saved-draft editing or
+deletion does not change or delete the submitted case. Focused proof passed
+`29/29`. Z620 exact-head `pnpm slice:verify`, `pnpm security:guard` and the
+canonical `pnpm pr:verify:hosts` chain passed; the final isolated chain included
+coverage, build, PR E2E gate and smoke on task-owned port `3101`. Exactly one
+full exact-head CI E2E authority lane passed in run `31626576960`, with zero CI
+reruns. CI `31626577036`, Pilot `31626576934`, Sonar with zero new issues and
+hotspots, CodeQL, Semgrep, OSV, gitleaks, pnpm-audit, feedback intake with zero
+unresolved threads and finalizer `31626577126` passed. Bounded Opus 5 review
+found zero actionable issues. GitHub Copilot was requested through both the
+reviewer route and `@copilot review` but produced no retained review, so it is
+recorded as `unavailable`, not pass.
+
+Two failed local composites were environment-invalid evidence, not product
+defects: R1 used an unmigrated task database; R2 injected E2E-only `IDA_HOST`
+and `PLAYWRIGHT=1` into unit/coverage execution. Focused proof of the corrected
+minimal environment passed `11/11`, and only the invalidated composite was run
+again as R3. No product head changed and no CI E2E was rerun. CD run
+`31628479254` was cancelled with all seven jobs at `steps: []`, before checkout,
+build, registry, provider, alias, deployment or production effect.
+
+No component behavior, action, persistence, route/proxy, auth/session, tenancy,
+schema/RLS, billing or provider surface changed. Runtime authority is consumed
+and this closeout promotes no successor. Governed publication and terminal AI
+OS/Brain verification remain post-merge closeout actions and are not claimed by
+this repository record.
+<!-- prettier-ignore -->
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
