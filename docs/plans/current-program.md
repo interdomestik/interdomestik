@@ -7516,3 +7516,50 @@ membership resolution, source badges, persistence expansion and every second
 journey node remain unpromoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03a2-B8-INACTIVE-MEMBERSHIP-SUBMIT-TRUTH` (Tier 2 product/copy/i18n/accessibility; `runtime_authorized:false`; exact-approved `IDA-DG36-UI03a2-B8-INACTIVE-MEMBERSHIP-SUBMIT-TRUTH` authority pending docs-only merge).
+
+Rev 223 closeout consumes the sole
+`IDA-UI03a2-B8-INACTIVE-MEMBERSHIP-SUBMIT-TRUTH` promotion. The exact-approved
+gate is 33,626 bytes / SHA-256
+`c651485da46c6c8fd61fa2d34cb097b1e9cf7ae618781e8599250ac952f6527c`;
+the exact-approved runtime receipt `IDA-UI03a2-B8-RUNTIME-R1` is 23,979 bytes /
+SHA-256 `0aad6b115ce7ce530f432f05c459711750ee8e18296bb4daa28fe89010f57960`.
+Product PR `#1543` merged exact reviewed head
+`5e412baa2ebca69448e424b6c3dff8c534207abf` as squash merge
+`482cc0d41e0f4ca601ab101871b32a12a2684aff`.
+
+The frozen ten-path implementation adds one localized inactive-membership
+Submit explanation and selects it only for the manager-only inactive
+`member|user` journey. Submit remains disabled and inert; saved-draft
+management and all protected surfaces remain unchanged. Focused unit proof
+passed `26/26`; exact-head focused browser, build, security, repository-size and
+line-ceiling evidence passed. Exactly one final-head full CI E2E authority lane
+completed in run `31684666626`; gate and smoke passed in `21m21s` with no E2E
+rerun. CI `31684666774`, Pilot `31684666641`, Sonar, CodeQL, Semgrep, OSV,
+gitleaks, pnpm-audit, feedback intake with zero unresolved threads and
+finalizer `31684666588` attempt 2 passed.
+
+Sonar's initial two maintainability findings were handled in one consolidated
+remediation that extracted the explanation selector. The bounded substantive
+re-review then found two deterministic closure blockers: the 149-line slice
+ceiling and stale exact repository-size metadata. Both were corrected before
+the final push without changing behavior or scope. GitHub Copilot was requested
+twice but produced no retained review and is recorded as `unavailable`, not
+pass. The supplemental Codex Security route is also `unavailable`, not pass,
+because its finalizer rejected an empty `scan.target.snapshotDigest`; required
+repository-native security evidence remained green.
+
+Prerequisite repair PR `#1542` isolated the Help Now protected-request watcher
+from residual member-dashboard prefetches and merged as
+`f9994f44c488bc55951fa3b9341061289811d032`; only evidence invalidated by that
+repair was rematerialized. The stale eight-second full-gate admission result did
+not execute E2E, and the sole completed final-head authority run above
+superseded it. CD run `31686471217` was cancelled before provider or deployment
+effects.
+
+No route/proxy, auth/session, tenancy, membership resolution, action,
+persistence, schema/RLS, billing or provider surface changed. Runtime authority
+is consumed and this closeout promotes no successor. Governed publication and
+terminal AI OS/Brain verification remain post-merge closeout actions and are
+not claimed by this repository record.
+<!-- prettier-ignore -->
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
