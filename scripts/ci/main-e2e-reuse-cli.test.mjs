@@ -66,7 +66,7 @@ test('parity drift always resolves to a fail-closed reuse decision', async () =>
   const gateScript = '"e2e:gate": "node scripts/run-e2e-lane.mjs gate"';
   const prGateScript = '"e2e:gate:pr": "node scripts/run-e2e-lane.mjs pr"';
   const database = '127.0.0.1:5432/interdomestik_test';
-  const helperDrifts = commandChainDrifts.map(before => ['commandChain', 'laneSource', before, '']);
+  const helperDrifts = commandChainDrifts.map(parts => ['commandChain', 'laneSource', ...parts]);
   const drifts = [
     ['checkoutHead', 'prWorkflow', checkout, 'ref: ${{ github.sha }}'],
     ['checkoutHead', 'prWorkflow', checkout, reorderedCheckout],

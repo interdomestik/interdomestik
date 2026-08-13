@@ -4,9 +4,7 @@ export const HEAD_SHA = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
 export const TREE_SHA = 'cccccccccccccccccccccccccccccccccccccccc';
 export const NOW_MS = Date.parse('2026-08-13T16:00:00Z');
 
-function repository() {
-  return { id: 1_128_472_973, full_name: REPOSITORY };
-}
+const repository = () => ({ id: 1_128_472_973, full_name: REPOSITORY });
 
 export function reusablePullRequest() {
   return {
@@ -114,19 +112,39 @@ function setLinkedHeadSha(value, sha) {
   run.head_sha = sha;
   fallback.head.sha = sha;
 }
+function setRunTimestamp(value, timestamp) {
+  parts(value).run.run_started_at = timestamp;
+  value.context.nowMs = Date.parse(timestamp);
+}
 export const strictSchemaRejectionCases = [
   ['paired missing main SHAs', removeMainSha],
   ['paired missing tree SHAs', removeTreeSha],
   ['invalid linked tree SHAs', setTreeSha],
   ['empty linked head SHAs', value => setLinkedHeadSha(value, '')],
   ['invalid linked head SHAs', value => setLinkedHeadSha(value, 'not-a-full-sha')],
+  ...['2025-02-29', '2024-02-30', '2026-04-31', '2026-13-01'].flatMap(date => [
+    [
+      `impossible merged timestamp ${date}`,
+      value => (parts(value).pr.merged_at = `${date}T15:27:39Z`),
+      { direct: true },
+    ],
+    [`impossible run timestamp ${date}`, value => setRunTimestamp(value, `${date}T14:50:50Z`)],
+  ]),
 ];
-
+const STATE_RUN =
+  "if (lane.state) await run('pnpm', [...pwArgs, ...laneDefinitions.state.playwrightArgs], stateEnv);";
+const FINAL_RUN =
+  "await run('pnpm', [...pwArgs, ...lane.playwrightArgs, ...extraPlaywrightArgs], finalEnv);";
+const removed = value => [value, ''];
 export const commandChainDrifts = [
-  'playwrightReportArgs(process.env.PW_EVIDENCE_LANE)',
-  "const fastEnv = { PW_FAST_GATES: '1' };",
-  "const strictArgs = ['--max-failures=1', ...reportArgs];",
-  "const strictWorkers = ['--workers=1', ...strictArgs];",
-  "const gateArgs = ['e2e/gate', ...strictWorkers];",
-  'gatekeeper: true,',
+  removed('playwrightReportArgs(process.env.PW_EVIDENCE_LANE)'),
+  removed("const fastEnv = { PW_FAST_GATES: '1' };"),
+  removed("const strictArgs = ['--max-failures=1', ...reportArgs];"),
+  removed("const strictWorkers = ['--workers=1', ...strictArgs];"),
+  removed("const gateArgs = ['e2e/gate', ...strictWorkers];"),
+  removed('gatekeeper: true,'),
+  removed("const pwArgs = ['--filter', '@interdomestik/web', 'exec', 'playwright', 'test'];"),
+  removed('await runDetachedCommand(command, args, { cwd: rootDir, env });'),
+  removed(STATE_RUN),
+  [FINAL_RUN, "await run('/usr/bin/true', [], finalEnv);"],
 ];

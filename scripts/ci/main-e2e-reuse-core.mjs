@@ -9,8 +9,16 @@ const FUTURE_TOLERANCE_MS = 5 * 60 * 1000;
 const positiveId = value => Number.isSafeInteger(value) && value > 0;
 const nonEmpty = value => typeof value === 'string' && value.length > 0;
 const sha = value => typeof value === 'string' && SHA_PATTERN.test(value);
-const timestamp = value =>
-  typeof value === 'string' && ISO_PATTERN.test(value) && Number.isFinite(Date.parse(value));
+const PARITY_KEYS = 'checkoutHead projectSuperset sharedFlags databaseSubstrate commandChain'.split(
+  ' '
+);
+function timestamp(value) {
+  if (typeof value !== 'string' || !ISO_PATTERN.test(value)) return false;
+  const parsed = Date.parse(value);
+  const base = value.slice(0, -1);
+  const canonical = base.includes('.') ? base.padEnd(23, '0') : `${base}.000`;
+  return Number.isFinite(parsed) && new Date(parsed).toISOString() === `${canonical}Z`;
+}
 function exactRepository(repo, fullName, id) {
   return (
     positiveId(repo?.id) &&
@@ -87,13 +95,7 @@ function hasSuccessfulRunner(jobs) {
   );
 }
 function hasExactParity(parity) {
-  return [
-    'checkoutHead',
-    'projectSuperset',
-    'sharedFlags',
-    'databaseSubstrate',
-    'commandChain',
-  ].every(key => parity?.[key] === true);
+  return PARITY_KEYS.every(key => parity?.[key] === true);
 }
 function isReusableCandidate(candidate, selected, context) {
   const run = candidate?.run;

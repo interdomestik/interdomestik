@@ -11,6 +11,10 @@ const GATE_HELPER_CONTRACTS = [
   "['--workers=1',...strictArgs]",
   "['e2e/gate',...strictWorkers]",
   'gatekeeper:true,state,env:fastEnv,playwrightArgs:[...gateArgs,...projects]',
+  "constpwArgs=['--filter','@interdomestik/web','exec','playwright','test']",
+  'awaitrunDetachedCommand(command,args,{cwd:rootDir,env})',
+  "if(lane.state)awaitrun('pnpm',[...pwArgs,...laneDefinitions.state.playwrightArgs],stateEnv)",
+  "awaitrun('pnpm',[...pwArgs,...lane.playwrightArgs,...extraPlaywrightArgs],finalEnv)",
 ];
 function sourceBlock(source, startMarker, endMarker) {
   const start = source.indexOf(startMarker);
@@ -70,15 +74,10 @@ function usesWorkflowDatabase(block, command) {
     block.includes(`run: ${command}`)
   );
 }
-function usesCorrectedPostgres(block) {
-  return [
-    'postgres:16',
-    'POSTGRES_USER: postgres',
-    'POSTGRES_DB: interdomestik_test',
-    '5432:5432',
-    'pg_isready -U postgres -d interdomestik_test',
-  ].every(value => block.includes(value));
-}
+const POSTGRES_CONTRACT =
+  'postgres:16|POSTGRES_USER: postgres|POSTGRES_DB: interdomestik_test|5432:5432|pg_isready -U postgres -d interdomestik_test';
+const usesCorrectedPostgres = block =>
+  POSTGRES_CONTRACT.split('|').every(value => block.includes(value));
 export function inspectRepositoryParity({ ciWorkflow, prWorkflow, laneSource, packageJson }) {
   const main = lane(laneSource, 'gate');
   const pr = lane(laneSource, 'pr');
