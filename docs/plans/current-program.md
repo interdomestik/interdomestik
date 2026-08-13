@@ -7563,3 +7563,28 @@ terminal AI OS/Brain verification remain post-merge closeout actions and are
 not claimed by this repository record.
 <!-- prettier-ignore -->
 The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+
+Rev 224 proposed current-authority selection supersedes only the Rev 223
+terminal no-promotion sentence. The proposed docs-only gate is
+`docs/plans/2026-08-13-ida-dg37-ci01-main-e2e-exact-tree-evidence-reuse.md`,
+exactly 11,781 UTF-8 bytes / SHA-256
+`3858f54297766167f0e4d1d3716fb394fb2a656176b84c3441c00cdce7f61025`,
+bound to clean main `6ca7ce02ae430c3a78cde5449b2c625d5cd58917` and tree
+`75401bf05a0f229e6fa573e233571a1b66a34bf6`. It promotes exactly one Tier 3
+infrastructure slice: `IDA-CI01-MAIN-E2E-EXACT-TREE-EVIDENCE-REUSE`.
+
+The slice first requires a separately approved prerequisite that binds the
+existing main E2E suite to the Postgres 16 database already prepared by CI and
+then proves one real corrected-substrate main browser run. Only after that
+merge and proof may a second exact-main runtime receipt authorize same-tree PR
+E2E evidence reuse. Every gate remains; any missing, stale, mismatched,
+ambiguous, forked, wrong-base, wrong-PR, failed-job or API-error condition runs
+the existing main browser gate. Product behavior, test removal, broad CI
+cleanup, deployment and every second slice remain unpromoted.
+
+This proposed authority remains `runtime_authorized:false`. After docs merge,
+`CI01-RUNTIME-R1` exact approval is required for the prerequisite. After its
+main proof, fresh `CI01-RUNTIME-R2` exact approval is required for reuse. No
+implementation branch or code mutation may precede its stage-specific receipt.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-CI01-MAIN-E2E-EXACT-TREE-EVIDENCE-REUSE` (Tier 3 CI infrastructure; `runtime_authorized:false`; proposed authority activates only after exact approval of gate 11,781 bytes / SHA-256 3858f54297766167f0e4d1d3716fb394fb2a656176b84c3441c00cdce7f61025 and docs-only merge).
