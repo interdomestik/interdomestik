@@ -111,7 +111,7 @@ V3 uses strict **Canonical Routes**. All access is governed by `apps/web/src/pro
 
 > **V3 Pilot Scope**
 > `docs/plans/current-program.md` is the sole authority for the current phase, priorities, and sequencing.
-> Active execution follows the canonical M0→M5 path; Phase C remains the historical evidence ledger, and its guardrails continue to apply.
+> Do not infer the active slice from this README: M0→M5 is the conditional architecture-finalization authority when explicitly promoted, while Phase C remains the historical evidence ledger and its guardrails continue to apply.
 > Architecture, routing, clarity markers, and security guards are locked.
 
 We enforce strict quality standards ("The Guard") for the V3 Pilot.
