@@ -9,7 +9,6 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, '../..');
 const budgetScript = path.join(rootDir, 'scripts/check-e2e-quarantine-budget.mjs');
-
 function readRepoJson(relativePath) {
   return JSON.parse(fs.readFileSync(path.join(rootDir, relativePath), 'utf8'));
 }
@@ -72,8 +71,9 @@ test('E2E quarantine budget is wired into contract checks and PR verification', 
     packageJson.scripts['check:e2e-tenant-host-lanes'],
     'node scripts/check-e2e-tenant-host-lanes.mjs'
   );
-  assert.match(packageJson.scripts['check:e2e-contracts'], /pnpm check:e2e-tenant-host-lanes/u);
-  assert.match(packageJson.scripts['check:e2e-contracts'], /pnpm check:e2e-quarantine-budget/u);
+  const composite =
+    'pnpm check:e2e-contracts:base && pnpm check:e2e-tenant-host-lanes && pnpm check:e2e-quarantine-budget';
+  assert.equal(packageJson.scripts['check:e2e-contracts'], composite);
   assert.match(packageJson.scripts['pr:verify'], /pnpm check:e2e-contracts/u);
   assert.equal(baseline.version, 1);
   assert.equal(baseline.tags.quarantine.count, 6);

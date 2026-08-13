@@ -1,8 +1,11 @@
-# 🏗️ Interdomestik V3 Architecture (Phase C Pilot)
+# 🏗️ Interdomestik V3 Architecture
 
-> **Status:** Phase C (Pilot Delivery)  
+> **Program Authority:** `docs/plans/current-program.md` alone defines the current phase, priorities, and sequencing.
+> **Current Selection:** Read the latest entry in `docs/plans/current-program.md`; this architecture reference does not declare an active slice.
+> **Conditional Authority:** M0→M5 architecture finalization applies only when explicitly promoted.
+> **Historical Guardrails:** Phase C (Pilot Delivery) remains the evidence ledger, and its guardrails continue to apply.
 > **Enforcement:** Strict (CI/CD Gates active)  
-> **Source of Truth:** This document describes the runtime architecture for the V3 Pilot.
+> **Scope:** This document describes the runtime architecture for the V3 Pilot; it does not set current program sequencing.
 
 ---
 

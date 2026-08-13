@@ -2,9 +2,9 @@
 
 This file contains agent guidelines and commands. For reviews, also follow `code_review.md`.
 
-## ⚠️ V3 / Phase C Execution Rules (MANDATORY)
+## ⚠️ V3 / Current Program Execution Rules (MANDATORY)
 
-This repository is currently operating in **Phase C – Pilot Delivery**.
+`docs/plans/current-program.md` is the sole authority for the current phase, priorities, and sequencing. Do not infer the active slice from this file: M0→M5 is the conditional architecture-finalization authority when explicitly promoted, while Phase C remains the historical evidence ledger and its guardrails continue to apply.
 
 The following rules are non-negotiable for all agents (human or AI):
 

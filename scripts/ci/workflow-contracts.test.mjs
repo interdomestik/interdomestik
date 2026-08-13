@@ -24,7 +24,6 @@ function readWorkflow(relativePath) {
 function findStep(steps, name) {
   return steps.find(step => step?.name === name);
 }
-
 function findStepIndex(steps, name) {
   return steps.findIndex(step => step?.name === name);
 }
@@ -455,14 +454,15 @@ test('CI audit job runs the scripts/ci contract suite', () => {
   const ciWorkflow = readWorkflow('.github/workflows/ci.yml');
   const auditJob = ciWorkflow.jobs.audit;
   const auditRunStep = findStep(auditJob.steps, 'Run Audits');
-  const quarantineBudgetStep = findStep(auditJob.steps, 'Check E2E quarantine budget');
+  const standaloneBudgetSteps = auditJob.steps.filter(
+    step => step?.run?.trim() === 'pnpm check:e2e-quarantine-budget'
+  );
   assert.ok(auditRunStep);
   assert.match(auditRunStep.run, /\bpnpm test:ci:contracts\b/);
   assert.doesNotMatch(auditRunStep.run, /playbook-contracts\.mjs/);
   assert.match(auditRunStep.run, /\bpnpm check:e2e-contracts\b/);
   assert.match(auditRunStep.run, /\bpnpm lint:production-warnings\b/);
-  assert.ok(quarantineBudgetStep);
-  assert.equal(quarantineBudgetStep.run, 'pnpm check:e2e-quarantine-budget');
+  assert.equal(standaloneBudgetSteps.length, 0);
 });
 
 test('Composite CI setup action uses Node 24-compatible hosted actions', () => {
