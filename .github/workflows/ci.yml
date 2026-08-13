@@ -165,14 +165,11 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           install-playwright: ${{ github.event_name != 'pull_request' }}
-
       - name: Generate ephemeral E2E credentials
         run: bash scripts/ci/export-e2e-credentials.sh
-
       - name: Enforce E2E Best Practices
         if: github.event_name != 'pull_request'
         run: pnpm --filter @interdomestik/web run e2e:guards
-
       - name: Prepare E2E Database
         run: |
           pnpm db:migrate
@@ -189,4 +186,7 @@ jobs:
 
       - name: E2E Gate Suite
         if: github.event_name != 'pull_request'
+        env:
+          E2E_DATABASE_URL: ${{ env.DATABASE_URL }}
+          E2E_DATABASE_URL_RLS: ${{ env.DATABASE_URL }}
         run: pnpm e2e:gate
