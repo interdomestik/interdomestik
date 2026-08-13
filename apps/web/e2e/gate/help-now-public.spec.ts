@@ -17,10 +17,9 @@ async function expectOnlyPublicHelpNowSurface(page: Page) {
     'data-scope',
     'public-no-account'
   );
-  await expect(page.getByTestId('member-page-ready')).toHaveCount(0);
-  await expect(page.getByTestId('agent-page-ready')).toHaveCount(0);
-  await expect(page.getByTestId('staff-page-ready')).toHaveCount(0);
-  await expect(page.getByTestId('admin-page-ready')).toHaveCount(0);
+  for (const role of ['member', 'agent', 'staff', 'admin']) {
+    await expect(page.getByTestId(`${role}-page-ready`)).toHaveCount(0);
+  }
 }
 
 function watchProtectedSurfaceRequests(page: Page) {
@@ -61,17 +60,18 @@ test.describe('MOB-01 public Help Now route', () => {
 
   test('signed-in member stays on Help Now public route', async ({ page, loginAs }, testInfo) => {
     await loginAs('member');
-    await page.waitForLoadState('networkidle');
-    const protectedRequests = watchProtectedSurfaceRequests(page);
+    const helpNowPage = await page.context().newPage();
+    const protectedRequests = watchProtectedSurfaceRequests(helpNowPage);
 
-    const response = await gotoApp(page, routes.helpNow(testInfo), testInfo, {
+    const response = await gotoApp(helpNowPage, routes.helpNow(testInfo), testInfo, {
       marker: 'help-now-page-ready',
     });
 
     expect(response?.status(), 'member should not be redirected away from Help Now').toBe(200);
-    await expect(page).toHaveURL(new RegExp(`${routes.helpNow(testInfo)}$`));
-    await expectOnlyPublicHelpNowSurface(page);
+    await expect(helpNowPage).toHaveURL(new RegExp(`${routes.helpNow(testInfo)}$`));
+    await expectOnlyPublicHelpNowSurface(helpNowPage);
     expect(protectedRequests).toEqual([]);
+    await helpNowPage.close();
   });
 
   test('MK Help Now exposes the accepted public pack only', async ({ browser }, testInfo) => {
