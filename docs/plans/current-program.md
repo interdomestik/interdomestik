@@ -7588,3 +7588,32 @@ main proof, fresh `CI01-RUNTIME-R2` exact approval is required for reuse. No
 implementation branch or code mutation may precede its stage-specific receipt.
 <!-- prettier-ignore -->
 The next active governed implementation goal is exactly one canonical tracker slice: `IDA-CI01-MAIN-E2E-EXACT-TREE-EVIDENCE-REUSE` (Tier 3 CI infrastructure; `runtime_authorized:false`; proposed authority activates only after exact approval of gate 11,781 bytes / SHA-256 3858f54297766167f0e4d1d3716fb394fb2a656176b84c3441c00cdce7f61025 and docs-only merge).
+
+Rev 225 proposes one association-only amendment to the already active CI01
+authority after prerequisite PR `#1548` merged as
+`d7274986b18e7dcb55fc062f43dc69c2909d0c71` and corrected-substrate main CI
+run `31715521046` passed without rerun. The amended gate remains
+`docs/plans/2026-08-13-ida-dg37-ci01-main-e2e-exact-tree-evidence-reuse.md`,
+now exactly 13,822 UTF-8 bytes / SHA-256
+`3d704bce6637fa3ac09a4f08d1eca45abac7c19df3b85bcdc3c557efe423b0f6`,
+bound to amendment base `d7274986b18e7dcb55fc062f43dc69c2909d0c71` / tree
+`342c33ea41cb164fdd9feadf74ad86e8102cc1bc`.
+
+GitHub returned an empty `pull_requests` array for successful exact-head PR E2E
+run `31712197425`. The amendment retains direct run association whenever that
+array is non-empty and permits the official bounded
+`commits/{run.head_sha}/pulls` edge only when it is exactly empty. That fallback
+must return exactly one PR and reproduce the selected PR number/id, merged
+state/timestamp and merge SHA, base repository/`main`, and head
+repository/ref/SHA. Any ambiguity, mismatch, malformed response, pagination or
+timeout runs the existing main E2E suite; a non-empty mismatch may never use
+the fallback.
+
+This amendment activates only after Arben exact-approves the 13,822-byte gate
+identity above and this docs-only revision merges. R1 is consumed. R2 remains
+`runtime_authorized:false` and requires a fresh exact-main `CI01-RUNTIME-R2`
+receipt and separate exact approval before any reuse implementation branch or
+code mutation. No package-script cleanup, test consolidation, product work,
+deployment or second slice is promoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal remains exactly one canonical tracker slice: `IDA-CI01-MAIN-E2E-EXACT-TREE-EVIDENCE-REUSE` (Tier 3 CI infrastructure; R1 consumed; association amendment pending exact approval and docs-only merge; R2 `runtime_authorized:false`).

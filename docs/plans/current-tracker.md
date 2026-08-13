@@ -2792,3 +2792,27 @@ deployment or a second slice. Current proposed state is
 `runtime_authorized:false`.
 <!-- prettier-ignore -->
 The next active governed implementation goal is exactly one canonical tracker slice: `IDA-CI01-MAIN-E2E-EXACT-TREE-EVIDENCE-REUSE` (Tier 3 CI infrastructure; `runtime_authorized:false`; proposed authority activates only after exact approval of gate 11,781 bytes / SHA-256 3858f54297766167f0e4d1d3716fb394fb2a656176b84c3441c00cdce7f61025 and docs-only merge).
+
+Rev 225 keeps the sole active queue row
+`IDA-CI01-MAIN-E2E-EXACT-TREE-EVIDENCE-REUSE` and proposes only its bounded
+GitHub association amendment. Prerequisite PR `#1548` merged as
+`d7274986b18e7dcb55fc062f43dc69c2909d0c71`; main run `31715521046` passed the
+corrected DB substrate without rerun. The amended gate is exactly 13,822 UTF-8
+bytes / SHA-256
+`3d704bce6637fa3ac09a4f08d1eca45abac7c19df3b85bcdc3c557efe423b0f6`.
+
+For successful PR run `31712197425`, GitHub's run association array is empty,
+while the bounded commit-to-PR endpoint returns exactly the selected merged PR
+with matching number/id, merge identity, base repository/`main`, and head
+repository/ref/SHA. The fallback is permitted only for an exactly empty array;
+all ambiguity, mismatch, malformed response, timeout, and non-empty direct
+mismatch remain fail-closed to the existing main browser gate.
+
+The amendment is inactive until its exact gate identity is approved and this
+docs-only revision merges. R1 is consumed; R2 remains
+`runtime_authorized:false` pending a new exact-main receipt and separate exact
+approval. Package-script cleanup, the observed MK project duplication,
+shared-auth coverage, RC-RLS evidence, product, deployment and every second
+slice remain outside this row.
+<!-- prettier-ignore -->
+The next active governed implementation goal remains exactly one canonical tracker slice: `IDA-CI01-MAIN-E2E-EXACT-TREE-EVIDENCE-REUSE` (Tier 3 CI infrastructure; R1 consumed; association amendment pending exact approval and docs-only merge; R2 `runtime_authorized:false`).
