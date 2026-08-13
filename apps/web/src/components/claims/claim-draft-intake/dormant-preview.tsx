@@ -15,6 +15,15 @@ export function parseClaimDraftCopy(value: unknown): ClaimDraftCopy {
 export type SavedDraftSubmitCopy = Readonly<{ failed: string; goToClaim: string; goToClaims: string; label: string; success: string; unexpected: string }>;
 // prettier-ignore
 type Props = Readonly<{ activeDraftId?: string | null; activeDraftVersion?: number | null; copy: ClaimDraftCopy; draft: DraftState; hasUnsavedChanges?: boolean; headingRef: RefObject<HTMLHeadingElement | null>; labels: { category: string; issue: string; outcome: string }; managerOnly?: boolean; submitCopy: SavedDraftSubmitCopy; tFree: FreeStartCopy }>;
+function selectSubmitExplanation(
+  copy: ClaimDraftCopy,
+  membership: boolean,
+  unsaved: boolean
+): string {
+  if (membership) return copy.submitMembershipExplanation;
+  if (unsaved) return copy.submitUnsavedExplanation;
+  return copy.submitExplanation;
+}
 export function DormantPreview(props: Props) {
   // prettier-ignore
   const { activeDraftId, activeDraftVersion, copy, draft, hasUnsavedChanges, headingRef, labels, managerOnly, submitCopy, tFree } = props;
@@ -26,6 +35,8 @@ export function DormantPreview(props: Props) {
   // prettier-ignore
   const readyExceptUnsavedChanges = Boolean(!managerOnly && isSavedDraftId(activeDraftId) && activeDraftVersion && [draft.issueType, draft.incidentDate, draft.counterparty, draft.desiredOutcome, draft.summary].every(value => value.trim()));
   const eligible = readyExceptUnsavedChanges && !hasUnsavedChanges;
+  const unsaved = Boolean(readyExceptUnsavedChanges && hasUnsavedChanges);
+  const submitExplanation = selectSubmitExplanation(copy, Boolean(managerOnly), unsaved);
   const { claim, failure, lookupStatus, origin, pending, submit } = useSavedDraftClaim({
     draftId: activeDraftId,
     draftVersion: activeDraftVersion,
@@ -115,11 +126,7 @@ export function DormantPreview(props: Props) {
           {submitAction}
           {!claim && !eligible ? (
             <p id="claim-draft-submit-explanation" className="mt-2 text-sm text-[#526274]">
-              {managerOnly
-                ? copy.submitMembershipExplanation
-                : readyExceptUnsavedChanges && hasUnsavedChanges
-                  ? copy.submitUnsavedExplanation
-                  : copy.submitExplanation}
+              {submitExplanation}
             </p>
           ) : null}
           {failure ? (
