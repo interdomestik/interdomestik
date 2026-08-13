@@ -1,21 +1,14 @@
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { decideMainE2eReuse, normalizeReuseDecision } from './main-e2e-reuse-core.mjs';
 import { collectGitHubEvidence, readLocalGitObjectId } from './main-e2e-reuse-github.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const GATE_HELPER_CONTRACTS = [
-  'playwrightReportArgs(process.env.PW_EVIDENCE_LANE)',
-  "PW_FAST_GATES:'1'",
-  "['--max-failures=1',...reportArgs]",
-  "['--workers=1',...strictArgs]",
-  "['e2e/gate',...strictWorkers]",
-  'gatekeeper:true,state,env:fastEnv,playwrightArgs:[...gateArgs,...projects]',
-  "constpwArgs=['--filter','@interdomestik/web','exec','playwright','test']",
-  'awaitrunDetachedCommand(command,args,{cwd:rootDir,env})',
-  "if(lane.state)awaitrun('pnpm',[...pwArgs,...laneDefinitions.state.playwrightArgs],stateEnv)",
-  "awaitrun('pnpm',[...pwArgs,...lane.playwrightArgs,...extraPlaywrightArgs],finalEnv)",
-];
+// SHA-256 of scripts/run-e2e-lane.mjs at the authorized CI01 base 726c421dca7231d11ada013acdd421bb5420690d.
+const AUTHORIZED_LANE_SOURCE_SHA256 =
+  '9beb625efc7ffb6cadf88809063ee8b1b15cd5080c1419de5aa888db504cf685';
+const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {
   const start = source.indexOf(startMarker);
   if (start < 0) return '';
@@ -55,11 +48,10 @@ function lane(source, name) {
 function hasExactCommandChain(packageJson, laneSource) {
   try {
     const scripts = JSON.parse(packageJson)?.scripts;
-    const compactSource = laneSource.replace(/\s+/gu, '');
     return (
       scripts?.['e2e:gate'] === 'node scripts/run-e2e-lane.mjs gate' &&
       scripts?.['e2e:gate:pr'] === 'node scripts/run-e2e-lane.mjs pr' &&
-      GATE_HELPER_CONTRACTS.every(contract => compactSource.includes(contract))
+      sha256(laneSource) === AUTHORIZED_LANE_SOURCE_SHA256
     );
   } catch {
     return false;

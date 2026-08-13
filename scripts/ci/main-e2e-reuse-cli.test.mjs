@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -20,14 +21,9 @@ const sourceKeys = {
   'scripts/run-e2e-lane.mjs': 'laneSource',
   'package.json': 'packageJson',
 };
-function sources() {
-  return Object.fromEntries(
-    Object.entries(sourceKeys).map(([file, key]) => [
-      key,
-      readFileSync(path.join(root, file), 'utf8'),
-    ])
-  );
-}
+const read = file => readFileSync(path.join(root, file), 'utf8');
+const sources = () =>
+  Object.fromEntries(Object.entries(sourceKeys).map(([file, key]) => [key, read(file)]));
 function environment(overrides = {}) {
   return {
     GITHUB_EVENT_NAME: 'push',
@@ -43,14 +39,17 @@ function dependencies(overrides = {}) {
   const { pullRequests, headCommit, candidates } = fixture;
   return {
     git: value => (value === 'HEAD' ? MAIN_SHA : fixture.local.treeSha),
-    readFile: value => readFileSync(path.join(root, value), 'utf8'),
+    readFile: read,
     collectEvidence: async () => ({ pullRequests, headCommit, candidates }),
     nowMs: NOW_MS,
     ...overrides,
   };
 }
 test('repository parity recognizes exact PR-head checkout and strict project superset', () => {
-  assert.deepEqual(inspectRepositoryParity(sources()), {
+  const current = sources();
+  const laneDigest = createHash('sha256').update(current.laneSource).digest('hex');
+  assert.equal(laneDigest, '9beb625efc7ffb6cadf88809063ee8b1b15cd5080c1419de5aa888db504cf685');
+  assert.deepEqual(inspectRepositoryParity(current), {
     checkoutHead: true,
     projectSuperset: true,
     sharedFlags: true,
@@ -78,6 +77,7 @@ test('parity drift always resolves to a fail-closed reuse decision', async () =>
     ['commandChain', 'packageJson', gateScript, '"e2e:gate": "true"'],
     ['commandChain', 'packageJson', prGateScript, '"e2e:gate:pr": "true"'],
     ...helperDrifts,
+    ['commandChain', 'laneSource', current.laneSource, `${current.laneSource}\n`],
   ];
   for (const [predicate, key, before, after] of drifts) {
     const mutation = { ...current, [key]: current[key].replace(before, after) };

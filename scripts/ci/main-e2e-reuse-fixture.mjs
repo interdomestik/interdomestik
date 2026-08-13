@@ -3,7 +3,6 @@ export const MAIN_SHA = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 export const HEAD_SHA = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
 export const TREE_SHA = 'cccccccccccccccccccccccccccccccccccccccc';
 export const NOW_MS = Date.parse('2026-08-13T16:00:00Z');
-
 const repository = () => ({ id: 1_128_472_973, full_name: REPOSITORY });
 
 export function reusablePullRequest() {
@@ -147,4 +146,5 @@ export const commandChainDrifts = [
   removed('await runDetachedCommand(command, args, { cwd: rootDir, env });'),
   removed(STATE_RUN),
   [FINAL_RUN, "await run('/usr/bin/true', [], finalEnv);"],
+  [FINAL_RUN, `if (false) ${FINAL_RUN}\nawait run('/usr/bin/true', [], finalEnv);`],
 ];
