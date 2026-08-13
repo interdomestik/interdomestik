@@ -147,7 +147,6 @@ test('CI delegates PR browser gate to PR E2E', () => {
 
   const setupStep = ciSteps.find(step => step?.uses === './.github/actions/setup');
   assert.equal(setupStep.with['install-playwright'], "${{ github.event_name != 'pull_request' }}");
-
   const strictGuardStep = findStep(ciSteps, 'Enforce E2E Best Practices');
   assert.equal(strictGuardStep.if, "github.event_name != 'pull_request'");
   assert.match(strictGuardStep.run, /guards/u);
@@ -158,12 +157,13 @@ test('CI delegates PR browser gate to PR E2E', () => {
   assert.equal(rlsStep.if, undefined);
 
   const e2eGateSuiteStep = findStep(ciSteps, 'E2E Gate Suite');
-  assert.equal(e2eGateSuiteStep.if, "github.event_name != 'pull_request'");
-
+  assert.equal(
+    e2eGateSuiteStep.if,
+    "github.event_name != 'pull_request' && needs.validation-surface.outputs.main_e2e_reuse != 'true'"
+  );
   const staticJob = ciWorkflow.jobs.static;
   assert.ok(normalizeNeeds(staticJob.needs).includes('validation-surface'));
   assert.equal(staticJob.if, "needs.validation-surface.outputs.run_broad == 'true'");
-
   const unitJob = ciWorkflow.jobs.unit;
   assert.ok(normalizeNeeds(unitJob.needs).includes('validation-surface'));
   assert.equal(unitJob.if, "needs.validation-surface.outputs.run_broad == 'true'");
