@@ -1,12 +1,16 @@
 # IDA-DG37-CI01 Main E2E Exact-Tree Evidence Reuse
 
-Status: proposed current authority; runtime not authorized
+Status: current authority; R1 consumed; R2 blocked pending exact-approved association amendment
 
 Date: 2026-08-13
 
 Authority base: `6ca7ce02ae430c3a78cde5449b2c625d5cd58917`
 
 Authority tree: `75401bf05a0f229e6fa573e233571a1b66a34bf6`
+
+Association-amendment base:
+`d7274986b18e7dcb55fc062f43dc69c2909d0c71` / tree
+`342c33ea41cb164fdd9feadf74ad86e8102cc1bc`
 
 Tier: 3 — CI and merge-gate infrastructure
 
@@ -68,6 +72,22 @@ must not be reused as the post-authority implementation head. After authority
 and runtime approval, the prerequisite must be recreated from then-current
 clean main and reviewed again.
 
+The approved prerequisite was recreated as PR `#1548`, reviewed at head
+`b760d2253a1973294613770d09260bea45ddad95`, and squash-merged as
+`d7274986b18e7dcb55fc062f43dc69c2909d0c71`. Main CI run `31715521046`
+passed on the corrected substrate without rerun. Its `E2E Gate Suite` took
+`13m29s`; the whole `e2e-gate` job took `15m41s`.
+
+The successful PR E2E run `31712197425` is event `pull_request`, workflow
+`.github/workflows/e2e-pr.yml`, head
+`b760d2253a1973294613770d09260bea45ddad95`, and concrete runner success, but
+GitHub's run payload returns an empty `pull_requests` array. The bounded
+`commits/{head_sha}/pulls` endpoint returns exactly PR `#1548` with the same
+number/id, head repository/ref/SHA, base repository/`main`, merge SHA, and
+merged timestamp. The association amendment below permits that second official
+edge only when the run association array is exactly empty; it does not weaken
+any tree, repository, workflow, job, freshness, or substrate predicate.
+
 ## Frozen authority and implementation scope
 
 ### Docs-only authority writers
@@ -127,10 +147,18 @@ Main browser-suite reuse is allowed only when all conditions below hold:
 3. the PR head commit tree equals local `HEAD^{tree}`;
 4. a completed successful run exists for workflow path
    `.github/workflows/e2e-pr.yml`, event `pull_request`, the exact PR head SHA,
-   and the same repository and head repository; the run's `pull_requests`
-   association must contain exactly the selected merged PR number/id with base
-   repository/ref equal to this repository/`main` and matching head repository,
-   ref, and SHA;
+   and the same repository and head repository. Association to the selected
+   merged PR must be proved by exactly one of these closed branches:
+   - when the run's `pull_requests` array is non-empty, it must contain exactly
+     one entry and that entry must equal the selected PR number/id, base
+     repository/`main`, and head repository/ref/SHA; or
+   - only when the run's `pull_requests` array is exactly empty, a bounded
+     `commits/{run.head_sha}/pulls` query must return exactly one PR, and it must
+     equal the selected PR number/id, merged state/timestamp and merge SHA, base
+     repository/`main`, and head repository/ref/SHA. A missing, malformed,
+     truncated, ambiguous, or mismatched response is not association evidence.
+     A non-empty direct association that mismatches the selected PR may never be
+     replaced or repaired by the commit-to-PR fallback;
 5. the concrete job named `PR E2E Runner` exists exactly once and completed
    successfully;
 6. the run started within the frozen 24-hour freshness window, with at most a
@@ -139,7 +167,8 @@ Main browser-suite reuse is allowed only when all conditions below hold:
    `${{ github.event.pull_request.head.sha }}`;
 8. the PR project list is a strict superset of the main gate project list and
    shared flags and database substrate are identical; and
-9. the resolver completes within bounded GitHub API pagination and request
+9. the resolver completes all run, job, PR, commit-tree, and conditional
+   commit-to-PR requests within bounded GitHub API pagination and request
    timeouts without exposing tokens, response bodies, or unbounded error text.
 
 The resolver must write only one normalized decision. `reuse=true` is valid
@@ -175,8 +204,10 @@ GitHub token permissions and `continue-on-error`; failure never fails open.
 4. Establish RED tests for resolver absence and every security-critical
    negative predicate, including wrong workflow path, fork head repository,
    wrong head SHA, wrong base repository/ref, same-head association with a
-   different PR, stale start time, missing concrete runner, hostile reason, and
-   checkout-ref drift.
+   different PR, empty-array fallback success, fallback ambiguity, fallback
+   head/ref/repository/merge mismatch, forbidden fallback after a non-empty
+   direct mismatch, stale start time, missing concrete runner, hostile reason,
+   and checkout-ref drift.
 5. Implement the smallest dependency-free resolver and workflow wiring.
 6. Run focused contracts, the full CI contract suite, repository-native
    security and modularity guards, format/diff checks, and exact metadata
@@ -246,9 +277,10 @@ separately approved stages:
    R1 before recreating the prerequisite from clean main or mutating code.
 2. After the prerequisite merges and one corrected-substrate main browser suite
    passes, `CI01-RUNTIME-R2` binds that new exact main, the prerequisite merge
-   and proof run, this exact gate hash, and only the evidence-reuse writer map.
-   The runner must stop again for Arben's exact approval of R2 before creating
-   the reuse branch or mutating reuse code.
+   and proof run, the exact-approved association-amended gate hash, and only the
+   evidence-reuse writer map. The runner must stop again for Arben's exact
+   approval of R2 before creating the reuse implementation branch or mutating
+   reuse code.
 
 R1 cannot authorize reuse and R2 cannot be precomputed before prerequisite
 main proof. A failed prerequisite consumes neither R2 nor permission to proceed.
