@@ -110,9 +110,9 @@ V3 uses strict **Canonical Routes**. All access is governed by `apps/web/src/pro
 ## ✅ Pilot Readiness & Quality Gates
 
 > **V3 Pilot Scope**
-> This repository is currently in Phase C (Pilot Delivery).
+> `docs/plans/current-program.md` is the sole authority for the current phase, priorities, and sequencing.
+> Active execution follows the canonical M0→M5 path; Phase C remains the historical evidence ledger, and its guardrails continue to apply.
 > Architecture, routing, clarity markers, and security guards are locked.
-> Feature completeness is being finalized through explicit pilot workflows.
 
 We enforce strict quality standards ("The Guard") for the V3 Pilot.
 

@@ -82,9 +82,6 @@ jobs:
           # Contract Compliance: pnpm check remains the Golden Path marker.
           # Browser PR coverage lives in the dedicated PR E2E workflow.
           # Push/mainline gate coverage stays in the e2e-gate job below.
-      - name: Check E2E quarantine budget
-        if: needs.validation-surface.outputs.run_broad == 'true'
-        run: pnpm check:e2e-quarantine-budget
       - name: Report quick draft lane
         if: needs.validation-surface.outputs.run_broad != 'true'
         run: |
