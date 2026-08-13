@@ -127,7 +127,13 @@ test.describe('@smoke ida.localhost canonical dashboard smoke', () => {
       ])
         await expect(preview).toContainText(fact);
       // prettier-ignore
-      await expect(resumed.getByRole('button', { name: 'Submit claim — requirements not met' })).toBeDisabled();
+      const submit = resumed.getByRole('button', { name: 'Submit claim — requirements not met' });
+      await expect(submit).toBeDisabled();
+      await expect(submit).toHaveAccessibleDescription(
+        'To submit a claim, you need an active membership. You can keep managing this saved draft; saving it does not submit the claim.'
+      );
+      await expect(resumed.getByTestId('free-start-save-open')).toHaveCount(0);
+      await expect(resumed.getByTestId('claim-created-success')).toHaveCount(0);
       await expect(resumed.getByTestId('claim-pack-result')).toHaveCount(0);
       await expect(resumed.getByTestId('free-start-start-another')).toHaveCount(0);
       await resumed.getByTestId('free-start-manage-open').click();

@@ -16,7 +16,7 @@ const draft = {
   summary: 'The vehicle was damaged and needs repair.',
 };
 // prettier-ignore
-const copy = { backToDetails: 'Back', categoryBody: 'Body', categoryContinue: 'Continue', categoryHeading: 'Category', existingCaseSuccess: 'There is already a submitted case for this saved draft.', heading: 'Draft', previewBody: 'Review', previewHeading: 'Review facts', submitDisabled: 'Not available', submitExplanation: 'Save a complete draft first.', submitUnsavedExplanation: 'Save your changes before submitting. Saving changes does not submit the claim.', supporting: 'Support', truth: 'Draft truth', unsupported: 'Unsupported' };
+const copy = { backToDetails: 'Back', categoryBody: 'Body', categoryContinue: 'Continue', categoryHeading: 'Category', existingCaseSuccess: 'There is already a submitted case for this saved draft.', heading: 'Draft', previewBody: 'Review', previewHeading: 'Review facts', submitDisabled: 'Not available', submitExplanation: 'Save a complete draft first.', submitMembershipExplanation: 'To submit a claim, you need an active membership. You can keep managing this saved draft; saving it does not submit the claim.', submitUnsavedExplanation: 'Save your changes before submitting. Saving changes does not submit the claim.', supporting: 'Support', truth: 'Draft truth', unsupported: 'Unsupported' };
 const submitCopy = {
   failed: 'Submission failed.',
   goToClaim: 'Open claim',
@@ -49,13 +49,16 @@ describe('saved draft canonical submit', () => {
     h.lookup.mockResolvedValue({ claim: null });
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390 });
   });
+  // prettier-ignore
   it.each([
     ['dirty', { hasUnsavedChanges: true }, copy.submitUnsavedExplanation],
     ['not persisted', { activeDraftId: null, activeDraftVersion: null }, copy.submitExplanation],
     ['missing version', { activeDraftVersion: null }, copy.submitExplanation],
     ['malformed id', { activeDraftId: 'draft-1' }, copy.submitExplanation],
     ['incomplete', { draft: { ...draft, summary: '' } }, copy.submitExplanation],
-    ['manager only', { managerOnly: true }, copy.submitExplanation],
+    ['manager only', { managerOnly: true }, copy.submitMembershipExplanation],
+    ['manager-only dirty', { managerOnly: true, hasUnsavedChanges: true }, copy.submitMembershipExplanation],
+    ['manager-only incomplete', { managerOnly: true, draft: { ...draft, summary: '' } }, copy.submitMembershipExplanation],
   ])('keeps submit inert when the draft is %s', (_name, overrides, explanation) => {
     view(overrides as never);
     expect(screen.getByTestId('claim-draft-submit-disabled')).toBeDisabled();

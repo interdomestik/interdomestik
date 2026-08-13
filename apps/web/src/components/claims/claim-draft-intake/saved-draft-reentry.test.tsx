@@ -25,6 +25,7 @@ const copy = {
   previewHeading: 'Review facts',
   submitDisabled: 'Not available',
   submitExplanation: 'Save a complete draft first.',
+  submitMembershipExplanation: 'Active membership is required to submit this saved draft.',
   submitUnsavedExplanation: 'Save changes before submitting.',
   supporting: 'Support',
   truth: 'Draft truth',
@@ -107,7 +108,7 @@ describe('saved draft existing claim re-entry', () => {
     h.lookup.mockReturnValue(lookup.promise);
     render(<DormantPreview {...baseProps} managerOnly />);
     expect(screen.getByTestId('claim-draft-submit-disabled')).toBeDisabled();
-    expect(screen.getByText(copy.submitExplanation)).toBeVisible();
+    expect(screen.getByText(copy.submitMembershipExplanation)).toBeVisible();
     await act(() => {
       lookup.resolve({ claim: claimA });
       return lookup.promise;

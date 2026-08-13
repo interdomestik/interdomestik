@@ -7,7 +7,7 @@ import { useLocale } from 'next-intl';
 import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
 import { isSavedDraftId, useSavedDraftClaim } from './use-saved-draft-claim';
 // prettier-ignore
-export type ClaimDraftCopy = Readonly<{ backToDetails: string; categoryBody: string; categoryContinue: string; categoryHeading: string; existingCaseSuccess: string; heading: string; previewBody: string; previewHeading: string; submitDisabled: string; submitExplanation: string; submitUnsavedExplanation: string; supporting: string; truth: string; unsupported: string }>;
+export type ClaimDraftCopy = Readonly<{ backToDetails: string; categoryBody: string; categoryContinue: string; categoryHeading: string; existingCaseSuccess: string; heading: string; previewBody: string; previewHeading: string; submitDisabled: string; submitExplanation: string; submitMembershipExplanation: string; submitUnsavedExplanation: string; supporting: string; truth: string; unsupported: string }>;
 export function parseClaimDraftCopy(value: unknown): ClaimDraftCopy {
   return JSON.parse(String(value)) as ClaimDraftCopy;
 }
@@ -115,9 +115,11 @@ export function DormantPreview(props: Props) {
           {submitAction}
           {!claim && !eligible ? (
             <p id="claim-draft-submit-explanation" className="mt-2 text-sm text-[#526274]">
-              {readyExceptUnsavedChanges && hasUnsavedChanges
-                ? copy.submitUnsavedExplanation
-                : copy.submitExplanation}
+              {managerOnly
+                ? copy.submitMembershipExplanation
+                : readyExceptUnsavedChanges && hasUnsavedChanges
+                  ? copy.submitUnsavedExplanation
+                  : copy.submitExplanation}
             </p>
           ) : null}
           {failure ? (
