@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import {
   buildCommitPullRequestsUrl,
   buildCommitUrl,
@@ -6,6 +7,15 @@ import {
 } from './github-api-url-lib.mjs';
 
 const WORKFLOW_PATH = '.github/workflows/e2e-pr.yml';
+
+export function readLocalGitObjectId(cwd, revision) {
+  return execFileSync('/usr/bin/git', ['rev-parse', revision], {
+    cwd,
+    encoding: 'utf8',
+    env: { LC_ALL: 'C', PATH: '/usr/bin:/bin' },
+    stdio: ['ignore', 'pipe', 'ignore'],
+  }).trim();
+}
 
 async function requestJson({ url, token, fetchImpl, timeoutMs }) {
   const controller = new AbortController();

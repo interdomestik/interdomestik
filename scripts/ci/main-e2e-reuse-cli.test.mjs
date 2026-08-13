@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
@@ -10,18 +11,22 @@ import {
   resolveMainE2eReuse,
 } from './main-e2e-reuse.mjs';
 import { MAIN_SHA, NOW_MS, REPOSITORY, reusableEvidence } from './main-e2e-reuse-fixture.mjs';
+import { commandChainDrifts } from './main-e2e-reuse-fixture.mjs';
+import { readLocalGitObjectId } from './main-e2e-reuse-github.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const paths = {
-  ci: path.join(root, '.github/workflows/ci.yml'),
-  pr: path.join(root, '.github/workflows/e2e-pr.yml'),
-  lanes: path.join(root, 'scripts/run-e2e-lane.mjs'),
+const sourceKeys = {
+  '.github/workflows/ci.yml': 'ciWorkflow',
+  '.github/workflows/e2e-pr.yml': 'prWorkflow',
+  'scripts/run-e2e-lane.mjs': 'laneSource',
+  'package.json': 'packageJson',
 };
 function sources() {
-  return {
-    ciWorkflow: readFileSync(paths.ci, 'utf8'),
-    prWorkflow: readFileSync(paths.pr, 'utf8'),
-    laneSource: readFileSync(paths.lanes, 'utf8'),
-  };
+  return Object.fromEntries(
+    Object.entries(sourceKeys).map(([file, key]) => [
+      key,
+      readFileSync(path.join(root, file), 'utf8'),
+    ])
+  );
 }
 function environment(overrides = {}) {
   return {
@@ -50,60 +55,40 @@ test('repository parity recognizes exact PR-head checkout and strict project sup
     projectSuperset: true,
     sharedFlags: true,
     databaseSubstrate: true,
+    commandChain: true,
   });
 });
-test('repository parity rejects checkout trigger, project, flag, and database drift', () => {
+test('parity drift always resolves to a fail-closed reuse decision', async () => {
   const current = sources();
-  const checkoutOnlySha = {
-    ...current,
-    prWorkflow: current.prWorkflow.replace(
-      'ref: ${{ github.event.pull_request.head.sha || github.sha }}',
-      'ref: ${{ github.sha }}'
-    ),
-  };
-  assert.equal(inspectRepositoryParity(checkoutOnlySha).checkoutHead, false);
-  const reorderedCheckout = {
-    ...current,
-    prWorkflow: current.prWorkflow.replace(
-      'ref: ${{ github.event.pull_request.head.sha || github.sha }}',
-      'ref: ${{ github.sha || github.event.pull_request.head.sha }}'
-    ),
-  };
-  assert.equal(inspectRepositoryParity(reorderedCheckout).checkoutHead, false);
-  const addedTrigger = {
-    ...current,
-    prWorkflow: current.prWorkflow.replace('on:\n  pull_request:', 'on:\n  push:\n  pull_request:'),
-  };
-  assert.equal(inspectRepositoryParity(addedTrigger).checkoutHead, false);
-  const missingMainProject = {
-    ...current,
-    laneSource: current.laneSource.replace(
-      'pr: gateLane([ksSq, mkContract, mkMk], true)',
-      'pr: gateLane([ksSq, mkContract], true)'
-    ),
-  };
-  assert.equal(inspectRepositoryParity(missingMainProject).projectSuperset, false);
-  const flagDrift = {
-    ...current,
-    laneSource: current.laneSource.replace(
-      'pr: gateLane([ksSq, mkContract, mkMk], true)',
-      'pr: gateLane([ksSq, mkContract, mkMk], false)'
-    ),
-  };
-  assert.equal(inspectRepositoryParity(flagDrift).sharedFlags, false);
-  const databaseDrift = {
-    ...current,
-    prWorkflow: current.prWorkflow.replace(
-      '127.0.0.1:5432/interdomestik_test',
-      '127.0.0.1:54322/postgres'
-    ),
-  };
-  assert.equal(inspectRepositoryParity(databaseDrift).databaseSubstrate, false);
-  const serviceDrift = {
-    ...current,
-    prWorkflow: current.prWorkflow.replace('image: postgres:16', 'image: postgres:17'),
-  };
-  assert.equal(inspectRepositoryParity(serviceDrift).databaseSubstrate, false);
+  const checkout = 'ref: ${{ github.event.pull_request.head.sha || github.sha }}';
+  const reorderedCheckout = 'ref: ${{ github.sha || github.event.pull_request.head.sha }}';
+  const prLane = 'pr: gateLane([ksSq, mkContract, mkMk], true)';
+  const gateScript = '"e2e:gate": "node scripts/run-e2e-lane.mjs gate"';
+  const prGateScript = '"e2e:gate:pr": "node scripts/run-e2e-lane.mjs pr"';
+  const database = '127.0.0.1:5432/interdomestik_test';
+  const helperDrifts = commandChainDrifts.map(before => ['commandChain', 'laneSource', before, '']);
+  const drifts = [
+    ['checkoutHead', 'prWorkflow', checkout, 'ref: ${{ github.sha }}'],
+    ['checkoutHead', 'prWorkflow', checkout, reorderedCheckout],
+    ['checkoutHead', 'prWorkflow', 'on:\n  pull_request:', 'on:\n  push:\n  pull_request:'],
+    ['projectSuperset', 'laneSource', prLane, 'pr: gateLane([ksSq, mkContract], true)'],
+    ['sharedFlags', 'laneSource', prLane, 'pr: gateLane([ksSq, mkContract, mkMk], false)'],
+    ['databaseSubstrate', 'prWorkflow', database, '127.0.0.1:54322/postgres'],
+    ['databaseSubstrate', 'prWorkflow', 'image: postgres:16', 'image: postgres:17'],
+    ['commandChain', 'packageJson', gateScript, '"e2e:gate": "true"'],
+    ['commandChain', 'packageJson', prGateScript, '"e2e:gate:pr": "true"'],
+    ...helperDrifts,
+  ];
+  for (const [predicate, key, before, after] of drifts) {
+    const mutation = { ...current, [key]: current[key].replace(before, after) };
+    assert.notEqual(mutation[key], current[key], `${predicate} mutation did not apply`);
+    assert.equal(inspectRepositoryParity(mutation)[predicate], false, predicate);
+    const readFile = value => mutation[sourceKeys[value]];
+    assert.deepEqual(await resolveMainE2eReuse(environment(), dependencies({ readFile })), {
+      reuse: false,
+      reason: 'evidence_not_exact',
+    });
+  }
 });
 test('CLI resolver emits true only for normalized exact evidence', async () => {
   const decision = await resolveMainE2eReuse(environment(), dependencies());
@@ -111,18 +96,15 @@ test('CLI resolver emits true only for normalized exact evidence', async () => {
   assert.equal(formatReuseDecision(decision), 'reuse=true\nreason=exact_pr_evidence\n');
 });
 test('CLI resolver fails closed before GitHub access for an ineligible context', async () => {
-  let calls = 0;
   const decision = await resolveMainE2eReuse(
     environment({ GITHUB_REF: 'refs/heads/master' }),
     dependencies({
       collectEvidence: async () => {
-        calls += 1;
         throw new Error('must not run');
       },
     })
   );
   assert.deepEqual(decision, { reuse: false, reason: 'evidence_not_exact' });
-  assert.equal(calls, 0);
 });
 test('CLI resolver converts GitHub, schema, and local failures to one safe decision', async () => {
   const fail = () => {
@@ -144,4 +126,22 @@ test('direct CLI invocation prints only the safe normalized decision', () => {
   assert.equal(result.status, 0);
   assert.equal(result.stdout, 'reuse=false\nreason=evidence_not_exact\n');
   assert.equal(result.stderr, '');
+});
+test('default git lookup ignores a writable PATH executable', () => {
+  const directory = mkdtempSync(path.join(tmpdir(), 'ci01-path-'));
+  const fakeGit = path.join(directory, 'git');
+  const marker = path.join(directory, 'executed');
+  const originalPath = process.env.PATH;
+  try {
+    writeFileSync(fakeGit, '#!/bin/sh\n: > "$CI01_MARKER"\nprintf "%s\\n" "$GITHUB_SHA"\n');
+    chmodSync(fakeGit, 0o755);
+    process.env.PATH = directory;
+    process.env.CI01_MARKER = marker;
+    assert.match(readLocalGitObjectId(root, 'HEAD'), /^[0-9a-f]{40}$/u);
+    assert.equal(existsSync(marker), false);
+  } finally {
+    process.env.PATH = originalPath;
+    delete process.env.CI01_MARKER;
+    rmSync(directory, { force: true, recursive: true });
+  }
 });

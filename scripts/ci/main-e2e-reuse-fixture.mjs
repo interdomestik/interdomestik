@@ -82,6 +82,51 @@ export function reusableEvidence({ direct = false } = {}) {
       projectSuperset: true,
       sharedFlags: true,
       databaseSubstrate: true,
+      commandChain: true,
     },
   };
 }
+
+function parts(value) {
+  const pr = value.pullRequests[0];
+  const candidate = value.candidates[0];
+  return { pr, candidate, run: candidate.run, fallback: candidate.fallbackPullRequests?.[0] };
+}
+function removeMainSha(value) {
+  const { pr, fallback } = parts(value);
+  delete value.context.githubSha;
+  delete value.local.headSha;
+  delete pr.merge_commit_sha;
+  delete fallback.merge_commit_sha;
+}
+function removeTreeSha(value) {
+  delete value.local.treeSha;
+  delete value.headCommit.commit.tree.sha;
+}
+function setTreeSha(value) {
+  value.local.treeSha = 'not-a-full-tree-sha';
+  value.headCommit.commit.tree.sha = 'not-a-full-tree-sha';
+}
+function setLinkedHeadSha(value, sha) {
+  const { pr, run, fallback } = parts(value);
+  pr.head.sha = sha;
+  value.headCommit.sha = sha;
+  run.head_sha = sha;
+  fallback.head.sha = sha;
+}
+export const strictSchemaRejectionCases = [
+  ['paired missing main SHAs', removeMainSha],
+  ['paired missing tree SHAs', removeTreeSha],
+  ['invalid linked tree SHAs', setTreeSha],
+  ['empty linked head SHAs', value => setLinkedHeadSha(value, '')],
+  ['invalid linked head SHAs', value => setLinkedHeadSha(value, 'not-a-full-sha')],
+];
+
+export const commandChainDrifts = [
+  'playwrightReportArgs(process.env.PW_EVIDENCE_LANE)',
+  "const fastEnv = { PW_FAST_GATES: '1' };",
+  "const strictArgs = ['--max-failures=1', ...reportArgs];",
+  "const strictWorkers = ['--workers=1', ...strictArgs];",
+  "const gateArgs = ['e2e/gate', ...strictWorkers];",
+  'gatekeeper: true,',
+];

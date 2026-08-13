@@ -1,66 +1,68 @@
-import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { decideMainE2eReuse, normalizeReuseDecision } from './main-e2e-reuse-core.mjs';
-import { collectGitHubEvidence } from './main-e2e-reuse-github.mjs';
+import { collectGitHubEvidence, readLocalGitObjectId } from './main-e2e-reuse-github.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const SOURCE_PATHS = {
-  ciWorkflow: '.github/workflows/ci.yml',
-  prWorkflow: '.github/workflows/e2e-pr.yml',
-  laneSource: 'scripts/run-e2e-lane.mjs',
-};
-function triggerIsPullRequestOnly(source) {
-  const block = /^on:\n([\s\S]*?)^concurrency:/mu.exec(source)?.[1] ?? '';
-  const triggers = [...block.matchAll(/^  ([a-zA-Z0-9_-]+):/gmu)].map(match => match[1]);
-  return triggers.length === 1 && triggers[0] === 'pull_request';
-}
-function jobBlock(source, jobName, nextJobName) {
-  const start = source.indexOf(`  ${jobName}:`);
-  const end = source.indexOf(`\n  ${nextJobName}:`, start + 1);
-  return start >= 0 ? source.slice(start, end >= 0 ? end : undefined) : '';
+const GATE_HELPER_CONTRACTS = [
+  'playwrightReportArgs(process.env.PW_EVIDENCE_LANE)',
+  "PW_FAST_GATES:'1'",
+  "['--max-failures=1',...reportArgs]",
+  "['--workers=1',...strictArgs]",
+  "['e2e/gate',...strictWorkers]",
+  'gatekeeper:true,state,env:fastEnv,playwrightArgs:[...gateArgs,...projects]',
+];
+function sourceBlock(source, startMarker, endMarker) {
+  const start = source.indexOf(startMarker);
+  if (start < 0) return '';
+  const end = source.indexOf(endMarker, start + 1);
+  return source.slice(start, end < 0 ? undefined : end);
 }
 function checkoutUsesPullRequestHead(source) {
-  const runner = jobBlock(source, 'e2e-runner', 'e2e');
-  const expression = /\bref:\s*\$\{\{\s*([^}\n]+?)\s*\}\}/u.exec(runner)?.[1]?.trim();
+  const triggerBlock = source.slice(source.indexOf('on:\n'), source.indexOf('concurrency:'));
+  const triggers = [...triggerBlock.matchAll(/^ {2}([a-zA-Z0-9_-]+):/gmu)];
+  const lines = new Set(
+    sourceBlock(source, '  e2e-runner:', '\n  e2e:')
+      .split('\n')
+      .map(value => value.trim())
+  );
   return (
-    triggerIsPullRequestOnly(source) &&
-    (expression === 'github.event.pull_request.head.sha' ||
-      expression === 'github.event.pull_request.head.sha || github.sha')
+    triggers.length === 1 &&
+    triggers[0][1] === 'pull_request' &&
+    (lines.has('ref: ${{ github.event.pull_request.head.sha }}') ||
+      lines.has('ref: ${{ github.event.pull_request.head.sha || github.sha }}'))
   );
 }
 function lane(source, name) {
-  const constants = new Map(
-    [...source.matchAll(/const\s+(\w+)\s*=\s*'--project=([^']+)'/gu)].map(match => [
-      match[1],
-      match[2],
-    ])
+  const constants = Object.fromEntries(
+    [...source.matchAll(/const\s+(\w+)\s*=\s*'--project=([^']+)'/gu)].map(match => match.slice(1))
   );
-  const definition = new RegExp(
-    `\\b${name}:\\s*gateLane\\(\\[([^\\]]+)\\],\\s*(true|false)\\)`,
+  const pattern = new RegExp(
+    String.raw`\b${name}:\s*gateLane\(\[([^\]]+)\],\s*(true|false)\)`,
     'u'
-  ).exec(source);
+  );
+  const definition = pattern.exec(source);
   if (!definition) return { projects: [], shared: false };
-  const projects = definition[1]
-    .split(',')
-    .map(value => constants.get(value.trim()))
-    .filter(Boolean);
-  return {
-    projects,
-    shared:
-      definition[2] === 'true' && projects.length > 0 && projects.length === new Set(projects).size,
-  };
+  const projects = definition[1].split(',').map(value => constants[value.trim()]);
+  if (projects.some(value => !value) || projects.length !== new Set(projects).size)
+    return { projects: [], shared: false };
+  return { projects, shared: definition[2] === 'true' && projects.length > 0 };
 }
-function databaseDefault(source) {
-  return /DATABASE_URL:\s*\$\{\{\s*secrets\.E2E_DATABASE_URL\s*\|\|\s*'([^']+)'\s*\}\}/u.exec(
-    source
-  )?.[1];
+function hasExactCommandChain(packageJson, laneSource) {
+  try {
+    const scripts = JSON.parse(packageJson)?.scripts;
+    const compactSource = laneSource.replace(/\s+/gu, '');
+    return (
+      scripts?.['e2e:gate'] === 'node scripts/run-e2e-lane.mjs gate' &&
+      scripts?.['e2e:gate:pr'] === 'node scripts/run-e2e-lane.mjs pr' &&
+      GATE_HELPER_CONTRACTS.every(contract => compactSource.includes(contract))
+    );
+  } catch {
+    return false;
+  }
 }
-function stepBlock(source, name) {
-  const start = source.indexOf(`- name: ${name}`);
-  const end = source.indexOf('\n      - name:', start + 1);
-  return start >= 0 ? source.slice(start, end >= 0 ? end : undefined) : '';
-}
+const databaseDefault = source => /DATABASE_URL:[^\n]*\|\|\s*'([^']+)'/u.exec(source)?.[1];
+const stepBlock = (source, name) => sourceBlock(source, `- name: ${name}`, '\n      - name:');
 function usesWorkflowDatabase(block, command) {
   return (
     block.includes('E2E_DATABASE_URL: ${{ env.DATABASE_URL }}') &&
@@ -69,17 +71,19 @@ function usesWorkflowDatabase(block, command) {
   );
 }
 function usesCorrectedPostgres(block) {
-  return /image: postgres:16[\s\S]*POSTGRES_USER: postgres[\s\S]*POSTGRES_DB: interdomestik_test[\s\S]*- 5432:5432[\s\S]*pg_isready -U postgres -d interdomestik_test/u.test(
-    block
-  );
+  return [
+    'postgres:16',
+    'POSTGRES_USER: postgres',
+    'POSTGRES_DB: interdomestik_test',
+    '5432:5432',
+    'pg_isready -U postgres -d interdomestik_test',
+  ].every(value => block.includes(value));
 }
-export function inspectRepositoryParity({ ciWorkflow, prWorkflow, laneSource }) {
+export function inspectRepositoryParity({ ciWorkflow, prWorkflow, laneSource, packageJson }) {
   const main = lane(laneSource, 'gate');
   const pr = lane(laneSource, 'pr');
   const mainProjects = new Set(main.projects);
   const prProjects = new Set(pr.projects);
-  const ciDatabase = databaseDefault(ciWorkflow);
-  const prDatabase = databaseDefault(prWorkflow);
   return {
     checkoutHead: checkoutUsesPullRequestHead(prWorkflow),
     projectSuperset:
@@ -88,28 +92,21 @@ export function inspectRepositoryParity({ ciWorkflow, prWorkflow, laneSource }) 
       [...mainProjects].every(project => prProjects.has(project)),
     sharedFlags: main.shared && pr.shared,
     databaseSubstrate:
-      Boolean(ciDatabase) &&
-      ciDatabase === prDatabase &&
-      usesCorrectedPostgres(jobBlock(ciWorkflow, 'e2e-gate', '__last_job__')) &&
-      usesCorrectedPostgres(jobBlock(prWorkflow, 'e2e-runner', 'e2e')) &&
+      Boolean(databaseDefault(ciWorkflow)) &&
+      databaseDefault(ciWorkflow) === databaseDefault(prWorkflow) &&
+      usesCorrectedPostgres(sourceBlock(ciWorkflow, '  e2e-gate:', '\n  __last_job__:')) &&
+      usesCorrectedPostgres(sourceBlock(prWorkflow, '  e2e-runner:', '\n  e2e:')) &&
       usesWorkflowDatabase(stepBlock(ciWorkflow, 'E2E Gate Suite'), 'pnpm e2e:gate') &&
       usesWorkflowDatabase(stepBlock(prWorkflow, 'Run PR E2E Gate'), 'pnpm e2e:gate:pr'),
+    commandChain: hasExactCommandChain(packageJson, laneSource),
   };
-}
-function defaultGit(revision) {
-  return execFileSync('git', ['rev-parse', revision], {
-    cwd: root,
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'ignore'],
-  }).trim();
 }
 export async function resolveMainE2eReuse(env, dependencies = {}) {
   const reject = normalizeReuseDecision(null);
   try {
-    const git = dependencies.git ?? defaultGit;
+    const git = dependencies.git ?? (revision => readLocalGitObjectId(root, revision));
     const readFile =
       dependencies.readFile ?? (value => readFileSync(path.join(root, value), 'utf8'));
-    const collectEvidence = dependencies.collectEvidence ?? collectGitHubEvidence;
     const context = {
       eventName: env.GITHUB_EVENT_NAME,
       ref: env.GITHUB_REF,
@@ -126,12 +123,15 @@ export async function resolveMainE2eReuse(env, dependencies = {}) {
     ) {
       return reject;
     }
-    const inputs = Object.fromEntries(
-      Object.entries(SOURCE_PATHS).map(([key, value]) => [key, readFile(value)])
-    );
+    const inputs = {
+      ciWorkflow: readFile('.github/workflows/ci.yml'),
+      prWorkflow: readFile('.github/workflows/e2e-pr.yml'),
+      laneSource: readFile('scripts/run-e2e-lane.mjs'),
+      packageJson: readFile('package.json'),
+    };
     const parity = inspectRepositoryParity(inputs);
-    if (!Object.values(parity).every(Boolean)) return reject;
-    const remote = await collectEvidence({
+    if (!Object.values(parity).every(value => value === true)) return reject;
+    const remote = await (dependencies.collectEvidence ?? collectGitHubEvidence)({
       repositoryFullName: context.repository,
       githubSha: context.githubSha,
       token: env.GITHUB_TOKEN,

@@ -159,7 +159,7 @@ test('CI delegates PR browser gate to PR E2E', () => {
   const e2eGateSuiteStep = findStep(ciSteps, 'E2E Gate Suite');
   assert.equal(
     e2eGateSuiteStep.if,
-    "github.event_name != 'pull_request' && needs.validation-surface.outputs.main_e2e_reuse != 'true'"
+    "github.event_name != 'pull_request' && needs.validation-surface.outputs.main_e2e_reuse != '1'"
   );
   const staticJob = ciWorkflow.jobs.static;
   assert.ok(normalizeNeeds(staticJob.needs).includes('validation-surface'));
