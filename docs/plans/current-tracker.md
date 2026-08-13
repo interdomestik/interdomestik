@@ -2773,3 +2773,22 @@ OS/Brain verification remain post-merge closeout actions and are not claimed by
 this repository record.
 <!-- prettier-ignore -->
 The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+
+Rev 224 proposed selection adds exactly one bounded Tier 3 queue row:
+`IDA-CI01-MAIN-E2E-EXACT-TREE-EVIDENCE-REUSE`. Its proposed gate is
+`docs/plans/2026-08-13-ida-dg37-ci01-main-e2e-exact-tree-evidence-reuse.md`,
+exactly 11,781 UTF-8 bytes / SHA-256
+`3858f54297766167f0e4d1d3716fb394fb2a656176b84c3441c00cdce7f61025`,
+bound to main `6ca7ce02ae430c3a78cde5449b2c625d5cd58917`. The outcome is to retain every
+gate while avoiding a second main browser suite only when the exact merged PR,
+base `main`, head/tree, workflow run, concrete runner, freshness, repository,
+DB substrate and static lane-superset contracts all agree.
+
+Execution has two mandatory exact approvals. `CI01-RUNTIME-R1` authorizes only
+the DB-parity prerequisite; after it merges and corrected main E2E passes,
+`CI01-RUNTIME-R2` authorizes only evidence reuse from the new exact main.
+Neither stage authorizes product work, test deletion, broad CI cleanup,
+deployment or a second slice. Current proposed state is
+`runtime_authorized:false`.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-CI01-MAIN-E2E-EXACT-TREE-EVIDENCE-REUSE` (Tier 3 CI infrastructure; `runtime_authorized:false`; proposed authority activates only after exact approval of gate 11,781 bytes / SHA-256 3858f54297766167f0e4d1d3716fb394fb2a656176b84c3441c00cdce7f61025 and docs-only merge).
