@@ -7735,3 +7735,37 @@ remain unauthorized; the independent Brain-current/Integrity-clear control
 hold remains binding.
 <!-- prettier-ignore -->
 The next active governed implementation goal remains exactly one canonical tracker slice: `IDA-UI03a2-B9-INCOMPLETE-SAVED-DRAFT-SUBMIT-TRUTH` (Tier 2 product/copy/i18n/accessibility; `runtime_authorized:false`; exact-approved merged `IDA-DG38` plus exact-approved A1 reviewer-evidence correction pending docs-only merge).
+
+Rev 229 consumes the sole
+`IDA-UI03a2-B9-INCOMPLETE-SAVED-DRAFT-SUBMIT-TRUTH` promotion. Exact-approved
+runtime `IDA-UI03a2-B9-RUNTIME-R2` is 23,552 bytes / SHA-256
+`7ce7c3b6a5e138a6b8247aec2503d97c824c29b32b546a496050df15be690aa3`, bound
+to main `fbf725dbac84e174c116fb04aa426e4b10cccc1b` after DG38-A1 merged.
+
+Product PR `#1557` merged exact reviewed head
+`55f97a03683e66d4820b863ae8e3eddbfbd86969` as squash merge
+`004728d5c2540602fe62ab4e839e766b3496f521`. The exact nine-path change selects
+one localized completion-and-save explanation only for a valid persisted draft
+with a required fact missing, no found claim and `managerOnly=false`. Found
+claim and manager-only explanations keep precedence; Submit stays disabled and
+inert. No action, persistence, route, auth, tenancy, membership, schema/RLS,
+billing, provider or deployment surface changed.
+
+Focused proof passed `35/35`; one Sol High P2 finding was closed in one
+test-only remediation and the invalidated `25/25` subset passed. The same route
+then returned `PASS` on exact diff SHA-256
+`87446fd4aec714f3272083ad899b42f97747907cc56387184e3a2fef4d46c2d7` with
+zero findings. Exactly one full exact-head PR E2E passed in run `31802488288`,
+attempt 1, with no failures, reruns, retries or quarantine. Exact-main CI
+`31804206738` reused that exact-tree browser evidence while retaining setup,
+ephemeral credentials, database and RLS proof. Sonar, CodeQL, security,
+feedback with zero unresolved threads and finalizer passed. Copilot was
+requested once but produced no review and is `unavailable`. CD `31804206680`
+was cancelled with zero jobs before checkout or deployment effects.
+
+Mac remained the control/light-writer plane with no Docker or heavy browser
+run. GitHub-hosted Ubuntu performed the sole full E2E. No qualified M6 shadow
+candidate or authorized M7 cohort existed, so neither was fabricated. Runtime
+is consumed, no successor is promoted and fresh current authority is required.
+<!-- prettier-ignore -->
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
