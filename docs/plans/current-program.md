@@ -7617,3 +7617,47 @@ code mutation. No package-script cleanup, test consolidation, product work,
 deployment or second slice is promoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal remains exactly one canonical tracker slice: `IDA-CI01-MAIN-E2E-EXACT-TREE-EVIDENCE-REUSE` (Tier 3 CI infrastructure; R1 consumed; association amendment pending exact approval and docs-only merge; R2 `runtime_authorized:false`).
+
+Rev 226 closeout consumes the sole
+`IDA-CI01-MAIN-E2E-EXACT-TREE-EVIDENCE-REUSE` promotion. The exact-approved
+association-amended gate is 13,822 bytes / SHA-256
+`3d704bce6637fa3ac09a4f08d1eca45abac7c19df3b85bcdc3c557efe423b0f6`;
+the exact-approved `CI01-RUNTIME-R1` receipt is 2,983 bytes / SHA-256
+`1e6a32163f8e3938fad7b0260ecf30a0e5611273e571dfe86ab1e0dcaf756c0d`
+and `CI01-RUNTIME-R2` is 6,492 bytes / SHA-256
+`cbb61851f34304dae77b23a581ea90616cdc5561b3d5db6906ceea7203042d88`.
+
+DB-parity prerequisite PR `#1548` merged as
+`d7274986b18e7dcb55fc062f43dc69c2909d0c71`; its corrected-substrate main run
+`31715521046` passed without rerun. The bounded security prerequisite PR
+`#1551` moved only the transitive nanoid 3.x override/lock node from 3.3.17 to
+3.3.18 and merged as `cb18508f982ffb4418f35a5b107941a175814819`.
+Evidence-reuse PR `#1550` merged exact reviewed head
+`f4e7fe840b1a140e886e87385c8ad4ef5e095cf1` as squash merge
+`5feca76ad508301291b1e138c4d228b14b1513b0`.
+
+The final exact-head PR E2E runner in run `31742771541` passed in `19m49s`
+with zero reruns, retries or quarantine. Exact-main CI run `31771437441`
+resolved `success:true` in two seconds, retained setup, ephemeral credentials,
+database preparation and RLS integration, and skipped only `E2E Gate Suite`.
+The main `e2e-gate` job fell from `16m02s` in immediately preceding run
+`31742671220` to `2m01s`, avoiding `13m51s` of duplicate browser-suite compute
+and `14m01s` of job time (`87.4%`). Whole CI fell from `16m32s` to `13m08s`,
+an observed critical-path saving of `3m24s` (`20.6%`); the `12m44s` unit lane,
+not browser E2E, became the new critical path. This is one successful
+post-reuse observation, not a three-merge ROI claim.
+
+Repository-required security, static, unit, audit, AI eval, Sonar, CodeQL,
+Semgrep, gitleaks and finalizer evidence passed. Six blocking review findings
+were closed through three explicitly authorized remediation passes; final
+independent Sol 5.6 Ultra review reported zero findings. Copilot was requested
+on the final heads but produced no retained review and is `unavailable`, not
+pass. CD run `31771437473` was cancelled with zero jobs before checkout, build,
+provider or deployment effects.
+
+No product behavior, test, gate, route, auth, tenancy, schema, billing or
+provider surface changed. Runtime authority is consumed, this closeout
+promotes no successor, and the next governed target returns to
+`blocked_requires_current_authority` with `activeSlice=null`.
+<!-- prettier-ignore -->
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
