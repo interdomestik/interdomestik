@@ -7661,3 +7661,43 @@ promotes no successor, and the next governed target returns to
 `blocked_requires_current_authority` with `activeSlice=null`.
 <!-- prettier-ignore -->
 The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+
+Rev 227 current-authority selection supersedes only the Rev 226 terminal
+no-promotion sentence. Arben exact-approved immutable
+`IDA-DG38-UI03a2-B9-INCOMPLETE-SAVED-DRAFT-SUBMIT-TRUTH` in task
+`019fa824-2676-7c22-9dcb-d21af1c354e6` on 2026-08-14 at exactly 22,497
+UTF-8 bytes / SHA-256
+`00d428c16b3e66efaf645882df293f7ee475b60d0b307450c4edc7a16ff9deb3`,
+bound to clean main `18c24300707f027833a620067e2d8c2a3be962e5`.
+
+This promotes exactly one Tier 2 product/copy/i18n/accessibility slice:
+`IDA-UI03a2-B9-INCOMPLETE-SAVED-DRAFT-SUBMIT-TRUTH`. When a verified owner
+re-enters a valid persisted vehicle/property draft at preview with at least one
+required fact missing, no submitted case found and `managerOnly=false`, the
+disabled Submit control must give the exact localized complete-required-facts
+and save-before-submit explanation. Active membership remains required, saving
+does not submit a claim, and Submit remains disabled and inert.
+
+The frozen map is `dormant-preview.tsx`, four EN/SQ/MK/SR claims locale files,
+three existing focused tests and conditional deterministic repository-size
+metadata. Admission SHA-256
+`cf9547813f36c44fdcf27b582a92e4f232419398067f304849224493f290d445`
+is `ready` with one outcome, nine maximum writer paths, three proof surfaces,
+one shared consumer and zero special environments. UI/UX governance SHA-256
+`1de03274d868d074dd450ebeb5011608e09cbb86ff1d5538bd951a443b8c3b44`
+passes with four benchmark operators and zero blocked sources. Bounded GPT-5.6
+Sol High review returned `REVISE` in 456.998 seconds with two P2 and two P3
+findings; one consolidated remediation corrected the PR `#1550`/R2
+characterization, literal `aria-describedby` acceptance contract, organizer-flow
+path and Albanian register. Exact-artifact re-review returned `PASS` in 115.876
+seconds with no remaining finding.
+
+This docs-only authority grants no runtime. After merge, publish only through
+the governed task path, rerun AI OS check, preflight, resolver and scorecard,
+and stop for one separately exact-hash-approved runtime receipt on then-current
+main. No product branch, active execution, Brain product session or product
+mutation may begin before that approval. First-save cause truth, malformed-ID
+recovery, pre-resume claim badge, Hero/dashboard redesign, protected surfaces,
+deployment, production and every second slice remain unpromoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03a2-B9-INCOMPLETE-SAVED-DRAFT-SUBMIT-TRUTH` (Tier 2 product/copy/i18n/accessibility; `runtime_authorized:false`; exact-approved `IDA-DG38-UI03a2-B9-INCOMPLETE-SAVED-DRAFT-SUBMIT-TRUTH` authority pending docs-only merge).
