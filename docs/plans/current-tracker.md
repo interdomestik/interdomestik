@@ -2816,3 +2816,42 @@ shared-auth coverage, RC-RLS evidence, product, deployment and every second
 slice remain outside this row.
 <!-- prettier-ignore -->
 The next active governed implementation goal remains exactly one canonical tracker slice: `IDA-CI01-MAIN-E2E-EXACT-TREE-EVIDENCE-REUSE` (Tier 3 CI infrastructure; R1 consumed; association amendment pending exact approval and docs-only merge; R2 `runtime_authorized:false`).
+
+Rev 226 closes the sole active
+`IDA-CI01-MAIN-E2E-EXACT-TREE-EVIDENCE-REUSE` queue row. Exact-approved gate
+identity is 13,822 bytes / SHA-256
+`3d704bce6637fa3ac09a4f08d1eca45abac7c19df3b85bcdc3c557efe423b0f6`;
+approved receipts are `CI01-RUNTIME-R1`, 2,983 bytes / SHA-256
+`1e6a32163f8e3938fad7b0260ecf30a0e5611273e571dfe86ab1e0dcaf756c0d`,
+and `CI01-RUNTIME-R2`, 6,492 bytes / SHA-256
+`cbb61851f34304dae77b23a581ea90616cdc5561b3d5db6906ceea7203042d88`.
+
+Prerequisite PR `#1548` merged as
+`d7274986b18e7dcb55fc062f43dc69c2909d0c71` and proved the corrected database
+substrate in main run `31715521046`. Security prerequisite PR `#1551` changed
+only the transitive nanoid 3.x override/lock node to 3.3.18 and merged as
+`cb18508f982ffb4418f35a5b107941a175814819`. Reuse PR `#1550` merged exact
+reviewed head `f4e7fe840b1a140e886e87385c8ad4ef5e095cf1` as
+`5feca76ad508301291b1e138c4d228b14b1513b0`.
+
+Final-head PR E2E run `31742771541` passed once in `19m49s`, with no rerun,
+retry or quarantine. Main run `31771437441` produced resolver result
+`success:true` in two seconds; setup, credentials, DB preparation and RLS
+remained green while only `E2E Gate Suite` was skipped. Against immediately
+preceding main run `31742671220`, the `e2e-gate` job changed from `16m02s` to
+`2m01s`, avoiding `13m51s` browser compute and `14m01s` job time (`87.4%`).
+Whole CI changed from `16m32s` to `13m08s`, saving `3m24s` (`20.6%`) while
+the `12m44s` unit lane became critical path. One post-reuse observation does
+not establish three-merge ROI.
+
+All non-reused repository gates and finalizer evidence passed. Six blocking
+review findings were closed through three explicitly authorized remediation
+passes; final Sol 5.6 Ultra review found zero issues. Copilot produced no
+retained review and is `unavailable`. CD run `31771437473` was cancelled with
+zero jobs before any deployment effect. No product behavior or gate was
+removed or weakened.
+
+Runtime is consumed, no successor is promoted, and repository selection
+returns to `blocked_requires_current_authority` with `activeSlice=null`.
+<!-- prettier-ignore -->
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
