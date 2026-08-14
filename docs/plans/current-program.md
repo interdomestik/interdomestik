@@ -7701,3 +7701,37 @@ recovery, pre-resume claim badge, Hero/dashboard redesign, protected surfaces,
 deployment, production and every second slice remain unpromoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03a2-B9-INCOMPLETE-SAVED-DRAFT-SUBMIT-TRUTH` (Tier 2 product/copy/i18n/accessibility; `runtime_authorized:false`; exact-approved `IDA-DG38-UI03a2-B9-INCOMPLETE-SAVED-DRAFT-SUBMIT-TRUTH` authority pending docs-only merge).
+
+Rev 228 corrects only the DG38 reviewer-route and late-feedback evidence.
+After authority PR `#1555` merged exact head
+`012aa7b76a8813ee623d3866328a3f08ec5f9b71` as main
+`2ecc45fceb79ccf701fd02bb93bf2905ba233700`, GitHub Codex submitted P1
+thread `discussion_r3782950944` and P2 thread `discussion_r3782950948` at
+`2026-08-14T10:29:21Z`. Those current threads invalidated the zero-thread
+claim, the stale `Opus -> Sol Ultra` reviewer-route disposition and proposed
+`IDA-UI03a2-B9-RUNTIME-R1`; they did not invalidate the approved B9 outcome,
+admission, UI/UX evidence, copy, writer map or acceptance matrix.
+
+Arben exact-approved
+`IDA-DG38-A1-REVIEW-ROUTE-CORRECTION`, 9,028 UTF-8 bytes / SHA-256
+`fa1b0e7724e0a59a4f8be513cd9d36c926c0d79ab4196015d5c9929e7351f62c`,
+bound to clean main `2ecc45fceb79ccf701fd02bb93bf2905ba233700` in task
+`019fa824-2676-7c22-9dcb-d21af1c354e6` on 2026-08-14. For DG38/B9 only,
+the correction authorizes GPT-5.6 Sol High and prohibits a further Opus call.
+Complete reviewer receipt `IDA-DG38-A1-SOL-HIGH-REVIEW-R1` is 4,803 bytes /
+SHA-256
+`bf42f21f314dfdb608d52e083be02ebfa74e5a023fa5ed661e09a400ce13edf3`.
+It records the non-shell collaboration invocation, provider/model/reasoning,
+timestamps, 314.324-second elapsed time, status, timeout policy, fallback
+authority, exact packet hashes and terminal `PASS` with zero findings.
+
+This corrective docs-only authority grants no runtime. It preserves the sole
+Tier 2 B9 product outcome and exact nine-path maximum writer map. After this
+correction merges and both late threads close, rerun the read-only AI OS check,
+preflight, resolver and scorecard and prepare a new exact-main
+`IDA-UI03a2-B9-RUNTIME-R2`. Product code, active execution, Brain product
+session, deployment, production, protected surfaces and every second slice
+remain unauthorized; the independent Brain-current/Integrity-clear control
+hold remains binding.
+<!-- prettier-ignore -->
+The next active governed implementation goal remains exactly one canonical tracker slice: `IDA-UI03a2-B9-INCOMPLETE-SAVED-DRAFT-SUBMIT-TRUTH` (Tier 2 product/copy/i18n/accessibility; `runtime_authorized:false`; exact-approved merged `IDA-DG38` plus exact-approved A1 reviewer-evidence correction pending docs-only merge).
