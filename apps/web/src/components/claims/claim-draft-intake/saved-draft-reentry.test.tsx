@@ -25,6 +25,7 @@ const copy = {
   previewHeading: 'Review facts',
   submitDisabled: 'Not available',
   submitExplanation: 'Save a complete draft first.',
+  submitIncompleteExplanation: 'Complete and save the draft before submitting.',
   submitMembershipExplanation: 'Active membership is required to submit this saved draft.',
   submitUnsavedExplanation: 'Save changes before submitting.',
   supporting: 'Support',
@@ -106,14 +107,21 @@ describe('saved draft existing claim re-entry', () => {
   it('lets a found claim override manager-only draft truth without enabling submit', async () => {
     const lookup = deferred<{ claim: typeof claimA | null }>();
     h.lookup.mockReturnValue(lookup.promise);
-    render(<DormantPreview {...baseProps} managerOnly />);
+    render(
+      <DormantPreview {...baseProps} managerOnly draft={{ ...baseProps.draft, summary: '' }} />
+    );
     expect(screen.getByTestId('claim-draft-submit-disabled')).toBeDisabled();
     expect(screen.getByText(copy.submitMembershipExplanation)).toBeVisible();
     await act(() => {
       lookup.resolve({ claim: claimA });
       return lookup.promise;
     });
-    expect(await screen.findByTestId('claim-created-success')).toBeVisible();
+    const existing = await screen.findByTestId('claim-created-success');
+    expect(existing).toHaveTextContent(copy.existingCaseSuccess);
+    expect(screen.getByRole('link', { name: submitCopy.goToClaim })).toHaveAttribute(
+      'href',
+      '/en/member/claims/claim-a'
+    );
     expect(screen.queryByText(copy.truth)).not.toBeInTheDocument();
     expect(screen.queryByTestId('claim-draft-submit-disabled')).not.toBeInTheDocument();
   });
