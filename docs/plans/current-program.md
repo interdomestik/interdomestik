@@ -7769,3 +7769,30 @@ candidate or authorized M7 cohort existed, so neither was fabricated. Runtime
 is consumed, no successor is promoted and fresh current authority is required.
 <!-- prettier-ignore -->
 The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+
+Rev 230 supersedes only the Rev 229 terminal no-promotion sentence. Arben
+exact-approved `IDA-DG39-UI03a2-B10-FIRST-SECURE-SAVE-SUBMIT-TRUTH`, 9,918
+UTF-8 bytes / SHA-256 `2cfe0e3e2295268c756430961e1b8083cd212e572fbbae6af4ae9dc9d8d2867d`,
+bound to clean main `9dc5642f2b7be849628d0b8b258edfd7fefd0403`.
+
+This promotes exactly one Tier 2 product/copy/i18n/accessibility slice:
+`IDA-UI03a2-B10-FIRST-SECURE-SAVE-SUBMIT-TRUTH`. An access-active member at
+preview with complete required facts but both active draft id and version absent
+gets the localized first-secure-save next action; active-membership and
+save-does-not-submit truth stay explicit, and Submit stays disabled/inert.
+
+The frozen map is `dormant-preview.tsx`, four EN/SQ/MK/SR claims locale files,
+three existing focused tests and conditional repository-size metadata. Admission
+`6a983c7fa773c7fb0452696202c48b5f15a19d0ac82c279ccb10ac97b52cd278` is ready:
+one outcome, nine maximum writers, three proof surfaces, one shared consumer and
+no special environment. Four contemporaneous UI/UX sources pass after the exact
+approval; Sol 5.6 High receipt `9caa07dee5ad167500989104985fde3f930074573c6451b70228265b2952a9de`
+is PASS with no findings.
+
+This docs-only authority grants no runtime. After merge, governed publication/check,
+resolver/scorecard agreement and a separately exact-main approved runtime receipt
+are required before any product branch, active execution, Brain product session or
+mutation. Recovery, badge/provenance, Hero/dashboard, protected surfaces, deployment,
+production and every second slice remain unpromoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03a2-B10-FIRST-SECURE-SAVE-SUBMIT-TRUTH` (Tier 2 product/copy/i18n/accessibility; `runtime_authorized:false`; exact-approved `IDA-DG39-UI03a2-B10-FIRST-SECURE-SAVE-SUBMIT-TRUTH` authority pending docs-only merge).
