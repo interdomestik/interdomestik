@@ -1,14 +1,12 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DormantPreview } from './dormant-preview';
-
 const h = vi.hoisted(() => ({ lookup: vi.fn(), submit: vi.fn() }));
 vi.mock('@/actions/claims/create-from-saved-draft', () => ({
   createClaimFromSavedDraft: h.submit,
   lookupSavedDraftClaim: h.lookup,
 }));
 vi.mock('next-intl', () => ({ useLocale: () => 'en' }));
-
 const idA = '63ffc31e-8c64-4758-995a-c57f40de7568';
 const idB = 'a1ff9e4e-63f9-4fd3-9d79-965f7e5e401a';
 const claimA = { id: 'claim-a', number: 'CLM-KS-2026-000001' };
@@ -25,6 +23,8 @@ const copy = {
   previewHeading: 'Review facts',
   submitDisabled: 'Not available',
   submitExplanation: 'Save a complete draft first.',
+  submitFirstSaveExplanation:
+    'Save this complete draft first. Submitting also requires active membership. Saving the draft does not submit the claim.',
   submitIncompleteExplanation: 'Complete and save the draft before submitting.',
   submitMembershipExplanation: 'Active membership is required to submit this saved draft.',
   submitUnsavedExplanation: 'Save changes before submitting.',

@@ -16,16 +16,9 @@ const draft = {
   summary: 'The vehicle was damaged and needs repair.',
 };
 // prettier-ignore
-const copy = { backToDetails: 'Back', categoryBody: 'Body', categoryContinue: 'Continue', categoryHeading: 'Category', existingCaseSuccess: 'There is already a submitted case for this saved draft.', heading: 'Draft', previewBody: 'Review', previewHeading: 'Review facts', submitDisabled: 'Not available', submitExplanation: 'Save a complete draft first.', submitIncompleteExplanation: 'Complete and save the draft before submitting.', submitMembershipExplanation: 'To submit a claim, you need an active membership. You can keep managing this saved draft; saving it does not submit the claim.', submitUnsavedExplanation: 'Save your changes before submitting. Saving changes does not submit the claim.', supporting: 'Support', truth: 'Draft truth', unsupported: 'Unsupported' };
-const submitCopy = {
-  failed: 'Submission failed.',
-  goToClaim: 'Open claim',
-  goToClaims: 'My claims',
-  label: 'Submit claim',
-  // prettier-ignore
-  success: 'Case submitted. You can track it from the dashboard. Your saved draft stays separate; later edits to the draft do not change this case.',
-  unexpected: 'Unexpected failure.',
-};
+const copy = { backToDetails: 'Back', categoryBody: 'Body', categoryContinue: 'Continue', categoryHeading: 'Category', existingCaseSuccess: 'There is already a submitted case for this saved draft.', heading: 'Draft', previewBody: 'Review', previewHeading: 'Review facts', submitDisabled: 'Not available', submitExplanation: 'Save a complete draft first.', submitFirstSaveExplanation: 'Save this complete draft first. Submitting also requires active membership. Saving the draft does not submit the claim.', submitIncompleteExplanation: 'Complete and save the draft before submitting.', submitMembershipExplanation: 'To submit a claim, you need an active membership. You can keep managing this saved draft; saving it does not submit the claim.', submitUnsavedExplanation: 'Save your changes before submitting. Saving changes does not submit the claim.', supporting: 'Support', truth: 'Draft truth', unsupported: 'Unsupported' };
+// prettier-ignore
+const submitCopy = { failed: 'Submission failed.', goToClaim: 'Open claim', goToClaims: 'My claims', label: 'Submit claim', success: 'Case submitted. You can track it from the dashboard. Your saved draft stays separate; later edits to the draft do not change this case.', unexpected: 'Unexpected failure.' };
 const id = '63ffc31e-8c64-4758-995a-c57f40de7568';
 function view(overrides: Partial<React.ComponentProps<typeof DormantPreview>> = {}) {
   return render(
@@ -52,7 +45,8 @@ describe('saved draft canonical submit', () => {
   // prettier-ignore
   it.each([
     ['dirty', { hasUnsavedChanges: true }, copy.submitUnsavedExplanation],
-    ['not persisted', { activeDraftId: null, activeDraftVersion: null }, copy.submitExplanation],
+    ['not persisted', { activeDraftId: null, activeDraftVersion: null }, copy.submitFirstSaveExplanation],
+    ['not persisted undefined', { activeDraftId: undefined, activeDraftVersion: undefined }, copy.submitFirstSaveExplanation],
     ['missing version', { activeDraftVersion: null }, copy.submitExplanation],
     ['malformed id', { activeDraftId: 'draft-1' }, copy.submitExplanation],
     ['missing issue', { draft: { ...draft, issueType: '' } }, copy.submitIncompleteExplanation],
