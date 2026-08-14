@@ -1,22 +1,15 @@
 name: CI
-
 on:
   push:
     branches: [main, master]
     paths-ignore: ['docs/**', 'scripts/repo-size-budget.json']
   pull_request:
-    branches:
-      - '**'
+    branches: ['**']
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, labeled]
-
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
-
-permissions:
-  contents: read
-  pull-requests: read
-
+permissions: { actions: read, contents: read, pull-requests: read }
 env:
   DATABASE_URL: ${{ secrets.E2E_DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test' }}
   BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-secret-for-ci-only-do-not-use-in-production' }}
@@ -39,6 +32,7 @@ jobs:
       ai_eval_should_run: ${{ steps.gate_policy.outputs.ai_eval_should_run }}
       ai_eval_reason: ${{ steps.gate_policy.outputs.ai_eval_reason }}
       ai_eval_matched_paths: ${{ steps.gate_policy.outputs.ai_eval_matched_paths }}
+      main_e2e_reuse: ${{ steps.main_e2e_reuse_safe.outputs.reuse }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -47,6 +41,20 @@ jobs:
         with:
           node-version-file: '.nvmrc'
           package-manager-cache: false
+      - name: Resolve main E2E exact-tree reuse
+        id: main_e2e_reuse_raw
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        env: { GITHUB_TOKEN: '${{ github.token }}' }
+        run: node scripts/ci/main-e2e-reuse.mjs >> "$GITHUB_OUTPUT"
+      - name: Normalize main E2E reuse decision
+        id: main_e2e_reuse_safe
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          {
+            RESOLVER_RESULT: '${{ steps.main_e2e_reuse_raw.outcome }}:${{ steps.main_e2e_reuse_raw.outputs.reuse }}',
+          }
+        run: case "$RESOLVER_RESULT" in success:true) reuse=1 ;; *) reuse=0 ;; esac; echo "reuse=$reuse" >> "$GITHUB_OUTPUT"
       - name: Evaluate PR gate policy
         id: gate_policy
         uses: interdomestik/interdomestik/.github/actions/pr-gate-policy@f4b39fc4f7fed7e875363807faea11cc2c4cf717
@@ -59,8 +67,7 @@ jobs:
         with:
           policy-json: ${{ toJSON(steps.gate_policy.outputs) }}
   audit:
-    needs:
-      - validation-surface
+    needs: [validation-surface]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -88,8 +95,7 @@ jobs:
           echo "Heavy audit lane skipped."
           echo "Reason: ${{ needs.validation-surface.outputs.certification_reason }}"
   static:
-    needs:
-      - validation-surface
+    needs: [validation-surface]
     if: needs.validation-surface.outputs.run_broad == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -112,8 +118,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 30
   unit:
-    needs:
-      - validation-surface
+    needs: [validation-surface]
     if: needs.validation-surface.outputs.run_broad == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -126,10 +131,8 @@ jobs:
         run: pnpm coverage:gate
       - name: Release Gate Unit Tests
         run: pnpm test:release-gate
-
   ai-eval:
-    needs:
-      - validation-surface
+    needs: [validation-surface]
     if: needs.validation-surface.outputs.run_broad == 'true' && needs.validation-surface.outputs.ai_eval_should_run == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -137,10 +140,8 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Run AI Eval Fixtures
         run: pnpm ai:eval
-
   e2e-gate:
-    needs:
-      - validation-surface
+    needs: [validation-surface]
     if: needs.validation-surface.outputs.run_broad == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -165,7 +166,6 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           install-playwright: ${{ github.event_name != 'pull_request' }}
-
       - name: Generate ephemeral E2E credentials
         run: bash scripts/ci/export-e2e-credentials.sh
       - name: Enforce E2E Best Practices
@@ -183,9 +183,8 @@ jobs:
           REQUIRE_RLS_INTEGRATION: '1'
           REQUIRE_RLS_COVERAGE: '1'
         run: pnpm db:rls:test
-
       - name: E2E Gate Suite
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && needs.validation-surface.outputs.main_e2e_reuse != '1'
         env:
           E2E_DATABASE_URL: ${{ env.DATABASE_URL }}
           E2E_DATABASE_URL_RLS: ${{ env.DATABASE_URL }}
