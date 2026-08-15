@@ -19,6 +19,7 @@ const sourceKeys = {
   '.github/workflows/ci.yml': 'ciWorkflow',
   '.github/workflows/e2e-pr.yml': 'prWorkflow',
   'scripts/run-e2e-lane.mjs': 'laneSource',
+  'apps/web/playwright.config.ts': 'playwrightConfig',
   'package.json': 'packageJson',
 };
 const read = file => readFileSync(path.join(root, file), 'utf8');
@@ -48,7 +49,7 @@ function dependencies(overrides = {}) {
 test('repository parity recognizes exact PR-head checkout and strict project superset', () => {
   const current = sources();
   const laneDigest = createHash('sha256').update(current.laneSource).digest('hex');
-  assert.equal(laneDigest, '9beb625efc7ffb6cadf88809063ee8b1b15cd5080c1419de5aa888db504cf685');
+  assert.equal(laneDigest, 'ff019f739b4ae106650a0dff94527154e9579468d0ea2d5a5eecff7c2f715b64');
   assert.deepEqual(inspectRepositoryParity(current), {
     checkoutHead: true,
     projectSuperset: true,
@@ -61,7 +62,7 @@ test('parity drift always resolves to a fail-closed reuse decision', async () =>
   const current = sources();
   const checkout = 'ref: ${{ github.event.pull_request.head.sha || github.sha }}';
   const reorderedCheckout = 'ref: ${{ github.sha || github.event.pull_request.head.sha }}';
-  const prLane = 'pr: gateLane([ksSq, mkContract, mkMk], true)';
+  const prLane = 'pr: gateLane([ksSq, mkContract], true)';
   const gateScript = '"e2e:gate": "node scripts/run-e2e-lane.mjs gate"';
   const prGateScript = '"e2e:gate:pr": "node scripts/run-e2e-lane.mjs pr"';
   const database = '127.0.0.1:5432/interdomestik_test';
@@ -70,8 +71,9 @@ test('parity drift always resolves to a fail-closed reuse decision', async () =>
     ['checkoutHead', 'prWorkflow', checkout, 'ref: ${{ github.sha }}'],
     ['checkoutHead', 'prWorkflow', checkout, reorderedCheckout],
     ['checkoutHead', 'prWorkflow', 'on:\n  pull_request:', 'on:\n  push:\n  pull_request:'],
-    ['projectSuperset', 'laneSource', prLane, 'pr: gateLane([ksSq, mkContract], true)'],
-    ['sharedFlags', 'laneSource', prLane, 'pr: gateLane([ksSq, mkContract, mkMk], false)'],
+    ['projectSuperset', 'laneSource', prLane, 'pr: gateLane([ksSq, mkContract, mkMk], true)'],
+    ['sharedFlags', 'laneSource', prLane, 'pr: gateLane([ksSq, mkContract], false)'],
+    ['commandChain', 'playwrightConfig', 'gate-mk-contract', 'gate-mk-contract-drift'],
     ['databaseSubstrate', 'prWorkflow', database, '127.0.0.1:54322/postgres'],
     ['databaseSubstrate', 'prWorkflow', 'image: postgres:16', 'image: postgres:17'],
     ['commandChain', 'packageJson', gateScript, '"e2e:gate": "true"'],
