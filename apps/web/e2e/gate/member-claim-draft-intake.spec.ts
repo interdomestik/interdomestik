@@ -91,7 +91,7 @@ test.describe('IDA-UI03a2-B5 existing-case copy truth', () => {
       await fillSupportedDraft(page);
       const submit = intake.getByTestId('claim-draft-submit-disabled');
       await expect(submit).toBeDisabled();
-      await expect(submit).toHaveAccessibleDescription(sqCopy.submitExplanation);
+      await expect(submit).toHaveAccessibleDescription(sqCopy.submitFirstSaveExplanation);
       await intake.getByTestId('free-start-save-open').click();
       await expect(intake.getByTestId('free-start-save-status')).toHaveAttribute(
         'data-state',

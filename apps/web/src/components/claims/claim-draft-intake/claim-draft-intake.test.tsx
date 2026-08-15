@@ -1,6 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-
 import en from '../../../messages/en/claims.json';
 import mk from '../../../messages/mk/claims.json';
 import sq from '../../../messages/sq/claims.json';
@@ -28,7 +27,7 @@ const claimCopy = {
   categoryBody: 'Vehicle and property preparation are available.', categoryContinue: 'Continue to details',
   unsupported: 'Not available in this draft', previewHeading: 'Review your preparation facts',
   previewBody: 'Save explicitly when these facts are ready.', backToDetails: 'Back to details',
-  submitDisabled: 'Submit claim — requirements not met', submitExplanation: 'Submitting a claim requires active membership and a complete, saved draft with no unsaved changes. Saving the draft does not submit the claim.', submitIncompleteExplanation: 'Complete the required draft facts, then save the draft before submitting. Active membership is still required, and saving does not submit the claim.', submitMembershipExplanation: 'To submit a claim, you need an active membership. You can keep managing this saved draft; saving it does not submit the claim.', submitUnsavedExplanation: 'Save your changes before submitting. Saving changes does not submit the claim.',
+  submitDisabled: 'Submit claim — requirements not met', submitExplanation: 'Submitting a claim requires active membership and a complete, saved draft with no unsaved changes. Saving the draft does not submit the claim.', submitFirstSaveExplanation: 'Save this complete draft first. Submitting also requires active membership. Saving the draft does not submit the claim.', submitIncompleteExplanation: 'Complete the required draft facts, then save the draft before submitting. Active membership is still required, and saving does not submit the claim.', submitMembershipExplanation: 'To submit a claim, you need an active membership. You can keep managing this saved draft; saving it does not submit the claim.', submitUnsavedExplanation: 'Save your changes before submitting. Saving changes does not submit the claim.',
   existingCaseSuccess: 'There is already a submitted case for this saved draft.',
 };
 // prettier-ignore
@@ -115,7 +114,7 @@ describe('ClaimDraftIntake', () => {
     expect(await screen.findByTestId('claim-draft-account-context')).toBeVisible();
     const submit = screen.getByRole('button', { name: claimCopy.submitDisabled });
     expect(submit).toBeDisabled();
-    expect(submit).toHaveAccessibleDescription(claimCopy.submitExplanation);
+    expect(submit).toHaveAccessibleDescription(claimCopy.submitFirstSaveExplanation);
     expect(submit.closest('form')).toBeNull();
     for (const key of ['Enter', ' ']) fireEvent.keyDown(submit, { key });
     expect(Object.values(a).every(action => action.mock.calls.length === 0)).toBe(true);
@@ -137,9 +136,9 @@ describe('ClaimDraftIntake', () => {
   it('keeps required truth keys present across EN, SQ, SR, and MK', () => {
     // prettier-ignore
     const copies = [en, sq, mk, sr].map(messages => JSON.parse(messages.claims.draftIntakeCopy) as Record<string, string>);
-    for (const copy of copies) {
-      expect(Object.values(copy).every(value => value.trim())).toBe(true);
-    }
+    for (const copy of copies) expect(Object.values(copy).every(value => value.trim())).toBe(true);
+    // prettier-ignore
+    expect(copies.map(copy => copy.submitFirstSaveExplanation)).toEqual(['Save this complete draft first. Submitting also requires active membership. Saving the draft does not submit the claim.', 'Ruajeni së pari këtë skicë të plotë. Dorëzimi kërkon gjithashtu anëtarësim aktiv. Ruajtja e skicës nuk e dorëzon kërkesën.', 'Прво зачувајте го овој целосен нацрт. За поднесување е потребно и активно членство. Зачувувањето на нацртот не го поднесува барањето.', 'Prvo sačuvajte ovaj potpuni nacrt. Za podnošenje je potrebno i aktivno članstvo. Čuvanje nacrta ne podnosi zahtev.']);
     // prettier-ignore
     expect([copies[0].heading, ...copies.flatMap(copy => [copy.submitDisabled, copy.submitExplanation, copy.submitIncompleteExplanation, copy.submitMembershipExplanation, copy.submitUnsavedExplanation])]).toEqual(['Prepare your claim draft', 'Submit claim — requirements not met', 'Submitting a claim requires active membership and a complete, saved draft with no unsaved changes. Saving the draft does not submit the claim.', 'Complete the required draft facts, then save the draft before submitting. Active membership is still required, and saving does not submit the claim.', 'To submit a claim, you need an active membership. You can keep managing this saved draft; saving it does not submit the claim.', 'Save your changes before submitting. Saving changes does not submit the claim.', 'Dorëzo kërkesën — kushtet nuk janë plotësuar', 'Për dorëzim duhen anëtarësim aktiv dhe një skicë e plotë e ruajtur, pa ndryshime të paruajtura. Ruajtja e skicës nuk e dorëzon kërkesën.', 'Plotësoni faktet e kërkuara të skicës, pastaj ruajeni skicën para dorëzimit. Anëtarësimi aktiv kërkohet ende dhe ruajtja nuk e dorëzon kërkesën.', 'Për ta dorëzuar kërkesën, ju duhet anëtarësim aktiv. Mund të vazhdoni ta menaxhoni këtë skicë të ruajtur; ruajtja e saj nuk e dorëzon kërkesën.', 'Ruajini ndryshimet para dorëzimit. Ruajtja e ndryshimeve nuk e dorëzon kërkesën.', 'Поднеси барање — условите не се исполнети', 'За поднесување се потребни активно членство и целосен зачуван нацрт без незачувани измени. Зачувувањето на нацртот не го поднесува барањето.', 'Пополнете ги потребните факти во нацртот, потоа зачувајте го нацртот пред поднесување. Сè уште е потребно активно членство, а зачувувањето не го поднесува барањето.', 'За да поднесете барање, ви треба активно членство. Може да продолжите да управувате со овој зачуван нацрт; неговото зачувување не го поднесува барањето.', 'Зачувајте ги измените пред поднесување. Зачувувањето на измените не го поднесува барањето.', 'Podnesi zahtev — uslovi nisu ispunjeni', 'Za podnošenje su potrebni aktivno članstvo i potpun sačuvan nacrt bez nesačuvanih izmena. Čuvanje nacrta ne podnosi zahtev.', 'Popunite obavezne činjenice u nacrtu, zatim sačuvajte nacrt pre podnošenja. Aktivno članstvo je i dalje potrebno, a čuvanje ne podnosi zahtev.', 'Da biste podneli zahtev, potrebno vam je aktivno članstvo. Možete nastaviti da upravljate ovim sačuvanim nacrtom; njegovo čuvanje ne podnosi zahtev.', 'Sačuvajte izmene pre podnošenja. Čuvanje izmena ne podnosi zahtev.']);
     // prettier-ignore

@@ -1,13 +1,11 @@
-import type {
-  DraftState,
-  FreeStartCopy,
-} from '@/app/[locale]/components/home/free-start-intake-shell/types';
+// prettier-ignore
+import type { DraftState, FreeStartCopy } from '@/app/[locale]/components/home/free-start-intake-shell/types';
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
 import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
 import { isSavedDraftId, useSavedDraftClaim } from './use-saved-draft-claim';
 // prettier-ignore
-export type ClaimDraftCopy = Readonly<{ backToDetails: string; categoryBody: string; categoryContinue: string; categoryHeading: string; existingCaseSuccess: string; heading: string; previewBody: string; previewHeading: string; submitDisabled: string; submitExplanation: string; submitIncompleteExplanation: string; submitMembershipExplanation: string; submitUnsavedExplanation: string; supporting: string; truth: string; unsupported: string }>;
+export type ClaimDraftCopy = Readonly<{ backToDetails: string; categoryBody: string; categoryContinue: string; categoryHeading: string; existingCaseSuccess: string; heading: string; previewBody: string; previewHeading: string; submitDisabled: string; submitExplanation: string; submitFirstSaveExplanation: string; submitIncompleteExplanation: string; submitMembershipExplanation: string; submitUnsavedExplanation: string; supporting: string; truth: string; unsupported: string }>;
 export function parseClaimDraftCopy(value: unknown): ClaimDraftCopy {
   return JSON.parse(String(value)) as ClaimDraftCopy;
 }
@@ -16,11 +14,11 @@ export type SavedDraftSubmitCopy = Readonly<{ failed: string; goToClaim: string;
 // prettier-ignore
 type Props = Readonly<{ activeDraftId?: string | null; activeDraftVersion?: number | null; copy: ClaimDraftCopy; draft: DraftState; hasUnsavedChanges?: boolean; headingRef: RefObject<HTMLHeadingElement | null>; labels: { category: string; issue: string; outcome: string }; managerOnly?: boolean; submitCopy: SavedDraftSubmitCopy; tFree: FreeStartCopy }>;
 // prettier-ignore
-function selectSubmitExplanation(copy: ClaimDraftCopy, membership: boolean, incomplete: boolean, unsaved: boolean): string {
+function selectSubmitExplanation(copy: ClaimDraftCopy, membership: boolean, incomplete: boolean, unsaved: boolean, firstSaveExplanation: string | false): string {
   if (membership) return copy.submitMembershipExplanation;
   if (incomplete) return copy.submitIncompleteExplanation;
   if (unsaved) return copy.submitUnsavedExplanation;
-  return copy.submitExplanation;
+  return firstSaveExplanation || copy.submitExplanation;
 }
 export function DormantPreview(props: Props) {
   // prettier-ignore
@@ -31,12 +29,12 @@ export function DormantPreview(props: Props) {
   // prettier-ignore
   const facts = [[tFree('preview.categoryLabel'), labels.category], [tFree('preview.issueLabel'), labels.issue], [tFree('preview.dateLabel'), draft.incidentDate], [tFree('preview.counterpartyLabel'), draft.counterparty], [tFree('preview.outcomeLabel'), labels.outcome], [tFree('preview.summaryLabel'), draft.summary]];
   // prettier-ignore
-  const persisted = Boolean(isSavedDraftId(activeDraftId) && activeDraftVersion), incomplete = persisted && [draft.issueType, draft.incidentDate, draft.counterparty, draft.desiredOutcome, draft.summary].some(value => !value.trim());
+  const persisted = Boolean(isSavedDraftId(activeDraftId) && activeDraftVersion), incomplete = persisted && [draft.issueType, draft.incidentDate, draft.counterparty, draft.desiredOutcome, draft.summary].some(value => !value.trim()), firstSaveExplanation = !managerOnly && activeDraftId == null && activeDraftVersion == null && [draft.issueType, draft.incidentDate, draft.counterparty, draft.desiredOutcome, draft.summary].every(value => value.trim()) && copy.submitFirstSaveExplanation;
   const readyExceptUnsavedChanges = Boolean(!managerOnly && persisted && !incomplete);
   const eligible = readyExceptUnsavedChanges && !hasUnsavedChanges;
   const unsaved = Boolean(readyExceptUnsavedChanges && hasUnsavedChanges);
   // prettier-ignore
-  const submitExplanation = selectSubmitExplanation(copy, Boolean(managerOnly), incomplete, unsaved);
+  const submitExplanation = selectSubmitExplanation(copy, Boolean(managerOnly), incomplete, unsaved, firstSaveExplanation);
   const { claim, failure, lookupStatus, origin, pending, submit } = useSavedDraftClaim({
     draftId: activeDraftId,
     draftVersion: activeDraftVersion,
@@ -44,6 +42,7 @@ export function DormantPreview(props: Props) {
     failedCopy: submitCopy.failed,
     unexpectedCopy: submitCopy.unexpected,
   });
+  const showTruth = Boolean(!claim && !eligible);
   // prettier-ignore
   useEffect(() => { if (failure) failureRef.current?.focus(); else if (claim && origin === 'user_submit') successRef.current?.focus(); }, [failure, claim, origin]);
   let submitAction: ReactNode;
@@ -116,7 +115,7 @@ export function DormantPreview(props: Props) {
           </div>
         ))}
       </dl>
-      {!claim && !eligible ? (
+      {showTruth ? (
         <div className="rounded-2xl border border-[#006f72]/30 bg-[#eaf5f2] p-4 font-semibold leading-6 text-[#173b43]">
           {copy.truth}
         </div>
@@ -124,7 +123,7 @@ export function DormantPreview(props: Props) {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="max-w-sm text-right">
           {submitAction}
-          {!claim && !eligible ? (
+          {showTruth ? (
             <p id="claim-draft-submit-explanation" className="mt-2 text-sm text-[#526274]">
               {submitExplanation}
             </p>
