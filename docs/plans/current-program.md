@@ -7939,3 +7939,39 @@ change; Mac remained the light control/writer plane and GitHub-hosted Ubuntu
 ran repository checks. Runtime remains consumed and no next slice is promoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+
+Rev 236 supersedes only the Rev 235 terminal no-promotion sentence. Immutable
+`IDA-DG41 — CI03 Shared-auth Canonical Remote Coverage` is 13,543 UTF-8 bytes /
+SHA-256 `79989f32d720b2b4f442800d45f080feeb476f25576567211948802b144c7741`,
+bound to clean main `0ac4a720e08d627b25454053173d0e99944055c7`. Arben
+exact-approved that identity in task
+`019fa824-2676-7c22-9dcb-d21af1c354e6` on 2026-08-15. Admission
+`b553b27da4dff37f4602d4dfde88a53ba775291ff3c688c287590d74a3af14bd`
+is `ready`: one outcome, five maximum repository writers including conditional
+size metadata, three proof surfaces, one grouped consumer and zero special
+environments.
+
+Priority Opus 5 returned `REVISE` in 310.227 seconds with three P1, two P2 and
+two P3 findings. One consolidated remediation split the non-atomic local-full
+routing change into future authority, added stale-summary cleaner ownership,
+preserved global skill consumers as read-only, documented unchanged Sonar
+ingestion and aligned A1-A4. Exact-artifact Opus 5 re-review returned `PASS` in
+191.371 seconds with no P1/P2/P3.
+
+This promotes only Tier 3 governance/CI slice
+`IDA-CI03-SHARED-AUTH-CANONICAL-REMOTE-COVERAGE`. Canonical remote coverage
+must execute, require, label and aggregate the provider-agnostic shared-auth
+boundary from a fresh summary. Existing web/domain coverage, the 60% aggregate
+floor and every required security, RLS, E2E, reviewer, Sonar, CodeQL,
+finalizer and exact-main gate remain unchanged.
+
+The frozen runtime map is `package.json`,
+`scripts/ci/coverage-gate.mjs`,
+`scripts/ci/coverage-contracts.test.mjs`,
+`scripts/ci/clean-coverage-artifacts.mjs` and conditional deterministic
+repository-size metadata. Local-full routing, global skill, workflow, product,
+AI OS, deployment, production and every second slice remain excluded. This
+docs-only authority grants no runtime; a separate exact-main runtime receipt is
+required after merge and governed convergence.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-CI03-SHARED-AUTH-CANONICAL-REMOTE-COVERAGE` (Tier 3 governance/CI infrastructure; `runtime_authorized:false`; immutable `IDA-DG41` authority pending docs-only merge).
