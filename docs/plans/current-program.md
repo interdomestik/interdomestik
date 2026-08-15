@@ -8180,3 +8180,53 @@ SHA-256 `5051bdc9a431951b69d7fa318232da1fd00d033c9d822bf1f885d4877292fde7`
 activates only CI05.
 <!-- prettier-ignore -->
 The next active governed implementation goal is exactly one canonical tracker slice: `IDA-CI05-PILOT-SONAR-CRITICAL-PATH-DECOUPLING` (Tier 3 governance/CI infrastructure; `runtime_authorized:true`; exact runtime `IDA-CI05-PILOT-SONAR-CRITICAL-PATH-DECOUPLING-RUNTIME-R1`; three runtime writers only).
+
+Rev 243 consumes the sole
+`IDA-CI05-PILOT-SONAR-CRITICAL-PATH-DECOUPLING` runtime. Exact-approved
+`IDA-CI05-PILOT-SONAR-CRITICAL-PATH-DECOUPLING-RUNTIME-R1` is 15,738 bytes /
+SHA-256 `5051bdc9a431951b69d7fa318232da1fd00d033c9d822bf1f885d4877292fde7`,
+bound to main `c473fbb40b00bf65b78b7382dfccb9c61d4e9431`.
+
+Implementation PR `#1573` merged exact reviewed head
+`0b90c6203f13445aec5652f7d6558eaac6806947` as squash merge
+`22a6bbb3134cccf350445d0a4d7e87980a58ee51`. The three-writer change removes
+only the advisory SonarCloud polling dependency from Pilot preflight; Pilot now
+starts after its own path, exact-head and secret admission while exact-head
+Sonar remains an independent required merge signal. Product, database,
+deployment and production behavior are unchanged.
+
+Focused workflow contracts passed `37/37`. Aggregate CI contracts passed
+`651/651`; the initial three failures were a fresh-worktree dependency-link
+environment issue, and only those invalidated controls were rerun. Security
+Guard passed. Opus 5 implementation review returned `REVISE` in 276.308
+seconds; one consolidated remediation closed one P2 and three P3 findings, and
+current-artifact re-review returned `PASS` in 205.245 seconds with no remaining
+P1/P2/P3 finding.
+
+Exact-head PR E2E run `31903008968`, attempt 1, passed 230 gate outcomes in
+9.3 minutes and 13 smoke outcomes in 34.3 seconds with zero failure, rerun,
+retry or quarantine. Pilot run `31903008935`, attempt 1, started its runner five
+seconds after validation-surface completed and ran for 8m13s while Sonar
+completed independently. This proves the structural decoupling, but the formal
+shadow-contract verdict is `KEEP`: the five-second timing observation is within
+the 45-second guardrail, exact-head Sonar overlapped the Pilot runner, and all
+frozen guardrails passed. This is a CI-structure decision, not a product-cycle
+speed or ROI claim.
+
+Exact-main CI `31903901076` passed in 12m35s with the 12m09s unit lane as its
+critical path. Resolver normalization returned `success:true` / `reuse=1` in
+about 1.649 seconds; setup, ephemeral credentials, database and `41/41` RLS
+proof passed, and only the already-proven browser suite was skipped. Secret
+Scan `31903901020`, Code Quality `31903900631`, CodeQL `31903900465` and Sonar
+Main `31903901119` passed. Copilot automatic and one manual request produced no
+review, classified `manual_request_no_output`, not pass. CD `31903901078` was
+cancelled with every materialized job at `steps: []`, before checkout, build,
+registry, provider, alias, deploy or production effects.
+
+GitHub-hosted Ubuntu ran heavy proof; Mac remained the light control/writer
+plane, Z620 was not required and Mac Docker was not started. Rollback is revert
+of merge `22a6bbb3134cccf350445d0a4d7e87980a58ee51`; no schema, data, provider
+or deployment repair is required. Runtime is consumed, no successor is
+promoted and fresh current authority is required.
+<!-- prettier-ignore -->
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
