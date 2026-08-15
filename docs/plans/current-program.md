@@ -7917,3 +7917,25 @@ the two exact fixture-only line joins, followed by the same focused proof.
 Runtime is consumed and no successor is promoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+
+Rev 235 records terminal repository evidence for CI02. Evidence PR `#1563`
+merged exact reviewed head
+`c3cd0772bbf4990d6499992f2167f4c6b342c31f` as squash merge
+`eed93314fbf9f0b07eea0929b00bdbd0f4854699`. Its exact-head rollup finished
+with 17 success, 11 policy skips and no failure; Sonar passed with zero new or
+accepted issues and zero security hotspots, CodeQL had zero open PR alerts,
+gitleaks, pnpm audit, validation/audit, commitlint and finalizer passed, and
+feedback intake ended with zero review threads. Copilot was requested through
+the official `@copilot` route and produced no review, so its disposition is
+`requested_no_output`, not PASS.
+
+Exact-main Secret Scan `31876358299`, CodeQL runs `31876358098` and
+`31876358126`, and Sonar Main Gate `31876358303` passed. Sonar analysis is
+bound to exact revision `eed93314fbf9f0b07eea0929b00bdbd0f4854699` with
+Quality Gate `OK`. Automatic CD `31876358289` was cancelled while pending with
+`jobs=[]`, before checkout, build, registry, provider, deployment or production
+effects. No browser suite or Z620 run was necessary for this governance-only
+change; Mac remained the light control/writer plane and GitHub-hosted Ubuntu
+ran repository checks. Runtime remains consumed and no next slice is promoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
