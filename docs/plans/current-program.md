@@ -7796,3 +7796,43 @@ mutation. Recovery, badge/provenance, Hero/dashboard, protected surfaces, deploy
 production and every second slice remain unpromoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is exactly one canonical tracker slice: `IDA-UI03a2-B10-FIRST-SECURE-SAVE-SUBMIT-TRUTH` (Tier 2 product/copy/i18n/accessibility; `runtime_authorized:false`; exact-approved `IDA-DG39-UI03a2-B10-FIRST-SECURE-SAVE-SUBMIT-TRUTH` authority pending docs-only merge).
+
+Rev 231 consumes the sole
+`IDA-UI03a2-B10-FIRST-SECURE-SAVE-SUBMIT-TRUTH` promotion. Exact-approved
+runtime `IDA-UI03a2-B10-RUNTIME-R1` is 4,617 bytes / SHA-256
+`c66141af73b86fd6d6e5534abfdec5f26f5e193a1b9f8bda398d37704e894247`, bound
+to main `684d05c2d62db9b756cbd27bc3ab5a9c1c880664`. Exact-approved corrective
+addendum `IDA-DG39-B10-E2E-WRITER-MAP-CORRECTION-R1` is 1,738 bytes / SHA-256
+`2664b9e2105a407b924ee31c06d62de34a3f7c867783a572833f2ca3e0fa86ed` and
+adds only the existing member claim-draft browser spec.
+
+Product PR `#1560` merged exact reviewed head
+`7e0e3e661b7ade16a4a44d3ca71a65a3ead72d04` as squash merge
+`303b9883b7c47de71f25f398d1a66407852c8d3d`. The bounded change selects one
+localized first-secure-save explanation only for an access-active member with
+complete preview facts and no active draft id/version. Higher-precedence found
+claim, membership, persisted-incomplete, dirty, eligible and malformed causes
+remain unchanged; Submit stays disabled and inert. No action, persistence,
+route, proxy, auth, tenancy, membership, schema/RLS, billing, provider or
+deployment surface changed.
+
+Focused proof passed `41/41`. Sonar S2681/S3776 findings were closed in one
+consolidated product remediation and the same GPT-5.6 Sol High route passed the
+complete exact final diff with zero findings. Exactly one full exact-head PR
+E2E passed in run `31865269805`, attempt 1, with `343` full tests and `13`
+smoke tests; a prior same-head admission failure ran no browser suite.
+Exact-main CI `31867275959` reused only the exact-tree browser suite while
+retaining ephemeral credentials, database and RLS proof. Sonar, CodeQL,
+gitleaks/security, feedback with zero unresolved threads and finalizer passed.
+Copilot was requested once on the final head but returned no review and is
+`unavailable`. Automatic CD `31867275921` was cancelled with zero jobs before
+checkout or deployment effects.
+
+Mac remained the control/light-writer plane with no Docker or heavy browser
+run. GitHub-hosted Ubuntu performed the sole full E2E; Z620 was not required.
+No qualified M6 shadow candidate or authorized M7 cohort existed, so neither
+was fabricated. Runtime is consumed, no successor is promoted and fresh
+current authority is required. Rollback remains a single revert of product
+merge `303b9883b7c47de71f25f398d1a66407852c8d3d`.
+<!-- prettier-ignore -->
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
