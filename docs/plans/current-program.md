@@ -8208,9 +8208,10 @@ Exact-head PR E2E run `31903008968`, attempt 1, passed 230 gate outcomes in
 retry or quarantine. Pilot run `31903008935`, attempt 1, started its runner five
 seconds after validation-surface completed and ran for 8m13s while Sonar
 completed independently. This proves the structural decoupling, but the formal
-shadow-contract verdict remains `INCONCLUSIVE/deferred` until the first later
-naturally broad representative PR; no KEEP, speed or ROI claim is made from the
-workflow self-change.
+shadow-contract verdict is `KEEP`: the five-second timing observation is within
+the 45-second guardrail, exact-head Sonar overlapped the Pilot runner, and all
+frozen guardrails passed. This is a CI-structure decision, not a product-cycle
+speed or ROI claim.
 
 Exact-main CI `31903901076` passed in 12m35s with the 12m09s unit lane as its
 critical path. Resolver normalization returned `success:true` / `reuse=1` in
