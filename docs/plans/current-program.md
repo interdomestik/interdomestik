@@ -8002,3 +8002,49 @@ workflows, product, AI OS, deployment, production, the user-owned roadmap and
 every second slice remain unauthorized.
 <!-- prettier-ignore -->
 The next active governed implementation goal is exactly one canonical tracker slice: `IDA-CI03-SHARED-AUTH-CANONICAL-REMOTE-COVERAGE` (Tier 3 governance/CI infrastructure; `runtime_authorized:true`; exact runtime `IDA-CI03-SHARED-AUTH-CANONICAL-REMOTE-COVERAGE-RUNTIME-R1`; five repository runtime writers only).
+
+Rev 238 consumes the sole CI03 runtime after bounded implementation and returns
+current authority to the selection hold. Canonical remote coverage now runs
+both web and provider-agnostic shared-auth coverage from fresh summaries,
+requires both summaries, rejects malformed, non-numeric and zero-total
+shared-auth evidence, labels each component and preserves the 60% aggregate
+floor. Local-full routing, workflow triggers, Sonar ingestion, product, auth,
+tenancy, AI OS, deployment and production were unchanged.
+
+PR `#1566` merged exact reviewed head
+`15c38daddd6a769fe24248ab3c8e4e8de67e4eea` as squash merge
+`31c8bab55866710e368b590bd536dcc782af31d9`. Runtime receipt
+`IDA-CI03-SHARED-AUTH-CANONICAL-REMOTE-COVERAGE-RUNTIME-R1` is 11,506 bytes /
+SHA-256 `7930b55e72a61bd8ef22e1c275f685ea78621ce47fb9abbb284eb9ed66d2cd21`.
+Focused TDD passed `5/5`, CI contracts `648/648`, shared-auth coverage measured
+75.31% lines and exact-main aggregate coverage measured 85.53%. Architecture,
+modularity, repository-size and canonical behavior checks passed.
+
+Priority Opus 5 review returned `REVISE` in 421.604 seconds with two P2 and
+three P3 findings. One consolidated remediation required both summaries,
+closed malformed and zero-total shared-auth cases and locked cleaner/reporter
+behavior. Exact-artifact re-review completed in 424.541 seconds with zero P1/P2;
+three nonblocking P3 hardening residuals remain outside this frozen outcome:
+pre-existing web `0/0` acceptance, an existing dead `packagesDir` guard and
+diagnostic quality for bad JSON/prototype arguments.
+
+Exact-head PR E2E run `31883005272`, attempt 1, passed 343 full tests in 14.5
+minutes and 13 smoke tests in 35.1 seconds on GitHub-hosted Ubuntu with no
+failure, rerun or quarantine. Exact-main CI `31884165133` passed in 10m23s;
+its resolver admitted exact PR evidence, database and RLS proof remained green,
+and only the already-proven browser suite was skipped. Exact-main Secret Scan
+`31884165146`, CodeQL `31884165017` and `31884165038`, and Sonar Main Gate
+`31884165111` passed. Automatic CD `31884165139` was cancelled pending with
+`jobs=[]`, before checkout, build, registry, provider, deployment or production
+effects. Mac was the light control/writer plane; Z620 was not required and no
+Mac Docker runtime was started.
+
+Copilot ruleset `19302179` became active only after PR `#1566` merged; that
+PR's no-output result is therefore not a ruleset validation. The next PR opened
+by `arbenl` must observe whether the active ruleset creates a current-head
+`COMMENTED` review automatically, without widening this slice to reviewer-script
+changes. Rollback is revert of merge `31c8bab55866710e368b590bd536dcc782af31d9`;
+there is no schema, migration, data or provider repair. Runtime is consumed and
+no successor is promoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
