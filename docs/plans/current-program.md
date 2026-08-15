@@ -8094,3 +8094,53 @@ preflight, resolver and scorecard must converge on exact merged main before a
 separate content-addressed runtime receipt and exact approval.
 <!-- prettier-ignore -->
 The next active governed implementation goal is exactly one canonical tracker slice: `IDA-CI04-MK-PR-E2E-PROJECT-CONSOLIDATION` (Tier 3 governance/CI infrastructure; `runtime_authorized:false`; immutable `IDA-DG42` authority pending docs-only merge).
+
+Rev 240 consumes the sole CI04 runtime after bounded implementation and returns
+current authority to the selection hold. Normal no-extra-argument PR E2E now
+executes exactly `gate-ks-sq` plus `gate-mk-contract`; full gate and manual
+Pilot behavior retain `gate-mk-mk`. Exact-main reuse additionally binds the
+complete `apps/web/e2e` Git subtree, so any project-dependent source drift runs
+the main browser suite rather than reusing stale evidence. Product, workflow,
+Playwright config, package scripts, database, AI OS, deployment and production
+were unchanged.
+
+PR `#1570` merged exact reviewed head
+`26c780ccd01a79bfec8487c8d4aab04f1bc56adf` as squash merge
+`23b090a7835b681d738dbb7f604ffd2e7048855c`. Runtime R1 is 16,086 bytes /
+SHA-256 `b217495d4848eb2119ac9fd338ceba8115a787d1bbd54b1872178c3e2c7617cf`;
+A1 is 2,980 bytes / SHA-256
+`c358bdd903011d3e39a598e1c390eaf3ad525cd6607e3496f248fd019d647bcf`;
+A2 is 5,966 bytes / SHA-256
+`364682edff6c455b458cd686eb071bf8268f7be03f931937c9e66a7745d3360c`.
+Focused reuse proof passed `93/93`, aggregate CI contracts passed `651/651`,
+and repository-size plus formatting/diff checks passed.
+
+Priority Opus 5 implementation review returned `REVISE` in 418.650 seconds
+with two P2 findings. One remediation and a 292.643-second current-artifact
+re-review exposed two further P2 findings; A1 remediation closed those without
+claiming a model PASS. PR feedback then exposed one P2 project-dependent source
+gap; A2 bound the complete E2E subtree, and the single thread closed on the
+exact final head. No third senior model review was invoked.
+
+Exact-head PR E2E run `31892724310`, attempt 1, passed 240 gate outcomes in
+14m28s and 24 smoke outcomes in 36s with no failure, retry or quarantine. This
+reduces the canonical PR browser outcome count from 360 to 240 while exact-main
+remains zero. Exact-main CI `31893693458` passed in 13m19s: resolver
+`exact_pr_evidence` completed in 1.773s, database and RLS stayed green, and only
+the browser suite was skipped. E2E finished in 1m58s; unit coverage remained
+the 12m50s critical path, so no whole-CI wall-time saving is attributed to
+CI04. Secret Scan `31893693486`, CodeQL `31893692688`/`31893692645` and Sonar
+Main `31893693470` passed. CD `31893693501` was cancelled pending with
+`jobs=[]`, before checkout, build, registry, provider or deployment effects.
+
+GitHub-hosted Ubuntu ran heavy proof; Mac remained the light control/writer
+plane, Z620 was not required and Mac Docker was not started. Copilot was
+requested exactly once on the final head and produced no review, classified
+`manual_request_no_output`, not pass. Task artifacts measure about 1.4 MiB;
+filesystem free space changed from 21,905,884 KiB before execution to
+19,473,836 KiB after implementation-worktree cleanup, but that host-wide delta
+is not attributed solely to this task. Rollback is revert of merge
+`23b090a7835b681d738dbb7f604ffd2e7048855c`; there is no schema, data, provider
+or deployment repair. Runtime is consumed and no successor is promoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
