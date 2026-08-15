@@ -7864,3 +7864,56 @@ resolver, scorecard, consumer inventory and a separate runtime receipt remain
 mandatory before either global parser file may change.
 <!-- prettier-ignore -->
 The next active governed implementation goal is exactly one canonical tracker slice: `IDA-CI02-AUTHORITY-PARSER-CONVERGENCE` (Tier 3 governance/CI infrastructure; `runtime_authorized:false`; immutable `IDA-DG40 R2` authority pending docs-only merge).
+
+Rev 233 activates only the sole Rev 232 governance/CI slice on exact main
+`eb8eda3c33eceed7a943c2fedf3ab8005887924c`. Runtime receipt
+`IDA-CI02-AUTHORITY-PARSER-CONVERGENCE-RUNTIME-R1` is 6,595 UTF-8 bytes /
+SHA-256 `7187d215d8e0c6ea71b09c0ca474e62b8cbceabb5e6271dad7f26e71644ed991`.
+Arben's explicit 2026-08-15 instruction to continue the governed task through
+completion without pausing for routine steps authorizes only this frozen
+receipt and two-writer execution.
+
+Fresh AI OS check observation
+`a3138b23f4d18c05ae352bb9cd12e68103ca7c69c5ad82e3f1be0d7e4d870639`
+is current/clear with exact-source generation
+`2631ec2cbcdf7f2a5ca49e43b3a6173c38e3b0f4d7f8055bd024933b20443edc`.
+The active execution is task `ida-ci02-authority-parser-convergence`, thread
+`019fa824-2676-7c22-9dcb-d21af1c354e6`, branch
+`codex/ida-ci02-authority-parser-convergence`, worktree
+`/Users/arbenlila/development/interdomestik-ci02-runtime`.
+
+Only global `scripts/next-slice.mjs` and `scripts/next-slice.test.mjs` may
+change. Their byte-identical rollback archive is bound in the receipt. Product,
+AI OS, workflow, deployment, production, shared parser framework, third writer
+and every second slice remain unauthorized.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-CI02-AUTHORITY-PARSER-CONVERGENCE` (Tier 3 governance/CI infrastructure; `runtime_authorized:true`; exact runtime `IDA-CI02-AUTHORITY-PARSER-CONVERGENCE-RUNTIME-R1`; two global parser writers only).
+
+Rev 234 consumes the sole CI02 runtime after bounded implementation and returns
+current authority to the selection hold. The global resolver now mirrors the
+deployed AI OS canonical-decision contract for physical-line selection,
+same-line runtime metadata, program/tracker agreement and normalized safe slice
+identifiers. Invalid, ambiguous, legacy, multiline and credential-like IDs all
+fail closed with `activeSlice=null`; valid blocked, awaiting and active tuples
+retain their consumer JSON and exit semantics.
+
+Final global files are `next-slice.mjs`, 13,563 bytes / SHA-256
+`fb68f89c30b906b99d2367f5bbf7796fb4bf01031a13490504365364fe38279c`,
+and `next-slice.test.mjs`, 6,536 bytes / SHA-256
+`c4b6d9d504c064e516442981e64f5a5315650100a52a85ad405bfadfe1023772`.
+Correction `IDA-DG40-WRITER-MAP-CORRECTION-R1`, 2,001 bytes / SHA-256
+`a0ad9ce6e82086757ee78536b9af522b01be16a8f88c1a33d03d2a2eb4b628c9`,
+adds only `workflow-scorecard.test.mjs` as a fixture writer; its two canonical
+markers moved from multiline to same-line syntax and the file is 6,801 bytes /
+SHA-256 `4937e55e93143636b071c708223024fa5065cb86861f2cf9f8900e1658c5ec43`.
+
+Focused parser proof passed `18/18`, scorecard `4/4`, all nine bundled suites,
+skill validation, every bundled module syntax check and the unchanged AI OS
+adapter corpus `70/70`. Differential probes agree on valid and invalid IDs.
+GPT-5.6 Sol Ultra final re-review returned `PASS` with no P1/P2/P3 finding.
+Product, workflow logic, AI OS, deployment and production remained unchanged.
+Rollback remains restoration of the two receipt-bound archives plus reversal of
+the two exact fixture-only line joins, followed by the same focused proof.
+Runtime is consumed and no successor is promoted.
+<!-- prettier-ignore -->
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
