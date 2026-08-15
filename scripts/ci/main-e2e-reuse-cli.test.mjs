@@ -15,16 +15,19 @@ import { MAIN_SHA, NOW_MS, REPOSITORY, reusableEvidence } from './main-e2e-reuse
 import { commandChainDrifts } from './main-e2e-reuse-fixture.mjs';
 import { readLocalGitObjectId } from './main-e2e-reuse-github.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const sourceKeys = {
-  '.github/workflows/ci.yml': 'ciWorkflow',
-  '.github/workflows/e2e-pr.yml': 'prWorkflow',
-  'scripts/run-e2e-lane.mjs': 'laneSource',
-  'apps/web/playwright.config.ts': 'playwrightConfig',
-  'package.json': 'packageJson',
+const E2E_TREE = '99576782ad52f58c30316f5983df8ec654ba7ad1';
+const SAFE = { reuse: false, reason: 'evidence_not_exact' };
+const fail = () => {
+  throw new Error('token=secret body=secret');
 };
+const keyPairs =
+  'ciWorkflow=.github/workflows/ci.yml|prWorkflow=.github/workflows/e2e-pr.yml|laneSource=scripts/run-e2e-lane.mjs|playwrightConfig=apps/web/playwright.config.ts|packageJson=package.json';
+const sourceKeys = Object.fromEntries(keyPairs.split('|').map(pair => pair.split('=').reverse()));
 const read = file => readFileSync(path.join(root, file), 'utf8');
-const sources = () =>
-  Object.fromEntries(Object.entries(sourceKeys).map(([file, key]) => [key, read(file)]));
+const sources = () => ({
+  ...Object.fromEntries(Object.entries(sourceKeys).map(([file, key]) => [key, read(file)])),
+  e2eTreeSha: E2E_TREE,
+});
 function environment(overrides = {}) {
   return {
     GITHUB_EVENT_NAME: 'push',
@@ -39,7 +42,10 @@ function dependencies(overrides = {}) {
   const fixture = reusableEvidence();
   const { pullRequests, headCommit, candidates } = fixture;
   return {
-    git: value => (value === 'HEAD' ? MAIN_SHA : fixture.local.treeSha),
+    git: value =>
+      ({ HEAD: MAIN_SHA, 'HEAD^{tree}': fixture.local.treeSha, 'HEAD:apps/web/e2e': E2E_TREE })[
+        value
+      ],
     readFile: read,
     collectEvidence: async () => ({ pullRequests, headCommit, candidates }),
     nowMs: NOW_MS,
@@ -86,10 +92,7 @@ test('parity drift always resolves to a fail-closed reuse decision', async () =>
     assert.notEqual(mutation[key], current[key], `${predicate} mutation did not apply`);
     assert.equal(inspectRepositoryParity(mutation)[predicate], false, predicate);
     const readFile = value => mutation[sourceKeys[value]];
-    assert.deepEqual(await resolveMainE2eReuse(environment(), dependencies({ readFile })), {
-      reuse: false,
-      reason: 'evidence_not_exact',
-    });
+    assert.deepEqual(await resolveMainE2eReuse(environment(), dependencies({ readFile })), SAFE);
   }
 });
 test('CLI resolver emits true only for normalized exact evidence', async () => {
@@ -100,23 +103,20 @@ test('CLI resolver emits true only for normalized exact evidence', async () => {
 test('CLI resolver fails closed before GitHub access for an ineligible context', async () => {
   const decision = await resolveMainE2eReuse(
     environment({ GITHUB_REF: 'refs/heads/master' }),
-    dependencies({
-      collectEvidence: async () => {
-        throw new Error('must not run');
-      },
-    })
+    dependencies({ collectEvidence: fail })
   );
-  assert.deepEqual(decision, { reuse: false, reason: 'evidence_not_exact' });
+  assert.deepEqual(decision, SAFE);
 });
 test('CLI resolver converts GitHub, schema, and local failures to one safe decision', async () => {
-  const fail = () => {
-    throw new Error('token=secret body=secret');
-  };
-  for (const overrides of [{ collectEvidence: fail }, { git: fail }, { readFile: fail }]) {
-    assert.deepEqual(await resolveMainE2eReuse(environment(), dependencies(overrides)), {
-      reuse: false,
-      reason: 'evidence_not_exact',
-    });
+  const git = dependencies().git;
+  for (const overrides of [
+    { collectEvidence: fail },
+    { git: fail },
+    { readFile: fail },
+    { git: value => (value === 'HEAD:apps/web/e2e' ? '0'.repeat(40) : git(value)) },
+    { git: value => (value === 'HEAD:apps/web/e2e' ? fail() : git(value)) },
+  ]) {
+    assert.deepEqual(await resolveMainE2eReuse(environment(), dependencies(overrides)), SAFE);
   }
 });
 test('direct CLI invocation prints only the safe normalized decision', () => {
@@ -131,8 +131,7 @@ test('direct CLI invocation prints only the safe normalized decision', () => {
 });
 test('default git lookup ignores a writable PATH executable', () => {
   const directory = mkdtempSync(path.join(tmpdir(), 'ci01-path-'));
-  const fakeGit = path.join(directory, 'git');
-  const marker = path.join(directory, 'executed');
+  const [fakeGit, marker] = ['git', 'executed'].map(file => path.join(directory, file));
   const originalPath = process.env.PATH;
   try {
     writeFileSync(fakeGit, '#!/bin/sh\n: > "$CI01_MARKER"\nprintf "%s\\n" "$GITHUB_SHA"\n');

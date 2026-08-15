@@ -7,6 +7,7 @@ import { collectGitHubEvidence, readLocalGitObjectId } from './main-e2e-reuse-gi
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const LANE_SHA256 = 'ff019f739b4ae106650a0dff94527154e9579468d0ea2d5a5eecff7c2f715b64';
 const CONFIG_SHA256 = '97ca0f14c9f7b121cf00121eb9a0f5867b0cf9f3e52b7215a504c3d7183f2d30';
+const E2E_TREE_SHA = '99576782ad52f58c30316f5983df8ec654ba7ad1';
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {
   const start = source.indexOf(startMarker);
@@ -44,14 +45,15 @@ function lane(source, name) {
     return { projects: [], shared: false };
   return { projects, shared: definition[2] === 'true' && projects.length > 0 };
 }
-function hasExactCommandChain(packageJson, laneSource, playwrightConfig) {
+function hasExactCommandChain(input) {
   try {
-    const scripts = JSON.parse(packageJson)?.scripts;
+    const scripts = JSON.parse(input.packageJson)?.scripts;
     return (
       scripts?.['e2e:gate'] === 'node scripts/run-e2e-lane.mjs gate' &&
       scripts?.['e2e:gate:pr'] === 'node scripts/run-e2e-lane.mjs pr' &&
-      sha256(laneSource) === LANE_SHA256 &&
-      sha256(playwrightConfig) === CONFIG_SHA256
+      sha256(input.laneSource) === LANE_SHA256 &&
+      sha256(input.playwrightConfig) === CONFIG_SHA256 &&
+      input.e2eTreeSha === E2E_TREE_SHA
     );
   } catch {
     return false;
@@ -70,29 +72,23 @@ const POSTGRES_CONTRACT =
   'postgres:16|POSTGRES_USER: postgres|POSTGRES_DB: interdomestik_test|5432:5432|pg_isready -U postgres -d interdomestik_test';
 const usesCorrectedPostgres = block =>
   POSTGRES_CONTRACT.split('|').every(value => block.includes(value));
-export function inspectRepositoryParity({
-  ciWorkflow,
-  prWorkflow,
-  laneSource,
-  playwrightConfig,
-  packageJson,
-}) {
-  const main = lane(laneSource, 'gate');
-  const pr = lane(laneSource, 'pr');
+export function inspectRepositoryParity(input) {
+  const main = lane(input.laneSource, 'gate');
+  const pr = lane(input.laneSource, 'pr');
   return {
-    checkoutHead: checkoutUsesPullRequestHead(prWorkflow),
+    checkoutHead: checkoutUsesPullRequestHead(input.prWorkflow),
     projectSuperset:
       JSON.stringify(main.projects) === JSON.stringify(['gate-ks-sq', 'gate-mk-mk']) &&
       JSON.stringify(pr.projects) === JSON.stringify(['gate-ks-sq', 'gate-mk-contract']),
     sharedFlags: main.shared && pr.shared,
     databaseSubstrate:
-      Boolean(databaseDefault(ciWorkflow)) &&
-      databaseDefault(ciWorkflow) === databaseDefault(prWorkflow) &&
-      usesCorrectedPostgres(sourceBlock(ciWorkflow, '  e2e-gate:', '\n  __last_job__:')) &&
-      usesCorrectedPostgres(sourceBlock(prWorkflow, '  e2e-runner:', '\n  e2e:')) &&
-      usesWorkflowDatabase(stepBlock(ciWorkflow, 'E2E Gate Suite'), 'pnpm e2e:gate') &&
-      usesWorkflowDatabase(stepBlock(prWorkflow, 'Run PR E2E Gate'), 'pnpm e2e:gate:pr'),
-    commandChain: hasExactCommandChain(packageJson, laneSource, playwrightConfig),
+      Boolean(databaseDefault(input.ciWorkflow)) &&
+      databaseDefault(input.ciWorkflow) === databaseDefault(input.prWorkflow) &&
+      usesCorrectedPostgres(sourceBlock(input.ciWorkflow, '  e2e-gate:', '\n  __last_job__:')) &&
+      usesCorrectedPostgres(sourceBlock(input.prWorkflow, '  e2e-runner:', '\n  e2e:')) &&
+      usesWorkflowDatabase(stepBlock(input.ciWorkflow, 'E2E Gate Suite'), 'pnpm e2e:gate') &&
+      usesWorkflowDatabase(stepBlock(input.prWorkflow, 'Run PR E2E Gate'), 'pnpm e2e:gate:pr'),
+    commandChain: hasExactCommandChain(input),
   };
 }
 export async function resolveMainE2eReuse(env, dependencies = {}) {
@@ -123,6 +119,7 @@ export async function resolveMainE2eReuse(env, dependencies = {}) {
       laneSource: readFile('scripts/run-e2e-lane.mjs'),
       playwrightConfig: readFile('apps/web/playwright.config.ts'),
       packageJson: readFile('package.json'),
+      e2eTreeSha: git('HEAD:apps/web/e2e'),
     };
     const parity = inspectRepositoryParity(inputs);
     if (!Object.values(parity).every(value => value === true)) return reject;
