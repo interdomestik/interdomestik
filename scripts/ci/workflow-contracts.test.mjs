@@ -320,18 +320,13 @@ test('Nightly E2E runs on an available hosted runner while preserving full stric
   assert.ok(findStep(nightlyJob.steps, 'E2E Smoke'));
 });
 
-test('Pilot gate moves validation-surface, secrets, and PR Sonar checks into a lightweight preflight job', () => {
+test('Pilot gate has no serial Sonar poll', () => {
   const pilotGateWorkflow = readWorkflow('.github/workflows/pilot-gate.yml');
   const pilotGatePreflightJob = pilotGateWorkflow.jobs['pilot-gate-preflight'];
-  const awaitSonarStep = findStep(
-    pilotGatePreflightJob.steps,
-    'Await SonarCloud Code Analysis check'
-  );
-  const sonarStrategyStep = findStep(pilotGatePreflightJob.steps, 'Decide Sonar gate strategy');
-
-  assert.ok(pilotGatePreflightJob);
   const preflightSteps = pilotGatePreflightJob.steps;
   const gatePolicyStep = findStep(preflightSteps, 'Evaluate PR gate policy');
+  const sonarStrategyStep = findStep(preflightSteps, 'Decide Sonar gate strategy');
+  const contract = JSON.stringify(pilotGatePreflightJob);
   assert.equal(pilotGatePreflightJob['runs-on'], 'ubuntu-latest');
   assert.equal(pilotGatePreflightJob.services, undefined);
   assert.equal(
@@ -346,18 +341,22 @@ test('Pilot gate moves validation-surface, secrets, and PR Sonar checks into a l
     pilotGatePreflightJob.outputs.needs_manual_sonar_fallback,
     '${{ steps.sonar_strategy.outputs.needs_manual_sonar_fallback }}'
   );
-  assert.ok(gatePolicyStep);
   assert.equal(gatePolicyStep.uses, TRUSTED_GATE_ACTION);
   assert.ok(findStep(preflightSteps, 'Validate required gate secrets'));
-  assert.ok(awaitSonarStep);
-  assert.equal(awaitSonarStep['continue-on-error'], true);
-  assert.equal(awaitSonarStep.env.SONAR_CHECK_MAX_RETRIES, '36');
-  assert.equal(awaitSonarStep.env.SONAR_CHECK_RETRY_DELAY_SECONDS, '10');
-  assert.ok(sonarStrategyStep);
-  assert.match(sonarStrategyStep.run, /steps\.await_sonar_check\.outcome/);
-  assert.doesNotMatch(sonarStrategyStep.run, /steps\.await_sonar_check\.conclusion/);
-  assert.match(sonarStrategyStep.run, /sonarcloud\.io/);
-  assert.match(sonarStrategyStep.run, /manual fallback is skipped/);
+  assert.doesNotMatch(
+    contract,
+    /Await SonarCloud|await_sonar_check|SONAR_CHECK_MAX_RETRIES|SONAR_CHECK_RETRY_DELAY_SECONDS|sonar-check-run-gate\.sh/
+  );
+  assert.ok(sonarStrategyStep && sonarStrategyStep.if === undefined);
+  const strategy = sonarStrategyStep.run.replace(/\s+/g, ' ');
+  assert.match(
+    strategy,
+    /run_broad.*&&.*sonar_gate_enabled.*&&.*\(.*event_name.*!=.*pull_request.*\|\|.*SONAR_HOST_URL.*!=.*sonarcloud\.io.*\)/
+  );
+  assert.match(
+    strategy,
+    /needs_manual_sonar_fallback=false.*needs_manual_sonar_fallback=true.*GITHUB_OUTPUT/
+  );
   assert.equal(
     preflightSteps.some(step => step?.uses === './.github/actions/setup'),
     false
@@ -367,7 +366,6 @@ test('Pilot gate moves validation-surface, secrets, and PR Sonar checks into a l
 test('Pilot gate heavy runner depends on preflight before Postgres, setup, build, and release-gate work', () => {
   const pilotGateWorkflow = readWorkflow('.github/workflows/pilot-gate.yml');
   const pilotGateJob = pilotGateWorkflow.jobs['pilot-gate-runner'];
-
   assert.ok(pilotGateJob);
   const steps = pilotGateJob.steps;
   const needs = normalizeNeeds(pilotGateJob.needs);
@@ -375,8 +373,7 @@ test('Pilot gate heavy runner depends on preflight before Postgres, setup, build
   const manualSonarIndex = findStepIndex(steps, 'Run Sonar quality gate (manual fallback)');
   const prepareDbIndex = findStepIndex(steps, 'Prepare CI database');
   const buildIndex = findStepIndex(steps, 'Build web standalone artifact');
-
-  assert.ok(needs.includes('pilot-gate-preflight'));
+  assert.deepEqual(needs, ['pilot-gate-preflight']);
   assert.equal(pilotGateJob.if, "needs.pilot-gate-preflight.outputs.run_broad == 'true'");
   assert.equal(pilotGateJob.env.DATABASE_URL_RLS, pilotGateJob.env.DATABASE_URL);
   assert.equal(pilotGateJob.env.NODE_OPTIONS, '--max-old-space-size=4096');
@@ -427,12 +424,15 @@ test('Sonar main gate skips manual fallback for non-push SonarCloud runs while k
 test('Required pilot gate wrapper fails or passes based on preflight and runner results without starting services itself', () => {
   const pilotGateWorkflow = readWorkflow('.github/workflows/pilot-gate.yml');
   const pilotGateJob = pilotGateWorkflow.jobs['pilot-gate'];
-
-  assert.ok(pilotGateJob);
   const steps = pilotGateJob.steps;
-  const needs = normalizeNeeds(pilotGateJob.needs);
-  assert.ok(needs.includes('pilot-gate-preflight'));
-  assert.ok(needs.includes('pilot-gate-runner'));
+  assert.equal(
+    Object.keys(pilotGateWorkflow.jobs).join(),
+    'pilot-gate-preflight,pilot-gate-runner,pilot-gate'
+  );
+  assert.deepEqual(normalizeNeeds(pilotGateJob.needs), [
+    'pilot-gate-preflight',
+    'pilot-gate-runner',
+  ]);
   assert.equal(pilotGateJob.name, 'pilot-gate');
   assert.equal(pilotGateJob.if, 'always()');
   assert.equal(pilotGateJob['runs-on'], 'ubuntu-latest');
