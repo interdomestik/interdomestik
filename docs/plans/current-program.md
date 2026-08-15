@@ -7836,3 +7836,31 @@ current authority is required. Rollback remains a single revert of product
 merge `303b9883b7c47de71f25f398d1a66407852c8d3d`.
 <!-- prettier-ignore -->
 The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+
+Rev 232 supersedes only the Rev 231 terminal no-promotion sentence. Immutable
+`IDA-DG40 R2 — CI02 Authority Parser Convergence` is 18,453 UTF-8 bytes /
+SHA-256 `eca8fb6889f33436e7da90a9a03612c62013654937b17ba5164cbdda807b36cc`,
+bound to clean main `fddff9f69fee90e179248b3b185bb08bd7c32bdd`. Arben
+exact-approved that immutable identity in task
+`019fa824-2676-7c22-9dcb-d21af1c354e6` on 2026-08-15. Admission
+`bfd5e5de5109e07a767e4c8597a702ec084079dd02d0b82fffe3ced68e2bf608` is
+`ready`: one outcome, two parser-runtime writers, three proof surfaces, one
+grouped shared consumer and zero special environments.
+
+This promotes exactly one Tier 3 governance/CI slice:
+`IDA-CI02-AUTHORITY-PARSER-CONVERGENCE`. The outcome is to make the global
+`interdomestik-slice-runner` resolver mirror the deployed AI OS
+`canonicalDecision` selector for the shared canonical grammar, clear every
+invalid or disagreeing candidate, and preserve the valid JSON/exit contract
+used by scorecard, convergence and behavior evaluation.
+
+The frozen parser-runtime map is only global `scripts/next-slice.mjs` and
+`scripts/next-slice.test.mjs`. The AI OS adapter and tests plus scorecard,
+convergence and behavior consumers are read-only. GitHub workflow semantics,
+R2 measurement policy, product, routes/proxy, auth/tenancy, schema/RLS,
+deployment, production, Brain/M1-M7 and every second slice remain excluded.
+This docs-only authority grants no runtime. After merge, exact-main AI OS,
+resolver, scorecard, consumer inventory and a separate runtime receipt remain
+mandatory before either global parser file may change.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-CI02-AUTHORITY-PARSER-CONVERGENCE` (Tier 3 governance/CI infrastructure; `runtime_authorized:false`; immutable `IDA-DG40 R2` authority pending docs-only merge).
