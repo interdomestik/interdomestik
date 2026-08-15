@@ -109,38 +109,17 @@ jobs:
             echo "sonar_gate_enabled=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Await SonarCloud Code Analysis check
-        id: await_sonar_check
-        if: github.event_name == 'pull_request' && steps.certification.outputs.run_broad == 'true' && steps.validate_secrets.outputs.sonar_gate_enabled == 'true'
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-          SONAR_CHECK_SHA: ${{ github.event.pull_request.head.sha }}
-          SONAR_CHECK_MAX_RETRIES: '36'
-          SONAR_CHECK_RETRY_DELAY_SECONDS: '10'
-        run: bash scripts/sonar-check-run-gate.sh
       - name: Decide Sonar gate strategy
         id: sonar_strategy
         shell: bash
         run: |
           set -euo pipefail
           needs_manual_sonar_fallback=false
-          sonarcloud_automatic_analysis=false
-
-          if [[ "${SONAR_HOST_URL:-}" == *"sonarcloud.io"* ]]; then
-            sonarcloud_automatic_analysis=true
-          fi
-
           if [[ "${{ steps.certification.outputs.run_broad }}" == "true" && \
                 "${{ steps.validate_secrets.outputs.sonar_gate_enabled }}" == "true" && \
-                "${{ github.event_name }}" == "pull_request" && \
-                "${{ steps.await_sonar_check.outcome }}" != "success" ]]; then
-            if [[ "${sonarcloud_automatic_analysis}" == "true" ]]; then
-              echo "::warning::External SonarCloud PR check did not complete; SonarCloud Automatic Analysis owns PR analysis, so manual fallback is skipped."
-            else
-              needs_manual_sonar_fallback=true
-              echo "::warning::External Sonar PR check did not complete. Falling back to in-repo Sonar analysis."
-            fi
+                ( "${{ github.event_name }}" != "pull_request" || \
+                  "${SONAR_HOST_URL:-}" != *"sonarcloud.io"* ) ]]; then
+            needs_manual_sonar_fallback=true
           fi
 
           echo "needs_manual_sonar_fallback=${needs_manual_sonar_fallback}" >> "$GITHUB_OUTPUT"

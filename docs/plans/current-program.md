@@ -8172,11 +8172,11 @@ manual fallback and non-SonarCloud PRs become conservatively manual.
 
 The frozen runtime map is `.github/workflows/pilot-gate.yml`,
 `scripts/ci/workflow-contracts.test.mjs` and only the Pilot workflow digest in
-`scripts/ci/z620-parity.json`. Product, unit-test dedupe, provider/config,
-Sonar scripts/main gate, security, E2E, finalizer, AI OS, deployment, production
-and every second slice remain excluded. This docs-only authority grants no
-runtime. Governed publication/check, preflight, resolver and scorecard must
-converge on exact merged main before a separate content-addressed runtime
-receipt and exact approval.
+`scripts/ci/z620-parity.json`; every other surface and second slice stays
+excluded.
+
+Rev 242 supersedes only Rev 241's terminal runtime hold. Exact-approved R1 at
+SHA-256 `5051bdc9a431951b69d7fa318232da1fd00d033c9d822bf1f885d4877292fde7`
+activates only CI05.
 <!-- prettier-ignore -->
-The next active governed implementation goal is exactly one canonical tracker slice: `IDA-CI05-PILOT-SONAR-CRITICAL-PATH-DECOUPLING` (Tier 3 governance/CI infrastructure; `runtime_authorized:false`; immutable `IDA-DG43` authority pending docs-only merge).
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-CI05-PILOT-SONAR-CRITICAL-PATH-DECOUPLING` (Tier 3 governance/CI infrastructure; `runtime_authorized:true`; exact runtime `IDA-CI05-PILOT-SONAR-CRITICAL-PATH-DECOUPLING-RUNTIME-R1`; three runtime writers only).

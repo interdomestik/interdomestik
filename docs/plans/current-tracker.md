@@ -3260,15 +3260,16 @@ and pinned atomic rollback. Exact-artifact packet re-review returned `PASS` in
 229.371 seconds with no remaining finding.
 
 This promotes only Tier 3 governance/CI slice
-`IDA-CI05-PILOT-SONAR-CRITICAL-PATH-DECOUPLING`. The approved outcome removes
-the advisory SonarCloud poll from Pilot preflight so heavy proof can start after
-its own exact-head path and secret admission. The frozen map is only
+`IDA-CI05-PILOT-SONAR-CRITICAL-PATH-DECOUPLING`: Pilot heavy proof starts after
+its exact-head path/secret admission, not advisory SonarCloud polling. Map:
 `.github/workflows/pilot-gate.yml`, `scripts/ci/workflow-contracts.test.mjs` and
 the Pilot digest in `scripts/ci/z620-parity.json`. Exact-head completed/non-
 missing Sonar, stable `pilot-gate`, policy skips, manual fallback, security,
-CodeQL, finalizer and main health remain mandatory. Product, unit dedupe,
-provider/config, AI OS, deployment, production and every second slice remain
-unauthorized. Separate exact-main runtime authority is required after docs merge
-and governed convergence.
+CodeQL, finalizer and main health remain mandatory; every other surface and
+second slice stays unauthorized.
+
+Rev 242 supersedes only Rev 241's terminal runtime hold. Exact-approved R1 at
+SHA-256 `5051bdc9a431951b69d7fa318232da1fd00d033c9d822bf1f885d4877292fde7`
+activates only CI05.
 <!-- prettier-ignore -->
-The next active governed implementation goal is exactly one canonical tracker slice: `IDA-CI05-PILOT-SONAR-CRITICAL-PATH-DECOUPLING` (Tier 3 governance/CI infrastructure; `runtime_authorized:false`; immutable `IDA-DG43` authority pending docs-only merge).
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-CI05-PILOT-SONAR-CRITICAL-PATH-DECOUPLING` (Tier 3 governance/CI infrastructure; `runtime_authorized:true`; exact runtime `IDA-CI05-PILOT-SONAR-CRITICAL-PATH-DECOUPLING-RUNTIME-R1`; three runtime writers only).
