@@ -8048,3 +8048,49 @@ there is no schema, migration, data or provider repair. Runtime is consumed and
 no successor is promoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+
+Rev 239 supersedes only the Rev 238 terminal no-promotion sentence. Immutable
+`IDA-DG42 — CI04 MK PR E2E Project Consolidation R1` is 28,984 UTF-8 bytes /
+SHA-256 `80f91c4a3eb7a5d5cc7ac77d8d40f17a57a008d28c5f1287b30cd069f03f52cf`,
+bound to clean main `39067ccee9cef66da3958913f2caf47bd3c61ab7`. Arben
+exact-approved that identity and accepted reviewer disposition `R2 REVISE
+findings addressed; no final model PASS claimed` in task
+`019fa824-2676-7c22-9dcb-d21af1c354e6` on 2026-08-15. Admission
+`f0e3d75cd5f6b12af144dc9055644bf32ec90b55356fb638419e3f1d5b585e59`
+is `ready`: one outcome, eight maximum repository writers including
+conditional size metadata, three proof surfaces, one grouped consumer and zero
+special environments.
+
+Priority Opus 5 returned `REVISE` in 331.291 seconds with three P1, three P2
+and three P3 findings. One consolidated remediation owned exact-main reuse,
+preserved Pilot-only coverage and replaced the broad project resolver with a
+gate-only allowlist. Exact-artifact re-review returned `REVISE` in 618.860
+seconds with one P1, three P2 and five P3 findings. The approved candidate
+addresses that full set by moving identity proof into the collected CI contract
+suite, making exact-head E2E corroborating only, pinning parser shape and the
+`projectSuperset` key, budgeting edited files at 145/149 lines, and anchoring
+the combined PR-plus-main metric. The bounded review limit is consumed; no
+terminal model PASS is claimed.
+
+This promotes only Tier 3 governance/CI slice
+`IDA-CI04-MK-PR-E2E-PROJECT-CONSOLIDATION`. Canonical no-extra-argument PR E2E
+must execute KS and MK-contract once, reducing measured outcomes from 360 to
+240 while exact-main reuse remains admitted. Full gates keep legacy MK; manual
+Pilot arguments retain it after lane lookup; a narrow helper executes the real
+MK admin case only for gate projects. Work may KEEP only when the exact PR
+report, exact-main reuse, security, feedback and main-health guardrails pass.
+
+The frozen runtime map is `scripts/run-e2e-lane.mjs`, existing lane and reuse
+contract tests, `scripts/ci/main-e2e-reuse.mjs`, the admin gate, one new
+gate-project identity helper, one collected source-wiring contract and
+conditional deterministic size metadata. Workflow, Playwright config, package
+scripts, evidence collector, Pilot specs/config, product, database, AI OS,
+deployment, production and every second slice remain excluded. Disk
+before/after and task-artifact growth are mandatory closeout evidence; no
+purge, quarantine, Trash deletion or retention change is authorized.
+
+This docs-only authority grants no runtime. Governed publication/check,
+preflight, resolver and scorecard must converge on exact merged main before a
+separate content-addressed runtime receipt and exact approval.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-CI04-MK-PR-E2E-PROJECT-CONSOLIDATION` (Tier 3 governance/CI infrastructure; `runtime_authorized:false`; immutable `IDA-DG42` authority pending docs-only merge).
