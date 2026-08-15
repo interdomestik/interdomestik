@@ -1,42 +1,25 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const defaultRootDir = path.resolve(scriptDir, '../..');
-
 function parseArgs(argv) {
   const options = {
     minLinesPct: 60,
     rootDir: defaultRootDir,
   };
+  const supported = {
+    '--min-lines': ['minLinesPct', Number],
+    '--root': ['rootDir', path.resolve],
+  };
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
-
-    if (arg === '--min-lines') {
-      const next = argv[index + 1];
-      if (!next) {
-        throw new Error('--min-lines requires a numeric value.');
-      }
-
-      options.minLinesPct = Number(next);
-      index += 1;
-      continue;
-    }
-
-    if (arg === '--root') {
-      const next = argv[index + 1];
-      if (!next) {
-        throw new Error('--root requires a path value.');
-      }
-
-      options.rootDir = path.resolve(next);
-      index += 1;
-      continue;
-    }
-
-    throw new Error(`Unknown argument: ${arg}`);
+    const [key, transform] = supported[arg] ?? [];
+    if (!key) throw new Error(`Unknown argument: ${arg}`);
+    const next = argv[++index];
+    if (!next) throw new Error(`${arg} requires a value.`);
+    options[key] = transform(next);
   }
 
   if (!Number.isFinite(options.minLinesPct)) {
@@ -47,9 +30,17 @@ function parseArgs(argv) {
 }
 
 function findCoverageSummaryPaths(rootDir) {
-  const summaryPaths = [path.join(rootDir, 'apps/web/coverage/coverage-summary.json')];
+  const requiredSummaries = [
+    path.join(rootDir, 'apps/web/coverage/coverage-summary.json'),
+    path.join(rootDir, 'packages/shared-auth/coverage/coverage-summary.json'),
+  ];
+  for (const summaryPath of requiredSummaries) {
+    if (!fs.existsSync(summaryPath)) {
+      throw new Error(`Required coverage summary is missing: ${summaryPath}`);
+    }
+  }
+  const summaryPaths = [...requiredSummaries];
   const packagesDir = path.join(rootDir, 'packages');
-
   if (!fs.existsSync(packagesDir)) {
     return summaryPaths.filter(summaryPath => fs.existsSync(summaryPath));
   }
@@ -65,15 +56,6 @@ function findCoverageSummaryPaths(rootDir) {
   return summaryPaths.filter(summaryPath => fs.existsSync(summaryPath));
 }
 
-function getWorkspaceLabel(rootDir, summaryPath) {
-  const workspaceDir = path.dirname(path.dirname(summaryPath));
-  return path.relative(rootDir, workspaceDir);
-}
-
-function roundPct(value) {
-  return Number(value.toFixed(2));
-}
-
 function readSummary(summaryPath) {
   const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf8'));
   const totalLines = summary?.total?.lines?.total;
@@ -82,8 +64,10 @@ function readSummary(summaryPath) {
   if (!Number.isFinite(totalLines) || !Number.isFinite(coveredLines)) {
     throw new Error(`Coverage summary is missing total line data: ${summaryPath}`);
   }
-
-  const pct = totalLines === 0 ? 100 : roundPct((coveredLines / totalLines) * 100);
+  if (summaryPath.includes(`${path.sep}packages${path.sep}shared-auth${path.sep}`) && totalLines === 0) {
+    throw new Error(`Required shared-auth coverage summary has zero total lines: ${summaryPath}`);
+  }
+  const pct = totalLines === 0 ? 100 : Number(((coveredLines / totalLines) * 100).toFixed(2));
 
   return {
     covered: coveredLines,
@@ -92,19 +76,18 @@ function readSummary(summaryPath) {
   };
 }
 
-export function runCoverageGate({ rootDir = defaultRootDir, minLinesPct = 60, stdout = true } = {}) {
+export function runCoverageGate({
+  rootDir = defaultRootDir,
+  minLinesPct = 60,
+  stdout = true,
+} = {}) {
   const summaryFiles = findCoverageSummaryPaths(rootDir);
-
-  if (summaryFiles.length === 0) {
-    throw new Error(`No coverage summaries found under ${rootDir}. Run pnpm test:coverage first.`);
-  }
-
   const workspaces = summaryFiles
     .map(summaryPath => {
       const summary = readSummary(summaryPath);
       return {
         ...summary,
-        label: getWorkspaceLabel(rootDir, summaryPath),
+        label: path.relative(rootDir, path.dirname(path.dirname(summaryPath))),
         summaryPath,
       };
     })
@@ -118,7 +101,8 @@ export function runCoverageGate({ rootDir = defaultRootDir, minLinesPct = 60, st
     { covered: 0, total: 0 }
   );
 
-  const pct = aggregate.total === 0 ? 100 : roundPct((aggregate.covered / aggregate.total) * 100);
+  const pct =
+    aggregate.total === 0 ? 100 : Number(((aggregate.covered / aggregate.total) * 100).toFixed(2));
   const result = {
     aggregate: {
       ...aggregate,

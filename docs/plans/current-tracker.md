@@ -3128,3 +3128,28 @@ This docs-only authority grants no runtime; exact-main convergence and a
 separate runtime receipt are required.
 <!-- prettier-ignore -->
 The next active governed implementation goal is exactly one canonical tracker slice: `IDA-CI03-SHARED-AUTH-CANONICAL-REMOTE-COVERAGE` (Tier 3 governance/CI infrastructure; `runtime_authorized:false`; immutable `IDA-DG41` authority pending docs-only merge).
+
+Rev 237 activates only the sole Rev 236 governance/CI slice on exact main
+`5616462ee707caad745c8a08d5b905c9b0f98a2f`. Exact-approved runtime receipt
+`IDA-CI03-SHARED-AUTH-CANONICAL-REMOTE-COVERAGE-RUNTIME-R1` is 11,506 UTF-8
+bytes / SHA-256
+`7930b55e72a61bd8ef22e1c275f685ea78621ce47fb9abbb284eb9ed66d2cd21`;
+Arben approved that exact identity in task
+`019fa824-2676-7c22-9dcb-d21af1c354e6` on 2026-08-15.
+
+Read-only AI OS observation
+`b98e20a8d8ba286503fc3f5f591738dc8a2bc241911c5e791bb991bdc6a3cca3`
+is current/clear with no blocking contradiction. Active execution is the sole
+CI03 branch `codex/ida-ci03-shared-auth-coverage` and worktree
+`/Users/arbenlila/development/interdomestik-ci03-shared-auth-coverage`. Arben's
+separate roadmap worktree at exact head
+`9d1f40b929a8b3e8dc676472719145e2064cda79` is user-owned, read-only here and
+accepted only through the exact runner allowlist.
+
+The frozen runtime map remains the root coverage command, required coverage
+aggregator, focused coverage contract, stale-output cleaner and conditional
+deterministic size metadata. Shared-auth sources/tests/config, thresholds,
+exclusions, local-full routing, workflows, product, AI OS, deployment,
+production, the roadmap and every second slice remain unauthorized.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-CI03-SHARED-AUTH-CANONICAL-REMOTE-COVERAGE` (Tier 3 governance/CI infrastructure; `runtime_authorized:true`; exact runtime `IDA-CI03-SHARED-AUTH-CANONICAL-REMOTE-COVERAGE-RUNTIME-R1`; five repository runtime writers only).
