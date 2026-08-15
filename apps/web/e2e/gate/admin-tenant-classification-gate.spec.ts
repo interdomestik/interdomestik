@@ -1,20 +1,11 @@
-import type { TestInfo } from '@playwright/test';
-
 import { test } from '../fixtures/auth.fixture';
 import { registerTenantClassificationSuite } from '../support/admin-tenant-classification';
-
-function isKsGateProject(testInfo: TestInfo): boolean {
-  return testInfo.project.name === 'gate-ks-sq';
-}
-
-function isMkGateProject(testInfo: TestInfo): boolean {
-  return testInfo.project.name === 'gate-mk-mk';
-}
+import { isKsGateProject, isMkGateProject } from './gate-project-identity';
 
 registerTenantClassificationSuite(test, {
   describeName: 'Strict Gate: admin tenant classification',
-  isKsProject: isKsGateProject,
-  isMkProject: isMkGateProject,
+  isKsProject: testInfo => isKsGateProject(testInfo.project.name),
+  isMkProject: testInfo => isMkGateProject(testInfo.project.name),
   memberPrefix: 'e2e-gate-tenant-review',
   namePrefix: 'E2E Gate Pending',
   emailPrefix: 'e2e.gate.tenant.review',

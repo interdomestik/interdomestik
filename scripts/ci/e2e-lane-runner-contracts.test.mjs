@@ -35,9 +35,28 @@ test('root package script exposes the hardened E2E state setup lane', () => {
   assert.equal(packageJson.scripts['e2e:state:setup'], 'node scripts/run-e2e-lane.mjs state');
 });
 
-test('PR lane includes both MK contract and full MK gate projects', () => {
-  assert.match(runner, /pr: gateLane\(\[ksSq, mkContract, mkMk\], true\)/u);
-  assert.match(runner, /'pr-fast': gateLane\(\[ksSq, mkContract, mkMk\]\)/u);
+test('canonical PR lanes consolidate MK while pilot invocations retain the legacy project', () => {
+  assert.match(runner, /pr: gateLane\(\[ksSq, mkContract\], true\)/u);
+  assert.match(runner, /'pr-fast': gateLane\(\[ksSq, mkContract\]\)/u);
+  assert.match(runner, /gate: gateLane\(\[ksSq, mkMk\], true\)/u);
+  assert.match(runner, /'gate-fast': gateLane\(\[ksSq, mkMk\]\)/u);
+  assert.match(
+    runner,
+    /const keepPilotMk =\s*\(laneName === 'pr' \|\| laneName === 'pr-fast'\) &&\s*extraPlaywrightArgs\.some\(arg => arg\.includes\('\/pilot\/'\)\);/u
+  );
+  assert.match(runner, /if \(keepPilotMk\) lane\.playwrightArgs\.push\(mkMk\)/u);
+});
+
+test('MK contract and non-pilot MK gate preserve the same effective matches', () => {
+  assert.match(playwrightConfig, /const GATE_DEFAULT_MATCH = \['gate\/\*\*\/\*\.spec\.ts'\]/u);
+  assert.match(
+    playwrightConfig,
+    /const GATE_MK_CONTRACT_MATCH = \[[\s\S]*\.\.\.GATE_DEFAULT_MATCH,[\s\S]*\.\.\.GATE_SECURITY_MATCH,[\s\S]*'gate\/seed-contract\.spec\.ts',[\s\S]*'gate\/tenant-resolution\.spec\.ts',[\s\S]*\];/u
+  );
+  assert.match(
+    playwrightConfig,
+    /const GATE_MK_TEST_MATCH = RUNNING_PILOT_MATRIX[\s\S]*\? \[\.\.\.GATE_DEFAULT_MATCH, \.\.\.GATE_SECURITY_MATCH, \.\.\.GATE_MK_PILOT_MATCH\][\s\S]*: \[\.\.\.GATE_DEFAULT_MATCH, \.\.\.GATE_SECURITY_MATCH\];/u
+  );
 });
 
 test('Playwright evidence lanes are isolated without moving legacy default reports', () => {

@@ -10,7 +10,6 @@ import { runDetachedCommand } from './ci/run-detached-command.mjs';
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dbUrl = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
 const secretPath = path.join(rootDir, 'apps/web/.playwright/better-auth-secret');
-
 function readSecret() {
   try {
     return fs.readFileSync(secretPath, 'utf8').trim() || null;
@@ -65,9 +64,9 @@ const projectLane = (project, env) => ({
 const laneDefinitions = {
   state: { playwrightArgs: [...setupArgs, ...strictWorkers] },
   gate: gateLane([ksSq, mkMk], true),
-  pr: gateLane([ksSq, mkContract, mkMk], true),
+  pr: gateLane([ksSq, mkContract], true),
   'gate-fast': gateLane([ksSq, mkMk]),
-  'pr-fast': gateLane([ksSq, mkContract, mkMk]),
+  'pr-fast': gateLane([ksSq, mkContract]),
   merge: {
     gatekeeper: true,
     playwrightArgs: [...mergeArgs, '--project=ks-sq', '--project=mk-mk', ...workerArgs],
@@ -98,17 +97,17 @@ const laneDefinitions = {
 
 function usage() {
   const lanes = Object.keys(laneDefinitions).join(', ');
-  console.error(`Usage: node scripts/run-e2e-lane.mjs <lane> [playwright args...]\n\nLanes: ${lanes}`);
+  console.error(
+    `Usage: node scripts/run-e2e-lane.mjs <lane> [playwright args...]\n\nLanes: ${lanes}`
+  );
 }
 
 const laneName = process.argv[2] || 'gate';
 const extraPlaywrightArgs = process.argv.slice(3);
-
 if (laneName === '-h' || laneName === '--help' || laneName === 'help') {
   usage();
   process.exit(0);
 }
-
 const lane = laneDefinitions[laneName];
 const shouldRunLocalDoctor =
   lane?.gatekeeper &&
@@ -120,7 +119,10 @@ if (!lane) {
   usage();
   process.exit(2);
 }
-
+const keepPilotMk =
+  (laneName === 'pr' || laneName === 'pr-fast') &&
+  extraPlaywrightArgs.some(arg => arg.includes('/pilot/'));
+if (keepPilotMk) lane.playwrightArgs.push(mkMk);
 const envSecret = process.env.BETTER_AUTH_SECRET;
 process.env.BETTER_AUTH_SECRET =
   envSecret === undefined ? loadSecret() : assertSecret(envSecret, 'environment');
@@ -133,7 +135,6 @@ const baseEnv = {
 const laneEnv = lane.env ? { ...baseEnv, ...lane.env } : baseEnv;
 const stateEnv = { ...laneEnv, PW_FAST_GATES: '0' };
 const finalEnv = laneName === 'state' ? stateEnv : laneEnv;
-
 async function run(command, args, env = baseEnv) {
   try {
     await runDetachedCommand(command, args, { cwd: rootDir, env });
@@ -142,7 +143,6 @@ async function run(command, args, env = baseEnv) {
     process.exit(error?.exitCode ?? 1);
   }
 }
-
 if (shouldRunLocalDoctor) await run('pnpm', ['run', 'doctor'], laneEnv);
 await ensureLocalTestHosts({ required: process.env.CI === 'true' });
 if (lane.gatekeeper) await run('bash', ['scripts/m4-gatekeeper.sh'], laneEnv);
