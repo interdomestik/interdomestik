@@ -8144,3 +8144,39 @@ is not attributed solely to this task. Rollback is revert of merge
 or deployment repair. Runtime is consumed and no successor is promoted.
 <!-- prettier-ignore -->
 The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+
+Rev 241 supersedes only the Rev 240 terminal no-promotion sentence. Immutable
+`IDA-DG43 — CI05 Pilot/Sonar Critical-Path Decoupling` is 20,153 UTF-8 bytes /
+SHA-256 `f03188f54565d54fc6765228d6fb3e94f3383fe66df7d9e8d03fca908f5ec507`,
+bound to clean main `c0e5b22a2d26c16e87a6615eac8604a5ba748cde`. Arben
+exact-approved that byte-identical identity in task
+`019fa824-2676-7c22-9dcb-d21af1c354e6` on 2026-08-15. Admission
+`4c207584b70a855454eed615580dcfbe1797c85d3433dd9c52d518ed238ddec2`
+is `ready`: one outcome, three runtime writers, three proof surfaces, one
+grouped shared consumer and zero special environments.
+
+Priority Opus 5 review returned `REVISE` in 336.041 seconds with one P1, four
+P2 and two P3 findings. One consolidated remediation added the required Z620
+parity-digest writer, made the non-SonarCloud path explicitly stricter, corrected
+the advisory Sonar-observability baseline, strengthened negative workflow TDD,
+made structural proof primary and pinned atomic rollback. Exact-artifact packet
+re-review returned `PASS` in 229.371 seconds with no remaining P1/P2/P3 finding;
+the external-artifact read restriction is recorded in the immutable gate.
+
+This promotes only Tier 3 governance/CI slice
+`IDA-CI05-PILOT-SONAR-CRITICAL-PATH-DECOUPLING`. The heavy Pilot runner must
+become eligible after its own lightweight path/exact-head/secret admission
+without waiting serially for advisory SonarCloud polling. Exact-head Sonar
+remains separately explicit and non-missing before merge; dispatch retains the
+manual fallback and non-SonarCloud PRs become conservatively manual.
+
+The frozen runtime map is `.github/workflows/pilot-gate.yml`,
+`scripts/ci/workflow-contracts.test.mjs` and only the Pilot workflow digest in
+`scripts/ci/z620-parity.json`. Product, unit-test dedupe, provider/config,
+Sonar scripts/main gate, security, E2E, finalizer, AI OS, deployment, production
+and every second slice remain excluded. This docs-only authority grants no
+runtime. Governed publication/check, preflight, resolver and scorecard must
+converge on exact merged main before a separate content-addressed runtime
+receipt and exact approval.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-CI05-PILOT-SONAR-CRITICAL-PATH-DECOUPLING` (Tier 3 governance/CI infrastructure; `runtime_authorized:false`; immutable `IDA-DG43` authority pending docs-only merge).
