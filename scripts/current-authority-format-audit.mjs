@@ -1,23 +1,28 @@
 #!/usr/bin/env node
-
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-
 import { extractSection, parseTrackerDocument } from './plan-model.mjs';
-
 const PROGRAM = 'docs/plans/current-program.md';
 const TRACKER = 'docs/plans/current-tracker.md';
 const MANIFEST = 'docs/plans/history/current-authority/2026-08-16-through-rev-243.manifest.json';
+const SOURCE_COMMIT = '523fda2493ca728dea48241aad5769917f1ad03f';
 const MARKER = /The next active governed implementation goal[^\n]+/g;
 const SHA256 = /^[a-f0-9]{64}$/,
   GIT_SHA = /^[a-f0-9]{40}$/;
 const ORIGIN = /^(https:\/\/github\.com\/|git@github\.com:)interdomestik\/interdomestik(\.git)?$/;
 const GIT = '/usr/bin/git';
+// prettier-ignore
+const PROGRAM_SECTIONS = ['Current Phase', 'M0-M5 Implementation Blueprint', 'Ordered Candidate Priorities', 'Selection Constraints', 'Historical Authority'];
+const TRACKER_SECTIONS = ['Active Queue', 'Proof Ledger', 'Next Selection', 'Historical Authority'];
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const lineCount = text => (text ? text.split(/\r?\n/).length - Number(text.endsWith('\n')) : 0);
-const tableRows = section =>
-  Math.max(0, section.split(/\r?\n/).filter(line => line.trim().startsWith('|')).length - 2);
+const tableRows = text => Math.max(0, (text.match(/^\s*\|/gm)?.length ?? 0) - 2);
+function requireSections(text, path, headings, errors) {
+  for (const heading of headings) {
+    if (!extractSection(text, heading).trim()) errors.push(`${path}: missing ${heading} section`);
+  }
+}
 function git(args, binary = false) {
   const result = spawnSync(GIT, args, {
     encoding: binary ? null : 'utf8',
@@ -27,6 +32,10 @@ function git(args, binary = false) {
     throw new Error(`git ${args.join(' ')} failed: ${String(result.stderr).trim()}`);
   }
   return binary ? result.stdout : result.stdout.trim();
+}
+function hasCanonicalOrigin() {
+  const result = spawnSync(GIT, ['remote', 'get-url', 'origin'], { encoding: 'utf8' });
+  return result.status === 0 && ORIGIN.test(result.stdout.trim());
 }
 function ensureCommit(commit) {
   const present = spawnSync(GIT, ['cat-file', '-e', `${commit}^{commit}`]);
@@ -72,11 +81,14 @@ function validateArtifact(commit, path, artifact, errors) {
 }
 function validateManifest(manifest, errors) {
   if (manifest.schemaVersion !== 1) errors.push(`${MANIFEST}: schemaVersion must be 1`);
-  if (manifest.repository !== 'interdomestik/interdomestik') {
+  if (manifest.repository !== 'interdomestik/interdomestik')
     errors.push(`${MANIFEST}: repository identity mismatch`);
-  }
   if (!GIT_SHA.test(manifest.sourceCommit ?? '')) {
     errors.push(`${MANIFEST}: invalid source commit`);
+    return;
+  }
+  if (hasCanonicalOrigin() && manifest.sourceCommit !== SOURCE_COMMIT) {
+    errors.push(`${MANIFEST}: source commit must match approved pre-compaction main`);
     return;
   }
   if (
@@ -104,6 +116,8 @@ function main() {
   const manifestBytes = readFileSync(MANIFEST);
   const program = inspectLiveDocument(PROGRAM, programBytes, 16_384, 220, errors);
   const tracker = inspectLiveDocument(TRACKER, trackerBytes, 12_288, 160, errors);
+  requireSections(program.text, PROGRAM, PROGRAM_SECTIONS, errors);
+  requireSections(tracker.text, TRACKER, TRACKER_SECTIONS, errors);
   if (tableRows(extractSection(program.text, 'Ordered Candidate Priorities')) > 12) {
     errors.push(`${PROGRAM}: more than 12 candidate rows`);
   }

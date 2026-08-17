@@ -71,7 +71,7 @@ function fixture() {
   write(
     root,
     'docs/plans/current-program.md',
-    `# Current Program\n\n## Current Phase\n\nSelection required.\n\n## Ordered Candidate Priorities\n\n| Priority | Candidate |\n| --- | --- |\n| 1 | B10 |\n\n## Selection Constraints\n\nOne slice.\n\n## Historical Authority\n\nManifest SHA-256: \`${manifestSha}\`.\n\n${marker}\n`
+    `# Current Program\n\n## Current Phase\n\nSelection required.\n\n## M0-M5 Implementation Blueprint\n\nCompact roadmap.\n\n## Ordered Candidate Priorities\n\n| Priority | Candidate |\n| --- | --- |\n| 1 | B10 |\n\n## Selection Constraints\n\nOne slice.\n\n## Historical Authority\n\nManifest SHA-256: \`${manifestSha}\`.\n\n${marker}\n`
   );
   write(
     root,
@@ -95,4 +95,21 @@ test('rejects append-only revision narratives', () => {
   const result = spawnSync(process.execPath, [script], { cwd: root, encoding: 'utf8' });
   assert.equal(result.status, 1);
   assert.match(result.stderr, /revision narratives/);
+});
+
+test('rejects a missing canonical authority section', () => {
+  const { root } = fixture();
+  const path = join(root, 'docs/plans/current-program.md');
+  writeFileSync(path, readFileSync(path, 'utf8').replace('## Current Phase', 'Current Phase'));
+  const result = spawnSync(process.execPath, [script], { cwd: root, encoding: 'utf8' });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /missing Current Phase section/);
+});
+
+test('rejects a repointed manifest in the canonical repository', () => {
+  const { root } = fixture();
+  git(root, ['remote', 'add', 'origin', 'https://github.com/interdomestik/interdomestik.git']);
+  const result = spawnSync(process.execPath, [script], { cwd: root, encoding: 'utf8' });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /source commit must match approved pre-compaction main/);
 });
