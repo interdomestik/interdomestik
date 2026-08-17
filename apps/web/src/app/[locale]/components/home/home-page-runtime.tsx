@@ -10,6 +10,7 @@ import { getLocaleLandingCore } from '../../_core';
 import { getStartClaimHrefForSession } from '../../home-v2.core';
 import { FreeStartIntakeShell } from './free-start-intake-shell';
 import { HeroSection } from './hero-section';
+import { PublicEntrySessionSkeleton } from './public-entry-session-skeleton';
 
 type HomePageRuntimeProps = Readonly<{
   defaultPublicTenantId: string;
@@ -25,7 +26,7 @@ export function HomePageRuntime({
   uiV2Enabled,
 }: HomePageRuntimeProps) {
   const router = useRouter();
-  const { data: session } = authClient.useSession();
+  const { data: session, isPending } = authClient.useSession();
   const [hostTenantId, setHostTenantId] = useState<string | null | undefined>(undefined);
   const redirectedToRef = useRef<string | null>(null);
   const user = (
@@ -67,6 +68,10 @@ export function HomePageRuntime({
 
   if (!uiV2Enabled) {
     return null;
+  }
+
+  if (isPending) {
+    return <PublicEntrySessionSkeleton />;
   }
 
   const tenantId = sessionTenantId ?? hostTenantId ?? null;

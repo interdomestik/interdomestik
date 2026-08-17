@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const h = vi.hoisted(() => ({
@@ -10,6 +10,9 @@ const h = vi.hoisted(() => ({
   session: vi.fn(),
 }));
 vi.mock('@/lib/auth-client', () => ({ authClient: { useSession: h.session } }));
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => (key === 'loading' ? 'Duke u ngarkuar...' : key),
+}));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: h.replace }) }));
 vi.mock('@/lib/tenant/tenant-hosts', () => ({ resolveTenantFromHost: h.host }));
 // prettier-ignore
@@ -53,6 +56,19 @@ describe('HomePageRuntime', () => {
     );
     await waitFor(() => expect(h.replace).toHaveBeenCalledWith('/sq/member'));
     expect(h.replace).toHaveBeenCalledOnce();
+  });
+
+  it('renders only a neutral localized skeleton while the session is pending', () => {
+    h.session.mockReturnValue({ data: null, isPending: true });
+    renderRuntime('tenant_ks');
+    expect(screen.getByRole('status', { name: 'Duke u ngarkuar...' })).toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
+    expect(h.funnel).not.toHaveBeenCalled();
+    expect(h.hero).not.toHaveBeenCalled();
+    expect(h.intake).not.toHaveBeenCalled();
+    expect(h.replace).not.toHaveBeenCalled();
   });
 
   it('AX2 keeps distinct host authority out of the neutral OTP hint', async () => {
