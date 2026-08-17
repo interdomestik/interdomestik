@@ -19,12 +19,19 @@ status_command: pnpm plan:status
 [PR #1581](https://github.com/interdomestik/interdomestik/pull/1581), merged as
 `2ce06b1bb51e451982a6a3e065b40b4e4d502536`. Pending null-session UI V2 now keeps
 the anonymous Hero and Free Start intake available beside a neutral status, without
-tracking or redirect. DG46-A1 and Runtime R2 are consumed; no slice is promoted.
+tracking or redirect. DG46-A1 and Runtime R2 are consumed.
 
 P0A canonical front-door composition completed in
 [PR #1577](https://github.com/interdomestik/interdomestik/pull/1577); its closeout
 is linked from `current-tracker.md`. P0B does not close the separate T-115 OD#17
 performance proof; it remains ahead of dependent T-117, T-118 and T-116 candidates.
+Arben exact-approved `IDA-DG47` at 11,080 bytes / SHA-256
+`feb4fa420377368ebd4686d934d7f6368af9f65444d024d97d76c3662f0efae5` on base
+`4b2da57cfb872ee557b034fe44693ca67992bd98`. The reviewed authority document is
+[`IDA-DG47`](./2026-08-17-ida-dg47-t115-od17-public-shell-performance-proof.md).
+It promotes only `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` (Tier 3 shared
+CI/performance verification); runtime, provider, deployment and production remain
+unauthorized pending exact-main convergence and a separate runtime receipt.
 
 The compact roadmap below preserves the live M0-M5 implementation blueprint. Full task
 contracts, acceptance criteria and milestone detail remain canonical in the
@@ -85,4 +92,5 @@ All authority history through Rev 243 is recoverable byte-for-byte from Git thro
 [the content-addressed archive manifest](./history/current-authority/2026-08-16-through-rev-243.manifest.json).
 Manifest SHA-256: `355229c5d24a6fa5f0986b6ce41423cbdc5caea16b291f1335a7264b2be5fc78`.
 
-The next active governed implementation goal is blocked pending fresh current authority; `activeSlice=null`.
+The next active governed implementation goal is exactly
+`IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF`; `runtime_authorized:false`.

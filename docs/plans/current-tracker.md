@@ -15,21 +15,20 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                                              | Status      | Owner                                     | Work                                         | Exit Criteria                                                                                                                                                                                                                                                                                                                                                         |
-| ----------------------------------------------- | ----------- | ----------------------------------------- | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `IDA-T115-P0B-NEUTRAL-SESSION-PENDING-SKELETON` | `completed` | `platform + product + accessibility + qa` | Pending null-session public-entry continuity | [PR #1581](https://github.com/interdomestik/interdomestik/pull/1581) merged as `2ce06b1bb51e451982a6a3e065b40b4e4d502536`. Exact PR and main E2E passed on GitHub Ubuntu; DG46-A1/Runtime R2 are consumed. SonarCloud Automatic Analysis did not publish its main check-run; gate timeout is classified external provider/workflow friction, with no quality finding. |
+| ID                                             | Status    | Owner                         | Work                                                       | Exit Criteria                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ---------------------------------------------- | --------- | ----------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` | `pending` | `platform + performance + qa` | Fail-closed exact-head proof of OD#17 public-shell budgets | Arben approved DG47 at 11,080 bytes / SHA-256 `feb4fa420377368ebd4686d934d7f6368af9f65444d024d97d76c3662f0efae5`, bound to `main@4b2da57cfb872ee557b034fe44693ca67992bd98`. The reviewed gate is [IDA-DG47](./2026-08-17-ida-dg47-t115-od17-public-shell-performance-proof.md). Runtime remains unauthorized; a fresh exact-head non-production target canary and separate exact-main runtime receipt are mandatory before implementation. |
 
 ## Proof Ledger
 
 | ID | Source Refs | Execution | Run ID | Run Root | Sonar | Docker | Sentry | Learning | Evidence Refs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `IDA-T115-P0B-NEUTRAL-SESSION-PENDING-SKELETON` | `DG46-A1`; Runtime R2; `e2e:32036328684`; `main-ci:32038377966` | `manual` | `PR #1581` | `main@2ce06b1bb51e451982a6a3e065b40b4e4d502536` | `not_applicable` | `not_applicable` | `not_applicable` | `pass` | Corrected behavior passed focused proof, PR E2E, finalizer, and main E2E. Automatic CD `32038377959` was canceled before jobs. Sonar main gate `32038377975` timed out awaiting a missing Automatic Analysis check-run; no quality finding was reported. |
+| `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` | `gate:feb4fa42`; `admission:213bb745`; `review:cd3edba8`; `z620-readiness` | `pending` | `pending` | `main@4b2da57cfb872ee557b034fe44693ca67992bd98` | `not_applicable` | `not_applicable` | `not_applicable` | `pending` | One Tier 3 authority gate only; Sol High re-review PASS. Z620 readiness showed 35,674,914,816 free disk bytes and 28,013,821,952 available memory bytes. It is not OD#17 performance proof. |
 
 ## Next Selection
 
-No implementation slice is promoted. The next selection starts with the remaining T-115 OD#17
-performance proof; dependent `T-118` and `T-117` remain blocked until a fresh design gate and
-that proof complete.
+Only `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` is promoted, with runtime unauthorized.
+Dependent `T-118` and `T-117` remain blocked until OD#17 is actually PASS, merged and closed.
 
 ## Historical Authority
 
@@ -42,4 +41,5 @@ The [architecture-finalization tracker](./architecture-finalization-tracker-2026
 remains the stable deep-detail source for M0-M5 task contracts. Current rows are replaced at
 selection, implementation and closeout; detailed proof is linked, never copied here.
 
-The next active governed implementation goal is blocked pending fresh current authority; `activeSlice=null`.
+The next active governed implementation goal is exactly
+`IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF`; `runtime_authorized:false`.
