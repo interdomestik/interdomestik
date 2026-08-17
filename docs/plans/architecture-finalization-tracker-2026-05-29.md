@@ -15,6 +15,18 @@ current_tracker_bridge: docs/plans/current-tracker.md
 
 **Date:** 2026-05-29 · **Owner:** _unassigned_ · **Companion:** `architecture-finalization-program-2026-05-29.md`
 
+**Rev 97 (2026-08-17, T-115 P0A):**
+`IDA-T115-P0A-CANONICAL-FRONT-DOOR` completed in PR `#1577`, exact head
+`39a5fb07c3c56991cabfcb7bd15d2415d193c419`, squash merge
+`70c7c1f324fa3ddd8d6da7d21f31dc5df13aca34`. The locale root now always mounts
+the existing `HomePageRuntime` composition with literal `hero_v2`; it no longer
+selects or directly mounts the legacy Hero/intake/sticky composition. The measured
+repository composition count moved from 2 to 1. Required PR E2E ran once on the exact
+head, and CI, Sonar, CodeQL, security and finalizer evidence passed. This completes
+only P0A: T-115 remains `D` pending a separately gated neutral session-pending
+skeleton and OD#17 proof. No dashboard, route/proxy, auth/session, tenancy, schema,
+deployment, production or replacement-slice authority is created.
+
 **Rev 96 (2026-08-17, IDA-DG45):** exact-approved docs-only authority
 `IDA-DG45`, 16,491 bytes / SHA-256
 `faed90a14251220b2092a830a8f44696d54877534ca9573e5aa699e2d5f3bc2e`, promotes

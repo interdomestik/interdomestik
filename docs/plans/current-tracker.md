@@ -15,19 +15,19 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                                  | Status        | Owner                                     | Work                     | Exit Criteria                                                                                                                                                                                                                                                                                                                                                                                                               |
-| ----------------------------------- | ------------- | ----------------------------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `IDA-T115-P0A-CANONICAL-FRONT-DOOR` | `in_progress` | `platform + product + accessibility + qa` | Canonical front-door P0A | Exact-approved [IDA-DG45](./2026-08-17-ida-t115-p0a-canonical-front-door-dg45.md) is 16,491 bytes / SHA-256 `faed90a14251220b2092a830a8f44696d54877534ca9573e5aa699e2d5f3bc2e`; [IDA-DG45-A1](./2026-08-17-ida-dg45-a1-t115-p0a-canonical-id-correction.md) is 4,379 bytes / SHA-256 `601ec770a7ab9fb9b0f6178767fadb0e6667bd8cf45a724864a33e2047b3cd70` and corrects only `P0a` to `P0A`; runtime remains separately gated. |
+| ID                                  | Status      | Owner                                     | Work                     | Exit Criteria                                                                                                                                                                                                                                                                                                    |
+| ----------------------------------- | ----------- | ----------------------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `IDA-T115-P0A-CANONICAL-FRONT-DOOR` | `completed` | `platform + product + accessibility + qa` | Canonical front-door P0A | [Closeout](./2026-08-17-ida-t115-p0a-canonical-front-door-closeout.md): PR `#1577`, exact head `39a5fb07c3c56991cabfcb7bd15d2415d193c419`, squash merge `70c7c1f324fa3ddd8d6da7d21f31dc5df13aca34`. The locale root now has one canonical runtime composition; T-115 skeleton/OD#17 residual remains unpromoted. |
 
 ## Proof Ledger
 
 | ID | Source Refs | Execution | Run ID | Run Root | Sonar | Docker | Sentry | Learning | Evidence Refs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `IDA-T115-P0A-CANONICAL-FRONT-DOOR` | `docs/plans/2026-08-17-ida-t115-p0a-canonical-front-door-dg45.md`; `docs/plans/2026-08-17-ida-dg45-a1-t115-p0a-canonical-id-correction.md`; `gate:faed90a1`; `a1:601ec770`; `admission:138e2e50`; `uiux:c18f5ad3`; `review:904f4106` | `manual` | `codex/ida-dg45-t115-authority` | `main` | `not_applicable` | `not_applicable` | `not_applicable` | `pass` | Exact gate/A1 approvals and review disposition recorded; separate runtime receipt required after merge. |
+| `IDA-T115-P0A-CANONICAL-FRONT-DOOR` | `docs/plans/2026-08-17-ida-t115-p0a-canonical-front-door-dg45.md`; `docs/plans/2026-08-17-ida-dg45-a1-t115-p0a-canonical-id-correction.md`; `docs/plans/2026-08-17-ida-t115-p0a-canonical-front-door-closeout.md`; `runtime:4ab58731`; `pr:1577`; `head:39a5fb07`; `merge:70c7c1f3`; `e2e:32017467272`; `main-ci:32019113834` | `scripted` | `32017467272`; `32019113834` | `main@70c7c1f324fa3ddd8d6da7d21f31dc5df13aca34` | `pass` | `not_applicable` | `not_applicable` | `pass` | Opus 5 `REVISE` followed by one consolidated remediation and exact-artifact `PASS`; one exact-head full PR E2E; Sonar, CodeQL, security, finalizer and exact-main evidence recorded in the closeout. |
 
 ## Next Selection
 
-The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-P0A-CANONICAL-FRONT-DOOR` (Tier 2 product/UI/accessibility; `runtime_authorized:false`; immutable `IDA-DG45` plus exact-approved identifier correction `IDA-DG45-A1` pending docs-only merge).
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
 
 ## Historical Authority
 
