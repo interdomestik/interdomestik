@@ -15,12 +15,15 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-Exactly one docs-only authority selection is active: Arben exact-approved
-`IDA-DG46-R1`, 11,808 bytes / SHA-256
-`2d67308c0d4781d5d9f06edcec2e25e963c8e06f50268fbd431541e863ef0565`, bound to
-main `392079fd0e0f4bc670c1bee6a2b85250670c776c`. It selects only the T-115
-neutral session-pending skeleton. Runtime, product mutation, deployment and
-production remain unauthorized pending a separately exact-main runtime receipt.
+Exactly one docs-only corrective authority selection is active: Arben
+exact-approved `IDA-DG46-A1-T115-P0B-PUBLIC-ENTRY-CONTINUITY-CORRECTION`, 6,012
+bytes / SHA-256
+`c52e3738cd51343dddeb9f9359c86bb8793360f1da6885aa1cc5498b0ae7ba1c`, bound to
+main `1505ff841c16d8fe41057a12e012bb27e359bf9c`. It supersedes only DG46-R1's
+pending-state render precedence: pending null-session UI V2 must preserve the
+public Hero/intake plus neutral status, with no tracking or redirect. Runtime,
+product mutation, deployment and production remain unauthorized pending this
+docs-only merge and a replacement exact-main runtime receipt.
 
 P0A canonical front-door composition completed in
 [PR #1577](https://github.com/interdomestik/interdomestik/pull/1577); its closeout
@@ -45,16 +48,16 @@ its [tracker](./architecture-finalization-tracker-2026-05-29.md).
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate                                                         | Dependencies                                                | Promotion constraint                                                                                 |
-| -------: | ----------------------------------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-|        1 | `T-115` P0B session-pending skeleton; OD#17 remains residual      | P0A, `T-108`, `T-114` complete                              | DG46-R1 selects only P0B; separate exact-main runtime authority is required.                         |
-|        2 | `T-118` `ui/crystal` presentational primitives                    | `T-115`                                                     | May follow `T-115`; keep domain imports at zero and preserve accessibility/performance budgets.      |
-|        2 | `T-117` unified member dashboard shell                            | `T-115`, `T-114` complete                                   | May run beside `T-118` only under its own gate; preserve RSC, query and neutral-host constraints.    |
-|        3 | `T-116` exhaustive `CaseSummary` projection and renderer registry | `T-103` complete, `T-115`, `T-118`                          | Promote only after both UI foundations are complete.                                                 |
-|        4 | `T-210` event timeline renderer registry                          | `T-206` complete, `T-116`                                   | Promote only after the shared case projection exists; preserve unknown-event and PII-safe fallbacks. |
-|        5 | `T-310` session-context theme tokens                              | `T-302`, `T-302b` complete                                  | Independent conditional M3 candidate; never derive tenant branding from host.                        |
-|        6 | `T-410` reversible optimistic-action boundary                     | `T-401`, `T-002` complete                                   | Independent conditional M4 candidate; status, money and legal mutations remain pessimistic.          |
-|        7 | `T-411` shared Smart Next Step library                            | `T-401` complete; `SVC-CORE` and `FLIGHT-03` still required | Blocked until both non-T prerequisites have their own completed authority and evidence.              |
+| Priority | Candidate                                                         | Dependencies                                                | Promotion constraint                                                                                                         |
+| -------: | ----------------------------------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+|        1 | `T-115` P0B public-entry continuity; OD#17 remains residual       | P0A, `T-108`, `T-114` complete                              | DG46-A1 corrects only pending null-session precedence; docs merge and replacement exact-main runtime authority are required. |
+|        2 | `T-118` `ui/crystal` presentational primitives                    | `T-115`                                                     | May follow `T-115`; keep domain imports at zero and preserve accessibility/performance budgets.                              |
+|        2 | `T-117` unified member dashboard shell                            | `T-115`, `T-114` complete                                   | May run beside `T-118` only under its own gate; preserve RSC, query and neutral-host constraints.                            |
+|        3 | `T-116` exhaustive `CaseSummary` projection and renderer registry | `T-103` complete, `T-115`, `T-118`                          | Promote only after both UI foundations are complete.                                                                         |
+|        4 | `T-210` event timeline renderer registry                          | `T-206` complete, `T-116`                                   | Promote only after the shared case projection exists; preserve unknown-event and PII-safe fallbacks.                         |
+|        5 | `T-310` session-context theme tokens                              | `T-302`, `T-302b` complete                                  | Independent conditional M3 candidate; never derive tenant branding from host.                                                |
+|        6 | `T-410` reversible optimistic-action boundary                     | `T-401`, `T-002` complete                                   | Independent conditional M4 candidate; status, money and legal mutations remain pessimistic.                                  |
+|        7 | `T-411` shared Smart Next Step library                            | `T-401` complete; `SVC-CORE` and `FLIGHT-03` still required | Blocked until both non-T prerequisites have their own completed authority and evidence.                                      |
 
 These are the remaining unimplemented T-* nodes, not active authorization. The order is a
 dependency-aware selection guide: parallel-capable rows still require separate slices. Each
@@ -86,4 +89,4 @@ All authority history through Rev 243 is recoverable byte-for-byte from Git thro
 [the content-addressed archive manifest](./history/current-authority/2026-08-16-through-rev-243.manifest.json).
 Manifest SHA-256: `355229c5d24a6fa5f0986b6ce41423cbdc5caea16b291f1335a7264b2be5fc78`.
 
-The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-P0B-NEUTRAL-SESSION-PENDING-SKELETON` (Tier 2 product/UI/accessibility; `runtime_authorized:false`; exact-approved DG46-R1 pending docs-only merge and then a separate exact-main runtime receipt/approval).
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-P0B-NEUTRAL-SESSION-PENDING-SKELETON` (Tier 2 product/UI/accessibility; `runtime_authorized:false`; exact-approved DG46-A1 public-entry continuity correction pending docs-only merge and then a replacement exact-main runtime receipt/approval).
