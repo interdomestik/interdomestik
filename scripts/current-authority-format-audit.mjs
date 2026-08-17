@@ -17,7 +17,8 @@ const PROGRAM_SECTIONS = ['Current Phase', 'M0-M5 Implementation Blueprint', 'Or
 const TRACKER_SECTIONS = ['Active Queue', 'Proof Ledger', 'Next Selection', 'Historical Authority'];
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const lineCount = text => (text ? text.split(/\r?\n/).length - Number(text.endsWith('\n')) : 0);
-const tableRows = text => Math.max(0, (text.match(/^\s*\|/gm)?.length ?? 0) - 2);
+const tableRows = text =>
+  Math.max(0, text.split(/\r?\n/).filter(line => line.trimStart().startsWith('|')).length - 2);
 function requireSections(text, path, headings, errors) {
   for (const heading of headings) {
     if (!extractSection(text, heading).trim()) errors.push(`${path}: missing ${heading} section`);
@@ -47,8 +48,7 @@ function ensureCommit(commit) {
   const fetched = spawnSync(GIT, ['fetch', '--no-tags', '--depth=1', 'origin', commit], {
     encoding: 'utf8',
   });
-  if (fetched.status !== 0)
-    throw new Error(`exact historical fetch failed: ${fetched.stderr.trim()}`);
+  if (fetched.status) throw new Error(`exact historical fetch failed: ${fetched.stderr.trim()}`);
 }
 function inspectLiveDocument(path, bytes, byteCeiling, lineCeiling, errors) {
   const text = bytes.toString('utf8');

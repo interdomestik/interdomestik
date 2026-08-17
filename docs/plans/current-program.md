@@ -65,6 +65,9 @@ risk contract requires it, a separately approved exact runtime receipt before im
 - Repository source, `AGENTS.md`, tests, current program/tracker, relevant architecture
   tracker, resolver, PR checks, finalizer, and merged evidence are final authority.
 - Obsidian and AI OS are advisory memory. They cannot promote or authorize repository work.
+- Treat Mac as the control plane and light writer: record a free-disk preflight, use
+  GitHub-hosted Ubuntu for CI/E2E, and route truly required local DB/E2E heavy work to Z620
+  only through the governed heavy-job controller; do not start local Supabase/Docker by default.
 - Current docs replace their one compact state at selection and closeout. Detailed gate,
   review, PR, CI, runtime, and rollback evidence belongs in the stable per-slice artifact and
   is linked rather than copied here.
