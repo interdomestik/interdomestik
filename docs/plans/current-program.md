@@ -15,29 +15,19 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-Repository authority promotes exactly one Tier 2 product/UI/accessibility slice:
-`IDA-T115-P0A-CANONICAL-FRONT-DOOR`. It makes the existing Help Now and
-resolved-member `HomePageRuntime` composition the sole repository-controlled locale
-landing before later T-115 session-pending and dashboard work. Runtime remains
-unauthorized pending a separate exact-main receipt.
-
-Immutable `IDA-DG45` is 16,491 UTF-8 bytes / SHA-256
-`faed90a14251220b2092a830a8f44696d54877534ca9573e5aa699e2d5f3bc2e`, bound to
-clean base `f4f6b5f8d93bfa30fffbd0c9c94eae32b42926be` and exact-approved by Arben in
-task `019fa824-2676-7c22-9dcb-d21af1c354e6` on 2026-08-17. Admission
-`138e2e5054fe3cbcc8e020fb9adbfd8f21a80c773297163e2ccffd62d1eb8771` is ready
-with one outcome, three writers, three proof surfaces, one shared consumer and zero
-special environments. UI/UX receipt
-`c18f5ad3c8e266b9bb3a924d8360739efab93dc161574a19af54bf12536b6495` passes
-with three operators and zero blocked sources. Opus 5 returned `REVISE` in 571.350
-seconds; all exact findings were addressed without a further review loop and no final
-model PASS is claimed.
-
-Exact-approved `IDA-DG45-A1`, 4,379 bytes / SHA-256
-`601ec770a7ab9fb9b0f6178767fadb0e6667bd8cf45a724864a33e2047b3cd70`,
-corrects only the canonical identifier spelling from invalid proposal alias `P0a` to
-resolver-safe `P0A`. The immutable parent gate and every substantive contract remain
+No implementation slice is active. `IDA-T115-P0A-CANONICAL-FRONT-DOOR` completed
+in [PR #1577](https://github.com/interdomestik/interdomestik/pull/1577), exact head
+`39a5fb07c3c56991cabfcb7bd15d2415d193c419`, squash merge
+`70c7c1f324fa3ddd8d6da7d21f31dc5df13aca34`. The locale root now has one
+repository-controlled `HomePageRuntime` composition with literal `hero_v2`; the direct
+legacy Hero/intake/sticky composition is no longer mounted. Public/no-JS continuity,
+resolved-member continuation and all protected route/auth/tenant boundaries remain
 unchanged.
+
+This closes only the P0A active-path prerequisite. T-115 still needs a fresh exact gate
+for its neutral session-pending skeleton and OD#17 completion; T-117/T-118/T-116 and
+every other roadmap candidate remain unpromoted. Detailed implementation and closeout
+evidence is linked from `current-tracker.md` rather than copied here.
 
 The compact roadmap below preserves the live M0-M5 implementation blueprint. Full task
 contracts, acceptance criteria and milestone detail remain canonical in the
@@ -46,20 +36,20 @@ its [tracker](./architecture-finalization-tracker-2026-05-29.md).
 
 ## M0-M5 Implementation Blueprint
 
-| Phase | Purpose                                                                                                  | Current implementation frontier                                                       |
-| ----- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| M0    | Fail-closed transition, tenant-leak, role, brand and host-lane guardrails without schema change.         | Core T-* rows are complete; no remaining M0 T-* candidate.                            |
-| M1    | Neutral `ida.*` foundation, additive lifecycle/event/legal-entity data and unified UI shell foundations. | Core rows are complete; remaining UI nodes are `T-115`, `T-117`, `T-118` and `T-116`. |
-| M2    | Authoritative case/recovery lifecycle, jurisdiction handoff and event-backed projections.                | Core rows are complete; `T-210` remains after its M1 UI projection dependencies.      |
-| M3    | One session-owned tenant context, `access_tenant_id` isolation and read-only attribution.                | Core rows are complete; `T-310` remains as the session-context theme boundary.        |
-| M4    | Structural membership/product/AI/entity rules and safe member interaction surfaces.                      | Core rows are complete; `T-410` and `T-411` remain conditional UI candidates.         |
-| M5    | Neutral-host live cutover, legacy retirement and legal-entity migration.                                 | All canonical M5 T-* rows are complete; no remaining M5 T-* candidate.                |
+| Phase | Purpose                                                                                                  | Current implementation frontier                                                                |
+| ----- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| M0    | Fail-closed transition, tenant-leak, role, brand and host-lane guardrails without schema change.         | Core T-* rows are complete; no remaining M0 T-* candidate.                                     |
+| M1    | Neutral `ida.*` foundation, additive lifecycle/event/legal-entity data and unified UI shell foundations. | T-115 P0A is complete; its skeleton/performance residual and `T-117`, `T-118`, `T-116` remain. |
+| M2    | Authoritative case/recovery lifecycle, jurisdiction handoff and event-backed projections.                | Core rows are complete; `T-210` remains after its M1 UI projection dependencies.               |
+| M3    | One session-owned tenant context, `access_tenant_id` isolation and read-only attribution.                | Core rows are complete; `T-310` remains as the session-context theme boundary.                 |
+| M4    | Structural membership/product/AI/entity rules and safe member interaction surfaces.                      | Core rows are complete; `T-410` and `T-411` remain conditional UI candidates.                  |
+| M5    | Neutral-host live cutover, legacy retirement and legal-entity migration.                                 | All canonical M5 T-* rows are complete; no remaining M5 T-* candidate.                         |
 
 ## Ordered Candidate Priorities
 
 | Priority | Candidate                                                         | Dependencies                                                | Promotion constraint                                                                                 |
 | -------: | ----------------------------------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-|        1 | `T-115` front-door public shell and skeleton baseline             | `T-108`, `T-114` complete                                   | First remaining M1 UI foundation; requires a fresh exact design gate.                                |
+|        1 | `T-115` session-pending skeleton and OD#17 residual               | P0A, `T-108`, `T-114` complete                              | Continue only through a fresh exact gate; do not reopen the canonical-composition work.              |
 |        2 | `T-118` `ui/crystal` presentational primitives                    | `T-115`                                                     | May follow `T-115`; keep domain imports at zero and preserve accessibility/performance budgets.      |
 |        2 | `T-117` unified member dashboard shell                            | `T-115`, `T-114` complete                                   | May run beside `T-118` only under its own gate; preserve RSC, query and neutral-host constraints.    |
 |        3 | `T-116` exhaustive `CaseSummary` projection and renderer registry | `T-103` complete, `T-115`, `T-118`                          | Promote only after both UI foundations are complete.                                                 |
@@ -97,4 +87,4 @@ All authority history through Rev 243 is recoverable byte-for-byte from Git thro
 [the content-addressed archive manifest](./history/current-authority/2026-08-16-through-rev-243.manifest.json).
 Manifest SHA-256: `355229c5d24a6fa5f0986b6ce41423cbdc5caea16b291f1335a7264b2be5fc78`.
 
-The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-P0A-CANONICAL-FRONT-DOOR` (Tier 2 product/UI/accessibility; `runtime_authorized:false`; immutable `IDA-DG45` plus exact-approved identifier correction `IDA-DG45-A1` pending docs-only merge).
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
