@@ -41,5 +41,5 @@ The [architecture-finalization tracker](./architecture-finalization-tracker-2026
 remains the stable deep-detail source for M0-M5 task contracts. Current rows are replaced at
 selection, implementation and closeout; detailed proof is linked, never copied here.
 
-The next active governed implementation goal is exactly
-`IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF`; `runtime_authorized:false`.
+<!-- prettier-ignore -->
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` (Tier 3; `runtime_authorized:false`).
