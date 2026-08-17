@@ -65,6 +65,7 @@ risk contract requires it, a separately approved exact runtime receipt before im
 
 ## Selection Constraints
 
+- Paddle is the only billing provider for the V3 pilot; do not add Stripe or a parallel provider.
 - Select one outcome and one slice; do not combine product, architecture, CI, AI OS, or
   housekeeping work.
 - Do not infer promotion from this roadmap. Resolver state remains blocked until one exact
