@@ -11,28 +11,19 @@ const PROGRAM = 'docs/plans/current-program.md';
 const TRACKER = 'docs/plans/current-tracker.md';
 const MANIFEST = 'docs/plans/history/current-authority/2026-08-16-through-rev-243.manifest.json';
 const MARKER = /The next active governed implementation goal[^\n]+/g;
-const SHA256 = /^[a-f0-9]{64}$/;
-const GIT_SHA = /^[a-f0-9]{40}$/;
-
+const SHA256 = /^[a-f0-9]{64}$/,
+  GIT_SHA = /^[a-f0-9]{40}$/;
+const ORIGIN = /^(https:\/\/github\.com\/|git@github\.com:)interdomestik\/interdomestik(\.git)?$/;
 function rootArg(args) {
   if (args.length === 0) return process.cwd();
   if (args.length === 2 && args[0] === '--root') return resolve(args[1]);
   throw new Error('usage: current-authority-format-audit.mjs [--root <path>]');
 }
-
-function sha(bytes) {
-  return createHash('sha256').update(bytes).digest('hex');
-}
-
-function lineCount(text) {
-  return text === '' ? 0 : text.split(/\r?\n/).length - (text.endsWith('\n') ? 1 : 0);
-}
-
-function tableRows(section) {
-  const lines = section.split(/\r?\n/).filter(line => line.trim().startsWith('|'));
-  return Math.max(0, lines.length - 2);
-}
-
+const sha = bytes => createHash('sha256').update(bytes).digest('hex');
+const lineCount = text =>
+  text === '' ? 0 : text.split(/\r?\n/).length - (text.endsWith('\n') ? 1 : 0);
+const tableRows = section =>
+  Math.max(0, section.split(/\r?\n/).filter(line => line.trim().startsWith('|')).length - 2);
 function git(root, args, binary = false) {
   const result = spawnSync('git', args, {
     cwd: root,
@@ -44,7 +35,20 @@ function git(root, args, binary = false) {
   }
   return binary ? result.stdout : result.stdout.trim();
 }
-
+function ensureCommit(root, commit) {
+  const present = spawnSync('git', ['cat-file', '-e', `${commit}^{commit}`], { cwd: root });
+  if (present.status === 0) return;
+  const origin = git(root, ['remote', 'get-url', 'origin']);
+  if (!ORIGIN.test(origin)) {
+    throw new Error('historical commit is missing and origin is not canonical');
+  }
+  const fetched = spawnSync('git', ['fetch', '--no-tags', '--depth=1', 'origin', commit], {
+    cwd: root,
+    encoding: 'utf8',
+  });
+  if (fetched.status !== 0)
+    throw new Error(`exact historical fetch failed: ${fetched.stderr.trim()}`);
+}
 function inspectLiveDocument(path, bytes, byteCeiling, lineCeiling, errors) {
   const text = bytes.toString('utf8');
   if (bytes.length > byteCeiling) errors.push(`${path}: exceeds ${byteCeiling} bytes`);
@@ -58,7 +62,6 @@ function inspectLiveDocument(path, bytes, byteCeiling, lineCeiling, errors) {
   }
   return { text, marker: markers[0] };
 }
-
 function validateManifest(root, manifest, errors) {
   if (manifest.schemaVersion !== 1) errors.push(`${MANIFEST}: schemaVersion must be 1`);
   if (manifest.repository !== 'interdomestik/interdomestik') {
@@ -75,6 +78,7 @@ function validateManifest(root, manifest, errors) {
   ) {
     errors.push(`${MANIFEST}: terminal authority mismatch`);
   }
+  ensureCommit(root, manifest.sourceCommit);
   const expectedPaths = new Set([PROGRAM, TRACKER]);
   if (!Array.isArray(manifest.artifacts) || manifest.artifacts.length !== 2) {
     errors.push(`${MANIFEST}: expected exactly two historical artifacts`);
@@ -105,7 +109,6 @@ function validateManifest(root, manifest, errors) {
   }
   if (expectedPaths.size > 0) errors.push(`${MANIFEST}: historical artifact missing`);
 }
-
 function main() {
   const root = rootArg(process.argv.slice(2));
   const errors = [];
@@ -137,7 +140,6 @@ function main() {
   console.log('current-authority format audit passed');
   console.log(JSON.stringify({ manifestSha256: manifestDigest, queueId: rows.queueRows[0].id }));
 }
-
 try {
   main();
 } catch (error) {
