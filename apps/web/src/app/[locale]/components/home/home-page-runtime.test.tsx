@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const h = vi.hoisted(() => ({
@@ -10,6 +10,9 @@ const h = vi.hoisted(() => ({
   session: vi.fn(),
 }));
 vi.mock('@/lib/auth-client', () => ({ authClient: { useSession: h.session } }));
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => (key === 'loading' ? 'Duke u ngarkuar...' : key),
+}));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: h.replace }) }));
 vi.mock('@/lib/tenant/tenant-hosts', () => ({ resolveTenantFromHost: h.host }));
 // prettier-ignore
@@ -53,6 +56,33 @@ describe('HomePageRuntime', () => {
     );
     await waitFor(() => expect(h.replace).toHaveBeenCalledWith('/sq/member'));
     expect(h.replace).toHaveBeenCalledOnce();
+  });
+
+  it('keeps public entry available without tracking while the session is pending', async () => {
+    h.session.mockReturnValue({ data: null, isPending: true });
+    renderRuntime('tenant_ks');
+    expect(screen.getByRole('status', { name: 'Duke u ngarkuar...' })).toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
+    await waitFor(() => {
+      expect(h.hero).toHaveBeenLastCalledWith({
+        locale: 'sq',
+        primaryHref: '/help-now',
+        secondaryHref: '#free-start-intake',
+        tenantId: 'tenant_al',
+      });
+      expect(h.intake).toHaveBeenLastCalledWith({
+        continueHref: '/pricing',
+        locale: 'sq',
+        neutralOtpHost: 'front-door.localhost:3000',
+        neutralOtpTenantId: 'tenant_ks',
+        publicEntryEnabled: true,
+        tenantId: 'tenant_al',
+      });
+    });
+    expect(h.funnel).not.toHaveBeenCalled();
+    expect(h.replace).not.toHaveBeenCalled();
   });
 
   it('AX2 keeps distinct host authority out of the neutral OTP hint', async () => {

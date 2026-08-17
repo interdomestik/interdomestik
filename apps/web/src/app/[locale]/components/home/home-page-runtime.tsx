@@ -10,6 +10,7 @@ import { getLocaleLandingCore } from '../../_core';
 import { getStartClaimHrefForSession } from '../../home-v2.core';
 import { FreeStartIntakeShell } from './free-start-intake-shell';
 import { HeroSection } from './hero-section';
+import { PublicEntrySessionSkeleton } from './public-entry-session-skeleton';
 
 type HomePageRuntimeProps = Readonly<{
   defaultPublicTenantId: string;
@@ -25,7 +26,7 @@ export function HomePageRuntime({
   uiV2Enabled,
 }: HomePageRuntimeProps) {
   const router = useRouter();
-  const { data: session } = authClient.useSession();
+  const { data: session, isPending } = authClient.useSession();
   const [hostTenantId, setHostTenantId] = useState<string | null | undefined>(undefined);
   const redirectedToRef = useRef<string | null>(null);
   const user = (
@@ -78,6 +79,28 @@ export function HomePageRuntime({
   const publicHelpNowHref = '/help-now';
   const primaryHref = landingSession === null ? publicHelpNowHref : '/member';
   const secondaryHref = landingSession === null ? PUBLIC_FREE_START_ANCHOR_HREF : continueHref;
+
+  if (isPending) {
+    return (
+      <>
+        <PublicEntrySessionSkeleton />
+        <HeroSection
+          locale={locale}
+          primaryHref={primaryHref}
+          secondaryHref={secondaryHref}
+          tenantId={tenantId}
+        />
+        <FreeStartIntakeShell
+          continueHref={continueHref}
+          locale={locale}
+          neutralOtpHost={neutralOtpHost}
+          neutralOtpTenantId={defaultPublicTenantId}
+          publicEntryEnabled={landingSession === null}
+          tenantId={tenantId}
+        />
+      </>
+    );
+  }
 
   return (
     <>
