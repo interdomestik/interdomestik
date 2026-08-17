@@ -44,6 +44,7 @@ async function expectServerVisibleFallback(page: Page) {
   const intake = page.getByTestId('free-start-intake-shell');
 
   await expect(main).toBeVisible();
+  await expect(main).toHaveAttribute('data-variant', 'hero_v2');
   await expect(intake).toBeVisible();
   await expect(intake.getByTestId('free-start-category-vehicle')).toBeVisible();
   await expect(intake.getByTestId('free-start-category-injury')).toBeVisible();

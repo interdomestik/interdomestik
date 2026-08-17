@@ -1,9 +1,7 @@
 import { BASE_NAMESPACES, HOME_NAMESPACES, pickMessages } from '@/i18n/messages';
 import { evaluateNeutralOtpHost } from '@/app/api/auth/[...all]/neutral-otp-boundary';
-import { PUBLIC_MEMBERSHIP_ENTRY_HREF } from '@/lib/public-membership-entry';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
-import { isUiV2Enabled } from '@/lib/flags';
 import { resolveDefaultPublicTenantId } from '@/lib/tenant/tenant-hosts';
 import dynamic from 'next/dynamic';
 
@@ -11,14 +9,11 @@ import dynamic from 'next/dynamic';
 // Avoid barrel files for heavy landing page components to improve tree-shaking
 import { CTASection } from './components/home/cta-section';
 import { Footer } from './components/home/footer';
-import { FreeStartIntakeShell } from './components/home/free-start-intake-shell';
 import { Header } from './components/home/header';
-import { HeroSection } from './components/home/hero-section';
 import { HomePageRuntime } from './components/home/home-page-runtime';
 import { HowMembershipWorksSection } from './components/home/how-membership-works-section';
 import { MemberBenefitsSection } from './components/home/member-benefits-section';
 import { PricingSection } from './components/home/pricing-section';
-import { StickyPrimeCTA } from './components/home/sticky-mobile-cta';
 import { TrustStatsSection } from './components/home/trust-stats-section';
 import { TrustStrip } from './components/home/trust-strip';
 import { VoiceClaimSection } from './components/home/voice-claim-section';
@@ -52,7 +47,6 @@ function resolveNeutralOtpHost(): string | null {
 export default async function HomePage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const uiV2Enabled = isUiV2Enabled();
   const defaultPublicTenantId = resolveDefaultPublicTenantId();
   const neutralOtpHost = resolveNeutralOtpHost();
 
@@ -68,7 +62,7 @@ export default async function HomePage({ params }: Props) {
         className="min-h-screen"
         data-testid="landing-page-ready"
         data-experiment="home-funnel"
-        data-variant={uiV2Enabled ? 'hero_v2' : 'hero_v1'}
+        data-variant="hero_v2"
       >
         <div data-testid="page-ready" className="sr-only" aria-hidden="true" />
         <Header />
@@ -76,42 +70,18 @@ export default async function HomePage({ params }: Props) {
           defaultPublicTenantId={defaultPublicTenantId}
           locale={locale}
           neutralOtpHost={neutralOtpHost}
-          uiV2Enabled={uiV2Enabled}
+          uiV2Enabled={true}
         />
-        {uiV2Enabled ? (
-          <>
-            <TrustStrip />
-            <VoiceClaimSection />
-            <MemberBenefitsSection />
-            <PricingSection />
-            <HowMembershipWorksSection />
-            <TrustStatsSection />
-            <TestimonialsSection />
-            <FAQSection />
-            <CTASection />
-          </>
-        ) : (
-          <>
-            <HeroSection />
-            <FreeStartIntakeShell
-              continueHref={PUBLIC_MEMBERSHIP_ENTRY_HREF}
-              locale={locale}
-              neutralOtpHost={neutralOtpHost}
-              neutralOtpTenantId={defaultPublicTenantId}
-            />
-            <TrustStrip />
-            <VoiceClaimSection />
-            <MemberBenefitsSection />
-            <PricingSection />
-            <HowMembershipWorksSection />
-            <TrustStatsSection />
-            <TestimonialsSection />
-            <FAQSection />
-            <CTASection />
-          </>
-        )}
+        <TrustStrip />
+        <VoiceClaimSection />
+        <MemberBenefitsSection />
+        <PricingSection />
+        <HowMembershipWorksSection />
+        <TrustStatsSection />
+        <TestimonialsSection />
+        <FAQSection />
+        <CTASection />
         <Footer />
-        {uiV2Enabled ? null : <StickyPrimeCTA />}
       </main>
     </NextIntlClientProvider>
   );
