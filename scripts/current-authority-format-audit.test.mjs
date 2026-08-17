@@ -83,7 +83,7 @@ function fixture() {
 
 test('accepts compact authority and reconstructable Git history', () => {
   const { root } = fixture();
-  const result = spawnSync(process.execPath, [script, '--root', root], { encoding: 'utf8' });
+  const result = spawnSync(process.execPath, [script], { cwd: root, encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /current-authority format audit passed/);
 });
@@ -92,7 +92,7 @@ test('rejects append-only revision narratives', () => {
   const { root } = fixture();
   const path = join(root, 'docs/plans/current-program.md');
   writeFileSync(path, `${readFileSync(path, 'utf8')}\nRev 244 narrative\nRev 245 narrative\n`);
-  const result = spawnSync(process.execPath, [script, '--root', root], { encoding: 'utf8' });
+  const result = spawnSync(process.execPath, [script], { cwd: root, encoding: 'utf8' });
   assert.equal(result.status, 1);
   assert.match(result.stderr, /revision narratives/);
 });
