@@ -15,19 +15,21 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                                              | Status    | Owner                                     | Work                                         | Exit Criteria                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| ----------------------------------------------- | --------- | ----------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `IDA-T115-P0B-NEUTRAL-SESSION-PENDING-SKELETON` | `pending` | `platform + product + accessibility + qa` | Pending null-session public-entry continuity | [DG46-A1](./2026-08-17-ida-dg46-a1-t115-p0b-public-entry-continuity-correction.md): exact-approved 6,012 B / SHA `c52e3738`, base `1505ff84`; supersedes only DG46-R1 pending precedence after exact PR #1581 E2E failure. P0A [closeout](./2026-08-17-ida-t115-p0a-canonical-front-door-closeout.md) remains historical. No runtime/product/deploy authority until corrective docs merge and replacement exact-main approval. |
+| ID                                              | Status      | Owner                                     | Work                                         | Exit Criteria                                                                                                                                                                                                                                                                                                                                                         |
+| ----------------------------------------------- | ----------- | ----------------------------------------- | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `IDA-T115-P0B-NEUTRAL-SESSION-PENDING-SKELETON` | `completed` | `platform + product + accessibility + qa` | Pending null-session public-entry continuity | [PR #1581](https://github.com/interdomestik/interdomestik/pull/1581) merged as `2ce06b1bb51e451982a6a3e065b40b4e4d502536`. Exact PR and main E2E passed on GitHub Ubuntu; DG46-A1/Runtime R2 are consumed. SonarCloud Automatic Analysis did not publish its main check-run; gate timeout is classified external provider/workflow friction, with no quality finding. |
 
 ## Proof Ledger
 
 | ID | Source Refs | Execution | Run ID | Run Root | Sonar | Docker | Sentry | Learning | Evidence Refs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `IDA-T115-P0B-NEUTRAL-SESSION-PENDING-SKELETON` | `DG46-R1`; `docs/plans/2026-08-17-ida-dg46-a1-t115-p0b-public-entry-continuity-correction.md`; `e2e:32030795511/95390208493` | `pending` | `PR #1581` | `main@1505ff841c16d8fe41057a12e012bb27e359bf9c` | `pass` | `not_applicable` | `not_applicable` | `pending` | Exact E2E failed three built-in attempts because pending session hid the canonical public intake. DG46-A1 preserves one outcome/three writers, invalidates only E2E/finalizer/current-head review proof, and requires replacement runtime authority. No special proof environment. |
+| `IDA-T115-P0B-NEUTRAL-SESSION-PENDING-SKELETON` | `DG46-A1`; Runtime R2; `e2e:32036328684`; `main-ci:32038377966` | `manual` | `PR #1581` | `main@2ce06b1bb51e451982a6a3e065b40b4e4d502536` | `not_applicable` | `not_applicable` | `not_applicable` | `pass` | Corrected behavior passed focused proof, PR E2E, finalizer, and main E2E. Automatic CD `32038377959` was canceled before jobs. Sonar main gate `32038377975` timed out awaiting a missing Automatic Analysis check-run; no quality finding was reported. |
 
 ## Next Selection
 
-The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-P0B-NEUTRAL-SESSION-PENDING-SKELETON` (Tier 2 product/UI/accessibility; `runtime_authorized:false`; exact-approved DG46-A1 public-entry continuity correction pending docs-only merge and then a replacement exact-main runtime receipt/approval).
+No implementation slice is promoted. The next selection starts with the remaining T-115 OD#17
+performance proof; dependent `T-118` and `T-117` remain blocked until a fresh design gate and
+that proof complete.
 
 ## Historical Authority
 
@@ -39,3 +41,5 @@ Manifest SHA-256: `355229c5d24a6fa5f0986b6ce41423cbdc5caea16b291f1335a7264b2be5f
 The [architecture-finalization tracker](./architecture-finalization-tracker-2026-05-29.md)
 remains the stable deep-detail source for M0-M5 task contracts. Current rows are replaced at
 selection, implementation and closeout; detailed proof is linked, never copied here.
+
+The next active governed implementation goal is blocked pending fresh current authority; `activeSlice=null`.
