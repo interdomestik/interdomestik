@@ -14,18 +14,18 @@ const MARKER = /The next active governed implementation goal[^\n]+/g;
 const SHA256 = /^[a-f0-9]{64}$/,
   GIT_SHA = /^[a-f0-9]{40}$/;
 const ORIGIN = /^(https:\/\/github\.com\/|git@github\.com:)interdomestik\/interdomestik(\.git)?$/;
+const GIT = '/usr/bin/git';
 function rootArg(args) {
   if (args.length === 0) return process.cwd();
   if (args.length === 2 && args[0] === '--root') return resolve(args[1]);
   throw new Error('usage: current-authority-format-audit.mjs [--root <path>]');
 }
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
-const lineCount = text =>
-  text === '' ? 0 : text.split(/\r?\n/).length - (text.endsWith('\n') ? 1 : 0);
+const lineCount = text => (text ? text.split(/\r?\n/).length - Number(text.endsWith('\n')) : 0);
 const tableRows = section =>
   Math.max(0, section.split(/\r?\n/).filter(line => line.trim().startsWith('|')).length - 2);
 function git(root, args, binary = false) {
-  const result = spawnSync('git', args, {
+  const result = spawnSync(GIT, args, {
     cwd: root,
     encoding: binary ? null : 'utf8',
     maxBuffer: 4 * 1024 * 1024,
@@ -36,13 +36,13 @@ function git(root, args, binary = false) {
   return binary ? result.stdout : result.stdout.trim();
 }
 function ensureCommit(root, commit) {
-  const present = spawnSync('git', ['cat-file', '-e', `${commit}^{commit}`], { cwd: root });
+  const present = spawnSync(GIT, ['cat-file', '-e', `${commit}^{commit}`], { cwd: root });
   if (present.status === 0) return;
   const origin = git(root, ['remote', 'get-url', 'origin']);
   if (!ORIGIN.test(origin)) {
     throw new Error('historical commit is missing and origin is not canonical');
   }
-  const fetched = spawnSync('git', ['fetch', '--no-tags', '--depth=1', 'origin', commit], {
+  const fetched = spawnSync(GIT, ['fetch', '--no-tags', '--depth=1', 'origin', commit], {
     cwd: root,
     encoding: 'utf8',
   });
@@ -57,10 +57,30 @@ function inspectLiveDocument(path, bytes, byteCeiling, lineCeiling, errors) {
   if (markers.length !== 1) errors.push(`${path}: expected exactly one active-goal marker`);
   const revisions = text.match(/^(?:##\s+)?Rev\s+\d+\b/gm) ?? [];
   if (revisions.length > 1) errors.push(`${path}: contains multiple revision narratives`);
-  if (/```(?:log|console|text)\s*[\s\S]*?```/i.test(text)) {
+  if (/^```(?:log|console|text)\s*$/im.test(text)) {
     errors.push(`${path}: contains a raw workflow/runtime transcript block`);
   }
   return { text, marker: markers[0] };
+}
+function validateArtifact(root, commit, artifact, expectedPaths, errors) {
+  if (!expectedPaths.delete(artifact.path)) {
+    errors.push(`${MANIFEST}: unexpected or duplicate artifact ${String(artifact.path)}`);
+    return;
+  }
+  const spec = `${commit}:${artifact.path}`;
+  const historical = git(root, ['show', spec], true);
+  const immutable = `https://github.com/interdomestik/interdomestik/blob/${commit}/${artifact.path}`;
+  const checks = [
+    [artifact.bytes === historical.length, 'byte mismatch'],
+    [artifact.lineCount === lineCount(historical.toString('utf8')), 'line-count mismatch'],
+    [SHA256.test(artifact.sha256 ?? '') && artifact.sha256 === sha(historical), 'SHA-256 mismatch'],
+    [artifact.gitBlobOid === git(root, ['rev-parse', spec]), 'Git blob mismatch'],
+    [artifact.immutableUrl === immutable, 'immutable URL mismatch'],
+    [artifact.recoveryCommand === `git show ${spec}`, 'recovery command mismatch'],
+  ];
+  for (const [passes, message] of checks) {
+    if (!passes) errors.push(`${artifact.path}: ${message}`);
+  }
 }
 function validateManifest(root, manifest, errors) {
   if (manifest.schemaVersion !== 1) errors.push(`${MANIFEST}: schemaVersion must be 1`);
@@ -84,29 +104,8 @@ function validateManifest(root, manifest, errors) {
     errors.push(`${MANIFEST}: expected exactly two historical artifacts`);
     return;
   }
-  for (const artifact of manifest.artifacts) {
-    if (!expectedPaths.delete(artifact.path)) {
-      errors.push(`${MANIFEST}: unexpected or duplicate artifact ${String(artifact.path)}`);
-      continue;
-    }
-    const spec = `${manifest.sourceCommit}:${artifact.path}`;
-    const historical = git(root, ['show', spec], true);
-    const oid = git(root, ['rev-parse', spec]);
-    if (artifact.bytes !== historical.length) errors.push(`${artifact.path}: byte mismatch`);
-    if (artifact.lineCount !== lineCount(historical.toString('utf8'))) {
-      errors.push(`${artifact.path}: line-count mismatch`);
-    }
-    if (!SHA256.test(artifact.sha256 ?? '') || artifact.sha256 !== sha(historical)) {
-      errors.push(`${artifact.path}: SHA-256 mismatch`);
-    }
-    if (artifact.gitBlobOid !== oid) errors.push(`${artifact.path}: Git blob mismatch`);
-    const immutable = `https://github.com/interdomestik/interdomestik/blob/${manifest.sourceCommit}/${artifact.path}`;
-    if (artifact.immutableUrl !== immutable)
-      errors.push(`${artifact.path}: immutable URL mismatch`);
-    if (artifact.recoveryCommand !== `git show ${spec}`) {
-      errors.push(`${artifact.path}: recovery command mismatch`);
-    }
-  }
+  for (const artifact of manifest.artifacts)
+    validateArtifact(root, manifest.sourceCommit, artifact, expectedPaths, errors);
   if (expectedPaths.size > 0) errors.push(`${MANIFEST}: historical artifact missing`);
 }
 function main() {
