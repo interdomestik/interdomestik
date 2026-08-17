@@ -15,10 +15,29 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-Repository authority is between governed slices. The most recent completed slice is
-`IDA-CI05-PILOT-SONAR-CRITICAL-PATH-DECOUPLING`; its implementation and closeout are
-recorded in the current tracker. No replacement product, architecture, governance, or
-runtime slice is promoted.
+Repository authority promotes exactly one Tier 2 product/UI/accessibility slice:
+`IDA-T115-P0A-CANONICAL-FRONT-DOOR`. It makes the existing Help Now and
+resolved-member `HomePageRuntime` composition the sole repository-controlled locale
+landing before later T-115 session-pending and dashboard work. Runtime remains
+unauthorized pending a separate exact-main receipt.
+
+Immutable `IDA-DG45` is 16,491 UTF-8 bytes / SHA-256
+`faed90a14251220b2092a830a8f44696d54877534ca9573e5aa699e2d5f3bc2e`, bound to
+clean base `f4f6b5f8d93bfa30fffbd0c9c94eae32b42926be` and exact-approved by Arben in
+task `019fa824-2676-7c22-9dcb-d21af1c354e6` on 2026-08-17. Admission
+`138e2e5054fe3cbcc8e020fb9adbfd8f21a80c773297163e2ccffd62d1eb8771` is ready
+with one outcome, three writers, three proof surfaces, one shared consumer and zero
+special environments. UI/UX receipt
+`c18f5ad3c8e266b9bb3a924d8360739efab93dc161574a19af54bf12536b6495` passes
+with three operators and zero blocked sources. Opus 5 returned `REVISE` in 571.350
+seconds; all exact findings were addressed without a further review loop and no final
+model PASS is claimed.
+
+Exact-approved `IDA-DG45-A1`, 4,379 bytes / SHA-256
+`601ec770a7ab9fb9b0f6178767fadb0e6667bd8cf45a724864a33e2047b3cd70`,
+corrects only the canonical identifier spelling from invalid proposal alias `P0a` to
+resolver-safe `P0A`. The immutable parent gate and every substantive contract remain
+unchanged.
 
 The compact roadmap below preserves the live M0-M5 implementation blueprint. Full task
 contracts, acceptance criteria and milestone detail remain canonical in the
@@ -78,4 +97,4 @@ All authority history through Rev 243 is recoverable byte-for-byte from Git thro
 [the content-addressed archive manifest](./history/current-authority/2026-08-16-through-rev-243.manifest.json).
 Manifest SHA-256: `355229c5d24a6fa5f0986b6ce41423cbdc5caea16b291f1335a7264b2be5fc78`.
 
-The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-P0A-CANONICAL-FRONT-DOOR` (Tier 2 product/UI/accessibility; `runtime_authorized:false`; immutable `IDA-DG45` plus exact-approved identifier correction `IDA-DG45-A1` pending docs-only merge).
