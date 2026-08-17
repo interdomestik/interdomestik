@@ -70,10 +70,6 @@ export function HomePageRuntime({
     return null;
   }
 
-  if (isPending) {
-    return <PublicEntrySessionSkeleton />;
-  }
-
   const tenantId = sessionTenantId ?? hostTenantId ?? null;
   const shouldTrackLanding = sessionTenantId !== null || hostTenantId !== undefined;
   const continueHref = getStartClaimHrefForSession({
@@ -83,6 +79,28 @@ export function HomePageRuntime({
   const publicHelpNowHref = '/help-now';
   const primaryHref = landingSession === null ? publicHelpNowHref : '/member';
   const secondaryHref = landingSession === null ? PUBLIC_FREE_START_ANCHOR_HREF : continueHref;
+
+  if (isPending) {
+    return (
+      <>
+        <PublicEntrySessionSkeleton />
+        <HeroSection
+          locale={locale}
+          primaryHref={primaryHref}
+          secondaryHref={secondaryHref}
+          tenantId={tenantId}
+        />
+        <FreeStartIntakeShell
+          continueHref={continueHref}
+          locale={locale}
+          neutralOtpHost={neutralOtpHost}
+          neutralOtpTenantId={defaultPublicTenantId}
+          publicEntryEnabled={landingSession === null}
+          tenantId={tenantId}
+        />
+      </>
+    );
+  }
 
   return (
     <>

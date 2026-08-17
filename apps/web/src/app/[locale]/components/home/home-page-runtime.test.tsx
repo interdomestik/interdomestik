@@ -58,16 +58,30 @@ describe('HomePageRuntime', () => {
     expect(h.replace).toHaveBeenCalledOnce();
   });
 
-  it('renders only a neutral localized skeleton while the session is pending', () => {
+  it('keeps public entry available without tracking while the session is pending', async () => {
     h.session.mockReturnValue({ data: null, isPending: true });
     renderRuntime('tenant_ks');
     expect(screen.getByRole('status', { name: 'Duke u ngarkuar...' })).toHaveAttribute(
       'aria-busy',
       'true'
     );
+    await waitFor(() => {
+      expect(h.hero).toHaveBeenLastCalledWith({
+        locale: 'sq',
+        primaryHref: '/help-now',
+        secondaryHref: '#free-start-intake',
+        tenantId: 'tenant_al',
+      });
+      expect(h.intake).toHaveBeenLastCalledWith({
+        continueHref: '/pricing',
+        locale: 'sq',
+        neutralOtpHost: 'front-door.localhost:3000',
+        neutralOtpTenantId: 'tenant_ks',
+        publicEntryEnabled: true,
+        tenantId: 'tenant_al',
+      });
+    });
     expect(h.funnel).not.toHaveBeenCalled();
-    expect(h.hero).not.toHaveBeenCalled();
-    expect(h.intake).not.toHaveBeenCalled();
     expect(h.replace).not.toHaveBeenCalled();
   });
 
