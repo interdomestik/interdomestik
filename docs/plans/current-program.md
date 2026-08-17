@@ -15,19 +15,17 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-No implementation slice is active. `IDA-T115-P0A-CANONICAL-FRONT-DOOR` completed
-in [PR #1577](https://github.com/interdomestik/interdomestik/pull/1577), exact head
-`39a5fb07c3c56991cabfcb7bd15d2415d193c419`, squash merge
-`70c7c1f324fa3ddd8d6da7d21f31dc5df13aca34`. The locale root now has one
-repository-controlled `HomePageRuntime` composition with literal `hero_v2`; the direct
-legacy Hero/intake/sticky composition is no longer mounted. Public/no-JS continuity,
-resolved-member continuation and all protected route/auth/tenant boundaries remain
-unchanged.
+Exactly one docs-only authority selection is active: Arben exact-approved
+`IDA-DG46-R1`, 11,808 bytes / SHA-256
+`2d67308c0d4781d5d9f06edcec2e25e963c8e06f50268fbd431541e863ef0565`, bound to
+main `392079fd0e0f4bc670c1bee6a2b85250670c776c`. It selects only the T-115
+neutral session-pending skeleton. Runtime, product mutation, deployment and
+production remain unauthorized pending a separately exact-main runtime receipt.
 
-This closes only the P0A active-path prerequisite. T-115 still needs a fresh exact gate
-for its neutral session-pending skeleton and OD#17 completion; T-117/T-118/T-116 and
-every other roadmap candidate remain unpromoted. Detailed implementation and closeout
-evidence is linked from `current-tracker.md` rather than copied here.
+P0A canonical front-door composition completed in
+[PR #1577](https://github.com/interdomestik/interdomestik/pull/1577); its closeout
+is linked from `current-tracker.md`. P0B does not reopen P0A, OD#17, T-117, T-118,
+T-116 or any other roadmap candidate.
 
 The compact roadmap below preserves the live M0-M5 implementation blueprint. Full task
 contracts, acceptance criteria and milestone detail remain canonical in the
@@ -49,7 +47,7 @@ its [tracker](./architecture-finalization-tracker-2026-05-29.md).
 
 | Priority | Candidate                                                         | Dependencies                                                | Promotion constraint                                                                                 |
 | -------: | ----------------------------------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-|        1 | `T-115` session-pending skeleton and OD#17 residual               | P0A, `T-108`, `T-114` complete                              | Continue only through a fresh exact gate; do not reopen the canonical-composition work.              |
+|        1 | `T-115` P0B session-pending skeleton; OD#17 remains residual      | P0A, `T-108`, `T-114` complete                              | DG46-R1 selects only P0B; separate exact-main runtime authority is required.                         |
 |        2 | `T-118` `ui/crystal` presentational primitives                    | `T-115`                                                     | May follow `T-115`; keep domain imports at zero and preserve accessibility/performance budgets.      |
 |        2 | `T-117` unified member dashboard shell                            | `T-115`, `T-114` complete                                   | May run beside `T-118` only under its own gate; preserve RSC, query and neutral-host constraints.    |
 |        3 | `T-116` exhaustive `CaseSummary` projection and renderer registry | `T-103` complete, `T-115`, `T-118`                          | Promote only after both UI foundations are complete.                                                 |
@@ -88,4 +86,4 @@ All authority history through Rev 243 is recoverable byte-for-byte from Git thro
 [the content-addressed archive manifest](./history/current-authority/2026-08-16-through-rev-243.manifest.json).
 Manifest SHA-256: `355229c5d24a6fa5f0986b6ce41423cbdc5caea16b291f1335a7264b2be5fc78`.
 
-The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-P0B-NEUTRAL-SESSION-PENDING-SKELETON` (Tier 2 product/UI/accessibility; `runtime_authorized:false`; exact-approved DG46-R1 pending docs-only merge and then a separate exact-main runtime receipt/approval).
