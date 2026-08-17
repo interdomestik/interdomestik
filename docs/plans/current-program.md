@@ -20,26 +20,46 @@ Repository authority is between governed slices. The most recent completed slice
 recorded in the current tracker. No replacement product, architecture, governance, or
 runtime slice is promoted.
 
-The architecture-finalization program remains the conditional authority when an exact
-design gate promotes one of its tracker items. Phase C guardrails remain binding: canonical
-routes and clarity markers are preserved, `apps/web/src/proxy.ts` stays read-only unless
-explicitly authorized, Paddle remains the billing provider, and tenancy/RLS work requires
-its own approved scope and evidence.
+The compact roadmap below preserves the live M0-M5 implementation blueprint. Full task
+contracts, acceptance criteria and milestone detail remain canonical in the
+[architecture-finalization program](./architecture-finalization-program-2026-05-29.md) and
+its [tracker](./architecture-finalization-tracker-2026-05-29.md).
+
+## M0-M5 Implementation Blueprint
+
+| Phase | Purpose                                                                                                  | Current implementation frontier                                                       |
+| ----- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| M0    | Fail-closed transition, tenant-leak, role, brand and host-lane guardrails without schema change.         | Core T-* rows are complete; no remaining M0 T-* candidate.                            |
+| M1    | Neutral `ida.*` foundation, additive lifecycle/event/legal-entity data and unified UI shell foundations. | Core rows are complete; remaining UI nodes are `T-115`, `T-117`, `T-118` and `T-116`. |
+| M2    | Authoritative case/recovery lifecycle, jurisdiction handoff and event-backed projections.                | Core rows are complete; `T-210` remains after its M1 UI projection dependencies.      |
+| M3    | One session-owned tenant context, `access_tenant_id` isolation and read-only attribution.                | Core rows are complete; `T-310` remains as the session-context theme boundary.        |
+| M4    | Structural membership/product/AI/entity rules and safe member interaction surfaces.                      | Core rows are complete; `T-410` and `T-411` remain conditional UI candidates.         |
+| M5    | Neutral-host live cutover, legacy retirement and legal-entity migration.                                 | All canonical M5 T-* rows are complete; no remaining M5 T-* candidate.                |
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate                         | Current disposition                                                                                                                        |
-| -------: | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-|        1 | Fresh current-authority selection | Audit current product and architecture trackers, then propose exactly one smallest valuable slice through a content-addressed design gate. |
+| Priority | Candidate                                                         | Dependencies                                                | Promotion constraint                                                                                 |
+| -------: | ----------------------------------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+|        1 | `T-115` front-door public shell and skeleton baseline             | `T-108`, `T-114` complete                                   | First remaining M1 UI foundation; requires a fresh exact design gate.                                |
+|        2 | `T-118` `ui/crystal` presentational primitives                    | `T-115`                                                     | May follow `T-115`; keep domain imports at zero and preserve accessibility/performance budgets.      |
+|        2 | `T-117` unified member dashboard shell                            | `T-115`, `T-114` complete                                   | May run beside `T-118` only under its own gate; preserve RSC, query and neutral-host constraints.    |
+|        3 | `T-116` exhaustive `CaseSummary` projection and renderer registry | `T-103` complete, `T-115`, `T-118`                          | Promote only after both UI foundations are complete.                                                 |
+|        4 | `T-210` event timeline renderer registry                          | `T-206` complete, `T-116`                                   | Promote only after the shared case projection exists; preserve unknown-event and PII-safe fallbacks. |
+|        5 | `T-310` session-context theme tokens                              | `T-302`, `T-302b` complete                                  | Independent conditional M3 candidate; never derive tenant branding from host.                        |
+|        6 | `T-410` reversible optimistic-action boundary                     | `T-401`, `T-002` complete                                   | Independent conditional M4 candidate; status, money and legal mutations remain pessimistic.          |
+|        7 | `T-411` shared Smart Next Step library                            | `T-401` complete; `SVC-CORE` and `FLIGHT-03` still required | Blocked until both non-T prerequisites have their own completed authority and evidence.              |
 
-This table is a selection order, not runtime authority. A candidate becomes active only
-after its exact gate is merged, repository authority converges, and a separate exact runtime
-receipt is approved when the risk contract requires one.
+These are the remaining unimplemented T-* nodes, not active authorization. The order is a
+dependency-aware selection guide: parallel-capable rows still require separate slices. Each
+candidate needs a fresh content-addressed design gate, repository convergence and, when the
+risk contract requires it, a separately approved exact runtime receipt before implementation.
 
 ## Selection Constraints
 
 - Select one outcome and one slice; do not combine product, architecture, CI, AI OS, or
   housekeeping work.
+- Do not infer promotion from this roadmap. Resolver state remains blocked until one exact
+  candidate is admitted by current program and tracker together.
 - Prefer direct user/business value, bounded dependencies, low protected-surface risk,
   focused proof, and explicit rollback.
 - Repository source, `AGENTS.md`, tests, current program/tracker, relevant architecture
