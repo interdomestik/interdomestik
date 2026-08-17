@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "repository": "interdomestik/interdomestik",
+  "sourceCommit": "523fda2493ca728dea48241aad5769917f1ad03f",
+  "throughRevision": 243,
+  "terminalState": {
+    "lifecycle": "blocked_requires_current_authority",
+    "activeSlice": null
+  },
+  "artifacts": [
+    {
+      "path": "docs/plans/current-program.md",
+      "bytes": 785382,
+      "lineCount": 8232,
+      "sha256": "94842fd5499c79d783023f6248bbd455b0030d82e5b353f4bd686e95d54442e0",
+      "gitBlobOid": "2725c41c4fe60349c45b82d7fb936d532c088b94",
+      "immutableUrl": "https://github.com/interdomestik/interdomestik/blob/523fda2493ca728dea48241aad5769917f1ad03f/docs/plans/current-program.md",
+      "recoveryCommand": "git show 523fda2493ca728dea48241aad5769917f1ad03f:docs/plans/current-program.md"
+    },
+    {
+      "path": "docs/plans/current-tracker.md",
+      "bytes": 1665126,
+      "lineCount": 3313,
+      "sha256": "b46b861768286d3d616c30cf06082c55b7d9d4971b1d870006441b7a59d26ffa",
+      "gitBlobOid": "9de470f42e61c5c837bf3db1709cadf38854f19b",
+      "immutableUrl": "https://github.com/interdomestik/interdomestik/blob/523fda2493ca728dea48241aad5769917f1ad03f/docs/plans/current-tracker.md",
+      "recoveryCommand": "git show 523fda2493ca728dea48241aad5769917f1ad03f:docs/plans/current-tracker.md"
+    }
+  ]
+}

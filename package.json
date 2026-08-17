@@ -176,7 +176,7 @@
     "release:gate:staging:raw": "tsx scripts/release-gate/run.ts --envName staging --suite all",
     "prepare": "husky && husky install",
     "track:audit": "node scripts/track-audit.mjs",
-    "plan:audit": "node scripts/plan-audit.mjs",
+    "plan:audit": "node scripts/plan-audit.mjs && node scripts/current-authority-format-audit.mjs",
     "plan:status": "node scripts/plan-status.mjs",
     "plan:proof": "node scripts/plan-proof.mjs",
     "v1:status": "node scripts/v1-status.mjs",
