@@ -15,7 +15,7 @@ current_tracker_bridge: docs/plans/current-tracker.md
 
 **Date:** 2026-05-29 · **Owner:** _unassigned_ · **Companion:** `architecture-finalization-program-2026-05-29.md`
 
-**Rev 89 (2026-08-17, IDA-DG45):** exact-approved docs-only authority
+**Rev 96 (2026-08-17, IDA-DG45):** exact-approved docs-only authority
 `IDA-DG45`, 16,491 bytes / SHA-256
 `faed90a14251220b2092a830a8f44696d54877534ca9573e5aa699e2d5f3bc2e`, promotes
 only `IDA-T115-P0A-CANONICAL-FRONT-DOOR`. Exact-approved `IDA-DG45-A1`, 4,379
