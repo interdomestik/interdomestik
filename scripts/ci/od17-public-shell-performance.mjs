@@ -15,7 +15,8 @@ const SHA = /^[0-9a-f]{40}$/u,
 const PREVIEW = /^interdomestik-web-[a-z0-9]{9}-ecohub\.vercel\.app$/u;
 const sha256 = body => createHash('sha256').update(body).digest('hex');
 const positive = value => Number.isSafeInteger(Number(value)) && Number(value) > 0;
-const codeUnit = (left, right) => (left < right ? -1 : left > right ? 1 : 0);
+// prettier-ignore
+const codeUnit = (left, right) => { if (left < right) return -1; if (left > right) return 1; return 0; };
 const fail = message => {
   throw new Error(`OD17_FOUNDATION_IDENTITY_INVALID: ${message}`);
 };
@@ -143,5 +144,6 @@ async function resolveCollector() {
   const content = Object.entries(values).map(entry => entry.join('=')).join('\n');
   appendTrustedRunnerFile(process.env.GITHUB_ENV, `${content}\n`);
 }
+const mainTask = process.argv[2] === 'verify' ? verifyProof : resolveCollector;
 // prettier-ignore
-if (isMainModule(process.argv[1], import.meta.url)) try { await (process.argv[2] === 'verify' ? verifyProof() : resolveCollector()); } catch (error) { console.error(error.message); process.exitCode = 1; }
+if (isMainModule(process.argv[1], import.meta.url)) try { await mainTask(); } catch (error) { console.error(error.message); process.exitCode = 1; }
