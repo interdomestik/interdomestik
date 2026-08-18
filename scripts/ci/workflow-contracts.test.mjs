@@ -128,7 +128,7 @@ test('OD17 collector keeps OIDC out of the unprivileged exact-head job', () => {
   assert.ok(findStep(trusted.steps, 'Resolve exact PR preparation run and Preview'));
   assert.ok(findStep(trusted.steps, 'Collect authenticated exact-deployment evidence'));
   const proof = findStep(trusted.steps, 'Recompute untrusted local structural evidence').run;
-  const source = proof.match(/const safeAssetPath = (value => \{[\s\S]*?\n\s*\};)/u)?.[1];
+  const source = proof.match(/const safeAssetPath = (value => \{[\s\S]*?\n\s*\});/u)?.[1];
   assert.ok(source);
   const safeAssetPath = vm.runInNewContext(`(${source})`);
   for (const value of ['static/(public)/[locale].js', 'static/%5Blocale%5D.js'])
