@@ -32,6 +32,9 @@ Arben exact-approved `IDA-DG47` at 11,080 bytes / SHA-256
 It promotes only `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` (Tier 3 shared
 CI/performance verification); runtime, provider, deployment and production remain
 unauthorized pending exact-main convergence and a separate runtime receipt.
+DG49 is the exact-approved, runtime-unauthorized capability prerequisite for
+that same sole OD#17 outcome: [OIDC Preview canary access](./2026-08-18-ida-dg49-t115-od17-github-oidc-preview-canary-access.md).
+It does not promote a second slice or alter the DG47 completion boundary.
 
 The compact roadmap below preserves the live M0-M5 implementation blueprint. Full task
 contracts, acceptance criteria and milestone detail remain canonical in the
