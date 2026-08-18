@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-08-17
+last_reviewed: 2026-08-18
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -35,6 +35,16 @@ unauthorized pending exact-main convergence and a separate runtime receipt.
 DG49 is the exact-approved, runtime-unauthorized capability prerequisite for
 that same sole OD#17 outcome: [OIDC Preview canary access](./2026-08-18-ida-dg49-t115-od17-github-oidc-preview-canary-access.md).
 It does not promote a second slice or alter the DG47 completion boundary.
+Exact-approved
+[`IDA-DG49-A1`](./2026-08-18-ida-dg49-a1-t115-od17-canary-collector-correction.md)
+corrects only the inert-canary feasibility defect: it adds a protected-main,
+first-party-only OIDC collector prerequisite before the existing OD#17 proof.
+The exact-approved R2 artifact is 17,454 bytes / SHA-256
+`0382428a5df48152e61b3d0c468049722fa24a0251f8414153341edab2e5a71a`,
+bound to main `70ab50a073c56045ff57433d04732fdf231b13d9`. Current-head Codex P1 feedback
+is addressed; no final model PASS is claimed. This docs-only
+authority grants no corrective runtime and does not change the sole DG47
+outcome, thresholds, provider tuple, product scope or next-candidate order.
 
 The compact roadmap below preserves the live M0-M5 implementation blueprint. Full task
 contracts, acceptance criteria and milestone detail remain canonical in the
