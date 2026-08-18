@@ -34,9 +34,8 @@ jobs:
       ai_eval_matched_paths: ${{ steps.gate_policy.outputs.ai_eval_matched_paths }}
       main_e2e_reuse: ${{ steps.main_e2e_reuse_safe.outputs.reuse }}
     steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
+      # prettier-ignore
+      - { uses: actions/checkout@v5, with: { fetch-depth: 0 } }
       - uses: actions/setup-node@v5
         with:
           node-version-file: '.nvmrc'
@@ -50,10 +49,8 @@ jobs:
       - name: Normalize main E2E reuse decision
         id: main_e2e_reuse_safe
         if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          {
-            RESOLVER_RESULT: '${{ steps.main_e2e_reuse_raw.outcome }}:${{ steps.main_e2e_reuse_raw.outputs.reuse }}',
-          }
+        # prettier-ignore
+        env: { RESOLVER_RESULT: '${{ steps.main_e2e_reuse_raw.outcome }}:${{ steps.main_e2e_reuse_raw.outputs.reuse }}' }
         run: case "$RESOLVER_RESULT" in success:true) reuse=1 ;; *) reuse=0 ;; esac; echo "reuse=$reuse" >> "$GITHUB_OUTPUT"
       - name: Evaluate PR gate policy
         id: gate_policy
@@ -70,8 +67,13 @@ jobs:
     needs: [validation-surface]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      # prettier-ignore
+      - { uses: actions/checkout@v5, with: { ref: "${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'codex/ida-t115-od17-performance-proof' && github.event.pull_request.head.sha || github.sha }}", persist-credentials: false } }
       - uses: ./.github/actions/setup
+      # prettier-ignore
+      - { name: Certify OD17 exact-head public shell, if: "github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'codex/ida-t115-od17-performance-proof'", env: { GH_TOKEN: '${{ github.token }}', EXPECTED_HEAD_SHA: '${{ github.event.pull_request.head.sha }}', EXPECTED_TRUSTED_MAIN_SHA: '${{ github.event.pull_request.base.sha }}', PULL_NUMBER: '${{ github.event.pull_request.number }}' }, run: pnpm od17:verify }
+      # prettier-ignore
+      - { name: Upload OD17 exact-head verdict, if: "always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'codex/ida-t115-od17-performance-proof'", uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f, with: { name: 'od17-verdict-${{ github.event.pull_request.head.sha }}', path: tmp/od17-verdict, if-no-files-found: error, retention-days: 7 } } # v6
       - name: Run lightweight governance audits
         run: >-
           pnpm track:audit && pnpm plan:audit && pnpm repo:size:check && node --test scripts/ci/docs-closeout-main-push-contract.test.mjs scripts/ci/z620-parity-policy.test.mjs
@@ -149,9 +151,7 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: interdomestik_test
+          { POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres, POSTGRES_DB: interdomestik_test }
         ports:
           - 5432:5432
         options: >-

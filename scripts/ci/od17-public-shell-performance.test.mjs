@@ -6,58 +6,28 @@ import { fileURLToPath } from 'node:url';
 import {
   assertFoundationCanaryIdentity,
   buildTrustedPreviewRequest,
+  selectExactCanary,
   selectExactPreviewDeployment,
 } from './od17-public-shell-performance.mjs';
 const SHA = 'a'.repeat(40);
 const preview = 'https://interdomestik-web-abc123def-ecohub.vercel.app';
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+// prettier-ignore
+const validIdentity = { repository: 'interdomestik/interdomestik', workflowRef: 'refs/heads/main',
+  pullRequest: { state: 'open', head: { ref: 'codex/ida-t115-od17-performance-proof', sha: SHA,
+    repo: { full_name: 'interdomestik/interdomestik', fork: false } } }, expectedHeadSha: SHA };
 test('foundation canary accepts only protected-main same-repository PR identity', () => {
-  assert.doesNotThrow(() =>
-    assertFoundationCanaryIdentity({
-      repository: 'interdomestik/interdomestik',
-      workflowRef: 'refs/heads/main',
-      pullRequest: {
-        state: 'open',
-        head: {
-          ref: 'codex/ida-t115-od17-performance-proof',
-          sha: SHA,
-          repo: { full_name: 'interdomestik/interdomestik', fork: false },
-        },
-      },
-      expectedHeadSha: SHA,
-    })
-  );
+  assert.doesNotThrow(() => assertFoundationCanaryIdentity(validIdentity));
 });
 test('foundation canary rejects a fork, branch mismatch, closed PR, or wrong SHA', () => {
-  const valid = {
-    repository: 'interdomestik/interdomestik',
-    workflowRef: 'refs/heads/main',
-    pullRequest: {
-      state: 'open',
-      head: {
-        ref: 'codex/ida-t115-od17-performance-proof',
-        sha: SHA,
-        repo: { full_name: 'interdomestik/interdomestik', fork: false },
-      },
-    },
-    expectedHeadSha: SHA,
-  };
+  const valid = validIdentity;
+  // prettier-ignore
   for (const change of [
     { workflowRef: 'refs/heads/feature' },
     { repository: 'someone/fork' },
     { pullRequest: { ...valid.pullRequest, state: 'closed' } },
-    {
-      pullRequest: {
-        ...valid.pullRequest,
-        head: { ...valid.pullRequest.head, sha: 'b'.repeat(40) },
-      },
-    },
-    {
-      pullRequest: {
-        ...valid.pullRequest,
-        head: { ...valid.pullRequest.head, repo: { full_name: 'fork/repo', fork: true } },
-      },
-    },
+    { pullRequest: { ...valid.pullRequest, head: { ...valid.pullRequest.head, sha: 'b'.repeat(40) } } },
+    { pullRequest: { ...valid.pullRequest, head: { ...valid.pullRequest.head, repo: { full_name: 'fork/repo', fork: true } } } },
   ]) {
     assert.throws(() => assertFoundationCanaryIdentity({ ...valid, ...change }));
   }
@@ -119,6 +89,29 @@ test('selects one successful exact-head non-production deployment', () => {
   ]) {
     assert.throws(() => selectExactPreviewDeployment({ expectedHeadSha: SHA, deployments }));
   }
+});
+test('selects one content-addressed canary with positive run and artifact identities', () => {
+  const main = 'b'.repeat(40);
+  // prettier-ignore
+  const run = { id: 19, run_attempt: 1, event: 'workflow_dispatch', status: 'completed', conclusion: 'success', head_branch: 'main', head_sha: main, path: '.github/workflows/od17-preview-canary.yml' };
+  const artifact = {
+    id: 23,
+    name: `od17-canary-${SHA}`,
+    expired: false,
+    digest: `sha256:${'c'.repeat(64)}`,
+    workflow_run: { id: 19 },
+  };
+  const input = {
+    runs: [run],
+    artifactsByRun: new Map([[19, [artifact]]]),
+    expectedHeadSha: SHA,
+    expectedTrustedMainSha: main,
+  };
+  assert.equal(selectExactCanary(input).artifactId, 23);
+  assert.throws(() => selectExactCanary({ ...input, runs: [{ ...run, id: 0 }] }));
+  assert.throws(() =>
+    selectExactCanary({ ...input, artifactsByRun: new Map([[19, [{ ...artifact, id: 0 }]]]) })
+  );
 });
 test('collector splits pull-request preparation from manual trusted main', () => {
   // prettier-ignore
