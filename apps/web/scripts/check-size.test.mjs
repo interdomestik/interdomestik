@@ -78,18 +78,16 @@ test('accepts divergent local and Preview bytes while proving both closures inde
   const localDir = path.join(root, 'local');
   const evidenceDir = path.join(root, 'evidence');
   const buildBody = `${JSON.stringify({ rootMainFiles: [localRow.path] })}\n`;
-  const appBody = '{}\n';
   await fs.mkdir(path.join(localDir, 'assets/static/chunks'), { recursive: true });
   await fs.mkdir(evidenceDir, { recursive: true });
   await Promise.all([
     fs.writeFile(path.join(localDir, 'build-manifest.json'), buildBody),
-    fs.writeFile(path.join(localDir, 'app-build-manifest.json'), appBody),
     fs.writeFile(path.join(localDir, 'inventory.json'), `${JSON.stringify([localRow])}\n`),
     fs.writeFile(path.join(localDir, 'assets', localRow.path), localBody),
   ]);
   const structure = `${JSON.stringify({
     headSha: HEAD,
-    manifests: { 'build-manifest.json': sha(buildBody), 'app-build-manifest.json': sha(appBody) },
+    manifests: { 'build-manifest.json': sha(buildBody) },
     inventory: [localRow],
   })}\n`;
   await fs.writeFile(path.join(evidenceDir, 'local-structure.json'), structure);

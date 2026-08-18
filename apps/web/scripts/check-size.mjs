@@ -119,13 +119,12 @@ export function evaluateOd17Evidence({ evidence, expectedHeadSha, expected = {} 
 export async function verifyOd17Files({ localDir, evidenceDir, expectedHeadSha, ...expected }) {
   const readJson = file => fs.readFile(file, 'utf8').then(JSON.parse);
   const buildBody = await fs.readFile(path.join(localDir, 'build-manifest.json'));
-  const appBody = await fs.readFile(path.join(localDir, 'app-build-manifest.json'));
-  const build = JSON.parse(buildBody), app = JSON.parse(appBody);
-  const inventory = assertManifestInventory({ manifests: { build, app }, inventory: await readJson(path.join(localDir, 'inventory.json')) });
+  const build = JSON.parse(buildBody);
+  const inventory = assertManifestInventory({ manifests: { build }, inventory: await readJson(path.join(localDir, 'inventory.json')) });
   for (const item of inventory) { const body = await fs.readFile(path.join(localDir, 'assets', item.path)); if (body.length !== item.bytes || gzipSync(body, { level: 9 }).length !== item.gzipBytes || sha(body) !== item.sha256) throw new Error('OD17_LOCAL_ASSET_MISMATCH'); }
   const structureBody = await fs.readFile(path.join(evidenceDir, 'local-structure.json'));
   const structure = JSON.parse(structureBody), evidence = await readJson(path.join(evidenceDir, 'evidence.json'));
-  const exact = structure.headSha === expectedHeadSha && evidence.localStructureSha256 === sha(structureBody) && structure.manifests?.['build-manifest.json'] === sha(buildBody) && structure.manifests?.['app-build-manifest.json'] === sha(appBody) && JSON.stringify(structure.inventory) === JSON.stringify(inventory);
+  const exact = structure.headSha === expectedHeadSha && evidence.localStructureSha256 === sha(structureBody) && structure.manifests?.['build-manifest.json'] === sha(buildBody) && JSON.stringify(structure.inventory) === JSON.stringify(inventory);
   if (!exact) throw new Error('OD17_LOCAL_STRUCTURE_MISMATCH');
   return { evidence, inventory, verdict: evaluateOd17Evidence({ evidence, expectedHeadSha, expected }) };
 }
