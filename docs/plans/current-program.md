@@ -45,7 +45,7 @@ first-party-only OIDC collector prerequisite completed in
 remains 17,454 bytes / SHA-256
 `0382428a5df48152e61b3d0c468049722fa24a0251f8414153341edab2e5a71a`.
 The Opus and GitHub findings were remediated; no final Opus PASS is claimed.
-Exact-head PR E2E, CI, Sonar, CodeQL, security, Copilot and finalizer evidence passed.
+All exact-head checks passed: PR E2E, CI, Sonar, CodeQL, security, Copilot and finalizer.
 This prerequisite does not complete OD#17 or change its thresholds, provider
 tuple, product scope or next-candidate order. The performance proof still
 requires replacement exact-main runtime authority before execution.

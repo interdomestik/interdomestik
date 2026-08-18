@@ -23,7 +23,7 @@ status_command: pnpm plan:status
 
 | ID | Source Refs | Execution | Run ID | Run Root | Sonar | Docker | Sentry | Learning | Evidence Refs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` | `gate:feb4fa42`; `capability:6b66ffdf`; `correction-r2:0382428a`; `collector-pr:1589`; `collector-e2e:32131335010` | `pending` | `pending` | `pending` | `pending` | `not_applicable` | `not_applicable` | `pending` | Collector prerequisite PR `#1589` passed one exact-head PR E2E, CI, Sonar with zero PR issues, CodeQL, security, Copilot and finalizer; automatic CD `32132805756` was cancelled with zero jobs/effects. These are prerequisite source references only. The OD#17 performance execution, run root and Sonar result remain pending. |
+| `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` | `gate:feb4fa42`; `capability:6b66ffdf`; `correction-r2:0382428a`; `collector-pr:1589`; `collector-e2e:32131335010` | `pending` | `pending` | `pending` | `pending` | `not_applicable` | `not_applicable` | `pending` | Collector prerequisite PR `#1589` and exact-head PR E2E run `32131335010` passed. CI, Sonar (zero PR issues), CodeQL, security, Copilot and finalizer also passed. Automatic CD `32132805756` was cancelled with zero jobs/effects. These are prerequisite source references only; the OD#17 performance execution, run root and Sonar result remain pending. |
 
 ## Next Selection
 
