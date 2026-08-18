@@ -1,53 +1,139 @@
 name: OD17 Preview Canary
-
 on:
+  pull_request:
+    branches: [main]
   workflow_dispatch:
     inputs:
-      pull_number:
-        description: 'Open same-repository OD17 pull request number'
-        required: true
-        type: string
-      head_sha:
-        description: 'Exact 40-character OD17 pull request head SHA'
-        required: true
-        type: string
-
+      pull_number: { required: true, type: string }
+      head_sha: { required: true, type: string }
+      preparation_run_id: { required: true, type: string }
+concurrency: { group: 'od17-canary-${{ inputs.head_sha }}', cancel-in-progress: false }
 jobs:
-  foundation-contract:
-    if: github.repository == 'interdomestik/interdomestik' && github.ref == 'refs/heads/main'
+  prepare-exact-head:
+    if: github.event_name == 'pull_request' && github.head_ref == 'codex/ida-t115-od17-performance-proof' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      id-token: none
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Build exact head and retain bounded structural evidence
+        env:
+          CI: '1'
+          NEXT_PUBLIC_APP_URL: https://build.invalid
+          BETTER_AUTH_URL: https://build.invalid
+          BETTER_AUTH_SECRET: od17-ci-build-only-secret-32chars
+          DATABASE_URL: postgresql://unused@127.0.0.1:1/unused
+        run: |
+          set -euo pipefail
+          pnpm build
+          mkdir -p tmp/od17-local
+          cp apps/web/.next/build-manifest.json tmp/od17-local/build-manifest.json
+          cp apps/web/.next/app-build-manifest.json tmp/od17-local/app-build-manifest.json
+          git rev-parse HEAD > tmp/od17-local/head-sha.txt
+          printf '%s\n' 'pnpm build' > tmp/od17-local/build-command.txt
+          node --input-type=module <<'NODE'
+          import { createHash } from 'node:crypto'; import { cp, mkdir, readFile, writeFile } from 'node:fs/promises'; import { gzipSync } from 'node:zlib';
+          const root = 'apps/web/.next';
+          const manifests = await Promise.all(['build-manifest.json', 'app-build-manifest.json'].map(name => readFile(`${root}/${name}`, 'utf8').then(JSON.parse)));
+          const assets = [...new Set(JSON.stringify(manifests).match(/static\/[^"']+\.js/gu) ?? [])].sort();
+          const inventory = []; let totalBytes = 0;
+          for (const asset of assets) {
+            const body = await readFile(`${root}/${asset}`); totalBytes += body.length;
+            if (body.length > 5_000_000 || totalBytes > 25_000_000) throw new Error('OD17_LOCAL_ASSET_TOO_LARGE');
+            await mkdir(`tmp/od17-local/assets/${asset.split('/').slice(0, -1).join('/')}`, { recursive: true });
+            await cp(`${root}/${asset}`, `tmp/od17-local/assets/${asset}`);
+            inventory.push({ path: asset, bytes: body.length, gzipBytes: gzipSync(body, { level: 9 }).length,
+              sha256: createHash('sha256').update(body).digest('hex') });
+          }
+          await writeFile('tmp/od17-local/inventory.json', `${JSON.stringify(inventory, null, 2)}\n`);
+          NODE
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: od17-local-${{ github.event.pull_request.head.sha }}
+          path: tmp/od17-local
+          if-no-files-found: error
+          retention-days: 1
+  trusted-main-collector:
+    if: github.event_name == 'workflow_dispatch' && github.repository == 'interdomestik/interdomestik' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
       pull-requests: read
+      actions: read
+      deployments: read
       id-token: write
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
-
-      - name: Verify immutable workflow and PR identity
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 10.28.2
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts
+      - name: Resolve exact PR preparation run and Preview
         env:
           GH_TOKEN: ${{ github.token }}
           EXPECTED_HEAD_SHA: ${{ inputs.head_sha }}
+          PREPARATION_RUN_ID: ${{ inputs.preparation_run_id }}
           PULL_NUMBER: ${{ inputs.pull_number }}
+        run: node scripts/ci/od17-public-shell-performance.mjs
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: od17-local-${{ inputs.head_sha }}
+          path: tmp/od17-local
+          run-id: ${{ inputs.preparation_run_id }}
+          github-token: ${{ github.token }}
+      - name: Recompute untrusted local structural evidence
+        env:
+          EXPECTED_HEAD_SHA: ${{ inputs.head_sha }}
         run: |
-          set -euo pipefail
-          test "${GITHUB_REPOSITORY}" = 'interdomestik/interdomestik'
-          test "${GITHUB_REF}" = 'refs/heads/main'
-          PULL_REQUEST_JSON="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PULL_NUMBER}")" \
-            node --input-type=module -e '
-            import { assertFoundationCanaryIdentity } from "./scripts/ci/od17-public-shell-performance.mjs";
-            const pullRequest = JSON.parse(process.env.PULL_REQUEST_JSON);
-            assertFoundationCanaryIdentity({
-              repository: process.env.GITHUB_REPOSITORY,
-              workflowRef: process.env.GITHUB_REF,
-              pullRequest,
-              expectedHeadSha: process.env.EXPECTED_HEAD_SHA,
-            });
-          '
-
-      - name: Confirm foundation is inert
-        run: |
-          set -euo pipefail
-          echo 'OD17 foundation contract validated; no OIDC token or provider request is made in R1.'
+          node --input-type=module <<'NODE'
+          import { createHash } from 'node:crypto'; import { mkdir, readFile, writeFile } from 'node:fs/promises';
+          import { gzipSync } from 'node:zlib';
+          const root = 'tmp/od17-local'; const inventory = JSON.parse(await readFile(`${root}/inventory.json`, 'utf8'));
+          if ((await readFile(`${root}/head-sha.txt`, 'utf8')).trim() !== process.env.EXPECTED_HEAD_SHA)
+            throw new Error('OD17_LOCAL_HEAD_MISMATCH');
+          if (!Array.isArray(inventory) || inventory.length === 0) throw new Error('OD17_LOCAL_INVENTORY_EMPTY');
+          let totalBytes = 0;
+          for (const item of inventory) {
+            if (typeof item.path !== 'string' || !/^static\/[A-Za-z0-9._/-]+\.js$/u.test(item.path) || item.path.includes('..'))
+              throw new Error('OD17_LOCAL_PATH_INVALID');
+            const body = await readFile(`${root}/assets/${item.path}`); const digest = createHash('sha256').update(body).digest('hex');
+            totalBytes += body.length; if (body.length > 5_000_000 || totalBytes > 25_000_000) throw new Error('OD17_LOCAL_ASSET_TOO_LARGE');
+            if (body.length !== item.bytes || gzipSync(body, { level: 9 }).length !== item.gzipBytes || digest !== item.sha256)
+              throw new Error('OD17_LOCAL_ASSET_MISMATCH');
+          }
+          const manifests = {};
+          for (const name of ['build-manifest.json', 'app-build-manifest.json']) {
+            const body = await readFile(`${root}/${name}`); JSON.parse(body);
+            manifests[name] = createHash('sha256').update(body).digest('hex');
+          }
+          await mkdir('tmp/od17-evidence', { recursive: true }); await writeFile('tmp/od17-evidence/local-structure.json',
+            `${JSON.stringify({ headSha: process.env.EXPECTED_HEAD_SHA, manifests, inventory }, null, 2)}\n`);
+          NODE
+      - name: Collect authenticated exact-deployment evidence
+        env:
+          EXPECTED_HEAD_SHA: ${{ inputs.head_sha }}
+          PULL_NUMBER: ${{ inputs.pull_number }}
+        run: node scripts/ci/od17-authenticated-lighthouse.mjs
+      - name: Verify collector evidence exists
+        run: test -s tmp/od17-evidence/evidence.json
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: always()
+        with:
+          name: od17-canary-${{ inputs.head_sha }}
+          path: tmp/od17-evidence
+          if-no-files-found: warn
+          retention-days: 7
