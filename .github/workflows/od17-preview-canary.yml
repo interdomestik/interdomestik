@@ -103,12 +103,18 @@ jobs:
           import { createHash } from 'node:crypto'; import { mkdir, readFile, writeFile } from 'node:fs/promises';
           import { gzipSync } from 'node:zlib';
           const root = 'tmp/od17-local'; const inventory = JSON.parse(await readFile(`${root}/inventory.json`, 'utf8'));
+          const safeAssetPath = value => {
+            if (typeof value !== 'string' || !/^static\/[A-Za-z0-9._~!$&'()+,;=@%\[\]\/-]+\.js$/u.test(value)) return false;
+            if (value.includes('\\') || value.includes('\0') || /%(?![0-9a-f]{2})/iu.test(value)) return false;
+            if (/%(?:00|2e|2f|5c)/iu.test(value)) return false;
+            return !value.split('/').some(segment => segment === '' || segment === '.' || segment === '..');
+          };
           if ((await readFile(`${root}/head-sha.txt`, 'utf8')).trim() !== process.env.EXPECTED_HEAD_SHA)
             throw new Error('OD17_LOCAL_HEAD_MISMATCH');
           if (!Array.isArray(inventory) || inventory.length === 0) throw new Error('OD17_LOCAL_INVENTORY_EMPTY');
           let totalBytes = 0;
           for (const item of inventory) {
-            if (typeof item.path !== 'string' || !/^static\/[A-Za-z0-9._/-]+\.js$/u.test(item.path) || item.path.includes('..'))
+            if (!safeAssetPath(item.path))
               throw new Error('OD17_LOCAL_PATH_INVALID');
             const body = await readFile(`${root}/assets/${item.path}`); const digest = createHash('sha256').update(body).digest('hex');
             totalBytes += body.length; if (body.length > 5_000_000 || totalBytes > 25_000_000) throw new Error('OD17_LOCAL_ASSET_TOO_LARGE');
