@@ -127,8 +127,16 @@ test('OD17 collector keeps OIDC out of the unprivileged exact-head job', () => {
   assert.ok(findStep(trusted.steps, 'Resolve exact PR preparation run and Preview'));
   assert.ok(findStep(trusted.steps, 'Collect authenticated exact-deployment evidence'));
   const proof = findStep(trusted.steps, 'Recompute untrusted local structural evidence').run;
-  // prettier-ignore
-  for (const part of ['OD17_LOCAL_PATH_INVALID', 'A-Za-z0-9._~', '%(?:00|2e|2f|5c)', '%(?![0-9a-f]{2})', "segment === '..'"]) assert.ok(proof.includes(part), part);
+  const requiredParts = [
+    'OD17_LOCAL_PATH_INVALID',
+    'A-Za-z0-9._~',
+    '%(?:00|2e|2f|5c)',
+    '%(?![0-9a-f]{2})',
+    "segment === '..'",
+  ];
+  for (const part of requiredParts) {
+    assert.ok(proof.includes(part), part);
+  }
 });
 test('CI delegates PR browser gate to PR E2E', () => {
   const ciWorkflow = readWorkflow('.github/workflows/ci.yml');

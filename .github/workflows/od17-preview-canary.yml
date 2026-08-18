@@ -114,7 +114,7 @@ jobs:
           if (!Array.isArray(inventory) || inventory.length === 0) throw new Error('OD17_LOCAL_INVENTORY_EMPTY');
           let totalBytes = 0;
           for (const item of inventory) {
-            if (!safeAssetPath(item.path))
+            if (item === null || typeof item !== 'object' || !safeAssetPath(item.path))
               throw new Error('OD17_LOCAL_PATH_INVALID');
             const body = await readFile(`${root}/assets/${item.path}`); const digest = createHash('sha256').update(body).digest('hex');
             totalBytes += body.length; if (body.length > 5_000_000 || totalBytes > 25_000_000) throw new Error('OD17_LOCAL_ASSET_TOO_LARGE');
