@@ -112,6 +112,12 @@ test('selects one content-addressed canary with positive run and artifact identi
   assert.throws(() =>
     selectExactCanary({ ...input, artifactsByRun: new Map([[19, [{ ...artifact, id: 0 }]]]) })
   );
+  assert.throws(() =>
+    selectExactCanary({
+      ...input,
+      artifactsByRun: new Map([[19, [{ ...artifact, digest: 'sha256:c' }]]]),
+    })
+  );
 });
 test('collector splits pull-request preparation from manual trusted main', () => {
   // prettier-ignore

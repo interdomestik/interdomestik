@@ -11,7 +11,7 @@ const BRANCH = 'codex/ida-t115-od17-performance-proof';
 const WORKFLOW = '.github/workflows/od17-preview-canary.yml';
 const API = `https://api.github.com/repos/${REPOSITORY}`;
 const SHA = /^[0-9a-f]{40}$/u,
-  ARTIFACT_DIGEST = /^sha256:[0-9a-f]+$/u;
+  ARTIFACT_DIGEST = /^sha256:[0-9a-f]{64}$/u;
 const PREVIEW = /^interdomestik-web-[a-z0-9]{9}-ecohub\.vercel\.app$/u;
 const sha256 = body => createHash('sha256').update(body).digest('hex');
 const positive = value => Number.isSafeInteger(Number(value)) && Number(value) > 0;

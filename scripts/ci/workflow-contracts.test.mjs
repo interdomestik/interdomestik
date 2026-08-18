@@ -118,6 +118,7 @@ test('OD17 collector keeps OIDC out of the unprivileged exact-head job', () => {
   const prepare = workflow.jobs['prepare-exact-head'], trusted = workflow.jobs['trusted-main-collector'], audit = ci.jobs.audit;
   const proofStep = findStep(audit.steps, 'Certify OD17 exact-head public shell'), upload = findStep(audit.steps, 'Upload OD17 exact-head verdict');
   const checkout = audit.steps.find(step => String(step?.uses).startsWith('actions/checkout@'));
+  assert.ok(proofStep); assert.ok(upload); assert.ok(checkout);
   assert.equal(proofStep.run, 'pnpm od17:verify'); assert.equal(proofStep['continue-on-error'], undefined);
   assert.equal(proofStep.env.EXPECTED_HEAD_SHA, '${{ github.event.pull_request.head.sha }}');
   assert.equal(proofStep.env.EXPECTED_TRUSTED_MAIN_SHA, '${{ github.event.pull_request.base.sha }}');
