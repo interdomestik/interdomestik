@@ -249,6 +249,7 @@
     "js-yaml": "^4.3.0",
     "jsonwebtoken": "^9.0.3",
     "knip": "^5.87.0",
+    "lighthouse": "13.4.1",
     "lint-staged": "^16.4.0",
     "postgres": "^3.4.9",
     "prettier": "^3.9.6",

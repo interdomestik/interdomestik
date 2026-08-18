@@ -24,9 +24,8 @@ function readWorkflow(relativePath) {
 function findStep(steps, name) {
   return steps.find(step => step?.name === name);
 }
-function findStepIndex(steps, name) {
-  return steps.findIndex(step => step?.name === name);
-}
+// prettier-ignore
+function findStepIndex(steps, name) { const index = steps.findIndex(step => step?.name === name); assert.notEqual(index, -1, `Missing step: ${name}`); return index; }
 
 function normalizeNeeds(needs) {
   if (Array.isArray(needs)) {
@@ -86,51 +85,52 @@ test('workflow seed credential hardening rejects shared release passwords and E2
     );
   }
 });
-
 test('seeded CI workflows generate masked per-run E2E credentials before seeded auth work', () => {
   for (const workflowPath of WORKFLOWS_WITH_GENERATED_E2E_CREDENTIALS) {
     const source = readRepoText(workflowPath);
     assert.match(source, /name:\s*Generate ephemeral E2E credentials/u, workflowPath);
     assert.match(source, /bash scripts\/ci\/export-e2e-credentials\.sh/u, workflowPath);
   }
-  const ciWorkflow = readWorkflow('.github/workflows/ci.yml');
-  const ciSteps = ciWorkflow.jobs['e2e-gate'].steps;
-  assert.ok(
-    findStepIndex(ciSteps, 'Generate ephemeral E2E credentials') <
-      findStepIndex(ciSteps, 'Prepare E2E Database')
+  const orderContracts = [
+    ['.github/workflows/ci.yml', 'e2e-gate', 'Prepare E2E Database'],
+    ['.github/workflows/e2e-pr.yml', 'e2e-runner', 'Run PR E2E Gate'],
+    ['.github/workflows/e2e-nightly.yml', 'e2e', 'Seed E2E DB'],
+    ['.github/workflows/release-candidate.yml', 'rc-gate', 'Prepare CI database'],
+    ['.github/workflows/pilot-gate.yml', 'pilot-gate-runner', 'Prepare CI database'],
+    [
+      '.github/workflows/multi-agent-pr-hardening.yml',
+      'multi-agent-pr-hardening',
+      'Prepare CI database',
+    ],
+  ];
+  for (const [workflowPath, jobName, guardedStep] of orderContracts) {
+    const steps = readWorkflow(workflowPath).jobs[jobName].steps;
+    assert.ok(
+      findStepIndex(steps, 'Generate ephemeral E2E credentials') < findStepIndex(steps, guardedStep)
+    );
+  }
+});
+test('OD17 collector keeps OIDC out of the unprivileged exact-head job', () => {
+  const workflow = readWorkflow('.github/workflows/od17-preview-canary.yml');
+  const prepare = workflow.jobs['prepare-exact-head'];
+  const trusted = workflow.jobs['trusted-main-collector'];
+  assert.deepEqual(Object.keys(workflow.jobs), ['prepare-exact-head', 'trusted-main-collector']);
+  assert.equal(prepare.permissions['id-token'], 'none');
+  assert.equal(trusted.permissions['id-token'], 'write');
+  assert.equal(trusted.permissions.actions, 'read');
+  assert.equal(trusted.permissions.deployments, 'read');
+  assert.equal(workflow.permissions, undefined);
+  assert.equal(
+    findStep(prepare.steps, 'Collect authenticated exact-deployment evidence'),
+    undefined
   );
-  const prE2eWorkflow = readWorkflow('.github/workflows/e2e-pr.yml');
-  const prE2eSteps = prE2eWorkflow.jobs['e2e-runner'].steps;
-  assert.ok(
-    findStepIndex(prE2eSteps, 'Generate ephemeral E2E credentials') <
-      findStepIndex(prE2eSteps, 'Run PR E2E Gate')
-  );
-  const nightlyWorkflow = readWorkflow('.github/workflows/e2e-nightly.yml');
-  const nightlySteps = nightlyWorkflow.jobs.e2e.steps;
-  assert.ok(
-    findStepIndex(nightlySteps, 'Generate ephemeral E2E credentials') <
-      findStepIndex(nightlySteps, 'Seed E2E DB')
-  );
-  const releaseCandidateWorkflow = readWorkflow('.github/workflows/release-candidate.yml');
-  const releaseCandidateSteps = releaseCandidateWorkflow.jobs['rc-gate'].steps;
-  assert.ok(
-    findStepIndex(releaseCandidateSteps, 'Generate ephemeral E2E credentials') <
-      findStepIndex(releaseCandidateSteps, 'Prepare CI database')
-  );
-  const pilotGateWorkflow = readWorkflow('.github/workflows/pilot-gate.yml');
-  const pilotGateSteps = pilotGateWorkflow.jobs['pilot-gate-runner'].steps;
-  assert.ok(
-    findStepIndex(pilotGateSteps, 'Generate ephemeral E2E credentials') <
-      findStepIndex(pilotGateSteps, 'Prepare CI database')
-  );
-  const multiAgentWorkflow = readWorkflow('.github/workflows/multi-agent-pr-hardening.yml');
-  const multiAgentSteps = multiAgentWorkflow.jobs['multi-agent-pr-hardening'].steps;
-  assert.ok(
-    findStepIndex(multiAgentSteps, 'Generate ephemeral E2E credentials') <
-      findStepIndex(multiAgentSteps, 'Prepare CI database')
+  assert.ok(findStep(trusted.steps, 'Resolve exact PR preparation run and Preview'));
+  assert.ok(findStep(trusted.steps, 'Collect authenticated exact-deployment evidence'));
+  assert.match(
+    findStep(trusted.steps, 'Recompute untrusted local structural evidence').run,
+    /OD17_LOCAL_PATH_INVALID/u
   );
 });
-
 test('CI delegates PR browser gate to PR E2E', () => {
   const ciWorkflow = readWorkflow('.github/workflows/ci.yml');
   const prE2eWorkflow = readWorkflow('.github/workflows/e2e-pr.yml');
@@ -182,7 +182,6 @@ test('CI delegates PR browser gate to PR E2E', () => {
   assert.equal(findStep(prE2eJob.steps, 'E2E Subscription Lifecycle (KS+MK)'), undefined);
   assert.equal(findStep(prE2eJob.steps, 'E2E Smoke Suite (KS+MK)'), undefined);
 });
-
 test('CI materializes AI eval as a blocking surface-gated lane', () => {
   const ciWorkflow = readWorkflow('.github/workflows/ci.yml');
   const validationSurfaceJob = ciWorkflow.jobs['validation-surface'];
