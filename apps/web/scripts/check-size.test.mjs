@@ -5,7 +5,6 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { gzipSync } from 'node:zlib';
-
 import {
   assertManifestInventory,
   collectManifestJavaScriptPaths,
