@@ -15,20 +15,21 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                                             | Status    | Owner                         | Work                                                       | Exit Criteria                                                                                                                                                                                                                                                                                                                                                                        |
-| ---------------------------------------------- | --------- | ----------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` | `pending` | `platform + performance + qa` | Fail-closed exact-head proof of OD#17 public-shell budgets | DG47 remains the sole outcome. The DG49-A1 first-party collector prerequisite completed in [PR #1589](https://github.com/interdomestik/interdomestik/pull/1589), exact head `b71fdc52aadb5b4e3259832205a685b898f73e65`, merged as `6a835b8942202dab30d4f4193b34c32634f34320`. OD#17 is not yet proved; replacement exact-main performance-proof runtime authority remains mandatory. |
+| ID                                             | Status    | Owner                         | Work                                                       | Exit Criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ---------------------------------------------- | --------- | ----------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` | `blocked` | `platform + performance + qa` | Fail-closed exact-head proof of OD#17 public-shell budgets | [PR #1593](https://github.com/interdomestik/interdomestik/pull/1593) closed unmerged at exact head `a5c5534da28cb37553daad5d696523baeba5da49`. Exact-head E2E, preparation, Sonar, CodeQL, security and current-head review passed. The sole automatic Vercel Preview compiled in 2.8 minutes, stalled at `Running TypeScript`, and hit the provider's 45-minute build maximum. Canary did not run; OD#17 remains open until fresh authority can prove the same budgets without the failed provider capability. |
 
 ## Proof Ledger
 
 | ID | Source Refs | Execution | Run ID | Run Root | Sonar | Docker | Sentry | Learning | Evidence Refs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` | `gate:feb4fa42`; `capability:6b66ffdf`; `correction-r2:0382428a`; `collector-pr:1589`; `collector-e2e:32131335010` | `pending` | `pending` | `pending` | `pending` | `not_applicable` | `not_applicable` | `pending` | Collector prerequisite PR `#1589` and exact-head PR E2E run `32131335010` passed. CI, Sonar (zero PR issues), CodeQL, security, Copilot and finalizer also passed. Automatic CD `32132805756` was cancelled with zero jobs/effects. These are prerequisite source references only; the OD#17 performance execution, run root and Sonar result remain pending. |
+| `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` | `gate:feb4fa42`; `correction-r2:0382428a`; `pr:1593`; `head:a5c5534d`; `e2e:32166438771`; `prepare:32166438756`; `vercel:dpl_Cu1Doy9Y6iswiwCzEMySSe9kaFQY` | `blocked` | `provider_failure` | `not_applicable` | `pass` | `not_applicable` | `not_applicable` | `not_applicable` | `docs/plans/2026-08-18-ida-t115-od17-terminal-provider-failure-evidence.md` |
 
 ## Next Selection
 
-Only `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` is promoted, with runtime unauthorized.
-Dependent `T-118` and `T-117` remain blocked until OD#17 is actually PASS, merged and closed.
+No slice is promoted. OD#17 remains the first eligible residual and needs fresh
+current authority that addresses provider build capability. Dependent `T-118` and
+`T-117` remain blocked until OD#17 is actually PASS, merged and closed.
 
 ## Historical Authority
 
@@ -42,4 +43,4 @@ remains the stable deep-detail source for M0-M5 task contracts. Current rows are
 selection, implementation and closeout; detailed proof is linked, never copied here.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` (Tier 3; `runtime_authorized:false`).
+The next active governed implementation goal is blocked pending fresh current authority; activeSlice=null.

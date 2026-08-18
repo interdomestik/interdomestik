@@ -15,40 +15,25 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`IDA-T115-P0B-NEUTRAL-SESSION-PENDING-SKELETON` completed in
-[PR #1581](https://github.com/interdomestik/interdomestik/pull/1581), merged as
-`2ce06b1bb51e451982a6a3e065b40b4e4d502536`. Pending null-session UI V2 now keeps
-the anonymous Hero and Free Start intake available beside a neutral status, without
-tracking or redirect. DG46-A1 and Runtime R2 are consumed.
+T-115 P0A canonical front-door composition and P0B pending-session continuity
+remain complete in [PR #1577](https://github.com/interdomestik/interdomestik/pull/1577)
+and [PR #1581](https://github.com/interdomestik/interdomestik/pull/1581). The
+separate OD#17 public-shell performance residual is not complete.
 
-P0A canonical front-door composition completed in
-[PR #1577](https://github.com/interdomestik/interdomestik/pull/1577); its closeout
-is linked from `current-tracker.md`. P0B does not close the separate T-115 OD#17
-performance proof; it remains ahead of dependent T-117, T-118 and T-116 candidates.
-Arben exact-approved `IDA-DG47` at 11,080 bytes / SHA-256
-`feb4fa420377368ebd4686d934d7f6368af9f65444d024d97d76c3662f0efae5` on base
-`4b2da57cfb872ee557b034fe44693ca67992bd98`. The reviewed authority document is
-[`IDA-DG47`](./2026-08-17-ida-dg47-t115-od17-public-shell-performance-proof.md).
-It promotes only `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` (Tier 3 shared
-CI/performance verification); runtime, provider, deployment and production remain
-unauthorized pending exact-main convergence and a separate runtime receipt.
-DG49 is the exact-approved, runtime-unauthorized capability prerequisite for
-that same sole OD#17 outcome: [OIDC Preview canary access](./2026-08-18-ida-dg49-t115-od17-github-oidc-preview-canary-access.md).
-It does not promote a second slice or alter the DG47 completion boundary.
-Exact-approved
-[`IDA-DG49-A1`](./2026-08-18-ida-dg49-a1-t115-od17-canary-collector-correction.md)
-corrected only the inert-canary feasibility defect. Its protected-main,
-first-party-only OIDC collector prerequisite completed in
-[PR #1589](https://github.com/interdomestik/interdomestik/pull/1589), exact head
-`b71fdc52aadb5b4e3259832205a685b898f73e65`, merged as
-`6a835b8942202dab30d4f4193b34c32634f34320`. The exact-approved R2 authority
-remains 17,454 bytes / SHA-256
-`0382428a5df48152e61b3d0c468049722fa24a0251f8414153341edab2e5a71a`.
-The Opus and GitHub findings were remediated; no final Opus PASS is claimed.
-All exact-head checks passed: PR E2E, CI, Sonar, CodeQL, security, Copilot and finalizer.
-This prerequisite does not complete OD#17 or change its thresholds, provider
-tuple, product scope or next-candidate order. The performance proof still
-requires replacement exact-main runtime authority before execution.
+The protected-main collector prerequisite completed in
+[PR #1589](https://github.com/interdomestik/interdomestik/pull/1589). The sole
+performance-proof attempt [PR #1593](https://github.com/interdomestik/interdomestik/pull/1593)
+reached exact head `a5c5534da28cb37553daad5d696523baeba5da49`: exact-head E2E,
+focused contracts, Sonar with zero issues, CodeQL, security and current-head review
+passed. Its automatic exact-head Vercel Preview compiled in 2.8 minutes, then stalled
+at `Running TypeScript` until Vercel terminated the build at its 45-minute maximum.
+No protected-main canary ran and no performance PASS is claimed. The PR closed
+unmerged as `provider_failure / measurement_capability_missing` under the approved
+fail-closed contract; manual redeploy and another authority revision were not used.
+
+That terminal abort consumes the current runtime without promoting a replacement.
+OD#17 remains the first eligible residual before T-118, T-117 and T-116, but it needs
+a fresh, separately authorized selection that addresses provider build capability.
 
 The compact roadmap below preserves the live M0-M5 implementation blueprint. Full task
 contracts, acceptance criteria and milestone detail remain canonical in the
@@ -110,4 +95,4 @@ All authority history through Rev 243 is recoverable byte-for-byte from Git thro
 Manifest SHA-256: `355229c5d24a6fa5f0986b6ce41423cbdc5caea16b291f1335a7264b2be5fc78`.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` (Tier 3; `runtime_authorized:false`).
+The next active governed implementation goal is blocked pending fresh current authority; activeSlice=null.
