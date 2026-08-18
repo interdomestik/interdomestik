@@ -35,7 +35,7 @@ jobs:
       main_e2e_reuse: ${{ steps.main_e2e_reuse_safe.outputs.reuse }}
     steps:
       # prettier-ignore
-      - { uses: actions/checkout@v5, with: { fetch-depth: 0 } }
+      - { uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8, with: { fetch-depth: 0 } } # v6.0.1
       - uses: actions/setup-node@v5
         with:
           node-version-file: '.nvmrc'
@@ -68,7 +68,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # prettier-ignore
-      - { uses: actions/checkout@v5, with: { ref: "${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'codex/ida-t115-od17-performance-proof' && github.event.pull_request.head.sha || github.sha }}", persist-credentials: false } }
+      - { uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8, with: { ref: "${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'codex/ida-t115-od17-performance-proof' && github.event.pull_request.head.sha || github.sha }}", persist-credentials: false } } # v6.0.1
       - uses: ./.github/actions/setup
       # prettier-ignore
       - { name: Certify OD17 exact-head public shell, if: "github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'codex/ida-t115-od17-performance-proof'", env: { GH_TOKEN: '${{ github.token }}', EXPECTED_HEAD_SHA: '${{ github.event.pull_request.head.sha }}', EXPECTED_TRUSTED_MAIN_SHA: '${{ github.event.pull_request.base.sha }}', PULL_NUMBER: '${{ github.event.pull_request.number }}' }, run: pnpm od17:verify }

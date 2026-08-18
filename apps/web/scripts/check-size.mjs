@@ -18,12 +18,14 @@ const BUILD_MANIFESTS = [
 const LOADABLE_MANIFESTS = manifests('react-loadable-manifest.json');
 const CRM_CONTRACT = path.join(APP_DIR, 'src/components/crm/charts/chart-contract.ts');
 const SHA256 = /^[0-9a-f]{64}$/u,
-  LOCAL_JS = /^static\/[A-Za-z0-9._~!$&'()+,;=@%\[\]\/-]+\.js$/u;
+  LOCAL_JS = /^static\/[A-Za-z0-9._~!$&'()+,;=@%\u005b\u005d/-]+\.js$/u;
 const OD17_BRANCH = 'codex/ida-t115-od17-performance-proof';
 const OD17_ORIGIN = /^https:\/\/interdomestik-web-[a-z0-9]{9}-ecohub\.vercel\.app$/u;
 const VERCEL_ID = /^[A-Za-z0-9-]+(?:::[A-Za-z0-9_-]+)+$/u;
 const sha = body => createHash('sha256').update(body).digest('hex');
 const positive = value => Number.isSafeInteger(Number(value)) && Number(value) > 0;
+const codeUnit = (left, right) => (left < right ? -1 : left > right ? 1 : 0);
+const all = values => values.every(Boolean);
 
 // prettier-ignore
 export function isSafeOd17AssetPath(value) {
@@ -39,7 +41,7 @@ export function collectManifestJavaScriptPaths(value) {
     else if (item && typeof item === 'object') Object.values(item).forEach(visit);
   };
   visit(value);
-  return [...paths].sort();
+  return [...paths].sort(codeUnit);
 }
 // prettier-ignore
 export function assertManifestInventory({ manifests: source, inventory }) {
@@ -47,7 +49,7 @@ export function assertManifestInventory({ manifests: source, inventory }) {
   if (!Array.isArray(inventory) || inventory.length !== expected.length) throw new Error('OD17_MANIFEST_INVENTORY_INVALID');
   for (const item of inventory) {
     const valid = item && isSafeOd17AssetPath(item.path) && SHA256.test(item.sha256 ?? '') && Number.isSafeInteger(item.bytes) && item.bytes > 0 && Number.isSafeInteger(item.gzipBytes) && item.gzipBytes > 0 && !rows.has(item.path);
-    if (!valid) throw new Error('OD17_MANIFEST_INVENTORY_INVALID'); rows.set(item.path, item);
+    if (!valid) { throw new Error('OD17_MANIFEST_INVENTORY_INVALID'); } rows.set(item.path, item);
   }
   if (!expected.every(item => rows.has(item))) throw new Error('OD17_MANIFEST_INVENTORY_INVALID');
   return expected.map(item => rows.get(item));
@@ -66,7 +68,7 @@ function remoteClosure(item, origin) {
   candidates.push(...requests.filter(row => /javascript/u.test(row?.mimeType ?? '') || String(row?.url ?? '').endsWith('.js')).map(row => row.url));
   const urls = new Set();
   for (const value of candidates) try { const url = new URL(value, item.url); if (url.origin === origin && url.pathname.endsWith('.js') && !url.search && !url.hash) urls.add(url.toString()); } catch { return null; }
-  return [...urls].sort();
+  return [...urls].sort(codeUnit);
 }
 // prettier-ignore
 function exactRemoteGzip(item, origin) {
@@ -79,8 +81,14 @@ function exactRemoteGzip(item, origin) {
     const bytes = gzipSync(body, { level: 9 }).length; if (bytes !== asset.gzipBytes) return null;
     rows.set(url.toString(), asset); gzip += bytes;
   }
-  return JSON.stringify([...rows.keys()].sort()) === JSON.stringify(expected) ? gzip : null;
+  return JSON.stringify([...rows.keys()].sort(codeUnit)) === JSON.stringify(expected) ? gzip : null;
 }
+// prettier-ignore
+function exactProvenance(evidence, expected) { const { canary = {}, preparation = {} } = expected;
+  return all([evidence.schemaVersion === 1, evidence.workflowPath === '.github/workflows/od17-preview-canary.yml', evidence.trustedMainSha === expected.expectedTrustedMainSha, Number(evidence.pullNumber) === Number(expected.pullNumber), positive(evidence.pullNumber), Number(evidence.runId) === canary.runId, Number(evidence.runAttempt) === canary.runAttempt, Number(evidence.preparationRunId) === preparation.runId, Number(evidence.preparationRunAttempt) === preparation.runAttempt, Number(evidence.preparationArtifactId) === preparation.artifactId, evidence.preparationArtifactDigest === preparation.artifactDigest, positive(evidence.deploymentId), positive(evidence.statusId)]); }
+// prettier-ignore
+function exactReport(item) { const report = item.report, raw = JSON.stringify(report);
+  return all([SHA256.test(item.reportSha256 ?? ''), sha(raw) === item.reportSha256, item.lighthouseVersion === report?.lighthouseVersion, /^(?:Headless)?Chrome\/\d+(?:\.\d+){3}$/u.test(item.chromeVersion ?? ''), report?.configSettings?.formFactor === 'mobile', report?.configSettings?.screenEmulation?.mobile === true]); }
 // prettier-ignore
 export function evaluateOd17Evidence({ evidence, expectedHeadSha, expected = {} }) {
   if (evidence?.failureClass === 'provider_failure') return 'provider_failure';
@@ -89,18 +97,15 @@ export function evaluateOd17Evidence({ evidence, expectedHeadSha, expected = {} 
   const origin = evidence?.previewOrigin;
   const target = OD17_ORIGIN.test(origin ?? '') && evidence?.deploymentEnvironment === 'Preview' && evidence?.deploymentProduction === false && evidence?.deploymentRef === OD17_BRANCH && evidence?.eventName === 'workflow_dispatch' && evidence?.headBranch === 'main';
   if (!target) return 'target_mismatch';
-  const { canary = {}, preparation = {} } = expected;
-  const provenance = evidence.schemaVersion === 1 && evidence.workflowPath === '.github/workflows/od17-preview-canary.yml' && evidence.trustedMainSha === expected.expectedTrustedMainSha && Number(evidence.pullNumber) === Number(expected.pullNumber) && positive(evidence.pullNumber) && Number(evidence.runId) === canary.runId && Number(evidence.runAttempt) === canary.runAttempt && Number(evidence.preparationRunId) === preparation.runId && Number(evidence.preparationRunAttempt) === preparation.runAttempt && Number(evidence.preparationArtifactId) === preparation.artifactId && evidence.preparationArtifactDigest === preparation.artifactDigest && positive(evidence.deploymentId) && positive(evidence.statusId);
-  if (!provenance) return 'measurement_capability_missing';
+  if (!exactProvenance(evidence, expected)) return 'measurement_capability_missing';
   const thresholds = { scoreAbove: 90, gzipBelow: 122880, ttfbBelowMs: 100 };
   if (JSON.stringify(evidence.thresholds) !== JSON.stringify(thresholds) || !Array.isArray(evidence.observations) || evidence.observations.length !== 3) return 'measurement_capability_missing';
   const locales = new Set();
   for (const item of evidence.observations) {
-    const identity = ['sq', 'mk', 'en'].includes(item?.locale) && !locales.has(item.locale) && item.url === `${origin}/${item.locale}` && item.availabilityStatus === 200 && item.unauthenticatedStatus !== 200 && VERCEL_ID.test(item.vercelId ?? '');
-    if (!identity) return 'measurement_capability_missing'; locales.add(item.locale);
+    const identity = all([['sq', 'mk', 'en'].includes(item?.locale), !locales.has(item.locale), item.url === `${origin}/${item.locale}`, item.availabilityStatus === 200, item.unauthenticatedStatus !== 200, VERCEL_ID.test(item.vercelId ?? '')]);
+    if (!identity) { return 'measurement_capability_missing'; } locales.add(item.locale);
     const gzip = exactRemoteGzip(item, origin), reported = item.report?.categories?.performance?.score;
-    const rawReport = JSON.stringify(item.report), mobile = item.report?.configSettings?.formFactor === 'mobile' && item.report?.configSettings?.screenEmulation?.mobile === true;
-    const exact = gzip === item.gzipBytes && Number.isFinite(item.ttfbMs) && item.ttfbMs > 0 && Number.isFinite(item.score) && Number.isFinite(reported) && reported * 100 === item.score && item.report?.finalDisplayedUrl === item.url && SHA256.test(item.reportSha256 ?? '') && sha(rawReport) === item.reportSha256 && item.lighthouseVersion === item.report?.lighthouseVersion && /^(?:Headless)?Chrome\/\d+(?:\.\d+){3}$/u.test(item.chromeVersion ?? '') && mobile;
+    const exact = all([gzip === item.gzipBytes, Number.isFinite(item.ttfbMs), item.ttfbMs > 0, Number.isFinite(item.score), Number.isFinite(reported), reported * 100 === item.score, item.report?.finalDisplayedUrl === item.url, exactReport(item)]);
     if (!exact) return 'measurement_capability_missing';
     if (!(item.score > 90 && gzip < 122880 && item.ttfbMs < 100)) return 'budget_failed';
   }
@@ -121,7 +126,7 @@ export async function verifyOd17Files({ localDir, evidenceDir, expectedHeadSha, 
   return { evidence, inventory, verdict: evaluateOd17Evidence({ evidence, expectedHeadSha, expected }) };
 }
 // prettier-ignore
-async function firstExisting(paths, retries = 1) { for (let attempt = 0; attempt < retries; attempt += 1) { for (const file of paths) try { if ((await fs.stat(file)).size > 0) return file; } catch {} await new Promise(resolve => setTimeout(resolve, 500)); } return null; }
+async function firstExisting(paths, retries = 1) { for (let attempt = 0; attempt < retries; attempt += 1) { for (const file of paths) { try { if ((await fs.stat(file)).size > 0) return file; } catch {} } await new Promise(resolve => setTimeout(resolve, 500)); } return null; }
 const chunkGzip = file => fs.readFile(path.join(NEXT_DIR, file)).then(gzipSize);
 // prettier-ignore
 async function checkSize() {
@@ -135,7 +140,7 @@ async function checkSize() {
     const limit = Number(match[1]) * 1024, routes = [['/agent/crm', ['./pipeline-amount-chart']], ['/admin/crm', ['./pipeline-amount-chart']], ['/staff/crm', ['./pipeline-amount-chart', './funnel-movement-chart', './stage-velocity-chart']]];
     for (const [name, modules] of routes) { const files = [...new Set(modules.flatMap(module => loadable[`components/crm/charts/reporting-chart-boundary.tsx -> ${module}`]?.files ?? []).filter(file => file.endsWith('.js')))]; const size = (await Promise.all(files.map(chunkGzip))).reduce((sum, item) => sum + item, 0); console.log(`${files.length && size <= limit ? '✅' : '❌'} ${name}: ${(size / 1024).toFixed(2)} KB`); failed ||= files.length === 0 || size > limit; }
   }
-  if (failed) throw new Error('Performance budget exceeded'); console.log('\n✨ All performance checks passed.');
+  if (failed) { throw new Error('Performance budget exceeded'); } console.log('\n✨ All performance checks passed.');
 }
 // prettier-ignore
-if (process.argv[1] === fileURLToPath(import.meta.url)) checkSize().catch(error => { console.error(`❌ Failed to check bundle size: ${error.message}`); process.exitCode = 1; });
+if (process.argv[1] === fileURLToPath(import.meta.url)) try { await checkSize(); } catch (error) { console.error(`❌ Failed to check bundle size: ${error.message}`); process.exitCode = 1; }

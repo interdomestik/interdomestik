@@ -4,6 +4,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { appendTrustedRunnerFile } from './trusted-runner-file.mjs';
+
 const REPOSITORY = 'interdomestik/interdomestik';
 const BRANCH = 'codex/ida-t115-od17-performance-proof';
 const WORKFLOW = '.github/workflows/od17-preview-canary.yml';
@@ -13,6 +15,7 @@ const SHA = /^[0-9a-f]{40}$/u,
 const PREVIEW = /^interdomestik-web-[a-z0-9]{9}-ecohub\.vercel\.app$/u;
 const sha256 = body => createHash('sha256').update(body).digest('hex');
 const positive = value => Number.isSafeInteger(Number(value)) && Number(value) > 0;
+const codeUnit = (left, right) => (left < right ? -1 : left > right ? 1 : 0);
 const fail = message => {
   throw new Error(`OD17_FOUNDATION_IDENTITY_INVALID: ${message}`);
 };
@@ -44,7 +47,7 @@ export function collectRemoteJavaScriptUrls({ previewOrigin, pageUrls, lighthous
   const add = (value, extensionless = false) => { const url = new URL(value); if (url.origin === origin && (extensionless || url.pathname.endsWith('.js'))) urls.add(url.toString()); };
   for (const url of pageUrls ?? []) add(url);
   for (const request of lighthouseRequests ?? []) if (/javascript/u.test(request?.mimeType ?? '') || new URL(request.url).pathname.endsWith('.js')) add(request.url, /javascript/u.test(request?.mimeType ?? ''));
-  return [...urls].sort();
+  return [...urls].sort(codeUnit);
 }
 // prettier-ignore
 export function assertCanonicalLocaleUrl({ requestedUrl, finalUrl }) { const requested = new URL(requestedUrl), final = new URL(finalUrl); if (requested.origin !== final.origin || requested.pathname !== final.pathname) fail('main_document_redirect'); }
@@ -65,7 +68,7 @@ export function selectExactCanary({ runs, artifactsByRun, expectedHeadSha, expec
     if (!exact) return [];
     return (artifactsByRun.get(run.id) ?? []).filter(artifact => artifact?.name === `od17-canary-${expectedHeadSha}` && artifact?.expired === false && artifact?.workflow_run?.id === run.id && positive(artifact?.id) && ARTIFACT_DIGEST.test(artifact?.digest ?? '')).map(artifact => ({ runId: run.id, runAttempt: run.run_attempt, artifactId: artifact.id, artifactDigest: artifact.digest }));
   });
-  if (matches.length !== 1) fail('canary_ambiguity'); return matches[0];
+  if (matches.length !== 1) { fail('canary_ambiguity'); } return matches[0];
 }
 // prettier-ignore
 export async function waitForChrome() { for (let attempt = 0; attempt < 50; attempt += 1) { try { const response = await fetch('http://127.0.0.1:9222/json/version'); if (response.ok) return response.json(); } catch {} await new Promise(resolve => setTimeout(resolve, 100)); } fail('chrome_unavailable'); }
@@ -80,14 +83,14 @@ export function buildTrustedPreviewRequest({ previewUrl, expectedPreviewUrl, oid
 export function selectExactPreviewDeployment({ deployments, expectedHeadSha }) {
   if (!Array.isArray(deployments) || !SHA.test(expectedHeadSha ?? '')) fail('deployments');
   const matches = deployments.filter(item => item?.sha === expectedHeadSha && item?.ref === BRANCH && item?.performed_via_github_app?.slug === 'vercel' && item?.environment === 'Preview' && item?.production_environment === false && item?.latest_status?.state === 'success' && positive(item?.id) && positive(item?.latest_status?.id));
-  if (matches.length !== 1) fail('deployment_ambiguity'); const item = matches[0], url = parseTrustedPreviewUrl(item.latest_status.environment_url);
+  if (matches.length !== 1) { fail('deployment_ambiguity'); } const item = matches[0], url = parseTrustedPreviewUrl(item.latest_status.environment_url);
   if (url.pathname !== '/') fail('deployment_url');
   return { deploymentId: item.id, statusId: item.latest_status.id, sha: item.sha, environment: item.environment, productionEnvironment: false, ref: item.ref, url: url.toString() };
 }
 // prettier-ignore
-async function api(endpoint, token) { const response = await fetch(`${API}${endpoint}`, { headers: { authorization: `Bearer ${token}`, accept: 'application/vnd.github+json' } }); if (!response.ok) fail(`github_api_${response.status}`); return response.json(); }
+async function api(endpoint, token) { const response = await fetch(`${API}${endpoint}`, { headers: { authorization: `Bearer ${token}`, accept: 'application/vnd.github+json' } }); if (!response.ok) { fail(`github_api_${response.status}`); } return response.json(); }
 // prettier-ignore
-const download = (runId, name, target) => execFileSync('gh', ['run', 'download', String(runId), '-R', REPOSITORY, '-n', name, '-D', target], { stdio: 'inherit' });
+const download = (runId, name, target) => execFileSync('/usr/bin/gh', ['run', 'download', String(runId), '-R', REPOSITORY, '-n', name, '-D', target], { stdio: 'inherit' });
 async function writeVerdict(root, verdict) {
   const serialized = `${JSON.stringify(verdict, null, 2)}\n`,
     digest = sha256(serialized);
@@ -119,7 +122,7 @@ async function verifyProof() {
     const result = await verifyOd17Files({ localDir, evidenceDir, expectedHeadSha: head, expectedTrustedMainSha: main, pullNumber: pull, canary, preparation });
     const observations = result.evidence.observations?.map(({ locale, score, gzipBytes, ttfbMs }) => ({ locale, score, gzipBytes, ttfbMs }));
     const verdict = { schemaVersion: 1, headSha: head, trustedMainSha: main, canary, preparation, verdict: result.verdict, observations };
-    const verdictSha256 = await writeVerdict(root, verdict); console.log(JSON.stringify({ ...verdict, verdictSha256 }));
+    await writeVerdict(root, verdict); console.log('OD17_VERDICT_WRITTEN');
     if (result.verdict !== 'pass') fail(result.verdict);
   } catch (error) {
     try { await fs.stat(path.join(root, 'verdict.json')); } catch { await writeVerdict(root, { schemaVersion: 1, headSha: SHA.test(head ?? '') ? head : null, trustedMainSha: SHA.test(main ?? '') ? main : null, verdict: 'measurement_capability_missing', errorCode: 'OD17_PROOF_FAILED' }); }
@@ -137,7 +140,8 @@ async function resolveCollector() {
   const deployments = await api(`/deployments?${query}`, token); for (const item of deployments) if (positive(item?.id)) [item.latest_status] = await api(`/deployments/${item.id}/statuses?per_page=1`, token);
   const selected = selectExactPreviewDeployment({ deployments, expectedHeadSha: head });
   const values = { OD17_PREVIEW_URL: selected.url, OD17_DEPLOYMENT_ID: selected.deploymentId, OD17_STATUS_ID: selected.statusId, OD17_DEPLOYMENT_SHA: selected.sha, OD17_DEPLOYMENT_ENVIRONMENT: selected.environment, OD17_DEPLOYMENT_PRODUCTION: false, OD17_DEPLOYMENT_REF: selected.ref, OD17_PREPARATION_RUN_ID: preparation.runId, OD17_PREPARATION_RUN_ATTEMPT: preparation.runAttempt, OD17_PREPARATION_ARTIFACT_ID: preparation.artifactId, OD17_PREPARATION_ARTIFACT_DIGEST: preparation.artifactDigest };
-  await fs.appendFile(process.env.GITHUB_ENV, `${Object.entries(values).map(([key, value]) => `${key}=${value}`).join('\n')}\n`);
+  const content = Object.entries(values).map(entry => entry.join('=')).join('\n');
+  appendTrustedRunnerFile(process.env.GITHUB_ENV, `${content}\n`);
 }
 // prettier-ignore
-if (isMainModule(process.argv[1], import.meta.url)) (process.argv[2] === 'verify' ? verifyProof() : resolveCollector()).catch(error => { console.error(error.message); process.exitCode = 1; });
+if (isMainModule(process.argv[1], import.meta.url)) try { await (process.argv[2] === 'verify' ? verifyProof() : resolveCollector()); } catch (error) { console.error(error.message); process.exitCode = 1; }
