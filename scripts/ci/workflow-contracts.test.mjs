@@ -126,6 +126,7 @@ test('OD17 collector keeps OIDC out of the unprivileged exact-head job', () => {
   assert.match(checkout.with.ref, /pull_request\.head\.sha[\s\S]*github\.sha/u); assert.match(upload.if, /always\(\)/u); assert.equal(upload.with['if-no-files-found'], 'error');
   assert.deepEqual(Object.keys(workflow.jobs), ['prepare-exact-head', 'trusted-main-collector']);
   assert.equal(prepare.permissions['id-token'], 'none');
+  const build = findStep(prepare.steps, 'Build exact head and retain bounded structural evidence'); assert.ok(build); assert.notEqual(build.env.DATABASE_URL_RLS, build.env.DATABASE_URL);
   assert.deepEqual([trusted.permissions['id-token'], trusted.permissions.actions, trusted.permissions.deployments], ['write', 'read', 'read']);
   assert.equal(workflow.permissions, undefined);
   assert.equal(findStep(prepare.steps, 'Collect authenticated exact-deployment evidence'), undefined);
