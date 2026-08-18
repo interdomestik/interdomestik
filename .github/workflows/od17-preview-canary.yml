@@ -1,0 +1,53 @@
+name: OD17 Preview Canary
+
+on:
+  workflow_dispatch:
+    inputs:
+      pull_number:
+        description: 'Open same-repository OD17 pull request number'
+        required: true
+        type: string
+      head_sha:
+        description: 'Exact 40-character OD17 pull request head SHA'
+        required: true
+        type: string
+
+jobs:
+  foundation-contract:
+    if: github.repository == 'interdomestik/interdomestik' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Verify immutable workflow and PR identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_HEAD_SHA: ${{ inputs.head_sha }}
+          PULL_NUMBER: ${{ inputs.pull_number }}
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REPOSITORY}" = 'interdomestik/interdomestik'
+          test "${GITHUB_REF}" = 'refs/heads/main'
+          PULL_REQUEST_JSON="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PULL_NUMBER}")" \
+            node --input-type=module -e '
+            import { assertFoundationCanaryIdentity } from "./scripts/ci/od17-public-shell-performance.mjs";
+            const pullRequest = JSON.parse(process.env.PULL_REQUEST_JSON);
+            assertFoundationCanaryIdentity({
+              repository: process.env.GITHUB_REPOSITORY,
+              workflowRef: process.env.GITHUB_REF,
+              pullRequest,
+              expectedHeadSha: process.env.EXPECTED_HEAD_SHA,
+            });
+          '
+
+      - name: Confirm foundation is inert
+        run: |
+          set -euo pipefail
+          echo 'OD17 foundation contract validated; no OIDC token or provider request is made in R1.'
