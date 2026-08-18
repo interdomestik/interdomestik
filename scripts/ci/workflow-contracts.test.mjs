@@ -127,10 +127,12 @@ test('OD17 collector keeps OIDC out of the unprivileged exact-head job', () => {
   );
   assert.ok(findStep(trusted.steps, 'Resolve exact PR preparation run and Preview'));
   assert.ok(findStep(trusted.steps, 'Collect authenticated exact-deployment evidence'));
-  const proof = findStep(trusted.steps, 'Recompute untrusted local structural evidence').run;
+  const structuralProof = findStep(trusted.steps, 'Recompute untrusted local structural evidence');
+  assert.equal(typeof structuralProof?.run, 'string');
+  const proof = structuralProof.run;
   const source = proof.match(/const safeAssetPath = (value => \{[\s\S]*?\n\s*\});/u)?.[1];
   assert.ok(source);
-  const safeAssetPath = vm.runInNewContext(`(${source})`);
+  const safeAssetPath = vm.runInNewContext(`(${source})`, {}, { timeout: 50 });
   for (const value of ['static/(public)/[locale].js', 'static/%5Blocale%5D.js'])
     assert.equal(safeAssetPath(value), true, value);
   for (const value of ['static/../x.js', 'static/%2e/x.js', 'static/%2f.js', 'static/%ZZ.js'])
@@ -167,11 +169,9 @@ test('CI delegates PR browser gate to PR E2E', () => {
   const unitJob = ciWorkflow.jobs.unit;
   assert.ok(normalizeNeeds(unitJob.needs).includes('validation-surface'));
   assert.equal(unitJob.if, "needs.validation-surface.outputs.run_broad == 'true'");
-
   const prE2eJob = prE2eWorkflow.jobs['e2e-runner'];
   const prE2eSetupStep = prE2eJob.steps.find(step => step?.uses === './.github/actions/setup');
   assert.equal(prE2eSetupStep.with['install-playwright'], true);
-
   const prStrictGuardStep = findStep(prE2eJob.steps, 'Strict Rule Guards (golden/gate)');
   assert.match(prStrictGuardStep.run, /guards/u);
 
