@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import vm from 'node:vm';
 
 import yaml from 'js-yaml';
 import './ci-audit-rls-workflow-contracts.mjs';
@@ -127,16 +128,14 @@ test('OD17 collector keeps OIDC out of the unprivileged exact-head job', () => {
   assert.ok(findStep(trusted.steps, 'Resolve exact PR preparation run and Preview'));
   assert.ok(findStep(trusted.steps, 'Collect authenticated exact-deployment evidence'));
   const proof = findStep(trusted.steps, 'Recompute untrusted local structural evidence').run;
-  const requiredParts = [
-    'OD17_LOCAL_PATH_INVALID',
-    'A-Za-z0-9._~',
-    '%(?:00|2e|2f|5c)',
-    '%(?![0-9a-f]{2})',
-    "segment === '..'",
-  ];
-  for (const part of requiredParts) {
-    assert.ok(proof.includes(part), part);
-  }
+  const source = proof.match(/const safeAssetPath = (value => \{[\s\S]*?\n\});/u)?.[1];
+  assert.ok(source);
+  const safeAssetPath = vm.runInNewContext(`(${source})`);
+  for (const value of ['static/(public)/[locale].js', 'static/%5Blocale%5D.js'])
+    assert.equal(safeAssetPath(value), true, value);
+  for (const value of ['static/../x.js', 'static/%2e/x.js', 'static/%2f.js', 'static/%ZZ.js'])
+    assert.equal(safeAssetPath(value), false, value);
+  assert.match(proof, /item === null \|\| typeof item !== 'object'/u);
 });
 test('CI delegates PR browser gate to PR E2E', () => {
   const ciWorkflow = readWorkflow('.github/workflows/ci.yml');
@@ -146,10 +145,8 @@ test('CI delegates PR browser gate to PR E2E', () => {
   const ciE2eGateJob = ciWorkflow.jobs['e2e-gate'];
   const ciSteps = ciE2eGateJob.steps;
   const ciE2eNeeds = normalizeNeeds(ciE2eGateJob.needs);
-
   assert.ok(ciE2eNeeds.includes('validation-surface'));
   assert.equal(ciE2eGateJob.if, "needs.validation-surface.outputs.run_broad == 'true'");
-
   const setupStep = ciSteps.find(step => step?.uses === './.github/actions/setup');
   assert.equal(setupStep.with['install-playwright'], "${{ github.event_name != 'pull_request' }}");
   const strictGuardStep = findStep(ciSteps, 'Enforce E2E Best Practices');
@@ -157,10 +154,8 @@ test('CI delegates PR browser gate to PR E2E', () => {
   assert.match(strictGuardStep.run, /guards/u);
   const prepareDbStep = findStep(ciSteps, 'Prepare E2E Database');
   assert.equal(prepareDbStep.if, undefined);
-
   const rlsStep = findStep(ciSteps, 'RLS Integration Test');
   assert.equal(rlsStep.if, undefined);
-
   const e2eGateSuiteStep = findStep(ciSteps, 'E2E Gate Suite');
   assert.equal(
     e2eGateSuiteStep.if,
