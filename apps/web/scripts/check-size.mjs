@@ -24,8 +24,7 @@ const OD17_ORIGIN = /^https:\/\/interdomestik-web-[a-z0-9]{9}-ecohub\.vercel\.ap
 const VERCEL_ID = /^[A-Za-z0-9-]+(?:::[A-Za-z0-9_-]+)+$/u;
 const sha = body => createHash('sha256').update(body).digest('hex');
 const positive = value => Number.isSafeInteger(Number(value)) && Number(value) > 0;
-// prettier-ignore
-const codeUnit = (left, right) => { if (left < right) return -1; if (left > right) return 1; return 0; };
+const codeUnit = (left, right) => (left < right ? -1 : left > right ? 1 : 0);
 const all = values => values.every(Boolean);
 
 // prettier-ignore
@@ -91,8 +90,16 @@ function exactPreparation(evidence, preparation) { return all([Number(evidence.p
 // prettier-ignore
 function exactProvenance(evidence, expected) { return all([evidence.schemaVersion === 1, evidence.workflowPath === '.github/workflows/od17-preview-canary.yml', evidence.trustedMainSha === expected.expectedTrustedMainSha, Number(evidence.pullNumber) === Number(expected.pullNumber), positive(evidence.pullNumber), exactCanary(evidence, expected.canary ?? {}), exactPreparation(evidence, expected.preparation ?? {}), positive(evidence.deploymentId), positive(evidence.statusId)]); }
 // prettier-ignore
-function exactReport(item) { const report = item.report, raw = JSON.stringify(report);
-  return all([SHA256.test(item.reportSha256 ?? ''), sha(raw) === item.reportSha256, item.lighthouseVersion === report?.lighthouseVersion, /^(?:Headless)?Chrome\/\d+(?:\.\d+){3}$/u.test(item.chromeVersion ?? ''), report?.configSettings?.formFactor === 'mobile', report?.configSettings?.screenEmulation?.mobile === true]); }
+function exactReport(item) { const report = item.report, raw = JSON.stringify(report); return all([typeof raw === 'string', SHA256.test(item.reportSha256 ?? ''), typeof raw === 'string' && sha(raw) === item.reportSha256, item.lighthouseVersion === report?.lighthouseVersion, /^(?:Headless)?Chrome\/\d+(?:\.\d+){3}$/u.test(item.chromeVersion ?? ''), report?.configSettings?.formFactor === 'mobile', report?.configSettings?.screenEmulation?.mobile === true]); }
+// prettier-ignore
+function evaluateObservation(item, origin, locales) {
+  const identity = all([['sq', 'mk', 'en'].includes(item?.locale), !locales.has(item.locale), item.url === `${origin}/${item.locale}`, item.availabilityStatus === 200, item.unauthenticatedStatus !== 200, VERCEL_ID.test(item.vercelId ?? '')]);
+  if (!identity) return 'measurement_capability_missing';
+  locales.add(item.locale); const gzip = exactRemoteGzip(item, origin), reported = item.report?.categories?.performance?.score;
+  const exact = all([gzip === item.gzipBytes, Number.isFinite(item.ttfbMs), item.ttfbMs > 0, Number.isFinite(item.score), Number.isFinite(reported), Math.round(reported * 100) === item.score, item.report?.finalDisplayedUrl === item.url, exactReport(item)]);
+  if (!exact) return 'measurement_capability_missing';
+  return item.score > 90 && gzip < 122880 && item.ttfbMs < 100 ? 'pass' : 'budget_failed';
+}
 // prettier-ignore
 export function evaluateOd17Evidence({ evidence, expectedHeadSha, expected = {} }) {
   if (evidence?.failureClass === 'provider_failure') return 'provider_failure';
@@ -105,14 +112,7 @@ export function evaluateOd17Evidence({ evidence, expectedHeadSha, expected = {} 
   const thresholds = { scoreAbove: 90, gzipBelow: 122880, ttfbBelowMs: 100 };
   if (JSON.stringify(evidence.thresholds) !== JSON.stringify(thresholds) || !Array.isArray(evidence.observations) || evidence.observations.length !== 3) return 'measurement_capability_missing';
   const locales = new Set();
-  for (const item of evidence.observations) {
-    const identity = all([['sq', 'mk', 'en'].includes(item?.locale), !locales.has(item.locale), item.url === `${origin}/${item.locale}`, item.availabilityStatus === 200, item.unauthenticatedStatus !== 200, VERCEL_ID.test(item.vercelId ?? '')]);
-    if (!identity) { return 'measurement_capability_missing'; } locales.add(item.locale);
-    const gzip = exactRemoteGzip(item, origin), reported = item.report?.categories?.performance?.score;
-    const exact = all([gzip === item.gzipBytes, Number.isFinite(item.ttfbMs), item.ttfbMs > 0, Number.isFinite(item.score), Number.isFinite(reported), reported * 100 === item.score, item.report?.finalDisplayedUrl === item.url, exactReport(item)]);
-    if (!exact) return 'measurement_capability_missing';
-    if (!(item.score > 90 && gzip < 122880 && item.ttfbMs < 100)) return 'budget_failed';
-  }
+  for (const item of evidence.observations) { const verdict = evaluateObservation(item, origin, locales); if (verdict !== 'pass') return verdict; }
   return locales.size === 3 && evidence.recomputedVerdict === 'pass' ? 'pass' : 'measurement_capability_missing';
 }
 // prettier-ignore

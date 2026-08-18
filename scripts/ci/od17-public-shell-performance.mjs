@@ -15,8 +15,7 @@ const SHA = /^[0-9a-f]{40}$/u,
 const PREVIEW = /^interdomestik-web-[a-z0-9]{9}-ecohub\.vercel\.app$/u;
 const sha256 = body => createHash('sha256').update(body).digest('hex');
 const positive = value => Number.isSafeInteger(Number(value)) && Number(value) > 0;
-// prettier-ignore
-const codeUnit = (left, right) => { if (left < right) return -1; if (left > right) return 1; return 0; };
+const codeUnit = (left, right) => (left < right ? -1 : left > right ? 1 : 0);
 const fail = message => {
   throw new Error(`OD17_FOUNDATION_IDENTITY_INVALID: ${message}`);
 };
