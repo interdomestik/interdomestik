@@ -24,7 +24,7 @@ const OD17_ORIGIN = /^https:\/\/interdomestik-web-[a-z0-9]{9}-ecohub\.vercel\.ap
 const VERCEL_ID = /^[A-Za-z0-9-]+(?:::[A-Za-z0-9_-]+)+$/u;
 const sha = body => createHash('sha256').update(body).digest('hex');
 const positive = value => Number.isSafeInteger(Number(value)) && Number(value) > 0;
-const codeUnit = (left, right) => (left < right ? -1 : left > right ? 1 : 0);
+const codeUnit = (left, right) => Number(left > right) - Number(left < right);
 const all = values => values.every(Boolean);
 
 // prettier-ignore
