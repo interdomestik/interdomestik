@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -10,6 +11,7 @@ const REPOSITORY = 'interdomestik/interdomestik';
 const BRANCH = 'codex/ida-t115-od17-performance-proof';
 const WORKFLOW = '.github/workflows/od17-preview-canary.yml';
 const API = `https://api.github.com/repos/${REPOSITORY}`;
+const GH_BINARY_CANDIDATES = ['/usr/bin/gh', '/opt/homebrew/bin/gh', '/usr/local/bin/gh'];
 const SHA = /^[0-9a-f]{40}$/u,
   ARTIFACT_DIGEST = /^sha256:[0-9a-f]{64}$/u;
 const PREVIEW = /^interdomestik-web-[a-z0-9]{9}-ecohub\.vercel\.app$/u;
@@ -64,7 +66,7 @@ export function selectExactPreparation({ run, artifacts, expectedHeadSha, pullNu
 export function selectExactCanary({ runs, artifactsByRun, expectedHeadSha, expectedTrustedMainSha }) {
   if (!Array.isArray(runs) || !SHA.test(expectedHeadSha ?? '') || !SHA.test(expectedTrustedMainSha ?? '')) fail('canary_runs');
   const matches = runs.flatMap(run => {
-    const exact = positive(run?.id) && positive(run?.run_attempt) && run?.event === 'workflow_dispatch' && run?.status === 'completed' && run?.conclusion === 'success' && run?.head_branch === 'main' && run?.head_sha === expectedTrustedMainSha && run?.path === WORKFLOW;
+    const exact = positive(run?.id) && positive(run?.run_attempt) && run?.event === 'workflow_dispatch' && run?.status === 'completed' && run?.head_branch === 'main' && run?.head_sha === expectedTrustedMainSha && run?.path === WORKFLOW;
     if (!exact) return [];
     return (artifactsByRun.get(run.id) ?? []).filter(artifact => artifact?.name === `od17-canary-${expectedHeadSha}` && artifact?.expired === false && artifact?.workflow_run?.id === run.id && positive(artifact?.id) && ARTIFACT_DIGEST.test(artifact?.digest ?? '')).map(artifact => ({ runId: run.id, runAttempt: run.run_attempt, artifactId: artifact.id, artifactDigest: artifact.digest }));
   });
@@ -90,7 +92,9 @@ export function selectExactPreviewDeployment({ deployments, expectedHeadSha }) {
 // prettier-ignore
 async function api(endpoint, token) { const response = await fetch(`${API}${endpoint}`, { headers: { authorization: `Bearer ${token}`, accept: 'application/vnd.github+json' } }); if (!response.ok) { fail(`github_api_${response.status}`); } return response.json(); }
 // prettier-ignore
-const download = (runId, name, target) => execFileSync('/usr/bin/gh', ['run', 'download', String(runId), '-R', REPOSITORY, '-n', name, '-D', target], { stdio: 'inherit' });
+function resolveGhBinary() { const binary = GH_BINARY_CANDIDATES.find(existsSync); return binary ?? fail('gh_binary'); }
+// prettier-ignore
+const download = (runId, name, target) => execFileSync(resolveGhBinary(), ['run', 'download', String(runId), '-R', REPOSITORY, '-n', name, '-D', target], { stdio: 'inherit' });
 async function writeVerdict(root, verdict) {
   const serialized = `${JSON.stringify(verdict, null, 2)}\n`,
     digest = sha256(serialized);
@@ -101,6 +105,8 @@ async function writeVerdict(root, verdict) {
   return digest;
 }
 // prettier-ignore
+async function resolvePreparationEvidence({ evidence, token, head, pull, root }) { if (evidence.failureClass) { return {}; } if (!positive(evidence.preparationRunId)) { fail('preparation_run_id'); } const preparationRun = await api(`/actions/runs/${Number(evidence.preparationRunId)}`, token), preparationArtifacts = (await api(`/actions/runs/${Number(evidence.preparationRunId)}/artifacts?per_page=100`, token)).artifacts; const preparation = selectExactPreparation({ run: preparationRun, artifacts: preparationArtifacts, expectedHeadSha: head, pullNumber: pull }), localDir = path.join(root, 'local'); download(preparation.runId, `od17-local-${head}`, localDir); return { preparation, localDir }; }
+// prettier-ignore
 async function verifyProof() {
   const { GH_TOKEN: token, EXPECTED_HEAD_SHA: head, EXPECTED_TRUSTED_MAIN_SHA: main, PULL_NUMBER: pull } = process.env;
   await fs.mkdir('tmp/od17-verdict', { recursive: true }); const root = await fs.mkdtemp(path.resolve('tmp/od17-verdict/run-'));
@@ -108,20 +114,16 @@ async function verifyProof() {
     if (!token || !SHA.test(head ?? '') || !SHA.test(main ?? '') || !positive(pull)) fail('verify_env');
     if (!exactHead(await api(`/pulls/${Number(pull)}`, token), head)) fail('pull_request_head');
     const response = await api('/actions/workflows/od17-preview-canary.yml/runs?branch=main&event=workflow_dispatch&status=completed&per_page=100', token);
-    const eligible = response.workflow_runs.filter(run => run.head_sha === main && run.conclusion === 'success');
+    const eligible = response.workflow_runs.filter(run => run.head_sha === main);
     const pairs = await Promise.all(eligible.map(async run => [run.id, (await api(`/actions/runs/${run.id}/artifacts?per_page=100`, token)).artifacts]));
     const canary = selectExactCanary({ runs: eligible, artifactsByRun: new Map(pairs), expectedHeadSha: head, expectedTrustedMainSha: main });
     const evidenceDir = path.join(root, 'evidence'); download(canary.runId, `od17-canary-${head}`, evidenceDir);
     const evidence = JSON.parse(await fs.readFile(path.join(evidenceDir, 'evidence.json'), 'utf8'));
-    if (!positive(evidence.preparationRunId)) fail('preparation_run_id');
-    const preparationRun = await api(`/actions/runs/${Number(evidence.preparationRunId)}`, token);
-    const preparationArtifacts = (await api(`/actions/runs/${Number(evidence.preparationRunId)}/artifacts?per_page=100`, token)).artifacts;
-    const preparation = selectExactPreparation({ run: preparationRun, artifacts: preparationArtifacts, expectedHeadSha: head, pullNumber: pull });
-    const localDir = path.join(root, 'local'); download(preparation.runId, `od17-local-${head}`, localDir);
+    const { preparation, localDir } = await resolvePreparationEvidence({ evidence, token, head, pull, root });
     const { verifyOd17Files } = await import('../../apps/web/scripts/check-size.mjs');
-    const result = await verifyOd17Files({ localDir, evidenceDir, expectedHeadSha: head, expectedTrustedMainSha: main, pullNumber: pull, canary, preparation });
+    const result = await verifyOd17Files({ localDir, evidenceDir, expectedHeadSha: head, expectedTrustedMainSha: main, pullNumber: pull, canary, ...(preparation && { preparation }) });
     const observations = result.evidence.observations?.map(({ locale, score, gzipBytes, ttfbMs }) => ({ locale, score, gzipBytes, ttfbMs }));
-    const verdict = { schemaVersion: 1, headSha: head, trustedMainSha: main, canary, preparation, verdict: result.verdict, observations };
+    const verdict = { schemaVersion: 1, headSha: head, trustedMainSha: main, canary, ...(preparation && { preparation }), verdict: result.verdict, observations };
     await writeVerdict(root, verdict); console.log('OD17_VERDICT_WRITTEN');
     if (result.verdict !== 'pass') fail(result.verdict);
   } catch (error) {

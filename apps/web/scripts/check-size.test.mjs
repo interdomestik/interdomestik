@@ -50,7 +50,7 @@ function evidence(change = {}) { return { headSha: HEAD, deploymentSha: HEAD, pr
   observations: ['sq', 'mk', 'en'].map(locale => observation(locale)), ...change };
 }
 // prettier-ignore
-const expected = { expectedTrustedMainSha: MAIN, pullNumber: 72, canary: { runId: 19, runAttempt: 1 },
+const expected = { expectedTrustedMainSha: MAIN, pullNumber: 72, canary: { runId: 19, runAttempt: 1, artifactId: 37, artifactDigest: `sha256:${'d'.repeat(64)}` },
   preparation: { runId: 17, runAttempt: 1, artifactId: 23, artifactDigest: `sha256:${'c'.repeat(64)}` } };
 test('uses producer-identical code-unit ordering and rejects unsafe local asset paths', () => {
   const safe = 'static/chunks/app/(group)/[locale]/a%20b.js';
@@ -104,6 +104,8 @@ test('accepts divergent local and Preview bytes while proving both closures inde
     () => verifyOd17Files({ localDir, evidenceDir, expectedHeadSha: HEAD }),
     /OD17_LOCAL_ASSET_MISMATCH/u
   );
+  await fs.writeFile(path.join(evidenceDir, 'evidence.json'), `${JSON.stringify(evidence({ failureClass: 'provider_failure', recomputedVerdict: 'fail', errorCode: 'OD17_COLLECTOR_FAILED' }))}\n`);
+  assert.equal((await verifyOd17Files({ localDir, evidenceDir, expectedHeadSha: HEAD, ...expected })).verdict, 'provider_failure');
 });
 
 test('emits only the six canonical verdicts with fail-closed precedence', () => {
@@ -122,10 +124,11 @@ test('emits only the six canonical verdicts with fail-closed precedence', () => 
     [{ ...valid, previewOrigin: 'https://example.com' }, 'target_mismatch'],
     [{ ...valid, observations: missing }, 'measurement_capability_missing'],
     [{ ...valid, runId: 20 }, 'measurement_capability_missing'],
+    [{ ...valid, headSha: 'b'.repeat(40), runId: 20 }, 'measurement_capability_missing'],
     [{ ...valid, observations: valid.observations.map((item, index) => index ? item : withReport(item, { ...item.report, configSettings: { formFactor: 'desktop' } })) }, 'measurement_capability_missing'],
     [{ ...valid, observations: low }, 'budget_failed'],
-    [{ ...valid, headSha: 'b'.repeat(40), failureClass: 'provider_failure' }, 'provider_failure'],
-    [{ ...valid, headSha: 'b'.repeat(40), failureClass: 'measurement_capability_missing' }, 'measurement_capability_missing'],
+    [{ ...valid, headSha: 'b'.repeat(40), failureClass: 'provider_failure', recomputedVerdict: 'fail', errorCode: 'OD17_COLLECTOR_FAILED' }, 'provider_failure'],
+    [{ ...valid, headSha: 'b'.repeat(40), failureClass: 'measurement_capability_missing', recomputedVerdict: 'fail', errorCode: 'OD17_COLLECTOR_FAILED' }, 'measurement_capability_missing'],
   ];
   for (const [input, verdict] of cases) {
     assert.equal(

@@ -17,7 +17,7 @@ const BUILD_MANIFESTS = [
 ];
 const LOADABLE_MANIFESTS = manifests('react-loadable-manifest.json');
 const CRM_CONTRACT = path.join(APP_DIR, 'src/components/crm/charts/chart-contract.ts');
-const SHA256 = /^[0-9a-f]{64}$/u,
+const SHA256 = /^[0-9a-f]{64}$/u, ARTIFACT_DIGEST = /^sha256:[0-9a-f]{64}$/u,
   LOCAL_JS = /^static\/[A-Za-z0-9._~!$&'()+,;=@%\u005b\u005d/-]+\.js$/u;
 const OD17_BRANCH = 'codex/ida-t115-od17-performance-proof';
 const OD17_ORIGIN = /^https:\/\/interdomestik-web-[a-z0-9]{9}-ecohub\.vercel\.app$/u;
@@ -102,13 +102,12 @@ function evaluateObservation(item, origin, locales) {
 }
 // prettier-ignore
 export function evaluateOd17Evidence({ evidence, expectedHeadSha, expected = {} }) {
-  if (evidence?.failureClass === 'provider_failure') return 'provider_failure';
-  if (evidence?.failureClass) return 'measurement_capability_missing';
+  const canary = expected.canary ?? {}, failure = evidence?.failureClass;
+  if (failure) return ['provider_failure', 'measurement_capability_missing'].includes(failure) && evidence.schemaVersion === 1 && evidence.recomputedVerdict === 'fail' && evidence.errorCode === 'OD17_COLLECTOR_FAILED' && positive(canary.runId) && positive(canary.runAttempt) && positive(canary.artifactId) && ARTIFACT_DIGEST.test(canary.artifactDigest ?? '') ? failure : 'measurement_capability_missing';
+  if (!exactProvenance(evidence ?? {}, expected)) return 'measurement_capability_missing';
   if (evidence?.headSha !== expectedHeadSha || evidence?.deploymentSha !== expectedHeadSha) return 'head_mismatch';
-  const origin = evidence?.previewOrigin;
-  const target = OD17_ORIGIN.test(origin ?? '') && evidence?.deploymentEnvironment === 'Preview' && evidence?.deploymentProduction === false && evidence?.deploymentRef === OD17_BRANCH && evidence?.eventName === 'workflow_dispatch' && evidence?.headBranch === 'main';
+  const origin = evidence?.previewOrigin, target = OD17_ORIGIN.test(origin ?? '') && evidence?.deploymentEnvironment === 'Preview' && evidence?.deploymentProduction === false && evidence?.deploymentRef === OD17_BRANCH && evidence?.eventName === 'workflow_dispatch' && evidence?.headBranch === 'main';
   if (!target) return 'target_mismatch';
-  if (!exactProvenance(evidence, expected)) return 'measurement_capability_missing';
   const thresholds = { scoreAbove: 90, gzipBelow: 122880, ttfbBelowMs: 100 };
   if (JSON.stringify(evidence.thresholds) !== JSON.stringify(thresholds) || !Array.isArray(evidence.observations) || evidence.observations.length !== 3) return 'measurement_capability_missing';
   const locales = new Set();
@@ -118,15 +117,17 @@ export function evaluateOd17Evidence({ evidence, expectedHeadSha, expected = {} 
 // prettier-ignore
 export async function verifyOd17Files({ localDir, evidenceDir, expectedHeadSha, ...expected }) {
   const readJson = file => fs.readFile(file, 'utf8').then(JSON.parse);
+  const evidence = await readJson(path.join(evidenceDir, 'evidence.json'));
+  const verdict = evaluateOd17Evidence({ evidence, expectedHeadSha, expected }); if (evidence?.failureClass) return { evidence, inventory: [], verdict };
   const buildBody = await fs.readFile(path.join(localDir, 'build-manifest.json'));
   const build = JSON.parse(buildBody);
   const inventory = assertManifestInventory({ manifests: { build }, inventory: await readJson(path.join(localDir, 'inventory.json')) });
   for (const item of inventory) { const body = await fs.readFile(path.join(localDir, 'assets', item.path)); if (body.length !== item.bytes || gzipSync(body, { level: 9 }).length !== item.gzipBytes || sha(body) !== item.sha256) throw new Error('OD17_LOCAL_ASSET_MISMATCH'); }
   const structureBody = await fs.readFile(path.join(evidenceDir, 'local-structure.json'));
-  const structure = JSON.parse(structureBody), evidence = await readJson(path.join(evidenceDir, 'evidence.json'));
+  const structure = JSON.parse(structureBody);
   const exact = structure.headSha === expectedHeadSha && evidence.localStructureSha256 === sha(structureBody) && structure.manifests?.['build-manifest.json'] === sha(buildBody) && JSON.stringify(structure.inventory) === JSON.stringify(inventory);
   if (!exact) throw new Error('OD17_LOCAL_STRUCTURE_MISMATCH');
-  return { evidence, inventory, verdict: evaluateOd17Evidence({ evidence, expectedHeadSha, expected }) };
+  return { evidence, inventory, verdict };
 }
 // prettier-ignore
 async function firstExisting(paths, retries = 1) { for (let attempt = 0; attempt < retries; attempt += 1) { for (const file of paths) { try { if ((await fs.stat(file)).size > 0) return file; } catch {} } await new Promise(resolve => setTimeout(resolve, 500)); } return null; }

@@ -90,7 +90,7 @@ test('selects one successful exact-head non-production deployment', () => {
     assert.throws(() => selectExactPreviewDeployment({ expectedHeadSha: SHA, deployments }));
   }
 });
-test('selects one content-addressed canary with positive run and artifact identities', () => {
+test('selects one completed content-addressed canary independent of its conclusion', () => {
   const main = 'b'.repeat(40);
   // prettier-ignore
   const run = { id: 19, run_attempt: 1, event: 'workflow_dispatch', status: 'completed', conclusion: 'success', head_branch: 'main', head_sha: main, path: '.github/workflows/od17-preview-canary.yml' };
@@ -108,6 +108,7 @@ test('selects one content-addressed canary with positive run and artifact identi
     expectedTrustedMainSha: main,
   };
   assert.equal(selectExactCanary(input).artifactId, 23);
+  assert.equal(selectExactCanary({ ...input, runs: [{ ...run, conclusion: 'failure' }] }).artifactId, 23);
   assert.throws(() => selectExactCanary({ ...input, runs: [{ ...run, id: 0 }] }));
   assert.throws(() =>
     selectExactCanary({ ...input, artifactsByRun: new Map([[19, [{ ...artifact, id: 0 }]]]) })
@@ -121,7 +122,7 @@ test('selects one content-addressed canary with positive run and artifact identi
 });
 test('collector splits pull-request preparation from manual trusted main', () => {
   // prettier-ignore
-  const source = fs.readFileSync(path.join(repoRoot, '.github/workflows/od17-preview-canary.yml'), 'utf8');
+  const source = fs.readFileSync(path.join(repoRoot, '.github/workflows/od17-preview-canary.yml'), 'utf8'), verifierSource = fs.readFileSync(new URL('./od17-public-shell-performance.mjs', import.meta.url), 'utf8');
   assert.match(source, /^  pull_request:/mu);
   assert.match(source, /^  workflow_dispatch:/mu);
   assert.doesNotMatch(source, /^  (push|pull_request_target|schedule|workflow_call):/mu);
@@ -136,6 +137,7 @@ test('collector splits pull-request preparation from manual trusted main', () =>
   assert.match(source, /persist-credentials: false/u);
   assert.match(source, /actions\/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6\.0\.1/u);
   assert.match(source, /run: node scripts\/ci\/od17-public-shell-performance\.mjs/u);
+  assert.match(verifierSource, /GH_BINARY_CANDIDATES = \['\/usr\/bin\/gh', '\/opt\/homebrew\/bin\/gh', '\/usr\/local\/bin\/gh'\]/u); assert.doesNotMatch(verifierSource, /execFileSync\('gh'/u);
   assert.match(source, /run: node scripts\/ci\/od17-authenticated-lighthouse\.mjs/u);
   assert.match(source, /pnpm install --frozen-lockfile --prefer-offline --ignore-scripts/u);
   assert.match(source, /if: always\(\)/u);
