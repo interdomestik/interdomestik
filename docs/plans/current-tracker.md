@@ -17,23 +17,26 @@ status_command: pnpm plan:status
 
 | ID                                | Status    | Owner                         | Work                                                  | Exit Criteria                                                                                                                                                                                                                                                                                                                                                              |
 | --------------------------------- | --------- | ----------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `IDA-T115-OD17-FINAL-MEASUREMENT` | `pending` | `platform + performance + qa` | Final exact-head OD#17 Preview/canary measurement     | Capability merged green in [PR #1598](https://github.com/interdomestik/interdomestik/pull/1598): head `2a32a18e`, merge `858eb4a3`; exact main healthy; CD `32266432820` canceled before jobs. Await the sole DG51 measurement receipt. Then one Preview, canary, audit/finalizer rerun and exact-head closeout; no retry or alternate provider.                           |
+| `IDA-T115-OD17-FINAL-MEASUREMENT` | `blocked` | `platform + performance + qa` | Terminal one-shot OD#17 Preview measurement          | Inert `8f091436`, frozen head `3a9689b9`; Preview `dpl_DH8E1oGWTsf8s4xi2Mg6i7Ck87Wx` ended `BUILD_EXCEEDED_MAXIMUM_TIME` with no READY; deployment `5987940626` / status `17029471770` failed. `INCONCLUSIVE — measurement_capability_missing/provider_failure`; task controls rolled back/re-read; no measurement PR/prep/canary/metrics/audit/finalizer/merge/retry. |
 
 ## Proof Ledger
 
 | ID | Source Refs | Execution | Run ID | Run Root | Sonar | Docker | Sentry | Learning | Evidence Refs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `IDA-T115-OD17-FINAL-MEASUREMENT` | `dg51:9a6b755c`; `pr:1598`; `head:2a32a18e`; `merge/main:858eb4a3`; `main-ci:32266432831`; `main-sonar:32266432804`; `cd:32266432820` | `pending` | `pending` | `main:858eb4a3` | `pending` | `not_applicable` | `not_applicable` | `not_applicable` | `docs/plans/2026-08-19-ida-dg51-t115-od17-projection-capability.md`; `https://github.com/interdomestik/interdomestik/pull/1598` |
+| `IDA-T115-OD17-FINAL-MEASUREMENT` | `dg51:9a6b755c`; `r1:b8e27c97`; `e1:c0505785`; `pr:1598`; `pr:1600`; `base/main:bf984974`; `runtime:8f091436`; `head:3a9689b9`; `vercel:dpl_DH8E1oGWTsf8s4xi2Mg6i7Ck87Wx`; `gh-deployment:5987940626`; `gh-status:17029471770`; `raw:ac745d3b` | `blocked` | `provider_failure` | `not_applicable` | `not_applicable` | `not_applicable` | `not_applicable` | `not_applicable` | `docs/plans/2026-08-19-ida-dg51-t115-od17-projection-capability.md`; `https://github.com/interdomestik/interdomestik/commit/8f091436945849851672503734c85e9e7b6cc78a`; `https://github.com/interdomestik/interdomestik/commit/3a9689b94cb9a353ab2db8435d32ac5e8534123f`; `provider-raw:5074:sha256:ac745d3bb4b092d2d8e786e37aef4f1c0f493bd0b118baa82e83ca7d60da393d` |
 
 ## Next Selection
 
-Only `IDA-T115-OD17-FINAL-MEASUREMENT` is promoted, but it is not runtime-authorized.
-The resolver is `awaiting_runtime_authority` on exact main
-`858eb4a32fc47ef9cdd04fbc1e44e10da630ba76`. No measurement branch, provider
-control, Preview or canary may begin before exact approval of the sole DG51
-final-measurement receipt. If approved, follow DG51 Phase B/C exactly once: merge only
-on PASS; on any non-PASS close unmerged and stop. Dependent `T-118`, `T-117` and
-`T-116` remain blocked until OD#17 is PASS and closed.
+No slice is promoted. Runtime R1's one-shot frozen head
+`3a9689b94cb9a353ab2db8435d32ac5e8534123f` is fixed as
+`INCONCLUSIVE — measurement_capability_missing/provider_failure`, subreason
+`Vercel BUILD_EXCEEDED_MAXIMUM_TIME / no READY`. No measurement PR, preparation,
+canary, metrics, audit, finalizer or merge occurred. Runtime R1 is consumed and
+`runtime_authorized:false`; both task variables and the task Trusted Source were re-read
+absent, `deployment_status Events` and `repository_dispatch Events` were OFF, Standard
+Protection remained ON, and deployment history was retained. The capability remains
+merged. `T-118`, `T-117` and `T-116` remain blocked pending a new separate strategic
+decision.
 
 ## Historical Authority
 
@@ -47,4 +50,4 @@ remains the stable deep-detail source for M0-M5 task contracts. Current rows are
 selection, implementation and closeout; detailed proof is linked, never copied here.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-OD17-FINAL-MEASUREMENT` (Tier 3 one-shot protected-main performance measurement; `runtime_authorized:false`; resolver `awaiting_runtime_authority` pending the sole separate exact-main receipt permitted by `IDA-DG51-T115-OD17-PROJECTION-CAPABILITY-R1`).
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
