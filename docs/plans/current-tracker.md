@@ -15,23 +15,25 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                                          | Status        | Owner                         | Work                                                          | Exit Criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| ------------------------------------------- | ------------- | ----------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `IDA-T115-OD17-PROJECTION-CAPABILITY`       | `in_progress` | `platform + performance + qa` | Inert protected-main OD#17 projection capability and verifier | Exact-approved [DG51](./2026-08-19-ida-dg51-t115-od17-projection-capability.md) `9a6b755c`, ready admission `20bc2ada`, and [runtime R1](./2026-08-19-ida-t115-od17-projection-capability-runtime-r1.md) `a295e39f` bind exact main `6cf5227f` and one capability branch/PR. Merge only a green exact reviewed head after real-payload RED/GREEN proof and required hosted checks; no provider control, Preview, canary or measurement. |
+| ID                                | Status    | Owner                         | Work                                                  | Exit Criteria                                                                                                                                                                                                                                                                                                                                                              |
+| --------------------------------- | --------- | ----------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `IDA-T115-OD17-FINAL-MEASUREMENT` | `pending` | `platform + performance + qa` | Final exact-head OD#17 Preview/canary measurement     | Capability merged green in [PR #1598](https://github.com/interdomestik/interdomestik/pull/1598): head `2a32a18e`, merge `858eb4a3`; exact main healthy; CD `32266432820` canceled before jobs. Await the sole DG51 measurement receipt. Then one Preview, canary, audit/finalizer rerun and exact-head closeout; no retry or alternate provider.                           |
 
 ## Proof Ledger
 
 | ID | Source Refs | Execution | Run ID | Run Root | Sonar | Docker | Sentry | Learning | Evidence Refs |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `IDA-T115-OD17-PROJECTION-CAPABILITY` | `dg51:9a6b755c`; `runtime:a295e39f`; `admission:20bc2ada`; `base:6cf5227f`; `terminal:7e415da8` | `manual` | `codex/ida-t115-od17-projection-capability` | `main:6cf5227f` | `pending` | `not_applicable` | `not_applicable` | `not_applicable` | `docs/plans/2026-08-19-ida-dg51-t115-od17-projection-capability.md`; `docs/plans/2026-08-19-ida-t115-od17-projection-capability-runtime-r1.md` |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `IDA-T115-OD17-FINAL-MEASUREMENT` | `dg51:9a6b755c`; `pr:1598`; `head:2a32a18e`; `merge/main:858eb4a3`; `main-ci:32266432831`; `main-sonar:32266432804`; `cd:32266432820` | `pending` | `pending` | `main:858eb4a3` | `pending` | `not_applicable` | `not_applicable` | `not_applicable` | `docs/plans/2026-08-19-ida-dg51-t115-od17-projection-capability.md`; `https://github.com/interdomestik/interdomestik/pull/1598` |
 
 ## Next Selection
 
-Only the inert OD#17 projection capability is promoted and runtime-authorized. Provider
-controls, Preview, canary and measurement are forbidden in this phase. After exact-head
-capability merge and exact-main convergence, one separate exact-main measurement receipt
-may authorize the final one-shot measurement. Dependent `T-118` and `T-117` remain
-blocked until OD#17 is actually PASS, merged and closed.
+Only `IDA-T115-OD17-FINAL-MEASUREMENT` is promoted, but it is not runtime-authorized.
+The resolver is `awaiting_runtime_authority` on exact main
+`858eb4a32fc47ef9cdd04fbc1e44e10da630ba76`. No measurement branch, provider
+control, Preview or canary may begin before exact approval of the sole DG51
+final-measurement receipt. If approved, follow DG51 Phase B/C exactly once: merge only
+on PASS; on any non-PASS close unmerged and stop. Dependent `T-118`, `T-117` and
+`T-116` remain blocked until OD#17 is PASS and closed.
 
 ## Historical Authority
 
@@ -45,4 +47,4 @@ remains the stable deep-detail source for M0-M5 task contracts. Current rows are
 selection, implementation and closeout; detailed proof is linked, never copied here.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-OD17-PROJECTION-CAPABILITY` (Tier 3 protected-main performance-verification capability; `runtime_authorized:true` for capability-only repository work under exact-approved `IDA-DG51-T115-OD17-PROJECTION-CAPABILITY-R1` and `IDA-T115-OD17-PROJECTION-CAPABILITY-RUNTIME-R1`; provider runtime remains unauthorized pending one separately approved exact-main final-measurement receipt).
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-OD17-FINAL-MEASUREMENT` (Tier 3 one-shot protected-main performance measurement; `runtime_authorized:false`; resolver `awaiting_runtime_authority` pending the sole separate exact-main receipt permitted by `IDA-DG51-T115-OD17-PROJECTION-CAPABILITY-R1`).
