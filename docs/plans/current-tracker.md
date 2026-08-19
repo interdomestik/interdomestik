@@ -15,28 +15,26 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                                | Status    | Owner                         | Work                                                  | Exit Criteria                                                                                                                                                                                                                                                                                                                                                              |
-| --------------------------------- | --------- | ----------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `IDA-T115-OD17-FINAL-MEASUREMENT` | `blocked` | `platform + performance + qa` | Terminal one-shot OD#17 Preview measurement          | Inert `8f091436`, frozen head `3a9689b9`; Preview `dpl_DH8E1oGWTsf8s4xi2Mg6i7Ck87Wx` ended `BUILD_EXCEEDED_MAXIMUM_TIME` with no READY; deployment `5987940626` / status `17029471770` failed. `INCONCLUSIVE — measurement_capability_missing/provider_failure`; task controls rolled back/re-read; no measurement PR/prep/canary/metrics/audit/finalizer/merge/retry. |
+| ID                                              | Status    | Owner                         | Work                                                                  | Exit Criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ----------------------------------------------- | --------- | ----------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `IDA-OD17-ATTESTED-PREBUILT-PREVIEW-CAPABILITY` | `pending` | `platform + performance + qa` | Install one inert protected-main attested-prebuilt Preview capability | DG52 (34,213 bytes; SHA-256 `31bc347dd13436614b8f3b84a199ec586726280e5905e3ce14f72d2ca7cd2938`) and admission v1 (7,469 bytes; SHA-256 `70381edc02657ba392ff8af01e1f50e638c09239a034c7b90f249cc2bcebdb60`) are exact-approved on `main@cb33cd616abcb79c4298c1024d592d8ae998c1cc`. Runtime is unauthorized; healthy exact Phase-A main and one separately approved content-addressed R1 are required before any implementation writer. No GitHub-environment or provider operation is authorized. |
 
 ## Proof Ledger
 
-| ID | Source Refs | Execution | Run ID | Run Root | Sonar | Docker | Sentry | Learning | Evidence Refs |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `IDA-T115-OD17-FINAL-MEASUREMENT` | `dg51:9a6b755c`; `r1:b8e27c97`; `e1:c0505785`; `pr:1598`; `pr:1600`; `base/main:bf984974`; `runtime:8f091436`; `head:3a9689b9`; `vercel:dpl_DH8E1oGWTsf8s4xi2Mg6i7Ck87Wx`; `gh-deployment:5987940626`; `gh-status:17029471770`; `raw:ac745d3b` | `blocked` | `provider_failure` | `not_applicable` | `not_applicable` | `not_applicable` | `not_applicable` | `not_applicable` | `docs/plans/2026-08-19-ida-dg51-t115-od17-projection-capability.md`; `https://github.com/interdomestik/interdomestik/commit/8f091436945849851672503734c85e9e7b6cc78a`; `https://github.com/interdomestik/interdomestik/commit/3a9689b94cb9a353ab2db8435d32ac5e8534123f`; `provider-raw:5074:sha256:ac745d3bb4b092d2d8e786e37aef4f1c0f493bd0b118baa82e83ca7d60da393d` |
+| ID                                              | Source Refs                                                 | Execution | Run ID    | Run Root                                        | Sonar            | Docker           | Sentry           | Learning  | Evidence Refs                                                                                                                                                                                                                                                                                                                                                                         |
+| ----------------------------------------------- | ----------------------------------------------------------- | --------- | --------- | ----------------------------------------------- | ---------------- | ---------------- | ---------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `IDA-OD17-ATTESTED-PREBUILT-PREVIEW-CAPABILITY` | `dg52:31bc347d`; `admission:70381edc`; `base/main:cb33cd61` | `pending` | `pending` | `main@cb33cd616abcb79c4298c1024d592d8ae998c1cc` | `not_applicable` | `not_applicable` | `not_applicable` | `pending` | `docs/plans/2026-08-19-ida-dg52-od17-attested-prebuilt-preview.md`; `docs/plans/2026-08-19-ida-od17-attested-prebuilt-preview-capability-admission-v1.json`; admission checker `ready` with one outcome, eleven semantic writers, three proof surfaces, one shared runtime consumer, and zero pre-implementation special environments. No implementation or runtime proof is claimed. |
 
 ## Next Selection
 
-No slice is promoted. Runtime R1's one-shot frozen head
-`3a9689b94cb9a353ab2db8435d32ac5e8534123f` is fixed as
-`INCONCLUSIVE — measurement_capability_missing/provider_failure`, subreason
-`Vercel BUILD_EXCEEDED_MAXIMUM_TIME / no READY`. No measurement PR, preparation,
-canary, metrics, audit, finalizer or merge occurred. Runtime R1 is consumed and
-`runtime_authorized:false`; both task variables and the task Trusted Source were re-read
-absent, `deployment_status Events` and `repository_dispatch Events` were OFF, Standard
-Protection remained ON, and deployment history was retained. The capability remains
-merged. `T-118`, `T-117` and `T-116` remain blocked pending a new separate strategic
-decision.
+Only `IDA-OD17-ATTESTED-PREBUILT-PREVIEW-CAPABILITY` is promoted to
+`awaiting_runtime_authority` under exact-approved DG52 and admission v1.
+`runtime_authorized:false`; Phase A authorizes only inert authority convergence.
+Implementation and provider runtime remain forbidden pending healthy exact Phase-A main
+and one separately approved exact R1. Historical T-115 OD#17 remains terminal
+`INCONCLUSIVE — measurement_capability_missing/provider_failure` with no retry or relabel.
+`T-118`, `T-117`, and `T-116` remain blocked until a merged successor PASS satisfies
+`OD17_READY`; none is automatically promoted.
 
 ## Historical Authority
 
@@ -50,4 +48,4 @@ remains the stable deep-detail source for M0-M5 task contracts. Current rows are
 selection, implementation and closeout; detailed proof is linked, never copied here.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-OD17-ATTESTED-PREBUILT-PREVIEW-CAPABILITY` (Tier 3; `runtime_authorized:false`).
