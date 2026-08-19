@@ -39,8 +39,13 @@ contract and consume one exact-branch cache-isolated automatic Preview plus one 
 No product/UI/auth/routing behavior, threshold, provider target or production action is
 promoted. The approved gate, ready admission and diagnostic live at
 [`IDA-DG50`](./2026-08-19-ida-dg50-t115-od17-cache-isolated-preview-recovery.md).
-Runtime remains unauthorized pending this docs-only merge, exact-main convergence and a
-separate runtime receipt approval. `T-118`, `T-117` and `T-116` remain blocked.
+Exact-main runtime receipt
+[`IDA-T115-OD17-RUNTIME-R1`](./2026-08-19-ida-t115-od17-runtime-r1.md), 3,130
+UTF-8 bytes / SHA-256
+`797a41f619fb3e50977042d8a9895aacd161294366c990db7efa5796a5d22290`, authorizes
+only this one recovery from checkpoint `7b7f6e646f18b0e31a930d8fb8020d1393fd4087`
+on current main `6cf5227fcdf7247b801d9aa4673eabb08bceab98`. `T-118`, `T-117` and
+`T-116` remain blocked.
 
 The compact roadmap below preserves the live M0-M5 implementation blueprint. Full task
 contracts, acceptance criteria and milestone detail remain canonical in the
@@ -102,4 +107,4 @@ All authority history through Rev 243 is recoverable byte-for-byte from Git thro
 Manifest SHA-256: `355229c5d24a6fa5f0986b6ce41423cbdc5caea16b291f1335a7264b2be5fc78`.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` (Tier 3 shared performance-verification recovery; `runtime_authorized:false`; exact-approved `IDA-DG50-T115-OD17-CACHE-ISOLATED-PREVIEW-RECOVERY` pending docs-only merge).
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` (Tier 3 shared performance-verification recovery; `runtime_authorized:true`; exact-approved `IDA-DG50-T115-OD17-CACHE-ISOLATED-PREVIEW-RECOVERY` and `IDA-T115-OD17-RUNTIME-R1`).

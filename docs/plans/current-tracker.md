@@ -17,7 +17,7 @@ status_command: pnpm plan:status
 
 | ID                                             | Status        | Owner                         | Work                                                                 | Exit Criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | ---------------------------------------------- | ------------- | ----------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` | `in_progress` | `platform + performance + qa` | One cache-isolated exact-head recovery of OD#17 public-shell budgets | Arben exact-approved `IDA-DG50-T115-OD17-CACHE-ISOLATED-PREVIEW-RECOVERY`, 19,685 bytes / SHA-256 `ecea46fa019907bdb235bdcb19349b30e41aa7cad8641b23ba5e71cc6c023309`, on clean main `0f0ddf3d6c00d51237fc6347c01c2aa4651936be`. The [gate](./2026-08-19-ida-dg50-t115-od17-cache-isolated-preview-recovery.md) preserves the prior reviewed contract, permits no runtime yet, and requires docs merge, exact-main convergence and separately exact-approved runtime authority before one no-cache Preview/canary attempt. |
+| `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` | `in_progress` | `platform + performance + qa` | One cache-isolated exact-head recovery of OD#17 public-shell budgets | DG50 remains binding. Arben exact-approved [`IDA-T115-OD17-RUNTIME-R1`](./2026-08-19-ida-t115-od17-runtime-r1.md), 3,130 bytes / SHA-256 `797a41f619fb3e50977042d8a9895aacd161294366c990db7efa5796a5d22290`, on exact main `6cf5227fcdf7247b801d9aa4673eabb08bceab98` / checkpoint `7b7f6e646f18b0e31a930d8fb8020d1393fd4087`. It permits exactly one recovery PR, no-cache Preview and protected-main canary after matching freeze prerequisites; all successors remain blocked. |
 
 ## Proof Ledger
 
@@ -27,10 +27,10 @@ status_command: pnpm plan:status
 
 ## Next Selection
 
-Only OD#17 is promoted for authority merge. After merge, resolver must become
-`awaiting_runtime_authority`; no branch, provider control, Preview or canary may begin
-until a separate exact-main runtime receipt is approved. Dependent `T-118` and `T-117`
-remain blocked until OD#17 is actually PASS, merged and closed.
+Only OD#17 is runtime-authorized. One current-head recovery PR may proceed under
+`IDA-T115-OD17-RUNTIME-R1`; Preview/canary remain conditional on DG50 freeze
+prerequisites. Dependent `T-118` and `T-117` remain blocked until OD#17 is actually
+PASS, merged and closed.
 
 ## Historical Authority
 
@@ -44,4 +44,4 @@ remains the stable deep-detail source for M0-M5 task contracts. Current rows are
 selection, implementation and closeout; detailed proof is linked, never copied here.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` (Tier 3 shared performance-verification recovery; `runtime_authorized:false`; exact-approved `IDA-DG50-T115-OD17-CACHE-ISOLATED-PREVIEW-RECOVERY` pending docs-only merge).
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` (Tier 3 shared performance-verification recovery; `runtime_authorized:true`; exact-approved `IDA-DG50-T115-OD17-CACHE-ISOLATED-PREVIEW-RECOVERY` and `IDA-T115-OD17-RUNTIME-R1`).
