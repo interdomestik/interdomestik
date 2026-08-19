@@ -1,246 +1,149 @@
-import fs from 'fs/promises';
+import { createHash } from 'node:crypto';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { gzipSync } from 'node:zlib';
 import { gzipSize } from 'gzip-size';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const APP_DIR = path.resolve(__dirname, '..');
+const APP_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const NEXT_DIR = path.join(APP_DIR, '.next');
-const MANIFEST_CANDIDATES = [
-  path.join(NEXT_DIR, 'build-manifest.json'),
-  path.join(NEXT_DIR, 'fallback-build-manifest.json'),
-  path.join(NEXT_DIR, 'standalone', 'apps', 'web', '.next', 'build-manifest.json'),
-  path.join(NEXT_DIR, 'standalone', 'apps', 'web', '.next', 'fallback-build-manifest.json'),
+const manifests = name => [
+  path.join(NEXT_DIR, name),
+  path.join(NEXT_DIR, 'standalone/apps/web/.next', name),
 ];
-const LOADABLE_MANIFEST_CANDIDATES = [
-  path.join(NEXT_DIR, 'react-loadable-manifest.json'),
-  path.join(NEXT_DIR, 'standalone', 'apps', 'web', '.next', 'react-loadable-manifest.json'),
+const BUILD_MANIFESTS = [
+  ...manifests('build-manifest.json'),
+  ...manifests('fallback-build-manifest.json'),
 ];
-const CRM_CHART_CONTRACT_PATH = path.join(
-  APP_DIR,
-  'src',
-  'components',
-  'crm',
-  'charts',
-  'chart-contract.ts'
-);
+const LOADABLE_MANIFESTS = manifests('react-loadable-manifest.json');
+const CRM_CONTRACT = path.join(APP_DIR, 'src/components/crm/charts/chart-contract.ts');
+const SHA256 = /^[0-9a-f]{64}$/u, ARTIFACT_DIGEST = /^sha256:[0-9a-f]{64}$/u,
+  LOCAL_JS = /^static\/[A-Za-z0-9._~!$&'()+,;=@%\u005b\u005d/-]+\.js$/u;
+const OD17_ORIGIN = /^https:\/\/interdomestik-[a-z0-9]{9}-ecohub\.vercel\.app$/u;
+const VERCEL_ID = /^[A-Za-z0-9-]+(?:::[A-Za-z0-9_-]+)+$/u;
+const sha = body => createHash('sha256').update(body).digest('hex');
+const positive = value => Number.isSafeInteger(Number(value)) && Number(value) > 0;
+const codeUnit = (left, right) => Number(left > right) - Number(left < right);
+const all = values => values.every(Boolean);
 
-// Budget Configuration
-// For App Router, 'rootMainFiles' represents the global client bundle (React, Next.js, Global Layout).
-const GLOBAL_BUDGET = { gzip: 250 * 1024, name: 'Global Initial JS (Baseline)' };
-const CRM_REPORTING_CHART_BUDGET = {
-  dynamicImportPrefix: 'components/crm/charts/reporting-chart-boundary.tsx -> ',
-  name: 'CRM Reporting Chart Route Dynamic JS',
-  routes: [
-    {
-      imports: ['./pipeline-amount-chart'],
-      name: '/agent/crm',
-    },
-    {
-      imports: ['./pipeline-amount-chart'],
-      name: '/admin/crm',
-    },
-    {
-      imports: ['./pipeline-amount-chart', './funnel-movement-chart', './stage-velocity-chart'],
-      name: '/staff/crm',
-    },
-  ],
-};
-
-async function findManifestPath() {
-  for (let attempt = 0; attempt < 60; attempt += 1) {
-    for (const manifestPath of MANIFEST_CANDIDATES) {
-      try {
-        const stats = await fs.stat(manifestPath);
-        if (stats.size > 0) {
-          return manifestPath;
-        }
-      } catch {
-        // Keep scanning candidates.
-      }
-    }
-
-    await new Promise(resolve => setTimeout(resolve, 500));
+// prettier-ignore
+export function isSafeOd17AssetPath(value) {
+  if (typeof value !== 'string' || !LOCAL_JS.test(value)) return false;
+  if (value.includes('\\') || value.includes('\0') || /%(?![0-9a-f]{2})/iu.test(value) || /%(?:00|2e|2f|5c)/iu.test(value)) return false;
+  return !value.split('/').some(segment => ['', '.', '..'].includes(segment));
+}
+export function collectManifestJavaScriptPaths(value) {
+  const paths = new Set();
+  const visit = item => {
+    if (isSafeOd17AssetPath(item)) paths.add(item);
+    else if (Array.isArray(item)) item.forEach(visit);
+    else if (item && typeof item === 'object') Object.values(item).forEach(visit);
+  };
+  visit(value);
+  return [...paths].sort(codeUnit);
+}
+// prettier-ignore
+export function assertManifestInventory({ manifests: source, inventory }) {
+  const expected = collectManifestJavaScriptPaths(source); const rows = new Map();
+  if (!Array.isArray(inventory) || inventory.length !== expected.length) throw new Error('OD17_MANIFEST_INVENTORY_INVALID');
+  for (const item of inventory) {
+    const valid = item && isSafeOd17AssetPath(item.path) && SHA256.test(item.sha256 ?? '') && Number.isSafeInteger(item.bytes) && item.bytes > 0 && Number.isSafeInteger(item.gzipBytes) && item.gzipBytes > 0 && !rows.has(item.path);
+    if (!valid) { throw new Error('OD17_MANIFEST_INVENTORY_INVALID'); } rows.set(item.path, item);
   }
-
-  return null;
+  if (!expected.every(item => rows.has(item))) throw new Error('OD17_MANIFEST_INVENTORY_INVALID');
+  return expected.map(item => rows.get(item));
 }
-
-async function findLoadableManifestPath() {
-  for (const manifestPath of LOADABLE_MANIFEST_CANDIDATES) {
-    try {
-      const stats = await fs.stat(manifestPath);
-      if (stats.size > 0) {
-        return manifestPath;
-      }
-    } catch {
-      // Keep scanning candidates.
-    }
+// prettier-ignore
+function exactBody(value, digest) { const body = typeof value === 'string' ? Buffer.from(value, 'base64') : null; return body?.length > 0 && body.toString('base64') === value && sha(body) === digest ? body : null; }
+// prettier-ignore
+const remoteUrl = (value, base) => { try { return new URL(value, base); } catch { return null; } },
+  collectRemoteRequests = (requests, origin, urls, observed) => { for (const row of requests) { const url = remoteUrl(row?.url); if (!url) { return false; } const javascript = /javascript/u.test(row?.mimeType ?? ''); if (javascript) { observed.add(url.toString()); } if (url.origin === origin && (javascript || url.pathname.endsWith('.js'))) { urls.add(url.toString()); } } return true; },
+  collectRemotePages = (candidates, base, origin, urls, observed) => { for (const value of candidates) { const url = remoteUrl(value, base); if (!url) { return false; } if (url.origin !== origin) { continue; } const javascript = observed.has(url.toString()); if (javascript || url.pathname.endsWith('.js')) { urls.add(url.toString()); continue; } if (!path.posix.extname(url.pathname) && url.pathname !== '/' && !/^\/(?:sq|mk|en)$/u.test(url.pathname)) { return false; } } return true; };
+// prettier-ignore
+function remoteClosure(item, origin) {
+  const page = exactBody(item.pageBase64, item.pageSha256);
+  const requests = item.report?.audits?.['network-requests']?.details?.items;
+  if (!page || !Array.isArray(requests)) return null;
+  const candidates = [...page.toString().matchAll(/<(?:script|link)[^>]+(?:src|href)=["']([^"']+)["']/giu)].map(match => match[1]);
+  const urls = new Set(), observed = new Set();
+  if (!collectRemoteRequests(requests, origin, urls, observed) || !collectRemotePages(candidates, item.url, origin, urls, observed)) { return null; }
+  return [...urls].sort(codeUnit);
+}
+// prettier-ignore
+function exactRemoteGzip(item, origin) {
+  const expected = remoteClosure(item, origin); const rows = new Map(); let gzip = 0;
+  if (!expected?.length || !Array.isArray(item.assets) || item.assets.length !== expected.length) return null;
+  for (const asset of item.assets) {
+    let url; try { url = new URL(asset?.url); } catch { return null; }
+    const body = exactBody(asset?.bodyBase64, asset?.sha256);
+    if (url.origin !== origin || url.hash || rows.has(url.toString()) || !body || !SHA256.test(asset.sha256)) return null;
+    const bytes = gzipSync(body, { level: 9 }).length; if (bytes !== asset.gzipBytes) return null;
+    rows.set(url.toString(), asset); gzip += bytes;
   }
-
-  return null;
+  return JSON.stringify([...rows.keys()].sort(codeUnit)) === JSON.stringify(expected) ? gzip : null;
 }
-
-async function readCrmReportingChartBudget() {
-  const contract = await fs.readFile(CRM_CHART_CONTRACT_PATH, 'utf-8');
-  const match = contract.match(/CRM_REPORTING_CHART_BUNDLE_DELTA_KB_MAX\s*=\s*(\d+)/);
-
-  if (!match) {
-    throw new Error('CRM reporting chart bundle budget constant not found');
-  }
-
-  return Number(match[1]) * 1024;
+// prettier-ignore
+function exactCanary(evidence, canary) { return all([Number(evidence.runId) === canary.runId, Number(evidence.runAttempt) === canary.runAttempt]); }
+// prettier-ignore
+function exactPreparation(evidence, preparation) { return all([Number(evidence.preparationRunId) === preparation.runId, Number(evidence.preparationRunAttempt) === preparation.runAttempt, Number(evidence.preparationArtifactId) === preparation.artifactId, evidence.preparationArtifactDigest === preparation.artifactDigest]); }
+// prettier-ignore
+function exactProvenance(evidence, expected) { return all([evidence.schemaVersion === 1, evidence.workflowPath === '.github/workflows/od17-preview-canary.yml', evidence.trustedMainSha === expected.expectedTrustedMainSha, Number(evidence.pullNumber) === Number(expected.pullNumber), positive(evidence.pullNumber), exactCanary(evidence, expected.canary ?? {}), exactPreparation(evidence, expected.preparation ?? {}), positive(evidence.deploymentId), positive(evidence.statusId)]); }
+// prettier-ignore
+function exactReport(item) { const report = item.report, raw = JSON.stringify(report); return all([typeof raw === 'string', SHA256.test(item.reportSha256 ?? ''), typeof raw === 'string' && sha(raw) === item.reportSha256, item.lighthouseVersion === report?.lighthouseVersion, /^(?:Headless)?Chrome\/\d+(?:\.\d+){3}$/u.test(item.chromeVersion ?? ''), report?.configSettings?.formFactor === 'mobile', report?.configSettings?.screenEmulation?.mobile === true]); }
+// prettier-ignore
+function evaluateObservation(item, origin, locales) {
+  const identity = all([['sq', 'mk', 'en'].includes(item?.locale), !locales.has(item.locale), item.url === `${origin}/${item.locale}`, item.availabilityStatus === 200, item.unauthenticatedStatus !== 200, VERCEL_ID.test(item.vercelId ?? '')]);
+  if (!identity) return 'measurement_capability_missing';
+  locales.add(item.locale); const gzip = exactRemoteGzip(item, origin), reported = item.report?.categories?.performance?.score;
+  const exact = all([gzip === item.gzipBytes, Number.isFinite(item.ttfbMs), item.ttfbMs > 0, Number.isFinite(item.score), Number.isFinite(reported), Math.round(reported * 100) === item.score, item.report?.finalDisplayedUrl === item.url, exactReport(item)]);
+  if (!exact) return 'measurement_capability_missing';
+  return item.score > 90 && gzip < 122880 && item.ttfbMs < 100 ? 'pass' : 'budget_failed';
 }
-
-async function readChunkSize(file) {
-  const content = await fs.readFile(path.join(NEXT_DIR, file));
-  return gzipSize(content);
+// prettier-ignore
+export function evaluateOd17Evidence({ evidence, expectedHeadSha, expected = {} }) {
+  const canary = expected.canary ?? {}, failure = evidence?.failureClass;
+  if (failure) return ['provider_failure', 'measurement_capability_missing'].includes(failure) && evidence.schemaVersion === 1 && evidence.recomputedVerdict === 'fail' && evidence.errorCode === 'OD17_COLLECTOR_FAILED' && positive(canary.runId) && positive(canary.runAttempt) && positive(canary.artifactId) && ARTIFACT_DIGEST.test(canary.artifactDigest ?? '') ? failure : 'measurement_capability_missing';
+  if (!exactProvenance(evidence ?? {}, expected)) return 'measurement_capability_missing';
+  if (evidence?.headSha !== expectedHeadSha || evidence?.deploymentSha !== expectedHeadSha) return 'head_mismatch';
+  const origin = evidence?.previewOrigin, target = OD17_ORIGIN.test(origin ?? '') && evidence?.deploymentEnvironment === 'Preview' && evidence?.deploymentProduction === false && evidence?.deploymentRef === expectedHeadSha && evidence?.eventName === 'workflow_dispatch' && evidence?.headBranch === 'main';
+  if (!target) return 'target_mismatch';
+  const thresholds = { scoreAbove: 90, gzipBelow: 122880, ttfbBelowMs: 100 };
+  if (JSON.stringify(evidence.thresholds) !== JSON.stringify(thresholds) || !Array.isArray(evidence.observations) || evidence.observations.length !== 3) return 'measurement_capability_missing';
+  const locales = new Set();
+  for (const item of evidence.observations) { const verdict = evaluateObservation(item, origin, locales); if (verdict !== 'pass') return verdict; }
+  return locales.size === 3 && evidence.recomputedVerdict === 'pass' ? 'pass' : 'measurement_capability_missing';
 }
-
-function chartImportKey(moduleName) {
-  return `${CRM_REPORTING_CHART_BUDGET.dynamicImportPrefix}${moduleName}`;
+// prettier-ignore
+export async function verifyOd17Files({ localDir, evidenceDir, expectedHeadSha, ...expected }) {
+  const readJson = file => fs.readFile(file, 'utf8').then(JSON.parse);
+  const evidence = await readJson(path.join(evidenceDir, 'evidence.json'));
+  const verdict = evaluateOd17Evidence({ evidence, expectedHeadSha, expected }); if (evidence?.failureClass) return { evidence, inventory: [], verdict };
+  const buildBody = await fs.readFile(path.join(localDir, 'build-manifest.json'));
+  const build = JSON.parse(buildBody);
+  const inventory = assertManifestInventory({ manifests: { build }, inventory: await readJson(path.join(localDir, 'inventory.json')) });
+  for (const item of inventory) { const body = await fs.readFile(path.join(localDir, 'assets', item.path)); if (body.length !== item.bytes || gzipSync(body, { level: 9 }).length !== item.gzipBytes || sha(body) !== item.sha256) throw new Error('OD17_LOCAL_ASSET_MISMATCH'); }
+  const structureBody = await fs.readFile(path.join(evidenceDir, 'local-structure.json'));
+  const structure = JSON.parse(structureBody);
+  const exact = structure.headSha === expectedHeadSha && evidence.localStructureSha256 === sha(structureBody) && structure.manifests?.['build-manifest.json'] === sha(buildBody) && JSON.stringify(structure.inventory) === JSON.stringify(inventory);
+  if (!exact) throw new Error('OD17_LOCAL_STRUCTURE_MISMATCH');
+  return { evidence, inventory, verdict };
 }
-
-function routeChartFiles(loadableManifest, route) {
-  const files = new Set();
-
-  for (const moduleName of route.imports) {
-    const entry = loadableManifest[chartImportKey(moduleName)];
-    if (!entry) {
-      throw new Error(`CRM reporting chart dynamic import not found: ${moduleName}`);
-    }
-
-    for (const file of entry.files ?? []) {
-      if (file.endsWith('.js')) {
-        files.add(file);
-      }
-    }
-  }
-
-  return [...files].sort((left, right) => left.localeCompare(right));
-}
-
+// prettier-ignore
+async function firstExisting(paths, retries = 1) { for (let attempt = 0; attempt < retries; attempt += 1) { for (const file of paths) { try { if ((await fs.stat(file)).size > 0) return file; } catch {} } await new Promise(resolve => setTimeout(resolve, 500)); } return null; }
+const chunkGzip = file => fs.readFile(path.join(NEXT_DIR, file)).then(gzipSize);
+// prettier-ignore
 async function checkSize() {
-  try {
-    const manifestPath = await findManifestPath();
-
-    if (!manifestPath) {
-      const error = new Error('Build manifest not found');
-      error.code = 'ENOENT';
-      error.candidates = MANIFEST_CANDIDATES;
-      throw error;
-    }
-
-    const manifestContent = await fs.readFile(manifestPath, 'utf-8');
-    const manifest = JSON.parse(manifestContent);
-    // const pages = manifest.pages; // Not reliable for App Router specific page client chunks without deeper parsing
-
-    let hasError = false;
-
-    console.log('📊 Checking Bundle Sizes (Gzipped)...\n');
-
-    // 1. Check Global Baseline (rootMainFiles)
-    if (manifest.rootMainFiles) {
-      let totalSize = 0;
-      for (const file of manifest.rootMainFiles) {
-        const filePath = path.join(NEXT_DIR, file);
-        try {
-          const content = await fs.readFile(filePath);
-          const size = await gzipSize(content);
-          totalSize += size;
-        } catch {
-          console.warn(`Warning: Could not read ${file}`);
-        }
-      }
-
-      const limit = GLOBAL_BUDGET.gzip;
-      const isOver = totalSize > limit;
-      const icon = isOver ? '❌' : '✅';
-
-      console.log(`${icon} ${GLOBAL_BUDGET.name}`);
-      console.log(`   Size: ${(totalSize / 1024).toFixed(2)} KB`);
-      console.log(`   Limit: ${(limit / 1024).toFixed(2)} KB`);
-      console.log(`   Usage: ${((totalSize / limit) * 100).toFixed(1)}%\n`);
-
-      if (isOver) {
-        hasError = true;
-        console.error(
-          `ERROR: Global Initial JS exceeded budget by ${((totalSize - limit) / 1024).toFixed(2)} KB`
-        );
-      }
-    } else {
-      console.warn('⚠️ No rootMainFiles found in build manifest.');
-    }
-
-    // 2. Check CRM reporting chart dynamic route chunks. These chunks are client-only progressive
-    // enhancements; the server-rendered table and metric bands remain the accessible baseline.
-    const crmChartLimit = await readCrmReportingChartBudget();
-    const loadableManifestPath = await findLoadableManifestPath();
-
-    if (loadableManifestPath) {
-      const loadableManifest = JSON.parse(await fs.readFile(loadableManifestPath, 'utf-8'));
-
-      console.log(`✅ ${CRM_REPORTING_CHART_BUDGET.name}`);
-      console.log(`   Limit per route: ${(crmChartLimit / 1024).toFixed(2)} KB`);
-
-      for (const route of CRM_REPORTING_CHART_BUDGET.routes) {
-        const files = routeChartFiles(loadableManifest, route);
-        let routeSize = 0;
-        const chunks = [];
-
-        for (const file of files) {
-          const size = await readChunkSize(file);
-          routeSize += size;
-          chunks.push({ file, size });
-        }
-
-        const isOver = routeSize > crmChartLimit;
-        const icon = isOver ? '❌' : '✅';
-
-        console.log(`   ${icon} ${route.name}: ${(routeSize / 1024).toFixed(2)} KB`);
-
-        for (const chunk of chunks) {
-          console.log(`      - ${chunk.file}: ${(chunk.size / 1024).toFixed(2)} KB`);
-        }
-
-        if (files.length === 0) {
-          hasError = true;
-          console.error(`ERROR: ${route.name} has no CRM reporting chart dynamic JS files`);
-        }
-
-        if (isOver) {
-          hasError = true;
-          console.error(
-            `ERROR: ${route.name} exceeded CRM chart route budget by ${(
-              (routeSize - crmChartLimit) /
-              1024
-            ).toFixed(2)} KB`
-          );
-        }
-      }
-
-      console.log('');
-    } else {
-      console.warn('⚠️ No react-loadable-manifest found; CRM chart route chunks not checked.');
-    }
-
-    if (hasError) {
-      console.error('\n❌ Performance budget exceeded.');
-      process.exit(1);
-    } else {
-      console.log('\n✨ All performance checks passed.');
-    }
-  } catch (error) {
-    if (error.code === 'ENOENT') {
-      console.error('❌ Build manifest not found. Tried these paths:');
-      for (const candidate of error.candidates ?? MANIFEST_CANDIDATES) {
-        console.error(`   - ${candidate}`);
-      }
-      process.exit(1);
-    }
-    console.error('❌ Failed to check bundle size:', error);
-    process.exit(1);
+  const manifestPath = await firstExisting(BUILD_MANIFESTS, 60); if (!manifestPath) throw new Error('Build manifest not found');
+  const build = JSON.parse(await fs.readFile(manifestPath, 'utf8')); let failed = false; console.log('📊 Checking Bundle Sizes (Gzipped)...\n');
+  if (build.rootMainFiles) { const size = (await Promise.all(build.rootMainFiles.map(chunkGzip))).reduce((sum, item) => sum + item, 0); console.log(`${size > 256000 ? '❌' : '✅'} Global Initial JS (Baseline)\n   Size: ${(size / 1024).toFixed(2)} KB\n   Limit: 250.00 KB`); failed ||= size > 256000; }
+  const loadablePath = await firstExisting(LOADABLE_MANIFESTS);
+  if (loadablePath) {
+    const loadable = JSON.parse(await fs.readFile(loadablePath, 'utf8'));
+    const match = (await fs.readFile(CRM_CONTRACT, 'utf8')).match(/CRM_REPORTING_CHART_BUNDLE_DELTA_KB_MAX\s*=\s*(\d+)/u); if (!match) throw new Error('CRM reporting chart bundle budget constant not found');
+    const limit = Number(match[1]) * 1024, routes = [['/agent/crm', ['./pipeline-amount-chart']], ['/admin/crm', ['./pipeline-amount-chart']], ['/staff/crm', ['./pipeline-amount-chart', './funnel-movement-chart', './stage-velocity-chart']]];
+    for (const [name, modules] of routes) { const files = [...new Set(modules.flatMap(module => loadable[`components/crm/charts/reporting-chart-boundary.tsx -> ${module}`]?.files ?? []).filter(file => file.endsWith('.js')))]; const size = (await Promise.all(files.map(chunkGzip))).reduce((sum, item) => sum + item, 0); console.log(`${files.length && size <= limit ? '✅' : '❌'} ${name}: ${(size / 1024).toFixed(2)} KB`); failed ||= files.length === 0 || size > limit; }
   }
+  if (failed) { throw new Error('Performance budget exceeded'); } console.log('\n✨ All performance checks passed.');
 }
-
-checkSize();
+// prettier-ignore
+if (process.argv[1] === fileURLToPath(import.meta.url)) try { await checkSize(); } catch (error) { console.error(`❌ Failed to check bundle size: ${error.message}`); process.exitCode = 1; }

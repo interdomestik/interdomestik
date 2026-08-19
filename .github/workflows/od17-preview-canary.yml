@@ -29,18 +29,18 @@ jobs:
           BETTER_AUTH_URL: https://build.invalid
           BETTER_AUTH_SECRET: od17-ci-build-only-secret-32chars
           DATABASE_URL: postgresql://unused@127.0.0.1:1/unused
+          DATABASE_URL_RLS: postgresql://unused-rls@127.0.0.1:1/unused
         run: |
           set -euo pipefail
           pnpm build
           mkdir -p tmp/od17-local
           cp apps/web/.next/build-manifest.json tmp/od17-local/build-manifest.json
-          cp apps/web/.next/app-build-manifest.json tmp/od17-local/app-build-manifest.json
           git rev-parse HEAD > tmp/od17-local/head-sha.txt
           printf '%s\n' 'pnpm build' > tmp/od17-local/build-command.txt
           node --input-type=module <<'NODE'
           import { createHash } from 'node:crypto'; import { cp, mkdir, readFile, writeFile } from 'node:fs/promises'; import { gzipSync } from 'node:zlib';
           const root = 'apps/web/.next';
-          const manifests = await Promise.all(['build-manifest.json', 'app-build-manifest.json'].map(name => readFile(`${root}/${name}`, 'utf8').then(JSON.parse)));
+          const manifests = [JSON.parse(await readFile(`${root}/build-manifest.json`, 'utf8'))];
           const assets = [...new Set(JSON.stringify(manifests).match(/static\/[^"']+\.js/gu) ?? [])].sort();
           const inventory = []; let totalBytes = 0;
           for (const asset of assets) {
@@ -121,11 +121,8 @@ jobs:
             if (body.length !== item.bytes || gzipSync(body, { level: 9 }).length !== item.gzipBytes || digest !== item.sha256)
               throw new Error('OD17_LOCAL_ASSET_MISMATCH');
           }
-          const manifests = {};
-          for (const name of ['build-manifest.json', 'app-build-manifest.json']) {
-            const body = await readFile(`${root}/${name}`); JSON.parse(body);
-            manifests[name] = createHash('sha256').update(body).digest('hex');
-          }
+          const manifestBody = await readFile(`${root}/build-manifest.json`); JSON.parse(manifestBody);
+          const manifests = { 'build-manifest.json': createHash('sha256').update(manifestBody).digest('hex') };
           await mkdir('tmp/od17-evidence', { recursive: true }); await writeFile('tmp/od17-evidence/local-structure.json',
             `${JSON.stringify({ headSha: process.env.EXPECTED_HEAD_SHA, manifests, inventory }, null, 2)}\n`);
           NODE

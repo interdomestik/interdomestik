@@ -30,13 +30,56 @@ runs:
 
         case "${RUNNER_OS}" in
           Linux)
-            apt_cmd="apt-get"
-            if command -v sudo >/dev/null 2>&1; then
-              apt_cmd="sudo apt-get"
+            if [[ "${RUNNER_ARCH:-}" != "X64" ]]; then
+              echo "::error::Pinned ripgrep bootstrap supports only Linux X64, not ${RUNNER_ARCH:-unknown}."
+              exit 1
             fi
 
-            ${apt_cmd} update
-            ${apt_cmd} install -y ripgrep
+            RIPGREP_VERSION='15.2.0'
+            RIPGREP_TARGET='x86_64-unknown-linux-musl'
+            RIPGREP_SHA256='33e15bcf1624b25cdd2a55813a47a2f95dbe126268203e76aa6a585d1e7b149c'
+            RIPGREP_DIR="ripgrep-${RIPGREP_VERSION}-${RIPGREP_TARGET}"
+            RIPGREP_ARCHIVE="${RIPGREP_DIR}.tar.gz"
+            RIPGREP_URL="https://github.com/BurntSushi/ripgrep/releases/download/${RIPGREP_VERSION}/${RIPGREP_ARCHIVE}"
+            temp_dir="$(mktemp -d "${RUNNER_TEMP:?}/ripgrep.XXXXXX")"
+            install_dir="${RUNNER_TEMP}/ripgrep-${RIPGREP_VERSION}/bin"
+            trap 'rm -rf -- "${temp_dir}"' EXIT
+
+            timeout --signal=TERM --kill-after=5s 180s \
+              curl \
+                --fail \
+                --silent \
+                --show-error \
+                --location \
+                --proto '=https' \
+                --proto-redir '=https' \
+                --tlsv1.2 \
+                --connect-timeout 10 \
+                --max-time 120 \
+                --retry 2 \
+                --retry-delay 2 \
+                --retry-max-time 150 \
+                --retry-all-errors \
+                --max-filesize 5000000 \
+                --output "${temp_dir}/${RIPGREP_ARCHIVE}" \
+                "${RIPGREP_URL}"
+
+            (
+              cd "${temp_dir}"
+              printf '%s  %s\n' "${RIPGREP_SHA256}" "${RIPGREP_ARCHIVE}" |
+                sha256sum --check --strict -
+            )
+
+            tar --extract --gzip \
+              --file "${temp_dir}/${RIPGREP_ARCHIVE}" \
+              --directory "${temp_dir}" \
+              --no-same-owner \
+              --no-same-permissions \
+              "${RIPGREP_DIR}/rg"
+            install -d -m 0755 "${install_dir}"
+            install -m 0755 "${temp_dir}/${RIPGREP_DIR}/rg" "${install_dir}/rg"
+            "${install_dir}/rg" --version
+            printf '%s\n' "${install_dir}" >> "${GITHUB_PATH:?}"
             ;;
           macOS)
             if command -v brew >/dev/null 2>&1; then
