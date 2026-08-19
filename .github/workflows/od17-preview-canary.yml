@@ -29,6 +29,7 @@ jobs:
           BETTER_AUTH_URL: https://build.invalid
           BETTER_AUTH_SECRET: od17-ci-build-only-secret-32chars
           DATABASE_URL: postgresql://unused@127.0.0.1:1/unused
+          DATABASE_URL_RLS: postgresql://unused-rls@127.0.0.1:1/unused
         run: |
           set -euo pipefail
           pnpm build
