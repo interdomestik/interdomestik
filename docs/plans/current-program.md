@@ -18,23 +18,31 @@ status_command: pnpm plan:status
 T-115 P0A canonical front-door composition and P0B pending-session continuity remain
 complete. The separate OD#17 public-shell performance residual is not complete.
 
-The protected-main projection capability completed in
-[PR #1598](https://github.com/interdomestik/interdomestik/pull/1598): final reviewed
-head `2a32a18e0ad8a81ac3da66d40617da8ae846f0e0` merged as
-`858eb4a32fc47ef9cdd04fbc1e44e10da630ba76`. Its exact-head Sonar Quality Gate
-passed with zero open issues; CodeQL, security, audit, static, unit, E2E, Pilot,
-Copilot and finalizer were green with zero actionable or unresolved feedback. Protected
-`origin/main` converged at `858eb4a32fc47ef9cdd04fbc1e44e10da630ba76`; all required
-exact-main checks are green. Automatic
-[CD run 32266432820](https://github.com/interdomestik/interdomestik/actions/runs/32266432820)
-was canceled before jobs.
+The protected-main projection capability remains merged through
+[PR #1598](https://github.com/interdomestik/interdomestik/pull/1598); its canonical
+closeout [PR #1600](https://github.com/interdomestik/interdomestik/pull/1600)
+established exact measurement base `bf9849744866e8dd84294b2638e03ddb73cf0d65`.
 
-Only `IDA-T115-OD17-FINAL-MEASUREMENT` is now promoted. It is
-`awaiting_runtime_authority` with `runtime_authorized:false`: no measurement branch,
-provider control, Preview, canary or metric collection may begin until Arben
-exact-approves the sole separate exact-main receipt permitted by
-[DG51](./2026-08-19-ida-dg51-t115-od17-projection-capability.md). `T-118`, `T-117`
-and `T-116` remain blocked until OD#17 is actually PASS, merged and closed.
+Runtime R1 materialized inert commit `8f091436945849851672503734c85e9e7b6cc78a`
+and frozen tree-identical head `3a9689b94cb9a353ab2db8435d32ac5e8534123f`.
+The sole automatic Preview was Vercel deployment
+`dpl_DH8E1oGWTsf8s4xi2Mg6i7Ck87Wx` at
+[its immutable URL](https://interdomestik-k0m820rtz-ecohub.vercel.app); it never
+reached READY and ended `BUILD_EXCEEDED_MAXIMUM_TIME`. GitHub deployment
+`5987940626` / status `17029471770` recorded failure. Raw provider evidence is
+5,074 bytes, SHA-256
+`ac745d3bb4b092d2d8e786e37aef4f1c0f493bd0b118baa82e83ca7d60da393d`.
+No measurement PR, preparation, canary, metrics, audit, finalizer or merge occurred.
+
+The fixed disposition is
+`INCONCLUSIVE — measurement_capability_missing/provider_failure`, subreason
+`Vercel BUILD_EXCEEDED_MAXIMUM_TIME / no READY`. Both task variables and the task
+Trusted Source were re-read absent; `deployment_status Events` and
+`repository_dispatch Events` were OFF. Standard Protection remained ON and deployment
+history was retained. Runtime R1 is consumed and
+`runtime_authorized:false`; no retry is authorized. The capability stays merged.
+No successor is promoted; `T-118`, `T-117` and `T-116` remain blocked pending a
+new separate strategic decision.
 
 The compact roadmap below preserves the live M0-M5 implementation blueprint. Full task
 contracts, acceptance criteria and milestone detail remain canonical in the
@@ -56,7 +64,7 @@ its [tracker](./architecture-finalization-tracker-2026-05-29.md).
 
 | Priority | Candidate                                                         | Dependencies                                                | Promotion constraint                                                                                            |
 | -------: | ----------------------------------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-|        1 | `T-115` OD#17 public-shell performance proof                      | T-115 P0A/P0B complete                                      | Capability merged green in PR #1598; await exact approval of the sole final-measurement receipt before one run. |
+|        1 | `T-115` OD#17 public-shell performance proof                      | T-115 P0A/P0B complete                                      | Terminal INCONCLUSIVE under DG51; no retry. Any successor requires a new separate strategic decision.           |
 |        2 | `T-118` `ui/crystal` presentational primitives                    | T-115 including OD#17 complete                              | Requires its own fresh design gate; keep domain imports at zero and preserve accessibility/performance budgets. |
 |        3 | `T-117` unified member dashboard shell                            | T-115 including OD#17, T-114 complete                       | May run beside T-118 only under its own gate; preserve RSC, query and neutral-host constraints.                 |
 |        4 | `T-116` exhaustive `CaseSummary` projection and renderer registry | `T-103` complete, T-115 including OD#17, T-118              | Promote only after both UI foundations are complete.                                                            |
@@ -96,4 +104,4 @@ All authority history through Rev 243 is recoverable byte-for-byte from Git thro
 Manifest SHA-256: `355229c5d24a6fa5f0986b6ce41423cbdc5caea16b291f1335a7264b2be5fc78`.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-OD17-FINAL-MEASUREMENT` (Tier 3 one-shot protected-main performance measurement; `runtime_authorized:false`; resolver `awaiting_runtime_authority` pending the sole separate exact-main receipt permitted by `IDA-DG51-T115-OD17-PROJECTION-CAPABILITY-R1`).
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
