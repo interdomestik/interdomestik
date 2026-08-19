@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 
 import yaml from 'js-yaml';
+import '../../apps/web/scripts/check-size.test.mjs';
 import './ci-audit-rls-workflow-contracts.mjs';
 
 import {
@@ -111,33 +112,32 @@ test('seeded CI workflows generate masked per-run E2E credentials before seeded 
     );
   }
 });
+// prettier-ignore
 test('OD17 collector keeps OIDC out of the unprivileged exact-head job', () => {
-  const workflow = readWorkflow('.github/workflows/od17-preview-canary.yml');
-  const prepare = workflow.jobs['prepare-exact-head'];
-  const trusted = workflow.jobs['trusted-main-collector'];
+  const workflow = readWorkflow('.github/workflows/od17-preview-canary.yml'), ci = readWorkflow('.github/workflows/ci.yml');
+  const prepare = workflow.jobs['prepare-exact-head'], trusted = workflow.jobs['trusted-main-collector'], audit = ci.jobs.audit;
+  const proofStep = findStep(audit.steps, 'Certify OD17 exact-head public shell'), upload = findStep(audit.steps, 'Upload OD17 exact-head verdict');
+  const checkout = audit.steps.find(step => String(step?.uses).startsWith('actions/checkout@'));
+  assert.ok(proofStep); assert.ok(upload); assert.ok(checkout);
+  assert.equal(proofStep.run, 'pnpm od17:verify'); assert.equal(proofStep['continue-on-error'], undefined);
+  assert.equal(proofStep.env.EXPECTED_HEAD_SHA, '${{ github.event.pull_request.head.sha }}');
+  assert.equal(proofStep.env.EXPECTED_TRUSTED_MAIN_SHA, '${{ github.event.pull_request.base.sha }}');
+  for (const value of [checkout.with.ref, proofStep.if, upload.if]) assert.match(value, /head\.repo\.full_name == github\.repository/u);
+  assert.match(checkout.with.ref, /pull_request\.head\.sha[\s\S]*github\.sha/u); assert.match(upload.if, /always\(\)/u); assert.equal(upload.with['if-no-files-found'], 'error');
   assert.deepEqual(Object.keys(workflow.jobs), ['prepare-exact-head', 'trusted-main-collector']);
   assert.equal(prepare.permissions['id-token'], 'none');
-  assert.equal(trusted.permissions['id-token'], 'write');
-  assert.equal(trusted.permissions.actions, 'read');
-  assert.equal(trusted.permissions.deployments, 'read');
+  const build = findStep(prepare.steps, 'Build exact head and retain bounded structural evidence'); assert.ok(build); assert.notEqual(build.env.DATABASE_URL_RLS, build.env.DATABASE_URL);
+  assert.deepEqual([trusted.permissions['id-token'], trusted.permissions.actions, trusted.permissions.deployments], ['write', 'read', 'read']);
   assert.equal(workflow.permissions, undefined);
-  assert.equal(
-    findStep(prepare.steps, 'Collect authenticated exact-deployment evidence'),
-    undefined
-  );
+  assert.equal(findStep(prepare.steps, 'Collect authenticated exact-deployment evidence'), undefined);
   assert.ok(findStep(trusted.steps, 'Resolve exact PR preparation run and Preview'));
   assert.ok(findStep(trusted.steps, 'Collect authenticated exact-deployment evidence'));
-  const structuralProof = findStep(trusted.steps, 'Recompute untrusted local structural evidence');
-  assert.equal(typeof structuralProof?.run, 'string');
-  const proof = structuralProof.run;
-  const source = proof.match(/const safeAssetPath = (value => \{[\s\S]*?\n\s*\});/u)?.[1];
-  assert.ok(source);
+  const structural = findStep(trusted.steps, 'Recompute untrusted local structural evidence');
+  const source = structural?.run?.match(/const safeAssetPath = (value => \{[\s\S]*?\n\s*\});/u)?.[1]; assert.ok(source);
   const safeAssetPath = vm.runInNewContext(`(${source})`, {}, { timeout: 50 });
-  for (const value of ['static/(public)/[locale].js', 'static/%5Blocale%5D.js'])
-    assert.equal(safeAssetPath(value), true, value);
-  for (const value of ['static/../x.js', 'static/%2e/x.js', 'static/%2f.js', 'static/%ZZ.js'])
-    assert.equal(safeAssetPath(value), false, value);
-  assert.match(proof, /item === null \|\| typeof item !== 'object'/u);
+  for (const value of ['static/(public)/[locale].js', 'static/%5Blocale%5D.js']) assert.equal(safeAssetPath(value), true, value);
+  for (const value of ['static/../x.js', 'static/%2e/x.js', 'static/%2f.js', 'static/%ZZ.js']) assert.equal(safeAssetPath(value), false, value);
+  assert.match(structural.run, /item === null \|\| typeof item !== 'object'/u);
 });
 test('CI delegates PR browser gate to PR E2E', () => {
   const ciWorkflow = readWorkflow('.github/workflows/ci.yml');
