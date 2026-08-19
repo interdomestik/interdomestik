@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-08-18
+last_reviewed: 2026-08-19
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -27,13 +27,20 @@ reached exact head `a5c5534da28cb37553daad5d696523baeba5da49`: exact-head E2E,
 focused contracts, Sonar with zero issues, CodeQL, security and current-head review
 passed. Its automatic exact-head Vercel Preview compiled in 2.8 minutes, then stalled
 at `Running TypeScript` until Vercel terminated the build at its 45-minute maximum.
-No protected-main canary ran and no performance PASS is claimed. The PR closed
-unmerged as `provider_failure / measurement_capability_missing` under the approved
-fail-closed contract; manual redeploy and another authority revision were not used.
+No protected-main canary ran and no performance PASS is claimed. The PR closed unmerged
+as `provider_failure / measurement_capability_missing`.
 
-That terminal abort consumes the current runtime without promoting a replacement.
-OD#17 remains the first eligible residual before T-118, T-117 and T-116, but it needs
-a fresh, separately authorized selection that addresses provider build capability.
+Arben exact-approved `IDA-DG50-T115-OD17-CACHE-ISOLATED-PREVIEW-RECOVERY` on
+2026-08-19 at 19,685 UTF-8 bytes / SHA-256
+`ecea46fa019907bdb235bdcb19349b30e41aa7cad8641b23ba5e71cc6c023309`, bound to
+clean main `0f0ddf3d6c00d51237fc6347c01c2aa4651936be`. DG50 promotes exactly one
+Tier 3 recovery of the existing OD#17 proof: replay only the preserved reviewed
+contract and consume one exact-branch cache-isolated automatic Preview plus one canary.
+No product/UI/auth/routing behavior, threshold, provider target or production action is
+promoted. The approved gate, ready admission and diagnostic live at
+[`IDA-DG50`](./2026-08-19-ida-dg50-t115-od17-cache-isolated-preview-recovery.md).
+Runtime remains unauthorized pending this docs-only merge, exact-main convergence and a
+separate runtime receipt approval. `T-118`, `T-117` and `T-116` remain blocked.
 
 The compact roadmap below preserves the live M0-M5 implementation blueprint. Full task
 contracts, acceptance criteria and milestone detail remain canonical in the
@@ -55,7 +62,7 @@ its [tracker](./architecture-finalization-tracker-2026-05-29.md).
 
 | Priority | Candidate                                                         | Dependencies                                                | Promotion constraint                                                                                            |
 | -------: | ----------------------------------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-|        1 | `T-115` OD#17 public-shell performance proof                      | T-115 P0A/P0B complete                                      | Requires its own fresh design gate and exact proof before dependent M1 UI candidates.                           |
+|        1 | `T-115` OD#17 public-shell performance proof                      | T-115 P0A/P0B complete                                      | DG50 is exact-approved; docs merge, exact-main convergence and a separate runtime receipt are required.         |
 |        2 | `T-118` `ui/crystal` presentational primitives                    | T-115 including OD#17 complete                              | Requires its own fresh design gate; keep domain imports at zero and preserve accessibility/performance budgets. |
 |        3 | `T-117` unified member dashboard shell                            | T-115 including OD#17, T-114 complete                       | May run beside T-118 only under its own gate; preserve RSC, query and neutral-host constraints.                 |
 |        4 | `T-116` exhaustive `CaseSummary` projection and renderer registry | `T-103` complete, T-115 including OD#17, T-118              | Promote only after both UI foundations are complete.                                                            |
@@ -95,4 +102,4 @@ All authority history through Rev 243 is recoverable byte-for-byte from Git thro
 Manifest SHA-256: `355229c5d24a6fa5f0986b6ce41423cbdc5caea16b291f1335a7264b2be5fc78`.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is blocked pending fresh current authority; activeSlice=null.
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` (Tier 3 shared performance-verification recovery; `runtime_authorized:false`; exact-approved `IDA-DG50-T115-OD17-CACHE-ISOLATED-PREVIEW-RECOVERY` pending docs-only merge).
