@@ -21,31 +21,24 @@ and [PR #1581](https://github.com/interdomestik/interdomestik/pull/1581). The
 separate OD#17 public-shell performance residual is not complete.
 
 The protected-main collector prerequisite completed in
-[PR #1589](https://github.com/interdomestik/interdomestik/pull/1589). The sole
-performance-proof attempt [PR #1593](https://github.com/interdomestik/interdomestik/pull/1593)
-reached exact head `a5c5534da28cb37553daad5d696523baeba5da49`: exact-head E2E,
-focused contracts, Sonar with zero issues, CodeQL, security and current-head review
-passed. Its automatic exact-head Vercel Preview compiled in 2.8 minutes, then stalled
-at `Running TypeScript` until Vercel terminated the build at its 45-minute maximum.
-No protected-main canary ran and no performance PASS is claimed. The PR closed unmerged
-as `provider_failure / measurement_capability_missing`.
+[PR #1589](https://github.com/interdomestik/interdomestik/pull/1589). Recovery
+[PR #1597](https://github.com/interdomestik/interdomestik/pull/1597) reached exact
+head `6e334da050d16929733a84b89fb06359a6952892`: E2E, Sonar, CodeQL,
+security, static, unit, AI-eval, Pilot and feedback intake passed. Its sole Vercel
+Preview became READY, but the protected-main canary found zero GitHub Deployment
+candidates because Vercel's `deployment_status Events` integration was OFF. No
+performance metric ran or PASS exists; the attempt closed unmerged as
+`provider_failure / measurement_capability_missing`.
 
-Arben exact-approved `IDA-DG50-T115-OD17-CACHE-ISOLATED-PREVIEW-RECOVERY` on
-2026-08-19 at 19,685 UTF-8 bytes / SHA-256
-`ecea46fa019907bdb235bdcb19349b30e41aa7cad8641b23ba5e71cc6c023309`, bound to
-clean main `0f0ddf3d6c00d51237fc6347c01c2aa4651936be`. DG50 promotes exactly one
-Tier 3 recovery of the existing OD#17 proof: replay only the preserved reviewed
-contract and consume one exact-branch cache-isolated automatic Preview plus one canary.
-No product/UI/auth/routing behavior, threshold, provider target or production action is
-promoted. The approved gate, ready admission and diagnostic live at
-[`IDA-DG50`](./2026-08-19-ida-dg50-t115-od17-cache-isolated-preview-recovery.md).
-Exact-main runtime receipt
-[`IDA-T115-OD17-RUNTIME-R1`](./2026-08-19-ida-t115-od17-runtime-r1.md), 3,130
-UTF-8 bytes / SHA-256
-`797a41f619fb3e50977042d8a9895aacd161294366c990db7efa5796a5d22290`, authorizes
-only this one recovery from checkpoint `7b7f6e646f18b0e31a930d8fb8020d1393fd4087`
-on current main `6cf5227fcdf7247b801d9aa4673eabb08bceab98`. `T-118`, `T-117` and
-`T-116` remain blocked.
+Arben exact-approved the separate combined strategic exception and runtime receipt
+`IDA-T115-OD17-BRIDGE-R1` on 2026-08-19 at 5,224 UTF-8 bytes / SHA-256
+`3525c84ba4cb0bcdaedf4cf86195d72b9ea275b9796c8f1679dc2eff32543c34`, bound to
+main `6cf5227fcdf7247b801d9aa4673eabb08bceab98`, the terminal artifact and the
+historical implementation tree `ce742a8a995bde75fb7550547410f013d86708a0`.
+It authorizes only one B-only recovery: restore the Deployment projection, consume one
+automatic Preview and one protected-main canary, then rerun audit/finalizer once only
+after valid evidence. Product/CI code, thresholds, provider target and Production are
+unchanged. `T-118`, `T-117` and `T-116` remain blocked.
 
 The compact roadmap below preserves the live M0-M5 implementation blueprint. Full task
 contracts, acceptance criteria and milestone detail remain canonical in the
@@ -67,7 +60,7 @@ its [tracker](./architecture-finalization-tracker-2026-05-29.md).
 
 | Priority | Candidate                                                         | Dependencies                                                | Promotion constraint                                                                                            |
 | -------: | ----------------------------------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-|        1 | `T-115` OD#17 public-shell performance proof                      | T-115 P0A/P0B complete                                      | DG50 is exact-approved; docs merge, exact-main convergence and a separate runtime receipt are required.         |
+|        1 | `T-115` OD#17 public-shell performance proof                      | T-115 P0A/P0B complete                                      | `IDA-T115-OD17-BRIDGE-R1` exact-authorizes one final B-only projection/measurement attempt.                     |
 |        2 | `T-118` `ui/crystal` presentational primitives                    | T-115 including OD#17 complete                              | Requires its own fresh design gate; keep domain imports at zero and preserve accessibility/performance budgets. |
 |        3 | `T-117` unified member dashboard shell                            | T-115 including OD#17, T-114 complete                       | May run beside T-118 only under its own gate; preserve RSC, query and neutral-host constraints.                 |
 |        4 | `T-116` exhaustive `CaseSummary` projection and renderer registry | `T-103` complete, T-115 including OD#17, T-118              | Promote only after both UI foundations are complete.                                                            |
@@ -107,4 +100,4 @@ All authority history through Rev 243 is recoverable byte-for-byte from Git thro
 Manifest SHA-256: `355229c5d24a6fa5f0986b6ce41423cbdc5caea16b291f1335a7264b2be5fc78`.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` (Tier 3 shared performance-verification recovery; `runtime_authorized:true`; exact-approved `IDA-DG50-T115-OD17-CACHE-ISOLATED-PREVIEW-RECOVERY` and `IDA-T115-OD17-RUNTIME-R1`).
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` (Tier 3 shared performance-verification recovery; `runtime_authorized:true`; exact-approved `IDA-T115-OD17-BRIDGE-R1`).

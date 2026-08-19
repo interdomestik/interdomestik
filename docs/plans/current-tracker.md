@@ -17,20 +17,21 @@ status_command: pnpm plan:status
 
 | ID                                             | Status        | Owner                         | Work                                                                 | Exit Criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | ---------------------------------------------- | ------------- | ----------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` | `in_progress` | `platform + performance + qa` | One cache-isolated exact-head recovery of OD#17 public-shell budgets | DG50 remains binding. Arben exact-approved [`IDA-T115-OD17-RUNTIME-R1`](./2026-08-19-ida-t115-od17-runtime-r1.md), 3,130 bytes / SHA-256 `797a41f619fb3e50977042d8a9895aacd161294366c990db7efa5796a5d22290`, on exact main `6cf5227fcdf7247b801d9aa4673eabb08bceab98` / checkpoint `7b7f6e646f18b0e31a930d8fb8020d1393fd4087`. It permits exactly one recovery PR, no-cache Preview and protected-main canary after matching freeze prerequisites; all successors remain blocked. |
+| `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` | `in_progress` | `platform + performance + qa` | One final B-only Deployment-projection recovery and OD#17 measurement | Arben exact-approved `IDA-T115-OD17-BRIDGE-R1`, 5,224 bytes / SHA-256 `3525c84ba4cb0bcdaedf4cf86195d72b9ea275b9796c8f1679dc2eff32543c34`, on exact main `6cf5227fcdf7247b801d9aa4673eabb08bceab98`. DG50 remains binding except for the bridge's explicitly superseded consumed clauses. It permits only `deployment_status Events=ON`, one automatic Preview, one protected-main canary and one audit/finalizer rerun after a valid content-addressed canary PASS; all successors remain blocked. |
 
 ## Proof Ledger
 
 | ID | Source Refs | Execution | Run ID | Run Root | Sonar | Docker | Sentry | Learning | Evidence Refs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` | `gate:feb4fa42`; `correction-r2:0382428a`; `pr:1593`; `head:a5c5534d`; `e2e:32166438771`; `prepare:32166438756`; `vercel:dpl_Cu1Doy9Y6iswiwCzEMySSe9kaFQY`; `dg50:ecea46fa` | `manual` | `codex/ida-dg50-authority` | `main` | `pass` | `not_applicable` | `not_applicable` | `not_applicable` | `docs/plans/2026-08-18-ida-t115-od17-terminal-provider-failure-evidence.md`; `docs/plans/2026-08-19-ida-dg50-t115-od17-cache-isolated-preview-recovery.md` |
+| `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` | `pr:1597`; `head:6e334da0`; `tree:ce742a8a`; `e2e:32239046124`; `prepare:32239046100`; `preview:8LKKHvVpQNFiNiuC9Zi44dLVQMjP`; `canary:32240149670`; `bridge:3525c84b` | `manual` | `codex/ida-t115-od17-performance-proof` | `main` | `pass` | `not_applicable` | `not_applicable` | `not_applicable` | `IDA-T115-OD17-TERMINAL-INCONCLUSIVE-R1`; `IDA-T115-OD17-BRIDGE-R1` |
 
 ## Next Selection
 
-Only OD#17 is runtime-authorized. One current-head recovery PR may proceed under
-`IDA-T115-OD17-RUNTIME-R1`; Preview/canary remain conditional on DG50 freeze
-prerequisites. Dependent `T-118` and `T-117` remain blocked until OD#17 is actually
-PASS, merged and closed.
+Only OD#17 is runtime-authorized. Reuse/reopen PR #1597 under
+`IDA-T115-OD17-BRIDGE-R1`; proceed only from one unique READY, non-production,
+exact-head Preview and matching successful GitHub Deployment to one protected-main
+canary. Dependent `T-118` and `T-117` remain blocked until OD#17 is actually PASS,
+merged and closed.
 
 ## Historical Authority
 
@@ -44,4 +45,4 @@ remains the stable deep-detail source for M0-M5 task contracts. Current rows are
 selection, implementation and closeout; detailed proof is linked, never copied here.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` (Tier 3 shared performance-verification recovery; `runtime_authorized:true`; exact-approved `IDA-DG50-T115-OD17-CACHE-ISOLATED-PREVIEW-RECOVERY` and `IDA-T115-OD17-RUNTIME-R1`).
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` (Tier 3 shared performance-verification recovery; `runtime_authorized:true`; exact-approved `IDA-T115-OD17-BRIDGE-R1`).
