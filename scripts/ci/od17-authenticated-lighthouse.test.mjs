@@ -96,16 +96,17 @@ test('remote closure is an exact-origin JavaScript union independent of local ev
   assert.deepEqual(
     collectRemoteJavaScriptUrls({
       previewOrigin: origin,
-      pageUrls: [`${origin}/_next/static/a.js`, `${origin}/_next/static/a.js`],
+      pageUrls: [`${origin}/_next/static/a.js?v=1`, `${origin}/_next/static/a.js?v=1`],
       lighthouseRequests: [
         { url: `${origin}/_next/static/b.js`, mimeType: 'application/javascript' },
-        { url: `${origin}/_next/chunk`, mimeType: 'application/javascript' },
+        { url: `${origin}/_next/chunk?v=1`, mimeType: 'application/javascript' },
         { url: 'https://third.example/tracker.js', mimeType: 'application/javascript' },
         { url: `${origin}/font.woff2`, mimeType: 'font/woff2' },
       ],
     }),
-    [`${origin}/_next/chunk`, `${origin}/_next/static/a.js`, `${origin}/_next/static/b.js`]
+    [`${origin}/_next/chunk?v=1`, `${origin}/_next/static/a.js?v=1`, `${origin}/_next/static/b.js`]
   );
+  assert.throws(() => collectRemoteJavaScriptUrls({ previewOrigin: origin, pageUrls: [`${origin}/_next/page-only?v=1`], lighthouseRequests: [] }), /remote_javascript_ambiguity/u);
 });
 
 test('collector source fails closed on interceptor and main-document attribution gaps', () => {

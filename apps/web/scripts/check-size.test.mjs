@@ -21,13 +21,13 @@ const sha = body => createHash('sha256').update(body).digest('hex');
 const withReport = (item, report) => ({ ...item, report, reportSha256: sha(JSON.stringify(report)) });
 const localBody = Buffer.from('local-structural-build');
 const remoteBody = Buffer.from('remote-vercel-build');
-const pageBody = Buffer.from('<html><script src="/_next/static/chunks/remote.js"></script></html>');
+const pageBody = Buffer.from('<html><script src="/_next/chunk?v=1"></script></html>');
 // prettier-ignore
 const localRow = { path: 'static/chunks/local.js', bytes: localBody.length, gzipBytes: gzipSync(localBody, { level: 9 }).length, sha256: sha(localBody) };
 
 // prettier-ignore
 function observation(locale, change = {}) {
-  const url = `${ORIGIN}/${locale}`, assetUrl = `${ORIGIN}/_next/static/chunks/remote.js`;
+  const url = `${ORIGIN}/${locale}`, assetUrl = `${ORIGIN}/_next/chunk?v=1`;
   const asset = { url: assetUrl, sha256: sha(remoteBody), gzipBytes: gzipSync(remoteBody, { level: 9 }).length, bodyBase64: remoteBody.toString('base64') };
   const report = { lighthouseVersion: '13.4.1', configSettings: { formFactor: 'mobile', screenEmulation: { mobile: true } }, categories: { performance: { score: 0.95 } }, finalDisplayedUrl: url, audits: { 'network-requests': { details: { items: [{ url: assetUrl, mimeType: 'application/javascript' }] } } } };
   return { locale, url, ttfbMs: 50, vercelId: 'fra1::abc', availabilityStatus: 200,
@@ -113,12 +113,13 @@ test('emits only the six canonical verdicts with fail-closed precedence', () => 
     )
   );
   const missing = valid.observations.map(item => ({ ...item, assets: [] }));
+  const ambiguous = valid.observations.map(item => withReport(item, { ...item.report, audits: { 'network-requests': { details: { items: [] } } } }));
   // prettier-ignore
   const cases = [
     [valid, 'pass'],
     [{ ...valid, headSha: 'b'.repeat(40) }, 'head_mismatch'],
     [{ ...valid, previewOrigin: 'https://example.com' }, 'target_mismatch'], [{ ...valid, previewOrigin: 'https://interdomestik-web-abc123def-ecohub.vercel.app' }, 'target_mismatch'], [{ ...valid, deploymentRef: 'codex/ida-t115-od17-performance-proof' }, 'target_mismatch'],
-    [{ ...valid, observations: missing }, 'measurement_capability_missing'],
+    [{ ...valid, observations: missing }, 'measurement_capability_missing'], [{ ...valid, observations: ambiguous }, 'measurement_capability_missing'],
     [{ ...valid, runId: 20 }, 'measurement_capability_missing'],
     [{ ...valid, headSha: 'b'.repeat(40), runId: 20 }, 'measurement_capability_missing'],
     [{ ...valid, observations: valid.observations.map((item, index) => index ? item : withReport(item, { ...item.report, configSettings: { formFactor: 'desktop' } })) }, 'measurement_capability_missing'],

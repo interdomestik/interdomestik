@@ -5,7 +5,9 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
   assertFoundationCanaryIdentity,
+  buildDeploymentStatusApiArgs,
   buildTrustedPreviewRequest,
+  parseTrustedPreviewUrl,
   selectExactCanary,
   selectExactPreviewDeployment,
 } from './od17-public-shell-performance.mjs';
@@ -35,6 +37,8 @@ test('foundation canary rejects a fork, branch mismatch, closed PR, or wrong SHA
   }
 });
 test('trusted preview request requires an in-memory OIDC header and exact HTTPS URL', () => {
+  assert.equal(parseTrustedPreviewUrl(`${preview}/sq`).pathname, '/sq');
+  assert.equal(parseTrustedPreviewUrl(`${preview}/_next/chunk?v=1`).search, '?v=1');
   assert.deepEqual(
     buildTrustedPreviewRequest({
       previewUrl: preview,
@@ -74,6 +78,9 @@ test('replays GitHub Deployment 5981435922 and rejects projection ambiguity', ()
     latest_status: { id: 17012107025, state: 'success', environment: 'Preview', environment_url: preview, target_url: preview, creator: BOT, performed_via_github_app: null } };
   const selected = selectExactPreviewDeployment({ expectedHeadSha: SHA, deployments: [deployment] });
   assert.deepEqual([selected.deploymentId, selected.statusId, selected.ref, selected.url], [5981435922, 17012107025, SHA, `${preview}/`]);
+  // prettier-ignore
+  assert.deepEqual(buildDeploymentStatusApiArgs(5981435922), ['api', 'repos/interdomestik/interdomestik/deployments/5981435922/statuses?per_page=1', '--hostname', 'github.com', '--method', 'GET']);
+  for (const value of [0, -1, 1.5, '5981435922', Number.MAX_SAFE_INTEGER + 1]) assert.throws(() => buildDeploymentStatusApiArgs(value));
   const appBound = { ...deployment, performed_via_github_app: APP, latest_status: { ...deployment.latest_status, performed_via_github_app: APP } };
   assert.equal(selectExactPreviewDeployment({ expectedHeadSha: SHA, deployments: [appBound] }).deploymentId, 5981435922);
   // prettier-ignore
@@ -84,7 +91,7 @@ test('replays GitHub Deployment 5981435922 and rejects projection ambiguity', ()
     [{ ...deployment, performed_via_github_app: undefined }], [{ ...deployment, performed_via_github_app: { ...APP, id: 1 } }], [{ ...deployment, latest_status: { ...deployment.latest_status, performed_via_github_app: undefined } }], [{ ...deployment, latest_status: { ...deployment.latest_status, performed_via_github_app: { ...APP, slug: 'attacker' } } }],
     [{ ...deployment, latest_status: { ...deployment.latest_status, state: 'failure' } }], [{ ...deployment, latest_status: { ...deployment.latest_status, state: 'pending' } }], [{ ...deployment, latest_status: { ...deployment.latest_status, environment: 'Production' } }],
     [{ ...deployment, latest_status: { ...deployment.latest_status, target_url: 'https://attacker.example' } }],
-    ...['https://attacker.example', 'https://interdomestik-web-abc123def-ecohub.vercel.app', 'https://interdomestik-git-branch-ecohub.vercel.app', `${preview}/path`, `${preview}/x/..`, `${preview}/%2e`, `${preview}?query=1`, `${preview}#fragment`, 'https://interdomestik-i5yo55nz6-ecohub.vercel.app:444', 'https://interdomestik-i5yo55nz6-ecohub.vercel.app:443', 'https://user:pass@interdomestik-i5yo55nz6-ecohub.vercel.app', 'HTTPS://interdomestik-i5yo55nz6-ecohub.vercel.app', ` ${preview}`].map(url => [{ ...deployment, latest_status: { ...deployment.latest_status, environment_url: url, target_url: url } }]),
+    ...['https://attacker.example', 'https://interdomestik-web-abc123def-ecohub.vercel.app', 'https://interdomestik-git-branch-ecohub.vercel.app', `${preview}/path`, `${preview}/x/..`, `${preview}/%2e`, `${preview}?query=1`, `${preview}#fragment`, `${preview}/?`, `${preview}/#`, 'https://interdomestik-i5yo55nz6-ecohub.vercel.app:444', 'https://interdomestik-i5yo55nz6-ecohub.vercel.app:443', 'https://user:pass@interdomestik-i5yo55nz6-ecohub.vercel.app', 'HTTPS://interdomestik-i5yo55nz6-ecohub.vercel.app', ` ${preview}`].map(url => [{ ...deployment, latest_status: { ...deployment.latest_status, environment_url: url, target_url: url } }]),
   ];
   for (const deployments of invalid) {
     assert.throws(() => selectExactPreviewDeployment({ expectedHeadSha: SHA, deployments }));
@@ -96,12 +103,8 @@ test('selects one completed content-addressed canary independent of its conclusi
   const run = { id: 19, run_attempt: 1, event: 'workflow_dispatch', status: 'completed', conclusion: 'success', head_branch: 'main', head_sha: main, path: '.github/workflows/od17-preview-canary.yml' };
   // prettier-ignore
   const artifact = { id: 23, name: `od17-canary-${SHA}`, expired: false, digest: `sha256:${'c'.repeat(64)}`, workflow_run: { id: 19 } };
-  const input = {
-    runs: [run],
-    artifactsByRun: new Map([[19, [artifact]]]),
-    expectedHeadSha: SHA,
-    expectedTrustedMainSha: main,
-  };
+  // prettier-ignore
+  const input = { runs: [run], artifactsByRun: new Map([[19, [artifact]]]), expectedHeadSha: SHA, expectedTrustedMainSha: main };
   assert.equal(selectExactCanary(input).artifactId, 23);
   assert.equal(selectExactCanary({ ...input, runs: [{ ...run, conclusion: 'failure' }] }).artifactId, 23);
   assert.throws(() => selectExactCanary({ ...input, runs: [{ ...run, id: 0 }] }));
@@ -133,7 +136,7 @@ test('collector splits pull-request preparation from manual trusted main', () =>
   assert.match(source, /actions\/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6\.0\.1/u);
   assert.match(source, /run: node scripts\/ci\/od17-public-shell-performance\.mjs/u);
   // prettier-ignore
-  assert.match(verifierSource, /GH_BINARY_CANDIDATES = \['\/usr\/bin\/gh', '\/opt\/homebrew\/bin\/gh', '\/usr\/local\/bin\/gh'\]/u); assert.doesNotMatch(verifierSource, /execFileSync\('gh'/u); assert.match(verifierSource, /new URLSearchParams\(\{ sha: head, ref: head, environment: 'Preview', per_page: '2' \}\)/u); assert.doesNotMatch(verifierSource, /ref: BRANCH, environment: 'Preview'/u);
+  assert.match(verifierSource, /GH_BINARY_CANDIDATES = \['\/usr\/bin\/gh', '\/opt\/homebrew\/bin\/gh', '\/usr\/local\/bin\/gh'\]/u); assert.doesNotMatch(verifierSource, /execFileSync\('gh'/u); assert.match(verifierSource, /new URLSearchParams\(\{ sha: head, ref: head, environment: 'Preview', per_page: '2' \}\)/u); assert.doesNotMatch(verifierSource, /ref: BRANCH, environment: 'Preview'/u); assert.doesNotMatch(verifierSource, /api\(`\/deployments\/\$\{/u);
   assert.match(source, /run: node scripts\/ci\/od17-authenticated-lighthouse\.mjs/u);
   assert.match(source, /pnpm install --frozen-lockfile --prefer-offline --ignore-scripts/u);
   assert.match(source, /if: always\(\)/u);

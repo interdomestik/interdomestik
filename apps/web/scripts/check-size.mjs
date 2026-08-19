@@ -53,20 +53,20 @@ export function assertManifestInventory({ manifests: source, inventory }) {
   if (!expected.every(item => rows.has(item))) throw new Error('OD17_MANIFEST_INVENTORY_INVALID');
   return expected.map(item => rows.get(item));
 }
-function exactBody(value, digest) {
-  if (typeof value !== 'string') return null;
-  const body = Buffer.from(value, 'base64');
-  return body.length > 0 && body.toString('base64') === value && sha(body) === digest ? body : null;
-}
+// prettier-ignore
+function exactBody(value, digest) { const body = typeof value === 'string' ? Buffer.from(value, 'base64') : null; return body?.length > 0 && body.toString('base64') === value && sha(body) === digest ? body : null; }
+// prettier-ignore
+const remoteUrl = (value, base) => { try { return new URL(value, base); } catch { return null; } },
+  collectRemoteRequests = (requests, origin, urls, observed) => { for (const row of requests) { const url = remoteUrl(row?.url); if (!url) { return false; } const javascript = /javascript/u.test(row?.mimeType ?? ''); if (javascript) { observed.add(url.toString()); } if (url.origin === origin && (javascript || url.pathname.endsWith('.js'))) { urls.add(url.toString()); } } return true; },
+  collectRemotePages = (candidates, base, origin, urls, observed) => { for (const value of candidates) { const url = remoteUrl(value, base); if (!url) { return false; } if (url.origin !== origin) { continue; } const javascript = observed.has(url.toString()); if (javascript || url.pathname.endsWith('.js')) { urls.add(url.toString()); continue; } if (!path.posix.extname(url.pathname) && url.pathname !== '/' && !/^\/(?:sq|mk|en)$/u.test(url.pathname)) { return false; } } return true; };
 // prettier-ignore
 function remoteClosure(item, origin) {
   const page = exactBody(item.pageBase64, item.pageSha256);
   const requests = item.report?.audits?.['network-requests']?.details?.items;
   if (!page || !Array.isArray(requests)) return null;
   const candidates = [...page.toString().matchAll(/<(?:script|link)[^>]+(?:src|href)=["']([^"']+)["']/giu)].map(match => match[1]);
-  candidates.push(...requests.filter(row => /javascript/u.test(row?.mimeType ?? '') || String(row?.url ?? '').endsWith('.js')).map(row => row.url));
-  const urls = new Set();
-  for (const value of candidates) try { const url = new URL(value, item.url); if (url.origin === origin && url.pathname.endsWith('.js') && !url.search && !url.hash) urls.add(url.toString()); } catch { return null; }
+  const urls = new Set(), observed = new Set();
+  if (!collectRemoteRequests(requests, origin, urls, observed) || !collectRemotePages(candidates, item.url, origin, urls, observed)) { return null; }
   return [...urls].sort(codeUnit);
 }
 // prettier-ignore
@@ -76,7 +76,7 @@ function exactRemoteGzip(item, origin) {
   for (const asset of item.assets) {
     let url; try { url = new URL(asset?.url); } catch { return null; }
     const body = exactBody(asset?.bodyBase64, asset?.sha256);
-    if (url.origin !== origin || url.search || url.hash || rows.has(url.toString()) || !body || !SHA256.test(asset.sha256)) return null;
+    if (url.origin !== origin || url.hash || rows.has(url.toString()) || !body || !SHA256.test(asset.sha256)) return null;
     const bytes = gzipSync(body, { level: 9 }).length; if (bytes !== asset.gzipBytes) return null;
     rows.set(url.toString(), asset); gzip += bytes;
   }

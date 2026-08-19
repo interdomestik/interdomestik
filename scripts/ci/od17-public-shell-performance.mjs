@@ -34,15 +34,17 @@ function exactBot(value) { return [value?.id, value?.node_id, value?.login, valu
 // prettier-ignore
 function exactApp(value) { return value === null || [value?.id, value?.node_id, value?.slug].every((item, index) => item === VERCEL_APP[index]); }
 // prettier-ignore
+export function buildDeploymentStatusApiArgs(value) { if (!positiveId(value)) { fail('deployment_id'); } return ['api', `repos/${REPOSITORY}/deployments/${value}/statuses?per_page=1`, '--hostname', 'github.com', '--method', 'GET']; }
+// prettier-ignore
 export function assertFoundationCanaryIdentity({ repository, workflowRef, pullRequest, expectedHeadSha }) { if (repository !== REPOSITORY || workflowRef !== 'refs/heads/main' || !SHA.test(expectedHeadSha ?? '') || !exactHead(pullRequest, expectedHeadSha)) fail('foundation_identity'); }
 // prettier-ignore
-export function parseTrustedPreviewUrl(value) { if (typeof value !== 'string') fail('preview_url'); const url = new URL(value), root = value === url.origin || value === `${url.origin}/`; if (!root || url.protocol !== 'https:' || url.username || url.password || url.port || url.search || url.hash || !PREVIEW.test(url.hostname)) fail('preview_url'); return url; }
+export function parseTrustedPreviewUrl(value) { if (typeof value !== 'string') { fail('preview_url'); } const url = new URL(value), canonical = value === url.origin || value === url.toString(); if (!canonical || url.protocol !== 'https:' || url.username || url.password || url.port || url.hash || !PREVIEW.test(url.hostname)) { fail('preview_url'); } return url; }
 // prettier-ignore
 export function collectRemoteJavaScriptUrls({ previewOrigin, pageUrls, lighthouseRequests }) {
-  const origin = parseTrustedPreviewUrl(previewOrigin).origin, urls = new Set();
+  const origin = parseTrustedPreviewUrl(previewOrigin).origin, urls = new Set(), observed = new Set();
   const add = (value, extensionless = false) => { const url = new URL(value); if (url.origin === origin && (extensionless || url.pathname.endsWith('.js'))) urls.add(url.toString()); };
-  for (const url of pageUrls ?? []) add(url);
-  for (const request of lighthouseRequests ?? []) if (/javascript/u.test(request?.mimeType ?? '') || new URL(request.url).pathname.endsWith('.js')) add(request.url, /javascript/u.test(request?.mimeType ?? ''));
+  for (const request of lighthouseRequests ?? []) { const url = new URL(request?.url), javascript = /javascript/u.test(request?.mimeType ?? ''); if (javascript) { observed.add(url.toString()); } if (javascript || url.pathname.endsWith('.js')) { add(url.toString(), javascript); } }
+  for (const value of pageUrls ?? []) { const url = new URL(value), javascript = observed.has(url.toString()); if (url.origin !== origin) { continue; } if (javascript || url.pathname.endsWith('.js')) { add(value, javascript); } else if (!path.posix.extname(url.pathname) && url.pathname !== '/' && !/^\/(?:sq|mk|en)$/u.test(url.pathname)) { fail('remote_javascript_ambiguity'); } }
   return [...urls].sort(codeUnit);
 }
 // prettier-ignore
@@ -79,7 +81,8 @@ export function buildTrustedPreviewRequest({ previewUrl, expectedPreviewUrl, oid
 export function selectExactPreviewDeployment({ deployments, expectedHeadSha }) {
   if (!Array.isArray(deployments) || deployments.length !== 1 || !SHA.test(expectedHeadSha ?? '')) fail('deployment_ambiguity');
   const item = deployments[0], status = item?.latest_status, exact = item?.sha === expectedHeadSha && item?.ref === expectedHeadSha && item?.task === 'deploy' && item?.environment === 'Preview' && item?.production_environment === false && exactBot(item?.creator) && exactApp(item?.performed_via_github_app) && status?.state === 'success' && status?.environment === 'Preview' && exactBot(status?.creator) && exactApp(status?.performed_via_github_app) && status?.environment_url === status?.target_url && positiveId(item?.id) && positiveId(status?.id);
-  if (!exact) fail('deployment_identity'); const url = parseTrustedPreviewUrl(status.environment_url);
+  if (!exact) { fail('deployment_identity'); }
+  const url = parseTrustedPreviewUrl(status.environment_url); if (![url.origin, `${url.origin}/`].includes(status.environment_url)) { fail('deployment_url'); }
   return { deploymentId: item.id, statusId: item.latest_status.id, sha: item.sha, environment: item.environment, productionEnvironment: false, ref: item.ref, url: url.toString() };
 }
 // prettier-ignore
@@ -133,7 +136,8 @@ async function resolveCollector() {
   const preparation = selectExactPreparation({ run, artifacts, expectedHeadSha: head, pullNumber: pull });
   const query = new URLSearchParams({ sha: head, ref: head, environment: 'Preview', per_page: '2' });
   const deployments = await api(`/deployments?${query}`, token); if (!Array.isArray(deployments) || deployments.length !== 1 || !positiveId(deployments[0]?.id)) fail('deployment_ambiguity');
-  [deployments[0].latest_status] = await api(`/deployments/${deployments[0].id}/statuses?per_page=1`, token);
+  const statuses = JSON.parse(execFileSync(resolveGhBinary(), buildDeploymentStatusApiArgs(deployments[0].id), { encoding: 'utf8' })); if (!Array.isArray(statuses) || statuses.length !== 1) { fail('deployment_status'); }
+  [deployments[0].latest_status] = statuses;
   const selected = selectExactPreviewDeployment({ deployments, expectedHeadSha: head });
   const values = { OD17_PREVIEW_URL: selected.url, OD17_DEPLOYMENT_ID: selected.deploymentId, OD17_STATUS_ID: selected.statusId, OD17_DEPLOYMENT_SHA: selected.sha, OD17_DEPLOYMENT_ENVIRONMENT: selected.environment, OD17_DEPLOYMENT_PRODUCTION: false, OD17_DEPLOYMENT_REF: selected.ref, OD17_PREPARATION_RUN_ID: preparation.runId, OD17_PREPARATION_RUN_ATTEMPT: preparation.runAttempt, OD17_PREPARATION_ARTIFACT_ID: preparation.artifactId, OD17_PREPARATION_ARTIFACT_DIGEST: preparation.artifactDigest };
   const content = Object.entries(values).map(entry => entry.join('=')).join('\n');
