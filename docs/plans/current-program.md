@@ -17,25 +17,24 @@ status_command: pnpm plan:status
 
 T-115 P0A canonical front-door composition and P0B pending-session continuity remain
 complete. The separate OD#17 public-shell performance residual is not complete.
-PR #1597 produced a healthy READY Preview but exposed a protected-main
-projection/manifest incompatibility; it closed unmerged, no canary or PASS exists, and
-its head-bound checks are historical.
 
-Arben exact-approved
-[`IDA-DG51-T115-OD17-PROJECTION-CAPABILITY-R1`](./2026-08-19-ida-dg51-t115-od17-projection-capability.md),
-14,638 UTF-8 bytes / SHA-256
-`9a6b755cefb97debe25b87fd98d498de0177b824fe7f4b2638e709cc5ec2697d`, and the
-[`IDA-T115-OD17-PROJECTION-CAPABILITY-RUNTIME-R1`](./2026-08-19-ida-t115-od17-projection-capability-runtime-r1.md),
-4,496 UTF-8 bytes / SHA-256
-`a295e39f5f849c8d22b5d6eb28aa5f044f22d4d73d7d0e8fc351e0db73fdc072`, on exact
-main `6cf5227fcdf7247b801d9aa4673eabb08bceab98`; the 7,994-byte admission receipt
-SHA-256 `20bc2ada1cded00196307873eb57d8173a3d862387b359913cf2e5272f4ad4b3` is
-`ready`. Exactly one inert Tier 3 capability PR is runtime-authorized to align the
-protected-main collector and verifier with the captured Vercel GitHub Deployment
-projection. Provider controls, Preview, canary and measurement remain unauthorized.
-After exact-head capability merge and exact-main convergence, one separate exact-main
-measurement receipt is the only remaining approval hold. `T-118`, `T-117` and `T-116`
-remain blocked until OD#17 is actually PASS and closed.
+The protected-main projection capability completed in
+[PR #1598](https://github.com/interdomestik/interdomestik/pull/1598): final reviewed
+head `2a32a18e0ad8a81ac3da66d40617da8ae846f0e0` merged as
+`858eb4a32fc47ef9cdd04fbc1e44e10da630ba76`. Its exact-head Sonar Quality Gate
+passed with zero open issues; CodeQL, security, audit, static, unit, E2E, Pilot,
+Copilot and finalizer were green with zero actionable or unresolved feedback. Protected
+`origin/main` converged at `858eb4a32fc47ef9cdd04fbc1e44e10da630ba76`; all required
+exact-main checks are green. Automatic
+[CD run 32266432820](https://github.com/interdomestik/interdomestik/actions/runs/32266432820)
+was canceled before jobs.
+
+Only `IDA-T115-OD17-FINAL-MEASUREMENT` is now promoted. It is
+`awaiting_runtime_authority` with `runtime_authorized:false`: no measurement branch,
+provider control, Preview, canary or metric collection may begin until Arben
+exact-approves the sole separate exact-main receipt permitted by
+[DG51](./2026-08-19-ida-dg51-t115-od17-projection-capability.md). `T-118`, `T-117`
+and `T-116` remain blocked until OD#17 is actually PASS, merged and closed.
 
 The compact roadmap below preserves the live M0-M5 implementation blueprint. Full task
 contracts, acceptance criteria and milestone detail remain canonical in the
@@ -57,7 +56,7 @@ its [tracker](./architecture-finalization-tracker-2026-05-29.md).
 
 | Priority | Candidate                                                         | Dependencies                                                | Promotion constraint                                                                                            |
 | -------: | ----------------------------------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-|        1 | `T-115` OD#17 public-shell performance proof                      | T-115 P0A/P0B complete                                      | DG51 capability runtime is exact-approved; merge the inert capability before one separately approved measurement. |
+|        1 | `T-115` OD#17 public-shell performance proof                      | T-115 P0A/P0B complete                                      | Capability merged green in PR #1598; await exact approval of the sole final-measurement receipt before one run. |
 |        2 | `T-118` `ui/crystal` presentational primitives                    | T-115 including OD#17 complete                              | Requires its own fresh design gate; keep domain imports at zero and preserve accessibility/performance budgets. |
 |        3 | `T-117` unified member dashboard shell                            | T-115 including OD#17, T-114 complete                       | May run beside T-118 only under its own gate; preserve RSC, query and neutral-host constraints.                 |
 |        4 | `T-116` exhaustive `CaseSummary` projection and renderer registry | `T-103` complete, T-115 including OD#17, T-118              | Promote only after both UI foundations are complete.                                                            |
@@ -97,4 +96,4 @@ All authority history through Rev 243 is recoverable byte-for-byte from Git thro
 Manifest SHA-256: `355229c5d24a6fa5f0986b6ce41423cbdc5caea16b291f1335a7264b2be5fc78`.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-OD17-PROJECTION-CAPABILITY` (Tier 3 protected-main performance-verification capability; `runtime_authorized:true` for capability-only repository work under exact-approved `IDA-DG51-T115-OD17-PROJECTION-CAPABILITY-R1` and `IDA-T115-OD17-PROJECTION-CAPABILITY-RUNTIME-R1`; provider runtime remains unauthorized pending one separately approved exact-main final-measurement receipt).
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-OD17-FINAL-MEASUREMENT` (Tier 3 one-shot protected-main performance measurement; `runtime_authorized:false`; resolver `awaiting_runtime_authority` pending the sole separate exact-main receipt permitted by `IDA-DG51-T115-OD17-PROJECTION-CAPABILITY-R1`).
