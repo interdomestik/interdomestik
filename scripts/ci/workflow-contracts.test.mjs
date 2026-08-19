@@ -464,18 +464,18 @@ test('CI audit job runs the scripts/ci contract suite', () => {
   assert.equal(standaloneBudgetSteps.length, 0);
 });
 
-test('Composite CI setup action uses Node 24-compatible hosted actions', () => {
-  const setupAction = readWorkflow('.github/actions/setup/action.yml');
-  const steps = setupAction.runs.steps;
-
-  assert.equal(findStep(steps, 'Setup Node').uses, 'actions/setup-node@v5');
-  assert.equal(findStep(steps, 'Playwright Browser Cache').uses, 'actions/cache@v5');
+test('Composite CI setup action uses compatible actions and a bounded ripgrep bootstrap', () => {
+  const setupSource = readRepoText('.github/actions/setup/action.yml');
+  assert.doesNotMatch(setupSource, /\bapt(?:-get)?\b/u);
+  assert.match(
+    setupSource,
+    /actions\/setup-node@v5[\s\S]*RIPGREP_VERSION='15\.2\.0'[\s\S]*RIPGREP_TARGET='x86_64-unknown-linux-musl'[\s\S]*RIPGREP_SHA256='33e15bcf1624b25cdd2a55813a47a2f95dbe126268203e76aa6a585d1e7b149c'[\s\S]*timeout --signal=TERM --kill-after=5s 180s[\s\S]*--proto '=https'[\s\S]*--proto-redir '=https'[\s\S]*--connect-timeout 10[\s\S]*--max-time 120[\s\S]*--retry 2[\s\S]*--retry-max-time 150[\s\S]*--max-filesize 5000000[\s\S]*sha256sum --check --strict[\s\S]*>> "\$\{GITHUB_PATH:\?\}"[\s\S]*macOS\)[\s\S]*brew install ripgrep[\s\S]*actions\/cache@v5/u
+  );
 });
 
 test('V3 onboarding and env docs describe Paddle-only runtime and Vercel deployment config', () => {
   const readme = readRepoText('README.md');
   const envExample = readRepoText('.env.example');
-
   assert.match(readme, /V3 pilot billing uses Paddle only/);
   assert.match(envExample, /CLAIM_UPLOAD_INTENT_SECRET/);
   assert.match(envExample, /SUPABASE_PRODUCTION_PROJECT_REF/);
