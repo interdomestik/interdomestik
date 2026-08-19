@@ -15,22 +15,23 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                                             | Status        | Owner                         | Work                                                                 | Exit Criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| ---------------------------------------------- | ------------- | ----------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` | `in_progress` | `platform + performance + qa` | One cache-isolated exact-head recovery of OD#17 public-shell budgets | Arben exact-approved `IDA-DG50-T115-OD17-CACHE-ISOLATED-PREVIEW-RECOVERY`, 19,685 bytes / SHA-256 `ecea46fa019907bdb235bdcb19349b30e41aa7cad8641b23ba5e71cc6c023309`, on clean main `0f0ddf3d6c00d51237fc6347c01c2aa4651936be`. The [gate](./2026-08-19-ida-dg50-t115-od17-cache-isolated-preview-recovery.md) preserves the prior reviewed contract, permits no runtime yet, and requires docs merge, exact-main convergence and separately exact-approved runtime authority before one no-cache Preview/canary attempt. |
+| ID                                          | Status        | Owner                         | Work                                                          | Exit Criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------------------------------------- | ------------- | ----------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `IDA-T115-OD17-PROJECTION-CAPABILITY`       | `in_progress` | `platform + performance + qa` | Inert protected-main OD#17 projection capability and verifier | Exact-approved [DG51](./2026-08-19-ida-dg51-t115-od17-projection-capability.md) `9a6b755c`, ready admission `20bc2ada`, and [runtime R1](./2026-08-19-ida-t115-od17-projection-capability-runtime-r1.md) `a295e39f` bind exact main `6cf5227f` and one capability branch/PR. Merge only a green exact reviewed head after real-payload RED/GREEN proof and required hosted checks; no provider control, Preview, canary or measurement. |
 
 ## Proof Ledger
 
 | ID | Source Refs | Execution | Run ID | Run Root | Sonar | Docker | Sentry | Learning | Evidence Refs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` | `gate:feb4fa42`; `correction-r2:0382428a`; `pr:1593`; `head:a5c5534d`; `e2e:32166438771`; `prepare:32166438756`; `vercel:dpl_Cu1Doy9Y6iswiwCzEMySSe9kaFQY`; `dg50:ecea46fa` | `manual` | `codex/ida-dg50-authority` | `main` | `pass` | `not_applicable` | `not_applicable` | `not_applicable` | `docs/plans/2026-08-18-ida-t115-od17-terminal-provider-failure-evidence.md`; `docs/plans/2026-08-19-ida-dg50-t115-od17-cache-isolated-preview-recovery.md` |
+| `IDA-T115-OD17-PROJECTION-CAPABILITY` | `dg51:9a6b755c`; `runtime:a295e39f`; `admission:20bc2ada`; `base:6cf5227f`; `terminal:7e415da8` | `manual` | `codex/ida-t115-od17-projection-capability` | `main:6cf5227f` | `pending` | `not_applicable` | `not_applicable` | `not_applicable` | `docs/plans/2026-08-19-ida-dg51-t115-od17-projection-capability.md`; `docs/plans/2026-08-19-ida-t115-od17-projection-capability-runtime-r1.md` |
 
 ## Next Selection
 
-Only OD#17 is promoted for authority merge. After merge, resolver must become
-`awaiting_runtime_authority`; no branch, provider control, Preview or canary may begin
-until a separate exact-main runtime receipt is approved. Dependent `T-118` and `T-117`
-remain blocked until OD#17 is actually PASS, merged and closed.
+Only the inert OD#17 projection capability is promoted and runtime-authorized. Provider
+controls, Preview, canary and measurement are forbidden in this phase. After exact-head
+capability merge and exact-main convergence, one separate exact-main measurement receipt
+may authorize the final one-shot measurement. Dependent `T-118` and `T-117` remain
+blocked until OD#17 is actually PASS, merged and closed.
 
 ## Historical Authority
 
@@ -44,4 +45,4 @@ remains the stable deep-detail source for M0-M5 task contracts. Current rows are
 selection, implementation and closeout; detailed proof is linked, never copied here.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` (Tier 3 shared performance-verification recovery; `runtime_authorized:false`; exact-approved `IDA-DG50-T115-OD17-CACHE-ISOLATED-PREVIEW-RECOVERY` pending docs-only merge).
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-OD17-PROJECTION-CAPABILITY` (Tier 3 protected-main performance-verification capability; `runtime_authorized:true` for capability-only repository work under exact-approved `IDA-DG51-T115-OD17-PROJECTION-CAPABILITY-R1` and `IDA-T115-OD17-PROJECTION-CAPABILITY-RUNTIME-R1`; provider runtime remains unauthorized pending one separately approved exact-main final-measurement receipt).

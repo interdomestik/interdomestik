@@ -13,7 +13,7 @@ import {
   selectExactPreparation,
 } from './od17-public-shell-performance.mjs';
 
-const origin = 'https://interdomestik-web-abc123def-ecohub.vercel.app';
+const origin = 'https://interdomestik-abc123def-ecohub.vercel.app';
 const token = 'secret.header.payload';
 
 test('accepts only one successful exact-head pull-request preparation artifact', () => {
@@ -23,7 +23,7 @@ test('accepts only one successful exact-head pull-request preparation artifact',
     head_branch: 'codex/ida-t115-od17-performance-proof', path: '.github/workflows/od17-preview-canary.yml', run_attempt: 1,
     repository: { full_name: 'interdomestik/interdomestik' }, head_repository: { full_name: 'interdomestik/interdomestik' }, pull_requests: [{ number: 72 }] };
   // prettier-ignore
-  const artifact = { id: 13, name: `od17-local-${head}`, expired: false, digest: 'sha256:abc', workflow_run: { id: 91 } };
+  const artifact = { id: 13, name: `od17-local-${head}`, expired: false, digest: `sha256:${'c'.repeat(64)}`, workflow_run: { id: 91 } };
   const input = { run, artifacts: [artifact], expectedHeadSha: head, pullNumber: '72' };
   assert.equal(selectExactPreparation(input).artifactId, 13);
   for (const change of [
@@ -63,9 +63,9 @@ test('adds the OIDC header only to the exact preview origin on every hop', () =>
   );
 
   for (const requestUrl of [
-    'https://interdomestik-web-abc123def-ecohub.vercel.app.attacker.test/x.js',
-    'http://interdomestik-web-abc123def-ecohub.vercel.app/x.js',
-    'https://interdomestik-web-abc123def-ecohub.vercel.app:444/x.js',
+    'https://interdomestik-abc123def-ecohub.vercel.app.attacker.test/x.js',
+    'http://interdomestik-abc123def-ecohub.vercel.app/x.js',
+    'https://interdomestik-abc123def-ecohub.vercel.app:444/x.js',
     'https://cdn.example/x.js',
   ]) {
     const headers = buildRequestHeaders({

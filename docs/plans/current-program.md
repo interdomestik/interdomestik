@@ -15,32 +15,27 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-T-115 P0A canonical front-door composition and P0B pending-session continuity
-remain complete in [PR #1577](https://github.com/interdomestik/interdomestik/pull/1577)
-and [PR #1581](https://github.com/interdomestik/interdomestik/pull/1581). The
-separate OD#17 public-shell performance residual is not complete.
+T-115 P0A canonical front-door composition and P0B pending-session continuity remain
+complete. The separate OD#17 public-shell performance residual is not complete.
+PR #1597 produced a healthy READY Preview but exposed a protected-main
+projection/manifest incompatibility; it closed unmerged, no canary or PASS exists, and
+its head-bound checks are historical.
 
-The protected-main collector prerequisite completed in
-[PR #1589](https://github.com/interdomestik/interdomestik/pull/1589). The sole
-performance-proof attempt [PR #1593](https://github.com/interdomestik/interdomestik/pull/1593)
-reached exact head `a5c5534da28cb37553daad5d696523baeba5da49`: exact-head E2E,
-focused contracts, Sonar with zero issues, CodeQL, security and current-head review
-passed. Its automatic exact-head Vercel Preview compiled in 2.8 minutes, then stalled
-at `Running TypeScript` until Vercel terminated the build at its 45-minute maximum.
-No protected-main canary ran and no performance PASS is claimed. The PR closed unmerged
-as `provider_failure / measurement_capability_missing`.
-
-Arben exact-approved `IDA-DG50-T115-OD17-CACHE-ISOLATED-PREVIEW-RECOVERY` on
-2026-08-19 at 19,685 UTF-8 bytes / SHA-256
-`ecea46fa019907bdb235bdcb19349b30e41aa7cad8641b23ba5e71cc6c023309`, bound to
-clean main `0f0ddf3d6c00d51237fc6347c01c2aa4651936be`. DG50 promotes exactly one
-Tier 3 recovery of the existing OD#17 proof: replay only the preserved reviewed
-contract and consume one exact-branch cache-isolated automatic Preview plus one canary.
-No product/UI/auth/routing behavior, threshold, provider target or production action is
-promoted. The approved gate, ready admission and diagnostic live at
-[`IDA-DG50`](./2026-08-19-ida-dg50-t115-od17-cache-isolated-preview-recovery.md).
-Runtime remains unauthorized pending this docs-only merge, exact-main convergence and a
-separate runtime receipt approval. `T-118`, `T-117` and `T-116` remain blocked.
+Arben exact-approved
+[`IDA-DG51-T115-OD17-PROJECTION-CAPABILITY-R1`](./2026-08-19-ida-dg51-t115-od17-projection-capability.md),
+14,638 UTF-8 bytes / SHA-256
+`9a6b755cefb97debe25b87fd98d498de0177b824fe7f4b2638e709cc5ec2697d`, and the
+[`IDA-T115-OD17-PROJECTION-CAPABILITY-RUNTIME-R1`](./2026-08-19-ida-t115-od17-projection-capability-runtime-r1.md),
+4,496 UTF-8 bytes / SHA-256
+`a295e39f5f849c8d22b5d6eb28aa5f044f22d4d73d7d0e8fc351e0db73fdc072`, on exact
+main `6cf5227fcdf7247b801d9aa4673eabb08bceab98`; the 7,994-byte admission receipt
+SHA-256 `20bc2ada1cded00196307873eb57d8173a3d862387b359913cf2e5272f4ad4b3` is
+`ready`. Exactly one inert Tier 3 capability PR is runtime-authorized to align the
+protected-main collector and verifier with the captured Vercel GitHub Deployment
+projection. Provider controls, Preview, canary and measurement remain unauthorized.
+After exact-head capability merge and exact-main convergence, one separate exact-main
+measurement receipt is the only remaining approval hold. `T-118`, `T-117` and `T-116`
+remain blocked until OD#17 is actually PASS and closed.
 
 The compact roadmap below preserves the live M0-M5 implementation blueprint. Full task
 contracts, acceptance criteria and milestone detail remain canonical in the
@@ -62,7 +57,7 @@ its [tracker](./architecture-finalization-tracker-2026-05-29.md).
 
 | Priority | Candidate                                                         | Dependencies                                                | Promotion constraint                                                                                            |
 | -------: | ----------------------------------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-|        1 | `T-115` OD#17 public-shell performance proof                      | T-115 P0A/P0B complete                                      | DG50 is exact-approved; docs merge, exact-main convergence and a separate runtime receipt are required.         |
+|        1 | `T-115` OD#17 public-shell performance proof                      | T-115 P0A/P0B complete                                      | DG51 capability runtime is exact-approved; merge the inert capability before one separately approved measurement. |
 |        2 | `T-118` `ui/crystal` presentational primitives                    | T-115 including OD#17 complete                              | Requires its own fresh design gate; keep domain imports at zero and preserve accessibility/performance budgets. |
 |        3 | `T-117` unified member dashboard shell                            | T-115 including OD#17, T-114 complete                       | May run beside T-118 only under its own gate; preserve RSC, query and neutral-host constraints.                 |
 |        4 | `T-116` exhaustive `CaseSummary` projection and renderer registry | `T-103` complete, T-115 including OD#17, T-118              | Promote only after both UI foundations are complete.                                                            |
@@ -102,4 +97,4 @@ All authority history through Rev 243 is recoverable byte-for-byte from Git thro
 Manifest SHA-256: `355229c5d24a6fa5f0986b6ce41423cbdc5caea16b291f1335a7264b2be5fc78`.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-OD17-PUBLIC-SHELL-PERFORMANCE-PROOF` (Tier 3 shared performance-verification recovery; `runtime_authorized:false`; exact-approved `IDA-DG50-T115-OD17-CACHE-ISOLATED-PREVIEW-RECOVERY` pending docs-only merge).
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-T115-OD17-PROJECTION-CAPABILITY` (Tier 3 protected-main performance-verification capability; `runtime_authorized:true` for capability-only repository work under exact-approved `IDA-DG51-T115-OD17-PROJECTION-CAPABILITY-R1` and `IDA-T115-OD17-PROJECTION-CAPABILITY-RUNTIME-R1`; provider runtime remains unauthorized pending one separately approved exact-main final-measurement receipt).

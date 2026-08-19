@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 
 import yaml from 'js-yaml';
+import '../../apps/web/scripts/check-size.test.mjs';
 import './ci-audit-rls-workflow-contracts.mjs';
 
 import {
@@ -111,33 +112,32 @@ test('seeded CI workflows generate masked per-run E2E credentials before seeded 
     );
   }
 });
+// prettier-ignore
 test('OD17 collector keeps OIDC out of the unprivileged exact-head job', () => {
-  const workflow = readWorkflow('.github/workflows/od17-preview-canary.yml');
-  const prepare = workflow.jobs['prepare-exact-head'];
-  const trusted = workflow.jobs['trusted-main-collector'];
+  const workflow = readWorkflow('.github/workflows/od17-preview-canary.yml'), ci = readWorkflow('.github/workflows/ci.yml');
+  const prepare = workflow.jobs['prepare-exact-head'], trusted = workflow.jobs['trusted-main-collector'], audit = ci.jobs.audit;
+  const proofStep = findStep(audit.steps, 'Certify OD17 exact-head public shell'), upload = findStep(audit.steps, 'Upload OD17 exact-head verdict');
+  const checkout = audit.steps.find(step => String(step?.uses).startsWith('actions/checkout@'));
+  assert.ok(proofStep); assert.ok(upload); assert.ok(checkout);
+  assert.equal(proofStep.run, 'pnpm od17:verify'); assert.equal(proofStep['continue-on-error'], undefined);
+  assert.equal(proofStep.env.EXPECTED_HEAD_SHA, '${{ github.event.pull_request.head.sha }}');
+  assert.equal(proofStep.env.EXPECTED_TRUSTED_MAIN_SHA, '${{ github.event.pull_request.base.sha }}');
+  for (const value of [checkout.with.ref, proofStep.if, upload.if]) assert.match(value, /head\.repo\.full_name == github\.repository/u);
+  assert.match(checkout.with.ref, /pull_request\.head\.sha[\s\S]*github\.sha/u); assert.match(upload.if, /always\(\)/u); assert.equal(upload.with['if-no-files-found'], 'error');
   assert.deepEqual(Object.keys(workflow.jobs), ['prepare-exact-head', 'trusted-main-collector']);
   assert.equal(prepare.permissions['id-token'], 'none');
-  assert.equal(trusted.permissions['id-token'], 'write');
-  assert.equal(trusted.permissions.actions, 'read');
-  assert.equal(trusted.permissions.deployments, 'read');
+  const build = findStep(prepare.steps, 'Build exact head and retain bounded structural evidence'); assert.ok(build); assert.notEqual(build.env.DATABASE_URL_RLS, build.env.DATABASE_URL); assert.doesNotMatch(build.run, /app-build-manifest/u);
+  assert.deepEqual([trusted.permissions['id-token'], trusted.permissions.actions, trusted.permissions.deployments], ['write', 'read', 'read']);
   assert.equal(workflow.permissions, undefined);
-  assert.equal(
-    findStep(prepare.steps, 'Collect authenticated exact-deployment evidence'),
-    undefined
-  );
+  assert.equal(findStep(prepare.steps, 'Collect authenticated exact-deployment evidence'), undefined);
   assert.ok(findStep(trusted.steps, 'Resolve exact PR preparation run and Preview'));
   assert.ok(findStep(trusted.steps, 'Collect authenticated exact-deployment evidence'));
-  const structuralProof = findStep(trusted.steps, 'Recompute untrusted local structural evidence');
-  assert.equal(typeof structuralProof?.run, 'string');
-  const proof = structuralProof.run;
-  const source = proof.match(/const safeAssetPath = (value => \{[\s\S]*?\n\s*\});/u)?.[1];
-  assert.ok(source);
+  const structural = findStep(trusted.steps, 'Recompute untrusted local structural evidence');
+  const source = structural?.run?.match(/const safeAssetPath = (value => \{[\s\S]*?\n\s*\});/u)?.[1]; assert.ok(source);
   const safeAssetPath = vm.runInNewContext(`(${source})`, {}, { timeout: 50 });
-  for (const value of ['static/(public)/[locale].js', 'static/%5Blocale%5D.js'])
-    assert.equal(safeAssetPath(value), true, value);
-  for (const value of ['static/../x.js', 'static/%2e/x.js', 'static/%2f.js', 'static/%ZZ.js'])
-    assert.equal(safeAssetPath(value), false, value);
-  assert.match(proof, /item === null \|\| typeof item !== 'object'/u);
+  for (const value of ['static/(public)/[locale].js', 'static/%5Blocale%5D.js']) assert.equal(safeAssetPath(value), true, value);
+  for (const value of ['static/../x.js', 'static/%2e/x.js', 'static/%2f.js', 'static/%ZZ.js']) assert.equal(safeAssetPath(value), false, value);
+  assert.match(structural.run, /item === null \|\| typeof item !== 'object'/u);
 });
 test('CI delegates PR browser gate to PR E2E', () => {
   const ciWorkflow = readWorkflow('.github/workflows/ci.yml');
@@ -464,18 +464,18 @@ test('CI audit job runs the scripts/ci contract suite', () => {
   assert.equal(standaloneBudgetSteps.length, 0);
 });
 
-test('Composite CI setup action uses Node 24-compatible hosted actions', () => {
-  const setupAction = readWorkflow('.github/actions/setup/action.yml');
-  const steps = setupAction.runs.steps;
-
-  assert.equal(findStep(steps, 'Setup Node').uses, 'actions/setup-node@v5');
-  assert.equal(findStep(steps, 'Playwright Browser Cache').uses, 'actions/cache@v5');
+test('Composite CI setup action uses compatible actions and a bounded ripgrep bootstrap', () => {
+  const setupSource = readRepoText('.github/actions/setup/action.yml');
+  assert.doesNotMatch(setupSource, /\bapt(?:-get)?\b/u);
+  assert.match(
+    setupSource,
+    /actions\/setup-node@v5[\s\S]*RIPGREP_VERSION='15\.2\.0'[\s\S]*RIPGREP_TARGET='x86_64-unknown-linux-musl'[\s\S]*RIPGREP_SHA256='33e15bcf1624b25cdd2a55813a47a2f95dbe126268203e76aa6a585d1e7b149c'[\s\S]*timeout --signal=TERM --kill-after=5s 180s[\s\S]*--proto '=https'[\s\S]*--proto-redir '=https'[\s\S]*--connect-timeout 10[\s\S]*--max-time 120[\s\S]*--retry 2[\s\S]*--retry-max-time 150[\s\S]*--max-filesize 5000000[\s\S]*sha256sum --check --strict[\s\S]*>> "\$\{GITHUB_PATH:\?\}"[\s\S]*macOS\)[\s\S]*brew install ripgrep[\s\S]*actions\/cache@v5/u
+  );
 });
 
 test('V3 onboarding and env docs describe Paddle-only runtime and Vercel deployment config', () => {
   const readme = readRepoText('README.md');
   const envExample = readRepoText('.env.example');
-
   assert.match(readme, /V3 pilot billing uses Paddle only/);
   assert.match(envExample, /CLAIM_UPLOAD_INTENT_SECRET/);
   assert.match(envExample, /SUPABASE_PRODUCTION_PROJECT_REF/);
