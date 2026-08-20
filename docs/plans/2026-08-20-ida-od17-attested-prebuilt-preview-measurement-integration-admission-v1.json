@@ -3,7 +3,7 @@
   "receiptId": "IDA-OD17-ATTESTED-PREBUILT-PREVIEW-MEASUREMENT-INTEGRATION-ADMISSION-V1",
   "sliceId": "IDA-OD17-ATTESTED-PREBUILT-PREVIEW-MEASUREMENT-INTEGRATION",
   "baseSha": "182fe71b3a50ad076f2a8746bf1b6401a724d2d0",
-  "authorityArtifactSha256": "cc7e0afd6d52c430090fb5231133731d1cd04d915be6b124031c76c74ccfacca",
+  "authorityArtifactSha256": "5395feafd870a39ec521543e996578a01a0ca50867e023f4cd7e5e0700b50019",
   "governanceWriterPaths": [
     "docs/plans/2026-08-20-ida-od17-attested-prebuilt-preview-measurement-integration-runtime-r1.md",
     "docs/plans/current-program.md",
@@ -80,7 +80,7 @@
     "runnerReadiness": "connected_and_listening"
   },
   "sharedRuntimeConsumers": [
-    "protected-main IDA-OD17-ATTESTED-PREBUILT-PREVIEW one-shot runtime"
+    "future protected-main IDA-OD17-ATTESTED-PREBUILT-PREVIEW one-shot runtime"
   ],
   "specialProofEnvironments": [],
   "contractGraph": {
@@ -93,11 +93,36 @@
       { "id": "od17-thresholds", "kind": "baseline" }
     ],
     "edges": [
-      { "id": "integrate-artifact", "from": "merged-artifact-foundation", "to": "protected-main-workflow", "operation": "build, archive, reconstruct, attest, and reverify exact-main output" },
-      { "id": "integrate-deploy", "from": "merged-deployment-confinement", "to": "protected-main-workflow", "operation": "confine one future Preview deployment and emit one sanitized receipt" },
-      { "id": "collect", "from": "protected-main-workflow", "to": "exact-origin-collector", "operation": "collect exact-origin protected locale and JavaScript evidence in the declared order" },
-      { "id": "verify", "from": "exact-origin-collector", "to": "independent-verifier", "operation": "reconstruct remote bytes, gzip, closure, identity, and provenance" },
-      { "id": "compare", "from": "independent-verifier", "to": "od17-thresholds", "operation": "recompute the unchanged score, gzip, and first-request TTFB verdict" }
+      {
+        "id": "integrate-artifact",
+        "from": "merged-artifact-foundation",
+        "to": "protected-main-workflow",
+        "operation": "build, archive, reconstruct, attest, and reverify exact-main output"
+      },
+      {
+        "id": "integrate-deploy",
+        "from": "merged-deployment-confinement",
+        "to": "protected-main-workflow",
+        "operation": "confine one future Preview deployment and emit one sanitized receipt"
+      },
+      {
+        "id": "collect",
+        "from": "protected-main-workflow",
+        "to": "exact-origin-collector",
+        "operation": "collect exact-origin protected locale and JavaScript evidence in the declared order"
+      },
+      {
+        "id": "verify",
+        "from": "exact-origin-collector",
+        "to": "independent-verifier",
+        "operation": "reconstruct remote bytes, gzip, closure, identity, and provenance"
+      },
+      {
+        "id": "compare",
+        "from": "independent-verifier",
+        "to": "od17-thresholds",
+        "operation": "recompute the unchanged score, gzip, and first-request TTFB verdict"
+      }
     ],
     "closure": {
       "callers": true,
@@ -113,7 +138,7 @@
       "sharedConsumers": "one exact R2 consumes all three merged child slices",
       "readWriteDelete": "artifacts, attestation, receipt, evidence, temporary state, terminal cleanup, and exact refs are enumerated",
       "mountErrorPaths": "runner, attestation, environment, provider, OIDC, Chrome, network, evidence, and verifier failures stop closed",
-      "capabilityRequirements": "GitHub-hosted x64, exact tools, protected Preview environment, Trusted Source, Vercel Preview, Chrome, and one runtime are explicit",
+      "capabilityRequirements": "future GitHub-hosted x64, exact tools, protected Preview environment, Trusted Source, Vercel Preview, Chrome, and one runtime are explicit but unused and undispatched in this inert slice",
       "testCollectors": "scripts/ci tests are direct; exact apps/web verifier/evidence tests are imported and their source imports asserted",
       "baselineOwnership": "DG52 retains unchanged score, gzip, and first authenticated exact-content TTFB thresholds"
     }

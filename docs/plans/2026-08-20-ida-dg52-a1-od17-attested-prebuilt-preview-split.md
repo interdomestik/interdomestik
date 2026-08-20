@@ -270,6 +270,11 @@ the exact bound main. That PR changes only the addendum, three admission JSON fi
 `repo-size-budget.json`. It promotes only Child A to `awaiting_runtime_authority` with
 `runtime_authorized:false`. No implementation or provider control is permitted.
 
+Each implementation PR uses exactly the `governanceWriterPaths` frozen by its own admission:
+its one named `docs/plans/2026-08-20-...-runtime-r1.md`, `current-program.md`, and
+`current-tracker.md`, together with only that admission's semantic `writerPaths`. No other
+governance writer is permitted.
+
 Each of the three preauthorized transition PRs may change only its one exact stable,
 sanitized child-closeout document, `current-program.md`, `current-tracker.md`, and
 conditional unchanged-generator `repo-size-budget.json`:
@@ -280,6 +285,11 @@ conditional unchanged-generator `repo-size-budget.json`:
   `docs/plans/2026-08-20-ida-od17-attested-prebuilt-preview-deployment-confinement-closeout.md`;
 - Child C:
   `docs/plans/2026-08-20-ida-od17-attested-prebuilt-preview-measurement-integration-closeout.md`.
+
+Every literal `2026-08-20` prefix in those closeout paths and in the three admission-frozen
+R1 paths is the A1 authority date, not the later materialization date. It remains unchanged
+when a future child R1 or closeout is created; a different dated path requires fresh
+authority rather than an implicit rename.
 
 Each records only the completed child's immutable PR/merge/check/health identities and
 promotes only the named next hold; it creates no new receipt, strategy, implementation

@@ -30,15 +30,15 @@ The parent DG52 authority converged through
 admission remain immutable historical evidence but are superseded for execution by the
 exact-approved
 [`IDA-DG52-A1-OD17-ATTESTED-PREBUILT-PREVIEW-SPLIT`](./2026-08-20-ida-dg52-a1-od17-attested-prebuilt-preview-split.md)
-at 24,108 bytes / SHA-256
-`cc7e0afd6d52c430090fb5231133731d1cd04d915be6b124031c76c74ccfacca`.
+at 24,720 bytes / SHA-256
+`5395feafd870a39ec521543e996578a01a0ca50867e023f4cd7e5e0700b50019`.
 
-Its three independently passing admissions are Artifact Foundation at 6,818 bytes /
-SHA-256 `a69410840dde123c552e5d5a3589fa127d054b200d6e0c48868a273f46ed81ea`, Deployment
-Confinement at 7,238 bytes / SHA-256
-`2dece1adab6a08d54a4ebbf9873183909bb4178854f8f1c68c81b3e859f76e40`, and Measurement
-Integration at 7,755 bytes / SHA-256
-`b6124a88a1ec7bc80168a9b3af0ac87c63a9c4875e68343665fa86ead65c35ee`, all bound to
+Its three independently passing admissions are Artifact Foundation at 7,008 bytes /
+SHA-256 `6505e0f3fa0d54e4460788e150457d50ba4511b11d883e214d7ca26476f872fb`, Deployment
+Confinement at 7,428 bytes / SHA-256
+`25e11aa6af05bfb0647f221577fc4ac2dbec1088381a36fb78d8e1a9970a554d`, and Measurement
+Integration at 8,007 bytes / SHA-256
+`e662c5768f44b4c4b1e8b4f202a58c4ceb0c840854fc59400445d26d42df6d44`, all bound to
 `main@182fe71b3a50ad076f2a8746bf1b6401a724d2d0`.
 
 A1 promotes only `IDA-OD17-ATTESTED-PREBUILT-PREVIEW-ARTIFACT-FOUNDATION` (Tier 3) to

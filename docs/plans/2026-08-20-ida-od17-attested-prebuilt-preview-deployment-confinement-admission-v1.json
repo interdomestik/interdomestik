@@ -3,7 +3,7 @@
   "receiptId": "IDA-OD17-ATTESTED-PREBUILT-PREVIEW-DEPLOYMENT-CONFINEMENT-ADMISSION-V1",
   "sliceId": "IDA-OD17-ATTESTED-PREBUILT-PREVIEW-DEPLOYMENT-CONFINEMENT",
   "baseSha": "182fe71b3a50ad076f2a8746bf1b6401a724d2d0",
-  "authorityArtifactSha256": "cc7e0afd6d52c430090fb5231133731d1cd04d915be6b124031c76c74ccfacca",
+  "authorityArtifactSha256": "5395feafd870a39ec521543e996578a01a0ca50867e023f4cd7e5e0700b50019",
   "governanceWriterPaths": [
     "docs/plans/2026-08-20-ida-od17-attested-prebuilt-preview-deployment-confinement-runtime-r1.md",
     "docs/plans/current-program.md",
@@ -87,11 +87,36 @@
       { "id": "od17-thresholds", "kind": "baseline" }
     ],
     "edges": [
-      { "id": "materialize", "from": "merged-artifact-foundation", "to": "deployment-controller", "operation": "consume exact project, lock, archive, and identity contracts" },
-      { "id": "confine", "from": "deployment-controller", "to": "mutation-firewall", "operation": "route every bounded provider observation and the one future fixed CLI process through default-deny read/mutation state" },
-      { "id": "verify-controller", "from": "deployment-controller", "to": "deployment-focused-tests", "operation": "prove identity, environment, observation, receipt, and cleanup" },
-      { "id": "verify-firewall", "from": "mutation-firewall", "to": "deployment-focused-tests", "operation": "prove canonical routes and reject hidden/duplicate/provider mutations" },
-      { "id": "preserve-baseline", "from": "deployment-focused-tests", "to": "od17-thresholds", "operation": "prove this inert slice cannot change score, gzip, or first-request TTFB thresholds" }
+      {
+        "id": "materialize",
+        "from": "merged-artifact-foundation",
+        "to": "deployment-controller",
+        "operation": "consume exact project, lock, archive, and identity contracts"
+      },
+      {
+        "id": "confine",
+        "from": "deployment-controller",
+        "to": "mutation-firewall",
+        "operation": "route every bounded provider observation and the one future fixed CLI process through default-deny read/mutation state"
+      },
+      {
+        "id": "verify-controller",
+        "from": "deployment-controller",
+        "to": "deployment-focused-tests",
+        "operation": "prove identity, environment, observation, receipt, and cleanup"
+      },
+      {
+        "id": "verify-firewall",
+        "from": "mutation-firewall",
+        "to": "deployment-focused-tests",
+        "operation": "prove canonical routes and reject hidden/duplicate/provider mutations"
+      },
+      {
+        "id": "preserve-baseline",
+        "from": "deployment-focused-tests",
+        "to": "od17-thresholds",
+        "operation": "prove this inert slice cannot change score, gzip, or first-request TTFB thresholds"
+      }
     ],
     "closure": {
       "callers": true,
