@@ -23,14 +23,12 @@ const SAFE_PROCESS_ENV_KEYS = [
   'COREPACK_HOME',
 ] as const;
 
-export function buildToolProcessEnv(
-  overrides: Partial<NodeJS.ProcessEnv> = {}
-): Partial<NodeJS.ProcessEnv> {
-  const inherited: Partial<NodeJS.ProcessEnv> = {};
+export function buildToolProcessEnv(overrides: Partial<NodeJS.ProcessEnv> = {}): NodeJS.ProcessEnv {
+  const inherited = {} as NodeJS.ProcessEnv;
   for (const key of SAFE_PROCESS_ENV_KEYS) {
     if (process.env[key] !== undefined) inherited[key] = process.env[key];
   }
-  return { ...inherited, ...overrides };
+  return { ...inherited, ...overrides } as NodeJS.ProcessEnv;
 }
 
 export function loadToolEnv(repoRoot: string): Partial<NodeJS.ProcessEnv> {

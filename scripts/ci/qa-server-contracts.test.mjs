@@ -24,4 +24,5 @@ test('qa server keeps env loading stateless and selected per tool call', () => {
   assert.doesNotMatch(rootEnvSource, /dotenv\.config|\.\.\.process\.env/);
   assert.match(rootEnvSource, /SAFE_PROCESS_ENV_KEYS/);
   assert.match(rootEnvSource, /buildToolProcessEnv/);
+  assert.match(rootEnvSource, /\): NodeJS\.ProcessEnv \{/);
 });
