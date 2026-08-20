@@ -44,9 +44,9 @@ Its V1 admissions are exactly:
 - Child B: SHA-256 `638f5b5c99425de92813655b9b9899227dbba40e3e9e4876b083acb9c71d3e33`;
 - Child C: SHA-256 `009f6cfd77dd4db382b673fe767c70ad607001445c07826dc79d8c89ca90e453`.
 
-PR #1603 merged exact reviewed head
-`f77143a0cf4ff3a296aa09f3b51c16d31666d0a6` as the bound main. Exact-main Secret
-Scan `32346761391`, Sonar Main Gate `32346761352`, and CodeQL dynamic runs
+PR #1603 reviewed exact head `f77143a0cf4ff3a296aa09f3b51c16d31666d0a6`
+and merged it as `d384f8182b1441315d724a58b788a5383e3b53db`, the bound main. Exact-main
+Secret Scan `32346761391`, Sonar Main Gate `32346761352`, and CodeQL dynamic runs
 `32346760753` and `32346760791` succeeded; open main CodeQL alerts were zero.
 Automatic CD run `32346761338` was cancelled with no runner assignment and no executed
 steps. Base/tree/health drift before A2 materialization stops for a freshly bound package.

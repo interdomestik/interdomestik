@@ -37,15 +37,15 @@ PR #1603 merged A1 as `d384f8182b1441315d724a58b788a5383e3b53db`. Its three V1
 admissions remain immutable historical evidence and are superseded for future execution by
 the exact-approved
 [`IDA-DG52-A2-OD17-CHILD-FAIL-CLOSED-REPAIR-R1`](./2026-08-20-ida-dg52-a2-od17-child-fail-closed-repair.md)
-at 17,796 bytes / SHA-256
-`07c0d238f5062a6652c976cf89f1f7d7dc80d11afd052ddfd87026c62260d473`.
+at 17,847 bytes / SHA-256
+`9710a3f0dd1bc285ffc2905c93d4edb499c34d829bf63364a30e13ff51084b33`.
 
 A2's independently passing V2 admissions are Artifact Foundation at 10,667 bytes / SHA-256
-`c3c95198d4992fe2718ac75c4282f8f7d97cf5c6999cc9bc316bc6599ae66a29`, Deployment
+`396f664472107a97ce51cd87937d37af1d81fe41e55eb32444d6b922dc571439`, Deployment
 Confinement at 10,716 bytes / SHA-256
-`949388acaf32f63e933e8ff39a6559208ed7f7fd4d00fe5749ed12afffa1882c`, and Measurement
-Integration at 11,266 bytes / SHA-256
-`0f69cfb15579cf1cd6a0acb717ff79f7b58532bd31ae9ff4328626d28eafe18f`, all bound to
+`9346811f45b234cb584a41f976be40ea805854a8a47f50b5bb61963145396ef2`, and Measurement
+Integration at 11,324 bytes / SHA-256
+`4eba84f1680f2992076a7f62bd0e639ded88bb796c576eac0aad9967c6e4ab96`, all bound to
 `main@d384f8182b1441315d724a58b788a5383e3b53db`.
 
 A2 keeps only `IDA-OD17-ATTESTED-PREBUILT-PREVIEW-ARTIFACT-FOUNDATION` (Tier 3) at
