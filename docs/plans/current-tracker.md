@@ -15,25 +15,27 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                                                       | Status    | Owner                         | Work                                                                | Exit Criteria                                                                                                                                                                                                                                                                                                                                                                             |
-| -------------------------------------------------------- | --------- | ----------------------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `IDA-OD17-ATTESTED-PREBUILT-PREVIEW-ARTIFACT-FOUNDATION` | `blocked` | `platform + performance + qa` | Terminal non-execution closeout of the admitted artifact foundation | [PR #1604](https://github.com/interdomestik/interdomestik/pull/1604) merged A2 as `755c02d052999c76ccf184dfa3f6746e5b61ad52`. The child is fixed as `NOT_RUN — strategic_stop_before_R1_A`: no R1-A, semantic writer or provider/runtime action occurred. The A1/A2 Child-A execution path is terminated without retry; all successors remain blocked pending a fresh strategic decision. |
+| ID                           | Status    | Owner           | Work                                                        | Exit Criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ---------------------------- | --------- | --------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `IDA-CI01-PR-UNIT-SHADOW-A1` | `pending` | `platform + qa` | Converge PR unit shadow and coverage-completeness authority | DG01 (22,427 bytes; SHA-256 `3281927eb48fbbc5840e036510784aea76b7f3b563e4acdf52fcd721f278ce46`) and A1 admission V1 (27,098 bytes; SHA-256 `0ec7ad7bfb146e57e5754337897a7322c0ce22a3be6c079a41f25578ea9dadb7`) are exact-approved on `main@faae32d2af477c44d2f2fed6ad36151d08b8ea8d`. Runtime is unauthorized; healthy exact Phase-A main and a separately approved content-addressed A1 runtime receipt are required before any semantic writer. No prototype transfer, test skipping, E2E change, provider/runtime operation, or A2 activation is authorized. |
 
 ## Proof Ledger
 
-| ID                                                       | Source Refs                                                                                   | Execution | Run ID                   | Run Root         | Sonar  | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                                                                                          |
-| -------------------------------------------------------- | --------------------------------------------------------------------------------------------- | --------- | ------------------------ | ---------------- | ------ | ---------------- | ---------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `IDA-OD17-ATTESTED-PREBUILT-PREVIEW-ARTIFACT-FOUNDATION` | `dg52-a1:4fa5b4f6`; `dg52-a2:9710a3f0`; `admission-a-v2:12f2a2ac`; `pr:1604`; `main:755c02d0` | `blocked` | `not_run_strategic_stop` | `not_applicable` | `pass` | `not_applicable` | `not_applicable` | `pass`   | `docs/plans/2026-08-20-ida-od17-attested-prebuilt-preview-artifact-foundation-failure-closeout.md`; no R1-A, semantic implementation or provider runtime occurred. Exact-main security/Sonar/CodeQL passed; CD `32361955102` had zero runner assignments and steps. GitHub retained staging metadata `6000907447` / error status `17064554416`, with no provider call. |
+| ID                           | Source Refs                                                    | Execution | Run ID    | Run Root                                        | Sonar            | Docker           | Sentry           | Learning  | Evidence Refs                                                                                                                                                                                                                                                                                                                           |
+| ---------------------------- | -------------------------------------------------------------- | --------- | --------- | ----------------------------------------------- | ---------------- | ---------------- | ---------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `IDA-CI01-PR-UNIT-SHADOW-A1` | `dg01:3281927e`; `admission-a1:0ec7ad7b`; `base/main:faae32d2` | `pending` | `pending` | `main@faae32d2af477c44d2f2fed6ad36151d08b8ea8d` | `not_applicable` | `not_applicable` | `not_applicable` | `pending` | `docs/plans/2026-08-20-ida-ci-dg01-pr-unit-selection.md`; `docs/plans/2026-08-20-ida-ci-pr-unit-shadow-a1-admission-v1.json`; admission checker `ready` with one outcome, twelve semantic writers, three proof surfaces, one shared runtime consumer, and one special proof environment. No implementation or runtime proof is claimed. |
 
 ## Next Selection
 
-No slice is promoted. Child A is fixed as
-`NOT_RUN — strategic_stop_before_R1_A`; no R1-A was approved or materialized and its A1/A2
-execution path is terminated without retry. `runtime_authorized:false`, `activeSlice=null`,
-and resolver target `blocked_requires_current_authority`. Historical T-115 remains terminal
-`INCONCLUSIVE — measurement_capability_missing/provider_failure` without relabel.
-Deployment Confinement, Measurement Integration, R2, `T-118`, `T-117`, and `T-116` remain
-blocked pending a fresh strategic decision; none is automatically promoted.
+Only `IDA-CI01-PR-UNIT-SHADOW-A1` is promoted to `awaiting_runtime_authority` under the
+exact-approved DG01 and A1 admission V1. `runtime_authorized:false`, `activeSlice:null`;
+Phase A authorizes only governance convergence. Semantic implementation, prototype
+transfer, test skipping, E2E changes, provider/runtime operations, and A2 activation remain
+forbidden pending healthy exact Phase-A main and one separately approved content-addressed
+A1 runtime receipt. Historical T-115 OD#17 remains terminal
+`INCONCLUSIVE — measurement_capability_missing/provider_failure`; its Child-A path remains
+`NOT_RUN — strategic_stop_before_R1_A`, terminated without retry or relabel. Its successors
+and the CI program's A2 remain blocked; none is automatically promoted.
 
 ## Historical Authority
 
@@ -47,4 +49,4 @@ remains the stable deep-detail source for M0-M5 task contracts. Current rows are
 selection, implementation and closeout; detailed proof is linked, never copied here.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-CI01-PR-UNIT-SHADOW-A1` (Tier 3; `runtime_authorized:false`).

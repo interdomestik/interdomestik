@@ -1,0 +1,453 @@
+{
+  "schemaVersion": 1,
+  "sliceId": "IDA-CI01-PR-UNIT-SHADOW-A1",
+  "receiptClass": "pre-authority-admission-candidate",
+  "promotionEffect": "none",
+  "baseSha": "faae32d2af477c44d2f2fed6ad36151d08b8ea8d",
+  "canonicalPath": "docs/plans/2026-08-20-ida-ci-pr-unit-shadow-a1-admission-v1.json",
+  "authorityArtifact": "docs/plans/2026-08-20-ida-ci-dg01-pr-unit-selection.md",
+  "authorityArtifactSha256": "3281927eb48fbbc5840e036510784aea76b7f3b563e4acdf52fcd721f278ce46",
+  "supersededCandidateIdentities": [
+    "109971938b0ccb181970816f00fd1e45bcfc08441c89c0773880be04859abc4f",
+    "491acd6c4963e6a70f6722f7cf3a6847dc5b7184cb7b55e00397cf2e5fc930b4",
+    "bff22665b63a95b067ae8d42a92dd2612f2e544d89e020c318fa46f8cdf16348",
+    "bab55e8ab8f05c66aa2665d7f4b726c5f2d64daa83807cb7b7d5470d2164a55a",
+    "409584a9f1812618fa3da66e687a2a282d8e53da5092121df8570b74354ee42f",
+    "9de2078147b50904f14dfc3a1053f1cffa29b6459b62795e161a86ecdf514759"
+  ],
+  "authorityState": {
+    "runtime_authorized": false,
+    "activeSlice": null,
+    "successorsBlocked": true
+  },
+  "implementationAuthorityGranted": false,
+  "authorityLifecycle": {
+    "phaseA": {
+      "baseSha": "faae32d2af477c44d2f2fed6ad36151d08b8ea8d",
+      "kind": "authority-pr-only",
+      "writers": [
+        "docs/plans/2026-08-20-ida-ci-dg01-pr-unit-selection.md",
+        "docs/plans/2026-08-20-ida-ci-pr-unit-shadow-a1-admission-v1.json",
+        "docs/plans/current-program.md",
+        "docs/plans/current-tracker.md",
+        "scripts/repo-size-budget.json (conditional; unchanged generator output only)"
+      ],
+      "result": "awaiting_runtime_authority",
+      "runtime_authorized": false,
+      "semanticRuntimeWorkAllowed": false
+    },
+    "baseDriftPolicy": "Any protected-main/base drift before Phase A materialization stops the program for re-audit, rebind, reformat, re-review, and byte refreeze. After Phase A, protected main must independently equal the exact Phase-A merge/main SHA before R1 drafting, immediately before byte-exact R1 approval, and immediately before fresh A1 child/worktree/branch creation. Any mismatch stops before runtime authority or writer creation and requires intervening-main audit plus affected authority rebind, refreeze, review, and approval from the new exact main. Silent rebase, stale-main branch creation, merge-forward, or SHA substitution is forbidden.",
+    "a1RuntimeAuthority": {
+      "canonicalReceiptPath": "docs/plans/2026-08-20-ida-ci-pr-unit-shadow-a1-runtime-receipt-r1.json",
+      "prerequisite": "Exact Phase-A merge/main health, successful exact-SHA CD containment, cleanup, and content-addressed receipt binding the Phase-A main SHA plus canonical gate/admission hashes.",
+      "approval": "Separate byte-exact human approval of R1 is mandatory.",
+      "onlyAuthorizedTransition": "active_implementation with runtime_authorized:true",
+      "freshWriterRequirement": "Only after R1 approval may one fresh child worktree and branch from the approved exact Phase-A main become the sole semantic writer; the detached prototype is provenance only."
+    },
+    "a1ImplementationGovernanceWriters": [
+      "docs/plans/2026-08-20-ida-ci-pr-unit-shadow-a1-runtime-receipt-r1.json",
+      "docs/plans/current-program.md",
+      "docs/plans/current-tracker.md",
+      "scripts/repo-size-budget.json (conditional; unchanged generator output only)"
+    ],
+    "a1Closeout": {
+      "canonicalEvidencePath": "docs/plans/2026-08-20-ida-ci-pr-unit-shadow-a1-closeout.md",
+      "writers": [
+        "docs/plans/2026-08-20-ida-ci-pr-unit-shadow-a1-closeout.md",
+        "docs/plans/current-program.md",
+        "docs/plans/current-tracker.md",
+        "scripts/repo-size-budget.json (conditional; unchanged generator output only)"
+      ],
+      "successAndFailurePreauthorized": true,
+      "extraStrategicApprovalRequired": false
+    },
+    "a2": "Deferred. A2 must repeat independent exact-main admission, runtime receipt, byte-exact approval, implementation, and closeout against exact A1 closeout main; its implementation and closeout writers cannot be inferred."
+  },
+  "productOutcomes": [
+    "Establish fail-closed PR unit shadow selection, complete coverage-summary accounting, and a separate full-unit nightly lane while the full PR unit suite remains required."
+  ],
+  "writerPaths": [
+    "scripts/ci/unit-shadow-selector-lib.mjs",
+    "scripts/ci/unit-shadow-selector.mjs",
+    "scripts/ci/unit-shadow-runner.mjs",
+    "scripts/ci/unit-shadow-test-owners.json",
+    "scripts/ci/unit-shadow-selector.test.mjs",
+    "scripts/ci/unit-shadow-selector-cli.test.mjs",
+    "scripts/ci/unit-shadow-runner.test.mjs",
+    "scripts/ci/coverage-summary-contract.mjs",
+    "scripts/ci/coverage-gate.mjs",
+    "scripts/ci/coverage-contracts.test.mjs",
+    ".github/workflows/ci.yml",
+    ".github/workflows/unit-nightly.yml"
+  ],
+  "proofSurfaces": [
+    {
+      "id": "S1-offline-selector-and-coverage-contracts",
+      "invalidatedBy": [
+        "selector, runner, owner manifest, workspace manifest, coverage contract, coverage gate, or focused-test bytes change"
+      ]
+    },
+    {
+      "id": "S2-current-head-full-first-shadow-ci",
+      "invalidatedBy": [
+        "A1 head, base, CI unit workflow, setup action, package graph, receipt schema, task command, or GitHub-hosted Ubuntu fingerprint changes"
+      ]
+    },
+    {
+      "id": "S3-historical-and-live-replay-comparator",
+      "invalidatedBy": [
+        "selector, graph, owner manifest, fallback taxonomy, replay corpus, live diff-class coverage, full-suite result, or comparator rule changes"
+      ]
+    }
+  ],
+  "sharedRuntimeConsumers": [".github/workflows/ci.yml#unit"],
+  "specialProofEnvironments": [
+    {
+      "id": "github-hosted-ubuntu-ci",
+      "canary": {
+        "command": "gh api repos/interdomestik/interdomestik/actions/runs/32397701546 --jq '{run_id:.id,event,head_sha,conclusion,run_attempt,created_at,updated_at}' && gh api repos/interdomestik/interdomestik/actions/runs/32397701546/jobs --paginate --jq '[.jobs[] | select(.name==\"unit\") | {job_id:.id,name,conclusion,runner_name,labels,started_at,completed_at}]'",
+        "expected": "Existing protected-main run 32397701546 and unit job 96518444672 both report success at exact head faae32d2af477c44d2f2fed6ad36151d08b8ea8d with the ubuntu-latest label; the command is API-read-only and dispatches nothing.",
+        "result": "pass",
+        "observedAt": "2026-08-20T17:40:52.000Z",
+        "evidence": "GitHub Actions canonical two-line JSON for run 32397701546 and job 96518444672, captured read-only during R1 factual audit",
+        "evidenceSha256": "4a379239ac67de392691e115c277fa16fda2d8724a4e6fdc7cef6d8ead67160a",
+        "environmentFingerprint": "github-hosted/ubuntu-latest; runner=GitHub Actions 1000070298; run=32397701546; job=96518444672; head=faae32d2af477c44d2f2fed6ad36151d08b8ea8d"
+      }
+    }
+  ],
+  "contractGraph": {
+    "nodes": [
+      {
+        "id": "changed-files-entry",
+        "kind": "entry",
+        "surface": "exact PR changed-file list bound to base and head"
+      },
+      {
+        "id": "workspace-package-baseline",
+        "kind": "baseline",
+        "surface": "pnpm-workspace.yaml plus apps/* and packages/* package manifests"
+      },
+      {
+        "id": "task-owner-manifest",
+        "kind": "store",
+        "surface": "explicit package root, task kind, coverage expectation, and fallback ownership"
+      },
+      {
+        "id": "consumer-graph",
+        "kind": "primitive",
+        "surface": "validated direct and transitive workspace consumer closure"
+      },
+      {
+        "id": "unit-selector",
+        "kind": "primitive",
+        "surface": "deterministic selected-task or full-fallback decision"
+      },
+      {
+        "id": "full-unit-baseline",
+        "kind": "baseline",
+        "surface": "unchanged full PR coverage gate and release unit result"
+      },
+      {
+        "id": "shadow-runner",
+        "kind": "primitive",
+        "surface": "selected-task shadow execution and selected-vs-full comparator"
+      },
+      {
+        "id": "shadow-receipt",
+        "kind": "store",
+        "surface": "exact-head selected/full tasks, status, timing, fallback, and miss artifact"
+      },
+      {
+        "id": "coverage-expectation-contract",
+        "kind": "store",
+        "surface": "web/shared-auth/domain expected-summary and explicit summaryless map"
+      },
+      {
+        "id": "coverage-gate",
+        "kind": "consumer",
+        "surface": "existing compatibility-locked full coverage and aggregate validation"
+      },
+      {
+        "id": "default-coverage-callers-baseline",
+        "kind": "baseline",
+        "surface": "existing pr:verify, Pilot verification, release candidate, QA command inspection, and local-parity coverage:gate callers"
+      },
+      {
+        "id": "coverage-completeness-check",
+        "kind": "primitive",
+        "surface": "explicit CI-unit/nightly expected-summary and summaryless validation CLI"
+      },
+      {
+        "id": "ci-unit-consumer",
+        "kind": "consumer",
+        "surface": ".github/workflows/ci.yml unit job"
+      },
+      {
+        "id": "full-unit-nightly-entry",
+        "kind": "entry",
+        "surface": "separate scheduled full-unit workflow"
+      },
+      {
+        "id": "s1-contract-collector",
+        "kind": "test",
+        "surface": "offline selector, runner, manifest, and coverage contract suite"
+      },
+      {
+        "id": "s2-shadow-collector",
+        "kind": "test",
+        "surface": "current-head GitHub CI full-first shadow receipt"
+      },
+      {
+        "id": "s3-replay-collector",
+        "kind": "test",
+        "surface": "historical plus live diff-class comparator"
+      }
+    ],
+    "edges": [
+      {
+        "id": "changed-files-to-selector",
+        "from": "changed-files-entry",
+        "to": "unit-selector",
+        "operation": "normalized-input"
+      },
+      {
+        "id": "workspace-to-graph",
+        "from": "workspace-package-baseline",
+        "to": "consumer-graph",
+        "operation": "dependency-read"
+      },
+      {
+        "id": "manifest-to-selector",
+        "from": "task-owner-manifest",
+        "to": "unit-selector",
+        "operation": "owner-task-and-fallback-read"
+      },
+      {
+        "id": "graph-to-selector",
+        "from": "consumer-graph",
+        "to": "unit-selector",
+        "operation": "consumer-closure"
+      },
+      {
+        "id": "selector-to-runner",
+        "from": "unit-selector",
+        "to": "shadow-runner",
+        "operation": "selected-task-or-full-fallback-decision"
+      },
+      {
+        "id": "full-baseline-to-runner",
+        "from": "full-unit-baseline",
+        "to": "shadow-runner",
+        "operation": "status-and-duration-comparison"
+      },
+      {
+        "id": "runner-to-receipt",
+        "from": "shadow-runner",
+        "to": "shadow-receipt",
+        "operation": "write-exact-head-evidence"
+      },
+      {
+        "id": "coverage-contract-to-completeness",
+        "from": "coverage-expectation-contract",
+        "to": "coverage-completeness-check",
+        "operation": "required-summary-validation"
+      },
+      {
+        "id": "coverage-gate-to-full-baseline",
+        "from": "coverage-gate",
+        "to": "full-unit-baseline",
+        "operation": "blocking-full-result"
+      },
+      {
+        "id": "coverage-gate-to-default-callers-baseline",
+        "from": "coverage-gate",
+        "to": "default-coverage-callers-baseline",
+        "operation": "compatibility-locked-caller-contract"
+      },
+      {
+        "id": "full-baseline-to-ci",
+        "from": "full-unit-baseline",
+        "to": "ci-unit-consumer",
+        "operation": "full-first-required-execution"
+      },
+      {
+        "id": "coverage-gate-to-completeness",
+        "from": "coverage-gate",
+        "to": "coverage-completeness-check",
+        "operation": "generated-summary-input-after-full-coverage"
+      },
+      {
+        "id": "completeness-to-ci",
+        "from": "coverage-completeness-check",
+        "to": "ci-unit-consumer",
+        "operation": "explicit-blocking-completeness-result"
+      },
+      {
+        "id": "receipt-to-ci",
+        "from": "shadow-receipt",
+        "to": "ci-unit-consumer",
+        "operation": "non-activating-shadow-artifact"
+      },
+      {
+        "id": "coverage-gate-to-nightly",
+        "from": "coverage-gate",
+        "to": "full-unit-nightly-entry",
+        "operation": "scheduled-full-execution"
+      },
+      {
+        "id": "completeness-to-nightly",
+        "from": "coverage-completeness-check",
+        "to": "full-unit-nightly-entry",
+        "operation": "explicit-scheduled-completeness-result"
+      },
+      {
+        "id": "selector-to-s1",
+        "from": "unit-selector",
+        "to": "s1-contract-collector",
+        "operation": "offline-contract-proof"
+      },
+      {
+        "id": "coverage-to-s1",
+        "from": "coverage-completeness-check",
+        "to": "s1-contract-collector",
+        "operation": "coverage-completeness-proof"
+      },
+      {
+        "id": "receipt-to-s2",
+        "from": "shadow-receipt",
+        "to": "s2-shadow-collector",
+        "operation": "current-head-proof"
+      },
+      {
+        "id": "receipt-to-s3",
+        "from": "shadow-receipt",
+        "to": "s3-replay-collector",
+        "operation": "replay-and-live-comparison"
+      }
+    ],
+    "closure": {
+      "callers": true,
+      "sharedConsumers": true,
+      "readWriteDelete": true,
+      "mountErrorPaths": true,
+      "capabilityRequirements": true,
+      "testCollectors": true,
+      "baselineOwnership": true
+    },
+    "closureEvidence": {
+      "callers": "A1 binds changed-file entry, manifest and workspace readers, selector, runner, the explicit completeness CLI, CI unit, nightly entry, and all three collectors. Existing coverage:gate callers were audited: CI unit, pr:verify and its Pilot/release callers, QA command inspection, and local parity. The explicit completeness CLI is added only to CI unit and the independent nightly entry; every other caller retains the default compatibility-locked coverage:gate behavior.",
+      "sharedConsumers": "The only shared runtime consumer of A1's new selector/completeness behavior is the existing CI unit job. Full-unit nightly is an independent entry. pr:verify, Pilot verification, release candidate, QA command inspection, and local parity remain callers only of the unchanged default coverage:gate contract and do not consume the new completeness CLI.",
+      "readWriteDelete": "A1 reads Git/event/package/manifest/coverage inputs, writes only coverage outputs and temporary shadow receipts/artifacts, and defines artifact/temp cleanup; it has no product, database, provider, repository-variable, or deployment state writer.",
+      "mountErrorPaths": "No filesystem mount or external service is required. Missing, malformed, non-relative, stale-head, graph, owner, task, coverage, receipt, or artifact input fails closed to full unit or blocks coverage; no empty selection can pass as completeness.",
+      "capabilityRequirements": "Node filesystem/JSON/child-process/timing/hash primitives, pnpm package commands, GitHub Actions step outcomes/artifacts, and GitHub-hosted ubuntu-latest are named; protected-main run 32397701546/job 96518444672 proves the special lane read-only.",
+      "testCollectors": "S1 has node:test collectors, S2 has an exact-head CI receipt artifact after the full suite, and S3 consumes bound historical/live receipts; every required acceptance row treats skip as failure.",
+      "baselineOwnership": "Protected main faae32d2af477c44d2f2fed6ad36151d08b8ea8d owns the factual package/workflow baseline; the unchanged full PR suite is the failure-detection oracle. Main push and A1's separate nightly entry run full coverage plus the explicit completeness CLI. Release remains full and behavior-compatible through pr:verify:hosts; Pilot and local-parity default coverage callers remain unchanged."
+    }
+  },
+  "highestRiskCases": [
+    "A QA-only diff reaches a package without test:unit; it must select the declared check owner or full fallback and may never produce an empty successful unit selection.",
+    "A changed-file, workspace, dependency, owner, task, manifest, or exact-head lookup is missing, malformed, ambiguous, or stale; the PR must run the full unit suite.",
+    "A lockfile, root package-manager/Turbo config, CI workflow/action, generated source, auth, database/schema/RLS, routing/proxy, tenancy, billing, security, release, or unknown path must run the full unit suite.",
+    "domain-case and domain-recovery are explicitly summaryless; in the A1 CI unit and nightly entries, any missing or malformed summary for web, shared-auth, or another expected domain package must fail the explicit completeness CLI rather than be filtered.",
+    "Any shared default coverage:gate behavior change for pr:verify, Pilot verification, release candidate, QA command inspection, or local parity is a non-goal violation and blocks A1.",
+    "The full suite fails while the selected candidate passes; the receipt must record a selector miss, S3 must fail, and A2 must remain blocked.",
+    "The selected candidate fails while the full suite passes; the discrepancy must be preserved without masking or rewriting the full-suite conclusion.",
+    "Main, nightly, or release accidentally adopts affected-only selection; A1 fails and requires exact-main failure closeout.",
+    "A hidden variable, label, timer, automatic transition, workflow side channel, or provider mutation activates skipping; authority is consumed and the program stops."
+  ],
+  "rollback": {
+    "mechanism": "Before merge, discard only the fresh unmerged A1 child. After merge, preserve exact evidence, merge the mandatory deauthorizing failure closeout, and permit at most one separately reviewed mechanical exact-revert PR only while the A1 merge remains the latest merge touching its writer paths. Revert is temporary containment and never replaces canonical failure closeout.",
+    "trigger": "Any unauthorized writer or primitive, admission drift, line-budget breach, skipped required proof, missed full-suite failure, unsafe fallback miss, silent coverage omission, exact-head mismatch, required-check failure, current-main regression, accidental enforcement, CD/provider effect, evidence persistence failure, cleanup failure, or successor promotion without the complete A1→S3→A2 authority chain."
+  },
+  "acceptanceMatrix": [
+    {
+      "criterionId": "S1-selector-owner-graph-and-fallback-contracts-green",
+      "proofSurfaceId": "S1-offline-selector-and-coverage-contracts",
+      "command": "node --test scripts/ci/unit-shadow-selector.test.mjs scripts/ci/unit-shadow-selector-cli.test.mjs scripts/ci/unit-shadow-runner.test.mjs",
+      "expected": "All package/consumer closure, 25-workspace owner modes, QA, malformed input, unsafe taxonomy, stale-head, no-empty-selection, timing, and receipt contracts pass; no required test is skipped and every new or refactored test file is <=150 physical lines with readable, non-minified formatting.",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "S1-coverage-completeness-green",
+      "proofSurfaceId": "S1-offline-selector-and-coverage-contracts",
+      "command": "node --test scripts/ci/coverage-contracts.test.mjs",
+      "expected": "Only domain-case and domain-recovery are accepted as explicitly summaryless by the new completeness CLI; every other expected missing or malformed summary fails CI-unit/nightly completeness, aggregate coverage remains blocking, the default coverage:gate path remains behavior-compatible, and the final test file is <=150 physical lines with readable, non-minified formatting.",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "S2-current-head-full-first-shadow-receipt",
+      "proofSurfaceId": "S2-current-head-full-first-shadow-ci",
+      "command": "On the exact A1 PR head, run the CI unit job with pnpm coverage:gate, node scripts/ci/coverage-summary-contract.mjs --require-complete, and pnpm test:release-gate first, then node scripts/ci/unit-shadow-runner.mjs --mode=shadow using the bound changed-file list and full-step outcomes.",
+      "expected": "The unchanged full PR unit path remains required; the shadow receipt binds exact base/head/run, selected/full tasks, statuses, durations, fallback reason and misses; no unit test is removed or skipped.",
+      "environmentId": "github-hosted-ubuntu-ci",
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "S2-main-nightly-release-remain-full",
+      "proofSurfaceId": "S2-current-head-full-first-shadow-ci",
+      "command": "Inspect and execute exact-head contracts proving CI main/PR and .github/workflows/unit-nightly.yml run full coverage plus the explicit completeness CLI, while release-candidate pr:verify:hosts still resolves through pr:verify to the default coverage:gate command.",
+      "expected": "Main, nightly and release each retain full unit/coverage execution; the explicit completeness CLI has only CI-unit and nightly entry callers; default coverage:gate behavior and E2E, Pilot, finalizer, CodeQL, Sonar and security semantics remain contract-unchanged.",
+      "environmentId": "github-hosted-ubuntu-ci",
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "S3-zero-miss-and-fail-closed-comparator",
+      "proofSurfaceId": "S3-historical-and-live-replay-comparator",
+      "command": "node scripts/ci/unit-shadow-runner.mjs --mode=compare --receipt-dir=$UNIT_SHADOW_RECEIPT_DIR --require-classes=qa-only,web-product,database,ci-config,lockfile",
+      "expected": "Historical and required live classes report zero full-suite failures missed and 100% full fallback for every unsafe category; missing class, receipt, full result, or comparator input fails S3.",
+      "environmentId": "github-hosted-ubuntu-ci",
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "S3-measured-gain-without-unsupported-claims",
+      "proofSurfaceId": "S3-historical-and-live-replay-comparator",
+      "command": "node scripts/ci/unit-shadow-runner.mjs --mode=compare --receipt-dir=$UNIT_SHADOW_RECEIPT_DIR --report-wall-time",
+      "expected": "Comparator records real selected/full wall-time, QA-only median projected reduction is at least 80%, and no web/domain saving is claimed unless its observed dependency closure proves one.",
+      "environmentId": "github-hosted-ubuntu-ci",
+      "skipIsFailure": true
+    }
+  ],
+  "executionPolicy": {
+    "focusedBeforeHeavy": true,
+    "currentHeadCanaryBeforeFullCi": true,
+    "feedbackBeforeHeavy": true,
+    "fullE2eAuthority": "ci_once_per_exact_head",
+    "rerunPolicy": "invalidated_only",
+    "staleHeadAction": "cancel",
+    "runnerReadiness": "connected_and_listening"
+  },
+  "firstImplementationAction": "Only after separate byte-exact approval of the canonical R1 runtime receipt, create one fresh A1 child from the approved exact Phase-A main, verify it is clean and exact-head bound, replay the exploratory RED test patch only as uncommitted provenance, refactor every new or modified test to <=150 physical lines with readable, non-minified formatting before any commit, and run focused selector/coverage contracts before writing or transferring production helpers.",
+  "cdContainment": {
+    "appliesToMerges": ["Phase A authority", "A1 implementation", "A1 closeout"],
+    "preMerge": "Pre-arm a GitHub control-plane watcher for the merge API's returned exact SHA.",
+    "allowedAction": "Identify and cancel only the cd.yml push/main run whose head_sha equals that exact merge SHA, before runner assignment, step start, or provider action; never dispatch, approve, rerun, or mutate another run or provider.",
+    "successProof": "The matching run reaches terminal cancelled; every job has null runner identity and an empty steps list.",
+    "failureClass": "No matching run by the bounded deadline, cancellation failure, runner assignment, non-empty steps, or any provider effect is containment failure/incident.",
+    "deploymentAuthorityGranted": false
+  },
+  "normalSuccessCleanup": {
+    "common": "Require exact-merge-main health, successful CD containment, no provider mutation, cleanup of only the fresh branch/worktree, branch-hygiene proof, and a canonical resolver receipt.",
+    "phaseAResolver": "awaiting_runtime_authority; runtime_authorized:false; activeSlice:null; A1 runtime and every successor blocked pending exact R1 approval",
+    "a1ImplementationResolver": "runtime_authorized:false; activeSlice:null; A2 and every successor blocked; A1 closeout required",
+    "a1CloseoutResolver": "runtime_authorized:false; activeSlice:null; blocked_requires_current_authority; A2 blocked pending independent exact-main admission/runtime approval"
+  },
+  "postMergeFailureCloseout": {
+    "success": "After A1 closeout exact-main health, CD containment, cleanup, and canonical convergence are green, set runtime_authorized:false and activeSlice:null, keep A2 and all successors blocked, and collect S3 evidence without granting enforcement authority.",
+    "authorityOrConvergenceFailure": "After Phase A, A1 implementation, or A1 closeout, preserve exact merge and run evidence, set runtime_authorized:false, activeSlice:null and successors blocked, consume any active A1 runtime authority, and stop for separate current-authority incident repair without automatic retry.",
+    "mainHealthFailure": "After Phase A, A1 implementation, or A1 closeout, preserve exact-main checks and receipts, merge the preauthorized sanitized deauthorizing failure closeout when safe, allow at most one separately reviewed exact-revert containment PR under the latest-writer constraint, and keep A2/all successors blocked.",
+    "cdOrProviderFailure": "If the matching cd.yml run is not terminal cancelled with runner null and steps empty, or any provider effect occurs, preserve observed effects, classify provider state unknown, perform no provider cleanup mutation or retry, set runtime_authorized:false and activeSlice:null, block successors, and stop for incident authority; cancellation is not deployment authority.",
+    "evidenceOrCleanupFailure": "Preserve remaining artifacts and dirty state, do not conceal or repeatedly retry failed receipt/branch/worktree/artifact cleanup, set runtime_authorized:false and activeSlice:null, block successors, and require separate cleanup/incident authority.",
+    "successorPromotionFailure": "Any A2 promotion before independent exact-A1-main admission and explicit approval, or any third tranche, deauthorizes the program, clears activeSlice, blocks all successors, preserves evidence, and stops."
+  },
+  "executionCeilings": {
+    "implementationSlicesTotal": 2,
+    "thisChild": "A1-shadow",
+    "A2Admission": "deferred-until-exact-A1-main-plus-S3-PASS",
+    "thirdTrancheAllowed": false,
+    "automaticActivationAllowed": false,
+    "repositoryVariableOrHiddenSwitchAllowed": false,
+    "providerMutationAllowed": false
+  }
+}
