@@ -180,7 +180,9 @@ package scripts, build output, or any local composite that can build. It downloa
 exact final archive, verifies its GitHub attestation against the exact repository,
 `refs/heads/main`, source SHA, signer workflow, run/attempt, and subject digest, extracts
 it into an empty directory, and re-validates the exact file set. Its permissions are
-`contents/actions: read`, `id-token: none`, and `attestations: none`.
+`contents: read`, `actions: read`, `attestations: read`, and `id-token: none`.
+The attestation read grant is used only by `gh attestation verify`; Z3 cannot create or
+delete attestations and must not fall back to unauthenticated public-repository lookup.
 
 Within the DG52 workflow, `VERCEL_TOKEN` is referenced and injected only as step-scoped
 environment for Z3's final constant upload step, after the in-job verification gates have
@@ -220,8 +222,11 @@ zero for the CLI path and is evidence, not a required identity bridge.
 ### Z4 — tokenless provenance, health, measurement, and verification
 
 Z4 has no Vercel token, DB/auth secret, project environment secret, or deploy permission.
-It may receive only `contents/actions: read` and narrowly scoped `id-token: write` for the
-approved Vercel Trusted Source. The OIDC audience remains
+It may receive only `contents: read`, `actions: read`, `attestations: read`, and narrowly
+scoped `id-token: write` for the approved Vercel Trusted Source. Its attestation read
+grant is limited to same-repository `gh attestation verify`; it has no attestation write
+permission and must not fall back to unauthenticated public-repository lookup. The OIDC
+audience remains
 `https://github.com/interdomestik`; the token is sent only to the exact immutable Vercel
 origin as `x-vercel-trusted-oidc-idp-token`, never persisted or uploaded.
 
@@ -295,9 +300,10 @@ writing it. A thirteenth semantic writer or a second shared consumer requires a 
 Focused dependency-free tests cover:
 
 - repo/ref/SHA/tree/run/attempt/actor drift and replay;
-- secret-zone permissions and absence of `pull_request_target`, privileged `workflow_run`,
-  PR checkout, candidate local action, mutable `uses`, `@latest`, build in Z3, or OIDC in
-  Z1/Z3;
+- secret-zone permissions, `attestations: write` only in Z2, `attestations: read` exactly
+  in Z3/Z4, no anonymous-token clearing, and absence of `pull_request_target`, privileged
+  `workflow_run`, PR checkout, candidate local action, mutable `uses`, `@latest`, build in
+  Z3, or OIDC in Z1/Z3;
 - fixed CLI and deploy arguments;
 - artifact add/remove/mutate/rename, links/special files, traversal, path collisions,
   archive bombs, size limits, manifest/archive/attestation mismatch;

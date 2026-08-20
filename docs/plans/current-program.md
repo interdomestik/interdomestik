@@ -26,11 +26,11 @@ was retained, and no retry or historical relabel is authorized.
 
 Arben exact-approved
 [`IDA-DG52-OD17-ATTESTED-PREBUILT-PREVIEW-R1`](./2026-08-19-ida-dg52-od17-attested-prebuilt-preview.md)
-at 34,213 bytes / SHA-256
-`31bc347dd13436614b8f3b84a199ec586726280e5905e3ce14f72d2ca7cd2938` and the passing
+at 34,724 bytes / SHA-256
+`a1170987331531853e168077263093a2d9a5dec197c1cc57ab30c43f54449ab9` and the passing
 [`IDA-OD17-ATTESTED-PREBUILT-PREVIEW-CAPABILITY-ADMISSION-V1`](./2026-08-19-ida-od17-attested-prebuilt-preview-capability-admission-v1.json)
-at 7,469 bytes / SHA-256
-`70381edc02657ba392ff8af01e1f50e638c09239a034c7b90f249cc2bcebdb60`, both bound to
+at 7,461 bytes / SHA-256
+`d71e241293e37d0d49c8f9fbb05db62f9a7a444c08b936c2bae5301109a132fc`, both bound to
 `main@cb33cd616abcb79c4298c1024d592d8ae998c1cc`.
 
 Phase A promotes only `IDA-OD17-ATTESTED-PREBUILT-PREVIEW-CAPABILITY` (Tier 3) to

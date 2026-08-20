@@ -3,7 +3,7 @@
   "receiptId": "IDA-OD17-ATTESTED-PREBUILT-PREVIEW-CAPABILITY-ADMISSION-V1",
   "sliceId": "IDA-OD17-ATTESTED-PREBUILT-PREVIEW-CAPABILITY",
   "baseSha": "cb33cd616abcb79c4298c1024d592d8ae998c1cc",
-  "authorityArtifactSha256": "31bc347dd13436614b8f3b84a199ec586726280e5905e3ce14f72d2ca7cd2938",
+  "authorityArtifactSha256": "a1170987331531853e168077263093a2d9a5dec197c1cc57ab30c43f54449ab9",
   "governanceWriterPaths": [
     "docs/plans/2026-08-19-ida-od17-attested-prebuilt-preview-capability-runtime-r1.md",
     "docs/plans/current-program.md",
@@ -80,9 +80,7 @@
     "staleHeadAction": "cancel",
     "runnerReadiness": "connected_and_listening"
   },
-  "sharedRuntimeConsumers": [
-    "protected-main IDA-OD17-ATTESTED-PREBUILT-PREVIEW one-shot runtime"
-  ],
+  "sharedRuntimeConsumers": ["protected-main IDA-OD17-ATTESTED-PREBUILT-PREVIEW one-shot runtime"],
   "specialProofEnvironments": [],
   "contractGraph": {
     "nodes": [
