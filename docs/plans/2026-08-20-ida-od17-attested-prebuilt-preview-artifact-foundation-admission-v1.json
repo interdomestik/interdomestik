@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "IDA-OD17-ATTESTED-PREBUILT-PREVIEW-ARTIFACT-FOUNDATION-ADMISSION-V1",
+  "sliceId": "IDA-OD17-ATTESTED-PREBUILT-PREVIEW-ARTIFACT-FOUNDATION",
+  "baseSha": "182fe71b3a50ad076f2a8746bf1b6401a724d2d0",
+  "authorityArtifactSha256": "cc7e0afd6d52c430090fb5231133731d1cd04d915be6b124031c76c74ccfacca",
+  "governanceWriterPaths": [
+    "docs/plans/2026-08-20-ida-od17-attested-prebuilt-preview-artifact-foundation-runtime-r1.md",
+    "docs/plans/current-program.md",
+    "docs/plans/current-tracker.md"
+  ],
+  "productOutcomes": [
+    "Install one inert provider-neutral canonical prebuilt archive and pinned Vercel runtime-input foundation"
+  ],
+  "writerPaths": [
+    "scripts/ci/od17-prebuilt-archive.mjs",
+    "scripts/ci/od17-prebuilt-archive-codec.mjs",
+    "scripts/ci/od17-prebuilt-archive-codec.test.mjs",
+    "scripts/ci/od17-prebuilt-runtime-inputs.mjs",
+    "scripts/ci/od17-prebuilt-runtime-inputs.test.mjs",
+    "scripts/ci/od17-vercel-cli-lock.json",
+    "scripts/ci/od17-vercel-project-settings.json",
+    "scripts/repo-size-budget.json"
+  ],
+  "proofSurfaces": [
+    {
+      "id": "artifact-offline-contracts",
+      "invalidatedBy": [
+        "any archive schema, codec, bound, lock, project snapshot, toolchain, consumer matrix, test, or writer changes"
+      ]
+    },
+    {
+      "id": "artifact-exact-head-ci",
+      "invalidatedBy": [
+        "implementation PR base, head, changed paths, required check, review, or actionable feedback changes"
+      ]
+    },
+    {
+      "id": "artifact-exact-main-health",
+      "invalidatedBy": [
+        "merge SHA, protected main, post-merge required health, CD containment, cleanup, or closeout identity changes"
+      ]
+    }
+  ],
+  "acceptanceMatrix": [
+    {
+      "criterionId": "artifact-contracts-green",
+      "proofSurfaceId": "artifact-offline-contracts",
+      "command": "run the directly collected archive-codec and runtime-input focused suites plus syntax, formatting, modularity, secret-pattern, dependency, and deterministic repo-size checks",
+      "expected": "canonical round trips, hostile archive cases, closed snapshot/lock schema, exact Undici 7.29 graph, import smoke, zero audit, and every declared bound pass with no skips",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "artifact-pr-green",
+      "proofSurfaceId": "artifact-exact-head-ci",
+      "command": "observe one exact-head GitHub-hosted required-check and terminal-feedback rollup",
+      "expected": "all required current-head checks pass, provider/runtime lanes remain inert, and actionable or unresolved feedback is zero",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "artifact-main-green",
+      "proofSurfaceId": "artifact-exact-main-health",
+      "command": "merge only the exact reviewed head, contain only its exact automatic CD before executable steps, and verify exact-main health and preauthorized closeout",
+      "expected": "protected main equals the exact merge, health is green, CD has no runner or executed step, only exact refs are cleaned, and the closeout promotes only deployment confinement",
+      "environmentId": null,
+      "skipIsFailure": true
+    }
+  ],
+  "executionPolicy": {
+    "focusedBeforeHeavy": true,
+    "currentHeadCanaryBeforeFullCi": true,
+    "feedbackBeforeHeavy": true,
+    "fullE2eAuthority": "ci_once_per_exact_head",
+    "rerunPolicy": "invalidated_only",
+    "staleHeadAction": "cancel",
+    "runnerReadiness": "connected_and_listening"
+  },
+  "sharedRuntimeConsumers": [
+    "future protected-main IDA-OD17-ATTESTED-PREBUILT-PREVIEW one-shot runtime"
+  ],
+  "specialProofEnvironments": [],
+  "contractGraph": {
+    "nodes": [
+      { "id": "exact-main-source", "kind": "entry" },
+      { "id": "canonical-archive", "kind": "primitive" },
+      { "id": "pinned-runtime-inputs", "kind": "primitive" },
+      { "id": "artifact-focused-tests", "kind": "test" },
+      { "id": "od17-thresholds", "kind": "baseline" }
+    ],
+    "edges": [
+      { "id": "archive", "from": "exact-main-source", "to": "canonical-archive", "operation": "canonically frame and revalidate the bounded final file set" },
+      { "id": "materialize", "from": "exact-main-source", "to": "pinned-runtime-inputs", "operation": "materialize closed project settings and one audited pinned CLI graph" },
+      { "id": "verify", "from": "canonical-archive", "to": "artifact-focused-tests", "operation": "prove round-trip, bounds, and hostile archive rejection" },
+      { "id": "verify-inputs", "from": "pinned-runtime-inputs", "to": "artifact-focused-tests", "operation": "prove exact lock, project, integrity, consumer, and CLI identity" },
+      { "id": "preserve-baseline", "from": "artifact-focused-tests", "to": "od17-thresholds", "operation": "prove this inert slice cannot change score, gzip, or first-request TTFB thresholds" }
+    ],
+    "closure": {
+      "callers": true,
+      "sharedConsumers": true,
+      "readWriteDelete": true,
+      "mountErrorPaths": true,
+      "capabilityRequirements": true,
+      "testCollectors": true,
+      "baselineOwnership": true
+    },
+    "closureEvidence": {
+      "callers": "future deployment and measurement slices are the only named consumers",
+      "sharedConsumers": "one future protected-main R2 consumes the merged foundation",
+      "readWriteDelete": "runner-temp decode/install/extract and exact branch/ref cleanup are bounded",
+      "mountErrorPaths": "decode, extraction, file-system, registry, integrity, and version failures stop closed",
+      "capabilityRequirements": "Node 24, npm 11.12.1, Vercel 59.1.4, Undici 7.29.0, and ordinary files only are explicit",
+      "testCollectors": "both new tests are directly collected under scripts/ci/*.test.mjs",
+      "baselineOwnership": "DG52-A1 owns structure and toolchain only; OD17 thresholds remain parent-owned"
+    }
+  },
+  "highestRiskCases": [
+    "an archive path, metadata, collision, link, size, or digest ambiguity is accepted",
+    "a mutable or unaudited package graph is decoded or installed",
+    "Undici resolves below 7.29.0 or more than once",
+    "project settings contain an unknown, missing, mutable, or secret field",
+    "provider access occurs during this inert slice"
+  ],
+  "rollback": {
+    "mechanism": "delete only an unmerged branch/worktree, or use one separately reviewed exact revert after merge; provider state does not exist",
+    "trigger": "any unauthorized writer, graph/schema ambiguity, line breach, test skip, current-head finding, required-check failure, main regression, or CD-containment failure"
+  },
+  "firstImplementationAction": "add the directly collected RED archive-codec and runtime-input contract fixtures before any production helper or immutable JSON is written"
+}
