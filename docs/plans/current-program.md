@@ -48,16 +48,18 @@ Integration at 11,324 bytes / SHA-256
 `4eba84f1680f2992076a7f62bd0e639ded88bb796c576eac0aad9967c6e4ab96`, all bound to
 `main@d384f8182b1441315d724a58b788a5383e3b53db`.
 
-A2 keeps only `IDA-OD17-ATTESTED-PREBUILT-PREVIEW-ARTIFACT-FOUNDATION` (Tier 3) at
-`awaiting_runtime_authority`. `runtime_authorized:false`; this repair convergence is inert.
-Fresh exact R1-A on healthy A2 main is required before any semantic writer. Deployment
-Confinement and Measurement Integration remain blocked behind their predecessor closeouts;
-no GitHub-environment/provider mutation, OIDC, dispatch, deployment or measurement is
-authorized.
+[PR #1604](https://github.com/interdomestik/interdomestik/pull/1604) merged A2 as
+`755c02d052999c76ccf184dfa3f6746e5b61ad52`. The Child-A checkpoint is now fixed by its
+[failure closeout](./2026-08-20-ida-od17-attested-prebuilt-preview-artifact-foundation-failure-closeout.md)
+as `NOT_RUN — strategic_stop_before_R1_A`. No R1-A was approved or materialized, no
+semantic or provider operation occurred, and the A1/A2 Child-A execution path is terminated
+without retry. `runtime_authorized:false`, `activeSlice:null`, and the resolver target is
+`blocked_requires_current_authority`.
 
-DG52 is a new successor, not a T-115 retry. Only a merged successor `PASS` can witness
-`OD17_READY`; `T-118`, `T-117`, and `T-116` remain blocked under their existing
-dependencies and none is promoted automatically.
+Historical T-115 remains terminal INCONCLUSIVE and is not relabeled. No successor `PASS`
+witnesses `OD17_READY`; Deployment Confinement, Measurement Integration, R2, `T-118`,
+`T-117`, and `T-116` remain blocked. A future OD17 approach requires a fresh strategic
+decision and none is promoted automatically.
 
 The compact roadmap below preserves the live M0-M5 implementation blueprint. Full task
 contracts, acceptance criteria and milestone detail remain canonical in the
@@ -66,27 +68,27 @@ its [tracker](./architecture-finalization-tracker-2026-05-29.md).
 
 ## M0-M5 Implementation Blueprint
 
-| Phase | Purpose                                                                                                  | Current implementation frontier                                                                                            |
-| ----- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| M0    | Fail-closed transition, tenant-leak, role, brand and host-lane guardrails without schema change.         | Core T-* rows are complete; no remaining M0 T-* candidate.                                                                 |
-| M1    | Neutral `ida.*` foundation, additive lifecycle/event/legal-entity data and unified UI shell foundations. | T-115 P0A/P0B are complete; A2/V2 Child A awaits R1-A, B/C remain sequentially blocked, and dependents await `OD17_READY`. |
-| M2    | Authoritative case/recovery lifecycle, jurisdiction handoff and event-backed projections.                | Core rows are complete; `T-210` remains after its M1 UI projection dependencies.                                           |
-| M3    | One session-owned tenant context, `access_tenant_id` isolation and read-only attribution.                | Core rows are complete; `T-310` remains as the session-context theme boundary.                                             |
-| M4    | Structural membership/product/AI/entity rules and safe member interaction surfaces.                      | Core rows are complete; `T-410` and `T-411` remain conditional UI candidates.                                              |
-| M5    | Neutral-host live cutover, legacy retirement and legal-entity migration.                                 | All canonical M5 T-* rows are complete; no remaining M5 T-* candidate.                                                     |
+| Phase | Purpose                                                                                                  | Current implementation frontier                                                                                               |
+| ----- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| M0    | Fail-closed transition, tenant-leak, role, brand and host-lane guardrails without schema change.         | Core T-* rows are complete; no remaining M0 T-* candidate.                                                                    |
+| M1    | Neutral `ida.*` foundation, additive lifecycle/event/legal-entity data and unified UI shell foundations. | T-115 P0A/P0B are complete; OD17 successors are blocked after Child A stopped before R1-A, and dependents await `OD17_READY`. |
+| M2    | Authoritative case/recovery lifecycle, jurisdiction handoff and event-backed projections.                | Core rows are complete; `T-210` remains after its M1 UI projection dependencies.                                              |
+| M3    | One session-owned tenant context, `access_tenant_id` isolation and read-only attribution.                | Core rows are complete; `T-310` remains as the session-context theme boundary.                                                |
+| M4    | Structural membership/product/AI/entity rules and safe member interaction surfaces.                      | Core rows are complete; `T-410` and `T-411` remain conditional UI candidates.                                                 |
+| M5    | Neutral-host live cutover, legacy retirement and legal-entity migration.                                 | All canonical M5 T-* rows are complete; no remaining M5 T-* candidate.                                                        |
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate                                                         | Dependencies                                                | Promotion constraint                                                                                                              |
-| -------: | ----------------------------------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-|        1 | `T-115` OD#17 public-shell performance proof                      | T-115 P0A/P0B complete                                      | Historical terminal INCONCLUSIVE; no retry. A2/V2 Child A awaits R1-A, and only a merged successor PASS can witness `OD17_READY`. |
-|        2 | `T-118` `ui/crystal` presentational primitives                    | T-115 including OD#17 complete                              | Requires its own fresh design gate; keep domain imports at zero and preserve accessibility/performance budgets.                   |
-|        3 | `T-117` unified member dashboard shell                            | T-115 including OD#17, T-114 complete                       | May run beside T-118 only under its own gate; preserve RSC, query and neutral-host constraints.                                   |
-|        4 | `T-116` exhaustive `CaseSummary` projection and renderer registry | `T-103` complete, T-115 including OD#17, T-118              | Promote only after both UI foundations are complete.                                                                              |
-|        5 | `T-210` event timeline renderer registry                          | `T-206` complete, `T-116`                                   | Promote only after the shared case projection exists; preserve unknown-event and PII-safe fallbacks.                              |
-|        6 | `T-310` session-context theme tokens                              | `T-302`, `T-302b` complete                                  | Independent conditional M3 candidate; never derive tenant branding from host.                                                     |
-|        7 | `T-410` reversible optimistic-action boundary                     | `T-401`, `T-002` complete                                   | Independent conditional M4 candidate; status, money and legal mutations remain pessimistic.                                       |
-|        8 | `T-411` shared Smart Next Step library                            | `T-401` complete; `SVC-CORE` and `FLIGHT-03` still required | Blocked until both non-T prerequisites have their own completed authority and evidence.                                           |
+| Priority | Candidate                                                         | Dependencies                                                | Promotion constraint                                                                                                                                             |
+| -------: | ----------------------------------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|        1 | `T-115` OD#17 public-shell performance proof                      | T-115 P0A/P0B complete                                      | Historical terminal INCONCLUSIVE; A2/V2 Child A is NOT_RUN with no retry. Any successor needs fresh authority and only its merged PASS can witness `OD17_READY`. |
+|        2 | `T-118` `ui/crystal` presentational primitives                    | T-115 including OD#17 complete                              | Requires its own fresh design gate; keep domain imports at zero and preserve accessibility/performance budgets.                                                  |
+|        3 | `T-117` unified member dashboard shell                            | T-115 including OD#17, T-114 complete                       | May run beside T-118 only under its own gate; preserve RSC, query and neutral-host constraints.                                                                  |
+|        4 | `T-116` exhaustive `CaseSummary` projection and renderer registry | `T-103` complete, T-115 including OD#17, T-118              | Promote only after both UI foundations are complete.                                                                                                             |
+|        5 | `T-210` event timeline renderer registry                          | `T-206` complete, `T-116`                                   | Promote only after the shared case projection exists; preserve unknown-event and PII-safe fallbacks.                                                             |
+|        6 | `T-310` session-context theme tokens                              | `T-302`, `T-302b` complete                                  | Independent conditional M3 candidate; never derive tenant branding from host.                                                                                    |
+|        7 | `T-410` reversible optimistic-action boundary                     | `T-401`, `T-002` complete                                   | Independent conditional M4 candidate; status, money and legal mutations remain pessimistic.                                                                      |
+|        8 | `T-411` shared Smart Next Step library                            | `T-401` complete; `SVC-CORE` and `FLIGHT-03` still required | Blocked until both non-T prerequisites have their own completed authority and evidence.                                                                          |
 
 These are the remaining unimplemented T-* nodes, not active authorization. The order is a
 dependency-aware selection guide: parallel-capable rows still require separate slices. Each
@@ -119,4 +121,4 @@ All authority history through Rev 243 is recoverable byte-for-byte from Git thro
 Manifest SHA-256: `355229c5d24a6fa5f0986b6ce41423cbdc5caea16b291f1335a7264b2be5fc78`.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is exactly one canonical tracker slice: `IDA-OD17-ATTESTED-PREBUILT-PREVIEW-ARTIFACT-FOUNDATION` (Tier 3; `runtime_authorized:false`).
+The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
