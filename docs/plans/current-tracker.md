@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-08-19
+last_reviewed: 2026-08-20
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -15,23 +15,25 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                                              | Status    | Owner                         | Work                                                                  | Exit Criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| ----------------------------------------------- | --------- | ----------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `IDA-OD17-ATTESTED-PREBUILT-PREVIEW-CAPABILITY` | `pending` | `platform + performance + qa` | Install one inert protected-main attested-prebuilt Preview capability | DG52 (34,724 bytes; SHA-256 `a1170987331531853e168077263093a2d9a5dec197c1cc57ab30c43f54449ab9`) and admission v1 (7,461 bytes; SHA-256 `d71e241293e37d0d49c8f9fbb05db62f9a7a444c08b936c2bae5301109a132fc`) are exact-approved on `main@cb33cd616abcb79c4298c1024d592d8ae998c1cc`. Runtime is unauthorized; healthy exact Phase-A main and one separately approved content-addressed R1 are required before any implementation writer. No GitHub-environment or provider operation is authorized. |
+| ID                                                       | Status    | Owner                         | Work                                                                    | Exit Criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| -------------------------------------------------------- | --------- | ----------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `IDA-OD17-ATTESTED-PREBUILT-PREVIEW-ARTIFACT-FOUNDATION` | `pending` | `platform + performance + qa` | Install the inert canonical archive and pinned runtime-input foundation | A1 (24,802 bytes; SHA-256 `4fa5b4f67eb2207c81c1c0ef03333d5fee50f9090c2c056f2019b3b63653617b`) and Child-A admission (7,008 bytes; SHA-256 `b1fbae042c1e540fa965d899d6c0094013f0e7ed945a6f7628f1f398baeed36b`) are exact-approved on `main@182fe71b3a50ad076f2a8746bf1b6401a724d2d0`. Runtime is unauthorized; healthy exact A1 main and separately approved R1-A are required before any semantic writer. No GitHub-environment, provider, OIDC, dispatch, deployment or measurement operation is authorized. |
 
 ## Proof Ledger
 
-| ID                                              | Source Refs                                                 | Execution | Run ID    | Run Root                                        | Sonar            | Docker           | Sentry           | Learning  | Evidence Refs                                                                                                                                                                                                                                                                                                                                                                         |
-| ----------------------------------------------- | ----------------------------------------------------------- | --------- | --------- | ----------------------------------------------- | ---------------- | ---------------- | ---------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `IDA-OD17-ATTESTED-PREBUILT-PREVIEW-CAPABILITY` | `dg52:a1170987`; `admission:d71e2412`; `base/main:cb33cd61` | `pending` | `pending` | `main@cb33cd616abcb79c4298c1024d592d8ae998c1cc` | `not_applicable` | `not_applicable` | `not_applicable` | `pending` | `docs/plans/2026-08-19-ida-dg52-od17-attested-prebuilt-preview.md`; `docs/plans/2026-08-19-ida-od17-attested-prebuilt-preview-capability-admission-v1.json`; admission checker `ready` with one outcome, eleven semantic writers, three proof surfaces, one shared runtime consumer, and zero pre-implementation special environments. No implementation or runtime proof is claimed. |
+| ID                                                       | Source Refs                                                      | Execution | Run ID    | Run Root                                        | Sonar            | Docker           | Sentry           | Learning  | Evidence Refs                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| -------------------------------------------------------- | ---------------------------------------------------------------- | --------- | --------- | ----------------------------------------------- | ---------------- | ---------------- | ---------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `IDA-OD17-ATTESTED-PREBUILT-PREVIEW-ARTIFACT-FOUNDATION` | `dg52-a1:4fa5b4f6`; `admission-a:b1fbae04`; `base/main:182fe71b` | `pending` | `pending` | `main@182fe71b3a50ad076f2a8746bf1b6401a724d2d0` | `not_applicable` | `not_applicable` | `not_applicable` | `pending` | `docs/plans/2026-08-20-ida-dg52-a1-od17-attested-prebuilt-preview-split.md`; `docs/plans/2026-08-20-ida-od17-attested-prebuilt-preview-artifact-foundation-admission-v1.json`; all three child admissions independently return `ready` with writer counts 8/5/10, three proof surfaces each, one shared future consumer each, zero active special environments, and 21 unique semantic paths. No implementation or runtime proof is claimed. |
 
 ## Next Selection
 
-Only `IDA-OD17-ATTESTED-PREBUILT-PREVIEW-CAPABILITY` is promoted to
-`awaiting_runtime_authority` under exact-approved DG52 and admission v1.
-`runtime_authorized:false`; Phase A authorizes only inert authority convergence.
-Implementation and provider runtime remain forbidden pending healthy exact Phase-A main
-and one separately approved exact R1. Historical T-115 OD#17 remains terminal
+Only `IDA-OD17-ATTESTED-PREBUILT-PREVIEW-ARTIFACT-FOUNDATION` is promoted to
+`awaiting_runtime_authority` under exact-approved A1 and Child-A admission.
+`runtime_authorized:false`; this A1 PR authorizes only inert authority convergence.
+Implementation remains forbidden pending healthy exact A1 main and one separately approved
+R1-A. Deployment Confinement and Measurement Integration are admitted but remain blocked
+behind their predecessor closeouts. Provider runtime remains forbidden until the later exact
+R2. Historical T-115 OD#17 remains terminal
 `INCONCLUSIVE — measurement_capability_missing/provider_failure` with no retry or relabel.
 `T-118`, `T-117`, and `T-116` remain blocked until a merged successor PASS satisfies
 `OD17_READY`; none is automatically promoted.
@@ -48,4 +50,4 @@ remains the stable deep-detail source for M0-M5 task contracts. Current rows are
 selection, implementation and closeout; detailed proof is linked, never copied here.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is exactly one canonical tracker slice: `IDA-OD17-ATTESTED-PREBUILT-PREVIEW-CAPABILITY` (Tier 3; `runtime_authorized:false`).
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-OD17-ATTESTED-PREBUILT-PREVIEW-ARTIFACT-FOUNDATION` (Tier 3; `runtime_authorized:false`).
