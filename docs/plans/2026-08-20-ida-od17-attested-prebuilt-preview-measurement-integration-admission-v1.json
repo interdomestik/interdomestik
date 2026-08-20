@@ -3,7 +3,7 @@
   "receiptId": "IDA-OD17-ATTESTED-PREBUILT-PREVIEW-MEASUREMENT-INTEGRATION-ADMISSION-V1",
   "sliceId": "IDA-OD17-ATTESTED-PREBUILT-PREVIEW-MEASUREMENT-INTEGRATION",
   "baseSha": "182fe71b3a50ad076f2a8746bf1b6401a724d2d0",
-  "authorityArtifactSha256": "5395feafd870a39ec521543e996578a01a0ca50867e023f4cd7e5e0700b50019",
+  "authorityArtifactSha256": "4fa5b4f67eb2207c81c1c0ef03333d5fee50f9090c2c056f2019b3b63653617b",
   "governanceWriterPaths": [
     "docs/plans/2026-08-20-ida-od17-attested-prebuilt-preview-measurement-integration-runtime-r1.md",
     "docs/plans/current-program.md",

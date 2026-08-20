@@ -326,11 +326,12 @@ preauthorized and introduce no new strategy hold. Repository PRs before provider
 are exactly seven: one A1 authority PR, three implementation PRs, and three transition PRs.
 The terminal R2 closeout is the eighth PR.
 
-Every implementation and transition merge pre-arms exact-SHA CD containment. Merge is
-forbidden unless read-only preflight proves no online/busy runner capable of immediately
-executing the matching self-hosted CD job and no conflicting active concurrency run. Cancel
-only the exact merge-SHA CD run and require no runner assignment and zero executed steps;
-any assignment/step is containment failure, not clean evidence.
+Every PR in this eight-PR sequence that merges to `main`—authority, implementation,
+transition, or terminal closeout—pre-arms exact-SHA CD containment. Merge is forbidden
+unless read-only preflight proves no online/busy runner capable of immediately executing the
+matching self-hosted CD job and no conflicting active concurrency run. Cancel only the exact
+merge-SHA CD run and require no runner assignment and zero executed steps; any assignment or
+step is containment failure, not clean evidence.
 
 ## Runtime and terminal invariants
 
