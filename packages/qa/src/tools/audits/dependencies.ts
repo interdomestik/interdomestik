@@ -1,23 +1,22 @@
 import fs from 'node:fs';
-import path from 'node:path';
 import { execAsync } from '../../utils/exec.js';
-import { REPO_ROOT } from '../../utils/paths.js';
+import { resolveToolRepoPath } from '../../utils/tool-repo-root.js';
 
-export async function auditDependencies() {
-  const packageJsonPath = path.join(REPO_ROOT, 'package.json');
+export async function auditDependencies(repoRoot: string) {
+  const packageJsonPath = resolveToolRepoPath(repoRoot, 'package.json').resolvedPath;
 
   if (!fs.existsSync(packageJsonPath)) {
     return {
       content: [
         {
           type: 'text',
-          text: `❌ Critical: Root package.json missing at ${packageJsonPath}\nResolved repo root: ${REPO_ROOT}`,
+          text: `❌ Critical: Root package.json missing at ${packageJsonPath}\nResolved repo root: ${repoRoot}`,
         },
       ],
     };
   }
 
-  await execAsync({ args: ['branch', '--show-current'], file: 'git' }, { cwd: REPO_ROOT }).catch(
+  await execAsync({ args: ['branch', '--show-current'], file: 'git' }, { cwd: repoRoot }).catch(
     () => ({
       stdout: 'unknown',
     })
@@ -33,7 +32,7 @@ export async function auditDependencies() {
     content: [
       {
         type: 'text',
-        text: `DEPENDENCY AUDIT: SUCCESS\n\nTARGET: ${REPO_ROOT}\nPACKAGE: ${
+        text: `DEPENDENCY AUDIT: SUCCESS\n\nTARGET: ${repoRoot}\nPACKAGE: ${
           pkg.name || 'unknown'
         }\n\nCHECKS:\n${checks.join('\n')}`,
       },

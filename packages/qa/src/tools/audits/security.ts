@@ -1,10 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { REPO_ROOT, WEB_APP } from '../../utils/paths.js';
+import { resolveToolRepoPath } from '../../utils/tool-repo-root.js';
 import { checkFileContains, checkFileExists, findRootEnvFile } from './utils.js';
 
-export async function auditCsp() {
-  const proxyPath = path.join(WEB_APP, 'src/proxy.ts');
+export async function auditCsp(repoRoot: string) {
+  const webApp = resolveToolRepoPath(repoRoot, 'apps/web').resolvedPath;
+  const proxyPath = path.join(webApp, 'src/proxy.ts');
   const targetPath = proxyPath;
 
   const checks: string[] = [];
@@ -36,28 +37,28 @@ export async function auditCsp() {
   };
 }
 
-function checkAuthFiles(checks: string[], issues: string[]) {
-  const authFile = checkFileExists(path.join(WEB_APP, 'src/lib/auth.ts'), 'Server Auth Config');
+function checkAuthFiles(webApp: string, checks: string[], issues: string[]) {
+  const authFile = checkFileExists(path.join(webApp, 'src/lib/auth.ts'), 'Server Auth Config');
   if (authFile.check) checks.push(authFile.check);
   if (authFile.issue) issues.push(authFile.issue);
 
   const clientFile = checkFileExists(
-    path.join(WEB_APP, 'src/lib/auth-client.ts'),
+    path.join(webApp, 'src/lib/auth-client.ts'),
     'Client Auth Config'
   );
   if (clientFile.check) checks.push(clientFile.check);
   if (clientFile.issue) issues.push(clientFile.issue);
 }
 
-function checkProxy(checks: string[], issues: string[]) {
-  const proxyPath = path.join(WEB_APP, 'src/proxy.ts');
+function checkProxy(webApp: string, checks: string[], issues: string[]) {
+  const proxyPath = path.join(webApp, 'src/proxy.ts');
   const proxyCheck = checkFileExists(proxyPath, 'Proxy');
   if (proxyCheck.check) checks.push(proxyCheck.check);
   if (proxyCheck.issue) issues.push(proxyCheck.issue);
 }
 
-function checkEnvVars(checks: string[], issues: string[]) {
-  const envPath = findRootEnvFile(REPO_ROOT);
+function checkEnvVars(repoRoot: string, checks: string[], issues: string[]) {
+  const envPath = findRootEnvFile(repoRoot);
   if (!envPath || !fs.existsSync(envPath)) {
     issues.push(
       '❌ No supported env file found in root (.env.local, .env.development.local, .env)'
@@ -70,13 +71,14 @@ function checkEnvVars(checks: string[], issues: string[]) {
   if (secretCheck.issue) issues.push(secretCheck.issue);
 }
 
-export async function auditAuth() {
+export async function auditAuth(repoRoot: string) {
   const checks: string[] = [];
   const issues: string[] = [];
+  const webApp = resolveToolRepoPath(repoRoot, 'apps/web').resolvedPath;
 
-  checkAuthFiles(checks, issues);
-  checkProxy(checks, issues);
-  checkEnvVars(checks, issues);
+  checkAuthFiles(webApp, checks, issues);
+  checkProxy(webApp, checks, issues);
+  checkEnvVars(repoRoot, checks, issues);
 
   const status = issues.length === 0 ? 'SUCCESS' : 'WARNING';
   return {

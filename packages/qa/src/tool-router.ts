@@ -40,6 +40,16 @@ import { getPaddleResource } from './tools/paddle.js';
 import { resolveToolRepoRoot } from './utils/tool-repo-root.js';
 
 type Handler = (args: any) => Promise<any>;
+type RepoAudit = (repoRoot: string) => Promise<any>;
+
+async function runRepoAudit(args: any, audit: RepoAudit) {
+  const context = resolveToolRepoRoot(args);
+  const result = await audit(context.repoRoot);
+  return {
+    ...result,
+    structuredContent: { ...result.structuredContent, ...context },
+  };
+}
 
 const handlers: Record<string, Handler> = {
   project_map: args => projectMap(args),
@@ -52,15 +62,15 @@ const handlers: Record<string, Handler> = {
   changed_files: args => changedFiles(args),
   scope_audit: args => scopeAudit(args),
   code_search: args => codeSearch(args),
-  audit_dependencies: () => auditDependencies(),
-  dependency_audit: () => auditDependencies(),
-  audit_supabase: () => auditSupabase(),
-  audit_accessibility: () => auditAccessibility(),
-  audit_csp: () => auditCsp(),
-  audit_performance: () => auditPerformance(),
-  audit_navigation: () => auditNavigation(),
-  audit_auth: () => auditAuth(),
-  audit_env: () => auditEnv(),
+  audit_dependencies: args => runRepoAudit(args, auditDependencies),
+  dependency_audit: args => runRepoAudit(args, auditDependencies),
+  audit_supabase: args => runRepoAudit(args, auditSupabase),
+  audit_accessibility: args => runRepoAudit(args, auditAccessibility),
+  audit_csp: args => runRepoAudit(args, auditCsp),
+  audit_performance: args => runRepoAudit(args, auditPerformance),
+  audit_navigation: args => runRepoAudit(args, auditNavigation),
+  audit_auth: args => runRepoAudit(args, auditAuth),
+  audit_env: args => runRepoAudit(args, auditEnv),
   check_health: args => checkHealth(args),
   pr_verify: args => runPrVerify(args),
   security_guard: args => runSecurityGuard(args),

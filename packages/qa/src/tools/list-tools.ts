@@ -1,6 +1,5 @@
 import { withRepoRoot } from './repo-root-schema.js';
 
-const EMPTY_INPUT_SCHEMA = { type: 'object', properties: {} };
 const REPO_INPUT_SCHEMA = withRepoRoot();
 
 const TEST_SUITE_DESCRIPTION =
@@ -55,14 +54,6 @@ const SCOPE_AUDIT_INPUT_SCHEMA = withRepoRoot({
   },
 });
 
-function createNoArgTool(name: string, description: string) {
-  return {
-    name,
-    description,
-    inputSchema: EMPTY_INPUT_SCHEMA,
-  };
-}
-
 function createRepoNoArgTool(name: string, description: string) {
   return { name, description, inputSchema: REPO_INPUT_SCHEMA };
 }
@@ -95,12 +86,15 @@ const phaseCVerificationTools = [
 ];
 
 export const tools = [
-  createNoArgTool('audit_auth', 'Verify Better Auth configuration (files, env, proxy)'),
-  createNoArgTool('audit_env', 'Verify Environment Variables for Interdomestik'),
-  createNoArgTool('audit_navigation', 'Verify Navigation & Layout Structure (i18n, layouts)'),
-  createNoArgTool('audit_dependencies', 'Verify Critical Dependencies & Package Configuration'),
-  createNoArgTool('dependency_audit', 'Alias for audit_dependencies'),
-  createNoArgTool('audit_supabase', 'Verify Supabase Environment & Connectivity (env vars only)'),
+  createRepoNoArgTool('audit_auth', 'Verify Better Auth configuration (files, env, proxy)'),
+  createRepoNoArgTool('audit_env', 'Verify Environment Variables for Interdomestik'),
+  createRepoNoArgTool('audit_navigation', 'Verify Navigation & Layout Structure (i18n, layouts)'),
+  createRepoNoArgTool('audit_dependencies', 'Verify Critical Dependencies & Package Configuration'),
+  createRepoNoArgTool('dependency_audit', 'Alias for audit_dependencies'),
+  createRepoNoArgTool(
+    'audit_supabase',
+    'Verify Supabase Environment & Connectivity (env vars only)'
+  ),
   createRepoNoArgTool('run_unit_tests', 'Run unit tests for the web application using Vitest'),
   createRepoNoArgTool('run_coverage', 'Run unit tests with coverage for the web application'),
   createRepoNoArgTool('run_e2e_tests', 'Run E2E tests for the web application using Playwright'),
@@ -115,9 +109,9 @@ export const tools = [
     description: 'Alias for tests_orchestrator',
     inputSchema: TEST_ORCHESTRATOR_INPUT_SCHEMA,
   },
-  createNoArgTool('audit_accessibility', 'Verify Accessibility Testing Setup'),
-  createNoArgTool('audit_csp', 'Verify Content Security Policy'),
-  createNoArgTool('audit_performance', 'Verify Performance Optimization Config'),
+  createRepoNoArgTool('audit_accessibility', 'Verify Accessibility Testing Setup'),
+  createRepoNoArgTool('audit_csp', 'Verify Content Security Policy'),
+  createRepoNoArgTool('audit_performance', 'Verify Performance Optimization Config'),
   ...phaseCVerificationTools,
   {
     name: 'project_map',

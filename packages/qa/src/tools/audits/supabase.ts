@@ -1,9 +1,8 @@
 import fs from 'node:fs';
-import path from 'node:path';
-import { REPO_ROOT } from '../../utils/paths.js';
+import { resolveToolRepoPath } from '../../utils/tool-repo-root.js';
 
-export async function auditSupabase() {
-  const configPath = path.join(REPO_ROOT, 'supabase/config.toml');
+export async function auditSupabase(repoRoot: string) {
+  const configPath = resolveToolRepoPath(repoRoot, 'supabase/config.toml').resolvedPath;
   if (fs.existsSync(configPath)) {
     return {
       content: [

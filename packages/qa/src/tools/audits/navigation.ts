@@ -1,15 +1,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { WEB_APP } from '../../utils/paths.js';
+import { resolveToolRepoPath } from '../../utils/tool-repo-root.js';
 
-export async function auditNavigation() {
+export async function auditNavigation(repoRoot: string) {
   const issues: string[] = [];
   const checks: string[] = [];
+  const webApp = resolveToolRepoPath(repoRoot, 'apps/web').resolvedPath;
 
-  const hasRootLayout = fs.existsSync(path.join(WEB_APP, 'src/app/layout.tsx'));
-  const hasLocaleLayout = fs.existsSync(path.join(WEB_APP, 'src/app/[locale]/layout.tsx'));
-  const hasRoutingConfig = fs.existsSync(path.join(WEB_APP, 'src/i18n/routing.ts'));
-  const hasNavigationHelper = fs.existsSync(path.join(WEB_APP, 'src/i18n/navigation.ts'));
+  const hasRootLayout = fs.existsSync(path.join(webApp, 'src/app/layout.tsx'));
+  const hasLocaleLayout = fs.existsSync(path.join(webApp, 'src/app/[locale]/layout.tsx'));
+  const hasRoutingConfig = fs.existsSync(path.join(webApp, 'src/i18n/routing.ts'));
+  const hasNavigationHelper = fs.existsSync(path.join(webApp, 'src/i18n/navigation.ts'));
 
   if (hasNavigationHelper) {
     checks.push('✅ Navigation Helper (src/i18n/navigation.ts) exists');

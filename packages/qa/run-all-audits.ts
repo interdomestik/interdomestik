@@ -28,14 +28,14 @@ async function runAllAudits() {
 
   const audits = [
     { name: 'Health Check', fn: () => checkHealth({ repoRoot: REPO_ROOT }) },
-    { name: 'Auth Audit', fn: auditAuth },
-    { name: 'Environment Audit', fn: auditEnv },
-    { name: 'Navigation Audit', fn: auditNavigation },
-    { name: 'Dependencies Audit', fn: auditDependencies },
-    { name: 'Supabase Audit', fn: auditSupabase },
-    { name: 'Accessibility Audit', fn: auditAccessibility },
-    { name: 'CSP Audit', fn: auditCsp },
-    { name: 'Performance Audit', fn: auditPerformance },
+    { name: 'Auth Audit', fn: () => auditAuth(REPO_ROOT) },
+    { name: 'Environment Audit', fn: () => auditEnv(REPO_ROOT) },
+    { name: 'Navigation Audit', fn: () => auditNavigation(REPO_ROOT) },
+    { name: 'Dependencies Audit', fn: () => auditDependencies(REPO_ROOT) },
+    { name: 'Supabase Audit', fn: () => auditSupabase(REPO_ROOT) },
+    { name: 'Accessibility Audit', fn: () => auditAccessibility(REPO_ROOT) },
+    { name: 'CSP Audit', fn: () => auditCsp(REPO_ROOT) },
+    { name: 'Performance Audit', fn: () => auditPerformance(REPO_ROOT) },
   ];
 
   const results: Array<{ name: string; status: 'pass' | 'fail' | 'warning'; output: string }> = [];
