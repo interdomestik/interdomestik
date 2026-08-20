@@ -12,6 +12,8 @@ import {
   auditSupabase,
 } from './src/tools/audits.js';
 import { checkHealth } from './src/tools/health.js';
+import { classifyAuditResult } from './src/utils/audit-result.js';
+import { REPO_ROOT } from './src/utils/paths.js';
 
 // Helper to extract text from MCP response format
 function extractText(result: any): string {
@@ -25,7 +27,7 @@ async function runAllAudits() {
   console.log('='.repeat(60));
 
   const audits = [
-    { name: 'Health Check', fn: checkHealth },
+    { name: 'Health Check', fn: () => checkHealth({ repoRoot: REPO_ROOT }) },
     { name: 'Auth Audit', fn: auditAuth },
     { name: 'Environment Audit', fn: auditEnv },
     { name: 'Navigation Audit', fn: auditNavigation },
@@ -47,30 +49,7 @@ async function runAllAudits() {
       const text = extractText(result);
       console.log(text);
 
-      // Determine status based on output
-      const hasSuccess = text.includes('✅') || text.toLowerCase().includes('success');
-
-      const hasError =
-        !hasSuccess &&
-        (text.includes('❌') ||
-          text.toLowerCase().includes('error') ||
-          text.toLowerCase().includes('failed'));
-
-      const hasWarning =
-        !hasSuccess && !hasError && (text.includes('⚠️') || text.toLowerCase().includes('warning'));
-
-      let status: 'pass' | 'fail' | 'warning';
-      if (hasError) {
-        status = 'fail';
-      } else if (hasWarning) {
-        status = 'warning';
-      } else if (hasSuccess) {
-        status = 'pass';
-      } else {
-        // Default to warning if unclear
-        status = 'warning';
-      }
-
+      const status = classifyAuditResult(result, text);
       results.push({ name: audit.name, status, output: text });
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);

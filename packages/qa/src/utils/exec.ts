@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { buildToolProcessEnv } from './root-env.js';
 
 export type FailureCategory =
   | 'build'
@@ -15,7 +16,7 @@ export type FailureCategory =
 
 export type ExecOptions = {
   cwd: string;
-  env?: NodeJS.ProcessEnv;
+  env?: Partial<NodeJS.ProcessEnv>;
   maxOutputBytes?: number;
   timeoutMs?: number;
 };
@@ -285,10 +286,7 @@ export async function execAsync(command: ExecCommand, options: ExecOptions): Pro
   return new Promise((resolve, reject) => {
     const child = spawn(command.file, command.args ?? [], {
       cwd,
-      env: {
-        ...process.env,
-        ...env,
-      },
+      env: buildToolProcessEnv(env),
       stdio: ['ignore', 'pipe', 'pipe'],
     });
 

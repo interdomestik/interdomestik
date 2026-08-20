@@ -1,0 +1,94 @@
+import assert from 'node:assert/strict';
+import { execFileSync, spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import test from 'node:test';
+import { fileURLToPath } from 'node:url';
+const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+
+function runTypeScript(source) {
+  return execFileSync(
+    process.execPath,
+    ['--import', 'tsx', '--input-type=module', '--eval', source],
+    { cwd: rootDir, encoding: 'utf8' }
+  ).trim();
+}
+
+test('filtered package execution resolves the canonical repository root', () => {
+  const output = runTypeScript(
+    "import { REPO_ROOT } from './packages/qa/src/utils/paths.ts'; console.log(REPO_ROOT)"
+  );
+  assert.equal(fs.realpathSync.native(output.trim()), fs.realpathSync.native(rootDir));
+});
+
+test('audit classification gives explicit and textual failures precedence', () => {
+  const statuses = JSON.parse(
+    runTypeScript(`
+      import { classifyAuditResult } from './packages/qa/src/utils/audit-result.ts';
+      console.log(JSON.stringify([
+        classifyAuditResult({ isError: true, structuredContent: { status: 'fail' } }, '✅ passed\\n❌ failed'),
+        classifyAuditResult({ isError: false, structuredContent: { status: 'pass' } }, '✅ passed\\nFailed checks: 0'),
+        classifyAuditResult({}, '✅ partial\\n❌ failed')
+      ]));
+    `)
+  );
+  assert.deepEqual(statuses, ['fail', 'pass', 'fail']);
+});
+
+test('unknown suites retain validated worktree provenance', () => {
+  const result = JSON.parse(
+    runTypeScript(`
+      import { runTestsOrchestrator } from './packages/qa/src/tools/tests.ts';
+      console.log(JSON.stringify(await runTestsOrchestrator({
+        repoRoot: ${JSON.stringify(rootDir)}, suite: 'unknown-suite'
+      })));
+    `)
+  );
+  assert.equal(result.isError, true);
+  assert.equal(result.structuredContent.repoRoot, fs.realpathSync.native(rootDir));
+  assert.equal(result.structuredContent.repoRootSource, 'tool-argument');
+  assert.equal(result.structuredContent.status, 'fail');
+});
+
+test('QA CLI injects repoRoot and fails on JSON-RPC or tool errors', () => {
+  const source = fs.readFileSync(path.join(rootDir, 'packages/qa/test-tools.ts'), 'utf8');
+  assert.match(source, /arguments: \{ \.\.\.args, repoRoot: REPO_ROOT \}/);
+  assert.match(
+    source,
+    /response\.error \|\| !response\.result \|\| response\.result\.isError === true/
+  );
+  assert.match(source, /process\.exitCode = 1/);
+  assert.doesNotMatch(source, /process\.exit\(0\)/);
+});
+
+test('canonical MCP CLI injects its worktree root and rejects hidden tools', () => {
+  const success = spawnSync(
+    process.execPath,
+    ['scripts/mcp-tool.mjs', 'call', 'git_status_compact', '{}', '--text'],
+    { cwd: rootDir, encoding: 'utf8', timeout: 30000 }
+  );
+  assert.equal(success.status, 0, success.stderr);
+  assert.doesNotMatch(success.stdout, /repoRoot is required/);
+
+  const hidden = spawnSync(
+    process.execPath,
+    ['scripts/mcp-tool.mjs', 'call', 'audit_supabase', '{}', '--text'],
+    { cwd: rootDir, encoding: 'utf8', timeout: 30000 }
+  );
+  assert.notEqual(hidden.status, 0);
+  assert.match(hidden.stderr, /not enabled on this MCP surface/);
+});
+
+test('read_files reports nonexistent targets as failures', () => {
+  const result = JSON.parse(
+    runTypeScript(`
+      import { handleToolCall } from './packages/qa/src/tool-router.ts';
+      console.log(JSON.stringify(await handleToolCall('read_files', {
+        files: ['__qa_missing_file__'], repoRoot: ${JSON.stringify(rootDir)}
+      })));
+    `)
+  );
+  assert.equal(result.isError, true);
+  assert.equal(result.structuredContent.failures, 1);
+  assert.equal(result.structuredContent.status, 'error');
+});

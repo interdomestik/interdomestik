@@ -1,7 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execAsync } from '../utils/exec.js';
-import { REPO_ROOT, REPO_ROOT_SOURCE } from '../utils/paths.js';
+import {
+  resolveToolRepoPath,
+  resolveToolRepoRoot,
+  type ToolRepoArgs,
+  type ToolRepoContext,
+} from '../utils/tool-repo-root.js';
 
 type TextToolResult = {
   content: Array<{ type: 'text'; text: string }>;
@@ -21,18 +26,6 @@ const DEFAULT_SCOPE_FORBIDDEN_PATHS = [
   'docs/architecture',
   'docs/architecture.md',
 ];
-const MAX_CODE_SEARCH_OUTPUT_CHARS = 10_000;
-
-function resolveRepoPath(file: string) {
-  const resolvedPath = path.resolve(REPO_ROOT, file);
-  const relativePath = path.relative(REPO_ROOT, resolvedPath);
-
-  if (relativePath === '' || relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
-    throw new Error(`Path escapes repository root: ${file}`);
-  }
-
-  return { relativePath, resolvedPath };
-}
 
 function normalizePositiveInteger(value: unknown, fallback: number) {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
@@ -48,10 +41,6 @@ function normalizeNonNegativeInteger(value: unknown, fallback: number) {
   }
 
   return Math.max(0, Math.floor(value));
-}
-
-function isExpectedNoMatches(error: unknown) {
-  return Boolean(error && typeof error === 'object' && 'exitCode' in error && error.exitCode === 1);
 }
 
 function formatReadRange(file: string, lines: string[], startLine: number, endLine: number) {
@@ -116,41 +105,23 @@ function pathMatchesPrefix(filePath: string, prefix: string) {
   return normalizedPath === normalizedPrefix || normalizedPath.startsWith(`${normalizedPrefix}/`);
 }
 
-function repoIdentityFields() {
-  return {
-    repoRoot: REPO_ROOT,
-    repoRootSource: REPO_ROOT_SOURCE,
-  };
+function repoIdentityFields(context: ToolRepoContext) {
+  return context;
 }
 
-function formatCodeSearchOutput(stdout: string) {
-  if (stdout.length <= MAX_CODE_SEARCH_OUTPUT_CHARS) {
-    return stdout;
-  }
+export { codeSearch } from './repo-search.js';
 
-  const cappedOutput = stdout.slice(0, MAX_CODE_SEARCH_OUTPUT_CHARS);
-  const lastLineBreak = cappedOutput.lastIndexOf('\n');
-
-  return lastLineBreak > 0 ? cappedOutput.slice(0, lastLineBreak) : cappedOutput;
-}
-
-function codeSearchOutputLines(stdout: string) {
-  return formatCodeSearchOutput(stdout).split('\n');
-}
-
-function codeSearchMatches(stdout: string) {
-  return codeSearchOutputLines(stdout).filter(Boolean);
-}
-
-export async function projectMap(args?: { maxDepth?: number }) {
+export async function projectMap(args: ToolRepoArgs & { maxDepth?: number }) {
+  const context = resolveToolRepoRoot(args);
+  const { repoRoot } = context;
   const maxDepth = args?.maxDepth || 3;
   let stdout = '';
 
   try {
-    const result = await execAsync({ args: ['--files'], file: 'rg' }, { cwd: REPO_ROOT });
+    const result = await execAsync({ args: ['--files'], file: 'rg' }, { cwd: repoRoot });
     stdout = result.stdout;
   } catch {
-    const result = await execAsync({ args: ['ls-files'], file: 'git' }, { cwd: REPO_ROOT });
+    const result = await execAsync({ args: ['ls-files'], file: 'git' }, { cwd: repoRoot });
     stdout = result.stdout;
   }
 
@@ -166,48 +137,79 @@ export async function projectMap(args?: { maxDepth?: number }) {
     structuredContent: {
       depth: maxDepth,
       entries: sortedOutput ? sortedOutput.split('\n').length : 0,
-      ...repoIdentityFields(),
+      ...repoIdentityFields(context),
       tool: 'project_map',
     },
   };
 }
 
-export async function readFiles(args: { files: string[] }) {
+export async function readFiles(args: ToolRepoArgs & { files: string[] }) {
+  const context = resolveToolRepoRoot(args);
+  if (!Array.isArray(args.files)) {
+    return {
+      content: [{ type: 'text', text: 'files must be an array of repository-relative paths' }],
+      isError: true,
+      structuredContent: { ...repoIdentityFields(context), status: 'error', tool: 'read_files' },
+    };
+  }
   const results = [];
+  let failures = 0;
   for (const file of args.files) {
     try {
-      const { resolvedPath } = resolveRepoPath(file);
+      const { resolvedPath } = resolveToolRepoPath(context.repoRoot, file);
       if (fs.existsSync(resolvedPath)) {
         const content = fs.readFileSync(resolvedPath, 'utf-8');
         results.push(`--- ${file} ---\n${content}\n`);
       } else {
+        failures += 1;
         results.push(`--- ${file} ---\n(File not found)\n`);
       }
     } catch (e: any) {
+      failures += 1;
       results.push(`--- ${file} ---\n(Error reading file: ${e.message})\n`);
     }
   }
-  return { content: [{ type: 'text', text: results.join('\n') }] };
+  const status = failures === 0 ? 'ok' : failures === args.files.length ? 'error' : 'partial_error';
+  return {
+    content: [{ type: 'text', text: results.join('\n') }],
+    isError: failures > 0,
+    structuredContent: {
+      failures,
+      ...repoIdentityFields(context),
+      status,
+      tool: 'read_files',
+    },
+  };
 }
 
-export async function readFileRange(args: {
-  context?: number;
-  endLine?: number;
-  file: string;
-  startLine?: number;
-}): Promise<TextToolResult> {
+export async function readFileRange(
+  args: ToolRepoArgs & {
+    context?: number;
+    endLine?: number;
+    file: string;
+    startLine?: number;
+  }
+): Promise<TextToolResult> {
+  let toolContext: ToolRepoContext | undefined;
   try {
-    const { relativePath, resolvedPath } = resolveRepoPath(args.file);
+    const context = resolveToolRepoRoot(args);
+    toolContext = context;
+    const { relativePath, resolvedPath } = resolveToolRepoPath(context.repoRoot, args.file);
 
     if (!fs.existsSync(resolvedPath) || !fs.statSync(resolvedPath).isFile()) {
       return {
         content: [{ type: 'text', text: `File not found: ${relativePath}` }],
         isError: true,
-        structuredContent: { file: relativePath, status: 'not_found', tool: 'read_file_range' },
+        structuredContent: {
+          file: relativePath,
+          ...repoIdentityFields(context),
+          status: 'not_found',
+          tool: 'read_file_range',
+        },
       };
     }
 
-    const context = normalizeNonNegativeInteger(args.context, 0);
+    const surroundingContext = normalizeNonNegativeInteger(args.context, 0);
     const lines = fs.readFileSync(resolvedPath, 'utf-8').split('\n');
     const requestedStart = normalizePositiveInteger(args.startLine, 1);
 
@@ -224,6 +226,7 @@ export async function readFileRange(args: {
           endLine: lines.length,
           file: relativePath,
           linesRead: 0,
+          ...repoIdentityFields(context),
           startLine: lines.length,
           status: 'out_of_bounds',
           tool: 'read_file_range',
@@ -236,8 +239,11 @@ export async function readFileRange(args: {
       args.endLine,
       Math.min(lines.length, requestedStart + 199)
     );
-    const startLine = Math.max(1, requestedStart - context);
-    const endLine = Math.min(lines.length, Math.max(requestedStart, requestedEnd) + context);
+    const startLine = Math.max(1, requestedStart - surroundingContext);
+    const endLine = Math.min(
+      lines.length,
+      Math.max(requestedStart, requestedEnd) + surroundingContext
+    );
 
     return {
       content: [{ type: 'text', text: formatReadRange(relativePath, lines, startLine, endLine) }],
@@ -245,6 +251,7 @@ export async function readFileRange(args: {
         endLine,
         file: relativePath,
         linesRead: endLine - startLine + 1,
+        ...repoIdentityFields(context),
         startLine,
         status: 'ok',
         tool: 'read_file_range',
@@ -255,32 +262,42 @@ export async function readFileRange(args: {
     return {
       content: [{ type: 'text', text: `Error reading file range: ${error.message}` }],
       isError: true,
-      structuredContent: { status: 'error', tool: 'read_file_range' },
+      structuredContent: {
+        ...(toolContext ? repoIdentityFields(toolContext) : {}),
+        status: 'error',
+        tool: 'read_file_range',
+      },
     };
   }
 }
 
-export async function gitStatus() {
-  const { stdout } = await execAsync({ args: ['status'], file: 'git' }, { cwd: REPO_ROOT });
+export async function gitStatus(args: ToolRepoArgs) {
+  const context = resolveToolRepoRoot(args);
+  const { stdout } = await execAsync({ args: ['status'], file: 'git' }, { cwd: context.repoRoot });
   return {
     content: [
       {
         type: 'text',
-        text: [`repoRoot: ${REPO_ROOT}`, `repoRootSource: ${REPO_ROOT_SOURCE}`, stdout].join('\n'),
+        text: [
+          `repoRoot: ${context.repoRoot}`,
+          `repoRootSource: ${context.repoRootSource}`,
+          stdout,
+        ].join('\n'),
       },
     ],
     structuredContent: {
       status: 'ok',
-      ...repoIdentityFields(),
+      ...repoIdentityFields(context),
       tool: 'git_status',
     },
   };
 }
 
-export async function gitStatusCompact() {
+export async function gitStatusCompact(args: ToolRepoArgs) {
+  const context = resolveToolRepoRoot(args);
   const { stdout } = await execAsync(
     { args: ['status', '--short', '--branch'], file: 'git' },
-    { cwd: REPO_ROOT }
+    { cwd: context.repoRoot }
   );
   const lines = stdout.split('\n').filter(Boolean);
 
@@ -289,8 +306,8 @@ export async function gitStatusCompact() {
       {
         type: 'text',
         text: [
-          `repoRoot: ${REPO_ROOT}`,
-          `repoRootSource: ${REPO_ROOT_SOURCE}`,
+          `repoRoot: ${context.repoRoot}`,
+          `repoRootSource: ${context.repoRootSource}`,
           stdout || '## clean',
         ].join('\n'),
       },
@@ -298,27 +315,33 @@ export async function gitStatusCompact() {
     structuredContent: {
       changedCount: Math.max(0, lines.length - 1),
       isClean: lines.length <= 1,
-      ...repoIdentityFields(),
+      ...repoIdentityFields(context),
       status: 'ok',
       tool: 'git_status_compact',
     },
   };
 }
 
-export async function gitDiff(args?: { cached?: boolean }) {
+export async function gitDiff(args: ToolRepoArgs & { cached?: boolean }) {
+  const context = resolveToolRepoRoot(args);
   const command = args?.cached
     ? { args: ['diff', '--cached'], file: 'git' }
     : { args: ['diff'], file: 'git' };
-  const { stdout } = await execAsync(command, { cwd: REPO_ROOT });
-  return { content: [{ type: 'text', text: stdout || '(No changes)' }] };
+  const { stdout } = await execAsync(command, { cwd: context.repoRoot });
+  return {
+    content: [{ type: 'text', text: stdout || '(No changes)' }],
+    structuredContent: { ...repoIdentityFields(context), status: 'ok', tool: 'git_diff' },
+  };
 }
 
-export async function gitBranchInfo(): Promise<TextToolResult> {
+export async function gitBranchInfo(args: ToolRepoArgs): Promise<TextToolResult> {
+  const context = resolveToolRepoRoot(args);
+  const { repoRoot } = context;
   const current = (
-    await execAsync({ args: ['branch', '--show-current'], file: 'git' }, { cwd: REPO_ROOT })
+    await execAsync({ args: ['branch', '--show-current'], file: 'git' }, { cwd: repoRoot })
   ).stdout.trim();
   const head = (
-    await execAsync({ args: ['rev-parse', '--verify', 'HEAD'], file: 'git' }, { cwd: REPO_ROOT })
+    await execAsync({ args: ['rev-parse', '--verify', 'HEAD'], file: 'git' }, { cwd: repoRoot })
   ).stdout.trim();
   let upstream: string | null = null;
   let ahead = 0;
@@ -328,7 +351,7 @@ export async function gitBranchInfo(): Promise<TextToolResult> {
     upstream = (
       await execAsync(
         { args: ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}'], file: 'git' },
-        { cwd: REPO_ROOT }
+        { cwd: repoRoot }
       )
     ).stdout.trim();
   } catch {
@@ -339,7 +362,7 @@ export async function gitBranchInfo(): Promise<TextToolResult> {
     const counts = (
       await execAsync(
         { args: ['rev-list', '--left-right', '--count', `${upstream}...HEAD`], file: 'git' },
-        { cwd: REPO_ROOT }
+        { cwd: repoRoot }
       )
     ).stdout
       .trim()
@@ -355,8 +378,8 @@ export async function gitBranchInfo(): Promise<TextToolResult> {
       {
         type: 'text',
         text: [
-          `repoRoot: ${REPO_ROOT}`,
-          `repoRootSource: ${REPO_ROOT_SOURCE}`,
+          `repoRoot: ${context.repoRoot}`,
+          `repoRootSource: ${context.repoRootSource}`,
           `branch: ${current || '(detached)'}`,
           `head: ${head}`,
           `upstream: ${upstream || '(none)'}`,
@@ -371,7 +394,7 @@ export async function gitBranchInfo(): Promise<TextToolResult> {
       branch: current || null,
       isDetached: !current,
       head,
-      ...repoIdentityFields(),
+      ...repoIdentityFields(context),
       status: 'ok',
       tool: 'git_branch_info',
       upstream,
@@ -379,11 +402,14 @@ export async function gitBranchInfo(): Promise<TextToolResult> {
   };
 }
 
-export async function changedFiles(args?: { staged?: boolean }): Promise<TextToolResult> {
+export async function changedFiles(
+  args: ToolRepoArgs & { staged?: boolean }
+): Promise<TextToolResult> {
+  const context = resolveToolRepoRoot(args);
   const command = args?.staged
     ? { args: ['diff', '--cached', '--name-status'], file: 'git' }
     : { args: ['status', '--porcelain=v1'], file: 'git' };
-  const { stdout } = await execAsync(command, { cwd: REPO_ROOT });
+  const { stdout } = await execAsync(command, { cwd: context.repoRoot });
   const files = args?.staged ? parseNameStatus(stdout) : parsePorcelainStatus(stdout);
   const text = files.length
     ? files.map(file => `${file.status.padEnd(2)} ${file.path}`).join('\n')
@@ -394,6 +420,7 @@ export async function changedFiles(args?: { staged?: boolean }): Promise<TextToo
     structuredContent: {
       count: files.length,
       files,
+      ...repoIdentityFields(context),
       staged: Boolean(args?.staged),
       status: 'ok',
       tool: 'changed_files',
@@ -401,11 +428,14 @@ export async function changedFiles(args?: { staged?: boolean }): Promise<TextToo
   };
 }
 
-export async function scopeAudit(args?: {
-  allowedPaths?: string[];
-  forbiddenPaths?: string[];
-}): Promise<TextToolResult> {
-  const changed = await changedFiles();
+export async function scopeAudit(
+  args: ToolRepoArgs & {
+    allowedPaths?: string[];
+    forbiddenPaths?: string[];
+  }
+): Promise<TextToolResult> {
+  const context = resolveToolRepoRoot(args);
+  const changed = await changedFiles({ repoRoot: context.repoRoot });
   const files = ((changed.structuredContent?.files as ChangedFile[]) ?? []).map(file => file.path);
   const allowedPaths = args?.allowedPaths ?? [];
   const forbiddenPaths = args?.forbiddenPaths ?? DEFAULT_SCOPE_FORBIDDEN_PATHS;
@@ -442,111 +472,9 @@ export async function scopeAudit(args?: {
       forbiddenChanged,
       forbiddenPaths,
       outsideAllowed,
+      ...repoIdentityFields(context),
       status: passed ? 'pass' : 'fail',
       tool: 'scope_audit',
     },
   };
-}
-
-export async function codeSearch(args: {
-  after?: number;
-  before?: number;
-  filePattern?: string;
-  maxResults?: number;
-  query: string;
-}) {
-  const { query, filePattern } = args;
-  const before = normalizeNonNegativeInteger(args.before, 0);
-  const after = normalizeNonNegativeInteger(args.after, 0);
-  const maxResults = normalizePositiveInteger(args.maxResults, 200);
-  const rgArgs = [
-    '--line-number',
-    '--with-filename',
-    '--no-heading',
-    '--smart-case',
-    '--max-count',
-    String(maxResults),
-  ];
-
-  if (before > 0) {
-    rgArgs.push('--before-context', String(before));
-  }
-
-  if (after > 0) {
-    rgArgs.push('--after-context', String(after));
-  }
-
-  if (filePattern) {
-    rgArgs.push('--glob', filePattern);
-  }
-
-  rgArgs.push(query);
-
-  try {
-    const { stdout, stdoutTruncated } = await execAsync(
-      { args: rgArgs, file: 'rg' },
-      { cwd: REPO_ROOT }
-    );
-    if (!stdout) return { content: [{ type: 'text', text: 'No matches found.' }] };
-    return {
-      content: [
-        {
-          type: 'text',
-          text: `SEARCH RESULTS for "${query}":\n\n${formatCodeSearchOutput(stdout)}`,
-        },
-      ],
-      structuredContent: {
-        engine: 'rg',
-        filePattern: filePattern || null,
-        matches: codeSearchMatches(stdout),
-        matchesTruncated: stdoutTruncated || stdout.length > MAX_CODE_SEARCH_OUTPUT_CHARS,
-        outputLines: codeSearchOutputLines(stdout),
-        stdoutTruncated,
-        status: 'ok',
-        tool: 'code_search',
-      },
-    };
-  } catch (e: any) {
-    if (isExpectedNoMatches(e)) return { content: [{ type: 'text', text: 'No matches found.' }] };
-
-    try {
-      const gitGrepArgs = ['grep', '-n', '-I', query, '--', filePattern || '.'];
-      const { stdout, stdoutTruncated } = await execAsync(
-        { args: gitGrepArgs, file: 'git' },
-        { cwd: REPO_ROOT }
-      );
-      if (!stdout) return { content: [{ type: 'text', text: 'No matches found.' }] };
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `SEARCH RESULTS for "${query}" (git grep fallback):\n\n${formatCodeSearchOutput(
-              stdout
-            )}`,
-          },
-        ],
-        structuredContent: {
-          engine: 'git grep',
-          filePattern: filePattern || null,
-          matches: codeSearchMatches(stdout),
-          matchesTruncated: stdoutTruncated || stdout.length > MAX_CODE_SEARCH_OUTPUT_CHARS,
-          outputLines: codeSearchOutputLines(stdout),
-          stdoutTruncated,
-          status: 'ok',
-          tool: 'code_search',
-        },
-      };
-    } catch (fallbackError: any) {
-      if (isExpectedNoMatches(fallbackError)) {
-        return { content: [{ type: 'text', text: 'No matches found.' }] };
-      }
-
-      return {
-        content: [{ type: 'text', text: `Error searching: ${fallbackError.message}` }],
-        isError: true,
-        structuredContent: { status: 'error', tool: 'code_search' },
-      };
-    }
-  }
 }

@@ -1,65 +1,59 @@
+import { withRepoRoot } from './repo-root-schema.js';
+
 const EMPTY_INPUT_SCHEMA = { type: 'object', properties: {} };
+const REPO_INPUT_SCHEMA = withRepoRoot();
 
 const TEST_SUITE_DESCRIPTION =
   'unit | e2e | smoke | pr_verify | security_guard | e2e_gate | build_ci | check_fast | ' +
   'e2e_state_setup | e2e_gate_pr_fast | pr_verify_hosts | full';
 
 const TEST_ORCHESTRATOR_INPUT_SCHEMA = {
-  type: 'object',
-  properties: {
+  ...withRepoRoot({
     suite: {
       type: 'string',
       description: TEST_SUITE_DESCRIPTION,
     },
     useHyperExecute: { type: 'boolean', description: 'Not supported; runs locally' },
-  },
+  }),
 };
 
-const CHANGED_FILES_INPUT_SCHEMA = {
-  type: 'object',
-  properties: {
-    staged: { type: 'boolean', description: 'Show staged changes only' },
-  },
-};
+const CHANGED_FILES_INPUT_SCHEMA = withRepoRoot({
+  staged: { type: 'boolean', description: 'Show staged changes only' },
+});
 
-const CODE_SEARCH_INPUT_SCHEMA = {
-  type: 'object',
-  properties: {
+const CODE_SEARCH_INPUT_SCHEMA = withRepoRoot(
+  {
     after: { type: 'number', description: 'Trailing context lines per match' },
     before: { type: 'number', description: 'Leading context lines per match' },
     filePattern: { type: 'string', description: 'Optional ripgrep glob pattern' },
     maxResults: { type: 'number', description: 'Maximum matches per searched file' },
     query: { type: 'string' },
   },
-  required: ['query'],
-};
+  ['query']
+);
 
-const READ_FILE_RANGE_INPUT_SCHEMA = {
-  type: 'object',
-  properties: {
+const READ_FILE_RANGE_INPUT_SCHEMA = withRepoRoot(
+  {
     context: { type: 'number', description: 'Extra lines before and after the requested range' },
     endLine: { type: 'number', description: 'End line, 1-based' },
     file: { type: 'string', description: 'Repository-relative file path' },
     startLine: { type: 'number', description: 'Start line, 1-based' },
   },
-  required: ['file'],
-};
+  ['file']
+);
 
-const SCOPE_AUDIT_INPUT_SCHEMA = {
-  type: 'object',
-  properties: {
-    allowedPaths: {
-      type: 'array',
-      items: { type: 'string' },
-      description: 'Optional repository-relative path prefixes that changed files must stay within',
-    },
-    forbiddenPaths: {
-      type: 'array',
-      items: { type: 'string' },
-      description: 'Optional repository-relative path prefixes that must not be changed',
-    },
+const SCOPE_AUDIT_INPUT_SCHEMA = withRepoRoot({
+  allowedPaths: {
+    type: 'array',
+    items: { type: 'string' },
+    description: 'Optional repository-relative path prefixes that changed files must stay within',
   },
-};
+  forbiddenPaths: {
+    type: 'array',
+    items: { type: 'string' },
+    description: 'Optional repository-relative path prefixes that must not be changed',
+  },
+});
 
 function createNoArgTool(name: string, description: string) {
   return {
@@ -69,28 +63,32 @@ function createNoArgTool(name: string, description: string) {
   };
 }
 
+function createRepoNoArgTool(name: string, description: string) {
+  return { name, description, inputSchema: REPO_INPUT_SCHEMA };
+}
+
 const phaseCVerificationTools = [
-  createNoArgTool(
+  createRepoNoArgTool(
     'check_health',
     'Run the full Phase C verification contract (pr:verify, security:guard, e2e:gate)'
   ),
-  createNoArgTool('pr_verify', 'Run pnpm pr:verify for the repo verification contract'),
-  createNoArgTool('security_guard', 'Run pnpm security:guard for the repo security contract'),
-  createNoArgTool('e2e_gate', 'Run pnpm e2e:gate for the repo end-to-end gate contract'),
-  createNoArgTool(
+  createRepoNoArgTool('pr_verify', 'Run pnpm pr:verify for the repo verification contract'),
+  createRepoNoArgTool('security_guard', 'Run pnpm security:guard for the repo security contract'),
+  createRepoNoArgTool('e2e_gate', 'Run pnpm e2e:gate for the repo end-to-end gate contract'),
+  createRepoNoArgTool(
     'build_ci',
     'Run the CI-grade web build command used by the repo verification flow'
   ),
-  createNoArgTool(
+  createRepoNoArgTool(
     'check_fast',
     'Run pnpm check:fast for the repo build and fast-gate verification path'
   ),
-  createNoArgTool('e2e_state_setup', 'Run the deterministic E2E auth state setup flow only'),
-  createNoArgTool(
+  createRepoNoArgTool('e2e_state_setup', 'Run the deterministic E2E auth state setup flow only'),
+  createRepoNoArgTool(
     'e2e_gate_pr_fast',
     'Run the fast PR-oriented E2E gate without the full PR verify contract'
   ),
-  createNoArgTool(
+  createRepoNoArgTool(
     'pr_verify_hosts',
     'Run the host-routed PR verification variant for deterministic local verification'
   ),
@@ -103,9 +101,9 @@ export const tools = [
   createNoArgTool('audit_dependencies', 'Verify Critical Dependencies & Package Configuration'),
   createNoArgTool('dependency_audit', 'Alias for audit_dependencies'),
   createNoArgTool('audit_supabase', 'Verify Supabase Environment & Connectivity (env vars only)'),
-  createNoArgTool('run_unit_tests', 'Run unit tests for the web application using Vitest'),
-  createNoArgTool('run_coverage', 'Run unit tests with coverage for the web application'),
-  createNoArgTool('run_e2e_tests', 'Run E2E tests for the web application using Playwright'),
+  createRepoNoArgTool('run_unit_tests', 'Run unit tests for the web application using Vitest'),
+  createRepoNoArgTool('run_coverage', 'Run unit tests with coverage for the web application'),
+  createRepoNoArgTool('run_e2e_tests', 'Run E2E tests for the web application using Playwright'),
   {
     name: 'tests_orchestrator',
     description:
@@ -124,19 +122,14 @@ export const tools = [
   {
     name: 'project_map',
     description: 'Generate a map of the project structure',
-    inputSchema: {
-      type: 'object',
-      properties: { maxDepth: { type: 'number', description: 'Max depth (default 3)' } },
-    },
+    inputSchema: withRepoRoot({
+      maxDepth: { type: 'number', description: 'Max depth (default 3)' },
+    }),
   },
   {
     name: 'read_files',
     description: 'Read contents of multiple files',
-    inputSchema: {
-      type: 'object',
-      properties: { files: { type: 'array', items: { type: 'string' } } },
-      required: ['files'],
-    },
+    inputSchema: withRepoRoot({ files: { type: 'array', items: { type: 'string' } } }, ['files']),
   },
   {
     name: 'read_file_range',
@@ -146,25 +139,24 @@ export const tools = [
   {
     name: 'git_status',
     description: 'Get git status of the repository',
-    inputSchema: { type: 'object', properties: {} },
+    inputSchema: REPO_INPUT_SCHEMA,
   },
   {
     name: 'git_status_compact',
     description: 'Get compact branch and changed-file status for the repository',
-    inputSchema: EMPTY_INPUT_SCHEMA,
+    inputSchema: REPO_INPUT_SCHEMA,
   },
   {
     name: 'git_branch_info',
     description: 'Get current branch, head SHA, upstream, ahead count, and behind count',
-    inputSchema: EMPTY_INPUT_SCHEMA,
+    inputSchema: REPO_INPUT_SCHEMA,
   },
   {
     name: 'git_diff',
     description: 'Get git diff of the repository',
-    inputSchema: {
-      type: 'object',
-      properties: { cached: { type: 'boolean', description: 'Show staged changes' } },
-    },
+    inputSchema: withRepoRoot({
+      cached: { type: 'boolean', description: 'Show staged changes' },
+    }),
   },
   {
     name: 'changed_files',
@@ -184,25 +176,23 @@ export const tools = [
   {
     name: 'query_db',
     description: 'Execute read-only SQL query against local Postgres',
-    inputSchema: {
-      type: 'object',
-      properties: {
+    inputSchema: withRepoRoot(
+      {
         text: { type: 'string', description: 'SQL query text' },
         params: { type: 'array', items: { type: 'string' }, description: 'Query parameters' },
       },
-      required: ['text'],
-    },
+      ['text']
+    ),
   },
   {
     name: 'get_paddle_resource',
     description: 'Fetch a resource from Paddle (subscription, customer, etc)',
-    inputSchema: {
-      type: 'object',
-      properties: {
+    inputSchema: withRepoRoot(
+      {
         resource: { type: 'string', enum: ['subscriptions', 'customers', 'products', 'prices'] },
         id: { type: 'string', description: 'ID of the resource to fetch' },
       },
-      required: ['resource', 'id'],
-    },
+      ['resource', 'id']
+    ),
   },
 ];

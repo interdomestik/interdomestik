@@ -11,16 +11,17 @@ function readText(relativePath) {
   return fs.readFileSync(path.join(rootDir, relativePath), 'utf8');
 }
 
-test('qa server loads the same root env file precedence as the repo runtime', () => {
+test('qa server keeps env loading stateless and selected per tool call', () => {
   const serverSource = readText('packages/qa/src/server.ts');
-  const utilsSource = readText('packages/qa/src/tools/audits/utils.ts');
+  const rootEnvSource = readText('packages/qa/src/utils/root-env.ts');
 
-  assert.match(utilsSource, /findRootEnvFile/);
-  assert.match(utilsSource, /ROOT_ENV_FILE_CANDIDATES/);
-  assert.match(utilsSource, /\.env\.local/);
-  assert.match(utilsSource, /\.env\.development\.local/);
-  assert.match(utilsSource, /'\.env'/);
-  assert.doesNotMatch(utilsSource, /readdirSync/);
-  assert.match(serverSource, /findRootEnvFile/);
-  assert.doesNotMatch(serverSource, /dotenv\.config\(\{ path: path\.join\(REPO_ROOT, '\.env'\)/);
+  assert.doesNotMatch(serverSource, /dotenv|findRootEnvFile|process\.chdir|setRoot/);
+  assert.match(rootEnvSource, /ROOT_ENV_FILE_CANDIDATES/);
+  assert.match(rootEnvSource, /\.env\.local/);
+  assert.match(rootEnvSource, /\.env\.development\.local/);
+  assert.match(rootEnvSource, /'\.env'/);
+  assert.match(rootEnvSource, /dotenv\.parse/);
+  assert.doesNotMatch(rootEnvSource, /dotenv\.config|\.\.\.process\.env/);
+  assert.match(rootEnvSource, /SAFE_PROCESS_ENV_KEYS/);
+  assert.match(rootEnvSource, /buildToolProcessEnv/);
 });

@@ -1,147 +1,116 @@
-import { spawn } from 'child_process';
-import dotenv from 'dotenv';
+import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-dotenv.config({ path: path.join(REPO_ROOT, '.env') });
+type RpcResponse = {
+  error?: unknown;
+  id?: number;
+  result?: { isError?: boolean };
+};
 
-const serverPath = path.resolve(__dirname, 'src/index.ts');
-const server = spawn('npx', ['tsx', serverPath], {
+const packageDir = path.dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = path.resolve(packageDir, '..', '..');
+const server = spawn('pnpm', ['exec', 'tsx', path.join(packageDir, 'src/index.ts')], {
   cwd: REPO_ROOT,
-  env: {
-    ...process.env,
-    MCP_REPO_ROOT: REPO_ROOT,
-    MCP_SERVER_NAME: 'interdomestik-qa',
-  },
+  env: { ...process.env, MCP_REPO_ROOT: REPO_ROOT, MCP_SERVER_NAME: 'interdomestik-qa' },
   stdio: ['pipe', 'pipe', 'inherit'],
 });
-
+const pending = new Map<
+  number,
+  {
+    reject: (error: Error) => void;
+    resolve: (response: RpcResponse) => void;
+    timer: NodeJS.Timeout;
+  }
+>();
 let buffer = '';
+let nextId = 1;
 
-server.stdout.on('data', data => {
-  const lines = data.toString().split('\n');
+server.stdout.on('data', chunk => {
+  buffer += chunk.toString();
+  const lines = buffer.split('\n');
+  buffer = lines.pop() ?? '';
   for (const line of lines) {
     if (!line.trim()) continue;
+    let response: RpcResponse;
     try {
-      const response = JSON.parse(line);
-      console.log('Received Response:', JSON.stringify(response, null, 2));
-
-      // If we received a result for our requests, we can exit or continue
-      if (response.result || response.error) {
-        // Just log it
-      }
-    } catch (e) {
-      console.log('Server Output (Non-JSON):', line);
+      response = JSON.parse(line) as RpcResponse;
+    } catch {
+      console.error('QA MCP emitted non-JSON stdout');
+      process.exitCode = 1;
+      continue;
     }
+    if (typeof response.id !== 'number') continue;
+    const active = pending.get(response.id);
+    if (!active) continue;
+    clearTimeout(active.timer);
+    pending.delete(response.id);
+    active.resolve(response);
   }
 });
 
-function sendRequest(method: string, params: any, id: number) {
-  const request = {
-    jsonrpc: '2.0',
-    method,
-    params,
-    id,
-  };
-  console.log(`Sending ${method}...`);
-  server.stdin.write(JSON.stringify(request) + '\n');
+function request(method: string, params: unknown, timeoutMs = 15 * 60 * 1000) {
+  const id = nextId++;
+  return new Promise<RpcResponse>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      pending.delete(id);
+      reject(new Error(`MCP response timeout for ${method}`));
+    }, timeoutMs);
+    pending.set(id, { reject, resolve, timer });
+    server.stdin.write(`${JSON.stringify({ id, jsonrpc: '2.0', method, params })}\n`);
+  });
 }
 
-// 1. Initialize
-sendRequest(
-  'initialize',
-  {
-    protocolVersion: '2024-11-05',
-    capabilities: {},
-    clientInfo: { name: 'test-client', version: '1.0' },
-  },
-  1
-);
+async function callTool(name: string, args: Record<string, unknown> = {}) {
+  console.log(`\n--- ${name} ---`);
+  const response = await request('tools/call', {
+    arguments: { ...args, repoRoot: REPO_ROOT },
+    name,
+  });
+  if (response.error || !response.result || response.result.isError === true) {
+    throw new Error(`${name} returned a JSON-RPC or tool error`);
+  }
+}
 
-// Wait a bit then call tools
-setTimeout(() => {
-  // Test Run: Unit Tests
-  console.log('\n--- STARTING UNIT TESTS via MCP ---\n');
-  sendRequest(
-    'tools/call',
-    {
-      name: 'run_unit_tests',
-      arguments: {},
-    },
-    100
+async function main() {
+  const initialized = await request('initialize', {
+    capabilities: {},
+    clientInfo: { name: 'qa-cli-check', version: '1.0.0' },
+    protocolVersion: '2024-11-05',
+  });
+  if (initialized.error) throw new Error('QA MCP initialization failed');
+  server.stdin.write(
+    `${JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized', params: {} })}\n`
   );
 
-  // Test Run: Database (Fast check)
-  setTimeout(() => {
-    console.log('\n--- TESTING DATABASE via MCP ---\n');
-    sendRequest(
-      'tools/call',
-      {
-        name: 'query_db',
-        arguments: { text: "SELECT 'connected' as status" },
-      },
-      102
-    );
-  }, 500);
+  await callTool('run_unit_tests');
+  await callTool('query_db', { text: "SELECT 'connected' as status" });
+  await callTool('git_status');
+  await callTool('read_files', { files: ['package.json'] });
 
-  // Test Run: Paddle (Fast check) - optional
-  setTimeout(() => {
-    const paddleSubscription =
-      process.env.QA_PADDLE_SUBSCRIPTION_ID || process.env.PADDLE_TEST_SUBSCRIPTION_ID;
-    if (!paddleSubscription) {
-      console.log('\n--- TESTING PADDLE via MCP (skipped: set QA_PADDLE_SUBSCRIPTION_ID) ---\n');
-      return;
+  const paddleId = process.env.QA_PADDLE_SUBSCRIPTION_ID || process.env.PADDLE_TEST_SUBSCRIPTION_ID;
+  if (paddleId) {
+    await callTool('get_paddle_resource', { id: paddleId, resource: 'subscriptions' });
+  } else {
+    console.log('\n--- get_paddle_resource skipped: configure a test subscription ID ---');
+  }
+  if (process.env.QA_RUN_E2E === 'true') {
+    await callTool('run_e2e_tests');
+  } else {
+    console.log('\n--- run_e2e_tests skipped: set QA_RUN_E2E=true ---');
+  }
+}
+
+main()
+  .catch(error => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  })
+  .finally(() => {
+    for (const active of pending.values()) {
+      clearTimeout(active.timer);
+      active.reject(new Error('QA MCP client stopped'));
     }
-    console.log('\n--- TESTING PADDLE via MCP ---\n');
-    sendRequest(
-      'tools/call',
-      {
-        name: 'get_paddle_resource',
-        arguments: { resource: 'subscriptions', id: paddleSubscription },
-      },
-      103
-    );
-  }, 1000);
-
-  // Test Run: Context Tools (Fast check)
-  setTimeout(() => {
-    console.log('\n--- TESTING CONTEXT TOOLS via MCP ---\n');
-    sendRequest('tools/call', { name: 'git_status', arguments: {} }, 104);
-    sendRequest('tools/call', { name: 'read_files', arguments: { files: ['package.json'] } }, 105);
-  }, 1500);
-
-  // Test Run: E2E Tests (Delayed to let Unit tests finish likely) - optional
-  setTimeout(() => {
-    if (process.env.QA_SKIP_E2E === 'true') {
-      console.log('\n--- STARTING E2E TESTS via MCP (skipped: QA_SKIP_E2E=true) ---\n');
-      return;
-    }
-    const shouldRunE2E = process.env.QA_RUN_E2E === 'true';
-    if (!shouldRunE2E) {
-      console.log('\n--- STARTING E2E TESTS via MCP (skipped: set QA_RUN_E2E=true to run) ---\n');
-      return;
-    }
-    console.log('\n--- STARTING E2E TESTS via MCP ---\n');
-    sendRequest(
-      'tools/call',
-      {
-        name: 'run_e2e_tests',
-        arguments: {},
-      },
-      101
-    );
-  }, 5000); // Wait 5s before starting E2e
-}, 1000);
-
-// End of test sequence
-// We handle the calls in the previous block
-
-// Exit after 45 seconds (E2E tests take time)
-setTimeout(() => {
-  console.log('\n--- TIMEOUT REACHED ---\n');
-  server.kill();
-  process.exit(0);
-}, 45000);
+    pending.clear();
+    server.kill('SIGTERM');
+  });
