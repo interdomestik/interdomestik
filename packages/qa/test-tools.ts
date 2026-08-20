@@ -10,7 +10,7 @@ type RpcResponse = {
 
 const packageDir = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(packageDir, '..', '..');
-const server = spawn('pnpm', ['exec', 'tsx', path.join(packageDir, 'src/index.ts')], {
+const server = spawn(process.execPath, ['--import', 'tsx', path.join(packageDir, 'src/index.ts')], {
   cwd: REPO_ROOT,
   env: { ...process.env, MCP_REPO_ROOT: REPO_ROOT, MCP_SERVER_NAME: 'interdomestik-qa' },
   stdio: ['pipe', 'pipe', 'inherit'],
@@ -119,12 +119,12 @@ async function main() {
   }
 }
 
-main()
-  .catch(error => {
-    console.error(error instanceof Error ? error.message : String(error));
-    process.exitCode = 1;
-  })
-  .finally(() => {
-    rejectPending(new Error('QA MCP client stopped'));
-    if (server.exitCode === null) server.kill('SIGTERM');
-  });
+try {
+  await main();
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exitCode = 1;
+} finally {
+  rejectPending(new Error('QA MCP client stopped'));
+  if (server.exitCode === null) server.kill('SIGTERM');
+}

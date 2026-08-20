@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -60,6 +59,9 @@ test('QA CLI injects repoRoot and fails on JSON-RPC or tool errors', () => {
   );
   assert.match(source, /process\.exitCode = 1/);
   assert.doesNotMatch(source, /process\.exit\(0\)/);
+  assert.match(source, /spawn\(process\.execPath, \['--import', 'tsx'/);
+  assert.doesNotMatch(source, /spawn\('pnpm'/);
+  assert.match(source, /await main\(\)/);
 });
 
 test('canonical MCP CLI injects its worktree root and rejects hidden tools', () => {
@@ -115,19 +117,17 @@ test('repo file tools reject non-string paths with structured failures', () => {
 });
 
 test('QA CLI fails immediately when its MCP server exits before responding', () => {
-  const fakeBin = fs.mkdtempSync(path.join(os.tmpdir(), 'qa-cli-fake-pnpm-'));
-  try {
-    const fakePnpm = path.join(fakeBin, 'pnpm');
-    fs.writeFileSync(fakePnpm, '#!/bin/sh\nexit 23\n', { mode: 0o755 });
-    const result = spawnSync(process.execPath, ['--import', 'tsx', 'packages/qa/test-tools.ts'], {
+  const source = `process.env.NODE_OPTIONS = '--definitely-invalid-node-option';
+    await import('./packages/qa/test-tools.ts');`;
+  const result = spawnSync(
+    process.execPath,
+    ['--import', 'tsx', '--input-type=module', '--eval', source],
+    {
       cwd: rootDir,
       encoding: 'utf8',
-      env: { ...process.env, PATH: `${fakeBin}:${process.env.PATH ?? ''}` },
       timeout: 5000,
-    });
-    assert.equal(result.status, 1, result.stderr);
-    assert.match(result.stderr, /server exited before responding.*code=23/);
-  } finally {
-    fs.rmSync(fakeBin, { recursive: true });
-  }
+    }
+  );
+  assert.equal(result.status, 1, result.stderr);
+  assert.match(result.stderr, /server exited before responding.*code=9/);
 });

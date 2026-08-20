@@ -11,9 +11,10 @@ export type ToolRepoContext = {
 };
 
 const REPO_MARKERS = ['turbo.json', 'pnpm-workspace.yaml'] as const;
+const GIT_BIN = '/usr/bin/git';
 
 function gitPath(repoRoot: string, ...args: string[]): string {
-  return execFileSync('git', ['-C', repoRoot, ...args], {
+  return execFileSync(GIT_BIN, ['-C', repoRoot, ...args], {
     encoding: 'utf8',
     maxBuffer: 1024 * 1024,
     stdio: ['ignore', 'pipe', 'ignore'],
@@ -65,7 +66,11 @@ function realpathWithExistingParent(resolvedPath: string): string {
     missingSegments.push(path.basename(current));
     current = parent;
   }
-  return path.join(fs.realpathSync.native(current), ...missingSegments.reverse());
+  const orderedSegments: string[] = [];
+  for (let index = missingSegments.length - 1; index >= 0; index -= 1) {
+    orderedSegments.push(missingSegments[index]);
+  }
+  return path.join(fs.realpathSync.native(current), ...orderedSegments);
 }
 
 export function resolveToolRepoRoot(args: ToolRepoArgs): ToolRepoContext {

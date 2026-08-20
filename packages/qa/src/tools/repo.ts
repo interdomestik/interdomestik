@@ -1,5 +1,4 @@
 import fs from 'node:fs';
-import path from 'node:path';
 import { execAsync } from '../utils/exec.js';
 import {
   resolveToolRepoPath,
@@ -180,7 +179,9 @@ export async function readFiles(args: ToolRepoArgs & { files: string[] }) {
       results.push(`--- ${file} ---\n(Error reading file: ${e.message})\n`);
     }
   }
-  const status = failures === 0 ? 'ok' : failures === args.files.length ? 'error' : 'partial_error';
+  let status = 'partial_error';
+  if (failures === 0) status = 'ok';
+  else if (failures === args.files.length) status = 'error';
   return {
     content: [{ type: 'text', text: results.join('\n') }],
     isError: failures > 0,
