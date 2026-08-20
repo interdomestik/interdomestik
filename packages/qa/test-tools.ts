@@ -26,6 +26,24 @@ const pending = new Map<
 let buffer = '';
 let nextId = 1;
 
+function rejectPending(error: Error) {
+  for (const active of pending.values()) {
+    clearTimeout(active.timer);
+    active.reject(error);
+  }
+  pending.clear();
+}
+
+server.once('error', error => rejectPending(error));
+server.once('exit', (code, signal) => {
+  if (pending.size === 0) return;
+  rejectPending(
+    new Error(
+      `QA MCP server exited before responding (code=${code ?? 'null'}, signal=${signal ?? 'none'})`
+    )
+  );
+});
+
 server.stdout.on('data', chunk => {
   buffer += chunk.toString();
   const lines = buffer.split('\n');
@@ -107,10 +125,6 @@ main()
     process.exitCode = 1;
   })
   .finally(() => {
-    for (const active of pending.values()) {
-      clearTimeout(active.timer);
-      active.reject(new Error('QA MCP client stopped'));
-    }
-    pending.clear();
-    server.kill('SIGTERM');
+    rejectPending(new Error('QA MCP client stopped'));
+    if (server.exitCode === null) server.kill('SIGTERM');
   });

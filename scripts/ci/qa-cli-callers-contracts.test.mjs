@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -91,4 +92,42 @@ test('read_files reports nonexistent targets as failures', () => {
   assert.equal(result.isError, true);
   assert.equal(result.structuredContent.failures, 1);
   assert.equal(result.structuredContent.status, 'error');
+});
+
+test('repo file tools reject non-string paths with structured failures', () => {
+  const results = JSON.parse(
+    runTypeScript(`
+      import { handleToolCall } from './packages/qa/src/tool-router.ts';
+      console.log(JSON.stringify(await Promise.all([
+        handleToolCall('read_files', {
+          files: [null, 42, ''], repoRoot: ${JSON.stringify(rootDir)}
+        }),
+        handleToolCall('read_file_range', {
+          file: null, repoRoot: ${JSON.stringify(rootDir)}
+        })
+      ])));
+    `)
+  );
+  assert.equal(results[0].structuredContent.failures, 3);
+  assert.equal(results[0].structuredContent.status, 'error');
+  assert.equal(results[1].structuredContent.status, 'error');
+  assert.match(results.map(result => result.content[0].text).join('\n'), /non-empty string/);
+});
+
+test('QA CLI fails immediately when its MCP server exits before responding', () => {
+  const fakeBin = fs.mkdtempSync(path.join(os.tmpdir(), 'qa-cli-fake-pnpm-'));
+  try {
+    const fakePnpm = path.join(fakeBin, 'pnpm');
+    fs.writeFileSync(fakePnpm, '#!/bin/sh\nexit 23\n', { mode: 0o755 });
+    const result = spawnSync(process.execPath, ['--import', 'tsx', 'packages/qa/test-tools.ts'], {
+      cwd: rootDir,
+      encoding: 'utf8',
+      env: { ...process.env, PATH: `${fakeBin}:${process.env.PATH ?? ''}` },
+      timeout: 5000,
+    });
+    assert.equal(result.status, 1, result.stderr);
+    assert.match(result.stderr, /server exited before responding.*code=23/);
+  } finally {
+    fs.rmSync(fakeBin, { recursive: true });
+  }
 });

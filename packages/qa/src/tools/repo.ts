@@ -43,6 +43,10 @@ function normalizeNonNegativeInteger(value: unknown, fallback: number) {
   return Math.max(0, Math.floor(value));
 }
 
+function isNonEmptyFilePath(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
 function formatReadRange(file: string, lines: string[], startLine: number, endLine: number) {
   const width = String(endLine).length;
   const body = lines
@@ -155,6 +159,13 @@ export async function readFiles(args: ToolRepoArgs & { files: string[] }) {
   const results = [];
   let failures = 0;
   for (const file of args.files) {
+    if (!isNonEmptyFilePath(file)) {
+      failures += 1;
+      results.push(
+        `--- ${String(file)} ---\n(Error reading file: Path must be a non-empty string)\n`
+      );
+      continue;
+    }
     try {
       const { resolvedPath } = resolveToolRepoPath(context.repoRoot, file);
       if (fs.existsSync(resolvedPath)) {
@@ -194,6 +205,17 @@ export async function readFileRange(
   try {
     const context = resolveToolRepoRoot(args);
     toolContext = context;
+    if (!isNonEmptyFilePath(args.file)) {
+      return {
+        content: [{ type: 'text', text: 'file must be a non-empty string' }],
+        isError: true,
+        structuredContent: {
+          ...repoIdentityFields(context),
+          status: 'error',
+          tool: 'read_file_range',
+        },
+      };
+    }
     const { relativePath, resolvedPath } = resolveToolRepoPath(context.repoRoot, args.file);
 
     if (!fs.existsSync(resolvedPath) || !fs.statSync(resolvedPath).isFile()) {
