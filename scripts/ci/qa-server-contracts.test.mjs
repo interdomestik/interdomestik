@@ -64,3 +64,20 @@ test('audit tools bind their reads to the selected worktree', () => {
     execFileSync('/usr/bin/git', ['worktree', 'remove', '--force', sibling], { cwd: rootDir });
   }
 });
+
+test('worktree env cannot replace process execution controls', () => {
+  const source = `const { execAsync } = await import('./packages/qa/src/utils/exec.ts');
+    const result = await execAsync({ file: process.execPath, args: ['-e', 'process.stdout.write(JSON.stringify({ path: process.env.PATH, nodeOptions: process.env.NODE_OPTIONS ?? null, nodePath: process.env.NODE_PATH ?? null }))'] }, { cwd: process.cwd(), env: { PATH: '/untrusted/bin', NODE_OPTIONS: '--no-warnings', NODE_PATH: '/untrusted/node_modules' } });
+    process.stdout.write(result.stdout);`;
+  const result = spawnSync(
+    process.execPath,
+    ['--import', 'tsx', '--input-type=module', '--eval', source],
+    { cwd: rootDir, encoding: 'utf8' }
+  );
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), {
+    nodeOptions: null,
+    nodePath: null,
+    path: process.env.PATH,
+  });
+});
