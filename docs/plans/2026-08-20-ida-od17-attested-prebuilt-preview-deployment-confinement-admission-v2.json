@@ -1,0 +1,208 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "IDA-OD17-ATTESTED-PREBUILT-PREVIEW-DEPLOYMENT-CONFINEMENT-ADMISSION-V2",
+  "sliceId": "IDA-OD17-ATTESTED-PREBUILT-PREVIEW-DEPLOYMENT-CONFINEMENT",
+  "baseSha": "d384f8182b1441315d724a58b788a5383e3b53db",
+  "authorityArtifactSha256": "07c0d238f5062a6652c976cf89f1f7d7dc80d11afd052ddfd87026c62260d473",
+  "governanceWriterPaths": [
+    "docs/plans/2026-08-20-ida-od17-attested-prebuilt-preview-deployment-confinement-runtime-r1.md",
+    "docs/plans/current-program.md",
+    "docs/plans/current-tracker.md"
+  ],
+  "productOutcomes": [
+    "Install one inert default-deny Vercel Preview deployment controller and mutation firewall"
+  ],
+  "writerPaths": [
+    "scripts/ci/od17-prebuilt-deployment.mjs",
+    "scripts/ci/od17-prebuilt-deployment.test.mjs",
+    "scripts/ci/od17-vercel-mutation-firewall.mjs",
+    "scripts/ci/od17-vercel-mutation-firewall.test.mjs",
+    "scripts/repo-size-budget.json"
+  ],
+  "proofSurfaces": [
+    {
+      "id": "deployment-offline-contracts",
+      "invalidatedBy": [
+        "any controller, gateway, provider route/state, identity, target, alias, environment, receipt, test, or writer changes"
+      ]
+    },
+    {
+      "id": "deployment-exact-head-ci",
+      "invalidatedBy": [
+        "implementation PR base, head, changed paths, required check, review, or actionable feedback changes"
+      ]
+    },
+    {
+      "id": "deployment-exact-main-health",
+      "invalidatedBy": [
+        "merge SHA, protected main, post-merge required health, CD containment, cleanup, or closeout identity changes",
+        "success-closeout containment or exact-main health failure",
+        "any failure-closeout, exact revert, executed CD step, incident state, or successor promotion after failure"
+      ]
+    }
+  ],
+  "acceptanceMatrix": [
+    {
+      "criterionId": "deployment-contracts-green",
+      "proofSurfaceId": "deployment-offline-contracts",
+      "command": "run the directly collected controller and mutation-firewall suites plus syntax, formatting, modularity, secret-pattern, and deterministic repo-size checks",
+      "expected": "every canonical request/state, hostile route, direct-egress or extra-read attempt, hidden cert/domain recovery, alias/Production inventory, target derivation, closed environment, cleanup, and one-shot adversary passes with no skips",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "deployment-pr-green",
+      "proofSurfaceId": "deployment-exact-head-ci",
+      "command": "observe one exact-head GitHub-hosted required-check and terminal-feedback rollup",
+      "expected": "all required current-head checks pass, workflow/provider/runtime remains absent, and actionable or unresolved feedback is zero",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "deployment-main-green",
+      "proofSurfaceId": "deployment-exact-main-health",
+      "command": "merge only the exact reviewed head, contain only its exact automatic CD before executable steps, and verify exact-main health and preauthorized closeout",
+      "expected": "protected main equals the exact merge, health is green, CD has no runner or executed step, only exact refs are cleaned, and the closeout promotes only measurement integration; any adverse implementation/transition/containment/main-health result uses only the blocked failure closeout and cannot satisfy this success criterion",
+      "environmentId": null,
+      "skipIsFailure": true
+    }
+  ],
+  "executionPolicy": {
+    "focusedBeforeHeavy": true,
+    "currentHeadCanaryBeforeFullCi": true,
+    "feedbackBeforeHeavy": true,
+    "fullE2eAuthority": "ci_once_per_exact_head",
+    "rerunPolicy": "invalidated_only",
+    "staleHeadAction": "cancel",
+    "runnerReadiness": "connected_and_listening"
+  },
+  "sharedRuntimeConsumers": [
+    "future protected-main IDA-OD17-ATTESTED-PREBUILT-PREVIEW one-shot runtime"
+  ],
+  "specialProofEnvironments": [],
+  "contractGraph": {
+    "nodes": [
+      {
+        "id": "merged-artifact-foundation",
+        "kind": "entry"
+      },
+      {
+        "id": "deployment-controller",
+        "kind": "primitive"
+      },
+      {
+        "id": "mutation-firewall",
+        "kind": "primitive"
+      },
+      {
+        "id": "deployment-focused-tests",
+        "kind": "test"
+      },
+      {
+        "id": "od17-thresholds",
+        "kind": "baseline"
+      }
+    ],
+    "edges": [
+      {
+        "id": "materialize",
+        "from": "merged-artifact-foundation",
+        "to": "deployment-controller",
+        "operation": "consume exact project, lock, archive, and identity contracts"
+      },
+      {
+        "id": "confine",
+        "from": "deployment-controller",
+        "to": "mutation-firewall",
+        "operation": "route every bounded provider observation and the one future fixed CLI process through default-deny read/mutation state"
+      },
+      {
+        "id": "verify-controller",
+        "from": "deployment-controller",
+        "to": "deployment-focused-tests",
+        "operation": "prove identity, environment, observation, receipt, and cleanup"
+      },
+      {
+        "id": "verify-firewall",
+        "from": "mutation-firewall",
+        "to": "deployment-focused-tests",
+        "operation": "prove canonical routes and reject hidden/duplicate/provider mutations"
+      },
+      {
+        "id": "preserve-baseline",
+        "from": "deployment-focused-tests",
+        "to": "od17-thresholds",
+        "operation": "prove this inert slice cannot change score, gzip, or first-request TTFB thresholds"
+      }
+    ],
+    "closure": {
+      "callers": true,
+      "sharedConsumers": true,
+      "readWriteDelete": true,
+      "mountErrorPaths": true,
+      "capabilityRequirements": true,
+      "testCollectors": true,
+      "baselineOwnership": true
+    },
+    "closureEvidence": {
+      "callers": "future protected-main workflow is the only named production caller",
+      "sharedConsumers": "one future R2 consumes the controller/firewall",
+      "readWriteDelete": "all provider reads and the CLI traverse one loopback; direct egress, extra reads, child/temp state, sanitized receipt, and exact-ref lifecycle are explicit",
+      "mountErrorPaths": "port, TLS, redirect, response, child, poll, alias, target, and cleanup failures stop closed",
+      "capabilityRequirements": "exact existing Vercel project/team and one future environment-bound token stage are explicit but unused here",
+      "testCollectors": "both new tests are directly collected under scripts/ci/*.test.mjs",
+      "baselineOwnership": "this slice owns confinement/identity only; OD17 thresholds remain parent-owned"
+    }
+  },
+  "highestRiskCases": [
+    "the CLI reaches a domain, certificate, project, alias, environment, promotion, or deletion mutation",
+    "a second deployment create or undeclared upload is forwarded",
+    "a controller observation or CLI request bypasses the firewall or adds an undeclared GET",
+    "alias pagination or Production pointer comparison truncates or accepts drift",
+    "missing target is treated as Preview or a nonexistent production boolean is trusted",
+    "a secret, proxy, inherited Vercel ID, plugin, telemetry, update, or raw CLI stream escapes the closed child environment",
+    "provider access occurs during this inert slice",
+    "a post-merge failure leaves runtime_authorized true or a successor promoted",
+    "a runner assignment or executed CD step is mislabeled as zero provider state",
+    "a failure closeout, exact revert, or successor action exceeds its one-shot ceiling"
+  ],
+  "rollback": {
+    "mechanism": "delete only an unmerged exact branch; use at most one separately reviewed mechanical exact-revert PR only while the implementation merge is the most recent merge touching its writer paths and only as temporary containment; once a success transition merges, removal of either merge requires separate incident/revert authority after the mandatory child-specific failure-closeout PR; that closeout sets runtime_authorized false, activeSlice null, and all successors blocked, and inability to merge it stops for blocked current-authority incident repair without retry",
+    "trigger": "any unauthorized writer, contract ambiguity, line breach, test skip, current-head finding, required-check failure, merge/main regression, CD-containment failure, cleanup failure, or successor promotion without the full success chain",
+    "containmentFailure": "if any CD runner or step executes, preserve exact evidence, mark provider/runtime state unknown, merge only the deauthorizing failure closeout when safe, and stop for separate incident authority"
+  },
+  "firstImplementationAction": "add the directly collected RED mutation-firewall attack matrix and controller identity/environment contract before any production helper is written",
+  "authorityRepair": {
+    "id": "IDA-DG52-A2-OD17-CHILD-FAIL-CLOSED-REPAIR-R1",
+    "supersedesReceiptId": "IDA-OD17-ATTESTED-PREBUILT-PREVIEW-DEPLOYMENT-CONFINEMENT-ADMISSION-V1",
+    "preservesSemanticWriterMap": true
+  },
+  "successCloseoutWriterPaths": [
+    "docs/plans/2026-08-20-ida-od17-attested-prebuilt-preview-deployment-confinement-closeout.md",
+    "docs/plans/current-program.md",
+    "docs/plans/current-tracker.md",
+    "scripts/repo-size-budget.json"
+  ],
+  "failureCloseoutWriterPaths": [
+    "docs/plans/2026-08-20-ida-od17-attested-prebuilt-preview-deployment-confinement-failure-closeout.md",
+    "docs/plans/current-program.md",
+    "docs/plans/current-tracker.md",
+    "scripts/repo-size-budget.json"
+  ],
+  "failurePolicy": {
+    "firstFailureConsumesR1": true,
+    "canonicalState": {
+      "runtimeAuthorized": false,
+      "activeSlice": null,
+      "resolver": "blocked_requires_current_authority",
+      "successorsBlocked": true
+    },
+    "exactRevertCeiling": 1,
+    "exactRevertScope": "implementation merge only while it is the most recent merge touching its writer paths and its success transition has not merged, as temporary containment before mandatory failure closeout",
+    "failureCloseoutCeiling": 1,
+    "failedChildDefinition": "the child whose active implementation/governance attempt, implementation PR or merge, or success-transition PR or merge is the failing or invalidated stage; after promotion attribution remains with that predecessor and never shifts to the successor",
+    "mergedSuccessCloseoutDisposition": "the failure closeout names the exact success-closeout path and merge SHA and marks it superseded and non-promoting without editing it",
+    "executedCdStep": "record containment_failure, preserve evidence, provider state unknown, stop for incident authority",
+    "retryAuthorized": false
+  }
+}
