@@ -29,7 +29,7 @@ status_command: pnpm plan:status
 
 No slice is promoted. Child A is fixed as
 `NOT_RUN — strategic_stop_before_R1_A`; no R1-A was approved or materialized and its A1/A2
-execution path is terminated without retry. `runtime_authorized:false`, `activeSlice:null`,
+execution path is terminated without retry. `runtime_authorized:false`, `activeSlice=null`,
 and resolver target `blocked_requires_current_authority`. Historical T-115 remains terminal
 `INCONCLUSIVE — measurement_capability_missing/provider_failure` without relabel.
 Deployment Confinement, Measurement Integration, R2, `T-118`, `T-117`, and `T-116` remain

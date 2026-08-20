@@ -53,7 +53,7 @@ remains false.
 ## Canonical terminal state
 
 This closeout sets `runtime_authorized:false`, marks Child A blocked, sets
-`activeSlice:null`, and selects resolver state `blocked_requires_current_authority`.
+`activeSlice=null`, and selects resolver state `blocked_requires_current_authority`.
 Deployment Confinement, Measurement Integration, R2, T-118, T-117, and T-116 remain
 blocked. No successor is promoted.
 

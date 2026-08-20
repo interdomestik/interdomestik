@@ -53,7 +53,7 @@ Integration at 11,324 bytes / SHA-256
 [failure closeout](./2026-08-20-ida-od17-attested-prebuilt-preview-artifact-foundation-failure-closeout.md)
 as `NOT_RUN — strategic_stop_before_R1_A`. No R1-A was approved or materialized, no
 semantic or provider operation occurred, and the A1/A2 Child-A execution path is terminated
-without retry. `runtime_authorized:false`, `activeSlice:null`, and the resolver target is
+without retry. `runtime_authorized:false`, `activeSlice=null`, and the resolver target is
 `blocked_requires_current_authority`.
 
 Historical T-115 remains terminal INCONCLUSIVE and is not relabeled. No successor `PASS`
