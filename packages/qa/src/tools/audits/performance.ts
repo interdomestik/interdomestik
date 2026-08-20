@@ -1,9 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { WEB_APP } from '../../utils/paths.js';
+import { resolveToolRepoPath } from '../../utils/tool-repo-root.js';
 
-export async function auditPerformance() {
-  const nextConfigPath = path.join(WEB_APP, 'next.config.mjs');
+export async function auditPerformance(repoRoot: string) {
+  const webApp = resolveToolRepoPath(repoRoot, 'apps/web').resolvedPath;
+  const nextConfigPath = path.join(webApp, 'next.config.mjs');
   const checks: string[] = [];
   const issues: string[] = [];
 

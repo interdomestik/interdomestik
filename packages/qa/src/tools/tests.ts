@@ -1,18 +1,16 @@
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { coerceExecResult, execAsync, type ExecCommand, type ExecResult } from '../utils/exec.js';
-import { REPO_ROOT, WEB_APP } from '../utils/paths.js';
+import { coerceExecResult, execAsync, type ExecResult } from '../utils/exec.js';
+import { resolveToolRepoRoot, type ToolRepoArgs } from '../utils/tool-repo-root.js';
 import { buildCommandToolResult } from '../utils/tool-results.js';
+import {
+  getBoundOrchestratorConfigs,
+  getBoundToolConfig,
+  type ToolCommandConfig,
+} from './test-configs.js';
 
-type OrchestratorArgs = {
+type OrchestratorArgs = ToolRepoArgs & {
   suite?: string;
   useHyperExecute?: boolean;
-};
-
-type ToolCommandConfig = {
-  command: ExecCommand;
-  cwd: string;
-  label: string;
-  tool: string;
 };
 
 type TestResult = {
@@ -21,141 +19,6 @@ type TestResult = {
   name: string;
   output: string;
   status: 'pass' | 'fail';
-};
-
-function createPnpmCommand(display: string, ...args: string[]): ExecCommand {
-  return { args, display, file: 'pnpm' };
-}
-
-function createNodeCommand(display: string, ...args: string[]): ExecCommand {
-  return { args, display, file: 'node' };
-}
-
-function createToolConfig(
-  tool: string,
-  label: string,
-  cwd: string,
-  command: ExecCommand
-): ToolCommandConfig {
-  return { command, cwd, label, tool };
-}
-
-const TOOL_CONFIGS = {
-  build_ci: createToolConfig(
-    'build_ci',
-    'Build CI',
-    REPO_ROOT,
-    createNodeCommand(
-      'node scripts/run-with-default-db-url.mjs pnpm --filter @interdomestik/web run build:ci',
-      'scripts/run-with-default-db-url.mjs',
-      'pnpm',
-      '--filter',
-      '@interdomestik/web',
-      'run',
-      'build:ci'
-    )
-  ),
-  check_fast: createToolConfig(
-    'check_fast',
-    'Check Fast',
-    REPO_ROOT,
-    createPnpmCommand('pnpm check:fast', 'check:fast')
-  ),
-  e2e_gate: createToolConfig(
-    'e2e_gate',
-    'E2E Gate',
-    REPO_ROOT,
-    createPnpmCommand('pnpm e2e:gate', 'e2e:gate')
-  ),
-  e2e_gate_pr_fast: createToolConfig(
-    'e2e_gate_pr_fast',
-    'E2E Gate PR Fast',
-    REPO_ROOT,
-    createNodeCommand(
-      'node scripts/run-with-default-db-url.mjs pnpm e2e:gate:pr:fast',
-      'scripts/run-with-default-db-url.mjs',
-      'pnpm',
-      'e2e:gate:pr:fast'
-    )
-  ),
-  e2e_state_setup: createToolConfig(
-    'e2e_state_setup',
-    'E2E State Setup',
-    REPO_ROOT,
-    createNodeCommand(
-      'node scripts/run-with-default-db-url.mjs pnpm e2e:state:setup',
-      'scripts/run-with-default-db-url.mjs',
-      'pnpm',
-      'e2e:state:setup'
-    )
-  ),
-  pr_verify: createToolConfig(
-    'pr_verify',
-    'PR Verify',
-    REPO_ROOT,
-    createPnpmCommand('pnpm pr:verify', 'pr:verify')
-  ),
-  pr_verify_hosts: createToolConfig(
-    'pr_verify_hosts',
-    'PR Verify Hosts',
-    REPO_ROOT,
-    createPnpmCommand('pnpm pr:verify:hosts', 'pr:verify:hosts')
-  ),
-  run_coverage: createToolConfig(
-    'run_coverage',
-    'Coverage',
-    WEB_APP,
-    createPnpmCommand('pnpm test:unit -- --coverage', 'test:unit', '--', '--coverage')
-  ),
-  run_e2e_tests: createToolConfig(
-    'run_e2e_tests',
-    'E2E Tests',
-    WEB_APP,
-    createPnpmCommand('pnpm test:e2e', 'test:e2e')
-  ),
-  run_unit_tests: createToolConfig(
-    'run_unit_tests',
-    'Unit Tests',
-    WEB_APP,
-    createPnpmCommand('pnpm test:unit', 'test:unit')
-  ),
-  security_guard: createToolConfig(
-    'security_guard',
-    'Security Guard',
-    REPO_ROOT,
-    createPnpmCommand('pnpm security:guard', 'security:guard')
-  ),
-  smoke: createToolConfig(
-    'smoke',
-    'E2E Smoke Tests',
-    REPO_ROOT,
-    createPnpmCommand(
-      'pnpm --filter @interdomestik/web test:e2e -- --grep smoke',
-      '--filter',
-      '@interdomestik/web',
-      'test:e2e',
-      '--',
-      '--grep',
-      'smoke'
-    )
-  ),
-} satisfies Record<string, ToolCommandConfig>;
-
-type ToolConfigName = keyof typeof TOOL_CONFIGS;
-
-const SUITE_TO_TOOL_CONFIGS: Record<string, ToolConfigName[]> = {
-  build_ci: ['build_ci'],
-  check_fast: ['check_fast'],
-  e2e: ['run_e2e_tests'],
-  e2e_gate: ['e2e_gate'],
-  e2e_gate_pr_fast: ['e2e_gate_pr_fast'],
-  e2e_state_setup: ['e2e_state_setup'],
-  full: ['pr_verify', 'security_guard', 'e2e_gate'],
-  pr_verify: ['pr_verify'],
-  pr_verify_hosts: ['pr_verify_hosts'],
-  security_guard: ['security_guard'],
-  smoke: ['smoke'],
-  unit: ['run_unit_tests'],
 };
 
 function formatSummary(results: TestResult[]) {
@@ -192,87 +55,74 @@ function toTestResult(name: string, result: ExecResult, status: 'pass' | 'fail')
 
 async function executeToolCommand(config: ToolCommandConfig): Promise<CallToolResult> {
   try {
-    const result = await execAsync(config.command, { cwd: config.cwd });
-    return buildCommandToolResult(config.tool, config.label, 'pass', result);
+    const result = await execAsync(config.command, { cwd: config.cwd, env: config.env });
+    return buildCommandToolResult(config.tool, config.label, 'pass', result, config.context);
   } catch (error: any) {
     return buildCommandToolResult(
       config.tool,
       config.label,
       'fail',
-      coerceExecResult(error, config.command, config.cwd)
+      coerceExecResult(error, config.command, config.cwd),
+      config.context
     );
   }
 }
 
 async function runCommand(config: ToolCommandConfig): Promise<TestResult> {
   try {
-    const result = await execAsync(config.command, { cwd: config.cwd });
+    const result = await execAsync(config.command, { cwd: config.cwd, env: config.env });
     return toTestResult(config.label, result, 'pass');
   } catch (error: any) {
     return toTestResult(config.label, coerceExecResult(error, config.command, config.cwd), 'fail');
   }
 }
 
-function getToolConfig(tool: string): ToolCommandConfig {
-  const config = TOOL_CONFIGS[tool as ToolConfigName];
-
-  if (!config) {
-    throw new Error(`Unknown tool config: ${tool}`);
-  }
-
-  return config;
+export async function runUnitTests(args: ToolRepoArgs) {
+  return executeToolCommand(getBoundToolConfig('run_unit_tests', args));
 }
 
-function getOrchestratorConfigs(suite: string): ToolCommandConfig[] | null {
-  const toolNames = SUITE_TO_TOOL_CONFIGS[suite];
-  return toolNames ? toolNames.map(tool => getToolConfig(tool)) : null;
+export async function runE2ETests(args: ToolRepoArgs) {
+  return executeToolCommand(getBoundToolConfig('run_e2e_tests', args));
 }
 
-export async function runUnitTests() {
-  return executeToolCommand(getToolConfig('run_unit_tests'));
+export async function runCoverage(args: ToolRepoArgs) {
+  return executeToolCommand(getBoundToolConfig('run_coverage', args));
 }
 
-export async function runE2ETests() {
-  return executeToolCommand(getToolConfig('run_e2e_tests'));
+export async function runPrVerify(args: ToolRepoArgs) {
+  return executeToolCommand(getBoundToolConfig('pr_verify', args));
 }
 
-export async function runCoverage() {
-  return executeToolCommand(getToolConfig('run_coverage'));
+export async function runSecurityGuard(args: ToolRepoArgs) {
+  return executeToolCommand(getBoundToolConfig('security_guard', args));
 }
 
-export async function runPrVerify() {
-  return executeToolCommand(getToolConfig('pr_verify'));
+export async function runE2EGate(args: ToolRepoArgs) {
+  return executeToolCommand(getBoundToolConfig('e2e_gate', args));
 }
 
-export async function runSecurityGuard() {
-  return executeToolCommand(getToolConfig('security_guard'));
+export async function runBuildCi(args: ToolRepoArgs) {
+  return executeToolCommand(getBoundToolConfig('build_ci', args));
 }
 
-export async function runE2EGate() {
-  return executeToolCommand(getToolConfig('e2e_gate'));
+export async function runCheckFast(args: ToolRepoArgs) {
+  return executeToolCommand(getBoundToolConfig('check_fast', args));
 }
 
-export async function runBuildCi() {
-  return executeToolCommand(getToolConfig('build_ci'));
+export async function runE2EStateSetup(args: ToolRepoArgs) {
+  return executeToolCommand(getBoundToolConfig('e2e_state_setup', args));
 }
 
-export async function runCheckFast() {
-  return executeToolCommand(getToolConfig('check_fast'));
+export async function runE2EGatePrFast(args: ToolRepoArgs) {
+  return executeToolCommand(getBoundToolConfig('e2e_gate_pr_fast', args));
 }
 
-export async function runE2EStateSetup() {
-  return executeToolCommand(getToolConfig('e2e_state_setup'));
-}
-
-export async function runE2EGatePrFast() {
-  return executeToolCommand(getToolConfig('e2e_gate_pr_fast'));
-}
-
-export async function runPrVerifyHosts() {
-  return executeToolCommand(getToolConfig('pr_verify_hosts'));
+export async function runPrVerifyHosts(args: ToolRepoArgs) {
+  return executeToolCommand(getBoundToolConfig('pr_verify_hosts', args));
 }
 
 export async function runTestsOrchestrator(args: OrchestratorArgs = {}) {
+  const context = resolveToolRepoRoot(args);
   const suite = (args.suite || 'full').toLowerCase();
   const results: TestResult[] = [];
 
@@ -286,7 +136,7 @@ export async function runTestsOrchestrator(args: OrchestratorArgs = {}) {
     });
   }
 
-  const commands = getOrchestratorConfigs(suite);
+  const commands = getBoundOrchestratorConfigs(suite, args);
 
   if (!commands) {
     return {
@@ -301,6 +151,7 @@ export async function runTestsOrchestrator(args: OrchestratorArgs = {}) {
       ],
       isError: true,
       structuredContent: {
+        ...context,
         failedStage: null,
         status: 'fail',
         suite,
@@ -339,6 +190,7 @@ export async function runTestsOrchestrator(args: OrchestratorArgs = {}) {
       status: results.some(result => result.status === 'fail') ? 'fail' : 'pass',
       suite,
       tool: 'tests_orchestrator',
+      ...context,
     },
   } satisfies CallToolResult;
 }

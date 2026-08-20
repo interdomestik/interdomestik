@@ -1,8 +1,7 @@
 import fs from 'node:fs';
-import { REPO_ROOT } from '../../utils/paths.js';
 import { findRootEnvFile } from './utils.js';
 
-export async function auditEnv() {
+export async function auditEnv(repoRoot: string) {
   const requiredVars = [
     'DATABASE_URL',
     'BETTER_AUTH_SECRET',
@@ -13,7 +12,7 @@ export async function auditEnv() {
 
   const missing: string[] = [];
   const present: string[] = [];
-  const envPath = findRootEnvFile(REPO_ROOT);
+  const envPath = findRootEnvFile(repoRoot);
 
   if (!envPath || !fs.existsSync(envPath)) {
     return {

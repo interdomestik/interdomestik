@@ -1,5 +1,10 @@
 import { coerceExecResult, execAsync, type ExecCommand } from '../utils/exec.js';
-import { REPO_ROOT } from '../utils/paths.js';
+import { loadToolEnv } from '../utils/root-env.js';
+import {
+  resolveToolRepoRoot,
+  type ToolRepoArgs,
+  type ToolRepoContext,
+} from '../utils/tool-repo-root.js';
 import {
   buildCommandStructuredContent,
   buildHealthToolResult,
@@ -30,12 +35,21 @@ const HEALTH_CHECKS: HealthCheckConfig[] = [
   },
 ];
 
-export async function checkHealth() {
+function withRepoContext(
+  result: ReturnType<typeof buildHealthToolResult>,
+  context: ToolRepoContext
+) {
+  return { ...result, structuredContent: { ...result.structuredContent, ...context } };
+}
+
+export async function checkHealth(args: ToolRepoArgs) {
+  const context = resolveToolRepoRoot(args);
+  const env = loadToolEnv(context.repoRoot);
   const checks: QACommandStructuredContent[] = [];
 
   for (const check of HEALTH_CHECKS) {
     try {
-      const result = await execAsync(check.command, { cwd: REPO_ROOT });
+      const result = await execAsync(check.command, { cwd: context.repoRoot, env });
       checks.push(buildCommandStructuredContent(check.tool, check.label, 'pass', result));
     } catch (error: any) {
       checks.push(
@@ -43,11 +57,11 @@ export async function checkHealth() {
           check.tool,
           check.label,
           'fail',
-          coerceExecResult(error, check.command, REPO_ROOT)
+          coerceExecResult(error, check.command, context.repoRoot)
         )
       );
     }
   }
 
-  return buildHealthToolResult(checks);
+  return withRepoContext(buildHealthToolResult(checks), context);
 }

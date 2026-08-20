@@ -1,5 +1,6 @@
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { ExecResult, FailureCategory } from './exec.js';
+import type { ToolRepoContext } from './tool-repo-root.js';
 
 type CommandStatus = 'pass' | 'fail';
 
@@ -30,26 +31,17 @@ export type QAHealthStructuredContent = {
 };
 
 function clipText(text: string, maxChars = 4000) {
-  if (text.length <= maxChars) {
-    return text;
-  }
-
+  if (text.length <= maxChars) return text;
   return text.slice(text.length - maxChars);
 }
 
 function formatDuration(durationMs: number) {
-  if (durationMs < 1000) {
-    return `${durationMs}ms`;
-  }
-
+  if (durationMs < 1000) return `${durationMs}ms`;
   return `${(durationMs / 1000).toFixed(1)}s`;
 }
 
 function buildTextBlock(title: string, value: string) {
-  if (!value) {
-    return null;
-  }
-
+  if (!value) return null;
   return `${title}:\n${clipText(value)}`;
 }
 
@@ -82,9 +74,13 @@ export function buildCommandToolResult(
   tool: string,
   label: string,
   status: CommandStatus,
-  result: ExecResult
+  result: ExecResult,
+  context?: ToolRepoContext
 ): CallToolResult {
-  const structuredContent = buildCommandStructuredContent(tool, label, status, result);
+  const structuredContent = {
+    ...buildCommandStructuredContent(tool, label, status, result),
+    ...context,
+  };
   const headline =
     status === 'pass' ? `✅ ${label.toUpperCase()} PASSED` : `❌ ${label.toUpperCase()} FAILED`;
   const details = [

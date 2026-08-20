@@ -1,3 +1,6 @@
+import { loadToolEnv } from '../utils/root-env.js';
+import { resolveToolRepoRoot, type ToolRepoArgs } from '../utils/tool-repo-root.js';
+
 type PaddleResourceArgs = {
   resource: 'subscriptions' | 'customers' | 'products' | 'prices';
   id: string;
@@ -20,8 +23,10 @@ function buildPaddleResourceUrl(baseUrl: string, args: PaddleResourceArgs): URL 
   return url;
 }
 
-export async function getPaddleResource(args: PaddleResourceArgs) {
-  const apiKey = process.env.PADDLE_API_KEY;
+export async function getPaddleResource(args: ToolRepoArgs & PaddleResourceArgs) {
+  const context = resolveToolRepoRoot(args);
+  const toolEnv = loadToolEnv(context.repoRoot);
+  const apiKey = toolEnv.PADDLE_API_KEY;
   if (!apiKey) {
     return {
       content: [
@@ -30,11 +35,13 @@ export async function getPaddleResource(args: PaddleResourceArgs) {
           text: 'Paddle API key missing. Set PADDLE_API_KEY to enable Paddle resource checks.',
         },
       ],
+      isError: true,
+      structuredContent: { ...context, status: 'error', tool: 'get_paddle_resource' },
     };
   }
 
   try {
-    const baseUrl = process.env.PADDLE_API_BASE || 'https://api.paddle.com';
+    const baseUrl = toolEnv.PADDLE_API_BASE || 'https://api.paddle.com';
     const url = buildPaddleResourceUrl(baseUrl, args);
     const response = await fetch(url, {
       headers: {
@@ -52,6 +59,8 @@ export async function getPaddleResource(args: PaddleResourceArgs) {
             text: `Paddle API error ${response.status}: ${body}`,
           },
         ],
+        isError: true,
+        structuredContent: { ...context, status: 'error', tool: 'get_paddle_resource' },
       };
     }
 
@@ -62,6 +71,7 @@ export async function getPaddleResource(args: PaddleResourceArgs) {
           text: `Paddle resource (${args.resource}) ${args.id}:\n${body}`,
         },
       ],
+      structuredContent: { ...context, status: 'ok', tool: 'get_paddle_resource' },
     };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown Paddle fetch error';
@@ -72,6 +82,8 @@ export async function getPaddleResource(args: PaddleResourceArgs) {
           text: `Failed to fetch Paddle resource: ${message}`,
         },
       ],
+      isError: true,
+      structuredContent: { ...context, status: 'error', tool: 'get_paddle_resource' },
     };
   }
 }

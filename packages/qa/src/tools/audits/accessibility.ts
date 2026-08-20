@@ -1,9 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { WEB_APP } from '../../utils/paths.js';
+import { resolveToolRepoPath } from '../../utils/tool-repo-root.js';
 
-export async function auditAccessibility() {
-  const packageJsonPath = path.join(WEB_APP, 'package.json');
+export async function auditAccessibility(repoRoot: string) {
+  const webApp = resolveToolRepoPath(repoRoot, 'apps/web').resolvedPath;
+  const packageJsonPath = path.join(webApp, 'package.json');
   if (!fs.existsSync(packageJsonPath)) {
     return { content: [{ type: 'text', text: '❌ Critical: Web package.json missing' }] };
   }

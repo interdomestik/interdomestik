@@ -46,10 +46,11 @@ console.log(JSON.stringify(result));`;
 
 function runAudit(modulePath, exportName, fakeRepoRoot) {
   const canonicalFakeRepoRoot = fs.realpathSync.native(fakeRepoRoot);
-  return runModuleExpression(modulePath, `mod[${JSON.stringify(exportName)}]()`, {
-    cwd: canonicalFakeRepoRoot,
-    env: { MCP_REPO_ROOT: canonicalFakeRepoRoot },
-  });
+  return runModuleExpression(
+    modulePath,
+    `mod[${JSON.stringify(exportName)}](${JSON.stringify(canonicalFakeRepoRoot)})`,
+    { cwd: canonicalFakeRepoRoot }
+  );
 }
 
 function getText(result) {

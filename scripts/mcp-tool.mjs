@@ -23,6 +23,8 @@ function commonGitRoot() {
   return gitDir?.endsWith(`${path.sep}.git`) ? path.dirname(gitDir) : null;
 }
 
+const repoRoot = gitOutput(['rev-parse', '--show-toplevel']) || process.cwd();
+
 function dependencyRoot(repoRoot) {
   for (const candidate of [repoRoot, commonGitRoot()].filter(Boolean)) {
     if (fs.existsSync(path.join(candidate, 'node_modules/.bin/tsx'))) return candidate;
@@ -31,7 +33,6 @@ function dependencyRoot(repoRoot) {
 }
 
 function startServer() {
-  const repoRoot = gitOutput(['rev-parse', '--show-toplevel']) || process.cwd();
   const runtimeRoot = dependencyRoot(repoRoot);
   const tsx = path.join(runtimeRoot, 'node_modules/.bin/tsx');
   const entry = path.join(runtimeRoot, 'packages/qa/src/index.ts');
@@ -133,17 +134,17 @@ async function main() {
     if (!nameOrFlag) usage();
     const response = await client.request('tools/call', {
       name: nameOrFlag,
-      arguments: parseJson(jsonArg),
+      arguments: { ...parseJson(jsonArg), repoRoot },
     });
+    if (response.result?.isError)
+      throw new Error(response.result.content?.[0]?.text || 'Tool failed');
     printResult(response.result, maybeText === '--text');
   } finally {
     client.close();
   }
 }
 
-try {
-  await main();
-} catch (error) {
+await main().catch(error => {
   console.error(error.message);
   process.exit(1);
-}
+});

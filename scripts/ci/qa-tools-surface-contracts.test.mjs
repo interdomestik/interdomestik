@@ -29,7 +29,10 @@ test('qa tool surface exposes the Phase C verification contract', () => {
   const listToolsSource = readText('packages/qa/src/tools/list-tools.ts');
   const routerSource = readText('packages/qa/src/tool-router.ts');
   const healthSource = readText('packages/qa/src/tools/health.ts');
-  const testsSource = readText('packages/qa/src/tools/tests.ts');
+  const testsSource = [
+    readText('packages/qa/src/tools/tests.ts'),
+    readText('packages/qa/src/tools/test-configs.ts'),
+  ].join('\n');
 
   for (const toolName of [
     'pr_verify',
@@ -42,7 +45,7 @@ test('qa tool surface exposes the Phase C verification contract', () => {
     'pr_verify_hosts',
   ]) {
     assert.ok(listToolsDeclaresTool(listToolsSource, toolName));
-    assert.ok(routerSource.includes(`${toolName}: () =>`));
+    assert.ok(routerSource.includes(`${toolName}: args =>`));
   }
 
   assert.ok(
@@ -83,4 +86,19 @@ test('qa tool router and list expose the same contract-oriented orchestration to
     assert.ok(listToolsDeclaresTool(listToolsSource, toolName));
     assert.ok(routerSource.includes(`${toolName}:`));
   }
+});
+
+test('repo selection is fail-closed before search and command dispatch', () => {
+  const searchSource = readText('packages/qa/src/tools/repo-search.ts');
+  const testsSource = readText('packages/qa/src/tools/tests.ts');
+  const configsSource = readText('packages/qa/src/tools/test-configs.ts');
+  const rootSource = readText('packages/qa/src/utils/tool-repo-root.ts');
+
+  assert.match(searchSource, /'--regexp', args\.query, '--'/);
+  assert.match(searchSource, /'grep', '-n', '-I', '-e', args\.query, '--'/);
+  assert.match(testsSource, /resolveToolRepoRoot\(args\)/);
+  assert.match(testsSource, /cwd: config\.cwd, env: config\.env/);
+  assert.match(configsSource, /resolveToolRepoPath\(repoRoot, 'apps\/web'\)/);
+  assert.match(configsSource, /env: loadToolEnv\(repoRoot\)/);
+  assert.match(rootSource, /line\.startsWith\('prunable'\)/);
 });
