@@ -169,7 +169,7 @@
   ],
   "rollback": {
     "mechanism": "delete only an unmerged exact branch; use at most one separately reviewed mechanical exact-revert PR only while the implementation merge is the most recent merge touching its writer paths and only as temporary containment; once a success transition merges, removal of either merge requires separate incident/revert authority after the mandatory child-specific failure-closeout PR; that closeout sets runtime_authorized false, activeSlice null, and all successors blocked, and inability to merge it stops for blocked current-authority incident repair without retry",
-    "trigger": "any unauthorized writer, contract ambiguity, line breach, test skip, current-head finding, required-check failure, merge/main regression, CD-containment failure, cleanup failure, or successor promotion without the full success chain",
+    "trigger": "any unauthorized writer, contract ambiguity, line breach, test skip, current-head finding, required-check failure, merge/main regression, provider activity before R2, CD-containment failure, cleanup failure, or successor promotion without the full success chain",
     "containmentFailure": "if any CD runner or step executes, preserve exact evidence, mark provider/runtime state unknown, merge only the deauthorizing failure closeout when safe, and stop for separate incident authority"
   },
   "firstImplementationAction": "add the directly collected RED archive-codec and runtime-input contract fixtures before any production helper or immutable JSON is written",

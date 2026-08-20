@@ -40,10 +40,10 @@ the exact-approved
 at 17,847 bytes / SHA-256
 `9710a3f0dd1bc285ffc2905c93d4edb499c34d829bf63364a30e13ff51084b33`.
 
-A2's independently passing V2 admissions are Artifact Foundation at 10,667 bytes / SHA-256
-`396f664472107a97ce51cd87937d37af1d81fe41e55eb32444d6b922dc571439`, Deployment
-Confinement at 10,716 bytes / SHA-256
-`9346811f45b234cb584a41f976be40ea805854a8a47f50b5bb61963145396ef2`, and Measurement
+A2's independently passing V2 admissions are Artifact Foundation at 10,696 bytes / SHA-256
+`12f2a2ac5a5076bf90733870bc2c706d6414ab6c4858e2caf51c858e635b6a41`, Deployment
+Confinement at 10,745 bytes / SHA-256
+`4a12313ebed84cb12226c41035cc850a180f6273e44fda6ebfa86d7716699a8e`, and Measurement
 Integration at 11,324 bytes / SHA-256
 `4eba84f1680f2992076a7f62bd0e639ded88bb796c576eac0aad9967c6e4ab96`, all bound to
 `main@d384f8182b1441315d724a58b788a5383e3b53db`.
