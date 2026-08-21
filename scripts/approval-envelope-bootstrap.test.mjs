@@ -77,9 +77,8 @@ test('installs one fsync-backed consumed B0 state and activates only B1', () => 
   // prettier-ignore
   const authorityRoot = join(mkdtempSync(join(tmpdir(), 'wf-ledger-')), 'authority'), state = ledgerState(), installed = installLedger(authorityRoot, state);
   assert.equal(resolveLedger(authorityRoot).activeSlice, 'B1-cd-guard');
-  assert.equal(statSync(join(authorityRoot, 'authority-v1.json')).mode & 0o777, 0o600);
   // prettier-ignore
-  assert.equal(statSync(join(authorityRoot, 'receipts', `${installed.operationSha256}.json`)).mode & 0o777, 0o600);
+  assert.deepEqual([statSync(join(authorityRoot, 'authority-v1.json')).mode & 0o777, statSync(join(authorityRoot, 'receipts', `${installed.operationSha256}.json`)).mode & 0o777], [0o600, 0o600]);
   const lock = join(authorityRoot, 'authority-v1.json.lock');
   writeFileSync(lock, `${installed.operationSha256}\n`, { mode: 0o600 });
   assert.equal(resolveLedger(authorityRoot).reason, 'incomplete_operation');
@@ -106,7 +105,8 @@ test('resolver fails closed on missing, locked, temporary, or unknown state', ()
   assert.deepEqual(resolveLedger(root), { runtimeAuthorized: false, activeSlice: null, successorsBlocked: true, reason: 'missing_state' });
   mkdirSync(root, { recursive: true });
   writeFileSync(join(root, 'authority-v1.json.lock'), 'blocked\n', { mode: 0o600 });
-  assert.equal(resolveLedger(root).reason, 'incomplete_operation');
+  // prettier-ignore
+  { renameSync(join(root, 'authority-v1.json.lock'), join(root, 'foreign.tmp-stale')); assert.equal(resolveLedger(root).reason, 'incomplete_operation'); assert.throws(() => installLedger(root, ledgerState()), /incomplete operation/); }
   const other = join(mkdtempSync(join(tmpdir(), 'wf-ledger-unknown-')), 'authority');
   mkdirSync(other, { recursive: true });
   // prettier-ignore

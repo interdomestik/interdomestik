@@ -44,9 +44,10 @@ const writeExclusive = (path, body) => fs.writeFileSync(path, body, { flag: 'wx'
 // prettier-ignore
 function sameOrWrite(path, body) { if (!fs.existsSync(path)) { writeExclusive(path, body); return; } if (isSymlink(path) || fs.readFileSync(path, 'utf8') !== body) { fail('partial operation mismatch'); } }
 // prettier-ignore
-function operationChecks(root, state, statePath, lock, operationSha256, recovering) { const unsafeLock = recovering && isSymlink(lock); return [
-  [state.status !== 'merged_consumed' || state.activeSlice !== 'B1-cd-guard', 'invalid state'], [isSymlink(root) || isSymlink(join(root, 'receipts')), 'unsafe authority path'],
+function operationChecks(root, state, statePath, lock, operationSha256, recovering) { const unsafeLock = recovering && isSymlink(lock), allowed = new Set([lock, `${statePath}.recovery`, `${statePath}.tmp-${operationSha256}`]), unsafeMarker = fs.readdirSync(root).some(name => /\.(lock|recovery)$|\.tmp-/.test(name) && !(recovering && allowed.has(join(root, name)))); return [
+  [state.status !== 'merged_consumed' || state.runtimeAuthorized !== true || state.activeSlice !== 'B1-cd-guard', 'invalid state'], [isSymlink(root) || isSymlink(join(root, 'receipts')), 'unsafe authority path'],
   [fs.existsSync(statePath) && isSymlink(statePath), 'unsafe authority path'], [unsafeLock, 'unsafe authority path'],
+  [unsafeMarker, 'incomplete operation'],
   [fs.existsSync(statePath) && !recovering, 'authority already initialized'], [recovering && !unsafeLock && fs.readFileSync(lock, 'utf8').trim() !== operationSha256, 'recovery operation mismatch'],
 ]; }
 export function installLedger(root, state) {
