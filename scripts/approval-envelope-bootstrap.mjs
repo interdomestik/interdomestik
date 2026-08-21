@@ -13,7 +13,7 @@ const isSymlink = path => fs.lstatSync(path).isSymbolicLink();
 // prettier-ignore
 function identity(path) { const bytes = fs.readFileSync(path); return { utf8Bytes: bytes.length, sha256: sha(bytes) }; }
 // prettier-ignore
-function parseArgs([mode, ...rest]) { const result = { mode }; for (let index = 0; index < rest.length; index += 2) result[rest[index].slice(2)] = rest[index + 1]; return result; }
+function parseArgs([mode, ...rest]) { const result = { mode }; for (let index = 0; index < rest.length; index += 2) { result[rest[index].slice(2)] = rest[index + 1]; } return result; }
 function receiptFor(gatePath, envelopePath, statement, locator) {
   // prettier-ignore
   const envelope = JSON.parse(fs.readFileSync(envelopePath)), gate = envelope.approvalEnvelope.gate, { id, canonicalPath } = envelope.approvalEnvelope.envelope;
@@ -99,7 +99,7 @@ function verifyReceipt(options) {
   if (JSON.stringify(observed) !== JSON.stringify(expected)) fail('receipt expands or drifts');
 }
 function git(repo, values) {
-  const result = spawnSync('git', ['-C', repo, ...values], { encoding: 'utf8' });
+  const result = spawnSync('/usr/bin/git', ['-C', repo, ...values], { encoding: 'utf8' });
   if (result.status) fail(`git ${values.join(' ')} failed`);
   return result.stdout.trim();
 }
