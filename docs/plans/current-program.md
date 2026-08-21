@@ -62,20 +62,24 @@ witnesses `OD17_READY`; Deployment Confinement, Measurement Integration, R2, `T-
 decision and none is promoted automatically.
 
 Separately, R2 supersedes R1 for A1 execution after R1 omitted the required Z620 parity-digest
-writer. The exact-approved
+writer. The canonical
 [`IDA-CI-DG01-PR-UNIT-SELECTION-R2`](./2026-08-20-ida-ci-dg01-pr-unit-selection-r2.md) is
 30,529 bytes / SHA-256 `d4ac2815f7d3132527cd5d281edc91d5224eec209b68ac2a83e044d4633c46d5`;
 the passing
 [`IDA-CI01-PR-UNIT-SHADOW-A1-ADMISSION-V2`](./2026-08-20-ida-ci-pr-unit-shadow-a1-admission-v2.json)
 is 33,514 bytes / SHA-256 `cc504ebb77d5990a2646620290a9d850e41996b637238be553bf02bf18f4c904`.
-Both are bound to `main@ca91e67e0535c96a94e55d6dde12716823172e26`.
+PR #1608 merged reviewed head `59eb752736c2868c995f7ae4d62d3236d221e4c2` to protected
+`main@eaa9bd108f29ce386b185c46b8474ee1c3747774`. Exact main health and CD containment
+passed, but proof-ledger identity and R2 branch/worktree cleanup remained open. The exact-approved
+[`IDA-CI-DG01-R2-CURRENT-AUTHORITY-REPAIR-R1`](./2026-08-21-ida-ci-dg01-r2-current-authority-repair-r1.md),
+13,198 bytes / SHA-256 `762085e8ec7cc652a29afc42d47a068e2edc2e78e74e8bb22d2b6e0bb79bdac6`,
+owns only those convergence debts.
 
-R2 promotes only `IDA-CI01-PR-UNIT-SHADOW-A1` (Tier 3) to
-`awaiting_runtime_authority`. `runtime_authorized:false`, `activeSlice:null`; this
-convergence authorizes only R2 governance materialization. No semantic implementation,
-prototype transfer, test skipping, provider/runtime operation, or A2 activation is authorized
-before healthy exact R2 rebind main and a separately drafted, byte-exact approved A1 R2 runtime
-receipt bound to that returned main SHA.
+CI01 A1 remains `awaiting_runtime_authority`, `runtime_authorized:false`,
+`activeSlice:null`. Only after the repair's returned main passes exact health, containment,
+cleanup, and hygiene may a separately drafted, byte-exact approved A1 runtime receipt bind that
+returned main. No semantic implementation, prototype transfer, test skipping, provider/runtime
+operation, or A2 activation is authorized before that receipt executes.
 
 The compact roadmap below preserves the live M0-M5 implementation blueprint. Full task
 contracts, acceptance criteria and milestone detail remain canonical in the
