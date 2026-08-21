@@ -61,6 +61,22 @@ witnesses `OD17_READY`; Deployment Confinement, Measurement Integration, R2, `T-
 `T-117`, and `T-116` remain blocked. A future OD17 approach requires a fresh strategic
 decision and none is promoted automatically.
 
+Separately, Arben exact-approved
+[`IDA-CI-DG01-PR-UNIT-SELECTION-R1`](./2026-08-20-ida-ci-dg01-pr-unit-selection.md)
+at 28,295 bytes / SHA-256
+`a6def1ddceb5b7e0fa0e08dbcce9045f4500e612643437f3e1a51c04843f9514` and the passing
+[`IDA-CI01-PR-UNIT-SHADOW-A1-ADMISSION-V1`](./2026-08-20-ida-ci-pr-unit-shadow-a1-admission-v1.json)
+at 32,346 bytes / SHA-256
+`92a68b8d2626686c905e9010220291c4afb8a480e1372cf9817ed76ac7427f02`, both bound to
+`main@faae32d2af477c44d2f2fed6ad36151d08b8ea8d`.
+
+Phase A promotes only `IDA-CI01-PR-UNIT-SHADOW-A1` (Tier 3) to
+`awaiting_runtime_authority`. `runtime_authorized:false`, `activeSlice:null`; this
+convergence authorizes only governance materialization. No semantic implementation,
+prototype transfer, test skipping, provider/runtime operation, or A2 activation is
+authorized before healthy exact Phase-A main and a separately approved content-addressed
+A1 runtime receipt.
+
 The compact roadmap below preserves the live M0-M5 implementation blueprint. Full task
 contracts, acceptance criteria and milestone detail remain canonical in the
 [architecture-finalization program](./architecture-finalization-program-2026-05-29.md) and
@@ -121,4 +137,4 @@ All authority history through Rev 243 is recoverable byte-for-byte from Git thro
 Manifest SHA-256: `355229c5d24a6fa5f0986b6ce41423cbdc5caea16b291f1335a7264b2be5fc78`.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is blocked pending a fresh current-authority/design-gate selection; resolver target is `blocked_requires_current_authority`, `activeSlice=null`.
+The next active governed implementation goal is exactly one canonical tracker slice: `IDA-CI01-PR-UNIT-SHADOW-A1` (Tier 3; `runtime_authorized:false`).
