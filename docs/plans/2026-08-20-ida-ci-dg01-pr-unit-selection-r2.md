@@ -93,14 +93,16 @@ merge, exact-main health, CD containment, and cleanup must pass. Its only succes
 transition is `awaiting_runtime_authority` for `IDA-CI01-PR-UNIT-SHADOW-A1`, with
 `runtime_authorized:false`; no branch or implementation worker may start.
 
-Phase A and the later A1 closeout have an explicit governance-only tree-equivalent main-health
+Phase A, the R2 authority rebind, and the later A1 closeout have an explicit governance-only tree-equivalent main-health
 contract. The protected-main CI workflow intentionally ignores `docs/**` and
 `scripts/repo-size-budget.json` on `push`, and the repository contract test preserves that policy.
-Therefore absence of a CI run for either governance-only squash SHA is expected only when all of
+Therefore absence of a CI run for any governance-only squash SHA is expected only when all of
 the following are proven:
 
-1. the diff contains only the applicable exact writer map: Phase A's five authority writers or A1
-   closeout's sanitized evidence, current program, current tracker, and conditional size metadata;
+1. the diff contains only the applicable exact writer map: Phase A's five authority writers; R2's
+   canonical R2 gate, canonical A1 admission V2, current program, current tracker, and conditional
+   size metadata; or A1 closeout's sanitized evidence, current program, current tracker, and
+   conditional size metadata;
 2. protected main still equals that PR's exact approved base immediately before merge;
 3. the repository's squash-only settings remain enabled, and the exact-head merge mutation uses
    `mergeMethod:SQUASH` plus the reviewed head as `expectedHeadOid`;
@@ -115,7 +117,7 @@ the following are proven:
    Main Gate finish successfully. A main-push CI run is expected to be absent; if one exists, it
    must also finish green.
 
-That complete receipt is the exact-main health proof for Phase A and A1 closeout only. It is not a
+That complete receipt is the exact-main health proof for Phase A, R2 authority rebind, and A1 closeout only. It is not a
 general main-check reuse primitive and cannot be used by A1 implementation. Any changed path
 outside the applicable writer map, base drift, merge-setting drift, non-squash merge, stale
 `expectedHeadOid`, non-single or non-matching parent, tree mismatch, missing exact-head or
@@ -127,7 +129,7 @@ rebase, merge-forward, or SHA substitution is forbidden.
 
 ### Separate A1 runtime authority
 
-Only after the exact Phase-A tree-equivalent main-health receipt may the content-addressed A1
+Only after the exact R2 governance-only tree-equivalent main-health receipt may the content-addressed A1
 runtime receipt be drafted at
 `docs/plans/2026-08-20-ida-ci-pr-unit-shadow-a1-runtime-receipt-r2.json`. It must bind the exact
 returned R2 rebind merge/main SHA, the canonical gate and admission hashes, the admitted writer maps, and the
@@ -425,7 +427,7 @@ incident repair. No automatic retry or inferred promotion is allowed.
 
 If any signal required by the merge-specific health matrix above fails or is missing, preserve the
 exact base, reviewed head, squash SHA, tree, run IDs, receipts, and logs. A skipped or absent
-main-push CI is expected only for the two governance-only writer maps; it is failure for A1
+main-push CI is expected only for the three governance-only writer maps; it is failure for A1
 implementation. Merge the preauthorized sanitized failure closeout when safe. At most one
 separately reviewed mechanical exact-revert PR may contain the implementation merge only while it
 is the most recent merge touching its writer paths. Revert is containment, not closeout; all
