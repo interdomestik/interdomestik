@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "kind": "one-approval-bootstrap-receipt",
+  "receiptId": "IDA-WF01-ONE-APPROVAL-DELIVERY-APPROVAL-RECEIPT-R1",
+  "eventLocator": "codex-task:019fe16e-0753-7270-8db5-aad229a9abfb#workflow-v1-approval-canonical-format",
+  "approvalStatement": "Miratoj `IDA-WF-DG01-ONE-APPROVAL-DELIVERY-R1`, 30,466 UTF-8 bytes, SHA-256 `72ca27910043d364c21fda88265bbe57575fc70f8dfe1b3f9bf4dcea6c8b9370`, dhe `IDA-WF01-ONE-APPROVAL-DELIVERY-ENVELOPE-V1`, 42,210 UTF-8 bytes, SHA-256 `f9633a885cef2caf582c6fd7a82cb95df3eedbedc7817ccdc85a56c52cd7ca0a`, bound to `main@7fb7180aafadf91b79ec37f5daeebaa85bc86ff2`; autorizoj materializimin, implementation review, PR, merge dhe closeout sipas envelope-it ekzakt.",
+  "gate": {
+    "id": "IDA-WF-DG01-ONE-APPROVAL-DELIVERY-R1",
+    "canonicalPath": "docs/plans/2026-08-21-ida-wf-dg01-one-approval-delivery-protocol.md",
+    "utf8Bytes": 30466,
+    "sha256": "72ca27910043d364c21fda88265bbe57575fc70f8dfe1b3f9bf4dcea6c8b9370"
+  },
+  "envelope": {
+    "id": "IDA-WF01-ONE-APPROVAL-DELIVERY-ENVELOPE-V1",
+    "canonicalPath": "docs/plans/2026-08-21-ida-wf01-one-approval-delivery-envelope-v1.json",
+    "utf8Bytes": 42210,
+    "sha256": "f9633a885cef2caf582c6fd7a82cb95df3eedbedc7817ccdc85a56c52cd7ca0a"
+  },
+  "base": {
+    "origin": "https://github.com/interdomestik/interdomestik.git",
+    "protectedRef": "refs/heads/main",
+    "baseSha": "7fb7180aafadf91b79ec37f5daeebaa85bc86ff2",
+    "baseTree": "d991d80615f81900306944f7bc0ab55d1153c9d8",
+    "baseParent": "eaa9bd108f29ce386b185c46b8474ee1c3747774",
+    "mergeMethod": "SQUASH",
+    "baseDriftBeforeMaterialization": "invalidate_and_refreeze",
+    "derivedBaseAfterMaterialization": "preceding_returned_main_or_child_boundary_compatible_rebind"
+  },
+  "outcome": "Enable one final exact human approval to govern a normal Interdomestik slice through isolated implementation, proof, PR, exact merge, and closeout without another approval unless a genuine new product, security, trust-boundary, or scope defect appears.",
+  "childOrder": [
+    "B0-authority-bootstrap",
+    "B1-cd-guard",
+    "S1A-skill-authority",
+    "S1B-routing-standard",
+    "S2-mcp-identity",
+    "S3-exact-authority",
+    "S4A-terminal-delivery",
+    "S4B-reviewer-policy"
+  ],
+  "proofSurfaceIds": ["P1-envelope-authority", "P2-mcp-identity", "P3-terminal-delivery"],
+  "writerMapDigests": [
+    {
+      "childId": "B0-authority-bootstrap",
+      "sha256": "84344a6e58fdf681c158d82e77f4b3c8cfe8f1df2de000ebe53e2f3f482a540b"
+    },
+    {
+      "childId": "B1-cd-guard",
+      "sha256": "1be23cc3b956e41134d4528209ef10f6491d31576078f169bf09309bab54ee0a"
+    },
+    {
+      "childId": "S1A-skill-authority",
+      "sha256": "d7577382acc2f2ec78c5ae1f7108e17620401194bdd9ae10a0d677eb04cef6a7"
+    },
+    {
+      "childId": "S1B-routing-standard",
+      "sha256": "284740b5e15eabda2bcafd86fc30777c2561a605f3a2c0b42c26e22657f33700"
+    },
+    {
+      "childId": "S2-mcp-identity",
+      "sha256": "28654064b269f907d9ca0991e813b0911b694814d5fa9da88c1dfd7f7ff0c33c"
+    },
+    {
+      "childId": "S3-exact-authority",
+      "sha256": "c5d8329f0ad14f6ebc9e7e96e2a63d6e47170564fc781c55df75b2510927e9e4"
+    },
+    {
+      "childId": "S4A-terminal-delivery",
+      "sha256": "0609d7bbf9f72be18a5f78b2c946bb5ebe274d71411fd7105c88592cc3f55897"
+    },
+    {
+      "childId": "S4B-reviewer-policy",
+      "sha256": "6e880bcff210ce0a234b3e31900361357ae19af936d12fbfe11b14e190491c74"
+    }
+  ],
+  "runtimeAuthorized": false,
+  "activeSlice": null,
+  "isIndependentAuthority": false,
+  "secondApprovalRequired": false
+}
