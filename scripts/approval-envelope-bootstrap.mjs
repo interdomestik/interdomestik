@@ -13,7 +13,7 @@ const isSymlink = path => fs.lstatSync(path).isSymbolicLink();
 // prettier-ignore
 function identity(path) { const bytes = fs.readFileSync(path); return { utf8Bytes: bytes.length, sha256: sha(bytes) }; }
 // prettier-ignore
-function parseArgs([mode, ...rest]) { const allowed = OPTIONS[mode]?.split(','), result = { mode }; if (!allowed || rest.length !== allowed.length * 2) fail('invalid arguments'); for (let index = 0; index < rest.length; index += 2) { const key = rest[index].slice(2); if (rest[index] !== `--${key}` || !allowed.includes(key) || Object.hasOwn(result, key) || !rest[index + 1]) fail('invalid arguments'); result[key] = rest[index + 1]; } return result; }
+function parseArgs([mode, ...rest]) { const allowed = OPTIONS[mode]?.split(','), result = { mode }; if (!allowed || rest.length !== allowed.length * 2) { fail('invalid arguments'); } for (let index = 0; index < rest.length; index += 2) { const key = rest[index].slice(2); if (rest[index] !== `--${key}` || !allowed.includes(key) || Object.hasOwn(result, key) || !rest[index + 1]) { fail('invalid arguments'); } result[key] = rest[index + 1]; } return result; }
 function receiptFor(gatePath, envelopePath, statement, locator) {
   // prettier-ignore
   const envelope = JSON.parse(fs.readFileSync(envelopePath)), gate = envelope.approvalEnvelope.gate, { id, canonicalPath } = envelope.approvalEnvelope.envelope;
@@ -23,12 +23,12 @@ function receiptFor(gatePath, envelopePath, statement, locator) {
   // prettier-ignore
   const ordered = envelope.approvalEnvelope.children, children = [envelope.approvalEnvelope.phaseA, ...ordered];
   // prettier-ignore
-  if (!ordered.every((child, index) => child.order === index + 1)) fail('child order mismatch'); else if (envelope.productOutcomes.length !== 1) fail('one outcome required');
+  if (!ordered.every((child, index) => child.order === index + 1)) { fail('child order mismatch'); } else if (envelope.productOutcomes.length !== 1) { fail('one outcome required'); }
   // prettier-ignore
   const expected = `Miratoj \`${gate.id}\`, ${gate.utf8Bytes.toLocaleString('en-US')} UTF-8 bytes, SHA-256 \`${gate.sha256}\`, dhe \`${envelopeId.id}\`, ` +
     `${envelopeId.utf8Bytes.toLocaleString('en-US')} UTF-8 bytes, SHA-256 \`${envelopeId.sha256}\`, bound to \`main@${envelope.baseSha}\`; autorizoj materializimin, implementation review, PR, merge dhe closeout sipas envelope-it ekzakt.`;
   // prettier-ignore
-  if (statement !== expected) fail('approval statement identity mismatch'); else if (!/^[a-z0-9][a-z0-9:./#_-]+$/.test(locator)) fail('event locator is not canonical');
+  if (statement !== expected) { fail('approval statement identity mismatch'); } else if (!/^[a-z0-9][a-z0-9:./#_-]+$/.test(locator)) { fail('event locator is not canonical'); }
   // prettier-ignore
   return {
     schemaVersion: 1, kind: 'one-approval-bootstrap-receipt', receiptId: 'IDA-WF01-ONE-APPROVAL-DELIVERY-APPROVAL-RECEIPT-R1', eventLocator: locator,
@@ -53,7 +53,7 @@ export function installLedger(root, state) {
   if (fs.existsSync(root) && isSymlink(root)) fail('unsafe authority path');
   fs.mkdirSync(root, { recursive: true, mode: 0o700 });
   // prettier-ignore
-  if (isSymlink(root)) fail('unsafe authority path'); else if (fs.existsSync(join(root, 'receipts')) && isSymlink(join(root, 'receipts'))) fail('unsafe authority path');
+  if (isSymlink(root) || (fs.existsSync(join(root, 'receipts')) && isSymlink(join(root, 'receipts')))) fail('unsafe authority path');
   fs.mkdirSync(join(root, 'receipts'), { recursive: true, mode: 0o700 });
   // prettier-ignore
   const statePath = join(root, 'authority-v1.json'), lock = `${statePath}.lock`, operationSha256 = sha(JSON.stringify(state));
@@ -100,11 +100,11 @@ export function resolveLedger(root) {
   }
 }
 // prettier-ignore
-function verifyReceipt(options) { const observed = JSON.parse(fs.readFileSync(options.receipt)), expected = receiptFor(options.gate, options.envelope, observed.approvalStatement, observed.eventLocator); if (JSON.stringify(observed) !== JSON.stringify(expected)) fail('receipt expands or drifts'); }
+function verifyReceipt(options) { const observed = JSON.parse(fs.readFileSync(options.receipt)), expected = receiptFor(options.gate, options.envelope, observed.approvalStatement, observed.eventLocator); if (JSON.stringify(observed) !== JSON.stringify(expected)) { fail('receipt expands or drifts'); } }
 // prettier-ignore
-function git(repo, values) { const result = spawnSync('/usr/bin/git', ['-C', repo, ...values], { encoding: 'utf8' }); if (result.status) fail(`git ${values.join(' ')} failed`); return result.stdout.trim(); }
+function git(repo, values) { const result = spawnSync('/usr/bin/git', ['-C', repo, ...values], { encoding: 'utf8' }); if (result.status) { fail(`git ${values.join(' ')} failed`); } return result.stdout.trim(); }
 // prettier-ignore
-export function verifyProtectedMain(repo, binding, mainSha, runGit = git) { const [liveSha, liveRef] = runGit(repo, ['ls-remote', '--refs', 'origin', binding.protectedRef]).split(/\s+/); if (liveSha !== mainSha || liveRef !== binding.protectedRef) fail('protected main mismatch'); }
+export function verifyProtectedMain(repo, binding, mainSha, runGit = git) { const [liveSha, liveRef] = runGit(repo, ['ls-remote', '--refs', 'origin', binding.protectedRef]).split(/\s+/); if (liveSha !== mainSha || liveRef !== binding.protectedRef) { fail('protected main mismatch'); } }
 export function initialize(options, runGit = git, install = installLedger) {
   verifyReceipt(options);
   // prettier-ignore
