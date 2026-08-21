@@ -30,8 +30,17 @@ canonical-formatter-only identities
 `9de2078147b50904f14dfc3a1053f1cffa29b6459b62795e161a86ecdf514759`, plus the
 pre-review identities
 `3281927eb48fbbc5840e036510784aea76b7f3b563e4acdf52fcd721f278ce46` and
-`0ec7ad7bfb146e57e5754337897a7322c0ce22a3be6c079a41f25578ea9dadb7`, are superseded,
-have no approval effect, and must never be materialized or approved.
+`0ec7ad7bfb146e57e5754337897a7322c0ce22a3be6c079a41f25578ea9dadb7`, plus the
+merge-topology-invalid identities
+`3780375e7785e950abb60157a6a7803cfa5d40a92c34c3c625d20a91f1f90848` and
+`202f0fb34dc23db9b00fedb6dad45cf2984ed43766686efa27b312a22775d5cc`, plus the
+closeout/CD-incomplete identities
+`35f5cba3e2419836440c4a9ed137bb157dfbb8e56800123b21215f83117368da` and
+`b3619280b1653a3e210d01ed8f67aadd793815d7a604065f9f19c3a729d13e88`, plus the
+all-event-CD-conflict-incomplete identities
+`9605838e5011c919f07399bae6931e7461eaa2e198381dd02b8226e3ee3f5013` and
+`b26cac80c0123a0941892797f7be7df46602a1e2b928a499d0f9f918ea375764`, are superseded,
+have no current approval effect, and must not be newly materialized, merged, or relied upon.
 
 ## One program outcome
 
@@ -74,26 +83,33 @@ merge, exact-main health, CD containment, and cleanup must pass. Its only succes
 transition is `awaiting_runtime_authority` for `IDA-CI01-PR-UNIT-SHADOW-A1`, with
 `runtime_authorized:false`; no branch or implementation worker may start.
 
-Phase A has an explicit docs-only tree-equivalent main-health contract. The protected-main CI
-workflow intentionally ignores `docs/**` and `scripts/repo-size-budget.json` on `push`, and the
-repository contract test preserves that policy. Therefore absence of a CI run for the Phase-A
-merge SHA is expected only when all of the following are proven:
+Phase A and the later A1 closeout have an explicit governance-only tree-equivalent main-health
+contract. The protected-main CI workflow intentionally ignores `docs/**` and
+`scripts/repo-size-budget.json` on `push`, and the repository contract test preserves that policy.
+Therefore absence of a CI run for either governance-only squash SHA is expected only when all of
+the following are proven:
 
-1. the Phase-A diff contains only its five permitted authority writers;
-2. protected main still equals the approved base immediately before merge;
-3. the merge commit has that base as first parent, the exact reviewed PR head as second parent,
-   and a tree byte-identical to the reviewed PR head tree;
-4. all required exact-head PR checks, CodeQL, Sonar, secret/security checks, governance audits,
+1. the diff contains only the applicable exact writer map: Phase A's five authority writers or A1
+   closeout's sanitized evidence, current program, current tracker, and conditional size metadata;
+2. protected main still equals that PR's exact approved base immediately before merge;
+3. the repository's squash-only settings remain enabled, and the exact-head merge mutation uses
+   `mergeMethod:SQUASH` plus the reviewed head as `expectedHeadOid`;
+4. the returned squash commit has exactly one parent equal to the approved base and a tree
+   byte-identical to the exact reviewed PR head tree;
+5. all required exact-head PR checks, CodeQL, Sonar, secret/security checks, governance audits,
    and reviews are terminal green with zero actionable or unresolved feedback;
-5. the exact-head PR proves the unchanged docs-only main-push exclusion contract; and
-6. after merge, protected main equals the returned merge SHA and the recorded parent/tree
-   identities still match.
+6. the exact-head PR proves the unchanged docs-only main-push exclusion contract;
+7. after merge, protected main equals the returned squash SHA and the recorded PR, reviewed-head,
+   sole-parent, and tree identities still match; and
+8. the matching post-merge Secret Scan, both configured dynamic CodeQL push analyses, and Sonar
+   Main Gate finish successfully. A main-push CI run is expected to be absent; if one exists, it
+   must also finish green.
 
-That complete tree-equivalent receipt is Phase A's exact-main health proof; it is not a general
-main-check reuse primitive and cannot be used by A1 implementation or A1 closeout. Any changed
-path outside the Phase-A writer map, base drift, non-matching parent or tree, missing exact-head
-signal, unexpected main-push run, or failed signal is exact-main health failure. If a main-push CI
-run nevertheless exists for the merge SHA, it must also finish green.
+That complete receipt is the exact-main health proof for Phase A and A1 closeout only. It is not a
+general main-check reuse primitive and cannot be used by A1 implementation. Any changed path
+outside the applicable writer map, base drift, merge-setting drift, non-squash merge, stale
+`expectedHeadOid`, non-single or non-matching parent, tree mismatch, missing exact-head or
+post-merge signal, unexpected main-push CI result, or failed signal is exact-main health failure.
 
 Any protected-main/base drift before Phase A materialization invalidates every candidate byte and
 hash. Stop, re-audit, rebind, reformat, re-review, and refreeze from the new protected main. Silent
@@ -143,7 +159,9 @@ One separate closeout PR is mandatory after the A1 implementation merge. Its onl
 
 Both success and failure closeout are preauthorized by this gate. They require exact evidence and
 normal PR review/checks, but no extra strategic approval. The closeout contains sanitized IDs,
-hashes, dispositions, main-health/CD/cleanup evidence, and no secrets or raw logs.
+hashes, dispositions, main-health/CD/cleanup evidence, and no secrets or raw logs. Success closeout
+requires frozen green S1, S2, and S3; failure closeout requires a named preauthorized failure class
+and preserves the incomplete or failed evidence disposition.
 
 ### A2 remains independently gated
 
@@ -232,8 +250,8 @@ needed; otherwise it remains byte-identical. The new completeness behavior belon
 ### A2 admission preconditions
 
 A2 has no current writer authority. Its independent V1 admission and exact-main binding are
-drafted only after A1 is merged, exact merged main is healthy, all A1 receipts are durable, and S3
-records `PASS` with:
+drafted only after A1 success closeout is merged, that exact closeout main is healthy, all A1
+receipts are durable, and S3 records `PASS` with:
 
 - zero full-suite failures missed;
 - 100% full fallback for every declared unsafe category;
@@ -311,15 +329,29 @@ limited to the admitted A1 writer map.
 
 Phase A authority, A1 implementation, and A1 closeout each use the same bounded success contract:
 
-1. Before merge, pre-arm a GitHub control-plane watcher for the merge API's returned exact SHA.
-2. The watcher may identify and cancel only the `cd.yml` `push`/`main` run whose `head_sha` equals
-   that exact merge SHA. It may not dispatch, approve, rerun, or mutate any other run or provider.
-3. Cancellation must occur before runner assignment, before any step starts, and before any
-   provider action. Success requires the matching run to reach terminal `cancelled`, every job to
-   report null runner identity, and every job to expose an empty step list.
-4. A missing matching run at the bounded observation deadline, cancellation failure, runner
-   assignment, non-empty step list, or provider effect makes containment unproven or failed and
-   enters the incident failure class below.
+1. Read-only preflight through the repository runners API must show no online runner matching both
+   `self-hosted` and `interdomestik-z620-staging`. The workflow-runs API must show zero `cd.yml` runs
+   whose status is anything other than terminal `completed`, across every event and ref; because
+   every `cd.yml` invocation shares one repository-wide canonical staging concurrency group, that
+   all-event/all-status workflow query is the observable conflict proof. Any match blocks merge.
+2. Before merge, pre-arm one GitHub control-plane watcher bound to the exact PR number, approved
+   base, reviewed head, and the squash merge mutation's returned exact SHA. It polls the runner
+   inventory and all-event `cd.yml` workflow inventory once per second for at most 120 seconds. No
+   nonterminal run is allowed before the mutation returns; afterward, the returned squash SHA's
+   exact `push`/`main` run is the sole allowed nonterminal run. Any other nonterminal run or any
+   identity or runner-readiness drift stops containment.
+3. The merge mutation must use `mergeMethod:SQUASH` and `expectedHeadOid` equal to the reviewed
+   head. The watcher may cancel only the `cd.yml` `push`/`main` run whose `head_sha` equals the
+   returned squash SHA; it may not dispatch, approve, rerun, or mutate any other run or provider.
+4. Cancellation must occur before runner assignment, before any step starts, and before any
+   provider action. Success requires terminal `cancelled`; every job must expose `steps:[]` and a
+   GitHub unassigned-runner sentinel: `runner_id` null or `0`, `runner_name` null or empty, and
+   `runner_group_id` null or `0`. These raw sentinel values normalize to runner identity null;
+   `started_at` alone is not assignment evidence.
+5. A missing exact run by 120 seconds, merge/head/base drift, a newly capable runner, any other
+   nonterminal `cd.yml` run across any event/ref/status, cancellation failure, assigned runner,
+   non-empty step list, or provider effect makes containment unproven or failed and enters the
+   incident failure class below.
 
 This cancellation is containment only. It grants no deployment authority and proves no deployment
 or provider mutation is allowed.
@@ -330,22 +362,32 @@ For each merge, success requires exact-merge-main required health, the CD contai
 no provider mutation, cleanup of only that merge's fresh branch/worktree, and branch-hygiene proof
 showing no stale program branch or worktree remains:
 
+| Merge             | Required exact-main health                                                                                                                                                                            |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase A authority | Governance-only tree equivalence; exact-head PR gates/reviews; post-merge Secret Scan, both dynamic CodeQL analyses, Sonar Main Gate; expected main CI absence; contained CD                          |
+| A1 implementation | Exact main CI including full unit/coverage and release units plus its required audit/static/E2E contracts; Secret Scan, both dynamic CodeQL analyses, Sonar Main Gate; contained CD                   |
+| A1 closeout       | Governance-only tree equivalence against the four-path closeout map; exact-head PR gates/reviews; post-merge Secret Scan, both dynamic CodeQL analyses, Sonar Main Gate; expected main CI absence; CD |
+
 | Merge             | Required canonical resolver state after cleanup                                                                                                            |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Phase A authority | `awaiting_runtime_authority`; `runtime_authorized:false`; `activeSlice:null`; A1 runtime and every successor blocked pending exact R1 approval             |
 | A1 implementation | `runtime_authorized:false`; `activeSlice:null`; A2 and every successor blocked; A1 closeout required                                                       |
 | A1 closeout       | `runtime_authorized:false`; `activeSlice:null`; `blocked_requires_current_authority`; A2 blocked pending independent exact-main admission/runtime approval |
 
-The cleanup receipt binds the exact merge SHA, main-health run IDs, terminal CD cancellation state,
-runner-null/steps-empty observations, deleted branch/worktree identities, branch-hygiene result, and
-the canonical resolver state. Cleanup never mutates a deployment or external provider.
+The cleanup receipt binds the exact squash SHA, base/head/sole-parent/tree identities, main-health
+run IDs, terminal CD cancellation state, raw and normalized runner-unassigned/steps-empty
+observations, deleted branch/worktree identities, branch-hygiene result, and the canonical resolver
+state. Cleanup never mutates a deployment or external provider.
 
 ### A1 and A2 success boundaries
 
-After the A1 closeout merges and exact main is healthy, A1 evidence collection may continue, but it
-grants no A2 authority. Only a later S3-backed, independently admitted and approved A2 may request
-promotion. After A2 eventually closes successfully, `runtime_authorized:false`, `activeSlice:null`,
-and all successors blocked are terminal; no third tranche is selectable from this gate.
+After the A1 implementation merges and exact main is healthy, shadow evidence collection continues
+with full PR unit still required. A1 success closeout may merge only after S1, S2, and S3 are frozen
+and green; a failure closeout may merge earlier when a preauthorized failure class applies. Neither
+closeout grants A2 authority. Only a later S3-backed, independently admitted and approved A2 may
+request promotion. After A2 eventually closes successfully, `runtime_authorized:false`,
+`activeSlice:null`, and all successors blocked are terminal; no third tranche is selectable from
+this gate.
 
 ### Authority or convergence failure after Phase A, A1 implementation, or A1 closeout
 
@@ -356,21 +398,22 @@ incident repair. No automatic retry or inferred promotion is allowed.
 
 ### Exact-main health failure after Phase A, A1 implementation, or A1 closeout
 
-If any required current-main unit, coverage, security, RLS, release, CI-contract, E2E, Pilot,
-finalizer, CodeQL, Sonar, or branch-protection signal fails or is missing, preserve the exact head,
-run IDs, receipts, and logs. Merge the preauthorized sanitized failure closeout when safe. At most
-one separately reviewed mechanical exact-revert PR may contain the implementation merge only while
-it is the most recent merge touching its writer paths. Revert is containment, not closeout; all
+If any signal required by the merge-specific health matrix above fails or is missing, preserve the
+exact base, reviewed head, squash SHA, tree, run IDs, receipts, and logs. A skipped or absent
+main-push CI is expected only for the two governance-only writer maps; it is failure for A1
+implementation. Merge the preauthorized sanitized failure closeout when safe. At most one
+separately reviewed mechanical exact-revert PR may contain the implementation merge only while it
+is the most recent merge touching its writer paths. Revert is containment, not closeout; all
 successors remain blocked until canonical failure closure merges.
 
 ### CD or provider-containment failure
 
-If the matching `cd.yml` run is not terminal `cancelled` with runner identity null and steps empty,
-or if any deployment, repository-variable mutation, external provider call, or hidden activation
-occurs, preserve exact observed state, classify provider state as unknown, perform no provider
-cleanup mutation or automatic retry, set `runtime_authorized:false`, set `activeSlice:null`, block
-every successor, and stop for separate incident authority. Cancellation is never deployment
-authority.
+If the matching `cd.yml` run is not terminal `cancelled` with raw unassigned-runner sentinel values
+normalizing to runner identity null and `steps:[]`, or if any deployment, repository-variable
+mutation, external provider call, or hidden activation occurs, preserve exact observed state,
+classify provider state as unknown, perform no provider cleanup mutation or automatic retry, set
+`runtime_authorized:false`, set `activeSlice:null`, block every successor, and stop for separate
+incident authority. Cancellation is never deployment authority.
 
 ### Evidence or cleanup failure
 
