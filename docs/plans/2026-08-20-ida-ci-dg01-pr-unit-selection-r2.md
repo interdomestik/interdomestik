@@ -43,7 +43,7 @@ closeout/CD-incomplete identities
 `b3619280b1653a3e210d01ed8f67aadd793815d7a604065f9f19c3a729d13e88`, plus the
 all-event-CD-conflict-incomplete identities
 `9605838e5011c919f07399bae6931e7461eaa2e198381dd02b8226e3ee3f5013` and
-`b26cac80c0123a0941892797f7be7df46602a1e2b928a499d0f9f918ea375764`, plus the materialized
+`b26cac80c0123a0941892797f7be7df46602a1e2b928a499d0f9f918ea375764`, are superseded.
 The materialized R1 gate `a6def1ddceb5b7e0fa0e08dbcce9045f4500e612643437f3e1a51c04843f9514`,
 admission `92a68b8d2626686c905e9010220291c4afb8a480e1372cf9817ed76ac7427f02`, and
 runtime receipt `488c6f9785dcc25e40e806f5fd21d640e114917f62b8fd86e68d9cf64c8a47f5`
@@ -130,20 +130,20 @@ rebase, merge-forward, or SHA substitution is forbidden.
 Only after the exact Phase-A tree-equivalent main-health receipt may the content-addressed A1
 runtime receipt be drafted at
 `docs/plans/2026-08-20-ida-ci-pr-unit-shadow-a1-runtime-receipt-r2.json`. It must bind the exact
-Phase-A merge/main SHA, the canonical gate and admission hashes, the admitted writer maps, and the
+returned R2 rebind merge/main SHA, the canonical gate and admission hashes, the admitted writer maps, and the
 preimplementation canaries. Separate byte-exact human approval of that receipt is mandatory.
 
-Protected `main` must still equal the exact Phase-A merge/main SHA independently at three
-checkpoints: before R1 drafting, immediately before byte-exact R1 approval, and immediately before
+Protected `main` must still equal the returned R2 rebind merge/main SHA independently at three
+checkpoints: before R2 drafting, immediately before byte-exact R2 approval, and immediately before
 fresh A1 child/worktree/branch creation. Any mismatch stops A1 before runtime authority or writer
 creation; re-audit the intervening main changes, rebind and refreeze the affected authority bytes,
 and repeat required review/approval from the new exact main. Silent rebase, stale-main branch
 creation, merge-forward, or SHA substitution is forbidden.
 
-That exact R1 approval is the only transition to `active_implementation` with
+That exact R2 approval is the only transition to `active_implementation` with
 `runtime_authorized:true`. The A1 admission is readiness evidence only and grants no implementation
-authority. Only after R1 approval may one fresh child worktree and one fresh branch be created from
-the approved exact Phase-A main; that child is the sole semantic writer. The detached audit
+authority. Only after R2 approval may one fresh child worktree and one fresh branch be created from
+the returned exact R2 rebind main; that child is the sole semantic writer. The detached audit
 worktree and its prototype remain provenance only.
 
 ### R2 corrective authority rebind
@@ -351,7 +351,7 @@ limited to the admitted A1 writer map.
 
 ### Exact-SHA CD containment for every admitted merge
 
-Phase A authority, A1 implementation, and A1 closeout each use the same bounded success contract:
+Phase A authority, R2 authority rebind, A1 implementation, and A1 closeout each use the same bounded success contract:
 
 1. Read-only preflight through the repository runners API must show no online runner matching both
    `self-hosted` and `interdomestik-z620-staging`. The workflow-runs API must show zero `cd.yml` runs
@@ -386,11 +386,12 @@ For each merge, success requires exact-merge-main required health, the CD contai
 no provider mutation, cleanup of only that merge's fresh branch/worktree, and branch-hygiene proof
 showing no stale program branch or worktree remains:
 
-| Merge             | Required exact-main health                                                                                                                                                                            |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Phase A authority | Governance-only tree equivalence; exact-head PR gates/reviews; post-merge Secret Scan, both dynamic CodeQL analyses, Sonar Main Gate; expected main CI absence; contained CD                          |
-| A1 implementation | Exact main CI including full unit/coverage and release units plus its required audit/static/E2E contracts; Secret Scan, both dynamic CodeQL analyses, Sonar Main Gate; contained CD                   |
-| A1 closeout       | Governance-only tree equivalence against the four-path closeout map; exact-head PR gates/reviews; post-merge Secret Scan, both dynamic CodeQL analyses, Sonar Main Gate; expected main CI absence; CD |
+| Merge               | Required exact-main health                                                                                                                                                                            |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase A authority   | Governance-only tree equivalence; exact-head PR gates/reviews; post-merge Secret Scan, both dynamic CodeQL analyses, Sonar Main Gate; expected main CI absence; contained CD                          |
+| R2 authority rebind | Governance-only tree equivalence; exact-head PR gates/reviews; post-merge Secret Scan, both dynamic CodeQL analyses, Sonar Main Gate; expected main CI absence; contained CD                          |
+| A1 implementation   | Exact main CI including full unit/coverage and release units plus its required audit/static/E2E contracts; Secret Scan, both dynamic CodeQL analyses, Sonar Main Gate; contained CD                   |
+| A1 closeout         | Governance-only tree equivalence against the four-path closeout map; exact-head PR gates/reviews; post-merge Secret Scan, both dynamic CodeQL analyses, Sonar Main Gate; expected main CI absence; CD |
 
 | Merge               | Required canonical resolver state after cleanup                                                                                                            |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |

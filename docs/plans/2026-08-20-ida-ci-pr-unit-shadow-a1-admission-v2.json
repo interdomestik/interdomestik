@@ -41,8 +41,8 @@
       "baseSha": "faae32d2af477c44d2f2fed6ad36151d08b8ea8d",
       "kind": "authority-pr-only",
       "writers": [
-        "docs/plans/2026-08-20-ida-ci-dg01-pr-unit-selection-r2.md",
-        "docs/plans/2026-08-20-ida-ci-pr-unit-shadow-a1-admission-v2.json",
+        "docs/plans/2026-08-20-ida-ci-dg01-pr-unit-selection.md",
+        "docs/plans/2026-08-20-ida-ci-pr-unit-shadow-a1-admission-v1.json",
         "docs/plans/current-program.md",
         "docs/plans/current-tracker.md",
         "scripts/repo-size-budget.json (conditional; unchanged generator output only)"
@@ -51,17 +51,17 @@
       "runtime_authorized": false,
       "semanticRuntimeWorkAllowed": false
     },
-    "baseDriftPolicy": "Any protected-main/base drift before Phase A materialization stops the program for re-audit, rebind, reformat, re-review, and byte refreeze. After Phase A, protected main must independently equal the exact Phase-A merge/main SHA before R1 drafting, immediately before byte-exact R1 approval, and immediately before fresh A1 child/worktree/branch creation. Any mismatch stops before runtime authority or writer creation and requires intervening-main audit plus affected authority rebind, refreeze, review, and approval from the new exact main. Silent rebase, stale-main branch creation, merge-forward, or SHA substitution is forbidden.",
+    "baseDriftPolicy": "Any protected-main/base drift before R2 materialization stops the program for re-audit, rebind, reformat, re-review, and byte refreeze. After R2, protected main must independently equal the returned exact R2 rebind merge/main SHA before R2 runtime-receipt drafting, immediately before byte-exact R2 approval, and immediately before fresh A1 child/worktree/branch creation. Any mismatch stops before runtime authority or writer creation and requires intervening-main audit plus affected authority rebind, refreeze, review, and approval from the new exact main. Silent rebase, stale-main branch creation, merge-forward, or SHA substitution is forbidden.",
     "a1RuntimeAuthority": {
       "canonicalReceiptPath": "docs/plans/2026-08-20-ida-ci-pr-unit-shadow-a1-runtime-receipt-r2.json",
-      "prerequisite": "Exact Phase-A docs-only tree-equivalent main health, successful exact-SHA CD containment, cleanup, and content-addressed receipt binding the Phase-A main SHA plus canonical gate/admission hashes.",
+      "prerequisite": "Exact R2 governance-only tree-equivalent main health, successful exact-SHA CD containment, cleanup, and content-addressed receipt binding the returned R2 rebind main SHA plus canonical gate/admission hashes.",
       "approval": "Separate byte-exact human approval of R2 is mandatory.",
       "onlyAuthorizedTransition": "active_implementation with runtime_authorized:true",
-      "freshWriterRequirement": "Only after R2 approval may one fresh child worktree and branch from the approved exact Phase-A main become the sole semantic writer; the detached prototype is provenance only."
+      "freshWriterRequirement": "Only after R2 approval may one fresh child worktree and branch from the returned exact R2 rebind main become the sole semantic writer; the detached prototype is provenance only."
     },
     "governanceOnlyMainHealth": {
       "kind": "docs-only-tree-equivalent",
-      "appliesTo": ["Phase A authority", "A1 closeout"],
+      "appliesTo": ["Phase A authority", "R2 authority rebind", "A1 closeout"],
       "whyNoPushRun": "The protected-main CI workflow intentionally ignores docs/** and scripts/repo-size-budget.json on push, and the repository contract test preserves that policy.",
       "requiredProof": [
         "diff contains only the applicable exact writer map: Phase A's five authority writers or A1 closeout's sanitized evidence, current program, current tracker, and conditional size metadata",
@@ -74,7 +74,7 @@
         "matching post-merge Secret Scan, both configured dynamic CodeQL push analyses, and Sonar Main Gate finish successfully"
       ],
       "classification": "Absence of a squash-SHA main-push CI run is expected only for the two governance-only writer maps when every required proof is green. If a matching run exists, it must finish green.",
-      "scope": "Phase A authority and A1 closeout only; not a general main-check reuse primitive and forbidden for A1 implementation.",
+      "scope": "Phase A authority, R2 authority rebind, and A1 closeout only; not a general main-check reuse primitive and forbidden for A1 implementation.",
       "failClosed": "Any extra writer, base drift, merge-setting drift, non-squash merge, stale expectedHeadOid, non-single or non-matching parent, tree mismatch, missing exact-head or post-merge signal, unexpected main-push CI result, or failed signal is exact-main health failure."
     },
     "a1ImplementationGovernanceWriters": [
@@ -453,9 +453,14 @@
     "staleHeadAction": "cancel",
     "runnerReadiness": "connected_and_listening"
   },
-  "firstImplementationAction": "Only after separate byte-exact approval of the canonical R2 runtime receipt, create one fresh A1 child from the approved exact Phase-A main, verify it is clean and exact-head bound, replay the exploratory RED test patch only as uncommitted provenance, refactor every new or modified test to <=150 physical lines with readable, non-minified formatting before any commit, and run focused selector/coverage contracts before writing or transferring production helpers.",
+  "firstImplementationAction": "Only after separate byte-exact approval of the canonical R2 runtime receipt, create one fresh A1 child from the returned exact R2 rebind main, verify it is clean and exact-head bound, replay the exploratory RED test patch only as uncommitted provenance, refactor every new or modified test to <=150 physical lines with readable, non-minified formatting before any commit, and run focused selector/coverage contracts before writing or transferring production helpers.",
   "cdContainment": {
-    "appliesToMerges": ["Phase A authority", "A1 implementation", "A1 closeout"],
+    "appliesToMerges": [
+      "Phase A authority",
+      "R2 authority rebind",
+      "A1 implementation",
+      "A1 closeout"
+    ],
     "preMerge": "Read-only repository-runners API preflight requires no online runner matching both self-hosted and interdomestik-z620-staging. The workflow-runs API requires zero cd.yml runs whose status is anything other than terminal completed, across every event and ref; because every cd.yml invocation shares one repository-wide canonical staging concurrency group, that all-event/all-status workflow query is the observable conflict proof. Pre-arm one watcher bound to exact PR/base/reviewed-head identities.",
     "watcher": "Poll the runner inventory and all-event cd.yml workflow inventory once per second for at most 120 seconds. No nonterminal run is allowed before the mutation returns; afterward, only the returned squash SHA's exact push/main run may be nonterminal. Stop on any other nonterminal run, identity drift, or runner-readiness drift. Accept only the squash merge mutation result created with mergeMethod:SQUASH and exact expectedHeadOid.",
     "allowedAction": "Identify and cancel only the cd.yml push/main run whose head_sha equals the returned squash SHA, before runner assignment, step start, or provider action; never dispatch, approve, rerun, or mutate another run or provider.",
@@ -465,11 +470,12 @@
   },
   "postMergeHealthMatrix": {
     "phaseA": "Governance-only tree equivalence; exact-head PR gates/reviews; post-merge Secret Scan, both dynamic CodeQL analyses, Sonar Main Gate; expected main CI absence; contained CD.",
+    "r2AuthorityRebind": "Governance-only tree equivalence; exact-head PR gates/reviews; post-merge Secret Scan, both dynamic CodeQL analyses, Sonar Main Gate; expected main CI absence; contained CD.",
     "a1Implementation": "Exact main CI including full unit/coverage and release units plus required audit/static/E2E contracts; Secret Scan, both dynamic CodeQL analyses, Sonar Main Gate; contained CD.",
     "a1Closeout": "Governance-only tree equivalence against the four-path closeout map; exact-head PR gates/reviews; post-merge Secret Scan, both dynamic CodeQL analyses, Sonar Main Gate; expected main CI absence; contained CD."
   },
   "normalSuccessCleanup": {
-    "common": "Require the merge-specific exact-main health matrix (using governance-only tree equivalence for Phase A and A1 closeout, never A1 implementation), successful CD containment, no provider mutation, cleanup of only the fresh branch/worktree, branch-hygiene proof, and a canonical resolver receipt.",
+    "common": "Require the merge-specific exact-main health matrix (using governance-only tree equivalence for Phase A, R2 authority rebind, and A1 closeout, never A1 implementation), successful CD containment, no provider mutation, cleanup of only the fresh branch/worktree, branch-hygiene proof, and a canonical resolver receipt.",
     "phaseAResolver": "awaiting_runtime_authority; runtime_authorized:false; activeSlice:null; A1 runtime and every successor blocked pending exact R2 approval",
     "a1ImplementationResolver": "runtime_authorized:false; activeSlice:null; A2 and every successor blocked; A1 closeout required",
     "a1CloseoutResolver": "runtime_authorized:false; activeSlice:null; blocked_requires_current_authority; A2 blocked pending independent exact-main admission/runtime approval"

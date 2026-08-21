@@ -64,10 +64,10 @@ decision and none is promoted automatically.
 Separately, R2 supersedes R1 for A1 execution after R1 omitted the required Z620 parity-digest
 writer. The exact-approved
 [`IDA-CI-DG01-PR-UNIT-SELECTION-R2`](./2026-08-20-ida-ci-dg01-pr-unit-selection-r2.md) is
-30,081 bytes / SHA-256 `6a8392c40db07347dd8eac044b5f029521d0e6fea6a5de9e1c3668aaa4feebf4`;
+30,348 bytes / SHA-256 `5f5700cc19717e5519979b3d5d4f492c29cb0cbfffaafdceac94ed7668961ced`;
 the passing
 [`IDA-CI01-PR-UNIT-SHADOW-A1-ADMISSION-V2`](./2026-08-20-ida-ci-pr-unit-shadow-a1-admission-v2.json)
-is 32,999 bytes / SHA-256 `d9a6d8bbf9400dde773fe1ff4e5794b6b6140ec796a151940b0322f4d5031ccf`.
+is 33,351 bytes / SHA-256 `b2f681f1834b2b7be0316f086f5d1d72e47ad0ca03511ba9924bf1c05274a368`.
 Both are bound to `main@ca91e67e0535c96a94e55d6dde12716823172e26`.
 
 R2 promotes only `IDA-CI01-PR-UNIT-SHADOW-A1` (Tier 3) to
