@@ -1,11 +1,15 @@
 import assert from 'node:assert/strict';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 // prettier-ignore
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { installLedger, resolveLedger } from './approval-envelope-bootstrap.mjs';
+import {
+  installLedger,
+  resolveLedger,
+  verifyProtectedMain,
+} from './approval-envelope-bootstrap.mjs';
 const root = new URL('..', import.meta.url).pathname;
 const script = join(root, 'scripts/approval-envelope-bootstrap.mjs');
 const gate = join(root, 'docs/plans/2026-08-21-ida-wf-dg01-one-approval-delivery-protocol.md');
@@ -30,7 +34,6 @@ function generate(output) {
     '--event-locator', locator, '--approval-statement', approval]);
 }
 function ledgerState() {
-  // Focused fixture groups immutable identity fields without reducing exercised behavior.
   // prettier-ignore
   return {
     schemaVersion: 1, programId: 'IDA-WF01-ONE-APPROVAL-DELIVERY', revision: 1,
@@ -41,30 +44,24 @@ function ledgerState() {
   };
 }
 test('generates deterministic, non-expanding bootstrap receipt', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'wf-bootstrap-'));
-  const first = join(dir, 'first.json');
-  const second = join(dir, 'second.json');
+  // prettier-ignore
+  const dir = mkdtempSync(join(tmpdir(), 'wf-bootstrap-')), first = join(dir, 'first.json'), second = join(dir, 'second.json');
   generate(first);
   generate(second);
   assert.deepEqual(readFileSync(first), readFileSync(second));
   run(['verify', '--gate', gate, '--envelope', envelope, '--receipt', first]);
-
   const receipt = JSON.parse(readFileSync(first, 'utf8'));
   assert.equal(receipt.runtimeAuthorized, false);
   assert.equal(receipt.activeSlice, null);
   assert.equal(receipt.isIndependentAuthority, false);
-  assert.equal(
-    receipt.childOrder.join('>'),
-    'B0-authority-bootstrap>B1-cd-guard>S1A-skill-authority>S1B-routing-standard>S2-mcp-identity>S3-exact-authority>S4A-terminal-delivery>S4B-reviewer-policy'
-  );
+  // prettier-ignore
+  assert.equal(receipt.childOrder.join('>'), 'B0-authority-bootstrap>B1-cd-guard>S1A-skill-authority>S1B-routing-standard>S2-mcp-identity>S3-exact-authority>S4A-terminal-delivery>S4B-reviewer-policy');
 });
-
 test('fails closed on artifact, approval, expansion, or future-merge claims', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'wf-bootstrap-negative-'));
-  const receiptPath = join(dir, 'receipt.json');
+  // prettier-ignore
+  const dir = mkdtempSync(join(tmpdir(), 'wf-bootstrap-negative-')), receiptPath = join(dir, 'receipt.json');
   generate(receiptPath);
   const original = JSON.parse(readFileSync(receiptPath, 'utf8'));
-
   const cases = [
     { ...original, approvalStatement: `${original.approvalStatement} expanded` },
     { ...original, futureMergeSha: '0'.repeat(40) },
@@ -80,12 +77,10 @@ test('fails closed on artifact, approval, expansion, or future-merge claims', ()
     writeFileSync(candidate, `${JSON.stringify(value, null, 2)}\n`);
     run(['verify', '--gate', gate, '--envelope', envelope, '--receipt', candidate], 1);
   }
-
   const badGate = join(dir, 'gate.md');
   writeFileSync(badGate, `${readFileSync(gate, 'utf8')}\n`);
   run(['verify', '--gate', badGate, '--envelope', envelope, '--receipt', receiptPath], 1);
 });
-
 test('rejects a human statement that does not bind all approved identities', () => {
   const dir = mkdtempSync(join(tmpdir(), 'wf-bootstrap-statement-'));
   // prettier-ignore
@@ -94,22 +89,23 @@ test('rejects a human statement that does not bind all approved identities', () 
     '--approval-statement', approval.replace('42,210', '42,211')], 1);
   assert.match(result.stderr, /approval statement/i);
 });
-
 test('installs one fsync-backed consumed B0 state and activates only B1', () => {
-  const authorityRoot = join(mkdtempSync(join(tmpdir(), 'wf-ledger-')), 'authority');
-  const state = ledgerState();
-  const installed = installLedger(authorityRoot, state);
+  // prettier-ignore
+  const authorityRoot = join(mkdtempSync(join(tmpdir(), 'wf-ledger-')), 'authority'), state = ledgerState(), installed = installLedger(authorityRoot, state);
   assert.equal(resolveLedger(authorityRoot).activeSlice, 'B1-cd-guard');
   assert.equal(statSync(join(authorityRoot, 'authority-v1.json')).mode & 0o777, 0o600);
-  assert.equal(
-    statSync(join(authorityRoot, 'receipts', `${installed.operationSha256}.json`)).mode & 0o777,
-    0o600
-  );
+  // prettier-ignore
+  assert.equal(statSync(join(authorityRoot, 'receipts', `${installed.operationSha256}.json`)).mode & 0o777, 0o600);
   const lock = join(authorityRoot, 'authority-v1.json.lock');
   writeFileSync(lock, `${installed.operationSha256}\n`, { mode: 0o600 });
+  assert.equal(resolveLedger(authorityRoot).reason, 'incomplete_operation');
   assert.equal(installLedger(authorityRoot, state).operationSha256, installed.operationSha256);
   assert.equal(existsSync(lock), false);
   assert.throws(() => installLedger(authorityRoot, state), /already initialized/i);
+  const statePath = join(authorityRoot, 'authority-v1.json');
+  const tampered = { ...JSON.parse(readFileSync(statePath, 'utf8')), baseSha: '9'.repeat(40) };
+  writeFileSync(statePath, `${JSON.stringify(tampered, null, 2)}\n`, { mode: 0o600 });
+  assert.equal(resolveLedger(authorityRoot).reason, 'invalid_state');
 });
 test('classified recovery finishes an exact temporary postimage', () => {
   const root = join(mkdtempSync(join(tmpdir(), 'wf-ledger-recovery-')), 'authority');
@@ -121,7 +117,6 @@ test('classified recovery finishes an exact temporary postimage', () => {
   assert.equal(installLedger(root, state).operationSha256, installed.operationSha256);
   assert.equal(resolveLedger(root).activeSlice, 'B1-cd-guard');
 });
-
 test('resolver fails closed on missing, locked, temporary, or unknown state', () => {
   const root = join(mkdtempSync(join(tmpdir(), 'wf-ledger-negative-')), 'authority');
   // prettier-ignore
@@ -131,9 +126,8 @@ test('resolver fails closed on missing, locked, temporary, or unknown state', ()
   assert.equal(resolveLedger(root).reason, 'incomplete_operation');
   const other = join(mkdtempSync(join(tmpdir(), 'wf-ledger-unknown-')), 'authority');
   mkdirSync(other, { recursive: true });
-  writeFileSync(join(other, 'authority-v1.json'), '{"schemaVersion":1,"status":"mystery"}\n', {
-    mode: 0o600,
-  });
+  // prettier-ignore
+  writeFileSync(join(other, 'authority-v1.json'), '{"schemaVersion":1,"status":"mystery"}\n', { mode: 0o600 });
   assert.equal(resolveLedger(other).reason, 'invalid_state');
   const link = join(mkdtempSync(join(tmpdir(), 'wf-ledger-link-')), 'authority');
   symlinkSync(other, link);
@@ -147,4 +141,10 @@ test('resolver fails closed on missing, locked, temporary, or unknown state', ()
   mkdirSync(lockLinkRoot);
   symlinkSync(join(other, 'authority-v1.json'), join(lockLinkRoot, 'authority-v1.json.lock'));
   assert.throws(() => installLedger(lockLinkRoot, ledgerState()), /unsafe authority path/);
+});
+test('protected-main verification rejects a local child while the live ref remains at base', () => {
+  // prettier-ignore
+  const returnedMain = '2'.repeat(40), binding = { protectedRef: 'refs/heads/main' }, staleGit = () => `7fb7180aafadf91b79ec37f5daeebaa85bc86ff2\t${binding.protectedRef}`;
+  // prettier-ignore
+  assert.throws(() => verifyProtectedMain('/repo', binding, returnedMain, staleGit), /protected main mismatch/i);
 });
