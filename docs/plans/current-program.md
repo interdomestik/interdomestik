@@ -63,11 +63,11 @@ decision and none is promoted automatically.
 
 Separately, Arben exact-approved
 [`IDA-CI-DG01-PR-UNIT-SELECTION-R1`](./2026-08-20-ida-ci-dg01-pr-unit-selection.md)
-at 22,427 bytes / SHA-256
-`3281927eb48fbbc5840e036510784aea76b7f3b563e4acdf52fcd721f278ce46` and the passing
+at 24,114 bytes / SHA-256
+`3780375e7785e950abb60157a6a7803cfa5d40a92c34c3c625d20a91f1f90848` and the passing
 [`IDA-CI01-PR-UNIT-SHADOW-A1-ADMISSION-V1`](./2026-08-20-ida-ci-pr-unit-shadow-a1-admission-v1.json)
-at 27,098 bytes / SHA-256
-`0ec7ad7bfb146e57e5754337897a7322c0ce22a3be6c079a41f25578ea9dadb7`, both bound to
+at 28,801 bytes / SHA-256
+`202f0fb34dc23db9b00fedb6dad45cf2984ed43766686efa27b312a22775d5cc`, both bound to
 `main@faae32d2af477c44d2f2fed6ad36151d08b8ea8d`.
 
 Phase A promotes only `IDA-CI01-PR-UNIT-SHADOW-A1` (Tier 3) to

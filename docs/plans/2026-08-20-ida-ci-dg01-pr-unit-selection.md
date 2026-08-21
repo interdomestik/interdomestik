@@ -27,7 +27,10 @@ The earlier candidate or formatting-invalid approval identities
 `bab55e8ab8f05c66aa2665d7f4b726c5f2d64daa83807cb7b7d5470d2164a55a`, plus the
 canonical-formatter-only identities
 `409584a9f1812618fa3da66e687a2a282d8e53da5092121df8570b74354ee42f` and
-`9de2078147b50904f14dfc3a1053f1cffa29b6459b62795e161a86ecdf514759`, are superseded,
+`9de2078147b50904f14dfc3a1053f1cffa29b6459b62795e161a86ecdf514759`, plus the
+pre-review identities
+`3281927eb48fbbc5840e036510784aea76b7f3b563e4acdf52fcd721f278ce46` and
+`0ec7ad7bfb146e57e5754337897a7322c0ce22a3be6c079a41f25578ea9dadb7`, are superseded,
 have no approval effect, and must never be materialized or approved.
 
 ## One program outcome
@@ -71,13 +74,35 @@ merge, exact-main health, CD containment, and cleanup must pass. Its only succes
 transition is `awaiting_runtime_authority` for `IDA-CI01-PR-UNIT-SHADOW-A1`, with
 `runtime_authorized:false`; no branch or implementation worker may start.
 
+Phase A has an explicit docs-only tree-equivalent main-health contract. The protected-main CI
+workflow intentionally ignores `docs/**` and `scripts/repo-size-budget.json` on `push`, and the
+repository contract test preserves that policy. Therefore absence of a CI run for the Phase-A
+merge SHA is expected only when all of the following are proven:
+
+1. the Phase-A diff contains only its five permitted authority writers;
+2. protected main still equals the approved base immediately before merge;
+3. the merge commit has that base as first parent, the exact reviewed PR head as second parent,
+   and a tree byte-identical to the reviewed PR head tree;
+4. all required exact-head PR checks, CodeQL, Sonar, secret/security checks, governance audits,
+   and reviews are terminal green with zero actionable or unresolved feedback;
+5. the exact-head PR proves the unchanged docs-only main-push exclusion contract; and
+6. after merge, protected main equals the returned merge SHA and the recorded parent/tree
+   identities still match.
+
+That complete tree-equivalent receipt is Phase A's exact-main health proof; it is not a general
+main-check reuse primitive and cannot be used by A1 implementation or A1 closeout. Any changed
+path outside the Phase-A writer map, base drift, non-matching parent or tree, missing exact-head
+signal, unexpected main-push run, or failed signal is exact-main health failure. If a main-push CI
+run nevertheless exists for the merge SHA, it must also finish green.
+
 Any protected-main/base drift before Phase A materialization invalidates every candidate byte and
 hash. Stop, re-audit, rebind, reformat, re-review, and refreeze from the new protected main. Silent
 rebase, merge-forward, or SHA substitution is forbidden.
 
 ### Separate A1 runtime authority
 
-Only after exact Phase-A main health may the content-addressed A1 runtime receipt be drafted at
+Only after the exact Phase-A tree-equivalent main-health receipt may the content-addressed A1
+runtime receipt be drafted at
 `docs/plans/2026-08-20-ida-ci-pr-unit-shadow-a1-runtime-receipt-r1.json`. It must bind the exact
 Phase-A merge/main SHA, the canonical gate and admission hashes, the admitted writer maps, and the
 preimplementation canaries. Separate byte-exact human approval of that receipt is mandatory.

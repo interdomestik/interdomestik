@@ -6,14 +6,16 @@
   "baseSha": "faae32d2af477c44d2f2fed6ad36151d08b8ea8d",
   "canonicalPath": "docs/plans/2026-08-20-ida-ci-pr-unit-shadow-a1-admission-v1.json",
   "authorityArtifact": "docs/plans/2026-08-20-ida-ci-dg01-pr-unit-selection.md",
-  "authorityArtifactSha256": "3281927eb48fbbc5840e036510784aea76b7f3b563e4acdf52fcd721f278ce46",
+  "authorityArtifactSha256": "3780375e7785e950abb60157a6a7803cfa5d40a92c34c3c625d20a91f1f90848",
   "supersededCandidateIdentities": [
     "109971938b0ccb181970816f00fd1e45bcfc08441c89c0773880be04859abc4f",
     "491acd6c4963e6a70f6722f7cf3a6847dc5b7184cb7b55e00397cf2e5fc930b4",
     "bff22665b63a95b067ae8d42a92dd2612f2e544d89e020c318fa46f8cdf16348",
     "bab55e8ab8f05c66aa2665d7f4b726c5f2d64daa83807cb7b7d5470d2164a55a",
     "409584a9f1812618fa3da66e687a2a282d8e53da5092121df8570b74354ee42f",
-    "9de2078147b50904f14dfc3a1053f1cffa29b6459b62795e161a86ecdf514759"
+    "9de2078147b50904f14dfc3a1053f1cffa29b6459b62795e161a86ecdf514759",
+    "3281927eb48fbbc5840e036510784aea76b7f3b563e4acdf52fcd721f278ce46",
+    "0ec7ad7bfb146e57e5754337897a7322c0ce22a3be6c079a41f25578ea9dadb7"
   ],
   "authorityState": {
     "runtime_authorized": false,
@@ -39,10 +41,25 @@
     "baseDriftPolicy": "Any protected-main/base drift before Phase A materialization stops the program for re-audit, rebind, reformat, re-review, and byte refreeze. After Phase A, protected main must independently equal the exact Phase-A merge/main SHA before R1 drafting, immediately before byte-exact R1 approval, and immediately before fresh A1 child/worktree/branch creation. Any mismatch stops before runtime authority or writer creation and requires intervening-main audit plus affected authority rebind, refreeze, review, and approval from the new exact main. Silent rebase, stale-main branch creation, merge-forward, or SHA substitution is forbidden.",
     "a1RuntimeAuthority": {
       "canonicalReceiptPath": "docs/plans/2026-08-20-ida-ci-pr-unit-shadow-a1-runtime-receipt-r1.json",
-      "prerequisite": "Exact Phase-A merge/main health, successful exact-SHA CD containment, cleanup, and content-addressed receipt binding the Phase-A main SHA plus canonical gate/admission hashes.",
+      "prerequisite": "Exact Phase-A docs-only tree-equivalent main health, successful exact-SHA CD containment, cleanup, and content-addressed receipt binding the Phase-A main SHA plus canonical gate/admission hashes.",
       "approval": "Separate byte-exact human approval of R1 is mandatory.",
       "onlyAuthorizedTransition": "active_implementation with runtime_authorized:true",
       "freshWriterRequirement": "Only after R1 approval may one fresh child worktree and branch from the approved exact Phase-A main become the sole semantic writer; the detached prototype is provenance only."
+    },
+    "phaseAMainHealth": {
+      "kind": "docs-only-tree-equivalent",
+      "whyNoPushRun": "The protected-main CI workflow intentionally ignores docs/** and scripts/repo-size-budget.json on push, and the repository contract test preserves that policy.",
+      "requiredProof": [
+        "Phase-A diff contains only its five permitted authority writers",
+        "protected main equals the approved base immediately before merge",
+        "merge commit first parent is the approved base, second parent is the exact reviewed PR head, and merge tree is byte-identical to the reviewed PR head tree",
+        "all required exact-head PR checks, CodeQL, Sonar, secret/security checks, governance audits, and reviews are terminal green with zero actionable or unresolved feedback",
+        "the exact-head PR proves the unchanged docs-only main-push exclusion contract",
+        "protected main equals the returned merge SHA after merge and the recorded parent/tree identities still match"
+      ],
+      "classification": "Absence of a merge-SHA main-push CI run is expected only when every required proof is green. If a matching run exists, it must finish green.",
+      "scope": "Phase A only; not a general main-check reuse primitive and forbidden for A1 implementation or A1 closeout.",
+      "failClosed": "Any extra writer, base drift, parent/tree mismatch, missing exact-head signal, unexpected main-push run, or failed signal is exact-main health failure."
     },
     "a1ImplementationGovernanceWriters": [
       "docs/plans/2026-08-20-ida-ci-pr-unit-shadow-a1-runtime-receipt-r1.json",
@@ -428,7 +445,7 @@
     "deploymentAuthorityGranted": false
   },
   "normalSuccessCleanup": {
-    "common": "Require exact-merge-main health, successful CD containment, no provider mutation, cleanup of only the fresh branch/worktree, branch-hygiene proof, and a canonical resolver receipt.",
+    "common": "Require exact-merge-main health (using the explicit docs-only tree-equivalent contract for Phase A only), successful CD containment, no provider mutation, cleanup of only the fresh branch/worktree, branch-hygiene proof, and a canonical resolver receipt.",
     "phaseAResolver": "awaiting_runtime_authority; runtime_authorized:false; activeSlice:null; A1 runtime and every successor blocked pending exact R1 approval",
     "a1ImplementationResolver": "runtime_authorized:false; activeSlice:null; A2 and every successor blocked; A1 closeout required",
     "a1CloseoutResolver": "runtime_authorized:false; activeSlice:null; blocked_requires_current_authority; A2 blocked pending independent exact-main admission/runtime approval"
