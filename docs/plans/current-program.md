@@ -61,25 +61,24 @@ witnesses `OD17_READY`; Deployment Confinement, Measurement Integration, R2, `T-
 `T-117`, and `T-116` remain blocked. A future OD17 approach requires a fresh strategic
 decision and none is promoted automatically.
 
-Separately, R2 supersedes R1 for A1 execution after R1 omitted the required Z620 parity-digest
-writer. The canonical
-[`IDA-CI-DG01-PR-UNIT-SELECTION-R2`](./2026-08-20-ida-ci-dg01-pr-unit-selection-r2.md) is
-30,529 bytes / SHA-256 `d4ac2815f7d3132527cd5d281edc91d5224eec209b68ac2a83e044d4633c46d5`;
+Separately, R3 supersedes the R2 A1 runtime path after pre-PR proof found two admission defects:
+the prototype exceeded the repository modularity policy and standalone `unit` was not a protected
+required context. The exact-approved
+[`IDA-CI-DG01-A1-FEASIBILITY-REPAIR-R3`](./2026-08-21-ida-ci-dg01-a1-feasibility-repair-r3.md)
+is 6,945 bytes / SHA-256 `1ee8ca30ccc1f56f3e1aa35827d82ed3726351d86f7ec2d40111e1fee313d1fe`;
 the passing
-[`IDA-CI01-PR-UNIT-SHADOW-A1-ADMISSION-V2`](./2026-08-20-ida-ci-pr-unit-shadow-a1-admission-v2.json)
-is 33,514 bytes / SHA-256 `cc504ebb77d5990a2646620290a9d850e41996b637238be553bf02bf18f4c904`.
-PR #1608 merged reviewed head `59eb752736c2868c995f7ae4d62d3236d221e4c2` to protected
-`main@eaa9bd108f29ce386b185c46b8474ee1c3747774`. Exact main health and CD containment
-passed, but proof-ledger identity and R2 branch/worktree cleanup remained open. The exact-approved
-[`IDA-CI-DG01-R2-CURRENT-AUTHORITY-REPAIR-R1`](./2026-08-21-ida-ci-dg01-r2-current-authority-repair-r1.md),
-13,198 bytes / SHA-256 `762085e8ec7cc652a29afc42d47a068e2edc2e78e74e8bb22d2b6e0bb79bdac6`,
-owns only those convergence debts.
+[`IDA-CI01-PR-UNIT-SHADOW-A1-ADMISSION-V3`](./2026-08-21-ida-ci-pr-unit-shadow-a1-admission-v3.json)
+is 36,155 bytes / SHA-256 `54f80ced63e355cdd447fbe34e2abb3ee3564a2ed880369d793892102608ad4c`,
+both bound to `main@7fb7180aafadf91b79ec37f5daeebaa85bc86ff2`.
 
-CI01 A1 remains `awaiting_runtime_authority`, `runtime_authorized:false`,
-`activeSlice:null`. Only after the repair's returned main passes exact health, containment,
-cleanup, and hygiene may a separately drafted, byte-exact approved A1 runtime receipt bind that
-returned main. No semantic implementation, prototype transfer, test skipping, provider/runtime
-operation, or A2 activation is authorized before that receipt executes.
+R3 authorizes only governance convergence: the same 12 A1 semantic writers, a readable
+<=150-line owner manifest, `ci.yml` no larger than its 191-line baseline, and full broad-unit
+closure through the existing required `audit` context without provider or required-context mutation.
+CI01 A1 remains `awaiting_runtime_authority`, `runtime_authorized:false`, `activeSlice:null`.
+After returned R3 main passes exact health, containment, cleanup and hygiene, a separately drafted
+and byte-exact approved R3 runtime receipt must bind that returned main. No semantic
+implementation, prototype transfer, test skipping, provider/runtime operation, or A2 activation
+is authorized before that receipt executes.
 
 The compact roadmap below preserves the live M0-M5 implementation blueprint. Full task
 contracts, acceptance criteria and milestone detail remain canonical in the
