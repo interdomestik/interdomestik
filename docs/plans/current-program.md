@@ -67,7 +67,7 @@ writer. The exact-approved
 30,348 bytes / SHA-256 `5f5700cc19717e5519979b3d5d4f492c29cb0cbfffaafdceac94ed7668961ced`;
 the passing
 [`IDA-CI01-PR-UNIT-SHADOW-A1-ADMISSION-V2`](./2026-08-20-ida-ci-pr-unit-shadow-a1-admission-v2.json)
-is 33,351 bytes / SHA-256 `b2f681f1834b2b7be0316f086f5d1d72e47ad0ca03511ba9924bf1c05274a368`.
+is 33,351 bytes / SHA-256 `c75c3f2ebcca7925b839b4aca68a10f256269d909791f42c5199b7b60b97c5e6`.
 Both are bound to `main@ca91e67e0535c96a94e55d6dde12716823172e26`.
 
 R2 promotes only `IDA-CI01-PR-UNIT-SHADOW-A1` (Tier 3) to
