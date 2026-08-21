@@ -61,21 +61,21 @@ witnesses `OD17_READY`; Deployment Confinement, Measurement Integration, R2, `T-
 `T-117`, and `T-116` remain blocked. A future OD17 approach requires a fresh strategic
 decision and none is promoted automatically.
 
-Separately, Arben exact-approved
-[`IDA-CI-DG01-PR-UNIT-SELECTION-R1`](./2026-08-20-ida-ci-dg01-pr-unit-selection.md)
-at 28,295 bytes / SHA-256
-`a6def1ddceb5b7e0fa0e08dbcce9045f4500e612643437f3e1a51c04843f9514` and the passing
-[`IDA-CI01-PR-UNIT-SHADOW-A1-ADMISSION-V1`](./2026-08-20-ida-ci-pr-unit-shadow-a1-admission-v1.json)
-at 32,346 bytes / SHA-256
-`92a68b8d2626686c905e9010220291c4afb8a480e1372cf9817ed76ac7427f02`, both bound to
-`main@faae32d2af477c44d2f2fed6ad36151d08b8ea8d`.
+Separately, R2 supersedes R1 for A1 execution after R1 omitted the required Z620 parity-digest
+writer. The exact-approved
+[`IDA-CI-DG01-PR-UNIT-SELECTION-R2`](./2026-08-20-ida-ci-dg01-pr-unit-selection-r2.md) is
+30,529 bytes / SHA-256 `d4ac2815f7d3132527cd5d281edc91d5224eec209b68ac2a83e044d4633c46d5`;
+the passing
+[`IDA-CI01-PR-UNIT-SHADOW-A1-ADMISSION-V2`](./2026-08-20-ida-ci-pr-unit-shadow-a1-admission-v2.json)
+is 33,514 bytes / SHA-256 `cc504ebb77d5990a2646620290a9d850e41996b637238be553bf02bf18f4c904`.
+Both are bound to `main@ca91e67e0535c96a94e55d6dde12716823172e26`.
 
-Phase A promotes only `IDA-CI01-PR-UNIT-SHADOW-A1` (Tier 3) to
+R2 promotes only `IDA-CI01-PR-UNIT-SHADOW-A1` (Tier 3) to
 `awaiting_runtime_authority`. `runtime_authorized:false`, `activeSlice:null`; this
-convergence authorizes only governance materialization. No semantic implementation,
-prototype transfer, test skipping, provider/runtime operation, or A2 activation is
-authorized before healthy exact Phase-A main and a separately approved content-addressed
-A1 runtime receipt.
+convergence authorizes only R2 governance materialization. No semantic implementation,
+prototype transfer, test skipping, provider/runtime operation, or A2 activation is authorized
+before healthy exact R2 rebind main and a separately drafted, byte-exact approved A1 R2 runtime
+receipt bound to that returned main SHA.
 
 The compact roadmap below preserves the live M0-M5 implementation blueprint. Full task
 contracts, acceptance criteria and milestone detail remain canonical in the
