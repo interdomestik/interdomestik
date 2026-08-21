@@ -41,10 +41,10 @@ const writeExclusive = (path, body) => fs.writeFileSync(path, body, { flag: 'wx'
 // prettier-ignore
 function sameOrWrite(path, body) { if (!fs.existsSync(path)) { writeExclusive(path, body); return; } if (isSymlink(path) || fs.readFileSync(path, 'utf8') !== body) { fail('partial operation mismatch'); } }
 // prettier-ignore
-function operationChecks(root, state, statePath, lock, operationSha256, recovering) { return [
+function operationChecks(root, state, statePath, lock, operationSha256, recovering) { const unsafeLock = recovering && isSymlink(lock); return [
   [state.status !== 'merged_consumed' || state.activeSlice !== 'B1-cd-guard', 'invalid state'], [isSymlink(root) || isSymlink(join(root, 'receipts')), 'unsafe authority path'],
-  [fs.existsSync(statePath) && isSymlink(statePath), 'unsafe authority path'], [recovering && isSymlink(lock), 'unsafe authority path'],
-  [fs.existsSync(statePath) && !recovering, 'authority already initialized'], [recovering && fs.readFileSync(lock, 'utf8').trim() !== operationSha256, 'recovery operation mismatch'],
+  [fs.existsSync(statePath) && isSymlink(statePath), 'unsafe authority path'], [unsafeLock, 'unsafe authority path'],
+  [fs.existsSync(statePath) && !recovering, 'authority already initialized'], [recovering && !unsafeLock && fs.readFileSync(lock, 'utf8').trim() !== operationSha256, 'recovery operation mismatch'],
 ]; }
 export function installLedger(root, state) {
   fs.mkdirSync(root, { recursive: true, mode: 0o700 });

@@ -139,7 +139,7 @@ test('resolver fails closed on missing, locked, temporary, or unknown state', ()
   assert.equal(resolveLedger(stateLinkRoot).reason, 'invalid_state');
   const lockLinkRoot = join(mkdtempSync(join(tmpdir(), 'wf-lock-link-')), 'authority');
   mkdirSync(lockLinkRoot);
-  symlinkSync(join(other, 'authority-v1.json'), join(lockLinkRoot, 'authority-v1.json.lock'));
+  symlinkSync(other, join(lockLinkRoot, 'authority-v1.json.lock'));
   assert.throws(() => installLedger(lockLinkRoot, ledgerState()), /unsafe authority path/);
 });
 test('protected-main verification rejects a local child while the live ref remains at base', () => {
