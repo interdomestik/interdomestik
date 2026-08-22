@@ -29,6 +29,7 @@ const installInitial = (root, state, evidence, proofBytes, proofSha256) => {
 export function retainProof(root, marker, bytes, proofSha256) {
   must(marker.lock === `${join(root, 'authority-v1.json')}.lock`);
   must(store.text(marker.lock) === store.body(marker.owner), 'authority lock lost');
+  must(hex(proofSha256, 64) && sha(bytes) === proofSha256, 'completion proof mismatch');
   const { evidence } = store.authorityPaths(root, true);
   const path = join(evidence, `proof-${proofSha256}.json`);
   if (!store.exists(path)) store.writeNew(path, bytes);
@@ -83,7 +84,10 @@ export function initialize(input, runGit = git, install = installInitial, canoni
   const trees = [tested, main].map(commit => run(['rev-parse', `${commit}^{tree}`]));
   must(trees[0] === trees[1], 'tree mismatch');
   const changed = files(['diff-tree', '--no-commit-id', '--name-only', '-r', base, main]);
-  must(same(changed, [...approval.phaseA.writerPaths].sort()), 'writer closure mismatch');
+  must(
+    same(changed, [...approval.phaseA.writerPaths].sort(store.alphabetical)),
+    'writer closure mismatch'
+  );
   for (const path of approval.phaseA.writerPaths) {
     must(!isAbsolute(path) && normalize(path) === path && !path.startsWith('..'), 'unsafe path');
     const local = run(['hash-object', path]);
@@ -128,7 +132,12 @@ export function initialize(input, runGit = git, install = installInitial, canoni
     evidenceRef: ledger.evidenceReference(evidence),
     previousOperationSha256: null,
   };
-  return install(ledger.AUTHORITY_ROOT, state, evidence, proofBytes, input['proof-sha256']);
+  const authorityRoot = approval.durableAuthority.root;
+  must(
+    isAbsolute(authorityRoot) && normalize(authorityRoot) === authorityRoot,
+    'unsafe authority root'
+  );
+  return install(authorityRoot, state, evidence, proofBytes, input['proof-sha256']);
 }
 function main() {
   const [mode, ...args] = process.argv.slice(2);

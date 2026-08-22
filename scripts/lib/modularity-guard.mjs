@@ -15,9 +15,8 @@ const GIT_BIN = '/usr/bin/git';
 const GIT_MAX_BUFFER_BYTES = 16 * 1024 * 1024;
 const SAFE_EXEC_ENV = Object.freeze({ PATH: '/usr/bin:/bin:/usr/sbin:/sbin' });
 const TOOL_ROOT = fileURLToPath(new URL('../..', import.meta.url));
-const PRETTIER_CLI = fs.realpathSync(
-  path.join(TOOL_ROOT, 'node_modules/prettier/bin/prettier.cjs')
-);
+const prettierCli = () =>
+  fs.realpathSync(path.join(TOOL_ROOT, 'node_modules/prettier/bin/prettier.cjs'));
 const PRETTIER_CONFIG = path.join(TOOL_ROOT, '.prettierrc');
 
 function git(root, args, options = {}) {
@@ -120,7 +119,7 @@ function baseSnapshot(root, baseCommit, filePath) {
 }
 
 function workflowComplexity(text) {
-  return text.match(/^\s*(?:-\s*)?(?:if|needs|permissions|run|uses):/gmu)?.length ?? 0;
+  return text.match(/^[ \t]*(?:-[ \t]*)?(?:if|needs|permissions|run|uses):/gmu)?.length ?? 0;
 }
 
 function canonicalJson(root, filePath, text) {
@@ -128,7 +127,7 @@ function canonicalJson(root, filePath, text) {
     JSON.parse(text);
     const formatted = execFileSync(
       process.execPath,
-      [PRETTIER_CLI, '--config', PRETTIER_CONFIG, '--stdin-filepath', path.join(root, filePath)],
+      [prettierCli(), '--config', PRETTIER_CONFIG, '--stdin-filepath', path.join(root, filePath)],
       {
         cwd: TOOL_ROOT,
         encoding: 'utf8',
@@ -144,7 +143,7 @@ function canonicalJson(root, filePath, text) {
 }
 
 function removedGovernanceHeading(current, base) {
-  const headings = text => new Set(text.match(/^#{1,6}\s+.+$/gmu) ?? []);
+  const headings = text => new Set(text.match(/^#{1,6}[ \t]+[^\r\n]+$/gmu) ?? []);
   const currentHeadings = headings(current.text);
   if (!base) return currentHeadings.size === 0;
   return [...headings(base.text)].some(heading => !currentHeadings.has(heading));
@@ -180,68 +179,63 @@ function evaluateProduction(entry, className, current, base) {
   };
 }
 
+function evaluateFocused(_root, entry, className, current, base) {
+  const reason =
+    current.lines > MODULARITY_POLICY.focusedTest.maxLines ? 'test-split-required' : null;
+  return { className, violation: reason ? finding(entry, className, current, base, reason) : null };
+}
+
+function evaluateStructured(root, entry, className, current, base) {
+  let reason = structuredArtifactOwner(entry.file) ? null : 'structured-owner-required';
+  if (current.bytes > MODULARITY_POLICY.structuredArtifact.maxBytes) {
+    reason = 'structured-byte-budget';
+  } else if (entry.file.endsWith('.json') && !canonicalJson(root, entry.file, current.text)) {
+    reason = 'structured-noncanonical-json';
+  }
+  return { className, violation: reason ? finding(entry, className, current, base, reason) : null };
+}
+
+function evaluateGovernance(_root, entry, className, current, base) {
+  const policy = MODULARITY_POLICY.governanceDoc;
+  let reason =
+    current.lines > policy.maxLines || current.bytes > policy.maxBytes ? 'governance-budget' : null;
+  if (!reason && removedGovernanceHeading(current, base)) reason = 'governance-invariant-removal';
+  return { className, violation: reason ? finding(entry, className, current, base, reason) : null };
+}
+
+function evaluateWorkflow(_root, entry, className, current, base) {
+  const grew = base && workflowComplexity(current.text) > workflowComplexity(base.text);
+  const violation = grew
+    ? finding(entry, className, current, base, 'workflow-complexity-growth')
+    : null;
+  const advisory = base
+    ? null
+    : finding(entry, className, current, base, 'new-workflow-contract-required');
+  return { className, violation, advisory };
+}
+
+const ENTRY_EVALUATORS = {
+  [FILE_CLASSES.productionCode]: (_root, entry, className, current, base) => ({
+    className,
+    ...evaluateProduction(entry, className, current, base),
+  }),
+  [FILE_CLASSES.focusedTest]: evaluateFocused,
+  [FILE_CLASSES.structuredArtifact]: evaluateStructured,
+  [FILE_CLASSES.governanceDoc]: evaluateGovernance,
+  [FILE_CLASSES.workflowYaml]: evaluateWorkflow,
+  [FILE_CLASSES.generatedOrLock]: (_root, _entry, className) => ({ className }),
+};
+
 function evaluateEntry(root, baseCommit, entry) {
   if (!entry.file || !isModularityChecked(entry.file)) return null;
   const className = classifyModularityFile(entry.file);
   const current = currentSnapshot(root, entry.file);
   const basePath = entry.oldPath ?? entry.file;
   const base = ['A', 'C'].includes(entry.status) ? null : baseSnapshot(root, baseCommit, basePath);
-  if (className === FILE_CLASSES.generatedOrLock) return { className };
-  if (className === FILE_CLASSES.productionCode) {
-    return {
-      className,
-      ...evaluateProduction(entry, className, current, base),
-    };
-  }
-  if (className === FILE_CLASSES.focusedTest) {
-    const limit = MODULARITY_POLICY.focusedTest.maxLines;
-    const violation =
-      current.lines > limit
-        ? finding(entry, className, current, base, 'test-split-required')
-        : null;
-    return { className, violation };
-  }
-  if (className === FILE_CLASSES.structuredArtifact) {
-    const owner = structuredArtifactOwner(entry.file);
-    let reason = owner ? null : 'structured-owner-required';
-    if (current.bytes > MODULARITY_POLICY.structuredArtifact.maxBytes) {
-      reason = 'structured-byte-budget';
-    } else if (entry.file.endsWith('.json') && !canonicalJson(root, entry.file, current.text)) {
-      reason = 'structured-noncanonical-json';
-    }
-    return {
-      className,
-      violation: reason ? finding(entry, className, current, base, reason) : null,
-    };
-  }
-  if (className === FILE_CLASSES.governanceDoc) {
-    const policy = MODULARITY_POLICY.governanceDoc;
-    let reason =
-      current.lines > policy.maxLines || current.bytes > policy.maxBytes
-        ? 'governance-budget'
-        : null;
-    if (!reason && removedGovernanceHeading(current, base)) reason = 'governance-invariant-removal';
-    return {
-      className,
-      violation: reason ? finding(entry, className, current, base, reason) : null,
-    };
-  }
-  if (className === FILE_CLASSES.workflowYaml) {
-    const grew = base && workflowComplexity(current.text) > workflowComplexity(base.text);
-    return {
-      className,
-      violation: grew
-        ? finding(entry, className, current, base, 'workflow-complexity-growth')
-        : null,
-      advisory: base
-        ? null
-        : finding(entry, className, current, base, 'new-workflow-contract-required'),
-    };
-  }
-  return {
-    className,
-    violation: finding(entry, className, current, base, 'unclassified-text'),
-  };
+  const evaluate = ENTRY_EVALUATORS[className];
+  return evaluate
+    ? evaluate(root, entry, className, current, base)
+    : { className, violation: finding(entry, className, current, base, 'unclassified-text') };
 }
 
 export function evaluateModularityGuard(options = {}) {

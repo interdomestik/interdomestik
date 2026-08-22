@@ -99,14 +99,15 @@ function runFixture(value, mutate = () => {}) {
   };
   let installed;
   const git = (_repository, args) => value.values.get(args.join(' '));
-  const install = (_root, state, evidence, proofBytes, proofSha256) =>
-    (installed = { state, evidence, proofBytes, proofSha256 });
+  const install = (root, state, evidence, proofBytes, proofSha256) =>
+    (installed = { root, state, evidence, proofBytes, proofSha256 });
   bootstrap.initialize(input, git, install, canonical);
   return installed;
 }
-test('binds exact B/H/T/M, clean closure, modes, blobs, and proof before B1', () => {
+test('binds exact root, B/H/T/M, clean closure, modes, blobs, and proof before B1', () => {
   const value = fixture();
-  const { state, evidence, proofBytes } = runFixture(value);
+  const { root, state, evidence, proofBytes } = runFixture(value);
+  assert.equal(root, source.approvalEnvelope.durableAuthority.root);
   assert.deepEqual(
     [state.boundary.B, state.boundary.H, state.boundary.T, state.boundary.M],
     [value.base, value.head, value.tested, value.main]
@@ -126,6 +127,9 @@ test('persists completion proof bytes under their exact content address', () => 
   assert.equal(fs.readFileSync(path).equals(bytes), true);
   const wrongBytes = Buffer.from('{}\n');
   assert.throws(() => bootstrap.retainProof(authority, marker, wrongBytes, value.proofSha256));
+  const empty = join(fs.realpathSync(temporary('proof-mismatch')), 'authority');
+  const mismatch = claim(empty, value.proofSha256, null);
+  assert.throws(() => bootstrap.retainProof(empty, mismatch, wrongBytes, value.proofSha256));
 });
 test('fails closed on every Git identity, writer, blob, and local-mode mismatch', () => {
   const cases = [
