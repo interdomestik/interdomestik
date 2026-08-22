@@ -16,6 +16,7 @@
     "scripts/ci/cd-deploy-env-scope.test.mjs",
     "scripts/ci/cd-nondeploy-guard.test.mjs",
     "scripts/ci/cd-runner-contract.test.mjs",
+    "scripts/ci/cd-trusted-parent-guard.test.mjs",
     "scripts/ci/codex-contracts.test.mjs",
     "scripts/ci/exact-delivery-lib.mjs",
     "scripts/ci/exact-delivery.mjs",
@@ -49,6 +50,7 @@
     "scripts/pr-finalizer.sh",
     "scripts/pr-review-ready.sh",
     "scripts/qa-mcp-control-runtime.mjs",
+    "scripts/repo-size-budget.json",
     "scripts/setup-mcp.sh",
     "scripts/start-repo-qa.sh"
   ]

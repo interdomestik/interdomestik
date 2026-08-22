@@ -3,11 +3,10 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 import yaml from 'js-yaml';
 import { guardRollback } from './configure-vercel-gate-url.mjs';
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const root = path.resolve(new URL('../../', import.meta.url).pathname);
 const readText = file => fs.readFileSync(path.join(root, file), 'utf8');
 const readWorkflow = file => yaml.load(readText(file));
 const cd = yaml.load(readText('.github/workflows/cd.yml'));
@@ -44,7 +43,17 @@ test('hosted scope is the direct fail-closed predecessor of every capable job', 
   const upload = step(scope, 'Upload exact scope receipt');
   assert.deepEqual(checkout.with, { 'fetch-depth': 0, ref: '${{ github.sha }}' });
   assert.equal(scope.env, undefined);
-  assert.match(classify.run, /cd-nondeploy-guard\.mjs >> "\$\{GITHUB_OUTPUT\}"/u);
+  for (const pattern of [
+    /set -euo pipefail/u,
+    /ba9da7ff8b13ceb1f1bc64864a40045ce4a79051/u,
+    /\/usr\/bin\/git cat-file -e "\$\{CD_BEFORE\}\^\{commit\}"/u,
+    /\/usr\/bin\/git show "\$\{CD_BEFORE\}:\$\{current_guard\}"/u,
+    /tmp\/cd-evidence\/trusted-parent-guard\.mjs/u,
+    /set -o noclobber/u,
+    /node "\$\{trusted_guard\}" >> "\$\{GITHUB_OUTPUT\}"/u,
+    /node "\$\{current_guard\}" >> "\$\{GITHUB_OUTPUT\}"/u,
+  ])
+    assert.match(classify.run, pattern);
   assert.equal(classify.env.CD_BEFORE, '${{ github.event.before || github.sha }}');
   assert.equal(classify.env.CD_AFTER, '${{ github.event.after || github.sha }}');
   for (const value of [upload.with.path, upload.with.name]) {
@@ -59,12 +68,8 @@ test('hosted scope is the direct fail-closed predecessor of every capable job', 
     const job = cd.jobs[name];
     const needs = Array.isArray(job.needs) ? job.needs : [job.needs];
     assert.ok(needs.includes('scope'), `${name} must directly need scope`);
-    assert.match(
-      job.if,
-      /needs\.scope\.result == 'success'/u,
-      `${name} must require scope success`
-    );
-    assert.match(job.if, /needs\.scope\.outputs\.deploy == 'true'/u, `${name} must require deploy`);
+    assert.match(job.if, /needs\.scope\.result == 'success'/u);
+    assert.match(job.if, /needs\.scope\.outputs\.deploy == 'true'/u);
   }
 });
 test('preflights every staging job directly after checkout and bounds heavy jobs', () => {
@@ -100,10 +105,8 @@ test('generates staging image metadata offline from exact trusted inputs', () =>
     /docker\/metadata-action@/u.test(candidate.uses || '')
   );
   assert.equal(hasMetadataAction, false);
-  const productionMetadata = step(
-    cd.jobs['build-production'],
-    'Extract metadata (tags, labels) for Docker'
-  );
+  const buildProduction = cd.jobs['build-production'];
+  const productionMetadata = step(buildProduction, 'Extract metadata (tags, labels) for Docker');
   assert.match(productionMetadata.uses, /^docker\/metadata-action@[a-f0-9]{40}$/u);
 });
 test('propagates alias movement independently and always reaches the local guard', () => {
@@ -113,10 +116,8 @@ test('propagates alias movement independently and always reaches the local guard
   const download = step(rollback, 'Download staging alias preimage receipt');
   assert.equal(download['continue-on-error'], true);
   const guard = step(rollback, 'Validate staging alias rollback authority');
-  assert.equal(
-    guard.env.STAGING_ALIAS_MOVED_SIGNAL,
-    '${{ needs.deploy-staging.outputs.alias_moved }}'
-  );
+  const aliasMovedSignal = guard.env.STAGING_ALIAS_MOVED_SIGNAL;
+  assert.equal(aliasMovedSignal, '${{ needs.deploy-staging.outputs.alias_moved }}');
   assert.match(guard.if, /always\(\)/u);
 });
 async function withRollbackEnv(aliasMoved, contents, callback) {
@@ -194,12 +195,10 @@ test('OD17 collector keeps OIDC out of the unprivileged exact-head job', () => {
   assert.ok(build);
   assert.notEqual(build.env.DATABASE_URL_RLS, build.env.DATABASE_URL);
   assert.doesNotMatch(build.run, /app-build-manifest/u);
-  const trustedPermissions = [
-    trusted.permissions['id-token'],
-    trusted.permissions.actions,
-    trusted.permissions.deployments,
-  ];
-  assert.deepEqual(trustedPermissions, ['write', 'read', 'read']);
+  assert.deepEqual(
+    [trusted.permissions['id-token'], trusted.permissions.actions, trusted.permissions.deployments],
+    ['write', 'read', 'read']
+  );
   assert.equal(workflow.permissions, undefined);
   const untrustedEvidence = findStep(
     prepare.steps,
@@ -275,12 +274,11 @@ test('Pilot gate heavy runner depends on preflight before Postgres, setup, build
   const pilotGateJob = pilotGateWorkflow.jobs['pilot-gate-runner'];
   assert.ok(pilotGateJob);
   const steps = pilotGateJob.steps;
-  const needs = normalizeNeeds(pilotGateJob.needs);
   const setupIndex = steps.findIndex(step => step?.uses === './.github/actions/setup');
   const manualSonarIndex = findStepIndex(steps, 'Run Sonar quality gate (manual fallback)');
   const prepareDbIndex = findStepIndex(steps, 'Prepare CI database');
   const buildIndex = findStepIndex(steps, 'Build web standalone artifact');
-  assert.deepEqual(needs, ['pilot-gate-preflight']);
+  assert.deepEqual(normalizeNeeds(pilotGateJob.needs), ['pilot-gate-preflight']);
   assert.equal(pilotGateJob.if, "needs.pilot-gate-preflight.outputs.run_broad == 'true'");
   assert.equal(pilotGateJob.env.DATABASE_URL_RLS, pilotGateJob.env.DATABASE_URL);
   assert.equal(pilotGateJob.env.NODE_OPTIONS, '--max-old-space-size=4096');

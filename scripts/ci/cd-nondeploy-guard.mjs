@@ -5,6 +5,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const MANIFEST_PATH = 'scripts/ci/cd-nondeploy-scope.json';
+const GIT_BINARY = '/usr/bin/git';
 const GITHUB_RUNS_URL =
   'https://api.github.com/repos/interdomestik/interdomestik/actions/workflows/cd.yml/runs';
 const CONTROL_PATHS = new Set([
@@ -29,7 +30,12 @@ export function parseScopeManifest(source) {
   }
   if (!value || Array.isArray(value) || typeof value !== 'object')
     fail('manifest must be an object');
-  if (Object.keys(value).sort().join(',') !== 'nonDeployPaths,version' || value.version !== 1)
+  if (
+    Object.keys(value)
+      .sort((a, b) => a.localeCompare(b))
+      .join(',') !== 'nonDeployPaths,version' ||
+    value.version !== 1
+  )
     fail('manifest schema or version is invalid');
   const paths = value.nonDeployPaths;
   if (!Array.isArray(paths) || paths.length === 0) fail('manifest path inventory is empty');
@@ -68,7 +74,7 @@ export function classifyScope({ eventName, ref, manifest, changedFiles = [] }) {
 
 function git(root, args, options = {}) {
   try {
-    return execFileSync('git', args, { cwd: root, encoding: 'utf8', ...options });
+    return execFileSync(GIT_BINARY, args, { cwd: root, encoding: 'utf8', ...options });
   } catch {
     fail(`git lookup failed: ${args.join(' ')}`);
   }
@@ -82,7 +88,7 @@ export function readPushEvidence({ root = process.cwd(), before, after }) {
   git(root, ['merge-base', '--is-ancestor', before, after]);
   let manifestSource;
   try {
-    manifestSource = execFileSync('git', ['show', `${before}:${MANIFEST_PATH}`], {
+    manifestSource = execFileSync(GIT_BINARY, ['show', `${before}:${MANIFEST_PATH}`], {
       cwd: root,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -122,26 +128,31 @@ export function assertNoCompetingRuns({ runs, runId, runAttempt, sha }) {
   if (competing.length) fail(`competing nonterminal run detected: ${competing[0].id}`);
 }
 
+export async function fetchRunPage({ token, status, page, fetchImpl = fetch }) {
+  const url = new URL(GITHUB_RUNS_URL);
+  url.search = new URLSearchParams({ status, per_page: '100', page: String(page) });
+  const response = await fetchImpl(url, {
+    redirect: 'error',
+    headers: {
+      accept: 'application/vnd.github+json',
+      authorization: `Bearer ${token}`,
+      'x-github-api-version': '2022-11-28',
+    },
+  });
+  if (!response.ok) fail(`GitHub run lookup failed with HTTP ${response.status}`);
+  const body = await response.json();
+  if (!Array.isArray(body.workflow_runs)) fail('GitHub run lookup response is invalid');
+  return body.workflow_runs;
+}
+
 export async function fetchNonterminalRuns({ token, fetchImpl = fetch }) {
   if (!token) fail('GitHub run lookup token is unavailable');
   const runs = new Map();
   for (const status of NONTERMINAL) {
     for (let page = 1; page <= 10; page += 1) {
-      const url = new URL(GITHUB_RUNS_URL);
-      url.search = new URLSearchParams({ status, per_page: '100', page: String(page) });
-      const response = await fetchImpl(url, {
-        redirect: 'error',
-        headers: {
-          accept: 'application/vnd.github+json',
-          authorization: `Bearer ${token}`,
-          'x-github-api-version': '2022-11-28',
-        },
-      });
-      if (!response.ok) fail(`GitHub run lookup failed with HTTP ${response.status}`);
-      const body = await response.json();
-      if (!Array.isArray(body.workflow_runs)) fail('GitHub run lookup response is invalid');
-      for (const run of body.workflow_runs) runs.set(`${run.id}:${run.run_attempt}`, run);
-      if (body.workflow_runs.length < 100) break;
+      const pageRuns = await fetchRunPage({ token, status, page, fetchImpl });
+      for (const run of pageRuns) runs.set(`${run.id}:${run.run_attempt}`, run);
+      if (pageRuns.length < 100) break;
       if (page === 10) fail('GitHub run lookup pagination exceeded');
     }
   }
@@ -266,8 +277,10 @@ export async function runGuard(
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
-  runGuard().catch(error => {
+  try {
+    await runGuard();
+  } catch (error) {
     console.error(error.message);
     process.exitCode = 1;
-  });
+  }
 }

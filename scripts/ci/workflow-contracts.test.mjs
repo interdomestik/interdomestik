@@ -2,15 +2,13 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
 import yaml from 'js-yaml';
 import '../../apps/web/scripts/check-size.test.mjs';
 import './ci-audit-rls-workflow-contracts.mjs';
-
-const scriptDir = path.dirname(fileURLToPath(import.meta.url));
-const rootDir = path.resolve(scriptDir, '../..');
+const rootDir = path.resolve(new URL('../../', import.meta.url).pathname);
 const TRUSTED_GATE_ACTION =
   'interdomestik/interdomestik/.github/actions/pr-gate-policy@f4b39fc4f7fed7e875363807faea11cc2c4cf717';
+const nightlyMatrix = { shardIndex: [1, 2, 3], shardTotal: [3] };
 function readWorkflow(relativePath) {
   const content = fs.readFileSync(path.join(rootDir, relativePath), 'utf8');
   return yaml.load(content);
@@ -23,18 +21,8 @@ function findStepIndex(steps, name) {
   assert.notEqual(index, -1, `Missing step: ${name}`);
   return index;
 }
-
-function normalizeNeeds(needs) {
-  if (Array.isArray(needs)) {
-    return needs;
-  }
-  if (typeof needs === 'string') {
-    return [needs];
-  }
-
-  return [];
-}
-
+const normalizeNeeds = needs =>
+  Array.isArray(needs) ? needs : typeof needs === 'string' ? [needs] : [];
 const RELEASE_GATE_ENV_VARS = [
   'RELEASE_GATE_MEMBER_EMAIL',
   'RELEASE_GATE_MEMBER_PASSWORD',
@@ -48,11 +36,9 @@ const RELEASE_GATE_ENV_VARS = [
   'RELEASE_GATE_ADMIN_MK_EMAIL',
   'RELEASE_GATE_ADMIN_MK_PASSWORD',
 ];
-
 function readRepoText(relativePath) {
   return fs.readFileSync(path.join(rootDir, relativePath), 'utf8');
 }
-
 test('Pilot gate has no serial Sonar poll', () => {
   const pilotGateWorkflow = readWorkflow('.github/workflows/pilot-gate.yml');
   const pilotGatePreflightJob = pilotGateWorkflow.jobs['pilot-gate-preflight'];
@@ -95,7 +81,6 @@ test('Pilot gate has no serial Sonar poll', () => {
     false
   );
 });
-
 test('Required pilot gate wrapper fails or passes based on preflight and runner results without starting services itself', () => {
   const pilotGateWorkflow = readWorkflow('.github/workflows/pilot-gate.yml');
   const pilotGateJob = pilotGateWorkflow.jobs['pilot-gate'];
@@ -114,17 +99,14 @@ test('Required pilot gate wrapper fails or passes based on preflight and runner 
   assert.equal(pilotGateJob.services, undefined);
   assert.ok(findStep(steps, 'Enforce pilot gate preflight/result contract'));
 });
-
 test('Optional multi-agent PR hardening is no longer part of the default pull_request workflow path', () => {
   const pilotGateWorkflow = readWorkflow('.github/workflows/pilot-gate.yml');
   const multiAgentWorkflow = readWorkflow('.github/workflows/multi-agent-pr-hardening.yml');
-
   assert.equal(pilotGateWorkflow.jobs['multi-agent-policy'], undefined);
   assert.equal(pilotGateWorkflow.jobs['multi-agent-pr-hardening'], undefined);
   assert.ok(multiAgentWorkflow.jobs['multi-agent-pr-hardening']);
   assert.ok(multiAgentWorkflow.on.workflow_dispatch);
 });
-
 test('Composite CI setup action uses compatible actions and a bounded ripgrep bootstrap', () => {
   const setupSource = readRepoText('.github/actions/setup/action.yml');
   assert.doesNotMatch(setupSource, /\bapt(?:-get)?\b/u);
@@ -133,7 +115,6 @@ test('Composite CI setup action uses compatible actions and a bounded ripgrep bo
     /actions\/setup-node@v5[\s\S]*RIPGREP_VERSION='15\.2\.0'[\s\S]*RIPGREP_TARGET='x86_64-unknown-linux-musl'[\s\S]*RIPGREP_SHA256='33e15bcf1624b25cdd2a55813a47a2f95dbe126268203e76aa6a585d1e7b149c'[\s\S]*timeout --signal=TERM --kill-after=5s 180s[\s\S]*--proto '=https'[\s\S]*--proto-redir '=https'[\s\S]*--connect-timeout 10[\s\S]*--max-time 120[\s\S]*--retry 2[\s\S]*--retry-max-time 150[\s\S]*--max-filesize 5000000[\s\S]*sha256sum --check --strict[\s\S]*>> "\$\{GITHUB_PATH:\?\}"[\s\S]*macOS\)[\s\S]*brew install ripgrep[\s\S]*actions\/cache@v5/u
   );
 });
-
 test('V3 onboarding and env docs describe Paddle-only runtime and Vercel deployment config', () => {
   const readme = readRepoText('README.md');
   const envExample = readRepoText('.env.example');
@@ -150,6 +131,27 @@ test('V3 onboarding and env docs describe Paddle-only runtime and Vercel deploym
     /NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY|STRIPE_SECRET_KEY|STRIPE_WEBHOOK_SECRET/
   );
 });
+test('Nightly E2E runs on an available hosted runner while preserving full strict coverage', () => {
+  const workflow = readWorkflow('.github/workflows/e2e-nightly.yml');
+  const job = workflow.jobs.e2e;
+  assert.equal(job['runs-on'], 'ubuntu-latest');
+  assert.deepEqual(workflow.on.schedule, [{ cron: '10 2 * * *' }]);
+  assert.equal(job.strategy['max-parallel'], 2);
+  assert.deepEqual(job.strategy.matrix, nightlyMatrix);
+  const databaseUrl =
+    "${{ secrets.E2E_DATABASE_URL_RLS || secrets.E2E_DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test' }}";
+  for (const field of ['DATABASE_URL_RLS', 'E2E_DATABASE_URL_RLS']) {
+    assert.equal(job.env[field], databaseUrl);
+  }
+  const state = findStep(job.steps, 'Generate Playwright Gate Auth State (KS+MK)');
+  assert.ok(state);
+  assert.equal(state.run, 'pnpm e2e:state:setup');
+  for (const name of ['E2E Gate (KS+MK)', 'E2E Phase 5 Deterministic Batch', 'E2E Smoke']) {
+    assert.ok(findStep(job.steps, name));
+  }
+  const lifecycle = findStep(job.steps, 'E2E Subscription Lifecycle (KS+MK)');
+  assert.match(lifecycle.run, /e2e\/golden\/subscription-entry\.spec\.ts/);
+});
 // prettier-ignore
 test('CD builds distinct staging and production artifacts with explicit Supabase environment separation', () => {
   const cdWorkflowSource = fs.readFileSync(path.join(rootDir, '.github/workflows/cd.yml'), 'utf8');
@@ -161,14 +163,12 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   const productionEvidenceJob = cdWorkflow.jobs['production-evidence'];
   const deployProductionJob = cdWorkflow.jobs['deploy-production'];
   const verifyProductionJob = cdWorkflow.jobs['verify-production'];
-
   assert.equal(cdWorkflow.env.VERCEL_ORG_ID, undefined);
   assert.equal(cdWorkflow.env.VERCEL_PROJECT_ID, undefined);
   assert.equal(cdWorkflow.jobs['build-push'], undefined);
   assert.doesNotMatch(cdWorkflowSource, /Actual deployment command here/);
   assert.doesNotMatch(cdWorkflowSource, /pnpm test:e2e:smoke/);
   assert.doesNotMatch(cdWorkflowSource, /Example: ssh/);
-
   const assertBuildJob = (job, envName, appUrl) => {
     assert.ok(job);
     assert.equal(job.environment.name, envName);

@@ -22,7 +22,30 @@ jobs:
           CD_BEFORE: ${{ github.event.before || github.sha }}
           CD_AFTER: ${{ github.event.after || github.sha }}
           GITHUB_TOKEN: ${{ github.token }}
-        run: node scripts/ci/cd-nondeploy-guard.mjs >> "${GITHUB_OUTPUT}"
+        run: |
+          set -euo pipefail
+          current_guard='scripts/ci/cd-nondeploy-guard.mjs'
+          trusted_guard='tmp/cd-evidence/trusted-parent-guard.mjs'
+          bootstrap_parent='ba9da7ff8b13ceb1f1bc64864a40045ce4a79051'
+          if [[ "${GITHUB_EVENT_NAME}" == 'push' && "${GITHUB_REF}" == 'refs/heads/main' ]]; then
+            [[ "${CD_BEFORE}" =~ ^[a-f0-9]{40}$ ]] || { echo '::error::Invalid parent SHA for CD scope classification.'; exit 1; }
+            /usr/bin/git cat-file -e "${CD_BEFORE}^{commit}"
+            if /usr/bin/git cat-file -e "${CD_BEFORE}:${current_guard}" 2>/dev/null; then
+              [[ ! -L 'tmp' && ! -L 'tmp/cd-evidence' ]] || { echo '::error::Trusted guard directory must not be a symlink.'; exit 1; }
+              mkdir -p "$(dirname "${trusted_guard}")"
+              [[ -d 'tmp' && -d 'tmp/cd-evidence' && ! -e "${trusted_guard}" && ! -L "${trusted_guard}" ]] || { echo '::error::Trusted guard target is not a fresh regular path.'; exit 1; }
+              set -o noclobber
+              /usr/bin/git show "${CD_BEFORE}:${current_guard}" > "${trusted_guard}"
+              set +o noclobber
+              [[ -f "${trusted_guard}" && ! -L "${trusted_guard}" ]] || { echo '::error::Trusted parent guard extraction failed.'; exit 1; }
+              node "${trusted_guard}" >> "${GITHUB_OUTPUT}"
+            else
+              [[ "${CD_BEFORE}" == "${bootstrap_parent}" ]] || { echo '::error::Trusted parent guard is unavailable outside the exact bootstrap boundary.'; exit 1; }
+              node "${current_guard}" >> "${GITHUB_OUTPUT}"
+            fi
+          else
+            node "${current_guard}" >> "${GITHUB_OUTPUT}"
+          fi
       - { name: Upload exact scope receipt, if: '${{ always() }}', uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f, with: { name: 'cd-scope-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}', path: 'tmp/cd-evidence/${{ github.run_id }}/scope-${{ github.run_attempt }}-${{ github.sha }}.json', if-no-files-found: error, retention-days: 14 } } # v6
   build-staging:
     if: ${{ needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' }}

@@ -9,16 +9,17 @@ import yaml from 'js-yaml';
 import {
   assertNoCompetingRuns,
   classifyScope,
+  fetchRunPage,
   parseScopeManifest,
   readPushEvidence,
   runGuard,
 } from './cd-nondeploy-guard.mjs';
 const sha = character => character.repeat(40);
 const manifest = paths => ({ version: 1, nonDeployPaths: paths });
-const nightlyMatrix = { shardIndex: [1, 2, 3], shardTotal: [3] };
 const runsPath = '/repos/interdomestik/interdomestik/actions/workflows/cd.yml/runs';
 const rootDir = new URL('../../', import.meta.url);
-const readWorkflow = file => yaml.load(fs.readFileSync(new URL(file, rootDir), 'utf8'));
+const readRepoText = file => fs.readFileSync(new URL(file, rootDir), 'utf8');
+const readWorkflow = file => yaml.load(readRepoText(file));
 const findStep = (steps, name) => steps.find(step => step?.name === name);
 const assertFields = (actual, expected) => {
   for (const [field, value] of Object.entries(expected)) {
@@ -113,6 +114,19 @@ test('known program-only push skips deploy and product or unknown paths deploy',
   ]) {
     assert.equal(classifyScope({ ...input, changedFiles }).deploy, true);
   }
+  const repositoryManifest = parseScopeManifest(readRepoText('scripts/ci/cd-nondeploy-scope.json'));
+  for (const path of [
+    'scripts/ci/cd-trusted-parent-guard.test.mjs',
+    'scripts/repo-size-budget.json',
+  ]) {
+    assert.ok(repositoryManifest.nonDeployPaths.includes(path));
+  }
+  const budgetDecision = classifyScope({
+    ...input,
+    manifest: repositoryManifest,
+    changedFiles: ['scripts/repo-size-budget.json'],
+  });
+  assert.equal(budgetDecision.deploy, false);
 });
 test('CD workflow, guard, and manifest changes fail red instead of self-whitelisting', () => {
   const input = {
@@ -149,52 +163,50 @@ function commit(root, message) {
   git(root, '-c', 'user.name=CI Test', '-c', 'user.email=ci@example.test', 'commit', '-m', message);
   return git(root, 'rev-parse', 'HEAD');
 }
-test('push evidence reads the parent manifest and the complete before-to-after range', () => {
+function writeRepoFile(root, relativePath, contents) {
+  const target = path.join(root, relativePath);
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(target, contents);
+}
+test('push evidence reads the parent manifest and the complete before-to-after range', t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cd-scope-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   git(root, 'init');
-  fs.mkdirSync(path.join(root, 'scripts/ci'), { recursive: true });
-  fs.mkdirSync(path.join(root, 'docs/plans'), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, 'scripts/ci/cd-nondeploy-scope.json'),
+  writeRepoFile(
+    root,
+    'scripts/ci/cd-nondeploy-scope.json',
     `${JSON.stringify(manifest(['docs/plans/a.md']))}\n`
   );
-  fs.writeFileSync(path.join(root, 'docs/plans/a.md'), 'a\n');
+  writeRepoFile(root, 'docs/plans/a.md', 'a\n');
   const before = commit(root, 'parent manifest');
   fs.writeFileSync(path.join(root, 'docs/plans/a.md'), 'b\n');
   commit(root, 'intermediate');
   fs.writeFileSync(path.join(root, 'apps.txt'), 'product\n');
   const after = commit(root, 'after');
-  try {
-    const evidence = readPushEvidence({ root, before, after });
-    assert.deepEqual(evidence.manifest, manifest(['docs/plans/a.md']));
-    assert.deepEqual(evidence.changedFiles, ['apps.txt', 'docs/plans/a.md']);
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true });
-  }
+  const evidence = readPushEvidence({ root, before, after });
+  assert.deepEqual(evidence.manifest, manifest(['docs/plans/a.md']));
+  assert.deepEqual(evidence.changedFiles, ['apps.txt', 'docs/plans/a.md']);
 });
-test('missing parent manifest fails red even when the after tree adds it', async () => {
+test('missing parent manifest fails red even when the after tree adds it', async t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cd-bootstrap-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   git(root, 'init');
   fs.writeFileSync(path.join(root, 'base.txt'), 'base\n');
   const before = commit(root, 'base');
-  fs.mkdirSync(path.join(root, 'scripts/ci'), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, 'scripts/ci/cd-nondeploy-scope.json'),
+  writeRepoFile(
+    root,
+    'scripts/ci/cd-nondeploy-scope.json',
     `${JSON.stringify(manifest(['base.txt']))}\n`
   );
   const after = commit(root, 'bootstrap guard');
-  try {
-    assert.throws(() => readPushEvidence({ root, before, after }), /parent manifest/u);
-    const env = guardEnv(root, {
-      CD_BEFORE: before,
-      CD_AFTER: after,
-      GITHUB_EVENT_NAME: 'push',
-      GITHUB_SHA: after,
-    });
-    await assertFailureReceipt({ env, root, error: /parent manifest/u });
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true });
-  }
+  assert.throws(() => readPushEvidence({ root, before, after }), /parent manifest/u);
+  const env = guardEnv(root, {
+    CD_BEFORE: before,
+    CD_AFTER: after,
+    GITHUB_EVENT_NAME: 'push',
+    GITHUB_SHA: after,
+  });
+  await assertFailureReceipt({ env, root, error: /parent manifest/u });
 });
 test('only the exact current SHA and attempt may be nonterminal', () => {
   const current = { id: 41, run_attempt: 3, head_sha: sha('a'), status: 'in_progress' };
@@ -222,78 +234,63 @@ test('only the exact current SHA and attempt may be nonterminal', () => {
     error: /competing nonterminal run/u,
   }).finally(() => fs.rmSync(root, { recursive: true, force: true }));
 });
-test('success receipt is canonically bound to event SHA, range, run, and attempt', async () => {
+test('run-page lookup pins its target and validates response shape', async () => {
+  const requests = [];
+  const runs = await fetchRunPage({
+    token: 'test-token',
+    status: 'queued',
+    page: 2,
+    fetchImpl: async (url, options) => {
+      requests.push({ url: new URL(url), options });
+      return runResponse([{ id: 42, run_attempt: 1 }]);
+    },
+  });
+  assert.deepEqual(runs, [{ id: 42, run_attempt: 1 }]);
+  assert.equal(requests[0].url.origin, 'https://api.github.com');
+  assert.equal(requests[0].url.pathname, runsPath);
+  assert.equal(requests[0].url.searchParams.get('status'), 'queued');
+  assert.equal(requests[0].url.searchParams.get('page'), '2');
+  assert.equal(requests[0].options.redirect, 'error');
+});
+test('success receipt is canonically bound to event SHA, range, run, and attempt', async t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cd-success-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const env = guardEnv(root);
   const outputs = [];
-  const requests = [];
-  const fetchImpl = async (url, options) => {
-    assert.equal(options.redirect, 'error');
-    requests.push(new URL(url));
+  let requestCount = 0;
+  const fetchImpl = async () => {
+    requestCount += 1;
     return runResponse([currentRun(env)]);
   };
-  try {
-    const receipt = await runGuard(env, fetchImpl, root, value => outputs.push(value));
-    const bytes = fs.readFileSync(receiptPath(root, env));
-    assertFields(receipt, { sha: env.GITHUB_SHA, runId: 41, runAttempt: 3 });
-    assert.equal(bytes.toString('utf8'), `${JSON.stringify(receipt)}\n`);
-    const receiptDigest = createHash('sha256').update(bytes).digest('hex');
-    const expectedOutput = `deploy=true\nreceipt=${JSON.stringify(receipt)}\nreceipt_sha256=${receiptDigest}\n`;
-    assert.deepEqual(outputs, [expectedOutput]);
-    assert.equal(fs.existsSync(env.CD_SCOPE_RECEIPT_PATH), false);
-    assert.equal(fs.existsSync(env.GITHUB_OUTPUT), false);
-    assert.equal(requests.length, 5);
-    for (const request of requests) {
-      assert.equal(request.origin, 'https://api.github.com');
-      assert.equal(request.pathname, runsPath);
-    }
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true });
-  }
+  const receipt = await runGuard(env, fetchImpl, root, value => outputs.push(value));
+  const bytes = fs.readFileSync(receiptPath(root, env));
+  assertFields(receipt, { sha: env.GITHUB_SHA, runId: 41, runAttempt: 3 });
+  assert.equal(bytes.toString('utf8'), `${JSON.stringify(receipt)}\n`);
+  const receiptDigest = createHash('sha256').update(bytes).digest('hex');
+  const expectedOutput = `deploy=true\nreceipt=${JSON.stringify(receipt)}\nreceipt_sha256=${receiptDigest}\n`;
+  assert.deepEqual(outputs, [expectedOutput]);
+  assert.equal(fs.existsSync(env.CD_SCOPE_RECEIPT_PATH), false);
+  assert.equal(fs.existsSync(env.GITHUB_OUTPUT), false);
+  assert.equal(requestCount, 5);
 });
 test('Sonar main gate skips manual fallback for non-push SonarCloud runs while keeping push blocking intact', () => {
-  const workflow = readWorkflow('.github/workflows/sonar-main-gate.yml');
-  const job = workflow.jobs['sonar-gate'];
-  assert.ok(job);
-  const steps = job.steps;
-  const validateStep = findStep(steps, 'Validate Sonar configuration');
-  const strategyStep = findStep(steps, 'Decide Sonar main gate strategy');
-  const awaitStep = findStep(steps, 'Await SonarCloud Code Analysis check (blocking on push)');
-  const fallbackStep = findStep(steps, 'Run Sonar quality gate (manual fallback)');
-  assert.ok(validateStep);
-  assert.equal(strategyStep.if, "env.SONAR_GATE_ENABLED == 'true'");
-  assert.match(strategyStep.run, /RUN_MANUAL_FALLBACK/);
-  assert.match(strategyStep.run, /sonarcloud\.io/);
-  assert.match(strategyStep.run, /SonarCloud Automatic Analysis owns mainline analysis/);
-  assert.ok(awaitStep);
-  assert.equal(awaitStep.if, "github.event_name == 'push' && env.SONAR_GATE_ENABLED == 'true'");
-  assert.ok(fallbackStep);
+  const job = readWorkflow('.github/workflows/sonar-main-gate.yml').jobs['sonar-gate'];
+  const validate = findStep(job.steps, 'Validate Sonar configuration');
+  const strategy = findStep(job.steps, 'Decide Sonar main gate strategy');
+  const awaitCheck = findStep(job.steps, 'Await SonarCloud Code Analysis check (blocking on push)');
+  const fallback = findStep(job.steps, 'Run Sonar quality gate (manual fallback)');
+  assert.ok(job && validate && awaitCheck && fallback);
+  assert.equal(strategy.if, "env.SONAR_GATE_ENABLED == 'true'");
+  for (const pattern of [
+    /RUN_MANUAL_FALLBACK/,
+    /sonarcloud\.io/,
+    /SonarCloud Automatic Analysis owns mainline analysis/,
+  ]) {
+    assert.match(strategy.run, pattern);
+  }
+  assert.equal(awaitCheck.if, "github.event_name == 'push' && env.SONAR_GATE_ENABLED == 'true'");
   assert.equal(
-    fallbackStep.if,
+    fallback.if,
     "github.event_name != 'push' && env.SONAR_GATE_ENABLED == 'true' && env.RUN_MANUAL_FALLBACK == 'true'"
-  );
-});
-test('Nightly E2E runs on an available hosted runner while preserving full strict coverage', () => {
-  const nightlyWorkflow = readWorkflow('.github/workflows/e2e-nightly.yml');
-  const nightlyJob = nightlyWorkflow.jobs.e2e;
-  const nightlySteps = nightlyJob.steps;
-  assertFields(nightlyJob, { 'runs-on': 'ubuntu-latest' });
-  assert.deepEqual(nightlyWorkflow.on.schedule, [{ cron: '10 2 * * *' }]);
-  assert.equal(nightlyJob.strategy['max-parallel'], 2);
-  assert.deepEqual(nightlyJob.strategy.matrix, nightlyMatrix);
-  const e2eDatabaseUrl =
-    "${{ secrets.E2E_DATABASE_URL_RLS || secrets.E2E_DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test' }}";
-  for (const field of ['DATABASE_URL_RLS', 'E2E_DATABASE_URL_RLS']) {
-    assert.equal(nightlyJob.env[field], e2eDatabaseUrl);
-  }
-  const nightlyStateStep = findStep(nightlySteps, 'Generate Playwright Gate Auth State (KS+MK)');
-  assert.ok(nightlyStateStep);
-  assert.equal(nightlyStateStep.run, 'pnpm e2e:state:setup');
-  for (const name of ['E2E Gate (KS+MK)', 'E2E Phase 5 Deterministic Batch', 'E2E Smoke']) {
-    assert.ok(findStep(nightlySteps, name));
-  }
-  assert.match(
-    findStep(nightlySteps, 'E2E Subscription Lifecycle (KS+MK)').run,
-    /e2e\/golden\/subscription-entry\.spec\.ts/
   );
 });
