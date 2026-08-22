@@ -20,6 +20,10 @@ const source = JSON.parse(fs.readFileSync(canonical.envelope));
 const approved = JSON.parse(fs.readFileSync(canonical.receipt));
 const temporary = label => fs.mkdtempSync(join(tmpdir(), `wf-bootstrap-${label}-`));
 test('verifies only the exact canonical approval tuple and receipt bytes', () => {
+  assert.equal(
+    approved.receiptId,
+    'IDA-WF01-ONE-APPROVAL-DELIVERY-APPROVAL-RECEIPT-R4-GOVERNANCE-HEADING-INHERITANCE-REPAIR'
+  );
   const approval = [approved.approvalStatement, approved.eventLocator, canonical.receipt];
   const observed = bootstrap.receiptFor(canonical.gate, canonical.envelope, ...approval);
   assert.deepEqual(observed, approved);

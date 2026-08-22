@@ -1,10 +1,10 @@
-# IDA-WF-DG01-ONE-APPROVAL-DELIVERY-R2-B0-TYPED-GUARD-REPAIR
+# IDA-WF-DG01-ONE-APPROVAL-DELIVERY-R4-GOVERNANCE-HEADING-INHERITANCE-REPAIR
 
 Status: approval candidate
-Date: 2026-08-21
+Date: 2026-08-22
 Tier: 3 — shared workflow, MCP identity, repository CI, and authority lifecycle
-Protected base: `main@7fb7180aafadf91b79ec37f5daeebaa85bc86ff2`
-Protected base tree: `d991d80615f81900306944f7bc0ab55d1153c9d8`
+Protected base: `main@1a13176c118de88928593af846b6a14310aac645`
+Protected base tree: `c17da1c732b98a36d9c9e0e49beeb905fa09c311`
 Canonical origin: `https://github.com/interdomestik/interdomestik.git`
 Canonical gate: `docs/plans/2026-08-21-ida-wf-dg01-one-approval-delivery-protocol.md`
 Canonical envelope: `docs/plans/2026-08-21-ida-wf01-one-approval-delivery-envelope-v1.json`
@@ -14,6 +14,18 @@ Stable closeout path:
 `docs/plans/2026-08-21-ida-wf01-one-approval-delivery-closeout.md`
 Durable authority root:
 `/Users/arbenlila/.codex/state/interdomestik/ida-wf01-one-approval-delivery`
+
+This R4 supersedes R3 only to preserve the superseded R2 title as explicit historical governance
+evidence required by the typed guard. R3's S1A validator-reachability repair, B0/B1 outcomes,
+containment evidence, later-child topology, product/security non-goals, and failure closeout remain
+unchanged. No writer path or product, provider, MCP, CI, routing, auth, tenancy, AI OS, Docker, or
+unit-selector scope is added.
+
+Historical superseded title (evidence only):
+
+```markdown
+# IDA-WF-DG01-ONE-APPROVAL-DELIVERY-R2-B0-TYPED-GUARD-REPAIR
+```
 
 ## One outcome
 
@@ -208,6 +220,7 @@ Exact semantic writers:
 6. `scripts/next-slice.test.mjs`
 7. `scripts/workflow-scorecard.mjs`
 8. `scripts/workflow-scorecard.test.mjs`
+9. `scripts/validate-skill.mjs`
 
 Required behavior:
 
@@ -224,6 +237,9 @@ Required behavior:
   an unexplained removal fails before hashing, while workflow YAML remains owned by its typed guard
   and existing CI/security contracts.
 - Keep Z620, model, and cache evidence optional unless the admitted tier/contract requires it.
+- Treat statically imported internal `scripts/*.mjs` modules as reachable from a documented
+  command entrypoint; keep undocumented, unreachable scripts fail-closed. The existing S1A focused
+  tests must prove both the imported-helper success case and orphan-script rejection.
 
 ### S1B — normative workflow routing standard v1
 

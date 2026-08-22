@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-08-21
+last_reviewed: 2026-08-22
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -16,25 +16,26 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                               | Status        | Owner      | Work                                               | Exit Criteria                                                                                                                                                                                           |
-| -------------------------------- | ------------- | ---------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `IDA-WF01-ONE-APPROVAL-DELIVERY` | `in_progress` | `platform` | Materialize B0 authority bootstrap and typed guard | Exact approved artifacts and deterministic receipt merge from the admitted fifteen-path map; B0 exact-main health/CD containment/cleanup pass; external fsync ledger consumes B0 and activates only B1. |
+| ID                               | Status        | Owner      | Work                         | Exit Criteria                                                                                                                                                                                         |
+| -------------------------------- | ------------- | ---------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `IDA-WF01-ONE-APPROVAL-DELIVERY` | `in_progress` | `platform` | Activate S1A skill authority | R4 governance repair merges healthy; replacement receipt/ledger bind the returned main; the exact S1A bundle swaps atomically, passes focused/full skill proof, consumes S1A, and activates only S1B. |
 
 ## Proof Ledger
 
-| ID                               | Source Refs                                                                                                                                    | Execution | Run ID    | Run Root  | Sonar     | Docker           | Sentry           | Learning  | Evidence Refs                                                                                                                                     |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------- | --------- | --------- | --------- | ---------------- | ---------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `IDA-WF01-ONE-APPROVAL-DELIVERY` | `docs/plans/2026-08-21-ida-wf-dg01-one-approval-delivery-protocol.md`; `docs/plans/2026-08-21-ida-wf01-one-approval-delivery-envelope-v1.json` | `manual`  | `pending` | `pending` | `pending` | `not_applicable` | `not_applicable` | `pending` | `docs/plans/2026-08-21-ida-wf01-one-approval-delivery-approval-receipt-r1.json`; `docs/plans/current-program.md`; `docs/plans/current-tracker.md` |
+| ID                               | Source Refs                                                                                                                                    | Execution | Run ID | Run Root             | Sonar     | Docker           | Sentry           | Learning  | Evidence Refs                                                                                                                            |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------ | -------------------- | --------- | ---------------- | ---------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `IDA-WF01-ONE-APPROVAL-DELIVERY` | `docs/plans/2026-08-21-ida-wf-dg01-one-approval-delivery-protocol.md`; `docs/plans/2026-08-21-ida-wf01-one-approval-delivery-envelope-v1.json` | `manual`  | `S1A`  | `codex-control-host` | `pending` | `not_applicable` | `not_applicable` | `pending` | `docs/plans/2026-08-21-ida-wf01-one-approval-delivery-approval-receipt-r1.json`; durable `authority-v1.json`; exact S1A bundle manifests |
 
 ## Next Selection
 
-B0 alone is directly authorized by the exact human event. Repository projection remains
-`runtime_authorized:false`, `activeSlice:null` until B0 merges healthy and the separately
-preauthorized external initializer durably consumes B0 and activates only B1. Every later child is
-sequential, single-use, and fail-closed. No unrelated slice, PR, or historical program is promoted.
+B0 and B1 are terminal. The exact R4 human event authorizes only the cumulative heading-inheritance
+and validator-reachability repair and unchanged S1A outcome. After exact R4 main health and durable
+identity rebinding,
+`runtime_authorized:true`, `activeSlice:S1A-skill-authority`; every later child remains sequential,
+single-use, and fail-closed. No unrelated slice, PR, or historical program is promoted.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is exactly one canonical tracker program: `IDA-WF01-ONE-APPROVAL-DELIVERY` (Tier 3; `runtime_authorized:false`).
+The next active governed implementation goal is exactly one canonical tracker program: `IDA-WF01-ONE-APPROVAL-DELIVERY` (Tier 3; `runtime_authorized:true`).
 
 ## Historical Authority
 
