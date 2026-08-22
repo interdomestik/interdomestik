@@ -122,12 +122,12 @@ function workflowComplexity(text) {
   return text.match(/^[ \t]*(?:-[ \t]*)?(?:if|needs|permissions|run|uses):/gmu)?.length ?? 0;
 }
 
-function canonicalJson(root, filePath, text) {
+function canonicalJson(_root, filePath, text) {
   try {
     JSON.parse(text);
     const formatted = execFileSync(
       process.execPath,
-      [prettierCli(), '--config', PRETTIER_CONFIG, '--stdin-filepath', path.join(root, filePath)],
+      [prettierCli(), '--config', PRETTIER_CONFIG, '--stdin-filepath', filePath],
       {
         cwd: TOOL_ROOT,
         encoding: 'utf8',
