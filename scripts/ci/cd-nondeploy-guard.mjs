@@ -14,7 +14,7 @@ const CONTROL_PATHS = new Set([
   MANIFEST_PATH,
 ]);
 const SHA = /^[a-f0-9]{40}$/u;
-const POSITIVE_INTEGER = /^[1-9][0-9]*$/u;
+const POSITIVE_INTEGER = /^[1-9]\d*$/u;
 const NONTERMINAL = new Set(['in_progress', 'pending', 'queued', 'requested', 'waiting']);
 const fail = message => {
   throw new Error(`CD non-deploy guard: ${message}`);

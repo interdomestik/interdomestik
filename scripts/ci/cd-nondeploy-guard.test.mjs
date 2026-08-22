@@ -275,11 +275,15 @@ test('success receipt is canonically bound to event SHA, range, run, and attempt
 });
 test('Sonar main gate skips manual fallback for non-push SonarCloud runs while keeping push blocking intact', () => {
   const job = readWorkflow('.github/workflows/sonar-main-gate.yml').jobs['sonar-gate'];
+  assert.ok(job);
   const validate = findStep(job.steps, 'Validate Sonar configuration');
   const strategy = findStep(job.steps, 'Decide Sonar main gate strategy');
   const awaitCheck = findStep(job.steps, 'Await SonarCloud Code Analysis check (blocking on push)');
   const fallback = findStep(job.steps, 'Run Sonar quality gate (manual fallback)');
-  assert.ok(job && validate && awaitCheck && fallback);
+  assert.ok(validate);
+  assert.ok(strategy);
+  assert.ok(awaitCheck);
+  assert.ok(fallback);
   assert.equal(strategy.if, "env.SONAR_GATE_ENABLED == 'true'");
   for (const pattern of [
     /RUN_MANUAL_FALLBACK/,
