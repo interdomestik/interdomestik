@@ -1,0 +1,688 @@
+{
+  "schemaVersion": 1,
+  "kind": "one-approval-delivery-envelope",
+  "sliceId": "IDA-WF01-ONE-APPROVAL-DELIVERY",
+  "baseSha": "7fb7180aafadf91b79ec37f5daeebaa85bc86ff2",
+  "authorityArtifact": "docs/plans/2026-08-21-ida-wf-dg01-one-approval-delivery-protocol.md",
+  "authorityArtifactSha256": "ae62754ce2a9d9378ac1a4884770bf5856c964cf846bc20363312a691d7eea7c",
+  "productOutcomes": [
+    "Enable one final exact human approval to govern a normal Interdomestik slice through isolated implementation, proof, PR, exact merge, and closeout without another approval unless a genuine new product, security, trust-boundary, or scope defect appears."
+  ],
+  "writerPaths": [
+    "docs/plans/2026-08-21-ida-wf-dg01-one-approval-delivery-protocol.md",
+    "docs/plans/2026-08-21-ida-wf01-one-approval-delivery-envelope-v1.json",
+    "docs/plans/2026-08-21-ida-wf01-one-approval-delivery-approval-receipt-r1.json",
+    "docs/plans/current-program.md",
+    "docs/plans/current-tracker.md",
+    "scripts/approval-envelope-bootstrap.mjs",
+    "scripts/approval-envelope-ledger.mjs",
+    "scripts/approval-envelope-ledger-fs.mjs",
+    "scripts/approval-envelope-bootstrap.test.mjs",
+    "scripts/approval-envelope-ledger.test.mjs",
+    "scripts/repo-size-budget.json"
+  ],
+  "proofSurfaces": [
+    {
+      "id": "P1-envelope-authority",
+      "invalidatedBy": [
+        "gate-envelope-receipt-or-ledger-change",
+        "typed-modularity-policy-or-guard-change",
+        "origin-base-worktree-writer-or-skill-bundle-change",
+        "merge-closeout-or-authority-state-change"
+      ]
+    },
+    {
+      "id": "P2-mcp-identity",
+      "invalidatedBy": [
+        "mcp-source-target-router-or-caller-change",
+        "control-runtime-registration-or-host-change",
+        "mcp-activation-or-rollback-state-change"
+      ]
+    },
+    {
+      "id": "P3-terminal-delivery",
+      "invalidatedBy": [
+        "cd-workflow-scope-or-provider-dag-change",
+        "ci-manifest-context-generator-or-feedback-change",
+        "protection-head-run-attempt-or-final-intake-change"
+      ]
+    }
+  ],
+  "sharedRuntimeConsumers": ["Interdomestik governed-slice root orchestrator"],
+  "specialProofEnvironments": [
+    {
+      "id": "codex-control-host",
+      "description": "The macOS Codex host owns the installed skill, durable authority ledger, and registered interdomestik_qa runtime. GitHub-hosted CI is the ordinary repository proof plane.",
+      "canary": {
+        "command": "git -C /Users/arbenlila/.codex/mcp-runtimes/interdomestik-qa status --porcelain=v1 && git -C /Users/arbenlila/.codex/mcp-runtimes/interdomestik-qa rev-parse HEAD && git -C /Users/arbenlila/.codex/mcp-runtimes/interdomestik-qa branch --show-current && git -C /Users/arbenlila/.codex/mcp-runtimes/interdomestik-qa rev-parse --path-format=absolute --git-common-dir && git -C /Users/arbenlila/.codex/mcp-runtimes/interdomestik-qa remote get-url origin",
+        "expected": "clean detached control runtime with canonical origin and common Git directory",
+        "observedAt": "2026-08-21T17:04:53.212Z",
+        "result": "pass",
+        "evidence": "{\"observedAt\":\"2026-08-21T17:04:53.212Z\",\"root\":\"/Users/arbenlila/.codex/mcp-runtimes/interdomestik-qa\",\"head\":\"faae32d2af477c44d2f2fed6ad36151d08b8ea8d\",\"branch\":null,\"clean\":true,\"commonDir\":\"/Users/arbenlila/development/interdomestik-crystal-home/.git\",\"origin\":\"https://github.com/interdomestik/interdomestik.git\"}",
+        "evidenceSha256": "dd8415360cdcab18dd23088c836b37acf74de3d022d242c7ff20408a429f7b54",
+        "environmentFingerprint": "macOS-codex-host|control=faae32d2af477c44d2f2fed6ad36151d08b8ea8d|origin=https://github.com/interdomestik/interdomestik.git"
+      }
+    }
+  ],
+  "primitiveFeasibility": {
+    "atomicSkillActivation": {
+      "primitive": "macOS renameatx_np with RENAME_SWAP|RENAME_NOFOLLOW_ANY|RENAME_RESOLVE_BENEATH on pinned, distinct, same-volume parent descriptors",
+      "compileCommand": "xcrun clang -Wall -Wextra -Werror -o /private/tmp/ida-wf-atomic-swap-cross-parent-canary /private/tmp/ida-wf-atomic-swap-cross-parent-canary.c",
+      "canaryCommand": "/private/tmp/ida-wf-atomic-swap-cross-parent-canary /private/tmp/ida-wf-swap-parent-a /private/tmp/ida-wf-swap-parent-b",
+      "sourceSha256": "c425b6dbfa85568f70464cfb53f9cf67d0dbfe953f79d70480407697bc20eaf4",
+      "binarySha256": "a676ad28f62b0e70f47764cc31ae89756bd2e0ddc84f9ab5cf8d14a0279c2525",
+      "observed": "pass: cross-parent inode/marker contents exchanged and exchanged back with exact flags; both distinct parent descriptors fsynced after each swap",
+      "observedDevice": "16777233 for /Users/arbenlila/.codex/skills, /Users/arbenlila/.codex/state, and /private/tmp",
+      "implementationRequirement": "Before lease acquisition, query VOL_CAP_INT_RENAME_SWAP and repeat a disposable cross-parent canary matching canonical-skill-parent to attempt-parent topology; build the admitted C source from the frozen staged bundle; fsync both parents after swap.",
+      "frozenAttemptPathClasses": {
+        "source": "attempts/<postimage-sha256>/activate/atomic-skill-activate.c",
+        "binary": "attempts/<postimage-sha256>/bin/atomic-skill-activate",
+        "manifests": "attempts/<postimage-sha256>/manifests/{preimage,payload,postimage}.json"
+      }
+    },
+    "bootstrapTrust": {
+      "authority": "directly observed exact human approval event",
+      "receiptRole": "deterministic parse, binding, and non-expansion proof only",
+      "cryptographicAuthenticationClaim": false,
+      "preCanonicalValidator": "scripts/approval-envelope-bootstrap.mjs in B0"
+    }
+  },
+  "contractGraph": {
+    "nodes": [
+      { "id": "n-envelope", "kind": "entry" },
+      { "id": "n-skill-mcp", "kind": "primitive" },
+      { "id": "n-git", "kind": "external" },
+      { "id": "n-authority", "kind": "state" },
+      { "id": "n-manifest", "kind": "store" },
+      { "id": "n-gate", "kind": "consumer" },
+      { "id": "n-tests", "kind": "test" },
+      { "id": "n-baseline", "kind": "baseline" }
+    ],
+    "edges": [
+      {
+        "id": "e-envelope-runtime",
+        "from": "n-envelope",
+        "to": "n-skill-mcp",
+        "operation": "derive non-expanding receipt, atomic validator, MCP tuple and one lease"
+      },
+      {
+        "id": "e-runtime-git",
+        "from": "n-skill-mcp",
+        "to": "n-git",
+        "operation": "bind origin, base, worktree/common-dir, B/H/T/M/tree, run and app"
+      },
+      {
+        "id": "e-git-authority",
+        "from": "n-git",
+        "to": "n-authority",
+        "operation": "consume lease/token from live merge/failure and verify closeout"
+      },
+      {
+        "id": "e-manifest-gate",
+        "from": "n-manifest",
+        "to": "n-gate",
+        "operation": "declare contexts, attempts, generators, skips and terminal conclusions"
+      },
+      {
+        "id": "e-baseline-tests",
+        "from": "n-baseline",
+        "to": "n-tests",
+        "operation": "prove envelope, skill, MCP, CD, delivery, merge and closeout contracts"
+      }
+    ],
+    "closure": {
+      "callers": true,
+      "sharedConsumers": true,
+      "readWriteDelete": true,
+      "mountErrorPaths": true,
+      "capabilityRequirements": true,
+      "testCollectors": true,
+      "baselineOwnership": true
+    },
+    "closureEvidence": {
+      "callers": "The bootstrap validator, resolver/scorecard/checker, all MCP registration/setup/preflight/CLI/router callers, finalizer/governance/review-ready consumers, terminal gate, and exact-delivery caller are mapped.",
+      "sharedConsumers": "The governed-slice root is the only shared runtime consumer; subagents, reviewers, models, Z620, and caches cannot write or grant authority.",
+      "readWriteDelete": "Semantic writers, durable ledger classes, bundle peer, runtime/config CAS, protection CAS, receipt, closeout, and conditional repo-size metadata are explicit.",
+      "mountErrorPaths": "Foreign roots, path escape, wrong common directory, stale/dirty server source, partial bundle, stale lock, host reload, concurrent provider state, and rollback mismatch fail closed.",
+      "capabilityRequirements": "Canonical Git/GitHub access, GitHub-hosted guard/CI, one macOS control host, and the admitted compare-and-swap transitions are declared; Docker and Z620 are not implicit proof requirements.",
+      "testCollectors": "Three independently invalidatable surfaces cover envelope/authority, MCP identity, and CD/terminal delivery.",
+      "baselineOwnership": "Protected main/tree/origin, squash policy, current contexts, current MCP control runtime, installed-skill owner, and atomic-swap primitive were inspected read-only."
+    }
+  },
+  "highestRiskCases": [
+    "A receipt is treated as human authentication or a not-yet-installed validator is claimed to validate its own bootstrap; sequential installed-skill copies expose a partial package or rollback overwrites unknown concurrent state.",
+    "Protected base, origin, worktree/common-dir, writer map, or live merged PR state disagrees with a stale active ledger; MCP lacks server/target identity or becomes sticky across A-to-B-to-A calls.",
+    "A provider-capable CD job starts before hosted classification; a CD workflow/classifier change self-whitelists from its own merge tree instead of using parent B.",
+    "A required unit/static/E2E/security context or reviewer generator is missing while a sibling is green; finalizer succeeds before later feedback or cycles with delivery-gate.",
+    "A squash merge lacks parents(T)=[B,H], parent(M)=B, and tree(M)=tree(T); a lane reports H success although tree(H) differs from tree(T).",
+    "An untyped line cap pressures production, test, JSON, Markdown, or YAML semantics; an unknown file class passes; a 151-300 production module bypasses function-complexity, duplication, security, test, or coverage evidence; or a >300 module lacks split/rationale disposition.",
+    "Runtime authority remains active after merge, terminal failure, process crash, closeout lag, or cleanup failure; MCP/protection rollback erases a legitimate concurrent change."
+  ],
+  "rollback": {
+    "mechanism": "Preserve and hash exact preimages. Unmerged repository changes are reverted only within the writer map. Skill rollback atomically swaps only exact postimage/preimage peers. MCP/config and protection rollback write only when live equals this operation's exact postimage. Protected main is never rewritten after merge.",
+    "trigger": "Any artifact, authority, identity, writer, proof, main-health, CD, reviewer, runtime, provider, resolver, rollback, or cleanup mismatch.",
+    "unknownConcurrentState": "Consume the lease/token, preserve observed state and evidence, perform no further mutation, block successors, and use preauthorized failure closeout."
+  },
+  "firstImplementationAction": "After one exact human approval and unchanged main@7fb7180aafadf91b79ec37f5daeebaa85bc86ff2, create one fresh B0 worktree/branch, derive the deterministic premerge non-expansion receipt, and keep every pre-existing slice worktree/branch/PR/artifact untouched.",
+  "acceptanceMatrix": [
+    {
+      "criterionId": "AC0-authority-bootstrap",
+      "proofSurfaceId": "P1-envelope-authority",
+      "command": "node --test scripts/approval-envelope-bootstrap.test.mjs scripts/approval-envelope-ledger.test.mjs && node scripts/approval-envelope-bootstrap.mjs verify --gate docs/plans/2026-08-21-ida-wf-dg01-one-approval-delivery-protocol.md --envelope docs/plans/2026-08-21-ida-wf01-one-approval-delivery-envelope-v1.json --receipt docs/plans/2026-08-21-ida-wf01-one-approval-delivery-approval-receipt-r1.json",
+      "expected": "Deterministic premerge receipt proves exact envelope identity/non-expansion without authentication/self-merge claims; typed production checkpoints, readable <=300-line focused tests, typed artifact budgets, exact durable completion-proof bytes, fsync ledger initialization, exact state/evidence schemas, live-disposition fail-closed resolution, state transitions, crash recovery and post-B0 external completion receipt fixtures pass.",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "AC0b-cd-guard",
+      "proofSurfaceId": "P3-terminal-delivery",
+      "command": "node --test scripts/ci/cd-nondeploy-guard.test.mjs scripts/ci/workflow-contracts.test.mjs scripts/ci/cd-runner-contract.test.mjs scripts/ci/cd-deploy-env-scope.test.mjs scripts/ci/cd-*contract.test.mjs",
+      "expected": "B0/B1 containment, parent-B full-range non-deploy, product, tag, manual, unknown/error and concurrency matrices pass; every provider-capable job has a direct scope edge and CD changes never self-whitelist.",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "AC1-atomic-skill-envelope-resolver",
+      "proofSurfaceId": "P1-envelope-authority",
+      "command": "node --test scripts/approval-candidate-check.test.mjs scripts/next-slice.test.mjs scripts/workflow-scorecard.test.mjs scripts/workflow-routing-policy.test.mjs && node scripts/validate-skill.mjs && node scripts/behavior-eval.mjs",
+      "expected": "Both bundle swaps/rollbacks pass; exact chain activates one writer; missing/disallowed routing policy closes before writer activation; Tier-3 cannot select a mechanical decision owner; role/tier/ownership fixtures, external approval guard, zero retry and Sol fallback pass.",
+      "environmentId": "codex-control-host",
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "AC2-mcp-source-target",
+      "proofSurfaceId": "P2-mcp-identity",
+      "command": "node --test scripts/ci/codex-contracts.test.mjs scripts/ci/qa-mcp-worktree-contracts.test.mjs scripts/ci/qa-cli-callers-contracts.test.mjs scripts/ci/qa-mcp-control-runtime.test.mjs",
+      "expected": "Project config remains byte-identical; stale generated cwd=rootDir is rejected; every success/error carries source/target identity; sequential A-to-B-to-A, concurrent A/B, negative roots, CLI, CAS activation, registered-connector restart/reconnect, fresh-consumer postimage proof and guarded rollback fixtures pass.",
+      "environmentId": "codex-control-host",
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "AC1b-typed-modularity-guard",
+      "proofSurfaceId": "P1-envelope-authority",
+      "command": "node --test scripts/check-modularity-guard.test.mjs && pnpm check:modularity-guard && pnpm test:ci:contracts",
+      "expected": "All six canonical file classes route to their specific validator; <=150 production is preferred, 151-300 requires green function-complexity/duplication/security/test/coverage evidence, and >300 requires split or exposed PR/review rationale without a line-only failure. Focused tests, structured artifacts, governance docs, workflow YAML, generated/lock, and unknown-class fixtures enforce their exact contracts with no new toolchain.",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "AC3-exact-merge-consumption",
+      "proofSurfaceId": "P1-envelope-authority",
+      "command": "node --test scripts/current-authority-state.test.mjs scripts/current-authority-format-audit.test.mjs scripts/ci/exact-delivery.test.mjs",
+      "expected": "B/H/T/M identities, parents(T)=[B,H], parent(M)=B, tree(M)=tree(T), per-lane H/T tree rules, live-merge crash consumption, projection parity, child-boundary rebind, postmerge token, and closeout fixtures pass.",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "AC4-terminal-delivery",
+      "proofSurfaceId": "P3-terminal-delivery",
+      "command": "node --test scripts/ci/pr-delivery-gate.test.mjs scripts/ci/pr-delivery-workflow.test.mjs scripts/ci/github-pr-finalizer-contracts.test.mjs scripts/ci/github-governance-contracts.test.mjs && pnpm test:ci:contracts",
+      "expected": "Broad/conditional success and every missing, failed, stale, neutral, wrong-app, old-attempt, pagination, generator, feedback-race and head-change failure pass; all consumers use one manifest and the finalizer/gate DAG is acyclic.",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "AC5-live-delivery-closeout",
+      "proofSurfaceId": "P3-terminal-delivery",
+      "command": "Run one exact-head PR canary, add delivery-gate by protection CAS, merge with expectedHeadOid, prove B/H/T/M and exact-main/CD guard health, consume authority, close out, clean exact refs/worktrees, and rerun the canonical resolver.",
+      "expected": "delivery-gate is terminal and additive; final intake is same-head clean; merge/main/closeout identities match; runtime_authorized is false, activeSlice is null, and unrelated state is preserved.",
+      "environmentId": null,
+      "skipIsFailure": true
+    }
+  ],
+  "executionPolicy": {
+    "focusedBeforeHeavy": true,
+    "currentHeadCanaryBeforeFullCi": true,
+    "feedbackBeforeHeavy": true,
+    "fullE2eAuthority": "ci_once_per_exact_head",
+    "rerunPolicy": "invalidated_only",
+    "staleHeadAction": "cancel",
+    "runnerReadiness": "connected_and_listening"
+  },
+  "approvalEnvelope": {
+    "envelopeVersion": 1,
+    "gate": {
+      "id": "IDA-WF-DG01-ONE-APPROVAL-DELIVERY-R1-TYPED-MODULARITY-REPAIR",
+      "canonicalPath": "docs/plans/2026-08-21-ida-wf-dg01-one-approval-delivery-protocol.md",
+      "utf8Bytes": 34804,
+      "sha256": "ae62754ce2a9d9378ac1a4884770bf5856c964cf846bc20363312a691d7eea7c"
+    },
+    "envelope": {
+      "id": "IDA-WF01-ONE-APPROVAL-DELIVERY-ENVELOPE-V1-TYPED-MODULARITY-REPAIR",
+      "canonicalPath": "docs/plans/2026-08-21-ida-wf01-one-approval-delivery-envelope-v1.json",
+      "identityBinding": "The final human approval binds this file's externally reported UTF-8 bytes and SHA-256; self-hashing is forbidden."
+    },
+    "approvalReceipt": {
+      "canonicalPath": "docs/plans/2026-08-21-ida-wf01-one-approval-delivery-approval-receipt-r1.json",
+      "derivation": "After the direct exact human event, the B0 bootstrap script parses the supplied approval statement and records only exact gate/envelope identities, protected base, event locator and false/null authority posture. The envelope SHA binds outcome/topology/writers/proofs without duplicate receipt fields.",
+      "proves": "deterministic binding and non-expansion",
+      "doesNotProve": "cryptographic authentication of the human event",
+      "isIndependentAuthority": false,
+      "secondApprovalRequired": false
+    },
+    "gitBinding": {
+      "origin": "https://github.com/interdomestik/interdomestik.git",
+      "protectedRef": "refs/heads/main",
+      "baseSha": "7fb7180aafadf91b79ec37f5daeebaa85bc86ff2",
+      "baseTree": "d991d80615f81900306944f7bc0ab55d1153c9d8",
+      "baseParent": "eaa9bd108f29ce386b185c46b8474ee1c3747774",
+      "mergeMethod": "SQUASH",
+      "baseDriftBeforeMaterialization": "invalidate_and_refreeze",
+      "derivedBaseAfterMaterialization": "preceding_returned_main_or_child_boundary_compatible_rebind"
+    },
+    "durableAuthority": {
+      "root": "/Users/arbenlila/.codex/state/interdomestik/ida-wf01-one-approval-delivery",
+      "state": "authority-v1.json",
+      "lock": "authority-v1.json.lock",
+      "recovery": "authority-v1.json.recovery",
+      "temporaryClass": "authority-v1.json.tmp-<operation-sha256>",
+      "receiptClass": "receipts/<operation-sha256>.json",
+      "evidenceClass": "evidence/<child-id>-<evidence-sha256>.json",
+      "completionProofClass": "evidence/proof-<proof-sha256>.json",
+      "writeProtocol": "expected revision and operation hash; mode 0600; file and parent fsync; atomic sibling rename",
+      "stateSchema": "exactly schemaVersion,programId,revision,status,childId,runtimeAuthorized,successorsBlocked,envelopeSha256,approvalReceiptSha256,boundary,evidenceRef,previousOperationSha256; persisted record adds only operationSha256",
+      "evidenceSchema": "exactly schemaVersion,programId,revision,event,fromChild,toChild,boundary,previousOperationSha256,proofSha256; content-addressed path must match canonical body",
+      "completionProofSchema": "exactly schemaVersion,kind,B,H,T,M,mainHealthChecksSha256,cdRunId,cdConclusion,cdRunnerId,cdStepCount,providerEvidenceSha256,worktreeRemoved,branchRemoved,branchHygieneSha256; canonical bytes and supplied SHA-256 must match before persistence",
+      "recoveryProtocol": "exact operation+expected-state+random-token; ps start identity when available, opaque owner plus kill(pid,0) fallback otherwise; only proven dead recovers, live/unknown blocks; exact partial bytes/modes and completed-rename idempotence required",
+      "liveResolutionProtocol": "active state resolves only with exact operationSha256, childId, and disposition=open; missing, stale, closed, mismatched, or unknown live state fails closed before writer activation",
+      "unknownState": "runtime_authorized:false; activeSlice:null; successors blocked"
+    },
+    "phaseA": {
+      "childId": "B0-authority-bootstrap",
+      "outcome": "Materialize exact governance and deterministic premerge receipt, then initialize the external completion receipt and dedicated canonical ledger after exact-main health.",
+      "authorityBeforeCanonicalValidator": "direct exact human approval event bound to frozen gate/envelope/base",
+      "runtimeBeforeMerge": false,
+      "runtimeAfterMergeBeforeLedger": false,
+      "activeChildAfterHealthyLedgerInit": "B1-cd-guard",
+      "writerPaths": [
+        "docs/plans/2026-08-21-ida-wf-dg01-one-approval-delivery-protocol.md",
+        "docs/plans/2026-08-21-ida-wf01-one-approval-delivery-envelope-v1.json",
+        "docs/plans/2026-08-21-ida-wf01-one-approval-delivery-approval-receipt-r1.json",
+        "docs/plans/current-program.md",
+        "docs/plans/current-tracker.md",
+        "scripts/approval-envelope-bootstrap.mjs",
+        "scripts/approval-envelope-ledger.mjs",
+        "scripts/approval-envelope-ledger-fs.mjs",
+        "scripts/approval-envelope-bootstrap.test.mjs",
+        "scripts/approval-envelope-ledger.test.mjs",
+        "scripts/repo-size-budget.json"
+      ],
+      "bootstrapContainment": "Zero nonterminal CD runs and no capable self-hosted provider runner; cancel exact push/main run before any runner/step or incident-close.",
+      "successPostcondition": "Returned main is exact/healthy; B0 and its CD run are consumed; external completion receipt binds M; durable state activates only B1.",
+      "failurePostcondition": "B0 is consumed, runtime_authorized:false, activeSlice:null, successors blocked, failure closeout preauthorized.",
+      "linePolicy": "Production executable modules prefer <=150; 151-300 passes with green function-complexity, duplication, security, tests and coverage evidence; >300 splits or carries exposed PR/review rationale. Focused tests <=300 and split by behavior above that; approval JSON uses closed schema, canonical bytes/hash and <=128 KiB; no minification."
+    },
+    "children": [
+      {
+        "order": 1,
+        "childId": "B1-cd-guard",
+        "outcome": "Install a GitHub-hosted parent-B/full-range non-deploy classifier as the direct predecessor of every provider-capable CD job without changing product/tag/manual deployment semantics.",
+        "controlPlane": "repository PR with bootstrap containment",
+        "ownerRoot": "https://github.com/interdomestik/interdomestik.git",
+        "writerPaths": [
+          ".github/workflows/cd.yml",
+          "scripts/ci/cd-nondeploy-scope.json",
+          "scripts/ci/cd-nondeploy-guard.mjs",
+          "scripts/ci/cd-nondeploy-guard.test.mjs",
+          "scripts/ci/workflow-contracts.test.mjs",
+          "scripts/ci/cd-runner-contract.test.mjs",
+          "scripts/ci/cd-deploy-env-scope.test.mjs",
+          "scripts/ci/z620-parity.json",
+          "scripts/ci/z620-gates.json"
+        ],
+        "successPostcondition": "B1 merge/run is bootstrap-contained; guard is live for later children; exact scope receipt and all CD contracts pass; only S1A may activate.",
+        "failurePostcondition": "Consume B1; runtime_authorized:false; activeSlice:null; successors blocked; any capable-runner/provider effect is incident closeout.",
+        "linePolicy": "Production executable code uses the <=150 preferred, 151-300 evidence-green, >300 split-or-rationale checkpoint; cd.yml has no arbitrary line cap but may not grow in complexity and must move new logic to tested helpers; workflow contracts remain authoritative.",
+        "proofSurfaceIds": ["P3-terminal-delivery"]
+      },
+      {
+        "order": 2,
+        "childId": "S1A-skill-authority",
+        "outcome": "Atomically activate exact envelope validation, live-state resolver, one-writer leases, and candidate certification in the installed skill.",
+        "controlPlane": "local content-addressed full-directory swap",
+        "ownerRoot": "/Users/arbenlila/.codex/skills/interdomestik-slice-runner",
+        "writerPaths": [
+          "scripts/atomic-skill-activate.c",
+          "scripts/authority-envelope-core.mjs",
+          "scripts/approval-candidate-check.mjs",
+          "scripts/approval-candidate-check.test.mjs",
+          "scripts/next-slice.mjs",
+          "scripts/next-slice.test.mjs",
+          "scripts/workflow-scorecard.mjs",
+          "scripts/workflow-scorecard.test.mjs"
+        ],
+        "bundle": {
+          "stagingClass": "/Users/arbenlila/.codex/state/interdomestik/ida-wf01-one-approval-delivery/attempts/<postimage-sha256>/swap-peer",
+          "activationPointer": "/Users/arbenlila/.codex/skills/interdomestik-slice-runner",
+          "activationPrimitive": "pinned parent fds; renameatx_np(RENAME_SWAP|RENAME_NOFOLLOW_ANY|RENAME_RESOLVE_BENEATH)",
+          "writeAhead": "fsync prepared -> acquire lease -> fsync installing -> one swap -> verify -> fsync installed_consumed",
+          "manifest": "path,type,mode,bytes,symlink/hardlink policy,xattr names/values; no extras/devices/sockets",
+          "preLease": "no active writer/long-lived consumer; same device; volume capability; cross-parent topology canary; frozen preimage/payload/postimage",
+          "frozenAttemptPaths": "activate/atomic-skill-activate.c; bin/atomic-skill-activate; manifests/{preimage,payload,postimage}.json",
+          "postSwapDurability": "fsync both pinned parent descriptors",
+          "recovery": "classify only exact preimage/postimage arrangements; one guarded rollback; third arrangement is incident",
+          "preimageRetention": "swap-peer after successful activation through program closeout",
+          "rollbackGuard": "canonical == exact postimage and swap-peer == exact preimage"
+        },
+        "candidateArtifactContract": "approval-candidate-check classifies every bound artifact; structured JSON requires closed owning schema/exact keys, canonical bytes/hash and <=128 KiB; governance Markdown requires <=1000 lines, <=128 KiB, declared required sections and predecessor-invariant inventory with unexplained removal failing before hash; workflow YAML remains owned by the typed repo guard and existing CI/security contracts.",
+        "successPostcondition": "Atomic canonical postimage is verified; local-install lease is consumed; only S1B may activate through a fresh consumer.",
+        "failurePostcondition": "Guarded atomic rollback or preserve unknown state; consume S1A; runtime_authorized:false; activeSlice:null; successors blocked.",
+        "linePolicy": "Production executable code uses the <=150 preferred, 151-300 evidence-green, >300 split-or-rationale checkpoint; focused test/evaluation <=300 and split by behavior above that; Markdown/JSON candidate budgets are typed and fail closed; no minification.",
+        "proofSurfaceIds": ["P1-envelope-authority"]
+      },
+      {
+        "order": 3,
+        "childId": "S1B-routing-standard",
+        "outcome": "Atomically activate the normative model-escalation and role-selection standard, fail-closed resolver, actual telemetry, and ownership fixtures in the installed skill.",
+        "controlPlane": "local content-addressed full-directory swap",
+        "ownerRoot": "/Users/arbenlila/.codex/skills/interdomestik-slice-runner",
+        "writerPaths": [
+          "SKILL.md",
+          "references/reviewer-routing.md",
+          "references/workflow-routing-policy-v1.json",
+          "scripts/workflow-routing-policy.mjs",
+          "scripts/reviewer-matrix.mjs",
+          "scripts/reviewer-health.mjs",
+          "scripts/workflow-routing-policy.test.mjs",
+          "scripts/behavior-eval.mjs"
+        ],
+        "bundleProtocol": "Same S1A cross-parent write-ahead, full-manifest, atomic-swap, fresh-consumer and one-rollback protocol with distinct hashes/attempt.",
+        "routingContract": "S1B is the sole one-use bootstrap exception bound to the S1A lease/envelope: stage and validate the postimage policy against enabled repo roles before swap; fixture forbids reuse. The policy includes the normative typed modularity matrix. From S1C onward every lease binds the policy/config digest and missing/disallowed policy fails before writes.",
+        "successPostcondition": "Atomic postimage and routing/modularity fixtures are verified; S1B is consumed; only S1C may activate through a fresh consumer.",
+        "failurePostcondition": "Guarded atomic rollback or preserve unknown state; consume S1B; runtime_authorized:false; activeSlice:null; successors blocked.",
+        "linePolicy": "Production executable code uses the <=150 preferred, 151-300 evidence-green, >300 split-or-rationale checkpoint; focused matrix evaluation <=300 and split by behavior above that; policy JSON <=128 KiB with closed schema and canonical digest; no minification.",
+        "proofSurfaceIds": ["P1-envelope-authority"]
+      },
+      {
+        "order": 4,
+        "childId": "S1C-typed-modularity-guard",
+        "outcome": "Replace the untyped all-text line cap with policy-as-code classification and class-specific validators without changing product, test, workflow, required-check, generated, or lock semantics.",
+        "controlPlane": "repository PR",
+        "ownerRoot": "https://github.com/interdomestik/interdomestik.git",
+        "writerPaths": [
+          "scripts/modularity-guard-policy.mjs",
+          "scripts/lib/modularity-guard.mjs",
+          "scripts/check-modularity-guard.mjs",
+          "scripts/check-modularity-guard.test.mjs"
+        ],
+        "classificationContract": "Exactly production-code, focused-test, structured-artifact, governance-doc, workflow-yaml, and generated-or-lock; unknown text fails closed. No new dependency or toolchain.",
+        "validationContract": "production-code <=150 preferred; 151-300 automatic only with no function-complexity, duplication, security, test or coverage regression; >300 split or exposed PR/review rationale, never line-only failure or minification. focused-test <=300; structured-artifact exact owning schema/keys plus canonical bytes/hash and <=128 KiB with no line cap; governance-doc <=1000 and <=128 KiB plus required-section/invariant preservation; workflow-yaml no-growth/complexity/security contracts with no arbitrary line cap and actionlint deferred; generated-or-lock integrity/provenance only.",
+        "successPostcondition": "Typed fixtures pass, existing package script and CI contracts remain unchanged, S1C merge is exact/healthy and consumed, and only S2 may activate.",
+        "failurePostcondition": "Consume S1C; runtime_authorized:false; activeSlice:null; successors blocked; no workflow, generated, lock, package-script, or product mutation is retained.",
+        "linePolicy": "The policy is itself class-enforced: production <=150 preferred, 151-300 evidence-green, >300 split-or-rationale; focused guard tests <=300; no semantic compression.",
+        "proofSurfaceIds": ["P1-envelope-authority"]
+      },
+      {
+        "order": 5,
+        "childId": "S2-mcp-identity",
+        "outcome": "Unify MCP control-source resolution and attest exact server-source and per-call target identities on every success and structured error.",
+        "controlPlane": "repository PR plus bounded runtime/config CAS token",
+        "ownerRoot": "https://github.com/interdomestik/interdomestik.git",
+        "writerPaths": [
+          "packages/qa/src/utils/tool-repo-root.ts",
+          "packages/qa/src/tool-router.ts",
+          "scripts/qa-mcp-control-runtime.mjs",
+          "scripts/start-repo-qa.sh",
+          "scripts/configure-codex-local-mcp.mjs",
+          "scripts/codex-mcp-preflight.mjs",
+          "scripts/mcp-tool.mjs",
+          "scripts/setup-mcp.sh",
+          "scripts/ci/codex-contracts.test.mjs",
+          "scripts/ci/qa-mcp-worktree-contracts.test.mjs",
+          "scripts/ci/qa-cli-callers-contracts.test.mjs",
+          "scripts/ci/qa-mcp-control-runtime.test.mjs"
+        ],
+        "projectConfigDisposition": ".codex/config.toml remains byte-identical; the common launcher and generated user registration select the control source; codex-contracts rejects stale cwd=rootDir behavior.",
+        "successPostcondition": "Exact merge/main is healthy; lease is consumed; runtime/config CAS, bounded registered-connector restart/reconnect, fresh root consumer, live postimage tools/list and A-to-B-to-A consume the token; only S3 may activate.",
+        "failurePostcondition": "Guarded rollback only from exact postimage; otherwise preserve live state; consume lease/token; runtime_authorized:false; activeSlice:null; successors blocked.",
+        "linePolicy": "Production executable code uses the <=150 preferred, 151-300 evidence-green, >300 split-or-rationale checkpoint; focused matrix tests <=300 and split by behavior above that; touched preflight/setup follows cohesion/complexity evidence; no minification.",
+        "proofSurfaceIds": ["P2-mcp-identity"]
+      },
+      {
+        "order": 6,
+        "childId": "S3-exact-authority",
+        "outcome": "Add machine-readable authority projection, exact B/H/T/M delivery, live-state crash consumption, and deterministic success/failure closeout verification.",
+        "controlPlane": "repository PR",
+        "ownerRoot": "https://github.com/interdomestik/interdomestik.git",
+        "writerPaths": [
+          "docs/plans/current-authority-v1.json",
+          "scripts/current-authority-state.mjs",
+          "scripts/current-authority-state-lib.mjs",
+          "scripts/current-authority-state.test.mjs",
+          "scripts/current-authority-format-audit.mjs",
+          "scripts/current-authority-format-audit.test.mjs",
+          "scripts/ci/exact-delivery-lib.mjs",
+          "scripts/ci/exact-delivery.mjs",
+          "scripts/ci/exact-delivery.test.mjs",
+          "docs/plans/current-program.md",
+          "docs/plans/current-tracker.md"
+        ],
+        "commandDisposition": "Invoke focused current-authority scripts directly with node; package.json remains byte-identical.",
+        "successPostcondition": "Merge/failure instantly resolves runtime_authorized:false and activeSlice:null; B/H/T/M and projection parity pass; only S4A may activate after health/cleanup.",
+        "failurePostcondition": "Consume S3; runtime_authorized:false; activeSlice:null; successors blocked; protected main unchanged except an already returned merge.",
+        "linePolicy": "Production executable code uses the <=150 preferred, 151-300 evidence-green, >300 split-or-rationale checkpoint; focused state-matrix tests <=300 and split by behavior above that; structured authority JSON uses exact schema/canonical bytes/hash and <=128 KiB; no minification.",
+        "proofSurfaceIds": ["P1-envelope-authority", "P3-terminal-delivery"]
+      },
+      {
+        "order": 7,
+        "childId": "S4A-terminal-delivery",
+        "outcome": "Activate one default-deny terminal PR gate with canonical context/generator manifest, acyclic finalizer topology, and final same-head feedback intake without rerunning product tests.",
+        "controlPlane": "repository PR; protection remains unchanged",
+        "ownerRoot": "https://github.com/interdomestik/interdomestik.git",
+        "writerPaths": [
+          ".github/workflows/pr-delivery-gate.yml",
+          "scripts/ci/pr-delivery-contract.json",
+          "scripts/ci/pr-delivery-gate.mjs",
+          "scripts/ci/pr-delivery-gate.test.mjs",
+          "scripts/ci/pr-delivery-workflow.test.mjs",
+          "scripts/pr-finalizer.sh",
+          "scripts/pr-finalizer-lib.sh",
+          "scripts/pr-finalizer-feedback-lib.sh",
+          "scripts/github-pr-governance-report.mjs",
+          "scripts/pr-review-ready.sh",
+          "scripts/ci/github-pr-finalizer-contracts.test.mjs",
+          "scripts/ci/github-governance-contracts.test.mjs"
+        ],
+        "successPostcondition": "Terminal gate and all manifest consumers merge healthy; semantic lease is consumed; protection is unchanged; only S4B may activate.",
+        "failurePostcondition": "Consume S4A; runtime_authorized:false; activeSlice:null; successors blocked; protection remains unchanged.",
+        "linePolicy": "Production executable code uses the <=150 preferred, 151-300 evidence-green, >300 split-or-rationale checkpoint; focused API/state matrix tests <=300 and split by behavior above that; workflow YAML uses no-growth/complexity/security contracts; finalizer follows cohesion/complexity evidence; no minification.",
+        "proofSurfaceIds": ["P3-terminal-delivery"]
+      },
+      {
+        "order": 8,
+        "childId": "S4B-reviewer-policy",
+        "outcome": "Remove GitHub Copilot request/wait policy, retain unsolicited feedback intake, canary the terminal gate, and activate delivery-gate by add-only protection CAS.",
+        "controlPlane": "repository PR plus add-only protection CAS token",
+        "ownerRoot": "https://github.com/interdomestik/interdomestik.git",
+        "writerPaths": [
+          ".github/reviewer-routing.json",
+          ".github/pull_request_template.md",
+          "docs/BRANCH_PROTECTION_MULTI_AGENT.md",
+          "scripts/github-request-pr-reviewers.mjs",
+          "scripts/github-request-pr-reviewers.test.mjs",
+          "scripts/ci/github-reviewer-request-contracts.test.mjs"
+        ],
+        "successPostcondition": "S4A live canary passes; {context:delivery-gate, app_id:15368} is added while all check tuples/flags are preserved; semantic lease and protection token are consumed; enter closeout.",
+        "failurePostcondition": "Guarded protection rollback only from exact postimage; otherwise preserve state; consume lease/token; runtime_authorized:false; activeSlice:null; successors blocked.",
+        "linePolicy": "Production executable code uses the <=150 preferred, 151-300 evidence-green, >300 split-or-rationale checkpoint; focused tests <=300; governance Markdown <=1000 and <=128 KiB with required sections/invariants preserved; no minification.",
+        "proofSurfaceIds": ["P3-terminal-delivery"]
+      }
+    ],
+    "authorityStateMachine": {
+      "stateOrder": "candidate -> approved_event_observed -> bootstrap_pr -> active_child -> prepared -> installing -> installed_consumed|merged_consumed|failed_consumed|rolled_back_consumed|incident -> health_cleanup evidence -> next active_child|closeout_required -> closed|failed",
+      "activationRule": "The exact human event directly authorizes only B0. Healthy B0 plus external completion receipt/ledger activates B1; later children derive sequentially from exact predecessor consumption, health, cleanup and frozen topology.",
+      "repositoryConsumptionRule": "Live merged/closed PR or terminal failure immediately makes runtime_authorized false and activeSlice null, even if ledger persistence crashed.",
+      "localConsumptionRule": "S1 consumes on verified atomic postimage success or terminal installation failure, never by pretending it merged a PR.",
+      "postmergeTokenRule": "A token is single-use, non-semantic, and limited to exact main health plus declared MCP/config/protection transition and cleanup. Its identity/result are hash-bound in boundary/evidence and never represented as runtime-authorized semantic status.",
+      "successorRule": "Only the next declared child may activate after exact health, transition and cleanup. Unknown state blocks.",
+      "timeBasedActivation": false,
+      "hiddenSwitch": false,
+      "repoVariableActivation": false
+    },
+    "mergeIdentity": {
+      "testedMergeRef": "T must have exactly parents [B,H] in that order",
+      "mergeCommand": "SQUASH with expectedHeadOid H",
+      "returnedMain": "protected main equals M; M has exactly parent B; tree(M)=tree(T)",
+      "forbiddenShortcut": "tree(M)=tree(H) is not required and is not completeness proof",
+      "contextIdentity": "manifest-declared actual H or T SHA/tree plus check name, app ID, workflow run ID and attempt",
+      "headOnlyRule": "A lane on H is admissible only when tree(H)=tree(T); otherwise rerun on T or fail"
+    },
+    "compatibleDriftPolicy": {
+      "beforeB0": "invalidate approval and refreeze",
+      "atEachChildBoundary": "machine rebind may repeat without human approval only for canonical-origin, linear, disjoint drift with all affected closure/certificates replayed green",
+      "afterWorkBegins": "recreate a fresh child worktree and replay the exact patch; no silent rebase",
+      "disallowed": [
+        "writer or consumer overlap; contract, security or trust-boundary effect",
+        "toolchain, package-manager, lock, workflow, MCP, auth, routing, schema, RLS, billing or provider effect",
+        "protection weakening",
+        "non-linear ancestry or unavailable lookup"
+      ]
+    },
+    "requiredTerminalContract": {
+      "baselineProtectedContexts": [
+        "audit",
+        "e2e",
+        "pnpm-audit",
+        "gitleaks",
+        "pilot-gate",
+        "validation-surface",
+        "pr-finalizer",
+        "commitlint"
+      ],
+      "futureAdditiveCheck": { "context": "delivery-gate", "app_id": 15368 },
+      "manifestSets": "finalizer leaves exclude finalizer/delivery; delivery includes finalizer/generators and excludes itself; provider activation is separate",
+      "contextIdentity": ["name", "appId", "workflowRunId", "runAttempt", "testedIdentity"],
+      "defaultDenyConclusions": [
+        "missing",
+        "pending",
+        "failure",
+        "cancelled",
+        "stale_head",
+        "unexpected_skipped",
+        "neutral",
+        "timed_out",
+        "action_required",
+        "unknown"
+      ],
+      "acyclicDag": "delivery-gate excludes itself; pr-finalizer never waits for delivery-gate; delivery-gate consumes finalizer and every other declared input",
+      "sameHeadSecondFeedbackFetch": true,
+      "copilotReviewRequestedOrRequired": false,
+      "unsolicitedFeedbackIncluded": true,
+      "subordinateRemovalAuthorized": false
+    },
+    "tierPolicy": {
+      "tier0": ["format", "diff", "secret", "line-size", "writer-map"],
+      "tier1": ["tier0", "focused-tests", "owning-lint-type"],
+      "tier2": ["tier1", "dependency-consumer-closure", "repository-required-verification"],
+      "tier3": [
+        "tier2",
+        "admission-candidate-certificate",
+        "security-ci-contracts",
+        "terminal-aggregator",
+        "changed-trust-boundary-proof"
+      ],
+      "e2e": "required only by repository contract or changed surface; never removed or duplicated here"
+    },
+    "workflowRoutingStandardV1": {
+      "source": "references/workflow-routing-policy-v1.json is the sole SOP source; no AGENTS, AI OS or tracker duplication",
+      "enforcement": "S1B alone may bootstrap from the S1A envelope/lease by validating staged postimage policy against enabled repo roles before its one swap; a fixture forbids reuse. S1C+ leases bind the policy/config digest and fail before writes when missing, invalid or disallowed",
+      "typedModularity": {
+        "classes": [
+          "production-code",
+          "focused-test",
+          "structured-artifact",
+          "governance-doc",
+          "workflow-yaml",
+          "generated-or-lock"
+        ],
+        "productionCode": "<=150 physical lines preferred; 151-300 allowed automatically only with no function-complexity, duplication, security, test or coverage regression; >300 splits or exposes cohesion/risk rationale in PR/review; length alone never hard-fails",
+        "focusedTest": "<=300 physical lines; above that split by behavior",
+        "structuredArtifact": "closed owning schema/exact keys, canonical UTF-8 bytes/hash and <=128 KiB; no line cap",
+        "governanceDoc": "<=1000 physical lines and <=128 KiB; required sections and inherited invariants preserved",
+        "workflowYaml": "no arbitrary line cap; no-growth/complexity/security contracts and new logic in a tested helper; actionlint is a separate follow-up",
+        "generatedOrLock": "line-cap exempt; integrity/provenance only",
+        "unknownClass": "fail closed before writer activation",
+        "newToolchainOrDependency": false
+      },
+      "modelMechanical": "Terra/Luna/Flash read-only; never decision owner",
+      "modelTier3OrSensitive": "Sol High decision owner and primary reviewer",
+      "modelRealUncertainty": "Sol Ultra or one explicitly current-approved Opus route",
+      "roleRoutes": {
+        "tier1": "owner; QA only for justified acceptance/test risk",
+        "tier2UiWorkflow": "owner; Pixel writer for UI; QA and read-only product/accessibility review as touched",
+        "tier3": "owner + relevant writer; Security Reviewer or Sentinel for auth/tenant/RLS/security, both only with a recorded reason; Contracts for API/schema/config/CI; Gatekeeper verification only and no product mutation",
+        "parallel": "read-only reviewers may parallelize; Forge+Pixel may write only with disjoint ownership, independent contracts and one integrator; otherwise single writer"
+      },
+      "externalApproval": "Gemini/Claude require current scoped approval; otherwise skipped_not_authorized and no process; timeout/quota/error/no-output is unavailable with zero retry, Sol fallback and unchanged proof bar",
+      "telemetry": "actual calls only: model, role, elapsed, outcome, fallback, decision impact",
+      "finalAuthority": "root/owner is sole integrator and decision owner; max_threads=5, max_depth=1; no nested swarm, global state, authority creation or subagent approval; routes produce evidence, not approval"
+    },
+    "cdDisposition": {
+      "deploymentAuthorizedByThisProgram": false,
+      "guardWorkflow": ".github/workflows/cd.yml",
+      "guardJob": "GitHub-hosted first predecessor",
+      "nonDeployScope": "parent-B scripts/ci/cd-nondeploy-scope.json over full before...after range",
+      "bootstrap": "B0/B1 require zero prior runs and no capable provider runner; B0 cancelled before any job; B1 permits only hosted scope",
+      "selfChange": "CD workflow/guard/manifest changes never self-whitelist and fail red before capable jobs",
+      "pushMainUnknownOrProduct": "known product/unclassified deploys; lookup/range/manifest error is red with no deploy output",
+      "tagOrWorkflowDispatch": "deploy true with existing semantics",
+      "nonDeploySuccessProof": "guard success; every provider-capable job skipped with no runner, steps, secrets, registry, environment or provider effect",
+      "exactReceipt": "matching SHA and attempt only; concurrency replacement/competing run fails"
+    },
+    "controlPlaneTransitions": {
+      "mcpRuntimeAndRegistration": {
+        "write": "only when both live values equal exact preimages; CAS-advance, bounded restart/reconnect, fresh root consumer, then live postimage tools/list and A-to-B-to-A before S3",
+        "rollback": "only when both live values equal this operation's exact postimages",
+        "mismatch": "preimage/restart/reconnect/live-proof mismatch preserves state, consumes token, incident-closes"
+      },
+      "branchProtection": {
+        "write": "only when live equals captured preimage; add {context:delivery-gate, app_id:15368} and preserve every existing/additive check tuple and flag",
+        "readback": "full captured preimage checks set plus exactly {context:delivery-gate, app_id:15368}",
+        "rollback": "only when live equals this operation's exact postimage",
+        "mismatch": "preserve state, consume token, incident-close"
+      }
+    },
+    "closeout": {
+      "canonicalPath": "docs/plans/2026-08-21-ida-wf01-one-approval-delivery-closeout.md",
+      "governanceWriters": [
+        "docs/plans/2026-08-21-ida-wf01-one-approval-delivery-closeout.md",
+        "docs/plans/current-authority-v1.json",
+        "docs/plans/current-program.md",
+        "docs/plans/current-tracker.md",
+        "scripts/repo-size-budget.json"
+      ],
+      "successAndFailurePreauthorized": true,
+      "successState": {
+        "status": "closed",
+        "runtime_authorized": false,
+        "activeSlice": null,
+        "successorsBlocked": false
+      },
+      "failureState": {
+        "status": "failed",
+        "runtime_authorized": false,
+        "activeSlice": null,
+        "successorsBlocked": true
+      },
+      "cleanup": [
+        "exact protected main and changed-surface main health",
+        "exact task branch and worktree removal",
+        "unrelated ref/worktree preservation and branch hygiene",
+        "skill bundle/preimage disposition",
+        "MCP runtime and protection resolver state",
+        "durable ledger closed and locks/recovery cleared",
+        "no unauthorized provider mutation"
+      ]
+    },
+    "stopConditions": [
+      "artifact, receipt, origin, base, head, tree, branch, worktree/common-dir, MCP, writer-map, lease, token or ledger mismatch; new/unlisted path, primitive, environment, shared consumer, semantic outcome or control-plane mutation",
+      "product, auth, routing, tenancy, schema, RLS, billing, privacy, deployment or security scope; required check/generator missing, stale, skipped unexpectedly, neutral, cancelled, failed or unclassifiable",
+      "actionable or unresolved feedback after final intake; formatter, secret, line, size, contract, main-health, CD, CAS, rollback, resolver or cleanup failure"
+    ],
+    "nonGoals": [
+      "product behavior; E2E semantics or spec coverage; subordinate required-context removal",
+      "automatic deployment; AI OS, Docker or hidden runtime expansion",
+      "mutation of any pre-existing slice worktree, branch, PR, gate, admission, receipt or proof"
+    ]
+  }
+}
