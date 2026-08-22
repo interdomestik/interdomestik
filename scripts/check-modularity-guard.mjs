@@ -2,7 +2,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { evaluateModularityGuard } from './lib/modularity-guard.mjs';
-import { MODULARITY_LINE_LIMIT } from './modularity-guard-policy.mjs';
 
 function parseArgs(argv) {
   const options = {};
@@ -26,18 +25,23 @@ export function runModularityGuard(options = {}) {
 
   if (result.violations.length === 0) {
     console.log(
-      `Modularity guard passed: ${result.checkedFiles} changed text file(s) checked against ${result.base.ref}.`
+      `Typed modularity guard passed: ${result.checkedFiles} changed text file(s) checked against ${result.base.ref}.`
     );
+    for (const advisory of result.advisories) {
+      console.warn(
+        `- advisory ${advisory.file}: ${advisory.className}; ${advisory.reason}; ${advisory.currentLines} lines`
+      );
+    }
     return 0;
   }
 
   console.error(
-    `Modularity guard failed: files must stay at or below ${MODULARITY_LINE_LIMIT} lines.`
+    'Typed modularity guard failed: one or more class-specific contracts were violated.'
   );
   for (const violation of result.violations) {
     const base = violation.baseLines == null ? 'new' : `${violation.baseLines} base`;
     console.error(
-      `- ${violation.file}: ${violation.currentLines} lines (${base}; ${violation.reason})`
+      `- ${violation.file}: ${violation.className}; ${violation.currentLines} lines; ${violation.currentBytes} bytes (${base}; ${violation.reason})`
     );
   }
   return 1;

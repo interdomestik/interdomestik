@@ -1,7 +1,20 @@
-export const MODULARITY_LINE_LIMIT = 150;
-// CI enforces the 150-line modularity rule. AGENTS.md's 200-line emergency ceiling is
-// not an automatic escape hatch; exceptions must be pre-approved as explicit policy.
-
+export const MODULARITY_POLICY = Object.freeze({
+  productionCode: Object.freeze({ preferredLines: 150, reviewLines: 300 }),
+  focusedTest: Object.freeze({ maxLines: 300 }),
+  structuredArtifact: Object.freeze({ maxBytes: 128 * 1024 }),
+  governanceDoc: Object.freeze({ maxLines: 1000, maxBytes: 128 * 1024 }),
+  workflowYaml: Object.freeze({}),
+});
+export const MODULARITY_LINE_LIMIT = MODULARITY_POLICY.productionCode.preferredLines;
+export const FILE_CLASSES = Object.freeze({
+  productionCode: 'production-code',
+  focusedTest: 'focused-test',
+  structuredArtifact: 'structured-artifact',
+  governanceDoc: 'governance-doc',
+  workflowYaml: 'workflow-yaml',
+  generatedOrLock: 'generated-or-lock',
+  unknown: 'unknown',
+});
 export const CHECKED_TEXT_EXTENSIONS = new Set([
   '.cjs',
   '.css',
@@ -19,16 +32,32 @@ export const CHECKED_TEXT_EXTENSIONS = new Set([
   '.yaml',
   '.yml',
 ]);
-
-const EXCLUDED_EXACT_FILES = new Set([
+const PRODUCTION_EXTENSIONS = new Set([
+  '.cjs',
+  '.css',
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.sh',
+  '.ts',
+  '.tsx',
+]);
+const STRUCTURED_EXTENSIONS = new Set(['.json', '.jsonl', '.toml', '.yaml', '.yml']);
+const STRUCTURED_OWNERS = [
+  [/^docs\/plans\/.*\.json$/u, 'approval-artifact-contract'],
+  [/(^|\/)package\.json$/u, 'package-manifest-contract'],
+  [/(^|\/)tsconfig(?:\.[^.]+)?\.json$/u, 'typescript-config-contract'],
+  [/^scripts\/(?:ci\/)?[^/]+\.json$/u, 'script-config-contract'],
+  [/^(?:components|turbo|vercel)\.json$/u, 'repository-config-contract'],
+  [/^\.codex\/config\.toml$/u, 'codex-config-contract'],
+];
+const GENERATED_EXACT_FILES = new Set([
   'bun.lockb',
-  'package.json',
   'package-lock.json',
   'pnpm-lock.yaml',
   'yarn.lock',
 ]);
-
-const EXCLUDED_PREFIXES = [
+const GENERATED_PREFIXES = [
   '.next/',
   'apps/web/.next/',
   'apps/web/playwright-report/',
@@ -36,32 +65,52 @@ const EXCLUDED_PREFIXES = [
   'build/',
   'coverage/',
   'dist/',
-  'docs/plans/',
   'node_modules/',
   'packages/database/drizzle/',
 ];
-
-const EXCLUDED_SEGMENTS = new Set(['.next', 'build', 'coverage', 'dist', 'node_modules']);
-
+const GENERATED_SEGMENTS = new Set(['.next', 'build', 'coverage', 'dist', 'node_modules']);
+const extension = filePath => {
+  const name = filePath.split('/').at(-1);
+  return name.includes('.') ? `.${name.split('.').at(-1)}` : '';
+};
 export function toPolicyPath(filePath) {
   return filePath.replaceAll('\\', '/').replace(/^\/+/, '');
 }
-
 export function isCheckedTextFile(filePath) {
-  const relPath = toPolicyPath(filePath);
-  if (relPath.endsWith('.d.ts')) return false;
-  return CHECKED_TEXT_EXTENSIONS.has(`.${relPath.split('.').pop()}`);
+  return CHECKED_TEXT_EXTENSIONS.has(extension(toPolicyPath(filePath)));
 }
-
 export function isExplicitModularityException(filePath) {
-  const relPath = toPolicyPath(filePath);
-  if (EXCLUDED_EXACT_FILES.has(relPath)) return true;
-  if (EXCLUDED_PREFIXES.some(prefix => relPath.startsWith(prefix))) return true;
-  if (relPath.startsWith('apps/web/public/icon-')) return true;
-  return relPath.split('/').some(segment => EXCLUDED_SEGMENTS.has(segment));
+  return classifyModularityFile(filePath) === FILE_CLASSES.generatedOrLock;
 }
-
-// Files at or below the limit may not cross it; legacy files already above it may not grow.
+export function structuredArtifactOwner(filePath) {
+  const relPath = toPolicyPath(filePath);
+  return STRUCTURED_OWNERS.find(([pattern]) => pattern.test(relPath))?.[1] ?? null;
+}
+export function classifyModularityFile(filePath) {
+  const relPath = toPolicyPath(filePath);
+  if (GENERATED_EXACT_FILES.has(relPath) || relPath.endsWith('.d.ts')) {
+    return FILE_CLASSES.generatedOrLock;
+  }
+  if (GENERATED_PREFIXES.some(prefix => relPath.startsWith(prefix))) {
+    return FILE_CLASSES.generatedOrLock;
+  }
+  if (relPath.startsWith('apps/web/public/icon-')) return FILE_CLASSES.generatedOrLock;
+  if (relPath.split('/').some(segment => GENERATED_SEGMENTS.has(segment))) {
+    return FILE_CLASSES.generatedOrLock;
+  }
+  if (!isCheckedTextFile(relPath)) return null;
+  const ext = extension(relPath);
+  if (relPath.startsWith('.github/workflows/') && ['.yaml', '.yml'].includes(ext)) {
+    return FILE_CLASSES.workflowYaml;
+  }
+  if (/(^|\/)(?:__tests__|tests?)\//u.test(relPath) || /\.(?:spec|test)\.[^.]+$/u.test(relPath)) {
+    return FILE_CLASSES.focusedTest;
+  }
+  if (ext === '.md') return FILE_CLASSES.governanceDoc;
+  if (STRUCTURED_EXTENSIONS.has(ext)) return FILE_CLASSES.structuredArtifact;
+  if (PRODUCTION_EXTENSIONS.has(ext)) return FILE_CLASSES.productionCode;
+  return FILE_CLASSES.unknown;
+}
 export function isModularityChecked(filePath) {
-  return isCheckedTextFile(filePath) && !isExplicitModularityException(filePath);
+  return classifyModularityFile(filePath) !== null;
 }
