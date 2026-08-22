@@ -1,15 +1,19 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
+import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const MANIFEST_PATH = 'scripts/ci/cd-nondeploy-scope.json';
+const GITHUB_RUNS_URL =
+  'https://api.github.com/repos/interdomestik/interdomestik/actions/workflows/cd.yml/runs';
 const CONTROL_PATHS = new Set([
   '.github/workflows/cd.yml',
   'scripts/ci/cd-nondeploy-guard.mjs',
   MANIFEST_PATH,
 ]);
 const SHA = /^[a-f0-9]{40}$/u;
+const POSITIVE_INTEGER = /^[1-9][0-9]*$/u;
 const NONTERMINAL = new Set(['in_progress', 'pending', 'queued', 'requested', 'waiting']);
 const fail = message => {
   throw new Error(`CD non-deploy guard: ${message}`);
@@ -118,20 +122,15 @@ export function assertNoCompetingRuns({ runs, runId, runAttempt, sha }) {
   if (competing.length) fail(`competing nonterminal run detected: ${competing[0].id}`);
 }
 
-export async function fetchNonterminalRuns({
-  apiUrl,
-  repository,
-  workflow,
-  token,
-  fetchImpl = fetch,
-}) {
-  if (!apiUrl || !repository || !workflow || !token)
-    fail('GitHub run lookup inputs are incomplete');
+export async function fetchNonterminalRuns({ token, fetchImpl = fetch }) {
+  if (!token) fail('GitHub run lookup token is unavailable');
   const runs = new Map();
   for (const status of NONTERMINAL) {
     for (let page = 1; page <= 10; page += 1) {
-      const url = `${apiUrl}/repos/${repository}/actions/workflows/${encodeURIComponent(workflow)}/runs?status=${status}&per_page=100&page=${page}`;
+      const url = new URL(GITHUB_RUNS_URL);
+      url.search = new URLSearchParams({ status, per_page: '100', page: String(page) });
       const response = await fetchImpl(url, {
+        redirect: 'error',
         headers: {
           accept: 'application/vnd.github+json',
           authorization: `Bearer ${token}`,
@@ -191,7 +190,27 @@ function writeReceipt(receiptPath, receipt) {
   return { bytes, serialized, sha256: digest(bytes) };
 }
 
-export async function runGuard(env = process.env, fetchImpl = fetch, root = process.cwd()) {
+function resolveReceiptPath(root, { sha, runId, runAttempt }) {
+  const worktreeRoot = path.resolve(root);
+  const evidenceRoot = path.resolve(worktreeRoot, 'tmp/cd-evidence');
+  const runDirectory = path.basename(String(runId));
+  const receiptName = path.basename(`scope-${runAttempt}-${sha}.json`);
+  const receiptPath = path.resolve(evidenceRoot, runDirectory, receiptName);
+  const relative = path.relative(evidenceRoot, receiptPath);
+  if (!relative || relative.startsWith('..') || path.isAbsolute(relative))
+    fail('scope receipt path escaped its fixed evidence root');
+  fs.mkdirSync(path.dirname(receiptPath), { recursive: true, mode: 0o700 });
+  return receiptPath;
+}
+
+const stdoutWriter = output => process.stdout.write(output);
+
+export async function runGuard(
+  env = process.env,
+  fetchImpl = fetch,
+  root = process.cwd(),
+  writeOutput = stdoutWriter
+) {
   const eventName = env.GITHUB_EVENT_NAME;
   const ref = env.GITHUB_REF;
   const sha = env.GITHUB_SHA;
@@ -199,9 +218,17 @@ export async function runGuard(env = process.env, fetchImpl = fetch, root = proc
   const after = env.CD_AFTER || sha;
   const runId = Number(env.GITHUB_RUN_ID);
   const runAttempt = Number(env.GITHUB_RUN_ATTEMPT);
-  if (!SHA.test(sha) || !Number.isSafeInteger(runId) || !Number.isSafeInteger(runAttempt))
+  if (
+    !SHA.test(sha) ||
+    !POSITIVE_INTEGER.test(env.GITHUB_RUN_ID) ||
+    !POSITIVE_INTEGER.test(env.GITHUB_RUN_ATTEMPT) ||
+    !Number.isSafeInteger(runId) ||
+    runId <= 0 ||
+    !Number.isSafeInteger(runAttempt) ||
+    runAttempt <= 0
+  )
     fail('event SHA, run ID, or attempt is invalid');
-  if (!env.CD_SCOPE_RECEIPT_PATH) fail('scope receipt path is unavailable');
+  const receiptPath = resolveReceiptPath(root, { sha, runId, runAttempt });
 
   let evidence;
   let decision;
@@ -210,17 +237,11 @@ export async function runGuard(env = process.env, fetchImpl = fetch, root = proc
     if (eventName === 'push' && ref === 'refs/heads/main')
       evidence = readPushEvidence({ root, before, after });
     decision = classifyScope({ eventName, ref, ...evidence });
-    const runs = await fetchNonterminalRuns({
-      apiUrl: env.GITHUB_API_URL,
-      repository: env.GITHUB_REPOSITORY,
-      workflow: 'cd.yml',
-      token: env.GITHUB_TOKEN,
-      fetchImpl,
-    });
+    const runs = await fetchNonterminalRuns({ token: env.GITHUB_TOKEN, fetchImpl });
     assertNoCompetingRuns({ runs, runId, runAttempt, sha });
   } catch (error) {
     writeReceipt(
-      env.CD_SCOPE_RECEIPT_PATH,
+      receiptPath,
       buildFailureReceipt({ eventName, ref, before, after, sha, runId, runAttempt, error })
     );
     throw error;
@@ -237,9 +258,8 @@ export async function runGuard(env = process.env, fetchImpl = fetch, root = proc
     decision,
     manifestSha256: evidence.manifestSha256,
   });
-  const written = writeReceipt(env.CD_SCOPE_RECEIPT_PATH, receipt);
-  fs.appendFileSync(
-    env.GITHUB_OUTPUT,
+  const written = writeReceipt(receiptPath, receipt);
+  writeOutput(
     `deploy=${decision.deploy}\nreceipt=${written.serialized}\nreceipt_sha256=${written.sha256}\n`
   );
   return receipt;

@@ -43,15 +43,16 @@ test('hosted scope is the direct fail-closed predecessor of every capable job', 
   const classify = step(scope, 'Classify deployment scope');
   const upload = step(scope, 'Upload exact scope receipt');
   assert.deepEqual(checkout.with, { 'fetch-depth': 0, ref: '${{ github.sha }}' });
-  assert.match(classify.run, /cd-nondeploy-guard\.mjs/u);
+  assert.equal(scope.env, undefined);
+  assert.match(classify.run, /cd-nondeploy-guard\.mjs >> "\$\{GITHUB_OUTPUT\}"/u);
   assert.equal(classify.env.CD_BEFORE, '${{ github.event.before || github.sha }}');
   assert.equal(classify.env.CD_AFTER, '${{ github.event.after || github.sha }}');
-  for (const value of [scope.env.CD_SCOPE_RECEIPT_PATH, upload.with.name]) {
+  for (const value of [upload.with.path, upload.with.name]) {
     assert.match(value, /github\.run_id/u);
     assert.match(value, /github\.run_attempt/u);
     assert.match(value, /github\.sha/u);
   }
-  assert.equal(upload.with.path, '${{ env.CD_SCOPE_RECEIPT_PATH }}');
+  assert.match(upload.with.path, /^tmp\/cd-evidence\//u);
   assert.match(upload.if, /always\(\)/u);
   assert.equal(upload.with['if-no-files-found'], 'error');
   for (const name of guarded) {
@@ -133,7 +134,6 @@ async function withRollbackEnv(aliasMoved, contents, callback) {
     fs.rmSync(directory, { recursive: true, force: true });
   }
 }
-
 test('missing preimage is not-required only when movement is unconfirmed', async () => {
   await withRollbackEnv('false', undefined, async rollbackPath => {
     assert.equal(await guardRollback(), false);
