@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-08-21
+last_reviewed: 2026-08-22
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -17,13 +17,14 @@ status_command: pnpm plan:status
 ## Current Phase
 
 `IDA-WF01-ONE-APPROVAL-DELIVERY` is the only active writer program. Gate
-`IDA-WF-DG01-ONE-APPROVAL-DELIVERY-R2-B0-TYPED-GUARD-REPAIR` at SHA-256
-`4688caada47e42d12b1e3c1770ec7b5a3b2fbf3ac4f1e2ec790910ee900bf00d` and envelope
-`IDA-WF01-ONE-APPROVAL-DELIVERY-ENVELOPE-V2-B0-TYPED-GUARD-REPAIR` at SHA-256
-`8df6ad3a8087487a8c683e57bb4d5eebdbe0e72e1660e76375c4503a1e524387` were approved against
-protected `main@7fb7180aafadf91b79ec37f5daeebaa85bc86ff2`. B0 may materialize only its fifteen admitted paths
-and deterministic non-expanding receipt. Before B0 merge, `runtime_authorized:false` and
-`activeSlice:null`; no later child lease is active.
+`IDA-WF-DG01-ONE-APPROVAL-DELIVERY-R4-GOVERNANCE-HEADING-INHERITANCE-REPAIR` at SHA-256
+`8ccebfa2b9c622f217c971cb9995506edb91091eab93aeccbbb71b0f68dc1015` and envelope
+`IDA-WF01-ONE-APPROVAL-DELIVERY-ENVELOPE-V4-GOVERNANCE-HEADING-INHERITANCE-REPAIR` at SHA-256
+`46eee3be937bb82f3bc0055f1a7bc697a08484498b197a1475bae33d760be8a6` were approved against
+protected `main@1a13176c118de88928593af846b6a14310aac645`. B0 and B1 are terminal. After this exact
+governance repair merges healthy and its replacement receipt/ledger are rebound, only
+`S1A-skill-authority` is active with `runtime_authorized:true`; S1B and all later children remain
+blocked until S1A is atomically installed, verified, consumed, and cleaned.
 
 The fixed sequence is B0 authority bootstrap, B1 CD guard, S1A skill authority, S1B routing
 standard, S2 MCP identity, S3 exact authority, S4A terminal delivery, S4B reviewer policy, then
@@ -43,9 +44,9 @@ schema, RLS, billing, provider deployment, E2E-semantic, AI OS, Docker, or unit-
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate                        | Dependencies                      | Promotion constraint                                                                                 |
-| -------: | -------------------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------- |
-|        1 | `IDA-WF01-ONE-APPROVAL-DELIVERY` | Exact approved gate/envelope/base | Execute only the frozen B0→B1→S1A→S1B→S2→S3→S4A→S4B→closeout topology, one consumed lease at a time. |
+| Priority | Candidate                        | Dependencies                         | Promotion constraint                                                                                 |
+| -------: | -------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+|        1 | `IDA-WF01-ONE-APPROVAL-DELIVERY` | Exact approved R4 gate/envelope/base | Execute only S1A, then the frozen S1B→S2→S3→S4A→S4B→closeout topology, one consumed lease at a time. |
 
 ## Selection Constraints
 
@@ -71,4 +72,4 @@ The architecture-finalization program/tracker, terminal OD17 evidence, and CI01 
 historical or separately governed. This projection neither rewrites nor activates them.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is exactly one canonical tracker program: `IDA-WF01-ONE-APPROVAL-DELIVERY` (Tier 3; `runtime_authorized:false`).
+The next active governed implementation goal is exactly one canonical tracker program: `IDA-WF01-ONE-APPROVAL-DELIVERY` (Tier 3; `runtime_authorized:true`).

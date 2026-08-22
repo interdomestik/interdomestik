@@ -1,22 +1,22 @@
 {
   "schemaVersion": 1,
   "kind": "one-approval-bootstrap-receipt",
-  "receiptId": "IDA-WF01-ONE-APPROVAL-DELIVERY-APPROVAL-RECEIPT-R2-B0-TYPED-GUARD-REPAIR",
-  "eventLocator": "codex-task:019fe16e-0753-7270-8db5-aad229a9abfb#workflow-v1-b0-typed-guard-repair-approval",
-  "approvalStatement": "Miratoj IDA-WF-DG01-ONE-APPROVAL-DELIVERY-R2-B0-TYPED-GUARD-REPAIR, 34,623 UTF-8 bytes, SHA-256 4688caada47e42d12b1e3c1770ec7b5a3b2fbf3ac4f1e2ec790910ee900bf00d, dhe IDA-WF01-ONE-APPROVAL-DELIVERY-ENVELOPE-V2-B0-TYPED-GUARD-REPAIR, 49,402 UTF-8 bytes, SHA-256 8df6ad3a8087487a8c683e57bb4d5eebdbe0e72e1660e76375c4503a1e524387, bound to main@7fb7180aafadf91b79ec37f5daeebaa85bc86ff2; autorizoj materializimin, implementation review, PR, merge dhe closeout sipas envelope-it ekzakt.",
+  "receiptId": "IDA-WF01-ONE-APPROVAL-DELIVERY-APPROVAL-RECEIPT-R4-GOVERNANCE-HEADING-INHERITANCE-REPAIR",
+  "eventLocator": "codex-task:01a02067-b706-7900-8a89-caaea3972872#workflow-v1-governance-heading-inheritance-approval",
+  "approvalStatement": "Aprove IDA-WF-DG01-ONE-APPROVAL-DELIVERY-R4-GOVERNANCE-HEADING-INHERITANCE-REPAIR, 35,493 UTF-8 bytes, SHA-256 8ccebfa2b9c622f217c971cb9995506edb91091eab93aeccbbb71b0f68dc1015; IDA-WF01-ONE-APPROVAL-DELIVERY-ENVELOPE-V4-GOVERNANCE-HEADING-INHERITANCE-REPAIR, 49,990 UTF-8 bytes, SHA-256 46eee3be937bb82f3bc0055f1a7bc697a08484498b197a1475bae33d760be8a6; base main@1a13176c118de88928593af846b6a14310aac645.",
   "gate": {
-    "id": "IDA-WF-DG01-ONE-APPROVAL-DELIVERY-R2-B0-TYPED-GUARD-REPAIR",
+    "id": "IDA-WF-DG01-ONE-APPROVAL-DELIVERY-R4-GOVERNANCE-HEADING-INHERITANCE-REPAIR",
     "canonicalPath": "docs/plans/2026-08-21-ida-wf-dg01-one-approval-delivery-protocol.md",
-    "utf8Bytes": 34623,
-    "sha256": "4688caada47e42d12b1e3c1770ec7b5a3b2fbf3ac4f1e2ec790910ee900bf00d"
+    "utf8Bytes": 35493,
+    "sha256": "8ccebfa2b9c622f217c971cb9995506edb91091eab93aeccbbb71b0f68dc1015"
   },
   "envelope": {
-    "id": "IDA-WF01-ONE-APPROVAL-DELIVERY-ENVELOPE-V2-B0-TYPED-GUARD-REPAIR",
+    "id": "IDA-WF01-ONE-APPROVAL-DELIVERY-ENVELOPE-V4-GOVERNANCE-HEADING-INHERITANCE-REPAIR",
     "canonicalPath": "docs/plans/2026-08-21-ida-wf01-one-approval-delivery-envelope-v1.json",
-    "utf8Bytes": 49402,
-    "sha256": "8df6ad3a8087487a8c683e57bb4d5eebdbe0e72e1660e76375c4503a1e524387"
+    "utf8Bytes": 49990,
+    "sha256": "46eee3be937bb82f3bc0055f1a7bc697a08484498b197a1475bae33d760be8a6"
   },
-  "baseSha": "7fb7180aafadf91b79ec37f5daeebaa85bc86ff2",
+  "baseSha": "1a13176c118de88928593af846b6a14310aac645",
   "runtimeAuthorized": false,
   "activeSlice": null,
   "isIndependentAuthority": false,
