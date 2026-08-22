@@ -14,9 +14,9 @@ const COMMANDS = {
   initialize: 'repository,source-head,tested-merge,returned-main,proof,proof-sha256'.split(','),
   resolve: [],
 };
-const RECEIPT_SHA = 'da02f642ac98966343b4eb0494ff04961adab7067cc5203bf11168f0ac5e6250';
-const ENVELOPE_BYTES = 49402;
-const ENVELOPE_SHA = '8df6ad3a8087487a8c683e57bb4d5eebdbe0e72e1660e76375c4503a1e524387';
+const RECEIPT_SHA = 'a6491e167ab12894d43e62ca279169cbcc4c0faf871ab116991a0eb7b4e37d03';
+const ENVELOPE_BYTES = 49990;
+const ENVELOPE_SHA = '46eee3be937bb82f3bc0055f1a7bc697a08484498b197a1475bae33d760be8a6';
 const readJson = path => JSON.parse(fs.readFileSync(path, 'utf8'));
 const identity = path => {
   const value = fs.readFileSync(path);
@@ -48,7 +48,7 @@ export function receiptFor(gatePath, envelopePath, statement, locator, file = CA
   const boundEnvelope = { id, canonicalPath, ...envelope };
   must(same(receipt.gate, approval.gate) && same(receipt.envelope, boundEnvelope));
   must(receipt.baseSha === source.baseSha);
-  const expected = `Miratoj ${approval.gate.id}, ${gate.utf8Bytes.toLocaleString('en-US')} UTF-8 bytes, SHA-256 ${gate.sha256}, dhe ${approval.envelope.id}, ${envelope.utf8Bytes.toLocaleString('en-US')} UTF-8 bytes, SHA-256 ${envelope.sha256}, bound to main@${source.baseSha}; autorizoj materializimin, implementation review, PR, merge dhe closeout sipas envelope-it ekzakt.`;
+  const expected = `Aprove ${approval.gate.id}, ${gate.utf8Bytes.toLocaleString('en-US')} UTF-8 bytes, SHA-256 ${gate.sha256}; ${approval.envelope.id}, ${envelope.utf8Bytes.toLocaleString('en-US')} UTF-8 bytes, SHA-256 ${envelope.sha256}; base main@${source.baseSha}.`;
   must(statement === expected, 'approval statement identity mismatch');
   must(/^[a-z0-9][a-z0-9:./#_-]+$/.test(locator), 'event locator is not canonical');
   must(receipt.approvalStatement === statement && receipt.eventLocator === locator);
