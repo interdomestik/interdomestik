@@ -6,14 +6,57 @@ concurrency: { group: 'cd-staging-canonical-${{ github.repository }}', cancel-in
 env: { REGISTRY: ghcr.io, IMAGE_NAME: '${{ github.repository }}' }
 # prettier-ignore
 jobs:
+  scope:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions: { actions: read, contents: read }
+    outputs: { deploy: '${{ steps.classify.outputs.deploy }}', receipt_sha256: '${{ steps.classify.outputs.receipt_sha256 }}' }
+    steps:
+      - name: Checkout exact event range
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
+        with: { fetch-depth: 0, ref: '${{ github.sha }}' }
+      - name: Classify deployment scope
+        id: classify
+        shell: bash
+        env:
+          CD_BEFORE: ${{ github.event.before || github.sha }}
+          CD_AFTER: ${{ github.event.after || github.sha }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          current_guard='scripts/ci/cd-nondeploy-guard.mjs'
+          trusted_guard='tmp/cd-evidence/trusted-parent-guard.mjs'
+          bootstrap_parent='ba9da7ff8b13ceb1f1bc64864a40045ce4a79051'
+          if [[ "${GITHUB_EVENT_NAME}" == 'push' && "${GITHUB_REF}" == 'refs/heads/main' ]]; then
+            [[ "${CD_BEFORE}" =~ ^[a-f0-9]{40}$ ]] || { echo '::error::Invalid parent SHA for CD scope classification.'; exit 1; }
+            /usr/bin/git cat-file -e "${CD_BEFORE}^{commit}"
+            if /usr/bin/git cat-file -e "${CD_BEFORE}:${current_guard}" 2>/dev/null; then
+              [[ ! -L 'tmp' && ! -L 'tmp/cd-evidence' ]] || { echo '::error::Trusted guard directory must not be a symlink.'; exit 1; }
+              mkdir -p "$(dirname "${trusted_guard}")"
+              [[ -d 'tmp' && -d 'tmp/cd-evidence' && ! -e "${trusted_guard}" && ! -L "${trusted_guard}" ]] || { echo '::error::Trusted guard target is not a fresh regular path.'; exit 1; }
+              set -o noclobber
+              /usr/bin/git show "${CD_BEFORE}:${current_guard}" > "${trusted_guard}"
+              set +o noclobber
+              [[ -f "${trusted_guard}" && ! -L "${trusted_guard}" ]] || { echo '::error::Trusted parent guard extraction failed.'; exit 1; }
+              node "${trusted_guard}" >> "${GITHUB_OUTPUT}"
+            else
+              [[ "${CD_BEFORE}" == "${bootstrap_parent}" ]] || { echo '::error::Trusted parent guard is unavailable outside the exact bootstrap boundary.'; exit 1; }
+              node "${current_guard}" >> "${GITHUB_OUTPUT}"
+            fi
+          else
+            node "${current_guard}" >> "${GITHUB_OUTPUT}"
+          fi
+      - { name: Upload exact scope receipt, if: '${{ always() }}', uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f, with: { name: 'cd-scope-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}', path: 'tmp/cd-evidence/${{ github.run_id }}/scope-${{ github.run_attempt }}-${{ github.sha }}.json', if-no-files-found: error, retention-days: 14 } } # v6
   build-staging:
+    if: ${{ needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' }}
+    needs: scope
     runs-on: [self-hosted, interdomestik-z620-staging]
     timeout-minutes: 45
     environment: { name: staging }
     permissions: { contents: read, packages: write, id-token: write, attestations: write }
     outputs: { image_tag: '${{ steps.meta.outputs.version }}', image_digest: '${{ steps.build.outputs.digest }}' }
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
+      - { uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd } # v4
       - run: node scripts/ci/cd-runner-preflight.mjs
       - { name: Set up Docker Buildx, uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f, with: { driver: docker-container, name: interdomestik-cd-staging, keep-state: true, cleanup: true } } # v3
       - { name: Verify dedicated Docker builder, run: 'node scripts/ci/cd-runner-preflight.mjs verify-builder' }
@@ -42,7 +85,8 @@ jobs:
           supabase-anon-key: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           supabase-production-project-ref: ${{ vars.SUPABASE_PRODUCTION_PROJECT_REF || secrets.SUPABASE_PRODUCTION_PROJECT_REF }}
   deploy-staging:
-    needs: build-staging
+    if: ${{ needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' }}
+    needs: [scope, build-staging]
     runs-on: [self-hosted, interdomestik-z620-staging]
     timeout-minutes: 25
     environment: { name: staging }
@@ -51,7 +95,7 @@ jobs:
     outputs: { alias_moved: '${{ steps.vercel.outputs.alias_moved }}', base_url: '${{ steps.vercel.outputs.base_url }}', hostname: '${{ steps.vercel.outputs.hostname }}', gate_base_url: '${{ steps.vercel.outputs.gate_base_url }}', gate_hostname: '${{ steps.vercel.outputs.gate_hostname }}' }
     env: { EXPECTED_COMMIT_SHA: '${{ github.sha }}', INTERDOMESTIK_VERCEL_IPV4_ONLY: '1', STAGING_PREIMAGE_RECEIPT_PATH: 'tmp/cd-evidence/${{ github.run_id }}/staging-alias-preimage.json' }
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
+      - { uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd } # v4
       - run: node scripts/ci/cd-runner-preflight.mjs
       - name: Deploy Staging to Vercel
         id: vercel
@@ -98,7 +142,8 @@ jobs:
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: node scripts/ci/wait-for-vercel-health.mjs "${BASE_URL}/api/health" "${EXPECTED_COMMIT_SHA}"
   e2e-staging:
-    needs: deploy-staging
+    if: ${{ needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' }}
+    needs: [scope, deploy-staging]
     runs-on: [self-hosted, interdomestik-z620-staging]
     timeout-minutes: 30
     environment: { name: staging, deployment: false }
@@ -122,10 +167,9 @@ jobs:
       RELEASE_GATE_ADMIN_MK_EMAIL: ${{ secrets.RELEASE_GATE_ADMIN_MK_EMAIL }}
       RELEASE_GATE_ADMIN_MK_PASSWORD: ${{ secrets.RELEASE_GATE_ADMIN_MK_PASSWORD }}
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
+      - { uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd } # v4
       - run: node scripts/ci/cd-runner-preflight.mjs
-      - uses: ./.github/actions/setup
-        with: { install-playwright: 'true' }
+      - { uses: ./.github/actions/setup, with: { install-playwright: 'true' } }
       - name: Run Staging Release Gate
         shell: bash
         env: { INTERDOMESTIK_VERCEL_IPV4_ONLY: '1', NODE_OPTIONS: '--import=${{ github.workspace }}/scripts/ci/cd-runner-preflight.mjs', VERCEL_AUTOMATION_BYPASS_SECRET: '${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}' }
@@ -140,15 +184,15 @@ jobs:
           if-no-files-found: error
           retention-days: 14
   rollback-staging-alias:
-    if: ${{ always() && !cancelled() && (needs.deploy-staging.result == 'failure' || needs.e2e-staging.result == 'failure') }}
-    needs: [deploy-staging, e2e-staging]
+    if: ${{ always() && !cancelled() && needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' && (needs.deploy-staging.result == 'failure' || needs.e2e-staging.result == 'failure') }}
+    needs: [scope, deploy-staging, e2e-staging]
     runs-on: [self-hosted, interdomestik-z620-staging]
     timeout-minutes: 10
     environment: { name: staging, deployment: false }
     permissions: { contents: read }
     env: { STAGING_PREIMAGE_RECEIPT_PATH: 'tmp/cd-evidence/${{ github.run_id }}/staging-alias-preimage/staging-alias-preimage.json', STAGING_ROLLBACK_RECEIPT_PATH: 'tmp/cd-evidence/${{ github.run_id }}/staging-alias-rollback.json' }
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
+      - { uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd } # v4
       - run: node scripts/ci/cd-runner-preflight.mjs
       - name: Download staging alias preimage receipt
         continue-on-error: true
@@ -176,27 +220,26 @@ jobs:
           if-no-files-found: error
           retention-days: 14
   production-evidence:
-    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
-    needs: e2e-staging
+    if: needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
+    needs: [scope, e2e-staging]
     runs-on: ubuntu-latest
     environment: { name: production, deployment: false }
     permissions: { contents: read }
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
-      - uses: ./.github/actions/setup
-        with: { install-playwright: 'false' }
+      - { uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd } # v4
+      - { uses: ./.github/actions/setup, with: { install-playwright: 'false' } }
       - name: Check Production Human Evidence
         shell: bash
         run: pnpm release:evidence:check
   build-production:
-    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
-    needs: production-evidence
+    if: needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
+    needs: [scope, production-evidence]
     runs-on: [self-hosted, interdomestik-mac]
     environment: { name: production }
     permissions: { contents: read, packages: write, id-token: write, attestations: write }
     outputs: { image_tag: '${{ steps.meta.outputs.version }}', image_digest: '${{ steps.build.outputs.digest }}' }
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
+      - { uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd } # v4
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
         with: { driver: docker-container }
@@ -230,8 +273,8 @@ jobs:
           supabase-anon-key: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           supabase-production-project-ref: ${{ vars.SUPABASE_PRODUCTION_PROJECT_REF || secrets.SUPABASE_PRODUCTION_PROJECT_REF }}
   deploy-production:
-    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
-    needs: build-production
+    if: needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
+    needs: [scope, build-production]
     runs-on: [self-hosted, interdomestik-mac]
     timeout-minutes: 25
     environment: { name: production, url: https://www.interdomestik.com }
@@ -255,8 +298,8 @@ jobs:
           attested-image-digest: ${{ needs.build-production.outputs.image_digest }}
           vercel-automation-bypass-secret: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
   verify-production:
-    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
-    needs: deploy-production
+    if: needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
+    needs: [scope, deploy-production]
     runs-on: [self-hosted, interdomestik-mac]
     timeout-minutes: 20
     environment: { name: production, deployment: false }

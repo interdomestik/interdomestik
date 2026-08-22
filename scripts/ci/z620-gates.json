@@ -71,6 +71,7 @@
     ".github/workflows/e2e-pr.yml#e2e": ["e2e-pr"],
     ".github/workflows/pilot-gate.yml#pilot-gate-preflight": ["validation"],
     ".github/workflows/pilot-gate.yml#pilot-gate-runner": ["build", "pilot"],
-    ".github/workflows/pilot-gate.yml#pilot-gate": ["pilot"]
+    ".github/workflows/pilot-gate.yml#pilot-gate": ["pilot"],
+    ".github/workflows/cd.yml#scope": ["audit"]
   }
 }
