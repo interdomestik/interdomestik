@@ -179,7 +179,7 @@ test('structured artifacts require an owner and repository-Prettier canonical JS
   writeFile(root, 'README.md', '# Seed\n');
   const base = commitAll(root);
   writeFile(root, 'config/unowned.json', '{}\n');
-  writeFile(root, 'scripts/ci/noncanonical.json', '{"value":true}\n');
+  writeFile(root, 'scripts/ci/noncanonical.json', '{ "value": true } \n');
   writeFile(
     root,
     'docs/plans/canonical.json',
