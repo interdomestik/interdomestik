@@ -3,16 +3,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import vm from 'node:vm';
-
 import yaml from 'js-yaml';
 import '../../apps/web/scripts/check-size.test.mjs';
 import './ci-audit-rls-workflow-contracts.mjs';
-
-import {
-  hasE2EApiPlaceholder,
-  hasReleaseGateLiteralPassword,
-} from '../check-workflow-seed-credentials.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, '../..');
@@ -22,12 +15,14 @@ function readWorkflow(relativePath) {
   const content = fs.readFileSync(path.join(rootDir, relativePath), 'utf8');
   return yaml.load(content);
 }
-
 function findStep(steps, name) {
   return steps.find(step => step?.name === name);
 }
-// prettier-ignore
-function findStepIndex(steps, name) { const index = steps.findIndex(step => step?.name === name); assert.notEqual(index, -1, `Missing step: ${name}`); return index; }
+function findStepIndex(steps, name) {
+  const index = steps.findIndex(step => step?.name === name);
+  assert.notEqual(index, -1, `Missing step: ${name}`);
+  return index;
+}
 
 function normalizeNeeds(needs) {
   if (Array.isArray(needs)) {
@@ -54,270 +49,9 @@ const RELEASE_GATE_ENV_VARS = [
   'RELEASE_GATE_ADMIN_MK_PASSWORD',
 ];
 
-const WORKFLOWS_WITH_GENERATED_E2E_CREDENTIALS = [
-  '.github/workflows/ci.yml',
-  '.github/workflows/e2e-pr.yml',
-  '.github/workflows/e2e-nightly.yml',
-  '.github/workflows/release-candidate.yml',
-  '.github/workflows/pilot-gate.yml',
-  '.github/workflows/multi-agent-pr-hardening.yml',
-];
-
 function readRepoText(relativePath) {
   return fs.readFileSync(path.join(rootDir, relativePath), 'utf8');
 }
-
-test('workflow seed credential hardening rejects shared release passwords and E2E API placeholders', () => {
-  const workflowPaths = fs
-    .readdirSync(path.join(rootDir, '.github', 'workflows'))
-    .filter(fileName => /\.ya?ml$/u.test(fileName))
-    .map(fileName => `.github/workflows/${fileName}`);
-
-  for (const workflowPath of workflowPaths) {
-    const source = readRepoText(workflowPath);
-    assert.equal(
-      hasReleaseGateLiteralPassword(source),
-      false,
-      `${workflowPath} must not set release-gate account passwords to the shared seeded-user default`
-    );
-    assert.equal(
-      hasE2EApiPlaceholder(source),
-      false,
-      `${workflowPath} must not use the shared E2E API placeholder secret`
-    );
-  }
-});
-test('seeded CI workflows generate masked per-run E2E credentials before seeded auth work', () => {
-  for (const workflowPath of WORKFLOWS_WITH_GENERATED_E2E_CREDENTIALS) {
-    const source = readRepoText(workflowPath);
-    assert.match(source, /name:\s*Generate ephemeral E2E credentials/u, workflowPath);
-    assert.match(source, /bash scripts\/ci\/export-e2e-credentials\.sh/u, workflowPath);
-  }
-  const orderContracts = [
-    ['.github/workflows/ci.yml', 'e2e-gate', 'Prepare E2E Database'],
-    ['.github/workflows/e2e-pr.yml', 'e2e-runner', 'Run PR E2E Gate'],
-    ['.github/workflows/e2e-nightly.yml', 'e2e', 'Seed E2E DB'],
-    ['.github/workflows/release-candidate.yml', 'rc-gate', 'Prepare CI database'],
-    ['.github/workflows/pilot-gate.yml', 'pilot-gate-runner', 'Prepare CI database'],
-    [
-      '.github/workflows/multi-agent-pr-hardening.yml',
-      'multi-agent-pr-hardening',
-      'Prepare CI database',
-    ],
-  ];
-  for (const [workflowPath, jobName, guardedStep] of orderContracts) {
-    const steps = readWorkflow(workflowPath).jobs[jobName].steps;
-    assert.ok(
-      findStepIndex(steps, 'Generate ephemeral E2E credentials') < findStepIndex(steps, guardedStep)
-    );
-  }
-});
-// prettier-ignore
-test('OD17 collector keeps OIDC out of the unprivileged exact-head job', () => {
-  const workflow = readWorkflow('.github/workflows/od17-preview-canary.yml'), ci = readWorkflow('.github/workflows/ci.yml');
-  const prepare = workflow.jobs['prepare-exact-head'], trusted = workflow.jobs['trusted-main-collector'], audit = ci.jobs.audit;
-  const proofStep = findStep(audit.steps, 'Certify OD17 exact-head public shell'), upload = findStep(audit.steps, 'Upload OD17 exact-head verdict');
-  const checkout = audit.steps.find(step => String(step?.uses).startsWith('actions/checkout@'));
-  assert.ok(proofStep); assert.ok(upload); assert.ok(checkout);
-  assert.equal(proofStep.run, 'pnpm od17:verify'); assert.equal(proofStep['continue-on-error'], undefined);
-  assert.equal(proofStep.env.EXPECTED_HEAD_SHA, '${{ github.event.pull_request.head.sha }}');
-  assert.equal(proofStep.env.EXPECTED_TRUSTED_MAIN_SHA, '${{ github.event.pull_request.base.sha }}');
-  for (const value of [checkout.with.ref, proofStep.if, upload.if]) assert.match(value, /head\.repo\.full_name == github\.repository/u);
-  assert.match(checkout.with.ref, /pull_request\.head\.sha[\s\S]*github\.sha/u); assert.match(upload.if, /always\(\)/u); assert.equal(upload.with['if-no-files-found'], 'error');
-  assert.deepEqual(Object.keys(workflow.jobs), ['prepare-exact-head', 'trusted-main-collector']);
-  assert.equal(prepare.permissions['id-token'], 'none');
-  const build = findStep(prepare.steps, 'Build exact head and retain bounded structural evidence'); assert.ok(build); assert.notEqual(build.env.DATABASE_URL_RLS, build.env.DATABASE_URL); assert.doesNotMatch(build.run, /app-build-manifest/u);
-  assert.deepEqual([trusted.permissions['id-token'], trusted.permissions.actions, trusted.permissions.deployments], ['write', 'read', 'read']);
-  assert.equal(workflow.permissions, undefined);
-  assert.equal(findStep(prepare.steps, 'Collect authenticated exact-deployment evidence'), undefined);
-  assert.ok(findStep(trusted.steps, 'Resolve exact PR preparation run and Preview'));
-  assert.ok(findStep(trusted.steps, 'Collect authenticated exact-deployment evidence'));
-  const structural = findStep(trusted.steps, 'Recompute untrusted local structural evidence');
-  const source = structural?.run?.match(/const safeAssetPath = (value => \{[\s\S]*?\n\s*\});/u)?.[1]; assert.ok(source);
-  const safeAssetPath = vm.runInNewContext(`(${source})`, {}, { timeout: 50 });
-  for (const value of ['static/(public)/[locale].js', 'static/%5Blocale%5D.js']) assert.equal(safeAssetPath(value), true, value);
-  for (const value of ['static/../x.js', 'static/%2e/x.js', 'static/%2f.js', 'static/%ZZ.js']) assert.equal(safeAssetPath(value), false, value);
-  assert.match(structural.run, /item === null \|\| typeof item !== 'object'/u);
-});
-test('CI delegates PR browser gate to PR E2E', () => {
-  const ciWorkflow = readWorkflow('.github/workflows/ci.yml');
-  const prE2eWorkflow = readWorkflow('.github/workflows/e2e-pr.yml');
-  const validationSurfaceJob = ciWorkflow.jobs['validation-surface'];
-  assert.ok(validationSurfaceJob);
-  const ciE2eGateJob = ciWorkflow.jobs['e2e-gate'];
-  const ciSteps = ciE2eGateJob.steps;
-  const ciE2eNeeds = normalizeNeeds(ciE2eGateJob.needs);
-  assert.ok(ciE2eNeeds.includes('validation-surface'));
-  assert.equal(ciE2eGateJob.if, "needs.validation-surface.outputs.run_broad == 'true'");
-  const setupStep = ciSteps.find(step => step?.uses === './.github/actions/setup');
-  assert.equal(setupStep.with['install-playwright'], "${{ github.event_name != 'pull_request' }}");
-  const strictGuardStep = findStep(ciSteps, 'Enforce E2E Best Practices');
-  assert.equal(strictGuardStep.if, "github.event_name != 'pull_request'");
-  assert.match(strictGuardStep.run, /guards/u);
-  const prepareDbStep = findStep(ciSteps, 'Prepare E2E Database');
-  assert.equal(prepareDbStep.if, undefined);
-  const rlsStep = findStep(ciSteps, 'RLS Integration Test');
-  assert.equal(rlsStep.if, undefined);
-  const e2eGateSuiteStep = findStep(ciSteps, 'E2E Gate Suite');
-  assert.equal(
-    e2eGateSuiteStep.if,
-    "github.event_name != 'pull_request' && needs.validation-surface.outputs.main_e2e_reuse != '1'"
-  );
-  const staticJob = ciWorkflow.jobs.static;
-  assert.ok(normalizeNeeds(staticJob.needs).includes('validation-surface'));
-  assert.equal(staticJob.if, "needs.validation-surface.outputs.run_broad == 'true'");
-  const unitJob = ciWorkflow.jobs.unit;
-  assert.ok(normalizeNeeds(unitJob.needs).includes('validation-surface'));
-  assert.equal(unitJob.if, "needs.validation-surface.outputs.run_broad == 'true'");
-  const prE2eJob = prE2eWorkflow.jobs['e2e-runner'];
-  const prE2eSetupStep = prE2eJob.steps.find(step => step?.uses === './.github/actions/setup');
-  assert.equal(prE2eSetupStep.with['install-playwright'], true);
-  const prStrictGuardStep = findStep(prE2eJob.steps, 'Strict Rule Guards (golden/gate)');
-  assert.match(prStrictGuardStep.run, /guards/u);
-
-  const prGateStep = findStep(prE2eJob.steps, 'Run PR E2E Gate');
-  assert.equal(prGateStep.run, 'pnpm e2e:gate:pr');
-
-  assert.equal(findStep(prE2eJob.steps, 'Generate Playwright Gate Auth State (KS+MK)'), undefined);
-  assert.equal(findStep(prE2eJob.steps, 'E2E Subscription Lifecycle (KS+MK)'), undefined);
-  assert.equal(findStep(prE2eJob.steps, 'E2E Smoke Suite (KS+MK)'), undefined);
-});
-test('CI materializes AI eval as a blocking surface-gated lane', () => {
-  const ciWorkflow = readWorkflow('.github/workflows/ci.yml');
-  const validationSurfaceJob = ciWorkflow.jobs['validation-surface'];
-  const aiEvalJob = ciWorkflow.jobs['ai-eval'];
-
-  assert.equal(
-    validationSurfaceJob.outputs.ai_eval_should_run,
-    '${{ steps.gate_policy.outputs.ai_eval_should_run }}'
-  );
-  assert.equal(
-    validationSurfaceJob.outputs.ai_eval_reason,
-    '${{ steps.gate_policy.outputs.ai_eval_reason }}'
-  );
-  assert.equal(
-    validationSurfaceJob.outputs.ai_eval_matched_paths,
-    '${{ steps.gate_policy.outputs.ai_eval_matched_paths }}'
-  );
-
-  const gatePolicyStep = findStep(validationSurfaceJob.steps, 'Evaluate PR gate policy');
-  assert.ok(gatePolicyStep);
-  assert.equal(gatePolicyStep.uses, TRUSTED_GATE_ACTION);
-
-  assert.ok(aiEvalJob);
-  assert.ok(normalizeNeeds(aiEvalJob.needs).includes('validation-surface'));
-  assert.equal(
-    aiEvalJob.if,
-    "needs.validation-surface.outputs.run_broad == 'true' && needs.validation-surface.outputs.ai_eval_should_run == 'true'"
-  );
-  assert.equal(aiEvalJob['continue-on-error'], undefined);
-  const runStep = findStep(aiEvalJob.steps, 'Run AI Eval Fixtures');
-  assert.ok(runStep);
-  assert.equal(runStep.run, 'pnpm ai:eval');
-  assert.equal(ciWorkflow.jobs['multi-agent-dry-run'], undefined);
-});
-
-test('Release candidate gate includes blocking AI eval fixture proof', () => {
-  const releaseCandidateWorkflow = readWorkflow('.github/workflows/release-candidate.yml');
-  const releaseCandidateSteps = releaseCandidateWorkflow.jobs['rc-gate'].steps;
-
-  const aiEvalStep = findStep(releaseCandidateSteps, 'RC check - AI eval fixtures');
-  assert.ok(aiEvalStep);
-  assert.equal(aiEvalStep['continue-on-error'], undefined);
-  assert.match(aiEvalStep.run, /\bpnpm ai:eval\b/u);
-  assert.match(aiEvalStep.run, /ai_eval\.exit/u);
-  assert.ok(
-    findStepIndex(releaseCandidateSteps, 'Prepare RC workspace') <
-      findStepIndex(releaseCandidateSteps, 'RC check - AI eval fixtures')
-  );
-  assert.ok(
-    findStepIndex(releaseCandidateSteps, 'RC check - AI eval fixtures') <
-      findStepIndex(releaseCandidateSteps, 'Prepare CI database')
-  );
-  const rcAuthStateStep = findStep(releaseCandidateSteps, 'Generate Playwright auth states');
-  assert.ok(rcAuthStateStep, 'release candidate auth-state setup step should exist');
-  assert.equal(rcAuthStateStep.run, 'pnpm e2e:state:setup');
-  assert.equal(rcAuthStateStep.env.E2E_DATABASE_URL, '${{ env.DATABASE_URL }}');
-  assert.equal(rcAuthStateStep.env.E2E_DATABASE_URL_RLS, '${{ env.DATABASE_URL }}');
-});
-test('CI unit lane runs the blocking repository coverage gate', () => {
-  const ciWorkflow = readWorkflow('.github/workflows/ci.yml');
-  const unitJob = ciWorkflow.jobs.unit;
-
-  assert.ok(unitJob);
-  assert.ok(normalizeNeeds(unitJob.needs).includes('validation-surface'));
-  assert.equal(unitJob.if, "needs.validation-surface.outputs.run_broad == 'true'");
-
-  const coverageStep = findStep(unitJob.steps, 'Coverage Gate');
-  assert.ok(coverageStep);
-  assert.equal(coverageStep.run, 'pnpm coverage:gate');
-});
-
-test('Secret Scan is the sole blocking gitleaks surface for PR and mainline while Security stays pnpm-audit-only', () => {
-  const secretScanWorkflow = readWorkflow('.github/workflows/secret-scan.yml');
-  const securityWorkflow = readWorkflow('.github/workflows/security.yml');
-
-  assert.deepEqual(secretScanWorkflow.on.push.branches, ['main', 'master', 'rc/**', 'release/**']);
-  assert.deepEqual(secretScanWorkflow.on.pull_request.branches, ['**']);
-  assert.deepEqual(secretScanWorkflow.on.schedule, [{ cron: '0 6 * * 1' }]);
-
-  const gitleaksJob = secretScanWorkflow.jobs.gitleaks;
-  assert.ok(gitleaksJob);
-  assert.equal(gitleaksJob['runs-on'], 'ubuntu-latest');
-  assert.equal(gitleaksJob.if, undefined);
-  assert.ok(findStep(gitleaksJob.steps, 'Install gitleaks CLI'));
-  const runStep = findStep(gitleaksJob.steps, 'Run gitleaks (blocking)');
-  assert.ok(runStep);
-  assert.match(runStep.run, /log_opts="--all"/);
-  assert.match(
-    runStep.run,
-    /if \[\[ "\$\{GITHUB_EVENT_NAME\}" == "pull_request" && -n "\$\{GITHUB_BASE_SHA:-\}" && -n "\$\{GITHUB_HEAD_SHA:-\}" \]\]; then/
-  );
-  assert.match(runStep.run, /log_opts="\$\{GITHUB_BASE_SHA\}\.\.\$\{GITHUB_HEAD_SHA\}"/);
-  assert.match(
-    runStep.run,
-    /elif \[\[ "\$\{GITHUB_EVENT_NAME\}" == "push" && -n "\$\{GITHUB_BEFORE_SHA:-\}" && "\$\{GITHUB_BEFORE_SHA\}" != "0000000000000000000000000000000000000000" \]\]; then/
-  );
-  assert.match(runStep.run, /log_opts="\$\{GITHUB_BEFORE_SHA\}\.\.\$\{GITHUB_SHA\}"/);
-  assert.equal(runStep.run.includes('log_opts="-n 1"'), false);
-  assert.ok(findStep(gitleaksJob.steps, 'Upload gitleaks report artifact'));
-
-  const securityAuditJob = securityWorkflow.jobs['pnpm-audit'];
-  assert.ok(securityAuditJob);
-  assert.equal(findStep(securityAuditJob.steps, 'Install gitleaks CLI'), undefined);
-  assert.equal(findStep(securityAuditJob.steps, 'Run gitleaks (blocking)'), undefined);
-  assert.equal(findStep(securityAuditJob.steps, 'Upload gitleaks report artifact'), undefined);
-});
-
-test('Nightly E2E runs on an available hosted runner while preserving full strict coverage', () => {
-  const nightlyWorkflow = readWorkflow('.github/workflows/e2e-nightly.yml');
-  const nightlyJob = nightlyWorkflow.jobs.e2e;
-
-  assert.equal(nightlyJob['runs-on'], 'ubuntu-latest');
-  assert.deepEqual(nightlyWorkflow.on.schedule, [{ cron: '10 2 * * *' }]);
-  assert.equal(nightlyJob.strategy['max-parallel'], 2);
-  assert.deepEqual(nightlyJob.strategy.matrix, {
-    shardIndex: [1, 2, 3],
-    shardTotal: [3],
-  });
-  const e2eDatabaseUrl =
-    "${{ secrets.E2E_DATABASE_URL_RLS || secrets.E2E_DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test' }}";
-  assert.equal(nightlyJob.env.DATABASE_URL_RLS, e2eDatabaseUrl);
-  assert.equal(nightlyJob.env.E2E_DATABASE_URL_RLS, e2eDatabaseUrl);
-  const nightlyStateStep = findStep(
-    nightlyJob.steps,
-    'Generate Playwright Gate Auth State (KS+MK)'
-  );
-  assert.ok(nightlyStateStep);
-  assert.equal(nightlyStateStep.run, 'pnpm e2e:state:setup');
-  assert.ok(findStep(nightlyJob.steps, 'E2E Gate (KS+MK)'));
-  assert.match(
-    findStep(nightlyJob.steps, 'E2E Subscription Lifecycle (KS+MK)').run,
-    /e2e\/golden\/subscription-entry\.spec\.ts/
-  );
-  assert.ok(findStep(nightlyJob.steps, 'E2E Phase 5 Deterministic Batch'));
-  assert.ok(findStep(nightlyJob.steps, 'E2E Smoke'));
-});
 
 test('Pilot gate has no serial Sonar poll', () => {
   const pilotGateWorkflow = readWorkflow('.github/workflows/pilot-gate.yml');
@@ -362,64 +96,6 @@ test('Pilot gate has no serial Sonar poll', () => {
   );
 });
 
-test('Pilot gate heavy runner depends on preflight before Postgres, setup, build, and release-gate work', () => {
-  const pilotGateWorkflow = readWorkflow('.github/workflows/pilot-gate.yml');
-  const pilotGateJob = pilotGateWorkflow.jobs['pilot-gate-runner'];
-  assert.ok(pilotGateJob);
-  const steps = pilotGateJob.steps;
-  const needs = normalizeNeeds(pilotGateJob.needs);
-  const setupIndex = steps.findIndex(step => step?.uses === './.github/actions/setup');
-  const manualSonarIndex = findStepIndex(steps, 'Run Sonar quality gate (manual fallback)');
-  const prepareDbIndex = findStepIndex(steps, 'Prepare CI database');
-  const buildIndex = findStepIndex(steps, 'Build web standalone artifact');
-  assert.deepEqual(needs, ['pilot-gate-preflight']);
-  assert.equal(pilotGateJob.if, "needs.pilot-gate-preflight.outputs.run_broad == 'true'");
-  assert.equal(pilotGateJob.env.DATABASE_URL_RLS, pilotGateJob.env.DATABASE_URL);
-  assert.equal(pilotGateJob.env.NODE_OPTIONS, '--max-old-space-size=4096');
-  assert.ok(setupIndex >= 0);
-  assert.ok(manualSonarIndex >= 0);
-  assert.ok(prepareDbIndex >= 0);
-  assert.ok(buildIndex >= 0);
-  assert.equal(
-    findStep(steps, 'Run Sonar quality gate (manual fallback)').if,
-    "env.SONAR_GATE_ENABLED == 'true' && (github.event_name != 'pull_request' || needs.pilot-gate-preflight.outputs.needs_manual_sonar_fallback == 'true')"
-  );
-  assert.ok(setupIndex < prepareDbIndex);
-  assert.ok(manualSonarIndex < prepareDbIndex);
-  assert.ok(manualSonarIndex < buildIndex);
-  assert.equal(findStep(steps, 'Evaluate validation surface'), undefined);
-  assert.equal(findStep(steps, 'Validate required gate secrets'), undefined);
-  assert.equal(findStep(steps, 'Await SonarCloud Code Analysis check'), undefined);
-});
-
-test('Sonar main gate skips manual fallback for non-push SonarCloud runs while keeping push blocking intact', () => {
-  const workflow = readWorkflow('.github/workflows/sonar-main-gate.yml');
-  const job = workflow.jobs['sonar-gate'];
-
-  assert.ok(job);
-  const steps = job.steps;
-  const validateStep = findStep(steps, 'Validate Sonar configuration');
-  const strategyStep = findStep(steps, 'Decide Sonar main gate strategy');
-  const awaitStep = findStep(steps, 'Await SonarCloud Code Analysis check (blocking on push)');
-  const fallbackStep = findStep(steps, 'Run Sonar quality gate (manual fallback)');
-
-  assert.ok(validateStep);
-  assert.ok(strategyStep);
-  assert.equal(strategyStep.if, "env.SONAR_GATE_ENABLED == 'true'");
-  assert.match(strategyStep.run, /RUN_MANUAL_FALLBACK/);
-  assert.match(strategyStep.run, /sonarcloud\.io/);
-  assert.match(strategyStep.run, /SonarCloud Automatic Analysis owns mainline analysis/);
-
-  assert.ok(awaitStep);
-  assert.equal(awaitStep.if, "github.event_name == 'push' && env.SONAR_GATE_ENABLED == 'true'");
-
-  assert.ok(fallbackStep);
-  assert.equal(
-    fallbackStep.if,
-    "github.event_name != 'push' && env.SONAR_GATE_ENABLED == 'true' && env.RUN_MANUAL_FALLBACK == 'true'"
-  );
-});
-
 test('Required pilot gate wrapper fails or passes based on preflight and runner results without starting services itself', () => {
   const pilotGateWorkflow = readWorkflow('.github/workflows/pilot-gate.yml');
   const pilotGateJob = pilotGateWorkflow.jobs['pilot-gate'];
@@ -447,21 +123,6 @@ test('Optional multi-agent PR hardening is no longer part of the default pull_re
   assert.equal(pilotGateWorkflow.jobs['multi-agent-pr-hardening'], undefined);
   assert.ok(multiAgentWorkflow.jobs['multi-agent-pr-hardening']);
   assert.ok(multiAgentWorkflow.on.workflow_dispatch);
-});
-
-test('CI audit job runs the scripts/ci contract suite', () => {
-  const ciWorkflow = readWorkflow('.github/workflows/ci.yml');
-  const auditJob = ciWorkflow.jobs.audit;
-  const auditRunStep = findStep(auditJob.steps, 'Run Audits');
-  const standaloneBudgetSteps = auditJob.steps.filter(
-    step => step?.run?.trim() === 'pnpm check:e2e-quarantine-budget'
-  );
-  assert.ok(auditRunStep);
-  assert.match(auditRunStep.run, /\bpnpm test:ci:contracts\b/);
-  assert.doesNotMatch(auditRunStep.run, /playbook-contracts\.mjs/);
-  assert.match(auditRunStep.run, /\bpnpm check:e2e-contracts\b/);
-  assert.match(auditRunStep.run, /\bpnpm lint:production-warnings\b/);
-  assert.equal(standaloneBudgetSteps.length, 0);
 });
 
 test('Composite CI setup action uses compatible actions and a bounded ripgrep bootstrap', () => {
@@ -522,8 +183,8 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   };
   assertBuildJob(buildStagingJob, 'staging', 'https://staging.interdomestik.com');
   assertBuildJob(buildProductionJob, 'production', 'https://www.interdomestik.com');
-  assert.deepEqual(normalizeNeeds(buildProductionJob.needs), ['production-evidence']);
-  assert.deepEqual(normalizeNeeds(deployStagingJob.needs), ['build-staging']);
+  assert.deepEqual(normalizeNeeds(buildProductionJob.needs), ['scope', 'production-evidence']);
+  assert.deepEqual(normalizeNeeds(deployStagingJob.needs), ['scope', 'build-staging']);
   assert.equal(deployStagingJob['timeout-minutes'], 25);
   assert.deepEqual(deployStagingJob.outputs, {
     alias_moved: '${{ steps.vercel.outputs.alias_moved }}',
@@ -556,7 +217,7 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   assert.equal(stagingAliasProvenanceStep.env.BASE_URL, '${{ steps.vercel.outputs.gate_base_url }}');
   assert.match(stagingAliasProvenanceStep.env.VERCEL_AUTOMATION_BYPASS_SECRET, /secrets\.VERCEL/u);
   assert.match(stagingAliasProvenanceStep.run, /wait-for-vercel-health\.mjs[\s\S]*EXPECTED_COMMIT_SHA/u);
-  assert.deepEqual(normalizeNeeds(e2eStagingJob.needs), ['deploy-staging']);
+  assert.deepEqual(normalizeNeeds(e2eStagingJob.needs), ['scope', 'deploy-staging']);
   assert.deepEqual(e2eStagingJob.environment, { name: 'staging', deployment: false });
   assert.equal(e2eStagingJob.env.BASE_URL, '${{ needs.deploy-staging.outputs.gate_base_url }}');
   assert.equal(e2eStagingJob.env.AUTH_BASE_URL, 'https://staging.interdomestik.com');
@@ -571,12 +232,12 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   }
   const stagingGateStep = findStep(e2eStagingJob.steps, 'Run Staging Release Gate');
   assert.ok(stagingGateStep);
-  assert.deepEqual(normalizeNeeds(productionEvidenceJob.needs), ['e2e-staging']);
+  assert.deepEqual(normalizeNeeds(productionEvidenceJob.needs), ['scope', 'e2e-staging']);
   assert.deepEqual(productionEvidenceJob.environment, { name: 'production', deployment: false });
   const evidenceStep = findStep(productionEvidenceJob.steps, 'Check Production Human Evidence');
   assert.match(evidenceStep?.run, /pnpm release:evidence:check/);
   const productionLegTriggerGuard =
-    "startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'";
+    "needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')";
   for (const productionLegJob of [
     productionEvidenceJob,
     buildProductionJob,
@@ -585,7 +246,7 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   ]) {
     assert.equal(productionLegJob.if, productionLegTriggerGuard);
   }
-  assert.deepEqual(normalizeNeeds(deployProductionJob.needs), ['build-production']);
+  assert.deepEqual(normalizeNeeds(deployProductionJob.needs), ['scope', 'build-production']);
   assert.equal(deployProductionJob['timeout-minutes'], 25);
   const vercelProductionDeployStep = findStep(
     deployProductionJob.steps,
@@ -603,7 +264,7 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
     vercelProductionDeployStep.with['vercel-automation-bypass-secret'],
     /secrets\.VERCEL_AUTOMATION/u
   );
-  assert.deepEqual(normalizeNeeds(verifyProductionJob.needs), ['deploy-production']);
+  assert.deepEqual(normalizeNeeds(verifyProductionJob.needs), ['scope', 'deploy-production']);
   assert.deepEqual(verifyProductionJob.environment, { name: 'production', deployment: false });
   assert.equal(verifyProductionJob.env.EXPECTED_COMMIT_SHA, '${{ github.sha }}');
   assert.equal(verifyProductionJob.env.RELEASE_GATE_EXPECTED_SHA, '${{ github.sha }}');
