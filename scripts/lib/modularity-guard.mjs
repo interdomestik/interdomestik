@@ -143,7 +143,8 @@ function canonicalJson(_root, filePath, text) {
 }
 
 function removedGovernanceHeading(current, base) {
-  const headings = text => new Set(text.match(/^#{1,6}[ \t]+[^\r\n]+$/gmu) ?? []);
+  const headings = text =>
+    new Set(text.split(/\r?\n/u).filter(line => /^#{1,6}[ \t]+\S/u.test(line)));
   const currentHeadings = headings(current.text);
   if (!base) return currentHeadings.size === 0;
   return [...headings(base.text)].some(heading => !currentHeadings.has(heading));
