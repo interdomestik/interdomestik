@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { createHash } from 'node:crypto';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { isAbsolute, join, resolve } from 'node:path';
+import { readFileSync, readdirSync, realpathSync } from 'node:fs';
+import { isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   CANONICAL_ORIGIN,
@@ -131,27 +131,68 @@ function digest(value) {
 }
 
 function history(path) {
-  if (!statSync(path).isDirectory()) return json(path);
   return readdirSync(path)
     .filter(name => name.endsWith('.json'))
-    .map(name => json(join(path, name)))
-    .sort((left, right) => left.revision - right.revision);
+    .map(name => {
+      const target = realpathSync(join(path, name));
+      must(!relative(path, target).startsWith('..'), 'durable receipt path mismatch');
+      return { name, value: json(target) };
+    })
+    .sort((left, right) => left.value.revision - right.value.revision);
+}
+
+export function readDurableAuthority(envelope, { durablePath, historyPath }) {
+  const policy = envelope?.approvalEnvelope?.durableAuthority;
+  must(isAbsolute(policy?.root) && typeof policy.state === 'string', 'durable root missing');
+  must(
+    policy.receiptClass === 'receipts/<operation-sha256>.json' &&
+      policy.evidenceClass === 'evidence/<child-id>-<evidence-sha256>.json',
+    'durable class mismatch'
+  );
+  const root = realpathSync(policy.root);
+  const durableFile = realpathSync(durablePath);
+  const receiptDirectory = realpathSync(historyPath);
+  must(durableFile === realpathSync(join(root, policy.state)), 'durable state path mismatch');
+  must(receiptDirectory === realpathSync(join(root, 'receipts')), 'durable history path mismatch');
+  const receipts = history(receiptDirectory);
+  must(
+    receipts.every(item => item.name === `${item.value.operationSha256}.json`),
+    'durable receipt filename mismatch'
+  );
+  const records = receipts.map(item => item.value);
+  const evidence = records.map(record => {
+    const target = resolve(root, record.evidenceRef);
+    must(!relative(root, target).startsWith('..'), 'durable evidence path mismatch');
+    const canonicalTarget = realpathSync(target);
+    must(!relative(root, canonicalTarget).startsWith('..'), 'durable evidence path mismatch');
+    const raw = bytes(canonicalTarget);
+    const expected = record.evidenceRef.match(/-([a-f0-9]{64})\.json$/u)?.[1];
+    must(expected && digest(raw) === expected, 'durable evidence digest mismatch');
+    const value = JSON.parse(raw.toString('utf8'));
+    must(raw.equals(Buffer.from(`${JSON.stringify(value, null, 2)}\n`)), 'noncanonical evidence');
+    return value;
+  });
+  return { durable: json(durableFile), history: records, evidence };
 }
 
 function main() {
   try {
     const envelopePath = argument('envelope');
     const receiptPath = argument('receipt');
+    const envelope = json(envelopePath);
+    const durableAuthority = readDurableAuthority(envelope, {
+      durablePath: argument('durable'),
+      historyPath: argument('history'),
+    });
     const result = resolveCurrentAuthority({
       projection: json(argument('projection')),
-      envelope: json(envelopePath),
+      envelope,
       approvalReceipt: json(receiptPath),
       artifactHashes: {
         envelopeSha256: digest(bytes(envelopePath)),
         approvalReceiptSha256: digest(bytes(receiptPath)),
       },
-      durable: json(argument('durable')),
-      history: history(argument('history')),
+      ...durableAuthority,
       live: json(argument('live')),
     });
     process.stdout.write(`${JSON.stringify(result)}\n`);

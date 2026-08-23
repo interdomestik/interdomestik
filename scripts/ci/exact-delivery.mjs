@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { deriveAuthorityContext } from '../current-authority-state-lib.mjs';
+import { readDurableAuthority } from '../current-authority-state.mjs';
 import { verifyExactDelivery } from './exact-delivery-lib.mjs';
 
 const GH_BINARY_CANDIDATES = ['/opt/homebrew/bin/gh', '/usr/local/bin/gh', '/usr/bin/gh'];
@@ -38,13 +39,6 @@ function commit(repo, sha) {
 
 const sha256 = value => createHash('sha256').update(value).digest('hex');
 const json = path => JSON.parse(readFileSync(path, 'utf8'));
-function history(path) {
-  if (!statSync(path).isDirectory()) return json(path);
-  return readdirSync(path)
-    .filter(name => name.endsWith('.json'))
-    .map(name => json(join(path, name)))
-    .sort((left, right) => left.revision - right.revision);
-}
 function authorityState(repo) {
   const envelopePath = join(
     repo,
@@ -54,16 +48,19 @@ function authorityState(repo) {
     repo,
     'docs/plans/2026-08-21-ida-wf01-one-approval-delivery-approval-receipt-r1.json'
   );
+  const envelope = json(envelopePath);
   return {
     projection: json(join(repo, 'docs/plans/current-authority-v1.json')),
-    envelope: json(envelopePath),
+    envelope,
     approvalReceipt: json(receiptPath),
     artifactHashes: {
       envelopeSha256: sha256(readFileSync(envelopePath)),
       approvalReceiptSha256: sha256(readFileSync(receiptPath)),
     },
-    durable: json(argument('durable')),
-    history: history(argument('history')),
+    ...readDurableAuthority(envelope, {
+      durablePath: argument('durable'),
+      historyPath: argument('history'),
+    }),
   };
 }
 

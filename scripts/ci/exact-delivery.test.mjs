@@ -12,15 +12,26 @@ import {
 } from '../current-authority-state-lib.mjs';
 import { authorityConsumption, verifyExactDelivery } from './exact-delivery-lib.mjs';
 import { collectAuthority } from './exact-delivery.mjs';
-
 const cli = new URL('./exact-delivery.mjs', import.meta.url).pathname;
-const B = '0'.repeat(40);
-const H = '1'.repeat(40);
-const T = '2'.repeat(40);
-const M = '3'.repeat(40);
-const HEAD_TREE = '4'.repeat(40);
-const TESTED_TREE = '5'.repeat(40);
+const PROGRAM = 'IDA-WF01-ONE-APPROVAL-DELIVERY';
+const authorityIdentity = { schemaVersion: 1, programId: PROGRAM };
+const [B, H, T, M] = ['0', '1', '2', '3'].map(value => value.repeat(40));
+const [HEAD_TREE, TESTED_TREE] = ['4', '5'].map(value => value.repeat(40));
 const writers = ['docs/plans/current-authority-v1.json', 'scripts/ci/exact-delivery.mjs'];
+const DEFAULT_LANE = {
+  name: 'audit',
+  checkedSha: T,
+  checkedTree: TESTED_TREE,
+  runId: 123,
+  runAttempt: 1,
+  appId: 15368,
+  conclusion: 'success',
+};
+function runGit(root, ...args) {
+  const result = spawnSync('/usr/bin/git', args, { cwd: root, encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  return result.stdout.trim();
+}
 const envelope = () => ({
   approvalEnvelope: {
     children: [
@@ -35,8 +46,7 @@ const envelope = () => ({
 });
 const receipt = () => ({ approvalId: 'fixture' });
 const projection = () => ({
-  schemaVersion: 1,
-  programId: 'IDA-WF01-ONE-APPROVAL-DELIVERY',
+  ...authorityIdentity,
   envelopePath: 'docs/plans/2026-08-21-ida-wf01-one-approval-delivery-envelope-v1.json',
   envelopeSha256: canonicalJsonDigest(envelope()),
   approvalReceiptPath:
@@ -47,8 +57,7 @@ const projection = () => ({
 });
 function record(base = B) {
   const state = {
-    schemaVersion: 1,
-    programId: 'IDA-WF01-ONE-APPROVAL-DELIVERY',
+    ...authorityIdentity,
     revision: 1,
     status: 'active',
     childId: 'S3-exact-authority',
@@ -60,10 +69,8 @@ function record(base = B) {
     evidenceRef: `evidence/S3-exact-authority-${'9'.repeat(64)}.json`,
     previousOperationSha256: null,
   };
-  return {
-    ...state,
-    operationSha256: createHash('sha256').update(JSON.stringify(state)).digest('hex'),
-  };
+  state.operationSha256 = createHash('sha256').update(JSON.stringify(state)).digest('hex');
+  return state;
 }
 function authorityState(base = B) {
   const durable = record(base);
@@ -77,6 +84,18 @@ function authorityState(base = B) {
     },
     durable,
     history: [durable],
+    evidence: [
+      {
+        ...authorityIdentity,
+        revision: 1,
+        event: 'health_cleanup_pass',
+        fromChild: 'S2-mcp-identity',
+        toChild: durable.childId,
+        boundary: durable.boundary,
+        previousOperationSha256: null,
+        proofSha256: 'a'.repeat(64),
+      },
+    ],
   };
 }
 function facts(overrides = {}) {
@@ -125,17 +144,7 @@ function facts(overrides = {}) {
     requiredContexts: ['audit'],
     terminalDelivery: true,
     finalIntake: 'clean',
-    lanes: [
-      {
-        name: 'audit',
-        checkedSha: T,
-        checkedTree: TESTED_TREE,
-        runId: 123,
-        runAttempt: 1,
-        appId: 15368,
-        conclusion: 'success',
-      },
-    ],
+    lanes: [{ ...DEFAULT_LANE }],
     ...overrides,
   };
 }
@@ -155,8 +164,7 @@ function authority(overrides = {}, input = facts()) {
 const verify = (input, trusted = authority({}, input)) => verifyExactDelivery(input, trusted);
 test('accepts exact B/H/T/M with the envelope-derived writer context', () => {
   const result = verify(facts());
-  assert.equal(result.ok, true);
-  assert.equal(result.testedTree, TESTED_TREE);
+  assert.deepEqual([result.ok, result.testedTree], [true, TESTED_TREE]);
   assert.notEqual(HEAD_TREE, TESTED_TREE);
 });
 test('rejects the wrong tested parents or returned-main parent/tree', () => {
@@ -179,7 +187,6 @@ test('head-only lanes require head and tested tree equality', () => {
   valid.lanes[0] = { ...valid.lanes[0], checkedSha: H, checkedTree: TESTED_TREE };
   assert.equal(verify(valid).ok, true);
 });
-
 test('terminal delivery, clean intake, exact main, and lane app identity are required', () => {
   assert.throws(() => verify(facts({ terminalDelivery: false })), /terminal delivery/i);
   assert.throws(() => verify(facts({ finalIntake: 'pending' })), /final intake/i);
@@ -188,7 +195,6 @@ test('terminal delivery, clean intake, exact main, and lane app identity are req
   wrongApp.lanes[0].appId = null;
   assert.throws(() => verify(wrongApp), /lane identity/i);
 });
-
 test('derived child, base, writer map, and changed paths are exact', () => {
   assert.throws(() => verify(facts({ writerMapSha256: 'f'.repeat(64) })), /writer map/i);
   assert.throws(
@@ -200,7 +206,6 @@ test('derived child, base, writer map, and changed paths are exact', () => {
     /changed paths/i
   );
 });
-
 test('PR, worktree, common-dir, and MCP identities remain exact', () => {
   const candidates = [facts(), facts(), facts()];
   candidates[0].pullRequest.headSha = B;
@@ -210,36 +215,31 @@ test('PR, worktree, common-dir, and MCP identities remain exact', () => {
   assert.throws(() => verify(candidates[1]), /worktree identity/i);
   assert.throws(() => verify(candidates[2]), /MCP target identity/i);
 });
-
 test('merge or terminal failure consumes semantic authority immediately', () => {
   assert.equal(
     authorityConsumption({ pullRequestState: 'MERGED', terminalFailure: false }).reason,
     'authority_consumed_by_merge'
   );
   const failure = authorityConsumption({ pullRequestState: 'OPEN', terminalFailure: true });
-  assert.equal(failure.consumed, true);
-  assert.equal(failure.successorsBlocked, true);
+  assert.deepEqual([failure.consumed, failure.successorsBlocked], [true, true]);
 });
-
 test('trusted collector uses the same derived authority context', () => {
   const root = mkdtempSync(join(tmpdir(), 'exact-delivery-'));
-  spawnSync('git', ['init', '-q'], { cwd: root });
-  spawnSync('git', ['config', 'user.email', 'fixture@example.invalid'], { cwd: root });
-  spawnSync('git', ['config', 'user.name', 'Fixture'], { cwd: root });
-  spawnSync('git', ['remote', 'add', 'origin', 'git@github.com:interdomestik/interdomestik.git'], {
-    cwd: root,
-  });
+  const git = (...args) => runGit(root, ...args);
+  git('init', '-q');
+  git('config', 'user.email', 'fixture@example.invalid');
+  git('config', 'user.name', 'Fixture');
+  git('remote', 'add', 'origin', 'git@github.com:interdomestik/interdomestik.git');
   writeFileSync(join(root, 'README.md'), 'fixture\n');
-  spawnSync('git', ['add', '.'], { cwd: root });
-  spawnSync('git', ['commit', '-qm', 'base'], { cwd: root });
-  const git = (...args) => spawnSync('git', args, { cwd: root, encoding: 'utf8' }).stdout.trim();
+  git('add', '.');
+  git('commit', '-qm', 'base');
   const base = git('rev-parse', 'HEAD');
   mkdirSync(join(root, 'docs/plans'), { recursive: true });
   mkdirSync(join(root, 'scripts/ci'), { recursive: true });
   writeFileSync(join(root, writers[0]), `${JSON.stringify(projection(), null, 2)}\n`);
   writeFileSync(join(root, writers[1]), 'fixture\n');
-  spawnSync('git', ['add', ...writers], { cwd: root });
-  spawnSync('git', ['commit', '-qm', 'head'], { cwd: root });
+  git('add', ...writers);
+  git('commit', '-qm', 'head');
   const head = git('rev-parse', 'HEAD');
   const tree = git('show', '-s', '--format=%T', head);
   const tested = git('commit-tree', tree, '-p', base, '-p', head, '-m', 'tested');

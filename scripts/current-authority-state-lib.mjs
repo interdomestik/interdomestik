@@ -11,11 +11,18 @@ const DURABLE_KEYS =
   'schemaVersion,programId,revision,status,childId,runtimeAuthorized,successorsBlocked,envelopeSha256,approvalReceiptSha256,boundary,evidenceRef,previousOperationSha256,operationSha256'.split(
     ','
   );
+const EVIDENCE_KEYS =
+  'schemaVersion,programId,revision,event,fromChild,toChild,boundary,previousOperationSha256,proofSha256'.split(
+    ','
+  );
 const PROJECTION_KEYS =
   'schemaVersion,programId,envelopePath,envelopeSha256,approvalReceiptPath,approvalReceiptSha256,liveDispositionRequired,repositoryConsumptionRule'.split(
     ','
   );
 const FAILURE_STATUSES = new Set(['failed_consumed', 'rolled_back_consumed', 'incident', 'failed']);
+const IRREVERSIBLE_STATUSES = new Set(
+  'failed_consumed,rolled_back_consumed,failed,closed'.split(',')
+);
 const STATUSES = new Set(
   'active,prepared,installing,merged_consumed,installed_consumed,closeout_required,failed_consumed,rolled_back_consumed,incident,failed,closed'.split(
     ','
@@ -43,28 +50,20 @@ export function normalizeOrigin(value) {
 
 function exactKeys(value, keys, label) {
   must(value && typeof value === 'object' && !Array.isArray(value), `${label} must be an object`);
-  must(
-    same(Object.keys(value).sort(alphabetical), [...keys].sort(alphabetical)),
-    `${label} keys mismatch`
-  );
+  const matching = same(Object.keys(value).sort(alphabetical), [...keys].sort(alphabetical));
+  must(matching, `${label} keys mismatch`);
 }
 
 function safePaths(paths) {
-  must(
-    Array.isArray(paths) && paths.length > 0 && new Set(paths).size === paths.length,
-    'invalid writer paths'
-  );
-  must(
-    paths.every(
-      path =>
-        typeof path === 'string' &&
-        path.length > 0 &&
-        !path.startsWith('/') &&
-        !path.startsWith('../') &&
-        !path.includes('/../')
-    ),
-    'unsafe writer path'
-  );
+  const unique = Array.isArray(paths) && paths.length > 0 && new Set(paths).size === paths.length;
+  must(unique, 'invalid writer paths');
+  const safe = path =>
+    typeof path === 'string' &&
+    path.length > 0 &&
+    !path.startsWith('/') &&
+    !path.startsWith('../') &&
+    !path.includes('/../');
+  must(paths.every(safe), 'unsafe writer path');
 }
 
 export function writerMapDigest(paths) {
@@ -77,15 +76,11 @@ export function validateProjection(value) {
   must(value.schemaVersion === 1 && value.programId === PROGRAM, 'projection schema mismatch');
   must(value.envelopePath === ENVELOPE_PATH, 'projection envelope path mismatch');
   must(value.approvalReceiptPath === RECEIPT_PATH, 'projection receipt path mismatch');
-  must(
-    SHA256.test(value.envelopeSha256) && SHA256.test(value.approvalReceiptSha256),
-    'projection hash mismatch'
-  );
+  const hashes = SHA256.test(value.envelopeSha256) && SHA256.test(value.approvalReceiptSha256);
+  must(hashes, 'projection hash mismatch');
   must(value.liveDispositionRequired === 'open', 'projection live disposition mismatch');
-  must(
-    value.repositoryConsumptionRule === 'merged_closed_or_terminal_failure',
-    'projection consumption rule mismatch'
-  );
+  const consumption = value.repositoryConsumptionRule === 'merged_closed_or_terminal_failure';
+  must(consumption, 'projection consumption rule mismatch');
   return value;
 }
 
@@ -129,14 +124,13 @@ export function validateProjectionArtifacts({
 }
 
 function validateBoundary(boundary) {
-  exactKeys(
-    boundary,
-    boundary?.kind === 'git' ? ['kind', 'B', 'H', 'T', 'M'] : ['kind', 'postimageSha256'],
-    'durable boundary'
-  );
+  const keys =
+    boundary?.kind === 'git' ? ['kind', 'B', 'H', 'T', 'M'] : ['kind', 'postimageSha256'];
+  exactKeys(boundary, keys, 'durable boundary');
   if (boundary.kind === 'git') {
+    const shas = [boundary.B, boundary.H, boundary.T, boundary.M];
     must(
-      [boundary.B, boundary.H, boundary.T, boundary.M].every(value => SHA40.test(value)),
+      shas.every(value => SHA40.test(value)),
       'durable boundary mismatch'
     );
   } else {
@@ -150,45 +144,83 @@ function validateBoundary(boundary) {
 function validateDurable(record) {
   exactKeys(record, DURABLE_KEYS, 'durable record');
   const { operationSha256, ...state } = record;
-  must(
-    SHA256.test(operationSha256) && sha256(JSON.stringify(state)) === operationSha256,
-    'durable operation mismatch'
-  );
+  const operationValid =
+    SHA256.test(operationSha256) && sha256(JSON.stringify(state)) === operationSha256;
+  must(operationValid, 'durable operation mismatch');
   must(state.schemaVersion === 1 && state.programId === PROGRAM, 'durable schema mismatch');
   must(Number.isSafeInteger(state.revision) && state.revision > 0, 'durable revision mismatch');
   must(STATUSES.has(state.status) && typeof state.childId === 'string', 'durable state mismatch');
+  const terminalChild = !['closed', 'closeout_required'].includes(state.status);
+  must(terminalChild || state.childId === 'S4B-reviewer-policy', 'durable terminal state mismatch');
+  const authorized =
+    state.runtimeAuthorized === /^(active|prepared|installing)$/u.test(state.status);
+  must(authorized, 'durable authorization mismatch');
+  const blocked = state.successorsBlocked === FAILURE_STATUSES.has(state.status);
+  must(blocked, 'durable successor mismatch');
+  const artifacts = [state.envelopeSha256, state.approvalReceiptSha256];
   must(
-    !['closed', 'closeout_required'].includes(state.status) ||
-      state.childId === 'S4B-reviewer-policy',
-    'durable terminal state mismatch'
-  );
-  must(
-    state.runtimeAuthorized === /^(active|prepared|installing)$/u.test(state.status),
-    'durable authorization mismatch'
-  );
-  must(
-    state.successorsBlocked === FAILURE_STATUSES.has(state.status),
-    'durable successor mismatch'
-  );
-  must(
-    [state.envelopeSha256, state.approvalReceiptSha256].every(value => SHA256.test(value)),
+    artifacts.every(value => SHA256.test(value)),
     'durable artifact mismatch'
   );
-  must(
-    /^evidence\/[A-Za-z0-9-]+-[0-9a-f]{64}\.json$/u.test(state.evidenceRef),
-    'durable evidence mismatch'
-  );
-  must(
+  const evidenceRef = /^evidence\/[A-Za-z0-9-]+-[0-9a-f]{64}\.json$/u.test(state.evidenceRef);
+  must(evidenceRef, 'durable evidence mismatch');
+  const predecessor =
     state.revision === 1
       ? state.previousOperationSha256 === null
-      : SHA256.test(state.previousOperationSha256),
-    'durable predecessor mismatch'
-  );
+      : SHA256.test(state.previousOperationSha256);
+  must(predecessor, 'durable predecessor mismatch');
   validateBoundary(state.boundary);
 }
 
-function validateHistory(history, durable, children, projection) {
+function transitionEvent(previous, current, movement) {
+  if (IRREVERSIBLE_STATUSES.has(previous?.status)) return null;
+  const from = previous?.status ?? 'start';
+  if (current.status === 'incident' && movement === 0) return 'incident';
+  if (current.status === 'failed_consumed' && movement === 0) return 'failure_consumed';
+  if (current.status === 'rolled_back_consumed' && movement === 0) return 'rollback_consumed';
+  if (current.status === 'failed' && movement === 0) return 'failed';
+  if (from === 'incident' && current.status === 'active') return 'incident_recovered';
+  if (from === 'start' && current.status === 'active' && movement === 0)
+    return 'health_cleanup_pass';
+  if (from === 'active' && current.status === 'active' && movement === 0) return 'authority_rebind';
+  if (from === 'active' && current.status === 'prepared' && movement === 0) return 'prepared';
+  if (from === 'prepared' && current.status === 'installing' && movement === 0) return 'installing';
+  if (from === 'installing' && current.status === 'installed_consumed' && movement === 0)
+    return 'install_consumed';
+  if (from === 'active' && current.status === 'merged_consumed' && movement === 0)
+    return 'merge_consumed';
+  if (from === 'merged_consumed' && current.status === 'active')
+    return movement === 0 ? 'successor_projection_recovered' : 'health_cleanup_pass';
+  if (from === 'installed_consumed' && current.status === 'active' && movement === 1)
+    return 'health_cleanup_pass';
+  if (from === 'merged_consumed' && current.status === 'closeout_required' && movement === 0)
+    return 'health_cleanup_pass';
+  return from === 'closeout_required' && current.status === 'closed' && movement === 0
+    ? 'closeout'
+    : null;
+}
+
+function validateEvidence(evidence, current, previous, movement) {
+  exactKeys(evidence, EVIDENCE_KEYS, 'durable evidence');
+  const bound =
+    evidence.schemaVersion === 1 &&
+    evidence.programId === PROGRAM &&
+    evidence.revision === current.revision &&
+    evidence.toChild === current.childId &&
+    evidence.previousOperationSha256 === current.previousOperationSha256 &&
+    SHA256.test(evidence.proofSha256) &&
+    same(evidence.boundary, current.boundary);
+  must(bound, 'durable evidence binding mismatch');
+  const predecessor = !previous || evidence.fromChild === previous.childId;
+  must(predecessor, 'durable evidence predecessor mismatch');
+  const event = evidence.event === transitionEvent(previous, current, movement);
+  must(event, 'invalid authority transition');
+}
+
+function validateHistory(history, durable, children, projection, evidence) {
   must(Array.isArray(history) && history.length === durable.revision, 'durable history incomplete');
+  const completeEvidence = Array.isArray(evidence) && evidence.length === history.length;
+  must(completeEvidence, 'durable evidence incomplete');
   const childIndex = new Map(children.map((child, index) => [child.childId, index]));
   for (let index = 0; index < history.length; index += 1) {
     const current = history[index];
@@ -198,41 +230,37 @@ function validateHistory(history, durable, children, projection) {
     must(childIndex.has(current.childId), 'unlisted durable child');
     if (!previous) {
       must(current.childId === children[0].childId, 'durable history starts at wrong child');
+      validateEvidence(evidence[index], current, previous, 0);
       continue;
     }
-    must(
-      current.previousOperationSha256 === previous.operationSha256,
-      'durable history chain mismatch'
-    );
+    const chained = current.previousOperationSha256 === previous.operationSha256;
+    must(chained, 'durable history chain mismatch');
     const movement = childIndex.get(current.childId) - childIndex.get(previous.childId);
     must(movement === 0 || movement === 1, 'durable child sequence mismatch');
+    validateEvidence(evidence[index], current, previous, movement);
     if (movement === 1)
       must(same(current.boundary, previous.boundary), 'successor boundary mismatch');
     const artifactChanged =
       current.envelopeSha256 !== previous.envelopeSha256 ||
       current.approvalReceiptSha256 !== previous.approvalReceiptSha256;
-    if (artifactChanged) {
-      must(
-        movement === 0 &&
-          current.envelopeSha256 !== previous.envelopeSha256 &&
-          current.approvalReceiptSha256 !== previous.approvalReceiptSha256,
-        'invalid authority artifact rebind'
-      );
-    }
+    const completeRebind =
+      movement === 0 &&
+      current.envelopeSha256 !== previous.envelopeSha256 &&
+      current.approvalReceiptSha256 !== previous.approvalReceiptSha256;
+    if (artifactChanged) must(completeRebind, 'invalid authority artifact rebind');
   }
   must(same(history.at(-1), durable), 'durable current/history mismatch');
-  must(
+  const projected =
     durable.envelopeSha256 === projection.envelopeSha256 &&
-      durable.approvalReceiptSha256 === projection.approvalReceiptSha256,
-    'durable artifact mismatch'
-  );
+    durable.approvalReceiptSha256 === projection.approvalReceiptSha256;
+  must(projected, 'durable artifact mismatch');
 }
 
 export function deriveAuthorityContext(source) {
   validateProjectionArtifacts(source);
   const children = envelopeChildren(source.envelope);
   validateDurable(source.durable);
-  validateHistory(source.history, source.durable, children, source.projection);
+  validateHistory(source.history, source.durable, children, source.projection, source.evidence);
   const child = children.find(item => item.childId === source.durable.childId);
   const repository = /repository PR/u.test(child.controlPlane);
   if (repository)
