@@ -1,27 +1,10 @@
 {
   "schemaVersion": 1,
   "programId": "IDA-WF01-ONE-APPROVAL-DELIVERY",
-  "sourceMain": "0ea6f19f50f67a02f0ee00ace2aee51b86d0006e",
-  "projectedRevision": 20,
-  "projectedChild": "S3-exact-authority",
-  "projectedOperationSha256": "06ca0e82cf252cf1d49382f6cde847b00d0aa40f6fb50b8f377f11ace15e1add",
+  "envelopePath": "docs/plans/2026-08-21-ida-wf01-one-approval-delivery-envelope-v1.json",
   "envelopeSha256": "46eee3be937bb82f3bc0055f1a7bc697a08484498b197a1475bae33d760be8a6",
+  "approvalReceiptPath": "docs/plans/2026-08-21-ida-wf01-one-approval-delivery-approval-receipt-r1.json",
   "approvalReceiptSha256": "a6491e167ab12894d43e62ca279169cbcc4c0faf871ab116991a0eb7b4e37d03",
-  "writerPaths": [
-    "docs/plans/current-authority-v1.json",
-    "scripts/current-authority-state.mjs",
-    "scripts/current-authority-state-lib.mjs",
-    "scripts/current-authority-state.test.mjs",
-    "scripts/current-authority-format-audit.mjs",
-    "scripts/current-authority-format-audit.test.mjs",
-    "scripts/ci/exact-delivery-lib.mjs",
-    "scripts/ci/exact-delivery.mjs",
-    "scripts/ci/exact-delivery.test.mjs",
-    "docs/plans/current-program.md",
-    "docs/plans/current-tracker.md"
-  ],
-  "writerMapSha256": "554ef4301968a17a188f50eacc1c4cdebcaab12001e787063a8382883d7f4f50",
   "liveDispositionRequired": "open",
-  "repositoryConsumptionRule": "merged_closed_or_terminal_failure",
-  "successorAfterHealthCleanup": "S4A-terminal-delivery"
+  "repositoryConsumptionRule": "merged_closed_or_terminal_failure"
 }

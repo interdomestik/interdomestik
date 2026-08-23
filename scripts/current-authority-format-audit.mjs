@@ -2,7 +2,10 @@
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { validateProjection, validateProjectionDocuments } from './current-authority-state-lib.mjs';
+import {
+  validateProjectionArtifacts,
+  validateProjectionDocuments,
+} from './current-authority-state-lib.mjs';
 import { extractSection, parseTrackerDocument } from './plan-model.mjs';
 const PROGRAM = 'docs/plans/current-program.md';
 const TRACKER = 'docs/plans/current-tracker.md';
@@ -134,24 +137,18 @@ function validateCurrentProjection(
     errors.push(`${PROJECTION}: JSON is not canonical`);
   }
   try {
-    validateProjection(projection);
+    validateProjectionArtifacts({
+      projection,
+      envelope,
+      approvalReceipt: receipt,
+      artifactHashes: {
+        envelopeSha256: sha(envelopeBytes),
+        approvalReceiptSha256: sha(receiptBytes),
+      },
+    });
     validateProjectionDocuments(projection, program, tracker);
   } catch (error) {
     errors.push(`${PROJECTION}: ${error.message}`);
-  }
-  if (projection.envelopeSha256 !== sha(envelopeBytes)) {
-    errors.push(`${PROJECTION}: envelope SHA-256 mismatch`);
-  }
-  if (projection.approvalReceiptSha256 !== sha(receiptBytes)) {
-    errors.push(`${PROJECTION}: approval receipt SHA-256 mismatch`);
-  }
-  const children = envelope.approvalEnvelope?.children;
-  const matches = Array.isArray(children)
-    ? children.filter(child => child.childId === projection.projectedChild)
-    : [];
-  if (matches.length !== 1) errors.push(`${ENVELOPE}: expected one projected child`);
-  else if (JSON.stringify(matches[0].writerPaths) !== JSON.stringify(projection.writerPaths)) {
-    errors.push(`${PROJECTION}: writer paths differ from envelope`);
   }
 }
 function main() {

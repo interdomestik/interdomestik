@@ -1,11 +1,9 @@
-import { createHash } from 'node:crypto';
 import { isAbsolute } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import {
   alphabetical,
   CANONICAL_ORIGIN,
   normalizeOrigin,
-  validateProjection,
   writerMapDigest,
 } from '../current-authority-state-lib.mjs';
 
@@ -29,36 +27,11 @@ function exactKeys(value, keys, label) {
   );
 }
 
-function safeWriters(paths) {
-  must(
-    Array.isArray(paths) && paths.length > 0 && new Set(paths).size === paths.length,
-    'invalid writer paths'
-  );
-  must(
-    paths.every(
-      path =>
-        typeof path === 'string' &&
-        path.length > 0 &&
-        !path.startsWith('/') &&
-        !path.startsWith('../') &&
-        !path.includes('/../')
-    ),
-    'unsafe writer path'
-  );
-}
-
-export function writerDigest(paths) {
-  safeWriters(paths);
-  return createHash('sha256')
-    .update(JSON.stringify([...paths].sort(alphabetical)))
-    .digest('hex');
-}
-
 function verifyAuthority(facts, authority) {
   exactKeys(
     authority,
     [
-      'projection',
+      'context',
       'origin',
       'pullRequest',
       'worktree',
@@ -69,8 +42,27 @@ function verifyAuthority(facts, authority) {
     ],
     'delivery authority'
   );
-  validateProjection(authority.projection);
-  must(authority.projection.sourceMain === facts.base, 'projection base mismatch');
+  exactKeys(
+    authority.context,
+    [
+      'programId',
+      'childId',
+      'operationSha256',
+      'base',
+      'writerPaths',
+      'writerMapSha256',
+      'liveDispositionRequired',
+    ],
+    'authority context'
+  );
+  must(
+    authority.context.programId === 'IDA-WF01-ONE-APPROVAL-DELIVERY' &&
+      typeof authority.context.childId === 'string' &&
+      /^[a-f0-9]{64}$/u.test(authority.context.operationSha256) &&
+      authority.context.liveDispositionRequired === 'open',
+    'authority context mismatch'
+  );
+  must(authority.context.base === facts.base, 'authority context base mismatch');
   must(
     normalizeOrigin(authority.origin) === CANONICAL_ORIGIN &&
       normalizeOrigin(facts.origin) === normalizeOrigin(authority.origin),
@@ -80,10 +72,10 @@ function verifyAuthority(facts, authority) {
   must(same(facts.worktree, authority.worktree), 'live worktree identity mismatch');
   must(same(facts.commits, authority.commits), 'live commit identity mismatch');
   must(facts.protectedMain === authority.protectedMain, 'live protected main mismatch');
-  const projected = authority.projection.writerPaths;
+  const projected = authority.context.writerPaths;
   must(
-    writerMapDigest(projected) === authority.projection.writerMapSha256 &&
-      writerDigest(facts.writerPaths) === authority.projection.writerMapSha256 &&
+    writerMapDigest(projected) === authority.context.writerMapSha256 &&
+      writerMapDigest(facts.writerPaths) === authority.context.writerMapSha256 &&
       same([...facts.writerPaths].sort(alphabetical), [...projected].sort(alphabetical)),
     'approved writer map mismatch'
   );
@@ -260,7 +252,7 @@ export function verifyExactDelivery(facts, authority) {
   must(same(main.parents, [facts.base]), 'returned main parent mismatch');
   must(main.tree === tested.tree, 'returned main tree mismatch');
   must(facts.protectedMain === facts.returnedMain, 'protected main mismatch');
-  must(writerDigest(facts.writerPaths) === facts.writerMapSha256, 'writer map mismatch');
+  must(writerMapDigest(facts.writerPaths) === facts.writerMapSha256, 'writer map mismatch');
   must(facts.terminalDelivery === true, 'terminal delivery missing');
   must(facts.finalIntake === 'clean', 'final intake is not clean');
   must(Array.isArray(facts.lanes) && facts.lanes.length > 0, 'lane identity missing');

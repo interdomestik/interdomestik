@@ -16,18 +16,17 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`IDA-WF01-ONE-APPROVAL-DELIVERY` is the only active writer program. B0, B1, S1A, S1B, and S2 are
-terminal and consumed. Revision 20 activates only `S3-exact-authority` on protected
-`main@0ea6f19f50f67a02f0ee00ace2aee51b86d0006e`, operation SHA-256
-`06ca0e82cf252cf1d49382f6cde847b00d0aa40f6fb50b8f377f11ace15e1add`. The repository
-projection is [current-authority-v1.json](./current-authority-v1.json); durable authority plus live
-Git/GitHub identity remains the runtime source and fails closed on any mismatch.
+`IDA-WF01-ONE-APPROVAL-DELIVERY` is the only current writer program. The repository stores only a
+stable anchor in [current-authority-v1.json](./current-authority-v1.json). The active child, base,
+operation, and writer map are derived at runtime from that anchor, the content-addressed envelope
+and approval receipt, the complete durable authority-receipt chain, and live Git/GitHub/MCP
+identity. Missing, stale, skipped, or contradictory evidence fails closed; this prose never grants
+runtime authority.
 
-S3 binds the approved envelope, receipt, writer map, source base `B`, PR head `H`, tested merge
-`T`, returned protected main `M`, and every terminal CI lane to exact SHA/tree/run identity. Merge,
-close, or terminal failure consumes the semantic lease immediately even if ledger persistence
-lags. Only a green exact-main health and clean task-owned closeout may derive S4A; S4A, S4B, and
-every unrelated program remain blocked until then.
+Exact delivery binds source base `B`, PR head `H`, tested merge `T`, returned protected main `M`,
+required terminal lanes, final feedback intake, and the approved writer map. Merge, close, or a
+terminal failure consumes the semantic lease immediately even if durable persistence lags. A
+successor can be derived only after exact-main health and task-owned cleanup are green.
 
 The fixed sequence is B0 authority bootstrap, B1 CD guard, S1A skill authority, S1B routing
 standard, S2 MCP identity, S3 exact authority, S4A terminal delivery, S4B reviewer policy, then
@@ -47,9 +46,9 @@ schema, RLS, billing, provider deployment, E2E-semantic, AI OS, Docker, or unit-
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate                        | Dependencies             | Promotion constraint                                                                             |
-| -------: | -------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------ |
-|        1 | `IDA-WF01-ONE-APPROVAL-DELIVERY` | Exact S3 authority lease | Consume S3 only after exact B/H/T/M, terminal lanes, merge/main health, and cleanup prove green. |
+| Priority | Candidate                        | Dependencies             | Promotion constraint                                                                    |
+| -------: | -------------------------------- | ------------------------ | --------------------------------------------------------------------------------------- |
+|        1 | `IDA-WF01-ONE-APPROVAL-DELIVERY` | External authority chain | Resolve exactly one child from canonical artifacts, durable history, and live identity. |
 
 ## Selection Constraints
 
@@ -75,4 +74,4 @@ The architecture-finalization program/tracker, terminal OD17 evidence, and CI01 
 historical or separately governed. This projection neither rewrites nor activates them.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is exactly one canonical tracker program: `IDA-WF01-ONE-APPROVAL-DELIVERY` (Tier 3; `runtime_authorized:true`).
+The next active governed implementation goal is resolved only by the external authority chain for program: `IDA-WF01-ONE-APPROVAL-DELIVERY` (Tier 3; `runtime_authorized:external`).
