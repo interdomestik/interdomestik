@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-08-22
+last_reviewed: 2026-08-23
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -16,23 +16,23 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                               | Status        | Owner      | Work                         | Exit Criteria                                                                                                                                                                                         |
-| -------------------------------- | ------------- | ---------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `IDA-WF01-ONE-APPROVAL-DELIVERY` | `in_progress` | `platform` | Activate S1A skill authority | R4 governance repair merges healthy; replacement receipt/ledger bind the returned main; the exact S1A bundle swaps atomically, passes focused/full skill proof, consumes S1A, and activates only S1B. |
+| ID                               | Status        | Owner      | Work                                 | Exit Criteria                                                                                                                                             |
+| -------------------------------- | ------------- | ---------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `IDA-WF01-ONE-APPROVAL-DELIVERY` | `in_progress` | `platform` | S3 exact authority after S2 closeout | S2 recovery/live proof is green; this exact projection merges healthy; revisions 19/20 consume S2 and activate only S3; final resolver and cleanup agree. |
 
 ## Proof Ledger
 
-| ID                               | Source Refs                                                                                                                                    | Execution | Run ID | Run Root             | Sonar     | Docker           | Sentry           | Learning  | Evidence Refs                                                                                                                            |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------ | -------------------- | --------- | ---------------- | ---------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `IDA-WF01-ONE-APPROVAL-DELIVERY` | `docs/plans/2026-08-21-ida-wf-dg01-one-approval-delivery-protocol.md`; `docs/plans/2026-08-21-ida-wf01-one-approval-delivery-envelope-v1.json` | `manual`  | `S1A`  | `codex-control-host` | `pending` | `not_applicable` | `not_applicable` | `pending` | `docs/plans/2026-08-21-ida-wf01-one-approval-delivery-approval-receipt-r1.json`; durable `authority-v1.json`; exact S1A bundle manifests |
+| ID                               | Source Refs                                                                                                                                                                                                                       | Execution | Run ID  | Run Root             | Sonar            | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                             |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------- | -------------------- | ---------------- | ---------------- | ---------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `IDA-WF01-ONE-APPROVAL-DELIVERY` | Gate `d55c180e64659e12f22400e1e20adc08dfa1ea2821a997b6798370ea26f3b464`; admission `abd52f22a5b266144406714048b90ef615e7c17acb76c42a451f4ebeabd41d7b`; receipt `e3353f95e703d49d8d74e238acd551ebc4f11795a7b67c50699fa9387f04329b` | `manual`  | `S2-R2` | `codex-control-host` | `not_applicable` | `not_applicable` | `not_applicable` | `pass`   | Live MCP proof `de3ef039658c40a064829b6adf607076532b16e4e7a6bef9d640636d3b0e21ff`; durable `authority-v1.json`; exact projection PR/main/cleanup evidence |
 
 ## Next Selection
 
-B0 and B1 are terminal. The exact R4 human event authorizes only the cumulative heading-inheritance
-and validator-reachability repair and unchanged S1A outcome. After exact R4 main health and durable
-identity rebinding,
-`runtime_authorized:true`, `activeSlice:S1A-skill-authority`; every later child remains sequential,
-single-use, and fail-closed. No unrelated slice, PR, or historical program is promoted.
+B0, B1, S1A, and S1B are terminal and consumed. Revision 18 recovered only S2, and its fresh
+transport plus complete worktree-identity proof is green. This exact projection is the S2 closeout
+record; its exact merge, protected-main health, and task-owned cleanup are consumed by revisions
+19/20, which close S2 and make `S3-exact-authority` the sole active child. Until those append-only
+transitions are present, S3, S4, and all unrelated work remain blocked and fail closed.
 
 <!-- prettier-ignore -->
 The next active governed implementation goal is exactly one canonical tracker program: `IDA-WF01-ONE-APPROVAL-DELIVERY` (Tier 3; `runtime_authorized:true`).
