@@ -62,8 +62,7 @@ function safePaths(paths) {
     typeof path === 'string' &&
     path.length > 0 &&
     !path.startsWith('/') &&
-    !path.startsWith('../') &&
-    !path.includes('/../');
+    !/(^|\/)\.{1,2}(\/|$)|\/{2,}/u.test(path);
   must(paths.every(safe), 'unsafe writer path');
 }
 
@@ -204,6 +203,7 @@ function transitionEvent(previous, current, movement) {
 
 function validateEvidence(evidence, current, previous, movement) {
   exactKeys(evidence, EVIDENCE_KEYS, 'durable evidence');
+  validateBoundary(evidence.boundary);
   const bound =
     evidence.schemaVersion === 1 &&
     evidence.programId === PROGRAM &&
@@ -211,12 +211,12 @@ function validateEvidence(evidence, current, previous, movement) {
     evidence.toChild === current.childId &&
     evidence.previousOperationSha256 === current.previousOperationSha256 &&
     SHA256.test(evidence.proofSha256) &&
-    same(evidence.boundary, current.boundary);
+    sameBoundary(evidence.boundary, current.boundary);
   must(bound, 'durable evidence binding mismatch');
   const predecessor = !previous || evidence.fromChild === previous.childId;
   must(predecessor, 'durable evidence predecessor mismatch');
-  const event = evidence.event === transitionEvent(previous, current, movement);
-  must(event, 'invalid authority transition');
+  const expectedEvent = transitionEvent(previous, current, movement);
+  must(expectedEvent !== null && evidence.event === expectedEvent, 'invalid authority transition');
 }
 
 function validateHistory(history, durable, children, projection, evidence) {

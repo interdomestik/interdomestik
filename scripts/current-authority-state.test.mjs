@@ -13,7 +13,6 @@ import {
   writerMapDigest,
 } from './current-authority-state-lib.mjs';
 import { readDurableAuthority, resolveCurrentAuthority } from './current-authority-state.mjs';
-
 const cli = new URL('./current-authority-state.mjs', import.meta.url).pathname;
 const PROGRAM = 'IDA-WF01-ONE-APPROVAL-DELIVERY';
 const B = '0'.repeat(40);
@@ -89,13 +88,15 @@ function evidence(history) {
   return history.map((current, index) => {
     const previous = history[index - 1];
     const movement = previous && previous.childId !== current.childId;
-    const event = !previous
-      ? 'health_cleanup_pass'
-      : current.status === 'merged_consumed'
-        ? 'merge_consumed'
-        : movement
-          ? 'health_cleanup_pass'
-          : 'successor_projection_recovered';
+    const event = /^(failed|rolled_back|closed)/u.test(previous?.status ?? '')
+      ? null
+      : !previous
+        ? 'health_cleanup_pass'
+        : current.status === 'merged_consumed'
+          ? 'merge_consumed'
+          : movement
+            ? 'health_cleanup_pass'
+            : 'successor_projection_recovered';
     return {
       schemaVersion: 1,
       programId: PROGRAM,
@@ -103,7 +104,7 @@ function evidence(history) {
       event,
       fromChild: previous?.childId ?? 'B0-authority-bootstrap',
       toChild: current.childId,
-      boundary: current.boundary,
+      boundary: Object.fromEntries(Object.entries(current.boundary).reverse()),
       previousOperationSha256: current.previousOperationSha256,
       proofSha256: 'f'.repeat(64),
     };
@@ -194,8 +195,7 @@ test('derives the exact current S3 repair writer map from the envelope and full 
   assert.equal(resolveCurrentAuthority(source).runtimeAuthorized, true);
 });
 test('accepts only the sequential S4A child with its own writer map', () => {
-  const source = input(s4aHistory());
-  const result = resolveCurrentAuthority(source);
+  const result = resolveCurrentAuthority(input(s4aHistory()));
   assert.deepEqual([result.activeSlice, result.writerPaths], ['S4A-terminal-delivery', S4A]);
 });
 test('missing, broken, skipped, or unlisted history fails closed', () => {
@@ -212,7 +212,7 @@ test('missing, broken, skipped, or unlisted history fails closed', () => {
     assert.equal(resolveCurrentAuthority(source).reason, 'invalid_authority_projection');
   }
 });
-test('an irreversible failure cannot reactivate its child', () => {
+test('a crafted null event cannot reactivate after irreversible failure', () => {
   const active = record(1, 'active', 'S3-exact-authority');
   const failed = record(2, 'failed_consumed', 'S3-exact-authority', active);
   const reopened = record(3, 'active', 'S3-exact-authority', failed);
@@ -263,6 +263,7 @@ test('merge and terminal failure consume live authority immediately', () => {
 });
 test('the stable anchor rejects legacy static lease fields', () => {
   assert.throws(() => validateProjection(projection({ projectedRevision: 20 })), /keys/i);
+  assert.throws(() => writerMapDigest(['scripts/../outside.mjs']), /unsafe writer path/i);
 });
 test('program and tracker carry one identical external-authority marker', () => {
   const marker =
@@ -290,11 +291,8 @@ test('CLI requires the complete history and resolves the exact active lease', ()
   const active = spawnSync(process.execPath, [cli, ...args], { encoding: 'utf8' });
   assert.equal(active.status, 0, active.stderr);
   assert.equal(JSON.parse(active.stdout).activeSlice, 'S3-exact-authority');
-  const noHistory = spawnSync(
-    process.execPath,
-    [cli, ...args.filter(arg => !arg.startsWith('--history='))],
-    { encoding: 'utf8' }
-  );
+  const incomplete = args.filter(arg => !arg.startsWith('--history='));
+  const noHistory = spawnSync(process.execPath, [cli, ...incomplete], { encoding: 'utf8' });
   assert.equal(noHistory.status, 1);
   assert.match(noHistory.stderr, /missing --history/i);
 });
