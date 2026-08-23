@@ -2,6 +2,7 @@
 
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resolveQaControlRuntime } from './qa-mcp-control-runtime.mjs';
@@ -9,6 +10,7 @@ import { resolveQaControlRuntime } from './qa-mcp-control-runtime.mjs';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, '..');
 const requiredCodexServers = ['openai_docs', 'context7', 'playwright', 'interdomestik_qa'];
+const requiredUserCodexServers = ['interdomestik_qa'];
 const requiredRepoQaTools = [
   'project_map',
   'read_files',
@@ -33,6 +35,25 @@ function fail(message) {
     'If the running session still cannot see the interdomestik_qa callable tools, treat the MCP as blocked before using shell fallbacks.'
   );
   process.exit(1);
+}
+
+function createRegistrationInspectionCwd() {
+  const tempRoot = fs.realpathSync(os.tmpdir());
+  let ancestor = tempRoot;
+
+  while (true) {
+    if (
+      fs.existsSync(path.join(ancestor, '.git')) ||
+      fs.existsSync(path.join(ancestor, '.codex'))
+    ) {
+      fail('temporary root inherits a project configuration boundary.');
+    }
+    const parent = path.dirname(ancestor);
+    if (parent === ancestor) break;
+    ancestor = parent;
+  }
+
+  return fs.mkdtempSync(path.join(tempRoot, 'codex-mcp-preflight-'));
 }
 
 function runProcess(command, args, options = {}) {
@@ -80,9 +101,11 @@ function runProcess(command, args, options = {}) {
   });
 }
 
-async function readCodexMcpServers() {
+async function readCodexMcpServers(cwd) {
   try {
-    const { stdout } = await runProcess('codex', ['mcp', 'list', '--json']);
+    const { stdout } = await runProcess('codex', ['mcp', 'list', '--json'], {
+      cwd,
+    });
     const servers = JSON.parse(stdout);
     if (!Array.isArray(servers)) {
       fail('codex mcp list --json did not return an array.');
@@ -103,9 +126,11 @@ async function readCodexMcpServers() {
   }
 }
 
-async function readCodexMcpServer(serverName) {
+async function readCodexMcpServer(serverName, cwd) {
   try {
-    const { stdout } = await runProcess('codex', ['mcp', 'get', serverName, '--json']);
+    const { stdout } = await runProcess('codex', ['mcp', 'get', serverName, '--json'], {
+      cwd,
+    });
     return JSON.parse(stdout);
   } catch {
     fail(`codex mcp get ${serverName} --json failed.`);
@@ -132,20 +157,20 @@ function verifyConfigToml() {
   }
 }
 
-function verifyRequiredCodexCliServers(servers) {
+function verifyEnabledCodexServers(servers, requiredServers, scope) {
   if (!Array.isArray(servers)) {
     fail('Codex MCP server list must be an array.');
   }
 
   const byName = new Map(servers.map(server => [server.name, server]));
 
-  for (const serverName of requiredCodexServers) {
+  for (const serverName of requiredServers) {
     const server = byName.get(serverName);
     if (!server) {
-      fail(`codex mcp list --json does not include ${serverName}`);
+      fail(`${scope} codex mcp list --json does not include ${serverName}`);
     }
     if (server.enabled !== true) {
-      fail(`Codex MCP server ${serverName} is not enabled.`);
+      fail(`${scope} Codex MCP server ${serverName} is not enabled.`);
     }
   }
 
@@ -161,7 +186,11 @@ function verifyRepoQaTransport(qaServer) {
   }
   const qaArgs = qaServer.transport?.args ?? [];
   const expectedAbsoluteLauncher = path.join(controlRuntime.root, 'scripts/start-repo-qa.sh');
-  if (!qaArgs.includes(expectedAbsoluteLauncher)) {
+  const expectedRelativeLauncher = 'scripts/start-repo-qa.sh';
+  if (
+    qaArgs.length !== 1 ||
+    (qaArgs[0] !== expectedAbsoluteLauncher && qaArgs[0] !== expectedRelativeLauncher)
+  ) {
     fail('interdomestik_qa must use scripts/start-repo-qa.sh in Codex MCP registration.');
   }
 
@@ -183,8 +212,14 @@ function verifyRepoQaEnabledTools(qaServerDetails) {
   }
 }
 
-function verifyCodexCliServers(servers, qaServerDetails) {
-  const byName = verifyRequiredCodexCliServers(servers);
+function verifyUserCodexRegistration(servers, qaServerDetails) {
+  const byName = verifyEnabledCodexServers(servers, requiredUserCodexServers, 'user');
+  verifyRepoQaTransport(byName.get('interdomestik_qa'));
+  verifyRepoQaEnabledTools(qaServerDetails);
+}
+
+function verifyProjectCodexRegistrations(servers, qaServerDetails) {
+  const byName = verifyEnabledCodexServers(servers, requiredCodexServers, 'project');
   verifyRepoQaTransport(byName.get('interdomestik_qa'));
   verifyRepoQaEnabledTools(qaServerDetails);
 }
@@ -205,9 +240,23 @@ async function verifyRepoQaLiveTools() {
 
 async function main() {
   verifyConfigToml();
-  const codexServers = await readCodexMcpServers();
-  const repoQaServer = await readCodexMcpServer('interdomestik_qa');
-  verifyCodexCliServers(codexServers, repoQaServer);
+  const registrationInspectionCwd = createRegistrationInspectionCwd();
+  const cleanupRegistrationInspectionCwd = () =>
+    fs.rmSync(registrationInspectionCwd, { force: true, recursive: true });
+  process.once('exit', cleanupRegistrationInspectionCwd);
+
+  try {
+    const userCodexServers = await readCodexMcpServers(registrationInspectionCwd);
+    const repoQaServer = await readCodexMcpServer('interdomestik_qa', registrationInspectionCwd);
+    verifyUserCodexRegistration(userCodexServers, repoQaServer);
+  } finally {
+    process.off('exit', cleanupRegistrationInspectionCwd);
+    cleanupRegistrationInspectionCwd();
+  }
+
+  const projectCodexServers = await readCodexMcpServers(rootDir);
+  const projectRepoQaServer = await readCodexMcpServer('interdomestik_qa', rootDir);
+  verifyProjectCodexRegistrations(projectCodexServers, projectRepoQaServer);
   await verifyRepoQaLiveTools();
 
   console.log('Codex MCP preflight passed.');
