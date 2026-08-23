@@ -175,30 +175,31 @@ function validateDurable(record) {
 
 function transitionEvent(previous, current, movement) {
   if (IRREVERSIBLE_STATUSES.has(previous?.status)) return null;
+  const terminal = {
+    incident: 'incident',
+    failed_consumed: 'failure_consumed',
+    rolled_back_consumed: 'rollback_consumed',
+    failed: 'failed',
+  }[current.status];
+  if (movement === 0 && terminal) return terminal;
   const from = previous?.status ?? 'start';
-  if (current.status === 'incident' && movement === 0) return 'incident';
-  if (current.status === 'failed_consumed' && movement === 0) return 'failure_consumed';
-  if (current.status === 'rolled_back_consumed' && movement === 0) return 'rollback_consumed';
-  if (current.status === 'failed' && movement === 0) return 'failed';
-  if (from === 'incident' && current.status === 'active') return 'incident_recovered';
-  if (from === 'start' && current.status === 'active' && movement === 0)
-    return 'health_cleanup_pass';
-  if (from === 'active' && current.status === 'active' && movement === 0) return 'authority_rebind';
-  if (from === 'active' && current.status === 'prepared' && movement === 0) return 'prepared';
-  if (from === 'prepared' && current.status === 'installing' && movement === 0) return 'installing';
-  if (from === 'installing' && current.status === 'installed_consumed' && movement === 0)
-    return 'install_consumed';
-  if (from === 'active' && current.status === 'merged_consumed' && movement === 0)
-    return 'merge_consumed';
-  if (from === 'merged_consumed' && current.status === 'active')
-    return movement === 0 ? 'successor_projection_recovered' : 'health_cleanup_pass';
-  if (from === 'installed_consumed' && current.status === 'active' && movement === 1)
-    return 'health_cleanup_pass';
-  if (from === 'merged_consumed' && current.status === 'closeout_required' && movement === 0)
-    return 'health_cleanup_pass';
-  return from === 'closeout_required' && current.status === 'closed' && movement === 0
-    ? 'closeout'
-    : null;
+  return (
+    {
+      'start:active:0': 'health_cleanup_pass',
+      'incident:active:0': 'incident_recovered',
+      'incident:active:1': 'incident_recovered',
+      'active:active:0': 'authority_rebind',
+      'active:prepared:0': 'prepared',
+      'prepared:installing:0': 'installing',
+      'installing:installed_consumed:0': 'install_consumed',
+      'active:merged_consumed:0': 'merge_consumed',
+      'merged_consumed:active:0': 'successor_projection_recovered',
+      'merged_consumed:active:1': 'health_cleanup_pass',
+      'installed_consumed:active:1': 'health_cleanup_pass',
+      'merged_consumed:closeout_required:0': 'health_cleanup_pass',
+      'closeout_required:closed:0': 'closeout',
+    }[`${from}:${current.status}:${movement}`] ?? null
+  );
 }
 
 function validateEvidence(evidence, current, previous, movement) {
