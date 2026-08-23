@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { spawn, spawnSync } from 'node:child_process';
-import fs from 'node:fs';
 import path from 'node:path';
+import { resolveQaControlRuntime } from './qa-mcp-control-runtime.mjs';
 
 const enabledTools =
   'project_map,read_files,read_file_range,code_search,git_status_compact,git_branch_info,changed_files,scope_audit,check_health,pr_verify,security_guard,e2e_gate';
@@ -18,30 +18,20 @@ function gitOutput(args) {
   return result.stdout.trim();
 }
 
-function commonGitRoot() {
-  const gitDir = gitOutput(['rev-parse', '--path-format=absolute', '--git-common-dir']);
-  return gitDir?.endsWith(`${path.sep}.git`) ? path.dirname(gitDir) : null;
-}
-
 const repoRoot = gitOutput(['rev-parse', '--show-toplevel']) || process.cwd();
 
-function dependencyRoot(repoRoot) {
-  for (const candidate of [repoRoot, commonGitRoot()].filter(Boolean)) {
-    if (fs.existsSync(path.join(candidate, 'node_modules/.bin/tsx'))) return candidate;
-  }
-  throw new Error('Cannot find node_modules/.bin/tsx in this worktree or common git root');
-}
-
 function startServer() {
-  const runtimeRoot = dependencyRoot(repoRoot);
-  const tsx = path.join(runtimeRoot, 'node_modules/.bin/tsx');
-  const entry = path.join(runtimeRoot, 'packages/qa/src/index.ts');
+  const runtime = resolveQaControlRuntime();
+  const tsx = path.join(runtime.dependencyRoot, 'node_modules/.bin/tsx');
+  const entry = path.join(runtime.root, 'packages/qa/src/index.ts');
   return spawn(tsx, [entry], {
     cwd: repoRoot,
     env: {
       ...process.env,
       MCP_ENABLED_TOOLS: enabledTools,
-      MCP_REPO_ROOT: repoRoot,
+      MCP_REPO_ROOT: runtime.root,
+      MCP_SERVER_SOURCE_HEAD: runtime.head,
+      MCP_SERVER_SOURCE_ROOT: runtime.root,
       MCP_SERVER_NAME: 'interdomestik_qa',
     },
     stdio: ['pipe', 'pipe', 'pipe'],

@@ -37,17 +37,21 @@ import {
 } from './tools/tests.js';
 import { queryDb } from './tools/db.js';
 import { getPaddleResource } from './tools/paddle.js';
-import { resolveToolRepoRoot } from './utils/tool-repo-root.js';
+import { resolveToolRepoRoot, unresolvedToolRepoContext } from './utils/tool-repo-root.js';
 
 type Handler = (args: any) => Promise<any>;
 type RepoAudit = (repoRoot: string) => Promise<any>;
+
+function mergeStructuredContent(result: any, context: ReturnType<typeof resolveToolRepoRoot>) {
+  return result.structuredContent ? { ...result.structuredContent, ...context } : context;
+}
 
 async function runRepoAudit(args: any, audit: RepoAudit) {
   const context = resolveToolRepoRoot(args);
   const result = await audit(context.repoRoot);
   return {
     ...result,
-    structuredContent: { ...result.structuredContent, ...context },
+    structuredContent: mergeStructuredContent(result, context),
   };
 }
 
@@ -90,19 +94,31 @@ const handlers: Record<string, Handler> = {
 };
 
 export async function handleToolCall(name: string, args: any) {
-  const handler = handlers[name];
-  if (!handler) {
-    throw new Error(`Tool ${name} not found`);
-  }
+  let context:
+    ReturnType<typeof resolveToolRepoRoot> | ReturnType<typeof unresolvedToolRepoContext> =
+    unresolvedToolRepoContext();
   try {
-    return await handler(args ?? {});
-  } catch (error: any) {
-    let context = {};
-    try {
-      context = resolveToolRepoRoot(args ?? {});
-    } catch {
-      // Invalid or absent roots cannot be attested in the error result.
+    context = resolveToolRepoRoot(args ?? {});
+    const handler = handlers[name];
+    if (!handler) {
+      throw new Error(`Tool ${name} not found`);
     }
+    const result = await handler(args ?? {});
+    const after = resolveToolRepoRoot(args ?? {});
+    if (
+      after.serverSourceHead !== context.serverSourceHead ||
+      after.serverSourceRoot !== context.serverSourceRoot ||
+      after.targetHead !== context.targetHead ||
+      after.targetBranch !== context.targetBranch ||
+      after.targetRepoRoot !== context.targetRepoRoot
+    ) {
+      throw new Error('MCP source or target identity changed during the tool call');
+    }
+    return {
+      ...result,
+      structuredContent: mergeStructuredContent(result, context),
+    };
+  } catch (error: any) {
     return {
       content: [{ type: 'text', text: error?.message || 'Repo-bound tool failed' }],
       isError: true,

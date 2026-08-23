@@ -4,6 +4,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveQaControlRuntime } from './qa-mcp-control-runtime.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, '..');
@@ -22,25 +23,16 @@ const requiredRepoQaTools = [
   'security_guard',
   'e2e_gate',
 ];
+const controlRuntime = resolveQaControlRuntime();
 
-function fail(message, details) {
+function fail(message) {
   console.error(`Codex MCP preflight failed: ${message}`);
-  if (details) {
-    console.error(details);
-  }
   console.error('');
   console.error('Recovery: restart Codex from this repository root and re-run pnpm mcp:preflight.');
   console.error(
     'If the running session still cannot see the interdomestik_qa callable tools, treat the MCP as blocked before using shell fallbacks.'
   );
   process.exit(1);
-}
-
-function formatError(error) {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return String(error);
 }
 
 function runProcess(command, args, options = {}) {
@@ -93,15 +85,12 @@ async function readCodexMcpServers() {
     const { stdout } = await runProcess('codex', ['mcp', 'list', '--json']);
     const servers = JSON.parse(stdout);
     if (!Array.isArray(servers)) {
-      fail('codex mcp list --json did not return an array.', JSON.stringify(servers, null, 2));
+      fail('codex mcp list --json did not return an array.');
     }
 
     for (const server of servers) {
       if (!server || typeof server.name !== 'string') {
-        fail(
-          'codex mcp list --json returned a server entry without a string name.',
-          JSON.stringify(server, null, 2)
-        );
+        fail('codex mcp list --json returned a server entry without a string name.');
       }
     }
 
@@ -110,7 +99,7 @@ async function readCodexMcpServers() {
     if (error?.code === 'ENOENT') {
       fail('codex CLI is not available on PATH.');
     }
-    fail('codex mcp list --json did not return the configured server surface.', formatError(error));
+    fail('codex mcp list --json did not return the configured server surface.');
   }
 }
 
@@ -118,8 +107,8 @@ async function readCodexMcpServer(serverName) {
   try {
     const { stdout } = await runProcess('codex', ['mcp', 'get', serverName, '--json']);
     return JSON.parse(stdout);
-  } catch (error) {
-    fail(`codex mcp get ${serverName} --json failed.`, formatError(error));
+  } catch {
+    fail(`codex mcp get ${serverName} --json failed.`);
   }
 }
 
@@ -136,10 +125,6 @@ function verifyConfigToml() {
     }
   }
 
-  // Replaced with absolute path as requested by Arben.
-
-  // Replaced with absolute path as requested by Arben.
-
   for (const toolName of requiredRepoQaTools) {
     if (!configToml.includes(toolName)) {
       fail(`interdomestik_qa MCP_ENABLED_TOOLS must include ${toolName}`);
@@ -149,7 +134,7 @@ function verifyConfigToml() {
 
 function verifyRequiredCodexCliServers(servers) {
   if (!Array.isArray(servers)) {
-    fail('Codex MCP server list must be an array.', JSON.stringify(servers, null, 2));
+    fail('Codex MCP server list must be an array.');
   }
 
   const byName = new Map(servers.map(server => [server.name, server]));
@@ -160,7 +145,7 @@ function verifyRequiredCodexCliServers(servers) {
       fail(`codex mcp list --json does not include ${serverName}`);
     }
     if (server.enabled !== true) {
-      fail(`Codex MCP server ${serverName} is not enabled.`, JSON.stringify(server, null, 2));
+      fail(`Codex MCP server ${serverName} is not enabled.`);
     }
   }
 
@@ -169,45 +154,31 @@ function verifyRequiredCodexCliServers(servers) {
 
 function verifyRepoQaTransport(qaServer) {
   if (qaServer.transport?.type !== 'stdio') {
-    fail('interdomestik_qa must be a stdio MCP server.', JSON.stringify(qaServer, null, 2));
+    fail('interdomestik_qa must be a stdio MCP server.');
   }
   if (qaServer.transport?.command !== '/bin/bash') {
-    fail('interdomestik_qa must launch with /bin/bash.', JSON.stringify(qaServer, null, 2));
+    fail('interdomestik_qa must launch with /bin/bash.');
   }
   const qaArgs = qaServer.transport?.args ?? [];
-  const expectedRelativeLauncher = 'scripts/start-repo-qa.sh';
-  const expectedAbsoluteLauncher = path.join(rootDir, expectedRelativeLauncher);
-  if (!qaArgs.includes(expectedRelativeLauncher) && !qaArgs.includes(expectedAbsoluteLauncher)) {
-    fail(
-      'interdomestik_qa must use scripts/start-repo-qa.sh in Codex MCP registration.',
-      JSON.stringify(qaServer, null, 2)
-    );
+  const expectedAbsoluteLauncher = path.join(controlRuntime.root, 'scripts/start-repo-qa.sh');
+  if (!qaArgs.includes(expectedAbsoluteLauncher)) {
+    fail('interdomestik_qa must use scripts/start-repo-qa.sh in Codex MCP registration.');
   }
 
-  // Allow absolute path in config since local setup uses it
   const qaCwd = qaServer.transport?.cwd;
-  if (qaCwd !== undefined && qaCwd !== '.' && qaCwd !== rootDir) {
-    fail(
-      `interdomestik_qa cwd must be portable "." or this repo root: ${rootDir}`,
-      JSON.stringify(qaServer, null, 2)
-    );
+  if (qaCwd !== controlRuntime.root) {
+    fail('interdomestik_qa cwd must equal the attested control root.');
   }
 }
 
 function verifyRepoQaEnabledTools(qaServerDetails) {
   if (typeof qaServerDetails.transport?.env?.MCP_ENABLED_TOOLS !== 'string') {
-    fail(
-      'interdomestik_qa must expose an MCP_ENABLED_TOOLS allowlist.',
-      JSON.stringify(qaServerDetails, null, 2)
-    );
+    fail('interdomestik_qa must expose an MCP_ENABLED_TOOLS allowlist.');
   }
 
   for (const toolName of requiredRepoQaTools) {
     if (!qaServerDetails.transport.env.MCP_ENABLED_TOOLS.includes(toolName)) {
-      fail(
-        `interdomestik_qa MCP_ENABLED_TOOLS must include ${toolName}.`,
-        JSON.stringify(qaServerDetails, null, 2)
-      );
+      fail(`interdomestik_qa MCP_ENABLED_TOOLS must include ${toolName}.`);
     }
   }
 }
@@ -227,8 +198,8 @@ async function verifyRepoQaLiveTools() {
         timeoutMs: 30000,
       }
     );
-  } catch (error) {
-    fail('live interdomestik_qa tools/list discovery contract failed.', formatError(error));
+  } catch {
+    fail('live interdomestik_qa tools/list discovery contract failed.');
   }
 }
 
@@ -249,6 +220,6 @@ async function main() {
 
 try {
   await main();
-} catch (error) {
-  fail('unexpected preflight error.', formatError(error));
+} catch {
+  fail('unexpected preflight error.');
 }

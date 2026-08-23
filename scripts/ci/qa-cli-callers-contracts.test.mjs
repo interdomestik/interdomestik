@@ -5,12 +5,18 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const controlTestEnv = {
+  ...process.env,
+  INTERDOMESTIK_QA_CONTROL_ROOT: rootDir,
+  INTERDOMESTIK_QA_CONTROL_TEST_MODE: '1',
+  NODE_ENV: 'test',
+};
 
 function runTypeScript(source) {
   return execFileSync(
     process.execPath,
     ['--import', 'tsx', '--input-type=module', '--eval', source],
-    { cwd: rootDir, encoding: 'utf8' }
+    { cwd: rootDir, encoding: 'utf8', env: controlTestEnv }
   ).trim();
 }
 
@@ -47,6 +53,10 @@ test('unknown suites retain validated worktree provenance', () => {
   assert.equal(result.isError, true);
   assert.equal(result.structuredContent.repoRoot, fs.realpathSync.native(rootDir));
   assert.equal(result.structuredContent.repoRootSource, 'tool-argument');
+  assert.equal(result.structuredContent.serverSourceRoot, fs.realpathSync.native(rootDir));
+  assert.equal(result.structuredContent.targetRepoRoot, fs.realpathSync.native(rootDir));
+  assert.match(result.structuredContent.serverSourceHead, /^[a-f0-9]{40}$/);
+  assert.equal(result.structuredContent.targetHead, result.structuredContent.serverSourceHead);
   assert.equal(result.structuredContent.status, 'fail');
 });
 
@@ -67,16 +77,21 @@ test('QA CLI injects repoRoot and fails on JSON-RPC or tool errors', () => {
 test('canonical MCP CLI injects its worktree root and rejects hidden tools', () => {
   const success = spawnSync(
     process.execPath,
-    ['scripts/mcp-tool.mjs', 'call', 'git_status_compact', '{}', '--text'],
-    { cwd: rootDir, encoding: 'utf8', timeout: 30000 }
+    ['scripts/mcp-tool.mjs', 'call', 'git_status_compact', '{}'],
+    { cwd: rootDir, encoding: 'utf8', env: controlTestEnv, timeout: 30000 }
   );
   assert.equal(success.status, 0, success.stderr);
   assert.doesNotMatch(success.stdout, /repoRoot is required/);
+  const identity = JSON.parse(success.stdout).structuredContent;
+  assert.equal(identity.serverSourceRoot, fs.realpathSync.native(rootDir));
+  assert.equal(identity.targetRepoRoot, fs.realpathSync.native(rootDir));
+  assert.match(identity.serverSourceHead, /^[a-f0-9]{40}$/);
+  assert.equal(identity.targetHead, identity.serverSourceHead);
 
   const hidden = spawnSync(
     process.execPath,
     ['scripts/mcp-tool.mjs', 'call', 'audit_supabase', '{}', '--text'],
-    { cwd: rootDir, encoding: 'utf8', timeout: 30000 }
+    { cwd: rootDir, encoding: 'utf8', env: controlTestEnv, timeout: 30000 }
   );
   assert.notEqual(hidden.status, 0);
   assert.match(hidden.stderr, /not enabled on this MCP surface/);
@@ -94,6 +109,42 @@ test('read_files reports nonexistent targets as failures', () => {
   assert.equal(result.isError, true);
   assert.equal(result.structuredContent.failures, 1);
   assert.equal(result.structuredContent.status, 'error');
+});
+
+test('unknown tool errors retain the selected source and target identities', () => {
+  const result = JSON.parse(
+    runTypeScript(`
+      import { handleToolCall } from './packages/qa/src/tool-router.ts';
+      console.log(JSON.stringify(await handleToolCall('__unknown_tool__', {
+        repoRoot: ${JSON.stringify(rootDir)}
+      })));
+    `)
+  );
+  assert.equal(result.isError, true);
+  assert.match(result.content[0].text, /Tool __unknown_tool__ not found/);
+  assert.equal(result.structuredContent.serverSourceRoot, fs.realpathSync.native(rootDir));
+  assert.equal(result.structuredContent.targetRepoRoot, fs.realpathSync.native(rootDir));
+  assert.equal(result.structuredContent.targetHead, result.structuredContent.serverSourceHead);
+});
+
+test('source attestation failures remain structured with observed identity', () => {
+  const result = JSON.parse(
+    runTypeScript(`
+      process.env.MCP_SERVER_NAME = 'interdomestik_qa';
+      process.env.MCP_SERVER_SOURCE_HEAD = '0'.repeat(40);
+      const { handleToolCall } = await import('./packages/qa/src/tool-router.ts');
+      console.log(JSON.stringify(await handleToolCall('git_status_compact', {
+        repoRoot: ${JSON.stringify(rootDir)}
+      })));
+    `)
+  );
+  assert.equal(result.isError, true);
+  assert.match(result.content[0].text, /launcher attestation/);
+  assert.equal(result.structuredContent.serverSourceRoot, fs.realpathSync.native(rootDir));
+  assert.match(result.structuredContent.serverSourceHead, /^[a-f0-9]{40}$/);
+  assert.equal(result.structuredContent.targetRepoRoot, null);
+  assert.equal(result.structuredContent.targetHead, null);
+  assert.equal(result.structuredContent.targetBranch, null);
 });
 
 test('repo file tools reject non-string paths with structured failures', () => {
