@@ -25,6 +25,7 @@ concurrency:
 
 jobs:
   delivery-gate:
+    if: github.event.pull_request.base.ref == 'main'
     permissions:
       actions: read
       checks: read

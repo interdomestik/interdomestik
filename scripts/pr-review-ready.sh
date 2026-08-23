@@ -144,11 +144,14 @@ run_boundary_check() {
   fi
 }
 
-jq -e '
+if ! jq -e '
   .schemaVersion == 1
   and .deliveryContext.context == "delivery-gate"
   and ([.finalizerLeafPrerequisites[].context] | index("delivery-gate") | not)
-' "${PR_DELIVERY_CONTRACT}" >/dev/null
+' "${PR_DELIVERY_CONTRACT}" >/dev/null; then
+  echo "pr-review-ready failed: invalid delivery contract" >&2
+  exit 1
+fi
 GITHUB_EVENT_PATH="" bash scripts/pr-finalizer.sh
 run_boundary_check
 node scripts/github-pr-governance-report.mjs --strict ${pr_number:+"${pr_number}"}

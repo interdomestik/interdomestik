@@ -64,10 +64,10 @@ class GitHubClient {
     const response = await this.fetch(url, {
       ...options,
       headers: {
+        ...options.headers,
         Accept: 'application/vnd.github+json',
         Authorization: `Bearer ${this.token}`,
         'X-GitHub-Api-Version': '2022-11-28',
-        ...options.headers,
       },
     }); // NOSONAR -- trustedGitHubApiUrl enforces the exact origin, path and query-key boundary.
     if (!response.ok) fail(`GitHub API ${endpoint} returned ${response.status}`);
@@ -258,7 +258,7 @@ async function main() {
       !Number.isSafeInteger(number) ||
       number <= 0 ||
       !event ||
-      eventPullNumber(process.env.GITHUB_EVENT_NAME, event, contract) !== number ||
+      eventPullNumber(process.env.GITHUB_EVENT_NAME, event) !== number ||
       !token
     ) {
       fail('runtime input mismatch');

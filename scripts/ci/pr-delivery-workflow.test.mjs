@@ -36,7 +36,7 @@ test('delivery workflow is API-only, exact-bound, acyclic, and default-deny', ()
   assert.ok(workflow.on.pull_request.types.includes('review_request_removed'));
   assert.deepEqual(Object.keys(workflow.jobs), ['delivery-gate']);
   assert.equal(job.needs, undefined);
-  assert.equal(job.if, undefined);
+  assert.match(job.if, /github\.event\.pull_request\.base\.ref == 'main'/u);
   assert.match(workflow.concurrency.group, /github\.event\.pull_request\.number/u);
   assert.ok(job.steps.some(step => String(step.uses).startsWith('actions/checkout@')));
   const checkout = job.steps.find(step => String(step.uses).startsWith('actions/checkout@'));
@@ -84,9 +84,11 @@ test('manifest consumers are wired and finalizer never waits for delivery-gate',
     assert.match(source, /pr-delivery-contract\.json/u);
   }
   assert.match(finalizerLib, /PR_DELIVERY_CONTRACT/u);
+  assert.match(finalizerLib, /Generator states are reported by governance monitoring/u);
   assert.doesNotMatch(finalizer, /required_checks=\(/u);
   assert.doesNotMatch(finalizerLib, /success.*skipped.*neutral/su);
   assert.doesNotMatch(reviewReady, /ALLOW_MISSING_COPILOT/u);
+  assert.match(reviewReady, /pr-review-ready failed: invalid delivery contract/u);
   assert.doesNotMatch(governance, /request Copilot review/u);
   assert.ok(contract.finalizerLeafPrerequisites.every(item => item.context !== 'delivery-gate'));
 });

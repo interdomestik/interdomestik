@@ -77,6 +77,7 @@ test('governance report and terminal evaluator consume the canonical delivery ma
   assert.match(reportScript, /\^\\d\+\$/);
   assert.match(reportScript, /pr-delivery-contract\.json/);
   assert.match(reportScript, /delivery-gate/);
+  assert.doesNotMatch(reportScript, /void contract/u);
 
   assert.match(reportScript, /providerRequiredContexts/);
   assert.match(reportScript, /deliveryPrerequisites/);
@@ -107,6 +108,7 @@ test('review-ready script composes finalizer and strict governance report', () =
   assert.match(script, /GITHUB_EVENT_PATH/);
   assert.match(script, /gh pr view --json number/);
   assert.match(script, /has_no_touch_authorization/);
+  assert.match(script, /pr-review-ready failed: invalid delivery contract/u);
 });
 
 test('Codex review prompt names current billing provider', () => {

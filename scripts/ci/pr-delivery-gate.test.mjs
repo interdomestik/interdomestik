@@ -115,14 +115,18 @@ test('GitHub API URL construction is fixed-origin and rejects foreign paths and 
   }
 });
 
-test('event binding accepts only the three PR-family sources', () => {
-  assert.equal(eventPullNumber('pull_request', { pull_request: { number: 1621 } }, contract), 1621);
-  assert.equal(
-    eventPullNumber('pull_request_review', { pull_request: { number: 1621 } }, contract),
-    1621
+test('callers cannot override trusted GitHub API headers', () => {
+  assert.match(
+    gateSource,
+    /headers:\s*\{\s*\.\.\.options\.headers,\s*Accept:[\s\S]*?Authorization:/u
   );
+});
+
+test('event binding accepts only the three PR-family sources', () => {
+  assert.equal(eventPullNumber('pull_request', { pull_request: { number: 1621 } }), 1621);
+  assert.equal(eventPullNumber('pull_request_review', { pull_request: { number: 1621 } }), 1621);
   assert.equal(
-    eventPullNumber('pull_request_review_comment', { pull_request: { number: 1621 } }, contract),
+    eventPullNumber('pull_request_review_comment', { pull_request: { number: 1621 } }),
     1621
   );
   for (const [name, event] of [
@@ -131,7 +135,7 @@ test('event binding accepts only the three PR-family sources', () => {
     ['workflow_run', { workflow_run: { pull_requests: [{ number: 1621 }] } }],
     ['pull_request', {}],
   ]) {
-    assert.equal(eventPullNumber(name, event, contract), null);
+    assert.equal(eventPullNumber(name, event), null);
   }
 });
 

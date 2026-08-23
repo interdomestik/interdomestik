@@ -107,8 +107,7 @@ export function validateDeliveryContract(contract) {
   }
   return contract;
 }
-export function eventPullNumber(eventName, event, contract) {
-  void contract;
+export function eventPullNumber(eventName, event) {
   if (!['pull_request', 'pull_request_review', 'pull_request_review_comment'].includes(eventName))
     return null;
   return event.pull_request?.number ?? null;
