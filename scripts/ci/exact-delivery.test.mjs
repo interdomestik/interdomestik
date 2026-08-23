@@ -290,7 +290,7 @@ test('trusted collector uses the same derived authority context', () => {
             merge_commit_sha: main,
           }
         : { object: { sha: main } };
-  const trusted = collectAuthority(root, input, github, authorityState(base));
+  const trusted = collectAuthority(root, input, authorityState(base), github);
   assert.equal(verifyExactDelivery(input, trusted).ok, true);
   const path = join(root, 'facts.json');
   writeFileSync(path, JSON.stringify(input));

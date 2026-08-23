@@ -13,8 +13,10 @@ const SHA40 = /^[a-f0-9]{40}$/u;
 const must = (value, message) => {
   if (!value) throw new Error(message);
 };
-const sameKeys = (value, keys) =>
-  JSON.stringify(Object.keys(value).sort()) === JSON.stringify([...keys].sort());
+const sameKeys = (value, keys) => {
+  const actual = Object.keys(value);
+  return actual.length === keys.length && actual.every(key => keys.includes(key));
+};
 
 function exactRuntimeIdentity(live) {
   must(live && typeof live === 'object' && !Array.isArray(live), 'live identity unavailable');

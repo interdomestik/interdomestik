@@ -67,7 +67,7 @@ function authorityState(repo) {
   };
 }
 
-export function collectAuthority(repo, facts, githubCall = github, state) {
+export function collectAuthority(repo, facts, state, githubCall = github) {
   const protection = githubCall(
     'repos/interdomestik/interdomestik/branches/main/protection/required_status_checks'
   );
@@ -117,7 +117,7 @@ function main() {
     const facts = JSON.parse(readFileSync(argument('input'), 'utf8'));
     const result = verifyExactDelivery(
       facts,
-      collectAuthority(repo, facts, github, authorityState(repo))
+      collectAuthority(repo, facts, authorityState(repo), github)
     );
     process.stdout.write(`${JSON.stringify(result)}\n`);
   } catch (error) {
