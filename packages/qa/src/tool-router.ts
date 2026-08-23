@@ -47,7 +47,7 @@ async function runRepoAudit(args: any, audit: RepoAudit) {
   const result = await audit(context.repoRoot);
   return {
     ...result,
-    structuredContent: { ...(result.structuredContent ?? {}), ...context },
+    structuredContent: Object.assign({}, result.structuredContent, context),
   };
 }
 
@@ -112,7 +112,7 @@ export async function handleToolCall(name: string, args: any) {
     }
     return {
       ...result,
-      structuredContent: { ...(result.structuredContent ?? {}), ...context },
+      structuredContent: Object.assign({}, result.structuredContent, context),
     };
   } catch (error: any) {
     return {
