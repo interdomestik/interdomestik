@@ -120,7 +120,10 @@ test('registration CAS preserves mismatch and supports exact guarded rollback', 
 
 test('CLI exposes only attested identity fields and performs no mutation', () => {
   const fixture = standaloneRepository();
-  const result = execFileSync(process.execPath, ['scripts/qa-mcp-control-runtime.mjs'], {
+  const launcherRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'qa-control-launcher-'));
+  const launcher = path.join(launcherRoot, 'qa-control-runtime.mjs');
+  fs.symlinkSync(path.join(rootDir, 'scripts/qa-mcp-control-runtime.mjs'), launcher);
+  const result = execFileSync(process.execPath, [launcher], {
     cwd: rootDir,
     encoding: 'utf8',
     env: {
@@ -145,4 +148,15 @@ test('ordinary environment overrides cannot redirect the canonical control sourc
   });
   assert.equal(result.status, 1);
   assert.match(result.stderr, /restricted to the canonical runtime/);
+
+  const missingHome = fs.mkdtempSync(path.join(os.tmpdir(), 'qa-control-home-'));
+  const missingEnv = { ...process.env, CI: 'false', HOME: missingHome };
+  delete missingEnv.INTERDOMESTIK_QA_CONTROL_ROOT;
+  const missing = spawnSync(process.execPath, ['scripts/qa-mcp-control-runtime.mjs'], {
+    cwd: rootDir,
+    encoding: 'utf8',
+    env: missingEnv,
+  });
+  assert.equal(missing.status, 1);
+  assert.match(missing.stderr, new RegExp(path.join(missingHome, '.codex/mcp-runtimes')));
 });

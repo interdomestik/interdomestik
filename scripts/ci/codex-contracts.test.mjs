@@ -52,6 +52,8 @@ test('mcp setup verifies Codex project config as well as local QA server prerequ
   assert.match(setupScript, /scripts\/start-repo-qa\.sh/);
   assert.match(setupScript, /qa-mcp-control-runtime\.mjs/);
   assert.match(setupScript, /CONTROL_LAUNCHER/);
+  assert.match(setupScript, /command -v rg/);
+  assert.match(setupScript, /Install ripgrep/);
   assert.match(setupScript, /mcp:local-config/);
   assert.match(setupScript, /tools\/list/);
   assert.equal(

@@ -18,6 +18,11 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+if ! command -v rg >/dev/null 2>&1; then
+    echo -e "${RED}❌ ripgrep (rg) is required. Install ripgrep before running MCP setup.${NC}"
+    exit 1
+fi
+
 # 1. Build the QA package
 echo -e "\n${YELLOW}📦 Building QA package...${NC}"
 cd "$PROJECT_ROOT/packages/qa"

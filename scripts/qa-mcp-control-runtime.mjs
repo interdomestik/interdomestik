@@ -58,7 +58,10 @@ function selectedRoot(explicitRoot) {
     return process.env.INTERDOMESTIK_QA_CONTROL_ROOT;
   }
   if (fs.existsSync(DEFAULT_ROOT)) return DEFAULT_ROOT;
-  must(process.env.CI === 'true', 'canonical interdomestik_qa control runtime is unavailable');
+  must(
+    process.env.CI === 'true',
+    `canonical interdomestik_qa control runtime is unavailable at ${DEFAULT_ROOT}`
+  );
   return SCRIPT_ROOT;
 }
 
@@ -190,7 +193,10 @@ function printField(runtime, field) {
   process.stdout.write(`${fields[field]}\n`);
 }
 
-if (process.argv[1] && fs.realpathSync.native(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (
+  process.argv[1] &&
+  fs.realpathSync.native(process.argv[1]) === fs.realpathSync.native(fileURLToPath(import.meta.url))
+) {
   const field = process.argv.find(argument => argument.startsWith('--field='))?.slice(8);
   try {
     const runtime = resolveQaControlRuntime();
