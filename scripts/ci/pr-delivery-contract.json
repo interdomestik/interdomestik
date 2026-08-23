@@ -149,8 +149,8 @@
     "vercel"
   ],
   "actionableFeedbackPatterns": [
-    "Suppressed comments\\s*\\([1-9][0-9]*\\)",
-    "Previously missed\\s*\\([1-9][0-9]*\\)",
+    "Suppressed comments\\s*\\([1-9]\\d*\\)",
+    "Previously missed\\s*\\([1-9]\\d*\\)",
     "badge/P[0-2](?:-|\\b)",
     "\\bP[0-2]\\s*(?:finding|issue|:|-)"
   ],

@@ -27,11 +27,23 @@ test('delivery workflow is API-only, exact-bound, acyclic, and default-deny', ()
   });
   assert.deepEqual(workflow.on.pull_request_review.types, ['submitted', 'edited', 'dismissed']);
   assert.deepEqual(workflow.on.pull_request_review_comment.types, ['created', 'edited', 'deleted']);
+  assert.deepEqual(Object.keys(workflow.on).sort(), [
+    'pull_request',
+    'pull_request_review',
+    'pull_request_review_comment',
+  ]);
   assert.ok(workflow.on.pull_request.types.includes('review_requested'));
   assert.ok(workflow.on.pull_request.types.includes('review_request_removed'));
+  assert.deepEqual(Object.keys(workflow.jobs), ['delivery-gate']);
   assert.equal(job.needs, undefined);
+  assert.equal(job.if, undefined);
+  assert.match(workflow.concurrency.group, /github\.event\.pull_request\.number/u);
   assert.ok(job.steps.some(step => String(step.uses).startsWith('actions/checkout@')));
+  const checkout = job.steps.find(step => String(step.uses).startsWith('actions/checkout@'));
+  assert.match(checkout.with.ref, /github\.sha/u);
   assert.ok(job.steps.some(step => String(step.run).includes('scripts/ci/pr-delivery-gate.mjs')));
+  const gate = job.steps.find(step => String(step.run).includes('scripts/ci/pr-delivery-gate.mjs'));
+  assert.match(gate.env.PR_NUMBER, /github\.event\.pull_request\.number/u);
   for (const forbidden of [
     'pnpm install',
     'npm install',
@@ -39,6 +51,11 @@ test('delivery workflow is API-only, exact-bound, acyclic, and default-deny', ()
     'playwright',
     'seed',
     'database',
+    'actions: write',
+    '/rerun',
+    'delivery-reconciler',
+    'pull_request_target',
+    'workflow_dispatch',
   ]) {
     assert.doesNotMatch(source, new RegExp(forbidden, 'iu'));
   }

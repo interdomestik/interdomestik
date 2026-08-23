@@ -5,6 +5,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import {
+  eventPullNumber,
   evaluateDeliverySnapshot,
   trustedGitHubApiUrl,
   validateDeliveryContract,
@@ -110,6 +111,26 @@ test('GitHub API URL construction is fixed-origin and rejects foreign paths and 
     'repos/interdomestik/interdomestik/pulls/1?token=secret',
   ]) {
     assert.throws(() => trustedGitHubApiUrl(endpoint), /unsafe|trusted boundary/u);
+  }
+});
+
+test('event binding accepts only the three PR-family sources', () => {
+  assert.equal(eventPullNumber('pull_request', { pull_request: { number: 1621 } }, contract), 1621);
+  assert.equal(
+    eventPullNumber('pull_request_review', { pull_request: { number: 1621 } }, contract),
+    1621
+  );
+  assert.equal(
+    eventPullNumber('pull_request_review_comment', { pull_request: { number: 1621 } }, contract),
+    1621
+  );
+  for (const [name, event] of [
+    ['issue_comment', { issue: { number: 1621, pull_request: {} } }],
+    ['check_run', { check_run: { pull_requests: [{ number: 1621 }] } }],
+    ['workflow_run', { workflow_run: { pull_requests: [{ number: 1621 }] } }],
+    ['pull_request', {}],
+  ]) {
+    assert.equal(eventPullNumber(name, event, contract), null);
   }
 });
 
@@ -230,6 +251,19 @@ test('provider contract drift, incomplete pagination, feedback findings, and thr
     createdAt: '2026-08-23T00:00:00Z',
   });
   assert.throws(() => evaluateDeliverySnapshot(contract, unknownBot), /unknown generator/u);
+
+  const inline = snapshot();
+  inline.feedback.reviewComments.push({
+    author: 'chatgpt-codex-connector[bot]',
+    commitId: H,
+    body: 'P1 finding: current-head inline defect',
+    createdAt: '2026-08-23T00:00:00Z',
+    resolved: false,
+  });
+  assert.throws(() => evaluateDeliverySnapshot(contract, inline), /actionable feedback/u);
+
+  inline.feedback.reviewComments[0].resolved = true;
+  assert.equal(evaluateDeliverySnapshot(contract, inline).ok, true);
 });
 
 test('mixed head snapshots and invalid tested merge topology fail closed', () => {

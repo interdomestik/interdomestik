@@ -22,7 +22,7 @@ require_review_threads_resolved() {
   number="$(pr_context)"
   [[ "${number}" =~ ^[1-9][0-9]*$ ]] || fail "unable to resolve PR for review threads"
   repo="${GITHUB_REPOSITORY:-}"
-  [[ -n "${repo}" ]] || repo="$(git remote get-url origin | sed -E 's#(git@github.com:|https://github.com/)##; s#\.git$##')"
+  [[ -n "${repo}" ]] || repo="$(git remote get-url origin 2>/dev/null | sed -E 's#(git@github.com:|https://github.com/)##; s#\.git$##' || true)"
   owner="${repo%%/*}"
   name="${repo##*/}"
   [[ -n "${owner}" && -n "${name}" ]] || fail "unable to resolve repository for review threads"

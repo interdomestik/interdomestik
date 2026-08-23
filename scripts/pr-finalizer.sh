@@ -45,6 +45,15 @@ resolve_matching_checks() {
   '
 }
 
+fetch_check_runs() {
+  local repo="$1"
+  local head_sha="$2"
+  gh api --paginate --slurp -H "${GH_ACCEPT_HEADER}" \
+    "repos/${repo}/commits/${head_sha}/check-runs?filter=all&per_page=100" \
+    | jq '{check_runs: [.[].check_runs[]]}'
+  return 0
+}
+
 fail() {
   echo "[pr-finalizer] FAIL: $1" >&2
   exit 1
@@ -140,7 +149,7 @@ require_gh_checks() {
   fi
 
   local checks_json
-  checks_json="$(gh api -H "${GH_ACCEPT_HEADER}" "repos/${repo}/commits/${head_sha}/check-runs?filter=all&per_page=100")"
+  checks_json="$(fetch_check_runs "${repo}" "${head_sha}")"
   if [[ -z "${checks_json}" || "${checks_json}" == "null" ]]; then
     fail "unable to read check runs for commit ${head_sha}"
   fi
@@ -163,7 +172,7 @@ require_gh_checks() {
 
         echo "[pr-finalizer] INFO: '${check_name}' check is not present yet. Retrying in ${check_retry_delay_seconds}s..."
         sleep "${check_retry_delay_seconds}"
-        checks_json="$(gh api -H "${GH_ACCEPT_HEADER}" "repos/${repo}/commits/${head_sha}/check-runs?filter=all&per_page=100")"
+        checks_json="$(fetch_check_runs "${repo}" "${head_sha}")"
         matching_checks="$(resolve_matching_checks "${check_name}" "${app_id}" "${checks_json}")"
         continue
       fi
@@ -184,7 +193,7 @@ require_gh_checks() {
 
       echo "[pr-finalizer] INFO: '${check_name}' checks still running (${in_progress_count} in progress). Retrying in ${check_retry_delay_seconds}s..."
       sleep "${check_retry_delay_seconds}"
-      checks_json="$(gh api -H "${GH_ACCEPT_HEADER}" "repos/${repo}/commits/${head_sha}/check-runs?filter=all&per_page=100")"
+      checks_json="$(fetch_check_runs "${repo}" "${head_sha}")"
       matching_checks="$(resolve_matching_checks "${check_name}" "${app_id}" "${checks_json}")"
     done
 

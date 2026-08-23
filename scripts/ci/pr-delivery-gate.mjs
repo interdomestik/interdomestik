@@ -5,19 +5,19 @@ import { fileURLToPath } from 'node:url';
 
 import { evaluateValidationSurface } from './validation-surface-policy-lib.mjs';
 import {
+  eventPullNumber,
   evaluateDeliveryChecks,
   validateDeliveryContract,
   verifyCommitGraph,
   verifyFeedback,
 } from '../github-pr-governance-report.mjs';
 
-export { validateDeliveryContract };
+export { eventPullNumber, validateDeliveryContract };
 const MAX_ATTEMPTS = 360;
 const waitForPoll = () => new Promise(resolve => setTimeout(resolve, 15_000));
 const waitForQuiescence = () => new Promise(resolve => setTimeout(resolve, 20_000));
 const GITHUB_API_ORIGIN = 'https://api.github.com';
 const SAFE_ENDPOINT = /^[a-z0-9._~!$&'()*+,;=:@/?-]+$/iu;
-
 export function trustedGitHubApiUrl(endpoint) {
   if (typeof endpoint !== 'string' || endpoint.length > 500 || !SAFE_ENDPOINT.test(endpoint)) {
     fail('GitHub API endpoint contains unsafe characters');
@@ -27,7 +27,7 @@ export function trustedGitHubApiUrl(endpoint) {
     url.pathname === '/graphql' || url.pathname.startsWith('/repos/interdomestik/interdomestik/');
   const trustedQuery = [...url.searchParams].every(([key, value]) => {
     if (!['filter', 'page', 'per_page'].includes(key)) return false;
-    return key === 'filter' ? value === 'all' : /^[1-9][0-9]*$/u.test(value);
+    return key === 'filter' ? value === 'all' : /^[1-9]\d*$/u.test(value);
   });
   const boundaryViolated =
     url.origin !== GITHUB_API_ORIGIN ||
@@ -51,7 +51,6 @@ export function evaluateDeliverySnapshot(contractInput, snapshot) {
   verifyFeedback(contract, snapshot.feedback, snapshot.expected.head);
   return { ok: true, head: snapshot.expected.head, testedTree, selected };
 }
-
 class GitHubClient {
   constructor(repository, token, fetchImpl = fetch) {
     this.repository = repository;
@@ -109,7 +108,6 @@ async function collectChecks(client, head, contract) {
     `repos/${client.repository}/commits/${head}/check-runs?filter=all`,
     'check_runs'
   );
-  const rawStatuses = await client.pages(`repos/${client.repository}/commits/${head}/statuses`);
   const declared = new Map(contract.deliveryPrerequisites.map(item => [item.context, item.appId]));
   const checks = [];
   for (const item of rawChecks) {
@@ -131,20 +129,6 @@ async function collectChecks(client, head, contract) {
         level: annotation.annotation_level,
         message: annotation.message,
       })),
-    });
-  }
-  for (const item of rawStatuses) {
-    if (!declared.has(item.context)) continue;
-    checks.push({
-      id: item.id,
-      context: item.context,
-      appId: 0,
-      headSha: item.sha,
-      status: 'completed',
-      conclusion: item.state,
-      runId: item.id,
-      runAttempt: 1,
-      annotations: [],
     });
   }
   return checks;
@@ -172,6 +156,11 @@ async function collectFeedback(client, pull) {
     client.pages(`${base}/pulls/${pull.number}/comments`),
     collectThreads(client, pull.number),
   ]);
+  const resolvedComments = new Set(
+    threads
+      .filter(thread => thread.isResolved)
+      .flatMap(thread => thread.comments.nodes.map(comment => comment.url))
+  );
   return {
     headSha: pull.head.sha,
     pagination: {
@@ -197,12 +186,14 @@ async function collectFeedback(client, pull) {
     issueComments: issueComments.map(item => ({
       author: item.user?.login ?? '',
       body: item.body ?? '',
-      createdAt: item.created_at ?? '',
+      createdAt: item.updated_at ?? item.created_at ?? '',
     })),
     reviewComments: reviewComments.map(item => ({
       author: item.user?.login ?? '',
       commitId: item.commit_id ?? '',
       body: item.body ?? '',
+      createdAt: item.updated_at ?? item.created_at ?? '',
+      resolved: resolvedComments.has(item.html_url),
     })),
   };
 }
@@ -214,22 +205,25 @@ async function commit(client, sha) {
 
 async function collectSnapshot(client, contract, expected, number) {
   const pull = await client.request(`repos/${client.repository}/pulls/${number}`);
+  const explicit = Object.values(expected).filter(Boolean).length;
+  if (explicit !== 3) fail('incomplete expected identity');
+  const bound = expected;
   const files = await client.pages(`repos/${client.repository}/pulls/${number}/files`);
   const [checks, feedback, base, head, testedMerge] = await Promise.all([
-    collectChecks(client, expected.head, contract),
+    collectChecks(client, bound.head, contract),
     collectFeedback(client, pull),
-    commit(client, expected.base),
-    commit(client, expected.head),
-    commit(client, expected.testedMerge),
+    commit(client, bound.base),
+    commit(client, bound.head),
+    commit(client, bound.testedMerge),
   ]);
   const changedFiles = files.map(item => item.filename);
   const packageJsonSurface = changedFiles.includes('package.json')
     ? { isNonProductOnly: false }
     : null;
   return {
-    expected,
+    expected: bound,
     pull: { state: pull.state, baseSha: pull.base.sha, headSha: pull.head.sha },
-    commits: { [expected.base]: base, [expected.head]: head, [expected.testedMerge]: testedMerge },
+    commits: { [bound.base]: base, [bound.head]: head, [bound.testedMerge]: testedMerge },
     validationSurface: evaluateValidationSurface({
       eventName: 'pull_request',
       changedFiles,
@@ -251,6 +245,8 @@ async function main() {
     const contract = validateDeliveryContract(JSON.parse(fs.readFileSync(contractPath, 'utf8')));
     const repository = argument('repository', process.env.GITHUB_REPOSITORY);
     const number = Number(argument('pr', process.env.PR_NUMBER));
+    const eventPath = process.env.GITHUB_EVENT_PATH ?? '';
+    const event = eventPath ? JSON.parse(fs.readFileSync(eventPath, 'utf8')) : null;
     const expected = {
       base: argument('base', process.env.EXPECTED_BASE_SHA),
       head: argument('head', process.env.EXPECTED_HEAD_SHA),
@@ -261,6 +257,8 @@ async function main() {
       repository !== contract.repository ||
       !Number.isSafeInteger(number) ||
       number <= 0 ||
+      !event ||
+      eventPullNumber(process.env.GITHUB_EVENT_NAME, event, contract) !== number ||
       !token
     ) {
       fail('runtime input mismatch');

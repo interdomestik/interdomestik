@@ -44,6 +44,10 @@ test('PR finalizer reads the acyclic leaf set from the delivery manifest', () =>
     finalizerLib,
     /gh api --paginate "repos\/\$\{repo\}\/pulls\/\$\{current_pr\}\/files\?per_page=100"/
   );
+  assert.match(finalizer, /gh api --paginate --slurp/u);
+  assert.match(finalizer, /\{check_runs: \[\.\[\]\.check_runs\[\]\]\}/u);
+  assert.equal(finalizer.match(/fetch_check_runs "\$\{repo\}" "\$\{head_sha\}"/gu)?.length, 3);
+  assert.match(feedbackLib, /git remote get-url origin 2>\/dev\/null.*\|\| true/u);
   assert.doesNotMatch(finalizerLib, /gh pr view "\$\{PR_NUMBER\}" --json files/);
   assert.doesNotMatch(finalizerLib, /docs_only_required_checks/);
   assert.doesNotMatch(finalizerLib, /success.*skipped.*neutral/s);

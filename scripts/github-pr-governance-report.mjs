@@ -2,32 +2,26 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 
-const REQUIRED_CHECKS = [
-  ...JSON.parse(
-    fs.readFileSync(new URL('./ci/pr-delivery-contract.json', import.meta.url), 'utf8')
-  ).providerRequiredContexts.map(item => item.context),
-  'delivery-gate',
-];
 const DELIVERY_CONTRACT = JSON.parse(
   fs.readFileSync(new URL('./ci/pr-delivery-contract.json', import.meta.url), 'utf8')
 );
+const REQUIRED_CHECKS = [
+  ...DELIVERY_CONTRACT.providerRequiredContexts.map(item => item.context),
+  'delivery-gate',
+];
 const MONITORED_CHECKS = DELIVERY_CONTRACT.deliveryPrerequisites
   .filter(item => item.classification !== 'provider')
   .map(item => item.context);
-
 const SUCCESS_STATES = new Set(['SUCCESS', 'COMPLETED/SUCCESS']);
-const ACTIONABLE_FEEDBACK_PATTERNS = [
-  /Suppressed comments\s*\([1-9][0-9]*\)/iu,
-  /Previously missed\s*\([1-9][0-9]*\)/iu,
-  /badge\/P[0-2](?:-|\b)/iu,
-  /\bP[0-2]\s*(?:finding|issue|:|-)/iu,
-];
 const ACTIONABLE_FEEDBACK_SOURCES = [
-  'Suppressed comments\\s*\\([1-9][0-9]*\\)',
-  'Previously missed\\s*\\([1-9][0-9]*\\)',
-  'badge/P[0-2](?:-|\\b)',
-  '\\bP[0-2]\\s*(?:finding|issue|:|-)',
+  String.raw`Suppressed comments\s*\([1-9]\d*\)`,
+  String.raw`Previously missed\s*\([1-9]\d*\)`,
+  String.raw`badge/P[0-2](?:-|\b)`,
+  String.raw`\bP[0-2]\s*(?:finding|issue|:|-)`,
 ];
+const ACTIONABLE_FEEDBACK_PATTERNS = ACTIONABLE_FEEDBACK_SOURCES.map(
+  source => new RegExp(source, 'iu')
+);
 const GH_BINARY_CANDIDATES = ['/usr/bin/gh', '/opt/homebrew/bin/gh', '/usr/local/bin/gh'];
 const compareText = (left, right) => left.localeCompare(right);
 const CONTRACT_KEYS =
@@ -113,6 +107,12 @@ export function validateDeliveryContract(contract) {
   }
   return contract;
 }
+export function eventPullNumber(eventName, event, contract) {
+  void contract;
+  if (!['pull_request', 'pull_request_review', 'pull_request_review_comment'].includes(eventName))
+    return null;
+  return event.pull_request?.number ?? null;
+}
 export function selectCurrentCheck(spec, checks, headSha) {
   const named = checks.filter(item => item.context === spec.context);
   if (named.some(item => item.appId !== spec.appId))
@@ -148,20 +148,20 @@ function latestByAuthor(items) {
   }
   return latest;
 }
-
 function generatorFeedback(contract, feedback) {
   const allowed = new Set(contract.feedbackAuthors);
-  const bots = [...feedback.reviews, ...feedback.issueComments].filter(item => {
-    const author = normalizeFeedbackAuthor(item.author);
-    return allowed.has(author) || (item.author ?? '').endsWith('[bot]') || author === 'copilot';
-  });
+  const bots = [...feedback.reviews, ...feedback.issueComments, ...feedback.reviewComments]
+    .filter(item => !item.resolved)
+    .filter(item => {
+      const author = normalizeFeedbackAuthor(item.author);
+      return allowed.has(author) || (item.author ?? '').endsWith('[bot]') || author === 'copilot';
+    });
   for (const item of bots) {
     const author = normalizeFeedbackAuthor(item.author);
     if (!allowed.has(author)) gateFail('unknown generator feedback author ' + author);
   }
   return bots.filter(item => !item.commitId || item.commitId === feedback.headSha);
 }
-
 export function verifyFeedback(contract, feedback, headSha) {
   if (feedback.headSha !== headSha) gateFail('mixed-head feedback snapshot');
   if (Object.values(feedback.pagination).some(value => value !== true))
@@ -235,20 +235,13 @@ function checkState(check) {
     : `${check.status}/${check.conclusion ?? 'pending'}`;
 }
 const findCheck = (checks, name) => checks.find(check => checkLabel(check) === name);
-function strictFailures(checks) {
-  const failures = [];
-  for (const checkName of REQUIRED_CHECKS) {
-    if (!SUCCESS_STATES.has(checkState(findCheck(checks, checkName)))) {
-      failures.push(`required check is not green: ${checkName}`);
-    }
-  }
-  return failures;
-}
+const strictFailures = checks =>
+  REQUIRED_CHECKS.filter(name => !SUCCESS_STATES.has(checkState(findCheck(checks, name)))).map(
+    name => `required check is not green: ${name}`
+  );
 function printSection(title, rows) {
   console.log(`\n${title}`);
-  for (const row of rows) {
-    console.log(`- ${row}`);
-  }
+  for (const row of rows) console.log(`- ${row}`);
 }
 function main() {
   const strict = process.argv.includes('--strict');
@@ -265,14 +258,14 @@ function main() {
   ]);
   const checks = pr.statusCheckRollup ?? [];
   console.log(`PR #${pr.number} governance report`);
-  printSection(
-    'Required checks',
-    REQUIRED_CHECKS.map(name => `${name}: ${checkState(findCheck(checks, name))}`)
-  );
-  printSection(
-    'Monitored checks',
-    MONITORED_CHECKS.map(name => `${name}: ${checkState(findCheck(checks, name))}`)
-  );
+  for (const [title, names] of [
+    ['Required checks', REQUIRED_CHECKS],
+    ['Monitored checks', MONITORED_CHECKS],
+  ])
+    printSection(
+      title,
+      names.map(name => `${name}: ${checkState(findCheck(checks, name))}`)
+    );
   printSection('Feedback terminality', ['enforced by delivery-gate final intake']);
   if (strict) {
     const failures = strictFailures(checks);
@@ -280,9 +273,7 @@ function main() {
       'Strict review readiness',
       failures.length === 0 ? ['PASS'] : failures.map(failure => `FAIL: ${failure}`)
     );
-    if (failures.length > 0) {
-      process.exitCode = 1;
-    }
+    if (failures.length > 0) process.exitCode = 1;
   }
 }
 
