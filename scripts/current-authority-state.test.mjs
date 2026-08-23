@@ -88,15 +88,15 @@ function evidence(history) {
   return history.map((current, index) => {
     const previous = history[index - 1];
     const movement = previous && previous.childId !== current.childId;
-    const event = /^(failed|rolled_back|closed)/u.test(previous?.status ?? '')
-      ? null
-      : !previous
-        ? 'health_cleanup_pass'
-        : current.status === 'merged_consumed'
-          ? 'merge_consumed'
-          : movement
-            ? 'health_cleanup_pass'
-            : 'successor_projection_recovered';
+    const key = `${previous?.status ?? 'start'}:${current.status}:${Number(Boolean(movement))}`;
+    const event =
+      {
+        'start:active:0': 'health_cleanup_pass',
+        'active:merged_consumed:0': 'merge_consumed',
+        'merged_consumed:active:0': 'successor_projection_recovered',
+        'merged_consumed:active:1': 'health_cleanup_pass',
+        'active:failed_consumed:0': 'failure_consumed',
+      }[key] ?? null;
     return {
       schemaVersion: 1,
       programId: PROGRAM,
@@ -216,6 +216,7 @@ test('a crafted null event cannot reactivate after irreversible failure', () => 
   const active = record(1, 'active', 'S3-exact-authority');
   const failed = record(2, 'failed_consumed', 'S3-exact-authority', active);
   const reopened = record(3, 'active', 'S3-exact-authority', failed);
+  assert.doesNotThrow(() => deriveAuthorityContext(input([active, failed])));
   assert.equal(resolveCurrentAuthority(input([active, failed, reopened])).runtimeAuthorized, false);
 });
 test('durable reader binds state, receipts, and canonical evidence to the approved root', () => {
