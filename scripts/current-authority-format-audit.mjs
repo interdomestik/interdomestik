@@ -2,10 +2,14 @@
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { validateProjection, validateProjectionDocuments } from './current-authority-state-lib.mjs';
 import { extractSection, parseTrackerDocument } from './plan-model.mjs';
 const PROGRAM = 'docs/plans/current-program.md';
 const TRACKER = 'docs/plans/current-tracker.md';
 const MANIFEST = 'docs/plans/history/current-authority/2026-08-16-through-rev-243.manifest.json';
+const PROJECTION = 'docs/plans/current-authority-v1.json';
+const ENVELOPE = 'docs/plans/2026-08-21-ida-wf01-one-approval-delivery-envelope-v1.json';
+const RECEIPT = 'docs/plans/2026-08-21-ida-wf01-one-approval-delivery-approval-receipt-r1.json';
 const SOURCE_COMMIT = '523fda2493ca728dea48241aad5769917f1ad03f';
 const MARKER = /The next active governed implementation goal[^\n]+/g;
 const SHA256 = /^[a-f0-9]{64}$/,
@@ -109,11 +113,54 @@ function validateManifest(manifest, errors) {
     else validateArtifact(manifest.sourceCommit, path, matches[0], errors);
   }
 }
+function parseJson(path, bytes, errors) {
+  try {
+    return JSON.parse(bytes.toString('utf8'));
+  } catch {
+    errors.push(`${path}: invalid JSON`);
+    return null;
+  }
+}
+function validateCurrentProjection(
+  { projectionBytes, envelopeBytes, receiptBytes, program, tracker },
+  errors
+) {
+  if (projectionBytes.length > 131_072) errors.push(`${PROJECTION}: exceeds 128 KiB`);
+  const projection = parseJson(PROJECTION, projectionBytes, errors);
+  const envelope = parseJson(ENVELOPE, envelopeBytes, errors);
+  if (!projection || !envelope) return;
+  if (`${JSON.stringify(projection, null, 2)}\n` !== projectionBytes.toString('utf8')) {
+    errors.push(`${PROJECTION}: JSON is not canonical`);
+  }
+  try {
+    validateProjection(projection);
+    validateProjectionDocuments(projection, program, tracker);
+  } catch (error) {
+    errors.push(`${PROJECTION}: ${error.message}`);
+  }
+  if (projection.envelopeSha256 !== sha(envelopeBytes)) {
+    errors.push(`${PROJECTION}: envelope SHA-256 mismatch`);
+  }
+  if (projection.approvalReceiptSha256 !== sha(receiptBytes)) {
+    errors.push(`${PROJECTION}: approval receipt SHA-256 mismatch`);
+  }
+  const children = envelope.approvalEnvelope?.children;
+  const matches = Array.isArray(children)
+    ? children.filter(child => child.childId === projection.projectedChild)
+    : [];
+  if (matches.length !== 1) errors.push(`${ENVELOPE}: expected one projected child`);
+  else if (JSON.stringify(matches[0].writerPaths) !== JSON.stringify(projection.writerPaths)) {
+    errors.push(`${PROJECTION}: writer paths differ from envelope`);
+  }
+}
 function main() {
   const errors = [];
   const programBytes = readFileSync(PROGRAM);
   const trackerBytes = readFileSync(TRACKER);
   const manifestBytes = readFileSync(MANIFEST);
+  const projectionBytes = readFileSync(PROJECTION);
+  const envelopeBytes = readFileSync(ENVELOPE);
+  const receiptBytes = readFileSync(RECEIPT);
   const program = inspectLiveDocument(PROGRAM, programBytes, 16_384, 220, errors);
   const tracker = inspectLiveDocument(TRACKER, trackerBytes, 12_288, 160, errors);
   requireSections(program.text, PROGRAM, PROGRAM_SECTIONS, errors);
@@ -132,6 +179,16 @@ function main() {
   if (!program.text.includes(manifestDigest) || !tracker.text.includes(manifestDigest)) {
     errors.push('live authority documents do not bind the exact manifest SHA-256');
   }
+  validateCurrentProjection(
+    {
+      projectionBytes,
+      envelopeBytes,
+      receiptBytes,
+      program: program.text,
+      tracker: tracker.text,
+    },
+    errors
+  );
   validateManifest(JSON.parse(manifestBytes.toString('utf8')), errors);
   if (errors.length > 0) {
     console.error('current-authority format audit failed');

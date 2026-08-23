@@ -16,23 +16,23 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                               | Status        | Owner      | Work                                 | Exit Criteria                                                                                                                                             |
-| -------------------------------- | ------------- | ---------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `IDA-WF01-ONE-APPROVAL-DELIVERY` | `in_progress` | `platform` | S3 exact authority after S2 closeout | S2 recovery/live proof is green; this exact projection merges healthy; revisions 19/20 consume S2 and activate only S3; final resolver and cleanup agree. |
+| ID                               | Status        | Owner      | Work               | Exit Criteria                                                                                                                           |
+| -------------------------------- | ------------- | ---------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `IDA-WF01-ONE-APPROVAL-DELIVERY` | `in_progress` | `platform` | S3 exact authority | Exact projection, B/H/T/M, terminal lanes, merge/main health, authority consumption, and task-owned cleanup agree; only S4A may follow. |
 
 ## Proof Ledger
 
-| ID                               | Source Refs                                                                                                                                                                                                                       | Execution | Run ID  | Run Root             | Sonar            | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                             |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------- | -------------------- | ---------------- | ---------------- | ---------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `IDA-WF01-ONE-APPROVAL-DELIVERY` | Gate `d55c180e64659e12f22400e1e20adc08dfa1ea2821a997b6798370ea26f3b464`; admission `abd52f22a5b266144406714048b90ef615e7c17acb76c42a451f4ebeabd41d7b`; receipt `e3353f95e703d49d8d74e238acd551ebc4f11795a7b67c50699fa9387f04329b` | `manual`  | `S2-R2` | `codex-control-host` | `not_applicable` | `not_applicable` | `not_applicable` | `pass`   | Live MCP proof `de3ef039658c40a064829b6adf607076532b16e4e7a6bef9d640636d3b0e21ff`; durable `authority-v1.json`; exact projection PR/main/cleanup evidence |
+| ID                               | Source Refs                                                                                                                                                                                                                      | Execution | Run ID   | Run Root             | Sonar     | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                      |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | -------- | -------------------- | --------- | ---------------- | ---------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `IDA-WF01-ONE-APPROVAL-DELIVERY` | Gate `8ccebfa2b9c622f217c971cb9995506edb91091eab93aeccbbb71b0f68dc1015`; envelope `46eee3be937bb82f3bc0055f1a7bc697a08484498b197a1475bae33d760be8a6`; receipt `a6491e167ab12894d43e62ca279169cbcc4c0faf871ab116991a0eb7b4e37d03` | `manual`  | `S3-R20` | `codex-control-host` | `pending` | `not_applicable` | `not_applicable` | `pass`   | Protected main `0ea6f19f50f67a02f0ee00ace2aee51b86d0006e`; operation `06ca0e82cf252cf1d49382f6cde847b00d0aa40f6fb50b8f377f11ace15e1add`; exact projection/B-H-T-M evidence pending |
 
 ## Next Selection
 
-B0, B1, S1A, and S1B are terminal and consumed. Revision 18 recovered only S2, and its fresh
-transport plus complete worktree-identity proof is green. This exact projection is the S2 closeout
-record; its exact merge, protected-main health, and task-owned cleanup are consumed by revisions
-19/20, which close S2 and make `S3-exact-authority` the sole active child. Until those append-only
-transitions are present, S3, S4, and all unrelated work remain blocked and fail closed.
+B0, B1, S1A, S1B, and S2 are terminal and consumed. Revision 20 makes
+`S3-exact-authority` the sole active child. S3 must prove the approved projection and exact
+B/H/T/M plus terminal lane identities, then consume its lease on merge, close, or terminal
+failure. S4A remains blocked until exact protected-main health and task-owned cleanup are green;
+S4B and all unrelated work remain blocked behind S4A.
 
 <!-- prettier-ignore -->
 The next active governed implementation goal is exactly one canonical tracker program: `IDA-WF01-ONE-APPROVAL-DELIVERY` (Tier 3; `runtime_authorized:true`).
