@@ -2,13 +2,16 @@
 
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resolveQaControlRuntime } from './qa-mcp-control-runtime.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, '..');
+const registrationInspectionCwd = fs.realpathSync(os.tmpdir());
 const requiredCodexServers = ['openai_docs', 'context7', 'playwright', 'interdomestik_qa'];
+const requiredUserCodexServers = ['interdomestik_qa'];
 const requiredRepoQaTools = [
   'project_map',
   'read_files',
@@ -82,7 +85,9 @@ function runProcess(command, args, options = {}) {
 
 async function readCodexMcpServers() {
   try {
-    const { stdout } = await runProcess('codex', ['mcp', 'list', '--json']);
+    const { stdout } = await runProcess('codex', ['mcp', 'list', '--json'], {
+      cwd: registrationInspectionCwd,
+    });
     const servers = JSON.parse(stdout);
     if (!Array.isArray(servers)) {
       fail('codex mcp list --json did not return an array.');
@@ -105,7 +110,9 @@ async function readCodexMcpServers() {
 
 async function readCodexMcpServer(serverName) {
   try {
-    const { stdout } = await runProcess('codex', ['mcp', 'get', serverName, '--json']);
+    const { stdout } = await runProcess('codex', ['mcp', 'get', serverName, '--json'], {
+      cwd: registrationInspectionCwd,
+    });
     return JSON.parse(stdout);
   } catch {
     fail(`codex mcp get ${serverName} --json failed.`);
@@ -139,7 +146,7 @@ function verifyRequiredCodexCliServers(servers) {
 
   const byName = new Map(servers.map(server => [server.name, server]));
 
-  for (const serverName of requiredCodexServers) {
+  for (const serverName of requiredUserCodexServers) {
     const server = byName.get(serverName);
     if (!server) {
       fail(`codex mcp list --json does not include ${serverName}`);

@@ -110,6 +110,24 @@ test('Codex MCP preflight checks CLI registration and live repo QA tool discover
   assert.match(preflight, /restart Codex/i);
 });
 
+test('Codex registration inspection cannot inherit project-local MCP overrides', () => {
+  const preflight = readText('scripts/codex-mcp-preflight.mjs');
+
+  assert.match(preflight, /const registrationInspectionCwd = fs\.realpathSync\(os\.tmpdir\(\)\);/);
+  assert.match(preflight, /const requiredUserCodexServers = \['interdomestik_qa'\];/);
+  assert.match(preflight, /for \(const serverName of requiredUserCodexServers\)/);
+  assert.match(preflight, /for \(const serverName of requiredCodexServers\)/);
+  assert.match(
+    preflight,
+    /runProcess\('codex', \['mcp', 'list', '--json'\], \{\s*cwd: registrationInspectionCwd,\s*\}\)/
+  );
+  assert.match(
+    preflight,
+    /runProcess\('codex', \['mcp', 'get', serverName, '--json'\], \{\s*cwd: registrationInspectionCwd,\s*\}\)/
+  );
+  assert.match(preflight, /\['--test', 'scripts\/ci\/qa-mcp-discovery-contracts\.test\.mjs'\]/);
+});
+
 test('QA MCP launcher resolves one atomic control-source snapshot', () => {
   const launcher = readText('scripts/start-repo-qa.sh');
   assert.match(launcher, /CONTROL_JSON="\$\(node "\$RESOLVER"\)"/);
