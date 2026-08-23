@@ -42,12 +42,16 @@ import { resolveToolRepoRoot, unresolvedToolRepoContext } from './utils/tool-rep
 type Handler = (args: any) => Promise<any>;
 type RepoAudit = (repoRoot: string) => Promise<any>;
 
+function mergeStructuredContent(result: any, context: ReturnType<typeof resolveToolRepoRoot>) {
+  return result.structuredContent ? { ...result.structuredContent, ...context } : context;
+}
+
 async function runRepoAudit(args: any, audit: RepoAudit) {
   const context = resolveToolRepoRoot(args);
   const result = await audit(context.repoRoot);
   return {
     ...result,
-    structuredContent: Object.assign({}, result.structuredContent, context),
+    structuredContent: mergeStructuredContent(result, context),
   };
 }
 
@@ -112,7 +116,7 @@ export async function handleToolCall(name: string, args: any) {
     }
     return {
       ...result,
-      structuredContent: Object.assign({}, result.structuredContent, context),
+      structuredContent: mergeStructuredContent(result, context),
     };
   } catch (error: any) {
     return {
