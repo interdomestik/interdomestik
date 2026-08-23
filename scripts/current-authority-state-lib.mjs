@@ -1,29 +1,43 @@
 import { createHash } from 'node:crypto';
-import { isAbsolute } from 'node:path';
 
 const SHA40 = /^[a-f0-9]{40}$/u;
 const SHA256 = /^[a-f0-9]{64}$/u;
 export const CANONICAL_ORIGIN = 'https://github.com/interdomestik/interdomestik';
+const PROGRAM = 'IDA-WF01-ONE-APPROVAL-DELIVERY';
+const ENVELOPE_PATH = 'docs/plans/2026-08-21-ida-wf01-one-approval-delivery-envelope-v1.json';
+const RECEIPT_PATH =
+  'docs/plans/2026-08-21-ida-wf01-one-approval-delivery-approval-receipt-r1.json';
 const DURABLE_KEYS =
   'schemaVersion,programId,revision,status,childId,runtimeAuthorized,successorsBlocked,envelopeSha256,approvalReceiptSha256,boundary,evidenceRef,previousOperationSha256,operationSha256'.split(
     ','
   );
+const EVIDENCE_KEYS =
+  'schemaVersion,programId,revision,event,fromChild,toChild,boundary,previousOperationSha256,proofSha256'.split(
+    ','
+  );
+const PROJECTION_KEYS =
+  'schemaVersion,programId,envelopePath,envelopeSha256,approvalReceiptPath,approvalReceiptSha256,liveDispositionRequired,repositoryConsumptionRule'.split(
+    ','
+  );
 const FAILURE_STATUSES = new Set(['failed_consumed', 'rolled_back_consumed', 'incident', 'failed']);
-const DURABLE_STATUSES = new Set(
+const IRREVERSIBLE_STATUSES = new Set(
+  'failed_consumed,rolled_back_consumed,failed,closed'.split(',')
+);
+const STATUSES = new Set(
   'active,prepared,installing,merged_consumed,installed_consumed,closeout_required,failed_consumed,rolled_back_consumed,incident,failed,closed'.split(
     ','
   )
 );
-const PROJECTION_KEYS =
-  'schemaVersion,programId,sourceMain,projectedRevision,projectedChild,projectedOperationSha256,envelopeSha256,approvalReceiptSha256,writerPaths,writerMapSha256,liveDispositionRequired,repositoryConsumptionRule,successorAfterHealthCleanup'.split(
-    ','
-  );
 
 function must(value, message) {
   if (!value) throw new Error(message);
 }
 
 export const alphabetical = (left, right) => left.localeCompare(right, 'en');
+const same = (left, right) => JSON.stringify(left) === JSON.stringify(right);
+const sameBoundary = (left, right) => Object.keys(left).every(key => left[key] === right[key]);
+const sha256 = value => createHash('sha256').update(value).digest('hex');
+export const canonicalJsonDigest = value => sha256(`${JSON.stringify(value, null, 2)}\n`);
 
 export function normalizeOrigin(value) {
   return typeof value === 'string'
@@ -37,191 +51,231 @@ export function normalizeOrigin(value) {
 
 function exactKeys(value, keys, label) {
   must(value && typeof value === 'object' && !Array.isArray(value), `${label} must be an object`);
-  const actual = Object.keys(value).sort(alphabetical);
-  must(
-    JSON.stringify(actual) === JSON.stringify([...keys].sort(alphabetical)),
-    `${label} keys mismatch`
-  );
+  const matching = same(Object.keys(value).sort(alphabetical), [...keys].sort(alphabetical));
+  must(matching, `${label} keys mismatch`);
 }
 
-function validateDurableRecord(record) {
-  exactKeys(record, DURABLE_KEYS, 'durable record');
-  const { operationSha256, ...state } = record;
-  must(
-    SHA256.test(operationSha256) &&
-      createHash('sha256').update(JSON.stringify(state)).digest('hex') === operationSha256,
-    'durable operation mismatch'
-  );
-  must(
-    state.schemaVersion === 1 && state.programId === 'IDA-WF01-ONE-APPROVAL-DELIVERY',
-    'durable schema mismatch'
-  );
-  must(Number.isSafeInteger(state.revision) && state.revision > 0, 'durable revision mismatch');
-  must(
-    DURABLE_STATUSES.has(state.status) && typeof state.childId === 'string',
-    'durable state mismatch'
-  );
-  must(
-    !['closed', 'closeout_required'].includes(state.status) ||
-      state.childId === 'S4B-reviewer-policy',
-    'durable terminal state mismatch'
-  );
-  must(
-    state.runtimeAuthorized === /^(active|prepared|installing)$/u.test(state.status),
-    'durable authorization mismatch'
-  );
-  must(
-    state.successorsBlocked === FAILURE_STATUSES.has(state.status),
-    'durable successor mismatch'
-  );
-  must(
-    [state.envelopeSha256, state.approvalReceiptSha256].every(value => SHA256.test(value)),
-    'durable artifact mismatch'
-  );
-  must(
-    /^evidence\/[A-Za-z0-9-]+-[0-9a-f]{64}\.json$/u.test(state.evidenceRef),
-    'durable evidence mismatch'
-  );
-  must(SHA256.test(state.previousOperationSha256), 'durable predecessor mismatch');
-  exactKeys(
-    state.boundary,
-    state.boundary?.kind === 'git' ? ['kind', 'B', 'H', 'T', 'M'] : ['kind', 'postimageSha256'],
-    'durable boundary'
-  );
-  if (state.boundary.kind === 'git') {
+function safePaths(paths) {
+  const unique = Array.isArray(paths) && paths.length > 0 && new Set(paths).size === paths.length;
+  must(unique, 'invalid writer paths');
+  const safe = path =>
+    typeof path === 'string' &&
+    path.length > 0 &&
+    !path.startsWith('/') &&
+    !/(^|\/)\.{1,2}(\/|$)|\/{2,}/u.test(path);
+  must(paths.every(safe), 'unsafe writer path');
+}
+
+export function writerMapDigest(paths) {
+  safePaths(paths);
+  return sha256(JSON.stringify([...paths].sort(alphabetical)));
+}
+
+export function validateProjection(value) {
+  exactKeys(value, PROJECTION_KEYS, 'projection');
+  must(value.schemaVersion === 1 && value.programId === PROGRAM, 'projection schema mismatch');
+  must(value.envelopePath === ENVELOPE_PATH, 'projection envelope path mismatch');
+  must(value.approvalReceiptPath === RECEIPT_PATH, 'projection receipt path mismatch');
+  const hashes = SHA256.test(value.envelopeSha256) && SHA256.test(value.approvalReceiptSha256);
+  must(hashes, 'projection hash mismatch');
+  must(value.liveDispositionRequired === 'open', 'projection live disposition mismatch');
+  const consumption = value.repositoryConsumptionRule === 'merged_closed_or_terminal_failure';
+  must(consumption, 'projection consumption rule mismatch');
+  return value;
+}
+
+function envelopeChildren(envelope) {
+  const children = envelope?.approvalEnvelope?.children;
+  must(Array.isArray(children) && children.length > 0, 'envelope children missing');
+  const ids = new Set();
+  let previousOrder = null;
+  for (const child of children) {
     must(
-      [state.boundary.B, state.boundary.H, state.boundary.T, state.boundary.M].every(value =>
-        SHA40.test(value)
-      ),
+      Number.isSafeInteger(child?.order) &&
+        typeof child.childId === 'string' &&
+        typeof child.controlPlane === 'string',
+      'invalid envelope child'
+    );
+    must(!ids.has(child.childId), 'duplicate envelope child');
+    must(previousOrder === null || child.order === previousOrder + 1, 'non-sequential envelope');
+    safePaths(child.writerPaths);
+    ids.add(child.childId);
+    previousOrder = child.order;
+  }
+  return children;
+}
+
+export function validateProjectionArtifacts({
+  projection,
+  envelope,
+  approvalReceipt,
+  artifactHashes,
+}) {
+  validateProjection(projection);
+  envelopeChildren(envelope);
+  must(approvalReceipt && typeof approvalReceipt === 'object', 'approval receipt missing');
+  exactKeys(artifactHashes, ['envelopeSha256', 'approvalReceiptSha256'], 'artifact hashes');
+  must(
+    artifactHashes.envelopeSha256 === projection.envelopeSha256 &&
+      artifactHashes.approvalReceiptSha256 === projection.approvalReceiptSha256,
+    'projection artifact mismatch'
+  );
+  return true;
+}
+
+function validateBoundary(boundary) {
+  const keys =
+    boundary?.kind === 'git' ? ['kind', 'B', 'H', 'T', 'M'] : ['kind', 'postimageSha256'];
+  exactKeys(boundary, keys, 'durable boundary');
+  if (boundary.kind === 'git') {
+    const shas = [boundary.B, boundary.H, boundary.T, boundary.M];
+    must(
+      shas.every(value => SHA40.test(value)),
       'durable boundary mismatch'
     );
   } else {
     must(
-      state.boundary.kind === 'local' && SHA256.test(state.boundary.postimageSha256),
+      boundary.kind === 'local' && SHA256.test(boundary.postimageSha256),
       'durable boundary mismatch'
     );
   }
 }
 
-function safePaths(paths) {
+function validateDurable(record) {
+  exactKeys(record, DURABLE_KEYS, 'durable record');
+  const { operationSha256, ...state } = record;
+  const operationValid =
+    SHA256.test(operationSha256) && sha256(JSON.stringify(state)) === operationSha256;
+  must(operationValid, 'durable operation mismatch');
+  must(state.schemaVersion === 1 && state.programId === PROGRAM, 'durable schema mismatch');
+  must(Number.isSafeInteger(state.revision) && state.revision > 0, 'durable revision mismatch');
+  must(STATUSES.has(state.status) && typeof state.childId === 'string', 'durable state mismatch');
+  const terminalChild = !['closed', 'closeout_required'].includes(state.status);
+  must(terminalChild || state.childId === 'S4B-reviewer-policy', 'durable terminal state mismatch');
+  const authorized =
+    state.runtimeAuthorized === /^(active|prepared|installing)$/u.test(state.status);
+  must(authorized, 'durable authorization mismatch');
+  const blocked = state.successorsBlocked === FAILURE_STATUSES.has(state.status);
+  must(blocked, 'durable successor mismatch');
+  const artifacts = [state.envelopeSha256, state.approvalReceiptSha256];
   must(
-    Array.isArray(paths) && paths.length > 0 && new Set(paths).size === paths.length,
-    'invalid writer paths'
+    artifacts.every(value => SHA256.test(value)),
+    'durable artifact mismatch'
   );
-  must(
-    paths.every(
-      path =>
-        typeof path === 'string' &&
-        path.length > 0 &&
-        !path.startsWith('/') &&
-        !path.startsWith('../') &&
-        !path.includes('/../')
-    ),
-    'unsafe writer path'
+  const evidenceRef = /^evidence\/[A-Za-z0-9-]+-[0-9a-f]{64}\.json$/u.test(state.evidenceRef);
+  must(evidenceRef, 'durable evidence mismatch');
+  const predecessor =
+    state.revision === 1
+      ? state.previousOperationSha256 === null
+      : SHA256.test(state.previousOperationSha256);
+  must(predecessor, 'durable predecessor mismatch');
+  validateBoundary(state.boundary);
+}
+
+function transitionEvent(previous, current, movement) {
+  if (IRREVERSIBLE_STATUSES.has(previous?.status)) return null;
+  const terminal = {
+    incident: 'incident',
+    failed_consumed: 'failure_consumed',
+    rolled_back_consumed: 'rollback_consumed',
+    failed: 'failed',
+  }[current.status];
+  if (movement === 0 && terminal) return terminal;
+  const from = previous?.status ?? 'start';
+  return (
+    {
+      'start:active:0': 'health_cleanup_pass',
+      'incident:active:0': 'incident_recovered',
+      'incident:active:1': 'incident_recovered',
+      'active:active:0': 'authority_rebind',
+      'active:prepared:0': 'prepared',
+      'prepared:installing:0': 'installing',
+      'installing:installed_consumed:0': 'install_consumed',
+      'active:merged_consumed:0': 'merge_consumed',
+      'merged_consumed:active:0': 'successor_projection_recovered',
+      'merged_consumed:active:1': 'health_cleanup_pass',
+      'installed_consumed:active:1': 'health_cleanup_pass',
+      'merged_consumed:closeout_required:0': 'health_cleanup_pass',
+      'closeout_required:closed:0': 'closeout',
+    }[`${from}:${current.status}:${movement}`] ?? null
   );
 }
 
-function exactRuntimeIdentity(live) {
-  exactKeys(
-    live,
-    [
-      'operationSha256',
-      'childId',
-      'disposition',
-      'pullRequestNumber',
-      'pullRequestState',
-      'terminalFailure',
-      'origin',
-      'base',
-      'head',
-      'testedMerge',
-      'protectedMain',
-      'writerMapSha256',
-      'worktree',
-      'mcp',
-    ],
-    'live identity'
-  );
-  exactKeys(live.worktree, ['root', 'commonDir', 'head'], 'worktree identity');
-  exactKeys(
-    live.mcp,
-    [
-      'sourceRoot',
-      'sourceHead',
-      'sourceCommonDir',
-      'targetRoot',
-      'targetHead',
-      'targetCommonDir',
-      'repoRoot',
-    ],
-    'MCP identity'
-  );
-  const paths = [
-    live.worktree.root,
-    live.worktree.commonDir,
-    live.mcp.sourceRoot,
-    live.mcp.sourceCommonDir,
-    live.mcp.targetRoot,
-    live.mcp.targetCommonDir,
-    live.mcp.repoRoot,
-  ];
-  must(
-    paths.every(value => typeof value === 'string' && isAbsolute(value)),
-    'runtime path mismatch'
-  );
-  must(
-    Number.isSafeInteger(live.pullRequestNumber) && live.pullRequestNumber > 0,
-    'pull request mismatch'
-  );
-  must(live.worktree.head === live.head, 'worktree head mismatch');
-  must(live.mcp.sourceRoot !== live.mcp.targetRoot, 'MCP source/target collision');
-  must(SHA40.test(live.mcp.sourceHead), 'MCP source head mismatch');
-  must(live.mcp.targetRoot === live.worktree.root, 'MCP target root mismatch');
-  must(live.mcp.targetHead === live.head, 'MCP target head mismatch');
-  must(live.mcp.repoRoot === live.worktree.root, 'MCP repoRoot mismatch');
-  must(
-    live.mcp.sourceCommonDir === live.worktree.commonDir &&
-      live.mcp.targetCommonDir === live.worktree.commonDir,
-    'Git common directory mismatch'
-  );
+function validateEvidence(evidence, current, previous, movement) {
+  exactKeys(evidence, EVIDENCE_KEYS, 'durable evidence');
+  validateBoundary(evidence.boundary);
+  const bound =
+    evidence.schemaVersion === 1 &&
+    evidence.programId === PROGRAM &&
+    evidence.revision === current.revision &&
+    evidence.toChild === current.childId &&
+    evidence.previousOperationSha256 === current.previousOperationSha256 &&
+    SHA256.test(evidence.proofSha256) &&
+    sameBoundary(evidence.boundary, current.boundary);
+  must(bound, 'durable evidence binding mismatch');
+  const predecessor = !previous || evidence.fromChild === previous.childId;
+  must(predecessor, 'durable evidence predecessor mismatch');
+  const expectedEvent = transitionEvent(previous, current, movement);
+  must(expectedEvent !== null && evidence.event === expectedEvent, 'invalid authority transition');
 }
 
-export function writerMapDigest(paths) {
-  safePaths(paths);
-  const canonical = JSON.stringify([...paths].sort(alphabetical));
-  return createHash('sha256').update(canonical).digest('hex');
+function validateHistory(history, durable, children, projection, evidence) {
+  must(Array.isArray(history) && history.length === durable.revision, 'durable history incomplete');
+  const completeEvidence = Array.isArray(evidence) && evidence.length === history.length;
+  must(completeEvidence, 'durable evidence incomplete');
+  const childIndex = new Map(children.map((child, index) => [child.childId, index]));
+  for (let index = 0; index < history.length; index += 1) {
+    const current = history[index];
+    const previous = history[index - 1];
+    validateDurable(current);
+    must(current.revision === index + 1, 'durable history gap');
+    must(childIndex.has(current.childId), 'unlisted durable child');
+    if (!previous) {
+      must(current.childId === children[0].childId, 'durable history starts at wrong child');
+      validateEvidence(evidence[index], current, previous, 0);
+      continue;
+    }
+    const chained = current.previousOperationSha256 === previous.operationSha256;
+    must(chained, 'durable history chain mismatch');
+    const movement = childIndex.get(current.childId) - childIndex.get(previous.childId);
+    must(movement === 0 || movement === 1, 'durable child sequence mismatch');
+    validateEvidence(evidence[index], current, previous, movement);
+    if (movement === 1)
+      must(sameBoundary(current.boundary, previous.boundary), 'successor boundary mismatch');
+    const artifactChanged =
+      current.envelopeSha256 !== previous.envelopeSha256 ||
+      current.approvalReceiptSha256 !== previous.approvalReceiptSha256;
+    const completeRebind =
+      movement === 0 &&
+      current.envelopeSha256 !== previous.envelopeSha256 &&
+      current.approvalReceiptSha256 !== previous.approvalReceiptSha256;
+    if (artifactChanged) must(completeRebind, 'invalid authority artifact rebind');
+  }
+  must(same(history.at(-1), durable), 'durable current/history mismatch');
+  const projected =
+    durable.envelopeSha256 === projection.envelopeSha256 &&
+    durable.approvalReceiptSha256 === projection.approvalReceiptSha256;
+  must(projected, 'durable artifact mismatch');
 }
 
-export function validateProjection(value) {
-  exactKeys(value, PROJECTION_KEYS, 'projection');
-  must(value.schemaVersion === 1, 'projection schema mismatch');
-  must(value.programId === 'IDA-WF01-ONE-APPROVAL-DELIVERY', 'projection program mismatch');
-  must(SHA40.test(value.sourceMain), 'projection source main mismatch');
-  must(
-    Number.isSafeInteger(value.projectedRevision) && value.projectedRevision > 0,
-    'projection revision mismatch'
-  );
-  must(value.projectedChild === 'S3-exact-authority', 'projection child mismatch');
-  must(
-    [value.projectedOperationSha256, value.envelopeSha256, value.approvalReceiptSha256].every(
-      item => SHA256.test(item)
-    ),
-    'projection hash mismatch'
-  );
-  must(
-    writerMapDigest(value.writerPaths) === value.writerMapSha256,
-    'projection writer map mismatch'
-  );
-  must(value.liveDispositionRequired === 'open', 'projection live disposition mismatch');
-  must(
-    value.repositoryConsumptionRule === 'merged_closed_or_terminal_failure',
-    'projection consumption rule mismatch'
-  );
-  must(
-    value.successorAfterHealthCleanup === 'S4A-terminal-delivery',
-    'projection successor mismatch'
-  );
-  return value;
+export function deriveAuthorityContext(source) {
+  validateProjectionArtifacts(source);
+  const children = envelopeChildren(source.envelope);
+  validateDurable(source.durable);
+  validateHistory(source.history, source.durable, children, source.projection, source.evidence);
+  const child = children.find(item => item.childId === source.durable.childId);
+  const repository = /repository PR/u.test(child.controlPlane);
+  if (repository)
+    must(source.durable.boundary.kind === 'git', 'repository child requires Git boundary');
+  return {
+    programId: PROGRAM,
+    childId: child.childId,
+    operationSha256: source.durable.operationSha256,
+    base: repository ? source.durable.boundary.M : null,
+    writerPaths: [...child.writerPaths],
+    writerMapSha256: writerMapDigest(child.writerPaths),
+    liveDispositionRequired: source.projection.liveDispositionRequired,
+  };
 }
 
 export function validateProjectionDocuments(projection, program, tracker) {
@@ -239,53 +293,8 @@ export function validateProjectionDocuments(projection, program, tracker) {
     'projection marker program mismatch'
   );
   must(
-    programMarkers[0].includes('`runtime_authorized:true`'),
+    programMarkers[0].includes('`runtime_authorized:external`'),
     'projection marker runtime mismatch'
   );
   return true;
-}
-
-function fail(reason, successorsBlocked = true) {
-  return { runtimeAuthorized: false, activeSlice: null, successorsBlocked, reason };
-}
-
-export function resolveCurrentAuthority({ projection, durable, live }) {
-  try {
-    validateProjection(projection);
-    validateDurableRecord(durable);
-    must(durable && durable.revision === projection.projectedRevision, 'durable revision mismatch');
-    must(durable.childId === projection.projectedChild, 'durable child mismatch');
-    must(
-      durable.operationSha256 === projection.projectedOperationSha256,
-      'durable operation mismatch'
-    );
-    must(durable.envelopeSha256 === projection.envelopeSha256, 'durable envelope mismatch');
-    must(
-      durable.approvalReceiptSha256 === projection.approvalReceiptSha256,
-      'durable receipt mismatch'
-    );
-    if (!durable.runtimeAuthorized) return fail('authority_not_active', durable.successorsBlocked);
-    must(live && typeof live === 'object', 'live identity unavailable');
-    exactRuntimeIdentity(live);
-    must(live.operationSha256 === durable.operationSha256, 'stale live operation');
-    must(
-      live.childId === durable.childId && live.disposition === 'open',
-      'inactive live authority'
-    );
-    if (live.terminalFailure) return fail('terminal_failure');
-    if (['MERGED', 'CLOSED'].includes(live.pullRequestState)) {
-      return fail('authority_consumed_by_merge', false);
-    }
-    must(live.pullRequestState === 'OPEN', 'unknown pull request state');
-    must(normalizeOrigin(live.origin) === CANONICAL_ORIGIN, 'origin mismatch');
-    must(
-      live.base === projection.sourceMain && live.protectedMain === projection.sourceMain,
-      'base/main mismatch'
-    );
-    must(SHA40.test(live.head) && SHA40.test(live.testedMerge), 'head/tested merge mismatch');
-    must(live.writerMapSha256 === projection.writerMapSha256, 'live writer map mismatch');
-    return { ...durable, activeSlice: durable.childId };
-  } catch {
-    return fail('invalid_authority_projection');
-  }
 }

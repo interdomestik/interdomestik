@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { deriveAuthorityContext } from '../current-authority-state-lib.mjs';
+import { readDurableAuthority } from '../current-authority-state.mjs';
 import { verifyExactDelivery } from './exact-delivery-lib.mjs';
 
 const GH_BINARY_CANDIDATES = ['/opt/homebrew/bin/gh', '/usr/local/bin/gh', '/usr/bin/gh'];
@@ -34,10 +37,38 @@ function commit(repo, sha) {
   return { parents: parents ? parents.split(' ') : [], tree };
 }
 
-export function collectAuthority(repo, facts, githubCall = github) {
+const sha256 = value => createHash('sha256').update(value).digest('hex');
+const json = path => JSON.parse(readFileSync(path, 'utf8'));
+function authorityState(repo) {
+  const envelopePath = join(
+    repo,
+    'docs/plans/2026-08-21-ida-wf01-one-approval-delivery-envelope-v1.json'
+  );
+  const receiptPath = join(
+    repo,
+    'docs/plans/2026-08-21-ida-wf01-one-approval-delivery-approval-receipt-r1.json'
+  );
+  const envelope = json(envelopePath);
+  return {
+    projection: json(join(repo, 'docs/plans/current-authority-v1.json')),
+    envelope,
+    approvalReceipt: json(receiptPath),
+    artifactHashes: {
+      envelopeSha256: sha256(readFileSync(envelopePath)),
+      approvalReceiptSha256: sha256(readFileSync(receiptPath)),
+    },
+    ...readDurableAuthority(envelope, {
+      durablePath: argument('durable'),
+      historyPath: argument('history'),
+    }),
+  };
+}
+
+export function collectAuthority(repo, facts, state, githubCall = github) {
   const protection = githubCall(
     'repos/interdomestik/interdomestik/branches/main/protection/required_status_checks'
   );
+  if (!state) throw new Error('durable authority state unavailable');
   const pull = githubCall(`repos/interdomestik/interdomestik/pulls/${facts.pullRequest.number}`);
   const main = githubCall('repos/interdomestik/interdomestik/git/ref/heads/main');
   if (!Array.isArray(protection.checks)) throw new Error('branch protection checks unavailable');
@@ -48,9 +79,7 @@ export function collectAuthority(repo, facts, githubCall = github) {
     ])
   );
   return {
-    projection: JSON.parse(
-      readFileSync(join(repo, 'docs/plans/current-authority-v1.json'), 'utf8')
-    ),
+    context: deriveAuthorityContext(state),
     origin: git(repo, ['remote', 'get-url', 'origin']),
     pullRequest: {
       number: pull.number,
@@ -83,7 +112,10 @@ function main() {
   try {
     const repo = resolve(argument('repo'));
     const facts = JSON.parse(readFileSync(argument('input'), 'utf8'));
-    const result = verifyExactDelivery(facts, collectAuthority(repo, facts));
+    const result = verifyExactDelivery(
+      facts,
+      collectAuthority(repo, facts, authorityState(repo), github)
+    );
     process.stdout.write(`${JSON.stringify(result)}\n`);
   } catch (error) {
     process.stderr.write(`exact delivery verification failed: ${error.message}\n`);

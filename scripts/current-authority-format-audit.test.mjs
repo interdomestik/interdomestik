@@ -5,11 +5,10 @@ import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
-import { writerMapDigest } from './current-authority-state-lib.mjs';
 
 const script = new URL('./current-authority-format-audit.mjs', import.meta.url).pathname;
 const marker =
-  'The next active governed implementation goal is exactly one canonical tracker program: `IDA-WF01-ONE-APPROVAL-DELIVERY` (Tier 3; `runtime_authorized:true`).';
+  'The next active governed implementation goal is resolved only by the external authority chain for program: `IDA-WF01-ONE-APPROVAL-DELIVERY` (Tier 3; `runtime_authorized:external`).';
 const envelopePath = 'docs/plans/2026-08-21-ida-wf01-one-approval-delivery-envelope-v1.json';
 const receiptPath = 'docs/plans/2026-08-21-ida-wf01-one-approval-delivery-approval-receipt-r1.json';
 const projectionPath = 'docs/plans/current-authority-v1.json';
@@ -87,7 +86,20 @@ function fixture() {
   const manifestSha = sha(readFileSync(join(root, manifestPath)));
   const envelope = {
     approvalEnvelope: {
-      children: [{ childId: 'S3-exact-authority', writerPaths: writers }],
+      children: [
+        {
+          order: 0,
+          childId: 'S3-exact-authority',
+          controlPlane: 'repository PR',
+          writerPaths: writers,
+        },
+        {
+          order: 1,
+          childId: 'S4A-terminal-delivery',
+          controlPlane: 'repository PR',
+          writerPaths: ['scripts/ci/terminal-delivery.mjs'],
+        },
+      ],
     },
   };
   const receipt = { approvalId: 'test-receipt' };
@@ -100,17 +112,12 @@ function fixture() {
       {
         schemaVersion: 1,
         programId: 'IDA-WF01-ONE-APPROVAL-DELIVERY',
-        sourceMain: '0'.repeat(40),
-        projectedRevision: 20,
-        projectedChild: 'S3-exact-authority',
-        projectedOperationSha256: '1'.repeat(64),
+        envelopePath,
         envelopeSha256: sha(readFileSync(join(root, envelopePath))),
+        approvalReceiptPath: receiptPath,
         approvalReceiptSha256: sha(readFileSync(join(root, receiptPath))),
-        writerPaths: writers,
-        writerMapSha256: writerMapDigest(writers),
         liveDispositionRequired: 'open',
         repositoryConsumptionRule: 'merged_closed_or_terminal_failure',
-        successorAfterHealthCleanup: 'S4A-terminal-delivery',
       },
       null,
       2
@@ -162,16 +169,19 @@ test('rejects a repointed manifest in the canonical repository', () => {
   assert.match(result.stderr, /source commit must match approved pre-compaction main/);
 });
 
-test('rejects projection writer drift from the approved envelope', () => {
+test('rejects a non-sequential approved-envelope child graph', () => {
   const { root } = fixture();
-  const path = join(root, projectionPath);
+  const path = join(root, envelopePath);
   const value = JSON.parse(readFileSync(path, 'utf8'));
-  value.writerPaths = value.writerPaths.slice(0, -1);
-  value.writerMapSha256 = writerMapDigest(value.writerPaths);
+  value.approvalEnvelope.children[1].order = 3;
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
+  const projectionPathname = join(root, projectionPath);
+  const projection = JSON.parse(readFileSync(projectionPathname, 'utf8'));
+  projection.envelopeSha256 = sha(readFileSync(path));
+  writeFileSync(projectionPathname, `${JSON.stringify(projection, null, 2)}\n`);
   const result = spawnSync(process.execPath, [script], { cwd: root, encoding: 'utf8' });
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /writer paths differ from envelope/);
+  assert.match(result.stderr, /non-sequential envelope/);
 });
 
 test('rejects a hash-matched receipt that is not JSON', () => {
