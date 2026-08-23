@@ -127,6 +127,26 @@ test('unknown tool errors retain the selected source and target identities', () 
   assert.equal(result.structuredContent.targetHead, result.structuredContent.serverSourceHead);
 });
 
+test('source attestation failures remain structured with observed identity', () => {
+  const result = JSON.parse(
+    runTypeScript(`
+      process.env.MCP_SERVER_NAME = 'interdomestik_qa';
+      process.env.MCP_SERVER_SOURCE_HEAD = '0'.repeat(40);
+      const { handleToolCall } = await import('./packages/qa/src/tool-router.ts');
+      console.log(JSON.stringify(await handleToolCall('git_status_compact', {
+        repoRoot: ${JSON.stringify(rootDir)}
+      })));
+    `)
+  );
+  assert.equal(result.isError, true);
+  assert.match(result.content[0].text, /launcher attestation/);
+  assert.equal(result.structuredContent.serverSourceRoot, fs.realpathSync.native(rootDir));
+  assert.match(result.structuredContent.serverSourceHead, /^[a-f0-9]{40}$/);
+  assert.equal(result.structuredContent.targetRepoRoot, null);
+  assert.equal(result.structuredContent.targetHead, null);
+  assert.equal(result.structuredContent.targetBranch, null);
+});
+
 test('repo file tools reject non-string paths with structured failures', () => {
   const results = JSON.parse(
     runTypeScript(`

@@ -15,10 +15,10 @@ export type ToolRepoContext = {
   targetRepoRoot: string;
 };
 
-export type ToolRepoErrorContext = Omit<
-  ToolRepoContext,
-  'repoRoot' | 'targetBranch' | 'targetHead' | 'targetRepoRoot'
-> & {
+export type ToolRepoErrorContext = {
+  repoRootSource: 'tool-argument';
+  serverSourceHead: string | null;
+  serverSourceRoot: string | null;
   targetBranch: null;
   targetHead: null;
   targetRepoRoot: null;
@@ -36,12 +36,26 @@ function gitPath(repoRoot: string, ...args: string[]): string {
   }).trim();
 }
 
+function observedServerSourceIdentity() {
+  let serverSourceRoot: string | null = null;
+  let serverSourceHead: string | null = null;
+  try {
+    serverSourceRoot = canonicalDirectory(process.env.MCP_SERVER_SOURCE_ROOT || REPO_ROOT);
+    serverSourceHead = gitPath(serverSourceRoot, 'rev-parse', '--verify', 'HEAD');
+  } catch {
+    // Preserve explicit nulls when even the observed source identity is unavailable.
+  }
+  return { serverSourceHead, serverSourceRoot };
+}
+
 function serverSourceIdentity() {
-  const serverSourceRoot = canonicalDirectory(process.env.MCP_SERVER_SOURCE_ROOT || REPO_ROOT);
+  const { serverSourceHead, serverSourceRoot } = observedServerSourceIdentity();
+  if (!serverSourceRoot || !serverSourceHead) {
+    throw new Error('MCP server source identity is unavailable');
+  }
   if (serverSourceRoot !== REPO_ROOT) {
     throw new Error('MCP server source must match the loaded QA package root');
   }
-  const serverSourceHead = gitPath(serverSourceRoot, 'rev-parse', '--verify', 'HEAD');
   const expectedHead = process.env.MCP_SERVER_SOURCE_HEAD;
   const launchedServer = process.env.MCP_SERVER_NAME === 'interdomestik_qa';
   if (launchedServer && !expectedHead) {
@@ -142,7 +156,7 @@ export function resolveToolRepoRoot(args: ToolRepoArgs): ToolRepoContext {
 export function unresolvedToolRepoContext(): ToolRepoErrorContext {
   return {
     repoRootSource: 'tool-argument',
-    ...serverSourceIdentity(),
+    ...observedServerSourceIdentity(),
     targetBranch: null,
     targetHead: null,
     targetRepoRoot: null,

@@ -47,7 +47,7 @@ async function runRepoAudit(args: any, audit: RepoAudit) {
   const result = await audit(context.repoRoot);
   return {
     ...result,
-    structuredContent: { ...result.structuredContent, ...context },
+    structuredContent: { ...(result.structuredContent ?? {}), ...context },
   };
 }
 
@@ -90,7 +90,9 @@ const handlers: Record<string, Handler> = {
 };
 
 export async function handleToolCall(name: string, args: any) {
-  let context;
+  let context:
+    ReturnType<typeof resolveToolRepoRoot> | ReturnType<typeof unresolvedToolRepoContext> =
+    unresolvedToolRepoContext();
   try {
     context = resolveToolRepoRoot(args ?? {});
     const handler = handlers[name];
@@ -110,10 +112,9 @@ export async function handleToolCall(name: string, args: any) {
     }
     return {
       ...result,
-      structuredContent: { ...result.structuredContent, ...context },
+      structuredContent: { ...(result.structuredContent ?? {}), ...context },
     };
   } catch (error: any) {
-    context ||= unresolvedToolRepoContext();
     return {
       content: [{ type: 'text', text: error?.message || 'Repo-bound tool failed' }],
       isError: true,

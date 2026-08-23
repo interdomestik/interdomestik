@@ -8,7 +8,8 @@ LAUNCHER_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RESOLVER="$LAUNCHER_ROOT/scripts/qa-mcp-control-runtime.mjs"
 CONTROL_JSON="$(node "$RESOLVER")"
 control_field() {
-  node -e 'const value = JSON.parse(process.argv[1]); process.stdout.write(value[process.argv[2]])' "$CONTROL_JSON" "$1"
+  local field="$1"
+  node -e 'const value = JSON.parse(process.argv[1]); process.stdout.write(value[process.argv[2]])' "$CONTROL_JSON" "$field"
 }
 CONTROL_ROOT="$(control_field root)"
 CONTROL_HEAD="$(control_field head)"

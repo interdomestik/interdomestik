@@ -85,6 +85,8 @@ test('Codex MCP preflight checks CLI registration and live repo QA tool discover
   const discoveryContract = readText('scripts/ci/qa-mcp-discovery-contracts.test.mjs');
 
   assert.match(preflight, /codex/);
+  assert.doesNotMatch(preflight, /console\.error\(details\)|formatError/);
+  assert.doesNotMatch(preflight, /attested control root: \$\{controlRuntime\.root\}/);
   assert.match(preflight, /mcp/);
   assert.match(preflight, /list/);
   assert.match(preflight, /--json/);
