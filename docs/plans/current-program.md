@@ -16,20 +16,18 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`IDA-WF01-ONE-APPROVAL-DELIVERY` is the only active writer program. B0, B1, S1A, and S1B are
-terminal and consumed. S2 incident recovery is bound to protected
-`main@2512bca54b200f6cdd07051a9ae3e9513ae6a1aa` by gate
-`IDA-WF-DG01-S2-TRANSPORT-INCIDENT-RECOVERY-R2` at SHA-256
-`d55c180e64659e12f22400e1e20adc08dfa1ea2821a997b6798370ea26f3b464`, admission
-`abd52f22a5b266144406714048b90ef615e7c17acb76c42a451f4ebeabd41d7b`, and receipt
-`e3353f95e703d49d8d74e238acd551ebc4f11795a7b67c50699fa9387f04329b`.
+`IDA-WF01-ONE-APPROVAL-DELIVERY` is the only active writer program. B0, B1, S1A, S1B, and S2 are
+terminal and consumed. Revision 20 activates only `S3-exact-authority` on protected
+`main@0ea6f19f50f67a02f0ee00ace2aee51b86d0006e`, operation SHA-256
+`06ca0e82cf252cf1d49382f6cde847b00d0aa40f6fb50b8f377f11ace15e1add`. The repository
+projection is [current-authority-v1.json](./current-authority-v1.json); durable authority plus live
+Git/GitHub identity remains the runtime source and fails closed on any mismatch.
 
-Revision 18 recovered only `S2-mcp-identity`. The registered runtime now equals exact protected
-main, fresh MCP discovery is healthy, and the complete A-to-B-to-A/concurrent/negative-root proof
-is terminal at SHA-256 `de3ef039658c40a064829b6adf607076532b16e4e7a6bef9d640636d3b0e21ff`.
-This projection must merge with exact-head checks, protected-main health, and clean task-owned
-cleanup before append-only revisions 19 and 20 may consume S2 and activate only
-`S3-exact-authority`. Until those conditions hold, S3 and every later child remain blocked.
+S3 binds the approved envelope, receipt, writer map, source base `B`, PR head `H`, tested merge
+`T`, returned protected main `M`, and every terminal CI lane to exact SHA/tree/run identity. Merge,
+close, or terminal failure consumes the semantic lease immediately even if ledger persistence
+lags. Only a green exact-main health and clean task-owned closeout may derive S4A; S4A, S4B, and
+every unrelated program remain blocked until then.
 
 The fixed sequence is B0 authority bootstrap, B1 CD guard, S1A skill authority, S1B routing
 standard, S2 MCP identity, S3 exact authority, S4A terminal delivery, S4B reviewer policy, then
@@ -49,9 +47,9 @@ schema, RLS, billing, provider deployment, E2E-semantic, AI OS, Docker, or unit-
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate                        | Dependencies                     | Promotion constraint                                                                          |
-| -------: | -------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------- |
-|        1 | `IDA-WF01-ONE-APPROVAL-DELIVERY` | Exact S2 recovery and live proof | Consume S2 only after this projection merges healthy, then activate S3 as the sole successor. |
+| Priority | Candidate                        | Dependencies             | Promotion constraint                                                                             |
+| -------: | -------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------ |
+|        1 | `IDA-WF01-ONE-APPROVAL-DELIVERY` | Exact S3 authority lease | Consume S3 only after exact B/H/T/M, terminal lanes, merge/main health, and cleanup prove green. |
 
 ## Selection Constraints
 
