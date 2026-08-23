@@ -1,8 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
-import { symlinkSync, unlinkSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -83,7 +82,8 @@ function s3History() {
 function s4aHistory() {
   const history = s3History();
   const merged = record(4, 'merged_consumed', 'S3-exact-authority', history.at(-1));
-  return [...history, merged, record(5, 'active', 'S4A-terminal-delivery', merged)];
+  const boundary = Object.fromEntries(Object.entries(gitBoundary()).reverse());
+  return [...history, merged, record(5, 'active', 'S4A-terminal-delivery', merged, boundary)];
 }
 function evidence(history) {
   return history.map((current, index) => {

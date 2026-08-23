@@ -35,6 +35,7 @@ function must(value, message) {
 
 export const alphabetical = (left, right) => left.localeCompare(right, 'en');
 const same = (left, right) => JSON.stringify(left) === JSON.stringify(right);
+const sameBoundary = (left, right) => Object.keys(left).every(key => left[key] === right[key]);
 const sha256 = value => createHash('sha256').update(value).digest('hex');
 export const canonicalJsonDigest = value => sha256(`${JSON.stringify(value, null, 2)}\n`);
 
@@ -239,7 +240,7 @@ function validateHistory(history, durable, children, projection, evidence) {
     must(movement === 0 || movement === 1, 'durable child sequence mismatch');
     validateEvidence(evidence[index], current, previous, movement);
     if (movement === 1)
-      must(same(current.boundary, previous.boundary), 'successor boundary mismatch');
+      must(sameBoundary(current.boundary, previous.boundary), 'successor boundary mismatch');
     const artifactChanged =
       current.envelopeSha256 !== previous.envelopeSha256 ||
       current.approvalReceiptSha256 !== previous.approvalReceiptSha256;
