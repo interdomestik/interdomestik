@@ -125,6 +125,13 @@ test('Codex registration inspection cannot inherit project-local MCP overrides',
   assert.match(preflight, /readCodexMcpServers\(registrationInspectionCwd\)/);
   assert.match(preflight, /readCodexMcpServer\('interdomestik_qa', registrationInspectionCwd\)/);
   assert.match(preflight, /readCodexMcpServers\(rootDir\)/);
+  assert.match(preflight, /readCodexMcpServer\('interdomestik_qa', rootDir\)/);
+  assert.match(
+    preflight,
+    /verifyProjectCodexRegistrations\(projectCodexServers, projectRepoQaServer\)/
+  );
+  assert.match(preflight, /qaArgs\.length !== 1/);
+  assert.match(preflight, /expectedRelativeLauncher = 'scripts\/start-repo-qa\.sh'/);
   assert.match(preflight, /\['--test', 'scripts\/ci\/qa-mcp-discovery-contracts\.test\.mjs'\]/);
 });
 

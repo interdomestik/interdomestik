@@ -186,7 +186,11 @@ function verifyRepoQaTransport(qaServer) {
   }
   const qaArgs = qaServer.transport?.args ?? [];
   const expectedAbsoluteLauncher = path.join(controlRuntime.root, 'scripts/start-repo-qa.sh');
-  if (!qaArgs.includes(expectedAbsoluteLauncher)) {
+  const expectedRelativeLauncher = 'scripts/start-repo-qa.sh';
+  if (
+    qaArgs.length !== 1 ||
+    (qaArgs[0] !== expectedAbsoluteLauncher && qaArgs[0] !== expectedRelativeLauncher)
+  ) {
     fail('interdomestik_qa must use scripts/start-repo-qa.sh in Codex MCP registration.');
   }
 
@@ -214,8 +218,10 @@ function verifyUserCodexRegistration(servers, qaServerDetails) {
   verifyRepoQaEnabledTools(qaServerDetails);
 }
 
-function verifyProjectCodexRegistrations(servers) {
-  verifyEnabledCodexServers(servers, requiredCodexServers, 'project');
+function verifyProjectCodexRegistrations(servers, qaServerDetails) {
+  const byName = verifyEnabledCodexServers(servers, requiredCodexServers, 'project');
+  verifyRepoQaTransport(byName.get('interdomestik_qa'));
+  verifyRepoQaEnabledTools(qaServerDetails);
 }
 
 async function verifyRepoQaLiveTools() {
@@ -249,7 +255,8 @@ async function main() {
   }
 
   const projectCodexServers = await readCodexMcpServers(rootDir);
-  verifyProjectCodexRegistrations(projectCodexServers);
+  const projectRepoQaServer = await readCodexMcpServer('interdomestik_qa', rootDir);
+  verifyProjectCodexRegistrations(projectCodexServers, projectRepoQaServer);
   await verifyRepoQaLiveTools();
 
   console.log('Codex MCP preflight passed.');
