@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 1,
+  "repository": "interdomestik/interdomestik",
+  "deliveryContext": {
+    "context": "delivery-gate",
+    "appId": 15368
+  },
+  "finalizerLeafPrerequisites": [
+    { "context": "audit", "appId": 15368 },
+    { "context": "e2e", "appId": 15368 },
+    { "context": "pnpm-audit", "appId": 15368 },
+    { "context": "gitleaks", "appId": 15368 },
+    { "context": "pilot-gate", "appId": 15368 },
+    { "context": "validation-surface", "appId": 15368 },
+    { "context": "commitlint", "appId": 15368 }
+  ],
+  "providerRequiredContexts": [
+    { "context": "audit", "appId": 15368 },
+    { "context": "e2e", "appId": 15368 },
+    { "context": "pnpm-audit", "appId": 15368 },
+    { "context": "gitleaks", "appId": 15368 },
+    { "context": "pilot-gate", "appId": 15368 },
+    { "context": "validation-surface", "appId": 15368 },
+    { "context": "pr-finalizer", "appId": 15368 },
+    { "context": "commitlint", "appId": 15368 }
+  ],
+  "deliveryPrerequisites": [
+    {
+      "context": "audit",
+      "appId": 15368,
+      "classification": "provider",
+      "requirement": "required",
+      "skipWhen": null,
+      "finalConclusions": ["success"]
+    },
+    {
+      "context": "e2e",
+      "appId": 15368,
+      "classification": "provider",
+      "requirement": "required",
+      "skipWhen": null,
+      "finalConclusions": ["success"]
+    },
+    {
+      "context": "pnpm-audit",
+      "appId": 15368,
+      "classification": "provider",
+      "requirement": "required",
+      "skipWhen": null,
+      "finalConclusions": ["success"]
+    },
+    {
+      "context": "gitleaks",
+      "appId": 15368,
+      "classification": "provider",
+      "requirement": "required",
+      "skipWhen": null,
+      "finalConclusions": ["success"]
+    },
+    {
+      "context": "pilot-gate",
+      "appId": 15368,
+      "classification": "provider",
+      "requirement": "required",
+      "skipWhen": null,
+      "finalConclusions": ["success"]
+    },
+    {
+      "context": "validation-surface",
+      "appId": 15368,
+      "classification": "provider",
+      "requirement": "required",
+      "skipWhen": null,
+      "finalConclusions": ["success"]
+    },
+    {
+      "context": "pr-finalizer",
+      "appId": 15368,
+      "classification": "provider",
+      "requirement": "required",
+      "skipWhen": null,
+      "finalConclusions": ["success"]
+    },
+    {
+      "context": "commitlint",
+      "appId": 15368,
+      "classification": "provider",
+      "requirement": "required",
+      "skipWhen": null,
+      "finalConclusions": ["success"]
+    },
+    {
+      "context": "static",
+      "appId": 15368,
+      "classification": "validation-surface",
+      "requirement": "required",
+      "skipWhen": "non_product_only_pr",
+      "finalConclusions": ["success"]
+    },
+    {
+      "context": "unit",
+      "appId": 15368,
+      "classification": "validation-surface",
+      "requirement": "required",
+      "skipWhen": "non_product_only_pr",
+      "finalConclusions": ["success"]
+    },
+    {
+      "context": "e2e-gate",
+      "appId": 15368,
+      "classification": "validation-surface",
+      "requirement": "required",
+      "skipWhen": "non_product_only_pr",
+      "finalConclusions": ["success"]
+    },
+    {
+      "context": "SonarCloud Code Analysis",
+      "appId": 12526,
+      "classification": "generator",
+      "requirement": "required",
+      "skipWhen": null,
+      "finalConclusions": ["success"]
+    },
+    {
+      "context": "CodeQL",
+      "appId": 57789,
+      "classification": "generator",
+      "requirement": "required",
+      "skipWhen": null,
+      "finalConclusions": ["success"]
+    },
+    {
+      "context": "Semgrep OSS",
+      "appId": 57789,
+      "classification": "generator",
+      "requirement": "optional",
+      "skipWhen": null,
+      "finalConclusions": ["success"]
+    }
+  ],
+  "generatorAppIds": [12526, 57789],
+  "feedbackAuthors": [
+    "chatgpt-codex-connector",
+    "copilot",
+    "copilot-pull-request-reviewer",
+    "openai-codex",
+    "sonarqubecloud",
+    "vercel"
+  ],
+  "actionableFeedbackPatterns": [
+    "Suppressed comments\\s*\\([1-9][0-9]*\\)",
+    "Previously missed\\s*\\([1-9][0-9]*\\)",
+    "badge/P[0-2](?:-|\\b)",
+    "\\bP[0-2]\\s*(?:finding|issue|:|-)"
+  ],
+  "quiescenceMs": 20000
+}

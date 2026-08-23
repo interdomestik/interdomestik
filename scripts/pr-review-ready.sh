@@ -8,11 +8,9 @@ Usage: bash scripts/pr-review-ready.sh [PR_NUMBER]
 Runs the Interdomestik PR reviewer sequence gate:
   1. pr-finalizer with check polling enabled
   2. boundary taxonomy no-touch check
-  3. governance report strict mode for Copilot and Codex review signals
+  3. governance report strict mode for terminal delivery and Codex review signals
 
 Waiver environment variables, when explicitly accepted:
-  PR_REVIEW_READY_ALLOW_MISSING_COPILOT=true
-  PR_REVIEW_READY_ALLOW_MISSING_CODEX=true
   PR_REVIEW_READY_ALLOW_NO_TOUCH=true
   PR_REVIEW_READY_NO_TOUCH_REASON="approved release-gate/governance change"
 
@@ -37,6 +35,8 @@ if [[ -n "${input_pr_number}" && ! "${input_pr_number}" =~ ^[0-9]+$ ]]; then
 fi
 
 export PR_FINALIZER_SKIP_CHECK_POLLING="${PR_FINALIZER_SKIP_CHECK_POLLING:-false}"
+PR_DELIVERY_CONTRACT="${PR_DELIVERY_CONTRACT:-scripts/ci/pr-delivery-contract.json}"
+export PR_DELIVERY_CONTRACT
 NO_TOUCH_AUTH_LABEL="phase-c-no-touch-authorized"
 
 env_flag() {
@@ -144,6 +144,11 @@ run_boundary_check() {
   fi
 }
 
+jq -e '
+  .schemaVersion == 1
+  and .deliveryContext.context == "delivery-gate"
+  and ([.finalizerLeafPrerequisites[].context] | index("delivery-gate") | not)
+' "${PR_DELIVERY_CONTRACT}" >/dev/null
 GITHUB_EVENT_PATH="" bash scripts/pr-finalizer.sh
 run_boundary_check
 node scripts/github-pr-governance-report.mjs --strict ${pr_number:+"${pr_number}"}

@@ -9,7 +9,8 @@ Runs local finalization checks for PR readiness:
   - verifies clean git working tree
   - classifies the PR validation surface before choosing local/runtime gates
   - runs runtime local checks for runtime-sensitive PRs
-  - validates required checks, Sonar issues/hotspots, and review threads
+  - validates manifest-declared leaf checks and review threads
+  - defers asynchronous generator adjudication to the terminal delivery gate
 
 Environment:
   PR_FINALIZER_SKIP_CHECK_POLLING=true|false
@@ -20,10 +21,7 @@ Environment:
 EOF
 }
 
-required_checks=(
-  "validation-surface" "audit" "e2e" "pilot-gate"
-  "pnpm-audit" "gitleaks" "pr-finalizer" "commitlint"
-)
+PR_DELIVERY_CONTRACT="${PR_DELIVERY_CONTRACT:-scripts/ci/pr-delivery-contract.json}"
 max_check_retries="${PR_FINALIZER_MAX_CHECK_RETRIES:-120}"
 check_retry_delay_seconds=10
 
@@ -36,9 +34,14 @@ run_step() {
 
 resolve_matching_checks() {
   local check_name="$1"
-  local checks="$2"
+  local app_id="$2"
+  local checks="$3"
 
-  echo "${checks}" | jq --arg NAME "$check_name" '[.check_runs[] | select((.name//.workflow_name//"")==$NAME)] | sort_by(.started_at//.completed_at//.created_at//"") | if length>0 then [.[-1]] else [] end'
+  echo "${checks}" | jq --arg NAME "$check_name" --argjson APP_ID "$app_id" '
+    [.check_runs[] | select((.name//.workflow_name//"")==$NAME and .app.id==$APP_ID)]
+    | sort_by(.started_at//.completed_at//.created_at//"")
+    | if length>0 then [.[-1]] else [] end
+  '
 }
 
 fail() {
@@ -48,6 +51,8 @@ fail() {
 
 # shellcheck source=scripts/pr-finalizer-lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/pr-finalizer-lib.sh"
+# shellcheck source=scripts/pr-finalizer-feedback-lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/pr-finalizer-feedback-lib.sh"
 
 require_clean_tree() {
   if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
@@ -134,25 +139,19 @@ require_gh_checks() {
   fi
 
   local checks_json
-  checks_json="$(gh api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${head_sha}/check-runs?filter=latest&per_page=100")"
+  checks_json="$(gh api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${head_sha}/check-runs?filter=all&per_page=100")"
   if [[ -z "${checks_json}" || "${checks_json}" == "null" ]]; then
     fail "unable to read check runs for commit ${head_sha}"
   fi
 
-  local -a active_required_checks=()
-  mapfile -t active_required_checks < <(required_check_names)
-
-  for check_name in "${active_required_checks[@]}"; do
-    # Skip validating the finalizer job itself to avoid circular dependency checks.
-    if [[ "${check_name}" == "pr-finalizer" ]]; then
-      continue
-    fi
+  local check_name app_id
+  while IFS=$'	' read -r check_name app_id; do
 
     local matching_checks
     local check_result
     local check_count
 
-    matching_checks="$(resolve_matching_checks "${check_name}" "${checks_json}")"
+    matching_checks="$(resolve_matching_checks "${check_name}" "${app_id}" "${checks_json}")"
 
     for attempt in $(seq 1 "${max_check_retries}"); do
       check_count="$(echo "${matching_checks}" | jq 'length')"
@@ -163,8 +162,8 @@ require_gh_checks() {
 
         echo "[pr-finalizer] INFO: '${check_name}' check is not present yet. Retrying in ${check_retry_delay_seconds}s..."
         sleep "${check_retry_delay_seconds}"
-        checks_json="$(gh api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${head_sha}/check-runs?filter=latest&per_page=100")"
-        matching_checks="$(resolve_matching_checks "${check_name}" "${checks_json}")"
+        checks_json="$(gh api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${head_sha}/check-runs?filter=all&per_page=100")"
+        matching_checks="$(resolve_matching_checks "${check_name}" "${app_id}" "${checks_json}")"
         continue
       fi
 
@@ -184,145 +183,16 @@ require_gh_checks() {
 
       echo "[pr-finalizer] INFO: '${check_name}' checks still running (${in_progress_count} in progress). Retrying in ${check_retry_delay_seconds}s..."
       sleep "${check_retry_delay_seconds}"
-      checks_json="$(gh api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${head_sha}/check-runs?filter=latest&per_page=100")"
-      matching_checks="$(resolve_matching_checks "${check_name}" "${checks_json}")"
+      checks_json="$(gh api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${head_sha}/check-runs?filter=all&per_page=100")"
+      matching_checks="$(resolve_matching_checks "${check_name}" "${app_id}" "${checks_json}")"
     done
 
     check_result="$(echo "${matching_checks}" | jq 'map(select((.status | ascii_downcase) != "completed" or (.conclusion | ascii_downcase) != "success")) | length')"
     if [[ "${check_result}" -ne 0 ]]; then
       fail "required checks for '${check_name}' are not passing (found: ${check_result} non-passing)"
     fi
-  done
-
-  require_feedback_checks_green "${checks_json}"
-
-  # Review-thread-level unresolved checks vary by gh API version; keep this step intentionally
-  # aligned to available fields and enforce unresolved threads via GraphQL.
-}
-
-require_review_threads_resolved() {
-  local gh_token="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
-  if [[ -n "${gh_token}" ]]; then
-    export GH_TOKEN="${gh_token}"
-  fi
-
-  if ! command -v gh >/dev/null 2>&1; then
-    fail "GitHub CLI (gh) is required for review-thread validation"
-  fi
-  if ! command -v jq >/dev/null 2>&1; then
-    fail "jq is required for review-thread parsing"
-  fi
-
-  local pr_number
-  pr_number="$(pr_context)"
-  if [[ -z "${pr_number}" || "${pr_number}" == "null" ]]; then
-    fail "unable to resolve pull request number for review-thread validation"
-  fi
-
-  local repo="${GITHUB_REPOSITORY:-}"
-  if [[ -z "${repo}" ]]; then
-    repo="$(git remote get-url origin 2>/dev/null | sed -E 's#(git@github.com:|https://github.com/)##; s#\.git$##' || true)"
-  fi
-  if [[ -z "${repo}" ]]; then
-    fail "unable to resolve repository context for review-thread validation"
-  fi
-
-  local owner repo_name
-  owner="${repo%%/*}"
-  repo_name="${repo##*/}"
-  if [[ -z "${owner}" || -z "${repo_name}" ]]; then
-    fail "unable to parse owner/repo from '${repo}'"
-  fi
-
-  local query
-  query="$(cat <<'GRAPHQL'
-query($owner: String!, $repo: String!, $prNumber: Int!, $cursor: String) {
-  repository(owner: $owner, name: $repo) {
-    pullRequest(number: $prNumber) {
-      reviewThreads(first: 100, after: $cursor) {
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
-        nodes {
-          isResolved
-          comments(first: 20) {
-            nodes {
-              url
-              author {
-                login
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
-GRAPHQL
-)"
-
-  local cursor=""
-  local unresolved_total=0
-  local -a unresolved_samples=()
-
-  while true; do
-    local response
-    if [[ -z "${cursor}" ]]; then
-      response="$(gh api graphql -f query="${query}" -f owner="${owner}" -f repo="${repo_name}" -F prNumber="${pr_number}")"
-    else
-      response="$(gh api graphql -f query="${query}" -f owner="${owner}" -f repo="${repo_name}" -F prNumber="${pr_number}" -f cursor="${cursor}")"
-    fi
-
-    local threads_path=".data.repository.pullRequest.reviewThreads"
-    if [[ "$(echo "${response}" | jq -r "${threads_path} == null")" == "true" ]]; then
-      fail "unable to read review threads from GitHub GraphQL API"
-    fi
-
-    local thread_url thread_authors
-    while IFS=$'\t' read -r thread_url thread_authors; do
-      if [[ -z "${thread_url}${thread_authors}" ]]; then
-        continue
-      fi
-      unresolved_total=$((unresolved_total + 1))
-      if [[ "${#unresolved_samples[@]}" -lt 5 ]]; then
-        unresolved_samples+=("${thread_url} [authors=${thread_authors}]")
-      fi
-    done < <(
-      echo "${response}" | jq -r '
-        .data.repository.pullRequest.reviewThreads.nodes[]
-        | select(.isResolved == false)
-        | [
-            (.comments.nodes[0].url // "n/a"),
-            (([.comments.nodes[].author.login // "unknown"] | unique | join(",")))
-          ]
-        | @tsv
-      '
-    )
-
-    local has_next_page
-    has_next_page="$(echo "${response}" | jq -r "${threads_path}.pageInfo.hasNextPage")"
-    if [[ "${has_next_page}" != "true" ]]; then
-      break
-    fi
-
-    cursor="$(echo "${response}" | jq -r "${threads_path}.pageInfo.endCursor")"
-    if [[ -z "${cursor}" || "${cursor}" == "null" ]]; then
-      break
-    fi
-  done
-
-  if [[ "${unresolved_total}" -gt 0 ]]; then
-    echo "[pr-finalizer] FAIL: unresolved review threads: ${unresolved_total}" >&2
-    if [[ "${#unresolved_samples[@]}" -gt 0 ]]; then
-      echo "[pr-finalizer] Sample unresolved threads:" >&2
-      local sample
-      for sample in "${unresolved_samples[@]}"; do
-        echo "  - ${sample}" >&2
-      done
-    fi
-    fail "resolve all review threads, then rerun finalizer"
-  fi
+  done < <(required_check_records)
+  defer_async_generators
 }
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
@@ -334,7 +204,6 @@ require_clean_tree
 classify_pr
 run_local_verifications
 require_gh_checks
-require_sonar_clean
 require_review_threads_resolved
 
-echo "[pr-finalizer] PASS: working tree, PR classification, local checks, CI/Sonar feedback, and review threads all pass"
+echo "[pr-finalizer] PASS: local checks, manifest leaf prerequisites, and review threads pass"
