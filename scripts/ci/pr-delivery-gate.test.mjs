@@ -12,6 +12,7 @@ import {
 } from './pr-delivery-gate.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const gateSource = fs.readFileSync(path.join(root, 'scripts/ci/pr-delivery-gate.mjs'), 'utf8');
 const contract = JSON.parse(
   fs.readFileSync(path.join(root, 'scripts/ci/pr-delivery-contract.json'), 'utf8')
 );
@@ -132,6 +133,11 @@ test('event binding accepts only the three PR-family sources', () => {
   ]) {
     assert.equal(eventPullNumber(name, event, contract), null);
   }
+});
+
+test('runtime event input uses the shared trusted-runner file boundary', () => {
+  assert.match(gateSource, /readTrustedRunnerFile\(process\.env\.GITHUB_EVENT_PATH\)/u);
+  assert.doesNotMatch(gateSource, /readFileSync\(eventPath/u);
 });
 
 test('a complete same-head snapshot with exact B/H/T and success conclusions passes', () => {

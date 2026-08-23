@@ -51,7 +51,6 @@ fetch_check_runs() {
   gh api --paginate --slurp -H "${GH_ACCEPT_HEADER}" \
     "repos/${repo}/commits/${head_sha}/check-runs?filter=all&per_page=100" \
     | jq '{check_runs: [.[].check_runs[]]}'
-  return 0
 }
 
 fail() {

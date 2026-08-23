@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { evaluateValidationSurface } from './validation-surface-policy-lib.mjs';
+import { readTrustedRunnerFile } from './trusted-runner-file.mjs';
 import {
   eventPullNumber,
   evaluateDeliveryChecks,
@@ -245,8 +246,7 @@ async function main() {
     const contract = validateDeliveryContract(JSON.parse(fs.readFileSync(contractPath, 'utf8')));
     const repository = argument('repository', process.env.GITHUB_REPOSITORY);
     const number = Number(argument('pr', process.env.PR_NUMBER));
-    const eventPath = process.env.GITHUB_EVENT_PATH ?? '';
-    const event = eventPath ? JSON.parse(fs.readFileSync(eventPath, 'utf8')) : null;
+    const event = JSON.parse(readTrustedRunnerFile(process.env.GITHUB_EVENT_PATH));
     const expected = {
       base: argument('base', process.env.EXPECTED_BASE_SHA),
       head: argument('head', process.env.EXPECTED_HEAD_SHA),
