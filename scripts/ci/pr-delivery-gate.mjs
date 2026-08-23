@@ -12,7 +12,33 @@ import {
 } from '../github-pr-governance-report.mjs';
 
 export { validateDeliveryContract };
-const sleep = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
+const MAX_ATTEMPTS = 360;
+const waitForPoll = () => new Promise(resolve => setTimeout(resolve, 15_000));
+const waitForQuiescence = () => new Promise(resolve => setTimeout(resolve, 20_000));
+const GITHUB_API_ORIGIN = 'https://api.github.com';
+const SAFE_ENDPOINT = /^[a-z0-9._~!$&'()*+,;=:@/?-]+$/iu;
+
+export function trustedGitHubApiUrl(endpoint) {
+  if (typeof endpoint !== 'string' || endpoint.length > 500 || !SAFE_ENDPOINT.test(endpoint)) {
+    fail('GitHub API endpoint contains unsafe characters');
+  }
+  const url = new URL(endpoint, `${GITHUB_API_ORIGIN}/`);
+  const trustedPath =
+    url.pathname === '/graphql' || url.pathname.startsWith('/repos/interdomestik/interdomestik/');
+  const trustedQuery = [...url.searchParams].every(([key, value]) => {
+    if (!['filter', 'page', 'per_page'].includes(key)) return false;
+    return key === 'filter' ? value === 'all' : /^[1-9][0-9]*$/u.test(value);
+  });
+  const boundaryViolated =
+    url.origin !== GITHUB_API_ORIGIN ||
+    !trustedPath ||
+    url.username ||
+    url.password ||
+    url.hash ||
+    !trustedQuery;
+  if (boundaryViolated) fail('GitHub API endpoint escaped the trusted boundary');
+  return url;
+}
 
 function fail(message, waiting = false) {
   throw new Error(`${waiting ? 'WAIT: ' : ''}${message}`);
@@ -33,9 +59,9 @@ class GitHubClient {
     this.fetch = fetchImpl;
     this.jobCache = new Map();
   }
-
   async request(endpoint, options = {}) {
-    const response = await this.fetch(`https://api.github.com/${endpoint}`, {
+    const url = trustedGitHubApiUrl(endpoint);
+    const response = await this.fetch(url, {
       ...options,
       headers: {
         Accept: 'application/vnd.github+json',
@@ -43,11 +69,10 @@ class GitHubClient {
         'X-GitHub-Api-Version': '2022-11-28',
         ...options.headers,
       },
-    });
+    }); // NOSONAR -- trustedGitHubApiUrl enforces the exact origin, path and query-key boundary.
     if (!response.ok) fail(`GitHub API ${endpoint} returned ${response.status}`);
     return response.json();
   }
-
   async pages(endpoint, key = null) {
     const values = [];
     for (let page = 1; ; page += 1) {
@@ -59,7 +84,6 @@ class GitHubClient {
       if (batch.length < 100) return values;
     }
   }
-
   async graphql(query, variables) {
     const payload = await this.request('graphql', {
       method: 'POST',
@@ -69,7 +93,6 @@ class GitHubClient {
     if (payload.errors?.length) fail(`GitHub GraphQL error: ${payload.errors[0].message}`);
     return payload.data;
   }
-
   async runIdentity(check) {
     if (check.app.id !== 15368) return { runId: check.id, runAttempt: 1 };
     if (this.jobCache.has(check.id)) return this.jobCache.get(check.id);
@@ -81,7 +104,6 @@ class GitHubClient {
     return identity;
   }
 }
-
 async function collectChecks(client, head, contract) {
   const rawChecks = await client.pages(
     `repos/${client.repository}/commits/${head}/check-runs?filter=all`,
@@ -127,7 +149,6 @@ async function collectChecks(client, head, contract) {
   }
   return checks;
 }
-
 async function collectThreads(client, number) {
   const [owner, name] = client.repository.split('/');
   const nodes = [];
@@ -143,7 +164,6 @@ async function collectThreads(client, number) {
   } while (cursor);
   return nodes;
 }
-
 async function collectFeedback(client, pull) {
   const base = `repos/${client.repository}`;
   const [reviews, issueComments, reviewComments, threads] = await Promise.all([
@@ -237,8 +257,6 @@ async function main() {
       testedMerge: argument('tested-merge', process.env.EXPECTED_TESTED_MERGE_SHA),
     };
     const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN ?? '';
-    const maxAttempts = Number(argument('max-attempts', '360'));
-    const pollMs = Number(argument('poll-ms', '15000'));
     if (
       repository !== contract.repository ||
       !Number.isSafeInteger(number) ||
@@ -249,7 +267,7 @@ async function main() {
     }
     const client = new GitHubClient(repository, token);
     let firstDigest = '';
-    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
       try {
         const snapshot = await collectSnapshot(client, contract, expected, number);
         const result = evaluateDeliverySnapshot(contract, snapshot);
@@ -263,13 +281,13 @@ async function main() {
           return;
         }
         firstDigest = digest;
-        await sleep(contract.quiescenceMs);
+        await waitForQuiescence();
       } catch (error) {
         if (!error.message.startsWith('WAIT:')) throw error;
         firstDigest = '';
-        if (attempt === maxAttempts) throw error;
+        if (attempt === MAX_ATTEMPTS) throw error;
         process.stderr.write(`[delivery-gate] ${error.message}\n`);
-        await sleep(pollMs);
+        await waitForPoll();
       }
     }
     fail('delivery gate exhausted attempts');

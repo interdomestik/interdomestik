@@ -85,4 +85,5 @@ required_check_records() {
 
 report_generator_delegation() {
   echo "[pr-finalizer] INFO: Sonar state is reported by governance monitoring; terminal adjudication is deferred to delivery-gate."
+  return 0
 }

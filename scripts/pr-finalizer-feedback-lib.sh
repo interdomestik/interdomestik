@@ -9,6 +9,7 @@ defer_async_generators() {
   [[ "${count}" -gt 0 ]] || fail "delivery contract has no generator declarations"
   report_generator_delegation
   echo "[pr-finalizer] INFO: ${count} generator contexts defer to delivery-gate."
+  return 0
 }
 
 require_review_threads_resolved() {
@@ -43,4 +44,5 @@ require_review_threads_resolved() {
     [[ -n "${cursor}" && "${cursor}" != "null" ]] || fail "review-thread pagination cursor missing"
   done
   [[ "${unresolved}" -eq 0 ]] || fail "unresolved review threads: ${unresolved}"
+  return 0
 }

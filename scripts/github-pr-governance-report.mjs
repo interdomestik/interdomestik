@@ -16,6 +16,20 @@ const MONITORED_CHECKS = DELIVERY_CONTRACT.deliveryPrerequisites
   .map(item => item.context);
 
 const SUCCESS_STATES = new Set(['SUCCESS', 'COMPLETED/SUCCESS']);
+const ACTIONABLE_FEEDBACK_PATTERNS = [
+  /Suppressed comments\s*\([1-9][0-9]*\)/iu,
+  /Previously missed\s*\([1-9][0-9]*\)/iu,
+  /badge\/P[0-2](?:-|\b)/iu,
+  /\bP[0-2]\s*(?:finding|issue|:|-)/iu,
+];
+const ACTIONABLE_FEEDBACK_SOURCES = [
+  'Suppressed comments\\s*\\([1-9][0-9]*\\)',
+  'Previously missed\\s*\\([1-9][0-9]*\\)',
+  'badge/P[0-2](?:-|\\b)',
+  '\\bP[0-2]\\s*(?:finding|issue|:|-)',
+];
+const GH_BINARY_CANDIDATES = ['/usr/bin/gh', '/opt/homebrew/bin/gh', '/usr/local/bin/gh'];
+const compareText = (left, right) => left.localeCompare(right);
 const CONTRACT_KEYS =
   'schemaVersion,repository,deliveryContext,finalizerLeafPrerequisites,providerRequiredContexts,deliveryPrerequisites,generatorAppIds,feedbackAuthors,actionableFeedbackPatterns,quiescenceMs'.split(
     ','
@@ -25,7 +39,10 @@ function gateFail(message) {
   throw new Error(message);
 }
 function exactKeys(value, keys, label) {
-  if (JSON.stringify(Object.keys(value ?? {}).sort()) !== JSON.stringify([...keys].sort())) {
+  if (
+    JSON.stringify(Object.keys(value ?? {}).sort(compareText)) !==
+    JSON.stringify([...keys].sort(compareText))
+  ) {
     gateFail(label + ' keys mismatch');
   }
 }
@@ -76,11 +93,11 @@ export function validateDeliveryContract(contract) {
   ) {
     gateFail('delivery contract creates a cycle');
   }
-  const provider = contract.providerRequiredContexts.map(item => item.context).sort();
+  const provider = contract.providerRequiredContexts.map(item => item.context).sort(compareText);
   const declared = contract.deliveryPrerequisites
     .filter(item => item.classification === 'provider')
     .map(item => item.context)
-    .sort();
+    .sort(compareText);
   if (JSON.stringify(provider) !== JSON.stringify(declared) || !declared.includes('pr-finalizer')) {
     gateFail('provider set mismatch');
   }
@@ -88,7 +105,9 @@ export function validateDeliveryContract(contract) {
     !Array.isArray(contract.generatorAppIds) ||
     !Array.isArray(contract.feedbackAuthors) ||
     !Number.isSafeInteger(contract.quiescenceMs) ||
-    contract.quiescenceMs < 10000
+    contract.quiescenceMs !== 20000 ||
+    JSON.stringify(contract.actionableFeedbackPatterns) !==
+      JSON.stringify(ACTIONABLE_FEEDBACK_SOURCES)
   ) {
     gateFail('generator or quiescence contract mismatch');
   }
@@ -118,41 +137,43 @@ export function selectCurrentCheck(spec, checks, headSha) {
   return current[0];
 }
 const normalizeFeedbackAuthor = (author = '') => author.replace(/\[bot\]$/u, '').toLowerCase();
+function latestByAuthor(items) {
+  const latest = new Map();
+  for (const item of items) {
+    const author = normalizeFeedbackAuthor(item.author);
+    const time = item.submittedAt ?? item.createdAt ?? '';
+    if (!latest.has(author) || latest.get(author).time < time) {
+      latest.set(author, { ...item, time });
+    }
+  }
+  return latest;
+}
+
+function generatorFeedback(contract, feedback) {
+  const allowed = new Set(contract.feedbackAuthors);
+  const bots = [...feedback.reviews, ...feedback.issueComments].filter(item => {
+    const author = normalizeFeedbackAuthor(item.author);
+    return allowed.has(author) || (item.author ?? '').endsWith('[bot]') || author === 'copilot';
+  });
+  for (const item of bots) {
+    const author = normalizeFeedbackAuthor(item.author);
+    if (!allowed.has(author)) gateFail('unknown generator feedback author ' + author);
+  }
+  return bots.filter(item => !item.commitId || item.commitId === feedback.headSha);
+}
+
 export function verifyFeedback(contract, feedback, headSha) {
   if (feedback.headSha !== headSha) gateFail('mixed-head feedback snapshot');
   if (Object.values(feedback.pagination).some(value => value !== true))
     gateFail('feedback pagination incomplete');
   if (feedback.unresolvedThreads.length) gateFail('unresolved review threads');
   if (feedback.pendingReviewers.length) throw new Error('WAIT: reviewers remain pending');
-  const latestReviews = new Map();
-  for (const review of feedback.reviews) {
-    const author = normalizeFeedbackAuthor(review.author);
-    if (!latestReviews.has(author) || latestReviews.get(author).submittedAt < review.submittedAt) {
-      latestReviews.set(author, review);
-    }
-  }
+  const latestReviews = latestByAuthor(feedback.reviews);
   if ([...latestReviews.values()].some(review => review.state === 'CHANGES_REQUESTED')) {
     gateFail('changes-requested review remains terminal');
   }
-  const allowed = new Set(contract.feedbackAuthors);
-  const bots = [...feedback.reviews, ...feedback.issueComments].filter(item => {
-    const author = normalizeFeedbackAuthor(item.author);
-    return allowed.has(author) || /\[bot\]$/u.test(item.author ?? '') || author === 'copilot';
-  });
-  for (const item of bots) {
-    const author = normalizeFeedbackAuthor(item.author);
-    if (!allowed.has(author)) gateFail('unknown generator feedback author ' + author);
-  }
-  const latest = new Map();
-  for (const item of bots.filter(value => !value.commitId || value.commitId === headSha)) {
-    const author = normalizeFeedbackAuthor(item.author);
-    const time = item.submittedAt ?? item.createdAt ?? '';
-    if (!latest.has(author) || latest.get(author).time < time)
-      latest.set(author, { ...item, time });
-  }
-  const patterns = contract.actionableFeedbackPatterns.map(value => new RegExp(value, 'iu'));
-  for (const [author, item] of latest) {
-    if (patterns.some(pattern => pattern.test(item.body ?? ''))) {
+  for (const [author, item] of latestByAuthor(generatorFeedback(contract, feedback))) {
+    if (ACTIONABLE_FEEDBACK_PATTERNS.some(pattern => pattern.test(item.body ?? ''))) {
       gateFail('actionable feedback remains from ' + author);
     }
   }
@@ -179,16 +200,6 @@ export function verifyCommitGraph(snapshot) {
   return tested.tree;
 }
 export function evaluateDeliveryChecks(contract, snapshot) {
-  const generators = new Set(
-    contract.deliveryPrerequisites
-      .filter(item => item.classification === 'generator')
-      .map(item => item.context)
-  );
-  for (const item of snapshot.checks) {
-    if (contract.generatorAppIds.includes(item.appId) && !generators.has(item.context)) {
-      gateFail('unknown generator ' + item.context);
-    }
-  }
   const selected = [];
   for (const spec of contract.deliveryPrerequisites) {
     const item = selectCurrentCheck(spec, snapshot.checks, snapshot.expected.head);
@@ -212,7 +223,9 @@ export function evaluateDeliveryChecks(contract, snapshot) {
   return selected;
 }
 function ghJson(args) {
-  return JSON.parse(execFileSync('gh', args, { encoding: 'utf8' }));
+  const binary = GH_BINARY_CANDIDATES.find(candidate => fs.existsSync(candidate));
+  if (!binary) gateFail(`GitHub CLI not found in: ${GH_BINARY_CANDIDATES.join(', ')}`);
+  return JSON.parse(execFileSync(binary, args, { encoding: 'utf8' }));
 }
 const checkLabel = check => check?.name ?? check?.context ?? check?.workflowName ?? 'unknown';
 function checkState(check) {

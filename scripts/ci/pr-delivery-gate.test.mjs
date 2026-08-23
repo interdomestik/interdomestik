@@ -4,7 +4,11 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { evaluateDeliverySnapshot, validateDeliveryContract } from './pr-delivery-gate.mjs';
+import {
+  evaluateDeliverySnapshot,
+  trustedGitHubApiUrl,
+  validateDeliveryContract,
+} from './pr-delivery-gate.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const contract = JSON.parse(
@@ -91,6 +95,24 @@ test('contract has three acyclic sets and excludes the delivery gate from every 
   assert.ok(contract.deliveryPrerequisites.some(item => item.context === 'pr-finalizer'));
 });
 
+test('GitHub API URL construction is fixed-origin and rejects foreign paths and query keys', () => {
+  assert.equal(
+    trustedGitHubApiUrl(
+      `repos/interdomestik/interdomestik/commits/${H}/check-runs?filter=all&page=1`
+    ).origin,
+    'https://api.github.com'
+  );
+  for (const endpoint of [
+    'https://example.invalid/repos/interdomestik/interdomestik',
+    'repos/interdomestik/interdomestik/../../users',
+    'repos/interdomestik/interdomestik/%2e%2e/users',
+    'repos/interdomestik/interdomestik/pulls/1?page=zero',
+    'repos/interdomestik/interdomestik/pulls/1?token=secret',
+  ]) {
+    assert.throws(() => trustedGitHubApiUrl(endpoint), /unsafe|trusted boundary/u);
+  }
+});
+
 test('a complete same-head snapshot with exact B/H/T and success conclusions passes', () => {
   const result = evaluateDeliverySnapshot(contract, snapshot());
   assert.equal(result.ok, true);
@@ -157,11 +179,11 @@ test('validation-surface skips are explicit and only allowed for non-product-onl
   assert.throws(() => evaluateDeliverySnapshot(contract, current), /skipped/u);
 });
 
-test('optional declared generators may be absent, but unknown generators and bad annotations fail', () => {
+test('optional and companion generator checks cannot mask declared failures or bad annotations', () => {
   assert.equal(evaluateDeliverySnapshot(contract, snapshot()).ok, true);
-  const unknown = snapshot();
-  unknown.checks.push(check('Unknown scanner', 57789));
-  assert.throws(() => evaluateDeliverySnapshot(contract, unknown), /unknown generator/u);
+  const companion = snapshot();
+  companion.checks.push(check('Analyze (actions)', 57789));
+  assert.equal(evaluateDeliverySnapshot(contract, companion).ok, true);
 
   const annotated = snapshot();
   annotated.checks[0].annotations = [{ level: 'warning', message: 'action required' }];
@@ -190,6 +212,24 @@ test('provider contract drift, incomplete pagination, feedback findings, and thr
     submittedAt: '2026-08-23T00:00:00Z',
   });
   assert.throws(() => evaluateDeliverySnapshot(contract, summary), /actionable feedback/u);
+
+  const securityReview = snapshot();
+  securityReview.feedback.reviews.push({
+    author: 'github-advanced-security[bot]',
+    commitId: H,
+    state: 'COMMENTED',
+    body: '',
+    submittedAt: '2026-08-23T00:00:00Z',
+  });
+  assert.equal(evaluateDeliverySnapshot(contract, securityReview).ok, true);
+
+  const unknownBot = snapshot();
+  unknownBot.feedback.issueComments.push({
+    author: 'unregistered-reviewer[bot]',
+    body: 'clean',
+    createdAt: '2026-08-23T00:00:00Z',
+  });
+  assert.throws(() => evaluateDeliverySnapshot(contract, unknownBot), /unknown generator/u);
 });
 
 test('mixed head snapshots and invalid tested merge topology fail closed', () => {

@@ -24,6 +24,7 @@ EOF
 PR_DELIVERY_CONTRACT="${PR_DELIVERY_CONTRACT:-scripts/ci/pr-delivery-contract.json}"
 max_check_retries="${PR_FINALIZER_MAX_CHECK_RETRIES:-120}"
 check_retry_delay_seconds=10
+readonly GH_ACCEPT_HEADER='Accept: application/vnd.github+json'
 
 run_step() {
   local name="$1"
@@ -127,7 +128,7 @@ require_gh_checks() {
   fi
 
   local pr_json
-  pr_json="$(gh api -H "Accept: application/vnd.github+json" "repos/${repo}/pulls/${pr_number}")"
+  pr_json="$(gh api -H "${GH_ACCEPT_HEADER}" "repos/${repo}/pulls/${pr_number}")"
   if [[ -z "${pr_json}" || "${pr_json}" == "null" ]]; then
     fail "unable to read PR data for #${pr_number} in ${repo}"
   fi
@@ -139,7 +140,7 @@ require_gh_checks() {
   fi
 
   local checks_json
-  checks_json="$(gh api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${head_sha}/check-runs?filter=all&per_page=100")"
+  checks_json="$(gh api -H "${GH_ACCEPT_HEADER}" "repos/${repo}/commits/${head_sha}/check-runs?filter=all&per_page=100")"
   if [[ -z "${checks_json}" || "${checks_json}" == "null" ]]; then
     fail "unable to read check runs for commit ${head_sha}"
   fi
@@ -162,7 +163,7 @@ require_gh_checks() {
 
         echo "[pr-finalizer] INFO: '${check_name}' check is not present yet. Retrying in ${check_retry_delay_seconds}s..."
         sleep "${check_retry_delay_seconds}"
-        checks_json="$(gh api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${head_sha}/check-runs?filter=all&per_page=100")"
+        checks_json="$(gh api -H "${GH_ACCEPT_HEADER}" "repos/${repo}/commits/${head_sha}/check-runs?filter=all&per_page=100")"
         matching_checks="$(resolve_matching_checks "${check_name}" "${app_id}" "${checks_json}")"
         continue
       fi
@@ -183,7 +184,7 @@ require_gh_checks() {
 
       echo "[pr-finalizer] INFO: '${check_name}' checks still running (${in_progress_count} in progress). Retrying in ${check_retry_delay_seconds}s..."
       sleep "${check_retry_delay_seconds}"
-      checks_json="$(gh api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${head_sha}/check-runs?filter=all&per_page=100")"
+      checks_json="$(gh api -H "${GH_ACCEPT_HEADER}" "repos/${repo}/commits/${head_sha}/check-runs?filter=all&per_page=100")"
       matching_checks="$(resolve_matching_checks "${check_name}" "${app_id}" "${checks_json}")"
     done
 

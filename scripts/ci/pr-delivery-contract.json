@@ -143,6 +143,7 @@
     "chatgpt-codex-connector",
     "copilot",
     "copilot-pull-request-reviewer",
+    "github-advanced-security",
     "openai-codex",
     "sonarqubecloud",
     "vercel"
