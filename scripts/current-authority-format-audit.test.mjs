@@ -173,3 +173,16 @@ test('rejects projection writer drift from the approved envelope', () => {
   assert.equal(result.status, 1);
   assert.match(result.stderr, /writer paths differ from envelope/);
 });
+
+test('rejects a hash-matched receipt that is not JSON', () => {
+  const { root } = fixture();
+  const receipt = Buffer.from('not-json\n');
+  writeFileSync(join(root, receiptPath), receipt);
+  const projection = join(root, projectionPath);
+  const value = JSON.parse(readFileSync(projection, 'utf8'));
+  value.approvalReceiptSha256 = sha(receipt);
+  writeFileSync(projection, `${JSON.stringify(value, null, 2)}\n`);
+  const result = spawnSync(process.execPath, [script], { cwd: root, encoding: 'utf8' });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /approval-receipt-r1\.json: invalid JSON/);
+});

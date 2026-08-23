@@ -120,7 +120,13 @@ test('accepts exact B/H/T/M without requiring tree(M)=tree(H)', () => {
   assert.equal(result.testedTree, TESTED_TREE);
   assert.notEqual(HEAD_TREE, TESTED_TREE);
 });
-
+test('accepts semantically identical authority objects with reordered keys', () => {
+  const input = facts();
+  const trusted = authority({}, input);
+  trusted.pullRequest = Object.fromEntries(Object.entries(trusted.pullRequest).reverse());
+  trusted.commits = Object.fromEntries(Object.entries(trusted.commits).reverse());
+  assert.equal(verify(input, trusted).ok, true);
+});
 test('rejects an invalid tested merge parent order', () => {
   const input = facts();
   input.commits[T].parents = [H, B];

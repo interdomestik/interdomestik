@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { isAbsolute } from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 import {
   alphabetical,
   CANONICAL_ORIGIN,
@@ -136,7 +137,7 @@ function commit(value, sha) {
 }
 
 function same(left, right) {
-  return JSON.stringify(left) === JSON.stringify(right);
+  return isDeepStrictEqual(left, right);
 }
 
 function verifyRuntimeIdentity(facts) {

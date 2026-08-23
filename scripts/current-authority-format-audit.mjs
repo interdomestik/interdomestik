@@ -128,7 +128,8 @@ function validateCurrentProjection(
   if (projectionBytes.length > 131_072) errors.push(`${PROJECTION}: exceeds 128 KiB`);
   const projection = parseJson(PROJECTION, projectionBytes, errors);
   const envelope = parseJson(ENVELOPE, envelopeBytes, errors);
-  if (!projection || !envelope) return;
+  const receipt = parseJson(RECEIPT, receiptBytes, errors);
+  if (!projection || !envelope || !receipt) return;
   if (`${JSON.stringify(projection, null, 2)}\n` !== projectionBytes.toString('utf8')) {
     errors.push(`${PROJECTION}: JSON is not canonical`);
   }
