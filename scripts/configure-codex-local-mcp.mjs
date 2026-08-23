@@ -4,12 +4,14 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveQaControlRuntime } from './qa-mcp-control-runtime.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, '..');
 const codexHome = path.join(os.homedir(), '.codex');
 const codexConfigPath = path.join(codexHome, 'config.toml');
 const serverName = 'interdomestik_qa';
+const controlRuntime = resolveQaControlRuntime();
 const requiredRepoQaTools = [
   'project_map',
   'read_files',
@@ -39,12 +41,13 @@ function tomlString(value) {
 
 function createRepoQaBlock() {
   const enabledToolsString = requiredRepoQaTools.join(',');
+  const launcher = path.join(controlRuntime.root, 'scripts/start-repo-qa.sh');
 
   return [
     `[mcp_servers.${serverName}]`,
     'command = "/bin/bash"',
-    'args = ["scripts/start-repo-qa.sh"]',
-    `cwd = ${tomlString(rootDir)}`,
+    `args = [${tomlString(launcher)}]`,
+    `cwd = ${tomlString(controlRuntime.root)}`,
     `env = { MCP_ENABLED_TOOLS = ${tomlString(enabledToolsString)} }`,
   ].join('\n');
 }

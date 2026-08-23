@@ -8,6 +8,20 @@ export type ToolRepoArgs = { repoRoot?: string };
 export type ToolRepoContext = {
   repoRoot: string;
   repoRootSource: 'tool-argument';
+  serverSourceHead: string;
+  serverSourceRoot: string;
+  targetBranch: string | null;
+  targetHead: string;
+  targetRepoRoot: string;
+};
+
+export type ToolRepoErrorContext = Omit<
+  ToolRepoContext,
+  'repoRoot' | 'targetBranch' | 'targetHead' | 'targetRepoRoot'
+> & {
+  targetBranch: null;
+  targetHead: null;
+  targetRepoRoot: null;
 };
 
 const REPO_MARKERS = ['turbo.json', 'pnpm-workspace.yaml'] as const;
@@ -20,6 +34,32 @@ function gitPath(repoRoot: string, ...args: string[]): string {
     stdio: ['ignore', 'pipe', 'ignore'],
     timeout: 5000,
   }).trim();
+}
+
+function serverSourceIdentity() {
+  const serverSourceRoot = canonicalDirectory(process.env.MCP_SERVER_SOURCE_ROOT || REPO_ROOT);
+  if (serverSourceRoot !== REPO_ROOT) {
+    throw new Error('MCP server source must match the loaded QA package root');
+  }
+  const serverSourceHead = gitPath(serverSourceRoot, 'rev-parse', '--verify', 'HEAD');
+  const expectedHead = process.env.MCP_SERVER_SOURCE_HEAD;
+  const launchedServer = process.env.MCP_SERVER_NAME === 'interdomestik_qa';
+  if (launchedServer && !expectedHead) {
+    throw new Error('MCP server source head attestation is required');
+  }
+  if (expectedHead && expectedHead !== serverSourceHead) {
+    throw new Error('MCP server source head does not match the launcher attestation');
+  }
+  if (expectedHead && gitPath(serverSourceRoot, 'status', '--porcelain=v1') !== '') {
+    throw new Error('MCP server source must remain clean');
+  }
+  const branch = gitPath(serverSourceRoot, 'branch', '--show-current');
+  const testMode =
+    process.env.NODE_ENV === 'test' && process.env.INTERDOMESTIK_QA_CONTROL_TEST_MODE === '1';
+  if (expectedHead && branch && !testMode) {
+    throw new Error('MCP server source must remain detached');
+  }
+  return { serverSourceHead, serverSourceRoot };
 }
 
 function canonicalDirectory(candidate: string): string {
@@ -74,6 +114,7 @@ function realpathWithExistingParent(resolvedPath: string): string {
 }
 
 export function resolveToolRepoRoot(args: ToolRepoArgs): ToolRepoContext {
+  const source = serverSourceIdentity();
   if (typeof args.repoRoot !== 'string' || !args.repoRoot.trim()) {
     throw new Error('repoRoot is required for repo-bound MCP tools');
   }
@@ -86,7 +127,26 @@ export function resolveToolRepoRoot(args: ToolRepoArgs): ToolRepoContext {
     throw new Error('repoRoot must contain the required Interdomestik repository markers');
   }
 
-  return { repoRoot, repoRootSource: 'tool-argument' };
+  const targetHead = gitPath(repoRoot, 'rev-parse', '--verify', 'HEAD');
+  const targetBranch = gitPath(repoRoot, 'branch', '--show-current') || null;
+  return {
+    repoRoot,
+    repoRootSource: 'tool-argument',
+    ...source,
+    targetBranch,
+    targetHead,
+    targetRepoRoot: repoRoot,
+  };
+}
+
+export function unresolvedToolRepoContext(): ToolRepoErrorContext {
+  return {
+    repoRootSource: 'tool-argument',
+    ...serverSourceIdentity(),
+    targetBranch: null,
+    targetHead: null,
+    targetRepoRoot: null,
+  };
 }
 
 export function resolveToolRepoPath(repoRoot: string, relativeInput: string) {

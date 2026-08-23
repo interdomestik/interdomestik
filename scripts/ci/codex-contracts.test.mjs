@@ -50,6 +50,8 @@ test('mcp setup verifies Codex project config as well as local QA server prerequ
   assert.match(setupScript, /playwright/);
   assert.match(setupScript, /interdomestik_qa/);
   assert.match(setupScript, /scripts\/start-repo-qa\.sh/);
+  assert.match(setupScript, /qa-mcp-control-runtime\.mjs/);
+  assert.match(setupScript, /CONTROL_LAUNCHER/);
   assert.match(setupScript, /mcp:local-config/);
   assert.match(setupScript, /tools\/list/);
   assert.equal(
@@ -70,8 +72,10 @@ test('Codex local MCP generator writes machine-specific user config without chan
   assert.match(localConfigGenerator, /os\.homedir\(\)/);
   assert.match(localConfigGenerator, /config\.toml/);
   assert.match(localConfigGenerator, /mcp_servers\.\$\{serverName\}/);
+  assert.match(localConfigGenerator, /resolveQaControlRuntime/);
   assert.match(localConfigGenerator, /scripts\/start-repo-qa\.sh/);
-  assert.match(localConfigGenerator, /cwd = \$\{tomlString\(rootDir\)\}/);
+  assert.match(localConfigGenerator, /cwd = \$\{tomlString\(controlRuntime\.root\)\}/);
+  assert.doesNotMatch(localConfigGenerator, /cwd = \$\{tomlString\(rootDir\)\}/);
   assert.match(localConfigGenerator, /env = \{ MCP_ENABLED_TOOLS =/);
   assert.match(localConfigGenerator, /replaceTomlTable/);
 });
@@ -88,6 +92,9 @@ test('Codex MCP preflight checks CLI registration and live repo QA tool discover
   assert.match(preflight, /Array\.isArray\(servers\)/);
   assert.match(preflight, /typeof server\.name !== 'string'/);
   assert.match(preflight, /interdomestik_qa/);
+  assert.match(preflight, /resolveQaControlRuntime/);
+  assert.match(preflight, /expectedAbsoluteLauncher/);
+  assert.match(preflight, /qaCwd !== controlRuntime\.root/);
   assert.match(preflight, /MCP_ENABLED_TOOLS/);
   assert.match(preflight, /qa-mcp-discovery-contracts\.test\.mjs/);
   assert.match(discoveryContract, /tools\/list/);
@@ -97,6 +104,13 @@ test('Codex MCP preflight checks CLI registration and live repo QA tool discover
   assert.match(preflight, /try\s*{\s*await main\(\);/);
   assert.match(preflight, /unexpected preflight error/);
   assert.match(preflight, /restart Codex/i);
+});
+
+test('QA MCP launcher resolves one atomic control-source snapshot', () => {
+  const launcher = readText('scripts/start-repo-qa.sh');
+  assert.match(launcher, /CONTROL_JSON="\$\(node "\$RESOLVER"\)"/);
+  assert.match(launcher, /control_field/);
+  assert.doesNotMatch(launcher, /--field=(root|head|dependency-root)/);
 });
 
 test('Codex PR review workflow uses the official action with a repo-owned review prompt', () => {

@@ -5,8 +5,12 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CONTROL_RESOLVER="$PROJECT_ROOT/scripts/qa-mcp-control-runtime.mjs"
+CONTROL_ROOT="$(node "$CONTROL_RESOLVER" --field=root)"
+CONTROL_LAUNCHER="$CONTROL_ROOT/scripts/start-repo-qa.sh"
 echo "🔧 Setting up MCP tools for Interdomestik"
 echo "Project root: $PROJECT_ROOT"
+echo "QA MCP control source: $CONTROL_ROOT"
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -37,7 +41,7 @@ fi
 
 CODEX_SERVERS=("openai_docs" "context7" "playwright" "interdomestik_qa")
 for server in "${CODEX_SERVERS[@]}"; do
-    if grep -q "\\[mcp_servers\\.$server\\]" "$CODEX_CONFIG"; then
+    if rg -q --fixed-strings "[mcp_servers.$server]" "$CODEX_CONFIG"; then
         echo -e "${GREEN}✅ Codex MCP server configured: $server${NC}"
     else
         echo -e "${RED}❌ Missing Codex MCP server in .codex/config.toml: $server${NC}"
@@ -48,7 +52,7 @@ done
 if [[ -f "$GEMINI_CONFIG" ]]; then
     GEMINI_SERVERS=("context7" "playwright")
     for server in "${GEMINI_SERVERS[@]}"; do
-        if grep -q "\"$server\"" "$GEMINI_CONFIG"; then
+        if rg -q --fixed-strings "\"$server\"" "$GEMINI_CONFIG"; then
             echo -e "${GREEN}✅ Gemini MCP server configured: $server${NC}"
         else
             echo -e "${YELLOW}⚠️  Gemini MCP server missing from $GEMINI_CONFIG: $server${NC}"
@@ -80,7 +84,7 @@ fi
 # 3. Test QA MCP discovery
 echo -e "\n${YELLOW}🧪 Testing QA MCP discovery...${NC}"
 cd "$PROJECT_ROOT"
-if PROJECT_ROOT="$PROJECT_ROOT" node --input-type=module - <<'EOF'
+if PROJECT_ROOT="$PROJECT_ROOT" CONTROL_LAUNCHER="$CONTROL_LAUNCHER" node --input-type=module - <<'EOF'
 import { spawn } from 'node:child_process';
 
 const projectRoot = process.env.PROJECT_ROOT;
@@ -88,7 +92,12 @@ if (!projectRoot) {
   throw new Error('PROJECT_ROOT is required');
 }
 
-const child = spawn('/bin/bash', ['scripts/start-repo-qa.sh'], {
+const controlLauncher = process.env.CONTROL_LAUNCHER;
+if (!controlLauncher) {
+  throw new Error('CONTROL_LAUNCHER is required');
+}
+
+const child = spawn('/bin/bash', [controlLauncher], {
   cwd: projectRoot,
   detached: true,
   stdio: ['pipe', 'pipe', 'inherit'],

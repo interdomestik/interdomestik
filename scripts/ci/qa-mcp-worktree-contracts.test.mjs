@@ -7,11 +7,30 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const timeoutMs = 30000;
+const head = root =>
+  execFileSync('git', ['-C', root, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+const currentBranch = root =>
+  execFileSync('git', ['-C', root, 'branch', '--show-current'], { encoding: 'utf8' }).trim() ||
+  null;
+function assertIdentity(result, targetRoot, branch = currentBranch(targetRoot)) {
+  assert.equal(result.structuredContent.serverSourceRoot, rootDir);
+  assert.equal(result.structuredContent.serverSourceHead, head(rootDir));
+  assert.equal(result.structuredContent.targetRepoRoot, fs.realpathSync.native(targetRoot));
+  assert.equal(result.structuredContent.targetHead, head(targetRoot));
+  assert.equal(result.structuredContent.targetBranch, branch);
+  assert.equal(result.structuredContent.repoRootSource, 'tool-argument');
+}
 async function createClient() {
   const child = spawn('/bin/bash', ['scripts/start-repo-qa.sh'], {
     cwd: rootDir,
     detached: true,
-    env: { ...process.env, MCP_REPO_ROOT: rootDir },
+    env: {
+      ...process.env,
+      INTERDOMESTIK_QA_CONTROL_ROOT: rootDir,
+      INTERDOMESTIK_QA_CONTROL_TEST_MODE: '1',
+      MCP_REPO_ROOT: rootDir,
+      NODE_ENV: 'test',
+    },
     stdio: ['pipe', 'pipe', 'inherit'],
   });
   const pending = new Map();
@@ -83,9 +102,14 @@ test('repo-bound MCP tools require an explicit validated worktree root', async (
     const missing = await client.call('git_status_compact');
     assert.equal(missing.isError, true);
     assert.match(missing.content[0].text, /repoRoot is required/);
+    assert.equal(missing.structuredContent.targetRepoRoot, null);
+    assert.equal(missing.structuredContent.targetHead, null);
+    assert.equal(missing.structuredContent.targetBranch, null);
+    assert.equal(missing.structuredContent.serverSourceRoot, rootDir);
+    assert.equal(missing.structuredContent.serverSourceHead, head(rootDir));
     const selected = await client.call('git_status_compact', { repoRoot: rootDir });
     assert.equal(selected.structuredContent.repoRoot, rootDir);
-    assert.equal(selected.structuredContent.repoRootSource, 'tool-argument');
+    assertIdentity(selected, rootDir);
     const sibling = fs.mkdtempSync(path.join(os.tmpdir(), 'qa-mcp-worktree-'));
     try {
       execFileSync('git', ['worktree', 'add', '--detach', sibling, 'HEAD'], { cwd: rootDir });
@@ -95,7 +119,10 @@ test('repo-bound MCP tools require an explicit validated worktree root', async (
       ]);
       assert.equal(currentResult.structuredContent.repoRoot, rootDir);
       assert.equal(siblingResult.structuredContent.repoRoot, fs.realpathSync.native(sibling));
-      assert.equal(siblingResult.structuredContent.repoRootSource, 'tool-argument');
+      assertIdentity(currentResult, rootDir);
+      assertIdentity(siblingResult, sibling);
+      const currentAgain = await client.call('git_status_compact', { repoRoot: rootDir });
+      assertIdentity(currentAgain, rootDir);
       fs.symlinkSync(os.tmpdir(), path.join(sibling, 'qa-mcp-external-link'));
       const escaped = await client.call('read_files', {
         files: ['qa-mcp-external-link/secret.txt'],
@@ -111,17 +138,18 @@ test('repo-bound MCP tools require an explicit validated worktree root', async (
       });
       assert.equal(rejectedRange.isError, true);
       assert.equal(rejectedRange.structuredContent.repoRoot, fs.realpathSync.native(sibling));
-      assert.equal(rejectedRange.structuredContent.repoRootSource, 'tool-argument');
+      assertIdentity(rejectedRange, sibling);
       const executed = await client.call('security_guard', { repoRoot: sibling });
       assert.equal(executed.structuredContent.cwd, fs.realpathSync.native(sibling));
       assert.equal(executed.structuredContent.repoRoot, fs.realpathSync.native(sibling));
-      assert.equal(executed.structuredContent.repoRootSource, 'tool-argument');
+      assertIdentity(executed, sibling);
     } finally {
       execFileSync('git', ['worktree', 'remove', '--force', sibling], { cwd: rootDir });
     }
     const foreign = await client.call('git_status_compact', { repoRoot: '/tmp' });
     assert.equal(foreign.isError, true);
     assert.match(foreign.content[0].text, /registered worktree/);
+    assert.equal(foreign.structuredContent.targetRepoRoot, null);
     const relative = await client.call('git_status_compact', { repoRoot: '.' });
     assert.match(relative.content[0].text, /absolute worktree root/);
     const subdirectory = await client.call('git_status_compact', {

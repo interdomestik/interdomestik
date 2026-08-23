@@ -4,6 +4,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveQaControlRuntime } from './qa-mcp-control-runtime.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, '..');
@@ -22,6 +23,7 @@ const requiredRepoQaTools = [
   'security_guard',
   'e2e_gate',
 ];
+const controlRuntime = resolveQaControlRuntime();
 
 function fail(message, details) {
   console.error(`Codex MCP preflight failed: ${message}`);
@@ -136,10 +138,6 @@ function verifyConfigToml() {
     }
   }
 
-  // Replaced with absolute path as requested by Arben.
-
-  // Replaced with absolute path as requested by Arben.
-
   for (const toolName of requiredRepoQaTools) {
     if (!configToml.includes(toolName)) {
       fail(`interdomestik_qa MCP_ENABLED_TOOLS must include ${toolName}`);
@@ -175,20 +173,18 @@ function verifyRepoQaTransport(qaServer) {
     fail('interdomestik_qa must launch with /bin/bash.', JSON.stringify(qaServer, null, 2));
   }
   const qaArgs = qaServer.transport?.args ?? [];
-  const expectedRelativeLauncher = 'scripts/start-repo-qa.sh';
-  const expectedAbsoluteLauncher = path.join(rootDir, expectedRelativeLauncher);
-  if (!qaArgs.includes(expectedRelativeLauncher) && !qaArgs.includes(expectedAbsoluteLauncher)) {
+  const expectedAbsoluteLauncher = path.join(controlRuntime.root, 'scripts/start-repo-qa.sh');
+  if (!qaArgs.includes(expectedAbsoluteLauncher)) {
     fail(
       'interdomestik_qa must use scripts/start-repo-qa.sh in Codex MCP registration.',
       JSON.stringify(qaServer, null, 2)
     );
   }
 
-  // Allow absolute path in config since local setup uses it
   const qaCwd = qaServer.transport?.cwd;
-  if (qaCwd !== undefined && qaCwd !== '.' && qaCwd !== rootDir) {
+  if (qaCwd !== controlRuntime.root) {
     fail(
-      `interdomestik_qa cwd must be portable "." or this repo root: ${rootDir}`,
+      `interdomestik_qa cwd must equal the attested control root: ${controlRuntime.root}`,
       JSON.stringify(qaServer, null, 2)
     );
   }
