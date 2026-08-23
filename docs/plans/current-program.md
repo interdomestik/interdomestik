@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-08-22
+last_reviewed: 2026-08-23
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -16,15 +16,20 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`IDA-WF01-ONE-APPROVAL-DELIVERY` is the only active writer program. Gate
-`IDA-WF-DG01-ONE-APPROVAL-DELIVERY-R4-GOVERNANCE-HEADING-INHERITANCE-REPAIR` at SHA-256
-`8ccebfa2b9c622f217c971cb9995506edb91091eab93aeccbbb71b0f68dc1015` and envelope
-`IDA-WF01-ONE-APPROVAL-DELIVERY-ENVELOPE-V4-GOVERNANCE-HEADING-INHERITANCE-REPAIR` at SHA-256
-`46eee3be937bb82f3bc0055f1a7bc697a08484498b197a1475bae33d760be8a6` were approved against
-protected `main@1a13176c118de88928593af846b6a14310aac645`. B0 and B1 are terminal. After this exact
-governance repair merges healthy and its replacement receipt/ledger are rebound, only
-`S1A-skill-authority` is active with `runtime_authorized:true`; S1B and all later children remain
-blocked until S1A is atomically installed, verified, consumed, and cleaned.
+`IDA-WF01-ONE-APPROVAL-DELIVERY` is the only active writer program. B0, B1, S1A, and S1B are
+terminal and consumed. S2 incident recovery is bound to protected
+`main@2512bca54b200f6cdd07051a9ae3e9513ae6a1aa` by gate
+`IDA-WF-DG01-S2-TRANSPORT-INCIDENT-RECOVERY-R2` at SHA-256
+`d55c180e64659e12f22400e1e20adc08dfa1ea2821a997b6798370ea26f3b464`, admission
+`abd52f22a5b266144406714048b90ef615e7c17acb76c42a451f4ebeabd41d7b`, and receipt
+`e3353f95e703d49d8d74e238acd551ebc4f11795a7b67c50699fa9387f04329b`.
+
+Revision 18 recovered only `S2-mcp-identity`. The registered runtime now equals exact protected
+main, fresh MCP discovery is healthy, and the complete A-to-B-to-A/concurrent/negative-root proof
+is terminal at SHA-256 `de3ef039658c40a064829b6adf607076532b16e4e7a6bef9d640636d3b0e21ff`.
+This projection must merge with exact-head checks, protected-main health, and clean task-owned
+cleanup before append-only revisions 19 and 20 may consume S2 and activate only
+`S3-exact-authority`. Until those conditions hold, S3 and every later child remain blocked.
 
 The fixed sequence is B0 authority bootstrap, B1 CD guard, S1A skill authority, S1B routing
 standard, S2 MCP identity, S3 exact authority, S4A terminal delivery, S4B reviewer policy, then
@@ -44,9 +49,9 @@ schema, RLS, billing, provider deployment, E2E-semantic, AI OS, Docker, or unit-
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate                        | Dependencies                         | Promotion constraint                                                                                 |
-| -------: | -------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-|        1 | `IDA-WF01-ONE-APPROVAL-DELIVERY` | Exact approved R4 gate/envelope/base | Execute only S1A, then the frozen S1B→S2→S3→S4A→S4B→closeout topology, one consumed lease at a time. |
+| Priority | Candidate                        | Dependencies                     | Promotion constraint                                                                          |
+| -------: | -------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------- |
+|        1 | `IDA-WF01-ONE-APPROVAL-DELIVERY` | Exact S2 recovery and live proof | Consume S2 only after this projection merges healthy, then activate S3 as the sole successor. |
 
 ## Selection Constraints
 
