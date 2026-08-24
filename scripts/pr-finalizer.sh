@@ -75,7 +75,7 @@ require_clean_tree() {
 
 pr_context() {
   if [[ -n "${GITHUB_EVENT_PATH:-}" && -f "${GITHUB_EVENT_PATH}" ]]; then
-    jq -r '.pull_request.number // empty' "${GITHUB_EVENT_PATH}" || true
+    trusted_event_pr_number "${GITHUB_EVENT_PATH}"
   elif [[ -n "${PR_NUMBER:-}" ]]; then
     echo "${PR_NUMBER}"
   else
@@ -153,7 +153,10 @@ require_gh_checks() {
     fail "unable to read check runs for commit ${head_sha}"
   fi
 
-  local check_name app_id
+  local check_name app_id required_records
+  if ! required_records="$(required_check_records)" || [[ -z "${required_records}" ]]; then
+    fail "delivery contract has no valid finalizer prerequisites"
+  fi
   while IFS=$'	' read -r check_name app_id; do
 
     local matching_checks
@@ -200,7 +203,7 @@ require_gh_checks() {
     if [[ "${check_result}" -ne 0 ]]; then
       fail "required checks for '${check_name}' are not passing (found: ${check_result} non-passing)"
     fi
-  done < <(required_check_records)
+  done <<<"${required_records}"
   defer_async_generators
 }
 

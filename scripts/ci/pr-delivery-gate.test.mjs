@@ -7,7 +7,6 @@ import { fileURLToPath } from 'node:url';
 import {
   eventPullNumber,
   evaluateDeliverySnapshot,
-  trustedGitHubApiUrl,
   validateDeliveryContract,
 } from './pr-delivery-gate.mjs';
 
@@ -95,31 +94,6 @@ test('contract has three acyclic sets and excludes the delivery gate from every 
     assert.ok(set.every(item => item.context !== contract.deliveryContext.context));
   }
   assert.ok(contract.deliveryPrerequisites.some(item => item.context === 'pr-finalizer'));
-});
-
-test('GitHub API URL construction is fixed-origin and rejects foreign paths and query keys', () => {
-  assert.equal(
-    trustedGitHubApiUrl(
-      `repos/interdomestik/interdomestik/commits/${H}/check-runs?filter=all&page=1`
-    ).origin,
-    'https://api.github.com'
-  );
-  for (const endpoint of [
-    'https://example.invalid/repos/interdomestik/interdomestik',
-    'repos/interdomestik/interdomestik/../../users',
-    'repos/interdomestik/interdomestik/%2e%2e/users',
-    'repos/interdomestik/interdomestik/pulls/1?page=zero',
-    'repos/interdomestik/interdomestik/pulls/1?token=secret',
-  ]) {
-    assert.throws(() => trustedGitHubApiUrl(endpoint), /unsafe|trusted boundary/u);
-  }
-});
-
-test('callers cannot override trusted GitHub API headers', () => {
-  assert.match(
-    gateSource,
-    /headers:\s*\{\s*\.\.\.options\.headers,\s*Accept:[\s\S]*?Authorization:/u
-  );
 });
 
 test('event binding accepts only the three PR-family sources', () => {
@@ -243,6 +217,34 @@ test('provider contract drift, incomplete pagination, feedback findings, and thr
     submittedAt: '2026-08-23T00:00:00Z',
   });
   assert.throws(() => evaluateDeliverySnapshot(contract, summary), /actionable feedback/u);
+
+  summary.feedback.reviews.push({
+    author: 'copilot-pull-request-reviewer[bot]',
+    commitId: H,
+    state: 'COMMENTED',
+    body: 'No additional findings.',
+    submittedAt: '2026-08-23T00:01:00Z',
+  });
+  assert.throws(() => evaluateDeliverySnapshot(contract, summary), /actionable feedback/u);
+
+  const requested = snapshot();
+  requested.feedback.reviews.push(
+    {
+      author: 'human-reviewer',
+      commitId: H,
+      state: 'CHANGES_REQUESTED',
+      body: '',
+      submittedAt: '2026-08-23T00:00:00Z',
+    },
+    {
+      author: 'human-reviewer',
+      commitId: H,
+      state: 'COMMENTED',
+      body: 'Follow-up detail.',
+      submittedAt: '2026-08-23T00:01:00Z',
+    }
+  );
+  assert.throws(() => evaluateDeliverySnapshot(contract, requested), /changes-requested/u);
 
   const securityReview = snapshot();
   securityReview.feedback.reviews.push({

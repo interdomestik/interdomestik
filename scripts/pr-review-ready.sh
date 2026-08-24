@@ -38,6 +38,8 @@ export PR_FINALIZER_SKIP_CHECK_POLLING="${PR_FINALIZER_SKIP_CHECK_POLLING:-false
 PR_DELIVERY_CONTRACT="${PR_DELIVERY_CONTRACT:-scripts/ci/pr-delivery-contract.json}"
 export PR_DELIVERY_CONTRACT
 NO_TOUCH_AUTH_LABEL="phase-c-no-touch-authorized"
+# shellcheck source=scripts/pr-finalizer-lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/pr-finalizer-lib.sh"
 
 env_flag() {
   case "${!1:-}" in
@@ -60,7 +62,10 @@ resolve_pr_number() {
   fi
 
   if [[ -n "${GITHUB_EVENT_PATH:-}" && -f "${GITHUB_EVENT_PATH}" ]]; then
-    resolved="$(jq -r '.pull_request.number // empty' "${GITHUB_EVENT_PATH}" 2>/dev/null || true)"
+    if ! resolved="$(trusted_event_pr_number "${GITHUB_EVENT_PATH}")"; then
+      echo "pr-review-ready failed: untrusted pull request event" >&2
+      return 1
+    fi
     if [[ -n "${resolved}" ]]; then
       echo "${resolved}"
       return 0

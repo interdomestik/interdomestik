@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
@@ -81,6 +82,19 @@ test('governance report and terminal evaluator consume the canonical delivery ma
 
   assert.match(reportScript, /providerRequiredContexts/);
   assert.match(reportScript, /deliveryPrerequisites/);
+});
+
+test('relative governance-report invocation executes instead of silently succeeding', () => {
+  const result = spawnSync(
+    process.execPath,
+    ['scripts/github-pr-governance-report.mjs', 'invalid'],
+    {
+      cwd: rootDir,
+      encoding: 'utf8',
+    }
+  );
+  assert.notEqual(result.status, 0);
+  assert.match(`${result.stdout}\n${result.stderr}`, /Usage:/u);
 });
 
 test('review-ready script composes finalizer and strict governance report', () => {

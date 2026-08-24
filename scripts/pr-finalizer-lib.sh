@@ -7,6 +7,19 @@ pr_type_reason="unclassified"
 changed_files_path=""
 changed_files_root=""
 
+trusted_event_pr_number() {
+  local event_path="$1"
+  node --input-type=module -e '
+    import { readTrustedRunnerFile } from "./scripts/ci/trusted-runner-file.mjs";
+    const event = JSON.parse(readTrustedRunnerFile(process.argv[1]));
+    const number = event.pull_request?.number;
+    if (!Number.isSafeInteger(number) || number <= 0) {
+      throw new Error("pull request number is missing from trusted event");
+    }
+    process.stdout.write(String(number));
+  ' "${event_path}"
+}
+
 collect_changed_files() {
   changed_files_root="$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/pr-finalizer.XXXXXX")"
   changed_files_path="${changed_files_root}/changed-files.txt"
@@ -78,12 +91,21 @@ required_check_names() {
 }
 
 required_check_records() {
+  jq -e '
+    .finalizerLeafPrerequisites
+    | type == "array"
+      and length > 0
+      and all(.[];
+        (.context | type) == "string"
+        and (.context | length) > 0
+        and (.appId | type) == "number"
+        and .appId > 0)
+  ' "${PR_DELIVERY_CONTRACT}" >/dev/null || return 1
   jq -r '.finalizerLeafPrerequisites[] | [.context, (.appId | tostring)] | @tsv' \
     "${PR_DELIVERY_CONTRACT}"
-  return 0
 }
 
 report_generator_delegation() {
-  echo "[pr-finalizer] INFO: Generator states are reported by governance monitoring; terminal adjudication is deferred to delivery-gate."
+  echo "[pr-finalizer] INFO: Sonar state is reported by governance monitoring; other generator states are also deferred to delivery-gate."
   return 0
 }

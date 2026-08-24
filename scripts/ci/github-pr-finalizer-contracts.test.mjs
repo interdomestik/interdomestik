@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -52,4 +54,50 @@ test('PR finalizer reads the acyclic leaf set from the delivery manifest', () =>
   assert.doesNotMatch(finalizerLib, /gh pr view "\$\{PR_NUMBER\}" --json files/);
   assert.doesNotMatch(finalizerLib, /docs_only_required_checks/);
   assert.doesNotMatch(finalizerLib, /success.*skipped.*neutral/s);
+  assert.match(finalizer, /required_records/);
+  assert.match(finalizer, /delivery contract has no valid finalizer prerequisites/);
+});
+
+test('required-check extraction fails closed for an empty manifest set', () => {
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'finalizer-contract-'));
+  const contractPath = path.join(temporary, 'contract.json');
+  fs.writeFileSync(contractPath, JSON.stringify({ finalizerLeafPrerequisites: [] }));
+  try {
+    const result = spawnSync(
+      'bash',
+      [
+        '-c',
+        'source scripts/pr-finalizer-lib.sh; PR_DELIVERY_CONTRACT="$1"; required_check_records',
+        '--',
+        contractPath,
+      ],
+      { cwd: rootDir, encoding: 'utf8' }
+    );
+    assert.notEqual(result.status, 0);
+  } finally {
+    fs.rmSync(temporary, { recursive: true, force: true });
+  }
+});
+
+test('shared finalizer event reader accepts only a trusted runner file', () => {
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'finalizer-event-'));
+  const eventPath = path.join(temporary, 'event.json');
+  fs.writeFileSync(eventPath, JSON.stringify({ pull_request: { number: 1621 } }));
+  try {
+    const result = spawnSync(
+      'bash',
+      [
+        '-c',
+        'source scripts/pr-finalizer-lib.sh; RUNNER_TEMP="$1" trusted_event_pr_number "$2"',
+        '--',
+        temporary,
+        eventPath,
+      ],
+      { cwd: rootDir, encoding: 'utf8' }
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, '1621');
+  } finally {
+    fs.rmSync(temporary, { recursive: true, force: true });
+  }
 });

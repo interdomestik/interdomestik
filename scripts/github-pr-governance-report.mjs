@@ -2,6 +2,8 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 
+import { isDirectInvocation } from './ci/pr-delivery-api.mjs';
+
 const DELIVERY_CONTRACT = JSON.parse(
   fs.readFileSync(new URL('./ci/pr-delivery-contract.json', import.meta.url), 'utf8')
 );
@@ -105,6 +107,20 @@ export function validateDeliveryContract(contract) {
   ) {
     gateFail('generator or quiescence contract mismatch');
   }
+  const configuredGeneratorIds = [...contract.generatorAppIds].sort((left, right) => left - right);
+  const declaredGeneratorIds = [
+    ...new Set(
+      contract.deliveryPrerequisites
+        .filter(item => item.classification === 'generator')
+        .map(item => item.appId)
+    ),
+  ].sort((left, right) => left - right);
+  if (
+    new Set(configuredGeneratorIds).size !== configuredGeneratorIds.length ||
+    JSON.stringify(configuredGeneratorIds) !== JSON.stringify(declaredGeneratorIds)
+  ) {
+    gateFail('generator app identity mismatch');
+  }
   return contract;
 }
 export function eventPullNumber(eventName, event) {
@@ -167,13 +183,16 @@ export function verifyFeedback(contract, feedback, headSha) {
     gateFail('feedback pagination incomplete');
   if (feedback.unresolvedThreads.length) gateFail('unresolved review threads');
   if (feedback.pendingReviewers.length) throw new Error('WAIT: reviewers remain pending');
-  const latestReviews = latestByAuthor(feedback.reviews);
+  const decisiveReviews = feedback.reviews.filter(review =>
+    ['APPROVED', 'CHANGES_REQUESTED', 'DISMISSED'].includes(review.state)
+  );
+  const latestReviews = latestByAuthor(decisiveReviews);
   if ([...latestReviews.values()].some(review => review.state === 'CHANGES_REQUESTED')) {
     gateFail('changes-requested review remains terminal');
   }
-  for (const [author, item] of latestByAuthor(generatorFeedback(contract, feedback))) {
+  for (const item of generatorFeedback(contract, feedback)) {
     if (ACTIONABLE_FEEDBACK_PATTERNS.some(pattern => pattern.test(item.body ?? ''))) {
-      gateFail('actionable feedback remains from ' + author);
+      gateFail('actionable feedback remains from ' + normalizeFeedbackAuthor(item.author));
     }
   }
 }
@@ -276,4 +295,4 @@ function main() {
   }
 }
 
-if (process.argv[1]?.endsWith('/github-pr-governance-report.mjs')) main();
+if (isDirectInvocation(import.meta.url)) main();
