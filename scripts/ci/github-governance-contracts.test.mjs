@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -69,7 +70,7 @@ test('governance report and terminal evaluator consume the canonical delivery ma
   for (const author of ['copilot-pull-request-reviewer', 'chatgpt-codex-connector']) {
     assert.ok(contract.feedbackAuthors.includes(author));
   }
-  assert.match(reportScript, /MONITORED_CHECKS/);
+  assert.match(reportScript, /monitoredChecks/);
   assert.match(reportScript, /evaluateDeliveryChecks/);
   assert.match(reportScript, /verifyFeedback/);
   assert.match(reportScript, /actionableFeedbackPatterns/);
@@ -95,6 +96,32 @@ test('relative governance-report invocation executes instead of silently succeed
   );
   assert.notEqual(result.status, 0);
   assert.match(`${result.stdout}\n${result.stderr}`, /Usage:/u);
+});
+
+test('governance report honors only repository-bound contract overrides', () => {
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'governance-contract-'));
+  const contractPath = path.join(temporary, 'invalid-contract.json');
+  fs.writeFileSync(contractPath, '{}');
+  try {
+    for (const [source, pattern] of [
+      [contractPath, /delivery contract escaped repository/u],
+      [path.join(rootDir, 'package.json'), /delivery contract keys mismatch/u],
+    ]) {
+      const result = spawnSync(
+        process.execPath,
+        ['scripts/github-pr-governance-report.mjs', 'invalid'],
+        {
+          cwd: rootDir,
+          encoding: 'utf8',
+          env: { ...process.env, PR_DELIVERY_CONTRACT: source },
+        }
+      );
+      assert.notEqual(result.status, 0);
+      assert.match(`${result.stdout}\n${result.stderr}`, pattern);
+    }
+  } finally {
+    fs.rmSync(temporary, { recursive: true, force: true });
+  }
 });
 
 test('review-ready script composes finalizer and strict governance report', () => {

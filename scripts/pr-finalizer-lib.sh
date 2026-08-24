@@ -6,18 +6,22 @@ pr_type="${PR_TYPE_RUNTIME}"
 pr_type_reason="unclassified"
 changed_files_path=""
 changed_files_root=""
+PR_FINALIZER_LIB_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 
 trusted_event_pr_number() {
   local event_path="$1"
-  node --input-type=module -e '
-    import { readTrustedRunnerFile } from "./scripts/ci/trusted-runner-file.mjs";
-    const event = JSON.parse(readTrustedRunnerFile(process.argv[1]));
-    const number = event.pull_request?.number;
-    if (!Number.isSafeInteger(number) || number <= 0) {
-      throw new Error("pull request number is missing from trusted event");
-    }
-    process.stdout.write(String(number));
-  ' "${event_path}"
+  (
+    cd -- "${PR_FINALIZER_LIB_DIR}"
+    node --input-type=module -e '
+      import { readTrustedRunnerFile } from "./ci/trusted-runner-file.mjs";
+      const event = JSON.parse(readTrustedRunnerFile(process.argv[1]));
+      const number = event.pull_request?.number;
+      if (!Number.isSafeInteger(number) || number <= 0) {
+        throw new Error("pull request number is missing from trusted event");
+      }
+      process.stdout.write(String(number));
+    ' "${event_path}"
+  )
 }
 
 collect_changed_files() {

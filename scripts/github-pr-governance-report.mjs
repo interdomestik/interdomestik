@@ -1,19 +1,9 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
-
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { isDirectInvocation } from './ci/pr-delivery-api.mjs';
-
-const DELIVERY_CONTRACT = JSON.parse(
-  fs.readFileSync(new URL('./ci/pr-delivery-contract.json', import.meta.url), 'utf8')
-);
-const REQUIRED_CHECKS = [
-  ...DELIVERY_CONTRACT.providerRequiredContexts.map(item => item.context),
-  'delivery-gate',
-];
-const MONITORED_CHECKS = DELIVERY_CONTRACT.deliveryPrerequisites
-  .filter(item => item.classification !== 'provider')
-  .map(item => item.context);
 const SUCCESS_STATES = new Set(['SUCCESS', 'COMPLETED/SUCCESS']);
 const ACTIONABLE_FEEDBACK_SOURCES = [
   String.raw`Suppressed comments\s*\([1-9]\d*\)`,
@@ -26,19 +16,18 @@ const ACTIONABLE_FEEDBACK_PATTERNS = ACTIONABLE_FEEDBACK_SOURCES.map(
 );
 const GH_BINARY_CANDIDATES = ['/usr/bin/gh', '/opt/homebrew/bin/gh', '/usr/local/bin/gh'];
 const compareText = (left, right) => left.localeCompare(right);
+const sameJson = (left, right) => JSON.stringify(left) === JSON.stringify(right);
 const CONTRACT_KEYS =
   'schemaVersion,repository,deliveryContext,finalizerLeafPrerequisites,providerRequiredContexts,deliveryPrerequisites,generatorAppIds,feedbackAuthors,actionableFeedbackPatterns,quiescenceMs'.split(
     ','
   );
 const SPEC_KEYS = 'context,appId,classification,requirement,skipWhen,finalConclusions'.split(',');
+const REPOSITORY_ROOT = fs.realpathSync(fileURLToPath(new URL('../', import.meta.url)));
 function gateFail(message) {
   throw new Error(message);
 }
 function exactKeys(value, keys, label) {
-  if (
-    JSON.stringify(Object.keys(value ?? {}).sort(compareText)) !==
-    JSON.stringify([...keys].sort(compareText))
-  ) {
+  if (!sameJson(Object.keys(value ?? {}).sort(compareText), [...keys].sort(compareText))) {
     gateFail(label + ' keys mismatch');
   }
 }
@@ -73,7 +62,7 @@ export function validateDeliveryContract(contract) {
     if (
       !['provider', 'validation-surface', 'generator'].includes(item.classification) ||
       !['required', 'optional'].includes(item.requirement) ||
-      JSON.stringify(item.finalConclusions) !== '["success"]'
+      !sameJson(item.finalConclusions, ['success'])
     ) {
       gateFail('delivery prerequisite ' + item.context + ' mismatch');
     }
@@ -94,7 +83,7 @@ export function validateDeliveryContract(contract) {
     .filter(item => item.classification === 'provider')
     .map(item => item.context)
     .sort(compareText);
-  if (JSON.stringify(provider) !== JSON.stringify(declared) || !declared.includes('pr-finalizer')) {
+  if (!sameJson(provider, declared) || !declared.includes('pr-finalizer')) {
     gateFail('provider set mismatch');
   }
   if (
@@ -102,8 +91,7 @@ export function validateDeliveryContract(contract) {
     !Array.isArray(contract.feedbackAuthors) ||
     !Number.isSafeInteger(contract.quiescenceMs) ||
     contract.quiescenceMs !== 20000 ||
-    JSON.stringify(contract.actionableFeedbackPatterns) !==
-      JSON.stringify(ACTIONABLE_FEEDBACK_SOURCES)
+    !sameJson(contract.actionableFeedbackPatterns, ACTIONABLE_FEEDBACK_SOURCES)
   ) {
     gateFail('generator or quiescence contract mismatch');
   }
@@ -117,16 +105,27 @@ export function validateDeliveryContract(contract) {
   ].sort((left, right) => left - right);
   if (
     new Set(configuredGeneratorIds).size !== configuredGeneratorIds.length ||
-    JSON.stringify(configuredGeneratorIds) !== JSON.stringify(declaredGeneratorIds)
+    !sameJson(configuredGeneratorIds, declaredGeneratorIds)
   ) {
     gateFail('generator app identity mismatch');
   }
   return contract;
 }
+export function readDeliveryContract() {
+  const configured = process.env.PR_DELIVERY_CONTRACT;
+  let source = new URL('./ci/pr-delivery-contract.json', import.meta.url);
+  if (configured) {
+    source = fs.realpathSync(path.resolve(configured));
+    const relative = path.relative(REPOSITORY_ROOT, source);
+    if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+      gateFail('delivery contract escaped repository');
+    }
+  }
+  return validateDeliveryContract(JSON.parse(fs.readFileSync(source, 'utf8')));
+}
 export function eventPullNumber(eventName, event) {
-  if (!['pull_request', 'pull_request_review', 'pull_request_review_comment'].includes(eventName))
-    return null;
-  return event.pull_request?.number ?? null;
+  const allowed = ['pull_request', 'pull_request_review', 'pull_request_review_comment'];
+  return allowed.includes(eventName) ? (event.pull_request?.number ?? null) : null;
 }
 export function selectCurrentCheck(spec, checks, headSha) {
   const named = checks.filter(item => item.context === spec.context);
@@ -211,7 +210,7 @@ export function verifyCommitGraph(snapshot) {
   const headCommit = snapshot.commits[head];
   const tested = snapshot.commits[testedMerge];
   if (!baseCommit || !headCommit || !tested) gateFail('commit inventory incomplete');
-  if (JSON.stringify(tested.parents) !== JSON.stringify([base, head])) {
+  if (!sameJson(tested.parents, [base, head])) {
     gateFail('tested merge parents mismatch');
   }
   if (headCommit.tree !== tested.tree) gateFail('head-only lane lacks tested tree equality');
@@ -253,15 +252,23 @@ function checkState(check) {
     : `${check.status}/${check.conclusion ?? 'pending'}`;
 }
 const findCheck = (checks, name) => checks.find(check => checkLabel(check) === name);
-const strictFailures = checks =>
-  REQUIRED_CHECKS.filter(name => !SUCCESS_STATES.has(checkState(findCheck(checks, name)))).map(
-    name => `required check is not green: ${name}`
-  );
+const strictFailures = (checks, requiredChecks) =>
+  requiredChecks
+    .filter(name => !SUCCESS_STATES.has(checkState(findCheck(checks, name))))
+    .map(name => `required check is not green: ${name}`);
 function printSection(title, rows) {
   console.log(`\n${title}`);
   for (const row of rows) console.log(`- ${row}`);
 }
 function main() {
+  const deliveryContract = readDeliveryContract();
+  const requiredChecks = [
+    ...deliveryContract.providerRequiredContexts.map(item => item.context),
+    'delivery-gate',
+  ];
+  const monitoredChecks = deliveryContract.deliveryPrerequisites
+    .filter(item => item.classification !== 'provider')
+    .map(item => item.context);
   const strict = process.argv.includes('--strict');
   const prArg = process.argv.slice(2).find(arg => arg !== '--' && arg !== '--strict');
   if (prArg && !/^\d+$/u.test(prArg)) {
@@ -276,17 +283,12 @@ function main() {
   ]);
   const checks = pr.statusCheckRollup ?? [];
   console.log(`PR #${pr.number} governance report`);
-  for (const [title, names] of [
-    ['Required checks', REQUIRED_CHECKS],
-    ['Monitored checks', MONITORED_CHECKS],
-  ])
-    printSection(
-      title,
-      names.map(name => `${name}: ${checkState(findCheck(checks, name))}`)
-    );
+  const checkRows = names => names.map(name => `${name}: ${checkState(findCheck(checks, name))}`);
+  printSection('Required checks', checkRows(requiredChecks));
+  printSection('Monitored checks', checkRows(monitoredChecks));
   printSection('Feedback terminality', ['enforced by delivery-gate final intake']);
   if (strict) {
-    const failures = strictFailures(checks);
+    const failures = strictFailures(checks, requiredChecks);
     printSection(
       'Strict review readiness',
       failures.length === 0 ? ['PASS'] : failures.map(failure => `FAIL: ${failure}`)
@@ -294,5 +296,4 @@ function main() {
     if (failures.length > 0) process.exitCode = 1;
   }
 }
-
 if (isDirectInvocation(import.meta.url)) main();
