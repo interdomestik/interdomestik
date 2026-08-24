@@ -188,7 +188,7 @@ test('optional and companion generator checks cannot mask declared failures or b
   assert.throws(() => evaluateDeliverySnapshot(contract, reportedAudit), /pnpm-audit conclusion/iu);
 });
 
-test('provider contract drift, incomplete pagination, feedback findings, and threads fail closed', () => {
+test('provider contract drift, incomplete pagination, and unresolved current-head feedback fail closed', () => {
   const drift = structuredClone(contract);
   drift.providerRequiredContexts.pop();
   assert.throws(() => validateDeliveryContract(drift), /provider set mismatch/iu);
@@ -210,7 +210,7 @@ test('provider contract drift, incomplete pagination, feedback findings, and thr
     body: '<summary>Suppressed comments (1)</summary> Previously missed (1)',
     submittedAt: '2026-08-23T00:00:00Z',
   });
-  assert.throws(() => evaluateDeliverySnapshot(contract, summary), /actionable feedback/u);
+  assert.equal(evaluateDeliverySnapshot(contract, summary).ok, true);
 
   summary.feedback.reviews.push({
     id: 4002,
@@ -220,9 +220,6 @@ test('provider contract drift, incomplete pagination, feedback findings, and thr
     body: 'No additional findings.',
     submittedAt: '2026-08-23T00:01:00Z',
   });
-  assert.throws(() => evaluateDeliverySnapshot(contract, summary), /actionable feedback/u);
-
-  summary.feedback.disposedReviewIds = [4001];
   assert.equal(evaluateDeliverySnapshot(contract, summary).ok, true);
 
   const requested = snapshot();
@@ -274,6 +271,16 @@ test('provider contract drift, incomplete pagination, feedback findings, and thr
 
   inline.feedback.reviewComments[0].resolved = true;
   assert.equal(evaluateDeliverySnapshot(contract, inline).ok, true);
+
+  const staleInline = snapshot();
+  staleInline.feedback.reviewComments.push({
+    author: 'chatgpt-codex-connector[bot]',
+    commitId: '9'.repeat(40),
+    body: 'P1 finding: stale inline defect',
+    createdAt: '2026-08-23T00:00:00Z',
+    resolved: false,
+  });
+  assert.equal(evaluateDeliverySnapshot(contract, staleInline).ok, true);
 });
 
 test('mixed head snapshots and invalid tested merge topology fail closed', () => {
