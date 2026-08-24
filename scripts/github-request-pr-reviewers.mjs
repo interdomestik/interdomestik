@@ -18,9 +18,15 @@ export function promptBody(prompt, headSha) {
 }
 
 export function validateConfig(config) {
-  const keys = config && !Array.isArray(config) ? Object.keys(config).sort() : [];
+  const keys =
+    config && !Array.isArray(config)
+      ? Object.keys(config).sort((left, right) => left.localeCompare(right))
+      : [];
   const prompt = config?.botPrompts?.[0];
-  const promptKeys = prompt && !Array.isArray(prompt) ? Object.keys(prompt).sort() : [];
+  const promptKeys =
+    prompt && !Array.isArray(prompt)
+      ? Object.keys(prompt).sort((left, right) => left.localeCompare(right))
+      : [];
   if (
     keys.join(',') !== 'botPrompts' ||
     !Array.isArray(config.botPrompts) ||
