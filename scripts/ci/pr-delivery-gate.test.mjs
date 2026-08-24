@@ -4,11 +4,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import {
-  eventPullNumber,
-  evaluateDeliverySnapshot,
-  validateDeliveryContract,
-} from './pr-delivery-gate.mjs';
+import { evaluateDeliverySnapshot, validateDeliveryContract } from './pr-delivery-gate.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const gateSource = fs.readFileSync(path.join(root, 'scripts/ci/pr-delivery-gate.mjs'), 'utf8');
@@ -52,6 +48,7 @@ function snapshot(overrides = {}) {
     checks: checksFor(),
     feedback: {
       headSha: H,
+      disposedReviewIds: [],
       pagination: {
         checks: true,
         annotations: true,
@@ -75,6 +72,9 @@ test('contract has three acyclic sets and excludes the delivery gate from every 
   const missingDeliveryApp = structuredClone(contract);
   delete missingDeliveryApp.deliveryContext.appId;
   assert.throws(() => validateDeliveryContract(missingDeliveryApp), /delivery context/iu);
+  const extraException = structuredClone(contract);
+  extraException.deliveryPrerequisites[0].annotationPolicy = 'conclusion-only';
+  assert.throws(() => validateDeliveryContract(extraException), /annotation policy/iu);
   assert.deepEqual(
     contract.providerRequiredContexts.map(item => item.context),
     [
@@ -97,23 +97,6 @@ test('contract has three acyclic sets and excludes the delivery gate from every 
     assert.ok(set.every(item => item.context !== contract.deliveryContext.context));
   }
   assert.ok(contract.deliveryPrerequisites.some(item => item.context === 'pr-finalizer'));
-});
-
-test('event binding accepts only the three PR-family sources', () => {
-  assert.equal(eventPullNumber('pull_request', { pull_request: { number: 1621 } }), 1621);
-  assert.equal(eventPullNumber('pull_request_review', { pull_request: { number: 1621 } }), 1621);
-  assert.equal(
-    eventPullNumber('pull_request_review_comment', { pull_request: { number: 1621 } }),
-    1621
-  );
-  for (const [name, event] of [
-    ['issue_comment', { issue: { number: 1621, pull_request: {} } }],
-    ['check_run', { check_run: { pull_requests: [{ number: 1621 }] } }],
-    ['workflow_run', { workflow_run: { pull_requests: [{ number: 1621 }] } }],
-    ['pull_request', {}],
-  ]) {
-    assert.equal(eventPullNumber(name, event), null);
-  }
 });
 
 test('runtime event input uses the shared trusted-runner file boundary', () => {
@@ -196,6 +179,13 @@ test('optional and companion generator checks cannot mask declared failures or b
   const annotated = snapshot();
   annotated.checks[0].annotations = [{ level: 'warning', message: 'action required' }];
   assert.throws(() => evaluateDeliverySnapshot(contract, annotated), /annotation/u);
+
+  const reportedAudit = snapshot();
+  const pnpmAudit = reportedAudit.checks.find(item => item.context === 'pnpm-audit');
+  pnpmAudit.annotations = [{ level: 'failure', message: 'non-blocking moderate report' }];
+  assert.equal(evaluateDeliverySnapshot(contract, reportedAudit).ok, true);
+  pnpmAudit.conclusion = 'failure';
+  assert.throws(() => evaluateDeliverySnapshot(contract, reportedAudit), /pnpm-audit conclusion/iu);
 });
 
 test('provider contract drift, incomplete pagination, feedback findings, and threads fail closed', () => {
@@ -213,6 +203,7 @@ test('provider contract drift, incomplete pagination, feedback findings, and thr
 
   const summary = snapshot();
   summary.feedback.reviews.push({
+    id: 4001,
     author: 'copilot-pull-request-reviewer[bot]',
     commitId: H,
     state: 'COMMENTED',
@@ -222,6 +213,7 @@ test('provider contract drift, incomplete pagination, feedback findings, and thr
   assert.throws(() => evaluateDeliverySnapshot(contract, summary), /actionable feedback/u);
 
   summary.feedback.reviews.push({
+    id: 4002,
     author: 'copilot-pull-request-reviewer[bot]',
     commitId: H,
     state: 'COMMENTED',
@@ -229,6 +221,9 @@ test('provider contract drift, incomplete pagination, feedback findings, and thr
     submittedAt: '2026-08-23T00:01:00Z',
   });
   assert.throws(() => evaluateDeliverySnapshot(contract, summary), /actionable feedback/u);
+
+  summary.feedback.disposedReviewIds = [4001];
+  assert.equal(evaluateDeliverySnapshot(contract, summary).ok, true);
 
   const requested = snapshot();
   requested.feedback.reviews.push(

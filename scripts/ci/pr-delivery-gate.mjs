@@ -5,6 +5,9 @@ import path from 'node:path';
 import {
   DELIVERY_POLL_MS,
   GitHubClient,
+  deliveryDispositionCandidates,
+  deliveryDispositionReviewIds,
+  eventPullNumber,
   isDirectInvocation,
   waitForDelivery,
 } from './pr-delivery-api.mjs';
@@ -14,15 +17,14 @@ import {
 } from './validation-surface-policy-lib.mjs';
 import { readTrustedRunnerFile } from './trusted-runner-file.mjs';
 import {
-  eventPullNumber,
   evaluateDeliveryChecks,
   validateDeliveryContract,
   verifyCommitGraph,
   verifyFeedback,
 } from '../github-pr-governance-report.mjs';
 
-export { eventPullNumber, validateDeliveryContract };
-export { GitHubClient, trustedGitHubApiUrl } from './pr-delivery-api.mjs';
+export { validateDeliveryContract };
+export { GitHubClient, eventPullNumber, trustedGitHubApiUrl } from './pr-delivery-api.mjs';
 const MAX_ATTEMPTS = 175;
 const MAX_PAGES = 100;
 
@@ -107,8 +109,32 @@ async function collectFeedback(client, pull) {
       .filter(thread => thread.isResolved)
       .flatMap(thread => thread.comments.nodes.map(comment => comment.url))
   );
+  const normalizedIssueComments = issueComments.values.map(item => ({
+    author: item.user?.login ?? '',
+    authorAssociation: item.author_association ?? '',
+    body: item.body ?? '',
+    createdAt: item.updated_at ?? item.created_at ?? '',
+  }));
+  const dispositionAuthors = [
+    ...new Set(
+      deliveryDispositionCandidates(normalizedIssueComments, pull.head.sha).map(item => item.author)
+    ),
+  ];
+  const dispositionPermissions = new Map(
+    await Promise.all(
+      dispositionAuthors.map(async author => [
+        author,
+        (await client.request(`${base}/collaborators/${author}/permission`)).permission,
+      ])
+    )
+  );
+  const authorizedIssueComments = normalizedIssueComments.map(item => ({
+    ...item,
+    permission: dispositionPermissions.get(item.author) ?? '',
+  }));
   return {
     headSha: pull.head.sha,
+    disposedReviewIds: deliveryDispositionReviewIds(authorizedIssueComments, pull.head.sha),
     pagination: {
       checks: true,
       annotations: true,
@@ -123,17 +149,14 @@ async function collectFeedback(client, pull) {
       ...(pull.requested_teams ?? []).map(item => item.slug),
     ],
     reviews: reviews.values.map(item => ({
+      id: item.id,
       author: item.user?.login ?? '',
       commitId: item.commit_id ?? '',
       state: item.state ?? '',
       body: item.body ?? '',
       submittedAt: item.submitted_at ?? '',
     })),
-    issueComments: issueComments.values.map(item => ({
-      author: item.user?.login ?? '',
-      body: item.body ?? '',
-      createdAt: item.updated_at ?? item.created_at ?? '',
-    })),
+    issueComments: authorizedIssueComments,
     reviewComments: reviewComments.values.map(item => ({
       author: item.user?.login ?? '',
       commitId: item.commit_id ?? '',

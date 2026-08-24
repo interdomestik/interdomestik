@@ -8,7 +8,12 @@ import { fileURLToPath } from 'node:url';
 
 import yaml from 'js-yaml';
 
-import { GitHubClient, trustedGitHubApiUrl, waitForDelivery } from './pr-delivery-api.mjs';
+import {
+  GitHubClient,
+  eventPullNumber,
+  trustedGitHubApiUrl,
+  waitForDelivery,
+} from './pr-delivery-api.mjs';
 import { resolvePackageJsonSurface } from './pr-delivery-gate.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -38,6 +43,20 @@ test('GitHub API boundary rejects foreign paths and query keys', () => {
     'repos/interdomestik/interdomestik/contents/package.json?ref=main',
   ]) {
     assert.throws(() => trustedGitHubApiUrl(endpoint), /unsafe|trusted boundary/u);
+  }
+});
+
+test('event binding accepts only the three PR-family sources', () => {
+  for (const name of ['pull_request', 'pull_request_review', 'pull_request_review_comment']) {
+    assert.equal(eventPullNumber(name, { pull_request: { number: 1621 } }), 1621);
+  }
+  for (const [name, event] of [
+    ['issue_comment', { issue: { number: 1621, pull_request: {} } }],
+    ['check_run', { check_run: { pull_requests: [{ number: 1621 }] } }],
+    ['workflow_run', { workflow_run: { pull_requests: [{ number: 1621 }] } }],
+    ['pull_request', {}],
+  ]) {
+    assert.equal(eventPullNumber(name, event), null);
   }
 });
 

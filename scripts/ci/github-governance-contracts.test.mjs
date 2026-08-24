@@ -8,8 +8,11 @@ import { fileURLToPath } from 'node:url';
 
 import yaml from 'js-yaml';
 
+import { deliveryDispositionReviewIds } from './pr-delivery-api.mjs';
+
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, '../..');
+const HEAD = '2'.repeat(40);
 
 const REQUIRED_CHECKS = [
   'validation-surface',
@@ -34,6 +37,24 @@ function escapeRegexLiteral(value) {
   return value.replace(/[\\^$.*+?()[\]{}|]/g, String.raw`\$&`);
 }
 
+test('delivery dispositions require current-head write permission', () => {
+  const marker = (review, head) =>
+    `<!-- pr-delivery-disposition:v1 review=${review} head=${head} -->`;
+  const comments = [
+    ['maintainer', 'MEMBER', 'write', marker(4001, HEAD)],
+    ['owner', 'OWNER', 'admin', marker(4002, '9'.repeat(40))],
+    ['outsider', 'NONE', 'admin', marker(4003, HEAD)],
+    ['reader', 'MEMBER', 'read', marker(4004, HEAD)],
+    ['maintainer', 'MEMBER', 'write', `disposition review=4005 head=${HEAD}`],
+  ].map(([author, authorAssociation, permission, body]) => ({
+    author,
+    authorAssociation,
+    permission,
+    body,
+  }));
+  assert.deepEqual(deliveryDispositionReviewIds(comments, HEAD), [4001]);
+});
+
 test('branch-protection documentation and PR template list current governance checks', () => {
   const protectionDoc = read('docs/BRANCH_PROTECTION_MULTI_AGENT.md');
   const prTemplate = read('.github/pull_request_template.md');
@@ -57,6 +78,7 @@ test('branch-protection documentation and PR template list current governance ch
 test('governance report and terminal evaluator consume the canonical delivery manifest', () => {
   const packageJson = JSON.parse(read('package.json'));
   const reportScript = read('scripts/github-pr-governance-report.mjs');
+  const deliveryGate = read('scripts/ci/pr-delivery-gate.mjs');
   const contract = JSON.parse(read('scripts/ci/pr-delivery-contract.json'));
 
   assert.equal(
@@ -79,6 +101,8 @@ test('governance report and terminal evaluator consume the canonical delivery ma
   assert.match(reportScript, /\^\\d\+\$/);
   assert.match(reportScript, /pr-delivery-contract\.json/);
   assert.match(reportScript, /delivery-gate/);
+  assert.match(deliveryGate, /collaborators\/\$\{author\}\/permission/);
+  assert.match(deliveryGate, /disposedReviewIds/);
   assert.doesNotMatch(reportScript, /void contract/u);
 
   assert.match(reportScript, /providerRequiredContexts/);

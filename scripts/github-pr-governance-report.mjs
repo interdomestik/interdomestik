@@ -1,9 +1,13 @@
 #!/usr/bin/env node
-import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { isDirectInvocation } from './ci/pr-delivery-api.mjs';
-const SUCCESS_STATES = new Set(['SUCCESS', 'COMPLETED/SUCCESS']);
+import {
+  checkState,
+  findCheck,
+  ghJson,
+  isDirectInvocation,
+  strictFailures,
+} from './ci/pr-delivery-api.mjs';
 const ACTIONABLE_FEEDBACK_SOURCES = [
   String.raw`Suppressed comments\s*\([1-9]\d*\)`,
   String.raw`Previously missed\s*\([1-9]\d*\)`,
@@ -13,14 +17,14 @@ const ACTIONABLE_FEEDBACK_SOURCES = [
 const ACTIONABLE_FEEDBACK_PATTERNS = ACTIONABLE_FEEDBACK_SOURCES.map(
   source => new RegExp(source, 'iu')
 );
-const GH_BINARY_CANDIDATES = ['/usr/bin/gh', '/opt/homebrew/bin/gh', '/usr/local/bin/gh'];
 const compareText = (left, right) => left.localeCompare(right);
 const sameJson = (left, right) => JSON.stringify(left) === JSON.stringify(right);
 const CONTRACT_KEYS =
   'schemaVersion,repository,deliveryContext,finalizerLeafPrerequisites,providerRequiredContexts,deliveryPrerequisites,generatorAppIds,feedbackAuthors,actionableFeedbackPatterns,quiescenceMs'.split(
     ','
   );
-const SPEC_KEYS = 'context,appId,classification,requirement,skipWhen,finalConclusions'.split(',');
+const SPEC_KEYS =
+  'context,appId,classification,requirement,skipWhen,annotationPolicy,finalConclusions'.split(',');
 function gateFail(message) {
   throw new Error(message);
 }
@@ -62,10 +66,17 @@ export function validateDeliveryContract(contract) {
     if (
       !['provider', 'validation-surface', 'generator'].includes(item.classification) ||
       !['required', 'optional'].includes(item.requirement) ||
+      !['block-warning-failure', 'conclusion-only'].includes(item.annotationPolicy) ||
       !sameJson(item.finalConclusions, ['success'])
     ) {
       gateFail('delivery prerequisite ' + item.context + ' mismatch');
     }
+  }
+  const conclusionOnly = contract.deliveryPrerequisites
+    .filter(item => item.annotationPolicy === 'conclusion-only')
+    .map(item => [item.context, item.appId, item.classification, item.requirement]);
+  if (!sameJson(conclusionOnly, [['pnpm-audit', 15368, 'provider', 'required']])) {
+    gateFail('annotation policy exception mismatch');
   }
   const sets = [
     contract.finalizerLeafPrerequisites,
@@ -124,10 +135,6 @@ export function readDeliveryContract() {
   }
   return validateDeliveryContract(JSON.parse(fs.readFileSync(source, 'utf8')));
 }
-export function eventPullNumber(eventName, event) {
-  const allowed = ['pull_request', 'pull_request_review', 'pull_request_review_comment'];
-  return allowed.includes(eventName) ? (event.pull_request?.number ?? null) : null;
-}
 export function selectCurrentCheck(spec, checks, headSha) {
   const named = checks.filter(item => item.context === spec.context);
   if (named.some(item => item.appId !== spec.appId))
@@ -165,7 +172,9 @@ function latestByAuthor(items) {
 }
 function generatorFeedback(contract, feedback) {
   const allowed = new Set(contract.feedbackAuthors);
-  const bots = [...feedback.reviews, ...feedback.issueComments, ...feedback.reviewComments]
+  const disposed = new Set(feedback.disposedReviewIds);
+  const reviews = feedback.reviews.filter(item => !disposed.has(item.id));
+  const bots = [...reviews, ...feedback.issueComments, ...feedback.reviewComments]
     .filter(item => !item.resolved)
     .filter(item => {
       const author = normalizeFeedbackAuthor(item.author);
@@ -179,6 +188,11 @@ function generatorFeedback(contract, feedback) {
 }
 export function verifyFeedback(contract, feedback, headSha) {
   if (feedback.headSha !== headSha) gateFail('mixed-head feedback snapshot');
+  if (
+    !Array.isArray(feedback.disposedReviewIds) ||
+    feedback.disposedReviewIds.some(value => !Number.isSafeInteger(value) || value <= 0)
+  )
+    gateFail('feedback disposition identity mismatch');
   if (Object.values(feedback.pagination).some(value => value !== true))
     gateFail('feedback pagination incomplete');
   if (feedback.unresolvedThreads.length) gateFail('unresolved review threads');
@@ -225,7 +239,10 @@ export function evaluateDeliveryChecks(contract, snapshot) {
     if (item.conclusion === 'skipped' && snapshot.validationSurface.reason !== spec.skipWhen) {
       gateFail(spec.context + ' conclusion skipped without validation-surface proof');
     }
-    if ((item.annotations ?? []).some(value => ['warning', 'failure'].includes(value.level))) {
+    if (
+      spec.annotationPolicy === 'block-warning-failure' &&
+      (item.annotations ?? []).some(value => ['warning', 'failure'].includes(value.level))
+    ) {
       gateFail('actionable annotation on ' + spec.context);
     }
     selected.push({
@@ -240,23 +257,6 @@ export function evaluateDeliveryChecks(contract, snapshot) {
   }
   return selected;
 }
-function ghJson(args) {
-  const binary = GH_BINARY_CANDIDATES.find(candidate => fs.existsSync(candidate));
-  if (!binary) gateFail(`GitHub CLI not found in: ${GH_BINARY_CANDIDATES.join(', ')}`);
-  return JSON.parse(execFileSync(binary, args, { encoding: 'utf8' }));
-}
-const checkLabel = check => check?.name ?? check?.context ?? check?.workflowName ?? 'unknown';
-function checkState(check) {
-  if (!check) return 'missing';
-  return check.__typename === 'StatusContext'
-    ? check.state
-    : `${check.status}/${check.conclusion ?? 'pending'}`;
-}
-const findCheck = (checks, name) => checks.find(check => checkLabel(check) === name);
-const strictFailures = (checks, requiredChecks) =>
-  requiredChecks
-    .filter(name => !SUCCESS_STATES.has(checkState(findCheck(checks, name))))
-    .map(name => `required check is not green: ${name}`);
 function printSection(title, rows) {
   console.log(`\n${title}`);
   for (const row of rows) console.log(`- ${row}`);

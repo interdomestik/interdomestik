@@ -31,6 +31,7 @@
       "classification": "provider",
       "requirement": "required",
       "skipWhen": null,
+      "annotationPolicy": "block-warning-failure",
       "finalConclusions": ["success"]
     },
     {
@@ -39,6 +40,7 @@
       "classification": "provider",
       "requirement": "required",
       "skipWhen": null,
+      "annotationPolicy": "block-warning-failure",
       "finalConclusions": ["success"]
     },
     {
@@ -47,6 +49,7 @@
       "classification": "provider",
       "requirement": "required",
       "skipWhen": null,
+      "annotationPolicy": "conclusion-only",
       "finalConclusions": ["success"]
     },
     {
@@ -55,6 +58,7 @@
       "classification": "provider",
       "requirement": "required",
       "skipWhen": null,
+      "annotationPolicy": "block-warning-failure",
       "finalConclusions": ["success"]
     },
     {
@@ -63,6 +67,7 @@
       "classification": "provider",
       "requirement": "required",
       "skipWhen": null,
+      "annotationPolicy": "block-warning-failure",
       "finalConclusions": ["success"]
     },
     {
@@ -71,6 +76,7 @@
       "classification": "provider",
       "requirement": "required",
       "skipWhen": null,
+      "annotationPolicy": "block-warning-failure",
       "finalConclusions": ["success"]
     },
     {
@@ -79,6 +85,7 @@
       "classification": "provider",
       "requirement": "required",
       "skipWhen": null,
+      "annotationPolicy": "block-warning-failure",
       "finalConclusions": ["success"]
     },
     {
@@ -87,6 +94,7 @@
       "classification": "provider",
       "requirement": "required",
       "skipWhen": null,
+      "annotationPolicy": "block-warning-failure",
       "finalConclusions": ["success"]
     },
     {
@@ -95,6 +103,7 @@
       "classification": "validation-surface",
       "requirement": "required",
       "skipWhen": "non_product_only_pr",
+      "annotationPolicy": "block-warning-failure",
       "finalConclusions": ["success"]
     },
     {
@@ -103,6 +112,7 @@
       "classification": "validation-surface",
       "requirement": "required",
       "skipWhen": "non_product_only_pr",
+      "annotationPolicy": "block-warning-failure",
       "finalConclusions": ["success"]
     },
     {
@@ -111,6 +121,7 @@
       "classification": "validation-surface",
       "requirement": "required",
       "skipWhen": "non_product_only_pr",
+      "annotationPolicy": "block-warning-failure",
       "finalConclusions": ["success"]
     },
     {
@@ -119,6 +130,7 @@
       "classification": "generator",
       "requirement": "required",
       "skipWhen": null,
+      "annotationPolicy": "block-warning-failure",
       "finalConclusions": ["success"]
     },
     {
@@ -127,6 +139,7 @@
       "classification": "generator",
       "requirement": "required",
       "skipWhen": null,
+      "annotationPolicy": "block-warning-failure",
       "finalConclusions": ["success"]
     },
     {
@@ -135,6 +148,7 @@
       "classification": "generator",
       "requirement": "optional",
       "skipWhen": null,
+      "annotationPolicy": "block-warning-failure",
       "finalConclusions": ["success"]
     }
   ],

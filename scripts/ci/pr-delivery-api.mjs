@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -7,6 +8,12 @@ const MAX_PAGES = 100;
 const MAX_DELIVERY_DELAY_MS = 60 * 60 * 1000;
 const GITHUB_API_ORIGIN = 'https://api.github.com';
 const SAFE_ENDPOINT = /^[a-z0-9._~!$&'()*+,;=:@/?-]+$/iu;
+const GH_BINARY_CANDIDATES = ['/usr/bin/gh', '/opt/homebrew/bin/gh', '/usr/local/bin/gh'];
+const SUCCESS_STATES = new Set(['SUCCESS', 'COMPLETED/SUCCESS']);
+const DELIVERY_DISPOSITION =
+  /^<!-- pr-delivery-disposition:v1 review=(\d+) head=([a-f0-9]{40}) -->$/u;
+const POTENTIAL_DISPOSITION_ASSOCIATIONS = new Set(['COLLABORATOR', 'MEMBER', 'OWNER']);
+const TRUSTED_DISPOSITION_PERMISSIONS = new Set(['admin', 'maintain', 'write']);
 
 function apiFail(message, waiting = false, retryAfterMs = DELIVERY_POLL_MS) {
   const error = new Error(`${waiting ? 'WAIT: ' : ''}${message}`);
@@ -56,6 +63,49 @@ export function trustedGitHubApiUrl(endpoint) {
   if (boundaryViolated) apiFail('GitHub API endpoint escaped the trusted boundary');
   return url;
 }
+
+export function eventPullNumber(eventName, event) {
+  const allowed = ['pull_request', 'pull_request_review', 'pull_request_review_comment'];
+  return allowed.includes(eventName) ? (event.pull_request?.number ?? null) : null;
+}
+
+export function deliveryDispositionCandidates(issueComments, headSha) {
+  return issueComments.flatMap(item => {
+    const match = DELIVERY_DISPOSITION.exec((item.body ?? '').trim());
+    return match &&
+      match[2] === headSha &&
+      POTENTIAL_DISPOSITION_ASSOCIATIONS.has(item.authorAssociation) &&
+      /^[a-z0-9-]{1,39}$/iu.test(item.author ?? '')
+      ? [{ reviewId: Number(match[1]), author: item.author, permission: item.permission }]
+      : [];
+  });
+}
+
+export function deliveryDispositionReviewIds(issueComments, headSha) {
+  return deliveryDispositionCandidates(issueComments, headSha)
+    .filter(candidate => TRUSTED_DISPOSITION_PERMISSIONS.has(candidate.permission))
+    .map(candidate => candidate.reviewId);
+}
+
+export function ghJson(args) {
+  const binary = GH_BINARY_CANDIDATES.find(candidate => fs.existsSync(candidate));
+  if (!binary) apiFail(`GitHub CLI not found in: ${GH_BINARY_CANDIDATES.join(', ')}`);
+  return JSON.parse(execFileSync(binary, args, { encoding: 'utf8' }));
+}
+
+export const checkLabel = check =>
+  check?.name ?? check?.context ?? check?.workflowName ?? 'unknown';
+export const checkState = check =>
+  check?.__typename === 'StatusContext'
+    ? check.state
+    : check
+      ? `${check.status}/${check.conclusion ?? 'pending'}`
+      : 'missing';
+export const findCheck = (checks, name) => checks.find(check => checkLabel(check) === name);
+export const strictFailures = (checks, requiredChecks) =>
+  requiredChecks
+    .filter(name => !SUCCESS_STATES.has(checkState(findCheck(checks, name))))
+    .map(name => `required check is not green: ${name}`);
 
 function responseHeader(response, name) {
   return response.headers?.get?.(name) ?? '';
