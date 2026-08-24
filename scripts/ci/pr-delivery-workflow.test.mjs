@@ -98,12 +98,14 @@ test('GitHub requests pin headers and classify transient failures', async () => 
 });
 
 test('delivery delays are bounded at the timer sink', async () => {
-  let observed;
-  await waitForDelivery(30_000, (resolve, milliseconds) => {
-    observed = milliseconds;
+  const observed = [];
+  const timer = (resolve, milliseconds) => {
+    observed.push(milliseconds);
     resolve();
-  });
-  assert.equal(observed, 30_000);
+  };
+  await waitForDelivery(20_000, timer);
+  await waitForDelivery(30_001, timer);
+  assert.deepEqual(observed, [20_000, 30_000, 30_000]);
   for (const milliseconds of [0, -1, 3_600_001, Number.MAX_SAFE_INTEGER]) {
     assert.throws(() => waitForDelivery(milliseconds, () => {}), /bounded timer contract/u);
   }

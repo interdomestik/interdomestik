@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 export const DELIVERY_POLL_MS = 30_000;
+const DELIVERY_QUIESCENCE_MS = 20_000;
 const MAX_PAGES = 100;
 const MAX_DELIVERY_DELAY_MS = 60 * 60 * 1000;
 const GITHUB_API_ORIGIN = 'https://api.github.com';
@@ -21,7 +22,15 @@ export function waitForDelivery(milliseconds, timer = setTimeout) {
   ) {
     apiFail('delivery delay escaped the bounded timer contract');
   }
-  return new Promise(resolve => timer(resolve, milliseconds));
+  return (async () => {
+    if (milliseconds === DELIVERY_QUIESCENCE_MS) {
+      await new Promise(resolve => timer(resolve, DELIVERY_QUIESCENCE_MS));
+      return;
+    }
+    for (let elapsed = 0; elapsed < milliseconds; elapsed += DELIVERY_POLL_MS) {
+      await new Promise(resolve => timer(resolve, DELIVERY_POLL_MS));
+    }
+  })();
 }
 
 export function trustedGitHubApiUrl(endpoint) {
