@@ -58,6 +58,7 @@ test('PR finalizer reads the acyclic leaf set from the delivery manifest', () =>
   assert.doesNotMatch(finalizerLib, /success.*skipped.*neutral/s);
   assert.match(finalizer, /required_records/);
   assert.match(finalizer, /delivery contract has no valid finalizer prerequisites/);
+  assert.match(finalizerLib, /\) \|\| return 1\n  return 0\n\}/u);
 });
 
 test('required-check extraction fails closed for an empty manifest set', () => {
@@ -99,6 +100,29 @@ test('shared finalizer event reader accepts only a trusted runner file', () => {
     );
     assert.equal(result.status, 0, result.stderr);
     assert.equal(result.stdout, '1621');
+  } finally {
+    fs.rmSync(temporary, { recursive: true, force: true });
+  }
+});
+
+test('shared finalizer event reader preserves invalid-event failure', () => {
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'finalizer-event-invalid-'));
+  const eventPath = path.join(temporary, 'event.json');
+  fs.writeFileSync(eventPath, JSON.stringify({ pull_request: {} }));
+  try {
+    const result = spawnSync(
+      'bash',
+      [
+        '-c',
+        'source scripts/pr-finalizer-lib.sh; RUNNER_TEMP="$1" trusted_event_pr_number "$2"',
+        '--',
+        temporary,
+        eventPath,
+      ],
+      { cwd: rootDir, encoding: 'utf8' }
+    );
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /pull request number is missing/u);
   } finally {
     fs.rmSync(temporary, { recursive: true, force: true });
   }

@@ -8,7 +8,7 @@ Usage: bash scripts/pr-review-ready.sh [PR_NUMBER]
 Runs the Interdomestik PR reviewer sequence gate:
   1. pr-finalizer with check polling enabled
   2. boundary taxonomy no-touch check
-  3. governance report strict mode for terminal delivery and Codex review signals
+  3. governance report strict mode for manifest-declared delivery check state
 
 Waiver environment variables, when explicitly accepted:
   PR_REVIEW_READY_ALLOW_NO_TOUCH=true
@@ -151,7 +151,10 @@ run_boundary_check() {
 
 if ! jq -e '
   .schemaVersion == 1
+  and .repository == "interdomestik/interdomestik"
   and .deliveryContext.context == "delivery-gate"
+  and (.finalizerLeafPrerequisites | type) == "array"
+  and (.finalizerLeafPrerequisites | length) > 0
   and ([.finalizerLeafPrerequisites[].context] | index("delivery-gate") | not)
 ' "${PR_DELIVERY_CONTRACT}" >/dev/null; then
   echo "pr-review-ready failed: invalid delivery contract" >&2

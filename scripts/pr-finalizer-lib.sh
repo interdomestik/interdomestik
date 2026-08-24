@@ -21,7 +21,8 @@ trusted_event_pr_number() {
       }
       process.stdout.write(String(number));
     ' "${event_path}"
-  )
+  ) || return 1
+  return 0
 }
 
 collect_changed_files() {

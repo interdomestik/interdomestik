@@ -95,12 +95,11 @@ export function ghJson(args) {
 
 export const checkLabel = check =>
   check?.name ?? check?.context ?? check?.workflowName ?? 'unknown';
-export const checkState = check =>
-  check?.__typename === 'StatusContext'
-    ? check.state
-    : check
-      ? `${check.status}/${check.conclusion ?? 'pending'}`
-      : 'missing';
+export function checkState(check) {
+  if (!check) return 'missing';
+  if (check.__typename === 'StatusContext') return check.state;
+  return `${check.status}/${check.conclusion ?? 'pending'}`;
+}
 export const findCheck = (checks, name) => checks.find(check => checkLabel(check) === name);
 export const strictFailures = (checks, requiredChecks) =>
   requiredChecks

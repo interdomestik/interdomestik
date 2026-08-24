@@ -220,7 +220,8 @@ test('delivery workflow is API-only, exact-bound, acyclic, and default-deny', ()
   const gateIndex = job.steps.findIndex(step =>
     String(step.run).includes('scripts/ci/pr-delivery-gate.mjs')
   );
-  assert.ok(setupNodeIndex >= 0 && setupNodeIndex < gateIndex);
+  assert.ok(setupNodeIndex >= 0, 'setup-node step must exist');
+  assert.ok(setupNodeIndex < gateIndex, 'setup-node must run before the delivery gate');
   assert.equal(job.steps[setupNodeIndex].with['node-version-file'], '.nvmrc');
   assert.equal(job.steps[setupNodeIndex].with['package-manager-cache'], false);
   assert.match(job.steps[setupNodeIndex].uses, /@[a-f0-9]{40}$/u);
@@ -272,7 +273,10 @@ test('manifest consumers are wired and finalizer never waits for delivery-gate',
   assert.doesNotMatch(finalizer, /required_checks=\(/u);
   assert.doesNotMatch(finalizerLib, /success.*skipped.*neutral/su);
   assert.doesNotMatch(reviewReady, /ALLOW_MISSING_COPILOT/u);
+  assert.doesNotMatch(reviewReady, /Codex review signals/u);
   assert.match(reviewReady, /pr-review-ready failed: invalid delivery contract/u);
+  assert.match(reviewReady, /\.repository == "interdomestik\/interdomestik"/u);
+  assert.match(reviewReady, /\.finalizerLeafPrerequisites \| length\) > 0/u);
   assert.doesNotMatch(governance, /request Copilot review/u);
   assert.ok(contract.finalizerLeafPrerequisites.every(item => item.context !== 'delivery-gate'));
 });
