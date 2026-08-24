@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import {
   checkState,
   findCheck,
+  generatorFeedback,
   ghJson,
   isDirectInvocation,
   strictFailures,
@@ -169,22 +170,6 @@ function latestByAuthor(items) {
     }
   }
   return latest;
-}
-function generatorFeedback(contract, feedback) {
-  const allowed = new Set(contract.feedbackAuthors);
-  const disposed = new Set(feedback.disposedReviewIds);
-  const reviews = feedback.reviews.filter(item => !disposed.has(item.id));
-  const bots = [...reviews, ...feedback.issueComments, ...feedback.reviewComments]
-    .filter(item => !item.resolved)
-    .filter(item => {
-      const author = normalizeFeedbackAuthor(item.author);
-      return allowed.has(author) || (item.author ?? '').endsWith('[bot]') || author === 'copilot';
-    });
-  for (const item of bots) {
-    const author = normalizeFeedbackAuthor(item.author);
-    if (!allowed.has(author)) gateFail('unknown generator feedback author ' + author);
-  }
-  return bots.filter(item => !item.commitId || item.commitId === feedback.headSha);
 }
 export function verifyFeedback(contract, feedback, headSha) {
   if (feedback.headSha !== headSha) gateFail('mixed-head feedback snapshot');

@@ -18,19 +18,24 @@ const PROGRAM = 'IDA-WF01-ONE-APPROVAL-DELIVERY';
 const B = '0'.repeat(40);
 const S3 = ['docs/plans/current-authority-v1.json', 'scripts/current-authority-state.mjs'];
 const S4A = ['.github/workflows/pr-delivery-gate.yml', 'scripts/ci/pr-delivery-gate.mjs'];
+const S4B = ['.github/reviewer-routing.json', 'scripts/github-request-pr-reviewers.mjs'];
+const CLOSEOUT_STATES = 'merged_consumed active merged_consumed closeout_required closed'.split(
+  ' '
+);
 const digest = value => createHash('sha256').update(value).digest('hex');
 const writeJson = (path, value) => writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
 const envelope = () => ({
   approvalEnvelope: {
     children: [
-      { order: 0, childId: 'S3-exact-authority', controlPlane: 'repository PR', writerPaths: S3 },
-      {
-        order: 1,
-        childId: 'S4A-terminal-delivery',
-        controlPlane: 'repository PR; protection remains unchanged',
-        writerPaths: S4A,
-      },
-    ],
+      ['S3-exact-authority', 'repository PR', S3],
+      ['S4A-terminal-delivery', 'repository PR; protection remains unchanged', S4A],
+      ['S4B-reviewer-policy', 'repository PR', S4B],
+    ].map(([childId, controlPlane, writerPaths], order) => ({
+      order,
+      childId,
+      controlPlane,
+      writerPaths,
+    })),
   },
 });
 const receipt = () => ({ approvalId: 'fixture' });
@@ -84,6 +89,14 @@ function s4aHistory() {
   const boundary = Object.fromEntries(Object.entries(gitBoundary()).reverse());
   return [...history, merged, record(5, 'active', 'S4A-terminal-delivery', merged, boundary)];
 }
+function s4bCloseoutHistory() {
+  const history = s4aHistory();
+  for (const status of CLOSEOUT_STATES) {
+    const childId = history.length === 5 ? 'S4A-terminal-delivery' : 'S4B-reviewer-policy';
+    history.push(record(history.length + 1, status, childId, history.at(-1)));
+  }
+  return history;
+}
 function evidence(history) {
   return history.map((current, index) => {
     const previous = history[index - 1];
@@ -95,6 +108,8 @@ function evidence(history) {
         'active:merged_consumed:0': 'merge_consumed',
         'merged_consumed:active:0': 'successor_projection_recovered',
         'merged_consumed:active:1': 'health_cleanup_pass',
+        'merged_consumed:closeout_required:0': 'health_cleanup_pass',
+        'closeout_required:closed:0': 'success_closeout',
         'active:failed_consumed:0': 'failure_consumed',
       }[key] ?? null;
     return {
@@ -172,12 +187,10 @@ function durableFixture() {
     evidenceRef,
   };
   const durable = { ...state, operationSha256: digest(JSON.stringify(state)) };
-  const source = {
-    ...input([durable]),
-    projection: projected,
-    envelope: approved,
-    artifactHashes: artifactHashes(projected),
-  };
+  const source = input([durable]);
+  source.projection = projected;
+  source.envelope = approved;
+  source.artifactHashes = artifactHashes(projected);
   writeJson(join(root, 'authority-v1.json'), durable);
   writeJson(join(root, 'receipts', `${durable.operationSha256}.json`), durable);
   writeJson(join(root, evidenceRef), proof);
@@ -187,18 +200,22 @@ function durableFixture() {
     paths: { durablePath: join(root, 'authority-v1.json'), historyPath: join(root, 'receipts') },
   };
 }
-test('derives the exact current S3 repair writer map from the envelope and full history', () => {
-  const source = input();
-  const context = deriveAuthorityContext(source);
+test('resolves sequential authority states and fail-closes drift', () => {
+  const context = deriveAuthorityContext(input());
   assert.deepEqual([context.childId, context.base], ['S3-exact-authority', B]);
   assert.deepEqual(context.writerPaths, S3);
-  assert.equal(resolveCurrentAuthority(source).runtimeAuthorized, true);
-});
-test('accepts only the sequential S4A child with its own writer map', () => {
-  const result = resolveCurrentAuthority(input(s4aHistory()));
-  assert.deepEqual([result.activeSlice, result.writerPaths], ['S4A-terminal-delivery', S4A]);
-});
-test('missing, broken, skipped, or unlisted history fails closed', () => {
+  assert.equal(resolveCurrentAuthority(input()).runtimeAuthorized, true);
+  const result = resolveCurrentAuthority(input(s4bCloseoutHistory()));
+  assert.equal(result.reason, 'authority_not_active');
+  assert.deepEqual(
+    [result.runtimeAuthorized, result.activeSlice, result.successorsBlocked],
+    [false, null, false]
+  );
+  for (const event of ['closeout', 'unknown_closeout']) {
+    const source = input(s4bCloseoutHistory());
+    source.evidence.at(-1).event = event;
+    assert.equal(resolveCurrentAuthority(source).reason, 'invalid_authority_projection');
+  }
   const missing = input(s3History().slice(1));
   const brokenHistory = s3History();
   brokenHistory[2] = record(3, 'active', 'S3-exact-authority', brokenHistory[0]);
@@ -211,39 +228,25 @@ test('missing, broken, skipped, or unlisted history fails closed', () => {
   for (const source of [missing, input(brokenHistory), input(skipped), input(prematureCloseout)]) {
     assert.equal(resolveCurrentAuthority(source).reason, 'invalid_authority_projection');
   }
-});
-test('a crafted null event cannot reactivate after irreversible failure', () => {
   const active = record(1, 'active', 'S3-exact-authority');
   const failed = record(2, 'failed_consumed', 'S3-exact-authority', active);
   const reopened = record(3, 'active', 'S3-exact-authority', failed);
   assert.doesNotThrow(() => deriveAuthorityContext(input([active, failed])));
   assert.equal(resolveCurrentAuthority(input([active, failed, reopened])).runtimeAuthorized, false);
-});
-test('durable reader binds state, receipts, and canonical evidence to the approved root', () => {
-  const { root, source, paths } = durableFixture();
-  assert.equal(readDurableAuthority(source.envelope, paths).history.length, 1);
+  const { root: fixtureRoot, source: fixtureSource, paths: fixturePaths } = durableFixture();
+  assert.equal(readDurableAuthority(fixtureSource.envelope, fixturePaths).history.length, 1);
   assert.throws(
     () =>
-      readDurableAuthority(source.envelope, {
-        ...paths,
-        durablePath: join(root, 'receipts', `${source.durable.operationSha256}.json`),
+      readDurableAuthority(fixtureSource.envelope, {
+        ...fixturePaths,
+        durablePath: join(fixtureRoot, 'receipts', `${fixtureSource.durable.operationSha256}.json`),
       }),
     /state path/i
   );
-  const proofPath = join(root, source.durable.evidenceRef);
+  const proofPath = join(fixtureRoot, fixtureSource.durable.evidenceRef);
   unlinkSync(proofPath);
   symlinkSync('/etc/hosts', proofPath);
-  assert.throws(() => readDurableAuthority(source.envelope, paths), /evidence path/i);
-});
-test('a repository child with a local boundary fails closed', () => {
-  const history = s3History();
-  history[2] = record(3, 'active', 'S3-exact-authority', history[1], {
-    kind: 'local',
-    postimageSha256: '7'.repeat(64),
-  });
-  assert.equal(resolveCurrentAuthority(input(history)).runtimeAuthorized, false);
-});
-test('base, writer, origin, worktree, and MCP drift fail closed', () => {
+  assert.throws(() => readDurableAuthority(fixtureSource.envelope, fixturePaths), /evidence path/i);
   const drifts = [
     { base: '9'.repeat(40) },
     { writerMapSha256: '9'.repeat(64) },
@@ -253,20 +256,19 @@ test('base, writer, origin, worktree, and MCP drift fail closed', () => {
   ];
   for (const drift of drifts)
     assert.equal(resolveCurrentAuthority(input(s3History(), drift)).runtimeAuthorized, false);
-});
-test('merge and terminal failure consume live authority immediately', () => {
-  assert.equal(
-    resolveCurrentAuthority(input(s3History(), { pullRequestState: 'MERGED' })).reason,
-    'authority_consumed_by_merge'
-  );
-  const failed = resolveCurrentAuthority(input(s3History(), { terminalFailure: true }));
-  assert.deepEqual([failed.reason, failed.successorsBlocked], ['terminal_failure', true]);
-});
-test('the stable anchor rejects legacy static lease fields', () => {
+  const history = s3History();
+  history[2] = record(3, 'active', 'S3-exact-authority', history[1], {
+    kind: 'local',
+    postimageSha256: '7'.repeat(64),
+  });
+  assert.equal(resolveCurrentAuthority(input(history)).runtimeAuthorized, false);
+  const merge = resolveCurrentAuthority(input(s3History(), { pullRequestState: 'MERGED' }));
+  assert.equal(merge.reason, 'authority_consumed_by_merge');
+  const terminalFailure = resolveCurrentAuthority(input(s3History(), { terminalFailure: true }));
+  assert.equal(terminalFailure.reason, 'terminal_failure');
+  assert.equal(terminalFailure.successorsBlocked, true);
   assert.throws(() => validateProjection(projection({ projectedRevision: 20 })), /keys/i);
   assert.throws(() => writerMapDigest(['scripts/../outside.mjs']), /unsafe writer path/i);
-});
-test('program and tracker carry one identical external-authority marker', () => {
   const marker =
     'The next active governed implementation goal is resolved only by the external authority chain for program: `IDA-WF01-ONE-APPROVAL-DELIVERY` (Tier 3; `runtime_authorized:external`).';
   assert.equal(validateProjectionDocuments(projection(), marker, marker), true);
@@ -274,24 +276,22 @@ test('program and tracker carry one identical external-authority marker', () => 
     () => validateProjectionDocuments(projection(), marker, marker.replace('external', 'true')),
     /marker/i
   );
-});
-test('CLI requires the complete history and resolves the exact active lease', () => {
-  const { root, source, paths } = durableFixture();
-  const args = [`--durable=${paths.durablePath}`, `--history=${paths.historyPath}`];
+  const { root: cliRoot, source: cliSource, paths: cliPaths } = durableFixture();
+  const args = [`--durable=${cliPaths.durablePath}`, `--history=${cliPaths.historyPath}`];
   const cliInputs = {
-    projection: source.projection,
-    envelope: source.envelope,
-    receipt: source.approvalReceipt,
-    live: source.live,
+    projection: cliSource.projection,
+    envelope: cliSource.envelope,
+    receipt: cliSource.approvalReceipt,
+    live: cliSource.live,
   };
   for (const [name, value] of Object.entries(cliInputs)) {
-    const path = join(root, `${name}.json`);
+    const path = join(cliRoot, `${name}.json`);
     writeJson(path, value);
     args.push(`--${name}=${path}`);
   }
-  const active = spawnSync(process.execPath, [cli, ...args], { encoding: 'utf8' });
-  assert.equal(active.status, 0, active.stderr);
-  assert.equal(JSON.parse(active.stdout).activeSlice, 'S3-exact-authority');
+  const cliResult = spawnSync(process.execPath, [cli, ...args], { encoding: 'utf8' });
+  assert.equal(cliResult.status, 0, cliResult.stderr);
+  assert.equal(JSON.parse(cliResult.stdout).activeSlice, 'S3-exact-authority');
   const incomplete = args.filter(arg => !arg.startsWith('--history='));
   const noHistory = spawnSync(process.execPath, [cli, ...incomplete], { encoding: 'utf8' });
   assert.equal(noHistory.status, 1);

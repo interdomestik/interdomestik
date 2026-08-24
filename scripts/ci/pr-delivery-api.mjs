@@ -87,6 +87,28 @@ export function deliveryDispositionReviewIds(issueComments, headSha) {
     .map(candidate => candidate.reviewId);
 }
 
+export function generatorFeedback(contract, feedback) {
+  const normalize = (author = '') => author.replace(/\[bot\]$/u, '').toLowerCase();
+  const allowed = new Set(contract.feedbackAuthors);
+  const disposed = new Set(feedback.disposedReviewIds);
+  const reviews = feedback.reviews.filter(item => !disposed.has(item.id));
+  const feedbackItems = [...reviews, ...feedback.issueComments, ...feedback.reviewComments];
+  const bots = feedbackItems
+    .filter(item => !item.resolved)
+    .filter(item => {
+      const author = normalize(item.author);
+      return allowed.has(author) || (item.author ?? '').endsWith('[bot]') || author === 'copilot';
+    });
+  for (const item of bots) {
+    const author = normalize(item.author);
+    if (!allowed.has(author)) apiFail('unknown generator feedback author ' + author);
+  }
+  return feedback.reviewComments.filter(item => {
+    const author = normalize(item.author);
+    return !item.resolved && item.commitId === feedback.headSha && allowed.has(author);
+  });
+}
+
 export function ghJson(args) {
   const binary = GH_BINARY_CANDIDATES.find(candidate => fs.existsSync(candidate));
   if (!binary) apiFail(`GitHub CLI not found in: ${GH_BINARY_CANDIDATES.join(', ')}`);
