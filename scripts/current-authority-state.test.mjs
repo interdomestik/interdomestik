@@ -19,13 +19,9 @@ const B = '0'.repeat(40);
 const S3 = ['docs/plans/current-authority-v1.json', 'scripts/current-authority-state.mjs'];
 const S4A = ['.github/workflows/pr-delivery-gate.yml', 'scripts/ci/pr-delivery-gate.mjs'];
 const S4B = ['.github/reviewer-routing.json', 'scripts/github-request-pr-reviewers.mjs'];
-const CLOSEOUT_STATES = [
-  'merged_consumed',
-  'active',
-  'merged_consumed',
-  'closeout_required',
-  'closed',
-];
+const CLOSEOUT_STATES = 'merged_consumed active merged_consumed closeout_required closed'.split(
+  ' '
+);
 const digest = value => createHash('sha256').update(value).digest('hex');
 const writeJson = (path, value) => writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
 const envelope = () => ({
