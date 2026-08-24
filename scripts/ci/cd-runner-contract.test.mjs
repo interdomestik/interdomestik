@@ -254,7 +254,8 @@ test('CI delegates PR browser gate to PR E2E', () => {
   const prStrictGuardStep = findStep(prE2eJob.steps, 'Strict Rule Guards (golden/gate)');
   assert.match(prStrictGuardStep.run, /guards/u);
   const prGateStep = findStep(prE2eJob.steps, 'Run PR E2E Gate');
-  assert.equal(prGateStep.run, 'pnpm e2e:gate:pr');
+  const shardArgs = '${{ matrix.shardIndex }}/${{ matrix.shardTotal }}';
+  assert.equal(prGateStep.run, `pnpm e2e:gate:pr -- --shard=${shardArgs}`);
   assert.equal(findStep(prE2eJob.steps, 'Generate Playwright Gate Auth State (KS+MK)'), undefined);
   assert.equal(findStep(prE2eJob.steps, 'E2E Subscription Lifecycle (KS+MK)'), undefined);
   assert.equal(findStep(prE2eJob.steps, 'E2E Smoke Suite (KS+MK)'), undefined);

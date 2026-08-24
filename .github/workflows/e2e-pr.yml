@@ -44,6 +44,12 @@ jobs:
       contents: read
     needs: [e2e-preflight]
     if: needs.e2e-preflight.outputs.run_broad == 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        shardIndex: [1, 2]
+        shardTotal: [2]
     runs-on: ubuntu-latest
     timeout-minutes: 25
     services:
@@ -89,7 +95,7 @@ jobs:
           E2E_DATABASE_URL: ${{ env.DATABASE_URL }}
           E2E_DATABASE_URL_RLS: ${{ env.DATABASE_URL }}
           PW_EVIDENCE_LANE: pr-gate
-        run: pnpm e2e:gate:pr
+        run: pnpm e2e:gate:pr -- --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
       - name: Summarize PR Gate E2E Evidence
         if: always()
         run: node scripts/ci/playwright-lane-evidence.mjs --report=apps/web/test-results/pr-gate/report.json --head=${EVIDENCE_HEAD_SHA} --lane=pr-gate --out=tmp/verification-evidence/pr-gate.json
@@ -97,17 +103,26 @@ jobs:
         env:
           E2E_DATABASE_URL: ${{ env.DATABASE_URL }}
           E2E_DATABASE_URL_RLS: ${{ env.DATABASE_URL }}
+          E2E_SHARD_INDEX: ${{ matrix.shardIndex }}
           PW_EVIDENCE_LANE: pr-smoke
-        run: pnpm --filter @interdomestik/web run e2e:smoke
+        run: |
+          if [[ "${E2E_SHARD_INDEX}" == '1' ]]; then
+            pnpm --filter @interdomestik/web run e2e:smoke
+          fi
 
       - name: Summarize PR Smoke E2E Evidence
         if: always()
-        run: node scripts/ci/playwright-lane-evidence.mjs --report=apps/web/test-results/pr-smoke/report.json --head=${EVIDENCE_HEAD_SHA} --lane=pr-smoke --out=tmp/verification-evidence/pr-smoke.json
+        env:
+          E2E_SHARD_INDEX: ${{ matrix.shardIndex }}
+        run: |
+          if [[ "${E2E_SHARD_INDEX}" == '1' ]]; then
+            node scripts/ci/playwright-lane-evidence.mjs --report=apps/web/test-results/pr-smoke/report.json --head=${EVIDENCE_HEAD_SHA} --lane=pr-smoke --out=tmp/verification-evidence/pr-smoke.json
+          fi
       - name: Upload PR E2E Verification Evidence
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: verification-evidence-e2e-pr
+          name: verification-evidence-e2e-pr-${{ matrix.shardIndex }}-of-${{ matrix.shardTotal }}
           path: |
             tmp/verification-evidence/pr-gate.json
             tmp/verification-evidence/pr-smoke.json
