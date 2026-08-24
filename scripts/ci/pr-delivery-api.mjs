@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 
 export const DELIVERY_POLL_MS = 30_000;
 const MAX_PAGES = 100;
+const MAX_DELIVERY_DELAY_MS = 60 * 60 * 1000;
 const GITHUB_API_ORIGIN = 'https://api.github.com';
 const SAFE_ENDPOINT = /^[a-z0-9._~!$&'()*+,;=:@/?-]+$/iu;
 
@@ -10,6 +11,17 @@ function apiFail(message, waiting = false, retryAfterMs = DELIVERY_POLL_MS) {
   const error = new Error(`${waiting ? 'WAIT: ' : ''}${message}`);
   if (waiting) error.retryAfterMs = retryAfterMs;
   throw error;
+}
+
+export function waitForDelivery(milliseconds, timer = setTimeout) {
+  if (
+    !Number.isSafeInteger(milliseconds) ||
+    milliseconds < 1 ||
+    milliseconds > MAX_DELIVERY_DELAY_MS
+  ) {
+    apiFail('delivery delay escaped the bounded timer contract');
+  }
+  return new Promise(resolve => timer(resolve, milliseconds));
 }
 
 export function trustedGitHubApiUrl(endpoint) {
@@ -45,7 +57,7 @@ function retryDelay(response) {
   const resetAt = Number(responseHeader(response, 'x-ratelimit-reset')) * 1000;
   const resetDelay =
     Number.isFinite(resetAt) && resetAt > Date.now() ? resetAt - Date.now() + 1000 : 0;
-  return Math.min(60 * 60 * 1000, Math.max(DELIVERY_POLL_MS, retryAfter || 0, resetDelay));
+  return Math.min(MAX_DELIVERY_DELAY_MS, Math.max(DELIVERY_POLL_MS, retryAfter || 0, resetDelay));
 }
 
 export class GitHubClient {

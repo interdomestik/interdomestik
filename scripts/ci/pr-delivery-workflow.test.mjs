@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 import yaml from 'js-yaml';
 
-import { GitHubClient, trustedGitHubApiUrl } from './pr-delivery-api.mjs';
+import { GitHubClient, trustedGitHubApiUrl, waitForDelivery } from './pr-delivery-api.mjs';
 import { resolvePackageJsonSurface } from './pr-delivery-gate.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -94,6 +94,18 @@ test('GitHub requests pin headers and classify transient failures', async () => 
       headers: new Headers(status === 403 ? { 'x-ratelimit-remaining': '0' } : {}),
     }));
     await assert.rejects(client.request('repos/interdomestik/interdomestik/pulls/1'), expected);
+  }
+});
+
+test('delivery delays are bounded at the timer sink', async () => {
+  let observed;
+  await waitForDelivery(30_000, (resolve, milliseconds) => {
+    observed = milliseconds;
+    resolve();
+  });
+  assert.equal(observed, 30_000);
+  for (const milliseconds of [0, -1, 3_600_001, Number.MAX_SAFE_INTEGER]) {
+    assert.throws(() => waitForDelivery(milliseconds, () => {}), /bounded timer contract/u);
   }
 });
 

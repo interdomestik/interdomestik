@@ -2,7 +2,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { DELIVERY_POLL_MS, GitHubClient, isDirectInvocation } from './pr-delivery-api.mjs';
+import {
+  DELIVERY_POLL_MS,
+  GitHubClient,
+  isDirectInvocation,
+  waitForDelivery,
+} from './pr-delivery-api.mjs';
 import {
   evaluatePackageJsonValidationSurface,
   evaluateValidationSurface,
@@ -20,7 +25,6 @@ export { eventPullNumber, validateDeliveryContract };
 export { GitHubClient, trustedGitHubApiUrl } from './pr-delivery-api.mjs';
 const MAX_ATTEMPTS = 175;
 const MAX_PAGES = 100;
-const wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 
 function fail(message, waiting = false, retryAfterMs = DELIVERY_POLL_MS) {
   const error = new Error(`${waiting ? 'WAIT: ' : ''}${message}`);
@@ -247,13 +251,13 @@ async function main() {
           return;
         }
         firstDigest = digest;
-        await wait(contract.quiescenceMs);
+        await waitForDelivery(contract.quiescenceMs);
       } catch (error) {
         if (!error.message.startsWith('WAIT:')) throw error;
         firstDigest = '';
         if (attempt === MAX_ATTEMPTS) throw error;
         process.stderr.write(`[delivery-gate] ${error.message}\n`);
-        await wait(error.retryAfterMs ?? DELIVERY_POLL_MS);
+        await waitForDelivery(error.retryAfterMs ?? DELIVERY_POLL_MS);
       }
     }
     fail('delivery gate exhausted attempts');
