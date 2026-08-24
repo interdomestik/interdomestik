@@ -19,6 +19,11 @@ test('PR E2E runs exactly two deterministic shards without weakening Playwright 
     matrix: { shardIndex: [1, 2], shardTotal: [2] },
   });
   const gate = findStep('Run PR E2E Gate');
+  assert.equal(
+    gate.run,
+    'pnpm e2e:gate:pr --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}'
+  );
+  assert.doesNotMatch(gate.run, /e2e:gate:pr -- --shard/u);
   assert.doesNotMatch(gate.run, /--grep|--project|--workers|--retries/u);
 });
 

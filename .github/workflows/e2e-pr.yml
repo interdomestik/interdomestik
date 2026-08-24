@@ -95,7 +95,7 @@ jobs:
           E2E_DATABASE_URL: ${{ env.DATABASE_URL }}
           E2E_DATABASE_URL_RLS: ${{ env.DATABASE_URL }}
           PW_EVIDENCE_LANE: pr-gate
-        run: pnpm e2e:gate:pr -- --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+        run: pnpm e2e:gate:pr --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
       - name: Summarize PR Gate E2E Evidence
         if: always()
         run: node scripts/ci/playwright-lane-evidence.mjs --report=apps/web/test-results/pr-gate/report.json --head=${EVIDENCE_HEAD_SHA} --lane=pr-gate --out=tmp/verification-evidence/pr-gate.json
