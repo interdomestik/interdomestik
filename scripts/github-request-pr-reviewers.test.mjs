@@ -46,6 +46,7 @@ test('reviewer plan treats a new head as needing fresh Codex prompt', () => {
 test('reviewer config is closed to the one allowlisted prompt', () => {
   assert.equal(validateConfig(config), config);
   for (const invalid of [
+    null,
     {},
     { ...config, extra: true },
     { botPrompts: [] },
@@ -54,7 +55,10 @@ test('reviewer config is closed to the one allowlisted prompt', () => {
     { botPrompts: [...config.botPrompts, ...config.botPrompts] },
     { botPrompts: [{ ...config.botPrompts[0], extra: true }] },
   ]) {
-    assert.throws(() => validateConfig(invalid), /allowlisted Codex prompt/u);
+    assert.throws(
+      () => validateConfig(invalid),
+      /.github\/reviewer-routing.json.*allowlisted Codex prompt/u
+    );
   }
 });
 
@@ -65,8 +69,11 @@ test('reviewer mutation rejects a changed PR head', () => {
     () => assertCurrentHead(observed, { ...observed, headRefOid: HEAD_B }),
     /head changed/u
   );
+  assert.throws(
+    () => assertCurrentHead({ ...observed, state: 'CLOSED' }, observed),
+    /not open.*observed #1 CLOSED; current #1 OPEN/u
+  );
   for (const pair of [
-    [{ ...observed, state: 'CLOSED' }, observed],
     [observed, { ...observed, state: 'CLOSED' }],
     [observed, { ...observed, number: 2 }],
   ]) {

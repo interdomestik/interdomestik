@@ -22,20 +22,23 @@ export function validateConfig(config) {
     config && !Array.isArray(config)
       ? Object.keys(config).sort((left, right) => left.localeCompare(right))
       : [];
-  const prompt = config?.botPrompts?.[0];
+  const prompts = config?.botPrompts;
+  const prompt = prompts?.[0];
   const promptKeys =
     prompt && !Array.isArray(prompt)
       ? Object.keys(prompt).sort((left, right) => left.localeCompare(right))
       : [];
   if (
     keys.join(',') !== 'botPrompts' ||
-    !Array.isArray(config.botPrompts) ||
-    config.botPrompts.length !== 1 ||
+    !Array.isArray(prompts) ||
+    prompts.length !== 1 ||
     promptKeys.join(',') !== 'body,id' ||
     prompt.id !== ALLOWED_PROMPT.id ||
     prompt.body !== ALLOWED_PROMPT.body
   ) {
-    throw new Error('reviewer routing config must contain only the allowlisted Codex prompt');
+    throw new Error(
+      `${DEFAULT_CONFIG} reviewer routing config must contain only the allowlisted Codex prompt`
+    );
   }
   return config;
 }
@@ -45,7 +48,9 @@ export function assertCurrentHead(observed, current) {
     throw new Error('pull request head must be a lowercase 40-character SHA');
   }
   if (observed.number !== current.number || observed.state !== 'OPEN' || current.state !== 'OPEN') {
-    throw new Error('pull request identity is not open and stable');
+    throw new Error(
+      `pull request identity is not open and stable: observed #${observed.number} ${observed.state}; current #${current.number} ${current.state}`
+    );
   }
   if (observed.headRefOid !== current.headRefOid) {
     throw new Error(
