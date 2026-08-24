@@ -1,10 +1,4 @@
 {
-  "botReviewers": [
-    {
-      "id": "copilot",
-      "login": "copilot-pull-request-reviewer[bot]"
-    }
-  ],
   "botPrompts": [
     {
       "id": "codex",

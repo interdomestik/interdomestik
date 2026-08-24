@@ -29,9 +29,9 @@
 
 ## Product-readiness sequence
 
-- [ ] Ran `pnpm pr:request-reviewers -- <PR_NUMBER>` after opening the PR and after substantive pushes; this posts `@copilot review` and `@codex review` for the current head.
-- [ ] Requested current-head Copilot review and current-head Codex review.
-- [ ] Addressed or technically closed Copilot, Codex, CodeQL, Sonar, and bot-review findings.
+- [ ] Ran `pnpm pr:request-reviewers -- <PR_NUMBER>` after opening and after substantive pushes; it posts the allowlisted current-head `@codex review` prompt.
+- [ ] Requested current-head Codex review; Copilot was neither requested nor awaited.
+- [ ] Unsolicited Copilot, Codex, CodeQL, Sonar, and bot findings were addressed or technically closed.
 - [ ] Ran `pnpm pr:review-ready -- <PR_NUMBER>` after final push.
 
 ## Pilot guardrails
@@ -47,6 +47,6 @@
 
 - [ ] All GitHub review threads resolved.
 - [ ] Bot or reviewer findings were either fixed or explicitly closed with technical reasoning.
-- [ ] Required checks green (`validation-surface`, `audit`, `e2e`, `pnpm-audit`, `gitleaks`, `pilot-gate`, `pr-finalizer`, `commitlint`).
-- [ ] `pnpm pr:governance:report -- <PR_NUMBER>` recorded Sonar, CodeQL, Copilot, Codex, and required-check state; absent Copilot/Codex feedback is documented rather than waited on indefinitely.
+- [ ] Required checks green (`validation-surface`, `audit`, `e2e`, `pnpm-audit`, `gitleaks`, `pilot-gate`, `pr-finalizer`, `commitlint`, `delivery-gate`).
+- [ ] `pnpm pr:governance:report -- <PR_NUMBER>` recorded required-check and monitored generator state; `delivery-gate` completed final same-head feedback intake, including unsolicited Copilot/Codex. Absent Copilot is never a blocker.
 - [ ] Evidence artifact paths are present and complete.
