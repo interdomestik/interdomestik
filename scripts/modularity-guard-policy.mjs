@@ -44,6 +44,7 @@ const PRODUCTION_EXTENSIONS = new Set([
 ]);
 const STRUCTURED_EXTENSIONS = new Set(['.json', '.jsonl', '.toml', '.yaml', '.yml']);
 const STRUCTURED_OWNERS = [
+  [/^\.github\/reviewer-routing\.json$/u, 'reviewer-routing-contract'],
   [/^docs\/plans\/.*\.json$/u, 'approval-artifact-contract'],
   [/(^|\/)package\.json$/u, 'package-manifest-contract'],
   [/(^|\/)tsconfig(?:\.[^.]+)?\.json$/u, 'typescript-config-contract'],

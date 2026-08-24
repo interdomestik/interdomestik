@@ -6,7 +6,11 @@ import test from 'node:test';
 
 import { createTempRoot, writeFile } from './plan-test-helpers.mjs';
 import { evaluateModularityGuard, parseNameStatus } from './lib/modularity-guard.mjs';
-import { FILE_CLASSES, classifyModularityFile } from './modularity-guard-policy.mjs';
+import {
+  FILE_CLASSES,
+  classifyModularityFile,
+  structuredArtifactOwner,
+} from './modularity-guard-policy.mjs';
 
 const DEFAULT_EXEC_BUFFER_BYTES = 1024 * 1024;
 const GIT_MAX_BUFFER_BYTES = 16 * 1024 * 1024;
@@ -179,7 +183,9 @@ test('structured artifacts require an owner and repository-Prettier canonical JS
   writeFile(root, 'README.md', '# Seed\n');
   const base = commitAll(root);
   writeFile(root, 'config/unowned.json', '{}\n');
+  writeFile(root, '.github/other.json', '{}\n');
   writeFile(root, 'scripts/ci/noncanonical.json', '{ "value": true } \n');
+  writeFile(root, '.github/reviewer-routing.json', '{\n  "botPrompts": []\n}\n');
   writeFile(
     root,
     'docs/plans/canonical.json',
@@ -188,11 +194,17 @@ test('structured artifacts require an owner and repository-Prettier canonical JS
 
   const result = resultFor(root, base);
 
-  assert.equal(result.checkedFiles, 3);
+  assert.equal(result.checkedFiles, 5);
   assert.deepEqual(result.violations.map(item => item.reason).sort(), [
     'structured-noncanonical-json',
     'structured-owner-required',
+    'structured-owner-required',
   ]);
+  assert.equal(
+    structuredArtifactOwner('.github/reviewer-routing.json'),
+    'reviewer-routing-contract'
+  );
+  assert.equal(structuredArtifactOwner('.github/other.json'), null);
 });
 
 test('governance documents cannot silently remove baseline headings', () => {
