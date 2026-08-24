@@ -51,6 +51,8 @@ test('PR finalizer reads the acyclic leaf set from the delivery manifest', () =>
   assert.doesNotMatch(finalizer, /fetch_check_runs\(\)[\s\S]*?return 0\n\}/u);
   assert.equal(finalizer.match(/fetch_check_runs "\$\{repo\}" "\$\{head_sha\}"/gu)?.length, 3);
   assert.match(feedbackLib, /git remote get-url origin 2>\/dev\/null.*\|\| true/u);
+  assert.doesNotMatch(feedbackLib, /comments\(first:/u);
+  assert.match(finalizer, /GITHUB_ACTIONS:-.*GITHUB_EVENT_PATH/su);
   assert.doesNotMatch(finalizerLib, /gh pr view "\$\{PR_NUMBER\}" --json files/);
   assert.doesNotMatch(finalizerLib, /docs_only_required_checks/);
   assert.doesNotMatch(finalizerLib, /success.*skipped.*neutral/s);

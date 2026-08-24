@@ -147,6 +147,7 @@ test('review-ready script composes finalizer and strict governance report', () =
   assert.match(script, /PR_REVIEW_READY_ALLOW_NO_TOUCH/);
   assert.match(script, /PR_REVIEW_READY_NO_TOUCH_REASON/);
   assert.match(script, /resolve_pr_number/);
+  assert.match(script, /GITHUB_ACTIONS:-.*GITHUB_EVENT_PATH/su);
   assert.match(script, /GITHUB_EVENT_PATH/);
   assert.match(script, /gh pr view --json number/);
   assert.match(script, /has_no_touch_authorization/);

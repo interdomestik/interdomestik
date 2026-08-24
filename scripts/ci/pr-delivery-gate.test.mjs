@@ -72,6 +72,9 @@ function snapshot(overrides = {}) {
 
 test('contract has three acyclic sets and excludes the delivery gate from every input set', () => {
   assert.equal(validateDeliveryContract(contract), contract);
+  const missingDeliveryApp = structuredClone(contract);
+  delete missingDeliveryApp.deliveryContext.appId;
+  assert.throws(() => validateDeliveryContract(missingDeliveryApp), /delivery context/iu);
   assert.deepEqual(
     contract.providerRequiredContexts.map(item => item.context),
     [

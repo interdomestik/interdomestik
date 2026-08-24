@@ -61,7 +61,7 @@ resolve_pr_number() {
     return 0
   fi
 
-  if [[ -n "${GITHUB_EVENT_PATH:-}" && -f "${GITHUB_EVENT_PATH}" ]]; then
+  if [[ "${GITHUB_ACTIONS:-}" == "true" && -n "${GITHUB_EVENT_PATH:-}" && -f "${GITHUB_EVENT_PATH}" ]]; then
     if ! resolved="$(trusted_event_pr_number "${GITHUB_EVENT_PATH}")"; then
       echo "pr-review-ready failed: untrusted pull request event" >&2
       return 1

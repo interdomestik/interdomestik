@@ -74,7 +74,7 @@ require_clean_tree() {
 }
 
 pr_context() {
-  if [[ -n "${GITHUB_EVENT_PATH:-}" && -f "${GITHUB_EVENT_PATH}" ]]; then
+  if [[ "${GITHUB_ACTIONS:-}" == "true" && -n "${GITHUB_EVENT_PATH:-}" && -f "${GITHUB_EVENT_PATH}" ]]; then
     trusted_event_pr_number "${GITHUB_EVENT_PATH}"
   elif [[ -n "${PR_NUMBER:-}" ]]; then
     echo "${PR_NUMBER}"

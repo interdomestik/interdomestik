@@ -28,7 +28,7 @@ require_review_threads_resolved() {
   [[ -n "${owner}" && -n "${name}" ]] || fail "unable to resolve repository for review threads"
 
   local query
-  query='query($owner:String!,$repo:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$repo){pullRequest(number:$number){reviewThreads(first:100,after:$cursor){pageInfo{hasNextPage endCursor}nodes{isResolved comments(first:20){nodes{url author{login}}}}}}}}'
+  query='query($owner:String!,$repo:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$repo){pullRequest(number:$number){reviewThreads(first:100,after:$cursor){pageInfo{hasNextPage endCursor}nodes{isResolved}}}}}'
   while true; do
     local response page
     if [[ -n "${cursor}" ]]; then

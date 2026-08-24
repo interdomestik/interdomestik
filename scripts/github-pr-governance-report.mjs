@@ -46,6 +46,8 @@ function uniqueContexts(items, label) {
 }
 export function validateDeliveryContract(contract) {
   exactKeys(contract, CONTRACT_KEYS, 'delivery contract');
+  exactKeys(contract.deliveryContext, ['context', 'appId'], 'delivery context');
+  uniqueContexts([contract.deliveryContext], 'delivery context');
   if (
     contract.schemaVersion !== 1 ||
     contract.repository !== 'interdomestik/interdomestik' ||
