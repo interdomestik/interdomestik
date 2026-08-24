@@ -8,11 +8,9 @@ Usage: bash scripts/pr-review-ready.sh [PR_NUMBER]
 Runs the Interdomestik PR reviewer sequence gate:
   1. pr-finalizer with check polling enabled
   2. boundary taxonomy no-touch check
-  3. governance report strict mode for Copilot and Codex review signals
+  3. governance report strict mode for manifest-declared delivery check state
 
 Waiver environment variables, when explicitly accepted:
-  PR_REVIEW_READY_ALLOW_MISSING_COPILOT=true
-  PR_REVIEW_READY_ALLOW_MISSING_CODEX=true
   PR_REVIEW_READY_ALLOW_NO_TOUCH=true
   PR_REVIEW_READY_NO_TOUCH_REASON="approved release-gate/governance change"
 
@@ -37,7 +35,11 @@ if [[ -n "${input_pr_number}" && ! "${input_pr_number}" =~ ^[0-9]+$ ]]; then
 fi
 
 export PR_FINALIZER_SKIP_CHECK_POLLING="${PR_FINALIZER_SKIP_CHECK_POLLING:-false}"
+PR_DELIVERY_CONTRACT="${PR_DELIVERY_CONTRACT:-scripts/ci/pr-delivery-contract.json}"
+export PR_DELIVERY_CONTRACT
 NO_TOUCH_AUTH_LABEL="phase-c-no-touch-authorized"
+# shellcheck source=scripts/pr-finalizer-lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/pr-finalizer-lib.sh"
 
 env_flag() {
   case "${!1:-}" in
@@ -59,8 +61,11 @@ resolve_pr_number() {
     return 0
   fi
 
-  if [[ -n "${GITHUB_EVENT_PATH:-}" && -f "${GITHUB_EVENT_PATH}" ]]; then
-    resolved="$(jq -r '.pull_request.number // empty' "${GITHUB_EVENT_PATH}" 2>/dev/null || true)"
+  if [[ "${GITHUB_ACTIONS:-}" == "true" && -n "${GITHUB_EVENT_PATH:-}" && -f "${GITHUB_EVENT_PATH}" ]]; then
+    if ! resolved="$(trusted_event_pr_number "${GITHUB_EVENT_PATH}")"; then
+      echo "pr-review-ready failed: untrusted pull request event" >&2
+      return 1
+    fi
     if [[ -n "${resolved}" ]]; then
       echo "${resolved}"
       return 0
@@ -144,6 +149,17 @@ run_boundary_check() {
   fi
 }
 
+if ! jq -e '
+  .schemaVersion == 1
+  and .repository == "interdomestik/interdomestik"
+  and .deliveryContext.context == "delivery-gate"
+  and (.finalizerLeafPrerequisites | type) == "array"
+  and (.finalizerLeafPrerequisites | length) > 0
+  and ([.finalizerLeafPrerequisites[].context] | index("delivery-gate") | not)
+' "${PR_DELIVERY_CONTRACT}" >/dev/null; then
+  echo "pr-review-ready failed: invalid delivery contract" >&2
+  exit 1
+fi
 GITHUB_EVENT_PATH="" bash scripts/pr-finalizer.sh
 run_boundary_check
 node scripts/github-pr-governance-report.mjs --strict ${pr_number:+"${pr_number}"}
