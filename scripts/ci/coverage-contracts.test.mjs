@@ -125,7 +125,7 @@ test('coverage scripts and canonical PR verification wire the blocking repositor
   assert.match(packageJson.scripts['test:coverage'], /scripts\/ci\/clean-coverage-artifacts\.mjs/);
   assert.match(
     packageJson.scripts['test:coverage'],
-    /pnpm --filter @interdomestik\/web exec vitest run --coverage --pool=threads --maxWorkers=25% --testTimeout=10000/
+    /pnpm --filter @interdomestik\/web exec vitest run --coverage --pool=threads --maxWorkers=2 --testTimeout=10000/
   );
   assert.match(packageJson.scripts['test:coverage'], /--coverage\.reporter=json-summary/);
   const sharedAuthRuns = packageJson.scripts['test:coverage'].match(
