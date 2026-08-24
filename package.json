@@ -235,7 +235,7 @@
   "devDependencies": {
     "@commitlint/cli": "^20.5.3",
     "@commitlint/config-conventional": "^20.5.3",
-    "@playwright/mcp": "^0.0.78",
+    "@playwright/mcp": "^0.0.79",
     "@release-it/conventional-changelog": "^10.0.6",
     "@supabase/supabase-js": "^2.110.9",
     "@types/jsonwebtoken": "^9.0.10",
@@ -255,8 +255,8 @@
     "postgres": "^3.4.9",
     "prettier": "^3.9.6",
     "release-it": "^19.2.4",
-    "tsx": "^4.23.1",
-    "turbo": "2.10.7",
+    "tsx": "^4.23.12",
+    "turbo": "2.10.11",
     "typescript": "^5.9.3"
   },
   "engines": {
