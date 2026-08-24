@@ -196,7 +196,7 @@ function transitionEvent(previous, current, movement) {
       'merged_consumed:active:1': 'health_cleanup_pass',
       'installed_consumed:active:1': 'health_cleanup_pass',
       'merged_consumed:closeout_required:0': 'health_cleanup_pass',
-      'closeout_required:closed:0': 'closeout',
+      'closeout_required:closed:0': 'success_closeout',
     }[`${from}:${current.status}:${movement}`] ?? null
   );
 }
