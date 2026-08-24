@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-08-23
+last_reviewed: 2026-08-24
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -16,23 +16,22 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                               | Status        | Owner      | Work                               | Exit Criteria                                                                                                                              |
-| -------------------------------- | ------------- | ---------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `IDA-WF01-ONE-APPROVAL-DELIVERY` | `in_progress` | `platform` | Externally resolved envelope child | Stable anchor, canonical artifacts, complete durable history, and live Git/GitHub/MCP identity derive one authorized child or fail closed. |
+| ID                               | Status      | Owner      | Work                                   | Exit Criteria                                                                                                                                                  |
+| -------------------------------- | ----------- | ---------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `IDA-WF01-ONE-APPROVAL-DELIVERY` | `completed` | `platform` | Terminal Workflow Protocol V1 closeout | S4B semantic delivery, add-only protection activation, exact-main health, CD containment, authority consumption, and cleanup are bound by the stable closeout. |
 
 ## Proof Ledger
 
-| ID                               | Source Refs                                                                                                                                                                                                                                                             | Execution  | Run ID            | Run Root               | Sonar     | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                   |
-| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ----------------- | ---------------------- | --------- | ---------------- | ---------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `IDA-WF01-ONE-APPROVAL-DELIVERY` | Gate `8ccebfa2b9c622f217c971cb9995506edb91091eab93aeccbbb71b0f68dc1015`; envelope `46eee3be937bb82f3bc0055f1a7bc697a08484498b197a1475bae33d760be8a6`; receipt `a6491e167ab12894d43e62ca279169cbcc4c0faf871ab116991a0eb7b4e37d03`; [anchor](./current-authority-v1.json) | `scripted` | `authority-chain` | `durable-control-host` | `pending` | `not_applicable` | `not_applicable` | `pass`   | Active child/base/writer map and exact-delivery evidence are resolved from the complete external receipt chain plus current live identity; repository prose is non-authorizing. |
+| ID                               | Source Refs                                                                                                                                                                                                                                                                                                                      | Execution  | Run ID      | Run Root               | Sonar  | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ----------- | ---------------------- | ------ | ---------------- | ---------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `IDA-WF01-ONE-APPROVAL-DELIVERY` | Gate `8ccebfa2b9c622f217c971cb9995506edb91091eab93aeccbbb71b0f68dc1015`; envelope `46eee3be937bb82f3bc0055f1a7bc697a08484498b197a1475bae33d760be8a6`; receipt `a6491e167ab12894d43e62ca279169cbcc4c0faf871ab116991a0eb7b4e37d03`; [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md); PR #1622; main `43e3f7b0` | `scripted` | `S4B-rev28` | `durable-control-host` | `pass` | `not_applicable` | `not_applicable` | `pass`   | Semantic lease and protection CAS consumed; eight tuples/flags preserved; `delivery-gate@15368` added; exact-main CI/security green; CD provider lanes runnerless and stepless; S4B worktree/branch removed. |
 
 ## Next Selection
 
-The deterministic resolver reads the stable repository anchor, canonical envelope and approval
-receipt, every durable authority receipt through the current revision, and live Git/GitHub/MCP
-facts. It returns one authorized child only when the chain, source base, writer map, disposition,
-and identities agree. Otherwise it returns no active slice and blocks successors. Merge, close, or
-terminal failure consumes the current lease before any successor can be considered.
+No successor is promoted. The S4B merge consumed runtime authority and cleanup advanced the
+durable chain to rev28 `closeout_required`. This repository projection grants no runtime work; the
+preauthorized closeout transition records rev29 `closed` only after its own exact merge/main
+health and cleanup are verified. Any future slice requires fresh current authority.
 
 <!-- prettier-ignore -->
 The next active governed implementation goal is resolved only by the external authority chain for program: `IDA-WF01-ONE-APPROVAL-DELIVERY` (Tier 3; `runtime_authorized:external`).

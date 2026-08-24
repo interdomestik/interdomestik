@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-08-23
+last_reviewed: 2026-08-24
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -16,23 +16,21 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`IDA-WF01-ONE-APPROVAL-DELIVERY` is the only current writer program. The repository stores only a
-stable anchor in [current-authority-v1.json](./current-authority-v1.json). The active child, base,
-operation, and writer map are derived at runtime from that anchor, the content-addressed envelope
-and approval receipt, the complete durable authority-receipt chain, and live Git/GitHub/MCP
-identity. Missing, stale, skipped, or contradictory evidence fails closed; this prose never grants
-runtime authority.
+`IDA-WF01-ONE-APPROVAL-DELIVERY` completed its fixed workflow-only sequence through
+`S4B-reviewer-policy`. Its stable
+[closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md) binds the semantic PR boundary,
+add-only branch-protection readback, exact-main health, CD containment, and task cleanup. No
+runtime writer or successor is active.
 
 Exact delivery binds source base `B`, PR head `H`, tested merge `T`, returned protected main `M`,
 required terminal lanes, final feedback intake, and the approved writer map. Merge, close, or a
 terminal failure consumes the semantic lease immediately even if durable persistence lags. A
 successor can be derived only after exact-main health and task-owned cleanup are green.
 
-The fixed sequence is B0 authority bootstrap, B1 CD guard, S1A skill authority, S1B routing
+The completed sequence was B0 authority bootstrap, B1 CD guard, S1A skill authority, S1B routing
 standard, S2 MCP identity, S3 exact authority, S4A terminal delivery, S4B reviewer policy, then
-closeout. Each predecessor must be consumed, healthy, and clean before the next lease is derived.
-No second approval is required unless a declared stop condition reveals a genuine new scope,
-security, trust-boundary, or product defect.
+closeout. The stable [current-authority anchor](./current-authority-v1.json), content-addressed
+artifacts, and durable receipt chain remain verification inputs; they do not grant a new lease.
 
 Historical T-115 OD17 remains terminal and unchanged. CI01/A1 and PR #1610 remain separate,
 unpromoted, and untouched. Workflow Protocol v1 does not authorize product, auth, routing, tenancy,
@@ -46,9 +44,9 @@ schema, RLS, billing, provider deployment, E2E-semantic, AI OS, Docker, or unit-
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate                        | Dependencies             | Promotion constraint                                                                    |
-| -------: | -------------------------------- | ------------------------ | --------------------------------------------------------------------------------------- |
-|        1 | `IDA-WF01-ONE-APPROVAL-DELIVERY` | External authority chain | Resolve exactly one child from canonical artifacts, durable history, and live identity. |
+| Priority | Candidate                | Dependencies       | Promotion constraint                                                           |
+| -------: | ------------------------ | ------------------ | ------------------------------------------------------------------------------ |
+|        1 | No active governed slice | Protocol V1 closed | A future implementation requires a fresh, content-addressed current authority. |
 
 ## Selection Constraints
 
