@@ -88,9 +88,8 @@ test('shared finalizer event reader accepts only a trusted runner file', () => {
       'bash',
       [
         '-c',
-        'source "$1/scripts/pr-finalizer-lib.sh"; cd "$2"; RUNNER_TEMP="$2" trusted_event_pr_number "$3"',
+        'source scripts/pr-finalizer-lib.sh; cd /tmp; RUNNER_TEMP="$1" trusted_event_pr_number "$2"',
         '--',
-        rootDir,
         temporary,
         eventPath,
       ],

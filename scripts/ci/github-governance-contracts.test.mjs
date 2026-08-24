@@ -98,14 +98,15 @@ test('relative governance-report invocation executes instead of silently succeed
   assert.match(`${result.stdout}\n${result.stderr}`, /Usage:/u);
 });
 
-test('governance report honors only repository-bound contract overrides', () => {
+test('governance report accepts only the exact canonical contract identity', () => {
   const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'governance-contract-'));
   const contractPath = path.join(temporary, 'invalid-contract.json');
   fs.writeFileSync(contractPath, '{}');
   try {
     for (const [source, pattern] of [
-      [contractPath, /delivery contract escaped repository/u],
-      [path.join(rootDir, 'package.json'), /delivery contract keys mismatch/u],
+      [contractPath, /unsupported delivery contract override/u],
+      [path.join(rootDir, 'package.json'), /unsupported delivery contract override/u],
+      [path.join(rootDir, 'scripts/ci/pr-delivery-contract.json'), /Usage:/u],
     ]) {
       const result = spawnSync(
         process.execPath,

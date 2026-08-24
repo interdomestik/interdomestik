@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
-import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isDirectInvocation } from './ci/pr-delivery-api.mjs';
 const SUCCESS_STATES = new Set(['SUCCESS', 'COMPLETED/SUCCESS']);
@@ -22,7 +21,6 @@ const CONTRACT_KEYS =
     ','
   );
 const SPEC_KEYS = 'context,appId,classification,requirement,skipWhen,finalConclusions'.split(',');
-const REPOSITORY_ROOT = fs.realpathSync(fileURLToPath(new URL('../', import.meta.url)));
 function gateFail(message) {
   throw new Error(message);
 }
@@ -113,13 +111,14 @@ export function validateDeliveryContract(contract) {
 }
 export function readDeliveryContract() {
   const configured = process.env.PR_DELIVERY_CONTRACT;
-  let source = new URL('./ci/pr-delivery-contract.json', import.meta.url);
-  if (configured) {
-    source = fs.realpathSync(path.resolve(configured));
-    const relative = path.relative(REPOSITORY_ROOT, source);
-    if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
-      gateFail('delivery contract escaped repository');
-    }
+  const source = new URL('./ci/pr-delivery-contract.json', import.meta.url);
+  const canonicalPath = fileURLToPath(source);
+  if (
+    configured &&
+    configured !== 'scripts/ci/pr-delivery-contract.json' &&
+    configured !== canonicalPath
+  ) {
+    gateFail('unsupported delivery contract override');
   }
   return validateDeliveryContract(JSON.parse(fs.readFileSync(source, 'utf8')));
 }
