@@ -189,6 +189,7 @@ test('delivery workflow is API-only, exact-bound, acyclic, and default-deny', ()
   );
   assert.ok(setupNodeIndex >= 0 && setupNodeIndex < gateIndex);
   assert.equal(job.steps[setupNodeIndex].with['node-version-file'], '.nvmrc');
+  assert.equal(job.steps[setupNodeIndex].with['package-manager-cache'], false);
   assert.match(job.steps[setupNodeIndex].uses, /@[a-f0-9]{40}$/u);
   assert.ok(job.steps.some(step => String(step.run).includes('scripts/ci/pr-delivery-gate.mjs')));
   const gate = job.steps.find(step => String(step.run).includes('scripts/ci/pr-delivery-gate.mjs'));
