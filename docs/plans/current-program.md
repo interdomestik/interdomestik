@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-08-24
+last_reviewed: 2026-08-25
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -16,21 +16,20 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`IDA-WF01-ONE-APPROVAL-DELIVERY` completed its fixed workflow-only sequence through
-`S4B-reviewer-policy`. Its stable
-[closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md) binds the semantic PR boundary,
-add-only branch-protection readback, exact-main health, CD containment, and task cleanup. No
-runtime writer or successor is active.
+`IDA-LA01-LEAN-AUTHORITY-BOOTSTRAP` is the one-time Tier-3 installation of the repo-native Lean
+authority validator. The installed projection below is intentionally inactive: it grants no
+product runtime, names no successor, and requires a later Tier-0 promotion PR before any Tier-1/2
+product branch can start.
 
 Exact delivery binds source base `B`, PR head `H`, tested merge `T`, returned protected main `M`,
 required terminal lanes, final feedback intake, and the approved writer map. Merge, close, or a
 terminal failure consumes the semantic lease immediately even if durable persistence lags. A
 successor can be derived only after exact-main health and task-owned cleanup are green.
 
-The completed sequence was B0 authority bootstrap, B1 CD guard, S1A skill authority, S1B routing
-standard, S2 MCP identity, S3 exact authority, S4A terminal delivery, S4B reviewer policy, then
-closeout. The stable [current-authority anchor](./current-authority-v1.json), content-addressed
-artifacts, and durable receipt chain remain verification inputs; they do not grant a new lease.
+`IDA-WF01-ONE-APPROVAL-DELIVERY` remains closed, immutable historical evidence. Its stable
+[closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),
+[current-authority anchor](./current-authority-v1.json), content-addressed artifacts, and durable
+receipt chain remain historical verification inputs only and cannot grant Lean runtime.
 
 Historical T-115 OD17 remains terminal and unchanged. CI01/A1 and PR #1610 remain separate,
 unpromoted, and untouched. Workflow Protocol v1 does not authorize product, auth, routing, tenancy,
@@ -44,9 +43,23 @@ schema, RLS, billing, provider deployment, E2E-semantic, AI OS, Docker, or unit-
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate                | Dependencies       | Promotion constraint                                                           |
-| -------: | ------------------------ | ------------------ | ------------------------------------------------------------------------------ |
-|        1 | No active governed slice | Protocol V1 closed | A future implementation requires a fresh, content-addressed current authority. |
+| Priority | Candidate                | Dependencies            | Promotion constraint                                                                |
+| -------: | ------------------------ | ----------------------- | ----------------------------------------------------------------------------------- |
+|        1 | No active governed slice | Lean validator inactive | A Tier-0 promotion PR must bind exactly one Tier-1/2 slice and continuation branch. |
+
+## Unified Portal Direction
+
+The later UI design gate must preserve one responsive shell across member, agent, staff, branch
+manager, and admin, with navigation driven by role capabilities rather than five copied
+dashboards. `Case → Actions → Timeline` is the shared operational core. Delivery order is
+`T-118 design system → T-117 shared shell → role/task views`: member starts with Help Now, Cases,
+and Documents; agent with clients and follow-ups; staff with queue, SLA, and triage; manager with
+team and performance; admin with organization and audit. Tenant or legal context appears only when
+operationally relevant.
+
+Current benchmarks and trend evidence are rationale sources, not UI to copy. The gate must reuse
+Interdomestik's existing design system and M1–M5 architecture; it does not authorize a total visual
+rebuild. This section is a future Tier-2 design constraint only and grants no runtime authority.
 
 ## Selection Constraints
 
@@ -60,7 +73,24 @@ schema, RLS, billing, provider deployment, E2E-semantic, AI OS, Docker, or unit-
   cohesion/risk rationale. Focused tests are `<=300`; structured/governance/workflow/generated
   surfaces follow their typed contracts. No minification.
 - Models, Z620, cache data, and advisory memory can support evidence but cannot grant authority.
+- The repository validator is the sole runtime authority. External skills and MCP state are
+  read-only conveniences and cannot grant or block a Lean slice.
 - Existing unrelated worktrees, branches, PRs, artifacts, histories, and provider state are preserved.
+
+## Lean Authority
+
+```json lean-authority
+{
+  "schemaVersion": 1,
+  "authority": "lean-tier12-v1",
+  "lifecycle": "inactive",
+  "owner": {
+    "login": "arbenl",
+    "id": 62884977
+  },
+  "activeSlice": null
+}
+```
 
 ## Historical Authority
 
@@ -72,4 +102,4 @@ The architecture-finalization program/tracker, terminal OD17 evidence, and CI01 
 historical or separately governed. This projection neither rewrites nor activates them.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is resolved only by the external authority chain for program: `IDA-WF01-ONE-APPROVAL-DELIVERY` (Tier 3; `runtime_authorized:external`).
+The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:null`).

@@ -8,7 +8,15 @@ import test from 'node:test';
 
 const script = new URL('./current-authority-format-audit.mjs', import.meta.url).pathname;
 const marker =
-  'The next active governed implementation goal is resolved only by the external authority chain for program: `IDA-WF01-ONE-APPROVAL-DELIVERY` (Tier 3; `runtime_authorized:external`).';
+  'The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:null`).';
+const leanProjection = {
+  schemaVersion: 1,
+  authority: 'lean-tier12-v1',
+  lifecycle: 'inactive',
+  owner: { login: 'arbenl', id: 62884977 },
+  activeSlice: null,
+};
+const leanBlock = `## Lean Authority\n\n\`\`\`json lean-authority\n${JSON.stringify(leanProjection, null, 2)}\n\`\`\``;
 const envelopePath = 'docs/plans/2026-08-21-ida-wf01-one-approval-delivery-envelope-v1.json';
 const receiptPath = 'docs/plans/2026-08-21-ida-wf01-one-approval-delivery-approval-receipt-r1.json';
 const projectionPath = 'docs/plans/current-authority-v1.json';
@@ -126,12 +134,12 @@ function fixture() {
   write(
     root,
     'docs/plans/current-program.md',
-    `# Current Program\n\n## Current Phase\n\nSelection required.\n\n## M0-M5 Implementation Blueprint\n\nCompact roadmap.\n\n## Ordered Candidate Priorities\n\n| Priority | Candidate |\n| --- | --- |\n| 1 | B10 |\n\n## Selection Constraints\n\nOne slice.\n\n## Historical Authority\n\nManifest SHA-256: \`${manifestSha}\`.\n\n${marker}\n`
+    `# Current Program\n\n## Current Phase\n\nSelection required.\n\n## M0-M5 Implementation Blueprint\n\nCompact roadmap.\n\n## Ordered Candidate Priorities\n\n| Priority | Candidate |\n| --- | --- |\n| 1 | B10 |\n\n## Selection Constraints\n\nOne slice.\n\n${leanBlock}\n\n## Historical Authority\n\nManifest SHA-256: \`${manifestSha}\`.\n\n${marker}\n`
   );
   write(
     root,
     'docs/plans/current-tracker.md',
-    `# Current Tracker\n\n## Active Queue\n\n| ID | Status | Owner | Work | Exit Criteria |\n| --- | --- | --- | --- | --- |\n| \`IDA-CI05\` | \`completed\` | platform | closeout | merged |\n\n## Proof Ledger\n\n| ID | Source Refs | Execution | Run ID | Run Root | Sonar | Docker | Sentry | Learning | Evidence Refs |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| \`IDA-CI05\` | gate | manual | pr-1573 | main | pass | not_applicable | not_applicable | pass | closeout |\n\n## Next Selection\n\n${marker}\n\n## Historical Authority\n\nManifest SHA-256: \`${manifestSha}\`.\n`
+    `# Current Tracker\n\n## Active Queue\n\n| ID | Status | Owner | Work | Exit Criteria |\n| --- | --- | --- | --- | --- |\n| \`IDA-CI05\` | \`completed\` | platform | closeout | merged |\n\n## Proof Ledger\n\n| ID | Source Refs | Execution | Run ID | Run Root | Sonar | Docker | Sentry | Learning | Evidence Refs |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| \`IDA-CI05\` | gate | manual | pr-1573 | main | pass | not_applicable | not_applicable | pass | closeout |\n\n## Next Selection\n\n${marker}\n\n${leanBlock}\n\n## Historical Authority\n\nManifest SHA-256: \`${manifestSha}\`.\n`
   );
   return { root };
 }
