@@ -1,0 +1,237 @@
+{
+  "schemaVersion": 1,
+  "sliceId": "IDA-LA01-LEAN-AUTHORITY-BOOTSTRAP",
+  "baseSha": "87f6dcc91e33abe51169fc95064fc585bd10d064",
+  "authorityArtifactSha256": "4a356d6060668c6c2abc9bd597396cdd97946327318b60911a7d23cafd5e4437",
+  "productOutcomes": [
+    "Install one inactive repo-native fail-closed authority for later Tier-1/2 product promotions"
+  ],
+  "writerPaths": [
+    "docs/plans/2026-08-25-lean-tier12-authority-design.md",
+    "docs/plans/2026-08-25-lean-tier12-authority-admission.json",
+    "docs/plans/current-program.md",
+    "docs/plans/current-tracker.md",
+    "scripts/lean-current-authority.mjs",
+    "scripts/lean-current-authority-policy.mjs",
+    "scripts/lean-current-authority-lifecycle.mjs",
+    "scripts/lean-current-authority-closeout.mjs",
+    "scripts/lean-current-authority-git.mjs",
+    "scripts/lean-current-authority-history.mjs",
+    "scripts/lean-current-authority-evidence.mjs",
+    "scripts/lean-current-authority.test.mjs",
+    "scripts/lean-current-authority-policy.test.mjs",
+    "scripts/lean-current-authority-conformance.test.mjs",
+    "scripts/lean-current-authority-evidence.test.mjs",
+    "scripts/ci/lean-current-authority-contracts.test.mjs",
+    "scripts/plan-status.mjs",
+    "scripts/plan-status.test.mjs",
+    "scripts/current-authority-format-audit.mjs",
+    "scripts/current-authority-format-audit.test.mjs",
+    "scripts/repo-size-budget.json"
+  ],
+  "sizeDisposition": {
+    "approver": "Arben Lila through the final exact content-addressed Tier-3 remediation approval",
+    "rationale": "The candidate exceeds the 12-path default only because six cohesive internal authority modules replace the superseded mixed-concern implementation, focused policy and evidence fixtures stay below their 300-line typed limits, and one tested scripts/ci contract loader connects the complete Lean contracts to the existing CI contract lane.",
+    "whyAtomic": "The facade, policy/schema, lifecycle, closeout, Git/GitHub evidence, canonical projections, focused fixtures, CI contract wrapper, and admission bindings must land together so there is never an unverified or competing runtime policy owner.",
+    "rejectedSplit": "Land the module split after the bootstrap; that would require merging a known Sonar-red Tier-3 authority or installing incomplete policy/evidence boundaries before their contracts exist."
+  },
+  "proofSurfaces": [
+    {
+      "id": "lean-policy-lifecycle",
+      "invalidatedBy": [
+        "validator, lifecycle, identity, classification, or focused test bytes change"
+      ]
+    },
+    {
+      "id": "canonical-plan-conformance",
+      "invalidatedBy": [
+        "program, tracker, plan status, authority audit, or conformance bytes change"
+      ]
+    },
+    {
+      "id": "git-github-identity",
+      "invalidatedBy": [
+        "protected main, GitHub owner identity, merge policy, PR/review contract, or base changes"
+      ]
+    }
+  ],
+  "acceptanceMatrix": [
+    {
+      "criterionId": "focused-policy-green",
+      "proofSurfaceId": "lean-policy-lifecycle",
+      "command": "node --test scripts/ci/lean-current-authority-contracts.test.mjs",
+      "expected": "all 42 identity, bootstrap-parent, lifecycle, branch, denylist, ordering, module-boundary, Git/GitHub fixture, failure, consumption, plan, history, and closeout contracts pass",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "canonical-documents-green",
+      "proofSurfaceId": "canonical-plan-conformance",
+      "command": "node --test scripts/plan-status.test.mjs scripts/current-authority-format-audit.test.mjs && node scripts/lean-current-authority.mjs conformance --repo=.",
+      "expected": "program and tracker agree on one canonical inactive Lean projection while WF01 history validates independently",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "live-git-github-canary",
+      "proofSurfaceId": "git-github-identity",
+      "command": "gh api repository/main/owner contracts plus git ls-remote origin refs/heads/main",
+      "expected": "API and Git identify exact protected main, squash-only delivery, owner login arbenl and numeric user ID 62884977",
+      "environmentId": "github-read-contract",
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "tier3-mechanical-certificate",
+      "proofSurfaceId": "canonical-plan-conformance",
+      "command": "approval-candidate-check with repo-size, security-guard, and CI-contract options",
+      "expected": "certificate passes on the exact formatted candidate with no skipped required check",
+      "environmentId": null,
+      "skipIsFailure": true
+    }
+  ],
+  "executionPolicy": {
+    "focusedBeforeHeavy": true,
+    "currentHeadCanaryBeforeFullCi": true,
+    "feedbackBeforeHeavy": true,
+    "fullE2eAuthority": "ci_once_per_exact_head",
+    "rerunPolicy": "invalidated_only",
+    "staleHeadAction": "cancel",
+    "runnerReadiness": "connected_and_listening"
+  },
+  "sharedRuntimeConsumers": ["scripts/plan-status.mjs"],
+  "specialProofEnvironments": [
+    {
+      "id": "github-read-contract",
+      "canary": {
+        "command": "gh api repo/ref/user readback and git ls-remote",
+        "expected": "canonical repository is squash-only and all main/owner identities agree",
+        "result": "pass",
+        "observedAt": "2026-08-25T10:34:25Z",
+        "evidence": "docs/plans/2026-08-25-lean-tier12-authority-design.md#proof-and-acceptance",
+        "evidenceSha256": "4a356d6060668c6c2abc9bd597396cdd97946327318b60911a7d23cafd5e4437",
+        "environmentFingerprint": "github.com/interdomestik/interdomestik/main+owner+merge-policy"
+      }
+    }
+  ],
+  "contractGraph": {
+    "nodes": [
+      {
+        "id": "canonical-program-tracker",
+        "kind": "entry"
+      },
+      {
+        "id": "lean-validator",
+        "kind": "primitive"
+      },
+      {
+        "id": "lean-policy-schema",
+        "kind": "primitive"
+      },
+      {
+        "id": "lean-lifecycle-closeout",
+        "kind": "primitive"
+      },
+      {
+        "id": "first-parent-authority-history",
+        "kind": "primitive"
+      },
+      {
+        "id": "github-facts",
+        "kind": "external"
+      },
+      {
+        "id": "plan-status",
+        "kind": "consumer"
+      },
+      {
+        "id": "focused-contract-tests",
+        "kind": "test"
+      },
+      {
+        "id": "protected-main-baseline",
+        "kind": "baseline"
+      }
+    ],
+    "edges": [
+      {
+        "id": "parse-agreeing-projection",
+        "from": "canonical-program-tracker",
+        "to": "lean-validator",
+        "operation": "parse and require exact semantic agreement"
+      },
+      {
+        "id": "collect-live-authority-facts",
+        "from": "github-facts",
+        "to": "lean-validator",
+        "operation": "read protected main, PR, review, commit tree, and changed paths"
+      },
+      {
+        "id": "validate-canonical-lean-schema",
+        "from": "lean-policy-schema",
+        "to": "lean-validator",
+        "operation": "validate projections, owner identity, writer classification, and canonical approval binding"
+      },
+      {
+        "id": "evaluate-lean-lifecycle",
+        "from": "lean-lifecycle-closeout",
+        "to": "lean-validator",
+        "operation": "evaluate activation, consumption, abandonment, failure, and projection-only closeout"
+      },
+      {
+        "id": "validate-recorded-closeout-history",
+        "from": "first-parent-authority-history",
+        "to": "lean-validator",
+        "operation": "locate the bounded active-to-inactive transition and reject later authority-path touches"
+      },
+      {
+        "id": "resolve-plan-status",
+        "from": "lean-validator",
+        "to": "plan-status",
+        "operation": "return the sole runtime authority state"
+      },
+      {
+        "id": "prove-policy-contract",
+        "from": "lean-validator",
+        "to": "focused-contract-tests",
+        "operation": "exercise positive and fail-closed fixtures"
+      },
+      {
+        "id": "compare-protected-main",
+        "from": "lean-validator",
+        "to": "protected-main-baseline",
+        "operation": "compare expected parent/tree and live protected main"
+      }
+    ],
+    "closure": {
+      "callers": true,
+      "sharedConsumers": true,
+      "readWriteDelete": true,
+      "mountErrorPaths": true,
+      "capabilityRequirements": true,
+      "testCollectors": true,
+      "baselineOwnership": true
+    },
+    "closureEvidence": {
+      "callers": "plan-status is the single repository consumer and imports only the validator facade",
+      "sharedConsumers": "external skill and MCP are explicitly excluded from authority and activation",
+      "readWriteDelete": "validator is read-only; only promotion and closeout PRs write program/tracker",
+      "mountErrorPaths": "missing, malformed, mismatched, closed, stale, foreign, and ambiguous states fail closed",
+      "capabilityRequirements": "Git commit parent/tree and GitHub ref, pull, review, file, and user primitives were observed",
+      "testCollectors": "42 focused Node contracts collected by the scripts/ci tested contract loader, plus the conformance CLI, cover policy, module topology, lifecycle, Git/GitHub evidence, plans, and repository documents",
+      "baselineOwnership": "protected main is owned by GitHub ref plus git ls-remote agreement"
+    }
+  },
+  "highestRiskCases": [
+    "a product branch attempts to write program/tracker and self-authorize",
+    "a promotion PR attempts to change anything beyond its exact authority-only four-path map",
+    "a COMMENTED review uses a stale head or spoofed owner identity",
+    "foreign main advance is mistaken for the intended squash merge",
+    "closed-unmerged product PR remains active because projection persistence lags",
+    "closeout accidentally restores runtime or promotes a successor"
+  ],
+  "rollback": {
+    "mechanism": "revert the exact bootstrap merge and restore the prior no-active WF01-closed repository state",
+    "trigger": "validator, conformance, required exact-head CI, protected-main health, or failure-closeout contract regresses"
+  },
+  "firstImplementationAction": "run the focused RED authority tests before creating the validator implementation"
+}

@@ -2,10 +2,8 @@
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import {
-  validateProjectionArtifacts,
-  validateProjectionDocuments,
-} from './current-authority-state-lib.mjs';
+import { validateProjectionArtifacts } from './current-authority-state-lib.mjs';
+import { parseAuthorityDocuments } from './lean-current-authority.mjs';
 import { extractSection, parseTrackerDocument } from './plan-model.mjs';
 const PROGRAM = 'docs/plans/current-program.md';
 const TRACKER = 'docs/plans/current-tracker.md';
@@ -14,7 +12,8 @@ const PROJECTION = 'docs/plans/current-authority-v1.json';
 const ENVELOPE = 'docs/plans/2026-08-21-ida-wf01-one-approval-delivery-envelope-v1.json';
 const RECEIPT = 'docs/plans/2026-08-21-ida-wf01-one-approval-delivery-approval-receipt-r1.json';
 const SOURCE_COMMIT = '523fda2493ca728dea48241aad5769917f1ad03f';
-const MARKER = /The next active governed implementation goal[^\n]+/g;
+const MARKER =
+  /The next active governed implementation goal is resolved only by the repo-owned Lean authority validator[^\n]+/g;
 const SHA256 = /^[a-f0-9]{64}$/,
   GIT_SHA = /^[a-f0-9]{40}$/;
 const ORIGIN = /^(https:\/\/github\.com\/|git@github\.com:)interdomestik\/interdomestik(\.git)?$/;
@@ -124,10 +123,7 @@ function parseJson(path, bytes, errors) {
     return null;
   }
 }
-function validateCurrentProjection(
-  { projectionBytes, envelopeBytes, receiptBytes, program, tracker },
-  errors
-) {
+function validateHistoricalProjection({ projectionBytes, envelopeBytes, receiptBytes }, errors) {
   if (projectionBytes.length > 131_072) errors.push(`${PROJECTION}: exceeds 128 KiB`);
   const projection = parseJson(PROJECTION, projectionBytes, errors);
   const envelope = parseJson(ENVELOPE, envelopeBytes, errors);
@@ -146,7 +142,6 @@ function validateCurrentProjection(
         approvalReceiptSha256: sha(receiptBytes),
       },
     });
-    validateProjectionDocuments(projection, program, tracker);
   } catch (error) {
     errors.push(`${PROJECTION}: ${error.message}`);
   }
@@ -177,16 +172,19 @@ function main() {
   if (!program.text.includes(manifestDigest) || !tracker.text.includes(manifestDigest)) {
     errors.push('live authority documents do not bind the exact manifest SHA-256');
   }
-  validateCurrentProjection(
+  validateHistoricalProjection(
     {
       projectionBytes,
       envelopeBytes,
       receiptBytes,
-      program: program.text,
-      tracker: tracker.text,
     },
     errors
   );
+  try {
+    parseAuthorityDocuments(program.text, tracker.text);
+  } catch (error) {
+    errors.push(`Lean authority projection: ${error.message}`);
+  }
   validateManifest(JSON.parse(manifestBytes.toString('utf8')), errors);
   if (errors.length > 0) {
     console.error('current-authority format audit failed');

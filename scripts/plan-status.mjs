@@ -7,6 +7,7 @@ import {
   parseTrackerDocument,
   readFileOrFail,
 } from './plan-model.mjs';
+import { resolveRepositoryAuthority } from './lean-current-authority.mjs';
 
 const program = readFileOrFail(PROGRAM_PATH);
 const tracker = readFileOrFail(TRACKER_PATH);
@@ -17,11 +18,16 @@ const goals = extractSection(program, 'Program Goals')
   .map(line => line.trim().replace(/^\d+\.\s*/, ''));
 const { queueRows, proofRows } = parseTrackerDocument(tracker);
 const proofById = new Map(proofRows.map(row => [row.id, row]));
+const documentOnly = process.argv.includes('--document-only');
+const leanAuthority = resolveRepositoryAuthority(process.cwd(), !documentOnly);
 
 console.log('=== Interdomestik Current Program Status ===');
 console.log('Program: docs/plans/current-program.md');
 console.log('Tracker: docs/plans/current-tracker.md');
 console.log(`Current phase: ${currentPhase}`);
+console.log(
+  `Lean authority: ${leanAuthority.lifecycle}; runtimeAuthorized=${leanAuthority.runtimeAuthorized}; activeSlice=${leanAuthority.activeSlice ?? 'null'}`
+);
 
 if (goals.length > 0) {
   console.log('\nProgram goals:');
@@ -36,6 +42,8 @@ if (queueRows.length > 0) {
     console.log(`- ${item.id} [${item.status}] ${item.work} (owner: ${item.owner})`);
   }
 }
+
+if (leanAuthority.lifecycle === 'blocked') process.exitCode = 1;
 
 if (queueRows.length > 0) {
   console.log('\nProof snapshot:');
