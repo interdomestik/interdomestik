@@ -16,15 +16,15 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                                  | Status        | Owner      | Work                                        | Exit Criteria                                                                                                       |
-| ----------------------------------- | ------------- | ---------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `IDA-LA01-LEAN-AUTHORITY-BOOTSTRAP` | `in_progress` | `platform` | Install repo-native Lean Tier-1/2 authority | Exact candidate approval, implementation PR, protected-main health, deterministic inactive projection, and cleanup. |
+| ID                                  | Status      | Owner      | Work                                        | Exit Criteria                             |
+| ----------------------------------- | ----------- | ---------- | ------------------------------------------- | ----------------------------------------- |
+| `IDA-LA01-LEAN-AUTHORITY-BOOTSTRAP` | `completed` | `platform` | Install repo-native Lean Tier-1/2 authority | Merged, healthy, inactive, and contained. |
 
 ## Proof Ledger
 
-| ID                                  | Source Refs                                                                                                            | Execution | Run ID      | Run Root         | Sonar     | Docker           | Sentry           | Learning  | Evidence Refs                                                                                                                                           |
-| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | --------- | ----------- | ---------------- | --------- | ---------------- | ---------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `IDA-LA01-LEAN-AUTHORITY-BOOTSTRAP` | [design](./2026-08-25-lean-tier12-authority-design.md); [admission](./2026-08-25-lean-tier12-authority-admission.json) | `pending` | `candidate` | `clean-worktree` | `pending` | `not_applicable` | `not_applicable` | `pending` | Focused validator, conformance, exact Git identity, fail-closed classification, mechanical certificate, exact-head CI, and closeout proof are required. |
+| ID                                  | Source Refs                                                                                                            | Execution  | Run ID                 | Run Root               | Sonar  | Docker           | Sentry           | Learning         | Evidence Refs                                    |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------- | ---------------------- | ---------------------- | ------ | ---------------- | ---------------- | ---------------- | ------------------------------------------------ |
+| `IDA-LA01-LEAN-AUTHORITY-BOOTSTRAP` | [design](./2026-08-25-lean-tier12-authority-design.md); [admission](./2026-08-25-lean-tier12-authority-admission.json) | `scripted` | `PR #1629 / 9f35b2eaf` | `GitHub-hosted Ubuntu` | `pass` | `not_applicable` | `not_applicable` | `not_applicable` | Exact evidence: current program; authority idle. |
 
 ## Next Selection
 
