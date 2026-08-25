@@ -16,15 +16,16 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`IDA-LA01-LEAN-AUTHORITY-BOOTSTRAP` is the one-time Tier-3 installation of the repo-native Lean
-authority validator. The installed projection below is intentionally inactive: it grants no
-product runtime, names no successor, and requires a later Tier-0 promotion PR before any Tier-1/2
-product branch can start.
+`IDA-LA01-LEAN-AUTHORITY-BOOTSTRAP` completed in PR `#1629`: approved head
+`2845d36523f9f4f186f595336d9b3cd0d5158b00`, tree
+`3657eac816f4ce16678b68f74fff2f5a1a389593`, and squash merge
+`9f35b2eaf4904f8c0a02542632b51a92f8df4d3e` matched the frozen base/tree. Nine required checks,
+12/12 threads, Sonar (zero issues), and main health were green. CD `32860119345` stopped pre-build;
+zero provider effects.
 
-Exact delivery binds source base `B`, PR head `H`, tested merge `T`, returned protected main `M`,
-required terminal lanes, final feedback intake, and the approved writer map. Merge, close, or a
-terminal failure consumes the semantic lease immediately even if durable persistence lags. A
-successor can be derived only after exact-main health and task-owned cleanup are green.
+The projection is inactive: no product runtime or successor exists. A later Tier-0 promotion PR
+must precede its bound Tier-1/2 product branch. Flow 1 binds base, head, tree/merge, checks,
+feedback, and writer map; merge, close, or terminal failure consumes authority immediately.
 
 `IDA-WF01-ONE-APPROVAL-DELIVERY` remains closed, immutable historical evidence. Its stable
 [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),
