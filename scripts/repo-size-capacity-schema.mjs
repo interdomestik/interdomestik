@@ -29,10 +29,14 @@ function assertInteger(value, label, { positive = false, nonNegative = false } =
   if (!valid) throw new Error(`${label} must be ${positive ? 'a positive' : 'an'} integer.`);
 }
 
+function sortedStrings(values) {
+  return values.sort((left, right) => left.localeCompare(right));
+}
+
 function assertCategoryMap(value, label, { exact = false, nonNegative = true } = {}) {
   if (!isRecord(value)) throw new Error(`${label} must be an object.`);
-  const keys = Object.keys(value).sort();
-  if (exact && JSON.stringify(keys) !== JSON.stringify([...CAPACITY_CATEGORIES].sort())) {
+  const keys = sortedStrings(Object.keys(value));
+  if (exact && JSON.stringify(keys) !== JSON.stringify(sortedStrings([...CAPACITY_CATEGORIES]))) {
     throw new Error(`${label} category set mismatch.`);
   }
   for (const [category, bytes] of Object.entries(value)) {
@@ -45,7 +49,10 @@ function assertCategoryMap(value, label, { exact = false, nonNegative = true } =
 
 function assertPathMap(value, writerPaths, label, nonNegative) {
   if (!isRecord(value)) throw new Error(`${label} must be an object.`);
-  if (JSON.stringify(Object.keys(value).sort()) !== JSON.stringify([...writerPaths].sort())) {
+  if (
+    JSON.stringify(sortedStrings(Object.keys(value))) !==
+    JSON.stringify(sortedStrings([...writerPaths]))
+  ) {
     throw new Error(`${label} path set must equal writerPaths.`);
   }
   for (const [filePath, bytes] of Object.entries(value)) {

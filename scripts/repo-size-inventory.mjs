@@ -83,13 +83,15 @@ export function collectTrackedStats(repoRoot, trackedFiles, options) {
       if (lines >= options.minLines) sourceHotspots.push({ path: relPath, lines, bytes });
     }
   }
+  largestFiles.sort(compareBytes);
+  sourceHotspots.sort(compareLines);
   return {
     total: { files: processedFiles, bytes: totalBytes, missingFiles: missingFiles.length },
     missingFiles,
     categories: [...categories.values()].sort(compareNamed),
     directories: [...directories.values()].sort(compareNamed),
-    largestFiles: largestFiles.sort(compareBytes).slice(0, options.top),
-    sourceHotspots: sourceHotspots.sort(compareLines).slice(0, options.top),
+    largestFiles: largestFiles.slice(0, options.top),
+    sourceHotspots: sourceHotspots.slice(0, options.top),
   };
 }
 

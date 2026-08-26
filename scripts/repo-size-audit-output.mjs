@@ -14,7 +14,7 @@ function formatBytes(bytes) {
 function safeDisplay(value) {
   const text = String(value).replace(/[\u0000-\u001f\u007f]/gu, character => {
     const code = character.codePointAt(0).toString(16).padStart(2, '0');
-    return `\\x${code}`;
+    return String.raw`\x${code}`;
   });
   return text.startsWith('::') ? `\\${text}` : text;
 }

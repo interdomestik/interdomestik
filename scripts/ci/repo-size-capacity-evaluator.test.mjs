@@ -32,6 +32,13 @@ test('capacity evaluator rejects unallocated growth, padding, and reserve borrow
   ]);
   assert.equal(hasViolation(unallocated, 'unallocated-growth'), true);
 
+  const unallocatedEmptyFile = evaluateCapacityBudget(
+    capacityReport({ files: 1021 }),
+    allocationBudget(),
+    [{ path: 'apps/web/src/empty.ts', bytesDelta: 0, filesDelta: 1 }]
+  );
+  assert.equal(hasViolation(unallocatedEmptyFile, 'unallocated-growth'), true);
+
   const padded = evaluateCapacityBudget(capacityReport(), allocationBudget(), [
     { path: 'scripts/lean.mjs', bytesDelta: 21, filesDelta: 0 },
   ]);

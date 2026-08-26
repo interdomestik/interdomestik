@@ -164,13 +164,21 @@ export function evaluateCapacityBudget(report, budget, changeFacts) {
     budget.allocations.flatMap(item => item.writerPaths.map(filePath => [filePath, item]))
   );
   for (const fact of facts.values()) {
-    if (fact.bytesDelta > 0 && !owners.has(fact.path))
-      violations.push({
-        code: `unallocated-growth:${fact.path}`,
-        actual: fact.bytesDelta,
-        limit: 0,
-        label: `Unallocated growth (${fact.path})`,
-      });
+    if (owners.has(fact.path)) continue;
+    addOver(
+      violations,
+      `unallocated-growth:bytes:${fact.path}`,
+      fact.bytesDelta,
+      0,
+      `Unallocated byte growth (${fact.path})`
+    );
+    addOver(
+      violations,
+      `unallocated-growth:files:${fact.path}`,
+      fact.filesDelta,
+      0,
+      `Unallocated file growth (${fact.path})`
+    );
   }
   for (const allocation of budget.allocations) {
     const owned = allocation.writerPaths.map(
