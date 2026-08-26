@@ -16,7 +16,6 @@ export const MatteAnchorCard = React.forwardRef<HTMLAnchorElement, MatteAnchorCa
   ({ className, description, eyebrow, label, ...props }, ref) => (
     <a
       ref={ref}
-      aria-label={label}
       className={cn(
         'group flex min-h-11 min-w-0 flex-col justify-between gap-5 rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--surface-strong))] p-5 text-foreground shadow-sm forced-colors:border-[CanvasText] sm:p-6',
         'hover:border-[hsl(var(--border-strong))] hover:shadow-md',

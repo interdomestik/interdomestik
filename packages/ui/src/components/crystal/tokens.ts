@@ -1,5 +1,5 @@
 export const crystalFocus =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2';
+  'ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2';
 
 export const crystalMotion =
   'motion-safe:transition motion-safe:duration-200 motion-reduce:transform-none motion-reduce:transition-none';

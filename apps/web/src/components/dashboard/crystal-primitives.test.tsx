@@ -34,7 +34,7 @@ describe('Crystal primitives', () => {
       </>
     );
     const { getByRole: role, getByText: text } = screen;
-    const a = role('link', { name: 'Open case' });
+    const a = role('link', { name: /Open case/ });
     a.focus();
     expect(a).toHaveFocus();
     expect(a).toHaveAttribute('href', '/case');
