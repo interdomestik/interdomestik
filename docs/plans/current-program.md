@@ -17,11 +17,9 @@ status_command: pnpm plan:status
 ## Current Phase
 
 `IDA-LA01-LEAN-AUTHORITY-BOOTSTRAP` completed in PR `#1629`: approved head
-`2845d36523f9f4f186f595336d9b3cd0d5158b00`, tree
-`3657eac816f4ce16678b68f74fff2f5a1a389593`, and squash merge
-`9f35b2eaf4904f8c0a02542632b51a92f8df4d3e` matched the frozen base/tree. Nine required checks,
-12/12 threads, Sonar (zero issues), and main health were green. CD `32860119345` stopped pre-build;
-zero provider effects.
+`2845d36523f9f4f186f595336d9b3cd0d5158b00`, tree `3657eac816f4ce16678b68f74fff2f5a1a389593`,
+and squash `9f35b2eaf4904f8c0a02542632b51a92f8df4d3e` matched. Nine checks, 12/12 threads,
+zero-issue Sonar, and main were green; CD `32860119345` stopped pre-build with zero effects.
 
 `IDA-UI07-MINIMAL-ENTRY-DOOR-CUTOVER` completed in PR `#1634`: approved head
 `6d7430b53dae921c2835e2729a322aece326812b`, tree
@@ -32,45 +30,39 @@ PricingSection, then Footer. Eight legacy sections are reversibly unmounted; the
 contracts remain unchanged. Nine required checks, the broad E2E gate, pilot gate, Sonar, focused
 unit/browser evidence, and exact-main identity were green.
 
-Tier-0 PR `#1633` consumed the bounded legacy `t118-promotion` allocation solely for IDA-UI07; it
-added no capacity or ceiling. T-118 remains `design_gate_next_unpromoted` with no promotion,
-runtime authority, or inherited reserve. The Lean projection is inactive and names no successor.
+Candidate `#1637` projects `T-118-CRYSTAL-PRIMITIVES` after Tier-0 merge, binding the exact base,
+[gate](./2026-08-26-t118-crystal-primitives-design-gate.md),
+[admission](./2026-08-26-t118-crystal-primitives-admission.json), and
+`codex/t118-crystal-primitives`. PR `#1636` supplied capacity; runtime waits for merge/owner/resolver.
 
-`IDA-WF01-ONE-APPROVAL-DELIVERY` remains closed, immutable historical evidence. Its stable
+Closed `IDA-WF01-ONE-APPROVAL-DELIVERY` remains immutable evidence through its
 [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),
-[current-authority anchor](./current-authority-v1.json), content-addressed artifacts, and durable
-receipt chain remain historical verification inputs only and cannot grant Lean runtime.
+[authority anchor](./current-authority-v1.json), artifacts, and receipts; it grants no Lean runtime.
 
-Historical T-115 OD17 remains terminal and unchanged. CI01/A1 and PR #1610 remain separate,
-unpromoted, and untouched. Workflow Protocol v1 does not authorize product, auth, routing, tenancy,
-schema, RLS, billing, provider deployment, E2E-semantic, AI OS, Docker, or unit-selector work.
+T-115 OD17 is terminal. CI01/A1 and PR #1610 remain separate/unpromoted. Workflow Protocol v1
+grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, AI, or Docker work.
 
 ## M0-M5 Implementation Blueprint
 
-| Phase | Preserved frontier                                                                                                                                                       |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| M0-M5 | The architecture-finalization program and tracker remain the canonical historical/dependency blueprint; no M0-M5 product node is promoted by this workflow-only program. |
+| Phase | Preserved frontier                                                                         |
+| ----- | ------------------------------------------------------------------------------------------ |
+| M0-M5 | Architecture-finalization program/tracker remain the blueprint; no M0-M5 node is promoted. |
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate      | Dependencies | Promotion constraint                                                          |
-| -------: | -------------- | ------------ | ----------------------------------------------------------------------------- |
-|        1 | `T-118` Tier 2 | None active  | `design_gate_next_unpromoted`; capacity must be reevaluated before promotion. |
-|        2 | `T-117` Tier 2 | T-118        | Deferred; no branch, activation, or shared-shell edit.                        |
+| Priority | Candidate      | Dependencies             | Promotion constraint                                   |
+| -------: | -------------- | ------------------------ | ------------------------------------------------------ |
+|        1 | `T-118` Tier 2 | Tier-0 candidate `#1637` | Only the exact ten-path primitive branch may activate. |
+|        2 | `T-117` Tier 2 | T-118                    | Deferred; no branch or shared-shell edit.              |
 
 ## Unified Portal Direction
 
-The later UI design gate must preserve one responsive shell across member, agent, staff, branch
-manager, and admin, with navigation driven by role capabilities rather than five copied
-dashboards. `Case → Actions → Timeline` is the shared operational core. Delivery order is
-`T-118 design system → T-117 shared shell → role/task views`: member starts with Help Now, Cases,
-and Documents; agent with clients and follow-ups; staff with queue, SLA, and triage; manager with
-team and performance; admin with organization and audit. Tenant or legal context appears only when
-operationally relevant.
-
-Current benchmarks and trend evidence are rationale sources, not UI to copy. The gate must reuse
-Interdomestik's existing design system and M1–M5 architecture; it does not authorize a total visual
-rebuild. This section is a future Tier-2 design constraint only and grants no runtime authority.
+Preserve one responsive, capability-driven shell across roles, never five copied dashboards.
+`Case → Actions → Timeline` is the core; order is `T-118 primitives → T-117 shell → role/task
+views`. Member starts with Help Now/Cases/Documents; agent with clients/follow-ups; staff with
+queue/SLA/triage; manager with team/performance; admin with organization/audit. Tenant/legal
+context appears only when relevant. Benchmarks are rationale, not trade dress; reuse the existing
+system and M1–M5 architecture. This Tier-2 direction grants no runtime authority.
 
 ## Selection Constraints
 
@@ -95,12 +87,36 @@ rebuild. This section is a future Tier-2 design constraint only and grants no ru
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "inactive",
+  "lifecycle": "promotion_pending",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": null
+  "activeSlice": {
+    "sliceId": "T-118-CRYSTAL-PRIMITIVES",
+    "tier": 2,
+    "promotionPrNumber": 1637,
+    "promotionBaseSha": "6ff846deb9d99ad103d81dba5e4de46343dcf965",
+    "expectedProductBranch": "codex/t118-crystal-primitives",
+    "gateSha256": "12ce2d377dafe635d5d5b7be05de6c739c3563d841bb6f646804f599d7c49e74",
+    "admissionSha256": "ca3a543f553b71fc36023d80af4e242db40638ccf51a64777678b0352386e093",
+    "productWriterPaths": [
+      "packages/ui/src/components/crystal/tokens.ts",
+      "packages/ui/src/components/crystal/matte-anchor-card.tsx",
+      "packages/ui/src/components/crystal/refractive-glass-panel.tsx",
+      "packages/ui/src/components/crystal/stepper.tsx",
+      "packages/ui/src/components/crystal/timeline.tsx",
+      "packages/ui/src/components/crystal/index.ts",
+      "packages/ui/src/components/crystal/crystal.stories.tsx",
+      "packages/ui/src/index.ts",
+      "apps/web/src/components/dashboard/crystal-primitives.test.tsx",
+      "apps/web/src/components/dashboard/crystal-boundary.test.ts"
+    ],
+    "closeoutWriterPaths": [
+      "docs/plans/current-program.md",
+      "docs/plans/current-tracker.md"
+    ]
+  }
 }
 ```
 
@@ -114,4 +130,4 @@ The architecture-finalization program/tracker, terminal OD17 evidence, and CI01 
 historical or separately governed. This projection neither rewrites nor activates them.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:null`).
+The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:T-118-CRYSTAL-PRIMITIVES`).

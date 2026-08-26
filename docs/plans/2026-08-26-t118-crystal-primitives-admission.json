@@ -1,0 +1,197 @@
+{
+  "schemaVersion": 1,
+  "sliceId": "T-118-CRYSTAL-PRIMITIVES",
+  "baseSha": "6ff846deb9d99ad103d81dba5e4de46343dcf965",
+  "authorityArtifactSha256": "12ce2d377dafe635d5d5b7be05de6c739c3563d841bb6f646804f599d7c49e74",
+  "productOutcomes": [
+    "Provide four pure Crystal primitives for the later Unified Portal without an application mount"
+  ],
+  "writerPaths": [
+    "packages/ui/src/components/crystal/tokens.ts",
+    "packages/ui/src/components/crystal/matte-anchor-card.tsx",
+    "packages/ui/src/components/crystal/refractive-glass-panel.tsx",
+    "packages/ui/src/components/crystal/stepper.tsx",
+    "packages/ui/src/components/crystal/timeline.tsx",
+    "packages/ui/src/components/crystal/index.ts",
+    "packages/ui/src/components/crystal/crystal.stories.tsx",
+    "packages/ui/src/index.ts",
+    "apps/web/src/components/dashboard/crystal-primitives.test.tsx",
+    "apps/web/src/components/dashboard/crystal-boundary.test.ts"
+  ],
+  "capacityAllocation": {
+    "id": "t118-crystal-primitives",
+    "maxTrackedBytesDelta": 33073,
+    "maxTrackedFilesDelta": 11,
+    "maxCategoryBytesDelta": {
+      "docs/text": 9157,
+      "config/data/messages": 8504,
+      "source/scripts": 11801,
+      "tests/e2e": 3611
+    },
+    "maxPathBytesDelta": {
+      "docs/plans/2026-08-26-t118-crystal-primitives-design-gate.md": 9157,
+      "docs/plans/2026-08-26-t118-crystal-primitives-admission.json": 8504,
+      "packages/ui/src/components/crystal/tokens.ts": 1070,
+      "packages/ui/src/components/crystal/matte-anchor-card.tsx": 1843,
+      "packages/ui/src/components/crystal/refractive-glass-panel.tsx": 1844,
+      "packages/ui/src/components/crystal/stepper.tsx": 2130,
+      "packages/ui/src/components/crystal/timeline.tsx": 2407,
+      "packages/ui/src/components/crystal/index.ts": 501,
+      "packages/ui/src/components/crystal/crystal.stories.tsx": 1731,
+      "packages/ui/src/index.ts": 275,
+      "apps/web/src/components/dashboard/crystal-primitives.test.tsx": 2143,
+      "apps/web/src/components/dashboard/crystal-boundary.test.ts": 1468
+    },
+    "enforcement": "hard ceiling"
+  },
+  "proofSurfaces": [
+    {
+      "id": "component-contract",
+      "invalidatedBy": ["token, primitive, export, semantics, focus, empty state, or test change"]
+    },
+    {
+      "id": "boundary-capacity",
+      "invalidatedBy": ["writer, import, motion, glass, line, capacity, or protected-path change"]
+    },
+    {
+      "id": "storybook-responsive-accessibility",
+      "invalidatedBy": ["story, browser, viewport, keyboard, contrast, or reduced-motion change"]
+    }
+  ],
+  "acceptanceMatrix": [
+    {
+      "criterionId": "render-semantics",
+      "proofSurfaceId": "component-contract",
+      "command": "pnpm --filter @interdomestik/web test:unit --run src/components/dashboard/crystal-primitives.test.tsx && pnpm --filter @interdomestik/ui type-check",
+      "expected": "native names, ordered states, one current step, focus, 44px links, time, and empty/error states pass",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "boundaries-capacity",
+      "proofSurfaceId": "boundary-capacity",
+      "command": "run crystal-boundary.test.ts; modularity, architecture, repo:size:check, security:guard, and Git scope",
+      "expected": "exact writers, zero forbidden imports/motion, one filter per panel, two per story, and protected scope pass",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "storybook-a11y-responsive",
+      "proofSurfaceId": "storybook-responsive-accessibility",
+      "command": "build Storybook; Playwright MCP proof at 320, 768, and 1440 CSS pixels",
+      "expected": "Case to Actions to Timeline order, focus, AA, reduced motion, clipping, and overflow pass",
+      "environmentId": "storybook-browser",
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "tier2-exact-head",
+      "proofSurfaceId": "boundary-capacity",
+      "command": "slice:verify, slice:e2e:pr, ci:local:pr; then pr:verify, security:guard, e2e:gate on exact head",
+      "expected": "Tier-2, exact-head CI/E2E, and feedback pass without infrastructure edits",
+      "environmentId": null,
+      "skipIsFailure": true
+    }
+  ],
+  "executionPolicy": {
+    "focusedBeforeHeavy": true,
+    "currentHeadCanaryBeforeFullCi": true,
+    "feedbackBeforeHeavy": true,
+    "fullE2eAuthority": "ci_once_per_exact_head",
+    "rerunPolicy": "invalidated_only",
+    "staleHeadAction": "cancel",
+    "runnerReadiness": "connected_and_listening"
+  },
+  "sharedRuntimeConsumers": [],
+  "specialProofEnvironments": [
+    {
+      "id": "storybook-browser",
+      "canary": {
+        "command": "read Storybook version and nested story collector",
+        "expected": "Storybook 8.6.17 and recursive stories exist",
+        "result": "pass",
+        "observedAt": "2026-08-26T20:42:09.000Z",
+        "evidence": "storybook=8.6.17;collector=../src/**/*.stories.@(js|jsx|mjs|ts|tsx);result=pass",
+        "evidenceSha256": "00cb2e77ab5aa18e28c7206b7e2ece3fc0f13b70faad4f071d78587777aa9c94",
+        "environmentFingerprint": "arm64/node24/pnpm10/storybook8.6.17/6ff846de"
+      }
+    }
+  ],
+  "contractGraph": {
+    "nodes": [
+      { "id": "ui-public-entry", "kind": "entry" },
+      { "id": "crystal-surface", "kind": "primitive" },
+      { "id": "crystal-story", "kind": "consumer" },
+      { "id": "focused-tests", "kind": "test" },
+      { "id": "storybook-browser", "kind": "external" },
+      { "id": "protected-main-6ff846de", "kind": "baseline" }
+    ],
+    "edges": [
+      {
+        "id": "export-surface",
+        "from": "ui-public-entry",
+        "to": "crystal-surface",
+        "operation": "export tokens and four primitives"
+      },
+      {
+        "id": "compose-story",
+        "from": "crystal-story",
+        "to": "ui-public-entry",
+        "operation": "compose neutral Case, Actions, and Timeline through public exports"
+      },
+      {
+        "id": "prove-contracts",
+        "from": "focused-tests",
+        "to": "ui-public-entry",
+        "operation": "prove render, semantics, imports, motion, glass, scope, lines, and capacity"
+      },
+      {
+        "id": "observe-story",
+        "from": "storybook-browser",
+        "to": "crystal-story",
+        "operation": "prove keyboard, accessibility, motion, contrast, and geometry"
+      },
+      {
+        "id": "bind-base",
+        "from": "protected-main-6ff846de",
+        "to": "ui-public-entry",
+        "operation": "bind source feasibility and promotion to exact protected main"
+      }
+    ],
+    "closure": {
+      "callers": true,
+      "sharedConsumers": true,
+      "readWriteDelete": true,
+      "mountErrorPaths": true,
+      "capabilityRequirements": true,
+      "testCollectors": true,
+      "baselineOwnership": true
+    },
+    "closureEvidence": {
+      "callers": "barrels, story, and tests only; no application mount",
+      "sharedConsumers": "no application runtime consumer; root export only",
+      "readWriteDelete": "no store, provider, fetch, event, mutation, or deletion",
+      "mountErrorPaths": "no route mount; empty/error variants are prop-driven",
+      "capabilityRequirements": "React, TypeScript, Tailwind, Vitest, Storybook, and browser proof exist",
+      "testCollectors": "Vitest collects both tests; Storybook collects the nested story",
+      "baselineOwnership": "origin/main and worktree equal 6ff846deb9d99ad103d81dba5e4de46343dcf965; allocation owns exact paths"
+    }
+  },
+  "reviewPolicy": {
+    "promotion": "one bounded redacted no-tools Opus 5 review after frozen green checks",
+    "product": "one Opus 5 review of the green exact diff and matrix before PR",
+    "remediation": "one consolidated in-map repair and proof restart",
+    "unavailable": "no retry; record failure and use Sol once",
+    "authority": "advisory; deterministic and exact-head proof controls"
+  },
+  "highestRiskCases": [
+    "forbidden authority or motion import",
+    "color, motion, pointer, blur, focus, or contrast accessibility failure",
+    "320px overflow or glass-layer breach",
+    "extra writer, route mount, E2E edit, or capacity breach"
+  ],
+  "rollback": {
+    "mechanism": "delete unmerged branch; after merge revert exact product merge, then close authority inactive",
+    "trigger": "any acceptance, scope, exact-head, merge-identity, or main-health contract fails"
+  },
+  "firstImplementationAction": "make both focused tests RED for exports, semantics, imports, motion, glass, and writers"
+}
