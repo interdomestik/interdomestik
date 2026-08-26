@@ -10,9 +10,10 @@ describe('Crystal primitives', () => {
         <RefractiveGlassPanel role="region" aria-label="Actions" children="Review documents" />
         <Stepper
           ariaLabel="Case progress"
+          currentStepId="2"
           steps={[
             { id: '1', label: 'Check', state: 'completed', stateLabel: 'Completed' },
-            { id: '2', label: 'Apply', state: 'current', stateLabel: 'Current', href: '/apply' },
+            { id: '2', label: 'Apply', state: 'future', stateLabel: 'Current', href: '/apply' },
             { id: '3', label: 'Follow up', state: 'future', stateLabel: 'Upcoming' },
             { id: '4', label: 'Payment', state: 'error', stateLabel: 'Needs attention' },
           ]}

@@ -4,41 +4,43 @@ import { crystalFocus, crystalStateTone, type CrystalState } from './tokens';
 export interface StepperItem {
   id: string;
   label: string;
-  state: CrystalState;
+  state: Exclude<CrystalState, 'current'>;
   stateLabel: string;
   href?: string;
 }
 
 export interface StepperProps {
   ariaLabel: string;
+  currentStepId?: string;
   steps: readonly StepperItem[];
   className?: string;
 }
 
-export function Stepper({ ariaLabel, className, steps }: StepperProps) {
+export function Stepper({ ariaLabel, className, currentStepId, steps }: StepperProps) {
   return (
     <ol aria-label={ariaLabel} className={cn('grid min-w-0 gap-3 sm:grid-cols-2', className)}>
       {steps.map((step, index) => {
-        const current = step.state === 'current' ? 'step' : undefined;
+        const state: CrystalState = step.id === currentStepId ? 'current' : step.state;
+        const current = state === 'current' ? 'step' : undefined;
         const content = (
           <>
             <span
               aria-hidden="true"
               className={cn(
                 'flex size-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold forced-colors:border-[CanvasText]',
-                crystalStateTone[step.state]
+                crystalStateTone[state]
               )}
             >
               {index + 1}
             </span>
             <span className="min-w-0">
               <span className="block break-words font-medium">{step.label}</span>
-              <span className="block text-xs text-[hsl(var(--muted-700))]">{step.stateLabel}</span>
+              <span className="block text-xs text-foreground/70">{step.stateLabel}</span>
             </span>
           </>
         );
         return (
-          <li key={step.id} data-state={step.state} className="min-w-0">
+          <li key={step.id} data-state={state} className="min-w-0">
             {step.href ? (
               <a
                 href={step.href}

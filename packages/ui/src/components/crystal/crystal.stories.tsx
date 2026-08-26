@@ -21,9 +21,10 @@ export const CaseActionsTimeline: Story = {
       <RefractiveGlassPanel role="region" aria-label="Actions and timeline" className="space-y-6">
         <Stepper
           ariaLabel="Actions"
+          currentStepId="apply"
           steps={[
             { id: 'check', label: 'Check', state: 'completed', stateLabel: 'Completed' },
-            { id: 'apply', label: 'Apply', state: 'current', stateLabel: 'Current' },
+            { id: 'apply', label: 'Apply', state: 'future', stateLabel: 'Current' },
             { id: 'track', label: 'Follow up', state: 'future', stateLabel: 'Upcoming' },
           ]}
         />

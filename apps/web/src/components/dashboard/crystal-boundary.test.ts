@@ -23,6 +23,7 @@ describe('Crystal boundaries', () => {
       expect(text).not.toMatch(
         /@interdomestik\/(?:database|domain-|shared-auth)|framer-motion|@\/|next\//u
       );
+      expect(text).not.toContain('muted-700');
     }
   });
 

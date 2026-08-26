@@ -23,7 +23,7 @@ export function Timeline({ ariaLabel, className, emptyLabel, items }: TimelinePr
         role="status"
         aria-label={ariaLabel}
         className={cn(
-          'rounded-xl border border-dashed border-[hsl(var(--border-strong))] p-5 text-sm text-[hsl(var(--muted-700))] forced-colors:border-[CanvasText]',
+          'rounded-xl border border-dashed border-[hsl(var(--border-strong))] p-5 text-sm text-foreground/70 forced-colors:border-[CanvasText]',
           className
         )}
       >
@@ -46,17 +46,15 @@ export function Timeline({ ariaLabel, className, emptyLabel, items }: TimelinePr
           <div className="min-w-0">
             <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-2">
               <span className="break-words font-semibold">{item.title}</span>
-              <time dateTime={item.dateTime} className="text-xs text-[hsl(var(--muted-700))]">
+              <time dateTime={item.dateTime} className="text-xs text-foreground/70">
                 {item.dateLabel}
               </time>
             </div>
-            <span className="mt-1 block text-xs font-medium text-[hsl(var(--muted-700))]">
+            <span className="mt-1 block text-xs font-medium text-foreground/70">
               {item.stateLabel}
             </span>
             {item.description ? (
-              <p className="mt-2 break-words text-sm text-[hsl(var(--muted-700))]">
-                {item.description}
-              </p>
+              <p className="mt-2 break-words text-sm text-foreground/70">{item.description}</p>
             ) : null}
           </div>
         </li>

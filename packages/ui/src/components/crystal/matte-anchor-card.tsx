@@ -26,15 +26,13 @@ export const MatteAnchorCard = React.forwardRef<HTMLAnchorElement, MatteAnchorCa
       {...props}
     >
       {eyebrow ? (
-        <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[hsl(var(--muted-700))]">
+        <span className="text-xs font-semibold uppercase tracking-[0.14em] text-foreground/70">
           {eyebrow}
         </span>
       ) : null}
       <span className="min-w-0">
         <span className="block break-words text-lg font-semibold">{label}</span>
-        <span className="mt-1 block break-words text-sm text-[hsl(var(--muted-700))]">
-          {description}
-        </span>
+        <span className="mt-1 block break-words text-sm text-foreground/70">{description}</span>
       </span>
     </a>
   )
