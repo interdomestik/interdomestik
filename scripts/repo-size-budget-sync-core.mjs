@@ -1,5 +1,7 @@
 import path from 'node:path';
 
+import { validateCapacityBudget } from './repo-size-capacity-schema.mjs';
+
 const SOURCE_EXTENSIONS = new Set(['.cjs', '.css', '.js', '.mjs', '.sh', '.ts', '.tsx']);
 const TEXT_DOC_EXTENSIONS = new Set(['.md', '.txt']);
 const CONFIG_DATA_EXTENSIONS = new Set(['.json', '.jsonl', '.toml', '.yaml', '.yml']);
@@ -15,6 +17,10 @@ export function stableJson(value) {
 }
 
 export function synchronizedBudget(report, previousBudget, budgetRelPath, previousText, included) {
+  if (previousBudget.version === 2) {
+    validateCapacityBudget(previousBudget);
+    return previousBudget;
+  }
   if (!included) return exactBudgetFromReport(report, previousBudget);
 
   let nextBudget = exactBudgetFromReport(report, previousBudget);
@@ -70,7 +76,7 @@ function withBudgetFileBytes(report, relPath, fromBytes, toBytes) {
   };
 }
 
-function budgetCategory(filePath) {
+export function budgetCategory(filePath) {
   const extension = path.extname(filePath);
   const base = path.basename(filePath);
   if (
