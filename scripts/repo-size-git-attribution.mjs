@@ -17,7 +17,40 @@ export function parseGitNameStatus(output) {
   return changes;
 }
 
+function commitExists(repoRoot, baseSha, gitBin, env) {
+  try {
+    execFileSync(gitBin, ['cat-file', '-e', `${baseSha}^{commit}`], {
+      cwd: repoRoot,
+      env,
+      stdio: 'ignore',
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function ensureBaseCommit(repoRoot, baseSha, gitBin, env) {
+  if (!/^[a-f0-9]{40}$/u.test(baseSha)) {
+    throw new Error('Repo size baseline must be an exact commit SHA.');
+  }
+  if (commitExists(repoRoot, baseSha, gitBin, env)) return;
+  try {
+    execFileSync(
+      gitBin,
+      ['fetch', '--no-tags', '--no-write-fetch-head', '--depth=1', 'origin', baseSha],
+      { cwd: repoRoot, env, stdio: 'ignore' }
+    );
+  } catch {
+    throw new Error(`Unable to materialize exact repo-size baseline ${baseSha}.`);
+  }
+  if (!commitExists(repoRoot, baseSha, gitBin, env)) {
+    throw new Error(`Unable to materialize exact repo-size baseline ${baseSha}.`);
+  }
+}
+
 export function collectGitChangeFacts({ repoRoot, baseSha, trackedFiles, gitBin, env }) {
+  ensureBaseCommit(repoRoot, baseSha, gitBin, env);
   const output = execFileSync(
     gitBin,
     ['diff', '--name-status', '-z', '--no-renames', baseSha, '--'],

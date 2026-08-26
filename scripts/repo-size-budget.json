@@ -30,29 +30,31 @@
         "scripts/repo-size-audit-output.mjs",
         "scripts/ci/repo-size-capacity-fixtures.mjs",
         "scripts/ci/repo-size-capacity-schema.test.mjs",
-        "scripts/ci/repo-size-capacity-evaluator.test.mjs"
+        "scripts/ci/repo-size-capacity-evaluator.test.mjs",
+        "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 31018,
-      "trackedFilesDelta": 9,
+      "trackedBytesDelta": 34920,
+      "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 4450,
-        "source/scripts": 19570,
-        "tests/e2e": 6998
+        "config/data/messages": 4571,
+        "source/scripts": 20535,
+        "tests/e2e": 9814
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 4450,
+        "scripts/repo-size-budget.json": 4571,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
         "scripts/repo-size-capacity-schema.mjs": 8843,
         "scripts/repo-size-capacity-evaluator.mjs": 6755,
-        "scripts/repo-size-git-attribution.mjs": 1772,
+        "scripts/repo-size-git-attribution.mjs": 2737,
         "scripts/repo-size-inventory.mjs": 3902,
         "scripts/repo-size-legacy-budget.mjs": 3198,
         "scripts/repo-size-audit-output.mjs": 3368,
         "scripts/ci/repo-size-capacity-fixtures.mjs": 2571,
         "scripts/ci/repo-size-capacity-schema.test.mjs": 2092,
-        "scripts/ci/repo-size-capacity-evaluator.test.mjs": 4750
+        "scripts/ci/repo-size-capacity-evaluator.test.mjs": 4750,
+        "scripts/ci/repo-size-git-attribution.test.mjs": 2816
       }
     },
     {
@@ -118,15 +120,15 @@
     },
     "rationale": "Only the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 59436629,
-  "maxTrackedFiles": 5822,
+  "maxTrackedBytes": 59440531,
+  "maxTrackedFiles": 5823,
   "maxCategoryBytes": {
     "other": 18856416,
     "large support/generated-ish": 15390342,
     "docs/text": 8423185,
-    "source/scripts": 8311249,
-    "tests/e2e": 6385318,
-    "config/data/messages": 2070119
+    "source/scripts": 8312214,
+    "tests/e2e": 6388134,
+    "config/data/messages": 2070240
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
