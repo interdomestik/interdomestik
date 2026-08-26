@@ -1,14 +1,132 @@
 {
-  "version": 1,
-  "maxTrackedBytes": 59364301,
-  "maxTrackedFiles": 5811,
+  "version": 2,
+  "baseline": {
+    "protectedMainSha": "b2efdde8ccddeba15a62eeea1ea1bdece0f09bc7",
+    "trackedBytes": 59363827,
+    "trackedFiles": 5811,
+    "categoryBytes": {
+      "other": 18856416,
+      "large support/generated-ish": 15388644,
+      "docs/text": 8402569,
+      "source/scripts": 8286730,
+      "tests/e2e": 6374047,
+      "config/data/messages": 2055421
+    }
+  },
+  "allocations": [
+    {
+      "id": "capacity-rebase",
+      "mode": "exact",
+      "writerPaths": [
+        "scripts/repo-size-budget.json",
+        "scripts/repo-size-budget-sync-core.mjs",
+        "scripts/repo-size-audit.mjs",
+        "scripts/ci/repo-size-budget-sync.test.mjs",
+        "scripts/repo-size-capacity-schema.mjs",
+        "scripts/repo-size-capacity-evaluator.mjs",
+        "scripts/repo-size-git-attribution.mjs",
+        "scripts/repo-size-inventory.mjs",
+        "scripts/repo-size-legacy-budget.mjs",
+        "scripts/repo-size-audit-output.mjs",
+        "scripts/ci/repo-size-capacity-fixtures.mjs",
+        "scripts/ci/repo-size-capacity-schema.test.mjs",
+        "scripts/ci/repo-size-capacity-evaluator.test.mjs"
+      ],
+      "trackedBytesDelta": 31018,
+      "trackedFilesDelta": 9,
+      "categoryBytesDelta": {
+        "config/data/messages": 4450,
+        "source/scripts": 19570,
+        "tests/e2e": 6998
+      },
+      "pathBytesDelta": {
+        "scripts/repo-size-budget.json": 4450,
+        "scripts/repo-size-budget-sync-core.mjs": 195,
+        "scripts/repo-size-audit.mjs": -11034,
+        "scripts/ci/repo-size-budget-sync.test.mjs": 156,
+        "scripts/repo-size-capacity-schema.mjs": 8843,
+        "scripts/repo-size-capacity-evaluator.mjs": 6755,
+        "scripts/repo-size-git-attribution.mjs": 1772,
+        "scripts/repo-size-inventory.mjs": 3902,
+        "scripts/repo-size-legacy-budget.mjs": 3198,
+        "scripts/repo-size-audit-output.mjs": 3368,
+        "scripts/ci/repo-size-capacity-fixtures.mjs": 2571,
+        "scripts/ci/repo-size-capacity-schema.test.mjs": 2092,
+        "scripts/ci/repo-size-capacity-evaluator.test.mjs": 4750
+      }
+    },
+    {
+      "id": "lean-compatibility-repair",
+      "mode": "bounded",
+      "writerPaths": [
+        "scripts/lean-current-authority-policy.mjs",
+        "scripts/lean-current-authority-lifecycle.mjs",
+        "scripts/lean-current-authority-git.mjs",
+        "scripts/lean-current-authority-evidence.mjs",
+        "scripts/lean-current-authority-policy.test.mjs",
+        "scripts/lean-current-authority.test.mjs",
+        "scripts/lean-current-authority-evidence.test.mjs",
+        "scripts/lean-current-authority-conformance.test.mjs"
+      ],
+      "maxTrackedBytesDelta": 9222,
+      "maxTrackedFilesDelta": 0,
+      "maxCategoryBytesDelta": {
+        "source/scripts": 4949,
+        "tests/e2e": 4273
+      },
+      "maxPathBytesDelta": {
+        "scripts/lean-current-authority-policy.mjs": 101,
+        "scripts/lean-current-authority-lifecycle.mjs": 1111,
+        "scripts/lean-current-authority-git.mjs": 3131,
+        "scripts/lean-current-authority-evidence.mjs": 606,
+        "scripts/lean-current-authority-policy.test.mjs": 2382,
+        "scripts/lean-current-authority.test.mjs": 1169,
+        "scripts/lean-current-authority-evidence.test.mjs": 793,
+        "scripts/lean-current-authority-conformance.test.mjs": 0
+      }
+    },
+    {
+      "id": "t118-promotion",
+      "mode": "bounded",
+      "writerPaths": [
+        "docs/plans/current-program.md",
+        "docs/plans/current-tracker.md",
+        "docs/plans/2026-08-25-t118-design-system-design.md",
+        "docs/plans/2026-08-25-t118-design-system-admission.json"
+      ],
+      "maxTrackedBytesDelta": 32088,
+      "maxTrackedFilesDelta": 2,
+      "maxCategoryBytesDelta": {
+        "config/data/messages": 10248,
+        "docs/text": 20613,
+        "large support/generated-ish": 1227
+      },
+      "maxPathBytesDelta": {
+        "docs/plans/current-program.md": 1227,
+        "docs/plans/current-tracker.md": 1227,
+        "docs/plans/2026-08-25-t118-design-system-design.md": 19386,
+        "docs/plans/2026-08-25-t118-design-system-admission.json": 10248
+      }
+    }
+  ],
+  "reserve": {
+    "trackedBytes": 474,
+    "trackedFiles": 0,
+    "categoryBytes": {
+      "docs/text": 3,
+      "large support/generated-ish": 471
+    },
+    "rationale": "Only the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
+  },
+  "maxTrackedBytes": 59436629,
+  "maxTrackedFiles": 5822,
   "maxCategoryBytes": {
     "other": 18856416,
-    "large support/generated-ish": 15389115,
-    "docs/text": 8402572,
-    "source/scripts": 8286730,
-    "tests/e2e": 6374047,
-    "config/data/messages": 2055421
+    "large support/generated-ish": 15390342,
+    "docs/text": 8423185,
+    "source/scripts": 8311249,
+    "tests/e2e": 6385318,
+    "config/data/messages": 2070119
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
