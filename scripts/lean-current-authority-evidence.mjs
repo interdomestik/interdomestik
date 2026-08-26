@@ -17,6 +17,7 @@ import {
 import {
   abandonAuthority,
   authorityState,
+  classifyCloseoutPull,
   failAuthority,
   resolveAuthority,
 } from './lean-current-authority-lifecycle.mjs';
@@ -33,9 +34,18 @@ import {
   sameSet,
 } from './lean-current-authority-policy.mjs';
 
+export function assertCanonicalWriterWorktree(repo, writerBound = true) {
+  if (!writerBound) return;
+  const entries = git(repo, 'ls-files', '-v', '-z').split('\0');
+  if (entries.some(entry => /^[Ss] /u.test(entry))) {
+    throw new Error('tracked skip-worktree state blocks Lean activation');
+  }
+}
+
 function collectFacts(repo, projection, protectedMainSha) {
   const slice = projection.activeSlice;
   validateRepositoryIdentity(repo);
+  assertCanonicalWriterWorktree(repo, protectedMainSha === undefined);
   const productPull = pullByBranch(repo, slice.expectedProductBranch);
   if (isClosedUnmergedPull(productPull))
     return {
@@ -121,15 +131,6 @@ function mergedCloseout(repo, projection, pull, branch, terminalSha, anchor, mai
   });
 }
 
-export function classifyCloseoutPull(pull) {
-  if (!pull) return 'missing';
-  if (!['open', 'closed'].includes(pull.state) || typeof pull.merged !== 'boolean') {
-    return 'malformed';
-  }
-  if (pull.state === 'open' && pull.merged) return 'malformed';
-  return isClosedUnmergedPull(pull) ? 'abandoned' : 'continuing';
-}
-
 function resolveInactiveRepository(repo, projection) {
   try {
     validateRepositoryIdentity(repo);
@@ -186,6 +187,7 @@ export function resolveRepositoryAuthority(repoInput = process.cwd(), live = tru
   }
 }
 
+export { classifyCloseoutPull };
 export {
   isBootstrapAnchor,
   isClosedUnmergedPull,

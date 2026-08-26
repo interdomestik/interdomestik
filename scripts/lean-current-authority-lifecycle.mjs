@@ -23,6 +23,15 @@ export const abandonAuthority = reason =>
     failureCloseoutRequired: true,
   });
 
+export function classifyCloseoutPull(pull) {
+  if (!pull) return 'missing';
+  if (!['open', 'closed'].includes(pull.state) || typeof pull.merged !== 'boolean') {
+    return 'malformed';
+  }
+  if (pull.state === 'open' && pull.merged) return 'malformed';
+  return pull.state === 'closed' && !pull.merged ? 'abandoned' : 'continuing';
+}
+
 function writerSubset(actual, allowed) {
   return (
     Array.isArray(actual) &&

@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import { resolveRepositoryAuthority, selectFullProductPull } from './lean-current-authority.mjs';
+import { assertCanonicalWriterWorktree } from './lean-current-authority-evidence.mjs';
 import {
   changedPathsBetween,
   collectPromotionFacts,
@@ -57,6 +58,36 @@ function commitProjection(root, projection, message) {
   return git(root, 'rev-parse', 'HEAD');
 }
 
+function gitFixture(prefix) {
+  const root = mkdtempSync(join(tmpdir(), prefix));
+  git(root, 'init');
+  git(root, 'config', 'user.email', 'fixture@interdomestik.test');
+  git(root, 'config', 'user.name', 'Fixture');
+  return root;
+}
+
+test('writer-bound authority rejects every tracked skip-worktree tag without blocking reads', () => {
+  const root = gitFixture('lean-authority-writer-worktree-');
+  writeFileSync(join(root, 'tracked.txt'), 'canonical\n');
+  git(root, 'add', 'tracked.txt');
+  git(root, 'commit', '-m', 'canonical');
+
+  assert.doesNotThrow(() => assertCanonicalWriterWorktree(root));
+  git(root, 'update-index', '--skip-worktree', 'tracked.txt');
+  assert.throws(
+    () => assertCanonicalWriterWorktree(root),
+    /tracked skip-worktree state blocks Lean activation/u
+  );
+  assert.doesNotThrow(() => assertCanonicalWriterWorktree(root, false));
+
+  git(root, 'update-index', '--assume-unchanged', 'tracked.txt');
+  assert.match(git(root, 'ls-files', '-v', 'tracked.txt'), /^s /u);
+  assert.throws(
+    () => assertCanonicalWriterWorktree(root),
+    /tracked skip-worktree state blocks Lean activation/u
+  );
+});
+
 test('repository boundary returns stable blocked authority instead of throwing', () => {
   const root = mkdtempSync(join(tmpdir(), 'lean-authority-malformed-'));
   mkdirSync(join(root, 'docs/plans'), { recursive: true });
@@ -93,10 +124,7 @@ test('downstream list summary is expanded to one full pull response', () => {
 });
 
 test('GitHub pull fixtures are bound to real Git commit parent, tree, review and file facts', () => {
-  const root = mkdtempSync(join(tmpdir(), 'lean-authority-git-fixture-'));
-  git(root, 'init');
-  git(root, 'config', 'user.email', 'fixture@interdomestik.test');
-  git(root, 'config', 'user.name', 'Fixture');
+  const root = gitFixture('lean-authority-git-fixture-');
   writeFileSync(join(root, 'first.txt'), 'first\n');
   git(root, 'add', 'first.txt');
   git(root, 'commit', '-m', 'first');
@@ -209,10 +237,7 @@ test('GitHub pull fixtures are bound to real Git commit parent, tree, review and
 });
 
 test('closeout ancestry and authority-path drift facts come from real Git history', () => {
-  const root = mkdtempSync(join(tmpdir(), 'lean-authority-closeout-fixture-'));
-  git(root, 'init');
-  git(root, 'config', 'user.email', 'fixture@interdomestik.test');
-  git(root, 'config', 'user.name', 'Fixture');
+  const root = gitFixture('lean-authority-closeout-fixture-');
   writeFileSync(join(root, 'terminal.txt'), 'terminal\n');
   git(root, 'add', 'terminal.txt');
   git(root, 'commit', '-m', 'terminal');
@@ -229,10 +254,7 @@ test('closeout ancestry and authority-path drift facts come from real Git histor
 });
 
 test('historical inactive state resolves through its active-to-inactive transition', () => {
-  const root = mkdtempSync(join(tmpdir(), 'lean-authority-transition-fixture-'));
-  git(root, 'init');
-  git(root, 'config', 'user.email', 'fixture@interdomestik.test');
-  git(root, 'config', 'user.name', 'Fixture');
+  const root = gitFixture('lean-authority-transition-fixture-');
   const terminal = commitProjection(root, activeProjection, 'active terminal');
   const closeout = commitProjection(root, inactiveProjection, 'inactive closeout');
   writeFileSync(join(root, 'later.txt'), 'later\n');
@@ -247,10 +269,7 @@ test('historical inactive state resolves through its active-to-inactive transiti
 });
 
 test('authority path edit then revert remains observable history drift', () => {
-  const root = mkdtempSync(join(tmpdir(), 'lean-authority-revert-fixture-'));
-  git(root, 'init');
-  git(root, 'config', 'user.email', 'fixture@interdomestik.test');
-  git(root, 'config', 'user.name', 'Fixture');
+  const root = gitFixture('lean-authority-revert-fixture-');
   const terminal = commitProjection(root, inactiveProjection, 'terminal');
   commitProjection(root, activeProjection, 'temporary authority edit');
   const reverted = commitProjection(root, inactiveProjection, 'revert authority edit');
