@@ -16,11 +16,10 @@ export interface TimelineProps {
   className?: string;
 }
 
-export function Timeline({ ariaLabel, className, emptyLabel, items }: TimelineProps) {
+export function Timeline({ ariaLabel, className, emptyLabel, items }: Readonly<TimelineProps>) {
   if (items.length === 0) {
     return (
-      <div
-        role="status"
+      <output
         aria-label={ariaLabel}
         className={cn(
           'rounded-xl border border-dashed border-[hsl(var(--border-strong))] p-5 text-sm text-foreground/70 forced-colors:border-[CanvasText]',
@@ -28,7 +27,7 @@ export function Timeline({ ariaLabel, className, emptyLabel, items }: TimelinePr
         )}
       >
         {emptyLabel}
-      </div>
+      </output>
     );
   }
 

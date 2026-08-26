@@ -16,7 +16,7 @@ export interface StepperProps {
   className?: string;
 }
 
-export function Stepper({ ariaLabel, className, currentStepId, steps }: StepperProps) {
+export function Stepper({ ariaLabel, className, currentStepId, steps }: Readonly<StepperProps>) {
   return (
     <ol aria-label={ariaLabel} className={cn('grid min-w-0 gap-3 sm:grid-cols-2', className)}>
       {steps.map((step, index) => {
