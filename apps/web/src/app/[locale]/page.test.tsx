@@ -3,45 +3,50 @@ import { render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
-  headersMock: vi.fn(async () => new Headers([['host', 'mk.localhost:3000']])),
-  getSessionMock: vi.fn(async () => ({
-    user: {
-      id: 'user-1',
-      role: 'member',
-      tenantId: 'tenant_mk',
+  headers: vi.fn(),
+  session: vi.fn(),
+  messages: vi.fn(async () => ({})),
+  retired: vi.fn(),
+  legacy: vi.fn(),
+  runtime: vi.fn((_: unknown) => null),
+  freeStart: vi.fn((_: unknown) => null),
+  tenant: vi.fn(() => 'tenant_ks'),
+  setLocale: vi.fn(),
+  flag: true,
+}));
+
+function Probe({ name, retired = false }: { name: string; retired?: boolean }) {
+  if (retired) hoisted.retired(name);
+  return retired ? <div data-testid="retired" /> : <div data-entry-door-section={name} />;
+}
+
+const keep = (name: string) => <Probe name={name} />;
+const retire = (name: string) => <Probe name={name} retired />;
+
+vi.mock('next/dynamic', () => {
+  let index = 0;
+  const names = ['FAQ', 'Testimonials'];
+  return {
+    default: () => {
+      const name = names[index++];
+      return () => retire(name ?? 'Unknown');
     },
-  })),
-  getMessagesMock: vi.fn(async () => ({
-    common: { loading: 'Loading' },
-    home: { title: 'Home' },
-  })),
-  legacyMountMock: vi.fn(),
-  homePageRuntimeMock: vi.fn((_: unknown) => null),
-  freeStartIntakeShellMock: vi.fn((_: unknown) => null),
-  resolveDefaultPublicTenantIdMock: vi.fn(() => 'tenant_ks'),
-  setRequestLocaleMock: vi.fn(),
-  uiV2Enabled: true,
-}));
+  };
+});
 
-vi.mock('next/dynamic', () => ({
-  default: () => () => null,
-}));
-
-vi.mock('next/headers', () => ({
-  headers: hoisted.headersMock,
-}));
+vi.mock('next/headers', () => ({ headers: hoisted.headers }));
 
 vi.mock('@/lib/auth.core', () => ({
   auth: {
     api: {
-      getSession: hoisted.getSessionMock,
+      getSession: hoisted.session,
     },
   },
 }));
 
 vi.mock('next-intl/server', () => ({
-  getMessages: hoisted.getMessagesMock,
-  setRequestLocale: hoisted.setRequestLocaleMock,
+  getMessages: hoisted.messages,
+  setRequestLocale: hoisted.setLocale,
 }));
 
 vi.mock('next-intl', () => ({
@@ -51,99 +56,117 @@ vi.mock('next-intl', () => ({
 vi.mock('@/i18n/messages', () => ({
   BASE_NAMESPACES: ['common'],
   HOME_NAMESPACES: ['hero'],
-  pickMessages: (messages: Record<string, unknown>) => messages,
+  pickMessages: (messages: object) => messages,
 }));
 
-vi.mock('@/lib/flags', () => ({
-  isUiV2Enabled: () => hoisted.uiV2Enabled,
-}));
+vi.mock('@/lib/flags', () => ({ isUiV2Enabled: () => hoisted.flag }));
 
 vi.mock('@/lib/tenant/tenant-hosts', () => ({
-  resolveDefaultPublicTenantId: hoisted.resolveDefaultPublicTenantIdMock,
+  resolveDefaultPublicTenantId: hoisted.tenant,
 }));
 
-vi.mock('./components/home/cta-section', () => ({ CTASection: () => null }));
-vi.mock('./components/home/footer', () => ({ Footer: () => null }));
-vi.mock('./components/home/free-start-intake-shell', () => ({
-  FreeStartIntakeShell: (props: unknown) => hoisted.freeStartIntakeShellMock(props),
+vi.mock('./components/home/cta-section', () => ({
+  CTASection: () => retire('Final CTA'),
 }));
-vi.mock('./components/home/header', () => ({ Header: () => null }));
-vi.mock('./components/home/hero-section', () => ({ HeroSection: hoisted.legacyMountMock }));
+vi.mock('./components/home/footer', () => ({ Footer: () => keep('Footer') }));
+vi.mock('./components/home/free-start-intake-shell', () => ({
+  FreeStartIntakeShell: (props: unknown) => hoisted.freeStart(props),
+}));
+vi.mock('./components/home/header', () => ({ Header: () => keep('Header') }));
+vi.mock('./components/home/hero-section', () => ({ HeroSection: hoisted.legacy }));
 vi.mock('./components/home/home-page-runtime', () => ({
-  HomePageRuntime: (props: unknown) => hoisted.homePageRuntimeMock(props),
+  HomePageRuntime: (props: unknown) => {
+    hoisted.runtime(props);
+    return keep('HomePageRuntime');
+  },
 }));
 vi.mock('./components/home/how-membership-works-section', () => ({
-  HowMembershipWorksSection: () => null,
+  HowMembershipWorksSection: () => retire('How Membership Works'),
 }));
 vi.mock('./components/home/member-benefits-section', () => ({
-  MemberBenefitsSection: () => null,
+  MemberBenefitsSection: () => retire('Member Benefits'),
 }));
-vi.mock('./components/home/pricing-section', () => ({ PricingSection: () => null }));
+vi.mock('./components/home/pricing-section', () => ({
+  PricingSection: () => keep('PricingSection'),
+}));
 vi.mock('./components/home/sticky-mobile-cta', () => ({
-  StickyPrimeCTA: hoisted.legacyMountMock,
+  StickyPrimeCTA: hoisted.legacy,
 }));
-vi.mock('./components/home/trust-stats-section', () => ({ TrustStatsSection: () => null }));
-vi.mock('./components/home/trust-strip', () => ({ TrustStrip: () => null }));
-vi.mock('./components/home/voice-claim-section', () => ({ VoiceClaimSection: () => null }));
+vi.mock('./components/home/trust-stats-section', () => ({
+  TrustStatsSection: () => retire('Trust Stats'),
+}));
+vi.mock('./components/home/trust-strip', () => ({
+  TrustStrip: () => retire('Trust Strip'),
+}));
+vi.mock('./components/home/voice-claim-section', () => ({
+  VoiceClaimSection: () => retire('Voice Claim'),
+}));
 import HomePage from './page';
-import * as HomePageModule from './page';
+import * as page from './page';
+
+const home = async (locale = 'sq') =>
+  render(await HomePage({ params: Promise.resolve({ locale }) }));
+const props = (locale: string, neutralOtpHost: string | null = 'front-door.localhost:3000') => ({
+  defaultPublicTenantId: 'tenant_ks',
+  locale,
+  neutralOtpHost,
+  uiV2Enabled: true,
+});
 
 describe('HomePage server shell', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.IDA_HOST = 'https://front-door.localhost:3000';
-    hoisted.uiV2Enabled = true;
-    hoisted.resolveDefaultPublicTenantIdMock.mockReturnValue('tenant_ks');
+    hoisted.flag = true;
+    hoisted.tenant.mockReturnValue('tenant_ks');
   });
 
-  it('exports locale static params for public prerendering', () => {
-    expect(HomePageModule.generateStaticParams()).toEqual([
-      { locale: 'sq' },
-      { locale: 'en' },
-      { locale: 'sr' },
-      { locale: 'mk' },
-    ]);
+  it('renders only retained sections', async () => {
+    const view = await home();
+    const sections = Array.from(
+      view.getByTestId('landing-page-ready').querySelectorAll('[data-entry-door-section]')
+    ).map(section => section.getAttribute('data-entry-door-section'));
+
+    expect(sections).toEqual(['Header', 'HomePageRuntime', 'PricingSection', 'Footer']);
+    expect(hoisted.retired).not.toHaveBeenCalled();
+    expect(view.queryByTestId(/^retired/)).not.toBeInTheDocument();
   });
 
-  it('does not read request headers or session data while rendering the locale landing shell', async () => {
-    const tree = await HomePage({
-      params: Promise.resolve({ locale: 'sq' }),
-    });
-
-    expect(tree).toBeTruthy();
-    expect(hoisted.setRequestLocaleMock).toHaveBeenCalledWith('sq');
-    expect(hoisted.headersMock).not.toHaveBeenCalled();
-    expect(hoisted.getSessionMock).not.toHaveBeenCalled();
+  it('exports locales', () => {
+    expect(page.generateStaticParams()).toEqual(
+      ['sq', 'en', 'sr', 'mk'].map(locale => ({ locale }))
+    );
   });
 
-  it('AX1 resolves one server authority and propagates it to the UI-v2 Free Start seam', async () => {
-    const tree = await HomePage({ params: Promise.resolve({ locale: 'sq' }) });
-    render(tree);
-
-    expect(hoisted.resolveDefaultPublicTenantIdMock).toHaveBeenCalledOnce();
-    // prettier-ignore
-    expect(hoisted.homePageRuntimeMock).toHaveBeenCalledExactlyOnceWith({ defaultPublicTenantId: 'tenant_ks', locale: 'sq', neutralOtpHost: 'front-door.localhost:3000', uiV2Enabled: true });
-    expect(hoisted.freeStartIntakeShellMock).not.toHaveBeenCalled();
+  it('avoids request/session reads', async () => {
+    expect(await HomePage({ params: Promise.resolve({ locale: 'sq' }) })).toBeTruthy();
+    expect(hoisted.setLocale).toHaveBeenCalledWith('sq');
+    expect(hoisted.headers).not.toHaveBeenCalled();
+    expect(hoisted.session).not.toHaveBeenCalled();
   });
 
-  it('ignores the retired UI-v1 flag and always mounts the canonical runtime', async () => {
-    hoisted.uiV2Enabled = false;
-    const tree = await HomePage({ params: Promise.resolve({ locale: 'en' }) });
-    const view = render(tree);
+  it('propagates AX1', async () => {
+    await home();
 
-    expect(hoisted.resolveDefaultPublicTenantIdMock).toHaveBeenCalledOnce();
-    // prettier-ignore
-    expect(hoisted.homePageRuntimeMock).toHaveBeenCalledExactlyOnceWith({ defaultPublicTenantId: 'tenant_ks', locale: 'en', neutralOtpHost: 'front-door.localhost:3000', uiV2Enabled: true });
-    expect(hoisted.freeStartIntakeShellMock).not.toHaveBeenCalled();
-    expect(hoisted.legacyMountMock).not.toHaveBeenCalled();
+    expect(hoisted.tenant).toHaveBeenCalledOnce();
+    expect(hoisted.runtime).toHaveBeenCalledExactlyOnceWith(props('sq'));
+    expect(hoisted.freeStart).not.toHaveBeenCalled();
+  });
+
+  it('keeps Hero V2 when flag is retired', async () => {
+    hoisted.flag = false;
+    const view = await home('en');
+
+    expect(hoisted.tenant).toHaveBeenCalledOnce();
+    expect(hoisted.runtime).toHaveBeenCalledExactlyOnceWith(props('en'));
+    expect(hoisted.freeStart).not.toHaveBeenCalled();
+    expect(hoisted.legacy).not.toHaveBeenCalled();
     expect(view.getByTestId('landing-page-ready')).toHaveAttribute('data-variant', 'hero_v2');
   });
 
-  it('AX1 rejects malformed configured IDA authority instead of exposing the save seam', async () => {
+  it('rejects malformed AX1', async () => {
     process.env.IDA_HOST = 'https://front-door.localhost:3000/unexpected';
-    render(await HomePage({ params: Promise.resolve({ locale: 'sq' }) }));
-    expect(hoisted.homePageRuntimeMock).toHaveBeenCalledWith(
-      expect.objectContaining({ neutralOtpHost: null })
-    );
+    await home();
+    expect(hoisted.runtime).toHaveBeenCalledWith(props('sq', null));
   });
 });
