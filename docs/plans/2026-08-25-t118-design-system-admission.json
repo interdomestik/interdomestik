@@ -1,0 +1,200 @@
+{
+  "schemaVersion": 1,
+  "sliceId": "IDA-UI07-MINIMAL-ENTRY-DOOR-CUTOVER",
+  "baseSha": "b7284c35b79d1d5ee1b09a674da4f6bbd9a0c7b2",
+  "authorityArtifactSha256": "3a823c44670a6b288cd19eafe48fb5dc35029bd0df45f52a185ba64c0e27c95a",
+  "productOutcomes": [
+    "Render the localized IDA entry door as Header, canonical HomePageRuntime, PricingSection, and Footer while unmounting only eight named legacy sections"
+  ],
+  "writerPaths": ["apps/web/src/app/[locale]/page.tsx", "apps/web/src/app/[locale]/page.test.tsx"],
+  "proofSurfaces": [
+    {
+      "id": "server-composition",
+      "invalidatedBy": [
+        "page composition, page mount-spy contract, retained marker, or exact writer bytes change"
+      ]
+    },
+    {
+      "id": "runtime-funnel-continuity",
+      "invalidatedBy": [
+        "HomePageRuntime props, Hero V2, Free Start, Pricing, session, analytics, or unchanged browser-contract result changes"
+      ]
+    },
+    {
+      "id": "browser-accessibility-responsive",
+      "invalidatedBy": [
+        "rendered order, accessibility tree, keyboard path, locale, viewport geometry, overflow, or browser environment changes"
+      ]
+    }
+  ],
+  "acceptanceMatrix": [
+    {
+      "criterionId": "exact-server-composition",
+      "proofSurfaceId": "server-composition",
+      "command": "pnpm --filter @interdomestik/web test:unit --run 'src/app/[locale]/page.test.tsx' && git diff --check",
+      "expected": "Header, HomePageRuntime, PricingSection, and Footer mount once in order; all eight retired region spies remain zero; page-ready and hero_v2 markers remain exact",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "runtime-and-pricing-continuity",
+      "proofSurfaceId": "runtime-funnel-continuity",
+      "command": "pnpm --filter @interdomestik/web test:unit --run 'src/app/[locale]/page.test.tsx' 'src/app/[locale]/components/home/home-page-runtime.test.tsx' && pnpm slice:e2e:pr",
+      "expected": "Hero V2, Free Start, pending/anonymous/member session behavior, funnel analytics, PricingSection plan links, and unchanged active E2E contracts pass without skips",
+      "environmentId": "playwright-product-browser",
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "responsive-keyboard-accessibility",
+      "proofSurfaceId": "browser-accessibility-responsive",
+      "command": "Playwright MCP exact-order, absence, pricing, keyboard, accessibility-snapshot, and overflow checks at 320x720, 375x812, 390x844, and 1440x900 for SQ/EN/SR/MK",
+      "expected": "retained regions are visible and ordered, retired regions are absent, accessible names/focus/keyboard flow remain usable, and html has no horizontal overflow",
+      "environmentId": "playwright-product-browser",
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "tier2-current-head-gates",
+      "proofSurfaceId": "server-composition",
+      "command": "pnpm slice:verify && pnpm ci:local:pr followed at PR readiness by pnpm pr:verify, pnpm security:guard, and pnpm e2e:gate",
+      "expected": "focused, parity, and mandatory Phase C contracts pass on the exact current head with no protected-path or writer-map drift",
+      "environmentId": null,
+      "skipIsFailure": true
+    }
+  ],
+  "executionPolicy": {
+    "focusedBeforeHeavy": true,
+    "currentHeadCanaryBeforeFullCi": true,
+    "feedbackBeforeHeavy": true,
+    "fullE2eAuthority": "ci_once_per_exact_head",
+    "rerunPolicy": "invalidated_only",
+    "staleHeadAction": "cancel",
+    "runnerReadiness": "connected_and_listening"
+  },
+  "sharedRuntimeConsumers": ["apps/web/src/app/[locale]/components/home/home-page-runtime.tsx"],
+  "specialProofEnvironments": [
+    {
+      "id": "playwright-product-browser",
+      "canary": {
+        "command": "Playwright MCP data-URL navigate plus accessibility snapshot with viewport boxes",
+        "expected": "one named main landmark, one level-one heading, and one named button are captured",
+        "result": "pass",
+        "observedAt": "2026-08-26T15:27:51.515Z",
+        "evidence": "IDA-DG53 focused verification and review plan; external Playwright MCP snapshot receipt",
+        "evidenceSha256": "1266c80d1c5af0e4148cc2f355a665b153bd19b34ec76ed8257fc94e927a6a84",
+        "environmentFingerprint": "playwright-mcp/local-chromium/accessibility-snapshot/data-url/2026-08-26"
+      }
+    }
+  ],
+  "contractGraph": {
+    "nodes": [
+      {
+        "id": "localized-home-page",
+        "kind": "entry"
+      },
+      {
+        "id": "home-page-runtime",
+        "kind": "consumer"
+      },
+      {
+        "id": "pricing-section",
+        "kind": "consumer"
+      },
+      {
+        "id": "retired-legacy-region-set",
+        "kind": "state"
+      },
+      {
+        "id": "page-unit-contract",
+        "kind": "test"
+      },
+      {
+        "id": "unchanged-browser-contracts",
+        "kind": "test"
+      },
+      {
+        "id": "playwright-mcp",
+        "kind": "external"
+      },
+      {
+        "id": "protected-main-b7284c35",
+        "kind": "baseline"
+      }
+    ],
+    "edges": [
+      {
+        "id": "mount-canonical-runtime",
+        "from": "localized-home-page",
+        "to": "home-page-runtime",
+        "operation": "mount exactly once with unchanged locale, tenant hint, neutral host, and literal UI V2 props"
+      },
+      {
+        "id": "mount-retained-pricing",
+        "from": "localized-home-page",
+        "to": "pricing-section",
+        "operation": "mount exactly once after HomePageRuntime and before Footer"
+      },
+      {
+        "id": "unmount-legacy-regions",
+        "from": "localized-home-page",
+        "to": "retired-legacy-region-set",
+        "operation": "remove only eight import and render edges while retaining all component files and tests"
+      },
+      {
+        "id": "prove-composition",
+        "from": "localized-home-page",
+        "to": "page-unit-contract",
+        "operation": "collect exact order, one-mount retained surfaces, zero-mount retired surfaces, and page markers"
+      },
+      {
+        "id": "prove-runtime-continuity",
+        "from": "home-page-runtime",
+        "to": "unchanged-browser-contracts",
+        "operation": "prove Hero V2, Free Start, session, analytics, pricing links, keyboard, and responsive behavior without changing E2E files"
+      },
+      {
+        "id": "observe-browser-output",
+        "from": "playwright-mcp",
+        "to": "unchanged-browser-contracts",
+        "operation": "capture exact rendered order, absence, accessibility tree, keyboard flow, and viewport geometry"
+      },
+      {
+        "id": "bind-base",
+        "from": "protected-main-b7284c35",
+        "to": "localized-home-page",
+        "operation": "bind source inventory and future promotion to exact protected main"
+      }
+    ],
+    "closure": {
+      "callers": true,
+      "sharedConsumers": true,
+      "readWriteDelete": true,
+      "mountErrorPaths": true,
+      "capabilityRequirements": true,
+      "testCollectors": true,
+      "baselineOwnership": true
+    },
+    "closureEvidence": {
+      "callers": "page.tsx is the sole localized composition caller for all eight retired regions and the retained Header, runtime, Pricing, and Footer",
+      "sharedConsumers": "HomePageRuntime is the only shared runtime consumer beyond the entry surface and remains byte-unchanged",
+      "readWriteDelete": "the slice changes render/import edges only; no store, event, API, provider, file deletion, or data mutation exists",
+      "mountErrorPaths": "pending session, anonymous/member, missing tenant, malformed neutral host, Free Start validation, and route-level errors remain owned by unchanged existing logic",
+      "capabilityRequirements": "React server composition, Vitest mount spies, existing Playwright contracts, and Playwright MCP accessibility/viewport primitives all exist on the pinned base",
+      "testCollectors": "page.test.tsx plus unchanged home-page-runtime, ui-v2-funnel-continuity, and public-entry-hero collectors cover the changed and retained contracts",
+      "baselineOwnership": "Git, local main, origin/main, and GitHub protected main agree on b7284c35b79d1d5ee1b09a674da4f6bbd9a0c7b2; the existing t118-promotion artifact-path allocation is consumed exclusively by IDA-UI07 without new capacity, while T-118 remains design_gate_next_unpromoted"
+    }
+  },
+  "highestRiskCases": [
+    "PricingSection is accidentally removed with the eight retired regions and breaks the active public funnel",
+    "HomePageRuntime props or placement drift and change Hero V2, Free Start, session, tenant hint, neutral host, or analytics behavior",
+    "a legacy component file or test is deleted instead of only its page render edge being removed",
+    "page markers, Header, Footer, keyboard focus, responsive reflow, or accessible hierarchy regress",
+    "page.test.tsx grows above the normative focused-test ceiling of 300 lines or requires a third helper writer",
+    "implementation expands into E2E, CI/gate, auth, tenant, routing, schema, billing, T-118, or a third writer path",
+    "the legacy t118-promotion path handle is mistaken for T-118 authority even though its admitted bytes and current projection bind only IDA-UI07"
+  ],
+  "rollback": {
+    "mechanism": "revert the exact product merge to restore only the eight removed page imports and render edges",
+    "trigger": "any retained region, pricing link, Hero/Free Start/session/analytics contract, accessibility/browser proof, writer-map, or required exact-head gate regresses"
+  },
+  "firstImplementationAction": "make page.test.tsx RED by requiring the exact retained order and zero mounts for the eight named legacy regions before changing page.tsx"
+}
