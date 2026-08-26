@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 35510,
+      "trackedBytesDelta": 37477,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 4572,
+        "config/data/messages": 6539,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 4572,
+        "scripts/repo-size-budget.json": 6539,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -109,6 +109,46 @@
         "docs/plans/2026-08-25-t118-design-system-design.md": 19386,
         "docs/plans/2026-08-25-t118-design-system-admission.json": 10248
       }
+    },
+    {
+      "id": "t118-crystal-primitives",
+      "mode": "bounded",
+      "writerPaths": [
+        "docs/plans/2026-08-26-t118-crystal-primitives-design-gate.md",
+        "docs/plans/2026-08-26-t118-crystal-primitives-admission.json",
+        "packages/ui/src/components/crystal/tokens.ts",
+        "packages/ui/src/components/crystal/matte-anchor-card.tsx",
+        "packages/ui/src/components/crystal/refractive-glass-panel.tsx",
+        "packages/ui/src/components/crystal/stepper.tsx",
+        "packages/ui/src/components/crystal/timeline.tsx",
+        "packages/ui/src/components/crystal/index.ts",
+        "packages/ui/src/components/crystal/crystal.stories.tsx",
+        "packages/ui/src/index.ts",
+        "apps/web/src/components/dashboard/crystal-primitives.test.tsx",
+        "apps/web/src/components/dashboard/crystal-boundary.test.ts"
+      ],
+      "maxTrackedBytesDelta": 33073,
+      "maxTrackedFilesDelta": 11,
+      "maxCategoryBytesDelta": {
+        "docs/text": 9157,
+        "config/data/messages": 8504,
+        "source/scripts": 11801,
+        "tests/e2e": 3611
+      },
+      "maxPathBytesDelta": {
+        "docs/plans/2026-08-26-t118-crystal-primitives-design-gate.md": 9157,
+        "docs/plans/2026-08-26-t118-crystal-primitives-admission.json": 8504,
+        "packages/ui/src/components/crystal/tokens.ts": 1070,
+        "packages/ui/src/components/crystal/matte-anchor-card.tsx": 1843,
+        "packages/ui/src/components/crystal/refractive-glass-panel.tsx": 1844,
+        "packages/ui/src/components/crystal/stepper.tsx": 2130,
+        "packages/ui/src/components/crystal/timeline.tsx": 2407,
+        "packages/ui/src/components/crystal/index.ts": 501,
+        "packages/ui/src/components/crystal/crystal.stories.tsx": 1731,
+        "packages/ui/src/index.ts": 275,
+        "apps/web/src/components/dashboard/crystal-primitives.test.tsx": 2143,
+        "apps/web/src/components/dashboard/crystal-boundary.test.ts": 1468
+      }
     }
   ],
   "reserve": {
@@ -120,15 +160,15 @@
     },
     "rationale": "Only the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 59441121,
-  "maxTrackedFiles": 5823,
+  "maxTrackedBytes": 59476161,
+  "maxTrackedFiles": 5834,
   "maxCategoryBytes": {
     "other": 18856416,
     "large support/generated-ish": 15390342,
-    "docs/text": 8423185,
-    "source/scripts": 8312531,
-    "tests/e2e": 6388406,
-    "config/data/messages": 2070241
+    "docs/text": 8432342,
+    "source/scripts": 8324332,
+    "tests/e2e": 6392017,
+    "config/data/messages": 2080712
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
