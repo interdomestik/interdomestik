@@ -23,10 +23,10 @@ function assertKeys(value, allowed, label) {
   }
 }
 
-function assertInteger(value, label, { positive = false, nonNegative = false } = {}) {
-  const valid =
-    Number.isSafeInteger(value) && (!positive || value > 0) && (!nonNegative || value >= 0);
-  if (!valid) throw new Error(`${label} must be ${positive ? 'a positive' : 'an'} integer.`);
+function assertInteger(n, label, { positive: p, nonNegative: nn }) {
+  const valid = Number.isSafeInteger(n) && (!(p || nn) || n >= +!!p);
+  const requirement = ['an', 'a non-negative', 'a positive'][+!!nn + +!!p];
+  if (!valid) throw new Error(`${label} must be ${requirement} integer.`);
 }
 
 function sortedStrings(values) {
