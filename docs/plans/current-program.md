@@ -23,14 +23,18 @@ status_command: pnpm plan:status
 12/12 threads, Sonar (zero issues), and main health were green. CD `32860119345` stopped pre-build;
 zero provider effects.
 
-`IDA-UI07-MINIMAL-ENTRY-DOOR-CUTOVER` is the sole promoted Tier-2 successor through Tier-0 PR
-`#1633`. It binds base `b7284c35b79d1d5ee1b09a674da4f6bbd9a0c7b2`, the exact
-[gate](./2026-08-25-t118-design-system-design.md),
-[admission](./2026-08-25-t118-design-system-admission.json), and branch
-`codex/ida-ui07-minimal-entry-door-cutover`. The two artifact names are legacy handles for the
-existing bounded `t118-promotion` allocation, now consumed solely by IDA-UI07; T-118 remains
-`design_gate_next_unpromoted` with no capacity or authority. Runtime stays unauthorized until the
-exact owner marker and repo resolver pass.
+`IDA-UI07-MINIMAL-ENTRY-DOOR-CUTOVER` completed in PR `#1634`: approved head
+`6d7430b53dae921c2835e2729a322aece326812b`, tree
+`fe087d45535aca6797ecd83172d90ba8a730442d`, and squash merge
+`92abb4ba4f7db614840357ebb5ad4dc99b9ee21e` matched the frozen base/tree. The public entry door is
+now Header, HomePageRuntime (canonical Hero V2, Free Start, and preserved session/analytics),
+PricingSection, then Footer. Eight legacy sections are reversibly unmounted; their files and E2E
+contracts remain unchanged. Nine required checks, the broad E2E gate, pilot gate, Sonar, focused
+unit/browser evidence, and exact-main identity were green.
+
+Tier-0 PR `#1633` consumed the bounded legacy `t118-promotion` allocation solely for IDA-UI07; it
+added no capacity or ceiling. T-118 remains `design_gate_next_unpromoted` with no promotion,
+runtime authority, or inherited reserve. The Lean projection is inactive and names no successor.
 
 `IDA-WF01-ONE-APPROVAL-DELIVERY` remains closed, immutable historical evidence. Its stable
 [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),
@@ -49,9 +53,10 @@ schema, RLS, billing, provider deployment, E2E-semantic, AI OS, Docker, or unit-
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate                                    | Dependencies                                 | Promotion constraint                                                                  |
-| -------: | -------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------- |
-|        1 | `IDA-UI07-MINIMAL-ENTRY-DOOR-CUTOVER` Tier 2 | Tier-0 PR `#1633` exact merge and owner mark | Only the exact two-path product branch may activate; T-118 and T-117 remain deferred. |
+| Priority | Candidate      | Dependencies | Promotion constraint                                                          |
+| -------: | -------------- | ------------ | ----------------------------------------------------------------------------- |
+|        1 | `T-118` Tier 2 | None active  | `design_gate_next_unpromoted`; capacity must be reevaluated before promotion. |
+|        2 | `T-117` Tier 2 | T-118        | Deferred; no branch, activation, or shared-shell edit.                        |
 
 ## Unified Portal Direction
 
@@ -90,28 +95,12 @@ rebuild. This section is a future Tier-2 design constraint only and grants no ru
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "promotion_pending",
+  "lifecycle": "inactive",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": {
-    "sliceId": "IDA-UI07-MINIMAL-ENTRY-DOOR-CUTOVER",
-    "tier": 2,
-    "promotionPrNumber": 1633,
-    "promotionBaseSha": "b7284c35b79d1d5ee1b09a674da4f6bbd9a0c7b2",
-    "expectedProductBranch": "codex/ida-ui07-minimal-entry-door-cutover",
-    "gateSha256": "3a823c44670a6b288cd19eafe48fb5dc35029bd0df45f52a185ba64c0e27c95a",
-    "admissionSha256": "b0624971e94d4a4b9fb086bfb5cdd139cbecdc7517e51aa1ffa8ccfebbfef3cd",
-    "productWriterPaths": [
-      "apps/web/src/app/[locale]/page.tsx",
-      "apps/web/src/app/[locale]/page.test.tsx"
-    ],
-    "closeoutWriterPaths": [
-      "docs/plans/current-program.md",
-      "docs/plans/current-tracker.md"
-    ]
-  }
+  "activeSlice": null
 }
 ```
 
@@ -125,4 +114,4 @@ The architecture-finalization program/tracker, terminal OD17 evidence, and CI01 
 historical or separately governed. This projection neither rewrites nor activates them.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:IDA-UI07-MINIMAL-ENTRY-DOOR-CUTOVER`).
+The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:null`).

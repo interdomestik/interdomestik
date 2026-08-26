@@ -16,22 +16,21 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                                    | Status        | Owner      | Work                                    | Exit Criteria                                                   |
-| ------------------------------------- | ------------- | ---------- | --------------------------------------- | --------------------------------------------------------------- |
-| `IDA-UI07-MINIMAL-ENTRY-DOOR-CUTOVER` | `in_progress` | `platform` | Cut over the minimal public entry door. | Exact promotion, two-path product merge, and two-path closeout. |
+| ID                                    | Status      | Owner      | Work                                    | Exit Criteria                                     |
+| ------------------------------------- | ----------- | ---------- | --------------------------------------- | ------------------------------------------------- |
+| `IDA-UI07-MINIMAL-ENTRY-DOOR-CUTOVER` | `completed` | `platform` | Cut over the minimal public entry door. | Merged, exact-tree verified, inactive, contained. |
 
 ## Proof Ledger
 
-| ID                                    | Source Refs                                                                                                    | Execution | Run ID     | Run Root               | Sonar     | Docker           | Sentry           | Learning         | Evidence Refs                                                        |
-| ------------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------- | ---------- | ---------------------- | --------- | ---------------- | ---------------- | ---------------- | -------------------------------------------------------------------- |
-| `IDA-UI07-MINIMAL-ENTRY-DOOR-CUTOVER` | [gate](./2026-08-25-t118-design-system-design.md); [admission](./2026-08-25-t118-design-system-admission.json) | `pending` | `PR #1633` | `GitHub-hosted Ubuntu` | `pending` | `not_applicable` | `not_applicable` | `not_applicable` | Legacy allocation handles rebound solely to IDA-UI07; runtime waits. |
+| ID                                    | Source Refs                                                                                                    | Execution  | Run ID                 | Run Root               | Sonar  | Docker           | Sentry           | Learning         | Evidence Refs                                                              |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ---------- | ---------------------- | ---------------------- | ------ | ---------------- | ---------------- | ---------------- | -------------------------------------------------------------------------- |
+| `IDA-UI07-MINIMAL-ENTRY-DOOR-CUTOVER` | [gate](./2026-08-25-t118-design-system-design.md); [admission](./2026-08-25-t118-design-system-admission.json) | `scripted` | `PR #1634 / 92abb4ba4` | `GitHub-hosted Ubuntu` | `pass` | `not_applicable` | `not_applicable` | `not_applicable` | Exact head/tree, nine required checks, full E2E, pilot, and main verified. |
 
 ## Next Selection
 
-`IDA-UI07-MINIMAL-ENTRY-DOOR-CUTOVER` is the sole promoted successor in Tier-0 PR `#1633`.
-The existing `t118-promotion` artifact-path allocation is consumed only by IDA-UI07, with no new
-capacity or ceiling change. Its product writer map stays `page.tsx` plus `page.test.tsx`; Pricing
-and active E2E contracts remain unchanged. Product implementation waits for repo authorization.
+No slice is promoted or runtime-authorized. IDA-UI07 completed through exact product PR `#1634`;
+its bounded legacy `t118-promotion` allocation is consumed and cannot fund T-118. Pricing and the
+active E2E contracts remained unchanged.
 
 | Future UI branch | Status                        | Constraint                                                                  |
 | ---------------- | ----------------------------- | --------------------------------------------------------------------------- |
@@ -45,33 +44,17 @@ and active E2E contracts remain unchanged. Product implementation waits for repo
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "promotion_pending",
+  "lifecycle": "inactive",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": {
-    "sliceId": "IDA-UI07-MINIMAL-ENTRY-DOOR-CUTOVER",
-    "tier": 2,
-    "promotionPrNumber": 1633,
-    "promotionBaseSha": "b7284c35b79d1d5ee1b09a674da4f6bbd9a0c7b2",
-    "expectedProductBranch": "codex/ida-ui07-minimal-entry-door-cutover",
-    "gateSha256": "3a823c44670a6b288cd19eafe48fb5dc35029bd0df45f52a185ba64c0e27c95a",
-    "admissionSha256": "b0624971e94d4a4b9fb086bfb5cdd139cbecdc7517e51aa1ffa8ccfebbfef3cd",
-    "productWriterPaths": [
-      "apps/web/src/app/[locale]/page.tsx",
-      "apps/web/src/app/[locale]/page.test.tsx"
-    ],
-    "closeoutWriterPaths": [
-      "docs/plans/current-program.md",
-      "docs/plans/current-tracker.md"
-    ]
-  }
+  "activeSlice": null
 }
 ```
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:IDA-UI07-MINIMAL-ENTRY-DOOR-CUTOVER`).
+The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:null`).
 
 ## Historical Authority
 
