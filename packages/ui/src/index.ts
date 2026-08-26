@@ -12,6 +12,7 @@ export {
   CardTitle,
 } from './components/card';
 export { Checkbox } from './components/checkbox';
+export * from './components/crystal';
 export {
   Dialog,
   DialogContent,
