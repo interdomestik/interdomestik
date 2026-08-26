@@ -98,8 +98,8 @@ system and M1–M5 architecture. This Tier-2 direction grants no runtime authori
     "promotionPrNumber": 1637,
     "promotionBaseSha": "6ff846deb9d99ad103d81dba5e4de46343dcf965",
     "expectedProductBranch": "codex/t118-crystal-primitives",
-    "gateSha256": "91c3088b522a8e087f9872efe3b3b68f8d013ea8105830a119c3469be1cea395",
-    "admissionSha256": "7c4e14b2a244ed53bb032c6b936b2dd8d3f3bf7f2ab5f5b05715b71b311970d2",
+    "gateSha256": "12ce2d377dafe635d5d5b7be05de6c739c3563d841bb6f646804f599d7c49e74",
+    "admissionSha256": "ca3a543f553b71fc36023d80af4e242db40638ccf51a64777678b0352386e093",
     "productWriterPaths": [
       "packages/ui/src/components/crystal/tokens.ts",
       "packages/ui/src/components/crystal/matte-anchor-card.tsx",

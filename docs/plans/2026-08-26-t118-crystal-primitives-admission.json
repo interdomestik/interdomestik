@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "sliceId": "T-118-CRYSTAL-PRIMITIVES",
   "baseSha": "6ff846deb9d99ad103d81dba5e4de46343dcf965",
-  "authorityArtifactSha256": "91c3088b522a8e087f9872efe3b3b68f8d013ea8105830a119c3469be1cea395",
+  "authorityArtifactSha256": "12ce2d377dafe635d5d5b7be05de6c739c3563d841bb6f646804f599d7c49e74",
   "productOutcomes": [
     "Provide four pure Crystal primitives for the later Unified Portal without an application mount"
   ],

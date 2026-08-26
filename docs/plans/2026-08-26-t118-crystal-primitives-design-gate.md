@@ -20,9 +20,9 @@ Base: `6ff846deb9d99ad103d81dba5e4de46343dcf965`
 
 ## Outcome and authority boundary
 
-Protected `origin/main` and this detached worktree resolve to the base. Program/tracker show
-inactive Lean authority, T-118 unpromoted, and T-117 deferred. PR `#1636` installed the bounded
-`t118-crystal-primitives` allocation; no generic reserve or further repair is needed.
+`origin/main` and this detached candidate resolve to the base. This projection is
+`promotion_pending`; Lean runtime remains inactive until merge/owner/resolver, and T-117 is
+deferred. PR `#1636` installed the exact allocation; no further repair is needed.
 
 The sole outcome is four typed presentation primitives, local tokens, barrels, one story, and two
 tests. They prepare `Case → Actions → Timeline`; T-117 later composes one responsive,
