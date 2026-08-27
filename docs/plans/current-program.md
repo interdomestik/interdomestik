@@ -55,12 +55,11 @@ capacity proof and added no generic reserve.
 
 Capacity PR `#1644` merged the exact bounded `t116-case-summary` allocation. Compatibility PR
 `#1645` added the typed `domain_read_projection` class for only the exact Tier-2 T-116 writer map
-while preserving default-deny for every other domain path. T-116 is now the selected
-design-gate-ready prerequisite for T-117B: it may be promoted only through
+while preserving default-deny for every other domain path. PR `#1646` now projects T-116 as the
+selected prerequisite for T-117B through
 [IDA-DG56](./2026-08-27-t116-case-summary-design-gate.md) and its
-[admission](./2026-08-27-t116-case-summary-admission.json). This pre-PR projection grants no
-runtime authority; the promotion PR number must be derived live from the approved deterministic
-branch before the Lean marker can move to `promotion_pending`.
+[admission](./2026-08-27-t116-case-summary-admission.json). GitHub assigned `#1646` to the approved
+promotion branch on the exact base; runtime waits for merge.
 
 Closed `IDA-WF01-ONE-APPROVAL-DELIVERY` remains immutable evidence through its
 [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),
@@ -77,10 +76,10 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate       | Dependencies                  | Promotion constraint                              |
-| -------: | --------------- | ----------------------------- | ------------------------------------------------- |
-|        1 | `T-116` Tier 2  | T-103, T-115, T-118 completed | Exact seven-path gate; no route or schema change. |
-|        2 | `T-117B` Tier 3 | T-116 closed                  | Runtime topology requires a separate Tier-3 gate. |
+| Priority | Candidate       | Dependencies      | Promotion constraint                              |
+| -------: | --------------- | ----------------- | ------------------------------------------------- |
+|        1 | `T-116` Tier 2  | Tier-0 PR `#1646` | Exact seven-path gate; no route or schema change. |
+|        2 | `T-117B` Tier 3 | T-116 closed      | Runtime topology requires a separate Tier-3 gate. |
 
 ## Unified Portal Direction
 
@@ -114,12 +113,33 @@ system and M1–M5 architecture. T-116 remains unmounted; this direction grants 
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "inactive",
+  "lifecycle": "promotion_pending",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": null
+  "activeSlice": {
+    "sliceId": "T-116-CASE-SUMMARY",
+    "tier": 2,
+    "promotionPrNumber": 1646,
+    "promotionBaseSha": "43ef9c2685a9bfa2fafb2cb6a47f373cff156b27",
+    "expectedProductBranch": "codex/t116-case-summary",
+    "gateSha256": "c79c76ed61981fffe4ef45e277403c707eba93ec15a2e39f30bc65a11cbc1b81",
+    "admissionSha256": "213fd4ec28746df566fb14e064421c2ea2a13325ced75fb44b94843f6ab7bf03",
+    "productWriterPaths": [
+      "packages/domain-member/src/case-summary/types.ts",
+      "packages/domain-member/src/case-summary/get-member-case-summaries.ts",
+      "packages/domain-member/src/case-summary/get-member-case-summaries.test.ts",
+      "packages/domain-member/src/index.ts",
+      "apps/web/src/components/dashboard/case-summary/accident-case-summary.tsx",
+      "apps/web/src/components/dashboard/case-summary/case-kind-registry.ts",
+      "apps/web/src/components/dashboard/case-summary/case-kind-registry.test.tsx"
+    ],
+    "closeoutWriterPaths": [
+      "docs/plans/current-program.md",
+      "docs/plans/current-tracker.md"
+    ]
+  }
 }
 ```
 
@@ -133,4 +153,4 @@ The architecture-finalization program/tracker, terminal OD17 evidence, and CI01 
 historical or separately governed. This projection neither rewrites nor activates them.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:null`).
+The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:T-116-CASE-SUMMARY`).
