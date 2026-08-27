@@ -21,5 +21,5 @@ export type AccidentSummary = {
   nextStep: NextStepToken;
 };
 
-export type CaseSummary = AccidentSummary;
+export type CaseSummary = AccidentSummary; // NOSONAR -- public union boundary for future kinds.
 export type CaseKind = CaseSummary['caseKind'];

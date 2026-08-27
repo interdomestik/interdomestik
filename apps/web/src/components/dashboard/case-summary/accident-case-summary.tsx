@@ -1,6 +1,6 @@
 import type { AccidentSummary } from '@interdomestik/domain-member';
 
-export type AccidentCaseSummaryProps = {
+export type AccidentCaseSummaryProps = Readonly<{
   summary: AccidentSummary;
   labels: {
     reference: string;
@@ -11,7 +11,7 @@ export type AccidentCaseSummaryProps = {
     nextStep: string;
     nextStepValue: string;
   };
-};
+}>;
 
 export function AccidentCaseSummary({ labels, summary }: AccidentCaseSummaryProps) {
   const headingId = `case-summary-${summary.id}`;
