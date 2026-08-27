@@ -3,3 +3,4 @@ export { RefractiveGlassPanel, type RefractiveGlassPanelProps } from './refracti
 export { Stepper, type StepperItem, type StepperProps } from './stepper';
 export { Timeline, type TimelineItem, type TimelineProps } from './timeline';
 export { crystalFocus, crystalMotion, crystalStateTone, type CrystalState } from './tokens';
+export { UnifiedPortalShell, type UnifiedPortalShellProps } from './unified-portal-shell';
