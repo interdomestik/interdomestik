@@ -19,7 +19,7 @@ const actions = vi.hoisted(() => ({ create: vi.fn(), delete: vi.fn(), list: vi.f
 // prettier-ignore
 vi.mock('@/actions/free-start-drafts', () => ({ createFreeStartDraft: actions.create, deleteFreeStartDraft: actions.delete, listFreeStartDrafts: actions.list, resumeFreeStartDraft: actions.resume, updateFreeStartDraft: actions.update }));
 
-const NOW = Date.parse('2026-07-28T12:00:00.000Z');
+const NOW = Date.now();
 // prettier-ignore
 const snapshot: AnonymousDraftSnapshot = { category: 'property', draft: { counterparty: 'Northwind Insurance', desiredOutcome: 'repair', incidentDate: '2026-07-15', issueType: 'water_damage', summary: 'Water damaged two rooms.' }, resumeStep: 'preview' };
 type HookProps = Parameters<typeof useAnonymousDraftRecovery>[0];
