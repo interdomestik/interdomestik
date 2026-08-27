@@ -14,16 +14,21 @@ const [B0, HP, MP, H, M, P_TREE, H_TREE] = ['0', '1', '2', '3', '4', '5', '6'].m
 );
 const owner = { login: 'arbenl', id: 62884977 };
 const slice = {
-  sliceId: 'IDA-UI-HOME-MINIMAL-SHELL',
+  sliceId: 'T-116-CASE-SUMMARY',
   tier: 2,
   promotionPrNumber: 1700,
   promotionBaseSha: B0,
-  expectedProductBranch: 'codex/ida-ui-home-minimal-shell',
+  expectedProductBranch: 'codex/t116-case-summary',
   gateSha256: 'a'.repeat(64),
   admissionSha256: 'b'.repeat(64),
   productWriterPaths: [
-    'apps/web/src/app/[locale]/page.tsx',
-    'apps/web/src/app/[locale]/page.test.tsx',
+    'packages/domain-member/src/case-summary/types.ts',
+    'packages/domain-member/src/case-summary/get-member-case-summaries.ts',
+    'packages/domain-member/src/case-summary/get-member-case-summaries.test.ts',
+    'packages/domain-member/src/index.ts',
+    'apps/web/src/components/dashboard/case-summary/accident-case-summary.tsx',
+    'apps/web/src/components/dashboard/case-summary/case-kind-registry.ts',
+    'apps/web/src/components/dashboard/case-summary/case-kind-registry.test.tsx',
   ],
   closeoutWriterPaths: ['docs/plans/current-program.md', 'docs/plans/current-tracker.md'],
 };

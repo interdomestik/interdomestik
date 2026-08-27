@@ -1,7 +1,32 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { classifyWriterPath, compareCanonicalText } from './lean-current-authority.mjs';
+import {
+  approvalMarker,
+  classifyWriterPath,
+  compareCanonicalText,
+} from './lean-current-authority.mjs';
+
+const T116_WRITERS = [
+  'packages/domain-member/src/case-summary/types.ts',
+  'packages/domain-member/src/case-summary/get-member-case-summaries.ts',
+  'packages/domain-member/src/case-summary/get-member-case-summaries.test.ts',
+  'packages/domain-member/src/index.ts',
+  'apps/web/src/components/dashboard/case-summary/accident-case-summary.tsx',
+  'apps/web/src/components/dashboard/case-summary/case-kind-registry.ts',
+  'apps/web/src/components/dashboard/case-summary/case-kind-registry.test.tsx',
+];
+const t116 = {
+  sliceId: 'T-116-CASE-SUMMARY',
+  tier: 2,
+  promotionPrNumber: 1700,
+  promotionBaseSha: '0'.repeat(40),
+  expectedProductBranch: 'codex/t116-case-summary',
+  gateSha256: 'a'.repeat(64),
+  admissionSha256: 'b'.repeat(64),
+  productWriterPaths: T116_WRITERS,
+  closeoutWriterPaths: ['docs/plans/current-program.md', 'docs/plans/current-tracker.md'],
+};
 
 test('deny-first classification rejects protected and unknown paths', () => {
   const denied = [
@@ -61,4 +86,40 @@ test('canonical path ordering uses an explicit locale-bound comparator', () => {
     'middle/path.ts',
     'zeta/path.ts',
   ]);
+});
+
+test('domain_read_projection is exact, Tier-2, T-116-only and keeps tenant proof in-map', () => {
+  for (const path of T116_WRITERS.slice(0, 4)) {
+    assert.deepEqual(classifyWriterPath(path, t116), {
+      allowed: true,
+      classification: 'domain_read_projection',
+    });
+    assert.equal(classifyWriterPath(path).allowed, false, `default deny: ${path}`);
+  }
+  assert.doesNotThrow(() => approvalMarker(t116, '1'.repeat(40), '2'.repeat(40)));
+
+  const invalid = [
+    { ...t116, tier: 1 },
+    { ...t116, sliceId: 'T-116-CASE-SUMMARY-COPY' },
+    { ...t116, productWriterPaths: T116_WRITERS.slice(0, -1) },
+    {
+      ...t116,
+      productWriterPaths: [
+        ...T116_WRITERS,
+        'packages/domain-member/src/case-summary/get-cross-tenant-case.ts',
+      ],
+    },
+    {
+      ...t116,
+      productWriterPaths: T116_WRITERS.map(path =>
+        path.endsWith('.test.ts') ? 'packages/domain-member/src/case-summary/update-case.ts' : path
+      ),
+    },
+  ];
+  for (const slice of invalid) {
+    assert.throws(
+      () => approvalMarker(slice, '1'.repeat(40), '2'.repeat(40)),
+      /schema or policy mismatch/u
+    );
+  }
 });
