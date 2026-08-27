@@ -53,6 +53,15 @@ routes. Nine required checks, full PR E2E, pilot, Sonar, focused tests, Storyboo
 review, and responsive/accessibility browser proof were green. PR `#1640` remains the bounded
 capacity proof and added no generic reserve.
 
+Capacity PR `#1644` merged the exact bounded `t116-case-summary` allocation. Compatibility PR
+`#1645` added the typed `domain_read_projection` class for only the exact Tier-2 T-116 writer map
+while preserving default-deny for every other domain path. T-116 is now the selected
+design-gate-ready prerequisite for T-117B: it may be promoted only through
+[IDA-DG56](./2026-08-27-t116-case-summary-design-gate.md) and its
+[admission](./2026-08-27-t116-case-summary-admission.json). This pre-PR projection grants no
+runtime authority; the promotion PR number must be derived live from the approved deterministic
+branch before the Lean marker can move to `promotion_pending`.
+
 Closed `IDA-WF01-ONE-APPROVAL-DELIVERY` remains immutable evidence through its
 [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),
 [authority anchor](./current-authority-v1.json), artifacts, and receipts; it grants no Lean runtime.
@@ -68,18 +77,19 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate       | Dependencies  | Promotion constraint                          |
-| -------: | --------------- | ------------- | --------------------------------------------- |
-|        1 | `T-117B` Tier 2 | T-117A closed | Deferred runtime architecture; separate gate. |
+| Priority | Candidate       | Dependencies                  | Promotion constraint                              |
+| -------: | --------------- | ----------------------------- | ------------------------------------------------- |
+|        1 | `T-116` Tier 2  | T-103, T-115, T-118 completed | Exact seven-path gate; no route or schema change. |
+|        2 | `T-117B` Tier 3 | T-116 closed                  | Runtime topology requires a separate Tier-3 gate. |
 
 ## Unified Portal Direction
 
 Preserve one responsive, capability-driven shell across roles, never five copied dashboards.
-`Case → Actions → Timeline` is the core; order is `T-118 primitives → T-117 shell → role/task
-views`. Member starts with Help Now/Cases/Documents; agent with clients/follow-ups; staff with
+`Case → Actions → Timeline` is the core; order is `T-118 primitives → T-117A shell → T-116 case
+projection → T-117B runtime → role/task views`. Member starts with Help Now/Cases/Documents; agent with clients/follow-ups; staff with
 queue/SLA/triage; manager with team/performance; admin with organization/audit. Tenant/legal
 context appears only when relevant. Benchmarks are rationale, not trade dress; reuse the existing
-system and M1–M5 architecture. This Tier-2 direction grants no runtime authority.
+system and M1–M5 architecture. T-116 remains unmounted; this direction grants no runtime authority.
 
 ## Selection Constraints
 

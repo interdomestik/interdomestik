@@ -16,24 +16,24 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                            | Status      | Owner      | Work                         | Exit Criteria                                         |
-| ----------------------------- | ----------- | ---------- | ---------------------------- | ----------------------------------------------------- |
-| `T-117A-UNIFIED-PORTAL-SHELL` | `completed` | `platform` | Presentational portal shell. | Exact contract merged, verified, inactive, unmounted. |
+| ID                   | Status    | Owner      | Work                                   | Exit Criteria                     |
+| -------------------- | --------- | ---------- | -------------------------------------- | --------------------------------- |
+| `T-116-CASE-SUMMARY` | `pending` | `platform` | Safe projection and accident registry. | Promote, implement, merge, close. |
 
 ## Proof Ledger
 
-| ID                            | Source Refs                                                                                                                         | Execution  | Run ID                | Run Root               | Sonar  | Docker           | Sentry           | Learning         | Evidence Refs                                                                          |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ---------- | --------------------- | ---------------------- | ------ | ---------------- | ---------------- | ---------------- | -------------------------------------------------------------------------------------- |
-| `T-117A-UNIFIED-PORTAL-SHELL` | [gate](./2026-08-27-t117a-unified-portal-shell-design-gate.md); [admission](./2026-08-27-t117a-unified-portal-shell-admission.json) | `scripted` | `PR #1642 / a99d3090` | `GitHub-hosted Ubuntu` | `pass` | `not_applicable` | `not_applicable` | `not_applicable` | Exact head/tree, nine required checks, full E2E, Storybook, browser, and review green. |
+| ID                   | Source Refs                                                                                                       | Execution | Run ID       | Run Root | Sonar     | Docker           | Sentry           | Learning         | Evidence Refs                                      |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------- | --------- | ------------ | -------- | --------- | ---------------- | ---------------- | ---------------- | -------------------------------------------------- |
+| `T-116-CASE-SUMMARY` | [gate](./2026-08-27-t116-case-summary-design-gate.md); [admission](./2026-08-27-t116-case-summary-admission.json) | `pending` | `unassigned` | `none`   | `pending` | `not_applicable` | `not_applicable` | `not_applicable` | Pre-PR candidate only; no execution proof claimed. |
 
 ## Next Selection
 
-T-117A completed through exact promotion PR `#1641` and product PR `#1642`. No slice is promoted
-or runtime-authorized; T-117B is the next design-gate candidate and requires separate promotion.
+T-116 is the selected unpromoted prerequisite. No slice is promoted or runtime-authorized; a live
+promotion PR number must be derived after approval from the deterministic branch.
 
-| Future UI branch | Status                        | Constraint                                     |
-| ---------------- | ----------------------------- | ---------------------------------------------- |
-| `T-117B`         | `design_gate_next_unpromoted` | Runtime architecture requires a separate gate. |
+| Future UI branch | Status     | Constraint                                                   |
+| ---------------- | ---------- | ------------------------------------------------------------ |
+| `T-117B`         | `deferred` | Waits for T-116 closeout and a separate Tier-3 runtime gate. |
 
 ## Lean Authority
 
