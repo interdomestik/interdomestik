@@ -16,19 +16,19 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                            | Status    | Owner      | Work                         | Exit Criteria          |
-| ----------------------------- | --------- | ---------- | ---------------------------- | ---------------------- |
-| `T-117A-UNIFIED-PORTAL-SHELL` | `pending` | `platform` | Presentational portal shell. | Promote, merge, close. |
+| ID                            | Status        | Owner      | Work                         | Exit Criteria          |
+| ----------------------------- | ------------- | ---------- | ---------------------------- | ---------------------- |
+| `T-117A-UNIFIED-PORTAL-SHELL` | `in_progress` | `platform` | Presentational portal shell. | Promote, merge, close. |
 
 ## Proof Ledger
 
-| ID                            | Source Refs                                                                                                                         | Execution | Run ID             | Run Root               | Sonar     | Docker           | Sentry           | Learning         | Evidence Refs                            |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | --------- | ------------------ | ---------------------- | --------- | ---------------- | ---------------- | ---------------- | ---------------------------------------- |
-| `T-117A-UNIFIED-PORTAL-SHELL` | [gate](./2026-08-27-t117a-unified-portal-shell-design-gate.md); [admission](./2026-08-27-t117a-unified-portal-shell-admission.json) | `pending` | `promotion branch` | `GitHub-hosted Ubuntu` | `pending` | `not_applicable` | `not_applicable` | `not_applicable` | Promotion and five-path product pending. |
+| ID                            | Source Refs                                                                                                                         | Execution | Run ID     | Run Root               | Sonar     | Docker           | Sentry           | Learning         | Evidence Refs                            |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | --------- | ---------- | ---------------------- | --------- | ---------------- | ---------------- | ---------------- | ---------------------------------------- |
+| `T-117A-UNIFIED-PORTAL-SHELL` | [gate](./2026-08-27-t117a-unified-portal-shell-design-gate.md); [admission](./2026-08-27-t117a-unified-portal-shell-admission.json) | `pending` | `PR #1641` | `GitHub-hosted Ubuntu` | `pending` | `not_applicable` | `not_applicable` | `not_applicable` | Promotion and five-path product pending. |
 
 ## Next Selection
 
-The named promotion branch projects T-117A only after GitHub assigns and validates its real PR.
+PR `#1641` projects T-117A only after exact branch/base/head validation and promotion merge.
 
 | Future UI branch | Status     | Constraint                                  |
 | ---------------- | ---------- | ------------------------------------------- |
@@ -41,17 +41,36 @@ The named promotion branch projects T-117A only after GitHub assigns and validat
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "inactive",
+  "lifecycle": "promotion_pending",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": null
+  "activeSlice": {
+    "sliceId": "T-117A-UNIFIED-PORTAL-SHELL",
+    "tier": 2,
+    "promotionPrNumber": 1641,
+    "promotionBaseSha": "438ea3f51f68789743bf6d3882c5a423e9593629",
+    "expectedProductBranch": "codex/t117a-unified-portal-shell",
+    "gateSha256": "f5cb1188e81462a7b4fcb0e5fc4e5c2b3da971f974381fd1ebce9810fee039c0",
+    "admissionSha256": "1cec50454b9c54e76b4f74d2dd20b570cc696f4d4222eb61a14eca227b69f306",
+    "productWriterPaths": [
+      "packages/ui/src/components/crystal/unified-portal-shell.tsx",
+      "packages/ui/src/components/crystal/index.ts",
+      "packages/ui/src/components/crystal/crystal.stories.tsx",
+      "packages/ui/src/index.ts",
+      "apps/web/src/components/dashboard/unified-portal-shell.test.tsx"
+    ],
+    "closeoutWriterPaths": [
+      "docs/plans/current-program.md",
+      "docs/plans/current-tracker.md"
+    ]
+  }
 }
 ```
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:null`).
+The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:T-117A-UNIFIED-PORTAL-SHELL`).
 
 ## Historical Authority
 
