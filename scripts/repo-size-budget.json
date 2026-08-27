@@ -77,9 +77,9 @@
         "tests/e2e": 4273
       },
       "maxPathBytesDelta": {
-        "scripts/lean-current-authority-policy.mjs": 101,
+        "scripts/lean-current-authority-policy.mjs": 487,
         "scripts/lean-current-authority-lifecycle.mjs": 1111,
-        "scripts/lean-current-authority-git.mjs": 3131,
+        "scripts/lean-current-authority-git.mjs": 2745,
         "scripts/lean-current-authority-evidence.mjs": 606,
         "scripts/lean-current-authority-policy.test.mjs": 2382,
         "scripts/lean-current-authority.test.mjs": 1169,

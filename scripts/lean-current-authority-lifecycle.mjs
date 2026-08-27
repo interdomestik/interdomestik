@@ -32,11 +32,12 @@ export function classifyCloseoutPull(pull) {
   return pull.state === 'closed' && !pull.merged ? 'abandoned' : 'continuing';
 }
 
-function writerSubset(actual, allowed) {
+function writerSubset(actual, slice) {
+  const allowed = slice.productWriterPaths;
   return (
     Array.isArray(actual) &&
     new Set(actual).size === actual.length &&
-    actual.every(path => allowed.includes(path) && classifyWriterPath(path).allowed)
+    actual.every(path => allowed.includes(path) && classifyWriterPath(path, slice).allowed)
   );
 }
 
@@ -103,7 +104,7 @@ function resolveMergedProduct(slice, facts, promotionMain) {
     product.mergeSha === facts.protectedMainSha &&
     same(product.mergeParents, [promotionMain]) &&
     product.mergeTree === product.headTree &&
-    writerSubset(product.changedPaths, slice.productWriterPaths);
+    writerSubset(product.changedPaths, slice);
   if (!exact)
     return failAuthority('foreign_main_advance', {
       closeoutAuthorized: true,
@@ -117,7 +118,7 @@ function resolveMergedProduct(slice, facts, promotionMain) {
 
 function resolveOpenProduct(slice, facts, promotionMain) {
   const product = facts.product;
-  if (!writerSubset(product.changedPaths, slice.productWriterPaths)) {
+  if (!writerSubset(product.changedPaths, slice)) {
     return failAuthority('product_writer_map_mismatch', {
       closeoutAuthorized: true,
       failureCloseoutRequired: true,
@@ -132,7 +133,7 @@ function resolveOpenProduct(slice, facts, promotionMain) {
     local.headSha === product.headSha &&
     local.forkPointSha === promotionMain &&
     ['', slice.expectedProductBranch].includes(local.branch) &&
-    writerSubset(local.changedPaths, slice.productWriterPaths);
+    writerSubset(local.changedPaths, slice);
   return exact
     ? authorityState('active_implementation', 'exact_product_pr', {
         runtimeAuthorized: true,
@@ -153,7 +154,7 @@ function resolveLocalContinuation(slice, facts, promotionMain) {
   if (local.branch !== slice.expectedProductBranch)
     return failAuthority('wrong_continuation_branch');
   if (local.forkPointSha !== promotionMain) return failAuthority('wrong_product_fork');
-  if (!writerSubset(local.changedPaths, slice.productWriterPaths)) {
+  if (!writerSubset(local.changedPaths, slice)) {
     return failAuthority('product_writer_map_mismatch');
   }
   return authorityState('active_implementation', 'exact_product_branch', {

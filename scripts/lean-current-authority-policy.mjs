@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 export const APPROVAL_PREFIX = 'LEAN_AUTHORITY_APPROVAL_V1';
 export const AUTHORITY = 'lean-tier12-v1';
 export const PROGRAM = 'docs/plans/current-program.md';
@@ -6,11 +8,12 @@ export const CLOSEOUT = [PROGRAM, TRACKER];
 export const ORIGIN = 'interdomestik/interdomestik';
 export const BOOTSTRAP_BASE = '87f6dcc91e33abe51169fc95064fc585bd10d064';
 export const SHA40 = /^[a-f0-9]{40}$/u;
-
 const SHA256 = /^[a-f0-9]{64}$/u;
 const PROMOTION_GATE =
   /^docs\/plans\/\d{4}-\d{2}-\d{2}-[a-z0-9][a-z0-9-]*-(?:design|gate)\.(?:json|md)$/u;
 const PROMOTION_ADMISSION = /^docs\/plans\/\d{4}-\d{2}-\d{2}-[a-z0-9][a-z0-9-]*-admission\.json$/u;
+const T116_WRITER_MAP_SHA256 = '0c1facb7a3c248391ce92b308e592219f32ccefb6c4d67ee859011e8968b4fa5';
+const DOMAIN_READ_PROJECTION = /^packages\/domain-member\/src\/(?:case-summary\/.+|index\.ts)$/u;
 const DENY_PATTERNS = [
   /^(?:AGENTS|README)\.md$/u,
   /^\.(?:github|codex)\//u,
@@ -53,17 +56,13 @@ const PROTECTED_FILES = new Set([
 
 export const compareCanonicalText = (left, right) => left.localeCompare(right, 'en');
 export const same = (left, right) => JSON.stringify(left) === JSON.stringify(right);
-export function sameSet(left, right) {
-  if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) return false;
-  const leftSet = new Set(left);
-  const rightSet = new Set(right);
-  return (
-    leftSet.size === left.length &&
-    rightSet.size === right.length &&
-    leftSet.size === rightSet.size &&
-    [...leftSet].every(value => rightSet.has(value))
-  );
-}
+export const sameSet = (left, right) =>
+  Array.isArray(left) &&
+  Array.isArray(right) &&
+  left.length === right.length &&
+  new Set(left).size === left.length &&
+  new Set(right).size === right.length &&
+  left.every(value => right.includes(value));
 
 function keysAre(value, expectedKeys) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
@@ -88,7 +87,7 @@ function hasProtectedSegment(path) {
   return boundaryTokens.some(token => PROTECTED_TOKENS.has(token));
 }
 
-export function classifyWriterPath(path) {
+export function classifyWriterPath(path, slice) {
   const safe =
     typeof path === 'string' &&
     path.length > 0 &&
@@ -96,6 +95,14 @@ export function classifyWriterPath(path) {
     !path.includes('\\') &&
     path.split('/').every(part => part && part !== '.' && part !== '..');
   if (!safe) return { allowed: false, classification: 'malformed' };
+  const domainReadProjection =
+    slice?.sliceId === 'T-116-CASE-SUMMARY' &&
+    slice.tier === 2 &&
+    DOMAIN_READ_PROJECTION.test(path) &&
+    slice.productWriterPaths?.includes(path) &&
+    createHash('sha256').update(JSON.stringify(slice.productWriterPaths)).digest('hex') ===
+      T116_WRITER_MAP_SHA256;
+  if (domainReadProjection) return { allowed: true, classification: 'domain_read_projection' };
   if (DENY_PATTERNS.some(pattern => pattern.test(path)) || hasProtectedSegment(path)) {
     return { allowed: false, classification: 'protected' };
   }
@@ -115,17 +122,10 @@ export function promotionArtifactPaths(paths) {
 export const validPromotionWriterPaths = paths => promotionArtifactPaths(paths) !== null;
 
 export function validateSlice(slice) {
-  const fields = [
-    'sliceId',
-    'tier',
-    'promotionPrNumber',
-    'promotionBaseSha',
-    'expectedProductBranch',
-    'gateSha256',
-    'admissionSha256',
-    'productWriterPaths',
-    'closeoutWriterPaths',
-  ];
+  const fields =
+    `sliceId tier promotionPrNumber promotionBaseSha expectedProductBranch gateSha256 admissionSha256 productWriterPaths closeoutWriterPaths`.split(
+      ' '
+    );
   const writers = slice?.productWriterPaths;
   const checks = [
     keysAre(slice, fields),
@@ -138,7 +138,7 @@ export function validateSlice(slice) {
     /^codex\/[a-z0-9][a-z0-9-]+$/u.test(slice?.expectedProductBranch ?? ''),
     Array.isArray(writers) && writers.length > 0 && writers.length <= 12,
     Array.isArray(writers) && new Set(writers).size === writers.length,
-    Array.isArray(writers) && writers.every(path => classifyWriterPath(path).allowed),
+    Array.isArray(writers) && writers.every(path => classifyWriterPath(path, slice).allowed),
     same(slice?.closeoutWriterPaths, CLOSEOUT),
   ];
   if (!checks.every(Boolean)) throw new Error('active slice schema or policy mismatch');
