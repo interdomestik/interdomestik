@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-08-26
+last_reviewed: 2026-08-27
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -16,23 +16,24 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                         | Status        | Owner      | Work                    | Exit Criteria                        |
-| -------------------------- | ------------- | ---------- | ----------------------- | ------------------------------------ |
-| `T-118-CRYSTAL-PRIMITIVES` | `in_progress` | `platform` | Add Crystal primitives. | Promote, merge ten paths, close out. |
+| ID                         | Status      | Owner      | Work                    | Exit Criteria                                          |
+| -------------------------- | ----------- | ---------- | ----------------------- | ------------------------------------------------------ |
+| `T-118-CRYSTAL-PRIMITIVES` | `completed` | `platform` | Add Crystal primitives. | Exact ten paths merged, verified, inactive, contained. |
 
 ## Proof Ledger
 
-| ID                         | Source Refs                                                                                                                   | Execution | Run ID            | Run Root               | Sonar     | Docker           | Sentry           | Learning         | Evidence Refs                                     |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | --------- | ----------------- | ---------------------- | --------- | ---------------- | ---------------- | ---------------- | ------------------------------------------------- |
-| `T-118-CRYSTAL-PRIMITIVES` | [gate](./2026-08-26-t118-crystal-primitives-design-gate.md); [admission](./2026-08-26-t118-crystal-primitives-admission.json) | `pending` | `candidate #1637` | `GitHub-hosted Ubuntu` | `pending` | `not_applicable` | `not_applicable` | `not_applicable` | Four-path promotion and ten-path product pending. |
+| ID                         | Source Refs                                                                                                                   | Execution  | Run ID                | Run Root               | Sonar  | Docker           | Sentry           | Learning         | Evidence Refs                                                                 |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------- | --------------------- | ---------------------- | ------ | ---------------- | ---------------- | ---------------- | ----------------------------------------------------------------------------- |
+| `T-118-CRYSTAL-PRIMITIVES` | [gate](./2026-08-26-t118-crystal-primitives-design-gate.md); [admission](./2026-08-26-t118-crystal-primitives-admission.json) | `scripted` | `PR #1638 / 79defe7a` | `GitHub-hosted Ubuntu` | `pass` | `not_applicable` | `not_applicable` | `not_applicable` | Exact head/tree, nine required checks, full E2E, pilot, and browser verified. |
 
 ## Next Selection
 
-Candidate `#1637` projects T-118 only after promotion validation.
+T-118 completed through exact promotion PR `#1637` and product PR `#1638`. No slice is promoted or
+runtime-authorized; T-117 is the next design-gate candidate and requires separate promotion.
 
-| Future UI branch | Status     | Constraint                           |
-| ---------------- | ---------- | ------------------------------------ |
-| `T-117`          | `deferred` | Blocked behind T-118; no shell edit. |
+| Future UI branch | Status                        | Constraint                                  |
+| ---------------- | ----------------------------- | ------------------------------------------- |
+| `T-117`          | `design_gate_next_unpromoted` | No branch or shared-shell edit before gate. |
 
 ## Lean Authority
 
@@ -41,41 +42,17 @@ Candidate `#1637` projects T-118 only after promotion validation.
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "promotion_pending",
+  "lifecycle": "inactive",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": {
-    "sliceId": "T-118-CRYSTAL-PRIMITIVES",
-    "tier": 2,
-    "promotionPrNumber": 1637,
-    "promotionBaseSha": "6ff846deb9d99ad103d81dba5e4de46343dcf965",
-    "expectedProductBranch": "codex/t118-crystal-primitives",
-    "gateSha256": "12ce2d377dafe635d5d5b7be05de6c739c3563d841bb6f646804f599d7c49e74",
-    "admissionSha256": "ca3a543f553b71fc36023d80af4e242db40638ccf51a64777678b0352386e093",
-    "productWriterPaths": [
-      "packages/ui/src/components/crystal/tokens.ts",
-      "packages/ui/src/components/crystal/matte-anchor-card.tsx",
-      "packages/ui/src/components/crystal/refractive-glass-panel.tsx",
-      "packages/ui/src/components/crystal/stepper.tsx",
-      "packages/ui/src/components/crystal/timeline.tsx",
-      "packages/ui/src/components/crystal/index.ts",
-      "packages/ui/src/components/crystal/crystal.stories.tsx",
-      "packages/ui/src/index.ts",
-      "apps/web/src/components/dashboard/crystal-primitives.test.tsx",
-      "apps/web/src/components/dashboard/crystal-boundary.test.ts"
-    ],
-    "closeoutWriterPaths": [
-      "docs/plans/current-program.md",
-      "docs/plans/current-tracker.md"
-    ]
-  }
+  "activeSlice": null
 }
 ```
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:T-118-CRYSTAL-PRIMITIVES`).
+The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:null`).
 
 ## Historical Authority
 
