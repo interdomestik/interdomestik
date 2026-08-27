@@ -53,13 +53,17 @@ routes. Nine required checks, full PR E2E, pilot, Sonar, focused tests, Storyboo
 review, and responsive/accessibility browser proof were green. PR `#1640` remains the bounded
 capacity proof and added no generic reserve.
 
-Capacity PR `#1644` merged the exact bounded `t116-case-summary` allocation. Compatibility PR
-`#1645` added the typed `domain_read_projection` class for only the exact Tier-2 T-116 writer map
-while preserving default-deny for every other domain path. PR `#1646` now projects T-116 as the
-selected prerequisite for T-117B through
-[IDA-DG56](./2026-08-27-t116-case-summary-design-gate.md) and its
-[admission](./2026-08-27-t116-case-summary-admission.json). GitHub assigned `#1646` to the approved
-promotion branch on the exact base; runtime waits for merge.
+`T-116-CASE-SUMMARY` completed through Tier-0 promotion PR `#1646` and product PR `#1647`,
+binding the exact [IDA-DG56 gate](./2026-08-27-t116-case-summary-design-gate.md),
+[admission](./2026-08-27-t116-case-summary-admission.json), and `t116-case-summary` allocation.
+The approved product head `860c240e48024f2757d633589148d945e02595b4`, tree
+`ff1077ee9be1f4ce399919fcdb42882469e3038d`, and squash merge
+`cde8af2c95915b0d6aa7555bb26b94249edbdfaf` matched the exact seven-path contract. The
+tenant-scoped read projection, presentation-safe discriminated union, bounded document count and
+next-step token, exhaustive accident registry, and pure renderer remain unmounted from routes.
+Required checks, full PR E2E, pilot, zero-issue Sonar, focused/full tests, adversarial review, and
+same-head feedback intake were green. Capacity PR `#1644` and compatibility PR `#1645` remain the
+bounded prerequisite proofs; neither added a generic reserve or generic Tier-3 runtime.
 
 Closed `IDA-WF01-ONE-APPROVAL-DELIVERY` remains immutable evidence through its
 [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),
@@ -76,10 +80,9 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate       | Dependencies      | Promotion constraint                              |
-| -------: | --------------- | ----------------- | ------------------------------------------------- |
-|        1 | `T-116` Tier 2  | Tier-0 PR `#1646` | Exact seven-path gate; no route or schema change. |
-|        2 | `T-117B` Tier 3 | T-116 closed      | Runtime topology requires a separate Tier-3 gate. |
+| Priority | Candidate       | Dependencies | Promotion constraint                              |
+| -------: | --------------- | ------------ | ------------------------------------------------- |
+|        1 | `T-117B` Tier 3 | T-116 closed | Runtime topology requires a separate Tier-3 gate. |
 
 ## Unified Portal Direction
 
@@ -113,33 +116,12 @@ system and M1–M5 architecture. T-116 remains unmounted; this direction grants 
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "promotion_pending",
+  "lifecycle": "inactive",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": {
-    "sliceId": "T-116-CASE-SUMMARY",
-    "tier": 2,
-    "promotionPrNumber": 1646,
-    "promotionBaseSha": "43ef9c2685a9bfa2fafb2cb6a47f373cff156b27",
-    "expectedProductBranch": "codex/t116-case-summary",
-    "gateSha256": "c740e2cb732729625cb7608e715a9c924265fa801b6079bd658a717e76a7074d",
-    "admissionSha256": "270f91e0a4f9004411b7a4dfc0b1f94dc3d4dba15925f044de3a726053441e2c",
-    "productWriterPaths": [
-      "packages/domain-member/src/case-summary/types.ts",
-      "packages/domain-member/src/case-summary/get-member-case-summaries.ts",
-      "packages/domain-member/src/case-summary/get-member-case-summaries.test.ts",
-      "packages/domain-member/src/index.ts",
-      "apps/web/src/components/dashboard/case-summary/accident-case-summary.tsx",
-      "apps/web/src/components/dashboard/case-summary/case-kind-registry.ts",
-      "apps/web/src/components/dashboard/case-summary/case-kind-registry.test.tsx"
-    ],
-    "closeoutWriterPaths": [
-      "docs/plans/current-program.md",
-      "docs/plans/current-tracker.md"
-    ]
-  }
+  "activeSlice": null
 }
 ```
 
@@ -153,4 +135,4 @@ The architecture-finalization program/tracker, terminal OD17 evidence, and CI01 
 historical or separately governed. This projection neither rewrites nor activates them.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:T-116-CASE-SUMMARY`).
+The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:null`).

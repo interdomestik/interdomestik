@@ -16,23 +16,25 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                   | Status        | Owner      | Work                                   | Exit Criteria                     |
-| -------------------- | ------------- | ---------- | -------------------------------------- | --------------------------------- |
-| `T-116-CASE-SUMMARY` | `in_progress` | `platform` | Safe projection and accident registry. | Promote, implement, merge, close. |
+| ID                   | Status      | Owner      | Work                                   | Exit Criteria                                         |
+| -------------------- | ----------- | ---------- | -------------------------------------- | ----------------------------------------------------- |
+| `T-116-CASE-SUMMARY` | `completed` | `platform` | Safe projection and accident registry. | Exact contract merged, verified, inactive, unmounted. |
 
 ## Proof Ledger
 
-| ID                   | Source Refs                                                                                                       | Execution | Run ID     | Run Root               | Sonar     | Docker           | Sentry           | Learning         | Evidence Refs                                 |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------- | --------- | ---------- | ---------------------- | --------- | ---------------- | ---------------- | ---------------- | --------------------------------------------- |
-| `T-116-CASE-SUMMARY` | [gate](./2026-08-27-t116-case-summary-design-gate.md); [admission](./2026-08-27-t116-case-summary-admission.json) | `pending` | `PR #1646` | `GitHub-hosted Ubuntu` | `pending` | `not_applicable` | `not_applicable` | `not_applicable` | Promotion and seven-path product are pending. |
+| ID                   | Source Refs                                                                                                       | Execution  | Run ID                | Run Root               | Sonar  | Docker           | Sentry           | Learning         | Evidence Refs                                                                              |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------- | ---------- | --------------------- | ---------------------- | ------ | ---------------- | ---------------- | ---------------- | ------------------------------------------------------------------------------------------ |
+| `T-116-CASE-SUMMARY` | [gate](./2026-08-27-t116-case-summary-design-gate.md); [admission](./2026-08-27-t116-case-summary-admission.json) | `scripted` | `PR #1647 / cde8af2c` | `GitHub-hosted Ubuntu` | `pass` | `not_applicable` | `not_applicable` | `not_applicable` | Exact head/tree, required checks, full E2E, tests, review, and feedback intake were green. |
 
 ## Next Selection
 
-PR `#1646` projects T-116 only after exact branch/base/head validation and promotion merge.
+T-116 completed through exact promotion PR `#1646` and product PR `#1647`. No slice is promoted
+or runtime-authorized; T-117B is the next design-gate candidate and requires separate Tier-3
+promotion.
 
-| Future UI branch | Status     | Constraint                                                   |
-| ---------------- | ---------- | ------------------------------------------------------------ |
-| `T-117B`         | `deferred` | Waits for T-116 closeout and a separate Tier-3 runtime gate. |
+| Future UI branch | Status                        | Constraint                                     |
+| ---------------- | ----------------------------- | ---------------------------------------------- |
+| `T-117B`         | `design_gate_next_unpromoted` | Runtime architecture requires a separate gate. |
 
 ## Lean Authority
 
@@ -41,38 +43,17 @@ PR `#1646` projects T-116 only after exact branch/base/head validation and promo
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "promotion_pending",
+  "lifecycle": "inactive",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": {
-    "sliceId": "T-116-CASE-SUMMARY",
-    "tier": 2,
-    "promotionPrNumber": 1646,
-    "promotionBaseSha": "43ef9c2685a9bfa2fafb2cb6a47f373cff156b27",
-    "expectedProductBranch": "codex/t116-case-summary",
-    "gateSha256": "c740e2cb732729625cb7608e715a9c924265fa801b6079bd658a717e76a7074d",
-    "admissionSha256": "270f91e0a4f9004411b7a4dfc0b1f94dc3d4dba15925f044de3a726053441e2c",
-    "productWriterPaths": [
-      "packages/domain-member/src/case-summary/types.ts",
-      "packages/domain-member/src/case-summary/get-member-case-summaries.ts",
-      "packages/domain-member/src/case-summary/get-member-case-summaries.test.ts",
-      "packages/domain-member/src/index.ts",
-      "apps/web/src/components/dashboard/case-summary/accident-case-summary.tsx",
-      "apps/web/src/components/dashboard/case-summary/case-kind-registry.ts",
-      "apps/web/src/components/dashboard/case-summary/case-kind-registry.test.tsx"
-    ],
-    "closeoutWriterPaths": [
-      "docs/plans/current-program.md",
-      "docs/plans/current-tracker.md"
-    ]
-  }
+  "activeSlice": null
 }
 ```
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:T-116-CASE-SUMMARY`).
+The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:null`).
 
 ## Historical Authority
 
