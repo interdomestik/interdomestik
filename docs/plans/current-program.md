@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-08-26
+last_reviewed: 2026-08-27
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -30,10 +30,14 @@ PricingSection, then Footer. Eight legacy sections are reversibly unmounted; the
 contracts remain unchanged. Nine required checks, the broad E2E gate, pilot gate, Sonar, focused
 unit/browser evidence, and exact-main identity were green.
 
-Candidate `#1637` projects `T-118-CRYSTAL-PRIMITIVES` after Tier-0 merge, binding the exact base,
-[gate](./2026-08-26-t118-crystal-primitives-design-gate.md),
-[admission](./2026-08-26-t118-crystal-primitives-admission.json), and
-`codex/t118-crystal-primitives`. PR `#1636` supplied capacity; runtime waits for merge/owner/resolver.
+`T-118-CRYSTAL-PRIMITIVES` completed through Tier-0 promotion PR `#1637` and product PR `#1638`.
+The approved product head `449832314edad1706fc31d9688c13c5cdc302fe2`, tree
+`26f300fedc342b477c1bd1ad79a17611f950d26c`, and squash merge
+`79defe7af8d22dc26d78f4845a321f8906720794` matched the exact ten-path writer map and bounded
+`t118-crystal-primitives` allocation. The primitives remain presentational and unmounted from
+routes. Nine required checks, full PR E2E, pilot, zero-issue Sonar, focused tests, Storybook, and
+responsive/accessibility browser proof were green. PR `#1636` remains the consumed capacity proof;
+it added no generic reserve.
 
 Closed `IDA-WF01-ONE-APPROVAL-DELIVERY` remains immutable evidence through its
 [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),
@@ -50,10 +54,9 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate      | Dependencies             | Promotion constraint                                   |
-| -------: | -------------- | ------------------------ | ------------------------------------------------------ |
-|        1 | `T-118` Tier 2 | Tier-0 candidate `#1637` | Only the exact ten-path primitive branch may activate. |
-|        2 | `T-117` Tier 2 | T-118                    | Deferred; no branch or shared-shell edit.              |
+| Priority | Candidate      | Dependencies | Promotion constraint                                                       |
+| -------: | -------------- | ------------ | -------------------------------------------------------------------------- |
+|        1 | `T-117` Tier 2 | T-118 closed | `design_gate_next_unpromoted`; requires a separate shared-shell promotion. |
 
 ## Unified Portal Direction
 
@@ -87,36 +90,12 @@ system and M1–M5 architecture. This Tier-2 direction grants no runtime authori
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "promotion_pending",
+  "lifecycle": "inactive",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": {
-    "sliceId": "T-118-CRYSTAL-PRIMITIVES",
-    "tier": 2,
-    "promotionPrNumber": 1637,
-    "promotionBaseSha": "6ff846deb9d99ad103d81dba5e4de46343dcf965",
-    "expectedProductBranch": "codex/t118-crystal-primitives",
-    "gateSha256": "12ce2d377dafe635d5d5b7be05de6c739c3563d841bb6f646804f599d7c49e74",
-    "admissionSha256": "ca3a543f553b71fc36023d80af4e242db40638ccf51a64777678b0352386e093",
-    "productWriterPaths": [
-      "packages/ui/src/components/crystal/tokens.ts",
-      "packages/ui/src/components/crystal/matte-anchor-card.tsx",
-      "packages/ui/src/components/crystal/refractive-glass-panel.tsx",
-      "packages/ui/src/components/crystal/stepper.tsx",
-      "packages/ui/src/components/crystal/timeline.tsx",
-      "packages/ui/src/components/crystal/index.ts",
-      "packages/ui/src/components/crystal/crystal.stories.tsx",
-      "packages/ui/src/index.ts",
-      "apps/web/src/components/dashboard/crystal-primitives.test.tsx",
-      "apps/web/src/components/dashboard/crystal-boundary.test.ts"
-    ],
-    "closeoutWriterPaths": [
-      "docs/plans/current-program.md",
-      "docs/plans/current-tracker.md"
-    ]
-  }
+  "activeSlice": null
 }
 ```
 
@@ -130,4 +109,4 @@ The architecture-finalization program/tracker, terminal OD17 evidence, and CI01 
 historical or separately governed. This projection neither rewrites nor activates them.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:T-118-CRYSTAL-PRIMITIVES`).
+The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:null`).
