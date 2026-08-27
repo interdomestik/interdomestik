@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 38470,
+      "trackedBytesDelta": 40202,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 7532,
+        "config/data/messages": 9264,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 7532,
+        "scripts/repo-size-budget.json": 9264,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -145,33 +145,67 @@
       "writerPaths": [
         "docs/plans/2026-08-27-t117a-unified-portal-shell-design-gate.md",
         "docs/plans/2026-08-27-t117a-unified-portal-shell-admission.json",
-        "docs/plans/current-program.md",
-        "docs/plans/current-tracker.md",
         "packages/ui/src/components/crystal/unified-portal-shell.tsx",
         "packages/ui/src/components/crystal/index.ts",
         "packages/ui/src/components/crystal/crystal.stories.tsx",
         "packages/ui/src/index.ts",
         "apps/web/src/components/dashboard/unified-portal-shell.test.tsx"
       ],
-      "maxTrackedBytesDelta": 25781,
+      "maxTrackedBytesDelta": 23615,
       "maxTrackedFilesDelta": 6,
       "maxCategoryBytesDelta": {
-        "docs/text": 10453,
+        "docs/text": 8877,
         "config/data/messages": 8277,
-        "large support/generated-ish": 590,
         "source/scripts": 4304,
         "tests/e2e": 2157
       },
       "maxPathBytesDelta": {
         "docs/plans/2026-08-27-t117a-unified-portal-shell-design-gate.md": 8877,
         "docs/plans/2026-08-27-t117a-unified-portal-shell-admission.json": 8277,
-        "docs/plans/current-program.md": 1576,
-        "docs/plans/current-tracker.md": 590,
         "packages/ui/src/components/crystal/unified-portal-shell.tsx": 1633,
         "packages/ui/src/components/crystal/index.ts": 553,
         "packages/ui/src/components/crystal/crystal.stories.tsx": 2080,
         "packages/ui/src/index.ts": 38,
         "apps/web/src/components/dashboard/unified-portal-shell.test.tsx": 2157
+      }
+    },
+    {
+      "id": "t116-case-summary",
+      "mode": "bounded",
+      "writerPaths": [
+        "docs/plans/2026-08-27-t116-case-summary-design-gate.md",
+        "docs/plans/2026-08-27-t116-case-summary-admission.json",
+        "docs/plans/current-program.md",
+        "docs/plans/current-tracker.md",
+        "packages/domain-member/src/case-summary/types.ts",
+        "packages/domain-member/src/case-summary/get-member-case-summaries.ts",
+        "packages/domain-member/src/case-summary/get-member-case-summaries.test.ts",
+        "packages/domain-member/src/index.ts",
+        "apps/web/src/components/dashboard/case-summary/accident-case-summary.tsx",
+        "apps/web/src/components/dashboard/case-summary/case-kind-registry.ts",
+        "apps/web/src/components/dashboard/case-summary/case-kind-registry.test.tsx"
+      ],
+      "maxTrackedBytesDelta": 35913,
+      "maxTrackedFilesDelta": 8,
+      "maxCategoryBytesDelta": {
+        "config/data/messages": 9748,
+        "docs/text": 14358,
+        "large support/generated-ish": 791,
+        "source/scripts": 5188,
+        "tests/e2e": 5828
+      },
+      "maxPathBytesDelta": {
+        "docs/plans/2026-08-27-t116-case-summary-design-gate.md": 11495,
+        "docs/plans/2026-08-27-t116-case-summary-admission.json": 9748,
+        "docs/plans/current-program.md": 2863,
+        "docs/plans/current-tracker.md": 791,
+        "packages/domain-member/src/case-summary/types.ts": 769,
+        "packages/domain-member/src/case-summary/get-member-case-summaries.ts": 2382,
+        "packages/domain-member/src/case-summary/get-member-case-summaries.test.ts": 3644,
+        "packages/domain-member/src/index.ts": 96,
+        "apps/web/src/components/dashboard/case-summary/accident-case-summary.tsx": 1255,
+        "apps/web/src/components/dashboard/case-summary/case-kind-registry.ts": 686,
+        "apps/web/src/components/dashboard/case-summary/case-kind-registry.test.tsx": 2184
       }
     }
   ],
@@ -184,15 +218,15 @@
     },
     "rationale": "Only the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 59497974,
-  "maxTrackedFiles": 5838,
+  "maxTrackedBytes": 59533453,
+  "maxTrackedFiles": 5846,
   "maxCategoryBytes": {
     "other": 18856416,
-    "large support/generated-ish": 15389705,
-    "docs/text": 8441568,
-    "source/scripts": 8326129,
-    "tests/e2e": 6394174,
-    "config/data/messages": 2089982
+    "large support/generated-ish": 15389906,
+    "docs/text": 8454350,
+    "source/scripts": 8331317,
+    "tests/e2e": 6400002,
+    "config/data/messages": 2101462
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
