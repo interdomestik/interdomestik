@@ -35,11 +35,10 @@ dashboard budget: one tenant-scoped projection returns presentation-safe `CaseSu
 a compile-time-exhaustive registry maps the current kind to a pure accident renderer. Nothing is
 mounted.
 
-The database has no `case_kind` column and this slice cannot add one. `caseKind: 'accident'` is a
-provisional, presentation-only registry key applied to current claim rows; it is derived from no
-column and is not member-facing taxonomy. Never infer kind from category, title, host, tenant, or
-country. Later Green Card/flight kinds need separate contracts; adding one without a descriptor
-must fail TypeScript. No future kind is fabricated here.
+The database has no `case_kind` column and this slice cannot add one. Fail closed in SQL to
+`category = 'vehicle'`; category is only an inclusion predicate and never escapes the projection.
+Only then assign the provisional, presentation-only `caseKind: 'accident'` registry key. Omit
+travel, property, other, and unknown rows. Later kinds need separate contracts and descriptors.
 
 No route/dashboard mount, parallel route, PPR, auth/session, tenant primitive, proxy/routing,
 schema/RLS, billing, AI, CI/E2E infrastructure, T-117B, or provider change is allowed.
@@ -72,7 +71,8 @@ The 96-byte barrel delta is exactly these two lines, with no comment or blank li
 
 - `getMemberCaseSummaries({ memberId, tenantId })` rejects missing tenant and executes inside
   existing `withTenantContext({ tenantId, role: 'member' })`.
-- SQL predicates include tenant and member IDs; unchanged RLS remains defense in depth.
+- SQL predicates include tenant/member IDs and exact `category = 'vehicle'`; unchanged RLS remains
+  defense in depth. Other categories return no summary.
 - Keep one grouped `select` inside the `withTenantContext` callback. It reads claims and document
   counts with predicates on claims tenant/member and `claim_documents.tenant_id`; `accessTenantId`
   never widens or substitutes for the document tenant. No second read or per-card fan-out. T-117B
@@ -123,10 +123,10 @@ entry or browser collector and are explicitly deferred to separately gated T-117
 | ID  | Acceptance                                       | Proof                         |
 | --- | ------------------------------------------------ | ----------------------------- |
 | A1  | Seven writers and public domain export only.     | Git scope, entrypoint, types  |
-| A2  | One tenant+member grouped query, no fan-out.     | query test, DB-access guard   |
+| A2  | One tenant+member vehicle query, no fan-out.     | query test, DB-access guard   |
 | A3  | Zero/N document counts fold into that query.     | call count and fixtures       |
 | A4  | Exhaustive union/registry; accident registered.  | `satisfies Record`, compile   |
-| A5  | No price/proof/document/narrative/PII leak.      | field and source assertions   |
+| A5  | Non-vehicle omitted; category/data never leak.   | field and source assertions   |
 | A6  | Lifecycle maps to a bounded next-step token.     | lifecycle fixtures            |
 | A7  | Semantic order, names, zero, color independence. | jsdom and source boundaries   |
 | A8  | No mount/PPR/auth/schema/T-117B/CI drift.        | boundary, architecture, scope |

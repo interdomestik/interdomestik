@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "sliceId": "T-116-CASE-SUMMARY",
   "baseSha": "43ef9c2685a9bfa2fafb2cb6a47f373cff156b27",
-  "authorityArtifactSha256": "c79c76ed61981fffe4ef45e277403c707eba93ec15a2e39f30bc65a11cbc1b81",
+  "authorityArtifactSha256": "c740e2cb732729625cb7608e715a9c924265fa801b6079bd658a717e76a7074d",
   "productOutcomes": [
-    "Provide one tenant-safe CaseSummary projection and exhaustive accident registry without a mount"
+    "Project tenant-safe vehicle CaseSummary values into an exhaustive accident registry"
   ],
   "writerPaths": [
     "packages/domain-member/src/case-summary/types.ts",
@@ -45,7 +45,7 @@
     {
       "id": "projection-query-privacy",
       "invalidatedBy": [
-        "projection, tenant/member predicate, field, token, count, ordering, or query-count change"
+        "projection tenant/member/category predicate, field, token, count, order, query-count, or privacy change"
       ]
     },
     {
@@ -66,7 +66,7 @@
       "criterionId": "tenant-query-count",
       "proofSurfaceId": "projection-query-privacy",
       "command": "pnpm --filter @interdomestik/domain-member test:unit --run; type-check; DB guard",
-      "expected": "missing tenant fails; inline query proves claim/member/doc tenant guards, zero/N, no accessTenantId widening or fan-out",
+      "expected": "missing tenant fails; one inline vehicle-only read proves tenant/member/doc guards, zero/N, no widening/fan-out",
       "environmentId": null,
       "skipIsFailure": true
     },
@@ -74,7 +74,7 @@
       "criterionId": "safe-output",
       "proofSurfaceId": "projection-query-privacy",
       "command": "run field/lifecycle fixtures and source boundary checks",
-      "expected": "only safe identity/lifecycle/count/timestamp/kind/token fields escape; price, proof, narrative, documents, and PII do not",
+      "expected": "non-vehicle omitted; safe fields only; category and private data never escape",
       "environmentId": null,
       "skipIsFailure": true
     },
@@ -174,7 +174,7 @@
         "id": "emit-union",
         "from": "case-summary-projection",
         "to": "case-summary-union",
-        "operation": "emit safe accident summaries with closed lifecycle tokens"
+        "operation": "emit vehicle-scoped accident summaries with closed tokens"
       },
       {
         "id": "export-contract",
@@ -213,7 +213,7 @@
     "closureEvidence": {
       "callers": "domain-member barrel and two tests only; no route/dashboard caller",
       "sharedConsumers": "registry consumes domain types; T-117B is deferred; no runtime consumer",
-      "readWriteDelete": "one inline grouped claims/document-tenant count read; no write, event, cache, provider, or transition",
+      "readWriteDelete": "one vehicle-filtered grouped tenant read; no write/event/cache/provider/transition",
       "mountErrorPaths": "empty array, propagated query error, explicit zero documents, no mount/fallback",
       "capabilityRequirements": "existing DB, tenant context, Drizzle, TypeScript, Vitest/jsdom, and Testing Library suffice",
       "testCollectors": "explicit domain-member and web Vitest commands collect both tests without config edits",
@@ -228,7 +228,7 @@
     "authority": "advisory; Git, tests, security, exact-head CI/E2E, feedback, merge, and closeout control"
   },
   "highestRiskCases": [
-    "tenant/member scope leaks, query count exceeds one, or per-case fan-out appears",
+    "tenant/member leak, non-vehicle misclassification, extra query, or fan-out",
     "price, proof, narrative, document data, PII, or unbounded next-step text escapes",
     "registry loses exhaustiveness, kind is fabricated, renderer mounts, or scope/capacity drifts"
   ],

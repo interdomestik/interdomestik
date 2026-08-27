@@ -52,8 +52,8 @@ PR `#1646` projects T-116 only after exact branch/base/head validation and promo
     "promotionPrNumber": 1646,
     "promotionBaseSha": "43ef9c2685a9bfa2fafb2cb6a47f373cff156b27",
     "expectedProductBranch": "codex/t116-case-summary",
-    "gateSha256": "c79c76ed61981fffe4ef45e277403c707eba93ec15a2e39f30bc65a11cbc1b81",
-    "admissionSha256": "213fd4ec28746df566fb14e064421c2ea2a13325ced75fb44b94843f6ab7bf03",
+    "gateSha256": "c740e2cb732729625cb7608e715a9c924265fa801b6079bd658a717e76a7074d",
+    "admissionSha256": "270f91e0a4f9004411b7a4dfc0b1f94dc3d4dba15925f044de3a726053441e2c",
     "productWriterPaths": [
       "packages/domain-member/src/case-summary/types.ts",
       "packages/domain-member/src/case-summary/get-member-case-summaries.ts",
