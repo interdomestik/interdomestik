@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 37477,
+      "trackedBytesDelta": 38470,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 6539,
+        "config/data/messages": 7532,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 6539,
+        "scripts/repo-size-budget.json": 7532,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -91,21 +91,16 @@
       "id": "t118-promotion",
       "mode": "bounded",
       "writerPaths": [
-        "docs/plans/current-program.md",
-        "docs/plans/current-tracker.md",
         "docs/plans/2026-08-25-t118-design-system-design.md",
         "docs/plans/2026-08-25-t118-design-system-admission.json"
       ],
-      "maxTrackedBytesDelta": 32088,
+      "maxTrackedBytesDelta": 29634,
       "maxTrackedFilesDelta": 2,
       "maxCategoryBytesDelta": {
         "config/data/messages": 10248,
-        "docs/text": 20613,
-        "large support/generated-ish": 1227
+        "docs/text": 19386
       },
       "maxPathBytesDelta": {
-        "docs/plans/current-program.md": 1227,
-        "docs/plans/current-tracker.md": 1227,
         "docs/plans/2026-08-25-t118-design-system-design.md": 19386,
         "docs/plans/2026-08-25-t118-design-system-admission.json": 10248
       }
@@ -121,18 +116,15 @@
         "packages/ui/src/components/crystal/refractive-glass-panel.tsx",
         "packages/ui/src/components/crystal/stepper.tsx",
         "packages/ui/src/components/crystal/timeline.tsx",
-        "packages/ui/src/components/crystal/index.ts",
-        "packages/ui/src/components/crystal/crystal.stories.tsx",
-        "packages/ui/src/index.ts",
         "apps/web/src/components/dashboard/crystal-primitives.test.tsx",
         "apps/web/src/components/dashboard/crystal-boundary.test.ts"
       ],
-      "maxTrackedBytesDelta": 33073,
-      "maxTrackedFilesDelta": 11,
+      "maxTrackedBytesDelta": 30566,
+      "maxTrackedFilesDelta": 9,
       "maxCategoryBytesDelta": {
         "docs/text": 9157,
         "config/data/messages": 8504,
-        "source/scripts": 11801,
+        "source/scripts": 9294,
         "tests/e2e": 3611
       },
       "maxPathBytesDelta": {
@@ -143,11 +135,43 @@
         "packages/ui/src/components/crystal/refractive-glass-panel.tsx": 1844,
         "packages/ui/src/components/crystal/stepper.tsx": 2130,
         "packages/ui/src/components/crystal/timeline.tsx": 2407,
-        "packages/ui/src/components/crystal/index.ts": 501,
-        "packages/ui/src/components/crystal/crystal.stories.tsx": 1731,
-        "packages/ui/src/index.ts": 275,
         "apps/web/src/components/dashboard/crystal-primitives.test.tsx": 2143,
         "apps/web/src/components/dashboard/crystal-boundary.test.ts": 1468
+      }
+    },
+    {
+      "id": "t117-unified-portal-shell",
+      "mode": "bounded",
+      "writerPaths": [
+        "docs/plans/2026-08-27-t117a-unified-portal-shell-design-gate.md",
+        "docs/plans/2026-08-27-t117a-unified-portal-shell-admission.json",
+        "docs/plans/current-program.md",
+        "docs/plans/current-tracker.md",
+        "packages/ui/src/components/crystal/unified-portal-shell.tsx",
+        "packages/ui/src/components/crystal/index.ts",
+        "packages/ui/src/components/crystal/crystal.stories.tsx",
+        "packages/ui/src/index.ts",
+        "apps/web/src/components/dashboard/unified-portal-shell.test.tsx"
+      ],
+      "maxTrackedBytesDelta": 25781,
+      "maxTrackedFilesDelta": 6,
+      "maxCategoryBytesDelta": {
+        "docs/text": 10453,
+        "config/data/messages": 8277,
+        "large support/generated-ish": 590,
+        "source/scripts": 4304,
+        "tests/e2e": 2157
+      },
+      "maxPathBytesDelta": {
+        "docs/plans/2026-08-27-t117a-unified-portal-shell-design-gate.md": 8877,
+        "docs/plans/2026-08-27-t117a-unified-portal-shell-admission.json": 8277,
+        "docs/plans/current-program.md": 1576,
+        "docs/plans/current-tracker.md": 590,
+        "packages/ui/src/components/crystal/unified-portal-shell.tsx": 1633,
+        "packages/ui/src/components/crystal/index.ts": 553,
+        "packages/ui/src/components/crystal/crystal.stories.tsx": 2080,
+        "packages/ui/src/index.ts": 38,
+        "apps/web/src/components/dashboard/unified-portal-shell.test.tsx": 2157
       }
     }
   ],
@@ -160,15 +184,15 @@
     },
     "rationale": "Only the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 59476161,
-  "maxTrackedFiles": 5834,
+  "maxTrackedBytes": 59497974,
+  "maxTrackedFiles": 5838,
   "maxCategoryBytes": {
     "other": 18856416,
-    "large support/generated-ish": 15390342,
-    "docs/text": 8432342,
-    "source/scripts": 8324332,
-    "tests/e2e": 6392017,
-    "config/data/messages": 2080712
+    "large support/generated-ish": 15389705,
+    "docs/text": 8441568,
+    "source/scripts": 8326129,
+    "tests/e2e": 6394174,
+    "config/data/messages": 2089982
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
