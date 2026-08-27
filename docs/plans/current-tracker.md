@@ -16,24 +16,23 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                         | Status      | Owner      | Work                    | Exit Criteria                                          |
-| -------------------------- | ----------- | ---------- | ----------------------- | ------------------------------------------------------ |
-| `T-118-CRYSTAL-PRIMITIVES` | `completed` | `platform` | Add Crystal primitives. | Exact ten paths merged, verified, inactive, contained. |
+| ID                            | Status        | Owner      | Work                         | Exit Criteria          |
+| ----------------------------- | ------------- | ---------- | ---------------------------- | ---------------------- |
+| `T-117A-UNIFIED-PORTAL-SHELL` | `in_progress` | `platform` | Presentational portal shell. | Promote, merge, close. |
 
 ## Proof Ledger
 
-| ID                         | Source Refs                                                                                                                   | Execution  | Run ID                | Run Root               | Sonar  | Docker           | Sentry           | Learning         | Evidence Refs                                                                 |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------- | --------------------- | ---------------------- | ------ | ---------------- | ---------------- | ---------------- | ----------------------------------------------------------------------------- |
-| `T-118-CRYSTAL-PRIMITIVES` | [gate](./2026-08-26-t118-crystal-primitives-design-gate.md); [admission](./2026-08-26-t118-crystal-primitives-admission.json) | `scripted` | `PR #1638 / 79defe7a` | `GitHub-hosted Ubuntu` | `pass` | `not_applicable` | `not_applicable` | `not_applicable` | Exact head/tree, nine required checks, full E2E, pilot, and browser verified. |
+| ID                            | Source Refs                                                                                                                         | Execution | Run ID     | Run Root               | Sonar     | Docker           | Sentry           | Learning         | Evidence Refs                            |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | --------- | ---------- | ---------------------- | --------- | ---------------- | ---------------- | ---------------- | ---------------------------------------- |
+| `T-117A-UNIFIED-PORTAL-SHELL` | [gate](./2026-08-27-t117a-unified-portal-shell-design-gate.md); [admission](./2026-08-27-t117a-unified-portal-shell-admission.json) | `pending` | `PR #1641` | `GitHub-hosted Ubuntu` | `pending` | `not_applicable` | `not_applicable` | `not_applicable` | Promotion and five-path product pending. |
 
 ## Next Selection
 
-T-118 completed through exact promotion PR `#1637` and product PR `#1638`. No slice is promoted or
-runtime-authorized; T-117 is the next design-gate candidate and requires separate promotion.
+PR `#1641` projects T-117A only after exact branch/base/head validation and promotion merge.
 
-| Future UI branch | Status                        | Constraint                                  |
-| ---------------- | ----------------------------- | ------------------------------------------- |
-| `T-117`          | `design_gate_next_unpromoted` | No branch or shared-shell edit before gate. |
+| Future UI branch | Status     | Constraint                                  |
+| ---------------- | ---------- | ------------------------------------------- |
+| `T-117B`         | `deferred` | Runtime architecture needs a separate gate. |
 
 ## Lean Authority
 
@@ -42,17 +41,36 @@ runtime-authorized; T-117 is the next design-gate candidate and requires separat
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "inactive",
+  "lifecycle": "promotion_pending",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": null
+  "activeSlice": {
+    "sliceId": "T-117A-UNIFIED-PORTAL-SHELL",
+    "tier": 2,
+    "promotionPrNumber": 1641,
+    "promotionBaseSha": "438ea3f51f68789743bf6d3882c5a423e9593629",
+    "expectedProductBranch": "codex/t117a-unified-portal-shell",
+    "gateSha256": "f5cb1188e81462a7b4fcb0e5fc4e5c2b3da971f974381fd1ebce9810fee039c0",
+    "admissionSha256": "1cec50454b9c54e76b4f74d2dd20b570cc696f4d4222eb61a14eca227b69f306",
+    "productWriterPaths": [
+      "packages/ui/src/components/crystal/unified-portal-shell.tsx",
+      "packages/ui/src/components/crystal/index.ts",
+      "packages/ui/src/components/crystal/crystal.stories.tsx",
+      "packages/ui/src/index.ts",
+      "apps/web/src/components/dashboard/unified-portal-shell.test.tsx"
+    ],
+    "closeoutWriterPaths": [
+      "docs/plans/current-program.md",
+      "docs/plans/current-tracker.md"
+    ]
+  }
 }
 ```
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:null`).
+The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:T-117A-UNIFIED-PORTAL-SHELL`).
 
 ## Historical Authority
 

@@ -39,6 +39,12 @@ routes. Nine required checks, full PR E2E, pilot, zero-issue Sonar, focused test
 responsive/accessibility browser proof were green. PR `#1636` remains the consumed capacity proof;
 it added no generic reserve.
 
+PR `#1641` projects `T-117A-UNIFIED-PORTAL-SHELL`, binding the exact
+[gate](./2026-08-27-t117a-unified-portal-shell-design-gate.md),
+[admission](./2026-08-27-t117a-unified-portal-shell-admission.json), and
+product branch `codex/t117a-unified-portal-shell`. GitHub assigned `#1641` to the approved
+promotion branch on the exact base; PR `#1640` supplied capacity. Runtime waits for merge.
+
 Closed `IDA-WF01-ONE-APPROVAL-DELIVERY` remains immutable evidence through its
 [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),
 [authority anchor](./current-authority-v1.json), artifacts, and receipts; it grants no Lean runtime.
@@ -54,9 +60,10 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate      | Dependencies | Promotion constraint                                                       |
-| -------: | -------------- | ------------ | -------------------------------------------------------------------------- |
-|        1 | `T-117` Tier 2 | T-118 closed | `design_gate_next_unpromoted`; requires a separate shared-shell promotion. |
+| Priority | Candidate       | Dependencies      | Promotion constraint                          |
+| -------: | --------------- | ----------------- | --------------------------------------------- |
+|        1 | `T-117A` Tier 2 | Tier-0 PR `#1641` | Only the exact five-path shell may activate.  |
+|        2 | `T-117B` Tier 2 | T-117A closed     | Deferred runtime architecture; separate gate. |
 
 ## Unified Portal Direction
 
@@ -90,12 +97,31 @@ system and M1–M5 architecture. This Tier-2 direction grants no runtime authori
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "inactive",
+  "lifecycle": "promotion_pending",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": null
+  "activeSlice": {
+    "sliceId": "T-117A-UNIFIED-PORTAL-SHELL",
+    "tier": 2,
+    "promotionPrNumber": 1641,
+    "promotionBaseSha": "438ea3f51f68789743bf6d3882c5a423e9593629",
+    "expectedProductBranch": "codex/t117a-unified-portal-shell",
+    "gateSha256": "f5cb1188e81462a7b4fcb0e5fc4e5c2b3da971f974381fd1ebce9810fee039c0",
+    "admissionSha256": "1cec50454b9c54e76b4f74d2dd20b570cc696f4d4222eb61a14eca227b69f306",
+    "productWriterPaths": [
+      "packages/ui/src/components/crystal/unified-portal-shell.tsx",
+      "packages/ui/src/components/crystal/index.ts",
+      "packages/ui/src/components/crystal/crystal.stories.tsx",
+      "packages/ui/src/index.ts",
+      "apps/web/src/components/dashboard/unified-portal-shell.test.tsx"
+    ],
+    "closeoutWriterPaths": [
+      "docs/plans/current-program.md",
+      "docs/plans/current-tracker.md"
+    ]
+  }
 }
 ```
 
@@ -109,4 +135,4 @@ The architecture-finalization program/tracker, terminal OD17 evidence, and CI01 
 historical or separately governed. This projection neither rewrites nor activates them.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:null`).
+The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:T-117A-UNIFIED-PORTAL-SHELL`).
