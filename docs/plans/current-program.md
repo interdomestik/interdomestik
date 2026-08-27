@@ -39,6 +39,13 @@ routes. Nine required checks, full PR E2E, pilot, zero-issue Sonar, focused test
 responsive/accessibility browser proof were green. PR `#1636` remains the consumed capacity proof;
 it added no generic reserve.
 
+Promotion branch `codex/t117a-unified-portal-shell-promotion` stages
+`T-117A-UNIFIED-PORTAL-SHELL`, binding the exact
+[gate](./2026-08-27-t117a-unified-portal-shell-design-gate.md),
+[admission](./2026-08-27-t117a-unified-portal-shell-admission.json), and
+product branch `codex/t117a-unified-portal-shell`. PR `#1640` supplied exact capacity. The real
+promotion PR number is recorded only after GitHub creates it; no number is pre-authorized.
+
 Closed `IDA-WF01-ONE-APPROVAL-DELIVERY` remains immutable evidence through its
 [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),
 [authority anchor](./current-authority-v1.json), artifacts, and receipts; it grants no Lean runtime.
@@ -54,9 +61,10 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate      | Dependencies | Promotion constraint                                                       |
-| -------: | -------------- | ------------ | -------------------------------------------------------------------------- |
-|        1 | `T-117` Tier 2 | T-118 closed | `design_gate_next_unpromoted`; requires a separate shared-shell promotion. |
+| Priority | Candidate       | Dependencies        | Promotion constraint                          |
+| -------: | --------------- | ------------------- | --------------------------------------------- |
+|        1 | `T-117A` Tier 2 | Tier-0 named branch | Only the exact five-path shell may activate.  |
+|        2 | `T-117B` Tier 2 | T-117A closed       | Deferred runtime architecture; separate gate. |
 
 ## Unified Portal Direction
 

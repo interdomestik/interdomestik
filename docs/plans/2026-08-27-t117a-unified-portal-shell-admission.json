@@ -1,0 +1,213 @@
+{
+  "schemaVersion": 1,
+  "sliceId": "T-117A-UNIFIED-PORTAL-SHELL",
+  "baseSha": "438ea3f51f68789743bf6d3882c5a423e9593629",
+  "authorityArtifactSha256": "f5cb1188e81462a7b4fcb0e5fc4e5c2b3da971f974381fd1ebce9810fee039c0",
+  "productOutcomes": [
+    "Provide one pure responsive Case to Actions to Timeline shell without an application mount"
+  ],
+  "writerPaths": [
+    "packages/ui/src/components/crystal/unified-portal-shell.tsx",
+    "packages/ui/src/components/crystal/index.ts",
+    "packages/ui/src/components/crystal/crystal.stories.tsx",
+    "packages/ui/src/index.ts",
+    "apps/web/src/components/dashboard/unified-portal-shell.test.tsx"
+  ],
+  "capacityAllocation": {
+    "id": "t117-unified-portal-shell",
+    "maxTrackedBytesDelta": 25781,
+    "maxTrackedFilesDelta": 6,
+    "maxCategoryBytesDelta": {
+      "docs/text": 10453,
+      "config/data/messages": 8277,
+      "large support/generated-ish": 590,
+      "source/scripts": 4304,
+      "tests/e2e": 2157
+    },
+    "maxPathBytesDelta": {
+      "docs/plans/2026-08-27-t117a-unified-portal-shell-design-gate.md": 8877,
+      "docs/plans/2026-08-27-t117a-unified-portal-shell-admission.json": 8277,
+      "docs/plans/current-program.md": 1576,
+      "docs/plans/current-tracker.md": 590,
+      "packages/ui/src/components/crystal/unified-portal-shell.tsx": 1633,
+      "packages/ui/src/components/crystal/index.ts": 553,
+      "packages/ui/src/components/crystal/crystal.stories.tsx": 2080,
+      "packages/ui/src/index.ts": 38,
+      "apps/web/src/components/dashboard/unified-portal-shell.test.tsx": 2157
+    },
+    "enforcement": "hard ceiling"
+  },
+  "proofSurfaces": [
+    {
+      "id": "shell-contract-boundary",
+      "invalidatedBy": [
+        "shell, slot, export, semantics, import boundary, mount, or focused-test change"
+      ]
+    },
+    {
+      "id": "storybook-responsive-accessibility",
+      "invalidatedBy": [
+        "story, browser, viewport, keyboard, contrast, focus, zoom, or reduced-motion change"
+      ]
+    },
+    {
+      "id": "capacity-exact-head",
+      "invalidatedBy": [
+        "writer, bytes, category, line, protected path, branch head, CI, E2E, or review change"
+      ]
+    }
+  ],
+  "acceptanceMatrix": [
+    {
+      "criterionId": "render-semantics-boundary",
+      "proofSurfaceId": "shell-contract-boundary",
+      "command": "run unified-portal-shell.test.tsx; run UI type-check",
+      "expected": "public export, ordered named regions, caller-owned states, forbidden-import boundary, and mount absence pass",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "storybook-a11y-responsive",
+      "proofSurfaceId": "storybook-responsive-accessibility",
+      "command": "build Storybook; browser proof at 320, 768, and 1440",
+      "expected": "order, WCAG 2.2 AA, focus, forced colors, zoom, reduced motion, clipping, and overflow pass",
+      "environmentId": "storybook-browser",
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "scope-capacity",
+      "proofSurfaceId": "capacity-exact-head",
+      "command": "modularity, architecture, repo:size, security, and Git scope",
+      "expected": "five product writers only, typed line limits, allocation ceilings, and protected scope pass",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "tier2-exact-head",
+      "proofSurfaceId": "capacity-exact-head",
+      "command": "slice and local PR gates; then exact-head PR, security, and E2E gates",
+      "expected": "Tier-2 exact-head CI/E2E, adversarial review, and feedback pass without infrastructure edits",
+      "environmentId": null,
+      "skipIsFailure": true
+    }
+  ],
+  "executionPolicy": {
+    "focusedBeforeHeavy": true,
+    "currentHeadCanaryBeforeFullCi": true,
+    "feedbackBeforeHeavy": true,
+    "fullE2eAuthority": "ci_once_per_exact_head",
+    "rerunPolicy": "invalidated_only",
+    "staleHeadAction": "cancel",
+    "runnerReadiness": "connected_and_listening"
+  },
+  "sharedRuntimeConsumers": [],
+  "specialProofEnvironments": [
+    {
+      "id": "storybook-browser",
+      "canary": {
+        "command": "read Storybook version plus recursive story and Vitest collectors",
+        "expected": "Storybook 8.6.17 and existing recursive collectors",
+        "result": "pass",
+        "observedAt": "2026-08-27T07:28:46.000Z",
+        "evidence": "storybook=8.6.17;collector=../src/**/*.stories.@(js|jsx|mjs|ts|tsx);vitest=workspace;result=pass",
+        "evidenceSha256": "fe09a049389176be7a988f3096aec0157fdbcd5005946377e47f9f9c85e95d40",
+        "environmentFingerprint": "arm64/node24/pnpm10/storybook8.6.17/438ea3f5"
+      }
+    }
+  ],
+  "contractGraph": {
+    "nodes": [
+      {
+        "id": "ui-public-entry",
+        "kind": "entry"
+      },
+      {
+        "id": "crystal-shell",
+        "kind": "primitive"
+      },
+      {
+        "id": "crystal-story",
+        "kind": "consumer"
+      },
+      {
+        "id": "focused-test",
+        "kind": "test"
+      },
+      {
+        "id": "storybook-browser",
+        "kind": "external"
+      },
+      {
+        "id": "protected-main-438ea3f5",
+        "kind": "baseline"
+      }
+    ],
+    "edges": [
+      {
+        "id": "export-shell",
+        "from": "ui-public-entry",
+        "to": "crystal-shell",
+        "operation": "export shell through existing barrels"
+      },
+      {
+        "id": "compose-story",
+        "from": "crystal-story",
+        "to": "ui-public-entry",
+        "operation": "compose neutral Case, Actions, Timeline slots"
+      },
+      {
+        "id": "prove-contract",
+        "from": "focused-test",
+        "to": "ui-public-entry",
+        "operation": "prove render, exports, boundaries, mount absence, lines, and writers"
+      },
+      {
+        "id": "observe-story",
+        "from": "storybook-browser",
+        "to": "crystal-story",
+        "operation": "prove accessibility, motion, contrast, zoom, geometry"
+      },
+      {
+        "id": "bind-base",
+        "from": "protected-main-438ea3f5",
+        "to": "crystal-shell",
+        "operation": "bind protected main and allocation"
+      }
+    ],
+    "closure": {
+      "callers": true,
+      "sharedConsumers": true,
+      "readWriteDelete": true,
+      "mountErrorPaths": true,
+      "capabilityRequirements": true,
+      "testCollectors": true,
+      "baselineOwnership": true
+    },
+    "closureEvidence": {
+      "callers": "barrels, one story, and one focused test only; no application caller",
+      "sharedConsumers": "no runtime consumer; the root wildcard already exposes Crystal",
+      "readWriteDelete": "no store, provider, fetch, event, mutation, transition, or deletion",
+      "mountErrorPaths": "no route mount; callers own empty, error, loading, and actions",
+      "capabilityRequirements": "React, TypeScript, Tailwind, Vitest, Storybook, Crystal, and browser proof exist",
+      "testCollectors": "Vitest and recursive Storybook collectors cover both product proofs",
+      "baselineOwnership": "origin/main and worktree equal 438ea3f51f68789743bf6d3882c5a423e9593629; allocation owns paths"
+    }
+  },
+  "reviewPolicy": {
+    "promotion": "codex/t117a-unified-portal-shell-promotion; derive live PR number after creation",
+    "product": "one redacted read-only Opus 5 review of frozen diff plus matrix before PR",
+    "remediation": "one consolidated in-map repair, invalidated proof rerun, and diff refreeze",
+    "unavailable": "no retry; record unavailability reason and use Sol once",
+    "authority": "advisory; Git, tests, security, exact-head CI/E2E, and feedback control"
+  },
+  "highestRiskCases": [
+    "forbidden runtime, domain, routing, tenant, session, or shared-motion import",
+    "logical order, focus, contrast, zoom, reduced-motion, or 320px reflow failure",
+    "extra writer, route mount, E2E edit, allocation breach, or T-117B capability"
+  ],
+  "rollback": {
+    "mechanism": "close unmerged product branch and PR; after merge revert exact product merge and close authority inactive",
+    "trigger": "any acceptance, scope, exact-head, merge-identity, main-health, or closeout contract fails"
+  },
+  "firstImplementationAction": "make the focused test RED for exports, order, boundaries, mount absence, and reflow"
+}

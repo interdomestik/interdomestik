@@ -16,24 +16,23 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                         | Status      | Owner      | Work                    | Exit Criteria                                          |
-| -------------------------- | ----------- | ---------- | ----------------------- | ------------------------------------------------------ |
-| `T-118-CRYSTAL-PRIMITIVES` | `completed` | `platform` | Add Crystal primitives. | Exact ten paths merged, verified, inactive, contained. |
+| ID                            | Status    | Owner      | Work                         | Exit Criteria          |
+| ----------------------------- | --------- | ---------- | ---------------------------- | ---------------------- |
+| `T-117A-UNIFIED-PORTAL-SHELL` | `pending` | `platform` | Presentational portal shell. | Promote, merge, close. |
 
 ## Proof Ledger
 
-| ID                         | Source Refs                                                                                                                   | Execution  | Run ID                | Run Root               | Sonar  | Docker           | Sentry           | Learning         | Evidence Refs                                                                 |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------- | --------------------- | ---------------------- | ------ | ---------------- | ---------------- | ---------------- | ----------------------------------------------------------------------------- |
-| `T-118-CRYSTAL-PRIMITIVES` | [gate](./2026-08-26-t118-crystal-primitives-design-gate.md); [admission](./2026-08-26-t118-crystal-primitives-admission.json) | `scripted` | `PR #1638 / 79defe7a` | `GitHub-hosted Ubuntu` | `pass` | `not_applicable` | `not_applicable` | `not_applicable` | Exact head/tree, nine required checks, full E2E, pilot, and browser verified. |
+| ID                            | Source Refs                                                                                                                         | Execution | Run ID             | Run Root               | Sonar     | Docker           | Sentry           | Learning         | Evidence Refs                            |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | --------- | ------------------ | ---------------------- | --------- | ---------------- | ---------------- | ---------------- | ---------------------------------------- |
+| `T-117A-UNIFIED-PORTAL-SHELL` | [gate](./2026-08-27-t117a-unified-portal-shell-design-gate.md); [admission](./2026-08-27-t117a-unified-portal-shell-admission.json) | `pending` | `promotion branch` | `GitHub-hosted Ubuntu` | `pending` | `not_applicable` | `not_applicable` | `not_applicable` | Promotion and five-path product pending. |
 
 ## Next Selection
 
-T-118 completed through exact promotion PR `#1637` and product PR `#1638`. No slice is promoted or
-runtime-authorized; T-117 is the next design-gate candidate and requires separate promotion.
+The named promotion branch projects T-117A only after GitHub assigns and validates its real PR.
 
-| Future UI branch | Status                        | Constraint                                  |
-| ---------------- | ----------------------------- | ------------------------------------------- |
-| `T-117`          | `design_gate_next_unpromoted` | No branch or shared-shell edit before gate. |
+| Future UI branch | Status     | Constraint                                  |
+| ---------------- | ---------- | ------------------------------------------- |
+| `T-117B`         | `deferred` | Runtime architecture needs a separate gate. |
 
 ## Lean Authority
 
