@@ -65,13 +65,15 @@ Required checks, full PR E2E, pilot, zero-issue Sonar, focused/full tests, adver
 same-head feedback intake were green. Capacity PR `#1644` and compatibility PR `#1645` remain the
 bounded prerequisite proofs; neither added a generic reserve or generic Tier-3 runtime.
 
-`T-117B-PORTAL-RUNTIME` is the sole Tier-3 promotion projection. Its
-[gate](./2026-08-28-t117b-portal-runtime-design-gate.md) and
-[admission](./2026-08-28-t117b-portal-runtime-admission.json) bind ordinary async RSC, sibling
-Suspense regions, one request-scoped session/tenant context, two projection queries, and the
-structural disclaimer. The exact permission/allocation prerequisite grants no runtime and no
-generic Tier-3 class. This row records no product implementation, product PR, product merge,
-product CI/E2E, or closeout proof.
+`T-117B-PORTAL-RUNTIME` remains the sole pending Tier-3 product candidate. Promotion PR `#1650`
+is terminally superseded for product execution after the approved exact permission/allocation
+prerequisite PR `#1651` advanced protected main to
+`022c6bdf28239e749e02bcfbc9245641c45bdaaa`. The prerequisite grants no runtime and no generic
+Tier-3 class. Its pre-amendment [gate](./2026-08-28-t117b-portal-runtime-design-gate.md) and
+[admission](./2026-08-28-t117b-portal-runtime-admission.json) remain evidence only; a new
+content-addressed re-freeze and promotion are required before product implementation. This row
+records no product implementation, product PR, product merge, product CI/E2E, or product closeout
+proof.
 
 Closed `IDA-WF01-ONE-APPROVAL-DELIVERY` remains immutable evidence through its
 [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),
@@ -127,37 +129,12 @@ parallel routes, `next.config`, and global headers migration remain deferred tog
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "promotion_pending",
+  "lifecycle": "inactive",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": {
-    "sliceId": "T-117B-PORTAL-RUNTIME",
-    "tier": 3,
-    "promotionPrNumber": 1650,
-    "promotionBaseSha": "be398cbccdd4491b2d0721bc201fd9e49ce101af",
-    "expectedProductBranch": "codex/t117b-portal-runtime",
-    "gateSha256": "19ce41e1f8db59b187abaa61b30d14c89931fd671eeb19448e969d2cc1e269c6",
-    "admissionSha256": "7d663291b7d378be6bc9cad3520e1c920df6c116dc62a9f15b11540f5fefaf63",
-    "productWriterPaths": [
-      "apps/web/src/lib/auth.server.ts",
-      "apps/web/src/components/shell/member-portal-context.ts",
-      "packages/domain-member/src/portal-runtime/get-member-portal-activity.ts",
-      "packages/domain-member/src/portal-runtime/get-member-portal-activity.test.ts",
-      "packages/domain-member/src/index.ts",
-      "apps/web/src/components/dashboard/member-portal-runtime.tsx",
-      "apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx",
-      "apps/web/src/app/[locale]/(app)/member/_core.entry.tsx",
-      "apps/web/src/app/[locale]/(app)/member/_core.entry.test.tsx",
-      "apps/web/src/app/[locale]/(app)/member/page.tsx",
-      "apps/web/src/app/[locale]/(app)/member/page.test.tsx"
-    ],
-    "closeoutWriterPaths": [
-      "docs/plans/current-program.md",
-      "docs/plans/current-tracker.md"
-    ]
-  }
+  "activeSlice": null
 }
 ```
 
