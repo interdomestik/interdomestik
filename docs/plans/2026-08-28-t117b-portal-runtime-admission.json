@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "sliceId": "T-117B-PORTAL-RUNTIME",
   "baseSha": "be398cbccdd4491b2d0721bc201fd9e49ce101af",
-  "authorityArtifactSha256": "3c95af83eb0edf62f10db79a0043b4e314bb9cd9cf1d059cb41328c6bb01520d",
+  "authorityArtifactSha256": "19ce41e1f8db59b187abaa61b30d14c89931fd671eeb19448e969d2cc1e269c6",
   "productOutcomes": [
     "Mount the member Unified Portal through ordinary async RSC with request-scoped identity, two projections, independent streaming, and structural protection copy"
   ],

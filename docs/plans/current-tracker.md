@@ -22,9 +22,9 @@ status_command: pnpm plan:status
 
 ## Proof Ledger
 
-| ID                      | Source Refs                                                                                                             | Execution | Run ID    | Run Root  | Sonar     | Docker           | Sentry           | Learning         | Evidence Refs                                                    |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------- | --------- | --------- | --------- | --------- | ---------------- | ---------------- | ---------------- | ---------------------------------------------------------------- |
-| `T-117B-PORTAL-RUNTIME` | [gate](./2026-08-28-t117b-portal-runtime-design-gate.md); [admission](./2026-08-28-t117b-portal-runtime-admission.json) | `pending` | `pending` | `pending` | `pending` | `not_applicable` | `not_applicable` | `not_applicable` | No implementation, PR, CI/E2E, merge, or closeout proof claimed. |
+| ID                      | Source Refs                                                                                                             | Execution | Run ID    | Run Root  | Sonar     | Docker           | Sentry           | Learning         | Evidence Refs                                             |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------- | --------- | --------- | --------- | --------- | ---------------- | ---------------- | ---------------- | --------------------------------------------------------- |
+| `T-117B-PORTAL-RUNTIME` | [gate](./2026-08-28-t117b-portal-runtime-design-gate.md); [admission](./2026-08-28-t117b-portal-runtime-admission.json) | `pending` | `pending` | `pending` | `pending` | `not_applicable` | `not_applicable` | `not_applicable` | No product implementation/PR/CI/E2E/merge/closeout proof. |
 
 ## Next Selection
 
@@ -54,8 +54,8 @@ and green merge. T-117C remains deferred until T-117B closes.
     "promotionPrNumber": 1650,
     "promotionBaseSha": "be398cbccdd4491b2d0721bc201fd9e49ce101af",
     "expectedProductBranch": "codex/t117b-portal-runtime",
-    "gateSha256": "3c95af83eb0edf62f10db79a0043b4e314bb9cd9cf1d059cb41328c6bb01520d",
-    "admissionSha256": "0d2952f43f47304b745636009c812138e888d1952ea9c4623682da8c784fa8de",
+    "gateSha256": "19ce41e1f8db59b187abaa61b30d14c89931fd671eeb19448e969d2cc1e269c6",
+    "admissionSha256": "7d663291b7d378be6bc9cad3520e1c920df6c116dc62a9f15b11540f5fefaf63",
     "productWriterPaths": [
       "apps/web/src/lib/auth.server.ts",
       "apps/web/src/components/shell/member-portal-context.ts",

@@ -35,7 +35,7 @@ view therefore uses exactly two projection queries and never performs per-card f
 The member layout and page call one argument-free memoized context function. `React.cache()` wraps
 an inner resolver that resolves session once and derives user/tenant context. The member runtime
 cannot use `logTag`, cookie material, or a module-global Map/TTL as a cache key or lifetime. A new
-server request gets a new cache and session object; revocation is visible on that request.
+server request gets a new cache and session object; the next request observes revocation.
 
 This is the approved amendment:
 
