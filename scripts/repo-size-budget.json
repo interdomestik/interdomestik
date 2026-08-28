@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 42430,
+      "trackedBytesDelta": 43465,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 11492,
+        "config/data/messages": 12527,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 11492,
+        "scripts/repo-size-budget.json": 12527,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -224,15 +224,24 @@
         "apps/web/src/app/[locale]/(app)/member/_core.entry.tsx",
         "apps/web/src/app/[locale]/(app)/member/_core.entry.test.tsx",
         "apps/web/src/app/[locale]/(app)/member/page.tsx",
-        "apps/web/src/app/[locale]/(app)/member/page.test.tsx"
+        "apps/web/src/app/[locale]/(app)/member/page.test.tsx",
+        "apps/web/e2e/dashboard-access.spec.ts",
+        "apps/web/e2e/gate/member-diaspora.spec.ts",
+        "apps/web/e2e/gate/member-home-cta.spec.ts",
+        "apps/web/e2e/golden/agent-member-overlay.spec.ts",
+        "apps/web/e2e/golden/member-dashboard-empty-state.spec.ts",
+        "apps/web/e2e/golden/member-dashboard-has-claims.spec.ts",
+        "apps/web/e2e/production.spec.ts",
+        "apps/web/e2e/smoke/ida-dashboard-smoke.spec.ts",
+        "apps/web/e2e/ui-v2-onboarding.spec.ts"
       ],
-      "maxTrackedBytesDelta": 44446,
+      "maxTrackedBytesDelta": 46436,
       "maxTrackedFilesDelta": 8,
       "maxCategoryBytesDelta": {
         "config/data/messages": 13021,
         "docs/text": 14168,
-        "source/scripts": 10384,
-        "tests/e2e": 6873
+        "source/scripts": 11101,
+        "tests/e2e": 8146
       },
       "maxPathBytesDelta": {
         "scripts/lean-exact-writer-exceptions.mjs": 1269,
@@ -243,11 +252,20 @@
         "packages/domain-member/src/portal-runtime/get-member-portal-activity.ts": 1874,
         "packages/domain-member/src/portal-runtime/get-member-portal-activity.test.ts": 2472,
         "apps/web/src/components/dashboard/member-portal-runtime.tsx": 5210,
-        "apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx": 4265,
+        "apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx": 4982,
         "apps/web/src/app/[locale]/(app)/member/_core.entry.tsx": 78,
         "apps/web/src/app/[locale]/(app)/member/_core.entry.test.tsx": 136,
         "apps/web/src/app/[locale]/(app)/member/page.tsx": 985,
-        "apps/web/src/app/[locale]/(app)/member/page.test.tsx": 0
+        "apps/web/src/app/[locale]/(app)/member/page.test.tsx": 0,
+        "apps/web/e2e/dashboard-access.spec.ts": 142,
+        "apps/web/e2e/gate/member-diaspora.spec.ts": 0,
+        "apps/web/e2e/gate/member-home-cta.spec.ts": 0,
+        "apps/web/e2e/golden/agent-member-overlay.spec.ts": 0,
+        "apps/web/e2e/golden/member-dashboard-empty-state.spec.ts": 0,
+        "apps/web/e2e/golden/member-dashboard-has-claims.spec.ts": 0,
+        "apps/web/e2e/production.spec.ts": 466,
+        "apps/web/e2e/smoke/ida-dashboard-smoke.spec.ts": 437,
+        "apps/web/e2e/ui-v2-onboarding.spec.ts": 228
       }
     }
   ],
@@ -260,15 +278,15 @@
     },
     "rationale": "Only the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 59583828,
+  "maxTrackedBytes": 59586853,
   "maxTrackedFiles": 5854,
   "maxCategoryBytes": {
     "other": 18856416,
     "large support/generated-ish": 15390295,
     "docs/text": 8469927,
-    "source/scripts": 8341762,
-    "tests/e2e": 6408717,
-    "config/data/messages": 2116711
+    "source/scripts": 8342479,
+    "tests/e2e": 6409990,
+    "config/data/messages": 2117746
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
