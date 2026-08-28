@@ -16,22 +16,26 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID           | Status        | Owner      | Work                                                | Exit Criteria                          |
-| ------------ | ------------- | ---------- | --------------------------------------------------- | -------------------------------------- |
-| `T117B-DATA` | `in_progress` | `platform` | Request-scoped context and exactly two projections. | Promote, implement, merge, then close. |
+| ID           | Status    | Owner      | Work                                                | Exit Criteria                             |
+| ------------ | --------- | ---------- | --------------------------------------------------- | ----------------------------------------- |
+| `T117B-DATA` | `blocked` | `platform` | Request-scoped context and exactly two projections. | PR `#1655` merged; fresh exact promotion. |
 
 ## Proof Ledger
 
-| ID           | Source Refs                                                                                         | Execution | Run ID     | Run Root               | Sonar     | Docker           | Sentry           | Learning         | Evidence Refs                                    |
-| ------------ | --------------------------------------------------------------------------------------------------- | --------- | ---------- | ---------------------- | --------- | ---------------- | ---------------- | ---------------- | ------------------------------------------------ |
-| `T117B-DATA` | [gate](./2026-08-28-t117b-data-design-gate.md); [admission](./2026-08-28-t117b-data-admission.json) | `pending` | `PR #1654` | `GitHub-hosted Ubuntu` | `pending` | `not_applicable` | `not_applicable` | `not_applicable` | Promotion pending; no product or closeout proof. |
+| ID           | Source Refs                                                                                         | Execution | Run ID                 | Run Root               | Sonar     | Docker           | Sentry           | Learning         | Evidence Refs                                                                                                                |
+| ------------ | --------------------------------------------------------------------------------------------------- | --------- | ---------------------- | ---------------------- | --------- | ---------------- | ---------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `T117B-DATA` | [gate](./2026-08-28-t117b-data-design-gate.md); [admission](./2026-08-28-t117b-data-admission.json) | `blocked` | `PR #1654`; `PR #1655` | `GitHub-hosted Ubuntu` | `missing` | `not_applicable` | `not_applicable` | `not_applicable` | Initial promotion closed; exact four-path budget rebind merged at `43cf38e1fb64a888077d62313ba4dcfd011dcd08`; no product PR. |
 
 ## Next Selection
 
 T-116 remains terminally complete. Prerequisite PR `#1653` installed the bounded sequential
-authority without product runtime. Live promotion PR `#1654` selects root child `T117B-DATA` from
-exact protected base `37ef98ed44f1d56ad15d4fa09bc2947ad4b2418b`; runtime waits for its exact
-merge. PORTAL and CUTOVER remain default-denied by predecessor proof.
+authority without product runtime. Promotion PR `#1654` merged root child `T117B-DATA` at
+`d2f79f26f13bab9e586fd02d3c3b90f3d1593d5a`, but exact implementation sizing exposed four
+per-path allocation mismatches before product commit, push, or PR. Budget-only PR `#1655` then
+rebound exactly those four existing per-path ceilings and merged at
+`43cf38e1fb64a888077d62313ba4dcfd011dcd08`, without changing aggregate, category, file, or global
+ceilings. Authority is inactive while a fresh exact ten-path promotion is prepared. PORTAL and
+CUTOVER remain default-denied by predecessor proof.
 
 | Future UI branch | Status     | Constraint                                                      |
 | ---------------- | ---------- | --------------------------------------------------------------- |
@@ -46,41 +50,17 @@ merge. PORTAL and CUTOVER remain default-denied by predecessor proof.
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "promotion_pending",
+  "lifecycle": "inactive",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": {
-    "sliceId": "T117B-DATA",
-    "tier": 3,
-    "promotionPrNumber": 1654,
-    "promotionBaseSha": "37ef98ed44f1d56ad15d4fa09bc2947ad4b2418b",
-    "expectedProductBranch": "codex/t117b-data",
-    "gateSha256": "36b15cfd6fc33d21b56a266ee4de63f084a5c9755420f6754028545f35af30e2",
-    "admissionSha256": "46df2f62785d89fa000bff6e601ad9f07464a7d6b9054de8b7f0ce946e6b56bb",
-    "productWriterPaths": [
-      "apps/web/src/lib/auth.server.ts",
-      "apps/web/src/components/shell/member-portal-context.ts",
-      "packages/domain-member/package.json",
-      "packages/domain-member/src/case-summary/get-member-case-summaries.test.ts",
-      "packages/domain-member/src/case-summary/get-member-case-summaries.ts",
-      "packages/domain-member/src/case-summary/types.ts",
-      "packages/domain-member/src/index.ts",
-      "packages/domain-member/src/portal-runtime/get-member-portal-membership.test.ts",
-      "packages/domain-member/src/portal-runtime/get-member-portal-membership.ts",
-      "pnpm-lock.yaml"
-    ],
-    "closeoutWriterPaths": [
-      "docs/plans/current-program.md",
-      "docs/plans/current-tracker.md"
-    ]
-  }
+  "activeSlice": null
 }
 ```
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:T117B-DATA`).
+The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:null`).
 
 ## Historical Authority
 
