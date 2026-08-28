@@ -8,8 +8,8 @@ last_reviewed: 2026-08-28
 
 # IDA-DG58A — T117B-DATA
 
-> Status: disposable pre-freeze child candidate. Tier 3. No runtime authority exists before exact
-> human approval and promotion. Base: `a0d035ada72a96f08a53781e5d892f88e910a474`.
+> Status: approved sequential child gate. Tier 3. No runtime authority exists before exact
+> promotion merge. Promotion base: `37ef98ed44f1d56ad15d4fa09bc2947ad4b2418b`.
 
 ## Outcome
 

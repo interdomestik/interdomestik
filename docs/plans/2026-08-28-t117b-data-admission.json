@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "sliceId": "T117B-DATA",
   "tier": 3,
-  "baseSha": "a0d035ada72a96f08a53781e5d892f88e910a474",
-  "authorityArtifactSha256": "685692f860e5a274f50c0d7043831c00ca0814756aca178f2c53b4984daa038c",
+  "baseSha": "37ef98ed44f1d56ad15d4fa09bc2947ad4b2418b",
+  "authorityArtifactSha256": "36b15cfd6fc33d21b56a266ee4de63f084a5c9755420f6754028545f35af30e2",
   "productOutcomes": [
     "Provide one request-scoped session and tenant context plus exactly two tenant-scoped read-only projections for exhaustive safe cases and canonical membership lifecycle without mounting UI"
   ],
@@ -138,7 +138,7 @@
       "mountErrorPaths": "no mount exists in DATA; errors remain values/promises for PORTAL boundaries",
       "capabilityRequirements": "React.cache, T-116 CaseSummary and canonical MembershipLifecycleBucket",
       "testCollectors": "focused request, query, mixed-category, lifecycle and boundary tests",
-      "baselineOwnership": "detached candidate against exact protected main a0d035ad"
+      "baselineOwnership": "promotion candidate on exact protected main 37ef98ed"
     }
   },
   "capacityAllocation": {
