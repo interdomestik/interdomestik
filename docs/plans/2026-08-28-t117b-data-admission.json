@@ -143,13 +143,13 @@
   },
   "capacityAllocation": {
     "id": "t117b-data",
-    "maxTrackedBytesDelta": 16497,
+    "maxTrackedBytesDelta": 18059,
     "maxTrackedFilesDelta": 6,
     "maxCategoryBytesDelta": {
       "config/data/messages": 7072,
       "docs/text": 3200,
       "large support/generated-ish": 417,
-      "source/scripts": 3324,
+      "source/scripts": 4886,
       "tests/e2e": 2484
     },
     "derivation": "exact per-path/category deltas are frozen from this child candidate; no reserve"

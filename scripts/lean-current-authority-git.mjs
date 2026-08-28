@@ -69,6 +69,15 @@ export function isCanonicalOrigin(value) {
 export const isBootstrapAnchor = sha => sha === BOOTSTRAP_BASE;
 export const isClosedUnmergedPull = pull => pull?.state === 'closed' && pull.merged === false;
 
+export function classifyCloseoutPull(pull) {
+  if (!pull) return 'missing';
+  if (!['open', 'closed'].includes(pull.state) || typeof pull.merged !== 'boolean') {
+    return 'malformed';
+  }
+  if (pull.state === 'open' && pull.merged) return 'malformed';
+  return pull.state === 'closed' && !pull.merged ? 'abandoned' : 'continuing';
+}
+
 export function validateRepositoryIdentity(repo) {
   const top = realpathSync(git(repo, 'rev-parse', '--show-toplevel'));
   const common = realpathSync(git(repo, 'rev-parse', '--path-format=absolute', '--git-common-dir'));
@@ -77,6 +86,14 @@ export function validateRepositoryIdentity(repo) {
   }
   if (!existsSync(resolve(common, 'HEAD')) || !existsSync(resolve(common, 'objects'))) {
     throw new Error('trusted Git common directory unavailable');
+  }
+}
+
+export function assertCanonicalWriterWorktree(repo, writerBound = true) {
+  if (!writerBound) return;
+  const entries = git(repo, 'ls-files', '-v', '-z').split('\0');
+  if (entries.some(entry => /^[Ss] /u.test(entry))) {
+    throw new Error('tracked skip-worktree state blocks Lean activation');
   }
 }
 

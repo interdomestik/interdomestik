@@ -2,8 +2,10 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import {
+  assertCanonicalWriterWorktree,
   attachPullFiles,
   changedPaths,
+  classifyCloseoutPull,
   collectPromotionFacts,
   commitFacts,
   git,
@@ -17,13 +19,13 @@ import {
 import {
   abandonAuthority,
   authorityState,
-  classifyCloseoutPull,
   failAuthority,
   resolveAuthority,
 } from './lean-current-authority-lifecycle.mjs';
 import { verifyCloseout } from './lean-current-authority-closeout.mjs';
 import {
   authorityPathsTouched,
+  collectT117BPredecessorEvidence,
   locateAuthorityTransition,
 } from './lean-current-authority-history.mjs';
 import {
@@ -34,22 +36,16 @@ import {
   sameSet,
 } from './lean-current-authority-policy.mjs';
 
-export function assertCanonicalWriterWorktree(repo, writerBound = true) {
-  if (!writerBound) return;
-  const entries = git(repo, 'ls-files', '-v', '-z').split('\0');
-  if (entries.some(entry => /^[Ss] /u.test(entry))) {
-    throw new Error('tracked skip-worktree state blocks Lean activation');
-  }
-}
-
 function collectFacts(repo, projection, protectedMainSha) {
   const slice = projection.activeSlice;
   validateRepositoryIdentity(repo);
   assertCanonicalWriterWorktree(repo, protectedMainSha === undefined);
+  const predecessor = collectT117BPredecessorEvidence(repo, projection);
   const productPull = pullByBranch(repo, slice.expectedProductBranch);
   if (isClosedUnmergedPull(productPull))
     return {
       protectedMainSha: protectedMain(repo, protectedMainSha),
+      predecessor,
       product: { state: 'CLOSED', merged: false },
     };
   const product = productPull ? pullFacts(repo, productPull) : null;
@@ -57,6 +53,7 @@ function collectFacts(repo, projection, protectedMainSha) {
   if (promotion.merged === false)
     return {
       protectedMainSha: protectedMain(repo, protectedMainSha),
+      predecessor,
       product,
       promotion,
     };
@@ -64,6 +61,7 @@ function collectFacts(repo, projection, protectedMainSha) {
   const localHead = git(repo, 'rev-parse', 'HEAD');
   return {
     protectedMainSha: protectedMain(repo, protectedMainSha),
+    predecessor,
     promotion,
     product,
     local: {
@@ -187,8 +185,9 @@ export function resolveRepositoryAuthority(repoInput = process.cwd(), live = tru
   }
 }
 
-export { classifyCloseoutPull };
 export {
+  assertCanonicalWriterWorktree,
+  classifyCloseoutPull,
   isBootstrapAnchor,
   isClosedUnmergedPull,
   selectFullProductPull,

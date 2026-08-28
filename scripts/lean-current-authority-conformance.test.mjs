@@ -13,6 +13,7 @@ import {
   parseAuthorityDocuments,
   resolveAuthority,
 } from './lean-current-authority.mjs';
+import { validT117BPredecessor } from './lean-exact-writer-exceptions.mjs';
 
 const block = value =>
   `## Lean Authority\n\n\`\`\`json lean-authority\n${JSON.stringify(value, null, 2)}\n\`\`\``;
@@ -77,6 +78,7 @@ test('authority concerns remain split into bounded cohesive repo modules', () =>
   assert.doesNotMatch(sources.history, /execFileSync|readFileSync/u);
   assert.match(sources.evidence, /resolveRepositoryAuthority/u);
   assert.match(sources.evidence, /transition\.kind === 'closeout_recorded'/u);
+  assert.match(sources.history, /collectT117BPredecessorEvidence|verifyCloseout/u);
   assert.doesNotMatch(
     sources.evidence,
     /terminalAnchorIsAncestor:\s*true|authorityPathsChangedAfterTerminal:\s*false/u
@@ -223,5 +225,71 @@ test('closed PR precedence and incomplete inventories fail without runtime', () 
   assert.deepEqual(
     [malformedPromotion.reason, malformedPromotion.closeoutAuthorized],
     ['promotion_state_malformed', false]
+  );
+});
+
+test('T117B children enforce root and exact predecessor merge-closeout order', () => {
+  const admissions = Object.fromEntries(
+    ['data', 'portal', 'cutover'].map(name => {
+      const value = JSON.parse(
+        readFileSync(
+          new URL(`../docs/plans/2026-08-28-t117b-${name}-admission.json`, import.meta.url)
+        )
+      );
+      return [
+        value.sliceId,
+        { sliceId: value.sliceId, tier: 3, productWriterPaths: value.writerPaths },
+      ];
+    })
+  );
+  const [head, tree, merge, closeout] = ['4', '5', '6', '7'].map(value => value.repeat(40));
+  const verified = (childId, predecessorSliceId, predecessorWriterMapSha256) => ({
+    status: 'verified',
+    childId,
+    predecessorSliceId,
+    predecessorWriterMapSha256,
+    productPrNumber: 1654,
+    productState: 'CLOSED',
+    productMerged: true,
+    productHeadSha: head,
+    productHeadTree: tree,
+    productMergeSha: merge,
+    closeoutState: 'deterministic_closeout_recorded',
+    closeoutMergeSha: closeout,
+  });
+  const dataHash = '18b044d69363404d07682aca7b5944d440cbb1e0066d91cc0cf82578953e3f26';
+  const portalHash = '60de5ce927812137cfdcd620d280d2708b488040ddf02a5796131d4c6c1f04a5';
+  assert.equal(validT117BPredecessor(admissions['T117B-DATA']), true);
+  const portalProof = verified('T117B-PORTAL', 'T117B-DATA', dataHash);
+  const cutoverProof = verified('T117B-CUTOVER', 'T117B-PORTAL', portalHash);
+  assert.equal(validT117BPredecessor(admissions['T117B-PORTAL'], portalProof), true);
+  assert.equal(validT117BPredecessor(admissions['T117B-CUTOVER'], cutoverProof), true);
+  for (const [slice, proof] of [
+    [admissions['T117B-DATA'], { status: 'verified', childId: 'T117B-DATA' }],
+    [admissions['T117B-PORTAL'], undefined],
+    [admissions['T117B-PORTAL'], { ...portalProof, predecessorSliceId: 'T117B-CUTOVER' }],
+    [admissions['T117B-PORTAL'], { ...portalProof, predecessorWriterMapSha256: 'f'.repeat(64) }],
+    [admissions['T117B-PORTAL'], { ...portalProof, productMerged: false }],
+    [admissions['T117B-PORTAL'], { ...portalProof, productMergeSha: 'foreign' }],
+    [admissions['T117B-CUTOVER'], { ...portalProof, childId: 'T117B-CUTOVER' }],
+  ]) {
+    assert.equal(validT117BPredecessor(slice, proof), false);
+  }
+  const projection = activeSlice => ({
+    ...inactive,
+    lifecycle: 'promotion_pending',
+    activeSlice: {
+      ...activeSlice,
+      promotionPrNumber: 1654,
+      promotionBaseSha: '8'.repeat(40),
+      expectedProductBranch: `codex/${activeSlice.sliceId.toLowerCase()}`,
+      gateSha256: '9'.repeat(64),
+      admissionSha256: 'a'.repeat(64),
+      closeoutWriterPaths: ['docs/plans/current-program.md', 'docs/plans/current-tracker.md'],
+    },
+  });
+  assert.equal(
+    resolveAuthority(projection(admissions['T117B-PORTAL'])).reason,
+    'predecessor_evidence_mismatch'
   );
 });

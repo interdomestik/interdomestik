@@ -91,8 +91,10 @@ export function isExplicitModularityException(filePath) {
 }
 export function structuredArtifactOwner(filePath) {
   const relPath = toPolicyPath(filePath);
-  if (T117B_MEMBER_PORTAL_CATALOGS.has(relPath)) return 't117b-member-portal-i18n-contract';
-  return STRUCTURED_OWNERS.find(([pattern]) => pattern.test(relPath))?.[1] ?? null;
+  const owner = T117B_MEMBER_PORTAL_CATALOGS.has(relPath)
+    ? 't117b-member-portal-i18n-contract'
+    : STRUCTURED_OWNERS.find(([pattern]) => pattern.test(relPath))?.[1];
+  return owner ?? null;
 }
 export function classifyModularityFile(filePath) {
   const relPath = toPolicyPath(filePath);
