@@ -85,7 +85,7 @@
         "scripts/lean-current-authority-git.mjs": 2745,
         "scripts/lean-current-authority-history.mjs": 4519,
         "scripts/lean-current-authority-evidence.mjs": 606,
-        "scripts/lean-current-authority-policy.test.mjs": 6910,
+        "scripts/lean-current-authority-policy.test.mjs": 7782,
         "scripts/lean-current-authority.test.mjs": 1169,
         "scripts/lean-current-authority-evidence.test.mjs": 793,
         "scripts/lean-current-authority-conformance.test.mjs": 2986,
@@ -182,36 +182,22 @@
         "docs/plans/2026-08-27-t116-case-summary-design-gate.md",
         "docs/plans/2026-08-27-t116-case-summary-admission.json",
         "docs/plans/current-program.md",
-        "docs/plans/current-tracker.md",
-        "packages/domain-member/src/case-summary/types.ts",
-        "packages/domain-member/src/case-summary/get-member-case-summaries.ts",
-        "packages/domain-member/src/case-summary/get-member-case-summaries.test.ts",
-        "packages/domain-member/src/index.ts",
-        "apps/web/src/components/dashboard/case-summary/accident-case-summary.tsx",
-        "apps/web/src/components/dashboard/case-summary/case-kind-registry.ts",
-        "apps/web/src/components/dashboard/case-summary/case-kind-registry.test.tsx"
+        "docs/plans/current-tracker.md"
       ],
-      "maxTrackedBytesDelta": 39562,
-      "maxTrackedFilesDelta": 8,
+      "maxTrackedBytesDelta": 26913,
+      "maxTrackedFilesDelta": 2,
       "maxCategoryBytesDelta": {
-        "config/data/messages": 9748,
+        "config/data/messages": 9746,
         "docs/text": 15767,
         "large support/generated-ish": 1180,
-        "source/scripts": 5895,
-        "tests/e2e": 6972
+        "source/scripts": 220,
+        "tests/e2e": 0
       },
       "maxPathBytesDelta": {
         "docs/plans/2026-08-27-t116-case-summary-design-gate.md": 11495,
         "docs/plans/2026-08-27-t116-case-summary-admission.json": 9748,
         "docs/plans/current-program.md": 4272,
-        "docs/plans/current-tracker.md": 1180,
-        "packages/domain-member/src/case-summary/types.ts": 769,
-        "packages/domain-member/src/case-summary/get-member-case-summaries.ts": 2593,
-        "packages/domain-member/src/case-summary/get-member-case-summaries.test.ts": 4397,
-        "packages/domain-member/src/index.ts": 159,
-        "apps/web/src/components/dashboard/case-summary/accident-case-summary.tsx": 1255,
-        "apps/web/src/components/dashboard/case-summary/case-kind-registry.ts": 1119,
-        "apps/web/src/components/dashboard/case-summary/case-kind-registry.test.tsx": 2575
+        "docs/plans/current-tracker.md": 1180
       }
     },
     {
@@ -242,18 +228,22 @@
         "apps/web/src/lib/auth.server.ts",
         "apps/web/src/components/shell/member-portal-context.ts",
         "packages/domain-member/package.json",
+        "packages/domain-member/src/case-summary/get-member-case-summaries.test.ts",
+        "packages/domain-member/src/case-summary/get-member-case-summaries.ts",
+        "packages/domain-member/src/case-summary/types.ts",
+        "packages/domain-member/src/index.ts",
         "packages/domain-member/src/portal-runtime/get-member-portal-membership.test.ts",
         "packages/domain-member/src/portal-runtime/get-member-portal-membership.ts",
         "pnpm-lock.yaml"
       ],
-      "maxTrackedBytesDelta": 18059,
-      "maxTrackedFilesDelta": 6,
+      "maxTrackedBytesDelta": 25930,
+      "maxTrackedFilesDelta": 9,
       "maxCategoryBytesDelta": {
         "config/data/messages": 7072,
         "docs/text": 3200,
         "large support/generated-ish": 417,
-        "source/scripts": 4886,
-        "tests/e2e": 2484
+        "source/scripts": 8360,
+        "tests/e2e": 6881
       },
       "maxPathBytesDelta": {
         "scripts/lean-exact-writer-exceptions.mjs": 3175,
@@ -262,6 +252,10 @@
         "apps/web/src/lib/auth.server.ts": 53,
         "apps/web/src/components/shell/member-portal-context.ts": 433,
         "packages/domain-member/package.json": 63,
+        "packages/domain-member/src/case-summary/get-member-case-summaries.test.ts": 4397,
+        "packages/domain-member/src/case-summary/get-member-case-summaries.ts": 2593,
+        "packages/domain-member/src/case-summary/types.ts": 722,
+        "packages/domain-member/src/index.ts": 159,
         "packages/domain-member/src/portal-runtime/get-member-portal-membership.test.ts": 2484,
         "packages/domain-member/src/portal-runtime/get-member-portal-membership.ts": 1225,
         "pnpm-lock.yaml": 417
@@ -273,6 +267,9 @@
       "writerPaths": [
         "docs/plans/2026-08-28-t117b-portal-design-gate.md",
         "docs/plans/2026-08-28-t117b-portal-admission.json",
+        "apps/web/src/components/dashboard/case-summary/accident-case-summary.tsx",
+        "apps/web/src/components/dashboard/case-summary/case-kind-registry.test.tsx",
+        "apps/web/src/components/dashboard/case-summary/case-kind-registry.ts",
         "apps/web/src/components/dashboard/case-summary/generic-case-summary.tsx",
         "apps/web/src/components/dashboard/member-portal-region-boundary.tsx",
         "apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx",
@@ -282,17 +279,20 @@
         "apps/web/src/messages/sq/dashboard.json",
         "apps/web/src/messages/sr/dashboard.json"
       ],
-      "maxTrackedBytesDelta": 34640,
-      "maxTrackedFilesDelta": 6,
+      "maxTrackedBytesDelta": 39418,
+      "maxTrackedFilesDelta": 9,
       "maxCategoryBytesDelta": {
-        "config/data/messages": 14092,
+        "config/data/messages": 14094,
         "docs/text": 3319,
-        "source/scripts": 9579,
-        "tests/e2e": 7650
+        "source/scripts": 11780,
+        "tests/e2e": 10225
       },
       "maxPathBytesDelta": {
         "docs/plans/2026-08-28-t117b-portal-design-gate.md": 3319,
-        "docs/plans/2026-08-28-t117b-portal-admission.json": 8079,
+        "docs/plans/2026-08-28-t117b-portal-admission.json": 8081,
+        "apps/web/src/components/dashboard/case-summary/accident-case-summary.tsx": 1082,
+        "apps/web/src/components/dashboard/case-summary/case-kind-registry.test.tsx": 2575,
+        "apps/web/src/components/dashboard/case-summary/case-kind-registry.ts": 1119,
         "apps/web/src/components/dashboard/case-summary/generic-case-summary.tsx": 953,
         "apps/web/src/components/dashboard/member-portal-region-boundary.tsx": 1133,
         "apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx": 7650,
@@ -355,7 +355,7 @@
       "docs/text": 3,
       "large support/generated-ish": 471
     },
-    "rationale": "Only the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
+    "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
   "maxTrackedBytes": 59652381,
   "maxTrackedFiles": 5863,

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -22,6 +23,28 @@ const T116_WRITERS = [
   `${COMPONENTS}/dashboard/case-summary/case-kind-registry.ts`,
   `${COMPONENTS}/dashboard/case-summary/case-kind-registry.test.tsx`,
 ];
+const DATA_CONTEXT = [
+  `${WEB}/lib/auth.server.ts`,
+  `${WEB}/components/shell/member-portal-context.ts`,
+];
+const PORTAL_RUNTIME = [`${PORTAL}.tsx`, `${PORTAL}-boundary.test.tsx`];
+const MEMBER_ENTRY = [
+  `${MEMBER_PAGE}/_core.entry.tsx`,
+  `${MEMBER_PAGE}/_core.entry.test.tsx`,
+  `${MEMBER_PAGE}/page.tsx`,
+  `${MEMBER_PAGE}/page.test.tsx`,
+];
+const MEMBER_GATE_E2E = [
+  `${E2E}/gate/member-diaspora.spec.ts`,
+  `${E2E}/gate/member-home-cta.spec.ts`,
+];
+const MEMBER_FLOW_E2E = [
+  `${E2E}/golden/member-dashboard-empty-state.spec.ts`,
+  `${E2E}/golden/member-dashboard-has-claims.spec.ts`,
+  `${E2E}/production.spec.ts`,
+  `${E2E}/smoke/ida-dashboard-smoke.spec.ts`,
+  `${E2E}/ui-v2-onboarding.spec.ts`,
+];
 const t116 = {
   sliceId: 'T-116-CASE-SUMMARY',
   tier: 2,
@@ -34,68 +57,52 @@ const t116 = {
   closeoutWriterPaths: ['docs/plans/current-program.md', 'docs/plans/current-tracker.md'],
 };
 const T117B_LEGACY_WRITERS = [
-  `${WEB}/lib/auth.server.ts`,
-  `${WEB}/components/shell/member-portal-context.ts`,
+  ...DATA_CONTEXT,
   `${DOMAIN_MEMBER}/portal-runtime/get-member-portal-activity.ts`,
   `${DOMAIN_MEMBER}/portal-runtime/get-member-portal-activity.test.ts`,
   `${DOMAIN_MEMBER}/index.ts`,
-  `${PORTAL}.tsx`,
-  `${PORTAL}-boundary.test.tsx`,
-  `${MEMBER_PAGE}/_core.entry.tsx`,
-  `${MEMBER_PAGE}/_core.entry.test.tsx`,
-  `${MEMBER_PAGE}/page.tsx`,
-  `${MEMBER_PAGE}/page.test.tsx`,
+  ...PORTAL_RUNTIME,
+  ...MEMBER_ENTRY,
 ];
 const T117B_WRITERS = [
   ...T117B_LEGACY_WRITERS,
   `${E2E}/dashboard-access.spec.ts`,
-  `${E2E}/gate/member-diaspora.spec.ts`,
-  `${E2E}/gate/member-home-cta.spec.ts`,
+  ...MEMBER_GATE_E2E,
   `${E2E}/golden/agent-member-overlay.spec.ts`,
-  `${E2E}/golden/member-dashboard-empty-state.spec.ts`,
-  `${E2E}/golden/member-dashboard-has-claims.spec.ts`,
-  `${E2E}/production.spec.ts`,
-  `${E2E}/smoke/ida-dashboard-smoke.spec.ts`,
-  `${E2E}/ui-v2-onboarding.spec.ts`,
+  ...MEMBER_FLOW_E2E,
 ];
 const T117B_DATA_WRITERS = [
-  `${WEB}/lib/auth.server.ts`,
-  `${WEB}/components/shell/member-portal-context.ts`,
+  ...DATA_CONTEXT,
   'packages/domain-member/package.json',
-  `${DOMAIN_MEMBER}/case-summary/get-member-case-summaries.test.ts`,
-  `${DOMAIN_MEMBER}/case-summary/get-member-case-summaries.ts`,
-  `${DOMAIN_MEMBER}/case-summary/types.ts`,
-  `${DOMAIN_MEMBER}/index.ts`,
+  T116_WRITERS[2],
+  T116_WRITERS[1],
+  T116_WRITERS[0],
+  T116_WRITERS[3],
   `${DOMAIN_MEMBER}/portal-runtime/get-member-portal-membership.test.ts`,
   `${DOMAIN_MEMBER}/portal-runtime/get-member-portal-membership.ts`,
   'pnpm-lock.yaml',
 ];
 const T117B_PORTAL_WRITERS = [
-  `${COMPONENTS}/dashboard/case-summary/accident-case-summary.tsx`,
-  `${COMPONENTS}/dashboard/case-summary/case-kind-registry.test.tsx`,
-  `${COMPONENTS}/dashboard/case-summary/case-kind-registry.ts`,
+  T116_WRITERS[4],
+  T116_WRITERS[6],
+  T116_WRITERS[5],
   `${COMPONENTS}/dashboard/case-summary/generic-case-summary.tsx`,
   `${COMPONENTS}/dashboard/member-portal-region-boundary.tsx`,
-  `${PORTAL}-boundary.test.tsx`,
-  `${PORTAL}.tsx`,
+  PORTAL_RUNTIME[1],
+  PORTAL_RUNTIME[0],
   `${WEB}/messages/en/dashboard.json`,
   `${WEB}/messages/mk/dashboard.json`,
   `${WEB}/messages/sq/dashboard.json`,
   `${WEB}/messages/sr/dashboard.json`,
 ];
 const T117B_CUTOVER_WRITERS = [
-  `${E2E}/gate/member-diaspora.spec.ts`,
-  `${E2E}/gate/member-home-cta.spec.ts`,
+  ...MEMBER_GATE_E2E,
   `${E2E}/golden/member-portal-agent-consumer.spec.ts`,
-  `${E2E}/golden/member-dashboard-empty-state.spec.ts`,
-  `${E2E}/golden/member-dashboard-has-claims.spec.ts`,
-  `${E2E}/production.spec.ts`,
-  `${E2E}/smoke/ida-dashboard-smoke.spec.ts`,
-  `${E2E}/ui-v2-onboarding.spec.ts`,
-  `${MEMBER_PAGE}/_core.entry.test.tsx`,
-  `${MEMBER_PAGE}/_core.entry.tsx`,
-  `${MEMBER_PAGE}/page.test.tsx`,
-  `${MEMBER_PAGE}/page.tsx`,
+  ...MEMBER_FLOW_E2E,
+  MEMBER_ENTRY[1],
+  MEMBER_ENTRY[0],
+  MEMBER_ENTRY[3],
+  MEMBER_ENTRY[2],
 ];
 const t117b = {
   ...t116,
@@ -129,6 +136,33 @@ const withPaths = (slice, productWriterPaths) => ({ ...slice, productWriterPaths
 const rejects = slices => {
   for (const slice of slices) assert.throws(() => marker(slice), /schema or policy mismatch/u);
 };
+const readJson = relative => JSON.parse(readFileSync(new URL(relative, import.meta.url), 'utf8'));
+const assertOwners = (pairs, children) => {
+  const owners = new Map();
+  for (const [writer, id] of pairs) {
+    if (owners.has(writer)) throw new Error(`double attribution: ${writer}`);
+    owners.set(writer, id);
+  }
+  for (const [id, child] of children)
+    for (const writer of child.writerPaths)
+      if (owners.get(writer) !== `t117b-${id}`) throw new Error(`foreign attribution: ${writer}`);
+};
+
+test('T117B capacity rejects foreign and double attribution', () => {
+  const budget = readJson('./repo-size-budget.json');
+  const pairs = budget.allocations.flatMap(({ id, writerPaths }) =>
+    writerPaths.map(writer => [writer, id])
+  );
+  const children = ['data', 'portal', 'cutover'].map(id => [
+    id,
+    readJson(`../docs/plans/2026-08-28-t117b-${id}-admission.json`),
+  ]);
+  assert.doesNotThrow(() => assertOwners(pairs, children));
+  const path = `${DOMAIN_MEMBER}/case-summary/types.ts`;
+  const foreign = pairs.map(([writer, id]) => [writer, writer === path ? 't116-case-summary' : id]);
+  assert.throws(() => assertOwners(foreign, children), /foreign/u);
+  assert.throws(() => assertOwners([...pairs, [path, 't116-case-summary']], children), /double/u);
+});
 
 test('deny-first classification rejects protected and unknown paths', () => {
   const denied = [

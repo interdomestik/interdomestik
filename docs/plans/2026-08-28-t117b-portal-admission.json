@@ -163,13 +163,13 @@
   },
   "capacityAllocation": {
     "id": "t117b-portal",
-    "maxTrackedBytesDelta": 34640,
-    "maxTrackedFilesDelta": 6,
+    "maxTrackedBytesDelta": 39418,
+    "maxTrackedFilesDelta": 9,
     "maxCategoryBytesDelta": {
-      "config/data/messages": 14092,
+      "config/data/messages": 14094,
       "docs/text": 3319,
-      "source/scripts": 9579,
-      "tests/e2e": 7650
+      "source/scripts": 11780,
+      "tests/e2e": 10225
     },
     "derivation": "exact per-path/category deltas are frozen from this child candidate; no reserve"
   },
