@@ -138,7 +138,7 @@
       "mountErrorPaths": "no mount exists in DATA; errors remain values/promises for PORTAL boundaries",
       "capabilityRequirements": "React.cache, T-116 CaseSummary and canonical MembershipLifecycleBucket",
       "testCollectors": "focused request, query, mixed-category, lifecycle and boundary tests",
-      "baselineOwnership": "promotion candidate against exact protected main 37ef98ed"
+      "baselineOwnership": "promotion candidate on exact protected main 37ef98ed"
     }
   },
   "capacityAllocation": {
