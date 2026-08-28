@@ -27,6 +27,26 @@ const t116 = {
   productWriterPaths: T116_WRITERS,
   closeoutWriterPaths: ['docs/plans/current-program.md', 'docs/plans/current-tracker.md'],
 };
+const T117B_WRITERS = [
+  'apps/web/src/lib/auth.server.ts',
+  'apps/web/src/components/shell/member-portal-context.ts',
+  'packages/domain-member/src/portal-runtime/get-member-portal-activity.ts',
+  'packages/domain-member/src/portal-runtime/get-member-portal-activity.test.ts',
+  'packages/domain-member/src/index.ts',
+  'apps/web/src/components/dashboard/member-portal-runtime.tsx',
+  'apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx',
+  'apps/web/src/app/[locale]/(app)/member/_core.entry.tsx',
+  'apps/web/src/app/[locale]/(app)/member/_core.entry.test.tsx',
+  'apps/web/src/app/[locale]/(app)/member/page.tsx',
+  'apps/web/src/app/[locale]/(app)/member/page.test.tsx',
+];
+const t117b = {
+  ...t116,
+  sliceId: 'T-117B-PORTAL-RUNTIME',
+  tier: 3,
+  expectedProductBranch: 'codex/t117b-portal-runtime',
+  productWriterPaths: T117B_WRITERS,
+};
 
 test('deny-first classification rejects protected and unknown paths', () => {
   const denied = [
@@ -113,6 +133,43 @@ test('domain_read_projection is exact, Tier-2, T-116-only and keeps tenant proof
       ...t116,
       productWriterPaths: T116_WRITERS.map(path =>
         path.endsWith('.test.ts') ? 'packages/domain-member/src/case-summary/update-case.ts' : path
+      ),
+    },
+  ];
+  for (const slice of invalid) {
+    assert.throws(
+      () => approvalMarker(slice, '1'.repeat(40), '2'.repeat(40)),
+      /schema or policy mismatch/u
+    );
+  }
+});
+
+test('tier3_portal_runtime is one-shot for exact T-117B slice, order, hash, and paths', () => {
+  for (const path of T117B_WRITERS) {
+    assert.deepEqual(classifyWriterPath(path, t117b), {
+      allowed: true,
+      classification: 'tier3_portal_runtime',
+    });
+  }
+  for (const path of [
+    'apps/web/src/lib/auth.server.ts',
+    'packages/domain-member/src/portal-runtime/get-member-portal-activity.ts',
+    'packages/domain-member/src/index.ts',
+  ]) {
+    assert.equal(classifyWriterPath(path).allowed, false, `default deny: ${path}`);
+  }
+  assert.doesNotThrow(() => approvalMarker(t117b, '1'.repeat(40), '2'.repeat(40)));
+
+  const invalid = [
+    { ...t117b, tier: 2 },
+    { ...t117b, sliceId: 'T-117B-PORTAL-RUNTIME-COPY' },
+    { ...t117b, productWriterPaths: [...T117B_WRITERS].reverse() },
+    { ...t117b, productWriterPaths: T117B_WRITERS.slice(1) },
+    { ...t117b, productWriterPaths: [...T117B_WRITERS, 'next.config.mjs'] },
+    {
+      ...t117b,
+      productWriterPaths: T117B_WRITERS.map(path =>
+        path.endsWith('page.tsx') ? 'apps/web/src/app/[locale]/(app)/member/@cases/page.tsx' : path
       ),
     },
   ];

@@ -1,4 +1,7 @@
-import { createHash } from 'node:crypto';
+import {
+  exactWriterClassification,
+  isT117BPortalRuntime,
+} from './lean-exact-writer-exceptions.mjs';
 
 export const APPROVAL_PREFIX = 'LEAN_AUTHORITY_APPROVAL_V1';
 export const AUTHORITY = 'lean-tier12-v1';
@@ -12,8 +15,6 @@ const SHA256 = /^[a-f0-9]{64}$/u;
 const PROMOTION_GATE =
   /^docs\/plans\/\d{4}-\d{2}-\d{2}-[a-z0-9][a-z0-9-]*-(?:design|gate)\.(?:json|md)$/u;
 const PROMOTION_ADMISSION = /^docs\/plans\/\d{4}-\d{2}-\d{2}-[a-z0-9][a-z0-9-]*-admission\.json$/u;
-const T116_WRITER_MAP_SHA256 = '0c1facb7a3c248391ce92b308e592219f32ccefb6c4d67ee859011e8968b4fa5';
-const DOMAIN_READ_PROJECTION = /^packages\/domain-member\/src\/(?:case-summary\/.+|index\.ts)$/u;
 const DENY_PATTERNS = [
   /^(?:AGENTS|README)\.md$/u,
   /^\.(?:github|codex)\//u,
@@ -95,14 +96,8 @@ export function classifyWriterPath(path, slice) {
     !path.includes('\\') &&
     path.split('/').every(part => part && part !== '.' && part !== '..');
   if (!safe) return { allowed: false, classification: 'malformed' };
-  const domainReadProjection =
-    slice?.sliceId === 'T-116-CASE-SUMMARY' &&
-    slice.tier === 2 &&
-    DOMAIN_READ_PROJECTION.test(path) &&
-    slice.productWriterPaths?.includes(path) &&
-    createHash('sha256').update(JSON.stringify(slice.productWriterPaths)).digest('hex') ===
-      T116_WRITER_MAP_SHA256;
-  if (domainReadProjection) return { allowed: true, classification: 'domain_read_projection' };
+  const exactClassification = exactWriterClassification(path, slice);
+  if (exactClassification) return { allowed: true, classification: exactClassification };
   if (DENY_PATTERNS.some(pattern => pattern.test(path)) || hasProtectedSegment(path)) {
     return { allowed: false, classification: 'protected' };
   }
@@ -130,7 +125,7 @@ export function validateSlice(slice) {
   const checks = [
     keysAre(slice, fields),
     /^[A-Z0-9][A-Z0-9-]+$/u.test(slice?.sliceId ?? ''),
-    [1, 2].includes(slice?.tier),
+    [1, 2].includes(slice?.tier) || isT117BPortalRuntime(slice),
     Number.isSafeInteger(slice?.promotionPrNumber) && slice.promotionPrNumber > 0,
     SHA40.test(slice?.promotionBaseSha ?? ''),
     SHA256.test(slice?.gateSha256 ?? ''),
