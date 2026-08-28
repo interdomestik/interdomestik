@@ -28,9 +28,11 @@ status_command: pnpm plan:status
 
 ## Next Selection
 
-T-116 remains terminally complete. T-117B is the sole pending Tier-3 projection; live promotion
-PR `#1650` is bound to the exact branch/base/head and grants no runtime before its owner marker
-and green merge. T-117C remains deferred until T-117B closes.
+T-116 remains terminally complete. T-117B is the sole pending Tier-3 candidate. Promotion PR
+`#1650` is superseded for product execution after prerequisite PR `#1651` advanced protected main
+to `022c6bdf28239e749e02bcfbc9245641c45bdaaa`; neither PR grants current runtime. A new exact
+re-freeze and promotion are required before implementation. T-117C remains deferred until T-117B
+closes.
 
 | Future UI branch | Status     | Constraint                                                   |
 | ---------------- | ---------- | ------------------------------------------------------------ |
@@ -43,37 +45,12 @@ and green merge. T-117C remains deferred until T-117B closes.
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "promotion_pending",
+  "lifecycle": "inactive",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": {
-    "sliceId": "T-117B-PORTAL-RUNTIME",
-    "tier": 3,
-    "promotionPrNumber": 1650,
-    "promotionBaseSha": "be398cbccdd4491b2d0721bc201fd9e49ce101af",
-    "expectedProductBranch": "codex/t117b-portal-runtime",
-    "gateSha256": "19ce41e1f8db59b187abaa61b30d14c89931fd671eeb19448e969d2cc1e269c6",
-    "admissionSha256": "7d663291b7d378be6bc9cad3520e1c920df6c116dc62a9f15b11540f5fefaf63",
-    "productWriterPaths": [
-      "apps/web/src/lib/auth.server.ts",
-      "apps/web/src/components/shell/member-portal-context.ts",
-      "packages/domain-member/src/portal-runtime/get-member-portal-activity.ts",
-      "packages/domain-member/src/portal-runtime/get-member-portal-activity.test.ts",
-      "packages/domain-member/src/index.ts",
-      "apps/web/src/components/dashboard/member-portal-runtime.tsx",
-      "apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx",
-      "apps/web/src/app/[locale]/(app)/member/_core.entry.tsx",
-      "apps/web/src/app/[locale]/(app)/member/_core.entry.test.tsx",
-      "apps/web/src/app/[locale]/(app)/member/page.tsx",
-      "apps/web/src/app/[locale]/(app)/member/page.test.tsx"
-    ],
-    "closeoutWriterPaths": [
-      "docs/plans/current-program.md",
-      "docs/plans/current-tracker.md"
-    ]
-  }
+  "activeSlice": null
 }
 ```
 
