@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-08-27
+last_reviewed: 2026-08-28
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -65,6 +65,13 @@ Required checks, full PR E2E, pilot, zero-issue Sonar, focused/full tests, adver
 same-head feedback intake were green. Capacity PR `#1644` and compatibility PR `#1645` remain the
 bounded prerequisite proofs; neither added a generic reserve or generic Tier-3 runtime.
 
+`T-117B-PORTAL-RUNTIME` is the sole Tier-3 promotion projection. Its
+[gate](./2026-08-28-t117b-portal-runtime-design-gate.md) and
+[admission](./2026-08-28-t117b-portal-runtime-admission.json) bind ordinary async RSC, sibling
+Suspense regions, one request-scoped session/tenant context, two projection queries, and the
+structural disclaimer. The exact permission/allocation prerequisite grants no runtime and no
+generic Tier-3 class. This row records no implementation, PR, merge, CI/E2E, or closeout proof.
+
 Closed `IDA-WF01-ONE-APPROVAL-DELIVERY` remains immutable evidence through its
 [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),
 [authority anchor](./current-authority-v1.json), artifacts, and receipts; it grants no Lean runtime.
@@ -80,9 +87,10 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate       | Dependencies | Promotion constraint                              |
-| -------: | --------------- | ------------ | ------------------------------------------------- |
-|        1 | `T-117B` Tier 3 | T-116 closed | Runtime topology requires a separate Tier-3 gate. |
+| Priority | Candidate       | Dependencies  | Promotion constraint                                      |
+| -------: | --------------- | ------------- | --------------------------------------------------------- |
+|        1 | `T-117B` Tier 3 | T-116 closed  | Exact permission/allocation and live promotion must pass. |
+|        2 | `T-117C` Tier 3 | T-117B closed | Atomic PPR plus named-parallel-route migration only.      |
 
 ## Unified Portal Direction
 
@@ -91,7 +99,9 @@ Preserve one responsive, capability-driven shell across roles, never five copied
 projection → T-117B runtime → role/task views`. Member starts with Help Now/Cases/Documents; agent with clients/follow-ups; staff with
 queue/SLA/triage; manager with team/performance; admin with organization/audit. Tenant/legal
 context appears only when relevant. Benchmarks are rationale, not trade dress; reuse the existing
-system and M1–M5 architecture. T-116 remains unmounted; this direction grants no runtime authority.
+system and M1–M5 architecture. T-117B mounts the member consumer through ordinary async RSC,
+sibling Suspense, request-scoped identity, and two projections. `cacheComponents`, PPR, named
+parallel routes, `next.config`, and global headers migration remain deferred together to T-117C.
 
 ## Selection Constraints
 
@@ -116,12 +126,37 @@ system and M1–M5 architecture. T-116 remains unmounted; this direction grants 
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "inactive",
+  "lifecycle": "promotion_pending",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": null
+  "activeSlice": {
+    "sliceId": "T-117B-PORTAL-RUNTIME",
+    "tier": 3,
+    "promotionPrNumber": 1650,
+    "promotionBaseSha": "be398cbccdd4491b2d0721bc201fd9e49ce101af",
+    "expectedProductBranch": "codex/t117b-portal-runtime",
+    "gateSha256": "3c95af83eb0edf62f10db79a0043b4e314bb9cd9cf1d059cb41328c6bb01520d",
+    "admissionSha256": "0d2952f43f47304b745636009c812138e888d1952ea9c4623682da8c784fa8de",
+    "productWriterPaths": [
+      "apps/web/src/lib/auth.server.ts",
+      "apps/web/src/components/shell/member-portal-context.ts",
+      "packages/domain-member/src/portal-runtime/get-member-portal-activity.ts",
+      "packages/domain-member/src/portal-runtime/get-member-portal-activity.test.ts",
+      "packages/domain-member/src/index.ts",
+      "apps/web/src/components/dashboard/member-portal-runtime.tsx",
+      "apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx",
+      "apps/web/src/app/[locale]/(app)/member/_core.entry.tsx",
+      "apps/web/src/app/[locale]/(app)/member/_core.entry.test.tsx",
+      "apps/web/src/app/[locale]/(app)/member/page.tsx",
+      "apps/web/src/app/[locale]/(app)/member/page.test.tsx"
+    ],
+    "closeoutWriterPaths": [
+      "docs/plans/current-program.md",
+      "docs/plans/current-tracker.md"
+    ]
+  }
 }
 ```
 
