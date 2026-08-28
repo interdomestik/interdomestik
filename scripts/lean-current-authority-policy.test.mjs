@@ -7,14 +7,20 @@ import {
   compareCanonicalText,
 } from './lean-current-authority.mjs';
 
+const WEB = 'apps/web/src';
+const COMPONENTS = `${WEB}/components`;
+const DOMAIN_MEMBER = 'packages/domain-member/src';
+const MEMBER_PAGE = `${WEB}/app/[locale]/(app)/member`;
+const PORTAL = `${COMPONENTS}/dashboard/member-portal-runtime`;
+const E2E = 'apps/web/e2e';
 const T116_WRITERS = [
-  'packages/domain-member/src/case-summary/types.ts',
-  'packages/domain-member/src/case-summary/get-member-case-summaries.ts',
-  'packages/domain-member/src/case-summary/get-member-case-summaries.test.ts',
-  'packages/domain-member/src/index.ts',
-  'apps/web/src/components/dashboard/case-summary/accident-case-summary.tsx',
-  'apps/web/src/components/dashboard/case-summary/case-kind-registry.ts',
-  'apps/web/src/components/dashboard/case-summary/case-kind-registry.test.tsx',
+  `${DOMAIN_MEMBER}/case-summary/types.ts`,
+  `${DOMAIN_MEMBER}/case-summary/get-member-case-summaries.ts`,
+  `${DOMAIN_MEMBER}/case-summary/get-member-case-summaries.test.ts`,
+  `${DOMAIN_MEMBER}/index.ts`,
+  `${COMPONENTS}/dashboard/case-summary/accident-case-summary.tsx`,
+  `${COMPONENTS}/dashboard/case-summary/case-kind-registry.ts`,
+  `${COMPONENTS}/dashboard/case-summary/case-kind-registry.test.tsx`,
 ];
 const t116 = {
   sliceId: 'T-116-CASE-SUMMARY',
@@ -27,18 +33,30 @@ const t116 = {
   productWriterPaths: T116_WRITERS,
   closeoutWriterPaths: ['docs/plans/current-program.md', 'docs/plans/current-tracker.md'],
 };
+const T117B_LEGACY_WRITERS = [
+  `${WEB}/lib/auth.server.ts`,
+  `${WEB}/components/shell/member-portal-context.ts`,
+  `${DOMAIN_MEMBER}/portal-runtime/get-member-portal-activity.ts`,
+  `${DOMAIN_MEMBER}/portal-runtime/get-member-portal-activity.test.ts`,
+  `${DOMAIN_MEMBER}/index.ts`,
+  `${PORTAL}.tsx`,
+  `${PORTAL}-boundary.test.tsx`,
+  `${MEMBER_PAGE}/_core.entry.tsx`,
+  `${MEMBER_PAGE}/_core.entry.test.tsx`,
+  `${MEMBER_PAGE}/page.tsx`,
+  `${MEMBER_PAGE}/page.test.tsx`,
+];
 const T117B_WRITERS = [
-  'apps/web/src/lib/auth.server.ts',
-  'apps/web/src/components/shell/member-portal-context.ts',
-  'packages/domain-member/src/portal-runtime/get-member-portal-activity.ts',
-  'packages/domain-member/src/portal-runtime/get-member-portal-activity.test.ts',
-  'packages/domain-member/src/index.ts',
-  'apps/web/src/components/dashboard/member-portal-runtime.tsx',
-  'apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx',
-  'apps/web/src/app/[locale]/(app)/member/_core.entry.tsx',
-  'apps/web/src/app/[locale]/(app)/member/_core.entry.test.tsx',
-  'apps/web/src/app/[locale]/(app)/member/page.tsx',
-  'apps/web/src/app/[locale]/(app)/member/page.test.tsx',
+  ...T117B_LEGACY_WRITERS,
+  `${E2E}/dashboard-access.spec.ts`,
+  `${E2E}/gate/member-diaspora.spec.ts`,
+  `${E2E}/gate/member-home-cta.spec.ts`,
+  `${E2E}/golden/agent-member-overlay.spec.ts`,
+  `${E2E}/golden/member-dashboard-empty-state.spec.ts`,
+  `${E2E}/golden/member-dashboard-has-claims.spec.ts`,
+  `${E2E}/production.spec.ts`,
+  `${E2E}/smoke/ida-dashboard-smoke.spec.ts`,
+  `${E2E}/ui-v2-onboarding.spec.ts`,
 ];
 const t117b = {
   ...t116,
@@ -47,25 +65,30 @@ const t117b = {
   expectedProductBranch: 'codex/t117b-portal-runtime',
   productWriterPaths: T117B_WRITERS,
 };
+const marker = slice => approvalMarker(slice, '1'.repeat(40), '2'.repeat(40));
+const withPaths = (slice, productWriterPaths) => ({ ...slice, productWriterPaths });
+const rejects = slices => {
+  for (const slice of slices) assert.throws(() => marker(slice), /schema or policy mismatch/u);
+};
 
 test('deny-first classification rejects protected and unknown paths', () => {
   const denied = [
     'docs/plans/current-program.md',
-    'apps/web/src/proxy.ts',
+    `${WEB}/proxy.ts`,
     'packages/shared-auth/src/index.ts',
     'packages/database/src/schema/user.ts',
     'packages/domain-ai/src/model.ts',
     'packages/domain-users/src/admin/roles.ts',
     'packages/domain-users/src/utils/ensure-tenant.ts',
     'packages/domain-privacy/src/member/export.ts',
-    'apps/web/src/components/auth/login-form.tsx',
-    'apps/web/src/components/legal-card.tsx',
-    'apps/web/src/components/schema-view.tsx',
-    'apps/web/src/components/playwright-panel.tsx',
-    'apps/web/src/app/[locale]/(auth)/login/page.tsx',
-    'apps/web/src/messages/en/commercialTerms.json',
-    'apps/web/src/messages/en/commercial-terms.json',
-    'apps/web/src/messages/en/commercial_terms.json',
+    `${COMPONENTS}/auth/login-form.tsx`,
+    `${COMPONENTS}/legal-card.tsx`,
+    `${COMPONENTS}/schema-view.tsx`,
+    `${COMPONENTS}/playwright-panel.tsx`,
+    `${WEB}/app/[locale]/(auth)/login/page.tsx`,
+    `${WEB}/messages/en/commercialTerms.json`,
+    `${WEB}/messages/en/commercial-terms.json`,
+    `${WEB}/messages/en/commercial_terms.json`,
     '.github/workflows/ci.yml',
     'apps/web/e2e/gate.spec.ts',
     'package.json',
@@ -74,25 +97,22 @@ test('deny-first classification rejects protected and unknown paths', () => {
     'unmapped/feature.ts',
   ];
   for (const path of denied) assert.equal(classifyWriterPath(path).allowed, false, path);
-  for (const path of [
-    'apps/web/src/app/[locale]/page.tsx',
-    'apps/web/src/app/[locale]/page.test.tsx',
-  ]) {
+  for (const path of [`${WEB}/app/[locale]/page.tsx`, `${WEB}/app/[locale]/page.test.tsx`]) {
     assert.equal(classifyWriterPath(path).allowed, true, path);
   }
 });
 
 test('deny-first classification finds protected tokens anywhere in an allowed component path', () => {
   const disguisedProtectedPaths = [
-    'apps/web/src/components/member-access-card.tsx',
-    'apps/web/src/components/user-privacy-card.tsx',
-    'apps/web/src/components/ensure-tenant.tsx',
-    'apps/web/src/components/ai-assistant.tsx',
-    'apps/web/src/components/model-picker.tsx',
-    'apps/web/src/components/oauth-login-panel.tsx',
-    'apps/web/src/components/prompt-evaluation-card.tsx',
-    'apps/web/src/components/stripe-checkout-card.tsx',
-    'apps/web/src/components/member_access_card.tsx',
+    `${COMPONENTS}/member-access-card.tsx`,
+    `${COMPONENTS}/user-privacy-card.tsx`,
+    `${COMPONENTS}/ensure-tenant.tsx`,
+    `${COMPONENTS}/ai-assistant.tsx`,
+    `${COMPONENTS}/model-picker.tsx`,
+    `${COMPONENTS}/oauth-login-panel.tsx`,
+    `${COMPONENTS}/prompt-evaluation-card.tsx`,
+    `${COMPONENTS}/stripe-checkout-card.tsx`,
+    `${COMPONENTS}/member_access_card.tsx`,
   ];
   for (const path of disguisedProtectedPaths) {
     assert.deepEqual(classifyWriterPath(path), { allowed: false, classification: 'protected' });
@@ -108,7 +128,7 @@ test('canonical path ordering uses an explicit locale-bound comparator', () => {
   ]);
 });
 
-test('domain_read_projection is exact, Tier-2, T-116-only and keeps tenant proof in-map', () => {
+test('domain_read_projection stays exact and T-116-only', () => {
   for (const path of T116_WRITERS.slice(0, 4)) {
     assert.deepEqual(classifyWriterPath(path, t116), {
       allowed: true,
@@ -116,67 +136,53 @@ test('domain_read_projection is exact, Tier-2, T-116-only and keeps tenant proof
     });
     assert.equal(classifyWriterPath(path).allowed, false, `default deny: ${path}`);
   }
-  assert.doesNotThrow(() => approvalMarker(t116, '1'.repeat(40), '2'.repeat(40)));
+  assert.doesNotThrow(() => marker(t116));
 
   const invalid = [
     { ...t116, tier: 1 },
     { ...t116, sliceId: 'T-116-CASE-SUMMARY-COPY' },
-    { ...t116, productWriterPaths: T116_WRITERS.slice(0, -1) },
-    {
-      ...t116,
-      productWriterPaths: [
-        ...T116_WRITERS,
-        'packages/domain-member/src/case-summary/get-cross-tenant-case.ts',
-      ],
-    },
-    {
-      ...t116,
-      productWriterPaths: T116_WRITERS.map(path =>
+    withPaths(t116, T116_WRITERS.slice(0, -1)),
+    withPaths(t116, [
+      ...T116_WRITERS,
+      'packages/domain-member/src/case-summary/get-cross-tenant-case.ts',
+    ]),
+    withPaths(
+      t116,
+      T116_WRITERS.map(path =>
         path.endsWith('.test.ts') ? 'packages/domain-member/src/case-summary/update-case.ts' : path
-      ),
-    },
+      )
+    ),
   ];
-  for (const slice of invalid) {
-    assert.throws(
-      () => approvalMarker(slice, '1'.repeat(40), '2'.repeat(40)),
-      /schema or policy mismatch/u
-    );
-  }
+  rejects(invalid);
 });
 
-test('tier3_portal_runtime is one-shot for exact T-117B slice, order, hash, and paths', () => {
+test('tier3_portal_runtime accepts only exact T-117B hashes and paths', () => {
   for (const path of T117B_WRITERS) {
     assert.deepEqual(classifyWriterPath(path, t117b), {
       allowed: true,
       classification: 'tier3_portal_runtime',
     });
+    assert.throws(() => marker(withPaths(t117b, [path])), /schema or policy mismatch/u);
   }
-  for (const path of [
-    'apps/web/src/lib/auth.server.ts',
-    'packages/domain-member/src/portal-runtime/get-member-portal-activity.ts',
-    'packages/domain-member/src/index.ts',
-  ]) {
-    assert.equal(classifyWriterPath(path).allowed, false, `default deny: ${path}`);
-  }
-  assert.doesNotThrow(() => approvalMarker(t117b, '1'.repeat(40), '2'.repeat(40)));
+  assert.doesNotThrow(() => marker(t117b));
+  assert.doesNotThrow(() => marker(withPaths(t117b, T117B_LEGACY_WRITERS)));
 
   const invalid = [
     { ...t117b, tier: 2 },
     { ...t117b, sliceId: 'T-117B-PORTAL-RUNTIME-COPY' },
-    { ...t117b, productWriterPaths: [...T117B_WRITERS].reverse() },
-    { ...t117b, productWriterPaths: T117B_WRITERS.slice(1) },
-    { ...t117b, productWriterPaths: [...T117B_WRITERS, 'next.config.mjs'] },
-    {
-      ...t117b,
-      productWriterPaths: T117B_WRITERS.map(path =>
+    withPaths(t117b, [...T117B_WRITERS].reverse()),
+    withPaths(t117b, T117B_WRITERS.slice(1)),
+    withPaths(t117b, [...T117B_WRITERS, 'next.config.mjs']),
+    withPaths(
+      t116,
+      Array.from({ length: 13 }, (_, index) => `apps/web/src/components/example-${index}.tsx`)
+    ),
+    withPaths(
+      t117b,
+      T117B_WRITERS.map(path =>
         path.endsWith('page.tsx') ? 'apps/web/src/app/[locale]/(app)/member/@cases/page.tsx' : path
-      ),
-    },
+      )
+    ),
   ];
-  for (const slice of invalid) {
-    assert.throws(
-      () => approvalMarker(slice, '1'.repeat(40), '2'.repeat(40)),
-      /schema or policy mismatch/u
-    );
-  }
+  rejects(invalid);
 });

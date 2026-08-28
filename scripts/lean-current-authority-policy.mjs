@@ -131,7 +131,9 @@ export function validateSlice(slice) {
     SHA256.test(slice?.gateSha256 ?? ''),
     SHA256.test(slice?.admissionSha256 ?? ''),
     /^codex\/[a-z0-9][a-z0-9-]+$/u.test(slice?.expectedProductBranch ?? ''),
-    Array.isArray(writers) && writers.length > 0 && writers.length <= 12,
+    Array.isArray(writers) &&
+      writers.length > 0 &&
+      (writers.length <= 12 || isT117BPortalRuntime(slice)),
     Array.isArray(writers) && new Set(writers).size === writers.length,
     Array.isArray(writers) && writers.every(path => classifyWriterPath(path, slice).allowed),
     same(slice?.closeoutWriterPaths, CLOSEOUT),
