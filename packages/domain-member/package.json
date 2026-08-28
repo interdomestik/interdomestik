@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@interdomestik/database": "workspace:*",
+    "@interdomestik/domain-membership-billing": "workspace:*",
     "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
