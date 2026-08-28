@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "sliceId": "T117B-CUTOVER",
+  "tier": 3,
+  "baseSha": "a0d035ada72a96f08a53781e5d892f88e910a474",
+  "authorityArtifactSha256": "eacf840235238b71211322b7d8d548879ffb2dd582395834e8f3ba36d10d4fde",
+  "productOutcomes": [
+    "Atomically replace the member legacy presentation with T117B-PORTAL and migrate the eight active behavioral E2E/golden contracts while preserving one identity resolution and exactly two projections"
+  ],
+  "writerPaths": [
+    "apps/web/e2e/gate/member-diaspora.spec.ts",
+    "apps/web/e2e/gate/member-home-cta.spec.ts",
+    "apps/web/e2e/golden/member-portal-agent-consumer.spec.ts",
+    "apps/web/e2e/golden/member-dashboard-empty-state.spec.ts",
+    "apps/web/e2e/golden/member-dashboard-has-claims.spec.ts",
+    "apps/web/e2e/production.spec.ts",
+    "apps/web/e2e/smoke/ida-dashboard-smoke.spec.ts",
+    "apps/web/e2e/ui-v2-onboarding.spec.ts",
+    "apps/web/src/app/[locale]/(app)/member/_core.entry.test.tsx",
+    "apps/web/src/app/[locale]/(app)/member/_core.entry.tsx",
+    "apps/web/src/app/[locale]/(app)/member/page.test.tsx",
+    "apps/web/src/app/[locale]/(app)/member/page.tsx"
+  ],
+  "productWriterMapSha256": "a3b7ba9338ba5e453316a55bd499078855c7c911158f43057dc419276d3d749a",
+  "proofSurfaces": [
+    {
+      "id": "route-integration",
+      "invalidatedBy": [
+        "member page/core mount, legacy unmount, promise start/ownership, session context, query count or region order change"
+      ]
+    },
+    {
+      "id": "behavior-migration",
+      "invalidatedBy": [
+        "mixed category, membership lifecycle, draft, diaspora, Help Now, Documents, agent-as-member or E2E disposition change"
+      ]
+    },
+    {
+      "id": "cutover-rollback",
+      "invalidatedBy": [
+        "writer hash, DATA/PORTAL predecessor, exact-head CI/E2E, security, feedback, merge, main health or revert change"
+      ]
+    }
+  ],
+  "acceptanceMatrix": [
+    {
+      "criterionId": "atomic-member-mount",
+      "proofSurfaceId": "route-integration",
+      "command": "member page/core focused integration and query instrumentation",
+      "expected": "one portal, no legacy presentation, one identity resolution and exactly two tenant-scoped projections",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "eight-behavior-contracts",
+      "proofSurfaceId": "behavior-migration",
+      "command": "exact eight E2E/golden collectors",
+      "expected": "mixed cases, lifecycle actions, C31, diaspora, navigation and agent-as-member pass without legacy selectors",
+      "environmentId": "cutover-browser-local",
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "reversible-cutover",
+      "proofSurfaceId": "cutover-rollback",
+      "command": "exact-diff, predecessor, CI/E2E, security, feedback and rollback certificate",
+      "expected": "single CUTOVER revert restores old presentation while DATA and PORTAL remain dormant",
+      "environmentId": null,
+      "skipIsFailure": true
+    }
+  ],
+  "executionPolicy": {
+    "focusedBeforeHeavy": true,
+    "currentHeadCanaryBeforeFullCi": true,
+    "feedbackBeforeHeavy": true,
+    "fullE2eAuthority": "ci_once_per_exact_head",
+    "rerunPolicy": "invalidated_only",
+    "staleHeadAction": "cancel",
+    "runnerReadiness": "connected_and_listening"
+  },
+  "sharedRuntimeConsumers": [
+    "The member page is the sole mounted consumer of T117B-PORTAL and the two DATA promises"
+  ],
+  "specialProofEnvironments": [
+    {
+      "id": "cutover-browser-local",
+      "canary": {
+        "command": "exact eight T117B behavioral Playwright collectors on the disposable full chain",
+        "expected": "all required mounted member behaviors pass without skips or legacy compatibility UI",
+        "result": "pass",
+        "observedAt": "2026-08-28T17:14:31Z",
+        "evidence": "cutover-browser-contract: ks-sq 18/18; smoke-ida C31 2/2; no skipped required behavior; base a0d035ada72a96f08a53781e5d892f88e910a474",
+        "evidenceSha256": "18e36684ae479c48a286f08e841a2b576da7af1ae501d14866ef566405847a02",
+        "environmentFingerprint": "darwin-arm64; local deterministic E2E lane; base-a0d035ad"
+      }
+    }
+  ],
+  "contractGraph": {
+    "nodes": [
+      { "id": "member-entry", "kind": "entry" },
+      { "id": "data-contract", "kind": "external" },
+      { "id": "portal-contract", "kind": "external" },
+      { "id": "mounted-member", "kind": "consumer" },
+      { "id": "behavior-collectors", "kind": "test" },
+      { "id": "closed-predecessors", "kind": "baseline" }
+    ],
+    "edges": [
+      {
+        "id": "start-data",
+        "from": "data-contract",
+        "to": "mounted-member",
+        "operation": "start exactly two projections from session-derived context"
+      },
+      {
+        "id": "mount-portal",
+        "from": "portal-contract",
+        "to": "mounted-member",
+        "operation": "mount Unified Portal and remove legacy presentation"
+      },
+      {
+        "id": "enter",
+        "from": "member-entry",
+        "to": "mounted-member",
+        "operation": "compose member route without topology or PPR change"
+      },
+      {
+        "id": "collect",
+        "from": "mounted-member",
+        "to": "behavior-collectors",
+        "operation": "prove exact eight migrated behavioral contracts"
+      },
+      {
+        "id": "attribute",
+        "from": "closed-predecessors",
+        "to": "behavior-collectors",
+        "operation": "bind DATA and PORTAL exact closed predecessors"
+      }
+    ],
+    "closure": {
+      "callers": true,
+      "sharedConsumers": true,
+      "readWriteDelete": true,
+      "mountErrorPaths": true,
+      "capabilityRequirements": true,
+      "testCollectors": true,
+      "baselineOwnership": true
+    },
+    "closureEvidence": {
+      "callers": "member page/core are the sole mount and promise-start callers",
+      "sharedConsumers": "one mounted portal consumes both DATA promises",
+      "readWriteDelete": "CUTOVER adds no query or write; DATA retains exactly two read-only projections",
+      "mountErrorPaths": "route composition and all slow, empty and error region paths are covered",
+      "capabilityRequirements": "closed exact DATA and PORTAL predecessors; ordinary async RSC only",
+      "testCollectors": "eight exact behavioral E2E/golden paths plus focused page/core integration",
+      "baselineOwnership": "detached chain candidate against exact main with both predecessors bound"
+    }
+  },
+  "capacityAllocation": {
+    "id": "t117b-cutover",
+    "maxTrackedBytesDelta": 15979,
+    "maxTrackedFilesDelta": 3,
+    "maxCategoryBytesDelta": {
+      "config/data/messages": 7797,
+      "docs/text": 2955,
+      "source/scripts": 1264,
+      "tests/e2e": 3963
+    },
+    "derivation": "exact per-path/category deltas are frozen from this child candidate; no reserve"
+  },
+  "successorConditions": [
+    "T117B-DATA and T117B-PORTAL exact merges and closeouts are verified",
+    "exact-head product CI/E2E, security, Sonar and feedback are green",
+    "closeout leaves authority inactive; T-117C remains separately gated"
+  ],
+  "highestRiskCases": [
+    "legacy presentation remains or portal mounts beside it",
+    "integration introduces a third query or loses request-scoped identity",
+    "behavior tests are weakened instead of migrated"
+  ],
+  "rollback": {
+    "mechanism": "discard unmerged CUTOVER state; after merge revert only the exact CUTOVER merge, restoring legacy presentation while DATA and PORTAL remain dormant",
+    "trigger": "mount, two-query, behavior, accessibility, exact-head CI/E2E, feedback, security, main health or rollback proof fails"
+  },
+  "firstImplementationAction": "Write failing page/core integration assertions for one portal, no legacy presentation and exactly two DATA projections before route cutover"
+}

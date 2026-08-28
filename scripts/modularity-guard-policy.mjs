@@ -52,6 +52,12 @@ const STRUCTURED_OWNERS = [
   [/^(?:components|turbo|vercel)\.json$/u, 'repository-config-contract'],
   [/^\.codex\/config\.toml$/u, 'codex-config-contract'],
 ];
+const T117B_MEMBER_PORTAL_CATALOGS = new Set([
+  'apps/web/src/messages/en/dashboard.json',
+  'apps/web/src/messages/mk/dashboard.json',
+  'apps/web/src/messages/sq/dashboard.json',
+  'apps/web/src/messages/sr/dashboard.json',
+]);
 const GENERATED_EXACT_FILES = new Set([
   'bun.lockb',
   'package-lock.json',
@@ -85,6 +91,7 @@ export function isExplicitModularityException(filePath) {
 }
 export function structuredArtifactOwner(filePath) {
   const relPath = toPolicyPath(filePath);
+  if (T117B_MEMBER_PORTAL_CATALOGS.has(relPath)) return 't117b-member-portal-i18n-contract';
   return STRUCTURED_OWNERS.find(([pattern]) => pattern.test(relPath))?.[1] ?? null;
 }
 export function classifyModularityFile(filePath) {

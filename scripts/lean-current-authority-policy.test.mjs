@@ -58,6 +58,45 @@ const T117B_WRITERS = [
   `${E2E}/smoke/ida-dashboard-smoke.spec.ts`,
   `${E2E}/ui-v2-onboarding.spec.ts`,
 ];
+const T117B_DATA_WRITERS = [
+  `${WEB}/lib/auth.server.ts`,
+  `${WEB}/components/shell/member-portal-context.ts`,
+  'packages/domain-member/package.json',
+  `${DOMAIN_MEMBER}/case-summary/get-member-case-summaries.test.ts`,
+  `${DOMAIN_MEMBER}/case-summary/get-member-case-summaries.ts`,
+  `${DOMAIN_MEMBER}/case-summary/types.ts`,
+  `${DOMAIN_MEMBER}/index.ts`,
+  `${DOMAIN_MEMBER}/portal-runtime/get-member-portal-membership.test.ts`,
+  `${DOMAIN_MEMBER}/portal-runtime/get-member-portal-membership.ts`,
+  'pnpm-lock.yaml',
+];
+const T117B_PORTAL_WRITERS = [
+  `${COMPONENTS}/dashboard/case-summary/accident-case-summary.tsx`,
+  `${COMPONENTS}/dashboard/case-summary/case-kind-registry.test.tsx`,
+  `${COMPONENTS}/dashboard/case-summary/case-kind-registry.ts`,
+  `${COMPONENTS}/dashboard/case-summary/generic-case-summary.tsx`,
+  `${COMPONENTS}/dashboard/member-portal-region-boundary.tsx`,
+  `${PORTAL}-boundary.test.tsx`,
+  `${PORTAL}.tsx`,
+  `${WEB}/messages/en/dashboard.json`,
+  `${WEB}/messages/mk/dashboard.json`,
+  `${WEB}/messages/sq/dashboard.json`,
+  `${WEB}/messages/sr/dashboard.json`,
+];
+const T117B_CUTOVER_WRITERS = [
+  `${E2E}/gate/member-diaspora.spec.ts`,
+  `${E2E}/gate/member-home-cta.spec.ts`,
+  `${E2E}/golden/member-portal-agent-consumer.spec.ts`,
+  `${E2E}/golden/member-dashboard-empty-state.spec.ts`,
+  `${E2E}/golden/member-dashboard-has-claims.spec.ts`,
+  `${E2E}/production.spec.ts`,
+  `${E2E}/smoke/ida-dashboard-smoke.spec.ts`,
+  `${E2E}/ui-v2-onboarding.spec.ts`,
+  `${MEMBER_PAGE}/_core.entry.test.tsx`,
+  `${MEMBER_PAGE}/_core.entry.tsx`,
+  `${MEMBER_PAGE}/page.test.tsx`,
+  `${MEMBER_PAGE}/page.tsx`,
+];
 const t117b = {
   ...t116,
   sliceId: 'T-117B-PORTAL-RUNTIME',
@@ -65,6 +104,26 @@ const t117b = {
   expectedProductBranch: 'codex/t117b-portal-runtime',
   productWriterPaths: T117B_WRITERS,
 };
+const t117bChildren = [
+  {
+    ...t117b,
+    sliceId: 'T117B-DATA',
+    expectedProductBranch: 'codex/t117b-data',
+    productWriterPaths: T117B_DATA_WRITERS,
+  },
+  {
+    ...t117b,
+    sliceId: 'T117B-PORTAL',
+    expectedProductBranch: 'codex/t117b-portal',
+    productWriterPaths: T117B_PORTAL_WRITERS,
+  },
+  {
+    ...t117b,
+    sliceId: 'T117B-CUTOVER',
+    expectedProductBranch: 'codex/t117b-cutover',
+    productWriterPaths: T117B_CUTOVER_WRITERS,
+  },
+];
 const marker = slice => approvalMarker(slice, '1'.repeat(40), '2'.repeat(40));
 const withPaths = (slice, productWriterPaths) => ({ ...slice, productWriterPaths });
 const rejects = slices => {
@@ -156,7 +215,7 @@ test('domain_read_projection stays exact and T-116-only', () => {
   rejects(invalid);
 });
 
-test('tier3_portal_runtime accepts only exact T-117B hashes and paths', () => {
+test('tier3_portal_runtime accepts only historical T-117B hashes and exact sequential children', () => {
   for (const path of T117B_WRITERS) {
     assert.deepEqual(classifyWriterPath(path, t117b), {
       allowed: true,
@@ -167,12 +226,28 @@ test('tier3_portal_runtime accepts only exact T-117B hashes and paths', () => {
   assert.doesNotThrow(() => marker(t117b));
   assert.doesNotThrow(() => marker(withPaths(t117b, T117B_LEGACY_WRITERS)));
 
+  for (const child of t117bChildren) {
+    assert.doesNotThrow(() => marker(child));
+    for (const path of child.productWriterPaths) {
+      assert.deepEqual(classifyWriterPath(path, child), {
+        allowed: true,
+        classification: 'tier3_portal_runtime',
+      });
+    }
+    rejects([
+      withPaths(child, [...child.productWriterPaths].reverse()),
+      withPaths(child, child.productWriterPaths.slice(1)),
+      withPaths(child, [...child.productWriterPaths, 'next.config.mjs']),
+    ]);
+  }
+
   const invalid = [
     { ...t117b, tier: 2 },
     { ...t117b, sliceId: 'T-117B-PORTAL-RUNTIME-COPY' },
     withPaths(t117b, [...T117B_WRITERS].reverse()),
     withPaths(t117b, T117B_WRITERS.slice(1)),
     withPaths(t117b, [...T117B_WRITERS, 'next.config.mjs']),
+    { ...t117bChildren[0], sliceId: 'T117B-DATA-COPY' },
     withPaths(
       t116,
       Array.from({ length: 13 }, (_, index) => `apps/web/src/components/example-${index}.tsx`)
