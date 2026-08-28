@@ -65,17 +65,16 @@ Required checks, full PR E2E, pilot, zero-issue Sonar, focused/full tests, adver
 same-head feedback intake were green. Capacity PR `#1644` and compatibility PR `#1645` remain the
 bounded prerequisite proofs; neither added a generic reserve or generic Tier-3 runtime.
 
-PR `#1653` merged exact child authority, capacity attribution, and predecessor default-deny for
-`T117B-DATA → T117B-PORTAL → T117B-CUTOVER` into
-`main@37ef98ed44f1d56ad15d4fa09bc2947ad4b2418b`; no product runtime was granted. Promotion PR
-`#1654` merged only `T117B-DATA` via [IDA-DG58A](./2026-08-28-t117b-data-design-gate.md) and
-[admission](./2026-08-28-t117b-data-admission.json) into
-`main@d2f79f26f13bab9e586fd02d3c3b90f3d1593d5a`. Exact ten-path implementation proof exposed four
-bounded per-path capacity mismatches before any product commit, push, or PR. The authority is
-deterministically closed fail-closed. Budget-only PR `#1655` rebound exactly those four existing
-allocation ceilings and merged at `43cf38e1fb64a888077d62313ba4dcfd011dcd08`; no aggregate,
-category, file, or global ceiling changed. No DATA product merge/CI/E2E/closeout proof is claimed.
-PORTAL and CUTOVER remain default-denied while DATA awaits a fresh exact ten-path promotion.
+PR `#1653` installed exact child authority and predecessor default-deny for DATA → PORTAL →
+CUTOVER at `37ef98ed44f1d56ad15d4fa09bc2947ad4b2418b`; no product runtime. PR `#1654` promoted only DATA
+at `d2f79f26f13bab9e586fd02d3c3b90f3d1593d5a`; exact ten-path proof exposed four bounded path
+mismatches before product commit, push, or PR. PR `#1655` rebound only those four paths at
+`43cf38e1fb64a888077d62313ba4dcfd011dcd08`; aggregate/category/file/global ceilings did not
+change. PR `#1656` restored fail-closed authority at
+`b8466b2f4920f6fd1189a547651825f6013fc78a`. PR `#1657` re-promotes only
+[DATA](./2026-08-28-t117b-data-design-gate.md) with unchanged ten-path
+[admission](./2026-08-28-t117b-data-admission.json); runtime awaits exact merge. No DATA product
+merge/CI/E2E/closeout proof exists. PORTAL and CUTOVER remain default-denied by predecessor proof.
 
 Closed `IDA-WF01-ONE-APPROVAL-DELIVERY` remains immutable evidence through its
 [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),
@@ -94,21 +93,19 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 | Priority | Candidate              | Dependencies      | Promotion constraint                         |
 | -------: | ---------------------- | ----------------- | -------------------------------------------- |
-|        1 | `T117B-DATA` Tier 3    | PR `#1655` merged | Fresh exact ten-path promotion must merge.   |
+|        1 | `T117B-DATA` Tier 3    | PR `#1656` closed | Exact ten-path PR `#1657` must merge green.  |
 |        2 | `T117B-PORTAL` Tier 3  | DATA closed       | Exact DATA merge + deterministic closeout.   |
 |        3 | `T117B-CUTOVER` Tier 3 | PORTAL closed     | Exact PORTAL merge + deterministic closeout. |
 |        4 | `T-117C` Tier 3        | CUTOVER closed    | Atomic PPR + named-parallel-route migration. |
 
 ## Unified Portal Direction
 
-Preserve one responsive, capability-driven shell across roles, never five copied dashboards.
-`Case → Actions → Timeline` is the core; order is `T-118 primitives → T-117A shell → T-116 case
-projection → T-117B runtime → role/task views`. Member starts with Help Now/Cases/Documents; agent with clients/follow-ups; staff with
-queue/SLA/triage; manager with team/performance; admin with organization/audit. Tenant/legal
-context appears only when relevant. Benchmarks are rationale, not trade dress; reuse the existing
-system and M1–M5 architecture. T-117B mounts the member consumer through ordinary async RSC,
-sibling Suspense, request-scoped identity, and two projections. `cacheComponents`, PPR, named
-parallel routes, `next.config`, and global headers migration remain deferred together to T-117C.
+Use one responsive capability shell, never role copies. `Case → Actions → Timeline` is core; order
+is `T-118 → T-117A → T-116 → T-117B → role/task views`. Member starts with Help
+Now/Cases/Documents; other roles retain their tasks. Tenant/legal context appears only when useful;
+benchmarks guide rationale, not trade dress. T-117B uses async RSC, sibling Suspense,
+request-scoped identity, and two projections. `cacheComponents`, PPR, named routes, `next.config`,
+and global headers remain T-117C.
 
 ## Selection Constraints
 
@@ -133,12 +130,36 @@ parallel routes, `next.config`, and global headers migration remain deferred tog
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "inactive",
+  "lifecycle": "promotion_pending",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": null
+  "activeSlice": {
+    "sliceId": "T117B-DATA",
+    "tier": 3,
+    "promotionPrNumber": 1657,
+    "promotionBaseSha": "b8466b2f4920f6fd1189a547651825f6013fc78a",
+    "expectedProductBranch": "codex/t117b-data",
+    "gateSha256": "4ce8d791d7cf342488a9707d3b79382f038bcd5abdadeaece5284a6190bb9fd9",
+    "admissionSha256": "8a123d8836a5bd5e45824a801fc847f28e5218a8549700d01f91546eb019ed67",
+    "productWriterPaths": [
+      "apps/web/src/lib/auth.server.ts",
+      "apps/web/src/components/shell/member-portal-context.ts",
+      "packages/domain-member/package.json",
+      "packages/domain-member/src/case-summary/get-member-case-summaries.test.ts",
+      "packages/domain-member/src/case-summary/get-member-case-summaries.ts",
+      "packages/domain-member/src/case-summary/types.ts",
+      "packages/domain-member/src/index.ts",
+      "packages/domain-member/src/portal-runtime/get-member-portal-membership.test.ts",
+      "packages/domain-member/src/portal-runtime/get-member-portal-membership.ts",
+      "pnpm-lock.yaml"
+    ],
+    "closeoutWriterPaths": [
+      "docs/plans/current-program.md",
+      "docs/plans/current-tracker.md"
+    ]
+  }
 }
 ```
 
@@ -152,4 +173,4 @@ The architecture-finalization program/tracker, terminal OD17 evidence, and CI01 
 historical or separately governed. This projection neither rewrites nor activates them.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:null`).
+The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:T117B-DATA`).
