@@ -133,7 +133,7 @@ export function validateSlice(slice) {
     /^codex\/[a-z0-9][a-z0-9-]+$/u.test(slice?.expectedProductBranch ?? ''),
     Array.isArray(writers) &&
       writers.length > 0 &&
-      (writers.length <= 12 || isT117BPortalRuntime(slice)),
+      (writers.length <= 12 || (isT117BPortalRuntime(slice) && writers.length === 20)),
     Array.isArray(writers) && new Set(writers).size === writers.length,
     Array.isArray(writers) && writers.every(path => classifyWriterPath(path, slice).allowed),
     same(slice?.closeoutWriterPaths, CLOSEOUT),
