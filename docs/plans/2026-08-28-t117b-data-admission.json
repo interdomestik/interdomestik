@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "sliceId": "T117B-DATA",
+  "tier": 3,
+  "baseSha": "a0d035ada72a96f08a53781e5d892f88e910a474",
+  "authorityArtifactSha256": "685692f860e5a274f50c0d7043831c00ca0814756aca178f2c53b4984daa038c",
+  "productOutcomes": [
+    "Provide one request-scoped session and tenant context plus exactly two tenant-scoped read-only projections for exhaustive safe cases and canonical membership lifecycle without mounting UI"
+  ],
+  "writerPaths": [
+    "apps/web/src/lib/auth.server.ts",
+    "apps/web/src/components/shell/member-portal-context.ts",
+    "packages/domain-member/package.json",
+    "packages/domain-member/src/case-summary/get-member-case-summaries.test.ts",
+    "packages/domain-member/src/case-summary/get-member-case-summaries.ts",
+    "packages/domain-member/src/case-summary/types.ts",
+    "packages/domain-member/src/index.ts",
+    "packages/domain-member/src/portal-runtime/get-member-portal-membership.test.ts",
+    "packages/domain-member/src/portal-runtime/get-member-portal-membership.ts",
+    "pnpm-lock.yaml"
+  ],
+  "productWriterMapSha256": "18b044d69363404d07682aca7b5944d440cbb1e0066d91cc0cf82578953e3f26",
+  "proofSurfaces": [
+    {
+      "id": "request-identity",
+      "invalidatedBy": [
+        "session resolver, cache argument/lifetime, tenant derivation, request isolation, or revocation change"
+      ]
+    },
+    {
+      "id": "projection-contract",
+      "invalidatedBy": [
+        "query count, tenant/member scope, category exhaustiveness, lifecycle, safe field, fan-out, or timestamp change"
+      ]
+    },
+    {
+      "id": "data-boundary",
+      "invalidatedBy": [
+        "writer hash, dependency/export, read-only architecture, security, capacity, or focused test change"
+      ]
+    }
+  ],
+  "acceptanceMatrix": [
+    {
+      "criterionId": "resolve-once",
+      "proofSurfaceId": "request-identity",
+      "command": "focused request-context unit and RSC consumer tests",
+      "expected": "one resolution across a greater-than-two-second tree; distinct next request; revocation visible",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "exact-two-projections",
+      "proofSurfaceId": "projection-contract",
+      "command": "domain query instrumentation and cross-tenant negatives",
+      "expected": "identity counted separately; exactly two read-only tenant/member projections; zero fan-out",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "mixed-safe-cases",
+      "proofSurfaceId": "projection-contract",
+      "command": "mixed vehicle/property/other and lifecycle focused tests",
+      "expected": "zero case omission, canonical lifecycle, document count and next-step token; no raw category, price, proof or PII",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "data-mechanical",
+      "proofSurfaceId": "data-boundary",
+      "command": "formatter, admission, policy, typecheck, modularity, architecture, repo-size and security",
+      "expected": "all checks green on exact ten-path writer identity",
+      "environmentId": null,
+      "skipIsFailure": true
+    }
+  ],
+  "executionPolicy": {
+    "focusedBeforeHeavy": true,
+    "currentHeadCanaryBeforeFullCi": true,
+    "feedbackBeforeHeavy": true,
+    "fullE2eAuthority": "ci_once_per_exact_head",
+    "rerunPolicy": "invalidated_only",
+    "staleHeadAction": "cancel",
+    "runnerReadiness": "connected_and_listening"
+  },
+  "sharedRuntimeConsumers": [
+    "The dormant MemberPortalRuntime is the sole planned consumer of both DATA projection promises"
+  ],
+  "specialProofEnvironments": [],
+  "contractGraph": {
+    "nodes": [
+      { "id": "context-entry", "kind": "entry" },
+      { "id": "request-cache", "kind": "primitive" },
+      { "id": "case-store", "kind": "store" },
+      { "id": "membership-store", "kind": "store" },
+      { "id": "data-contract-tests", "kind": "test" },
+      { "id": "main-baseline", "kind": "baseline" }
+    ],
+    "edges": [
+      {
+        "id": "resolve",
+        "from": "context-entry",
+        "to": "request-cache",
+        "operation": "resolve session and tenant once per request tree"
+      },
+      {
+        "id": "case-read",
+        "from": "case-store",
+        "to": "data-contract-tests",
+        "operation": "one exhaustive tenant-scoped CaseSummary projection"
+      },
+      {
+        "id": "membership-read",
+        "from": "membership-store",
+        "to": "data-contract-tests",
+        "operation": "one canonical tenant-scoped membership projection"
+      },
+      {
+        "id": "attribute",
+        "from": "main-baseline",
+        "to": "data-contract-tests",
+        "operation": "bind exact writer, byte and Git attribution"
+      }
+    ],
+    "closure": {
+      "callers": true,
+      "sharedConsumers": true,
+      "readWriteDelete": true,
+      "mountErrorPaths": true,
+      "capabilityRequirements": true,
+      "testCollectors": true,
+      "baselineOwnership": true
+    },
+    "closureEvidence": {
+      "callers": "context function and two projection entry points are enumerated; no page mounts them",
+      "sharedConsumers": "only the future MemberPortalRuntime consumes both promises",
+      "readWriteDelete": "two read-only tenant/member projections; no write, delete, schema or persisted cache",
+      "mountErrorPaths": "no mount exists in DATA; errors remain values/promises for PORTAL boundaries",
+      "capabilityRequirements": "React.cache, T-116 CaseSummary and canonical MembershipLifecycleBucket",
+      "testCollectors": "focused request, query, mixed-category, lifecycle and boundary tests",
+      "baselineOwnership": "detached candidate against exact protected main a0d035ad"
+    }
+  },
+  "capacityAllocation": {
+    "id": "t117b-data",
+    "maxTrackedBytesDelta": 25930,
+    "maxTrackedFilesDelta": 9,
+    "maxCategoryBytesDelta": {
+      "config/data/messages": 7072,
+      "docs/text": 3200,
+      "large support/generated-ish": 417,
+      "source/scripts": 8360,
+      "tests/e2e": 6881
+    },
+    "derivation": "exact per-path/category deltas are frozen from this child candidate; no reserve"
+  },
+  "successorConditions": [
+    "merge and deterministic closeout complete",
+    "authority inactive with activeSlice null",
+    "T117B-PORTAL binds this exact writer hash and consumes no additional query"
+  ],
+  "highestRiskCases": [
+    "request objects leak across requests or revocation is stale",
+    "mixed categories are omitted or presentation-unsafe fields escape",
+    "a hidden third query or per-card fan-out appears"
+  ],
+  "rollback": {
+    "mechanism": "discard unmerged DATA state; after merge revert the exact DATA merge, with later children reverted first",
+    "trigger": "identity isolation, tenant scope, exact two-query, safe-field, lifecycle, security or capacity proof fails"
+  },
+  "firstImplementationAction": "Write failing request-isolation, cross-tenant, mixed-category and exact-query-count tests before DATA implementation"
+}

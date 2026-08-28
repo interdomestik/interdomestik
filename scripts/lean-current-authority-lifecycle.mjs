@@ -6,6 +6,7 @@ import {
   validPromotionWriterPaths,
   validateProjection,
 } from './lean-current-authority-policy.mjs';
+import { validT117BPredecessor } from './lean-exact-writer-exceptions.mjs';
 
 export const authorityState = (lifecycle, reason, extra = {}) => ({
   lifecycle,
@@ -22,15 +23,6 @@ export const abandonAuthority = reason =>
     closeoutAuthorized: true,
     failureCloseoutRequired: true,
   });
-
-export function classifyCloseoutPull(pull) {
-  if (!pull) return 'missing';
-  if (!['open', 'closed'].includes(pull.state) || typeof pull.merged !== 'boolean') {
-    return 'malformed';
-  }
-  if (pull.state === 'open' && pull.merged) return 'malformed';
-  return pull.state === 'closed' && !pull.merged ? 'abandoned' : 'continuing';
-}
 
 function writerSubset(actual, slice) {
   const allowed = slice.productWriterPaths;
@@ -59,19 +51,6 @@ const exactPromotionScope = (slice, pull) =>
   pull.gateSha256 === slice.gateSha256 &&
   pull.admissionSha256 === slice.admissionSha256;
 
-function hasExactApproval(owner, slice, pull) {
-  const marker = approvalMarker(slice, pull.headSha, pull.headTree);
-  const matching = pull.reviews?.filter(
-    review =>
-      review.state === 'COMMENTED' &&
-      review.body === marker &&
-      review.commitId === pull.headSha &&
-      review.user?.login === owner.login &&
-      review.user?.id === owner.id
-  );
-  return matching?.length === 1;
-}
-
 function validateLivePullStates(facts) {
   const product = facts.product;
   const promotion = facts.promotion;
@@ -92,6 +71,19 @@ function validateLivePullStates(facts) {
     return abandonAuthority('promotion_closed_unmerged');
   }
   return null;
+}
+
+function hasExactApproval(owner, slice, pull) {
+  const marker = approvalMarker(slice, pull.headSha, pull.headTree);
+  const matching = pull.reviews?.filter(
+    review =>
+      review.state === 'COMMENTED' &&
+      review.body === marker &&
+      review.commitId === pull.headSha &&
+      review.user?.login === owner.login &&
+      review.user?.id === owner.id
+  );
+  return matching?.length === 1;
 }
 
 function resolveMergedProduct(slice, facts, promotionMain) {
@@ -175,6 +167,8 @@ export function resolveAuthority(projectionInput, facts = {}) {
   const earlyState = validateLivePullStates(facts);
   if (earlyState) return earlyState;
   const slice = projection.activeSlice;
+  if (!validT117BPredecessor(slice, facts.predecessor))
+    return failAuthority('predecessor_evidence_mismatch');
   if (!exactPromotion(slice, facts.promotion)) return failAuthority('promotion_identity_mismatch');
   if (!exactPromotionScope(slice, facts.promotion))
     return failAuthority('promotion_scope_mismatch');

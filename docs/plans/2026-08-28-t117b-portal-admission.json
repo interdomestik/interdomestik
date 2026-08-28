@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 1,
+  "sliceId": "T117B-PORTAL",
+  "tier": 3,
+  "baseSha": "a0d035ada72a96f08a53781e5d892f88e910a474",
+  "authorityArtifactSha256": "15715d27ca38394adb86717321d1f73d680941aa7437b27bfa1c8aa398e7f17e",
+  "productOutcomes": [
+    "Build an unmounted accessible Unified Portal presentation that consumes T117B-DATA through Case, lifecycle-aware Actions and honest Recent case updates without issuing queries"
+  ],
+  "writerPaths": [
+    "apps/web/src/components/dashboard/case-summary/accident-case-summary.tsx",
+    "apps/web/src/components/dashboard/case-summary/case-kind-registry.test.tsx",
+    "apps/web/src/components/dashboard/case-summary/case-kind-registry.ts",
+    "apps/web/src/components/dashboard/case-summary/generic-case-summary.tsx",
+    "apps/web/src/components/dashboard/member-portal-region-boundary.tsx",
+    "apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx",
+    "apps/web/src/components/dashboard/member-portal-runtime.tsx",
+    "apps/web/src/messages/en/dashboard.json",
+    "apps/web/src/messages/mk/dashboard.json",
+    "apps/web/src/messages/sq/dashboard.json",
+    "apps/web/src/messages/sr/dashboard.json"
+  ],
+  "productWriterMapSha256": "60de5ce927812137cfdcd620d280d2708b488040ddf02a5796131d4c6c1f04a5",
+  "proofSurfaces": [
+    {
+      "id": "presentation-contract",
+      "invalidatedBy": [
+        "renderer registry, safe field, lifecycle action, region state, navigation, disclaimer or copy change"
+      ]
+    },
+    {
+      "id": "accessibility-responsive",
+      "invalidatedBy": [
+        "semantic heading/landmark, accessible name, keyboard, focus, target, overflow, viewport or reduced-motion change"
+      ]
+    },
+    {
+      "id": "portal-boundary",
+      "invalidatedBy": [
+        "writer hash, locale ownership, DATA dependency, query introduction, route mount, capacity or security change"
+      ]
+    }
+  ],
+  "acceptanceMatrix": [
+    {
+      "criterionId": "regions-actions",
+      "proofSurfaceId": "presentation-contract",
+      "command": "focused renderer and portal boundary tests",
+      "expected": "exhaustive safe rendering, independent states, canonical lifecycle actions and exact ?mode=drafts",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "persistent-protection",
+      "proofSurfaceId": "presentation-contract",
+      "command": "slow, empty and error boundary tests",
+      "expected": "Help Now, Documents, Membership and semantic disclaimer persist outside all data failures",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "browser-accessibility",
+      "proofSurfaceId": "accessibility-responsive",
+      "command": "bounded browser harness at 320/768/1440 with keyboard, focus and reduced motion",
+      "expected": "no overflow; visible focus; ordered landmarks; non-color-only warnings; targets meet contract",
+      "environmentId": "portal-browser-local",
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "portal-mechanical",
+      "proofSurfaceId": "portal-boundary",
+      "command": "formatter, admission, owner/default-deny, modularity, architecture, repo-size and security",
+      "expected": "green on exact eleven-path identity; zero route/E2E/query mutation",
+      "environmentId": null,
+      "skipIsFailure": true
+    }
+  ],
+  "executionPolicy": {
+    "focusedBeforeHeavy": true,
+    "currentHeadCanaryBeforeFullCi": true,
+    "feedbackBeforeHeavy": true,
+    "fullE2eAuthority": "ci_once_per_exact_head",
+    "rerunPolicy": "invalidated_only",
+    "staleHeadAction": "cancel",
+    "runnerReadiness": "connected_and_listening"
+  },
+  "sharedRuntimeConsumers": [
+    "The unmounted MemberPortalRuntime is the sole consumer of DATA case and membership promises"
+  ],
+  "specialProofEnvironments": [
+    {
+      "id": "portal-browser-local",
+      "canary": {
+        "command": "bounded disposable full-chain browser harness for the unmounted PORTAL presentation",
+        "expected": "320/768/1440 responsive, keyboard/focus, region-state and reduced-motion proof",
+        "result": "pass",
+        "observedAt": "2026-08-28T17:14:31Z",
+        "evidence": "portal-browser-contract: ks-sq 18/18 on disposable full-chain candidate; 320/768/1440, keyboard/focus/reduced-motion; base a0d035ada72a96f08a53781e5d892f88e910a474",
+        "evidenceSha256": "591a9e24f028a4a174a6caca6dddade9c134cdcfc128b1e1bbaab0749d6e769e",
+        "environmentFingerprint": "darwin-arm64; local deterministic browser lane; base-a0d035ad"
+      }
+    }
+  ],
+  "contractGraph": {
+    "nodes": [
+      { "id": "portal-entry", "kind": "entry" },
+      { "id": "data-contract", "kind": "external" },
+      { "id": "portal-runtime", "kind": "consumer" },
+      { "id": "protection-state", "kind": "state" },
+      { "id": "portal-tests", "kind": "test" },
+      { "id": "data-baseline", "kind": "baseline" }
+    ],
+    "edges": [
+      {
+        "id": "consume-data",
+        "from": "data-contract",
+        "to": "portal-runtime",
+        "operation": "consume two existing promises without querying"
+      },
+      {
+        "id": "compose",
+        "from": "portal-entry",
+        "to": "portal-runtime",
+        "operation": "compose Case, Actions and Recent case updates without route mount"
+      },
+      {
+        "id": "protect",
+        "from": "protection-state",
+        "to": "portal-runtime",
+        "operation": "keep navigation and disclaimer outside region boundaries"
+      },
+      {
+        "id": "collect",
+        "from": "portal-runtime",
+        "to": "portal-tests",
+        "operation": "prove presentation, states, localization and accessibility"
+      },
+      {
+        "id": "attribute",
+        "from": "data-baseline",
+        "to": "portal-tests",
+        "operation": "bind DATA successor and exact portal writer identity"
+      }
+    ],
+    "closure": {
+      "callers": true,
+      "sharedConsumers": true,
+      "readWriteDelete": true,
+      "mountErrorPaths": true,
+      "capabilityRequirements": true,
+      "testCollectors": true,
+      "baselineOwnership": true
+    },
+    "closureEvidence": {
+      "callers": "unmounted portal entry and sole runtime consumer are enumerated",
+      "sharedConsumers": "MemberPortalRuntime alone consumes DATA promises",
+      "readWriteDelete": "presentation issues zero reads/writes/deletes and receives safe DATA values",
+      "mountErrorPaths": "three independent regions plus persistent navigation and disclaimer are covered",
+      "capabilityRequirements": "closed T117B-DATA, ordinary async RSC, Suspense and T-116 renderer",
+      "testCollectors": "focused renderer/boundary tests and one bounded browser environment",
+      "baselineOwnership": "detached chain candidate against exact main with DATA as predecessor"
+    }
+  },
+  "capacityAllocation": {
+    "id": "t117b-portal",
+    "maxTrackedBytesDelta": 39418,
+    "maxTrackedFilesDelta": 9,
+    "maxCategoryBytesDelta": {
+      "config/data/messages": 14094,
+      "docs/text": 3319,
+      "source/scripts": 11780,
+      "tests/e2e": 10225
+    },
+    "derivation": "exact per-path/category deltas are frozen from this child candidate; no reserve"
+  },
+  "successorConditions": [
+    "T117B-DATA exact merge and closeout are verified",
+    "PORTAL merge and deterministic closeout leave authority inactive",
+    "T117B-CUTOVER is the sole route-mount consumer"
+  ],
+  "highestRiskCases": [
+    "presentation introduces a hidden query or raw/private field",
+    "inactive drafts lose exact query or lifecycle warning is color-only",
+    "slow/error regions hide persistent protection or navigation"
+  ],
+  "rollback": {
+    "mechanism": "discard unmerged PORTAL state; after merge revert PORTAL with no runtime impact, or revert CUTOVER first if mounted",
+    "trigger": "presentation, localization, accessibility, zero-query, DATA compatibility, security or capacity proof fails"
+  },
+  "firstImplementationAction": "Write failing exhaustive renderer, lifecycle action and independent-boundary tests before PORTAL implementation"
+}

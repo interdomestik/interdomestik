@@ -207,6 +207,27 @@ test('structured artifacts require an owner and repository-Prettier canonical JS
   assert.equal(structuredArtifactOwner('.github/other.json'), null);
 });
 
+test('T-117B message ownership is exact and every other catalog stays default-denied', () => {
+  const exactCatalogs = [
+    'apps/web/src/messages/en/dashboard.json',
+    'apps/web/src/messages/mk/dashboard.json',
+    'apps/web/src/messages/sq/dashboard.json',
+    'apps/web/src/messages/sr/dashboard.json',
+  ];
+  for (const catalog of exactCatalogs) {
+    assert.equal(structuredArtifactOwner(catalog), 't117b-member-portal-i18n-contract');
+  }
+
+  for (const denied of [
+    'apps/web/src/messages/de/dashboard.json',
+    'apps/web/src/messages/en/common.json',
+    'apps/web/src/messages/en/portal.json',
+    'apps/web/src/messages/sq/membership.json',
+  ]) {
+    assert.equal(structuredArtifactOwner(denied), null, denied);
+  }
+});
+
 test('governance documents cannot silently remove baseline headings', () => {
   const root = initRepo('modularity-governance-');
   writeFile(root, 'docs/protocol.md', '# Protocol\n\n## Invariant\n');
