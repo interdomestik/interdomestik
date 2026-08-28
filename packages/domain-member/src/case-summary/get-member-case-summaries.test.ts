@@ -117,13 +117,13 @@ describe('getMemberCaseSummaries', () => {
     expect(JSON.stringify(result)).not.toMatch(/property|travel|category|price|proof/u);
   });
 
-  it('propagates query and invalid lifecycle failures', async () => {
+  it('keeps undated cases and propagates errors', async () => {
     h.error = new Error('database unavailable');
     await expect(get()).rejects.toThrow('database unavailable');
     h.error = null;
     h.rows = [row({ recoveryLifecycleState: 'court' })];
     await expect(get()).rejects.toThrow('Invalid claim lifecycle state pair');
     h.rows = [row({ createdAt: null, updatedAt: null })];
-    await expect(get()).rejects.toThrow('Missing case timestamp');
+    await expect(get()).resolves.toMatchObject([{ occurredAt: null }]);
   });
 });

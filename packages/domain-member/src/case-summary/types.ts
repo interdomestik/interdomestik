@@ -19,14 +19,13 @@ export type AccidentSummary = {
   status: CaseLifecycleStatus;
   documentCount: number;
   nextStep: NextStepToken;
-  occurredAt?: string;
+  occurredAt?: string | null;
 };
 
-export type ProjectedAccidentSummary = AccidentSummary & { occurredAt: string };
+export type ProjectedAccidentSummary = AccidentSummary & { occurredAt: string | null };
 
-export type GenericCaseSummary = Omit<AccidentSummary, 'caseKind' | 'occurredAt'> & {
+export type GenericCaseSummary = Omit<ProjectedAccidentSummary, 'caseKind'> & {
   caseKind: 'generic';
-  occurredAt: string;
 };
 
 export type CaseSummary = ProjectedAccidentSummary | GenericCaseSummary;

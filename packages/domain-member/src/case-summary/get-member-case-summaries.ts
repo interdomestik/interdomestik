@@ -60,7 +60,6 @@ export async function getMemberCaseSummaries(params: {
     return rows.map(row => {
       const status = claimStatusFromLifecycleFields(row);
       const occurredAt = row.updatedAt ?? row.createdAt;
-      if (!occurredAt) throw new Error('Missing case timestamp');
       return {
         caseKind: row.category === 'vehicle' ? 'accident' : 'generic',
         id: row.id,
@@ -68,7 +67,7 @@ export async function getMemberCaseSummaries(params: {
         status,
         documentCount: Number(row.documentCount),
         nextStep: NEXT_STEP[status],
-        occurredAt: occurredAt.toISOString(),
+        occurredAt: occurredAt?.toISOString() ?? null,
       };
     });
   });
