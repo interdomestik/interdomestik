@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "sliceId": "T117B-DATA",
   "tier": 3,
-  "baseSha": "b8466b2f4920f6fd1189a547651825f6013fc78a",
-  "authorityArtifactSha256": "4ce8d791d7cf342488a9707d3b79382f038bcd5abdadeaece5284a6190bb9fd9",
+  "baseSha": "c98f727750a4cfc4cc632f2980d7f847ebb19269",
+  "authorityArtifactSha256": "357d2fdb15bf80850547748d3912e49215d595a5081a09e588264105c3c87a28",
   "productOutcomes": [
     "Provide one request-scoped session and tenant context plus exactly two tenant-scoped read-only projections for exhaustive safe cases and canonical membership lifecycle without mounting UI"
   ],
@@ -138,19 +138,19 @@
       "mountErrorPaths": "no mount exists in DATA; errors remain values/promises for PORTAL boundaries",
       "capabilityRequirements": "React.cache, T-116 CaseSummary and canonical MembershipLifecycleBucket",
       "testCollectors": "focused request, query, mixed-category, lifecycle and boundary tests",
-      "baselineOwnership": "promotion candidate on exact protected main b8466b2f"
+      "baselineOwnership": "promotion candidate on exact protected main c98f7277"
     }
   },
   "capacityAllocation": {
     "id": "t117b-data",
-    "maxTrackedBytesDelta": 25930,
+    "maxTrackedBytesDelta": 29005,
     "maxTrackedFilesDelta": 9,
     "maxCategoryBytesDelta": {
       "config/data/messages": 7072,
       "docs/text": 3200,
       "large support/generated-ish": 417,
-      "source/scripts": 8360,
-      "tests/e2e": 6881
+      "source/scripts": 8486,
+      "tests/e2e": 9830
     },
     "derivation": "exact per-path/category deltas are frozen from this child candidate; no reserve"
   },
