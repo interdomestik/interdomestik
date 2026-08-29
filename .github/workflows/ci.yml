@@ -76,7 +76,7 @@ jobs:
       - { name: Upload OD17 exact-head verdict, if: "always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'codex/ida-t115-od17-performance-proof'", uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f, with: { name: 'od17-verdict-${{ github.event.pull_request.head.sha }}', path: tmp/od17-verdict, if-no-files-found: error, retention-days: 7 } } # v6
       - name: Run lightweight governance audits
         run: >-
-          pnpm track:audit && pnpm plan:audit && pnpm repo:size:check && node --test scripts/ci/docs-closeout-main-push-contract.test.mjs scripts/ci/z620-parity-policy.test.mjs
+          pnpm track:audit && pnpm plan:audit && pnpm repo:size:check && pnpm test:harness-v2 && node --test scripts/ci/docs-closeout-main-push-contract.test.mjs scripts/ci/z620-parity-policy.test.mjs
       - name: Run Audits
         if: needs.validation-surface.outputs.run_broad == 'true'
         run: |

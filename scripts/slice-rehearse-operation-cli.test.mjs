@@ -1,0 +1,173 @@
+import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import test from 'node:test';
+
+import { canonicalJson } from './slice-rehearse-canonical.mjs';
+import { collectOperationFacts } from './slice-rehearse-operation-facts.mjs';
+import { runSliceRehearsal } from './slice-rehearse.mjs';
+
+const GIT = '/usr/bin/git';
+const ENV = Object.freeze({ PATH: '/usr/bin:/bin:/usr/sbin:/sbin' });
+
+function git(repository, ...args) {
+  return execFileSync(GIT, args, { cwd: repository, encoding: 'utf8', env: ENV }).trim();
+}
+
+function budget(protectedMainSha) {
+  const categories = Object.fromEntries(
+    [
+      'config/data/messages',
+      'docs/text',
+      'large support/generated-ish',
+      'other',
+      'source/scripts',
+      'tests/e2e',
+    ].map(category => [category, 1])
+  );
+  return {
+    version: 2,
+    baseline: { protectedMainSha, trackedBytes: 6, trackedFiles: 1, categoryBytes: categories },
+    allocations: [
+      {
+        id: 'fixture',
+        mode: 'exact',
+        writerPaths: ['declared.txt'],
+        trackedBytesDelta: 0,
+        trackedFilesDelta: 0,
+        categoryBytesDelta: {},
+        pathBytesDelta: { 'declared.txt': 0 },
+      },
+    ],
+    reserve: {
+      trackedBytes: 0,
+      trackedFiles: 0,
+      categoryBytes: {},
+      rationale: 'No fixture reserve is needed.',
+    },
+    maxTrackedBytes: 6,
+    maxTrackedFiles: 1,
+    maxCategoryBytes: categories,
+    maxLargestFileBytes: 1024,
+    maxSourceOrTestLines: 100,
+  };
+}
+
+function fixture() {
+  const root = mkdtempSync(join(tmpdir(), 'slice-operation-cli-'));
+  const repository = join(root, 'repo');
+  execFileSync(GIT, ['init', '-q', '-b', 'codex/harness-v2-cli', repository], { env: ENV });
+  git(repository, 'config', 'user.email', 'harness@example.test');
+  git(repository, 'config', 'user.name', 'Harness Test');
+  git(repository, 'remote', 'add', 'origin', 'https://github.com/interdomestik/interdomestik.git');
+  execFileSync('/bin/mkdir', ['-p', join(repository, 'scripts')], { env: ENV });
+  writeFileSync(join(repository, 'declared.txt'), 'base\n');
+  writeFileSync(
+    join(repository, 'scripts/repo-size-budget.json'),
+    canonicalJson(budget('0'.repeat(40)))
+  );
+  git(repository, 'add', '.');
+  git(repository, 'commit', '-q', '-m', 'baseline');
+  const baseline = git(repository, 'rev-parse', 'HEAD');
+  writeFileSync(join(repository, 'scripts/repo-size-budget.json'), canonicalJson(budget(baseline)));
+  git(repository, 'add', '.');
+  git(repository, 'commit', '-q', '-m', 'budget');
+  return { root, repository, headSha: git(repository, 'rev-parse', 'HEAD') };
+}
+
+function manifest(baseSha) {
+  return {
+    schemaVersion: 1,
+    sliceId: 'HARNESS-V2-CLI',
+    tier: 3,
+    baseSha,
+    origin: 'https://github.com/interdomestik/interdomestik.git',
+    writerPaths: ['declared.txt'],
+    pathPlans: [
+      {
+        path: 'declared.txt',
+        change: 'modify',
+        category: 'docs/text',
+        maxBytesDelta: 32,
+        maxLines: 10,
+      },
+    ],
+    routineOperations: [
+      {
+        operation: 'apply_full_gate_label',
+        target: {
+          mode: 'deferred-pr',
+          origin: 'https://github.com/interdomestik/interdomestik',
+          baseBranch: 'main',
+          branch: 'codex/harness-v2-cli',
+          label: 'full-gate',
+          taskId: 'HARNESS-V2-CLI',
+        },
+        preconditions: {
+          uniquePullRequest: true,
+          headEqualsBranchHead: true,
+          resolverWriterIdentity: true,
+          labelAbsent: true,
+        },
+      },
+    ],
+    proof: {
+      commands: ['node --test'],
+      heavyLanes: [],
+      fullGateRequired: true,
+      workflowDigest: 'a'.repeat(64),
+      substrateDigest: 'b'.repeat(64),
+    },
+    evidenceReceipts: [],
+    topology: {
+      closeoutMode: 'none',
+      projectionPaths: [],
+      repairPaths: [],
+      repairAllocationId: null,
+    },
+  };
+}
+
+test('CLI carries independently collected pre-PR predicate through evaluation', () => {
+  const value = fixture();
+  try {
+    const manifestPath = join(value.root, 'manifest.json');
+    writeFileSync(manifestPath, canonicalJson(manifest(value.headSha)));
+    const output = [];
+    const exitCode = runSliceRehearsal({
+      argv: ['--manifest', manifestPath],
+      cwd: value.repository,
+      readProtectedMain: () => value.headSha,
+      collectVerifiedEvidence: () => ({}),
+      collectOperations: args =>
+        collectOperationFacts({
+          ...args,
+          readGithub: () => [],
+          readAuthority: () => ({
+            activeSlice: null,
+            approvedHeadSha: null,
+            runtimeAuthorized: false,
+            writerMapDigest: null,
+          }),
+        }),
+      stdout: chunk => output.push(chunk),
+      stderr: error => assert.fail(error),
+    });
+    assert.equal(exitCode, 2);
+    const report = JSON.parse(output.join(''));
+    assert.equal(report.writers.routineOperations[0].deferred, true);
+    assert.deepEqual(report.repository.operationFacts.pullRequestCandidates, {
+      'codex/harness-v2-cli': [],
+    });
+    assert.equal(
+      report.authorityStops.some(
+        item => item.code === 'envelope:operation-precondition-unverified'
+      ),
+      false
+    );
+  } finally {
+    rmSync(value.root, { recursive: true, force: true });
+  }
+});

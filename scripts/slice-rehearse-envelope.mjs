@@ -1,0 +1,80 @@
+import { canonicalJson, sha256 } from './slice-rehearse-canonical.mjs';
+import {
+  requiredBudgetArtifactSha256,
+  resolveOperationalContracts,
+  routineOperationName,
+} from './slice-rehearse-operation-contracts.mjs';
+
+const STOP_CLASSES = Object.freeze([
+  'evidence_identity_drift',
+  'non_linear_history',
+  'product_scope',
+  'provider_effect',
+  'security_or_privacy',
+  'successor_scope',
+  'trust_boundary',
+  'unknown_writer',
+]);
+
+function must(condition, message) {
+  if (!condition) throw new Error(message);
+}
+
+export function rehearsalFactsSha256(report) {
+  const { reportSha256: _digest, operationalEnvelope: _envelope, ...payload } = report;
+  return sha256(canonicalJson({ ...payload, operationalEnvelope: null, reportSha256: null }));
+}
+
+export function deriveOperationalEnvelope(report) {
+  must(report && typeof report === 'object', 'rehearsal report is required');
+  must(Array.isArray(report.authorityStops), 'rehearsal authority stops are invalid');
+  must(!report.authorityStops.length, 'cannot derive envelope with an authority stop');
+  const requiredOperations = [
+    ...new Set(report.deficits.map(item => item.coveredBy).filter(Boolean)),
+  ].sort();
+  const resolution = resolveOperationalContracts(
+    report.writers.routineOperations,
+    report.repository
+  );
+  must(!resolution.rejected.length, 'cannot derive envelope with an unverified operation');
+  const operations = resolution.granted;
+  const operationNames = operations.map(routineOperationName);
+  for (const operation of requiredOperations) {
+    must(operationNames.includes(operation), `deficit operation is outside envelope: ${operation}`);
+  }
+  return {
+    schemaVersion: 1,
+    authorityGranted: false,
+    sliceId: report.sliceId,
+    tier: report.tier,
+    baseSha: report.repository.baseSha,
+    origin: report.repository.origin,
+    writerMapDigest: report.writers.digest,
+    factsSha256: rehearsalFactsSha256(report),
+    routineOperations: operations,
+    requiredOperations,
+    capacity: {
+      allocationId: report.capacity.allocation.id,
+      mode: report.capacity.allocation.mode,
+      maxTrackedBytesDelta:
+        report.capacity.allocation.maxTrackedBytesDelta ??
+        report.capacity.allocation.trackedBytesDelta ??
+        0,
+      maxTrackedFilesDelta:
+        report.capacity.allocation.maxTrackedFilesDelta ??
+        report.capacity.allocation.trackedFilesDelta ??
+        0,
+      maxCategoryBytesDelta:
+        report.capacity.allocation.maxCategoryBytesDelta ??
+        report.capacity.allocation.categoryBytesDelta ??
+        {},
+      maxPathBytesDelta:
+        report.capacity.allocation.maxPathBytesDelta ??
+        report.capacity.allocation.pathBytesDelta ??
+        {},
+      budgetArtifactSha256: requiredBudgetArtifactSha256(report, operationNames),
+    },
+    proof: report.evidence.proof,
+    stopClasses: [...STOP_CLASSES],
+  };
+}
