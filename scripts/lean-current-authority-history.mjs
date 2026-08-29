@@ -95,7 +95,7 @@ function productEvidence(repo, projection) {
 function closeoutEvidence(repo, successor, transition, terminal) {
   const prior = transition.prior;
   const branch = `${prior.activeSlice.expectedProductBranch}-closeout`;
-  const raw = pullByBranch(repo, branch);
+  const raw = pullByBranch(repo, branch, transition.closeoutMergeSha);
   if (!raw) return { state: 'missing' };
   const pull = attachPullFiles(repo, pullFacts(repo, raw));
   const result = verifyCloseout(

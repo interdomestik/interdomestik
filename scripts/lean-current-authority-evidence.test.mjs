@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { resolveRepositoryAuthority, selectFullProductPull } from './lean-current-authority.mjs';
+import { resolveRepositoryAuthority } from './lean-current-authority.mjs';
 import { assertCanonicalWriterWorktree } from './lean-current-authority-evidence.mjs';
 import {
   changedPathsBetween,
@@ -99,28 +99,6 @@ test('repository boundary returns stable blocked authority instead of throwing',
   }
   assert.doesNotThrow(() => resolveRepositoryAuthority(root, true));
   assert.equal(resolveRepositoryAuthority(root, true).reason, 'authority_evidence_unavailable');
-});
-
-test('downstream list summary is expanded to one full pull response', () => {
-  assert.throws(() => selectFullProductPull(null, () => ({})), /inventory/);
-  for (const full of [
-    { number: 7, state: 'open', merged: false, changed_files: 2 },
-    { number: 8, state: 'closed', merged: false, changed_files: 2 },
-    { number: 9, state: 'closed', merged: true, changed_files: 2 },
-  ]) {
-    assert.deepEqual(
-      selectFullProductPull([{ number: full.number }], number => ({ ...full, number })),
-      full
-    );
-  }
-  assert.equal(
-    selectFullProductPull([], () => assert.fail('unexpected read')),
-    null
-  );
-  assert.throws(
-    () => selectFullProductPull([{ number: 1 }, { number: 2 }], () => ({})),
-    /multiple/
-  );
 });
 
 test('GitHub pull fixtures are bound to real Git commit parent, tree, review and file facts', () => {
@@ -283,4 +261,17 @@ test('authority path edit then revert remains observable history drift', () => {
 test('Git and GitHub subprocess evidence is bounded by an execution timeout', () => {
   const source = readFileSync(new URL('./lean-current-authority-git.mjs', import.meta.url), 'utf8');
   assert.match(source, /timeout:\s*30_000/u);
+});
+
+test('historical closeout selection is anchored to the recorded merge', () => {
+  const evidence = readFileSync(
+    new URL('./lean-current-authority-evidence.mjs', import.meta.url),
+    'utf8'
+  );
+  const history = readFileSync(
+    new URL('./lean-current-authority-history.mjs', import.meta.url),
+    'utf8'
+  );
+  assert.match(evidence, /transition\.closeoutMergeSha/u);
+  assert.match(history, /pullByBranch\(repo, branch, transition\.closeoutMergeSha\)/u);
 });
