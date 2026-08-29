@@ -66,15 +66,16 @@ same-head feedback intake were green. Capacity PR `#1644` and compatibility PR `
 bounded prerequisite proofs; neither added a generic reserve or generic Tier-3 runtime.
 
 PR `#1653` installed exact child authority and predecessor default-deny for DATA → PORTAL →
-CUTOVER at `37ef98ed44f1d56ad15d4fa09bc2947ad4b2418b`; no product runtime. PR `#1654` promoted only DATA
-at `d2f79f26f13bab9e586fd02d3c3b90f3d1593d5a`; exact ten-path proof exposed four bounded path
-mismatches before product commit, push, or PR. PR `#1655` rebound only those four paths at
-`43cf38e1fb64a888077d62313ba4dcfd011dcd08`; aggregate/category/file/global ceilings did not
-change. PR `#1656` restored fail-closed authority at
-`b8466b2f4920f6fd1189a547651825f6013fc78a`. PR `#1657` re-promotes only
-[DATA](./2026-08-28-t117b-data-design-gate.md) with unchanged ten-path
-[admission](./2026-08-28-t117b-data-admission.json); runtime awaits exact merge. No DATA product
-merge/CI/E2E/closeout proof exists. PORTAL and CUTOVER remain default-denied by predecessor proof.
+CUTOVER at `37ef98ed44f1d56ad15d4fa09bc2947ad4b2418b`; no product runtime. PRs `#1654`–`#1656`
+record the first bounded promotion, path-only rebind, and deterministic fail-closed recovery. PR
+`#1657` then re-promoted only [DATA](./2026-08-28-t117b-data-design-gate.md) with the unchanged
+ten-path [admission](./2026-08-28-t117b-data-admission.json) into
+`main@4f9fe1511025f72fd9723983049ab5497c25bfc0`. Product PR `#1658` at exact head
+`14c8ad8871f931680c826e62b44b926f6333b610`, tree
+`2c91b495998c95360771082d6dad2ddd956f813f`, proved the product/E2E surface but exposed a bounded
+aggregate/category capacity deficit. Authority is closed fail-closed before the exact global-derived
+budget correction. No DATA product merge or closeout proof is claimed. PORTAL and CUTOVER remain
+default-denied by predecessor proof.
 
 Closed `IDA-WF01-ONE-APPROVAL-DELIVERY` remains immutable evidence through its
 [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),
@@ -91,12 +92,12 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate              | Dependencies      | Promotion constraint                         |
-| -------: | ---------------------- | ----------------- | -------------------------------------------- |
-|        1 | `T117B-DATA` Tier 3    | PR `#1656` closed | Exact ten-path PR `#1657` must merge green.  |
-|        2 | `T117B-PORTAL` Tier 3  | DATA closed       | Exact DATA merge + deterministic closeout.   |
-|        3 | `T117B-CUTOVER` Tier 3 | PORTAL closed     | Exact PORTAL merge + deterministic closeout. |
-|        4 | `T-117C` Tier 3        | CUTOVER closed    | Atomic PPR + named-parallel-route migration. |
+| Priority | Candidate              | Dependencies     | Promotion constraint                         |
+| -------: | ---------------------- | ---------------- | -------------------------------------------- |
+|        1 | `T117B-DATA` Tier 3    | Authority closed | Exact correction → fresh ten-path promotion. |
+|        2 | `T117B-PORTAL` Tier 3  | DATA closed      | Exact DATA merge + deterministic closeout.   |
+|        3 | `T117B-CUTOVER` Tier 3 | PORTAL closed    | Exact PORTAL merge + deterministic closeout. |
+|        4 | `T-117C` Tier 3        | CUTOVER closed   | Atomic PPR + named-parallel-route migration. |
 
 ## Unified Portal Direction
 
@@ -130,36 +131,12 @@ and global headers remain T-117C.
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "promotion_pending",
+  "lifecycle": "inactive",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": {
-    "sliceId": "T117B-DATA",
-    "tier": 3,
-    "promotionPrNumber": 1657,
-    "promotionBaseSha": "b8466b2f4920f6fd1189a547651825f6013fc78a",
-    "expectedProductBranch": "codex/t117b-data",
-    "gateSha256": "4ce8d791d7cf342488a9707d3b79382f038bcd5abdadeaece5284a6190bb9fd9",
-    "admissionSha256": "8a123d8836a5bd5e45824a801fc847f28e5218a8549700d01f91546eb019ed67",
-    "productWriterPaths": [
-      "apps/web/src/lib/auth.server.ts",
-      "apps/web/src/components/shell/member-portal-context.ts",
-      "packages/domain-member/package.json",
-      "packages/domain-member/src/case-summary/get-member-case-summaries.test.ts",
-      "packages/domain-member/src/case-summary/get-member-case-summaries.ts",
-      "packages/domain-member/src/case-summary/types.ts",
-      "packages/domain-member/src/index.ts",
-      "packages/domain-member/src/portal-runtime/get-member-portal-membership.test.ts",
-      "packages/domain-member/src/portal-runtime/get-member-portal-membership.ts",
-      "pnpm-lock.yaml"
-    ],
-    "closeoutWriterPaths": [
-      "docs/plans/current-program.md",
-      "docs/plans/current-tracker.md"
-    ]
-  }
+  "activeSlice": null
 }
 ```
 
@@ -173,4 +150,4 @@ The architecture-finalization program/tracker, terminal OD17 evidence, and CI01 
 historical or separately governed. This projection neither rewrites nor activates them.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:T117B-DATA`).
+The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:null`).

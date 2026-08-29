@@ -16,20 +16,22 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID           | Status        | Owner      | Work                                              | Exit Criteria                        |
-| ------------ | ------------- | ---------- | ------------------------------------------------- | ------------------------------------ |
-| `T117B-DATA` | `in_progress` | `platform` | Request-scoped identity; exactly two projections. | Promote → implement → merge → close. |
+| ID           | Status    | Owner      | Work                                              | Exit Criteria                       |
+| ------------ | --------- | ---------- | ------------------------------------------------- | ----------------------------------- |
+| `T117B-DATA` | `blocked` | `platform` | Request-scoped identity; exactly two projections. | Exact correction → fresh promotion. |
 
 ## Proof Ledger
 
-| ID           | Source Refs                                                                                         | Execution | Run ID     | Run Root               | Sonar     | Docker           | Sentry           | Learning         | Evidence Refs                                                                                                                                                                                                                                               |
-| ------------ | --------------------------------------------------------------------------------------------------- | --------- | ---------- | ---------------------- | --------- | ---------------- | ---------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `T117B-DATA` | [gate](./2026-08-28-t117b-data-design-gate.md); [admission](./2026-08-28-t117b-data-admission.json) | `pending` | `PR #1657` | `GitHub-hosted Ubuntu` | `pending` | `not_applicable` | `not_applicable` | `not_applicable` | Initial `#1654` at `d2f79f26f13bab9e586fd02d3c3b90f3d1593d5a` closed pre-product; `#1655` rebound at `43cf38e1fb64a888077d62313ba4dcfd011dcd08`; `#1656` closed at `b8466b2f4920f6fd1189a547651825f6013fc78a`; `#1657` re-promotion pending; no product PR. |
+| ID           | Source Refs                                                                                         | Execution | Run ID                 | Run Root               | Sonar  | Docker           | Sentry           | Learning         | Evidence Refs                                                                                                                                                                                                                                    |
+| ------------ | --------------------------------------------------------------------------------------------------- | --------- | ---------------------- | ---------------------- | ------ | ---------------- | ---------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `T117B-DATA` | [gate](./2026-08-28-t117b-data-design-gate.md); [admission](./2026-08-28-t117b-data-admission.json) | `blocked` | `PR #1657`; `PR #1658` | `GitHub-hosted Ubuntu` | `pass` | `not_applicable` | `not_applicable` | `not_applicable` | `#1657` merged promotion at `4f9fe1511025f72fd9723983049ab5497c25bfc0`; `#1658` head `14c8ad8871f931680c826e62b44b926f6333b610`, tree `2c91b495998c95360771082d6dad2ddd956f813f`, exposed bounded aggregate/category capacity; no product merge. |
 
 ## Next Selection
 
-PR `#1657` alone promotes unchanged ten-path DATA; runtime awaits exact merge. No product proof.
-PORTAL and CUTOVER remain default-denied by predecessor proof.
+PR `#1657` merged the unchanged ten-path DATA promotion. Product PR `#1658` proved the exact
+product/E2E surface but is intentionally unmerged after the bounded capacity deficit. Authority is
+inactive while the exact global-derived budget correction and fresh promotion are prepared. PORTAL
+and CUTOVER remain default-denied by predecessor proof.
 
 | Future UI branch | Status     | Constraint                       |
 | ---------------- | ---------- | -------------------------------- |
@@ -44,41 +46,17 @@ PORTAL and CUTOVER remain default-denied by predecessor proof.
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "promotion_pending",
+  "lifecycle": "inactive",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": {
-    "sliceId": "T117B-DATA",
-    "tier": 3,
-    "promotionPrNumber": 1657,
-    "promotionBaseSha": "b8466b2f4920f6fd1189a547651825f6013fc78a",
-    "expectedProductBranch": "codex/t117b-data",
-    "gateSha256": "4ce8d791d7cf342488a9707d3b79382f038bcd5abdadeaece5284a6190bb9fd9",
-    "admissionSha256": "8a123d8836a5bd5e45824a801fc847f28e5218a8549700d01f91546eb019ed67",
-    "productWriterPaths": [
-      "apps/web/src/lib/auth.server.ts",
-      "apps/web/src/components/shell/member-portal-context.ts",
-      "packages/domain-member/package.json",
-      "packages/domain-member/src/case-summary/get-member-case-summaries.test.ts",
-      "packages/domain-member/src/case-summary/get-member-case-summaries.ts",
-      "packages/domain-member/src/case-summary/types.ts",
-      "packages/domain-member/src/index.ts",
-      "packages/domain-member/src/portal-runtime/get-member-portal-membership.test.ts",
-      "packages/domain-member/src/portal-runtime/get-member-portal-membership.ts",
-      "pnpm-lock.yaml"
-    ],
-    "closeoutWriterPaths": [
-      "docs/plans/current-program.md",
-      "docs/plans/current-tracker.md"
-    ]
-  }
+  "activeSlice": null
 }
 ```
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:T117B-DATA`).
+The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:null`).
 
 ## Historical Authority
 
