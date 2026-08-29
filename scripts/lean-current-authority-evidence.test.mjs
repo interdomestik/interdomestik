@@ -262,3 +262,16 @@ test('Git and GitHub subprocess evidence is bounded by an execution timeout', ()
   const source = readFileSync(new URL('./lean-current-authority-git.mjs', import.meta.url), 'utf8');
   assert.match(source, /timeout:\s*30_000/u);
 });
+
+test('historical closeout selection is anchored to the recorded merge', () => {
+  const evidence = readFileSync(
+    new URL('./lean-current-authority-evidence.mjs', import.meta.url),
+    'utf8'
+  );
+  const history = readFileSync(
+    new URL('./lean-current-authority-history.mjs', import.meta.url),
+    'utf8'
+  );
+  assert.match(evidence, /transition\.closeoutMergeSha/u);
+  assert.match(history, /pullByBranch\(repo, branch, transition\.closeoutMergeSha\)/u);
+});

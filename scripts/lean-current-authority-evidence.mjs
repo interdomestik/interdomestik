@@ -144,7 +144,8 @@ function resolveInactiveRepository(repo, projection) {
   const terminal = evaluateTerminal(repo, transition.prior, transition.terminalProjectionSha);
   if (terminal.result) return terminal.result;
   const branch = `${terminal.prior.activeSlice.expectedProductBranch}-closeout`;
-  const pull = pullByBranch(repo, branch);
+  const pullAnchor = transition.kind === 'closeout_recorded' ? transition.closeoutMergeSha : main;
+  const pull = pullByBranch(repo, branch, pullAnchor);
   const pullDisposition = classifyCloseoutPull(pull);
   if (pullDisposition === 'malformed') return failAuthority('closeout_state_malformed');
   if (pullDisposition === 'abandoned') return abandonAuthority('closeout_closed_unmerged');

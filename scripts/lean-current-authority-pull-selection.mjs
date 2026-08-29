@@ -20,21 +20,31 @@ function selectExactCloseoutPull(pulls, identity) {
   if (
     typeof identity?.branch !== 'string' ||
     !SHA40.test(identity.protectedMainSha ?? '') ||
+    !SHA40.test(identity.protectedMainParentSha ?? '') ||
     heads.size === 0 ||
     [...heads].some(head => !SHA40.test(head))
   ) {
     throw new Error('closeout pull identity malformed');
   }
   const matches = pulls.filter(pull => {
-    if (pull.head.ref !== identity.branch || !heads.has(pull.head.sha)) return false;
+    if (pull.head.ref !== identity.branch) return false;
+    const currentHead = heads.has(pull.head.sha);
     const openMatch =
-      pull.state === 'open' && !pull.merged && pull.base.sha === identity.protectedMainSha;
+      pull.state === 'open' &&
+      !pull.merged &&
+      currentHead &&
+      pull.base.sha === identity.protectedMainSha;
+    const abandonedMatch =
+      pull.state === 'closed' &&
+      !pull.merged &&
+      currentHead &&
+      pull.base.sha === identity.protectedMainSha;
     const mergedMatch =
       pull.state === 'closed' &&
       pull.merged &&
       pull.base.sha === identity.protectedMainParentSha &&
       pull.merge_commit_sha === identity.protectedMainSha;
-    return openMatch || mergedMatch;
+    return openMatch || abandonedMatch || mergedMatch;
   });
   if (matches.length !== 1) throw new Error('closeout pull identity ambiguous');
   return matches[0];
@@ -47,16 +57,16 @@ export function selectFullProductPull(summaries, readPull, closeoutIdentity) {
     return null;
   }
   if (summaries.length >= 10) throw new Error('downstream PR inventory incomplete');
-  if (!closeoutIdentity) {
-    if (summaries.length > 1) throw new Error('multiple downstream PRs found');
-    return readPull(summaries[0].number);
-  }
   const numbers = summaries.map(summary => summary?.number);
   if (
     numbers.some(number => !Number.isInteger(number)) ||
     new Set(numbers).size !== numbers.length
   ) {
     throw new Error('downstream PR inventory malformed');
+  }
+  if (!closeoutIdentity) {
+    if (numbers.length > 1) throw new Error('multiple downstream PRs found');
+    return readPull(numbers[0]);
   }
   const pulls = numbers.map(number => readPull(number));
   if (pulls.some((pull, index) => !validCloseoutPull(pull, numbers[index]))) {

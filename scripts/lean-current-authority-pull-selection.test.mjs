@@ -25,7 +25,8 @@ test('downstream list summary is expanded to one full pull response', () => {
   );
   const branch = 'codex/t117b-data-closeout',
     main = 'a'.repeat(40),
-    head = 'b'.repeat(40);
+    head = 'b'.repeat(40),
+    parent = 'e'.repeat(40);
   const closeout = (number, exact = false) => ({
     number,
     state: 'open',
@@ -36,15 +37,34 @@ test('downstream list summary is expanded to one full pull response', () => {
   });
   const list = [{ number: 1 }, { number: 2 }],
     read = number => closeout(number, number === 2);
-  const identity = { branch, protectedMainSha: main, headShas: [head] };
+  const identity = {
+    branch,
+    protectedMainSha: main,
+    protectedMainParentSha: parent,
+    headShas: [head],
+  };
   const select = (items = list, reader = read, exact = identity) =>
     selectFullProductPull(items, reader, exact);
   assert.equal(select().number, 2);
   assert.throws(() => select(list, read, { ...identity, headShas: [] }), /identity/);
+  assert.throws(() => select(list, read, { ...identity, protectedMainParentSha: '' }), /identity/);
   assert.throws(
     () => select([...list, { number: 3 }], number => closeout(number, true)),
     /identity/
   );
   assert.throws(() => select(Array(10).fill({ number: 1 }), read), /incomplete/);
   assert.throws(() => select(list, () => ({ number: 1 })), /malformed/);
+  assert.throws(() => selectFullProductPull([{}], () => ({})), /malformed/);
+  assert.equal(
+    select(list, number => ({ ...closeout(number, number === 2), state: 'closed' })).state,
+    'closed'
+  );
+  const merged = {
+    ...closeout(2),
+    state: 'closed',
+    merged: true,
+    base: { sha: parent },
+    merge_commit_sha: main,
+  };
+  assert.equal(select([{ number: 2 }], () => merged).merged, true);
 });

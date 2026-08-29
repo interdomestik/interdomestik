@@ -75,23 +75,23 @@
         "scripts/modularity-guard-policy.mjs",
         "scripts/check-modularity-guard.test.mjs"
       ],
-      "maxTrackedBytesDelta": 22777,
+      "maxTrackedBytesDelta": 24108,
       "maxTrackedFilesDelta": 2,
       "maxCategoryBytesDelta": {
-        "source/scripts": 8977,
-        "tests/e2e": 13800
+        "source/scripts": 9401,
+        "tests/e2e": 14707
       },
       "maxPathBytesDelta": {
         "scripts/lean-current-authority-policy.mjs": 487,
         "scripts/lean-current-authority-lifecycle.mjs": 1111,
         "scripts/lean-current-authority-git.mjs": 2745,
-        "scripts/lean-current-authority-pull-selection.mjs": 2997,
-        "scripts/lean-current-authority-history.mjs": 4519,
+        "scripts/lean-current-authority-pull-selection.mjs": 3270,
+        "scripts/lean-current-authority-history.mjs": 4548,
         "scripts/lean-current-authority-evidence.mjs": 606,
         "scripts/lean-current-authority-policy.test.mjs": 7782,
         "scripts/lean-current-authority.test.mjs": 1169,
         "scripts/lean-current-authority-evidence.test.mjs": 793,
-        "scripts/lean-current-authority-pull-selection.test.mjs": 1904,
+        "scripts/lean-current-authority-pull-selection.test.mjs": 2493,
         "scripts/lean-current-authority-conformance.test.mjs": 2986,
         "scripts/modularity-guard-policy.mjs": 344,
         "scripts/check-modularity-guard.test.mjs": 738
@@ -361,14 +361,14 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 59656162,
+  "maxTrackedBytes": 59657493,
   "maxTrackedFiles": 5865,
   "maxCategoryBytes": {
     "other": 18856416,
     "large support/generated-ish": 15390712,
     "docs/text": 8479400,
-    "source/scripts": 8351907,
-    "tests/e2e": 6427719,
+    "source/scripts": 8352331,
+    "tests/e2e": 6428626,
     "config/data/messages": 2150008
   },
   "maxLargestFileBytes": 3266530,

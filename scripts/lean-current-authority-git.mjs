@@ -141,11 +141,11 @@ function artifactSha256(repo, path, treeSha, readGithub) {
   return createHash('sha256').update(bytes).digest('hex');
 }
 
-export function pullByBranch(repo, branch) {
+export function pullByBranch(repo, branch, anchor) {
   const endpoint = `repos/${ORIGIN}/pulls?state=all&base=main&head=interdomestik:${branch}&per_page=10`;
   const summaries = github(endpoint, repo);
   const closeoutIdentity = branch.endsWith('-closeout')
-    ? closeoutPullIdentity(repo, branch, protectedMain(repo), git)
+    ? closeoutPullIdentity(repo, branch, anchor ?? protectedMain(repo), git)
     : undefined;
   return selectFullProductPull(
     summaries,
