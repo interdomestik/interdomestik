@@ -100,7 +100,7 @@ export function collectWriterFactsAtBase({
         filePath,
       ]);
       const baseExists = Buffer.byteLength(baseEntry) > 0;
-      if (baseExists && !baseEntry.startsWith('100')) {
+      if (baseExists && baseEntry.subarray(0, 3).toString('ascii') !== '100') {
         throw new Error(`Manifest-base writer path is not a regular file: ${filePath}`);
       }
       const baseBytes = baseExists

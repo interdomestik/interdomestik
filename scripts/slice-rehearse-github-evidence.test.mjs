@@ -1,8 +1,13 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 
 import { canonicalJson, sha256 } from './slice-rehearse-core.mjs';
 import { deriveEvidenceIdentityKey, evaluateEvidenceReceipts } from './slice-rehearse-evidence.mjs';
+import { gitBytes } from './slice-rehearse-git-facts.mjs';
 import { collectVerifiedEvidenceKeys } from './slice-rehearse-github-evidence.mjs';
 
 const headSha = 'a'.repeat(40);
@@ -223,4 +228,25 @@ test('rejects reuse when the PR head executed a different workflow blob', () => 
     }),
     {}
   );
+});
+
+test('Git blob evidence preserves exact bytes as a Buffer', () => {
+  const repository = mkdtempSync(join(tmpdir(), 'slice-evidence-git-bytes-'));
+  try {
+    execFileSync('/usr/bin/git', ['init', '-q', '-b', 'main', repository]);
+    execFileSync('/usr/bin/git', ['config', 'user.email', 'harness@example.test'], {
+      cwd: repository,
+    });
+    execFileSync('/usr/bin/git', ['config', 'user.name', 'Harness Test'], { cwd: repository });
+    const expected = Buffer.from([0x00, 0xff, 0x41, 0x0a]);
+    writeFileSync(join(repository, 'workflow.bin'), expected);
+    execFileSync('/usr/bin/git', ['add', 'workflow.bin'], { cwd: repository });
+    execFileSync('/usr/bin/git', ['commit', '-q', '-m', 'binary evidence'], { cwd: repository });
+
+    const actual = gitBytes(repository, ['show', 'HEAD:workflow.bin']);
+    assert.equal(Buffer.isBuffer(actual), true);
+    assert.deepEqual(actual, expected);
+  } finally {
+    rmSync(repository, { recursive: true, force: true });
+  }
 });

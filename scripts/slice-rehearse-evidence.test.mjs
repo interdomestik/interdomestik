@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -219,6 +219,28 @@ test('bounded file reads reject paths outside the trusted roots', () => {
   } finally {
     rmSync(trusted, { recursive: true, force: true });
     rmSync(untrusted, { recursive: true, force: true });
+  }
+});
+
+test('bounded file reads reject a symlinked directory inside a trusted root', () => {
+  const trusted = mkdtempSync(join(tmpdir(), 'slice-evidence-symlink-'));
+  try {
+    const target = join(trusted, 'target');
+    mkdirSync(target);
+    writeFileSync(join(target, 'evidence.json'), '{}\n');
+    symlinkSync(target, join(trusted, 'linked'), 'dir');
+
+    assert.throws(
+      () =>
+        readBoundedRegularText(join(trusted, 'linked', 'evidence.json'), {
+          label: 'Evidence',
+          maxBytes: 100,
+          allowedRoots: [trusted],
+        }),
+      /symlink|unsafe/iu
+    );
+  } finally {
+    rmSync(trusted, { recursive: true, force: true });
   }
 });
 

@@ -400,13 +400,13 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 291296,
+      "maxTrackedBytesDelta": 293481,
       "maxTrackedFilesDelta": 41,
       "maxCategoryBytesDelta": {
         "config/data/messages": 245,
         "docs/text": 28914,
-        "source/scripts": 136331,
-        "tests/e2e": 125806
+        "source/scripts": 136597,
+        "tests/e2e": 127725
       },
       "maxPathBytesDelta": {
         ".github/workflows/ci.yml": 24,
@@ -414,10 +414,10 @@
         "docs/superpowers/specs/2026-08-29-harness-v2-efficiency-design.md": 13634,
         "package.json": 221,
         "scripts/ci/z620-parity.json": 0,
-        "scripts/slice-rehearse-canonical.mjs": 6713,
+        "scripts/slice-rehearse-canonical.mjs": 6936,
         "scripts/slice-rehearse-capacity-existing.mjs": 6220,
         "scripts/slice-rehearse-capacity-fixed-point.mjs": 7197,
-        "scripts/slice-rehearse-capacity-owner-facts.mjs": 5121,
+        "scripts/slice-rehearse-capacity-owner-facts.mjs": 5145,
         "scripts/slice-rehearse-capacity-owner.test.mjs": 1377,
         "scripts/slice-rehearse-capacity-projection.mjs": 5642,
         "scripts/slice-rehearse-capacity-stops.test.mjs": 8005,
@@ -430,11 +430,11 @@
         "scripts/slice-rehearse-envelope.test.mjs": 2671,
         "scripts/slice-rehearse-evaluator.mjs": 5293,
         "scripts/slice-rehearse-evidence.mjs": 6930,
-        "scripts/slice-rehearse-evidence.test.mjs": 8793,
+        "scripts/slice-rehearse-evidence.test.mjs": 9485,
         "scripts/slice-rehearse-facts.test.mjs": 10503,
-        "scripts/slice-rehearse-git-facts.mjs": 6560,
+        "scripts/slice-rehearse-git-facts.mjs": 6579,
         "scripts/slice-rehearse-github-evidence.mjs": 6628,
-        "scripts/slice-rehearse-github-evidence.test.mjs": 6453,
+        "scripts/slice-rehearse-github-evidence.test.mjs": 7680,
         "scripts/slice-rehearse-invalidation.test.mjs": 5657,
         "scripts/slice-rehearse-operation-cli.test.mjs": 5428,
         "scripts/slice-rehearse-operation-contracts.mjs": 7660,
@@ -465,15 +465,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 59954014,
+  "maxTrackedBytes": 59956199,
   "maxTrackedFiles": 5906,
   "maxCategoryBytes": {
     "config/data/messages": 2155478,
     "docs/text": 8508314,
     "large support/generated-ish": 15390712,
     "other": 18856416,
-    "source/scripts": 8488662,
-    "tests/e2e": 6554432
+    "source/scripts": 8488928,
+    "tests/e2e": 6556351
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

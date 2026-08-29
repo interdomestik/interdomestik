@@ -22,15 +22,15 @@ const SAFE_EXEC_ENV = Object.freeze({
 });
 const GIT_READ_PREFIX = Object.freeze(['-c', 'core.fsmonitor=false']);
 const OPTIONS = Object.freeze({
-  encoding: 'utf8',
   env: SAFE_EXEC_ENV,
   timeout: 15_000,
   maxBuffer: 16 * 1024 * 1024,
   stdio: ['ignore', 'pipe', 'pipe'],
 });
+const TEXT_OPTIONS = Object.freeze({ ...OPTIONS, encoding: 'utf8' });
 
 export function gitText(repository, args) {
-  return execFileSync(GIT_BIN, [...GIT_READ_PREFIX, '-C', repository, ...args], OPTIONS).trim();
+  return gitBytes(repository, args).toString('utf8').trim();
 }
 
 export function gitBytes(repository, args) {
@@ -38,7 +38,7 @@ export function gitBytes(repository, args) {
 }
 
 function gitResult(repository, args) {
-  return spawnSync(GIT_BIN, [...GIT_READ_PREFIX, '-C', repository, ...args], OPTIONS);
+  return spawnSync(GIT_BIN, [...GIT_READ_PREFIX, '-C', repository, ...args], TEXT_OPTIONS);
 }
 
 function dirtyPaths(repository) {

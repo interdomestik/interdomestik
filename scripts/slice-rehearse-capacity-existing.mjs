@@ -1,4 +1,4 @@
-import { canonicalJson, compareText, sha256 } from './slice-rehearse-canonical.mjs';
+import { compareText } from './slice-rehearse-canonical.mjs';
 import { analyzeProjectionReuse } from './slice-rehearse-capacity-projection.mjs';
 import { unchangedBudgetProposal } from './slice-rehearse-capacity-fixed-point.mjs';
 

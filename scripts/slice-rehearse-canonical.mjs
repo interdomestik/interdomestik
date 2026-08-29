@@ -1,16 +1,8 @@
 import { createHash } from 'node:crypto';
-import {
-  closeSync,
-  constants,
-  fstatSync,
-  lstatSync,
-  openSync,
-  readFileSync,
-  realpathSync,
-} from 'node:fs';
+import * as fs from 'node:fs';
 import { isAbsolute, normalize, posix, relative, resolve, sep } from 'node:path';
 
-const READ_FLAGS = constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK;
+const READ_FLAGS = fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW | fs.constants.O_NONBLOCK;
 
 export function compareText(left, right) {
   return left.localeCompare(right);
@@ -84,26 +76,32 @@ export function readBoundedRegularText(filePath, { label, maxBytes, allowedRoots
   );
   must(inputRoot, `${label} must be contained by a trusted root`);
   const relativePath = safeRelativePath(relative(inputRoot, candidate), `${label} path`);
-  const trustedRoot = realpathSync(inputRoot);
+  const trustedRoot = fs.realpathSync(inputRoot);
   must(trustedRoot !== '/', `${label} trusted root is unsafe`);
-  const rootedCandidate = resolve(trustedRoot, relativePath);
-  const facts = lstatSync(rootedCandidate);
-  must(facts.isFile(), `${label} must be a regular file, not a symlink or pipe.`);
-  must(facts.size <= maxBytes, `${label} exceeds the input size limit.`);
-  const realCandidate = realpathSync(rootedCandidate);
-  must(
-    realCandidate === trustedRoot || realCandidate.startsWith(`${trustedRoot}${sep}`),
-    `${label} must be contained by a trusted root`
-  );
+  let rootedCandidate = trustedRoot;
+  for (const segment of relativePath.split('/')) {
+    const entry = fs
+      .readdirSync(rootedCandidate, { withFileTypes: true })
+      .find(item => item.name === segment);
+    must(entry && !entry.isSymbolicLink(), `${label} path is unavailable, unsafe, or symlinked`);
+    rootedCandidate = resolve(rootedCandidate, entry.name);
+  }
   let descriptor;
   try {
-    descriptor = openSync(realCandidate, READ_FLAGS);
-    const opened = fstatSync(descriptor);
+    descriptor = fs.openSync(rootedCandidate, READ_FLAGS);
+    const opened = fs.fstatSync(descriptor, { bigint: true });
     must(opened.isFile(), `${label} must remain a regular file.`);
-    must(opened.size <= maxBytes, `${label} exceeds the input size limit.`);
-    return readFileSync(descriptor, 'utf8');
+    must(opened.size <= BigInt(maxBytes), `${label} exceeds the input size limit.`);
+    const resolvedCandidate = fs.realpathSync(rootedCandidate);
+    must(
+      resolvedCandidate.startsWith(`${trustedRoot}${sep}`),
+      `${label} must remain contained by a trusted root`
+    );
+    const named = fs.lstatSync(resolvedCandidate, { bigint: true });
+    must(named.dev === opened.dev && named.ino === opened.ino, `${label} path changed`);
+    return fs.readFileSync(descriptor, 'utf8');
   } finally {
-    if (descriptor !== undefined) closeSync(descriptor);
+    if (descriptor !== undefined) fs.closeSync(descriptor);
   }
 }
 
