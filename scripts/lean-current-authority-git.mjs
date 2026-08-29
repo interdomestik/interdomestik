@@ -10,6 +10,12 @@ import {
   compareCanonicalText,
   promotionArtifactPaths,
 } from './lean-current-authority-policy.mjs';
+import {
+  closeoutPullIdentity,
+  selectFullProductPull,
+} from './lean-current-authority-pull-selection.mjs';
+
+export { selectFullProductPull } from './lean-current-authority-pull-selection.mjs';
 
 const run = (binary, args, cwd) =>
   execFileSync(binary, args, {
@@ -52,12 +58,6 @@ export function pullFacts(repo, pull, reviews = [], readCommit = commitFacts) {
     changedFileCount: pull.changed_files,
     reviews,
   };
-}
-
-export function selectFullProductPull(summaries, readPull) {
-  if (!Array.isArray(summaries)) throw new Error('downstream PR inventory malformed');
-  if (summaries.length > 1) throw new Error('multiple downstream PRs found');
-  return summaries[0] ? readPull(summaries[0].number) : null;
 }
 
 export function isCanonicalOrigin(value) {
@@ -144,8 +144,13 @@ function artifactSha256(repo, path, treeSha, readGithub) {
 export function pullByBranch(repo, branch) {
   const endpoint = `repos/${ORIGIN}/pulls?state=all&base=main&head=interdomestik:${branch}&per_page=10`;
   const summaries = github(endpoint, repo);
-  return selectFullProductPull(summaries, number =>
-    github(`repos/${ORIGIN}/pulls/${number}`, repo)
+  const closeoutIdentity = branch.endsWith('-closeout')
+    ? closeoutPullIdentity(repo, branch, protectedMain(repo), git)
+    : undefined;
+  return selectFullProductPull(
+    summaries,
+    number => github(`repos/${ORIGIN}/pulls/${number}`, repo),
+    closeoutIdentity
   );
 }
 
