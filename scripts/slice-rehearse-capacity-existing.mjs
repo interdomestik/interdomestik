@@ -1,36 +1,75 @@
 import { canonicalJson, compareText, sha256 } from './slice-rehearse-canonical.mjs';
+import { analyzeProjectionReuse } from './slice-rehearse-capacity-projection.mjs';
+import { unchangedBudgetProposal } from './slice-rehearse-capacity-fixed-point.mjs';
 
 export const BUDGET_PATH = 'scripts/repo-size-budget.json';
 export const CAPACITY_REBASE_ID = 'capacity-rebase';
 
-export function unchangedBudgetProposal({
+export function projectionBudgetProposal({
   budget,
-  budgetText,
+  protectedBudgetText,
+  manifest,
   baselineBudgetBytes,
-  allocation,
-  mode,
-  authorityStops = [],
+  writerDeltas,
+  capacityOwnerDeltas,
+  allocationId,
+  owners,
+  deriveRepairProposal,
 }) {
-  const candidate = structuredClone(budget);
-  const budgetBytes = budgetText ?? canonicalJson(candidate);
-  const selfBytesDelta = Buffer.byteLength(budgetBytes) - baselineBudgetBytes;
-  const exact = candidate.allocations.find(item => item.id === CAPACITY_REBASE_ID);
-  const stops = [...authorityStops];
-  if (exact?.pathBytesDelta[BUDGET_PATH] !== selfBytesDelta) {
-    stops.push({
-      code: 'capacity:budget-self-size-stale',
-      actual: exact?.pathBytesDelta[BUDGET_PATH] ?? null,
-      required: selfBytesDelta,
+  const { authorityStops, ownerAllocations, plannedHeadroom } = analyzeProjectionReuse({
+    budget,
+    manifest,
+    writerDeltas,
+    capacityOwnerDeltas,
+    owners,
+  });
+  if (manifest.topology.repairPaths.length) {
+    const repairSet = new Set(manifest.topology.repairPaths);
+    const repairProposal = deriveRepairProposal({
+      budget,
+      protectedBudgetText,
+      baselineBudgetBytes,
+      allocationIdOverride: manifest.topology.repairAllocationId,
+      writerDeltas: Object.fromEntries(
+        Object.entries(writerDeltas).filter(([filePath]) => repairSet.has(filePath))
+      ),
+      capacityOwnerDeltas: {},
+      manifest: {
+        ...manifest,
+        writerPaths: [...manifest.topology.repairPaths],
+        pathPlans: manifest.pathPlans.filter(plan => repairSet.has(plan.path)),
+        topology: {
+          closeoutMode: 'none',
+          projectionPaths: [],
+          repairAllocationId: null,
+          repairPaths: [],
+        },
+      },
     });
+    const stops = [...authorityStops, ...repairProposal.authorityStops];
+    return {
+      ...repairProposal,
+      mode: stops.length ? 'blocked' : repairProposal.mode,
+      authorityStops: stops,
+      projectionOwners: ownerAllocations,
+      projectionHeadroom: plannedHeadroom,
+    };
   }
   return {
-    mode: stops.length ? 'blocked' : mode,
-    allocation,
-    budget: candidate,
-    budgetBytes,
-    sha256: sha256(budgetBytes),
-    selfBytesDelta,
-    authorityStops: stops,
+    ...unchangedBudgetProposal({
+      budget,
+      budgetText: protectedBudgetText,
+      baselineBudgetBytes,
+      mode: 'projection-existing',
+      authorityStops,
+      allocation: {
+        id: `${allocationId}-projection`,
+        mode: 'projection-existing',
+        writerPaths: [...manifest.writerPaths],
+        ownerAllocations,
+      },
+    }),
+    projectionHeadroom: plannedHeadroom,
   };
 }
 

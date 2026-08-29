@@ -168,7 +168,7 @@ export function runSliceRehearsal({
       baselineBudgetBytes: Buffer.byteLength(baselineBudgetBytes),
     });
     if (!Array.isArray(report.authorityStops)) {
-      throw new Error('Rehearsal report authority stops are unavailable.');
+      throw new TypeError('Rehearsal report authority stops are unavailable.');
     }
     stdout(rehearsalCore.canonicalJson(report));
     return report.authorityStops.length > 0 ? 2 : 0;

@@ -63,6 +63,37 @@ function result(candidate, budgetBytes, selfBytesDelta, authorityStops = []) {
   };
 }
 
+export function unchangedBudgetProposal({
+  budget,
+  budgetText,
+  baselineBudgetBytes,
+  allocation,
+  mode,
+  authorityStops = [],
+}) {
+  const candidate = structuredClone(budget);
+  const budgetBytes = budgetText ?? canonicalJson(candidate);
+  const selfBytesDelta = Buffer.byteLength(budgetBytes) - baselineBudgetBytes;
+  const exact = candidate.allocations.find(item => item.id === CAPACITY_REBASE_ID);
+  const stops = [...authorityStops];
+  if (exact?.pathBytesDelta[BUDGET_PATH] !== selfBytesDelta) {
+    stops.push({
+      code: 'capacity:budget-self-size-stale',
+      actual: exact?.pathBytesDelta[BUDGET_PATH] ?? null,
+      required: selfBytesDelta,
+    });
+  }
+  return {
+    mode: stops.length ? 'blocked' : mode,
+    allocation,
+    budget: candidate,
+    budgetBytes,
+    sha256: sha256(budgetBytes),
+    selfBytesDelta,
+    authorityStops: stops,
+  };
+}
+
 function withoutDerivedFields(value, allocationId) {
   const normalized = structuredClone(value);
   normalized.allocations = normalized.allocations

@@ -4,7 +4,6 @@ import {
   deriveEvidenceIdentityKey,
   exactKeys,
   must,
-  readBoundedRegularText,
   sortedText,
 } from './slice-rehearse-canonical.mjs';
 export { deriveEvidenceIdentityKey, readBoundedRegularText } from './slice-rehearse-canonical.mjs';

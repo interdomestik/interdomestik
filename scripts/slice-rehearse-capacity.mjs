@@ -3,13 +3,13 @@ import {
   BUDGET_PATH,
   CAPACITY_REBASE_ID,
   existingAllocationStops,
+  projectionBudgetProposal,
   proposedAllocation,
-  unchangedBudgetProposal,
 } from './slice-rehearse-capacity-existing.mjs';
-import { analyzeProjectionReuse } from './slice-rehearse-capacity-projection.mjs';
 import {
   compareWorktreeBudget,
   deriveCapacityFixedPoint,
+  unchangedBudgetProposal,
 } from './slice-rehearse-capacity-fixed-point.mjs';
 import { must } from './slice-rehearse-canonical.mjs';
 
@@ -35,61 +35,17 @@ function deriveProtectedProposal({
     )
   );
   if (manifest.topology.closeoutMode === 'projection-only') {
-    const { authorityStops, ownerAllocations, plannedHeadroom } = analyzeProjectionReuse({
+    return projectionBudgetProposal({
       budget,
+      protectedBudgetText,
       manifest,
+      baselineBudgetBytes,
       writerDeltas,
       capacityOwnerDeltas,
+      allocationId,
       owners,
+      deriveRepairProposal: deriveProtectedProposal,
     });
-    if (manifest.topology.repairPaths.length) {
-      const repairSet = new Set(manifest.topology.repairPaths);
-      const repairProposal = deriveProtectedProposal({
-        budget,
-        protectedBudgetText,
-        baselineBudgetBytes,
-        allocationIdOverride: manifest.topology.repairAllocationId,
-        writerDeltas: Object.fromEntries(
-          Object.entries(writerDeltas).filter(([filePath]) => repairSet.has(filePath))
-        ),
-        capacityOwnerDeltas: {},
-        manifest: {
-          ...manifest,
-          writerPaths: [...manifest.topology.repairPaths],
-          pathPlans: manifest.pathPlans.filter(plan => repairSet.has(plan.path)),
-          topology: {
-            closeoutMode: 'none',
-            projectionPaths: [],
-            repairAllocationId: null,
-            repairPaths: [],
-          },
-        },
-      });
-      const stops = [...authorityStops, ...repairProposal.authorityStops];
-      return {
-        ...repairProposal,
-        mode: stops.length ? 'blocked' : repairProposal.mode,
-        authorityStops: stops,
-        projectionOwners: ownerAllocations,
-        projectionHeadroom: plannedHeadroom,
-      };
-    }
-    return {
-      ...unchangedBudgetProposal({
-        budget,
-        budgetText: protectedBudgetText,
-        baselineBudgetBytes,
-        mode: 'projection-existing',
-        authorityStops,
-        allocation: {
-          id: `${allocationId}-projection`,
-          mode: 'projection-existing',
-          writerPaths: [...manifest.writerPaths],
-          ownerAllocations,
-        },
-      }),
-      projectionHeadroom: plannedHeadroom,
-    };
   }
   const authorityStops = [];
   for (const filePath of manifest.writerPaths) {

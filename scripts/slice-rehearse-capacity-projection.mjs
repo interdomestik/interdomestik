@@ -19,8 +19,7 @@ function sameProjectionFact(left, right) {
 }
 
 function recordProjectionPath(context, filePath) {
-  const { authorityStops, budget, capacityOwnerDeltas, manifest, ownerAllocations, owners } =
-    context;
+  const { authorityStops, budget, capacityOwnerDeltas, ownerAllocations, owners } = context;
   const owner = owners.get(filePath);
   if (!owner) {
     authorityStops.push({ code: 'capacity:projection-writer-unowned', path: filePath });

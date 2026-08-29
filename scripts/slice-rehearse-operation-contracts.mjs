@@ -55,25 +55,27 @@ function resolveForce(contract, repository, state) {
   state.granted.push(contract);
 }
 
+function resolveDeferredFullGate(contract, repository, state, transition) {
+  const operationFacts = state.facts
+    ? {
+        ...state.facts,
+        authority:
+          transition?.state === 'resolved'
+            ? { ...state.facts.authority, approvedHeadSha: transition.headSha }
+            : state.facts.authority,
+        pullRequestCandidates: state.virtualCandidates,
+      }
+    : null;
+  const result = resolveDeferredOperation(contract, repository, operationFacts);
+  if (result.granted || (contract.deferred && result.deferred))
+    state.granted.push(result.granted ?? result.deferred);
+  else reject(state, contract.operation, result.rejected);
+}
+
 function resolveFullGate(contract, repository, state) {
   const transition = state.forceTransitions.get(contract.target.branch);
-  if (contract.target.mode === 'deferred-pr') {
-    const operationFacts = state.facts
-      ? {
-          ...state.facts,
-          authority:
-            transition?.state === 'resolved'
-              ? { ...state.facts.authority, approvedHeadSha: transition.headSha }
-              : state.facts.authority,
-          pullRequestCandidates: state.virtualCandidates,
-        }
-      : null;
-    const result = resolveDeferredOperation(contract, repository, operationFacts);
-    if (result.granted || (contract.deferred && result.deferred)) {
-      state.granted.push(result.granted ?? result.deferred);
-    } else reject(state, contract.operation, result.rejected);
-    return;
-  }
+  if (contract.target.mode === 'deferred-pr')
+    return resolveDeferredFullGate(contract, repository, state, transition);
   const pr = state.virtualPulls[String(contract.target.prNumber)];
   const authority = state.facts?.authority;
   const approvedHead =

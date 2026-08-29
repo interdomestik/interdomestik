@@ -78,7 +78,7 @@ test('rejects malformed, identifying, free-text, and inconsistent events', () =>
   const invalidEvents = [
     { ...event(), note: 'free text' },
     { ...event(), userEmail: 'person@example.com' },
-    { ...event(), sliceId: "Arben's personal slice" },
+    { ...event(), sliceId: 'invalid slice identifier with spaces' },
     { ...event(), phase: 'coding' },
     { ...event(), blockerPhase: 'mystery' },
     { ...event(), elapsedMs: 999 },

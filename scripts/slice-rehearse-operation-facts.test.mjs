@@ -83,6 +83,22 @@ test('collects bounded pre-PR facts and preserves the exact deferred predicate',
   assert.equal(result.granted[0].deferred, true);
 });
 
+test('rejects malformed deferred labels before accessing label entries', () => {
+  let labelsAccessed = false;
+  const labels = new Proxy(
+    {},
+    {
+      get() {
+        labelsAccessed = true;
+        throw new Error('malformed label inventory must not be traversed');
+      },
+    }
+  );
+  const { facts } = collect({ pulls: [pull(1664, { labels })] });
+  assert.equal(facts, null);
+  assert.equal(labelsAccessed, false);
+});
+
 test('resolves one exact active PR and rejects zero-active, multiple, stale, or labeled candidates', () => {
   const active = {
     activeSlice: 'HARNESS-V2',

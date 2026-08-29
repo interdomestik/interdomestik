@@ -8,7 +8,7 @@ import {
   readFileSync,
   realpathSync,
 } from 'node:fs';
-import { isAbsolute, normalize, posix, relative, resolve } from 'node:path';
+import { isAbsolute, normalize, posix, relative, resolve, sep } from 'node:path';
 
 const READ_FLAGS = constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK;
 
@@ -71,28 +71,28 @@ export function sortedUnique(values, label, validate = nonEmptyString) {
   return normalized.sort(compareText);
 }
 
-function containedBy(filePath, root) {
-  const relation = relative(root, filePath);
-  return relation === '' || (!relation.startsWith('..') && !isAbsolute(relation));
-}
-
 export function readBoundedRegularText(filePath, { label, maxBytes, allowedRoots }) {
   must(
     Array.isArray(allowedRoots) && allowedRoots.length > 0,
     `${label} trusted roots are required`
   );
-  const resolvedRoots = allowedRoots.map(root => realpathSync(resolve(root)));
-  must(
-    resolvedRoots.every(root => root !== '/'),
-    `${label} trusted root is unsafe`
-  );
+  const inputRoots = allowedRoots.map(root => resolve(root)).filter(root => root !== '/');
+  must(inputRoots.length === allowedRoots.length, `${label} trusted root is unsafe`);
   const candidate = resolve(filePath);
-  const facts = lstatSync(candidate);
+  const inputRoot = inputRoots.find(
+    root => candidate === root || candidate.startsWith(`${root}${sep}`)
+  );
+  must(inputRoot, `${label} must be contained by a trusted root`);
+  const relativePath = safeRelativePath(relative(inputRoot, candidate), `${label} path`);
+  const trustedRoot = realpathSync(inputRoot);
+  must(trustedRoot !== '/', `${label} trusted root is unsafe`);
+  const rootedCandidate = resolve(trustedRoot, relativePath);
+  const facts = lstatSync(rootedCandidate);
   must(facts.isFile(), `${label} must be a regular file, not a symlink or pipe.`);
   must(facts.size <= maxBytes, `${label} exceeds the input size limit.`);
-  const realCandidate = realpathSync(candidate);
+  const realCandidate = realpathSync(rootedCandidate);
   must(
-    resolvedRoots.some(root => containedBy(realCandidate, root)),
+    realCandidate === trustedRoot || realCandidate.startsWith(`${trustedRoot}${sep}`),
     `${label} must be contained by a trusted root`
   );
   let descriptor;

@@ -114,6 +114,7 @@ export function collectOperationFacts({
           branch,
           pulls.map(pull => {
             must(pull.head?.repo?.full_name === ORIGIN, 'GitHub PR origin differs');
+            must(Array.isArray(pull.labels), 'GitHub PR labels are invalid');
             const fullGateLabelPresent = pull.labels.some(label => label?.name === 'full-gate');
             return {
               number: pull.number,
