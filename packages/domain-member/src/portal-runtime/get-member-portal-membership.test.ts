@@ -102,21 +102,22 @@ describe('member portal request context', () => {
 
   it('resolves once across a slow render tree and isolates the next request', async () => {
     const firstSession = { user: { id: 'member-1', tenantId: 'tenant-1' } };
-    const secondSession = { user: { id: 'member-1', tenantId: 'tenant-1' } };
+    const secondSession = { user: { id: 'member-1' } };
     h.authSession.mockResolvedValue(firstSession);
     const { getMemberPortalContext } = await import(/* @vite-ignore */ MEMBER_CONTEXT_MODULE);
 
     const first = await getMemberPortalContext();
     await vi.advanceTimersByTimeAsync(2_100);
     const slowSibling = await getMemberPortalContext();
-    expect(slowSibling?.session).toBe(first?.session);
+    expect(slowSibling).toEqual(first);
+    expect(first).toEqual({ tenantId: 'tenant-1', userId: 'member-1' });
     expect(h.authSession).toHaveBeenCalledTimes(1);
 
     h.requestValues.clear();
     h.authSession.mockResolvedValue(secondSession);
     const nextRequest = await getMemberPortalContext();
     expect(nextRequest).not.toBe(first);
-    expect(nextRequest?.session).toBe(secondSession);
+    expect(nextRequest).toBeNull();
     expect(h.authSession).toHaveBeenCalledTimes(2);
   });
 
