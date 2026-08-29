@@ -9,7 +9,7 @@ last_reviewed: 2026-08-28
 # IDA-DG58A — T117B-DATA
 
 > Status: approved sequential child gate. Tier 3. No runtime authority exists before exact
-> promotion merge. Promotion base: `b8466b2f4920f6fd1189a547651825f6013fc78a`.
+> promotion merge. Promotion base: `c98f727750a4cfc4cc632f2980d7f847ebb19269`.
 
 ## Outcome
 
