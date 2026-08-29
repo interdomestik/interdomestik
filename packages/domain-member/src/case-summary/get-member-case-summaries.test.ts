@@ -33,10 +33,13 @@ const chain: Record<string, unknown> = new Proxy(
 
 const row = (overrides: Record<string, unknown> = {}) => ({
   id: 'claim-1',
+  category: 'vehicle',
   reference: 'CLM-001',
   caseLifecycleState: 'submitted',
   recoveryLifecycleState: 'not_started',
   documentCount: 0,
+  createdAt: new Date('2026-08-20T10:00:00.000Z'),
+  updatedAt: new Date('2026-08-21T11:30:00.000Z'),
   ...overrides,
 });
 
@@ -58,7 +61,7 @@ describe('getMemberCaseSummaries', () => {
   });
 
   it('scopes one query and returns safe facts', async () => {
-    h.rows = [row({ documentCount: 3, createdAt: null, updatedAt: null })];
+    h.rows = [row({ documentCount: 3 })];
     const result = await get('member-1', 'tenant-1');
     expect(h.tenant).toHaveBeenCalledWith(
       { tenantId: 'tenant-1', role: 'member' },
@@ -66,37 +69,61 @@ describe('getMemberCaseSummaries', () => {
     );
     expect(h.select).toHaveBeenCalledTimes(1);
     expect(h.eq.mock.calls.flat()).toEqual(
-      'document.claimId claim.id document.tenantId tenant-1 claim.tenantId tenant-1 claim.userId member-1 claim.category vehicle'.split(
+      'document.claimId claim.id document.tenantId tenant-1 claim.tenantId tenant-1 claim.userId member-1'.split(
         ' '
       )
     );
     expect(Object.keys(h.select.mock.calls[0][0])).toEqual(
-      'id reference caseLifecycleState recoveryLifecycleState documentCount'.split(' ')
+      'id category reference caseLifecycleState recoveryLifecycleState documentCount createdAt updatedAt'.split(
+        ' '
+      )
     );
     expect(h.order.mock.calls[0]).toEqual([
       expect.stringMatching(/coalesce\(.+\) desc nulls last/u),
       'claim.id',
     ]);
-    expect(Object.keys(result[0])).toHaveLength(6);
-    expect([result[0].documentCount, result[0].nextStep]).toEqual([3, 'team_review']);
+    expect(Object.keys(result[0])).toHaveLength(7);
+    expect([result[0].documentCount, result[0].nextStep, result[0].occurredAt]).toEqual([
+      3,
+      'team_review',
+      '2026-08-21T11:30:00.000Z',
+    ]);
   });
 
-  it('maps empty, zero and bounded lifecycle tokens', async () => {
+  it('keeps mixed categories exhaustive without exposing raw category', async () => {
     await expect(get()).resolves.toEqual([]);
     h.rows = [
-      row({ caseLifecycleState: 'draft' }),
-      row({ caseLifecycleState: 'recovery', recoveryLifecycleState: 'court' }),
+      row({ id: 'vehicle', category: 'vehicle', caseLifecycleState: 'draft' }),
+      row({ id: 'case-2', category: 'property' }),
+      row({
+        id: 'case-3',
+        category: 'travel',
+        caseLifecycleState: 'recovery',
+        recoveryLifecycleState: 'court',
+      }),
     ];
     const result = await get();
-    expect(result.map(item => item.nextStep)).toEqual(['member_action', 'court_schedule']);
+    expect(result.map(item => [item.id, item.caseKind])).toEqual([
+      ['vehicle', 'accident'],
+      ['case-2', 'generic'],
+      ['case-3', 'generic'],
+    ]);
+    expect(result.map(item => item.nextStep)).toEqual([
+      'member_action',
+      'team_review',
+      'court_schedule',
+    ]);
     expect(result[0].documentCount).toBe(0);
+    expect(JSON.stringify(result)).not.toMatch(/property|travel|category|price|proof/u);
   });
 
-  it('propagates query and invalid lifecycle failures', async () => {
+  it('keeps undated cases and propagates errors', async () => {
     h.error = new Error('database unavailable');
     await expect(get()).rejects.toThrow('database unavailable');
     h.error = null;
     h.rows = [row({ recoveryLifecycleState: 'court' })];
     await expect(get()).rejects.toThrow('Invalid claim lifecycle state pair');
+    h.rows = [row({ createdAt: null, updatedAt: null })];
+    await expect(get()).resolves.toMatchObject([{ occurredAt: null }]);
   });
 });

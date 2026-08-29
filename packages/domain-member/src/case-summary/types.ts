@@ -19,7 +19,15 @@ export type AccidentSummary = {
   status: CaseLifecycleStatus;
   documentCount: number;
   nextStep: NextStepToken;
+  occurredAt?: string | null;
 };
 
-export type CaseSummary = AccidentSummary; // NOSONAR -- public union boundary for future kinds.
-export type CaseKind = CaseSummary['caseKind'];
+export type ProjectedAccidentSummary = AccidentSummary & { occurredAt: string | null };
+
+export type GenericCaseSummary = Omit<ProjectedAccidentSummary, 'caseKind'> & {
+  caseKind: 'generic';
+};
+
+export type CaseSummary = ProjectedAccidentSummary | GenericCaseSummary;
+export type CaseKind = AccidentSummary['caseKind'];
+export type CaseSummaryKind = CaseSummary['caseKind'];

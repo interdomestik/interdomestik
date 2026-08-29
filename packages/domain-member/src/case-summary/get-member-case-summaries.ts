@@ -29,25 +29,23 @@ export async function getMemberCaseSummaries(params: {
     const rows = await tx
       .select({
         id: claims.id,
+        category: claims.category,
         reference: claims.claimNumber,
         caseLifecycleState: claims.caseLifecycleState,
         recoveryLifecycleState: claims.recoveryLifecycleState,
         documentCount: count(claimDocuments.id),
+        createdAt: claims.createdAt,
+        updatedAt: claims.updatedAt,
       })
       .from(claims)
       .leftJoin(
         claimDocuments,
         and(eq(claimDocuments.claimId, claims.id), eq(claimDocuments.tenantId, tenantId))
       )
-      .where(
-        and(
-          eq(claims.tenantId, tenantId),
-          eq(claims.userId, memberId),
-          eq(claims.category, 'vehicle')
-        )
-      )
+      .where(and(eq(claims.tenantId, tenantId), eq(claims.userId, memberId)))
       .groupBy(
         claims.id,
+        claims.category,
         claims.claimNumber,
         claims.caseLifecycleState,
         claims.recoveryLifecycleState,
@@ -61,13 +59,15 @@ export async function getMemberCaseSummaries(params: {
 
     return rows.map(row => {
       const status = claimStatusFromLifecycleFields(row);
+      const occurredAt = row.updatedAt ?? row.createdAt;
       return {
-        caseKind: 'accident',
+        caseKind: row.category === 'vehicle' ? 'accident' : 'generic',
         id: row.id,
         reference: row.reference,
         status,
         documentCount: Number(row.documentCount),
         nextStep: NEXT_STEP[status],
+        occurredAt: occurredAt?.toISOString() ?? null,
       };
     });
   });
