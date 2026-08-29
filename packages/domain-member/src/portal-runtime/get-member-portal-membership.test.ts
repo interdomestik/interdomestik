@@ -6,9 +6,10 @@ const h = vi.hoisted(() => ({
   scope: vi.fn(),
   eq: vi.fn((...pair: unknown[]) => pair),
   authSession: vi.fn(),
-  requestValues: new Map<() => unknown, unknown>(),
+  requestValues: new Map(),
 }));
 
+vi.mock('server-only', () => ({}));
 vi.mock('../../../../apps/web/src/lib/auth.server', () => ({
   getCachedSession: () => {
     if (!h.requestValues.has(h.authSession)) {
@@ -16,7 +17,6 @@ vi.mock('../../../../apps/web/src/lib/auth.server', () => ({
     }
     return h.requestValues.get(h.authSession);
   },
-  resolveSessionInner: h.authSession,
 }));
 
 const MEMBER_CONTEXT_MODULE = new URL(
@@ -144,9 +144,7 @@ describe('member portal request context', () => {
       'utf8'
     );
     expect(authSource).toContain('getCachedSession = cache(resolveSessionInner)');
-    expect(contextSource).toContain(
-      'getMemberPortalContext = cache(resolveMemberPortalContextInner)'
-    );
+    expect(contextSource).toContain('getMemberPortalContext = cache(resolvePortalContext)');
     expect(`${authSource}\n${contextSource}`).not.toMatch(/Date\.now|setTimeout|new Map|TTL/u);
   });
 });

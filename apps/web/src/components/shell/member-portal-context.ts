@@ -1,16 +1,15 @@
+import 'server-only';
+
 import { cache } from 'react';
 
 import { getCachedSession } from '../../lib/auth.server';
 
-export async function resolveMemberPortalContextInner() {
+async function resolvePortalContext() {
   const session = await getCachedSession();
-  if (!session?.user?.id) return null;
+  const user = session?.user;
+  if (!user?.id) return null;
 
-  return {
-    session,
-    userId: session.user.id,
-    tenantId: session.user.tenantId ?? null,
-  };
+  return { session, userId: user.id, tenantId: user.tenantId ?? null };
 }
 
-export const getMemberPortalContext = cache(resolveMemberPortalContextInner);
+export const getMemberPortalContext = cache(resolvePortalContext);
