@@ -4,7 +4,11 @@ import test from 'node:test';
 
 import { canonicalJson, sha256, validateRehearsalManifest } from './slice-rehearse-core.mjs';
 import { deriveEvidenceIdentityKey } from './slice-rehearse-evidence.mjs';
-import { evaluateRehearsal } from './slice-rehearse-evaluator.mjs';
+import {
+  evidenceAfterPlannedOperations,
+  evaluateRehearsal,
+  requiredEvidenceProofDeficit,
+} from './slice-rehearse-evaluator.mjs';
 import { budgetCategory } from './repo-size-budget-sync-core.mjs';
 
 const budgetBytes = readFileSync(new URL('./repo-size-budget.json', import.meta.url));
@@ -120,4 +124,42 @@ test('full evaluation invalidates reusable proof for a granted identity-changing
   assert.deepEqual(report.evidence.reusableLanes, ['pr-e2e']);
   assert.deepEqual(report.evidence.missingLanes, ['pr-e2e']);
   assert.ok(report.deficits.some(item => item.code === 'evidence:heavy-proof-required'));
+});
+
+test('identity-changing operations retain current reuse as informational evidence only', () => {
+  const current = {
+    decisions: [{ lane: 'pr-e2e', reusable: true }],
+    reusableLanes: ['pr-e2e'],
+    missingLanes: [],
+  };
+  const final = evidenceAfterPlannedOperations(current, [
+    { code: 'capacity:new-files', coveredBy: 'derived_capacity_rebind' },
+  ]);
+  assert.deepEqual(final.reusableLanes, ['pr-e2e']);
+  assert.deepEqual(final.missingLanes, ['pr-e2e']);
+  assert.deepEqual(requiredEvidenceProofDeficit(final), {
+    code: 'evidence:heavy-proof-required',
+    lanes: ['pr-e2e'],
+    coveredBy: 'rerun_invalidated_proof',
+  });
+
+  const explicitlyPlanned = evidenceAfterPlannedOperations(
+    current,
+    [],
+    ['fresh_worktree_patch_replay']
+  );
+  assert.deepEqual(explicitlyPlanned.missingLanes, ['pr-e2e']);
+});
+
+test('identity-preserving full-gate admission does not invalidate exact-head proof', () => {
+  const current = {
+    decisions: [{ lane: 'pr-e2e', reusable: true }],
+    reusableLanes: ['pr-e2e'],
+    missingLanes: [],
+  };
+  const final = evidenceAfterPlannedOperations(current, [
+    { code: 'proof:full-gate', coveredBy: 'apply_full_gate_label' },
+  ]);
+  assert.deepEqual(final.missingLanes, []);
+  assert.equal(requiredEvidenceProofDeficit(final), null);
 });

@@ -15,7 +15,6 @@ import {
 } from './slice-telemetry.mjs';
 
 const evidenceKey = 'a'.repeat(64);
-
 function event(overrides = {}) {
   return {
     schemaVersion: 1,
@@ -106,6 +105,10 @@ test('parses non-empty JSONL without accepting partial or blank records', () => 
     first,
     second,
   ]);
+  assert.deepEqual(
+    parseTelemetryJsonl(`${JSON.stringify(first)}\r\n${JSON.stringify(second)}\r\n`),
+    [first, second]
+  );
   assert.throws(() => parseTelemetryJsonl(''));
   assert.throws(() => parseTelemetryJsonl(`${JSON.stringify(first)}\n\n`));
   assert.throws(() => parseTelemetryJsonl('{"schemaVersion":1}\n'));

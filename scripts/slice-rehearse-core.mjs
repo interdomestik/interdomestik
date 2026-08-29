@@ -1,19 +1,20 @@
-import { isAbsolute, normalize, posix } from 'node:path';
-
 import { CAPACITY_CATEGORIES } from './repo-size-capacity-schema.mjs';
 import { evaluatePrGatePolicy } from './ci/pr-gate-policy-lib.mjs';
 import { CLOSEOUT } from './lean-current-authority-policy.mjs';
 import { budgetCategory } from './repo-size-budget-sync-core.mjs';
+import { FILE_CLASSES, structuredArtifactOwner } from './modularity-guard-policy.mjs';
+import { normalizeRoutineOperations } from './slice-rehearse-operation-contracts.mjs';
 import {
-  classifyModularityFile,
-  FILE_CLASSES,
-  MODULARITY_POLICY,
-  structuredArtifactOwner,
-} from './modularity-guard-policy.mjs';
-import {
-  normalizeRoutineOperations,
-  ROUTINE_OPERATIONS,
-} from './slice-rehearse-operation-contracts.mjs';
+  compareText,
+  exactKeys,
+  must,
+  nonEmptyString,
+  positiveInteger,
+  safeRelativePath,
+  sortedText,
+  sortedUnique,
+} from './slice-rehearse-canonical.mjs';
+import { canonicalModularityForPath } from './slice-rehearse-writer-policy.mjs';
 export { ROUTINE_OPERATIONS } from './slice-rehearse-operation-contracts.mjs';
 export { canonicalJson, sha256 } from './slice-rehearse-canonical.mjs';
 export { deriveOperationalEnvelope, rehearsalFactsSha256 } from './slice-rehearse-envelope.mjs';
@@ -46,66 +47,6 @@ const CLOSEOUT_MODES = new Set(['none', 'projection-only']);
 const SHA_PATTERN = /^[0-9a-f]{40}$/u;
 const DIGEST_PATTERN = /^[0-9a-f]{64}$/u;
 const ORIGIN_PATTERN = /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\.git)?$/u;
-export function canonicalModularityForPath(path) {
-  const fileClass = classifyModularityFile(path);
-  if (fileClass === FILE_CLASSES.productionCode) {
-    return { fileClass, maxLines: MODULARITY_POLICY.productionCode.reviewLines };
-  }
-  if (fileClass === FILE_CLASSES.focusedTest) {
-    return { fileClass, maxLines: MODULARITY_POLICY.focusedTest.maxLines };
-  }
-  if (fileClass === FILE_CLASSES.governanceDoc) {
-    return {
-      fileClass,
-      maxLines: MODULARITY_POLICY.governanceDoc.maxLines,
-      maxBytes: MODULARITY_POLICY.governanceDoc.maxBytes,
-    };
-  }
-  if (fileClass === FILE_CLASSES.structuredArtifact) {
-    return { fileClass, maxBytes: MODULARITY_POLICY.structuredArtifact.maxBytes };
-  }
-  return { fileClass, maxLines: null, maxBytes: null };
-}
-
-function must(condition, message) {
-  if (!condition) throw new Error(message);
-}
-
-function exactKeys(value, expected, label) {
-  must(value && typeof value === 'object' && !Array.isArray(value), `${label} must be an object`);
-  const actual = Object.keys(value).sort();
-  must(
-    JSON.stringify(actual) === JSON.stringify([...expected].sort()),
-    `${label} keys are invalid`
-  );
-}
-
-function nonEmptyString(value, label) {
-  must(typeof value === 'string' && value.length > 0, `${label} must be a non-empty string`);
-  return value;
-}
-
-function safePath(value, label) {
-  nonEmptyString(value, label);
-  must(!isAbsolute(value), `${label} is unsafe`);
-  must(value === posix.normalize(value) && normalize(value) === value, `${label} is unsafe`);
-  must(value !== '..' && !value.startsWith('../') && !value.includes('/../'), `${label} is unsafe`);
-  must(!value.startsWith('./') && !value.includes('\\'), `${label} is unsafe`);
-  return value;
-}
-
-function sortedUnique(values, label, validate = nonEmptyString) {
-  must(Array.isArray(values), `${label} must be an array`);
-  const normalized = values.map(value => validate(value, label));
-  must(new Set(normalized).size === normalized.length, `${label} must be unique`);
-  return normalized.sort();
-}
-
-function positiveInteger(value, label) {
-  must(Number.isSafeInteger(value) && value > 0, `${label} must be a positive integer`);
-  return value;
-}
-
 export function validateRehearsalManifest(input) {
   exactKeys(input, MANIFEST_KEYS, 'manifest');
   must(input.schemaVersion === 1, 'unsupported manifest schema version');
@@ -117,13 +58,13 @@ export function validateRehearsalManifest(input) {
   must(SHA_PATTERN.test(input.baseSha), 'base SHA is invalid');
   must(typeof input.origin === 'string' && ORIGIN_PATTERN.test(input.origin), 'origin is invalid');
 
-  const writerPaths = sortedUnique(input.writerPaths, 'writer path', safePath);
+  const writerPaths = sortedUnique(input.writerPaths, 'writer path', safeRelativePath);
   must(writerPaths.length > 0, 'writer paths must not be empty');
   must(Array.isArray(input.pathPlans), 'path plans must be an array');
   const pathPlans = input.pathPlans
     .map(plan => {
       exactKeys(plan, PATH_PLAN_KEYS, 'path plan');
-      const path = safePath(plan.path, 'path plan path');
+      const path = safeRelativePath(plan.path, 'path plan path');
       must(CHANGES.has(plan.change), 'path plan change is invalid');
       must(CATEGORIES.has(plan.category), 'path plan category is invalid');
       must(plan.category === budgetCategory(path), `path plan canonical category differs: ${path}`);
@@ -181,8 +122,12 @@ export function validateRehearsalManifest(input) {
   must(Array.isArray(input.evidenceReceipts), 'evidence receipts must be an array');
   exactKeys(input.topology, TOPOLOGY_KEYS, 'topology');
   must(CLOSEOUT_MODES.has(input.topology.closeoutMode), 'closeout mode is invalid');
-  const projectionPaths = sortedUnique(input.topology.projectionPaths, 'projection path', safePath);
-  const repairPaths = sortedUnique(input.topology.repairPaths, 'repair path', safePath);
+  const projectionPaths = sortedUnique(
+    input.topology.projectionPaths,
+    'projection path',
+    safeRelativePath
+  );
+  const repairPaths = sortedUnique(input.topology.repairPaths, 'repair path', safeRelativePath);
   const repairAllocationId = input.topology.repairAllocationId;
   for (const path of [...projectionPaths, ...repairPaths]) {
     must(writerPaths.includes(path), `topology path is not a writer path: ${path}`);
@@ -196,7 +141,7 @@ export function validateRehearsalManifest(input) {
   } else {
     must(projectionPaths.length > 0, 'projection-only topology must have projection paths');
     must(
-      JSON.stringify(projectionPaths) === JSON.stringify([...CLOSEOUT].sort()),
+      JSON.stringify(projectionPaths) === JSON.stringify(sortedText(CLOSEOUT)),
       'projection-only topology must use the canonical closeout paths'
     );
     const projectionSet = new Set(projectionPaths);
@@ -204,7 +149,7 @@ export function validateRehearsalManifest(input) {
       repairPaths.every(path => !projectionSet.has(path)),
       'projection and repair topology paths must be disjoint'
     );
-    const covered = [...projectionPaths, ...repairPaths].sort();
+    const covered = [...projectionPaths, ...repairPaths].sort(compareText);
     must(
       JSON.stringify(covered) === JSON.stringify(writerPaths),
       'projection and repair topology paths must exactly cover writer paths'

@@ -16,30 +16,30 @@ function git(repository, args) {
 }
 
 function minimalBudget(protectedMainSha) {
-  const categories = Object.fromEntries(
-    [
-      'config/data/messages',
-      'docs/text',
-      'large support/generated-ish',
-      'other',
-      'source/scripts',
-      'tests/e2e',
-    ].map(category => [category, 1])
-  );
+  const categories = {};
+  for (const category of [
+    'config/data/messages',
+    'docs/text',
+    'large support/generated-ish',
+    'other',
+    'source/scripts',
+    'tests/e2e',
+  ]) {
+    categories[category] = 1;
+  }
+  const allocation = {
+    id: 'fixture',
+    mode: 'exact',
+    writerPaths: ['declared.txt'],
+    trackedBytesDelta: 0,
+    trackedFilesDelta: 0,
+    categoryBytesDelta: {},
+    pathBytesDelta: { 'declared.txt': 0 },
+  };
   return {
     version: 2,
     baseline: { protectedMainSha, trackedBytes: 6, trackedFiles: 1, categoryBytes: categories },
-    allocations: [
-      {
-        id: 'fixture',
-        mode: 'exact',
-        writerPaths: ['declared.txt'],
-        trackedBytesDelta: 0,
-        trackedFilesDelta: 0,
-        categoryBytesDelta: {},
-        pathBytesDelta: { 'declared.txt': 0 },
-      },
-    ],
+    allocations: [allocation],
     reserve: {
       trackedBytes: 0,
       trackedFiles: 0,
@@ -58,9 +58,13 @@ function createRepository() {
   const root = mkdtempSync(join(tmpdir(), 'slice-rehearse-cli-safety-'));
   const repository = join(root, 'repo');
   execFileSync(GIT, ['init', '-q', '-b', 'main', repository], { env: ENV });
-  git(repository, ['config', 'user.email', 'harness@example.test']);
-  git(repository, ['config', 'user.name', 'Harness Test']);
-  git(repository, ['remote', 'add', 'origin', 'https://github.com/example/rehearse.git']);
+  for (const args of [
+    ['config', 'user.email', 'harness@example.test'],
+    ['config', 'user.name', 'Harness Test'],
+    ['remote', 'add', 'origin', 'https://github.com/example/rehearse.git'],
+  ]) {
+    git(repository, args);
+  }
   execFileSync('/bin/mkdir', ['-p', join(repository, 'scripts')], { env: ENV });
   writeFileSync(join(repository, 'declared.txt'), 'base\n');
   writeFileSync(
@@ -81,38 +85,44 @@ function createRepository() {
 }
 
 function manifest(baseSha) {
-  return {
-    schemaVersion: 1,
-    sliceId: 'HARNESS-V2-CLI',
-    tier: 1,
-    baseSha,
-    origin: 'https://github.com/example/rehearse.git',
-    writerPaths: ['declared.txt'],
-    pathPlans: [
-      {
-        path: 'declared.txt',
-        change: 'modify',
-        maxBytesDelta: 32,
-        maxLines: 10,
-        category: 'docs/text',
-      },
-    ],
-    routineOperations: [],
-    proof: {
-      commands: ['node --test'],
-      heavyLanes: [],
-      fullGateRequired: false,
-      workflowDigest: 'a'.repeat(64),
-      substrateDigest: 'b'.repeat(64),
-    },
-    evidenceReceipts: [],
-    topology: {
-      closeoutMode: 'none',
-      projectionPaths: [],
-      repairPaths: [],
-      repairAllocationId: null,
-    },
+  const path = 'declared.txt';
+  const proof = {
+    commands: ['node --test'],
+    heavyLanes: [],
+    fullGateRequired: false,
+    workflowDigest: 'a'.repeat(64),
+    substrateDigest: 'b'.repeat(64),
   };
+  return Object.assign(
+    {
+      schemaVersion: 1,
+      sliceId: 'HARNESS-V2-CLI',
+      tier: 1,
+      baseSha,
+      origin: 'https://github.com/example/rehearse.git',
+      writerPaths: [path],
+      pathPlans: [
+        {
+          path,
+          change: 'modify',
+          maxBytesDelta: 32,
+          maxLines: 10,
+          category: 'docs/text',
+        },
+      ],
+      routineOperations: [],
+      proof,
+      evidenceReceipts: [],
+    },
+    {
+      topology: Object.freeze({
+        closeoutMode: 'none',
+        projectionPaths: [],
+        repairPaths: [],
+        repairAllocationId: null,
+      }),
+    }
+  );
 }
 
 function rehearse(fixture, options) {

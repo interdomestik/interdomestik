@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 
-import { deriveEvidenceKey, evaluateEvidenceReceipts } from './slice-rehearse-evidence.mjs';
 import {
-  evidenceAfterPlannedOperations,
-  requiredEvidenceProofDeficit,
-} from './slice-rehearse-evaluator.mjs';
+  deriveEvidenceKey,
+  evaluateEvidenceReceipts,
+  readBoundedRegularText,
+} from './slice-rehearse-evidence.mjs';
 
 const sha = character => character.repeat(40);
 const digest = character => character.repeat(64);
@@ -145,6 +148,80 @@ test('only an exact independently verified pr-e2e key is reusable', () => {
   }
 });
 
+test('independently verified freshness is not vetoed by advisory receipt expiry', () => {
+  const candidate = receipt('pr-e2e', { expiresAt: '2000-01-01T00:00:00.000Z' });
+  const key = deriveEvidenceKey(
+    { ...candidate, expiresAt: '2099-01-02T00:00:00.000Z' },
+    Date.parse('2099-01-01T01:00:00.000Z')
+  );
+  const result = evaluateEvidenceReceipts({
+    receipts: [candidate],
+    heavyLanes: ['pr-e2e'],
+    expectedByLane: { 'pr-e2e': expected },
+    verifiedEvidenceKeysByLane: {
+      'pr-e2e': [
+        {
+          provider: 'github',
+          key,
+          checkId: 41,
+          runId: 42,
+          completedAt: '2099-01-01T00:00:00.000Z',
+        },
+      ],
+    },
+    dirtyWriterPaths: [],
+    now: Date.parse('2099-01-01T01:00:00.000Z'),
+  });
+  assert.deepEqual(result.reusableLanes, ['pr-e2e']);
+  assert.equal(result.decisions[0].reason, 'independently_verified');
+});
+
+test('receipt ordering is invariant to object key insertion order', () => {
+  const alpha = receipt('alpha');
+  const zeta = receipt('zeta');
+  const reverseKeys = value => Object.fromEntries(Object.entries(value).reverse());
+  const evaluate = receipts =>
+    evaluateEvidenceReceipts({
+      receipts,
+      heavyLanes: ['alpha', 'zeta'],
+      expectedByLane: { alpha: expected, zeta: expected },
+      dirtyWriterPaths: [],
+    }).decisions.map(decision => decision.lane);
+
+  assert.deepEqual(evaluate([alpha, reverseKeys(zeta)]), evaluate([reverseKeys(alpha), zeta]));
+});
+
+test('bounded file reads reject paths outside the trusted roots', () => {
+  const trusted = mkdtempSync(join(tmpdir(), 'slice-evidence-trusted-'));
+  const untrusted = mkdtempSync(join(tmpdir(), 'slice-evidence-untrusted-'));
+  try {
+    const allowed = join(trusted, 'allowed.json');
+    const denied = join(untrusted, 'denied.json');
+    writeFileSync(allowed, '{}\n');
+    writeFileSync(denied, '{}\n');
+    assert.equal(
+      readBoundedRegularText(allowed, {
+        label: 'Evidence',
+        maxBytes: 100,
+        allowedRoots: [trusted],
+      }),
+      '{}\n'
+    );
+    assert.throws(
+      () =>
+        readBoundedRegularText(denied, {
+          label: 'Evidence',
+          maxBytes: 100,
+          allowedRoots: [trusted],
+        }),
+      /trusted root/u
+    );
+  } finally {
+    rmSync(trusted, { recursive: true, force: true });
+    rmSync(untrusted, { recursive: true, force: true });
+  }
+});
+
 test('verified evidence freshness is independent of forged manifest expiry', () => {
   const candidate = { ...receipt('pr-e2e'), expiresAt: '2999-01-01T00:00:00.000Z' };
   const key = deriveEvidenceKey(candidate);
@@ -191,42 +268,4 @@ test('malformed receipt fails closed while expired evidence is a non-reusable de
   });
   assert.equal(expired.decisions[0].reason, 'evidence receipt is expired');
   assert.deepEqual(expired.missingLanes, ['runner']);
-});
-
-test('identity-changing operations retain current reuse as informational evidence only', () => {
-  const current = {
-    decisions: [{ lane: 'pr-e2e', reusable: true }],
-    reusableLanes: ['pr-e2e'],
-    missingLanes: [],
-  };
-  const final = evidenceAfterPlannedOperations(current, [
-    { code: 'capacity:new-files', coveredBy: 'derived_capacity_rebind' },
-  ]);
-  assert.deepEqual(final.reusableLanes, ['pr-e2e']);
-  assert.deepEqual(final.missingLanes, ['pr-e2e']);
-  assert.deepEqual(requiredEvidenceProofDeficit(final), {
-    code: 'evidence:heavy-proof-required',
-    lanes: ['pr-e2e'],
-    coveredBy: 'rerun_invalidated_proof',
-  });
-
-  const explicitlyPlanned = evidenceAfterPlannedOperations(
-    current,
-    [],
-    ['fresh_worktree_patch_replay']
-  );
-  assert.deepEqual(explicitlyPlanned.missingLanes, ['pr-e2e']);
-});
-
-test('identity-preserving full-gate admission does not invalidate exact-head proof', () => {
-  const current = {
-    decisions: [{ lane: 'pr-e2e', reusable: true }],
-    reusableLanes: ['pr-e2e'],
-    missingLanes: [],
-  };
-  const final = evidenceAfterPlannedOperations(current, [
-    { code: 'proof:full-gate', coveredBy: 'apply_full_gate_label' },
-  ]);
-  assert.deepEqual(final.missingLanes, []);
-  assert.equal(requiredEvidenceProofDeficit(final), null);
 });

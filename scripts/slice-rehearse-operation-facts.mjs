@@ -9,7 +9,7 @@ import {
   parseAuthorityDocuments,
 } from './lean-current-authority-policy.mjs';
 import { resolveRepositoryAuthority } from './lean-current-authority-evidence.mjs';
-import { canonicalJson, sha256 } from './slice-rehearse-canonical.mjs';
+import { canonicalJson, compareText, sha256 } from './slice-rehearse-canonical.mjs';
 import {
   expectedOperationFacts,
   normalizeOperationFacts,
@@ -49,7 +49,7 @@ function readAuthorityFacts(repository) {
   return {
     ...live,
     writerMapDigest: Array.isArray(writerPaths)
-      ? sha256(canonicalJson([...writerPaths].sort()))
+      ? sha256(canonicalJson([...writerPaths].sort(compareText)))
       : null,
   };
 }

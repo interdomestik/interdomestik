@@ -102,14 +102,15 @@ export function addTelemetryEvent(summary, event) {
   }
   if (event.evidenceKey !== null && !summary.evidenceKeys.includes(event.evidenceKey)) {
     summary.evidenceKeys.push(event.evidenceKey);
-    summary.evidenceKeys.sort();
+    summary.evidenceKeys.sort(compareText);
   }
 }
 
 export function aggregateTelemetryTotals(slices) {
   const totals = Object.fromEntries(INTEGER_KEYS.map(key => [key, 0]));
   totals.runnerMinutes = 0;
-  totals.modelCostUsd = slices.every(slice => slice.modelCostUsd !== null) ? 0 : null;
+  const modelCostComplete = slices.every(slice => slice.modelCostUsd !== null);
+  totals.modelCostUsd = modelCostComplete ? 0 : null;
   const blockerDistribution = {};
   for (const slice of slices) {
     for (const key of INTEGER_KEYS) {
@@ -120,7 +121,7 @@ export function aggregateTelemetryTotals(slices) {
       slice.runnerMinutes,
       'runner minutes'
     );
-    if (totals.modelCostUsd !== null) {
+    if (modelCostComplete) {
       totals.modelCostUsd = checkedFiniteSum(totals.modelCostUsd, slice.modelCostUsd, 'model cost');
     }
     for (const [phase, count] of Object.entries(slice.blockerDistribution)) {
@@ -133,3 +134,29 @@ export function aggregateTelemetryTotals(slices) {
   }
   return { totals, blockerDistribution };
 }
+
+export function telemetryTargets(slices, totals) {
+  const governanceRatio =
+    totals.elapsedMs === 0 ? 0 : normalizedNumber(totals.governanceElapsedMs / totals.elapsedMs);
+  const exactlyOneApprovalPerSlice = slices.every(slice => slice.approvals === 1);
+  const atMostOneReFreezePerSlice = slices.every(slice => slice.reFreezes <= 1);
+  const zeroOperationalMicroApprovals = slices.every(
+    slice => slice.operationalMicroApprovals === 0
+  );
+  const governanceAtMost25Percent = governanceRatio <= 0.25;
+  return {
+    governanceRatio,
+    targets: {
+      exactlyOneApprovalPerSlice,
+      atMostOneReFreezePerSlice,
+      zeroOperationalMicroApprovals,
+      governanceAtMost25Percent,
+      allPassed:
+        exactlyOneApprovalPerSlice &&
+        atMostOneReFreezePerSlice &&
+        zeroOperationalMicroApprovals &&
+        governanceAtMost25Percent,
+    },
+  };
+}
+import { compareText } from './slice-rehearse-canonical.mjs';

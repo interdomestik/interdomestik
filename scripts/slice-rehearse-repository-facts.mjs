@@ -1,55 +1,87 @@
-import { isAbsolute, normalize, posix } from 'node:path';
-
 import { CAPACITY_CATEGORIES } from './repo-size-capacity-schema.mjs';
-import { canonicalJson } from './slice-rehearse-core.mjs';
+import {
+  must,
+  normalizeGitHubOrigin,
+  safeRelativePath,
+  sha256,
+  sortedUnique,
+} from './slice-rehearse-canonical.mjs';
 
 const SHA_PATTERN = /^[0-9a-f]{40}$/u;
 const DIGEST_PATTERN = /^[0-9a-f]{64}$/u;
-const CANONICAL_PROVIDER_REPOSITORY = 'interdomestik/interdomestik';
-
-function must(condition, message) {
-  if (!condition) throw new Error(message);
-}
-
 function safePaths(values, label) {
-  must(Array.isArray(values), `${label} must be an array`);
-  const paths = [...values].sort();
-  must(new Set(paths).size === paths.length, `${label} must be unique`);
-  must(
-    paths.every(
-      path =>
-        typeof path === 'string' &&
-        path &&
-        !isAbsolute(path) &&
-        path === posix.normalize(path) &&
-        normalize(path) === path &&
-        path !== '..' &&
-        !path.startsWith('../') &&
-        !path.includes('/../') &&
-        !path.startsWith('./') &&
-        !path.includes('\\')
-    ),
-    `${label} contains an unsafe path`
-  );
-  return paths;
+  return sortedUnique(values, label, safeRelativePath);
 }
-
 function nonnegativeInteger(value, label) {
   must(Number.isSafeInteger(value) && value >= 0, `${label} is invalid`);
 }
 
-export function normalizeGitHubOrigin(origin) {
-  must(typeof origin === 'string' && origin, 'repository origin is invalid');
-  const match = origin.match(
-    /^(?:https:\/\/github\.com\/|git@github\.com:|ssh:\/\/git@github\.com\/)([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+?)(?:\.git)?$/u
-  );
-  must(match, 'repository origin is not a supported GitHub identity');
-  const providerRepository = `${match[1]}/${match[2]}`.toLowerCase();
-  return {
-    origin: `https://github.com/${providerRepository}.git`,
-    providerRepository,
-  };
+export { normalizeGitHubOrigin } from './slice-rehearse-canonical.mjs';
+
+export function exactGitHubRepository(value, origin) {
+  return value?.full_name === origin && Number.isSafeInteger(value.id) && value.id > 0;
 }
+
+export function exactTimestamp(value) {
+  const parsed = Date.parse(value);
+  return typeof value === 'string' && Number.isFinite(parsed) ? parsed : null;
+}
+
+export function exactSuccessfulRunner(jobs, now, options) {
+  must(Array.isArray(jobs) && jobs.length <= options.maxJobs, 'GitHub job inventory is invalid');
+  const matches = jobs.filter(job => job?.name === options.runnerName);
+  if (matches.length !== 1) return null;
+  const runner = matches[0];
+  const completedAt = exactTimestamp(runner.completed_at);
+  const age = completedAt === null ? Number.POSITIVE_INFINITY : now - completedAt;
+  const valid =
+    Number.isSafeInteger(runner.id) &&
+    runner.id > 0 &&
+    runner.status === 'completed' &&
+    runner.conclusion === 'success' &&
+    age >= -options.futureToleranceMs &&
+    age <= options.maxAgeMs;
+  return valid ? runner : null;
+}
+
+export function gitAncestry(gitResult, repository, baseSha, headSha) {
+  const result = gitResult(repository, ['merge-base', '--is-ancestor', baseSha, headSha]);
+  if (result.status === 0) return true;
+  if (result.status === 1) return false;
+  throw new Error(result.stderr.trim() || 'Unable to verify base ancestry.');
+}
+
+export function gitCurrentBranch(gitResult, repository) {
+  const result = gitResult(repository, ['symbolic-ref', '--quiet', '--short', 'HEAD']);
+  if (result.status === 0) return result.stdout.trim();
+  if (result.status === 1) return 'HEAD';
+  throw new Error(result.stderr.trim() || 'Unable to read the current branch.');
+}
+
+export function exactPullRequest(pull, headSha, origin) {
+  return (
+    Number.isSafeInteger(pull?.id) &&
+    pull.id > 0 &&
+    Number.isSafeInteger(pull?.number) &&
+    pull.number > 0 &&
+    pull.state === 'open' &&
+    pull.base?.ref === 'main' &&
+    exactGitHubRepository(pull.base?.repo, origin) &&
+    exactGitHubRepository(pull.head?.repo, origin) &&
+    pull.base.repo.id === pull.head.repo.id &&
+    pull.head?.sha === headSha
+  );
+}
+
+export function readGitBlobDigest(repository, commitSha, filePath, maxBytes, readGitBytes) {
+  must(SHA_PATTERN.test(commitSha), 'Git blob commit SHA is invalid');
+  const bytes = readGitBytes(repository, ['show', `${commitSha}:${filePath}`]);
+  must(Buffer.isBuffer(bytes), 'Git blob evidence is invalid');
+  must(bytes.byteLength > 0 && bytes.byteLength <= maxBytes, 'Git blob evidence is invalid');
+  return sha256(bytes);
+}
+
+export { repositoryAuthorityStops } from './slice-rehearse-writer-policy.mjs';
 
 export function normalizeRepositoryFacts(repository) {
   must(repository && typeof repository === 'object', 'repository facts are required');
@@ -164,52 +196,4 @@ export function normalizeRepositoryFacts(repository) {
     writerLineCounts,
     writerDeltas: normalizedDeltas,
   };
-}
-
-export function repositoryAuthorityStops(manifest, repository) {
-  const stops = [];
-  const manifestIdentity = normalizeGitHubOrigin(manifest.origin);
-  const outsideDirty = repository.dirtyPaths.filter(path => !manifest.writerPaths.includes(path));
-  const outsideCommitted = repository.committedChangedPaths.filter(
-    path => !manifest.writerPaths.includes(path)
-  );
-  if (outsideDirty.length)
-    stops.push({ code: 'repository:outside-writer-dirty', paths: outsideDirty });
-  if (outsideCommitted.length) {
-    stops.push({ code: 'repository:outside-writer-committed', paths: outsideCommitted });
-  }
-  if (repository.origin !== manifestIdentity.origin)
-    stops.push({ code: 'repository:origin-mismatch' });
-  if (
-    repository.providerRepository !== CANONICAL_PROVIDER_REPOSITORY ||
-    manifestIdentity.providerRepository !== CANONICAL_PROVIDER_REPOSITORY
-  ) {
-    stops.push({ code: 'repository:provider-repository-mismatch' });
-  }
-  if (repository.baseSha !== manifest.baseSha || !repository.baseIsAncestor) {
-    stops.push({ code: 'repository:base-identity-mismatch' });
-  }
-  const protectedMainWriterOverlap = repository.protectedMainAdvancedPaths.filter(path =>
-    manifest.writerPaths.includes(path)
-  );
-  if (protectedMainWriterOverlap.length) {
-    stops.push({
-      code: 'repository:protected-main-writer-overlap',
-      paths: protectedMainWriterOverlap,
-    });
-  }
-  const writerFactPaths = Object.keys(repository.writerDeltas).sort();
-  const lineFactPaths = Object.keys(repository.writerLineCounts).sort();
-  if (
-    canonicalJson(writerFactPaths) !== canonicalJson(manifest.writerPaths) ||
-    canonicalJson(lineFactPaths) !== canonicalJson(manifest.writerPaths)
-  ) {
-    stops.push({ code: 'repository:writer-facts-incomplete' });
-  }
-  for (const plan of manifest.pathPlans) {
-    if (plan.change === 'modify' && repository.writerDeltas[plan.path]?.currentExists === false) {
-      stops.push({ code: `repository:writer-missing:${plan.path}` });
-    }
-  }
-  return stops;
 }

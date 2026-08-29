@@ -2,10 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { sha256, validateRehearsalManifest } from './slice-rehearse-core.mjs';
-import {
-  resolveOperationalContracts,
-  verifyOperationAtExecution,
-} from './slice-rehearse-operation-contracts.mjs';
+import { resolveOperationalContracts } from './slice-rehearse-operation-contracts.mjs';
 
 const sha = value => value.repeat(40);
 const origin = 'https://github.com/interdomestik/interdomestik';

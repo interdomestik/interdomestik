@@ -1,8 +1,21 @@
 import { github } from './lean-current-authority-git.mjs';
 import { ORIGIN } from './lean-current-authority-policy.mjs';
-import { canonicalJson, sha256 } from './slice-rehearse-core.mjs';
-import { deriveEvidenceIdentityKey } from './slice-rehearse-evidence.mjs';
+import {
+  canonicalJson,
+  compareText,
+  deriveEvidenceIdentityKey,
+  must,
+  sha256,
+  sortedText,
+} from './slice-rehearse-canonical.mjs';
 import { gitBytes } from './slice-rehearse-git-facts.mjs';
+import {
+  exactGitHubRepository,
+  exactPullRequest,
+  exactSuccessfulRunner,
+  exactTimestamp,
+  readGitBlobDigest,
+} from './slice-rehearse-repository-facts.mjs';
 
 const WORKFLOW_PATH = '.github/workflows/e2e-pr.yml';
 const RUNNER_NAME = 'PR E2E Runner';
@@ -10,7 +23,7 @@ const CANONICAL_ORIGIN = `https://github.com/${ORIGIN}.git`;
 const CANONICAL_COMMANDS = [
   'pnpm e2e:gate:pr',
   'pnpm --filter @interdomestik/web run e2e:smoke',
-].sort();
+].sort(compareText);
 const MAX_WORKFLOW_BYTES = 1024 * 1024;
 const MAX_RUNS = 20;
 const MAX_JOBS = 100;
@@ -18,36 +31,8 @@ const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const FUTURE_TOLERANCE_MS = 5 * 60 * 1000;
 const SHA40 = /^[0-9a-f]{40}$/u;
 
-function must(condition, message) {
-  if (!condition) throw new Error(message);
-}
-
-function exactRepository(value) {
-  return value?.full_name === ORIGIN && Number.isSafeInteger(value.id) && value.id > 0;
-}
-
-function timestamp(value) {
-  const parsed = Date.parse(value);
-  return typeof value === 'string' && Number.isFinite(parsed) ? parsed : null;
-}
-
-function exactPull(pull, headSha) {
-  return (
-    Number.isSafeInteger(pull?.id) &&
-    pull.id > 0 &&
-    Number.isSafeInteger(pull?.number) &&
-    pull.number > 0 &&
-    pull.state === 'open' &&
-    pull.base?.ref === 'main' &&
-    exactRepository(pull.base?.repo) &&
-    exactRepository(pull.head?.repo) &&
-    pull.base.repo.id === pull.head.repo.id &&
-    pull.head?.sha === headSha
-  );
-}
-
 function exactRun(run, pull, headSha, now) {
-  const completedAt = timestamp(run?.completed_at);
+  const completedAt = exactTimestamp(run?.completed_at);
   const age = completedAt === null ? Number.POSITIVE_INFINITY : now - completedAt;
   const association = run?.pull_requests?.[0];
   return (
@@ -58,8 +43,8 @@ function exactRun(run, pull, headSha, now) {
     run.status === 'completed' &&
     run.conclusion === 'success' &&
     run.head_sha === headSha &&
-    exactRepository(run.repository) &&
-    exactRepository(run.head_repository) &&
+    exactGitHubRepository(run.repository, ORIGIN) &&
+    exactGitHubRepository(run.head_repository, ORIGIN) &&
     run.repository.id === pull.base.repo.id &&
     run.head_repository.id === pull.head.repo.id &&
     Array.isArray(run.pull_requests) &&
@@ -73,34 +58,6 @@ function exactRun(run, pull, headSha, now) {
     age >= -FUTURE_TOLERANCE_MS &&
     age <= MAX_AGE_MS
   );
-}
-
-function exactRunner(jobs, now) {
-  must(Array.isArray(jobs) && jobs.length <= MAX_JOBS, 'GitHub job inventory is invalid');
-  const matches = jobs.filter(job => job?.name === RUNNER_NAME);
-  if (matches.length !== 1) return null;
-  const runner = matches[0];
-  const completedAt = timestamp(runner.completed_at);
-  const age = completedAt === null ? Number.POSITIVE_INFINITY : now - completedAt;
-  return Number.isSafeInteger(runner.id) &&
-    runner.id > 0 &&
-    runner.status === 'completed' &&
-    runner.conclusion === 'success' &&
-    age >= -FUTURE_TOLERANCE_MS &&
-    age <= MAX_AGE_MS
-    ? runner
-    : null;
-}
-
-function readProtectedWorkflow(repository, protectedMainSha, readGitBytes) {
-  must(SHA40.test(protectedMainSha), 'Protected-main SHA is invalid');
-  const bytes = readGitBytes(repository, ['show', `${protectedMainSha}:${WORKFLOW_PATH}`]);
-  must(Buffer.isBuffer(bytes), 'Protected workflow evidence is invalid');
-  must(
-    bytes.byteLength > 0 && bytes.byteLength <= MAX_WORKFLOW_BYTES,
-    'Protected workflow is invalid'
-  );
-  return sha256(bytes);
 }
 
 export function collectVerifiedEvidenceKeys({
@@ -127,26 +84,36 @@ export function collectVerifiedEvidenceKeys({
         new Set(writerPaths).size === writerPaths.length,
       'Writer map is invalid'
     );
-    const canonicalWriterPaths = [...writerPaths].sort();
+    const canonicalWriterPaths = sortedText(writerPaths);
     must(
       Array.isArray(evidenceReceipts) &&
         evidenceReceipts.some(receipt => receipt?.lane === 'pr-e2e'),
       'PR E2E receipt candidate is unavailable'
     );
     must(Array.isArray(proof?.commands), 'PR E2E command contract differs');
-    const canonicalCommands = [...proof.commands].sort();
+    const canonicalCommands = sortedText(proof.commands);
     must(
       JSON.stringify(canonicalCommands) === JSON.stringify(CANONICAL_COMMANDS),
       'PR E2E command contract differs'
     );
-    const protectedWorkflowDigest = readProtectedWorkflow(
+    const protectedWorkflowDigest = readGitBlobDigest(
       repository,
       protectedMainSha,
+      WORKFLOW_PATH,
+      MAX_WORKFLOW_BYTES,
+      readGitBytes
+    );
+    const headWorkflowDigest = readGitBlobDigest(
+      repository,
+      headSha,
+      WORKFLOW_PATH,
+      MAX_WORKFLOW_BYTES,
       readGitBytes
     );
     must(
       proof.workflowDigest === protectedWorkflowDigest &&
-        proof.substrateDigest === protectedWorkflowDigest,
+        proof.substrateDigest === protectedWorkflowDigest &&
+        headWorkflowDigest === protectedWorkflowDigest,
       'PR E2E workflow identity differs'
     );
     const pulls = readGithub(
@@ -155,7 +122,7 @@ export function collectVerifiedEvidenceKeys({
     );
     must(Array.isArray(pulls) && pulls.length === 1, 'GitHub PR association is not exact');
     const pull = pulls[0];
-    must(exactPull(pull, headSha), 'GitHub PR identity differs');
+    must(exactPullRequest(pull, headSha, ORIGIN), 'GitHub PR identity differs');
     const runsPayload = readGithub(
       `repos/${ORIGIN}/actions/workflows/${encodeURIComponent(
         WORKFLOW_PATH
@@ -185,7 +152,15 @@ export function collectVerifiedEvidenceKeys({
             jobsPayload.jobs.length === jobsPayload.total_count,
           'GitHub job inventory is invalid'
         );
-        return { run, runner: exactRunner(jobsPayload.jobs, now) };
+        return {
+          run,
+          runner: exactSuccessfulRunner(jobsPayload.jobs, now, {
+            runnerName: RUNNER_NAME,
+            maxJobs: MAX_JOBS,
+            maxAgeMs: MAX_AGE_MS,
+            futureToleranceMs: FUTURE_TOLERANCE_MS,
+          }),
+        };
       })
       .filter(candidate => candidate.runner)
       .sort(

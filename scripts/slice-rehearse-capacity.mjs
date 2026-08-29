@@ -1,46 +1,17 @@
 import { validateCapacityBudget } from './repo-size-capacity-schema.mjs';
 import {
-  compareWorktreeBudget,
+  BUDGET_PATH,
+  CAPACITY_REBASE_ID,
+  existingAllocationStops,
+  proposedAllocation,
   unchangedBudgetProposal,
 } from './slice-rehearse-capacity-existing.mjs';
 import { analyzeProjectionReuse } from './slice-rehearse-capacity-projection.mjs';
-import { deriveCapacityFixedPoint } from './slice-rehearse-capacity-fixed-point.mjs';
-
-const BUDGET_PATH = 'scripts/repo-size-budget.json';
-const CAPACITY_REBASE_ID = 'capacity-rebase';
-
-function must(condition, message) {
-  if (!condition) throw new Error(message);
-}
-
-function proposedAllocation(manifest, id, writerDeltas = {}) {
-  const plans = manifest.pathPlans.filter(plan => plan.path !== BUDGET_PATH);
-  if (!plans.length) return null;
-  const maxCategoryBytesDelta = {};
-  for (const plan of plans) {
-    maxCategoryBytesDelta[plan.category] =
-      (maxCategoryBytesDelta[plan.category] ?? 0) + plan.maxBytesDelta;
-  }
-  return {
-    id,
-    mode: 'bounded',
-    writerPaths: plans.map(plan => plan.path).sort(),
-    maxTrackedBytesDelta: plans.reduce((sum, plan) => sum + plan.maxBytesDelta, 0),
-    maxTrackedFilesDelta: plans.filter(plan => {
-      const facts = writerDeltas[plan.path];
-      const capacityBaselineExists = facts?.capacityBaselineExists ?? facts?.baselineExists;
-      return capacityBaselineExists === undefined
-        ? plan.change === 'create'
-        : !capacityBaselineExists;
-    }).length,
-    maxCategoryBytesDelta,
-    maxPathBytesDelta: Object.fromEntries(
-      plans
-        .map(plan => [plan.path, plan.maxBytesDelta])
-        .sort(([left], [right]) => left.localeCompare(right))
-    ),
-  };
-}
+import {
+  compareWorktreeBudget,
+  deriveCapacityFixedPoint,
+} from './slice-rehearse-capacity-fixed-point.mjs';
+import { must } from './slice-rehearse-canonical.mjs';
 
 function deriveProtectedProposal({
   budget,
@@ -159,51 +130,7 @@ function deriveProtectedProposal({
     });
   }
   if (existing) {
-    if (existing.mode !== 'bounded') {
-      authorityStops.push({ code: 'capacity:existing-allocation-mode', allocationId });
-    } else {
-      if (
-        JSON.stringify([...existing.writerPaths].sort()) !== JSON.stringify(allocation.writerPaths)
-      ) {
-        authorityStops.push({ code: 'capacity:existing-writer-map-mismatch', allocationId });
-      }
-      if (existing.maxTrackedBytesDelta < allocation.maxTrackedBytesDelta) {
-        authorityStops.push({
-          code: 'capacity:existing-tracked-bytes-insufficient',
-          allocationId,
-          actual: allocation.maxTrackedBytesDelta,
-          limit: existing.maxTrackedBytesDelta,
-        });
-      }
-      if (existing.maxTrackedFilesDelta < allocation.maxTrackedFilesDelta) {
-        authorityStops.push({
-          code: 'capacity:existing-tracked-files-insufficient',
-          allocationId,
-          actual: allocation.maxTrackedFilesDelta,
-          limit: existing.maxTrackedFilesDelta,
-        });
-      }
-      for (const [path, bytes] of Object.entries(allocation.maxPathBytesDelta)) {
-        if ((existing.maxPathBytesDelta[path] ?? -1) < bytes) {
-          authorityStops.push({
-            code: 'capacity:existing-path-insufficient',
-            path,
-            actual: bytes,
-            limit: existing.maxPathBytesDelta[path] ?? null,
-          });
-        }
-      }
-      for (const [category, bytes] of Object.entries(allocation.maxCategoryBytesDelta)) {
-        if ((existing.maxCategoryBytesDelta[category] ?? 0) < bytes) {
-          authorityStops.push({
-            code: 'capacity:existing-category-insufficient',
-            category,
-            actual: bytes,
-            limit: existing.maxCategoryBytesDelta[category] ?? 0,
-          });
-        }
-      }
-    }
+    authorityStops.push(...existingAllocationStops(existing, allocation, allocationId));
     return unchangedBudgetProposal({
       budget,
       budgetText: protectedBudgetText,

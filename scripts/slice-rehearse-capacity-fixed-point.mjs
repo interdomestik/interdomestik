@@ -1,18 +1,13 @@
-import { createHash } from 'node:crypto';
-
 import {
   allocationDelta,
   CAPACITY_CATEGORIES,
   categoryAllocationDelta,
   validateCapacityBudget,
 } from './repo-size-capacity-schema.mjs';
+import { canonicalJson, sha256 } from './slice-rehearse-canonical.mjs';
 
 const BUDGET_PATH = 'scripts/repo-size-budget.json';
 const CAPACITY_REBASE_ID = 'capacity-rebase';
-
-function canonicalJson(value) {
-  return `${JSON.stringify(value, null, 2)}\n`;
-}
 
 function deriveCeilings(value) {
   const total = key =>
@@ -52,7 +47,7 @@ function candidateAt(budget, allocation, selfBytesDelta) {
   candidate.allocations.push(structuredClone(allocation));
   deriveCeilings(candidate);
   validateCapacityBudget(candidate);
-  const budgetBytes = canonicalJson(candidate);
+  const budgetBytes = `${JSON.stringify(candidate, null, 2)}\n`;
   return { candidate, budgetBytes };
 }
 
@@ -62,9 +57,77 @@ function result(candidate, budgetBytes, selfBytesDelta, authorityStops = []) {
     allocation: candidate.allocations.at(-1),
     budget: candidate,
     budgetBytes,
-    sha256: createHash('sha256').update(budgetBytes).digest('hex'),
+    sha256: sha256(budgetBytes),
     selfBytesDelta,
     authorityStops,
+  };
+}
+
+function withoutDerivedFields(value, allocationId) {
+  const normalized = structuredClone(value);
+  normalized.allocations = normalized.allocations
+    .filter(allocation => allocation.id !== allocationId)
+    .map(allocation => {
+      if (allocation.id !== CAPACITY_REBASE_ID || allocation.mode !== 'exact') return allocation;
+      const budgetBytes = allocation.pathBytesDelta[BUDGET_PATH];
+      allocation.pathBytesDelta[BUDGET_PATH] = 0;
+      allocation.trackedBytesDelta -= budgetBytes;
+      allocation.categoryBytesDelta['config/data/messages'] -= budgetBytes;
+      return allocation;
+    });
+  normalized.maxTrackedBytes = 0;
+  normalized.maxTrackedFiles = 0;
+  normalized.maxCategoryBytes = {};
+  return normalized;
+}
+
+function budgetState(worktreeBytes, protectedBytes, candidateBytes) {
+  if (worktreeBytes === candidateBytes) return 'candidate-exact';
+  if (worktreeBytes === protectedBytes) return 'protected-exact';
+  return 'drift';
+}
+
+export function compareWorktreeBudget({
+  worktreeBudget,
+  worktreeBudgetText,
+  protectedBudget,
+  protectedBudgetText,
+  proposal,
+}) {
+  const worktreeBudgetBytes = worktreeBudgetText ?? canonicalJson(worktreeBudget);
+  const protectedBudgetBytes = protectedBudgetText ?? canonicalJson(protectedBudget);
+  const state = budgetState(worktreeBudgetBytes, protectedBudgetBytes, proposal.budgetBytes);
+  const authorityStops = [...proposal.authorityStops];
+  const deficits = [...(proposal.deficits ?? [])];
+  const derivedRebind =
+    state === 'drift' &&
+    proposal.mode === 'derived' &&
+    canonicalJson(withoutDerivedFields(worktreeBudget, proposal.allocation.id)) ===
+      canonicalJson(withoutDerivedFields(protectedBudget, proposal.allocation.id));
+  if (derivedRebind) {
+    deficits.push({
+      code: 'capacity:worktree-budget-rebind',
+      coveredBy: 'derived_capacity_rebind',
+      actualSha256: sha256(worktreeBudgetBytes),
+      candidateSha256: proposal.sha256,
+    });
+  } else if (state === 'drift') {
+    authorityStops.push({
+      code: 'capacity:worktree-budget-drift',
+      actualSha256: sha256(worktreeBudgetBytes),
+      candidateSha256: proposal.sha256,
+      protectedSha256: sha256(protectedBudgetBytes),
+    });
+  }
+  let mode = proposal.mode;
+  if (authorityStops.length > 0) mode = 'blocked';
+  else if (state === 'candidate-exact' && proposal.mode === 'derived') mode = 'existing';
+  return {
+    ...proposal,
+    mode,
+    authorityStops,
+    deficits,
+    worktreeBudget: { state, sha256: sha256(worktreeBudgetBytes) },
   };
 }
 

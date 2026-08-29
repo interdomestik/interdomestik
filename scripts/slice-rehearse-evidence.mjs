@@ -1,5 +1,13 @@
-import { createHash } from 'node:crypto';
-import { closeSync, constants, fstatSync, lstatSync, openSync, readFileSync } from 'node:fs';
+import {
+  canonicalJson,
+  compareText,
+  deriveEvidenceIdentityKey,
+  exactKeys,
+  must,
+  readBoundedRegularText,
+  sortedText,
+} from './slice-rehearse-canonical.mjs';
+export { deriveEvidenceIdentityKey, readBoundedRegularText } from './slice-rehearse-canonical.mjs';
 
 const SHA_PATTERN = /^[0-9a-f]{40}$/u;
 const DIGEST_PATTERN = /^[0-9a-f]{64}$/u;
@@ -23,35 +31,10 @@ const IDENTITY_KEYS = [
   'writerMapDigest',
 ];
 const LANE_PATTERN = /^[a-z0-9][a-z0-9:_-]*$/u;
-const READ_FLAGS = constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK;
 const TRUSTED_REUSE_LANES = new Set(['pr-e2e']);
 const VERIFIED_EVIDENCE_TTL_MS = 24 * 60 * 60 * 1000;
 const FUTURE_TOLERANCE_MS = 5 * 60 * 1000;
 const VERIFIED_KEYS = ['checkId', 'completedAt', 'key', 'provider', 'runId'];
-
-function must(condition, message) {
-  if (!condition) throw new Error(message);
-}
-
-function canonicalJson(value) {
-  return `${JSON.stringify(value, null, 2)}\n`;
-}
-
-export function readBoundedRegularText(filePath, { label, maxBytes }) {
-  const facts = lstatSync(filePath);
-  if (!facts.isFile()) throw new Error(`${label} must be a regular file, not a symlink or pipe.`);
-  if (facts.size > maxBytes) throw new Error(`${label} exceeds the input size limit.`);
-  let descriptor;
-  try {
-    descriptor = openSync(filePath, READ_FLAGS);
-    const opened = fstatSync(descriptor);
-    if (!opened.isFile()) throw new Error(`${label} must remain a regular file.`);
-    if (opened.size > maxBytes) throw new Error(`${label} exceeds the input size limit.`);
-    return readFileSync(descriptor, 'utf8');
-  } finally {
-    if (descriptor !== undefined) closeSync(descriptor);
-  }
-}
 
 function verifiedEvidenceSets(input, now) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return {};
@@ -66,7 +49,8 @@ function verifiedEvidenceSets(input, now) {
                 record &&
                   typeof record === 'object' &&
                   !Array.isArray(record) &&
-                  JSON.stringify(Object.keys(record).sort()) === JSON.stringify(VERIFIED_KEYS),
+                  JSON.stringify(Object.keys(record).sort(compareText)) ===
+                    JSON.stringify(VERIFIED_KEYS),
                 'verified evidence record is invalid'
               );
               must(record.provider === 'github', 'verified evidence provider is invalid');
@@ -96,15 +80,12 @@ function verifiedEvidenceSets(input, now) {
   );
 }
 
-export function deriveEvidenceKey(receipt, now = Date.now()) {
+function validateEvidenceReceipt(receipt) {
   must(
     receipt && typeof receipt === 'object' && !Array.isArray(receipt),
     'evidence receipt invalid'
   );
-  must(
-    JSON.stringify(Object.keys(receipt).sort()) === JSON.stringify([...RECEIPT_KEYS].sort()),
-    'evidence receipt keys are invalid'
-  );
+  exactKeys(receipt, RECEIPT_KEYS, 'evidence receipt');
   must(SHA_PATTERN.test(receipt.headSha), 'evidence head SHA is invalid');
   must(SHA_PATTERN.test(receipt.treeSha), 'evidence tree SHA is invalid');
   must(
@@ -117,24 +98,13 @@ export function deriveEvidenceKey(receipt, now = Date.now()) {
   must(receipt.status === 'success', 'evidence receipt must be successful');
   const expiresAt = Date.parse(receipt.expiresAt);
   must(Number.isFinite(expiresAt), 'evidence expiry is invalid');
-  must(expiresAt > now, 'evidence receipt is expired');
-  return deriveEvidenceIdentityKey(receipt);
+  return expiresAt;
 }
 
-export function deriveEvidenceIdentityKey(identity) {
-  return createHash('sha256')
-    .update(
-      canonicalJson({
-        lane: identity.lane,
-        headSha: identity.headSha,
-        treeSha: identity.treeSha,
-        commandDigest: identity.commandDigest,
-        workflowDigest: identity.workflowDigest,
-        substrateDigest: identity.substrateDigest,
-        writerMapDigest: identity.writerMapDigest,
-      })
-    )
-    .digest('hex');
+export function deriveEvidenceKey(receipt, now = Date.now()) {
+  const expiresAt = validateEvidenceReceipt(receipt);
+  must(expiresAt > now, 'evidence receipt is expired');
+  return deriveEvidenceIdentityKey(receipt);
 }
 
 export function evaluateEvidenceReceipts({
@@ -159,7 +129,7 @@ export function evaluateEvidenceReceipts({
   must(Array.isArray(dirtyWriterPaths), 'dirty writer paths must be an array');
   const verified = verifiedEvidenceSets(verifiedEvidenceKeysByLane, now);
 
-  const required = [...heavyLanes].sort((left, right) => left.localeCompare(right));
+  const required = sortedText(heavyLanes);
   for (const lane of required) {
     const identity = expectedByLane[lane];
     must(
@@ -178,8 +148,10 @@ export function evaluateEvidenceReceipts({
   );
   const decisions = orderedReceipts.map(receipt => {
     let key;
+    let expiresAt;
     try {
-      key = deriveEvidenceKey(receipt, now);
+      expiresAt = validateEvidenceReceipt(receipt);
+      key = deriveEvidenceIdentityKey(receipt);
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       return {
@@ -201,7 +173,7 @@ export function evaluateEvidenceReceipts({
     } else if (seenLanes.has(receipt.lane)) reason = 'duplicate_lane';
     else if (TRUSTED_REUSE_LANES.has(receipt.lane) && verified[receipt.lane]?.has(key)) {
       reason = 'independently_verified';
-    }
+    } else if (expiresAt <= now) reason = 'evidence receipt is expired';
     if (['manifest_receipt_untrusted', 'independently_verified'].includes(reason)) {
       seenLanes.add(receipt.lane);
     }
@@ -210,7 +182,7 @@ export function evaluateEvidenceReceipts({
   const reusableLanes = decisions
     .filter(decision => decision.reusable)
     .map(decision => decision.lane)
-    .sort((left, right) => left.localeCompare(right));
+    .sort(compareText);
   return {
     decisions,
     reusableLanes,

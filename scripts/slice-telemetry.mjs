@@ -1,12 +1,22 @@
 import { pathToFileURL } from 'node:url';
+import { tmpdir } from 'node:os';
 
 import { readBoundedRegularText } from './slice-rehearse-evidence.mjs';
+import {
+  canonicalJson,
+  canonicalize,
+  compareText,
+  exactKeys,
+  must,
+} from './slice-rehearse-canonical.mjs';
 import {
   addTelemetryEvent,
   aggregateTelemetryTotals,
   checkedIntegerSum,
   emptyTelemetrySlice,
+  telemetryTargets,
 } from './slice-telemetry-aggregation.mjs';
+export { canonicalJson } from './slice-rehearse-canonical.mjs';
 
 export const TELEMETRY_PHASES = Object.freeze([
   'rehearsal',
@@ -50,19 +60,6 @@ const EVIDENCE_KEY_PATTERN = /^[0-9a-f]{64}$/u;
 const SLICE_ID_PATTERN = /^[A-Z0-9][A-Z0-9-]{1,63}$/u;
 const MAX_TELEMETRY_BYTES = 16 * 1024 * 1024;
 
-function must(condition, message) {
-  if (!condition) throw new Error(message);
-}
-
-function exactKeys(value, expected, label) {
-  must(value && typeof value === 'object' && !Array.isArray(value), `${label} must be an object`);
-  const actual = Object.keys(value).sort();
-  must(
-    JSON.stringify(actual) === JSON.stringify([...expected].sort()),
-    `${label} keys are invalid`
-  );
-}
-
 function nonNegativeInteger(value, label) {
   must(Number.isSafeInteger(value) && value >= 0, `${label} must be a non-negative integer`);
   return value;
@@ -71,26 +68,6 @@ function nonNegativeInteger(value, label) {
 function nonNegativeNumber(value, label) {
   must(Number.isFinite(value) && value >= 0, `${label} must be a non-negative finite number`);
   return value;
-}
-
-function normalizedNumber(value) {
-  return Number(value.toFixed(12));
-}
-
-function sortForCanonicalJson(value) {
-  if (Array.isArray(value)) return value.map(sortForCanonicalJson);
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.keys(value)
-        .sort()
-        .map(key => [key, sortForCanonicalJson(value[key])])
-    );
-  }
-  return value;
-}
-
-export function canonicalJson(value) {
-  return `${JSON.stringify(sortForCanonicalJson(value), null, 2)}\n`;
 }
 
 export function validateTelemetryEvent(input) {
@@ -172,37 +149,18 @@ export function summarizeTelemetry(inputEvents) {
   }
 
   const slices = [...bySlice.values()]
-    .sort((left, right) => left.sliceId.localeCompare(right.sliceId))
+    .sort((left, right) => compareText(left.sliceId, right.sliceId))
     .map(slice => {
       const { modelCostComplete, operationalApprovals, ...publicSlice } = slice;
       return {
         ...publicSlice,
         modelCostUsd: modelCostComplete ? slice.modelCostUsd : null,
         operationalMicroApprovals: Math.min(operationalApprovals, Math.max(0, slice.approvals - 1)),
-        blockerDistribution: sortForCanonicalJson(slice.blockerDistribution),
+        blockerDistribution: canonicalize(slice.blockerDistribution),
       };
     });
   const { totals, blockerDistribution } = aggregateTelemetryTotals(slices);
-
-  const governanceRatio =
-    totals.elapsedMs === 0 ? 0 : normalizedNumber(totals.governanceElapsedMs / totals.elapsedMs);
-  const exactlyOneApprovalPerSlice = slices.every(slice => slice.approvals === 1);
-  const atMostOneReFreezePerSlice = slices.every(slice => slice.reFreezes <= 1);
-  const zeroOperationalMicroApprovals = slices.every(
-    slice => slice.operationalMicroApprovals === 0
-  );
-  const governanceAtMost25Percent = governanceRatio <= 0.25;
-  const targets = {
-    exactlyOneApprovalPerSlice,
-    atMostOneReFreezePerSlice,
-    zeroOperationalMicroApprovals,
-    governanceAtMost25Percent,
-    allPassed:
-      exactlyOneApprovalPerSlice &&
-      atMostOneReFreezePerSlice &&
-      zeroOperationalMicroApprovals &&
-      governanceAtMost25Percent,
-  };
+  const { governanceRatio, targets } = telemetryTargets(slices, totals);
 
   return {
     schemaVersion: 1,
@@ -210,7 +168,7 @@ export function summarizeTelemetry(inputEvents) {
     eventCount: events.length,
     slices,
     totals,
-    blockerDistribution: sortForCanonicalJson(blockerDistribution),
+    blockerDistribution: canonicalize(blockerDistribution),
     governanceRatio,
     targets,
   };
@@ -222,6 +180,7 @@ function runCli(argv) {
     readBoundedRegularText(argv[1], {
       label: 'Telemetry input',
       maxBytes: MAX_TELEMETRY_BYTES,
+      allowedRoots: [process.cwd(), tmpdir()],
     })
   );
   process.stdout.write(canonicalJson(summarizeTelemetry(events)));

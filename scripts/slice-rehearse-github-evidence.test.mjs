@@ -212,3 +212,15 @@ test('rejects workflow or substrate digests not anchored to protected main', () 
     {}
   );
 });
+
+test('rejects reuse when the PR head executed a different workflow blob', () => {
+  const changedHeadWorkflow = Buffer.from('name: weakened PR E2E\n');
+  assert.deepEqual(
+    collect({
+      writerPaths: [...writerPaths, '.github/workflows/e2e-pr.yml'],
+      readGitBytes: (_repository, args) =>
+        args[1].startsWith(`${headSha}:`) ? changedHeadWorkflow : workflow,
+    }),
+    {}
+  );
+});

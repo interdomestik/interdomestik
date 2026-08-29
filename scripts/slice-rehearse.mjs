@@ -2,6 +2,7 @@
 
 import path from 'node:path';
 import process from 'node:process';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 import * as rehearsalCore from './slice-rehearse-core.mjs';
@@ -35,6 +36,7 @@ function readManifest(manifestPath, cwd) {
       readBoundedRegularText(path.resolve(cwd, manifestPath), {
         label: 'Manifest evidence',
         maxBytes: MAX_MANIFEST_BYTES,
+        allowedRoots: [cwd, tmpdir()],
       })
     );
   } catch (error) {
@@ -56,6 +58,7 @@ function readBudget(repository) {
     budgetText = readBoundedRegularText(budgetPath, {
       label: 'Repo-size budget',
       maxBytes: MAX_BUDGET_BYTES,
+      allowedRoots: [repository],
     });
     budget = JSON.parse(budgetText);
   } catch (error) {
@@ -109,7 +112,7 @@ export function runSliceRehearsal({
     const manifest = readManifest(manifestPath, cwd);
     const repositoryRoot = gitText(cwd, ['rev-parse', '--show-toplevel']);
     if (typeof readProtectedMain !== 'function') {
-      throw new Error('Protected-main authority adapter is unavailable.');
+      throw new TypeError('Protected-main authority adapter is unavailable.');
     }
     const protectedMainSha = readProtectedMain(repositoryRoot);
     const { budget, budgetText } = readBudget(repositoryRoot);
@@ -121,7 +124,7 @@ export function runSliceRehearsal({
       repositoryRoot,
       protectedBudget.baseline.protectedMainSha
     );
-    if (typeof evaluate !== 'function') throw new Error('Rehearsal evaluator is unavailable.');
+    if (typeof evaluate !== 'function') throw new TypeError('Rehearsal evaluator is unavailable.');
     const repository = collectRepositoryFacts({
       cwd: repositoryRoot,
       baseSha: manifest.baseSha,

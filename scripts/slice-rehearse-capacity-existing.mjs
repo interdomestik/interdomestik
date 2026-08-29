@@ -1,29 +1,7 @@
-import { createHash } from 'node:crypto';
+import { canonicalJson, compareText, sha256 } from './slice-rehearse-canonical.mjs';
 
-const BUDGET_PATH = 'scripts/repo-size-budget.json';
-const CAPACITY_REBASE_ID = 'capacity-rebase';
-
-function canonicalJson(value) {
-  return `${JSON.stringify(value, null, 2)}\n`;
-}
-
-function withoutDerivedFields(value, allocationId) {
-  const normalized = structuredClone(value);
-  normalized.allocations = normalized.allocations
-    .filter(allocation => allocation.id !== allocationId)
-    .map(allocation => {
-      if (allocation.id !== CAPACITY_REBASE_ID || allocation.mode !== 'exact') return allocation;
-      const budgetBytes = allocation.pathBytesDelta[BUDGET_PATH];
-      allocation.pathBytesDelta[BUDGET_PATH] = 0;
-      allocation.trackedBytesDelta -= budgetBytes;
-      allocation.categoryBytesDelta['config/data/messages'] -= budgetBytes;
-      return allocation;
-    });
-  normalized.maxTrackedBytes = 0;
-  normalized.maxTrackedFiles = 0;
-  normalized.maxCategoryBytes = {};
-  return normalized;
-}
+export const BUDGET_PATH = 'scripts/repo-size-budget.json';
+export const CAPACITY_REBASE_ID = 'capacity-rebase';
 
 export function unchangedBudgetProposal({
   budget,
@@ -50,62 +28,116 @@ export function unchangedBudgetProposal({
     allocation,
     budget: candidate,
     budgetBytes,
-    sha256: createHash('sha256').update(budgetBytes).digest('hex'),
+    sha256: sha256(budgetBytes),
     selfBytesDelta,
     authorityStops: stops,
   };
 }
 
-export function compareWorktreeBudget({
-  worktreeBudget,
-  worktreeBudgetText,
-  protectedBudget,
-  protectedBudgetText,
-  proposal,
-}) {
-  const worktreeBudgetBytes = worktreeBudgetText ?? canonicalJson(worktreeBudget);
-  const protectedBudgetBytes = protectedBudgetText ?? canonicalJson(protectedBudget);
-  const state =
-    worktreeBudgetBytes === proposal.budgetBytes
-      ? 'candidate-exact'
-      : worktreeBudgetBytes === protectedBudgetBytes
-        ? 'protected-exact'
-        : 'drift';
-  const authorityStops = [...proposal.authorityStops];
-  const deficits = [...(proposal.deficits ?? [])];
-  const derivedRebind =
-    state === 'drift' &&
-    proposal.mode === 'derived' &&
-    canonicalJson(withoutDerivedFields(worktreeBudget, proposal.allocation.id)) ===
-      canonicalJson(withoutDerivedFields(protectedBudget, proposal.allocation.id));
-  if (derivedRebind) {
-    deficits.push({
-      code: 'capacity:worktree-budget-rebind',
-      coveredBy: 'derived_capacity_rebind',
-      actualSha256: createHash('sha256').update(worktreeBudgetBytes).digest('hex'),
-      candidateSha256: proposal.sha256,
-    });
-  } else if (state === 'drift') {
-    authorityStops.push({
-      code: 'capacity:worktree-budget-drift',
-      actualSha256: createHash('sha256').update(worktreeBudgetBytes).digest('hex'),
-      candidateSha256: proposal.sha256,
-      protectedSha256: createHash('sha256').update(protectedBudgetBytes).digest('hex'),
-    });
+export function proposedAllocation(manifest, id, writerDeltas = {}) {
+  const plans = manifest.pathPlans.filter(plan => plan.path !== 'scripts/repo-size-budget.json');
+  if (!plans.length) return null;
+  const maxCategoryBytesDelta = {};
+  for (const plan of plans) {
+    maxCategoryBytesDelta[plan.category] =
+      (maxCategoryBytesDelta[plan.category] ?? 0) + plan.maxBytesDelta;
   }
   return {
-    ...proposal,
-    mode:
-      authorityStops.length > 0
-        ? 'blocked'
-        : state === 'candidate-exact' && proposal.mode === 'derived'
-          ? 'existing'
-          : proposal.mode,
-    authorityStops,
-    deficits,
-    worktreeBudget: {
-      state,
-      sha256: createHash('sha256').update(worktreeBudgetBytes).digest('hex'),
-    },
+    id,
+    mode: 'bounded',
+    writerPaths: plans.map(plan => plan.path).sort(compareText),
+    maxTrackedBytesDelta: plans.reduce((sum, plan) => sum + plan.maxBytesDelta, 0),
+    maxTrackedFilesDelta: plans.filter(plan => {
+      const facts = writerDeltas[plan.path];
+      const baselineExists = facts?.capacityBaselineExists ?? facts?.baselineExists;
+      return baselineExists === undefined ? plan.change === 'create' : !baselineExists;
+    }).length,
+    maxCategoryBytesDelta,
+    maxPathBytesDelta: Object.fromEntries(
+      plans
+        .map(plan => [plan.path, plan.maxBytesDelta])
+        .sort(([left], [right]) => left.localeCompare(right))
+    ),
   };
+}
+
+export function existingAllocationStops(existing, allocation, allocationId) {
+  const stops = [];
+  if (existing.mode !== 'bounded') {
+    stops.push({ code: 'capacity:existing-allocation-mode', allocationId });
+    return stops;
+  }
+  if (
+    JSON.stringify([...existing.writerPaths].sort(compareText)) !==
+    JSON.stringify(allocation.writerPaths)
+  ) {
+    stops.push({ code: 'capacity:existing-writer-map-mismatch', allocationId });
+  }
+  for (const [field, code] of [
+    ['maxTrackedBytesDelta', 'capacity:existing-tracked-bytes-insufficient'],
+    ['maxTrackedFilesDelta', 'capacity:existing-tracked-files-insufficient'],
+  ]) {
+    if (existing[field] < allocation[field]) {
+      stops.push({ code, allocationId, actual: allocation[field], limit: existing[field] });
+    }
+  }
+  for (const [path, bytes] of Object.entries(allocation.maxPathBytesDelta)) {
+    if ((existing.maxPathBytesDelta[path] ?? -1) < bytes) {
+      stops.push({
+        code: 'capacity:existing-path-insufficient',
+        path,
+        actual: bytes,
+        limit: existing.maxPathBytesDelta[path] ?? null,
+      });
+    }
+  }
+  for (const [category, bytes] of Object.entries(allocation.maxCategoryBytesDelta)) {
+    if ((existing.maxCategoryBytesDelta[category] ?? 0) < bytes) {
+      stops.push({
+        code: 'capacity:existing-category-insufficient',
+        category,
+        actual: bytes,
+        limit: existing.maxCategoryBytesDelta[category] ?? 0,
+      });
+    }
+  }
+  return stops;
+}
+
+function capacityStop(stops, code, actual, limit) {
+  if (actual > limit) stops.push({ code, actual, limit });
+}
+
+export function appendCapacityEvaluation({ proposal, repo, deficits, authorityStops, categories }) {
+  const capacityAlreadyApplied = proposal.worktreeBudget?.state === 'candidate-exact';
+  if (proposal.mode === 'derived' && !capacityAlreadyApplied) {
+    for (const [amount, code] of [
+      [proposal.allocation.maxTrackedFilesDelta, 'capacity:new-files'],
+      [proposal.allocation.maxTrackedBytesDelta, 'capacity:tracked-bytes'],
+      [proposal.selfBytesDelta, 'capacity:budget-self-size'],
+    ]) {
+      if (amount) deficits.push({ code, amount, coveredBy: 'derived_capacity_rebind' });
+    }
+  }
+  capacityStop(
+    authorityStops,
+    'capacity:global-tracked-files',
+    repo.tracked.files + (proposal.projectionHeadroom?.files ?? 0),
+    proposal.budget.maxTrackedFiles
+  );
+  capacityStop(
+    authorityStops,
+    'capacity:global-tracked-bytes',
+    repo.tracked.bytes + (proposal.projectionHeadroom?.bytes ?? 0),
+    proposal.budget.maxTrackedBytes
+  );
+  for (const category of categories) {
+    capacityStop(
+      authorityStops,
+      `capacity:global-category-bytes:${category}`,
+      (repo.tracked.categoryBytes[category] ?? 0) +
+        (proposal.projectionHeadroom?.categories[category] ?? 0),
+      proposal.budget.maxCategoryBytes[category]
+    );
+  }
 }
