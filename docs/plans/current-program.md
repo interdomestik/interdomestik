@@ -75,8 +75,8 @@ mixed-category CaseSummary, and canonical membership lifecycle now provide exact
 tenant-scoped projections without mounting PORTAL or CUTOVER. Exact-head required checks, full PR
 E2E, Sonar, security, review, feedback intake, and protected-main health were green. PR `#1653`
 remains the child-authority prerequisite; PRs `#1654`–`#1660` remain the deterministic
-promotion/capacity recovery record. PORTAL and CUTOVER remain default-denied pending exact
-predecessor closeout proof.
+promotion/capacity recovery record. PORTAL and CUTOVER remain default-denied until a separate
+promotion consumes the exact predecessor merge and closeout proof.
 
 Closed `IDA-WF01-ONE-APPROVAL-DELIVERY` remains immutable evidence through its
 [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),
