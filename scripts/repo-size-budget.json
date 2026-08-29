@@ -236,14 +236,14 @@
         "packages/domain-member/src/portal-runtime/get-member-portal-membership.ts",
         "pnpm-lock.yaml"
       ],
-      "maxTrackedBytesDelta": 25930,
+      "maxTrackedBytesDelta": 29005,
       "maxTrackedFilesDelta": 9,
       "maxCategoryBytesDelta": {
         "config/data/messages": 7072,
         "docs/text": 3200,
         "large support/generated-ish": 417,
-        "source/scripts": 8360,
-        "tests/e2e": 6881
+        "source/scripts": 8486,
+        "tests/e2e": 9830
       },
       "maxPathBytesDelta": {
         "scripts/lean-exact-writer-exceptions.mjs": 3175,
@@ -357,14 +357,14 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 59652381,
+  "maxTrackedBytes": 59655456,
   "maxTrackedFiles": 5863,
   "maxCategoryBytes": {
     "other": 18856416,
     "large support/generated-ish": 15390712,
     "docs/text": 8479400,
-    "source/scripts": 8352616,
-    "tests/e2e": 6423495,
+    "source/scripts": 8352742,
+    "tests/e2e": 6426444,
     "config/data/messages": 2149742
   },
   "maxLargestFileBytes": 3266530,
