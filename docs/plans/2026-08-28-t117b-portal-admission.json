@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "sliceId": "T117B-PORTAL",
   "tier": 3,
-  "baseSha": "a0d035ada72a96f08a53781e5d892f88e910a474",
-  "authorityArtifactSha256": "15715d27ca38394adb86717321d1f73d680941aa7437b27bfa1c8aa398e7f17e",
+  "baseSha": "10635007175e6348017c622c81f5c1917d347662",
+  "authorityArtifactSha256": "0c22cfc56b99608f4d53b5946d486221da777d76e1a7fc36bc777e1861b327a0",
   "productOutcomes": [
     "Build an unmounted accessible Unified Portal presentation that consumes T117B-DATA through Case, lifecycle-aware Actions and honest Recent case updates without issuing queries"
   ],
