@@ -1,0 +1,282 @@
+import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import test from 'node:test';
+
+import { canonicalJson, sha256 } from './slice-rehearse-core.mjs';
+import { deriveEvidenceIdentityKey, evaluateEvidenceReceipts } from './slice-rehearse-evidence.mjs';
+import { gitBytes } from './slice-rehearse-git-facts.mjs';
+import { collectVerifiedEvidenceKeys } from './slice-rehearse-github-evidence.mjs';
+import { derivePrE2eSubstrateDigest } from './slice-rehearse-repository-facts.mjs';
+
+const headSha = 'a'.repeat(40);
+const treeSha = 'b'.repeat(40);
+const protectedMainSha = 'c'.repeat(40);
+const workflow = Buffer.from(`name: protected PR E2E
+jobs:
+  e2e-runner:
+    name: PR E2E Runner
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+    steps:
+      - uses: ./.github/actions/setup
+  e2e:
+    name: e2e
+`);
+const setupAction = Buffer.from('name: setup\nruns: { using: composite, steps: [] }\n');
+const workflowDigest = sha256(workflow);
+const substrateDigest = derivePrE2eSubstrateDigest(workflow, setupAction);
+const commands = ['pnpm e2e:gate:pr', 'pnpm --filter @interdomestik/web run e2e:smoke'];
+const writerPaths = ['scripts/example.mjs'];
+const now = Date.parse('2026-08-29T12:00:00.000Z');
+
+test('PR E2E substrate regexes use explicit indentation quantifiers', () => {
+  const source = derivePrE2eSubstrateDigest.toString();
+  assert.doesNotMatch(source, /\/\^ {2,}/u);
+  assert.doesNotMatch(source, /\/\\n {2,}/u);
+});
+
+function pull() {
+  const repository = { id: 7, full_name: 'interdomestik/interdomestik' };
+  return {
+    id: 166400,
+    number: 1664,
+    state: 'open',
+    base: { ref: 'main', repo: repository },
+    head: { sha: headSha, repo: repository },
+  };
+}
+
+function run(overrides = {}) {
+  const repository = { id: 7, full_name: 'interdomestik/interdomestik' };
+  return {
+    id: 77,
+    path: '.github/workflows/e2e-pr.yml',
+    event: 'pull_request',
+    status: 'completed',
+    conclusion: 'success',
+    head_sha: headSha,
+    repository,
+    head_repository: repository,
+    pull_requests: [
+      {
+        id: 166400,
+        number: 1664,
+        base: { ref: 'main', repo: repository },
+        head: { sha: headSha, repo: repository },
+      },
+    ],
+    completed_at: null,
+    updated_at: '2026-08-29T11:45:00.000Z',
+    ...overrides,
+  };
+}
+
+function githubReader({ pulls = [pull()], runs = [run()], jobs } = {}) {
+  const runnerJobs = jobs ?? [
+    {
+      id: 88,
+      name: 'PR E2E Runner',
+      status: 'completed',
+      conclusion: 'success',
+      completed_at: '2026-08-29T11:44:00.000Z',
+    },
+  ];
+  return endpoint => {
+    if (endpoint.includes(`/commits/${headSha}/pulls`)) return pulls;
+    if (endpoint.includes('/actions/workflows/')) {
+      return { total_count: runs.length, workflow_runs: runs };
+    }
+    if (endpoint.includes('/actions/runs/77/jobs')) {
+      return { total_count: runnerJobs.length, jobs: runnerJobs };
+    }
+    throw new Error(`Unexpected endpoint: ${endpoint}`);
+  };
+}
+
+function collect(overrides = {}) {
+  return collectVerifiedEvidenceKeys({
+    repository: '/repo',
+    origin: 'https://github.com/interdomestik/interdomestik.git',
+    providerRepository: 'interdomestik/interdomestik',
+    protectedMainSha,
+    headSha,
+    treeSha,
+    writerPaths,
+    proof: { commands, workflowDigest, substrateDigest },
+    evidenceReceipts: [{ lane: 'pr-e2e' }],
+    now,
+    readGitBytes: (_repository, args) =>
+      args[1].endsWith(':.github/actions/setup/action.yml') ? setupAction : workflow,
+    readGithub: githubReader(),
+    ...overrides,
+  });
+}
+
+test('collects an exact protected-workflow PR E2E receipt key from independent GitHub facts', () => {
+  const result = collect();
+  assert.deepEqual(result, {
+    'pr-e2e': [
+      {
+        provider: 'github',
+        key: deriveEvidenceIdentityKey({
+          lane: 'pr-e2e',
+          headSha,
+          treeSha,
+          commandDigest: sha256(canonicalJson([...commands].sort())),
+          workflowDigest,
+          substrateDigest,
+          writerMapDigest: sha256(canonicalJson(writerPaths)),
+        }),
+        checkId: 88,
+        runId: 77,
+        completedAt: '2026-08-29T11:44:00.000Z',
+      },
+    ],
+  });
+
+  const identity = {
+    headSha,
+    treeSha,
+    commandDigest: sha256(canonicalJson([...commands].sort())),
+    workflowDigest,
+    substrateDigest,
+    writerMapDigest: sha256(canonicalJson(writerPaths)),
+  };
+  const decision = evaluateEvidenceReceipts({
+    receipts: [
+      {
+        lane: 'pr-e2e',
+        ...identity,
+        status: 'success',
+        expiresAt: '2026-08-30T00:00:00.000Z',
+      },
+    ],
+    heavyLanes: ['pr-e2e'],
+    expectedByLane: { 'pr-e2e': identity },
+    verifiedEvidenceKeysByLane: result,
+    dirtyWriterPaths: [],
+    now,
+  });
+  assert.deepEqual(decision.reusableLanes, ['pr-e2e']);
+  assert.deepEqual(decision.missingLanes, []);
+});
+
+test('canonicalizes command and writer ordering before deriving reusable evidence identity', () => {
+  const reversedCommands = [...commands].reverse();
+  const reversedWriters = ['scripts/z-last.mjs', 'scripts/a-first.mjs'];
+  const canonicalWriters = [...reversedWriters].sort();
+  const result = collect({
+    proof: {
+      commands: reversedCommands,
+      workflowDigest,
+      substrateDigest,
+    },
+    writerPaths: reversedWriters,
+  });
+  assert.equal(
+    result['pr-e2e'][0].key,
+    deriveEvidenceIdentityKey({
+      lane: 'pr-e2e',
+      headSha,
+      treeSha,
+      commandDigest: sha256(canonicalJson([...commands].sort())),
+      workflowDigest,
+      substrateDigest,
+      writerMapDigest: sha256(canonicalJson(canonicalWriters)),
+    })
+  );
+});
+
+test('rejects stale, future, missing, mismatched, ambiguous, and unsuccessful evidence', () => {
+  for (const updated_at of ['2026-08-27T00:00:00.000Z', '2026-08-29T12:06:00.000Z', null]) {
+    assert.deepEqual(collect({ readGithub: githubReader({ runs: [run({ updated_at })] }) }), {});
+  }
+  assert.deepEqual(
+    collect({
+      proof: { commands: ['pnpm e2e:gate:pr'], workflowDigest, substrateDigest },
+    }),
+    {}
+  );
+  assert.deepEqual(collect({ readGithub: githubReader({ pulls: [pull(), pull()] }) }), {});
+  assert.deepEqual(
+    collect({
+      readGithub: githubReader({
+        jobs: [
+          {
+            id: 88,
+            name: 'PR E2E Runner',
+            status: 'completed',
+            conclusion: 'failure',
+            completed_at: '2026-08-29T11:44:00.000Z',
+          },
+        ],
+      }),
+    }),
+    {}
+  );
+});
+
+test('rejects workflow or substrate digests not anchored to protected main', () => {
+  assert.deepEqual(
+    collect({
+      proof: { commands, workflowDigest: 'd'.repeat(64), substrateDigest },
+    }),
+    {}
+  );
+  assert.deepEqual(
+    collect({
+      proof: { commands, workflowDigest, substrateDigest: 'e'.repeat(64) },
+    }),
+    {}
+  );
+});
+
+test('binds workflow and runner substrate independently at protected main and head', () => {
+  const changedHeadWorkflow = Buffer.from('name: weakened PR E2E\n');
+  assert.deepEqual(
+    collect({
+      writerPaths: [...writerPaths, '.github/workflows/e2e-pr.yml'],
+      readGitBytes: (_repository, args) =>
+        args[1].endsWith(':.github/actions/setup/action.yml')
+          ? setupAction
+          : args[1].startsWith(`${headSha}:`)
+            ? changedHeadWorkflow
+            : workflow,
+    }),
+    {}
+  );
+  const changedSetup = Buffer.from('name: changed setup\n');
+  assert.deepEqual(
+    collect({
+      readGitBytes: (_repository, args) =>
+        args[1].endsWith(':.github/actions/setup/action.yml') ? changedSetup : workflow,
+    }),
+    {}
+  );
+});
+
+test('Git blob evidence preserves exact bytes as a Buffer', () => {
+  const repository = mkdtempSync(join(tmpdir(), 'slice-evidence-git-bytes-'));
+  try {
+    execFileSync('/usr/bin/git', ['init', '-q', '-b', 'main', repository]);
+    execFileSync('/usr/bin/git', ['config', 'user.email', 'harness@example.test'], {
+      cwd: repository,
+    });
+    execFileSync('/usr/bin/git', ['config', 'user.name', 'Harness Test'], { cwd: repository });
+    const expected = Buffer.from([0x00, 0xff, 0x41, 0x0a]);
+    writeFileSync(join(repository, 'workflow.bin'), expected);
+    execFileSync('/usr/bin/git', ['add', 'workflow.bin'], { cwd: repository });
+    execFileSync('/usr/bin/git', ['commit', '-q', '-m', 'binary evidence'], { cwd: repository });
+
+    const actual = gitBytes(repository, ['show', 'HEAD:workflow.bin']);
+    assert.equal(Buffer.isBuffer(actual), true);
+    assert.deepEqual(actual, expected);
+  } finally {
+    rmSync(repository, { recursive: true, force: true });
+  }
+});

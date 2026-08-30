@@ -253,6 +253,12 @@ test('provider contract drift, incomplete pagination, and unresolved current-hea
 
   const unknownBot = snapshot();
   unknownBot.feedback.issueComments.push({
+    author: 'github-code-quality[bot]',
+    body: 'No additional findings.',
+    createdAt: '2026-08-23T00:00:00Z',
+  });
+  assert.equal(evaluateDeliverySnapshot(contract, unknownBot).ok, true);
+  unknownBot.feedback.issueComments.push({
     author: 'unregistered-reviewer[bot]',
     body: 'clean',
     createdAt: '2026-08-23T00:00:00Z',
