@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-08-29
+last_reviewed: 2026-08-30
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -16,25 +16,25 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID           | Status      | Owner      | Work                                              | Exit Criteria                                       |
-| ------------ | ----------- | ---------- | ------------------------------------------------- | --------------------------------------------------- |
-| `T117B-DATA` | `completed` | `platform` | Request-scoped identity; exactly two projections. | Exact contract merged, verified, closed, unmounted. |
+| ID             | Status        | Owner      | Work                                                        | Exit Criteria                     |
+| -------------- | ------------- | ---------- | ----------------------------------------------------------- | --------------------------------- |
+| `T117B-PORTAL` | `in_progress` | `platform` | Unmounted Case, lifecycle Actions, and Recent case updates. | Promote, implement, merge, close. |
 
 ## Proof Ledger
 
-| ID           | Source Refs                                                                                         | Execution  | Run ID                | Run Root               | Sonar  | Docker           | Sentry           | Learning         | Evidence Refs                                                                                                                                                                                                                                  |
-| ------------ | --------------------------------------------------------------------------------------------------- | ---------- | --------------------- | ---------------------- | ------ | ---------------- | ---------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `T117B-DATA` | [gate](./2026-08-28-t117b-data-design-gate.md); [admission](./2026-08-28-t117b-data-admission.json) | `scripted` | `PR #1658 / 124ec51c` | `GitHub-hosted Ubuntu` | `pass` | `not_applicable` | `not_applicable` | `not_applicable` | Promotion `#1661`; product head `b9e735535ae812c0824ecb7e7a874fe78e78303d`, tree `728768ab05bc47a0f1cb25ec78ed6a6444264ffc`, squash `124ec51cefd022dd7103a4f958cb9ebef5427dad`; exact-head CI/E2E/Sonar/security/review and main health green. |
+| ID             | Source Refs                                                                                             | Execution | Run ID     | Run Root               | Sonar     | Docker           | Sentry           | Learning         | Evidence Refs                                           |
+| -------------- | ------------------------------------------------------------------------------------------------------- | --------- | ---------- | ---------------------- | --------- | ---------------- | ---------------- | ---------------- | ------------------------------------------------------- |
+| `T117B-PORTAL` | [gate](./2026-08-28-t117b-portal-design-gate.md); [admission](./2026-08-28-t117b-portal-admission.json) | `pending` | `PR #1665` | `GitHub-hosted Ubuntu` | `pending` | `not_applicable` | `not_applicable` | `not_applicable` | Promotion and exact eleven-path product remain pending. |
 
 ## Next Selection
 
-T117B-DATA completed through exact re-promotion PR `#1661` and product PR `#1658`. No slice is
-promoted or runtime-authorized. T117B-PORTAL is the next unpromoted candidate and must consume this
-exact DATA product merge plus deterministic closeout evidence; CUTOVER remains default-denied.
+PR `#1665` projects T117B-PORTAL only after exact branch/base/head validation and promotion merge.
+The portal consumes the closed DATA contract without querying or mounting a route. CUTOVER and
+T-117C remain default-denied.
 
 | Future UI branch | Status                        | Constraint                       |
 | ---------------- | ----------------------------- | -------------------------------- |
-| `T117B-PORTAL`   | `design_gate_next_unpromoted` | Separate exact promotion.        |
+| `T117B-PORTAL`   | `promotion_pending`           | Exact PR `#1665`; runtime awaits merge. |
 | `T117B-CUTOVER`  | `deferred`                    | Exact PORTAL merge + closeout.   |
 | `T-117C`         | `deferred`                    | cacheComponents/PPR/named slots. |
 
@@ -45,17 +45,42 @@ exact DATA product merge plus deterministic closeout evidence; CUTOVER remains d
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "inactive",
+  "lifecycle": "promotion_pending",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": null
+  "activeSlice": {
+    "sliceId": "T117B-PORTAL",
+    "tier": 3,
+    "promotionPrNumber": 1665,
+    "promotionBaseSha": "10635007175e6348017c622c81f5c1917d347662",
+    "expectedProductBranch": "codex/t117b-portal",
+    "gateSha256": "e287e9342aef6a2d63d1c20cc547b9d82f8587cd5956cf40a2d9bbe7800b3c6c",
+    "admissionSha256": "50485c5b7ee68646c1f9454075c4245961fd38b11941bfcc7f0be8ef0a8bc82d",
+    "productWriterPaths": [
+      "apps/web/src/components/dashboard/case-summary/accident-case-summary.tsx",
+      "apps/web/src/components/dashboard/case-summary/case-kind-registry.test.tsx",
+      "apps/web/src/components/dashboard/case-summary/case-kind-registry.ts",
+      "apps/web/src/components/dashboard/case-summary/generic-case-summary.tsx",
+      "apps/web/src/components/dashboard/member-portal-region-boundary.tsx",
+      "apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx",
+      "apps/web/src/components/dashboard/member-portal-runtime.tsx",
+      "apps/web/src/messages/en/dashboard.json",
+      "apps/web/src/messages/mk/dashboard.json",
+      "apps/web/src/messages/sq/dashboard.json",
+      "apps/web/src/messages/sr/dashboard.json"
+    ],
+    "closeoutWriterPaths": [
+      "docs/plans/current-program.md",
+      "docs/plans/current-tracker.md"
+    ]
+  }
 }
 ```
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:null`).
+The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:T117B-PORTAL`).
 
 ## Historical Authority
 

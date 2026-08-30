@@ -3,14 +3,14 @@ plan_role: input
 status: draft
 source_of_truth: false
 owner: platform
-last_reviewed: 2026-08-28
+last_reviewed: 2026-08-30
 ---
 
 # IDA-DG58B — T117B-PORTAL
 
-> Status: disposable pre-freeze child candidate. Tier 3. It may promote only after T117B-DATA is
-> merged, closed out, and authority is inactive. Measurement base:
-> `a0d035ada72a96f08a53781e5d892f88e910a474`.
+> Status: approved Tier-3 child on base `10635007175e6348017c622c81f5c1917d347662`. DATA PR
+> `#1658` and closeout `#1662` are merged predecessors; authority is inactive. Runtime is denied
+> before promotion.
 
 ## Outcome
 
