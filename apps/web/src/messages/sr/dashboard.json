@@ -17,7 +17,7 @@
     "portal": {
       "title": "Moji slučajevi",
       "description": "Slučajevi, radnje i ažuriranja.",
-      "disclaimer": "Smernice; ishod nije obećan. Moguća stručna provera.",
+      "disclaimer": "Ishodi nisu obećani. Moguća je stručna provera.",
       "navigation": {
         "label": "Prečice",
         "help_now": "Pomoć sada",
@@ -50,7 +50,7 @@
         "trialing": "Započnite slučaj",
         "active_in_grace": "Nastavite — uplata traži pažnju",
         "grace_expired": "Nacrt — tolerancija je istekla",
-        "scheduled_cancel": "Slučaj — članstvo se završava",
+        "scheduled_cancel": "Započnite — članstvo se završava",
         "canceled": "Nacrt — članstvo je otkazano"
       }
     },
