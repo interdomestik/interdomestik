@@ -5,6 +5,7 @@ import * as PortalUi from '@interdomestik/ui';
 
 import type { CaseSummaryLabels } from '@/components/dashboard/case-summary/accident-case-summary';
 import { renderCaseSummary } from '@/components/dashboard/case-summary/case-kind-registry';
+import { Link } from '@/i18n/routing';
 
 import { MemberPortalRegionBoundary as Boundary } from './member-portal-region-boundary';
 import type { MemberPortalRegionCopy } from './member-portal-region-boundary';
@@ -30,11 +31,10 @@ type ActionsBound = Readonly<{
   promise: Promise<Member.MemberPortalMembership>;
 }>;
 type RuntimeBound = Readonly<{
-  casesPromise: Promise<Member.CaseSummary[]>;
-  copy: MemberPortalCopy;
-  locale: string;
-  membershipPromise: Promise<Member.MemberPortalMembership>;
-}>;
+  casesPromise: CasesBound['promise'];
+  membershipPromise: ActionsBound['promise'];
+}> &
+  Pick<ActionsBound, 'copy' | 'locale'>;
 type UpdatesBound = CasesBound & { locale: string };
 
 export async function PortalCasesRegion({ copy, promise }: CasesBound) {
@@ -117,9 +117,9 @@ export async function MemberPortalRuntime({
         aria-label={copy.navigation.label}
         className="flex flex-wrap gap-3 text-sm [&_a]:inline-flex [&_a]:min-h-11 [&_a]:items-center [&_a]:px-3 [&_a]:focus-visible:ring-2"
       >
-        <a href={`/${locale}/help-now`}>{copy.navigation.helpNow}</a>
-        <a href={`/${locale}/member/documents`}>{copy.navigation.documents}</a>
-        <a href={`/${locale}/member/membership`}>{copy.navigation.membership}</a>
+        <Link href="/help-now">{copy.navigation.helpNow}</Link>
+        <Link href="/member/documents">{copy.navigation.documents}</Link>
+        <Link href="/member/membership">{copy.navigation.membership}</Link>
       </nav>
       <aside data-testid="member-portal-disclaimer" className="rounded-xl border p-4">
         {copy.disclaimer}

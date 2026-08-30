@@ -1,8 +1,9 @@
+import type { ReactNode } from 'react';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { CaseSummary, MembershipLifecycleBucket } from '@interdomestik/domain-member';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import enMessages from '@/messages/en/dashboard.json';
 import mkMessages from '@/messages/mk/dashboard.json';
@@ -17,6 +18,12 @@ import {
   PortalUpdatesRegion,
   type MemberPortalCopy,
 } from './member-portal-runtime';
+
+vi.mock('@/i18n/routing', () => ({
+  Link: ({ children, href }: { children: ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
+}));
 
 const summaries: CaseSummary[] = [
   {
