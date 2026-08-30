@@ -1,8 +1,10 @@
-import type { CaseSummaryLabels } from '@/components/dashboard/case-summary/accident-case-summary';
-import { renderCaseSummary } from '@/components/dashboard/case-summary/case-kind-registry';
+import { Suspense } from 'react';
+
 import type * as Member from '@interdomestik/domain-member';
 import * as PortalUi from '@interdomestik/ui';
-import { Suspense } from 'react';
+
+import type { CaseSummaryLabels } from '@/components/dashboard/case-summary/accident-case-summary';
+import { renderCaseSummary } from '@/components/dashboard/case-summary/case-kind-registry';
 
 import { MemberPortalRegionBoundary as Boundary } from './member-portal-region-boundary';
 import type { MemberPortalRegionCopy } from './member-portal-region-boundary';

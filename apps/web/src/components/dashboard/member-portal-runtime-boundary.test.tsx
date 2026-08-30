@@ -4,6 +4,11 @@ import type { CaseSummary, MembershipLifecycleBucket } from '@interdomestik/doma
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
+import enMessages from '@/messages/en/dashboard.json';
+import mkMessages from '@/messages/mk/dashboard.json';
+import sqMessages from '@/messages/sq/dashboard.json';
+import srMessages from '@/messages/sr/dashboard.json';
+
 import { MemberPortalRegionBoundary } from './member-portal-region-boundary';
 import {
   MemberPortalRuntime,
@@ -43,6 +48,13 @@ const buckets: MembershipLifecycleBucket[] = [
   'scheduled_cancel',
   'canceled',
 ];
+
+function leafPaths(value: unknown, prefix = ''): string[] {
+  return Object.entries(value as Record<string, unknown>).flatMap(([key, child]) => {
+    const path = prefix ? `${prefix}.${key}` : key;
+    return typeof child === 'object' && child !== null ? leafPaths(child, path) : [path];
+  });
+}
 
 const actionCopy = Object.fromEntries(
   buckets.map(bucket => [
@@ -152,10 +164,7 @@ describe('MemberPortalRuntime boundaries', () => {
   });
 
   it('keeps navigation and disclaimer outside three independent server boundaries', async () => {
-    const source = readFileSync(
-      resolve(process.cwd(), 'src/components/dashboard/member-portal-runtime.tsx'),
-      'utf8'
-    );
+    const source = readFileSync(resolve(import.meta.dirname, 'member-portal-runtime.tsx'), 'utf8');
     expect(source.match(/<Suspense\b/gu) ?? []).toHaveLength(3);
     expect(source).toMatch(/<nav[\s\S]+member-portal-disclaimer[\s\S]+<UnifiedPortalShell/u);
     expect(source).toMatch(/casesPromise[\s\S]+casesPromise[\s\S]+membershipPromise/u);
@@ -172,15 +181,22 @@ describe('MemberPortalRuntime boundaries', () => {
   });
 
   it('owns the same complete portal copy contract in exactly four locale catalogs', () => {
-    const portals = ['en', 'mk', 'sq', 'sr'].map(
-      locale =>
-        JSON.parse(
-          readFileSync(resolve(process.cwd(), `src/messages/${locale}/dashboard.json`), 'utf8')
-        ).dashboard.portal
+    const portals = [enMessages, mkMessages, sqMessages, srMessages].map(
+      messages => messages.dashboard.portal
     );
-    expect(
-      portals.every(portal => portal?.regions?.updates?.label && portal?.actions?.scheduled_cancel)
-    ).toBe(true);
+    const expectedPaths = [
+      'title',
+      'description',
+      'disclaimer',
+      ...['label', 'help_now', 'documents', 'membership'].map(key => `navigation.${key}`),
+      ...['case', 'actions', 'updates'].flatMap(region =>
+        ['label', 'loading', 'empty', 'error'].map(state => `regions.${region}.${state}`)
+      ),
+      ...buckets.map(bucket => `actions.${bucket}`),
+    ].sort();
+    expect(portals.map(portal => leafPaths(portal).sort())).toEqual(
+      portals.map(() => expectedPaths)
+    );
     expect(new Set(portals.map(portal => portal.title))).toHaveLength(4);
   });
 });
