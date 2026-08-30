@@ -17,12 +17,12 @@ const IDENTITY_CHANGING_OPERATIONS = new Set([
   'split_focused_test',
 ]);
 
-export function canonicalModularityForPath(path, change = 'modify') {
+export function canonicalModularityForPath(path) {
   const fileClass = classifyModularityFile(path);
   if (fileClass === FILE_CLASSES.productionCode) {
     return {
       fileClass,
-      maxLines: change === 'create' ? 200 : MODULARITY_POLICY.productionCode.reviewLines,
+      maxLines: MODULARITY_POLICY.productionCode.reviewLines,
     };
   }
   if (fileClass === FILE_CLASSES.focusedTest) {

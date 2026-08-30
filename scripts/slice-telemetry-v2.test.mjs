@@ -25,13 +25,21 @@ function event(overrides = {}) {
 
 test('preserves genuinely unknown timing, runner, and model values as null', () => {
   const unknown = validateTelemetryEventV2(
-    event({ elapsedMs: null, waitMs: null, computeMs: null })
+    event({
+      phase: 'design',
+      approvalClass: 'delivery',
+      approvals: 1,
+      elapsedMs: null,
+      waitMs: null,
+      computeMs: null,
+    })
   );
   const summary = summarizeTelemetryV2([unknown]);
   assert.equal(summary.totals.elapsedMs, null);
   assert.equal(summary.totals.runnerMinutes, null);
   assert.equal(summary.totals.modelCostUsd, null);
   assert.equal(summary.governanceRatio, null);
+  assert.equal(summary.targets.allPassed, null);
 });
 
 test('separates design, implementation, merge, deterministic closeout, and global hygiene', () => {

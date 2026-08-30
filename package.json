@@ -159,6 +159,7 @@
     "review:sonnet": "node scripts/ci/run-model-reviewer-route.mjs --route sonnet",
     "review:gemini": "node scripts/ci/run-model-reviewer-route.mjs --route gemini",
     "review:opus": "node scripts/ci/run-model-reviewer-route.mjs --route opus --allow-escalation",
+    "review:opus48": "node scripts/ci/run-model-reviewer-route.mjs --route opus48",
     "review:preflight": "node scripts/ci/reviewer-preflight.mjs",
     "pr:request-reviewers": "node scripts/github-request-pr-reviewers.mjs",
     "commitlint": "commitlint --from=HEAD~1",

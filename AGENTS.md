@@ -324,12 +324,24 @@ const sanitizedContent = content.trim().slice(0, 1000);
 
 ### 150-Line Rule (Strict Modularity & Boy Scout Refactoring)
 
-To maintain a pure modular architecture and avoid "monolith drift" or over-coupling, we enforce a strict modularity guideline:
+**Retired rule:** There is no universal 150-line ceiling. This legacy heading is
+retained only for governance-heading continuity and does not grant enforcement
+authority.
 
-- **Rule:** Every new code file (React components, helpers, domain rule engines, server actions) and any newly refactored file **MUST be kept concise, focused, and under 150 lines of code** (with an absolute hard-ceiling of **200 lines** allowed ONLY for complex backend transactions or rule engines if absolutely necessary).
-- **Exception:** Auto-generated assets and third-party libraries.
-- **Decomposition:** If a file naturally grows beyond 150 lines, it is a structural code-smell indicating over-coupling. You must decompose the logic into smaller, dedicated sub-components, custom hooks, or utility helper modules (Separation of Concerns).
-- **Boy Scout Rule for Grandfathered/Legacy Files:** If a task requires modifying an existing legacy file that already exceeds 150 lines, **do NOT append more code to make it larger**. Instead, proactively assess if it is "too large" and split it into smaller, decoupled files (under 150 lines each) as part of your change. If the split is too complex for a single PR, decompose the touched logical path into separate helpers and leave the legacy file smaller and cleaner than you found it.
+The canonical, executable authority is `scripts/modularity-guard-policy.mjs` as
+evaluated by `pnpm check:modularity-guard`:
+
+- Production code above the preferred checkpoint is advisory through the policy's
+  review boundary. An advisory alone must not block delivery, force a split, or
+  authorize unrelated refactoring.
+- Production code beyond the review boundary requires review or decomposition;
+  oversized legacy production files remain valid when they do not grow.
+- Focused tests, structured artifacts, governance documents, workflow YAML, and
+  generated/lock files follow their own class-specific policy rather than a
+  universal line count.
+- Refactor only when required by the executable policy, by cohesion or security,
+  or by the explicitly authorized slice. Do not broaden scope solely to reduce a
+  file below 150 lines.
 
 ## Architecture Guidelines
 

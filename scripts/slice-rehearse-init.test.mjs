@@ -50,6 +50,10 @@ test('first normal invocation produces a canonical schema-valid governance manif
     first.pathPlans.map(plan => plan.change),
     ['create', 'create']
   );
+  assert.deepEqual(
+    first.pathPlans.map(plan => plan.maxLines),
+    [300, 300]
+  );
 });
 
 test('product initialization fails closed when live runtime authority does not match', () => {

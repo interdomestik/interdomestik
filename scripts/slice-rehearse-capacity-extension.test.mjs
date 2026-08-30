@@ -57,3 +57,22 @@ test('capacity extension rejects a different or non-bounded owner identity', () 
     /one bounded identity/u
   );
 });
+
+test('capacity extension fails closed when a writer category is missing', () => {
+  const existing = {
+    id: 'owner',
+    mode: 'bounded',
+    writerPaths: [],
+    maxTrackedBytesDelta: 0,
+    maxTrackedFilesDelta: 0,
+    maxCategoryBytesDelta: {},
+    maxPathBytesDelta: {},
+  };
+  const proposed = {
+    id: 'owner',
+    mode: 'bounded',
+    writerPaths: ['scripts/new.mjs'],
+    maxPathBytesDelta: { 'scripts/new.mjs': 10 },
+  };
+  assert.throws(() => extendBoundedAllocation(existing, proposed, {}), /category.*missing/u);
+});

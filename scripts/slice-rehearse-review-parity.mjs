@@ -36,7 +36,29 @@ function leaves(value, prefix = '') {
 
 function placeholders(value) {
   if (typeof value !== 'string') return [];
-  return [...value.matchAll(/\{([A-Za-z0-9_]+)\}/gu)].map(match => match[1]).sort(compareText);
+  return [...value.matchAll(/\{(\w+)\}/gu)].map(match => match[1]).sort(compareText);
+}
+
+function shapeOf(entries) {
+  return entries.map(([key, value]) => [key, typeof value]);
+}
+
+function allDistinct(values) {
+  return new Set(values).size === values.length;
+}
+
+function reviewCandidateText(path, candidateLeaves, referenceLeaves, findings) {
+  for (let index = 0; index < candidateLeaves.length; index += 1) {
+    const [key, value] = candidateLeaves[index];
+    if (typeof value !== 'string' || value.trim() === '') {
+      findings.push(`${path}:${key} must be non-empty text`);
+    }
+    if (
+      canonicalJson(placeholders(value)) !== canonicalJson(placeholders(referenceLeaves[index][1]))
+    ) {
+      findings.push(`${path}:${key} placeholder parity differs`);
+    }
+  }
 }
 
 export function reviewDashboardLocaleParity(catalogs) {
@@ -47,26 +69,16 @@ export function reviewDashboardLocaleParity(catalogs) {
   }
   const reference = portal(catalogs?.[DASHBOARD_LOCALE_PATHS[0]]);
   const referenceLeaves = leaves(reference);
-  const referenceShape = referenceLeaves.map(([key, value]) => [key, typeof value]);
+  const referenceShape = shapeOf(referenceLeaves);
   for (const path of DASHBOARD_LOCALE_PATHS) {
     const candidate = portal(catalogs?.[path]);
     const candidateLeaves = leaves(candidate);
-    const shape = candidateLeaves.map(([key, value]) => [key, typeof value]);
+    const shape = shapeOf(candidateLeaves);
     if (canonicalJson(shape) !== canonicalJson(referenceShape)) {
       findings.push(`${path}: dashboard.portal semantic parity differs`);
       continue;
     }
-    for (let index = 0; index < candidateLeaves.length; index += 1) {
-      const [key, value] = candidateLeaves[index];
-      if (typeof value !== 'string' || value.trim() === '')
-        findings.push(`${path}:${key} must be non-empty text`);
-      if (
-        canonicalJson(placeholders(value)) !==
-        canonicalJson(placeholders(referenceLeaves[index][1]))
-      ) {
-        findings.push(`${path}:${key} placeholder parity differs`);
-      }
-    }
+    reviewCandidateText(path, candidateLeaves, referenceLeaves, findings);
     if (
       canonicalJson(Object.keys(candidate?.actions ?? {}).sort(compareText)) !==
       canonicalJson(ACTION_STATES)
@@ -76,13 +88,13 @@ export function reviewDashboardLocaleParity(catalogs) {
     const blockedActions = ['canceled', 'grace_expired', 'none'].map(
       key => candidate?.actions?.[key]
     );
-    if (new Set(blockedActions).size !== blockedActions.length) {
+    if (!allDistinct(blockedActions)) {
       findings.push(`${path}: inactive action states must remain semantically distinct`);
     }
     const regionLabels = ['actions', 'case', 'updates'].map(
       key => candidate?.regions?.[key]?.label
     );
-    if (new Set(regionLabels).size !== regionLabels.length) {
+    if (!allDistinct(regionLabels)) {
       findings.push(`${path}: dashboard region labels must remain semantically distinct`);
     }
   }
@@ -100,7 +112,7 @@ export function inspectAccessibilityContracts(source) {
   ) {
     findings.push('target=_blank links require rel=noopener');
   }
-  if (/<button\b(?![^>]*\baria-label=)[^>]*>\s*<\/button>/iu.test(source)) {
+  if (/<button\b(?![^>]*\baria-label(?:ledby)?=)[^>]*>\s*<\/button>/iu.test(source)) {
     findings.push('button requires an accessible name');
   }
   return findings;
@@ -128,7 +140,8 @@ export function runReviewParity({ cwd = process.cwd(), changedPaths, spawn = spa
   });
   const findings = [...locale.findings, ...accessibility];
   if (reviewer.status !== 0) findings.push((reviewer.stderr || 'reviewer preflight failed').trim());
-  return { schemaVersion: 1, findings: findings.sort(compareText), localePaths: locale.paths };
+  const sortedFindings = [...findings].sort(compareText);
+  return { schemaVersion: 1, findings: sortedFindings, localePaths: locale.paths };
 }
 
 if (resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {

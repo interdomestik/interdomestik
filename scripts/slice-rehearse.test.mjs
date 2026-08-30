@@ -165,7 +165,7 @@ test('validates the closed manifest and derives canonical policy', () => {
   wrongCategory.pathPlans[1].category = 'docs/text';
   assert.throws(() => validateRehearsalManifest(wrongCategory), /canonical category/u);
   const oversized = manifest();
-  oversized.pathPlans[1].maxLines = 201;
+  oversized.pathPlans[1].maxLines = 301;
   assert.throws(() => validateRehearsalManifest(oversized), /canonical line cap/u);
 
   const workflow = manifest({

@@ -53,8 +53,8 @@ test('capacity owner deltas preserve exact signed bytes and file deletion', () =
   );
 });
 
-test('new production modules use the AGENTS absolute 200-line ceiling', () => {
-  assert.equal(canonicalModularityForPath('scripts/new-module.mjs', 'create').maxLines, 200);
+test('production modules use the canonical executable review boundary', () => {
+  assert.equal(canonicalModularityForPath('scripts/new-module.mjs', 'create').maxLines, 300);
   assert.equal(canonicalModularityForPath('scripts/legacy-module.mjs', 'modify').maxLines, 300);
 });
 

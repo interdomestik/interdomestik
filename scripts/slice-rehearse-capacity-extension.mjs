@@ -19,6 +19,10 @@ export function extendBoundedAllocation(existing, proposed, categoriesByPath, wr
     maxPathBytesDelta[path] = next;
     maxTrackedBytesDelta += increase;
     const category = categoriesByPath[path];
+    must(
+      typeof category === 'string' && category.length > 0,
+      `writer category is missing: ${path}`
+    );
     maxCategoryBytesDelta[category] = (maxCategoryBytesDelta[category] ?? 0) + increase;
     if (
       !existing.writerPaths.includes(path) &&

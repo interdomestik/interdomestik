@@ -6,7 +6,7 @@ import {
 } from './slice-rehearse-canonical.mjs';
 
 const TASK = /^[A-Z0-9][A-Z0-9-]*$/u;
-const ENVELOPE = /^[A-Z0-9][A-Z0-9-]*-GLOBAL-HYGIENE-[1-9][0-9]*$/u;
+const ENVELOPE = /^[A-Z0-9][A-Z0-9-]*-GLOBAL-HYGIENE-[1-9]\d*$/u;
 const KEYS = [
   'approvalEnvelopeId',
   'artifactPaths',

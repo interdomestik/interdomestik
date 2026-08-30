@@ -89,6 +89,18 @@ function aggregateTotals(slices) {
   return totals;
 }
 
+function nullableRatio(numerator, denominator) {
+  if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator === 0) {
+    return null;
+  }
+  return Number((numerator / denominator).toFixed(12));
+}
+
+function combinedTarget(values) {
+  if (values.includes(false)) return false;
+  return values.every(value => value === true) ? true : null;
+}
+
 export function summarizeTelemetryV2(input) {
   must(Array.isArray(input) && input.length > 0, 'telemetry v2 events must not be empty');
   const events = input
@@ -106,10 +118,7 @@ export function summarizeTelemetryV2(input) {
   }
   const slices = [...map.values()].map(finalize).sort((a, b) => compareText(a.sliceId, b.sliceId));
   const totals = aggregateTotals(slices);
-  const governanceRatio =
-    totals.elapsedMs === null || totals.governanceElapsedMs === null || totals.elapsedMs === 0
-      ? null
-      : Number((totals.governanceElapsedMs / totals.elapsedMs).toFixed(12));
+  const governanceRatio = nullableRatio(totals.governanceElapsedMs, totals.elapsedMs);
   const targets = {
     exactlyOneDeliveryApproval: slices.every(slice => slice.deliveryApprovals === 1),
     atMostOneReFreeze: slices.every(slice => slice.reFreezes <= 1),
@@ -118,9 +127,7 @@ export function summarizeTelemetryV2(input) {
     atMostFiveToolingRetries: slices.every(slice => slice.retries <= 5),
     governanceAtMost25Percent: governanceRatio === null ? null : governanceRatio <= 0.25,
   };
-  targets.allPassed = Object.entries(targets).every(([key, value]) =>
-    key === 'governanceAtMost25Percent' ? value !== false : value === true
-  );
+  targets.allPassed = combinedTarget(Object.values(targets));
   return {
     schemaVersion: 2,
     sliceCount: slices.length,

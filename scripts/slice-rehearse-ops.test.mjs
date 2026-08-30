@@ -101,6 +101,22 @@ test('checks exact head before mutation and reconciles a failed writer once', ()
       }),
     /exact local head differs/u
   );
+  assert.throws(
+    () =>
+      runSafeOperation(
+        {
+          operation: 'pr_create',
+          approvalEnvelopeId: 'HARNESS-V2-1-DELIVERY-1',
+          expectedHeadSha: head,
+          branch: 'codex/harness-v2-1',
+          baseBranch: 'main',
+          title: 'feat: harness v2.1',
+          bodyFile: '/private/tmp/harness-v2-1-pr.md',
+        },
+        { readHead: () => head, readBranchHead: () => 'b'.repeat(40) }
+      ),
+    /branch head differs/u
+  );
   let reconciliations = 0;
   const result = runSafeOperation(request, {
     readHead: () => head,

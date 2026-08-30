@@ -22,10 +22,7 @@ function missingInputs(request, facts) {
   if (!Array.isArray(facts?.existingPaths)) missing.push('existingPaths');
   if (!SHA256.test(facts?.workflowDigest ?? '')) missing.push('workflowDigest');
   if (!SHA256.test(facts?.substrateDigest ?? '')) missing.push('substrateDigest');
-  if (
-    request?.workClass === 'product' &&
-    (!facts?.authority || facts.authority.source !== 'live-resolver')
-  ) {
+  if (request?.workClass === 'product' && facts?.authority?.source !== 'live-resolver') {
     missing.push('liveAuthority');
   }
   return missing.sort(compareText);
@@ -34,8 +31,7 @@ function missingInputs(request, facts) {
 function planForPath(path, existingPaths, existingCapacityCaps, capacityDeltas) {
   const change = existingPaths.has(path) ? 'modify' : 'create';
   const modularity = canonicalModularityForPath(path, change);
-  const maxLines =
-    change === 'create' && modularity.maxLines === 200 ? 150 : (modularity.maxLines ?? 300);
+  const maxLines = modularity.maxLines ?? 300;
   const requestedBytes =
     change === 'create' ? (path.includes('.test.') ? 12 * 1024 : 8 * 1024) : 8 * 1024;
   const ownerHeadroom = Math.max(

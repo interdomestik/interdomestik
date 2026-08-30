@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
 
 import { canonicalJson } from './slice-rehearse-core.mjs';
@@ -70,4 +73,49 @@ test('initializer rejects unsafe writer paths before collecting repository facts
   assert.equal(status, 1);
   assert.equal(factsCollected, false);
   assert.match(stderr, /writer path is unsafe/u);
+});
+
+test('initializer creates output through the trusted path boundary and rejects symlinks', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-init-output-'));
+  const collectFacts = () => ({
+    baseSha: 'a'.repeat(40),
+    origin: 'https://github.com/interdomestik/interdomestik.git',
+    existingPaths: [],
+    workflowDigest: 'b'.repeat(64),
+    substrateDigest: 'c'.repeat(64),
+    authority: { source: 'live-resolver', runtimeAuthorized: false, activeSlice: null },
+  });
+  const options = {
+    cwd: root,
+    readRequest: () => request,
+    collectFacts,
+    stderr: value => assert.fail(value),
+  };
+
+  assert.equal(
+    runManifestInitializer({
+      ...options,
+      argv: ['--request', 'request.json', '--output', 'out.json'],
+    }),
+    0
+  );
+  assert.equal(
+    JSON.parse(fs.readFileSync(path.join(root, 'out.json'), 'utf8')).sliceId,
+    'HARNESS-V2-1'
+  );
+
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-init-outside-'));
+  fs.symlinkSync(outside, path.join(root, 'linked'));
+  let stderr = '';
+  assert.equal(
+    runManifestInitializer({
+      ...options,
+      argv: ['--request', 'request.json', '--output', 'linked/out.json'],
+      stderr: value => {
+        stderr += value;
+      },
+    }),
+    1
+  );
+  assert.match(stderr, /symlink/u);
 });

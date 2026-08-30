@@ -10,10 +10,11 @@ import {
   writeSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, resolve, sep } from 'node:path';
+import { resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { canonicalize, must, readBoundedRegularText } from './slice-rehearse-canonical.mjs';
+import { trustedRunnerFile } from './ci/trusted-runner-file.mjs';
 import { validateTelemetryEventV2 } from './slice-telemetry-v2-schema.mjs';
 
 export function recordTelemetryEvent({ event, existingText }) {
@@ -42,34 +43,37 @@ function parseArgs(argv) {
   return { eventPath: resolve(argv[1]), ledgerPath: resolve(argv[3]) };
 }
 
-function appendEvent({ eventPath, ledgerPath }) {
-  const roots = [realpathSync(process.cwd()), realpathSync(tmpdir()), realpathSync('/private/tmp')];
-  const parent = realpathSync(dirname(ledgerPath));
-  must(
-    roots.some(root => parent === root || parent.startsWith(`${root}${sep}`)),
-    'telemetry ledger must stay inside a trusted root'
-  );
+export function appendEvent({
+  eventPath,
+  ledgerPath,
+  trustedRoots = [process.cwd(), tmpdir(), '/private/tmp'],
+}) {
+  const roots = trustedRoots.map(root => resolve(root));
+  const allowedRoots = [...new Set([...roots, ...roots.map(root => realpathSync(root))])];
+  const trustedRoot = [...roots]
+    .sort((left, right) => right.length - left.length)
+    .find(root => ledgerPath.startsWith(`${root}${sep}`));
+  must(trustedRoot, 'telemetry ledger must stay inside a trusted root');
+  const trustedLedgerPath = trustedRunnerFile(ledgerPath, { runnerTemp: trustedRoot });
   const event = JSON.parse(
     readBoundedRegularText(eventPath, {
       label: 'Telemetry event input',
       maxBytes: 128 * 1024,
-      allowedRoots: roots,
+      allowedRoots,
     })
   );
   let existingText = '';
-  if (existsSync(ledgerPath)) {
-    must(
-      lstatSync(ledgerPath).isFile() && !lstatSync(ledgerPath).isSymbolicLink(),
-      'telemetry ledger is unsafe'
-    );
-    existingText = readBoundedRegularText(ledgerPath, {
+  if (existsSync(trustedLedgerPath)) {
+    const ledgerStat = lstatSync(trustedLedgerPath);
+    must(ledgerStat.isFile() && !ledgerStat.isSymbolicLink(), 'telemetry ledger is unsafe');
+    existingText = readBoundedRegularText(trustedLedgerPath, {
       label: 'Telemetry ledger',
       maxBytes: 16 * 1024 * 1024,
-      allowedRoots: roots,
+      allowedRoots,
     });
   }
   const descriptor = openSync(
-    ledgerPath,
+    trustedLedgerPath,
     constants.O_WRONLY | constants.O_APPEND | constants.O_CREAT | constants.O_NOFOLLOW,
     0o600
   );

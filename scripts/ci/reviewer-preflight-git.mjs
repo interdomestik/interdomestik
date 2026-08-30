@@ -4,11 +4,19 @@ import fs from 'node:fs';
 const GIT_BIN = '/usr/bin/git';
 const SAFE_EXEC_ENV = Object.freeze({ PATH: '/usr/bin:/bin:/usr/sbin:/sbin' });
 
+function compareText(left, right) {
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
+}
+
 function git(args) {
   return execFileSync(GIT_BIN, args, {
     encoding: 'utf8',
     env: SAFE_EXEC_ENV,
+    maxBuffer: 8 * 1024 * 1024,
     stdio: ['ignore', 'pipe', 'pipe'],
+    timeout: 30_000,
   }).trim();
 }
 
@@ -45,7 +53,7 @@ export function changedFiles(explicitFiles) {
   for (const diff of diffs) {
     for (const file of diff.split('\n')) if (file.trim()) files.add(file.trim());
   }
-  return [...files].sort((left, right) => (left < right ? -1 : left > right ? 1 : 0));
+  return [...files].sort(compareText);
 }
 
 function diffAddedLines(diff) {

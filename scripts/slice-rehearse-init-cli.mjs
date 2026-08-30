@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
-import { existsSync, lstatSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, resolve, sep } from 'node:path';
+import { resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { protectedMain } from './lean-current-authority-git.mjs';
+import { trustedRunnerFile } from './ci/trusted-runner-file.mjs';
 import { resolveRepositoryAuthority } from './lean-current-authority.mjs';
 import * as canonical from './slice-rehearse-canonical.mjs';
 import { resolveAtAuthorityBoundary } from './slice-rehearse-authority-boundary.mjs';
@@ -105,13 +106,13 @@ function parseArgs(argv) {
 
 function writeManifestOutput(outputPath, content, cwd) {
   const target = resolve(cwd, outputPath);
-  const roots = [cwd, tmpdir(), '/private/tmp'].map(root => realpathSync(root));
-  const parent = realpathSync(dirname(target));
-  canonical.must(
-    roots.some(root => parent === root || parent.startsWith(`${root}${sep}`)),
-    'manifest output must stay inside a trusted root'
-  );
-  writeFileSync(target, content, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
+  const roots = [cwd, tmpdir(), '/private/tmp'].map(root => resolve(root));
+  const trustedRoot = roots
+    .sort((left, right) => right.length - left.length)
+    .find(root => target.startsWith(`${root}${sep}`));
+  canonical.must(trustedRoot, 'manifest output must stay inside a trusted root');
+  const trustedPath = trustedRunnerFile(target, { runnerTemp: trustedRoot });
+  writeFileSync(trustedPath, content, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
 }
 
 export function runManifestInitializer({

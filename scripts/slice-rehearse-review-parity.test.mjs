@@ -6,6 +6,7 @@ import {
   inspectAccessibilityContracts,
   reviewDashboardLocaleParity,
 } from './slice-rehearse-review-parity.mjs';
+import { detectReviewPaths } from './slice-rehearse-review-paths.mjs';
 
 function portal(title) {
   return {
@@ -77,5 +78,24 @@ test('catches predictable accessibility contract failures locally', () => {
   assert.match(findings.join('\n'), /semantic heading/u);
   assert.match(findings.join('\n'), /noopener/u);
   assert.match(findings.join('\n'), /accessible name/u);
-  assert.deepEqual(inspectAccessibilityContracts('<h2>Title</h2><button aria-label="Save" />'), []);
+  assert.deepEqual(
+    inspectAccessibilityContracts(
+      '<h2>Title</h2><button aria-label="Save" /><span id="save">Save</span><button aria-labelledby="save"></button>'
+    ),
+    []
+  );
+});
+
+test('review path detection constrains git environment and runtime', () => {
+  const calls = [];
+  detectReviewPaths('/repo', (binary, args, options) => {
+    calls.push({ binary, args, options });
+    return { status: 0, stdout: '' };
+  });
+  assert.equal(calls.length, 4);
+  for (const call of calls) {
+    assert.equal(call.binary, '/usr/bin/git');
+    assert.deepEqual(call.options.env, { PATH: '/usr/bin:/bin:/usr/sbin:/sbin' });
+    assert.equal(call.options.timeout, 30_000);
+  }
 });
