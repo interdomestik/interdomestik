@@ -34,7 +34,7 @@
         "actions": {
           "label": "Veprimet",
           "loading": "Po ngarkohet",
-          "empty": "Nuk ka veprim",
+          "empty": "Nuk ka veprime",
           "error": "E padisponueshme"
         },
         "updates": {

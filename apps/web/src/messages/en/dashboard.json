@@ -34,7 +34,7 @@
         "actions": {
           "label": "Actions",
           "loading": "Loading",
-          "empty": "No action",
+          "empty": "No actions",
           "error": "Unavailable"
         },
         "updates": {
@@ -50,7 +50,7 @@
         "trialing": "Start a case",
         "active_in_grace": "Continue — payment due",
         "grace_expired": "Draft — grace period ended",
-        "scheduled_cancel": "Start case — membership ending",
+        "scheduled_cancel": "Start a case — membership ending",
         "canceled": "Draft — membership canceled"
       }
     },

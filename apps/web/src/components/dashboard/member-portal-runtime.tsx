@@ -77,7 +77,7 @@ export async function PortalUpdatesRegion({ copy, locale, promise }: UpdatesBoun
     summary.occurredAt
       ? [
           {
-            dateLabel: new Date(summary.occurredAt).toLocaleDateString(locale),
+            dateLabel: new Date(summary.occurredAt).toLocaleDateString(locale, { timeZone: 'UTC' }),
             dateTime: summary.occurredAt,
             id: summary.id,
             stateLabel: copy.status(summary.status),
