@@ -14,6 +14,46 @@
       "empty_title": "No claims yet",
       "empty_body": "When you submit your first claim, it will appear here."
     },
+    "portal": {
+      "title": "My cases",
+      "description": "Cases, actions and updates.",
+      "disclaimer": "Guidance only; outcomes are not promised.",
+      "navigation": {
+        "label": "Shortcuts",
+        "help_now": "Help Now",
+        "documents": "Documents",
+        "membership": "Membership"
+      },
+      "regions": {
+        "case": {
+          "label": "Case",
+          "loading": "Loading",
+          "empty": "No cases",
+          "error": "Unavailable"
+        },
+        "actions": {
+          "label": "Actions",
+          "loading": "Loading",
+          "empty": "No actions",
+          "error": "Unavailable"
+        },
+        "updates": {
+          "label": "Recent updates",
+          "loading": "Loading",
+          "empty": "No updates",
+          "error": "Unavailable"
+        }
+      },
+      "actions": {
+        "none": "Draft — inactive",
+        "active": "Start a case",
+        "trialing": "Start a case",
+        "active_in_grace": "Continue — payment due",
+        "grace_expired": "Draft — grace period ended",
+        "scheduled_cancel": "Start a case — membership ending",
+        "canceled": "Draft — membership canceled"
+      }
+    },
     "activeClaims": "Active Claims",
     "activeClaimsDesc": "Your ongoing disputes",
     "resolvedClaims": "Resolved Claims",

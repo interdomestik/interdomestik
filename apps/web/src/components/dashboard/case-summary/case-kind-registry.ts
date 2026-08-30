@@ -1,12 +1,22 @@
-import type { CaseKind } from '@interdomestik/domain-member';
-import type { ComponentType } from 'react';
+import { createElement, type ComponentType, type ReactElement } from 'react';
 
-import { AccidentCaseSummary, type AccidentCaseSummaryProps } from './accident-case-summary';
+import type { CaseSummary, CaseSummaryKind } from '@interdomestik/domain-member';
 
-export type CaseKindDescriptor = {
-  component: ComponentType<AccidentCaseSummaryProps>;
-};
+import {
+  type CaseSummaryLabels,
+  CaseSummaryCard,
+  type CaseSummaryCardProps,
+} from './accident-case-summary';
+import { GenericCaseSummary } from './generic-case-summary';
+
+export type CaseKindDescriptor = { component: ComponentType<CaseSummaryCardProps> };
 
 export const caseKindRegistry = {
-  accident: { component: AccidentCaseSummary },
-} satisfies Record<CaseKind, CaseKindDescriptor>;
+  accident: { component: CaseSummaryCard },
+  generic: { component: GenericCaseSummary },
+} satisfies Record<CaseSummaryKind, CaseKindDescriptor>;
+
+export function renderCaseSummary(summary: CaseSummary, labels: CaseSummaryLabels): ReactElement {
+  const Component = caseKindRegistry[summary.caseKind].component;
+  return createElement(Component, { labels, summary });
+}
