@@ -14,6 +14,7 @@ const baselineBudgetBytes =
   budgetBytes.byteLength - budget.allocations[0].pathBytesDelta['scripts/repo-size-budget.json'];
 const projectionPaths = ['docs/plans/current-program.md', 'docs/plans/current-tracker.md'];
 const T117B_PRODUCT_MAIN = '124ec51cefd022dd7103a4f958cb9ebef5427dad';
+const hasStop = (proposal, code) => proposal.authorityStops.some(item => item.code === code);
 function closeoutManifest(overrides = {}) {
   const writerPaths = overrides.writerPaths ?? projectionPaths;
   const pathPlans =
@@ -150,8 +151,13 @@ test('rehearses a real T117B-DATA projection closeout without capacity mutation'
   assert.equal(proposal.allocation.id, 't117b-data-projection');
   assert.equal(proposal.allocation.mode, 'projection-existing');
   assert.deepEqual(proposal.allocation.writerPaths, projectionPaths);
+  assert.deepEqual(Object.keys(proposal.projectionPathCaps), projectionPaths);
   const report = rehearse(manifest, facts);
   assert.deepEqual(report.authorityStops, []);
+  assert.deepEqual(
+    report.operationalEnvelope.capacity.projectionPathCaps,
+    proposal.projectionPathCaps
+  );
   assert.deepEqual(report.capacity.budgetArtifact, {
     content: budgetBytes.toString('utf8'),
     sha256: sha256(budgetBytes),
@@ -161,9 +167,7 @@ test('rehearses a real T117B-DATA projection closeout without capacity mutation'
   plannedFacts.writerDeltas['docs/plans/current-program.md'].bytes = 0;
   plannedFacts.writerDeltas['docs/plans/current-tracker.md'].bytes = 0;
   const overCapacity = rehearse(manifest, plannedFacts);
-  assert.ok(
-    overCapacity.authorityStops.some(item => item.code === 'capacity:global-tracked-bytes')
-  );
+  assert.ok(hasStop(overCapacity, 'capacity:global-tracked-bytes'));
   assert.equal(overCapacity.operationalEnvelope, null);
 });
 test('real mixed closeout derives one distinct prerequisite repair allocation', () => {
@@ -241,19 +245,13 @@ test('projection exemption fails closed on missing ownership or path headroom', 
   const facts = repository(manifest);
   facts.writerDeltas['docs/plans/current-program.md'].bytes = 4_273;
   const overCap = capacity(manifest, facts);
-  assert.ok(
-    overCap.authorityStops.some(
-      item => item.code === 'capacity:projection-current-path-insufficient'
-    )
-  );
+  assert.ok(hasStop(overCap, 'capacity:projection-current-path-insufficient'));
   const ownerlessBudget = structuredClone(budget);
   const owner = ownerlessBudget.allocations.find(item => item.id === 't116-case-summary');
   owner.writerPaths = owner.writerPaths.filter(path => path !== 'docs/plans/current-program.md');
   delete owner.maxPathBytesDelta['docs/plans/current-program.md'];
   const ownerless = capacity(manifest, facts, ownerlessBudget);
-  assert.ok(
-    ownerless.authorityStops.some(item => item.code === 'capacity:projection-writer-unowned')
-  );
+  assert.ok(hasStop(ownerless, 'capacity:projection-writer-unowned'));
 });
 test('projection reuse checks grouped owner byte and category headroom', () => {
   const manifest = closeoutManifest();
@@ -276,25 +274,13 @@ test('projection reuse checks grouped owner byte and category headroom', () => {
   owner.maxTrackedBytesDelta = 150;
   owner.maxCategoryBytesDelta = categories;
   const proposal = capacity(manifest, facts, constrainedBudget);
-  assert.ok(
-    proposal.authorityStops.some(
-      item => item.code === 'capacity:projection-owner-tracked-bytes-insufficient'
-    )
-  );
-  assert.ok(
-    proposal.authorityStops.some(
-      item => item.code === 'capacity:projection-owner-category-insufficient'
-    )
-  );
+  assert.ok(hasStop(proposal, 'capacity:projection-owner-tracked-bytes-insufficient'));
+  assert.ok(hasStop(proposal, 'capacity:projection-owner-category-insufficient'));
   const createPlan = closeoutManifest({
     pathPlans: manifest.pathPlans.map(plan =>
       plan.path === 'docs/plans/current-program.md' ? { ...plan, change: 'create' } : plan
     ),
   });
   const fileProposal = capacity(createPlan, repository(createPlan));
-  assert.ok(
-    fileProposal.authorityStops.some(
-      item => item.code === 'capacity:projection-owner-tracked-files-insufficient'
-    )
-  );
+  assert.ok(hasStop(fileProposal, 'capacity:projection-owner-tracked-files-insufficient'));
 });

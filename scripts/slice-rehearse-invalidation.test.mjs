@@ -7,6 +7,7 @@ import { deriveEvidenceIdentityKey } from './slice-rehearse-evidence.mjs';
 import {
   evidenceAfterPlannedOperations,
   evaluateRehearsal,
+  requiredFullGateDeficit,
   requiredEvidenceProofDeficit,
 } from './slice-rehearse-evaluator.mjs';
 import { budgetCategory } from './repo-size-budget-sync-core.mjs';
@@ -16,7 +17,7 @@ const budget = JSON.parse(budgetBytes);
 const allocation = budget.allocations.find(item => item.id === 'harness-v2-efficiency');
 const sha = character => character.repeat(40);
 
-test('full evaluation invalidates reusable proof for a granted identity-changing operation', () => {
+test('full evaluation invalidates reusable proof for a pending identity-changing operation', () => {
   const writerPaths = [...allocation.writerPaths].sort();
   const proof = {
     commands: ['node --test scripts/slice-rehearse-invalidation.test.mjs'],
@@ -37,7 +38,7 @@ test('full evaluation invalidates reusable proof for a granted identity-changing
       change: ['.github/workflows/ci.yml', 'package.json'].includes(path) ? 'modify' : 'create',
       category: budgetCategory(path),
       maxBytesDelta: allocation.maxPathBytesDelta[path],
-      maxLines: path.endsWith('.test.mjs') ? 300 : path.endsWith('.md') ? 1000 : 300,
+      maxLines: path.endsWith('.test.mjs') ? 300 : path.endsWith('.md') ? 1000 : 200,
     })),
     routineOperations: ['fresh_worktree_patch_replay', 'rerun_invalidated_proof'],
     proof,
@@ -90,7 +91,7 @@ test('full evaluation invalidates reusable proof for a granted identity-changing
       baseIsAncestor: true,
       branch: 'codex/harness-v2',
       committedChangedPaths: [],
-      protectedMainAdvancedPaths: [],
+      protectedMainAdvancedPaths: ['README.md'],
       dirtyPaths: [],
       tracked: {
         files: budget.maxTrackedFiles - 1,
@@ -126,7 +127,7 @@ test('full evaluation invalidates reusable proof for a granted identity-changing
   assert.ok(report.deficits.some(item => item.code === 'evidence:heavy-proof-required'));
 });
 
-test('identity-changing operations retain current reuse as informational evidence only', () => {
+test('only still-pending deficit operations invalidate current reusable proof', () => {
   const current = {
     decisions: [{ lane: 'pr-e2e', reusable: true }],
     reusableLanes: ['pr-e2e'],
@@ -143,12 +144,16 @@ test('identity-changing operations retain current reuse as informational evidenc
     coveredBy: 'rerun_invalidated_proof',
   });
 
-  const explicitlyPlanned = evidenceAfterPlannedOperations(
-    current,
-    [],
-    ['fresh_worktree_patch_replay']
-  );
-  assert.deepEqual(explicitlyPlanned.missingLanes, ['pr-e2e']);
+  const explicitlyPlanned = evidenceAfterPlannedOperations(current, []);
+  assert.deepEqual(explicitlyPlanned.missingLanes, []);
+
+  const prerequisite = evidenceAfterPlannedOperations(current, [
+    {
+      code: 'topology:repair-before-closeout',
+      coveredBy: 'sequence_prerequisite_before_projection',
+    },
+  ]);
+  assert.deepEqual(prerequisite.missingLanes, ['pr-e2e']);
 });
 
 test('identity-preserving full-gate admission does not invalidate exact-head proof', () => {
@@ -162,4 +167,13 @@ test('identity-preserving full-gate admission does not invalidate exact-head pro
   ]);
   assert.deepEqual(final.missingLanes, []);
   assert.equal(requiredEvidenceProofDeficit(final), null);
+});
+
+test('ready-state synchronize requires one-shot exact-head full-gate admission', () => {
+  assert.deepEqual(requiredFullGateDeficit(true, ['docs/example.md']), {
+    code: 'proof:full-gate',
+    coveredBy: 'apply_full_gate_label',
+  });
+  assert.equal(requiredFullGateDeficit(true, ['.github/workflows/ci.yml']), null);
+  assert.equal(requiredFullGateDeficit(false, ['docs/example.md']), null);
 });

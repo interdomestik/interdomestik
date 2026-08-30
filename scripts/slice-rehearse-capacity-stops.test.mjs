@@ -188,7 +188,7 @@ test('exact protected blob bytes and digest bind an unchanged projection proposa
   assert.equal(result.sha256, sha256(protectedText));
 });
 
-test('typed capacity stops aggregate with independent proof deficits', () => {
+test('typed capacity stops aggregate with exact-head ready-state admission', () => {
   const value = manifest();
   value.writerPaths = ['docs/plans/current-program.md'];
   value.pathPlans = [

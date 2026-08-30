@@ -28,6 +28,7 @@ function recordProjectionPath(context, filePath) {
   ownerAllocations[filePath] = owner;
   const allocation = budget.allocations.find(item => item.id === owner);
   const limit = pathLimit(allocation, filePath);
+  context.projectionPathCaps[filePath] = limit;
   const plan = context.plans.get(filePath);
   const facts = context.writerDeltas[filePath];
   const ownerFacts = capacityOwnerDeltas[filePath];
@@ -56,6 +57,7 @@ function recordProjectionPath(context, filePath) {
   usage.categories[plan.category] = (usage.categories[plan.category] ?? 0) + plan.maxBytesDelta;
   context.usageByOwner.set(owner, usage);
   const remaining = Math.max(0, plan.maxBytesDelta - facts.bytes);
+  context.plannedHeadroom.paths[filePath] = remaining;
   context.plannedHeadroom.bytes += remaining;
   context.plannedHeadroom.files += Number(plan.change === 'create' && facts.files === 0);
   context.plannedHeadroom.categories[plan.category] =
@@ -111,10 +113,11 @@ export function analyzeProjectionReuse({
 }) {
   const authorityStops = [];
   const ownerAllocations = {};
+  const projectionPathCaps = {};
   const usageByOwner = new Map();
   const plans = new Map(manifest.pathPlans.map(plan => [plan.path, plan]));
   const projectionPaths = new Set(manifest.topology.projectionPaths);
-  const plannedHeadroom = { bytes: 0, files: 0, categories: {} };
+  const plannedHeadroom = { bytes: 0, files: 0, categories: {}, paths: {} };
   const context = {
     authorityStops,
     budget,
@@ -124,6 +127,7 @@ export function analyzeProjectionReuse({
     owners,
     plans,
     plannedHeadroom,
+    projectionPathCaps,
     projectionPaths,
     usageByOwner,
     writerDeltas,
@@ -150,5 +154,5 @@ export function analyzeProjectionReuse({
       unexpectedPaths,
     });
   }
-  return { authorityStops, ownerAllocations, plannedHeadroom };
+  return { authorityStops, ownerAllocations, plannedHeadroom, projectionPathCaps };
 }

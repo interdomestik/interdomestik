@@ -9,12 +9,27 @@ import { canonicalJson, sha256 } from './slice-rehearse-core.mjs';
 import { deriveEvidenceIdentityKey, evaluateEvidenceReceipts } from './slice-rehearse-evidence.mjs';
 import { gitBytes } from './slice-rehearse-git-facts.mjs';
 import { collectVerifiedEvidenceKeys } from './slice-rehearse-github-evidence.mjs';
+import { derivePrE2eSubstrateDigest } from './slice-rehearse-repository-facts.mjs';
 
 const headSha = 'a'.repeat(40);
 const treeSha = 'b'.repeat(40);
 const protectedMainSha = 'c'.repeat(40);
-const workflow = Buffer.from('name: protected PR E2E\n');
+const workflow = Buffer.from(`name: protected PR E2E
+jobs:
+  e2e-runner:
+    name: PR E2E Runner
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+    steps:
+      - uses: ./.github/actions/setup
+  e2e:
+    name: e2e
+`);
+const setupAction = Buffer.from('name: setup\nruns: { using: composite, steps: [] }\n');
 const workflowDigest = sha256(workflow);
+const substrateDigest = derivePrE2eSubstrateDigest(workflow, setupAction);
 const commands = ['pnpm e2e:gate:pr', 'pnpm --filter @interdomestik/web run e2e:smoke'];
 const writerPaths = ['scripts/example.mjs'];
 const now = Date.parse('2026-08-29T12:00:00.000Z');
@@ -49,7 +64,8 @@ function run(overrides = {}) {
         head: { sha: headSha, repo: repository },
       },
     ],
-    completed_at: '2026-08-29T11:45:00.000Z',
+    completed_at: null,
+    updated_at: '2026-08-29T11:45:00.000Z',
     ...overrides,
   };
 }
@@ -85,10 +101,11 @@ function collect(overrides = {}) {
     headSha,
     treeSha,
     writerPaths,
-    proof: { commands, workflowDigest, substrateDigest: workflowDigest },
+    proof: { commands, workflowDigest, substrateDigest },
     evidenceReceipts: [{ lane: 'pr-e2e' }],
     now,
-    readGitBytes: () => workflow,
+    readGitBytes: (_repository, args) =>
+      args[1].endsWith(':.github/actions/setup/action.yml') ? setupAction : workflow,
     readGithub: githubReader(),
     ...overrides,
   });
@@ -106,7 +123,7 @@ test('collects an exact protected-workflow PR E2E receipt key from independent G
           treeSha,
           commandDigest: sha256(canonicalJson([...commands].sort())),
           workflowDigest,
-          substrateDigest: workflowDigest,
+          substrateDigest,
           writerMapDigest: sha256(canonicalJson(writerPaths)),
         }),
         checkId: 88,
@@ -121,7 +138,7 @@ test('collects an exact protected-workflow PR E2E receipt key from independent G
     treeSha,
     commandDigest: sha256(canonicalJson([...commands].sort())),
     workflowDigest,
-    substrateDigest: workflowDigest,
+    substrateDigest,
     writerMapDigest: sha256(canonicalJson(writerPaths)),
   };
   const decision = evaluateEvidenceReceipts({
@@ -151,7 +168,7 @@ test('canonicalizes command and writer ordering before deriving reusable evidenc
     proof: {
       commands: reversedCommands,
       workflowDigest,
-      substrateDigest: workflowDigest,
+      substrateDigest,
     },
     writerPaths: reversedWriters,
   });
@@ -163,24 +180,19 @@ test('canonicalizes command and writer ordering before deriving reusable evidenc
       treeSha,
       commandDigest: sha256(canonicalJson([...commands].sort())),
       workflowDigest,
-      substrateDigest: workflowDigest,
+      substrateDigest,
       writerMapDigest: sha256(canonicalJson(canonicalWriters)),
     })
   );
 });
 
-test('rejects stale, mismatched, ambiguous, and unsuccessful evidence', () => {
+test('rejects stale, future, missing, mismatched, ambiguous, and unsuccessful evidence', () => {
+  for (const updated_at of ['2026-08-27T00:00:00.000Z', '2026-08-29T12:06:00.000Z', null]) {
+    assert.deepEqual(collect({ readGithub: githubReader({ runs: [run({ updated_at })] }) }), {});
+  }
   assert.deepEqual(
     collect({
-      readGithub: githubReader({
-        runs: [run({ completed_at: '2026-08-27T00:00:00.000Z' })],
-      }),
-    }),
-    {}
-  );
-  assert.deepEqual(
-    collect({
-      proof: { commands: ['pnpm e2e:gate:pr'], workflowDigest, substrateDigest: workflowDigest },
+      proof: { commands: ['pnpm e2e:gate:pr'], workflowDigest, substrateDigest },
     }),
     {}
   );
@@ -206,7 +218,7 @@ test('rejects stale, mismatched, ambiguous, and unsuccessful evidence', () => {
 test('rejects workflow or substrate digests not anchored to protected main', () => {
   assert.deepEqual(
     collect({
-      proof: { commands, workflowDigest: 'd'.repeat(64), substrateDigest: workflowDigest },
+      proof: { commands, workflowDigest: 'd'.repeat(64), substrateDigest },
     }),
     {}
   );
@@ -218,13 +230,25 @@ test('rejects workflow or substrate digests not anchored to protected main', () 
   );
 });
 
-test('rejects reuse when the PR head executed a different workflow blob', () => {
+test('binds workflow and runner substrate independently at protected main and head', () => {
   const changedHeadWorkflow = Buffer.from('name: weakened PR E2E\n');
   assert.deepEqual(
     collect({
       writerPaths: [...writerPaths, '.github/workflows/e2e-pr.yml'],
       readGitBytes: (_repository, args) =>
-        args[1].startsWith(`${headSha}:`) ? changedHeadWorkflow : workflow,
+        args[1].endsWith(':.github/actions/setup/action.yml')
+          ? setupAction
+          : args[1].startsWith(`${headSha}:`)
+            ? changedHeadWorkflow
+            : workflow,
+    }),
+    {}
+  );
+  const changedSetup = Buffer.from('name: changed setup\n');
+  assert.deepEqual(
+    collect({
+      readGitBytes: (_repository, args) =>
+        args[1].endsWith(':.github/actions/setup/action.yml') ? changedSetup : workflow,
     }),
     {}
   );

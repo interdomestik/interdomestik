@@ -10,14 +10,14 @@ import {
 } from './slice-rehearse-canonical.mjs';
 import { gitBytes } from './slice-rehearse-git-facts.mjs';
 import {
+  derivePrE2eSubstrateDigest,
   exactGitHubRepository,
   exactPullRequest,
   exactSuccessfulRunner,
   exactTimestamp,
-  readGitBlobDigest,
 } from './slice-rehearse-repository-facts.mjs';
-
 const WORKFLOW_PATH = '.github/workflows/e2e-pr.yml';
+const SETUP_ACTION_PATH = '.github/actions/setup/action.yml';
 const RUNNER_NAME = 'PR E2E Runner';
 const CANONICAL_ORIGIN = `https://github.com/${ORIGIN}.git`;
 const CANONICAL_COMMANDS = [
@@ -30,10 +30,9 @@ const MAX_JOBS = 100;
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const FUTURE_TOLERANCE_MS = 5 * 60 * 1000;
 const SHA40 = /^[0-9a-f]{40}$/u;
-
 function exactRun(run, pull, headSha, now) {
-  const completedAt = exactTimestamp(run?.completed_at);
-  const age = completedAt === null ? Number.POSITIVE_INFINITY : now - completedAt;
+  const updatedAt = exactTimestamp(run?.updated_at);
+  const age = updatedAt === null ? Number.POSITIVE_INFINITY : now - updatedAt;
   const association = run?.pull_requests?.[0];
   return (
     Number.isSafeInteger(run?.id) &&
@@ -58,6 +57,16 @@ function exactRun(run, pull, headSha, now) {
     age >= -FUTURE_TOLERANCE_MS &&
     age <= MAX_AGE_MS
   );
+}
+
+function readBlob(repository, commitSha, filePath, readGitBytes) {
+  must(SHA40.test(commitSha), 'Git blob commit SHA is invalid');
+  const bytes = readGitBytes(repository, ['show', `${commitSha}:${filePath}`]);
+  must(
+    Buffer.isBuffer(bytes) && bytes.byteLength > 0 && bytes.byteLength <= MAX_WORKFLOW_BYTES,
+    'Git blob evidence is invalid'
+  );
+  return bytes;
 }
 
 export function collectVerifiedEvidenceKeys({
@@ -96,24 +105,19 @@ export function collectVerifiedEvidenceKeys({
       JSON.stringify(canonicalCommands) === JSON.stringify(CANONICAL_COMMANDS),
       'PR E2E command contract differs'
     );
-    const protectedWorkflowDigest = readGitBlobDigest(
-      repository,
-      protectedMainSha,
-      WORKFLOW_PATH,
-      MAX_WORKFLOW_BYTES,
-      readGitBytes
-    );
-    const headWorkflowDigest = readGitBlobDigest(
-      repository,
-      headSha,
-      WORKFLOW_PATH,
-      MAX_WORKFLOW_BYTES,
-      readGitBytes
-    );
+    const protectedWorkflow = readBlob(repository, protectedMainSha, WORKFLOW_PATH, readGitBytes);
+    const headWorkflow = readBlob(repository, headSha, WORKFLOW_PATH, readGitBytes);
+    const protectedSetup = readBlob(repository, protectedMainSha, SETUP_ACTION_PATH, readGitBytes);
+    const headSetup = readBlob(repository, headSha, SETUP_ACTION_PATH, readGitBytes);
+    const protectedWorkflowDigest = sha256(protectedWorkflow);
+    const headWorkflowDigest = sha256(headWorkflow);
+    const protectedSubstrateDigest = derivePrE2eSubstrateDigest(protectedWorkflow, protectedSetup);
+    const headSubstrateDigest = derivePrE2eSubstrateDigest(headWorkflow, headSetup);
     must(
       proof.workflowDigest === protectedWorkflowDigest &&
-        proof.substrateDigest === protectedWorkflowDigest &&
-        headWorkflowDigest === protectedWorkflowDigest,
+        proof.substrateDigest === protectedSubstrateDigest &&
+        headWorkflowDigest === protectedWorkflowDigest &&
+        headSubstrateDigest === protectedSubstrateDigest,
       'PR E2E workflow identity differs'
     );
     const pulls = readGithub(

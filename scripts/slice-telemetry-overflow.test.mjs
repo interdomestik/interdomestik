@@ -106,3 +106,31 @@ test('separates external review latency and legitimate semantic reapproval from 
   assert.equal(summary.totals.reviewElapsedMs, 900);
   assert.equal(summary.governanceRatio, 0.1);
 });
+
+test('counts duplicate heavy proof and merge coordination in governance targets', () => {
+  const key = 'a'.repeat(64);
+  const summary = summarizeTelemetry([
+    event({ phase: 'proof', evidenceKey: key }),
+    event({ phase: 'proof', evidenceKey: key, elapsedMs: 1, computeMs: 1 }),
+    event({ phase: 'merge', elapsedMs: 100, waitMs: 100, approvals: 1 }),
+  ]);
+  assert.deepEqual(summary.slices[0].evidenceKeys, [key, key]);
+  assert.equal(summary.slices[0].duplicateHeavyProofs, 1);
+  assert.equal(summary.totals.duplicateHeavyProofs, 1);
+  assert.equal(summary.slices[0].governanceElapsedMs, 100);
+  assert.equal(summary.targets.noDuplicateHeavyProof, false);
+  assert.equal(summary.targets.allPassed, false);
+});
+
+test('counts the same heavy proof identity once across separate slices', () => {
+  const key = 'b'.repeat(64);
+  const summary = summarizeTelemetry([
+    event({ sliceId: 'T-101', phase: 'proof', evidenceKey: key }),
+    event({ sliceId: 'T-102', phase: 'proof', evidenceKey: key, approvals: 1 }),
+  ]);
+  assert.equal(summary.slices[0].duplicateHeavyProofs, 0);
+  assert.equal(summary.slices[1].duplicateHeavyProofs, 0);
+  assert.equal(summary.totals.duplicateHeavyProofs, 1);
+  assert.equal(summary.targets.noDuplicateHeavyProof, false);
+  assert.equal(summary.targets.allPassed, false);
+});

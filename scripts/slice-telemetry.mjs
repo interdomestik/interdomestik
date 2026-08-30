@@ -138,7 +138,7 @@ export function summarizeTelemetry(inputEvents) {
   must(Array.isArray(inputEvents) && inputEvents.length > 0, 'telemetry events must not be empty');
   const events = inputEvents
     .map(validateTelemetryEvent)
-    .sort((left, right) => canonicalJson(left).localeCompare(canonicalJson(right)));
+    .sort((left, right) => compareText(canonicalJson(left), canonicalJson(right)));
   const eventIdentities = events.map(canonicalJson);
   must(new Set(eventIdentities).size === events.length, 'telemetry events must be unique');
   const bySlice = new Map();

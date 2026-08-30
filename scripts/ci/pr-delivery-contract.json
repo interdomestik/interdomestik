@@ -158,6 +158,7 @@
     "copilot",
     "copilot-pull-request-reviewer",
     "github-advanced-security",
+    "github-code-quality",
     "openai-codex",
     "sonarqubecloud",
     "vercel"

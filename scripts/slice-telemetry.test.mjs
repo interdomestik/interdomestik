@@ -173,7 +173,6 @@ test('summarizes three slices deterministically and evaluates all efficiency tar
       modelCostUsd: 0.25,
     }),
   ];
-
   const summary = summarizeTelemetry(events);
   assert.deepEqual(summary.totals, {
     elapsedMs: 3_000,
@@ -186,6 +185,7 @@ test('summarizes three slices deterministically and evaluates all efficiency tar
     modelCostUsd: null,
     governanceElapsedMs: 300,
     reviewElapsedMs: 0,
+    duplicateHeavyProofs: 0,
   });
   assert.equal(summary.governanceRatio, 0.1);
   assert.equal(summary.sliceCount, 3);
@@ -195,11 +195,11 @@ test('summarizes three slices deterministically and evaluates all efficiency tar
     atMostOneReFreezePerSlice: true,
     zeroOperationalMicroApprovals: true,
     governanceAtMost25Percent: true,
+    noDuplicateHeavyProof: true,
     allPassed: true,
   });
   assert.equal(canonicalJson(summary), canonicalJson(summarizeTelemetry([...events].reverse())));
 });
-
 test('rejects duplicate records and reports unknown model cost honestly', () => {
   const unknown = event({ sliceId: 'T-104', approvals: 1, modelCostUsd: null });
   assert.throws(() => summarizeTelemetry([unknown, unknown]), /unique/u);
@@ -212,7 +212,6 @@ test('rejects duplicate records and reports unknown model cost honestly', () => 
   assert.equal(known.slices[0].modelCostUsd, 0.75);
   assert.equal(known.totals.modelCostUsd, 0.75);
 });
-
 test('fails target verdicts without hiding the measured totals', () => {
   const summary = summarizeTelemetry([
     event({
@@ -241,6 +240,7 @@ test('fails target verdicts without hiding the measured totals', () => {
     atMostOneReFreezePerSlice: false,
     zeroOperationalMicroApprovals: false,
     governanceAtMost25Percent: false,
+    noDuplicateHeavyProof: true,
     allPassed: false,
   });
 });

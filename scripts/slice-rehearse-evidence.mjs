@@ -143,7 +143,7 @@ export function evaluateEvidenceReceipts({
   }
   const seenLanes = new Set();
   const orderedReceipts = [...receipts].sort((left, right) =>
-    canonicalJson(left).localeCompare(canonicalJson(right))
+    compareText(canonicalJson(left), canonicalJson(right))
   );
   const decisions = orderedReceipts.map(receipt => {
     let key;

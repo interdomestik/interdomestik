@@ -17,6 +17,12 @@ import {
 import { normalizeRoutineOperations } from './slice-rehearse-operation-schema.mjs';
 
 const CANONICAL_ORIGIN = `https://github.com/${ORIGIN}`;
+const SAFE_GIT_ENV = Object.freeze({
+  GIT_OPTIONAL_LOCKS: '0',
+  GIT_CONFIG_COUNT: '1',
+  GIT_CONFIG_KEY_0: 'core.fsmonitor',
+  GIT_CONFIG_VALUE_0: 'false',
+});
 export { normalizeOperationFacts } from './slice-rehearse-operation-facts-schema.mjs';
 
 function must(condition, message) {
@@ -52,6 +58,21 @@ function readAuthorityFacts(repository) {
       ? sha256(canonicalJson([...writerPaths].sort(compareText)))
       : null,
   };
+}
+
+function withSafeGitEnvironment(readAuthority, repository) {
+  const previous = Object.fromEntries(
+    Object.keys(SAFE_GIT_ENV).map(key => [key, process.env[key]])
+  );
+  Object.assign(process.env, SAFE_GIT_ENV);
+  try {
+    return readAuthority(repository);
+  } finally {
+    for (const [key, value] of Object.entries(previous)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
 }
 
 export function collectOperationFacts({
@@ -133,7 +154,7 @@ export function collectOperationFacts({
     let authority = null;
     let taskOwnedArtifacts = {};
     if (expected.needsAuthority) {
-      const live = readAuthority(repository);
+      const live = withSafeGitEnvironment(readAuthority, repository);
       authority = {
         activeSlice: live.activeSlice,
         approvedHeadSha: live.approvedHeadSha ?? null,

@@ -140,7 +140,7 @@ test('resolves one exact active PR and rejects zero-active, multiple, stale, or 
   }
 });
 
-test('normalization rejects unknown provider fields and cleanup never trusts a task-like path name', () => {
+test('normalization rejects unknown provider fields and cleanup distinguishes uninspectable paths', () => {
   const { facts } = collect();
   assert.throws(
     () => normalizeOperationFacts({ ...facts, token: 'secret' }, [deferredOperation()]),
@@ -165,5 +165,30 @@ test('normalization rejects unknown provider fields and cleanup never trusts a t
   assert.equal(cleanupFacts.taskOwnedArtifacts[cleanup.target.artifactPaths[0]].ownerTaskId, null);
   const rehearsal = resolveOperationalContracts([cleanup], { operationFacts: cleanupFacts });
   assert.equal(rehearsal.granted.length, 0);
-  assert.equal(rehearsal.rejected[0].reason, 'artifact-discard-unverified');
+  assert.equal(rehearsal.rejected[0].reason, 'artifact-uninspectable');
+});
+
+test('authority reads inherit hardened Git settings and restore the caller environment', () => {
+  const before = process.env.GIT_OPTIONAL_LOCKS;
+  const { facts } = collect({
+    authority: {
+      activeSlice: null,
+      approvedHeadSha: null,
+      runtimeAuthorized: false,
+      writerMapDigest: null,
+    },
+  });
+  assert.ok(facts);
+  assert.equal(process.env.GIT_OPTIONAL_LOCKS, before);
+  const guarded = collectOperationFacts({
+    repository: '/repo',
+    operations: [deferredOperation()],
+    readGithub: () => [],
+    readAuthority: () => {
+      assert.equal(process.env.GIT_OPTIONAL_LOCKS, '0');
+      assert.equal(process.env.GIT_CONFIG_KEY_0, 'core.fsmonitor');
+      return facts.authority;
+    },
+  });
+  assert.ok(guarded);
 });

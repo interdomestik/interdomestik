@@ -2,7 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { deriveOperationalEnvelope } from './slice-rehearse-envelope.mjs';
-import { canonicalJson, sha256 } from './slice-rehearse-canonical.mjs';
+import { canonicalJson, compareText, sha256 } from './slice-rehearse-canonical.mjs';
+
+test('canonical ordering uses locale-independent UTF-16 code units', () => {
+  assert.deepEqual(['ä', 'a', 'Z'].sort(compareText), ['Z', 'a', 'ä']);
+});
 
 test('canonical JSON is invariant to recursive object-key insertion order', () => {
   assert.equal(
@@ -79,4 +83,34 @@ test('an optional granted capacity rebind still binds the exact budget artifact'
     reportSha256: null,
   };
   assert.equal(deriveOperationalEnvelope(report).capacity.budgetArtifactSha256, sha256('abc'));
+});
+
+test('projection envelopes bind owners, path caps, and planned headroom', () => {
+  const report = {
+    sliceId: 'T117B-DATA',
+    authorityStops: [],
+    deficits: [],
+    repository: {
+      baseSha: 'a'.repeat(40),
+      origin: 'https://github.com/interdomestik/interdomestik',
+    },
+    writers: { digest: sha256('writers'), routineOperations: [] },
+    capacity: {
+      allocation: { id: 'projection', mode: 'projection-existing' },
+      projectionOwners: { 'docs/a.md': 'owner-a' },
+      projectionPathCaps: { 'docs/a.md': 500 },
+      projectionHeadroom: {
+        bytes: 200,
+        files: 0,
+        categories: { 'docs/text': 200 },
+        paths: { 'docs/a.md': 200 },
+      },
+    },
+    evidence: { proof: {} },
+    operationalEnvelope: null,
+    reportSha256: null,
+  };
+  assert.deepEqual(deriveOperationalEnvelope(report).capacity.projectionHeadroom.paths, {
+    'docs/a.md': 200,
+  });
 });

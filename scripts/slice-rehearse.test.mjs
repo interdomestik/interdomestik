@@ -45,7 +45,7 @@ function manifest(overrides = {}) {
       change: index === 0 ? 'modify' : 'create',
       category: index === 2 ? 'tests/e2e' : index === 0 ? 'config/data/messages' : 'source/scripts',
       maxBytesDelta: 8_000,
-      maxLines: index === 2 ? 300 : 250,
+      maxLines: index === 2 ? 300 : index === 0 ? 250 : 200,
     })),
     routineOperations: ['add_focused_test', 'derived_capacity_rebind', 'extract_cohesive_helper'],
     proof: {
@@ -165,7 +165,7 @@ test('validates the closed manifest and derives canonical policy', () => {
   wrongCategory.pathPlans[1].category = 'docs/text';
   assert.throws(() => validateRehearsalManifest(wrongCategory), /canonical category/u);
   const oversized = manifest();
-  oversized.pathPlans[1].maxLines = 301;
+  oversized.pathPlans[1].maxLines = 201;
   assert.throws(() => validateRehearsalManifest(oversized), /canonical line cap/u);
 
   const workflow = manifest({

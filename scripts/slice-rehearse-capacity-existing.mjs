@@ -16,13 +16,14 @@ export function projectionBudgetProposal({
   owners,
   deriveRepairProposal,
 }) {
-  const { authorityStops, ownerAllocations, plannedHeadroom } = analyzeProjectionReuse({
-    budget,
-    manifest,
-    writerDeltas,
-    capacityOwnerDeltas,
-    owners,
-  });
+  const { authorityStops, ownerAllocations, plannedHeadroom, projectionPathCaps } =
+    analyzeProjectionReuse({
+      budget,
+      manifest,
+      writerDeltas,
+      capacityOwnerDeltas,
+      owners,
+    });
   if (manifest.topology.repairPaths.length) {
     const repairSet = new Set(manifest.topology.repairPaths);
     const repairProposal = deriveRepairProposal({
@@ -52,6 +53,7 @@ export function projectionBudgetProposal({
       mode: stops.length ? 'blocked' : repairProposal.mode,
       authorityStops: stops,
       projectionOwners: ownerAllocations,
+      projectionPathCaps,
       projectionHeadroom: plannedHeadroom,
     };
   }
@@ -70,6 +72,8 @@ export function projectionBudgetProposal({
       },
     }),
     projectionHeadroom: plannedHeadroom,
+    projectionOwners: ownerAllocations,
+    projectionPathCaps,
   };
 }
 
@@ -95,7 +99,7 @@ export function proposedAllocation(manifest, id, writerDeltas = {}) {
     maxPathBytesDelta: Object.fromEntries(
       plans
         .map(plan => [plan.path, plan.maxBytesDelta])
-        .sort(([left], [right]) => left.localeCompare(right))
+        .sort(([left], [right]) => compareText(left, right))
     ),
   };
 }

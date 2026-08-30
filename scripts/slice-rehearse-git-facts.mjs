@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { canonicalJson, sha256 } from './slice-rehearse-core.mjs';
+import { canonicalJson, compareText, sha256 } from './slice-rehearse-canonical.mjs';
 import {
   capacityOwnerDeltasFromFacts,
   collectTrackedFacts,
@@ -10,7 +10,6 @@ import {
   gitCurrentBranch,
   normalizeGitHubOrigin,
 } from './slice-rehearse-repository-facts.mjs';
-
 const GIT_BIN = '/usr/bin/git';
 const SAFE_EXEC_ENV = Object.freeze({
   PATH: '/usr/bin:/bin:/usr/sbin:/sbin',
@@ -28,33 +27,17 @@ const OPTIONS = Object.freeze({
   stdio: ['ignore', 'pipe', 'pipe'],
 });
 const TEXT_OPTIONS = Object.freeze({ ...OPTIONS, encoding: 'utf8' });
-
 export function gitText(repository, args) {
   return gitBytes(repository, args).toString('utf8').trim();
 }
-
 export function gitBytes(repository, args) {
   return execFileSync(GIT_BIN, [...GIT_READ_PREFIX, '-C', repository, ...args], OPTIONS);
 }
-
 function gitResult(repository, args) {
   return spawnSync(GIT_BIN, [...GIT_READ_PREFIX, '-C', repository, ...args], TEXT_OPTIONS);
 }
-
 function dirtyPaths(repository) {
-  const output = execFileSync(
-    GIT_BIN,
-    [
-      ...GIT_READ_PREFIX,
-      '-C',
-      repository,
-      'status',
-      '--porcelain=v1',
-      '-z',
-      '--untracked-files=all',
-    ],
-    { ...OPTIONS, encoding: 'buffer' }
-  );
+  const output = gitBytes(repository, ['status', '--porcelain=v1', '-z', '--untracked-files=all']);
   const records = output.toString('utf8').split('\0').filter(Boolean);
   const paths = [];
   for (let index = 0; index < records.length; index++) {
@@ -63,9 +46,8 @@ function dirtyPaths(repository) {
     paths.push(record.slice(3));
     if (/[RC]/u.test(status)) paths.push(records[++index]);
   }
-  return [...new Set(paths)].sort((left, right) => left.localeCompare(right));
+  return [...new Set(paths)].sort(compareText);
 }
-
 function protectedMain(repository, protectedMainSha) {
   if (!/^[0-9a-f]{40}$/u.test(protectedMainSha ?? '')) {
     throw new Error('Verified protected-main authority evidence is unavailable.');
@@ -73,7 +55,6 @@ function protectedMain(repository, protectedMainSha) {
   assertCommit(repository, protectedMainSha, 'Protected-main anchor');
   return protectedMainSha;
 }
-
 function changedPaths(repository, range) {
   const output = gitBytes(repository, [
     'diff',
@@ -97,7 +78,19 @@ function changedPaths(repository, range) {
     paths.push(...records.slice(index, index + pathCount));
     index += pathCount;
   }
-  return [...new Set(paths)].sort((left, right) => left.localeCompare(right));
+  return [...new Set(paths)].sort(compareText);
+}
+
+function assertVisibleWriters(repository, writerPaths) {
+  if (!writerPaths.length) return;
+  const records = gitBytes(repository, ['ls-files', '-v', '-z', '--', ...writerPaths])
+    .toString('utf8')
+    .split('\0')
+    .filter(Boolean);
+  const hidden = records
+    .filter(record => /^(?:[a-z]|S) /u.test(record))
+    .map(record => record.slice(2));
+  if (hidden.length) throw new Error(`Writer path has hidden index state: ${hidden[0]}`);
 }
 
 function assertCommit(repository, baseSha, label = 'Manifest base') {
@@ -121,6 +114,7 @@ export function collectRepositoryFacts({
   const identity = normalizeGitHubOrigin(gitText(root, ['config', '--get', 'remote.origin.url']));
   const mergeBaseSha = gitText(root, ['merge-base', verifiedProtectedMainSha, headSha]);
   const dirty = dirtyPaths(root);
+  assertVisibleWriters(root, writerPaths);
   const manifestFacts = collectWriterFactsAtBase({
     repository: root,
     baseSha,
@@ -155,6 +149,7 @@ export function collectRepositoryFacts({
       filePath,
       {
         bytes: Math.max(0, facts.currentBytes - facts.baseBytes),
+        baseBytes: facts.baseBytes,
         currentBytes: facts.currentBytes,
         currentSha256: facts.currentSha256,
         files: Number(facts.currentExists && !facts.baseExists),

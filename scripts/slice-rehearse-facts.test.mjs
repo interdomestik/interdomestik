@@ -60,7 +60,6 @@ test('writer existence uses manifest base while capacity deltas use the capacity
       protectedMainSha: fixture.manifestBaseSha,
       writerPaths: ['empty-new.txt', 'late.txt'],
     });
-
     assert.deepEqual(facts.writerFacts, {
       'empty-new.txt': {
         currentBytes: 0,
@@ -79,6 +78,7 @@ test('writer existence uses manifest base while capacity deltas use the capacity
     });
     assert.deepEqual(facts.writerDeltas, {
       'empty-new.txt': {
+        baseBytes: 0,
         bytes: 0,
         capacityBaselineExists: false,
         currentBytes: 0,
@@ -88,6 +88,7 @@ test('writer existence uses manifest base while capacity deltas use the capacity
         manifestBaseExists: false,
       },
       'late.txt': {
+        baseBytes: 0,
         bytes: 5,
         capacityBaselineExists: false,
         currentBytes: 5,
@@ -130,7 +131,6 @@ test('writer existence uses manifest base while capacity deltas use the capacity
     rmSync(fixture.root, { recursive: true, force: true });
   }
 });
-
 test('protected-main anchoring defeats base equals HEAD and reports both rename paths', () => {
   const fixture = repositoryFixture();
   try {
@@ -152,7 +152,6 @@ test('protected-main anchoring defeats base equals HEAD and reports both rename 
     rmSync(fixture.root, { recursive: true, force: true });
   }
 });
-
 test('advanced protected main uses three-dot slice scope and reports disjoint or overlapping paths', () => {
   const fixture = repositoryFixture();
   try {
@@ -174,7 +173,6 @@ test('advanced protected main uses three-dot slice scope and reports disjoint or
     assert.equal(disjoint.mergeBaseSha, fixture.manifestBaseSha);
     assert.deepEqual(disjoint.committedChangedPaths, ['late.txt']);
     assert.deepEqual(disjoint.protectedMainAdvancedPaths, ['upstream.txt']);
-
     git(fixture.repository, ['checkout', '-q', 'protected']);
     writeFileSync(join(fixture.repository, 'late.txt'), 'protected\n');
     git(fixture.repository, ['commit', '-qam', 'overlapping protected main']);
@@ -225,7 +223,23 @@ test('Git reads disable fsmonitor and writer reads reject symlinks', () => {
       writerPaths: ['late.txt'],
     });
     assert.equal(existsSync(marker), false);
-
+    for (const [hidden, visible] of [
+      ['--skip-worktree', '--no-skip-worktree'],
+      ['--assume-unchanged', '--no-assume-unchanged'],
+    ]) {
+      git(fixture.repository, ['update-index', hidden, 'late.txt']);
+      assert.throws(
+        () =>
+          collectRepositoryFacts({
+            cwd: fixture.repository,
+            baseSha: fixture.manifestBaseSha,
+            protectedMainSha: fixture.manifestBaseSha,
+            writerPaths: ['late.txt'],
+          }),
+        /hidden index state/iu
+      );
+      git(fixture.repository, ['update-index', visible, 'late.txt']);
+    }
     assert.throws(
       () =>
         collectRepositoryFacts({
@@ -236,7 +250,6 @@ test('Git reads disable fsmonitor and writer reads reject symlinks', () => {
         }),
       /pathspec magic/iu
     );
-
     execFileSync('/usr/bin/mkfifo', [join(fixture.repository, 'writer.pipe')], { env: ENV });
     assert.throws(
       () =>
@@ -248,7 +261,6 @@ test('Git reads disable fsmonitor and writer reads reject symlinks', () => {
         }),
       /regular file/iu
     );
-
     writeFileSync(join(fixture.repository, 'oversized.txt'), Buffer.alloc(16 * 1024 * 1024 + 1));
     assert.throws(
       () =>
@@ -260,7 +272,6 @@ test('Git reads disable fsmonitor and writer reads reject symlinks', () => {
         }),
       /read bound/iu
     );
-
     symlinkSync(join(fixture.root, 'outside.txt'), join(fixture.repository, 'linked.txt'));
     assert.throws(
       () =>

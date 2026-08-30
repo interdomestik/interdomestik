@@ -20,6 +20,21 @@ The measurable targets are:
 - governance/coordination elapsed time at or below 25% of total slice elapsed time;
 - no duplicate heavy proof for the same exact evidence identity.
 
+## Final Closure Hardening
+
+The delivery closure keeps workflow and runner-substrate identities independent, uses live
+`workflow_run.updated_at` only for run freshness, and preserves the successful runner completion as
+the reusable proof timestamp. Canonical ordering is locale-independent, Git reads disable fsmonitor
+and optional locks, hidden writer index state fails closed, and cleanup distinguishes an
+uninspectable artifact from an inspected artifact whose ownership is unverified.
+
+Capacity planning binds exact baseline bytes, final structured/governance byte ceilings, projection
+owners, per-path caps, and planned headroom. A newly created production module has an absolute
+200-line ceiling. Ready-for-review state supplies the normal full lane without a label
+micro-approval; identity-changing evidence invalidation comes only from pending deficit operations.
+Telemetry preserves duplicate evidence occurrences, counts duplicate heavy proof, and includes
+merge coordination—but not external review latency—in governance elapsed time.
+
 ## Non-goals
 
 - No product, route, auth, tenancy, schema, RLS, billing, provider, or deployment behavior change.

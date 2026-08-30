@@ -73,7 +73,7 @@ export function validateRehearsalManifest(input) {
         'path plan byte delta is invalid'
       );
       positiveInteger(plan.maxLines, 'path plan max lines');
-      const modularity = canonicalModularityForPath(path);
+      const modularity = canonicalModularityForPath(path, plan.change);
       if (modularity.fileClass === FILE_CLASSES.structuredArtifact) {
         must(structuredArtifactOwner(path), `structured artifact has no canonical owner: ${path}`);
       }
@@ -88,7 +88,7 @@ export function validateRehearsalManifest(input) {
       }
       return { ...plan, path };
     })
-    .sort((left, right) => left.path.localeCompare(right.path));
+    .sort((left, right) => compareText(left.path, right.path));
   must(
     new Set(pathPlans.map(plan => plan.path)).size === pathPlans.length,
     'path plans must be unique'
@@ -166,11 +166,11 @@ export function validateRehearsalManifest(input) {
 
   const gatePolicy = evaluatePrGatePolicy({
     eventName: 'pull_request',
-    draft: true,
+    draft: false,
     changedFiles: writerPaths,
     changedFilesComplete: true,
   });
-  const fullGateRequired = input.proof.fullGateRequired || gatePolicy.runFull;
+  const fullGateRequired = input.proof.fullGateRequired || gatePolicy.forceFull;
 
   return {
     schemaVersion: 1,

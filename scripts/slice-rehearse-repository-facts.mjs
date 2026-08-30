@@ -1,32 +1,26 @@
 import { CAPACITY_CATEGORIES } from './repo-size-capacity-schema.mjs';
 import {
+  canonicalJson,
   must,
   normalizeGitHubOrigin,
   safeRelativePath,
   sha256,
   sortedUnique,
 } from './slice-rehearse-canonical.mjs';
-
 const SHA_PATTERN = /^[0-9a-f]{40}$/u;
 const DIGEST_PATTERN = /^[0-9a-f]{64}$/u;
-function safePaths(values, label) {
-  return sortedUnique(values, label, safeRelativePath);
-}
+const safePaths = (values, label) => sortedUnique(values, label, safeRelativePath);
 function nonnegativeInteger(value, label) {
   must(Number.isSafeInteger(value) && value >= 0, `${label} is invalid`);
 }
-
 export { normalizeGitHubOrigin } from './slice-rehearse-canonical.mjs';
-
 export function exactGitHubRepository(value, origin) {
   return value?.full_name === origin && Number.isSafeInteger(value.id) && value.id > 0;
 }
-
 export function exactTimestamp(value) {
   const parsed = Date.parse(value);
   return typeof value === 'string' && Number.isFinite(parsed) ? parsed : null;
 }
-
 export function exactSuccessfulRunner(jobs, now, options) {
   must(Array.isArray(jobs) && jobs.length <= options.maxJobs, 'GitHub job inventory is invalid');
   const matches = jobs.filter(job => job?.name === options.runnerName);
@@ -43,21 +37,18 @@ export function exactSuccessfulRunner(jobs, now, options) {
     age <= options.maxAgeMs;
   return valid ? runner : null;
 }
-
 export function gitAncestry(gitResult, repository, baseSha, headSha) {
   const result = gitResult(repository, ['merge-base', '--is-ancestor', baseSha, headSha]);
   if (result.status === 0) return true;
   if (result.status === 1) return false;
   throw new Error(result.stderr.trim() || 'Unable to verify base ancestry.');
 }
-
 export function gitCurrentBranch(gitResult, repository) {
   const result = gitResult(repository, ['symbolic-ref', '--quiet', '--short', 'HEAD']);
   if (result.status === 0) return result.stdout.trim();
   if (result.status === 1) return 'HEAD';
   throw new Error(result.stderr.trim() || 'Unable to read the current branch.');
 }
-
 export function exactPullRequest(pull, headSha, origin) {
   return (
     Number.isSafeInteger(pull?.id) &&
@@ -72,17 +63,23 @@ export function exactPullRequest(pull, headSha, origin) {
     pull.head?.sha === headSha
   );
 }
-
-export function readGitBlobDigest(repository, commitSha, filePath, maxBytes, readGitBytes) {
-  must(SHA_PATTERN.test(commitSha), 'Git blob commit SHA is invalid');
-  const bytes = readGitBytes(repository, ['show', `${commitSha}:${filePath}`]);
-  must(Buffer.isBuffer(bytes), 'Git blob evidence is invalid');
-  must(bytes.byteLength > 0 && bytes.byteLength <= maxBytes, 'Git blob evidence is invalid');
-  return sha256(bytes);
+export function derivePrE2eSubstrateDigest(workflowBytes, setupActionBytes) {
+  must(Buffer.isBuffer(workflowBytes), 'PR E2E workflow bytes are invalid');
+  must(Buffer.isBuffer(setupActionBytes), 'PR E2E setup action bytes are invalid');
+  const workflow = workflowBytes.toString('utf8');
+  const start = workflow.search(/^  e2e-runner:\s*$/mu);
+  must(start >= 0, 'PR E2E runner job is unavailable');
+  const remainder = workflow.slice(start + 1);
+  const next = remainder.search(/^  [A-Za-z0-9_-]+:\s*$/mu);
+  const runnerJob = workflow.slice(start, next < 0 ? undefined : start + 1 + next);
+  must(
+    [/\n    runs-on:/u, /\n    services:/u].every(pattern => pattern.test(runnerJob)),
+    'PR E2E runner substrate is invalid'
+  );
+  must(runnerJob.includes('./.github/actions/setup'), 'PR E2E runner substrate is invalid');
+  return sha256(canonicalJson({ runnerJob, setupActionSha256: sha256(setupActionBytes) }));
 }
-
 export { repositoryAuthorityStops } from './slice-rehearse-writer-policy.mjs';
-
 export function normalizeRepositoryFacts(repository) {
   must(repository && typeof repository === 'object', 'repository facts are required');
   for (const key of [
@@ -140,12 +137,16 @@ export function normalizeRepositoryFacts(repository) {
     Object.entries(writerDeltas).map(([path, delta]) => {
       const capacityBaselineExists = delta?.capacityBaselineExists ?? delta?.baselineExists;
       const manifestBaseExists = delta?.manifestBaseExists ?? delta?.baselineExists;
+      const baseBytes =
+        delta?.baseBytes ?? Math.max(0, (delta?.currentBytes ?? 0) - (delta?.bytes ?? 0));
       must(
         delta &&
           Number.isSafeInteger(delta.bytes) &&
           delta.bytes >= 0 &&
           Number.isSafeInteger(delta.currentBytes) &&
           delta.currentBytes >= 0 &&
+          Number.isSafeInteger(baseBytes) &&
+          baseBytes >= 0 &&
           ((delta.currentExists === true && DIGEST_PATTERN.test(delta.currentSha256 ?? '')) ||
             (delta.currentExists === false && delta.currentSha256 === null)) &&
           [0, 1].includes(delta.files) &&
@@ -154,7 +155,7 @@ export function normalizeRepositoryFacts(repository) {
           typeof delta.currentExists === 'boolean',
         'writer delta is invalid'
       );
-      return [path, { ...delta, capacityBaselineExists, manifestBaseExists }];
+      return [path, { ...delta, baseBytes, capacityBaselineExists, manifestBaseExists }];
     })
   );
   const ownerPaths = safePaths(Object.keys(capacityOwnerDeltas), 'capacity owner paths');

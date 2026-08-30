@@ -5,7 +5,6 @@ import {
   structuredArtifactOwner,
 } from './modularity-guard-policy.mjs';
 import { canonicalJson, normalizeGitHubOrigin, sortedText } from './slice-rehearse-canonical.mjs';
-import { routineOperationName } from './slice-rehearse-operation-schema.mjs';
 
 const CANONICAL_PROVIDER_REPOSITORY = 'interdomestik/interdomestik';
 const IDENTITY_CHANGING_OPERATIONS = new Set([
@@ -14,13 +13,17 @@ const IDENTITY_CHANGING_OPERATIONS = new Set([
   'derived_capacity_rebind',
   'extract_cohesive_helper',
   'fresh_worktree_patch_replay',
+  'sequence_prerequisite_before_projection',
   'split_focused_test',
 ]);
 
-export function canonicalModularityForPath(path) {
+export function canonicalModularityForPath(path, change = 'modify') {
   const fileClass = classifyModularityFile(path);
   if (fileClass === FILE_CLASSES.productionCode) {
-    return { fileClass, maxLines: MODULARITY_POLICY.productionCode.reviewLines };
+    return {
+      fileClass,
+      maxLines: change === 'create' ? 200 : MODULARITY_POLICY.productionCode.reviewLines,
+    };
   }
   if (fileClass === FILE_CLASSES.focusedTest) {
     return { fileClass, maxLines: MODULARITY_POLICY.focusedTest.maxLines };
@@ -43,7 +46,7 @@ function stopWhenOver(stops, code, actual, limit) {
 }
 
 function evaluateWriterPlan(plan, repository, budget, authorityStops, deficits) {
-  const modularity = canonicalModularityForPath(plan.path);
+  const modularity = canonicalModularityForPath(plan.path, plan.change);
   const actualLines = repository.writerLineCounts[plan.path] ?? 0;
   const delta = repository.writerDeltas[plan.path];
   if (Number.isInteger(modularity.maxLines) && actualLines > plan.maxLines) {
@@ -64,16 +67,21 @@ function evaluateWriterPlan(plan, repository, budget, authorityStops, deficits) 
   ) {
     authorityStops.push({ code: `modularity:structured-owner-missing:${plan.path}` });
   }
-  if (Number.isInteger(modularity.maxBytes) && delta?.currentBytes > modularity.maxBytes) {
+  const plannedBytes =
+    plan.change === 'create'
+      ? plan.maxBytesDelta
+      : Math.max(delta?.currentBytes ?? 0, (delta?.baseBytes ?? 0) + plan.maxBytesDelta);
+  if (
+    Number.isInteger(modularity.maxBytes) &&
+    Math.max(delta?.currentBytes ?? 0, plannedBytes) > modularity.maxBytes
+  ) {
     deficits.push({
       code: `modularity:absolute-byte-cap:${plan.path}`,
-      actual: delta.currentBytes,
+      actual: Math.max(delta?.currentBytes ?? 0, plannedBytes),
       limit: modularity.maxBytes,
       coveredBy: 'extract_cohesive_helper',
     });
   }
-  const plannedBytes =
-    plan.change === 'create' ? plan.maxBytesDelta : (delta?.currentBytes ?? 0) + plan.maxBytesDelta;
   stopWhenOver(
     authorityStops,
     `capacity:largest-file-current:${plan.path}`,
@@ -164,11 +172,8 @@ export function repositoryAuthorityStops(manifest, repository) {
   return stops;
 }
 
-export function evidenceAfterPlannedOperations(evidence, deficits, grantedOperations = []) {
-  const planned = new Set([
-    ...deficits.map(deficit => deficit.coveredBy).filter(Boolean),
-    ...grantedOperations.map(routineOperationName),
-  ]);
+export function evidenceAfterPlannedOperations(evidence, deficits) {
+  const planned = new Set(deficits.map(deficit => deficit.coveredBy).filter(Boolean));
   const invalidated = [...planned].some(operation => IDENTITY_CHANGING_OPERATIONS.has(operation));
   if (!invalidated) return evidence;
   return {

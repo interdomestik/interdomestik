@@ -1,4 +1,4 @@
-const GOVERNANCE_PHASES = new Set(['rehearsal', 'approval', 'closeout']);
+const GOVERNANCE_PHASES = new Set(['rehearsal', 'approval', 'merge', 'closeout']);
 const OPERATIONAL_BLOCKER_PHASES = new Set([
   'capacity',
   'implementation',
@@ -16,6 +16,7 @@ const INTEGER_KEYS = [
   'retries',
   'governanceElapsedMs',
   'reviewElapsedMs',
+  'duplicateHeavyProofs',
 ];
 
 function must(condition, message) {
@@ -52,6 +53,7 @@ export function emptyTelemetrySlice(sliceId) {
     modelCostComplete: true,
     governanceElapsedMs: 0,
     reviewElapsedMs: 0,
+    duplicateHeavyProofs: 0,
     operationalApprovals: 0,
     operationalMicroApprovals: 0,
     blockerDistribution: {},
@@ -100,9 +102,14 @@ export function addTelemetryEvent(summary, event) {
       'blocker count'
     );
   }
-  if (event.evidenceKey !== null && !summary.evidenceKeys.includes(event.evidenceKey)) {
+  if (event.evidenceKey !== null) {
     summary.evidenceKeys.push(event.evidenceKey);
     summary.evidenceKeys.sort(compareText);
+    summary.duplicateHeavyProofs = checkedIntegerSum(
+      summary.evidenceKeys.length - new Set(summary.evidenceKeys).size,
+      0,
+      'duplicate heavy proofs'
+    );
   }
 }
 
@@ -112,10 +119,13 @@ export function aggregateTelemetryTotals(slices) {
   const modelCostComplete = slices.every(slice => slice.modelCostUsd !== null);
   totals.modelCostUsd = modelCostComplete ? 0 : null;
   const blockerDistribution = {};
+  const evidenceKeys = [];
   for (const slice of slices) {
     for (const key of INTEGER_KEYS) {
+      if (key === 'duplicateHeavyProofs') continue;
       totals[key] = checkedIntegerSum(totals[key], slice[key], key);
     }
+    evidenceKeys.push(...slice.evidenceKeys);
     totals.runnerMinutes = checkedFiniteSum(
       totals.runnerMinutes,
       slice.runnerMinutes,
@@ -132,6 +142,11 @@ export function aggregateTelemetryTotals(slices) {
       );
     }
   }
+  totals.duplicateHeavyProofs = checkedIntegerSum(
+    evidenceKeys.length - new Set(evidenceKeys).size,
+    0,
+    'duplicate heavy proofs'
+  );
   return { totals, blockerDistribution };
 }
 
@@ -144,6 +159,7 @@ export function telemetryTargets(slices, totals) {
     slice => slice.operationalMicroApprovals === 0
   );
   const governanceAtMost25Percent = governanceRatio <= 0.25;
+  const noDuplicateHeavyProof = totals.duplicateHeavyProofs === 0;
   return {
     governanceRatio,
     targets: {
@@ -151,11 +167,13 @@ export function telemetryTargets(slices, totals) {
       atMostOneReFreezePerSlice,
       zeroOperationalMicroApprovals,
       governanceAtMost25Percent,
+      noDuplicateHeavyProof,
       allPassed:
         exactlyOneApprovalPerSlice &&
         atMostOneReFreezePerSlice &&
         zeroOperationalMicroApprovals &&
-        governanceAtMost25Percent,
+        governanceAtMost25Percent &&
+        noDuplicateHeavyProof,
     },
   };
 }

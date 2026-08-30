@@ -24,6 +24,12 @@ file sketch because cohesion and focused-test caps were rehearsed before attribu
 - a dedicated `test:harness-v2` command wired into the lightweight CI audit;
 - one exact named repo-size allocation covering the complete writer map.
 
+The final closure remediation additionally binds independent workflow/substrate evidence, live run
+freshness, exact baseline and planned per-path capacity, projection path caps/headroom, hardened Git
+authority reads, locale-independent receipt ordering, hidden-index rejection, ready-state full-lane
+admission, inspected cleanup identity, and duplicate-heavy-proof telemetry. All new production
+modules remain at or below 200 lines and focused tests at or below 300 lines.
+
 No product slice, successor, provider, deployment, Docker, or authority mutation is part of this
 implementation. The task is complete only after the real self-rehearsal exits zero, all repository
 safety checks pass, and both final auditors approve the same staged tree.
@@ -250,7 +256,7 @@ and inconsistent elapsed/wait/compute values.
 - [ ] **Step 2: Write failing summary tests**
 
 Aggregate three slices and assert elapsed/wait/compute, approvals, re-freezes, retries,
-runner-minutes, model cost, blocker distribution, governance ratio, and the four target verdicts.
+runner-minutes, model cost, blocker distribution, governance ratio, and the five target verdicts.
 
 - [ ] **Step 3: Run the focused test and verify RED**
 

@@ -143,7 +143,6 @@ test('collectRepositoryFacts returns exact sorted local Git and tracked-size fac
       protectedMainSha: fixture.headSha,
       writerPaths: ['declared.txt'],
     });
-
     assert.equal(facts.root, realpathSync(fixture.repository));
     assert.equal(facts.origin, 'https://github.com/example/rehearse.git');
     assert.equal(facts.headSha, fixture.headSha);
@@ -166,6 +165,7 @@ test('collectRepositoryFacts returns exact sorted local Git and tracked-size fac
     assert.match(facts.writerFactsDigest, /^[0-9a-f]{64}$/u);
     assert.deepEqual(facts.writerDeltas, {
       'declared.txt': {
+        baseBytes: 5,
         bytes: 3,
         capacityBaselineExists: true,
         currentBytes: 8,

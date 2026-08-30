@@ -1,4 +1,5 @@
 import { CAPACITY_CATEGORIES } from './repo-size-capacity-schema.mjs';
+import { evaluateExactHeadCertification } from './ci/exact-head-certification-lib.mjs';
 import { evaluatePrGatePolicy } from './ci/pr-gate-policy-lib.mjs';
 import { compareText } from './slice-rehearse-canonical.mjs';
 import { deriveCapacityProposal } from './slice-rehearse-capacity.mjs';
@@ -25,8 +26,33 @@ export { deriveOperationalEnvelope } from './slice-rehearse-core.mjs';
 function sorted(items) {
   return items.sort(
     (left, right) =>
-      left.code.localeCompare(right.code) || canonicalJson(left).localeCompare(canonicalJson(right))
+      compareText(left.code, right.code) || compareText(canonicalJson(left), canonicalJson(right))
   );
+}
+
+export function requiredFullGateDeficit(fullGateRequired, writerPaths) {
+  if (!fullGateRequired) return null;
+  const gatePolicy = evaluatePrGatePolicy({
+    eventName: 'pull_request',
+    draft: false,
+    changedFiles: writerPaths,
+    changedFilesComplete: true,
+  });
+  const admission = evaluateExactHeadCertification({
+    eventName: 'pull_request',
+    action: 'synchronize',
+    draft: false,
+    labelName: '',
+    sameRepository: true,
+    runAttempt: 1,
+    policyShouldRun: true,
+    policyRunFull: gatePolicy.runFull,
+    policyForceFull: gatePolicy.forceFull,
+    policyReason: gatePolicy.reason,
+  });
+  return !gatePolicy.runFull || admission.certificationRequired
+    ? { code: 'proof:full-gate', coveredBy: 'apply_full_gate_label' }
+    : null;
 }
 
 export function evaluateRehearsal({
@@ -80,14 +106,11 @@ export function evaluateRehearsal({
     authorityStops,
     categories: CAPACITY_CATEGORIES,
   });
-  const gatePolicy = evaluatePrGatePolicy({
-    eventName: 'pull_request',
-    draft: true,
-    changedFiles: normalized.writerPaths,
-    changedFilesComplete: true,
-  });
-  if (normalized.proof.fullGateRequired && !gatePolicy.runFull)
-    deficits.push({ code: 'proof:full-gate', coveredBy: 'apply_full_gate_label' });
+  const fullGateDeficit = requiredFullGateDeficit(
+    normalized.proof.fullGateRequired,
+    normalized.writerPaths
+  );
+  if (fullGateDeficit) deficits.push(fullGateDeficit);
 
   const writerPolicy = evaluateWriterPolicy(normalized, repo, proposal.budget);
   deficits.push(...writerPolicy.deficits);
@@ -125,8 +148,7 @@ export function evaluateRehearsal({
       verifiedEvidenceKeysByLane: repo.verifiedEvidenceKeysByLane ?? {},
       dirtyWriterPaths: repo.dirtyPaths.filter(path => normalized.writerPaths.includes(path)),
     }),
-    deficits,
-    operationResolution.granted
+    deficits
   );
   const evidenceProofDeficit = requiredEvidenceProofDeficit(evidenceResult);
   if (evidenceProofDeficit) deficits.push(evidenceProofDeficit);

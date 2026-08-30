@@ -73,6 +73,15 @@ export function deriveOperationalEnvelope(report) {
         report.capacity.allocation.pathBytesDelta ??
         {},
       budgetArtifactSha256: requiredBudgetArtifactSha256(report, operationNames),
+      ...(report.capacity.projectionOwners
+        ? { projectionOwners: report.capacity.projectionOwners }
+        : {}),
+      ...(report.capacity.projectionPathCaps
+        ? { projectionPathCaps: report.capacity.projectionPathCaps }
+        : {}),
+      ...(report.capacity.projectionHeadroom
+        ? { projectionHeadroom: report.capacity.projectionHeadroom }
+        : {}),
     },
     proof: report.evidence.proof,
     stopClasses: [...STOP_CLASSES],
@@ -145,12 +154,15 @@ export function buildRehearsalReport({
       maxTrackedBytes: proposal.budget.maxTrackedBytes,
       maxTrackedFiles: proposal.budget.maxTrackedFiles,
       maxCategoryBytes: proposal.budget.maxCategoryBytes,
+      ...(proposal.projectionOwners ? { projectionOwners: proposal.projectionOwners } : {}),
+      ...(proposal.projectionPathCaps ? { projectionPathCaps: proposal.projectionPathCaps } : {}),
+      ...(proposal.projectionHeadroom ? { projectionHeadroom: proposal.projectionHeadroom } : {}),
     },
     modularity: {
       writerLineCounts: repo.writerLineCounts,
       plans: normalized.pathPlans.map(plan => ({
         path: plan.path,
-        ...canonicalModularityForPath(plan.path),
+        ...canonicalModularityForPath(plan.path, plan.change),
       })),
     },
     topology: normalized.topology,

@@ -8,19 +8,15 @@ import {
   normalizeRoutineOperations,
   routineOperationName,
 } from './slice-rehearse-operation-schema.mjs';
-
 export {
   normalizeRoutineOperations,
   ROUTINE_OPERATIONS,
   routineOperationName,
 } from './slice-rehearse-operation-schema.mjs';
-
 const SHA256 = /^[0-9a-f]{64}$/u;
-
 function reject(state, operation, reason) {
   state.rejected.push({ operation, reason });
 }
-
 function resolveForce(contract, repository, state) {
   const pr = state.virtualPulls[String(contract.target.prNumber)];
   let reason = null;
@@ -54,7 +50,6 @@ function resolveForce(contract, repository, state) {
   });
   state.granted.push(contract);
 }
-
 function resolveDeferredFullGate(contract, repository, state, transition) {
   const operationFacts = state.facts
     ? {
@@ -109,6 +104,12 @@ function resolveCleanup(contract, state) {
   if (!state.facts) reason = 'authority-facts-unavailable';
   else if (![null, contract.target.taskId].includes(authority?.activeSlice)) {
     reason = 'authority-task-mismatch';
+  } else if (
+    contract.target.artifactPaths.some(
+      path => state.facts.taskOwnedArtifacts[path]?.exists !== true
+    )
+  ) {
+    reason = 'artifact-uninspectable';
   } else if (
     contract.target.artifactPaths.some(
       path =>
