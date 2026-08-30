@@ -72,8 +72,19 @@ bounded prerequisite proofs; neither added a generic reserve or generic Tier-3 r
 `728768ab05bc47a0f1cb25ec78ed6a6444264ffc`, and squash
 `124ec51cefd022dd7103a4f958cb9ebef5427dad` matched. It supplies request-scoped identity and two
 tenant-scoped projections without PORTAL or CUTOVER; exact-head proof and protected main were
-green. PRs `#1653`–`#1660` remain recovery evidence. PR `#1665` projects PORTAL; runtime waits for
-its exact merge. CUTOVER and T-117C remain default-denied.
+green. PRs `#1653`–`#1660` remain recovery evidence.
+
+`T117B-PORTAL` completed through promotion PR `#1665` and product PR `#1666`, binding its
+[gate](./2026-08-28-t117b-portal-design-gate.md), exact eleven-path
+[admission](./2026-08-28-t117b-portal-admission.json), and bounded allocation. The approved product
+head `2ad7708bf5b694a392e7d41e13f7e98fb2fcc5a2`, tree
+`368ca4056be5d14d8661b110518f5551c97b643b`, and squash merge
+`d4edda418f991a4c8f4a35ef8e854d4a6efd3b33` matched exactly. The accessible, localized Member
+Portal presentation consumes the DATA contracts through Case, lifecycle-aware Actions, and Recent
+case updates while remaining unmounted and issuing no queries. Required checks, full PR E2E, Pilot,
+Sonar, CodeQL/security, final feedback intake, finalizer/delivery reconciliation, and exact-main
+health were green. Automatic CD run `33319864323` was cancelled with zero jobs before build or
+deployment. CUTOVER and T-117C remain default-denied and unpromoted.
 
 Closed `IDA-WF01-ONE-APPROVAL-DELIVERY` remains immutable evidence through its
 [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),
@@ -92,9 +103,8 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 | Priority | Candidate              | Dependencies   | Promotion constraint                         |
 | -------: | ---------------------- | -------------- | -------------------------------------------- |
-|        1 | `T117B-PORTAL` Tier 3  | DATA closed    | Exact promotion PR `#1665`; runtime awaits merge. |
-|        2 | `T117B-CUTOVER` Tier 3 | PORTAL closed  | Exact PORTAL merge + deterministic closeout. |
-|        3 | `T-117C` Tier 3        | CUTOVER closed | Atomic PPR + named-parallel-route migration. |
+|        1 | `T117B-CUTOVER` Tier 3 | PORTAL closed  | Separate exact promotion; currently dormant. |
+|        2 | `T-117C` Tier 3        | CUTOVER closed | Atomic PPR + named-parallel-route migration. |
 
 ## Unified Portal Direction
 
@@ -128,37 +138,12 @@ and global headers remain T-117C.
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "promotion_pending",
+  "lifecycle": "inactive",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": {
-    "sliceId": "T117B-PORTAL",
-    "tier": 3,
-    "promotionPrNumber": 1665,
-    "promotionBaseSha": "10635007175e6348017c622c81f5c1917d347662",
-    "expectedProductBranch": "codex/t117b-portal",
-    "gateSha256": "e287e9342aef6a2d63d1c20cc547b9d82f8587cd5956cf40a2d9bbe7800b3c6c",
-    "admissionSha256": "50485c5b7ee68646c1f9454075c4245961fd38b11941bfcc7f0be8ef0a8bc82d",
-    "productWriterPaths": [
-      "apps/web/src/components/dashboard/case-summary/accident-case-summary.tsx",
-      "apps/web/src/components/dashboard/case-summary/case-kind-registry.test.tsx",
-      "apps/web/src/components/dashboard/case-summary/case-kind-registry.ts",
-      "apps/web/src/components/dashboard/case-summary/generic-case-summary.tsx",
-      "apps/web/src/components/dashboard/member-portal-region-boundary.tsx",
-      "apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx",
-      "apps/web/src/components/dashboard/member-portal-runtime.tsx",
-      "apps/web/src/messages/en/dashboard.json",
-      "apps/web/src/messages/mk/dashboard.json",
-      "apps/web/src/messages/sq/dashboard.json",
-      "apps/web/src/messages/sr/dashboard.json"
-    ],
-    "closeoutWriterPaths": [
-      "docs/plans/current-program.md",
-      "docs/plans/current-tracker.md"
-    ]
-  }
+  "activeSlice": null
 }
 ```
 
@@ -172,4 +157,4 @@ The architecture-finalization program/tracker, terminal OD17 evidence, and CI01 
 historical or separately governed. This projection neither rewrites nor activates them.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:T117B-PORTAL`).
+The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:null`).
