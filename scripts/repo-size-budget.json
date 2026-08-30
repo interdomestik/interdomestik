@@ -402,13 +402,13 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 307343,
+      "maxTrackedBytesDelta": 306096,
       "maxTrackedFilesDelta": 41,
       "maxCategoryBytesDelta": {
         "config/data/messages": 272,
         "docs/text": 30439,
-        "tests/e2e": 135050,
-        "source/scripts": 141582
+        "tests/e2e": 135405,
+        "source/scripts": 139980
       },
       "maxPathBytesDelta": {
         ".github/workflows/ci.yml": 24,
@@ -418,27 +418,27 @@
         "scripts/ci/pr-delivery-contract.json": 27,
         "scripts/ci/pr-delivery-gate.test.mjs": 238,
         "scripts/ci/z620-parity.json": 0,
-        "scripts/slice-rehearse-canonical.mjs": 6951,
+        "scripts/slice-rehearse-canonical.mjs": 6973,
         "scripts/slice-rehearse-capacity-existing.mjs": 6322,
         "scripts/slice-rehearse-capacity-fixed-point.mjs": 7197,
         "scripts/slice-rehearse-capacity-owner-facts.mjs": 5145,
         "scripts/slice-rehearse-capacity-owner.test.mjs": 3056,
         "scripts/slice-rehearse-capacity-projection.mjs": 5819,
         "scripts/slice-rehearse-capacity-stops.test.mjs": 8011,
-        "scripts/slice-rehearse-capacity.mjs": 6138,
+        "scripts/slice-rehearse-capacity.mjs": 4538,
         "scripts/slice-rehearse-cli-safety.test.mjs": 9905,
         "scripts/slice-rehearse-cli.test.mjs": 10076,
         "scripts/slice-rehearse-core.mjs": 8032,
         "scripts/slice-rehearse-deferred-operations.test.mjs": 3456,
         "scripts/slice-rehearse-envelope.mjs": 6452,
-        "scripts/slice-rehearse-envelope.test.mjs": 3755,
+        "scripts/slice-rehearse-envelope.test.mjs": 3884,
         "scripts/slice-rehearse-evaluator.mjs": 5970,
-        "scripts/slice-rehearse-evidence.mjs": 6930,
+        "scripts/slice-rehearse-evidence.mjs": 6903,
         "scripts/slice-rehearse-evidence.test.mjs": 9485,
         "scripts/slice-rehearse-facts.test.mjs": 11136,
         "scripts/slice-rehearse-git-facts.mjs": 6915,
         "scripts/slice-rehearse-github-evidence.mjs": 7468,
-        "scripts/slice-rehearse-github-evidence.test.mjs": 8548,
+        "scripts/slice-rehearse-github-evidence.test.mjs": 8778,
         "scripts/slice-rehearse-invalidation.test.mjs": 6280,
         "scripts/slice-rehearse-operation-cli.test.mjs": 5428,
         "scripts/slice-rehearse-operation-contracts.mjs": 7828,
@@ -447,15 +447,15 @@
         "scripts/slice-rehearse-operation-facts.test.mjs": 5788,
         "scripts/slice-rehearse-operation-schema.mjs": 7557,
         "scripts/slice-rehearse-operations.test.mjs": 6269,
-        "scripts/slice-rehearse-projection.test.mjs": 11010,
-        "scripts/slice-rehearse-repository-facts.mjs": 8303,
+        "scripts/slice-rehearse-projection.test.mjs": 11006,
+        "scripts/slice-rehearse-repository-facts.mjs": 8307,
         "scripts/slice-rehearse-repository.test.mjs": 9076,
         "scripts/slice-rehearse-writer-policy.mjs": 6901,
         "scripts/slice-rehearse.mjs": 6614,
         "scripts/slice-rehearse.test.mjs": 10521,
         "scripts/slice-telemetry-aggregation.mjs": 5353,
         "scripts/slice-telemetry-overflow.test.mjs": 4236,
-        "scripts/slice-telemetry.mjs": 6016,
+        "scripts/slice-telemetry.mjs": 6015,
         "scripts/slice-telemetry.test.mjs": 8776
       }
     }
@@ -469,15 +469,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 59970262,
+  "maxTrackedBytes": 59969015,
   "maxTrackedFiles": 5906,
   "maxCategoryBytes": {
     "config/data/messages": 2155706,
     "docs/text": 8509839,
     "large support/generated-ish": 15390712,
     "other": 18856416,
-    "source/scripts": 8493913,
-    "tests/e2e": 6563676
+    "source/scripts": 8492311,
+    "tests/e2e": 6564031
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

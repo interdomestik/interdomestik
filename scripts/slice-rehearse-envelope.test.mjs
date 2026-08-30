@@ -8,6 +8,10 @@ test('canonical ordering uses locale-independent UTF-16 code units', () => {
   assert.deepEqual(['ä', 'a', 'Z'].sort(compareText), ['Z', 'a', 'ä']);
 });
 
+test('canonical ordering avoids nested ternary control flow', () => {
+  assert.doesNotMatch(compareText.toString(), /\?/u);
+});
+
 test('canonical JSON is invariant to recursive object-key insertion order', () => {
   assert.equal(
     canonicalJson({ z: 1, a: { y: 2, b: [{ d: 4, c: 3 }] } }),

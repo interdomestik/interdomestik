@@ -67,13 +67,13 @@ export function derivePrE2eSubstrateDigest(workflowBytes, setupActionBytes) {
   must(Buffer.isBuffer(workflowBytes), 'PR E2E workflow bytes are invalid');
   must(Buffer.isBuffer(setupActionBytes), 'PR E2E setup action bytes are invalid');
   const workflow = workflowBytes.toString('utf8');
-  const start = workflow.search(/^  e2e-runner:\s*$/mu);
+  const start = workflow.search(/^ {2}e2e-runner:\s*$/mu);
   must(start >= 0, 'PR E2E runner job is unavailable');
   const remainder = workflow.slice(start + 1);
-  const next = remainder.search(/^  [A-Za-z0-9_-]+:\s*$/mu);
+  const next = remainder.search(/^ {2}[A-Za-z0-9_-]+:\s*$/mu);
   const runnerJob = workflow.slice(start, next < 0 ? undefined : start + 1 + next);
   must(
-    [/\n    runs-on:/u, /\n    services:/u].every(pattern => pattern.test(runnerJob)),
+    [/\n {4}runs-on:/u, /\n {4}services:/u].every(pattern => pattern.test(runnerJob)),
     'PR E2E runner substrate is invalid'
   );
   must(runnerJob.includes('./.github/actions/setup'), 'PR E2E runner substrate is invalid');

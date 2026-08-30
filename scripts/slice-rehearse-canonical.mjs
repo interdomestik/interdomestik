@@ -5,7 +5,9 @@ import { isAbsolute, normalize, posix, relative, resolve, sep } from 'node:path'
 const READ_FLAGS = fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW | fs.constants.O_NONBLOCK;
 
 export function compareText(left, right) {
-  return left < right ? -1 : left > right ? 1 : 0;
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
 }
 
 export function must(condition, message) {

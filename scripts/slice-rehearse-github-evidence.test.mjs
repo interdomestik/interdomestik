@@ -34,6 +34,12 @@ const commands = ['pnpm e2e:gate:pr', 'pnpm --filter @interdomestik/web run e2e:
 const writerPaths = ['scripts/example.mjs'];
 const now = Date.parse('2026-08-29T12:00:00.000Z');
 
+test('PR E2E substrate regexes use explicit indentation quantifiers', () => {
+  const source = derivePrE2eSubstrateDigest.toString();
+  assert.doesNotMatch(source, /\/\^ {2,}/u);
+  assert.doesNotMatch(source, /\/\\n {2,}/u);
+});
+
 function pull() {
   const repository = { id: 7, full_name: 'interdomestik/interdomestik' };
   return {
