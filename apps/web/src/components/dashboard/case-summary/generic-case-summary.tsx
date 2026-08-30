@@ -1,7 +1,7 @@
-import { AccidentCaseSummary, type AccidentCaseSummaryProps } from './accident-case-summary';
+import { CaseSummaryCard, type CaseSummaryCardProps } from './accident-case-summary';
 
-export type GenericCaseSummaryProps = AccidentCaseSummaryProps;
+export type GenericCaseSummaryProps = CaseSummaryCardProps;
 
 export function GenericCaseSummary(props: GenericCaseSummaryProps) {
-  return <AccidentCaseSummary {...props} />;
+  return <CaseSummaryCard {...props} />;
 }

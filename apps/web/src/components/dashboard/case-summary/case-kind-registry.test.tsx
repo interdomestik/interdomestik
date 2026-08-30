@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { AccidentCaseSummary } from './accident-case-summary';
+import { CaseSummaryCard } from './accident-case-summary';
 import { caseKindRegistry } from './case-kind-registry';
 import { GenericCaseSummary } from './generic-case-summary';
 
@@ -27,12 +27,12 @@ const labels = {
 
 describe('caseKindRegistry', () => {
   it('registers the accident renderer exhaustively', () => {
-    expect(caseKindRegistry.accident.component).toBe(AccidentCaseSummary);
+    expect(caseKindRegistry.accident.component).toBe(CaseSummaryCard);
     expect(caseKindRegistry.generic.component).toBe(GenericCaseSummary);
   });
 
   it('renders semantic facts in source order with explicit zero and localized labels', () => {
-    render(<AccidentCaseSummary summary={summary} labels={labels} />);
+    render(<CaseSummaryCard summary={summary} labels={labels} />);
     const article = screen.getByRole('article', { name: 'Reference unavailable' });
     expect(article.querySelectorAll('dt')).toHaveLength(3);
     expect([...article.querySelectorAll('dt')].map(node => node.textContent)).toEqual([

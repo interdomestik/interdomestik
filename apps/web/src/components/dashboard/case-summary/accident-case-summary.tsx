@@ -10,12 +10,12 @@ export type CaseSummaryLabels = {
   nextStepValue: string;
 };
 
-export type AccidentCaseSummaryProps = Readonly<{
+export type CaseSummaryCardProps = Readonly<{
   summary: CaseSummary;
   labels: CaseSummaryLabels;
 }>;
 
-export function AccidentCaseSummary({ labels, summary }: AccidentCaseSummaryProps) {
+export function CaseSummaryCard({ labels, summary }: CaseSummaryCardProps) {
   const headingId = `case-summary-${summary.id}`;
   const reference = summary.reference ?? labels.referenceFallback;
 
