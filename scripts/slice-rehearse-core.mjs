@@ -15,6 +15,7 @@ import {
   sortedUnique,
 } from './slice-rehearse-canonical.mjs';
 import { canonicalModularityForPath } from './slice-rehearse-writer-policy.mjs';
+import { normalizeManifestIdentity } from './slice-rehearse-manifest-identity.mjs';
 export { ROUTINE_OPERATIONS } from './slice-rehearse-operation-contracts.mjs';
 export { canonicalJson, sha256 } from './slice-rehearse-canonical.mjs';
 export { deriveOperationalEnvelope, rehearsalFactsSha256 } from './slice-rehearse-envelope.mjs';
@@ -32,6 +33,7 @@ const MANIFEST_KEYS = [
   'topology',
   'writerPaths',
 ];
+const MANIFEST_V2_KEYS = [...MANIFEST_KEYS, 'capacityOwnerId', 'workClass'];
 const PATH_PLAN_KEYS = ['category', 'change', 'maxBytesDelta', 'maxLines', 'path'];
 const PROOF_KEYS = [
   'commands',
@@ -44,19 +46,14 @@ const TOPOLOGY_KEYS = ['closeoutMode', 'projectionPaths', 'repairAllocationId', 
 const CATEGORIES = new Set(CAPACITY_CATEGORIES);
 const CHANGES = new Set(['create', 'modify']);
 const CLOSEOUT_MODES = new Set(['none', 'projection-only']);
-const SHA_PATTERN = /^[0-9a-f]{40}$/u;
 const DIGEST_PATTERN = /^[0-9a-f]{64}$/u;
-const ORIGIN_PATTERN = /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\.git)?$/u;
 export function validateRehearsalManifest(input) {
-  exactKeys(input, MANIFEST_KEYS, 'manifest');
-  must(input.schemaVersion === 1, 'unsupported manifest schema version');
+  must([1, 2].includes(input?.schemaVersion), 'unsupported manifest schema version');
+  exactKeys(input, input.schemaVersion === 2 ? MANIFEST_V2_KEYS : MANIFEST_KEYS, 'manifest');
   const sliceId = nonEmptyString(input.sliceId, 'slice ID');
   must(/^[A-Z0-9][A-Z0-9-]*$/u.test(sliceId), 'slice ID is invalid');
   must(/^[a-z][a-z0-9-]+$/u.test(sliceId.toLowerCase()), 'slice allocation ID is invalid');
-  const tier = positiveInteger(input.tier, 'tier');
-  must(tier <= 4, 'tier is invalid');
-  must(SHA_PATTERN.test(input.baseSha), 'base SHA is invalid');
-  must(typeof input.origin === 'string' && ORIGIN_PATTERN.test(input.origin), 'origin is invalid');
+  const identity = normalizeManifestIdentity(input, sliceId);
 
   const writerPaths = sortedUnique(input.writerPaths, 'writer path', safeRelativePath);
   must(writerPaths.length > 0, 'writer paths must not be empty');
@@ -173,9 +170,10 @@ export function validateRehearsalManifest(input) {
   const fullGateRequired = input.proof.fullGateRequired || gatePolicy.forceFull;
 
   return {
-    schemaVersion: 1,
+    schemaVersion: input.schemaVersion,
+    ...identity.versionFields,
     sliceId,
-    tier,
+    tier: identity.tier,
     baseSha: input.baseSha,
     origin: input.origin,
     writerPaths,

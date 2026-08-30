@@ -6,6 +6,7 @@ import {
   projectionBudgetProposal,
   proposedAllocation,
 } from './slice-rehearse-capacity-existing.mjs';
+import { deriveOwnerExtension } from './slice-rehearse-capacity-extension.mjs';
 import {
   compareWorktreeBudget,
   deriveCapacityFixedPoint,
@@ -27,7 +28,8 @@ function deriveProtectedProposal({
     Number.isSafeInteger(baselineBudgetBytes) && baselineBudgetBytes > 0,
     'baseline budget bytes must be a positive integer'
   );
-  const allocationId = allocationIdOverride ?? manifest.sliceId.toLowerCase();
+  const allocationId =
+    allocationIdOverride ?? manifest.capacityOwnerId ?? manifest.sliceId.toLowerCase();
   const existing = budget.allocations.find(item => item.id === allocationId);
   const owners = new Map(
     budget.allocations.flatMap(allocation =>
@@ -86,6 +88,20 @@ function deriveProtectedProposal({
     });
   }
   if (existing) {
+    if (
+      manifest.schemaVersion === 2 &&
+      manifest.workClass === 'governance' &&
+      manifest.capacityOwnerId === allocationId
+    ) {
+      return deriveOwnerExtension({
+        budget,
+        existing,
+        proposed: allocation,
+        manifest,
+        writerDeltas,
+        baselineBudgetBytes,
+      });
+    }
     authorityStops.push(...existingAllocationStops(existing, allocation, allocationId));
     return unchangedBudgetProposal({
       budget,
