@@ -1,27 +1,20 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { protectedMain } from './lean-current-authority-git.mjs';
 import { resolveRepositoryAuthority } from './lean-current-authority.mjs';
-import {
-  canonicalJson,
-  must,
-  readBoundedRegularText,
-  sha256,
-} from './slice-rehearse-canonical.mjs';
+import * as canonical from './slice-rehearse-canonical.mjs';
 import { resolveAtAuthorityBoundary } from './slice-rehearse-authority-boundary.mjs';
 import { gitBytes, gitText } from './slice-rehearse-git-facts.mjs';
 import { initializeRehearsalManifest } from './slice-rehearse-init.mjs';
-
 const WORKFLOW_PATHS = ['.github/workflows/ci.yml', '.github/workflows/sonar-main-gate.yml'];
 const SUBSTRATE_PATHS = ['scripts/ci/pr-delivery-contract.json', 'scripts/ci/z620-parity.json'];
-
 function digestFiles(root, paths) {
-  return sha256(
+  return canonical.sha256(
     paths.map(path => `${path}\0${readFileSync(resolve(root, path), 'utf8')}`).join('\0')
   );
 }
@@ -35,9 +28,13 @@ function existsAtBase(root, baseSha, path) {
 }
 
 function capacityDelta(root, baselineSha, path) {
-  const currentBytes = existsSync(resolve(root, path))
-    ? readFileSync(resolve(root, path)).byteLength
-    : 0;
+  const currentPath = resolve(root, path);
+  let currentBytes = 0;
+  if (existsSync(currentPath)) {
+    const current = lstatSync(currentPath, { bigint: true });
+    canonical.must(current.isFile(), `writer path is not a regular file: ${path}`);
+    currentBytes = Number(current.size);
+  }
   let baselineBytes = 0;
   try {
     baselineBytes = gitBytes(root, ['show', `${baselineSha}:${path}`]).byteLength;
@@ -47,7 +44,14 @@ function capacityDelta(root, baselineSha, path) {
   return Math.max(0, currentBytes - baselineBytes);
 }
 
+function preflightFactRequest(request) {
+  const writerPaths = Array.isArray(request?.writerPaths)
+    ? canonical.sortedUnique(request.writerPaths, 'writer path', canonical.safeRelativePath)
+    : [];
+  return { ...request, writerPaths };
+}
 export function collectManifestInitFacts(request, cwd = process.cwd()) {
+  request = preflightFactRequest(request);
   const root = gitText(cwd, ['rev-parse', '--show-toplevel']);
   const authority =
     request.workClass === 'product'
@@ -58,8 +62,8 @@ export function collectManifestInitFacts(request, cwd = process.cwd()) {
       : null;
   const auditedBaseSha = request.auditedBaseSha;
   if (auditedBaseSha !== undefined) {
-    must(/^[0-9a-f]{40}$/u.test(auditedBaseSha), 'audited base SHA is invalid');
-    must(
+    canonical.must(/^[0-9a-f]{40}$/u.test(auditedBaseSha), 'audited base SHA is invalid');
+    canonical.must(
       gitText(root, ['rev-parse', 'origin/main']) === auditedBaseSha,
       'audited base SHA differs from origin/main'
     );
@@ -103,7 +107,7 @@ function writeManifestOutput(outputPath, content, cwd) {
   const target = resolve(cwd, outputPath);
   const roots = [cwd, tmpdir(), '/private/tmp'].map(root => realpathSync(root));
   const parent = realpathSync(dirname(target));
-  must(
+  canonical.must(
     roots.some(root => parent === root || parent.startsWith(`${root}${sep}`)),
     'manifest output must stay inside a trusted root'
   );
@@ -115,7 +119,7 @@ export function runManifestInitializer({
   cwd = process.cwd(),
   readRequest = path =>
     JSON.parse(
-      readBoundedRegularText(resolve(cwd, path), {
+      canonical.readBoundedRegularText(resolve(cwd, path), {
         label: 'Manifest initialization request',
         maxBytes: 128 * 1024,
         allowedRoots: [cwd, tmpdir(), '/private/tmp'],
@@ -128,9 +132,9 @@ export function runManifestInitializer({
 } = {}) {
   try {
     const { requestPath, outputPath } = parseArgs(argv);
-    const request = readRequest(requestPath);
+    const request = preflightFactRequest(readRequest(requestPath));
     const manifest = initializeRehearsalManifest(request, collectFacts(request, cwd));
-    const content = canonicalJson(manifest);
+    const content = canonical.canonicalJson(manifest);
     if (outputPath) writeOutput(outputPath, content, cwd);
     else stdout(content);
     return 0;

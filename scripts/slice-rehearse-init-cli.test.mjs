@@ -52,3 +52,22 @@ test('initializer reports one consolidated failure without partial output', () =
   assert.match(stderr, /proofCommands/u);
   assert.match(stderr, /baseSha/u);
 });
+
+test('initializer rejects unsafe writer paths before collecting repository facts', () => {
+  let stderr = '';
+  let factsCollected = false;
+  const status = runManifestInitializer({
+    argv: ['--request', '/private/tmp/request.json'],
+    readRequest: () => ({ ...request, writerPaths: ['../../outside-repository'] }),
+    collectFacts: () => {
+      factsCollected = true;
+      return {};
+    },
+    stderr: value => {
+      stderr += value;
+    },
+  });
+  assert.equal(status, 1);
+  assert.equal(factsCollected, false);
+  assert.match(stderr, /writer path is unsafe/u);
+});
