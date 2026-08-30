@@ -16,8 +16,8 @@
     },
     "portal": {
       "title": "Moji slučajevi",
-      "description": "Slučajevi, radnje i ažuriranja.",
-      "disclaimer": "Ishodi nisu obećani. Moguća je stručna provera.",
+      "description": "Slučajevi, radnje, ažuriranja.",
+      "disclaimer": "Samo smernice; ishodi nisu obećani. Moguća stručna provera.",
       "navigation": {
         "label": "Prečice",
         "help_now": "Pomoć sada",
@@ -38,7 +38,7 @@
           "error": "Nedostupno"
         },
         "updates": {
-          "label": "Nedavna ažuriranja",
+          "label": "Nedavne novosti",
           "loading": "Učitavanje",
           "empty": "Nema ažuriranja",
           "error": "Nedostupno"
@@ -48,7 +48,7 @@
         "none": "Nacrt — članstvo nije aktivno",
         "active": "Započnite slučaj",
         "trialing": "Započnite slučaj",
-        "active_in_grace": "Nastavite — uplata traži pažnju",
+        "active_in_grace": "Nastavite — proverite uplatu",
         "grace_expired": "Nacrt — tolerancija je istekla",
         "scheduled_cancel": "Započnite — članstvo se završava",
         "canceled": "Nacrt — članstvo je otkazano"
