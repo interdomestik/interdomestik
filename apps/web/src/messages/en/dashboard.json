@@ -17,7 +17,7 @@
     "portal": {
       "title": "My cases",
       "description": "Case, action and updates.",
-      "disclaimer": "Guidance, no promised outcome. Review may be needed.",
+      "disclaimer": "Guidance only; outcomes are not promised.",
       "navigation": {
         "label": "Shortcuts",
         "help_now": "Help Now",

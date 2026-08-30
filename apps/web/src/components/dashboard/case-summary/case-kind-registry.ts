@@ -1,6 +1,5 @@
 import type { CaseSummary, CaseSummaryKind } from '@interdomestik/domain-member';
-import type { ComponentType } from 'react';
-import { createElement, type ReactElement } from 'react';
+import { createElement, type ComponentType, type ReactElement } from 'react';
 
 import {
   AccidentCaseSummary,

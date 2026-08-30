@@ -41,6 +41,7 @@ export async function PortalCasesRegion({ copy, promise }: CasesBound) {
   if (summaries.length === 0) return <Boundary copy={copy.regions.case} state="empty" />;
   return (
     <PortalUi.RefractiveGlassPanel className="grid gap-5">
+      <h2>{copy.regions.case.label}</h2>
       {summaries.map(summary => (
         <div key={summary.id}>{renderCaseSummary(summary, copy.caseLabels(summary))}</div>
       ))}
@@ -55,17 +56,14 @@ export async function PortalActionsRegion({ copy, locale, promise }: ActionsBoun
   const action = copy.actions[membership.bucket];
   return (
     <div className="grid min-w-0 gap-3">
+      <h2>{copy.regions.actions.label}</h2>
       <PortalUi.MatteAnchorCard
         description={action.description}
         eyebrow={copy.regions.actions.label}
         href={`/${locale}/member/claims/new${inactive ? '?mode=drafts' : ''}`}
         label={action.label}
       />
-      {action.warning ? (
-        <p className="rounded-xl border border-amber-700/40 bg-amber-50 p-4 text-sm text-amber-950">
-          {action.warning}
-        </p>
-      ) : null}
+      {action.warning ? <p className="rounded-xl border p-4 text-sm">{action.warning}</p> : null}
     </div>
   );
 }
@@ -88,6 +86,7 @@ export async function PortalUpdatesRegion({ copy, locale, promise }: UpdatesBoun
   );
   return (
     <PortalUi.RefractiveGlassPanel>
+      <h2>{copy.regions.updates.label}</h2>
       <PortalUi.Timeline
         ariaLabel={copy.regions.updates.label}
         emptyLabel={copy.regions.updates.empty}

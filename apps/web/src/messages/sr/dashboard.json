@@ -16,7 +16,7 @@
     },
     "portal": {
       "title": "Moji slučajevi",
-      "description": "Slučaj, radnja i ažuriranja.",
+      "description": "Slučajevi, radnje i ažuriranja.",
       "disclaimer": "Smernice bez obećanog ishoda. Možda treba provera.",
       "navigation": {
         "label": "Prečice",
@@ -34,7 +34,7 @@
         "actions": {
           "label": "Radnje",
           "loading": "Učitavanje",
-          "empty": "Nema radnje",
+          "empty": "Nema radnji",
           "error": "Nedostupno"
         },
         "updates": {

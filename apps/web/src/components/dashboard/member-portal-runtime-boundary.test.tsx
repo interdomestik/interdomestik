@@ -103,6 +103,7 @@ const copy: MemberPortalCopy = {
 describe('MemberPortalRuntime boundaries', () => {
   it('renders accident and generic safe summaries without raw identifiers or tokens', async () => {
     render(await PortalCasesRegion({ copy, promise: Promise.resolve(summaries) }));
+    expect(screen.getByRole('heading', { name: 'Case' })).toBeVisible();
     expect(screen.getByRole('article', { name: 'CLM-001' })).toHaveTextContent('Team review');
     expect(screen.getByRole('article', { name: 'Reference unavailable' })).toHaveTextContent('0');
     expect(screen.queryByText('claim-1')).not.toBeInTheDocument();
@@ -119,6 +120,7 @@ describe('MemberPortalRuntime boundaries', () => {
         })
       );
       const inactive = bucket === 'none' || bucket === 'canceled' || bucket === 'grace_expired';
+      expect(screen.getByRole('heading', { name: 'Actions' })).toBeVisible();
       expect(
         screen.getByRole('link', { name: new RegExp(`Action ${bucket}`, 'u') })
       ).toHaveAttribute('href', `/sq/member/claims/new${inactive ? '?mode=drafts' : ''}`);
@@ -133,9 +135,11 @@ describe('MemberPortalRuntime boundaries', () => {
     const view = render(
       await PortalUpdatesRegion({ copy, locale: 'en', promise: Promise.resolve(summaries) })
     );
+    expect(screen.getByRole('heading', { name: 'Recent case updates' })).toBeVisible();
     expect(screen.getByRole('list', { name: 'Recent case updates' })).toHaveTextContent('CLM-001');
     expect(screen.queryByText('claim-1')).not.toBeInTheDocument();
     view.rerender(await PortalCasesRegion({ copy, promise: Promise.resolve([]) }));
+    expect(screen.getByRole('heading', { name: 'Case' })).toBeVisible();
     expect(screen.getByRole('status', { name: 'Case' })).toHaveTextContent('No cases yet');
     view.rerender(
       await PortalUpdatesRegion({ copy, locale: 'en', promise: Promise.reject(new Error('no')) })
@@ -152,7 +156,7 @@ describe('MemberPortalRuntime boundaries', () => {
       resolve(process.cwd(), 'src/components/dashboard/member-portal-runtime.tsx'),
       'utf8'
     );
-    expect(source.match(/<Suspense\b/gu)).toHaveLength(3);
+    expect(source.match(/<Suspense\b/gu) ?? []).toHaveLength(3);
     expect(source).toMatch(/<nav[\s\S]+member-portal-disclaimer[\s\S]+<UnifiedPortalShell/u);
     expect(source).toMatch(/casesPromise[\s\S]+casesPromise[\s\S]+membershipPromise/u);
     expect(source).not.toMatch(
