@@ -81,26 +81,11 @@ const copy: MemberPortalCopy = {
   }),
   description: 'Safe portal description',
   disclaimer: 'No outcome is promised and professional review may be required.',
-  navigation: {
-    documents: 'Documents',
-    helpNow: 'Help Now',
-    label: 'Member shortcuts',
-    membership: 'Membership',
-  },
+  navigation: { documents: 'Docs', helpNow: 'Help', label: 'Shortcuts', membership: 'Membership' },
   referenceFallback: 'Reference unavailable',
   regions: {
-    actions: {
-      empty: 'No action',
-      error: 'Actions unavailable',
-      label: 'Actions',
-      loading: 'Loading actions',
-    },
-    case: {
-      empty: 'No cases yet',
-      error: 'Cases unavailable',
-      label: 'Case',
-      loading: 'Loading case',
-    },
+    actions: { empty: 'None', error: 'Unavailable', label: 'Actions', loading: 'Loading' },
+    case: { empty: 'No cases yet', error: 'Unavailable', label: 'Case', loading: 'Loading case' },
     updates: {
       empty: 'No updates yet',
       error: 'Updates unavailable',
@@ -182,7 +167,7 @@ describe('MemberPortalRuntime boundaries', () => {
 
   it('owns the same complete portal copy contract in exactly four locale catalogs', () => {
     const portals = [enMessages, mkMessages, sqMessages, srMessages].map(
-      messages => messages.dashboard.portal
+      ({ dashboard }) => dashboard.portal
     );
     const expectedPaths = [
       'title',
