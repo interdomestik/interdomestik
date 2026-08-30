@@ -1,16 +1,18 @@
-import type { AccidentSummary } from '@interdomestik/domain-member';
+import type { CaseSummary } from '@interdomestik/domain-member';
+
+export type CaseSummaryLabels = {
+  reference: string;
+  referenceFallback: string;
+  status: string;
+  statusValue: string;
+  documentCount: string;
+  nextStep: string;
+  nextStepValue: string;
+};
 
 export type AccidentCaseSummaryProps = Readonly<{
-  summary: AccidentSummary;
-  labels: {
-    reference: string;
-    referenceFallback: string;
-    status: string;
-    statusValue: string;
-    documentCount: string;
-    nextStep: string;
-    nextStepValue: string;
-  };
+  summary: CaseSummary;
+  labels: CaseSummaryLabels;
 }>;
 
 export function AccidentCaseSummary({ labels, summary }: AccidentCaseSummaryProps) {

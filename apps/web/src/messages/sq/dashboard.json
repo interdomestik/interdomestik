@@ -14,6 +14,46 @@
       "empty_title": "Nuk keni kërkesa ende",
       "empty_body": "Kur ta dërgoni kërkesën e parë, ajo do të shfaqet këtu."
     },
+    "portal": {
+      "title": "Rastet e mia",
+      "description": "Rasti, veprimi i radhës dhe përditësimet.",
+      "disclaimer": "Vetëm udhëzim; pa rezultat të premtuar. Mund të duhet shqyrtim.",
+      "navigation": {
+        "label": "Shkurtore për anëtarin",
+        "help_now": "Ndihmë tani",
+        "documents": "Dokumentet",
+        "membership": "Anëtarësia"
+      },
+      "regions": {
+        "case": {
+          "label": "Rasti",
+          "loading": "Po ngarkohet",
+          "empty": "Nuk ka raste",
+          "error": "E padisponueshme"
+        },
+        "actions": {
+          "label": "Veprimet",
+          "loading": "Po ngarkohet",
+          "empty": "Nuk ka veprim",
+          "error": "E padisponueshme"
+        },
+        "updates": {
+          "label": "Përditësimet e fundit",
+          "loading": "Po ngarkohet",
+          "empty": "Nuk ka përditësime",
+          "error": "E padisponueshme"
+        }
+      },
+      "actions": {
+        "none": "Nisni draft — anëtarësia joaktive",
+        "active": "Nisni një rast",
+        "trialing": "Nisni një rast",
+        "active_in_grace": "Vazhdoni — pagesa kërkon vëmendje",
+        "grace_expired": "Nisni draft — toleranca përfundoi",
+        "scheduled_cancel": "Nisni rast — anëtarësia përfundon",
+        "canceled": "Nisni draft — anëtarësia u anulua"
+      }
+    },
     "activeClaims": "Kërkesat Aktive për Dëmshpërblim",
     "activeClaimsDesc": "Mosmarrëveshjet tuaja në vijim",
     "resolvedClaims": "Kërkesat e Zgjidhura për Dëmshpërblim",

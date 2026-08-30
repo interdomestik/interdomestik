@@ -14,6 +14,46 @@
       "empty_title": "Još uvek nema zahteva",
       "empty_body": "Kada podnesete svoj prvi zahtev, on će se pojaviti ovde."
     },
+    "portal": {
+      "title": "Moji slučajevi",
+      "description": "Slučaj, radnja i ažuriranja.",
+      "disclaimer": "Smernice bez obećanog ishoda. Možda treba provera.",
+      "navigation": {
+        "label": "Prečice",
+        "help_now": "Pomoć sada",
+        "documents": "Dokumenti",
+        "membership": "Članstvo"
+      },
+      "regions": {
+        "case": {
+          "label": "Slučaj",
+          "loading": "Učitavanje",
+          "empty": "Nema slučajeva",
+          "error": "Nedostupno"
+        },
+        "actions": {
+          "label": "Radnje",
+          "loading": "Učitavanje",
+          "empty": "Nema radnje",
+          "error": "Nedostupno"
+        },
+        "updates": {
+          "label": "Nedavna ažuriranja",
+          "loading": "Učitavanje",
+          "empty": "Nema ažuriranja",
+          "error": "Nedostupno"
+        }
+      },
+      "actions": {
+        "none": "Nacrt — članstvo nije aktivno",
+        "active": "Započnite slučaj",
+        "trialing": "Započnite slučaj",
+        "active_in_grace": "Nastavite — uplata traži pažnju",
+        "grace_expired": "Nacrt — tolerancija je istekla",
+        "scheduled_cancel": "Slučaj — članstvo se završava",
+        "canceled": "Nacrt — članstvo je otkazano"
+      }
+    },
     "activeClaims": "Aktivni zahtevi",
     "resolvedClaims": "Rešeni zahtevi",
     "pendingActions": "Radnje u toku",

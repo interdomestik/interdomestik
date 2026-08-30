@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { AccidentCaseSummary } from './accident-case-summary';
 import { caseKindRegistry } from './case-kind-registry';
+import { GenericCaseSummary } from './generic-case-summary';
 
 const summary = {
   caseKind: 'accident' as const,
@@ -12,6 +13,7 @@ const summary = {
   status: 'submitted' as const,
   documentCount: 0,
   nextStep: 'team_review' as const,
+  occurredAt: null,
 };
 const labels = {
   reference: 'Case reference',
@@ -26,6 +28,7 @@ const labels = {
 describe('caseKindRegistry', () => {
   it('registers the accident renderer exhaustively', () => {
     expect(caseKindRegistry.accident.component).toBe(AccidentCaseSummary);
+    expect(caseKindRegistry.generic.component).toBe(GenericCaseSummary);
   });
 
   it('renders semantic facts in source order with explicit zero and localized labels', () => {
@@ -45,7 +48,11 @@ describe('caseKindRegistry', () => {
   });
 
   it('keeps the unmounted leaf server-safe and boundary-clean', () => {
-    const source = ['accident-case-summary.tsx', 'case-kind-registry.ts']
+    const source = [
+      'accident-case-summary.tsx',
+      'case-kind-registry.ts',
+      'generic-case-summary.tsx',
+    ]
       .map(file => readFileSync(new URL(file, import.meta.url), 'utf8'))
       .join('\n');
     expect(source).not.toMatch(
