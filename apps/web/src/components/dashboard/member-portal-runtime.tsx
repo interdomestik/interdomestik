@@ -5,6 +5,7 @@ import * as PortalUi from '@interdomestik/ui';
 
 import type { CaseSummaryLabels } from '@/components/dashboard/case-summary/accident-case-summary';
 import { renderCaseSummary } from '@/components/dashboard/case-summary/case-kind-registry';
+import type { AppLocale } from '@/i18n/locales';
 import { Link } from '@/i18n/routing';
 
 import { MemberPortalRegionBoundary as Boundary } from './member-portal-region-boundary';
@@ -27,7 +28,7 @@ export type MemberPortalCopy = Readonly<{
 type CasesBound = Readonly<{ copy: MemberPortalCopy; promise: Promise<Member.CaseSummary[]> }>;
 type ActionsBound = Readonly<{
   copy: MemberPortalCopy;
-  locale: string;
+  locale: AppLocale;
   promise: Promise<Member.MemberPortalMembership>;
 }>;
 type RuntimeBound = Readonly<{
@@ -35,8 +36,7 @@ type RuntimeBound = Readonly<{
   membershipPromise: ActionsBound['promise'];
 }> &
   Pick<ActionsBound, 'copy' | 'locale'>;
-type UpdatesBound = CasesBound & { locale: string };
-
+type UpdatesBound = CasesBound & { locale: AppLocale };
 export async function PortalCasesRegion({ copy, promise }: CasesBound) {
   const summaries = await promise.catch(() => null);
   if (!summaries) return <Boundary copy={copy.regions.case} state="error" />;
