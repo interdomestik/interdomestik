@@ -3,7 +3,7 @@
   "sliceId": "T117B-PORTAL",
   "tier": 3,
   "baseSha": "10635007175e6348017c622c81f5c1917d347662",
-  "authorityArtifactSha256": "0c22cfc56b99608f4d53b5946d486221da777d76e1a7fc36bc777e1861b327a0",
+  "authorityArtifactSha256": "e287e9342aef6a2d63d1c20cc547b9d82f8587cd5956cf40a2d9bbe7800b3c6c",
   "productOutcomes": [
     "Build an unmounted accessible Unified Portal presentation that consumes T117B-DATA through Case, lifecycle-aware Actions and honest Recent case updates without issuing queries"
   ],

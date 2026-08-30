@@ -8,12 +8,9 @@ last_reviewed: 2026-08-30
 
 # IDA-DG58B — T117B-PORTAL
 
-> Status: approved sequential child gate. Tier 3. T117B-DATA product PR `#1658` merged as
-> `124ec51cefd022dd7103a4f958cb9ebef5427dad` with product tree
-> `728768ab05bc47a0f1cb25ec78ed6a6444264ffc`; closeout PR `#1662` merged as
-> `7919f531fffb8f79f14a24750f2bd4654000362d` and authority is inactive. No PORTAL runtime
-> authority exists before its exact promotion merge. Promotion base:
-> `10635007175e6348017c622c81f5c1917d347662`.
+> Status: approved Tier-3 child on base `10635007175e6348017c622c81f5c1917d347662`. DATA PR
+> `#1658` and closeout `#1662` are merged predecessors; authority is inactive. Runtime is denied
+> before promotion.
 
 ## Outcome
 

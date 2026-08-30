@@ -56,8 +56,8 @@ T-117C remain default-denied.
     "promotionPrNumber": 1665,
     "promotionBaseSha": "10635007175e6348017c622c81f5c1917d347662",
     "expectedProductBranch": "codex/t117b-portal",
-    "gateSha256": "0c22cfc56b99608f4d53b5946d486221da777d76e1a7fc36bc777e1861b327a0",
-    "admissionSha256": "4d591b1f3f31e5e006727a6bb969860b3cacc83686a2af2356bd80799a910f52",
+    "gateSha256": "e287e9342aef6a2d63d1c20cc547b9d82f8587cd5956cf40a2d9bbe7800b3c6c",
+    "admissionSha256": "50485c5b7ee68646c1f9454075c4245961fd38b11941bfcc7f0be8ef0a8bc82d",
     "productWriterPaths": [
       "apps/web/src/components/dashboard/case-summary/accident-case-summary.tsx",
       "apps/web/src/components/dashboard/case-summary/case-kind-registry.test.tsx",
