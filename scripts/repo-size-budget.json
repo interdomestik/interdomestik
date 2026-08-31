@@ -441,13 +441,13 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 469954,
+      "maxTrackedBytesDelta": 470957,
       "maxTrackedFilesDelta": 72,
       "maxCategoryBytesDelta": {
         "config/data/messages": 1000,
         "docs/text": 30439,
-        "tests/e2e": 196635,
-        "source/scripts": 241880
+        "tests/e2e": 196934,
+        "source/scripts": 242584
       },
       "maxPathBytesDelta": {
         ".github/workflows/ci.yml": 24,
@@ -506,12 +506,12 @@
         "scripts/slice-rehearse-operation-facts-schema.mjs": 7245,
         "scripts/slice-rehearse-operation-facts.mjs": 8299,
         "scripts/slice-rehearse-operation-facts.test.mjs": 5788,
-        "scripts/slice-rehearse-operation-live.mjs": 8838,
+        "scripts/slice-rehearse-operation-live.mjs": 9542,
         "scripts/slice-rehearse-operation-schema.mjs": 7557,
         "scripts/slice-rehearse-operations.test.mjs": 6269,
         "scripts/slice-rehearse-ops-cli.mjs": 3971,
         "scripts/slice-rehearse-ops.mjs": 1834,
-        "scripts/slice-rehearse-ops.test.mjs": 8778,
+        "scripts/slice-rehearse-ops.test.mjs": 9077,
         "scripts/slice-rehearse-projection.test.mjs": 11006,
         "scripts/slice-rehearse-proof-plan.mjs": 10005,
         "scripts/slice-rehearse-proof-plan.test.mjs": 7854,
@@ -547,15 +547,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60137009,
+  "maxTrackedBytes": 60138012,
   "maxTrackedFiles": 5937,
   "maxCategoryBytes": {
     "config/data/messages": 2160570,
     "docs/text": 8509839,
     "large support/generated-ish": 15390712,
     "other": 18856416,
-    "source/scripts": 8594211,
-    "tests/e2e": 6625261
+    "source/scripts": 8594915,
+    "tests/e2e": 6625560
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
