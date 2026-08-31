@@ -222,14 +222,14 @@ function pullOperation(request, certificate) {
       certificate,
     };
   }
-  if (request.operation === 'conditional_merge') {
+  if (request.operation === 'conditional_merge')
     return {
       binary: 'gh',
       args: [
         'pr',
         'merge',
         String(prNumber),
-        '--merge',
+        '--squash',
         '--match-head-commit',
         certificate.headSha,
       ],
@@ -237,7 +237,6 @@ function pullOperation(request, certificate) {
       boundary: 'pre_merge',
       certificate,
     };
-  }
   return {
     binary: 'gh',
     args: [

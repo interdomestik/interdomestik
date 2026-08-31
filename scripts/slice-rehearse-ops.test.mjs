@@ -9,6 +9,10 @@ import { buildSafeOperation, runSafeOperation } from './slice-rehearse-ops.mjs';
 const [head, base, tree] = ['a', 'b', 'c'].map(value => value.repeat(40));
 const writerMapDigest = 'd'.repeat(64);
 const origin = 'https://github.com/interdomestik/interdomestik.git';
+const branch = 'codex/harness-v2-1';
+const baseBranch = 'main';
+const prNumber = 1700;
+const build = buildSafeOperation;
 
 function certificate(overrides = {}) {
   const rehearsalReport = {
@@ -31,23 +35,23 @@ function certificate(overrides = {}) {
     baseSha: base,
     headSha: head,
     treeSha: tree,
-    branch: 'codex/harness-v2-1',
-    baseBranch: 'main',
+    branch,
+    baseBranch,
     writerMapDigest,
     reportSha256: rehearsalReport.reportSha256,
     rehearsalReport,
     expectedRemoteHeadSha: head,
-    prNumber: 1700,
-    allowedOperations: ['feedback_comment', 'label_add', 'pr_create'],
+    prNumber,
+    allowedOperations: ['conditional_merge', 'feedback_comment', 'label_add', 'pr_create'],
     artifacts: { 'feedback.md': sha256('feedback'), 'pr.md': sha256('pr body') },
     ...overrides,
   };
   value.approvalBindingSha256 = operationApprovalBinding(value);
-  return { value, sha256: sha256(canonicalJson(value)) };
+  return value;
 }
 
 function authorityFields(overrides = {}) {
-  const cert = certificate(overrides.certificate).value;
+  const cert = certificate(overrides.certificate);
   return {
     approvalEnvelopeId: cert.approvalEnvelopeId,
     expectedHeadSha: cert.headSha,
@@ -62,13 +66,13 @@ const liveFacts = {
   baseSha: base,
   headSha: head,
   treeSha: tree,
-  branch: 'codex/harness-v2-1',
+  branch,
   remoteHeadSha: head,
   writerMapDigest,
   pr: {
-    number: 1700,
-    baseBranch: 'main',
-    branch: 'codex/harness-v2-1',
+    number: prNumber,
+    baseBranch,
+    branch,
     headSha: head,
     origin: 'interdomestik/interdomestik',
   },
@@ -82,46 +86,46 @@ test('bounds the GitHub provider subprocess environment', () => {
   const repo = live.normalizeHeadRepository({ name: 'r', nameWithOwner: '' }, { login: 'o' });
   assert.equal(repo, 'o/r');
 });
-
 test('builds copy-safe PR, label, feedback, and telemetry argv without a shell', () => {
-  const create = buildSafeOperation({
+  const create = build({
     operation: 'pr_create',
     ...authorityFields({ certificate: { prNumber: null }, request: {} }),
-    branch: 'codex/harness-v2-1',
-    baseBranch: 'main',
+    branch,
+    baseBranch,
     title: 'feat: harness v2.1',
     bodyArtifact: 'pr.md',
   });
   assert.equal(create.binary, 'gh');
   assert.equal(create.mutating, true);
-  assert.deepEqual(create.args.slice(0, 6), [
-    'pr',
-    'create',
-    '--head',
-    'codex/harness-v2-1',
-    '--base',
-    'main',
-  ]);
+  assert.deepEqual(create.args.slice(0, 6), ['pr', 'create', '--head', branch, '--base', 'main']);
   assert.match(create.args.at(-1), /\/\.cache\/interdomestik-harness-operations\/pr\.md$/u);
   assert.deepEqual(
-    buildSafeOperation({
+    build({
       operation: 'label_add',
       ...authorityFields(),
-      prNumber: 1700,
+      prNumber,
       label: 'full-gate',
     }).args,
     ['pr', 'edit', '1700', '--add-label', 'full-gate']
   );
-  const feedback = buildSafeOperation({
+  const feedback = build({
     operation: 'feedback_comment',
     ...authorityFields(),
-    prNumber: 1700,
+    prNumber,
     bodyArtifact: 'feedback.md',
   });
   assert.deepEqual(feedback.args.slice(0, 4), ['pr', 'comment', '1700', '--body-file']);
   assert.match(feedback.args.at(-1), /\/\.cache\/interdomestik-harness-operations\/feedback\.md$/u);
+  assert.deepEqual(build({ operation: 'conditional_merge', ...authorityFields(), prNumber }).args, [
+    'pr',
+    'merge',
+    '1700',
+    '--squash',
+    '--match-head-commit',
+    head,
+  ]);
   assert.deepEqual(
-    buildSafeOperation({
+    build({
       operation: 'telemetry_summarize',
       inputPath: '/private/tmp/events.jsonl',
     }),
@@ -132,7 +136,7 @@ test('builds copy-safe PR, label, feedback, and telemetry argv without a shell',
     }
   );
   assert.deepEqual(
-    buildSafeOperation({
+    build({
       operation: 'telemetry_record',
       eventPath: '/private/tmp/event.json',
       ledgerPath: '/private/tmp/events.jsonl',
@@ -150,12 +154,11 @@ test('builds copy-safe PR, label, feedback, and telemetry argv without a shell',
     }
   );
 });
-
 test('checks exact head before mutation and reconciles a failed writer once', () => {
   const request = {
     operation: 'label_add',
     ...authorityFields(),
-    prNumber: 1700,
+    prNumber,
     label: 'full-gate',
   };
   assert.throws(
@@ -173,8 +176,8 @@ test('checks exact head before mutation and reconciles a failed writer once', ()
         {
           operation: 'pr_create',
           ...authorityFields({ certificate: { prNumber: null }, request: {} }),
-          branch: 'codex/harness-v2-1',
-          baseBranch: 'main',
+          branch,
+          baseBranch,
           title: 'feat: harness v2.1',
           bodyArtifact: 'pr.md',
         },
@@ -198,7 +201,6 @@ test('checks exact head before mutation and reconciles a failed writer once', ()
   assert.equal(result.status, 'failed_not_applied');
   assert.equal(reconciliations, 1);
 });
-
 test('updates an existing exact PR from its bound remote preimage', () => {
   const oldHead = '8'.repeat(40);
   const request = {
@@ -209,7 +211,7 @@ test('updates an existing exact PR from its bound remote preimage', () => {
         allowedOperations: ['branch_push'],
       },
     }),
-    branch: 'codex/harness-v2-1',
+    branch,
   };
   const result = runSafeOperation(request, {
     readLiveFacts: () => ({
@@ -223,7 +225,6 @@ test('updates an existing exact PR from its bound remote preimage', () => {
   });
   assert.equal(result.status, 'succeeded');
 });
-
 test('rejects shell-shaped or under-specified writer requests', () => {
   assert.throws(
     () =>
@@ -245,12 +246,11 @@ test('rejects shell-shaped or under-specified writer requests', () => {
     /keys|body/u
   );
 });
-
 test('rejects forged certificates, arbitrary local body files, and unavailable live provider facts', () => {
   const request = {
     operation: 'feedback_comment',
     ...authorityFields(),
-    prNumber: 1700,
+    prNumber,
     bodyArtifact: 'feedback.md',
   };
   assert.throws(
@@ -286,7 +286,7 @@ test('preserves unknown failed-mutation reconciliation instead of claiming succe
   const request = {
     operation: 'label_add',
     ...authorityFields(),
-    prNumber: 1700,
+    prNumber,
     label: 'full-gate',
   };
   const result = runSafeOperation(request, {
