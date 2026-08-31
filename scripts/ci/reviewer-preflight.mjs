@@ -21,6 +21,25 @@ const ENV_OR_FALLBACK_PATTERN = /process\.env\.[A-Z0-9_]+\s*\|\|\s*['"`]/u;
 const TEST_ONLY_VALUE_PATTERN =
   /(test-secret-for-(?:ci|local)|dummy-token|NEXT_PUBLIC_BILLING_TEST_MODE\s*[:=]\s*['"]?1)/u;
 const ENV_ESCAPE_PATTERN = /\$[A-Z][A-Z0-9_]*|\$\{[A-Z][A-Z0-9_]*\}|process\.env\.[A-Z0-9_]+/u;
+const HARNESS_SCRIPT_PATTERN = /^scripts\/.*\.[cm]?js$/u;
+const HARNESS_HAZARDS = [
+  {
+    pattern: /\?[^:\n]+:[^?\n]+\?[^:\n]+:/u,
+    message: 'contains a nested ternary; extract the decision into explicit branches.',
+  },
+  {
+    pattern: /['"]\/private\/tmp\//u,
+    message: 'uses a publicly writable temporary root for a trusted artifact.',
+  },
+  {
+    pattern: /\.sort\([^)]*\)\s*\.\w+/u,
+    message: 'chains from mutating sort; copy or use toSorted before selection.',
+  },
+  {
+    pattern: /\b(?:execFileSync|spawnSync)\(\s*['"][^/]/u,
+    message: 'launches a command without an absolute executable path.',
+  },
+];
 
 function isSourceFile(file) {
   return SOURCE_EXTENSIONS.has(path.extname(file));
@@ -108,26 +127,46 @@ function inspectDeploymentConfig(file, findings) {
   }
 }
 
+function recordsForFile(file, inspectWholeFile) {
+  if (!inspectWholeFile) return changedLineRecords(file);
+  return fs
+    .readFileSync(file, 'utf8')
+    .split('\n')
+    .map((text, index) => ({ line: index + 1, text }));
+}
+
+function inspectHarnessScript(file, findings, inspectWholeFile) {
+  if (
+    !HARNESS_SCRIPT_PATTERN.test(file) ||
+    TEST_OR_CONFIG_PATTERN.test(file) ||
+    file === 'scripts/ci/reviewer-preflight.mjs' ||
+    !fs.existsSync(file)
+  ) {
+    return;
+  }
+  const records = recordsForFile(file, inspectWholeFile);
+  const content = records.map(record => record.text).join('\n');
+  for (const hazard of HARNESS_HAZARDS) {
+    const match = hazard.pattern.exec(content);
+    if (match) {
+      addFinding(findings, file, hazard.message, lineForRecordsOffset(records, match.index));
+    }
+  }
+}
+
 function inspectFile(file, findings, warnings, inspectWholeFile) {
   if (PROTECTED_PATHS.has(file)) {
     addFinding(findings, file, 'changes Phase C routing authority; this needs explicit review.', 1);
   }
   inspectSensitivePath(file, warnings);
   inspectDeploymentConfig(file, findings);
+  inspectHarnessScript(file, findings, inspectWholeFile);
 
   if (!isProductionAppSource(file) || !fs.existsSync(file)) {
     return;
   }
 
-  const records = inspectWholeFile
-    ? fs
-        .readFileSync(file, 'utf8')
-        .split('\n')
-        .map((text, index) => ({
-          line: index + 1,
-          text,
-        }))
-    : changedLineRecords(file);
+  const records = recordsForFile(file, inspectWholeFile);
 
   if (records.length === 0) {
     return;

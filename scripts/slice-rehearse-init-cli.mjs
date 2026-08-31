@@ -109,7 +109,7 @@ function writeManifestOutput(outputPath, content, cwd) {
   const target = resolve(cwd, outputPath);
   const roots = [cwd, tmpdir(), '/private/tmp'].map(root => resolve(root));
   const trustedRoot = roots
-    .sort((left, right) => right.length - left.length)
+    .toSorted((left, right) => right.length - left.length)
     .find(root => target.startsWith(`${root}${sep}`));
   canonical.must(trustedRoot, 'manifest output must stay inside a trusted root');
   const trustedPath = trustedRunnerFile(target, { runnerTemp: trustedRoot });

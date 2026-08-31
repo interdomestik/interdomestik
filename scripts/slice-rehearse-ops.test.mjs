@@ -102,7 +102,7 @@ test('builds copy-safe PR, label, feedback, and telemetry argv without a shell',
     '--base',
     'main',
   ]);
-  assert.equal(create.args.at(-1), '/private/tmp/interdomestik-harness-operations/pr.md');
+  assert.match(create.args.at(-1), /\/\.cache\/interdomestik-harness-operations\/pr\.md$/u);
   assert.deepEqual(
     buildSafeOperation({
       operation: 'label_add',
@@ -119,7 +119,7 @@ test('builds copy-safe PR, label, feedback, and telemetry argv without a shell',
     bodyArtifact: 'feedback.md',
   });
   assert.deepEqual(feedback.args.slice(0, 4), ['pr', 'comment', '1700', '--body-file']);
-  assert.equal(feedback.args.at(-1), '/private/tmp/interdomestik-harness-operations/feedback.md');
+  assert.match(feedback.args.at(-1), /\/\.cache\/interdomestik-harness-operations\/feedback\.md$/u);
   assert.deepEqual(
     buildSafeOperation({
       operation: 'telemetry_summarize',

@@ -1,3 +1,4 @@
+import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 
 import {
@@ -16,7 +17,11 @@ const ENVELOPE = /^[A-Z0-9][A-Z0-9-]*-(?:DELIVERY|REVIEW-FIX|ULTRA-REMEDIATION)-
 const CERTIFICATE_ID = /^[A-Z0-9][A-Z0-9-]*-CERT-[1-9]\d*$/u;
 const LABEL = /^[a-z0-9][a-z0-9_-]{0,63}$/u;
 const SHA256 = /^[0-9a-f]{64}$/u;
-export const OPERATION_ARTIFACT_ROOT = '/private/tmp/interdomestik-harness-operations';
+export const OPERATION_ARTIFACT_ROOT = resolve(
+  homedir(),
+  '.cache',
+  'interdomestik-harness-operations'
+);
 const AUTHORITY_FIELDS = [
   'approvalEnvelopeId',
   'authorityCertificate',

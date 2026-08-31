@@ -229,71 +229,62 @@ export function executeOperation(binary, args) {
   });
 }
 
-export function reconcileOperation(request, certificate) {
-  try {
-    if (request.operation === 'branch_push') {
-      return {
-        outcome:
-          lsRemote(`refs/heads/${certificate.branch}`) === certificate.headSha
-            ? 'applied'
-            : 'not_applied',
-      };
-    }
-    if (request.operation === 'pr_create') {
-      const pull = readPrForBranch(certificate);
-      return {
-        outcome:
-          pull?.headSha === certificate.headSha &&
-          pull.branch === certificate.branch &&
-          pull.baseBranch === certificate.baseBranch
-            ? 'applied'
-            : 'not_applied',
-        prNumber: pull?.number ?? null,
-      };
-    }
-    if (request.operation === 'label_add') {
-      const labels = JSON.parse(
-        execFileSync(
-          resolveGhBinary(),
-          ['pr', 'view', String(request.prNumber), '--json', 'labels', '--jq', '[.labels[].name]'],
-          providerExecOptions()
-        )
-      );
-      return { outcome: labels.includes(request.label) ? 'applied' : 'not_applied' };
-    }
-    if (request.operation === 'feedback_comment') {
-      const comments = JSON.parse(
-        execFileSync(
-          resolveGhBinary(),
-          [
-            'api',
-            `repos/interdomestik/interdomestik/issues/${request.prNumber}/comments?per_page=100`,
-            '--paginate',
-          ],
-          providerExecOptions()
-        )
-      );
-      const expected = certificate.artifacts[request.bodyArtifact];
-      return {
-        outcome: comments.some(comment => sha256(comment?.body ?? '') === expected)
-          ? 'applied'
-          : 'not_applied',
-      };
-    }
-    const merge = JSON.parse(
+function reconciliationOutcome(applied) {
+  return applied ? 'applied' : 'not_applied';
+}
+
+function reconcilePullCreation(certificate) {
+  const pull = readPrForBranch(certificate);
+  const applied =
+    pull?.headSha === certificate.headSha &&
+    pull.branch === certificate.branch &&
+    pull.baseBranch === certificate.baseBranch;
+  return { outcome: reconciliationOutcome(applied), prNumber: pull?.number ?? null };
+}
+
+function reconcilePullMutation(request, certificate) {
+  if (request.operation === 'label_add') {
+    const labels = JSON.parse(
       execFileSync(
         resolveGhBinary(),
-        ['pr', 'view', String(request.prNumber), '--json', 'state,mergedAt,mergeCommit'],
+        ['pr', 'view', String(request.prNumber), '--json', 'labels', '--jq', '[.labels[].name]'],
         providerExecOptions()
       )
     );
+    return { outcome: reconciliationOutcome(labels.includes(request.label)) };
+  }
+  if (request.operation === 'feedback_comment') {
+    const endpoint = `repos/interdomestik/interdomestik/issues/${request.prNumber}/comments?per_page=100`;
+    const comments = JSON.parse(
+      execFileSync(resolveGhBinary(), ['api', endpoint, '--paginate'], providerExecOptions())
+    );
+    const expected = certificate.artifacts[request.bodyArtifact];
     return {
-      outcome:
-        merge.state === 'MERGED' && merge.mergedAt && /^[0-9a-f]{40}$/u.test(merge.mergeCommit?.oid)
-          ? 'applied'
-          : 'not_applied',
-      mergeSha: merge.mergeCommit?.oid ?? null,
+      outcome: reconciliationOutcome(
+        comments.some(comment => sha256(comment?.body ?? '') === expected)
+      ),
     };
+  }
+  const merge = JSON.parse(
+    execFileSync(
+      resolveGhBinary(),
+      ['pr', 'view', String(request.prNumber), '--json', 'state,mergedAt,mergeCommit'],
+      providerExecOptions()
+    )
+  );
+  const applied =
+    merge.state === 'MERGED' && merge.mergedAt && /^[0-9a-f]{40}$/u.test(merge.mergeCommit?.oid);
+  return { outcome: reconciliationOutcome(applied), mergeSha: merge.mergeCommit?.oid ?? null };
+}
+
+export function reconcileOperation(request, certificate) {
+  try {
+    if (request.operation === 'branch_push') {
+      const remote = lsRemote(`refs/heads/${certificate.branch}`);
+      return { outcome: reconciliationOutcome(remote === certificate.headSha) };
+    }
+    if (request.operation === 'pr_create') return reconcilePullCreation(certificate);
+    return reconcilePullMutation(request, certificate);
   } catch {
     return { outcome: 'unknown' };
   }

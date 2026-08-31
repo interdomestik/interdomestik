@@ -146,7 +146,9 @@ export function summarizeTelemetryV2(input) {
       slice.heavyProofs > 0 &&
       Object.keys(slice.blockerDistribution).length === 0
   );
-  targets.allPassed = targets.metTargetsSoFar === false ? false : terminalComplete ? true : null;
+  targets.allPassed = null;
+  if (targets.metTargetsSoFar === false) targets.allPassed = false;
+  else if (terminalComplete) targets.allPassed = true;
   return {
     schemaVersion: 2,
     sliceCount: slices.length,

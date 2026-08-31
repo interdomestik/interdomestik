@@ -7,6 +7,7 @@ import test from 'node:test';
 import { canonicalJson, deriveEvidenceIdentityKey, sha256 } from './slice-rehearse-canonical.mjs';
 import {
   assertHeavyProofExecution,
+  executePnpmProof,
   planInvalidatedProofs,
   recordHeavyProofExecution,
   runHeavyProofExecution,
@@ -128,6 +129,28 @@ test('the proof executor runs only the fixed lane commands after claiming the ev
       }),
     /outside the invalidated-only plan/u
   );
+});
+
+test('the default proof command uses absolute runtimes and a fixed non-writable PATH', () => {
+  const calls = [];
+  const result = executePnpmProof(['test:harness-v2'], {
+    nodePath: '/trusted/bin/node',
+    npmExecPath: '/trusted/lib/pnpm.cjs',
+    spawn: (binary, args, options) => {
+      calls.push({ binary, args, options });
+      return { status: 0 };
+    },
+  });
+
+  assert.equal(result.status, 0);
+  assert.equal(calls[0].binary, '/trusted/bin/node');
+  assert.deepEqual(calls[0].args, ['/trusted/lib/pnpm.cjs', 'test:harness-v2']);
+  assert.deepEqual(calls[0].options.env, { PATH: '/usr/bin:/bin:/usr/sbin:/sbin' });
+  assert.equal(calls[0].options.shell, false);
+});
+
+test('the default proof command resolves pnpm beside the active Node runtime', () => {
+  assert.equal(executePnpmProof(['--version']).status, 0);
 });
 
 test('records and executes a planned proof through the copy-safe CLI contract', () => {

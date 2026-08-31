@@ -35,7 +35,9 @@ const SAFE_GIT = Object.freeze({
 function inspectCleanupPath(path) {
   const value = lstatSync(path, { bigint: true, throwIfNoEntry: false });
   must(value && !value.isSymbolicLink(), `cleanup target is unavailable or unsafe: ${path}`);
-  const type = value.isDirectory() ? 'directory' : value.isFile() ? 'file' : null;
+  let type = null;
+  if (value.isDirectory()) type = 'directory';
+  else if (value.isFile()) type = 'file';
   must(type, `cleanup target type is unsupported: ${path}`);
   return {
     realPath: realpathSync(path),

@@ -81,7 +81,9 @@ function inspectArtifact(repository, path, taskId) {
       return { exists: false, ownerTaskId: null, safeToDiscard: false };
     }
     const value = lstatSync(path, { bigint: true, throwIfNoEntry: false });
-    const type = value?.isDirectory() ? 'directory' : value?.isFile() ? 'file' : null;
+    let type = null;
+    if (value?.isDirectory()) type = 'directory';
+    else if (value?.isFile()) type = 'file';
     const exact =
       value &&
       !value.isSymbolicLink() &&

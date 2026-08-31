@@ -10,9 +10,8 @@ import {
   writeSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { resolve, sep } from 'node:path';
+import { dirname, isAbsolute, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-
 import {
   canonicalize,
   canonicalJson,
@@ -24,7 +23,6 @@ import {
   sha256,
 } from './slice-rehearse-canonical.mjs';
 import { trustedRunnerFile } from './ci/trusted-runner-file.mjs';
-
 const KEY = /^[0-9a-f]{64}$/u;
 export function planInvalidatedProofs({
   requiredLanes,
@@ -75,7 +73,6 @@ export function planInvalidatedProofs({
       }),
   };
 }
-
 const EXECUTION_KEYS = ['evidenceKey', 'lane', 'runId', 'startedAt'];
 const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{2,127}$/u;
 const LANE = /^[a-z0-9][a-z0-9:_-]*$/u;
@@ -195,26 +192,34 @@ export function recordHeavyProofExecution({
     }
   }
 }
-
 const PROOF_COMMANDS = Object.freeze({
-  'pr-e2e': Object.freeze([
-    Object.freeze(['e2e:gate:pr']),
-    Object.freeze(['--filter', '@interdomestik/web', 'run', 'e2e:smoke']),
-  ]),
+  'pr-e2e': Object.freeze(
+    [['e2e:gate:pr'], ['--filter', '@interdomestik/web', 'run', 'e2e:smoke']].map(Object.freeze)
+  ),
 });
+const defaultPnpm = () => process.env.npm_execpath ?? resolve(dirname(process.execPath), 'pnpm');
+const isTrustedPnpm = path => isAbsolute(path ?? '') && /\/pnpm(?:\.[cm]?js)?$/u.test(path);
+export function executePnpmProof(
+  args,
+  { nodePath = process.execPath, npmExecPath = defaultPnpm(), spawn = spawnSync } = {}
+) {
+  must(isAbsolute(nodePath), 'trusted Node runtime is unavailable');
+  must(isTrustedPnpm(npmExecPath), 'trusted pnpm runtime is unavailable');
+  return spawn(nodePath, [npmExecPath, ...args], {
+    cwd: process.cwd(),
+    encoding: 'utf8',
+    env: { PATH: '/usr/bin:/bin:/usr/sbin:/sbin' },
+    shell: false,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    timeout: 90 * 60_000,
+  });
+}
 export function runHeavyProofExecution({
   ledgerPath,
   execution,
   report,
   allowedRoots,
-  execute = args =>
-    spawnSync('pnpm', args, {
-      cwd: process.cwd(),
-      encoding: 'utf8',
-      shell: false,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      timeout: 90 * 60_000,
-    }),
+  execute = executePnpmProof,
   verifyCandidate,
 }) {
   const value = validateProofExecutionPlan(report, execution, verifyCandidate);
@@ -235,7 +240,6 @@ export function runHeavyProofExecution({
   }
   return { lane: value.lane, runId: value.runId, status: 'succeeded' };
 }
-
 function parseRecordArgs(argv) {
   must(
     argv.length === 6 &&
@@ -247,7 +251,6 @@ function parseRecordArgs(argv) {
   must(argv[1] && argv[3] && argv[5], 'usage: --report <path> --execution <path> --ledger <path>');
   return { reportPath: argv[1], executionPath: argv[3], ledgerPath: argv[5] };
 }
-
 export function runHeavyProofRecordCli({
   argv = process.argv.slice(2),
   cwd = process.cwd(),
@@ -285,7 +288,6 @@ export function runHeavyProofRecordCli({
     return 1;
   }
 }
-
 export function assertHeavyProofExecution({ evidenceKey, ledger }) {
   must(KEY.test(evidenceKey ?? ''), 'heavy proof evidence key is invalid');
   must(ledger instanceof Set, 'heavy proof ledger is unavailable');
@@ -293,7 +295,6 @@ export function assertHeavyProofExecution({ evidenceKey, ledger }) {
   ledger.add(evidenceKey);
   return true;
 }
-
 if (resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
   process.exitCode = runHeavyProofRecordCli();
 }

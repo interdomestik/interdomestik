@@ -46,7 +46,7 @@ function stopWhenOver(stops, code, actual, limit) {
 }
 
 function evaluateWriterPlan(plan, repository, budget, authorityStops, deficits) {
-  const modularity = canonicalModularityForPath(plan.path, plan.change);
+  const modularity = canonicalModularityForPath(plan.path);
   const actualLines = repository.writerLineCounts[plan.path] ?? 0;
   const delta = repository.writerDeltas[plan.path];
   if (Number.isInteger(modularity.maxLines) && actualLines > plan.maxLines) {

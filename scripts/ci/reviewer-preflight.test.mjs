@@ -247,3 +247,30 @@ test('review preflight warns on auth and tenant sensitive paths', () => {
     assert.match(result.stdout, /review-preflight passed/u);
   });
 });
+
+test('review preflight blocks predictable Sonar hazards in changed harness code', () => {
+  withTempRepo(root => {
+    writeFile(root, 'scripts/example.mjs', 'export const baseline = true;\n');
+    commitAll(root, 'initial');
+    writeFile(
+      root,
+      'scripts/example.mjs',
+      [
+        "import { spawnSync } from 'node:child_process';",
+        "export const root = '/private/tmp/public-artifacts';",
+        "export const type = value.ok ? 'ok' : value.bad ? 'bad' : null;",
+        'export const selected = values.sort().find(Boolean);',
+        "spawnSync('pnpm', ['test']);",
+        '',
+      ].join('\n')
+    );
+
+    const result = runPreflight(root);
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /nested ternary/u);
+    assert.match(result.stderr, /publicly writable temporary root/u);
+    assert.match(result.stderr, /mutating sort/u);
+    assert.match(result.stderr, /absolute executable/u);
+  });
+});

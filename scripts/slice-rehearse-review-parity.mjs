@@ -32,7 +32,7 @@ function portal(catalog) {
 function leaves(value, prefix = '') {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return [[prefix, value]];
   return Object.keys(value)
-    .sort(compareText)
+    .toSorted(compareText)
     .flatMap(key => leaves(value[key], prefix ? `${prefix}.${key}` : key));
 }
 
@@ -118,6 +118,50 @@ export function reviewDashboardLocaleParity(catalogs) {
   return { paths: [...DASHBOARD_LOCALE_PATHS], leafCount: referenceLeaves.length, findings };
 }
 
+function jsxAttributes(node) {
+  return new Map(
+    node.attributes.properties
+      .filter(ts.isJsxAttribute)
+      .map(attribute => [attribute.name.text, attribute.initializer])
+  );
+}
+
+function literalAttribute(attributes, name) {
+  const initializer = attributes.get(name);
+  return initializer && ts.isStringLiteral(initializer) ? initializer.text : null;
+}
+
+function hasAccessibleName(attributes, children, file) {
+  if (['aria-label', 'aria-labelledby', 'title'].some(name => attributes.has(name))) return true;
+  return children.some(child => {
+    if (ts.isJsxText(child)) return child.text.trim().length > 0;
+    if (!ts.isJsxExpression(child)) return false;
+    return (
+      child.expression && !['false', 'null', 'undefined'].includes(child.expression.getText(file))
+    );
+  });
+}
+
+function inspectJsxNode(node, file, findings) {
+  if (!ts.isJsxElement(node) && !ts.isJsxSelfClosingElement(node)) return;
+  const opening = ts.isJsxElement(node) ? node.openingElement : node;
+  const name = opening.tagName.getText(file);
+  const attributes = jsxAttributes(opening);
+  const children = ts.isJsxElement(node) ? node.children : [];
+  if (name === 'div' && literalAttribute(attributes, 'role') === 'heading') {
+    findings.push('use a semantic heading element instead of div role=heading');
+  }
+  if (['a', 'Link'].includes(name) && literalAttribute(attributes, 'target') === '_blank') {
+    const rel = literalAttribute(attributes, 'rel') ?? '';
+    if (!rel.split(/\s+/u).includes('noopener')) {
+      findings.push('target=_blank links require rel=noopener');
+    }
+  }
+  if (['button', 'Button'].includes(name) && !hasAccessibleName(attributes, children, file)) {
+    findings.push('button requires an accessible name');
+  }
+}
+
 export function inspectAccessibilityContracts(source) {
   must(typeof source === 'string', 'accessibility source is unavailable');
   const findings = [];
@@ -128,45 +172,8 @@ export function inspectAccessibilityContracts(source) {
     true,
     ts.ScriptKind.TSX
   );
-  const attributes = node =>
-    new Map(
-      node.attributes.properties
-        .filter(ts.isJsxAttribute)
-        .map(attribute => [attribute.name.text, attribute.initializer])
-    );
-  const literalAttribute = (attrs, name) => {
-    const initializer = attrs.get(name);
-    return initializer && ts.isStringLiteral(initializer) ? initializer.text : null;
-  };
-  const hasAccessibleName = (attrs, children) => {
-    if (['aria-label', 'aria-labelledby', 'title'].some(name => attrs.has(name))) return true;
-    return children.some(child => {
-      if (ts.isJsxText(child)) return child.text.trim().length > 0;
-      if (!ts.isJsxExpression(child)) return false;
-      return (
-        child.expression && !['false', 'null', 'undefined'].includes(child.expression.getText(file))
-      );
-    });
-  };
   const visit = node => {
-    if (ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node)) {
-      const opening = ts.isJsxElement(node) ? node.openingElement : node;
-      const name = opening.tagName.getText(file);
-      const attrs = attributes(opening);
-      const children = ts.isJsxElement(node) ? node.children : [];
-      if (name === 'div' && literalAttribute(attrs, 'role') === 'heading') {
-        findings.push('use a semantic heading element instead of div role=heading');
-      }
-      if (['a', 'Link'].includes(name) && literalAttribute(attrs, 'target') === '_blank') {
-        const rel = literalAttribute(attrs, 'rel') ?? '';
-        if (!rel.split(/\s+/u).includes('noopener')) {
-          findings.push('target=_blank links require rel=noopener');
-        }
-      }
-      if (['button', 'Button'].includes(name) && !hasAccessibleName(attrs, children)) {
-        findings.push('button requires an accessible name');
-      }
-    }
+    inspectJsxNode(node, file, findings);
     ts.forEachChild(node, visit);
   };
   visit(file);

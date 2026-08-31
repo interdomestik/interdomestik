@@ -40,7 +40,7 @@ function parseNameStatusZ(value) {
   const files = [];
   for (let index = 0; index < tokens.length;) {
     const status = tokens[index++];
-    if (!/^[ACDMRTUXB][0-9]*$/u.test(status)) throw new Error('git name-status output is invalid');
+    if (!/^[ACDMRTUXB]\d*$/u.test(status)) throw new Error('git name-status output is invalid');
     const first = tokens[index++];
     if (!first) throw new Error('git name-status path is missing');
     files.push(first);
