@@ -5,6 +5,7 @@ import {
   validateCapacityBudget,
 } from './repo-size-capacity-schema.mjs';
 import { canonicalJson, sha256 } from './slice-rehearse-canonical.mjs';
+import { withoutDerivedCapacityFields } from './slice-rehearse-capacity-comparison.mjs';
 
 const BUDGET_PATH = 'scripts/repo-size-budget.json';
 const CAPACITY_REBASE_ID = 'capacity-rebase';
@@ -41,9 +42,12 @@ function updateBudgetSelfSize(value, delta) {
   allocation.categoryBytesDelta['config/data/messages'] += adjustment;
 }
 
-function candidateAt(budget, allocation, selfBytesDelta) {
+function candidateAt(budget, allocation, selfBytesDelta, replaceExisting) {
   const candidate = structuredClone(budget);
   updateBudgetSelfSize(candidate, selfBytesDelta);
+  if (replaceExisting) {
+    candidate.allocations = candidate.allocations.filter(item => item.id !== allocation.id);
+  }
   candidate.allocations.push(structuredClone(allocation));
   deriveCeilings(candidate);
   validateCapacityBudget(candidate);
@@ -94,24 +98,6 @@ export function unchangedBudgetProposal({
   };
 }
 
-function withoutDerivedFields(value, allocationId) {
-  const normalized = structuredClone(value);
-  normalized.allocations = normalized.allocations
-    .filter(allocation => allocation.id !== allocationId)
-    .map(allocation => {
-      if (allocation.id !== CAPACITY_REBASE_ID || allocation.mode !== 'exact') return allocation;
-      const budgetBytes = allocation.pathBytesDelta[BUDGET_PATH];
-      allocation.pathBytesDelta[BUDGET_PATH] = 0;
-      allocation.trackedBytesDelta -= budgetBytes;
-      allocation.categoryBytesDelta['config/data/messages'] -= budgetBytes;
-      return allocation;
-    });
-  normalized.maxTrackedBytes = 0;
-  normalized.maxTrackedFiles = 0;
-  normalized.maxCategoryBytes = {};
-  return normalized;
-}
-
 function budgetState(worktreeBytes, protectedBytes, candidateBytes) {
   if (worktreeBytes === candidateBytes) return 'candidate-exact';
   if (worktreeBytes === protectedBytes) return 'protected-exact';
@@ -133,8 +119,8 @@ export function compareWorktreeBudget({
   const derivedRebind =
     state === 'drift' &&
     proposal.mode === 'derived' &&
-    canonicalJson(withoutDerivedFields(worktreeBudget, proposal.allocation.id)) ===
-      canonicalJson(withoutDerivedFields(protectedBudget, proposal.allocation.id));
+    canonicalJson(withoutDerivedCapacityFields(worktreeBudget, proposal.allocation.id)) ===
+      canonicalJson(withoutDerivedCapacityFields(protectedBudget, proposal.allocation.id));
   if (derivedRebind) {
     deficits.push({
       code: 'capacity:worktree-budget-rebind',
@@ -162,13 +148,23 @@ export function compareWorktreeBudget({
   };
 }
 
-export function deriveCapacityFixedPoint({ budget, allocation, baselineBudgetBytes }) {
+export function deriveCapacityFixedPoint({
+  budget,
+  allocation,
+  baselineBudgetBytes,
+  replaceExisting = false,
+}) {
   const original = budget.allocations.find(item => item.id === CAPACITY_REBASE_ID);
   let selfBytesDelta = original.pathBytesDelta[BUDGET_PATH];
   const observed = new Set();
   for (let iteration = 1; iteration <= 64; iteration += 1) {
     observed.add(selfBytesDelta);
-    const { candidate, budgetBytes } = candidateAt(budget, allocation, selfBytesDelta);
+    const { candidate, budgetBytes } = candidateAt(
+      budget,
+      allocation,
+      selfBytesDelta,
+      replaceExisting
+    );
     const nextDelta = Buffer.byteLength(budgetBytes) - baselineBudgetBytes;
     if (nextDelta < 0) throw new Error('derived budget self-size is negative');
     if (nextDelta === selfBytesDelta) return result(candidate, budgetBytes, selfBytesDelta);
@@ -177,11 +173,11 @@ export function deriveCapacityFixedPoint({ budget, allocation, baselineBudgetByt
     selfBytesDelta = nextDelta;
   }
   let upperBound = Math.max(...observed);
-  let upper = candidateAt(budget, allocation, upperBound);
+  let upper = candidateAt(budget, allocation, upperBound, replaceExisting);
   let observedDelta = Buffer.byteLength(upper.budgetBytes) - baselineBudgetBytes;
   for (let iteration = 0; observedDelta > upperBound && iteration < 64; iteration += 1) {
     upperBound = observedDelta;
-    upper = candidateAt(budget, allocation, upperBound);
+    upper = candidateAt(budget, allocation, upperBound, replaceExisting);
     observedDelta = Buffer.byteLength(upper.budgetBytes) - baselineBudgetBytes;
   }
   return result(upper.candidate, upper.budgetBytes, upperBound, [

@@ -1,16 +1,32 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
 import { canonicalJson } from './slice-rehearse-canonical.mjs';
+import {
+  OPERATION_ARTIFACT_ROOT,
+  operationBodyArtifact,
+} from './slice-rehearse-operation-certificate.mjs';
 import { collectOperationFacts } from './slice-rehearse-operation-facts.mjs';
 import { runSliceRehearsal } from './slice-rehearse.mjs';
 
 const GIT = '/usr/bin/git';
 const ENV = Object.freeze({ PATH: '/usr/bin:/bin:/usr/sbin:/sbin' });
+
+test('operation body artifacts use the private user cache instead of a public temp root', () => {
+  assert.equal(
+    OPERATION_ARTIFACT_ROOT,
+    join(homedir(), '.cache', 'interdomestik-harness-operations')
+  );
+  assert.equal(OPERATION_ARTIFACT_ROOT.startsWith('/private/tmp/'), false);
+  assert.equal(
+    operationBodyArtifact({ artifacts: { 'pr/body.md': 'a'.repeat(64) } }, 'pr/body.md'),
+    join(OPERATION_ARTIFACT_ROOT, 'pr/body.md')
+  );
+});
 
 function git(repository, ...args) {
   return execFileSync(GIT, args, { cwd: repository, encoding: 'utf8', env: ENV }).trim();

@@ -22,7 +22,17 @@ function must(condition, message) {
 }
 
 export function rehearsalFactsSha256(report) {
-  return sha256(canonicalJson({ ...report, operationalEnvelope: null, reportSha256: null }));
+  const repository = report.repository
+    ? Object.fromEntries(Object.entries(report.repository).filter(([key]) => key !== 'root'))
+    : report.repository;
+  return sha256(
+    canonicalJson({
+      ...report,
+      repository,
+      operationalEnvelope: null,
+      reportSha256: null,
+    })
+  );
 }
 
 export function deriveOperationalEnvelope(report) {
@@ -94,6 +104,7 @@ export function buildRehearsalReport({
   proposal,
   operationResolution,
   evidenceResult,
+  proofPlan,
   deficits,
   authorityStops,
   writerMapDigest,
@@ -118,7 +129,6 @@ export function buildRehearsalReport({
     sliceId: normalized.sliceId,
     tier: normalized.tier,
     repository: {
-      root: repo.root,
       origin: repo.origin,
       providerRepository: repo.providerRepository,
       baseSha: repo.baseSha,
@@ -169,6 +179,7 @@ export function buildRehearsalReport({
     evidence: {
       proof: normalized.proof,
       decisions: evidenceResult.decisions,
+      executionPlan: proofPlan,
       reusableLanes: evidenceResult.reusableLanes,
       missingLanes: evidenceResult.missingLanes,
     },

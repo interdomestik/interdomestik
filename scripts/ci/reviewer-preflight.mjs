@@ -1,10 +1,9 @@
-import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 
-const GIT_BIN = '/usr/bin/git';
-const SAFE_EXEC_ENV = Object.freeze({ PATH: '/usr/bin:/bin:/usr/sbin:/sbin' });
+import { changedFiles, changedLineRecords } from './reviewer-preflight-git.mjs';
+
 const PROTECTED_PATHS = new Set(['apps/web/src/proxy.ts']);
 const SENSITIVE_PATH_PATTERNS = [
   /^apps\/web\/src\/app\/api\/auth\//u,
@@ -22,122 +21,25 @@ const ENV_OR_FALLBACK_PATTERN = /process\.env\.[A-Z0-9_]+\s*\|\|\s*['"`]/u;
 const TEST_ONLY_VALUE_PATTERN =
   /(test-secret-for-(?:ci|local)|dummy-token|NEXT_PUBLIC_BILLING_TEST_MODE\s*[:=]\s*['"]?1)/u;
 const ENV_ESCAPE_PATTERN = /\$[A-Z][A-Z0-9_]*|\$\{[A-Z][A-Z0-9_]*\}|process\.env\.[A-Z0-9_]+/u;
-
-function git(args) {
-  return execFileSync(GIT_BIN, args, {
-    encoding: 'utf8',
-    env: SAFE_EXEC_ENV,
-    stdio: ['ignore', 'pipe', 'pipe'],
-  }).trim();
-}
-
-function tryGit(args) {
-  try {
-    return git(args);
-  } catch {
-    return '';
-  }
-}
-
-function resolveMergeBase() {
-  for (const candidate of ['origin/main', 'origin/master']) {
-    try {
-      git(['rev-parse', '--verify', candidate]);
-      return candidate;
-    } catch {
-      // Try the next conventional base branch.
-    }
-  }
-
-  return 'HEAD~1';
-}
-
-function changedFiles() {
-  const explicitFiles = process.argv.slice(2);
-  if (explicitFiles.length > 0) {
-    return explicitFiles;
-  }
-
-  const base = resolveMergeBase();
-  const files = new Set();
-  const diffs = [
-    tryGit(['diff', '--name-only', '--diff-filter=ACMR', `${base}...HEAD`]),
-    tryGit(['diff', '--name-only', '--diff-filter=ACMR', '--cached']),
-    tryGit(['diff', '--name-only', '--diff-filter=ACMR']),
-    tryGit(['ls-files', '--others', '--exclude-standard']),
-  ];
-
-  for (const diff of diffs) {
-    for (const file of diff.split('\n')) {
-      const trimmed = file.trim();
-      if (trimmed) {
-        files.add(trimmed);
-      }
-    }
-  }
-
-  return [...files].sort((left, right) => left.localeCompare(right));
-}
-
-function diffAddedLines(diff) {
-  const lines = [];
-  let newLine = 0;
-
-  for (const line of diff.split('\n')) {
-    const hunk = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/u.exec(line);
-    if (hunk) {
-      newLine = Number(hunk[1]);
-      continue;
-    }
-
-    if (line.startsWith('+++')) {
-      continue;
-    }
-
-    if (line.startsWith('+')) {
-      lines.push({ line: newLine, text: line.slice(1) });
-      newLine += 1;
-      continue;
-    }
-
-    if (line.startsWith('-')) {
-      continue;
-    }
-
-    if (newLine > 0) {
-      newLine += 1;
-    }
-  }
-
-  return lines;
-}
-
-function changedLineRecords(file) {
-  const records = [];
-  const base = resolveMergeBase();
-  const diffs = [
-    tryGit(['diff', '--unified=0', '--no-ext-diff', `${base}...HEAD`, '--', file]),
-    tryGit(['diff', '--unified=0', '--no-ext-diff', '--cached', '--', file]),
-    tryGit(['diff', '--unified=0', '--no-ext-diff', '--', file]),
-  ];
-
-  for (const diff of diffs) {
-    records.push(...diffAddedLines(diff));
-  }
-
-  const untracked = tryGit(['ls-files', '--others', '--exclude-standard', '--', file]);
-  if (untracked.trim() === file && fs.existsSync(file)) {
-    const content = fs.readFileSync(file, 'utf8');
-    records.push(
-      ...content.split('\n').map((text, index) => ({
-        line: index + 1,
-        text,
-      }))
-    );
-  }
-
-  return records;
-}
+const HARNESS_SCRIPT_PATTERN = /^scripts\/.*\.[cm]?js$/u;
+const HARNESS_HAZARDS = [
+  {
+    pattern: /\?[^?:\n]*:[^?:\n]*\?[^?:\n]*:/u,
+    message: 'contains a nested ternary; extract the decision into explicit branches.',
+  },
+  {
+    pattern: /['"]\/private\/tmp\//u,
+    message: 'uses a publicly writable temporary root for a trusted artifact.',
+  },
+  {
+    pattern: /\.sort\([^)]*\)\s*\.\w+/u,
+    message: 'chains from mutating sort; copy or use toSorted before selection.',
+  },
+  {
+    pattern: /\b(?:execFileSync|spawnSync)\(\s*['"][^/]/u,
+    message: 'launches a command without an absolute executable path.',
+  },
+];
 
 function isSourceFile(file) {
   return SOURCE_EXTENSIONS.has(path.extname(file));
@@ -225,26 +127,46 @@ function inspectDeploymentConfig(file, findings) {
   }
 }
 
+function recordsForFile(file, inspectWholeFile) {
+  if (!inspectWholeFile) return changedLineRecords(file);
+  return fs
+    .readFileSync(file, 'utf8')
+    .split('\n')
+    .map((text, index) => ({ line: index + 1, text }));
+}
+
+function inspectHarnessScript(file, findings, inspectWholeFile) {
+  if (
+    !HARNESS_SCRIPT_PATTERN.test(file) ||
+    TEST_OR_CONFIG_PATTERN.test(file) ||
+    file === 'scripts/ci/reviewer-preflight.mjs' ||
+    !fs.existsSync(file)
+  ) {
+    return;
+  }
+  const records = recordsForFile(file, inspectWholeFile);
+  const content = records.map(record => record.text).join('\n');
+  for (const hazard of HARNESS_HAZARDS) {
+    const match = hazard.pattern.exec(content);
+    if (match) {
+      addFinding(findings, file, hazard.message, lineForRecordsOffset(records, match.index));
+    }
+  }
+}
+
 function inspectFile(file, findings, warnings, inspectWholeFile) {
   if (PROTECTED_PATHS.has(file)) {
     addFinding(findings, file, 'changes Phase C routing authority; this needs explicit review.', 1);
   }
   inspectSensitivePath(file, warnings);
   inspectDeploymentConfig(file, findings);
+  inspectHarnessScript(file, findings, inspectWholeFile);
 
   if (!isProductionAppSource(file) || !fs.existsSync(file)) {
     return;
   }
 
-  const records = inspectWholeFile
-    ? fs
-        .readFileSync(file, 'utf8')
-        .split('\n')
-        .map((text, index) => ({
-          line: index + 1,
-          text,
-        }))
-    : changedLineRecords(file);
+  const records = recordsForFile(file, inspectWholeFile);
 
   if (records.length === 0) {
     return;
@@ -303,7 +225,7 @@ function hasTestChanges(files) {
 }
 
 const explicitFiles = process.argv.slice(2);
-const files = changedFiles();
+const files = changedFiles(explicitFiles);
 const findings = [];
 const warnings = [];
 

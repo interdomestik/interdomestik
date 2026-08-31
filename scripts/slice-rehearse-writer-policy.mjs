@@ -17,12 +17,12 @@ const IDENTITY_CHANGING_OPERATIONS = new Set([
   'split_focused_test',
 ]);
 
-export function canonicalModularityForPath(path, change = 'modify') {
+export function canonicalModularityForPath(path) {
   const fileClass = classifyModularityFile(path);
   if (fileClass === FILE_CLASSES.productionCode) {
     return {
       fileClass,
-      maxLines: change === 'create' ? 200 : MODULARITY_POLICY.productionCode.reviewLines,
+      maxLines: MODULARITY_POLICY.productionCode.reviewLines,
     };
   }
   if (fileClass === FILE_CLASSES.focusedTest) {
@@ -46,7 +46,7 @@ function stopWhenOver(stops, code, actual, limit) {
 }
 
 function evaluateWriterPlan(plan, repository, budget, authorityStops, deficits) {
-  const modularity = canonicalModularityForPath(plan.path, plan.change);
+  const modularity = canonicalModularityForPath(plan.path);
   const actualLines = repository.writerLineCounts[plan.path] ?? 0;
   const delta = repository.writerDeltas[plan.path];
   if (Number.isInteger(modularity.maxLines) && actualLines > plan.maxLines) {
@@ -178,6 +178,12 @@ export function evidenceAfterPlannedOperations(evidence, deficits) {
   if (!invalidated) return evidence;
   return {
     ...evidence,
+    decisions: evidence.decisions.map(decision =>
+      decision.reusable
+        ? { ...decision, reusable: false, reason: 'invalidated_by_planned_operation' }
+        : decision
+    ),
+    reusableLanes: [],
     missingLanes: sortedText(new Set([...evidence.missingLanes, ...evidence.reusableLanes])),
   };
 }

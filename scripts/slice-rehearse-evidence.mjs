@@ -41,7 +41,7 @@ function verifiedEvidenceSets(input, now) {
     Object.entries(input)
       .filter(([lane, records]) => LANE_PATTERN.test(lane) && Array.isArray(records))
       .map(([lane, records]) => {
-        const keys = records
+        const entries = records
           .map(record => {
             try {
               must(
@@ -68,13 +68,26 @@ function verifiedEvidenceSets(input, now) {
                   now - completedAt <= VERIFIED_EVIDENCE_TTL_MS,
                 'verified evidence is stale'
               );
-              return record.key;
+              return [
+                record.key,
+                {
+                  provenance: {
+                    provider: record.provider,
+                    checkId: record.checkId,
+                    runId: record.runId,
+                    completedAt: record.completedAt,
+                  },
+                  evaluatedAt: new Date(now).toISOString(),
+                  expiresAt: new Date(completedAt + VERIFIED_EVIDENCE_TTL_MS).toISOString(),
+                },
+              ];
             } catch {
               return null;
             }
           })
           .filter(Boolean);
-        return [lane, new Set(new Set(keys).size === keys.length ? keys : [])];
+        const keys = entries.map(([key]) => key);
+        return [lane, new Map(new Set(keys).size === keys.length ? entries : [])];
       })
   );
 }
@@ -176,7 +189,14 @@ export function evaluateEvidenceReceipts({
     if (['manifest_receipt_untrusted', 'independently_verified'].includes(reason)) {
       seenLanes.add(receipt.lane);
     }
-    return { lane: receipt.lane, key, reusable: reason === 'independently_verified', reason };
+    const verifiedRecord = verified[receipt.lane]?.get(key);
+    return {
+      lane: receipt.lane,
+      key,
+      reusable: reason === 'independently_verified',
+      reason,
+      ...(reason === 'independently_verified' ? verifiedRecord : {}),
+    };
   });
   const reusableLanes = decisions
     .filter(decision => decision.reusable)

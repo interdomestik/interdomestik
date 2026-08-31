@@ -130,7 +130,14 @@ test('only an exact independently verified pr-e2e key is reusable', () => {
   assert.deepEqual(verified.reusableLanes, ['pr-e2e']);
   assert.deepEqual(verified.missingLanes, []);
   assert.equal(verified.decisions[0].reason, 'independently_verified');
-
+  assert.deepEqual(verified.decisions[0].provenance, {
+    provider: 'github',
+    checkId: 41,
+    runId: 42,
+    completedAt: '2099-01-01T00:00:00.000Z',
+  });
+  assert.equal(verified.decisions[0].evaluatedAt, '2099-01-01T01:00:00.000Z');
+  assert.equal(verified.decisions[0].expiresAt, '2099-01-02T00:00:00.000Z');
   for (const verifiedEvidenceKeysByLane of [
     { 'pr-e2e': [{ ...verifiedRecord, key: digest('0') }] },
     { pilot: [verifiedRecord] },
