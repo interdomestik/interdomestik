@@ -78,15 +78,15 @@ const liveFacts = {
 
 const inactiveAuthority = { source: 'live-resolver', runtimeAuthorized: false, activeSlice: null };
 
-test('isolates GitHub auth from git', () => {
-  const env = { HOME: '/u', GH_TOKEN: 't', UNRELATED_SECRET: 'x' };
+test('bounds git auth environment', () => {
+  const env = { HOME: '/u', XDG_CONFIG_HOME: '/x', SSH_AUTH_SOCK: '/s', GH_TOKEN: 't' };
   const PATH = '/usr/bin:/bin:/usr/sbin:/sbin';
-  assert.deepEqual(live.execOptions('gh', env).env, { PATH, HOME: '/u', GH_TOKEN: 't' });
-  assert.deepEqual(live.execOptions('git', env).env, { PATH });
+  assert.deepEqual(live.execOptions('gh', env).env, { PATH, HOME: '/u', XDG_CONFIG_HOME: '/x', GH_TOKEN: 't' });
+  assert.deepEqual(live.execOptions('/usr/bin/git', env).env, { PATH, HOME: '/u', XDG_CONFIG_HOME: '/x', SSH_AUTH_SOCK: '/s', GIT_TERMINAL_PROMPT: '0' });
   const repo = live.normalizeHeadRepository({ name: 'r' }, { login: 'o' });
   assert.equal(repo, 'o/r');
 });
-test('builds copy-safe operation argv without a shell', () => {
+test('builds shell-free operation argv', () => {
   const create = build({
     operation: 'pr_create',
     ...authorityFields({ certificate: { prNumber: null }, request: {} }),
@@ -154,7 +154,7 @@ test('builds copy-safe operation argv without a shell', () => {
     }
   );
 });
-test('checks exact head and reconciles one failed writer', () => {
+test('checks head and reconciles a failed writer', () => {
   const request = {
     operation: 'label_add',
     ...authorityFields(),
@@ -201,7 +201,7 @@ test('checks exact head and reconciles one failed writer', () => {
   assert.equal(result.status, 'failed_not_applied');
   assert.equal(reconciliations, 1);
 });
-test('updates an exact PR from its bound remote preimage', () => {
+test('updates an exact PR from its remote preimage', () => {
   const oldHead = '8'.repeat(40);
   const request = {
     operation: 'branch_push',
@@ -225,7 +225,7 @@ test('updates an exact PR from its bound remote preimage', () => {
   });
   assert.equal(result.status, 'succeeded');
 });
-test('rejects shell-shaped or under-specified writer requests', () => {
+test('rejects unsafe or incomplete writer requests', () => {
   assert.throws(
     () =>
       buildSafeOperation({
@@ -246,7 +246,7 @@ test('rejects shell-shaped or under-specified writer requests', () => {
     /keys|body/u
   );
 });
-test('rejects forged certificates, arbitrary local body files, and unavailable live provider facts', () => {
+test('rejects forged or incomplete facts', () => {
   const request = {
     operation: 'feedback_comment',
     ...authorityFields(),
@@ -282,7 +282,7 @@ test('rejects forged certificates, arbitrary local body files, and unavailable l
   );
 });
 
-test('preserves unknown failed-mutation reconciliation instead of claiming success', () => {
+test('preserves unknown mutation reconciliation', () => {
   const request = {
     operation: 'label_add',
     ...authorityFields(),
