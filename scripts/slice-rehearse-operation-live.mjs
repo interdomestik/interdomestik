@@ -40,8 +40,8 @@ export function safeGitHubEnvironment(environment = process.env) {
   return safe;
 }
 
-function providerExecOptions() {
-  return { ...SAFE_EXEC, env: safeGitHubEnvironment() };
+export function execOptions(binary, environment = process.env) {
+  return binary === 'gh' ? { ...SAFE_EXEC, env: safeGitHubEnvironment(environment) } : SAFE_EXEC;
 }
 
 export function resolveGhBinary() {
@@ -91,7 +91,7 @@ function readPr(prNumber) {
           '--json',
           'number,headRefOid,headRefName,baseRefName,headRepository,headRepositoryOwner',
         ],
-        providerExecOptions()
+        execOptions('gh')
       )
     )
   );
@@ -115,7 +115,7 @@ function readPrForBranch(certificate) {
         '--json',
         'number,headRefOid,headRefName,baseRefName,headRepository,headRepositoryOwner',
       ],
-      providerExecOptions()
+      execOptions('gh')
     )
   );
   must(Array.isArray(values) && values.length <= 1, 'live PR lookup is ambiguous');
@@ -224,7 +224,7 @@ export function verifyOperationBody(request, certificate) {
 
 export function executeOperation(binary, args) {
   return spawnSync(binary === 'gh' ? resolveGhBinary() : binary, args, {
-    ...(binary === 'gh' || binary === '/usr/bin/git' ? providerExecOptions() : SAFE_EXEC),
+    ...execOptions(binary),
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 }
@@ -248,7 +248,7 @@ function reconcilePullMutation(request, certificate) {
       execFileSync(
         resolveGhBinary(),
         ['pr', 'view', String(request.prNumber), '--json', 'labels', '--jq', '[.labels[].name]'],
-        providerExecOptions()
+        execOptions('gh')
       )
     );
     return { outcome: reconciliationOutcome(labels.includes(request.label)) };
@@ -256,7 +256,7 @@ function reconcilePullMutation(request, certificate) {
   if (request.operation === 'feedback_comment') {
     const endpoint = `repos/interdomestik/interdomestik/issues/${request.prNumber}/comments?per_page=100`;
     const comments = JSON.parse(
-      execFileSync(resolveGhBinary(), ['api', endpoint, '--paginate'], providerExecOptions())
+      execFileSync(resolveGhBinary(), ['api', endpoint, '--paginate'], execOptions('gh'))
     );
     const expected = certificate.artifacts[request.bodyArtifact];
     return {
@@ -269,7 +269,7 @@ function reconcilePullMutation(request, certificate) {
     execFileSync(
       resolveGhBinary(),
       ['pr', 'view', String(request.prNumber), '--json', 'state,mergedAt,mergeCommit'],
-      providerExecOptions()
+      execOptions('gh')
     )
   );
   const applied =

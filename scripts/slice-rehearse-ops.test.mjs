@@ -9,10 +9,8 @@ import { buildSafeOperation, runSafeOperation } from './slice-rehearse-ops.mjs';
 const [head, base, tree] = ['a', 'b', 'c'].map(value => value.repeat(40));
 const writerMapDigest = 'd'.repeat(64);
 const origin = 'https://github.com/interdomestik/interdomestik.git';
-const branch = 'codex/harness-v2-1';
-const baseBranch = 'main';
-const prNumber = 1700;
-const build = buildSafeOperation;
+const [branch, baseBranch] = ['codex/harness-v2-1', 'main'];
+const [prNumber, build] = [1700, buildSafeOperation];
 
 function certificate(overrides = {}) {
   const rehearsalReport = {
@@ -80,13 +78,15 @@ const liveFacts = {
 
 const inactiveAuthority = { source: 'live-resolver', runtimeAuthorized: false, activeSlice: null };
 
-test('bounds the GitHub provider subprocess environment', () => {
-  const safe = live.safeGitHubEnvironment({ HOME: '/u', UNRELATED_SECRET: 'x' });
-  assert.deepEqual(safe, { PATH: '/usr/bin:/bin:/usr/sbin:/sbin', HOME: '/u' });
-  const repo = live.normalizeHeadRepository({ name: 'r', nameWithOwner: '' }, { login: 'o' });
+test('isolates GitHub auth from git', () => {
+  const env = { HOME: '/u', GH_TOKEN: 't', UNRELATED_SECRET: 'x' };
+  const PATH = '/usr/bin:/bin:/usr/sbin:/sbin';
+  assert.deepEqual(live.execOptions('gh', env).env, { PATH, HOME: '/u', GH_TOKEN: 't' });
+  assert.deepEqual(live.execOptions('git', env).env, { PATH });
+  const repo = live.normalizeHeadRepository({ name: 'r' }, { login: 'o' });
   assert.equal(repo, 'o/r');
 });
-test('builds copy-safe PR, label, feedback, and telemetry argv without a shell', () => {
+test('builds copy-safe operation argv without a shell', () => {
   const create = build({
     operation: 'pr_create',
     ...authorityFields({ certificate: { prNumber: null }, request: {} }),
@@ -154,7 +154,7 @@ test('builds copy-safe PR, label, feedback, and telemetry argv without a shell',
     }
   );
 });
-test('checks exact head before mutation and reconciles a failed writer once', () => {
+test('checks exact head and reconciles one failed writer', () => {
   const request = {
     operation: 'label_add',
     ...authorityFields(),
@@ -201,7 +201,7 @@ test('checks exact head before mutation and reconciles a failed writer once', ()
   assert.equal(result.status, 'failed_not_applied');
   assert.equal(reconciliations, 1);
 });
-test('updates an existing exact PR from its bound remote preimage', () => {
+test('updates an exact PR from its bound remote preimage', () => {
   const oldHead = '8'.repeat(40);
   const request = {
     operation: 'branch_push',

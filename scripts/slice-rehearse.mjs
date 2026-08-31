@@ -16,8 +16,8 @@ import { collectRepositoryFacts, gitBytes, gitText } from './slice-rehearse-git-
 import { validateCapacityBudget } from './repo-size-capacity-schema.mjs';
 
 const BUDGET_PATH = 'scripts/repo-size-budget.json';
-const MAX_MANIFEST_BYTES = 1024 * 1024;
-const MAX_BUDGET_BYTES = 4 * 1024 * 1024;
+const MANIFEST_BYTES = 1024 * 1024;
+const BUDGET_BYTES = 4 * 1024 * 1024;
 
 export { collectRepositoryFacts } from './slice-rehearse-git-facts.mjs';
 
@@ -35,8 +35,8 @@ function readManifest(manifestPath, cwd) {
     value = JSON.parse(
       readBoundedRegularText(path.resolve(cwd, manifestPath), {
         label: 'Manifest evidence',
-        maxBytes: MAX_MANIFEST_BYTES,
-        allowedRoots: [cwd, tmpdir()],
+        maxBytes: MANIFEST_BYTES,
+        allowedRoots: [cwd, tmpdir(), '/private/tmp'],
       })
     );
   } catch (error) {
@@ -57,7 +57,7 @@ function readBudget(repository) {
     }
     budgetText = readBoundedRegularText(budgetPath, {
       label: 'Repo-size budget',
-      maxBytes: MAX_BUDGET_BYTES,
+      maxBytes: BUDGET_BYTES,
       allowedRoots: [repository],
     });
     budget = JSON.parse(budgetText);
@@ -73,7 +73,7 @@ function readBudget(repository) {
 function readProtectedBudget(repository, protectedMainSha) {
   try {
     const bytes = gitBytes(repository, ['show', `${protectedMainSha}:${BUDGET_PATH}`]);
-    if (Buffer.byteLength(bytes) > MAX_BUDGET_BYTES) {
+    if (Buffer.byteLength(bytes) > BUDGET_BYTES) {
       throw new Error('Protected repo-size budget exceeds the input size limit.');
     }
     const protectedBudgetText = bytes.toString('utf8');

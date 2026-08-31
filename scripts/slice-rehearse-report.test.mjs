@@ -7,10 +7,10 @@ import { generateSliceCheckpoint, verifyCheckpointGitIdentity } from './slice-re
 const sha = character => character.repeat(40);
 const verified = { verifyState: () => true };
 
-test('checkpoint PR verification resolves the installed GitHub CLI instead of hard-coding /usr/bin', () => {
+test('checkpoint uses installed GitHub CLI with provider-only auth', () => {
   const source = fs.readFileSync(new URL('./slice-rehearse-report.mjs', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /execFileSync\(\s*'\/usr\/bin\/gh'/u);
-  assert.match(source, /resolveGhBinary\(\)/u);
+  assert.match(source, /resolveGhBinary\(\)[\s\S]{0,250}execOptions\('gh'\)/u);
 });
 
 test('final checkpoint preserves candidate base while binding protected main to the merge', () => {
