@@ -11,6 +11,8 @@ const repoRoot = path.resolve(scriptDir, '../..');
 const scriptPath = path.join(repoRoot, 'scripts/ci/reviewer-preflight.mjs');
 const GIT_BIN = '/usr/bin/git';
 const SAFE_EXEC_ENV = Object.freeze({ PATH: '/usr/bin:/bin:/usr/sbin:/sbin' });
+const PROXY_PATH = 'apps/web/src/proxy.ts';
+const APP_SOURCE = 'apps/web/src/lib/example.ts';
 
 function withTempRepo(callback) {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'reviewer-preflight-'));
@@ -54,21 +56,22 @@ function commitAll(root, message) {
   });
 }
 
-function runPreflight(root, files = []) {
+function runPreflight(root, files = [], timeout) {
   return spawnSync(process.execPath, [scriptPath, ...files], {
     cwd: root,
     encoding: 'utf8',
     env: SAFE_EXEC_ENV,
+    timeout,
   });
 }
 
 test('review preflight blocks changes to the Phase C proxy authority', () => {
   withTempRepo(root => {
-    writeFile(root, 'apps/web/src/proxy.ts', 'export const value = 1;\n');
+    writeFile(root, PROXY_PATH, 'export const value = 1;\n');
     commitAll(root, 'initial');
 
-    writeFile(root, 'apps/web/src/proxy.ts', 'export const value = 2;\n');
-    const result = runPreflight(root, ['apps/web/src/proxy.ts']);
+    writeFile(root, PROXY_PATH, 'export const value = 2;\n');
+    const result = runPreflight(root, [PROXY_PATH]);
 
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /Phase C routing authority/u);
@@ -77,9 +80,9 @@ test('review preflight blocks changes to the Phase C proxy authority', () => {
 
 test('review preflight detects deletion of the protected proxy authority', () => {
   withTempRepo(root => {
-    writeFile(root, 'apps/web/src/proxy.ts', 'export const value = 1;\n');
+    writeFile(root, PROXY_PATH, 'export const value = 1;\n');
     commitAll(root, 'initial');
-    fs.unlinkSync(path.join(root, 'apps/web/src/proxy.ts'));
+    fs.unlinkSync(path.join(root, PROXY_PATH));
 
     const result = runPreflight(root);
     assert.notEqual(result.status, 0);
@@ -89,7 +92,7 @@ test('review preflight detects deletion of the protected proxy authority', () =>
 
 test('review preflight fails closed when exact protected base evidence is unavailable', () => {
   withTempRepo(root => {
-    writeFile(root, 'apps/web/src/lib/example.ts', 'export const value = 1;\n');
+    writeFile(root, APP_SOURCE, 'export const value = 1;\n');
     commitAll(root, 'initial');
     execFileSync(GIT_BIN, ['update-ref', '-d', 'refs/remotes/origin/main'], {
       cwd: root,
@@ -103,14 +106,10 @@ test('review preflight fails closed when exact protected base evidence is unavai
 
 test('review preflight blocks hard-coded local URLs in production app source', () => {
   withTempRepo(root => {
-    writeFile(
-      root,
-      'apps/web/src/lib/example.ts',
-      'export const url = "http://127.0.0.1:54321";\n'
-    );
+    writeFile(root, APP_SOURCE, 'export const url = "http://127.0.0.1:54321";\n');
     commitAll(root, 'initial');
 
-    const result = runPreflight(root, ['apps/web/src/lib/example.ts']);
+    const result = runPreflight(root, [APP_SOURCE]);
 
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /hard-codes local URL/u);
@@ -119,16 +118,12 @@ test('review preflight blocks hard-coded local URLs in production app source', (
 
 test('review preflight only checks newly added production lines by default', () => {
   withTempRepo(root => {
-    writeFile(
-      root,
-      'apps/web/src/lib/example.ts',
-      'export const existing = "http://127.0.0.1:54321";\n'
-    );
+    writeFile(root, APP_SOURCE, 'export const existing = "http://127.0.0.1:54321";\n');
     commitAll(root, 'initial');
 
     writeFile(
       root,
-      'apps/web/src/lib/example.ts',
+      APP_SOURCE,
       [
         'export const existing = "http://127.0.0.1:54321";',
         'export const changed = true;',
@@ -145,12 +140,12 @@ test('review preflight only checks newly added production lines by default', () 
 
 test('review preflight blocks newly added optional-binding empty catches', () => {
   withTempRepo(root => {
-    writeFile(root, 'apps/web/src/lib/example.ts', 'export const value = 1;\n');
+    writeFile(root, APP_SOURCE, 'export const value = 1;\n');
     commitAll(root, 'initial');
 
     writeFile(
       root,
-      'apps/web/src/lib/example.ts',
+      APP_SOURCE,
       ['export function swallow() {', '  try {} catch {}', '}', ''].join('\n')
     );
 
@@ -250,27 +245,33 @@ test('review preflight warns on auth and tenant sensitive paths', () => {
 
 test('review preflight blocks predictable Sonar hazards in changed harness code', () => {
   withTempRepo(root => {
-    writeFile(root, 'scripts/example.mjs', 'export const baseline = true;\n');
+    const file = 'scripts/example.mjs';
+    writeFile(root, file, 'export const baseline = true;\n');
     commitAll(root, 'initial');
     writeFile(
       root,
-      'scripts/example.mjs',
+      file,
       [
         "import { spawnSync } from 'node:child_process';",
         "export const root = '/private/tmp/public-artifacts';",
         "export const type = value.ok ? 'ok' : value.bad ? 'bad' : null;",
         'export const selected = values.sort().find(Boolean);',
         "spawnSync('pnpm', ['test']);",
-        '',
+        `export const noise = '${'?a'.repeat(40_000)}';`,
       ].join('\n')
     );
 
-    const result = runPreflight(root);
+    const result = runPreflight(root, [], 750);
 
+    assert.equal(result.error, undefined, result.error?.message);
     assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /nested ternary/u);
-    assert.match(result.stderr, /publicly writable temporary root/u);
-    assert.match(result.stderr, /mutating sort/u);
-    assert.match(result.stderr, /absolute executable/u);
+    for (const pattern of [
+      /nested ternary/u,
+      /publicly writable temporary root/u,
+      /mutating sort/u,
+      /absolute executable/u,
+    ]) {
+      assert.match(result.stderr, pattern);
+    }
   });
 });

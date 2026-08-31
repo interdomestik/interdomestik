@@ -24,7 +24,7 @@ const ENV_ESCAPE_PATTERN = /\$[A-Z][A-Z0-9_]*|\$\{[A-Z][A-Z0-9_]*\}|process\.env
 const HARNESS_SCRIPT_PATTERN = /^scripts\/.*\.[cm]?js$/u;
 const HARNESS_HAZARDS = [
   {
-    pattern: /\?[^:\n]+:[^?\n]+\?[^:\n]+:/u,
+    pattern: /\?[^?:\n]*:[^?:\n]*\?[^?:\n]*:/u,
     message: 'contains a nested ternary; extract the decision into explicit branches.',
   },
   {
