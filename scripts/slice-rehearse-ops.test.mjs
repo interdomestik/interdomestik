@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import { canonicalJson, sha256 } from './slice-rehearse-canonical.mjs';
 import { operationApprovalBinding } from './slice-rehearse-operation-certificate.mjs';
+import { safeGitHubEnvironment } from './slice-rehearse-operation-live.mjs';
 import { buildSafeOperation, runSafeOperation } from './slice-rehearse-ops.mjs';
 
 const head = 'a'.repeat(40);
@@ -75,11 +76,12 @@ const liveFacts = {
   },
 };
 
-const inactiveAuthority = {
-  source: 'live-resolver',
-  runtimeAuthorized: false,
-  activeSlice: null,
-};
+const inactiveAuthority = { source: 'live-resolver', runtimeAuthorized: false, activeSlice: null };
+
+test('bounds the GitHub provider subprocess environment', () => {
+  const safe = safeGitHubEnvironment({ HOME: '/u', UNRELATED_SECRET: 'x' });
+  assert.deepEqual(safe, { PATH: '/usr/bin:/bin:/usr/sbin:/sbin', HOME: '/u' });
+});
 
 test('builds copy-safe PR, label, feedback, and telemetry argv without a shell', () => {
   const create = buildSafeOperation({

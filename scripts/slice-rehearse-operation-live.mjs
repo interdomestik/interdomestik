@@ -27,6 +27,29 @@ const SAFE_EXEC = Object.freeze({
   maxBuffer: 8 * 1024 * 1024,
   timeout: 5 * 60_000,
 });
+const PROVIDER_ENVIRONMENT_KEYS = Object.freeze([
+  'HOME',
+  'XDG_CONFIG_HOME',
+  'GH_CONFIG_DIR',
+  'GH_HOST',
+  'GH_TOKEN',
+  'GH_ENTERPRISE_TOKEN',
+  'GITHUB_TOKEN',
+]);
+
+export function safeGitHubEnvironment(environment = process.env) {
+  const safe = { PATH: SAFE_EXEC.env.PATH };
+  for (const key of PROVIDER_ENVIRONMENT_KEYS) {
+    if (typeof environment[key] === 'string' && environment[key].length > 0) {
+      safe[key] = environment[key];
+    }
+  }
+  return safe;
+}
+
+function providerExecOptions() {
+  return { ...SAFE_EXEC, env: safeGitHubEnvironment() };
+}
 
 export function resolveGhBinary() {
   const binary = GH_CANDIDATES.find(existsSync);
@@ -68,7 +91,7 @@ function readPr(prNumber) {
           '--json',
           'number,headRefOid,headRefName,baseRefName,headRepository',
         ],
-        SAFE_EXEC
+        providerExecOptions()
       )
     )
   );
@@ -92,7 +115,7 @@ function readPrForBranch(certificate) {
         '--json',
         'number,headRefOid,headRefName,baseRefName,headRepository',
       ],
-      SAFE_EXEC
+      providerExecOptions()
     )
   );
   must(Array.isArray(values) && values.length <= 1, 'live PR lookup is ambiguous');
@@ -201,7 +224,7 @@ export function verifyOperationBody(request, certificate) {
 
 export function executeOperation(binary, args) {
   return spawnSync(binary === 'gh' ? resolveGhBinary() : binary, args, {
-    ...SAFE_EXEC,
+    ...(binary === 'gh' || binary === '/usr/bin/git' ? providerExecOptions() : SAFE_EXEC),
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 }
@@ -233,7 +256,7 @@ export function reconcileOperation(request, certificate) {
         execFileSync(
           resolveGhBinary(),
           ['pr', 'view', String(request.prNumber), '--json', 'labels', '--jq', '[.labels[].name]'],
-          SAFE_EXEC
+          providerExecOptions()
         )
       );
       return { outcome: labels.includes(request.label) ? 'applied' : 'not_applied' };
@@ -247,7 +270,7 @@ export function reconcileOperation(request, certificate) {
             `repos/interdomestik/interdomestik/issues/${request.prNumber}/comments?per_page=100`,
             '--paginate',
           ],
-          SAFE_EXEC
+          providerExecOptions()
         )
       );
       const expected = certificate.artifacts[request.bodyArtifact];
@@ -261,7 +284,7 @@ export function reconcileOperation(request, certificate) {
       execFileSync(
         resolveGhBinary(),
         ['pr', 'view', String(request.prNumber), '--json', 'state,mergedAt,mergeCommit'],
-        SAFE_EXEC
+        providerExecOptions()
       )
     );
     return {
