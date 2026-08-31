@@ -25,6 +25,7 @@ const pending = new Map<
 >();
 let buffer = '';
 let nextId = 1;
+let serverFailure: Error | null = null;
 
 function rejectPending(error: Error) {
   for (const active of pending.values()) {
@@ -34,14 +35,22 @@ function rejectPending(error: Error) {
   pending.clear();
 }
 
-server.once('error', error => rejectPending(error));
+function recordServerFailure(error: Error) {
+  serverFailure ??= error;
+  rejectPending(serverFailure);
+}
+
+server.once('error', error => recordServerFailure(error));
 server.once('exit', (code, signal) => {
-  if (pending.size === 0) return;
-  rejectPending(
+  recordServerFailure(
     new Error(
       `QA MCP server exited before responding (code=${code ?? 'null'}, signal=${signal ?? 'none'})`
     )
   );
+});
+server.stdin.on('error', error => {
+  if ((error as NodeJS.ErrnoException).code === 'EPIPE') return;
+  recordServerFailure(error);
 });
 
 server.stdout.on('data', chunk => {
@@ -70,6 +79,10 @@ server.stdout.on('data', chunk => {
 function request(method: string, params: unknown, timeoutMs = 15 * 60 * 1000) {
   const id = nextId++;
   return new Promise<RpcResponse>((resolve, reject) => {
+    if (serverFailure) {
+      reject(serverFailure);
+      return;
+    }
     const timer = setTimeout(() => {
       pending.delete(id);
       reject(new Error(`MCP response timeout for ${method}`));

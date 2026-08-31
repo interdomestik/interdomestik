@@ -181,4 +181,5 @@ test('QA CLI fails immediately when its MCP server exits before responding', () 
   );
   assert.equal(result.status, 1, result.stderr);
   assert.match(result.stderr, /server exited before responding.*code=9/);
+  assert.doesNotMatch(result.stderr, /write EPIPE|Unhandled 'error'/);
 });

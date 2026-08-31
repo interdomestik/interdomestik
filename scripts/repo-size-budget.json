@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 56328,
+      "trackedBytesDelta": 56523,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 25390,
+        "config/data/messages": 25585,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 25390,
+        "scripts/repo-size-budget.json": 25585,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -360,9 +360,11 @@
         "docs/superpowers/plans/2026-08-29-harness-v2-efficiency.md",
         "docs/superpowers/specs/2026-08-29-harness-v2-efficiency-design.md",
         "package.json",
+        "packages/qa/test-tools.ts",
         "scripts/ci/model-review-routes.mjs",
         "scripts/ci/pr-delivery-contract.json",
         "scripts/ci/pr-delivery-gate.test.mjs",
+        "scripts/ci/qa-cli-callers-contracts.test.mjs",
         "scripts/ci/reviewer-preflight-git.mjs",
         "scripts/ci/reviewer-preflight.mjs",
         "scripts/ci/reviewer-preflight.test.mjs",
@@ -441,13 +443,13 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 474608,
+      "maxTrackedBytesDelta": 475024,
       "maxTrackedFilesDelta": 72,
       "maxCategoryBytesDelta": {
         "config/data/messages": 1000,
         "docs/text": 30439,
-        "source/scripts": 243749,
-        "tests/e2e": 199420
+        "source/scripts": 244094,
+        "tests/e2e": 199491
       },
       "maxPathBytesDelta": {
         ".github/workflows/ci.yml": 24,
@@ -455,9 +457,11 @@
         "docs/superpowers/plans/2026-08-29-harness-v2-efficiency.md": 15754,
         "docs/superpowers/specs/2026-08-29-harness-v2-efficiency-design.md": 14685,
         "package.json": 949,
+        "packages/qa/test-tools.ts": 334,
         "scripts/ci/model-review-routes.mjs": 475,
         "scripts/ci/pr-delivery-contract.json": 27,
         "scripts/ci/pr-delivery-gate.test.mjs": 238,
+        "scripts/ci/qa-cli-callers-contracts.test.mjs": 71,
         "scripts/ci/reviewer-preflight-git.mjs": 3583,
         "scripts/ci/reviewer-preflight.mjs": 0,
         "scripts/ci/reviewer-preflight.test.mjs": 1996,
@@ -496,7 +500,7 @@
         "scripts/slice-rehearse-github-evidence.test.mjs": 9231,
         "scripts/slice-rehearse-init-cli.mjs": 5730,
         "scripts/slice-rehearse-init-cli.test.mjs": 3906,
-        "scripts/slice-rehearse-init.mjs": 3996,
+        "scripts/slice-rehearse-init.mjs": 4007,
         "scripts/slice-rehearse-init.test.mjs": 3913,
         "scripts/slice-rehearse-invalidation.test.mjs": 6546,
         "scripts/slice-rehearse-manifest-identity.mjs": 1258,
@@ -547,15 +551,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60141663,
+  "maxTrackedBytes": 60142274,
   "maxTrackedFiles": 5937,
   "maxCategoryBytes": {
-    "config/data/messages": 2160570,
+    "config/data/messages": 2160765,
     "docs/text": 8509839,
     "large support/generated-ish": 15390712,
     "other": 18856416,
-    "source/scripts": 8596080,
-    "tests/e2e": 6628046
+    "source/scripts": 8596425,
+    "tests/e2e": 6628117
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

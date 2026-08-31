@@ -86,5 +86,5 @@ export function initializeRehearsalManifest(request, facts) {
 }
 
 export function defaultContractDigest(values) {
-  return sha256([...values].sort(compareText).join('\n'));
+  return sha256(Array.from(values).toSorted(compareText).join('\n'));
 }
