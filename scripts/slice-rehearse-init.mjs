@@ -33,7 +33,7 @@ function missingInputs(request, facts) {
 
 function planForPath(path, existingPaths, existingCapacityCaps, capacityDeltas) {
   const change = existingPaths.has(path) ? 'modify' : 'create';
-  const modularity = canonicalModularityForPath(path, change);
+  const modularity = canonicalModularityForPath(path);
   const maxLines = modularity.maxLines ?? 300;
   const ownerCapacity = Math.max(existingCapacityCaps[path] ?? 0, capacityDeltas[path] ?? 0);
   const maxBytesDelta = Math.min(modularity.maxBytes ?? ownerCapacity, ownerCapacity);
