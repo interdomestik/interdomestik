@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import test from 'node:test';
 
 import { canonicalJson, sha256 } from './slice-rehearse-canonical.mjs';
@@ -207,4 +208,90 @@ test('revalidates the recovery bundle identity and digest before global deletion
       }),
     /recovery bundle digest changed/u
   );
+});
+
+test('the production cleanup entry point derives slice ownership and revalidates before removal', async () => {
+  const cleanup = await import('./slice-rehearse-cleanup.mjs');
+  assert.equal(typeof cleanup.executeCleanupRequest, 'function');
+  const calls = [];
+  const artifact = {
+    path: '/private/tmp/harness-v2-1-owned',
+    ownerTaskId: 'HARNESS-V2-1',
+    safeToDiscard: true,
+    realPath: '/private/tmp/harness-v2-1-owned',
+    type: 'directory',
+    device: '1',
+    inode: '2',
+  };
+  const result = cleanup.executeCleanupRequest(
+    {
+      schemaVersion: 1,
+      mode: 'slice_owned',
+      taskId: 'HARNESS-V2-1',
+      artifactPaths: [artifact.path],
+    },
+    {
+      readAuthority: () => {
+        calls.push('authority');
+        return inactive;
+      },
+      readRegistry: () => {
+        calls.push('registry');
+        return [artifact];
+      },
+      inspect: () => {
+        calls.push('inspect');
+        return {
+          realPath: artifact.realPath,
+          type: artifact.type,
+          device: artifact.device,
+          inode: artifact.inode,
+        };
+      },
+      remove: (path, type) => calls.push(`remove:${type}:${path}`),
+    }
+  );
+  assert.deepEqual(calls, [
+    'authority',
+    'registry',
+    'inspect',
+    `remove:directory:${artifact.path}`,
+  ]);
+  assert.deepEqual(result, {
+    mode: 'slice_owned',
+    removed: [artifact.path],
+    taskId: 'HARNESS-V2-1',
+  });
+});
+
+test('package exposes one copy-safe cleanup JSON wrapper', () => {
+  const pkg = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  assert.equal(pkg.scripts['slice:cleanup'], 'node scripts/slice-rehearse-ops-cli.mjs --cleanup');
+});
+
+test('cleanup rejects an unsafe task identity before resolving its registry path', async () => {
+  const { executeCleanupRequest } = await import('./slice-rehearse-cleanup.mjs');
+  let registryRead = false;
+  assert.throws(
+    () =>
+      executeCleanupRequest(
+        {
+          schemaVersion: 1,
+          mode: 'slice_owned',
+          taskId: '../ESCAPE',
+          artifactPaths: ['/private/tmp/owned'],
+        },
+        {
+          readAuthority: () => inactive,
+          readRegistry: () => {
+            registryRead = true;
+            return [];
+          },
+          inspect: () => null,
+          remove: () => {},
+        }
+      ),
+    /cleanup task is invalid/u
+  );
+  assert.equal(registryRead, false);
 });

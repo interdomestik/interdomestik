@@ -28,7 +28,7 @@ const SAFE_EXEC = Object.freeze({
   timeout: 5 * 60_000,
 });
 
-function resolveGhBinary() {
+export function resolveGhBinary() {
   const binary = GH_CANDIDATES.find(existsSync);
   must(binary, `GitHub CLI not found in: ${GH_CANDIDATES.join(', ')}`);
   return binary;

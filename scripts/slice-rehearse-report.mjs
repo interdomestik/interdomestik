@@ -16,6 +16,7 @@ import {
   authenticateResolverOutput,
   resolveAtAuthorityBoundary,
 } from './slice-rehearse-authority-boundary.mjs';
+import { resolveGhBinary } from './slice-rehearse-operation-live.mjs';
 
 const SHA40 = /^[0-9a-f]{40}$/u;
 const KEYS = [
@@ -69,7 +70,7 @@ function defaultVerifyState(input) {
   if (input.prNumber !== null) {
     const pull = JSON.parse(
       execFileSync(
-        '/usr/bin/gh',
+        resolveGhBinary(),
         [
           'pr',
           'view',

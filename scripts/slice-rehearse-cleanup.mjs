@@ -25,6 +25,7 @@ const KEYS = [
 ];
 const SHA256 = /^[0-9a-f]{64}$/u;
 const IDENTITY_KEYS = ['device', 'inode', 'realPath', 'type'];
+const SLICE_REQUEST_KEYS = ['artifactPaths', 'mode', 'schemaVersion', 'taskId'];
 
 function assertInactive(authority) {
   must(
@@ -194,4 +195,42 @@ export function verifyCleanupTargetsImmediatelyBeforeDeletion(envelope, { inspec
     );
   }
   return true;
+}
+
+export function executeCleanupRequest(
+  input,
+  { readAuthority, readRegistry, inspect, digest, remove }
+) {
+  must(typeof readAuthority === 'function', 'cleanup authority reader is unavailable');
+  must(typeof inspect === 'function', 'cleanup target inspector is unavailable');
+  must(typeof remove === 'function', 'cleanup remover is unavailable');
+  const authority = readAuthority();
+  let envelope;
+  if (input?.mode === 'slice_owned') {
+    exactKeys(input, SLICE_REQUEST_KEYS, 'slice-owned cleanup request');
+    must(input.schemaVersion === 1, 'cleanup request schema is invalid');
+    must(TASK.test(input.taskId ?? ''), 'cleanup task is invalid');
+    must(typeof readRegistry === 'function', 'cleanup ownership registry is unavailable');
+    const requested = input.artifactPaths.map(normalizeArtifactPath).sort(compareText);
+    must(new Set(requested).size === requested.length, 'cleanup artifacts must be unique');
+    const registry = readRegistry(input.taskId);
+    must(Array.isArray(registry), 'cleanup ownership registry is unavailable');
+    const selected = requested.map(path => registry.find(item => item?.path === path));
+    must(selected.every(Boolean), 'cleanup ownership registry is incomplete');
+    envelope = deriveSliceOwnedCleanup({ taskId: input.taskId, authority, registry: selected });
+  } else {
+    envelope = validateCleanupEnvelope(input, authority);
+  }
+  for (const path of envelope.artifactPaths) {
+    verifyCleanupTargetsImmediatelyBeforeDeletion(
+      {
+        ...envelope,
+        artifactPaths: [path],
+        targetIdentities: { [path]: envelope.targetIdentities[path] },
+      },
+      { inspect, digest }
+    );
+    remove(path, envelope.targetIdentities[path].type);
+  }
+  return { mode: envelope.mode, removed: [...envelope.artifactPaths], taskId: envelope.taskId };
 }

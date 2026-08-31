@@ -27,6 +27,11 @@ function facts(overrides = {}) {
     existingPaths: [],
     workflowDigest: 'b'.repeat(64),
     substrateDigest: 'c'.repeat(64),
+    existingCapacityCapsByPath: {},
+    capacityDeltasByPath: {
+      'scripts/slice-rehearse-init.mjs': 0,
+      'scripts/slice-rehearse-init.test.mjs': 0,
+    },
     authority: {
       source: 'live-resolver',
       runtimeAuthorized: false,
@@ -35,6 +40,28 @@ function facts(overrides = {}) {
     ...overrides,
   };
 }
+
+test('path capacity is the exact measured delta or existing protected cap without flat headroom', () => {
+  const manifest = initializeRehearsalManifest(
+    request(),
+    facts({
+      existingCapacityCapsByPath: {
+        'scripts/slice-rehearse-init.mjs': 321,
+      },
+      capacityDeltasByPath: {
+        'scripts/slice-rehearse-init.mjs': 123,
+        'scripts/slice-rehearse-init.test.mjs': 456,
+      },
+    })
+  );
+  assert.deepEqual(
+    Object.fromEntries(manifest.pathPlans.map(plan => [plan.path, plan.maxBytesDelta])),
+    {
+      'scripts/slice-rehearse-init.mjs': 321,
+      'scripts/slice-rehearse-init.test.mjs': 456,
+    }
+  );
+});
 
 test('first normal invocation produces a canonical schema-valid governance manifest', () => {
   const first = initializeRehearsalManifest(request(), facts());

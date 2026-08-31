@@ -35,14 +35,8 @@ function planForPath(path, existingPaths, existingCapacityCaps, capacityDeltas) 
   const change = existingPaths.has(path) ? 'modify' : 'create';
   const modularity = canonicalModularityForPath(path, change);
   const maxLines = modularity.maxLines ?? 300;
-  const requestedBytes =
-    change === 'create' ? (path.includes('.test.') ? 12 * 1024 : 8 * 1024) : 8 * 1024;
-  const ownerHeadroom = Math.max(
-    requestedBytes,
-    existingCapacityCaps[path] ?? 0,
-    capacityDeltas[path] ?? 0
-  );
-  const maxBytesDelta = Math.min(modularity.maxBytes ?? ownerHeadroom, ownerHeadroom);
+  const ownerCapacity = Math.max(existingCapacityCaps[path] ?? 0, capacityDeltas[path] ?? 0);
+  const maxBytesDelta = Math.min(modularity.maxBytes ?? ownerCapacity, ownerCapacity);
   return { path, change, category: budgetCategory(path), maxBytesDelta, maxLines };
 }
 

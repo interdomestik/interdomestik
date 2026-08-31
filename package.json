@@ -43,6 +43,7 @@
     "slice:ops": "node scripts/slice-rehearse-ops-cli.mjs",
     "slice:proof:run": "node scripts/slice-rehearse-proof-plan.mjs",
     "slice:checkpoint": "node scripts/slice-rehearse-report.mjs",
+    "slice:cleanup": "node scripts/slice-rehearse-ops-cli.mjs --cleanup",
     "slice:telemetry": "node scripts/slice-telemetry.mjs",
     "slice:telemetry:record": "node scripts/slice-telemetry-v2-record.mjs",
     "slice:telemetry:v2": "node scripts/slice-telemetry-v2.mjs",

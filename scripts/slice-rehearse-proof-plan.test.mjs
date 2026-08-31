@@ -42,11 +42,15 @@ function proofReport(item) {
 }
 
 test('plans only invalidated or missing proof lanes in deterministic code-unit order', () => {
+  const prE2e = identity('a');
   const plan = planInvalidatedProofs({
     requiredLanes: ['pr-e2e', 'CodeQL', 'sonar'],
-    decisions: [receipt('pr-e2e', 'a'.repeat(64), true), receipt('CodeQL', 'b'.repeat(64), false)],
+    decisions: [
+      receipt('pr-e2e', deriveEvidenceIdentityKey({ lane: 'pr-e2e', ...prE2e }), true),
+      receipt('CodeQL', 'b'.repeat(64), false),
+    ],
     expectedByLane: {
-      'pr-e2e': identity('a'),
+      'pr-e2e': prE2e,
       CodeQL: identity('b'),
       sonar: identity('c'),
     },
@@ -201,18 +205,27 @@ test('does not remove another process lock when ledger acquisition fails', () =>
   assert.equal(fs.readFileSync(`${ledgerPath}.lock`, 'utf8'), 'owner');
 });
 
-test('rejects ambiguous duplicate lane decisions instead of rerunning speculatively', () => {
-  assert.throws(
-    () =>
-      planInvalidatedProofs({
-        requiredLanes: ['pr-e2e'],
-        decisions: [
-          receipt('pr-e2e', 'a'.repeat(64), true),
-          receipt('pr-e2e', 'b'.repeat(64), false),
-        ],
-        expectedByLane: { 'pr-e2e': identity('a') },
-      }),
-    /lane decision must be unique/u
+test('collapses historical decisions for one lane and reuses only the exact verified identity', () => {
+  const expected = identity('a');
+  const expectedKey = deriveEvidenceIdentityKey({ lane: 'pr-e2e', ...expected });
+  assert.deepEqual(
+    planInvalidatedProofs({
+      requiredLanes: ['pr-e2e'],
+      decisions: [receipt('pr-e2e', 'b'.repeat(64), false), receipt('pr-e2e', expectedKey, true)],
+      expectedByLane: { 'pr-e2e': expected },
+    }),
+    { reuse: ['pr-e2e'], run: [] }
+  );
+  assert.deepEqual(
+    planInvalidatedProofs({
+      requiredLanes: ['pr-e2e'],
+      decisions: [
+        receipt('pr-e2e', 'b'.repeat(64), false),
+        receipt('pr-e2e', 'c'.repeat(64), false),
+      ],
+      expectedByLane: { 'pr-e2e': expected },
+    }),
+    { reuse: [], run: [{ lane: 'pr-e2e', evidenceKey: expectedKey }] }
   );
 });
 

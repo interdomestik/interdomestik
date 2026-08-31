@@ -13,17 +13,19 @@ import { tmpdir } from 'node:os';
 import { resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { canonicalize, compareText, exactKeys, must } from './slice-rehearse-canonical.mjs';
 import {
+  canonicalize,
   canonicalJson,
+  compareText,
   deriveEvidenceIdentityKey,
+  exactKeys,
+  must,
   readBoundedRegularText,
   sha256,
 } from './slice-rehearse-canonical.mjs';
 import { trustedRunnerFile } from './ci/trusted-runner-file.mjs';
 
 const KEY = /^[0-9a-f]{64}$/u;
-
 export function planInvalidatedProofs({
   requiredLanes,
   decisions,
@@ -41,17 +43,24 @@ export function planInvalidatedProofs({
   const byLane = new Map();
   for (const decision of decisions) {
     must(typeof decision?.lane === 'string', 'lane decision is invalid');
-    must(!byLane.has(decision.lane), 'lane decision must be unique');
     must(typeof decision.reusable === 'boolean', 'lane decision is invalid');
     if (decision.key !== null) must(KEY.test(decision.key), 'evidence key is invalid');
     if (decision.reusable) {
       must(Number.isFinite(Date.parse(decision.expiresAt)), 'reusable evidence expiry is invalid');
     }
-    byLane.set(decision.lane, decision);
+    const laneDecisions = byLane.get(decision.lane) ?? [];
+    laneDecisions.push(decision);
+    byLane.set(decision.lane, laneDecisions);
   }
   const reuse = required.filter(lane => {
-    const decision = byLane.get(lane);
-    return decision?.reusable === true && Date.parse(decision.expiresAt) > now;
+    must(expectedByLane[lane], `expected proof identity is missing: ${lane}`);
+    const expectedKey = deriveEvidenceIdentityKey({ lane, ...expectedByLane[lane] });
+    return (byLane.get(lane) ?? []).some(
+      decision =>
+        decision.reusable === true &&
+        decision.key === expectedKey &&
+        Date.parse(decision.expiresAt) > now
+    );
   });
   return {
     reuse,
@@ -70,7 +79,6 @@ export function planInvalidatedProofs({
 const EXECUTION_KEYS = ['evidenceKey', 'lane', 'runId', 'startedAt'];
 const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{2,127}$/u;
 const LANE = /^[a-z0-9][a-z0-9:_-]*$/u;
-
 function normalizeExecution(execution) {
   exactKeys(execution, EXECUTION_KEYS, 'heavy proof execution');
   must(KEY.test(execution.evidenceKey ?? ''), 'heavy proof evidence key is invalid');
@@ -79,7 +87,6 @@ function normalizeExecution(execution) {
   must(Number.isFinite(Date.parse(execution.startedAt)), 'heavy proof start time is invalid');
   return execution;
 }
-
 function defaultVerifyCandidate(report) {
   const options = {
     encoding: 'utf8',
@@ -95,7 +102,6 @@ function defaultVerifyCandidate(report) {
     execFileSync('/usr/bin/git', ['status', '--porcelain'], options).trim() === ''
   );
 }
-
 export function validateProofExecutionPlan(
   report,
   execution,
@@ -127,7 +133,6 @@ export function validateProofExecutionPlan(
   );
   return value;
 }
-
 function trustedLedgerPath(ledgerPath, allowedRoots) {
   const normalizedPath = resolve(ledgerPath);
   const trustedRoot = [...allowedRoots]
@@ -138,7 +143,6 @@ function trustedLedgerPath(ledgerPath, allowedRoots) {
   must(trustedRoot, 'heavy proof ledger must stay inside a trusted root');
   return trustedRunnerFile(normalizedPath, { runnerTemp: trustedRoot });
 }
-
 export function recordHeavyProofExecution({
   ledgerPath,
   execution,
@@ -198,7 +202,6 @@ const PROOF_COMMANDS = Object.freeze({
     Object.freeze(['--filter', '@interdomestik/web', 'run', 'e2e:smoke']),
   ]),
 });
-
 export function runHeavyProofExecution({
   ledgerPath,
   execution,

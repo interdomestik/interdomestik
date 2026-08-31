@@ -1,10 +1,17 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import test from 'node:test';
 
 import { generateSliceCheckpoint } from './slice-rehearse-report.mjs';
 
 const sha = character => character.repeat(40);
 const verified = { verifyState: () => true };
+
+test('checkpoint PR verification resolves the installed GitHub CLI instead of hard-coding /usr/bin', () => {
+  const source = fs.readFileSync(new URL('./slice-rehearse-report.mjs', import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /execFileSync\(\s*'\/usr\/bin\/gh'/u);
+  assert.match(source, /resolveGhBinary\(\)/u);
+});
 
 test('generates one closed checkpoint/final report with exactly one legal next action', () => {
   const report = generateSliceCheckpoint(
