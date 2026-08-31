@@ -27,15 +27,8 @@ const SAFE_EXEC = Object.freeze({
   maxBuffer: 8 * 1024 * 1024,
   timeout: 5 * 60_000,
 });
-const PROVIDER_ENVIRONMENT_KEYS = Object.freeze([
-  'HOME',
-  'XDG_CONFIG_HOME',
-  'GH_CONFIG_DIR',
-  'GH_HOST',
-  'GH_TOKEN',
-  'GH_ENTERPRISE_TOKEN',
-  'GITHUB_TOKEN',
-]);
+const PROVIDER_ENVIRONMENT_KEYS =
+  'HOME XDG_CONFIG_HOME GH_CONFIG_DIR GH_HOST GH_TOKEN GH_ENTERPRISE_TOKEN GITHUB_TOKEN'.split(' ');
 
 export function safeGitHubEnvironment(environment = process.env) {
   const safe = { PATH: SAFE_EXEC.env.PATH };
@@ -69,13 +62,20 @@ function lsRemote(ref) {
   return normalizeCommitSha(sha, 'live remote head SHA');
 }
 
+export function normalizeHeadRepository(repository, owner) {
+  if (repository?.nameWithOwner?.trim()) return repository.nameWithOwner.trim().toLowerCase();
+  const login = owner?.login?.trim();
+  const name = repository?.name?.trim();
+  return login && name ? `${login}/${name}`.toLowerCase() : null;
+}
+
 function normalizePull(value) {
   return {
     number: value.number,
     baseBranch: value.baseRefName,
     branch: value.headRefName,
     headSha: value.headRefOid,
-    origin: value.headRepository?.nameWithOwner?.toLowerCase(),
+    origin: normalizeHeadRepository(value.headRepository, value.headRepositoryOwner),
   };
 }
 
@@ -89,7 +89,7 @@ function readPr(prNumber) {
           'view',
           String(prNumber),
           '--json',
-          'number,headRefOid,headRefName,baseRefName,headRepository',
+          'number,headRefOid,headRefName,baseRefName,headRepository,headRepositoryOwner',
         ],
         providerExecOptions()
       )
@@ -113,7 +113,7 @@ function readPrForBranch(certificate) {
         '--limit',
         '2',
         '--json',
-        'number,headRefOid,headRefName,baseRefName,headRepository',
+        'number,headRefOid,headRefName,baseRefName,headRepository,headRepositoryOwner',
       ],
       providerExecOptions()
     )

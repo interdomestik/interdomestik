@@ -3,12 +3,10 @@ import test from 'node:test';
 
 import { canonicalJson, sha256 } from './slice-rehearse-canonical.mjs';
 import { operationApprovalBinding } from './slice-rehearse-operation-certificate.mjs';
-import { safeGitHubEnvironment } from './slice-rehearse-operation-live.mjs';
+import * as live from './slice-rehearse-operation-live.mjs';
 import { buildSafeOperation, runSafeOperation } from './slice-rehearse-ops.mjs';
 
-const head = 'a'.repeat(40);
-const base = 'b'.repeat(40);
-const tree = 'c'.repeat(40);
+const [head, base, tree] = ['a', 'b', 'c'].map(value => value.repeat(40));
 const writerMapDigest = 'd'.repeat(64);
 const origin = 'https://github.com/interdomestik/interdomestik.git';
 
@@ -79,8 +77,10 @@ const liveFacts = {
 const inactiveAuthority = { source: 'live-resolver', runtimeAuthorized: false, activeSlice: null };
 
 test('bounds the GitHub provider subprocess environment', () => {
-  const safe = safeGitHubEnvironment({ HOME: '/u', UNRELATED_SECRET: 'x' });
+  const safe = live.safeGitHubEnvironment({ HOME: '/u', UNRELATED_SECRET: 'x' });
   assert.deepEqual(safe, { PATH: '/usr/bin:/bin:/usr/sbin:/sbin', HOME: '/u' });
+  const repo = live.normalizeHeadRepository({ name: 'r', nameWithOwner: '' }, { login: 'o' });
+  assert.equal(repo, 'o/r');
 });
 
 test('builds copy-safe PR, label, feedback, and telemetry argv without a shell', () => {
