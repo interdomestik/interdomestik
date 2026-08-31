@@ -441,13 +441,13 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 468421,
+      "maxTrackedBytesDelta": 469538,
       "maxTrackedFilesDelta": 72,
       "maxCategoryBytesDelta": {
         "config/data/messages": 1000,
         "docs/text": 30439,
-        "tests/e2e": 195742,
-        "source/scripts": 241240
+        "tests/e2e": 196635,
+        "source/scripts": 241464
       },
       "maxPathBytesDelta": {
         ".github/workflows/ci.yml": 24,
@@ -515,8 +515,8 @@
         "scripts/slice-rehearse-projection.test.mjs": 11006,
         "scripts/slice-rehearse-proof-plan.mjs": 10005,
         "scripts/slice-rehearse-proof-plan.test.mjs": 7854,
-        "scripts/slice-rehearse-report.mjs": 6684,
-        "scripts/slice-rehearse-report.test.mjs": 4225,
+        "scripts/slice-rehearse-report.mjs": 7324,
+        "scripts/slice-rehearse-report.test.mjs": 5118,
         "scripts/slice-rehearse-repository-facts.mjs": 8307,
         "scripts/slice-rehearse-repository.test.mjs": 9076,
         "scripts/slice-rehearse-review-parity.mjs": 8037,
@@ -547,15 +547,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60135476,
+  "maxTrackedBytes": 60136593,
   "maxTrackedFiles": 5937,
   "maxCategoryBytes": {
     "config/data/messages": 2160570,
     "docs/text": 8509839,
     "large support/generated-ish": 15390712,
     "other": 18856416,
-    "source/scripts": 8593571,
-    "tests/e2e": 6624368
+    "source/scripts": 8593795,
+    "tests/e2e": 6625261
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

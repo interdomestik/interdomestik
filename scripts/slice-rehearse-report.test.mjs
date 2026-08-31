@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 
-import { generateSliceCheckpoint } from './slice-rehearse-report.mjs';
+import { generateSliceCheckpoint, verifyCheckpointGitIdentity } from './slice-rehearse-report.mjs';
 
 const sha = character => character.repeat(40);
 const verified = { verifyState: () => true };
@@ -11,6 +11,43 @@ test('checkpoint PR verification resolves the installed GitHub CLI instead of ha
   const source = fs.readFileSync(new URL('./slice-rehearse-report.mjs', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /execFileSync\(\s*'\/usr\/bin\/gh'/u);
   assert.match(source, /resolveGhBinary\(\)/u);
+});
+
+test('final checkpoint preserves candidate base while binding protected main to the merge', () => {
+  const input = {
+    stage: 'final',
+    baseSha: sha('a'),
+    headSha: sha('b'),
+    treeSha: sha('c'),
+    mergeSha: sha('d'),
+  };
+  assert.equal(
+    verifyCheckpointGitIdentity(input, {
+      headSha: input.headSha,
+      treeSha: input.treeSha,
+      protectedMainSha: input.mergeSha,
+      baseIsAncestor: true,
+    }),
+    true
+  );
+  assert.equal(
+    verifyCheckpointGitIdentity(input, {
+      headSha: input.headSha,
+      treeSha: input.treeSha,
+      protectedMainSha: input.baseSha,
+      baseIsAncestor: true,
+    }),
+    false
+  );
+  assert.equal(
+    verifyCheckpointGitIdentity(input, {
+      headSha: input.headSha,
+      treeSha: input.treeSha,
+      protectedMainSha: input.mergeSha,
+      baseIsAncestor: false,
+    }),
+    false
+  );
 });
 
 test('generates one closed checkpoint/final report with exactly one legal next action', () => {

@@ -57,16 +57,48 @@ const SAFE_EXEC = Object.freeze({
   timeout: 5 * 60_000,
 });
 
+export function verifyCheckpointGitIdentity(input, facts) {
+  if (
+    facts.headSha !== input.headSha ||
+    facts.treeSha !== input.treeSha ||
+    facts.baseIsAncestor !== true
+  ) {
+    return false;
+  }
+  return input.stage === 'final'
+    ? facts.protectedMainSha === input.mergeSha
+    : facts.protectedMainSha === input.baseSha;
+}
+
 function defaultVerifyState(input) {
   const headSha = execFileSync('/usr/bin/git', ['rev-parse', 'HEAD'], SAFE_EXEC).trim();
   const treeSha = execFileSync('/usr/bin/git', ['rev-parse', 'HEAD^{tree}'], SAFE_EXEC).trim();
-  const baseSha = execFileSync(
+  const protectedMainSha = execFileSync(
     '/usr/bin/git',
     ['rev-parse', 'refs/remotes/origin/main^{commit}'],
     SAFE_EXEC
   ).trim();
-  if (headSha !== input.headSha || treeSha !== input.treeSha || baseSha !== input.baseSha)
+  let baseIsAncestor = false;
+  try {
+    execFileSync(
+      '/usr/bin/git',
+      ['merge-base', '--is-ancestor', input.baseSha, input.headSha],
+      SAFE_EXEC
+    );
+    baseIsAncestor = true;
+  } catch {
+    baseIsAncestor = false;
+  }
+  if (
+    !verifyCheckpointGitIdentity(input, {
+      headSha,
+      treeSha,
+      protectedMainSha,
+      baseIsAncestor,
+    })
+  ) {
     return false;
+  }
   if (input.prNumber !== null) {
     const pull = JSON.parse(
       execFileSync(
