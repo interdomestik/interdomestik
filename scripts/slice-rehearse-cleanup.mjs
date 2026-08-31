@@ -16,6 +16,7 @@ const KEYS = [
   'artifactPaths',
   'mode',
   'recoveryBundlePath',
+  'recoveryBundleIdentity',
   'recoveryBundleSha256',
   'schemaVersion',
   'separatelyAuthorized',
@@ -70,6 +71,7 @@ export function validateCleanupEnvelope(input, authority) {
       input.approvalEnvelopeId === null &&
         input.approvalBindingSha256 === null &&
         input.recoveryBundlePath === null &&
+        input.recoveryBundleIdentity === null &&
         input.recoveryBundleSha256 === null &&
         input.separatelyAuthorized === false,
       'slice-owned cleanup must not imply global authority'
@@ -81,6 +83,14 @@ export function validateCleanupEnvelope(input, authority) {
     );
     must(typeof input.recoveryBundlePath === 'string', 'global hygiene must be recoverable');
     const recoveryBundlePath = normalizeArtifactPath(input.recoveryBundlePath);
+    exactKeys(input.recoveryBundleIdentity, IDENTITY_KEYS, 'global hygiene recovery identity');
+    must(
+      input.recoveryBundleIdentity.realPath === resolve(recoveryBundlePath) &&
+        input.recoveryBundleIdentity.type === 'file' &&
+        /^\d+$/u.test(input.recoveryBundleIdentity.device) &&
+        /^\d+$/u.test(input.recoveryBundleIdentity.inode),
+      'global hygiene recovery identity is invalid'
+    );
     must(
       SHA256.test(input.recoveryBundleSha256 ?? ''),
       'global hygiene recovery digest is invalid'
@@ -102,6 +112,7 @@ export function validateCleanupEnvelope(input, authority) {
         approvalEnvelopeId: input.approvalEnvelopeId,
         artifactPaths,
         recoveryBundlePath,
+        recoveryBundleIdentity: input.recoveryBundleIdentity,
         recoveryBundleSha256: input.recoveryBundleSha256,
         taskId: input.taskId,
       })
@@ -150,6 +161,7 @@ export function deriveSliceOwnedCleanup({ taskId, authority, registry }) {
       approvalEnvelopeId: null,
       approvalBindingSha256: null,
       recoveryBundlePath: null,
+      recoveryBundleIdentity: null,
       recoveryBundleSha256: null,
       separatelyAuthorized: false,
       targetIdentities,
@@ -158,7 +170,7 @@ export function deriveSliceOwnedCleanup({ taskId, authority, registry }) {
   );
 }
 
-export function verifyCleanupTargetsImmediatelyBeforeDeletion(envelope, { inspect }) {
+export function verifyCleanupTargetsImmediatelyBeforeDeletion(envelope, { inspect, digest }) {
   must(typeof inspect === 'function', 'cleanup target inspector is unavailable');
   for (const path of envelope.artifactPaths) {
     const expected = envelope.targetIdentities[path];
@@ -166,6 +178,19 @@ export function verifyCleanupTargetsImmediatelyBeforeDeletion(envelope, { inspec
     must(
       current && IDENTITY_KEYS.every(key => current[key] === expected[key]),
       `cleanup target identity changed: ${path}`
+    );
+  }
+  if (envelope.mode === 'global_hygiene') {
+    const recovery = inspect(envelope.recoveryBundlePath);
+    must(
+      recovery &&
+        IDENTITY_KEYS.every(key => recovery[key] === envelope.recoveryBundleIdentity[key]),
+      'cleanup recovery bundle identity changed'
+    );
+    must(typeof digest === 'function', 'cleanup recovery bundle digest verifier is unavailable');
+    must(
+      digest(envelope.recoveryBundlePath) === envelope.recoveryBundleSha256,
+      'cleanup recovery bundle digest changed'
     );
   }
   return true;

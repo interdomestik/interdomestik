@@ -113,6 +113,12 @@ export function summarizeTelemetryV2(input) {
     new Set(events.map(canonicalJson)).size === events.length,
     'telemetry v2 events must be unique'
   );
+  must(
+    new Set(events.map(event => event.eventId)).size === events.length,
+    'telemetry event ID must be unique'
+  );
+  const runIds = events.map(event => event.runId).filter(value => value !== null);
+  must(new Set(runIds).size === runIds.length, 'telemetry run ID must be unique');
   const map = new Map();
   for (const event of events) {
     const slice = map.get(event.sliceId) ?? emptySlice(event.sliceId);

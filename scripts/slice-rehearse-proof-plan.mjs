@@ -1,3 +1,4 @@
+import { execFileSync, spawnSync } from 'node:child_process';
 import {
   closeSync,
   constants,
@@ -13,14 +14,28 @@ import { resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { canonicalize, compareText, exactKeys, must } from './slice-rehearse-canonical.mjs';
-import { canonicalJson, readBoundedRegularText } from './slice-rehearse-canonical.mjs';
+import {
+  canonicalJson,
+  deriveEvidenceIdentityKey,
+  readBoundedRegularText,
+  sha256,
+} from './slice-rehearse-canonical.mjs';
 import { trustedRunnerFile } from './ci/trusted-runner-file.mjs';
 
 const KEY = /^[0-9a-f]{64}$/u;
 
-export function planInvalidatedProofs({ requiredLanes, decisions, now = Date.now() }) {
+export function planInvalidatedProofs({
+  requiredLanes,
+  decisions,
+  expectedByLane,
+  now = Date.now(),
+}) {
   must(Array.isArray(requiredLanes) && requiredLanes.length > 0, 'required lanes are unavailable');
   must(Array.isArray(decisions), 'proof decisions are unavailable');
+  must(
+    expectedByLane && typeof expectedByLane === 'object',
+    'expected proof identity is unavailable'
+  );
   const required = [...requiredLanes].sort(compareText);
   must(new Set(required).size === required.length, 'required lanes must be unique');
   const byLane = new Map();
@@ -38,7 +53,18 @@ export function planInvalidatedProofs({ requiredLanes, decisions, now = Date.now
     const decision = byLane.get(lane);
     return decision?.reusable === true && Date.parse(decision.expiresAt) > now;
   });
-  return { reuse, run: required.filter(lane => !reuse.includes(lane)) };
+  return {
+    reuse,
+    run: required
+      .filter(lane => !reuse.includes(lane))
+      .map(lane => {
+        must(expectedByLane[lane], `expected proof identity is missing: ${lane}`);
+        return {
+          lane,
+          evidenceKey: deriveEvidenceIdentityKey({ lane, ...expectedByLane[lane] }),
+        };
+      }),
+  };
 }
 
 const EXECUTION_KEYS = ['evidenceKey', 'lane', 'runId', 'startedAt'];
@@ -52,6 +78,54 @@ function normalizeExecution(execution) {
   must(LANE.test(execution.lane ?? ''), 'heavy proof lane is invalid');
   must(Number.isFinite(Date.parse(execution.startedAt)), 'heavy proof start time is invalid');
   return execution;
+}
+
+function defaultVerifyCandidate(report) {
+  const options = {
+    encoding: 'utf8',
+    env: { PATH: '/usr/bin:/bin:/usr/sbin:/sbin' },
+    maxBuffer: 1024 * 1024,
+    timeout: 30_000,
+  };
+  return (
+    execFileSync('/usr/bin/git', ['rev-parse', 'HEAD'], options).trim() ===
+      report.repository?.headSha &&
+    execFileSync('/usr/bin/git', ['rev-parse', 'HEAD^{tree}'], options).trim() ===
+      report.repository?.treeSha &&
+    execFileSync('/usr/bin/git', ['status', '--porcelain'], options).trim() === ''
+  );
+}
+
+export function validateProofExecutionPlan(
+  report,
+  execution,
+  verifyCandidate = defaultVerifyCandidate
+) {
+  const value = normalizeExecution(execution);
+  must(
+    report && typeof report === 'object' && !Array.isArray(report),
+    'proof report is unavailable'
+  );
+  must(report.schemaVersion === 1, 'proof report schema is invalid');
+  must(
+    report.reportSha256 === sha256(canonicalJson({ ...report, reportSha256: null })),
+    'proof report digest is invalid'
+  );
+  must(
+    Array.isArray(report.authorityStops) && report.authorityStops.length === 0,
+    'proof report has authority stops'
+  );
+  const planned = report.evidence?.executionPlan?.run;
+  must(Array.isArray(planned), 'proof execution plan is unavailable');
+  must(
+    planned.some(item => item?.lane === value.lane && item?.evidenceKey === value.evidenceKey),
+    'heavy proof execution is outside the invalidated-only plan'
+  );
+  must(
+    typeof verifyCandidate === 'function' && verifyCandidate(report) === true,
+    'heavy proof candidate identity differs'
+  );
+  return value;
 }
 
 function trustedLedgerPath(ledgerPath, allowedRoots) {
@@ -118,13 +192,57 @@ export function recordHeavyProofExecution({
   }
 }
 
+const PROOF_COMMANDS = Object.freeze({
+  'pr-e2e': Object.freeze([
+    Object.freeze(['e2e:gate:pr']),
+    Object.freeze(['--filter', '@interdomestik/web', 'run', 'e2e:smoke']),
+  ]),
+});
+
+export function runHeavyProofExecution({
+  ledgerPath,
+  execution,
+  report,
+  allowedRoots,
+  execute = args =>
+    spawnSync('pnpm', args, {
+      cwd: process.cwd(),
+      encoding: 'utf8',
+      shell: false,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: 90 * 60_000,
+    }),
+  verifyCandidate,
+}) {
+  const value = validateProofExecutionPlan(report, execution, verifyCandidate);
+  const commands = PROOF_COMMANDS[value.lane];
+  must(commands, 'heavy proof lane has no fixed executor');
+  recordHeavyProofExecution({ ledgerPath, execution: value, allowedRoots });
+  for (let index = 0; index < commands.length; index += 1) {
+    const result = execute(commands[index]);
+    if (result?.status !== 0) {
+      return {
+        commandIndex: index,
+        exitCode: Number.isInteger(result?.status) ? result.status : null,
+        lane: value.lane,
+        runId: value.runId,
+        status: 'failed',
+      };
+    }
+  }
+  return { lane: value.lane, runId: value.runId, status: 'succeeded' };
+}
+
 function parseRecordArgs(argv) {
   must(
-    argv.length === 4 && argv[0] === '--execution' && argv[2] === '--ledger',
-    'usage: --execution <path> --ledger <path>'
+    argv.length === 6 &&
+      argv[0] === '--report' &&
+      argv[2] === '--execution' &&
+      argv[4] === '--ledger',
+    'usage: --report <path> --execution <path> --ledger <path>'
   );
-  must(argv[1] && argv[3], 'usage: --execution <path> --ledger <path>');
-  return { executionPath: argv[1], ledgerPath: argv[3] };
+  must(argv[1] && argv[3] && argv[5], 'usage: --report <path> --execution <path> --ledger <path>');
+  return { reportPath: argv[1], executionPath: argv[3], ledgerPath: argv[5] };
 }
 
 export function runHeavyProofRecordCli({
@@ -132,9 +250,10 @@ export function runHeavyProofRecordCli({
   cwd = process.cwd(),
   stdout = value => process.stdout.write(value),
   stderr = value => process.stderr.write(value),
+  executeProof = runHeavyProofExecution,
 } = {}) {
   try {
-    const { executionPath, ledgerPath } = parseRecordArgs(argv);
+    const { reportPath, executionPath, ledgerPath } = parseRecordArgs(argv);
     const allowedRoots = [cwd, tmpdir(), '/private/tmp'];
     const execution = JSON.parse(
       readBoundedRegularText(resolve(cwd, executionPath), {
@@ -143,20 +262,21 @@ export function runHeavyProofRecordCli({
         allowedRoots,
       })
     );
-    recordHeavyProofExecution({
-      ledgerPath: resolve(cwd, ledgerPath),
-      execution,
-      allowedRoots,
-    });
-    stdout(
-      canonicalJson({
-        evidenceKey: execution.evidenceKey,
-        lane: execution.lane,
-        recorded: true,
-        runId: execution.runId,
+    const report = JSON.parse(
+      readBoundedRegularText(resolve(cwd, reportPath), {
+        label: 'Heavy proof report',
+        maxBytes: 1024 * 1024,
+        allowedRoots,
       })
     );
-    return 0;
+    const result = executeProof({
+      ledgerPath: resolve(cwd, ledgerPath),
+      execution,
+      report,
+      allowedRoots,
+    });
+    stdout(canonicalJson({ evidenceKey: execution.evidenceKey, ...result }));
+    return result.status === 'succeeded' ? 0 : 1;
   } catch (error) {
     stderr(`heavy proof execution was not recorded: ${error.message}\n`);
     return 1;

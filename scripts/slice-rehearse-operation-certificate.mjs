@@ -33,6 +33,7 @@ const DEFINITIONS = {
   telemetry_summarize: ['inputPath', 'operation'],
 };
 const CERTIFICATE_KEYS = [
+  'approvalBindingSha256',
   'allowedOperations',
   'approvalEnvelopeId',
   'artifacts',
@@ -45,12 +46,62 @@ const CERTIFICATE_KEYS = [
   'origin',
   'prNumber',
   'reportSha256',
+  'rehearsalReport',
   'schemaVersion',
   'sliceId',
   'treeSha',
   'workClass',
   'writerMapDigest',
 ];
+
+export function operationApprovalBinding(certificate) {
+  return sha256(
+    canonicalJson({
+      allowedOperations: certificate.allowedOperations,
+      approvalEnvelopeId: certificate.approvalEnvelopeId,
+      baseSha: certificate.baseSha,
+      headSha: certificate.headSha,
+      prNumber: certificate.prNumber,
+      reportSha256: certificate.reportSha256,
+      treeSha: certificate.treeSha,
+      writerMapDigest: certificate.writerMapDigest,
+    })
+  );
+}
+
+function validateRehearsalReport(certificate) {
+  const report = certificate.rehearsalReport;
+  must(
+    report && typeof report === 'object' && !Array.isArray(report),
+    'rehearsal report is unavailable'
+  );
+  must(report.schemaVersion === 1, 'rehearsal report schema is invalid');
+  must(report.reportSha256 === certificate.reportSha256, 'certificate report digest differs');
+  must(
+    report.reportSha256 === sha256(canonicalJson({ ...report, reportSha256: null })),
+    'rehearsal report digest is invalid'
+  );
+  must(report.sliceId === certificate.sliceId, 'rehearsal report slice differs');
+  must(
+    report.repository?.origin === certificate.origin &&
+      report.repository?.baseSha === certificate.baseSha &&
+      report.repository?.headSha === certificate.headSha &&
+      report.repository?.treeSha === certificate.treeSha,
+    'rehearsal report candidate identity differs'
+  );
+  must(
+    report.writers?.digest === certificate.writerMapDigest,
+    'rehearsal report writer map differs'
+  );
+  must(
+    Array.isArray(report.authorityStops) && report.authorityStops.length === 0,
+    'rehearsal report has authority stops'
+  );
+  must(
+    report.operationalEnvelope?.authorityGranted === false,
+    'rehearsal report authority carrier is invalid'
+  );
+}
 
 function validateCertificate(request) {
   const certificate = request.authorityCertificate;
@@ -67,10 +118,15 @@ function validateCertificate(request) {
     [certificate.baseSha, 'certificate base SHA'],
     [certificate.headSha, 'certificate head SHA'],
     [certificate.treeSha, 'certificate tree SHA'],
-  ]) normalizeCommitSha(value, label);
+  ])
+    normalizeCommitSha(value, label);
   must(SHA256.test(certificate.writerMapDigest), 'certificate writer map digest is invalid');
   must(SHA256.test(certificate.reportSha256), 'certificate report digest is invalid');
-  must(['governance', 'product'].includes(certificate.workClass), 'certificate work class is invalid');
+  validateRehearsalReport(certificate);
+  must(
+    ['governance', 'product'].includes(certificate.workClass),
+    'certificate work class is invalid'
+  );
   must(
     normalizeGitHubOrigin(certificate.origin).origin === certificate.origin,
     'certificate origin is not canonical'
@@ -100,6 +156,10 @@ function validateCertificate(request) {
   must(
     request.authorityCertificateSha256 === sha256(canonicalJson(certificate)),
     'operation authority certificate digest differs'
+  );
+  must(
+    certificate.approvalBindingSha256 === operationApprovalBinding(certificate),
+    'operation approval binding differs'
   );
   return certificate;
 }

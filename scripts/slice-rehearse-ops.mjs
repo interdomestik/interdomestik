@@ -26,7 +26,11 @@ export function runSafeOperation(
     const result = execute(command.binary, command.args);
     return { status: result.status === 0 ? 'succeeded' : 'failed', command };
   }
-  verifyLiveOperationFacts(readLiveFacts(request, command.certificate), command.certificate);
+  verifyLiveOperationFacts(
+    readLiveFacts(request, command.certificate),
+    command.certificate,
+    request.operation
+  );
   verifyOperationAuthority(
     readAuthority(command.boundary, command.certificate),
     command.certificate

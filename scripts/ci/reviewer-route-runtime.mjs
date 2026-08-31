@@ -42,6 +42,16 @@ function providerModelFromOutput(stdout) {
   }
 }
 
+function reviewVerdictFromOutput(stdout) {
+  try {
+    const payload = JSON.parse(stdout.trim());
+    const text = typeof payload.result === 'string' ? payload.result : '';
+    return /^VERDICT:\s*(PASS|FINDINGS)\b/mu.exec(text)?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 function terminate(child) {
   child.kill('SIGTERM');
   setTimeout(() => {
@@ -92,6 +102,7 @@ export function runReviewerRoute(options) {
     model: options.model,
     configuredModel: options.model,
     providerReportedModel: providerModelFromOutput(stdout),
+    reviewVerdict: reviewVerdictFromOutput(stdout),
     candidateIdentity: options.candidateIdentity ?? null,
     commandInvoked,
     startedAt,
@@ -170,6 +181,14 @@ export function runReviewerRoute(options) {
         error = reported
           ? `provider model differs: ${reported}`
           : 'provider model was not attested in structured output';
+      }
+      if (
+        status === 'ran' &&
+        ['anthropic', 'google', 'openai'].includes(options.provider) &&
+        reviewVerdictFromOutput(stdout) === null
+      ) {
+        status = 'failed';
+        error = 'reviewer returned no explicit PASS or FINDINGS verdict';
       }
       finish(finishReceipt({ status, exitCode: code ?? null, signal, error }));
     });

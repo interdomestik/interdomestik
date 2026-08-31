@@ -8,6 +8,7 @@ function receiptMarkdown(receipt) {
     `- status: ${receipt.status}`,
     `- configured model/provider: ${receipt.configuredModel ?? receipt.model}/${receipt.provider}`,
     `- provider-reported model: ${receipt.providerReportedModel ?? 'null'}`,
+    `- review verdict: ${receipt.reviewVerdict ?? 'null'}`,
     `- candidate: ${receipt.candidateIdentity ? JSON.stringify(receipt.candidateIdentity) : 'null'}`,
     `- command: ${receipt.commandInvoked.join(' ')}`,
     `- startedAt: ${receipt.startedAt}`,

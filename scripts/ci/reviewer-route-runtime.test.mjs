@@ -70,12 +70,23 @@ test('records provider-reported model and exact candidate identity', async () =>
   };
   const receipt = await runFake(
     'opus',
-    'console.log(JSON.stringify({ model: "claude-opus-5", result: "PASS" }));\n',
+    'console.log(JSON.stringify({ model: "claude-opus-5", result: "VERDICT: PASS" }));\n',
     { provider: 'anthropic', model: 'claude-opus-5', candidateIdentity }
   );
   assert.equal(receipt.status, 'ran');
   assert.equal(receipt.providerReportedModel, 'claude-opus-5');
+  assert.equal(receipt.reviewVerdict, 'PASS');
   assert.deepEqual(receipt.candidateIdentity, candidateIdentity);
+});
+
+test('fails closed when an external reviewer returns no substantive verdict', async () => {
+  const receipt = await runFake(
+    'opus-no-verdict',
+    'console.log(JSON.stringify({ model: "claude-opus-5", result: "I will inspect the diff." }));\n',
+    { provider: 'anthropic', model: 'claude-opus-5' }
+  );
+  assert.equal(receipt.status, 'failed');
+  assert.match(receipt.error, /no explicit PASS or FINDINGS/u);
 });
 
 test('fails closed when an external reviewer cannot attest its model', async () => {

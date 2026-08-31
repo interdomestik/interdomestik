@@ -41,7 +41,7 @@
     "slice:rehearse:init": "node scripts/slice-rehearse-init-cli.mjs",
     "slice:review:parity": "node scripts/slice-rehearse-review-parity.mjs && pnpm check:modularity-guard && pnpm lint:production-warnings && pnpm security:guard",
     "slice:ops": "node scripts/slice-rehearse-ops-cli.mjs",
-    "slice:proof:record": "node scripts/slice-rehearse-proof-plan.mjs",
+    "slice:proof:run": "node scripts/slice-rehearse-proof-plan.mjs",
     "slice:checkpoint": "node scripts/slice-rehearse-report.mjs",
     "slice:telemetry": "node scripts/slice-telemetry.mjs",
     "slice:telemetry:record": "node scripts/slice-telemetry-v2-record.mjs",

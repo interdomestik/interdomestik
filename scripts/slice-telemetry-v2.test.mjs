@@ -156,3 +156,28 @@ test('rejects negative counters and never certifies a pre-terminal aggregate', (
   assert.equal(summary.targets.metTargetsSoFar, true);
   assert.equal(summary.targets.allPassed, null);
 });
+
+test('summaries reject duplicate immutable event and proof run identities', () => {
+  const first = event({
+    eventId: 'event-proof-a',
+    phase: 'proof',
+    evidenceKey: 'a'.repeat(64),
+    runId: 'run-proof-a',
+  });
+  assert.throws(
+    () => summarizeTelemetryV2([first, { ...first, retries: 1 }]),
+    /event ID must be unique/u
+  );
+  assert.throws(
+    () =>
+      summarizeTelemetryV2([
+        first,
+        {
+          ...first,
+          eventId: 'event-proof-b',
+          evidenceKey: 'b'.repeat(64),
+        },
+      ]),
+    /run ID must be unique/u
+  );
+});

@@ -166,6 +166,7 @@ export function evaluateRehearsal({
     ? planInvalidatedProofs({
         requiredLanes: normalized.proof.heavyLanes,
         decisions: evidenceResult.decisions,
+        expectedByLane,
       })
     : { reuse: [], run: [] };
   return buildRehearsalReport({

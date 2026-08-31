@@ -4,10 +4,12 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
+import { canonicalJson, deriveEvidenceIdentityKey, sha256 } from './slice-rehearse-canonical.mjs';
 import {
   assertHeavyProofExecution,
   planInvalidatedProofs,
   recordHeavyProofExecution,
+  runHeavyProofExecution,
   runHeavyProofRecordCli,
 } from './slice-rehearse-proof-plan.mjs';
 
@@ -18,14 +20,44 @@ const receipt = (lane, key, reusable) => ({
   ...(reusable ? { expiresAt: '2099-01-01T00:00:00.000Z' } : {}),
 });
 
+const identity = suffix => ({
+  headSha: suffix.repeat(40),
+  treeSha: suffix.repeat(40),
+  commandDigest: suffix.repeat(64),
+  workflowDigest: suffix.repeat(64),
+  substrateDigest: suffix.repeat(64),
+  writerMapDigest: suffix.repeat(64),
+});
+
+function proofReport(item) {
+  const report = {
+    schemaVersion: 1,
+    repository: { headSha: '1'.repeat(40), treeSha: '2'.repeat(40) },
+    authorityStops: [],
+    evidence: { executionPlan: { reuse: [], run: [item] } },
+    reportSha256: null,
+  };
+  report.reportSha256 = sha256(canonicalJson(report));
+  return report;
+}
+
 test('plans only invalidated or missing proof lanes in deterministic code-unit order', () => {
   const plan = planInvalidatedProofs({
     requiredLanes: ['pr-e2e', 'CodeQL', 'sonar'],
     decisions: [receipt('pr-e2e', 'a'.repeat(64), true), receipt('CodeQL', 'b'.repeat(64), false)],
+    expectedByLane: {
+      'pr-e2e': identity('a'),
+      CodeQL: identity('b'),
+      sonar: identity('c'),
+    },
   });
 
   assert.deepEqual(plan.reuse, ['pr-e2e']);
-  assert.deepEqual(plan.run, ['CodeQL', 'sonar']);
+  assert.deepEqual(
+    plan.run.map(item => item.lane),
+    ['CodeQL', 'sonar']
+  );
+  assert.ok(plan.run.every(item => /^[0-9a-f]{64}$/u.test(item.evidenceKey)));
 });
 
 test('enforces the no-duplicate-heavy-proof execution contract', () => {
@@ -54,9 +86,50 @@ test('persists the no-duplicate contract atomically across process-local ledgers
   );
 });
 
-test('records a planned execution through the copy-safe CLI contract', () => {
+test('the proof executor runs only the fixed lane commands after claiming the evidence key', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'heavy-proof-executor-'));
+  const commands = [];
+  const result = runHeavyProofExecution({
+    ledgerPath: path.join(root, 'ledger.jsonl'),
+    execution: {
+      runId: 'run-executor-0001',
+      evidenceKey: 'f'.repeat(64),
+      lane: 'pr-e2e',
+      startedAt: '2026-08-31T00:00:00.000Z',
+    },
+    report: proofReport({ lane: 'pr-e2e', evidenceKey: 'f'.repeat(64) }),
+    verifyCandidate: () => true,
+    execute: args => {
+      commands.push(args);
+      return { status: 0 };
+    },
+  });
+  assert.deepEqual(commands, [
+    ['e2e:gate:pr'],
+    ['--filter', '@interdomestik/web', 'run', 'e2e:smoke'],
+  ]);
+  assert.equal(result.status, 'succeeded');
+  assert.throws(
+    () =>
+      runHeavyProofExecution({
+        ledgerPath: path.join(root, 'other-ledger.jsonl'),
+        execution: {
+          runId: 'run-executor-0002',
+          evidenceKey: '0'.repeat(64),
+          lane: 'pr-e2e',
+          startedAt: '2026-08-31T00:00:00.000Z',
+        },
+        report: proofReport({ lane: 'pr-e2e', evidenceKey: 'f'.repeat(64) }),
+        verifyCandidate: () => true,
+      }),
+    /outside the invalidated-only plan/u
+  );
+});
+
+test('records and executes a planned proof through the copy-safe CLI contract', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'heavy-proof-cli-'));
   const executionPath = path.join(root, 'execution.json');
+  const reportPath = path.join(root, 'report.json');
   const ledgerPath = path.join(root, 'ledger.jsonl');
   fs.writeFileSync(
     executionPath,
@@ -67,17 +140,32 @@ test('records a planned execution through the copy-safe CLI contract', () => {
       startedAt: '2026-08-31T00:00:00.000Z',
     })
   );
+  fs.writeFileSync(
+    reportPath,
+    JSON.stringify(proofReport({ lane: 'pr-e2e', evidenceKey: 'd'.repeat(64) }))
+  );
   let stdout = '';
   let stderr = '';
+  const commands = [];
   assert.equal(
     runHeavyProofRecordCli({
-      argv: ['--execution', executionPath, '--ledger', ledgerPath],
+      argv: ['--report', reportPath, '--execution', executionPath, '--ledger', ledgerPath],
       cwd: root,
       stdout: value => {
         stdout += value;
       },
       stderr: value => {
         stderr += value;
+      },
+      executeProof: options => {
+        return runHeavyProofExecution({
+          ...options,
+          verifyCandidate: () => true,
+          execute: args => {
+            commands.push(args);
+            return { status: 0 };
+          },
+        });
       },
     }),
     0
@@ -86,9 +174,10 @@ test('records a planned execution through the copy-safe CLI contract', () => {
   assert.deepEqual(JSON.parse(stdout), {
     evidenceKey: 'd'.repeat(64),
     lane: 'pr-e2e',
-    recorded: true,
     runId: 'run-cli-0001',
+    status: 'succeeded',
   });
+  assert.equal(commands.length, 2);
   assert.match(fs.readFileSync(ledgerPath, 'utf8'), /run-cli-0001/u);
 });
 
@@ -121,6 +210,7 @@ test('rejects ambiguous duplicate lane decisions instead of rerunning speculativ
           receipt('pr-e2e', 'a'.repeat(64), true),
           receipt('pr-e2e', 'b'.repeat(64), false),
         ],
+        expectedByLane: { 'pr-e2e': identity('a') },
       }),
     /lane decision must be unique/u
   );
@@ -138,8 +228,17 @@ test('revalidates independently verified expiry when proof is consumed', () => {
     planInvalidatedProofs({
       requiredLanes: ['pr-e2e'],
       decisions: [decision],
+      expectedByLane: { 'pr-e2e': identity('a') },
       now: Date.parse('2026-08-31T02:00:00.000Z'),
     }),
-    { reuse: [], run: ['pr-e2e'] }
+    {
+      reuse: [],
+      run: [
+        {
+          lane: 'pr-e2e',
+          evidenceKey: deriveEvidenceIdentityKey({ lane: 'pr-e2e', ...identity('a') }),
+        },
+      ],
+    }
   );
 });

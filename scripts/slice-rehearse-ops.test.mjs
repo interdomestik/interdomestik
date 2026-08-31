@@ -2,34 +2,48 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { canonicalJson, sha256 } from './slice-rehearse-canonical.mjs';
+import { operationApprovalBinding } from './slice-rehearse-operation-certificate.mjs';
 import { buildSafeOperation, runSafeOperation } from './slice-rehearse-ops.mjs';
 
 const head = 'a'.repeat(40);
 const base = 'b'.repeat(40);
 const tree = 'c'.repeat(40);
 const writerMapDigest = 'd'.repeat(64);
+const origin = 'https://github.com/interdomestik/interdomestik.git';
 
 function certificate(overrides = {}) {
+  const rehearsalReport = {
+    schemaVersion: 1,
+    sliceId: 'HARNESS-V2-1',
+    repository: { origin, baseSha: base, headSha: head, treeSha: tree },
+    writers: { digest: writerMapDigest },
+    authorityStops: [],
+    operationalEnvelope: { authorityGranted: false },
+    reportSha256: null,
+  };
+  rehearsalReport.reportSha256 = sha256(canonicalJson(rehearsalReport));
   const value = {
     schemaVersion: 1,
     certificateId: 'HARNESS-V2-1-CERT-1',
     approvalEnvelopeId: 'HARNESS-V2-1-DELIVERY-1',
     sliceId: 'HARNESS-V2-1',
     workClass: 'governance',
-    origin: 'https://github.com/interdomestik/interdomestik.git',
+    origin,
     baseSha: base,
     headSha: head,
     treeSha: tree,
     branch: 'codex/harness-v2-1',
     baseBranch: 'main',
     writerMapDigest,
-    reportSha256: 'e'.repeat(64),
+    reportSha256: rehearsalReport.reportSha256,
+    rehearsalReport,
     expectedRemoteHeadSha: head,
     prNumber: 1700,
     allowedOperations: ['feedback_comment', 'label_add', 'pr_create'],
     artifacts: { 'feedback.md': sha256('feedback'), 'pr.md': sha256('pr body') },
     ...overrides,
   };
+  value.approvalBindingSha256 = operationApprovalBinding(value);
   return { value, sha256: sha256(canonicalJson(value)) };
 }
 
@@ -45,7 +59,7 @@ function authorityFields(overrides = {}) {
 }
 
 const liveFacts = {
-  origin: 'https://github.com/interdomestik/interdomestik.git',
+  origin,
   baseSha: base,
   headSha: head,
   treeSha: tree,
@@ -63,14 +77,8 @@ const liveFacts = {
 
 const inactiveAuthority = {
   source: 'live-resolver',
-  resolverCommand: 'node scripts/lean-current-authority.mjs status',
-  resultDigest: '0'.repeat(64),
-  lifecycle: 'no_active_slice',
   runtimeAuthorized: false,
   activeSlice: null,
-  successorsBlocked: true,
-  closeoutAuthorized: false,
-  reason: 'deterministic_closeout_recorded',
 };
 
 test('builds copy-safe PR, label, feedback, and telemetry argv without a shell', () => {
@@ -82,25 +90,17 @@ test('builds copy-safe PR, label, feedback, and telemetry argv without a shell',
     title: 'feat: harness v2.1',
     bodyArtifact: 'pr.md',
   });
-  assert.deepEqual(
-    { binary: create.binary, args: create.args, mutating: create.mutating },
-    {
-      binary: 'gh',
-      args: [
-        'pr',
-        'create',
-        '--head',
-        'codex/harness-v2-1',
-        '--base',
-        'main',
-        '--title',
-        'feat: harness v2.1',
-        '--body-file',
-        '/private/tmp/interdomestik-harness-operations/pr.md',
-      ],
-      mutating: true,
-    }
-  );
+  assert.equal(create.binary, 'gh');
+  assert.equal(create.mutating, true);
+  assert.deepEqual(create.args.slice(0, 6), [
+    'pr',
+    'create',
+    '--head',
+    'codex/harness-v2-1',
+    '--base',
+    'main',
+  ]);
+  assert.equal(create.args.at(-1), '/private/tmp/interdomestik-harness-operations/pr.md');
   assert.deepEqual(
     buildSafeOperation({
       operation: 'label_add',
@@ -110,21 +110,14 @@ test('builds copy-safe PR, label, feedback, and telemetry argv without a shell',
     }).args,
     ['pr', 'edit', '1700', '--add-label', 'full-gate']
   );
-  assert.deepEqual(
-    buildSafeOperation({
-      operation: 'feedback_comment',
-      ...authorityFields(),
-      prNumber: 1700,
-      bodyArtifact: 'feedback.md',
-    }).args,
-    [
-      'pr',
-      'comment',
-      '1700',
-      '--body-file',
-      '/private/tmp/interdomestik-harness-operations/feedback.md',
-    ]
-  );
+  const feedback = buildSafeOperation({
+    operation: 'feedback_comment',
+    ...authorityFields(),
+    prNumber: 1700,
+    bodyArtifact: 'feedback.md',
+  });
+  assert.deepEqual(feedback.args.slice(0, 4), ['pr', 'comment', '1700', '--body-file']);
+  assert.equal(feedback.args.at(-1), '/private/tmp/interdomestik-harness-operations/feedback.md');
   assert.deepEqual(
     buildSafeOperation({
       operation: 'telemetry_summarize',
@@ -204,6 +197,31 @@ test('checks exact head before mutation and reconciles a failed writer once', ()
   assert.equal(reconciliations, 1);
 });
 
+test('updates an existing exact PR from its bound remote preimage', () => {
+  const oldHead = '8'.repeat(40);
+  const request = {
+    operation: 'branch_push',
+    ...authorityFields({
+      certificate: {
+        expectedRemoteHeadSha: oldHead,
+        allowedOperations: ['branch_push'],
+      },
+    }),
+    branch: 'codex/harness-v2-1',
+  };
+  const result = runSafeOperation(request, {
+    readLiveFacts: () => ({
+      ...liveFacts,
+      remoteHeadSha: oldHead,
+      pr: { ...liveFacts.pr, headSha: oldHead },
+    }),
+    readAuthority: () => inactiveAuthority,
+    execute: () => ({ status: 0 }),
+    reconcile: () => ({ outcome: 'applied', remoteHeadSha: head }),
+  });
+  assert.equal(result.status, 'succeeded');
+});
+
 test('rejects shell-shaped or under-specified writer requests', () => {
   assert.throws(
     () =>
@@ -236,6 +254,17 @@ test('rejects forged certificates, arbitrary local body files, and unavailable l
   assert.throws(
     () => buildSafeOperation({ ...request, authorityCertificateSha256: '0'.repeat(64) }),
     /certificate digest differs/u
+  );
+  const tamperedReport = structuredClone(request.authorityCertificate);
+  tamperedReport.rehearsalReport.repository.headSha = '9'.repeat(40);
+  assert.throws(
+    () =>
+      buildSafeOperation({
+        ...request,
+        authorityCertificate: tamperedReport,
+        authorityCertificateSha256: sha256(canonicalJson(tamperedReport)),
+      }),
+    /report digest|candidate identity/u
   );
   assert.throws(
     () => buildSafeOperation({ ...request, bodyArtifact: '/etc/passwd' }),

@@ -130,7 +130,7 @@ export function readLiveOperationAuthority(boundary) {
   }).authority;
 }
 
-export function verifyLiveOperationFacts(facts, certificate) {
+export function verifyLiveOperationFacts(facts, certificate, operation) {
   must(facts && typeof facts === 'object', 'live operation facts are unavailable');
   for (const key of [
     'origin',
@@ -141,7 +141,8 @@ export function verifyLiveOperationFacts(facts, certificate) {
     'remoteHeadSha',
     'writerMapDigest',
     'pr',
-  ]) must(Object.hasOwn(facts, key), 'live operation facts are unavailable');
+  ])
+    must(Object.hasOwn(facts, key), 'live operation facts are unavailable');
   must(facts.origin === certificate.origin, 'live origin differs from certificate');
   must(facts.baseSha === certificate.baseSha, 'live protected base differs from certificate');
   must(facts.headSha === certificate.headSha, 'exact local head differs from approved head');
@@ -163,7 +164,9 @@ export function verifyLiveOperationFacts(facts, certificate) {
       facts.pr.baseBranch === certificate.baseBranch && facts.pr.branch === certificate.branch,
       'live PR branch identity differs'
     );
-    must(facts.pr.headSha === certificate.headSha, 'exact PR head differs from approved head');
+    const expectedPrHead =
+      operation === 'branch_push' ? certificate.expectedRemoteHeadSha : certificate.headSha;
+    must(facts.pr.headSha === expectedPrHead, 'exact PR head differs from approved precondition');
     must(facts.pr.origin === 'interdomestik/interdomestik', 'live PR repository differs');
   }
 }

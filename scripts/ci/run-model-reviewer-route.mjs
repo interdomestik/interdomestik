@@ -62,6 +62,7 @@ function promptFromEnv(packet) {
       'Review this branch as an adversarial PR reviewer.',
       'Do not edit files. Findings first with file/line references.',
       'Use code_review.md and the bounded candidate packet below as the review frame.',
+      'End with exactly VERDICT: PASS when there are no findings, or VERDICT: FINDINGS when findings remain.',
     ].join('\n');
   return `${instruction}\n\n${packet.text}`;
 }
