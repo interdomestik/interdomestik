@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import ts from 'typescript';
 
 import { canonicalJson, compareText, must, safeRelativePath } from './slice-rehearse-canonical.mjs';
 import { detectReviewPaths } from './slice-rehearse-review-paths.mjs';
@@ -22,6 +23,7 @@ const ACTION_STATES = Object.freeze([
   'scheduled_cancel',
   'trialing',
 ]);
+const SHARED_LITERAL_ALLOWLIST = new Set(['navigation.help_now']);
 
 function portal(catalog) {
   return catalog?.dashboard?.portal;
@@ -98,23 +100,76 @@ export function reviewDashboardLocaleParity(catalogs) {
       findings.push(`${path}: dashboard region labels must remain semantically distinct`);
     }
   }
+  if (referenceLeaves.length > 0) {
+    const comparable = referenceLeaves.filter(
+      ([key, value]) => typeof value === 'string' && !SHARED_LITERAL_ALLOWLIST.has(key)
+    );
+    const cloned = comparable.filter(([key, value]) =>
+      DASHBOARD_LOCALE_PATHS.slice(1).every(
+        path =>
+          leaves(portal(catalogs?.[path])).find(([candidateKey]) => candidateKey === key)?.[1] ===
+          value
+      )
+    );
+    if (comparable.length > 0 && cloned.length / comparable.length >= 0.8) {
+      findings.push('dashboard locale catalogs appear cloned from English');
+    }
+  }
   return { paths: [...DASHBOARD_LOCALE_PATHS], leafCount: referenceLeaves.length, findings };
 }
 
 export function inspectAccessibilityContracts(source) {
   must(typeof source === 'string', 'accessibility source is unavailable');
   const findings = [];
-  if (/<div\b[^>]*\brole=["']heading["']/iu.test(source)) {
-    findings.push('use a semantic heading element instead of div role=heading');
-  }
-  if (
-    /<a\b(?=[^>]*\btarget=["']_blank["'])(?![^>]*\brel=["'][^"']*noopener)[^>]*>/iu.test(source)
-  ) {
-    findings.push('target=_blank links require rel=noopener');
-  }
-  if (/<button\b(?![^>]*\baria-label(?:ledby)?=)[^>]*>\s*<\/button>/iu.test(source)) {
-    findings.push('button requires an accessible name');
-  }
+  const file = ts.createSourceFile(
+    'review-candidate.tsx',
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX
+  );
+  const attributes = node =>
+    new Map(
+      node.attributes.properties
+        .filter(ts.isJsxAttribute)
+        .map(attribute => [attribute.name.text, attribute.initializer])
+    );
+  const literalAttribute = (attrs, name) => {
+    const initializer = attrs.get(name);
+    return initializer && ts.isStringLiteral(initializer) ? initializer.text : null;
+  };
+  const hasAccessibleName = (attrs, children) => {
+    if (['aria-label', 'aria-labelledby', 'title'].some(name => attrs.has(name))) return true;
+    return children.some(child => {
+      if (ts.isJsxText(child)) return child.text.trim().length > 0;
+      if (!ts.isJsxExpression(child)) return false;
+      return (
+        child.expression && !['false', 'null', 'undefined'].includes(child.expression.getText(file))
+      );
+    });
+  };
+  const visit = node => {
+    if (ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node)) {
+      const opening = ts.isJsxElement(node) ? node.openingElement : node;
+      const name = opening.tagName.getText(file);
+      const attrs = attributes(opening);
+      const children = ts.isJsxElement(node) ? node.children : [];
+      if (name === 'div' && literalAttribute(attrs, 'role') === 'heading') {
+        findings.push('use a semantic heading element instead of div role=heading');
+      }
+      if (['a', 'Link'].includes(name) && literalAttribute(attrs, 'target') === '_blank') {
+        const rel = literalAttribute(attrs, 'rel') ?? '';
+        if (!rel.split(/\s+/u).includes('noopener')) {
+          findings.push('target=_blank links require rel=noopener');
+        }
+      }
+      if (['button', 'Button'].includes(name) && !hasAccessibleName(attrs, children)) {
+        findings.push('button requires an accessible name');
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(file);
   return findings;
 }
 

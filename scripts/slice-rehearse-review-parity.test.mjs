@@ -42,7 +42,17 @@ function portal(title) {
 
 function catalogs() {
   return Object.fromEntries(
-    DASHBOARD_LOCALE_PATHS.map((path, index) => [path, portal(`Title ${index}`)])
+    DASHBOARD_LOCALE_PATHS.map((path, index) => {
+      const catalog = portal(`Title ${index}`);
+      const localize = value => {
+        if (typeof value === 'string') return `${value} ${index}`;
+        if (value && typeof value === 'object') {
+          for (const [key, child] of Object.entries(value)) value[key] = localize(child);
+        }
+        return value;
+      };
+      return [path, localize(catalog)];
+    })
   );
 }
 
@@ -71,6 +81,14 @@ test('reports semantic type, placeholder, action-state, and missing-locale drift
   );
 });
 
+test('rejects dashboard catalogs cloned wholesale from English', () => {
+  const english = portal('English title');
+  const cloned = Object.fromEntries(
+    DASHBOARD_LOCALE_PATHS.map(path => [path, structuredClone(english)])
+  );
+  assert.match(reviewDashboardLocaleParity(cloned).findings.join('\n'), /cloned from English/u);
+});
+
 test('catches predictable accessibility contract failures locally', () => {
   const findings = inspectAccessibilityContracts(
     '<div role="heading">Title</div><a target="_blank">Docs</a><button></button>'
@@ -78,6 +96,12 @@ test('catches predictable accessibility contract failures locally', () => {
   assert.match(findings.join('\n'), /semantic heading/u);
   assert.match(findings.join('\n'), /noopener/u);
   assert.match(findings.join('\n'), /accessible name/u);
+  assert.match(
+    inspectAccessibilityContracts(
+      '<button><SaveIcon /></button><Link href="/docs" target="_blank">Docs</Link>'
+    ).join('\n'),
+    /accessible name|noopener/u
+  );
   assert.deepEqual(
     inspectAccessibilityContracts(
       '<h2>Title</h2><button aria-label="Save" /><span id="save">Save</span><button aria-labelledby="save"></button>'

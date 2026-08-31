@@ -34,6 +34,7 @@ async function runFake(name, body, options = {}) {
       args: [file],
       commandInvoked: options.commandInvoked,
       timeoutPreset: options.timeoutPreset,
+      candidateIdentity: options.candidateIdentity,
     });
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
@@ -58,6 +59,32 @@ test('OpenAI reviewer quota blocker writes deterministic JSON and Markdown recei
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
+});
+
+test('records provider-reported model and exact candidate identity', async () => {
+  const candidateIdentity = {
+    baseSha: 'a'.repeat(40),
+    headSha: 'b'.repeat(40),
+    treeSha: 'c'.repeat(40),
+    diffSha256: 'd'.repeat(64),
+  };
+  const receipt = await runFake(
+    'opus',
+    'console.log(JSON.stringify({ model: "claude-opus-5", result: "PASS" }));\n',
+    { provider: 'anthropic', model: 'claude-opus-5', candidateIdentity }
+  );
+  assert.equal(receipt.status, 'ran');
+  assert.equal(receipt.providerReportedModel, 'claude-opus-5');
+  assert.deepEqual(receipt.candidateIdentity, candidateIdentity);
+});
+
+test('fails closed when an external reviewer cannot attest its model', async () => {
+  const receipt = await runFake('opus-unattested', 'console.log("PASS");\n', {
+    provider: 'anthropic',
+    model: 'claude-opus-5',
+  });
+  assert.equal(receipt.status, 'failed');
+  assert.match(receipt.error, /provider model/u);
 });
 
 test('missing reviewer CLI is structurally blocked', async () => {

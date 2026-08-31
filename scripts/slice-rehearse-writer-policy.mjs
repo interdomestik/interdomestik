@@ -178,6 +178,12 @@ export function evidenceAfterPlannedOperations(evidence, deficits) {
   if (!invalidated) return evidence;
   return {
     ...evidence,
+    decisions: evidence.decisions.map(decision =>
+      decision.reusable
+        ? { ...decision, reusable: false, reason: 'invalidated_by_planned_operation' }
+        : decision
+    ),
+    reusableLanes: [],
     missingLanes: sortedText(new Set([...evidence.missingLanes, ...evidence.reusableLanes])),
   };
 }

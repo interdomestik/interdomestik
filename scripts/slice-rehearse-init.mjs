@@ -14,7 +14,10 @@ function missingInputs(request, facts) {
   if (!WORK_CLASSES.has(request?.workClass)) missing.push('workClass');
   if (!Array.isArray(request?.writerPaths) || !request.writerPaths.length)
     missing.push('writerPaths');
-  if (!Array.isArray(request?.proofCommands) || !request.proofCommands.length)
+  if (
+    (!Array.isArray(facts?.proofCommands) || !facts.proofCommands.length) &&
+    (!Array.isArray(request?.proofCommands) || !request.proofCommands.length)
+  )
     missing.push('proofCommands');
   if (!Array.isArray(request?.heavyLanes) || !request.heavyLanes.length) missing.push('heavyLanes');
   if (!SHA40.test(facts?.baseSha ?? '')) missing.push('baseSha');
@@ -71,7 +74,7 @@ export function initializeRehearsalManifest(request, facts) {
     ),
     routineOperations: [...(request.routineOperations ?? [])],
     proof: {
-      commands: [...request.proofCommands],
+      commands: [...(facts.proofCommands ?? request.proofCommands)],
       heavyLanes: [...request.heavyLanes],
       fullGateRequired: request.fullGateRequired ?? false,
       workflowDigest: facts.workflowDigest,

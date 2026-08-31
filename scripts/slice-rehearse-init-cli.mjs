@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
-import { existsSync, lstatSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,16 +9,13 @@ import { protectedMain } from './lean-current-authority-git.mjs';
 import { trustedRunnerFile } from './ci/trusted-runner-file.mjs';
 import { resolveRepositoryAuthority } from './lean-current-authority.mjs';
 import * as canonical from './slice-rehearse-canonical.mjs';
-import { resolveAtAuthorityBoundary } from './slice-rehearse-authority-boundary.mjs';
+import {
+  authenticateResolverOutput,
+  resolveAtAuthorityBoundary,
+} from './slice-rehearse-authority-boundary.mjs';
 import { gitBytes, gitText } from './slice-rehearse-git-facts.mjs';
+import { derivePrE2eProofIdentity } from './slice-rehearse-github-evidence.mjs';
 import { initializeRehearsalManifest } from './slice-rehearse-init.mjs';
-const WORKFLOW_PATHS = ['.github/workflows/ci.yml', '.github/workflows/sonar-main-gate.yml'];
-const SUBSTRATE_PATHS = ['scripts/ci/pr-delivery-contract.json', 'scripts/ci/z620-parity.json'];
-function digestFiles(root, paths) {
-  return canonical.sha256(
-    paths.map(path => `${path}\0${readFileSync(resolve(root, path), 'utf8')}`).join('\0')
-  );
-}
 
 function existsAtBase(root, baseSha, path) {
   return (
@@ -58,7 +55,8 @@ export function collectManifestInitFacts(request, cwd = process.cwd()) {
     request.workClass === 'product'
       ? resolveAtAuthorityBoundary({
           boundary: 'pre_work',
-          readLiveAuthority: () => resolveRepositoryAuthority(root, true),
+          readLiveAuthority: () =>
+            authenticateResolverOutput(resolveRepositoryAuthority(root, true)),
         }).authority
       : null;
   const auditedBaseSha = request.auditedBaseSha;
@@ -70,6 +68,8 @@ export function collectManifestInitFacts(request, cwd = process.cwd()) {
     );
   }
   const baseSha = auditedBaseSha ?? protectedMain(root);
+  const headSha = gitText(root, ['rev-parse', 'HEAD']);
+  const proofIdentity = derivePrE2eProofIdentity({ repository: root, commitSha: headSha });
   const budget = JSON.parse(
     gitBytes(root, ['show', `${baseSha}:scripts/repo-size-budget.json`]).toString('utf8')
   );
@@ -84,8 +84,9 @@ export function collectManifestInitFacts(request, cwd = process.cwd()) {
     baseSha,
     origin: gitText(root, ['config', '--get', 'remote.origin.url']),
     existingPaths: (request.writerPaths ?? []).filter(path => existsAtBase(root, baseSha, path)),
-    workflowDigest: digestFiles(root, WORKFLOW_PATHS),
-    substrateDigest: digestFiles(root, SUBSTRATE_PATHS),
+    proofCommands: proofIdentity.commands,
+    workflowDigest: proofIdentity.workflowDigest,
+    substrateDigest: proofIdentity.substrateDigest,
     existingCapacityCapsByPath: capacityOwner?.maxPathBytesDelta ?? {},
     capacityDeltasByPath,
     authority,

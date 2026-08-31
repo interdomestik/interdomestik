@@ -7,6 +7,7 @@ import {
   lstatSync,
   openSync,
   realpathSync,
+  unlinkSync,
   writeSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -29,8 +30,17 @@ export function recordTelemetryEvent({ event, existingText }) {
     const records = existingText
       .trimEnd()
       .split('\n')
-      .map(line => `${JSON.stringify(canonicalize(JSON.parse(line)))}\n`);
-    must(!records.includes(record), 'duplicate telemetry event is forbidden');
+      .map(line => validateTelemetryEventV2(JSON.parse(line)));
+    must(
+      !records.some(item => item.eventId === normalized.eventId),
+      'telemetry event ID must be unique'
+    );
+    if (normalized.runId !== null) {
+      must(
+        !records.some(item => item.runId === normalized.runId),
+        'telemetry run ID must be unique'
+      );
+    }
   }
   return record;
 }
@@ -62,26 +72,37 @@ export function appendEvent({
       allowedRoots,
     })
   );
-  let existingText = '';
-  if (existsSync(trustedLedgerPath)) {
-    const ledgerStat = lstatSync(trustedLedgerPath);
-    must(ledgerStat.isFile() && !ledgerStat.isSymbolicLink(), 'telemetry ledger is unsafe');
-    existingText = readBoundedRegularText(trustedLedgerPath, {
-      label: 'Telemetry ledger',
-      maxBytes: 16 * 1024 * 1024,
-      allowedRoots,
-    });
-  }
-  const descriptor = openSync(
-    trustedLedgerPath,
-    constants.O_WRONLY | constants.O_APPEND | constants.O_CREAT | constants.O_NOFOLLOW,
+  const lockPath = `${trustedLedgerPath}.lock`;
+  const lock = openSync(
+    lockPath,
+    constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW,
     0o600
   );
   try {
-    must(fstatSync(descriptor).isFile(), 'telemetry ledger must remain a regular file');
-    writeSync(descriptor, recordTelemetryEvent({ event, existingText }), null, 'utf8');
+    let existingText = '';
+    if (existsSync(trustedLedgerPath)) {
+      const ledgerStat = lstatSync(trustedLedgerPath);
+      must(ledgerStat.isFile() && !ledgerStat.isSymbolicLink(), 'telemetry ledger is unsafe');
+      existingText = readBoundedRegularText(trustedLedgerPath, {
+        label: 'Telemetry ledger',
+        maxBytes: 16 * 1024 * 1024,
+        allowedRoots,
+      });
+    }
+    const descriptor = openSync(
+      trustedLedgerPath,
+      constants.O_WRONLY | constants.O_APPEND | constants.O_CREAT | constants.O_NOFOLLOW,
+      0o600
+    );
+    try {
+      must(fstatSync(descriptor).isFile(), 'telemetry ledger must remain a regular file');
+      writeSync(descriptor, recordTelemetryEvent({ event, existingText }), null, 'utf8');
+    } finally {
+      closeSync(descriptor);
+    }
   } finally {
-    closeSync(descriptor);
+    closeSync(lock);
+    unlinkSync(lockPath);
   }
 }
 

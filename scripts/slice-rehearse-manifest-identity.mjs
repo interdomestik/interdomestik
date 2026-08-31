@@ -2,6 +2,7 @@ import { must, positiveInteger } from './slice-rehearse-canonical.mjs';
 
 const SHA40 = /^[0-9a-f]{40}$/u;
 const ORIGIN = /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\.git)?$/u;
+const GOVERNANCE_CAPACITY_OWNERS = new Set(['harness-v2-efficiency']);
 
 export function normalizeManifestIdentity(input, sliceId) {
   const tier = positiveInteger(input.tier, 'tier');
@@ -17,6 +18,11 @@ export function normalizeManifestIdentity(input, sliceId) {
   );
   if (workClass === 'product') {
     must(capacityOwnerId === sliceId.toLowerCase(), 'product capacity owner must match slice');
+  } else {
+    must(
+      GOVERNANCE_CAPACITY_OWNERS.has(capacityOwnerId),
+      'governance capacity owner must use an explicit governance allocation'
+    );
   }
   return { tier, versionFields: { capacityOwnerId, workClass } };
 }

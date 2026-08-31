@@ -30,6 +30,18 @@ function classifyBlocker(text) {
   return match?.[1] || '';
 }
 
+function providerModelFromOutput(stdout) {
+  try {
+    const payload = JSON.parse(stdout.trim());
+    if (typeof payload.model === 'string') return payload.model;
+    if (typeof payload.modelName === 'string') return payload.modelName;
+    const models = Object.keys(payload.modelUsage ?? {});
+    return models.length === 1 ? models[0] : null;
+  } catch {
+    return null;
+  }
+}
+
 function terminate(child) {
   child.kill('SIGTERM');
   setTimeout(() => {
@@ -53,6 +65,9 @@ export function skippedRouteReceipt(options) {
     firstOutputTimeout: { timedOut: false, timeoutMs: options.noOutputTimeoutMs ?? null },
     totalTimeout: { timedOut: false, timeoutMs: options.timeoutMs ?? null },
     fallbackWinner: options.fallbackWinner || null,
+    configuredModel: options.model,
+    providerReportedModel: null,
+    candidateIdentity: options.candidateIdentity ?? null,
   };
 }
 
@@ -75,6 +90,9 @@ export function runReviewerRoute(options) {
     routeName: options.routeName,
     provider: options.provider,
     model: options.model,
+    configuredModel: options.model,
+    providerReportedModel: providerModelFromOutput(stdout),
+    candidateIdentity: options.candidateIdentity ?? null,
     commandInvoked,
     startedAt,
     endedAt: iso(),
@@ -140,8 +158,20 @@ export function runReviewerRoute(options) {
       const outputBlocker =
         blockerReason || (code === 0 ? '' : classifyBlocker(`${stderr}\n${stdout}`));
       blockerReason = outputBlocker;
-      const status = statusForClose(blockerReason, code);
-      finish(finishReceipt({ status, exitCode: code ?? null, signal }));
+      let status = statusForClose(blockerReason, code);
+      let error = '';
+      const reported = providerModelFromOutput(stdout);
+      if (
+        status === 'ran' &&
+        ['anthropic', 'google', 'openai'].includes(options.provider) &&
+        reported !== options.model
+      ) {
+        status = 'failed';
+        error = reported
+          ? `provider model differs: ${reported}`
+          : 'provider model was not attested in structured output';
+      }
+      finish(finishReceipt({ status, exitCode: code ?? null, signal, error }));
     });
   });
 }

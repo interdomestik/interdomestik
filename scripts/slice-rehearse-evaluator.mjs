@@ -12,6 +12,7 @@ import {
   routineOperationName,
 } from './slice-rehearse-operation-contracts.mjs';
 import { normalizeRepositoryFacts } from './slice-rehearse-repository-facts.mjs';
+import { planInvalidatedProofs } from './slice-rehearse-proof-plan.mjs';
 import {
   evidenceAfterPlannedOperations,
   evaluateWriterPolicy,
@@ -161,12 +162,19 @@ export function evaluateRehearsal({
   if (missingOperations.length)
     authorityStops.push({ code: 'envelope:missing-operation', operations: missingOperations });
 
+  const proofPlan = normalized.proof.heavyLanes.length
+    ? planInvalidatedProofs({
+        requiredLanes: normalized.proof.heavyLanes,
+        decisions: evidenceResult.decisions,
+      })
+    : { reuse: [], run: [] };
   return buildRehearsalReport({
     normalized,
     repo,
     proposal,
     operationResolution,
     evidenceResult,
+    proofPlan,
     deficits: sorted(deficits),
     authorityStops: sorted(authorityStops),
     writerMapDigest,

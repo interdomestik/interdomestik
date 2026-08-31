@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { deriveOperationalEnvelope } from './slice-rehearse-envelope.mjs';
+import { deriveOperationalEnvelope, rehearsalFactsSha256 } from './slice-rehearse-envelope.mjs';
 import { canonicalJson, compareText, sha256 } from './slice-rehearse-canonical.mjs';
 
 test('canonical ordering uses locale-independent UTF-16 code units', () => {
@@ -16,6 +16,18 @@ test('canonical JSON is invariant to recursive object-key insertion order', () =
   assert.equal(
     canonicalJson({ z: 1, a: { y: 2, b: [{ d: 4, c: 3 }] } }),
     canonicalJson({ a: { b: [{ c: 3, d: 4 }], y: 2 }, z: 1 })
+  );
+});
+
+test('rehearsal certificate identity excludes host-local checkout roots', () => {
+  const report = {
+    repository: { root: '/checkout/a', headSha: 'a'.repeat(40) },
+    operationalEnvelope: null,
+    reportSha256: null,
+  };
+  assert.equal(
+    rehearsalFactsSha256(report),
+    rehearsalFactsSha256({ ...report, repository: { ...report.repository, root: '/checkout/b' } })
   );
 });
 

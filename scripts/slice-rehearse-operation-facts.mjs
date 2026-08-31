@@ -1,5 +1,5 @@
-import { lstatSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { lstatSync, readFileSync, realpathSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 
 import { github, git } from './lean-current-authority-git.mjs';
 import {
@@ -9,7 +9,18 @@ import {
   parseAuthorityDocuments,
 } from './lean-current-authority-policy.mjs';
 import { resolveRepositoryAuthority } from './lean-current-authority-evidence.mjs';
-import { canonicalJson, compareText, sha256 } from './slice-rehearse-canonical.mjs';
+import {
+  canonicalJson,
+  compareText,
+  exactKeys,
+  normalizeArtifactPath,
+  readBoundedRegularText,
+  sha256,
+} from './slice-rehearse-canonical.mjs';
+import {
+  authenticateResolverOutput,
+  resolveAtAuthorityBoundary,
+} from './slice-rehearse-authority-boundary.mjs';
 import {
   expectedOperationFacts,
   normalizeOperationFacts,
@@ -29,24 +40,71 @@ function must(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-function inspectArtifact(repository, path) {
-  let exists = false;
+function inspectArtifact(repository, path, taskId) {
   if (path.startsWith('refs/heads/')) {
+    let exists = false;
     try {
       git(repository, 'show-ref', '--verify', path);
       exists = true;
     } catch {
       exists = false;
     }
-  } else if (path.startsWith('/')) {
-    const value = lstatSync(path, { throwIfNoEntry: false });
-    exists = Boolean(value && !value.isSymbolicLink() && (value.isDirectory() || value.isFile()));
+    return { exists, ownerTaskId: null, safeToDiscard: false };
   }
-  return { exists, ownerTaskId: null, safeToDiscard: false };
+  if (!path.startsWith('/')) return { exists: false, ownerTaskId: null, safeToDiscard: false };
+  try {
+    const registryPath = git(
+      repository,
+      'rev-parse',
+      '--path-format=absolute',
+      '--git-path',
+      `interdomestik-harness/cleanup/${taskId}.json`
+    );
+    const registry = JSON.parse(
+      readBoundedRegularText(registryPath, {
+        label: 'Cleanup ownership registry',
+        maxBytes: 256 * 1024,
+        allowedRoots: [dirname(registryPath)],
+      })
+    );
+    exactKeys(registry, ['artifacts', 'schemaVersion', 'taskId'], 'cleanup ownership registry');
+    if (
+      registry.schemaVersion !== 1 ||
+      registry.taskId !== taskId ||
+      !Array.isArray(registry.artifacts)
+    ) {
+      throw new Error('cleanup ownership registry identity differs');
+    }
+    const normalizedPath = normalizeArtifactPath(path);
+    const entry = registry.artifacts.find(item => item?.path === normalizedPath);
+    if (!entry || entry.ownerTaskId !== taskId || entry.safeToDiscard !== true) {
+      return { exists: false, ownerTaskId: null, safeToDiscard: false };
+    }
+    const value = lstatSync(path, { bigint: true, throwIfNoEntry: false });
+    const type = value?.isDirectory() ? 'directory' : value?.isFile() ? 'file' : null;
+    const exact =
+      value &&
+      !value.isSymbolicLink() &&
+      type === entry.type &&
+      realpathSync(path) === entry.realPath &&
+      String(value.dev) === entry.device &&
+      String(value.ino) === entry.inode;
+    return {
+      exists: Boolean(exact),
+      ownerTaskId: exact ? taskId : null,
+      safeToDiscard: Boolean(exact),
+    };
+  } catch {
+    return { exists: false, ownerTaskId: null, safeToDiscard: false };
+  }
 }
 
 function readAuthorityFacts(repository) {
-  const live = resolveRepositoryAuthority(repository, true);
+  const live = resolveAtAuthorityBoundary({
+    boundary: 'pre_cleanup',
+    readLiveAuthority: () =>
+      authenticateResolverOutput(resolveRepositoryAuthority(repository, true)),
+  }).authority;
   const projection = parseAuthorityDocuments(
     readFileSync(resolve(repository, PROGRAM), 'utf8'),
     readFileSync(resolve(repository, TRACKER), 'utf8')

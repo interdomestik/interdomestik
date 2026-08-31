@@ -48,6 +48,10 @@ function commitAll(root, message) {
     env: SAFE_EXEC_ENV,
     stdio: 'ignore',
   });
+  execFileSync(GIT_BIN, ['update-ref', 'refs/remotes/origin/main', 'HEAD'], {
+    cwd: root,
+    env: SAFE_EXEC_ENV,
+  });
 }
 
 function runPreflight(root, files = []) {
@@ -68,6 +72,32 @@ test('review preflight blocks changes to the Phase C proxy authority', () => {
 
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /Phase C routing authority/u);
+  });
+});
+
+test('review preflight detects deletion of the protected proxy authority', () => {
+  withTempRepo(root => {
+    writeFile(root, 'apps/web/src/proxy.ts', 'export const value = 1;\n');
+    commitAll(root, 'initial');
+    fs.unlinkSync(path.join(root, 'apps/web/src/proxy.ts'));
+
+    const result = runPreflight(root);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /Phase C routing authority/u);
+  });
+});
+
+test('review preflight fails closed when exact protected base evidence is unavailable', () => {
+  withTempRepo(root => {
+    writeFile(root, 'apps/web/src/lib/example.ts', 'export const value = 1;\n');
+    commitAll(root, 'initial');
+    execFileSync(GIT_BIN, ['update-ref', '-d', 'refs/remotes/origin/main'], {
+      cwd: root,
+      env: SAFE_EXEC_ENV,
+    });
+    const result = runPreflight(root);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /origin\/main|protected base/u);
   });
 });
 
@@ -157,11 +187,7 @@ test('review preflight allows local URLs in tests and config files', () => {
 
 test('review preflight blocks unconditional Vercel deployment skips', () => {
   withTempRepo(root => {
-    writeFile(
-      root,
-      'apps/web/vercel.json',
-      JSON.stringify({ ignoreCommand: 'exit 0' }, null, 2)
-    );
+    writeFile(root, 'apps/web/vercel.json', JSON.stringify({ ignoreCommand: 'exit 0' }, null, 2));
     commitAll(root, 'initial');
 
     const result = runPreflight(root, ['apps/web/vercel.json']);

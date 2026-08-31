@@ -29,6 +29,7 @@ test('normal initializer command emits canonical valid evidence on its first inv
       existingPaths: [],
       workflowDigest: 'b'.repeat(64),
       substrateDigest: 'c'.repeat(64),
+      proofCommands: ['canonical pr-e2e command'],
       authority: { source: 'live-resolver', runtimeAuthorized: false, activeSlice: null },
     }),
     stdout: value => {
@@ -37,6 +38,7 @@ test('normal initializer command emits canonical valid evidence on its first inv
   });
   assert.equal(status, 0);
   assert.equal(output, canonicalJson(JSON.parse(output)));
+  assert.deepEqual(JSON.parse(output).proof.commands, ['canonical pr-e2e command']);
 });
 
 test('initializer reports one consolidated failure without partial output', () => {

@@ -8,7 +8,10 @@ import test from 'node:test';
 import { canonicalJson, sha256 } from './slice-rehearse-core.mjs';
 import { deriveEvidenceIdentityKey, evaluateEvidenceReceipts } from './slice-rehearse-evidence.mjs';
 import { gitBytes } from './slice-rehearse-git-facts.mjs';
-import { collectVerifiedEvidenceKeys } from './slice-rehearse-github-evidence.mjs';
+import {
+  collectVerifiedEvidenceKeys,
+  derivePrE2eProofIdentity,
+} from './slice-rehearse-github-evidence.mjs';
 import { derivePrE2eSubstrateDigest } from './slice-rehearse-repository-facts.mjs';
 
 const headSha = 'a'.repeat(40);
@@ -38,6 +41,16 @@ test('PR E2E substrate regexes use explicit indentation quantifiers', () => {
   const source = derivePrE2eSubstrateDigest.toString();
   assert.doesNotMatch(source, /\/\^ {2,}/u);
   assert.doesNotMatch(source, /\/\\n {2,}/u);
+});
+
+test('initializer and verifier share one exact-Git-blob PR E2E identity builder', () => {
+  const identity = derivePrE2eProofIdentity({
+    repository: '/repo',
+    commitSha: headSha,
+    readGitBytes: (_repository, args) =>
+      args[1].endsWith(':.github/actions/setup/action.yml') ? setupAction : workflow,
+  });
+  assert.deepEqual(identity, { commands: [...commands].sort(), workflowDigest, substrateDigest });
 });
 
 function pull() {

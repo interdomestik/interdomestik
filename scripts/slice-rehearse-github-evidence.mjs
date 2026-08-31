@@ -16,14 +16,13 @@ import {
   exactSuccessfulRunner,
   exactTimestamp,
 } from './slice-rehearse-repository-facts.mjs';
-const WORKFLOW_PATH = '.github/workflows/e2e-pr.yml';
-const SETUP_ACTION_PATH = '.github/actions/setup/action.yml';
+export const PR_E2E_WORKFLOW_PATH = '.github/workflows/e2e-pr.yml';
+export const PR_E2E_SETUP_ACTION_PATH = '.github/actions/setup/action.yml';
 const RUNNER_NAME = 'PR E2E Runner';
 const CANONICAL_ORIGIN = `https://github.com/${ORIGIN}.git`;
-const CANONICAL_COMMANDS = [
-  'pnpm e2e:gate:pr',
-  'pnpm --filter @interdomestik/web run e2e:smoke',
-].sort(compareText);
+export const PR_E2E_COMMANDS = Object.freeze(
+  ['pnpm e2e:gate:pr', 'pnpm --filter @interdomestik/web run e2e:smoke'].sort(compareText)
+);
 const MAX_WORKFLOW_BYTES = 1024 * 1024;
 const MAX_RUNS = 20;
 const MAX_JOBS = 100;
@@ -37,7 +36,7 @@ function exactRun(run, pull, headSha, now) {
   return (
     Number.isSafeInteger(run?.id) &&
     run.id > 0 &&
-    run.path === WORKFLOW_PATH &&
+    run.path === PR_E2E_WORKFLOW_PATH &&
     run.event === 'pull_request' &&
     run.status === 'completed' &&
     run.conclusion === 'success' &&
@@ -67,6 +66,16 @@ function readBlob(repository, commitSha, filePath, readGitBytes) {
     'Git blob evidence is invalid'
   );
   return bytes;
+}
+
+export function derivePrE2eProofIdentity({ repository, commitSha, readGitBytes = gitBytes }) {
+  const workflow = readBlob(repository, commitSha, PR_E2E_WORKFLOW_PATH, readGitBytes);
+  const setup = readBlob(repository, commitSha, PR_E2E_SETUP_ACTION_PATH, readGitBytes);
+  return {
+    commands: [...PR_E2E_COMMANDS],
+    workflowDigest: sha256(workflow),
+    substrateDigest: derivePrE2eSubstrateDigest(workflow, setup),
+  };
 }
 
 export function collectVerifiedEvidenceKeys({
@@ -102,22 +111,20 @@ export function collectVerifiedEvidenceKeys({
     must(Array.isArray(proof?.commands), 'PR E2E command contract differs');
     const canonicalCommands = sortedText(proof.commands);
     must(
-      JSON.stringify(canonicalCommands) === JSON.stringify(CANONICAL_COMMANDS),
+      JSON.stringify(canonicalCommands) === JSON.stringify(PR_E2E_COMMANDS),
       'PR E2E command contract differs'
     );
-    const protectedWorkflow = readBlob(repository, protectedMainSha, WORKFLOW_PATH, readGitBytes);
-    const headWorkflow = readBlob(repository, headSha, WORKFLOW_PATH, readGitBytes);
-    const protectedSetup = readBlob(repository, protectedMainSha, SETUP_ACTION_PATH, readGitBytes);
-    const headSetup = readBlob(repository, headSha, SETUP_ACTION_PATH, readGitBytes);
-    const protectedWorkflowDigest = sha256(protectedWorkflow);
-    const headWorkflowDigest = sha256(headWorkflow);
-    const protectedSubstrateDigest = derivePrE2eSubstrateDigest(protectedWorkflow, protectedSetup);
-    const headSubstrateDigest = derivePrE2eSubstrateDigest(headWorkflow, headSetup);
+    const protectedIdentity = derivePrE2eProofIdentity({
+      repository,
+      commitSha: protectedMainSha,
+      readGitBytes,
+    });
+    const headIdentity = derivePrE2eProofIdentity({ repository, commitSha: headSha, readGitBytes });
     must(
-      proof.workflowDigest === protectedWorkflowDigest &&
-        proof.substrateDigest === protectedSubstrateDigest &&
-        headWorkflowDigest === protectedWorkflowDigest &&
-        headSubstrateDigest === protectedSubstrateDigest,
+      proof.workflowDigest === protectedIdentity.workflowDigest &&
+        proof.substrateDigest === protectedIdentity.substrateDigest &&
+        headIdentity.workflowDigest === protectedIdentity.workflowDigest &&
+        headIdentity.substrateDigest === protectedIdentity.substrateDigest,
       'PR E2E workflow identity differs'
     );
     const pulls = readGithub(
@@ -129,7 +136,7 @@ export function collectVerifiedEvidenceKeys({
     must(exactPullRequest(pull, headSha, ORIGIN), 'GitHub PR identity differs');
     const runsPayload = readGithub(
       `repos/${ORIGIN}/actions/workflows/${encodeURIComponent(
-        WORKFLOW_PATH
+        PR_E2E_WORKFLOW_PATH
       )}/runs?event=pull_request&status=completed&head_sha=${headSha}&per_page=${MAX_RUNS}&page=1`,
       repository
     );

@@ -122,8 +122,10 @@ test('full evaluation invalidates reusable proof for a pending identity-changing
       budgetBytes.byteLength -
       budget.allocations[0].pathBytesDelta['scripts/repo-size-budget.json'],
   });
-  assert.deepEqual(report.evidence.reusableLanes, ['pr-e2e']);
+  assert.deepEqual(report.evidence.reusableLanes, []);
   assert.deepEqual(report.evidence.missingLanes, ['pr-e2e']);
+  assert.equal(report.evidence.decisions[0].reusable, false);
+  assert.equal(report.evidence.decisions[0].reason, 'invalidated_by_planned_operation');
   assert.ok(report.deficits.some(item => item.code === 'evidence:heavy-proof-required'));
 });
 
@@ -136,8 +138,10 @@ test('only still-pending deficit operations invalidate current reusable proof', 
   const final = evidenceAfterPlannedOperations(current, [
     { code: 'capacity:new-files', coveredBy: 'derived_capacity_rebind' },
   ]);
-  assert.deepEqual(final.reusableLanes, ['pr-e2e']);
+  assert.deepEqual(final.reusableLanes, []);
   assert.deepEqual(final.missingLanes, ['pr-e2e']);
+  assert.equal(final.decisions[0].reusable, false);
+  assert.equal(final.decisions[0].reason, 'invalidated_by_planned_operation');
   assert.deepEqual(requiredEvidenceProofDeficit(final), {
     code: 'evidence:heavy-proof-required',
     lanes: ['pr-e2e'],

@@ -9,6 +9,7 @@ import {
   canonicalModularityForPath,
   evaluateWriterPolicy,
 } from './slice-rehearse-writer-policy.mjs';
+import { normalizeManifestIdentity } from './slice-rehearse-manifest-identity.mjs';
 
 test('projection capacity owner paths are the exact protected allocation writer union', () => {
   const protectedBudget = {
@@ -99,4 +100,38 @@ test('planned bytes use the exact baseline and enforce final governance byte cap
     { maxLargestFileBytes: 200_000, maxSourceOrTestLines: 300 }
   );
   assert.ok(governancePolicy.deficits.some(item => item.code.includes('docs/worker.md')));
+});
+
+test('governance manifests default-deny product and successor capacity owners', () => {
+  assert.deepEqual(
+    normalizeManifestIdentity(
+      {
+        schemaVersion: 2,
+        tier: 3,
+        baseSha: 'a'.repeat(40),
+        origin: 'https://github.com/interdomestik/interdomestik.git',
+        workClass: 'governance',
+        capacityOwnerId: 'harness-v2-efficiency',
+      },
+      'HARNESS-V2-1'
+    ).versionFields,
+    { capacityOwnerId: 'harness-v2-efficiency', workClass: 'governance' }
+  );
+  for (const capacityOwnerId of ['t117b-cutover', 't117c-provider', 't118-promotion']) {
+    assert.throws(
+      () =>
+        normalizeManifestIdentity(
+          {
+            schemaVersion: 2,
+            tier: 3,
+            baseSha: 'a'.repeat(40),
+            origin: 'https://github.com/interdomestik/interdomestik.git',
+            workClass: 'governance',
+            capacityOwnerId,
+          },
+          'HARNESS-V2-1'
+        ),
+      /explicit governance allocation/u
+    );
+  }
 });

@@ -1,5 +1,7 @@
 #!/usr/bin/env node
+import { execFileSync } from 'node:child_process';
 import process from 'node:process';
+import { canonicalJson, sha256 } from '../slice-rehearse-canonical.mjs';
 import { modelReviewRoutes } from './model-review-routes.mjs';
 import { writeRouteReceipt } from './reviewer-route-receipts.mjs';
 import { runReviewerRoute, skippedRouteReceipt } from './reviewer-route-runtime.mjs';
@@ -11,16 +13,57 @@ function argValue(args, name, fallback = '') {
 
 function option(args, name, fallback = '') {
   const prefix = `${name}=`;
-  return args.find(arg => arg.startsWith(prefix))?.slice(prefix.length) || argValue(args, name, fallback);
+  return (
+    args.find(arg => arg.startsWith(prefix))?.slice(prefix.length) || argValue(args, name, fallback)
+  );
 }
 
-function promptFromEnv() {
-  if (process.env.REVIEW_PROMPT) return process.env.REVIEW_PROMPT;
-  return [
-    'Review this branch as an adversarial PR reviewer.',
-    'Do not edit files. Findings first with file/line references.',
-    'Use code_review.md and the current git diff as the review frame.',
-  ].join('\n');
+const MAX_DIFF_BYTES = 512 * 1024;
+const SAFE_GIT = Object.freeze({
+  encoding: 'utf8',
+  env: { PATH: '/usr/bin:/bin:/usr/sbin:/sbin' },
+  maxBuffer: MAX_DIFF_BYTES + 64 * 1024,
+  timeout: 30_000,
+});
+
+function candidatePacket() {
+  const baseSha = execFileSync(
+    '/usr/bin/git',
+    ['rev-parse', 'refs/remotes/origin/main^{commit}'],
+    SAFE_GIT
+  ).trim();
+  const headSha = execFileSync('/usr/bin/git', ['rev-parse', 'HEAD^{commit}'], SAFE_GIT).trim();
+  const treeSha = execFileSync('/usr/bin/git', ['rev-parse', 'HEAD^{tree}'], SAFE_GIT).trim();
+  const diff = execFileSync(
+    '/usr/bin/git',
+    ['diff', '--no-ext-diff', '--unified=3', `${baseSha}...${headSha}`],
+    SAFE_GIT
+  );
+  if (Buffer.byteLength(diff) > MAX_DIFF_BYTES) {
+    throw new Error('review candidate diff exceeds the bounded packet limit');
+  }
+  return {
+    identity: { baseSha, headSha, treeSha, diffSha256: sha256(diff) },
+    text: [
+      'Exact candidate identity:',
+      canonicalJson({ baseSha, headSha, treeSha, diffSha256: sha256(diff) }).trimEnd(),
+      'Candidate diff:',
+      '```diff',
+      diff,
+      '```',
+    ].join('\n'),
+  };
+}
+
+function promptFromEnv(packet) {
+  const instruction =
+    process.env.REVIEW_PROMPT ||
+    [
+      'Review this branch as an adversarial PR reviewer.',
+      'Do not edit files. Findings first with file/line references.',
+      'Use code_review.md and the bounded candidate packet below as the review frame.',
+    ].join('\n');
+  return `${instruction}\n\n${packet.text}`;
 }
 
 function printableReceipt(receipt, paths) {
@@ -49,7 +92,9 @@ async function main() {
   }
 
   const requireEscalation =
-    routeName === 'opus' && !args.includes('--allow-escalation') && process.env.REVIEW_ESCALATION_REQUIRED !== '1';
+    routeName === 'opus' &&
+    !args.includes('--allow-escalation') &&
+    process.env.REVIEW_ESCALATION_REQUIRED !== '1';
   const commandInvoked = [route.command, ...route.args('<prompt>')];
 
   if (requireEscalation) {
@@ -67,7 +112,8 @@ async function main() {
     process.exit(0);
   }
 
-  const prompt = promptFromEnv();
+  const packet = candidatePacket();
+  const prompt = promptFromEnv(packet);
   const receipt = await runReviewerRoute({
     routeName,
     provider: route.provider,
@@ -75,6 +121,7 @@ async function main() {
     command: route.command,
     args: route.args(prompt),
     commandInvoked,
+    candidateIdentity: packet.identity,
   });
   const paths = writeRouteReceipt(receipt);
   console.log(JSON.stringify(printableReceipt(receipt, paths), null, 2));

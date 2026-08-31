@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { deriveSliceOwnedCleanup, validateCleanupEnvelope } from './slice-rehearse-cleanup.mjs';
+import { canonicalJson, sha256 } from './slice-rehearse-canonical.mjs';
+import {
+  deriveSliceOwnedCleanup,
+  validateCleanupEnvelope,
+  verifyCleanupTargetsImmediatelyBeforeDeletion,
+} from './slice-rehearse-cleanup.mjs';
 
 const inactive = { source: 'live-resolver', runtimeAuthorized: false, activeSlice: null };
 
@@ -9,12 +14,15 @@ test('derives only slice-owned cleanup by default', () => {
   const plan = deriveSliceOwnedCleanup({
     taskId: 'HARNESS-V2-1',
     authority: inactive,
-    artifacts: [
+    registry: [
       {
         path: '/private/tmp/harness-v2-1',
-        exists: true,
         ownerTaskId: 'HARNESS-V2-1',
         safeToDiscard: true,
+        realPath: '/private/tmp/harness-v2-1',
+        type: 'directory',
+        device: '1',
+        inode: '2',
       },
     ],
   });
@@ -29,10 +37,29 @@ test('global hygiene requires a separate explicit, recoverable envelope', () => 
     mode: 'global_hygiene',
     taskId: 'HARNESS-V2-1',
     artifactPaths: ['/private/tmp/stale-worktree'],
+    targetIdentities: {
+      '/private/tmp/stale-worktree': {
+        realPath: '/private/tmp/stale-worktree',
+        type: 'directory',
+        device: '1',
+        inode: '2',
+      },
+    },
     approvalEnvelopeId: 'HARNESS-V2-1-GLOBAL-HYGIENE-1',
     recoveryBundlePath: '/private/tmp/harness-v2-1-recovery.bundle',
+    recoveryBundleSha256: 'a'.repeat(64),
+    approvalBindingSha256: '',
     separatelyAuthorized: true,
   };
+  global.approvalBindingSha256 = sha256(
+    canonicalJson({
+      approvalEnvelopeId: global.approvalEnvelopeId,
+      artifactPaths: global.artifactPaths,
+      recoveryBundlePath: global.recoveryBundlePath,
+      recoveryBundleSha256: global.recoveryBundleSha256,
+      taskId: global.taskId,
+    })
+  );
   assert.deepEqual(validateCleanupEnvelope(global, inactive), global);
   assert.throws(
     () => validateCleanupEnvelope({ ...global, separatelyAuthorized: false }, inactive),
@@ -42,6 +69,18 @@ test('global hygiene requires a separate explicit, recoverable envelope', () => 
     () => validateCleanupEnvelope({ ...global, recoveryBundlePath: null }, inactive),
     /recoverable/u
   );
+  assert.throws(
+    () =>
+      validateCleanupEnvelope(
+        {
+          ...global,
+          artifactPaths: ['/private/tmp/stale-worktree'],
+          recoveryBundlePath: '/private/tmp/stale-worktree/recovery.bundle',
+        },
+        inactive
+      ),
+    /overlap cleanup targets/u
+  );
 });
 
 test('cleanup always fails closed on cached or active authority', () => {
@@ -50,12 +89,53 @@ test('cleanup always fails closed on cached or active authority', () => {
       deriveSliceOwnedCleanup({
         taskId: 'HARNESS-V2-1',
         authority: { ...inactive, source: 'cache' },
-        artifacts: [],
+        registry: [],
       }),
     /live inactive authority/u
   );
   assert.throws(
     () => validateCleanupEnvelope({ schemaVersion: 1 }, { ...inactive, runtimeAuthorized: true }),
     /live inactive authority/u
+  );
+});
+
+test('revalidates realpath, type, device, and inode immediately before deletion', () => {
+  const plan = deriveSliceOwnedCleanup({
+    taskId: 'HARNESS-V2-1',
+    authority: inactive,
+    registry: [
+      {
+        path: '/private/tmp/harness-v2-1',
+        ownerTaskId: 'HARNESS-V2-1',
+        safeToDiscard: true,
+        realPath: '/private/tmp/harness-v2-1',
+        type: 'directory',
+        device: '1',
+        inode: '2',
+      },
+    ],
+  });
+  assert.equal(
+    verifyCleanupTargetsImmediatelyBeforeDeletion(plan, {
+      inspect: () => ({
+        realPath: '/private/tmp/harness-v2-1',
+        type: 'directory',
+        device: '1',
+        inode: '2',
+      }),
+    }),
+    true
+  );
+  assert.throws(
+    () =>
+      verifyCleanupTargetsImmediatelyBeforeDeletion(plan, {
+        inspect: () => ({
+          realPath: '/private/tmp/harness-v2-1',
+          type: 'directory',
+          device: '1',
+          inode: '99',
+        }),
+      }),
+    /identity changed/u
   );
 });

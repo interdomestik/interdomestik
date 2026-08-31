@@ -43,6 +43,7 @@ function emptySlice(sliceId) {
     duplicateHeavyProofs: 0,
     evidenceKeys: [],
     blockerDistribution: {},
+    phases: [],
   };
 }
 
@@ -71,10 +72,12 @@ function addEvent(slice, event) {
     );
   }
   if (event.evidenceKey) slice.evidenceKeys.push(event.evidenceKey);
+  if (!slice.phases.includes(event.phase)) slice.phases.push(event.phase);
 }
 
 function finalize(slice) {
   slice.evidenceKeys.sort(compareText);
+  slice.phases.sort(compareText);
   slice.heavyProofs = slice.evidenceKeys.length;
   slice.duplicateHeavyProofs = slice.evidenceKeys.length - new Set(slice.evidenceKeys).size;
   return slice;
@@ -127,7 +130,17 @@ export function summarizeTelemetryV2(input) {
     atMostFiveToolingRetries: slices.every(slice => slice.retries <= 5),
     governanceAtMost25Percent: governanceRatio === null ? null : governanceRatio <= 0.25,
   };
-  targets.allPassed = combinedTarget(Object.values(targets));
+  const targetValues = Object.values(targets);
+  targets.metTargetsSoFar = combinedTarget(targetValues);
+  const terminalComplete = slices.every(
+    slice =>
+      slice.phases.includes('merge') &&
+      slice.phases.includes('deterministic_closeout') &&
+      slice.phases.includes('proof') &&
+      slice.heavyProofs > 0 &&
+      Object.keys(slice.blockerDistribution).length === 0
+  );
+  targets.allPassed = targets.metTargetsSoFar === false ? false : terminalComplete ? true : null;
   return {
     schemaVersion: 2,
     sliceCount: slices.length,

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,6 +11,11 @@ import {
   must,
   readBoundedRegularText,
 } from './slice-rehearse-canonical.mjs';
+import { resolveRepositoryAuthority } from './lean-current-authority.mjs';
+import {
+  authenticateResolverOutput,
+  resolveAtAuthorityBoundary,
+} from './slice-rehearse-authority-boundary.mjs';
 
 const SHA40 = /^[0-9a-f]{40}$/u;
 const KEYS = [
@@ -43,7 +49,56 @@ function nullableMetric(value, label) {
   return value;
 }
 
-export function generateSliceCheckpoint(input) {
+const SAFE_EXEC = Object.freeze({
+  encoding: 'utf8',
+  env: { PATH: '/usr/bin:/bin:/usr/sbin:/sbin' },
+  maxBuffer: 8 * 1024 * 1024,
+  timeout: 5 * 60_000,
+});
+
+function defaultVerifyState(input) {
+  const headSha = execFileSync('/usr/bin/git', ['rev-parse', 'HEAD'], SAFE_EXEC).trim();
+  const treeSha = execFileSync('/usr/bin/git', ['rev-parse', 'HEAD^{tree}'], SAFE_EXEC).trim();
+  const baseSha = execFileSync(
+    '/usr/bin/git',
+    ['rev-parse', 'refs/remotes/origin/main^{commit}'],
+    SAFE_EXEC
+  ).trim();
+  if (headSha !== input.headSha || treeSha !== input.treeSha || baseSha !== input.baseSha)
+    return false;
+  if (input.prNumber !== null) {
+    const pull = JSON.parse(
+      execFileSync(
+        '/usr/bin/gh',
+        [
+          'pr',
+          'view',
+          String(input.prNumber),
+          '--json',
+          'headRefOid,baseRefName,state,mergeCommit',
+        ],
+        SAFE_EXEC
+      )
+    );
+    if (pull.headRefOid !== input.headSha || pull.baseRefName !== 'main') return false;
+    if (
+      input.stage === 'final' &&
+      (pull.state !== 'MERGED' || pull.mergeCommit?.oid !== input.mergeSha)
+    )
+      return false;
+  }
+  if (['authority_hold', 'final'].includes(input.stage)) {
+    const authority = resolveAtAuthorityBoundary({
+      boundary: input.stage === 'final' ? 'post_merge' : 'candidate_freeze',
+      readLiveAuthority: () =>
+        authenticateResolverOutput(resolveRepositoryAuthority(process.cwd(), true)),
+    }).authority;
+    if (authority.runtimeAuthorized !== false || authority.activeSlice !== null) return false;
+  }
+  return true;
+}
+
+export function generateSliceCheckpoint(input, { verifyState = defaultVerifyState } = {}) {
   exactKeys(input, KEYS, 'slice checkpoint input');
   must(input.schemaVersion === 1, 'checkpoint schema is invalid');
   must(/^[A-Z0-9][A-Z0-9-]+$/u.test(input.sliceId), 'checkpoint slice is invalid');
@@ -84,6 +139,25 @@ export function generateSliceCheckpoint(input) {
   must(
     typeof input.blockerPhase === 'string' && input.blockerPhase.length > 0,
     'blocker phase is invalid'
+  );
+  if (input.stage === 'authority_hold') {
+    must(input.blockerPhase !== 'none', 'authority hold checkpoint requires a blocker phase');
+  }
+  if (input.stage === 'final') {
+    must(
+      input.prNumber !== null &&
+        input.mergeSha !== null &&
+        approvals > 0 &&
+        heavyProofs > 0 &&
+        input.blockerPhase === 'none' &&
+        input.scopeDrift.length === 0 &&
+        legalNextAction === 'none',
+      'final checkpoint is missing terminal invariants'
+    );
+  }
+  must(
+    typeof verifyState === 'function' && verifyState(input) === true,
+    'checkpoint is not bound to verified repository facts'
   );
   return {
     schemaVersion: 1,

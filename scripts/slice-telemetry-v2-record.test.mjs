@@ -21,6 +21,8 @@ const event = {
   modelCostUsd: null,
   blockerPhase: null,
   evidenceKey: null,
+  eventId: 'event-design-1',
+  runId: null,
 };
 
 test('records one canonical phase-aware event without inventing unknown values', () => {
@@ -29,19 +31,37 @@ test('records one canonical phase-aware event without inventing unknown values',
   assert.equal(JSON.parse(record).runnerMinutes, null);
 });
 
-test('rejects a duplicate record and malformed existing JSONL', () => {
+test('rejects a duplicate event ID and malformed existing JSONL', () => {
   assert.throws(
     () =>
       recordTelemetryEvent({
         event,
         existingText: recordTelemetryEvent({ event, existingText: '' }),
       }),
-    /duplicate telemetry event/u
+    /event ID/u
   );
   assert.throws(
     () => recordTelemetryEvent({ event, existingText: '{"broken":true}' }),
     /JSONL framing/u
   );
+});
+
+test('records repeated evidence keys as distinct immutable proof runs', () => {
+  const proof = {
+    ...event,
+    phase: 'proof',
+    approvalClass: 'none',
+    approvals: 0,
+    evidenceKey: 'a'.repeat(64),
+    eventId: 'event-proof-1',
+    runId: 'run-proof-1',
+  };
+  const first = recordTelemetryEvent({ event: proof, existingText: '' });
+  const second = recordTelemetryEvent({
+    event: { ...proof, eventId: 'event-proof-2', runId: 'run-proof-2' },
+    existingText: first,
+  });
+  assert.equal(JSON.parse(second).eventId, 'event-proof-2');
 });
 
 test('ledger creation uses the trusted path boundary and rejects symlinked parents', () => {
@@ -52,7 +72,7 @@ test('ledger creation uses the trusted path boundary and rejects symlinked paren
 
   appendEvent({ eventPath, ledgerPath, trustedRoots: [root] });
   assert.equal(JSON.parse(fs.readFileSync(ledgerPath, 'utf8')).sliceId, 'HARNESS-V2-1');
-  assert.throws(() => appendEvent({ eventPath, ledgerPath, trustedRoots: [root] }), /duplicate/u);
+  assert.throws(() => appendEvent({ eventPath, ledgerPath, trustedRoots: [root] }), /event ID/u);
 
   const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-telemetry-outside-'));
   const link = path.join(root, 'linked');

@@ -6,7 +6,9 @@ function receiptMarkdown(receipt) {
     `# Reviewer Route Receipt: ${receipt.routeName}`,
     '',
     `- status: ${receipt.status}`,
-    `- model/provider: ${receipt.model}/${receipt.provider}`,
+    `- configured model/provider: ${receipt.configuredModel ?? receipt.model}/${receipt.provider}`,
+    `- provider-reported model: ${receipt.providerReportedModel ?? 'null'}`,
+    `- candidate: ${receipt.candidateIdentity ? JSON.stringify(receipt.candidateIdentity) : 'null'}`,
     `- command: ${receipt.commandInvoked.join(' ')}`,
     `- startedAt: ${receipt.startedAt}`,
     `- endedAt: ${receipt.endedAt}`,
@@ -21,7 +23,11 @@ function receiptMarkdown(receipt) {
 }
 
 function safeSegment(value, fallback) {
-  return String(value || fallback).replace(/[^a-z0-9_.-]/giu, '-').slice(0, 80) || fallback;
+  return (
+    String(value || fallback)
+      .replace(/[^a-z0-9_.-]/giu, '-')
+      .slice(0, 80) || fallback
+  );
 }
 
 function receiptDir() {
