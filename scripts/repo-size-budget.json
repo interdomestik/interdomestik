@@ -441,13 +441,13 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 469538,
+      "maxTrackedBytesDelta": 469954,
       "maxTrackedFilesDelta": 72,
       "maxCategoryBytesDelta": {
         "config/data/messages": 1000,
         "docs/text": 30439,
         "tests/e2e": 196635,
-        "source/scripts": 241464
+        "source/scripts": 241880
       },
       "maxPathBytesDelta": {
         ".github/workflows/ci.yml": 24,
@@ -547,14 +547,14 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60136593,
+  "maxTrackedBytes": 60137009,
   "maxTrackedFiles": 5937,
   "maxCategoryBytes": {
     "config/data/messages": 2160570,
     "docs/text": 8509839,
     "large support/generated-ish": 15390712,
     "other": 18856416,
-    "source/scripts": 8593795,
+    "source/scripts": 8594211,
     "tests/e2e": 6625261
   },
   "maxLargestFileBytes": 3266530,
