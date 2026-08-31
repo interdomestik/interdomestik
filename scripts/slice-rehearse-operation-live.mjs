@@ -29,10 +29,11 @@ const SAFE_EXEC = Object.freeze({
 });
 const PROVIDER_ENVIRONMENT_KEYS =
   'HOME XDG_CONFIG_HOME GH_CONFIG_DIR GH_HOST GH_TOKEN GH_ENTERPRISE_TOKEN GITHUB_TOKEN'.split(' ');
+const GIT_AUTH_ENVIRONMENT_KEYS = 'HOME XDG_CONFIG_HOME SSH_AUTH_SOCK'.split(' ');
 
-export function safeGitHubEnvironment(environment = process.env) {
+export function safeGitHubEnvironment(environment = process.env, keys = PROVIDER_ENVIRONMENT_KEYS) {
   const safe = { PATH: SAFE_EXEC.env.PATH };
-  for (const key of PROVIDER_ENVIRONMENT_KEYS) {
+  for (const key of keys) {
     if (typeof environment[key] === 'string' && environment[key].length > 0) {
       safe[key] = environment[key];
     }
@@ -40,14 +41,25 @@ export function safeGitHubEnvironment(environment = process.env) {
   return safe;
 }
 
-function providerExecOptions() {
-  return { ...SAFE_EXEC, env: safeGitHubEnvironment() };
+export function execOptions(binary, environment = process.env) {
+  const git = binary === 'git' || binary.endsWith('/git');
+  if (binary !== 'gh' && !git) return SAFE_EXEC;
+  const env = safeGitHubEnvironment(
+    environment,
+    git ? GIT_AUTH_ENVIRONMENT_KEYS : PROVIDER_ENVIRONMENT_KEYS
+  );
+  if (git) env.GIT_TERMINAL_PROMPT = '0';
+  return { ...SAFE_EXEC, env };
 }
 
 export function resolveGhBinary() {
   const binary = GH_CANDIDATES.find(existsSync);
   must(binary, `GitHub CLI not found in: ${GH_CANDIDATES.join(', ')}`);
   return binary;
+}
+
+function ghJson(args) {
+  return JSON.parse(execFileSync(resolveGhBinary(), args, execOptions('gh')));
 }
 
 function lsRemote(ref) {
@@ -81,43 +93,31 @@ function normalizePull(value) {
 
 function readPr(prNumber) {
   return normalizePull(
-    JSON.parse(
-      execFileSync(
-        resolveGhBinary(),
-        [
-          'pr',
-          'view',
-          String(prNumber),
-          '--json',
-          'number,headRefOid,headRefName,baseRefName,headRepository,headRepositoryOwner',
-        ],
-        providerExecOptions()
-      )
-    )
+    ghJson([
+      'pr',
+      'view',
+      String(prNumber),
+      '--json',
+      'number,headRefOid,headRefName,baseRefName,headRepository,headRepositoryOwner',
+    ])
   );
 }
 
 function readPrForBranch(certificate) {
-  const values = JSON.parse(
-    execFileSync(
-      resolveGhBinary(),
-      [
-        'pr',
-        'list',
-        '--state',
-        'all',
-        '--head',
-        certificate.branch,
-        '--base',
-        certificate.baseBranch,
-        '--limit',
-        '2',
-        '--json',
-        'number,headRefOid,headRefName,baseRefName,headRepository,headRepositoryOwner',
-      ],
-      providerExecOptions()
-    )
-  );
+  const values = ghJson([
+    'pr',
+    'list',
+    '--state',
+    'all',
+    '--head',
+    certificate.branch,
+    '--base',
+    certificate.baseBranch,
+    '--limit',
+    '2',
+    '--json',
+    'number,headRefOid,headRefName,baseRefName,headRepository,headRepositoryOwner',
+  ]);
   must(Array.isArray(values) && values.length <= 1, 'live PR lookup is ambiguous');
   return values.length ? normalizePull(values[0]) : null;
 }
@@ -224,7 +224,7 @@ export function verifyOperationBody(request, certificate) {
 
 export function executeOperation(binary, args) {
   return spawnSync(binary === 'gh' ? resolveGhBinary() : binary, args, {
-    ...(binary === 'gh' || binary === '/usr/bin/git' ? providerExecOptions() : SAFE_EXEC),
+    ...execOptions(binary),
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 }
@@ -244,20 +244,20 @@ function reconcilePullCreation(certificate) {
 
 function reconcilePullMutation(request, certificate) {
   if (request.operation === 'label_add') {
-    const labels = JSON.parse(
-      execFileSync(
-        resolveGhBinary(),
-        ['pr', 'view', String(request.prNumber), '--json', 'labels', '--jq', '[.labels[].name]'],
-        providerExecOptions()
-      )
-    );
+    const labels = ghJson([
+      'pr',
+      'view',
+      String(request.prNumber),
+      '--json',
+      'labels',
+      '--jq',
+      '[.labels[].name]',
+    ]);
     return { outcome: reconciliationOutcome(labels.includes(request.label)) };
   }
   if (request.operation === 'feedback_comment') {
     const endpoint = `repos/interdomestik/interdomestik/issues/${request.prNumber}/comments?per_page=100`;
-    const comments = JSON.parse(
-      execFileSync(resolveGhBinary(), ['api', endpoint, '--paginate'], providerExecOptions())
-    );
+    const comments = ghJson(['api', endpoint, '--paginate']);
     const expected = certificate.artifacts[request.bodyArtifact];
     return {
       outcome: reconciliationOutcome(
@@ -265,13 +265,13 @@ function reconcilePullMutation(request, certificate) {
       ),
     };
   }
-  const merge = JSON.parse(
-    execFileSync(
-      resolveGhBinary(),
-      ['pr', 'view', String(request.prNumber), '--json', 'state,mergedAt,mergeCommit'],
-      providerExecOptions()
-    )
-  );
+  const merge = ghJson([
+    'pr',
+    'view',
+    String(request.prNumber),
+    '--json',
+    'state,mergedAt,mergeCommit',
+  ]);
   const applied =
     merge.state === 'MERGED' && merge.mergedAt && /^[0-9a-f]{40}$/u.test(merge.mergeCommit?.oid);
   return { outcome: reconciliationOutcome(applied), mergeSha: merge.mergeCommit?.oid ?? null };

@@ -16,9 +16,9 @@ import {
   authenticateResolverOutput,
   resolveAtAuthorityBoundary,
 } from './slice-rehearse-authority-boundary.mjs';
-import { resolveGhBinary } from './slice-rehearse-operation-live.mjs';
+import { execOptions, resolveGhBinary } from './slice-rehearse-operation-live.mjs';
 
-const SHA40 = /^[0-9a-f]{40}$/u;
+const SHA = /^[0-9a-f]{40}$/u;
 const KEYS = [
   'approvals',
   'baseSha',
@@ -50,11 +50,11 @@ function nullableMetric(value, label) {
   return value;
 }
 
-const SAFE_EXEC = Object.freeze({
+const OPTIONS = Object.freeze({
   encoding: 'utf8',
   env: { PATH: '/usr/bin:/bin:/usr/sbin:/sbin' },
-  maxBuffer: 8 * 1024 * 1024,
-  timeout: 5 * 60_000,
+  maxBuffer: 8_388_608,
+  timeout: 300_000,
 });
 
 export function verifyCheckpointGitIdentity(input, facts) {
@@ -71,19 +71,19 @@ export function verifyCheckpointGitIdentity(input, facts) {
 }
 
 function defaultVerifyState(input) {
-  const headSha = execFileSync('/usr/bin/git', ['rev-parse', 'HEAD'], SAFE_EXEC).trim();
-  const treeSha = execFileSync('/usr/bin/git', ['rev-parse', 'HEAD^{tree}'], SAFE_EXEC).trim();
+  const headSha = execFileSync('/usr/bin/git', ['rev-parse', 'HEAD'], OPTIONS).trim();
+  const treeSha = execFileSync('/usr/bin/git', ['rev-parse', 'HEAD^{tree}'], OPTIONS).trim();
   const protectedMainSha = execFileSync(
     '/usr/bin/git',
     ['rev-parse', 'refs/remotes/origin/main^{commit}'],
-    SAFE_EXEC
+    OPTIONS
   ).trim();
   let baseIsAncestor = false;
   try {
     execFileSync(
       '/usr/bin/git',
       ['merge-base', '--is-ancestor', input.baseSha, input.headSha],
-      SAFE_EXEC
+      OPTIONS
     );
     baseIsAncestor = true;
   } catch {
@@ -110,7 +110,7 @@ function defaultVerifyState(input) {
           '--json',
           'headRefOid,baseRefName,state,mergeCommit',
         ],
-        SAFE_EXEC
+        execOptions('gh')
       )
     );
     if (pull.headRefOid !== input.headSha || pull.baseRefName !== 'main') return false;
@@ -139,10 +139,10 @@ export function generateSliceCheckpoint(input, { verifyState = defaultVerifyStat
     ['checkpoint', 'authority_hold', 'final'].includes(input.stage),
     'checkpoint stage is invalid'
   );
-  must(SHA40.test(input.baseSha), 'base SHA is invalid');
-  must(SHA40.test(input.headSha), 'head SHA is invalid');
-  must(SHA40.test(input.treeSha), 'tree SHA is invalid');
-  must(input.mergeSha === null || SHA40.test(input.mergeSha), 'merge SHA is invalid');
+  must(SHA.test(input.baseSha), 'base SHA is invalid');
+  must(SHA.test(input.headSha), 'head SHA is invalid');
+  must(SHA.test(input.treeSha), 'tree SHA is invalid');
+  must(input.mergeSha === null || SHA.test(input.mergeSha), 'merge SHA is invalid');
   must(
     input.prNumber === null || (Number.isSafeInteger(input.prNumber) && input.prNumber > 0),
     'PR number is invalid'

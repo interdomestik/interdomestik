@@ -16,17 +16,11 @@ function git(repository, args) {
 }
 
 function minimalBudget(protectedMainSha) {
-  const categories = {};
-  for (const category of [
-    'config/data/messages',
-    'docs/text',
-    'large support/generated-ish',
-    'other',
-    'source/scripts',
-    'tests/e2e',
-  ]) {
-    categories[category] = 1;
-  }
+  const categories = Object.fromEntries(
+    'config/data/messages|docs/text|large support/generated-ish|other|source/scripts|tests/e2e'
+      .split('|')
+      .map(category => [category, 1])
+  );
   const allocation = {
     id: 'fixture',
     mode: 'exact',
@@ -133,7 +127,13 @@ function rehearse(fixture, options) {
   });
 }
 
-test('fails closed without partial JSON for malformed input or missing baseline blob', () => {
+const remove = fixture => rmSync(fixture.root, { recursive: true, force: true });
+
+test('fails closed for malformed input or missing baseline blob', () => {
+  assert.match(
+    readFileSync(new URL('./slice-rehearse.mjs', import.meta.url), 'utf8'),
+    /allowedRoots: \[cwd, tmpdir\(\), '\/private\/tmp'\]/u
+  );
   const fixture = createRepository();
   try {
     const malformedPath = join(fixture.root, 'malformed.json');
@@ -176,11 +176,11 @@ test('fails closed without partial JSON for malformed input or missing baseline 
     assert.deepEqual(missingOutput, []);
     assert.match(missingErrors.join(''), /baseline budget/i);
   } finally {
-    rmSync(fixture.root, { recursive: true, force: true });
+    remove(fixture);
   }
 });
 
-test('rejects symlink manifest and budget inputs before reading them', () => {
+test('rejects symlink manifest and budget inputs', () => {
   const fixture = createRepository();
   try {
     const realManifest = join(fixture.root, 'manifest.json');
@@ -217,11 +217,11 @@ test('rejects symlink manifest and budget inputs before reading them', () => {
     );
     assert.match(budgetErrors.join(''), /regular file|symlink/iu);
   } finally {
-    rmSync(fixture.root, { recursive: true, force: true });
+    remove(fixture);
   }
 });
 
-test('reports valid worktree budget drift against protected main', () => {
+test('reports worktree budget drift', () => {
   const fixture = createRepository();
   try {
     const manifestPath = join(fixture.root, 'manifest.json');
@@ -247,7 +247,7 @@ test('reports valid worktree budget drift against protected main', () => {
     const report = JSON.parse(output.join(''));
     assert.ok(report.authorityStops.some(item => item.code === 'capacity:worktree-budget-drift'));
   } finally {
-    rmSync(fixture.root, { recursive: true, force: true });
+    remove(fixture);
   }
 });
 
@@ -294,6 +294,6 @@ test('does not grant sensitive cleanup without independent operation facts', () 
     );
     assert.equal(report.operationalEnvelope, null);
   } finally {
-    rmSync(fixture.root, { recursive: true, force: true });
+    remove(fixture);
   }
 });

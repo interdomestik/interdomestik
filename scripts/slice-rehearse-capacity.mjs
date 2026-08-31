@@ -16,21 +16,28 @@ import { must } from './slice-rehearse-canonical.mjs';
 
 function deriveProtectedProposal({
   budget,
-  protectedBudgetText,
+  protectedBudgetText: text,
   manifest,
-  baselineBudgetBytes,
-  writerDeltas = {},
-  capacityOwnerDeltas = {},
-  allocationIdOverride = null,
+  baselineBudgetBytes: bytes,
+  writerDeltas: deltas = {},
+  capacityOwnerDeltas: ownerDeltas = {},
+  allocationIdOverride: override = null,
 }) {
   validateCapacityBudget(structuredClone(budget));
   must(
-    Number.isSafeInteger(baselineBudgetBytes) && baselineBudgetBytes > 0,
-    'baseline budget bytes must be a positive integer'
+    Number.isSafeInteger(bytes) && bytes > 0,
+    'baseline bytes must be positive'
   );
-  const allocationId =
-    allocationIdOverride ?? manifest.capacityOwnerId ?? manifest.sliceId.toLowerCase();
-  const existing = budget.allocations.find(item => item.id === allocationId);
+  const ownerId =
+    override ?? manifest.capacityOwnerId ?? manifest.sliceId.toLowerCase();
+  const existing = budget.allocations.find(item => item.id === ownerId);
+  const unchanged = fields =>
+    unchangedBudgetProposal({
+      budget,
+      budgetText: text,
+      baselineBudgetBytes: bytes,
+      ...fields,
+    });
   const owners = new Map(
     budget.allocations.flatMap(allocation =>
       allocation.writerPaths.map(filePath => [filePath, allocation.id])
@@ -39,101 +46,95 @@ function deriveProtectedProposal({
   if (manifest.topology.closeoutMode === 'projection-only') {
     return projectionBudgetProposal({
       budget,
-      protectedBudgetText,
+      protectedBudgetText: text,
       manifest,
-      baselineBudgetBytes,
-      writerDeltas,
-      capacityOwnerDeltas,
-      allocationId,
+      baselineBudgetBytes: bytes,
+      writerDeltas: deltas,
+      capacityOwnerDeltas: ownerDeltas,
+      allocationId: ownerId,
       owners,
       deriveRepairProposal: deriveProtectedProposal,
     });
   }
-  const authorityStops = [];
+  const stops = [];
   for (const filePath of manifest.writerPaths) {
     const owner = owners.get(filePath);
     if (
       owner &&
-      owner !== allocationId &&
+      owner !== ownerId &&
       !(filePath === BUDGET_PATH && owner === CAPACITY_REBASE_ID)
     ) {
-      authorityStops.push({
+      stops.push({
         code: 'capacity:writer-owner-overlap',
         path: filePath,
         owner,
-        requestedOwner: allocationId,
+        requestedOwner: ownerId,
       });
     }
   }
 
-  const allocation = proposedAllocation(manifest, allocationId, writerDeltas);
-  if (!allocation) {
-    return unchangedBudgetProposal({
-      budget,
-      budgetText: protectedBudgetText,
-      baselineBudgetBytes,
+  const cap = proposedAllocation(manifest, ownerId, deltas);
+  if (!cap) {
+    return unchanged({
       mode: 'blocked',
-      authorityStops: [{ code: 'capacity:no-attributable-writers', allocationId }],
-      allocation: { id: allocationId, mode: 'unavailable', writerPaths: [] },
+      authorityStops: [{ code: 'capacity:no-attributable-writers', allocationId: ownerId }],
+      allocation: { id: ownerId, mode: 'unavailable', writerPaths: [] },
     });
   }
-  if (authorityStops.length) {
-    return unchangedBudgetProposal({
-      budget,
-      budgetText: protectedBudgetText,
-      baselineBudgetBytes,
+  if (stops.length) {
+    return unchanged({
       mode: 'blocked',
-      authorityStops,
-      allocation,
+      authorityStops: stops,
+      allocation: cap,
     });
   }
-  if (existing) {
+  const reuse = () => {
     if (
       manifest.schemaVersion === 2 &&
       manifest.workClass === 'governance' &&
-      manifest.capacityOwnerId === allocationId
+      manifest.capacityOwnerId === ownerId
     ) {
+      const gaps = existingAllocationStops(existing, cap, ownerId, true);
+      if (!gaps.length) {
+        return unchanged({
+          mode: 'existing',
+          authorityStops: [],
+          allocation: structuredClone(existing),
+        });
+      }
       return deriveOwnerExtension({
         budget,
         existing,
-        proposed: allocation,
+        proposed: cap,
         manifest,
-        writerDeltas,
-        baselineBudgetBytes,
+        writerDeltas: deltas,
+        baselineBudgetBytes: bytes,
       });
     }
-    authorityStops.push(...existingAllocationStops(existing, allocation, allocationId));
-    return unchangedBudgetProposal({
-      budget,
-      budgetText: protectedBudgetText,
-      baselineBudgetBytes,
+    stops.push(...existingAllocationStops(existing, cap, ownerId));
+    return unchanged({
       mode: 'existing',
-      authorityStops,
+      authorityStops: stops,
       allocation: structuredClone(existing),
     });
-  }
+  };
+  if (existing) return reuse();
   if (!manifest.writerPaths.includes(BUDGET_PATH)) {
-    return unchangedBudgetProposal({
-      budget,
-      budgetText: protectedBudgetText,
-      baselineBudgetBytes,
+    return unchanged({
       mode: 'blocked',
       authorityStops: [{ code: 'capacity:new-allocation-missing-budget-writer' }],
-      allocation,
+      allocation: cap,
     });
   }
   const rebase = budget.allocations.find(item => item.id === CAPACITY_REBASE_ID);
   if (rebase?.mode !== 'exact' || !rebase.writerPaths.includes(BUDGET_PATH)) {
-    return unchangedBudgetProposal({
-      budget,
-      budgetText: protectedBudgetText,
-      baselineBudgetBytes,
+    return unchanged({
       mode: 'blocked',
       authorityStops: [{ code: 'capacity:rebase-allocation-unavailable' }],
-      allocation,
+      allocation: cap,
     });
   }
-  return deriveCapacityFixedPoint({ budget, allocation, baselineBudgetBytes });
+  return deriveCapacityFixedPoint({ budget, allocation: cap, baselineBudgetBytes: bytes });
 }
 
 export function deriveCapacityProposal({

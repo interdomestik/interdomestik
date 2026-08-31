@@ -78,18 +78,17 @@ export function projectionBudgetProposal({
 }
 
 export function proposedAllocation(manifest, id, writerDeltas = {}) {
-  const plans = manifest.pathPlans.filter(plan => plan.path !== 'scripts/repo-size-budget.json');
+  const plans = manifest.pathPlans.filter(({ path }) => path !== BUDGET_PATH);
   if (!plans.length) return null;
   const maxCategoryBytesDelta = {};
-  for (const plan of plans) {
-    maxCategoryBytesDelta[plan.category] =
-      (maxCategoryBytesDelta[plan.category] ?? 0) + plan.maxBytesDelta;
+  for (const { category, maxBytesDelta } of plans) {
+    maxCategoryBytesDelta[category] = (maxCategoryBytesDelta[category] ?? 0) + maxBytesDelta;
   }
   return {
     id,
     mode: 'bounded',
     writerPaths: plans.map(plan => plan.path).sort(compareText),
-    maxTrackedBytesDelta: plans.reduce((sum, plan) => sum + plan.maxBytesDelta, 0),
+    maxTrackedBytesDelta: plans.reduce((sum, { maxBytesDelta }) => sum + maxBytesDelta, 0),
     maxTrackedFilesDelta: plans.filter(plan => {
       const facts = writerDeltas[plan.path];
       const baselineExists = facts?.capacityBaselineExists ?? facts?.baselineExists;
@@ -98,49 +97,46 @@ export function proposedAllocation(manifest, id, writerDeltas = {}) {
     maxCategoryBytesDelta,
     maxPathBytesDelta: Object.fromEntries(
       plans
-        .map(plan => [plan.path, plan.maxBytesDelta])
+        .map(({ path, maxBytesDelta }) => [path, maxBytesDelta])
         .sort(([left], [right]) => compareText(left, right))
     ),
   };
 }
 
-export function existingAllocationStops(existing, allocation, allocationId) {
+export function existingAllocationStops(owner, need, allocationId, subset = false) {
   const stops = [];
-  if (existing.mode !== 'bounded') {
+  if (owner.mode !== 'bounded') {
     stops.push({ code: 'capacity:existing-allocation-mode', allocationId });
     return stops;
   }
-  if (
-    JSON.stringify([...existing.writerPaths].sort(compareText)) !==
-    JSON.stringify(allocation.writerPaths)
-  ) {
+  const miss = need.writerPaths.some(path => !owner.writerPaths.includes(path));
+  if (miss || (!subset && owner.writerPaths.length !== need.writerPaths.length))
     stops.push({ code: 'capacity:existing-writer-map-mismatch', allocationId });
-  }
   for (const [field, code] of [
     ['maxTrackedBytesDelta', 'capacity:existing-tracked-bytes-insufficient'],
     ['maxTrackedFilesDelta', 'capacity:existing-tracked-files-insufficient'],
   ]) {
-    if (existing[field] < allocation[field]) {
-      stops.push({ code, allocationId, actual: allocation[field], limit: existing[field] });
+    if (owner[field] < need[field]) {
+      stops.push({ code, allocationId, actual: need[field], limit: owner[field] });
     }
   }
-  for (const [path, bytes] of Object.entries(allocation.maxPathBytesDelta)) {
-    if ((existing.maxPathBytesDelta[path] ?? -1) < bytes) {
+  for (const [path, bytes] of Object.entries(need.maxPathBytesDelta)) {
+    if ((owner.maxPathBytesDelta[path] ?? -1) < bytes) {
       stops.push({
         code: 'capacity:existing-path-insufficient',
         path,
         actual: bytes,
-        limit: existing.maxPathBytesDelta[path] ?? null,
+        limit: owner.maxPathBytesDelta[path] ?? null,
       });
     }
   }
-  for (const [category, bytes] of Object.entries(allocation.maxCategoryBytesDelta)) {
-    if ((existing.maxCategoryBytesDelta[category] ?? 0) < bytes) {
+  for (const [category, bytes] of Object.entries(need.maxCategoryBytesDelta)) {
+    if ((owner.maxCategoryBytesDelta[category] ?? 0) < bytes) {
       stops.push({
         code: 'capacity:existing-category-insufficient',
         category,
         actual: bytes,
-        limit: existing.maxCategoryBytesDelta[category] ?? 0,
+        limit: owner.maxCategoryBytesDelta[category] ?? 0,
       });
     }
   }

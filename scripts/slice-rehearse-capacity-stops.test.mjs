@@ -14,6 +14,14 @@ const baselineBytes =
   bytes.byteLength - budget.allocations[0].pathBytesDelta['scripts/repo-size-budget.json'];
 const sha = value => value.repeat(40);
 const paths = ['scripts/rehearse-repair.mjs', 'scripts/rehearse-repair.test.mjs'];
+const BUDGET = 'scripts/repo-size-budget.json';
+const plan = (path, change, category, maxBytesDelta, maxLines) => ({
+  path,
+  change,
+  category,
+  maxBytesDelta,
+  maxLines,
+});
 
 function manifest(maxima = [800, 1_000]) {
   return validateRehearsalManifest({
@@ -22,29 +30,11 @@ function manifest(maxima = [800, 1_000]) {
     tier: 3,
     baseSha: sha('a'),
     origin: 'https://github.com/interdomestik/interdomestik.git',
-    writerPaths: ['scripts/repo-size-budget.json', ...paths].sort(),
+    writerPaths: [BUDGET, ...paths].sort(),
     pathPlans: [
-      {
-        path: 'scripts/repo-size-budget.json',
-        change: 'modify',
-        category: 'config/data/messages',
-        maxBytesDelta: 0,
-        maxLines: 1_000,
-      },
-      {
-        path: paths[0],
-        change: 'create',
-        category: 'source/scripts',
-        maxBytesDelta: maxima[0],
-        maxLines: 200,
-      },
-      {
-        path: paths[1],
-        change: 'create',
-        category: 'tests/e2e',
-        maxBytesDelta: maxima[1],
-        maxLines: 300,
-      },
+      plan(BUDGET, 'modify', 'config/data/messages', 0, 1_000),
+      plan(paths[0], 'create', 'source/scripts', maxima[0], 200),
+      plan(paths[1], 'create', 'tests/e2e', maxima[1], 300),
     ],
     routineOperations: ['derived_capacity_rebind'],
     proof: {
@@ -64,22 +54,24 @@ function manifest(maxima = [800, 1_000]) {
   });
 }
 
-function facts(value) {
-  const writerDeltas = Object.fromEntries(
-    value.writerPaths.map(path => [
-      path,
-      {
-        bytes: 0,
-        currentBytes: path === 'scripts/repo-size-budget.json' ? bytes.byteLength : 0,
-        currentSha256: path === 'scripts/repo-size-budget.json' ? sha256(bytes) : null,
-        files: path === 'scripts/repo-size-budget.json' ? 0 : 1,
-        capacityBaselineExists: path === 'scripts/repo-size-budget.json',
-        manifestBaseExists: path === 'scripts/repo-size-budget.json',
-        currentExists: path === 'scripts/repo-size-budget.json',
-      },
-    ])
+function facts({ writerPaths }) {
+  return Object.fromEntries(
+    writerPaths.map(path => {
+      const isBudget = path === BUDGET;
+      return [
+        path,
+        {
+          bytes: 0,
+          currentBytes: isBudget ? bytes.byteLength : 0,
+          currentSha256: isBudget ? sha256(bytes) : null,
+          files: isBudget ? 0 : 1,
+          capacityBaselineExists: isBudget,
+          manifestBaseExists: isBudget,
+          currentExists: isBudget,
+        },
+      ];
+    })
   );
-  return writerDeltas;
 }
 
 function proposal(value, worktree = budget, protectedValue = budget) {
@@ -94,7 +86,7 @@ function proposal(value, worktree = budget, protectedValue = budget) {
   });
 }
 
-test('prior derived candidate rebinds to a new candidate but rejects foreign allocation drift', () => {
+test('derived candidate rebinds but rejects foreign allocation drift', () => {
   const first = proposal(manifest());
   assert.equal(Buffer.byteLength(first.budgetBytes) - baselineBytes, first.selfBytesDelta);
   const second = proposal(manifest([900, 1_100]), first.budget);
@@ -108,6 +100,20 @@ test('prior derived candidate rebinds to a new candidate but rejects foreign all
   ] += 1;
   const stopped = proposal(manifest([900, 1_100]), foreign);
   assert.ok(stopped.authorityStops.some(item => item.code === 'capacity:worktree-budget-drift'));
+
+  const covered = manifest();
+  const path = 'scripts/slice-rehearse-capacity.mjs';
+  Object.assign(covered, {
+    schemaVersion: 2,
+    workClass: 'governance',
+    capacityOwnerId: 'harness-v2-efficiency',
+    writerPaths: [path],
+    pathPlans: [plan(path, 'modify', 'source/scripts', 4_983, 300)],
+    routineOperations: [],
+  });
+  const replay = proposal(validateRehearsalManifest(covered));
+  assert.equal(replay.mode, 'existing');
+  assert.deepEqual(replay.authorityStops, []);
 });
 
 test('exact protected blob bytes and digest bind an unchanged projection proposal', () => {
@@ -116,20 +122,8 @@ test('exact protected blob bytes and digest bind an unchanged projection proposa
     sliceId: 'T117B-DATA',
     writerPaths: ['docs/plans/current-program.md', 'docs/plans/current-tracker.md'],
     pathPlans: [
-      {
-        path: 'docs/plans/current-program.md',
-        change: 'modify',
-        category: 'docs/text',
-        maxBytesDelta: 500,
-        maxLines: 200,
-      },
-      {
-        path: 'docs/plans/current-tracker.md',
-        change: 'modify',
-        category: 'large support/generated-ish',
-        maxBytesDelta: 500,
-        maxLines: 200,
-      },
+      plan('docs/plans/current-program.md', 'modify', 'docs/text', 500, 200),
+      plan('docs/plans/current-tracker.md', 'modify', 'large support/generated-ish', 500, 200),
     ],
     routineOperations: [],
     topology: {
