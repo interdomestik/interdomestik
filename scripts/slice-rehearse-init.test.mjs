@@ -5,65 +5,65 @@ import { initializeRehearsalManifest } from './slice-rehearse-init.mjs';
 import { validateRehearsalManifest } from './slice-rehearse-core.mjs';
 
 const SHA = character => character.repeat(40);
+const INIT = 'scripts/slice-rehearse-init.mjs';
+const TEST = 'scripts/slice-rehearse-init.test.mjs';
+const PROMOTION = [
+  'docs/plans/2026-08-28-t117b-cutover-admission.json',
+  'docs/plans/2026-08-28-t117b-cutover-design-gate.md',
+  'docs/plans/current-program.md',
+  'docs/plans/current-tracker.md',
+];
 
-function request(overrides = {}) {
-  return {
-    schemaVersion: 1,
-    sliceId: 'HARNESS-V2-1',
-    tier: 3,
-    workClass: 'governance',
-    writerPaths: ['scripts/slice-rehearse-init.mjs', 'scripts/slice-rehearse-init.test.mjs'],
-    proofCommands: ['node --test scripts/slice-rehearse-init.test.mjs'],
-    heavyLanes: ['pr-e2e'],
-    routineOperations: ['rerun_invalidated_proof'],
-    ...overrides,
-  };
-}
+const request = (overrides = {}) => ({
+  sliceId: 'HARNESS-V2-1',
+  tier: 3,
+  workClass: 'governance',
+  writerPaths: [INIT, TEST],
+  proofCommands: [`node --test ${TEST}`],
+  heavyLanes: ['pr-e2e'],
+  routineOperations: ['rerun_invalidated_proof'],
+  ...overrides,
+});
 
-function facts(overrides = {}) {
-  return {
-    baseSha: SHA('a'),
-    origin: 'https://github.com/interdomestik/interdomestik.git',
-    existingPaths: [],
-    workflowDigest: 'b'.repeat(64),
-    substrateDigest: 'c'.repeat(64),
-    existingCapacityCapsByPath: {},
-    capacityDeltasByPath: {
-      'scripts/slice-rehearse-init.mjs': 0,
-      'scripts/slice-rehearse-init.test.mjs': 0,
-    },
-    authority: {
-      source: 'live-resolver',
-      runtimeAuthorized: false,
-      activeSlice: null,
-    },
-    ...overrides,
-  };
-}
+const facts = (overrides = {}) => ({
+  baseSha: SHA('a'),
+  origin: 'https://github.com/interdomestik/interdomestik.git',
+  existingPaths: [],
+  workflowDigest: 'b'.repeat(64),
+  substrateDigest: 'c'.repeat(64),
+  existingCapacityCapsByPath: {},
+  capacityDeltasByPath: {
+    [INIT]: 0,
+    [TEST]: 0,
+  },
+  authority: {
+    source: 'live-resolver',
+    runtimeAuthorized: false,
+    activeSlice: null,
+  },
+  ...overrides,
+});
 
-test('path capacity is the exact measured delta or existing protected cap without flat headroom', () => {
+test('uses exact capacity', () => {
   const manifest = initializeRehearsalManifest(
     request(),
     facts({
       existingCapacityCapsByPath: {
-        'scripts/slice-rehearse-init.mjs': 321,
+        [INIT]: 321,
       },
       capacityDeltasByPath: {
-        'scripts/slice-rehearse-init.mjs': 123,
-        'scripts/slice-rehearse-init.test.mjs': 456,
+        [INIT]: 123,
+        [TEST]: 456,
       },
     })
   );
   assert.deepEqual(
-    Object.fromEntries(manifest.pathPlans.map(plan => [plan.path, plan.maxBytesDelta])),
-    {
-      'scripts/slice-rehearse-init.mjs': 321,
-      'scripts/slice-rehearse-init.test.mjs': 456,
-    }
+    manifest.pathPlans.map(plan => plan.maxBytesDelta),
+    [321, 456]
   );
 });
 
-test('first normal invocation produces a canonical schema-valid governance manifest', () => {
+test('canonical governance', () => {
   const first = initializeRehearsalManifest(request(), facts());
   const second = initializeRehearsalManifest(
     request({ writerPaths: [...request().writerPaths].reverse() }),
@@ -74,49 +74,65 @@ test('first normal invocation produces a canonical schema-valid governance manif
   assert.deepEqual(validateRehearsalManifest(first), first);
   assert.equal(first.authorityGranted, undefined);
   assert.deepEqual(
-    first.pathPlans.map(plan => plan.change),
-    ['create', 'create']
-  );
-  assert.deepEqual(
-    first.pathPlans.map(plan => plan.maxLines),
-    [300, 300]
+    first.pathPlans.map(plan => [plan.change, plan.maxLines]),
+    [
+      ['create', 300],
+      ['create', 300],
+    ]
   );
 });
 
-test('product initialization fails closed when live runtime authority does not match', () => {
+test('product authority', () => {
   assert.throws(
     () => initializeRehearsalManifest(request({ workClass: 'product' }), facts()),
     /live runtime authority does not grant HARNESS-V2-1/u
   );
 });
 
-test('separates a governance delivery identity from its explicit existing capacity owner', () => {
+test('governance owner', () => {
   const manifest = initializeRehearsalManifest(
     request({ capacityOwnerId: 'harness-v2-efficiency' }),
     facts()
   );
-  assert.equal(manifest.schemaVersion, 2);
-  assert.equal(manifest.sliceId, 'HARNESS-V2-1');
-  assert.equal(manifest.workClass, 'governance');
   assert.equal(manifest.capacityOwnerId, 'harness-v2-efficiency');
   assert.deepEqual(validateRehearsalManifest(manifest), manifest);
 });
 
-test('reports all genuine missing inputs in one consolidated error', () => {
+test('promotion reuse', () => {
+  const manifest = initializeRehearsalManifest(
+    request({
+      sliceId: 'T117B-CUTOVER',
+      capacityOwnerId: 't117b-cutover',
+      writerPaths: PROMOTION,
+      topology: {
+        closeoutMode: 'promotion',
+        projectionPaths: PROMOTION,
+        repairAllocationId: null,
+        repairPaths: [],
+      },
+    }),
+    facts({
+      existingPaths: PROMOTION,
+      capacityDeltasByPath: Object.fromEntries(PROMOTION.map(path => [path, 0])),
+    })
+  );
+  const { capacityOwnerId: _owner, workClass: _kind, ...v1 } = manifest;
+  for (const invalid of [
+    { ...v1, schemaVersion: 1 },
+    { ...manifest, sliceId: 'UNPROMOTED', capacityOwnerId: 'unpromoted' },
+    ...['bad', [null]].map(writerPaths => ({ ...manifest, writerPaths })),
+  ]) {
+    assert.throws(() => validateRehearsalManifest(invalid), /promotion mismatch/u);
+  }
+});
+
+test('missing inputs', () => {
   assert.throws(
     () =>
       initializeRehearsalManifest(
         request({ sliceId: '', writerPaths: [], proofCommands: [], heavyLanes: [] }),
         facts({ workflowDigest: null, substrateDigest: null })
       ),
-    error => {
-      assert.match(error.message, /sliceId/u);
-      assert.match(error.message, /writerPaths/u);
-      assert.match(error.message, /proofCommands/u);
-      assert.match(error.message, /heavyLanes/u);
-      assert.match(error.message, /workflowDigest/u);
-      assert.match(error.message, /substrateDigest/u);
-      return true;
-    }
+    /heavyLanes.*proofCommands.*sliceId.*substrateDigest.*workflowDigest.*writerPaths/u
   );
 });

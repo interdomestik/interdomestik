@@ -7,15 +7,13 @@ import { compareText, sha256 } from './slice-rehearse-canonical.mjs';
 
 const MAX_WRITER_BYTES = 16 * 1024 * 1024;
 
-export function projectionCapacityOwnerPaths(protectedBudget, manifest) {
-  if (manifest.topology?.closeoutMode !== 'projection-only') return [];
-  const projectionPaths = new Set(manifest.topology.projectionPaths);
+export function projectionCapacityOwnerPaths(budget, { topology }) {
+  if (!['projection-only', 'promotion'].includes(topology?.closeoutMode)) return [];
+  const paths = new Set(topology.projectionPaths);
   return [
     ...new Set(
-      protectedBudget.allocations
-        .filter(allocation =>
-          allocation.writerPaths.some(filePath => projectionPaths.has(filePath))
-        )
+      budget.allocations
+        .filter(allocation => allocation.writerPaths.some(filePath => paths.has(filePath)))
         .flatMap(allocation => allocation.writerPaths)
     ),
   ].sort(compareText);

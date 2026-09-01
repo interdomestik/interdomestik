@@ -1,6 +1,6 @@
 import { CAPACITY_CATEGORIES } from './repo-size-capacity-schema.mjs';
 import { evaluatePrGatePolicy } from './ci/pr-gate-policy-lib.mjs';
-import { CLOSEOUT } from './lean-current-authority-policy.mjs';
+import { CLOSEOUT, validPromotionWriterPaths } from './lean-current-authority-policy.mjs';
 import { budgetCategory } from './repo-size-budget-sync-core.mjs';
 import { FILE_CLASSES, structuredArtifactOwner } from './modularity-guard-policy.mjs';
 import { normalizeRoutineOperations } from './slice-rehearse-operation-contracts.mjs';
@@ -11,7 +11,6 @@ import {
   nonEmptyString,
   positiveInteger,
   safeRelativePath,
-  sortedText,
   sortedUnique,
 } from './slice-rehearse-canonical.mjs';
 import { canonicalModularityForPath } from './slice-rehearse-writer-policy.mjs';
@@ -45,8 +44,11 @@ const PROOF_KEYS = [
 const TOPOLOGY_KEYS = ['closeoutMode', 'projectionPaths', 'repairAllocationId', 'repairPaths'];
 const CATEGORIES = new Set(CAPACITY_CATEGORIES);
 const CHANGES = new Set(['create', 'modify']);
-const CLOSEOUT_MODES = new Set(['none', 'projection-only']);
+const CLOSEOUT_MODES = new Set(['none', 'projection-only', 'promotion']);
 const DIGEST_PATTERN = /^[0-9a-f]{64}$/u;
+const samePaths = (left, right) =>
+  left.length === right.length && left.every((path, index) => path === right[index]);
+const validAllocationId = value => typeof value === 'string' && /^[a-z][a-z0-9-]+$/u.test(value);
 export function validateRehearsalManifest(input) {
   must([1, 2].includes(input?.schemaVersion), 'unsupported manifest schema version');
   exactKeys(input, input.schemaVersion === 2 ? MANIFEST_V2_KEYS : MANIFEST_KEYS, 'manifest');
@@ -55,10 +57,10 @@ export function validateRehearsalManifest(input) {
   must(/^[a-z][a-z0-9-]+$/u.test(sliceId.toLowerCase()), 'slice allocation ID is invalid');
   const identity = normalizeManifestIdentity(input, sliceId);
 
-  const writerPaths = sortedUnique(input.writerPaths, 'writer path', safeRelativePath);
-  must(writerPaths.length > 0, 'writer paths must not be empty');
+  const writers = sortedUnique(input.writerPaths, 'writer path', safeRelativePath);
+  must(writers.length > 0, 'writer paths must not be empty');
   must(Array.isArray(input.pathPlans), 'path plans must be an array');
-  const pathPlans = input.pathPlans
+  const plans = input.pathPlans
     .map(plan => {
       exactKeys(plan, PATH_PLAN_KEYS, 'path plan');
       const path = safeRelativePath(plan.path, 'path plan path');
@@ -86,13 +88,13 @@ export function validateRehearsalManifest(input) {
       return { ...plan, path };
     })
     .sort((left, right) => compareText(left.path, right.path));
+  must(new Set(plans.map(plan => plan.path)).size === plans.length, 'path plans must be unique');
   must(
-    new Set(pathPlans.map(plan => plan.path)).size === pathPlans.length,
-    'path plans must be unique'
-  );
-  must(
-    JSON.stringify(pathPlans.map(plan => plan.path)) === JSON.stringify(writerPaths),
-    'path plan paths must exactly match writer paths'
+    samePaths(
+      plans.map(plan => plan.path),
+      writers
+    ),
+    'path plans differ from writers'
   );
 
   const routineOperations = normalizeRoutineOperations(input.routineOperations);
@@ -119,52 +121,46 @@ export function validateRehearsalManifest(input) {
   must(Array.isArray(input.evidenceReceipts), 'evidence receipts must be an array');
   exactKeys(input.topology, TOPOLOGY_KEYS, 'topology');
   must(CLOSEOUT_MODES.has(input.topology.closeoutMode), 'closeout mode is invalid');
-  const projectionPaths = sortedUnique(
+  const projections = sortedUnique(
     input.topology.projectionPaths,
     'projection path',
     safeRelativePath
   );
-  const repairPaths = sortedUnique(input.topology.repairPaths, 'repair path', safeRelativePath);
-  const repairAllocationId = input.topology.repairAllocationId;
-  for (const path of [...projectionPaths, ...repairPaths]) {
-    must(writerPaths.includes(path), `topology path is not a writer path: ${path}`);
+  const repairs = sortedUnique(input.topology.repairPaths, 'repair path', safeRelativePath);
+  const repairId = input.topology.repairAllocationId;
+  const mode = input.topology.closeoutMode;
+  for (const path of [...projections, ...repairs]) {
+    must(writers.includes(path), `topology path is not a writer path: ${path}`);
   }
-  if (input.topology.closeoutMode === 'none') {
+  if (mode === 'none') {
+    must(!projections.length && !repairs.length, 'topology paths must be empty');
+    must(repairId === null, 'repair allocation requires closeout');
+  } else if (mode === 'projection-only') {
+    must(samePaths(projections, CLOSEOUT), 'projection paths are not canonical');
+    const projectionSet = new Set(projections);
     must(
-      projectionPaths.length === 0 && repairPaths.length === 0,
-      'topology paths must be empty when closeout mode is none'
+      repairs.every(path => !projectionSet.has(path)),
+      'projection and repair paths are not disjoint'
     );
-    must(repairAllocationId === null, 'repair allocation must be null without closeout');
-  } else {
-    must(projectionPaths.length > 0, 'projection-only topology must have projection paths');
     must(
-      JSON.stringify(projectionPaths) === JSON.stringify(sortedText(CLOSEOUT)),
-      'projection-only topology must use the canonical closeout paths'
+      samePaths([...projections, ...repairs].sort(compareText), writers),
+      'writers do not exactly cover'
     );
-    const projectionSet = new Set(projectionPaths);
-    must(
-      repairPaths.every(path => !projectionSet.has(path)),
-      'projection and repair topology paths must be disjoint'
-    );
-    const covered = [...projectionPaths, ...repairPaths].sort(compareText);
-    must(
-      JSON.stringify(covered) === JSON.stringify(writerPaths),
-      'projection and repair topology paths must exactly cover writer paths'
-    );
-    if (repairPaths.length) {
-      must(
-        typeof repairAllocationId === 'string' && /^[a-z][a-z0-9-]+$/u.test(repairAllocationId),
-        'repair allocation ID is invalid'
-      );
+    if (repairs.length) {
+      must(validAllocationId(repairId), 'repair allocation ID is invalid');
     } else {
-      must(repairAllocationId === null, 'pure projection repair allocation must be null');
+      must(repairId === null, 'pure projection repair allocation must be null');
     }
+  } else {
+    must(validPromotionWriterPaths(writers), 'promotion writer map is invalid');
+    must(samePaths(projections, writers), 'promotion owner paths differ');
+    must(!repairs.length && repairId === null, 'promotion cannot repair capacity');
   }
 
   const gatePolicy = evaluatePrGatePolicy({
     eventName: 'pull_request',
     draft: false,
-    changedFiles: writerPaths,
+    changedFiles: writers,
     changedFilesComplete: true,
   });
   const fullGateRequired = input.proof.fullGateRequired || gatePolicy.forceFull;
@@ -176,8 +172,8 @@ export function validateRehearsalManifest(input) {
     tier: identity.tier,
     baseSha: input.baseSha,
     origin: input.origin,
-    writerPaths,
-    pathPlans,
+    writerPaths: writers,
+    pathPlans: plans,
     routineOperations,
     proof: {
       commands,
@@ -189,9 +185,9 @@ export function validateRehearsalManifest(input) {
     evidenceReceipts: [...input.evidenceReceipts],
     topology: {
       closeoutMode: input.topology.closeoutMode,
-      repairAllocationId,
-      repairPaths,
-      projectionPaths,
+      repairAllocationId: repairId,
+      repairPaths: repairs,
+      projectionPaths: projections,
     },
   };
 }

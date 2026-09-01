@@ -24,12 +24,8 @@ function deriveProtectedProposal({
   allocationIdOverride: override = null,
 }) {
   validateCapacityBudget(structuredClone(budget));
-  must(
-    Number.isSafeInteger(bytes) && bytes > 0,
-    'baseline bytes must be positive'
-  );
-  const ownerId =
-    override ?? manifest.capacityOwnerId ?? manifest.sliceId.toLowerCase();
+  must(Number.isSafeInteger(bytes) && bytes > 0, 'baseline bytes must be positive');
+  const ownerId = override ?? manifest.capacityOwnerId ?? manifest.sliceId.toLowerCase();
   const existing = budget.allocations.find(item => item.id === ownerId);
   const unchanged = fields =>
     unchangedBudgetProposal({
@@ -43,7 +39,7 @@ function deriveProtectedProposal({
       allocation.writerPaths.map(filePath => [filePath, allocation.id])
     )
   );
-  if (manifest.topology.closeoutMode === 'projection-only') {
+  if (['projection-only', 'promotion'].includes(manifest.topology.closeoutMode)) {
     return projectionBudgetProposal({
       budget,
       protectedBudgetText: text,
@@ -59,11 +55,7 @@ function deriveProtectedProposal({
   const stops = [];
   for (const filePath of manifest.writerPaths) {
     const owner = owners.get(filePath);
-    if (
-      owner &&
-      owner !== ownerId &&
-      !(filePath === BUDGET_PATH && owner === CAPACITY_REBASE_ID)
-    ) {
+    if (owner && owner !== ownerId && !(filePath === BUDGET_PATH && owner === CAPACITY_REBASE_ID)) {
       stops.push({
         code: 'capacity:writer-owner-overlap',
         path: filePath,
