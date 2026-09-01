@@ -48,6 +48,7 @@ const CLOSEOUT_MODES = new Set(['none', 'projection-only', 'promotion']);
 const DIGEST_PATTERN = /^[0-9a-f]{64}$/u;
 const samePaths = (left, right) =>
   left.length === right.length && left.every((path, index) => path === right[index]);
+const validAllocationId = value => typeof value === 'string' && /^[a-z][a-z0-9-]+$/u.test(value);
 export function validateRehearsalManifest(input) {
   must([1, 2].includes(input?.schemaVersion), 'unsupported manifest schema version');
   exactKeys(input, input.schemaVersion === 2 ? MANIFEST_V2_KEYS : MANIFEST_KEYS, 'manifest');
@@ -146,10 +147,7 @@ export function validateRehearsalManifest(input) {
       'writers do not exactly cover'
     );
     if (repairs.length) {
-      must(
-        typeof repairId === 'string' && /^[a-z][a-z0-9-]+$/u.test(repairId),
-        'repair allocation ID is invalid'
-      );
+      must(validAllocationId(repairId), 'repair allocation ID is invalid');
     } else {
       must(repairId === null, 'pure projection repair allocation must be null');
     }
