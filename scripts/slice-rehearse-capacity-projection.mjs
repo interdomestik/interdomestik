@@ -2,48 +2,41 @@ import { allocationDelta, categoryAllocationDelta } from './repo-size-capacity-s
 import { budgetCategory } from './repo-size-budget-sync-core.mjs';
 import { compareText } from './slice-rehearse-canonical.mjs';
 
-function pathLimit(allocation, filePath) {
-  return allocation.mode === 'exact'
-    ? allocation.pathBytesDelta[filePath]
-    : allocation.maxPathBytesDelta[filePath];
-}
-
-function sameProjectionFact(left, right) {
-  return [
-    'currentBytes',
-    'currentSha256',
-    'files',
-    'capacityBaselineExists',
-    'currentExists',
-  ].every(key => left?.[key] === right?.[key]);
-}
+const FACT_KEYS = 'currentBytes currentSha256 files capacityBaselineExists currentExists'.split(
+  ' '
+);
+const stop = (context, code, path) => context.authorityStops.push({ code, path });
 
 function recordProjectionPath(context, filePath) {
   const { authorityStops, budget, capacityOwnerDeltas, ownerAllocations, owners } = context;
   const owner = owners.get(filePath);
   if (!owner) {
-    authorityStops.push({ code: 'capacity:projection-writer-unowned', path: filePath });
+    stop(context, 'capacity:projection-writer-unowned', filePath);
     return;
   }
   ownerAllocations[filePath] = owner;
   const allocation = budget.allocations.find(item => item.id === owner);
-  const limit = pathLimit(allocation, filePath);
+  const limit = (allocation.pathBytesDelta ?? allocation.maxPathBytesDelta)[filePath];
   context.projectionPathCaps[filePath] = limit;
   const plan = context.plans.get(filePath);
   const facts = context.writerDeltas[filePath];
   const ownerFacts = capacityOwnerDeltas[filePath];
   if (!facts) {
-    authorityStops.push({ code: 'capacity:projection-writer-facts-missing', path: filePath });
+    stop(context, 'capacity:projection-writer-facts-missing', filePath);
     return;
   }
-  if (!sameProjectionFact(facts, ownerFacts)) {
-    authorityStops.push({ code: 'capacity:projection-owner-fact-mismatch', path: filePath });
+  if (!FACT_KEYS.every(key => facts[key] === ownerFacts?.[key])) {
+    stop(context, 'capacity:projection-owner-fact-mismatch', filePath);
   }
-  if (!facts.capacityBaselineExists || facts.files !== 0) {
-    authorityStops.push({ code: 'capacity:projection-writer-not-preexisting', path: filePath });
+  const promotion = context.manifest.topology.closeoutMode === 'promotion';
+  const preexisting = promotion
+    ? facts.manifestBaseExists && facts.currentExists
+    : facts.capacityBaselineExists && facts.files === 0;
+  if (!preexisting) {
+    stop(context, 'capacity:projection-writer-not-preexisting', filePath);
   }
   if (plan.change !== 'modify') {
-    authorityStops.push({ code: 'capacity:projection-writer-must-modify', path: filePath });
+    stop(context, 'capacity:projection-writer-must-modify', filePath);
   }
   for (const [actual, code] of [
     [plan.maxBytesDelta, 'capacity:projection-path-insufficient'],
@@ -53,7 +46,7 @@ function recordProjectionPath(context, filePath) {
   }
   const usage = context.usageByOwner.get(owner) ?? { bytes: 0, files: 0, categories: {} };
   usage.bytes += plan.maxBytesDelta;
-  usage.files += Number(plan.change === 'create');
+  usage.files += promotion ? facts.files : Number(plan.change === 'create');
   usage.categories[plan.category] = (usage.categories[plan.category] ?? 0) + plan.maxBytesDelta;
   context.usageByOwner.set(owner, usage);
   const remaining = Math.max(0, plan.maxBytesDelta - facts.bytes);
