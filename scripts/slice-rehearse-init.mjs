@@ -31,11 +31,11 @@ function missingInputs(request, facts) {
   return missing.sort(compareText);
 }
 
-function planForPath(path, existingPaths, existingCapacityCaps, capacityDeltas) {
+function planForPath(path, existingPaths, caps, deltas) {
   const change = existingPaths.has(path) ? 'modify' : 'create';
   const modularity = canonicalModularityForPath(path);
   const maxLines = modularity.maxLines ?? 300;
-  const ownerCapacity = Math.max(existingCapacityCaps[path] ?? 0, capacityDeltas[path] ?? 0);
+  const ownerCapacity = Math.max(caps[path] ?? 0, deltas[path] ?? 0);
   const maxBytesDelta = Math.min(modularity.maxBytes ?? ownerCapacity, ownerCapacity);
   return { path, change, category: budgetCategory(path), maxBytesDelta, maxLines };
 }
@@ -49,10 +49,10 @@ export function initializeRehearsalManifest(request, facts) {
   ) {
     throw new Error(`live runtime authority does not grant ${request.sliceId}`);
   }
-  const writerPaths = [...request.writerPaths].sort(compareText);
+  const paths = [...request.writerPaths].sort(compareText);
   const existingPaths = new Set(facts.existingPaths);
-  const existingCapacityCaps = facts.existingCapacityCapsByPath ?? {};
-  const capacityDeltas = facts.capacityDeltasByPath ?? {};
+  const caps = facts.existingCapacityCapsByPath ?? {};
+  const deltas = facts.capacityDeltasByPath ?? {};
   const manifest = {
     schemaVersion: request.capacityOwnerId ? 2 : 1,
     ...(request.capacityOwnerId
@@ -62,10 +62,8 @@ export function initializeRehearsalManifest(request, facts) {
     tier: request.tier,
     baseSha: facts.baseSha,
     origin: facts.origin,
-    writerPaths,
-    pathPlans: writerPaths.map(path =>
-      planForPath(path, existingPaths, existingCapacityCaps, capacityDeltas)
-    ),
+    writerPaths: paths,
+    pathPlans: paths.map(path => planForPath(path, existingPaths, caps, deltas)),
     routineOperations: [...(request.routineOperations ?? [])],
     proof: {
       commands: [...(facts.proofCommands ?? request.proofCommands)],
@@ -75,7 +73,7 @@ export function initializeRehearsalManifest(request, facts) {
       substrateDigest: facts.substrateDigest,
     },
     evidenceReceipts: [],
-    topology: {
+    topology: request.topology ?? {
       closeoutMode: 'none',
       repairAllocationId: null,
       repairPaths: [],
