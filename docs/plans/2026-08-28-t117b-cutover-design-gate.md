@@ -3,14 +3,14 @@ plan_role: input
 status: draft
 source_of_truth: false
 owner: platform
-last_reviewed: 2026-08-28
+last_reviewed: 2026-09-01
 ---
 
 # IDA-DG58C — T117B-CUTOVER
 
-> Status: disposable pre-freeze child candidate. Tier 3. It may promote only after T117B-DATA and
-> T117B-PORTAL are merged and terminally closed. Measurement base:
-> `a0d035ada72a96f08a53781e5d892f88e910a474`.
+> Status: approved Tier-3 child on base `a6b1f1d402856c4a74a2aaed51b4da3ab7fb3045`.
+> T117B-DATA and T117B-PORTAL are exact merged and terminally closed predecessors. Runtime is
+> denied before promotion.
 
 ## Outcome
 

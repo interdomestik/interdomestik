@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-08-30
+last_reviewed: 2026-09-01
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -65,26 +65,22 @@ Required checks, full PR E2E, pilot, zero-issue Sonar, focused/full tests, adver
 same-head feedback intake were green. Capacity PR `#1644` and compatibility PR `#1645` remain the
 bounded prerequisite proofs; neither added a generic reserve or generic Tier-3 runtime.
 
-`T117B-DATA` completed through re-promotion PR `#1661` and product PR `#1658`, binding its
-[gate](./2026-08-28-t117b-data-design-gate.md), unchanged ten-path
-[admission](./2026-08-28-t117b-data-admission.json), and allocation. Product head
+`T117B-DATA` completed through re-promotion `#1661` and product `#1658`, using its
+[gate](./2026-08-28-t117b-data-design-gate.md),
+[admission](./2026-08-28-t117b-data-admission.json), and allocation. Head
 `b9e735535ae812c0824ecb7e7a874fe78e78303d`, tree
 `728768ab05bc47a0f1cb25ec78ed6a6444264ffc`, and squash
-`124ec51cefd022dd7103a4f958cb9ebef5427dad` matched. It supplies request-scoped identity and two
-tenant-scoped projections without PORTAL or CUTOVER; exact-head proof and protected main were
-green. PRs `#1653`–`#1660` remain recovery evidence.
+`124ec51cefd022dd7103a4f958cb9ebef5427dad` matched. Request identity, two projections, exact-head
+proof, and protected main were green.
 
-`T117B-PORTAL` completed through promotion PR `#1665` and product PR `#1666`, binding its
-[gate](./2026-08-28-t117b-portal-design-gate.md), exact eleven-path
-[admission](./2026-08-28-t117b-portal-admission.json), and bounded allocation. The approved product
-head `2ad7708bf5b694a392e7d41e13f7e98fb2fcc5a2`, tree
-`368ca4056be5d14d8661b110518f5551c97b643b`, and squash merge
-`d4edda418f991a4c8f4a35ef8e854d4a6efd3b33` matched exactly. The accessible, localized Member
-Portal presentation consumes the DATA contracts through Case, lifecycle-aware Actions, and Recent
-case updates while remaining unmounted and issuing no queries. Required checks, full PR E2E, Pilot,
-Sonar, CodeQL/security, final feedback intake, finalizer/delivery reconciliation, and exact-main
-health were green. Automatic CD run `33319864323` was cancelled with zero jobs before build or
-deployment. CUTOVER and T-117C remain default-denied and unpromoted.
+`T117B-PORTAL` completed through promotion `#1665` and product `#1666`, using its
+[gate](./2026-08-28-t117b-portal-design-gate.md), eleven-path
+[admission](./2026-08-28-t117b-portal-admission.json), and allocation. Product head
+`2ad7708bf5b694a392e7d41e13f7e98fb2fcc5a2`, tree
+`368ca4056be5d14d8661b110518f5551c97b643b`, and squash
+`d4edda418f991a4c8f4a35ef8e854d4a6efd3b33` matched. It supplies the unmounted DATA-backed
+presentation; proof and main were green. PR `#1674` projects CUTOVER; runtime awaits merge. T-117C
+remains default-denied.
 
 Closed `IDA-WF01-ONE-APPROVAL-DELIVERY` remains immutable evidence through its
 [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),
@@ -101,10 +97,10 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate              | Dependencies   | Promotion constraint                         |
-| -------: | ---------------------- | -------------- | -------------------------------------------- |
-|        1 | `T117B-CUTOVER` Tier 3 | PORTAL closed  | Separate exact promotion; currently dormant. |
-|        2 | `T-117C` Tier 3        | CUTOVER closed | Atomic PPR + named-parallel-route migration. |
+| Priority | Candidate              | Dependencies   | Promotion constraint                              |
+| -------: | ---------------------- | -------------- | ------------------------------------------------- |
+|        1 | `T117B-CUTOVER` Tier 3 | PORTAL closed  | Exact promotion PR `#1674`; runtime awaits merge. |
+|        2 | `T-117C` Tier 3        | CUTOVER closed | Atomic PPR + named-parallel-route migration.      |
 
 ## Unified Portal Direction
 
@@ -138,12 +134,38 @@ and global headers remain T-117C.
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "inactive",
+  "lifecycle": "promotion_pending",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": null
+  "activeSlice": {
+    "sliceId": "T117B-CUTOVER",
+    "tier": 3,
+    "promotionPrNumber": 1674,
+    "promotionBaseSha": "a6b1f1d402856c4a74a2aaed51b4da3ab7fb3045",
+    "expectedProductBranch": "codex/t117b-cutover",
+    "gateSha256": "4fe5589fb5081d873aaa528b2d598f423ab9e82be173531c45cae10de77b5a4e",
+    "admissionSha256": "1809684c111114a4a66b18b81e9050d796e40263d938d7b57458504403a53acb",
+    "productWriterPaths": [
+      "apps/web/e2e/gate/member-diaspora.spec.ts",
+      "apps/web/e2e/gate/member-home-cta.spec.ts",
+      "apps/web/e2e/golden/member-portal-agent-consumer.spec.ts",
+      "apps/web/e2e/golden/member-dashboard-empty-state.spec.ts",
+      "apps/web/e2e/golden/member-dashboard-has-claims.spec.ts",
+      "apps/web/e2e/production.spec.ts",
+      "apps/web/e2e/smoke/ida-dashboard-smoke.spec.ts",
+      "apps/web/e2e/ui-v2-onboarding.spec.ts",
+      "apps/web/src/app/[locale]/(app)/member/_core.entry.test.tsx",
+      "apps/web/src/app/[locale]/(app)/member/_core.entry.tsx",
+      "apps/web/src/app/[locale]/(app)/member/page.test.tsx",
+      "apps/web/src/app/[locale]/(app)/member/page.tsx"
+    ],
+    "closeoutWriterPaths": [
+      "docs/plans/current-program.md",
+      "docs/plans/current-tracker.md"
+    ]
+  }
 }
 ```
 
@@ -157,4 +179,4 @@ The architecture-finalization program/tracker, terminal OD17 evidence, and CI01 
 historical or separately governed. This projection neither rewrites nor activates them.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:null`).
+The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:T117B-CUTOVER`).
