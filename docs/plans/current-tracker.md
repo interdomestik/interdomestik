@@ -55,7 +55,7 @@ closed DATA and PORTAL contracts; T-117C remains default-denied.
     "promotionBaseSha": "a6b1f1d402856c4a74a2aaed51b4da3ab7fb3045",
     "expectedProductBranch": "codex/t117b-cutover",
     "gateSha256": "4fe5589fb5081d873aaa528b2d598f423ab9e82be173531c45cae10de77b5a4e",
-    "admissionSha256": "1809684c111114a4a66b18b81e9050d796e40263d938d7b57458504403a53acb",
+    "admissionSha256": "44c235186ecc897a84538f6fc7cd602860725456f7630893a6afc77f9eb7eed3",
     "productWriterPaths": [
       "apps/web/e2e/gate/member-diaspora.spec.ts",
       "apps/web/e2e/gate/member-home-cta.spec.ts",

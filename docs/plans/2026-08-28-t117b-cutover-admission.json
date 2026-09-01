@@ -88,9 +88,9 @@
         "expected": "all required mounted member behaviors pass without skips or legacy compatibility UI",
         "result": "pass",
         "observedAt": "2026-08-28T17:14:31Z",
-        "evidence": "cutover-browser-contract: ks-sq 18/18; smoke-ida C31 2/2; no skipped required behavior; base a0d035ada72a96f08a53781e5d892f88e910a474",
+        "evidence": "historical canary: ks-sq 18/18; smoke-ida C31 2/2; no required skips; base a0d035ada72a96f08a53781e5d892f88e910a474",
         "evidenceSha256": "18e36684ae479c48a286f08e841a2b576da7af1ae501d14866ef566405847a02",
-        "environmentFingerprint": "darwin-arm64; local deterministic E2E lane; base-a0d035ad"
+        "environmentFingerprint": "darwin-arm64; historical local E2E; base-a0d035ad"
       }
     }
   ],

@@ -103,8 +103,9 @@ and global headers remain T-117C.
 - One clean repository worktree and one semantic writer; reviewers remain read-only.
 - Every repository child uses focused RED→GREEN, exact writer-map proof, required Tier-3 gates,
   same-head feedback intake, expected-head merge, exact-main health, and task-owned cleanup.
-- Missing, stale, mismatched, unknown, skipped, neutral, failed, or unclassifiable authority/proof
-  fails closed with `runtime_authorized:false`, `activeSlice:null`, and successors blocked.
+- Invalid authority/proof fails closed with `runtime_authorized:false`, `activeSlice:null`, and
+  successors blocked; a valid `promotion_pending` projection may name `activeSlice` while runtime
+  remains false.
 - Production executable code prefers `<=150` physical lines; 151–300 is advisory with unchanged
   complexity, duplication, security, tests, and coverage, while `>300` requires split or exposed
   cohesion/risk rationale. Focused tests are `<=300`; structured/governance/workflow/generated
@@ -133,7 +134,7 @@ and global headers remain T-117C.
     "promotionBaseSha": "a6b1f1d402856c4a74a2aaed51b4da3ab7fb3045",
     "expectedProductBranch": "codex/t117b-cutover",
     "gateSha256": "4fe5589fb5081d873aaa528b2d598f423ab9e82be173531c45cae10de77b5a4e",
-    "admissionSha256": "1809684c111114a4a66b18b81e9050d796e40263d938d7b57458504403a53acb",
+    "admissionSha256": "44c235186ecc897a84538f6fc7cd602860725456f7630893a6afc77f9eb7eed3",
     "productWriterPaths": [
       "apps/web/e2e/gate/member-diaspora.spec.ts",
       "apps/web/e2e/gate/member-home-cta.spec.ts",
