@@ -5,14 +5,14 @@ export function normalizeManifestIdentity(input, sliceId) {
   must(
     tier <= 4 &&
       /^[0-9a-f]{40}$/u.test(input.baseSha) &&
-      typeof input.origin === 'string' &&
       /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+(?:\.git)?$/u.test(input.origin),
-    'identity'
+    'invalid tier/base/origin'
   );
   const promotion = input.topology?.closeoutMode === 'promotion';
   must(
     !promotion ||
       (input.schemaVersion === 2 &&
+        Array.isArray(input.writerPaths) &&
         input.writerPaths?.filter(p => p.includes(`-${sliceId.toLowerCase()}-`)).length === 2),
     'promotion mismatch'
   );

@@ -44,7 +44,7 @@ const facts = (overrides = {}) => ({
   ...overrides,
 });
 
-test('uses exact path capacity', () => {
+test('uses exact capacity', () => {
   const manifest = initializeRehearsalManifest(
     request(),
     facts({
@@ -63,7 +63,7 @@ test('uses exact path capacity', () => {
   );
 });
 
-test('creates canonical governance', () => {
+test('canonical governance', () => {
   const first = initializeRehearsalManifest(request(), facts());
   const second = initializeRehearsalManifest(
     request({ writerPaths: [...request().writerPaths].reverse() }),
@@ -82,14 +82,14 @@ test('creates canonical governance', () => {
   );
 });
 
-test('product requires runtime authority', () => {
+test('product authority', () => {
   assert.throws(
     () => initializeRehearsalManifest(request({ workClass: 'product' }), facts()),
     /live runtime authority does not grant HARNESS-V2-1/u
   );
 });
 
-test('separates governance owner', () => {
+test('governance owner', () => {
   const manifest = initializeRehearsalManifest(
     request({ capacityOwnerId: 'harness-v2-efficiency' }),
     facts()
@@ -120,6 +120,7 @@ test('initializes promotion owner reuse', () => {
   for (const invalid of [
     { ...v1, schemaVersion: 1 },
     { ...manifest, sliceId: 'UNPROMOTED', capacityOwnerId: 'unpromoted' },
+    { ...manifest, writerPaths: 'bad' },
   ]) {
     assert.throws(() => validateRehearsalManifest(invalid), /promotion mismatch/u);
   }
