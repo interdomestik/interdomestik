@@ -2,6 +2,9 @@ import { allocationDelta, categoryAllocationDelta } from './repo-size-capacity-s
 import { budgetCategory } from './repo-size-budget-sync-core.mjs';
 import { compareText } from './slice-rehearse-canonical.mjs';
 
+const FACT_KEYS = 'currentBytes currentSha256 files capacityBaselineExists currentExists'.split(
+  ' '
+);
 const stop = (context, code, path) => context.authorityStops.push({ code, path });
 
 function recordProjectionPath(context, filePath) {
@@ -22,10 +25,7 @@ function recordProjectionPath(context, filePath) {
     stop(context, 'capacity:projection-writer-facts-missing', filePath);
     return;
   }
-  const sameFacts = 'currentBytes currentSha256 files capacityBaselineExists currentExists'
-    .split(' ')
-    .every(key => facts?.[key] === ownerFacts?.[key]);
-  if (!sameFacts) {
+  if (!FACT_KEYS.every(key => facts[key] === ownerFacts?.[key])) {
     stop(context, 'capacity:projection-owner-fact-mismatch', filePath);
   }
   const promotion = context.manifest.topology.closeoutMode === 'promotion';
