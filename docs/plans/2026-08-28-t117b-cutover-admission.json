@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "sliceId": "T117B-CUTOVER",
   "tier": 3,
-  "baseSha": "a0d035ada72a96f08a53781e5d892f88e910a474",
-  "authorityArtifactSha256": "eacf840235238b71211322b7d8d548879ffb2dd582395834e8f3ba36d10d4fde",
+  "baseSha": "a6b1f1d402856c4a74a2aaed51b4da3ab7fb3045",
+  "authorityArtifactSha256": "4fe5589fb5081d873aaa528b2d598f423ab9e82be173531c45cae10de77b5a4e",
   "productOutcomes": [
     "Atomically replace the member legacy presentation with T117B-PORTAL and migrate the eight active behavioral E2E/golden contracts while preserving one identity resolution and exactly two projections"
   ],
@@ -88,9 +88,9 @@
         "expected": "all required mounted member behaviors pass without skips or legacy compatibility UI",
         "result": "pass",
         "observedAt": "2026-08-28T17:14:31Z",
-        "evidence": "cutover-browser-contract: ks-sq 18/18; smoke-ida C31 2/2; no skipped required behavior; base a0d035ada72a96f08a53781e5d892f88e910a474",
+        "evidence": "historical canary: ks-sq 18/18; smoke-ida C31 2/2; no required skips; base a0d035ada72a96f08a53781e5d892f88e910a474",
         "evidenceSha256": "18e36684ae479c48a286f08e841a2b576da7af1ae501d14866ef566405847a02",
-        "environmentFingerprint": "darwin-arm64; local deterministic E2E lane; base-a0d035ad"
+        "environmentFingerprint": "darwin-arm64; historical local E2E; base-a0d035ad"
       }
     }
   ],
