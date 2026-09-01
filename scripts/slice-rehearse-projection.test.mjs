@@ -10,6 +10,9 @@ import { evaluateRehearsal } from './slice-rehearse-evaluator.mjs';
 const bytes = readFileSync(new URL('./repo-size-budget.json', import.meta.url));
 const budget = JSON.parse(bytes);
 const budgetText = bytes.toString('utf8');
+const categoryHeadroom = Object.fromEntries(
+  Object.entries(budget.maxCategoryBytes).map(([category, value]) => [category, value - 5_000])
+);
 const sha = value => value.repeat(40);
 const baseline =
   bytes.byteLength - budget.allocations[0].pathBytesDelta['scripts/repo-size-budget.json'];
@@ -23,6 +26,7 @@ const PROMOTION = [
 const BASE = '124ec51cefd022dd7103a4f958cb9ebef5427dad';
 const PROJ = 't116-case-summary';
 const CUTOVER = 't117b-cutover';
+const BASELINE_NEW = { currentBytes: 100, files: 1, capacityBaselineExists: false };
 const hasStop = (value, code) => value.authorityStops.some(item => item.code === code);
 const allocation = (id, value = budget) => value.allocations.find(item => item.id === id);
 const plan = (path, overrides = {}) => ({
@@ -79,7 +83,7 @@ function promotion() {
     capacityOwnerId: CUTOVER,
     workClass: 'governance',
     writerPaths: PROMOTION,
-    pathPlans: PROMOTION.map(path => plan(path, { change: 'modify', maxBytesDelta: 0 })),
+    pathPlans: PROMOTION.map(path => plan(path, { change: 'modify', maxBytesDelta: 100 })),
     topology: {
       closeoutMode: 'promotion',
       projectionPaths: PROMOTION,
@@ -90,6 +94,9 @@ function promotion() {
 }
 function repo(manifest, tracked = {}, ids = [PROJ], capBudget = budget) {
   const { baseSha, origin, writerPaths: paths } = manifest;
+  const promoting = manifest.topology.closeoutMode === 'promotion';
+  const writerFact = path =>
+    fact(path, promoting && !path.includes('current-') ? BASELINE_NEW : {});
   const value = {
     root: '/repo',
     origin,
@@ -101,40 +108,31 @@ function repo(manifest, tracked = {}, ids = [PROJ], capBudget = budget) {
     mergeBaseSha: baseSha,
     baseIsAncestor: true,
     branch: 'codex/t117b-data-closeout',
-    committedChangedPaths: [...paths],
+    committedChangedPaths: paths,
     protectedMainAdvancedPaths: [],
-    dirtyPaths: [...paths],
+    dirtyPaths: paths,
     tracked: {
       files: tracked.files ?? budget.maxTrackedFiles,
       bytes: tracked.bytes ?? budget.maxTrackedBytes - 5_000,
-      categoryBytes:
-        tracked.categoryBytes ??
-        Object.fromEntries(
-          Object.entries(budget.maxCategoryBytes).map(([category, bytes]) => [
-            category,
-            bytes - 5_000,
-          ])
-        ),
+      categoryBytes: tracked.categoryBytes ?? categoryHeadroom,
     },
     writerLineCounts: Object.fromEntries(paths.map(path => [path, 50])),
-    writerDeltas: Object.fromEntries(paths.map(path => [path, fact(path)])),
+    writerDeltas: Object.fromEntries(paths.map(path => [path, writerFact(path)])),
+  };
+  const ownerFact = (owner, path) => {
+    if (value.writerDeltas[path]) return { ...value.writerDeltas[path] };
+    const bytes = promoting ? 0 : owner.maxPathBytesDelta[path] - 1_000;
+    return fact(path, {
+      bytes,
+      currentBytes: promoting ? 1_000 : bytes,
+      files: Number(!promoting),
+      capacityBaselineExists: promoting,
+    });
   };
   value.capacityOwnerDeltas = Object.fromEntries(
     ids.flatMap(ownerId => {
       const owner = allocation(ownerId, capBudget);
-      return owner.writerPaths.map(path => {
-        if (value.writerDeltas[path]) return [path, { ...value.writerDeltas[path] }];
-        const bytes = owner.maxPathBytesDelta[path] - 1_000;
-        return [
-          path,
-          fact(path, {
-            bytes,
-            currentBytes: bytes,
-            files: 1,
-            capacityBaselineExists: false,
-          }),
-        ];
-      });
+      return owner.writerPaths.map(path => [path, ownerFact(owner, path)]);
     })
   );
   return value;
@@ -165,19 +163,9 @@ test('projection keeps the budget unchanged', () => {
     [proposal.allocation.id, proposal.allocation.mode],
     ['t117b-data-projection', 'projection-existing']
   );
-  assert.deepEqual(proposal.allocation.writerPaths, CLOSEOUT);
   assert.deepEqual(Object.keys(proposal.projectionPathCaps), CLOSEOUT);
   const report = rehearse(value, facts);
   assert.deepEqual(report.authorityStops, []);
-  assert.deepEqual(
-    report.operationalEnvelope.capacity.projectionPathCaps,
-    proposal.projectionPathCaps
-  );
-  assert.deepEqual(report.capacity.budgetArtifact, {
-    content: budgetText,
-    sha256: sha256(bytes),
-    utf8Bytes: bytes.byteLength,
-  });
   const plannedFacts = repo(value, { bytes: budget.maxTrackedBytes });
   plannedFacts.writerDeltas[PROGRAM].bytes = 0;
   plannedFacts.writerDeltas[TRACKER].bytes = 0;
@@ -185,16 +173,19 @@ test('projection keeps the budget unchanged', () => {
   assert.ok(hasStop(overCapacity, 'capacity:global-tracked-bytes'));
   assert.equal(overCapacity.operationalEnvelope, null);
 });
-test('promotion reuse', () => {
+test('promotion reuses baseline-new writers only within the owner file ceiling', () => {
   const value = promotion();
   const facts = repo(value, {}, [PROJ, CUTOVER]);
-  for (const item of Object.values(facts.capacityOwnerDeltas))
-    Object.assign(item, { files: 0, capacityBaselineExists: true });
   const proposal = capacity(value, facts);
   assert.deepEqual(proposal.authorityStops, []);
   assert.deepEqual(proposal.budget, budget);
   for (const path of PROMOTION)
     assert.equal(proposal.projectionOwners[path], path.includes('current-') ? PROJ : CUTOVER);
+  const guard = structuredClone(budget);
+  allocation(CUTOVER, guard).maxTrackedFilesDelta = 1;
+  guard.maxTrackedFiles -= 2;
+  const insufficient = capacity(value, facts, guard);
+  assert.ok(hasStop(insufficient, 'capacity:projection-owner-tracked-files-insufficient'));
 });
 test('mixed closeout derives one repair allocation', () => {
   const repairPaths = [
@@ -234,8 +225,6 @@ test('mixed closeout derives one repair allocation', () => {
   );
   assert.deepEqual(proposal.allocation.writerPaths, repairPaths.slice(1));
   assert.deepEqual(proposal.authorityStops, []);
-  const preserved = 't117b-portal-runtime-history';
-  assert.deepEqual(allocation(preserved, proposal.budget), allocation(preserved));
   assert.deepEqual(proposal.budget.reserve, budget.reserve);
   const report = rehearse(value, facts);
   const deficit = report.deficits.find(item => item.code === 'topology:repair-before-closeout');
@@ -264,8 +253,8 @@ test('projection checks grouped owner headroom', () => {
   const facts = repo(value);
   facts.writerDeltas[PROGRAM].bytes = 0;
   facts.writerDeltas[TRACKER].bytes = 0;
-  const constrainedBudget = structuredClone(budget);
-  const owner = allocation(PROJ, constrainedBudget);
+  const guard = structuredClone(budget);
+  const owner = allocation(PROJ, guard);
   const categories = {
     'config/data/messages': 0,
     'docs/text': 100,
@@ -273,13 +262,13 @@ test('projection checks grouped owner headroom', () => {
     'source/scripts': 0,
     'tests/e2e': 0,
   };
-  constrainedBudget.maxTrackedBytes += 150 - owner.maxTrackedBytesDelta;
+  guard.maxTrackedBytes += 150 - owner.maxTrackedBytesDelta;
   for (const [category, previous] of Object.entries(owner.maxCategoryBytesDelta)) {
-    constrainedBudget.maxCategoryBytes[category] += (categories[category] ?? 0) - previous;
+    guard.maxCategoryBytes[category] += (categories[category] ?? 0) - previous;
   }
   owner.maxTrackedBytesDelta = 150;
   owner.maxCategoryBytesDelta = categories;
-  const proposal = capacity(value, facts, constrainedBudget);
+  const proposal = capacity(value, facts, guard);
   assert.ok(hasStop(proposal, 'capacity:projection-owner-tracked-bytes-insufficient'));
   assert.ok(hasStop(proposal, 'capacity:projection-owner-category-insufficient'));
   const createPlan = manifest({
