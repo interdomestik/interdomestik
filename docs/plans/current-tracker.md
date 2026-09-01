@@ -16,9 +16,9 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID              | Status        | Owner      | Work                                                 | Exit Criteria                     |
-| --------------- | ------------- | ---------- | ---------------------------------------------------- | --------------------------------- |
-| `T117B-CUTOVER` | `in_progress` | `platform` | Atomic member mount and behavior-contract migration. | Promote, implement, merge, close. |
+| ID              | Status        | Owner      | Work                                 | Exit Criteria          |
+| --------------- | ------------- | ---------- | ------------------------------------ | ---------------------- |
+| `T117B-CUTOVER` | `in_progress` | `platform` | Member mount and behavior migration. | Promote, merge, close. |
 
 ## Proof Ledger
 
@@ -28,8 +28,8 @@ status_command: pnpm plan:status
 
 ## Next Selection
 
-PR `#1674` projects T117B-CUTOVER only after exact branch/base/head validation and promotion merge.
-CUTOVER consumes the closed DATA and PORTAL contracts. T-117C remains default-denied.
+PR `#1674` projects CUTOVER after exact branch/base/head validation and merge. It consumes the
+closed DATA and PORTAL contracts; T-117C remains default-denied.
 
 | Future UI branch | Status              | Constraint                              |
 | ---------------- | ------------------- | --------------------------------------- |

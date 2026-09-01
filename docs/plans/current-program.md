@@ -30,40 +30,27 @@ PricingSection, then Footer. Eight legacy sections are reversibly unmounted; the
 contracts remain unchanged. Nine required checks, the broad E2E gate, pilot gate, Sonar, focused
 unit/browser evidence, and exact-main identity were green.
 
-`T-118-CRYSTAL-PRIMITIVES` completed through Tier-0 promotion PR `#1637` and product PR `#1638`.
-The approved product head `449832314edad1706fc31d9688c13c5cdc302fe2`, tree
-`26f300fedc342b477c1bd1ad79a17611f950d26c`, and squash merge
-`79defe7af8d22dc26d78f4845a321f8906720794` matched the exact ten-path writer map and bounded
-`t118-crystal-primitives` allocation. The primitives remain presentational and unmounted from
-routes. Nine required checks, full PR E2E, pilot, zero-issue Sonar, focused tests, Storybook, and
-responsive/accessibility browser proof were green. PR `#1636` remains the consumed capacity proof;
-it added no generic reserve.
+`T-118-CRYSTAL-PRIMITIVES` completed through promotion `#1637` and product `#1638`. Head
+`449832314edad1706fc31d9688c13c5cdc302fe2`, tree
+`26f300fedc342b477c1bd1ad79a17611f950d26c`, and squash
+`79defe7af8d22dc26d78f4845a321f8906720794` matched the ten-path allocation. The presentational
+primitives remain unmounted; exact proof and main were green. `#1636` remains the capacity proof.
 
-`T-117A-UNIFIED-PORTAL-SHELL` completed through Tier-0 promotion PR `#1641` and product PR
-`#1642`, binding the exact
+`T-117A-UNIFIED-PORTAL-SHELL` completed through promotion `#1641` and product `#1642`, using its
 [gate](./2026-08-27-t117a-unified-portal-shell-design-gate.md),
-[admission](./2026-08-27-t117a-unified-portal-shell-admission.json), and
-`t117-unified-portal-shell` allocation. The approved product head
+[admission](./2026-08-27-t117a-unified-portal-shell-admission.json), and allocation. Head
 `86b9609d388b6dcab597cf7f6a6ebddd2fa00be7`, tree
-`5bd0aa814a48aa722e1760f9c2f0cc4602a28ae7`, and squash merge
-`a99d30903e1a6a36fad811992349384db05331a8` matched the five-path contract; the existing
-`packages/ui/src/index.ts` crystal barrel export was correctly a no-op. The responsive
-`Case → Actions → Timeline` shell remains pure, presentational, accessible, and unmounted from
-routes. Nine required checks, full PR E2E, pilot, Sonar, focused tests, Storybook, adversarial
-review, and responsive/accessibility browser proof were green. PR `#1640` remains the bounded
-capacity proof and added no generic reserve.
+`5bd0aa814a48aa722e1760f9c2f0cc4602a28ae7`, and squash
+`a99d30903e1a6a36fad811992349384db05331a8` matched. The accessible presentational shell remains
+unmounted; exact proof and main were green. `#1640` remains the capacity proof.
 
-`T-116-CASE-SUMMARY` completed through Tier-0 promotion PR `#1646` and product PR `#1647`,
-binding the exact [IDA-DG56 gate](./2026-08-27-t116-case-summary-design-gate.md),
-[admission](./2026-08-27-t116-case-summary-admission.json), and `t116-case-summary` allocation.
-The approved product head `860c240e48024f2757d633589148d945e02595b4`, tree
-`ff1077ee9be1f4ce399919fcdb42882469e3038d`, and squash merge
-`cde8af2c95915b0d6aa7555bb26b94249edbdfaf` matched the exact seven-path contract. The
-tenant-scoped read projection, presentation-safe discriminated union, bounded document count and
-next-step token, exhaustive accident registry, and pure renderer remain unmounted from routes.
-Required checks, full PR E2E, pilot, zero-issue Sonar, focused/full tests, adversarial review, and
-same-head feedback intake were green. Capacity PR `#1644` and compatibility PR `#1645` remain the
-bounded prerequisite proofs; neither added a generic reserve or generic Tier-3 runtime.
+`T-116-CASE-SUMMARY` completed through promotion `#1646` and product `#1647`, using its
+[gate](./2026-08-27-t116-case-summary-design-gate.md),
+[admission](./2026-08-27-t116-case-summary-admission.json), and allocation. Head
+`860c240e48024f2757d633589148d945e02595b4`, tree
+`ff1077ee9be1f4ce399919fcdb42882469e3038d`, and squash
+`cde8af2c95915b0d6aa7555bb26b94249edbdfaf` matched. Its tenant read projection and pure renderer
+remain unmounted; exact proof and main were green. `#1644` and `#1645` remain prerequisite proofs.
 
 `T117B-DATA` completed through re-promotion `#1661` and product `#1658`, using its
 [gate](./2026-08-28-t117b-data-design-gate.md),
