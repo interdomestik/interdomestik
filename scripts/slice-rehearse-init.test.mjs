@@ -14,42 +14,37 @@ const PROMOTION = [
   'docs/plans/current-tracker.md',
 ];
 
-function request(overrides = {}) {
-  return {
-    schemaVersion: 1,
-    sliceId: 'HARNESS-V2-1',
-    tier: 3,
-    workClass: 'governance',
-    writerPaths: [INIT, TEST],
-    proofCommands: [`node --test ${TEST}`],
-    heavyLanes: ['pr-e2e'],
-    routineOperations: ['rerun_invalidated_proof'],
-    ...overrides,
-  };
-}
+const request = (overrides = {}) => ({
+  sliceId: 'HARNESS-V2-1',
+  tier: 3,
+  workClass: 'governance',
+  writerPaths: [INIT, TEST],
+  proofCommands: [`node --test ${TEST}`],
+  heavyLanes: ['pr-e2e'],
+  routineOperations: ['rerun_invalidated_proof'],
+  ...overrides,
+});
 
-function facts(overrides = {}) {
-  return {
-    baseSha: SHA('a'),
-    origin: 'https://github.com/interdomestik/interdomestik.git',
-    existingPaths: [],
-    workflowDigest: 'b'.repeat(64),
-    substrateDigest: 'c'.repeat(64),
-    existingCapacityCapsByPath: {},
-    capacityDeltasByPath: {
-      [INIT]: 0,
-      [TEST]: 0,
-    },
-    authority: {
-      source: 'live-resolver',
-      runtimeAuthorized: false,
-      activeSlice: null,
-    },
-    ...overrides,
-  };
-}
+const facts = (overrides = {}) => ({
+  baseSha: SHA('a'),
+  origin: 'https://github.com/interdomestik/interdomestik.git',
+  existingPaths: [],
+  workflowDigest: 'b'.repeat(64),
+  substrateDigest: 'c'.repeat(64),
+  existingCapacityCapsByPath: {},
+  capacityDeltasByPath: {
+    [INIT]: 0,
+    [TEST]: 0,
+  },
+  authority: {
+    source: 'live-resolver',
+    runtimeAuthorized: false,
+    activeSlice: null,
+  },
+  ...overrides,
+});
 
-test('uses exact measured or protected path capacity', () => {
+test('uses exact path capacity', () => {
   const manifest = initializeRehearsalManifest(
     request(),
     facts({
@@ -68,7 +63,7 @@ test('uses exact measured or protected path capacity', () => {
   );
 });
 
-test('creates a canonical governance manifest', () => {
+test('creates canonical governance', () => {
   const first = initializeRehearsalManifest(request(), facts());
   const second = initializeRehearsalManifest(
     request({ writerPaths: [...request().writerPaths].reverse() }),
@@ -87,14 +82,14 @@ test('creates a canonical governance manifest', () => {
   );
 });
 
-test('product init requires matching runtime authority', () => {
+test('product requires runtime authority', () => {
   assert.throws(
     () => initializeRehearsalManifest(request({ workClass: 'product' }), facts()),
     /live runtime authority does not grant HARNESS-V2-1/u
   );
 });
 
-test('separates governance delivery from its capacity owner', () => {
+test('separates governance owner', () => {
   const manifest = initializeRehearsalManifest(
     request({ capacityOwnerId: 'harness-v2-efficiency' }),
     facts()
@@ -103,7 +98,7 @@ test('separates governance delivery from its capacity owner', () => {
   assert.deepEqual(validateRehearsalManifest(manifest), manifest);
 });
 
-test('initializes promotion owner reuse without product authority', () => {
+test('initializes promotion owner reuse', () => {
   const manifest = initializeRehearsalManifest(
     request({
       sliceId: 'T117B-CUTOVER',
@@ -121,7 +116,13 @@ test('initializes promotion owner reuse without product authority', () => {
       capacityDeltasByPath: Object.fromEntries(PROMOTION.map(path => [path, 0])),
     })
   );
-  assert.equal(manifest.topology.closeoutMode, 'promotion');
+  const { capacityOwnerId: _owner, workClass: _kind, ...v1 } = manifest;
+  for (const invalid of [
+    { ...v1, schemaVersion: 1 },
+    { ...manifest, sliceId: 'UNPROMOTED', capacityOwnerId: 'unpromoted' },
+  ]) {
+    assert.throws(() => validateRehearsalManifest(invalid), /promotion mismatch/u);
+  }
 });
 
 test('consolidates missing input errors', () => {
