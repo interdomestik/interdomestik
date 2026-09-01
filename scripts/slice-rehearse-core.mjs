@@ -132,16 +132,19 @@ export function validateRehearsalManifest(input) {
     must(writers.includes(path), `topology path is not a writer path: ${path}`);
   }
   if (mode === 'none') {
-    must(!projections.length && !repairs.length, 'topology paths require closeout');
+    must(!projections.length && !repairs.length, 'topology paths must be empty');
     must(repairId === null, 'repair allocation requires closeout');
   } else if (mode === 'projection-only') {
     must(samePaths(projections, CLOSEOUT), 'projection paths are not canonical');
     const projectionSet = new Set(projections);
     must(
       repairs.every(path => !projectionSet.has(path)),
-      'projection and repair paths overlap'
+      'projection and repair paths are not disjoint'
     );
-    must(samePaths([...projections, ...repairs].sort(compareText), writers), 'writers not covered');
+    must(
+      samePaths([...projections, ...repairs].sort(compareText), writers),
+      'writers do not exactly cover'
+    );
     if (repairs.length) {
       must(
         typeof repairId === 'string' && /^[a-z][a-z0-9-]+$/u.test(repairId),
