@@ -98,7 +98,7 @@ test('governance owner', () => {
   assert.deepEqual(validateRehearsalManifest(manifest), manifest);
 });
 
-test('initializes promotion owner reuse', () => {
+test('promotion reuse', () => {
   const manifest = initializeRehearsalManifest(
     request({
       sliceId: 'T117B-CUTOVER',
@@ -120,13 +120,13 @@ test('initializes promotion owner reuse', () => {
   for (const invalid of [
     { ...v1, schemaVersion: 1 },
     { ...manifest, sliceId: 'UNPROMOTED', capacityOwnerId: 'unpromoted' },
-    { ...manifest, writerPaths: 'bad' },
+    ...['bad', [null]].map(writerPaths => ({ ...manifest, writerPaths })),
   ]) {
     assert.throws(() => validateRehearsalManifest(invalid), /promotion mismatch/u);
   }
 });
 
-test('consolidates missing input errors', () => {
+test('missing inputs', () => {
   assert.throws(
     () =>
       initializeRehearsalManifest(

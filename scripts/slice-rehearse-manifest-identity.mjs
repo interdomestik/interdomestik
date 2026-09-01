@@ -6,14 +6,14 @@ export function normalizeManifestIdentity(input, sliceId) {
     tier <= 4 &&
       /^[0-9a-f]{40}$/u.test(input.baseSha) &&
       /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+(?:\.git)?$/u.test(input.origin),
-    'invalid tier/base/origin'
+    'tier/base/origin'
   );
   const promotion = input.topology?.closeoutMode === 'promotion';
   must(
     !promotion ||
       (input.schemaVersion === 2 &&
         Array.isArray(input.writerPaths) &&
-        input.writerPaths?.filter(p => p.includes(`-${sliceId.toLowerCase()}-`)).length === 2),
+        input.writerPaths?.filter(p => p?.includes?.(`-${sliceId.toLowerCase()}-`)).length === 2),
     'promotion mismatch'
   );
   if (input.schemaVersion === 1) return { tier, versionFields: {} };
