@@ -5,36 +5,39 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { resolveRepositoryAuthority } from './lean-current-authority.mjs';
-import { assertCanonicalWriterWorktree } from './lean-current-authority-evidence.mjs';
+import { resolveRepositoryAuthority as resolveRepo } from './lean-current-authority.mjs';
+import { assertCanonicalWriterWorktree as assertWriter } from './lean-current-authority-evidence.mjs';
 import {
-  changedPathsBetween,
-  collectPromotionFacts,
+  changedPathsBetween as changed,
+  collectPromotionFacts as collect,
   git,
   isAncestor,
   pullFacts,
 } from './lean-current-authority-git.mjs';
 import {
   authorityPathsTouched,
-  locateAuthorityTransition,
+  locateAuthorityTransition as locate,
 } from './lean-current-authority-history.mjs';
 
-const readSource = path => readFileSync(new URL(path, import.meta.url), 'utf8');
-const authorityBlock = value =>
+const source = path => readFileSync(new URL(path, import.meta.url), 'utf8');
+const plans = 'docs/plans';
+const program = `${plans}/current-program.md`;
+const tracker = `${plans}/current-tracker.md`;
+const block = value =>
   `## Lean Authority\n\n\`\`\`json lean-authority\n${JSON.stringify(value, null, 2)}\n\`\`\`\n`;
-const gitBlobSha = bytes =>
+const blob = bytes =>
   createHash('sha1')
     .update(Buffer.concat([Buffer.from(`blob ${bytes.length}\0`), bytes]))
     .digest('hex');
-const inactiveProjection = {
+const inactive = {
   schemaVersion: 1,
   authority: 'lean-tier12-v1',
   lifecycle: 'inactive',
   owner: { login: 'arbenl', id: 62884977 },
   activeSlice: null,
 };
-const activeProjection = {
-  ...inactiveProjection,
+const active = {
+  ...inactive,
   lifecycle: 'promotion_pending',
   activeSlice: {
     sliceId: 'IDA-UI-HISTORY',
@@ -45,21 +48,21 @@ const activeProjection = {
     gateSha256: 'a'.repeat(64),
     admissionSha256: 'b'.repeat(64),
     productWriterPaths: ['apps/web/src/app/[locale]/page.tsx'],
-    closeoutWriterPaths: ['docs/plans/current-program.md', 'docs/plans/current-tracker.md'],
+    closeoutWriterPaths: [program, tracker],
   },
 };
 
-function commitProjection(root, projection, message) {
-  mkdirSync(join(root, 'docs/plans'), { recursive: true });
+function commit(root, projection, message) {
+  mkdirSync(join(root, plans), { recursive: true });
   for (const name of ['current-program.md', 'current-tracker.md']) {
-    writeFileSync(join(root, 'docs/plans', name), authorityBlock(projection));
+    writeFileSync(join(root, plans, name), block(projection));
   }
-  git(root, 'add', 'docs/plans/current-program.md', 'docs/plans/current-tracker.md');
+  git(root, 'add', program, tracker);
   git(root, 'commit', '-m', message);
   return git(root, 'rev-parse', 'HEAD');
 }
 
-function gitFixture(prefix) {
+function fixture(prefix) {
   const root = mkdtempSync(join(tmpdir(), prefix));
   git(root, 'init');
   git(root, 'config', 'user.email', 'fixture@interdomestik.test');
@@ -68,42 +71,33 @@ function gitFixture(prefix) {
 }
 
 test('writer authority rejects skip-worktree', () => {
-  const root = gitFixture('lean-authority-writer-worktree-');
+  const root = fixture('lean-authority-writer-worktree-');
   writeFileSync(join(root, 'tracked.txt'), 'canonical\n');
   git(root, 'add', 'tracked.txt');
   git(root, 'commit', '-m', 'canonical');
 
-  assert.doesNotThrow(() => assertCanonicalWriterWorktree(root));
+  assert.doesNotThrow(() => assertWriter(root));
   git(root, 'update-index', '--skip-worktree', 'tracked.txt');
-  assert.throws(
-    () => assertCanonicalWriterWorktree(root),
-    /tracked skip-worktree state blocks Lean activation/u
-  );
-  assert.doesNotThrow(() => assertCanonicalWriterWorktree(root, false));
+  assert.throws(() => assertWriter(root), /tracked skip-worktree state blocks Lean activation/u);
+  assert.doesNotThrow(() => assertWriter(root, false));
 
   git(root, 'update-index', '--assume-unchanged', 'tracked.txt');
   assert.match(git(root, 'ls-files', '-v', 'tracked.txt'), /^s /u);
-  assert.throws(
-    () => assertCanonicalWriterWorktree(root),
-    /tracked skip-worktree state blocks Lean activation/u
-  );
+  assert.throws(() => assertWriter(root), /tracked skip-worktree state blocks Lean activation/u);
 });
 
 test('repository boundary is fail-closed', () => {
   const root = mkdtempSync(join(tmpdir(), 'lean-authority-malformed-'));
-  mkdirSync(join(root, 'docs/plans'), { recursive: true });
+  mkdirSync(join(root, plans), { recursive: true });
   for (const name of ['current-program.md', 'current-tracker.md']) {
-    writeFileSync(
-      join(root, 'docs/plans', name),
-      '```json lean-authority\n{"not":"canonical"}\n```\n'
-    );
+    writeFileSync(join(root, plans, name), '```json lean-authority\n{"not":"canonical"}\n```\n');
   }
-  assert.doesNotThrow(() => resolveRepositoryAuthority(root, true));
-  assert.equal(resolveRepositoryAuthority(root, true).reason, 'authority_evidence_unavailable');
+  assert.doesNotThrow(() => resolveRepo(root, true));
+  assert.equal(resolveRepo(root, true).reason, 'authority_evidence_unavailable');
 });
 
 test('pull fixtures bind GitHub evidence', () => {
-  const root = gitFixture('lean-authority-git-fixture-');
+  const root = fixture('lean-authority-git-fixture-');
   writeFileSync(join(root, 'first.txt'), 'first\n');
   git(root, 'add', 'first.txt');
   git(root, 'commit', '-m', 'first');
@@ -116,9 +110,9 @@ test('pull fixtures bind GitHub evidence', () => {
   const admissionPath = 'docs/plans/2026-09-01-fixture-admission.json';
   const gateBytes = Buffer.from('fixture gate\n');
   const admissionBytes = Buffer.from('{"fixture":true}\n');
-  const gateBlobSha = gitBlobSha(gateBytes);
-  const admissionBlobSha = gitBlobSha(admissionBytes);
-  const fixture = {
+  const gateBlobSha = blob(gateBytes);
+  const admissionBlobSha = blob(admissionBytes);
+  const pull = {
     number: 1700,
     state: 'closed',
     merged: true,
@@ -131,14 +125,14 @@ test('pull fixtures bind GitHub evidence', () => {
     parents: git(root, 'show', '-s', '--format=%P', sha).split(' ').filter(Boolean),
     tree: git(root, 'rev-parse', `${sha}^{tree}`),
   });
-  const facts = pullFacts(root, fixture, [], readCommit);
+  const facts = pullFacts(root, pull, [], readCommit);
   assert.deepEqual(facts.mergeParents, [base]);
   assert.equal(facts.headTree, git(root, 'rev-parse', `${head}^{tree}`));
   assert.equal(facts.mergeTree, facts.headTree);
   const treeEndpoint = `repos/interdomestik/interdomestik/git/trees/${facts.headTree}?recursive=1`;
 
   const responses = new Map([
-    ['repos/interdomestik/interdomestik/pulls/1700', fixture],
+    ['repos/interdomestik/interdomestik/pulls/1700', pull],
     [
       'repos/interdomestik/interdomestik/pulls/1700/reviews?per_page=100',
       [
@@ -155,8 +149,8 @@ test('pull fixtures bind GitHub evidence', () => {
       [
         { filename: gatePath },
         { filename: admissionPath },
-        { filename: 'docs/plans/current-program.md' },
-        { filename: 'docs/plans/current-tracker.md' },
+        { filename: program },
+        { filename: tracker },
       ],
     ],
     [
@@ -182,18 +176,13 @@ test('pull fixtures bind GitHub evidence', () => {
       },
     ],
   ]);
-  const promotion = collectPromotionFacts(
+  const promotion = collect(
     root,
     { promotionPrNumber: 1700 },
     endpoint => responses.get(endpoint),
     readCommit
   );
-  assert.deepEqual(promotion.changedPaths, [
-    gatePath,
-    admissionPath,
-    'docs/plans/current-program.md',
-    'docs/plans/current-tracker.md',
-  ]);
+  assert.deepEqual(promotion.changedPaths, [gatePath, admissionPath, program, tracker]);
   assert.equal(promotion.inventoryComplete, true);
   assert.equal(promotion.gateSha256, createHash('sha256').update(gateBytes).digest('hex'));
   assert.equal(
@@ -205,77 +194,83 @@ test('pull fixtures bind GitHub evidence', () => {
   responses.get(treeEndpoint).tree[0].mode = '120000';
   assert.throws(
     () =>
-      collectPromotionFacts(
-        root,
-        { promotionPrNumber: 1700 },
-        endpoint => responses.get(endpoint),
-        readCommit
-      ),
+      collect(root, { promotionPrNumber: 1700 }, endpoint => responses.get(endpoint), readCommit),
     /regular blob/
   );
 });
 
 test('closeout ancestry uses Git history', () => {
-  const root = gitFixture('lean-authority-closeout-fixture-');
+  const root = fixture('lean-authority-closeout-fixture-');
   writeFileSync(join(root, 'terminal.txt'), 'terminal\n');
   git(root, 'add', 'terminal.txt');
   git(root, 'commit', '-m', 'terminal');
   const terminal = git(root, 'rev-parse', 'HEAD');
-  mkdirSync(join(root, 'docs/plans'), { recursive: true });
-  writeFileSync(join(root, 'docs/plans/current-program.md'), 'changed\n');
-  git(root, 'add', 'docs/plans/current-program.md');
+  mkdirSync(join(root, plans), { recursive: true });
+  writeFileSync(join(root, program), 'changed\n');
+  git(root, 'add', program);
   git(root, 'commit', '-m', 'authority drift');
   const later = git(root, 'rev-parse', 'HEAD');
   assert.equal(isAncestor(root, terminal, later), true);
-  assert.deepEqual(changedPathsBetween(root, terminal, later, ['docs/plans/current-program.md']), [
-    'docs/plans/current-program.md',
-  ]);
+  assert.deepEqual(changed(root, terminal, later, [program]), [program]);
 });
 
 test('inactive history resolves closeout', () => {
-  const root = gitFixture('lean-authority-transition-fixture-');
-  const terminal = commitProjection(root, activeProjection, 'active terminal');
-  const closeout = commitProjection(root, inactiveProjection, 'inactive closeout');
+  const root = fixture('lean-authority-transition-fixture-');
+  const terminal = commit(root, active, 'active terminal');
+  const closeout = commit(root, inactive, 'inactive closeout');
   writeFileSync(join(root, 'later.txt'), 'later\n');
   git(root, 'add', 'later.txt');
   git(root, 'commit', '-m', 'later unrelated main');
   const later = git(root, 'rev-parse', 'HEAD');
-  const transition = locateAuthorityTransition(root, later);
+  const transition = locate(root, later);
   assert.deepEqual(
     [transition.kind, transition.terminalProjectionSha, transition.closeoutMergeSha],
     ['closeout_recorded', terminal, closeout]
   );
-  const source = readSource('../docs/plans/current-program.md');
-  const cutover = JSON.parse(source.match(/```json lean-authority\n([\s\S]*?)\n```/u)[1]);
-  cutover.activeSlice.promotionBaseSha = closeout;
-  const base = commitProjection(root, cutover, 'prior cutover');
-  const repeat = locateAuthorityTransition(root, base, 'T117B-CUTOVER');
+  const prior = structuredClone(active);
+  Object.assign(prior.activeSlice, {
+    sliceId: 'T117B-CUTOVER',
+    tier: 3,
+    promotionBaseSha: closeout,
+    productWriterPaths: [
+      ...[
+        'gate/member-diaspora',
+        'gate/member-home-cta',
+        'golden/member-portal-agent-consumer',
+        'golden/member-dashboard-empty-state',
+        'golden/member-dashboard-has-claims',
+        'production',
+        'smoke/ida-dashboard-smoke',
+        'ui-v2-onboarding',
+      ].map(path => `apps/web/e2e/${path}.spec.ts`),
+      ...['_core.entry.test', '_core.entry', 'page.test', 'page'].map(
+        path => `apps/web/src/app/[locale]/(app)/member/${path}.tsx`
+      ),
+    ],
+  });
+  assert.equal(prior.activeSlice.productWriterPaths.length, 12);
+  const base = commit(root, prior, 'prior cutover');
+  const repeat = locate(root, base, 'T117B-CUTOVER');
   assert.equal(repeat.kind, 'closeout_recorded');
 });
 
 test('authority edit-revert remains history drift', () => {
-  const root = gitFixture('lean-authority-revert-fixture-');
-  const terminal = commitProjection(root, inactiveProjection, 'terminal');
-  commitProjection(root, activeProjection, 'temporary authority edit');
-  const reverted = commitProjection(root, inactiveProjection, 'revert authority edit');
-  assert.deepEqual(
-    changedPathsBetween(root, terminal, reverted, ['docs/plans/current-program.md']),
-    []
-  );
+  const root = fixture('lean-authority-revert-fixture-');
+  const terminal = commit(root, inactive, 'terminal');
+  commit(root, active, 'temporary authority edit');
+  const reverted = commit(root, inactive, 'revert authority edit');
+  assert.deepEqual(changed(root, terminal, reverted, [program]), []);
   assert.equal(authorityPathsTouched(root, terminal, reverted), true);
 });
 
 test('Git evidence uses a bounded timeout', () => {
-  assert.match(readSource('./lean-current-authority-git.mjs'), /timeout:\s*30_000/u);
+  assert.match(source('./lean-current-authority-git.mjs'), /timeout:\s*30_000/u);
 });
 
 test('closeout selection uses its recorded merge', () => {
+  assert.match(source('./lean-current-authority-evidence.mjs'), /transition\.closeoutMergeSha/u);
   assert.match(
-    readSource('./lean-current-authority-evidence.mjs'),
-    /transition\.closeoutMergeSha/u
-  );
-  assert.match(
-    readSource('./lean-current-authority-history.mjs'),
+    source('./lean-current-authority-history.mjs'),
     /pullByBranch\(repo, branch, transition\.closeoutMergeSha\)/u
   );
 });
