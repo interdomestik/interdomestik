@@ -187,7 +187,7 @@ test('promotion reuses baseline-new writers only within the owner file ceiling',
   const insufficient = capacity(value, facts, guard);
   assert.ok(hasStop(insufficient, 'capacity:projection-owner-tracked-files-insufficient'));
 });
-test('mixed closeout derives one repair allocation', () => {
+test('mixed closeout refuses a governance repair allocation', () => {
   const repairPaths = [
     'scripts/repo-size-budget.json',
     'scripts/t117b-closeout-repair.mjs',
@@ -219,21 +219,14 @@ test('mixed closeout derives one repair allocation', () => {
     });
   }
   const proposal = capacity(value, facts);
-  assert.deepEqual(
-    [proposal.mode, proposal.allocation.id],
-    ['derived', 't117b-data-closeout-repair']
-  );
-  assert.deepEqual(proposal.allocation.writerPaths, repairPaths.slice(1));
-  assert.deepEqual(proposal.authorityStops, []);
+  assert.equal(proposal.mode, 'blocked');
+  assert.ok(hasStop(proposal, 'capacity:governance-repair-pr-forbidden'));
   assert.deepEqual(proposal.budget.reserve, budget.reserve);
   const report = rehearse(value, facts);
-  const deficit = report.deficits.find(item => item.code === 'topology:repair-before-closeout');
-  assert.equal(deficit.coveredBy, 'sequence_prerequisite_before_projection');
-  assert.deepEqual(deficit.paths, repairPaths);
-  assert.ok(report.operationalEnvelope);
   assert.ok(
-    !report.operationalEnvelope.routineOperations.includes('bounded_force_with_lease_rebuild')
+    report.authorityStops.some(item => item.code === 'capacity:governance-repair-pr-forbidden')
   );
+  assert.equal(report.operationalEnvelope, null);
 });
 test('projection fails without ownership or headroom', () => {
   const value = manifest();

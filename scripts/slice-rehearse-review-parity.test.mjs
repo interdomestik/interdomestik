@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { changedFiles } from './ci/reviewer-preflight-git.mjs';
 import {
   DASHBOARD_LOCALE_PATHS,
   inspectAccessibilityContracts,
   reviewDashboardLocaleParity,
 } from './slice-rehearse-review-parity.mjs';
-import { detectReviewPaths } from './slice-rehearse-review-paths.mjs';
 
 function portal(title) {
   return {
@@ -110,16 +110,30 @@ test('catches predictable accessibility contract failures locally', () => {
   );
 });
 
-test('review path detection constrains git environment and runtime', () => {
-  const calls = [];
-  detectReviewPaths('/repo', (binary, args, options) => {
-    calls.push({ binary, args, options });
-    return { status: 0, stdout: '' };
-  });
-  assert.equal(calls.length, 4);
-  for (const call of calls) {
-    assert.equal(call.binary, '/usr/bin/git');
-    assert.deepEqual(call.options.env, { PATH: '/usr/bin:/bin:/usr/sbin:/sbin' });
-    assert.equal(call.options.timeout, 30_000);
-  }
+test('one fail-closed NUL inventory includes delete, rename, modify, and untracked paths', () => {
+  const base = 'a'.repeat(40);
+  const readGit = args => {
+    const command = args.join(' ');
+    if (command.startsWith('rev-parse')) return `${base}\n`;
+    if (command.includes(`${base}...HEAD`)) return 'D\0old.ts\0R100\0before.ts\0after.ts\0';
+    if (command.includes('--cached')) return 'M\0staged.ts\0';
+    if (command.includes('ls-files')) return 'new.ts\0';
+    if (command.startsWith('diff')) return 'M\0working.ts\0';
+    throw new Error(`unexpected git call: ${command}`);
+  };
+  assert.deepEqual(changedFiles([], '/repo', readGit), [
+    'after.ts',
+    'before.ts',
+    'new.ts',
+    'old.ts',
+    'staged.ts',
+    'working.ts',
+  ]);
+  assert.throws(
+    () =>
+      changedFiles([], '/repo', () => {
+        throw new Error('git failed');
+      }),
+    /git failed/u
+  );
 });

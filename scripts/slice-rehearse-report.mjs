@@ -26,7 +26,6 @@ const KEYS = [
   'duplicateHeavyProofs',
   'headSha',
   'heavyProofs',
-  'legalNextActions',
   'mergeSha',
   'modelCostUsd',
   'prNumber',
@@ -48,6 +47,37 @@ function count(value, label) {
 function nullableMetric(value, label) {
   must(value === null || (Number.isFinite(value) && value >= 0), `${label} is invalid`);
   return value;
+}
+
+function compileLegalNextAction(input, approvals, reFreezes, heavyProofs) {
+  must(approvals <= 1, 'repeated delivery approval is invalid');
+  must(reFreezes <= 1, 'multiple remediation generations are invalid');
+  must(heavyProofs <= 1, 'duplicate final-head heavy proof is invalid');
+  must(!reFreezes || approvals === 1, 'remediation precedes delivery approval');
+  must(
+    input.prNumber === null || approvals === 1,
+    'pull request transition skips delivery approval'
+  );
+  must(
+    heavyProofs === 0 || (approvals === 1 && input.prNumber !== null),
+    'heavy proof transition skips approval or pull request'
+  );
+  must(
+    input.mergeSha === null || (input.prNumber !== null && heavyProofs === 1),
+    'merge transition skips pull request or heavy proof'
+  );
+  if (input.stage === 'final') return 'none';
+  if (
+    input.stage === 'authority_hold' ||
+    input.blockerPhase !== 'none' ||
+    input.scopeDrift.length > 0
+  )
+    return 'HOLD';
+  if (approvals === 0) return 'request_delivery_approval';
+  if (input.prNumber === null) return 'create_pull_request';
+  if (heavyProofs === 0) return 'run_final_head_heavy_proof';
+  if (input.mergeSha === null) return 'conditional_merge';
+  return 'verify_merge_consumption';
 }
 
 const OPTIONS = Object.freeze({
@@ -160,15 +190,7 @@ export function generateSliceCheckpoint(input, { verifyState = defaultVerifyStat
       new Set(input.scopeDrift).size === input.scopeDrift.length,
     'scope drift entries are invalid'
   );
-  must(
-    Array.isArray(input.legalNextActions) && input.legalNextActions.length === 1,
-    'checkpoint requires one legal next action'
-  );
-  const legalNextAction = input.legalNextActions[0];
-  must(
-    typeof legalNextAction === 'string' && legalNextAction.length > 0,
-    'legal next action is invalid'
-  );
+  const legalNextAction = compileLegalNextAction(input, approvals, reFreezes, heavyProofs);
   must(
     typeof input.blockerPhase === 'string' && input.blockerPhase.length > 0,
     'blocker phase is invalid'

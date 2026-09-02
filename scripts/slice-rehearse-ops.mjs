@@ -22,10 +22,6 @@ export function runSafeOperation(
   } = {}
 ) {
   const command = buildSafeOperation(request);
-  if (!command.mutating) {
-    const result = execute(command.binary, command.args);
-    return { status: result.status === 0 ? 'succeeded' : 'failed', command };
-  }
   verifyLiveOperationFacts(
     readLiveFacts(request, command.certificate),
     command.certificate,

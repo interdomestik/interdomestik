@@ -5,8 +5,8 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 
+import { changedFiles } from './ci/reviewer-preflight-git.mjs';
 import { canonicalJson, compareText, must, safeRelativePath } from './slice-rehearse-canonical.mjs';
-import { detectReviewPaths } from './slice-rehearse-review-paths.mjs';
 
 export const DASHBOARD_LOCALE_PATHS = Object.freeze([
   'apps/web/src/messages/en/dashboard.json',
@@ -181,7 +181,7 @@ export function inspectAccessibilityContracts(source) {
 }
 
 export function runReviewParity({ cwd = process.cwd(), changedPaths, spawn = spawnSync } = {}) {
-  const paths = (changedPaths ?? detectReviewPaths(cwd, spawn)).map(path =>
+  const paths = (changedPaths ?? changedFiles([], cwd)).map(path =>
     safeRelativePath(path, 'review path')
   );
   const catalogs = Object.fromEntries(

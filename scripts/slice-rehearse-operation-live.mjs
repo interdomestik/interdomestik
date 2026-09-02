@@ -1,6 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-
 import { resolveRepositoryAuthority } from './lean-current-authority.mjs';
 import {
   authenticateResolverOutput,
@@ -19,28 +18,27 @@ import {
   OPERATION_ARTIFACT_ROOT,
   operationBodyArtifact,
 } from './slice-rehearse-operation-certificate.mjs';
-
 const GH_CANDIDATES = ['/usr/bin/gh', '/opt/homebrew/bin/gh', '/usr/local/bin/gh'];
 const SAFE_EXEC = Object.freeze({
   encoding: 'utf8',
   env: { PATH: '/usr/bin:/bin:/usr/sbin:/sbin' },
   maxBuffer: 8 * 1024 * 1024,
-  timeout: 5 * 60_000,
+  timeout: 30_000,
 });
 const PROVIDER_ENVIRONMENT_KEYS =
   'HOME XDG_CONFIG_HOME GH_CONFIG_DIR GH_HOST GH_TOKEN GH_ENTERPRISE_TOKEN GITHUB_TOKEN'.split(' ');
 const GIT_AUTH_ENVIRONMENT_KEYS = 'HOME XDG_CONFIG_HOME SSH_AUTH_SOCK'.split(' ');
-
+const PULL_FIELDS = 'number,headRefOid,headRefName,baseRefName,headRepository,headRepositoryOwner';
+const LIVE_FACT_KEYS =
+  'origin baseSha headSha treeSha branch remoteHeadSha writerMapDigest pr'.split(' ');
+const git = args => execFileSync('/usr/bin/git', args, SAFE_EXEC);
 export function safeGitHubEnvironment(environment = process.env, keys = PROVIDER_ENVIRONMENT_KEYS) {
   const safe = { PATH: SAFE_EXEC.env.PATH };
-  for (const key of keys) {
-    if (typeof environment[key] === 'string' && environment[key].length > 0) {
+  for (const key of keys)
+    if (typeof environment[key] === 'string' && environment[key].length > 0)
       safe[key] = environment[key];
-    }
-  }
   return safe;
 }
-
 export function execOptions(binary, environment = process.env) {
   const git = binary === 'git' || binary.endsWith('/git');
   if (binary !== 'gh' && !git) return SAFE_EXEC;
@@ -51,36 +49,37 @@ export function execOptions(binary, environment = process.env) {
   if (git) env.GIT_TERMINAL_PROMPT = '0';
   return { ...SAFE_EXEC, env };
 }
-
 export function resolveGhBinary() {
   const binary = GH_CANDIDATES.find(existsSync);
   must(binary, `GitHub CLI not found in: ${GH_CANDIDATES.join(', ')}`);
   return binary;
 }
-
 function ghJson(args) {
   return JSON.parse(execFileSync(resolveGhBinary(), args, execOptions('gh')));
 }
-
-function lsRemote(ref) {
+function lsRemoteRefs(refs) {
   const output = execFileSync(
     '/usr/bin/git',
-    ['ls-remote', '--refs', 'origin', ref],
+    ['ls-remote', '--refs', 'origin', ...refs],
     SAFE_EXEC
   ).trim();
-  if (!output) return null;
-  const [sha, resolvedRef, extra] = output.split(/\s+/u);
-  must(!extra && resolvedRef === ref, 'live remote ref response is ambiguous');
-  return normalizeCommitSha(sha, 'live remote head SHA');
+  const resolved = Object.fromEntries(refs.map(ref => [ref, null]));
+  for (const line of output.split('\n').filter(Boolean)) {
+    const [sha, ref, extra] = line.split(/\s+/u);
+    must(
+      !extra && Object.hasOwn(resolved, ref) && resolved[ref] === null,
+      'live remote ref response is ambiguous'
+    );
+    resolved[ref] = normalizeCommitSha(sha, 'live remote head SHA');
+  }
+  return resolved;
 }
-
 export function normalizeHeadRepository(repository, owner) {
   if (repository?.nameWithOwner?.trim()) return repository.nameWithOwner.trim().toLowerCase();
   const login = owner?.login?.trim();
   const name = repository?.name?.trim();
   return login && name ? `${login}/${name}`.toLowerCase() : null;
 }
-
 function normalizePull(value) {
   return {
     number: value.number,
@@ -90,19 +89,9 @@ function normalizePull(value) {
     origin: normalizeHeadRepository(value.headRepository, value.headRepositoryOwner),
   };
 }
-
 function readPr(prNumber) {
-  return normalizePull(
-    ghJson([
-      'pr',
-      'view',
-      String(prNumber),
-      '--json',
-      'number,headRefOid,headRefName,baseRefName,headRepository,headRepositoryOwner',
-    ])
-  );
+  return normalizePull(ghJson(['pr', 'view', String(prNumber), '--json', PULL_FIELDS]));
 }
-
 function readPrForBranch(certificate) {
   const values = ghJson([
     'pr',
@@ -116,35 +105,35 @@ function readPrForBranch(certificate) {
     '--limit',
     '2',
     '--json',
-    'number,headRefOid,headRefName,baseRefName,headRepository,headRepositoryOwner',
+    PULL_FIELDS,
   ]);
   must(Array.isArray(values) && values.length <= 1, 'live PR lookup is ambiguous');
   return values.length ? normalizePull(values[0]) : null;
 }
-
 export function readLiveOperationFacts(_request, certificate) {
-  const changedPaths = execFileSync(
-    '/usr/bin/git',
-    ['diff', '--name-only', '-z', `${certificate.baseSha}...${certificate.headSha}`],
-    SAFE_EXEC
-  )
+  const baseRef = `refs/heads/${certificate.baseBranch}`;
+  const branchRef = `refs/heads/${certificate.branch}`;
+  const remoteRefs = lsRemoteRefs([baseRef, branchRef]);
+  const changedPaths = git([
+    'diff',
+    '--name-only',
+    '-z',
+    `${certificate.baseSha}...${certificate.headSha}`,
+  ])
     .split('\0')
     .filter(Boolean)
     .sort(compareText);
   return {
-    origin: normalizeGitHubOrigin(
-      execFileSync('/usr/bin/git', ['config', '--get', 'remote.origin.url'], SAFE_EXEC).trim()
-    ).origin,
-    baseSha: lsRemote(`refs/heads/${certificate.baseBranch}`),
-    headSha: execFileSync('/usr/bin/git', ['rev-parse', 'HEAD'], SAFE_EXEC).trim(),
-    treeSha: execFileSync('/usr/bin/git', ['rev-parse', 'HEAD^{tree}'], SAFE_EXEC).trim(),
-    branch: execFileSync('/usr/bin/git', ['branch', '--show-current'], SAFE_EXEC).trim(),
-    remoteHeadSha: lsRemote(`refs/heads/${certificate.branch}`),
+    origin: normalizeGitHubOrigin(git(['config', '--get', 'remote.origin.url']).trim()).origin,
+    baseSha: remoteRefs[baseRef],
+    headSha: git(['rev-parse', 'HEAD']).trim(),
+    treeSha: git(['rev-parse', 'HEAD^{tree}']).trim(),
+    branch: git(['branch', '--show-current']).trim(),
+    remoteHeadSha: remoteRefs[branchRef],
     writerMapDigest: sha256(canonicalJson(changedPaths)),
     pr: certificate.prNumber === null ? readPrForBranch(certificate) : readPr(certificate.prNumber),
   };
 }
-
 export function readLiveOperationAuthority(boundary) {
   return resolveAtAuthorityBoundary({
     boundary,
@@ -152,19 +141,9 @@ export function readLiveOperationAuthority(boundary) {
       authenticateResolverOutput(resolveRepositoryAuthority(process.cwd(), true)),
   }).authority;
 }
-
 export function verifyLiveOperationFacts(facts, certificate, operation) {
   must(facts && typeof facts === 'object', 'live operation facts are unavailable');
-  for (const key of [
-    'origin',
-    'baseSha',
-    'headSha',
-    'treeSha',
-    'branch',
-    'remoteHeadSha',
-    'writerMapDigest',
-    'pr',
-  ])
+  for (const key of LIVE_FACT_KEYS)
     must(Object.hasOwn(facts, key), 'live operation facts are unavailable');
   must(facts.origin === certificate.origin, 'live origin differs from certificate');
   must(facts.baseSha === certificate.baseSha, 'live protected base differs from certificate');
@@ -193,7 +172,6 @@ export function verifyLiveOperationFacts(facts, certificate, operation) {
     must(facts.pr.origin === 'interdomestik/interdomestik', 'live PR repository differs');
   }
 }
-
 export function verifyOperationAuthority(authority, certificate) {
   must(authority?.source === 'live-resolver', 'operation requires live resolver authority');
   if (certificate.workClass === 'product') {
@@ -208,7 +186,6 @@ export function verifyOperationAuthority(authority, certificate) {
     );
   }
 }
-
 export function verifyOperationBody(request, certificate) {
   if (!Object.hasOwn(request, 'bodyArtifact')) return;
   const content = readBoundedRegularText(operationBodyArtifact(certificate, request.bodyArtifact), {
@@ -221,18 +198,51 @@ export function verifyOperationBody(request, certificate) {
     'operation body artifact digest differs'
   );
 }
-
 export function executeOperation(binary, args) {
   return spawnSync(binary === 'gh' ? resolveGhBinary() : binary, args, {
     ...execOptions(binary),
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 }
-
 function reconciliationOutcome(applied) {
   return applied ? 'applied' : 'not_applied';
 }
-
+export function classifyMergeReconciliation(facts, certificate) {
+  const pull = facts?.pull;
+  const commit = pull?.mergeCommit;
+  const applied =
+    pull?.state === 'MERGED' &&
+    pull.merged === true &&
+    pull.baseRefName === certificate.baseBranch &&
+    pull.headRefName === certificate.branch &&
+    pull.headRefOid === certificate.headSha &&
+    commit?.parents?.totalCount === 1 &&
+    commit.parents.nodes[0]?.oid === certificate.baseSha &&
+    commit.tree?.oid === certificate.treeSha &&
+    facts.mainSha === commit.oid &&
+    facts.authority?.lifecycle === 'consumed_on_merge' &&
+    facts.authority.mergeSha === commit.oid;
+  return { outcome: reconciliationOutcome(Boolean(applied)), mergeSha: commit?.oid ?? null };
+}
+function reconcileMerge(certificate) {
+  const query = `query($number:Int!){repository(owner:"interdomestik",name:"interdomestik"){ref(qualifiedName:"refs/heads/main"){target{oid}} pullRequest(number:$number){state merged baseRefName headRefName headRefOid mergeCommit{oid tree{oid} parents(first:2){totalCount nodes{oid}}}}}}`;
+  const repository = ghJson([
+    'api',
+    'graphql',
+    '-f',
+    `query=${query}`,
+    '-F',
+    `number=${certificate.prNumber}`,
+  ])?.data?.repository;
+  return classifyMergeReconciliation(
+    {
+      mainSha: repository?.ref?.target?.oid,
+      pull: repository?.pullRequest,
+      authority: readLiveOperationAuthority('post_merge'),
+    },
+    certificate
+  );
+}
 function reconcilePullCreation(certificate) {
   const pull = readPrForBranch(certificate);
   const applied =
@@ -241,7 +251,6 @@ function reconcilePullCreation(certificate) {
     pull.baseBranch === certificate.baseBranch;
   return { outcome: reconciliationOutcome(applied), prNumber: pull?.number ?? null };
 }
-
 function reconcilePullMutation(request, certificate) {
   if (request.operation === 'label_add') {
     const labels = ghJson([
@@ -265,22 +274,13 @@ function reconcilePullMutation(request, certificate) {
       ),
     };
   }
-  const merge = ghJson([
-    'pr',
-    'view',
-    String(request.prNumber),
-    '--json',
-    'state,mergedAt,mergeCommit',
-  ]);
-  const applied =
-    merge.state === 'MERGED' && merge.mergedAt && /^[0-9a-f]{40}$/u.test(merge.mergeCommit?.oid);
-  return { outcome: reconciliationOutcome(applied), mergeSha: merge.mergeCommit?.oid ?? null };
+  return reconcileMerge(certificate);
 }
-
 export function reconcileOperation(request, certificate) {
   try {
     if (request.operation === 'branch_push') {
-      const remote = lsRemote(`refs/heads/${certificate.branch}`);
+      const ref = `refs/heads/${certificate.branch}`;
+      const remote = lsRemoteRefs([ref])[ref];
       return { outcome: reconciliationOutcome(remote === certificate.headSha) };
     }
     if (request.operation === 'pr_create') return reconcilePullCreation(certificate);

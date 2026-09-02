@@ -1,6 +1,5 @@
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
-
 import {
   canonicalJson,
   exactKeys,
@@ -12,8 +11,7 @@ import {
   safeRelativePath,
   sha256,
 } from './slice-rehearse-canonical.mjs';
-
-const ENVELOPE = /^[A-Z0-9][A-Z0-9-]*-(?:DELIVERY|REVIEW-FIX|ULTRA-REMEDIATION)-[1-9]\d*$/u;
+const ENVELOPE = /^[A-Z0-9][A-Z0-9-]*-DELIVERY-[1-9]\d*$/u;
 const CERTIFICATE_ID = /^[A-Z0-9][A-Z0-9-]*-CERT-[1-9]\d*$/u;
 const LABEL = /^[a-z0-9][a-z0-9_-]{0,63}$/u;
 const SHA256 = /^[0-9a-f]{64}$/u;
@@ -34,13 +32,12 @@ const DEFINITIONS = {
   label_add: [...AUTHORITY_FIELDS, 'label', 'operation', 'prNumber'],
   feedback_comment: [...AUTHORITY_FIELDS, 'bodyArtifact', 'operation', 'prNumber'],
   conditional_merge: [...AUTHORITY_FIELDS, 'operation', 'prNumber'],
-  telemetry_record: ['eventPath', 'ledgerPath', 'operation'],
-  telemetry_summarize: ['inputPath', 'operation'],
 };
 const CERTIFICATE_KEYS = [
   'approvalBindingSha256',
   'allowedOperations',
   'approvalEnvelopeId',
+  'approvalReceiptSha256',
   'artifacts',
   'baseBranch',
   'baseSha',
@@ -49,6 +46,7 @@ const CERTIFICATE_KEYS = [
   'expectedRemoteHeadSha',
   'headSha',
   'origin',
+  'outcomeRiskSha256',
   'prNumber',
   'reportSha256',
   'rehearsalReport',
@@ -56,24 +54,25 @@ const CERTIFICATE_KEYS = [
   'sliceId',
   'treeSha',
   'workClass',
+  'writerClosure',
   'writerMapDigest',
 ];
-
 export function operationApprovalBinding(certificate) {
   return sha256(
     canonicalJson({
       allowedOperations: certificate.allowedOperations,
       approvalEnvelopeId: certificate.approvalEnvelopeId,
+      baseBranch: certificate.baseBranch,
       baseSha: certificate.baseSha,
-      headSha: certificate.headSha,
+      branch: certificate.branch,
+      origin: certificate.origin,
+      outcomeRiskSha256: certificate.outcomeRiskSha256,
       prNumber: certificate.prNumber,
-      reportSha256: certificate.reportSha256,
-      treeSha: certificate.treeSha,
+      writerClosure: certificate.writerClosure,
       writerMapDigest: certificate.writerMapDigest,
     })
   );
 }
-
 function validateRehearsalReport(certificate) {
   const report = certificate.rehearsalReport;
   must(
@@ -106,8 +105,15 @@ function validateRehearsalReport(certificate) {
     report.operationalEnvelope?.authorityGranted === false,
     'rehearsal report authority carrier is invalid'
   );
+  must(
+    report.operationalEnvelope?.outcomeRiskSha256 === certificate.outcomeRiskSha256 &&
+      report.operationalEnvelope?.branch === certificate.branch &&
+      report.operationalEnvelope?.prNumber === certificate.prNumber &&
+      canonicalJson(report.operationalEnvelope?.writerClosure) ===
+        canonicalJson(certificate.writerClosure),
+    'rehearsal report approval provenance differs'
+  );
 }
-
 function validateCertificate(request) {
   const certificate = request.authorityCertificate;
   exactKeys(certificate, CERTIFICATE_KEYS, 'operation authority certificate');
@@ -127,6 +133,21 @@ function validateCertificate(request) {
     normalizeCommitSha(value, label);
   must(SHA256.test(certificate.writerMapDigest), 'certificate writer map digest is invalid');
   must(SHA256.test(certificate.reportSha256), 'certificate report digest is invalid');
+  must(SHA256.test(certificate.approvalReceiptSha256), 'approval receipt digest is invalid');
+  must(SHA256.test(certificate.outcomeRiskSha256), 'outcome/risk digest is invalid');
+  must(
+    Array.isArray(certificate.writerClosure) &&
+      certificate.writerClosure.length > 0 &&
+      new Set(certificate.writerClosure).size === certificate.writerClosure.length,
+    'approved writer closure is invalid'
+  );
+  const writerClosure = certificate.writerClosure.map(path =>
+    safeRelativePath(path, 'approved writer path')
+  );
+  must(
+    canonicalJson(writerClosure) === canonicalJson([...writerClosure].sort()),
+    'approved writer closure is not canonical'
+  );
   validateRehearsalReport(certificate);
   must(
     ['governance', 'product'].includes(certificate.workClass),
@@ -168,7 +189,6 @@ function validateCertificate(request) {
   );
   return certificate;
 }
-
 export function operationBodyArtifact(certificate, value) {
   const artifact = safeRelativePath(value, 'operation body artifact path');
   must(
@@ -257,26 +277,6 @@ export function buildSafeOperation(request) {
   const keys = DEFINITIONS[request.operation];
   must(keys, 'operation is unsupported');
   exactKeys(request, keys, 'operation request');
-  if (request.operation === 'telemetry_summarize') {
-    return {
-      binary: process.execPath,
-      args: ['scripts/slice-telemetry-v2.mjs', '--input', request.inputPath],
-      mutating: false,
-    };
-  }
-  if (request.operation === 'telemetry_record') {
-    return {
-      binary: process.execPath,
-      args: [
-        'scripts/slice-telemetry-v2-record.mjs',
-        '--event',
-        request.eventPath,
-        '--ledger',
-        request.ledgerPath,
-      ],
-      mutating: false,
-    };
-  }
   const certificate = validateCertificate(request);
   if (request.operation === 'branch_push') {
     const branch = normalizeGitBranch(request.branch);

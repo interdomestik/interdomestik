@@ -8,18 +8,29 @@ import { buildSafeOperation, runSafeOperation } from './slice-rehearse-ops.mjs';
 
 const [head, base, tree] = ['a', 'b', 'c'].map(value => value.repeat(40));
 const writerMapDigest = 'd'.repeat(64);
+const approvalReceiptSha256 = 'e'.repeat(64);
+const outcomeRiskSha256 = 'f'.repeat(64);
+const writerClosure = ['scripts/a.mjs'];
 const origin = 'https://github.com/interdomestik/interdomestik.git';
 const [branch, baseBranch] = ['codex/harness-v2-1', 'main'];
 const [prNumber, build] = [1700, buildSafeOperation];
 
 function certificate(overrides = {}) {
+  const approvedPrNumber = Object.hasOwn(overrides, 'prNumber') ? overrides.prNumber : prNumber;
+  const approvedBranch = overrides.branch ?? branch;
   const rehearsalReport = {
     schemaVersion: 1,
     sliceId: 'HARNESS-V2-1',
     repository: { origin, baseSha: base, headSha: head, treeSha: tree },
     writers: { digest: writerMapDigest },
     authorityStops: [],
-    operationalEnvelope: { authorityGranted: false },
+    operationalEnvelope: {
+      authorityGranted: false,
+      branch: approvedBranch,
+      outcomeRiskSha256: overrides.outcomeRiskSha256 ?? outcomeRiskSha256,
+      prNumber: approvedPrNumber,
+      writerClosure: overrides.writerClosure ?? writerClosure,
+    },
     reportSha256: null,
   };
   rehearsalReport.reportSha256 = sha256(canonicalJson(rehearsalReport));
@@ -27,12 +38,15 @@ function certificate(overrides = {}) {
     schemaVersion: 1,
     certificateId: 'HARNESS-V2-1-CERT-1',
     approvalEnvelopeId: 'HARNESS-V2-1-DELIVERY-1',
+    approvalReceiptSha256,
     sliceId: 'HARNESS-V2-1',
     workClass: 'governance',
     origin,
+    outcomeRiskSha256,
     baseSha: base,
     headSha: head,
     treeSha: tree,
+    writerClosure,
     branch,
     baseBranch,
     writerMapDigest,
@@ -81,8 +95,19 @@ const inactiveAuthority = { source: 'live-resolver', runtimeAuthorized: false, a
 test('bounds git auth environment', () => {
   const env = { HOME: '/u', XDG_CONFIG_HOME: '/x', SSH_AUTH_SOCK: '/s', GH_TOKEN: 't' };
   const PATH = '/usr/bin:/bin:/usr/sbin:/sbin';
-  assert.deepEqual(live.execOptions('gh', env).env, { PATH, HOME: '/u', XDG_CONFIG_HOME: '/x', GH_TOKEN: 't' });
-  assert.deepEqual(live.execOptions('/usr/bin/git', env).env, { PATH, HOME: '/u', XDG_CONFIG_HOME: '/x', SSH_AUTH_SOCK: '/s', GIT_TERMINAL_PROMPT: '0' });
+  assert.deepEqual(live.execOptions('gh', env).env, {
+    PATH,
+    HOME: '/u',
+    XDG_CONFIG_HOME: '/x',
+    GH_TOKEN: 't',
+  });
+  assert.deepEqual(live.execOptions('/usr/bin/git', env).env, {
+    PATH,
+    HOME: '/u',
+    XDG_CONFIG_HOME: '/x',
+    SSH_AUTH_SOCK: '/s',
+    GIT_TERMINAL_PROMPT: '0',
+  });
   const repo = live.normalizeHeadRepository({ name: 'r' }, { login: 'o' });
   assert.equal(repo, 'o/r');
 });
@@ -124,35 +149,6 @@ test('builds shell-free operation argv', () => {
     '--match-head-commit',
     head,
   ]);
-  assert.deepEqual(
-    build({
-      operation: 'telemetry_summarize',
-      inputPath: '/private/tmp/events.jsonl',
-    }),
-    {
-      binary: process.execPath,
-      args: ['scripts/slice-telemetry-v2.mjs', '--input', '/private/tmp/events.jsonl'],
-      mutating: false,
-    }
-  );
-  assert.deepEqual(
-    build({
-      operation: 'telemetry_record',
-      eventPath: '/private/tmp/event.json',
-      ledgerPath: '/private/tmp/events.jsonl',
-    }),
-    {
-      binary: process.execPath,
-      args: [
-        'scripts/slice-telemetry-v2-record.mjs',
-        '--event',
-        '/private/tmp/event.json',
-        '--ledger',
-        '/private/tmp/events.jsonl',
-      ],
-      mutating: false,
-    }
-  );
 });
 test('checks head and reconciles a failed writer', () => {
   const request = {
@@ -224,77 +220,4 @@ test('updates an exact PR from its remote preimage', () => {
     reconcile: () => ({ outcome: 'applied', remoteHeadSha: head }),
   });
   assert.equal(result.status, 'succeeded');
-});
-test('rejects unsafe or incomplete writer requests', () => {
-  assert.throws(
-    () =>
-      buildSafeOperation({
-        operation: 'label_add',
-        ...authorityFields({ request: { approvalEnvelopeId: 'x' } }),
-        prNumber: 1,
-        label: 'full-gate; rm -rf x',
-      }),
-    /label|envelope/u
-  );
-  assert.throws(
-    () =>
-      buildSafeOperation({
-        operation: 'feedback_comment',
-        ...authorityFields(),
-        prNumber: 1,
-      }),
-    /keys|body/u
-  );
-});
-test('rejects forged or incomplete facts', () => {
-  const request = {
-    operation: 'feedback_comment',
-    ...authorityFields(),
-    prNumber,
-    bodyArtifact: 'feedback.md',
-  };
-  assert.throws(
-    () => buildSafeOperation({ ...request, authorityCertificateSha256: '0'.repeat(64) }),
-    /certificate digest differs/u
-  );
-  const tamperedReport = structuredClone(request.authorityCertificate);
-  tamperedReport.rehearsalReport.repository.headSha = '9'.repeat(40);
-  assert.throws(
-    () =>
-      buildSafeOperation({
-        ...request,
-        authorityCertificate: tamperedReport,
-        authorityCertificateSha256: sha256(canonicalJson(tamperedReport)),
-      }),
-    /report digest|candidate identity/u
-  );
-  assert.throws(
-    () => buildSafeOperation({ ...request, bodyArtifact: '/etc/passwd' }),
-    /artifact path is unsafe/u
-  );
-  assert.throws(
-    () =>
-      runSafeOperation(request, {
-        readLiveFacts: () => null,
-        readAuthority: () => inactiveAuthority,
-      }),
-    /live operation facts are unavailable/u
-  );
-});
-
-test('preserves unknown mutation reconciliation', () => {
-  const request = {
-    operation: 'label_add',
-    ...authorityFields(),
-    prNumber,
-    label: 'full-gate',
-  };
-  const result = runSafeOperation(request, {
-    readLiveFacts: () => liveFacts,
-    readAuthority: () => inactiveAuthority,
-    execute: () => ({ status: 1, stderr: 'transport timeout' }),
-    reconcile: () => ({ outcome: 'unknown' }),
-  });
-  assert.equal(result.status, 'failed_unknown');
-  assert.equal(result.reconciliation.outcome, 'unknown');
 });

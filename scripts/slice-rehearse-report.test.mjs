@@ -50,7 +50,7 @@ test('final checkpoint preserves candidate base while binding protected main to 
   );
 });
 
-test('generates one closed checkpoint/final report with exactly one legal next action', () => {
+test('compiles one legal next action instead of accepting caller-authored authority', () => {
   const report = generateSliceCheckpoint(
     {
       schemaVersion: 1,
@@ -70,17 +70,67 @@ test('generates one closed checkpoint/final report with exactly one legal next a
       modelCostUsd: null,
       blockerPhase: 'approval',
       scopeDrift: [],
-      legalNextActions: ['approve bounded delivery envelope for exact head'],
     },
     verified
   );
-  assert.equal(report.legalNextAction, 'approve bounded delivery envelope for exact head');
+  assert.equal(report.legalNextAction, 'HOLD');
   assert.equal(report.runnerMinutes, null);
   assert.equal(report.modelCostUsd, null);
   assert.equal(Object.hasOwn(report, 'legalNextActions'), false);
 });
 
-test('rejects ambiguous next actions, duplicate proof, and invalid exact state', () => {
+test('post-merge closeout stays explicit when cleanup is fail-closed', () => {
+  const report = generateSliceCheckpoint(
+    {
+      schemaVersion: 1,
+      stage: 'authority_hold',
+      sliceId: 'HARNESS-V2-2',
+      baseSha: sha('a'),
+      headSha: sha('b'),
+      treeSha: sha('c'),
+      prNumber: 1700,
+      mergeSha: sha('d'),
+      approvals: 1,
+      reFreezes: 0,
+      retries: 1,
+      heavyProofs: 1,
+      duplicateHeavyProofs: 0,
+      runnerMinutes: null,
+      modelCostUsd: null,
+      blockerPhase: 'cleanup_hold:crash-safe-consumption-unproven',
+      scopeDrift: [],
+    },
+    verified
+  );
+  assert.equal(report.legalNextAction, 'HOLD');
+  assert.match(report.blockerPhase, /^cleanup_hold:/u);
+});
+
+test('rejects a caller-supplied next action even when it matches the compiler result', () => {
+  const input = {
+    schemaVersion: 1,
+    stage: 'checkpoint',
+    sliceId: 'HARNESS-V2-2',
+    baseSha: sha('a'),
+    headSha: sha('b'),
+    treeSha: sha('c'),
+    prNumber: null,
+    mergeSha: null,
+    approvals: 0,
+    reFreezes: 0,
+    retries: 0,
+    heavyProofs: 0,
+    duplicateHeavyProofs: 0,
+    runnerMinutes: null,
+    modelCostUsd: null,
+    blockerPhase: 'none',
+    scopeDrift: [],
+    legalNextActions: ['request_delivery_approval'],
+  };
+  assert.throws(() => generateSliceCheckpoint(input, verified), /keys|caller-supplied/u);
+});
+
+test('rejects duplicate proof and invalid exact state', () => {
   const base = {
     schemaVersion: 1,
     stage: 'checkpoint',
@@ -99,16 +149,7 @@ test('rejects ambiguous next actions, duplicate proof, and invalid exact state',
     modelCostUsd: null,
     blockerPhase: 'none',
     scopeDrift: [],
-    legalNextActions: ['continue implementation'],
   };
-  assert.throws(
-    () => generateSliceCheckpoint({ ...base, legalNextActions: [] }, verified),
-    /one legal next action/u
-  );
-  assert.throws(
-    () => generateSliceCheckpoint({ ...base, legalNextActions: ['a', 'b'] }, verified),
-    /one legal next action/u
-  );
   assert.throws(
     () => generateSliceCheckpoint({ ...base, duplicateHeavyProofs: 1 }, verified),
     /duplicate heavy proof/u
@@ -135,7 +176,6 @@ test('final stage requires verified terminal PR, merge, proof, and closeout inva
     modelCostUsd: null,
     blockerPhase: 'none',
     scopeDrift: [],
-    legalNextActions: ['none'],
   };
   assert.equal(generateSliceCheckpoint(final, verified).stage, 'final');
   for (const invalid of [
@@ -145,13 +185,38 @@ test('final stage requires verified terminal PR, merge, proof, and closeout inva
     { heavyProofs: 0 },
     { blockerPhase: 'review' },
     { scopeDrift: ['unexpected.ts'] },
-    { legalNextActions: ['continue'] },
   ]) {
     assert.throws(
       () => generateSliceCheckpoint({ ...final, ...invalid }, verified),
-      /final checkpoint/u
+      /final checkpoint|transition skips|precedes/u
     );
   }
+});
+
+test('rejects skipped, repeated, and backward delivery transitions', () => {
+  const input = {
+    schemaVersion: 1,
+    stage: 'checkpoint',
+    sliceId: 'HARNESS-V2-2',
+    baseSha: sha('a'),
+    headSha: sha('b'),
+    treeSha: sha('c'),
+    prNumber: null,
+    mergeSha: null,
+    approvals: 0,
+    reFreezes: 0,
+    retries: 0,
+    heavyProofs: 0,
+    duplicateHeavyProofs: 0,
+    runnerMinutes: null,
+    modelCostUsd: null,
+    blockerPhase: 'none',
+    scopeDrift: [],
+  };
+  assert.throws(() => generateSliceCheckpoint({ ...input, approvals: 2 }, verified), /repeated/u);
+  assert.throws(() => generateSliceCheckpoint({ ...input, reFreezes: 1 }, verified), /precedes/u);
+  assert.throws(() => generateSliceCheckpoint({ ...input, heavyProofs: 1 }, verified), /skips/u);
+  assert.throws(() => generateSliceCheckpoint({ ...input, prNumber: 1700 }, verified), /skips/u);
 });
 
 test('rejects a checkpoint whose live state verifier cannot bind exact identity', () => {
@@ -173,7 +238,6 @@ test('rejects a checkpoint whose live state verifier cannot bind exact identity'
     modelCostUsd: null,
     blockerPhase: 'implementation',
     scopeDrift: [],
-    legalNextActions: ['continue implementation'],
   };
   assert.throws(
     () => generateSliceCheckpoint(input, { verifyState: () => false }),

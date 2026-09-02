@@ -27,6 +27,19 @@ const OPTIONS = Object.freeze({
   stdio: ['ignore', 'pipe', 'pipe'],
 });
 const TEXT_OPTIONS = Object.freeze({ ...OPTIONS, encoding: 'utf8' });
+export function inspectOptionalRef(repository, ref, run = spawnSync) {
+  if (!/^refs\/heads\/[A-Za-z0-9._/-]+$/u.test(ref)) throw new Error('optional ref is invalid');
+  const result = run(
+    GIT_BIN,
+    [...GIT_READ_PREFIX, '-C', repository, 'show-ref', '--verify', '--hash', ref],
+    { ...TEXT_OPTIONS, timeout: 2_000 }
+  );
+  if (result.status === 1 && !result.stdout?.trim() && !result.stderr?.trim()) return 'absent';
+  if (result.status !== 0 || !/^[0-9a-f]{40}$/u.test(result.stdout?.trim() ?? '')) {
+    throw new Error(result.stderr?.trim() || 'optional ref evidence failed');
+  }
+  return result.stdout.trim();
+}
 export function gitText(repository, args) {
   return gitBytes(repository, args).toString('utf8').trim();
 }

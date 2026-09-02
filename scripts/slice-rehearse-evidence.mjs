@@ -1,4 +1,9 @@
+import * as fs from 'node:fs';
+import { tmpdir } from 'node:os';
+import { resolve, sep } from 'node:path';
+import { trustedRunnerFile } from './ci/trusted-runner-file.mjs';
 import {
+  canonicalize,
   canonicalJson,
   compareText,
   deriveEvidenceIdentityKey,
@@ -7,34 +12,25 @@ import {
   sortedText,
 } from './slice-rehearse-canonical.mjs';
 export { deriveEvidenceIdentityKey, readBoundedRegularText } from './slice-rehearse-canonical.mjs';
-
 const SHA_PATTERN = /^[0-9a-f]{40}$/u;
 const DIGEST_PATTERN = /^[0-9a-f]{64}$/u;
-const RECEIPT_KEYS = [
-  'commandDigest',
-  'expiresAt',
-  'headSha',
-  'lane',
-  'status',
-  'substrateDigest',
-  'treeSha',
-  'workflowDigest',
-  'writerMapDigest',
-];
-const IDENTITY_KEYS = [
-  'commandDigest',
-  'headSha',
-  'substrateDigest',
-  'treeSha',
-  'workflowDigest',
-  'writerMapDigest',
-];
+const RECEIPT_KEYS =
+  'commandDigest expiresAt headSha lane status substrateDigest treeSha workflowDigest writerMapDigest'.split(
+    ' '
+  );
+const IDENTITY_KEYS =
+  'commandDigest headSha substrateDigest treeSha workflowDigest writerMapDigest'.split(' ');
 const LANE_PATTERN = /^[a-z0-9][a-z0-9:_-]*$/u;
 const TRUSTED_REUSE_LANES = new Set(['pr-e2e']);
 const VERIFIED_EVIDENCE_TTL_MS = 24 * 60 * 60 * 1000;
 const FUTURE_TOLERANCE_MS = 5 * 60 * 1000;
 const VERIFIED_KEYS = ['checkId', 'completedAt', 'key', 'provider', 'runId'];
-
+const EXECUTION_KEYS = ['evidenceKey', 'lane', 'runId', 'startedAt'];
+const RECORD_KEYS = [...EXECUTION_KEYS, 'exitCode', 'finishedAt', 'status'];
+const PROOF_STATES = ['reserved', 'running', 'succeeded', 'failed'];
+const RUN_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{2,127}$/u;
+const OPEN = fs.constants;
+const openNoFollow = (path, flags) => fs.openSync(path, flags | OPEN.O_NOFOLLOW, 0o600);
 function verifiedEvidenceSets(input, now) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return {};
   return Object.fromEntries(
@@ -91,7 +87,6 @@ function verifiedEvidenceSets(input, now) {
       })
   );
 }
-
 function validateEvidenceReceipt(receipt) {
   must(
     receipt && typeof receipt === 'object' && !Array.isArray(receipt),
@@ -112,13 +107,11 @@ function validateEvidenceReceipt(receipt) {
   must(Number.isFinite(expiresAt), 'evidence expiry is invalid');
   return expiresAt;
 }
-
 export function deriveEvidenceKey(receipt, now = Date.now()) {
   const expiresAt = validateEvidenceReceipt(receipt);
   must(expiresAt > now, 'evidence receipt is expired');
   return deriveEvidenceIdentityKey(receipt);
 }
-
 export function evaluateEvidenceReceipts({
   receipts,
   heavyLanes,
@@ -207,4 +200,101 @@ export function evaluateEvidenceReceipts({
     reusableLanes,
     missingLanes: required.filter(lane => !reusableLanes.includes(lane)),
   };
+}
+
+export function normalizeHeavyProofExecution(execution) {
+  exactKeys(execution, EXECUTION_KEYS, 'heavy proof execution');
+  must(DIGEST_PATTERN.test(execution.evidenceKey ?? ''), 'heavy proof evidence key is invalid');
+  must(RUN_ID_PATTERN.test(execution.runId ?? ''), 'heavy proof run ID is invalid');
+  must(LANE_PATTERN.test(execution.lane ?? ''), 'heavy proof lane is invalid');
+  must(Number.isFinite(Date.parse(execution.startedAt)), 'heavy proof start time is invalid');
+  return execution;
+}
+
+function normalizeHeavyProofRecord(record) {
+  exactKeys(record, RECORD_KEYS, 'heavy proof receipt');
+  normalizeHeavyProofExecution(Object.fromEntries(EXECUTION_KEYS.map(key => [key, record[key]])));
+  must(PROOF_STATES.includes(record.status), 'heavy proof receipt status is invalid');
+  const terminal = ['succeeded', 'failed'].includes(record.status);
+  must(
+    terminal === Number.isFinite(Date.parse(record.finishedAt)),
+    'heavy proof completion time is invalid'
+  );
+  must(
+    terminal
+      ? record.exitCode === null || Number.isInteger(record.exitCode)
+      : record.exitCode === null,
+    'heavy proof exit code is invalid'
+  );
+  must(
+    record.status !== 'succeeded' || record.exitCode === 0,
+    'successful proof exit code is invalid'
+  );
+  return record;
+}
+
+function trustedLedgerPath(ledgerPath, allowedRoots) {
+  const normalizedPath = resolve(ledgerPath);
+  const trustedRoot = [...allowedRoots]
+    .map(root => resolve(root))
+    .filter(root => root !== '/')
+    .sort((left, right) => right.length - left.length)
+    .find(root => normalizedPath.startsWith(`${root}${sep}`));
+  must(trustedRoot, 'heavy proof ledger must stay inside a trusted root');
+  return trustedRunnerFile(normalizedPath, { runnerTemp: trustedRoot });
+}
+
+export function recordHeavyProofExecution({
+  ledgerPath,
+  execution,
+  status = 'reserved',
+  finishedAt = null,
+  exitCode = null,
+  allowedRoots = [process.cwd(), tmpdir(), '/private/tmp'],
+}) {
+  const normalizedPath = trustedLedgerPath(ledgerPath, allowedRoots);
+  const lockPath = `${normalizedPath}.lock`;
+  let lock;
+  try {
+    lock = openNoFollow(lockPath, OPEN.O_WRONLY | OPEN.O_CREAT | OPEN.O_EXCL);
+    let records = [];
+    if (fs.existsSync(normalizedPath)) {
+      const descriptor = openNoFollow(normalizedPath, OPEN.O_RDONLY);
+      try {
+        must(fs.fstatSync(descriptor).isFile(), 'heavy proof ledger must be a regular file');
+        records = fs
+          .readFileSync(descriptor, 'utf8')
+          .trim()
+          .split('\n')
+          .filter(Boolean)
+          .map(line => normalizeHeavyProofRecord(JSON.parse(line)));
+      } finally {
+        fs.closeSync(descriptor);
+      }
+    }
+    const value = normalizeHeavyProofExecution(execution);
+    const record = normalizeHeavyProofRecord({ ...value, status, finishedAt, exitCode });
+    const history = records.filter(item => item.evidenceKey === value.evidenceKey);
+    const previous = history.at(-1);
+    const validTransition = previous
+      ? (previous.status === 'reserved' && status === 'running') ||
+        (previous.status === 'running' && ['succeeded', 'failed'].includes(status))
+      : status === 'reserved';
+    must(
+      validTransition && (!previous || previous.runId === value.runId),
+      'heavy proof receipt transition is invalid'
+    );
+    const descriptor = openNoFollow(normalizedPath, OPEN.O_WRONLY | OPEN.O_APPEND | OPEN.O_CREAT);
+    try {
+      fs.writeSync(descriptor, `${JSON.stringify(canonicalize(record))}\n`, null, 'utf8');
+    } finally {
+      fs.closeSync(descriptor);
+    }
+    return true;
+  } finally {
+    if (lock !== undefined) {
+      fs.closeSync(lock);
+      fs.unlinkSync(lockPath);
+    }
+  }
 }
