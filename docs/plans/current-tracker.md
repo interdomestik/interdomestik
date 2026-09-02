@@ -28,12 +28,9 @@ status_command: pnpm plan:status
 
 ## Next Selection
 
-PR `#1676` merged the zero-sum CUTOVER ownership prerequisite at
-`64a5403f5d7f55891a353fe4d914a7ad2bab30bc`; PR `#1677` merged the prior projection at
-`a73b25035f578ca5ac60c3cd301abdb322201115`. PR `#1680` transferred one bounded file slot
-zero-sum and merged at `c6a258e00cfe71e6d53e63ea48708d582453030f`; PR `#1681` reprojects the
-unchanged CUTOVER after that repair. It consumes the closed DATA and PORTAL contracts; T-117C
-remains default-denied.
+PR `#1680` merged the zero-sum capacity repair at
+`c6a258e00cfe71e6d53e63ea48708d582453030f`; PR `#1681` reprojects the unchanged CUTOVER from
+that exact base. Closed DATA/PORTAL remain bound; T-117C remains default-denied.
 
 | Future UI branch | Status              | Constraint                              |
 | ---------------- | ------------------- | --------------------------------------- |
