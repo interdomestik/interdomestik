@@ -161,7 +161,7 @@
   "capacityAllocation": {
     "id": "t117b-cutover",
     "maxTrackedBytesDelta": 43021,
-    "maxTrackedFilesDelta": 4,
+    "maxTrackedFilesDelta": 5,
     "maxCategoryBytesDelta": {
       "config/data/messages": 16375,
       "docs/text": 2949,

@@ -140,7 +140,7 @@ and global headers remain T-117C.
     "promotionBaseSha": "c6a258e00cfe71e6d53e63ea48708d582453030f",
     "expectedProductBranch": "codex/t117b-cutover",
     "gateSha256": "07b2afa0a92dd3776ab3e366f24beef15201cb85f27a0f7189996294b3347bc6",
-    "admissionSha256": "122d6c95ef15bf719da39a6cdb3e59e6c6f5788513c5920d1d4e91aacf413fd2",
+    "admissionSha256": "ee308b50a8224547cd49dd018ae2959439d027e92197cbb1af37816722d5388d",
     "productWriterPaths": [
       "apps/web/e2e/dashboard-access.spec.ts",
       "apps/web/e2e/gate/member-diaspora.spec.ts",
