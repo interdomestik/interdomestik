@@ -2,44 +2,50 @@
   "schemaVersion": 1,
   "sliceId": "T117B-CUTOVER",
   "tier": 3,
-  "baseSha": "a6b1f1d402856c4a74a2aaed51b4da3ab7fb3045",
-  "authorityArtifactSha256": "4fe5589fb5081d873aaa528b2d598f423ab9e82be173531c45cae10de77b5a4e",
+  "baseSha": "b98f4d1948ff6eb38227f74547e0628c7e7b1660",
+  "authorityArtifactSha256": "7a319f587e7cd61dd998be56f82be9fa790102ac4755e145c641692666e4c41f",
   "productOutcomes": [
-    "Atomically replace the member legacy presentation with T117B-PORTAL and migrate the eight active behavioral E2E/golden contracts while preserving one identity resolution and exactly two projections"
+    "Mount T117B-PORTAL at member, preserve one identity, two projections and neutral-host/default-tenant drafts, and migrate ten E2E/golden contracts"
   ],
   "writerPaths": [
+    "apps/web/e2e/dashboard-access.spec.ts",
     "apps/web/e2e/gate/member-diaspora.spec.ts",
     "apps/web/e2e/gate/member-home-cta.spec.ts",
-    "apps/web/e2e/golden/member-portal-agent-consumer.spec.ts",
+    "apps/web/e2e/golden/agent-member-overlay.spec.ts",
     "apps/web/e2e/golden/member-dashboard-empty-state.spec.ts",
     "apps/web/e2e/golden/member-dashboard-has-claims.spec.ts",
+    "apps/web/e2e/golden/member-portal-agent-consumer.spec.ts",
     "apps/web/e2e/production.spec.ts",
     "apps/web/e2e/smoke/ida-dashboard-smoke.spec.ts",
     "apps/web/e2e/ui-v2-onboarding.spec.ts",
     "apps/web/src/app/[locale]/(app)/member/_core.entry.test.tsx",
     "apps/web/src/app/[locale]/(app)/member/_core.entry.tsx",
     "apps/web/src/app/[locale]/(app)/member/page.test.tsx",
-    "apps/web/src/app/[locale]/(app)/member/page.tsx"
+    "apps/web/src/app/[locale]/(app)/member/page.tsx",
+    "apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx",
+    "apps/web/src/components/dashboard/member-portal-runtime.tsx",
+    "apps/web/src/messages/en/dashboard.json",
+    "apps/web/src/messages/mk/dashboard.json",
+    "apps/web/src/messages/sq/dashboard.json",
+    "apps/web/src/messages/sr/dashboard.json"
   ],
-  "productWriterMapSha256": "a3b7ba9338ba5e453316a55bd499078855c7c911158f43057dc419276d3d749a",
+  "productWriterMapSha256": "9607ebda8ed38b016aefedaec045e22e6ab195b06371d2706ce0f3da9260bf36",
   "proofSurfaces": [
     {
       "id": "route-integration",
       "invalidatedBy": [
-        "member page/core mount, legacy unmount, promise start/ownership, session context, query count or region order change"
+        "member mount, legacy UI, promise ownership, identity/query count or region order"
       ]
     },
     {
       "id": "behavior-migration",
       "invalidatedBy": [
-        "mixed category, membership lifecycle, draft, diaspora, Help Now, Documents, agent-as-member or E2E disposition change"
+        "mixed cases, membership/drafts, diaspora/navigation, Help Now/Documents or agent-as-member"
       ]
     },
     {
       "id": "cutover-rollback",
-      "invalidatedBy": [
-        "writer hash, DATA/PORTAL predecessor, exact-head CI/E2E, security, feedback, merge, main health or revert change"
-      ]
+      "invalidatedBy": ["writer/predecessor, exact-head gates, merge/main health or revert"]
     }
   ],
   "acceptanceMatrix": [
@@ -47,15 +53,15 @@
       "criterionId": "atomic-member-mount",
       "proofSurfaceId": "route-integration",
       "command": "member page/core focused integration and query instrumentation",
-      "expected": "one portal, no legacy presentation, one identity resolution and exactly two tenant-scoped projections",
+      "expected": "one portal, no legacy UI, one identity and two tenant projections",
       "environmentId": null,
       "skipIsFailure": true
     },
     {
-      "criterionId": "eight-behavior-contracts",
+      "criterionId": "ten-behavior-contracts",
       "proofSurfaceId": "behavior-migration",
-      "command": "exact eight E2E/golden collectors",
-      "expected": "mixed cases, lifecycle actions, C31, diaspora, navigation and agent-as-member pass without legacy selectors",
+      "command": "exact ten E2E/golden collectors",
+      "expected": "mixed cases, lifecycle, C31, diaspora, navigation and agent-as-member pass",
       "environmentId": "cutover-browser-local",
       "skipIsFailure": true
     },
@@ -63,7 +69,7 @@
       "criterionId": "reversible-cutover",
       "proofSurfaceId": "cutover-rollback",
       "command": "exact-diff, predecessor, CI/E2E, security, feedback and rollback certificate",
-      "expected": "single CUTOVER revert restores old presentation while DATA and PORTAL remain dormant",
+      "expected": "one CUTOVER revert restores legacy UI; DATA and PORTAL stay dormant",
       "environmentId": null,
       "skipIsFailure": true
     }
@@ -77,15 +83,13 @@
     "staleHeadAction": "cancel",
     "runnerReadiness": "connected_and_listening"
   },
-  "sharedRuntimeConsumers": [
-    "The member page is the sole mounted consumer of T117B-PORTAL and the two DATA promises"
-  ],
+  "sharedRuntimeConsumers": ["Member page alone mounts T117B-PORTAL and the two DATA promises"],
   "specialProofEnvironments": [
     {
       "id": "cutover-browser-local",
       "canary": {
-        "command": "exact eight T117B behavioral Playwright collectors on the disposable full chain",
-        "expected": "all required mounted member behaviors pass without skips or legacy compatibility UI",
+        "command": "historical eight-collector T117B Playwright precursor on the disposable chain, distinct from the current ten-contract acceptance suite",
+        "expected": "mounted member behaviors pass without skips or compatibility UI",
         "result": "pass",
         "observedAt": "2026-08-28T17:14:31Z",
         "evidence": "historical canary: ks-sq 18/18; smoke-ida C31 2/2; no required skips; base a0d035ada72a96f08a53781e5d892f88e910a474",
@@ -108,31 +112,31 @@
         "id": "start-data",
         "from": "data-contract",
         "to": "mounted-member",
-        "operation": "start exactly two projections from session-derived context"
+        "operation": "start two projections from session context"
       },
       {
         "id": "mount-portal",
         "from": "portal-contract",
         "to": "mounted-member",
-        "operation": "mount Unified Portal and remove legacy presentation"
+        "operation": "mount portal; remove legacy UI"
       },
       {
         "id": "enter",
         "from": "member-entry",
         "to": "mounted-member",
-        "operation": "compose member route without topology or PPR change"
+        "operation": "compose member without routing or PPR change"
       },
       {
         "id": "collect",
         "from": "mounted-member",
         "to": "behavior-collectors",
-        "operation": "prove exact eight migrated behavioral contracts"
+        "operation": "prove ten migrated behavior contracts"
       },
       {
         "id": "attribute",
         "from": "closed-predecessors",
         "to": "behavior-collectors",
-        "operation": "bind DATA and PORTAL exact closed predecessors"
+        "operation": "bind exact closed DATA and PORTAL"
       }
     ],
     "closure": {
@@ -145,24 +149,24 @@
       "baselineOwnership": true
     },
     "closureEvidence": {
-      "callers": "member page/core are the sole mount and promise-start callers",
-      "sharedConsumers": "one mounted portal consumes both DATA promises",
-      "readWriteDelete": "CUTOVER adds no query or write; DATA retains exactly two read-only projections",
-      "mountErrorPaths": "route composition and all slow, empty and error region paths are covered",
-      "capabilityRequirements": "closed exact DATA and PORTAL predecessors; ordinary async RSC only",
-      "testCollectors": "eight exact behavioral E2E/golden paths plus focused page/core integration",
-      "baselineOwnership": "detached chain candidate against exact main with both predecessors bound"
+      "callers": "member page/core alone mount and start promises",
+      "sharedConsumers": "one portal consumes both DATA promises",
+      "readWriteDelete": "CUTOVER adds no query/write; DATA keeps two reads",
+      "mountErrorPaths": "slow, empty and error regions are covered",
+      "capabilityRequirements": "closed DATA/PORTAL; ordinary async RSC",
+      "testCollectors": "ten E2E/golden paths plus page/core integration",
+      "baselineOwnership": "exact-main chain with both predecessors"
     }
   },
   "capacityAllocation": {
     "id": "t117b-cutover",
-    "maxTrackedBytesDelta": 15979,
-    "maxTrackedFilesDelta": 3,
+    "maxTrackedBytesDelta": 43021,
+    "maxTrackedFilesDelta": 4,
     "maxCategoryBytesDelta": {
-      "config/data/messages": 7797,
-      "docs/text": 2955,
-      "source/scripts": 1264,
-      "tests/e2e": 3963
+      "config/data/messages": 16375,
+      "docs/text": 2949,
+      "source/scripts": 7796,
+      "tests/e2e": 15901
     },
     "derivation": "exact per-path/category deltas are frozen from this child candidate; no reserve"
   },
