@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "sliceId": "T117B-CUTOVER",
   "tier": 3,
-  "baseSha": "b98f4d1948ff6eb38227f74547e0628c7e7b1660",
-  "authorityArtifactSha256": "7a319f587e7cd61dd998be56f82be9fa790102ac4755e145c641692666e4c41f",
+  "baseSha": "c6a258e00cfe71e6d53e63ea48708d582453030f",
+  "authorityArtifactSha256": "07b2afa0a92dd3776ab3e366f24beef15201cb85f27a0f7189996294b3347bc6",
   "productOutcomes": [
     "Mount T117B-PORTAL at member, preserve one identity, two projections and neutral-host/default-tenant drafts, and migrate ten E2E/golden contracts"
   ],
@@ -161,7 +161,7 @@
   "capacityAllocation": {
     "id": "t117b-cutover",
     "maxTrackedBytesDelta": 43021,
-    "maxTrackedFilesDelta": 4,
+    "maxTrackedFilesDelta": 5,
     "maxCategoryBytesDelta": {
       "config/data/messages": 16375,
       "docs/text": 2949,
