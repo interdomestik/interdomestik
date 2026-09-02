@@ -19,6 +19,7 @@ import {
   locateAuthorityTransition,
 } from './lean-current-authority-history.mjs';
 
+const readSource = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 const authorityBlock = value =>
   `## Lean Authority\n\n\`\`\`json lean-authority\n${JSON.stringify(value, null, 2)}\n\`\`\`\n`;
 const gitBlobSha = bytes =>
@@ -66,7 +67,7 @@ function gitFixture(prefix) {
   return root;
 }
 
-test('writer-bound authority rejects every tracked skip-worktree tag without blocking reads', () => {
+test('writer authority rejects skip-worktree', () => {
   const root = gitFixture('lean-authority-writer-worktree-');
   writeFileSync(join(root, 'tracked.txt'), 'canonical\n');
   git(root, 'add', 'tracked.txt');
@@ -88,7 +89,7 @@ test('writer-bound authority rejects every tracked skip-worktree tag without blo
   );
 });
 
-test('repository boundary returns stable blocked authority instead of throwing', () => {
+test('repository boundary is fail-closed', () => {
   const root = mkdtempSync(join(tmpdir(), 'lean-authority-malformed-'));
   mkdirSync(join(root, 'docs/plans'), { recursive: true });
   for (const name of ['current-program.md', 'current-tracker.md']) {
@@ -101,7 +102,7 @@ test('repository boundary returns stable blocked authority instead of throwing',
   assert.equal(resolveRepositoryAuthority(root, true).reason, 'authority_evidence_unavailable');
 });
 
-test('GitHub pull fixtures are bound to real Git commit parent, tree, review and file facts', () => {
+test('pull fixtures bind GitHub evidence', () => {
   const root = gitFixture('lean-authority-git-fixture-');
   writeFileSync(join(root, 'first.txt'), 'first\n');
   git(root, 'add', 'first.txt');
@@ -214,7 +215,7 @@ test('GitHub pull fixtures are bound to real Git commit parent, tree, review and
   );
 });
 
-test('closeout ancestry and authority-path drift facts come from real Git history', () => {
+test('closeout ancestry uses Git history', () => {
   const root = gitFixture('lean-authority-closeout-fixture-');
   writeFileSync(join(root, 'terminal.txt'), 'terminal\n');
   git(root, 'add', 'terminal.txt');
@@ -231,7 +232,7 @@ test('closeout ancestry and authority-path drift facts come from real Git histor
   ]);
 });
 
-test('historical inactive state resolves through its active-to-inactive transition', () => {
+test('inactive history resolves closeout', () => {
   const root = gitFixture('lean-authority-transition-fixture-');
   const terminal = commitProjection(root, activeProjection, 'active terminal');
   const closeout = commitProjection(root, inactiveProjection, 'inactive closeout');
@@ -244,9 +245,15 @@ test('historical inactive state resolves through its active-to-inactive transiti
     [transition.kind, transition.terminalProjectionSha, transition.closeoutMergeSha],
     ['closeout_recorded', terminal, closeout]
   );
+  const source = readSource('../docs/plans/current-program.md');
+  const cutover = JSON.parse(source.match(/```json lean-authority\n([\s\S]*?)\n```/u)[1]);
+  cutover.activeSlice.promotionBaseSha = closeout;
+  const base = commitProjection(root, cutover, 'prior cutover');
+  const repeat = locateAuthorityTransition(root, base, 'T117B-CUTOVER');
+  assert.equal(repeat.kind, 'closeout_recorded');
 });
 
-test('authority path edit then revert remains observable history drift', () => {
+test('authority edit-revert remains history drift', () => {
   const root = gitFixture('lean-authority-revert-fixture-');
   const terminal = commitProjection(root, inactiveProjection, 'terminal');
   commitProjection(root, activeProjection, 'temporary authority edit');
@@ -258,20 +265,17 @@ test('authority path edit then revert remains observable history drift', () => {
   assert.equal(authorityPathsTouched(root, terminal, reverted), true);
 });
 
-test('Git and GitHub subprocess evidence is bounded by an execution timeout', () => {
-  const source = readFileSync(new URL('./lean-current-authority-git.mjs', import.meta.url), 'utf8');
-  assert.match(source, /timeout:\s*30_000/u);
+test('Git evidence uses a bounded timeout', () => {
+  assert.match(readSource('./lean-current-authority-git.mjs'), /timeout:\s*30_000/u);
 });
 
-test('historical closeout selection is anchored to the recorded merge', () => {
-  const evidence = readFileSync(
-    new URL('./lean-current-authority-evidence.mjs', import.meta.url),
-    'utf8'
+test('closeout selection uses its recorded merge', () => {
+  assert.match(
+    readSource('./lean-current-authority-evidence.mjs'),
+    /transition\.closeoutMergeSha/u
   );
-  const history = readFileSync(
-    new URL('./lean-current-authority-history.mjs', import.meta.url),
-    'utf8'
+  assert.match(
+    readSource('./lean-current-authority-history.mjs'),
+    /pullByBranch\(repo, branch, transition\.closeoutMergeSha\)/u
   );
-  assert.match(evidence, /transition\.closeoutMergeSha/u);
-  assert.match(history, /pullByBranch\(repo, branch, transition\.closeoutMergeSha\)/u);
 });

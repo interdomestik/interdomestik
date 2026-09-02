@@ -21,12 +21,11 @@ import {
 
 const HISTORY_LIMIT = 128;
 
-function projectionAt(repo, sha) {
-  return parseAuthorityDocuments(
+const projectionAt = (repo, sha) =>
+  parseAuthorityDocuments(
     git(repo, 'show', `${sha}:${PROGRAM}`),
     git(repo, 'show', `${sha}:${TRACKER}`)
   );
-}
 
 function projectionOrBootstrap(repo, sha) {
   try {
@@ -37,19 +36,27 @@ function projectionOrBootstrap(repo, sha) {
   }
 }
 
-export function authorityPathsTouched(repo, base, head) {
-  if (base === head) return false;
-  return (
-    git(repo, 'log', '--first-parent', '--format=%H', `${base}..${head}`, '--', ...CLOSEOUT) !== ''
-  );
-}
+export const authorityPathsTouched = (repo, base, head) =>
+  base !== head &&
+  git(repo, 'log', '--first-parent', '--format=%H', `${base}..${head}`, '--', ...CLOSEOUT) !== '';
 
-export function locateAuthorityTransition(repo, anchor) {
+export function locateAuthorityTransition(repo, anchor, repeatId = null) {
   let current = anchor;
   for (let depth = 0; depth < HISTORY_LIMIT; depth += 1) {
     const projection = projectionOrBootstrap(repo, current);
     if (!projection) return { kind: 'bootstrap', bootstrapAnchor: current };
     if (projection.activeSlice) {
+      const prior = projection.activeSlice;
+      const priorBase = prior.promotionBaseSha;
+      if (
+        repeatId === prior.sliceId &&
+        prior.productWriterPaths.length === 12 &&
+        t117bChildContract(prior) &&
+        priorBase !== current &&
+        isAncestor(repo, priorBase, current)
+      ) {
+        return locateAuthorityTransition(repo, priorBase);
+      }
       return { kind: 'terminal', prior: projection, terminalProjectionSha: current };
     }
     const parent = git(repo, 'rev-parse', `${current}^1`);
@@ -71,12 +78,7 @@ export function locateAuthorityTransition(repo, anchor) {
 }
 
 const writerHash = paths => createHash('sha256').update(JSON.stringify(paths)).digest('hex');
-const invalid = (childId, reason, extra = {}) => ({
-  status: 'invalid',
-  childId,
-  reason,
-  ...extra,
-});
+const invalid = (childId, reason, extra = {}) => ({ status: 'invalid', childId, reason, ...extra });
 
 function productEvidence(repo, projection) {
   const slice = projection.activeSlice;
@@ -92,8 +94,9 @@ function productEvidence(repo, projection) {
   return { authority, product };
 }
 
-function closeoutEvidence(repo, successor, transition, terminal) {
-  const prior = transition.prior;
+function closeoutEvidence(repo, transition, terminal) {
+  const { closeoutMergeSha: closeoutSha, prior, terminalProjectionSha: terminalSha } = transition;
+  const mergeSha = terminal.product.mergeSha;
   const branch = `${prior.activeSlice.expectedProductBranch}-closeout`;
   const raw = pullByBranch(repo, branch, transition.closeoutMergeSha);
   if (!raw) return { state: 'missing' };
@@ -101,83 +104,72 @@ function closeoutEvidence(repo, successor, transition, terminal) {
   const result = verifyCloseout(
     { ...prior, lifecycle: 'inactive', activeSlice: null },
     {
-      state: pull.state,
-      inventoryComplete: pull.inventoryComplete,
+      ...pull,
       prBaseSha: pull.baseSha,
-      headRef: pull.headRef,
       expectedHeadRef: branch,
-      terminalAnchorIsAncestor: isAncestor(
-        repo,
-        terminal.product.mergeSha,
-        transition.terminalProjectionSha
-      ),
-      authorityPathsChangedAfterTerminal: authorityPathsTouched(
-        repo,
-        terminal.product.mergeSha,
-        transition.terminalProjectionSha
-      ),
-      baseSha: transition.terminalProjectionSha,
-      headTree: pull.headTree,
-      mergeSha: pull.mergeSha,
-      mergeParents: pull.mergeParents,
-      mergeTree: pull.mergeTree,
-      protectedMainSha: transition.closeoutMergeSha,
-      changedPaths: pull.changedPaths,
+      terminalAnchorIsAncestor: isAncestor(repo, mergeSha, terminalSha),
+      authorityPathsChangedAfterTerminal: authorityPathsTouched(repo, mergeSha, terminalSha),
+      baseSha: terminalSha,
+      protectedMainSha: closeoutSha,
     }
   );
-  return { pull, result, successorBaseSha: successor.activeSlice.promotionBaseSha };
+  return { pull, result };
 }
 
 export function collectT117BPredecessorEvidence(repo, projection) {
   const slice = projection.activeSlice;
   const child = t117bChildContract(slice);
+  const childId = slice.sliceId;
   if (!child) return null;
-  if (!child.predecessor) return { status: 'root', childId: slice.sliceId };
+  if (!child.predecessor) return { status: 'root', childId };
   try {
-    const transition = locateAuthorityTransition(repo, slice.promotionBaseSha);
+    const repeatId = slice.productWriterPaths.length === 20 ? childId : null;
+    const transition = locateAuthorityTransition(repo, slice.promotionBaseSha, repeatId);
     if (transition.kind !== 'closeout_recorded') {
-      return invalid(slice.sliceId, 'predecessor_closeout_missing');
+      return invalid(childId, 'predecessor_closeout_missing');
     }
-    const priorSlice = transition.prior.activeSlice;
+    const prior = transition.prior.activeSlice;
+    const predecessor = child.predecessor;
     const identity = {
-      predecessorSliceId: priorSlice?.sliceId ?? null,
-      predecessorWriterMapSha256: writerHash(priorSlice?.productWriterPaths ?? []),
+      predecessorSliceId: prior?.sliceId ?? null,
+      predecessorWriterMapSha256: writerHash(prior?.productWriterPaths ?? []),
     };
     if (
-      identity.predecessorSliceId !== child.predecessor.sliceId ||
-      identity.predecessorWriterMapSha256 !== child.predecessor.writerHash
+      identity.predecessorSliceId !== predecessor.sliceId ||
+      identity.predecessorWriterMapSha256 !== predecessor.writerHash
     ) {
-      return invalid(slice.sliceId, 'predecessor_identity_mismatch', identity);
+      return invalid(childId, 'predecessor_identity_mismatch', identity);
     }
     const terminal = productEvidence(repo, transition.prior);
+    const product = terminal.product;
     if (terminal.authority?.lifecycle !== 'consumed_on_merge') {
-      return invalid(slice.sliceId, 'predecessor_product_unverified', {
+      return invalid(childId, 'predecessor_product_unverified', {
         ...identity,
-        productState: terminal.product?.state ?? terminal.state,
-        productMerged: terminal.product?.merged ?? false,
+        productState: product?.state ?? terminal.state,
+        productMerged: product?.merged ?? false,
       });
     }
-    const closeout = closeoutEvidence(repo, projection, transition, terminal);
+    const closeout = closeoutEvidence(repo, transition, terminal);
     if (
       closeout.result?.reason !== 'deterministic_closeout_recorded' ||
       closeout.pull?.mergeSha !== transition.closeoutMergeSha
     ) {
-      return invalid(slice.sliceId, 'predecessor_closeout_unverified', identity);
+      return invalid(childId, 'predecessor_closeout_unverified', identity);
     }
     return {
       status: 'verified',
-      childId: slice.sliceId,
+      childId,
       ...identity,
-      productPrNumber: terminal.product.number,
-      productState: terminal.product.state,
-      productMerged: terminal.product.merged,
-      productHeadSha: terminal.product.headSha,
-      productHeadTree: terminal.product.headTree,
-      productMergeSha: terminal.product.mergeSha,
+      productPrNumber: product.number,
+      productState: product.state,
+      productMerged: product.merged,
+      productHeadSha: product.headSha,
+      productHeadTree: product.headTree,
+      productMergeSha: product.mergeSha,
       closeoutState: closeout.result.reason,
       closeoutMergeSha: transition.closeoutMergeSha,
     };
   } catch {
-    return invalid(slice.sliceId, 'predecessor_evidence_unavailable');
+    return invalid(childId, 'predecessor_evidence_unavailable');
   }
 }
