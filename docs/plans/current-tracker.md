@@ -24,17 +24,17 @@ status_command: pnpm plan:status
 
 | ID              | Source Refs                                                                                               | Execution | Run ID     | Run Root               | Sonar     | Docker           | Sentry           | Learning         | Evidence Refs                                             |
 | --------------- | --------------------------------------------------------------------------------------------------------- | --------- | ---------- | ---------------------- | --------- | ---------------- | ---------------- | ---------------- | --------------------------------------------------------- |
-| `T117B-CUTOVER` | [gate](./2026-08-28-t117b-cutover-design-gate.md); [admission](./2026-08-28-t117b-cutover-admission.json) | `pending` | `PR #1681` | `GitHub-hosted Ubuntu` | `pending` | `not_applicable` | `not_applicable` | `not_applicable` | Repromotion and exact twenty-path product remain pending. |
+| `T117B-CUTOVER` | [gate](./2026-08-28-t117b-cutover-design-gate.md); [admission](./2026-08-28-t117b-cutover-admission.json) | `pending` | `PR #1683` | `GitHub-hosted Ubuntu` | `pending` | `not_applicable` | `not_applicable` | `not_applicable` | Repromotion and exact twenty-path product remain pending. |
 
 ## Next Selection
 
-PR `#1680` merged the zero-sum capacity repair at
-`c6a258e00cfe71e6d53e63ea48708d582453030f`; PR `#1681` reprojects the unchanged CUTOVER from
-that exact base. Closed DATA/PORTAL remain bound; T-117C remains default-denied.
+PR `#1681` merged the prior projection at `050d5a9c241ea8f2691abc4356e112f23384b1cd`; repairs
+`#1682`/`#1684`/`#1685` merged. PR `#1683` reprojects unchanged CUTOVER from latest base
+`3545ef7b3867da9cda51ff37ddb51c51dd1c6be5`; DATA/PORTAL stay closed and T-117C denied.
 
 | Future UI branch | Status              | Constraint                              |
 | ---------------- | ------------------- | --------------------------------------- |
-| `T117B-CUTOVER`  | `promotion_pending` | Exact PR `#1681`; runtime awaits merge. |
+| `T117B-CUTOVER`  | `promotion_pending` | Exact PR `#1683`; runtime awaits merge. |
 | `T-117C`         | `deferred`          | cacheComponents/PPR/named slots.        |
 
 ## Lean Authority
@@ -52,11 +52,11 @@ that exact base. Closed DATA/PORTAL remain bound; T-117C remains default-denied.
   "activeSlice": {
     "sliceId": "T117B-CUTOVER",
     "tier": 3,
-    "promotionPrNumber": 1681,
-    "promotionBaseSha": "c6a258e00cfe71e6d53e63ea48708d582453030f",
+    "promotionPrNumber": 1683,
+    "promotionBaseSha": "3545ef7b3867da9cda51ff37ddb51c51dd1c6be5",
     "expectedProductBranch": "codex/t117b-cutover",
-    "gateSha256": "07b2afa0a92dd3776ab3e366f24beef15201cb85f27a0f7189996294b3347bc6",
-    "admissionSha256": "ee308b50a8224547cd49dd018ae2959439d027e92197cbb1af37816722d5388d",
+    "gateSha256": "ad1f3f8df5cfdb323e59832c1bba398811b087307c695e885c34c571a9bb8335",
+    "admissionSha256": "1182581a688e1e978c8ac60f14c9729fa27c454839023250838aaba6ca3eaca0",
     "productWriterPaths": [
       "apps/web/e2e/dashboard-access.spec.ts",
       "apps/web/e2e/gate/member-diaspora.spec.ts",
