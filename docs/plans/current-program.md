@@ -69,11 +69,11 @@ proof, and protected main were green.
 presentation; proof and main were green. CUTOVER's zero-sum ownership prerequisite completed in
 PR `#1676`, with squash `64a5403f5d7f55891a353fe4d914a7ad2bab30bc` and tree
 `e80746833fb974829035a83c99dbd95a50911c9f`; exact PR and protected-main health were green, and CD
-was cancelled before deployment. PR `#1677` merged the prior twenty-path projection at
-`a73b25035f578ca5ac60c3cd301abdb322201115`. PR `#1680` then transferred one bounded file slot
-zero-sum and merged at `c6a258e00cfe71e6d53e63ea48708d582453030f`. PR `#1681` reprojects the
-unchanged twenty-path CUTOVER after that capacity repair; runtime awaits merge. T-117C remains
-default-denied.
+was cancelled before deployment. Projections `#1677`/`#1681` merged at
+`a73b25035f578ca5ac60c3cd301abdb322201115`/`050d5a9c241ea8f2691abc4356e112f23384b1cd`;
+zero-sum repair `#1680` merged at `c6a258e00cfe71e6d53e63ea48708d582453030f`. Repairs
+`#1682`/`#1684`/`#1685` merged; the latter at `3545ef7b3867da9cda51ff37ddb51c51dd1c6be5` is
+`#1683`'s unchanged CUTOVER reproject base. Runtime awaits merge; T-117C remains denied.
 
 Closed `IDA-WF01-ONE-APPROVAL-DELIVERY` remains immutable evidence through its
 [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),
@@ -92,7 +92,7 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 | Priority | Candidate              | Dependencies   | Promotion constraint                              |
 | -------: | ---------------------- | -------------- | ------------------------------------------------- |
-|        1 | `T117B-CUTOVER` Tier 3 | PORTAL closed  | Exact promotion PR `#1681`; runtime awaits merge. |
+|        1 | `T117B-CUTOVER` Tier 3 | PORTAL closed  | Exact promotion PR `#1683`; runtime awaits merge. |
 |        2 | `T-117C` Tier 3        | CUTOVER closed | Atomic PPR + named-parallel-route migration.      |
 
 ## Unified Portal Direction
@@ -136,11 +136,11 @@ and global headers remain T-117C.
   "activeSlice": {
     "sliceId": "T117B-CUTOVER",
     "tier": 3,
-    "promotionPrNumber": 1681,
-    "promotionBaseSha": "c6a258e00cfe71e6d53e63ea48708d582453030f",
+    "promotionPrNumber": 1683,
+    "promotionBaseSha": "3545ef7b3867da9cda51ff37ddb51c51dd1c6be5",
     "expectedProductBranch": "codex/t117b-cutover",
-    "gateSha256": "07b2afa0a92dd3776ab3e366f24beef15201cb85f27a0f7189996294b3347bc6",
-    "admissionSha256": "ee308b50a8224547cd49dd018ae2959439d027e92197cbb1af37816722d5388d",
+    "gateSha256": "ad1f3f8df5cfdb323e59832c1bba398811b087307c695e885c34c571a9bb8335",
+    "admissionSha256": "1182581a688e1e978c8ac60f14c9729fa27c454839023250838aaba6ca3eaca0",
     "productWriterPaths": [
       "apps/web/e2e/dashboard-access.spec.ts",
       "apps/web/e2e/gate/member-diaspora.spec.ts",
