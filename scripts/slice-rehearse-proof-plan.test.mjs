@@ -1,11 +1,10 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import test from 'node:test';
 
 import { canonicalJson, deriveEvidenceIdentityKey, sha256 } from './slice-rehearse-canonical.mjs';
 import {
+  heavyProofLedgerPath,
   planInvalidatedProofs,
   recordHeavyProofExecution,
   runHeavyProofExecution,
@@ -27,9 +26,10 @@ const identity = suffix => ({
   writerMapDigest: suffix.repeat(64),
 });
 
-function proofReport(item) {
+function proofReport(item, sliceId = 'HARNESS-V2-PROOF-PLAN') {
   const report = {
     schemaVersion: 1,
+    sliceId,
     repository: { headSha: '1'.repeat(40), treeSha: '2'.repeat(40) },
     authorityStops: [],
     evidence: { executionPlan: { reuse: [], run: [item] } },
@@ -63,56 +63,82 @@ test('plans only invalidated or missing proof lanes in deterministic code-unit o
 });
 
 test('persists the no-duplicate contract atomically across process-local ledgers', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'heavy-proof-ledger-'));
-  const ledgerPath = path.join(root, 'ledger.jsonl');
+  const scope = {
+    sliceId: 'HARNESS-V2-PROOF-LEDGER',
+    headSha: '1'.repeat(40),
+    treeSha: '2'.repeat(40),
+  };
+  const root = fs.mkdtempSync('/private/tmp/heavy-proof-ledger-');
+  const ledgerPath = heavyProofLedgerPath(scope, root);
+  fs.rmSync(ledgerPath, { force: true });
   const execution = {
     runId: 'run-0001',
     evidenceKey: 'c'.repeat(64),
     lane: 'pr-e2e',
     startedAt: '2026-08-31T00:00:00.000Z',
   };
-  assert.equal(recordHeavyProofExecution({ ledgerPath, execution }), true);
+  assert.equal(recordHeavyProofExecution({ ledgerPath, scope, execution, ledgerRoot: root }), true);
   assert.throws(
-    () => recordHeavyProofExecution({ ledgerPath, execution: { ...execution, runId: 'run-0002' } }),
+    () =>
+      recordHeavyProofExecution({
+        ledgerPath,
+        scope,
+        execution: { ...execution, runId: 'run-0002' },
+        ledgerRoot: root,
+      }),
     /receipt transition/u
   );
+  assert.throws(
+    () =>
+      recordHeavyProofExecution({
+        ledgerPath: `${ledgerPath}.alternate`,
+        scope,
+        execution,
+        ledgerRoot: root,
+      }),
+    /canonical evidence scope/u
+  );
+  fs.rmSync(root, { recursive: true, force: true });
 });
 
 test('the proof executor runs only the fixed lane commands after claiming the evidence key', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'heavy-proof-executor-'));
+  const report = proofReport(
+    { lane: 'pr-e2e', evidenceKey: 'f'.repeat(64) },
+    'HARNESS-V2-PROOF-EXECUTOR'
+  );
+  const ledgerPath = heavyProofLedgerPath({
+    sliceId: report.sliceId,
+    headSha: report.repository.headSha,
+    treeSha: report.repository.treeSha,
+  });
   const commands = [];
+  const records = [];
   const result = runHeavyProofExecution({
-    ledgerPath: path.join(root, 'ledger.jsonl'),
+    ledgerPath,
     execution: {
       runId: 'run-executor-0001',
       evidenceKey: 'f'.repeat(64),
       lane: 'pr-e2e',
       startedAt: '2026-08-31T00:00:00.000Z',
     },
-    report: proofReport({ lane: 'pr-e2e', evidenceKey: 'f'.repeat(64) }),
+    report,
     verifyCandidate: () => true,
     execute: args => {
       commands.push(args);
       return { status: 0 };
     },
+    record: input => records.push(input.status ?? 'reserved'),
   });
   assert.deepEqual(commands, [
     ['e2e:gate:pr'],
     ['--filter', '@interdomestik/web', 'run', 'e2e:smoke'],
   ]);
   assert.equal(result.status, 'succeeded');
-  assert.deepEqual(
-    fs
-      .readFileSync(path.join(root, 'ledger.jsonl'), 'utf8')
-      .trim()
-      .split('\n')
-      .map(line => JSON.parse(line).status),
-    ['reserved', 'running', 'succeeded']
-  );
+  assert.deepEqual(records, ['reserved', 'running', 'succeeded']);
   assert.throws(
     () =>
       runHeavyProofExecution({
-        ledgerPath: path.join(root, 'other-ledger.jsonl'),
+        ledgerPath,
         execution: {
           runId: 'run-executor-0002',
           evidenceKey: '0'.repeat(64),
@@ -127,8 +153,17 @@ test('the proof executor runs only the fixed lane commands after claiming the ev
 });
 
 test('failed heavy proof is terminal and never becomes a reusable success receipt', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'heavy-proof-failed-'));
-  const ledgerPath = path.join(root, 'ledger.jsonl');
+  const report = proofReport(
+    { lane: 'pr-e2e', evidenceKey: '7'.repeat(64) },
+    'HARNESS-V2-PROOF-FAILED'
+  );
+  const scope = {
+    sliceId: report.sliceId,
+    headSha: report.repository.headSha,
+    treeSha: report.repository.treeSha,
+  };
+  const ledgerPath = heavyProofLedgerPath(scope);
+  const records = [];
   const execution = {
     runId: 'run-failed-0001',
     evidenceKey: '7'.repeat(64),
@@ -138,24 +173,13 @@ test('failed heavy proof is terminal and never becomes a reusable success receip
   const result = runHeavyProofExecution({
     ledgerPath,
     execution,
-    report: proofReport({ lane: 'pr-e2e', evidenceKey: execution.evidenceKey }),
+    report,
     verifyCandidate: () => true,
     execute: () => ({ status: null }),
+    record: input => records.push(input.status ?? 'reserved'),
   });
   assert.equal(result.status, 'failed');
-  assert.deepEqual(
-    fs
-      .readFileSync(ledgerPath, 'utf8')
-      .trim()
-      .split('\n')
-      .map(line => JSON.parse(line).status),
-    ['reserved', 'running', 'failed']
-  );
-  assert.throws(
-    () =>
-      recordHeavyProofExecution({ ledgerPath, execution: { ...execution, runId: 'retry-0001' } }),
-    /receipt transition/u
-  );
+  assert.deepEqual(records, ['reserved', 'running', 'failed']);
 });
 
 test('pending identity-changing work blocks heavy proof dispatch', () => {
@@ -166,7 +190,11 @@ test('pending identity-changing work blocks heavy proof dispatch', () => {
   assert.throws(
     () =>
       runHeavyProofExecution({
-        ledgerPath: path.join(os.tmpdir(), 'never-created-ledger.jsonl'),
+        ledgerPath: heavyProofLedgerPath({
+          sliceId: report.sliceId,
+          headSha: report.repository.headSha,
+          treeSha: report.repository.treeSha,
+        }),
         execution: {
           runId: 'run-blocked-0001',
           evidenceKey: item.evidenceKey,

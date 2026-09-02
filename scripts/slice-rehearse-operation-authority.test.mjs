@@ -1,14 +1,24 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
 
 import { canonicalJson, sha256 } from './slice-rehearse-canonical.mjs';
 import { operationApprovalBinding } from './slice-rehearse-operation-certificate.mjs';
 import * as live from './slice-rehearse-operation-live.mjs';
-import { buildSafeOperation, runSafeOperation } from './slice-rehearse-ops.mjs';
+import {
+  approvalReceiptPath,
+  buildSafeOperation,
+  consumeApprovedOperation,
+  runSafeOperation,
+  verifyTrustedApprovalReceipt,
+} from './slice-rehearse-ops.mjs';
 
 const [head, base, tree] = ['a', 'b', 'c'].map(value => value.repeat(40));
 const writerMapDigest = 'd'.repeat(64);
-const approvalReceiptSha256 = 'e'.repeat(64);
+const APPROVAL = 'trusted approval receipt\n';
+const approvalReceiptSha256 = sha256(APPROVAL);
 const outcomeRiskSha256 = 'f'.repeat(64);
 const writerClosure = ['scripts/a.mjs'];
 const origin = 'https://github.com/interdomestik/interdomestik.git';
@@ -142,6 +152,8 @@ test('binds approval to outcome, branch, PR, and closure while allowing SHA rebi
   for (const drift of [
     { branch: 'codex/other' },
     { prNumber: 1701 },
+    { sliceId: 'HARNESS-V2-X' },
+    { workClass: 'product' },
     { outcomeRiskSha256: '0'.repeat(64) },
     { writerClosure: ['scripts/b.mjs'] },
   ])
@@ -152,7 +164,36 @@ test('binds approval to outcome, branch, PR, and closure while allowing SHA rebi
 });
 
 test('rejects a self-minted certificate without trusted approval provenance', () => {
-  const request = { operation: 'label_add', ...authorityFields(), prNumber, label: 'full-gate' };
+  const request = {
+    operation: 'label_add',
+    ...authorityFields({ certificate: { approvalEnvelopeId: 'HARNESS-V2-1-DELIVERY-9999' } }),
+    prNumber,
+    label: 'full-gate',
+  };
+  assert.throws(
+    () =>
+      runSafeOperation(request, {
+        readLiveFacts: () => liveFacts,
+        readAuthority: () => inactiveAuthority,
+      }),
+    /approval receipt/u
+  );
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'trusted-harness-approval-'));
+  const receipt = approvalReceiptPath(request.authorityCertificate, root);
+  fs.writeFileSync(receipt, APPROVAL, { mode: 0o600 });
+  assert.equal(verifyTrustedApprovalReceipt(request.authorityCertificate, root), true);
+  const marker = consumeApprovedOperation(request, request.authorityCertificate, root);
+  assert.equal(fs.readFileSync(marker, 'utf8'), `${sha256(canonicalJson(request))}\n`);
+  assert.throws(
+    () => consumeApprovedOperation(request, request.authorityCertificate, root),
+    /EEXIST/u
+  );
+  fs.writeFileSync(receipt, 'forged\n', { mode: 0o600 });
+  assert.throws(
+    () => verifyTrustedApprovalReceipt(request.authorityCertificate, root),
+    /digest differs/u
+  );
+  fs.rmSync(root, { recursive: true, force: true });
   const authorityCertificate = { ...request.authorityCertificate };
   delete authorityCertificate.approvalReceiptSha256;
   assert.throws(
@@ -193,25 +234,24 @@ test('rejects forged or incomplete facts', () => {
     /artifact path is unsafe/u
   );
   assert.throws(
-    () =>
-      runSafeOperation(request, {
-        readLiveFacts: () => null,
-        readAuthority: () => inactiveAuthority,
-      }),
+    () => live.verifyLiveOperationFacts(null, request.authorityCertificate, request.operation),
     /live operation facts are unavailable/u
   );
 });
 
-test('preserves unknown mutation reconciliation', () => {
-  const request = { operation: 'label_add', ...authorityFields(), prNumber, label: 'full-gate' };
-  const result = runSafeOperation(request, {
-    readLiveFacts: () => liveFacts,
-    readAuthority: () => inactiveAuthority,
-    execute: () => ({ status: 1, stderr: 'transport timeout' }),
-    reconcile: () => ({ outcome: 'unknown' }),
-  });
-  assert.equal(result.status, 'failed_unknown');
-  assert.equal(result.reconciliation.outcome, 'unknown');
+test('does not execute a mutation before trusted approval is proven', () => {
+  const request = {
+    operation: 'label_add',
+    ...authorityFields({ certificate: { approvalEnvelopeId: 'HARNESS-V2-1-DELIVERY-9998' } }),
+    prNumber,
+    label: 'full-gate',
+  };
+  let executed = false;
+  assert.throws(
+    () => runSafeOperation(request, { execute: () => (executed = true) }),
+    /approval receipt/u
+  );
+  assert.equal(executed, false);
 });
 
 test('merge reconciliation binds exact parent, tree, main, PR, and Lean consumption', () => {
@@ -250,6 +290,10 @@ test('merge reconciliation binds exact parent, tree, main, PR, and Lean consumpt
   ])
     assert.equal(
       live.classifyMergeReconciliation(changed, authorityCertificate).outcome,
-      'not_applied'
+      'unknown'
     );
+  assert.equal(
+    live.classifyMergeReconciliation({ pull: { state: 'OPEN' } }, authorityCertificate).outcome,
+    'not_applied'
+  );
 });

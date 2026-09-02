@@ -14,7 +14,7 @@ import {
   normalizeHeavyProofExecution,
   recordHeavyProofExecution,
 } from './slice-rehearse-evidence.mjs';
-export { recordHeavyProofExecution } from './slice-rehearse-evidence.mjs';
+export { heavyProofLedgerPath, recordHeavyProofExecution } from './slice-rehearse-evidence.mjs';
 const KEY = /^[0-9a-f]{64}$/u;
 export function planInvalidatedProofs({
   requiredLanes,
@@ -146,26 +146,29 @@ export function runHeavyProofExecution({
   ledgerPath,
   execution,
   report,
-  allowedRoots,
   execute = executePnpmProof,
   verifyCandidate,
+  record = recordHeavyProofExecution,
 }) {
   const value = validateProofExecutionPlan(report, execution, verifyCandidate);
   const commands = PROOF_COMMANDS[value.lane];
   must(commands, 'heavy proof lane has no fixed executor');
-  recordHeavyProofExecution({ ledgerPath, execution: value, allowedRoots });
-  recordHeavyProofExecution({ ledgerPath, execution: value, status: 'running', allowedRoots });
+  const { sliceId } = report;
+  const { headSha, treeSha } = report.repository;
+  const scope = { sliceId, headSha, treeSha };
+  record({ ledgerPath, scope, execution: value });
+  record({ ledgerPath, scope, execution: value, status: 'running' });
   for (let index = 0; index < commands.length; index += 1) {
     const result = execute(commands[index]);
     if (result?.status !== 0) {
       const exitCode = Number.isInteger(result?.status) ? result.status : null;
-      recordHeavyProofExecution({
+      record({
         ledgerPath,
+        scope,
         execution: value,
         status: 'failed',
         finishedAt: new Date().toISOString(),
         exitCode,
-        allowedRoots,
       });
       return {
         commandIndex: index,
@@ -176,13 +179,13 @@ export function runHeavyProofExecution({
       };
     }
   }
-  recordHeavyProofExecution({
+  record({
     ledgerPath,
+    scope,
     execution: value,
     status: 'succeeded',
     finishedAt: new Date().toISOString(),
     exitCode: 0,
-    allowedRoots,
   });
   return { lane: value.lane, runId: value.runId, status: 'succeeded' };
 }
@@ -225,7 +228,6 @@ export function runHeavyProofRecordCli({
       ledgerPath: resolve(cwd, ledgerPath),
       execution,
       report,
-      allowedRoots,
     });
     stdout(canonicalJson({ evidenceKey: execution.evidenceKey, ...result }));
     return result.status === 'succeeded' ? 0 : 1;

@@ -17,6 +17,33 @@ import { fileURLToPath } from 'node:url';
 import { canonicalize, must, readBoundedRegularText } from './slice-rehearse-canonical.mjs';
 import { trustedRunnerFile } from './ci/trusted-runner-file.mjs';
 import { validateTelemetryEventV2 } from './slice-telemetry-v2-schema.mjs';
+import { summarizeTelemetryV2 } from './slice-telemetry-v2-aggregation.mjs';
+import { HOST_BOUND_AUTHORITY_ROOT } from './slice-rehearse-ops.mjs';
+
+const CHECKPOINT_ROOT = resolve(HOST_BOUND_AUTHORITY_ROOT, 'harness-telemetry');
+export function checkpointTelemetryPath({ sliceId, baseSha }) {
+  return resolve(CHECKPOINT_ROOT, `${sliceId}-${baseSha}.jsonl`);
+}
+export function readCheckpointTelemetry(input) {
+  const ledgerPath = checkpointTelemetryPath(input);
+  if (!existsSync(ledgerPath)) return null;
+  const text = readBoundedRegularText(ledgerPath, {
+    label: 'Checkpoint telemetry ledger',
+    maxBytes: 16 * 1024 * 1024,
+    allowedRoots: [CHECKPOINT_ROOT],
+  });
+  must(text.endsWith('\n') && !text.includes('\n\n'), 'telemetry v2 JSONL framing is invalid');
+  const events = text
+    .trimEnd()
+    .split('\n')
+    .map(line => JSON.parse(line));
+  const summary = summarizeTelemetryV2(events);
+  must(
+    summary.sliceCount === 1 && summary.slices[0].sliceId === input.sliceId,
+    'telemetry slice differs'
+  );
+  return summary.slices[0];
+}
 
 export function recordTelemetryEvent({ event, existingText }) {
   const normalized = validateTelemetryEventV2(event);
@@ -56,7 +83,7 @@ function parseArgs(argv) {
 export function appendEvent({
   eventPath,
   ledgerPath,
-  trustedRoots = [process.cwd(), tmpdir(), '/private/tmp'],
+  trustedRoots = [process.cwd(), tmpdir(), HOST_BOUND_AUTHORITY_ROOT],
 }) {
   const roots = trustedRoots.map(root => resolve(root));
   const allowedRoots = [...new Set([...roots, ...roots.map(root => realpathSync(root))])];

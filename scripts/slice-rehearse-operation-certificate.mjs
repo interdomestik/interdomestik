@@ -17,15 +17,10 @@ const LABEL = /^[a-z0-9][a-z0-9_-]{0,63}$/u;
 const SHA256 = /^[0-9a-f]{64}$/u;
 export const OPERATION_ARTIFACT_ROOT = resolve(
   homedir(),
-  '.cache',
-  'interdomestik-harness-operations'
+  '.cache/interdomestik-harness-operations'
 );
-const AUTHORITY_FIELDS = [
-  'approvalEnvelopeId',
-  'authorityCertificate',
-  'authorityCertificateSha256',
-  'expectedHeadSha',
-];
+const AUTHORITY_FIELDS =
+  'approvalEnvelopeId authorityCertificate authorityCertificateSha256 expectedHeadSha'.split(' ');
 const DEFINITIONS = {
   branch_push: [...AUTHORITY_FIELDS, 'branch', 'operation'],
   pr_create: [...AUTHORITY_FIELDS, 'baseBranch', 'bodyArtifact', 'branch', 'operation', 'title'],
@@ -33,30 +28,10 @@ const DEFINITIONS = {
   feedback_comment: [...AUTHORITY_FIELDS, 'bodyArtifact', 'operation', 'prNumber'],
   conditional_merge: [...AUTHORITY_FIELDS, 'operation', 'prNumber'],
 };
-const CERTIFICATE_KEYS = [
-  'approvalBindingSha256',
-  'allowedOperations',
-  'approvalEnvelopeId',
-  'approvalReceiptSha256',
-  'artifacts',
-  'baseBranch',
-  'baseSha',
-  'branch',
-  'certificateId',
-  'expectedRemoteHeadSha',
-  'headSha',
-  'origin',
-  'outcomeRiskSha256',
-  'prNumber',
-  'reportSha256',
-  'rehearsalReport',
-  'schemaVersion',
-  'sliceId',
-  'treeSha',
-  'workClass',
-  'writerClosure',
-  'writerMapDigest',
-];
+const CERTIFICATE_KEYS =
+  'approvalBindingSha256 allowedOperations approvalEnvelopeId approvalReceiptSha256 artifacts baseBranch baseSha branch certificateId expectedRemoteHeadSha headSha origin outcomeRiskSha256 prNumber reportSha256 rehearsalReport schemaVersion sliceId treeSha workClass writerClosure writerMapDigest'.split(
+    ' '
+  );
 export function operationApprovalBinding(certificate) {
   return sha256(
     canonicalJson({
@@ -68,6 +43,8 @@ export function operationApprovalBinding(certificate) {
       origin: certificate.origin,
       outcomeRiskSha256: certificate.outcomeRiskSha256,
       prNumber: certificate.prNumber,
+      sliceId: certificate.sliceId,
+      workClass: certificate.workClass,
       writerClosure: certificate.writerClosure,
       writerMapDigest: certificate.writerMapDigest,
     })
@@ -120,6 +97,11 @@ function validateCertificate(request) {
   must(certificate.schemaVersion === 1, 'operation authority certificate schema is invalid');
   must(CERTIFICATE_ID.test(certificate.certificateId), 'operation certificate ID is invalid');
   must(ENVELOPE.test(certificate.approvalEnvelopeId), 'delivery approval envelope is invalid');
+  must(
+    certificate.approvalEnvelopeId.startsWith(`${certificate.sliceId}-DELIVERY-`) &&
+      certificate.certificateId.startsWith(`${certificate.sliceId}-CERT-`),
+    'operation certificate identity differs from slice'
+  );
   must(
     certificate.approvalEnvelopeId === request.approvalEnvelopeId,
     'operation envelope differs from certificate'

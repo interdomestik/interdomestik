@@ -90,8 +90,6 @@ const liveFacts = {
   },
 };
 
-const inactiveAuthority = { source: 'live-resolver', runtimeAuthorized: false, activeSlice: null };
-
 test('bounds git auth environment', () => {
   const env = { HOME: '/u', XDG_CONFIG_HOME: '/x', SSH_AUTH_SOCK: '/s', GH_TOKEN: 't' };
   const PATH = '/usr/bin:/bin:/usr/sbin:/sbin';
@@ -159,43 +157,23 @@ test('checks head and reconciles a failed writer', () => {
   };
   assert.throws(
     () =>
-      runSafeOperation(request, {
-        readLiveFacts: () => ({ ...liveFacts, headSha: '9'.repeat(40) }),
-        readAuthority: () => inactiveAuthority,
-        execute: () => ({ status: 0 }),
-      }),
+      live.verifyLiveOperationFacts(
+        { ...liveFacts, headSha: '9'.repeat(40) },
+        request.authorityCertificate,
+        request.operation
+      ),
     /exact local head differs/u
   );
   assert.throws(
     () =>
-      runSafeOperation(
-        {
-          operation: 'pr_create',
-          ...authorityFields({ certificate: { prNumber: null }, request: {} }),
-          branch,
-          baseBranch,
-          title: 'feat: harness v2.1',
-          bodyArtifact: 'pr.md',
-        },
-        {
-          readLiveFacts: () => ({ ...liveFacts, remoteHeadSha: '9'.repeat(40), pr: null }),
-          readAuthority: () => inactiveAuthority,
-        }
+      live.verifyLiveOperationFacts(
+        { ...liveFacts, remoteHeadSha: '9'.repeat(40), pr: null },
+        certificate({ prNumber: null }),
+        'pr_create'
       ),
     /remote branch head differs/u
   );
-  let reconciliations = 0;
-  const result = runSafeOperation(request, {
-    readLiveFacts: () => liveFacts,
-    readAuthority: () => inactiveAuthority,
-    execute: () => ({ status: 1, stderr: 'network failure' }),
-    reconcile: () => {
-      reconciliations += 1;
-      return { outcome: 'not_applied', remoteHeadSha: head };
-    },
-  });
-  assert.equal(result.status, 'failed_not_applied');
-  assert.equal(reconciliations, 1);
+  assert.throws(() => runSafeOperation(request), /approval receipt/u);
 });
 test('updates an exact PR from its remote preimage', () => {
   const oldHead = '8'.repeat(40);
@@ -209,15 +187,11 @@ test('updates an exact PR from its remote preimage', () => {
     }),
     branch,
   };
-  const result = runSafeOperation(request, {
-    readLiveFacts: () => ({
-      ...liveFacts,
-      remoteHeadSha: oldHead,
-      pr: { ...liveFacts.pr, headSha: oldHead },
-    }),
-    readAuthority: () => inactiveAuthority,
-    execute: () => ({ status: 0 }),
-    reconcile: () => ({ outcome: 'applied', remoteHeadSha: head }),
-  });
-  assert.equal(result.status, 'succeeded');
+  assert.doesNotThrow(() =>
+    live.verifyLiveOperationFacts(
+      { ...liveFacts, remoteHeadSha: oldHead, pr: { ...liveFacts.pr, headSha: oldHead } },
+      request.authorityCertificate,
+      request.operation
+    )
+  );
 });

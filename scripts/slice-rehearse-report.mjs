@@ -17,6 +17,9 @@ import {
   resolveAtAuthorityBoundary,
 } from './slice-rehearse-authority-boundary.mjs';
 import { execOptions, resolveGhBinary } from './slice-rehearse-operation-live.mjs';
+import { readTrustedApprovalCount } from './slice-rehearse-ops.mjs';
+import { readHeavyProofRecords } from './slice-rehearse-evidence.mjs';
+import { readCheckpointTelemetry } from './slice-telemetry-v2-record.mjs';
 
 const SHA = /^[0-9a-f]{40}$/u;
 const KEYS = [
@@ -105,7 +108,7 @@ function defaultVerifyState(input) {
   const treeSha = execFileSync('/usr/bin/git', ['rev-parse', 'HEAD^{tree}'], OPTIONS).trim();
   const protectedMainSha = execFileSync(
     '/usr/bin/git',
-    ['rev-parse', 'refs/remotes/origin/main^{commit}'],
+    ['rev-parse', 'origin/main'],
     OPTIONS
   ).trim();
   let baseIsAncestor = false;
@@ -119,16 +122,8 @@ function defaultVerifyState(input) {
   } catch {
     baseIsAncestor = false;
   }
-  if (
-    !verifyCheckpointGitIdentity(input, {
-      headSha,
-      treeSha,
-      protectedMainSha,
-      baseIsAncestor,
-    })
-  ) {
-    return false;
-  }
+  const gitFacts = { headSha, treeSha, protectedMainSha, baseIsAncestor };
+  if (!verifyCheckpointGitIdentity(input, gitFacts)) return { verified: false };
   if (input.prNumber !== null) {
     const pull = JSON.parse(
       execFileSync(
@@ -143,12 +138,13 @@ function defaultVerifyState(input) {
         execOptions('gh')
       )
     );
-    if (pull.headRefOid !== input.headSha || pull.baseRefName !== 'main') return false;
+    if (pull.headRefOid !== input.headSha || pull.baseRefName !== 'main')
+      return { verified: false };
     if (
       input.stage === 'final' &&
       (pull.state !== 'MERGED' || pull.mergeCommit?.oid !== input.mergeSha)
     )
-      return false;
+      return { verified: false };
   }
   if (['authority_hold', 'final'].includes(input.stage)) {
     const authority = resolveAtAuthorityBoundary({
@@ -156,9 +152,27 @@ function defaultVerifyState(input) {
       readLiveAuthority: () =>
         authenticateResolverOutput(resolveRepositoryAuthority(process.cwd(), true)),
     }).authority;
-    if (authority.runtimeAuthorized !== false || authority.activeSlice !== null) return false;
+    if (authority.runtimeAuthorized !== false || authority.activeSlice !== null)
+      return { verified: false };
   }
-  return true;
+  const telemetry = readCheckpointTelemetry(input);
+  const successes = readHeavyProofRecords(input).filter(record => record.status === 'succeeded');
+  const heavyProofs = successes.length;
+  const duplicateHeavyProofs = heavyProofs - new Set(successes.map(item => item.evidenceKey)).size;
+  const counters = {
+    approvals: readTrustedApprovalCount(input.sliceId),
+    reFreezes: telemetry?.reFreezes ?? 0,
+    retries: telemetry?.retries ?? 0,
+    heavyProofs,
+    duplicateHeavyProofs,
+  };
+  must(
+    (telemetry?.deliveryApprovals ?? 0) === counters.approvals &&
+      (telemetry?.heavyProofs ?? 0) === counters.heavyProofs &&
+      (telemetry?.duplicateHeavyProofs ?? 0) === counters.duplicateHeavyProofs,
+    'checkpoint telemetry differs from trusted receipts'
+  );
+  return { verified: true, counters };
 }
 
 export function generateSliceCheckpoint(input, { verifyState = defaultVerifyState } = {}) {
@@ -177,11 +191,21 @@ export function generateSliceCheckpoint(input, { verifyState = defaultVerifyStat
     input.prNumber === null || (Number.isSafeInteger(input.prNumber) && input.prNumber > 0),
     'PR number is invalid'
   );
-  const approvals = count(input.approvals, 'approvals');
-  const reFreezes = count(input.reFreezes, 're-freezes');
-  const retries = count(input.retries, 'retries');
-  const heavyProofs = count(input.heavyProofs, 'heavy proofs');
-  const duplicateHeavyProofs = count(input.duplicateHeavyProofs, 'duplicate heavy proofs');
+  const claimedCounters = {
+    approvals: count(input.approvals, 'approvals'),
+    reFreezes: count(input.reFreezes, 're-freezes'),
+    retries: count(input.retries, 'retries'),
+    heavyProofs: count(input.heavyProofs, 'heavy proofs'),
+    duplicateHeavyProofs: count(input.duplicateHeavyProofs, 'duplicate heavy proofs'),
+  };
+  must(typeof verifyState === 'function', 'checkpoint state verifier is unavailable');
+  const verified = verifyState(input);
+  must(
+    verified?.verified === true &&
+      canonicalJson(verified.counters) === canonicalJson(claimedCounters),
+    'checkpoint counters are not bound to verified receipts'
+  );
+  const { approvals, reFreezes, retries, heavyProofs, duplicateHeavyProofs } = verified.counters;
   must(duplicateHeavyProofs === 0, 'duplicate heavy proof violates the delivery contract');
   must(heavyProofs >= duplicateHeavyProofs, 'heavy proof counts are inconsistent');
   must(Array.isArray(input.scopeDrift), 'scope drift is invalid');
@@ -210,10 +234,6 @@ export function generateSliceCheckpoint(input, { verifyState = defaultVerifyStat
       'final checkpoint is missing terminal invariants'
     );
   }
-  must(
-    typeof verifyState === 'function' && verifyState(input) === true,
-    'checkpoint is not bound to verified repository facts'
-  );
   return {
     schemaVersion: 1,
     stage: input.stage,

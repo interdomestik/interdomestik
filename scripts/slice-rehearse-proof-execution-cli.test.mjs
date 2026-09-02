@@ -7,6 +7,7 @@ import test from 'node:test';
 import { canonicalJson, deriveEvidenceIdentityKey, sha256 } from './slice-rehearse-canonical.mjs';
 import {
   executePnpmProof,
+  heavyProofLedgerPath,
   planInvalidatedProofs,
   recordHeavyProofExecution,
   runHeavyProofExecution,
@@ -28,9 +29,10 @@ const identity = suffix => ({
   writerMapDigest: suffix.repeat(64),
 });
 
-function proofReport(item) {
+function proofReport(item, sliceId = 'HARNESS-V2-PROOF-CLI') {
   const report = {
     schemaVersion: 1,
+    sliceId,
     repository: { headSha: '1'.repeat(40), treeSha: '2'.repeat(40) },
     authorityStops: [],
     evidence: { executionPlan: { reuse: [], run: [item] } },
@@ -65,7 +67,13 @@ test('records and executes a planned proof through the copy-safe CLI contract', 
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'heavy-proof-cli-'));
   const executionPath = path.join(root, 'execution.json');
   const reportPath = path.join(root, 'report.json');
-  const ledgerPath = path.join(root, 'ledger.jsonl');
+  const report = proofReport({ lane: 'pr-e2e', evidenceKey: 'd'.repeat(64) });
+  const ledgerPath = heavyProofLedgerPath({
+    sliceId: report.sliceId,
+    headSha: report.repository.headSha,
+    treeSha: report.repository.treeSha,
+  });
+  fs.rmSync(ledgerPath, { force: true });
   fs.writeFileSync(
     executionPath,
     JSON.stringify({
@@ -75,13 +83,11 @@ test('records and executes a planned proof through the copy-safe CLI contract', 
       startedAt: '2026-08-31T00:00:00.000Z',
     })
   );
-  fs.writeFileSync(
-    reportPath,
-    JSON.stringify(proofReport({ lane: 'pr-e2e', evidenceKey: 'd'.repeat(64) }))
-  );
+  fs.writeFileSync(reportPath, JSON.stringify(report));
   let stdout = '';
   let stderr = '';
   const commands = [];
+  const records = [];
   assert.equal(
     runHeavyProofRecordCli({
       argv: ['--report', reportPath, '--execution', executionPath, '--ledger', ledgerPath],
@@ -100,6 +106,7 @@ test('records and executes a planned proof through the copy-safe CLI contract', 
             commands.push(args);
             return { status: 0 };
           },
+          record: input => records.push(input.status ?? 'reserved'),
         }),
     }),
     0
@@ -112,17 +119,25 @@ test('records and executes a planned proof through the copy-safe CLI contract', 
     status: 'succeeded',
   });
   assert.equal(commands.length, 2);
-  assert.match(fs.readFileSync(ledgerPath, 'utf8'), /run-cli-0001/u);
+  assert.deepEqual(records, ['reserved', 'running', 'succeeded']);
 });
 
 test('does not remove another process lock when ledger acquisition fails', () => {
+  const scope = {
+    sliceId: 'HARNESS-V2-PROOF-LOCK',
+    headSha: '1'.repeat(40),
+    treeSha: '2'.repeat(40),
+  };
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'heavy-proof-lock-'));
-  const ledgerPath = path.join(root, 'ledger.jsonl');
+  const ledgerPath = heavyProofLedgerPath(scope, root);
+  fs.rmSync(ledgerPath, { force: true });
   fs.writeFileSync(`${ledgerPath}.lock`, 'owner');
   assert.throws(
     () =>
       recordHeavyProofExecution({
         ledgerPath,
+        scope,
+        ledgerRoot: root,
         execution: {
           runId: 'run-lock-0001',
           evidenceKey: 'e'.repeat(64),
@@ -133,6 +148,17 @@ test('does not remove another process lock when ledger acquisition fails', () =>
     /EEXIST/u
   );
   assert.equal(fs.readFileSync(`${ledgerPath}.lock`, 'utf8'), 'owner');
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('production proof scope is durable, owner-bound, and not temporary', () => {
+  const path = heavyProofLedgerPath({
+    sliceId: 'HARNESS-V2-DURABLE',
+    headSha: '1'.repeat(40),
+    treeSha: '2'.repeat(40),
+  });
+  assert.match(path, /^\/Users\/arbenlila\/\.codex\/state\/interdomestik\//u);
+  assert.equal(path.startsWith('/private/tmp/'), false);
 });
 
 test('collapses historical decisions for one lane and reuses only the exact verified identity', () => {

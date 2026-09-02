@@ -93,20 +93,10 @@ function readPr(prNumber) {
   return normalizePull(ghJson(['pr', 'view', String(prNumber), '--json', PULL_FIELDS]));
 }
 function readPrForBranch(certificate) {
-  const values = ghJson([
-    'pr',
-    'list',
-    '--state',
-    'all',
-    '--head',
-    certificate.branch,
-    '--base',
-    certificate.baseBranch,
-    '--limit',
-    '2',
-    '--json',
-    PULL_FIELDS,
-  ]);
+  const args = ['pr', 'list', '--state', 'all'];
+  args.push('--head', certificate.branch, '--base', certificate.baseBranch);
+  args.push('--limit', '2', '--json', PULL_FIELDS);
+  const values = ghJson(args);
   must(Array.isArray(values) && values.length <= 1, 'live PR lookup is ambiguous');
   return values.length ? normalizePull(values[0]) : null;
 }
@@ -114,12 +104,8 @@ export function readLiveOperationFacts(_request, certificate) {
   const baseRef = `refs/heads/${certificate.baseBranch}`;
   const branchRef = `refs/heads/${certificate.branch}`;
   const remoteRefs = lsRemoteRefs([baseRef, branchRef]);
-  const changedPaths = git([
-    'diff',
-    '--name-only',
-    '-z',
-    `${certificate.baseSha}...${certificate.headSha}`,
-  ])
+  const range = `${certificate.baseSha}...${certificate.headSha}`;
+  const changedPaths = git(['diff', '--name-only', '-z', range])
     .split('\0')
     .filter(Boolean)
     .sort(compareText);
@@ -204,14 +190,13 @@ export function executeOperation(binary, args) {
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 }
-function reconciliationOutcome(applied) {
-  return applied ? 'applied' : 'not_applied';
-}
+const reconciliationOutcome = applied => (applied ? 'applied' : 'not_applied');
 export function classifyMergeReconciliation(facts, certificate) {
   const pull = facts?.pull;
   const commit = pull?.mergeCommit;
+  if (!pull || typeof pull.state !== 'string') return { outcome: 'unknown', mergeSha: null };
+  if (pull.state !== 'MERGED') return { outcome: 'not_applied', mergeSha: null };
   const applied =
-    pull?.state === 'MERGED' &&
     pull.merged === true &&
     pull.baseRefName === certificate.baseBranch &&
     pull.headRefName === certificate.branch &&
@@ -222,7 +207,10 @@ export function classifyMergeReconciliation(facts, certificate) {
     facts.mainSha === commit.oid &&
     facts.authority?.lifecycle === 'consumed_on_merge' &&
     facts.authority.mergeSha === commit.oid;
-  return { outcome: reconciliationOutcome(Boolean(applied)), mergeSha: commit?.oid ?? null };
+  return {
+    outcome: applied ? 'applied' : 'unknown',
+    mergeSha: commit?.oid ?? null,
+  };
 }
 function reconcileMerge(certificate) {
   const query = `query($number:Int!){repository(owner:"interdomestik",name:"interdomestik"){ref(qualifiedName:"refs/heads/main"){target{oid}} pullRequest(number:$number){state merged baseRefName headRefName headRefOid mergeCommit{oid tree{oid} parents(first:2){totalCount nodes{oid}}}}}}`;

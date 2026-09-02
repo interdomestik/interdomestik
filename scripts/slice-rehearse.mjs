@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import * as rehearsalCore from './slice-rehearse-core.mjs';
 import { protectedMain } from './lean-current-authority-git.mjs';
 import { readBoundedRegularText } from './slice-rehearse-evidence.mjs';
+import { compileWriterClosure } from './slice-rehearse-capacity.mjs';
 import { projectionCapacityOwnerPaths } from './slice-rehearse-capacity-owner-facts.mjs';
 import { evaluateRehearsal } from './slice-rehearse-evaluator.mjs';
 import { collectVerifiedEvidenceKeys } from './slice-rehearse-github-evidence.mjs';
@@ -106,10 +107,11 @@ export function runSliceRehearsal({
   readProtectedMain = protectedMain,
   collectVerifiedEvidence = collectVerifiedEvidenceKeys,
   collectOperations = collectOperationFacts,
+  collectFacts = collectRepositoryFacts,
 } = {}) {
   try {
     const { manifestPath } = parseArgs(argv);
-    const manifest = readManifest(manifestPath, cwd);
+    const manifest = compileWriterClosure(readManifest(manifestPath, cwd)).manifest;
     const repositoryRoot = gitText(cwd, ['rev-parse', '--show-toplevel']);
     if (typeof readProtectedMain !== 'function') {
       throw new TypeError('Protected-main authority adapter is unavailable.');
@@ -125,7 +127,7 @@ export function runSliceRehearsal({
       protectedBudget.baseline.protectedMainSha
     );
     if (typeof evaluate !== 'function') throw new TypeError('Rehearsal evaluator is unavailable.');
-    const repository = collectRepositoryFacts({
+    const repository = collectFacts({
       cwd: repositoryRoot,
       baseSha: manifest.baseSha,
       budgetBaselineSha: protectedBudget.baseline.protectedMainSha,

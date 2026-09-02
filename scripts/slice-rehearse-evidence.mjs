@@ -1,7 +1,5 @@
 import * as fs from 'node:fs';
-import { tmpdir } from 'node:os';
-import { resolve, sep } from 'node:path';
-import { trustedRunnerFile } from './ci/trusted-runner-file.mjs';
+import { heavyProofLedgerPath, trustedHeavyProofLedgerPath } from './slice-rehearse-ops.mjs';
 import {
   canonicalize,
   canonicalJson,
@@ -15,9 +13,8 @@ export { deriveEvidenceIdentityKey, readBoundedRegularText } from './slice-rehea
 const SHA_PATTERN = /^[0-9a-f]{40}$/u;
 const DIGEST_PATTERN = /^[0-9a-f]{64}$/u;
 const RECEIPT_KEYS =
-  'commandDigest expiresAt headSha lane status substrateDigest treeSha workflowDigest writerMapDigest'.split(
-    ' '
-  );
+  `commandDigest expiresAt headSha lane status substrateDigest treeSha workflowDigest
+writerMapDigest`.split(/\s/u);
 const IDENTITY_KEYS =
   'commandDigest headSha substrateDigest treeSha workflowDigest writerMapDigest'.split(' ');
 const LANE_PATTERN = /^[a-z0-9][a-z0-9:_-]*$/u;
@@ -31,6 +28,7 @@ const PROOF_STATES = ['reserved', 'running', 'succeeded', 'failed'];
 const RUN_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{2,127}$/u;
 const OPEN = fs.constants;
 const openNoFollow = (path, flags) => fs.openSync(path, flags | OPEN.O_NOFOLLOW, 0o600);
+export { heavyProofLedgerPath } from './slice-rehearse-ops.mjs';
 function verifiedEvidenceSets(input, now) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return {};
   return Object.fromEntries(
@@ -133,7 +131,6 @@ export function evaluateEvidenceReceipts({
   );
   must(Array.isArray(dirtyWriterPaths), 'dirty writer paths must be an array');
   const verified = verifiedEvidenceSets(verifiedEvidenceKeysByLane, now);
-
   const required = sortedText(heavyLanes);
   for (const lane of required) {
     const identity = expectedByLane[lane];
@@ -201,7 +198,6 @@ export function evaluateEvidenceReceipts({
     missingLanes: required.filter(lane => !reusableLanes.includes(lane)),
   };
 }
-
 export function normalizeHeavyProofExecution(execution) {
   exactKeys(execution, EXECUTION_KEYS, 'heavy proof execution');
   must(DIGEST_PATTERN.test(execution.evidenceKey ?? ''), 'heavy proof evidence key is invalid');
@@ -210,7 +206,6 @@ export function normalizeHeavyProofExecution(execution) {
   must(Number.isFinite(Date.parse(execution.startedAt)), 'heavy proof start time is invalid');
   return execution;
 }
-
 function normalizeHeavyProofRecord(record) {
   exactKeys(record, RECORD_KEYS, 'heavy proof receipt');
   normalizeHeavyProofExecution(Object.fromEntries(EXECUTION_KEYS.map(key => [key, record[key]])));
@@ -232,27 +227,16 @@ function normalizeHeavyProofRecord(record) {
   );
   return record;
 }
-
-function trustedLedgerPath(ledgerPath, allowedRoots) {
-  const normalizedPath = resolve(ledgerPath);
-  const trustedRoot = [...allowedRoots]
-    .map(root => resolve(root))
-    .filter(root => root !== '/')
-    .sort((left, right) => right.length - left.length)
-    .find(root => normalizedPath.startsWith(`${root}${sep}`));
-  must(trustedRoot, 'heavy proof ledger must stay inside a trusted root');
-  return trustedRunnerFile(normalizedPath, { runnerTemp: trustedRoot });
-}
-
 export function recordHeavyProofExecution({
   ledgerPath,
+  scope,
   execution,
   status = 'reserved',
   finishedAt = null,
   exitCode = null,
-  allowedRoots = [process.cwd(), tmpdir(), '/private/tmp'],
+  ledgerRoot,
 }) {
-  const normalizedPath = trustedLedgerPath(ledgerPath, allowedRoots);
+  const normalizedPath = trustedHeavyProofLedgerPath(ledgerPath, scope, ledgerRoot);
   const lockPath = `${normalizedPath}.lock`;
   let lock;
   try {
@@ -296,5 +280,21 @@ export function recordHeavyProofExecution({
       fs.closeSync(lock);
       fs.unlinkSync(lockPath);
     }
+  }
+}
+export function readHeavyProofRecords(scope) {
+  const path = heavyProofLedgerPath(scope);
+  if (!fs.existsSync(path)) return [];
+  const trustedPath = trustedHeavyProofLedgerPath(path, scope);
+  const descriptor = openNoFollow(trustedPath, OPEN.O_RDONLY);
+  try {
+    return fs
+      .readFileSync(descriptor, 'utf8')
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+      .map(line => normalizeHeavyProofRecord(JSON.parse(line)));
+  } finally {
+    fs.closeSync(descriptor);
   }
 }

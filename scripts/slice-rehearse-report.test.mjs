@@ -5,7 +5,17 @@ import test from 'node:test';
 import { generateSliceCheckpoint, verifyCheckpointGitIdentity } from './slice-rehearse-report.mjs';
 
 const sha = character => character.repeat(40);
-const verified = { verifyState: () => true };
+const verified = {
+  verifyState: input => ({
+    verified: true,
+    counters: Object.fromEntries(
+      ['approvals', 'reFreezes', 'retries', 'heavyProofs', 'duplicateHeavyProofs'].map(key => [
+        key,
+        input[key],
+      ])
+    ),
+  }),
+};
 
 test('checkpoint uses installed GitHub CLI with provider-only auth', () => {
   const source = fs.readFileSync(new URL('./slice-rehearse-report.mjs', import.meta.url), 'utf8');
@@ -241,6 +251,22 @@ test('rejects a checkpoint whose live state verifier cannot bind exact identity'
   };
   assert.throws(
     () => generateSliceCheckpoint(input, { verifyState: () => false }),
-    /verified repository facts/u
+    /verified receipts/u
+  );
+  assert.throws(
+    () =>
+      generateSliceCheckpoint(input, {
+        verifyState: value => ({
+          verified: true,
+          counters: {
+            approvals: value.approvals + 1,
+            reFreezes: value.reFreezes,
+            retries: value.retries,
+            heavyProofs: value.heavyProofs,
+            duplicateHeavyProofs: value.duplicateHeavyProofs,
+          },
+        }),
+      }),
+    /verified receipts/u
   );
 });
