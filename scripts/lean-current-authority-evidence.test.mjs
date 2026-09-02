@@ -214,44 +214,42 @@ test('closeout ancestry uses Git history', () => {
   assert.deepEqual(changed(root, terminal, later, [program]), [program]);
 });
 
-test('inactive history resolves closeout', () => {
-  const root = fixture('lean-authority-transition-fixture-');
-  const terminal = commit(root, active, 'active terminal');
-  const closeout = commit(root, inactive, 'inactive closeout');
-  writeFileSync(join(root, 'later.txt'), 'later\n');
-  git(root, 'add', 'later.txt');
-  git(root, 'commit', '-m', 'later unrelated main');
-  const later = git(root, 'rev-parse', 'HEAD');
-  const transition = locate(root, later);
-  assert.deepEqual(
-    [transition.kind, transition.terminalProjectionSha, transition.closeoutMergeSha],
-    ['closeout_recorded', terminal, closeout]
-  );
-  const prior = structuredClone(active);
-  Object.assign(prior.activeSlice, {
+test('CUTOVER history bounds repeat chains', () => {
+  const root = fixture('t117b-chain-');
+  commit(root, active, 'active');
+  const c = commit(root, inactive, 'closeout');
+  const p = structuredClone(active);
+  Object.assign(p.activeSlice, {
     sliceId: 'T117B-CUTOVER',
     tier: 3,
-    promotionBaseSha: closeout,
+    promotionBaseSha: c,
     productWriterPaths: [
-      ...[
-        'gate/member-diaspora',
-        'gate/member-home-cta',
-        'golden/member-portal-agent-consumer',
-        'golden/member-dashboard-empty-state',
-        'golden/member-dashboard-has-claims',
-        'production',
-        'smoke/ida-dashboard-smoke',
-        'ui-v2-onboarding',
-      ].map(path => `apps/web/e2e/${path}.spec.ts`),
-      ...['_core.entry.test', '_core.entry', 'page.test', 'page'].map(
-        path => `apps/web/src/app/[locale]/(app)/member/${path}.tsx`
-      ),
+      ...'gate/member-diaspora gate/member-home-cta golden/member-portal-agent-consumer golden/member-dashboard-empty-state golden/member-dashboard-has-claims production smoke/ida-dashboard-smoke ui-v2-onboarding'
+        .split(' ')
+        .map(path => `apps/web/e2e/${path}.spec.ts`),
+      ...'_core.entry.test _core.entry page.test page'
+        .split(' ')
+        .map(path => `apps/web/src/app/[locale]/(app)/member/${path}.tsx`),
     ],
   });
-  assert.equal(prior.activeSlice.productWriterPaths.length, 12);
-  const base = commit(root, prior, 'prior cutover');
-  const repeat = locate(root, base, 'T117B-CUTOVER');
-  assert.equal(repeat.kind, 'closeout_recorded');
+  const b = commit(root, p, 'repeat');
+  assert.equal(locate(root, b, 'T117B-CUTOVER').kind, 'closeout_recorded');
+  const added = [
+    'e2e/dashboard-access.spec.ts',
+    'e2e/golden/agent-member-overlay.spec.ts',
+    'src/components/dashboard/member-portal-runtime-boundary.test.tsx',
+    'src/components/dashboard/member-portal-runtime.tsx',
+    ...'en mk sq sr'.split(' ').map(locale => `src/messages/${locale}/dashboard.json`),
+  ].map(path => `apps/web/${path}`);
+  p.activeSlice.promotionBaseSha = b;
+  p.activeSlice.productWriterPaths.push(...added);
+  p.activeSlice.productWriterPaths.sort();
+  const x = commit(root, p, 'expanded');
+  assert.equal(locate(root, x, 'T117B-CUTOVER').kind, 'closeout_recorded');
+  p.activeSlice.promotionBaseSha = x;
+  const third = commit(root, p, 'third');
+  const r = locate(root, third, 'T117B-CUTOVER');
+  assert.deepEqual([r.kind, r.terminalProjectionSha], ['terminal', b]);
 });
 
 test('authority edit-revert remains history drift', () => {

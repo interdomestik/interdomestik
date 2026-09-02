@@ -40,7 +40,7 @@ export const authorityPathsTouched = (repo, base, head) =>
   base !== head &&
   git(repo, 'log', '--first-parent', '--format=%H', `${base}..${head}`, '--', ...CLOSEOUT) !== '';
 
-export function locateAuthorityTransition(repo, anchor, repeatId = null) {
+export function locateAuthorityTransition(repo, anchor, repeatId = null, hops = 2) {
   let current = anchor;
   for (let depth = 0; depth < HISTORY_LIMIT; depth += 1) {
     const projection = projectionOrBootstrap(repo, current);
@@ -49,13 +49,13 @@ export function locateAuthorityTransition(repo, anchor, repeatId = null) {
       const prior = projection.activeSlice;
       const priorBase = prior.promotionBaseSha;
       if (
+        hops > 0 &&
         repeatId === prior.sliceId &&
-        prior.productWriterPaths.length === 12 &&
         t117bChildContract(prior) &&
         priorBase !== current &&
         isAncestor(repo, priorBase, current)
       ) {
-        return locateAuthorityTransition(repo, priorBase);
+        return locateAuthorityTransition(repo, priorBase, repeatId, hops - 1);
       }
       return { kind: 'terminal', prior: projection, terminalProjectionSha: current };
     }
