@@ -5,31 +5,36 @@ const T117B_HASHES = new Set([
   '2e16444a55df145af2d5c0aaa2a1968cbc0215fc4fe0d0970374903dcadd647c',
   'dd9eed913fabad637d2e15e6b08b1eae373532a67a6a923d3f5f164ecaa9a410',
 ]);
-const T117B_CHILDREN = new Map([
+const DATA = '18b044d69363404d07682aca7b5944d440cbb1e0066d91cc0cf82578953e3f26';
+const PORTAL = '60de5ce927812137cfdcd620d280d2708b488040ddf02a5796131d4c6c1f04a5';
+const CHILDREN = new Map([
   [
     'T117B-DATA',
     {
-      writerHash: '18b044d69363404d07682aca7b5944d440cbb1e0066d91cc0cf82578953e3f26',
+      writerHashes: [DATA],
       predecessor: null,
     },
   ],
   [
     'T117B-PORTAL',
     {
-      writerHash: '60de5ce927812137cfdcd620d280d2708b488040ddf02a5796131d4c6c1f04a5',
+      writerHashes: [PORTAL],
       predecessor: {
         sliceId: 'T117B-DATA',
-        writerHash: '18b044d69363404d07682aca7b5944d440cbb1e0066d91cc0cf82578953e3f26',
+        writerHash: DATA,
       },
     },
   ],
   [
     'T117B-CUTOVER',
     {
-      writerHash: 'a3b7ba9338ba5e453316a55bd499078855c7c911158f43057dc419276d3d749a',
+      writerHashes: [
+        'a3b7ba9338ba5e453316a55bd499078855c7c911158f43057dc419276d3d749a',
+        '9607ebda8ed38b016aefedaec045e22e6ab195b06371d2706ce0f3da9260bf36',
+      ],
       predecessor: {
         sliceId: 'T117B-PORTAL',
-        writerHash: '60de5ce927812137cfdcd620d280d2708b488040ddf02a5796131d4c6c1f04a5',
+        writerHash: PORTAL,
       },
     },
   ],
@@ -55,7 +60,7 @@ export function exactWriterClassification(path, slice) {
   }
   if (
     ((slice?.sliceId === 'T-117B-PORTAL-RUNTIME' && T117B_HASHES.has(hash)) ||
-      T117B_CHILDREN.get(slice?.sliceId)?.writerHash === hash) &&
+      t117bChildContract(slice)) &&
     slice?.tier === 3 &&
     slice.productWriterPaths.includes(path)
   ) {
@@ -68,8 +73,8 @@ export const isT117BPortalRuntime = slice =>
   exactWriterClassification(slice?.productWriterPaths?.[0], slice) === 'tier3_portal_runtime';
 
 export function t117bChildContract(slice) {
-  const contract = T117B_CHILDREN.get(slice?.sliceId);
-  return slice?.tier === 3 && contract?.writerHash === writerHash(slice) ? contract : null;
+  const contract = CHILDREN.get(slice?.sliceId);
+  return slice?.tier === 3 && contract?.writerHashes.includes(writerHash(slice)) ? contract : null;
 }
 
 export function validT117BPredecessor(slice, evidence) {
