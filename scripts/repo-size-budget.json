@@ -278,7 +278,7 @@
         "apps/web/src/components/dashboard/member-portal-region-boundary.tsx"
       ],
       "maxTrackedBytesDelta": 16644,
-      "maxTrackedFilesDelta": 9,
+      "maxTrackedFilesDelta": 8,
       "maxCategoryBytesDelta": {
         "config/data/messages": 8081,
         "docs/text": 3318,
@@ -323,7 +323,7 @@
         "apps/web/src/messages/sr/dashboard.json"
       ],
       "maxTrackedBytesDelta": 43021,
-      "maxTrackedFilesDelta": 3,
+      "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
         "config/data/messages": 16375,
         "docs/text": 2949,

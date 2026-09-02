@@ -182,8 +182,8 @@ test('promotion reuses baseline-new writers only within the owner file ceiling',
   for (const path of PROMOTION)
     assert.equal(proposal.projectionOwners[path], path.includes('current-') ? PROJ : CUTOVER);
   const guard = structuredClone(budget);
+  guard.maxTrackedFiles -= allocation(CUTOVER, guard).maxTrackedFilesDelta - 1;
   allocation(CUTOVER, guard).maxTrackedFilesDelta = 1;
-  guard.maxTrackedFiles -= 2;
   const insufficient = capacity(value, facts, guard);
   assert.ok(hasStop(insufficient, 'capacity:projection-owner-tracked-files-insufficient'));
 });
