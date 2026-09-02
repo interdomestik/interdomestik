@@ -182,7 +182,7 @@ test('package.json validation uses cached immutable base and head contents', asy
   assert.equal(requests, 2, 'immutable package contents must be cached per SHA');
 });
 
-test('delivery workflow is API-only, exact-bound, acyclic, and default-deny', () => {
+test('delivery workflow stays exact and default-deny', () => {
   const source = read('.github/workflows/pr-delivery-gate.yml');
   const workflow = yaml.load(source);
   const job = workflow.jobs['delivery-gate'];
@@ -209,7 +209,10 @@ test('delivery workflow is API-only, exact-bound, acyclic, and default-deny', ()
   assert.ok(workflow.on.pull_request.types.includes('review_request_removed'));
   assert.deepEqual(Object.keys(workflow.jobs), ['delivery-gate']);
   assert.equal(job.needs, undefined);
-  assert.match(job.if, /github\.event\.pull_request\.base\.ref == 'main'/u);
+  assert.equal(
+    job.if,
+    `github.event.pull_request.base.ref == 'main' && !github.event.pull_request.draft`
+  );
   assert.match(workflow.concurrency.group, /github\.event\.pull_request\.number/u);
   assert.ok(job.steps.some(step => String(step.uses).startsWith('actions/checkout@')));
   const checkout = job.steps.find(step => String(step.uses).startsWith('actions/checkout@'));
@@ -220,8 +223,8 @@ test('delivery workflow is API-only, exact-bound, acyclic, and default-deny', ()
   const gateIndex = job.steps.findIndex(step =>
     String(step.run).includes('scripts/ci/pr-delivery-gate.mjs')
   );
-  assert.ok(setupNodeIndex >= 0, 'setup-node step must exist');
-  assert.ok(setupNodeIndex < gateIndex, 'setup-node must run before the delivery gate');
+  assert.ok(setupNodeIndex >= 0, 'setup-node missing');
+  assert.ok(setupNodeIndex < gateIndex, 'setup-node after gate');
   assert.equal(job.steps[setupNodeIndex].with['node-version-file'], '.nvmrc');
   assert.equal(job.steps[setupNodeIndex].with['package-manager-cache'], false);
   assert.match(job.steps[setupNodeIndex].uses, /@[a-f0-9]{40}$/u);
