@@ -40,41 +40,41 @@ export const authorityPathsTouched = (repo, base, head) =>
   base !== head &&
   git(repo, 'log', '--first-parent', '--format=%H', `${base}..${head}`, '--', ...CLOSEOUT) !== '';
 
-export function locateAuthorityTransition(repo, anchor, repeatId = null, hops = 2) {
-  let current = anchor;
+export function locateAuthorityTransition(repo, anchor, repeatId = null) {
+  let sha = anchor;
+  const seen = new Set();
   for (let depth = 0; depth < HISTORY_LIMIT; depth += 1) {
-    const projection = projectionOrBootstrap(repo, current);
-    if (!projection) return { kind: 'bootstrap', bootstrapAnchor: current };
+    seen.add(sha);
+    const projection = projectionOrBootstrap(repo, sha);
+    if (!projection) return { kind: 'bootstrap', bootstrapAnchor: sha };
     if (projection.activeSlice) {
       const prior = projection.activeSlice;
-      const priorBase = prior.promotionBaseSha;
-      if (
-        hops > 0 &&
-        repeatId === prior.sliceId &&
-        t117bChildContract(prior) &&
-        priorBase !== current &&
-        isAncestor(repo, priorBase, current)
-      ) {
-        return locateAuthorityTransition(repo, priorBase, repeatId, hops - 1);
-      }
-      return { kind: 'terminal', prior: projection, terminalProjectionSha: current };
+      const base = prior.promotionBaseSha;
+      if (repeatId !== prior.sliceId || !t117bChildContract(prior))
+        return { kind: 'terminal', prior: projection, terminalProjectionSha: sha };
+      if (seen.has(base) || !isAncestor(repo, base, sha))
+        throw new Error(
+          `invalid repeat-chain ancestry: repeatId=${repeatId} current=${sha} priorBase=${base}`
+        );
+      sha = base;
+      continue;
     }
-    const parent = git(repo, 'rev-parse', `${current}^1`);
+    const parent = git(repo, 'rev-parse', `${sha}^1`);
     const parentProjection = projectionOrBootstrap(repo, parent);
     if (!parentProjection) {
-      return { kind: 'bootstrap', bootstrapAnchor: parent, bootstrapMergeSha: current };
+      return { kind: 'bootstrap', bootstrapAnchor: parent, bootstrapMergeSha: sha };
     }
     if (parentProjection.activeSlice) {
       return {
         kind: 'closeout_recorded',
         prior: parentProjection,
         terminalProjectionSha: parent,
-        closeoutMergeSha: current,
+        closeoutMergeSha: sha,
       };
     }
-    current = parent;
+    sha = parent;
   }
-  throw new Error('inactive authority history exceeds bounded first-parent search');
+  throw new Error('authority history exceeds bounded traversal');
 }
 
 const writerHash = paths => createHash('sha256').update(JSON.stringify(paths)).digest('hex');
