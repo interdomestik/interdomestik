@@ -52,8 +52,8 @@ export function locateAuthorityTransition(repo, anchor, repeatId = null) {
         repeatId === prior.sliceId &&
         prior.productWriterPaths.length === 12 &&
         t117bChildContract(prior) &&
-        priorBase !== anchor &&
-        isAncestor(repo, priorBase, anchor)
+        priorBase !== current &&
+        isAncestor(repo, priorBase, current)
       ) {
         return locateAuthorityTransition(repo, priorBase);
       }
