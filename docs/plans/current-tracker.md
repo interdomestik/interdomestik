@@ -54,10 +54,10 @@ remains default-denied.
     "sliceId": "T117B-CUTOVER",
     "tier": 3,
     "promotionPrNumber": 1677,
-    "promotionBaseSha": "b98f4d1948ff6eb38227f74547e0628c7e7b1660",
+    "promotionBaseSha": "c6a258e00cfe71e6d53e63ea48708d582453030f",
     "expectedProductBranch": "codex/t117b-cutover",
-    "gateSha256": "7a319f587e7cd61dd998be56f82be9fa790102ac4755e145c641692666e4c41f",
-    "admissionSha256": "27877332123296202f0aa541df482264ca5b8bf12e938018cb197c4fb672bf91",
+    "gateSha256": "07b2afa0a92dd3776ab3e366f24beef15201cb85f27a0f7189996294b3347bc6",
+    "admissionSha256": "122d6c95ef15bf719da39a6cdb3e59e6c6f5788513c5920d1d4e91aacf413fd2",
     "productWriterPaths": [
       "apps/web/e2e/dashboard-access.spec.ts",
       "apps/web/e2e/gate/member-diaspora.spec.ts",
