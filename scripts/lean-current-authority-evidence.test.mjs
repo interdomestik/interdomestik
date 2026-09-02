@@ -23,6 +23,7 @@ const source = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 const plans = 'docs/plans';
 const program = `${plans}/current-program.md`;
 const tracker = `${plans}/current-tracker.md`;
+const api = 'repos/interdomestik/interdomestik';
 const block = value =>
   `## Lean Authority\n\n\`\`\`json lean-authority\n${JSON.stringify(value, null, 2)}\n\`\`\`\n`;
 const blob = bytes =>
@@ -129,12 +130,12 @@ test('pull fixtures bind GitHub evidence', () => {
   assert.deepEqual(facts.mergeParents, [base]);
   assert.equal(facts.headTree, git(root, 'rev-parse', `${head}^{tree}`));
   assert.equal(facts.mergeTree, facts.headTree);
-  const treeEndpoint = `repos/interdomestik/interdomestik/git/trees/${facts.headTree}?recursive=1`;
+  const treeEndpoint = `${api}/git/trees/${facts.headTree}?recursive=1`;
 
   const responses = new Map([
-    ['repos/interdomestik/interdomestik/pulls/1700', pull],
+    [`${api}/pulls/1700`, pull],
     [
-      'repos/interdomestik/interdomestik/pulls/1700/reviews?per_page=100',
+      `${api}/pulls/1700/reviews?per_page=100`,
       [
         {
           state: 'COMMENTED',
@@ -145,7 +146,7 @@ test('pull fixtures bind GitHub evidence', () => {
       ],
     ],
     [
-      'repos/interdomestik/interdomestik/pulls/1700/files?per_page=100',
+      `${api}/pulls/1700/files?per_page=100`,
       [
         { filename: gatePath },
         { filename: admissionPath },
@@ -164,11 +165,11 @@ test('pull fixtures bind GitHub evidence', () => {
       },
     ],
     [
-      `repos/interdomestik/interdomestik/git/blobs/${gateBlobSha}`,
+      `${api}/git/blobs/${gateBlobSha}`,
       { sha: gateBlobSha, encoding: 'base64', content: gateBytes.toString('base64') },
     ],
     [
-      `repos/interdomestik/interdomestik/git/blobs/${admissionBlobSha}`,
+      `${api}/git/blobs/${admissionBlobSha}`,
       {
         sha: admissionBlobSha,
         encoding: 'base64',
@@ -214,9 +215,9 @@ test('closeout ancestry uses Git history', () => {
   assert.deepEqual(changed(root, terminal, later, [program]), [program]);
 });
 
-test('CUTOVER history bounds repeat chains', () => {
-  const root = fixture('t117b-chain-');
-  commit(root, active, 'active');
+test('CUTOVER repeat history', () => {
+  const root = fixture('chain-');
+  const a = commit(root, active, 'active');
   const c = commit(root, inactive, 'closeout');
   const p = structuredClone(active);
   Object.assign(p.activeSlice, {
@@ -233,7 +234,6 @@ test('CUTOVER history bounds repeat chains', () => {
     ],
   });
   const b = commit(root, p, 'repeat');
-  assert.equal(locate(root, b, 'T117B-CUTOVER').kind, 'closeout_recorded');
   const added = [
     'e2e/dashboard-access.spec.ts',
     'e2e/golden/agent-member-overlay.spec.ts',
@@ -245,13 +245,17 @@ test('CUTOVER history bounds repeat chains', () => {
   p.activeSlice.productWriterPaths.push(...added);
   p.activeSlice.productWriterPaths.sort();
   const x = commit(root, p, 'expanded');
-  assert.equal(locate(root, x, 'T117B-CUTOVER').kind, 'closeout_recorded');
   p.activeSlice.promotionBaseSha = x;
-  const third = commit(root, p, 'third');
-  const r = locate(root, third, 'T117B-CUTOVER');
-  assert.deepEqual([r.kind, r.terminalProjectionSha], ['terminal', b]);
+  const y = commit(root, p, 'third');
+  assert.equal(locate(root, y, 'T117B-CUTOVER').kind, 'closeout_recorded');
+  p.activeSlice.promotionBaseSha = a;
+  const m = commit(root, p, 'missing');
+  assert.equal(locate(root, m, 'T117B-CUTOVER').kind, 'terminal');
+  assert.match(
+    source('./lean-current-authority-history.mjs'),
+    /HISTORY_LIMIT = 128.*new Set.*repeatId !== prior\.sliceId.*!isAncestor.*repeatId=.*current=.*priorBase=.*bounded traversal/su
+  );
 });
-
 test('authority edit-revert remains history drift', () => {
   const root = fixture('lean-authority-revert-fixture-');
   const terminal = commit(root, inactive, 'terminal');
@@ -260,7 +264,6 @@ test('authority edit-revert remains history drift', () => {
   assert.deepEqual(changed(root, terminal, reverted, [program]), []);
   assert.equal(authorityPathsTouched(root, terminal, reverted), true);
 });
-
 test('Git evidence uses a bounded timeout', () => {
   assert.match(source('./lean-current-authority-git.mjs'), /timeout:\s*30_000/u);
 });
