@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 56723,
+      "trackedBytesDelta": 56751,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 25785,
+        "config/data/messages": 25813,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 25785,
+        "scripts/repo-size-budget.json": 25813,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -209,21 +209,17 @@
       "mode": "bounded",
       "writerPaths": [
         "docs/plans/2026-08-28-t117b-portal-runtime-design-gate.md",
-        "docs/plans/2026-08-28-t117b-portal-runtime-admission.json",
-        "docs/plans/2026-08-28-t117b-cutover-design-gate.md",
-        "docs/plans/2026-08-28-t117b-cutover-admission.json"
+        "docs/plans/2026-08-28-t117b-portal-runtime-admission.json"
       ],
-      "maxTrackedBytesDelta": 37908,
-      "maxTrackedFilesDelta": 4,
+      "maxTrackedBytesDelta": 27188,
+      "maxTrackedFilesDelta": 2,
       "maxCategoryBytesDelta": {
-        "config/data/messages": 20792,
-        "docs/text": 17116
+        "config/data/messages": 13021,
+        "docs/text": 14167
       },
       "maxPathBytesDelta": {
         "docs/plans/2026-08-28-t117b-portal-runtime-design-gate.md": 14167,
-        "docs/plans/2026-08-28-t117b-portal-runtime-admission.json": 13021,
-        "docs/plans/2026-08-28-t117b-cutover-design-gate.md": 2949,
-        "docs/plans/2026-08-28-t117b-cutover-admission.json": 7771
+        "docs/plans/2026-08-28-t117b-portal-runtime-admission.json": 13021
       }
     },
     {
@@ -282,7 +278,7 @@
         "apps/web/src/components/dashboard/member-portal-region-boundary.tsx"
       ],
       "maxTrackedBytesDelta": 16644,
-      "maxTrackedFilesDelta": 7,
+      "maxTrackedFilesDelta": 9,
       "maxCategoryBytesDelta": {
         "config/data/messages": 8081,
         "docs/text": 3318,
@@ -303,6 +299,8 @@
       "id": "t117b-cutover",
       "mode": "bounded",
       "writerPaths": [
+        "docs/plans/2026-08-28-t117b-cutover-design-gate.md",
+        "docs/plans/2026-08-28-t117b-cutover-admission.json",
         "apps/web/e2e/dashboard-access.spec.ts",
         "apps/web/e2e/gate/member-diaspora.spec.ts",
         "apps/web/e2e/gate/member-home-cta.spec.ts",
@@ -324,14 +322,17 @@
         "apps/web/src/messages/sq/dashboard.json",
         "apps/web/src/messages/sr/dashboard.json"
       ],
-      "maxTrackedBytesDelta": 32301,
+      "maxTrackedBytesDelta": 43021,
       "maxTrackedFilesDelta": 3,
       "maxCategoryBytesDelta": {
-        "config/data/messages": 8604,
+        "config/data/messages": 16375,
+        "docs/text": 2949,
         "source/scripts": 7796,
         "tests/e2e": 15901
       },
       "maxPathBytesDelta": {
+        "docs/plans/2026-08-28-t117b-cutover-design-gate.md": 2949,
+        "docs/plans/2026-08-28-t117b-cutover-admission.json": 7771,
         "apps/web/e2e/dashboard-access.spec.ts": 49,
         "apps/web/e2e/gate/member-diaspora.spec.ts": 0,
         "apps/web/e2e/gate/member-home-cta.spec.ts": 293,
@@ -554,10 +555,10 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60146742,
+  "maxTrackedBytes": 60146770,
   "maxTrackedFiles": 5937,
   "maxCategoryBytes": {
-    "config/data/messages": 2163530,
+    "config/data/messages": 2163558,
     "docs/text": 8509832,
     "large support/generated-ish": 15390712,
     "other": 18856416,
