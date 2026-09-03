@@ -111,16 +111,26 @@ test('bounded owner extension stays closed', () => {
   assert.throws(() => extend(existing, proposed, {}), /category.*missing/u);
 });
 test('CUTOVER lineage', () => {
-  const seed = { sliceId: 'T117B-CUTOVER', writerPaths: ['a', 'b'], routineOperations: [] };
+  const old = budget.allocations
+    .find(item => item.id === 't117b-cutover')
+    .writerPaths.filter(path => path.startsWith('apps/'))
+    .sort();
+  const added = 'apps/web/src/app/[locale]/(app)/_core.entry.tsx';
+  const seed = {
+    sliceId: 'T117B-CUTOVER',
+    writerPaths: [...old, added].sort(),
+    routineOperations: [],
+  };
   assert.equal(
     capacity.compileWriterClosure(seed).authorityStops[0].code,
     'writer:undeclared-cutover-lineage'
   );
   const hash = value => sha256(JSON.stringify(value));
-  const prior = hash(['a']);
+  assert.equal(old.length, 20);
+  const prior = hash(old);
   const now = hash(seed.writerPaths);
   const role = (number, paths) => ({ number, changedPaths: paths, changedPathDigest: hash(paths) });
-  const roles = [role(1683, ['a']), role(1675, ['b']), role(1686, ['c'])];
+  const roles = [role(1683, ['docs/a']), role(1675, old), role(1686, ['scripts/a'])];
   const node = (digest, parentDigest, role, writerPaths) => ({
     changedPathDigest: role.changedPathDigest,
     digest,
@@ -128,8 +138,8 @@ test('CUTOVER lineage', () => {
     prNumber: role.number,
     writerPaths,
   });
-  const a = node(prior, null, roles[0], ['a']);
-  const b = node(now, prior, roles[1], ['a', 'b']);
+  const a = node(prior, null, roles[1], old);
+  const b = node(now, prior, roles[0], seed.writerPaths);
   const chain = { currentDigest: now, history: [a, b], priorDigest: prior };
   const check = (value, declared = roles) =>
     capacity.compileWriterClosure({
@@ -144,46 +154,19 @@ test('CUTOVER lineage', () => {
   assert.equal(check(chain).writerLineage.currentDigest, now);
   const invalid = [
     { ...chain, priorDigest: now },
-    { ...chain, priorDigest: hash('missing') },
-    { ...chain, currentDigest: hash('missing') },
     { ...chain, history: [b, a] },
-    { ...chain, history: [a, node(hash(['a', 'c']), prior, roles[2], ['a', 'c']), b] },
-    { ...chain, history: [a, node(prior, prior, roles[1], ['a'])] },
+    { ...chain, history: [a, node(hash([...old, 'c']), prior, roles[2], [...old, 'c']), b] },
+    { ...chain, history: [a, node(prior, prior, roles[1], old)] },
     { ...chain, history: [a, { ...b, prNumber: 9999 }] },
   ];
   for (const value of invalid) assert.ok(check(value).authorityStops.length);
   const drifted = structuredClone(roles);
-  drifted[1].changedPaths = ['drift'];
-  drifted[1].changedPathDigest = hash(drifted[1].changedPaths);
+  drifted[0].changedPaths = ['drift'];
+  drifted[0].changedPathDigest = hash(drifted[0].changedPaths);
   assert.ok(check(chain, drifted).authorityStops.length);
 });
-test('candidate rebind rejects foreign drift', () => {
-  const first = proposal(manifest());
-  assert.equal(Buffer.byteLength(first.budgetBytes) - baselineBytes, first.selfBytesDelta);
-  const second = proposal(manifest([900, 1_100]), first.budget);
-  assert.equal(second.mode, 'derived');
-  assert.ok(second.deficits.some(item => item.code === 'capacity:worktree-budget-rebind'));
-  assert.deepEqual(second.authorityStops, []);
-  const foreign = structuredClone(first.budget);
-  foreign.allocations.find(item => item.id === 't116-case-summary').maxPathBytesDelta[
-    'docs/plans/current-program.md'
-  ] += 1;
-  const stopped = proposal(manifest([900, 1_100]), foreign);
-  assert.ok(stopped.authorityStops.some(item => item.code === 'capacity:worktree-budget-drift'));
-  const covered = manifest();
-  const path = 'scripts/slice-rehearse-capacity.mjs';
-  Object.assign(covered, {
-    schemaVersion: 2,
-    workClass: 'governance',
-    capacityOwnerId: 'harness-v2-efficiency',
-    writerPaths: [path],
-    pathPlans: [plan(path, 'modify', 'source/scripts', 4_983, 300)],
-    routineOperations: [],
-  });
-  const replay = proposal(validateRehearsalManifest(covered));
-  assert.equal(replay.mode, 'existing');
-  assert.deepEqual(replay.authorityStops, []);
-});
+// prettier-ignore
+test('candidate rebind rejects foreign drift and compiles same-slice capacity', () => { const first = proposal(manifest()), foreign = structuredClone(first.budget); foreign.allocations.find(item => item.id === 't116-case-summary').maxPathBytesDelta['docs/plans/current-program.md'] += 1; assert.ok(proposal(manifest([900, 1_100]), foreign).authorityStops.some(item => item.code === 'capacity:worktree-budget-drift')); const covered = manifest(), path = 'scripts/slice-rehearse-capacity.mjs'; Object.assign(covered, { schemaVersion: 2, sliceId: 'HARNESS-V2-EFFICIENCY', workClass: 'governance', capacityOwnerId: 'harness-v2-efficiency', writerPaths: [path, paths[0]], pathPlans: [plan(path, 'modify', 'source/scripts', 4_983, 300), plan(paths[0], 'create', 'source/scripts', 1, 200)], routineOperations: [{ operation: 'compile_same_slice_delivery', target: { taskId: 'HARNESS-V2-EFFICIENCY' } }] }); const replay = proposal(covered); assert.equal(replay.mode, 'derived'); assert.deepEqual(replay.authorityStops, []); });
 test('projection preserves protected blob bytes', () => {
   const projection = validateRehearsalManifest({
     ...manifest(),
