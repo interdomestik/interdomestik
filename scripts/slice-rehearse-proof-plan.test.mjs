@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 
 import { canonicalJson, deriveEvidenceIdentityKey, sha256 } from './slice-rehearse-canonical.mjs';
@@ -69,7 +71,7 @@ test('persists only successful proof claims and rejects a duplicate success atom
     headSha: '1'.repeat(40),
     treeSha: '2'.repeat(40),
   };
-  const root = fs.mkdtempSync('/private/tmp/heavy-proof-ledger-');
+  const root = fs.mkdtempSync(join(tmpdir(), 'heavy-proof-ledger-'));
   const ledgerPath = heavyProofLedgerPath(scope, root);
   fs.rmSync(ledgerPath, { force: true });
   const execution = {
