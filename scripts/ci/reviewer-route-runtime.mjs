@@ -135,12 +135,9 @@ export function runReviewerRoute(options) {
       if (stream === 'stdout')
         stdout = appendBounded(stdout, chunk, options.maxCaptureBytes || 20_000);
       else stderr = appendBounded(stderr, chunk, options.maxCaptureBytes || 20_000);
-      const reason =
-        stream === 'stdout' && hasToolRequest(stdout)
-          ? 'reviewer_tool_request'
-          : stream === 'stderr'
-            ? classifyBlocker(chunk.toString())
-            : '';
+      let reason = '';
+      if (stream === 'stdout' && hasToolRequest(stdout)) reason = 'reviewer_tool_request';
+      else if (stream === 'stderr') reason = classifyBlocker(chunk.toString());
       if (reason && !blockerReason) {
         blockerReason = reason;
         terminate(child);

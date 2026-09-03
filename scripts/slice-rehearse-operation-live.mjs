@@ -89,10 +89,18 @@ function normalizePull(value) {
 function readPr(prNumber) {
   return normalizePull(ghJson(['pr', 'view', String(prNumber), '--json', PULL_FIELDS]));
 }
-function readPrForBranch(certificate) {
+function readPrForBranch(cert) {
   const args = ['pr', 'list', '--state', 'all'];
-  args.push('--head', certificate.branch, '--base', certificate.baseBranch);
-  args.push('--limit', '2', '--json', PULL_FIELDS);
+  args.push(
+    '--head',
+    cert.branch,
+    '--base',
+    cert.baseBranch,
+    '--limit',
+    '2',
+    '--json',
+    PULL_FIELDS
+  );
   const values = ghJson(args);
   must(Array.isArray(values) && values.length <= 1, 'PR lookup ambiguous');
   return values.length ? normalizePull(values[0]) : null;
