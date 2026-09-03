@@ -31,8 +31,10 @@ const LANE = /^[a-z0-9][a-z0-9:_-]*$/u;
 const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{2,127}$/u;
 const EXECUTION_KEYS = ['evidenceKey', 'lane', 'runId', 'startedAt'];
 const RECORD_KEYS = [...EXECUTION_KEYS, 'exitCode', 'finishedAt', 'status'];
-const STATES = new Set(['reserved', 'running', 'succeeded', 'failed']);
 const OPEN = fs.constants;
+const conflict = (record, run, successOnly = false) =>
+  record.runId === run.runId ||
+  (record.evidenceKey === run.evidenceKey && (!successOnly || record.status === 'succeeded'));
 const openNoFollow = (path, flags) => fs.openSync(path, flags | OPEN.O_NOFOLLOW, 0o600);
 export const HEAVY_PROOF_LEDGER_ROOT = resolve(HOST_BOUND_AUTHORITY_ROOT, 'harness-proof-ledgers');
 
@@ -125,17 +127,21 @@ export function normalizeHeavyProofExecution(execution) {
 
 function normalizeHeavyProofRecord(record) {
   exactKeys(record, RECORD_KEYS, 'heavy proof receipt');
-  normalizeHeavyProofExecution(Object.fromEntries(EXECUTION_KEYS.map(key => [key, record[key]])));
-  must(STATES.has(record.status), 'heavy proof receipt status is invalid');
-  const terminal = ['succeeded', 'failed'].includes(record.status);
-  must(terminal === Number.isFinite(Date.parse(record.finishedAt)), 'proof completion invalid');
+  const { exitCode: code, finishedAt, status, ...run } = record;
+  normalizeHeavyProofExecution(run);
+  must(
+    ['reserved', 'running', 'succeeded', 'failed'].includes(status),
+    'heavy proof receipt status is invalid'
+  );
+  const terminal = ['succeeded', 'failed'].includes(status);
   must(
     terminal
-      ? record.exitCode === null || Number.isInteger(record.exitCode)
-      : record.exitCode === null,
-    'heavy proof exit code is invalid'
+      ? typeof finishedAt === 'string' && Number.isFinite(Date.parse(finishedAt))
+      : finishedAt === null,
+    'proof completion invalid'
   );
-  must(record.status !== 'succeeded' || record.exitCode === 0, 'success proof exit code invalid');
+  must(code === null || (terminal && Number.isInteger(code)), 'heavy proof exit code is invalid');
+  must(status !== 'succeeded' || code === 0, 'success proof exit code invalid');
   return record;
 }
 
@@ -169,13 +175,11 @@ export function recordHeavyProofExecution({
   let lock;
   try {
     lock = openNoFollow(lockPath, OPEN.O_WRONLY | OPEN.O_CREAT | OPEN.O_EXCL);
-    const records = readProofRecords(path);
-    const value = normalizeHeavyProofExecution(execution);
-    const record = normalizeHeavyProofRecord({ ...value, status, finishedAt, exitCode });
+    const seen = readProofRecords(path);
+    const run = normalizeHeavyProofExecution(execution);
+    const record = normalizeHeavyProofRecord({ ...run, status, finishedAt, exitCode });
     must(
-      record.status === 'succeeded' &&
-        record.exitCode === 0 &&
-        !records.some(item => item.evidenceKey === value.evidenceKey),
+      status === 'succeeded' && !seen.some(item => conflict(item, run)),
       'receipt transition invalid'
     );
     const fd = openNoFollow(path, OPEN.O_WRONLY | OPEN.O_APPEND | OPEN.O_CREAT);
@@ -195,18 +199,16 @@ export function recordHeavyProofExecution({
 
 export function acquireHeavyProofExecutionLease({ ledgerPath, scope, execution, ledgerRoot }) {
   const path = trustedHeavyProofLedgerPath(ledgerPath, scope, ledgerRoot);
-  const value = normalizeHeavyProofExecution(execution);
+  const run = normalizeHeavyProofExecution(execution);
   const leasePath = `${path}.run.lock`;
   let fd;
   try {
     fd = openNoFollow(leasePath, OPEN.O_WRONLY | OPEN.O_CREAT | OPEN.O_EXCL);
     must(
-      !readProofRecords(path).some(
-        record => record.evidenceKey === value.evidenceKey && record.status === 'succeeded'
-      ),
+      !readProofRecords(path).some(record => conflict(record, run, true)),
       'proof already succeeded'
     );
-    fs.writeSync(fd, `${JSON.stringify(canonicalize(value))}\n`, null, 'utf8');
+    fs.writeSync(fd, `${JSON.stringify(canonicalize(run))}\n`, null, 'utf8');
   } catch (error) {
     if (fd !== undefined) {
       fs.closeSync(fd);

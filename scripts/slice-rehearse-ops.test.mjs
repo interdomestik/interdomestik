@@ -8,8 +8,11 @@ import { canonicalJson, sha256 } from './slice-rehearse-canonical.mjs';
 import { operationApprovalBinding } from './slice-rehearse-operation-certificate.mjs';
 import * as live from './slice-rehearse-operation-live.mjs';
 import {
+  acquireHeavyProofExecutionLease as acquireLease,
   approvalReceiptPath,
   buildSafeOperation,
+  heavyProofLedgerPath,
+  recordHeavyProofExecution as recordProof,
   runSafeOperation,
 } from './slice-rehearse-ops.mjs';
 
@@ -267,4 +270,30 @@ test('updates an exact PR from its remote preimage', () => {
       request.operation
     )
   );
+});
+test('fails closed over proof receipt completion and execution identities', t => {
+  const scope = { sliceId: 'HARNESS-V2-OPS', headSha: head, treeSha: tree };
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'proof-ops-'));
+  const ledger = heavyProofLedgerPath(scope, root);
+  const at = '2026-09-02T00:00:00.000Z';
+  const ctx = { ledgerPath: ledger, scope, ledgerRoot: root };
+  const baseProof = { lane: 'pr-e2e', startedAt: at };
+  const proof = (key, runId) => ({ ...baseProof, evidenceKey: key.repeat(64), runId });
+  const record = (execution, finishedAt, status = 'succeeded', exitCode = 0) =>
+    recordProof({ ...ctx, execution, status, finishedAt, exitCode });
+  const lease = execution => acquireLease({ ...ctx, execution });
+  const completion = /proof completion invalid/u;
+  const reject = execution => assert.throws(() => lease(execution)(), /already succeeded/u);
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  assert.throws(() => record(proof('1', 'run-1'), 'bad', 'running', null), completion);
+  assert.throws(() => record(proof('2', 'run-2'), 0), completion);
+  assert.equal(record({ ...proof('3', 'run-3'), startedAt: 0 }, at), true);
+  assert.throws(() => record(proof('4', 'run-3'), at), /receipt transition/u);
+  reject(proof('5', 'run-3'));
+  reject(proof('3', 'run-4'));
+  const failed = proof('6', 'run-5');
+  Object.assign(failed, { exitCode: 1, finishedAt: at, status: 'failed' });
+  fs.writeFileSync(ledger, JSON.stringify(failed), { mode: 0o600 });
+  reject(proof('7', 'run-5'));
+  lease(proof('6', 'run-6'))();
 });
