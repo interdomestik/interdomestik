@@ -178,6 +178,14 @@ export function runHeavyProofExecution({
       const result = execute(commands[index]);
       if (result?.status !== 0) {
         const exitCode = Number.isInteger(result?.status) ? result.status : null;
+        record({
+          ledgerPath,
+          scope,
+          execution: value,
+          status: 'failed',
+          finishedAt: new Date().toISOString(),
+          exitCode,
+        });
         return {
           commandIndex: index,
           exitCode,

@@ -288,9 +288,8 @@ test('fails closed over proof receipt completion and execution identities', t =>
   assert.throws(() => record(proof('4', 'run-3'), at), /receipt transition/u);
   reject(proof('5', 'run-3'));
   reject(proof('3', 'run-4'));
-  const failed = proof('6', 'run-5');
-  Object.assign(failed, { exitCode: 1, finishedAt: at, status: 'failed' });
-  fs.writeFileSync(ledger, JSON.stringify(failed), { mode: 0o600 });
+  assert.equal(record(proof('6', 'run-5'), at, 'failed', null), true);
+  fs.truncateSync(ledger, fs.statSync(ledger).size - 1);
   assert.throws(() => record(proof('6', 'run-6'), at), /ledger incomplete/u);
   fs.appendFileSync(ledger, '\n');
   reject(proof('7', 'run-5'));

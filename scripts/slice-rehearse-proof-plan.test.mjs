@@ -189,7 +189,7 @@ test('the proof executor claims the evidence key only after every command succee
   );
 });
 
-test('failed heavy proof records no claim and remains retryable', () => {
+test('records failed heavy proof and leaves its evidence retryable', () => {
   const report = proofReport(
     { lane: 'pr-e2e', evidenceKey: '7'.repeat(64) },
     'HARNESS-V2-PROOF-FAILED'
@@ -201,36 +201,46 @@ test('failed heavy proof records no claim and remains retryable', () => {
   };
   const ledgerPath = heavyProofLedgerPath(scope);
   const records = [];
+  let releases = 0;
   const execution = {
     runId: 'run-failed-0001',
     evidenceKey: '7'.repeat(64),
     lane: 'pr-e2e',
     startedAt: '2026-08-31T00:00:00.000Z',
   };
-  const result = runHeavyProofExecution({
-    ledgerPath,
-    execution,
-    report,
-    verifyCandidate: () => true,
-    verifyProofHost: () => true,
-    acquireLease: () => () => {},
-    execute: () => ({ status: null }),
-    record: input => records.push(input.status ?? 'reserved'),
-  });
-  assert.equal(result.status, 'failed');
-  assert.deepEqual(records, []);
-  const retry = runHeavyProofExecution({
-    ledgerPath,
-    execution: { ...execution, runId: 'run-failed-0002' },
-    report,
-    verifyCandidate: () => true,
-    verifyProofHost: () => true,
-    acquireLease: () => () => {},
-    execute: () => ({ status: 0 }),
-    record: input => records.push(input.status),
-  });
-  assert.equal(retry.status, 'succeeded');
-  assert.deepEqual(records, ['succeeded']);
+  const run = (status, runId, record = input => records.push(input)) =>
+    runHeavyProofExecution({
+      ledgerPath,
+      execution: { ...execution, runId },
+      report,
+      verifyCandidate: () => true,
+      verifyProofHost: () => true,
+      acquireLease: () => () => (releases += 1),
+      execute: () => ({ status }),
+      record,
+    });
+  const result = run(null, execution.runId);
+  assert.deepEqual([result.status, result.exitCode], ['failed', null]);
+  assert.equal(records[0].ledgerPath, ledgerPath);
+  assert.deepEqual(records[0].scope, scope);
+  assert.deepEqual(records[0].execution, execution);
+  assert.deepEqual(
+    [records[0].status, records[0].exitCode, Number.isFinite(Date.parse(records[0].finishedAt))],
+    ['failed', null, true]
+  );
+  const integer = run(17, 'run-failed-0002');
+  assert.deepEqual([integer.status, integer.exitCode, records[1].exitCode], ['failed', 17, 17]);
+  assert.throws(
+    () =>
+      run(1, 'run-failed-0003', () => {
+        throw new Error('receipt write failed');
+      }),
+    /receipt write failed/u
+  );
+  assert.equal(releases, 3);
+  assert.equal(run(0, 'run-failed-0004').status, 'succeeded');
+  assert.equal(records.at(-1).status, 'succeeded');
+  assert.equal(releases, 4);
 });
 
 test('heavy proof refuses an unauthorized host before lease or command execution', () => {

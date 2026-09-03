@@ -179,7 +179,7 @@ export function recordHeavyProofExecution({
     const run = normalizeHeavyProofExecution(execution);
     const record = normalizeHeavyProofRecord({ ...run, status, finishedAt, exitCode });
     must(
-      status === 'succeeded' && !seen.some(item => conflict(item, run)),
+      finishedAt !== null && !seen.some(item => conflict(item, run)),
       'receipt transition invalid'
     );
     const fd = openNoFollow(path, OPEN.O_WRONLY | OPEN.O_APPEND | OPEN.O_CREAT);
