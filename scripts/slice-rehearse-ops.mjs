@@ -32,9 +32,8 @@ const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{2,127}$/u;
 const EXECUTION_KEYS = ['evidenceKey', 'lane', 'runId', 'startedAt'];
 const RECORD_KEYS = [...EXECUTION_KEYS, 'exitCode', 'finishedAt', 'status'];
 const OPEN = fs.constants;
-const conflict = (record, run, successOnly = false) =>
-  record.runId === run.runId ||
-  (record.evidenceKey === run.evidenceKey && (!successOnly || record.status === 'succeeded'));
+const conflict = (item, run) =>
+  item.runId === run.runId || (item.evidenceKey === run.evidenceKey && item.status === 'succeeded');
 const openNoFollow = (path, flags) => fs.openSync(path, flags | OPEN.O_NOFOLLOW, 0o600);
 export const HEAVY_PROOF_LEDGER_ROOT = resolve(HOST_BOUND_AUTHORITY_ROOT, 'harness-proof-ledgers');
 
@@ -150,8 +149,9 @@ function readProofRecords(path) {
   const fd = openNoFollow(path, OPEN.O_RDONLY);
   try {
     must(fs.fstatSync(fd).isFile(), 'proof ledger is not a file');
-    return fs
-      .readFileSync(fd, 'utf8')
+    const text = fs.readFileSync(fd, 'utf8');
+    must(!text || text.endsWith('\n'), 'ledger incomplete');
+    return text
       .trim()
       .split('\n')
       .filter(Boolean)
@@ -204,10 +204,7 @@ export function acquireHeavyProofExecutionLease({ ledgerPath, scope, execution, 
   let fd;
   try {
     fd = openNoFollow(leasePath, OPEN.O_WRONLY | OPEN.O_CREAT | OPEN.O_EXCL);
-    must(
-      !readProofRecords(path).some(record => conflict(record, run, true)),
-      'proof already succeeded'
-    );
+    must(!readProofRecords(path).some(record => conflict(record, run)), 'proof already succeeded');
     fs.writeSync(fd, `${JSON.stringify(canonicalize(run))}\n`, null, 'utf8');
   } catch (error) {
     if (fd !== undefined) {

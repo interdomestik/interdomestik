@@ -3,7 +3,6 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-
 import { canonicalJson, sha256 } from './slice-rehearse-canonical.mjs';
 import { operationApprovalBinding } from './slice-rehearse-operation-certificate.mjs';
 import * as live from './slice-rehearse-operation-live.mjs';
@@ -24,7 +23,6 @@ const writerClosure = ['scripts/a.mjs'];
 const origin = 'https://github.com/interdomestik/interdomestik.git';
 const [branch, baseBranch] = ['codex/harness-v2-1', 'main'];
 const [prNumber, build] = [1700, buildSafeOperation];
-
 function certificate(overrides = {}) {
   const approvedPrNumber = Object.hasOwn(overrides, 'prNumber') ? overrides.prNumber : prNumber;
   const approvedBranch = overrides.branch ?? branch;
@@ -282,11 +280,10 @@ test('fails closed over proof receipt completion and execution identities', t =>
   const record = (execution, finishedAt, status = 'succeeded', exitCode = 0) =>
     recordProof({ ...ctx, execution, status, finishedAt, exitCode });
   const lease = execution => acquireLease({ ...ctx, execution });
-  const completion = /proof completion invalid/u;
   const reject = execution => assert.throws(() => lease(execution)(), /already succeeded/u);
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  assert.throws(() => record(proof('1', 'run-1'), 'bad', 'running', null), completion);
-  assert.throws(() => record(proof('2', 'run-2'), 0), completion);
+  assert.throws(() => record(proof('1', 'run-1'), 'bad', 'running', null), /completion invalid/u);
+  assert.throws(() => record(proof('2', 'run-2'), 0), /completion invalid/u);
   assert.equal(record({ ...proof('3', 'run-3'), startedAt: 0 }, at), true);
   assert.throws(() => record(proof('4', 'run-3'), at), /receipt transition/u);
   reject(proof('5', 'run-3'));
@@ -294,6 +291,10 @@ test('fails closed over proof receipt completion and execution identities', t =>
   const failed = proof('6', 'run-5');
   Object.assign(failed, { exitCode: 1, finishedAt: at, status: 'failed' });
   fs.writeFileSync(ledger, JSON.stringify(failed), { mode: 0o600 });
+  assert.throws(() => record(proof('6', 'run-6'), at), /ledger incomplete/u);
+  fs.appendFileSync(ledger, '\n');
   reject(proof('7', 'run-5'));
   lease(proof('6', 'run-6'))();
+  assert.equal(record(proof('6', 'run-6'), at), true);
+  reject(proof('6', 'run-7'));
 });
