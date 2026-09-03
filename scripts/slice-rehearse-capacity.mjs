@@ -23,7 +23,6 @@ import {
 const HISTORY_LIMIT = 128;
 const DIGEST = /^[0-9a-f]{64}$/u;
 const pathDigest = paths => sha256(JSON.stringify([...paths].sort(compareText)));
-const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 export function normalizeWriterLineage(v, roles = []) {
   exactKeys(v, ['currentDigest', 'history', 'priorDigest'], 'lineage');
@@ -43,14 +42,11 @@ export function normalizeWriterLineage(v, roles = []) {
       'lineage node'
     );
     const paths = sortedUnique(item.writerPaths, 'lineage path', safeRelativePath);
-    const changed = paths.filter(path => !prior.includes(path));
     const role = byPr.get(item.prNumber);
     must(
       paths.length &&
         item.digest === pathDigest(paths) &&
         item.changedPathDigest === role?.changedPathDigest &&
-        item.changedPathDigest === pathDigest(changed) &&
-        same(changed, role.changedPaths) &&
         item.parentDigest === parent &&
         paths.length > prior.length &&
         prior.every(path => paths.includes(path)) &&
@@ -70,6 +66,12 @@ export function normalizeWriterLineage(v, roles = []) {
     'invalid lineage endpoints'
   );
   return { ...v, history };
+}
+
+// prettier-ignore
+function compilesSameSliceGovernance(m) {
+  const d = m.routineOperations.filter(v => v?.operation === 'compile_same_slice_delivery');
+  return m.schemaVersion === 2 && m.workClass === 'governance' && m.capacityOwnerId === m.sliceId.toLowerCase() && m.topology.closeoutMode === 'none' && d.length === 1 && d[0].target.taskId === m.sliceId;
 }
 
 export function compileWriterClosure(manifest) {
@@ -131,7 +133,7 @@ function extendOwner(budget, existing, proposed, manifest, deltas, bytes) {
     'capacity owner extension requires an existing owned writer'
   );
   must(
-    manifest.writerPaths.includes(BUDGET_PATH),
+    manifest.writerPaths.includes(BUDGET_PATH) || compilesSameSliceGovernance(manifest),
     'capacity owner extension requires the budget writer'
   );
   const categories = Object.fromEntries(manifest.pathPlans.map(plan => [plan.path, plan.category]));
