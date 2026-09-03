@@ -18,184 +18,173 @@ import {
   OPERATION_ARTIFACT_ROOT,
   operationBodyArtifact,
 } from './slice-rehearse-operation-certificate.mjs';
-const GH_CANDIDATES = ['/usr/bin/gh', '/opt/homebrew/bin/gh', '/usr/local/bin/gh'];
-const SAFE_EXEC = Object.freeze({
+const GH = ['/usr/bin/gh', '/opt/homebrew/bin/gh', '/usr/local/bin/gh'];
+const EXEC = Object.freeze({
   encoding: 'utf8',
   env: { PATH: '/usr/bin:/bin:/usr/sbin:/sbin' },
   maxBuffer: 8 * 1024 * 1024,
   timeout: 30_000,
 });
-const PROVIDER_ENVIRONMENT_KEYS =
+const GH_ENV =
   'HOME XDG_CONFIG_HOME GH_CONFIG_DIR GH_HOST GH_TOKEN GH_ENTERPRISE_TOKEN GITHUB_TOKEN'.split(' ');
-const GIT_AUTH_ENVIRONMENT_KEYS = 'HOME XDG_CONFIG_HOME SSH_AUTH_SOCK'.split(' ');
-const PULL_FIELDS = 'number,headRefOid,headRefName,baseRefName,headRepository,headRepositoryOwner';
-const LIVE_FACT_KEYS =
-  'origin baseSha headSha treeSha branch remoteHeadSha writerMapDigest pr'.split(' ');
-const git = args => execFileSync('/usr/bin/git', args, SAFE_EXEC);
-export function safeGitHubEnvironment(environment = process.env, keys = PROVIDER_ENVIRONMENT_KEYS) {
-  const safe = { PATH: SAFE_EXEC.env.PATH };
-  for (const key of keys)
-    if (typeof environment[key] === 'string' && environment[key].length > 0)
-      safe[key] = environment[key];
+const GIT_ENV = 'HOME XDG_CONFIG_HOME SSH_AUTH_SOCK'.split(' ');
+const FIELDS =
+  'number,state,headRefOid,headRefName,baseRefOid,baseRefName,headRepository,headRepositoryOwner';
+const FACTS = 'origin baseSha headSha treeSha branch remoteHeadSha writerMapDigest pr'.split(' ');
+const same = (a, b) =>
+  'baseBranch baseSha branch headSha number'.split(' ').every(key => a?.[key] === b?.[key]);
+const git = args => execFileSync('/usr/bin/git', args, EXEC);
+export function safeGitHubEnvironment(e = process.env, keys = GH_ENV) {
+  const safe = { PATH: EXEC.env.PATH };
+  for (const k of keys) if (typeof e[k] === 'string' && e[k]) safe[k] = e[k];
   return safe;
 }
-export function execOptions(binary, environment = process.env) {
-  const git = binary === 'git' || binary.endsWith('/git');
-  if (binary !== 'gh' && !git) return SAFE_EXEC;
-  const env = safeGitHubEnvironment(
-    environment,
-    git ? GIT_AUTH_ENVIRONMENT_KEYS : PROVIDER_ENVIRONMENT_KEYS
-  );
-  if (git) env.GIT_TERMINAL_PROMPT = '0';
-  return { ...SAFE_EXEC, env };
+export function execOptions(b, e = process.env) {
+  const isGit = b === 'git' || b.endsWith('/git');
+  if (b !== 'gh' && !isGit) return EXEC;
+  const env = safeGitHubEnvironment(e, isGit ? GIT_ENV : GH_ENV);
+  if (isGit) env.GIT_TERMINAL_PROMPT = '0';
+  return { ...EXEC, env };
+}
+// prettier-ignore
+export const stalePrRole = c => c.rehearsalReport.operationalEnvelope?.lifecycle?.target.prRoles.find(role => role.role === 'stale-prerequisite');
+// prettier-ignore
+export function verifyStalePrLiveFacts(f, c) {
+  const role = stalePrRole(c);
+  const valid = same(f.pr, role) && f.pr?.origin === normalizeGitHubOrigin(c.origin).providerRepository && f.pr.state === 'OPEN';
+  must(valid, 'live stale PR differs from compiled lifecycle');
+}
+// prettier-ignore
+export function classifyStalePrReconciliation(f, t) {
+  const p = f?.pull;
+  if (!p || typeof p.state !== 'string') return { outcome: 'unknown' };
+  const origin = normalizeGitHubOrigin(t.origin).providerRepository;
+  if (!same(p, t) || ![origin, t.origin].includes(p.origin)) return { outcome: 'unknown' };
+  if (p.state === 'CLOSED') return { outcome: 'applied' };
+  return { outcome: p.state === 'OPEN' ? 'not_applied' : 'unknown' };
 }
 export function resolveGhBinary() {
-  const binary = GH_CANDIDATES.find(existsSync);
-  must(binary, `gh not found: ${GH_CANDIDATES.join(', ')}`);
-  return binary;
+  const p = GH.find(existsSync);
+  must(p, `gh not found: ${GH.join(', ')}`);
+  return p;
 }
-function ghJson(args) {
-  return JSON.parse(execFileSync(resolveGhBinary(), args, execOptions('gh')));
+function ghJson(a) {
+  return JSON.parse(execFileSync(resolveGhBinary(), a, execOptions('gh')));
 }
 function lsRemoteRefs(refs) {
-  const output = execFileSync(
-    '/usr/bin/git',
-    ['ls-remote', '--refs', 'origin', ...refs],
-    SAFE_EXEC
-  ).trim();
-  const resolved = Object.fromEntries(refs.map(ref => [ref, null]));
-  for (const line of output.split('\n').filter(Boolean)) {
+  const text = git(['ls-remote', '--refs', 'origin', ...refs]).trim();
+  const map = Object.fromEntries(refs.map(ref => [ref, null]));
+  for (const line of text.split('\n').filter(Boolean)) {
     const [sha, ref, extra] = line.split(/\s+/u);
-    must(!extra && Object.hasOwn(resolved, ref) && resolved[ref] === null, 'remote refs ambiguous');
-    resolved[ref] = normalizeCommitSha(sha, 'remote head SHA');
+    must(!extra && Object.hasOwn(map, ref) && map[ref] === null, 'remote refs ambiguous');
+    map[ref] = normalizeCommitSha(sha, 'remote head SHA');
   }
-  return resolved;
+  return map;
 }
-export function normalizeHeadRepository(repository, owner) {
-  if (repository?.nameWithOwner?.trim()) return repository.nameWithOwner.trim().toLowerCase();
-  const login = owner?.login?.trim();
-  const name = repository?.name?.trim();
+export function normalizeHeadRepository(r, o) {
+  if (r?.nameWithOwner?.trim()) return r.nameWithOwner.trim().toLowerCase();
+  const login = o?.login?.trim();
+  const name = r?.name?.trim();
   return login && name ? `${login}/${name}`.toLowerCase() : null;
 }
-function normalizePull(value) {
+function normalizePull(v) {
   return {
-    number: value.number,
-    baseBranch: value.baseRefName,
-    branch: value.headRefName,
-    headSha: value.headRefOid,
-    origin: normalizeHeadRepository(value.headRepository, value.headRepositoryOwner),
+    number: v.number,
+    baseBranch: v.baseRefName,
+    baseSha: v.baseRefOid,
+    branch: v.headRefName,
+    headSha: v.headRefOid,
+    origin: normalizeHeadRepository(v.headRepository, v.headRepositoryOwner),
+    state: v.state,
   };
 }
-function readPr(prNumber) {
-  return normalizePull(ghJson(['pr', 'view', String(prNumber), '--json', PULL_FIELDS]));
+function readPr(number) {
+  return normalizePull(ghJson(['pr', 'view', String(number), '--json', FIELDS]));
 }
-function readPrForBranch(cert) {
+function readPrForBranch(c) {
   const args = ['pr', 'list', '--state', 'all'];
-  args.push(
-    '--head',
-    cert.branch,
-    '--base',
-    cert.baseBranch,
-    '--limit',
-    '2',
-    '--json',
-    PULL_FIELDS
-  );
+  args.push('--head', c.branch, '--base', c.baseBranch, '--limit', '2', '--json', FIELDS);
   const values = ghJson(args);
   must(Array.isArray(values) && values.length <= 1, 'PR lookup ambiguous');
   return values.length ? normalizePull(values[0]) : null;
 }
-export function readLiveOperationFacts(request, certificate) {
-  const baseRef = `refs/heads/${certificate.baseBranch}`;
-  const branchRef = `refs/heads/${certificate.branch}`;
-  const remoteRefs = lsRemoteRefs([baseRef, branchRef]);
-  const range = `${certificate.baseSha}...${certificate.headSha}`;
-  const changedPaths = git(['diff', '--name-only', '-z', range])
-    .split('\0')
-    .filter(Boolean)
-    .sort(compareText);
-  const mergeSetting =
-    certificate.mergeMethod === 'merge'
-      ? 'allow_merge_commit'
-      : `allow_${certificate.mergeMethod}_merge`;
+// prettier-ignore
+export function readLiveOperationFacts(r, c) {
+  const base = `refs/heads/${c.baseBranch}`;
+  const branch = `refs/heads/${c.branch}`;
+  const remote = lsRemoteRefs([base, branch]);
+  const range = `${c.baseSha}...${c.headSha}`;
+  const paths = git(['diff', '--name-only', '-z', range]).split('\0').filter(Boolean).sort(compareText);
+  const setting = c.mergeMethod === 'merge' ? 'allow_merge_commit' : `allow_${c.mergeMethod}_merge`;
+  let pr;
+  if (r.operation === 'stale_pr_disposition') pr = readPr(r.prNumber);
+  else pr = c.prNumber === null ? readPrForBranch(c) : readPr(c.prNumber);
   return {
     origin: normalizeGitHubOrigin(git(['config', '--get', 'remote.origin.url']).trim()).origin,
-    baseSha: remoteRefs[baseRef],
+    baseSha: remote[base],
     headSha: git(['rev-parse', 'HEAD']).trim(),
     treeSha: git(['rev-parse', 'HEAD^{tree}']).trim(),
     branch: git(['branch', '--show-current']).trim(),
-    remoteHeadSha: remoteRefs[branchRef],
-    writerMapDigest: sha256(canonicalJson(changedPaths)),
-    mergeAllowed:
-      request.operation === 'conditional_merge'
-        ? ghJson(['api', `repos/${normalizeGitHubOrigin(certificate.origin).providerRepository}`])[
-            mergeSetting
-          ] === true
-        : null,
-    pr: certificate.prNumber === null ? readPrForBranch(certificate) : readPr(certificate.prNumber),
+    remoteHeadSha: remote[branch],
+    writerMapDigest: sha256(canonicalJson(paths)),
+    mergeAllowed: r.operation === 'conditional_merge' ? ghJson(['api', `repos/${normalizeGitHubOrigin(c.origin).providerRepository}`])[setting] === true : null,
+    pr,
   };
 }
-export function readLiveOperationAuthority(boundary) {
+export function readLiveOperationAuthority(b) {
   return resolveAtAuthorityBoundary({
-    boundary,
+    boundary: b,
     readLiveAuthority: () =>
       authenticateResolverOutput(resolveRepositoryAuthority(process.cwd(), true)),
   }).authority;
 }
-export function verifyLiveOperationFacts(facts, certificate, operation) {
-  must(facts && typeof facts === 'object', 'live facts unavailable');
-  for (const key of LIVE_FACT_KEYS) must(Object.hasOwn(facts, key), 'live facts unavailable');
-  must(facts.origin === certificate.origin, 'origin differs');
-  must(facts.baseSha === certificate.baseSha, 'base differs');
-  must(facts.headSha === certificate.headSha, 'exact local head differs from approved head');
-  must(facts.treeSha === certificate.treeSha, 'local tree differs');
-  must(facts.branch === certificate.branch, 'branch differs');
+export function verifyLiveOperationFacts(f, c, op) {
+  must(f && typeof f === 'object', 'live facts unavailable');
+  for (const key of FACTS) must(Object.hasOwn(f, key), 'live facts unavailable');
+  must(f.origin === c.origin, 'origin differs');
+  must(f.baseSha === c.baseSha, 'base differs');
+  must(f.headSha === c.headSha, 'exact local head differs from approved head');
+  must(f.treeSha === c.treeSha, 'local tree differs');
+  must(f.branch === c.branch, 'branch differs');
   must(
-    facts.remoteHeadSha === certificate.expectedRemoteHeadSha,
+    f.remoteHeadSha === c.expectedRemoteHeadSha,
     'exact remote branch head differs from certificate'
   );
-  must(facts.writerMapDigest === certificate.writerMapDigest, 'live writer map differs');
-  if (operation === 'conditional_merge')
-    must(facts.mergeAllowed === true, 'merge method is not enabled');
-  if (certificate.prNumber === null) {
-    must(facts.pr === null, 'existing PR blocks creation');
+  must(f.writerMapDigest === c.writerMapDigest, 'live writer map differs');
+  if (op === 'conditional_merge') must(f.mergeAllowed === true, 'merge method is not enabled');
+  if (op === 'stale_pr_disposition') {
+    verifyStalePrLiveFacts(f, c);
+    return;
+  }
+  if (c.prNumber === null) {
+    must(f.pr === null, 'existing PR blocks creation');
   } else {
-    must(facts.pr?.number === certificate.prNumber, 'live PR differs');
-    must(
-      facts.pr.baseBranch === certificate.baseBranch && facts.pr.branch === certificate.branch,
-      'live PR branches differ'
-    );
-    const expectedPrHead =
-      operation === 'branch_push' ? certificate.expectedRemoteHeadSha : certificate.headSha;
-    must(facts.pr.headSha === expectedPrHead, 'exact PR head differs');
-    must(facts.pr.origin === 'interdomestik/interdomestik', 'PR repo differs');
+    must(f.pr?.number === c.prNumber, 'live PR differs');
+    must(f.pr.baseBranch === c.baseBranch && f.pr.branch === c.branch, 'live PR branches differ');
+    const expected = op === 'branch_push' ? c.expectedRemoteHeadSha : c.headSha;
+    must(f.pr.headSha === expected, 'exact PR head differs');
+    must(f.pr.origin === 'interdomestik/interdomestik', 'PR repo differs');
   }
 }
-export function verifyOperationAuthority(authority, certificate) {
-  must(authority?.source === 'live-resolver', 'live resolver required');
-  if (certificate.workClass === 'product') {
-    must(
-      authority.runtimeAuthorized === true && authority.activeSlice === certificate.sliceId,
-      'product authority differs'
-    );
+export function verifyOperationAuthority(a, c) {
+  must(a?.source === 'live-resolver', 'live resolver required');
+  if (c.workClass === 'product') {
+    must(a.runtimeAuthorized === true && a.activeSlice === c.sliceId, 'product authority differs');
   } else {
     must(
-      authority.runtimeAuthorized === false && authority.activeSlice === null,
+      a.runtimeAuthorized === false && a.activeSlice === null,
       'governance requires inactive product'
     );
   }
 }
-export function verifyOperationBody(request, certificate) {
-  if (!Object.hasOwn(request, 'bodyArtifact')) return;
-  const content = readBoundedRegularText(operationBodyArtifact(certificate, request.bodyArtifact), {
+export function verifyOperationBody(r, c) {
+  if (!Object.hasOwn(r, 'bodyArtifact')) return;
+  const content = readBoundedRegularText(operationBodyArtifact(c, r.bodyArtifact), {
     label: 'Operation body',
     maxBytes: 256 * 1024,
     allowedRoots: [OPERATION_ARTIFACT_ROOT],
   });
-  must(
-    sha256(content) === certificate.artifacts[request.bodyArtifact],
-    'body artifact digest differs'
-  );
+  must(sha256(content) === c.artifacts[r.bodyArtifact], 'body artifact digest differs');
 }
 export function executeOperation(binary, args) {
   return spawnSync(binary === 'gh' ? resolveGhBinary() : binary, args, {
@@ -203,89 +192,85 @@ export function executeOperation(binary, args) {
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 }
-const reconciliationOutcome = applied => (applied ? 'applied' : 'not_applied');
-export function classifyMergeReconciliation(facts, certificate) {
-  const pull = facts?.pull;
-  const commit = pull?.mergeCommit;
-  if (!pull || typeof pull.state !== 'string') return { outcome: 'unknown', mergeSha: null };
-  if (pull.state !== 'MERGED') return { outcome: 'not_applied', mergeSha: null };
-  const applied =
-    pull.merged === true &&
-    pull.baseRefName === certificate.baseBranch &&
-    pull.headRefName === certificate.branch &&
-    pull.headRefOid === certificate.headSha &&
-    commit?.parents?.totalCount === 1 &&
-    commit.parents.nodes[0]?.oid === certificate.baseSha &&
-    commit.tree?.oid === certificate.treeSha &&
-    facts.mainSha === commit.oid &&
-    facts.authority?.lifecycle === 'consumed_on_merge' &&
-    facts.authority.mergeSha === commit.oid;
+const outcome = ok => (ok ? 'applied' : 'not_applied');
+export function classifyMergeReconciliation(f, c) {
+  const p = f?.pull;
+  const m = p?.mergeCommit;
+  if (!p || typeof p.state !== 'string') return { outcome: 'unknown', mergeSha: null };
+  if (p.state !== 'MERGED') return { outcome: 'not_applied', mergeSha: null };
+  const ok =
+    p.merged === true &&
+    p.baseRefName === c.baseBranch &&
+    p.headRefName === c.branch &&
+    p.headRefOid === c.headSha &&
+    m?.parents?.totalCount === 1 &&
+    m.parents.nodes[0]?.oid === c.baseSha &&
+    m.tree?.oid === c.treeSha &&
+    f.mainSha === m.oid &&
+    f.authority?.lifecycle === 'consumed_on_merge' &&
+    f.authority.mergeSha === m.oid;
   return {
-    outcome: applied ? 'applied' : 'unknown',
-    mergeSha: commit?.oid ?? null,
+    outcome: ok ? 'applied' : 'unknown',
+    mergeSha: m?.oid ?? null,
   };
 }
-function reconcileMerge(certificate) {
+function reconcileMerge(c) {
   const query = `query($number:Int!){repository(owner:"interdomestik",name:"interdomestik"){ref(qualifiedName:"refs/heads/main"){target{oid}} pullRequest(number:$number){state merged baseRefName headRefName headRefOid mergeCommit{oid tree{oid} parents(first:2){totalCount nodes{oid}}}}}}`;
-  const repository = ghJson([
-    'api',
-    'graphql',
-    '-f',
-    `query=${query}`,
-    '-F',
-    `number=${certificate.prNumber}`,
-  ])?.data?.repository;
+  const repo = ghJson(['api', 'graphql', '-f', `query=${query}`, '-F', `number=${c.prNumber}`])
+    ?.data?.repository;
   return classifyMergeReconciliation(
     {
-      mainSha: repository?.ref?.target?.oid,
-      pull: repository?.pullRequest,
+      mainSha: repo?.ref?.target?.oid,
+      pull: repo?.pullRequest,
       authority: readLiveOperationAuthority('post_merge'),
     },
-    certificate
+    c
   );
 }
-function reconcilePullCreation(certificate) {
-  const pull = readPrForBranch(certificate);
-  const applied =
-    pull?.headSha === certificate.headSha &&
-    pull.branch === certificate.branch &&
-    pull.baseBranch === certificate.baseBranch;
-  return { outcome: reconciliationOutcome(applied), prNumber: pull?.number ?? null };
+function reconcilePullCreation(c) {
+  const pull = readPrForBranch(c);
+  const ok =
+    pull?.headSha === c.headSha && pull.branch === c.branch && pull.baseBranch === c.baseBranch;
+  return { outcome: outcome(ok), prNumber: pull?.number ?? null };
 }
-function reconcilePullMutation(request, certificate) {
-  if (request.operation === 'label_add') {
+function reconcilePullMutation(r, c) {
+  if (r.operation === 'stale_pr_disposition') {
+    const stale = stalePrRole(c);
+    return stale
+      ? classifyStalePrReconciliation({ pull: readPr(r.prNumber) }, { ...stale, origin: c.origin })
+      : { outcome: 'unknown' };
+  }
+  if (r.operation === 'label_add') {
     const labels = ghJson([
       'pr',
       'view',
-      String(request.prNumber),
+      String(r.prNumber),
       '--json',
       'labels',
       '--jq',
       '[.labels[].name]',
     ]);
-    return { outcome: reconciliationOutcome(labels.includes(request.label)) };
+    return { outcome: outcome(labels.includes(r.label)) };
   }
-  if (request.operation === 'feedback_comment') {
-    const endpoint = `repos/interdomestik/interdomestik/issues/${request.prNumber}/comments?per_page=100`;
+  if (r.operation === 'feedback_comment') {
+    const endpoint = `repos/interdomestik/interdomestik/issues/${r.prNumber}/comments?per_page=100`;
     const comments = ghJson(['api', endpoint, '--paginate']);
-    const expected = certificate.artifacts[request.bodyArtifact];
+    const expected = c.artifacts[r.bodyArtifact];
     return {
-      outcome: reconciliationOutcome(
-        comments.some(comment => sha256(comment?.body ?? '') === expected)
-      ),
+      outcome: outcome(comments.some(comment => sha256(comment?.body ?? '') === expected)),
     };
   }
-  return reconcileMerge(certificate);
+  return reconcileMerge(c);
 }
-export function reconcileOperation(request, certificate) {
+export function reconcileOperation(r, c) {
   try {
-    if (request.operation === 'branch_push') {
-      const ref = `refs/heads/${certificate.branch}`;
+    if (r.operation === 'branch_push') {
+      const ref = `refs/heads/${c.branch}`;
       const remote = lsRemoteRefs([ref])[ref];
-      return { outcome: reconciliationOutcome(remote === certificate.headSha) };
+      return { outcome: outcome(remote === c.headSha) };
     }
-    if (request.operation === 'pr_create') return reconcilePullCreation(certificate);
-    return reconcilePullMutation(request, certificate);
+    if (r.operation === 'pr_create') return reconcilePullCreation(c);
+    return reconcilePullMutation(r, c);
   } catch {
     return { outcome: 'unknown' };
   }

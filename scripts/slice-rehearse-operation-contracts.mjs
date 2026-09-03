@@ -13,172 +13,169 @@ export {
   ROUTINE_OPERATIONS,
   routineOperationName,
 } from './slice-rehearse-operation-schema.mjs';
+export { stalePrDispositionCommand } from './slice-rehearse-operation-certificate.mjs';
+export {
+  classifyStalePrReconciliation,
+  stalePrRole,
+  verifyStalePrLiveFacts,
+} from './slice-rehearse-operation-live.mjs';
+
 const SHA256 = /^[0-9a-f]{64}$/u;
-function reject(state, operation, reason) {
-  state.rejected.push({ operation, reason });
-}
-function resolveForce(contract, repository, state) {
-  const pr = state.virtualPulls[String(contract.target.prNumber)];
+const ROLE_KEYS =
+  'baseBranch baseSha branch changedPathDigest changedPaths headSha number role state'.split(' ');
+const same = (left, right, keys = ROLE_KEYS) =>
+  keys.every(key => JSON.stringify(left?.[key]) === JSON.stringify(right?.[key]));
+const reject = (s, operation, reason) => s.r.push({ operation, reason });
+const settle = (s, c, reason, grant = c) =>
+  reason ? reject(s, c.operation, reason) : s.g.push(grant);
+
+function force(c, repo, s) {
+  const { target, preconditions: pre, postconditions: post } = c;
+  const pr = s.p[target.prNumber];
   let reason = null;
-  if (repository?.branch !== contract.target.branch) {
-    reason = repository?.branch === 'HEAD' ? 'detached-branch' : 'branch-mismatch';
-  } else if (repository.headSha !== contract.target.headSha) reason = 'head-mismatch';
-  else if (state.virtualHeads[contract.target.branch] !== contract.preconditions.leaseSha) {
-    reason = state.virtualHeads[contract.target.branch]
-      ? 'lease-mismatch'
-      : 'remote-head-unavailable';
-  } else if (
-    !operationPullMatches(pr, contract.target, contract.preconditions.leaseSha) ||
-    pr.branch !== contract.target.branch
-  ) {
+  if (repo?.branch !== target.branch)
+    reason = repo?.branch === 'HEAD' ? 'detached-branch' : 'branch-mismatch';
+  else if (repo.headSha !== target.headSha) reason = 'head-mismatch';
+  else if (s.h[target.branch] !== pre.leaseSha)
+    reason = s.h[target.branch] ? 'lease-mismatch' : 'remote-head-unavailable';
+  else if (!operationPullMatches(pr, target, pre.leaseSha) || pr.branch !== target.branch)
     reason = pr ? 'pull-request-mismatch' : 'pull-request-unavailable';
-  }
-  if (reason) {
-    reject(state, contract.operation, reason);
-    return;
-  }
-  state.virtualHeads[contract.target.branch] = contract.postconditions.remoteHeadSha;
-  state.virtualPulls[String(contract.target.prNumber)] = {
-    ...pr,
-    headSha: contract.postconditions.prHeadSha,
-  };
-  state.forceTransitions.set(contract.target.branch, {
-    state: 'resolved',
-    lease: contract.preconditions.leaseSha,
-    headSha: contract.target.headSha,
-    prNumber: contract.target.prNumber,
-  });
-  state.granted.push(contract);
+  if (reason) return reject(s, c.operation, reason);
+  s.h[target.branch] = post.remoteHeadSha;
+  s.p[target.prNumber] = { ...pr, headSha: post.prHeadSha };
+  s.t.set(target.branch, target.headSha);
+  s.g.push(c);
 }
-function resolveDeferredFullGate(contract, repository, state, transition) {
-  const operationFacts = state.facts
+
+function deferred(c, repo, s, transition) {
+  const facts = s.f
     ? {
-        ...state.facts,
-        authority:
-          transition?.state === 'resolved'
-            ? { ...state.facts.authority, approvedHeadSha: transition.headSha }
-            : state.facts.authority,
-        pullRequestCandidates: state.virtualCandidates,
+        ...s.f,
+        authority: transition ? { ...s.f.authority, approvedHeadSha: transition } : s.f.authority,
       }
     : null;
-  const result = resolveDeferredOperation(contract, repository, operationFacts);
-  if (result.granted || (contract.deferred && result.deferred))
-    state.granted.push(result.granted ?? result.deferred);
-  else reject(state, contract.operation, result.rejected);
+  const result = resolveDeferredOperation(c, repo, facts);
+  const grant = result.granted ?? (c.deferred && result.deferred);
+  settle(s, c, grant ? null : result.rejected, grant);
 }
 
-function resolveFullGate(contract, repository, state) {
-  const transition = state.forceTransitions.get(contract.target.branch);
-  if (contract.target.mode === 'deferred-pr')
-    return resolveDeferredFullGate(contract, repository, state, transition);
-  const pr = state.virtualPulls[String(contract.target.prNumber)];
-  const authority = state.facts?.authority;
-  const approvedHead =
-    transition?.state === 'resolved' ? transition.headSha : authority?.approvedHeadSha;
+function fullGate(c, repo, s) {
+  const { target } = c;
+  const transition = s.t.get(target.branch);
+  if (target.mode === 'deferred-pr') return deferred(c, repo, s, transition);
+  const pr = s.p[target.prNumber];
+  const authority = s.f?.authority;
+  const approvedHead = transition ?? authority?.approvedHeadSha;
   let reason = null;
-  if (!state.facts) reason = 'authority-facts-unavailable';
+  if (!s.f) reason = 'authority-facts-unavailable';
   else if (
-    repository.headSha !== contract.target.headSha ||
-    repository.branch !== contract.target.branch ||
-    pr?.branch !== contract.target.branch
-  ) {
+    repo.headSha !== target.headSha ||
+    repo.branch !== target.branch ||
+    pr?.branch !== target.branch
+  )
     reason = 'head-or-branch-mismatch';
-  } else if (
+  else if (
     authority?.runtimeAuthorized !== true ||
-    authority.activeSlice !== contract.target.taskId ||
-    approvedHead !== repository.headSha ||
-    authority.writerMapDigest !== repository.writerMapDigest
-  ) {
+    authority.activeSlice !== target.taskId ||
+    approvedHead !== repo.headSha ||
+    authority.writerMapDigest !== repo.writerMapDigest
+  )
     reason = 'authority-identity-mismatch';
-  } else if (!operationPullMatches(pr, contract.target, contract.preconditions.prHeadSha)) {
+  else if (!operationPullMatches(pr, target, c.preconditions.prHeadSha))
     reason = pr ? 'pull-request-mismatch' : 'pull-request-unavailable';
-  } else if (pr.fullGateLabelPresent || !pr.fullGateEligible)
-    reason = 'full-gate-label-not-eligible';
-  if (reason) reject(state, contract.operation, reason);
-  else state.granted.push(contract);
+  else if (pr.fullGateLabelPresent || !pr.fullGateEligible) reason = 'full-gate-label-not-eligible';
+  settle(s, c, reason);
 }
 
-function resolveCleanup(contract, state) {
-  const authority = state.facts?.authority;
+function cleanup(c, s) {
+  const authority = s.f?.authority;
+  const artifacts = c.target.artifactPaths.map(path => s.f?.taskOwnedArtifacts[path]);
   let reason = null;
-  if (!state.facts) reason = 'authority-facts-unavailable';
-  else if (![null, contract.target.taskId].includes(authority?.activeSlice)) {
+  if (!s.f) reason = 'authority-facts-unavailable';
+  else if (![null, c.target.taskId].includes(authority?.activeSlice))
     reason = 'authority-task-mismatch';
-  } else if (
-    contract.target.artifactPaths.some(
-      path => state.facts.taskOwnedArtifacts[path]?.exists !== true
-    )
-  ) {
-    reason = 'artifact-uninspectable';
-  } else if (
-    contract.target.artifactPaths.some(
-      path =>
-        state.facts.taskOwnedArtifacts[path]?.ownerTaskId !== contract.target.taskId ||
-        state.facts.taskOwnedArtifacts[path]?.safeToDiscard !== true
-    )
-  ) {
+  else if (artifacts.some(item => item?.exists !== true)) reason = 'artifact-uninspectable';
+  else if (
+    artifacts.some(item => item.ownerTaskId !== c.target.taskId || item.safeToDiscard !== true)
+  )
     reason = 'artifact-discard-unverified';
-  }
-  if (reason) reject(state, contract.operation, reason);
-  else if (authority.activeSlice === contract.target.taskId && authority.runtimeAuthorized) {
-    state.granted.push({ ...contract, deferred: true });
-  } else if (authority.activeSlice === null && authority.runtimeAuthorized === false) {
-    state.granted.push({ ...contract, deferred: false });
-  } else reject(state, contract.operation, 'authority-state-unverified');
+  if (reason) return settle(s, c, reason);
+  if (authority.activeSlice === c.target.taskId && authority.runtimeAuthorized)
+    settle(s, c, null, { ...c, deferred: true });
+  else if (authority.activeSlice === null && authority.runtimeAuthorized === false)
+    settle(s, c, null, { ...c, deferred: false });
+  else settle(s, c, 'authority-state-unverified');
 }
 
-export function resolveOperationalContracts(operations, repository) {
+function delivery(c, repo, s) {
+  let reason = null;
+  if (!s.f) reason = 'delivery-facts-unavailable';
+  else if (repo.writerMapDigest !== c.target.writerLineage.currentDigest)
+    reason = 'writer-lineage-mismatch';
+  settle(s, c, reason);
+}
+
+function stale(c, s, parent) {
+  const declared = parent?.target.prRoles.find(role => role.role === 'stale-prerequisite');
+  let reason = null;
+  if (!s.f) reason = 'delivery-facts-unavailable';
+  else if (
+    !same(declared, c.target) ||
+    c.target.origin !== parent?.target.origin ||
+    c.target.taskId !== parent?.target.taskId
+  )
+    reason = 'stale-pr-role-mismatch';
+  else if (!s.g.includes(parent))
+    reason =
+      s.r.find(item => item.operation === parent.operation)?.reason ??
+      'delivery-lifecycle-unresolved';
+  settle(s, c, reason);
+}
+
+export function resolveOperationalContracts(operations, repo) {
   const normalized = normalizeRoutineOperations(operations, { allowResolved: true });
   let facts = null;
   try {
-    facts = normalizeOperationFacts(repository?.operationFacts, normalized);
-  } catch {
-    facts = null;
-  }
-  const state = {
-    facts,
-    granted: [],
-    rejected: [],
-    virtualPulls: structuredClone(facts?.pullRequests ?? {}),
-    virtualHeads: { ...facts?.remoteHeads },
-    virtualCandidates: structuredClone(facts?.pullRequestCandidates ?? {}),
-    forceTransitions: new Map(),
+    facts = normalizeOperationFacts(repo?.operationFacts, normalized);
+  } catch {}
+  const s = {
+    f: facts,
+    g: [],
+    r: [],
+    p: structuredClone(facts?.pullRequests ?? {}),
+    h: { ...facts?.remoteHeads },
+    t: new Map(),
   };
-  for (const contract of normalized.filter(
-    item => item?.operation === 'bounded_force_with_lease_rebuild'
-  )) {
-    resolveForce(contract, repository, state);
+  const parent = normalized.find(item => item?.operation === 'compile_same_slice_delivery');
+  for (const c of normalized.filter(item => item?.operation === 'bounded_force_with_lease_rebuild'))
+    force(c, repo, s);
+  for (const c of normalized) {
+    if (typeof c === 'string') s.g.push(c);
+    else if (c.operation === 'bounded_force_with_lease_rebuild') continue;
+    else if (c.operation === 'compile_same_slice_delivery') delivery(c, repo, s);
+    else if (c.operation === 'stale_pr_disposition') stale(c, s, parent);
+    else if (c.operation === 'apply_full_gate_label') fullGate(c, repo, s);
+    else cleanup(c, s);
   }
-  for (const contract of normalized) {
-    if (typeof contract === 'string') state.granted.push(contract);
-    else if (contract.operation === 'bounded_force_with_lease_rebuild') continue;
-    else if (contract.operation === 'apply_full_gate_label')
-      resolveFullGate(contract, repository, state);
-    else resolveCleanup(contract, state);
-  }
-  return { facts, granted: state.granted, rejected: state.rejected };
+  return { facts, granted: s.g, rejected: s.r };
 }
 
-export function verifyOperationAtExecution(contract, repository) {
-  const resolution = resolveOperationalContracts([contract], repository);
-  if (
-    routineOperationName(contract) === 'task_owned_cleanup' &&
-    resolution.facts?.authority?.runtimeAuthorized === true
-  ) {
+export function verifyOperationAtExecution(c, repo) {
+  const result = resolveOperationalContracts([c], repo);
+  const isCleanup = routineOperationName(c) === 'task_owned_cleanup';
+  if (isCleanup && result.facts?.authority?.runtimeAuthorized === true)
     throw new Error('cleanup execution requires inactive authority');
-  }
   must(
-    !resolution.rejected.length && !resolution.granted[0]?.deferred,
+    !result.rejected.length && !result.granted[0]?.deferred,
     'operation preconditions are no longer satisfied'
   );
-  const normalized = resolution.granted[0];
-  if (routineOperationName(normalized) === 'task_owned_cleanup') {
+  const normalized = result.granted[0];
+  if (routineOperationName(normalized) === 'task_owned_cleanup')
     must(
-      resolution.facts?.authority.runtimeAuthorized === false &&
-        resolution.facts.authority.activeSlice === null,
+      result.facts?.authority.runtimeAuthorized === false &&
+        result.facts.authority.activeSlice === null,
       'cleanup execution requires inactive authority'
     );
-  }
   return normalized;
 }
 

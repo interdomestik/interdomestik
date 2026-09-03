@@ -20,6 +20,15 @@ const STOP_CLASSES = Object.freeze([
 function must(condition, message) {
   if (!condition) throw new Error(message);
 }
+const delta = (allocation, name, fallback = 0) =>
+  allocation[`max${name}`] ?? allocation[name[0].toLowerCase() + name.slice(1)] ?? fallback;
+const extras = value =>
+  Object.fromEntries(
+    'projectionOwners projectionPathCaps projectionHeadroom'
+      .split(' ')
+      .filter(key => value[key])
+      .map(key => [key, value[key]])
+  );
 
 export function rehearsalFactsSha256(report) {
   const repository = report.repository
@@ -50,16 +59,34 @@ export function deriveOperationalEnvelope(report) {
   const operations = resolution.granted;
   const operationNames = operations.map(routineOperationName);
   const writerClosure = [...(report.writers.paths ?? [])].sort(compareText);
-  const pullNumbers = [
+  const lifecycle = operations.find(item => item?.operation === 'compile_same_slice_delivery');
+  const roles = lifecycle?.target.prRoles;
+  const approval = lifecycle && {
+    ...lifecycle,
+    target: {
+      ...lifecycle.target,
+      prRoles: roles.map(({ baseSha: _base, headSha: _head, state: _state, ...role }) => role),
+    },
+  };
+  const pulls = [
     ...Object.keys(resolution.facts?.pullRequests ?? {}),
     ...Object.values(resolution.facts?.pullRequestCandidates ?? {})
       .flat()
       .map(pull => String(pull.number)),
   ];
-  must(new Set(pullNumbers).size <= 1, 'cannot derive envelope across multiple pull requests');
+  const unique = new Set(pulls);
+  if (lifecycle) {
+    const declared = new Set(roles.map(role => String(role.number)));
+    must(
+      unique.size === declared.size && [...unique].every(number => declared.has(number)),
+      'undeclared pull request'
+    );
+  } else must(unique.size <= 1, 'cannot derive envelope across multiple pull requests');
   for (const operation of requiredOperations) {
     must(operationNames.includes(operation), `deficit operation is outside envelope: ${operation}`);
   }
+  const prNumber =
+    Number(lifecycle ? roles.find(role => role.role === 'product').number : pulls[0]) || null;
   return {
     schemaVersion: 1,
     authorityGranted: false,
@@ -68,7 +95,7 @@ export function deriveOperationalEnvelope(report) {
     baseSha: report.repository.baseSha,
     origin: report.repository.origin,
     branch: report.repository.branch,
-    prNumber: pullNumbers.length ? Number(pullNumbers[0]) : null,
+    prNumber,
     writerMapDigest: report.writers.digest,
     writerClosure,
     outcomeRiskSha256: sha256(
@@ -76,40 +103,22 @@ export function deriveOperationalEnvelope(report) {
         plans: report.writers.plans,
         topology: report.topology,
         proof: report.evidence.proof,
+        lifecycle: approval || null,
       })
     ),
     factsSha256: rehearsalFactsSha256(report),
     routineOperations: operations,
     requiredOperations,
+    lifecycle: lifecycle ?? null,
     capacity: {
       allocationId: report.capacity.allocation.id,
       mode: report.capacity.allocation.mode,
-      maxTrackedBytesDelta:
-        report.capacity.allocation.maxTrackedBytesDelta ??
-        report.capacity.allocation.trackedBytesDelta ??
-        0,
-      maxTrackedFilesDelta:
-        report.capacity.allocation.maxTrackedFilesDelta ??
-        report.capacity.allocation.trackedFilesDelta ??
-        0,
-      maxCategoryBytesDelta:
-        report.capacity.allocation.maxCategoryBytesDelta ??
-        report.capacity.allocation.categoryBytesDelta ??
-        {},
-      maxPathBytesDelta:
-        report.capacity.allocation.maxPathBytesDelta ??
-        report.capacity.allocation.pathBytesDelta ??
-        {},
+      maxTrackedBytesDelta: delta(report.capacity.allocation, 'TrackedBytesDelta'),
+      maxTrackedFilesDelta: delta(report.capacity.allocation, 'TrackedFilesDelta'),
+      maxCategoryBytesDelta: delta(report.capacity.allocation, 'CategoryBytesDelta', {}),
+      maxPathBytesDelta: delta(report.capacity.allocation, 'PathBytesDelta', {}),
       budgetArtifactSha256: requiredBudgetArtifactSha256(report, operationNames),
-      ...(report.capacity.projectionOwners
-        ? { projectionOwners: report.capacity.projectionOwners }
-        : {}),
-      ...(report.capacity.projectionPathCaps
-        ? { projectionPathCaps: report.capacity.projectionPathCaps }
-        : {}),
-      ...(report.capacity.projectionHeadroom
-        ? { projectionHeadroom: report.capacity.projectionHeadroom }
-        : {}),
+      ...extras(report.capacity),
     },
     proof: report.evidence.proof,
     stopClasses: [...STOP_CLASSES],
@@ -128,19 +137,13 @@ export function buildRehearsalReport({
   writerMapDigest,
 }) {
   const writerFactsDigest = sha256(
-    canonicalJson({
-      baseSha: repo.baseSha,
-      capacityOwnerDeltas: repo.capacityOwnerDeltas,
-      capacityBaseSha: repo.capacityBaseSha,
-      committedChangedPaths: repo.committedChangedPaths,
-      headSha: repo.headSha,
-      mergeBaseSha: repo.mergeBaseSha,
-      protectedMainAdvancedPaths: repo.protectedMainAdvancedPaths,
-      protectedMainSha: repo.protectedMainSha,
-      tracked: repo.tracked,
-      writerLineCounts: repo.writerLineCounts,
-      writerDeltas: repo.writerDeltas,
-    })
+    canonicalJson(
+      Object.fromEntries(
+        'baseSha capacityOwnerDeltas capacityBaseSha committedChangedPaths headSha mergeBaseSha protectedMainAdvancedPaths protectedMainSha tracked writerLineCounts writerDeltas'
+          .split(' ')
+          .map(key => [key, repo[key]])
+      )
+    )
   );
   const report = {
     schemaVersion: 1,
@@ -182,9 +185,7 @@ export function buildRehearsalReport({
       maxTrackedBytes: proposal.budget.maxTrackedBytes,
       maxTrackedFiles: proposal.budget.maxTrackedFiles,
       maxCategoryBytes: proposal.budget.maxCategoryBytes,
-      ...(proposal.projectionOwners ? { projectionOwners: proposal.projectionOwners } : {}),
-      ...(proposal.projectionPathCaps ? { projectionPathCaps: proposal.projectionPathCaps } : {}),
-      ...(proposal.projectionHeadroom ? { projectionHeadroom: proposal.projectionHeadroom } : {}),
+      ...extras(proposal),
     },
     modularity: {
       writerLineCounts: repo.writerLineCounts,

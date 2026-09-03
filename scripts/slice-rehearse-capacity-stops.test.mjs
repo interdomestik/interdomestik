@@ -80,7 +80,7 @@ function proposal(value, worktree = budget, protectedValue = budget) {
     writerDeltas: facts(value),
   });
 }
-test('mechanical owner extension preserves prior paths and adds only declared headroom', () => {
+test('bounded owner extension stays closed', () => {
   const existing = {
     id: 'owner',
     mode: 'bounded',
@@ -110,51 +110,54 @@ test('mechanical owner extension preserves prior paths and adds only declared he
   assert.throws(() => extend(existing, foreign, {}), /one bounded identity/u);
   assert.throws(() => extend(existing, proposed, {}), /category.*missing/u);
 });
-test('T117B CUTOVER compiles the approved 12-path seed to the exact 20-path product closure plus budget', () => {
-  const admission = JSON.parse(
-    readFileSync(new URL('../docs/plans/2026-08-28-t117b-cutover-admission.json', import.meta.url))
+test('CUTOVER lineage', () => {
+  const seed = { sliceId: 'T117B-CUTOVER', writerPaths: ['a', 'b'], routineOperations: [] };
+  assert.equal(
+    capacity.compileWriterClosure(seed).authorityStops[0].code,
+    'writer:undeclared-cutover-lineage'
   );
-  const seed = validateRehearsalManifest({
-    ...manifest(),
-    sliceId: 'T117B-CUTOVER',
-    writerPaths: admission.writerPaths,
-    pathPlans: admission.writerPaths.map(path =>
-      plan(
-        path,
-        'modify',
-        path.endsWith('.json')
-          ? 'config/data/messages'
-          : path.includes('/e2e/') || path.endsWith('.test.tsx')
-            ? 'tests/e2e'
-            : 'source/scripts',
-        8_192,
-        300
-      )
-    ),
+  const hash = value => sha256(JSON.stringify(value));
+  const prior = hash(['a']);
+  const now = hash(seed.writerPaths);
+  const role = (number, paths) => ({ number, changedPaths: paths, changedPathDigest: hash(paths) });
+  const roles = [role(1683, ['a']), role(1675, ['b']), role(1686, ['c'])];
+  const node = (digest, parentDigest, role, writerPaths) => ({
+    changedPathDigest: role.changedPathDigest,
+    digest,
+    parentDigest,
+    prNumber: role.number,
+    writerPaths,
   });
-  const compiled = capacity.compileWriterClosure(seed);
-  assert.deepEqual(compiled.authorityStops, []);
-  assert.equal(compiled.manifest.writerPaths.length, 21);
-  assert.equal(compiled.manifest.writerPaths.filter(path => path !== BUDGET).length, 20);
-  for (const path of [
-    'apps/web/e2e/dashboard-access.spec.ts',
-    'apps/web/e2e/golden/agent-member-overlay.spec.ts',
-    'apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx',
-    'apps/web/src/components/dashboard/member-portal-runtime.tsx',
-    'apps/web/src/messages/en/dashboard.json',
-    'apps/web/src/messages/mk/dashboard.json',
-    'apps/web/src/messages/sq/dashboard.json',
-    'apps/web/src/messages/sr/dashboard.json',
-    BUDGET,
-  ])
-    assert.ok(compiled.manifest.writerPaths.includes(path), path);
-  const unforeseen = capacity.compileWriterClosure({
-    ...seed,
-    writerPaths: [...seed.writerPaths, 'apps/web/src/proxy.ts'],
-  });
-  assert.equal(unforeseen.authorityStops[0].code, 'writer:unforeseen-cutover-closure');
+  const a = node(prior, null, roles[0], ['a']);
+  const b = node(now, prior, roles[1], ['a', 'b']);
+  const chain = { currentDigest: now, history: [a, b], priorDigest: prior };
+  const check = (value, declared = roles) =>
+    capacity.compileWriterClosure({
+      ...seed,
+      routineOperations: [
+        {
+          operation: 'compile_same_slice_delivery',
+          target: { prRoles: declared, writerLineage: value },
+        },
+      ],
+    });
+  assert.equal(check(chain).writerLineage.currentDigest, now);
+  const invalid = [
+    { ...chain, priorDigest: now },
+    { ...chain, priorDigest: hash('missing') },
+    { ...chain, currentDigest: hash('missing') },
+    { ...chain, history: [b, a] },
+    { ...chain, history: [a, node(hash(['a', 'c']), prior, roles[2], ['a', 'c']), b] },
+    { ...chain, history: [a, node(prior, prior, roles[1], ['a'])] },
+    { ...chain, history: [a, { ...b, prNumber: 9999 }] },
+  ];
+  for (const value of invalid) assert.ok(check(value).authorityStops.length);
+  const drifted = structuredClone(roles);
+  drifted[1].changedPaths = ['drift'];
+  drifted[1].changedPathDigest = hash(drifted[1].changedPaths);
+  assert.ok(check(chain, drifted).authorityStops.length);
 });
-test('derived candidate rebinds but rejects foreign allocation drift', () => {
+test('candidate rebind rejects foreign drift', () => {
   const first = proposal(manifest());
   assert.equal(Buffer.byteLength(first.budgetBytes) - baselineBytes, first.selfBytesDelta);
   const second = proposal(manifest([900, 1_100]), first.budget);
@@ -181,7 +184,7 @@ test('derived candidate rebinds but rejects foreign allocation drift', () => {
   assert.equal(replay.mode, 'existing');
   assert.deepEqual(replay.authorityStops, []);
 });
-test('exact protected blob bytes and digest bind an unchanged projection proposal', () => {
+test('projection preserves protected blob bytes', () => {
   const projection = validateRehearsalManifest({
     ...manifest(),
     sliceId: 'T117B-DATA',
@@ -199,36 +202,24 @@ test('exact protected blob bytes and digest bind an unchanged projection proposa
     },
   });
   const protectedText = `${bytes.toString('utf8').trimEnd()}  \n`;
+  const present = (path, deltaBytes, baseline) => ({
+    bytes: deltaBytes,
+    currentBytes: baseline ? 1_000 : deltaBytes,
+    currentSha256: sha256(path),
+    files: Number(!baseline),
+    capacityBaselineExists: baseline,
+    ...(baseline ? { manifestBaseExists: true } : {}),
+    currentExists: true,
+  });
   const deltas = Object.fromEntries(
-    projection.writerPaths.map(path => [
-      path,
-      {
-        bytes: 100,
-        currentBytes: 1_000,
-        currentSha256: sha256(path),
-        files: 0,
-        capacityBaselineExists: true,
-        manifestBaseExists: true,
-        currentExists: true,
-      },
-    ])
+    projection.writerPaths.map(path => [path, present(path, 100, true)])
   );
   const owner = budget.allocations.find(item => item.id === 't116-case-summary');
   const capacityOwnerDeltas = Object.fromEntries(
     owner.writerPaths.map(path => {
       if (deltas[path]) return [path, deltas[path]];
       const deltaBytes = owner.maxPathBytesDelta[path] - 1_000;
-      return [
-        path,
-        {
-          bytes: deltaBytes,
-          currentBytes: deltaBytes,
-          currentSha256: sha256(path),
-          files: 1,
-          capacityBaselineExists: false,
-          currentExists: true,
-        },
-      ];
+      return [path, present(path, deltaBytes, false)];
     })
   );
   const result = capacity.deriveCapacityProposal({
@@ -246,7 +237,7 @@ test('exact protected blob bytes and digest bind an unchanged projection proposa
   assert.equal(result.budgetBytes, protectedText);
   assert.equal(result.sha256, sha256(protectedText));
 });
-test('typed capacity stops aggregate with exact-head ready-state admission', () => {
+test('capacity stops combine with exact-head proof', () => {
   const value = manifest();
   value.writerPaths = ['docs/plans/current-program.md'];
   value.pathPlans = [
