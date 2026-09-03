@@ -4,7 +4,11 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { appendEvent, recordTelemetryEvent } from './slice-telemetry-v2-record.mjs';
+import {
+  appendEvent,
+  checkpointTelemetryPath,
+  recordTelemetryEvent,
+} from './slice-telemetry-v2-record.mjs';
 
 const event = {
   schemaVersion: 2,
@@ -25,13 +29,13 @@ const event = {
   runId: null,
 };
 
-test('records one canonical phase-aware event without inventing unknown values', () => {
+test('records canonical null metrics', () => {
   const record = recordTelemetryEvent({ event, existingText: '' });
   assert.equal(record.split('\n').length, 2);
   assert.equal(JSON.parse(record).runnerMinutes, null);
 });
 
-test('rejects a duplicate event ID and malformed existing JSONL', () => {
+test('rejects duplicate or malformed JSONL', () => {
   assert.throws(
     () =>
       recordTelemetryEvent({
@@ -46,7 +50,7 @@ test('rejects a duplicate event ID and malformed existing JSONL', () => {
   );
 });
 
-test('records repeated evidence keys as distinct immutable proof runs', () => {
+test('keeps runs distinct', () => {
   const proof = {
     ...event,
     phase: 'proof',
@@ -64,7 +68,11 @@ test('records repeated evidence keys as distinct immutable proof runs', () => {
   assert.equal(JSON.parse(second).eventId, 'event-proof-2');
 });
 
-test('creates a trusted ledger and rejects symlinked parents', () => {
+test('guards ledger paths', () => {
+  assert.throws(
+    () => checkpointTelemetryPath({ sliceId: '..', baseSha: '0'.repeat(40) }),
+    /identity/u
+  );
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-telemetry-'));
   const eventPath = path.join(root, 'event.json');
   const ledgerPath = path.join(root, 'events.jsonl');

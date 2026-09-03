@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import {
   closeSync,
-  constants,
+  constants as C,
   existsSync,
   fstatSync,
   lstatSync,
@@ -20,9 +20,11 @@ import { validateTelemetryEventV2 } from './slice-telemetry-v2-schema.mjs';
 import { summarizeTelemetryV2 } from './slice-telemetry-v2-aggregation.mjs';
 import { HOST_BOUND_AUTHORITY_ROOT } from './slice-rehearse-ops.mjs';
 
-const CHECKPOINT_ROOT = resolve(HOST_BOUND_AUTHORITY_ROOT, 'harness-telemetry');
+const ROOT = resolve(HOST_BOUND_AUTHORITY_ROOT, 'harness-telemetry');
+const [SLICE, SHA] = [/^[A-Z0-9][A-Z0-9-]{1,63}$/u, /^[0-9a-f]{40}$/u];
 export function checkpointTelemetryPath({ sliceId, baseSha }) {
-  return resolve(CHECKPOINT_ROOT, `${sliceId}-${baseSha}.jsonl`);
+  must(SLICE.test(sliceId) && SHA.test(baseSha), 'checkpoint identity invalid');
+  return resolve(ROOT, `${sliceId}-${baseSha}.jsonl`);
 }
 export function readCheckpointTelemetry(input) {
   const ledgerPath = checkpointTelemetryPath(input);
@@ -30,7 +32,7 @@ export function readCheckpointTelemetry(input) {
   const text = readBoundedRegularText(ledgerPath, {
     label: 'Checkpoint telemetry ledger',
     maxBytes: 16 * 1024 * 1024,
-    allowedRoots: [CHECKPOINT_ROOT],
+    allowedRoots: [ROOT],
   });
   must(text.endsWith('\n') && !text.includes('\n\n'), 'telemetry v2 JSONL framing is invalid');
   const events = text
@@ -91,7 +93,7 @@ export function appendEvent({
     .sort((left, right) => right.length - left.length)
     .find(root => ledgerPath.startsWith(`${root}${sep}`));
   must(trustedRoot, 'telemetry ledger must stay inside trusted root');
-  const trustedLedgerPath = trustedRunnerFile(ledgerPath, { runnerTemp: trustedRoot });
+  const target = trustedRunnerFile(ledgerPath, { runnerTemp: trustedRoot });
   const event = JSON.parse(
     readBoundedRegularText(eventPath, {
       label: 'Telemetry event input',
@@ -99,28 +101,20 @@ export function appendEvent({
       allowedRoots,
     })
   );
-  const lockPath = `${trustedLedgerPath}.lock`;
-  const lock = openSync(
-    lockPath,
-    constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW,
-    0o600
-  );
+  const lockPath = `${target}.lock`;
+  const lock = openSync(lockPath, C.O_WRONLY | C.O_CREAT | C.O_EXCL | C.O_NOFOLLOW, 0o600);
   try {
     let existingText = '';
-    if (existsSync(trustedLedgerPath)) {
-      const ledgerStat = lstatSync(trustedLedgerPath);
+    if (existsSync(target)) {
+      const ledgerStat = lstatSync(target);
       must(ledgerStat.isFile() && !ledgerStat.isSymbolicLink(), 'telemetry ledger is unsafe');
-      existingText = readBoundedRegularText(trustedLedgerPath, {
+      existingText = readBoundedRegularText(target, {
         label: 'Telemetry ledger',
         maxBytes: 16 * 1024 * 1024,
         allowedRoots,
       });
     }
-    const descriptor = openSync(
-      trustedLedgerPath,
-      constants.O_WRONLY | constants.O_APPEND | constants.O_CREAT | constants.O_NOFOLLOW,
-      0o600
-    );
+    const descriptor = openSync(target, C.O_WRONLY | C.O_APPEND | C.O_CREAT | C.O_NOFOLLOW, 0o600);
     try {
       must(fstatSync(descriptor).isFile(), 'telemetry ledger must remain a regular file');
       writeSync(descriptor, recordTelemetryEvent({ event, existingText }), null, 'utf8');
