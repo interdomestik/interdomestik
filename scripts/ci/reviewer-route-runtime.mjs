@@ -15,9 +15,7 @@ const BLOCKERS = [
   [/ENOENT|command not found|not found|not on PATH/i, 'missing_cli'],
 ];
 
-function iso() {
-  return new Date().toISOString();
-}
+const iso = () => new Date().toISOString();
 
 function appendBounded(current, chunk, maxBytes) {
   const next = current + chunk.toString();
@@ -26,30 +24,27 @@ function appendBounded(current, chunk, maxBytes) {
 }
 
 function classifyBlocker(text) {
-  const match = BLOCKERS.find(([pattern]) => pattern.test(text));
-  return match?.[1] || '';
+  return BLOCKERS.find(([pattern]) => pattern.test(text))?.[1] || '';
 }
 
-function providerModelFromOutput(stdout) {
-  try {
-    const payload = JSON.parse(stdout.trim());
-    if (typeof payload.model === 'string') return payload.model;
-    if (typeof payload.modelName === 'string') return payload.modelName;
-    const models = Object.keys(payload.modelUsage ?? {});
-    return models.length === 1 ? models[0] : null;
-  } catch {
-    return null;
-  }
-}
+const hasToolRequest = stdout => /"type"\s*:\s*"tool_(?:use|result)"/u.test(stdout);
 
-function reviewVerdictFromOutput(stdout) {
-  try {
-    const payload = JSON.parse(stdout.trim());
-    const text = typeof payload.result === 'string' ? payload.result : '';
-    return /^VERDICT:\s*(PASS|FINDINGS)\b/mu.exec(text)?.[1] ?? null;
-  } catch {
-    return null;
+function reviewFacts(stdout) {
+  let model = null;
+  let verdict = null;
+  for (const line of stdout.trim().split('\n')) {
+    try {
+      const payload = JSON.parse(line);
+      const models = Object.keys(payload.modelUsage ?? {});
+      model ??=
+        payload.model ??
+        payload.modelName ??
+        payload.message?.model ??
+        (models.length === 1 ? models[0] : null);
+      verdict ??= /^VERDICT:\s*(PASS|FINDINGS)\b/mu.exec(payload.result ?? '')?.[1] ?? null;
+    } catch {}
   }
+  return { providerReportedModel: model, reviewVerdict: hasToolRequest(stdout) ? null : verdict };
 }
 
 function terminate(child) {
@@ -101,8 +96,7 @@ export function runReviewerRoute(options) {
     provider: options.provider,
     model: options.model,
     configuredModel: options.model,
-    providerReportedModel: providerModelFromOutput(stdout),
-    reviewVerdict: reviewVerdictFromOutput(stdout),
+    ...reviewFacts(stdout),
     candidateIdentity: options.candidateIdentity ?? null,
     commandInvoked,
     startedAt,
@@ -141,7 +135,9 @@ export function runReviewerRoute(options) {
       if (stream === 'stdout')
         stdout = appendBounded(stdout, chunk, options.maxCaptureBytes || 20_000);
       else stderr = appendBounded(stderr, chunk, options.maxCaptureBytes || 20_000);
-      const reason = stream === 'stderr' ? classifyBlocker(chunk.toString()) : '';
+      let reason = '';
+      if (stream === 'stdout' && hasToolRequest(stdout)) reason = 'reviewer_tool_request';
+      else if (stream === 'stderr') reason = classifyBlocker(chunk.toString());
       if (reason && !blockerReason) {
         blockerReason = reason;
         terminate(child);
@@ -171,24 +167,22 @@ export function runReviewerRoute(options) {
       blockerReason = outputBlocker;
       let status = statusForClose(blockerReason, code);
       let error = '';
-      const reported = providerModelFromOutput(stdout);
+      const { providerReportedModel: reported, reviewVerdict } = reviewFacts(stdout);
       if (
         status === 'ran' &&
         ['anthropic', 'google', 'openai'].includes(options.provider) &&
         reported !== options.model
       ) {
         status = 'failed';
-        error = reported
-          ? `provider model differs: ${reported}`
-          : 'provider model was not attested in structured output';
+        error = reported ? `provider model differs: ${reported}` : 'provider model unattested';
       }
       if (
         status === 'ran' &&
         ['anthropic', 'google', 'openai'].includes(options.provider) &&
-        reviewVerdictFromOutput(stdout) === null
+        reviewVerdict === null
       ) {
         status = 'failed';
-        error = 'reviewer returned no explicit PASS or FINDINGS verdict';
+        error = 'no explicit PASS or FINDINGS';
       }
       finish(finishReceipt({ status, exitCode: code ?? null, signal, error }));
     });

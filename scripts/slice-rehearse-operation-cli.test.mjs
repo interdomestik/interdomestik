@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -183,6 +183,59 @@ test('CLI carries independently collected pre-PR predicate through evaluation', 
       ),
       false
     );
+  } finally {
+    rmSync(value.root, { recursive: true, force: true });
+  }
+});
+
+test('CLI compiles T117B closure before collecting repository facts', () => {
+  const value = fixture();
+  try {
+    const admission = JSON.parse(
+      readFileSync(
+        new URL('../docs/plans/2026-08-28-t117b-cutover-admission.json', import.meta.url)
+      )
+    );
+    const seed = {
+      ...manifest(value.headSha),
+      sliceId: 'T117B-CUTOVER',
+      writerPaths: admission.writerPaths,
+      pathPlans: admission.writerPaths.map(path => ({
+        path,
+        change: 'modify',
+        category: path.endsWith('.json')
+          ? 'config/data/messages'
+          : path.includes('/e2e/') || path.endsWith('.test.tsx')
+            ? 'tests/e2e'
+            : 'source/scripts',
+        maxBytesDelta: 8_192,
+        maxLines: 300,
+      })),
+      routineOperations: [],
+      proof: { ...manifest(value.headSha).proof, fullGateRequired: false },
+    };
+    const manifestPath = join(value.root, 't117b.json');
+    writeFileSync(manifestPath, canonicalJson(seed));
+    let collected;
+    const exitCode = runSliceRehearsal({
+      argv: ['--manifest', manifestPath],
+      cwd: value.repository,
+      readProtectedMain: () => value.headSha,
+      collectFacts: input => {
+        collected = input;
+        return { root: value.repository };
+      },
+      collectOperations: () => null,
+      collectVerifiedEvidence: () => ({}),
+      evaluate: ({ manifest: compiled }) => {
+        assert.equal(compiled.writerPaths.length, 21);
+        assert.deepEqual(compiled.writerPaths, collected.writerPaths);
+        return { authorityStops: [] };
+      },
+      stdout: () => {},
+      stderr: error => assert.fail(error),
+    });
+    assert.equal(exitCode, 0);
   } finally {
     rmSync(value.root, { recursive: true, force: true });
   }

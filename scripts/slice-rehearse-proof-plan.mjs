@@ -1,28 +1,25 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import {
-  closeSync,
-  constants,
-  existsSync,
-  fstatSync,
-  openSync,
-  readFileSync,
-  unlinkSync,
-  writeSync,
-} from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, isAbsolute, resolve, sep } from 'node:path';
+import { dirname, isAbsolute, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  canonicalize,
   canonicalJson,
   compareText,
   deriveEvidenceIdentityKey,
-  exactKeys,
   must,
   readBoundedRegularText,
   sha256,
 } from './slice-rehearse-canonical.mjs';
-import { trustedRunnerFile } from './ci/trusted-runner-file.mjs';
+import {
+  acquireHeavyProofExecutionLease,
+  normalizeHeavyProofExecution,
+  recordHeavyProofExecution,
+} from './slice-rehearse-evidence.mjs';
+export {
+  acquireHeavyProofExecutionLease,
+  heavyProofLedgerPath,
+  recordHeavyProofExecution,
+} from './slice-rehearse-evidence.mjs';
 const KEY = /^[0-9a-f]{64}$/u;
 export function planInvalidatedProofs({
   requiredLanes,
@@ -73,17 +70,6 @@ export function planInvalidatedProofs({
       }),
   };
 }
-const EXECUTION_KEYS = ['evidenceKey', 'lane', 'runId', 'startedAt'];
-const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{2,127}$/u;
-const LANE = /^[a-z0-9][a-z0-9:_-]*$/u;
-function normalizeExecution(execution) {
-  exactKeys(execution, EXECUTION_KEYS, 'heavy proof execution');
-  must(KEY.test(execution.evidenceKey ?? ''), 'heavy proof evidence key is invalid');
-  must(RUN_ID.test(execution.runId ?? ''), 'heavy proof run ID is invalid');
-  must(LANE.test(execution.lane ?? ''), 'heavy proof lane is invalid');
-  must(Number.isFinite(Date.parse(execution.startedAt)), 'heavy proof start time is invalid');
-  return execution;
-}
 function defaultVerifyCandidate(report) {
   const options = {
     encoding: 'utf8',
@@ -104,7 +90,7 @@ export function validateProofExecutionPlan(
   execution,
   verifyCandidate = defaultVerifyCandidate
 ) {
-  const value = normalizeExecution(execution);
+  const value = normalizeHeavyProofExecution(execution);
   must(
     report && typeof report === 'object' && !Array.isArray(report),
     'proof report is unavailable'
@@ -120,6 +106,15 @@ export function validateProofExecutionPlan(
   );
   const planned = report.evidence?.executionPlan?.run;
   must(Array.isArray(planned), 'proof execution plan is unavailable');
+  const pending = report.operationalEnvelope?.requiredOperations ?? [];
+  must(
+    !pending.some(operation =>
+      /^(?:add_focused_test|bounded_force_with_lease_rebuild|derived_capacity_rebind|extract_cohesive_helper|fresh_worktree_patch_replay|sequence_prerequisite_before_projection|split_focused_test)$/u.test(
+        operation
+      )
+    ),
+    'identity-changing work is pending before heavy proof'
+  );
   must(
     planned.some(item => item?.lane === value.lane && item?.evidenceKey === value.evidenceKey),
     'heavy proof execution is outside the invalidated-only plan'
@@ -129,68 +124,6 @@ export function validateProofExecutionPlan(
     'heavy proof candidate identity differs'
   );
   return value;
-}
-function trustedLedgerPath(ledgerPath, allowedRoots) {
-  const normalizedPath = resolve(ledgerPath);
-  const trustedRoot = [...allowedRoots]
-    .map(root => resolve(root))
-    .filter(root => root !== '/')
-    .sort((left, right) => right.length - left.length)
-    .find(root => normalizedPath.startsWith(`${root}${sep}`));
-  must(trustedRoot, 'heavy proof ledger must stay inside a trusted root');
-  return trustedRunnerFile(normalizedPath, { runnerTemp: trustedRoot });
-}
-export function recordHeavyProofExecution({
-  ledgerPath,
-  execution,
-  allowedRoots = [process.cwd(), tmpdir(), '/private/tmp'],
-}) {
-  const normalizedPath = trustedLedgerPath(ledgerPath, allowedRoots);
-  const lockPath = `${normalizedPath}.lock`;
-  let lock;
-  try {
-    lock = openSync(
-      lockPath,
-      constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW,
-      0o600
-    );
-    let records = [];
-    if (existsSync(normalizedPath)) {
-      const descriptor = openSync(normalizedPath, constants.O_RDONLY | constants.O_NOFOLLOW);
-      try {
-        must(fstatSync(descriptor).isFile(), 'heavy proof ledger must be a regular file');
-        records = readFileSync(descriptor, 'utf8')
-          .trim()
-          .split('\n')
-          .filter(Boolean)
-          .map(line => normalizeExecution(JSON.parse(line)));
-      } finally {
-        closeSync(descriptor);
-      }
-    }
-    const value = normalizeExecution(execution);
-    must(!records.some(item => item.runId === value.runId), 'heavy proof run ID already exists');
-    must(
-      !records.some(item => item.evidenceKey === value.evidenceKey),
-      'duplicate heavy proof is forbidden'
-    );
-    const descriptor = openSync(
-      normalizedPath,
-      constants.O_WRONLY | constants.O_APPEND | constants.O_CREAT | constants.O_NOFOLLOW,
-      0o600
-    );
-    try {
-      writeSync(descriptor, `${JSON.stringify(canonicalize(value))}\n`, null, 'utf8');
-    } finally {
-      closeSync(descriptor);
-    }
-    return true;
-  } finally {
-    if (lock !== undefined) {
-      closeSync(lock);
-      unlinkSync(lockPath);
-    }
-  }
 }
 const PROOF_COMMANDS = Object.freeze({
   'pr-e2e': Object.freeze(
@@ -214,31 +147,66 @@ export function executePnpmProof(
     timeout: 90 * 60_000,
   });
 }
+export function authorizedHeavyProofHost({ platform = process.platform, env = process.env } = {}) {
+  if (platform !== 'linux') return false;
+  return (
+    (env.GITHUB_ACTIONS === 'true' && env.RUNNER_OS === 'Linux') ||
+    env.RUNNER_NAME === 'interdomestik-z620-staging'
+  );
+}
 export function runHeavyProofExecution({
   ledgerPath,
   execution,
   report,
-  allowedRoots,
   execute = executePnpmProof,
   verifyCandidate,
+  record = recordHeavyProofExecution,
+  acquireLease = acquireHeavyProofExecutionLease,
+  verifyProofHost = authorizedHeavyProofHost,
 }) {
   const value = validateProofExecutionPlan(report, execution, verifyCandidate);
   const commands = PROOF_COMMANDS[value.lane];
   must(commands, 'heavy proof lane has no fixed executor');
-  recordHeavyProofExecution({ ledgerPath, execution: value, allowedRoots });
-  for (let index = 0; index < commands.length; index += 1) {
-    const result = execute(commands[index]);
-    if (result?.status !== 0) {
-      return {
-        commandIndex: index,
-        exitCode: Number.isInteger(result?.status) ? result.status : null,
-        lane: value.lane,
-        runId: value.runId,
-        status: 'failed',
-      };
+  must(verifyProofHost({ report, execution: value }) === true, 'heavy proof host is unauthorized');
+  const { sliceId } = report;
+  const { headSha, treeSha } = report.repository;
+  const scope = { sliceId, headSha, treeSha };
+  const releaseLease = acquireLease({ ledgerPath, scope, execution: value });
+  must(typeof releaseLease === 'function', 'heavy proof lease is invalid');
+  try {
+    for (let index = 0; index < commands.length; index += 1) {
+      const result = execute(commands[index]);
+      if (result?.status !== 0) {
+        const exitCode = Number.isInteger(result?.status) ? result.status : null;
+        record({
+          ledgerPath,
+          scope,
+          execution: value,
+          status: 'failed',
+          finishedAt: new Date().toISOString(),
+          exitCode,
+        });
+        return {
+          commandIndex: index,
+          exitCode,
+          lane: value.lane,
+          runId: value.runId,
+          status: 'failed',
+        };
+      }
     }
+    record({
+      ledgerPath,
+      scope,
+      execution: value,
+      status: 'succeeded',
+      finishedAt: new Date().toISOString(),
+      exitCode: 0,
+    });
+    return { lane: value.lane, runId: value.runId, status: 'succeeded' };
+  } finally {
+    releaseLease();
   }
-  return { lane: value.lane, runId: value.runId, status: 'succeeded' };
 }
 function parseRecordArgs(argv) {
   must(
@@ -279,7 +247,6 @@ export function runHeavyProofRecordCli({
       ledgerPath: resolve(cwd, ledgerPath),
       execution,
       report,
-      allowedRoots,
     });
     stdout(canonicalJson({ evidenceKey: execution.evidenceKey, ...result }));
     return result.status === 'succeeded' ? 0 : 1;
@@ -287,13 +254,6 @@ export function runHeavyProofRecordCli({
     stderr(`heavy proof execution was not recorded: ${error.message}\n`);
     return 1;
   }
-}
-export function assertHeavyProofExecution({ evidenceKey, ledger }) {
-  must(KEY.test(evidenceKey ?? ''), 'heavy proof evidence key is invalid');
-  must(ledger instanceof Set, 'heavy proof ledger is unavailable');
-  must(!ledger.has(evidenceKey), 'duplicate heavy proof is forbidden');
-  ledger.add(evidenceKey);
-  return true;
 }
 if (resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
   process.exitCode = runHeavyProofRecordCli();

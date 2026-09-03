@@ -215,10 +215,10 @@ test('closeout ancestry uses Git history', () => {
   assert.deepEqual(changed(root, terminal, later, [program]), [program]);
 });
 
-test('CUTOVER repeat history', () => {
-  const root = fixture('chain-');
-  const a = commit(root, active, 'active');
-  const c = commit(root, inactive, 'closeout');
+test('CUTOVER repeats', () => {
+  const root = fixture('c');
+  const a = commit(root, active, 'a');
+  const c = commit(root, inactive, 'c');
   const p = structuredClone(active);
   Object.assign(p.activeSlice, {
     sliceId: 'T117B-CUTOVER',
@@ -233,7 +233,7 @@ test('CUTOVER repeat history', () => {
         .map(path => `apps/web/src/app/[locale]/(app)/member/${path}.tsx`),
     ],
   });
-  const b = commit(root, p, 'repeat');
+  const b = commit(root, p, 'r');
   const added = [
     'e2e/dashboard-access.spec.ts',
     'e2e/golden/agent-member-overlay.spec.ts',
@@ -244,17 +244,19 @@ test('CUTOVER repeat history', () => {
   p.activeSlice.promotionBaseSha = b;
   p.activeSlice.productWriterPaths.push(...added);
   p.activeSlice.productWriterPaths.sort();
-  const x = commit(root, p, 'expanded');
-  p.activeSlice.promotionBaseSha = x;
-  const y = commit(root, p, 'third');
+  const x = commit(root, p, 'x');
+  let y = x;
+  for (let index = 7; index--;) {
+    p.activeSlice.promotionBaseSha = y;
+    y = commit(root, p, 'r');
+  }
   assert.equal(locate(root, y, 'T117B-CUTOVER').kind, 'closeout_recorded');
   p.activeSlice.promotionBaseSha = a;
-  const m = commit(root, p, 'missing');
+  const m = commit(root, p, 'm');
   assert.equal(locate(root, m, 'T117B-CUTOVER').kind, 'terminal');
-  assert.match(
-    source('./lean-current-authority-history.mjs'),
-    /HISTORY_LIMIT = 128.*new Set.*repeatId !== prior\.sliceId.*!isAncestor.*repeatId=.*current=.*priorBase=.*bounded traversal/su
-  );
+  const history = source('./lean-current-authority-history.mjs');
+  assert.match(history, /HISTORY_LIMIT = 128.*new Set.*!isAncestor.*bounded traversal/su);
+  assert(!history.includes('productWriterPaths.length'));
 });
 test('authority edit-revert remains history drift', () => {
   const root = fixture('lean-authority-revert-fixture-');

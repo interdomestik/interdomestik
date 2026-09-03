@@ -2,7 +2,7 @@ import { CAPACITY_CATEGORIES } from './repo-size-capacity-schema.mjs';
 import { evaluateExactHeadCertification } from './ci/exact-head-certification-lib.mjs';
 import { evaluatePrGatePolicy } from './ci/pr-gate-policy-lib.mjs';
 import { compareText } from './slice-rehearse-canonical.mjs';
-import { deriveCapacityProposal } from './slice-rehearse-capacity.mjs';
+import { compileWriterClosure, deriveCapacityProposal } from './slice-rehearse-capacity.mjs';
 import { appendCapacityEvaluation } from './slice-rehearse-capacity-existing.mjs';
 import { canonicalJson, sha256, validateRehearsalManifest } from './slice-rehearse-core.mjs';
 import { evaluateEvidenceReceipts } from './slice-rehearse-evidence.mjs';
@@ -65,7 +65,8 @@ export function evaluateRehearsal({
   protectedBudgetText,
   baselineBudgetBytes,
 }) {
-  const normalized = validateRehearsalManifest(manifest);
+  const closure = compileWriterClosure(validateRehearsalManifest(manifest));
+  const normalized = validateRehearsalManifest(closure.manifest);
   const repo = normalizeRepositoryFacts(repository);
   const proposal = deriveCapacityProposal({
     budget,
@@ -79,6 +80,7 @@ export function evaluateRehearsal({
   });
   const deficits = [...(proposal.deficits ?? [])];
   const authorityStops = [
+    ...closure.authorityStops,
     ...repositoryAuthorityStops(normalized, repo),
     ...(proposal.authorityStops ?? []),
   ];

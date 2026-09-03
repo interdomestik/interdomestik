@@ -49,6 +49,14 @@ export function deriveOperationalEnvelope(report) {
   must(!resolution.rejected.length, 'cannot derive envelope with an unverified operation');
   const operations = resolution.granted;
   const operationNames = operations.map(routineOperationName);
+  const writerClosure = [...(report.writers.paths ?? [])].sort(compareText);
+  const pullNumbers = [
+    ...Object.keys(resolution.facts?.pullRequests ?? {}),
+    ...Object.values(resolution.facts?.pullRequestCandidates ?? {})
+      .flat()
+      .map(pull => String(pull.number)),
+  ];
+  must(new Set(pullNumbers).size <= 1, 'cannot derive envelope across multiple pull requests');
   for (const operation of requiredOperations) {
     must(operationNames.includes(operation), `deficit operation is outside envelope: ${operation}`);
   }
@@ -59,7 +67,17 @@ export function deriveOperationalEnvelope(report) {
     tier: report.tier,
     baseSha: report.repository.baseSha,
     origin: report.repository.origin,
+    branch: report.repository.branch,
+    prNumber: pullNumbers.length ? Number(pullNumbers[0]) : null,
     writerMapDigest: report.writers.digest,
+    writerClosure,
+    outcomeRiskSha256: sha256(
+      canonicalJson({
+        plans: report.writers.plans,
+        topology: report.topology,
+        proof: report.evidence.proof,
+      })
+    ),
     factsSha256: rehearsalFactsSha256(report),
     routineOperations: operations,
     requiredOperations,

@@ -11,8 +11,9 @@ function compareText(left, right) {
   return 0;
 }
 
-function git(args) {
+function git(args, cwd = process.cwd()) {
   return execFileSync(GIT_BIN, args, {
+    cwd,
     encoding: 'utf8',
     env: SAFE_EXEC_ENV,
     maxBuffer: 8 * 1024 * 1024,
@@ -21,15 +22,15 @@ function git(args) {
   });
 }
 
-export function resolveProtectedBase() {
+export function resolveProtectedBase(cwd = process.cwd(), readGit = git) {
   const explicit = process.env.REVIEW_PROTECTED_BASE_SHA;
   if (explicit !== undefined) {
     if (!SHA40.test(explicit)) throw new Error('REVIEW_PROTECTED_BASE_SHA is invalid');
-    const resolved = git(['rev-parse', '--verify', `${explicit}^{commit}`]).trim();
+    const resolved = readGit(['rev-parse', '--verify', `${explicit}^{commit}`], cwd).trim();
     if (resolved !== explicit) throw new Error('explicit protected base does not resolve exactly');
     return explicit;
   }
-  const base = git(['rev-parse', '--verify', 'refs/remotes/origin/main^{commit}']).trim();
+  const base = readGit(['rev-parse', '--verify', 'refs/remotes/origin/main^{commit}'], cwd).trim();
   if (!SHA40.test(base)) throw new Error('exact protected base is unavailable');
   return base;
 }
@@ -53,21 +54,24 @@ function parseNameStatusZ(value) {
   return files;
 }
 
-function diffFiles(args) {
+function diffFiles(args, cwd, readGit) {
   return parseNameStatusZ(
-    git(['diff', '--name-status', '-z', '--find-renames', '--diff-filter=ACDMRTUXB', ...args])
+    readGit(
+      ['diff', '--name-status', '-z', '--find-renames', '--diff-filter=ACDMRTUXB', ...args],
+      cwd
+    )
   );
 }
 
-export function changedFiles(explicitFiles) {
+export function changedFiles(explicitFiles = [], cwd = process.cwd(), readGit = git) {
   if (explicitFiles.length > 0) return [...new Set(explicitFiles)].sort(compareText);
-  const base = resolveProtectedBase();
+  const base = resolveProtectedBase(cwd, readGit);
   const files = new Set([
-    ...diffFiles([`${base}...HEAD`]),
-    ...diffFiles(['--cached']),
-    ...diffFiles([]),
+    ...diffFiles([`${base}...HEAD`], cwd, readGit),
+    ...diffFiles(['--cached'], cwd, readGit),
+    ...diffFiles([], cwd, readGit),
   ]);
-  const untracked = git(['ls-files', '-z', '--others', '--exclude-standard']).split('\0');
+  const untracked = readGit(['ls-files', '-z', '--others', '--exclude-standard'], cwd).split('\0');
   for (const file of untracked) if (file) files.add(file);
   return [...files].sort(compareText);
 }

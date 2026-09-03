@@ -123,8 +123,7 @@ export function collectT117BPredecessorEvidence(repo, projection) {
   if (!child) return null;
   if (!child.predecessor) return { status: 'root', childId };
   try {
-    const repeatId = slice.productWriterPaths.length === 20 ? childId : null;
-    const transition = locateAuthorityTransition(repo, slice.promotionBaseSha, repeatId);
+    const transition = locateAuthorityTransition(repo, slice.promotionBaseSha, childId);
     if (transition.kind !== 'closeout_recorded') {
       return invalid(childId, 'predecessor_closeout_missing');
     }

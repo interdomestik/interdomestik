@@ -7,6 +7,7 @@ import {
 } from './slice-rehearse-operation-facts.mjs';
 import { resolveOperationalContracts } from './slice-rehearse-operation-contracts.mjs';
 import { sha256 } from './slice-rehearse-canonical.mjs';
+import { inspectOptionalRef } from './slice-rehearse-git-facts.mjs';
 
 const origin = 'https://github.com/interdomestik/interdomestik';
 const headSha = 'b'.repeat(40);
@@ -191,4 +192,27 @@ test('authority reads inherit hardened Git settings and restore the caller envir
     },
   });
   assert.ok(guarded);
+});
+
+test('optional missing refs are quiet local facts with a two-second hard bound', () => {
+  let options;
+  const absent = inspectOptionalRef(
+    '/repo',
+    'refs/heads/codex/missing',
+    (_binary, _args, value) => {
+      options = value;
+      return { status: 1, stdout: '', stderr: '' };
+    }
+  );
+  assert.equal(absent, 'absent');
+  assert.equal(options.timeout, 2_000);
+  assert.throws(
+    () =>
+      inspectOptionalRef('/repo', 'refs/heads/codex/missing', () => ({
+        status: null,
+        stdout: '',
+        stderr: 'timed out',
+      })),
+    /timed out/u
+  );
 });

@@ -105,7 +105,7 @@ function combinedTarget(values) {
 }
 
 export function summarizeTelemetryV2(input) {
-  must(Array.isArray(input) && input.length > 0, 'telemetry v2 events must not be empty');
+  must(Array.isArray(input) && input.length > 0, 'telemetry events must not be empty');
   const events = input
     .map(validateTelemetryEventV2)
     .sort((left, right) => compareText(canonicalJson(left), canonicalJson(right)));
@@ -133,7 +133,7 @@ export function summarizeTelemetryV2(input) {
     atMostOneReFreeze: slices.every(slice => slice.reFreezes <= 1),
     zeroOperationalMicroApprovals: totals.operationalMicroApprovals === 0,
     noDuplicateHeavyProof: totals.duplicateHeavyProofs === 0,
-    atMostFiveToolingRetries: slices.every(slice => slice.retries <= 5),
+    atMostThreeToolingRetries: slices.every(slice => slice.retries <= 3),
     governanceAtMost25Percent: governanceRatio === null ? null : governanceRatio <= 0.25,
   };
   const targetValues = Object.values(targets);

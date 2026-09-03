@@ -8,23 +8,15 @@ import { fileURLToPath } from 'node:url';
 import { modelReviewRoutes } from './model-review-routes.mjs';
 import { runReviewerRoute } from './reviewer-route-runtime.mjs';
 import { writeRouteReceipt } from './reviewer-route-receipts.mjs';
+import { timeoutConfig } from './reviewer-route-utils.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '../..');
 
-function tempRoot(name) {
-  return fs.mkdtempSync(path.join(os.tmpdir(), `${name}-`));
-}
-
-function fakeScript(root, name, body) {
-  const file = path.join(root, name);
-  fs.writeFileSync(file, body);
-  return file;
-}
-
 async function runFake(name, body, options = {}) {
-  const root = tempRoot(name);
-  const file = fakeScript(root, 'fake.mjs', body);
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), `${name}-`));
+  const file = path.join(root, 'fake.mjs');
+  fs.writeFileSync(file, body);
   try {
     return await runReviewerRoute({
       routeName: name,
@@ -79,24 +71,29 @@ test('records provider-reported model and exact candidate identity', async () =>
   assert.deepEqual(receipt.candidateIdentity, candidateIdentity);
 });
 
-test('fails closed when an external reviewer returns no substantive verdict', async () => {
+test('Opus stream rejects any tool event before accepting a verdict', async () => {
   const receipt = await runFake(
-    'opus-no-verdict',
-    'console.log(JSON.stringify({ model: "claude-opus-5", result: "I will inspect the diff." }));\n',
+    'opus',
+    `for(const value of [{type:'system',model:'claude-opus-5'},{type:'assistant',message:{content:[{type:'tool_use'}]}},{type:'result',result:'VERDICT: PASS'}]) console.log(JSON.stringify(value))`,
     { provider: 'anthropic', model: 'claude-opus-5' }
   );
-  assert.equal(receipt.status, 'failed');
-  assert.match(receipt.error, /no explicit PASS or FINDINGS/u);
+  assert.equal(receipt.status, 'blocked');
+  assert.equal(receipt.blockerReason, 'reviewer_tool_request');
+  assert.equal(receipt.reviewVerdict, null);
 });
 
-test('fails closed when an external reviewer cannot attest its model', async () => {
-  const receipt = await runFake('opus-unattested', 'console.log("PASS");\n', {
-    provider: 'anthropic',
-    model: 'claude-opus-5',
+for (const [name, body, error] of [
+  ['opus-no-verdict', `{model:'claude-opus-5',result:'inspect'}`, /no explicit PASS|FINDINGS/u],
+  ['opus-unattested', `{result:'VERDICT: PASS'}`, /provider model/u],
+])
+  test(`${name} fails closed`, async () => {
+    const receipt = await runFake(name, `console.log(JSON.stringify(${body}))`, {
+      provider: 'anthropic',
+      model: 'claude-opus-5',
+    });
+    assert.equal(receipt.status, 'failed');
+    assert.match(receipt.error, error);
   });
-  assert.equal(receipt.status, 'failed');
-  assert.match(receipt.error, /provider model/u);
-});
 
 test('missing reviewer CLI is structurally blocked', async () => {
   const receipt = await runReviewerRoute({
@@ -111,29 +108,19 @@ test('missing reviewer CLI is structurally blocked', async () => {
   assert.equal(receipt.exitCode, 127);
 });
 
-test('no-output timeout is recorded separately from total timeout', async () => {
-  const receipt = await runFake('silent-route', 'setTimeout(() => {}, 500);\n', {
-    timeoutPreset: 'test-no-output',
+for (const [preset, output, reason, first, total] of [
+  ['test-no-output', '', 'reviewer_no_output_timeout', true, false],
+  ['test-total', "console.log('started')", 'reviewer_total_timeout', false, true],
+])
+  test(`${preset} records its exact timeout`, async () => {
+    const receipt = await runFake('timeout', `${output};setTimeout(()=>{},500)`, {
+      timeoutPreset: preset,
+    });
+    assert.equal(receipt.status, 'blocked');
+    assert.equal(receipt.blockerReason, reason);
+    assert.equal(receipt.firstOutputTimeout.timedOut, first);
+    assert.equal(receipt.totalTimeout.timedOut, total);
   });
-  assert.equal(receipt.status, 'blocked');
-  assert.equal(receipt.blockerReason, 'reviewer_no_output_timeout');
-  assert.equal(receipt.firstOutputTimeout.timedOut, true);
-  assert.equal(receipt.totalTimeout.timedOut, false);
-});
-
-test('total timeout is recorded after first output arrives', async () => {
-  const receipt = await runFake(
-    'slow-route',
-    "console.log('started'); setTimeout(() => {}, 500);\n",
-    {
-      timeoutPreset: 'test-total',
-    }
-  );
-  assert.equal(receipt.status, 'blocked');
-  assert.equal(receipt.blockerReason, 'reviewer_total_timeout');
-  assert.equal(receipt.firstOutputTimeout.timedOut, false);
-  assert.equal(receipt.totalTimeout.timedOut, true);
-});
 
 test('successful reviewer text is not treated as a quota blocker', async () => {
   const receipt = await runFake(
@@ -153,25 +140,23 @@ test('receipt command can redact prompt arguments', async () => {
 
 test('package scripts route external reviewers through repo-owned helpers', () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
-  assert.deepEqual(
-    Object.fromEntries(
-      ['review:sonnet', 'review:gemini', 'review:opus', 'review:opus48'].map(key => [
-        key,
-        pkg.scripts[key],
-      ])
-    ),
-    {
-      'review:sonnet': 'node scripts/ci/run-model-reviewer-route.mjs --route sonnet',
-      'review:gemini': 'node scripts/ci/run-model-reviewer-route.mjs --route gemini',
-      'review:opus': 'node scripts/ci/run-model-reviewer-route.mjs --route opus --allow-escalation',
-      'review:opus48': 'node scripts/ci/run-model-reviewer-route.mjs --route opus48',
-    }
-  );
+  for (const [route, suffix = ''] of [
+    ['sonnet'],
+    ['gemini'],
+    ['opus', ' --allow-escalation'],
+    ['opus48'],
+  ])
+    assert.equal(
+      pkg.scripts[`review:${route}`],
+      `node scripts/ci/run-model-reviewer-route.mjs --route ${route}${suffix}`
+    );
 });
 
 test('Opus routes use explicit priority and lightweight model identifiers', () => {
   assert.equal(modelReviewRoutes.opus.model, 'claude-opus-5');
   assert.match(modelReviewRoutes.opus.label, /Opus 5/u);
+  assert.ok(modelReviewRoutes.opus.args('<prompt>').includes('stream-json'));
+  assert.equal(timeoutConfig('opus').totalTimeoutMs, 30 * 60_000);
   assert.equal(modelReviewRoutes.opus48.model, 'claude-opus-4-8');
   assert.match(modelReviewRoutes.opus48.label, /lightweight/u);
 });

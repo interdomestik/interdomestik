@@ -17,6 +17,7 @@ import {
   readBoundedRegularText,
   sha256,
 } from './slice-rehearse-canonical.mjs';
+import { inspectOptionalRef } from './slice-rehearse-git-facts.mjs';
 import {
   authenticateResolverOutput,
   resolveAtAuthorityBoundary,
@@ -42,14 +43,8 @@ function must(condition, message) {
 
 function inspectArtifact(repository, path, taskId) {
   if (path.startsWith('refs/heads/')) {
-    let exists = false;
-    try {
-      git(repository, 'show-ref', '--verify', path);
-      exists = true;
-    } catch {
-      exists = false;
-    }
-    return { exists, ownerTaskId: null, safeToDiscard: false };
+    const state = inspectOptionalRef(repository, path);
+    return { exists: state !== 'absent', ownerTaskId: null, safeToDiscard: false };
   }
   if (!path.startsWith('/')) return { exists: false, ownerTaskId: null, safeToDiscard: false };
   try {

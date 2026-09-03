@@ -1,6 +1,5 @@
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
-
 import {
   canonicalJson,
   exactKeys,
@@ -12,113 +11,94 @@ import {
   safeRelativePath,
   sha256,
 } from './slice-rehearse-canonical.mjs';
-
-const ENVELOPE = /^[A-Z0-9][A-Z0-9-]*-(?:DELIVERY|REVIEW-FIX|ULTRA-REMEDIATION)-[1-9]\d*$/u;
+const ENVELOPE = /^[A-Z0-9][A-Z0-9-]*-DELIVERY-[1-9]\d*$/u;
 const CERTIFICATE_ID = /^[A-Z0-9][A-Z0-9-]*-CERT-[1-9]\d*$/u;
 const LABEL = /^[a-z0-9][a-z0-9_-]{0,63}$/u;
 const SHA256 = /^[0-9a-f]{64}$/u;
 export const OPERATION_ARTIFACT_ROOT = resolve(
   homedir(),
-  '.cache',
-  'interdomestik-harness-operations'
+  '.cache/interdomestik-harness-operations'
 );
-const AUTHORITY_FIELDS = [
-  'approvalEnvelopeId',
-  'authorityCertificate',
-  'authorityCertificateSha256',
-  'expectedHeadSha',
-];
+const AUTHORITY_FIELDS =
+  'approvalEnvelopeId authorityCertificate authorityCertificateSha256 expectedHeadSha'.split(' ');
 const DEFINITIONS = {
   branch_push: [...AUTHORITY_FIELDS, 'branch', 'operation'],
   pr_create: [...AUTHORITY_FIELDS, 'baseBranch', 'bodyArtifact', 'branch', 'operation', 'title'],
   label_add: [...AUTHORITY_FIELDS, 'label', 'operation', 'prNumber'],
   feedback_comment: [...AUTHORITY_FIELDS, 'bodyArtifact', 'operation', 'prNumber'],
   conditional_merge: [...AUTHORITY_FIELDS, 'operation', 'prNumber'],
-  telemetry_record: ['eventPath', 'ledgerPath', 'operation'],
-  telemetry_summarize: ['inputPath', 'operation'],
 };
-const CERTIFICATE_KEYS = [
-  'approvalBindingSha256',
-  'allowedOperations',
-  'approvalEnvelopeId',
-  'artifacts',
-  'baseBranch',
-  'baseSha',
-  'branch',
-  'certificateId',
-  'expectedRemoteHeadSha',
-  'headSha',
-  'origin',
-  'prNumber',
-  'reportSha256',
-  'rehearsalReport',
-  'schemaVersion',
-  'sliceId',
-  'treeSha',
-  'workClass',
-  'writerMapDigest',
-];
-
+const CERTIFICATE_KEYS =
+  'approvalBindingSha256 allowedOperations approvalEnvelopeId approvalReceiptSha256 artifacts baseBranch baseSha branch certificateId expectedRemoteHeadSha headSha mergeMethod origin outcomeRiskSha256 prNumber reportSha256 rehearsalReport schemaVersion sliceId treeSha workClass writerClosure writerMapDigest'.split(
+    ' '
+  );
 export function operationApprovalBinding(certificate) {
   return sha256(
     canonicalJson({
       allowedOperations: certificate.allowedOperations,
       approvalEnvelopeId: certificate.approvalEnvelopeId,
+      baseBranch: certificate.baseBranch,
       baseSha: certificate.baseSha,
-      headSha: certificate.headSha,
+      branch: certificate.branch,
+      mergeMethod: certificate.mergeMethod,
+      origin: certificate.origin,
+      outcomeRiskSha256: certificate.outcomeRiskSha256,
       prNumber: certificate.prNumber,
-      reportSha256: certificate.reportSha256,
-      treeSha: certificate.treeSha,
+      sliceId: certificate.sliceId,
+      workClass: certificate.workClass,
+      writerClosure: certificate.writerClosure,
       writerMapDigest: certificate.writerMapDigest,
     })
   );
 }
-
 function validateRehearsalReport(certificate) {
   const report = certificate.rehearsalReport;
-  must(
-    report && typeof report === 'object' && !Array.isArray(report),
-    'rehearsal report is unavailable'
-  );
-  must(report.schemaVersion === 1, 'rehearsal report schema is invalid');
-  must(report.reportSha256 === certificate.reportSha256, 'certificate report digest differs');
+  must(report && typeof report === 'object' && !Array.isArray(report), 'report is unavailable');
+  must(report.schemaVersion === 1, 'report schema is invalid');
+  must(report.reportSha256 === certificate.reportSha256, 'report digest differs');
   must(
     report.reportSha256 === sha256(canonicalJson({ ...report, reportSha256: null })),
-    'rehearsal report digest is invalid'
+    'report digest is invalid'
   );
-  must(report.sliceId === certificate.sliceId, 'rehearsal report slice differs');
+  must(report.sliceId === certificate.sliceId, 'report slice differs');
   must(
     report.repository?.origin === certificate.origin &&
       report.repository?.baseSha === certificate.baseSha &&
       report.repository?.headSha === certificate.headSha &&
       report.repository?.treeSha === certificate.treeSha,
-    'rehearsal report candidate identity differs'
+    'report candidate differs'
   );
-  must(
-    report.writers?.digest === certificate.writerMapDigest,
-    'rehearsal report writer map differs'
-  );
+  must(report.writers?.digest === certificate.writerMapDigest, 'report writer map differs');
   must(
     Array.isArray(report.authorityStops) && report.authorityStops.length === 0,
-    'rehearsal report has authority stops'
+    'report has authority stops'
   );
   must(
     report.operationalEnvelope?.authorityGranted === false,
-    'rehearsal report authority carrier is invalid'
+    'report authority carrier is invalid'
+  );
+  must(
+    report.operationalEnvelope?.outcomeRiskSha256 === certificate.outcomeRiskSha256 &&
+      report.operationalEnvelope?.branch === certificate.branch &&
+      report.operationalEnvelope?.prNumber === certificate.prNumber &&
+      canonicalJson(report.operationalEnvelope?.writerClosure) ===
+        canonicalJson(certificate.writerClosure),
+    'report approval provenance differs'
   );
 }
-
 function validateCertificate(request) {
   const certificate = request.authorityCertificate;
-  exactKeys(certificate, CERTIFICATE_KEYS, 'operation authority certificate');
-  must(certificate.schemaVersion === 1, 'operation authority certificate schema is invalid');
+  exactKeys(certificate, CERTIFICATE_KEYS, 'authority certificate');
+  must(certificate.schemaVersion === 1, 'certificate schema is invalid');
   must(CERTIFICATE_ID.test(certificate.certificateId), 'operation certificate ID is invalid');
   must(ENVELOPE.test(certificate.approvalEnvelopeId), 'delivery approval envelope is invalid');
   must(
-    certificate.approvalEnvelopeId === request.approvalEnvelopeId,
-    'operation envelope differs from certificate'
+    certificate.approvalEnvelopeId.startsWith(`${certificate.sliceId}-DELIVERY-`) &&
+      certificate.certificateId.startsWith(`${certificate.sliceId}-CERT-`),
+    'certificate slice identity differs'
   );
-  must(certificate.headSha === request.expectedHeadSha, 'approved head differs from certificate');
+  must(certificate.approvalEnvelopeId === request.approvalEnvelopeId, 'request envelope differs');
+  must(certificate.headSha === request.expectedHeadSha, 'approved head differs');
   for (const [value, label] of [
     [certificate.baseSha, 'certificate base SHA'],
     [certificate.headSha, 'certificate head SHA'],
@@ -127,6 +107,22 @@ function validateCertificate(request) {
     normalizeCommitSha(value, label);
   must(SHA256.test(certificate.writerMapDigest), 'certificate writer map digest is invalid');
   must(SHA256.test(certificate.reportSha256), 'certificate report digest is invalid');
+  must(SHA256.test(certificate.approvalReceiptSha256), 'approval receipt digest is invalid');
+  must(SHA256.test(certificate.outcomeRiskSha256), 'outcome/risk digest is invalid');
+  must(
+    Array.isArray(certificate.writerClosure) &&
+      certificate.writerClosure.length > 0 &&
+      new Set(certificate.writerClosure).size === certificate.writerClosure.length,
+    'approved writer closure is invalid'
+  );
+  const writerClosure = certificate.writerClosure.map(path =>
+    safeRelativePath(path, 'approved writer path')
+  );
+  must(
+    canonicalJson(writerClosure) ===
+      canonicalJson([...writerClosure].sort((a, b) => (a < b ? -1 : Number(a > b)))),
+    'approved writer closure is not canonical'
+  );
   validateRehearsalReport(certificate);
   must(
     ['governance', 'product'].includes(certificate.workClass),
@@ -138,6 +134,7 @@ function validateCertificate(request) {
   );
   normalizeGitBranch(certificate.branch);
   normalizeGitBranch(certificate.baseBranch);
+  must(certificate.mergeMethod === 'squash', 'merge method is invalid');
   if (certificate.expectedRemoteHeadSha !== null) {
     normalizeCommitSha(certificate.expectedRemoteHeadSha, 'certificate remote head SHA');
   }
@@ -168,7 +165,6 @@ function validateCertificate(request) {
   );
   return certificate;
 }
-
 export function operationBodyArtifact(certificate, value) {
   const artifact = safeRelativePath(value, 'operation body artifact path');
   must(
@@ -229,7 +225,7 @@ function pullOperation(request, certificate) {
         'pr',
         'merge',
         String(prNumber),
-        '--squash',
+        `--${certificate.mergeMethod}`,
         '--match-head-commit',
         certificate.headSha,
       ],
@@ -257,26 +253,6 @@ export function buildSafeOperation(request) {
   const keys = DEFINITIONS[request.operation];
   must(keys, 'operation is unsupported');
   exactKeys(request, keys, 'operation request');
-  if (request.operation === 'telemetry_summarize') {
-    return {
-      binary: process.execPath,
-      args: ['scripts/slice-telemetry-v2.mjs', '--input', request.inputPath],
-      mutating: false,
-    };
-  }
-  if (request.operation === 'telemetry_record') {
-    return {
-      binary: process.execPath,
-      args: [
-        'scripts/slice-telemetry-v2-record.mjs',
-        '--event',
-        request.eventPath,
-        '--ledger',
-        request.ledgerPath,
-      ],
-      mutating: false,
-    };
-  }
   const certificate = validateCertificate(request);
   if (request.operation === 'branch_push') {
     const branch = normalizeGitBranch(request.branch);

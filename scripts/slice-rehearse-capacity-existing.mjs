@@ -14,7 +14,6 @@ export function projectionBudgetProposal({
   capacityOwnerDeltas,
   allocationId,
   owners,
-  deriveRepairProposal,
 }) {
   const { authorityStops, ownerAllocations, plannedHeadroom, projectionPathCaps } =
     analyzeProjectionReuse({
@@ -25,33 +24,23 @@ export function projectionBudgetProposal({
       owners,
     });
   if (manifest.topology.repairPaths.length) {
-    const repairSet = new Set(manifest.topology.repairPaths);
-    const repairProposal = deriveRepairProposal({
-      budget,
-      protectedBudgetText,
-      baselineBudgetBytes,
-      allocationIdOverride: manifest.topology.repairAllocationId,
-      writerDeltas: Object.fromEntries(
-        Object.entries(writerDeltas).filter(([filePath]) => repairSet.has(filePath))
-      ),
-      capacityOwnerDeltas: {},
-      manifest: {
-        ...manifest,
-        writerPaths: [...manifest.topology.repairPaths],
-        pathPlans: manifest.pathPlans.filter(plan => repairSet.has(plan.path)),
-        topology: {
-          closeoutMode: 'none',
-          projectionPaths: [],
-          repairAllocationId: null,
-          repairPaths: [],
-        },
-      },
-    });
-    const stops = [...authorityStops, ...repairProposal.authorityStops];
     return {
-      ...repairProposal,
-      mode: stops.length ? 'blocked' : repairProposal.mode,
-      authorityStops: stops,
+      ...unchangedBudgetProposal({
+        budget,
+        budgetText: protectedBudgetText,
+        baselineBudgetBytes,
+        mode: 'blocked',
+        authorityStops: [
+          ...authorityStops,
+          { code: 'capacity:governance-repair-pr-forbidden', paths: manifest.topology.repairPaths },
+        ],
+        allocation: {
+          id: `${allocationId}-projection`,
+          mode: 'projection-existing',
+          writerPaths: [...manifest.writerPaths],
+          ownerAllocations,
+        },
+      }),
       projectionOwners: ownerAllocations,
       projectionPathCaps,
       projectionHeadroom: plannedHeadroom,
