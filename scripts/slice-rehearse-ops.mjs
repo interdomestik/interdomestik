@@ -41,9 +41,12 @@ function secureRoot(root, label, optional = false) {
     return false;
   }
   const stat = fs.lstatSync(root);
-  const secureType = stat.isDirectory() && !stat.isSymbolicLink();
-  const secureMode = (stat.mode & 0o777) === 0o700 && stat.uid === process.getuid();
-  must(secureType && secureMode, `${label} root is unsafe`);
+  const secure =
+    stat.isDirectory() &&
+    !stat.isSymbolicLink() &&
+    (stat.mode & 0o777) === 0o700 &&
+    stat.uid === process.getuid();
+  must(secure, `${label} root is unsafe`);
   return true;
 }
 
@@ -79,8 +82,14 @@ export function consumeApprovedOperation(request, certificate, root = APPROVAL_R
 export function readTrustedApprovalCount(sliceId, root = APPROVAL_ROOT) {
   must(SLICE.test(sliceId), 'approval slice ID is invalid');
   if (!secureRoot(root, 'approval receipt', true)) return 0;
-  const pattern = new RegExp(`^${sliceId}-DELIVERY-[1-9]\\d*-[0-9a-f]{64}\\.receipt$`, 'u');
-  const receipts = fs.readdirSync(root).filter(name => pattern.test(name));
+  const prefix = `${sliceId}-DELIVERY-`;
+  const receipts = fs
+    .readdirSync(root)
+    .filter(
+      name =>
+        name.startsWith(prefix) &&
+        /^[1-9]\d*-[0-9a-f]{64}\.receipt$/u.test(name.slice(prefix.length))
+    );
   must(receipts.length <= 1, 'repeated delivery approval receipt is invalid');
   for (const name of receipts) readReceipt(resolve(root, name), root);
   return receipts.length;
