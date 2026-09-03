@@ -31,7 +31,7 @@ const LANE = /^[a-z0-9][a-z0-9:_-]*$/u;
 const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{2,127}$/u;
 const EXECUTION_KEYS = ['evidenceKey', 'lane', 'runId', 'startedAt'];
 const RECORD_KEYS = [...EXECUTION_KEYS, 'exitCode', 'finishedAt', 'status'];
-const PROOF_STATES = ['reserved', 'running', 'succeeded', 'failed'];
+const PROOF_STATES = new Set(['reserved', 'running', 'succeeded', 'failed']);
 const OPEN = fs.constants;
 const openNoFollow = (path, flags) => fs.openSync(path, flags | OPEN.O_NOFOLLOW, 0o600);
 export const HEAVY_PROOF_LEDGER_ROOT = resolve(HOST_BOUND_AUTHORITY_ROOT, 'harness-proof-ledgers');
@@ -126,7 +126,7 @@ export function normalizeHeavyProofExecution(execution) {
 function normalizeHeavyProofRecord(record) {
   exactKeys(record, RECORD_KEYS, 'heavy proof receipt');
   normalizeHeavyProofExecution(Object.fromEntries(EXECUTION_KEYS.map(key => [key, record[key]])));
-  must(PROOF_STATES.includes(record.status), 'heavy proof receipt status is invalid');
+  must(PROOF_STATES.has(record.status), 'heavy proof receipt status is invalid');
   const terminal = ['succeeded', 'failed'].includes(record.status);
   must(terminal === Number.isFinite(Date.parse(record.finishedAt)), 'proof completion invalid');
   must(
@@ -173,8 +173,8 @@ export function recordHeavyProofExecution({
     const value = normalizeHeavyProofExecution(execution);
     const record = normalizeHeavyProofRecord({ ...value, status, finishedAt, exitCode });
     must(
-      status === 'succeeded' &&
-        exitCode === 0 &&
+      record.status === 'succeeded' &&
+        record.exitCode === 0 &&
         !records.some(item => item.evidenceKey === value.evidenceKey),
       'receipt transition invalid'
     );

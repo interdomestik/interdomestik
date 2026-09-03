@@ -119,7 +119,8 @@ function validateCertificate(request) {
     safeRelativePath(path, 'approved writer path')
   );
   must(
-    canonicalJson(writerClosure) === canonicalJson([...writerClosure].sort()),
+    canonicalJson(writerClosure) ===
+      canonicalJson([...writerClosure].sort((a, b) => (a < b ? -1 : Number(a > b)))),
     'approved writer closure is not canonical'
   );
   validateRehearsalReport(certificate);

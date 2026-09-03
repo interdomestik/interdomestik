@@ -13,33 +13,35 @@ import {
   runHeavyProofExecution,
 } from './slice-rehearse-proof-plan.mjs';
 
-const receipt = (lane, key, reusable) => ({
-  lane,
-  key,
-  reusable,
-  ...(reusable ? { expiresAt: '2099-01-01T00:00:00.000Z' } : {}),
-});
+function receipt(lane, key, reusable) {
+  const value = { lane, key, reusable };
+  if (reusable) value.expiresAt = '2099-01-01T00:00:00.000Z';
+  return value;
+}
 
-const identity = suffix => ({
-  headSha: suffix.repeat(40),
-  treeSha: suffix.repeat(40),
-  commandDigest: suffix.repeat(64),
-  workflowDigest: suffix.repeat(64),
-  substrateDigest: suffix.repeat(64),
-  writerMapDigest: suffix.repeat(64),
-});
+function identity(suffix) {
+  return Object.fromEntries(
+    [
+      'headSha:40',
+      'treeSha:40',
+      'commandDigest:64',
+      'workflowDigest:64',
+      'substrateDigest:64',
+      'writerMapDigest:64',
+    ].map(field => {
+      const [key, width] = field.split(':');
+      return [key, suffix.repeat(Number(width))];
+    })
+  );
+}
 
 function proofReport(item, sliceId = 'HARNESS-V2-PROOF-PLAN') {
-  const report = {
-    schemaVersion: 1,
-    sliceId,
-    repository: { headSha: '1'.repeat(40), treeSha: '2'.repeat(40) },
-    authorityStops: [],
-    evidence: { executionPlan: { reuse: [], run: [item] } },
-    reportSha256: null,
-  };
-  report.reportSha256 = sha256(canonicalJson(report));
-  return report;
+  const report = Object.assign(
+    { reportSha256: null, authorityStops: [], schemaVersion: 1, sliceId },
+    { evidence: { executionPlan: { reuse: [], run: [item] } } },
+    { repository: { treeSha: '2'.repeat(40), headSha: '1'.repeat(40) } }
+  );
+  return { ...report, reportSha256: sha256(canonicalJson(report)) };
 }
 
 test('plans only invalidated or missing proof lanes in deterministic code-unit order', () => {
