@@ -4,6 +4,7 @@ import test from 'node:test';
 
 import { canonicalJson, deriveEvidenceIdentityKey, sha256 } from './slice-rehearse-canonical.mjs';
 import {
+  acquireHeavyProofExecutionLease,
   heavyProofLedgerPath,
   planInvalidatedProofs,
   recordHeavyProofExecution,
@@ -62,7 +63,7 @@ test('plans only invalidated or missing proof lanes in deterministic code-unit o
   assert.ok(plan.run.every(item => /^[0-9a-f]{64}$/u.test(item.evidenceKey)));
 });
 
-test('persists the no-duplicate contract atomically across process-local ledgers', () => {
+test('persists only successful proof claims and rejects a duplicate success atomically', () => {
   const scope = {
     sliceId: 'HARNESS-V2-PROOF-LEDGER',
     headSha: '1'.repeat(40),
@@ -77,7 +78,18 @@ test('persists the no-duplicate contract atomically across process-local ledgers
     lane: 'pr-e2e',
     startedAt: '2026-08-31T00:00:00.000Z',
   };
-  assert.equal(recordHeavyProofExecution({ ledgerPath, scope, execution, ledgerRoot: root }), true);
+  assert.equal(
+    recordHeavyProofExecution({
+      ledgerPath,
+      scope,
+      execution,
+      ledgerRoot: root,
+      status: 'succeeded',
+      finishedAt: '2026-08-31T00:01:00.000Z',
+      exitCode: 0,
+    }),
+    true
+  );
   assert.throws(
     () =>
       recordHeavyProofExecution({
@@ -85,6 +97,9 @@ test('persists the no-duplicate contract atomically across process-local ledgers
         scope,
         execution: { ...execution, runId: 'run-0002' },
         ledgerRoot: root,
+        status: 'succeeded',
+        finishedAt: '2026-08-31T00:02:00.000Z',
+        exitCode: 0,
       }),
     /receipt transition/u
   );
@@ -95,13 +110,20 @@ test('persists the no-duplicate contract atomically across process-local ledgers
         scope,
         execution,
         ledgerRoot: root,
+        status: 'succeeded',
+        finishedAt: '2026-08-31T00:01:00.000Z',
+        exitCode: 0,
       }),
     /canonical evidence scope/u
+  );
+  assert.throws(
+    () => acquireHeavyProofExecutionLease({ ledgerPath, scope, execution, ledgerRoot: root }),
+    /already succeeded/u
   );
   fs.rmSync(root, { recursive: true, force: true });
 });
 
-test('the proof executor runs only the fixed lane commands after claiming the evidence key', () => {
+test('the proof executor claims the evidence key only after every command succeeds', () => {
   const report = proofReport(
     { lane: 'pr-e2e', evidenceKey: 'f'.repeat(64) },
     'HARNESS-V2-PROOF-EXECUTOR'
@@ -113,6 +135,7 @@ test('the proof executor runs only the fixed lane commands after claiming the ev
   });
   const commands = [];
   const records = [];
+  const events = [];
   const result = runHeavyProofExecution({
     ledgerPath,
     execution: {
@@ -123,18 +146,25 @@ test('the proof executor runs only the fixed lane commands after claiming the ev
     },
     report,
     verifyCandidate: () => true,
+    verifyProofHost: () => true,
+    acquireLease: () => () => {},
     execute: args => {
       commands.push(args);
+      events.push('command');
       return { status: 0 };
     },
-    record: input => records.push(input.status ?? 'reserved'),
+    record: input => {
+      records.push(input.status);
+      events.push('receipt');
+    },
   });
   assert.deepEqual(commands, [
     ['e2e:gate:pr'],
     ['--filter', '@interdomestik/web', 'run', 'e2e:smoke'],
   ]);
   assert.equal(result.status, 'succeeded');
-  assert.deepEqual(records, ['reserved', 'running', 'succeeded']);
+  assert.deepEqual(records, ['succeeded']);
+  assert.deepEqual(events, ['command', 'command', 'receipt']);
   assert.throws(
     () =>
       runHeavyProofExecution({
@@ -147,12 +177,14 @@ test('the proof executor runs only the fixed lane commands after claiming the ev
         },
         report: proofReport({ lane: 'pr-e2e', evidenceKey: 'f'.repeat(64) }),
         verifyCandidate: () => true,
+        verifyProofHost: () => true,
+        acquireLease: () => () => {},
       }),
     /outside the invalidated-only plan/u
   );
 });
 
-test('failed heavy proof is terminal and never becomes a reusable success receipt', () => {
+test('failed heavy proof records no claim and remains retryable', () => {
   const report = proofReport(
     { lane: 'pr-e2e', evidenceKey: '7'.repeat(64) },
     'HARNESS-V2-PROOF-FAILED'
@@ -175,11 +207,55 @@ test('failed heavy proof is terminal and never becomes a reusable success receip
     execution,
     report,
     verifyCandidate: () => true,
+    verifyProofHost: () => true,
+    acquireLease: () => () => {},
     execute: () => ({ status: null }),
     record: input => records.push(input.status ?? 'reserved'),
   });
   assert.equal(result.status, 'failed');
-  assert.deepEqual(records, ['reserved', 'running', 'failed']);
+  assert.deepEqual(records, []);
+  const retry = runHeavyProofExecution({
+    ledgerPath,
+    execution: { ...execution, runId: 'run-failed-0002' },
+    report,
+    verifyCandidate: () => true,
+    verifyProofHost: () => true,
+    acquireLease: () => () => {},
+    execute: () => ({ status: 0 }),
+    record: input => records.push(input.status),
+  });
+  assert.equal(retry.status, 'succeeded');
+  assert.deepEqual(records, ['succeeded']);
+});
+
+test('heavy proof refuses an unauthorized host before lease or command execution', () => {
+  const report = proofReport(
+    { lane: 'pr-e2e', evidenceKey: '5'.repeat(64) },
+    'HARNESS-V2-PROOF-HOST'
+  );
+  assert.throws(
+    () =>
+      runHeavyProofExecution({
+        ledgerPath: heavyProofLedgerPath({
+          sliceId: report.sliceId,
+          headSha: report.repository.headSha,
+          treeSha: report.repository.treeSha,
+        }),
+        execution: {
+          runId: 'run-host-0001',
+          evidenceKey: '5'.repeat(64),
+          lane: 'pr-e2e',
+          startedAt: '2026-08-31T00:00:00.000Z',
+        },
+        report,
+        verifyCandidate: () => true,
+        verifyProofHost: () => false,
+        acquireLease: () => assert.fail('lease must not be acquired'),
+        execute: () => assert.fail('heavy proof must not execute'),
+        record: () => assert.fail('heavy proof must not be recorded'),
+      }),
+    /heavy proof host is unauthorized/u
+  );
 });
 
 test('pending identity-changing work blocks heavy proof dispatch', () => {

@@ -203,8 +203,11 @@ test('CLI compiles T117B closure before collecting repository facts', () => {
       pathPlans: admission.writerPaths.map(path => ({
         path,
         change: 'modify',
-        category:
-          path.includes('/e2e/') || path.endsWith('.test.tsx') ? 'tests/e2e' : 'source/scripts',
+        category: path.endsWith('.json')
+          ? 'config/data/messages'
+          : path.includes('/e2e/') || path.endsWith('.test.tsx')
+            ? 'tests/e2e'
+            : 'source/scripts',
         maxBytesDelta: 8_192,
         maxLines: 300,
       })),

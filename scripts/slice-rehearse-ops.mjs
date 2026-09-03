@@ -1,7 +1,9 @@
 import * as fs from 'node:fs';
 import { resolve } from 'node:path';
 import {
+  canonicalize,
   canonicalJson,
+  exactKeys,
   must,
   readBoundedRegularText as readText,
   sha256,
@@ -23,6 +25,14 @@ export { buildSafeOperation } from './slice-rehearse-operation-certificate.mjs';
 export const HOST_BOUND_AUTHORITY_ROOT = '/Users/arbenlila/.codex/state/interdomestik'; // Not a cross-host contract.
 const APPROVAL_ROOT = resolve(HOST_BOUND_AUTHORITY_ROOT, 'harness-approvals');
 const [SLICE, SHA] = [/^[A-Z0-9][A-Z0-9-]{1,63}$/u, /^[0-9a-f]{40}$/u];
+const DIGEST = /^[0-9a-f]{64}$/u;
+const LANE = /^[a-z0-9][a-z0-9:_-]*$/u;
+const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{2,127}$/u;
+const EXECUTION_KEYS = ['evidenceKey', 'lane', 'runId', 'startedAt'];
+const RECORD_KEYS = [...EXECUTION_KEYS, 'exitCode', 'finishedAt', 'status'];
+const PROOF_STATES = ['reserved', 'running', 'succeeded', 'failed'];
+const OPEN = fs.constants;
+const openNoFollow = (path, flags) => fs.openSync(path, flags | OPEN.O_NOFOLLOW, 0o600);
 export const HEAVY_PROOF_LEDGER_ROOT = resolve(HOST_BOUND_AUTHORITY_ROOT, 'harness-proof-ledgers');
 
 function secureRoot(root, label, optional = false) {
@@ -93,6 +103,120 @@ export function trustedHeavyProofLedgerPath(ledgerPath, scope, root = HEAVY_PROO
   if (!fs.existsSync(root)) fs.mkdirSync(root, { mode: 0o700 });
   secureRoot(root, 'heavy proof ledger');
   return trustedRunnerFile(expected, { runnerTemp: root });
+}
+
+export function normalizeHeavyProofExecution(execution) {
+  exactKeys(execution, EXECUTION_KEYS, 'heavy proof execution');
+  must(DIGEST.test(execution.evidenceKey ?? ''), 'heavy proof evidence key is invalid');
+  must(RUN_ID.test(execution.runId ?? ''), 'heavy proof run ID is invalid');
+  must(LANE.test(execution.lane ?? ''), 'heavy proof lane is invalid');
+  must(Number.isFinite(Date.parse(execution.startedAt)), 'heavy proof start time is invalid');
+  return execution;
+}
+
+function normalizeHeavyProofRecord(record) {
+  exactKeys(record, RECORD_KEYS, 'heavy proof receipt');
+  normalizeHeavyProofExecution(Object.fromEntries(EXECUTION_KEYS.map(key => [key, record[key]])));
+  must(PROOF_STATES.includes(record.status), 'heavy proof receipt status is invalid');
+  const terminal = ['succeeded', 'failed'].includes(record.status);
+  must(terminal === Number.isFinite(Date.parse(record.finishedAt)), 'proof completion invalid');
+  must(
+    terminal
+      ? record.exitCode === null || Number.isInteger(record.exitCode)
+      : record.exitCode === null,
+    'heavy proof exit code is invalid'
+  );
+  must(record.status !== 'succeeded' || record.exitCode === 0, 'success proof exit code invalid');
+  return record;
+}
+
+function readProofRecords(path) {
+  if (!fs.existsSync(path)) return [];
+  const fd = openNoFollow(path, OPEN.O_RDONLY);
+  try {
+    must(fs.fstatSync(fd).isFile(), 'proof ledger is not a file');
+    return fs
+      .readFileSync(fd, 'utf8')
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+      .map(line => normalizeHeavyProofRecord(JSON.parse(line)));
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+export function recordHeavyProofExecution({
+  ledgerPath,
+  scope,
+  execution,
+  status,
+  finishedAt = null,
+  exitCode = null,
+  ledgerRoot,
+}) {
+  const path = trustedHeavyProofLedgerPath(ledgerPath, scope, ledgerRoot);
+  const lockPath = `${path}.lock`;
+  let lock;
+  try {
+    lock = openNoFollow(lockPath, OPEN.O_WRONLY | OPEN.O_CREAT | OPEN.O_EXCL);
+    const records = readProofRecords(path);
+    const value = normalizeHeavyProofExecution(execution);
+    const record = normalizeHeavyProofRecord({ ...value, status, finishedAt, exitCode });
+    must(
+      status === 'succeeded' &&
+        exitCode === 0 &&
+        !records.some(item => item.evidenceKey === value.evidenceKey),
+      'receipt transition invalid'
+    );
+    const fd = openNoFollow(path, OPEN.O_WRONLY | OPEN.O_APPEND | OPEN.O_CREAT);
+    try {
+      fs.writeSync(fd, `${JSON.stringify(canonicalize(record))}\n`, null, 'utf8');
+    } finally {
+      fs.closeSync(fd);
+    }
+    return true;
+  } finally {
+    if (lock !== undefined) {
+      fs.closeSync(lock);
+      fs.unlinkSync(lockPath);
+    }
+  }
+}
+
+export function acquireHeavyProofExecutionLease({ ledgerPath, scope, execution, ledgerRoot }) {
+  const path = trustedHeavyProofLedgerPath(ledgerPath, scope, ledgerRoot);
+  const value = normalizeHeavyProofExecution(execution);
+  const leasePath = `${path}.run.lock`;
+  let fd;
+  try {
+    fd = openNoFollow(leasePath, OPEN.O_WRONLY | OPEN.O_CREAT | OPEN.O_EXCL);
+    must(
+      !readProofRecords(path).some(
+        record => record.evidenceKey === value.evidenceKey && record.status === 'succeeded'
+      ),
+      'proof already succeeded'
+    );
+    fs.writeSync(fd, `${JSON.stringify(canonicalize(value))}\n`, null, 'utf8');
+  } catch (error) {
+    if (fd !== undefined) {
+      fs.closeSync(fd);
+      fs.unlinkSync(leasePath);
+    }
+    throw error;
+  }
+  let done = false;
+  return () => {
+    must(!done, 'proof lease already released');
+    done = true;
+    fs.closeSync(fd);
+    fs.unlinkSync(leasePath);
+  };
+}
+
+export function readHeavyProofRecords(scope) {
+  const path = heavyProofLedgerPath(scope);
+  return fs.existsSync(path) ? readProofRecords(trustedHeavyProofLedgerPath(path, scope)) : [];
 }
 
 export function runSafeOperation(

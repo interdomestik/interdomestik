@@ -59,6 +59,7 @@ function certificate(overrides = {}) {
     writerClosure,
     branch,
     baseBranch,
+    mergeMethod: 'squash',
     writerMapDigest,
     reportSha256: rehearsalReport.reportSha256,
     rehearsalReport,
@@ -140,7 +141,7 @@ test('rejects shadow delivery approval envelopes', () => {
   }
 });
 
-test('binds approval to outcome, branch, PR, and closure while allowing SHA rebinding', () => {
+test('binds semantic approval across SHA rebinding', () => {
   const approved = certificate();
   const rebound = {
     ...approved,
@@ -235,7 +236,7 @@ test('rejects forged or incomplete facts', () => {
   );
   assert.throws(
     () => live.verifyLiveOperationFacts(null, request.authorityCertificate, request.operation),
-    /live operation facts are unavailable/u
+    /live facts unavailable/u
   );
 });
 

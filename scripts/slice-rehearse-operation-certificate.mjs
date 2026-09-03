@@ -29,7 +29,7 @@ const DEFINITIONS = {
   conditional_merge: [...AUTHORITY_FIELDS, 'operation', 'prNumber'],
 };
 const CERTIFICATE_KEYS =
-  'approvalBindingSha256 allowedOperations approvalEnvelopeId approvalReceiptSha256 artifacts baseBranch baseSha branch certificateId expectedRemoteHeadSha headSha origin outcomeRiskSha256 prNumber reportSha256 rehearsalReport schemaVersion sliceId treeSha workClass writerClosure writerMapDigest'.split(
+  'approvalBindingSha256 allowedOperations approvalEnvelopeId approvalReceiptSha256 artifacts baseBranch baseSha branch certificateId expectedRemoteHeadSha headSha mergeMethod origin outcomeRiskSha256 prNumber reportSha256 rehearsalReport schemaVersion sliceId treeSha workClass writerClosure writerMapDigest'.split(
     ' '
   );
 export function operationApprovalBinding(certificate) {
@@ -40,6 +40,7 @@ export function operationApprovalBinding(certificate) {
       baseBranch: certificate.baseBranch,
       baseSha: certificate.baseSha,
       branch: certificate.branch,
+      mergeMethod: certificate.mergeMethod,
       origin: certificate.origin,
       outcomeRiskSha256: certificate.outcomeRiskSha256,
       prNumber: certificate.prNumber,
@@ -52,35 +53,29 @@ export function operationApprovalBinding(certificate) {
 }
 function validateRehearsalReport(certificate) {
   const report = certificate.rehearsalReport;
-  must(
-    report && typeof report === 'object' && !Array.isArray(report),
-    'rehearsal report is unavailable'
-  );
-  must(report.schemaVersion === 1, 'rehearsal report schema is invalid');
-  must(report.reportSha256 === certificate.reportSha256, 'certificate report digest differs');
+  must(report && typeof report === 'object' && !Array.isArray(report), 'report is unavailable');
+  must(report.schemaVersion === 1, 'report schema is invalid');
+  must(report.reportSha256 === certificate.reportSha256, 'report digest differs');
   must(
     report.reportSha256 === sha256(canonicalJson({ ...report, reportSha256: null })),
-    'rehearsal report digest is invalid'
+    'report digest is invalid'
   );
-  must(report.sliceId === certificate.sliceId, 'rehearsal report slice differs');
+  must(report.sliceId === certificate.sliceId, 'report slice differs');
   must(
     report.repository?.origin === certificate.origin &&
       report.repository?.baseSha === certificate.baseSha &&
       report.repository?.headSha === certificate.headSha &&
       report.repository?.treeSha === certificate.treeSha,
-    'rehearsal report candidate identity differs'
+    'report candidate differs'
   );
-  must(
-    report.writers?.digest === certificate.writerMapDigest,
-    'rehearsal report writer map differs'
-  );
+  must(report.writers?.digest === certificate.writerMapDigest, 'report writer map differs');
   must(
     Array.isArray(report.authorityStops) && report.authorityStops.length === 0,
-    'rehearsal report has authority stops'
+    'report has authority stops'
   );
   must(
     report.operationalEnvelope?.authorityGranted === false,
-    'rehearsal report authority carrier is invalid'
+    'report authority carrier is invalid'
   );
   must(
     report.operationalEnvelope?.outcomeRiskSha256 === certificate.outcomeRiskSha256 &&
@@ -88,25 +83,22 @@ function validateRehearsalReport(certificate) {
       report.operationalEnvelope?.prNumber === certificate.prNumber &&
       canonicalJson(report.operationalEnvelope?.writerClosure) ===
         canonicalJson(certificate.writerClosure),
-    'rehearsal report approval provenance differs'
+    'report approval provenance differs'
   );
 }
 function validateCertificate(request) {
   const certificate = request.authorityCertificate;
-  exactKeys(certificate, CERTIFICATE_KEYS, 'operation authority certificate');
-  must(certificate.schemaVersion === 1, 'operation authority certificate schema is invalid');
+  exactKeys(certificate, CERTIFICATE_KEYS, 'authority certificate');
+  must(certificate.schemaVersion === 1, 'certificate schema is invalid');
   must(CERTIFICATE_ID.test(certificate.certificateId), 'operation certificate ID is invalid');
   must(ENVELOPE.test(certificate.approvalEnvelopeId), 'delivery approval envelope is invalid');
   must(
     certificate.approvalEnvelopeId.startsWith(`${certificate.sliceId}-DELIVERY-`) &&
       certificate.certificateId.startsWith(`${certificate.sliceId}-CERT-`),
-    'operation certificate identity differs from slice'
+    'certificate slice identity differs'
   );
-  must(
-    certificate.approvalEnvelopeId === request.approvalEnvelopeId,
-    'operation envelope differs from certificate'
-  );
-  must(certificate.headSha === request.expectedHeadSha, 'approved head differs from certificate');
+  must(certificate.approvalEnvelopeId === request.approvalEnvelopeId, 'request envelope differs');
+  must(certificate.headSha === request.expectedHeadSha, 'approved head differs');
   for (const [value, label] of [
     [certificate.baseSha, 'certificate base SHA'],
     [certificate.headSha, 'certificate head SHA'],
@@ -141,6 +133,7 @@ function validateCertificate(request) {
   );
   normalizeGitBranch(certificate.branch);
   normalizeGitBranch(certificate.baseBranch);
+  must(['merge', 'rebase', 'squash'].includes(certificate.mergeMethod), 'merge method is invalid');
   if (certificate.expectedRemoteHeadSha !== null) {
     normalizeCommitSha(certificate.expectedRemoteHeadSha, 'certificate remote head SHA');
   }
@@ -231,7 +224,7 @@ function pullOperation(request, certificate) {
         'pr',
         'merge',
         String(prNumber),
-        '--squash',
+        `--${certificate.mergeMethod}`,
         '--match-head-commit',
         certificate.headSha,
       ],

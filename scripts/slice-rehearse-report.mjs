@@ -22,25 +22,11 @@ import { readHeavyProofRecords } from './slice-rehearse-evidence.mjs';
 import { readCheckpointTelemetry } from './slice-telemetry-v2-record.mjs';
 
 const SHA = /^[0-9a-f]{40}$/u;
-const KEYS = [
-  'approvals',
-  'baseSha',
-  'blockerPhase',
-  'duplicateHeavyProofs',
-  'headSha',
-  'heavyProofs',
-  'mergeSha',
-  'modelCostUsd',
-  'prNumber',
-  'reFreezes',
-  'retries',
-  'runnerMinutes',
-  'schemaVersion',
-  'scopeDrift',
-  'sliceId',
-  'stage',
-  'treeSha',
-];
+const COUNTER_KEYS = 'approvals reFreezes retries heavyProofs duplicateHeavyProofs'.split(' ');
+const KEYS =
+  'approvals baseSha blockerPhase duplicateHeavyProofs headSha heavyProofs mergeSha modelCostUsd prNumber reFreezes retries runnerMinutes schemaVersion scopeDrift sliceId stage treeSha'.split(
+    ' '
+  );
 
 function count(value, label) {
   must(Number.isSafeInteger(value) && value >= 0, `${label} is invalid`);
@@ -52,24 +38,32 @@ function nullableMetric(value, label) {
   return value;
 }
 
-function compileLegalNextAction(input, approvals, reFreezes, heavyProofs) {
-  must(approvals <= 1, 'repeated delivery approval is invalid');
-  must(reFreezes <= 1, 'multiple remediation generations are invalid');
-  must(heavyProofs <= 1, 'duplicate final-head heavy proof is invalid');
-  must(!reFreezes || approvals === 1, 'remediation precedes delivery approval');
-  must(
-    input.prNumber === null || approvals === 1,
-    'pull request transition skips delivery approval'
+function securityHoldAction(blockerPhase) {
+  if (!blockerPhase.startsWith('security_hold:')) return null;
+  const match = /^security_hold:(candidate|shared-base):(HIGH|CRITICAL):[A-Za-z0-9@._/-]+$/u.exec(
+    blockerPhase
   );
+  must(match, 'security blocker attribution invalid');
+  return `HOLD(${match[1] === 'candidate' ? 'remediate_candidate_security' : 'await_shared_base_security_maintenance'})`;
+}
+
+function compileLegalNextAction(input, approvals, reFreezes, heavyProofs) {
+  must(approvals <= 1, 'repeated approval');
+  must(reFreezes <= 1, 'multiple re-freezes');
+  must(heavyProofs <= 1, 'duplicate final-head proof');
+  must(!reFreezes || approvals === 1, 'remediation precedes approval');
+  must(input.prNumber === null || approvals === 1, 'PR skips approval');
   must(
     heavyProofs === 0 || (approvals === 1 && input.prNumber !== null),
-    'heavy proof transition skips approval or pull request'
+    'proof skips approval or PR'
   );
   must(
     input.mergeSha === null || (input.prNumber !== null && heavyProofs === 1),
-    'merge transition skips pull request or heavy proof'
+    'merge skips PR or proof'
   );
   if (input.stage === 'final') return 'none';
+  const securityAction = securityHoldAction(input.blockerPhase);
+  if (securityAction) return securityAction;
   if (
     input.stage === 'authority_hold' ||
     input.blockerPhase !== 'none' ||
@@ -89,35 +83,24 @@ const OPTIONS = Object.freeze({
   maxBuffer: 8_388_608,
   timeout: 300_000,
 });
+const git = args => execFileSync('/usr/bin/git', args, OPTIONS).trim();
 
 export function verifyCheckpointGitIdentity(input, facts) {
-  if (
-    facts.headSha !== input.headSha ||
-    facts.treeSha !== input.treeSha ||
-    facts.baseIsAncestor !== true
-  ) {
-    return false;
-  }
-  return input.stage === 'final'
-    ? facts.protectedMainSha === input.mergeSha
-    : facts.protectedMainSha === input.baseSha;
+  return (
+    facts.headSha === input.headSha &&
+    facts.treeSha === input.treeSha &&
+    facts.baseIsAncestor === true &&
+    facts.protectedMainSha === (input.stage === 'final' ? input.mergeSha : input.baseSha)
+  );
 }
 
 function defaultVerifyState(input) {
-  const headSha = execFileSync('/usr/bin/git', ['rev-parse', 'HEAD'], OPTIONS).trim();
-  const treeSha = execFileSync('/usr/bin/git', ['rev-parse', 'HEAD^{tree}'], OPTIONS).trim();
-  const protectedMainSha = execFileSync(
-    '/usr/bin/git',
-    ['rev-parse', 'origin/main'],
-    OPTIONS
-  ).trim();
+  const headSha = git(['rev-parse', 'HEAD']);
+  const treeSha = git(['rev-parse', 'HEAD^{tree}']);
+  const protectedMainSha = git(['rev-parse', 'origin/main']);
   let baseIsAncestor = false;
   try {
-    execFileSync(
-      '/usr/bin/git',
-      ['merge-base', '--is-ancestor', input.baseSha, input.headSha],
-      OPTIONS
-    );
+    git(['merge-base', '--is-ancestor', input.baseSha, input.headSha]);
     baseIsAncestor = true;
   } catch {
     baseIsAncestor = false;
@@ -170,9 +153,13 @@ function defaultVerifyState(input) {
     (telemetry?.deliveryApprovals ?? 0) === counters.approvals &&
       (telemetry?.heavyProofs ?? 0) === counters.heavyProofs &&
       (telemetry?.duplicateHeavyProofs ?? 0) === counters.duplicateHeavyProofs,
-    'checkpoint telemetry differs from trusted receipts'
+    'telemetry differs from receipts'
   );
-  return { verified: true, counters };
+  return {
+    verified: true,
+    counters,
+    blockerPhases: Object.keys(telemetry?.blockerDistribution ?? {}),
+  };
 }
 
 export function generateSliceCheckpoint(input, { verifyState = defaultVerifyState } = {}) {
@@ -191,36 +178,39 @@ export function generateSliceCheckpoint(input, { verifyState = defaultVerifyStat
     input.prNumber === null || (Number.isSafeInteger(input.prNumber) && input.prNumber > 0),
     'PR number is invalid'
   );
-  const claimedCounters = {
-    approvals: count(input.approvals, 'approvals'),
-    reFreezes: count(input.reFreezes, 're-freezes'),
-    retries: count(input.retries, 'retries'),
-    heavyProofs: count(input.heavyProofs, 'heavy proofs'),
-    duplicateHeavyProofs: count(input.duplicateHeavyProofs, 'duplicate heavy proofs'),
-  };
-  must(typeof verifyState === 'function', 'checkpoint state verifier is unavailable');
+  const claimedCounters = Object.fromEntries(
+    COUNTER_KEYS.map(key => [key, count(input[key], key)])
+  );
+  must(typeof verifyState === 'function', 'checkpoint verifier unavailable');
   const verified = verifyState(input);
   must(
     verified?.verified === true &&
       canonicalJson(verified.counters) === canonicalJson(claimedCounters),
-    'checkpoint counters are not bound to verified receipts'
+    'counters differ from verified receipts'
   );
   const { approvals, reFreezes, retries, heavyProofs, duplicateHeavyProofs } = verified.counters;
-  must(duplicateHeavyProofs === 0, 'duplicate heavy proof violates the delivery contract');
-  must(heavyProofs >= duplicateHeavyProofs, 'heavy proof counts are inconsistent');
+  must(retries <= 3, 'tooling retry ceiling exceeded');
+  must(duplicateHeavyProofs === 0, 'duplicate heavy proof');
+  must(heavyProofs >= duplicateHeavyProofs, 'proof counts inconsistent');
   must(Array.isArray(input.scopeDrift), 'scope drift is invalid');
   must(
     input.scopeDrift.every(value => typeof value === 'string' && value.length > 0) &&
       new Set(input.scopeDrift).size === input.scopeDrift.length,
     'scope drift entries are invalid'
   );
-  const legalNextAction = compileLegalNextAction(input, approvals, reFreezes, heavyProofs);
   must(
     typeof input.blockerPhase === 'string' && input.blockerPhase.length > 0,
     'blocker phase is invalid'
   );
+  if (input.blockerPhase.startsWith('security_hold:')) {
+    must(
+      Array.isArray(verified.blockerPhases) && verified.blockerPhases.includes(input.blockerPhase),
+      'security blocker differs from verified telemetry'
+    );
+  }
+  const legalNextAction = compileLegalNextAction(input, approvals, reFreezes, heavyProofs);
   if (input.stage === 'authority_hold') {
-    must(input.blockerPhase !== 'none', 'authority hold checkpoint requires a blocker phase');
+    must(input.blockerPhase !== 'none', 'authority hold requires blocker');
   }
   if (input.stage === 'final') {
     must(
@@ -231,18 +221,11 @@ export function generateSliceCheckpoint(input, { verifyState = defaultVerifyStat
         input.blockerPhase === 'none' &&
         input.scopeDrift.length === 0 &&
         legalNextAction === 'none',
-      'final checkpoint is missing terminal invariants'
+      'final checkpoint missing invariants'
     );
   }
   return {
-    schemaVersion: 1,
-    stage: input.stage,
-    sliceId: input.sliceId,
-    baseSha: input.baseSha,
-    headSha: input.headSha,
-    treeSha: input.treeSha,
-    prNumber: input.prNumber,
-    mergeSha: input.mergeSha,
+    ...input,
     approvals,
     reFreezes,
     retries,
@@ -250,7 +233,6 @@ export function generateSliceCheckpoint(input, { verifyState = defaultVerifyStat
     duplicateHeavyProofs,
     runnerMinutes: nullableMetric(input.runnerMinutes, 'runner minutes'),
     modelCostUsd: nullableMetric(input.modelCostUsd, 'model cost'),
-    blockerPhase: input.blockerPhase,
     scopeDrift: [...input.scopeDrift].sort(compareText),
     legalNextAction,
   };

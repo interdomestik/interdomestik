@@ -49,6 +49,7 @@ function certificate(overrides = {}) {
     writerClosure,
     branch,
     baseBranch,
+    mergeMethod: 'squash',
     writerMapDigest,
     reportSha256: rehearsalReport.reportSha256,
     rehearsalReport,
@@ -147,6 +148,29 @@ test('builds shell-free operation argv', () => {
     '--match-head-commit',
     head,
   ]);
+});
+test('binds conditional merge to live repository merge settings', () => {
+  const request = {
+    operation: 'conditional_merge',
+    ...authorityFields(),
+    prNumber,
+  };
+  assert.throws(
+    () =>
+      live.verifyLiveOperationFacts(
+        { ...liveFacts, mergeAllowed: false },
+        request.authorityCertificate,
+        request.operation
+      ),
+    /merge method is not enabled/u
+  );
+  assert.doesNotThrow(() =>
+    live.verifyLiveOperationFacts(
+      { ...liveFacts, mergeAllowed: true },
+      request.authorityCertificate,
+      request.operation
+    )
+  );
 });
 test('checks head and reconciles a failed writer', () => {
   const request = {

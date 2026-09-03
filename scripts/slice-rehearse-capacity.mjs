@@ -24,6 +24,7 @@ apps/web/src/messages/sr/dashboard.json`
   .split('\n')
   .sort(compareText);
 const CUTOVER_SEED_DIGEST = '5fd52ee29a186994973103f09f60ea820c50c45c7c8540b2ebb4df71f963b2db';
+const CUTOVER_PRODUCT_DIGEST = '9607ebda8ed38b016aefedaec045e22e6ab195b06371d2706ce0f3da9260bf36';
 const CUTOVER_CLOSURE_DIGEST = '8c4bfe957679325dc3e81248fa8dce4bd1bdc7f6873be5c590f3dd0c8f7269b7';
 const pathDigest = paths => sha256(JSON.stringify([...paths].sort(compareText)));
 const companionCategory = path => {
@@ -35,29 +36,34 @@ export function compileWriterClosure(manifest) {
   if (manifest.sliceId !== 'T117B-CUTOVER') return { manifest, authorityStops: [] };
   const digest = pathDigest(manifest.writerPaths);
   if (digest === CUTOVER_CLOSURE_DIGEST) return { manifest, authorityStops: [] };
-  if (digest !== CUTOVER_SEED_DIGEST) {
+  if (![CUTOVER_SEED_DIGEST, CUTOVER_PRODUCT_DIGEST].includes(digest)) {
     return {
       manifest,
       authorityStops: [{ code: 'writer:unforeseen-cutover-closure', paths: manifest.writerPaths }],
     };
   }
-  const writerPaths = [...manifest.writerPaths, ...CUTOVER_COMPANIONS, BUDGET_PATH].sort(
-    compareText
+  const additions = [...CUTOVER_COMPANIONS, BUDGET_PATH].filter(
+    path => !manifest.writerPaths.includes(path)
   );
-  const pathPlans = CUTOVER_COMPANIONS.map(path => ({
-    path,
-    change: 'modify',
-    category: companionCategory(path),
-    maxBytesDelta: path.includes('/messages/') ? 4_096 : 8_192,
-    maxLines: 300,
-  }));
-  pathPlans.push({
-    path: BUDGET_PATH,
-    change: 'modify',
-    category: 'config/data/messages',
-    maxBytesDelta: 0,
-    maxLines: 1_000,
-  });
+  const writerPaths = [...manifest.writerPaths, ...additions].sort(compareText);
+  const pathPlans = additions
+    .filter(path => path !== BUDGET_PATH)
+    .map(path => ({
+      path,
+      change: 'modify',
+      category: companionCategory(path),
+      maxBytesDelta: path.includes('/messages/') ? 4_096 : 8_192,
+      maxLines: 300,
+    }));
+  if (additions.includes(BUDGET_PATH)) {
+    pathPlans.push({
+      path: BUDGET_PATH,
+      change: 'modify',
+      category: 'config/data/messages',
+      maxBytesDelta: 0,
+      maxLines: 1_000,
+    });
+  }
   return {
     manifest: {
       ...manifest,
@@ -74,7 +80,7 @@ export function compileWriterClosure(manifest) {
 export function extendBoundedAllocation(existing, proposed, categoriesByPath, writerDeltas = {}) {
   must(
     existing.mode === 'bounded' && proposed.mode === 'bounded' && existing.id === proposed.id,
-    'capacity owner extension requires one bounded identity'
+    'one bounded identity required'
   );
   const result = structuredClone(existing);
   for (const path of proposed.writerPaths) {
@@ -83,10 +89,7 @@ export function extendBoundedAllocation(existing, proposed, categoriesByPath, wr
     result.maxPathBytesDelta[path] = previous + increase;
     result.maxTrackedBytesDelta += increase;
     const category = categoriesByPath[path];
-    must(
-      typeof category === 'string' && category.length > 0,
-      `writer category is missing: ${path}`
-    );
+    must(typeof category === 'string' && category.length > 0, `category missing: ${path}`);
     result.maxCategoryBytesDelta[category] =
       (result.maxCategoryBytesDelta[category] ?? 0) + increase;
     if (

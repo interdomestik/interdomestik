@@ -25,7 +25,7 @@ function event(overrides = {}) {
   };
 }
 
-test('preserves genuinely unknown timing, runner, and model values as null', () => {
+test('preserves unknown timing, runner, and model values as null', () => {
   const unknown = validateTelemetryEventV2(
     event({
       phase: 'design',
@@ -124,11 +124,11 @@ test('enforces approval classification and happy-path retry/heavy-proof targets'
       elapsedMs: 1,
       waitMs: 0,
       computeMs: 1,
-      retries: 6,
+      retries: 4,
     }),
   ]);
   assert.equal(summary.targets.noDuplicateHeavyProof, false);
-  assert.equal(summary.targets.atMostFiveToolingRetries, false);
+  assert.equal(summary.targets.atMostThreeToolingRetries, false);
   assert.equal(summary.targets.allPassed, false);
 });
 

@@ -2,7 +2,7 @@ export const defaultReviewers = ['sonnet'];
 
 export const modelReviewRoutes = {
   sonnet: {
-    label: 'Claude Sonnet architecture/scope review',
+    label: 'Claude Sonnet architecture review',
     provider: 'anthropic',
     model: 'claude-sonnet-4-6',
     command: 'claude',
@@ -21,11 +21,11 @@ export const modelReviewRoutes = {
     ],
   },
   opus: {
-    label: 'Claude Opus 5 escalation review',
+    label: 'Claude Opus 5 escalation',
     provider: 'anthropic',
     model: 'claude-opus-5',
     command: 'claude',
-    timeoutMs: 15 * 60_000,
+    timeoutMs: 30 * 60_000,
     noOutputTimeoutMs: 300_000,
     args: prompt => [
       '-p',
@@ -35,12 +35,13 @@ export const modelReviewRoutes = {
       '--tools',
       '',
       '--output-format',
-      'json',
+      'stream-json',
+      '--verbose',
       '--no-session-persistence',
     ],
   },
   opus48: {
-    label: 'Claude Opus 4.8 lightweight review',
+    label: 'Opus 4.8 lightweight',
     provider: 'anthropic',
     model: 'claude-opus-4-8',
     command: 'claude',

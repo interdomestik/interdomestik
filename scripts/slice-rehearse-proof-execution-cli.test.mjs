@@ -42,7 +42,7 @@ function proofReport(item, sliceId = 'HARNESS-V2-PROOF-CLI') {
   return report;
 }
 
-test('the default proof command uses absolute runtimes and a fixed non-writable PATH', () => {
+test('proof command uses trusted runtimes and PATH', () => {
   const calls = [];
   const result = executePnpmProof(['test:harness-v2'], {
     nodePath: '/trusted/bin/node',
@@ -59,11 +59,11 @@ test('the default proof command uses absolute runtimes and a fixed non-writable 
   assert.equal(calls[0].options.shell, false);
 });
 
-test('the default proof command resolves pnpm beside the active Node runtime', () => {
+test('proof command resolves pnpm beside Node', () => {
   assert.equal(executePnpmProof(['--version']).status, 0);
 });
 
-test('records and executes a planned proof through the copy-safe CLI contract', () => {
+test('executes and records a planned proof', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'heavy-proof-cli-'));
   const executionPath = path.join(root, 'execution.json');
   const reportPath = path.join(root, 'report.json');
@@ -102,6 +102,8 @@ test('records and executes a planned proof through the copy-safe CLI contract', 
         runHeavyProofExecution({
           ...options,
           verifyCandidate: () => true,
+          verifyProofHost: () => true,
+          acquireLease: () => () => {},
           execute: args => {
             commands.push(args);
             return { status: 0 };
@@ -119,10 +121,10 @@ test('records and executes a planned proof through the copy-safe CLI contract', 
     status: 'succeeded',
   });
   assert.equal(commands.length, 2);
-  assert.deepEqual(records, ['reserved', 'running', 'succeeded']);
+  assert.deepEqual(records, ['succeeded']);
 });
 
-test('does not remove another process lock when ledger acquisition fails', () => {
+test('preserves another process lock', () => {
   const scope = {
     sliceId: 'HARNESS-V2-PROOF-LOCK',
     headSha: '1'.repeat(40),
@@ -144,6 +146,9 @@ test('does not remove another process lock when ledger acquisition fails', () =>
           lane: 'pr-e2e',
           startedAt: '2026-08-31T00:00:00.000Z',
         },
+        status: 'succeeded',
+        finishedAt: '2026-08-31T00:01:00.000Z',
+        exitCode: 0,
       }),
     /EEXIST/u
   );
@@ -151,7 +156,7 @@ test('does not remove another process lock when ledger acquisition fails', () =>
   fs.rmSync(root, { recursive: true, force: true });
 });
 
-test('production proof scope is durable, owner-bound, and not temporary', () => {
+test('proof scope is durable and owner-bound', () => {
   const path = heavyProofLedgerPath({
     sliceId: 'HARNESS-V2-DURABLE',
     headSha: '1'.repeat(40),
@@ -161,7 +166,7 @@ test('production proof scope is durable, owner-bound, and not temporary', () => 
   assert.equal(path.startsWith('/private/tmp/'), false);
 });
 
-test('collapses historical decisions for one lane and reuses only the exact verified identity', () => {
+test('reuses only exact verified lane identity', () => {
   const expected = identity('a');
   const expectedKey = deriveEvidenceIdentityKey({ lane: 'pr-e2e', ...expected });
   assert.deepEqual(
@@ -185,7 +190,7 @@ test('collapses historical decisions for one lane and reuses only the exact veri
   );
 });
 
-test('revalidates independently verified expiry when proof is consumed', () => {
+test('revalidates proof expiry on consumption', () => {
   const decision = {
     lane: 'pr-e2e',
     key: 'a'.repeat(64),

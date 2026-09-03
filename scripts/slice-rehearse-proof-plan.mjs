@@ -11,10 +11,15 @@ import {
   sha256,
 } from './slice-rehearse-canonical.mjs';
 import {
+  acquireHeavyProofExecutionLease,
   normalizeHeavyProofExecution,
   recordHeavyProofExecution,
 } from './slice-rehearse-evidence.mjs';
-export { heavyProofLedgerPath, recordHeavyProofExecution } from './slice-rehearse-evidence.mjs';
+export {
+  acquireHeavyProofExecutionLease,
+  heavyProofLedgerPath,
+  recordHeavyProofExecution,
+} from './slice-rehearse-evidence.mjs';
 const KEY = /^[0-9a-f]{64}$/u;
 export function planInvalidatedProofs({
   requiredLanes,
@@ -142,6 +147,13 @@ export function executePnpmProof(
     timeout: 90 * 60_000,
   });
 }
+export function authorizedHeavyProofHost({ platform = process.platform, env = process.env } = {}) {
+  if (platform !== 'linux') return false;
+  return (
+    (env.GITHUB_ACTIONS === 'true' && env.RUNNER_OS === 'Linux') ||
+    env.RUNNER_NAME === 'interdomestik-z620-staging'
+  );
+}
 export function runHeavyProofExecution({
   ledgerPath,
   execution,
@@ -149,45 +161,44 @@ export function runHeavyProofExecution({
   execute = executePnpmProof,
   verifyCandidate,
   record = recordHeavyProofExecution,
+  acquireLease = acquireHeavyProofExecutionLease,
+  verifyProofHost = authorizedHeavyProofHost,
 }) {
   const value = validateProofExecutionPlan(report, execution, verifyCandidate);
   const commands = PROOF_COMMANDS[value.lane];
   must(commands, 'heavy proof lane has no fixed executor');
+  must(verifyProofHost({ report, execution: value }) === true, 'heavy proof host is unauthorized');
   const { sliceId } = report;
   const { headSha, treeSha } = report.repository;
   const scope = { sliceId, headSha, treeSha };
-  record({ ledgerPath, scope, execution: value });
-  record({ ledgerPath, scope, execution: value, status: 'running' });
-  for (let index = 0; index < commands.length; index += 1) {
-    const result = execute(commands[index]);
-    if (result?.status !== 0) {
-      const exitCode = Number.isInteger(result?.status) ? result.status : null;
-      record({
-        ledgerPath,
-        scope,
-        execution: value,
-        status: 'failed',
-        finishedAt: new Date().toISOString(),
-        exitCode,
-      });
-      return {
-        commandIndex: index,
-        exitCode,
-        lane: value.lane,
-        runId: value.runId,
-        status: 'failed',
-      };
+  const releaseLease = acquireLease({ ledgerPath, scope, execution: value });
+  must(typeof releaseLease === 'function', 'heavy proof lease is invalid');
+  try {
+    for (let index = 0; index < commands.length; index += 1) {
+      const result = execute(commands[index]);
+      if (result?.status !== 0) {
+        const exitCode = Number.isInteger(result?.status) ? result.status : null;
+        return {
+          commandIndex: index,
+          exitCode,
+          lane: value.lane,
+          runId: value.runId,
+          status: 'failed',
+        };
+      }
     }
+    record({
+      ledgerPath,
+      scope,
+      execution: value,
+      status: 'succeeded',
+      finishedAt: new Date().toISOString(),
+      exitCode: 0,
+    });
+    return { lane: value.lane, runId: value.runId, status: 'succeeded' };
+  } finally {
+    releaseLease();
   }
-  record({
-    ledgerPath,
-    scope,
-    execution: value,
-    status: 'succeeded',
-    finishedAt: new Date().toISOString(),
-    exitCode: 0,
-  });
-  return { lane: value.lane, runId: value.runId, status: 'succeeded' };
 }
 function parseRecordArgs(argv) {
   must(

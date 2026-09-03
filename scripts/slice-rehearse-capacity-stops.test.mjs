@@ -7,6 +7,7 @@ import { evaluateRehearsal } from './slice-rehearse-evaluator.mjs';
 const bytes = readFileSync(new URL('./repo-size-budget.json', import.meta.url));
 const budget = JSON.parse(bytes);
 const BUDGET = 'scripts/repo-size-budget.json';
+const extend = capacity.extendBoundedAllocation;
 const text = value =>
   value === budget ? bytes.toString('utf8') : `${JSON.stringify(value, null, 2)}\n`;
 const baselineBytes = bytes.byteLength - budget.allocations[0].pathBytesDelta[BUDGET];
@@ -95,7 +96,7 @@ test('mechanical owner extension preserves prior paths and adds only declared he
     writerPaths: ['scripts/existing.mjs', 'scripts/new.test.mjs'],
     maxPathBytesDelta: { 'scripts/existing.mjs': 250, 'scripts/new.test.mjs': 120 },
   };
-  const result = capacity.extendBoundedAllocation(
+  const result = extend(
     existing,
     proposed,
     { 'scripts/existing.mjs': 'source/scripts', 'scripts/new.test.mjs': 'tests/e2e' },
@@ -105,14 +106,9 @@ test('mechanical owner extension preserves prior paths and adds only declared he
   assert.equal(result.maxTrackedBytesDelta, 370);
   assert.equal(result.maxTrackedFilesDelta, 2);
   assert.deepEqual(result.maxCategoryBytesDelta, { 'source/scripts': 250, 'tests/e2e': 120 });
-  assert.throws(
-    () => capacity.extendBoundedAllocation(existing, { ...proposed, id: 'foreign' }, {}),
-    /one bounded identity/u
-  );
-  assert.throws(
-    () => capacity.extendBoundedAllocation(existing, proposed, {}),
-    /category.*missing/u
-  );
+  const foreign = { ...proposed, id: 'foreign' };
+  assert.throws(() => extend(existing, foreign, {}), /one bounded identity/u);
+  assert.throws(() => extend(existing, proposed, {}), /category.*missing/u);
 });
 test('T117B CUTOVER compiles the approved 12-path seed to the exact 20-path product closure plus budget', () => {
   const admission = JSON.parse(
@@ -126,7 +122,11 @@ test('T117B CUTOVER compiles the approved 12-path seed to the exact 20-path prod
       plan(
         path,
         'modify',
-        path.includes('/e2e/') || path.endsWith('.test.tsx') ? 'tests/e2e' : 'source/scripts',
+        path.endsWith('.json')
+          ? 'config/data/messages'
+          : path.includes('/e2e/') || path.endsWith('.test.tsx')
+            ? 'tests/e2e'
+            : 'source/scripts',
         8_192,
         300
       )

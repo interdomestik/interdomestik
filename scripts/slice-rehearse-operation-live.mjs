@@ -51,7 +51,7 @@ export function execOptions(binary, environment = process.env) {
 }
 export function resolveGhBinary() {
   const binary = GH_CANDIDATES.find(existsSync);
-  must(binary, `GitHub CLI not found in: ${GH_CANDIDATES.join(', ')}`);
+  must(binary, `gh not found: ${GH_CANDIDATES.join(', ')}`);
   return binary;
 }
 function ghJson(args) {
@@ -66,11 +66,8 @@ function lsRemoteRefs(refs) {
   const resolved = Object.fromEntries(refs.map(ref => [ref, null]));
   for (const line of output.split('\n').filter(Boolean)) {
     const [sha, ref, extra] = line.split(/\s+/u);
-    must(
-      !extra && Object.hasOwn(resolved, ref) && resolved[ref] === null,
-      'live remote ref response is ambiguous'
-    );
-    resolved[ref] = normalizeCommitSha(sha, 'live remote head SHA');
+    must(!extra && Object.hasOwn(resolved, ref) && resolved[ref] === null, 'remote refs ambiguous');
+    resolved[ref] = normalizeCommitSha(sha, 'remote head SHA');
   }
   return resolved;
 }
@@ -97,10 +94,10 @@ function readPrForBranch(certificate) {
   args.push('--head', certificate.branch, '--base', certificate.baseBranch);
   args.push('--limit', '2', '--json', PULL_FIELDS);
   const values = ghJson(args);
-  must(Array.isArray(values) && values.length <= 1, 'live PR lookup is ambiguous');
+  must(Array.isArray(values) && values.length <= 1, 'PR lookup ambiguous');
   return values.length ? normalizePull(values[0]) : null;
 }
-export function readLiveOperationFacts(_request, certificate) {
+export function readLiveOperationFacts(request, certificate) {
   const baseRef = `refs/heads/${certificate.baseBranch}`;
   const branchRef = `refs/heads/${certificate.branch}`;
   const remoteRefs = lsRemoteRefs([baseRef, branchRef]);
@@ -109,6 +106,10 @@ export function readLiveOperationFacts(_request, certificate) {
     .split('\0')
     .filter(Boolean)
     .sort(compareText);
+  const mergeSetting =
+    certificate.mergeMethod === 'merge'
+      ? 'allow_merge_commit'
+      : `allow_${certificate.mergeMethod}_merge`;
   return {
     origin: normalizeGitHubOrigin(git(['config', '--get', 'remote.origin.url']).trim()).origin,
     baseSha: remoteRefs[baseRef],
@@ -117,6 +118,12 @@ export function readLiveOperationFacts(_request, certificate) {
     branch: git(['branch', '--show-current']).trim(),
     remoteHeadSha: remoteRefs[branchRef],
     writerMapDigest: sha256(canonicalJson(changedPaths)),
+    mergeAllowed:
+      request.operation === 'conditional_merge'
+        ? ghJson(['api', `repos/${normalizeGitHubOrigin(certificate.origin).providerRepository}`])[
+            mergeSetting
+          ] === true
+        : null,
     pr: certificate.prNumber === null ? readPrForBranch(certificate) : readPr(certificate.prNumber),
   };
 }
@@ -128,60 +135,58 @@ export function readLiveOperationAuthority(boundary) {
   }).authority;
 }
 export function verifyLiveOperationFacts(facts, certificate, operation) {
-  must(facts && typeof facts === 'object', 'live operation facts are unavailable');
-  for (const key of LIVE_FACT_KEYS)
-    must(Object.hasOwn(facts, key), 'live operation facts are unavailable');
-  must(facts.origin === certificate.origin, 'live origin differs from certificate');
-  must(facts.baseSha === certificate.baseSha, 'live protected base differs from certificate');
+  must(facts && typeof facts === 'object', 'live facts unavailable');
+  for (const key of LIVE_FACT_KEYS) must(Object.hasOwn(facts, key), 'live facts unavailable');
+  must(facts.origin === certificate.origin, 'origin differs');
+  must(facts.baseSha === certificate.baseSha, 'base differs');
   must(facts.headSha === certificate.headSha, 'exact local head differs from approved head');
-  must(facts.treeSha === certificate.treeSha, 'exact local tree differs from approved tree');
-  must(facts.branch === certificate.branch, 'exact branch differs from certificate');
+  must(facts.treeSha === certificate.treeSha, 'local tree differs');
+  must(facts.branch === certificate.branch, 'branch differs');
   must(
     facts.remoteHeadSha === certificate.expectedRemoteHeadSha,
     'exact remote branch head differs from certificate'
   );
-  must(
-    facts.writerMapDigest === certificate.writerMapDigest,
-    'live writer map differs from certificate'
-  );
+  must(facts.writerMapDigest === certificate.writerMapDigest, 'live writer map differs');
+  if (operation === 'conditional_merge')
+    must(facts.mergeAllowed === true, 'merge method is not enabled');
   if (certificate.prNumber === null) {
-    must(facts.pr === null, 'PR creation requires no existing exact PR');
+    must(facts.pr === null, 'existing PR blocks creation');
   } else {
-    must(facts.pr?.number === certificate.prNumber, 'live PR identity differs from certificate');
+    must(facts.pr?.number === certificate.prNumber, 'live PR differs');
     must(
       facts.pr.baseBranch === certificate.baseBranch && facts.pr.branch === certificate.branch,
-      'live PR branch identity differs'
+      'live PR branches differ'
     );
     const expectedPrHead =
       operation === 'branch_push' ? certificate.expectedRemoteHeadSha : certificate.headSha;
-    must(facts.pr.headSha === expectedPrHead, 'exact PR head differs from approved precondition');
-    must(facts.pr.origin === 'interdomestik/interdomestik', 'live PR repository differs');
+    must(facts.pr.headSha === expectedPrHead, 'exact PR head differs');
+    must(facts.pr.origin === 'interdomestik/interdomestik', 'PR repo differs');
   }
 }
 export function verifyOperationAuthority(authority, certificate) {
-  must(authority?.source === 'live-resolver', 'operation requires live resolver authority');
+  must(authority?.source === 'live-resolver', 'live resolver required');
   if (certificate.workClass === 'product') {
     must(
       authority.runtimeAuthorized === true && authority.activeSlice === certificate.sliceId,
-      'product operation authority differs'
+      'product authority differs'
     );
   } else {
     must(
       authority.runtimeAuthorized === false && authority.activeSlice === null,
-      'governance operation requires inactive product authority'
+      'governance requires inactive product'
     );
   }
 }
 export function verifyOperationBody(request, certificate) {
   if (!Object.hasOwn(request, 'bodyArtifact')) return;
   const content = readBoundedRegularText(operationBodyArtifact(certificate, request.bodyArtifact), {
-    label: 'Operation body artifact',
+    label: 'Operation body',
     maxBytes: 256 * 1024,
     allowedRoots: [OPERATION_ARTIFACT_ROOT],
   });
   must(
     sha256(content) === certificate.artifacts[request.bodyArtifact],
-    'operation body artifact digest differs'
+    'body artifact digest differs'
   );
 }
 export function executeOperation(binary, args) {
