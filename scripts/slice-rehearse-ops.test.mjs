@@ -1,10 +1,17 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
 
 import { canonicalJson, sha256 } from './slice-rehearse-canonical.mjs';
 import { operationApprovalBinding } from './slice-rehearse-operation-certificate.mjs';
 import * as live from './slice-rehearse-operation-live.mjs';
-import { buildSafeOperation, runSafeOperation } from './slice-rehearse-ops.mjs';
+import {
+  approvalReceiptPath,
+  buildSafeOperation,
+  runSafeOperation,
+} from './slice-rehearse-ops.mjs';
 
 const [head, base, tree] = ['a', 'b', 'c'].map(value => value.repeat(40));
 const writerMapDigest = 'd'.repeat(64);
@@ -208,6 +215,38 @@ test('checks head and reconciles a failed writer', () => {
     /remote branch head differs/u
   );
   assert.throws(() => runSafeOperation(request), /approval receipt/u);
+});
+test('releases a failed unapplied operation but retains uncertain consumption', () => {
+  const approval = 'retryable approval\n';
+  const request = {
+    operation: 'label_add',
+    ...authorityFields({ certificate: { approvalReceiptSha256: sha256(approval) } }),
+    prNumber,
+    label: 'full-gate',
+  };
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-operation-retry-'));
+  fs.writeFileSync(approvalReceiptPath(request.authorityCertificate, root), approval, {
+    mode: 0o600,
+  });
+  const options = {
+    root,
+    readLiveFacts: () => liveFacts,
+    readAuthority: () => ({ source: 'live-resolver', runtimeAuthorized: false, activeSlice: null }),
+    execute: () => ({ status: 1, stderr: 'failed' }),
+    reconcile: () => ({ outcome: 'not_applied' }),
+  };
+  assert.equal(runSafeOperation(request, options).status, 'failed_not_applied');
+  assert.equal(
+    fs.readdirSync(root).some(name => name.endsWith('.consumed')),
+    false
+  );
+  options.reconcile = () => ({ outcome: 'unknown' });
+  assert.equal(runSafeOperation(request, options).status, 'failed_unknown');
+  assert.equal(
+    fs.readdirSync(root).some(name => name.endsWith('.consumed')),
+    true
+  );
+  fs.rmSync(root, { recursive: true, force: true });
 });
 test('updates an exact PR from its remote preimage', () => {
   const oldHead = '8'.repeat(40);

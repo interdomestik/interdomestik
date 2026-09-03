@@ -31,7 +31,7 @@ const LANE = /^[a-z0-9][a-z0-9:_-]*$/u;
 const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{2,127}$/u;
 const EXECUTION_KEYS = ['evidenceKey', 'lane', 'runId', 'startedAt'];
 const RECORD_KEYS = [...EXECUTION_KEYS, 'exitCode', 'finishedAt', 'status'];
-const PROOF_STATES = new Set(['reserved', 'running', 'succeeded', 'failed']);
+const STATES = new Set(['reserved', 'running', 'succeeded', 'failed']);
 const OPEN = fs.constants;
 const openNoFollow = (path, flags) => fs.openSync(path, flags | OPEN.O_NOFOLLOW, 0o600);
 export const HEAVY_PROOF_LEDGER_ROOT = resolve(HOST_BOUND_AUTHORITY_ROOT, 'harness-proof-ledgers');
@@ -126,7 +126,7 @@ export function normalizeHeavyProofExecution(execution) {
 function normalizeHeavyProofRecord(record) {
   exactKeys(record, RECORD_KEYS, 'heavy proof receipt');
   normalizeHeavyProofExecution(Object.fromEntries(EXECUTION_KEYS.map(key => [key, record[key]])));
-  must(PROOF_STATES.has(record.status), 'heavy proof receipt status is invalid');
+  must(STATES.has(record.status), 'heavy proof receipt status is invalid');
   const terminal = ['succeeded', 'failed'].includes(record.status);
   must(terminal === Number.isFinite(Date.parse(record.finishedAt)), 'proof completion invalid');
   must(
@@ -235,27 +235,23 @@ export function runSafeOperation(
     readAuthority = readLiveOperationAuthority,
     execute = executeOperation,
     reconcile = reconcileOperation,
+    root,
   } = {}
 ) {
   const command = buildSafeOperation(request);
-  verifyTrustedApprovalReceipt(command.certificate);
-  verifyLiveOperationFacts(
-    readLiveFacts(request, command.certificate),
-    command.certificate,
-    request.operation
-  );
-  verifyOperationAuthority(
-    readAuthority(command.boundary, command.certificate),
-    command.certificate
-  );
-  verifyOperationBody(request, command.certificate);
-  consumeApprovedOperation(request, command.certificate);
+  const cert = command.certificate;
+  verifyTrustedApprovalReceipt(cert, root);
+  verifyLiveOperationFacts(readLiveFacts(request, cert), cert, request.operation);
+  verifyOperationAuthority(readAuthority(command.boundary, cert), cert);
+  verifyOperationBody(request, cert);
+  const mark = consumeApprovedOperation(request, cert, root);
   const result = execute(command.binary, command.args);
-  const reconciliation = reconcile(request, command.certificate);
+  const reconciliation = reconcile(request, cert);
   must(
     ['applied', 'not_applied', 'unknown'].includes(reconciliation?.outcome),
     'mutation reconciliation outcome is invalid'
   );
+  if (result.status !== 0 && reconciliation.outcome === 'not_applied') fs.unlinkSync(mark);
   if (result.status === 0) {
     must(
       reconciliation.outcome === 'applied',
