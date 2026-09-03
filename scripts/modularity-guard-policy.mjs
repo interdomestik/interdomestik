@@ -46,13 +46,13 @@ const STRUCTURED_EXTENSIONS = new Set(['.json', '.jsonl', '.toml', '.yaml', '.ym
 const STRUCTURED_OWNERS = [
   [/^\.github\/reviewer-routing\.json$/u, 'reviewer-routing-contract'],
   [/^docs\/plans\/.*\.json$/u, 'approval-artifact-contract'],
-  [/(^|\/)package\.json$/u, 'package-manifest-contract'],
+  [/(^|\/)(package\.json|pnpm-workspace\.yaml)$/u, 'package-manifest-contract'],
   [/(^|\/)tsconfig(?:\.[^.]+)?\.json$/u, 'typescript-config-contract'],
   [/^scripts\/(?:ci\/)?[^/]+\.json$/u, 'script-config-contract'],
   [/^(?:components|turbo|vercel)\.json$/u, 'repository-config-contract'],
   [/^\.codex\/config\.toml$/u, 'codex-config-contract'],
 ];
-const T117B_MEMBER_PORTAL_CATALOGS = new Set([
+const T117B_CATALOGS = new Set([
   'apps/web/src/messages/en/dashboard.json',
   'apps/web/src/messages/mk/dashboard.json',
   'apps/web/src/messages/sq/dashboard.json',
@@ -91,7 +91,7 @@ export function isExplicitModularityException(filePath) {
 }
 export function structuredArtifactOwner(filePath) {
   const relPath = toPolicyPath(filePath);
-  const owner = T117B_MEMBER_PORTAL_CATALOGS.has(relPath)
+  const owner = T117B_CATALOGS.has(relPath)
     ? 't117b-member-portal-i18n-contract'
     : STRUCTURED_OWNERS.find(([pattern]) => pattern.test(relPath))?.[1];
   return owner ?? null;

@@ -152,8 +152,8 @@ test('classifies every normative typed surface and fails closed on unknown text'
     'pnpm-lock.yaml': FILE_CLASSES.generatedOrLock,
     'notes/evidence.txt': FILE_CLASSES.unknown,
   };
-  for (const [file, className] of Object.entries(cases)) {
-    assert.equal(classifyModularityFile(file), className);
+  for (const [file, kind] of Object.entries(cases)) {
+    assert.equal(classifyModularityFile(file), kind);
   }
 });
 
@@ -200,21 +200,22 @@ test('structured artifacts require an owner and repository-Prettier canonical JS
     'structured-owner-required',
     'structured-owner-required',
   ]);
-  assert.equal(
-    structuredArtifactOwner('.github/reviewer-routing.json'),
-    'reviewer-routing-contract'
+  assert.deepEqual(
+    ['.github/reviewer-routing.json', 'pnpm-workspace.yaml', '.github/other.json'].map(
+      structuredArtifactOwner
+    ),
+    ['reviewer-routing-contract', 'package-manifest-contract', null]
   );
-  assert.equal(structuredArtifactOwner('.github/other.json'), null);
 });
 
-test('T-117B message ownership is exact and every other catalog stays default-denied', () => {
-  const exactCatalogs = [
+test('T-117B ownership is exact and other catalogs stay denied', () => {
+  const catalogs = [
     'apps/web/src/messages/en/dashboard.json',
     'apps/web/src/messages/mk/dashboard.json',
     'apps/web/src/messages/sq/dashboard.json',
     'apps/web/src/messages/sr/dashboard.json',
   ];
-  for (const catalog of exactCatalogs) {
+  for (const catalog of catalogs) {
     assert.equal(structuredArtifactOwner(catalog), 't117b-member-portal-i18n-contract');
   }
 
