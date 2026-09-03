@@ -1,4 +1,5 @@
 import * as fs from 'node:fs';
+import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 import {
   canonicalize,
@@ -22,7 +23,7 @@ import {
 
 export { buildSafeOperation } from './slice-rehearse-operation-certificate.mjs';
 
-export const HOST_BOUND_AUTHORITY_ROOT = '/Users/arbenlila/.codex/state/interdomestik'; // Not a cross-host contract.
+export const HOST_BOUND_AUTHORITY_ROOT = resolve(homedir(), '.codex/state/interdomestik');
 const APPROVAL_ROOT = resolve(HOST_BOUND_AUTHORITY_ROOT, 'harness-approvals');
 const [SLICE, SHA] = [/^[A-Z0-9][A-Z0-9-]{1,63}$/u, /^[0-9a-f]{40}$/u];
 const DIGEST = /^[0-9a-f]{64}$/u;
@@ -72,8 +73,7 @@ export function consumeApprovedOperation(request, certificate, root = APPROVAL_R
   const requestSha256 = sha256(canonicalJson(request));
   const marker = `${approvalReceiptPath(certificate, root)}.${requestSha256}.consumed`;
   fs.writeFileSync(marker, `${requestSha256}\n`, {
-    flag:
-      fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_NOFOLLOW,
+    flag: OPEN.O_WRONLY | OPEN.O_CREAT | OPEN.O_EXCL | OPEN.O_NOFOLLOW,
     mode: 0o600,
   });
   return marker;
@@ -109,7 +109,7 @@ export function trustedHeavyProofLedgerPath(ledgerPath, scope, root = HEAVY_PROO
     resolve(ledgerPath) === expected,
     'heavy proof ledger is outside the canonical evidence scope'
   );
-  if (!fs.existsSync(root)) fs.mkdirSync(root, { mode: 0o700 });
+  if (!fs.existsSync(root)) fs.mkdirSync(root, { recursive: true, mode: 0o700 });
   secureRoot(root, 'heavy proof ledger');
   return trustedRunnerFile(expected, { runnerTemp: root });
 }

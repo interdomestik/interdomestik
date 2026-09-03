@@ -171,6 +171,16 @@ test('binds conditional merge to live repository merge settings', () => {
       request.operation
     )
   );
+  for (const mergeMethod of ['merge', 'rebase'])
+    assert.throws(
+      () =>
+        build({
+          operation: 'conditional_merge',
+          ...authorityFields({ certificate: { mergeMethod } }),
+          prNumber,
+        }),
+      /merge method is invalid/u
+    );
 });
 test('checks head and reconciles a failed writer', () => {
   const request = {

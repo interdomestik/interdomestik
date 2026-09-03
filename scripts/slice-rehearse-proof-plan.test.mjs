@@ -65,13 +65,14 @@ test('plans only invalidated or missing proof lanes in deterministic code-unit o
   assert.ok(plan.run.every(item => /^[0-9a-f]{64}$/u.test(item.evidenceKey)));
 });
 
-test('persists only successful proof claims and rejects a duplicate success atomically', () => {
+test('creates nested storage, persists successful proof, and rejects duplicates', () => {
   const scope = {
     sliceId: 'HARNESS-V2-PROOF-LEDGER',
     headSha: '1'.repeat(40),
     treeSha: '2'.repeat(40),
   };
-  const root = fs.mkdtempSync(join(tmpdir(), 'heavy-proof-ledger-'));
+  const parent = fs.mkdtempSync(join(tmpdir(), 'heavy-proof-ledger-'));
+  const root = join(parent, 'state', 'proofs');
   const ledgerPath = heavyProofLedgerPath(scope, root);
   fs.rmSync(ledgerPath, { force: true });
   const execution = {
@@ -122,7 +123,7 @@ test('persists only successful proof claims and rejects a duplicate success atom
     () => acquireHeavyProofExecutionLease({ ledgerPath, scope, execution, ledgerRoot: root }),
     /already succeeded/u
   );
-  fs.rmSync(root, { recursive: true, force: true });
+  fs.rmSync(parent, { recursive: true, force: true });
 });
 
 test('the proof executor claims the evidence key only after every command succeeds', () => {

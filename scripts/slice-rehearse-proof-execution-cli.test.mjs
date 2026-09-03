@@ -157,13 +157,13 @@ test('preserves another process lock', () => {
 });
 
 test('proof scope is durable and owner-bound', () => {
-  const path = heavyProofLedgerPath({
+  const ledgerPath = heavyProofLedgerPath({
     sliceId: 'HARNESS-V2-DURABLE',
     headSha: '1'.repeat(40),
     treeSha: '2'.repeat(40),
   });
-  assert.match(path, /^\/Users\/arbenlila\/\.codex\/state\/interdomestik\//u);
-  assert.equal(path.startsWith('/private/tmp/'), false);
+  assert.equal(ledgerPath.startsWith(path.join(os.homedir(), '.codex/state/interdomestik')), true);
+  assert.equal(ledgerPath.startsWith(os.tmpdir()), false);
 });
 
 test('reuses only exact verified lane identity', () => {

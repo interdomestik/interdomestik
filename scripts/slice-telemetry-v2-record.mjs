@@ -85,12 +85,12 @@ export function appendEvent({
   ledgerPath,
   trustedRoots = [process.cwd(), tmpdir(), HOST_BOUND_AUTHORITY_ROOT],
 }) {
-  const roots = trustedRoots.map(root => resolve(root));
-  const allowedRoots = [...new Set([...roots, ...roots.map(root => realpathSync(root))])];
+  const roots = trustedRoots.map(root => resolve(root)).filter(existsSync);
+  const allowedRoots = roots.flatMap(root => [root, realpathSync(root)]);
   const trustedRoot = [...roots]
     .sort((left, right) => right.length - left.length)
     .find(root => ledgerPath.startsWith(`${root}${sep}`));
-  must(trustedRoot, 'telemetry ledger must stay inside a trusted root');
+  must(trustedRoot, 'telemetry ledger must stay inside trusted root');
   const trustedLedgerPath = trustedRunnerFile(ledgerPath, { runnerTemp: trustedRoot });
   const event = JSON.parse(
     readBoundedRegularText(eventPath, {

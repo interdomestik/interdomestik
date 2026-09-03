@@ -133,7 +133,7 @@ function validateCertificate(request) {
   );
   normalizeGitBranch(certificate.branch);
   normalizeGitBranch(certificate.baseBranch);
-  must(['merge', 'rebase', 'squash'].includes(certificate.mergeMethod), 'merge method is invalid');
+  must(certificate.mergeMethod === 'squash', 'merge method is invalid');
   if (certificate.expectedRemoteHeadSha !== null) {
     normalizeCommitSha(certificate.expectedRemoteHeadSha, 'certificate remote head SHA');
   }

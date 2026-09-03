@@ -64,13 +64,13 @@ test('records repeated evidence keys as distinct immutable proof runs', () => {
   assert.equal(JSON.parse(second).eventId, 'event-proof-2');
 });
 
-test('ledger creation uses the trusted path boundary and rejects symlinked parents', () => {
+test('creates a trusted ledger and rejects symlinked parents', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-telemetry-'));
   const eventPath = path.join(root, 'event.json');
   const ledgerPath = path.join(root, 'events.jsonl');
   fs.writeFileSync(eventPath, `${JSON.stringify(event)}\n`);
 
-  appendEvent({ eventPath, ledgerPath, trustedRoots: [root] });
+  appendEvent({ eventPath, ledgerPath, trustedRoots: [root, `${root}x`] });
   assert.equal(JSON.parse(fs.readFileSync(ledgerPath, 'utf8')).sliceId, 'HARNESS-V2-1');
   assert.throws(() => appendEvent({ eventPath, ledgerPath, trustedRoots: [root] }), /event ID/u);
 
