@@ -178,7 +178,7 @@ test('enforces focused-test, structured-artifact, and governance budgets', () =>
   ]);
 });
 
-test('structured artifacts require an owner and repository-Prettier canonical JSON', () => {
+test('structured ownership', () => {
   const root = initRepo('modularity-structured-');
   writeFile(root, 'README.md', '# Seed\n');
   const base = commitAll(root);
@@ -201,10 +201,13 @@ test('structured artifacts require an owner and repository-Prettier canonical JS
     'structured-owner-required',
   ]);
   assert.deepEqual(
-    ['.github/reviewer-routing.json', 'pnpm-workspace.yaml', '.github/other.json'].map(
-      structuredArtifactOwner
-    ),
-    ['reviewer-routing-contract', 'package-manifest-contract', null]
+    [
+      '.github/reviewer-routing.json',
+      'pnpm-workspace.yaml',
+      'apps/web/pnpm-workspace.yaml',
+      '.github/other.json',
+    ].map(structuredArtifactOwner),
+    ['reviewer-routing-contract', 'package-manifest-contract', null, null]
   );
 });
 

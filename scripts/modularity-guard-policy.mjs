@@ -46,7 +46,7 @@ const STRUCTURED_EXTENSIONS = new Set(['.json', '.jsonl', '.toml', '.yaml', '.ym
 const STRUCTURED_OWNERS = [
   [/^\.github\/reviewer-routing\.json$/u, 'reviewer-routing-contract'],
   [/^docs\/plans\/.*\.json$/u, 'approval-artifact-contract'],
-  [/(^|\/)(package\.json|pnpm-workspace\.yaml)$/u, 'package-manifest-contract'],
+  [/(^|\/)package\.json$|^pnpm-workspace\.yaml$/u, 'package-manifest-contract'],
   [/(^|\/)tsconfig(?:\.[^.]+)?\.json$/u, 'typescript-config-contract'],
   [/^scripts\/(?:ci\/)?[^/]+\.json$/u, 'script-config-contract'],
   [/^(?:components|turbo|vercel)\.json$/u, 'repository-config-contract'],
