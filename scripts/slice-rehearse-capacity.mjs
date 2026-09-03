@@ -11,110 +11,121 @@ import {
   deriveCapacityFixedPoint,
   unchangedBudgetProposal,
 } from './slice-rehearse-capacity-fixed-point.mjs';
-import { compareText, must, sha256 } from './slice-rehearse-canonical.mjs';
+import {
+  compareText,
+  exactKeys,
+  must,
+  safeRelativePath,
+  sha256,
+  sortedUnique,
+} from './slice-rehearse-canonical.mjs';
 
-const CUTOVER_COMPANIONS = `apps/web/e2e/dashboard-access.spec.ts
-apps/web/e2e/golden/agent-member-overlay.spec.ts
-apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx
-apps/web/src/components/dashboard/member-portal-runtime.tsx
-apps/web/src/messages/en/dashboard.json
-apps/web/src/messages/mk/dashboard.json
-apps/web/src/messages/sq/dashboard.json
-apps/web/src/messages/sr/dashboard.json`
-  .split('\n')
-  .sort(compareText);
-const CUTOVER_SEED_DIGEST = '5fd52ee29a186994973103f09f60ea820c50c45c7c8540b2ebb4df71f963b2db';
-const CUTOVER_PRODUCT_DIGEST = '9607ebda8ed38b016aefedaec045e22e6ab195b06371d2706ce0f3da9260bf36';
-const CUTOVER_CLOSURE_DIGEST = '8c4bfe957679325dc3e81248fa8dce4bd1bdc7f6873be5c590f3dd0c8f7269b7';
+const HISTORY_LIMIT = 128;
+const DIGEST = /^[0-9a-f]{64}$/u;
 const pathDigest = paths => sha256(JSON.stringify([...paths].sort(compareText)));
-const companionCategory = path => {
-  if (path.includes('/messages/')) return 'config/data/messages';
-  return path.endsWith('.test.tsx') || path.includes('/e2e/') ? 'tests/e2e' : 'source/scripts';
-};
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+export function normalizeWriterLineage(v, roles = []) {
+  exactKeys(v, ['currentDigest', 'history', 'priorDigest'], 'lineage');
+  must(DIGEST.test(v.priorDigest) && DIGEST.test(v.currentDigest), 'invalid digest');
+  must(
+    Array.isArray(v.history) && v.history.length > 1 && v.history.length <= HISTORY_LIMIT,
+    'invalid history'
+  );
+  const byPr = new Map(roles.map(role => [role.number, role]));
+  const seen = new Set();
+  let parent = null;
+  let prior = [];
+  const history = v.history.map(item => {
+    exactKeys(
+      item,
+      ['changedPathDigest', 'digest', 'parentDigest', 'prNumber', 'writerPaths'],
+      'lineage node'
+    );
+    const paths = sortedUnique(item.writerPaths, 'lineage path', safeRelativePath);
+    const changed = paths.filter(path => !prior.includes(path));
+    const role = byPr.get(item.prNumber);
+    must(
+      paths.length &&
+        item.digest === pathDigest(paths) &&
+        item.changedPathDigest === role?.changedPathDigest &&
+        item.changedPathDigest === pathDigest(changed) &&
+        same(changed, role.changedPaths) &&
+        item.parentDigest === parent &&
+        paths.length > prior.length &&
+        prior.every(path => paths.includes(path)) &&
+        !seen.has(item.prNumber) &&
+        !seen.has(item.digest),
+      'invalid lineage node'
+    );
+    seen.add(item.prNumber).add(item.digest);
+    parent = item.digest;
+    prior = paths;
+    return { ...item, writerPaths: paths };
+  });
+  must(
+    v.priorDigest !== v.currentDigest &&
+      history[0].digest === v.priorDigest &&
+      history.at(-1).digest === v.currentDigest,
+    'invalid lineage endpoints'
+  );
+  return { ...v, history };
+}
 
 export function compileWriterClosure(manifest) {
-  if (manifest.sliceId !== 'T117B-CUTOVER') return { manifest, authorityStops: [] };
-  const digest = pathDigest(manifest.writerPaths);
-  if (digest === CUTOVER_CLOSURE_DIGEST) return { manifest, authorityStops: [] };
-  if (![CUTOVER_SEED_DIGEST, CUTOVER_PRODUCT_DIGEST].includes(digest)) {
-    return {
-      manifest,
-      authorityStops: [{ code: 'writer:unforeseen-cutover-closure', paths: manifest.writerPaths }],
-    };
-  }
-  const additions = [...CUTOVER_COMPANIONS, BUDGET_PATH].filter(
-    path => !manifest.writerPaths.includes(path)
+  const stop = code => ({ manifest, authorityStops: code ? [{ code }] : [] });
+  const op = manifest.routineOperations.find(
+    item => item?.operation === 'compile_same_slice_delivery'
   );
-  const writerPaths = [...manifest.writerPaths, ...additions].sort(compareText);
-  const pathPlans = additions
-    .filter(path => path !== BUDGET_PATH)
-    .map(path => ({
-      path,
-      change: 'modify',
-      category: companionCategory(path),
-      maxBytesDelta: path.includes('/messages/') ? 4_096 : 8_192,
-      maxLines: 300,
-    }));
-  if (additions.includes(BUDGET_PATH)) {
-    pathPlans.push({
-      path: BUDGET_PATH,
-      change: 'modify',
-      category: 'config/data/messages',
-      maxBytesDelta: 0,
-      maxLines: 1_000,
-    });
+  if (!op)
+    return stop(manifest.sliceId === 'T117B-CUTOVER' ? 'writer:undeclared-cutover-lineage' : null);
+  let lineage;
+  try {
+    lineage = normalizeWriterLineage(op.target.writerLineage, op.target.prRoles);
+  } catch {
+    return stop('writer:invalid-declared-lineage');
   }
+  if (pathDigest(manifest.writerPaths) !== lineage.currentDigest)
+    return stop('writer:declared-current-digest-mismatch');
+  const { currentDigest, history, priorDigest } = lineage;
   return {
-    manifest: {
-      ...manifest,
-      writerPaths,
-      pathPlans: [...manifest.pathPlans, ...pathPlans].sort((left, right) =>
-        compareText(left.path, right.path)
-      ),
-      routineOperations: [...new Set([...manifest.routineOperations, 'derived_capacity_rebind'])],
-    },
+    manifest,
     authorityStops: [],
+    writerLineage: {
+      priorDigest,
+      currentDigest,
+      ancestry: history.map(node => node.digest).reverse(),
+    },
   };
 }
 
-export function extendBoundedAllocation(existing, proposed, categoriesByPath, writerDeltas = {}) {
+export function extendBoundedAllocation(existing, proposed, categories, deltas = {}) {
   must(
     existing.mode === 'bounded' && proposed.mode === 'bounded' && existing.id === proposed.id,
     'one bounded identity required'
   );
-  const result = structuredClone(existing);
+  const next = structuredClone(existing);
   for (const path of proposed.writerPaths) {
-    const previous = result.maxPathBytesDelta[path] ?? 0;
-    const increase = Math.max(previous, proposed.maxPathBytesDelta[path]) - previous;
-    result.maxPathBytesDelta[path] = previous + increase;
-    result.maxTrackedBytesDelta += increase;
-    const category = categoriesByPath[path];
-    must(typeof category === 'string' && category.length > 0, `category missing: ${path}`);
-    result.maxCategoryBytesDelta[category] =
-      (result.maxCategoryBytesDelta[category] ?? 0) + increase;
-    if (
-      !existing.writerPaths.includes(path) &&
-      writerDeltas[path]?.capacityBaselineExists === false
-    )
-      result.maxTrackedFilesDelta += 1;
+    const prior = next.maxPathBytesDelta[path] ?? 0;
+    const added = Math.max(prior, proposed.maxPathBytesDelta[path]) - prior;
+    next.maxPathBytesDelta[path] = prior + added;
+    next.maxTrackedBytesDelta += added;
+    const kind = categories[path];
+    must(typeof kind === 'string' && kind.length > 0, `category missing: ${path}`);
+    next.maxCategoryBytesDelta[kind] = (next.maxCategoryBytesDelta[kind] ?? 0) + added;
+    if (!existing.writerPaths.includes(path) && deltas[path]?.capacityBaselineExists === false)
+      next.maxTrackedFilesDelta += 1;
   }
-  result.writerPaths = [...new Set([...existing.writerPaths, ...proposed.writerPaths])].sort(
+  next.writerPaths = [...new Set([...existing.writerPaths, ...proposed.writerPaths])].sort(
     compareText
   );
-  result.maxPathBytesDelta = Object.fromEntries(
-    Object.entries(result.maxPathBytesDelta).sort(([left], [right]) => compareText(left, right))
+  next.maxPathBytesDelta = Object.fromEntries(
+    Object.entries(next.maxPathBytesDelta).sort(([left], [right]) => compareText(left, right))
   );
-  return result;
+  return next;
 }
 
-function deriveOwnerExtension({
-  budget,
-  existing,
-  proposed,
-  manifest,
-  writerDeltas,
-  baselineBudgetBytes,
-}) {
+function extendOwner(budget, existing, proposed, manifest, deltas, bytes) {
   must(
     manifest.writerPaths.some(path => existing.writerPaths.includes(path)),
     'capacity owner extension requires an existing owned writer'
@@ -126,24 +137,17 @@ function deriveOwnerExtension({
   const categories = Object.fromEntries(manifest.pathPlans.map(plan => [plan.path, plan.category]));
   return deriveCapacityFixedPoint({
     budget,
-    allocation: extendBoundedAllocation(existing, proposed, categories, writerDeltas),
-    baselineBudgetBytes,
+    allocation: extendBoundedAllocation(existing, proposed, categories, deltas),
+    baselineBudgetBytes: bytes,
     replaceExisting: true,
   });
 }
 
-function deriveProtectedProposal({
-  budget,
-  protectedBudgetText: text,
-  manifest,
-  baselineBudgetBytes: bytes,
-  writerDeltas: deltas = {},
-  capacityOwnerDeltas: ownerDeltas = {},
-}) {
+function protectedProposal(budget, text, manifest, bytes, deltas = {}, ownerDeltas = {}) {
   validateCapacityBudget(structuredClone(budget));
   must(Number.isSafeInteger(bytes) && bytes > 0, 'baseline bytes must be positive');
-  const ownerId = manifest.capacityOwnerId ?? manifest.sliceId.toLowerCase();
-  const existing = budget.allocations.find(item => item.id === ownerId);
+  const id = manifest.capacityOwnerId ?? manifest.sliceId.toLowerCase();
+  const existing = budget.allocations.find(item => item.id === id);
   const unchanged = fields =>
     unchangedBudgetProposal({
       budget,
@@ -164,29 +168,29 @@ function deriveProtectedProposal({
       baselineBudgetBytes: bytes,
       writerDeltas: deltas,
       capacityOwnerDeltas: ownerDeltas,
-      allocationId: ownerId,
+      allocationId: id,
       owners,
     });
   }
   const stops = [];
-  for (const filePath of manifest.writerPaths) {
-    const owner = owners.get(filePath);
-    if (owner && owner !== ownerId && !(filePath === BUDGET_PATH && owner === CAPACITY_REBASE_ID)) {
+  for (const path of manifest.writerPaths) {
+    const owner = owners.get(path);
+    if (owner && owner !== id && !(path === BUDGET_PATH && owner === CAPACITY_REBASE_ID)) {
       stops.push({
         code: 'capacity:writer-owner-overlap',
-        path: filePath,
+        path,
         owner,
-        requestedOwner: ownerId,
+        requestedOwner: id,
       });
     }
   }
 
-  const cap = proposedAllocation(manifest, ownerId, deltas);
+  const cap = proposedAllocation(manifest, id, deltas);
   if (!cap) {
     return unchanged({
       mode: 'blocked',
-      authorityStops: [{ code: 'capacity:no-attributable-writers', allocationId: ownerId }],
-      allocation: { id: ownerId, mode: 'unavailable', writerPaths: [] },
+      authorityStops: [{ code: 'capacity:no-attributable-writers', allocationId: id }],
+      allocation: { id, mode: 'unavailable', writerPaths: [] },
     });
   }
   if (stops.length) {
@@ -200,9 +204,9 @@ function deriveProtectedProposal({
     if (
       manifest.schemaVersion === 2 &&
       manifest.workClass === 'governance' &&
-      manifest.capacityOwnerId === ownerId
+      manifest.capacityOwnerId === id
     ) {
-      const gaps = existingAllocationStops(existing, cap, ownerId, true);
+      const gaps = existingAllocationStops(existing, cap, id, true);
       if (!gaps.length) {
         return unchanged({
           mode: 'existing',
@@ -210,16 +214,9 @@ function deriveProtectedProposal({
           allocation: structuredClone(existing),
         });
       }
-      return deriveOwnerExtension({
-        budget,
-        existing,
-        proposed: cap,
-        manifest,
-        writerDeltas: deltas,
-        baselineBudgetBytes: bytes,
-      });
+      return extendOwner(budget, existing, cap, manifest, deltas, bytes);
     }
-    stops.push(...existingAllocationStops(existing, cap, ownerId));
+    stops.push(...existingAllocationStops(existing, cap, id));
     return unchanged({
       mode: 'existing',
       authorityStops: stops,
@@ -262,14 +259,14 @@ export function deriveCapacityProposal({
     typeof protectedBudgetText === 'string' && protectedBudgetText.length > 0,
     'protected budget text is required'
   );
-  const proposal = deriveProtectedProposal({
-    budget: protectedBudget,
+  const proposal = protectedProposal(
+    protectedBudget,
     protectedBudgetText,
     manifest,
     baselineBudgetBytes,
     writerDeltas,
-    capacityOwnerDeltas,
-  });
+    capacityOwnerDeltas
+  );
   return compareWorktreeBudget({
     worktreeBudget: budget,
     worktreeBudgetText: budgetText,

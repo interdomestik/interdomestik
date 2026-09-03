@@ -1,188 +1,189 @@
 import { ORIGIN, SHA40 } from './lean-current-authority-policy.mjs';
-import { compareText, exactKeys, isSafeGitBranch, must } from './slice-rehearse-canonical.mjs';
+import {
+  compareText,
+  exactKeys,
+  isSafeGitBranch,
+  must,
+  normalizePullRequestNumber,
+  safeRelativePath,
+  sha256,
+  sortedUnique,
+} from './slice-rehearse-canonical.mjs';
 
-const TASK_ID = /^[A-Z0-9][A-Z0-9-]*$/u;
-const CANONICAL_ORIGIN = `https://github.com/${ORIGIN}`;
-
-function contractsByName(operations, name) {
-  return operations.filter(value => value?.operation === name);
-}
+const TASK = /^[A-Z0-9][A-Z0-9-]*$/u;
+const keys = value => value.split(' ');
+const ROLE_KEYS = keys(
+  'baseBranch baseSha branch changedPathDigest changedPaths headSha number role state'
+);
+const same = (left, right) => JSON.stringify(left) === JSON.stringify(right);
 
 export function expectedOperationFacts(operations) {
-  const force = contractsByName(operations, 'bounded_force_with_lease_rebuild');
-  const labels = contractsByName(operations, 'apply_full_gate_label');
-  const cleanup = contractsByName(operations, 'task_owned_cleanup');
+  const byName = name => operations.filter(value => value?.operation === name);
+  const [force, labels, cleanup, delivery, stale] = keys(
+    'bounded_force_with_lease_rebuild apply_full_gate_label task_owned_cleanup compile_same_slice_delivery stale_pr_disposition'
+  ).map(byName);
+  must(delivery.length <= 1 && stale.length <= 1, 'ambiguous');
+  const roleByPr = Object.fromEntries(
+    (delivery[0]?.target.prRoles ?? []).map(role => [String(role.number), role])
+  );
+  if (stale[0]) {
+    const target = stale[0].target;
+    const parent = delivery[0]?.target;
+    const role = parent?.prRoles.find(item => item.role === 'stale-prerequisite');
+    must(
+      !parent ||
+        (ROLE_KEYS.every(key => same(role?.[key], target[key])) &&
+          parent.origin === target.origin &&
+          parent.taskId === target.taskId),
+      'stale drift'
+    );
+    roleByPr[target.number] = role ?? target;
+  }
+  const direct = [...force, ...labels.filter(item => item.target.mode !== 'deferred-pr')].map(
+    item => String(item.target.prNumber)
+  );
   return {
     branches: [...new Set(force.map(item => item.target.branch))].sort(compareText),
-    prs: [
-      ...new Set(
-        [...force, ...labels.filter(item => item.target.mode !== 'deferred-pr')].map(item =>
-          String(item.target.prNumber)
-        )
-      ),
-    ].sort(compareText),
+    prs: [...new Set([...direct, ...Object.keys(roleByPr)])].sort(compareText),
+    roleByPr,
     deferredBranches: labels
       .filter(item => item.target.mode === 'deferred-pr')
       .map(item => item.target.branch)
-      .sort(compareText),
+      .sort(),
     cleanup: cleanup[0] ?? null,
     needsAuthority: cleanup.length > 0 || labels.length > 0,
   };
 }
 
-function samePull(pr, target, headSha) {
-  return Boolean(
+export const operationPullMatches = (pr, target, headSha) =>
+  !!(
     pr &&
     pr.origin === target.origin &&
     pr.baseBranch === target.baseBranch &&
     pr.headSha === headSha &&
     pr.state === 'OPEN'
   );
-}
 
-export function resolveDeferredOperation(contract, repository, facts) {
+export function resolveDeferredOperation(contract, repo, facts) {
   if (!facts) return { rejected: 'authority-facts-unavailable' };
-  const candidates = facts.pullRequestCandidates[contract.target.branch] ?? [];
-  const authority = facts.authority;
+  const { target } = contract;
+  const pulls = facts.pullRequestCandidates[target.branch] ?? [];
+  const { authority } = facts;
+  const active =
+    authority?.runtimeAuthorized === true &&
+    authority.activeSlice === target.taskId &&
+    authority.writerMapDigest === repo.writerMapDigest;
   const prePull =
-    candidates.length === 0 &&
+    contract.deferred !== false &&
+    pulls.length === 0 &&
     authority?.approvedHeadSha === null &&
-    ((authority.runtimeAuthorized === false && authority.activeSlice === null) ||
-      (authority.runtimeAuthorized === true &&
-        authority.activeSlice === contract.target.taskId &&
-        authority.writerMapDigest === repository.writerMapDigest));
+    ((authority.runtimeAuthorized === false && authority.activeSlice === null) || active);
   if (prePull) return { deferred: contract };
-  const candidate = candidates[0];
+  const candidate = pulls[0];
   const valid =
-    candidates.length === 1 &&
+    pulls.length === 1 &&
     (contract.deferred !== false || candidate.number === contract.resolvedPrNumber) &&
-    repository.branch === contract.target.branch &&
-    samePull(candidate, contract.target, repository.headSha) &&
-    candidate.branch === contract.target.branch &&
+    repo.branch === target.branch &&
+    operationPullMatches(candidate, target, repo.headSha) &&
+    candidate.branch === target.branch &&
     !candidate.fullGateLabelPresent &&
     candidate.fullGateEligible &&
-    authority?.runtimeAuthorized === true &&
-    authority.activeSlice === contract.target.taskId &&
-    authority.approvedHeadSha === repository.headSha &&
-    authority.writerMapDigest === repository.writerMapDigest;
-  if (!valid) return { rejected: 'deferred-predicate-unresolved' };
-  return { granted: { ...contract, deferred: false, resolvedPrNumber: candidate.number } };
+    active &&
+    authority.approvedHeadSha === repo.headSha;
+  return valid
+    ? { granted: { ...contract, deferred: false, resolvedPrNumber: candidate.number } }
+    : { rejected: 'deferred-predicate-unresolved' };
 }
 
-export function operationPullMatches(pr, target, headSha) {
-  return samePull(pr, target, headSha);
-}
-
-function normalizePull(pull, { candidate = false } = {}) {
+function normalizePull(pull, { candidate = false, role = null } = {}) {
   exactKeys(
     pull,
-    [
-      'baseBranch',
-      'branch',
-      'fullGateEligible',
-      'fullGateLabelPresent',
-      'headSha',
-      ...(candidate ? ['number'] : []),
-      'origin',
-      'state',
-    ],
-    candidate ? 'operation PR candidate' : 'operation pull request'
+    keys(
+      `baseBranch branch fullGateEligible fullGateLabelPresent headSha ${candidate ? 'number ' : ''}origin ${role ? 'baseIsAncestor baseSha changedPathDigest changedPaths role ' : ''}state`
+    ),
+    'PR'
   );
+  const { branch, baseBranch, headSha, fullGateEligible: e, fullGateLabelPresent: l } = pull;
+  const changedPaths = role ? sortedUnique(pull.changedPaths, 'PR path', safeRelativePath) : null;
   must(
-    isSafeGitBranch(pull.branch) && isSafeGitBranch(pull.baseBranch),
-    'operation PR branch is invalid'
+    isSafeGitBranch(branch) &&
+      isSafeGitBranch(baseBranch) &&
+      SHA40.test(headSha) &&
+      pull.origin === `https://github.com/${ORIGIN}` &&
+      (pull.state === 'OPEN' || (role && pull.state === 'CLOSED')) &&
+      typeof l === 'boolean' &&
+      typeof e === 'boolean' &&
+      e === (pull.state === 'OPEN' && !l) &&
+      (!candidate || normalizePullRequestNumber(pull.number)) &&
+      (!role ||
+        (ROLE_KEYS.every(
+          key => ['changedPaths', 'number', 'state'].includes(key) || same(pull[key], role[key])
+        ) &&
+          same(changedPaths, role.changedPaths) &&
+          pull.changedPathDigest === sha256(JSON.stringify(changedPaths)) &&
+          pull.baseIsAncestor === true &&
+          SHA40.test(pull.baseSha))),
+    'invalid PR'
   );
-  must(SHA40.test(pull.headSha), 'operation PR head is invalid');
-  must(pull.origin === CANONICAL_ORIGIN, 'operation PR origin is invalid');
-  must(pull.state === 'OPEN', 'operation PR state is not open');
-  must(
-    typeof pull.fullGateLabelPresent === 'boolean' &&
-      typeof pull.fullGateEligible === 'boolean' &&
-      pull.fullGateEligible === !pull.fullGateLabelPresent,
-    'operation PR full-gate state is invalid'
-  );
-  if (candidate) {
-    must(Number.isSafeInteger(pull.number) && pull.number > 0, 'candidate PR number is invalid');
-  }
-  return { ...pull };
+  return { ...pull, ...(role && { changedPaths }) };
+}
+
+function exactMap(input, names, normalize) {
+  exactKeys(input, names, 'facts');
+  return Object.fromEntries(names.map(name => [name, normalize(input[name], name)]));
 }
 
 export function normalizeOperationFacts(input, operations) {
-  if (input === null || input === undefined) return null;
+  if (input == null) return null;
   exactKeys(
     input,
-    ['authority', 'pullRequestCandidates', 'pullRequests', 'remoteHeads', 'taskOwnedArtifacts'],
-    'operation facts'
+    keys('authority pullRequestCandidates pullRequests remoteHeads taskOwnedArtifacts'),
+    'facts'
   );
-  const expected = expectedOperationFacts(operations);
-  exactKeys(input.remoteHeads, expected.branches, 'operation remote heads');
-  const remoteHeads = Object.fromEntries(
-    expected.branches.map(branch => {
-      must(isSafeGitBranch(branch), 'operation remote branch is invalid');
-      must(SHA40.test(input.remoteHeads[branch]), 'operation remote head is invalid');
-      return [branch, input.remoteHeads[branch]];
-    })
+  const scope = expectedOperationFacts(operations);
+  const heads = exactMap(input.remoteHeads, scope.branches, (head, branch) => {
+    must(isSafeGitBranch(branch) && SHA40.test(head), 'invalid remote head');
+    return head;
+  });
+  const pulls = exactMap(input.pullRequests, scope.prs, (pull, number) =>
+    normalizePull(pull, { role: scope.roleByPr[number] ?? null })
   );
-  exactKeys(input.pullRequests, expected.prs, 'operation pull requests');
-  const pullRequests = Object.fromEntries(
-    expected.prs.map(number => [number, normalizePull(input.pullRequests[number])])
-  );
-  exactKeys(input.pullRequestCandidates, expected.deferredBranches, 'operation PR candidates');
-  const pullRequestCandidates = Object.fromEntries(
-    expected.deferredBranches.map(branch => {
-      const candidates = input.pullRequestCandidates[branch];
-      must(
-        Array.isArray(candidates) && candidates.length <= 2,
-        'operation PR candidates are invalid'
-      );
-      return [branch, candidates.map(candidate => normalizePull(candidate, { candidate: true }))];
-    })
-  );
-  let authority = null;
-  if (expected.needsAuthority) {
+  const candidates = exactMap(input.pullRequestCandidates, scope.deferredBranches, values => {
+    must(Array.isArray(values) && values.length <= 2, 'invalid PR candidates');
+    return values.map(candidate => normalizePull(candidate, { candidate: true }));
+  });
+  let { authority } = input;
+  if (scope.needsAuthority) {
     exactKeys(
-      input.authority,
-      ['activeSlice', 'approvedHeadSha', 'runtimeAuthorized', 'writerMapDigest'],
+      authority,
+      keys('activeSlice approvedHeadSha runtimeAuthorized writerMapDigest'),
       'operation authority'
     );
     must(
-      input.authority.activeSlice === null || TASK_ID.test(input.authority.activeSlice),
-      'operation active slice is invalid'
+      (authority.activeSlice === null || TASK.test(authority.activeSlice)) &&
+        typeof authority.runtimeAuthorized === 'boolean' &&
+        (authority.approvedHeadSha === null || SHA40.test(authority.approvedHeadSha)) &&
+        (authority.writerMapDigest === null || /^[0-9a-f]{64}$/u.test(authority.writerMapDigest)),
+      'invalid operation authority'
     );
+    authority = { ...authority };
+  } else must(authority === null, 'unexpected authority facts');
+  const paths = scope.cleanup?.target.artifactPaths ?? [];
+  const artifacts = exactMap(input.taskOwnedArtifacts, paths, artifact => {
+    exactKeys(artifact, keys('exists ownerTaskId safeToDiscard'), 'artifact');
     must(
-      typeof input.authority.runtimeAuthorized === 'boolean',
-      'operation runtime fact is invalid'
+      typeof artifact.exists === 'boolean' &&
+        typeof artifact.safeToDiscard === 'boolean' &&
+        (artifact.ownerTaskId === null || TASK.test(artifact.ownerTaskId)),
+      'invalid artifact'
     );
-    must(
-      input.authority.approvedHeadSha === null || SHA40.test(input.authority.approvedHeadSha),
-      'operation approved head is invalid'
-    );
-    must(
-      input.authority.writerMapDigest === null ||
-        /^[0-9a-f]{64}$/u.test(input.authority.writerMapDigest),
-      'operation writer-map digest is invalid'
-    );
-    authority = { ...input.authority };
-  } else {
-    must(input.authority === null, 'unexpected operation authority facts');
-  }
-  const artifactPaths = expected.cleanup?.target.artifactPaths ?? [];
-  exactKeys(input.taskOwnedArtifacts, artifactPaths, 'task-owned artifacts');
-  const taskOwnedArtifacts = Object.fromEntries(
-    artifactPaths.map(path => {
-      const artifact = input.taskOwnedArtifacts[path];
-      exactKeys(artifact, ['exists', 'ownerTaskId', 'safeToDiscard'], 'task-owned artifact');
-      must(typeof artifact.exists === 'boolean', 'task-owned artifact existence is invalid');
-      must(
-        typeof artifact.safeToDiscard === 'boolean',
-        'task-owned artifact disposition is invalid'
-      );
-      must(
-        artifact.ownerTaskId === null || TASK_ID.test(artifact.ownerTaskId),
-        'task-owned artifact owner is invalid'
-      );
-      return [path, { ...artifact }];
-    })
-  );
-  return { authority, pullRequestCandidates, pullRequests, remoteHeads, taskOwnedArtifacts };
+    return { ...artifact };
+  });
+  return {
+    authority,
+    pullRequestCandidates: candidates,
+    pullRequests: pulls,
+    remoteHeads: heads,
+    taskOwnedArtifacts: artifacts,
+  };
 }

@@ -1,234 +1,34 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
+import { readFileSync as read } from 'node:fs';
 import test from 'node:test';
 
-import { generateSliceCheckpoint, verifyCheckpointGitIdentity } from './slice-rehearse-report.mjs';
+import { deriveOperationalEnvelope as env, sha256 } from './slice-rehearse-core.mjs';
+import { resolveOperationalContracts as resolve } from './slice-rehearse-operation-contracts.mjs';
+import { expectedOperationFacts as expected } from './slice-rehearse-operation-facts-schema.mjs';
+import { STAGES as stages } from './slice-rehearse-operation-schema.mjs';
+import {
+  generateSliceCheckpoint as gen,
+  verifyCheckpointGitIdentity as git,
+} from './slice-rehearse-report.mjs';
 
-const sha = character => character.repeat(40);
-const verified = {
-  verifyState: input => ({
-    verified: true,
-    counters: Object.fromEntries(
-      ['approvals', 'reFreezes', 'retries', 'heavyProofs', 'duplicateHeavyProofs'].map(key => [
-        key,
-        input[key],
-      ])
-    ),
-  }),
-};
-const checkpoint = (overrides = {}) => ({
-  schemaVersion: 1,
-  stage: 'checkpoint',
-  sliceId: 'HARNESS-V2-1',
-  baseSha: sha('a'),
-  headSha: sha('b'),
-  treeSha: sha('c'),
-  prNumber: null,
-  mergeSha: null,
-  approvals: 0,
-  reFreezes: 0,
-  retries: 0,
-  heavyProofs: 0,
-  duplicateHeavyProofs: 0,
-  runnerMinutes: null,
-  modelCostUsd: null,
-  blockerPhase: 'none',
-  scopeDrift: [],
-  ...overrides,
-});
+const { deepEqual: same, doesNotMatch, equal, match, throws } = assert;
+// prettier-ignore
+const sha = value => value.repeat(40), zip = (keys, ...values) => Object.fromEntries(keys.split(' ').map((key, index) => [key, values[index]])), counters = 'approvals reFreezes retries heavyProofs duplicateHeavyProofs'.split(' '), verified = value => ({ verified: true, counters: Object.fromEntries(counters.map(key => [key, value[key]])) }), base = zip('schemaVersion stage sliceId baseSha headSha treeSha prNumber mergeSha approvals reFreezes retries heavyProofs duplicateHeavyProofs runnerMinutes modelCostUsd blockerPhase scopeDrift', 1, 'checkpoint', 'HARNESS-V2-1', sha('a'), sha('b'), sha('c'), null, null, 0, 0, 0, 0, 0, null, null, 'none', []), cp = (patch = {}, verifier = verified) => gen({ ...base, ...patch }, { verifyState: verifier }), done = { stage: 'final', prNumber: 1700, mergeSha: sha('d'), approvals: 1, reFreezes: 1, retries: 2, heavyProofs: 1 }, v22 = { sliceId: 'HARNESS-V2-2' }, sec = scope => ({ stage: 'authority_hold', sliceId: 'HARNESS-V2-SECURITY', approvals: 1, blockerPhase: `security_hold:${scope}:HIGH:fast-uri@3.1.5` }), sv = value => ({ ...verified(value), blockerPhases: [value.blockerPhase] });
 
-test('checkpoint uses installed GitHub CLI with provider-only auth', () => {
-  const source = fs.readFileSync(new URL('./slice-rehearse-report.mjs', import.meta.url), 'utf8');
-  assert.doesNotMatch(source, /execFileSync\(\s*'\/usr\/bin\/gh'/u);
-  assert.match(source, /resolveGhBinary\(\)[\s\S]{0,250}execOptions\('gh'\)/u);
-});
+// prettier-ignore
+test('git identity', () => { const s = read(new URL('./slice-rehearse-report.mjs', import.meta.url), 'utf8'), i = { ...base, ...done }, live = { headSha: i.headSha, treeSha: i.treeSha, protectedMainSha: i.mergeSha, baseIsAncestor: true }; doesNotMatch(s, /execFileSync\(\s*'\/usr\/bin\/gh'/u); match(s, /resolveGhBinary\(\)[\s\S]{0,250}execOptions\('gh'\)/u); for (const [p, ok] of [[{}, true], [{ protectedMainSha: i.baseSha }, false], [{ baseIsAncestor: false }, false]]) equal(git(i, { ...live, ...p }), ok); });
 
-test('final checkpoint preserves candidate base while binding protected main to the merge', () => {
-  const input = {
-    stage: 'final',
-    baseSha: sha('a'),
-    headSha: sha('b'),
-    treeSha: sha('c'),
-    mergeSha: sha('d'),
-  };
-  assert.equal(
-    verifyCheckpointGitIdentity(input, {
-      headSha: input.headSha,
-      treeSha: input.treeSha,
-      protectedMainSha: input.mergeSha,
-      baseIsAncestor: true,
-    }),
-    true
-  );
-  assert.equal(
-    verifyCheckpointGitIdentity(input, {
-      headSha: input.headSha,
-      treeSha: input.treeSha,
-      protectedMainSha: input.baseSha,
-      baseIsAncestor: true,
-    }),
-    false
-  );
-  assert.equal(
-    verifyCheckpointGitIdentity(input, {
-      headSha: input.headSha,
-      treeSha: input.treeSha,
-      protectedMainSha: input.mergeSha,
-      baseIsAncestor: false,
-    }),
-    false
-  );
-});
+// prettier-ignore
+test('states', () => { const hold = cp({ stage: 'authority_hold', prNumber: 1700, approvals: 1, retries: 3, heavyProofs: 1, blockerPhase: 'approval' }), cleanup = cp({ stage: 'authority_hold', sliceId: 'HARNESS-V2-2', prNumber: 1700, mergeSha: sha('d'), approvals: 1, retries: 1, heavyProofs: 1, blockerPhase: 'cleanup_hold:crash-safe-consumption-unproven' }); same([hold.legalNextAction, hold.runnerMinutes, hold.modelCostUsd, 'legalNextActions' in hold], ['HOLD', null, null, false]); equal(cleanup.legalNextAction, 'HOLD'); match(cleanup.blockerPhase, /^cleanup_hold:/u); equal(cp(done).stage, 'final'); for (const [scope, action] of [['shared-base', 'HOLD(await_shared_base_security_maintenance)'], ['candidate', 'HOLD(remediate_candidate_security)']]) equal(cp(sec(scope), sv).legalNextAction, action); });
 
-test('compiles one legal next action instead of accepting caller-authored authority', () => {
-  const report = generateSliceCheckpoint(
-    checkpoint({
-      stage: 'authority_hold',
-      prNumber: 1700,
-      approvals: 1,
-      retries: 3,
-      heavyProofs: 1,
-      blockerPhase: 'approval',
-    }),
-    verified
-  );
-  assert.equal(report.legalNextAction, 'HOLD');
-  assert.equal(report.runnerMinutes, null);
-  assert.equal(report.modelCostUsd, null);
-  assert.equal(Object.hasOwn(report, 'legalNextActions'), false);
-});
+// prettier-ignore
+test('invalid', () => { const invalid = [[{ legalNextActions: ['request_delivery_approval'] }], [{ runnerMinutes: 0, duplicateHeavyProofs: 1 }], [{ runnerMinutes: 0, treeSha: null }], ...Object.entries({ mergeSha: null, prNumber: null, approvals: 0, heavyProofs: 0, blockerPhase: 'review', scopeDrift: ['unexpected.ts'] }).map(([name, value]) => [{ ...done, [name]: value }]), ...Object.entries({ approvals: 2, retries: 4, reFreezes: 1, heavyProofs: 1, prNumber: 1700 }).map(([name, value]) => [{ ...v22, [name]: value }]), [{ blockerPhase: 'implementation' }, () => false], [{ blockerPhase: 'implementation' }, value => ({ ...verified(value), counters: { ...verified(value).counters, approvals: value.approvals + 1 } })], [sec('shared-base')], [sec('unknown'), sv]]; for (const [p, v] of invalid) throws(() => cp(p, v)); });
 
-test('post-merge closeout stays explicit when cleanup is fail-closed', () => {
-  const report = generateSliceCheckpoint(
-    checkpoint({
-      stage: 'authority_hold',
-      sliceId: 'HARNESS-V2-2',
-      prNumber: 1700,
-      mergeSha: sha('d'),
-      approvals: 1,
-      retries: 1,
-      heavyProofs: 1,
-      blockerPhase: 'cleanup_hold:crash-safe-consumption-unproven',
-    }),
-    verified
-  );
-  assert.equal(report.legalNextAction, 'HOLD');
-  assert.match(report.blockerPhase, /^cleanup_hold:/u);
-});
+// prettier-ignore
+const url = 'https://github.com/interdomestik/interdomestik', task = 'T117B-CUTOVER', op = 'compile_same_slice_delivery', paths = ['a', 'b'], old = [paths[0]], product = [paths[1]], hash = v => sha256(JSON.stringify([...v].sort())), role = (r, n, p) => zip('role number baseBranch branch baseSha headSha state changedPaths changedPathDigest', r, n, 'main', `c/${r}`, sha('a'), sha('b'), 'OPEN', p, hash(p)), rs = [role('governance-transition', 1683, old), role('product', 1675, product), role('stale-prerequisite', 1686, old)], node = (w, p, n, c) => zip('digest parentDigest writerPaths prNumber changedPathDigest', hash(w), p, w, n, hash(c)), parent = { operation: op, target: { taskId: task, origin: url, feedbackIds: ['x'], prRoles: rs, writerLineage: { priorDigest: hash(old), currentDigest: hash(paths), history: [node(old, null, 1683, old), node(paths, hash(old), 1675, product)] } }, preconditions: { maxBranches: 3, maxPullRequests: 3, maxRemediations: 1, maxSuccessfulHeavyProofs: 1, maxToolingRetries: 3 }, postconditions: { stages, postMergeStages: stages.slice(9), mergeConsumesAuthority: true, terminalOnMerge: true } }, pulls = (patch = {}) => Object.fromEntries(rs.map(({ number, ...item }) => [number, { ...item, origin: url, baseIsAncestor: true, fullGateEligible: true, fullGateLabelPresent: false, ...(patch[number] ?? {}) }])), facts = patch => ({ authority: null, pullRequestCandidates: {}, pullRequests: pulls(patch), remoteHeads: {}, taskOwnedArtifacts: {} }), stale = { operation: 'stale_pr_disposition', target: { ...rs[2], origin: url, taskId: task }, preconditions: { reason: 'superseded-by-same-slice-governance-transition', state: 'OPEN' }, postconditions: { state: 'CLOSED' } }, repo = { origin: url, baseSha: sha('a'), branch: rs[0].branch, headSha: rs[0].headSha, writerMapDigest: hash(paths), operationFacts: facts() };
 
-test('security HOLD is evidence-bound and attributes candidate versus shared base', () => {
-  const input = checkpoint({
-    stage: 'authority_hold',
-    sliceId: 'HARNESS-V2-SECURITY',
-    approvals: 1,
-    blockerPhase: 'security_hold:shared-base:HIGH:fast-uri@3.1.5',
-  });
-  const verifySecurity = value => ({
-    ...verified.verifyState(value),
-    blockerPhases: [value.blockerPhase],
-  });
-  assert.equal(
-    generateSliceCheckpoint(input, { verifyState: verifySecurity }).legalNextAction,
-    'HOLD(await_shared_base_security_maintenance)'
-  );
-  assert.equal(
-    generateSliceCheckpoint(
-      { ...input, blockerPhase: 'security_hold:candidate:HIGH:fast-uri@3.1.5' },
-      { verifyState: verifySecurity }
-    ).legalNextAction,
-    'HOLD(remediate_candidate_security)'
-  );
-  assert.throws(
-    () => generateSliceCheckpoint(input, verified),
-    /security blocker differs from verified telemetry/u
-  );
-  assert.throws(
-    () =>
-      generateSliceCheckpoint(
-        { ...input, blockerPhase: 'security_hold:unknown:HIGH:fast-uri@3.1.5' },
-        { verifyState: verifySecurity }
-      ),
-    /security blocker attribution/u
-  );
-});
+// prettier-ignore
+test('three-PR DAG', () => { const out = env({ schemaVersion: 1, sliceId: task, tier: 3, repository: repo, writers: { paths, digest: hash(paths), plans: [], routineOperations: [parent] }, topology: {}, evidence: { proof: {} }, deficits: [], authorityStops: [], capacity: { allocation: { id: 'cutover', mode: 'bounded' } } }); equal(out.prNumber, 1675); same(out.lifecycle.target.prRoles, rs); });
 
-test('rejects a caller-supplied next action even when it matches the compiler result', () => {
-  const input = checkpoint({
-    sliceId: 'HARNESS-V2-2',
-    legalNextActions: ['request_delivery_approval'],
-  });
-  assert.throws(() => generateSliceCheckpoint(input, verified), /keys|caller-supplied/u);
-});
-
-test('rejects duplicate proof and invalid exact state', () => {
-  const base = checkpoint({ runnerMinutes: 0 });
-  assert.throws(
-    () => generateSliceCheckpoint({ ...base, duplicateHeavyProofs: 1 }, verified),
-    /duplicate heavy proof/u
-  );
-  assert.throws(() => generateSliceCheckpoint({ ...base, treeSha: null }, verified), /tree SHA/u);
-});
-
-test('final stage requires verified terminal PR, merge, proof, and closeout invariants', () => {
-  const final = checkpoint({
-    stage: 'final',
-    prNumber: 1700,
-    mergeSha: sha('d'),
-    approvals: 1,
-    reFreezes: 1,
-    retries: 2,
-    heavyProofs: 1,
-  });
-  assert.equal(generateSliceCheckpoint(final, verified).stage, 'final');
-  for (const invalid of [
-    { mergeSha: null },
-    { prNumber: null },
-    { approvals: 0 },
-    { heavyProofs: 0 },
-    { blockerPhase: 'review' },
-    { scopeDrift: ['unexpected.ts'] },
-  ]) {
-    assert.throws(
-      () => generateSliceCheckpoint({ ...final, ...invalid }, verified),
-      /final checkpoint|skips|precedes/u
-    );
-  }
-});
-
-test('rejects skipped, repeated, and backward delivery transitions', () => {
-  const input = checkpoint({ sliceId: 'HARNESS-V2-2' });
-  assert.throws(() => generateSliceCheckpoint({ ...input, approvals: 2 }, verified), /repeated/u);
-  assert.throws(
-    () => generateSliceCheckpoint({ ...input, retries: 4 }, verified),
-    /tooling retry ceiling/u
-  );
-  assert.throws(() => generateSliceCheckpoint({ ...input, reFreezes: 1 }, verified), /precedes/u);
-  assert.throws(() => generateSliceCheckpoint({ ...input, heavyProofs: 1 }, verified), /skips/u);
-  assert.throws(() => generateSliceCheckpoint({ ...input, prNumber: 1700 }, verified), /skips/u);
-});
-
-test('rejects a checkpoint whose live state verifier cannot bind exact identity', () => {
-  const input = checkpoint({
-    blockerPhase: 'implementation',
-  });
-  assert.throws(
-    () => generateSliceCheckpoint(input, { verifyState: () => false }),
-    /verified receipts/u
-  );
-  assert.throws(
-    () =>
-      generateSliceCheckpoint(input, {
-        verifyState: value => ({
-          verified: true,
-          counters: {
-            approvals: value.approvals + 1,
-            reFreezes: value.reFreezes,
-            retries: value.retries,
-            heavyProofs: value.heavyProofs,
-            duplicateHeavyProofs: value.duplicateHeavyProofs,
-          },
-        }),
-      }),
-    /verified receipts/u
-  );
-});
+// prettier-ignore
+test('delivery regressions', () => { const run = (target = stale.target, patch, writerMapDigest = hash(paths)) => resolve([parent, { ...stale, target }], { ...repo, writerMapDigest, operationFacts: facts({ 1686: patch }) }), bad = run(stale.target, {}, sha256('wrong')), denied = (target, patch = {}) => { try { return !run(target, patch).granted.some(item => item.operation === stale.operation); } catch { return true; } }; same(bad.granted, []); same(bad.rejected.map(item => item.operation), [op, stale.operation]); for (const [targetPatch, pullPatch = targetPatch] of [[{ baseSha: sha('9') }], [{ changedPaths: paths, changedPathDigest: hash(paths) }], [{ origin: `${url}x` }, {}], [{ taskId: 'X' }, {}]]) equal(denied({ ...stale.target, ...targetPatch }, pullPatch), true); throws(() => expected([{ ...parent, target: { ...parent.target, prRoles: rs.slice(0, 2) } }, stale]), /stale drift/u); for (const number of [1683, 1686]) same(resolve([parent, stale], { ...repo, operationFacts: facts({ [number]: { state: 'CLOSED', fullGateEligible: false } }) }).rejected, []); });

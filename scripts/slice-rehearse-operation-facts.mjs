@@ -1,7 +1,7 @@
 import { lstatSync, readFileSync, realpathSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
-import { github, git } from './lean-current-authority-git.mjs';
+import { attachPullFiles, github, git } from './lean-current-authority-git.mjs';
 import {
   ORIGIN,
   PROGRAM,
@@ -13,9 +13,12 @@ import {
   canonicalJson,
   compareText,
   exactKeys,
+  must,
   normalizeArtifactPath,
   readBoundedRegularText,
+  safeRelativePath,
   sha256,
+  sortedUnique,
 } from './slice-rehearse-canonical.mjs';
 import { inspectOptionalRef } from './slice-rehearse-git-facts.mjs';
 import {
@@ -28,7 +31,6 @@ import {
 } from './slice-rehearse-operation-facts-schema.mjs';
 import { normalizeRoutineOperations } from './slice-rehearse-operation-schema.mjs';
 
-const CANONICAL_ORIGIN = `https://github.com/${ORIGIN}`;
 const SAFE_GIT_ENV = Object.freeze({
   GIT_OPTIONAL_LOCKS: '0',
   GIT_CONFIG_COUNT: '1',
@@ -37,19 +39,17 @@ const SAFE_GIT_ENV = Object.freeze({
 });
 export { normalizeOperationFacts } from './slice-rehearse-operation-facts-schema.mjs';
 
-function must(condition, message) {
-  if (!condition) throw new Error(message);
-}
+const absent = () => ({ exists: false, ownerTaskId: null, safeToDiscard: false });
 
-function inspectArtifact(repository, path, taskId) {
+function inspectArtifact(repo, path, taskId) {
   if (path.startsWith('refs/heads/')) {
-    const state = inspectOptionalRef(repository, path);
+    const state = inspectOptionalRef(repo, path);
     return { exists: state !== 'absent', ownerTaskId: null, safeToDiscard: false };
   }
-  if (!path.startsWith('/')) return { exists: false, ownerTaskId: null, safeToDiscard: false };
+  if (!path.startsWith('/')) return absent();
   try {
     const registryPath = git(
-      repository,
+      repo,
       'rev-parse',
       '--path-format=absolute',
       '--git-path',
@@ -62,51 +62,47 @@ function inspectArtifact(repository, path, taskId) {
         allowedRoots: [dirname(registryPath)],
       })
     );
-    exactKeys(registry, ['artifacts', 'schemaVersion', 'taskId'], 'cleanup ownership registry');
-    if (
-      registry.schemaVersion !== 1 ||
-      registry.taskId !== taskId ||
-      !Array.isArray(registry.artifacts)
-    ) {
-      throw new Error('cleanup ownership registry identity differs');
-    }
+    exactKeys(registry, ['artifacts', 'schemaVersion', 'taskId'], 'cleanup registry');
+    must(
+      registry.schemaVersion === 1 &&
+        registry.taskId === taskId &&
+        Array.isArray(registry.artifacts),
+      'invalid cleanup registry'
+    );
     const normalizedPath = normalizeArtifactPath(path);
     const entry = registry.artifacts.find(item => item?.path === normalizedPath);
-    if (!entry || entry.ownerTaskId !== taskId || entry.safeToDiscard !== true) {
-      return { exists: false, ownerTaskId: null, safeToDiscard: false };
-    }
+    if (!entry || entry.ownerTaskId !== taskId || entry.safeToDiscard !== true) return absent();
     const value = lstatSync(path, { bigint: true, throwIfNoEntry: false });
     let type = null;
     if (value?.isDirectory()) type = 'directory';
     else if (value?.isFile()) type = 'file';
-    const exact =
+    const exact = Boolean(
       value &&
       !value.isSymbolicLink() &&
       type === entry.type &&
       realpathSync(path) === entry.realPath &&
       String(value.dev) === entry.device &&
-      String(value.ino) === entry.inode;
+      String(value.ino) === entry.inode
+    );
     return {
-      exists: Boolean(exact),
+      exists: exact,
       ownerTaskId: exact ? taskId : null,
-      safeToDiscard: Boolean(exact),
+      safeToDiscard: exact,
     };
   } catch {
-    return { exists: false, ownerTaskId: null, safeToDiscard: false };
+    return absent();
   }
 }
 
-function readAuthorityFacts(repository) {
+function readAuthorityFacts(repo) {
   const live = resolveAtAuthorityBoundary({
     boundary: 'pre_cleanup',
-    readLiveAuthority: () =>
-      authenticateResolverOutput(resolveRepositoryAuthority(repository, true)),
+    readLiveAuthority: () => authenticateResolverOutput(resolveRepositoryAuthority(repo, true)),
   }).authority;
-  const projection = parseAuthorityDocuments(
-    readFileSync(resolve(repository, PROGRAM), 'utf8'),
-    readFileSync(resolve(repository, TRACKER), 'utf8')
-  );
-  const writerPaths = projection.activeSlice?.productWriterPaths;
+  const writerPaths = parseAuthorityDocuments(
+    readFileSync(resolve(repo, PROGRAM), 'utf8'),
+    readFileSync(resolve(repo, TRACKER), 'utf8')
+  ).activeSlice?.productWriterPaths;
   return {
     ...live,
     writerMapDigest: Array.isArray(writerPaths)
@@ -115,19 +111,56 @@ function readAuthorityFacts(repository) {
   };
 }
 
-function withSafeGitEnvironment(readAuthority, repository) {
-  const previous = Object.fromEntries(
-    Object.keys(SAFE_GIT_ENV).map(key => [key, process.env[key]])
-  );
+function withSafeGitEnvironment(read, repo) {
+  const prior = Object.fromEntries(Object.keys(SAFE_GIT_ENV).map(key => [key, process.env[key]]));
   Object.assign(process.env, SAFE_GIT_ENV);
   try {
-    return readAuthority(repository);
+    return read(repo);
   } finally {
-    for (const [key, value] of Object.entries(previous)) {
+    for (const [key, value] of Object.entries(prior)) {
       if (value === undefined) delete process.env[key];
       else process.env[key] = value;
     }
   }
+}
+
+function pullFacts(pull, role, number, ancestor, read, repo) {
+  const candidate = !number;
+  must(
+    pull.head?.repo?.full_name === ORIGIN &&
+      Array.isArray(pull.labels) &&
+      (candidate || pull.labels.length < 100) &&
+      (candidate || String(pull.number) === number),
+    'invalid PR'
+  );
+  const fullGateLabelPresent = pull.labels.some(label => label?.name === 'full-gate');
+  const facts = {
+    ...(candidate ? { number: pull.number } : {}),
+    origin: `https://github.com/${ORIGIN}`,
+    baseBranch: pull.base.ref,
+    branch: pull.head.ref,
+    headSha: pull.head.sha,
+    state: String(pull.state).toUpperCase(),
+    fullGateLabelPresent,
+    fullGateEligible: pull.state === 'open' && !fullGateLabelPresent,
+  };
+  if (role) {
+    const inventory = attachPullFiles(
+      repo,
+      { changedFileCount: pull.changed_files, number: pull.number },
+      read
+    );
+    const changedPaths = sortedUnique(inventory.changedPaths, 'GitHub PR path', safeRelativePath);
+    must(inventory.inventoryComplete && changedPaths.length <= 100, 'PR files incomplete');
+    Object.assign(facts, {
+      role: role.role,
+      baseSha: pull.base.sha,
+      baseIsAncestor: ancestor(pull.base.sha, pull.head.sha, repo),
+      changedPaths,
+      changedPathDigest: sha256(JSON.stringify(changedPaths)),
+    });
+  }
+  return facts;
 }
 
 export function collectOperationFacts({
@@ -136,6 +169,14 @@ export function collectOperationFacts({
   readGithub = (endpoint, repo) => github(endpoint, repo),
   readAuthority = readAuthorityFacts,
   readArtifact = inspectArtifact,
+  readAncestor = (baseSha, headSha, repo) => {
+    try {
+      git(repo, 'merge-base', '--is-ancestor', baseSha, headSha);
+      return true;
+    } catch {
+      return false;
+    }
+  },
 }) {
   const normalizedOperations = normalizeRoutineOperations(operations);
   const expected = expectedOperationFacts(normalizedOperations);
@@ -148,28 +189,17 @@ export function collectOperationFacts({
     return null;
   try {
     const pullRequests = Object.fromEntries(
-      expected.prs.map(number => {
-        const pull = readGithub(`repos/${ORIGIN}/pulls/${number}`, repository);
-        must(String(pull.number) === number, 'GitHub PR number differs');
-        must(pull.head?.repo?.full_name === ORIGIN, 'GitHub PR origin differs');
-        must(
-          Array.isArray(pull.labels) && pull.labels.length < 100,
-          'GitHub label inventory is invalid'
-        );
-        const fullGateLabelPresent = pull.labels.some(label => label?.name === 'full-gate');
-        return [
+      expected.prs.map(number => [
+        number,
+        pullFacts(
+          readGithub(`repos/${ORIGIN}/pulls/${number}`, repository),
+          expected.roleByPr[number],
           number,
-          {
-            origin: CANONICAL_ORIGIN,
-            baseBranch: pull.base.ref,
-            branch: pull.head.ref,
-            headSha: pull.head.sha,
-            state: String(pull.state).toUpperCase(),
-            fullGateLabelPresent,
-            fullGateEligible: pull.state === 'open' && !fullGateLabelPresent,
-          },
-        ];
-      })
+          readAncestor,
+          readGithub,
+          repository
+        ),
+      ])
     );
     const remoteHeads = Object.fromEntries(
       expected.branches.map(branch => {
@@ -186,24 +216,7 @@ export function collectOperationFacts({
         const endpoint = `repos/${ORIGIN}/pulls?state=open&base=${encodeURIComponent(contract.target.baseBranch)}&head=interdomestik:${encodeURIComponent(branch)}&per_page=2`;
         const pulls = readGithub(endpoint, repository);
         must(Array.isArray(pulls) && pulls.length <= 2, 'GitHub PR candidates are invalid');
-        return [
-          branch,
-          pulls.map(pull => {
-            must(pull.head?.repo?.full_name === ORIGIN, 'GitHub PR origin differs');
-            must(Array.isArray(pull.labels), 'GitHub PR labels are invalid');
-            const fullGateLabelPresent = pull.labels.some(label => label?.name === 'full-gate');
-            return {
-              number: pull.number,
-              origin: CANONICAL_ORIGIN,
-              baseBranch: pull.base.ref,
-              branch: pull.head.ref,
-              headSha: pull.head.sha,
-              state: String(pull.state).toUpperCase(),
-              fullGateLabelPresent,
-              fullGateEligible: pull.state === 'open' && !fullGateLabelPresent,
-            };
-          }),
-        ];
+        return [branch, pulls.map(pull => pullFacts(pull))];
       })
     );
     let authority = null;
