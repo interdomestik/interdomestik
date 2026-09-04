@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-02
+last_reviewed: 2026-09-04
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -71,8 +71,23 @@ PR `#1676`, with squash `64a5403f5d7f55891a353fe4d914a7ad2bab30bc` and tree
 `e80746833fb974829035a83c99dbd95a50911c9f`; exact PR and protected-main health were green, and CD
 was cancelled before deployment. Repairs through `#1686` established the 21-path map; its final
 prerequisite squash is `01117c712f56ce0ce12750605b3fbf0b337d24c3`, tree
-`7e44c5a177b8da0770b8e12a445037b62e9cfee4`. PR `#1691` reprojects exact CUTOVER from that base;
-runtime awaits merge. T-117C remains denied.
+`7e44c5a177b8da0770b8e12a445037b62e9cfee4`.
+
+`T117B-CUTOVER` completed through re-promotion `#1691` and product `#1675`, using its
+[gate](./2026-08-28-t117b-cutover-design-gate.md), exact 21-path
+[admission](./2026-08-28-t117b-cutover-admission.json), and bounded allocation. Final product head
+`503d4b179251f9d3d06e07349ec80f85805565ae`, tree
+`61b2316606c9b3facd6c8aff2a14bb4402d80c82`, and squash
+`31cae997e42dbc0bee13ca670899b988576bd42c` matched. The member route now mounts the DATA-backed
+PORTAL through one fail-closed request-scoped session/tenant/role source while preserving
+neutral-host/default-tenant draft behavior and isolated fixtures. Final-head Full Gate
+`33863200404`, CI `33863200381`, Pilot `33863200495`, backstops `33863200850`, security
+`33862616690`, finalizer `33863200356` attempt 2, and delivery `33863200387` attempt 2 were green.
+Protected-main CI `33865541214`, CodeQL `33865540843`, Code Quality `33865540812`, Secret Scan
+`33865541201`, and Sonar Main `33865541295` were green; CD `33865541227` was cancelled with zero
+jobs and no deployment effect. No slice is promoted and T-117C remains default-denied. The absent
+compiled post-merge-node certificate is Recovery Compiler shadow backlog evidence only and grants
+no Harness repair or runtime.
 
 Closed `IDA-WF01-ONE-APPROVAL-DELIVERY` remains immutable evidence through its
 [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),
@@ -89,10 +104,9 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate              | Dependencies   | Promotion constraint                              |
-| -------: | ---------------------- | -------------- | ------------------------------------------------- |
-|        1 | `T117B-CUTOVER` Tier 3 | PORTAL closed  | Exact promotion PR `#1691`; runtime awaits merge. |
-|        2 | `T-117C` Tier 3        | CUTOVER closed | Atomic PPR + named-parallel-route migration.      |
+| Priority | Candidate       | Dependencies   | Promotion constraint                             |
+| -------: | --------------- | -------------- | ------------------------------------------------ |
+|        1 | `T-117C` Tier 3 | CUTOVER closed | Separate design gate and promotion; now dormant. |
 
 ## Unified Portal Direction
 
@@ -127,47 +141,12 @@ and global headers remain T-117C.
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "promotion_pending",
+  "lifecycle": "inactive",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": {
-    "sliceId": "T117B-CUTOVER",
-    "tier": 3,
-    "promotionPrNumber": 1691,
-    "promotionBaseSha": "01117c712f56ce0ce12750605b3fbf0b337d24c3",
-    "expectedProductBranch": "codex/t117b-cutover",
-    "gateSha256": "b119f78ee6abf8ff2c835b4ec1b03b25c1c8e60cdfc4d7ea93c743ed6faf2f39",
-    "admissionSha256": "c7e871a43e03458e24b1aa3d45f641073dcceeb750016b16ee657b373af49a2a",
-    "productWriterPaths": [
-      "apps/web/e2e/dashboard-access.spec.ts",
-      "apps/web/e2e/gate/member-diaspora.spec.ts",
-      "apps/web/e2e/gate/member-home-cta.spec.ts",
-      "apps/web/e2e/golden/agent-member-overlay.spec.ts",
-      "apps/web/e2e/golden/member-dashboard-empty-state.spec.ts",
-      "apps/web/e2e/golden/member-dashboard-has-claims.spec.ts",
-      "apps/web/e2e/golden/member-portal-agent-consumer.spec.ts",
-      "apps/web/e2e/production.spec.ts",
-      "apps/web/e2e/smoke/ida-dashboard-smoke.spec.ts",
-      "apps/web/e2e/ui-v2-onboarding.spec.ts",
-      "apps/web/src/app/[locale]/(app)/_core.entry.tsx",
-      "apps/web/src/app/[locale]/(app)/member/_core.entry.test.tsx",
-      "apps/web/src/app/[locale]/(app)/member/_core.entry.tsx",
-      "apps/web/src/app/[locale]/(app)/member/page.test.tsx",
-      "apps/web/src/app/[locale]/(app)/member/page.tsx",
-      "apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx",
-      "apps/web/src/components/dashboard/member-portal-runtime.tsx",
-      "apps/web/src/messages/en/dashboard.json",
-      "apps/web/src/messages/mk/dashboard.json",
-      "apps/web/src/messages/sq/dashboard.json",
-      "apps/web/src/messages/sr/dashboard.json"
-    ],
-    "closeoutWriterPaths": [
-      "docs/plans/current-program.md",
-      "docs/plans/current-tracker.md"
-    ]
-  }
+  "activeSlice": null
 }
 ```
 
@@ -181,4 +160,4 @@ The architecture-finalization program/tracker, terminal OD17 evidence, and CI01 
 historical or separately governed. This projection neither rewrites nor activates them.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:T117B-CUTOVER`).
+The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:null`).
