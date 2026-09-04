@@ -22,19 +22,19 @@ status_command: pnpm plan:status
 
 ## Proof Ledger
 
-| ID              | Source Refs                                                                                               | Execution | Run ID     | Run Root               | Sonar     | Docker           | Sentry           | Learning         | Evidence Refs                                             |
-| --------------- | --------------------------------------------------------------------------------------------------------- | --------- | ---------- | ---------------------- | --------- | ---------------- | ---------------- | ---------------- | --------------------------------------------------------- |
-| `T117B-CUTOVER` | [gate](./2026-08-28-t117b-cutover-design-gate.md); [admission](./2026-08-28-t117b-cutover-admission.json) | `pending` | `PR #1683` | `GitHub-hosted Ubuntu` | `pending` | `not_applicable` | `not_applicable` | `not_applicable` | Repromotion and exact twenty-path product remain pending. |
+| ID              | Source Refs                                                                                               | Execution | Run ID     | Run Root               | Sonar     | Docker           | Sentry           | Learning         | Evidence Refs                  |
+| --------------- | --------------------------------------------------------------------------------------------------------- | --------- | ---------- | ---------------------- | --------- | ---------------- | ---------------- | ---------------- | ------------------------------ |
+| `T117B-CUTOVER` | [gate](./2026-08-28-t117b-cutover-design-gate.md); [admission](./2026-08-28-t117b-cutover-admission.json) | `pending` | `PR #1691` | `GitHub-hosted Ubuntu` | `pending` | `not_applicable` | `not_applicable` | `not_applicable` | Exact 21-path product pending. |
 
 ## Next Selection
 
-PR `#1681` merged the prior projection at `050d5a9c241ea8f2691abc4356e112f23384b1cd`; repairs
-`#1682`/`#1684`/`#1685` merged. PR `#1683` reprojects unchanged CUTOVER from latest base
-`3545ef7b3867da9cda51ff37ddb51c51dd1c6be5`; the 21-path prerequisite merged at `01117c712f56ce0ce12750605b3fbf0b337d24c3`, and canonical repromotion is pending.
+PR `#1686` merged 21-path authority at `01117c712f56ce0ce12750605b3fbf0b337d24c3`, tree
+`7e44c5a177b8da0770b8e12a445037b62e9cfee4`; `#1691` reprojects CUTOVER. DATA/PORTAL stay closed;
+T-117C remains denied.
 
 | Future UI branch | Status              | Constraint                              |
 | ---------------- | ------------------- | --------------------------------------- |
-| `T117B-CUTOVER`  | `promotion_pending` | Exact PR `#1683`; runtime awaits merge. |
+| `T117B-CUTOVER`  | `promotion_pending` | Exact PR `#1691`; runtime awaits merge. |
 | `T-117C`         | `deferred`          | cacheComponents/PPR/named slots.        |
 
 ## Lean Authority
@@ -52,11 +52,11 @@ PR `#1681` merged the prior projection at `050d5a9c241ea8f2691abc4356e112f23384b
   "activeSlice": {
     "sliceId": "T117B-CUTOVER",
     "tier": 3,
-    "promotionPrNumber": 1683,
-    "promotionBaseSha": "3545ef7b3867da9cda51ff37ddb51c51dd1c6be5",
+    "promotionPrNumber": 1691,
+    "promotionBaseSha": "01117c712f56ce0ce12750605b3fbf0b337d24c3",
     "expectedProductBranch": "codex/t117b-cutover",
-    "gateSha256": "ad1f3f8df5cfdb323e59832c1bba398811b087307c695e885c34c571a9bb8335",
-    "admissionSha256": "1182581a688e1e978c8ac60f14c9729fa27c454839023250838aaba6ca3eaca0",
+    "gateSha256": "b119f78ee6abf8ff2c835b4ec1b03b25c1c8e60cdfc4d7ea93c743ed6faf2f39",
+    "admissionSha256": "c7e871a43e03458e24b1aa3d45f641073dcceeb750016b16ee657b373af49a2a",
     "productWriterPaths": [
       "apps/web/e2e/dashboard-access.spec.ts",
       "apps/web/e2e/gate/member-diaspora.spec.ts",
@@ -68,6 +68,7 @@ PR `#1681` merged the prior projection at `050d5a9c241ea8f2691abc4356e112f23384b
       "apps/web/e2e/production.spec.ts",
       "apps/web/e2e/smoke/ida-dashboard-smoke.spec.ts",
       "apps/web/e2e/ui-v2-onboarding.spec.ts",
+      "apps/web/src/app/[locale]/(app)/_core.entry.tsx",
       "apps/web/src/app/[locale]/(app)/member/_core.entry.test.tsx",
       "apps/web/src/app/[locale]/(app)/member/_core.entry.tsx",
       "apps/web/src/app/[locale]/(app)/member/page.test.tsx",

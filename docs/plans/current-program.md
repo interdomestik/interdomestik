@@ -69,11 +69,10 @@ proof, and protected main were green.
 presentation; proof and main were green. CUTOVER's zero-sum ownership prerequisite completed in
 PR `#1676`, with squash `64a5403f5d7f55891a353fe4d914a7ad2bab30bc` and tree
 `e80746833fb974829035a83c99dbd95a50911c9f`; exact PR and protected-main health were green, and CD
-was cancelled before deployment. Projections `#1677`/`#1681` merged at
-`a73b25035f578ca5ac60c3cd301abdb322201115`/`050d5a9c241ea8f2691abc4356e112f23384b1cd`;
-zero-sum repair `#1680` merged at `c6a258e00cfe71e6d53e63ea48708d582453030f`. Repairs
-`#1682`/`#1684`/`#1685` merged; the latter at `3545ef7b3867da9cda51ff37ddb51c51dd1c6be5` is
-`#1683`'s unchanged CUTOVER reproject base. The 21-path prerequisite merged at `01117c712f56ce0ce12750605b3fbf0b337d24c3`; canonical repromotion is pending. Runtime remains denied.
+was cancelled before deployment. Repairs through `#1686` established the 21-path map; its final
+prerequisite squash is `01117c712f56ce0ce12750605b3fbf0b337d24c3`, tree
+`7e44c5a177b8da0770b8e12a445037b62e9cfee4`. PR `#1691` reprojects exact CUTOVER from that base;
+runtime awaits merge. T-117C remains denied.
 
 Closed `IDA-WF01-ONE-APPROVAL-DELIVERY` remains immutable evidence through its
 [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),
@@ -92,7 +91,7 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 | Priority | Candidate              | Dependencies   | Promotion constraint                              |
 | -------: | ---------------------- | -------------- | ------------------------------------------------- |
-|        1 | `T117B-CUTOVER` Tier 3 | PORTAL closed  | Exact promotion PR `#1683`; runtime awaits merge. |
+|        1 | `T117B-CUTOVER` Tier 3 | PORTAL closed  | Exact promotion PR `#1691`; runtime awaits merge. |
 |        2 | `T-117C` Tier 3        | CUTOVER closed | Atomic PPR + named-parallel-route migration.      |
 
 ## Unified Portal Direction
@@ -136,11 +135,11 @@ and global headers remain T-117C.
   "activeSlice": {
     "sliceId": "T117B-CUTOVER",
     "tier": 3,
-    "promotionPrNumber": 1683,
-    "promotionBaseSha": "3545ef7b3867da9cda51ff37ddb51c51dd1c6be5",
+    "promotionPrNumber": 1691,
+    "promotionBaseSha": "01117c712f56ce0ce12750605b3fbf0b337d24c3",
     "expectedProductBranch": "codex/t117b-cutover",
-    "gateSha256": "ad1f3f8df5cfdb323e59832c1bba398811b087307c695e885c34c571a9bb8335",
-    "admissionSha256": "1182581a688e1e978c8ac60f14c9729fa27c454839023250838aaba6ca3eaca0",
+    "gateSha256": "b119f78ee6abf8ff2c835b4ec1b03b25c1c8e60cdfc4d7ea93c743ed6faf2f39",
+    "admissionSha256": "c7e871a43e03458e24b1aa3d45f641073dcceeb750016b16ee657b373af49a2a",
     "productWriterPaths": [
       "apps/web/e2e/dashboard-access.spec.ts",
       "apps/web/e2e/gate/member-diaspora.spec.ts",
@@ -152,6 +151,7 @@ and global headers remain T-117C.
       "apps/web/e2e/production.spec.ts",
       "apps/web/e2e/smoke/ida-dashboard-smoke.spec.ts",
       "apps/web/e2e/ui-v2-onboarding.spec.ts",
+      "apps/web/src/app/[locale]/(app)/_core.entry.tsx",
       "apps/web/src/app/[locale]/(app)/member/_core.entry.test.tsx",
       "apps/web/src/app/[locale]/(app)/member/_core.entry.tsx",
       "apps/web/src/app/[locale]/(app)/member/page.test.tsx",
