@@ -22,9 +22,17 @@ status_command: pnpm plan:status
 
 ## Proof Ledger
 
-| ID              | Source Refs                                                                                               | Execution  | Run ID                | Run Root               | Sonar  | Docker           | Sentry           | Learning         | Evidence Refs                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| --------------- | --------------------------------------------------------------------------------------------------------- | ---------- | --------------------- | ---------------------- | ------ | ---------------- | ---------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `T117B-CUTOVER` | [gate](./2026-08-28-t117b-cutover-design-gate.md); [admission](./2026-08-28-t117b-cutover-admission.json) | `scripted` | `PR #1675 / 31cae997` | `GitHub-hosted Ubuntu` | `pass` | `not_applicable` | `not_applicable` | `not_applicable` | Re-promotion `#1691`; product head `503d4b179251f9d3d06e07349ec80f85805565ae`, tree `61b2316606c9b3facd6c8aff2a14bb4402d80c82`, squash `31cae997e42dbc0bee13ca670899b988576bd42c`; Full Gate `33863200404`, CI `33863200381`, Pilot `33863200495`, backstops `33863200850`, security `33862616690`, finalizer `33863200356` attempt 2, delivery `33863200387` attempt 2, and exact-main CI/Sonar/CodeQL/security green; CD `33865541227` cancelled with zero jobs. |
+| ID              | Source Refs                                                                                               | Execution  | Run ID                | Run Root         | Sonar  | Docker           | Sentry           | Learning         | Evidence Refs                                                                                          |
+| --------------- | --------------------------------------------------------------------------------------------------------- | ---------- | --------------------- | ---------------- | ------ | ---------------- | ---------------- | ---------------- | ------------------------------------------------------------------------------------------------------ |
+| `T117B-CUTOVER` | [gate](./2026-08-28-t117b-cutover-design-gate.md); [admission](./2026-08-28-t117b-cutover-admission.json) | `scripted` | `PR #1675 / 31cae997` | `not_applicable` | `pass` | `not_applicable` | `not_applicable` | `not_applicable` | docs/plans/2026-08-28-t117b-cutover-design-gate.md; docs/plans/2026-08-28-t117b-cutover-admission.json |
+
+Terminal evidence: re-promotion `#1691`; product head
+`503d4b179251f9d3d06e07349ec80f85805565ae`, tree
+`61b2316606c9b3facd6c8aff2a14bb4402d80c82`, squash
+`31cae997e42dbc0bee13ca670899b988576bd42c`; Full Gate `33863200404`, CI `33863200381`, Pilot
+`33863200495`, backstops `33863200850`, security `33862616690`, finalizer `33863200356` attempt 2,
+delivery `33863200387` attempt 2, and exact-main CI/Sonar/CodeQL/security were green; CD
+`33865541227` was cancelled with zero jobs.
 
 ## Next Selection
 
