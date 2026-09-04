@@ -8,7 +8,7 @@ last_reviewed: 2026-09-02
 
 # IDA-DG58C — T117B-CUTOVER
 
-> Status: approved Tier-3 child on base `3545ef7b3867da9cda51ff37ddb51c51dd1c6be5`.
+> Status: approved Tier-3 child on base `01117c712f56ce0ce12750605b3fbf0b337d24c3`.
 > T117B-DATA and T117B-PORTAL are exact merged and terminally closed predecessors. Runtime is
 > denied before promotion.
 
@@ -30,19 +30,20 @@ UI, hidden selectors, or extra queries.
 8. `apps/web/e2e/production.spec.ts`
 9. `apps/web/e2e/smoke/ida-dashboard-smoke.spec.ts`
 10. `apps/web/e2e/ui-v2-onboarding.spec.ts`
-11. `apps/web/src/app/[locale]/(app)/member/_core.entry.test.tsx`
-12. `apps/web/src/app/[locale]/(app)/member/_core.entry.tsx`
-13. `apps/web/src/app/[locale]/(app)/member/page.test.tsx`
-14. `apps/web/src/app/[locale]/(app)/member/page.tsx`
-15. `apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx`
-16. `apps/web/src/components/dashboard/member-portal-runtime.tsx`
-17. `apps/web/src/messages/en/dashboard.json`
-18. `apps/web/src/messages/mk/dashboard.json`
-19. `apps/web/src/messages/sq/dashboard.json`
-20. `apps/web/src/messages/sr/dashboard.json`
+11. `apps/web/src/app/[locale]/(app)/_core.entry.tsx`
+12. `apps/web/src/app/[locale]/(app)/member/_core.entry.test.tsx`
+13. `apps/web/src/app/[locale]/(app)/member/_core.entry.tsx`
+14. `apps/web/src/app/[locale]/(app)/member/page.test.tsx`
+15. `apps/web/src/app/[locale]/(app)/member/page.tsx`
+16. `apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx`
+17. `apps/web/src/components/dashboard/member-portal-runtime.tsx`
+18. `apps/web/src/messages/en/dashboard.json`
+19. `apps/web/src/messages/mk/dashboard.json`
+20. `apps/web/src/messages/sq/dashboard.json`
+21. `apps/web/src/messages/sr/dashboard.json`
 
 Writer-map SHA-256:
-`9607ebda8ed38b016aefedaec045e22e6ab195b06371d2706ce0f3da9260bf36`.
+`2ad45d3a297b0bc686594f4d2855a38dfbe3c825446ae740682fe7a1fb2d440b`.
 
 ## Acceptance
 
