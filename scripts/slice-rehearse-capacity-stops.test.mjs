@@ -111,11 +111,11 @@ test('bounded owner extension stays closed', () => {
   assert.throws(() => extend(existing, proposed, {}), /category.*missing/u);
 });
 test('CUTOVER lineage', () => {
+  const added = 'apps/web/src/app/[locale]/(app)/_core.entry.tsx';
   const old = budget.allocations
     .find(item => item.id === 't117b-cutover')
-    .writerPaths.filter(path => path.startsWith('apps/'))
+    .writerPaths.filter(path => path.startsWith('apps/') && path !== added)
     .sort();
-  const added = 'apps/web/src/app/[locale]/(app)/_core.entry.tsx';
   const seed = {
     sliceId: 'T117B-CUTOVER',
     writerPaths: [...old, added].sort(),
