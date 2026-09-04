@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "sliceId": "T117B-CUTOVER",
   "tier": 3,
-  "baseSha": "3545ef7b3867da9cda51ff37ddb51c51dd1c6be5",
+  "baseSha": "01117c712f56ce0ce12750605b3fbf0b337d24c3",
   "authorityArtifactSha256": "ad1f3f8df5cfdb323e59832c1bba398811b087307c695e885c34c571a9bb8335",
   "productOutcomes": [
     "Mount T117B-PORTAL at member, preserve one identity, two projections and neutral-host/default-tenant drafts, and migrate ten E2E/golden contracts"

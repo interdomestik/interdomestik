@@ -8,7 +8,7 @@ last_reviewed: 2026-09-02
 
 # IDA-DG58C — T117B-CUTOVER
 
-> Status: approved Tier-3 child on base `3545ef7b3867da9cda51ff37ddb51c51dd1c6be5`.
+> Status: approved Tier-3 child on base `01117c712f56ce0ce12750605b3fbf0b337d24c3`.
 > T117B-DATA and T117B-PORTAL are exact merged and terminally closed predecessors. Runtime is
 > denied before promotion.
 

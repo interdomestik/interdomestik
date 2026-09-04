@@ -73,7 +73,7 @@ was cancelled before deployment. Projections `#1677`/`#1681` merged at
 `a73b25035f578ca5ac60c3cd301abdb322201115`/`050d5a9c241ea8f2691abc4356e112f23384b1cd`;
 zero-sum repair `#1680` merged at `c6a258e00cfe71e6d53e63ea48708d582453030f`. Repairs
 `#1682`/`#1684`/`#1685` merged; the latter at `3545ef7b3867da9cda51ff37ddb51c51dd1c6be5` is
-`#1683`'s unchanged CUTOVER reproject base. Runtime awaits merge; T-117C remains denied.
+`#1683`'s unchanged CUTOVER reproject base. The 21-path prerequisite merged at `01117c712f56ce0ce12750605b3fbf0b337d24c3`; canonical repromotion is pending. Runtime remains denied.
 
 Closed `IDA-WF01-ONE-APPROVAL-DELIVERY` remains immutable evidence through its
 [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),

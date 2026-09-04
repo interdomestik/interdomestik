@@ -30,7 +30,7 @@ status_command: pnpm plan:status
 
 PR `#1681` merged the prior projection at `050d5a9c241ea8f2691abc4356e112f23384b1cd`; repairs
 `#1682`/`#1684`/`#1685` merged. PR `#1683` reprojects unchanged CUTOVER from latest base
-`3545ef7b3867da9cda51ff37ddb51c51dd1c6be5`; DATA/PORTAL stay closed and T-117C denied.
+`3545ef7b3867da9cda51ff37ddb51c51dd1c6be5`; the 21-path prerequisite merged at `01117c712f56ce0ce12750605b3fbf0b337d24c3`, and canonical repromotion is pending.
 
 | Future UI branch | Status              | Constraint                              |
 | ---------------- | ------------------- | --------------------------------------- |
