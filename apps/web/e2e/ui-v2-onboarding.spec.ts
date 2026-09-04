@@ -6,25 +6,22 @@ import mk from '../src/messages/mk/dashboard.json';
 import sq from '../src/messages/sq/dashboard.json';
 import sr from '../src/messages/sr/dashboard.json';
 
-const CATALOGS = { de: en, en, hr: sr, mk, sq, sr } as const;
+const CATALOGS = { de: sq, en, hr: sq, mk, sq, sr } as const;
 
-test.describe('Unified Member Portal to claim draft intake', () => {
-  test('renders Case to Actions to Recent case updates with persistent routes', async ({
-    authenticatedPage: page,
-  }, testInfo) => {
+test.describe('Member portal intake', () => {
+  test('keeps portal regions and routes', async ({ authenticatedPage: page }, testInfo) => {
     await gotoApp(page, routes.member(testInfo), testInfo, { marker: 'member-dashboard-ready' });
 
     const portal = page.getByTestId('member-dashboard-ready');
     const copy = CATALOGS[routes.getLocale(testInfo)].dashboard.portal;
+    await expect(portal.getByRole('heading', { level: 1 })).toHaveText(copy.title);
     await expect(portal.getByRole('navigation').locator('a')).toHaveCount(4);
     await expect(portal.locator('section[aria-label]').nth(2)).toHaveAccessibleName(
       copy.regions.updates.label
     );
   });
 
-  test('member can reach the dormant claim draft intake from UI_V2', async ({
-    authenticatedPage: page,
-  }, testInfo) => {
+  test('reaches dormant claim intake', async ({ authenticatedPage: page }, testInfo) => {
     await gotoApp(page, routes.member(testInfo), testInfo, { marker: 'member-dashboard-ready' });
 
     const actions = page

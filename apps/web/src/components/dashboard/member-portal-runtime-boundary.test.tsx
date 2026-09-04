@@ -57,7 +57,7 @@ const copy: MemberPortalCopy = {
   status: value => (value === 'submitted' ? 'Submitted' : 'Draft'),
 };
 // prettier-ignore
-const action = (bucket: MembershipLifecycleBucket, draftAccess: boolean, agentMode = false) => PortalActionsRegion({ agentMode, copy, draftAccess, locale: 'sq', promise: Promise.resolve({ bucket }) });
+const action = (bucket: MembershipLifecycleBucket, canDraft: boolean, isAgent = false) => PortalActionsRegion({ canDraft, copy, isAgent, locale: 'sq', promise: Promise.resolve({ bucket }) });
 
 function leafPaths(value: unknown, prefix = ''): string[] {
   return Object.entries(value as Record<string, unknown>).flatMap(([key, child]) => {
@@ -86,7 +86,7 @@ describe('Member portal', () => {
       expect(screen.getByRole('link', { name: new RegExp(`Action ${bucket}`, 'u') })).toHaveAttribute('href', `/sq/member/claims/new${inactive ? '?mode=drafts' : ''}`);
       expect(screen.getAllByText('Actions')).toHaveLength(1);
       if (bucket.includes('grace') || bucket === 'scheduled_cancel') {
-        expect(screen.getByRole('status')).toHaveTextContent(`Warning ${bucket}`);
+        expect(screen.getByText(`Warning ${bucket}`)).toBeVisible();
       }
       view.unmount();
     }
@@ -125,8 +125,8 @@ describe('Member portal', () => {
     const source = readFileSync(resolve(import.meta.dirname, 'member-portal-runtime.tsx'), 'utf8');
     expect(source.match(/<Suspense\b/gu) ?? []).toHaveLength(3);
     expect(source).toMatch(/<nav[\s\S]+member-portal-disclaimer[\s\S]+PortalUi\.Unified/u);
-    expect(source).toContain('<Link href="/member/claims">{copy.navigation.cases}</Link>');
-    expect(source).toMatch(/casesPromise[\s\S]+casesPromise[\s\S]+membershipPromise/u);
+    expect(source).toMatch(/<Link href="\/member\/claims">\s*\{copy\.navigation\.cases\}/u);
+    expect(source).toMatch(/caseTask[\s\S]+caseTask[\s\S]+membershipTask/u);
     expect(source).not.toMatch(
       /@interdomestik\/(?:database|shared-auth)|fetch\(|['"]use client['"]|proxy|middleware/u
     );

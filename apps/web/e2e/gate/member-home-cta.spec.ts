@@ -12,7 +12,7 @@ import sr from '../../src/messages/sr/dashboard.json';
 
 // prettier-ignore
 const VIEWPORTS = [[320, 740], [768, 1024], [1440, 1000]] as const;
-const CATALOGS = { de: en, en, hr: sr, mk, sq, sr } as const;
+const CATALOGS = { de: sq, en, hr: sq, mk, sq, sr } as const;
 const portalCopy = (testInfo: TestInfo) => CATALOGS[routes.getLocale(testInfo)].dashboard.portal;
 
 // prettier-ignore

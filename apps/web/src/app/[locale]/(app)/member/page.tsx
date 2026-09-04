@@ -16,28 +16,28 @@ import { resolveMemberActorRoleOnSession } from './actor-role-on-session';
 type PortalMessages = Omit<MemberPortalCopy, 'actions' | 'caseLabels' | 'navigation' | 'referenceFallback' | 'status'> & { actions: Record<keyof MemberPortalCopy['actions'], string>; navigation: Omit<MemberPortalCopy['navigation'], 'helpNow'> & { help_now: string }; next_steps: Record<'court_schedule' | 'external_response' | 'member_action' | 'team_review', string>; warnings: Record<'active_in_grace' | 'grace_expired' | 'scheduled_cancel', string> };
 
 // prettier-ignore
-export default async function DashboardPage({ params }: { params: Promise<{ locale: AppLocale }> }) {
+export default async function DashboardPage({ params }: Readonly<{ params: Promise<{ locale: AppLocale }> }>) {
   const { locale } = await params;
   setRequestLocale(locale);
 
   const session = requireSessionOrRedirect(await getCachedSession(), locale);
   const { id: memberId, role, tenantId } = session.user;
   if (!memberId || !role || !tenantId) notFound();
-  const actorRole = resolveMemberActorRoleOnSession(role);
-  if (!actorRole) notFound();
+  const actor = resolveMemberActorRoleOnSession(role);
+  if (!actor) notFound();
   // prettier-ignore
-  const access = getMemberDashboardCore({ locale, role: actorRole, userId: memberId });
+  const access = getMemberDashboardCore({ locale, role: actor, userId: memberId });
   if (access.kind === 'redirect') redirect(access.to);
-  if (access.kind === 'forbidden' || actorRole !== 'member') notFound();
+  if (access.kind === 'forbidden' || actor !== 'member') notFound();
 
   // prettier-ignore
   const draft = evaluateNeutralOtpHost(await headers()) && (role === 'member' || role === 'user') && tenantId === resolveDefaultPublicTenantId();
 
+  // prettier-ignore
+  const [t, dashboard] = await Promise.all([getTranslations({ locale, namespace: 'claims' }), getTranslations({ locale, namespace: 'dashboard' })]);
   const q = { memberId, tenantId };
   const cases = getMemberCaseSummaries(q);
   const membership = getMemberPortalMembership(q);
-  // prettier-ignore
-  const [t, dashboard] = await Promise.all([getTranslations({ locale, namespace: 'claims' }), getTranslations({ locale, namespace: 'dashboard' })]);
   const portal = dashboard.raw('portal') as PortalMessages;
   const { help_now: helpNow, ...nav } = portal.navigation;
   const status: MemberPortalCopy['status'] = value => t(`status.${value}`);
@@ -57,5 +57,5 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
   };
 
   // prettier-ignore
-  return <div data-testid="member-dashboard-ready"><MemberPortalRuntime agentMode={role === 'agent'} casesPromise={cases} copy={copy} draftAccess={draft} locale={locale} membershipPromise={membership} /></div>;
+  return <div data-testid="member-dashboard-ready"><MemberPortalRuntime canDraft={draft} caseTask={cases} copy={copy} isAgent={role === 'agent'} locale={locale} membershipTask={membership} /></div>;
 }

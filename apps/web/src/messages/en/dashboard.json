@@ -26,10 +26,10 @@
         "membership": "Membership"
       },
       "next_steps": {
-        "member_action": "Add the requested case details",
-        "team_review": "Our team is reviewing your case",
-        "external_response": "Waiting for an external response",
-        "court_schedule": "Check the court schedule"
+        "member_action": "Add requested case details",
+        "team_review": "Your case is under review",
+        "external_response": "Awaiting external response",
+        "court_schedule": "Review court schedule"
       },
       "regions": {
         "case": {
@@ -61,9 +61,9 @@
         "canceled": "Draft — membership canceled"
       },
       "warnings": {
-        "active_in_grace": "Your payment needs attention; access remains active during the grace period.",
-        "grace_expired": "Membership expired; renew before submitting.",
-        "scheduled_cancel": "Your membership is scheduled to end; access may change when the current period finishes."
+        "active_in_grace": "Payment issue; access is still active.",
+        "grace_expired": "Grace period ended; renew to submit.",
+        "scheduled_cancel": "Membership ends after this period."
       }
     },
     "activeClaims": "Active Claims",

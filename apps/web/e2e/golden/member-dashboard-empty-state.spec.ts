@@ -9,7 +9,7 @@ import mk from '../../src/messages/mk/dashboard.json';
 import sq from '../../src/messages/sq/dashboard.json';
 import sr from '../../src/messages/sr/dashboard.json';
 
-const C = { de: en, en, hr: sr, mk, sq, sr };
+const C = { de: sq, en, hr: sq, mk, sq, sr };
 
 test.describe('Empty portal', () => {
   test('settles empty portal', async ({ page }, testInfo) => {

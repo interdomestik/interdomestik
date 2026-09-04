@@ -3,6 +3,11 @@ import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 
 test.describe('Diaspora Feature', () => {
+  test('retained member handoffs settle', async ({ authenticatedPage: page }, testInfo) => {
+    // prettier-ignore
+    for (const [path, marker] of [['claim-report', 'report-page-ready'], ['green-card', 'green-card-page-ready'], ['benefits', 'benefits-page-ready']] as const) await gotoApp(page, `${routes.member(testInfo)}/${path}`, testInfo, { marker });
+  });
+
   test('Member can use the retained diaspora workflow from its canonical route', async ({
     authenticatedPage: page,
   }, testInfo) => {

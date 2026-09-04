@@ -38,13 +38,13 @@ describe('DashboardPage', () => {
   beforeEach(() => { vi.clearAllMocks(); h.neutralHost = true; h.session.mockResolvedValue({ user: { id: 'member-1', role: 'member', tenantId: 'tenant_ks' } }); });
 
   // prettier-ignore
-  it('starts projections', async () => { render(await page('mk')); const q = { memberId: 'member-1', tenantId: 'tenant_ks' }; expect(h.cases.mock.calls).toEqual([[q]]); expect(h.membership.mock.calls).toEqual([[q]]); expect(h.runtime).toHaveBeenCalledWith(expect.objectContaining({ draftAccess: true })); });
+  it('starts projections', async () => { render(await page('mk')); const q = { memberId: 'member-1', tenantId: 'tenant_ks' }; expect(h.cases.mock.calls).toEqual([[q]]); expect(h.membership.mock.calls).toEqual([[q]]); expect(h.runtime).toHaveBeenCalledWith(expect.objectContaining({ canDraft: true })); });
 
   // prettier-ignore
-  it.each([['member','tenant_ks',true,true,false],['user','tenant_ks',true,true,false],['agent','tenant_ks',true,false,true],['member','tenant_mk',true,false,false],['member','tenant_ks',false,false,false]])('limits draft access',async(role,tenantId,neutral,expected,agentMode)=>{
+  it.each([['member','tenant_ks',true,true,false],['user','tenant_ks',true,true,false],['agent','tenant_ks',true,false,true],['member','tenant_mk',true,false,false],['member','tenant_ks',false,false,false]])('limits draft access',async(role,tenantId,neutral,expected,isAgent)=>{
     const id=role==='agent'?'agent-1':'m'; h.neutralHost=neutral; h.session.mockResolvedValueOnce({user:{id,role,tenantId}});
     render(await page());
-    expect(h.runtime).toHaveBeenLastCalledWith(expect.objectContaining({agentMode,draftAccess:expected})); expect(h.cases).toHaveBeenLastCalledWith({memberId:id,tenantId});
+    expect(h.runtime).toHaveBeenLastCalledWith(expect.objectContaining({canDraft:expected,isAgent})); expect(h.cases).toHaveBeenLastCalledWith({memberId:id,tenantId});
   });
 
   // prettier-ignore
@@ -57,7 +57,7 @@ describe('DashboardPage', () => {
   it('blocks unknown actor roles', async () => { h.session.mockResolvedValueOnce({ user: { id: 'member-1', role: 'unknown', tenantId: 'tenant_ks' } }); await expect(page()).rejects.toThrow('notFound'); idle(); });
 
   // prettier-ignore
-  it('passes projection rejection to region boundaries', async () => { h.cases.mockRejectedValueOnce(new Error('cases unavailable')); h.membership.mockRejectedValueOnce(new Error('membership unavailable')); render(await page()); const props = h.runtime.mock.lastCall?.[0] as { casesPromise: Promise<unknown>; membershipPromise: Promise<unknown> }; await expect(props.casesPromise).rejects.toThrow('cases unavailable'); await expect(props.membershipPromise).rejects.toThrow('membership unavailable'); });
+  it('passes projection rejection to region boundaries', async () => { h.cases.mockRejectedValueOnce(new Error('cases unavailable')); h.membership.mockRejectedValueOnce(new Error('membership unavailable')); render(await page()); const props = h.runtime.mock.lastCall?.[0] as { caseTask: Promise<unknown>; membershipTask: Promise<unknown> }; await expect(props.caseTask).rejects.toThrow('cases unavailable'); await expect(props.membershipTask).rejects.toThrow('membership unavailable'); });
 
   // prettier-ignore
   it('uses portal-owned next steps and distinct lifecycle warnings', async () => { render(await page()); const props = h.runtime.mock.lastCall?.[0] as { copy: { actions: Record<string, { label: string; warning: string | null }>; caseLabels: (summary: { nextStep: string; status: string }) => { nextStepValue: string } } }; expect(props.copy.actions.active_in_grace).toEqual({ description: 'description', label: 'active_in_grace', warning: 'portal-warning-active_in_grace' }); expect(props.copy.actions.active_in_grace.warning).not.toBe(props.copy.actions.active_in_grace.label); expect(props.copy.caseLabels({ nextStep: 'team_review', status: 'submitted' }).nextStepValue).toBe('portal-next-team_review'); expect(props.copy.caseLabels({ nextStep: 'external_response', status: 'submitted' }).nextStepValue).toBe('portal-next-external_response'); });
