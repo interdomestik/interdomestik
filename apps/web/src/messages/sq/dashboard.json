@@ -21,8 +21,15 @@
       "navigation": {
         "label": "Shkurtore për anëtarin",
         "help_now": "Ndihmë tani",
+        "cases": "Rastet",
         "documents": "Dokumentet",
         "membership": "Anëtarësia"
+      },
+      "next_steps": {
+        "member_action": "Plotësoni të dhënat e kërkuara të rastit",
+        "team_review": "Ekipi ynë po shqyrton rastin tuaj",
+        "external_response": "Po pritet një përgjigje e jashtme",
+        "court_schedule": "Kontrolloni orarin e gjykatës"
       },
       "regions": {
         "case": {
@@ -52,6 +59,11 @@
         "grace_expired": "Nisni draft — toleranca përfundoi",
         "scheduled_cancel": "Nisni rast — anëtarësia përfundon",
         "canceled": "Nisni draft — anëtarësia u anulua"
+      },
+      "warnings": {
+        "active_in_grace": "Pagesa kërkon vëmendje; qasja mbetet aktive gjatë periudhës së tolerancës.",
+        "grace_expired": "Toleranca përfundoi; riktheni anëtarësinë para dërgimit.",
+        "scheduled_cancel": "Anëtarësia është planifikuar të përfundojë; qasja mund të ndryshojë pas periudhës aktuale."
       }
     },
     "activeClaims": "Kërkesat Aktive për Dëmshpërblim",

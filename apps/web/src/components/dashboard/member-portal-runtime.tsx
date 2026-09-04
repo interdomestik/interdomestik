@@ -11,31 +11,24 @@ import { Link } from '@/i18n/routing';
 import { MemberPortalRegionBoundary as Boundary } from './member-portal-region-boundary';
 import type { MemberPortalRegionCopy } from './member-portal-region-boundary';
 
-const { UnifiedPortalShell } = PortalUi;
 type ActionCopy = Readonly<{ description: string; label: string; warning: string | null }>;
 export type MemberPortalCopy = Readonly<{
   actions: Record<Member.MembershipLifecycleBucket, ActionCopy>;
   caseLabels: (summary: Member.CaseSummary) => CaseSummaryLabels;
   description: string;
   disclaimer: string;
-  navigation: Readonly<{ documents: string; helpNow: string; label: string; membership: string }>;
+  navigation: Record<'cases' | 'documents' | 'helpNow' | 'label' | 'membership', string>;
   referenceFallback: string;
   regions: Readonly<Record<'actions' | 'case' | 'updates', MemberPortalRegionCopy>>;
   status: (status: Member.CaseLifecycleStatus) => string;
   title: string;
 }>;
 
-type CasesBound = Readonly<{ copy: MemberPortalCopy; promise: Promise<Member.CaseSummary[]> }>;
-type ActionsBound = Readonly<{
-  copy: MemberPortalCopy;
-  locale: AppLocale;
-  promise: Promise<Member.MemberPortalMembership>;
-}>;
-type RuntimeBound = Readonly<{
-  casesPromise: CasesBound['promise'];
-  membershipPromise: ActionsBound['promise'];
-}> &
-  Pick<ActionsBound, 'copy' | 'locale'>;
+type CasesBound = { copy: MemberPortalCopy; promise: Promise<Member.CaseSummary[] | null> };
+// prettier-ignore
+type ActionsBound = { agentMode: boolean; copy: MemberPortalCopy; draftAccess: boolean; locale: AppLocale; promise: Promise<Member.MemberPortalMembership | null> };
+// prettier-ignore
+type RuntimeBound = Pick<ActionsBound, 'agentMode' | 'copy' | 'draftAccess' | 'locale'> & { casesPromise: CasesBound['promise']; membershipPromise: ActionsBound['promise'] };
 type UpdatesBound = CasesBound & { locale: AppLocale };
 export async function PortalCasesRegion({ copy, promise }: CasesBound) {
   const summaries = await promise.catch(() => null);
@@ -51,21 +44,33 @@ export async function PortalCasesRegion({ copy, promise }: CasesBound) {
   );
 }
 
-export async function PortalActionsRegion({ copy, locale, promise }: ActionsBound) {
+export async function PortalActionsRegion({
+  agentMode,
+  copy,
+  draftAccess,
+  locale,
+  promise,
+}: ActionsBound) {
   const membership = await promise.catch(() => null);
   if (!membership) return <Boundary copy={copy.regions.actions} state="error" />;
-  const inactive = ['none', 'canceled', 'grace_expired'].includes(membership.bucket);
-  const action = copy.actions[membership.bucket];
+  const bucket = agentMode ? 'active' : membership.bucket;
+  const inactive = ['none', 'canceled', 'grace_expired'].includes(bucket);
+  const action = copy.actions[bucket];
+  const draft = inactive && draftAccess;
+  const href =
+    inactive && !draft
+      ? `/${locale}/member/membership`
+      : `/${locale}/member/claims/new${draft ? '?mode=drafts' : ''}`;
+  const label = inactive && !draft ? copy.navigation.membership : action.label;
   return (
     <div className="grid min-w-0 gap-3">
       <h2>{copy.regions.actions.label}</h2>
-      <PortalUi.MatteAnchorCard
-        description={action.description}
-        eyebrow={copy.regions.actions.label}
-        href={`/${locale}/member/claims/new${inactive ? '?mode=drafts' : ''}`}
-        label={action.label}
-      />
-      {action.warning ? <p className="rounded-xl border p-4 text-sm">{action.warning}</p> : null}
+      <PortalUi.MatteAnchorCard description={action.description} href={href} label={label} />
+      {action.warning ? (
+        <p className="rounded-xl border p-4 text-sm" role="status">
+          {action.warning}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -99,8 +104,10 @@ export async function PortalUpdatesRegion({ copy, locale, promise }: UpdatesBoun
 }
 
 export async function MemberPortalRuntime({
+  agentMode,
   casesPromise,
   copy,
+  draftAccess,
   locale,
   membershipPromise,
 }: RuntimeBound) {
@@ -118,17 +125,24 @@ export async function MemberPortalRuntime({
         className="flex flex-wrap gap-3 text-sm [&_a]:inline-flex [&_a]:min-h-11 [&_a]:items-center [&_a]:px-3 [&_a]:focus-visible:ring-2"
       >
         <Link href="/help-now">{copy.navigation.helpNow}</Link>
+        <Link href="/member/claims">{copy.navigation.cases}</Link>
         <Link href="/member/documents">{copy.navigation.documents}</Link>
         <Link href="/member/membership">{copy.navigation.membership}</Link>
       </nav>
       <aside data-testid="member-portal-disclaimer" className="rounded-xl border p-4">
         {copy.disclaimer}
       </aside>
-      <UnifiedPortalShell
+      <PortalUi.UnifiedPortalShell
         actionsLabel={copy.regions.actions.label}
         actionsRegion={
           <Suspense fallback={fallback(copy.regions.actions)}>
-            <PortalActionsRegion copy={copy} locale={locale} promise={membershipPromise} />
+            <PortalActionsRegion
+              agentMode={agentMode}
+              copy={copy}
+              draftAccess={draftAccess}
+              locale={locale}
+              promise={membershipPromise}
+            />
           </Suspense>
         }
         caseLabel={copy.regions.case.label}

@@ -1,8 +1,7 @@
 import { APP_NAMESPACES, BASE_NAMESPACES, pickMessages } from '@/i18n/messages';
-import { auth } from '@/lib/auth';
+import { getCachedSession } from '@/lib/auth.server';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
-import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 export { generateMetadata, generateViewport } from '@/app/_segment-exports';
@@ -16,15 +15,7 @@ export default async function AppProtectedLayout({ children, params }: Readonly<
   const { locale } = await params;
 
   // Enforce authentication for all routes in the (app) group
-  const session = await (async () => {
-    try {
-      return await auth.api.getSession({
-        headers: await headers(),
-      });
-    } catch {
-      return null;
-    }
-  })();
+  const session = await getCachedSession();
 
   if (!session) {
     redirect(`/${locale}/login`);

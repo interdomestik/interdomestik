@@ -62,21 +62,31 @@ async function loginAs(
 
 test.describe.serial('@smoke Production Smoke Test Plan', () => {
   test.describe('Phase A: Authentication & Routing (Member) @smoke', () => {
-    test('Member (KS) sees v3 dashboard without legacy claims list', async ({ page }, testInfo) => {
+    test('Member sees Unified Portal', async ({ page }, testInfo) => {
       const memberUser = isMkProject(testInfo)
         ? { ...MEMBER_MK, tenant: 'tenant_mk' }
         : { ...MEMBER_KS, tenant: 'tenant_ks' };
       await loginAs(page, memberUser, testInfo);
       const dashboard = page.getByTestId('dashboard-page-ready');
+      const portal = dashboard.getByTestId('member-dashboard-ready');
+      const regions = portal.locator('section[aria-label]');
       await expect(dashboard).toBeVisible();
-      await expect(page.getByTestId('portal-surface-indicator')).toBeVisible();
-      for (const id of ['member-primary-actions', 'member-active-claim', 'member-support-link']) {
-        await expect(dashboard.getByTestId(id)).toBeVisible();
-      }
-      await expect(page.getByTestId('member-claims-list')).toHaveCount(0);
-      await expect(dashboard.getByTestId('hero-cta-open-active-case')).toHaveAttribute(
+      await expect(portal).toBeVisible();
+      await expect(portal.getByTestId('member-portal-disclaimer')).toBeVisible();
+      await expect(regions.nth(0).getByRole('article').first()).toBeVisible();
+      await expect(regions.nth(1).getByRole('link').first()).toHaveAttribute(
         'href',
-        new RegExp(`${routes.memberClaims(testInfo)}/[^/]+$`)
+        routes.memberNewClaim(testInfo)
+      );
+      await expect(regions.nth(2).getByRole('listitem').first()).toBeVisible();
+      const navigation = portal.getByRole('navigation');
+      await expect(navigation.locator('a').nth(0)).toHaveAttribute(
+        'href',
+        new RegExp(`/${routes.getLocale(testInfo)}/help-now$`)
+      );
+      await expect(navigation.locator('a').nth(2)).toHaveAttribute(
+        'href',
+        `${routes.member(testInfo)}/documents`
       );
     });
 

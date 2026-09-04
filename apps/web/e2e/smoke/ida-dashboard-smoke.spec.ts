@@ -48,11 +48,16 @@ test.describe('@smoke ida.localhost canonical dashboard smoke', () => {
       await expect(page.getByTestId('tenant-chooser')).toHaveCount(0);
       await expect(page.getByTestId('legacy-banner')).toHaveCount(0);
       await expect(page.getByTestId('legacy-surface-ready')).toHaveCount(0);
-      if (item.role === 'member')
-        await expect(page.getByTestId('member-draft-continuation')).toHaveAttribute(
+      if (item.role === 'member') {
+        const actions = page
+          .getByTestId('member-dashboard-ready')
+          .locator('section[aria-label]')
+          .nth(1);
+        await expect(actions.getByRole('link').first()).toHaveAttribute(
           'href',
           routes.memberNewClaim(testInfo)
         );
+      }
     });
   }
   test('C31 resumes six facts in a fresh same-account session and permanently deletes', async ({
@@ -63,7 +68,8 @@ test.describe('@smoke ida.localhost canonical dashboard smoke', () => {
     const origin = new URL(baseURL).origin;
     test.skip(!new URL(origin).hostname.startsWith('ida.'), 'C31 runs only on neutral IDA'); // NOSONAR -- intentional neutral-host gate.
     const headers = testInfo.project.use.extraHTTPHeaders ?? {};
-    const summary = `C31-${testInfo.retry} water damaged two rooms.`;
+    const runId = `${Date.now()}-${testInfo.workerIndex}-${testInfo.retry}`;
+    const summary = `C31-${runId} water damaged two rooms.`;
     const empty = { cookies: [], origins: [] };
     const newContext = () =>
       browser.newContext({ baseURL, extraHTTPHeaders: headers, storageState: empty });
@@ -105,7 +111,11 @@ test.describe('@smoke ida.localhost canonical dashboard smoke', () => {
       // prettier-ignore
       await gotoApp(p2, routes.member('en'), testInfo, { marker: 'member-dashboard-ready' });
       await p2.getByTestId('cookie-consent-accept').click();
-      const entry = p2.getByTestId('member-draft-continuation');
+      const actions = p2
+        .getByTestId('member-dashboard-ready')
+        .locator('section[aria-label]')
+        .nth(1);
+      const entry = actions.getByRole('link').first();
       const u = `${routes.memberNewClaim('en')}?mode=drafts`;
       await expect(entry).toHaveAttribute('href', u);
       await entry.click();

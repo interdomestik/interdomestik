@@ -28,7 +28,7 @@ const buckets =
     ' '
   ) as MembershipLifecycleBucket[];
 
-const actionCopy = Object.fromEntries(
+const actions = Object.fromEntries(
   buckets.map(bucket => [
     bucket,
     {
@@ -42,9 +42,9 @@ const actionCopy = Object.fromEntries(
 
 const copy: MemberPortalCopy = {
   ...JSON.parse(
-    '{"description":"Safe portal description","disclaimer":"No outcome is promised.","navigation":{"documents":"Docs","helpNow":"Help","label":"Shortcuts","membership":"Membership"},"referenceFallback":"Reference unavailable","regions":{"actions":{"empty":"None","error":"Unavailable","label":"Actions","loading":"Loading actions"},"case":{"empty":"No cases yet","error":"Unavailable","label":"Case","loading":"Loading case"},"updates":{"empty":"No updates yet","error":"Updates unavailable","label":"Recent case updates","loading":"Loading updates"}},"title":"My cases"}'
+    '{"description":"Safe portal description","disclaimer":"No outcome is promised.","navigation":{"cases":"Cases","documents":"Docs","helpNow":"Help","label":"Shortcuts","membership":"Membership"},"referenceFallback":"Reference unavailable","regions":{"actions":{"empty":"None","error":"Unavailable","label":"Actions","loading":"Loading actions"},"case":{"empty":"No cases yet","error":"Unavailable","label":"Case","loading":"Loading case"},"updates":{"empty":"No updates yet","error":"Updates unavailable","label":"Recent case updates","loading":"Loading updates"}},"title":"My cases"}'
   ),
-  actions: actionCopy,
+  actions,
   caseLabels: summary => ({
     documentCount: 'Documents',
     nextStep: 'Next step',
@@ -56,6 +56,8 @@ const copy: MemberPortalCopy = {
   }),
   status: value => (value === 'submitted' ? 'Submitted' : 'Draft'),
 };
+// prettier-ignore
+const action = (bucket: MembershipLifecycleBucket, draftAccess: boolean, agentMode = false) => PortalActionsRegion({ agentMode, copy, draftAccess, locale: 'sq', promise: Promise.resolve({ bucket }) });
 
 function leafPaths(value: unknown, prefix = ''): string[] {
   return Object.entries(value as Record<string, unknown>).flatMap(([key, child]) => {
@@ -63,11 +65,11 @@ function leafPaths(value: unknown, prefix = ''): string[] {
     return typeof child === 'object' && child !== null ? leafPaths(child, path) : [path];
   });
 }
-const PORTAL_PATHS =
-  'actions.active|actions.active_in_grace|actions.canceled|actions.grace_expired|actions.none|actions.scheduled_cancel|actions.trialing|description|disclaimer|navigation.documents|navigation.help_now|navigation.label|navigation.membership|regions.actions.empty|regions.actions.error|regions.actions.label|regions.actions.loading|regions.case.empty|regions.case.error|regions.case.label|regions.case.loading|regions.updates.empty|regions.updates.error|regions.updates.label|regions.updates.loading|title';
+const PATHS =
+  'actions.active|actions.active_in_grace|actions.canceled|actions.grace_expired|actions.none|actions.scheduled_cancel|actions.trialing|description|disclaimer|navigation.cases|navigation.documents|navigation.help_now|navigation.label|navigation.membership|next_steps.court_schedule|next_steps.external_response|next_steps.member_action|next_steps.team_review|regions.actions.empty|regions.actions.error|regions.actions.label|regions.actions.loading|regions.case.empty|regions.case.error|regions.case.label|regions.case.loading|regions.updates.empty|regions.updates.error|regions.updates.label|regions.updates.loading|title|warnings.active_in_grace|warnings.grace_expired|warnings.scheduled_cancel';
 
-describe('MemberPortalRuntime boundaries', () => {
-  it('renders accident and generic safe summaries without raw identifiers or tokens', async () => {
+describe('Member portal', () => {
+  it('renders safe summaries', async () => {
     render(await PortalCasesRegion({ copy, promise: Promise.resolve(summaries) }));
     expect(screen.getByRole('heading', { name: 'Case' })).toBeVisible();
     expect(screen.getByRole('article', { name: 'CLM-001' })).toHaveTextContent('Team review');
@@ -76,51 +78,54 @@ describe('MemberPortalRuntime boundaries', () => {
     expect(screen.queryByText('member_action')).not.toBeInTheDocument();
   });
 
-  it('maps every lifecycle bucket to the exact canonical intake action and textual warnings', async () => {
+  it('maps lifecycle actions', async () => {
     for (const bucket of buckets) {
-      const view = render(
-        await PortalActionsRegion({
-          copy,
-          locale: 'sq',
-          promise: Promise.resolve({ bucket }),
-        })
-      );
+      const view = render(await action(bucket, true));
       const inactive = bucket === 'none' || bucket === 'canceled' || bucket === 'grace_expired';
-      expect(screen.getByRole('heading', { name: 'Actions' })).toBeVisible();
-      expect(
-        screen.getByRole('link', { name: new RegExp(`Action ${bucket}`, 'u') })
-      ).toHaveAttribute('href', `/sq/member/claims/new${inactive ? '?mode=drafts' : ''}`);
+      // prettier-ignore
+      expect(screen.getByRole('link', { name: new RegExp(`Action ${bucket}`, 'u') })).toHaveAttribute('href', `/sq/member/claims/new${inactive ? '?mode=drafts' : ''}`);
+      expect(screen.getAllByText('Actions')).toHaveLength(1);
       if (bucket.includes('grace') || bucket === 'scheduled_cancel') {
-        expect(screen.getByText(`Warning ${bucket}`)).toBeVisible();
+        expect(screen.getByRole('status')).toHaveTextContent(`Warning ${bucket}`);
       }
       view.unmount();
     }
+
+    const inactive = render(await action('canceled', false));
+    expect(screen.getByRole('link', { name: /Membership/u })).toHaveAttribute(
+      'href',
+      '/sq/member/membership'
+    );
+    inactive.unmount();
+    render(await action('none', false, true));
+    expect(screen.getByRole('link', { name: /Action active/u })).toHaveAttribute(
+      'href',
+      '/sq/member/claims/new'
+    );
   });
 
-  it('presents recent safe updates and explicit empty, loading, and error states', async () => {
-    const view = render(
-      await PortalUpdatesRegion({ copy, locale: 'en', promise: Promise.resolve(summaries) })
-    );
+  it('renders update boundary states', async () => {
+    // prettier-ignore
+    const view = render(await PortalUpdatesRegion({ copy, locale: 'en', promise: Promise.resolve(summaries) }));
     expect(screen.getByRole('heading', { name: 'Recent case updates' })).toBeVisible();
     expect(screen.getByRole('list', { name: 'Recent case updates' })).toHaveTextContent('CLM-001');
     expect(screen.queryByText('claim-1')).not.toBeInTheDocument();
     view.rerender(await PortalCasesRegion({ copy, promise: Promise.resolve([]) }));
     expect(screen.getByRole('heading', { name: 'Case' })).toBeVisible();
     expect(screen.getByRole('status', { name: 'Case' })).toHaveTextContent('No cases yet');
-    view.rerender(
-      await PortalUpdatesRegion({ copy, locale: 'en', promise: Promise.reject(new Error('no')) })
-    );
-    expect(screen.getByRole('alert', { name: 'Recent case updates' })).toHaveTextContent(
-      'Updates unavailable'
-    );
+    // prettier-ignore
+    view.rerender(await PortalUpdatesRegion({ copy, locale: 'en', promise: Promise.reject(new Error('no')) }));
+    // prettier-ignore
+    expect(screen.getByRole('alert', { name: 'Recent case updates' })).toHaveTextContent('Updates unavailable');
     view.rerender(<MemberPortalRegionBoundary copy={copy.regions.case} state="loading" />);
     expect(screen.getByText('Loading case')).not.toHaveAttribute('role', 'status');
   });
 
-  it('keeps navigation and disclaimer outside three independent server boundaries', async () => {
+  it('keeps navigation outside boundaries', async () => {
     const source = readFileSync(resolve(import.meta.dirname, 'member-portal-runtime.tsx'), 'utf8');
     expect(source.match(/<Suspense\b/gu) ?? []).toHaveLength(3);
-    expect(source).toMatch(/<nav[\s\S]+member-portal-disclaimer[\s\S]+<UnifiedPortalShell/u);
+    expect(source).toMatch(/<nav[\s\S]+member-portal-disclaimer[\s\S]+PortalUi\.Unified/u);
+    expect(source).toContain('<Link href="/member/claims">{copy.navigation.cases}</Link>');
     expect(source).toMatch(/casesPromise[\s\S]+casesPromise[\s\S]+membershipPromise/u);
     expect(source).not.toMatch(
       /@interdomestik\/(?:database|shared-auth)|fetch\(|['"]use client['"]|proxy|middleware/u
@@ -128,11 +133,16 @@ describe('MemberPortalRuntime boundaries', () => {
     expect(MemberPortalRuntime).toBeTypeOf('function');
   });
 
-  it('owns the same complete portal copy contract in exactly four locale catalogs', () => {
+  it('keeps four catalog contracts aligned', () => {
     const portals = [enMessages, mkMessages, sqMessages, srMessages].map(
       ({ dashboard }) => dashboard.portal
     );
-    for (const portal of portals) expect(leafPaths(portal).sort().join('|')).toBe(PORTAL_PATHS);
+    for (const portal of portals) expect(leafPaths(portal).sort().join('|')).toBe(PATHS);
     expect(new Set(portals.map(portal => portal.title))).toHaveLength(4);
+    for (const portal of portals) {
+      expect(portal.warnings.active_in_grace).not.toBe(portal.actions.active_in_grace);
+      expect(portal.warnings.grace_expired).not.toBe(portal.actions.grace_expired);
+      expect(portal.warnings.scheduled_cancel).not.toBe(portal.actions.scheduled_cancel);
+    }
   });
 });

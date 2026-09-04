@@ -1,17 +1,25 @@
 import { expect, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
 import { gotoApp } from './utils/navigation';
+import en from '../src/messages/en/dashboard.json';
+import mk from '../src/messages/mk/dashboard.json';
+import sq from '../src/messages/sq/dashboard.json';
+import sr from '../src/messages/sr/dashboard.json';
 
-test.describe('Member dashboard to claim draft intake', () => {
-  test('renders the current member dashboard shell', async ({
+const CATALOGS = { de: en, en, hr: sr, mk, sq, sr } as const;
+
+test.describe('Unified Member Portal to claim draft intake', () => {
+  test('renders Case to Actions to Recent case updates with persistent routes', async ({
     authenticatedPage: page,
   }, testInfo) => {
     await gotoApp(page, routes.member(testInfo), testInfo, { marker: 'member-dashboard-ready' });
 
-    await expect(page.getByTestId('member-app-header')).toBeVisible();
-    await expect(page.getByTestId('member-welcome-status')).toBeVisible();
-    await expect(page.getByTestId('member-primary-actions')).toBeVisible();
-    await expect(page.getByTestId('trust-strip')).toBeVisible();
+    const portal = page.getByTestId('member-dashboard-ready');
+    const copy = CATALOGS[routes.getLocale(testInfo)].dashboard.portal;
+    await expect(portal.getByRole('navigation').locator('a')).toHaveCount(4);
+    await expect(portal.locator('section[aria-label]').nth(2)).toHaveAccessibleName(
+      copy.regions.updates.label
+    );
   });
 
   test('member can reach the dormant claim draft intake from UI_V2', async ({
@@ -19,12 +27,16 @@ test.describe('Member dashboard to claim draft intake', () => {
   }, testInfo) => {
     await gotoApp(page, routes.member(testInfo), testInfo, { marker: 'member-dashboard-ready' });
 
-    const primaryCta = page.getByTestId('member-primary-actions').locator('a');
-    await expect(primaryCta).toBeVisible();
-    const primaryHref = await primaryCta.getAttribute('href');
-    if (!primaryHref) throw new Error('Expected the member dashboard primary CTA to have an href');
-    await primaryCta.click();
-    await expect(page).toHaveURL(new URL(primaryHref, page.url()).pathname);
+    const actions = page
+      .getByTestId('member-dashboard-ready')
+      .locator('section[aria-label]')
+      .nth(1);
+    const caseAction = actions.getByRole('link').first();
+    await expect(caseAction).toBeVisible();
+    const caseHref = await caseAction.getAttribute('href');
+    if (!caseHref) throw new Error('Expected the Actions region link to have an href');
+    await caseAction.click();
+    await expect(page).toHaveURL(new URL(caseHref, page.url()).pathname);
 
     const memberClaims = routes.memberClaims(testInfo);
     const claimsNav = page.locator(`a[href="${memberClaims}"]:visible`).first();

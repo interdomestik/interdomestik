@@ -21,8 +21,15 @@
       "navigation": {
         "label": "Shortcuts",
         "help_now": "Help Now",
+        "cases": "Cases",
         "documents": "Documents",
         "membership": "Membership"
+      },
+      "next_steps": {
+        "member_action": "Add the requested case details",
+        "team_review": "Our team is reviewing your case",
+        "external_response": "Waiting for an external response",
+        "court_schedule": "Check the court schedule"
       },
       "regions": {
         "case": {
@@ -52,6 +59,11 @@
         "grace_expired": "Draft — grace period ended",
         "scheduled_cancel": "Start a case — membership ending",
         "canceled": "Draft — membership canceled"
+      },
+      "warnings": {
+        "active_in_grace": "Your payment needs attention; access remains active during the grace period.",
+        "grace_expired": "Membership expired; renew before submitting.",
+        "scheduled_cancel": "Your membership is scheduled to end; access may change when the current period finishes."
       }
     },
     "activeClaims": "Active Claims",

@@ -3,9 +3,7 @@ import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 
 test.describe('Agent Member Overlay', () => {
-  test('Agent can open their member dashboard from agent home', async ({
-    agentPage: page,
-  }, testInfo) => {
+  test('Agent opens own member portal', async ({ agentPage: page }, testInfo) => {
     await gotoApp(page, routes.agent(testInfo), testInfo, { marker: 'dashboard-page-ready' });
 
     const cta = page.getByTestId('agent-member-dashboard-cta');
@@ -13,11 +11,13 @@ test.describe('Agent Member Overlay', () => {
     await expect(cta).toHaveAttribute('href', new RegExp(`${routes.member(testInfo)}$`));
 
     await gotoApp(page, routes.member(testInfo), testInfo, { marker: 'dashboard-page-ready' });
-    await expect(page).toHaveURL(new RegExp(`${routes.member(testInfo)}$`));
-    const primaryActions = page.getByTestId('member-primary-actions');
-    await expect(primaryActions).toHaveCount(1);
-    await expect(primaryActions).toBeVisible();
-    await expect(page.getByTestId('member-empty-state')).toBeVisible();
-    await expect(page.getByTestId('member-claims-list')).toHaveCount(0);
+    const portal = page.getByTestId('member-dashboard-ready');
+    const regions = portal.locator('section[aria-label]');
+    await expect(regions).toHaveCount(3);
+    await expect(regions.nth(0).getByRole('status')).toBeVisible();
+    // prettier-ignore
+    await expect(regions.nth(1).getByRole('link')).toHaveAttribute('href', routes.memberNewClaim(testInfo));
+    await expect(regions.nth(2).getByRole('status')).toBeVisible();
+    await expect(portal.getByRole('navigation').locator('a')).toHaveCount(4);
   });
 });

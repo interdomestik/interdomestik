@@ -21,8 +21,15 @@
       "navigation": {
         "label": "Prečice",
         "help_now": "Pomoć sada",
+        "cases": "Slučajevi",
         "documents": "Dokumenti",
         "membership": "Članstvo"
+      },
+      "next_steps": {
+        "member_action": "Dodajte tražene podatke o slučaju",
+        "team_review": "Naš tim pregleda vaš slučaj",
+        "external_response": "Čeka se spoljni odgovor",
+        "court_schedule": "Proverite raspored suda"
       },
       "regions": {
         "case": {
@@ -52,6 +59,11 @@
         "grace_expired": "Nacrt — tolerancija je istekla",
         "scheduled_cancel": "Započnite — članstvo se završava",
         "canceled": "Nacrt — članstvo je otkazano"
+      },
+      "warnings": {
+        "active_in_grace": "Uplata zahteva pažnju; pristup ostaje aktivan tokom perioda tolerancije.",
+        "grace_expired": "Tolerancija je istekla; obnovite članstvo pre slanja.",
+        "scheduled_cancel": "Članstvo je zakazano za prestanak; pristup se može promeniti po završetku tekućeg perioda."
       }
     },
     "activeClaims": "Aktivni zahtevi",
