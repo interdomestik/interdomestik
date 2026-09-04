@@ -31,6 +31,7 @@ const CHILDREN = new Map([
       writerHashes: [
         'a3b7ba9338ba5e453316a55bd499078855c7c911158f43057dc419276d3d749a',
         '9607ebda8ed38b016aefedaec045e22e6ab195b06371d2706ce0f3da9260bf36',
+        '2ad45d3a297b0bc686594f4d2855a38dfbe3c825446ae740682fe7a1fb2d440b',
       ],
       predecessor: {
         sliceId: 'T117B-PORTAL',

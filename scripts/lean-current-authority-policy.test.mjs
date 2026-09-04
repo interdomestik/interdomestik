@@ -94,6 +94,7 @@ const CUTOVER_WRITERS = [
   ...FLOW_E2E.slice(0, 2),
   `${E2E}/golden/member-portal-agent-consumer.spec.ts`,
   ...FLOW_E2E.slice(2),
+  `${WEB}/app/[locale]/(app)/_core.entry.tsx`,
   ENTRY[1],
   ENTRY[0],
   ENTRY[3],
@@ -251,7 +252,7 @@ test('domain_read_projection stays exact and T-116-only', () => {
   rejects(invalid);
 });
 
-test('tier3_portal_runtime accepts only historical T-117B hashes and exact sequential children', () => {
+test('tier3 contract accepts exact historical maps', () => {
   for (const path of ROOT_WRITERS) {
     assert.deepEqual(classify(path, t117b), {
       allowed: true,
