@@ -14,7 +14,9 @@ test.describe('Dashboard Access Verification', () => {
 
     // Dashboard markers
     await expect(page.getByTestId('member-dashboard-ready')).toBeVisible();
-    await expect(page.getByTestId('dashboard-heading')).toBeVisible();
+    await expect(
+      page.getByTestId('member-dashboard-ready').locator('section[aria-label]')
+    ).toHaveCount(3);
   });
 
   test('Agent.ks.a1 should land on /agent and see agent dashboard', async ({

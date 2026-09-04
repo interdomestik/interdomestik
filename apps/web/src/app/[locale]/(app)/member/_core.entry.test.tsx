@@ -1,90 +1,55 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-const hoisted = vi.hoisted(() => ({
-  dashboardSidebarMock: vi.fn(() => null),
-  dashboardHeaderMock: vi.fn(() => null),
-  getSessionSafeMock: vi.fn(async () => ({
-    user: {
-      id: 'agent-1',
-      role: 'agent',
-    },
-  })),
-  requireSessionOrRedirectMock: vi.fn(session => session),
-  redirectMock: vi.fn((url: string) => {
-    throw new Error(`redirect:${url}`);
-  }),
-  getMessagesMock: vi.fn(async () => ({})),
-  pickMessagesMock: vi.fn(() => ({})),
-}));
+// prettier-ignore
+const h = vi.hoisted(() => ({ sidebar: vi.fn(() => null), header: vi.fn(() => null), session: vi.fn(async () => ({ user: { id: 'agent-1', role: 'agent' } })), required: vi.fn(value => value), redirect: vi.fn((url: string) => { throw new Error(`redirect:${url}`); }), messages: vi.fn(async () => ({})), pick: vi.fn(() => ({})), pass: ({ children }: { children: React.ReactNode }) => children }));
 
-vi.mock('next/navigation', () => ({
-  redirect: hoisted.redirectMock,
-}));
-
-vi.mock('next-intl/server', () => ({
-  getMessages: hoisted.getMessagesMock,
-  setRequestLocale: vi.fn(),
-}));
-
-vi.mock('next-intl', () => ({
-  NextIntlClientProvider: ({ children }: { children: React.ReactNode }) => children,
-}));
-
-vi.mock('@/components/shell/session', () => ({
-  getSessionSafe: hoisted.getSessionSafeMock,
-  requireSessionOrRedirect: hoisted.requireSessionOrRedirectMock,
-}));
-
-vi.mock('@/components/shell/navigation-feedback', () => ({
-  NavigationFeedback: ({ children }: { children: React.ReactNode }) => children,
-}));
-
-vi.mock('@/i18n/messages', () => ({
-  APP_NAMESPACES: [],
-  pickMessages: hoisted.pickMessagesMock,
-}));
-
-vi.mock('@interdomestik/ui', () => ({
-  SidebarInset: ({ children }: { children: React.ReactNode }) => children,
-  SidebarProvider: ({ children }: { children: React.ReactNode }) => children,
-}));
-
-vi.mock('@/components/dashboard/dashboard-header', () => ({
-  DashboardHeader: hoisted.dashboardHeaderMock,
-}));
-
-vi.mock('@/components/dashboard/dashboard-sidebar', () => ({
-  DashboardSidebar: hoisted.dashboardSidebarMock,
-}));
+vi.mock('next/navigation', () => ({ redirect: h.redirect }));
+vi.mock('next-intl/server', () => ({ getMessages: h.messages, setRequestLocale: vi.fn() }));
+vi.mock('next-intl', () => ({ NextIntlClientProvider: h.pass }));
+vi.mock('@/lib/auth.server', () => ({ getCachedSession: h.session }));
+vi.mock('@/components/shell/session', () => ({ requireSessionOrRedirect: h.required }));
+vi.mock('@/components/shell/navigation-feedback', () => ({ NavigationFeedback: h.pass }));
+vi.mock('@/i18n/messages', () => ({ APP_NAMESPACES: [], pickMessages: h.pick }));
+vi.mock('@interdomestik/ui', () => ({ SidebarInset: h.pass, SidebarProvider: h.pass }));
+vi.mock('@/components/dashboard/dashboard-header', () => ({ DashboardHeader: h.header }));
+vi.mock('@/components/dashboard/dashboard-sidebar', () => ({ DashboardSidebar: h.sidebar }));
 
 import DashboardLayout from './_core.entry';
 
 describe('MemberDashboard layout role handling', () => {
-  it('allows agents to render the unified member shell', async () => {
-    const tree = await DashboardLayout({
-      children: <div data-testid="child-content" />,
-      params: Promise.resolve({ locale: 'mk' }),
-    });
-
-    expect(tree).not.toBeNull();
-    expect(hoisted.redirectMock).not.toHaveBeenCalled();
+  it('requires the parent app layout to share the request-scoped session source', () => {
+    const source = readFileSync(resolve(import.meta.dirname, '../_core.entry.tsx'), 'utf8');
+    expect(source).toContain('await getCachedSession()');
+    expect(source).not.toMatch(/auth\.api\.getSession|from '@\/lib\/auth'/u);
   });
 
-  it('exercises member scope for an agent entering the member shell', async () => {
+  it('renders agents through the unified member shell', async () => {
     const tree = await DashboardLayout({
-      children: <div data-testid="child-content" />,
+      children: <div />,
       params: Promise.resolve({ locale: 'mk' }),
     });
     render(tree as React.ReactElement);
 
-    expect(hoisted.dashboardSidebarMock).toHaveBeenCalledWith(
+    expect(h.session).toHaveBeenCalledTimes(1);
+    expect(h.sidebar).toHaveBeenCalledWith(
       expect.objectContaining({ user: expect.objectContaining({ role: 'member' }) }),
       undefined
     );
-    expect(hoisted.dashboardHeaderMock).toHaveBeenCalledWith(
+    expect(h.header).toHaveBeenCalledWith(
       expect.objectContaining({ user: expect.objectContaining({ role: 'member' }) }),
       undefined
     );
+  });
+
+  it('redirects staff away before mounting the member shell', async () => {
+    h.session.mockResolvedValueOnce({
+      user: { id: 'staff-1', role: 'staff' },
+    });
+    await expect(
+      DashboardLayout({ children: null, params: Promise.resolve({ locale: 'mk' }) })
+    ).rejects.toThrow('redirect:/mk/staff');
   });
 });

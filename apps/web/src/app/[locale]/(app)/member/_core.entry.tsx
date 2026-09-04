@@ -2,8 +2,9 @@ import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar';
 import { toClientShellUser } from '@/components/shell/client-shell-user';
 import { NavigationFeedback } from '@/components/shell/navigation-feedback';
-import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
+import { requireSessionOrRedirect } from '@/components/shell/session';
 import { APP_NAMESPACES, pickMessages } from '@/i18n/messages';
+import { getCachedSession } from '@/lib/auth.server';
 import { getCanonicalRouteForRole } from '@/lib/canonical-routes';
 import { SidebarInset, SidebarProvider } from '@interdomestik/ui';
 import { NextIntlClientProvider } from 'next-intl';
@@ -22,8 +23,7 @@ export default async function DashboardLayout({
   setRequestLocale(locale);
 
   // 🔒 PROTECTED ROUTE: Check for valid session
-  const session = await getSessionSafe('MemberLayout');
-  const sessionNonNull = requireSessionOrRedirect(session, locale);
+  const sessionNonNull = requireSessionOrRedirect(await getCachedSession(), locale);
 
   if (process.env.PLAYWRIGHT === '1' || process.env.INTERDOMESTIK_AUTOMATED === '1') {
     console.log('[E2E Debug] Member Layout Session:', {

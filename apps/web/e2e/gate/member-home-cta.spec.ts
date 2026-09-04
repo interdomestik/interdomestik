@@ -1,173 +1,125 @@
+// prettier-ignore
+import { account, db, E2E_PASSWORD, eq, session as authSession, subscriptions, user } from '@interdomestik/database';
+import { randomUUID } from 'node:crypto';
+import type { Page, TestInfo } from '@playwright/test';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
+import en from '../../src/messages/en/dashboard.json';
+import mk from '../../src/messages/mk/dashboard.json';
+import sq from '../../src/messages/sq/dashboard.json';
+import sr from '../../src/messages/sr/dashboard.json';
 
-const MEMBER_HOME_MARKER_TIMEOUT_MS = 30000;
-const DASHBOARD_HIERARCHY_VIEWPORTS = [
-  { name: 'mobile 360', width: 360, height: 740 },
-  { name: 'mobile 390', width: 390, height: 844 },
-  { name: 'mobile 430', width: 430, height: 932 },
-] as const;
+// prettier-ignore
+const VIEWPORTS = [[320, 740], [768, 1024], [1440, 1000]] as const;
+const CATALOGS = { de: sq, en, hr: sq, mk, sq, sr } as const;
+const portalCopy = (testInfo: TestInfo) => CATALOGS[routes.getLocale(testInfo)].dashboard.portal;
 
-test.describe('Strict Gate: Member Home Crystal UI', () => {
-  test('Member can navigate via the member home CTAs', async ({
+// prettier-ignore
+const openPortal = async (page: Page, testInfo: TestInfo) => gotoApp(page, routes.member(testInfo), testInfo, { marker: 'member-dashboard-ready' });
+
+test.describe('Unified Member Portal', () => {
+  test('renders canonical regions and navigation', async ({
     authenticatedPage: page,
   }, testInfo) => {
-    const clickCtaAndAssertNavigation = async (
-      ctaTestId: string,
-      urlPattern: RegExp,
-      readyMarker: string,
-      primaryHref: string
-    ) => {
-      const cta = page.getByTestId(ctaTestId).first();
-      await cta.scrollIntoViewIfNeeded();
-      await expect(cta).toBeVisible();
+    await openPortal(page, testInfo);
+    const copy = portalCopy(testInfo);
+    const portal = page.getByTestId('member-dashboard-ready').first();
+    const regions = portal.locator('section[aria-label]');
 
-      const href = await cta.getAttribute('href');
-      expect(href, `${ctaTestId} must define href`).toBeTruthy();
-
-      const navToTarget = page
-        .waitForURL(urlPattern, { timeout: 7_000, waitUntil: 'commit' })
-        .then(() => true)
-        .catch(() => false);
-
-      await cta.click();
-
-      const reachedTarget = await navToTarget;
-      const markerVisible = await page
-        .getByTestId(readyMarker)
-        .first()
-        .isVisible({ timeout: 5_000 })
-        .catch(() => false);
-
-      if (!reachedTarget || !markerVisible) {
-        await gotoApp(page, href!, testInfo, { marker: readyMarker });
-      }
-
-      await expect(page.getByText('Placeholder content.')).toHaveCount(0);
-      await expect(page.locator(`a[href*="${primaryHref}"]`).first()).toBeVisible();
-    };
-
-    // 1. Go to Member Home
-    await gotoApp(page, routes.member(test.info()), testInfo, {
-      marker: 'member-dashboard-ready',
-      markerTimeoutMs: MEMBER_HOME_MARKER_TIMEOUT_MS,
-    });
-
-    // Assert we are on the dashboard
-    await expect(page.getByTestId('member-dashboard-ready').first()).toBeVisible();
-    const resolvedHeroCta = page.getByTestId(/^hero-cta-/).first();
-    await expect(resolvedHeroCta).toBeVisible();
-    await expect(resolvedHeroCta).toHaveAttribute('href', /\/member\/(membership|claims)/);
-
-    // 2. Report CTA
-    await clickCtaAndAssertNavigation(
-      'home-cta-report',
-      /\/claim-report/,
-      'report-page-ready',
-      '/member/claims/new'
-    );
-
-    // Back to home
-    await gotoApp(page, routes.member(test.info()), testInfo, {
-      marker: 'member-dashboard-ready',
-      markerTimeoutMs: MEMBER_HOME_MARKER_TIMEOUT_MS,
-    });
-    await expect(page.getByTestId('member-dashboard-ready').first()).toBeVisible();
-
-    // 3. Green Card CTA
-    await clickCtaAndAssertNavigation(
-      'home-cta-green-card',
-      /\/green-card/,
-      'green-card-page-ready',
-      '/member/diaspora'
-    );
-
-    // Back to home
-    await gotoApp(page, routes.member(test.info()), testInfo, {
-      marker: 'member-dashboard-ready',
-      markerTimeoutMs: MEMBER_HOME_MARKER_TIMEOUT_MS,
-    });
-    await expect(page.getByTestId('member-dashboard-ready').first()).toBeVisible();
-
-    // 4. Benefits CTA
-    await clickCtaAndAssertNavigation(
-      'home-cta-benefits',
-      /\/benefits/,
-      'benefits-page-ready',
-      '/member/membership'
-    );
+    await expect(regions.nth(0)).toHaveAccessibleName(copy.regions.case.label);
+    await expect(regions.nth(1)).toHaveAccessibleName(copy.regions.actions.label);
+    await expect(regions.nth(2)).toHaveAccessibleName(copy.regions.updates.label);
+    const navigation = portal.getByRole('navigation');
+    // prettier-ignore
+    const hrefs = [`/${routes.getLocale(testInfo)}/help-now`, `${routes.member(testInfo)}/claims`, `${routes.member(testInfo)}/documents`, `${routes.member(testInfo)}/membership`];
+    await expect(navigation.locator('a')).toHaveCount(hrefs.length);
+    // prettier-ignore
+    for (const [index, href] of hrefs.entries())
+      await expect(navigation.locator('a').nth(index)).toHaveAttribute('href', new RegExp(`${href}$`));
   });
 
-  for (const viewport of DASHBOARD_HIERARCHY_VIEWPORTS) {
-    test(`Member dashboard hierarchy stays task-first at ${viewport.name}`, async ({
-      authenticatedPage: page,
-    }, testInfo) => {
-      await page.setViewportSize({ width: viewport.width, height: viewport.height });
-      await gotoApp(page, routes.member(test.info()), testInfo, {
-        marker: 'member-dashboard-ready',
-        markerTimeoutMs: MEMBER_HOME_MARKER_TIMEOUT_MS,
-      });
+  test('maps actions', async ({ page }, testInfo) => {
+    const copy = portalCopy(testInfo);
+    const tenantId = testInfo.project.name.includes('mk') ? 'tenant_mk' : 'tenant_ks';
+    const subId = `t117b-${testInfo.project.name}-${testInfo.workerIndex}-${testInfo.retry}-${randomUUID()}`;
+    const email = `${subId}@example.com`;
+    const origin = new URL(String(testInfo.project.use.baseURL)).origin;
+    let uid: string | null = null;
+    const where = eq(subscriptions.id, subId);
+    // prettier-ignore
+    const set = (values: { status: 'active' | 'canceled' | 'past_due' | 'trialing'; cancelAtPeriodEnd?: boolean; gracePeriodEndsAt?: Date | null }) => db.update(subscriptions).set({ cancelAtPeriodEnd: false, gracePeriodEndsAt: null, ...values }).where(where);
+    const actions = () =>
+      page.getByTestId('member-dashboard-ready').locator('section[aria-label]').nth(1);
+    const membership = `${routes.member(testInfo)}/membership`;
+    // prettier-ignore
+    const state = async (values: Parameters<typeof set>[0], label: string | null, warning: string | null = null, href = routes.memberNewClaim(testInfo)) => {
+      await set(values); await page.reload();
+      if (label) await expect(actions()).toContainText(label);
+      if (warning) await expect(actions()).toContainText(warning);
+      await expect(actions().getByRole('link')).toHaveAttribute('href', new RegExp(`${href}$`));
+    };
+    try {
+      // prettier-ignore
+      const signup = await page.request.post(`${origin}/api/auth/sign-up/email`, { data: { email, name: 'T117B lifecycle', onboarding: { mode: 'resolved', tenant: tenantId }, password: E2E_PASSWORD }, headers: { Origin: origin, Referer: `${origin}/register` } });
+      if (!signup.ok()) throw new Error(`T117B signup failed: ${await signup.text()}`);
+      // prettier-ignore
+      const member = (await signup.json()).user as { branchId: string | null; id: string; tenantId: string };
+      uid = member.id;
+      // prettier-ignore
+      await db.insert(subscriptions).values({ branchId: member.branchId, id: subId, planId: 'standard', status: 'active', tenantId: member.tenantId, userId: member.id });
+      await openPortal(page, testInfo);
+      await expect(actions()).toContainText(copy.actions.active);
 
-      const dashboard = page.getByTestId('member-dashboard-ready').first();
-      const priorityRegion = dashboard.getByTestId('member-dashboard-priority-region');
-      const secondaryRegion = dashboard.getByTestId('member-dashboard-secondary-region');
+      await state({ status: 'trialing' }, copy.actions.trialing);
+      // prettier-ignore
+      await state({ status: 'past_due', gracePeriodEndsAt: new Date(Date.now() + 86_400_000) }, copy.actions.active_in_grace, copy.warnings.active_in_grace);
+      // prettier-ignore
+      await state({ status: 'past_due', gracePeriodEndsAt: new Date(Date.now() - 86_400_000) }, null, copy.warnings.grace_expired, membership);
+      // prettier-ignore
+      await state({ status: 'active', cancelAtPeriodEnd: true }, copy.actions.scheduled_cancel, copy.warnings.scheduled_cancel);
+      await state({ status: 'canceled' }, null, null, membership);
+    } finally {
+      await db.delete(subscriptions).where(where);
+      // prettier-ignore
+      uid ??= (await db.query.user.findFirst({ columns: { id: true }, where: eq(user.email, email) }))?.id ?? null;
+      if (uid) {
+        await db.delete(authSession).where(eq(authSession.userId, uid));
+        await db.delete(account).where(eq(account.userId, uid));
+        await db.delete(user).where(eq(user.id, uid));
+      }
+    }
+  });
 
-      await expect(dashboard).toBeVisible();
-      await expect(priorityRegion).toBeVisible();
-      await expect(secondaryRegion).toBeVisible();
-      await expect(dashboard.getByTestId('dashboard-heading')).toBeVisible();
-      await expect(dashboard.getByTestId('member-primary-actions')).toBeVisible();
-      await expect(dashboard.getByTestId('member-hero-value-row')).toBeVisible();
+  for (const [width, height] of VIEWPORTS) {
+    test(`keeps reflow and targets: ${width}`, async ({ authenticatedPage: page }, testInfo) => {
+      await page.setViewportSize({ width, height });
+      await openPortal(page, testInfo);
+      const portal = page.getByTestId('member-dashboard-ready').first();
+      const regions = portal.locator('section[aria-label]');
+      const links = portal.locator('a:visible');
+      // prettier-ignore
+      const settled = ['article,[role="status"],[role="alert"]', 'a', 'li,[role="status"],[role="alert"]'];
+      for (const [index, selector] of settled.entries())
+        await expect(regions.nth(index).locator(selector).first()).toBeVisible();
 
-      const heroProof = await dashboard.evaluate(element => {
-        const valueRow = element.querySelector('[data-testid="member-hero-value-row"]');
-        const actions = element.querySelector('[data-testid="member-primary-actions"]');
-        const primaryCta = element.querySelector('[data-testid^="hero-cta-"]');
-        const viewportHeight = window.innerHeight;
+      // prettier-ignore
+      expect(await portal.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+      // prettier-ignore
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+      // prettier-ignore
+      expect(await links.evaluateAll(nodes => nodes.every(node => { const box = node.getBoundingClientRect(); return box.height >= 44 && box.width >= 44; }))).toBe(true);
 
-        return {
-          primaryCtaCount: element.querySelectorAll('[data-testid^="hero-cta-"]').length,
-          valueRowBottom: valueRow?.getBoundingClientRect().bottom ?? Number.POSITIVE_INFINITY,
-          actionsBottom: actions?.getBoundingClientRect().bottom ?? Number.POSITIVE_INFINITY,
-          primaryCtaBottom: primaryCta?.getBoundingClientRect().bottom ?? Number.POSITIVE_INFINITY,
-          viewportHeight,
-        };
-      });
-      expect(heroProof.primaryCtaCount).toBe(1);
-      expect(heroProof.valueRowBottom).toBeLessThanOrEqual(heroProof.viewportHeight);
-      expect(heroProof.actionsBottom).toBeLessThanOrEqual(heroProof.viewportHeight);
-      expect(heroProof.primaryCtaBottom).toBeLessThanOrEqual(heroProof.viewportHeight);
-
-      const priorityPrecedesSecondary = await dashboard.evaluate(element => {
-        const priority = element.querySelector('[data-testid="member-dashboard-priority-region"]');
-        const secondary = element.querySelector(
-          '[data-testid="member-dashboard-secondary-region"]'
-        );
-
-        return Boolean(
-          priority &&
-          secondary &&
-          priority.compareDocumentPosition(secondary) & Node.DOCUMENT_POSITION_FOLLOWING
-        );
-      });
-      expect(priorityPrecedesSecondary).toBe(true);
-
-      const dashboardHasHorizontalOverflow = await dashboard.evaluate(
-        element => element.scrollWidth > element.clientWidth + 1
-      );
-      expect(dashboardHasHorizontalOverflow).toBe(false);
-
-      const firstServiceCardClass = await dashboard
-        .getByTestId('member-service-ecosystem-card')
-        .first()
-        .getAttribute('class');
-      expect(firstServiceCardClass ?? '').not.toContain('cursor-pointer');
-      expect(firstServiceCardClass ?? '').not.toContain('hover:-translate-y-1');
-      expect(firstServiceCardClass ?? '').not.toContain('hover:shadow-xl');
-      await expect(
-        dashboard.getByRole('button', { name: /explore|истражи|eksploro|istraži/i })
-      ).toHaveCount(0);
+      const nav = portal.getByRole('navigation');
+      const help = nav.locator('a').nth(0);
+      const cases = nav.locator('a').nth(1);
+      const docs = nav.locator('a').nth(2);
+      await help.focus();
+      await expect(help).toBeFocused();
+      await page.keyboard.press('Tab');
+      await expect(cases).toBeFocused();
+      await page.keyboard.press('Tab');
+      await expect(docs).toBeFocused();
     });
   }
 });
