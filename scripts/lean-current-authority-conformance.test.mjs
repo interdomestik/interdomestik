@@ -59,6 +59,8 @@ test('authority concerns remain split into bounded cohesive repo modules', () =>
     lifecycle: 'lean-current-authority-lifecycle.mjs',
     closeout: 'lean-current-authority-closeout.mjs',
     git: 'lean-current-authority-git.mjs',
+    observation: 'lean-current-authority-observation.mjs',
+    recovery: 'lean-current-authority-recovery.mjs',
     history: 'lean-current-authority-history.mjs',
     evidence: 'lean-current-authority-evidence.mjs',
   };
@@ -75,6 +77,8 @@ test('authority concerns remain split into bounded cohesive repo modules', () =>
   assert.doesNotMatch(sources.policy, /execFileSync|resolveAuthority/u);
   assert.doesNotMatch(sources.lifecycle, /execFileSync|readFileSync/u);
   assert.match(sources.git, /execFileSync/u);
+  assert.doesNotMatch(sources.recovery, /execFileSync|readFileSync|resolveAuthority/u);
+  assert.doesNotMatch(sources.observation, /execFileSync|readFileSync/u);
   assert.doesNotMatch(sources.history, /execFileSync|readFileSync/u);
   assert.match(sources.evidence, /resolveRepositoryAuthority/u);
   assert.match(sources.evidence, /transition\.kind === 'closeout_recorded'/u);

@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 56565,
+      "trackedBytesDelta": 59058,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 25627,
+        "config/data/messages": 28120,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 25627,
+        "scripts/repo-size-budget.json": 28120,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -61,40 +61,43 @@
       "id": "lean-compatibility-repair",
       "mode": "bounded",
       "writerPaths": [
-        "scripts/lean-current-authority-policy.mjs",
-        "scripts/lean-current-authority-lifecycle.mjs",
-        "scripts/lean-current-authority-git.mjs",
-        "scripts/lean-current-authority-pull-selection.mjs",
-        "scripts/lean-current-authority-history.mjs",
-        "scripts/lean-current-authority-evidence.mjs",
-        "scripts/lean-current-authority-policy.test.mjs",
-        "scripts/lean-current-authority.test.mjs",
-        "scripts/lean-current-authority-evidence.test.mjs",
-        "scripts/lean-current-authority-pull-selection.test.mjs",
+        "scripts/check-modularity-guard.test.mjs",
         "scripts/lean-current-authority-conformance.test.mjs",
-        "scripts/modularity-guard-policy.mjs",
-        "scripts/check-modularity-guard.test.mjs"
+        "scripts/lean-current-authority-evidence.mjs",
+        "scripts/lean-current-authority-evidence.test.mjs",
+        "scripts/lean-current-authority-git.mjs",
+        "scripts/lean-current-authority-history.mjs",
+        "scripts/lean-current-authority-lifecycle.mjs",
+        "scripts/lean-current-authority-observation.mjs",
+        "scripts/lean-current-authority-policy.mjs",
+        "scripts/lean-current-authority-policy.test.mjs",
+        "scripts/lean-current-authority-pull-selection.mjs",
+        "scripts/lean-current-authority-pull-selection.test.mjs",
+        "scripts/lean-current-authority-recovery.mjs",
+        "scripts/lean-current-authority-recovery.test.mjs",
+        "scripts/lean-current-authority.test.mjs",
+        "scripts/modularity-guard-policy.mjs"
       ],
-      "maxTrackedBytesDelta": 24181,
-      "maxTrackedFilesDelta": 2,
-      "maxCategoryBytesDelta": {
-        "source/scripts": 9474,
-        "tests/e2e": 14707
-      },
+      "maxTrackedBytesDelta": 43016,
+      "maxTrackedFilesDelta": 5,
+      "maxCategoryBytesDelta": { "source/scripts": 18912, "tests/e2e": 24104 },
       "maxPathBytesDelta": {
         "scripts/lean-current-authority-policy.mjs": 487,
-        "scripts/lean-current-authority-lifecycle.mjs": 1111,
-        "scripts/lean-current-authority-git.mjs": 2745,
+        "scripts/lean-current-authority-lifecycle.mjs": 461,
+        "scripts/lean-current-authority-git.mjs": 1029,
         "scripts/lean-current-authority-pull-selection.mjs": 3270,
         "scripts/lean-current-authority-history.mjs": 4548,
-        "scripts/lean-current-authority-evidence.mjs": 606,
+        "scripts/lean-current-authority-evidence.mjs": 220,
         "scripts/lean-current-authority-policy.test.mjs": 7782,
-        "scripts/lean-current-authority.test.mjs": 1169,
-        "scripts/lean-current-authority-evidence.test.mjs": 793,
+        "scripts/lean-current-authority.test.mjs": 390,
+        "scripts/lean-current-authority-evidence.test.mjs": 355,
         "scripts/lean-current-authority-pull-selection.test.mjs": 2493,
-        "scripts/lean-current-authority-conformance.test.mjs": 2986,
+        "scripts/lean-current-authority-conformance.test.mjs": 3260,
         "scripts/modularity-guard-policy.mjs": 344,
-        "scripts/check-modularity-guard.test.mjs": 738
+        "scripts/check-modularity-guard.test.mjs": 738,
+        "scripts/lean-current-authority-recovery.mjs": 6810,
+        "scripts/lean-current-authority-recovery.test.mjs": 9126,
+        "scripts/lean-current-authority-observation.mjs": 2045
       }
     },
     {
@@ -104,15 +107,12 @@
         "docs/plans/2026-08-25-t118-design-system-design.md",
         "docs/plans/2026-08-25-t118-design-system-admission.json"
       ],
-      "maxTrackedBytesDelta": 29634,
+      "maxTrackedBytesDelta": 27753,
       "maxTrackedFilesDelta": 2,
-      "maxCategoryBytesDelta": {
-        "config/data/messages": 10248,
-        "docs/text": 19386
-      },
+      "maxCategoryBytesDelta": { "config/data/messages": 9687, "docs/text": 18066 },
       "maxPathBytesDelta": {
-        "docs/plans/2026-08-25-t118-design-system-design.md": 19386,
-        "docs/plans/2026-08-25-t118-design-system-admission.json": 10248
+        "docs/plans/2026-08-25-t118-design-system-design.md": 18066,
+        "docs/plans/2026-08-25-t118-design-system-admission.json": 9687
       }
     },
     {
@@ -129,13 +129,13 @@
         "apps/web/src/components/dashboard/crystal-primitives.test.tsx",
         "apps/web/src/components/dashboard/crystal-boundary.test.ts"
       ],
-      "maxTrackedBytesDelta": 30566,
+      "maxTrackedBytesDelta": 27909,
       "maxTrackedFilesDelta": 9,
       "maxCategoryBytesDelta": {
-        "docs/text": 9157,
+        "docs/text": 9134,
         "config/data/messages": 8504,
-        "source/scripts": 9294,
-        "tests/e2e": 3611
+        "source/scripts": 6786,
+        "tests/e2e": 3485
       },
       "maxPathBytesDelta": {
         "docs/plans/2026-08-26-t118-crystal-primitives-design-gate.md": 9157,
@@ -161,13 +161,13 @@
         "packages/ui/src/index.ts",
         "apps/web/src/components/dashboard/unified-portal-shell.test.tsx"
       ],
-      "maxTrackedBytesDelta": 23615,
+      "maxTrackedBytesDelta": 22927,
       "maxTrackedFilesDelta": 6,
       "maxCategoryBytesDelta": {
-        "docs/text": 8877,
-        "config/data/messages": 8277,
-        "source/scripts": 4304,
-        "tests/e2e": 2157
+        "docs/text": 8810,
+        "config/data/messages": 8233,
+        "source/scripts": 3736,
+        "tests/e2e": 2148
       },
       "maxPathBytesDelta": {
         "docs/plans/2026-08-27-t117a-unified-portal-shell-design-gate.md": 8877,
@@ -188,13 +188,13 @@
         "docs/plans/current-program.md",
         "docs/plans/current-tracker.md"
       ],
-      "maxTrackedBytesDelta": 26913,
+      "maxTrackedBytesDelta": 25052,
       "maxTrackedFilesDelta": 2,
       "maxCategoryBytesDelta": {
-        "config/data/messages": 9746,
-        "docs/text": 15767,
-        "large support/generated-ish": 1180,
-        "source/scripts": 220,
+        "config/data/messages": 9674,
+        "docs/text": 14878,
+        "large support/generated-ish": 500,
+        "source/scripts": 0,
         "tests/e2e": 0
       },
       "maxPathBytesDelta": {
@@ -213,10 +213,7 @@
       ],
       "maxTrackedBytesDelta": 27188,
       "maxTrackedFilesDelta": 2,
-      "maxCategoryBytesDelta": {
-        "config/data/messages": 13021,
-        "docs/text": 14167
-      },
+      "maxCategoryBytesDelta": { "config/data/messages": 13021, "docs/text": 14167 },
       "maxPathBytesDelta": {
         "docs/plans/2026-08-28-t117b-portal-runtime-design-gate.md": 14167,
         "docs/plans/2026-08-28-t117b-portal-runtime-admission.json": 13021
@@ -240,14 +237,14 @@
         "packages/domain-member/src/portal-runtime/get-member-portal-membership.ts",
         "pnpm-lock.yaml"
       ],
-      "maxTrackedBytesDelta": 29057,
+      "maxTrackedBytesDelta": 28727,
       "maxTrackedFilesDelta": 9,
       "maxCategoryBytesDelta": {
-        "config/data/messages": 7072,
-        "docs/text": 3200,
-        "large support/generated-ish": 417,
+        "config/data/messages": 7068,
+        "docs/text": 3190,
+        "large support/generated-ish": 132,
         "source/scripts": 8538,
-        "tests/e2e": 9830
+        "tests/e2e": 9799
       },
       "maxPathBytesDelta": {
         "scripts/lean-exact-writer-exceptions.mjs": 3242,
@@ -323,13 +320,13 @@
         "apps/web/src/messages/sq/dashboard.json",
         "apps/web/src/messages/sr/dashboard.json"
       ],
-      "maxTrackedBytesDelta": 42775,
+      "maxTrackedBytesDelta": 42188,
       "maxTrackedFilesDelta": 5,
       "maxCategoryBytesDelta": {
-        "config/data/messages": 16254,
-        "docs/text": 2949,
-        "source/scripts": 7671,
-        "tests/e2e": 15901
+        "config/data/messages": 16229,
+        "docs/text": 2824,
+        "source/scripts": 7660,
+        "tests/e2e": 15475
       },
       "maxPathBytesDelta": {
         "docs/plans/2026-08-28-t117b-cutover-design-gate.md": 2949,
@@ -381,6 +378,9 @@
         "scripts/ci/z620-parity.json",
         "scripts/slice-rehearse-authority-boundary.mjs",
         "scripts/slice-rehearse-authority-boundary.test.mjs",
+        "scripts/slice-rehearse-bootstrap-fixtures.mjs",
+        "scripts/slice-rehearse-bootstrap.mjs",
+        "scripts/slice-rehearse-bootstrap.test.mjs",
         "scripts/slice-rehearse-canonical.mjs",
         "scripts/slice-rehearse-capacity-existing.mjs",
         "scripts/slice-rehearse-capacity-fixed-point.mjs",
@@ -390,10 +390,13 @@
         "scripts/slice-rehearse-capacity-stops.test.mjs",
         "scripts/slice-rehearse-capacity.mjs",
         "scripts/slice-rehearse-cleanup.test.mjs",
+        "scripts/slice-rehearse-cli-fixtures.mjs",
         "scripts/slice-rehearse-cli-safety.test.mjs",
         "scripts/slice-rehearse-cli.test.mjs",
         "scripts/slice-rehearse-core.mjs",
         "scripts/slice-rehearse-deferred-operations.test.mjs",
+        "scripts/slice-rehearse-diagnostics.mjs",
+        "scripts/slice-rehearse-diagnostics.test.mjs",
         "scripts/slice-rehearse-envelope.mjs",
         "scripts/slice-rehearse-envelope.test.mjs",
         "scripts/slice-rehearse-evaluator.mjs",
@@ -401,8 +404,11 @@
         "scripts/slice-rehearse-evidence.test.mjs",
         "scripts/slice-rehearse-facts.test.mjs",
         "scripts/slice-rehearse-git-facts.mjs",
+        "scripts/slice-rehearse-github-evidence-fixtures.mjs",
         "scripts/slice-rehearse-github-evidence.mjs",
         "scripts/slice-rehearse-github-evidence.test.mjs",
+        "scripts/slice-rehearse-host.mjs",
+        "scripts/slice-rehearse-host.test.mjs",
         "scripts/slice-rehearse-init-cli.mjs",
         "scripts/slice-rehearse-init-cli.test.mjs",
         "scripts/slice-rehearse-init.mjs",
@@ -417,6 +423,11 @@
         "scripts/slice-rehearse-operation-facts.mjs",
         "scripts/slice-rehearse-operation-facts.test.mjs",
         "scripts/slice-rehearse-operation-live.mjs",
+        "scripts/slice-rehearse-operation-recovery-fixtures.mjs",
+        "scripts/slice-rehearse-operation-recovery.mjs",
+        "scripts/slice-rehearse-operation-recovery.test.mjs",
+        "scripts/slice-rehearse-operation-registry.mjs",
+        "scripts/slice-rehearse-operation-registry.test.mjs",
         "scripts/slice-rehearse-operation-schema.mjs",
         "scripts/slice-rehearse-operations.test.mjs",
         "scripts/slice-rehearse-ops-cli.mjs",
@@ -424,6 +435,11 @@
         "scripts/slice-rehearse-ops.test.mjs",
         "scripts/slice-rehearse-projection.test.mjs",
         "scripts/slice-rehearse-proof-execution-cli.test.mjs",
+        "scripts/slice-rehearse-proof-executor.mjs",
+        "scripts/slice-rehearse-proof-failure.test.mjs",
+        "scripts/slice-rehearse-proof-ledger.mjs",
+        "scripts/slice-rehearse-proof-obligations.mjs",
+        "scripts/slice-rehearse-proof-obligations.test.mjs",
         "scripts/slice-rehearse-proof-plan.mjs",
         "scripts/slice-rehearse-proof-plan.test.mjs",
         "scripts/slice-rehearse-report.mjs",
@@ -446,13 +462,13 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 509482,
-      "maxTrackedFilesDelta": 69,
+      "maxTrackedBytesDelta": 629772,
+      "maxTrackedFilesDelta": 88,
       "maxCategoryBytesDelta": {
         "config/data/messages": 1000,
         "docs/text": 30439,
-        "source/scripts": 252654,
-        "tests/e2e": 225389
+        "source/scripts": 328396,
+        "tests/e2e": 269937
       },
       "maxPathBytesDelta": {
         ".github/workflows/ci.yml": 24,
@@ -475,6 +491,8 @@
         "scripts/ci/z620-parity.json": 0,
         "scripts/slice-rehearse-authority-boundary.mjs": 2932,
         "scripts/slice-rehearse-authority-boundary.test.mjs": 2733,
+        "scripts/slice-rehearse-bootstrap.mjs": 9662,
+        "scripts/slice-rehearse-bootstrap.test.mjs": 11100,
         "scripts/slice-rehearse-canonical.mjs": 6973,
         "scripts/slice-rehearse-capacity-existing.mjs": 6322,
         "scripts/slice-rehearse-capacity-fixed-point.mjs": 7475,
@@ -484,42 +502,42 @@
         "scripts/slice-rehearse-capacity-stops.test.mjs": 11068,
         "scripts/slice-rehearse-capacity.mjs": 9274,
         "scripts/slice-rehearse-cleanup.test.mjs": 8728,
-        "scripts/slice-rehearse-cli-safety.test.mjs": 9905,
+        "scripts/slice-rehearse-cli-safety.test.mjs": 10519,
         "scripts/slice-rehearse-cli.test.mjs": 10076,
         "scripts/slice-rehearse-core.mjs": 8032,
         "scripts/slice-rehearse-deferred-operations.test.mjs": 3456,
         "scripts/slice-rehearse-envelope.mjs": 7366,
         "scripts/slice-rehearse-envelope.test.mjs": 4292,
-        "scripts/slice-rehearse-evaluator.mjs": 6441,
+        "scripts/slice-rehearse-evaluator.mjs": 7421,
         "scripts/slice-rehearse-evidence.mjs": 7456,
         "scripts/slice-rehearse-evidence.test.mjs": 9802,
         "scripts/slice-rehearse-facts.test.mjs": 11136,
-        "scripts/slice-rehearse-git-facts.mjs": 7542,
-        "scripts/slice-rehearse-github-evidence.mjs": 7576,
-        "scripts/slice-rehearse-github-evidence.test.mjs": 9231,
+        "scripts/slice-rehearse-git-facts.mjs": 10356,
+        "scripts/slice-rehearse-github-evidence.mjs": 8377,
+        "scripts/slice-rehearse-github-evidence.test.mjs": 6612,
         "scripts/slice-rehearse-init-cli.mjs": 5730,
         "scripts/slice-rehearse-init-cli.test.mjs": 3906,
         "scripts/slice-rehearse-init.mjs": 4007,
         "scripts/slice-rehearse-init.test.mjs": 3913,
-        "scripts/slice-rehearse-invalidation.test.mjs": 6546,
+        "scripts/slice-rehearse-invalidation.test.mjs": 6987,
         "scripts/slice-rehearse-manifest-identity.mjs": 1258,
-        "scripts/slice-rehearse-operation-authority.test.mjs": 9308,
-        "scripts/slice-rehearse-operation-certificate.mjs": 10386,
+        "scripts/slice-rehearse-operation-authority.test.mjs": 9286,
+        "scripts/slice-rehearse-operation-certificate.mjs": 10885,
         "scripts/slice-rehearse-operation-cli.test.mjs": 7790,
         "scripts/slice-rehearse-operation-contracts.mjs": 7828,
         "scripts/slice-rehearse-operation-facts-schema.mjs": 7245,
         "scripts/slice-rehearse-operation-facts.mjs": 8328,
         "scripts/slice-rehearse-operation-facts.test.mjs": 6443,
-        "scripts/slice-rehearse-operation-live.mjs": 11367,
+        "scripts/slice-rehearse-operation-live.mjs": 11395,
         "scripts/slice-rehearse-operation-schema.mjs": 7557,
         "scripts/slice-rehearse-operations.test.mjs": 6269,
         "scripts/slice-rehearse-ops-cli.mjs": 3996,
-        "scripts/slice-rehearse-ops.mjs": 9637,
-        "scripts/slice-rehearse-ops.test.mjs": 11998,
+        "scripts/slice-rehearse-ops.mjs": 5122,
+        "scripts/slice-rehearse-ops.test.mjs": 10127,
         "scripts/slice-rehearse-projection.test.mjs": 11006,
-        "scripts/slice-rehearse-proof-execution-cli.test.mjs": 6600,
-        "scripts/slice-rehearse-proof-plan.mjs": 12429,
-        "scripts/slice-rehearse-proof-plan.test.mjs": 10265,
+        "scripts/slice-rehearse-proof-execution-cli.test.mjs": 7689,
+        "scripts/slice-rehearse-proof-plan.mjs": 5157,
+        "scripts/slice-rehearse-proof-plan.test.mjs": 8547,
         "scripts/slice-rehearse-report.mjs": 9628,
         "scripts/slice-rehearse-report.test.mjs": 7440,
         "scripts/slice-rehearse-repository-facts.mjs": 8307,
@@ -527,7 +545,7 @@
         "scripts/slice-rehearse-review-parity.mjs": 8098,
         "scripts/slice-rehearse-review-parity.test.mjs": 4650,
         "scripts/slice-rehearse-writer-policy.mjs": 7064,
-        "scripts/slice-rehearse.mjs": 6742,
+        "scripts/slice-rehearse.mjs": 11001,
         "scripts/slice-rehearse.test.mjs": 10521,
         "scripts/slice-telemetry-aggregation.mjs": 5353,
         "scripts/slice-telemetry-overflow.test.mjs": 4236,
@@ -538,28 +556,42 @@
         "scripts/slice-telemetry-v2.mjs": 1282,
         "scripts/slice-telemetry-v2.test.mjs": 5002,
         "scripts/slice-telemetry.mjs": 6015,
-        "scripts/slice-telemetry.test.mjs": 8776
+        "scripts/slice-telemetry.test.mjs": 8776,
+        "scripts/slice-rehearse-bootstrap-fixtures.mjs": 6696,
+        "scripts/slice-rehearse-cli-fixtures.mjs": 3486,
+        "scripts/slice-rehearse-operation-recovery.mjs": 8326,
+        "scripts/slice-rehearse-operation-recovery.test.mjs": 9512,
+        "scripts/slice-rehearse-operation-recovery-fixtures.mjs": 4554,
+        "scripts/slice-rehearse-host.mjs": 9923,
+        "scripts/slice-rehearse-host.test.mjs": 5675,
+        "scripts/slice-rehearse-diagnostics.mjs": 8220,
+        "scripts/slice-rehearse-diagnostics.test.mjs": 10737,
+        "scripts/slice-rehearse-github-evidence-fixtures.mjs": 3797,
+        "scripts/slice-rehearse-operation-registry.mjs": 7569,
+        "scripts/slice-rehearse-operation-registry.test.mjs": 4147,
+        "scripts/slice-rehearse-proof-executor.mjs": 6277,
+        "scripts/slice-rehearse-proof-failure.test.mjs": 8228,
+        "scripts/slice-rehearse-proof-ledger.mjs": 6873,
+        "scripts/slice-rehearse-proof-obligations.mjs": 6502,
+        "scripts/slice-rehearse-proof-obligations.test.mjs": 8086
       }
     }
   ],
   "reserve": {
     "trackedBytes": 474,
     "trackedFiles": 0,
-    "categoryBytes": {
-      "docs/text": 3,
-      "large support/generated-ish": 471
-    },
+    "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60180921,
-  "maxTrackedFiles": 5934,
+  "maxTrackedBytes": 60314535,
+  "maxTrackedFiles": 5956,
   "maxCategoryBytes": {
-    "config/data/messages": 2163251,
-    "docs/text": 8509832,
-    "large support/generated-ish": 15390712,
+    "config/data/messages": 2165038,
+    "docs/text": 8507398,
+    "large support/generated-ish": 15389747,
     "other": 18856416,
-    "source/scripts": 8602641,
-    "tests/e2e": 6658069
+    "source/scripts": 8684514,
+    "tests/e2e": 6711422
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

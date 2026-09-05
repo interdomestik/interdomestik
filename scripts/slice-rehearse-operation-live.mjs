@@ -31,6 +31,11 @@ const GIT_ENV = 'HOME XDG_CONFIG_HOME SSH_AUTH_SOCK'.split(' ');
 const FIELDS =
   'number,state,headRefOid,headRefName,baseRefOid,baseRefName,headRepository,headRepositoryOwner';
 const FACTS = 'origin baseSha headSha treeSha branch remoteHeadSha writerMapDigest pr'.split(' ');
+export function recoveryOutcome(value) {
+  must(value && typeof value.then !== 'function', 'synchronous reconciliation required');
+  must(['applied', 'not_applied', 'unknown'].includes(value.outcome), 'recovery outcome invalid');
+  return value;
+}
 const same = (a, b) =>
   'baseBranch baseSha branch headSha number'.split(' ').every(key => a?.[key] === b?.[key]);
 const git = args => execFileSync('/usr/bin/git', args, EXEC);

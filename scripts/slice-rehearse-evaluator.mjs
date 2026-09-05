@@ -143,7 +143,7 @@ export function evaluateRehearsal({
       },
     ])
   );
-  const evidenceResult = evidenceAfterPlannedOperations(
+  const historicalEvidence = evidenceAfterPlannedOperations(
     evaluateEvidenceReceipts({
       receipts: normalized.evidenceReceipts,
       heavyLanes: normalized.proof.heavyLanes,
@@ -153,8 +153,40 @@ export function evaluateRehearsal({
     }),
     deficits
   );
+  const proofPlan = normalized.proof.heavyLanes.length
+    ? planInvalidatedProofs({
+        requiredLanes: normalized.proof.heavyLanes,
+        decisions: historicalEvidence.decisions,
+        expectedByLane,
+        currentInputsByLane: repo.currentProofInputsByLane,
+        previousInputsByLane: repo.previousProofInputsByLane,
+        changedNodes: repo.changedProofNodes ?? [],
+      })
+    : { reuse: [], run: [] };
+  const evidenceResult = {
+    ...historicalEvidence,
+    reusableLanes: proofPlan.reuse,
+    missingLanes: proofPlan.run.map(item => item.lane),
+    decisions: historicalEvidence.decisions.map(decision =>
+      decision.reusable && !proofPlan.reuse.includes(decision.lane)
+        ? { ...decision, reusable: false, reason: 'current_proof_inputs_unverified' }
+        : decision
+    ),
+  };
   const evidenceProofDeficit = requiredEvidenceProofDeficit(evidenceResult);
-  if (evidenceProofDeficit) deficits.push(evidenceProofDeficit);
+  if (evidenceProofDeficit) {
+    const missingInputLanes = normalized.evidenceReceipts.length
+      ? evidenceProofDeficit.lanes.filter(
+          lane => !repo.currentProofInputsByLane?.[lane] || !repo.previousProofInputsByLane?.[lane]
+        )
+      : [];
+    if (missingInputLanes.length)
+      Object.assign(evidenceProofDeficit, {
+        reason: 'current_proof_inputs_unavailable',
+        missingInputLanes,
+      });
+    deficits.push(evidenceProofDeficit);
+  }
   const requiredOperations = [
     ...new Set(deficits.map(item => item.coveredBy).filter(Boolean)),
   ].sort(compareText);
@@ -164,13 +196,6 @@ export function evaluateRehearsal({
   if (missingOperations.length)
     authorityStops.push({ code: 'envelope:missing-operation', operations: missingOperations });
 
-  const proofPlan = normalized.proof.heavyLanes.length
-    ? planInvalidatedProofs({
-        requiredLanes: normalized.proof.heavyLanes,
-        decisions: evidenceResult.decisions,
-        expectedByLane,
-      })
-    : { reuse: [], run: [] };
   return buildRehearsalReport({
     normalized,
     repo,

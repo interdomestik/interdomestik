@@ -7,6 +7,7 @@ import {
   validateProjection,
 } from './lean-current-authority-policy.mjs';
 import { validT117BPredecessor } from './lean-exact-writer-exceptions.mjs';
+import { recoverExecutionBase } from './lean-current-authority-recovery.mjs';
 
 export const authorityState = (lifecycle, reason, extra = {}) => ({
   lifecycle,
@@ -156,7 +157,7 @@ function resolveLocalContinuation(slice, facts, promotionMain) {
   });
 }
 
-export function resolveAuthority(projectionInput, facts = {}) {
+export function resolveAuthority(projectionInput, facts = {}, recoveryContext) {
   let projection;
   try {
     projection = validateProjection(projectionInput);
@@ -180,7 +181,11 @@ export function resolveAuthority(projectionInput, facts = {}) {
       closeoutAuthorized: true,
       failureCloseoutRequired: true,
     });
-  const promotionMain = facts.promotion.mergeSha;
+  let promotionMain = facts.promotion.mergeSha;
+  if (recoveryContext !== undefined) {
+    promotionMain = recoverExecutionBase(projection, facts, recoveryContext);
+    if (promotionMain === null) return failAuthority('recovery_evidence_invalid');
+  }
   if (facts.product?.merged === true) return resolveMergedProduct(slice, facts, promotionMain);
   if (facts.protectedMainSha !== promotionMain)
     return failAuthority('foreign_main_advance', {

@@ -44,29 +44,6 @@ function proofReport(item, sliceId = 'HARNESS-V2-PROOF-PLAN') {
   return { ...report, reportSha256: sha256(canonicalJson(report)) };
 }
 
-test('plans only invalidated or missing proof lanes in deterministic code-unit order', () => {
-  const prE2e = identity('a');
-  const plan = planInvalidatedProofs({
-    requiredLanes: ['pr-e2e', 'CodeQL', 'sonar'],
-    decisions: [
-      receipt('pr-e2e', deriveEvidenceIdentityKey({ lane: 'pr-e2e', ...prE2e }), true),
-      receipt('CodeQL', 'b'.repeat(64), false),
-    ],
-    expectedByLane: {
-      'pr-e2e': prE2e,
-      CodeQL: identity('b'),
-      sonar: identity('c'),
-    },
-  });
-
-  assert.deepEqual(plan.reuse, ['pr-e2e']);
-  assert.deepEqual(
-    plan.run.map(item => item.lane),
-    ['CodeQL', 'sonar']
-  );
-  assert.ok(plan.run.every(item => /^[0-9a-f]{64}$/u.test(item.evidenceKey)));
-});
-
 test('creates nested storage, persists successful proof, and rejects duplicates', () => {
   const scope = {
     sliceId: 'HARNESS-V2-PROOF-LEDGER',
@@ -152,6 +129,7 @@ test('the proof executor claims the evidence key only after every command succee
     report,
     verifyCandidate: () => true,
     verifyProofHost: () => true,
+    verifyFinalHead: () => true,
     acquireLease: () => () => {},
     execute: args => {
       commands.push(args);
@@ -183,6 +161,7 @@ test('the proof executor claims the evidence key only after every command succee
         report: proofReport({ lane: 'pr-e2e', evidenceKey: 'f'.repeat(64) }),
         verifyCandidate: () => true,
         verifyProofHost: () => true,
+        verifyFinalHead: () => true,
         acquireLease: () => () => {},
       }),
     /outside the invalidated-only plan/u
@@ -215,18 +194,19 @@ test('records failed heavy proof and leaves its evidence retryable', () => {
       report,
       verifyCandidate: () => true,
       verifyProofHost: () => true,
+      verifyFinalHead: () => true,
       acquireLease: () => () => (releases += 1),
       execute: () => ({ status }),
       record,
     });
   const result = run(null, execution.runId);
-  assert.deepEqual([result.status, result.exitCode], ['failed', null]);
+  assert.deepEqual([result.status, result.exitCode], ['unknown', null]);
   assert.equal(records[0].ledgerPath, ledgerPath);
   assert.deepEqual(records[0].scope, scope);
   assert.deepEqual(records[0].execution, execution);
   assert.deepEqual(
     [records[0].status, records[0].exitCode, Number.isFinite(Date.parse(records[0].finishedAt))],
-    ['failed', null, true]
+    ['unknown', null, true]
   );
   const integer = run(17, 'run-failed-0002');
   assert.deepEqual([integer.status, integer.exitCode, records[1].exitCode], ['failed', 17, 17]);

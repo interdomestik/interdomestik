@@ -293,7 +293,7 @@ test('fails closed over proof receipt completion and execution identities', t =>
   assert.throws(() => record(proof('6', 'run-6'), at), /ledger incomplete/u);
   fs.appendFileSync(ledger, '\n');
   reject(proof('7', 'run-5'));
-  lease(proof('6', 'run-6'))();
-  assert.equal(record(proof('6', 'run-6'), at), true);
+  reject(proof('6', 'run-6'));
+  assert.throws(() => record(proof('6', 'run-6'), at), /receipt transition/u);
   reject(proof('6', 'run-7'));
 });

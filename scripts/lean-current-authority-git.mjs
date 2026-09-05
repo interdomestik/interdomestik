@@ -15,6 +15,8 @@ import {
   selectFullProductPull,
 } from './lean-current-authority-pull-selection.mjs';
 
+import { readObserved, observeRemoteReads } from './lean-current-authority-observation.mjs';
+
 export { selectFullProductPull } from './lean-current-authority-pull-selection.mjs';
 
 const run = (binary, args, cwd) =>
@@ -27,11 +29,15 @@ const run = (binary, args, cwd) =>
 
 export const git = (repo, ...args) => run('/usr/bin/git', args, repo);
 
-export function github(endpoint, repo) {
+function readGithub(endpoint, repo) {
   const binary = ['/opt/homebrew/bin/gh', '/usr/local/bin/gh', '/usr/bin/gh'].find(existsSync);
   if (!binary) throw new Error('trusted GitHub CLI unavailable');
   return JSON.parse(run(binary, ['api', endpoint], repo));
 }
+
+export const github = (endpoint, repo) => readObserved(endpoint, repo, readGithub);
+export const withRemoteReadConsistency = (repo, collect, read = readGithub) =>
+  observeRemoteReads(repo, collect, read);
 
 export function commitFacts(repo, sha) {
   const value = github(`repos/${ORIGIN}/git/commits/${sha}`, repo);

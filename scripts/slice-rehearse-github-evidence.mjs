@@ -8,6 +8,7 @@ import {
   sha256,
   sortedText,
 } from './slice-rehearse-canonical.mjs';
+import { currentProofInputsMatch } from './slice-rehearse-proof-obligations.mjs';
 import { gitBytes } from './slice-rehearse-git-facts.mjs';
 import {
   derivePrE2eSubstrateDigest,
@@ -29,17 +30,16 @@ const MAX_JOBS = 100;
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const FUTURE_TOLERANCE_MS = 5 * 60 * 1000;
 const SHA40 = /^[0-9a-f]{40}$/u;
-function exactRun(run, pull, headSha, now) {
+function exactRun(run, pull, headSha) {
   const updatedAt = exactTimestamp(run?.updated_at);
-  const age = updatedAt === null ? Number.POSITIVE_INFINITY : now - updatedAt;
   const association = run?.pull_requests?.[0];
   return (
     Number.isSafeInteger(run?.id) &&
     run.id > 0 &&
+    Number.isSafeInteger(run.run_attempt) &&
+    run.run_attempt > 0 &&
     run.path === PR_E2E_WORKFLOW_PATH &&
     run.event === 'pull_request' &&
-    run.status === 'completed' &&
-    run.conclusion === 'success' &&
     run.head_sha === headSha &&
     exactGitHubRepository(run.repository, ORIGIN) &&
     exactGitHubRepository(run.head_repository, ORIGIN) &&
@@ -53,8 +53,7 @@ function exactRun(run, pull, headSha, now) {
     association?.base?.repo?.id === pull.base.repo.id &&
     association?.head?.sha === pull.head.sha &&
     association?.head?.repo?.id === pull.head.repo.id &&
-    age >= -FUTURE_TOLERANCE_MS &&
-    age <= MAX_AGE_MS
+    updatedAt !== null
   );
 }
 
@@ -88,11 +87,22 @@ export function collectVerifiedEvidenceKeys({
   writerPaths,
   proof,
   evidenceReceipts,
+  previousProofInputs,
+  currentProofInputs,
   now = Date.now(),
   readGithub = (endpoint, repo) => github(endpoint, repo),
   readGitBytes = gitBytes,
 }) {
+  // Missing or changed trusted inventory denies reuse before provider reads.
+  // The evaluator reports missing prerequisites; fresh proof can still be planned.
+  if (!currentProofInputsMatch(previousProofInputs, currentProofInputs, now)) return {};
   try {
+    must(
+      currentProofInputs.headSha === headSha &&
+        currentProofInputs.treeSha === treeSha &&
+        currentProofInputs.baseSha === protectedMainSha,
+      'current proof candidate differs'
+    );
     must(origin === CANONICAL_ORIGIN, 'GitHub origin is not canonical');
     must(providerRepository === ORIGIN, 'GitHub repository is not canonical');
     must(SHA40.test(headSha) && SHA40.test(treeSha), 'GitHub evidence SHA is invalid');
@@ -137,7 +147,7 @@ export function collectVerifiedEvidenceKeys({
     const runsPayload = readGithub(
       `repos/${ORIGIN}/actions/workflows/${encodeURIComponent(
         PR_E2E_WORKFLOW_PATH
-      )}/runs?event=pull_request&status=completed&head_sha=${headSha}&per_page=${MAX_RUNS}&page=1`,
+      )}/runs?event=pull_request&head_sha=${headSha}&per_page=${MAX_RUNS}&page=1`,
       repository
     );
     must(
@@ -148,39 +158,42 @@ export function collectVerifiedEvidenceKeys({
         runsPayload.workflow_runs.length === runsPayload.total_count,
       'GitHub workflow inventory is invalid'
     );
-    const candidates = runsPayload.workflow_runs
-      .filter(run => exactRun(run, pull, headSha, now))
-      .map(run => {
-        const jobsPayload = readGithub(
-          `repos/${ORIGIN}/actions/runs/${run.id}/jobs?per_page=${MAX_JOBS}&page=1`,
-          repository
-        );
-        must(
-          Number.isSafeInteger(jobsPayload?.total_count) &&
-            jobsPayload.total_count >= 0 &&
-            jobsPayload.total_count <= MAX_JOBS &&
-            Array.isArray(jobsPayload.jobs) &&
-            jobsPayload.jobs.length === jobsPayload.total_count,
-          'GitHub job inventory is invalid'
-        );
-        return {
-          run,
-          runner: exactSuccessfulRunner(jobsPayload.jobs, now, {
-            runnerName: RUNNER_NAME,
-            maxJobs: MAX_JOBS,
-            maxAgeMs: MAX_AGE_MS,
-            futureToleranceMs: FUTURE_TOLERANCE_MS,
-          }),
-        };
-      })
-      .filter(candidate => candidate.runner)
-      .sort(
-        (left, right) =>
-          Date.parse(right.runner.completed_at) - Date.parse(left.runner.completed_at) ||
-          right.run.id - left.run.id
-      );
-    must(candidates.length > 0, 'GitHub PR E2E evidence is unavailable');
-    const selected = candidates[0];
+    // Inventory includes queued/failed/cancelled runs. Never fall back to an
+    // older success when the current run is incomplete, invalid or unsuccessful.
+    const runs = [...runsPayload.workflow_runs];
+    must(
+      runs.length > 0 && runs.every(run => exactRun(run, pull, headSha)),
+      'GitHub PR E2E run identity is unavailable'
+    );
+    must(new Set(runs.map(run => run.id)).size === runs.length, 'GitHub run identity is ambiguous');
+    runs.sort((a, b) => b.id - a.id || b.run_attempt - a.run_attempt);
+    const run = runs[0];
+    const age = now - Date.parse(run.updated_at);
+    must(age >= -FUTURE_TOLERANCE_MS && age <= MAX_AGE_MS, 'latest PR E2E evidence expired');
+    must(
+      run.status === 'completed' && run.conclusion === 'success',
+      'latest PR E2E run is not successful'
+    );
+    const jobsPayload = readGithub(
+      `repos/${ORIGIN}/actions/runs/${run.id}/jobs?filter=latest&per_page=${MAX_JOBS}&page=1`,
+      repository
+    );
+    must(
+      Number.isSafeInteger(jobsPayload?.total_count) &&
+        jobsPayload.total_count >= 0 &&
+        jobsPayload.total_count <= MAX_JOBS &&
+        Array.isArray(jobsPayload.jobs) &&
+        jobsPayload.jobs.length === jobsPayload.total_count,
+      'GitHub job inventory is invalid'
+    );
+    const runner = exactSuccessfulRunner(jobsPayload.jobs, now, {
+      runnerName: RUNNER_NAME,
+      maxJobs: MAX_JOBS,
+      maxAgeMs: MAX_AGE_MS,
+      futureToleranceMs: FUTURE_TOLERANCE_MS,
+    });
+    must(runner, 'latest PR E2E job is not successful');
+    const selected = { run, runner };
     const key = deriveEvidenceIdentityKey({
       lane: 'pr-e2e',
       headSha,

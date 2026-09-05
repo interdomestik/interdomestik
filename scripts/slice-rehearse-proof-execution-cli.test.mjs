@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
+import { proofInputs } from './slice-rehearse-github-evidence-fixtures.mjs';
 import { canonicalJson, deriveEvidenceIdentityKey, sha256 } from './slice-rehearse-canonical.mjs';
 import {
   executePnpmProof,
@@ -28,6 +29,11 @@ const identity = suffix => ({
   substrateDigest: suffix.repeat(64),
   writerMapDigest: suffix.repeat(64),
 });
+
+function eligibility(identity) {
+  const inputs = { ...proofInputs(), headSha: identity.headSha, treeSha: identity.treeSha };
+  return { previousInputsByLane: { 'pr-e2e': inputs }, currentInputsByLane: { 'pr-e2e': inputs } };
+}
 
 function proofReport(item, sliceId = 'HARNESS-V2-PROOF-CLI') {
   const report = {
@@ -103,6 +109,7 @@ test('executes and records a planned proof', () => {
           ...options,
           verifyCandidate: () => true,
           verifyProofHost: () => true,
+          verifyFinalHead: () => true,
           acquireLease: () => () => {},
           execute: args => {
             commands.push(args);
@@ -174,6 +181,7 @@ test('reuses only exact verified lane identity', () => {
       requiredLanes: ['pr-e2e'],
       decisions: [receipt('pr-e2e', 'b'.repeat(64), false), receipt('pr-e2e', expectedKey, true)],
       expectedByLane: { 'pr-e2e': expected },
+      ...eligibility(expected),
     }),
     { reuse: ['pr-e2e'], run: [] }
   );
@@ -185,6 +193,7 @@ test('reuses only exact verified lane identity', () => {
         receipt('pr-e2e', 'c'.repeat(64), false),
       ],
       expectedByLane: { 'pr-e2e': expected },
+      ...eligibility(expected),
     }),
     { reuse: [], run: [{ lane: 'pr-e2e', evidenceKey: expectedKey }] }
   );
@@ -215,4 +224,28 @@ test('revalidates proof expiry on consumption', () => {
       ],
     }
   );
+});
+
+test('plans only invalidated or missing proof lanes in deterministic code-unit order', () => {
+  const prE2e = identity('a');
+  const plan = planInvalidatedProofs({
+    ...eligibility(prE2e),
+    requiredLanes: ['pr-e2e', 'CodeQL', 'sonar'],
+    decisions: [
+      receipt('pr-e2e', deriveEvidenceIdentityKey({ lane: 'pr-e2e', ...prE2e }), true),
+      receipt('CodeQL', 'b'.repeat(64), false),
+    ],
+    expectedByLane: {
+      'pr-e2e': prE2e,
+      CodeQL: identity('b'),
+      sonar: identity('c'),
+    },
+  });
+
+  assert.deepEqual(plan.reuse, ['pr-e2e']);
+  assert.deepEqual(
+    plan.run.map(item => item.lane),
+    ['CodeQL', 'sonar']
+  );
+  assert.ok(plan.run.every(item => /^[0-9a-f]{64}$/u.test(item.evidenceKey)));
 });
