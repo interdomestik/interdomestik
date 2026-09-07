@@ -14,12 +14,16 @@ import test from 'node:test';
 import { ENV, git, hostFixture } from './slice-rehearse-bootstrap-fixtures.mjs';
 
 function run(f, mode = 'admit', options = {}) {
-  const result = spawnSync(process.execPath, [f.loader, f.configPath, f.requestPath, mode], {
-    env: ENV,
-    encoding: 'utf8',
-    timeout: 15_000,
-    ...options,
-  });
+  const result = spawnSync(
+    f.record.runtime.node.path,
+    [f.loader, f.configPath, f.requestPath, mode],
+    {
+      env: ENV,
+      encoding: 'utf8',
+      timeout: 15_000,
+      ...options,
+    }
+  );
   assert.equal(result.error, undefined);
   assert.ok(result.stdout.trim(), result.stderr);
   return { status: result.status, ...JSON.parse(result.stdout) };
@@ -76,6 +80,9 @@ for (const fault of [
   'approval-ancestor',
   'loader-hardlink',
   'dependency-hardlink',
+  'node-hardlink',
+  'node-group-writable',
+  'node-world-writable',
 ]) {
   test(`host refuses before policy load: ${fault}`, async t => {
     const f = await hostFixture(t);
@@ -94,6 +101,10 @@ for (const fault of [
       });
     if (fault === 'request-override') f.request.trustedBootstrap = { policy: f.record.policy };
     f.bind();
+    if (fault === 'node-hardlink')
+      linkSync(f.record.runtime.node.path, join(f.targetRoot, 'node-alias'));
+    if (fault === 'node-group-writable') chmodSync(f.record.runtime.node.path, 0o720);
+    if (fault === 'node-world-writable') chmodSync(f.record.runtime.node.path, 0o702);
     if (fault === 'loader-hardlink') linkSync(f.loader, join(f.targetRoot, 'loader-alias'));
     if (fault === 'dependency-hardlink') {
       const dep = join(f.root, 'external-dependency');
@@ -135,7 +146,8 @@ for (const fault of [
     const error = result.error ?? result.errors.join('');
     assert.match(error, /host|approval|receipt|policy|strict|target|runtime|dependency|ENOENT/i);
     assert.doesNotMatch(error, /pinned policy dependency loaded/);
-    if (fault.endsWith('-hardlink')) assert.match(error, /runtime file is unsafe/);
+    if (fault.endsWith('-hardlink') || fault.endsWith('-writable'))
+      assert.match(error, /runtime file is unsafe/);
     if (fault === 'nested-policy-store') assert.match(error, /storage overlap/);
     if (fault === 'approval-ancestor') assert.match(error, /approval storage overlaps/);
   });

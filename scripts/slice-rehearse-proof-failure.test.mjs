@@ -134,20 +134,62 @@ test('throw, timeout and thenable outcomes persist unknown and retain the durabl
   );
 });
 
-test('durable receipt failure retains the claim even after a successful command', t => {
-  const { options, ledgerPath } = fixture(t);
-  assert.throws(
-    () =>
-      runHeavyProofExecution({
+test('pre-dispatch drift records cancellation and releases the claim only after persistence', t => {
+  for (const verifier of ['verifyCandidate', 'verifyFinalHead']) {
+    for (const throws of [false, true]) {
+      const { options, ledgerPath } = fixture(t);
+      let leased = false;
+      let calls = 0;
+      const result = runHeavyProofExecution({
         ...options,
-        execute: () => ({ status: 0 }),
-        record: () => {
-          throw new Error('disk full');
+        [verifier]: () => {
+          if (leased && throws) throw new Error('evidence changed');
+          return !leased;
         },
-      }),
-    /disk full/u
-  );
-  assert.equal(fs.existsSync(`${ledgerPath}.run.lock`), true);
+        acquireLease: input => {
+          const release = options.acquireLease(input);
+          leased = true;
+          return release;
+        },
+        execute: () => {
+          calls += 1;
+          return { status: 0 };
+        },
+      });
+      assert.equal(calls, 0);
+      assert.equal(result.status, 'cancelled');
+      assert.equal(JSON.parse(fs.readFileSync(ledgerPath, 'utf8')).status, 'cancelled');
+      assert.equal(fs.existsSync(`${ledgerPath}.run.lock`), false);
+      assert.equal(
+        runHeavyProofExecution({
+          ...options,
+          execution: { ...options.execution, runId: 'fresh-evidence' },
+          execute: () => ({ status: 0 }),
+        }).status,
+        'succeeded'
+      );
+    }
+  }
+});
+
+test('durable receipt failure retains the claim before and after command dispatch', t => {
+  for (const cancelled of [false, true]) {
+    const { options, ledgerPath } = fixture(t);
+    let checks = 0;
+    assert.throws(
+      () =>
+        runHeavyProofExecution({
+          ...options,
+          verifyFinalHead: () => !cancelled || ++checks === 1,
+          execute: () => ({ status: 0 }),
+          record: () => {
+            throw new Error('disk full');
+          },
+        }),
+      /disk full/u
+    );
+    assert.equal(fs.existsSync(`${ledgerPath}.run.lock`), true);
+  }
 });
 
 test('unreconciled signals, timeouts and asynchronous results stay unknown', t => {

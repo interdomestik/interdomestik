@@ -462,13 +462,13 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 629772,
+      "maxTrackedBytesDelta": 632957,
       "maxTrackedFilesDelta": 88,
       "maxCategoryBytesDelta": {
         "config/data/messages": 1000,
         "docs/text": 30439,
-        "source/scripts": 328396,
-        "tests/e2e": 269937
+        "source/scripts": 328824,
+        "tests/e2e": 272694
       },
       "maxPathBytesDelta": {
         ".github/workflows/ci.yml": 24,
@@ -514,7 +514,7 @@
         "scripts/slice-rehearse-facts.test.mjs": 11136,
         "scripts/slice-rehearse-git-facts.mjs": 10356,
         "scripts/slice-rehearse-github-evidence.mjs": 8377,
-        "scripts/slice-rehearse-github-evidence.test.mjs": 6612,
+        "scripts/slice-rehearse-github-evidence.test.mjs": 6592,
         "scripts/slice-rehearse-init-cli.mjs": 5730,
         "scripts/slice-rehearse-init-cli.test.mjs": 3906,
         "scripts/slice-rehearse-init.mjs": 4007,
@@ -536,7 +536,7 @@
         "scripts/slice-rehearse-ops.test.mjs": 10127,
         "scripts/slice-rehearse-projection.test.mjs": 11006,
         "scripts/slice-rehearse-proof-execution-cli.test.mjs": 7689,
-        "scripts/slice-rehearse-proof-plan.mjs": 5157,
+        "scripts/slice-rehearse-proof-plan.mjs": 5247,
         "scripts/slice-rehearse-proof-plan.test.mjs": 8547,
         "scripts/slice-rehearse-report.mjs": 9628,
         "scripts/slice-rehearse-report.test.mjs": 7440,
@@ -557,23 +557,23 @@
         "scripts/slice-telemetry-v2.test.mjs": 5002,
         "scripts/slice-telemetry.mjs": 6015,
         "scripts/slice-telemetry.test.mjs": 8776,
-        "scripts/slice-rehearse-bootstrap-fixtures.mjs": 6696,
+        "scripts/slice-rehearse-bootstrap-fixtures.mjs": 6923,
         "scripts/slice-rehearse-cli-fixtures.mjs": 3486,
         "scripts/slice-rehearse-operation-recovery.mjs": 8326,
         "scripts/slice-rehearse-operation-recovery.test.mjs": 9512,
         "scripts/slice-rehearse-operation-recovery-fixtures.mjs": 4554,
         "scripts/slice-rehearse-host.mjs": 9923,
-        "scripts/slice-rehearse-host.test.mjs": 5675,
+        "scripts/slice-rehearse-host.test.mjs": 6104,
         "scripts/slice-rehearse-diagnostics.mjs": 8220,
         "scripts/slice-rehearse-diagnostics.test.mjs": 10737,
         "scripts/slice-rehearse-github-evidence-fixtures.mjs": 3797,
         "scripts/slice-rehearse-operation-registry.mjs": 7569,
         "scripts/slice-rehearse-operation-registry.test.mjs": 4147,
-        "scripts/slice-rehearse-proof-executor.mjs": 6277,
-        "scripts/slice-rehearse-proof-failure.test.mjs": 8228,
+        "scripts/slice-rehearse-proof-executor.mjs": 6388,
+        "scripts/slice-rehearse-proof-failure.test.mjs": 9630,
         "scripts/slice-rehearse-proof-ledger.mjs": 6873,
         "scripts/slice-rehearse-proof-obligations.mjs": 6502,
-        "scripts/slice-rehearse-proof-obligations.test.mjs": 8086
+        "scripts/slice-rehearse-proof-obligations.test.mjs": 9032
       }
     }
   ],
@@ -583,15 +583,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60314535,
+  "maxTrackedBytes": 60317720,
   "maxTrackedFiles": 5956,
   "maxCategoryBytes": {
     "config/data/messages": 2165038,
     "docs/text": 8507398,
     "large support/generated-ish": 15389747,
     "other": 18856416,
-    "source/scripts": 8684514,
-    "tests/e2e": 6711422
+    "source/scripts": 8684942,
+    "tests/e2e": 6714179
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

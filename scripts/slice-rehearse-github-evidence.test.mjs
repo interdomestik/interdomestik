@@ -16,7 +16,6 @@ import { derivePrE2eSubstrateDigest } from './slice-rehearse-repository-facts.mj
 import {
   headSha,
   treeSha,
-  protectedMainSha,
   workflow,
   setupAction,
   workflowDigest,

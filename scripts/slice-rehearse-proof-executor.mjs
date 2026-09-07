@@ -141,6 +141,10 @@ export function runHeavyProofExecution({
       try {
         validateProofExecutionPlan(report, execution, verifyCandidate);
         must(verifyFinalHead(report) === true, 'final-head review evidence changed');
+      } catch {
+        return finish(index === 0 ? 'cancelled' : 'unknown', null, index);
+      }
+      try {
         result = execute(commands[index]);
         if (types.isPromise(result)) result.catch(() => {});
       } catch {

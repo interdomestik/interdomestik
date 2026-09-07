@@ -38,10 +38,9 @@ export function planInvalidatedProofs({
 }) {
   must(Array.isArray(requiredLanes) && requiredLanes.length > 0, 'required lanes are unavailable');
   must(Array.isArray(decisions), 'proof decisions are unavailable');
-  const invalidNodes = invalidatedProofNodes(
-    deriveProofObligationGraph(obligationContract),
-    changedNodes
-  );
+  const graph = deriveProofObligationGraph(obligationContract);
+  const invalidNodes = invalidatedProofNodes(graph, changedNodes);
+  const graphIds = new Set(graph.map(node => node.id));
   must(
     expectedByLane && typeof expectedByLane === 'object',
     'expected proof identity is unavailable'
@@ -62,7 +61,7 @@ export function planInvalidatedProofs({
     byLane.set(decision.lane, laneDecisions);
   }
   const reuse = required.filter(lane => {
-    if (invalidNodes.includes(lane)) return false;
+    if (!graphIds.has(lane) || invalidNodes.includes(lane)) return false;
     must(expectedByLane[lane], `expected proof identity is missing: ${lane}`);
     const expectedKey = deriveEvidenceIdentityKey({ lane, ...expectedByLane[lane] });
     if (!currentProofInputsMatch(previousInputsByLane?.[lane], currentInputsByLane?.[lane], now))

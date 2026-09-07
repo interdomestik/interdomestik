@@ -58,6 +58,10 @@ export async function hostFixture(t) {
   const fs = await import('node:fs');
   const { createHash } = await import('node:crypto');
   const f = fixture(t);
+  // Hosted tool-cache binaries may be writable; provision only a private test copy.
+  const node = join(realpathSync(f.root), 'node');
+  fs.copyFileSync(process.execPath, node, fs.constants.COPYFILE_FICLONE);
+  fs.chmodSync(node, 0o700);
   const digest = pathname => createHash('sha256').update(fs.readFileSync(pathname)).digest('hex');
   for (const name of [
     'slice-rehearse-host.mjs',
@@ -129,7 +133,7 @@ try {
     ),
     loader: file(loader),
     runtime: {
-      node: file(process.execPath),
+      node: file(node),
       git: file('/usr/bin/git'),
       github: file(github),
       dependencyFiles: [],

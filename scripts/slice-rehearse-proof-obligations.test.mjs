@@ -249,4 +249,32 @@ test('planner cannot omit its required executor lane or reuse without current in
     }),
     plan
   );
+  const lanes = ['pr-e2e', 'e2e', 'custom'];
+  const expectedByLane = Object.fromEntries(lanes.map(lane => [lane, identity]));
+  const inputsByLane = Object.fromEntries(lanes.map(lane => [lane, input]));
+  const all = planInvalidatedProofs({ requiredLanes: lanes, decisions: [], expectedByLane });
+  const decisions = all.run.map(item => ({
+    lane: item.lane,
+    key: item.evidenceKey,
+    reusable: true,
+    expiresAt: '2099-01-01T00:00:00.000Z',
+  }));
+  for (const changedNodes of [[], ['review'], ['final-head']]) {
+    assert.deepEqual(
+      planInvalidatedProofs({
+        requiredLanes: lanes,
+        expectedByLane,
+        decisions,
+        previousInputsByLane: inputsByLane,
+        currentInputsByLane: inputsByLane,
+        changedNodes,
+      }),
+      changedNodes.length
+        ? all
+        : {
+            reuse: ['e2e', 'pr-e2e'],
+            run: all.run.filter(item => item.lane === 'custom'),
+          }
+    );
+  }
 });
