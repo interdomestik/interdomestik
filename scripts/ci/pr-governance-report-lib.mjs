@@ -1,4 +1,3 @@
-import { collectSnapshot } from './pr-delivery-gate.mjs';
 import {
   validateDeliveryContract,
   verifyCommitGraph,
@@ -53,6 +52,7 @@ export async function collectGovernanceReport(client, contract, number) {
   validateDeliveryContract(contract);
   if (client.repository !== contract.repository || !Number.isSafeInteger(number) || number <= 0)
     gateFail('governance input mismatch');
+  const { collectSnapshot } = await import('./pr-delivery-gate.mjs');
   const endpoint = `repos/${contract.repository}/pulls/${number}`;
   const pull = await client.request(endpoint);
   const expected = {

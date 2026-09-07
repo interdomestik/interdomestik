@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { GitHubCliClient, githubCliResponse } from './pr-delivery-cli.mjs';
 import { collectGovernanceReport, governanceReport } from './pr-governance-report-lib.mjs';
@@ -207,5 +209,16 @@ test('CLI transport retains API failures and endpoint boundaries', async () => {
   assert.throws(
     () => githubCliResponse('repos/interdomestik/interdomestik/pulls/1693', {}, () => '{}'),
     /headers missing/u
+  );
+});
+
+test('report exports remain synchronously loadable by the Harness', () => {
+  const entry = fileURLToPath(new URL('../github-pr-governance-report.mjs', import.meta.url));
+  assert.equal(
+    execFileSync(process.execPath, ['-e', `require(${JSON.stringify(entry)})`], {
+      encoding: 'utf8',
+      timeout: 10_000,
+    }),
+    ''
   );
 });
