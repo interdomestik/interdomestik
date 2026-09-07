@@ -276,9 +276,10 @@ async function main() {
     if (report.failures.length) process.exitCode = 1;
   }
 }
+function reportFailure(error) {
+  console.error(`governance report failed: ${error.message}`);
+  process.exitCode = 1;
+}
 if (isDirectInvocation(import.meta.url)) {
-  main().catch(error => {
-    console.error(`governance report failed: ${error.message}`);
-    process.exitCode = 1;
-  });
+  main().catch(reportFailure); // NOSONAR -- S7785: Harness requires synchronous imports.
 }

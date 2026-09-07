@@ -208,8 +208,19 @@ export function runRecoveryOperation(request, command, options) {
     record.attempts.push(attempt);
     writeRecord(file, record, attemptSha256);
     // Recheck after claim/reconciliation/persistence; no stale decision gets a refreshed CAS.
-    legacy();
-    must(hash(current()) === hash(initial), 'recovery observation changed before effect');
+    try {
+      legacy();
+      must(hash(current()) === hash(initial), 'recovery observation changed before effect');
+    } catch (validationError) {
+      // Only these pre-dispatch checks can establish definite non-application.
+      attempt.outcome = 'not_applied';
+      try {
+        writeRecord(file, record, attemptSha256);
+      } catch (writeError) {
+        throw new Error(writeError.message, { cause: validationError });
+      }
+      throw validationError;
+    }
     let error = null;
     try {
       const result = recovery.executeConditional(structuredClone(command), {

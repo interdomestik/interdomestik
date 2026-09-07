@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 59833,
+      "trackedBytesDelta": 59834,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 28895,
+        "config/data/messages": 28896,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 28895,
+        "scripts/repo-size-budget.json": 28896,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -478,13 +478,13 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 650805,
+      "maxTrackedBytesDelta": 653066,
       "maxTrackedFilesDelta": 92,
       "maxCategoryBytesDelta": {
         "config/data/messages": 1000,
         "docs/text": 30439,
-        "source/scripts": 337295,
-        "tests/e2e": 282071
+        "source/scripts": 337755,
+        "tests/e2e": 283872
       },
       "maxPathBytesDelta": {
         ".github/workflows/ci.yml": 24,
@@ -575,8 +575,8 @@
         "scripts/slice-telemetry.test.mjs": 8776,
         "scripts/slice-rehearse-bootstrap-fixtures.mjs": 6998,
         "scripts/slice-rehearse-cli-fixtures.mjs": 3486,
-        "scripts/slice-rehearse-operation-recovery.mjs": 8448,
-        "scripts/slice-rehearse-operation-recovery.test.mjs": 9512,
+        "scripts/slice-rehearse-operation-recovery.mjs": 8820,
+        "scripts/slice-rehearse-operation-recovery.test.mjs": 11313,
         "scripts/slice-rehearse-operation-recovery-fixtures.mjs": 4554,
         "scripts/slice-rehearse-host.mjs": 9952,
         "scripts/slice-rehearse-host.test.mjs": 8609,
@@ -590,7 +590,7 @@
         "scripts/slice-rehearse-proof-ledger.mjs": 6873,
         "scripts/slice-rehearse-proof-obligations.mjs": 6547,
         "scripts/slice-rehearse-proof-obligations.test.mjs": 9032,
-        "scripts/github-pr-governance-report.mjs": 218,
+        "scripts/github-pr-governance-report.mjs": 306,
         "scripts/ci/pr-delivery-api.mjs": 67,
         "scripts/ci/pr-delivery-gate.mjs": 103,
         "scripts/ci/pr-delivery-cli.mjs": 2589,
@@ -609,15 +609,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60336378,
+  "maxTrackedBytes": 60338640,
   "maxTrackedFiles": 5960,
   "maxCategoryBytes": {
-    "config/data/messages": 2165813,
+    "config/data/messages": 2165814,
     "docs/text": 8507398,
     "large support/generated-ish": 15389747,
     "other": 18856416,
-    "source/scripts": 8693448,
-    "tests/e2e": 6723556
+    "source/scripts": 8693908,
+    "tests/e2e": 6725357
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

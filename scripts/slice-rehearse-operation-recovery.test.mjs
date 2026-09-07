@@ -248,3 +248,40 @@ test('historical applied recognition exposes prior execution without attributing
   assert.deepEqual(result.appliedExecution, f.observed.execution);
   assert.equal(f.effects, 1);
 });
+
+test('pre-effect rejection records non-application unless its durable write fails', t => {
+  for (const mode of ['approval', 'legacy', 'write']) {
+    const f = fixture(t);
+    const legacy = `${f.root}/${f.request.authorityCertificate.sliceId}-DELIVERY-probe.consumed`;
+    f.options.recovery.context = createRecoveryContext(() => {
+      const dir = `${f.root}/recovery-v1`;
+      const entry = fs.readdirSync(dir).find(name => name.endsWith('.json'));
+      if (mode === 'legacy' && !entry) fs.writeFileSync(legacy, 'fixture');
+      if (entry) {
+        f.observed.approval.valid = false;
+        if (mode === 'write') {
+          const record = JSON.parse(fs.readFileSync(`${dir}/${entry}`, 'utf8'));
+          fs.mkdirSync(`${dir}/${entry}.${record.attempts.at(-1).attemptSha256}.tmp`);
+        }
+      }
+      return f.observed;
+    });
+    assert.throws(() => runSafeOperation(f.request, f.options));
+    assert.equal(f.effects, 0);
+    const record = JSON.parse(fs.readFileSync(recoveryFile(f.root), 'utf8'));
+    assert.equal(record.attempts.length, 1);
+    assert.equal(record.attempts[0].outcome, mode === 'write' ? 'unknown' : 'not_applied');
+    if (mode === 'write') {
+      f.outcome = 'unknown';
+      assert.throws(() => runSafeOperation(f.request, f.options), /prior outcome unknown/u);
+    } else {
+      if (mode === 'legacy') fs.unlinkSync(legacy);
+      f.observed.approval.valid = true;
+      f.options.recovery.context = createRecoveryContext(() => f.observed);
+      f.options.recovery.reconcilePrior = () => assert.fail('no effect needs reconciliation');
+      assert.equal(runSafeOperation(f.request, f.options).status, 'succeeded');
+      assert.equal(f.effects, 1);
+      assert.equal(JSON.parse(fs.readFileSync(recoveryFile(f.root))).attempts.length, 2);
+    }
+  }
+});
