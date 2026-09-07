@@ -130,6 +130,7 @@ defer_async_generators() { :; }
 sleep() { :; }
 node() {
   [[ "$1" == scripts/ci/actions-check-supersession.mjs ]] || return 99
+  cat >/dev/null
   printf '${scenario.pending}\\n'
 }
 gh() {

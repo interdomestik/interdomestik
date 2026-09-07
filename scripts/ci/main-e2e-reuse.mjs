@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import yaml from 'js-yaml';
 import { fileURLToPath } from 'node:url';
 import { decideMainE2eReuse, normalizeReuseDecision } from './main-e2e-reuse-core.mjs';
 import { collectGitHubEvidence, readLocalGitObjectId } from './main-e2e-reuse-github.mjs';
@@ -46,24 +45,9 @@ function lane(source, name) {
     return { projects: [], shared: false };
   return { projects, shared: definition[2] === 'true' && projects.length > 0 };
 }
-function hasStrictPrGate(source) {
-  const workflow = yaml.load(source);
-  const job = workflow?.jobs?.['e2e-runner'];
-  const gates = job?.steps?.filter(step => step.name === 'Run PR E2E Gate');
-  const gate = gates?.[0];
-  return (
-    gates?.length === 1 &&
-    gate.run === 'pnpm e2e:gate:pr' &&
-    gate.if === undefined &&
-    gate['continue-on-error'] === undefined &&
-    gate.shell === undefined &&
-    gate['working-directory'] === undefined &&
-    job['continue-on-error'] === undefined &&
-    job.if === "needs.e2e-preflight.outputs.run_broad == 'true'" &&
-    job.defaults === undefined &&
-    workflow.defaults === undefined
-  );
-}
+// The pre-install resolver accepts only the reviewed workflow, including gate failure semantics.
+const PR_WORKFLOW_SHA256 = '5607206adf40e9f63567e71f41311f386519990ffdfbbd6fc7c469c355a720bc';
+const hasStrictPrGate = source => sha256(source) === PR_WORKFLOW_SHA256;
 function hasExactCommandChain(input) {
   try {
     const scripts = JSON.parse(input.packageJson)?.scripts;

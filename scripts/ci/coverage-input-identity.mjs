@@ -40,14 +40,12 @@ export function coverageInputIdentity({
     .digest('hex');
 }
 
-export function readPnpmIdentity(
-  env,
-  resolveEntrypoint = () => realpathSync('/home/runner/setup-pnpm/node_modules/.bin/pnpm')
-) {
+export function readPnpmIdentity(env, resolveEntrypoint = realpathSync) {
   if (env.PNPM_HOME !== '/home/runner/setup-pnpm/node_modules/.bin') {
     throw new Error('Fixed hosted setup-pnpm installation required');
   }
-  const entrypoint = resolveEntrypoint();
+  // pnpm/action-setup creates a shell shim in .bin; Node must receive the JavaScript entrypoint.
+  const entrypoint = resolveEntrypoint('/home/runner/setup-pnpm/node_modules/pnpm/bin/pnpm.cjs');
   return {
     pnpm: execFileSync(process.execPath, [entrypoint, '--version'], {
       encoding: 'utf8',

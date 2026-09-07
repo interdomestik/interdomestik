@@ -637,11 +637,11 @@
         "scripts/ci/actions-check-supersession.mjs",
         "scripts/ci/actions-check-supersession.test.mjs"
       ],
-      "maxTrackedBytesDelta": 24667,
+      "maxTrackedBytesDelta": 24684,
       "maxTrackedFilesDelta": 5,
       "maxCategoryBytesDelta": {
         "config/data/messages": 150,
-        "tests/e2e": 16309,
+        "tests/e2e": 16326,
         "source/scripts": 8208
       },
       "maxPathBytesDelta": {
@@ -655,7 +655,7 @@
         "scripts/ci/pr-review-ready.test.mjs": 3672,
         "scripts/pr-finalizer.sh": 451,
         "scripts/ci/actions-check-supersession.mjs": 2752,
-        "scripts/ci/actions-check-supersession.test.mjs": 6161
+        "scripts/ci/actions-check-supersession.test.mjs": 6178
       }
     },
     {
@@ -678,21 +678,21 @@
         "scripts/ci/main-e2e-reuse-core.test.mjs",
         "scripts/ci/main-e2e-reuse-github.test.mjs"
       ],
-      "maxTrackedBytesDelta": 25104,
+      "maxTrackedBytesDelta": 26222,
       "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
-        "source/scripts": 9492,
-        "tests/e2e": 12919,
+        "source/scripts": 9584,
+        "tests/e2e": 13945,
         "config/data/messages": 2693
       },
       "maxPathBytesDelta": {
         "scripts/ci/main-e2e-reuse.mjs": 717,
         "scripts/ci/main-e2e-reuse-core.mjs": 975,
         "scripts/ci/main-e2e-reuse-github.mjs": 17,
-        "scripts/ci/main-e2e-reuse-cli.test.mjs": 1667,
-        "scripts/ci/coverage-input-identity.mjs": 2828,
+        "scripts/ci/main-e2e-reuse-cli.test.mjs": 2591,
+        "scripts/ci/coverage-input-identity.mjs": 2920,
         "scripts/ci/main-coverage-reuse.mjs": 4861,
-        "scripts/ci/main-coverage-reuse.test.mjs": 9706,
+        "scripts/ci/main-coverage-reuse.test.mjs": 9808,
         ".github/actions/validation-surface/action.yml": 2693,
         "scripts/ci/cd-deploy-env-scope.test.mjs": 90,
         "scripts/ci/exact-head-certification-workflows.test.mjs": 193,
@@ -713,15 +713,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60408137,
+  "maxTrackedBytes": 60409272,
   "maxTrackedFiles": 5971,
   "maxCategoryBytes": {
     "config/data/messages": 2174359,
     "docs/text": 8507398,
     "large support/generated-ish": 15389747,
     "other": 18856416,
-    "source/scripts": 8717011,
-    "tests/e2e": 6763206
+    "source/scripts": 8717103,
+    "tests/e2e": 6764249
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
