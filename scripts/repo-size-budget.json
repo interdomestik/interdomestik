@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 60613,
+      "trackedBytesDelta": 61798,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 29675,
+        "config/data/messages": 30860,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 29675,
+        "scripts/repo-size-budget.json": 30860,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -478,10 +478,10 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 653174,
+      "maxTrackedBytesDelta": 653213,
       "maxTrackedFilesDelta": 92,
       "maxCategoryBytesDelta": {
-        "config/data/messages": 1108,
+        "config/data/messages": 1147,
         "docs/text": 30439,
         "source/scripts": 337755,
         "tests/e2e": 283872
@@ -491,7 +491,7 @@
         "AGENTS.md": 0,
         "docs/superpowers/plans/2026-08-29-harness-v2-efficiency.md": 15754,
         "docs/superpowers/specs/2026-08-29-harness-v2-efficiency-design.md": 14685,
-        "package.json": 949,
+        "package.json": 988,
         "packages/qa/test-tools.ts": 334,
         "scripts/ci/model-review-routes.mjs": 475,
         "scripts/ci/pr-delivery-contract.json": 27,
@@ -620,6 +620,37 @@
         "scripts/lib/modularity-guard.mjs": 156,
         "scripts/lib/workflow-permission-tightening.mjs": 4378
       }
+    },
+    {
+      "id": "ci-deduplication",
+      "mode": "bounded",
+      "writerPaths": [
+        ".github/workflows/pr-finalizer.yml",
+        "scripts/ci/e2e-lane-runner-contracts.test.mjs",
+        "scripts/ci/github-governance-contracts.test.mjs",
+        "scripts/ci/pr-finalizer-workflow.test.mjs",
+        "scripts/pr-review-ready.sh",
+        "scripts/ci/pr-delivery-feedback.mjs",
+        "scripts/ci/pr-delivery-ordering.test.mjs",
+        "scripts/ci/pr-review-ready.test.mjs"
+      ],
+      "maxTrackedBytesDelta": 12949,
+      "maxTrackedFilesDelta": 3,
+      "maxCategoryBytesDelta": {
+        "config/data/messages": 130,
+        "tests/e2e": 8397,
+        "source/scripts": 4422
+      },
+      "maxPathBytesDelta": {
+        ".github/workflows/pr-finalizer.yml": 130,
+        "scripts/ci/e2e-lane-runner-contracts.test.mjs": 923,
+        "scripts/ci/github-governance-contracts.test.mjs": 150,
+        "scripts/ci/pr-finalizer-workflow.test.mjs": 428,
+        "scripts/pr-review-ready.sh": 696,
+        "scripts/ci/pr-delivery-feedback.mjs": 3726,
+        "scripts/ci/pr-delivery-ordering.test.mjs": 3707,
+        "scripts/ci/pr-review-ready.test.mjs": 3189
+      }
     }
   ],
   "reserve": {
@@ -631,15 +662,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60352161,
-  "maxTrackedFiles": 5962,
+  "maxTrackedBytes": 60366334,
+  "maxTrackedFiles": 5965,
   "maxCategoryBytes": {
-    "config/data/messages": 2166701,
+    "config/data/messages": 2168055,
     "docs/text": 8507398,
     "large support/generated-ish": 15389747,
     "other": 18856416,
-    "source/scripts": 8698442,
-    "tests/e2e": 6733457
+    "source/scripts": 8702864,
+    "tests/e2e": 6741854
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

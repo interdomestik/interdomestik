@@ -5,8 +5,6 @@ import path from 'node:path';
 import {
   DELIVERY_POLL_MS,
   GitHubClient,
-  deliveryDispositionCandidates,
-  deliveryDispositionReviewIds,
   eventPullNumber,
   isDirectInvocation,
   waitForDelivery,
@@ -16,6 +14,7 @@ import {
   evaluateValidationSurface,
 } from './validation-surface-policy-lib.mjs';
 import { readTrustedRunnerFile } from './trusted-runner-file.mjs';
+import { collectFeedback } from './pr-delivery-feedback.mjs';
 import {
   evaluateDeliveryChecks,
   validateDeliveryContract,
@@ -26,7 +25,6 @@ import {
 export { validateDeliveryContract };
 export { GitHubClient, eventPullNumber, trustedGitHubApiUrl } from './pr-delivery-api.mjs';
 const MAX_ATTEMPTS = 175;
-const MAX_PAGES = 100;
 
 function fail(message, waiting = false, retryAfterMs = DELIVERY_POLL_MS) {
   const error = new Error(`${waiting ? 'WAIT: ' : ''}${message}`);
@@ -79,95 +77,6 @@ async function collectChecks(client, head, contract, extraChecks = []) {
   }
   return { values: checks, complete: rawChecks.complete, annotationsComplete };
 }
-async function collectThreads(client, number) {
-  const [owner, name] = client.repository.split('/');
-  const nodes = [];
-  let cursor = null;
-  let complete = true;
-  for (let pageNumber = 1; pageNumber <= MAX_PAGES; pageNumber += 1) {
-    const data = await client.graphql(
-      `query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){reviewThreads(first:100,after:$cursor){pageInfo{hasNextPage endCursor}nodes{isResolved comments(first:100){pageInfo{hasNextPage}nodes{url author{login}}}}}}}}`,
-      { owner, name, number, cursor }
-    );
-    const page = data.repository.pullRequest.reviewThreads;
-    nodes.push(...page.nodes);
-    if (page.nodes.some(thread => thread.comments.pageInfo.hasNextPage)) complete = false;
-    if (!page.pageInfo.hasNextPage) return { values: nodes, complete };
-    cursor = page.pageInfo.endCursor;
-    if (!cursor) fail('review-thread pagination cursor missing');
-  }
-  return { values: nodes, complete: false };
-}
-async function collectFeedback(client, pull) {
-  const base = `repos/${client.repository}`;
-  const [reviews, issueComments, reviewComments, threads] = await Promise.all([
-    client.pages(`${base}/pulls/${pull.number}/reviews`),
-    client.pages(`${base}/issues/${pull.number}/comments`),
-    client.pages(`${base}/pulls/${pull.number}/comments`),
-    collectThreads(client, pull.number),
-  ]);
-  const resolvedComments = new Set(
-    threads.values
-      .filter(thread => thread.isResolved)
-      .flatMap(thread => thread.comments.nodes.map(comment => comment.url))
-  );
-  const normalizedIssueComments = issueComments.values.map(item => ({
-    author: item.user?.login ?? '',
-    authorAssociation: item.author_association ?? '',
-    body: item.body ?? '',
-    createdAt: item.updated_at ?? item.created_at ?? '',
-  }));
-  const dispositionAuthors = [
-    ...new Set(
-      deliveryDispositionCandidates(normalizedIssueComments, pull.head.sha).map(item => item.author)
-    ),
-  ];
-  const dispositionPermissions = new Map(
-    await Promise.all(
-      dispositionAuthors.map(async author => [
-        author,
-        (await client.request(`${base}/collaborators/${author}/permission`)).permission,
-      ])
-    )
-  );
-  const authorizedIssueComments = normalizedIssueComments.map(item => ({
-    ...item,
-    permission: dispositionPermissions.get(item.author) ?? '',
-  }));
-  return {
-    headSha: pull.head.sha,
-    disposedReviewIds: deliveryDispositionReviewIds(authorizedIssueComments, pull.head.sha),
-    pagination: {
-      checks: true,
-      annotations: true,
-      reviews: reviews.complete,
-      issueComments: issueComments.complete,
-      reviewComments: reviewComments.complete,
-      threads: threads.complete,
-    },
-    unresolvedThreads: threads.values.filter(item => !item.isResolved),
-    pendingReviewers: [
-      ...(pull.requested_reviewers ?? []).map(item => item.login),
-      ...(pull.requested_teams ?? []).map(item => item.slug),
-    ],
-    reviews: reviews.values.map(item => ({
-      id: item.id,
-      author: item.user?.login ?? '',
-      commitId: item.commit_id ?? '',
-      state: item.state ?? '',
-      body: item.body ?? '',
-      submittedAt: item.submitted_at ?? '',
-    })),
-    issueComments: authorizedIssueComments,
-    reviewComments: reviewComments.values.map(item => ({
-      author: item.user?.login ?? '',
-      commitId: item.commit_id ?? '',
-      body: item.body ?? '',
-      createdAt: item.updated_at ?? item.created_at ?? '',
-      resolved: resolvedComments.has(item.html_url),
-    })),
-  };
-}
 
 async function commit(client, sha) {
   const value = await client.cached(`commit:${sha}`, () =>
@@ -194,7 +103,14 @@ export async function resolvePackageJsonSurface(client, changedFiles, base, head
   });
 }
 
-export async function collectSnapshot(client, contract, expected, number, extraChecks = []) {
+export async function collectSnapshot(
+  client,
+  contract,
+  expected,
+  number,
+  extraChecks = [],
+  { waitForPrerequisites = false } = {}
+) {
   const explicit = Object.values(expected).filter(Boolean).length;
   if (explicit !== 3) fail('incomplete expected identity');
   const bound = expected;
@@ -203,15 +119,12 @@ export async function collectSnapshot(client, contract, expected, number, extraC
     client.pages(`repos/${client.repository}/pulls/${number}/files`)
   );
   if (!files.complete) fail('changed-file pagination incomplete');
-  const [checks, feedback, base, head, testedMerge] = await Promise.all([
+  const [checks, base, head, testedMerge] = await Promise.all([
     collectChecks(client, bound.head, contract, extraChecks),
-    collectFeedback(client, pull),
     commit(client, bound.base),
     commit(client, bound.head),
     commit(client, bound.testedMerge),
   ]);
-  feedback.pagination.checks = checks.complete;
-  feedback.pagination.annotations = checks.annotationsComplete;
   const changedFiles = files.values.map(item => item.filename);
   const packageSurface = await resolvePackageJsonSurface(
     client,
@@ -219,7 +132,7 @@ export async function collectSnapshot(client, contract, expected, number, extraC
     bound.base,
     bound.head
   );
-  return {
+  const snapshot = {
     expected: bound,
     pull: { state: pull.state, baseSha: pull.base.sha, headSha: pull.head.sha },
     commits: { [bound.base]: base, [bound.head]: head, [bound.testedMerge]: testedMerge },
@@ -229,8 +142,16 @@ export async function collectSnapshot(client, contract, expected, number, extraC
       packageJsonSurface: packageSurface,
     }),
     checks: checks.values,
-    feedback,
   };
+  if (waitForPrerequisites) {
+    verifyCommitGraph(snapshot);
+    if (!checks.complete || !checks.annotationsComplete) fail('check pagination incomplete');
+    evaluateDeliveryChecks(contract, snapshot);
+  }
+  snapshot.feedback = await collectFeedback(client, pull);
+  snapshot.feedback.pagination.checks = checks.complete;
+  snapshot.feedback.pagination.annotations = checks.annotationsComplete;
+  return snapshot;
 }
 
 function argument(name, fallback = '') {
@@ -265,7 +186,9 @@ async function main() {
     let firstDigest = '';
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
       try {
-        const snapshot = await collectSnapshot(client, contract, expected, number);
+        const snapshot = await collectSnapshot(client, contract, expected, number, [], {
+          waitForPrerequisites: true,
+        });
         const result = evaluateDeliverySnapshot(contract, snapshot);
         const digest = JSON.stringify({
           head: result.head,
