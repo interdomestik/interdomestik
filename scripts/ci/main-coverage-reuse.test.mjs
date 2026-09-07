@@ -42,10 +42,10 @@ test('pnpm identity invokes the absolute entrypoint without PATH lookup', () => 
   const directory = mkdtempSync(`${tmpdir()}/coverage-pnpm-`);
   const previous = process.env.PATH;
   const measure = () =>
-    readPnpmIdentity(
-      { PNPM_HOME: '/home/runner/setup-pnpm/node_modules/.bin' },
-      () => `${directory}/pnpm`
-    );
+    readPnpmIdentity({ PNPM_HOME: '/home/runner/setup-pnpm/node_modules/.bin' }, entrypoint => {
+      assert.equal(entrypoint, '/home/runner/setup-pnpm/node_modules/pnpm/bin/pnpm.cjs');
+      return `${directory}/pnpm`;
+    });
   try {
     writeFileSync(`${directory}/pnpm`, "process.stdout.write('10.28.2');\n");
     process.env.PATH = directory;

@@ -1,6 +1,15 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  copyFileSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -188,5 +197,29 @@ test('PR gate skip and failure-tolerating workflow semantics reject reuse before
     );
     assert.deepEqual(decision, SAFE);
     assert.equal(requested, false);
+  }
+});
+
+test('pre-install E2E resolver starts without node_modules', () => {
+  const directory = realpathSync(mkdtempSync(path.join(tmpdir(), 'reuse-preinstall-')));
+  try {
+    for (const file of [
+      'main-e2e-reuse.mjs',
+      'main-e2e-reuse-core.mjs',
+      'main-e2e-reuse-github.mjs',
+      'github-api-url-lib.mjs',
+    ]) {
+      copyFileSync(path.join(root, 'scripts/ci', file), path.join(directory, file));
+    }
+    const result = spawnSync(process.execPath, [path.join(directory, 'main-e2e-reuse.mjs')], {
+      cwd: directory,
+      encoding: 'utf8',
+      env: { ...process.env, GITHUB_EVENT_NAME: 'pull_request' },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, 'reuse=false\nreason=evidence_not_exact\n');
+    assert.equal(result.stderr, '');
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
   }
 });
