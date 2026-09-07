@@ -634,22 +634,22 @@
         "scripts/ci/pr-delivery-ordering.test.mjs",
         "scripts/ci/pr-review-ready.test.mjs"
       ],
-      "maxTrackedBytesDelta": 12949,
+      "maxTrackedBytesDelta": 13785,
       "maxTrackedFilesDelta": 3,
       "maxCategoryBytesDelta": {
         "config/data/messages": 130,
-        "tests/e2e": 8397,
-        "source/scripts": 4422
+        "tests/e2e": 8948,
+        "source/scripts": 4707
       },
       "maxPathBytesDelta": {
         ".github/workflows/pr-finalizer.yml": 130,
         "scripts/ci/e2e-lane-runner-contracts.test.mjs": 923,
         "scripts/ci/github-governance-contracts.test.mjs": 150,
-        "scripts/ci/pr-finalizer-workflow.test.mjs": 428,
-        "scripts/pr-review-ready.sh": 696,
+        "scripts/ci/pr-finalizer-workflow.test.mjs": 496,
+        "scripts/pr-review-ready.sh": 981,
         "scripts/ci/pr-delivery-feedback.mjs": 3726,
         "scripts/ci/pr-delivery-ordering.test.mjs": 3707,
-        "scripts/ci/pr-review-ready.test.mjs": 3189
+        "scripts/ci/pr-review-ready.test.mjs": 3672
       }
     }
   ],
@@ -662,15 +662,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60366334,
+  "maxTrackedBytes": 60367170,
   "maxTrackedFiles": 5965,
   "maxCategoryBytes": {
     "config/data/messages": 2168055,
     "docs/text": 8507398,
     "large support/generated-ish": 15389747,
     "other": 18856416,
-    "source/scripts": 8702864,
-    "tests/e2e": 6741854
+    "source/scripts": 8703149,
+    "tests/e2e": 6742405
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

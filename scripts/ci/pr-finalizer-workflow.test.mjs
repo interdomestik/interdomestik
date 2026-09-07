@@ -25,6 +25,7 @@ test('PR finalizer forces current-head required-check polling for the full lane'
   assert.ok(checkout);
   assert.equal(checkout.with['fetch-depth'], 1);
   assert.ok(runStep);
+  assert.equal(runStep.run.trim(), 'bash scripts/pr-finalizer.sh');
   assert.equal(runStep.env.PR_FINALIZER_SKIP_CHECK_POLLING, 'false');
   assert.equal(runStep.env.PR_FINALIZER_MAX_CHECK_RETRIES, '360');
   const setup = workflow.jobs['pr-finalizer'].steps.find(step =>

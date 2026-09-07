@@ -28,8 +28,11 @@ function readiness(env = {}) {
     esac`,
     gh: `case "$1 $2" in
       'pr view')
-        if test -f "$CALL_LOG" && test "\$DRIFT" = 1; then echo '${'2'.repeat(40)}';
-        else echo "\$PR_HEAD"; fi;;
+        if test -f "$CALL_LOG"; then
+          test "\$DRIFT" != 1 || PR_HEAD='${'2'.repeat(40)}'
+          test "\$DRAFT_AFTER" != 1 || IS_DRAFT=true
+        fi
+        printf '{"headRefOid":"%s","isDraft":%s}\\n' "$PR_HEAD" "$IS_DRAFT";;
       'repo view') echo interdomestik/interdomestik;;
       'api --paginate') echo scripts/example.mjs;;
       *) exit 99;;
@@ -55,6 +58,7 @@ function readiness(env = {}) {
         PATH: `${bin}:${process.env.PATH}`,
         CALL_LOG: log,
         PR_HEAD: head,
+        IS_DRAFT: 'false',
         GOVERNANCE_EXIT: '0',
         ...env,
       },
@@ -84,8 +88,17 @@ test('readiness preserves failed or pending strict governance outcomes', () => {
   assert.equal(readiness({ GOVERNANCE_EXIT: '1' }).status, 1);
 });
 
-test('PR changes during readiness invalidate the reused evidence', () => {
-  const result = readiness({ DRIFT: '1' });
+test('draft PRs cannot use deferred green check conclusions as readiness', () => {
+  const result = readiness({ IS_DRAFT: 'true' });
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /candidate changed during readiness evaluation/u);
+  assert.match(result.stderr, /draft pull request is not ready/u);
+  assert.equal(result.calls, '');
+});
+
+test('PR changes during readiness invalidate the reused evidence', () => {
+  for (const env of [{ DRIFT: '1' }, { DRAFT_AFTER: '1' }]) {
+    const result = readiness(env);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /candidate changed during readiness evaluation/u);
+  }
 });
