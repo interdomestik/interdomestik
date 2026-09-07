@@ -6,9 +6,12 @@ usage() {
 Usage: bash scripts/pr-review-ready.sh [PR_NUMBER]
 
 Runs the Interdomestik PR reviewer sequence gate:
-  1. pr-finalizer with check polling enabled
+  1. verifies clean local HEAD matches the PR
   2. boundary taxonomy no-touch check
-  3. governance report strict mode for manifest-declared delivery check state
+  3. governance report strict mode, including hosted finalizer and validation checks
+
+Run after provider checks and reviews finish. Existing current-head evidence supplies
+verification; this command does not repeat local type-check, unit tests, or E2E.
 
 Waiver environment variables, when explicitly accepted:
   PR_REVIEW_READY_ALLOW_NO_TOUCH=true
@@ -34,7 +37,6 @@ if [[ -n "${input_pr_number}" && ! "${input_pr_number}" =~ ^[0-9]+$ ]]; then
   exit 1
 fi
 
-export PR_FINALIZER_SKIP_CHECK_POLLING="${PR_FINALIZER_SKIP_CHECK_POLLING:-false}"
 PR_DELIVERY_CONTRACT="${PR_DELIVERY_CONTRACT:-scripts/ci/pr-delivery-contract.json}"
 export PR_DELIVERY_CONTRACT
 NO_TOUCH_AUTH_LABEL="phase-c-no-touch-authorized"
@@ -160,6 +162,36 @@ if ! jq -e '
   echo "pr-review-ready failed: invalid delivery contract" >&2
   exit 1
 fi
-GITHUB_EVENT_PATH="" bash scripts/pr-finalizer.sh
+if [[ -n "$(git status --porcelain=v1)" ]]; then
+  echo "pr-review-ready failed: working tree is not clean" >&2
+  exit 1
+fi
+if ! command -v gh >/dev/null 2>&1; then
+  echo "pr-review-ready failed: GitHub CLI (gh) is required" >&2
+  exit 1
+fi
+pr_state="$(gh pr view ${pr_number:+"${pr_number}"} --json headRefOid,isDraft)" || {
+  echo "pr-review-ready failed: unable to read pull request state" >&2
+  exit 1
+}
+if [[ "$(jq -r '.isDraft' <<<"${pr_state}")" != "false" ]]; then
+  echo "pr-review-ready failed: draft pull request is not ready" >&2
+  exit 1
+fi
+pr_head="$(jq -r '.headRefOid' <<<"${pr_state}")"
+if [[ "$(git rev-parse HEAD)" != "${pr_head}" ]]; then
+  echo "pr-review-ready failed: local HEAD differs from the pull request" >&2
+  exit 1
+fi
 run_boundary_check
 node scripts/github-pr-governance-report.mjs --strict ${pr_number:+"${pr_number}"}
+pr_state="$(gh pr view ${pr_number:+"${pr_number}"} --json headRefOid,isDraft)" || {
+  echo "pr-review-ready failed: unable to revalidate pull request state" >&2
+  exit 1
+}
+if [[ "$(git rev-parse HEAD)" != "${pr_head}" || -n "$(git status --porcelain=v1)" ||
+      "$(jq -r '.headRefOid' <<<"${pr_state}")" != "${pr_head}" ||
+      "$(jq -r '.isDraft' <<<"${pr_state}")" != "false" ]]; then
+  echo "pr-review-ready failed: candidate changed during readiness evaluation" >&2
+  exit 1
+fi

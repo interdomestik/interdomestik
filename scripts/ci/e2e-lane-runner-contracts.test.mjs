@@ -35,6 +35,25 @@ test('root package script exposes the hardened E2E state setup lane', () => {
   assert.equal(packageJson.scripts['e2e:state:setup'], 'node scripts/run-e2e-lane.mjs state');
 });
 
+test('PR verification owns the full gate and orchestration never repeats it or RLS', () => {
+  const verify = packageJson.scripts['pr:verify'].split(' && ');
+  assert.equal(verify.filter(command => command === 'pnpm db:rls:test:required').length, 1);
+  assert.equal(verify.filter(command => command === 'pnpm coverage:gate').length, 1);
+  assert.equal(
+    verify.filter(command => command === 'node scripts/run-with-default-db-url.mjs pnpm e2e:gate')
+      .length,
+    1
+  );
+  assert.ok(!verify.includes('pnpm check:fast'), 'the equivalent PR gate would repeat coverage');
+  const orchestrator = readFileSync(
+    new URL('../multi-agent/orchestrator.sh', import.meta.url),
+    'utf8'
+  );
+  assert.doesNotMatch(orchestrator, /pnpm (?:db:rls:test:required|e2e:gate)/u);
+  assert.equal(orchestrator.match(/pnpm security:guard/gu)?.length, 2);
+  assert.equal(orchestrator.match(/pnpm pr:verify:hosts/gu)?.length, 2);
+});
+
 test('canonical PR lanes consolidate MK while pilot invocations retain the legacy project', () => {
   assert.match(runner, /pr: gateLane\(\[ksSq, mkContract\], true\)/u);
   assert.match(runner, /'pr-fast': gateLane\(\[ksSq, mkContract\]\)/u);

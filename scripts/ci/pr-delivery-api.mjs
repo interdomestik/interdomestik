@@ -48,6 +48,12 @@ export function trustedGitHubApiUrl(endpoint) {
   const trustedPath =
     url.pathname === '/graphql' || url.pathname.startsWith('/repos/interdomestik/interdomestik/');
   const trustedQuery = [...url.searchParams].every(([key, value]) => {
+    const workflowRuns =
+      /^\/repos\/interdomestik\/interdomestik\/actions\/workflows\/[1-9]\d*\/runs$/u.test(
+        url.pathname
+      );
+    if (key === 'event') return workflowRuns && value === 'pull_request';
+    if (key === 'head_sha') return workflowRuns && /^[a-f0-9]{40}$/u.test(value);
     if (!['filter', 'page', 'per_page', 'ref'].includes(key)) return false;
     if (key === 'filter') return value === 'all';
     if (key === 'ref') return /^[a-f0-9]{40}$/u.test(value);

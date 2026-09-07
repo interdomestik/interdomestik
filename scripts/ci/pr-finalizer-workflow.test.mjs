@@ -15,6 +15,13 @@ function readWorkflow(relativePath) {
 
 test('PR finalizer forces current-head required-check polling for the full lane', () => {
   const workflow = readWorkflow('.github/workflows/pr-finalizer.yml');
+  assert.deepEqual(workflow.jobs['pr-finalizer'].permissions, {
+    contents: 'read',
+    actions: 'read',
+    'pull-requests': 'read',
+    checks: 'read',
+    statuses: 'read',
+  });
   const checkout = workflow.jobs['pr-finalizer'].steps.find(step =>
     step.uses?.startsWith('actions/checkout@')
   );
@@ -25,8 +32,18 @@ test('PR finalizer forces current-head required-check polling for the full lane'
   assert.ok(checkout);
   assert.equal(checkout.with['fetch-depth'], 1);
   assert.ok(runStep);
+  assert.equal(runStep.run.trim(), 'bash scripts/pr-finalizer.sh');
   assert.equal(runStep.env.PR_FINALIZER_SKIP_CHECK_POLLING, 'false');
   assert.equal(runStep.env.PR_FINALIZER_MAX_CHECK_RETRIES, '360');
+  const setup = workflow.jobs['pr-finalizer'].steps.find(step =>
+    step.uses?.startsWith('actions/setup-node@')
+  );
+  assert.equal(setup.with['node-version-file'], '.nvmrc');
+  assert.equal(setup.with['package-manager-cache'], false);
+  assert.ok(
+    workflow.jobs['pr-finalizer'].steps.every(step => step.uses !== './.github/actions/setup'),
+    'attestation needs Node and GitHub tools, not application dependencies'
+  );
 });
 
 test('PR finalizer delegates Sonar validation to governance monitoring in CI', () => {

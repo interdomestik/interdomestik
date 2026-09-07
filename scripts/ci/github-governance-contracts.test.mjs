@@ -78,7 +78,7 @@ test('branch-protection documentation and PR template list current governance ch
 test('governance report and terminal evaluator consume the canonical delivery manifest', () => {
   const packageJson = JSON.parse(read('package.json'));
   const reportScript = read('scripts/github-pr-governance-report.mjs');
-  const deliveryGate = read('scripts/ci/pr-delivery-gate.mjs');
+  const feedbackCollector = read('scripts/ci/pr-delivery-feedback.mjs');
   const contract = JSON.parse(read('scripts/ci/pr-delivery-contract.json'));
 
   assert.equal(
@@ -101,8 +101,8 @@ test('governance report and terminal evaluator consume the canonical delivery ma
   assert.match(reportScript, /\^\\d\+\$/);
   assert.match(reportScript, /pr-delivery-contract\.json/);
   assert.match(reportScript, /delivery-gate/);
-  assert.match(deliveryGate, /collaborators\/\$\{author\}\/permission/);
-  assert.match(deliveryGate, /disposedReviewIds/);
+  assert.match(feedbackCollector, /collaborators\/\$\{author\}\/permission/);
+  assert.match(feedbackCollector, /disposedReviewIds/);
   assert.doesNotMatch(reportScript, /void contract/u);
 
   assert.match(reportScript, /providerRequiredContexts/);
@@ -149,13 +149,15 @@ test('governance report accepts only the exact canonical contract identity', () 
   }
 });
 
-test('review-ready script composes finalizer and strict governance report', () => {
+test('review-ready reuses current-head hosted evidence and strict governance report', () => {
   const script = read('scripts/pr-review-ready.sh');
 
-  assert.match(script, /PR_FINALIZER_SKIP_CHECK_POLLING/);
+  assert.match(script, /working tree is not clean/);
+  assert.match(script, /local HEAD differs from the pull request/);
+  assert.match(script, /candidate changed during readiness evaluation/);
   assert.match(script, /\[\[ "\$\{1:-\}" == "--" \]\]/);
   assert.match(script, /shift/);
-  assert.match(script, /GITHUB_EVENT_PATH="" bash scripts\/pr-finalizer\.sh/);
+  assert.doesNotMatch(script, /bash scripts\/pr-finalizer\.sh/);
   assert.match(script, /boundary-diff-report\.mjs/);
   assert.match(
     script,

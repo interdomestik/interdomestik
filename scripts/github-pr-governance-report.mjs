@@ -21,8 +21,8 @@ const CONTRACT_KEYS =
   );
 const SPEC_KEYS =
   'context,appId,classification,requirement,skipWhen,annotationPolicy,finalConclusions'.split(',');
-function gateFail(message) {
-  throw new Error(message);
+function gateFail(message, cause) {
+  throw new Error(message, { cause });
 }
 function exactKeys(value, keys, label) {
   if (!sameJson(Object.keys(value ?? {}).sort(compareText), [...keys].sort(compareText))) {
@@ -150,7 +150,10 @@ export function selectCurrentCheck(spec, checks, headSha) {
   if (current[0].status !== 'completed') throw new Error('WAIT: pending check ' + spec.context);
   const skipped = current[0].conclusion === 'skipped' && spec.skipWhen === 'non_product_only_pr';
   if (!spec.finalConclusions.includes(current[0].conclusion) && !skipped) {
-    gateFail(spec.context + ' conclusion ' + (current[0].conclusion ?? 'missing'));
+    gateFail(spec.context + ' conclusion ' + (current[0].conclusion ?? 'missing'), {
+      kind: 'check-conclusion',
+      check: current[0],
+    });
   }
   return current[0];
 }

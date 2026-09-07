@@ -14,6 +14,7 @@ jobs:
   pr-finalizer:
     permissions:
       contents: read
+      actions: read
       pull-requests: read
       checks: read
       statuses: read
@@ -37,8 +38,11 @@ jobs:
       - name: Report quick draft lane
         if: steps.certification.outputs.run_broad != 'true'
         run: echo "PR finalizer attestation deferred (${{ steps.certification.outputs.certification_reason }})."
-      - uses: ./.github/actions/setup
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         if: steps.certification.outputs.run_broad == 'true'
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
       - name: Run PR finalizer gate
         if: steps.certification.outputs.run_broad == 'true'
         env:
