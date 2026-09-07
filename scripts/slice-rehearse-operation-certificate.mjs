@@ -56,6 +56,16 @@ export function operationApprovalBinding(c) {
   const fields = `allowedOperations approvalEnvelopeId baseBranch baseSha branch mergeMethod origin outcomeRiskSha256 prNumber sliceId workClass writerClosure writerMapDigest${c.allowedOperations?.includes('stale_pr_disposition') ? ' reportSha256' : ''}`;
   return sha256(canonicalJson(Object.fromEntries(fields.split(' ').map(key => [key, c[key]]))));
 }
+// Separate recovery semantics; V1 receipt/certificate hashing remains byte-for-byte unchanged.
+export function recoveryApprovalBinding(c) {
+  return sha256(
+    canonicalJson({
+      kind: 'same-slice-recovery-v1',
+      approval: operationApprovalBinding({ ...c, baseSha: null }),
+      artifacts: c.artifacts,
+    })
+  );
+}
 function validateRehearsalReport(c) {
   const report = c.rehearsalReport;
   must(report && typeof report === 'object' && !Array.isArray(report), 'report is unavailable');
@@ -158,6 +168,16 @@ function validateCertificate(request) {
     'operation approval binding differs'
   );
   return c;
+}
+export function recoveryIntent(c) {
+  return sha256(
+    canonicalJson({
+      origin: c.origin,
+      sliceId: c.sliceId,
+      prNumber: c.prNumber,
+      operation: 'conditional_merge',
+    })
+  );
 }
 export function operationBodyArtifact(c, value) {
   const artifact = safeRelativePath(value, 'operation body artifact path');

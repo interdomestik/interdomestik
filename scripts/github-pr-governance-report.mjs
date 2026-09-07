@@ -1,14 +1,9 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import {
-  checkState,
-  findCheck,
-  generatorFeedback,
-  ghJson,
-  isDirectInvocation,
-  strictFailures,
-} from './ci/pr-delivery-api.mjs';
+import { generatorFeedback, ghJson, isDirectInvocation } from './ci/pr-delivery-api.mjs';
+import { GitHubCliClient } from './ci/pr-delivery-cli.mjs';
+import { collectGovernanceReport } from './ci/pr-governance-report-lib.mjs';
 const ACTIONABLE_FEEDBACK_SOURCES = [
   String.raw`Suppressed comments\s*\([1-9]\d*\)`,
   String.raw`Previously missed\s*\([1-9]\d*\)`,
@@ -246,13 +241,13 @@ function printSection(title, rows) {
   console.log(`\n${title}`);
   for (const row of rows) console.log(`- ${row}`);
 }
-function main() {
-  const deliveryContract = readDeliveryContract();
+async function main() {
+  const contract = readDeliveryContract();
   const requiredChecks = [
-    ...deliveryContract.providerRequiredContexts.map(item => item.context),
-    'delivery-gate',
+    ...contract.providerRequiredContexts.map(item => item.context),
+    contract.deliveryContext.context,
   ];
-  const monitoredChecks = deliveryContract.deliveryPrerequisites
+  const monitoredChecks = contract.deliveryPrerequisites
     .filter(item => item.classification !== 'provider')
     .map(item => item.context);
   const strict = process.argv.includes('--strict');
@@ -260,26 +255,31 @@ function main() {
   if (prArg && !/^\d+$/u.test(prArg)) {
     throw new Error('Usage: pnpm pr:governance:report -- [--strict] <PR_NUMBER>');
   }
-  const pr = ghJson([
-    'pr',
-    'view',
-    ...(prArg ? [prArg] : []),
-    '--json',
-    'number,statusCheckRollup',
-  ]);
-  const checks = pr.statusCheckRollup ?? [];
+  const pr = ghJson(['pr', 'view', ...(prArg ? [prArg] : []), '--json', 'number']);
+  const report = await collectGovernanceReport(
+    new GitHubCliClient(contract.repository),
+    contract,
+    pr.number
+  );
   console.log(`PR #${pr.number} governance report`);
-  const checkRows = names => names.map(name => `${name}: ${checkState(findCheck(checks, name))}`);
+  const checkRows = names => names.map(name => `${name}: ${report.rows.get(name)}`);
   printSection('Required checks', checkRows(requiredChecks));
   printSection('Monitored checks', checkRows(monitoredChecks));
-  printSection('Feedback terminality', ['enforced by delivery-gate final intake']);
+  printSection('Feedback terminality', [
+    'evaluated with the canonical current snapshot; delivery-gate required',
+  ]);
   if (strict) {
-    const failures = strictFailures(checks, requiredChecks);
     printSection(
       'Strict review readiness',
-      failures.length === 0 ? ['PASS'] : failures.map(failure => `FAIL: ${failure}`)
+      report.failures.length ? report.failures.map(message => `FAIL: ${message}`) : ['PASS']
     );
-    if (failures.length > 0) process.exitCode = 1;
+    if (report.failures.length) process.exitCode = 1;
   }
 }
-if (isDirectInvocation(import.meta.url)) main();
+function reportFailure(error) {
+  console.error(`governance report failed: ${error.message}`);
+  process.exitCode = 1;
+}
+if (isDirectInvocation(import.meta.url)) {
+  main().catch(reportFailure); // NOSONAR -- S7785: Harness requires synchronous imports.
+}

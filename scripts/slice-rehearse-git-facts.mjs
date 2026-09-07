@@ -1,4 +1,5 @@
-import { execFileSync, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
+import { realpathSync } from 'node:fs';
 import { canonicalJson, compareText, sha256 } from './slice-rehearse-canonical.mjs';
 import {
   capacityOwnerDeltasFromFacts,
@@ -10,23 +11,19 @@ import {
   gitCurrentBranch,
   normalizeGitHubOrigin,
 } from './slice-rehearse-repository-facts.mjs';
-const GIT_BIN = '/usr/bin/git';
-const SAFE_EXEC_ENV = Object.freeze({
-  PATH: '/usr/bin:/bin:/usr/sbin:/sbin',
-  GIT_OPTIONAL_LOCKS: '0',
-  GIT_CONFIG_COUNT: '1',
-  GIT_CONFIG_KEY_0: 'core.fsmonitor',
-  GIT_CONFIG_VALUE_0: 'false',
-  GIT_LITERAL_PATHSPECS: '1',
-});
-const GIT_READ_PREFIX = Object.freeze(['-c', 'core.fsmonitor=false']);
-const OPTIONS = Object.freeze({
-  env: SAFE_EXEC_ENV,
-  timeout: 15_000,
-  maxBuffer: 16 * 1024 * 1024,
-  stdio: ['ignore', 'pipe', 'pipe'],
-});
-const TEXT_OPTIONS = Object.freeze({ ...OPTIONS, encoding: 'utf8' });
+import {
+  assertLocalAnchor,
+  GIT_BIN,
+  GIT_OPTIONS,
+  GIT_READ_PREFIX,
+  gitBytes,
+  gitText,
+  readLocalAnchor,
+  observeLocalFile,
+  SAFE_EXEC_ENV,
+} from './slice-rehearse-bootstrap.mjs';
+export { gitBytes, gitText } from './slice-rehearse-bootstrap.mjs';
+const TEXT_OPTIONS = Object.freeze({ ...GIT_OPTIONS, encoding: 'utf8' });
 export function inspectOptionalRef(repository, ref, run = spawnSync) {
   if (!/^refs\/heads\/[A-Za-z0-9._/-]+$/u.test(ref)) throw new Error('optional ref is invalid');
   const result = run(
@@ -39,12 +36,6 @@ export function inspectOptionalRef(repository, ref, run = spawnSync) {
     throw new Error(result.stderr?.trim() || 'optional ref evidence failed');
   }
   return result.stdout.trim();
-}
-export function gitText(repository, args) {
-  return gitBytes(repository, args).toString('utf8').trim();
-}
-export function gitBytes(repository, args) {
-  return execFileSync(GIT_BIN, [...GIT_READ_PREFIX, '-C', repository, ...args], OPTIONS);
 }
 function gitResult(repository, args) {
   return spawnSync(GIT_BIN, [...GIT_READ_PREFIX, '-C', repository, ...args], TEXT_OPTIONS);
@@ -113,6 +104,86 @@ function assertCommit(repository, baseSha, label = 'Manifest base') {
   }
 }
 
+function localIndex(repository) {
+  const sparse = gitResult(repository, [
+    'config',
+    '--bool',
+    '--default=false',
+    '--get',
+    'core.sparseCheckout',
+  ]);
+  if (sparse.status !== 0 || sparse.stdout.trim() !== 'false') {
+    throw new Error('Local observation unsupported sparse or unavailable index state.');
+  }
+  const read = args => {
+    const bytes = gitBytes(repository, args);
+    const text = bytes.toString('utf8');
+    if (!Buffer.from(text).equals(bytes))
+      throw new Error('Local observation unsupported Git encoding.');
+    return text;
+  };
+  const index = read(['ls-files', '--stage', '-v', '-z']);
+  const records = index.split('\0').filter(Boolean);
+  if (records.length > 10_000) throw new Error('Local observation unsupported index size.');
+  const paths = records.map(record => {
+    const entry = /^H (100644|100755) ([0-9a-f]{40}) 0\t([^\0]+)$/u.exec(record);
+    if (!entry)
+      throw new Error(
+        'Local observation unsupported hidden index state or unmerged index; tracked path is not a regular file.'
+      );
+    return entry[3];
+  });
+  // ITA and staged empty files have the same ls-files OID; invisible diff distinguishes them.
+  const staged = read([
+    'diff',
+    '--cached',
+    '--ita-invisible-in-index',
+    '--raw',
+    '-z',
+    '--no-renames',
+    'HEAD',
+    '--',
+  ]);
+  const dirty = read(['status', '--porcelain=v1', '-z', '--untracked-files=all']);
+  return { paths, signature: sha256(JSON.stringify([index, staged, dirty])) };
+}
+
+// Internal v1 bytes only; deliberately not canonicalJson/legacy receipt encoding.
+// All tracked bytes close the local capacity dependency set. No remote/ref/cleanup
+// registry atomicity or mutation authority is implied by an equal observation.
+export function observeLocalState(repository, extraPaths = []) {
+  repository = realpathSync(repository);
+  const before = localIndex(repository);
+  const paths = [
+    ...new Set([
+      ...before.paths,
+      ...extraPaths,
+      'scripts/repo-size-budget.json',
+      'docs/plans/current-program.md',
+      'docs/plans/current-tracker.md',
+    ]),
+  ].sort(compareText);
+  if (paths.length > 10_000) throw new Error('Local observation unsupported dependency count.');
+  let total = 0;
+  const files = paths.map(file => {
+    const state = observeLocalFile(repository, file);
+    if (!state && before.paths.includes(file))
+      throw new Error('Local observation unsupported missing tracked file.');
+    total += state?.[3] ?? 0;
+    if (total > 128 * 1024 * 1024)
+      throw new Error('Local observation unsupported total byte bound.');
+    return [file, state];
+  });
+  if (localIndex(repository).signature !== before.signature)
+    throw new Error('Local observation changed during collection.');
+  return sha256(JSON.stringify(['interdomestik.local-observation', 1, before.signature, files]));
+}
+
+export function assertLocalObservation(repository, paths, expected) {
+  if (observeLocalState(repository, paths) !== expected)
+    throw new Error('Local observation changed.');
+}
+
 export function collectRepositoryFacts({
   cwd,
   baseSha,
@@ -121,8 +192,10 @@ export function collectRepositoryFacts({
   protectedMainSha,
   writerPaths = [],
 }) {
-  const root = gitText(cwd, ['rev-parse', '--show-toplevel']);
-  const headSha = gitText(root, ['rev-parse', 'HEAD']);
+  const anchor = readLocalAnchor(cwd);
+  const { root, headSha, treeSha } = anchor;
+  const observationPaths = [...writerPaths, ...capacityOwnerPaths, 'scripts/repo-size-budget.json'];
+  const observation = observeLocalState(root, observationPaths);
   const verifiedProtectedMainSha = protectedMain(root, protectedMainSha);
   const identity = normalizeGitHubOrigin(gitText(root, ['config', '--get', 'remote.origin.url']));
   const mergeBaseSha = gitText(root, ['merge-base', verifiedProtectedMainSha, headSha]);
@@ -172,12 +245,12 @@ export function collectRepositoryFacts({
       },
     ])
   );
-  return {
+  const facts = {
     root,
     origin: identity.origin,
     providerRepository: identity.providerRepository,
     headSha,
-    treeSha: gitText(root, ['rev-parse', 'HEAD^{tree}']),
+    treeSha,
     baseSha,
     baseIsAncestor: gitAncestry(gitResult, root, baseSha, headSha),
     capacityBaseSha: budgetBaselineSha,
@@ -205,4 +278,7 @@ export function collectRepositoryFacts({
     writerFactsDigest: sha256(canonicalJson(writerFacts)),
     writerDeltas,
   };
+  assertLocalAnchor(root, anchor);
+  assertLocalObservation(root, observationPaths, observation);
+  return facts;
 }

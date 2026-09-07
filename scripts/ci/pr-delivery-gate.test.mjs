@@ -5,68 +5,10 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { evaluateDeliverySnapshot, validateDeliveryContract } from './pr-delivery-gate.mjs';
+import { B, H, T, TREE, contract, check, snapshot } from './pr-delivery-fixtures.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const gateSource = fs.readFileSync(path.join(root, 'scripts/ci/pr-delivery-gate.mjs'), 'utf8');
-const contract = JSON.parse(
-  fs.readFileSync(path.join(root, 'scripts/ci/pr-delivery-contract.json'), 'utf8')
-);
-const B = '1'.repeat(40);
-const H = '2'.repeat(40);
-const T = '3'.repeat(40);
-const TREE = '4'.repeat(40);
-
-const check = (context, appId, overrides = {}) => ({
-  id: Number(`${appId}${context.length}`),
-  context,
-  appId,
-  headSha: H,
-  status: 'completed',
-  conclusion: 'success',
-  runId: Number(`${context.length}01`),
-  runAttempt: 1,
-  annotations: [],
-  ...overrides,
-});
-
-function checksFor(currentContract = contract) {
-  return currentContract.deliveryPrerequisites
-    .filter(item => item.requirement === 'required')
-    .map(item => check(item.context, item.appId));
-}
-
-function snapshot(overrides = {}) {
-  return {
-    expected: { base: B, head: H, testedMerge: T },
-    pull: { state: 'open', baseSha: B, headSha: H },
-    commits: {
-      [B]: { tree: '5'.repeat(40), parents: [] },
-      [H]: { tree: TREE, parents: [B] },
-      [T]: { tree: TREE, parents: [B, H] },
-    },
-    validationSurface: { shouldRun: true, reason: 'runtime_sensitive_surface' },
-    checks: checksFor(),
-    feedback: {
-      headSha: H,
-      disposedReviewIds: [],
-      pagination: {
-        checks: true,
-        annotations: true,
-        reviews: true,
-        issueComments: true,
-        reviewComments: true,
-        threads: true,
-      },
-      unresolvedThreads: [],
-      pendingReviewers: [],
-      reviews: [],
-      issueComments: [],
-      reviewComments: [],
-    },
-    ...overrides,
-  };
-}
-
 test('contract has three acyclic sets and excludes the delivery gate from every input set', () => {
   assert.equal(validateDeliveryContract(contract), contract);
   const missingDeliveryApp = structuredClone(contract);

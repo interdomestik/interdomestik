@@ -1,123 +1,14 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 
 import { canonicalJson } from './slice-rehearse-core.mjs';
-import { runSliceRehearsal } from './slice-rehearse.mjs';
+import { collectRepositoryFacts, runSliceRehearsal } from './slice-rehearse.mjs';
+import { github } from './lean-current-authority-git.mjs';
+import * as remote from './lean-current-authority-git.mjs';
 
-const GIT = '/usr/bin/git';
-const ENV = Object.freeze({ PATH: '/usr/bin:/bin:/usr/sbin:/sbin' });
-
-function git(repository, args) {
-  return execFileSync(GIT, args, { cwd: repository, encoding: 'utf8', env: ENV }).trim();
-}
-
-function minimalBudget(protectedMainSha) {
-  const categories = Object.fromEntries(
-    'config/data/messages|docs/text|large support/generated-ish|other|source/scripts|tests/e2e'
-      .split('|')
-      .map(category => [category, 1])
-  );
-  const allocation = {
-    id: 'fixture',
-    mode: 'exact',
-    writerPaths: ['declared.txt'],
-    trackedBytesDelta: 0,
-    trackedFilesDelta: 0,
-    categoryBytesDelta: {},
-    pathBytesDelta: { 'declared.txt': 0 },
-  };
-  return {
-    version: 2,
-    baseline: { protectedMainSha, trackedBytes: 6, trackedFiles: 1, categoryBytes: categories },
-    allocations: [allocation],
-    reserve: {
-      trackedBytes: 0,
-      trackedFiles: 0,
-      categoryBytes: {},
-      rationale: 'No fixture reserve is needed for this test repository.',
-    },
-    maxTrackedBytes: 6,
-    maxTrackedFiles: 1,
-    maxCategoryBytes: categories,
-    maxLargestFileBytes: 1024,
-    maxSourceOrTestLines: 100,
-  };
-}
-
-function createRepository() {
-  const root = mkdtempSync(join(tmpdir(), 'slice-rehearse-cli-safety-'));
-  const repository = join(root, 'repo');
-  execFileSync(GIT, ['init', '-q', '-b', 'main', repository], { env: ENV });
-  for (const args of [
-    ['config', 'user.email', 'harness@example.test'],
-    ['config', 'user.name', 'Harness Test'],
-    ['remote', 'add', 'origin', 'https://github.com/example/rehearse.git'],
-  ]) {
-    git(repository, args);
-  }
-  execFileSync('/bin/mkdir', ['-p', join(repository, 'scripts')], { env: ENV });
-  writeFileSync(join(repository, 'declared.txt'), 'base\n');
-  writeFileSync(
-    join(repository, 'scripts/repo-size-budget.json'),
-    canonicalJson(minimalBudget('0'.repeat(40)))
-  );
-  git(repository, ['add', '.']);
-  git(repository, ['commit', '-q', '-m', 'baseline']);
-  const baselineSha = git(repository, ['rev-parse', 'HEAD']);
-  writeFileSync(
-    join(repository, 'scripts/repo-size-budget.json'),
-    canonicalJson(minimalBudget(baselineSha))
-  );
-  git(repository, ['add', '.']);
-  git(repository, ['commit', '-q', '-m', 'current budget']);
-  const headSha = git(repository, ['rev-parse', 'HEAD']);
-  return { root, repository, baselineSha, headSha };
-}
-
-function manifest(baseSha) {
-  const path = 'declared.txt';
-  const proof = {
-    commands: ['node --test'],
-    heavyLanes: [],
-    fullGateRequired: false,
-    workflowDigest: 'a'.repeat(64),
-    substrateDigest: 'b'.repeat(64),
-  };
-  return Object.assign(
-    {
-      schemaVersion: 1,
-      sliceId: 'HARNESS-V2-CLI',
-      tier: 1,
-      baseSha,
-      origin: 'https://github.com/example/rehearse.git',
-      writerPaths: [path],
-      pathPlans: [
-        {
-          path,
-          change: 'modify',
-          maxBytesDelta: 32,
-          maxLines: 10,
-          category: 'docs/text',
-        },
-      ],
-      routineOperations: [],
-      proof,
-      evidenceReceipts: [],
-    },
-    {
-      topology: Object.freeze({
-        closeoutMode: 'none',
-        projectionPaths: [],
-        repairPaths: [],
-        repairAllocationId: null,
-      }),
-    }
-  );
-}
+import { git, createRepository, manifest } from './slice-rehearse-cli-fixtures.mjs';
 
 function rehearse(fixture, options) {
   return runSliceRehearsal({
@@ -127,173 +18,258 @@ function rehearse(fixture, options) {
   });
 }
 
-const remove = fixture => rmSync(fixture.root, { recursive: true, force: true });
+function capture(fixture, manifestPath, options = {}) {
+  const output = [],
+    errors = [];
+  const code = rehearse(fixture, {
+    argv: ['--manifest', manifestPath],
+    cwd: fixture.repository,
+    stdout: value => output.push(value),
+    stderr: value => errors.push(value),
+    ...options,
+  });
+  return { code, output, errors };
+}
 
-test('fails closed for malformed input or missing baseline blob', () => {
+for (const fault of ['none', 'remote', 'local-during-remote']) {
+  test(`rehearsal observes remote reads before evaluating: ${fault}`, t => {
+    const f = createRepository(t),
+      file = join(f.root, 'manifest.json');
+    writeFileSync(file, canonicalJson(manifest(f.headSha)));
+    let reads = 0,
+      evaluated = 0;
+    const result = capture(f, file, {
+      readProtectedMain: repo => github('main', repo).sha,
+      readGithub: () => {
+        reads++;
+        if (reads === 2 && fault === 'local-during-remote')
+          writeFileSync(join(f.repository, 'declared.txt'), 'torn\n');
+        return { sha: reads === 2 && fault === 'remote' ? f.baselineSha : f.headSha };
+      },
+      evaluate: () => {
+        evaluated++;
+        return { authorityStops: [] };
+      },
+    });
+    assert.equal(result.code, fault === 'none' ? 0 : 1, result.errors.join(''));
+    assert.equal(evaluated, fault === 'none' ? 1 : 0);
+    assert.equal(result.output.length, fault === 'none' ? 1 : 0);
+    assert.equal(reads, 2);
+  });
+}
+
+test('fails closed for malformed input or missing baseline blob', t => {
   assert.match(
     readFileSync(new URL('./slice-rehearse.mjs', import.meta.url), 'utf8'),
     /allowedRoots: \[cwd, tmpdir\(\), '\/private\/tmp'\]/u
   );
-  const fixture = createRepository();
-  try {
-    const malformedPath = join(fixture.root, 'malformed.json');
-    writeFileSync(malformedPath, '{');
-    const output = [];
-    const errors = [];
-    assert.equal(
-      rehearse(fixture, {
-        argv: ['--manifest', malformedPath],
-        cwd: fixture.repository,
-        stdout: value => output.push(value),
-        stderr: value => errors.push(value),
-      }),
-      1
-    );
-    assert.deepEqual(output, []);
-    assert.match(errors.join(''), /manifest/i);
+  const fixture = createRepository(t);
+  const malformedPath = join(fixture.root, 'malformed.json');
+  writeFileSync(malformedPath, '{');
+  const { code, output, errors } = capture(fixture, malformedPath);
+  assert.equal(code, 1);
+  assert.deepEqual(output, []);
+  assert.match(errors.join(''), /manifest/i);
 
-    const manifestPath = join(fixture.root, 'manifest.json');
-    writeFileSync(manifestPath, canonicalJson(manifest(fixture.headSha)));
-    const budgetPath = join(fixture.repository, 'scripts/repo-size-budget.json');
-    const budget = JSON.parse(readFileSync(budgetPath, 'utf8'));
-    budget.baseline.protectedMainSha = 'f'.repeat(40);
-    writeFileSync(budgetPath, canonicalJson(budget));
-    git(fixture.repository, ['add', 'scripts/repo-size-budget.json']);
-    git(fixture.repository, ['commit', '-q', '-m', 'missing baseline fixture']);
-    const missingOutput = [];
-    const missingErrors = [];
-    assert.equal(
-      rehearse(fixture, {
-        argv: ['--manifest', manifestPath],
-        cwd: fixture.repository,
-        readProtectedMain: () => git(fixture.repository, ['rev-parse', 'HEAD']),
-        stdout: value => missingOutput.push(value),
-        stderr: value => missingErrors.push(value),
-        evaluate: () => assert.fail('evaluator must not run without baseline budget evidence'),
-      }),
-      1
-    );
-    assert.deepEqual(missingOutput, []);
-    assert.match(missingErrors.join(''), /baseline budget/i);
-  } finally {
-    remove(fixture);
-  }
+  const manifestPath = join(fixture.root, 'manifest.json');
+  writeFileSync(manifestPath, canonicalJson(manifest(fixture.headSha)));
+  const budgetPath = join(fixture.repository, 'scripts/repo-size-budget.json');
+  const budget = JSON.parse(readFileSync(budgetPath, 'utf8'));
+  budget.baseline.protectedMainSha = 'f'.repeat(40);
+  writeFileSync(budgetPath, canonicalJson(budget));
+  git(fixture.repository, ['add', 'scripts/repo-size-budget.json']);
+  git(fixture.repository, ['commit', '-q', '-m', 'missing baseline fixture']);
+  const missing = capture(fixture, manifestPath, {
+    readProtectedMain: () => git(fixture.repository, ['rev-parse', 'HEAD']),
+    evaluate: () => assert.fail('evaluator must not run without baseline budget evidence'),
+  });
+  assert.equal(missing.code, 1);
+  assert.deepEqual(missing.output, []);
+  assert.match(missing.errors.join(''), /baseline budget/i);
 });
 
-test('rejects symlink manifest and budget inputs', () => {
-  const fixture = createRepository();
-  try {
-    const realManifest = join(fixture.root, 'manifest.json');
-    const linkedManifest = join(fixture.root, 'manifest-link.json');
-    writeFileSync(realManifest, canonicalJson(manifest(fixture.headSha)));
-    symlinkSync(realManifest, linkedManifest);
-    const manifestErrors = [];
-    assert.equal(
-      rehearse(fixture, {
-        argv: ['--manifest', linkedManifest],
-        cwd: fixture.repository,
-        stdout: () => assert.fail('unsafe manifest must not produce JSON'),
-        stderr: value => manifestErrors.push(value),
-      }),
-      1
-    );
-    assert.match(manifestErrors.join(''), /regular file|symlink/iu);
+test('rejects symlink manifest and budget inputs', t => {
+  const fixture = createRepository(t);
+  const realManifest = join(fixture.root, 'manifest.json');
+  const linkedManifest = join(fixture.root, 'manifest-link.json');
+  writeFileSync(realManifest, canonicalJson(manifest(fixture.headSha)));
+  symlinkSync(realManifest, linkedManifest);
+  const linked = capture(fixture, linkedManifest);
+  assert.equal(linked.code, 1);
+  assert.deepEqual(linked.output, []);
+  assert.match(linked.errors.join(''), /regular file|symlink/iu);
 
-    const budgetPath = join(fixture.repository, 'scripts/repo-size-budget.json');
-    const externalBudget = join(fixture.root, 'external-budget.json');
-    writeFileSync(externalBudget, readFileSync(budgetPath));
-    rmSync(budgetPath);
-    symlinkSync(externalBudget, budgetPath);
-    const budgetErrors = [];
-    assert.equal(
-      rehearse(fixture, {
-        argv: ['--manifest', realManifest],
-        cwd: fixture.repository,
-        readProtectedMain: () => fixture.headSha,
-        stdout: () => assert.fail('unsafe budget must not produce JSON'),
-        stderr: value => budgetErrors.push(value),
-      }),
-      1
-    );
-    assert.match(budgetErrors.join(''), /regular file|symlink/iu);
-  } finally {
-    remove(fixture);
-  }
+  const budgetPath = join(fixture.repository, 'scripts/repo-size-budget.json');
+  const externalBudget = join(fixture.root, 'external-budget.json');
+  writeFileSync(externalBudget, readFileSync(budgetPath));
+  rmSync(budgetPath);
+  symlinkSync(externalBudget, budgetPath);
+  const budgetResult = capture(fixture, realManifest);
+  assert.equal(budgetResult.code, 1);
+  assert.deepEqual(budgetResult.output, []);
+  assert.match(budgetResult.errors.join(''), /regular file|symlink/iu);
 });
 
-test('reports worktree budget drift', () => {
-  const fixture = createRepository();
-  try {
-    const manifestPath = join(fixture.root, 'manifest.json');
-    writeFileSync(manifestPath, canonicalJson(manifest(fixture.headSha)));
-    const budgetPath = join(fixture.repository, 'scripts/repo-size-budget.json');
-    const worktreeBudget = JSON.parse(readFileSync(budgetPath, 'utf8'));
-    worktreeBudget.reserve.rationale = `${worktreeBudget.reserve.rationale} Candidate drift.`;
-    writeFileSync(budgetPath, canonicalJson(worktreeBudget));
-    const output = [];
-    const errors = [];
-    assert.equal(
-      rehearse(fixture, {
-        argv: ['--manifest', manifestPath],
-        cwd: fixture.repository,
-        readProtectedMain: () => fixture.headSha,
-        stdout: value => output.push(value),
-        stderr: value => errors.push(value),
-      }),
-      2,
-      errors.join('')
-    );
-    assert.deepEqual(errors, []);
-    const report = JSON.parse(output.join(''));
-    assert.ok(report.authorityStops.some(item => item.code === 'capacity:worktree-budget-drift'));
-  } finally {
-    remove(fixture);
-  }
+test('reports worktree budget drift', t => {
+  const fixture = createRepository(t);
+  const manifestPath = join(fixture.root, 'manifest.json');
+  writeFileSync(manifestPath, canonicalJson(manifest(fixture.headSha)));
+  const budgetPath = join(fixture.repository, 'scripts/repo-size-budget.json');
+  const worktreeBudget = JSON.parse(readFileSync(budgetPath, 'utf8'));
+  worktreeBudget.reserve.rationale = `${worktreeBudget.reserve.rationale} Candidate drift.`;
+  writeFileSync(budgetPath, canonicalJson(worktreeBudget));
+  const { code, output, errors } = capture(fixture, manifestPath);
+  assert.equal(code, 2, errors.join(''));
+  assert.deepEqual(errors, []);
+  const report = JSON.parse(output.join(''));
+  assert.ok(report.authorityStops.some(item => item.code === 'capacity:worktree-budget-drift'));
 });
 
-test('does not grant sensitive cleanup without independent operation facts', () => {
-  const fixture = createRepository();
-  try {
-    const value = manifest(fixture.headSha);
-    value.routineOperations = [
-      {
-        operation: 'task_owned_cleanup',
-        target: {
-          taskId: 'HARNESS-V2-CLI',
-          artifactPaths: ['/private/tmp/harness-v2-cli'],
-        },
-        preconditions: { authorityInactive: true },
+test('does not grant sensitive cleanup without independent operation facts', t => {
+  const fixture = createRepository(t);
+  const value = manifest(fixture.headSha);
+  value.routineOperations = [
+    {
+      operation: 'task_owned_cleanup',
+      target: {
+        taskId: 'HARNESS-V2-CLI',
+        artifactPaths: ['/private/tmp/harness-v2-cli'],
       },
-    ];
-    const manifestPath = join(fixture.root, 'manifest.json');
-    writeFileSync(manifestPath, canonicalJson(value));
-    const output = [];
-    const errors = [];
-    assert.equal(
-      rehearse(fixture, {
-        argv: ['--manifest', manifestPath],
-        cwd: fixture.repository,
-        readProtectedMain: () => fixture.headSha,
-        stdout: chunk => output.push(chunk),
-        stderr: chunk => errors.push(chunk),
-      }),
-      2,
-      errors.join('')
-    );
-    assert.deepEqual(errors, []);
-    const report = JSON.parse(output.join(''));
-    assert.equal(report.repository.operationFacts, null);
-    assert.ok(
-      report.authorityStops.some(
-        item =>
-          item.code === 'envelope:operation-precondition-unverified' &&
-          item.operation === 'task_owned_cleanup' &&
-          item.reason === 'authority-facts-unavailable'
-      ),
-      JSON.stringify(report.authorityStops)
-    );
-    assert.equal(report.operationalEnvelope, null);
-  } finally {
-    remove(fixture);
-  }
+      preconditions: { authorityInactive: true },
+    },
+  ];
+  const manifestPath = join(fixture.root, 'manifest.json');
+  writeFileSync(manifestPath, canonicalJson(value));
+  const { code, output, errors } = capture(fixture, manifestPath);
+  assert.equal(code, 2, errors.join(''));
+  assert.deepEqual(errors, []);
+  const report = JSON.parse(output.join(''));
+  assert.equal(report.repository.operationFacts, null);
+  assert.ok(
+    report.authorityStops.some(
+      item =>
+        item.code === 'envelope:operation-precondition-unverified' &&
+        item.operation === 'task_owned_cleanup' &&
+        item.reason === 'authority-facts-unavailable'
+    ),
+    JSON.stringify(report.authorityStops)
+  );
+  assert.equal(report.operationalEnvelope, null);
 });
+
+for (const phase of ['anchor', 'facts', 'index', 'budget', 'operations', 'proof']) {
+  test(`holds changed local observation after ${phase} before downstream collection`, t => {
+    const fixture = createRepository(t);
+    const manifestPath = join(fixture.root, 'manifest.json');
+    writeFileSync(manifestPath, canonicalJson(manifest(fixture.headSha)));
+    const calls = [];
+    const errors = [];
+    const mutate = () => {
+      if (phase === 'anchor') git(fixture.repository, ['checkout', '-q', '-b', 'torn-anchor']);
+      else if (phase === 'index')
+        git(fixture.repository, ['update-index', '--chmod=+x', 'declared.txt']);
+      else if (phase === 'budget')
+        writeFileSync(join(fixture.repository, 'scripts/repo-size-budget.json'), '{}\n');
+      else writeFileSync(join(fixture.repository, 'declared.txt'), 'next\n');
+    };
+    const code = rehearse(fixture, {
+      argv: ['--manifest', manifestPath],
+      cwd: fixture.repository,
+      stdout: () => calls.push('stdout'),
+      stderr: value => errors.push(value),
+      collectFacts: options => {
+        const facts = collectRepositoryFacts(options);
+        if (!['operations', 'proof'].includes(phase)) mutate();
+        return facts;
+      },
+      collectOperations: () => {
+        calls.push('operations');
+        if (phase === 'operations') mutate();
+        return null;
+      },
+      collectVerifiedEvidence: () => {
+        calls.push('proof');
+        mutate();
+        return {};
+      },
+      evaluate: () => {
+        calls.push('evaluate');
+        return { authorityStops: [] };
+      },
+    });
+    assert.equal(code, 1);
+    assert.match(errors.join(''), /local.*(?:anchor|observation).*changed/iu);
+    assert.deepEqual(
+      calls,
+      phase === 'operations' ? ['operations'] : phase === 'proof' ? ['operations', 'proof'] : []
+    );
+    if (phase !== 'anchor')
+      assert.equal(git(fixture.repository, ['rev-parse', 'HEAD']), fixture.headSha);
+  });
+}
+
+const headSha = 'a'.repeat(40);
+const treeSha = 'b'.repeat(40);
+
+test('remote observation deduplicates reads, isolates consumers and ignores JSON key order', () => {
+  let calls = 0;
+  const result = remote.withRemoteReadConsistency(
+    '/repo',
+    () => {
+      remote.github('pull', '/repo').head.sha = 'consumer mutation';
+      assert.equal(remote.github('pull', '/repo').head.sha, headSha);
+      return 'observed';
+    },
+    () =>
+      ++calls === 1
+        ? { head: { sha: headSha }, state: 'open' }
+        : { state: 'open', head: { sha: headSha } }
+  );
+  assert.equal(result, 'observed');
+  assert.equal(calls, 2);
+});
+
+for (const fault of [
+  'changed',
+  'unavailable',
+  'verification-unavailable',
+  'malformed',
+  'null',
+  'scalar',
+  'cross-repo',
+  'count',
+  'bytes',
+  'total',
+  'async',
+]) {
+  test(`remote observation fails closed: ${fault}`, () => {
+    let calls = 0;
+    assert.throws(
+      () =>
+        remote.withRemoteReadConsistency(
+          '/repo',
+          () => {
+            try {
+              for (let n = 0; n < (fault === 'count' ? 129 : fault === 'total' ? 5 : 1); n++)
+                remote.github(`pull/${n}`, fault === 'cross-repo' ? '/foreign' : '/repo');
+            } catch {
+              /* A collector may withhold evidence, but cannot repair the observation. */
+            }
+            return fault === 'async' ? Promise.resolve() : {};
+          },
+          () => {
+            calls++;
+            if (fault === 'unavailable' || (fault === 'verification-unavailable' && calls > 1))
+              throw new Error('provider unavailable');
+            if (fault === 'malformed') return { missing: undefined };
+            if (fault === 'null') return null;
+            if (fault === 'scalar') return 'not a fact resource';
+            if (fault === 'bytes') return { payload: 'x'.repeat(4 * 1024 * 1024) };
+            if (fault === 'total') return { payload: 'x'.repeat(3500 * 1024) };
+            return { head: calls > 1 && fault === 'changed' ? treeSha : headSha };
+          }
+        ),
+      /remote observation/u
+    );
+  });
+}

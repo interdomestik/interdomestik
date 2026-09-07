@@ -1,6 +1,10 @@
-import { execFileSync, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
-import { dirname, isAbsolute, resolve } from 'node:path';
+import {
+  currentProofInputsMatch,
+  deriveProofObligationGraph,
+  invalidatedProofNodes,
+} from './slice-rehearse-proof-obligations.mjs';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   canonicalJson,
@@ -8,13 +12,14 @@ import {
   deriveEvidenceIdentityKey,
   must,
   readBoundedRegularText,
-  sha256,
 } from './slice-rehearse-canonical.mjs';
-import {
-  acquireHeavyProofExecutionLease,
-  normalizeHeavyProofExecution,
-  recordHeavyProofExecution,
-} from './slice-rehearse-evidence.mjs';
+import { runHeavyProofExecution } from './slice-rehearse-proof-executor.mjs';
+export {
+  authorizedHeavyProofHost,
+  executePnpmProof,
+  validateProofExecutionPlan,
+  runHeavyProofExecution,
+} from './slice-rehearse-proof-executor.mjs';
 export {
   acquireHeavyProofExecutionLease,
   heavyProofLedgerPath,
@@ -25,14 +30,22 @@ export function planInvalidatedProofs({
   requiredLanes,
   decisions,
   expectedByLane,
+  currentInputsByLane,
+  previousInputsByLane,
+  obligationContract,
+  changedNodes = [],
   now = Date.now(),
 }) {
   must(Array.isArray(requiredLanes) && requiredLanes.length > 0, 'required lanes are unavailable');
   must(Array.isArray(decisions), 'proof decisions are unavailable');
+  const graph = deriveProofObligationGraph(obligationContract);
+  const invalidNodes = invalidatedProofNodes(graph, changedNodes);
+  const graphIds = new Set(graph.map(node => node.id));
   must(
     expectedByLane && typeof expectedByLane === 'object',
     'expected proof identity is unavailable'
   );
+  must(requiredLanes.includes('pr-e2e'), 'required PR E2E executor lane is missing');
   const required = [...requiredLanes].sort(compareText);
   must(new Set(required).size === required.length, 'required lanes must be unique');
   const byLane = new Map();
@@ -48,9 +61,21 @@ export function planInvalidatedProofs({
     byLane.set(decision.lane, laneDecisions);
   }
   const reuse = required.filter(lane => {
+    if (!graphIds.has(lane) || invalidNodes.includes(lane)) return false;
     must(expectedByLane[lane], `expected proof identity is missing: ${lane}`);
     const expectedKey = deriveEvidenceIdentityKey({ lane, ...expectedByLane[lane] });
-    return (byLane.get(lane) ?? []).some(
+    if (!currentProofInputsMatch(previousInputsByLane?.[lane], currentInputsByLane?.[lane], now))
+      return false;
+    if (
+      currentInputsByLane[lane].headSha !== expectedByLane[lane].headSha ||
+      currentInputsByLane[lane].treeSha !== expectedByLane[lane].treeSha
+    )
+      return false;
+    const matching = (byLane.get(lane) ?? []).filter(
+      item => item.key === expectedKey || item.key === null
+    );
+    if (matching.some(item => !item.reusable)) return false;
+    return matching.some(
       decision =>
         decision.reusable === true &&
         decision.key === expectedKey &&
@@ -69,144 +94,6 @@ export function planInvalidatedProofs({
         };
       }),
   };
-}
-function defaultVerifyCandidate(report) {
-  const options = {
-    encoding: 'utf8',
-    env: { PATH: '/usr/bin:/bin:/usr/sbin:/sbin' },
-    maxBuffer: 1024 * 1024,
-    timeout: 30_000,
-  };
-  return (
-    execFileSync('/usr/bin/git', ['rev-parse', 'HEAD'], options).trim() ===
-      report.repository?.headSha &&
-    execFileSync('/usr/bin/git', ['rev-parse', 'HEAD^{tree}'], options).trim() ===
-      report.repository?.treeSha &&
-    execFileSync('/usr/bin/git', ['status', '--porcelain'], options).trim() === ''
-  );
-}
-export function validateProofExecutionPlan(
-  report,
-  execution,
-  verifyCandidate = defaultVerifyCandidate
-) {
-  const value = normalizeHeavyProofExecution(execution);
-  must(
-    report && typeof report === 'object' && !Array.isArray(report),
-    'proof report is unavailable'
-  );
-  must(report.schemaVersion === 1, 'proof report schema is invalid');
-  must(
-    report.reportSha256 === sha256(canonicalJson({ ...report, reportSha256: null })),
-    'proof report digest is invalid'
-  );
-  must(
-    Array.isArray(report.authorityStops) && report.authorityStops.length === 0,
-    'proof report has authority stops'
-  );
-  const planned = report.evidence?.executionPlan?.run;
-  must(Array.isArray(planned), 'proof execution plan is unavailable');
-  const pending = report.operationalEnvelope?.requiredOperations ?? [];
-  must(
-    !pending.some(operation =>
-      /^(?:add_focused_test|bounded_force_with_lease_rebuild|derived_capacity_rebind|extract_cohesive_helper|fresh_worktree_patch_replay|sequence_prerequisite_before_projection|split_focused_test)$/u.test(
-        operation
-      )
-    ),
-    'identity-changing work is pending before heavy proof'
-  );
-  must(
-    planned.some(item => item?.lane === value.lane && item?.evidenceKey === value.evidenceKey),
-    'heavy proof execution is outside the invalidated-only plan'
-  );
-  must(
-    typeof verifyCandidate === 'function' && verifyCandidate(report) === true,
-    'heavy proof candidate identity differs'
-  );
-  return value;
-}
-const PROOF_COMMANDS = Object.freeze({
-  'pr-e2e': Object.freeze(
-    [['e2e:gate:pr'], ['--filter', '@interdomestik/web', 'run', 'e2e:smoke']].map(Object.freeze)
-  ),
-});
-const defaultPnpm = () => process.env.npm_execpath ?? resolve(dirname(process.execPath), 'pnpm');
-const isTrustedPnpm = path => isAbsolute(path ?? '') && /\/pnpm(?:\.[cm]?js)?$/u.test(path);
-export function executePnpmProof(
-  args,
-  { nodePath = process.execPath, npmExecPath = defaultPnpm(), spawn = spawnSync } = {}
-) {
-  must(isAbsolute(nodePath), 'trusted Node runtime is unavailable');
-  must(isTrustedPnpm(npmExecPath), 'trusted pnpm runtime is unavailable');
-  return spawn(nodePath, [npmExecPath, ...args], {
-    cwd: process.cwd(),
-    encoding: 'utf8',
-    env: { PATH: '/usr/bin:/bin:/usr/sbin:/sbin' },
-    shell: false,
-    stdio: ['ignore', 'pipe', 'pipe'],
-    timeout: 90 * 60_000,
-  });
-}
-export function authorizedHeavyProofHost({ platform = process.platform, env = process.env } = {}) {
-  if (platform !== 'linux') return false;
-  return (
-    (env.GITHUB_ACTIONS === 'true' && env.RUNNER_OS === 'Linux') ||
-    env.RUNNER_NAME === 'interdomestik-z620-staging'
-  );
-}
-export function runHeavyProofExecution({
-  ledgerPath,
-  execution,
-  report,
-  execute = executePnpmProof,
-  verifyCandidate,
-  record = recordHeavyProofExecution,
-  acquireLease = acquireHeavyProofExecutionLease,
-  verifyProofHost = authorizedHeavyProofHost,
-}) {
-  const value = validateProofExecutionPlan(report, execution, verifyCandidate);
-  const commands = PROOF_COMMANDS[value.lane];
-  must(commands, 'heavy proof lane has no fixed executor');
-  must(verifyProofHost({ report, execution: value }) === true, 'heavy proof host is unauthorized');
-  const { sliceId } = report;
-  const { headSha, treeSha } = report.repository;
-  const scope = { sliceId, headSha, treeSha };
-  const releaseLease = acquireLease({ ledgerPath, scope, execution: value });
-  must(typeof releaseLease === 'function', 'heavy proof lease is invalid');
-  try {
-    for (let index = 0; index < commands.length; index += 1) {
-      const result = execute(commands[index]);
-      if (result?.status !== 0) {
-        const exitCode = Number.isInteger(result?.status) ? result.status : null;
-        record({
-          ledgerPath,
-          scope,
-          execution: value,
-          status: 'failed',
-          finishedAt: new Date().toISOString(),
-          exitCode,
-        });
-        return {
-          commandIndex: index,
-          exitCode,
-          lane: value.lane,
-          runId: value.runId,
-          status: 'failed',
-        };
-      }
-    }
-    record({
-      ledgerPath,
-      scope,
-      execution: value,
-      status: 'succeeded',
-      finishedAt: new Date().toISOString(),
-      exitCode: 0,
-    });
-    return { lane: value.lane, runId: value.runId, status: 'succeeded' };
-  } finally {
-    releaseLease();
-  }
 }
 function parseRecordArgs(argv) {
   must(

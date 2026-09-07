@@ -41,12 +41,14 @@ export function evaluateDeliverySnapshot(contractInput, snapshot) {
   verifyFeedback(contract, snapshot.feedback, snapshot.expected.head);
   return { ok: true, head: snapshot.expected.head, testedTree, selected };
 }
-async function collectChecks(client, head, contract) {
+async function collectChecks(client, head, contract, extraChecks = []) {
   const rawChecks = await client.pages(
     `repos/${client.repository}/commits/${head}/check-runs?filter=all`,
     'check_runs'
   );
-  const declared = new Map(contract.deliveryPrerequisites.map(item => [item.context, item.appId]));
+  const declared = new Map(
+    [...contract.deliveryPrerequisites, ...extraChecks].map(item => [item.context, item.appId])
+  );
   const checks = [];
   let annotationsComplete = true;
   for (const item of rawChecks.values) {
@@ -171,7 +173,8 @@ async function commit(client, sha) {
   const value = await client.cached(`commit:${sha}`, () =>
     client.request(`repos/${client.repository}/git/commits/${sha}`)
   );
-  return { tree: value.tree.sha, parents: value.parents.map(item => item.sha) };
+  const parents = value.parents.map(item => item.sha);
+  return { tree: value.tree.sha, parents };
 }
 
 export async function resolvePackageJsonSurface(client, changedFiles, base, head) {
@@ -191,7 +194,7 @@ export async function resolvePackageJsonSurface(client, changedFiles, base, head
   });
 }
 
-async function collectSnapshot(client, contract, expected, number) {
+export async function collectSnapshot(client, contract, expected, number, extraChecks = []) {
   const explicit = Object.values(expected).filter(Boolean).length;
   if (explicit !== 3) fail('incomplete expected identity');
   const bound = expected;
@@ -201,7 +204,7 @@ async function collectSnapshot(client, contract, expected, number) {
   );
   if (!files.complete) fail('changed-file pagination incomplete');
   const [checks, feedback, base, head, testedMerge] = await Promise.all([
-    collectChecks(client, bound.head, contract),
+    collectChecks(client, bound.head, contract, extraChecks),
     collectFeedback(client, pull),
     commit(client, bound.base),
     commit(client, bound.head),

@@ -51,7 +51,7 @@ The following rules are non-negotiable for all agents (human or AI):
 
 ## Conditional Subagent Policy
 
-- Use subagents only when the user explicitly asks for delegation, parallel work, or subagents, and only when the current runtime policy allows it.
+- Use subagents for bounded independent work when runtime policy permits; no separate user approval is required.
 - Keep the main agent on the critical path. Delegate independent sidecar work such as focused codebase exploration, isolated implementation slices, or non-blocking verification.
 - Do not delegate tightly coupled blocking work by default if the next local action depends on the result.
 - When using subagents, define clear ownership for each delegated task and avoid overlapping write scopes.

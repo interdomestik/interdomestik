@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { collectLocalFacts } from './lean-current-authority-recovery.mjs';
 
 import {
   assertCanonicalWriterWorktree,
@@ -36,7 +37,7 @@ import {
   sameSet,
 } from './lean-current-authority-policy.mjs';
 
-function collectFacts(repo, projection, protectedMainSha) {
+function collectFacts(repo, projection, protectedMainSha, recoveryContext) {
   const slice = projection.activeSlice;
   validateRepositoryIdentity(repo);
   assertCanonicalWriterWorktree(repo, protectedMainSha === undefined);
@@ -58,18 +59,13 @@ function collectFacts(repo, projection, protectedMainSha) {
       promotion,
     };
   if (product) attachPullFiles(repo, product);
-  const localHead = git(repo, 'rev-parse', 'HEAD');
+  const local = collectLocalFacts(repo, promotion.mergeSha, recoveryContext, git, changedPaths);
   return {
     protectedMainSha: protectedMain(repo, protectedMainSha),
     predecessor,
     promotion,
     product,
-    local: {
-      branch: git(repo, 'branch', '--show-current'),
-      headSha: localHead,
-      forkPointSha: git(repo, 'merge-base', localHead, promotion.mergeSha),
-      changedPaths: changedPaths(repo, promotion.mergeSha),
-    },
+    local,
   };
 }
 
@@ -170,7 +166,11 @@ function resolveInactiveRepository(repo, projection) {
     : pendingCloseout(repo, pull, branch, anchor, localHead);
 }
 
-export function resolveRepositoryAuthority(repoInput = process.cwd(), live = true) {
+export function resolveRepositoryAuthority(
+  repoInput = process.cwd(),
+  live = true,
+  recoveryContext = undefined
+) {
   try {
     const repo = resolve(repoInput);
     const projection = parseAuthorityDocuments(
@@ -178,11 +178,13 @@ export function resolveRepositoryAuthority(repoInput = process.cwd(), live = tru
       readFileSync(resolve(repo, TRACKER), 'utf8')
     );
     if (!live) return resolveAuthority(projection);
-    return projection.activeSlice
-      ? resolveAuthority(projection, collectFacts(repo, projection))
-      : resolveInactiveRepository(repo, projection);
+    if (!projection.activeSlice) return resolveInactiveRepository(repo, projection);
+    const facts = collectFacts(repo, projection, undefined, recoveryContext);
+    return resolveAuthority(projection, facts, recoveryContext);
   } catch {
-    return failAuthority('authority_evidence_unavailable');
+    return failAuthority(
+      recoveryContext === undefined ? 'authority_evidence_unavailable' : 'recovery_evidence_invalid'
+    );
   }
 }
 
