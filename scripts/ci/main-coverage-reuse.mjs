@@ -10,7 +10,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const PROOF_NAME = 'Coverage evidence ${{ steps.main_coverage_reuse.outputs.identity }}';
 
 export function inspectCoverageParity(source) {
-  const unit = yaml.load(source)?.jobs?.unit;
+  const workflow = yaml.load(source);
+  const unit = workflow?.jobs?.unit;
   const steps = unit?.steps ?? [];
   const checkout = steps.find(step => step.uses?.startsWith('actions/checkout@'));
   const coverage = steps.find(step => step.name === 'Coverage Gate');
@@ -28,6 +29,7 @@ export function inspectCoverageParity(source) {
         step => step && step['working-directory'] === undefined && step.shell === undefined
       ) &&
       unit.defaults === undefined &&
+      workflow.defaults === undefined &&
       measure?.env?.GITHUB_TOKEN === '${{ github.token }}' &&
       Object.keys(measure.env).length === 1 &&
       measure?.run === 'node scripts/ci/main-coverage-reuse.mjs >> "$GITHUB_OUTPUT"' &&

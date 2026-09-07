@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { readFileSync, realpathSync } from 'node:fs';
 import path from 'node:path';
 import yaml from 'js-yaml';
 import { readLocalGitObjectId } from './main-e2e-reuse-github.mjs';
@@ -13,6 +13,7 @@ export function coverageInputIdentity({
   tree,
   node,
   pnpm,
+  pnpmSha256,
   packageManager,
   env,
   environmentKeys = [],
@@ -22,6 +23,7 @@ export function coverageInputIdentity({
     !/^v24\.\d+\.\d+$/u.test(node) ||
     packageManager !== `pnpm@${pnpm}` ||
     !/^\d+\.\d+\.\d+$/u.test(pnpm) ||
+    !/^[0-9a-f]{64}$/u.test(pnpmSha256 ?? '') ||
     IMAGE_KEYS.some(key => typeof env[key] !== 'string' || !env[key])
   ) {
     throw new Error('Coverage execution identity unavailable');
@@ -29,13 +31,29 @@ export function coverageInputIdentity({
   const environment = Object.fromEntries(
     Object.keys(env)
       .filter(key => ENVIRONMENT.test(key) || environmentKeys.includes(key))
-      .sort()
+      .sort((left, right) => left.localeCompare(right, 'en'))
       .map(key => [key, env[key]])
   );
   const image = Object.fromEntries(IMAGE_KEYS.map(key => [key, env[key]]));
   return createHash('sha256')
-    .update(JSON.stringify({ version: 1, tree, node, pnpm, image, environment }))
+    .update(JSON.stringify({ version: 1, tree, node, pnpm, pnpmSha256, image, environment }))
     .digest('hex');
+}
+
+export function readPnpmIdentity(env) {
+  if (typeof env.PNPM_HOME !== 'string' || !path.isAbsolute(env.PNPM_HOME)) {
+    throw new Error('Absolute setup-pnpm installation required');
+  }
+  const entrypoint = realpathSync(path.join(env.PNPM_HOME, 'pnpm'));
+  return {
+    pnpm: execFileSync(process.execPath, [entrypoint, '--version'], {
+      encoding: 'utf8',
+      timeout: 10_000,
+      maxBuffer: 1024,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim(),
+    pnpmSha256: createHash('sha256').update(readFileSync(entrypoint)).digest('hex'),
+  };
 }
 
 export function readCoverageInputIdentity(root, env = process.env) {
@@ -45,11 +63,7 @@ export function readCoverageInputIdentity(root, env = process.env) {
   return coverageInputIdentity({
     tree: readLocalGitObjectId(root, 'HEAD^{tree}'),
     node: process.version,
-    pnpm: execFileSync('pnpm', ['--version'], {
-      cwd: root,
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-    }).trim(),
+    ...readPnpmIdentity(env),
     packageManager: JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'))
       .packageManager,
     env,

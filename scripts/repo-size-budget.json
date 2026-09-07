@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 63757,
+      "trackedBytesDelta": 63758,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 32819,
+        "config/data/messages": 32820,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 32819,
+        "scripts/repo-size-budget.json": 32820,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -675,22 +675,22 @@
         "scripts/ci/pr-gate-pin-contracts.test.mjs",
         "scripts/ci/draft-gate-workflow-contracts.test.mjs"
       ],
-      "maxTrackedBytesDelta": 20356,
+      "maxTrackedBytesDelta": 22203,
       "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
-        "source/scripts": 7949,
-        "tests/e2e": 9757,
-        "config/data/messages": 2650
+        "source/scripts": 8598,
+        "tests/e2e": 10912,
+        "config/data/messages": 2693
       },
       "maxPathBytesDelta": {
         "scripts/ci/main-e2e-reuse.mjs": 0,
         "scripts/ci/main-e2e-reuse-core.mjs": 958,
         "scripts/ci/main-e2e-reuse-github.mjs": 17,
         "scripts/ci/main-e2e-reuse-cli.test.mjs": 498,
-        "scripts/ci/coverage-input-identity.mjs": 2183,
-        "scripts/ci/main-coverage-reuse.mjs": 4791,
-        "scripts/ci/main-coverage-reuse.test.mjs": 8390,
-        ".github/actions/validation-surface/action.yml": 2650,
+        "scripts/ci/coverage-input-identity.mjs": 2762,
+        "scripts/ci/main-coverage-reuse.mjs": 4861,
+        "scripts/ci/main-coverage-reuse.test.mjs": 9545,
+        ".github/actions/validation-surface/action.yml": 2693,
         "scripts/ci/cd-deploy-env-scope.test.mjs": 90,
         "scripts/ci/exact-head-certification-workflows.test.mjs": 193,
         "scripts/ci/pr-gate-pin-contracts.test.mjs": 345,
@@ -707,15 +707,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60403066,
+  "maxTrackedBytes": 60404914,
   "maxTrackedFiles": 5971,
   "maxCategoryBytes": {
-    "config/data/messages": 2173993,
+    "config/data/messages": 2174037,
     "docs/text": 8507398,
     "large support/generated-ish": 15389747,
     "other": 18856416,
-    "source/scripts": 8715468,
-    "tests/e2e": 6760044
+    "source/scripts": 8716117,
+    "tests/e2e": 6761199
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

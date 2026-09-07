@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import test from 'node:test';
 import yaml from 'js-yaml';
-import { coverageInputIdentity } from './coverage-input-identity.mjs';
+import { coverageInputIdentity, readPnpmIdentity } from './coverage-input-identity.mjs';
 import { decideMainCoverageReuse } from './main-e2e-reuse-core.mjs';
 import {
   reusableEvidence,
@@ -21,6 +22,7 @@ function inputs() {
     tree: TREE_SHA,
     node: 'v24.7.0',
     pnpm: '10.28.2',
+    pnpmSha256: 'f'.repeat(64),
     packageManager: 'pnpm@10.28.2',
     env: {
       RUNNER_OS: 'Linux',
@@ -36,6 +38,23 @@ function inputs() {
   };
 }
 const identity = coverageInputIdentity(inputs());
+test('pnpm identity invokes the absolute entrypoint without PATH lookup', () => {
+  const directory = mkdtempSync(`${tmpdir()}/coverage-pnpm-`);
+  const previous = process.env.PATH;
+  try {
+    writeFileSync(`${directory}/pnpm`, "process.stdout.write('10.28.2');\n");
+    process.env.PATH = directory;
+    const result = readPnpmIdentity({ PNPM_HOME: directory });
+    assert.equal(result.pnpm, '10.28.2');
+    assert.match(result.pnpmSha256, /^[0-9a-f]{64}$/u);
+    assert.throws(() => readPnpmIdentity({ PNPM_HOME: 'relative' }), /Absolute/u);
+    writeFileSync(`${directory}/pnpm`, "process.stdout.write('10.28.2'); // changed\n");
+    assert.notEqual(readPnpmIdentity({ PNPM_HOME: directory }).pnpmSha256, result.pnpmSha256);
+  } finally {
+    process.env.PATH = previous;
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
 function evidence() {
   const value = reusableEvidence();
   value.identity = identity;
@@ -187,6 +206,9 @@ test('workflow keeps fallback coverage, merge-ref checkout and separate release 
   assert.equal(unit.env.INTERDOMESTIK_TURBO_REMOTE_CACHE_READ_ONLY, '1');
 });
 test('step-only overrides cannot evade measured coverage identity', () => {
+  const global = yaml.load(source);
+  global.defaults = { run: { shell: 'sh', 'working-directory': 'apps/web' } };
+  assert.equal(inspectCoverageParity(yaml.dump(global)).commandChain, false);
   for (const name of ['Coverage Gate', 'Measure and resolve coverage reuse']) {
     const workflow = yaml.load(source);
     workflow.jobs.unit.steps.find(step => step.name === name).env = {
