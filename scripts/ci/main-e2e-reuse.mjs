@@ -7,7 +7,7 @@ import { collectGitHubEvidence, readLocalGitObjectId } from './main-e2e-reuse-gi
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const LANE_SHA256 = 'ff019f739b4ae106650a0dff94527154e9579468d0ea2d5a5eecff7c2f715b64';
 const CONFIG_SHA256 = '97ca0f14c9f7b121cf00121eb9a0f5867b0cf9f3e52b7215a504c3d7183f2d30';
-const E2E_TREE_SHA = '99576782ad52f58c30316f5983df8ec654ba7ad1';
+const E2E_TREE_SHA = '56c526c1695d1dec5d18d0f058e85c5293a8fcbe';
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {
   const start = source.indexOf(startMarker);

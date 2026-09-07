@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 62110,
+      "trackedBytesDelta": 63382,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 31172,
+        "config/data/messages": 32444,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 31172,
+        "scripts/repo-size-budget.json": 32444,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -78,10 +78,10 @@
         "scripts/lean-current-authority.test.mjs",
         "scripts/modularity-guard-policy.mjs"
       ],
-      "maxTrackedBytesDelta": 43051,
+      "maxTrackedBytesDelta": 43143,
       "maxTrackedFilesDelta": 5,
       "maxCategoryBytesDelta": {
-        "source/scripts": 18947,
+        "source/scripts": 19039,
         "tests/e2e": 24104
       },
       "maxPathBytesDelta": {
@@ -96,7 +96,7 @@
         "scripts/lean-current-authority-evidence.test.mjs": 355,
         "scripts/lean-current-authority-pull-selection.test.mjs": 2493,
         "scripts/lean-current-authority-conformance.test.mjs": 3260,
-        "scripts/modularity-guard-policy.mjs": 344,
+        "scripts/modularity-guard-policy.mjs": 436,
         "scripts/check-modularity-guard.test.mjs": 738,
         "scripts/lean-current-authority-recovery.mjs": 6810,
         "scripts/lean-current-authority-recovery.test.mjs": 9126,
@@ -478,16 +478,16 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 653985,
+      "maxTrackedBytesDelta": 655294,
       "maxTrackedFilesDelta": 92,
       "maxCategoryBytesDelta": {
-        "config/data/messages": 1147,
+        "config/data/messages": 2456,
         "docs/text": 30439,
         "source/scripts": 338527,
         "tests/e2e": 283872
       },
       "maxPathBytesDelta": {
-        ".github/workflows/ci.yml": 132,
+        ".github/workflows/ci.yml": 1441,
         "AGENTS.md": 0,
         "docs/superpowers/plans/2026-08-29-harness-v2-efficiency.md": 15754,
         "docs/superpowers/specs/2026-08-29-harness-v2-efficiency-design.md": 14685,
@@ -608,14 +608,14 @@
         "scripts/lib/modularity-guard.mjs",
         "scripts/lib/workflow-permission-tightening.mjs"
       ],
-      "maxTrackedBytesDelta": 12634,
+      "maxTrackedBytesDelta": 13155,
       "maxTrackedFilesDelta": 2,
       "maxCategoryBytesDelta": {
-        "tests/e2e": 8100,
+        "tests/e2e": 8621,
         "source/scripts": 4534
       },
       "maxPathBytesDelta": {
-        "scripts/ci/main-e2e-reuse-workflow.test.mjs": 205,
+        "scripts/ci/main-e2e-reuse-workflow.test.mjs": 726,
         "scripts/ci/workflow-permission-tightening.test.mjs": 7895,
         "scripts/lib/modularity-guard.mjs": 156,
         "scripts/lib/workflow-permission-tightening.mjs": 4378
@@ -657,6 +657,39 @@
         "scripts/ci/actions-check-supersession.mjs": 2752,
         "scripts/ci/actions-check-supersession.test.mjs": 6161
       }
+    },
+    {
+      "id": "ci-evidence-reuse",
+      "mode": "bounded",
+      "writerPaths": [
+        "scripts/ci/main-e2e-reuse.mjs",
+        "scripts/ci/main-e2e-reuse-core.mjs",
+        "scripts/ci/main-e2e-reuse-github.mjs",
+        "scripts/ci/main-e2e-reuse-cli.test.mjs",
+        "scripts/ci/coverage-input-identity.mjs",
+        "scripts/ci/main-coverage-reuse.mjs",
+        "scripts/ci/main-coverage-reuse.test.mjs",
+        ".github/actions/validation-surface/action.yml",
+        "scripts/ci/cd-deploy-env-scope.test.mjs"
+      ],
+      "maxTrackedBytesDelta": 19577,
+      "maxTrackedFilesDelta": 4,
+      "maxCategoryBytesDelta": {
+        "source/scripts": 7949,
+        "tests/e2e": 8978,
+        "config/data/messages": 2650
+      },
+      "maxPathBytesDelta": {
+        "scripts/ci/main-e2e-reuse.mjs": 0,
+        "scripts/ci/main-e2e-reuse-core.mjs": 958,
+        "scripts/ci/main-e2e-reuse-github.mjs": 17,
+        "scripts/ci/main-e2e-reuse-cli.test.mjs": 498,
+        "scripts/ci/coverage-input-identity.mjs": 2183,
+        "scripts/ci/main-coverage-reuse.mjs": 4791,
+        "scripts/ci/main-coverage-reuse.test.mjs": 8390,
+        ".github/actions/validation-surface/action.yml": 2650,
+        "scripts/ci/cd-deploy-env-scope.test.mjs": 90
+      }
     }
   ],
   "reserve": {
@@ -668,15 +701,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60379136,
-  "maxTrackedFiles": 5967,
+  "maxTrackedBytes": 60401907,
+  "maxTrackedFiles": 5971,
   "maxCategoryBytes": {
-    "config/data/messages": 2168387,
+    "config/data/messages": 2173618,
     "docs/text": 8507398,
     "large support/generated-ish": 15389747,
     "other": 18856416,
-    "source/scripts": 8707422,
-    "tests/e2e": 6749766
+    "source/scripts": 8715463,
+    "tests/e2e": 6759265
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

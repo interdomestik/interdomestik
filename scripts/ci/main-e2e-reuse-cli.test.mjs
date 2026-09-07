@@ -15,7 +15,7 @@ import { MAIN_SHA, NOW_MS, REPOSITORY, reusableEvidence } from './main-e2e-reuse
 import { commandChainDrifts } from './main-e2e-reuse-fixture.mjs';
 import { readLocalGitObjectId } from './main-e2e-reuse-github.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const E2E_TREE = '99576782ad52f58c30316f5983df8ec654ba7ad1';
+const E2E_TREE = readLocalGitObjectId(root, 'HEAD:apps/web/e2e');
 const SAFE = { reuse: false, reason: 'evidence_not_exact' };
 const fail = () => {
   throw new Error('token=secret body=secret');
@@ -106,6 +106,22 @@ test('CLI resolver fails closed before GitHub access for an ineligible context',
     dependencies({ collectEvidence: fail })
   );
   assert.deepEqual(decision, SAFE);
+});
+test('unknown test corpus rejects reuse before collecting remote evidence', async () => {
+  let requested = false;
+  const git = dependencies().git;
+  const decision = await resolveMainE2eReuse(
+    environment(),
+    dependencies({
+      git: value => (value === 'HEAD:apps/web/e2e' ? '0'.repeat(40) : git(value)),
+      collectEvidence: async () => {
+        requested = true;
+        return {};
+      },
+    })
+  );
+  assert.deepEqual(decision, SAFE);
+  assert.equal(requested, false);
 });
 test('CLI resolver converts GitHub, schema, and local failures to one safe decision', async () => {
   const git = dependencies().git;

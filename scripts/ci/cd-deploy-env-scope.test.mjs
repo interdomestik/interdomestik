@@ -207,12 +207,12 @@ test('CI materializes AI eval as a blocking surface-gated lane', () => {
   for (const output of ['ai_eval_should_run', 'ai_eval_reason', 'ai_eval_matched_paths']) {
     assert.equal(
       validationSurfaceJob.outputs[output],
-      `\${{ steps.gate_policy.outputs.${output} }}`
+      `\${{ steps.validation.outputs.${output} }}`
     );
   }
-  const gatePolicyStep = findStep(validationSurfaceJob.steps, 'Evaluate PR gate policy');
-  assert.ok(gatePolicyStep);
-  assert.equal(gatePolicyStep.uses, TRUSTED_GATE_ACTION);
+  const validationAction = readWorkflow('.github/actions/validation-surface/action.yml');
+  const gatePolicyStep = findStep(validationAction.runs.steps, 'Evaluate PR gate policy');
+  assert.equal(gatePolicyStep?.uses, TRUSTED_GATE_ACTION);
   assert.ok(aiEvalJob);
   assert.ok(normalizeNeeds(aiEvalJob.needs).includes('validation-surface'));
   assert.equal(
