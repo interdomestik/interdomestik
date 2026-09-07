@@ -40,11 +40,14 @@ export function coverageInputIdentity({
     .digest('hex');
 }
 
-export function readPnpmIdentity(env) {
-  if (typeof env.PNPM_HOME !== 'string' || !path.isAbsolute(env.PNPM_HOME)) {
-    throw new Error('Absolute setup-pnpm installation required');
+export function readPnpmIdentity(
+  env,
+  resolveEntrypoint = () => realpathSync('/home/runner/setup-pnpm/node_modules/.bin/pnpm')
+) {
+  if (env.PNPM_HOME !== '/home/runner/setup-pnpm/node_modules/.bin') {
+    throw new Error('Fixed hosted setup-pnpm installation required');
   }
-  const entrypoint = realpathSync(path.join(env.PNPM_HOME, 'pnpm'));
+  const entrypoint = resolveEntrypoint();
   return {
     pnpm: execFileSync(process.execPath, [entrypoint, '--version'], {
       encoding: 'utf8',

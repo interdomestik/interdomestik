@@ -675,11 +675,11 @@
         "scripts/ci/pr-gate-pin-contracts.test.mjs",
         "scripts/ci/draft-gate-workflow-contracts.test.mjs"
       ],
-      "maxTrackedBytesDelta": 22203,
+      "maxTrackedBytesDelta": 22430,
       "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
-        "source/scripts": 8598,
-        "tests/e2e": 10912,
+        "source/scripts": 8664,
+        "tests/e2e": 11073,
         "config/data/messages": 2693
       },
       "maxPathBytesDelta": {
@@ -687,9 +687,9 @@
         "scripts/ci/main-e2e-reuse-core.mjs": 958,
         "scripts/ci/main-e2e-reuse-github.mjs": 17,
         "scripts/ci/main-e2e-reuse-cli.test.mjs": 498,
-        "scripts/ci/coverage-input-identity.mjs": 2762,
+        "scripts/ci/coverage-input-identity.mjs": 2828,
         "scripts/ci/main-coverage-reuse.mjs": 4861,
-        "scripts/ci/main-coverage-reuse.test.mjs": 9545,
+        "scripts/ci/main-coverage-reuse.test.mjs": 9706,
         ".github/actions/validation-surface/action.yml": 2693,
         "scripts/ci/cd-deploy-env-scope.test.mjs": 90,
         "scripts/ci/exact-head-certification-workflows.test.mjs": 193,
@@ -707,15 +707,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60404914,
+  "maxTrackedBytes": 60405141,
   "maxTrackedFiles": 5971,
   "maxCategoryBytes": {
     "config/data/messages": 2174037,
     "docs/text": 8507398,
     "large support/generated-ish": 15389747,
     "other": 18856416,
-    "source/scripts": 8716117,
-    "tests/e2e": 6761199
+    "source/scripts": 8716183,
+    "tests/e2e": 6761360
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

@@ -41,15 +41,21 @@ const identity = coverageInputIdentity(inputs());
 test('pnpm identity invokes the absolute entrypoint without PATH lookup', () => {
   const directory = mkdtempSync(`${tmpdir()}/coverage-pnpm-`);
   const previous = process.env.PATH;
+  const measure = () =>
+    readPnpmIdentity(
+      { PNPM_HOME: '/home/runner/setup-pnpm/node_modules/.bin' },
+      () => `${directory}/pnpm`
+    );
   try {
     writeFileSync(`${directory}/pnpm`, "process.stdout.write('10.28.2');\n");
     process.env.PATH = directory;
-    const result = readPnpmIdentity({ PNPM_HOME: directory });
+    const result = measure();
     assert.equal(result.pnpm, '10.28.2');
     assert.match(result.pnpmSha256, /^[0-9a-f]{64}$/u);
-    assert.throws(() => readPnpmIdentity({ PNPM_HOME: 'relative' }), /Absolute/u);
+    assert.throws(() => readPnpmIdentity({ PNPM_HOME: 'relative' }), /Fixed/u);
+    assert.throws(() => readPnpmIdentity({ PNPM_HOME: directory }), /Fixed/u);
     writeFileSync(`${directory}/pnpm`, "process.stdout.write('10.28.2'); // changed\n");
-    assert.notEqual(readPnpmIdentity({ PNPM_HOME: directory }).pnpmSha256, result.pnpmSha256);
+    assert.notEqual(measure().pnpmSha256, result.pnpmSha256);
   } finally {
     process.env.PATH = previous;
     rmSync(directory, { recursive: true, force: true });
