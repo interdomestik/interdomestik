@@ -637,25 +637,25 @@
         "scripts/ci/actions-check-supersession.mjs",
         "scripts/ci/actions-check-supersession.test.mjs"
       ],
-      "maxTrackedBytesDelta": 24256,
+      "maxTrackedBytesDelta": 24649,
       "maxTrackedFilesDelta": 5,
       "maxCategoryBytesDelta": {
-        "config/data/messages": 130,
-        "tests/e2e": 15936,
+        "config/data/messages": 150,
+        "tests/e2e": 16309,
         "source/scripts": 8190
       },
       "maxPathBytesDelta": {
-        ".github/workflows/pr-finalizer.yml": 130,
+        ".github/workflows/pr-finalizer.yml": 150,
         "scripts/ci/e2e-lane-runner-contracts.test.mjs": 923,
         "scripts/ci/github-governance-contracts.test.mjs": 150,
-        "scripts/ci/pr-finalizer-workflow.test.mjs": 496,
+        "scripts/ci/pr-finalizer-workflow.test.mjs": 680,
         "scripts/pr-review-ready.sh": 1279,
         "scripts/ci/pr-delivery-feedback.mjs": 3726,
         "scripts/ci/pr-delivery-ordering.test.mjs": 4723,
         "scripts/ci/pr-review-ready.test.mjs": 3672,
         "scripts/pr-finalizer.sh": 451,
         "scripts/ci/actions-check-supersession.mjs": 2734,
-        "scripts/ci/actions-check-supersession.test.mjs": 5972
+        "scripts/ci/actions-check-supersession.test.mjs": 6161
       }
     }
   ],
@@ -668,15 +668,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60378725,
+  "maxTrackedBytes": 60379118,
   "maxTrackedFiles": 5967,
   "maxCategoryBytes": {
-    "config/data/messages": 2168367,
+    "config/data/messages": 2168387,
     "docs/text": 8507398,
     "large support/generated-ish": 15389747,
     "other": 18856416,
     "source/scripts": 8707404,
-    "tests/e2e": 6749393
+    "tests/e2e": 6749766
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

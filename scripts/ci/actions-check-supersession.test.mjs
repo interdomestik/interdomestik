@@ -105,7 +105,7 @@ test('finalizer refreshes superseded failures, fails genuine failures, and bound
   const source = fs
     .readFileSync(path.join(root, 'scripts/pr-finalizer.sh'), 'utf8')
     .split('\nif [[ "${1:-}" == "--help"')[0]
-    .replaceAll('$(dirname "${BASH_SOURCE[0]}")', `${root}/scripts`);
+    .replaceAll('$(dirname "${BASH_SOURCE[0]}")', '${REPLACEMENT_SCRIPT_DIR}');
   const old = {
     name: 'audit',
     app: { id: 15368 },
@@ -147,7 +147,9 @@ gh() {
 }
 require_gh_checks
 `;
-      const result = spawnSync('bash', ['-c', code], {
+      const harness = path.join(directory, 'harness.sh');
+      fs.writeFileSync(harness, code, { mode: 0o600 });
+      const result = spawnSync('bash', ['--', harness], {
         cwd: root,
         encoding: 'utf8',
         timeout: 5000,
@@ -160,6 +162,7 @@ require_gh_checks
           PR_FINALIZER_SKIP_CHECK_POLLING: '',
           PR_FINALIZER_MAX_CHECK_RETRIES: '2',
           REPLACEMENT_COUNTER: counter,
+          REPLACEMENT_SCRIPT_DIR: path.join(root, 'scripts'),
         },
       });
       assert.equal(result.status, scenario.exit, result.stdout + result.stderr);

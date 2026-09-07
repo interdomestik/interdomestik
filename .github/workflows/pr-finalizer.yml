@@ -14,6 +14,7 @@ jobs:
   pr-finalizer:
     permissions:
       contents: read
+      actions: read
       pull-requests: read
       checks: read
       statuses: read

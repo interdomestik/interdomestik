@@ -15,6 +15,13 @@ function readWorkflow(relativePath) {
 
 test('PR finalizer forces current-head required-check polling for the full lane', () => {
   const workflow = readWorkflow('.github/workflows/pr-finalizer.yml');
+  assert.deepEqual(workflow.jobs['pr-finalizer'].permissions, {
+    contents: 'read',
+    actions: 'read',
+    'pull-requests': 'read',
+    checks: 'read',
+    statuses: 'read',
+  });
   const checkout = workflow.jobs['pr-finalizer'].steps.find(step =>
     step.uses?.startsWith('actions/checkout@')
   );
