@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 63382,
+      "trackedBytesDelta": 63757,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 32444,
+        "config/data/messages": 32819,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 32444,
+        "scripts/repo-size-budget.json": 32819,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -78,10 +78,10 @@
         "scripts/lean-current-authority.test.mjs",
         "scripts/modularity-guard-policy.mjs"
       ],
-      "maxTrackedBytesDelta": 43143,
+      "maxTrackedBytesDelta": 43148,
       "maxTrackedFilesDelta": 5,
       "maxCategoryBytesDelta": {
-        "source/scripts": 19039,
+        "source/scripts": 19044,
         "tests/e2e": 24104
       },
       "maxPathBytesDelta": {
@@ -670,13 +670,16 @@
         "scripts/ci/main-coverage-reuse.mjs",
         "scripts/ci/main-coverage-reuse.test.mjs",
         ".github/actions/validation-surface/action.yml",
-        "scripts/ci/cd-deploy-env-scope.test.mjs"
+        "scripts/ci/cd-deploy-env-scope.test.mjs",
+        "scripts/ci/exact-head-certification-workflows.test.mjs",
+        "scripts/ci/pr-gate-pin-contracts.test.mjs",
+        "scripts/ci/draft-gate-workflow-contracts.test.mjs"
       ],
-      "maxTrackedBytesDelta": 19577,
+      "maxTrackedBytesDelta": 20356,
       "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
         "source/scripts": 7949,
-        "tests/e2e": 8978,
+        "tests/e2e": 9757,
         "config/data/messages": 2650
       },
       "maxPathBytesDelta": {
@@ -688,7 +691,10 @@
         "scripts/ci/main-coverage-reuse.mjs": 4791,
         "scripts/ci/main-coverage-reuse.test.mjs": 8390,
         ".github/actions/validation-surface/action.yml": 2650,
-        "scripts/ci/cd-deploy-env-scope.test.mjs": 90
+        "scripts/ci/cd-deploy-env-scope.test.mjs": 90,
+        "scripts/ci/exact-head-certification-workflows.test.mjs": 193,
+        "scripts/ci/pr-gate-pin-contracts.test.mjs": 345,
+        "scripts/ci/draft-gate-workflow-contracts.test.mjs": 241
       }
     }
   ],
@@ -701,15 +707,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60401907,
+  "maxTrackedBytes": 60403066,
   "maxTrackedFiles": 5971,
   "maxCategoryBytes": {
-    "config/data/messages": 2173618,
+    "config/data/messages": 2173993,
     "docs/text": 8507398,
     "large support/generated-ish": 15389747,
     "other": 18856416,
-    "source/scripts": 8715463,
-    "tests/e2e": 6759265
+    "source/scripts": 8715468,
+    "tests/e2e": 6760044
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

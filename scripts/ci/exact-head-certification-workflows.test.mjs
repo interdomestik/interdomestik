@@ -63,7 +63,10 @@ test('all five callers pin exact-head admission to the bootstrap SHA', () => {
     'pr-deterministic-backstops.yml',
     'pr-finalizer.yml',
   ]) {
-    assert.match(workflow(name), new RegExp(trustedBootstrap.replaceAll('.', '\\.'), 'u'), name);
+    const source = name === 'ci.yml' ? action('validation-surface') : workflow(name);
+    if (name === 'ci.yml')
+      assert.match(workflow(name), /uses: \.\/\.github\/actions\/validation-surface/u);
+    assert.match(source, new RegExp(trustedBootstrap.replaceAll('.', '\\.'), 'u'), name);
   }
 });
 

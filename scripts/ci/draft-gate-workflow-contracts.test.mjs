@@ -69,10 +69,13 @@ test('CI exposes one effective heavy-lane decision while keeping required audit 
   const preflight = workflow.jobs['validation-surface'];
   const audit = workflow.jobs.audit;
 
-  const policy = findStep(preflight, 'Evaluate PR gate policy');
+  const action = readAction('validation-surface');
+  const policy = findStep(action.runs, 'Evaluate PR gate policy');
   assert.equal(policy.uses, TRUSTED_GATE_ACTION);
-  assert.equal(preflight.outputs.should_run, '${{ steps.gate_policy.outputs.should_run }}');
-  assert.equal(preflight.outputs.run_broad, '${{ steps.certification.outputs.run_broad }}');
+  assert.equal(preflight.outputs.should_run, '${{ steps.validation.outputs.should_run }}');
+  assert.equal(preflight.outputs.run_broad, '${{ steps.validation.outputs.run_broad }}');
+  assert.equal(action.outputs.should_run.value, '${{ steps.gate_policy.outputs.should_run }}');
+  assert.equal(action.outputs.run_broad.value, '${{ steps.certification.outputs.run_broad }}');
   assert.ok(needs(audit, 'validation-surface'));
   assert.equal(
     findStep(audit, 'Run Audits').if,
