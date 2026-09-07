@@ -109,10 +109,14 @@ export function generatorFeedback(contract, feedback) {
   });
 }
 
-export function ghJson(args) {
+export function githubCliBinary() {
   const binary = GH_BINARY_CANDIDATES.find(candidate => fs.existsSync(candidate));
   if (!binary) apiFail(`GitHub CLI not found in: ${GH_BINARY_CANDIDATES.join(', ')}`);
-  return JSON.parse(execFileSync(binary, args, { encoding: 'utf8' }));
+  return binary;
+}
+
+export function ghJson(args) {
+  return JSON.parse(execFileSync(githubCliBinary(), args, { encoding: 'utf8' }));
 }
 
 export const checkLabel = check =>
