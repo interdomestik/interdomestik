@@ -44,6 +44,7 @@ const PRODUCTION_EXTENSIONS = new Set([
 ]);
 const STRUCTURED_EXTENSIONS = new Set(['.json', '.jsonl', '.toml', '.yaml', '.yml']);
 const STRUCTURED_OWNERS = [
+  [/^\.github\/actions\/validation-surface\/action\.yml$/u, 'main-e2e-reuse-workflow-contract'],
   [/^\.github\/reviewer-routing\.json$/u, 'reviewer-routing-contract'],
   [/^docs\/plans\/.*\.json$/u, 'approval-artifact-contract'],
   [/(^|\/)package\.json$|^pnpm-workspace\.yaml$/u, 'package-manifest-contract'],

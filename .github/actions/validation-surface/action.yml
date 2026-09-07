@@ -1,0 +1,60 @@
+name: Validation surface
+description: Resolve admission and exact-tree E2E reuse with existing read-only evidence
+outputs:
+  should_run:
+    description: Validation result should_run
+    value: ${{ steps.gate_policy.outputs.should_run }}
+  non_product_only_paths:
+    description: Validation result non_product_only_paths
+    value: ${{ steps.gate_policy.outputs.non_product_only_paths }}
+  run_broad:
+    description: Validation result run_broad
+    value: ${{ steps.certification.outputs.run_broad }}
+  certification_reason:
+    description: Validation result certification_reason
+    value: ${{ steps.certification.outputs.certification_reason }}
+  ai_eval_should_run:
+    description: Validation result ai_eval_should_run
+    value: ${{ steps.gate_policy.outputs.ai_eval_should_run }}
+  ai_eval_reason:
+    description: Validation result ai_eval_reason
+    value: ${{ steps.gate_policy.outputs.ai_eval_reason }}
+  ai_eval_matched_paths:
+    description: Validation result ai_eval_matched_paths
+    value: ${{ steps.gate_policy.outputs.ai_eval_matched_paths }}
+  main_e2e_reuse:
+    description: Validation result main_e2e_reuse
+    value: ${{ steps.main_e2e_reuse_safe.outputs.reuse }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+      with:
+        node-version-file: '.nvmrc'
+        package-manager-cache: false
+    - name: Resolve main E2E exact-tree reuse
+      id: main_e2e_reuse_raw
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      continue-on-error: true
+      env: { GITHUB_TOKEN: '${{ github.token }}' }
+      shell: bash
+      run: node scripts/ci/main-e2e-reuse.mjs >> "$GITHUB_OUTPUT"
+    - name: Normalize main E2E reuse decision
+      id: main_e2e_reuse_safe
+      if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      # prettier-ignore
+      env: { RESOLVER_RESULT: '${{ steps.main_e2e_reuse_raw.outcome }}:${{ steps.main_e2e_reuse_raw.outputs.reuse }}' }
+      shell: bash
+      run: case "$RESOLVER_RESULT" in success:true) reuse=1 ;; *) reuse=0 ;; esac; echo "reuse=$reuse" >> "$GITHUB_OUTPUT"
+    - name: Evaluate PR gate policy
+      id: gate_policy
+      uses: interdomestik/interdomestik/.github/actions/pr-gate-policy@f4b39fc4f7fed7e875363807faea11cc2c4cf717
+      with:
+        event-name: ${{ github.event_name }}
+        event-path: ${{ github.event_path }}
+    - name: Resolve exact-head certification admission
+      id: certification
+      uses: interdomestik/interdomestik/.github/actions/exact-head-certification@ecd31cf47a5d2fbd6c164aea0c0c6fcfb686011b
+      with:
+        policy-json: ${{ toJSON(steps.gate_policy.outputs) }}

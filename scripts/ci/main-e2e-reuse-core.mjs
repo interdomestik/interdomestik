@@ -84,25 +84,33 @@ function hasExactAssociation(candidate, selected) {
   const fallback = candidate.fallbackPullRequests;
   return Array.isArray(fallback) && fallback.length === 1 && samePullRequest(fallback[0], selected);
 }
-function hasSuccessfulRunner(jobs) {
+function hasSuccessfulRunner(jobs, policy) {
   if (!Array.isArray(jobs)) return false;
-  const runners = jobs.filter(job => job?.name === 'PR E2E Runner');
+  const runners = jobs.filter(job => job?.name === policy.runner);
   return (
     runners.length === 1 &&
     positiveId(runners[0].id) &&
     runners[0].status === 'completed' &&
-    runners[0].conclusion === 'success'
+    runners[0].conclusion === 'success' &&
+    policy.steps.every(name => {
+      const matches = runners[0].steps?.filter(step => step.name === name);
+      return (
+        matches?.length === 1 &&
+        matches[0].status === 'completed' &&
+        matches[0].conclusion === 'success'
+      );
+    })
   );
 }
-function hasExactParity(parity) {
-  return PARITY_KEYS.every(key => parity?.[key] === true);
+function hasExactParity(parity, keys) {
+  return keys.every(key => parity?.[key] === true);
 }
-function isReusableCandidate(candidate, selected, context) {
+function isReusableCandidate(candidate, selected, context, policy) {
   const run = candidate?.run;
   const ageMs = context.nowMs - Date.parse(run?.run_started_at);
   return (
     positiveId(run?.id) &&
-    run.path === EXPECTED_WORKFLOW &&
+    run.path === policy.workflow &&
     run.event === 'pull_request' &&
     run.status === 'completed' &&
     run.conclusion === 'success' &&
@@ -114,13 +122,32 @@ function isReusableCandidate(candidate, selected, context) {
     ageMs >= -FUTURE_TOLERANCE_MS &&
     ageMs <= MAX_AGE_MS &&
     hasExactAssociation(candidate, selected) &&
-    hasSuccessfulRunner(candidate.jobs)
+    hasSuccessfulRunner(candidate.jobs, policy)
   );
 }
 export function normalizeReuseDecision(value) {
   return value?.reuse === true && value?.reason === SUCCESS.reason ? { ...SUCCESS } : { ...REJECT };
 }
 export function decideMainE2eReuse(evidence) {
+  return decideMainPrReuse(evidence, {
+    workflow: EXPECTED_WORKFLOW,
+    runner: 'PR E2E Runner',
+    steps: ['Run PR E2E Gate'],
+    parityKeys: PARITY_KEYS,
+    requireHeadTree: true,
+  });
+}
+export function decideMainCoverageReuse(evidence) {
+  if (!/^[0-9a-f]{64}$/u.test(evidence?.identity ?? '')) return { ...REJECT };
+  return decideMainPrReuse(evidence, {
+    workflow: '.github/workflows/ci.yml',
+    runner: 'unit',
+    steps: ['Coverage Gate', `Coverage evidence ${evidence.identity}`],
+    parityKeys: ['checkoutEvent', 'commandChain'],
+    requireHeadTree: false,
+  });
+}
+function decideMainPrReuse(evidence, policy) {
   const { context, local, pullRequests, headCommit, candidates, parity } = evidence ?? {};
   if (
     context?.eventName !== 'push' ||
@@ -131,7 +158,7 @@ export function decideMainE2eReuse(evidence) {
     !sha(local.treeSha) ||
     local.headSha !== context.githubSha ||
     !Number.isFinite(context.nowMs) ||
-    !hasExactParity(parity) ||
+    !hasExactParity(parity, policy.parityKeys) ||
     !Array.isArray(pullRequests) ||
     pullRequests.length !== 1
   ) {
@@ -143,8 +170,8 @@ export function decideMainE2eReuse(evidence) {
     sha(headCommit?.sha) &&
     sha(headCommit?.commit?.tree?.sha) &&
     headCommit.sha === selected.head.sha &&
-    headCommit.commit.tree.sha === local.treeSha &&
+    (!policy.requireHeadTree || headCommit.commit.tree.sha === local.treeSha) &&
     Array.isArray(candidates) &&
-    candidates.some(candidate => isReusableCandidate(candidate, selected, context));
+    candidates.some(candidate => isReusableCandidate(candidate, selected, context, policy));
   return reusable ? { ...SUCCESS } : { ...REJECT };
 }

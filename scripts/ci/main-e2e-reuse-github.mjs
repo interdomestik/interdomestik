@@ -82,6 +82,7 @@ export async function collectGitHubEvidence({
   perPage = 100,
   maxPages = 3,
   maxRuns = 20,
+  workflowPath = WORKFLOW_PATH,
 }) {
   if (typeof token !== 'string' || token.length === 0 || typeof fetchImpl !== 'function') {
     throw new Error('GitHub evidence selection failed');
@@ -110,7 +111,7 @@ export async function collectGitHubEvidence({
     buildUrl: (page, size) =>
       buildWorkflowRunsUrl({
         repositoryFullName,
-        workflowPath: WORKFLOW_PATH,
+        workflowPath,
         headSha,
         page,
         perPage: Math.min(size, 20),

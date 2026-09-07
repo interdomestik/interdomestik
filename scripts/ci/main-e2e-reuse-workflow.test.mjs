@@ -10,7 +10,16 @@ import yaml from 'js-yaml';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const workflow = yaml.load(readFileSync(path.join(root, '.github/workflows/ci.yml'), 'utf8'));
-const validation = workflow.jobs['validation-surface'];
+const validationJob = workflow.jobs['validation-surface'];
+const action = yaml.load(
+  readFileSync(path.join(root, '.github/actions/validation-surface/action.yml'), 'utf8')
+);
+const validation = {
+  steps: action.runs.steps,
+  outputs: Object.fromEntries(
+    Object.entries(action.outputs).map(([key, value]) => [key, value.value])
+  ),
+};
 const e2e = workflow.jobs['e2e-gate'];
 
 function step(job, name) {
@@ -40,12 +49,15 @@ function normalizedReuse(rawReuse, resolverOutcome) {
 test('main CI resolves exact-tree reuse with bounded read-only evidence access', () => {
   assert.deepEqual(workflow.permissions, { contents: 'read' });
   for (const [name, job] of Object.entries(workflow.jobs)) {
-    const expected = ['validation-surface', 'audit'].includes(name)
+    const expected = ['validation-surface', 'audit', 'unit'].includes(name)
       ? { actions: 'read', contents: 'read', 'pull-requests': 'read' }
       : { contents: 'read' };
     assert.deepEqual(job.permissions ?? workflow.permissions, expected, name);
   }
 
+  assert.equal(validationJob.steps[1].uses, './.github/actions/validation-surface');
+  for (const key of Object.keys(action.outputs))
+    assert.equal(validationJob.outputs[key], '${{ steps.validation.outputs.' + key + ' }}');
   const resolver = step(validation, 'Resolve main E2E exact-tree reuse');
   assert.ok(resolver);
   assert.equal(resolver.id, 'main_e2e_reuse_raw');

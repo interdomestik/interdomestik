@@ -1,13 +1,14 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import yaml from 'js-yaml';
 import { fileURLToPath } from 'node:url';
 import { decideMainE2eReuse, normalizeReuseDecision } from './main-e2e-reuse-core.mjs';
 import { collectGitHubEvidence, readLocalGitObjectId } from './main-e2e-reuse-github.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const LANE_SHA256 = 'ff019f739b4ae106650a0dff94527154e9579468d0ea2d5a5eecff7c2f715b64';
 const CONFIG_SHA256 = '97ca0f14c9f7b121cf00121eb9a0f5867b0cf9f3e52b7215a504c3d7183f2d30';
-const E2E_TREE_SHA = '99576782ad52f58c30316f5983df8ec654ba7ad1';
+const E2E_TREE_SHA = '56c526c1695d1dec5d18d0f058e85c5293a8fcbe';
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {
   const start = source.indexOf(startMarker);
@@ -45,10 +46,29 @@ function lane(source, name) {
     return { projects: [], shared: false };
   return { projects, shared: definition[2] === 'true' && projects.length > 0 };
 }
+function hasStrictPrGate(source) {
+  const workflow = yaml.load(source);
+  const job = workflow?.jobs?.['e2e-runner'];
+  const gates = job?.steps?.filter(step => step.name === 'Run PR E2E Gate');
+  const gate = gates?.[0];
+  return (
+    gates?.length === 1 &&
+    gate.run === 'pnpm e2e:gate:pr' &&
+    gate.if === undefined &&
+    gate['continue-on-error'] === undefined &&
+    gate.shell === undefined &&
+    gate['working-directory'] === undefined &&
+    job['continue-on-error'] === undefined &&
+    job.if === "needs.e2e-preflight.outputs.run_broad == 'true'" &&
+    job.defaults === undefined &&
+    workflow.defaults === undefined
+  );
+}
 function hasExactCommandChain(input) {
   try {
     const scripts = JSON.parse(input.packageJson)?.scripts;
     return (
+      hasStrictPrGate(input.prWorkflow) &&
       scripts?.['e2e:gate'] === 'node scripts/run-e2e-lane.mjs gate' &&
       scripts?.['e2e:gate:pr'] === 'node scripts/run-e2e-lane.mjs pr' &&
       sha256(input.laneSource) === LANE_SHA256 &&

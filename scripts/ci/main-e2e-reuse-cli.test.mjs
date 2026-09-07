@@ -15,7 +15,7 @@ import { MAIN_SHA, NOW_MS, REPOSITORY, reusableEvidence } from './main-e2e-reuse
 import { commandChainDrifts } from './main-e2e-reuse-fixture.mjs';
 import { readLocalGitObjectId } from './main-e2e-reuse-github.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const E2E_TREE = '99576782ad52f58c30316f5983df8ec654ba7ad1';
+const E2E_TREE = readLocalGitObjectId(root, 'HEAD:apps/web/e2e');
 const SAFE = { reuse: false, reason: 'evidence_not_exact' };
 const fail = () => {
   throw new Error('token=secret body=secret');
@@ -107,6 +107,22 @@ test('CLI resolver fails closed before GitHub access for an ineligible context',
   );
   assert.deepEqual(decision, SAFE);
 });
+test('unknown test corpus rejects reuse before collecting remote evidence', async () => {
+  let requested = false;
+  const git = dependencies().git;
+  const decision = await resolveMainE2eReuse(
+    environment(),
+    dependencies({
+      git: value => (value === 'HEAD:apps/web/e2e' ? '0'.repeat(40) : git(value)),
+      collectEvidence: async () => {
+        requested = true;
+        return {};
+      },
+    })
+  );
+  assert.deepEqual(decision, SAFE);
+  assert.equal(requested, false);
+});
 test('CLI resolver converts GitHub, schema, and local failures to one safe decision', async () => {
   const git = dependencies().git;
   for (const overrides of [
@@ -144,5 +160,33 @@ test('default git lookup ignores a writable PATH executable', () => {
     process.env.PATH = originalPath;
     delete process.env.CI01_MARKER;
     rmSync(directory, { force: true, recursive: true });
+  }
+});
+
+test('PR gate skip and failure-tolerating workflow semantics reject reuse before provider lookup', async () => {
+  const current = sources();
+  for (const [before, after] of [
+    ['- name: Run PR E2E Gate', '- name: Run PR E2E Gate\n        continue-on-error: true'],
+    ['- name: Run PR E2E Gate', '- name: Run PR E2E Gate\n        if: false'],
+    ['- name: Run PR E2E Gate', '- name: Run PR E2E Gate\n        shell: bash {0}'],
+    ['name: PR E2E Runner', 'name: PR E2E Runner\n    continue-on-error: true'],
+    ['run: pnpm e2e:gate:pr', 'run: pnpm e2e:gate:pr || true'],
+    ['jobs:', 'defaults:\n  run:\n    shell: bash {0}\njobs:'],
+  ]) {
+    const changed = current.prWorkflow.replace(before, after);
+    assert.notEqual(changed, current.prWorkflow);
+    let requested = false;
+    const decision = await resolveMainE2eReuse(
+      environment(),
+      dependencies({
+        readFile: file => (file === '.github/workflows/e2e-pr.yml' ? changed : read(file)),
+        collectEvidence: async () => {
+          requested = true;
+          return {};
+        },
+      })
+    );
+    assert.deepEqual(decision, SAFE);
+    assert.equal(requested, false);
   }
 });

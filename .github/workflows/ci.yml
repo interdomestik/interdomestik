@@ -26,44 +26,19 @@ jobs:
     runs-on: ubuntu-latest
     permissions: { actions: read, contents: read, pull-requests: read }
     outputs:
-      should_run: ${{ steps.gate_policy.outputs.should_run }}
-      non_product_only_paths: ${{ steps.gate_policy.outputs.non_product_only_paths }}
-      run_broad: ${{ steps.certification.outputs.run_broad }}
-      certification_reason: ${{ steps.certification.outputs.certification_reason }}
-      ai_eval_should_run: ${{ steps.gate_policy.outputs.ai_eval_should_run }}
-      ai_eval_reason: ${{ steps.gate_policy.outputs.ai_eval_reason }}
-      ai_eval_matched_paths: ${{ steps.gate_policy.outputs.ai_eval_matched_paths }}
-      main_e2e_reuse: ${{ steps.main_e2e_reuse_safe.outputs.reuse }}
+      should_run: ${{ steps.validation.outputs.should_run }}
+      non_product_only_paths: ${{ steps.validation.outputs.non_product_only_paths }}
+      run_broad: ${{ steps.validation.outputs.run_broad }}
+      certification_reason: ${{ steps.validation.outputs.certification_reason }}
+      ai_eval_should_run: ${{ steps.validation.outputs.ai_eval_should_run }}
+      ai_eval_reason: ${{ steps.validation.outputs.ai_eval_reason }}
+      ai_eval_matched_paths: ${{ steps.validation.outputs.ai_eval_matched_paths }}
+      main_e2e_reuse: ${{ steps.validation.outputs.main_e2e_reuse }}
     steps:
       # prettier-ignore
       - { uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8, with: { fetch-depth: 0 } } # v6.0.1
-      - uses: actions/setup-node@v5
-        with:
-          node-version-file: '.nvmrc'
-          package-manager-cache: false
-      - name: Resolve main E2E exact-tree reuse
-        id: main_e2e_reuse_raw
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        continue-on-error: true
-        env: { GITHUB_TOKEN: '${{ github.token }}' }
-        run: node scripts/ci/main-e2e-reuse.mjs >> "$GITHUB_OUTPUT"
-      - name: Normalize main E2E reuse decision
-        id: main_e2e_reuse_safe
-        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
-        # prettier-ignore
-        env: { RESOLVER_RESULT: '${{ steps.main_e2e_reuse_raw.outcome }}:${{ steps.main_e2e_reuse_raw.outputs.reuse }}' }
-        run: case "$RESOLVER_RESULT" in success:true) reuse=1 ;; *) reuse=0 ;; esac; echo "reuse=$reuse" >> "$GITHUB_OUTPUT"
-      - name: Evaluate PR gate policy
-        id: gate_policy
-        uses: interdomestik/interdomestik/.github/actions/pr-gate-policy@f4b39fc4f7fed7e875363807faea11cc2c4cf717
-        with:
-          event-name: ${{ github.event_name }}
-          event-path: ${{ github.event_path }}
-      - name: Resolve exact-head certification admission
-        id: certification
-        uses: interdomestik/interdomestik/.github/actions/exact-head-certification@ecd31cf47a5d2fbd6c164aea0c0c6fcfb686011b
-        with:
-          policy-json: ${{ toJSON(steps.gate_policy.outputs) }}
+      - uses: ./.github/actions/validation-surface
+        id: validation
   audit:
     needs: [validation-surface]
     runs-on: ubuntu-latest
@@ -125,14 +100,32 @@ jobs:
     needs: [validation-surface]
     if: needs.validation-surface.outputs.run_broad == 'true'
     runs-on: ubuntu-latest
+    permissions: { actions: read, contents: read, pull-requests: read }
+    env:
+      UPSTASH_REDIS_REST_URL: http://localhost:8080
+      UPSTASH_REDIS_REST_TOKEN: dummy-token
+      TURBO_TOKEN: ''
+      TURBO_TEAM: ''
+      TURBO_REMOTE_CACHE_SIGNATURE_KEY: ''
+      INTERDOMESTIK_TURBO_REMOTE_CACHE_READ_ONLY: '1'
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
       - uses: ./.github/actions/setup
+      - name: Measure and resolve coverage reuse
+        id: main_coverage_reuse
+        continue-on-error: true
+        env: { GITHUB_TOKEN: '${{ github.token }}' }
+        run: node scripts/ci/main-coverage-reuse.mjs >> "$GITHUB_OUTPUT"
       - name: Coverage Gate
-        env:
-          UPSTASH_REDIS_REST_URL: http://localhost:8080
-          UPSTASH_REDIS_REST_TOKEN: dummy-token
+        id: coverage
+        if: steps.main_coverage_reuse.outcome != 'success' || steps.main_coverage_reuse.outputs.reuse != 'true'
         run: pnpm coverage:gate
+      - name: Coverage evidence ${{ steps.main_coverage_reuse.outputs.identity }}
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && steps.coverage.outcome == 'success' && steps.main_coverage_reuse.outcome == 'success' && steps.main_coverage_reuse.outputs.identity != ''
+        env: { EXPECTED_IDENTITY: '${{ steps.main_coverage_reuse.outputs.identity }}' }
+        run: node scripts/ci/main-coverage-reuse.mjs assert-identity
       - name: Release Gate Unit Tests
         run: pnpm test:release-gate
   ai-eval:
