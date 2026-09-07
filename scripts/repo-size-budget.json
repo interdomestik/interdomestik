@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 63758,
+      "trackedBytesDelta": 64080,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 32820,
+        "config/data/messages": 33142,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 32820,
+        "scripts/repo-size-budget.json": 33142,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -673,20 +673,23 @@
         "scripts/ci/cd-deploy-env-scope.test.mjs",
         "scripts/ci/exact-head-certification-workflows.test.mjs",
         "scripts/ci/pr-gate-pin-contracts.test.mjs",
-        "scripts/ci/draft-gate-workflow-contracts.test.mjs"
+        "scripts/ci/draft-gate-workflow-contracts.test.mjs",
+        "scripts/ci/main-e2e-reuse-fixture.mjs",
+        "scripts/ci/main-e2e-reuse-core.test.mjs",
+        "scripts/ci/main-e2e-reuse-github.test.mjs"
       ],
-      "maxTrackedBytesDelta": 22430,
+      "maxTrackedBytesDelta": 25104,
       "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
-        "source/scripts": 8664,
-        "tests/e2e": 11073,
+        "source/scripts": 9492,
+        "tests/e2e": 12919,
         "config/data/messages": 2693
       },
       "maxPathBytesDelta": {
-        "scripts/ci/main-e2e-reuse.mjs": 0,
-        "scripts/ci/main-e2e-reuse-core.mjs": 958,
+        "scripts/ci/main-e2e-reuse.mjs": 717,
+        "scripts/ci/main-e2e-reuse-core.mjs": 975,
         "scripts/ci/main-e2e-reuse-github.mjs": 17,
-        "scripts/ci/main-e2e-reuse-cli.test.mjs": 498,
+        "scripts/ci/main-e2e-reuse-cli.test.mjs": 1667,
         "scripts/ci/coverage-input-identity.mjs": 2828,
         "scripts/ci/main-coverage-reuse.mjs": 4861,
         "scripts/ci/main-coverage-reuse.test.mjs": 9706,
@@ -694,7 +697,10 @@
         "scripts/ci/cd-deploy-env-scope.test.mjs": 90,
         "scripts/ci/exact-head-certification-workflows.test.mjs": 193,
         "scripts/ci/pr-gate-pin-contracts.test.mjs": 345,
-        "scripts/ci/draft-gate-workflow-contracts.test.mjs": 241
+        "scripts/ci/draft-gate-workflow-contracts.test.mjs": 241,
+        "scripts/ci/main-e2e-reuse-fixture.mjs": 94,
+        "scripts/ci/main-e2e-reuse-core.test.mjs": 581,
+        "scripts/ci/main-e2e-reuse-github.test.mjs": 96
       }
     }
   ],
@@ -707,15 +713,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60405141,
+  "maxTrackedBytes": 60408137,
   "maxTrackedFiles": 5971,
   "maxCategoryBytes": {
-    "config/data/messages": 2174037,
+    "config/data/messages": 2174359,
     "docs/text": 8507398,
     "large support/generated-ish": 15389747,
     "other": 18856416,
-    "source/scripts": 8716183,
-    "tests/e2e": 6761360
+    "source/scripts": 8717011,
+    "tests/e2e": 6763206
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

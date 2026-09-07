@@ -44,6 +44,7 @@ function githubApi({
             {
               id: 94_487_829_021,
               name: 'PR E2E Runner',
+              steps: [{ name: 'Run PR E2E Gate', status: 'completed', conclusion: 'success' }],
               status: 'completed',
               conclusion: 'success',
             },

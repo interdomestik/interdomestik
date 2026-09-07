@@ -162,3 +162,31 @@ test('default git lookup ignores a writable PATH executable', () => {
     rmSync(directory, { force: true, recursive: true });
   }
 });
+
+test('PR gate skip and failure-tolerating workflow semantics reject reuse before provider lookup', async () => {
+  const current = sources();
+  for (const [before, after] of [
+    ['- name: Run PR E2E Gate', '- name: Run PR E2E Gate\n        continue-on-error: true'],
+    ['- name: Run PR E2E Gate', '- name: Run PR E2E Gate\n        if: false'],
+    ['- name: Run PR E2E Gate', '- name: Run PR E2E Gate\n        shell: bash {0}'],
+    ['name: PR E2E Runner', 'name: PR E2E Runner\n    continue-on-error: true'],
+    ['run: pnpm e2e:gate:pr', 'run: pnpm e2e:gate:pr || true'],
+    ['jobs:', 'defaults:\n  run:\n    shell: bash {0}\njobs:'],
+  ]) {
+    const changed = current.prWorkflow.replace(before, after);
+    assert.notEqual(changed, current.prWorkflow);
+    let requested = false;
+    const decision = await resolveMainE2eReuse(
+      environment(),
+      dependencies({
+        readFile: file => (file === '.github/workflows/e2e-pr.yml' ? changed : read(file)),
+        collectEvidence: async () => {
+          requested = true;
+          return {};
+        },
+      })
+    );
+    assert.deepEqual(decision, SAFE);
+    assert.equal(requested, false);
+  }
+});

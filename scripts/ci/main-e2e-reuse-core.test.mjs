@@ -142,3 +142,20 @@ test('normalization never accepts a hostile or incomplete true decision', () => 
     { reuse: true, reason: 'exact_pr_evidence' }
   );
 });
+
+test('a successful runner cannot conceal a missing, duplicate or unsuccessful gate step', () => {
+  const successful = reusableEvidence().candidates[0].jobs[0].steps[0];
+  for (const steps of [
+    undefined,
+    [],
+    [successful, successful],
+    ...['failure', 'skipped', 'cancelled', 'neutral'].map(conclusion => [
+      { ...successful, conclusion },
+    ]),
+    [{ ...successful, status: 'in_progress' }],
+  ]) {
+    const evidence = reusableEvidence();
+    evidence.candidates[0].jobs[0].steps = steps;
+    assert.deepEqual(decideMainE2eReuse(evidence), reject);
+  }
+});

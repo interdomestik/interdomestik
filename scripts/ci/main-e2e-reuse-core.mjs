@@ -132,7 +132,7 @@ export function decideMainE2eReuse(evidence) {
   return decideMainPrReuse(evidence, {
     workflow: EXPECTED_WORKFLOW,
     runner: 'PR E2E Runner',
-    steps: [],
+    steps: ['Run PR E2E Gate'],
     parityKeys: PARITY_KEYS,
     requireHeadTree: true,
   });
