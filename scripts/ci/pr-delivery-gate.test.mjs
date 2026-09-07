@@ -5,7 +5,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { evaluateDeliverySnapshot, validateDeliveryContract } from './pr-delivery-gate.mjs';
-import { B, H, T, TREE, contract, check, checksFor, snapshot } from './pr-delivery-fixtures.mjs';
+import { B, H, T, TREE, contract, check, snapshot } from './pr-delivery-fixtures.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const gateSource = fs.readFileSync(path.join(root, 'scripts/ci/pr-delivery-gate.mjs'), 'utf8');
