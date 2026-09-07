@@ -221,7 +221,7 @@ for (const [name, classification, procedure, description, missing] of [
 
 export const OPERATION_REGISTRY = Object.freeze(
   Object.fromEntries(
-    entries.sort((a, b) => compareText(a.id, b.id)).map(entry => [entry.id, entry])
+    entries.toSorted((a, b) => compareText(a.id, b.id)).map(entry => [entry.id, entry])
   )
 );
 

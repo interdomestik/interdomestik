@@ -149,7 +149,7 @@ export function currentProofInputsMatch(previous, current, now = Date.now()) {
   try {
     for (const value of [previous, current]) {
       must(
-        value && Object.keys(value).sort().join() === [...keys].sort().join(),
+        value && Object.keys(value).sort(compareText).join() === [...keys].sort(compareText).join(),
         'proof input inventory differs'
       );
       for (const key of keys.filter(key => key !== 'externalSources')) {
@@ -166,7 +166,8 @@ export function currentProofInputsMatch(previous, current, now = Date.now()) {
       const ids = new Set();
       for (const source of value.externalSources) {
         must(
-          source && Object.keys(source).sort().join() === 'expiresAt,identitySha256,sourceId',
+          source &&
+            Object.keys(source).sort(compareText).join() === 'expiresAt,identitySha256,sourceId',
           'external proof source contract unavailable'
         );
         must(

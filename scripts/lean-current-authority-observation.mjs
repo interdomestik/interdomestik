@@ -15,7 +15,8 @@ export function observeRemoteReads(repo, collect, read) {
     failure,
     closed = false;
   const fail = () => {
-    throw (failure ??= new Error('remote observation unavailable or changed'));
+    failure ??= new Error('remote observation unavailable or changed');
+    throw failure;
   };
   const capture = endpoint => {
     try {

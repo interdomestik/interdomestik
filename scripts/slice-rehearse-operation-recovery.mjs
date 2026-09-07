@@ -21,7 +21,7 @@ import {
 
 const O = fs.constants;
 const hash = value => sha256(canonicalJson(value));
-const outcomes = ['applied', 'not_applied', 'unknown'];
+const outcomes = new Set(['applied', 'not_applied', 'unknown']);
 function secureDirectory(root) {
   const s = fs.lstatSync(root);
   must(
@@ -83,7 +83,7 @@ function readRecord(file, intent) {
     exactKeys(item, ['attemptSha256', 'execution', 'outcome', 'quarantined'], 'recovery attempt');
     must(typeof item.quarantined === 'boolean', 'recovery quarantine invalid');
     must(
-      /^[a-f0-9]{64}$/u.test(item.attemptSha256) && outcomes.includes(item.outcome),
+      /^[a-f0-9]{64}$/u.test(item.attemptSha256) && outcomes.has(item.outcome),
       'recovery attempt invalid'
     );
     exactKeys(
@@ -97,6 +97,20 @@ function readRecord(file, intent) {
     );
   }
   return value;
+}
+
+function reconcileRecordedAttempt(record, recovery, file, claim) {
+  const prior = record.attempts.at(-1);
+  must(!prior?.quarantined, 'async outcome remains quarantined');
+  if (!prior || prior.outcome === 'not_applied') return null;
+  if (prior.outcome !== 'applied') {
+    const result = recoveryOutcome(recovery.reconcilePrior(structuredClone(prior)));
+    must(result.attemptSha256 === prior.attemptSha256, 'prior reconciliation identity differs');
+    must(result.outcome !== 'unknown', 'prior outcome unknown');
+    prior.outcome = result.outcome;
+    writeRecord(file, record, claim);
+  }
+  return prior.outcome === 'applied' ? prior : null;
 }
 
 export function runRecoveryOperation(request, command, options) {
@@ -163,34 +177,24 @@ export function runRecoveryOperation(request, command, options) {
     fs.writeFileSync(fd, `${requestSha256}\n`);
     fs.fsyncSync(fd);
     syncDirectory(directory);
-    const record = readRecord(file, intent),
-      prior = record.attempts.at(-1);
-    must(!prior?.quarantined, 'async outcome remains quarantined');
-    if (prior && prior.outcome !== 'not_applied') {
-      if (prior.outcome !== 'applied') {
-        const result = recoveryOutcome(recovery.reconcilePrior(structuredClone(prior)));
-        must(result.attemptSha256 === prior.attemptSha256, 'prior reconciliation identity differs');
-        must(result.outcome !== 'unknown', 'prior outcome unknown');
-        prior.outcome = result.outcome;
-        writeRecord(file, record, requestSha256);
-      }
-      if (prior.outcome === 'applied') {
-        return {
-          status: 'already_applied',
-          appliedExecution: structuredClone(prior.execution),
-          matchesRequestedExecution:
-            canonicalJson(prior.execution) ===
-            canonicalJson({
-              baseSha: c.baseSha,
-              headSha: c.headSha,
-              treeSha: c.treeSha,
-              remoteHeadSha: c.expectedRemoteHeadSha,
-            }),
-          authorityGranted: false,
-          command,
-          reconciliation: { outcome: 'applied', attemptSha256: prior.attemptSha256 },
-        };
-      }
+    const record = readRecord(file, intent);
+    const prior = reconcileRecordedAttempt(record, recovery, file, requestSha256);
+    if (prior) {
+      return {
+        status: 'already_applied',
+        appliedExecution: structuredClone(prior.execution),
+        matchesRequestedExecution:
+          canonicalJson(prior.execution) ===
+          canonicalJson({
+            baseSha: c.baseSha,
+            headSha: c.headSha,
+            treeSha: c.treeSha,
+            remoteHeadSha: c.expectedRemoteHeadSha,
+          }),
+        authorityGranted: false,
+        command,
+        reconciliation: { outcome: 'applied', attemptSha256: prior.attemptSha256 },
+      };
     }
     const initial = current();
     must(record.attempts.length < 16, 'recovery attempt bound exceeded');
@@ -215,8 +219,8 @@ export function runRecoveryOperation(request, command, options) {
       attempt.quarantined = Boolean(result && typeof result.then === 'function');
       if (types.isPromise(result)) result.catch(() => {});
       must(!attempt.quarantined, 'synchronous conditional adapter required');
-    } catch (caught) {
-      error = caught;
+    } catch (error_) {
+      error = error_;
     }
     let result = { outcome: 'unknown' };
     try {

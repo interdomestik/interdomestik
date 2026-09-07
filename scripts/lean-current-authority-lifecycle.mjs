@@ -157,7 +157,7 @@ function resolveLocalContinuation(slice, facts, promotionMain) {
   });
 }
 
-export function resolveAuthority(projectionInput, facts = {}, recoveryContext) {
+export function resolveAuthority(projectionInput, facts = {}, recoveryContext = undefined) {
   let projection;
   try {
     projection = validateProjection(projectionInput);

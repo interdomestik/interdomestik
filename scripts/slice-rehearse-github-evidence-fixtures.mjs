@@ -72,15 +72,15 @@ function githubReader({ pulls = [pull()], runs = [run()], jobs } = {}) {
       completed_at: '2026-08-29T11:44:00.000Z',
     },
   ];
+  const responses = [
+    [`/commits/${headSha}/pulls`, pulls],
+    ['/actions/workflows/', { total_count: runs.length, workflow_runs: runs }],
+    ['/actions/runs/77/jobs', { total_count: runnerJobs.length, jobs: runnerJobs }],
+  ];
   return endpoint => {
-    if (endpoint.includes(`/commits/${headSha}/pulls`)) return pulls;
-    if (endpoint.includes('/actions/workflows/')) {
-      return { total_count: runs.length, workflow_runs: runs };
-    }
-    if (endpoint.includes('/actions/runs/77/jobs')) {
-      return { total_count: runnerJobs.length, jobs: runnerJobs };
-    }
-    throw new Error(`Unexpected endpoint: ${endpoint}`);
+    const response = responses.find(([route]) => endpoint.includes(route));
+    if (!response) throw new Error(`Unexpected endpoint: ${endpoint}`);
+    return response[1];
   };
 }
 

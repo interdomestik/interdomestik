@@ -169,7 +169,7 @@ function resolveInactiveRepository(repo, projection) {
 export function resolveRepositoryAuthority(
   repoInput = process.cwd(),
   live = true,
-  recoveryContext
+  recoveryContext = undefined
 ) {
   try {
     const repo = resolve(repoInput);

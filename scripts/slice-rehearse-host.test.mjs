@@ -11,6 +11,7 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
+import { deflateSync } from 'node:zlib';
 import { ENV, git, hostFixture } from './slice-rehearse-bootstrap-fixtures.mjs';
 
 function run(f, mode = 'admit', options = {}) {
@@ -54,6 +55,58 @@ test('host rereads approval and refuses withdrawal in the same process', async t
   const result = run(f, 'revoke');
   assert.equal(result.status, 1);
   assert.match(result.error, /approval|receipt/i);
+});
+
+test('host hashes pinned files without trusting stored blob payloads', async t => {
+  for (const fault of ['none', 'missing', 'oversized', 'tampered-object']) {
+    const f = await hostFixture(t);
+    const bytes =
+      fault === 'oversized' ? Buffer.alloc(17 * 1024 * 1024) : Buffer.from([0, 255, 10]);
+    for (const name of ['a.bin', 'b.bin']) writeFileSync(join(f.policyRoot, name), bytes);
+    writeFileSync(join(f.policyRoot, 'empty'), '');
+    git(f.policyRoot, 'add', '.');
+    git(f.policyRoot, 'commit', '-q', '-m', 'synthetic binary policy');
+    f.record.policy.commitSha = git(f.policyRoot, 'rev-parse', 'HEAD');
+    f.record.policy.treeSha = git(f.policyRoot, 'rev-parse', 'HEAD^{tree}');
+    f.bind();
+    if (fault === 'missing') {
+      const id = git(f.policyRoot, 'hash-object', 'a.bin');
+      rmSync(join(f.policyRoot, '.git', 'objects', id.slice(0, 2), id.slice(2)));
+    }
+    if (fault === 'tampered-object') {
+      const id = git(f.policyRoot, 'hash-object', 'a.bin');
+      const changed = Buffer.from([0, 254, 10]);
+      chmodSync(join(f.policyRoot, '.git', 'objects', id.slice(0, 2), id.slice(2)), 0o600);
+      writeFileSync(
+        join(f.policyRoot, '.git', 'objects', id.slice(0, 2), id.slice(2)),
+        deflateSync(Buffer.concat([Buffer.from('blob 3\0'), changed]))
+      );
+      for (const name of ['a.bin', 'b.bin']) writeFileSync(join(f.policyRoot, name), changed);
+    }
+    const result = run(f);
+    const valid = fault === 'none' || fault === 'missing';
+    assert.equal(result.status, valid ? 0 : 1, JSON.stringify(result));
+    if (!valid) assert.match(result.error, /policy (file changed|path is not a bounded)/);
+  }
+});
+
+test('host verifies every descriptor batch and refuses drift after the first batch', async t => {
+  const f = await hostFixture(t);
+  for (let index = 0; index < 65; index += 1)
+    writeFileSync(
+      join(f.policyRoot, `z-${String(index).padStart(2, '0')}.bin`),
+      Buffer.from([index])
+    );
+  git(f.policyRoot, 'add', '.');
+  git(f.policyRoot, 'commit', '-q', '-m', 'synthetic batched policy');
+  f.record.policy.commitSha = git(f.policyRoot, 'rev-parse', 'HEAD');
+  f.record.policy.treeSha = git(f.policyRoot, 'rev-parse', 'HEAD^{tree}');
+  f.bind();
+  assert.equal(run(f).status, 0);
+  writeFileSync(join(f.policyRoot, 'z-64.bin'), Buffer.from([255]));
+  const result = run(f);
+  assert.equal(result.status, 1);
+  assert.match(result.error, /policy file changed: z-64.bin/);
 });
 
 for (const fault of [

@@ -155,7 +155,9 @@ function checkRuntime(record, target) {
       runtime.git?.path === fs.realpathSync('/usr/bin/git'),
     'Host runtime executable selection differs'
   );
-  const github = ['/opt/homebrew/bin/gh', '/usr/local/bin/gh', '/usr/bin/gh'].find(fs.existsSync);
+  const github = ['/opt/homebrew/bin/gh', '/usr/local/bin/gh', '/usr/bin/gh'].find(pathname =>
+    fs.existsSync(pathname)
+  );
   must(
     github && runtime.github?.path === fs.realpathSync(github),
     'Host runtime GitHub executable selection differs'

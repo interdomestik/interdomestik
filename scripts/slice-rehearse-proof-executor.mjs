@@ -92,6 +92,20 @@ export function authorizedHeavyProofHost({ platform = process.platform, env = pr
     env.RUNNER_NAME === 'interdomestik-z620-staging'
   );
 }
+function proofCommandOutcome(execute, args) {
+  let result;
+  try {
+    result = execute(args);
+    if (types.isPromise(result)) result.catch(() => {});
+  } catch {
+    return { status: 'unknown', exitCode: null };
+  }
+  if (!result || typeof result.then === 'function' || result.error)
+    return { status: 'unknown', exitCode: null };
+  if (result.status === 0) return { status: 'succeeded', exitCode: 0 };
+  const exitCode = Number.isInteger(result.status) ? result.status : null;
+  return { status: exitCode === null ? 'unknown' : 'failed', exitCode };
+}
 export function runHeavyProofExecution({
   ledgerPath,
   execution,
@@ -137,27 +151,14 @@ export function runHeavyProofExecution({
   };
   try {
     for (let index = 0; index < commands.length; index += 1) {
-      let result;
       try {
         validateProofExecutionPlan(report, execution, verifyCandidate);
         must(verifyFinalHead(report) === true, 'final-head review evidence changed');
       } catch {
         return finish(index === 0 ? 'cancelled' : 'unknown', null, index);
       }
-      try {
-        result = execute(commands[index]);
-        if (types.isPromise(result)) result.catch(() => {});
-      } catch {
-        return finish('unknown', null, index);
-      }
-      if (!result || typeof result.then === 'function' || result.error) {
-        return finish('unknown', null, index);
-      }
-      if (result.status !== 0) {
-        const code = Number.isInteger(result.status) ? result.status : null;
-        const status = code !== null ? 'failed' : 'unknown';
-        return finish(status, code, index);
-      }
+      const result = proofCommandOutcome(execute, commands[index]);
+      if (result.status !== 'succeeded') return finish(result.status, result.exitCode, index);
     }
     try {
       validateProofExecutionPlan(report, execution, verifyCandidate);

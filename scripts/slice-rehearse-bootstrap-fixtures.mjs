@@ -92,7 +92,7 @@ try {
   if (mode === 'preloaded-switch') {
     const receipt = config.approvalRoot + '/' + config.receiptName;
     const binding = JSON.parse(fs.readFileSync(receipt));
-    fs.appendFileSync(binding.policy.root + '/scripts/slice-rehearse.mjs', '\\n// Changed entrypoint version.\\n');
+    fs.appendFileSync(binding.policy.root + '/scripts/slice-rehearse.mjs', String.fromCharCode(10) + '// Changed entrypoint version.' + String.fromCharCode(10));
     const git = args => execFileSync('/usr/bin/git', ['-C', binding.policy.root, ...args], { encoding: 'utf8' }).trim();
     git(['add', 'scripts/slice-rehearse.mjs']);
     git(['commit', '-q', '-m', 'synthetic replacement policy']);
@@ -116,7 +116,9 @@ try {
 } catch (error) { console.log(JSON.stringify({ error: error.message })); process.exitCode = 1; }
 `
   );
-  const github = ['/opt/homebrew/bin/gh', '/usr/local/bin/gh', '/usr/bin/gh'].find(fs.existsSync);
+  const github = ['/opt/homebrew/bin/gh', '/usr/local/bin/gh', '/usr/bin/gh'].find(pathname =>
+    fs.existsSync(pathname)
+  );
   const file = pathname => ({ path: realpathSync(pathname), sha256: digest(pathname) });
   const anchor = identity(f.targetRoot);
   const record = {

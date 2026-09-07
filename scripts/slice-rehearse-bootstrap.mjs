@@ -6,7 +6,6 @@ import {
   fstatSync,
   lstatSync,
   openSync,
-  readFileSync,
   readSync,
   realpathSync,
 } from 'node:fs';
@@ -121,40 +120,88 @@ export function observeLocalFile(root, file) {
   }
 }
 
-function assertPolicyFile(root, record) {
+function openPolicyFile(root, record) {
   const entry = /^(100644|100755) blob ([0-9a-f]{40})\t(.+)$/u.exec(record);
   if (!entry) throw new Error('Bootstrap policy requires regular tracked files only.');
   const [, mode, objectId, file] = entry;
   const absolute = resolve(root, file);
-  if (!absolute.startsWith(`${root}${sep}`) || realpathSync(absolute) !== absolute) {
+  if (!absolute.startsWith(`${root}${sep}`) || realpathSync(absolute) !== absolute)
     throw new Error(`Bootstrap policy path is not regular or canonical: ${file}`);
-  }
-  let descriptor;
+  const descriptor = openSync(
+    absolute,
+    constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK
+  );
   try {
-    descriptor = openSync(
-      absolute,
-      constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK
-    );
     const before = fstatSync(descriptor, { bigint: true });
-    if (!before.isFile() || before.size > 16n * 1024n * 1024n) {
+    if (!before.isFile() || before.size > 16n * 1024n * 1024n)
       throw new Error(`Bootstrap policy path is not a bounded regular file: ${file}`);
+    return { descriptor, before, absolute, objectId, mode, file };
+  } catch (error) {
+    closeSync(descriptor);
+    throw error;
+  }
+}
+
+function hashPolicyFiles(root, files) {
+  // Git hashes the exact open inodes with its native object-ID implementation.
+  // No filters, object-store payload trust, writes, or candidate path reopens.
+  const hashes = execFileSync(
+    GIT_BIN,
+    [
+      ...GIT_READ_PREFIX,
+      '-c',
+      'core.bigFileThreshold=16m',
+      '-C',
+      root,
+      'hash-object',
+      '--no-filters',
+      '--stdin-paths',
+    ],
+    {
+      ...GIT_OPTIONS,
+      input: files.map((_, index) => `/dev/fd/${index + 3}\n`).join(''),
+      stdio: ['pipe', 'pipe', 'pipe', ...files.map(file => file.descriptor)],
     }
-    const bytes = readFileSync(descriptor);
-    const after = fstatSync(descriptor, { bigint: true });
-    const named = lstatSync(absolute, { bigint: true });
-    const digest = createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
-    if (
-      digest !== objectId ||
-      bytes.length !== Number(before.size) ||
-      (before.mode & 0o111n ? '100755' : '100644') !== mode ||
-      ['dev', 'ino', 'size', 'mode', 'mtimeNs', 'ctimeNs'].some(
-        key => before[key] !== after[key] || before[key] !== named[key]
-      )
+  )
+    .toString('utf8')
+    .split('\n');
+  if (hashes.pop() !== '' || hashes.length !== files.length)
+    throw new Error('Bootstrap policy hash response is invalid.');
+  return hashes;
+}
+
+function assertPolicyFileIdentity(file, hash) {
+  const { before, absolute, descriptor } = file;
+  const after = fstatSync(descriptor, { bigint: true });
+  const named = lstatSync(absolute, { bigint: true });
+  if (
+    hash !== file.objectId ||
+    realpathSync(absolute) !== absolute ||
+    (before.mode & 0o111n ? '100755' : '100644') !== file.mode ||
+    ['dev', 'ino', 'size', 'mode', 'mtimeNs', 'ctimeNs'].some(
+      key => before[key] !== after[key] || before[key] !== named[key]
     )
-      throw new Error(`Bootstrap policy file changed: ${file}`);
-    return bytes.length;
-  } finally {
-    if (descriptor !== undefined) closeSync(descriptor);
+  )
+    throw new Error(`Bootstrap policy file changed: ${file.file}`);
+}
+
+function assertPolicyFiles(root, records) {
+  let totalBytes = 0n;
+  for (let offset = 0; offset < records.length; offset += 32) {
+    const files = [];
+    try {
+      for (const record of records.slice(offset, offset + 32)) {
+        const file = openPolicyFile(root, record);
+        files.push(file);
+        totalBytes += file.before.size;
+        if (totalBytes > 128n * 1024n * 1024n)
+          throw new Error('Bootstrap policy tree exceeds its byte bound.');
+      }
+      const hashes = hashPolicyFiles(root, files);
+      for (const [index, file] of files.entries()) assertPolicyFileIdentity(file, hashes[index]);
+    } finally {
+      for (const file of files) closeSync(file.descriptor);
+    }
   }
 }
 
@@ -173,12 +220,7 @@ function assertPristinePolicy(root, commitSha) {
     .filter(Boolean);
   if (!records.length || records.length > 10_000)
     throw new Error('Bootstrap policy tree exceeds its file bound.');
-  let totalBytes = 0;
-  for (const record of records) {
-    totalBytes += assertPolicyFile(root, record);
-    if (totalBytes > 128 * 1024 * 1024)
-      throw new Error('Bootstrap policy tree exceeds its byte bound.');
-  }
+  assertPolicyFiles(root, records);
   if (
     gitBytes(root, [
       'diff',
