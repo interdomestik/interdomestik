@@ -1,5 +1,6 @@
 import fs from 'node:fs';
-import { GitHubClient, isDirectInvocation } from './pr-delivery-api.mjs';
+import { isDirectInvocation } from './pr-delivery-api.mjs';
+import { GitHubCliClient } from './pr-delivery-cli.mjs';
 
 const positiveId = value => Number.isSafeInteger(value) && value > 0;
 const activeStatuses = new Set(['queued', 'in_progress', 'requested', 'waiting', 'pending']);
@@ -57,10 +58,7 @@ async function main() {
   if (!Array.isArray(checks) || checks.length !== 1)
     throw new Error('replacement check identity mismatch');
   const check = checks[0];
-  const client = new GitHubClient(
-    repository,
-    process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN ?? ''
-  );
+  const client = new GitHubCliClient(repository);
   const identity = await client.runIdentity(check);
   const pending = await hasPendingCheckReplacement(
     client,
