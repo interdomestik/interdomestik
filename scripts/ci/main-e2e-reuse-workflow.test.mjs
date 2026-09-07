@@ -38,9 +38,13 @@ function normalizedReuse(rawReuse, resolverOutcome) {
 }
 
 test('main CI resolves exact-tree reuse with bounded read-only evidence access', () => {
-  assert.equal(workflow.permissions.contents, 'read');
-  assert.equal(workflow.permissions['pull-requests'], 'read');
-  assert.equal(workflow.permissions.actions, 'read');
+  assert.deepEqual(workflow.permissions, { contents: 'read' });
+  for (const [name, job] of Object.entries(workflow.jobs)) {
+    const expected = ['validation-surface', 'audit'].includes(name)
+      ? { actions: 'read', contents: 'read', 'pull-requests': 'read' }
+      : { contents: 'read' };
+    assert.deepEqual(job.permissions ?? workflow.permissions, expected, name);
+  }
 
   const resolver = step(validation, 'Resolve main E2E exact-tree reuse');
   assert.ok(resolver);

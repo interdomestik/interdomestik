@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 59834,
+      "trackedBytesDelta": 60613,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 28896,
+        "config/data/messages": 29675,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 28896,
+        "scripts/repo-size-budget.json": 29675,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -478,16 +478,16 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 653066,
+      "maxTrackedBytesDelta": 653174,
       "maxTrackedFilesDelta": 92,
       "maxCategoryBytesDelta": {
-        "config/data/messages": 1000,
+        "config/data/messages": 1108,
         "docs/text": 30439,
         "source/scripts": 337755,
         "tests/e2e": 283872
       },
       "maxPathBytesDelta": {
-        ".github/workflows/ci.yml": 24,
+        ".github/workflows/ci.yml": 132,
         "AGENTS.md": 0,
         "docs/superpowers/plans/2026-08-29-harness-v2-efficiency.md": 15754,
         "docs/superpowers/specs/2026-08-29-harness-v2-efficiency-design.md": 14685,
@@ -598,6 +598,28 @@
         "scripts/ci/pr-governance-report-lib.mjs": 2166,
         "scripts/ci/pr-governance-report.test.mjs": 7110
       }
+    },
+    {
+      "id": "migration-closeout-security",
+      "mode": "bounded",
+      "writerPaths": [
+        "scripts/ci/main-e2e-reuse-workflow.test.mjs",
+        "scripts/ci/workflow-permission-tightening.test.mjs",
+        "scripts/lib/modularity-guard.mjs",
+        "scripts/lib/workflow-permission-tightening.mjs"
+      ],
+      "maxTrackedBytesDelta": 12634,
+      "maxTrackedFilesDelta": 2,
+      "maxCategoryBytesDelta": {
+        "tests/e2e": 8100,
+        "source/scripts": 4534
+      },
+      "maxPathBytesDelta": {
+        "scripts/ci/main-e2e-reuse-workflow.test.mjs": 205,
+        "scripts/ci/workflow-permission-tightening.test.mjs": 7895,
+        "scripts/lib/modularity-guard.mjs": 156,
+        "scripts/lib/workflow-permission-tightening.mjs": 4378
+      }
     }
   ],
   "reserve": {
@@ -609,15 +631,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60338640,
-  "maxTrackedFiles": 5960,
+  "maxTrackedBytes": 60352161,
+  "maxTrackedFiles": 5962,
   "maxCategoryBytes": {
-    "config/data/messages": 2165814,
+    "config/data/messages": 2166701,
     "docs/text": 8507398,
     "large support/generated-ish": 15389747,
     "other": 18856416,
-    "source/scripts": 8693908,
-    "tests/e2e": 6725357
+    "source/scripts": 8698442,
+    "tests/e2e": 6733457
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
