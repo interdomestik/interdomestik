@@ -186,7 +186,15 @@ require_gh_checks() {
 
       in_progress_count="$(echo "${matching_checks}" | jq 'map(select((.status | ascii_downcase) != "completed")) | length')"
       if [[ "${in_progress_count}" -eq 0 ]]; then
-        break
+        local replacement_pending
+        replacement_pending="$(
+          printf '%s' "${matching_checks}" | node scripts/ci/actions-check-supersession.mjs "${repo}" "${head_sha}"
+        )" || fail "unable to verify prerequisite replacement"
+        if [[ "${replacement_pending}" != "true" ]]; then
+          break
+        fi
+        echo "[pr-finalizer] INFO: newer workflow for '${check_name}' is pending; waiting for its result."
+        in_progress_count=1
       fi
 
       if [[ "${attempt}" -ge "${max_check_retries}" ]]; then

@@ -15,6 +15,7 @@ import {
 } from './validation-surface-policy-lib.mjs';
 import { readTrustedRunnerFile } from './trusted-runner-file.mjs';
 import { collectFeedback } from './pr-delivery-feedback.mjs';
+import { hasPendingCheckReplacement } from './actions-check-supersession.mjs';
 import {
   evaluateDeliveryChecks,
   validateDeliveryContract,
@@ -146,7 +147,17 @@ export async function collectSnapshot(
   if (waitForPrerequisites) {
     verifyCommitGraph(snapshot);
     if (!checks.complete || !checks.annotationsComplete) fail('check pagination incomplete');
-    evaluateDeliveryChecks(contract, snapshot);
+    try {
+      evaluateDeliveryChecks(contract, snapshot);
+    } catch (error) {
+      if (
+        error.cause?.kind === 'check-conclusion' &&
+        (await hasPendingCheckReplacement(client, error.cause.check, bound.head))
+      ) {
+        fail(`replacement workflow pending for ${error.cause.check.context}`, true);
+      }
+      throw error;
+    }
   }
   snapshot.feedback = await collectFeedback(client, pull);
   snapshot.feedback.pagination.checks = checks.complete;

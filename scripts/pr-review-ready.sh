@@ -166,7 +166,14 @@ if [[ -n "$(git status --porcelain=v1)" ]]; then
   echo "pr-review-ready failed: working tree is not clean" >&2
   exit 1
 fi
-pr_state="$(gh pr view ${pr_number:+"${pr_number}"} --json headRefOid,isDraft)"
+if ! command -v gh >/dev/null 2>&1; then
+  echo "pr-review-ready failed: GitHub CLI (gh) is required" >&2
+  exit 1
+fi
+pr_state="$(gh pr view ${pr_number:+"${pr_number}"} --json headRefOid,isDraft)" || {
+  echo "pr-review-ready failed: unable to read pull request state" >&2
+  exit 1
+}
 if [[ "$(jq -r '.isDraft' <<<"${pr_state}")" != "false" ]]; then
   echo "pr-review-ready failed: draft pull request is not ready" >&2
   exit 1
@@ -178,7 +185,10 @@ if [[ "$(git rev-parse HEAD)" != "${pr_head}" ]]; then
 fi
 run_boundary_check
 node scripts/github-pr-governance-report.mjs --strict ${pr_number:+"${pr_number}"}
-pr_state="$(gh pr view ${pr_number:+"${pr_number}"} --json headRefOid,isDraft)"
+pr_state="$(gh pr view ${pr_number:+"${pr_number}"} --json headRefOid,isDraft)" || {
+  echo "pr-review-ready failed: unable to revalidate pull request state" >&2
+  exit 1
+}
 if [[ "$(git rev-parse HEAD)" != "${pr_head}" || -n "$(git status --porcelain=v1)" ||
       "$(jq -r '.headRefOid' <<<"${pr_state}")" != "${pr_head}" ||
       "$(jq -r '.isDraft' <<<"${pr_state}")" != "false" ]]; then

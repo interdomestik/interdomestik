@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 61798,
+      "trackedBytesDelta": 62110,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 30860,
+        "config/data/messages": 31172,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 30860,
+        "scripts/repo-size-budget.json": 31172,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -478,12 +478,12 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 653213,
+      "maxTrackedBytesDelta": 653985,
       "maxTrackedFilesDelta": 92,
       "maxCategoryBytesDelta": {
         "config/data/messages": 1147,
         "docs/text": 30439,
-        "source/scripts": 337755,
+        "source/scripts": 338527,
         "tests/e2e": 283872
       },
       "maxPathBytesDelta": {
@@ -590,9 +590,9 @@
         "scripts/slice-rehearse-proof-ledger.mjs": 6873,
         "scripts/slice-rehearse-proof-obligations.mjs": 6547,
         "scripts/slice-rehearse-proof-obligations.test.mjs": 9032,
-        "scripts/github-pr-governance-report.mjs": 306,
-        "scripts/ci/pr-delivery-api.mjs": 67,
-        "scripts/ci/pr-delivery-gate.mjs": 103,
+        "scripts/github-pr-governance-report.mjs": 390,
+        "scripts/ci/pr-delivery-api.mjs": 369,
+        "scripts/ci/pr-delivery-gate.mjs": 489,
         "scripts/ci/pr-delivery-cli.mjs": 2589,
         "scripts/ci/pr-delivery-fixtures.mjs": 1604,
         "scripts/ci/pr-governance-report-lib.mjs": 2166,
@@ -632,24 +632,30 @@
         "scripts/pr-review-ready.sh",
         "scripts/ci/pr-delivery-feedback.mjs",
         "scripts/ci/pr-delivery-ordering.test.mjs",
-        "scripts/ci/pr-review-ready.test.mjs"
+        "scripts/ci/pr-review-ready.test.mjs",
+        "scripts/pr-finalizer.sh",
+        "scripts/ci/actions-check-supersession.mjs",
+        "scripts/ci/actions-check-supersession.test.mjs"
       ],
-      "maxTrackedBytesDelta": 13785,
-      "maxTrackedFilesDelta": 3,
+      "maxTrackedBytesDelta": 24278,
+      "maxTrackedFilesDelta": 5,
       "maxCategoryBytesDelta": {
         "config/data/messages": 130,
-        "tests/e2e": 8948,
-        "source/scripts": 4707
+        "tests/e2e": 15936,
+        "source/scripts": 8212
       },
       "maxPathBytesDelta": {
         ".github/workflows/pr-finalizer.yml": 130,
         "scripts/ci/e2e-lane-runner-contracts.test.mjs": 923,
         "scripts/ci/github-governance-contracts.test.mjs": 150,
         "scripts/ci/pr-finalizer-workflow.test.mjs": 496,
-        "scripts/pr-review-ready.sh": 981,
+        "scripts/pr-review-ready.sh": 1279,
         "scripts/ci/pr-delivery-feedback.mjs": 3726,
-        "scripts/ci/pr-delivery-ordering.test.mjs": 3707,
-        "scripts/ci/pr-review-ready.test.mjs": 3672
+        "scripts/ci/pr-delivery-ordering.test.mjs": 4723,
+        "scripts/ci/pr-review-ready.test.mjs": 3672,
+        "scripts/pr-finalizer.sh": 451,
+        "scripts/ci/actions-check-supersession.mjs": 2756,
+        "scripts/ci/actions-check-supersession.test.mjs": 5972
       }
     }
   ],
@@ -662,15 +668,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60367170,
-  "maxTrackedFiles": 5965,
+  "maxTrackedBytes": 60378747,
+  "maxTrackedFiles": 5967,
   "maxCategoryBytes": {
-    "config/data/messages": 2168055,
+    "config/data/messages": 2168367,
     "docs/text": 8507398,
     "large support/generated-ish": 15389747,
     "other": 18856416,
-    "source/scripts": 8703149,
-    "tests/e2e": 6742405
+    "source/scripts": 8707426,
+    "tests/e2e": 6749393
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

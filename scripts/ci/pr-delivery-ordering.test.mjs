@@ -3,7 +3,12 @@ import test from 'node:test';
 import { collectSnapshot, evaluateDeliverySnapshot } from './pr-delivery-gate.mjs';
 import { B, H, T, TREE, contract, checksFor } from './pr-delivery-fixtures.mjs';
 
-function fixture({ status = 'completed', conclusion = 'success', complete = true } = {}) {
+function fixture({
+  status = 'completed',
+  conclusion = 'success',
+  complete = true,
+  replacement = false,
+} = {}) {
   const feedbackCalls = [];
   const pull = { number: 1694, state: 'open', head: { sha: H }, base: { sha: B } };
   const checks = checksFor().map(item => ({
@@ -24,6 +29,13 @@ function fixture({ status = 'completed', conclusion = 'success', complete = true
     },
     async request(endpoint) {
       if (endpoint.endsWith('/pulls/1694')) return pull;
+      if (endpoint.includes('/actions/runs/'))
+        return {
+          id: Number(endpoint.split('/').at(-1)),
+          workflow_id: 20,
+          head_sha: H,
+          event: 'pull_request',
+        };
       const sha = endpoint.split('/').at(-1);
       assert.ok([B, H, T].includes(sha), endpoint);
       return { tree: { sha: TREE }, parents: (sha === T ? [B, H] : []).map(sha => ({ sha })) };
@@ -32,6 +44,22 @@ function fixture({ status = 'completed', conclusion = 'success', complete = true
       if (endpoint.endsWith('/files'))
         return { values: [{ filename: 'apps/web/src/page.tsx' }], complete: true };
       if (endpoint.includes('/check-runs?')) return { values: checks, complete };
+      if (endpoint.includes('/actions/workflows/'))
+        return {
+          values: replacement
+            ? [
+                {
+                  id: checks[0].runId + 1,
+                  workflow_id: 20,
+                  head_sha: H,
+                  event: 'pull_request',
+                  run_attempt: 1,
+                  status: 'in_progress',
+                },
+              ]
+            : [],
+          complete: true,
+        };
       if (!endpoint.endsWith('/annotations')) feedbackCalls.push(endpoint);
       return { values: [], complete: true };
     },
@@ -82,6 +110,12 @@ test('superseded PR identity fails before feedback work', async () => {
   const { client, feedbackCalls, pull } = fixture();
   pull.head.sha = 'f'.repeat(40);
   await assert.rejects(collect(client), /pull request identity changed/u);
+  assert.deepEqual(feedbackCalls, []);
+});
+
+test('a superseded failed wrapper waits for its newer producer without fetching feedback', async () => {
+  const { client, feedbackCalls } = fixture({ conclusion: 'failure', replacement: true });
+  await assert.rejects(collect(client), /WAIT: replacement workflow pending for audit/u);
   assert.deepEqual(feedbackCalls, []);
 });
 
