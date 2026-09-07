@@ -69,8 +69,10 @@ async function main() {
 }
 
 if (isDirectInvocation(import.meta.url)) {
-  main().catch(error => {
+  try {
+    await main();
+  } catch (error) {
     process.stderr.write(`check replacement failed: ${error.message}\n`);
     process.exitCode = 1;
-  });
+  }
 }

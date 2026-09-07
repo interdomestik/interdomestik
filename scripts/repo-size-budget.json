@@ -637,12 +637,12 @@
         "scripts/ci/actions-check-supersession.mjs",
         "scripts/ci/actions-check-supersession.test.mjs"
       ],
-      "maxTrackedBytesDelta": 24649,
+      "maxTrackedBytesDelta": 24667,
       "maxTrackedFilesDelta": 5,
       "maxCategoryBytesDelta": {
         "config/data/messages": 150,
         "tests/e2e": 16309,
-        "source/scripts": 8190
+        "source/scripts": 8208
       },
       "maxPathBytesDelta": {
         ".github/workflows/pr-finalizer.yml": 150,
@@ -654,7 +654,7 @@
         "scripts/ci/pr-delivery-ordering.test.mjs": 4723,
         "scripts/ci/pr-review-ready.test.mjs": 3672,
         "scripts/pr-finalizer.sh": 451,
-        "scripts/ci/actions-check-supersession.mjs": 2734,
+        "scripts/ci/actions-check-supersession.mjs": 2752,
         "scripts/ci/actions-check-supersession.test.mjs": 6161
       }
     }
@@ -668,14 +668,14 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60379118,
+  "maxTrackedBytes": 60379136,
   "maxTrackedFiles": 5967,
   "maxCategoryBytes": {
     "config/data/messages": 2168387,
     "docs/text": 8507398,
     "large support/generated-ish": 15389747,
     "other": 18856416,
-    "source/scripts": 8707404,
+    "source/scripts": 8707422,
     "tests/e2e": 6749766
   },
   "maxLargestFileBytes": 3266530,
