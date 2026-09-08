@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 64386,
+      "trackedBytesDelta": 64595,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 33448,
+        "config/data/messages": 33657,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 33448,
+        "scripts/repo-size-budget.json": 33657,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -375,6 +375,8 @@
         "docs/superpowers/specs/2026-08-29-harness-v2-efficiency-design.md",
         "package.json",
         "packages/qa/test-tools.ts",
+        "scripts/ci/model-review-access.mjs",
+        "scripts/ci/model-review-evidence.test.mjs",
         "scripts/ci/model-review-routes.mjs",
         "scripts/ci/pr-delivery-api.mjs",
         "scripts/ci/pr-delivery-cli.mjs",
@@ -482,13 +484,13 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 665674,
+      "maxTrackedBytesDelta": 668125,
       "maxTrackedFilesDelta": 94,
       "maxCategoryBytesDelta": {
         "config/data/messages": 2513,
         "docs/text": 30439,
-        "source/scripts": 340374,
-        "tests/e2e": 292348
+        "source/scripts": 340586,
+        "tests/e2e": 294587
       },
       "maxPathBytesDelta": {
         ".github/workflows/ci.yml": 1441,
@@ -602,7 +604,9 @@
         "scripts/ci/pr-governance-report-lib.mjs": 2166,
         "scripts/ci/pr-governance-report.test.mjs": 7110,
         "scripts/ci/reviewer-no-tools.toml": 57,
-        "scripts/ci/reviewer-route-policy.test.mjs": 4948
+        "scripts/ci/reviewer-route-policy.test.mjs": 4948,
+        "scripts/ci/model-review-access.mjs": 212,
+        "scripts/ci/model-review-evidence.test.mjs": 2239
       }
     },
     {
@@ -719,15 +723,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60426466,
+  "maxTrackedBytes": 60429126,
   "maxTrackedFiles": 5974,
   "maxCategoryBytes": {
-    "config/data/messages": 2174722,
+    "config/data/messages": 2174931,
     "docs/text": 8507398,
     "large support/generated-ish": 15389747,
     "other": 18856416,
-    "source/scripts": 8719427,
-    "tests/e2e": 6778756
+    "source/scripts": 8719639,
+    "tests/e2e": 6780995
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
