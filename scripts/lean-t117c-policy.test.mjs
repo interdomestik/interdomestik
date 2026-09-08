@@ -45,6 +45,8 @@ const writers = [
   'apps/web/src/app/api/claims/route.ts',
   'apps/web/src/app/api/csp-report/route.ts',
   'apps/web/src/app/api/e2e/branches/route.ts',
+  'apps/web/src/app/track/[token]/page.test.tsx',
+  'apps/web/src/app/track/[token]/page.tsx',
   'apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx',
   'apps/web/src/components/dashboard/member-portal-runtime.tsx',
   'apps/web/src/components/shell/request-boundary.test.tsx',
@@ -65,8 +67,8 @@ const slice = {
   closeoutWriterPaths: ['docs/plans/current-program.md', 'docs/plans/current-tracker.md'],
 };
 
-test('T117C accepts only the frozen 42-path rendering map', () => {
-  assert.equal(writers.length, 42);
+test('T117C accepts only the frozen 44-path rendering map', () => {
+  assert.equal(writers.length, 44);
   assert.equal(validateSlice(slice), slice);
   for (const path of writers) assert.equal(classifyWriterPath(path, slice).allowed, true, path);
   assert.match(
@@ -79,6 +81,7 @@ test('T117C accepts only the frozen 42-path rendering map', () => {
     { ...slice, productWriterPaths: [...writers].reverse() },
     { ...slice, productWriterPaths: writers.slice(1) },
     { ...slice, productWriterPaths: writers.filter(path => !path.includes('/home/footer.')) },
+    { ...slice, productWriterPaths: writers.filter(path => !path.includes('/track/[token]/')) },
     { ...slice, productWriterPaths: [...writers, 'apps/web/src/proxy.ts'] },
     {
       ...slice,
