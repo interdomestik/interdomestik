@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { modelReviewRoutes } from './model-review-routes.mjs';
+import { defaultReviewers, modelReviewRoutes } from './model-review-routes.mjs';
 import { runReviewerRoute } from './reviewer-route-runtime.mjs';
 import { writeRouteReceipt } from './reviewer-route-receipts.mjs';
 import { timeoutConfig } from './reviewer-route-utils.mjs';
@@ -27,6 +27,7 @@ async function runFake(name, body, options = {}) {
       commandInvoked: options.commandInvoked,
       timeoutPreset: options.timeoutPreset,
       candidateIdentity: options.candidateIdentity,
+      maxCaptureBytes: options.maxCaptureBytes,
     });
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
@@ -44,6 +45,16 @@ test('OpenAI reviewer quota blocker writes deterministic JSON and Markdown recei
   try {
     process.chdir(isolatedCwd);
     const paths = writeRouteReceipt(receipt);
+    for (const file of [paths.jsonPath, paths.mdPath]) {
+      assert.equal(
+        path.relative(fs.realpathSync(isolatedCwd), fs.realpathSync(file)).startsWith('..'),
+        false
+      );
+      assert.equal(
+        path.isAbsolute(path.relative(fs.realpathSync(isolatedCwd), fs.realpathSync(file))),
+        false
+      );
+    }
     const json = JSON.parse(fs.readFileSync(paths.jsonPath, 'utf8'));
     const markdown = fs.readFileSync(paths.mdPath, 'utf8');
     assert.equal(json.status, 'blocked');
@@ -184,6 +195,7 @@ test('Opus helper skips escalation unless explicitly required', () => {
 });
 
 test('current reviewer routes keep fast work optional and pin the requested models', () => {
+  assert.deepEqual(defaultReviewers, ['sonnet']);
   for (const [route, model] of [
     ['sonnet', 'claude-sonnet-5'],
     ['opus', 'claude-opus-5'],
@@ -194,7 +206,12 @@ test('current reviewer routes keep fast work optional and pin the requested mode
     assert.equal(config.model, model);
     const args = config.args('bounded review');
     assert.equal(args[args.indexOf('--model') + 1], model);
-    assert.notEqual(args[args.indexOf('--output-format') + 1], 'text');
+    assert.ok(args.includes('--model'));
+    assert.ok(args.includes('--output-format'));
+    assert.equal(
+      args[args.indexOf('--output-format') + 1],
+      route === 'opus' ? 'stream-json' : 'json'
+    );
   }
 });
 
@@ -215,3 +232,96 @@ for (const [name, models, status] of [
     assert.equal(receipt.reviewVerdict, 'PASS');
   });
 }
+
+for (const [body, expected] of [
+  ['VERDICT: PASS\nQuoted earlier answer.\nVERDICT: FINDINGS\n\n', 'FINDINGS'],
+  ['VERDICT: PASS\nMore unresolved analysis.', null],
+  ['```\nVERDICT: PASS\n```', null],
+  ['VERDICT: PASS with exceptions', null],
+])
+  test(
+    'only the final nonempty verdict line is authoritative: ' + JSON.stringify(body),
+    async () => {
+      const receipt = await runFake(
+        'flash',
+        `console.log(JSON.stringify(${JSON.stringify({ model: 'gemini-3.8-flash', response: body })}))`,
+        { provider: 'google', model: 'gemini-3.8-flash' }
+      );
+      assert.equal(receipt.reviewVerdict, expected);
+      assert.equal(receipt.status, expected ? 'ran' : 'failed');
+    }
+  );
+
+for (const payloads of [
+  [{ model: 'gemini-3.8-flash' }, { model: 'gemini-3.1-pro-preview', response: 'VERDICT: PASS' }],
+  [
+    {
+      model: 'gemini-3.8-flash',
+      modelUsage: { 'gemini-3.1-pro-preview': {} },
+      response: 'VERDICT: PASS',
+    },
+  ],
+  [
+    {
+      modelUsage: { 'gemini-3.8-flash': {} },
+      stats: { models: { 'gemini-3.1-pro-preview': {} } },
+      response: 'VERDICT: PASS',
+    },
+  ],
+])
+  test('mixed provider model evidence fails across every source', async () => {
+    const receipt = await runFake(
+      'flash',
+      `for(const p of ${JSON.stringify(payloads)})console.log(JSON.stringify(p))`,
+      { provider: 'google', model: 'gemini-3.8-flash' }
+    );
+    assert.equal(receipt.status, 'failed');
+    assert.equal(receipt.providerReportedModel, null);
+  });
+
+test('empty modelUsage still considers stats model evidence', async () => {
+  const receipt = await runFake(
+    'flash',
+    `console.log(JSON.stringify({modelUsage:{},stats:{models:{'gemini-3.8-flash':{}}},response:'VERDICT: PASS'}))`,
+    { provider: 'google', model: 'gemini-3.8-flash' }
+  );
+  assert.equal(receipt.status, 'ran');
+});
+
+test('output overflow cannot discard earlier model evidence then succeed', async () => {
+  const receipt = await runFake(
+    'flash',
+    `console.log('x'.repeat(512));console.log(JSON.stringify({model:'gemini-3.8-flash',response:'VERDICT: PASS'}))`,
+    { provider: 'google', model: 'gemini-3.8-flash', maxCaptureBytes: 128 }
+  );
+  assert.equal(receipt.status, 'blocked');
+  assert.equal(receipt.blockerReason, 'reviewer_output_limit');
+});
+
+test('Google reviewers install a fixed deny-all policy before tool execution', () => {
+  for (const route of ['gemini', 'flash']) {
+    const args = modelReviewRoutes[route].args('review');
+    assert.equal(args[args.indexOf('--approval-mode') + 1], 'default');
+    assert.equal(args[args.indexOf('--extensions') + 1], 'none');
+    assert.ok(args.includes('--admin-policy'));
+    const policy = args[args.indexOf('--admin-policy') + 1];
+    assert.equal(policy, path.join(scriptDir, 'reviewer-no-tools.toml'));
+    assert.equal(
+      fs.readFileSync(policy, 'utf8'),
+      '[[rule]]\ntoolName = "*"\ndecision = "deny"\npriority = 999\n'
+    );
+  }
+});
+
+test('Google route refuses system policy overrides and unreadable policy directories', t => {
+  for (const operation of [
+    () => ['admin.toml'],
+    () => {
+      throw Object.assign(new Error('unreadable'), { code: 'EACCES' });
+    },
+  ]) {
+    const mock = t.mock.method(fs, 'readdirSync', operation);
+    assert.throws(() => modelReviewRoutes.flash.args('review'));
+    mock.mock.restore();
+  }
+});

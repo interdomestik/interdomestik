@@ -1,3 +1,37 @@
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+function googleReviewArgs(prompt, model) {
+  // Gemini 0.56: system policies override --admin-policy, so refuse that case.
+  const directory =
+    process.platform === 'darwin'
+      ? '/Library/Application Support/GeminiCli/policies'
+      : process.platform === 'win32'
+        ? 'C:\\ProgramData\\gemini-cli\\policies'
+        : '/etc/gemini-cli/policies';
+  try {
+    if (fs.readdirSync(directory).some(name => name.endsWith('.toml'))) {
+      throw new Error('Reviewer tool denial cannot override existing system policies');
+    }
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+  return [
+    '-p',
+    prompt,
+    '--model',
+    model,
+    '--output-format',
+    'json',
+    '--approval-mode',
+    'default',
+    '--extensions',
+    'none',
+    '--admin-policy',
+    fileURLToPath(new URL('./reviewer-no-tools.toml', import.meta.url)),
+  ];
+}
+
 export const defaultReviewers = ['sonnet'];
 
 export const modelReviewRoutes = {
@@ -66,7 +100,7 @@ export const modelReviewRoutes = {
     command: 'gemini',
     timeoutMs: 10 * 60_000,
     noOutputTimeoutMs: 300_000,
-    args: prompt => ['-p', prompt, '--model', 'gemini-3.1-pro-preview', '--output-format', 'json'],
+    args: prompt => googleReviewArgs(prompt, 'gemini-3.1-pro-preview'),
   },
   flash: {
     label: 'Gemini 3.8 Flash fast review',
@@ -75,7 +109,7 @@ export const modelReviewRoutes = {
     command: 'gemini',
     timeoutMs: 10 * 60_000,
     noOutputTimeoutMs: 300_000,
-    args: prompt => ['-p', prompt, '--model', 'gemini-3.8-flash', '--output-format', 'json'],
+    args: prompt => googleReviewArgs(prompt, 'gemini-3.8-flash'),
   },
 };
 

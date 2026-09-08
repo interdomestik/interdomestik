@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import fs from 'node:fs';
+import { createHash } from 'node:crypto';
 import {
   approvalMarker,
   classifyWriterPath,
@@ -87,11 +89,23 @@ test('T117C accepts only the frozen 40-path rendering map', () => {
 });
 
 test('T117C requires the verified closed 21-path CUTOVER predecessor', () => {
+  const predecessor = JSON.parse(
+    fs.readFileSync(
+      new URL('../docs/plans/2026-08-28-t117b-cutover-admission.json', import.meta.url),
+      'utf8'
+    )
+  );
+  assert.equal(predecessor.sliceId, 'T117B-CUTOVER');
+  assert.equal(predecessor.writerPaths.length, 21);
+  const predecessorHash = createHash('sha256')
+    .update(JSON.stringify(predecessor.writerPaths))
+    .digest('hex');
+  assert.equal(predecessorHash, predecessor.productWriterMapSha256);
   const evidence = {
     status: 'verified',
     childId: 'T-117C',
     predecessorSliceId: 'T117B-CUTOVER',
-    predecessorWriterMapSha256: '2ad45d3a297b0bc686594f4d2855a38dfbe3c825446ae740682fe7a1fb2d440b',
+    predecessorWriterMapSha256: predecessorHash,
     productPrNumber: 1690,
     productState: 'CLOSED',
     productMerged: true,
@@ -108,6 +122,13 @@ test('T117C requires the verified closed 21-path CUTOVER predecessor', () => {
     { predecessorSliceId: 'T117B-PORTAL' },
     { predecessorWriterMapSha256: '0'.repeat(64) },
     { productMerged: false },
+    { productState: 'OPEN' },
+    { productState: 'MERGED' },
+    { closeoutMergeSha: '' },
+    { closeoutMergeSha: 'not-a-sha' },
+    { productPrNumber: 0 },
+    { productHeadTree: '' },
+    { productMergeSha: '' },
     { closeoutState: 'pending' },
     { productHeadSha: '' },
     { childId: 'T117B-CUTOVER' },

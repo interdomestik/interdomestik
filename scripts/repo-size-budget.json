@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 64179,
+      "trackedBytesDelta": 64274,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 33241,
+        "config/data/messages": 33336,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 33241,
+        "scripts/repo-size-budget.json": 33336,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -79,11 +79,11 @@
         "scripts/modularity-guard-policy.mjs",
         "scripts/lean-t117c-policy.test.mjs"
       ],
-      "maxTrackedBytesDelta": 48230,
+      "maxTrackedBytesDelta": 48927,
       "maxTrackedFilesDelta": 6,
       "maxCategoryBytesDelta": {
         "source/scripts": 19044,
-        "tests/e2e": 29186
+        "tests/e2e": 29883
       },
       "maxPathBytesDelta": {
         "scripts/lean-current-authority-policy.mjs": 487,
@@ -102,7 +102,7 @@
         "scripts/lean-current-authority-recovery.mjs": 6810,
         "scripts/lean-current-authority-recovery.test.mjs": 9126,
         "scripts/lean-current-authority-observation.mjs": 2056,
-        "scripts/lean-t117c-policy.test.mjs": 5082
+        "scripts/lean-t117c-policy.test.mjs": 5779
       }
     },
     {
@@ -385,6 +385,7 @@
         "scripts/ci/pr-governance-report-lib.mjs",
         "scripts/ci/pr-governance-report.test.mjs",
         "scripts/ci/qa-cli-callers-contracts.test.mjs",
+        "scripts/ci/reviewer-no-tools.toml",
         "scripts/ci/reviewer-preflight-git.mjs",
         "scripts/ci/reviewer-preflight.mjs",
         "scripts/ci/reviewer-preflight.test.mjs",
@@ -480,13 +481,13 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 656675,
-      "maxTrackedFilesDelta": 92,
+      "maxTrackedBytesDelta": 661879,
+      "maxTrackedFilesDelta": 93,
       "maxCategoryBytesDelta": {
-        "config/data/messages": 2456,
+        "config/data/messages": 2513,
         "docs/text": 30439,
-        "source/scripts": 338527,
-        "tests/e2e": 285253
+        "source/scripts": 339709,
+        "tests/e2e": 289218
       },
       "maxPathBytesDelta": {
         ".github/workflows/ci.yml": 1441,
@@ -495,7 +496,7 @@
         "docs/superpowers/specs/2026-08-29-harness-v2-efficiency-design.md": 14685,
         "package.json": 1070,
         "packages/qa/test-tools.ts": 334,
-        "scripts/ci/model-review-routes.mjs": 758,
+        "scripts/ci/model-review-routes.mjs": 1644,
         "scripts/ci/pr-delivery-contract.json": 27,
         "scripts/ci/pr-delivery-gate.test.mjs": 0,
         "scripts/ci/qa-cli-callers-contracts.test.mjs": 71,
@@ -503,8 +504,8 @@
         "scripts/ci/reviewer-preflight.mjs": 0,
         "scripts/ci/reviewer-preflight.test.mjs": 1996,
         "scripts/ci/reviewer-route-receipts.mjs": 301,
-        "scripts/ci/reviewer-route-runtime.mjs": 1730,
-        "scripts/ci/reviewer-route-runtime.test.mjs": 3191,
+        "scripts/ci/reviewer-route-runtime.mjs": 2150,
+        "scripts/ci/reviewer-route-runtime.test.mjs": 7156,
         "scripts/ci/run-model-reviewer-route.mjs": 1531,
         "scripts/ci/z620-parity.json": 0,
         "scripts/slice-rehearse-authority-boundary.mjs": 2932,
@@ -598,7 +599,8 @@
         "scripts/ci/pr-delivery-cli.mjs": 2589,
         "scripts/ci/pr-delivery-fixtures.mjs": 1604,
         "scripts/ci/pr-governance-report-lib.mjs": 2166,
-        "scripts/ci/pr-governance-report.test.mjs": 7110
+        "scripts/ci/pr-governance-report.test.mjs": 7110,
+        "scripts/ci/reviewer-no-tools.toml": 57
       }
     },
     {
@@ -715,15 +717,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60416270,
-  "maxTrackedFiles": 5972,
+  "maxTrackedBytes": 60422266,
+  "maxTrackedFiles": 5973,
   "maxCategoryBytes": {
-    "config/data/messages": 2174458,
+    "config/data/messages": 2174610,
     "docs/text": 8507398,
     "large support/generated-ish": 15389747,
     "other": 18856416,
-    "source/scripts": 8717539,
-    "tests/e2e": 6770712
+    "source/scripts": 8718721,
+    "tests/e2e": 6775374
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
