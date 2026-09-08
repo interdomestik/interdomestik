@@ -209,13 +209,13 @@ test('closeout ancestry uses Git history', () => {
   mkdirSync(join(root, plans), { recursive: true });
   writeFileSync(join(root, program), 'changed\n');
   git(root, 'add', program);
-  git(root, 'commit', '-m', 'authority drift');
+  git(root, 'commit', '-m', 'drift');
   const later = git(root, 'rev-parse', 'HEAD');
   assert.equal(isAncestor(root, terminal, later), true);
   assert.deepEqual(changed(root, terminal, later, [program]), [program]);
 });
 
-test('CUTOVER repeats', () => {
+test('repeat closeout traversal', () => {
   const root = fixture('c');
   const a = commit(root, active, 'a');
   const c = commit(root, inactive, 'c');
@@ -244,25 +244,36 @@ test('CUTOVER repeats', () => {
   p.activeSlice.promotionBaseSha = b;
   p.activeSlice.productWriterPaths.push(...added);
   p.activeSlice.productWriterPaths.sort();
-  const x = commit(root, p, 'x');
-  let y = x;
+  const repeatPromotion = commit(root, p, 'x');
+  const repeatCloseout = commit(root, inactive, 'c');
+  let y = repeatCloseout;
   for (let index = 7; index--;) {
     p.activeSlice.promotionBaseSha = y;
     y = commit(root, p, 'r');
   }
-  assert.equal(locate(root, y, 'T117B-CUTOVER').kind, 'closeout_recorded');
+  const proof = (_repo, transition) => {
+    assert.equal(transition.closeoutMergeSha, repeatCloseout);
+    assert.equal(transition.terminalProjectionSha, repeatPromotion);
+    return true;
+  };
+  const located = locate(root, y, 'T117B-CUTOVER', proof);
+  assert.equal(located.kind, 'closeout_recorded');
+  assert.equal(located.closeoutMergeSha, c);
+  assert.equal(located.prior.activeSlice.sliceId, 'IDA-UI-HISTORY');
+  assert.throws(() => locate(root, y, 'T117B-CUTOVER', () => false), /invalid repeat closeout/);
   p.activeSlice.promotionBaseSha = a;
   const m = commit(root, p, 'm');
   assert.equal(locate(root, m, 'T117B-CUTOVER').kind, 'terminal');
   const history = source('./lean-current-authority-history.mjs');
-  assert.match(history, /HISTORY_LIMIT = 128.*new Set.*!isAncestor.*bounded traversal/su);
+  assert.match(history, /HISTORY_LIMIT = 128.*new Set.*bounded traversal/su);
+  assert.match(history, /activeStep.*!isAncestor/su);
   assert(!history.includes('productWriterPaths.length'));
 });
 test('authority edit-revert remains history drift', () => {
   const root = fixture('lean-authority-revert-fixture-');
   const terminal = commit(root, inactive, 'terminal');
-  commit(root, active, 'temporary authority edit');
-  const reverted = commit(root, inactive, 'revert authority edit');
+  commit(root, active, 'edit');
+  const reverted = commit(root, inactive, 'revert');
   assert.deepEqual(changed(root, terminal, reverted, [program]), []);
   assert.equal(authorityPathsTouched(root, terminal, reverted), true);
 });
