@@ -24,12 +24,28 @@ test.describe('Unified Member Portal', () => {
   }, testInfo) => {
     await openPortal(page, testInfo);
     const copy = portalCopy(testInfo);
-    const portal = page.getByTestId('member-dashboard-ready').first();
+    const portal = page.getByTestId('member-dashboard-ready');
     const regions = portal.locator('section[aria-label]');
 
+    await expect(portal).toHaveCount(1);
+    await expect(regions).toHaveCount(3);
+    await expect(portal.getByTestId('member-portal-disclaimer')).toHaveCount(1);
+    await expect(portal.getByTestId('member-portal-disclaimer')).toHaveText(copy.disclaimer);
+    await expect(portal.getByRole('heading', { level: 1 })).toHaveText(copy.title);
     await expect(regions.nth(0)).toHaveAccessibleName(copy.regions.case.label);
     await expect(regions.nth(1)).toHaveAccessibleName(copy.regions.actions.label);
     await expect(regions.nth(2)).toHaveAccessibleName(copy.regions.updates.label);
+    expect(
+      await portal.evaluate(element => {
+        const disclaimer = element.querySelector('[data-testid="member-portal-disclaimer"]');
+        const firstRegion = element.querySelector('section[aria-label]');
+        return Boolean(
+          disclaimer &&
+          firstRegion &&
+          disclaimer.compareDocumentPosition(firstRegion) & Node.DOCUMENT_POSITION_FOLLOWING
+        );
+      })
+    ).toBe(true);
     const navigation = portal.getByRole('navigation');
     // prettier-ignore
     const hrefs = [`/${routes.getLocale(testInfo)}/help-now`, `${routes.member(testInfo)}/claims`, `${routes.member(testInfo)}/documents`, `${routes.member(testInfo)}/membership`];

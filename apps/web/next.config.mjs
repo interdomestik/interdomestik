@@ -12,6 +12,11 @@ const bundleAnalyzer = withBundleAnalyzer({
 
 validateSupabaseDeploymentSeparation(process.env);
 
+const buildCspNonceMode = process.env.CSP_NONCE_MODE ?? 'off';
+if (buildCspNonceMode !== 'off' && buildCspNonceMode !== 'report') {
+  throw new Error('Invalid CSP_NONCE_MODE. Expected "off" or "report"; enforce is unsupported.');
+}
+
 const buildCpus = Number.parseInt(process.env.NEXT_BUILD_CPUS ?? '', 10);
 const nextBuildWorkerLimit =
   Number.isInteger(buildCpus) && buildCpus > 0 ? { cpus: buildCpus } : {};
@@ -21,6 +26,12 @@ const validateSentrySourceMaps = process.env.SENTRY_VALIDATE_SOURCEMAPS === 'tru
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  cacheComponents: buildCspNonceMode === 'off',
+  // Bind the artifact without replacing the security helper's runtime CSP_NONCE_MODE read.
+  env: {
+    INTERDOMESTIK_BUILT_CSP_NONCE_MODE: buildCspNonceMode,
+    INTERDOMESTIK_BUILD_COPYRIGHT_YEAR: String(new Date().getUTCFullYear()),
+  },
   transpilePackages: [
     '@interdomestik/ui',
     '@interdomestik/database',

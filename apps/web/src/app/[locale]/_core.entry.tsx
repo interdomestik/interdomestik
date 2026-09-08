@@ -1,3 +1,5 @@
+import { Suspense } from 'react';
+import { isStrictI18n } from '@/i18n/error-handling';
 import { AxeProvider } from '@/components/accessibility/axe-provider';
 import { AnalyticsScripts } from '@/components/analytics/analytics-scripts';
 import { PwaRegistrar } from '@/components/pwa-registrar';
@@ -6,7 +8,8 @@ import { ReferralTracker } from '@/components/analytics/referral-tracker';
 import { CookieConsentBanner } from '@/components/privacy/cookie-consent-banner';
 import { PostHogProvider } from '@/components/providers/posthog-provider';
 import { QueryProvider } from '@/components/providers/query-provider';
-import { BASE_NAMESPACES, pickMessages } from '@/i18n/messages';
+import { RequestFallback } from '@/components/shell/request-boundary';
+import { BASE_NAMESPACES, loadAllMessages, pickMessages } from '@/i18n/messages';
 import { routing } from '@/i18n/routing';
 import { isCspNonceActive } from '@/lib/security/csp-nonce';
 import '@interdomestik/ui/globals.css';
@@ -95,10 +98,13 @@ export default async function RootLayout({ children, params }: Props) {
   setRequestLocale(locale);
 
   // Fetch messages for the locale
-  const allMessages = await getMessages();
+  const nonceActive = isCspNonceActive();
+  const allMessages = nonceActive
+    ? await getMessages()
+    : await loadAllMessages(locale, { strict: isStrictI18n() });
   const messages = pickMessages(allMessages, BASE_NAMESPACES);
   let cspNonce: string | null = null;
-  if (isCspNonceActive()) {
+  if (nonceActive) {
     await connection();
     cspNonce = (await headers()).get('x-nonce');
   }
@@ -141,7 +147,7 @@ export default async function RootLayout({ children, params }: Props) {
         <PostHogProvider>
           <NextIntlClientProvider messages={messages} locale={locale}>
             <QueryProvider>
-              {children}
+              <Suspense fallback={<RequestFallback />}>{children}</Suspense>
               <Toaster position="top-right" richColors />
               {enableAxe ? <AxeProvider /> : null}
               <ReferralTracker />

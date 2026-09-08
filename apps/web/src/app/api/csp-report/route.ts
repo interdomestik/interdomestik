@@ -6,8 +6,6 @@ import {
 } from '@/lib/security/csp-report';
 import { enforceRateLimit } from '@/lib/rate-limit';
 
-export const dynamic = 'force-dynamic';
-
 function noContent(): Response {
   return new Response(null, {
     status: 204,

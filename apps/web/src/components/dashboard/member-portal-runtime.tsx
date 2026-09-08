@@ -1,4 +1,4 @@
-import { Suspense } from 'react';
+import type { ReactNode } from 'react';
 
 import type * as Member from '@interdomestik/domain-member';
 import * as PortalUi from '@interdomestik/ui';
@@ -30,8 +30,6 @@ type CaseProps = Readonly<{
 }>;
 // prettier-ignore
 type ActionProps = Readonly<{ canDraft: boolean; copy: MemberPortalCopy; isAgent: boolean; locale: AppLocale; promise: Promise<Member.MemberPortalMembership | null> }>;
-// prettier-ignore
-type RuntimeProps = Readonly<Pick<ActionProps, 'canDraft' | 'copy' | 'isAgent' | 'locale'> & { caseTask: CaseProps['promise']; membershipTask: ActionProps['promise'] }>;
 type UpdateProps = CaseProps & { locale: AppLocale };
 export async function PortalCasesRegion({ copy, promise }: CaseProps) {
   const summaries = await promise.catch(() => null);
@@ -104,15 +102,14 @@ export async function PortalUpdatesRegion({ copy, locale, promise }: UpdateProps
   );
 }
 
-export async function MemberPortalRuntime({
-  canDraft,
-  caseTask,
-  copy,
-  isAgent,
-  locale,
-  membershipTask,
-}: RuntimeProps) {
-  const fallback = (region: MemberPortalRegionCopy) => <Boundary copy={region} state="loading" />;
+type FrameProps = Readonly<{
+  actionsRegion: ReactNode;
+  caseRegion: ReactNode;
+  copy: MemberPortalCopy;
+  updatesRegion: ReactNode;
+}>;
+
+export function MemberPortalFrame({ actionsRegion, caseRegion, copy, updatesRegion }: FrameProps) {
   return (
     <section aria-labelledby="member-portal-title" className="min-w-0 space-y-6 p-4 sm:p-6 md:p-0">
       <header className="space-y-2">
@@ -135,24 +132,11 @@ export async function MemberPortalRuntime({
       </aside>
       <PortalUi.UnifiedPortalShell
         actionsLabel={copy.regions.actions.label}
-        actionsRegion={
-          <Suspense fallback={fallback(copy.regions.actions)}>
-            {/* prettier-ignore */}
-            <PortalActionsRegion canDraft={canDraft} copy={copy} isAgent={isAgent} locale={locale} promise={membershipTask} />
-          </Suspense>
-        }
+        actionsRegion={actionsRegion}
         caseLabel={copy.regions.case.label}
-        caseRegion={
-          <Suspense fallback={fallback(copy.regions.case)}>
-            <PortalCasesRegion copy={copy} promise={caseTask} />
-          </Suspense>
-        }
+        caseRegion={caseRegion}
         timelineLabel={copy.regions.updates.label}
-        timelineRegion={
-          <Suspense fallback={fallback(copy.regions.updates)}>
-            <PortalUpdatesRegion copy={copy} locale={locale} promise={caseTask} />
-          </Suspense>
-        }
+        timelineRegion={updatesRegion}
       />
     </section>
   );
