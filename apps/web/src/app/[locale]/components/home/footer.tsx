@@ -7,6 +7,10 @@ import { useTranslations } from 'next-intl';
 export function Footer() {
   const t = useTranslations('footer');
   const common = useTranslations('common');
+  const copyrightYear = process.env.INTERDOMESTIK_BUILD_COPYRIGHT_YEAR;
+  if (!copyrightYear || !/^[1-9]\d{3}$/u.test(copyrightYear)) {
+    throw new Error('Invalid compiled copyright year. Rebuild with the Next configuration.');
+  }
   const { phone, telHref, whatsapp, address, hours } = contactInfo;
   const safetyNetChips = Array.isArray(t.raw('safetyNet.chips'))
     ? (t.raw('safetyNet.chips') as string[])
@@ -247,7 +251,7 @@ export function Footer() {
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-slate-300 font-medium">
-              {t('copyright', { year: new Date().getFullYear(), appName: common('appName') })}
+              {t('copyright', { year: Number(copyrightYear), appName: common('appName') })}
             </p>
             <p className="text-xs text-slate-300 text-center md:text-right max-w-lg font-medium">
               {t('disclaimer')}

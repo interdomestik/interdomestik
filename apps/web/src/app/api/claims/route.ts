@@ -5,8 +5,6 @@ import type { ClaimStatusFilter } from '@/server/domains/claims/types';
 import * as Sentry from '@sentry/nextjs';
 import { NextResponse } from 'next/server';
 
-export const dynamic = 'force-dynamic';
-
 const CLAIM_STATUS_FILTERS = ['active', 'draft', 'closed'] as const;
 
 function parseStatusFilter(status: string | null): ClaimStatusFilter {

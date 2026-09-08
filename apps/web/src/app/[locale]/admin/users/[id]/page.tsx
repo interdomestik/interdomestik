@@ -1,6 +1,3 @@
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 import { AdminUserDetailV2Page } from '@/features/admin/users/components/AdminUserDetailV2Page';
 import { getSessionSafe } from '@/components/shell/session';
 import { getTenantClassificationOptions } from './tenant-classification';

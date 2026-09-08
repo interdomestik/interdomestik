@@ -1,6 +1,21 @@
 import * as Sentry from '@sentry/nextjs';
 
+import { assertRenderingBuildMode } from './lib/rendering-build-mode';
+
 export function register() {
+  try {
+    assertRenderingBuildMode(
+      process.env.INTERDOMESTIK_BUILT_CSP_NONCE_MODE,
+      process.env.CSP_NONCE_MODE
+    );
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : 'Invalid rendering build mode.');
+    if (process.env.NEXT_RUNTIME === 'nodejs') {
+      process.exit(1);
+    }
+    throw error;
+  }
+
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     import('./sentry.server.config');
 
