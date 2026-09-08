@@ -96,7 +96,26 @@ async function main() {
     routeName === 'opus' &&
     !args.includes('--allow-escalation') &&
     process.env.REVIEW_ESCALATION_REQUIRED !== '1';
-  const commandInvoked = [route.command, ...route.args('<prompt>')];
+  const startedAt = new Date().toISOString();
+  let preparedArgs;
+  try {
+    preparedArgs = route.args('<prompt>');
+  } catch (error) {
+    const receipt = {
+      ...skippedRouteReceipt({ routeName, ...route, commandInvoked: [route.command] }),
+      startedAt,
+      elapsedMs: Date.now() - Date.parse(startedAt),
+      status: 'blocked',
+      blockerReason: 'reviewer_argument_preparation',
+      exitCode: 125,
+      reviewVerdict: null,
+      error: error.message,
+    };
+    const paths = writeRouteReceipt(receipt);
+    console.log(JSON.stringify(printableReceipt(receipt, paths), null, 2));
+    process.exit(exitForReceipt(receipt));
+  }
+  const commandInvoked = [route.command, ...preparedArgs];
 
   if (requireEscalation) {
     const receipt = skippedRouteReceipt({
@@ -120,7 +139,7 @@ async function main() {
     provider: route.provider,
     model: route.model,
     command: route.command,
-    args: route.args(prompt),
+    args: preparedArgs.map(argument => (argument === '<prompt>' ? prompt : argument)),
     commandInvoked,
     candidateIdentity: packet.identity,
   });

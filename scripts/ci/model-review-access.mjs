@@ -35,7 +35,16 @@ function runProbe(route, probe) {
   if (probe === 'command') {
     return { status: 'available', reason: 'command available; auth/quota not probed' };
   }
-  const result = spawnSync(route.command, route.args(PROMPT), {
+  let args;
+  try {
+    args = route.args(PROMPT);
+  } catch (error) {
+    return {
+      status: 'blocked',
+      reason: `reviewer_argument_preparation: ${String(error?.message ?? error).slice(0, 240)}`,
+    };
+  }
+  const result = spawnSync(route.command, args, {
     encoding: 'utf8',
     timeout: 45000,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -49,7 +58,9 @@ function runProbe(route, probe) {
 function main() {
   const args = process.argv.slice(2);
   const required = parseReviewerList(argValue(args, '--required'), ['sonnet']);
-  const reviewers = [...new Set([...parseReviewerList(argValue(args, '--reviewers')), ...required])];
+  const reviewers = [
+    ...new Set([...parseReviewerList(argValue(args, '--reviewers')), ...required]),
+  ];
   const probe = argValue(args, '--probe', 'call');
   if (!['call', 'command'].includes(probe)) throw new Error('--probe must be call or command');
   assertKnownReviewers(reviewers);

@@ -138,3 +138,60 @@ test('model-review access writes receipts for callable and command-only routes',
     }
   }
 });
+
+for (const failure of ['conflict', 'unreadable']) {
+  for (const required of ['sonnet', 'gemini']) {
+    test(`access receipt retains ${failure} Google refusal with required ${required}`, () => {
+      const root = fs.mkdtempSync(path.join(os.tmpdir(), 'access-policy-refusal-'));
+      const preload = path.join(root, 'preload.mjs');
+      fs.writeFileSync(
+        preload,
+        `
+        import fs from 'node:fs';
+        import childProcess from 'node:child_process';
+        import { syncBuiltinESMExports } from 'node:module';
+        fs.readdirSync = () => {
+          if (${JSON.stringify(failure)} === 'conflict') return ['admin.toml'];
+          throw Object.assign(new Error('policy unavailable'), { code: 'EACCES' });
+        };
+        childProcess.spawnSync = command => {
+          if (command === '/bin/sh' || command === 'claude') return {status: 0};
+          fs.writeFileSync('provider-started', 'unexpected');
+          throw new Error('Google provider must not start');
+        };
+        syncBuiltinESMExports();
+      `
+      );
+      try {
+        const result = spawnSync(
+          process.execPath,
+          [
+            '--import',
+            preload,
+            accessScript,
+            '--run-root',
+            root,
+            '--reviewers',
+            'gemini,flash,sonnet',
+            '--required',
+            required,
+          ],
+          { cwd: root, encoding: 'utf8' }
+        );
+        assert.equal(result.status, required === 'sonnet' ? 0 : 1, result.stderr);
+        const receipt = readAccessReceipt(root);
+        assert.equal(receipt.status, required === 'sonnet' ? 'pass' : 'blocked');
+        assert.equal(receipt.results.length, 3);
+        for (const reviewer of ['gemini', 'flash']) {
+          const row = receipt.results.find(item => item.reviewer === reviewer);
+          assert.equal(row.status, 'blocked');
+          assert.match(row.reason, /^reviewer_argument_preparation:/u);
+        }
+        assert.equal(receipt.results.find(item => item.reviewer === 'sonnet').status, 'completed');
+        assert.equal(fs.existsSync(path.join(root, 'provider-started')), false);
+      } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+      }
+    });
+  }
+}

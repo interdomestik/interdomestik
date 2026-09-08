@@ -27,6 +27,7 @@ async function runFake(name, body, options = {}) {
       commandInvoked: options.commandInvoked,
       timeoutPreset: options.timeoutPreset,
       candidateIdentity: options.candidateIdentity,
+      maxCaptureBytes: options.maxCaptureBytes,
     });
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
@@ -39,17 +40,29 @@ test('OpenAI reviewer quota blocker writes deterministic JSON and Markdown recei
     "console.error('429 quota exceeded'); process.exit(1);\n",
     { provider: 'openai', model: 'openai-cli' }
   );
-  const root = path.join(repoRoot, 'tmp/reviewer-routes');
-  fs.rmSync(root, { recursive: true, force: true });
+  const previousCwd = process.cwd();
+  const isolatedCwd = fs.mkdtempSync(path.join(os.tmpdir(), 'reviewer-receipts-'));
   try {
+    process.chdir(isolatedCwd);
     const paths = writeRouteReceipt(receipt);
+    for (const file of [paths.jsonPath, paths.mdPath]) {
+      assert.equal(
+        path.relative(fs.realpathSync(isolatedCwd), fs.realpathSync(file)).startsWith('..'),
+        false
+      );
+      assert.equal(
+        path.isAbsolute(path.relative(fs.realpathSync(isolatedCwd), fs.realpathSync(file))),
+        false
+      );
+    }
     const json = JSON.parse(fs.readFileSync(paths.jsonPath, 'utf8'));
     const markdown = fs.readFileSync(paths.mdPath, 'utf8');
     assert.equal(json.status, 'blocked');
     assert.equal(json.blockerReason, 'quota_or_rate_limit');
     assert.match(markdown, /quota_or_rate_limit/u);
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    process.chdir(previousCwd);
+    fs.rmSync(isolatedCwd, { recursive: true, force: true });
   }
 });
 
@@ -143,6 +156,7 @@ test('package scripts route external reviewers through repo-owned helpers', () =
   for (const [route, suffix = ''] of [
     ['sonnet'],
     ['gemini'],
+    ['flash'],
     ['opus', ' --allow-escalation'],
     ['opus48'],
   ])
@@ -162,13 +176,13 @@ test('Opus routes use explicit priority and lightweight model identifiers', () =
 });
 
 test('Opus helper skips escalation unless explicitly required', () => {
-  const root = path.join(repoRoot, 'tmp/reviewer-routes');
-  fs.rmSync(root, { recursive: true, force: true });
+  const isolatedCwd = fs.mkdtempSync(path.join(os.tmpdir(), 'reviewer-skip-'));
+  const root = path.join(isolatedCwd, 'tmp/reviewer-routes');
   try {
     const result = spawnSync(
       process.execPath,
-      ['scripts/ci/run-model-reviewer-route.mjs', '--route', 'opus'],
-      { cwd: repoRoot, encoding: 'utf8' }
+      [path.join(scriptDir, 'run-model-reviewer-route.mjs'), '--route', 'opus'],
+      { cwd: isolatedCwd, encoding: 'utf8' }
     );
     assert.equal(result.status, 0, result.stderr);
     const receiptFile = fs.readdirSync(root).find(file => file.endsWith('.json'));
@@ -176,6 +190,89 @@ test('Opus helper skips escalation unless explicitly required', () => {
     assert.equal(receipt.status, 'skipped');
     assert.equal(receipt.blockerReason, 'opus_escalation_not_required');
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(isolatedCwd, { recursive: true, force: true });
   }
+});
+
+for (const [name, models, status] of [
+  ['exact', { 'gemini-3.8-flash': {} }, 'ran'],
+  ['fallback', { 'gemini-3.1-pro-preview': {} }, 'failed'],
+  ['mixed', { 'gemini-3.8-flash': {}, 'gemini-3.1-pro-preview': {} }, 'failed'],
+  ['missing', {}, 'failed'],
+]) {
+  test(`Gemini pretty JSON ${name} model evidence`, async () => {
+    const payload = { response: 'VERDICT: PASS', stats: { models } };
+    const receipt = await runFake(
+      'flash',
+      `console.log(JSON.stringify(${JSON.stringify(payload)}, null, 2));`,
+      { provider: 'google', model: 'gemini-3.8-flash' }
+    );
+    assert.equal(receipt.status, status);
+    assert.equal(receipt.reviewVerdict, 'PASS');
+  });
+}
+
+for (const [body, expected] of [
+  ['VERDICT: PASS\nQuoted earlier answer.\nVERDICT: FINDINGS\n\n', 'FINDINGS'],
+  ['VERDICT: PASS\nMore unresolved analysis.', null],
+  ['```\nVERDICT: PASS\n```', null],
+  ['VERDICT: PASS with exceptions', null],
+])
+  test(
+    'only the final nonempty verdict line is authoritative: ' + JSON.stringify(body),
+    async () => {
+      const receipt = await runFake(
+        'flash',
+        `console.log(JSON.stringify(${JSON.stringify({ model: 'gemini-3.8-flash', response: body })}))`,
+        { provider: 'google', model: 'gemini-3.8-flash' }
+      );
+      assert.equal(receipt.reviewVerdict, expected);
+      assert.equal(receipt.status, expected ? 'ran' : 'failed');
+    }
+  );
+
+for (const payloads of [
+  [{ model: 'gemini-3.8-flash' }, { model: 'gemini-3.1-pro-preview', response: 'VERDICT: PASS' }],
+  [
+    {
+      model: 'gemini-3.8-flash',
+      modelUsage: { 'gemini-3.1-pro-preview': {} },
+      response: 'VERDICT: PASS',
+    },
+  ],
+  [
+    {
+      modelUsage: { 'gemini-3.8-flash': {} },
+      stats: { models: { 'gemini-3.1-pro-preview': {} } },
+      response: 'VERDICT: PASS',
+    },
+  ],
+])
+  test('mixed provider model evidence fails across every source', async () => {
+    const receipt = await runFake(
+      'flash',
+      `for(const p of ${JSON.stringify(payloads)})console.log(JSON.stringify(p))`,
+      { provider: 'google', model: 'gemini-3.8-flash' }
+    );
+    assert.equal(receipt.status, 'failed');
+    assert.equal(receipt.providerReportedModel, null);
+  });
+
+test('empty modelUsage still considers stats model evidence', async () => {
+  const receipt = await runFake(
+    'flash',
+    `console.log(JSON.stringify({modelUsage:{},stats:{models:{'gemini-3.8-flash':{}}},response:'VERDICT: PASS'}))`,
+    { provider: 'google', model: 'gemini-3.8-flash' }
+  );
+  assert.equal(receipt.status, 'ran');
+});
+
+test('output overflow cannot discard earlier model evidence then succeed', async () => {
+  const receipt = await runFake(
+    'flash',
+    `console.log('x'.repeat(512));console.log(JSON.stringify({model:'gemini-3.8-flash',response:'VERDICT: PASS'}))`,
+    { provider: 'google', model: 'gemini-3.8-flash', maxCaptureBytes: 128 }
+  );
+  assert.equal(receipt.status, 'blocked');
+  assert.equal(receipt.blockerReason, 'reviewer_output_limit');
 });

@@ -30,21 +30,31 @@ function classifyBlocker(text) {
 const hasToolRequest = stdout => /"type"\s*:\s*"tool_(?:use|result)"/u.test(stdout);
 
 function reviewFacts(stdout) {
-  let model = null;
+  const models = new Set();
   let verdict = null;
-  for (const line of stdout.trim().split('\n')) {
+  for (const line of [stdout.trim(), ...stdout.trim().split('\n')]) {
     try {
       const payload = JSON.parse(line);
-      const models = Object.keys(payload.modelUsage ?? {});
-      model ??=
-        payload.model ??
-        payload.modelName ??
-        payload.message?.model ??
-        (models.length === 1 ? models[0] : null);
-      verdict ??= /^VERDICT:\s*(PASS|FINDINGS)\b/mu.exec(payload.result ?? '')?.[1] ?? null;
+      for (const model of [
+        payload.model,
+        payload.modelName,
+        payload.message?.model,
+        ...Object.keys(payload.modelUsage ?? {}),
+        ...Object.keys(payload.stats?.models ?? {}),
+      ]) {
+        if (typeof model === 'string' && model) models.add(model);
+      }
+      const body = payload.result ?? payload.response;
+      if (typeof body === 'string') {
+        const finalLine = body.trimEnd().split('\n').at(-1)?.trim();
+        verdict = /^VERDICT:[ \t]*(PASS|FINDINGS)$/u.exec(finalLine)?.[1] ?? null;
+      }
     } catch {}
   }
-  return { providerReportedModel: model, reviewVerdict: hasToolRequest(stdout) ? null : verdict };
+  return {
+    providerReportedModel: models.size === 1 ? [...models][0] : null,
+    reviewVerdict: hasToolRequest(stdout) ? null : verdict,
+  };
 }
 
 function terminate(child) {
@@ -132,10 +142,13 @@ export function runReviewerRoute(options) {
     };
     const collect = (stream, chunk) => {
       clearTimeout(firstTimer);
+      const overflow =
+        stream === 'stdout' &&
+        Buffer.byteLength(stdout) + chunk.length > (options.maxCaptureBytes || 256_000);
       if (stream === 'stdout')
-        stdout = appendBounded(stdout, chunk, options.maxCaptureBytes || 20_000);
+        stdout = appendBounded(stdout, chunk, options.maxCaptureBytes || 256_000);
       else stderr = appendBounded(stderr, chunk, options.maxCaptureBytes || 20_000);
-      let reason = '';
+      let reason = overflow ? 'reviewer_output_limit' : '';
       if (stream === 'stdout' && hasToolRequest(stdout)) reason = 'reviewer_tool_request';
       else if (stream === 'stderr') reason = classifyBlocker(chunk.toString());
       if (reason && !blockerReason) {

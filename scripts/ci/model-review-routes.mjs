@@ -1,10 +1,43 @@
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+function googleReviewArgs(prompt, model) {
+  // Gemini 0.56: system policies override --admin-policy, so refuse that case.
+  const directory =
+    {
+      darwin: '/Library/Application Support/GeminiCli/policies',
+      win32: String.raw`C:\ProgramData\gemini-cli\policies`,
+    }[process.platform] ?? '/etc/gemini-cli/policies';
+  try {
+    if (fs.readdirSync(directory).some(name => name.endsWith('.toml'))) {
+      throw new Error('Reviewer tool denial cannot override existing system policies');
+    }
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+  return [
+    '-p',
+    prompt,
+    '--model',
+    model,
+    '--output-format',
+    'json',
+    '--approval-mode',
+    'default',
+    '--extensions',
+    'none',
+    '--admin-policy',
+    fileURLToPath(new URL('./reviewer-no-tools.toml', import.meta.url)),
+  ];
+}
+
 export const defaultReviewers = ['sonnet'];
 
 export const modelReviewRoutes = {
   sonnet: {
-    label: 'Claude Sonnet architecture review',
+    label: 'Claude Sonnet 5 routine review',
     provider: 'anthropic',
-    model: 'claude-sonnet-4-6',
+    model: 'claude-sonnet-5',
     command: 'claude',
     timeoutMs: 10 * 60_000,
     noOutputTimeoutMs: 300_000,
@@ -12,7 +45,7 @@ export const modelReviewRoutes = {
       '-p',
       prompt,
       '--model',
-      'claude-sonnet-4-6',
+      'claude-sonnet-5',
       '--tools',
       '',
       '--output-format',
@@ -66,7 +99,16 @@ export const modelReviewRoutes = {
     command: 'gemini',
     timeoutMs: 10 * 60_000,
     noOutputTimeoutMs: 300_000,
-    args: prompt => ['-p', prompt, '--model', 'gemini-3.1-pro-preview', '--output-format', 'text'],
+    args: prompt => googleReviewArgs(prompt, 'gemini-3.1-pro-preview'),
+  },
+  flash: {
+    label: 'Gemini 3.8 Flash fast review',
+    provider: 'google',
+    model: 'gemini-3.8-flash',
+    command: 'gemini',
+    timeoutMs: 10 * 60_000,
+    noOutputTimeoutMs: 300_000,
+    args: prompt => googleReviewArgs(prompt, 'gemini-3.8-flash'),
   },
 };
 
