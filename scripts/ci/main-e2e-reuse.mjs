@@ -12,6 +12,8 @@ const E2E_TREE_SHAS = new Set([
   '56c526c1695d1dec5d18d0f058e85c5293a8fcbe',
   // Exact E2E tree carried by the qualified T117C product candidate.
   '6b7939c62599c7e017a576d562f7e7111464b7db',
+  // T117C with the optional nonce assertion corrected for strict TypeScript.
+  '110a4d174a4149f9c2eac14ad3e1aff848371d32',
 ]);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {

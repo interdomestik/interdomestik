@@ -13,6 +13,8 @@ const expectedLayouts = [
   'apps/web/src/app/[locale]/admin/layout.tsx',
 ];
 
+const optionalMemberPortalLayout = 'apps/web/src/app/[locale]/(app)/member/(portal)/layout.tsx';
+
 const requiredAgentPages = [
   'apps/web/src/app/[locale]/(agent)/agent/import/page.tsx',
   'apps/web/src/app/[locale]/(agent)/agent/pos/page.tsx',
@@ -38,6 +40,19 @@ test('passes with exactly four canonical portal layouts', () => {
 
   assert.equal(result.ok, true);
   assert.deepEqual(result.portalLayouts, [...expectedLayouts].sort(comparePath));
+});
+
+test('accepts the optional server member portal layout when present', () => {
+  const root = fixture();
+  write(root, optionalMemberPortalLayout);
+
+  const result = evaluatePortalLayoutTopology(root);
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(
+    result.portalLayouts,
+    [...expectedLayouts, optionalMemberPortalLayout].sort(comparePath)
+  );
 });
 
 test('fails when legacy routes remain', () => {
@@ -74,9 +89,33 @@ test('fails when a portal layout becomes a client shell', () => {
   assert.match(result.failures.join('\n'), /server shells/u);
 });
 
+test('fails when the optional member portal layout becomes a client shell', () => {
+  const root = fixture();
+  write(
+    root,
+    optionalMemberPortalLayout,
+    "'use client';\nexport default function Layout() { return null; }\n"
+  );
+
+  const result = evaluatePortalLayoutTopology(root);
+
+  assert.equal(result.ok, false);
+  assert.match(result.failures.join('\n'), /server shells/u);
+});
+
 test('fails when a nested portal layout is added', () => {
   const root = fixture();
   write(root, 'apps/web/src/app/[locale]/(agent)/agent/settings/layout.tsx');
+
+  const result = evaluatePortalLayoutTopology(root);
+
+  assert.equal(result.ok, false);
+  assert.match(result.failures.join('\n'), /Unexpected portal layout files/u);
+});
+
+test('fails when an unlisted nested member layout is added', () => {
+  const root = fixture();
+  write(root, 'apps/web/src/app/[locale]/(app)/member/settings/layout.tsx');
 
   const result = evaluatePortalLayoutTopology(root);
 

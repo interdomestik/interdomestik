@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 70248,
+      "trackedBytesDelta": 70787,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 39310,
+        "config/data/messages": 39849,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 39310,
+        "scripts/repo-size-budget.json": 39849,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -686,18 +686,18 @@
         "scripts/ci/main-e2e-reuse-core.test.mjs",
         "scripts/ci/main-e2e-reuse-github.test.mjs"
       ],
-      "maxTrackedBytesDelta": 26222,
+      "maxTrackedBytesDelta": 26462,
       "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
         "source/scripts": 9584,
-        "tests/e2e": 13945,
+        "tests/e2e": 14185,
         "config/data/messages": 2693
       },
       "maxPathBytesDelta": {
         "scripts/ci/main-e2e-reuse.mjs": 717,
         "scripts/ci/main-e2e-reuse-core.mjs": 975,
         "scripts/ci/main-e2e-reuse-github.mjs": 17,
-        "scripts/ci/main-e2e-reuse-cli.test.mjs": 2591,
+        "scripts/ci/main-e2e-reuse-cli.test.mjs": 2831,
         "scripts/ci/coverage-input-identity.mjs": 2920,
         "scripts/ci/main-coverage-reuse.mjs": 4861,
         "scripts/ci/main-coverage-reuse.test.mjs": 9808,
@@ -757,19 +757,19 @@
         "docs/plans/2026-09-07-t117c-rendering-design-gate.md",
         "docs/plans/2026-09-07-t117c-rendering-admission.json"
       ],
-      "maxTrackedBytesDelta": 86868,
+      "maxTrackedBytesDelta": 86940,
       "maxTrackedFilesDelta": 20,
       "maxCategoryBytesDelta": {
         "docs/text": 17265,
-        "source/scripts": 12934,
-        "tests/e2e": 39533,
+        "source/scripts": 12996,
+        "tests/e2e": 39543,
         "config/data/messages": 17136
       },
       "maxPathBytesDelta": {
         "apps/web/e2e/gate/member-parallel-routes.spec.ts": 7527,
         "apps/web/e2e/gate/rendering-build-mode.spec.ts": 6334,
         "apps/web/next.config.mjs": 523,
-        "apps/web/src/app/[locale]/_core.entry.test.tsx": 2526,
+        "apps/web/src/app/[locale]/_core.entry.test.tsx": 2536,
         "apps/web/src/app/[locale]/_core.entry.tsx": 345,
         "apps/web/src/app/[locale]/(agent)/agent/layout.tsx": 155,
         "apps/web/src/app/[locale]/(app)/layout.tsx": 187,
@@ -784,22 +784,22 @@
         "apps/web/src/app/[locale]/(app)/member/(portal)/page.tsx": 284,
         "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.test.ts": 11679,
         "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.ts": 4138,
-        "apps/web/src/app/[locale]/(app)/member/layout.tsx": 187,
-        "apps/web/src/app/[locale]/(staff)/staff/layout.tsx": 187,
+        "apps/web/src/app/[locale]/(app)/member/layout.tsx": 197,
+        "apps/web/src/app/[locale]/(staff)/staff/layout.tsx": 197,
         "apps/web/src/app/[locale]/admin/commissions/page.tsx": 0,
-        "apps/web/src/app/[locale]/admin/layout.tsx": 155,
+        "apps/web/src/app/[locale]/admin/layout.tsx": 165,
         "apps/web/src/app/[locale]/admin/members/number/[memberNumber]/page.tsx": 0,
         "apps/web/src/app/[locale]/admin/settings/page.tsx": 0,
         "apps/web/src/app/[locale]/admin/users/[id]/page.tsx": 0,
         "apps/web/src/app/[locale]/components/home/footer.test.tsx": 965,
         "apps/web/src/app/[locale]/components/home/footer.tsx": 231,
         "apps/web/src/app/[locale]/layout.tsx": 98,
-        "apps/web/src/app/[locale]/stats/page.tsx": 208,
+        "apps/web/src/app/[locale]/stats/page.tsx": 222,
         "apps/web/src/app/api/claims/route.ts": 0,
         "apps/web/src/app/api/csp-report/route.ts": 0,
         "apps/web/src/app/api/e2e/branches/route.ts": 0,
         "apps/web/src/app/track/[token]/page.test.tsx": 2308,
-        "apps/web/src/app/track/[token]/page.tsx": 594,
+        "apps/web/src/app/track/[token]/page.tsx": 612,
         "apps/web/src/components/shell/request-boundary.test.tsx": 1783,
         "apps/web/src/components/shell/request-boundary.tsx": 1283,
         "apps/web/src/instrumentation.ts": 417,
@@ -807,6 +807,24 @@
         "apps/web/src/lib/rendering-build-mode.ts": 580,
         "docs/plans/2026-09-07-t117c-rendering-design-gate.md": 17265,
         "docs/plans/2026-09-07-t117c-rendering-admission.json": 17136
+      }
+    },
+    {
+      "id": "t117c-topology-prerequisite",
+      "mode": "bounded",
+      "writerPaths": [
+        "scripts/check-portal-layout-topology.mjs",
+        "scripts/ci/portal-layout-topology.test.mjs"
+      ],
+      "maxTrackedBytesDelta": 1438,
+      "maxTrackedFilesDelta": 0,
+      "maxCategoryBytesDelta": {
+        "source/scripts": 238,
+        "tests/e2e": 1200
+      },
+      "maxPathBytesDelta": {
+        "scripts/check-portal-layout-topology.mjs": 238,
+        "scripts/ci/portal-layout-topology.test.mjs": 1200
       }
     }
   ],
@@ -819,15 +837,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60534986,
+  "maxTrackedBytes": 60537275,
   "maxTrackedFiles": 5994,
   "maxCategoryBytes": {
     "other": 18856416,
     "large support/generated-ish": 15392688,
     "docs/text": 8528019,
-    "source/scripts": 8737810,
-    "tests/e2e": 6823692,
-    "config/data/messages": 2196361
+    "source/scripts": 8738110,
+    "tests/e2e": 6825142,
+    "config/data/messages": 2196900
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
