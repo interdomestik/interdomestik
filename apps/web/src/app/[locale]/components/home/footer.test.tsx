@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import enCommonMessages from '@/messages/en/common.json';
 import enFooterMessages from '@/messages/en/footer.json';
 import sqCommonMessages from '@/messages/sq/common.json';
@@ -52,6 +52,40 @@ function renderFooter(locale: 'en' | 'sq') {
 }
 
 describe('Footer', () => {
+  beforeEach(() => {
+    vi.stubEnv('INTERDOMESTIK_BUILD_COPYRIGHT_YEAR', '2026');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.useRealTimers();
+  });
+
+  it.each(['1999-12-31T23:59:59Z', '2050-01-01T00:00:00Z'])(
+    'renders the compiled copyright year when the runtime clock is %s',
+    now => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date(now));
+      renderFooter('en');
+
+      expect(
+        screen.getByText(
+          enFooterMessages.footer.copyright
+            .replace('{year}', '2026')
+            .replace('{appName}', enCommonMessages.common.appName)
+        )
+      ).toBeInTheDocument();
+    }
+  );
+
+  it.each([undefined, '', '2026junk', ' 2026 ', 'NaN'])(
+    'rejects a missing or invalid compiled copyright year',
+    year => {
+      vi.stubEnv('INTERDOMESTIK_BUILD_COPYRIGHT_YEAR', year);
+      expect(() => Footer()).toThrow('Invalid compiled copyright year');
+    }
+  );
+
   it.each([
     {
       locale: 'en' as const,
