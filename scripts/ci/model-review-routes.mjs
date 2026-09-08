@@ -4,11 +4,10 @@ import { fileURLToPath } from 'node:url';
 function googleReviewArgs(prompt, model) {
   // Gemini 0.56: system policies override --admin-policy, so refuse that case.
   const directory =
-    process.platform === 'darwin'
-      ? '/Library/Application Support/GeminiCli/policies'
-      : process.platform === 'win32'
-        ? 'C:\\ProgramData\\gemini-cli\\policies'
-        : '/etc/gemini-cli/policies';
+    {
+      darwin: '/Library/Application Support/GeminiCli/policies',
+      win32: String.raw`C:\ProgramData\gemini-cli\policies`,
+    }[process.platform] ?? '/etc/gemini-cli/policies';
   try {
     if (fs.readdirSync(directory).some(name => name.endsWith('.toml'))) {
       throw new Error('Reviewer tool denial cannot override existing system policies');

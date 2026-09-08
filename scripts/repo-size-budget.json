@@ -482,12 +482,12 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 665704,
+      "maxTrackedBytesDelta": 665674,
       "maxTrackedFilesDelta": 94,
       "maxCategoryBytesDelta": {
         "config/data/messages": 2513,
         "docs/text": 30439,
-        "source/scripts": 340404,
+        "source/scripts": 340374,
         "tests/e2e": 292348
       },
       "maxPathBytesDelta": {
@@ -497,7 +497,7 @@
         "docs/superpowers/specs/2026-08-29-harness-v2-efficiency-design.md": 14685,
         "package.json": 1070,
         "packages/qa/test-tools.ts": 334,
-        "scripts/ci/model-review-routes.mjs": 1644,
+        "scripts/ci/model-review-routes.mjs": 1614,
         "scripts/ci/pr-delivery-contract.json": 27,
         "scripts/ci/pr-delivery-gate.test.mjs": 0,
         "scripts/ci/qa-cli-callers-contracts.test.mjs": 71,
@@ -719,14 +719,14 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60426244,
+  "maxTrackedBytes": 60426214,
   "maxTrackedFiles": 5974,
   "maxCategoryBytes": {
     "config/data/messages": 2174722,
     "docs/text": 8507398,
     "large support/generated-ish": 15389747,
     "other": 18856416,
-    "source/scripts": 8719457,
+    "source/scripts": 8719427,
     "tests/e2e": 6778504
   },
   "maxLargestFileBytes": 3266530,
