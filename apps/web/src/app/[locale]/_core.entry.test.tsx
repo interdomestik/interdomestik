@@ -121,8 +121,7 @@ describe('RootLayout font wiring', () => {
     expect(hoisted.connectionMock).not.toHaveBeenCalled();
     expect(hoisted.headersMock).not.toHaveBeenCalled();
     const boundary = findElementByType(tree, Suspense);
-    expect(boundary).toBeDefined();
-    expect(boundary?.props.fallback.type).toBe(RequestFallback);
+    expect(boundary).toHaveProperty('props.fallback.type', RequestFallback);
   });
 
   it('preserves request-dependent messages and nonce in report mode', async () => {

@@ -64,7 +64,7 @@ async function inspectDocument(page: Page, path: string, marker: string, testInf
     );
     return {
       nextScriptCount: nextScripts.length,
-      nextScriptsWithNonceCount: nextScripts.filter(script => script.nonce.length > 0).length,
+      nextScriptsWithNonceCount: nextScripts.filter(script => Boolean(script.nonce)).length,
       analyticsMismatchedNonceCount: analyticsScripts.filter(
         script => script.nonce !== expectedNonce
       ).length,
