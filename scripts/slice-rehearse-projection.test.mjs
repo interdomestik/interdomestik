@@ -231,7 +231,7 @@ test('mixed closeout refuses a governance repair allocation', () => {
 test('projection fails without ownership or headroom', () => {
   const value = manifest();
   const facts = repo(value);
-  facts.writerDeltas[PROGRAM].bytes = 4_273;
+  facts.writerDeltas[PROGRAM].bytes = allocation(PROJ).maxPathBytesDelta[PROGRAM] + 1;
   const overCap = capacity(value, facts);
   assert.ok(hasStop(overCap, 'capacity:projection-current-path-insufficient'));
   const ownerlessBudget = structuredClone(budget);
