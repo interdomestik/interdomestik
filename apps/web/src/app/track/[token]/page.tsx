@@ -7,10 +7,10 @@ import { Suspense } from 'react';
 import { getTrackingViewCore } from './_core';
 
 interface PageProps {
-  params: Promise<{
+  readonly params: Promise<{
     token: string;
   }>;
-  searchParams: Promise<{
+  readonly searchParams: Promise<{
     lang?: string;
   }>;
 }

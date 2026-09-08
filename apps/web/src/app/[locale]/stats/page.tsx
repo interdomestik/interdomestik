@@ -8,7 +8,7 @@ async function RequestStatsPage({ params }: { params: Promise<{ locale: string }
   return <StatsV2Page locale={locale} />;
 }
 
-export default function PublicStatsPage(props: Parameters<typeof RequestStatsPage>[0]) {
+export default function PublicStatsPage(props: Readonly<Parameters<typeof RequestStatsPage>[0]>) {
   return (
     <RequestBoundary>
       <RequestStatsPage {...props} />

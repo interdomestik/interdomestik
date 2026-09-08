@@ -87,7 +87,6 @@ vi.mock('sonner', () => ({
 }));
 
 import RootLayout from './_core.entry';
-import { RequestFallback } from '@/components/shell/request-boundary';
 
 function findElementByType(node: ReactNode, type: unknown): ReactElement | undefined {
   if (Array.isArray(node)) {
@@ -114,14 +113,18 @@ describe('RootLayout font wiring', () => {
     hoisted.nonceMock.mockReturnValue(false);
   });
 
-  it('uses bundled messages without request APIs in nonce-off mode', async () => {
-    const tree = await RootLayout({ children: null, params: Promise.resolve({ locale: 'en' }) });
+  it('uses bundled messages and keeps public children outside root suspense in nonce-off mode', async () => {
+    const publicShell = <main data-testid="public-shell" />;
+    const tree = await RootLayout({
+      children: publicShell,
+      params: Promise.resolve({ locale: 'en' }),
+    });
     expect(hoisted.loadAllMessagesMock).toHaveBeenCalledWith('en', { strict: expect.any(Boolean) });
     expect(hoisted.getMessagesMock).not.toHaveBeenCalled();
     expect(hoisted.connectionMock).not.toHaveBeenCalled();
     expect(hoisted.headersMock).not.toHaveBeenCalled();
-    const boundary = findElementByType(tree, Suspense);
-    expect(boundary).toHaveProperty('props.fallback.type', RequestFallback);
+    expect(findElementByType(tree, Suspense)).toBeUndefined();
+    expect(findElementByType(tree, 'main')).toBe(publicShell);
   });
 
   it('preserves request-dependent messages and nonce in report mode', async () => {
