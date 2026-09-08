@@ -8,9 +8,9 @@ last_reviewed: 2026-09-08
 
 # T-117C — nonce-compatible member rendering
 
-> Status: promotion pending in PR `#1703`; runtime remains denied until exact merge and live resolution.
+> Status: repeat promotion pending in PR `#1710`; runtime remains denied until exact merge and live resolution.
 
-The user authorized this bounded outcome. PR #1700 merged the exact policy map as `d739150d648c3f6c6c83ac56e3646933c21f9b8b`; capacity repair #1704 merged head `020dbaa16c1298e0f5895b4c243e94ce662fbfe5` as base `69293235bb5870a617ce73306afd4d537e862503`. The final product candidate remains commit `4e3c333038cf888e2cb31846082fd94d08759fd8`, tree `f3a79932e2f693fb120c6fd166a55ab858ca413c`, binary-diff SHA-256 `5571db81bda9239c8af21afc2e496eeacdec04db7c1e6f380fae7e1c43915230`. PR #1703 enters `promotion_pending` only on its finalized four-file head and remains denied until its exact owner review, checks, squash merge and live resolution match.
+The user authorized this bounded outcome. PRs #1700 and #1704 established the exact policy and capacity. Promotion #1703 merged exactly; product #1705 then closed unmerged when audit exposed its E2E-tree pin dependency. Closeout #1706 restored inactive authority and CI repair #1707 preapproved only the old and qualified T117C E2E trees. The product candidate remains commit `4e3c333038cf888e2cb31846082fd94d08759fd8`, tree `f3a79932e2f693fb120c6fd166a55ab858ca413c`, binary-diff SHA-256 `5571db81bda9239c8af21afc2e496eeacdec04db7c1e6f380fae7e1c43915230`. Repeat #1708 closed unmerged; #1709 repaired verified repeat-closeout traversal. Promotion #1710 remains denied until exact owner review, checks, squash merge and live resolution match.
 
 ## Outcome
 
@@ -105,7 +105,7 @@ The exact candidate's slice delta is 42,565 bytes and net +16 files; positive de
 
 PR #1700 merged the exact T-117C policy exception, focused tests, modularity classification and reviewer routes. It recognizes Tier 3, writer hash `5cb7ef250dab08aa31b5acb7949c915819653febb2326de1fd821edd29bb0118`, exactly 44 writers and the closed T117B-CUTOVER predecessor.
 
-PR #1704 then repaired the missing capacity ownership. Its final 20-addition ceiling, focused capacity tests, full gate and composed candidate-plus-promotion `repo:size:check` passed before squash `69293235bb5870a617ce73306afd4d537e862503`. Neither prerequisite is a product trial; delivery remains the four-file promotion followed by governed product execution.
+PR #1704 repaired capacity ownership with its 20-addition ceiling and full gate. PR #1707 then admitted exactly the current and qualified T117C E2E trees after #1705 failed closed. These repairs are not product trials; delivery still requires repeat promotion and governed product execution.
 
 ## Adversarial review disposition
 
@@ -123,7 +123,7 @@ No production blocker remained after this evidence disposition, so the qualified
 
 ## Promotion and reviewer contract
 
-Promotion writes exactly this gate, its sibling admission, current-program and current-tracker. Gate/admission bind base `69293235bb5870a617ce73306afd4d537e862503` and final candidate commit/tree/diff above. Use live promotion PR `#1703` in the matching canonical pending projections. Bind product branch `codex/t117c-rendering`, the exact 44 writers, and closeout writers ordered program then tracker. PR `#1703` was reserved from the bound base with a `[skip ci]` empty commit; the final four-file commit is the sole check-bearing promotion candidate. No placeholder or owner marker is accepted.
+Promotion writes exactly this gate, its sibling admission, current-program and current-tracker. Gate/admission bind base `189f3ca8c3a10de83ffb0634ceaa99d162fd05ad` and final candidate commit/tree/diff above. Use live promotion PR `#1710` in the matching canonical pending projections. Bind product branch `codex/t117c-rendering-r2`, the exact 44 writers, and closeout writers ordered program then tracker. PR `#1710` was reserved from the bound base with a `[skip ci]` empty commit; the final four-file commit is the sole check-bearing promotion candidate. No placeholder or owner marker is accepted.
 
 The exact-candidate Opus review and its dispositions above satisfy the escalated adversarial intake. Obtain one repo-owned current-head review after promotion so the reviewer sees the active gate/admission and exact product diff together. Consolidate any remaining architecture/security/QA finding into the closed map before merge, and retain route/model/timestamp/exit/blocker receipts. A review of unrelated runtime source does not cover these T-117C bytes; quota, absent output or a blocked route is never approval.
 
