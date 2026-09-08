@@ -39,9 +39,10 @@ test('OpenAI reviewer quota blocker writes deterministic JSON and Markdown recei
     "console.error('429 quota exceeded'); process.exit(1);\n",
     { provider: 'openai', model: 'openai-cli' }
   );
-  const root = path.join(repoRoot, 'tmp/reviewer-routes');
-  fs.rmSync(root, { recursive: true, force: true });
+  const previousCwd = process.cwd();
+  const isolatedCwd = fs.mkdtempSync(path.join(os.tmpdir(), 'reviewer-receipts-'));
   try {
+    process.chdir(isolatedCwd);
     const paths = writeRouteReceipt(receipt);
     const json = JSON.parse(fs.readFileSync(paths.jsonPath, 'utf8'));
     const markdown = fs.readFileSync(paths.mdPath, 'utf8');
@@ -49,7 +50,8 @@ test('OpenAI reviewer quota blocker writes deterministic JSON and Markdown recei
     assert.equal(json.blockerReason, 'quota_or_rate_limit');
     assert.match(markdown, /quota_or_rate_limit/u);
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    process.chdir(previousCwd);
+    fs.rmSync(isolatedCwd, { recursive: true, force: true });
   }
 });
 
@@ -143,6 +145,7 @@ test('package scripts route external reviewers through repo-owned helpers', () =
   for (const [route, suffix = ''] of [
     ['sonnet'],
     ['gemini'],
+    ['flash'],
     ['opus', ' --allow-escalation'],
     ['opus48'],
   ])
@@ -162,13 +165,13 @@ test('Opus routes use explicit priority and lightweight model identifiers', () =
 });
 
 test('Opus helper skips escalation unless explicitly required', () => {
-  const root = path.join(repoRoot, 'tmp/reviewer-routes');
-  fs.rmSync(root, { recursive: true, force: true });
+  const isolatedCwd = fs.mkdtempSync(path.join(os.tmpdir(), 'reviewer-skip-'));
+  const root = path.join(isolatedCwd, 'tmp/reviewer-routes');
   try {
     const result = spawnSync(
       process.execPath,
-      ['scripts/ci/run-model-reviewer-route.mjs', '--route', 'opus'],
-      { cwd: repoRoot, encoding: 'utf8' }
+      [path.join(scriptDir, 'run-model-reviewer-route.mjs'), '--route', 'opus'],
+      { cwd: isolatedCwd, encoding: 'utf8' }
     );
     assert.equal(result.status, 0, result.stderr);
     const receiptFile = fs.readdirSync(root).find(file => file.endsWith('.json'));
@@ -176,6 +179,39 @@ test('Opus helper skips escalation unless explicitly required', () => {
     assert.equal(receipt.status, 'skipped');
     assert.equal(receipt.blockerReason, 'opus_escalation_not_required');
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(isolatedCwd, { recursive: true, force: true });
   }
 });
+
+test('current reviewer routes keep fast work optional and pin the requested models', () => {
+  for (const [route, model] of [
+    ['sonnet', 'claude-sonnet-5'],
+    ['opus', 'claude-opus-5'],
+    ['gemini', 'gemini-3.1-pro-preview'],
+    ['flash', 'gemini-3.8-flash'],
+  ]) {
+    const config = modelReviewRoutes[route];
+    assert.equal(config.model, model);
+    const args = config.args('bounded review');
+    assert.equal(args[args.indexOf('--model') + 1], model);
+    assert.notEqual(args[args.indexOf('--output-format') + 1], 'text');
+  }
+});
+
+for (const [name, models, status] of [
+  ['exact', { 'gemini-3.8-flash': {} }, 'ran'],
+  ['fallback', { 'gemini-3.1-pro-preview': {} }, 'failed'],
+  ['mixed', { 'gemini-3.8-flash': {}, 'gemini-3.1-pro-preview': {} }, 'failed'],
+  ['missing', {}, 'failed'],
+]) {
+  test(`Gemini pretty JSON ${name} model evidence`, async () => {
+    const payload = { response: 'VERDICT: PASS', stats: { models } };
+    const receipt = await runFake(
+      'flash',
+      `console.log(JSON.stringify(${JSON.stringify(payload)}, null, 2));`,
+      { provider: 'google', model: 'gemini-3.8-flash' }
+    );
+    assert.equal(receipt.status, status);
+    assert.equal(receipt.reviewVerdict, 'PASS');
+  });
+}

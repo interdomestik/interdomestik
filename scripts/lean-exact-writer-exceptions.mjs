@@ -8,6 +8,18 @@ const T117B_HASHES = new Set([
 const DATA = '18b044d69363404d07682aca7b5944d440cbb1e0066d91cc0cf82578953e3f26';
 const PORTAL = '60de5ce927812137cfdcd620d280d2708b488040ddf02a5796131d4c6c1f04a5';
 const CHILDREN = new Map([
+  // Continue the existing verified predecessor chain; this exact rendering map
+  // grants no general Tier-3 permission and does not bypass owner promotion.
+  [
+    'T-117C',
+    {
+      writerHashes: ['0f85eaf71b2d9edde57ced047e96e961e7f5dd8a0fc9476f7af567995add3170'],
+      predecessor: {
+        sliceId: 'T117B-CUTOVER',
+        writerHash: '2ad45d3a297b0bc686594f4d2855a38dfbe3c825446ae740682fe7a1fb2d440b',
+      },
+    },
+  ],
   [
     'T117B-DATA',
     {

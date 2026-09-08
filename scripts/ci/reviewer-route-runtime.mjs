@@ -32,16 +32,18 @@ const hasToolRequest = stdout => /"type"\s*:\s*"tool_(?:use|result)"/u.test(stdo
 function reviewFacts(stdout) {
   let model = null;
   let verdict = null;
-  for (const line of stdout.trim().split('\n')) {
+  for (const line of [stdout.trim(), ...stdout.trim().split('\n')]) {
     try {
       const payload = JSON.parse(line);
-      const models = Object.keys(payload.modelUsage ?? {});
+      const models = Object.keys(payload.modelUsage ?? payload.stats?.models ?? {});
       model ??=
         payload.model ??
         payload.modelName ??
         payload.message?.model ??
         (models.length === 1 ? models[0] : null);
-      verdict ??= /^VERDICT:\s*(PASS|FINDINGS)\b/mu.exec(payload.result ?? '')?.[1] ?? null;
+      verdict ??=
+        /^VERDICT:\s*(PASS|FINDINGS)\b/mu.exec(payload.result ?? payload.response ?? '')?.[1] ??
+        null;
     } catch {}
   }
   return { providerReportedModel: model, reviewVerdict: hasToolRequest(stdout) ? null : verdict };

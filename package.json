@@ -159,6 +159,7 @@
     "sentry:alerts:apply": "node scripts/sentry-alerts.mjs apply",
     "security:guard": "node scripts/security-guard.mjs",
     "review:sonnet": "node scripts/ci/run-model-reviewer-route.mjs --route sonnet",
+    "review:flash": "node scripts/ci/run-model-reviewer-route.mjs --route flash",
     "review:gemini": "node scripts/ci/run-model-reviewer-route.mjs --route gemini",
     "review:opus": "node scripts/ci/run-model-reviewer-route.mjs --route opus --allow-escalation",
     "review:opus48": "node scripts/ci/run-model-reviewer-route.mjs --route opus48",
