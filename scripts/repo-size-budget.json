@@ -79,22 +79,22 @@
         "scripts/modularity-guard-policy.mjs",
         "scripts/lean-t117c-policy.test.mjs"
       ],
-      "maxTrackedBytesDelta": 49412,
+      "maxTrackedBytesDelta": 50839,
       "maxTrackedFilesDelta": 6,
       "maxCategoryBytesDelta": {
-        "source/scripts": 19085,
-        "tests/e2e": 30327
+        "source/scripts": 19985,
+        "tests/e2e": 30854
       },
       "maxPathBytesDelta": {
         "scripts/lean-current-authority-policy.mjs": 487,
         "scripts/lean-current-authority-lifecycle.mjs": 473,
         "scripts/lean-current-authority-git.mjs": 1029,
         "scripts/lean-current-authority-pull-selection.mjs": 3270,
-        "scripts/lean-current-authority-history.mjs": 4548,
+        "scripts/lean-current-authority-history.mjs": 5346,
         "scripts/lean-current-authority-evidence.mjs": 232,
         "scripts/lean-current-authority-policy.test.mjs": 7782,
         "scripts/lean-current-authority.test.mjs": 390,
-        "scripts/lean-current-authority-evidence.test.mjs": 355,
+        "scripts/lean-current-authority-evidence.test.mjs": 882,
         "scripts/lean-current-authority-pull-selection.test.mjs": 2493,
         "scripts/lean-current-authority-conformance.test.mjs": 3260,
         "scripts/modularity-guard-policy.mjs": 516,
@@ -819,14 +819,14 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60533569,
+  "maxTrackedBytes": 60534996,
   "maxTrackedFiles": 5994,
   "maxCategoryBytes": {
     "other": 18856416,
     "large support/generated-ish": 15392688,
     "docs/text": 8528019,
-    "source/scripts": 8736920,
-    "tests/e2e": 6823165,
+    "source/scripts": 8737820,
+    "tests/e2e": 6823692,
     "config/data/messages": 2196361
   },
   "maxLargestFileBytes": 3266530,

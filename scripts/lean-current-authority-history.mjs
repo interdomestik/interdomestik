@@ -39,8 +39,21 @@ function projectionOrBootstrap(repo, sha) {
 export const authorityPathsTouched = (repo, base, head) =>
   base !== head &&
   git(repo, 'log', '--first-parent', '--format=%H', `${base}..${head}`, '--', ...CLOSEOUT) !== '';
-
-export function locateAuthorityTransition(repo, anchor, repeatId = null) {
+function activeStep(repo, projection, sha, repeatId, seen) {
+  const prior = projection.activeSlice;
+  const base = prior.promotionBaseSha;
+  if (repeatId !== prior.sliceId || !t117bChildContract(prior))
+    return { transition: { kind: 'terminal', prior: projection, terminalProjectionSha: sha } };
+  if (seen.has(base) || !isAncestor(repo, base, sha))
+    throw new Error(`repeat ancestry: ${repeatId} ${sha} ${base}`);
+  return { next: base };
+}
+export function locateAuthorityTransition(
+  repo,
+  anchor,
+  repeatId = null,
+  proof = repeatCloseoutVerified
+) {
   let sha = anchor;
   const seen = new Set();
   for (let depth = 0; depth < HISTORY_LIMIT; depth += 1) {
@@ -48,15 +61,9 @@ export function locateAuthorityTransition(repo, anchor, repeatId = null) {
     const projection = projectionOrBootstrap(repo, sha);
     if (!projection) return { kind: 'bootstrap', bootstrapAnchor: sha };
     if (projection.activeSlice) {
-      const prior = projection.activeSlice;
-      const base = prior.promotionBaseSha;
-      if (repeatId !== prior.sliceId || !t117bChildContract(prior))
-        return { kind: 'terminal', prior: projection, terminalProjectionSha: sha };
-      if (seen.has(base) || !isAncestor(repo, base, sha))
-        throw new Error(
-          `invalid repeat-chain ancestry: repeatId=${repeatId} current=${sha} priorBase=${base}`
-        );
-      sha = base;
+      const step = activeStep(repo, projection, sha, repeatId, seen);
+      if (step.transition) return step.transition;
+      sha = step.next;
       continue;
     }
     const parent = git(repo, 'rev-parse', `${sha}^1`);
@@ -65,6 +72,17 @@ export function locateAuthorityTransition(repo, anchor, repeatId = null) {
       return { kind: 'bootstrap', bootstrapAnchor: parent, bootstrapMergeSha: sha };
     }
     if (parentProjection.activeSlice) {
+      const prior = parentProjection.activeSlice;
+      if (repeatId === prior.sliceId && t117bChildContract(prior)) {
+        const repeat = {
+          prior: parentProjection,
+          terminalProjectionSha: parent,
+          closeoutMergeSha: sha,
+        };
+        if (!proof(repo, repeat)) throw new Error('invalid repeat closeout');
+        sha = parent;
+        continue;
+      }
       return {
         kind: 'closeout_recorded',
         prior: parentProjection,
@@ -79,7 +97,6 @@ export function locateAuthorityTransition(repo, anchor, repeatId = null) {
 
 const writerHash = paths => createHash('sha256').update(JSON.stringify(paths)).digest('hex');
 const invalid = (childId, reason, extra = {}) => ({ status: 'invalid', childId, reason, ...extra });
-
 function productEvidence(repo, projection) {
   const slice = projection.activeSlice;
   const raw = pullByBranch(repo, slice.expectedProductBranch);
@@ -93,10 +110,8 @@ function productEvidence(repo, projection) {
   });
   return { authority, product };
 }
-
-function closeoutEvidence(repo, transition, terminal) {
-  const { closeoutMergeSha: closeoutSha, prior, terminalProjectionSha: terminalSha } = transition;
-  const mergeSha = terminal.product.mergeSha;
+function closeoutEvidence(repo, transition, terminalSha) {
+  const { closeoutMergeSha: closeoutSha, prior } = transition;
   const branch = `${prior.activeSlice.expectedProductBranch}-closeout`;
   const raw = pullByBranch(repo, branch, transition.closeoutMergeSha);
   if (!raw) return { state: 'missing' };
@@ -107,15 +122,25 @@ function closeoutEvidence(repo, transition, terminal) {
       ...pull,
       prBaseSha: pull.baseSha,
       expectedHeadRef: branch,
-      terminalAnchorIsAncestor: isAncestor(repo, mergeSha, terminalSha),
-      authorityPathsChangedAfterTerminal: authorityPathsTouched(repo, mergeSha, terminalSha),
-      baseSha: terminalSha,
+      terminalAnchorIsAncestor: isAncestor(repo, terminalSha, transition.terminalProjectionSha),
+      authorityPathsChangedAfterTerminal: authorityPathsTouched(
+        repo,
+        terminalSha,
+        transition.terminalProjectionSha
+      ),
+      baseSha: transition.terminalProjectionSha,
       protectedMainSha: closeoutSha,
     }
   );
   return { pull, result };
 }
-
+function repeatCloseoutVerified(repo, transition) {
+  const closeout = closeoutEvidence(repo, transition, transition.terminalProjectionSha);
+  return (
+    closeout.result?.reason === 'deterministic_closeout_recorded' &&
+    closeout.pull?.mergeSha === transition.closeoutMergeSha
+  );
+}
 export function collectT117BPredecessorEvidence(repo, projection) {
   const slice = projection.activeSlice;
   const child = t117bChildContract(slice);
@@ -148,7 +173,7 @@ export function collectT117BPredecessorEvidence(repo, projection) {
         productMerged: product?.merged ?? false,
       });
     }
-    const closeout = closeoutEvidence(repo, transition, terminal);
+    const closeout = closeoutEvidence(repo, transition, terminal.product.mergeSha);
     if (
       closeout.result?.reason !== 'deterministic_closeout_recorded' ||
       closeout.pull?.mergeSha !== transition.closeoutMergeSha
