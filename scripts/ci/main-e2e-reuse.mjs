@@ -7,7 +7,12 @@ import { collectGitHubEvidence, readLocalGitObjectId } from './main-e2e-reuse-gi
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const LANE_SHA256 = 'ff019f739b4ae106650a0dff94527154e9579468d0ea2d5a5eecff7c2f715b64';
 const CONFIG_SHA256 = '97ca0f14c9f7b121cf00121eb9a0f5867b0cf9f3e52b7215a504c3d7183f2d30';
-const E2E_TREE_SHA = '56c526c1695d1dec5d18d0f058e85c5293a8fcbe';
+const E2E_TREE_SHAS = new Set([
+  // Protected main before T117C.
+  '56c526c1695d1dec5d18d0f058e85c5293a8fcbe',
+  // Exact E2E tree carried by the qualified T117C product candidate.
+  '6b7939c62599c7e017a576d562f7e7111464b7db',
+]);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {
   const start = source.indexOf(startMarker);
@@ -57,7 +62,7 @@ function hasExactCommandChain(input) {
       scripts?.['e2e:gate:pr'] === 'node scripts/run-e2e-lane.mjs pr' &&
       sha256(input.laneSource) === LANE_SHA256 &&
       sha256(input.playwrightConfig) === CONFIG_SHA256 &&
-      input.e2eTreeSha === E2E_TREE_SHA
+      E2E_TREE_SHAS.has(input.e2eTreeSha)
     );
   } catch {
     return false;
