@@ -1,0 +1,345 @@
+{
+  "schemaVersion": 1,
+  "status": "promotion_pending",
+  "sliceId": "T-117C",
+  "tier": 3,
+  "baseSha": "69293235bb5870a617ce73306afd4d537e862503",
+  "promotionPrNumber": 1703,
+  "candidate": {
+    "commitSha": "4e3c333038cf888e2cb31846082fd94d08759fd8",
+    "treeSha": "f3a79932e2f693fb120c6fd166a55ab858ca413c",
+    "binaryDiffSha256": "5571db81bda9239c8af21afc2e496eeacdec04db7c1e6f380fae7e1c43915230"
+  },
+  "prerequisite": {
+    "pullRequestNumber": 1700,
+    "headSha": "d468ac92d7f3fee79acfed0ba598d0a08c72b4c9",
+    "mergeSha": "d739150d648c3f6c6c83ac56e3646933c21f9b8b",
+    "status": "merged_and_verified"
+  },
+  "authorityArtifactSha256": "11cd8c0c3134d3bfbf4bbe6894cb263a4acda5a06eafb6834768f10f3887ca58",
+  "productOutcomes": [
+    "Home-only named Case/Actions/Updates regions preserve one request identity and two tenant projections across all existing member destinations.",
+    "Nonce-off builds may prerender anonymous document/loading chrome; report builds retain per-request nonce rendering; mismatched built/runtime mode fails before request readiness."
+  ],
+  "writerPaths": [
+    "apps/web/e2e/gate/member-home-cta.spec.ts",
+    "apps/web/e2e/gate/member-parallel-routes.spec.ts",
+    "apps/web/e2e/gate/rendering-build-mode.spec.ts",
+    "apps/web/next.config.mjs",
+    "apps/web/src/app/[locale]/_core.entry.test.tsx",
+    "apps/web/src/app/[locale]/_core.entry.tsx",
+    "apps/web/src/app/[locale]/(agent)/agent/layout.tsx",
+    "apps/web/src/app/[locale]/(app)/layout.tsx",
+    "apps/web/src/app/[locale]/(app)/member/(portal)/@actions/default.tsx",
+    "apps/web/src/app/[locale]/(app)/member/(portal)/@actions/page.tsx",
+    "apps/web/src/app/[locale]/(app)/member/(portal)/@case/default.tsx",
+    "apps/web/src/app/[locale]/(app)/member/(portal)/@case/page.tsx",
+    "apps/web/src/app/[locale]/(app)/member/(portal)/@updates/default.tsx",
+    "apps/web/src/app/[locale]/(app)/member/(portal)/@updates/page.tsx",
+    "apps/web/src/app/[locale]/(app)/member/(portal)/default.tsx",
+    "apps/web/src/app/[locale]/(app)/member/(portal)/layout.tsx",
+    "apps/web/src/app/[locale]/(app)/member/(portal)/page.tsx",
+    "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.test.ts",
+    "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.ts",
+    "apps/web/src/app/[locale]/(app)/member/layout.tsx",
+    "apps/web/src/app/[locale]/(app)/member/page.test.tsx",
+    "apps/web/src/app/[locale]/(app)/member/page.tsx",
+    "apps/web/src/app/[locale]/(staff)/staff/layout.tsx",
+    "apps/web/src/app/[locale]/admin/commissions/page.tsx",
+    "apps/web/src/app/[locale]/admin/layout.tsx",
+    "apps/web/src/app/[locale]/admin/members/number/[memberNumber]/page.tsx",
+    "apps/web/src/app/[locale]/admin/settings/page.tsx",
+    "apps/web/src/app/[locale]/admin/users/[id]/page.tsx",
+    "apps/web/src/app/[locale]/components/home/footer.test.tsx",
+    "apps/web/src/app/[locale]/components/home/footer.tsx",
+    "apps/web/src/app/[locale]/layout.tsx",
+    "apps/web/src/app/[locale]/stats/page.tsx",
+    "apps/web/src/app/api/claims/route.ts",
+    "apps/web/src/app/api/csp-report/route.ts",
+    "apps/web/src/app/api/e2e/branches/route.ts",
+    "apps/web/src/app/track/[token]/page.test.tsx",
+    "apps/web/src/app/track/[token]/page.tsx",
+    "apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx",
+    "apps/web/src/components/dashboard/member-portal-runtime.tsx",
+    "apps/web/src/components/shell/request-boundary.test.tsx",
+    "apps/web/src/components/shell/request-boundary.tsx",
+    "apps/web/src/instrumentation.ts",
+    "apps/web/src/lib/rendering-build-mode.test.ts",
+    "apps/web/src/lib/rendering-build-mode.ts"
+  ],
+  "productWriterMapSha256": "5cb7ef250dab08aa31b5acb7949c915819653febb2326de1fd821edd29bb0118",
+  "proofSurfaces": [
+    {
+      "id": "mode-and-global-rendering",
+      "invalidatedBy": [
+        "next config, instrumentation, built/runtime mode, root/role boundaries, locale/static params, public metadata/providers or track compatibility"
+      ]
+    },
+    {
+      "id": "identity-and-slots",
+      "invalidatedBy": [
+        "guarded resolver, query count/lifetime, slot/default topology, disclaimer/readiness, member route move or region errors"
+      ]
+    },
+    {
+      "id": "behavior-and-safety",
+      "invalidatedBy": [
+        "tenant/role/host/draft behavior, API exports, nonce correspondence, all-role access or accessibility"
+      ]
+    },
+    {
+      "id": "atomic-delivery",
+      "invalidatedBy": [
+        "writer map/capacity/predecessor, final candidate review, CI/gates, promotion binding, merge/main health or rollback"
+      ]
+    }
+  ],
+  "acceptanceMatrix": [
+    {
+      "criterionId": "dual-production-builds",
+      "proofSurfaceId": "mode-and-global-rendering",
+      "command": "CSP_NONCE_MODE=off pnpm --filter @interdomestik/web build:ci; CSP_NONCE_MODE=report pnpm --filter @interdomestik/web build:ci (separate owned output artifacts)",
+      "expected": "Both builds pass on exact source/dependency bytes; no private data/authenticated marker in off prerender; shared public/role/track consumers remain valid.",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "startup-and-nonce",
+      "proofSurfaceId": "mode-and-global-rendering",
+      "command": "Owned production probes for next start and standalone in matching/off-report/report-off modes; corresponding nonce request probes",
+      "expected": "Matching modes serve; mismatches reject before readiness; report nonces are fresh and match the response header, explicit probe, and any mounted analytics scripts; the established DG07 two-header framework-script limitation remains explicitly detected.",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "request-budget",
+      "proofSurfaceId": "identity-and-slots",
+      "command": "Focused portal-context tests plus real RSC invocation/promise instrumentation",
+      "expected": "One request identity and two tenant projections across layout/slots/defaults; Cases/Updates share promise; concurrent tenants and next-request revocation remain isolated.",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "all-routes-and-roles",
+      "proofSurfaceId": "behavior-and-safety",
+      "command": "Existing gate projects plus member-home-cta/member-parallel-routes/rendering-build-mode collectors; existing all-role/API/C31 regressions",
+      "expected": "All 18 member destinations, KS/SQ, MK/MK, neutral-host drafts, roles, nonce/API boundaries and hard/soft/back/forward navigation preserve behavior.",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "streaming-accessibility",
+      "proofSurfaceId": "identity-and-slots",
+      "command": "Focused runtime-boundary/root tests and production delayed/rejected region probes at 320/768/1440",
+      "expected": "Disclaimer remains outside data waits; generic page-ready preserved; authenticated readiness/data follows guard; siblings, keyboard and 44px targets remain correct.",
+      "environmentId": null,
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "delivery-and-rollback",
+      "proofSurfaceId": "atomic-delivery",
+      "command": "pnpm pr:verify; pnpm security:guard; pnpm e2e:gate; exact-map/capacity/review/CI/Sonar/merge/main/rollback evidence",
+      "expected": "All exact-head required proof passes; exact atomic revert restores predecessor with same nonce mode; inactive closeout and owned cleanup complete.",
+      "environmentId": null,
+      "skipIsFailure": true
+    }
+  ],
+  "executionPolicy": {
+    "focusedBeforeHeavy": true,
+    "currentHeadCanaryBeforeFullCi": true,
+    "feedbackBeforeHeavy": true,
+    "fullE2eAuthority": "ci_once_per_exact_head",
+    "rerunPolicy": "invalidated_only",
+    "staleHeadAction": "cancel",
+    "runnerReadiness": "connected_and_listening"
+  },
+  "sharedRuntimeConsumers": [
+    "Locale root, public metadata/providers, supported locale routes and independent track route",
+    "Protected app/member/agent/staff/admin entry trees and all existing role/session/tenant consumers",
+    "Home group layout plus three named slots/defaults share one guarded request resolver and two projections",
+    "All 17 non-home member destinations remain outside home slot group",
+    "Claims/E2E branches/CSP report handlers preserve original guards and response contracts"
+  ],
+  "specialProofEnvironments": [],
+  "contractGraph": {
+    "nodes": [
+      {
+        "id": "rendering-build",
+        "kind": "entry"
+      },
+      {
+        "id": "request-boundaries",
+        "kind": "consumer"
+      },
+      {
+        "id": "member-home",
+        "kind": "entry"
+      },
+      {
+        "id": "guarded-context",
+        "kind": "consumer"
+      },
+      {
+        "id": "existing-projections",
+        "kind": "external"
+      },
+      {
+        "id": "named-regions",
+        "kind": "consumer"
+      },
+      {
+        "id": "shared-routes",
+        "kind": "consumer"
+      },
+      {
+        "id": "acceptance-collectors",
+        "kind": "test"
+      },
+      {
+        "id": "closed-cutover",
+        "kind": "baseline"
+      }
+    ],
+    "edges": [
+      {
+        "id": "bind-mode",
+        "from": "rendering-build",
+        "to": "request-boundaries",
+        "operation": "derive build rendering mode and reject runtime mode mismatch"
+      },
+      {
+        "id": "enter-home",
+        "from": "member-home",
+        "to": "guarded-context",
+        "operation": "preserve full session/tenant/actor/host checks before reads"
+      },
+      {
+        "id": "read-two",
+        "from": "guarded-context",
+        "to": "existing-projections",
+        "operation": "start exactly two tenant-scoped request promises"
+      },
+      {
+        "id": "share-regions",
+        "from": "guarded-context",
+        "to": "named-regions",
+        "operation": "layout and every slot/default share resolver and case promise"
+      },
+      {
+        "id": "preserve-consumers",
+        "from": "request-boundaries",
+        "to": "shared-routes",
+        "operation": "retain public metadata/providers, track, API and all-role behavior"
+      },
+      {
+        "id": "collect",
+        "from": "named-regions",
+        "to": "acceptance-collectors",
+        "operation": "prove navigation, delay/error/readiness and request isolation"
+      },
+      {
+        "id": "attribute",
+        "from": "closed-cutover",
+        "to": "acceptance-collectors",
+        "operation": "bind exact CUTOVER behavior/predecessor and atomic rollback"
+      }
+    ],
+    "closure": {
+      "callers": true,
+      "sharedConsumers": true,
+      "readWriteDelete": true,
+      "mountErrorPaths": true,
+      "capabilityRequirements": true,
+      "testCollectors": true,
+      "baselineOwnership": false
+    },
+    "closureEvidence": {
+      "callers": "Design map names root/role wrappers, home layout/slot/default readers and original member page deletion; implementation proof must match.",
+      "sharedConsumers": "Explicit public metadata/providers/track/all-role/API and all18 member route acceptance; no implicit unlisted writer.",
+      "readWriteDelete": "Exactly two existing read projections; old page deletion and new group paths listed; no domain/schema writes.",
+      "mountErrorPaths": "Home defaults, implicit null child, sibling loading/error/empty, 17 sibling routes and unknown URL behavior explicitly contracted.",
+      "capabilityRequirements": "Exact Next16.2.12 and installed next-intl proof, paired production modes and both launch-path mismatch rejection required.",
+      "testCollectors": "Concrete focused files and three gate collectors in map; original broad all-role/API/C31 acceptance retained.",
+      "baselineOwnership": "Protected post-prerequisite base is bound; the exact candidate capacity is measured and carries no invented reserve."
+    }
+  },
+  "capacityAllocation": {
+    "id": "t117c-rendering",
+    "mode": "bounded",
+    "maxTrackedBytesDelta": 86868,
+    "maxTrackedFilesDelta": 20,
+    "maxCategoryBytesDelta": {
+      "docs/text": 17265,
+      "source/scripts": 12934,
+      "tests/e2e": 39533,
+      "config/data/messages": 17136
+    },
+    "maxPathBytesDelta": {
+      "apps/web/e2e/gate/member-parallel-routes.spec.ts": 7527,
+      "apps/web/e2e/gate/rendering-build-mode.spec.ts": 6334,
+      "apps/web/next.config.mjs": 523,
+      "apps/web/src/app/[locale]/_core.entry.test.tsx": 2526,
+      "apps/web/src/app/[locale]/_core.entry.tsx": 345,
+      "apps/web/src/app/[locale]/(agent)/agent/layout.tsx": 155,
+      "apps/web/src/app/[locale]/(app)/layout.tsx": 187,
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@actions/default.tsx": 34,
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@actions/page.tsx": 848,
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@case/default.tsx": 34,
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@case/page.tsx": 708,
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@updates/default.tsx": 34,
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@updates/page.tsx": 742,
+      "apps/web/src/app/[locale]/(app)/member/(portal)/default.tsx": 34,
+      "apps/web/src/app/[locale]/(app)/member/(portal)/layout.tsx": 928,
+      "apps/web/src/app/[locale]/(app)/member/(portal)/page.tsx": 284,
+      "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.test.ts": 11679,
+      "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.ts": 4138,
+      "apps/web/src/app/[locale]/(app)/member/layout.tsx": 187,
+      "apps/web/src/app/[locale]/(staff)/staff/layout.tsx": 187,
+      "apps/web/src/app/[locale]/admin/commissions/page.tsx": 0,
+      "apps/web/src/app/[locale]/admin/layout.tsx": 155,
+      "apps/web/src/app/[locale]/admin/members/number/[memberNumber]/page.tsx": 0,
+      "apps/web/src/app/[locale]/admin/settings/page.tsx": 0,
+      "apps/web/src/app/[locale]/admin/users/[id]/page.tsx": 0,
+      "apps/web/src/app/[locale]/components/home/footer.test.tsx": 965,
+      "apps/web/src/app/[locale]/components/home/footer.tsx": 231,
+      "apps/web/src/app/[locale]/layout.tsx": 98,
+      "apps/web/src/app/[locale]/stats/page.tsx": 208,
+      "apps/web/src/app/api/claims/route.ts": 0,
+      "apps/web/src/app/api/csp-report/route.ts": 0,
+      "apps/web/src/app/api/e2e/branches/route.ts": 0,
+      "apps/web/src/app/track/[token]/page.test.tsx": 2308,
+      "apps/web/src/app/track/[token]/page.tsx": 594,
+      "apps/web/src/components/shell/request-boundary.test.tsx": 1783,
+      "apps/web/src/components/shell/request-boundary.tsx": 1283,
+      "apps/web/src/instrumentation.ts": 417,
+      "apps/web/src/lib/rendering-build-mode.test.ts": 6411,
+      "apps/web/src/lib/rendering-build-mode.ts": 580,
+      "docs/plans/2026-09-07-t117c-rendering-design-gate.md": 17265,
+      "docs/plans/2026-09-07-t117c-rendering-admission.json": 17136
+    },
+    "repair": {
+      "pullRequestNumber": 1704,
+      "headSha": "020dbaa16c1298e0f5895b4c243e94ce662fbfe5",
+      "mergeSha": "69293235bb5870a617ce73306afd4d537e862503"
+    },
+    "derivation": "PR #1704 binds 39 product paths and 2 promotion artifacts to protected-baseline ceilings; five inherited product paths remain owned by t117b-cutover, and current-program/current-tracker remain owned by t116-case-summary. The 20-file ceiling counts additions, not net growth; reserve is unchanged."
+  },
+  "successorConditions": [
+    "Closed T117B-CUTOVER predecessor with final exact writer map is verified through existing child evidence.",
+    "Merged PRs #1700 and #1704 plus the four-path promotion bind policy, measured capacity, hashes, owner marker and live validator facts.",
+    "Exact-head product proof/review/gates and exact-main health pass; deterministic closeout returns authority inactive.",
+    "No successor is implicitly promoted and no infrastructure/build variant is counted as a separate product trial."
+  ],
+  "highestRiskCases": [
+    "Build-time substitution accidentally freezes raw runtime nonce mode or mismatch startup still serves.",
+    "Parallel slot execution reads before guards, duplicates projections or shares identity across requests.",
+    "Global rendering changes break public metadata/providers/track or non-member authorization.",
+    "Slot defaults/soft navigation retain stale home data on sibling member routes.",
+    "Capacity/authority/predecessor or review provenance is claimed without exact-head evidence."
+  ],
+  "rollback": {
+    "mechanism": "Discard owned unmerged candidate; after merge revert only exact T-117C product merge, rebuild for same authorized nonce mode, restore inactive projections and preserve CUTOVER/DATA/PORTAL/unrelated state.",
+    "trigger": "Auth/tenant/nonce/query/route/a11y/capacity/writer-map/review/CI/merge/main-health proof fails."
+  },
+  "firstImplementationAction": "Finalize and merge promotion PR #1703 from the bound base, then materialize the exact qualified candidate on codex/t117c-rendering for one exact-head governed product run."
+}
