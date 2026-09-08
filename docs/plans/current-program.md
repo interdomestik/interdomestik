@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-04
+last_reviewed: 2026-09-08
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -85,7 +85,7 @@ neutral-host/default-tenant draft behavior and isolated fixtures. Final-head Ful
 `33862616690`, finalizer `33863200356` attempt 2, and delivery `33863200387` attempt 2 were green.
 Protected-main CI `33865541214`, CodeQL `33865540843`, Code Quality `33865540812`, Secret Scan
 `33865541201`, and Sonar Main `33865541295` were green; CD `33865541227` was cancelled with zero
-jobs and no deployment effect. No slice is promoted and T-117C remains default-denied. The absent
+jobs and no deployment effect. T-117C is now `promotion_pending` through draft promotion PR `#1703`; runtime remains denied until the exact owner marker, required checks, squash merge and live validator all match. The absent
 compiled post-merge-node certificate is Recovery Compiler shadow backlog evidence only and grants
 no Harness repair or runtime.
 
@@ -104,9 +104,9 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate       | Dependencies   | Promotion constraint                             |
-| -------: | --------------- | -------------- | ------------------------------------------------ |
-|        1 | `T-117C` Tier 3 | CUTOVER closed | Separate design gate and promotion; now dormant. |
+| Priority | Candidate       | Dependencies   | Promotion constraint                          |
+| -------: | --------------- | -------------- | --------------------------------------------- |
+|        1 | `T-117C` Tier 3 | CUTOVER closed | Promotion PR `#1703` pending; runtime denied. |
 
 ## Unified Portal Direction
 
@@ -141,23 +141,79 @@ and global headers remain T-117C.
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "inactive",
+  "lifecycle": "promotion_pending",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": null
+  "activeSlice": {
+    "sliceId": "T-117C",
+    "tier": 3,
+    "promotionPrNumber": 1703,
+    "promotionBaseSha": "69293235bb5870a617ce73306afd4d537e862503",
+    "expectedProductBranch": "codex/t117c-rendering",
+    "gateSha256": "11cd8c0c3134d3bfbf4bbe6894cb263a4acda5a06eafb6834768f10f3887ca58",
+    "admissionSha256": "a17905440b54502503a3b80fdb548691adb380ff40a22b465428216f16d2bc38",
+    "productWriterPaths": [
+      "apps/web/e2e/gate/member-home-cta.spec.ts",
+      "apps/web/e2e/gate/member-parallel-routes.spec.ts",
+      "apps/web/e2e/gate/rendering-build-mode.spec.ts",
+      "apps/web/next.config.mjs",
+      "apps/web/src/app/[locale]/_core.entry.test.tsx",
+      "apps/web/src/app/[locale]/_core.entry.tsx",
+      "apps/web/src/app/[locale]/(agent)/agent/layout.tsx",
+      "apps/web/src/app/[locale]/(app)/layout.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@actions/default.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@actions/page.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@case/default.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@case/page.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@updates/default.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@updates/page.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/default.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/layout.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/page.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.test.ts",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.ts",
+      "apps/web/src/app/[locale]/(app)/member/layout.tsx",
+      "apps/web/src/app/[locale]/(app)/member/page.test.tsx",
+      "apps/web/src/app/[locale]/(app)/member/page.tsx",
+      "apps/web/src/app/[locale]/(staff)/staff/layout.tsx",
+      "apps/web/src/app/[locale]/admin/commissions/page.tsx",
+      "apps/web/src/app/[locale]/admin/layout.tsx",
+      "apps/web/src/app/[locale]/admin/members/number/[memberNumber]/page.tsx",
+      "apps/web/src/app/[locale]/admin/settings/page.tsx",
+      "apps/web/src/app/[locale]/admin/users/[id]/page.tsx",
+      "apps/web/src/app/[locale]/components/home/footer.test.tsx",
+      "apps/web/src/app/[locale]/components/home/footer.tsx",
+      "apps/web/src/app/[locale]/layout.tsx",
+      "apps/web/src/app/[locale]/stats/page.tsx",
+      "apps/web/src/app/api/claims/route.ts",
+      "apps/web/src/app/api/csp-report/route.ts",
+      "apps/web/src/app/api/e2e/branches/route.ts",
+      "apps/web/src/app/track/[token]/page.test.tsx",
+      "apps/web/src/app/track/[token]/page.tsx",
+      "apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx",
+      "apps/web/src/components/dashboard/member-portal-runtime.tsx",
+      "apps/web/src/components/shell/request-boundary.test.tsx",
+      "apps/web/src/components/shell/request-boundary.tsx",
+      "apps/web/src/instrumentation.ts",
+      "apps/web/src/lib/rendering-build-mode.test.ts",
+      "apps/web/src/lib/rendering-build-mode.ts"
+    ],
+    "closeoutWriterPaths": [
+      "docs/plans/current-program.md",
+      "docs/plans/current-tracker.md"
+    ]
+  }
 }
 ```
 
 ## Historical Authority
 
-Authority history through Rev 243 remains recoverable byte-for-byte from
-[the archive manifest](./history/current-authority/2026-08-16-through-rev-243.manifest.json).
-Manifest SHA-256: `355229c5d24a6fa5f0986b6ce41423cbdc5caea16b291f1335a7264b2be5fc78`.
-
-The architecture-finalization program/tracker, terminal OD17 evidence, and CI01 artifacts remain
-historical or separately governed. This projection neither rewrites nor activates them.
+Rev 243 history is recoverable from
+[the archive manifest](./history/current-authority/2026-08-16-through-rev-243.manifest.json), SHA-256
+`355229c5d24a6fa5f0986b6ce41423cbdc5caea16b291f1335a7264b2be5fc78`. Architecture-finalization,
+OD17, and CI01 remain historical and inactive.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:null`).
+The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:T-117C`; lifecycle `promotion_pending`).
