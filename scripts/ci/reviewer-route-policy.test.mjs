@@ -7,8 +7,61 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { structuredArtifactOwner } from '../modularity-guard-policy.mjs';
 import { defaultReviewers, modelReviewRoutes } from './model-review-routes.mjs';
+import { boundedReviewFrame, buildReviewerPrompt } from './run-model-reviewer-route.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+
+test('no-tools reviewer prompt contains its review frame and forbids deferred inspection', () => {
+  const prompt = buildReviewerPrompt({
+    instruction: 'Custom review task.',
+    reviewFrame: 'Find security regressions.',
+    packetText: 'Candidate diff: PATCH',
+  });
+  for (const expected of [
+    /Custom review task\./u,
+    /closed, no-tools review/u,
+    /Do not call, request, simulate, or emit tool invocations or shell commands/u,
+    /Find security regressions\./u,
+    /Candidate diff: PATCH/u,
+    /BEGIN REVIEW AUTHORITY/u,
+    /END REVIEW AUTHORITY/u,
+    /finish the review in this response/u,
+    /VERDICT: FINDINGS/u,
+  ])
+    assert.match(prompt, expected);
+});
+
+test('review authority is bounded per file and in aggregate', () => {
+  assert.equal(
+    boundedReviewFrame(
+      [
+        { filePath: 'one.md', text: '1234' },
+        { filePath: 'two.md', text: '56' },
+      ],
+      { maxFileBytes: 4, maxFrameBytes: 40 }
+    ),
+    '# one.md\n1234\n\n# two.md\n56'
+  );
+  assert.throws(
+    () =>
+      boundedReviewFrame([{ filePath: 'oversized.md', text: '12345' }], {
+        maxFileBytes: 4,
+        maxFrameBytes: 40,
+      }),
+    /review authority file exceeds the bounded packet limit: oversized\.md/u
+  );
+  assert.throws(
+    () =>
+      boundedReviewFrame(
+        [
+          { filePath: 'one.md', text: '1234' },
+          { filePath: 'two.md', text: '5678' },
+        ],
+        { maxFileBytes: 4, maxFrameBytes: 20 }
+      ),
+    /combined review authority exceeds the bounded packet limit/u
+  );
+});
 
 test('current reviewer routes keep fast work optional and pin the requested models', () => {
   assert.deepEqual(defaultReviewers, ['sonnet']);
