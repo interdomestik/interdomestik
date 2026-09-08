@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 70787,
+      "trackedBytesDelta": 70789,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 39849,
+        "config/data/messages": 39851,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 39849,
+        "scripts/repo-size-budget.json": 39851,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -246,12 +246,12 @@
         "packages/domain-member/src/portal-runtime/get-member-portal-membership.ts",
         "pnpm-lock.yaml"
       ],
-      "maxTrackedBytesDelta": 29163,
+      "maxTrackedBytesDelta": 30108,
       "maxTrackedFilesDelta": 9,
       "maxCategoryBytesDelta": {
         "config/data/messages": 7068,
         "docs/text": 3190,
-        "large support/generated-ish": 132,
+        "large support/generated-ish": 1077,
         "source/scripts": 8974,
         "tests/e2e": 9799
       },
@@ -268,7 +268,7 @@
         "packages/domain-member/src/index.ts": 159,
         "packages/domain-member/src/portal-runtime/get-member-portal-membership.test.ts": 5434,
         "packages/domain-member/src/portal-runtime/get-member-portal-membership.ts": 1225,
-        "pnpm-lock.yaml": 417
+        "pnpm-lock.yaml": 1077
       }
     },
     {
@@ -837,15 +837,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60537275,
+  "maxTrackedBytes": 60538222,
   "maxTrackedFiles": 5994,
   "maxCategoryBytes": {
     "other": 18856416,
-    "large support/generated-ish": 15392688,
+    "large support/generated-ish": 15393633,
     "docs/text": 8528019,
     "source/scripts": 8738110,
     "tests/e2e": 6825142,
-    "config/data/messages": 2196900
+    "config/data/messages": 2196902
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

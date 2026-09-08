@@ -34,6 +34,16 @@ function fixture() {
   return root;
 }
 
+function assertUnexpectedLayout(relativePath) {
+  const root = fixture();
+  write(root, relativePath);
+
+  const result = evaluatePortalLayoutTopology(root);
+
+  assert.equal(result.ok, false);
+  assert.match(result.failures.join('\n'), /Unexpected portal layout files/u);
+}
+
 test('passes with exactly four canonical portal layouts', () => {
   const root = fixture();
   const result = evaluatePortalLayoutTopology(root);
@@ -104,31 +114,13 @@ test('fails when the optional member portal layout becomes a client shell', () =
 });
 
 test('fails when a nested portal layout is added', () => {
-  const root = fixture();
-  write(root, 'apps/web/src/app/[locale]/(agent)/agent/settings/layout.tsx');
-
-  const result = evaluatePortalLayoutTopology(root);
-
-  assert.equal(result.ok, false);
-  assert.match(result.failures.join('\n'), /Unexpected portal layout files/u);
+  assertUnexpectedLayout('apps/web/src/app/[locale]/(agent)/agent/settings/layout.tsx');
 });
 
 test('fails when an unlisted nested member layout is added', () => {
-  const root = fixture();
-  write(root, 'apps/web/src/app/[locale]/(app)/member/settings/layout.tsx');
-
-  const result = evaluatePortalLayoutTopology(root);
-
-  assert.equal(result.ok, false);
-  assert.match(result.failures.join('\n'), /Unexpected portal layout files/u);
+  assertUnexpectedLayout('apps/web/src/app/[locale]/(app)/member/settings/layout.tsx');
 });
 
 test('fails when a route-group agent layout is added', () => {
-  const root = fixture();
-  write(root, 'apps/web/src/app/[locale]/(agent)/layout.tsx');
-
-  const result = evaluatePortalLayoutTopology(root);
-
-  assert.equal(result.ok, false);
-  assert.match(result.failures.join('\n'), /Unexpected portal layout files/u);
+  assertUnexpectedLayout('apps/web/src/app/[locale]/(agent)/layout.tsx');
 });
