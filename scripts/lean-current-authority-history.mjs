@@ -48,6 +48,20 @@ function activeStep(repo, projection, sha, repeatId, seen) {
     throw new Error(`repeat ancestry: ${repeatId} ${sha} ${base}`);
   return { next: base };
 }
+function inactiveStep(repo, sha, repeatId, proof) {
+  const parent = git(repo, 'rev-parse', `${sha}^1`);
+  const projection = projectionOrBootstrap(repo, parent);
+  if (!projection)
+    return { transition: { kind: 'bootstrap', bootstrapAnchor: parent, bootstrapMergeSha: sha } };
+  if (!projection.activeSlice) return { next: parent };
+  const prior = projection.activeSlice;
+  const closeout = { prior: projection, terminalProjectionSha: parent, closeoutMergeSha: sha };
+  if (repeatId === prior.sliceId && t117bChildContract(prior)) {
+    if (!proof(repo, closeout)) throw new Error('invalid repeat closeout');
+    return { next: parent };
+  }
+  return { transition: { kind: 'closeout_recorded', ...closeout } };
+}
 export function locateAuthorityTransition(
   repo,
   anchor,
@@ -66,31 +80,9 @@ export function locateAuthorityTransition(
       sha = step.next;
       continue;
     }
-    const parent = git(repo, 'rev-parse', `${sha}^1`);
-    const parentProjection = projectionOrBootstrap(repo, parent);
-    if (!parentProjection) {
-      return { kind: 'bootstrap', bootstrapAnchor: parent, bootstrapMergeSha: sha };
-    }
-    if (parentProjection.activeSlice) {
-      const prior = parentProjection.activeSlice;
-      if (repeatId === prior.sliceId && t117bChildContract(prior)) {
-        const repeat = {
-          prior: parentProjection,
-          terminalProjectionSha: parent,
-          closeoutMergeSha: sha,
-        };
-        if (!proof(repo, repeat)) throw new Error('invalid repeat closeout');
-        sha = parent;
-        continue;
-      }
-      return {
-        kind: 'closeout_recorded',
-        prior: parentProjection,
-        terminalProjectionSha: parent,
-        closeoutMergeSha: sha,
-      };
-    }
-    sha = parent;
+    const step = inactiveStep(repo, sha, repeatId, proof);
+    if (step.transition) return step.transition;
+    sha = step.next;
   }
   throw new Error('authority history exceeds bounded traversal');
 }
