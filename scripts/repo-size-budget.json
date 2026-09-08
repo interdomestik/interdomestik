@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 64274,
+      "trackedBytesDelta": 64386,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 33336,
+        "config/data/messages": 33448,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 33336,
+        "scripts/repo-size-budget.json": 33448,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -79,10 +79,10 @@
         "scripts/modularity-guard-policy.mjs",
         "scripts/lean-t117c-policy.test.mjs"
       ],
-      "maxTrackedBytesDelta": 48927,
+      "maxTrackedBytesDelta": 48968,
       "maxTrackedFilesDelta": 6,
       "maxCategoryBytesDelta": {
-        "source/scripts": 19044,
+        "source/scripts": 19085,
         "tests/e2e": 29883
       },
       "maxPathBytesDelta": {
@@ -97,7 +97,7 @@
         "scripts/lean-current-authority-evidence.test.mjs": 355,
         "scripts/lean-current-authority-pull-selection.test.mjs": 2493,
         "scripts/lean-current-authority-conformance.test.mjs": 3260,
-        "scripts/modularity-guard-policy.mjs": 436,
+        "scripts/modularity-guard-policy.mjs": 516,
         "scripts/check-modularity-guard.test.mjs": 738,
         "scripts/lean-current-authority-recovery.mjs": 6810,
         "scripts/lean-current-authority-recovery.test.mjs": 9126,
@@ -389,6 +389,7 @@
         "scripts/ci/reviewer-preflight-git.mjs",
         "scripts/ci/reviewer-preflight.mjs",
         "scripts/ci/reviewer-preflight.test.mjs",
+        "scripts/ci/reviewer-route-policy.test.mjs",
         "scripts/ci/reviewer-route-receipts.mjs",
         "scripts/ci/reviewer-route-runtime.mjs",
         "scripts/ci/reviewer-route-runtime.test.mjs",
@@ -481,13 +482,13 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 661879,
-      "maxTrackedFilesDelta": 93,
+      "maxTrackedBytesDelta": 662530,
+      "maxTrackedFilesDelta": 94,
       "maxCategoryBytesDelta": {
         "config/data/messages": 2513,
         "docs/text": 30439,
         "source/scripts": 339709,
-        "tests/e2e": 289218
+        "tests/e2e": 289869
       },
       "maxPathBytesDelta": {
         ".github/workflows/ci.yml": 1441,
@@ -505,7 +506,7 @@
         "scripts/ci/reviewer-preflight.test.mjs": 1996,
         "scripts/ci/reviewer-route-receipts.mjs": 301,
         "scripts/ci/reviewer-route-runtime.mjs": 2150,
-        "scripts/ci/reviewer-route-runtime.test.mjs": 7156,
+        "scripts/ci/reviewer-route-runtime.test.mjs": 5338,
         "scripts/ci/run-model-reviewer-route.mjs": 1531,
         "scripts/ci/z620-parity.json": 0,
         "scripts/slice-rehearse-authority-boundary.mjs": 2932,
@@ -600,7 +601,8 @@
         "scripts/ci/pr-delivery-fixtures.mjs": 1604,
         "scripts/ci/pr-governance-report-lib.mjs": 2166,
         "scripts/ci/pr-governance-report.test.mjs": 7110,
-        "scripts/ci/reviewer-no-tools.toml": 57
+        "scripts/ci/reviewer-no-tools.toml": 57,
+        "scripts/ci/reviewer-route-policy.test.mjs": 2469
       }
     },
     {
@@ -717,15 +719,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60422266,
-  "maxTrackedFiles": 5973,
+  "maxTrackedBytes": 60423070,
+  "maxTrackedFiles": 5974,
   "maxCategoryBytes": {
-    "config/data/messages": 2174610,
+    "config/data/messages": 2174722,
     "docs/text": 8507398,
     "large support/generated-ish": 15389747,
     "other": 18856416,
-    "source/scripts": 8718721,
-    "tests/e2e": 6775374
+    "source/scripts": 8718762,
+    "tests/e2e": 6776025
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
