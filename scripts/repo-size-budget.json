@@ -484,13 +484,13 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 668125,
+      "maxTrackedBytesDelta": 673516,
       "maxTrackedFilesDelta": 94,
       "maxCategoryBytesDelta": {
-        "config/data/messages": 2513,
+        "config/data/messages": 1154,
         "docs/text": 30439,
-        "source/scripts": 340586,
-        "tests/e2e": 294587
+        "source/scripts": 344933,
+        "tests/e2e": 296990
       },
       "maxPathBytesDelta": {
         ".github/workflows/ci.yml": 1441,
@@ -499,7 +499,7 @@
         "docs/superpowers/specs/2026-08-29-harness-v2-efficiency-design.md": 14685,
         "package.json": 1070,
         "packages/qa/test-tools.ts": 334,
-        "scripts/ci/model-review-routes.mjs": 1614,
+        "scripts/ci/model-review-routes.mjs": 1716,
         "scripts/ci/pr-delivery-contract.json": 27,
         "scripts/ci/pr-delivery-gate.test.mjs": 0,
         "scripts/ci/qa-cli-callers-contracts.test.mjs": 71,
@@ -507,9 +507,9 @@
         "scripts/ci/reviewer-preflight.mjs": 0,
         "scripts/ci/reviewer-preflight.test.mjs": 1996,
         "scripts/ci/reviewer-route-receipts.mjs": 301,
-        "scripts/ci/reviewer-route-runtime.mjs": 2150,
-        "scripts/ci/reviewer-route-runtime.test.mjs": 5338,
-        "scripts/ci/run-model-reviewer-route.mjs": 2226,
+        "scripts/ci/reviewer-route-runtime.mjs": 3510,
+        "scripts/ci/reviewer-route-runtime.test.mjs": 6765,
+        "scripts/ci/run-model-reviewer-route.mjs": 5111,
         "scripts/ci/z620-parity.json": 0,
         "scripts/slice-rehearse-authority-boundary.mjs": 2932,
         "scripts/slice-rehearse-authority-boundary.test.mjs": 2733,
@@ -604,7 +604,7 @@
         "scripts/ci/pr-governance-report-lib.mjs": 2166,
         "scripts/ci/pr-governance-report.test.mjs": 7110,
         "scripts/ci/reviewer-no-tools.toml": 57,
-        "scripts/ci/reviewer-route-policy.test.mjs": 4948,
+        "scripts/ci/reviewer-route-policy.test.mjs": 6580,
         "scripts/ci/model-review-access.mjs": 212,
         "scripts/ci/model-review-evidence.test.mjs": 2239
       }
@@ -723,15 +723,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60429318,
+  "maxTrackedBytes": 60434709,
   "maxTrackedFiles": 5974,
   "maxCategoryBytes": {
-    "config/data/messages": 2174931,
+    "config/data/messages": 2173572,
     "docs/text": 8507398,
     "large support/generated-ish": 15389747,
     "other": 18856416,
-    "source/scripts": 8719639,
-    "tests/e2e": 6781187
+    "source/scripts": 8723986,
+    "tests/e2e": 6783590
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

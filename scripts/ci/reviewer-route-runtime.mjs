@@ -27,7 +27,48 @@ function classifyBlocker(text) {
   return BLOCKERS.find(([pattern]) => pattern.test(text))?.[1] || '';
 }
 
-const hasToolRequest = stdout => /"type"\s*:\s*"tool_(?:use|result)"/u.test(stdout);
+function isNamedInvokeTag(tag) {
+  const nameEnd = tag.search(/\s/u);
+  const tagName = nameEnd < 0 ? tag : tag.slice(0, nameEnd);
+  const attributes = nameEnd < 0 ? '' : tag.slice(nameEnd);
+  return (tagName === 'invoke' || tagName.endsWith(':invoke')) && /\bname\s*=/u.test(attributes);
+}
+
+function hasTextToolRequest(value) {
+  const text = value.toLowerCase();
+  let cursor = 0;
+  while ((cursor = text.indexOf('<', cursor)) >= 0) {
+    const end = text.indexOf('>', cursor + 1);
+    if (end < 0) return isNamedInvokeTag(text.slice(cursor + 1));
+    if (isNamedInvokeTag(text.slice(cursor + 1, end))) return true;
+    cursor = end + 1;
+  }
+  return false;
+}
+
+function payloadHasToolRequest(payload) {
+  const content = Array.isArray(payload?.message?.content) ? payload.message.content : [];
+  if (content.some(item => item?.type === 'tool_use' || item?.type === 'tool_result')) return true;
+  return [payload?.result, payload?.response, ...content.map(item => item?.text)].some(
+    value => typeof value === 'string' && hasTextToolRequest(value)
+  );
+}
+
+function hasToolRequest(stdout) {
+  if (/"type"\s*:\s*"tool_(?:use|result)"/u.test(stdout) || hasTextToolRequest(stdout)) {
+    return true;
+  }
+  try {
+    if (payloadHasToolRequest(JSON.parse(stdout))) return true;
+  } catch {}
+  return stdout.split('\n').some(line => {
+    try {
+      return payloadHasToolRequest(JSON.parse(line));
+    } catch {
+      return false;
+    }
+  });
+}
 
 function reviewFacts(stdout) {
   const models = new Set();
