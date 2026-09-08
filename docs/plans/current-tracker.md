@@ -22,9 +22,9 @@ status_command: pnpm plan:status
 
 ## Proof Ledger
 
-| ID       | Source Refs                                                                                                   | Execution | Run ID     | Run Root         | Sonar     | Docker           | Sentry           | Learning | Evidence Refs                                                                                         |
-| -------- | ------------------------------------------------------------------------------------------------------------- | --------- | ---------- | ---------------- | --------- | ---------------- | ---------------- | -------- | ----------------------------------------------------------------------------------------------------- |
-| `T-117C` | [gate](./2026-09-07-t117c-rendering-design-gate.md); [admission](./2026-09-07-t117c-rendering-admission.json) | `blocked` | `PR #1705` | `not_applicable` | `missing` | `not_applicable` | `not_applicable` | `pass`   | Audit exposed omitted `scripts/ci/main-e2e-reuse.mjs` writer dependency; candidate retained unmerged. |
+| ID       | Source Refs                                                                                                   | Execution | Run ID     | Run Root         | Sonar     | Docker           | Sentry           | Learning | Evidence Refs                                                                                              |
+| -------- | ------------------------------------------------------------------------------------------------------------- | --------- | ---------- | ---------------- | --------- | ---------------- | ---------------- | -------- | ---------------------------------------------------------------------------------------------------------- |
+| `T-117C` | [gate](./2026-09-07-t117c-rendering-design-gate.md); [admission](./2026-09-07-t117c-rendering-admission.json) | `blocked` | `PR #1705` | `not_applicable` | `missing` | `not_applicable` | `not_applicable` | `pass`   | docs/plans/2026-09-07-t117c-rendering-design-gate.md; docs/plans/2026-09-07-t117c-rendering-admission.json |
 
 Terminal evidence: re-promotion `#1691`; product head
 `503d4b179251f9d3d06e07349ec80f85805565ae`, tree
