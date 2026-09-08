@@ -79,11 +79,11 @@
         "scripts/modularity-guard-policy.mjs",
         "scripts/lean-t117c-policy.test.mjs"
       ],
-      "maxTrackedBytesDelta": 48968,
+      "maxTrackedBytesDelta": 49220,
       "maxTrackedFilesDelta": 6,
       "maxCategoryBytesDelta": {
         "source/scripts": 19085,
-        "tests/e2e": 29883
+        "tests/e2e": 30135
       },
       "maxPathBytesDelta": {
         "scripts/lean-current-authority-policy.mjs": 487,
@@ -102,7 +102,7 @@
         "scripts/lean-current-authority-recovery.mjs": 6810,
         "scripts/lean-current-authority-recovery.test.mjs": 9126,
         "scripts/lean-current-authority-observation.mjs": 2056,
-        "scripts/lean-t117c-policy.test.mjs": 5779
+        "scripts/lean-t117c-policy.test.mjs": 6031
       }
     },
     {
@@ -719,7 +719,7 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60426214,
+  "maxTrackedBytes": 60426466,
   "maxTrackedFiles": 5974,
   "maxCategoryBytes": {
     "config/data/messages": 2174722,
@@ -727,7 +727,7 @@
     "large support/generated-ish": 15389747,
     "other": 18856416,
     "source/scripts": 8719427,
-    "tests/e2e": 6778504
+    "tests/e2e": 6778756
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

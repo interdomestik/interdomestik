@@ -13,7 +13,7 @@ const CHILDREN = new Map([
   [
     'T-117C',
     {
-      writerHashes: ['0f85eaf71b2d9edde57ced047e96e961e7f5dd8a0fc9476f7af567995add3170'],
+      writerHashes: ['4f4fb1dafe389432ab8c62fc992d5afbd2cecd63133e8fa476616fc03d99bd52'],
       predecessor: {
         sliceId: 'T117B-CUTOVER',
         writerHash: '2ad45d3a297b0bc686594f4d2855a38dfbe3c825446ae740682fe7a1fb2d440b',
