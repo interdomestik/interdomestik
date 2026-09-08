@@ -3,8 +3,8 @@
   "status": "promotion_pending",
   "sliceId": "T-117C",
   "tier": 3,
-  "baseSha": "69293235bb5870a617ce73306afd4d537e862503",
-  "promotionPrNumber": 1703,
+  "baseSha": "7254cbe54a83e7e5762ec429b87e82ff5eca7930",
+  "promotionPrNumber": 1708,
   "candidate": {
     "commitSha": "4e3c333038cf888e2cb31846082fd94d08759fd8",
     "treeSha": "f3a79932e2f693fb120c6fd166a55ab858ca413c",
@@ -16,7 +16,7 @@
     "mergeSha": "d739150d648c3f6c6c83ac56e3646933c21f9b8b",
     "status": "merged_and_verified"
   },
-  "authorityArtifactSha256": "11cd8c0c3134d3bfbf4bbe6894cb263a4acda5a06eafb6834768f10f3887ca58",
+  "authorityArtifactSha256": "24332f6778001949d89fb43927e08cd709442f977d94a6e1fb32ee088cc3ba36",
   "productOutcomes": [
     "Home-only named Case/Actions/Updates regions preserve one request identity and two tenant projections across all existing member destinations.",
     "Nonce-off builds may prerender anonymous document/loading chrome; report builds retain per-request nonce rendering; mismatched built/runtime mode fails before request readiness."
@@ -326,7 +326,7 @@
   },
   "successorConditions": [
     "Closed T117B-CUTOVER predecessor with final exact writer map is verified through existing child evidence.",
-    "Merged PRs #1700 and #1704 plus the four-path promotion bind policy, measured capacity, hashes, owner marker and live validator facts.",
+    "PRs #1700, #1704 and #1707 plus repeat promotion bind policy, capacity, E2E pin, hashes, owner marker and live facts.",
     "Exact-head product proof/review/gates and exact-main health pass; deterministic closeout returns authority inactive.",
     "No successor is implicitly promoted and no infrastructure/build variant is counted as a separate product trial."
   ],
@@ -341,5 +341,5 @@
     "mechanism": "Discard owned unmerged candidate; after merge revert only exact T-117C product merge, rebuild for same authorized nonce mode, restore inactive projections and preserve CUTOVER/DATA/PORTAL/unrelated state.",
     "trigger": "Auth/tenant/nonce/query/route/a11y/capacity/writer-map/review/CI/merge/main-health proof fails."
   },
-  "firstImplementationAction": "Finalize and merge promotion PR #1703 from the bound base, then materialize the exact qualified candidate on codex/t117c-rendering for one exact-head governed product run."
+  "firstImplementationAction": "Merge promotion PR #1708 from the bound base, then materialize the exact candidate on codex/t117c-rendering-r2 for one governed product run."
 }

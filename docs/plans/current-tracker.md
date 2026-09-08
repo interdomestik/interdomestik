@@ -16,15 +16,15 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID       | Status    | Owner      | Work                               | Exit Criteria                             |
-| -------- | --------- | ---------- | ---------------------------------- | ----------------------------------------- |
-| `T-117C` | `blocked` | `platform` | Nonce-compatible member rendering. | Repair CI evidence pin; repeat promotion. |
+| ID       | Status    | Owner      | Work                               | Exit Criteria                   |
+| -------- | --------- | ---------- | ---------------------------------- | ------------------------------- |
+| `T-117C` | `pending` | `platform` | Nonce-compatible member rendering. | Merge repeat promotion `#1708`. |
 
 ## Proof Ledger
 
-| ID       | Source Refs                                                                                                   | Execution | Run ID     | Run Root         | Sonar     | Docker           | Sentry           | Learning | Evidence Refs                                                                                              |
-| -------- | ------------------------------------------------------------------------------------------------------------- | --------- | ---------- | ---------------- | --------- | ---------------- | ---------------- | -------- | ---------------------------------------------------------------------------------------------------------- |
-| `T-117C` | [gate](./2026-09-07-t117c-rendering-design-gate.md); [admission](./2026-09-07-t117c-rendering-admission.json) | `blocked` | `PR #1705` | `not_applicable` | `missing` | `not_applicable` | `not_applicable` | `pass`   | docs/plans/2026-09-07-t117c-rendering-design-gate.md; docs/plans/2026-09-07-t117c-rendering-admission.json |
+| ID       | Source Refs                                                                                                   | Execution  | Run ID     | Run Root         | Sonar     | Docker           | Sentry           | Learning | Evidence Refs                                                                                              |
+| -------- | ------------------------------------------------------------------------------------------------------------- | ---------- | ---------- | ---------------- | --------- | ---------------- | ---------------- | -------- | ---------------------------------------------------------------------------------------------------------- |
+| `T-117C` | [gate](./2026-09-07-t117c-rendering-design-gate.md); [admission](./2026-09-07-t117c-rendering-admission.json) | `scripted` | `PR #1708` | `not_applicable` | `pending` | `not_applicable` | `not_applicable` | `pass`   | docs/plans/2026-09-07-t117c-rendering-design-gate.md; docs/plans/2026-09-07-t117c-rendering-admission.json |
 
 Terminal evidence: re-promotion `#1691`; product head
 `503d4b179251f9d3d06e07349ec80f85805565ae`, tree
@@ -36,11 +36,11 @@ delivery `33863200387` attempt 2, and exact-main CI/Sonar/CodeQL/security were g
 
 ## Next Selection
 
-T117B-CUTOVER completed through exact re-promotion `#1691` and product `#1675`. T-117C promotion `#1703` merged exactly, but product PR `#1705` closed unmerged after audit exposed a required CI evidence pin outside the frozen writer map. Runtime is inactive pending bounded repair and repeat promotion. The missing compiled post-merge-node certificate remains shadow backlog evidence only.
+T117B-CUTOVER completed through exact re-promotion `#1691` and product `#1675`. T-117C product #1705 failed closed; closeout #1706 restored inactive authority and CI repair #1707 preapproved the qualified E2E tree. Repeat promotion #1708 is pending with the same qualified candidate. The missing compiled post-merge-node certificate remains shadow backlog evidence only.
 
-| Future UI branch | Status     | Constraint                                      |
-| ---------------- | ---------- | ----------------------------------------------- |
-| `T-117C`         | `deferred` | Repair CI evidence pin; repeat exact promotion. |
+| Future UI branch | Status              | Constraint                                      |
+| ---------------- | ------------------- | ----------------------------------------------- |
+| `T-117C`         | `promotion_pending` | Repeat promotion `#1708`; product branch `-r2`. |
 
 ## Lean Authority
 
@@ -49,17 +49,75 @@ T117B-CUTOVER completed through exact re-promotion `#1691` and product `#1675`. 
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "inactive",
+  "lifecycle": "promotion_pending",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": null
+  "activeSlice": {
+    "sliceId": "T-117C",
+    "tier": 3,
+    "promotionPrNumber": 1708,
+    "promotionBaseSha": "7254cbe54a83e7e5762ec429b87e82ff5eca7930",
+    "expectedProductBranch": "codex/t117c-rendering-r2",
+    "gateSha256": "24332f6778001949d89fb43927e08cd709442f977d94a6e1fb32ee088cc3ba36",
+    "admissionSha256": "0996e68cfa438f44f2ce947a97b9383220688e5af202e44af31add72996c540a",
+    "productWriterPaths": [
+      "apps/web/e2e/gate/member-home-cta.spec.ts",
+      "apps/web/e2e/gate/member-parallel-routes.spec.ts",
+      "apps/web/e2e/gate/rendering-build-mode.spec.ts",
+      "apps/web/next.config.mjs",
+      "apps/web/src/app/[locale]/_core.entry.test.tsx",
+      "apps/web/src/app/[locale]/_core.entry.tsx",
+      "apps/web/src/app/[locale]/(agent)/agent/layout.tsx",
+      "apps/web/src/app/[locale]/(app)/layout.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@actions/default.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@actions/page.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@case/default.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@case/page.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@updates/default.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@updates/page.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/default.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/layout.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/page.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.test.ts",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.ts",
+      "apps/web/src/app/[locale]/(app)/member/layout.tsx",
+      "apps/web/src/app/[locale]/(app)/member/page.test.tsx",
+      "apps/web/src/app/[locale]/(app)/member/page.tsx",
+      "apps/web/src/app/[locale]/(staff)/staff/layout.tsx",
+      "apps/web/src/app/[locale]/admin/commissions/page.tsx",
+      "apps/web/src/app/[locale]/admin/layout.tsx",
+      "apps/web/src/app/[locale]/admin/members/number/[memberNumber]/page.tsx",
+      "apps/web/src/app/[locale]/admin/settings/page.tsx",
+      "apps/web/src/app/[locale]/admin/users/[id]/page.tsx",
+      "apps/web/src/app/[locale]/components/home/footer.test.tsx",
+      "apps/web/src/app/[locale]/components/home/footer.tsx",
+      "apps/web/src/app/[locale]/layout.tsx",
+      "apps/web/src/app/[locale]/stats/page.tsx",
+      "apps/web/src/app/api/claims/route.ts",
+      "apps/web/src/app/api/csp-report/route.ts",
+      "apps/web/src/app/api/e2e/branches/route.ts",
+      "apps/web/src/app/track/[token]/page.test.tsx",
+      "apps/web/src/app/track/[token]/page.tsx",
+      "apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx",
+      "apps/web/src/components/dashboard/member-portal-runtime.tsx",
+      "apps/web/src/components/shell/request-boundary.test.tsx",
+      "apps/web/src/components/shell/request-boundary.tsx",
+      "apps/web/src/instrumentation.ts",
+      "apps/web/src/lib/rendering-build-mode.test.ts",
+      "apps/web/src/lib/rendering-build-mode.ts"
+    ],
+    "closeoutWriterPaths": [
+      "docs/plans/current-program.md",
+      "docs/plans/current-tracker.md"
+    ]
+  }
 }
 ```
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:null`; lifecycle `inactive`).
+The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:T-117C`; lifecycle `promotion_pending`).
 
 ## Historical Authority
 
