@@ -482,13 +482,13 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 662530,
+      "maxTrackedBytesDelta": 665704,
       "maxTrackedFilesDelta": 94,
       "maxCategoryBytesDelta": {
         "config/data/messages": 2513,
         "docs/text": 30439,
-        "source/scripts": 339709,
-        "tests/e2e": 289869
+        "source/scripts": 340404,
+        "tests/e2e": 292348
       },
       "maxPathBytesDelta": {
         ".github/workflows/ci.yml": 1441,
@@ -507,7 +507,7 @@
         "scripts/ci/reviewer-route-receipts.mjs": 301,
         "scripts/ci/reviewer-route-runtime.mjs": 2150,
         "scripts/ci/reviewer-route-runtime.test.mjs": 5338,
-        "scripts/ci/run-model-reviewer-route.mjs": 1531,
+        "scripts/ci/run-model-reviewer-route.mjs": 2226,
         "scripts/ci/z620-parity.json": 0,
         "scripts/slice-rehearse-authority-boundary.mjs": 2932,
         "scripts/slice-rehearse-authority-boundary.test.mjs": 2733,
@@ -602,7 +602,7 @@
         "scripts/ci/pr-governance-report-lib.mjs": 2166,
         "scripts/ci/pr-governance-report.test.mjs": 7110,
         "scripts/ci/reviewer-no-tools.toml": 57,
-        "scripts/ci/reviewer-route-policy.test.mjs": 2469
+        "scripts/ci/reviewer-route-policy.test.mjs": 4948
       }
     },
     {
@@ -719,15 +719,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60423070,
+  "maxTrackedBytes": 60426244,
   "maxTrackedFiles": 5974,
   "maxCategoryBytes": {
     "config/data/messages": 2174722,
     "docs/text": 8507398,
     "large support/generated-ish": 15389747,
     "other": 18856416,
-    "source/scripts": 8718762,
-    "tests/e2e": 6776025
+    "source/scripts": 8719457,
+    "tests/e2e": 6778504
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

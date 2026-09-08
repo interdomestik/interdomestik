@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -64,3 +66,64 @@ test('reviewer denial policy has an exact structured owner', () => {
   );
   assert.equal(structuredArtifactOwner('scripts/ci/unreviewed-tools.toml'), null);
 });
+
+for (const route of ['gemini', 'flash']) {
+  for (const failure of ['conflict', 'unreadable']) {
+    test(`${route} records ${failure} policy refusal without starting a provider`, () => {
+      const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'reviewer-policy-refusal-'));
+      const preload = path.join(cwd, 'preload.mjs');
+      fs.writeFileSync(
+        preload,
+        `
+        import fs from 'node:fs';
+        import childProcess from 'node:child_process';
+        import { syncBuiltinESMExports } from 'node:module';
+        const read = fs.readdirSync;
+        fs.readdirSync = function(directory, ...args) {
+          if (String(directory).endsWith('policies')) {
+            if (${JSON.stringify(failure)} === 'conflict') return ['admin.toml'];
+            throw Object.assign(new Error('policy unavailable'), { code: 'EACCES' });
+          }
+          return read.call(this, directory, ...args);
+        };
+        childProcess.spawn = () => {
+          fs.writeFileSync('provider-started', 'unexpected');
+          throw new Error('provider must not start');
+        };
+        syncBuiltinESMExports();
+      `
+      );
+      try {
+        const result = spawnSync(
+          process.execPath,
+          [
+            '--import',
+            preload,
+            path.join(scriptDir, 'run-model-reviewer-route.mjs'),
+            '--route',
+            route,
+          ],
+          { cwd, encoding: 'utf8' }
+        );
+        assert.equal(result.status, 125, result.stderr);
+        const summary = JSON.parse(result.stdout);
+        const receipt = JSON.parse(fs.readFileSync(summary.receipt.jsonPath, 'utf8'));
+        assert.equal(receipt.status, 'blocked');
+        assert.equal(receipt.blockerReason, 'reviewer_argument_preparation');
+        assert.equal(receipt.routeName, route);
+        assert.equal(receipt.model, modelReviewRoutes[route].model);
+        assert.deepEqual(receipt.commandInvoked, ['gemini']);
+        assert.equal(receipt.exitCode, 125);
+        assert.equal(receipt.providerReportedModel, null);
+        assert.equal(receipt.reviewVerdict, null);
+        assert.equal(fs.existsSync(path.join(cwd, 'provider-started')), false);
+        assert.match(
+          fs.readFileSync(summary.receipt.mdPath, 'utf8'),
+          /reviewer_argument_preparation/u
+        );
+      } finally {
+        fs.rmSync(cwd, { recursive: true, force: true });
+      }
+    });
+  }
+}
