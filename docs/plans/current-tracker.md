@@ -22,9 +22,9 @@ status_command: pnpm plan:status
 
 ## Proof Ledger
 
-| ID       | Source Refs                                                                                                   | Execution | Run ID     | Run Root        | Sonar  | Docker           | Sentry           | Learning | Evidence Refs                                                                                              |
-| -------- | ------------------------------------------------------------------------------------------------------------- | --------- | ---------- | --------------- | ------ | ---------------- | ---------------- | -------- | ---------------------------------------------------------------------------------------------------------- |
-| `T-117C` | [gate](./2026-09-07-t117c-rendering-design-gate.md); [admission](./2026-09-07-t117c-rendering-admission.json) | `blocked` | `PR #1718` | `Z620 detached` | `pass` | `not_applicable` | `not_applicable` | `pass`   | docs/plans/2026-09-07-t117c-rendering-design-gate.md; docs/plans/2026-09-07-t117c-rendering-admission.json |
+| ID       | Source Refs                                                                                                   | Execution | Run ID     | Run Root         | Sonar  | Docker           | Sentry           | Learning | Evidence Refs                                                                                              |
+| -------- | ------------------------------------------------------------------------------------------------------------- | --------- | ---------- | ---------------- | ------ | ---------------- | ---------------- | -------- | ---------------------------------------------------------------------------------------------------------- |
+| `T-117C` | [gate](./2026-09-07-t117c-rendering-design-gate.md); [admission](./2026-09-07-t117c-rendering-admission.json) | `blocked` | `PR #1718` | `not_applicable` | `pass` | `not_applicable` | `not_applicable` | `pass`   | docs/plans/2026-09-07-t117c-rendering-design-gate.md; docs/plans/2026-09-07-t117c-rendering-admission.json |
 
 Terminal evidence: re-promotion `#1691`; product head
 `503d4b179251f9d3d06e07349ec80f85805565ae`, tree
@@ -36,7 +36,7 @@ delivery `33863200387` attempt 2, and exact-main CI/Sonar/CodeQL/security were g
 
 ## Next Selection
 
-T117B-CUTOVER completed through exact re-promotion `#1691` and product `#1675`. T-117C promotions `#1703`, `#1710`, and `#1715` merged exactly, while products `#1705`, `#1711`, and `#1718` failed closed before merge. Product `#1718` reached its promoted tree; final-head Next 16.3.3 runners then exposed request-bound Suspense and prerender-time UUID defects. The narrow correction passed `build:ci` in a detached Z620 worktree on the same dependency closure and preserved the rich public prerendered shell. Runtime is inactive pending addition of the UUID source to the writer map and one exact re-promotion. The missing compiled post-merge-node certificate remains shadow backlog evidence only.
+T117B-CUTOVER completed through exact re-promotion `#1691` and product `#1675`. T-117C promotions `#1703`, `#1710`, and `#1715` merged exactly, while products `#1705`, `#1711`, and `#1718` failed closed before merge. Product `#1718` reached its promoted tree; final-head Next 16.3.3 runners then exposed request-bound Suspense and prerender-time UUID defects. A detached Z620 diagnostic run on the same dependency closure passed `build:ci` and preserved the rich public prerendered shell; it is not acceptance evidence and grants no runtime. Runtime is inactive pending addition of the UUID source to the writer map and one exact re-promotion. The missing compiled post-merge-node certificate remains shadow backlog evidence only.
 
 | Future UI branch | Status     | Constraint                                   |
 | ---------------- | ---------- | -------------------------------------------- |
