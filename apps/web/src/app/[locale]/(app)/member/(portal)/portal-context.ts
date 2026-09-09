@@ -1,23 +1,27 @@
+import 'server-only';
+import { cache } from 'react';
+
 import { evaluateNeutralOtpHost } from '@/app/api/auth/[...all]/neutral-otp-boundary';
 // prettier-ignore
-import { MemberPortalRuntime, type MemberPortalCopy } from '@/components/dashboard/member-portal-runtime';
+import { type MemberPortalCopy } from '@/components/dashboard/member-portal-runtime';
 import { requireSessionOrRedirect } from '@/components/shell/session';
-import type { AppLocale } from '@/i18n/locales';
+import { LOCALES } from '@/i18n/locales';
 import { getCachedSession } from '@/lib/auth.server';
 import { resolveDefaultPublicTenantId } from '@/lib/tenant/tenant-hosts';
 import { getMemberCaseSummaries, getMemberPortalMembership } from '@interdomestik/domain-member';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
-import { getMemberDashboardCore } from './_core';
-import { resolveMemberActorRoleOnSession } from './actor-role-on-session';
+import { getMemberDashboardCore } from '../_core';
+import { resolveMemberActorRoleOnSession } from '../actor-role-on-session';
 
 // prettier-ignore
 type PortalMessages = Omit<MemberPortalCopy, 'actions' | 'caseLabels' | 'navigation' | 'referenceFallback' | 'status'> & { actions: Record<keyof MemberPortalCopy['actions'], string>; navigation: Omit<MemberPortalCopy['navigation'], 'helpNow'> & { help_now: string }; next_steps: Record<'court_schedule' | 'external_response' | 'member_action' | 'team_review', string>; warnings: Record<'active_in_grace' | 'grace_expired' | 'scheduled_cancel', string> };
 
 // prettier-ignore
-export default async function DashboardPage({ params }: Readonly<{ params: Promise<{ locale: AppLocale }> }>) {
-  const { locale } = await params;
+export const getMemberPortalContext = cache(async (requestedLocale: string) => {
+  const locale = LOCALES.find(value => value === requestedLocale);
+  if (!locale) notFound();
   setRequestLocale(locale);
 
   const session = requireSessionOrRedirect(await getCachedSession(), locale);
@@ -56,6 +60,5 @@ export default async function DashboardPage({ params }: Readonly<{ params: Promi
     status,
   };
 
-  // prettier-ignore
-  return <div data-testid="member-dashboard-ready"><MemberPortalRuntime canDraft={draft} caseTask={cases} copy={copy} isAgent={role === 'agent'} locale={locale} membershipTask={membership} /></div>;
-}
+  return { canDraft: draft, caseTask: cases, copy, isAgent: role === 'agent', locale, membershipTask: membership };
+});

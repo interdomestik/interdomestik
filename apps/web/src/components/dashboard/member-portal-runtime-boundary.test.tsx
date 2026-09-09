@@ -1,5 +1,4 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { Suspense } from 'react';
 import type { CaseSummary, MembershipLifecycleBucket } from '@interdomestik/domain-member';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -11,7 +10,7 @@ import srMessages from '@/messages/sr/dashboard.json';
 
 import { MemberPortalRegionBoundary } from './member-portal-region-boundary';
 import {
-  MemberPortalRuntime,
+  MemberPortalFrame,
   PortalActionsRegion,
   PortalCasesRegion,
   PortalUpdatesRegion,
@@ -121,16 +120,39 @@ describe('Member portal', () => {
     expect(screen.getByText('Loading case')).not.toHaveAttribute('role', 'status');
   });
 
-  it('keeps navigation outside boundaries', async () => {
-    const source = readFileSync(resolve(import.meta.dirname, 'member-portal-runtime.tsx'), 'utf8');
-    expect(source.match(/<Suspense\b/gu) ?? []).toHaveLength(3);
-    expect(source).toMatch(/<nav[\s\S]+member-portal-disclaimer[\s\S]+PortalUi\.Unified/u);
-    expect(source).toMatch(/<Link href="\/member\/claims">\s*\{copy\.navigation\.cases\}/u);
-    expect(source).toMatch(/caseTask[\s\S]+caseTask[\s\S]+membershipTask/u);
-    expect(source).not.toMatch(
-      /@interdomestik\/(?:database|shared-auth)|fetch\(|['"]use client['"]|proxy|middleware/u
+  it('renders disclaimer and ready regions while Case is pending', async () => {
+    const pending = new Promise<never>(() => {});
+    function SlowCase(): never {
+      throw pending;
+    }
+    render(
+      <MemberPortalFrame
+        copy={copy}
+        actionsRegion={await action('active', false)}
+        caseRegion={
+          <Suspense
+            fallback={<MemberPortalRegionBoundary copy={copy.regions.case} state="loading" />}
+          >
+            <SlowCase />
+          </Suspense>
+        }
+        updatesRegion={await PortalUpdatesRegion({
+          copy,
+          locale: 'sq',
+          promise: Promise.reject(new Error('updates')),
+        })}
+      />
     );
-    expect(MemberPortalRuntime).toBeTypeOf('function');
+    const disclaimer = screen.getByTestId('member-portal-disclaimer');
+    const loading = screen.getByText('Loading case');
+    expect(disclaimer).toBeVisible();
+    expect(
+      disclaimer.compareDocumentPosition(loading) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Action active/u })).toBeVisible();
+    expect(screen.getByRole('alert', { name: 'Recent case updates' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Cases' })).toHaveAttribute('href', '/member/claims');
+    expect(screen.queryByTestId('member-dashboard-ready')).not.toBeInTheDocument();
   });
 
   it('keeps four catalog contracts aligned', () => {

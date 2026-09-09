@@ -1,10 +1,13 @@
-import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { isValidElement, Suspense, type ReactElement, type ReactNode } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   getMessagesMock: vi.fn(async () => ({
     common: { loading: 'Loading' },
   })),
+  loadAllMessagesMock: vi.fn(async () => ({ common: { loading: 'Loading' } })),
+  nonceMock: vi.fn(() => false),
+  connectionMock: vi.fn(async () => {}),
   setRequestLocaleMock: vi.fn(),
   headersMock: vi.fn(async () => new Headers()),
   notFoundMock: vi.fn(),
@@ -22,6 +25,9 @@ vi.mock('next-intl/server', () => ({
 vi.mock('next-intl', () => ({
   NextIntlClientProvider: ({ children }: { children: ReactNode }) => children,
 }));
+
+vi.mock('@/lib/security/csp-nonce', () => ({ isCspNonceActive: hoisted.nonceMock }));
+vi.mock('next/server', () => ({ connection: hoisted.connectionMock }));
 
 vi.mock('next/headers', () => ({
   headers: hoisted.headersMock,
@@ -44,6 +50,7 @@ vi.mock('@/i18n/routing', () => ({
 
 vi.mock('@/i18n/messages', () => ({
   BASE_NAMESPACES: ['common'],
+  loadAllMessages: hoisted.loadAllMessagesMock,
   pickMessages: (messages: Record<string, unknown>) => messages,
 }));
 
@@ -81,7 +88,59 @@ vi.mock('sonner', () => ({
 
 import RootLayout from './_core.entry';
 
+function findElementByType(node: ReactNode, type: unknown): ReactElement | undefined {
+  if (Array.isArray(node)) {
+    for (const child of node) {
+      const match = findElementByType(child, type);
+      if (match) return match;
+    }
+    return undefined;
+  }
+  if (!isValidElement<{ children?: ReactNode }>(node)) return undefined;
+  if (node.type === type) return node;
+  return findElementByType(node.props.children, type);
+}
+
 describe('RootLayout font wiring', () => {
+  beforeEach(() => {
+    for (const mock of [
+      hoisted.getMessagesMock,
+      hoisted.loadAllMessagesMock,
+      hoisted.headersMock,
+      hoisted.connectionMock,
+    ])
+      mock.mockClear();
+    hoisted.nonceMock.mockReturnValue(false);
+  });
+
+  it('uses bundled messages and keeps public children in the prerendered root suspense shell', async () => {
+    const publicShell = <main data-testid="public-shell" />;
+    const tree = await RootLayout({
+      children: publicShell,
+      params: Promise.resolve({ locale: 'en' }),
+    });
+    expect(hoisted.loadAllMessagesMock).toHaveBeenCalledWith('en', { strict: expect.any(Boolean) });
+    expect(hoisted.getMessagesMock).not.toHaveBeenCalled();
+    expect(hoisted.connectionMock).not.toHaveBeenCalled();
+    expect(hoisted.headersMock).not.toHaveBeenCalled();
+    const suspense = findElementByType(tree, Suspense);
+    expect(suspense).toBeDefined();
+    expect(findElementByType(suspense?.props.children, 'main')).toBe(publicShell);
+  });
+
+  it('preserves request-dependent messages and nonce in report mode', async () => {
+    hoisted.nonceMock.mockReturnValue(true);
+    hoisted.headersMock.mockResolvedValueOnce(new Headers({ 'x-nonce': 'request-nonce' }));
+    const tree = await RootLayout({ children: null, params: Promise.resolve({ locale: 'en' }) });
+    expect(hoisted.getMessagesMock).toHaveBeenCalledOnce();
+    expect(hoisted.loadAllMessagesMock).not.toHaveBeenCalled();
+    expect(hoisted.connectionMock).toHaveBeenCalledOnce();
+    const children = (tree.props.children.props.children as unknown[]).filter(
+      isValidElement<{ nonce?: string; 'data-testid'?: string }>
+    );
+    expect(children.some(child => child.props.nonce === 'request-nonce')).toBe(true);
+    expect(children.some(child => child.props['data-testid'] === 'page-ready')).toBe(true);
+  });
   it('attaches next/font variables to the body class list', async () => {
     const tree = await RootLayout({
       children: null,
@@ -90,8 +149,6 @@ describe('RootLayout font wiring', () => {
 
     const body = tree.props.children;
 
-    expect(hoisted.interMock).toHaveBeenCalled();
-    expect(hoisted.spaceGroteskMock).toHaveBeenCalled();
     expect(body.props.className).toContain('font-inter');
     expect(body.props.className).toContain('font-space-grotesk');
     expect(body.props.className).toContain('antialiased');

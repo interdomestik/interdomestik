@@ -2,8 +2,6 @@ import { notFound } from 'next/navigation';
 import { NextRequest, NextResponse } from 'next/server';
 import { handleE2EBranchOperation } from './_core';
 
-export const dynamic = 'force-dynamic';
-
 /**
  * E2E-only route; do not enable in production.
  * This route is used by Playwright tests to set up and tear down data.

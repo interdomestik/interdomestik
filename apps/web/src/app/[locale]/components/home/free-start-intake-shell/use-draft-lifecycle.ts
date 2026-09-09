@@ -28,7 +28,7 @@ export function useDraftLifecycle(args: Args) {
   const [state, setState] = useState<DraftSaveState>('idle');
   const [verified, setVerified] = useState(false);
   const [identityKey, setIdentityKey] = useState(0);
-  const requestId = useRef(createUuidV4());
+  const requestId = useRef<string | null>(null);
   const savedFingerprint = useRef<string | null>(null);
   const pending = useRef(false);
   const currentFingerprint = draftFingerprint(args.category, args.draft, args.step);
@@ -71,7 +71,7 @@ export function useDraftLifecycle(args: Args) {
         setState('saving');
         const result = await createFreeStartDraft({
           ...payload(),
-          clientRequestId: requestId.current,
+          clientRequestId: requestId.current ?? (requestId.current = createUuidV4()),
         });
         // prettier-ignore
         if (!result.ok) { if (result.code === 'authRequired' && !required) { setState('idle'); return false; } return rejectIntent(result.code, required); }
@@ -139,7 +139,7 @@ export function useDraftLifecycle(args: Args) {
       () => setState('error')
     );
   // prettier-ignore
-  const startAnother = () => { if (pending.current) { return; } setActive(null); setItems([]); setIntent(null); setState('idle'); setVerified(false); setIdentityKey(key => key + 1); requestId.current = createUuidV4(); savedFingerprint.current = null; args.onReset(); };
+  const startAnother = () => { if (pending.current) { return; } setActive(null); setItems([]); setIntent(null); setState('idle'); setVerified(false); setIdentityKey(key => key + 1); requestId.current = null; savedFingerprint.current = null; args.onReset(); };
   // prettier-ignore
   const open = async (nextIntent: 'save' | 'manage') => { if (pending.current) { return; } setIntent(nextIntent); setVerified(false); if (nextIntent === 'manage') { if (await load()) { setVerified(true); } return; } await store(); };
   // prettier-ignore
