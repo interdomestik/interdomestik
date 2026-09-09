@@ -3,23 +3,23 @@
   "status": "promotion_pending",
   "sliceId": "T-117C",
   "tier": 3,
-  "baseSha": "30ad64ae20486ce03dbea2d116c008866cd97aba",
-  "promotionPrNumber": 1715,
+  "baseSha": "1ccdf308f07b407f9eabdececc0224bbca70807d",
+  "promotionPrNumber": 1721,
   "candidate": {
-    "commitSha": "d8fc48b3c984fc7eedba7c80cdccdcf3adec8f14",
-    "treeSha": "c568817924b47a6b50f39912e09f54463d0817ef",
-    "binaryDiffSha256": "f69f45c47deef16622655b0f3636027493e162c888f2b052ca3e89d11d29922f"
+    "commitSha": "616edb489b19c1e84a9b2cd95271d8f611aea941",
+    "treeSha": "d89bb06e95623028f99e92909f1eadb2f188b788",
+    "binaryDiffSha256": "58c5ac619ddadf1076343e1def0986d10bd7e6d3b02ae88c53be202fbe759dd6"
   },
   "prerequisite": {
-    "pullRequestNumber": 1713,
-    "headSha": "226a1be3a56ad15d6c0eaa2d775ab02dc11ea5ab",
-    "mergeSha": "30ad64ae20486ce03dbea2d116c008866cd97aba",
+    "pullRequestNumber": 1720,
+    "headSha": "24fbb4550dfca06914477c5f03cf9a49d8821679",
+    "mergeSha": "1ccdf308f07b407f9eabdececc0224bbca70807d",
     "status": "merged_and_verified"
   },
-  "authorityArtifactSha256": "46ec3789b2aa56fb0c597f10001e1bc099f7507147aad4d3b9663a7116a492f0",
+  "authorityArtifactSha256": "e508c68fd551b6cfe2a8ac907fb28f792a069e02be517585d630a4cb0452b3a1",
   "productOutcomes": [
     "Home-only named Case/Actions/Updates regions preserve one request identity and two tenant projections across all existing member destinations.",
-    "Nonce-off builds may prerender anonymous document/loading chrome; report builds retain per-request nonce rendering; mismatched built/runtime mode fails before request readiness."
+    "Nonce-off may prerender anonymous chrome; report retains request nonces; mismatched mode fails before readiness; locale-root Suspense and event-time UUID generation satisfy Next 16.3.3."
   ],
   "writerPaths": [
     "apps/web/e2e/gate/member-home-cta.spec.ts",
@@ -52,6 +52,7 @@
     "apps/web/src/app/[locale]/admin/users/[id]/page.tsx",
     "apps/web/src/app/[locale]/components/home/footer.test.tsx",
     "apps/web/src/app/[locale]/components/home/footer.tsx",
+    "apps/web/src/app/[locale]/components/home/free-start-intake-shell/use-draft-lifecycle.ts",
     "apps/web/src/app/[locale]/layout.tsx",
     "apps/web/src/app/[locale]/stats/page.tsx",
     "apps/web/src/app/api/claims/route.ts",
@@ -67,7 +68,7 @@
     "apps/web/src/lib/rendering-build-mode.test.ts",
     "apps/web/src/lib/rendering-build-mode.ts"
   ],
-  "productWriterMapSha256": "5cb7ef250dab08aa31b5acb7949c915819653febb2326de1fd821edd29bb0118",
+  "productWriterMapSha256": "b92e38a0712d08f188630d282f49bb4034aac2388573a061a4043985bc174f17",
   "proofSurfaces": [
     {
       "id": "mode-and-global-rendering",
@@ -255,10 +256,10 @@
     },
     "closureEvidence": {
       "callers": "Design map names root/role wrappers, home layout/slot/default readers and original member page deletion; implementation proof must match.",
-      "sharedConsumers": "Explicit public metadata/providers/track/all-role/API and all18 member route acceptance; no implicit unlisted writer.",
+      "sharedConsumers": "Public metadata/providers/track/all-role/API and all 18 member routes; no unlisted writer.",
       "readWriteDelete": "Exactly two existing read projections; old page deletion and new group paths listed; no domain/schema writes.",
       "mountErrorPaths": "Home defaults, implicit null child, sibling loading/error/empty, 17 sibling routes and unknown URL behavior explicitly contracted.",
-      "capabilityRequirements": "Exact Next16.2.12 and installed next-intl proof, paired production modes and both launch-path mismatch rejection required.",
+      "capabilityRequirements": "Protected-main Next 16.3.3 closure, paired modes, event-time UUID and both launch mismatch probes.",
       "testCollectors": "Concrete focused files and three gate collectors in map; original broad all-role/API/C31 acceptance retained.",
       "baselineOwnership": "Protected post-prerequisite base is bound; the exact candidate capacity is measured and carries no invented reserve."
     }
@@ -266,19 +267,19 @@
   "capacityAllocation": {
     "id": "t117c-rendering",
     "mode": "bounded",
-    "maxTrackedBytesDelta": 86868,
+    "maxTrackedBytesDelta": 87023,
     "maxTrackedFilesDelta": 20,
     "maxCategoryBytesDelta": {
+      "config/data/messages": 17136,
       "docs/text": 17265,
-      "source/scripts": 12934,
-      "tests/e2e": 39533,
-      "config/data/messages": 17136
+      "source/scripts": 13031,
+      "tests/e2e": 39591
     },
     "maxPathBytesDelta": {
       "apps/web/e2e/gate/member-parallel-routes.spec.ts": 7527,
       "apps/web/e2e/gate/rendering-build-mode.spec.ts": 6334,
       "apps/web/next.config.mjs": 523,
-      "apps/web/src/app/[locale]/_core.entry.test.tsx": 2526,
+      "apps/web/src/app/[locale]/_core.entry.test.tsx": 2584,
       "apps/web/src/app/[locale]/_core.entry.tsx": 345,
       "apps/web/src/app/[locale]/(agent)/agent/layout.tsx": 155,
       "apps/web/src/app/[locale]/(app)/layout.tsx": 187,
@@ -293,45 +294,46 @@
       "apps/web/src/app/[locale]/(app)/member/(portal)/page.tsx": 284,
       "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.test.ts": 11679,
       "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.ts": 4138,
-      "apps/web/src/app/[locale]/(app)/member/layout.tsx": 187,
-      "apps/web/src/app/[locale]/(staff)/staff/layout.tsx": 187,
+      "apps/web/src/app/[locale]/(app)/member/layout.tsx": 197,
+      "apps/web/src/app/[locale]/(staff)/staff/layout.tsx": 197,
       "apps/web/src/app/[locale]/admin/commissions/page.tsx": 0,
-      "apps/web/src/app/[locale]/admin/layout.tsx": 155,
+      "apps/web/src/app/[locale]/admin/layout.tsx": 165,
       "apps/web/src/app/[locale]/admin/members/number/[memberNumber]/page.tsx": 0,
       "apps/web/src/app/[locale]/admin/settings/page.tsx": 0,
       "apps/web/src/app/[locale]/admin/users/[id]/page.tsx": 0,
       "apps/web/src/app/[locale]/components/home/footer.test.tsx": 965,
       "apps/web/src/app/[locale]/components/home/footer.tsx": 231,
       "apps/web/src/app/[locale]/layout.tsx": 98,
-      "apps/web/src/app/[locale]/stats/page.tsx": 208,
+      "apps/web/src/app/[locale]/stats/page.tsx": 222,
       "apps/web/src/app/api/claims/route.ts": 0,
       "apps/web/src/app/api/csp-report/route.ts": 0,
       "apps/web/src/app/api/e2e/branches/route.ts": 0,
       "apps/web/src/app/track/[token]/page.test.tsx": 2308,
-      "apps/web/src/app/track/[token]/page.tsx": 594,
+      "apps/web/src/app/track/[token]/page.tsx": 612,
       "apps/web/src/components/shell/request-boundary.test.tsx": 1783,
       "apps/web/src/components/shell/request-boundary.tsx": 1283,
       "apps/web/src/instrumentation.ts": 417,
       "apps/web/src/lib/rendering-build-mode.test.ts": 6411,
       "apps/web/src/lib/rendering-build-mode.ts": 580,
       "docs/plans/2026-09-07-t117c-rendering-design-gate.md": 17265,
-      "docs/plans/2026-09-07-t117c-rendering-admission.json": 17136
+      "docs/plans/2026-09-07-t117c-rendering-admission.json": 17136,
+      "apps/web/src/app/[locale]/components/home/free-start-intake-shell/use-draft-lifecycle.ts": 35
     },
     "repair": {
-      "pullRequestNumber": 1704,
-      "headSha": "020dbaa16c1298e0f5895b4c243e94ce662fbfe5",
-      "mergeSha": "69293235bb5870a617ce73306afd4d537e862503"
+      "pullRequestNumber": 1720,
+      "headSha": "24fbb4550dfca06914477c5f03cf9a49d8821679",
+      "mergeSha": "1ccdf308f07b407f9eabdececc0224bbca70807d"
     },
-    "derivation": "PR #1704 binds 39 product paths and 2 promotion artifacts to protected-baseline ceilings; five inherited product paths remain owned by t117b-cutover, and current-program/current-tracker remain owned by t116-case-summary. The 20-file ceiling counts additions, not net growth; reserve is unchanged."
+    "derivation": "PR #1720 adds the UUID source to the protected allocation. Five paths remain T117B-owned; program/tracker remain T116-owned. The 20-file ceiling counts additions; reserve is unchanged."
   },
   "successorConditions": [
     "Closed T117B-CUTOVER predecessor with final exact writer map is verified through existing child evidence.",
-    "PRs #1700/#1704/#1707/#1709 bind policy, capacity, E2E pin and history; promotion binds hashes and owner facts.",
-    "Exact-head product proof/review/gates and exact-main health pass; deterministic closeout returns authority inactive.",
+    "PRs #1700/#1704/#1707/#1709/#1713 bind prior prerequisites; #1719 closes failure; #1720 admits 45 writers.",
+    "Promotion #1721 binds the corrected candidate; exact-head proof and exact-main health precede inactive closeout.",
     "No successor is implicitly promoted and no infrastructure/build variant is counted as a separate product trial."
   ],
   "highestRiskCases": [
-    "Build-time substitution accidentally freezes raw runtime nonce mode or mismatch startup still serves.",
+    "Build-time mode freezes runtime input, mismatch serves, or request state/UUID escapes its Suspense/event boundary.",
     "Parallel slot execution reads before guards, duplicates projections or shares identity across requests.",
     "Global rendering changes break public metadata/providers/track or non-member authorization.",
     "Slot defaults/soft navigation retain stale home data on sibling member routes.",
@@ -341,5 +343,5 @@
     "mechanism": "Discard owned unmerged candidate; after merge revert only exact T-117C product merge, rebuild for same authorized nonce mode, restore inactive projections and preserve CUTOVER/DATA/PORTAL/unrelated state.",
     "trigger": "Auth/tenant/nonce/query/route/a11y/capacity/writer-map/review/CI/merge/main-health proof fails."
   },
-  "firstImplementationAction": "Merge promotion PR #1710 from the bound base, then materialize the exact candidate on codex/t117c-rendering-r2 for one governed product run."
+  "firstImplementationAction": "Merge #1721 from the bound base, then run candidate 616edb489b19c1e84a9b2cd95271d8f611aea941 on codex/t117c-rendering-r4."
 }
