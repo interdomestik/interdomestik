@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { closeoutPull } from './lean-current-authority-historical-closeout.mjs';
 
 import { t117bChildContract } from './lean-exact-writer-exceptions.mjs';
 import {
@@ -103,9 +104,8 @@ function productEvidence(repo, projection) {
   return { authority, product };
 }
 function closeoutEvidence(repo, transition, terminalSha) {
-  const { closeoutMergeSha: closeoutSha, prior } = transition;
-  const branch = `${prior.activeSlice.expectedProductBranch}-closeout`;
-  const raw = pullByBranch(repo, branch, transition.closeoutMergeSha);
+  const { closeoutMergeSha: sha, prior } = transition;
+  const { branch, pull: raw } = closeoutPull(repo, transition);
   if (!raw) return { state: 'missing' };
   const pull = attachPullFiles(repo, pullFacts(repo, raw));
   const result = verifyCloseout(
@@ -121,7 +121,7 @@ function closeoutEvidence(repo, transition, terminalSha) {
         transition.terminalProjectionSha
       ),
       baseSha: transition.terminalProjectionSha,
-      protectedMainSha: closeoutSha,
+      protectedMainSha: sha,
     }
   );
   return { pull, result };
