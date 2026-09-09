@@ -56,7 +56,7 @@ const writers = [
   'apps/web/src/lib/rendering-build-mode.test.ts',
   'apps/web/src/lib/rendering-build-mode.ts',
 ];
-const slice = {
+const s = {
   sliceId: 'T-117C',
   tier: 3,
   promotionPrNumber: 1700,
@@ -68,52 +68,54 @@ const slice = {
   closeoutWriterPaths: ['docs/plans/current-program.md', 'docs/plans/current-tracker.md'],
 };
 
-test('T117C accepts the frozen 45-path rendering map', () => {
+test('T117C accepts the frozen 45-path map', () => {
   assert.equal(writers.length, 45);
-  assert.equal(validateSlice(slice), slice);
-  for (const path of writers) assert.equal(classifyWriterPath(path, slice).allowed, true, path);
+  assert.equal(
+    createHash('sha256').update(JSON.stringify(writers)).digest('hex'),
+    'b92e38a0712d08f188630d282f49bb4034aac2388573a061a4043985bc174f17'
+  );
+  assert.equal(validateSlice(s), s);
+  for (const p of writers) assert.equal(classifyWriterPath(p, s).allowed, true, p);
   assert.match(
-    approvalMarker(slice, '1'.repeat(40), '2'.repeat(40)),
+    approvalMarker(s, '1'.repeat(40), '2'.repeat(40)),
     /^LEAN_AUTHORITY_APPROVAL_V1\n/
   );
   for (const invalid of [
-    { ...slice, sliceId: 'T-117C-COPY' },
-    { ...slice, tier: 2 },
-    { ...slice, productWriterPaths: [...writers].reverse() },
-    { ...slice, productWriterPaths: writers.slice(1) },
-    { ...slice, productWriterPaths: writers.filter(path => !path.includes('/home/footer.')) },
-    { ...slice, productWriterPaths: writers.filter(path => !path.includes('/track/[token]/')) },
-    { ...slice, productWriterPaths: [...writers, 'apps/web/src/proxy.ts'] },
+    { ...s, sliceId: 'T-117C-COPY' },
+    { ...s, tier: 2 },
+    { ...s, productWriterPaths: [...writers].reverse() },
+    { ...s, productWriterPaths: writers.slice(1) },
+    { ...s, productWriterPaths: writers.filter(p => !p.includes('/home/footer.')) },
+    { ...s, productWriterPaths: writers.filter(p => !p.includes('/track/[token]/')) },
+    { ...s, productWriterPaths: [...writers, 'apps/web/src/proxy.ts'] },
     {
-      ...slice,
-      productWriterPaths: writers.map((path, i) => (i ? path : 'apps/web/src/proxy.ts')),
+      ...s,
+      productWriterPaths: writers.map((p, i) => (i ? p : 'apps/web/src/proxy.ts')),
     },
-    { ...slice, productWriterPaths: [...writers.slice(1), writers[1]] },
-    { ...slice, closeoutWriterPaths: [] },
+    { ...s, productWriterPaths: [...writers.slice(1), writers[1]] },
+    { ...s, closeoutWriterPaths: [] },
   ])
     assert.throws(() => validateSlice(invalid), /schema or policy mismatch/);
-  assert.equal(classifyWriterPath('apps/web/src/proxy.ts', slice).allowed, false);
+  assert.equal(classifyWriterPath('apps/web/src/proxy.ts', s).allowed, false);
   assert.equal(classifyWriterPath('apps/web/next.config.mjs').allowed, false);
 });
 
-test('T117C requires the verified closed 21-path CUTOVER predecessor', () => {
-  const predecessor = JSON.parse(
+test('T117C requires the verified closed CUTOVER predecessor', () => {
+  const prior = JSON.parse(
     fs.readFileSync(
       new URL('../docs/plans/2026-08-28-t117b-cutover-admission.json', import.meta.url),
       'utf8'
     )
   );
-  assert.equal(predecessor.sliceId, 'T117B-CUTOVER');
-  assert.equal(predecessor.writerPaths.length, 21);
-  const predecessorHash = createHash('sha256')
-    .update(JSON.stringify(predecessor.writerPaths))
-    .digest('hex');
-  assert.equal(predecessorHash, predecessor.productWriterMapSha256);
+  assert.equal(prior.sliceId, 'T117B-CUTOVER');
+  assert.equal(prior.writerPaths.length, 21);
+  const hash = createHash('sha256').update(JSON.stringify(prior.writerPaths)).digest('hex');
+  assert.equal(hash, prior.productWriterMapSha256);
   const evidence = {
     status: 'verified',
     childId: 'T-117C',
     predecessorSliceId: 'T117B-CUTOVER',
-    predecessorWriterMapSha256: predecessorHash,
+    predecessorWriterMapSha256: hash,
     productPrNumber: 1690,
     productState: 'CLOSED',
     productMerged: true,
@@ -123,8 +125,8 @@ test('T117C requires the verified closed 21-path CUTOVER predecessor', () => {
     closeoutMergeSha: '4'.repeat(40),
     closeoutState: 'deterministic_closeout_recorded',
   };
-  assert.equal(validT117BPredecessor(slice), false);
-  assert.equal(validT117BPredecessor(slice, evidence), true);
+  assert.equal(validT117BPredecessor(s), false);
+  assert.equal(validT117BPredecessor(s, evidence), true);
   for (const change of [
     { status: 'unavailable' },
     { predecessorSliceId: 'T117B-PORTAL' },
@@ -141,5 +143,5 @@ test('T117C requires the verified closed 21-path CUTOVER predecessor', () => {
     { productHeadSha: '' },
     { childId: 'T117B-CUTOVER' },
   ])
-    assert.equal(validT117BPredecessor(slice, { ...evidence, ...change }), false);
+    assert.equal(validT117BPredecessor(s, { ...evidence, ...change }), false);
 });
