@@ -146,3 +146,23 @@ test.describe('public locale shell without JavaScript', () => {
     });
   });
 });
+
+test('business membership returns native validation without duplicating the form', async ({
+  browser,
+}, testInfo) => {
+  await withNoJsPage(browser, testInfo, { width: 1280, height: 800 }, async page => {
+    await gotoApp(page, `/${routes.getLocale(testInfo)}/business-membership`, testInfo, {
+      marker: 'business-membership-page-ready',
+    });
+    const form = page.getByTestId('business-lead-form').locator('form');
+    await expect(form).toHaveCount(1);
+    await expect(form.locator('input[name="_idempotencyKey"]')).toHaveValue(/\S+/);
+    await expect(form.locator('button[type="submit"]')).toBeEnabled();
+    // Invalid input exercises native action state without creating a lead.
+    await form.locator('button[type="submit"]').click();
+    await expect(page.locator('#business-lead-firstName-error')).toBeVisible();
+    await expect(form.locator('[aria-invalid="true"]')).toHaveCount(6);
+    await expect(form).toHaveCount(1);
+    await expect(form).toBeVisible();
+  });
+});

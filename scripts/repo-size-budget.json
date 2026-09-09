@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 71506,
+      "trackedBytesDelta": 72432,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 40568,
+        "config/data/messages": 41494,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 40568,
+        "scripts/repo-size-budget.json": 41494,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -79,11 +79,11 @@
         "scripts/modularity-guard-policy.mjs",
         "scripts/lean-t117c-policy.test.mjs"
       ],
-      "maxTrackedBytesDelta": 52878,
+      "maxTrackedBytesDelta": 53800,
       "maxTrackedFilesDelta": 6,
       "maxCategoryBytesDelta": {
         "source/scripts": 20209,
-        "tests/e2e": 32669
+        "tests/e2e": 33591
       },
       "maxPathBytesDelta": {
         "scripts/lean-current-authority-policy.mjs": 487,
@@ -102,7 +102,7 @@
         "scripts/lean-current-authority-recovery.mjs": 6810,
         "scripts/lean-current-authority-recovery.test.mjs": 9126,
         "scripts/lean-current-authority-observation.mjs": 2056,
-        "scripts/lean-t117c-policy.test.mjs": 8038
+        "scripts/lean-t117c-policy.test.mjs": 8960
       }
     },
     {
@@ -246,17 +246,17 @@
         "packages/domain-member/src/portal-runtime/get-member-portal-membership.ts",
         "pnpm-lock.yaml"
       ],
-      "maxTrackedBytesDelta": 30556,
+      "maxTrackedBytesDelta": 33014,
       "maxTrackedFilesDelta": 9,
       "maxCategoryBytesDelta": {
         "config/data/messages": 7072,
         "docs/text": 3200,
-        "large support/generated-ish": 1125,
-        "source/scripts": 9328,
+        "large support/generated-ish": 3429,
+        "source/scripts": 9482,
         "tests/e2e": 9831
       },
       "maxPathBytesDelta": {
-        "scripts/lean-exact-writer-exceptions.mjs": 4006,
+        "scripts/lean-exact-writer-exceptions.mjs": 4160,
         "docs/plans/2026-08-28-t117b-data-design-gate.md": 3200,
         "docs/plans/2026-08-28-t117b-data-admission.json": 7009,
         "apps/web/src/lib/auth.server.ts": 53,
@@ -268,7 +268,7 @@
         "packages/domain-member/src/index.ts": 159,
         "packages/domain-member/src/portal-runtime/get-member-portal-membership.test.ts": 5434,
         "packages/domain-member/src/portal-runtime/get-member-portal-membership.ts": 1225,
-        "pnpm-lock.yaml": 1125
+        "pnpm-lock.yaml": 3429
       }
     },
     {
@@ -686,15 +686,15 @@
         "scripts/ci/main-e2e-reuse-core.test.mjs",
         "scripts/ci/main-e2e-reuse-github.test.mjs"
       ],
-      "maxTrackedBytesDelta": 26462,
+      "maxTrackedBytesDelta": 26576,
       "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
-        "source/scripts": 9584,
+        "source/scripts": 9698,
         "tests/e2e": 14185,
         "config/data/messages": 2693
       },
       "maxPathBytesDelta": {
-        "scripts/ci/main-e2e-reuse.mjs": 717,
+        "scripts/ci/main-e2e-reuse.mjs": 831,
         "scripts/ci/main-e2e-reuse-core.mjs": 975,
         "scripts/ci/main-e2e-reuse-github.mjs": 17,
         "scripts/ci/main-e2e-reuse-cli.test.mjs": 2831,
@@ -770,19 +770,21 @@
         "apps/web/src/lib/rendering-build-mode.test.ts",
         "apps/web/src/lib/rendering-build-mode.ts",
         "docs/plans/2026-09-07-t117c-rendering-design-gate.md",
-        "docs/plans/2026-09-07-t117c-rendering-admission.json"
+        "docs/plans/2026-09-07-t117c-rendering-admission.json",
+        "apps/web/src/app/[locale]/(site)/business-membership/page.tsx",
+        "apps/web/src/components/pricing/business-lead-form.test.tsx"
       ],
-      "maxTrackedBytesDelta": 87058,
+      "maxTrackedBytesDelta": 89388,
       "maxTrackedFilesDelta": 20,
       "maxCategoryBytesDelta": {
         "config/data/messages": 17136,
         "docs/text": 17265,
-        "source/scripts": 13066,
-        "tests/e2e": 39591
+        "source/scripts": 13566,
+        "tests/e2e": 41421
       },
       "maxPathBytesDelta": {
         "apps/web/e2e/gate/member-parallel-routes.spec.ts": 7527,
-        "apps/web/e2e/gate/rendering-build-mode.spec.ts": 6334,
+        "apps/web/e2e/gate/rendering-build-mode.spec.ts": 7464,
         "apps/web/next.config.mjs": 523,
         "apps/web/src/app/[locale]/_core.entry.test.tsx": 2584,
         "apps/web/src/app/[locale]/_core.entry.tsx": 345,
@@ -823,7 +825,9 @@
         "apps/web/src/lib/rendering-build-mode.ts": 580,
         "docs/plans/2026-09-07-t117c-rendering-design-gate.md": 17265,
         "docs/plans/2026-09-07-t117c-rendering-admission.json": 17136,
-        "apps/web/src/app/[locale]/components/home/free-start-intake-shell/use-draft-lifecycle.ts": 35
+        "apps/web/src/app/[locale]/components/home/free-start-intake-shell/use-draft-lifecycle.ts": 35,
+        "apps/web/src/app/[locale]/(site)/business-membership/page.tsx": 500,
+        "apps/web/src/components/pricing/business-lead-form.test.tsx": 700
       }
     },
     {
@@ -843,6 +847,27 @@
         "scripts/check-portal-layout-topology.mjs": 238,
         "scripts/ci/portal-layout-topology.test.mjs": 1200
       }
+    },
+    {
+      "id": "next-native-form-state-repair",
+      "mode": "bounded",
+      "writerPaths": [
+        "patches/next@16.3.3.patch",
+        "pnpm-workspace.yaml",
+        "apps/web/e2e/gate/public-locale-no-js-shell.spec.ts"
+      ],
+      "maxTrackedBytesDelta": 323104,
+      "maxTrackedFilesDelta": 1,
+      "maxCategoryBytesDelta": {
+        "other": 322048,
+        "config/data/messages": 63,
+        "tests/e2e": 993
+      },
+      "maxPathBytesDelta": {
+        "patches/next@16.3.3.patch": 322048,
+        "pnpm-workspace.yaml": 63,
+        "apps/web/e2e/gate/public-locale-no-js-shell.spec.ts": 993
+      }
     }
   ],
   "reserve": {
@@ -854,15 +879,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60541738,
-  "maxTrackedFiles": 5994,
+  "maxTrackedBytes": 60871592,
+  "maxTrackedFiles": 5995,
   "maxCategoryBytes": {
-    "config/data/messages": 2197623,
+    "config/data/messages": 2198612,
     "docs/text": 8528029,
-    "large support/generated-ish": 15393681,
-    "other": 18856416,
-    "source/scripts": 8738952,
-    "tests/e2e": 6827037
+    "large support/generated-ish": 15395985,
+    "other": 19178464,
+    "source/scripts": 8739720,
+    "tests/e2e": 6830782
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

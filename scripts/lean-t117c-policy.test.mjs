@@ -114,6 +114,31 @@ test('T117C accepts 51-path map', () => {
   assert.equal(classifyWriterPath('apps/web/next.config.mjs').allowed, false);
 });
 
+test('T117C admits only the exact 52-path progressive-form repair map', () => {
+  const repairedPaths = [...paths];
+  repairedPaths.splice(
+    paths.indexOf('apps/web/src/app/[locale]/(site)/nps/[token]/page.tsx'),
+    0,
+    'apps/web/src/app/[locale]/(site)/business-membership/page.tsx'
+  );
+  const repaired = { ...slice, productWriterPaths: repairedPaths };
+  assert.equal(repairedPaths.length, 52);
+  assert.equal(
+    createHash('sha256').update(JSON.stringify(repairedPaths)).digest('hex'),
+    '9ef46b0675e8c6ec590c8e1e2776ee2124593b4e36ea9df65856ed707477d1ac'
+  );
+  assert.equal(validateSlice(repaired), repaired);
+  for (const path of repairedPaths) assert.equal(classifyWriterPath(path, repaired).allowed, true);
+  assert.throws(
+    () =>
+      validateSlice({
+        ...repaired,
+        productWriterPaths: [...repairedPaths, 'apps/web/src/proxy.ts'],
+      }),
+    /schema or policy mismatch/
+  );
+});
+
 test('T117C retains its historical 44- and 45-path maps for authority replay', () => {
   const historical45 = {
     ...slice,

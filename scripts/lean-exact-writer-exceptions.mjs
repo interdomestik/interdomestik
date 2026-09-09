@@ -19,6 +19,8 @@ const CHILDREN = new Map([
         'b92e38a0712d08f188630d282f49bb4034aac2388573a061a4043985bc174f17',
         // Public no-JS regression repair closes the shared runtime consumers.
         '34b78b5355079747ae1166d70a955be94faaff2e7599492daa8b10fc96a1bc1b',
+        // Request-issued business-form key preserves progressive submission.
+        '9ef46b0675e8c6ec590c8e1e2776ee2124593b4e36ea9df65856ed707477d1ac',
       ],
       predecessor: {
         sliceId: 'T117B-CUTOVER',
