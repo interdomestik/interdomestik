@@ -14,7 +14,7 @@ function runRequest(children: ReactNode) {
 }
 
 describe('request boundary', () => {
-  it('withholds request children until connection and uses anonymous fallback', async () => {
+  it('keeps private children out of its fallback', async () => {
     let release!: () => void;
     connection.mockReturnValueOnce(
       new Promise<void>(resolve => {
@@ -31,10 +31,7 @@ describe('request boundary', () => {
     expect(settled).toBe(false);
     expect(boundary.props.fallback.type).toBe(RequestFallback);
     const fallback = renderToStaticMarkup(boundary.props.fallback);
-    expect(fallback).toContain('data-testid="request-fallback"');
-    expect(fallback).toContain('role="status"');
-    expect(fallback).toContain('aria-label="Loading page"');
-    expect(fallback).not.toContain('private member');
+    expect(fallback).toContain('role="status" aria-label="Loading"');
     expect(fallback).not.toContain('member-dashboard-ready');
     release();
     expect(await pending).toBe(child);

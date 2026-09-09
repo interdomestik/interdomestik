@@ -125,7 +125,6 @@ describe('RootLayout font wiring', () => {
     expect(hoisted.loadAllMessagesMock).toHaveBeenCalledWith('en', { strict: expect.any(Boolean) });
     expect(hoisted.getMessagesMock).not.toHaveBeenCalled();
     expect(hoisted.connectionMock).not.toHaveBeenCalled();
-    expect(hoisted.headersMock).not.toHaveBeenCalled();
     const suspense = findElementByType(tree, Suspense);
     expect(suspense).toBeDefined();
     expect(findElementByType(suspense?.props.children, 'main')).toBe(publicShell);

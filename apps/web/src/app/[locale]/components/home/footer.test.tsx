@@ -78,13 +78,10 @@ describe('Footer', () => {
     }
   );
 
-  it.each([undefined, '', '2026junk', ' 2026 ', 'NaN'])(
-    'rejects a missing or invalid compiled copyright year',
-    year => {
-      vi.stubEnv('INTERDOMESTIK_BUILD_COPYRIGHT_YEAR', year);
-      expect(() => renderFooter('en')).toThrow('Invalid compiled copyright year');
-    }
-  );
+  it.each([undefined, '', '2026junk', ' 2026 ', 'NaN'])('rejects invalid compiled years', year => {
+    vi.stubEnv('INTERDOMESTIK_BUILD_COPYRIGHT_YEAR', year);
+    expect(() => renderFooter('en')).toThrow('Invalid compiled copyright year');
+  });
 
   it.each([
     {
