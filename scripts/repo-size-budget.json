@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 71380,
+      "trackedBytesDelta": 71506,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 40442,
+        "config/data/messages": 40568,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 40442,
+        "scripts/repo-size-budget.json": 40568,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -747,6 +747,7 @@
         "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.test.ts",
         "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.ts",
         "apps/web/src/app/[locale]/(app)/member/layout.tsx",
+        "apps/web/src/app/[locale]/(site)/pricing/page.tsx",
         "apps/web/src/app/[locale]/(staff)/staff/layout.tsx",
         "apps/web/src/app/[locale]/admin/commissions/page.tsx",
         "apps/web/src/app/[locale]/admin/layout.tsx",
@@ -771,12 +772,12 @@
         "docs/plans/2026-09-07-t117c-rendering-design-gate.md",
         "docs/plans/2026-09-07-t117c-rendering-admission.json"
       ],
-      "maxTrackedBytesDelta": 87023,
+      "maxTrackedBytesDelta": 87058,
       "maxTrackedFilesDelta": 20,
       "maxCategoryBytesDelta": {
         "config/data/messages": 17136,
         "docs/text": 17265,
-        "source/scripts": 13031,
+        "source/scripts": 13066,
         "tests/e2e": 39591
       },
       "maxPathBytesDelta": {
@@ -799,6 +800,7 @@
         "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.test.ts": 11679,
         "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.ts": 4138,
         "apps/web/src/app/[locale]/(app)/member/layout.tsx": 197,
+        "apps/web/src/app/[locale]/(site)/pricing/page.tsx": 35,
         "apps/web/src/app/[locale]/(staff)/staff/layout.tsx": 197,
         "apps/web/src/app/[locale]/admin/commissions/page.tsx": 0,
         "apps/web/src/app/[locale]/admin/layout.tsx": 165,
@@ -852,14 +854,14 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60541577,
+  "maxTrackedBytes": 60541738,
   "maxTrackedFiles": 5994,
   "maxCategoryBytes": {
-    "config/data/messages": 2197497,
+    "config/data/messages": 2197623,
     "docs/text": 8528029,
     "large support/generated-ish": 15393681,
     "other": 18856416,
-    "source/scripts": 8738917,
+    "source/scripts": 8738952,
     "tests/e2e": 6827037
   },
   "maxLargestFileBytes": 3266530,
