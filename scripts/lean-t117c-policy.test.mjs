@@ -40,6 +40,7 @@ const writers = [
   'apps/web/src/app/[locale]/admin/users/[id]/page.tsx',
   'apps/web/src/app/[locale]/components/home/footer.test.tsx',
   'apps/web/src/app/[locale]/components/home/footer.tsx',
+  'apps/web/src/app/[locale]/components/home/free-start-intake-shell/use-draft-lifecycle.ts',
   'apps/web/src/app/[locale]/layout.tsx',
   'apps/web/src/app/[locale]/stats/page.tsx',
   'apps/web/src/app/api/claims/route.ts',
@@ -67,8 +68,8 @@ const slice = {
   closeoutWriterPaths: ['docs/plans/current-program.md', 'docs/plans/current-tracker.md'],
 };
 
-test('T117C accepts only the frozen 44-path rendering map', () => {
-  assert.equal(writers.length, 44);
+test('T117C accepts only the frozen 45-path rendering map', () => {
+  assert.equal(writers.length, 45);
   assert.equal(validateSlice(slice), slice);
   for (const path of writers) assert.equal(classifyWriterPath(path, slice).allowed, true, path);
   assert.match(
