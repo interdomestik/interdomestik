@@ -11,6 +11,8 @@ const PORTAL_LAYOUTS = [
   'apps/web/src/app/[locale]/admin/layout.tsx',
 ];
 
+const OPTIONAL_PORTAL_LAYOUTS = ['apps/web/src/app/[locale]/(app)/member/(portal)/layout.tsx'];
+
 const REQUIRED_CANONICAL_PAGES = [
   'apps/web/src/app/[locale]/(agent)/agent/import/page.tsx',
   'apps/web/src/app/[locale]/(agent)/agent/pos/page.tsx',
@@ -55,7 +57,7 @@ function walkFiles(root, dir, results = []) {
 
 function isPortalLayoutCandidate(file) {
   if (!file.endsWith('/layout.tsx')) return false;
-  if (PORTAL_LAYOUTS.includes(file)) return true;
+  if (PORTAL_LAYOUTS.includes(file) || OPTIONAL_PORTAL_LAYOUTS.includes(file)) return true;
   if (FORBIDDEN_GROUP_LAYOUTS.has(file)) return true;
   if (PORTAL_ROOTS.some(portalRoot => file.startsWith(`${portalRoot}/`))) return true;
   if (file.includes('/legacy/')) return true;
@@ -82,7 +84,10 @@ export function evaluatePortalLayoutTopology(root = process.cwd()) {
   const portalLayouts = walkFiles(root, ROUTE_ROOT)
     .filter(isPortalLayoutCandidate)
     .sort(comparePath);
-  const expected = [...PORTAL_LAYOUTS].sort(comparePath);
+  const expected = [
+    ...PORTAL_LAYOUTS,
+    ...OPTIONAL_PORTAL_LAYOUTS.filter(file => exists(root, file)),
+  ].sort(comparePath);
   const unexpected = portalLayouts.filter(file => !expected.includes(file));
   const missing = expected.filter(file => !portalLayouts.includes(file));
 
@@ -92,8 +97,10 @@ export function evaluatePortalLayoutTopology(root = process.cwd()) {
   if (missing.length > 0) {
     failures.push(`Portal layout scan missed expected files: ${missing.join(', ')}`);
   }
-  if (portalLayouts.length !== PORTAL_LAYOUTS.length) {
-    failures.push(`Expected exactly 4 portal layouts, found ${portalLayouts.length}`);
+  if (portalLayouts.length !== expected.length) {
+    failures.push(
+      `Expected exactly ${expected.length} portal layouts, found ${portalLayouts.length}`
+    );
   }
 
   const clientRouteLayouts = portalLayouts.filter(file => {

@@ -215,7 +215,7 @@ export function LoginForm({
               if (planIdFromQuery && target === '/member') {
                 const pricingParams = new URLSearchParams();
                 pricingParams.set('plan', planIdFromQuery);
-                globalThis.location.assign(`/${locale}/pricing?${pricingParams.toString()}`);
+                globalThis.location.assign(`/${locale}/pricing?${pricingParams}`); // eslint-disable-line @next/next/no-location-assign-relative-destination -- hard navigation reloads the authenticated session
                 return;
               }
 

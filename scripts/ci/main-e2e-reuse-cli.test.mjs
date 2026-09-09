@@ -73,6 +73,15 @@ test('repository parity recognizes exact PR-head checkout and strict project sup
     commandChain: true,
   });
 });
+test('T117C nonce assertion correction preserves corpus parity', () => {
+  assert.equal(
+    inspectRepositoryParity({
+      ...sources(),
+      e2eTreeSha: '110a4d174a4149f9c2eac14ad3e1aff848371d32',
+    }).commandChain,
+    true
+  );
+});
 test('parity drift always resolves to a fail-closed reuse decision', async () => {
   const current = sources();
   const checkout = 'ref: ${{ github.event.pull_request.head.sha || github.sha }}';
