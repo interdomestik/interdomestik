@@ -68,7 +68,7 @@ const slice = {
   closeoutWriterPaths: ['docs/plans/current-program.md', 'docs/plans/current-tracker.md'],
 };
 
-test('T117C accepts only the frozen 45-path rendering map', () => {
+test('T117C accepts the frozen 45-path rendering map', () => {
   assert.equal(writers.length, 45);
   assert.equal(validateSlice(slice), slice);
   for (const path of writers) assert.equal(classifyWriterPath(path, slice).allowed, true, path);
