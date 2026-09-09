@@ -3,20 +3,20 @@
   "status": "promotion_pending",
   "sliceId": "T-117C",
   "tier": 3,
-  "baseSha": "189f3ca8c3a10de83ffb0634ceaa99d162fd05ad",
-  "promotionPrNumber": 1710,
+  "baseSha": "30ad64ae20486ce03dbea2d116c008866cd97aba",
+  "promotionPrNumber": 1715,
   "candidate": {
-    "commitSha": "4e3c333038cf888e2cb31846082fd94d08759fd8",
-    "treeSha": "f3a79932e2f693fb120c6fd166a55ab858ca413c",
-    "binaryDiffSha256": "5571db81bda9239c8af21afc2e496eeacdec04db7c1e6f380fae7e1c43915230"
+    "commitSha": "d8fc48b3c984fc7eedba7c80cdccdcf3adec8f14",
+    "treeSha": "c568817924b47a6b50f39912e09f54463d0817ef",
+    "binaryDiffSha256": "f69f45c47deef16622655b0f3636027493e162c888f2b052ca3e89d11d29922f"
   },
   "prerequisite": {
-    "pullRequestNumber": 1700,
-    "headSha": "d468ac92d7f3fee79acfed0ba598d0a08c72b4c9",
-    "mergeSha": "d739150d648c3f6c6c83ac56e3646933c21f9b8b",
+    "pullRequestNumber": 1713,
+    "headSha": "226a1be3a56ad15d6c0eaa2d775ab02dc11ea5ab",
+    "mergeSha": "30ad64ae20486ce03dbea2d116c008866cd97aba",
     "status": "merged_and_verified"
   },
-  "authorityArtifactSha256": "b7ef8267c0fe74b96ee9095b8dc43cd301321e289607d6ee4696fb40798b2400",
+  "authorityArtifactSha256": "46ec3789b2aa56fb0c597f10001e1bc099f7507147aad4d3b9663a7116a492f0",
   "productOutcomes": [
     "Home-only named Case/Actions/Updates regions preserve one request identity and two tenant projections across all existing member destinations.",
     "Nonce-off builds may prerender anonymous document/loading chrome; report builds retain per-request nonce rendering; mismatched built/runtime mode fails before request readiness."
