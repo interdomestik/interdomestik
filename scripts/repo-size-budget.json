@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 72432,
+      "trackedBytesDelta": 73040,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 41494,
+        "config/data/messages": 42102,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 41494,
+        "scripts/repo-size-budget.json": 42102,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -79,11 +79,11 @@
         "scripts/modularity-guard-policy.mjs",
         "scripts/lean-t117c-policy.test.mjs"
       ],
-      "maxTrackedBytesDelta": 53800,
+      "maxTrackedBytesDelta": 53909,
       "maxTrackedFilesDelta": 6,
       "maxCategoryBytesDelta": {
         "source/scripts": 20209,
-        "tests/e2e": 33591
+        "tests/e2e": 33700
       },
       "maxPathBytesDelta": {
         "scripts/lean-current-authority-policy.mjs": 487,
@@ -94,7 +94,7 @@
         "scripts/lean-current-authority-evidence.mjs": 232,
         "scripts/lean-current-authority-policy.test.mjs": 7782,
         "scripts/lean-current-authority.test.mjs": 390,
-        "scripts/lean-current-authority-evidence.test.mjs": 882,
+        "scripts/lean-current-authority-evidence.test.mjs": 991,
         "scripts/lean-current-authority-pull-selection.test.mjs": 2493,
         "scripts/lean-current-authority-conformance.test.mjs": 3260,
         "scripts/modularity-guard-policy.mjs": 516,
@@ -868,6 +868,24 @@
         "pnpm-workspace.yaml": 63,
         "apps/web/e2e/gate/public-locale-no-js-shell.spec.ts": 993
       }
+    },
+    {
+      "id": "t117c-historical-closeout-repair",
+      "mode": "bounded",
+      "writerPaths": [
+        "scripts/lean-current-authority-historical-closeout.mjs",
+        "scripts/lean-current-authority-historical-closeout.test.mjs"
+      ],
+      "maxTrackedBytesDelta": 6361,
+      "maxTrackedFilesDelta": 2,
+      "maxCategoryBytesDelta": {
+        "source/scripts": 1629,
+        "tests/e2e": 4732
+      },
+      "maxPathBytesDelta": {
+        "scripts/lean-current-authority-historical-closeout.mjs": 1629,
+        "scripts/lean-current-authority-historical-closeout.test.mjs": 4732
+      }
     }
   ],
   "reserve": {
@@ -879,15 +897,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60871592,
-  "maxTrackedFiles": 5995,
+  "maxTrackedBytes": 60878670,
+  "maxTrackedFiles": 5997,
   "maxCategoryBytes": {
-    "config/data/messages": 2198612,
+    "config/data/messages": 2199220,
     "docs/text": 8528029,
     "large support/generated-ish": 15395985,
     "other": 19178464,
-    "source/scripts": 8739720,
-    "tests/e2e": 6830782
+    "source/scripts": 8741349,
+    "tests/e2e": 6835623
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

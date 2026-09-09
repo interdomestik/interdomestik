@@ -283,8 +283,9 @@ test('Git evidence uses a bounded timeout', () => {
 
 test('closeout selection uses its recorded merge', () => {
   assert.match(source('./lean-current-authority-evidence.mjs'), /transition\.closeoutMergeSha/u);
+  assert.match(source('./lean-current-authority-history.mjs'), /closeoutPull\(repo, transition\)/u);
   assert.match(
-    source('./lean-current-authority-history.mjs'),
-    /pullByBranch\(repo, branch, transition\.closeoutMergeSha\)/u
+    source('./lean-current-authority-historical-closeout.mjs'),
+    /byBranch\(repo, branch, transition\.closeoutMergeSha\)/u
   );
 });
