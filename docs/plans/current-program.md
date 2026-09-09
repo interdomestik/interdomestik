@@ -85,7 +85,7 @@ neutral-host/default-tenant draft behavior and isolated fixtures. Final-head Ful
 `33862616690`, finalizer `33863200356` attempt 2, and delivery `33863200387` attempt 2 were green.
 Protected-main CI `33865541214`, CodeQL `33865540843`, Code Quality `33865540812`, Secret Scan
 `33865541201`, and Sonar Main `33865541295` were green; CD `33865541227` was cancelled with zero
-jobs and no deployment effect. T-117C promotions `#1703` and `#1710` merged exactly; product PRs `#1705` and `#1711` failed closed before merge on evidence-pin and topology prerequisites. Repairs `#1707`, `#1709`, and `#1713` completed; `#1713` is bound as base `30ad64ae20486ce03dbea2d116c008866cd97aba`. Repeat promotion `#1715` is pending for candidate `d8fc48b3c984fc7eedba7c80cdccdcf3adec8f14`. The absent compiled post-merge-node certificate remains shadow backlog evidence and grants no Harness repair or runtime.
+jobs and no deployment effect. T-117C promotions `#1703`, `#1710`, and `#1715` merged exactly; product PRs `#1705`, `#1711`, and `#1718` failed closed before merge. Product `#1718` reached the exact promoted tree, then its final-head Next 16.3.3 runners exposed a missing request Suspense boundary and prerender-time UUID creation. A detached Z620 proof on the same dependency closure completes `build:ci` with a narrow locale-root Suspense boundary and event-time UUID creation while preserving the prerendered public shell. The UUID source path is outside the frozen writer map, so runtime is inactive pending one corrected re-promotion. The absent compiled post-merge-node certificate remains shadow backlog evidence and grants no Harness repair or runtime.
 
 Closed `IDA-WF01-ONE-APPROVAL-DELIVERY` remains immutable evidence through its
 [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),
@@ -102,9 +102,9 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate       | Dependencies   | Promotion constraint                 |
-| -------: | --------------- | -------------- | ------------------------------------ |
-|        1 | `T-117C` Tier 3 | CUTOVER closed | Repeat promotion PR `#1715` pending. |
+| Priority | Candidate       | Dependencies   | Promotion constraint                            |
+| -------: | --------------- | -------------- | ----------------------------------------------- |
+|        1 | `T-117C` Tier 3 | CUTOVER closed | Re-promote the corrected Next 16.3.3 candidate. |
 
 ## Unified Portal Direction
 
@@ -139,70 +139,12 @@ and global headers remain T-117C.
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "promotion_pending",
+  "lifecycle": "inactive",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": {
-    "sliceId": "T-117C",
-    "tier": 3,
-    "promotionPrNumber": 1715,
-    "promotionBaseSha": "30ad64ae20486ce03dbea2d116c008866cd97aba",
-    "expectedProductBranch": "codex/t117c-rendering-r3",
-    "gateSha256": "46ec3789b2aa56fb0c597f10001e1bc099f7507147aad4d3b9663a7116a492f0",
-    "admissionSha256": "a61511964c94ab4d8788daf574b601332115dcb1ecd2f2a4b5a33655df9ff9c1",
-    "productWriterPaths": [
-      "apps/web/e2e/gate/member-home-cta.spec.ts",
-      "apps/web/e2e/gate/member-parallel-routes.spec.ts",
-      "apps/web/e2e/gate/rendering-build-mode.spec.ts",
-      "apps/web/next.config.mjs",
-      "apps/web/src/app/[locale]/_core.entry.test.tsx",
-      "apps/web/src/app/[locale]/_core.entry.tsx",
-      "apps/web/src/app/[locale]/(agent)/agent/layout.tsx",
-      "apps/web/src/app/[locale]/(app)/layout.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@actions/default.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@actions/page.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@case/default.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@case/page.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@updates/default.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@updates/page.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/default.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/layout.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/page.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.test.ts",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.ts",
-      "apps/web/src/app/[locale]/(app)/member/layout.tsx",
-      "apps/web/src/app/[locale]/(app)/member/page.test.tsx",
-      "apps/web/src/app/[locale]/(app)/member/page.tsx",
-      "apps/web/src/app/[locale]/(staff)/staff/layout.tsx",
-      "apps/web/src/app/[locale]/admin/commissions/page.tsx",
-      "apps/web/src/app/[locale]/admin/layout.tsx",
-      "apps/web/src/app/[locale]/admin/members/number/[memberNumber]/page.tsx",
-      "apps/web/src/app/[locale]/admin/settings/page.tsx",
-      "apps/web/src/app/[locale]/admin/users/[id]/page.tsx",
-      "apps/web/src/app/[locale]/components/home/footer.test.tsx",
-      "apps/web/src/app/[locale]/components/home/footer.tsx",
-      "apps/web/src/app/[locale]/layout.tsx",
-      "apps/web/src/app/[locale]/stats/page.tsx",
-      "apps/web/src/app/api/claims/route.ts",
-      "apps/web/src/app/api/csp-report/route.ts",
-      "apps/web/src/app/api/e2e/branches/route.ts",
-      "apps/web/src/app/track/[token]/page.test.tsx",
-      "apps/web/src/app/track/[token]/page.tsx",
-      "apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx",
-      "apps/web/src/components/dashboard/member-portal-runtime.tsx",
-      "apps/web/src/components/shell/request-boundary.test.tsx",
-      "apps/web/src/components/shell/request-boundary.tsx",
-      "apps/web/src/instrumentation.ts",
-      "apps/web/src/lib/rendering-build-mode.test.ts",
-      "apps/web/src/lib/rendering-build-mode.ts"
-    ],
-    "closeoutWriterPaths": [
-      "docs/plans/current-program.md",
-      "docs/plans/current-tracker.md"
-    ]
-  }
+  "activeSlice": null
 }
 ```
 
@@ -214,4 +156,4 @@ Rev 243 history is recoverable from
 OD17, and CI01 remain historical and inactive.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:T-117C`; lifecycle `promotion_pending`).
+The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:null`; lifecycle `inactive`).
