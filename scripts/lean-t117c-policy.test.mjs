@@ -100,6 +100,19 @@ test('T117C accepts 45-path map', () => {
   assert.equal(classifyWriterPath('apps/web/next.config.mjs').allowed, false);
 });
 
+test('T117C retains its historical 44-path map for authority replay', () => {
+  const historical = {
+    ...slice,
+    productWriterPaths: paths.filter(p => !p.endsWith('/use-draft-lifecycle.ts')),
+  };
+  assert.equal(historical.productWriterPaths.length, 44);
+  assert.equal(
+    createHash('sha256').update(JSON.stringify(historical.productWriterPaths)).digest('hex'),
+    '5cb7ef250dab08aa31b5acb7949c915819653febb2326de1fd821edd29bb0118'
+  );
+  assert.equal(validateSlice(historical), historical);
+});
+
 test('T117C requires closed CUTOVER predecessor', () => {
   const prior = JSON.parse(
     fs.readFileSync(
