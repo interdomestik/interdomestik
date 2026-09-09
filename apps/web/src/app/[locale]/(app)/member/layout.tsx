@@ -1,4 +1,7 @@
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+import { RequestBoundary } from '@/components/shell/request-boundary';
+import Entry from './_core.entry';
+export { generateMetadata, generateViewport } from './_core.entry';
 
-export { default, generateMetadata, generateViewport } from './_core.entry';
+export default function Layout(props: Readonly<Parameters<typeof Entry>[0]>) {
+  return <RequestBoundary render={() => <Entry {...props} />} />;
+}

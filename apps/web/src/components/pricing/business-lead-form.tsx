@@ -15,6 +15,14 @@ const initialState: SubmitBusinessMembershipLeadResult | null = null;
 
 const teamSizeOptions = ['1-10', '11-25', '26-50', '51-100', '100+'] as const;
 
+function FieldError({ id, message }: Readonly<{ id: string; message?: string }>) {
+  return message ? (
+    <p id={id} className="text-sm font-medium text-red-600">
+      {message}
+    </p>
+  ) : null;
+}
+
 function createIdempotencyKey() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
@@ -29,9 +37,11 @@ export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
     submitBusinessMembershipLead,
     initialState
   );
-  const [idempotencyKey, setIdempotencyKey] = useState(createIdempotencyKey);
+  const [hydrated, setHydrated] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const lastToastSignatureRef = useRef<string | null>(null);
+
+  useEffect(() => setHydrated(true), []);
 
   useEffect(() => {
     if (!serverState) {
@@ -46,7 +56,6 @@ export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
       }
 
       formRef.current?.reset();
-      setIdempotencyKey(createIdempotencyKey());
       return;
     }
 
@@ -85,8 +94,21 @@ export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
         </div>
       )}
 
-      <form ref={formRef} action={formAction} className="mt-6 grid gap-5 md:grid-cols-2" noValidate>
-        <input type="hidden" name="_idempotencyKey" value={idempotencyKey} />
+      <form
+        ref={formRef}
+        action={hydrated ? formAction : undefined}
+        className="mt-6 grid gap-5 md:grid-cols-2"
+        noValidate
+        onSubmitCapture={event => {
+          if (!hydrated) {
+            event.preventDefault();
+            return;
+          }
+          const key = event.currentTarget.elements.namedItem('_idempotencyKey');
+          if (key instanceof HTMLInputElement) key.value ||= createIdempotencyKey();
+        }}
+      >
+        <input type="hidden" name="_idempotencyKey" />
         <input type="hidden" name="locale" value={locale} />
 
         <div className="space-y-2">
@@ -100,11 +122,7 @@ export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
             aria-describedby={fieldErrors.firstName ? 'business-lead-firstName-error' : undefined}
             disabled={pending}
           />
-          {fieldErrors.firstName && (
-            <p id="business-lead-firstName-error" className="text-sm font-medium text-red-600">
-              {fieldErrors.firstName}
-            </p>
-          )}
+          <FieldError id="business-lead-firstName-error" message={fieldErrors.firstName} />
         </div>
 
         <div className="space-y-2">
@@ -118,11 +136,7 @@ export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
             aria-describedby={fieldErrors.lastName ? 'business-lead-lastName-error' : undefined}
             disabled={pending}
           />
-          {fieldErrors.lastName && (
-            <p id="business-lead-lastName-error" className="text-sm font-medium text-red-600">
-              {fieldErrors.lastName}
-            </p>
-          )}
+          <FieldError id="business-lead-lastName-error" message={fieldErrors.lastName} />
         </div>
 
         <div className="space-y-2 md:col-span-2">
@@ -138,11 +152,7 @@ export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
             }
             disabled={pending}
           />
-          {fieldErrors.companyName && (
-            <p id="business-lead-companyName-error" className="text-sm font-medium text-red-600">
-              {fieldErrors.companyName}
-            </p>
-          )}
+          <FieldError id="business-lead-companyName-error" message={fieldErrors.companyName} />
         </div>
 
         <div className="space-y-2">
@@ -157,11 +167,7 @@ export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
             aria-describedby={fieldErrors.email ? 'business-lead-email-error' : undefined}
             disabled={pending}
           />
-          {fieldErrors.email && (
-            <p id="business-lead-email-error" className="text-sm font-medium text-red-600">
-              {fieldErrors.email}
-            </p>
-          )}
+          <FieldError id="business-lead-email-error" message={fieldErrors.email} />
         </div>
 
         <div className="space-y-2">
@@ -176,11 +182,7 @@ export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
             aria-describedby={fieldErrors.phone ? 'business-lead-phone-error' : undefined}
             disabled={pending}
           />
-          {fieldErrors.phone && (
-            <p id="business-lead-phone-error" className="text-sm font-medium text-red-600">
-              {fieldErrors.phone}
-            </p>
-          )}
+          <FieldError id="business-lead-phone-error" message={fieldErrors.phone} />
         </div>
 
         <div className="space-y-2 md:col-span-2">
@@ -203,11 +205,7 @@ export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
               </option>
             ))}
           </select>
-          {fieldErrors.teamSize && (
-            <p id="business-lead-teamSize-error" className="text-sm font-medium text-red-600">
-              {fieldErrors.teamSize}
-            </p>
-          )}
+          <FieldError id="business-lead-teamSize-error" message={fieldErrors.teamSize} />
         </div>
 
         <div className="space-y-2 md:col-span-2">
@@ -221,18 +219,14 @@ export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
             aria-describedby={fieldErrors.notes ? 'business-lead-notes-error' : undefined}
             disabled={pending}
           />
-          {fieldErrors.notes && (
-            <p id="business-lead-notes-error" className="text-sm font-medium text-red-600">
-              {fieldErrors.notes}
-            </p>
-          )}
+          <FieldError id="business-lead-notes-error" message={fieldErrors.notes} />
         </div>
 
         <div className="md:col-span-2 flex flex-col gap-3 border-t border-slate-200 pt-5">
           <p className="text-sm font-medium text-slate-500">{t('privacyNote')}</p>
           <Button
             type="submit"
-            disabled={pending}
+            disabled={pending || !hydrated}
             className="min-h-[44px] w-full touch-manipulation rounded-2xl text-base font-black md:w-auto"
           >
             {pending ? (

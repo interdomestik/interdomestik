@@ -1,2 +1,2 @@
-export { default } from './_core.entry';
-export { generateMetadata, generateViewport } from './_core.entry';
+export { default, generateMetadata } from './_core.entry';
+export const instant = false;

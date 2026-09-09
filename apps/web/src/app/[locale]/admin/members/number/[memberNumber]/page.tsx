@@ -6,8 +6,6 @@ import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { getMemberNumberResolverCore } from './_core';
 
-export const dynamic = 'force-dynamic';
-
 interface ResolverPageProps {
   params: Promise<{
     locale: string;
