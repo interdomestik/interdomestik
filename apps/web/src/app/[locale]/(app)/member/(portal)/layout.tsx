@@ -16,7 +16,6 @@ type Props = Readonly<{
 export default async function MemberPortalLayout({
   actions,
   case: caseRegion,
-  children,
   params,
   updates,
 }: Props) {
@@ -32,7 +31,6 @@ export default async function MemberPortalLayout({
             caseRegion={caseRegion}
             updatesRegion={updates}
           />
-          {children}
         </div>
       }
     />

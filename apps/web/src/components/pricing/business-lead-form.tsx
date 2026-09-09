@@ -8,12 +8,24 @@ import { Button, Input, Label } from '@interdomestik/ui';
 import { Textarea } from '@interdomestik/ui/components/textarea';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useActionState, useEffect, useRef, useState } from 'react';
+import { createContext, useActionState, useContext, useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { toast } from 'sonner';
 
 const initialState: SubmitBusinessMembershipLeadResult | null = null;
 
 const teamSizeOptions = ['1-10', '11-25', '26-50', '51-100', '100+'] as const;
+
+const BusinessLeadKeyContext = createContext<string | null>(null);
+
+export function BusinessLeadKeyProvider({
+  value,
+  children,
+}: Readonly<{ value: string; children: ReactNode }>) {
+  return (
+    <BusinessLeadKeyContext.Provider value={value}>{children}</BusinessLeadKeyContext.Provider>
+  );
+}
 
 function FieldError({ id, message }: Readonly<{ id: string; message?: string }>) {
   return message ? (
@@ -33,15 +45,14 @@ function createIdempotencyKey() {
 
 export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
   const t = useTranslations('pricing.businessLead.form');
+  const initialKey = useContext(BusinessLeadKeyContext);
   const [serverState, formAction, pending] = useActionState(
     submitBusinessMembershipLead,
     initialState
   );
-  const [hydrated, setHydrated] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState(initialKey);
   const formRef = useRef<HTMLFormElement>(null);
   const lastToastSignatureRef = useRef<string | null>(null);
-
-  useEffect(() => setHydrated(true), []);
 
   useEffect(() => {
     if (!serverState) {
@@ -56,6 +67,7 @@ export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
       }
 
       formRef.current?.reset();
+      setIdempotencyKey(createIdempotencyKey());
       return;
     }
 
@@ -67,6 +79,7 @@ export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
   }, [serverState, t]);
 
   const fieldErrors = serverState?.success ? {} : (serverState?.issues ?? {});
+  if (!idempotencyKey) throw new Error('Business lead form requires a request idempotency key');
 
   return (
     <section
@@ -94,21 +107,8 @@ export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
         </div>
       )}
 
-      <form
-        ref={formRef}
-        action={hydrated ? formAction : undefined}
-        className="mt-6 grid gap-5 md:grid-cols-2"
-        noValidate
-        onSubmitCapture={event => {
-          if (!hydrated) {
-            event.preventDefault();
-            return;
-          }
-          const key = event.currentTarget.elements.namedItem('_idempotencyKey');
-          if (key instanceof HTMLInputElement) key.value ||= createIdempotencyKey();
-        }}
-      >
-        <input type="hidden" name="_idempotencyKey" />
+      <form ref={formRef} action={formAction} className="mt-6 grid gap-5 md:grid-cols-2" noValidate>
+        <input type="hidden" name="_idempotencyKey" value={idempotencyKey} />
         <input type="hidden" name="locale" value={locale} />
 
         <div className="space-y-2">
@@ -226,7 +226,7 @@ export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
           <p className="text-sm font-medium text-slate-500">{t('privacyNote')}</p>
           <Button
             type="submit"
-            disabled={pending || !hydrated}
+            disabled={pending}
             className="min-h-[44px] w-full touch-manipulation rounded-2xl text-base font-black md:w-auto"
           >
             {pending ? (

@@ -12,6 +12,26 @@ if (nonceMode !== 'off' && nonceMode !== 'report') {
   throw new Error('Rendering gate requires CSP_NONCE_MODE=off or report.');
 }
 
+test.describe('Hydrated business form validation', () => {
+  test.use({ javaScriptEnabled: true, storageState: { cookies: [], origins: [] } });
+  test('renders validation after submission without duplicating the form', async ({
+    page,
+  }, testInfo) => {
+    await gotoApp(page, `/${routes.getLocale(testInfo)}/business-membership`, testInfo, {
+      marker: 'business-membership-page-ready',
+    });
+    const form = page.getByTestId('business-lead-form').locator('form');
+    await expect(form).toHaveCount(1);
+    await expect(form.locator('input[name="_idempotencyKey"]')).toHaveValue(/\S+/);
+    await expect(form.locator('button[type="submit"]')).toBeEnabled();
+    // Empty input exercises validation without creating a business lead.
+    await form.locator('button[type="submit"]').click();
+    await expect(page.locator('#business-lead-firstName-error')).toBeVisible();
+    await expect(form.locator('[aria-invalid="true"]')).toHaveCount(6);
+    await expect(form).toHaveCount(1);
+  });
+});
+
 async function inspectDocument(page: Page, path: string, marker: string, testInfo: TestInfo) {
   const response = await gotoApp(page, path, testInfo, { marker, markerTimeoutMs: 30_000 });
   expect(response?.ok(), 'document response must succeed').toBe(true);

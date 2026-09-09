@@ -1,6 +1,7 @@
+import { connection } from 'next/server';
+
 import { StatsV2Page } from '@/features/public/stats/components/StatsV2Page';
 export { generateLocaleStaticParams as generateStaticParams } from '@/app/_locale-static-params';
-import { connection } from 'next/server';
 
 export const instant = false;
 
