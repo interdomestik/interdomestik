@@ -59,3 +59,6 @@ overrides:
   '@opentelemetry/sdk-node': 0.217.0
   '@opentelemetry/sdk-node@0.217.0>@opentelemetry/propagator-jaeger': 2.9.0
   '@opentelemetry/exporter-prometheus': 0.217.0
+
+patchedDependencies:
+  next@16.3.3: patches/next@16.3.3.patch
