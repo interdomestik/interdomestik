@@ -17,6 +17,8 @@ const CHILDREN = new Map([
         // Retain merged promotions so historical authority remains replayable.
         '5cb7ef250dab08aa31b5acb7949c915819653febb2326de1fd821edd29bb0118',
         'b92e38a0712d08f188630d282f49bb4034aac2388573a061a4043985bc174f17',
+        // Public no-JS regression repair closes the shared runtime consumers.
+        '34b78b5355079747ae1166d70a955be94faaff2e7599492daa8b10fc96a1bc1b',
       ],
       predecessor: {
         sliceId: 'T117B-CUTOVER',
