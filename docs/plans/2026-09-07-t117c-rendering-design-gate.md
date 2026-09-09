@@ -8,9 +8,9 @@ last_reviewed: 2026-09-08
 
 # T-117C — nonce-compatible member rendering
 
-> Status: repeat promotion pending in PR `#1710`; runtime remains denied until exact merge and live resolution.
+> Status: repeat promotion pending in PR `#1715`; runtime remains denied until exact merge and live resolution.
 
-The user authorized this bounded outcome. PRs #1700 and #1704 established the exact policy and capacity. Promotion #1703 merged exactly; product #1705 then closed unmerged when audit exposed its E2E-tree pin dependency. Closeout #1706 restored inactive authority and CI repair #1707 preapproved only the old and qualified T117C E2E trees. The product candidate remains commit `4e3c333038cf888e2cb31846082fd94d08759fd8`, tree `f3a79932e2f693fb120c6fd166a55ab858ca413c`, binary-diff SHA-256 `5571db81bda9239c8af21afc2e496eeacdec04db7c1e6f380fae7e1c43915230`. Repeat #1708 closed unmerged; #1709 repaired verified repeat-closeout traversal. Promotion #1710 remains denied until exact owner review, checks, squash merge and live resolution match.
+The user authorized this bounded outcome. PRs #1700 and #1704 established the exact policy and capacity. Promotion #1703 merged exactly; product #1705 then closed unmerged when audit exposed its E2E-tree pin dependency. Closeout #1706 restored inactive authority and CI repair #1707 preapproved only the old and qualified T117C E2E trees. Repeat #1708 closed unmerged; #1709 repaired verified repeat-closeout traversal. Promotion #1710 merged exactly, product #1711 closed unmerged on the outdated topology guard, and prerequisite #1713 repaired that guard and the retained findings. The rebased product candidate is commit `d8fc48b3c984fc7eedba7c80cdccdcf3adec8f14`, tree `c568817924b47a6b50f39912e09f54463d0817ef`, binary-diff SHA-256 `f69f45c47deef16622655b0f3636027493e162c888f2b052ca3e89d11d29922f`. Promotion #1715 remains denied until exact owner review, checks, squash merge and live resolution match.
 
 ## Outcome
 
@@ -105,7 +105,7 @@ The exact candidate's slice delta is 42,565 bytes and net +16 files; positive de
 
 PR #1700 merged the exact T-117C policy exception, focused tests, modularity classification and reviewer routes. It recognizes Tier 3, writer hash `5cb7ef250dab08aa31b5acb7949c915819653febb2326de1fd821edd29bb0118`, exactly 44 writers and the closed T117B-CUTOVER predecessor.
 
-PR #1704 repaired capacity ownership with its 20-addition ceiling and full gate. PR #1707 then admitted exactly the current and qualified T117C E2E trees after #1705 failed closed. These repairs are not product trials; delivery still requires repeat promotion and governed product execution.
+PR #1704 repaired capacity ownership with its 20-addition ceiling and full gate. PR #1707 admitted the qualified T117C E2E trees after #1705 failed closed. PR #1713 merged head `226a1be3a56ad15d6c0eaa2d775ab02dc11ea5ab` as protected-main commit `30ad64ae20486ce03dbea2d116c008866cd97aba`, repairing topology, test typing, navigation, evidence, and security prerequisites before this rebase. These repairs are not product trials; delivery still requires repeat promotion and governed product execution.
 
 ## Adversarial review disposition
 
@@ -119,11 +119,11 @@ The findings were independently traced against the exact Z620 artifacts and curr
 - Generated app-path and prerender manifests distinguish the home portal group from sibling member pages. The locale-aware pathname wrapper hides Next's documented soft-navigation retention, while hard refresh uses the sibling route tree. Same-document soft/back/forward and hard-refresh cases passed in both modes.
 - The presentational runtime currently has no protected imports, and the decorative initial skeleton is intentionally hidden while route-specific readiness and soft-navigation live status remain authoritative. Restoring a structural import assertion and adding an initial-load announcement are bounded follow-ups; neither exposes data nor invalidates the qualified behavior.
 
-No production blocker remained after this evidence disposition, so the qualified candidate identity is unchanged. After promotion, the governed product head still requires one current-head repo-owned review over the promoted authority and exact 44-path diff; any new finding must be resolved before merge.
+No production blocker remained after this evidence disposition. The qualified semantic change is rebound to the protected-main prerequisite at the candidate identity above. After promotion, the governed product head still requires one current-head repo-owned review over the promoted authority and exact 44-path writer map; any new finding must be resolved before merge.
 
 ## Promotion and reviewer contract
 
-Promotion writes exactly this gate, its sibling admission, current-program and current-tracker. Gate/admission bind base `189f3ca8c3a10de83ffb0634ceaa99d162fd05ad` and final candidate commit/tree/diff above. Use live promotion PR `#1710` in the matching canonical pending projections. Bind product branch `codex/t117c-rendering-r2`, the exact 44 writers, and closeout writers ordered program then tracker. PR `#1710` was reserved from the bound base with a `[skip ci]` empty commit; the final four-file commit is the sole check-bearing promotion candidate. No placeholder or owner marker is accepted.
+Promotion writes exactly this gate, its sibling admission, current-program and current-tracker. Gate/admission bind base `30ad64ae20486ce03dbea2d116c008866cd97aba` and final candidate commit/tree/diff above. Use live promotion PR `#1715` in the matching canonical pending projections. Bind product branch `codex/t117c-rendering-r3`, the exact 44 writers, and closeout writers ordered program then tracker. PR `#1715` was reserved from the bound base with a `[skip ci]` empty commit; the final four-file commit is the sole check-bearing promotion candidate. No placeholder or owner marker is accepted.
 
 The exact-candidate Opus review and its dispositions above satisfy the escalated adversarial intake. Obtain one repo-owned current-head review after promotion so the reviewer sees the active gate/admission and exact product diff together. Consolidate any remaining architecture/security/QA finding into the closed map before merge, and retain route/model/timestamp/exit/blocker receipts. A review of unrelated runtime source does not cover these T-117C bytes; quota, absent output or a blocked route is never approval.
 
