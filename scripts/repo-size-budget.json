@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 72251,
+      "trackedBytesDelta": 72432,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 41313,
+        "config/data/messages": 41494,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 41313,
+        "scripts/repo-size-budget.json": 41494,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -851,16 +851,22 @@
     {
       "id": "next-native-form-state-repair",
       "mode": "bounded",
-      "writerPaths": ["patches/next@16.3.3.patch", "pnpm-workspace.yaml"],
-      "maxTrackedBytesDelta": 322111,
+      "writerPaths": [
+        "patches/next@16.3.3.patch",
+        "pnpm-workspace.yaml",
+        "apps/web/e2e/gate/public-locale-no-js-shell.spec.ts"
+      ],
+      "maxTrackedBytesDelta": 323104,
       "maxTrackedFilesDelta": 1,
       "maxCategoryBytesDelta": {
         "other": 322048,
-        "config/data/messages": 63
+        "config/data/messages": 63,
+        "tests/e2e": 993
       },
       "maxPathBytesDelta": {
         "patches/next@16.3.3.patch": 322048,
-        "pnpm-workspace.yaml": 63
+        "pnpm-workspace.yaml": 63,
+        "apps/web/e2e/gate/public-locale-no-js-shell.spec.ts": 993
       }
     }
   ],
@@ -873,15 +879,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60870304,
+  "maxTrackedBytes": 60871478,
   "maxTrackedFiles": 5995,
   "maxCategoryBytes": {
-    "config/data/messages": 2198431,
+    "config/data/messages": 2198612,
     "docs/text": 8528029,
     "large support/generated-ish": 15395985,
     "other": 19178464,
     "source/scripts": 8739606,
-    "tests/e2e": 6829789
+    "tests/e2e": 6830782
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
