@@ -16,15 +16,15 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID       | Status    | Owner      | Work                               | Exit Criteria                        |
-| -------- | --------- | ---------- | ---------------------------------- | ------------------------------------ |
-| `T-117C` | `pending` | `platform` | Nonce-compatible member rendering. | Merge replay-safe promotion `#1723`. |
+| ID       | Status    | Owner      | Work                               | Exit Criteria                       |
+| -------- | --------- | ---------- | ---------------------------------- | ----------------------------------- |
+| `T-117C` | `blocked` | `platform` | Nonce-compatible member rendering. | Admit six repair paths; re-promote. |
 
 ## Proof Ledger
 
-| ID       | Source Refs                                                                                                   | Execution  | Run ID     | Run Root         | Sonar     | Docker           | Sentry           | Learning | Evidence Refs                                                                                              |
-| -------- | ------------------------------------------------------------------------------------------------------------- | ---------- | ---------- | ---------------- | --------- | ---------------- | ---------------- | -------- | ---------------------------------------------------------------------------------------------------------- |
-| `T-117C` | [gate](./2026-09-07-t117c-rendering-design-gate.md); [admission](./2026-09-07-t117c-rendering-admission.json) | `scripted` | `PR #1723` | `not_applicable` | `pending` | `not_applicable` | `not_applicable` | `pass`   | docs/plans/2026-09-07-t117c-rendering-design-gate.md; docs/plans/2026-09-07-t117c-rendering-admission.json |
+| ID       | Source Refs                                                                                                   | Execution | Run ID     | Run Root | Sonar  | Docker           | Sentry           | Learning | Evidence Refs                                                              |
+| -------- | ------------------------------------------------------------------------------------------------------------- | --------- | ---------- | -------- | ------ | ---------------- | ---------------- | -------- | -------------------------------------------------------------------------- |
+| `T-117C` | [gate](./2026-09-07-t117c-rendering-design-gate.md); [admission](./2026-09-07-t117c-rendering-admission.json) | `blocked` | `PR #1724` | `Z620`   | `pass` | `not_applicable` | `not_applicable` | `pass`   | Build plus 7/7 focused no-JS scenarios passed; product PR closed unmerged. |
 
 Terminal evidence: re-promotion `#1691`; product head
 `503d4b179251f9d3d06e07349ec80f85805565ae`, tree
@@ -36,11 +36,11 @@ delivery `33863200387` attempt 2, and exact-main CI/Sonar/CodeQL/security were g
 
 ## Next Selection
 
-T117B-CUTOVER closed through `#1691/#1675`. T-117C promotions `#1703/#1710/#1715/#1721` merged; products `#1705/#1711/#1718` failed closed. `#1719/#1720/#1722` closed defects, admitted 45 writers, and restored replay on `576335a7127d8af1d41d5fb2619cae0d9db742e8`. Promotion `#1723` is pending for candidate `6cc90357159de86b820f3643bd1c21d8900ecfc7` on `codex/t117c-rendering-r4`.
+T117B-CUTOVER closed through `#1691/#1675`. T-117C promotion `#1723` merged; product `#1724` failed closed after the exact full gate exposed the public no-JS shell regression. A minimal six-path repair passed a production build and 7/7 focused no-JS scenarios on Z620. Runtime is inactive pending exact admission and re-promotion.
 
-| Future UI branch | Status              | Constraint                               |
-| ---------------- | ------------------- | ---------------------------------------- |
-| `T-117C`         | `promotion_pending` | Promotion `#1723`; product branch `-r4`. |
+| Future UI branch | Status     | Constraint                                      |
+| ---------------- | ---------- | ----------------------------------------------- |
+| `T-117C`         | `deferred` | Admit six repair paths; repeat exact promotion. |
 
 ## Lean Authority
 
@@ -49,76 +49,17 @@ T117B-CUTOVER closed through `#1691/#1675`. T-117C promotions `#1703/#1710/#1715
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "promotion_pending",
+  "lifecycle": "inactive",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": {
-    "sliceId": "T-117C",
-    "tier": 3,
-    "promotionPrNumber": 1723,
-    "promotionBaseSha": "576335a7127d8af1d41d5fb2619cae0d9db742e8",
-    "expectedProductBranch": "codex/t117c-rendering-r4",
-    "gateSha256": "c7dc73091b1960f74573bec8236cd39151a72ac4e740a42cc7ea4356016a7715",
-    "admissionSha256": "c2fdf391df4560920b911a3b2910ab79190e679db8d3a7220b2bce5d27949a7b",
-    "productWriterPaths": [
-      "apps/web/e2e/gate/member-home-cta.spec.ts",
-      "apps/web/e2e/gate/member-parallel-routes.spec.ts",
-      "apps/web/e2e/gate/rendering-build-mode.spec.ts",
-      "apps/web/next.config.mjs",
-      "apps/web/src/app/[locale]/_core.entry.test.tsx",
-      "apps/web/src/app/[locale]/_core.entry.tsx",
-      "apps/web/src/app/[locale]/(agent)/agent/layout.tsx",
-      "apps/web/src/app/[locale]/(app)/layout.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@actions/default.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@actions/page.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@case/default.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@case/page.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@updates/default.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@updates/page.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/default.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/layout.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/page.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.test.ts",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.ts",
-      "apps/web/src/app/[locale]/(app)/member/layout.tsx",
-      "apps/web/src/app/[locale]/(app)/member/page.test.tsx",
-      "apps/web/src/app/[locale]/(app)/member/page.tsx",
-      "apps/web/src/app/[locale]/(staff)/staff/layout.tsx",
-      "apps/web/src/app/[locale]/admin/commissions/page.tsx",
-      "apps/web/src/app/[locale]/admin/layout.tsx",
-      "apps/web/src/app/[locale]/admin/members/number/[memberNumber]/page.tsx",
-      "apps/web/src/app/[locale]/admin/settings/page.tsx",
-      "apps/web/src/app/[locale]/admin/users/[id]/page.tsx",
-      "apps/web/src/app/[locale]/components/home/footer.test.tsx",
-      "apps/web/src/app/[locale]/components/home/footer.tsx",
-      "apps/web/src/app/[locale]/components/home/free-start-intake-shell/use-draft-lifecycle.ts",
-      "apps/web/src/app/[locale]/layout.tsx",
-      "apps/web/src/app/[locale]/stats/page.tsx",
-      "apps/web/src/app/api/claims/route.ts",
-      "apps/web/src/app/api/csp-report/route.ts",
-      "apps/web/src/app/api/e2e/branches/route.ts",
-      "apps/web/src/app/track/[token]/page.test.tsx",
-      "apps/web/src/app/track/[token]/page.tsx",
-      "apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx",
-      "apps/web/src/components/dashboard/member-portal-runtime.tsx",
-      "apps/web/src/components/shell/request-boundary.test.tsx",
-      "apps/web/src/components/shell/request-boundary.tsx",
-      "apps/web/src/instrumentation.ts",
-      "apps/web/src/lib/rendering-build-mode.test.ts",
-      "apps/web/src/lib/rendering-build-mode.ts"
-    ],
-    "closeoutWriterPaths": [
-      "docs/plans/current-program.md",
-      "docs/plans/current-tracker.md"
-    ]
-  }
+  "activeSlice": null
 }
 ```
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:T-117C`; lifecycle `promotion_pending`).
+The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:null`; lifecycle `inactive`).
 
 ## Historical Authority
 

@@ -85,7 +85,7 @@ neutral-host/default-tenant draft behavior and isolated fixtures. Final-head Ful
 `33862616690`, finalizer `33863200356` attempt 2, and delivery `33863200387` attempt 2 were green.
 Protected-main CI `33865541214`, CodeQL `33865540843`, Code Quality `33865540812`, Secret Scan
 `33865541201`, and Sonar Main `33865541295` were green; CD `33865541227` was cancelled with zero
-jobs and no deployment effect. T-117C promotions `#1703/#1710/#1715/#1721` merged; products `#1705/#1711/#1718` failed closed. `#1719/#1720/#1722` closed defects, admitted 45 writers, and restored replay on `576335a7127d8af1d41d5fb2619cae0d9db742e8`. Promotion `#1723` is pending for candidate `6cc90357159de86b820f3643bd1c21d8900ecfc7` on `codex/t117c-rendering-r4`.
+jobs and no deployment effect. T-117C promotion `#1723` merged; product `#1724` failed closed after the full gate exposed a public no-JS shell regression. A minimal six-path repair passed a production build and all seven focused no-JS scenarios on Z620; runtime is inactive pending exact admission and re-promotion.
 
 Closed `IDA-WF01-ONE-APPROVAL-DELIVERY` remains immutable evidence through its
 [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),
@@ -102,9 +102,9 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate       | Dependencies   | Promotion constraint                      |
-| -------: | --------------- | -------------- | ----------------------------------------- |
-|        1 | `T-117C` Tier 3 | CUTOVER closed | Replay-safe promotion PR `#1723` pending. |
+| Priority | Candidate       | Dependencies   | Promotion constraint                            |
+| -------: | --------------- | -------------- | ----------------------------------------------- |
+|        1 | `T-117C` Tier 3 | CUTOVER closed | Admit the six-path no-JS repair and re-promote. |
 
 ## Unified Portal Direction
 
@@ -139,71 +139,12 @@ and global headers remain T-117C.
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "promotion_pending",
+  "lifecycle": "inactive",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": {
-    "sliceId": "T-117C",
-    "tier": 3,
-    "promotionPrNumber": 1723,
-    "promotionBaseSha": "576335a7127d8af1d41d5fb2619cae0d9db742e8",
-    "expectedProductBranch": "codex/t117c-rendering-r4",
-    "gateSha256": "c7dc73091b1960f74573bec8236cd39151a72ac4e740a42cc7ea4356016a7715",
-    "admissionSha256": "c2fdf391df4560920b911a3b2910ab79190e679db8d3a7220b2bce5d27949a7b",
-    "productWriterPaths": [
-      "apps/web/e2e/gate/member-home-cta.spec.ts",
-      "apps/web/e2e/gate/member-parallel-routes.spec.ts",
-      "apps/web/e2e/gate/rendering-build-mode.spec.ts",
-      "apps/web/next.config.mjs",
-      "apps/web/src/app/[locale]/_core.entry.test.tsx",
-      "apps/web/src/app/[locale]/_core.entry.tsx",
-      "apps/web/src/app/[locale]/(agent)/agent/layout.tsx",
-      "apps/web/src/app/[locale]/(app)/layout.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@actions/default.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@actions/page.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@case/default.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@case/page.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@updates/default.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@updates/page.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/default.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/layout.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/page.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.test.ts",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.ts",
-      "apps/web/src/app/[locale]/(app)/member/layout.tsx",
-      "apps/web/src/app/[locale]/(app)/member/page.test.tsx",
-      "apps/web/src/app/[locale]/(app)/member/page.tsx",
-      "apps/web/src/app/[locale]/(staff)/staff/layout.tsx",
-      "apps/web/src/app/[locale]/admin/commissions/page.tsx",
-      "apps/web/src/app/[locale]/admin/layout.tsx",
-      "apps/web/src/app/[locale]/admin/members/number/[memberNumber]/page.tsx",
-      "apps/web/src/app/[locale]/admin/settings/page.tsx",
-      "apps/web/src/app/[locale]/admin/users/[id]/page.tsx",
-      "apps/web/src/app/[locale]/components/home/footer.test.tsx",
-      "apps/web/src/app/[locale]/components/home/footer.tsx",
-      "apps/web/src/app/[locale]/components/home/free-start-intake-shell/use-draft-lifecycle.ts",
-      "apps/web/src/app/[locale]/layout.tsx",
-      "apps/web/src/app/[locale]/stats/page.tsx",
-      "apps/web/src/app/api/claims/route.ts",
-      "apps/web/src/app/api/csp-report/route.ts",
-      "apps/web/src/app/api/e2e/branches/route.ts",
-      "apps/web/src/app/track/[token]/page.test.tsx",
-      "apps/web/src/app/track/[token]/page.tsx",
-      "apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx",
-      "apps/web/src/components/dashboard/member-portal-runtime.tsx",
-      "apps/web/src/components/shell/request-boundary.test.tsx",
-      "apps/web/src/components/shell/request-boundary.tsx",
-      "apps/web/src/instrumentation.ts",
-      "apps/web/src/lib/rendering-build-mode.test.ts",
-      "apps/web/src/lib/rendering-build-mode.ts"
-    ],
-    "closeoutWriterPaths": [
-      "docs/plans/current-program.md",
-      "docs/plans/current-tracker.md"
-    ]
-  }
+  "activeSlice": null
 }
 ```
 
@@ -215,4 +156,4 @@ Rev 243 history is recoverable from
 OD17, and CI01 remain historical and inactive.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:T-117C`; lifecycle `promotion_pending`).
+The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:null`; lifecycle `inactive`).
