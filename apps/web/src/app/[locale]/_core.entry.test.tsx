@@ -88,7 +88,10 @@ vi.mock('sonner', () => ({
 
 import RootLayout from './_core.entry';
 
-function findElementByType(node: ReactNode, type: unknown): ReactElement | undefined {
+function findElementByType(
+  node: ReactNode,
+  type: unknown
+): ReactElement<{ children?: ReactNode }> | undefined {
   if (Array.isArray(node)) {
     for (const child of node) {
       const match = findElementByType(child, type);
