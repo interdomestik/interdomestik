@@ -8,6 +8,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const LANE_SHA256 = 'ff019f739b4ae106650a0dff94527154e9579468d0ea2d5a5eecff7c2f715b64';
 const CONFIG_SHA256 = '97ca0f14c9f7b121cf00121eb9a0f5867b0cf9f3e52b7215a504c3d7183f2d30';
 const E2E_TREE_SHAS = new Set([
+  // Final T117C regressions share PR/main gate selection.
+  'cb8eb99c86a6be0fe19bae56053138006f6647b2',
   // Native form regression runs in both PR and main gate projects.
   '7b61dce5634a68e08d19438e51b37837ec2e541c',
   // Protected main before T117C.
