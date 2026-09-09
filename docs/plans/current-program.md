@@ -85,7 +85,7 @@ neutral-host/default-tenant draft behavior and isolated fixtures. Final-head Ful
 `33862616690`, finalizer `33863200356` attempt 2, and delivery `33863200387` attempt 2 were green.
 Protected-main CI `33865541214`, CodeQL `33865540843`, Code Quality `33865540812`, Secret Scan
 `33865541201`, and Sonar Main `33865541295` were green; CD `33865541227` was cancelled with zero
-jobs and no deployment effect. T-117C promotions `#1703/#1710/#1715` merged; products `#1705/#1711/#1718` failed closed. Next 16.3.3 exposed Suspense/UUID defects; `#1719` closed them and `#1720` admitted 45 writers on `1ccdf308f07b407f9eabdececc0224bbca70807d`. Promotion `#1721` is pending for candidate `616edb489b19c1e84a9b2cd95271d8f611aea941` on `codex/t117c-rendering-r4`.
+jobs and no deployment effect. T-117C promotions `#1703/#1710/#1715/#1721` merged; products `#1705/#1711/#1718` failed closed. `#1719/#1720/#1722` closed defects, admitted 45 writers, and restored replay on `576335a7127d8af1d41d5fb2619cae0d9db742e8`. Promotion `#1723` is pending for candidate `6cc90357159de86b820f3643bd1c21d8900ecfc7` on `codex/t117c-rendering-r4`.
 
 Closed `IDA-WF01-ONE-APPROVAL-DELIVERY` remains immutable evidence through its
 [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),
@@ -102,9 +102,9 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate       | Dependencies   | Promotion constraint                    |
-| -------: | --------------- | -------------- | --------------------------------------- |
-|        1 | `T-117C` Tier 3 | CUTOVER closed | Corrected promotion PR `#1721` pending. |
+| Priority | Candidate       | Dependencies   | Promotion constraint                      |
+| -------: | --------------- | -------------- | ----------------------------------------- |
+|        1 | `T-117C` Tier 3 | CUTOVER closed | Replay-safe promotion PR `#1723` pending. |
 
 ## Unified Portal Direction
 
@@ -147,11 +147,11 @@ and global headers remain T-117C.
   "activeSlice": {
     "sliceId": "T-117C",
     "tier": 3,
-    "promotionPrNumber": 1721,
-    "promotionBaseSha": "1ccdf308f07b407f9eabdececc0224bbca70807d",
+    "promotionPrNumber": 1723,
+    "promotionBaseSha": "576335a7127d8af1d41d5fb2619cae0d9db742e8",
     "expectedProductBranch": "codex/t117c-rendering-r4",
-    "gateSha256": "e508c68fd551b6cfe2a8ac907fb28f792a069e02be517585d630a4cb0452b3a1",
-    "admissionSha256": "674357a4e5929a18282cad2423fe6a36a214f39e53b59e4404b7cae54d9a2f53",
+    "gateSha256": "c7dc73091b1960f74573bec8236cd39151a72ac4e740a42cc7ea4356016a7715",
+    "admissionSha256": "c2fdf391df4560920b911a3b2910ab79190e679db8d3a7220b2bce5d27949a7b",
     "productWriterPaths": [
       "apps/web/e2e/gate/member-home-cta.spec.ts",
       "apps/web/e2e/gate/member-parallel-routes.spec.ts",

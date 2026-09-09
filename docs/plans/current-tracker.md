@@ -16,15 +16,15 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID       | Status    | Owner      | Work                               | Exit Criteria                      |
-| -------- | --------- | ---------- | ---------------------------------- | ---------------------------------- |
-| `T-117C` | `pending` | `platform` | Nonce-compatible member rendering. | Merge corrected promotion `#1721`. |
+| ID       | Status    | Owner      | Work                               | Exit Criteria                        |
+| -------- | --------- | ---------- | ---------------------------------- | ------------------------------------ |
+| `T-117C` | `pending` | `platform` | Nonce-compatible member rendering. | Merge replay-safe promotion `#1723`. |
 
 ## Proof Ledger
 
 | ID       | Source Refs                                                                                                   | Execution  | Run ID     | Run Root         | Sonar     | Docker           | Sentry           | Learning | Evidence Refs                                                                                              |
 | -------- | ------------------------------------------------------------------------------------------------------------- | ---------- | ---------- | ---------------- | --------- | ---------------- | ---------------- | -------- | ---------------------------------------------------------------------------------------------------------- |
-| `T-117C` | [gate](./2026-09-07-t117c-rendering-design-gate.md); [admission](./2026-09-07-t117c-rendering-admission.json) | `scripted` | `PR #1721` | `not_applicable` | `pending` | `not_applicable` | `not_applicable` | `pass`   | docs/plans/2026-09-07-t117c-rendering-design-gate.md; docs/plans/2026-09-07-t117c-rendering-admission.json |
+| `T-117C` | [gate](./2026-09-07-t117c-rendering-design-gate.md); [admission](./2026-09-07-t117c-rendering-admission.json) | `scripted` | `PR #1723` | `not_applicable` | `pending` | `not_applicable` | `not_applicable` | `pass`   | docs/plans/2026-09-07-t117c-rendering-design-gate.md; docs/plans/2026-09-07-t117c-rendering-admission.json |
 
 Terminal evidence: re-promotion `#1691`; product head
 `503d4b179251f9d3d06e07349ec80f85805565ae`, tree
@@ -36,11 +36,11 @@ delivery `33863200387` attempt 2, and exact-main CI/Sonar/CodeQL/security were g
 
 ## Next Selection
 
-T117B-CUTOVER closed through `#1691/#1675`. T-117C promotions `#1703/#1710/#1715` merged; products `#1705/#1711/#1718` failed closed. Next 16.3.3 exposed Suspense/UUID defects; `#1719` closed them and `#1720` admitted 45 writers on `1ccdf308f07b407f9eabdececc0224bbca70807d`. Promotion `#1721` is pending for candidate `616edb489b19c1e84a9b2cd95271d8f611aea941` on `codex/t117c-rendering-r4`.
+T117B-CUTOVER closed through `#1691/#1675`. T-117C promotions `#1703/#1710/#1715/#1721` merged; products `#1705/#1711/#1718` failed closed. `#1719/#1720/#1722` closed defects, admitted 45 writers, and restored replay on `576335a7127d8af1d41d5fb2619cae0d9db742e8`. Promotion `#1723` is pending for candidate `6cc90357159de86b820f3643bd1c21d8900ecfc7` on `codex/t117c-rendering-r4`.
 
 | Future UI branch | Status              | Constraint                               |
 | ---------------- | ------------------- | ---------------------------------------- |
-| `T-117C`         | `promotion_pending` | Promotion `#1721`; product branch `-r4`. |
+| `T-117C`         | `promotion_pending` | Promotion `#1723`; product branch `-r4`. |
 
 ## Lean Authority
 
@@ -57,11 +57,11 @@ T117B-CUTOVER closed through `#1691/#1675`. T-117C promotions `#1703/#1710/#1715
   "activeSlice": {
     "sliceId": "T-117C",
     "tier": 3,
-    "promotionPrNumber": 1721,
-    "promotionBaseSha": "1ccdf308f07b407f9eabdececc0224bbca70807d",
+    "promotionPrNumber": 1723,
+    "promotionBaseSha": "576335a7127d8af1d41d5fb2619cae0d9db742e8",
     "expectedProductBranch": "codex/t117c-rendering-r4",
-    "gateSha256": "e508c68fd551b6cfe2a8ac907fb28f792a069e02be517585d630a4cb0452b3a1",
-    "admissionSha256": "674357a4e5929a18282cad2423fe6a36a214f39e53b59e4404b7cae54d9a2f53",
+    "gateSha256": "c7dc73091b1960f74573bec8236cd39151a72ac4e740a42cc7ea4356016a7715",
+    "admissionSha256": "c2fdf391df4560920b911a3b2910ab79190e679db8d3a7220b2bce5d27949a7b",
     "productWriterPaths": [
       "apps/web/e2e/gate/member-home-cta.spec.ts",
       "apps/web/e2e/gate/member-parallel-routes.spec.ts",

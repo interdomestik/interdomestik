@@ -3,20 +3,20 @@
   "status": "promotion_pending",
   "sliceId": "T-117C",
   "tier": 3,
-  "baseSha": "1ccdf308f07b407f9eabdececc0224bbca70807d",
-  "promotionPrNumber": 1721,
+  "baseSha": "576335a7127d8af1d41d5fb2619cae0d9db742e8",
+  "promotionPrNumber": 1723,
   "candidate": {
-    "commitSha": "616edb489b19c1e84a9b2cd95271d8f611aea941",
-    "treeSha": "d89bb06e95623028f99e92909f1eadb2f188b788",
+    "commitSha": "6cc90357159de86b820f3643bd1c21d8900ecfc7",
+    "treeSha": "544886da686c20a0a122ab18e18ea6226c1998ae",
     "binaryDiffSha256": "58c5ac619ddadf1076343e1def0986d10bd7e6d3b02ae88c53be202fbe759dd6"
   },
   "prerequisite": {
-    "pullRequestNumber": 1720,
-    "headSha": "24fbb4550dfca06914477c5f03cf9a49d8821679",
-    "mergeSha": "1ccdf308f07b407f9eabdececc0224bbca70807d",
+    "pullRequestNumber": 1722,
+    "headSha": "64b06f2adf4c46f76092b3d1dc0f89a49f78700b",
+    "mergeSha": "576335a7127d8af1d41d5fb2619cae0d9db742e8",
     "status": "merged_and_verified"
   },
-  "authorityArtifactSha256": "e508c68fd551b6cfe2a8ac907fb28f792a069e02be517585d630a4cb0452b3a1",
+  "authorityArtifactSha256": "c7dc73091b1960f74573bec8236cd39151a72ac4e740a42cc7ea4356016a7715",
   "productOutcomes": [
     "Home-only named Case/Actions/Updates regions preserve one request identity and two tenant projections across all existing member destinations.",
     "Nonce-off may prerender anonymous chrome; report retains request nonces; mismatched mode fails before readiness; locale-root Suspense and event-time UUID generation satisfy Next 16.3.3."
@@ -328,8 +328,8 @@
   },
   "successorConditions": [
     "Closed T117B-CUTOVER predecessor with final exact writer map is verified through existing child evidence.",
-    "PRs #1700/#1704/#1707/#1709/#1713 bind prior prerequisites; #1719 closes failure; #1720 admits 45 writers.",
-    "Promotion #1721 binds the corrected candidate; exact-head proof and exact-main health precede inactive closeout.",
+    "Prior PRs bind prerequisites; #1719 closes failure; #1720 admits 45 writers; #1722 restores replay.",
+    "Promotions #1721/#1723 bind the corrected candidate across the replay repair; exact-head proof and exact-main health precede inactive closeout.",
     "No successor is implicitly promoted and no infrastructure/build variant is counted as a separate product trial."
   ],
   "highestRiskCases": [
@@ -343,5 +343,5 @@
     "mechanism": "Discard owned unmerged candidate; after merge revert only exact T-117C product merge, rebuild for same authorized nonce mode, restore inactive projections and preserve CUTOVER/DATA/PORTAL/unrelated state.",
     "trigger": "Auth/tenant/nonce/query/route/a11y/capacity/writer-map/review/CI/merge/main-health proof fails."
   },
-  "firstImplementationAction": "Merge #1721 from the bound base, then run candidate 616edb489b19c1e84a9b2cd95271d8f611aea941 on codex/t117c-rendering-r4."
+  "firstImplementationAction": "Merge #1723 from the bound base, then run candidate 6cc90357159de86b820f3643bd1c21d8900ecfc7 on codex/t117c-rendering-r4."
 }
