@@ -31,7 +31,7 @@ describe('request boundary', () => {
     expect(settled).toBe(false);
     expect(boundary.props.fallback.type).toBe(RequestFallback);
     const fallback = renderToStaticMarkup(boundary.props.fallback);
-    expect(fallback).toContain('role="status" aria-label="Loading"');
+    expect(fallback).toContain('class="sr-only" role="status">Loading</span>');
     expect(fallback).not.toContain('member-dashboard-ready');
     release();
     expect(await pending).toBe(child);

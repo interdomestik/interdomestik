@@ -5,12 +5,10 @@ type Props = { children: ReactNode };
 
 export function RequestFallback() {
   return (
-    <div
-      role="status"
-      aria-label="Loading"
-      className="min-h-screen animate-pulse bg-background"
-      data-testid="request-fallback"
-    >
+    <div className="min-h-screen animate-pulse bg-background" data-testid="request-fallback">
+      <span className="sr-only" role="status">
+        Loading
+      </span>
       <div className="border-b border-border">
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center px-4 sm:px-6">
           <div className="h-8 w-36 rounded bg-muted" />
@@ -29,7 +27,7 @@ export function RequestFallback() {
   );
 }
 
-async function RequestGate({ children }: Props) {
+async function Gate({ children }: Props) {
   await connection();
   return children;
 }
@@ -37,7 +35,7 @@ async function RequestGate({ children }: Props) {
 export function RequestBoundary({ children }: Props) {
   return (
     <Suspense fallback={<RequestFallback />}>
-      <RequestGate>{children}</RequestGate>
+      <Gate>{children}</Gate>
     </Suspense>
   );
 }
