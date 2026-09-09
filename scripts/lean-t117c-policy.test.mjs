@@ -9,7 +9,7 @@ import {
 } from './lean-current-authority-policy.mjs';
 import { validT117BPredecessor } from './lean-exact-writer-exceptions.mjs';
 
-const writers = [
+const paths = [
   'apps/web/e2e/gate/member-home-cta.spec.ts',
   'apps/web/e2e/gate/member-parallel-routes.spec.ts',
   'apps/web/e2e/gate/rendering-build-mode.spec.ts',
@@ -56,7 +56,7 @@ const writers = [
   'apps/web/src/lib/rendering-build-mode.test.ts',
   'apps/web/src/lib/rendering-build-mode.ts',
 ];
-const s = {
+const slice = {
   sliceId: 'T-117C',
   tier: 3,
   promotionPrNumber: 1700,
@@ -64,43 +64,43 @@ const s = {
   expectedProductBranch: 'codex/t117c-rendering',
   gateSha256: 'a'.repeat(64),
   admissionSha256: 'b'.repeat(64),
-  productWriterPaths: writers,
+  productWriterPaths: paths,
   closeoutWriterPaths: ['docs/plans/current-program.md', 'docs/plans/current-tracker.md'],
 };
 
-test('T117C accepts the frozen 45-path map', () => {
-  assert.equal(writers.length, 45);
+test('T117C accepts 45-path map', () => {
+  assert.equal(paths.length, 45);
   assert.equal(
-    createHash('sha256').update(JSON.stringify(writers)).digest('hex'),
+    createHash('sha256').update(JSON.stringify(paths)).digest('hex'),
     'b92e38a0712d08f188630d282f49bb4034aac2388573a061a4043985bc174f17'
   );
-  assert.equal(validateSlice(s), s);
-  for (const p of writers) assert.equal(classifyWriterPath(p, s).allowed, true, p);
+  assert.equal(validateSlice(slice), slice);
+  for (const p of paths) assert.equal(classifyWriterPath(p, slice).allowed, true, p);
   assert.match(
-    approvalMarker(s, '1'.repeat(40), '2'.repeat(40)),
+    approvalMarker(slice, '1'.repeat(40), '2'.repeat(40)),
     /^LEAN_AUTHORITY_APPROVAL_V1\n/
   );
   for (const invalid of [
-    { ...s, sliceId: 'T-117C-COPY' },
-    { ...s, tier: 2 },
-    { ...s, productWriterPaths: [...writers].reverse() },
-    { ...s, productWriterPaths: writers.slice(1) },
-    { ...s, productWriterPaths: writers.filter(p => !p.includes('/home/footer.')) },
-    { ...s, productWriterPaths: writers.filter(p => !p.includes('/track/[token]/')) },
-    { ...s, productWriterPaths: [...writers, 'apps/web/src/proxy.ts'] },
+    { ...slice, sliceId: 'T-117C-COPY' },
+    { ...slice, tier: 2 },
+    { ...slice, productWriterPaths: [...paths].reverse() },
+    { ...slice, productWriterPaths: paths.slice(1) },
+    { ...slice, productWriterPaths: paths.filter(p => !p.includes('/home/footer.')) },
+    { ...slice, productWriterPaths: paths.filter(p => !p.includes('/track/[token]/')) },
+    { ...slice, productWriterPaths: [...paths, 'apps/web/src/proxy.ts'] },
     {
-      ...s,
-      productWriterPaths: writers.map((p, i) => (i ? p : 'apps/web/src/proxy.ts')),
+      ...slice,
+      productWriterPaths: paths.map((p, i) => (i ? p : 'apps/web/src/proxy.ts')),
     },
-    { ...s, productWriterPaths: [...writers.slice(1), writers[1]] },
-    { ...s, closeoutWriterPaths: [] },
+    { ...slice, productWriterPaths: [...paths.slice(1), paths[1]] },
+    { ...slice, closeoutWriterPaths: [] },
   ])
     assert.throws(() => validateSlice(invalid), /schema or policy mismatch/);
-  assert.equal(classifyWriterPath('apps/web/src/proxy.ts', s).allowed, false);
+  assert.equal(classifyWriterPath('apps/web/src/proxy.ts', slice).allowed, false);
   assert.equal(classifyWriterPath('apps/web/next.config.mjs').allowed, false);
 });
 
-test('T117C requires the verified closed CUTOVER predecessor', () => {
+test('T117C requires closed CUTOVER predecessor', () => {
   const prior = JSON.parse(
     fs.readFileSync(
       new URL('../docs/plans/2026-08-28-t117b-cutover-admission.json', import.meta.url),
@@ -125,8 +125,8 @@ test('T117C requires the verified closed CUTOVER predecessor', () => {
     closeoutMergeSha: '4'.repeat(40),
     closeoutState: 'deterministic_closeout_recorded',
   };
-  assert.equal(validT117BPredecessor(s), false);
-  assert.equal(validT117BPredecessor(s, evidence), true);
+  assert.equal(validT117BPredecessor(slice), false);
+  assert.equal(validT117BPredecessor(slice, evidence), true);
   for (const change of [
     { status: 'unavailable' },
     { predecessorSliceId: 'T117B-PORTAL' },
@@ -143,5 +143,5 @@ test('T117C requires the verified closed CUTOVER predecessor', () => {
     { productHeadSha: '' },
     { childId: 'T117B-CUTOVER' },
   ])
-    assert.equal(validT117BPredecessor(s, { ...evidence, ...change }), false);
+    assert.equal(validT117BPredecessor(slice, { ...evidence, ...change }), false);
 });
