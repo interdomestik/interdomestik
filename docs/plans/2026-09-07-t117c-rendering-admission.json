@@ -16,7 +16,7 @@
     "mergeSha": "576335a7127d8af1d41d5fb2619cae0d9db742e8",
     "status": "merged_and_verified"
   },
-  "authorityArtifactSha256": "a57a22f6e3bd99b36355b9f54c5418642f49cbd1484778f402af3458435dc565",
+  "authorityArtifactSha256": "c7dc73091b1960f74573bec8236cd39151a72ac4e740a42cc7ea4356016a7715",
   "productOutcomes": [
     "Home-only named Case/Actions/Updates regions preserve one request identity and two tenant projections across all existing member destinations.",
     "Nonce-off may prerender anonymous chrome; report retains request nonces; mismatched mode fails before readiness; locale-root Suspense and event-time UUID generation satisfy Next 16.3.3."

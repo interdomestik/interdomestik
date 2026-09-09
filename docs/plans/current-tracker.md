@@ -60,8 +60,8 @@ T117B-CUTOVER closed through `#1691/#1675`. T-117C promotions `#1703/#1710/#1715
     "promotionPrNumber": 1723,
     "promotionBaseSha": "576335a7127d8af1d41d5fb2619cae0d9db742e8",
     "expectedProductBranch": "codex/t117c-rendering-r4",
-    "gateSha256": "a57a22f6e3bd99b36355b9f54c5418642f49cbd1484778f402af3458435dc565",
-    "admissionSha256": "2ef6cf579249231dae0edf99b80396451d44b4bf3973ce462ebb901fe997b2a1",
+    "gateSha256": "c7dc73091b1960f74573bec8236cd39151a72ac4e740a42cc7ea4356016a7715",
+    "admissionSha256": "c2fdf391df4560920b911a3b2910ab79190e679db8d3a7220b2bce5d27949a7b",
     "productWriterPaths": [
       "apps/web/e2e/gate/member-home-cta.spec.ts",
       "apps/web/e2e/gate/member-parallel-routes.spec.ts",
