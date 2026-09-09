@@ -73,19 +73,13 @@ was cancelled before deployment. Repairs through `#1686` established the 21-path
 prerequisite squash is `01117c712f56ce0ce12750605b3fbf0b337d24c3`, tree
 `7e44c5a177b8da0770b8e12a445037b62e9cfee4`.
 
-`T117B-CUTOVER` completed through re-promotion `#1691` and product `#1675`, using its
-[gate](./2026-08-28-t117b-cutover-design-gate.md), exact 21-path
-[admission](./2026-08-28-t117b-cutover-admission.json), and bounded allocation. Final product head
-`503d4b179251f9d3d06e07349ec80f85805565ae`, tree
-`61b2316606c9b3facd6c8aff2a14bb4402d80c82`, and squash
-`31cae997e42dbc0bee13ca670899b988576bd42c` matched. The member route now mounts the DATA-backed
-PORTAL through one fail-closed request-scoped session/tenant/role source while preserving
-neutral-host/default-tenant draft behavior and isolated fixtures. Final-head Full Gate
-`33863200404`, CI `33863200381`, Pilot `33863200495`, backstops `33863200850`, security
-`33862616690`, finalizer `33863200356` attempt 2, and delivery `33863200387` attempt 2 were green.
-Protected-main CI `33865541214`, CodeQL `33865540843`, Code Quality `33865540812`, Secret Scan
-`33865541201`, and Sonar Main `33865541295` were green; CD `33865541227` was cancelled with zero
-jobs and no deployment effect. T-117C promotion `#1723` merged; product `#1724` failed closed after the full gate exposed a public no-JS shell regression. A minimal six-path repair passed a production build and all seven focused no-JS scenarios on Z620; runtime is inactive pending exact admission and re-promotion.
+`T117B-CUTOVER` completed through `#1691/#1675` with its exact 21-path
+[admission](./2026-08-28-t117b-cutover-admission.json). Head `503d4b179251f9d3d06e07349ec80f85805565ae`,
+tree `61b2316606c9b3facd6c8aff2a14bb4402d80c82`, and squash
+`31cae997e42dbc0bee13ca670899b988576bd42c` matched. The member route mounts DATA-backed PORTAL
+through one fail-closed request identity while preserving neutral-host drafts. Exact-head and main
+checks were green; CD had no deployment effect. T-117C `#1724` failed on public no-JS;
+`#1726/#1727` closed and admitted its repair. Build and 7/7 Z620 passed; `#1728` is pending.
 
 Closed `IDA-WF01-ONE-APPROVAL-DELIVERY` remains immutable evidence through its
 [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),
@@ -102,9 +96,9 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate       | Dependencies   | Promotion constraint                            |
-| -------: | --------------- | -------------- | ----------------------------------------------- |
-|        1 | `T-117C` Tier 3 | CUTOVER closed | Admit the six-path no-JS repair and re-promote. |
+| Priority | Candidate       | Dependencies   | Promotion constraint              |
+| -------: | --------------- | -------------- | --------------------------------- |
+|        1 | `T-117C` Tier 3 | CUTOVER closed | Merge `#1728`; deliver candidate. |
 
 ## Unified Portal Direction
 
@@ -139,12 +133,77 @@ and global headers remain T-117C.
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "inactive",
+  "lifecycle": "promotion_pending",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": null
+  "activeSlice": {
+    "sliceId": "T-117C",
+    "tier": 3,
+    "promotionPrNumber": 1728,
+    "promotionBaseSha": "f2cffbe8d09185f0ae7d85a5b6d1db85f2a07cbd",
+    "expectedProductBranch": "codex/t117c-rendering-r4",
+    "gateSha256": "1f88f680ad7c4f30888ff98f0dad203510a217f55dba464b0dcb6fa11ad22e3d",
+    "admissionSha256": "2237cf7626451bc0bf46a3cd9ac0ac5b74da7c1725b4e3e6fa547156601d93c5",
+    "productWriterPaths": [
+      "apps/web/e2e/gate/member-home-cta.spec.ts",
+      "apps/web/e2e/gate/member-parallel-routes.spec.ts",
+      "apps/web/e2e/gate/rendering-build-mode.spec.ts",
+      "apps/web/next.config.mjs",
+      "apps/web/src/app/[locale]/_core.entry.test.tsx",
+      "apps/web/src/app/[locale]/_core.entry.tsx",
+      "apps/web/src/app/[locale]/(agent)/agent/layout.tsx",
+      "apps/web/src/app/[locale]/(app)/layout.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@actions/default.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@actions/page.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@case/default.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@case/page.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@updates/default.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@updates/page.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/default.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/layout.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/page.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.test.ts",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.ts",
+      "apps/web/src/app/[locale]/(app)/member/layout.tsx",
+      "apps/web/src/app/[locale]/(app)/member/page.test.tsx",
+      "apps/web/src/app/[locale]/(app)/member/page.tsx",
+      "apps/web/src/app/[locale]/(auth)/login/page.tsx",
+      "apps/web/src/app/[locale]/(auth)/register/page.tsx",
+      "apps/web/src/app/[locale]/(site)/nps/[token]/page.tsx",
+      "apps/web/src/app/[locale]/(site)/pricing/page.tsx",
+      "apps/web/src/app/[locale]/(staff)/staff/layout.tsx",
+      "apps/web/src/app/[locale]/admin/commissions/page.tsx",
+      "apps/web/src/app/[locale]/admin/layout.tsx",
+      "apps/web/src/app/[locale]/admin/members/number/[memberNumber]/page.tsx",
+      "apps/web/src/app/[locale]/admin/settings/page.tsx",
+      "apps/web/src/app/[locale]/admin/users/[id]/page.tsx",
+      "apps/web/src/app/[locale]/components/home/footer.test.tsx",
+      "apps/web/src/app/[locale]/components/home/footer.tsx",
+      "apps/web/src/app/[locale]/components/home/free-start-intake-shell/use-draft-lifecycle.ts",
+      "apps/web/src/app/[locale]/layout.tsx",
+      "apps/web/src/app/[locale]/stats/page.tsx",
+      "apps/web/src/app/api/claims/route.ts",
+      "apps/web/src/app/api/csp-report/route.ts",
+      "apps/web/src/app/api/e2e/branches/route.ts",
+      "apps/web/src/app/track/[token]/page.test.tsx",
+      "apps/web/src/app/track/[token]/page.tsx",
+      "apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx",
+      "apps/web/src/components/dashboard/member-portal-runtime.tsx",
+      "apps/web/src/components/pricing/business-lead-form.test.tsx",
+      "apps/web/src/components/pricing/business-lead-form.tsx",
+      "apps/web/src/components/shell/request-boundary.test.tsx",
+      "apps/web/src/components/shell/request-boundary.tsx",
+      "apps/web/src/instrumentation.ts",
+      "apps/web/src/lib/rendering-build-mode.test.ts",
+      "apps/web/src/lib/rendering-build-mode.ts"
+    ],
+    "closeoutWriterPaths": [
+      "docs/plans/current-program.md",
+      "docs/plans/current-tracker.md"
+    ]
+  }
 }
 ```
 
@@ -156,4 +215,4 @@ Rev 243 history is recoverable from
 OD17, and CI01 remain historical and inactive.
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:null`; lifecycle `inactive`).
+The next active governed implementation goal is resolved only by the repo-owned Lean authority validator.
