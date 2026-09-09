@@ -32,6 +32,14 @@ const paths = [
   'apps/web/src/app/[locale]/(app)/member/layout.tsx',
   'apps/web/src/app/[locale]/(app)/member/page.test.tsx',
   'apps/web/src/app/[locale]/(app)/member/page.tsx',
+  'apps/web/src/app/[locale]/(auth)/_core.entry.test.tsx',
+  'apps/web/src/app/[locale]/(auth)/_core.entry.tsx',
+  'apps/web/src/app/[locale]/(auth)/login/page.tsx',
+  'apps/web/src/app/[locale]/(auth)/register/page.tsx',
+  'apps/web/src/app/[locale]/(site)/_core.entry.test.tsx',
+  'apps/web/src/app/[locale]/(site)/_core.entry.tsx',
+  'apps/web/src/app/[locale]/(site)/nps/[token]/page.tsx',
+  'apps/web/src/app/[locale]/(site)/pricing/page.tsx',
   'apps/web/src/app/[locale]/(staff)/staff/layout.tsx',
   'apps/web/src/app/[locale]/admin/commissions/page.tsx',
   'apps/web/src/app/[locale]/admin/layout.tsx',
@@ -50,12 +58,26 @@ const paths = [
   'apps/web/src/app/track/[token]/page.tsx',
   'apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx',
   'apps/web/src/components/dashboard/member-portal-runtime.tsx',
+  'apps/web/src/components/pricing/business-lead-form.test.tsx',
+  'apps/web/src/components/pricing/business-lead-form.tsx',
   'apps/web/src/components/shell/request-boundary.test.tsx',
   'apps/web/src/components/shell/request-boundary.tsx',
   'apps/web/src/instrumentation.ts',
   'apps/web/src/lib/rendering-build-mode.test.ts',
   'apps/web/src/lib/rendering-build-mode.ts',
 ];
+const regressionRepairPaths = new Set([
+  'apps/web/src/app/[locale]/(auth)/_core.entry.test.tsx',
+  'apps/web/src/app/[locale]/(auth)/_core.entry.tsx',
+  'apps/web/src/app/[locale]/(auth)/login/page.tsx',
+  'apps/web/src/app/[locale]/(auth)/register/page.tsx',
+  'apps/web/src/app/[locale]/(site)/_core.entry.test.tsx',
+  'apps/web/src/app/[locale]/(site)/_core.entry.tsx',
+  'apps/web/src/app/[locale]/(site)/nps/[token]/page.tsx',
+  'apps/web/src/app/[locale]/(site)/pricing/page.tsx',
+  'apps/web/src/components/pricing/business-lead-form.test.tsx',
+  'apps/web/src/components/pricing/business-lead-form.tsx',
+]);
 const slice = {
   sliceId: 'T-117C',
   tier: 3,
@@ -68,11 +90,11 @@ const slice = {
   closeoutWriterPaths: ['docs/plans/current-program.md', 'docs/plans/current-tracker.md'],
 };
 
-test('T117C accepts 45-path map', () => {
-  assert.equal(paths.length, 45);
+test('T117C accepts 55-path map', () => {
+  assert.equal(paths.length, 55);
   assert.equal(
     createHash('sha256').update(JSON.stringify(paths)).digest('hex'),
-    'b92e38a0712d08f188630d282f49bb4034aac2388573a061a4043985bc174f17'
+    'd9475d09df18b9553a197a1c9a88016bd3cee72b25707ea591bcce7a74b2a284'
   );
   assert.equal(validateSlice(slice), slice);
   for (const p of paths) assert.equal(classifyWriterPath(p, slice).allowed, true, p);
@@ -103,7 +125,9 @@ test('T117C accepts 45-path map', () => {
 test('T117C retains its historical 44-path map for authority replay', () => {
   const historical = {
     ...slice,
-    productWriterPaths: paths.filter(p => !p.endsWith('/use-draft-lifecycle.ts')),
+    productWriterPaths: paths.filter(
+      p => !regressionRepairPaths.has(p) && !p.endsWith('/use-draft-lifecycle.ts')
+    ),
   };
   assert.equal(historical.productWriterPaths.length, 44);
   assert.equal(
