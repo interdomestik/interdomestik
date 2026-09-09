@@ -16,15 +16,15 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID       | Status    | Owner      | Work                               | Exit Criteria                                |
-| -------- | --------- | ---------- | ---------------------------------- | -------------------------------------------- |
-| `T-117C` | `blocked` | `platform` | Nonce-compatible member rendering. | Add one writer path; repeat exact promotion. |
+| ID       | Status    | Owner      | Work                               | Exit Criteria                      |
+| -------- | --------- | ---------- | ---------------------------------- | ---------------------------------- |
+| `T-117C` | `pending` | `platform` | Nonce-compatible member rendering. | Merge corrected promotion `#1721`. |
 
 ## Proof Ledger
 
-| ID       | Source Refs                                                                                                   | Execution | Run ID     | Run Root         | Sonar  | Docker           | Sentry           | Learning | Evidence Refs                                                                                              |
-| -------- | ------------------------------------------------------------------------------------------------------------- | --------- | ---------- | ---------------- | ------ | ---------------- | ---------------- | -------- | ---------------------------------------------------------------------------------------------------------- |
-| `T-117C` | [gate](./2026-09-07-t117c-rendering-design-gate.md); [admission](./2026-09-07-t117c-rendering-admission.json) | `blocked` | `PR #1718` | `not_applicable` | `pass` | `not_applicable` | `not_applicable` | `pass`   | docs/plans/2026-09-07-t117c-rendering-design-gate.md; docs/plans/2026-09-07-t117c-rendering-admission.json |
+| ID       | Source Refs                                                                                                   | Execution  | Run ID     | Run Root         | Sonar     | Docker           | Sentry           | Learning | Evidence Refs                                                                                              |
+| -------- | ------------------------------------------------------------------------------------------------------------- | ---------- | ---------- | ---------------- | --------- | ---------------- | ---------------- | -------- | ---------------------------------------------------------------------------------------------------------- |
+| `T-117C` | [gate](./2026-09-07-t117c-rendering-design-gate.md); [admission](./2026-09-07-t117c-rendering-admission.json) | `scripted` | `PR #1721` | `not_applicable` | `pending` | `not_applicable` | `not_applicable` | `pass`   | docs/plans/2026-09-07-t117c-rendering-design-gate.md; docs/plans/2026-09-07-t117c-rendering-admission.json |
 
 Terminal evidence: re-promotion `#1691`; product head
 `503d4b179251f9d3d06e07349ec80f85805565ae`, tree
@@ -36,11 +36,11 @@ delivery `33863200387` attempt 2, and exact-main CI/Sonar/CodeQL/security were g
 
 ## Next Selection
 
-T117B-CUTOVER completed through exact re-promotion `#1691` and product `#1675`. T-117C promotions `#1703`, `#1710`, and `#1715` merged exactly, while products `#1705`, `#1711`, and `#1718` failed closed before merge. Product `#1718` reached its promoted tree; final-head Next 16.3.3 runners then exposed request-bound Suspense and prerender-time UUID defects. A detached Z620 diagnostic run on the same dependency closure passed `build:ci` and preserved the rich public prerendered shell; it is not acceptance evidence and grants no runtime. Runtime is inactive pending addition of the UUID source to the writer map and one exact re-promotion. The missing compiled post-merge-node certificate remains shadow backlog evidence only.
+T117B-CUTOVER closed through `#1691/#1675`. T-117C promotions `#1703/#1710/#1715` merged; products `#1705/#1711/#1718` failed closed. Next 16.3.3 exposed Suspense/UUID defects; `#1719` closed them and `#1720` admitted 45 writers on `1ccdf308f07b407f9eabdececc0224bbca70807d`. Promotion `#1721` is pending for candidate `616edb489b19c1e84a9b2cd95271d8f611aea941` on `codex/t117c-rendering-r4`.
 
-| Future UI branch | Status     | Constraint                                   |
-| ---------------- | ---------- | -------------------------------------------- |
-| `T-117C`         | `deferred` | Add one writer path; repeat exact promotion. |
+| Future UI branch | Status              | Constraint                               |
+| ---------------- | ------------------- | ---------------------------------------- |
+| `T-117C`         | `promotion_pending` | Promotion `#1721`; product branch `-r4`. |
 
 ## Lean Authority
 
@@ -49,17 +49,76 @@ T117B-CUTOVER completed through exact re-promotion `#1691` and product `#1675`. 
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "inactive",
+  "lifecycle": "promotion_pending",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": null
+  "activeSlice": {
+    "sliceId": "T-117C",
+    "tier": 3,
+    "promotionPrNumber": 1721,
+    "promotionBaseSha": "1ccdf308f07b407f9eabdececc0224bbca70807d",
+    "expectedProductBranch": "codex/t117c-rendering-r4",
+    "gateSha256": "e508c68fd551b6cfe2a8ac907fb28f792a069e02be517585d630a4cb0452b3a1",
+    "admissionSha256": "674357a4e5929a18282cad2423fe6a36a214f39e53b59e4404b7cae54d9a2f53",
+    "productWriterPaths": [
+      "apps/web/e2e/gate/member-home-cta.spec.ts",
+      "apps/web/e2e/gate/member-parallel-routes.spec.ts",
+      "apps/web/e2e/gate/rendering-build-mode.spec.ts",
+      "apps/web/next.config.mjs",
+      "apps/web/src/app/[locale]/_core.entry.test.tsx",
+      "apps/web/src/app/[locale]/_core.entry.tsx",
+      "apps/web/src/app/[locale]/(agent)/agent/layout.tsx",
+      "apps/web/src/app/[locale]/(app)/layout.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@actions/default.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@actions/page.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@case/default.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@case/page.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@updates/default.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/@updates/page.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/default.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/layout.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/page.tsx",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.test.ts",
+      "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.ts",
+      "apps/web/src/app/[locale]/(app)/member/layout.tsx",
+      "apps/web/src/app/[locale]/(app)/member/page.test.tsx",
+      "apps/web/src/app/[locale]/(app)/member/page.tsx",
+      "apps/web/src/app/[locale]/(staff)/staff/layout.tsx",
+      "apps/web/src/app/[locale]/admin/commissions/page.tsx",
+      "apps/web/src/app/[locale]/admin/layout.tsx",
+      "apps/web/src/app/[locale]/admin/members/number/[memberNumber]/page.tsx",
+      "apps/web/src/app/[locale]/admin/settings/page.tsx",
+      "apps/web/src/app/[locale]/admin/users/[id]/page.tsx",
+      "apps/web/src/app/[locale]/components/home/footer.test.tsx",
+      "apps/web/src/app/[locale]/components/home/footer.tsx",
+      "apps/web/src/app/[locale]/components/home/free-start-intake-shell/use-draft-lifecycle.ts",
+      "apps/web/src/app/[locale]/layout.tsx",
+      "apps/web/src/app/[locale]/stats/page.tsx",
+      "apps/web/src/app/api/claims/route.ts",
+      "apps/web/src/app/api/csp-report/route.ts",
+      "apps/web/src/app/api/e2e/branches/route.ts",
+      "apps/web/src/app/track/[token]/page.test.tsx",
+      "apps/web/src/app/track/[token]/page.tsx",
+      "apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx",
+      "apps/web/src/components/dashboard/member-portal-runtime.tsx",
+      "apps/web/src/components/shell/request-boundary.test.tsx",
+      "apps/web/src/components/shell/request-boundary.tsx",
+      "apps/web/src/instrumentation.ts",
+      "apps/web/src/lib/rendering-build-mode.test.ts",
+      "apps/web/src/lib/rendering-build-mode.ts"
+    ],
+    "closeoutWriterPaths": [
+      "docs/plans/current-program.md",
+      "docs/plans/current-tracker.md"
+    ]
+  }
 }
 ```
 
 <!-- prettier-ignore -->
-The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:null`; lifecycle `inactive`).
+The next active governed implementation goal is resolved only by the repo-owned Lean authority validator (`runtime_authorized:false`; `activeSlice:T-117C`; lifecycle `promotion_pending`).
 
 ## Historical Authority
 

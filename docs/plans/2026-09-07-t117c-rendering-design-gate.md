@@ -3,14 +3,14 @@ plan_role: input
 status: draft
 source_of_truth: false
 owner: platform
-last_reviewed: 2026-09-08
+last_reviewed: 2026-09-09
 ---
 
 # T-117C — nonce-compatible member rendering
 
-> Status: repeat promotion pending in PR `#1715`; runtime remains denied until exact merge and live resolution.
+> Status: corrected repeat promotion pending in PR `#1721`; runtime remains denied until exact merge and live resolution.
 
-The user authorized this bounded outcome. PRs #1700 and #1704 established the exact policy and capacity. Promotion #1703 merged exactly; product #1705 then closed unmerged when audit exposed its E2E-tree pin dependency. Closeout #1706 restored inactive authority and CI repair #1707 preapproved only the old and qualified T117C E2E trees. Repeat #1708 closed unmerged; #1709 repaired verified repeat-closeout traversal. Promotion #1710 merged exactly, product #1711 closed unmerged on the outdated topology guard, and prerequisite #1713 repaired that guard and the retained findings. The rebased product candidate is commit `d8fc48b3c984fc7eedba7c80cdccdcf3adec8f14`, tree `c568817924b47a6b50f39912e09f54463d0817ef`, binary-diff SHA-256 `f69f45c47deef16622655b0f3636027493e162c888f2b052ca3e89d11d29922f`. Promotion #1715 remains denied until exact owner review, checks, squash merge and live resolution match.
+The user authorized this bounded outcome. Promotions #1703, #1710, and #1715 merged exactly; product PRs #1705, #1711, and #1718 failed closed before merge. PR #1718 reached its promoted tree, where final-head Next 16.3.3 runners exposed a missing request Suspense boundary and prerender-time UUID creation. Failure closeout #1719 restored inactive authority. Prerequisite #1720 then merged head `24fbb4550dfca06914477c5f03cf9a49d8821679` as protected-main commit `1ccdf308f07b407f9eabdececc0224bbca70807d`, admitting the corrected 45-writer map. The corrected product candidate is commit `616edb489b19c1e84a9b2cd95271d8f611aea941`, tree `d89bb06e95623028f99e92909f1eadb2f188b788`, binary-diff SHA-256 `58c5ac619ddadf1076343e1def0986d10bd7e6d3b02ae88c53be202fbe759dd6`. Promotion #1721 remains denied until exact owner review, checks, squash merge and live resolution match.
 
 ## Outcome
 
@@ -50,33 +50,34 @@ An artifact built for the existing authorized nonce-off mode enables Cache Compo
 28. `apps/web/src/app/[locale]/admin/users/[id]/page.tsx`
 29. `apps/web/src/app/[locale]/components/home/footer.test.tsx`
 30. `apps/web/src/app/[locale]/components/home/footer.tsx`
-31. `apps/web/src/app/[locale]/layout.tsx`
-32. `apps/web/src/app/[locale]/stats/page.tsx`
-33. `apps/web/src/app/api/claims/route.ts`
-34. `apps/web/src/app/api/csp-report/route.ts`
-35. `apps/web/src/app/api/e2e/branches/route.ts`
-36. `apps/web/src/app/track/[token]/page.test.tsx`
-37. `apps/web/src/app/track/[token]/page.tsx`
-38. `apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx`
-39. `apps/web/src/components/dashboard/member-portal-runtime.tsx`
-40. `apps/web/src/components/shell/request-boundary.test.tsx`
-41. `apps/web/src/components/shell/request-boundary.tsx`
-42. `apps/web/src/instrumentation.ts`
-43. `apps/web/src/lib/rendering-build-mode.test.ts`
-44. `apps/web/src/lib/rendering-build-mode.ts`
+31. `apps/web/src/app/[locale]/components/home/free-start-intake-shell/use-draft-lifecycle.ts`
+32. `apps/web/src/app/[locale]/layout.tsx`
+33. `apps/web/src/app/[locale]/stats/page.tsx`
+34. `apps/web/src/app/api/claims/route.ts`
+35. `apps/web/src/app/api/csp-report/route.ts`
+36. `apps/web/src/app/api/e2e/branches/route.ts`
+37. `apps/web/src/app/track/[token]/page.test.tsx`
+38. `apps/web/src/app/track/[token]/page.tsx`
+39. `apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx`
+40. `apps/web/src/components/dashboard/member-portal-runtime.tsx`
+41. `apps/web/src/components/shell/request-boundary.test.tsx`
+42. `apps/web/src/components/shell/request-boundary.tsx`
+43. `apps/web/src/instrumentation.ts`
+44. `apps/web/src/lib/rendering-build-mode.test.ts`
+45. `apps/web/src/lib/rendering-build-mode.ts`
 
-Ordered writer-array SHA-256: `5cb7ef250dab08aa31b5acb7949c915819653febb2326de1fd821edd29bb0118`. Hash the canonical ordered array with compact JSON and no trailing newline. Forty-four paths are a closed map enforced by the prerequisite on protected main; additions invalidate the freeze. Delete the old member home page only when its behavior has moved to the home group. Preserve all predecessor and unrelated files.
+Ordered writer-array SHA-256: `b92e38a0712d08f188630d282f49bb4034aac2388573a061a4043985bc174f17`. Hash the canonical ordered array with compact JSON and no trailing newline. Forty-five governed paths are a closed map enforced by the prerequisite on protected main; Git reports 44 rename-aware paths because the source member page becomes `portal-context.ts`, while `--no-renames` reports all 45 governed paths. Additions invalidate the freeze. Delete the old member home page only when its behavior has moved to the home group. Preserve all predecessor and unrelated files.
 
 ## Rendering and security contract
 
 1. Validate build CSP mode as off/report (missing retains existing off default), reject malformed/enforce, and derive `cacheComponents = mode === 'off'`. Compile only the new non-secret built-mode constant; do not inline/overwrite raw runtime `CSP_NONCE_MODE`.
 2. In instrumentation register, compare actual runtime mode to the built constant and reject mismatches before request readiness and before exception handlers/dynamic initialization. Preserve the existing static Sentry import and onRequestError behavior. Prove both next-start and standalone launch; a unit comparison is insufficient.
-3. Root locale params enumerate supported locales only. Root off-mode messages use the existing bundled loader with identical strict/fallback behavior. Root child Suspense and request boundaries above app/member/agent/staff/admin entries preserve existing guards. Report-mode root connection/header nonce placement remains intact. Keep the contractual generic document page-ready marker; no authenticated readiness/data appears before authorization.
+3. Root locale params enumerate supported locales only. Root off-mode messages use the existing bundled loader with identical strict/fallback behavior. Root locale children use the narrow request Suspense boundary required by Next 16.3.3 above app/member/agent/staff/admin entries while preserving existing guards. Draft UUID creation occurs only at the initiating event, never during prerender. Report-mode root connection/header nonce placement remains intact. Keep the contractual generic document page-ready marker; no authenticated readiness/data appears before authorization.
 4. The home group layout and every named slot call one request-memoized guarded resolver before touching data. Transfer the existing complete session/member/tenant/actor and neutral-host decisions unchanged. Cases and Updates share one case promise; Actions shares the membership promise. No slot independently queries, and no identity/projection enters a cross-request cache.
 5. Home slots use matching page/default exports; implicit children page/default return null. Root-to-descendant navigation unmounts the group. All 18 routes retain hard-refresh, soft-navigation, back/forward and unknown-route behavior. Keep disclaimer outside the three data Suspense boundaries and reuse existing region error/empty states.
 6. Remove the 13 obsolete rendering exports only at listed paths. Retain explicit request behavior in protected wrappers/stats and every API session, tenant, fixture, validation, rate-limit and status contract. Global public metadata/providers and the independent track route are mandatory compatibility consumers, even when unchanged.
 
-Exact framework basis: Next 16.2.12 tagged CSP, migration, parallel-route, connection, instrumentation and env documentation recorded in candidate R2. No framework upgrade, 16.3-only API, use-cache identity, nonce-policy replacement or proxy edit is included.
+Exact framework basis: the protected-main Next 16.3.3 dependency closure plus its tagged CSP, migration, parallel-route, connection, instrumentation and environment contracts. No further framework upgrade, use-cache identity, nonce-policy replacement or proxy edit is included.
 
 ## Acceptance
 
@@ -95,37 +96,25 @@ Required commands remain `pnpm pr:verify`, `pnpm security:guard`, `pnpm e2e:gate
 
 ## Authorized feasibility sequence
 
-The user-authorized disposable feasibility candidate is complete at the exact commit/tree/base/diff identity above and retains the canonical 44-path map. The product branch remains governed by the pending promotion; these artifact bytes do not activate it. Preserve host/session/tenant/API protections and the established deployment nonce mode.
+The user-authorized disposable feasibility candidate is complete at the exact commit/tree/base/diff identity above and retains the corrected canonical 45-path map. Git reports 44 rename-aware paths and 45 paths with rename detection disabled. The product branch remains governed by the pending promotion; these artifact bytes do not activate it. Preserve host/session/tenant/API protections and the established deployment nonce mode.
 
 Record this as explicit user-authorized feasibility, not `runtimeAuthorized:true`, live promotion, production deployment or a completed product trial. Do not spoof the Lean resolver, owner marker, branch or evidence. Preserve its real inactive result. The final governed product branch is admitted only after the exact prerequisite/promotion chain below. Store failed proof and revise a changed writer map before proceeding; no implicit extra writer is authorized.
 
-The exact candidate's slice delta is 42,565 bytes and net +16 files; positive deltas are 40,885 test/E2E bytes and 12,934 source/script bytes. Capacity uses protected-baseline facts instead: PR #1704 owns 39 new product paths plus both promotion artifacts, retains the five inherited T117B owners and counts 20 file additions. Reserve is unchanged.
+The corrected candidate is bound by binary-diff SHA-256 and by the 44 rename-aware / 45 no-renames path proofs above. Capacity uses the protected-main `t117c-rendering` allocation updated by PR #1720: 87,023 tracked bytes, 20 additions, and the exact per-category/per-path ceilings in `scripts/repo-size-budget.json`. Reserve is unchanged.
 
 ## Merged exact prerequisite
 
-PR #1700 merged the exact T-117C policy exception, focused tests, modularity classification and reviewer routes. It recognizes Tier 3, writer hash `5cb7ef250dab08aa31b5acb7949c915819653febb2326de1fd821edd29bb0118`, exactly 44 writers and the closed T117B-CUTOVER predecessor.
-
-PR #1704 repaired capacity ownership with its 20-addition ceiling and full gate. PR #1707 admitted the qualified T117C E2E trees after #1705 failed closed. PR #1713 merged head `226a1be3a56ad15d6c0eaa2d775ab02dc11ea5ab` as protected-main commit `30ad64ae20486ce03dbea2d116c008866cd97aba`, repairing topology, test typing, navigation, evidence, and security prerequisites before this rebase. These repairs are not product trials; delivery still requires repeat promotion and governed product execution.
+PRs #1700, #1704, #1707, #1709, and #1713 established the earlier exact policy, capacity, evidence-pin, history, and topology prerequisites. Promotion #1715 merged, then product #1718 failed closed before merge when its final-head Next 16.3.3 runners exposed the two bounded rendering defects. PR #1719 restored inactive authority. PR #1720 merged head `24fbb4550dfca06914477c5f03cf9a49d8821679` as protected-main commit `1ccdf308f07b407f9eabdececc0224bbca70807d` with tree `ee5905b7cad378a32841bee5d91a9e9b555e88`, admitting writer hash `b92e38a0712d08f188630d282f49bb4034aac2388573a061a4043985bc174f17`, exactly 45 governed writers, and the bounded capacity delta. These repairs are not product trials; delivery still requires this repeat promotion and one governed product execution.
 
 ## Adversarial review disposition
 
-`pnpm review:opus` ran on the exact candidate from `2026-09-08T15:31:17.582Z` to `2026-09-08T15:38:04.640Z`. The repo wrapper recorded configured and provider-reported model `claude-opus-5`, exit `0`, no timeout or blocker, and verdict `FINDINGS` against the bound base/head/tree/diff. That verdict is retained as finding evidence and is not treated as approval.
-
-The findings were independently traced against the exact Z620 artifacts and current framework/runtime source:
-
-- The governance refusal is resolved only by this four-file promotion; the product branch remains blocked until it merges.
-- The off-mode prerender manifest inventories 275 concrete routes and 129 dynamic patterns. Protected member routes are partial shells with request holes, `/api/claims` is absent from prerendered routes, and the required-server-files records prove Next `16.2.12` accepted `cacheComponents: true`. Nonce freshness belongs to report mode; off-mode request freshness is covered by real session revocation with original-cookie replay in both tenant projects.
-- The sole proxy authority verifies signed cookies and introspects active sessions before protected rendering. React/Next allocate `cache()` storage per RSC request. Edge instrumentation registration is awaited and rejection propagates before request handling. The exact startup matrix also rejected every built/runtime mismatch for both launch forms.
-- Generated app-path and prerender manifests distinguish the home portal group from sibling member pages. The locale-aware pathname wrapper hides Next's documented soft-navigation retention, while hard refresh uses the sibling route tree. Same-document soft/back/forward and hard-refresh cases passed in both modes.
-- The presentational runtime currently has no protected imports, and the decorative initial skeleton is intentionally hidden while route-specific readiness and soft-navigation live status remain authoritative. Restoring a structural import assertion and adding an initial-load announcement are bounded follow-ups; neither exposes data nor invalidates the qualified behavior.
-
-No production blocker remained after this evidence disposition. The qualified semantic change is rebound to the protected-main prerequisite at the candidate identity above. After promotion, the governed product head still requires one current-head repo-owned review over the promoted authority and exact 44-path writer map; any new finding must be resolved before merge.
+The prior `pnpm review:opus` receipt covers only the pre-correction candidate. Its findings retain the rendering/security constraints but do not approve the corrected bytes. After promotion, one repo-owned current-head review must cover the exact corrected candidate and 45-path map; resolve new findings before merge.
 
 ## Promotion and reviewer contract
 
-Promotion writes exactly this gate, its sibling admission, current-program and current-tracker. Gate/admission bind base `30ad64ae20486ce03dbea2d116c008866cd97aba` and final candidate commit/tree/diff above. Use live promotion PR `#1715` in the matching canonical pending projections. Bind product branch `codex/t117c-rendering-r3`, the exact 44 writers, and closeout writers ordered program then tracker. PR `#1715` was reserved from the bound base with a `[skip ci]` empty commit; the final four-file commit is the sole check-bearing promotion candidate. No placeholder or owner marker is accepted.
+Promotion writes exactly this gate, its sibling admission, current-program and current-tracker. Gate/admission bind base `1ccdf308f07b407f9eabdececc0224bbca70807d` and final candidate commit/tree/diff above. Use live promotion PR `#1721` in the matching canonical pending projections. Bind product branch `codex/t117c-rendering-r4`, the exact 45 governed writers, and closeout writers ordered program then tracker. PR `#1721` was reserved from the bound base with a `[skip ci]` empty commit; the final four-file commit is the sole check-bearing promotion candidate. No placeholder or owner marker is accepted.
 
-The exact-candidate Opus review and its dispositions above satisfy the escalated adversarial intake. Obtain one repo-owned current-head review after promotion so the reviewer sees the active gate/admission and exact product diff together. Consolidate any remaining architecture/security/QA finding into the closed map before merge, and retain route/model/timestamp/exit/blocker receipts. A review of unrelated runtime source does not cover these T-117C bytes; quota, absent output or a blocked route is never approval.
+The historical Opus review informs the risk model but does not satisfy review for the corrected candidate. Obtain one repo-owned current-head review after promotion so the reviewer sees the active gate/admission and exact product diff together. Consolidate any remaining architecture/security/QA finding into the closed map before merge, and retain route/model/timestamp/exit/blocker receipts. A review of unrelated runtime source does not cover these T-117C bytes; quota, absent output or a blocked route is never approval.
 
 Generate `approvalMarker(slice, promotionHeadSha, promotionTreeSha)` only from valid finalized facts. The final exact owner action is one matching COMMENTED GitHub review by arbenl/62884977 with commit_id equal to the promotion head and body equal to the generated LEAN_AUTHORITY_APPROVAL_V1 marker. Apply existing user authorization through the approved workflow; no renewed broad chat confirmation is needed. Confirm four-path scope, owner marker, exact base/sole-parent/merge-tree equality and live validator resolution before governed product execution. Commands: `node scripts/lean-current-authority.mjs status --repo=<bound-root>` and `conformance`; exit zero alone is not runtime admission.
 
