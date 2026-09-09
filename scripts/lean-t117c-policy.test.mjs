@@ -9,7 +9,7 @@ import {
 } from './lean-current-authority-policy.mjs';
 import { validT117BPredecessor } from './lean-exact-writer-exceptions.mjs';
 
-const writers = [
+const paths = [
   'apps/web/e2e/gate/member-home-cta.spec.ts',
   'apps/web/e2e/gate/member-parallel-routes.spec.ts',
   'apps/web/e2e/gate/rendering-build-mode.spec.ts',
@@ -40,6 +40,7 @@ const writers = [
   'apps/web/src/app/[locale]/admin/users/[id]/page.tsx',
   'apps/web/src/app/[locale]/components/home/footer.test.tsx',
   'apps/web/src/app/[locale]/components/home/footer.tsx',
+  'apps/web/src/app/[locale]/components/home/free-start-intake-shell/use-draft-lifecycle.ts',
   'apps/web/src/app/[locale]/layout.tsx',
   'apps/web/src/app/[locale]/stats/page.tsx',
   'apps/web/src/app/api/claims/route.ts',
@@ -63,14 +64,18 @@ const slice = {
   expectedProductBranch: 'codex/t117c-rendering',
   gateSha256: 'a'.repeat(64),
   admissionSha256: 'b'.repeat(64),
-  productWriterPaths: writers,
+  productWriterPaths: paths,
   closeoutWriterPaths: ['docs/plans/current-program.md', 'docs/plans/current-tracker.md'],
 };
 
-test('T117C accepts only the frozen 44-path rendering map', () => {
-  assert.equal(writers.length, 44);
+test('T117C accepts 45-path map', () => {
+  assert.equal(paths.length, 45);
+  assert.equal(
+    createHash('sha256').update(JSON.stringify(paths)).digest('hex'),
+    'b92e38a0712d08f188630d282f49bb4034aac2388573a061a4043985bc174f17'
+  );
   assert.equal(validateSlice(slice), slice);
-  for (const path of writers) assert.equal(classifyWriterPath(path, slice).allowed, true, path);
+  for (const p of paths) assert.equal(classifyWriterPath(p, slice).allowed, true, p);
   assert.match(
     approvalMarker(slice, '1'.repeat(40), '2'.repeat(40)),
     /^LEAN_AUTHORITY_APPROVAL_V1\n/
@@ -78,16 +83,16 @@ test('T117C accepts only the frozen 44-path rendering map', () => {
   for (const invalid of [
     { ...slice, sliceId: 'T-117C-COPY' },
     { ...slice, tier: 2 },
-    { ...slice, productWriterPaths: [...writers].reverse() },
-    { ...slice, productWriterPaths: writers.slice(1) },
-    { ...slice, productWriterPaths: writers.filter(path => !path.includes('/home/footer.')) },
-    { ...slice, productWriterPaths: writers.filter(path => !path.includes('/track/[token]/')) },
-    { ...slice, productWriterPaths: [...writers, 'apps/web/src/proxy.ts'] },
+    { ...slice, productWriterPaths: [...paths].reverse() },
+    { ...slice, productWriterPaths: paths.slice(1) },
+    { ...slice, productWriterPaths: paths.filter(p => !p.includes('/home/footer.')) },
+    { ...slice, productWriterPaths: paths.filter(p => !p.includes('/track/[token]/')) },
+    { ...slice, productWriterPaths: [...paths, 'apps/web/src/proxy.ts'] },
     {
       ...slice,
-      productWriterPaths: writers.map((path, i) => (i ? path : 'apps/web/src/proxy.ts')),
+      productWriterPaths: paths.map((p, i) => (i ? p : 'apps/web/src/proxy.ts')),
     },
-    { ...slice, productWriterPaths: [...writers.slice(1), writers[1]] },
+    { ...slice, productWriterPaths: [...paths.slice(1), paths[1]] },
     { ...slice, closeoutWriterPaths: [] },
   ])
     assert.throws(() => validateSlice(invalid), /schema or policy mismatch/);
@@ -95,24 +100,22 @@ test('T117C accepts only the frozen 44-path rendering map', () => {
   assert.equal(classifyWriterPath('apps/web/next.config.mjs').allowed, false);
 });
 
-test('T117C requires the verified closed 21-path CUTOVER predecessor', () => {
-  const predecessor = JSON.parse(
+test('T117C requires closed CUTOVER predecessor', () => {
+  const prior = JSON.parse(
     fs.readFileSync(
       new URL('../docs/plans/2026-08-28-t117b-cutover-admission.json', import.meta.url),
       'utf8'
     )
   );
-  assert.equal(predecessor.sliceId, 'T117B-CUTOVER');
-  assert.equal(predecessor.writerPaths.length, 21);
-  const predecessorHash = createHash('sha256')
-    .update(JSON.stringify(predecessor.writerPaths))
-    .digest('hex');
-  assert.equal(predecessorHash, predecessor.productWriterMapSha256);
+  assert.equal(prior.sliceId, 'T117B-CUTOVER');
+  assert.equal(prior.writerPaths.length, 21);
+  const hash = createHash('sha256').update(JSON.stringify(prior.writerPaths)).digest('hex');
+  assert.equal(hash, prior.productWriterMapSha256);
   const evidence = {
     status: 'verified',
     childId: 'T-117C',
     predecessorSliceId: 'T117B-CUTOVER',
-    predecessorWriterMapSha256: predecessorHash,
+    predecessorWriterMapSha256: hash,
     productPrNumber: 1690,
     productState: 'CLOSED',
     productMerged: true,
