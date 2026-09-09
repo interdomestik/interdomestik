@@ -82,7 +82,7 @@ describe('Footer', () => {
     'rejects a missing or invalid compiled copyright year',
     year => {
       vi.stubEnv('INTERDOMESTIK_BUILD_COPYRIGHT_YEAR', year);
-      expect(() => Footer()).toThrow('Invalid compiled copyright year');
+      expect(() => renderFooter('en')).toThrow('Invalid compiled copyright year');
     }
   );
 

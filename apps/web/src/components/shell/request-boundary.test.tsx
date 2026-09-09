@@ -32,6 +32,8 @@ describe('request boundary', () => {
     expect(boundary.props.fallback.type).toBe(RequestFallback);
     const fallback = renderToStaticMarkup(boundary.props.fallback);
     expect(fallback).toContain('data-testid="request-fallback"');
+    expect(fallback).toContain('role="status"');
+    expect(fallback).toContain('aria-label="Loading page"');
     expect(fallback).not.toContain('private member');
     expect(fallback).not.toContain('member-dashboard-ready');
     release();
