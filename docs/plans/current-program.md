@@ -144,8 +144,8 @@ and global headers remain T-117C.
     "promotionPrNumber": 1738,
     "promotionBaseSha": "1fd26bdbe5fa2cd4abe0b2f609a909f5fa083f20",
     "expectedProductBranch": "codex/t117c-qualified-candidate",
-    "gateSha256": "433fe8ded7d16c308f0160eae8a4860413e197a2acf63e321435bfbeffac72ae",
-    "admissionSha256": "96541ad3451302e86417ae6a73c3b26f23847625e9953a61186a43ba10df1fe7",
+    "gateSha256": "889efae886805db5ad0e3af97596f2e01b8ed4d4afb441aa3294fa748aa821f4",
+    "admissionSha256": "15c3541f40fc12251aff0c719e392c435cf77c772affa484cdc4f7cb89fe2137",
     "productWriterPaths": [
       "apps/web/e2e/gate/member-home-cta.spec.ts",
       "apps/web/e2e/gate/member-parallel-routes.spec.ts",
