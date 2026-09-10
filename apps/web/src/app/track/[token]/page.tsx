@@ -5,11 +5,13 @@ import { NextIntlClientProvider } from 'next-intl';
 import { headers } from 'next/headers';
 import { getTrackingViewCore } from './_core';
 
+export const instant = false;
+
 interface PageProps {
-  params: Promise<{
+  readonly params: Promise<{
     token: string;
   }>;
-  searchParams: Promise<{
+  readonly searchParams: Promise<{
     lang?: string;
   }>;
 }
@@ -23,10 +25,7 @@ export default async function PublicTrackingPage({ params, searchParams }: PageP
 
   // Validate locale simple check
   const locale = (['en', 'sq', 'mk', 'sr'].includes(lang || '') ? lang : 'en') as
-    | 'en'
-    | 'sq'
-    | 'mk'
-    | 'sr';
+    'en' | 'sq' | 'mk' | 'sr';
 
   const result = await getTrackingViewCore(
     { token, ipAddress, userAgent },
@@ -49,6 +48,10 @@ export default async function PublicTrackingPage({ params, searchParams }: PageP
 
   const data = result.data;
   const messages = await loadMessagesForNamespaces(locale, ['claims-tracking']);
+  const copyrightYear = process.env.INTERDOMESTIK_BUILD_COPYRIGHT_YEAR;
+  if (!copyrightYear || !/^[1-9]\d{3}$/u.test(copyrightYear)) {
+    throw new Error('Invalid compiled copyright year. Rebuild with the Next configuration.');
+  }
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
@@ -61,7 +64,7 @@ export default async function PublicTrackingPage({ params, searchParams }: PageP
         <PublicTrackingCard data={data} />
 
         <div className="mt-8 text-center text-xs text-gray-400">
-          &copy; {new Date().getFullYear()} Interdomestik. All rights reserved.
+          &copy; {copyrightYear} Interdomestik. All rights reserved.
         </div>
       </div>
     </NextIntlClientProvider>

@@ -8,12 +8,32 @@ import { Button, Input, Label } from '@interdomestik/ui';
 import { Textarea } from '@interdomestik/ui/components/textarea';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useActionState, useEffect, useRef, useState } from 'react';
+import { createContext, useActionState, useContext, useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { toast } from 'sonner';
 
 const initialState: SubmitBusinessMembershipLeadResult | null = null;
 
 const teamSizeOptions = ['1-10', '11-25', '26-50', '51-100', '100+'] as const;
+
+const BusinessLeadKeyContext = createContext<string | null>(null);
+
+export function BusinessLeadKeyProvider({
+  value,
+  children,
+}: Readonly<{ value: string; children: ReactNode }>) {
+  return (
+    <BusinessLeadKeyContext.Provider value={value}>{children}</BusinessLeadKeyContext.Provider>
+  );
+}
+
+function FieldError({ id, message }: Readonly<{ id: string; message?: string }>) {
+  return message ? (
+    <p id={id} className="text-sm font-medium text-red-600">
+      {message}
+    </p>
+  ) : null;
+}
 
 function createIdempotencyKey() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -25,11 +45,12 @@ function createIdempotencyKey() {
 
 export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
   const t = useTranslations('pricing.businessLead.form');
+  const initialKey = useContext(BusinessLeadKeyContext);
   const [serverState, formAction, pending] = useActionState(
     submitBusinessMembershipLead,
     initialState
   );
-  const [idempotencyKey, setIdempotencyKey] = useState(createIdempotencyKey);
+  const [idempotencyKey, setIdempotencyKey] = useState(initialKey);
   const formRef = useRef<HTMLFormElement>(null);
   const lastToastSignatureRef = useRef<string | null>(null);
 
@@ -58,6 +79,7 @@ export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
   }, [serverState, t]);
 
   const fieldErrors = serverState?.success ? {} : (serverState?.issues ?? {});
+  if (!idempotencyKey) throw new Error('Business lead form requires a request idempotency key');
 
   return (
     <section
@@ -100,11 +122,7 @@ export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
             aria-describedby={fieldErrors.firstName ? 'business-lead-firstName-error' : undefined}
             disabled={pending}
           />
-          {fieldErrors.firstName && (
-            <p id="business-lead-firstName-error" className="text-sm font-medium text-red-600">
-              {fieldErrors.firstName}
-            </p>
-          )}
+          <FieldError id="business-lead-firstName-error" message={fieldErrors.firstName} />
         </div>
 
         <div className="space-y-2">
@@ -118,11 +136,7 @@ export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
             aria-describedby={fieldErrors.lastName ? 'business-lead-lastName-error' : undefined}
             disabled={pending}
           />
-          {fieldErrors.lastName && (
-            <p id="business-lead-lastName-error" className="text-sm font-medium text-red-600">
-              {fieldErrors.lastName}
-            </p>
-          )}
+          <FieldError id="business-lead-lastName-error" message={fieldErrors.lastName} />
         </div>
 
         <div className="space-y-2 md:col-span-2">
@@ -138,11 +152,7 @@ export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
             }
             disabled={pending}
           />
-          {fieldErrors.companyName && (
-            <p id="business-lead-companyName-error" className="text-sm font-medium text-red-600">
-              {fieldErrors.companyName}
-            </p>
-          )}
+          <FieldError id="business-lead-companyName-error" message={fieldErrors.companyName} />
         </div>
 
         <div className="space-y-2">
@@ -157,11 +167,7 @@ export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
             aria-describedby={fieldErrors.email ? 'business-lead-email-error' : undefined}
             disabled={pending}
           />
-          {fieldErrors.email && (
-            <p id="business-lead-email-error" className="text-sm font-medium text-red-600">
-              {fieldErrors.email}
-            </p>
-          )}
+          <FieldError id="business-lead-email-error" message={fieldErrors.email} />
         </div>
 
         <div className="space-y-2">
@@ -176,11 +182,7 @@ export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
             aria-describedby={fieldErrors.phone ? 'business-lead-phone-error' : undefined}
             disabled={pending}
           />
-          {fieldErrors.phone && (
-            <p id="business-lead-phone-error" className="text-sm font-medium text-red-600">
-              {fieldErrors.phone}
-            </p>
-          )}
+          <FieldError id="business-lead-phone-error" message={fieldErrors.phone} />
         </div>
 
         <div className="space-y-2 md:col-span-2">
@@ -203,11 +205,7 @@ export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
               </option>
             ))}
           </select>
-          {fieldErrors.teamSize && (
-            <p id="business-lead-teamSize-error" className="text-sm font-medium text-red-600">
-              {fieldErrors.teamSize}
-            </p>
-          )}
+          <FieldError id="business-lead-teamSize-error" message={fieldErrors.teamSize} />
         </div>
 
         <div className="space-y-2 md:col-span-2">
@@ -221,11 +219,7 @@ export function BusinessLeadForm({ locale }: Readonly<{ locale: string }>) {
             aria-describedby={fieldErrors.notes ? 'business-lead-notes-error' : undefined}
             disabled={pending}
           />
-          {fieldErrors.notes && (
-            <p id="business-lead-notes-error" className="text-sm font-medium text-red-600">
-              {fieldErrors.notes}
-            </p>
-          )}
+          <FieldError id="business-lead-notes-error" message={fieldErrors.notes} />
         </div>
 
         <div className="md:col-span-2 flex flex-col gap-3 border-t border-slate-200 pt-5">
