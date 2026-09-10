@@ -11,37 +11,35 @@ status_command: pnpm plan:status
 
 # Current Tracker
 
-> Authority: single current projection; Lean runtime requires matching canonical JSON and live
-> Git/GitHub facts.
+> Lean runtime requires matching canonical JSON and live Git/GitHub facts.
 
 ## Active Queue
 
 | ID       | Status    | Owner      | Work              | Exit Criteria                     |
 | -------- | --------- | ---------- | ----------------- | --------------------------------- |
-| `T-117C` | `pending` | `platform` | Member rendering. | Merge `#1728`; deliver candidate. |
+| `T-117C` | `pending` | `platform` | Member rendering. | Merge `#1734`; deliver candidate. |
 
 ## Proof Ledger
 
-| ID       | Source Refs                                                                                                   | Execution  | Run ID     | Run Root | Sonar     | Docker           | Sentry           | Learning | Evidence Refs                      |
-| -------- | ------------------------------------------------------------------------------------------------------------- | ---------- | ---------- | -------- | --------- | ---------------- | ---------------- | -------- | ---------------------------------- |
-| `T-117C` | [gate](./2026-09-07-t117c-rendering-design-gate.md); [admission](./2026-09-07-t117c-rendering-admission.json) | `scripted` | `PR #1728` | `Z620`   | `pending` | `not_applicable` | `not_applicable` | `pass`   | Build and 7/7 no-JS probes passed. |
+| ID       | Source Refs                                                                                                   | Execution  | Run ID     | Run Root | Sonar     | Docker           | Sentry           | Learning | Evidence Refs              |
+| -------- | ------------------------------------------------------------------------------------------------------------- | ---------- | ---------- | -------- | --------- | ---------------- | ---------------- | -------- | -------------------------- |
+| `T-117C` | [gate](./2026-09-07-t117c-rendering-design-gate.md); [admission](./2026-09-07-t117c-rendering-admission.json) | `scripted` | `PR #1734` | `Z620`   | `pending` | `not_applicable` | `not_applicable` | `pass`   | Build pass; proof pending. |
 
-Terminal evidence: re-promotion `#1691`; product head
+Terminal: promotion `#1691`; product head
 `503d4b179251f9d3d06e07349ec80f85805565ae`, tree
 `61b2316606c9b3facd6c8aff2a14bb4402d80c82`, squash
 `31cae997e42dbc0bee13ca670899b988576bd42c`; Full Gate `33863200404`, CI `33863200381`, Pilot
 `33863200495`, backstops `33863200850`, security `33862616690`, finalizer `33863200356` attempt 2,
-delivery `33863200387` attempt 2, and exact-main CI/Sonar/CodeQL/security were green; CD
-`33865541227` was cancelled with zero jobs.
+delivery `33863200387` attempt 2, main CI/Sonar/CodeQL/security green; CD
+`33865541227` cancelled, zero jobs.
 
 ## Next Selection
 
-T117B-CUTOVER closed through `#1691/#1675`. T-117C `#1724` failed closed; `#1726/#1727`
-closed and admitted its no-JS repair. Promotion `#1728` binds the proven candidate.
+#1691/#1675 closed CUTOVER; #1724 failed; #1726/#1727 repaired. #1731 admits 52 paths; #1733 corpus main proof passed. #1734 is pending; runtime denied.
 
-| Future UI branch | Status              | Constraint                                                    |
-| ---------------- | ------------------- | ------------------------------------------------------------- |
-| `T-117C`         | `promotion_pending` | Promotion `#1728`; product branch `codex/t117c-rendering-r4`. |
+| Future UI branch | Status              | Constraint                                                           |
+| ---------------- | ------------------- | -------------------------------------------------------------------- |
+| `T-117C`         | `promotion_pending` | Promotion `#1734`; product branch `codex/t117c-qualified-candidate`. |
 
 ## Lean Authority
 
@@ -58,11 +56,11 @@ closed and admitted its no-JS repair. Promotion `#1728` binds the proven candida
   "activeSlice": {
     "sliceId": "T-117C",
     "tier": 3,
-    "promotionPrNumber": 1728,
-    "promotionBaseSha": "f2cffbe8d09185f0ae7d85a5b6d1db85f2a07cbd",
-    "expectedProductBranch": "codex/t117c-rendering-r4",
-    "gateSha256": "1f88f680ad7c4f30888ff98f0dad203510a217f55dba464b0dcb6fa11ad22e3d",
-    "admissionSha256": "2237cf7626451bc0bf46a3cd9ac0ac5b74da7c1725b4e3e6fa547156601d93c5",
+    "promotionPrNumber": 1734,
+    "promotionBaseSha": "c328162d70ff9386799952d5cffeac23bfbf7dea",
+    "expectedProductBranch": "codex/t117c-qualified-candidate",
+    "gateSha256": "acc751fed815d20e63308abf627fd969de478cd05e60b0e37db20fcb29e04a81",
+    "admissionSha256": "16428ec75cafaf2e5d78a88e6f481c36921127e037f1eff1865d42c60bccf1ec",
     "productWriterPaths": [
       "apps/web/e2e/gate/member-home-cta.spec.ts",
       "apps/web/e2e/gate/member-parallel-routes.spec.ts",
@@ -88,6 +86,7 @@ closed and admitted its no-JS repair. Promotion `#1728` binds the proven candida
       "apps/web/src/app/[locale]/(app)/member/page.tsx",
       "apps/web/src/app/[locale]/(auth)/login/page.tsx",
       "apps/web/src/app/[locale]/(auth)/register/page.tsx",
+      "apps/web/src/app/[locale]/(site)/business-membership/page.tsx",
       "apps/web/src/app/[locale]/(site)/nps/[token]/page.tsx",
       "apps/web/src/app/[locale]/(site)/pricing/page.tsx",
       "apps/web/src/app/[locale]/(staff)/staff/layout.tsx",

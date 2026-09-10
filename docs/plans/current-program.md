@@ -79,7 +79,7 @@ tree `61b2316606c9b3facd6c8aff2a14bb4402d80c82`, and squash
 `31cae997e42dbc0bee13ca670899b988576bd42c` matched. The member route mounts DATA-backed PORTAL
 through one fail-closed request identity while preserving neutral-host drafts. Exact-head and main
 checks were green; CD had no deployment effect. T-117C `#1724` failed on public no-JS;
-`#1726/#1727` closed and admitted its repair. Build and 7/7 Z620 passed; `#1728` is pending.
+`#1726/#1727` closed and admitted its repair. Historical build and 7/7 Z620 passed. #1731 admits 52 paths; #1733 admits the final corpus with main verified. Promotion #1734 is pending; runtime remains denied.
 
 Closed `IDA-WF01-ONE-APPROVAL-DELIVERY` remains immutable evidence through its
 [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),
@@ -98,7 +98,7 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 | Priority | Candidate       | Dependencies   | Promotion constraint              |
 | -------: | --------------- | -------------- | --------------------------------- |
-|        1 | `T-117C` Tier 3 | CUTOVER closed | Merge `#1728`; deliver candidate. |
+|        1 | `T-117C` Tier 3 | CUTOVER closed | Merge `#1734`; deliver candidate. |
 
 ## Unified Portal Direction
 
@@ -141,11 +141,11 @@ and global headers remain T-117C.
   "activeSlice": {
     "sliceId": "T-117C",
     "tier": 3,
-    "promotionPrNumber": 1728,
-    "promotionBaseSha": "f2cffbe8d09185f0ae7d85a5b6d1db85f2a07cbd",
-    "expectedProductBranch": "codex/t117c-rendering-r4",
-    "gateSha256": "1f88f680ad7c4f30888ff98f0dad203510a217f55dba464b0dcb6fa11ad22e3d",
-    "admissionSha256": "2237cf7626451bc0bf46a3cd9ac0ac5b74da7c1725b4e3e6fa547156601d93c5",
+    "promotionPrNumber": 1734,
+    "promotionBaseSha": "c328162d70ff9386799952d5cffeac23bfbf7dea",
+    "expectedProductBranch": "codex/t117c-qualified-candidate",
+    "gateSha256": "acc751fed815d20e63308abf627fd969de478cd05e60b0e37db20fcb29e04a81",
+    "admissionSha256": "16428ec75cafaf2e5d78a88e6f481c36921127e037f1eff1865d42c60bccf1ec",
     "productWriterPaths": [
       "apps/web/e2e/gate/member-home-cta.spec.ts",
       "apps/web/e2e/gate/member-parallel-routes.spec.ts",
@@ -171,6 +171,7 @@ and global headers remain T-117C.
       "apps/web/src/app/[locale]/(app)/member/page.tsx",
       "apps/web/src/app/[locale]/(auth)/login/page.tsx",
       "apps/web/src/app/[locale]/(auth)/register/page.tsx",
+      "apps/web/src/app/[locale]/(site)/business-membership/page.tsx",
       "apps/web/src/app/[locale]/(site)/nps/[token]/page.tsx",
       "apps/web/src/app/[locale]/(site)/pricing/page.tsx",
       "apps/web/src/app/[locale]/(staff)/staff/layout.tsx",
