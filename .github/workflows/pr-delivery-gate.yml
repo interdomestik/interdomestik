@@ -12,6 +12,7 @@ on:
         converted_to_draft,
         review_requested,
         review_request_removed,
+        closed,
       ]
   pull_request_review:
     types: [submitted, edited, dismissed]

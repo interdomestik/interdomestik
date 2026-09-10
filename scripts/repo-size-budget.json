@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 76901,
+      "trackedBytesDelta": 77003,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 45963,
+        "config/data/messages": 46065,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 45963,
+        "scripts/repo-size-budget.json": 46065,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -951,19 +951,21 @@
       "writerPaths": [
         ".husky/pre-push",
         ".github/workflows/pr-delivery-gate.yml",
-        "scripts/ci/pr-delivery-workflow.test.mjs"
+        "scripts/ci/pr-delivery-workflow.test.mjs",
+        "scripts/ci/repo-size-audit.test.mjs"
       ],
-      "maxTrackedBytesDelta": 152,
+      "maxTrackedBytesDelta": 1316,
       "maxTrackedFilesDelta": 1,
       "maxCategoryBytesDelta": {
-        "config/data/messages": 21,
-        "tests/e2e": 100,
-        "other": 31
+        "config/data/messages": 44,
+        "tests/e2e": 654,
+        "other": 618
       },
       "maxPathBytesDelta": {
-        ".husky/pre-push": 31,
-        ".github/workflows/pr-delivery-gate.yml": 21,
-        "scripts/ci/pr-delivery-workflow.test.mjs": 100
+        ".husky/pre-push": 618,
+        ".github/workflows/pr-delivery-gate.yml": 44,
+        "scripts/ci/pr-delivery-workflow.test.mjs": 175,
+        "scripts/ci/repo-size-audit.test.mjs": 479
       }
     }
   ],
@@ -973,15 +975,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60922205,
+  "maxTrackedBytes": 60923471,
   "maxTrackedFiles": 6006,
   "maxCategoryBytes": {
-    "config/data/messages": 2206102,
+    "config/data/messages": 2206227,
     "docs/text": 8532529,
     "large support/generated-ish": 15395985,
-    "other": 19184075,
+    "other": 19184662,
     "source/scripts": 8745138,
-    "tests/e2e": 6858376
+    "tests/e2e": 6858930
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

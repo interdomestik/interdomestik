@@ -207,6 +207,7 @@ test('delivery workflow stays exact and default-deny', () => {
   ]);
   assert.ok(workflow.on.pull_request.types.includes('review_requested'));
   assert.ok(workflow.on.pull_request.types.includes('review_request_removed'));
+  assert.ok(workflow.on.pull_request.types.includes('closed'));
   assert.ok(!workflow.on.pull_request.types.includes('labeled'));
   assert.deepEqual(Object.keys(workflow.jobs), ['delivery-gate']);
   assert.equal(job.needs, undefined);

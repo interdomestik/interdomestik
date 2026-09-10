@@ -65,6 +65,14 @@ test('repo size scripts are wired into static and PR verification', () => {
   assert.match(packageJson.scripts['pr:verify'], /\bpnpm repo:size:check\b/u);
 });
 
+test('pre-push repo-size check evaluates each pushed commit in an isolated worktree', () => {
+  const hook = fs.readFileSync(path.join(repoRoot, '.husky/pre-push'), 'utf8');
+  assert.match(hook, /while read -r _local_ref local_sha _remote_ref _remote_sha/u);
+  assert.match(hook, /worktree add --quiet --detach "\$checkout" "\$local_sha"/u);
+  assert.match(hook, /"\$checkout\/scripts\/repo-size-audit\.mjs" --check/u);
+  assert.doesNotMatch(hook, /pnpm repo:size:check/u);
+});
+
 test('repo size audit emits JSON with tracked inventory and budget result', t => {
   const budgetPath = createPassingBudget(t);
   const result = runAudit(['--check', '--json', '--top=2', `--budget=${budgetPath}`]);
