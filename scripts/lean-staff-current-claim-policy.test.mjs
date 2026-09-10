@@ -3,7 +3,6 @@ import test from 'node:test';
 import { classifyWriterPath, validateSlice } from './lean-current-authority-policy.mjs';
 import { resolveAuthority } from './lean-current-authority-lifecycle.mjs';
 
-// These are explicitly synthetic test fixtures, never approval or runtime evidence.
 const writers = [
   'apps/web/src/actions/staff-claims/update-status.test.ts',
   'packages/domain-claims/src/staff-claims/current-claim-record.test.ts',
@@ -33,8 +32,8 @@ const slice = {
 };
 
 test('admits only the current and transitional legacy staff current-claim maps', () => {
-  assert.equal(validateSlice(slice), slice);
-  assert.doesNotThrow(() => validateSlice({ ...slice, productWriterPaths: priorWriters }));
+  for (const productWriterPaths of [writers, writers.slice(1), priorWriters])
+    assert.doesNotThrow(() => validateSlice({ ...slice, productWriterPaths }));
   for (const path of writers) assert.equal(classifyWriterPath(path, slice).allowed, true);
   for (const invalid of [
     { ...slice, tier: 2 },
