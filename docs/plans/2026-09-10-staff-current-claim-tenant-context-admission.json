@@ -3,21 +3,22 @@
   "status": "promotion_pending",
   "sliceId": "STAFF-CURRENT-CLAIM-TENANT-CONTEXT",
   "tier": 3,
-  "baseSha": "c3a560efeaf058fdbb9f20066f61aa533bbc6f2b",
-  "promotionPrNumber": 1747,
+  "baseSha": "3c89a6520094f9badab3b528e80c444a831d34c5",
+  "promotionPrNumber": 1749,
   "prerequisite": {
-    "pullRequestNumber": 1746,
-    "headSha": "4d51e5ac4aaecd3c749d52f19a42559ec6e2313c",
-    "mergeSha": "c3a560efeaf058fdbb9f20066f61aa533bbc6f2b",
+    "pullRequestNumber": 1748,
+    "headSha": "f515ff5bfcf9b30bf6d9a9fd5548b731cbaf0974",
+    "mergeSha": "3c89a6520094f9badab3b528e80c444a831d34c5",
     "status": "merged_and_verified"
   },
-  "authorityArtifactSha256": "5cc73c7abba820e1aa9851f358fc427882c51c66aea9ae300d70d7fea193c2e7",
+  "authorityArtifactSha256": "d0b370c2ea91f63c1e7ebf185832caba613dde8e4df7d3cbeac181c9d04d2b19",
   "productOutcomes": [
-    "Staff status-change decisions execute inside one trusted tenant transaction.",
-    "Subscription-scoped transaction locking prevents concurrent allowance over-consumption.",
-    "Failed decisions roll back status, usage and assignment writes before external effects."
+    "One tenant transaction owns each status change.",
+    "Locks prevent concurrent allowance overuse.",
+    "Failures roll back before external effects."
   ],
   "writerPaths": [
+    "apps/web/src/actions/staff-claims/update-status.test.ts",
     "packages/domain-claims/src/staff-claims/current-claim-record.test.ts",
     "packages/domain-claims/src/staff-claims/current-claim-record.ts",
     "packages/domain-claims/src/staff-claims/matter-allowance.test.ts",
@@ -26,13 +27,13 @@
     "packages/domain-claims/src/staff-claims/update-status.transaction.test.ts",
     "packages/domain-claims/src/staff-claims/update-status.ts"
   ],
-  "productWriterMapSha256": "621da1c635c4f90c9388103ab4afdca9acb3e2b691441b30b576232aa24a257d",
+  "productWriterMapSha256": "4f32cf06a1b801bf5b59a1854f97ef516e40ffa5e3acc61a3b300c2b19dc7dec",
   "closeoutWriterPaths": ["docs/plans/current-program.md", "docs/plans/current-tracker.md"],
   "acceptanceMatrix": [
     {
       "criterionId": "tenant-transaction-atomicity",
-      "command": "pnpm --filter @interdomestik/domain-claims test:unit --run src/staff-claims/current-claim-record.test.ts src/staff-claims/matter-allowance.test.ts src/staff-claims/update-status.test.ts src/staff-claims/update-status.transaction.test.ts",
-      "expected": "One tenant transaction, serialized allowance decisions, rollback-safe writes, and preserved denials.",
+      "command": "pnpm --filter @interdomestik/domain-claims test:unit --run src/staff-claims/current-claim-record.test.ts src/staff-claims/matter-allowance.test.ts src/staff-claims/update-status.test.ts src/staff-claims/update-status.transaction.test.ts && pnpm --filter @interdomestik/web test:unit --run src/actions/staff-claims/update-status.test.ts",
+      "expected": "Transaction, allowance, rollback, denials, and adapter pass.",
       "skipIsFailure": true
     },
     {
@@ -43,7 +44,7 @@
     }
   ],
   "capacityAllocation": {
-    "prerequisitePullRequest": 1746,
+    "prerequisitePullRequest": 1748,
     "productAllocationId": "staff-current-claim-tenant-context",
     "promotionAllocationId": "staff-current-claim-tenant-context-promotion",
     "promotionMaxTrackedBytesDelta": 7500,
