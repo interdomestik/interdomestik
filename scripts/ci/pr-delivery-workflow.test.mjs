@@ -207,11 +207,12 @@ test('delivery workflow stays exact and default-deny', () => {
   ]);
   assert.ok(workflow.on.pull_request.types.includes('review_requested'));
   assert.ok(workflow.on.pull_request.types.includes('review_request_removed'));
+  assert.ok(!workflow.on.pull_request.types.includes('labeled'));
   assert.deepEqual(Object.keys(workflow.jobs), ['delivery-gate']);
   assert.equal(job.needs, undefined);
   assert.equal(
     job.if,
-    `github.event.pull_request.base.ref == 'main' && !github.event.pull_request.draft`
+    `github.event.pull_request.base.ref == 'main' && github.event.pull_request.state == 'open' && !github.event.pull_request.draft`
   );
   assert.match(workflow.concurrency.group, /github\.event\.pull_request\.number/u);
   assert.ok(job.steps.some(step => String(step.uses).startsWith('actions/checkout@')));

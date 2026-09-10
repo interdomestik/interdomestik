@@ -10,7 +10,6 @@ on:
         reopened,
         ready_for_review,
         converted_to_draft,
-        labeled,
         review_requested,
         review_request_removed,
       ]
@@ -25,7 +24,7 @@ concurrency:
 
 jobs:
   delivery-gate:
-    if: github.event.pull_request.base.ref == 'main' && !github.event.pull_request.draft
+    if: github.event.pull_request.base.ref == 'main' && github.event.pull_request.state == 'open' && !github.event.pull_request.draft
     permissions:
       actions: read
       checks: read
