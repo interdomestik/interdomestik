@@ -6,7 +6,7 @@ import { evaluateModularityGuard } from './lib/modularity-guard.mjs';
 import { createTempRoot, writeFile } from './plan-test-helpers.mjs';
 
 const TARGET = 'packages/domain-claims/src/staff-claims/update-status.test.ts';
-const BASE = '1739478865ad53e7442f63808b396ca1f0aef8a4';
+const BASE = '86269dbf807f69a778e9418a6d8306aab012318c';
 const git = (root, args) =>
   execFileSync('/usr/bin/git', args, { cwd: root, encoding: 'utf8' }).trim();
 const resultFor = (root, base) => evaluateModularityGuard({ root, baseRef: base });
