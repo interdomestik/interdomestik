@@ -15,15 +15,15 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                                   | Status    | Owner      | Work                              | Exit Criteria                                        |
-| ------------------------------------ | --------- | ---------- | --------------------------------- | ---------------------------------------------------- |
-| `STAFF-CURRENT-CLAIM-TENANT-CONTEXT` | `pending` | `platform` | Tenant-scoped current-claim read. | Exact promotion, implementation and main proof pass. |
+| ID                                   | Status    | Owner      | Work                                      | Exit Criteria                                        |
+| ------------------------------------ | --------- | ---------- | ----------------------------------------- | ---------------------------------------------------- |
+| `STAFF-CURRENT-CLAIM-TENANT-CONTEXT` | `pending` | `platform` | Atomic tenant-scoped staff status change. | Exact promotion, implementation and main proof pass. |
 
 ## Proof Ledger
 
-| ID                                   | Source Refs                                                                                                                                         | Execution | Run ID    | Run Root  | Sonar     | Docker           | Sentry           | Learning  | Evidence Refs                              |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | --------- | --------- | --------- | ---------------- | ---------------- | --------- | ------------------------------------------ |
-| `STAFF-CURRENT-CLAIM-TENANT-CONTEXT` | [gate](./2026-09-10-staff-current-claim-tenant-context-design-gate.md); [admission](./2026-09-10-staff-current-claim-tenant-context-admission.json) | `pending` | `pending` | `pending` | `pending` | `not_applicable` | `not_applicable` | `pending` | Promotion #1741 and product trial pending. |
+| ID                                   | Source Refs                                                                                                                                         | Execution | Run ID    | Run Root  | Sonar     | Docker           | Sentry           | Learning  | Evidence Refs                                    |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | --------- | --------- | --------- | ---------------- | ---------------- | --------- | ------------------------------------------------ |
+| `STAFF-CURRENT-CLAIM-TENANT-CONTEXT` | [gate](./2026-09-10-staff-current-claim-tenant-context-design-gate.md); [admission](./2026-09-10-staff-current-claim-tenant-context-admission.json) | `pending` | `pending` | `pending` | `pending` | `not_applicable` | `not_applicable` | `pending` | Promotion #1747 and product trial #1744 pending. |
 
 Terminal: promotion `#1691`; product head
 `503d4b179251f9d3d06e07349ec80f85805565ae`, tree
@@ -47,7 +47,7 @@ E2E edit; it produces the same URL as the current expression. Migration trials r
 
 | Future successor branch             | Status              | Constraint                                                   |
 | ----------------------------------- | ------------------- | ------------------------------------------------------------ |
-| Tenant transaction                  | `promotion_pending` | PR #1741; exact four-path map admitted by #1740.             |
+| Tenant transaction                  | `promotion_pending` | PR #1747; exact seven-path map admitted by #1746.            |
 | Currency parsing / failed-run retry | `not_promoted`      | Separate bounded successors after the first migration trial. |
 
 ## Lean Authority
@@ -65,15 +65,18 @@ E2E edit; it produces the same URL as the current expression. Migration trials r
   "activeSlice": {
     "sliceId": "STAFF-CURRENT-CLAIM-TENANT-CONTEXT",
     "tier": 3,
-    "promotionPrNumber": 1741,
-    "promotionBaseSha": "4b4bb609feb3aa55f58aa062e64ae4ee9ef9f7d6",
+    "promotionPrNumber": 1747,
+    "promotionBaseSha": "c3a560efeaf058fdbb9f20066f61aa533bbc6f2b",
     "expectedProductBranch": "codex/staff-current-claim-tenant-context",
-    "gateSha256": "b4a9171a8180c1ea7536550e4891b4a3f6530d1e17ac961b0c855ef6bea240a6",
-    "admissionSha256": "346349f4f249ed059edcdffe825e41419575eece39ee6be50dc90f2e0dec502b",
+    "gateSha256": "d0ad52bd74d99194756dfa515818f8079a66484033fd310938912ea678862e17",
+    "admissionSha256": "7d75cd3ceb2f78dc30e8b3787c646d2d8c604afba0bb6e0d1c1880e3f2ba7f1d",
     "productWriterPaths": [
       "packages/domain-claims/src/staff-claims/current-claim-record.test.ts",
       "packages/domain-claims/src/staff-claims/current-claim-record.ts",
+      "packages/domain-claims/src/staff-claims/matter-allowance.test.ts",
+      "packages/domain-claims/src/staff-claims/matter-allowance.ts",
       "packages/domain-claims/src/staff-claims/update-status.test.ts",
+      "packages/domain-claims/src/staff-claims/update-status.transaction.test.ts",
       "packages/domain-claims/src/staff-claims/update-status.ts"
     ],
     "closeoutWriterPaths": [

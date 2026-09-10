@@ -3,31 +3,35 @@
   "status": "promotion_pending",
   "sliceId": "STAFF-CURRENT-CLAIM-TENANT-CONTEXT",
   "tier": 3,
-  "baseSha": "4b4bb609feb3aa55f58aa062e64ae4ee9ef9f7d6",
-  "promotionPrNumber": 1741,
+  "baseSha": "c3a560efeaf058fdbb9f20066f61aa533bbc6f2b",
+  "promotionPrNumber": 1747,
   "prerequisite": {
-    "pullRequestNumber": 1740,
-    "headSha": "594885985bf46d07f661fee0523b137908053ca6",
-    "mergeSha": "4b4bb609feb3aa55f58aa062e64ae4ee9ef9f7d6",
+    "pullRequestNumber": 1746,
+    "headSha": "4d51e5ac4aaecd3c749d52f19a42559ec6e2313c",
+    "mergeSha": "c3a560efeaf058fdbb9f20066f61aa533bbc6f2b",
     "status": "merged_and_verified"
   },
-  "authorityArtifactSha256": "b4a9171a8180c1ea7536550e4891b4a3f6530d1e17ac961b0c855ef6bea240a6",
+  "authorityArtifactSha256": "d0ad52bd74d99194756dfa515818f8079a66484033fd310938912ea678862e17",
   "productOutcomes": [
-    "Staff current-claim lookup executes on the supplied trusted tenant transaction."
+    "Staff status-change decisions execute inside one trusted tenant transaction.",
+    "Failed decisions roll back status, usage and assignment writes before external effects."
   ],
   "writerPaths": [
     "packages/domain-claims/src/staff-claims/current-claim-record.test.ts",
     "packages/domain-claims/src/staff-claims/current-claim-record.ts",
+    "packages/domain-claims/src/staff-claims/matter-allowance.test.ts",
+    "packages/domain-claims/src/staff-claims/matter-allowance.ts",
     "packages/domain-claims/src/staff-claims/update-status.test.ts",
+    "packages/domain-claims/src/staff-claims/update-status.transaction.test.ts",
     "packages/domain-claims/src/staff-claims/update-status.ts"
   ],
-  "productWriterMapSha256": "1754dbc42a20b563be1181e7cb3a1dbabdfb5913f333d186f9973b60c52751be",
+  "productWriterMapSha256": "621da1c635c4f90c9388103ab4afdca9acb3e2b691441b30b576232aa24a257d",
   "closeoutWriterPaths": ["docs/plans/current-program.md", "docs/plans/current-tracker.md"],
   "acceptanceMatrix": [
     {
-      "criterionId": "tenant-transaction-read",
-      "command": "pnpm --filter @interdomestik/domain-claims test:unit --run src/staff-claims/current-claim-record.test.ts src/staff-claims/update-status.test.ts",
-      "expected": "Supplied transaction, trusted tenant context, preserved staff denial and existing lifecycle behavior.",
+      "criterionId": "tenant-transaction-atomicity",
+      "command": "pnpm --filter @interdomestik/domain-claims test:unit --run src/staff-claims/current-claim-record.test.ts src/staff-claims/matter-allowance.test.ts src/staff-claims/update-status.test.ts src/staff-claims/update-status.transaction.test.ts",
+      "expected": "One tenant transaction, rollback-safe decisions, preserved staff and allowance denials.",
       "skipIsFailure": true
     },
     {
@@ -38,16 +42,16 @@
     }
   ],
   "capacityAllocation": {
-    "prerequisitePullRequest": 1740,
+    "prerequisitePullRequest": 1746,
     "productAllocationId": "staff-current-claim-tenant-context",
     "promotionAllocationId": "staff-current-claim-tenant-context-promotion",
     "promotionMaxTrackedBytesDelta": 7500,
     "promotionMaxTrackedFilesDelta": 2
   },
   "successorConditions": [
-    "Exact owner-bound promotion merges while the expected product branch remains absent.",
-    "The live r20 activation receipt and prospective baseline/protocol are verified before creating the expected product branch.",
-    "Only then may the repository resolver authorize product execution on that exact branch."
+    "Exact owner-bound promotion merges while product PR #1744 remains unmerged.",
+    "The live r20 activation and prospective trial protocol bind the exact product base, head and tree.",
+    "Only then may the repository resolver authorize product merge and measured trial execution."
   ],
-  "firstImplementationAction": "Write the focused failing tenant-transaction regression only after runtime authorization."
+  "firstImplementationAction": "Rebind and verify the prepared product candidate only after runtime authorization."
 }

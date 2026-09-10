@@ -98,7 +98,7 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 | Priority | Candidate                                   | Dependencies | Promotion constraint     |
 | -------: | ------------------------------------------- | ------------ | ------------------------ |
-|        1 | `STAFF-CURRENT-CLAIM-TENANT-CONTEXT` Tier 3 | #1740 merged | Promotion #1741 pending. |
+|        1 | `STAFF-CURRENT-CLAIM-TENANT-CONTEXT` Tier 3 | #1746 merged | Promotion #1747 pending. |
 
 ## T117C Product Delivery
 
@@ -119,11 +119,8 @@ No successor is activated by this closeout.
 
 ## Staff Current-Claim Tenant Context Promotion
 
-PR #1741 promotes `STAFF-CURRENT-CLAIM-TENANT-CONTEXT` from prerequisite #1740 and protected-main base
-`4b4bb609feb3aa55f58aa062e64ae4ee9ef9f7d6`. Its exact four-path product map repairs the current-claim read transaction only.
-Runtime remains pending the exact owner marker and promotion merge. The implementation is the first
-prospective migration product-use trial; no trial credit exists at promotion time. Currency parsing
-and failed-run retry remain separately bounded successors.
+PR #1747 promotes `STAFF-CURRENT-CLAIM-TENANT-CONTEXT` from prerequisite #1746 and protected-main base
+`c3a560efeaf058fdbb9f20066f61aa533bbc6f2b`. Its exact seven-path product map keeps the complete status-change decision inside one tenant transaction and defers external effects until commit. Runtime remains pending the exact owner marker and promotion merge. Product PR #1744 is the first prospective migration product-use trial; no trial credit exists at promotion time. Currency parsing and failed-run retry remain separately bounded successors.
 
 ## Unified Portal Direction
 
@@ -166,15 +163,18 @@ and global headers remain T-117C.
   "activeSlice": {
     "sliceId": "STAFF-CURRENT-CLAIM-TENANT-CONTEXT",
     "tier": 3,
-    "promotionPrNumber": 1741,
-    "promotionBaseSha": "4b4bb609feb3aa55f58aa062e64ae4ee9ef9f7d6",
+    "promotionPrNumber": 1747,
+    "promotionBaseSha": "c3a560efeaf058fdbb9f20066f61aa533bbc6f2b",
     "expectedProductBranch": "codex/staff-current-claim-tenant-context",
-    "gateSha256": "b4a9171a8180c1ea7536550e4891b4a3f6530d1e17ac961b0c855ef6bea240a6",
-    "admissionSha256": "346349f4f249ed059edcdffe825e41419575eece39ee6be50dc90f2e0dec502b",
+    "gateSha256": "d0ad52bd74d99194756dfa515818f8079a66484033fd310938912ea678862e17",
+    "admissionSha256": "7d75cd3ceb2f78dc30e8b3787c646d2d8c604afba0bb6e0d1c1880e3f2ba7f1d",
     "productWriterPaths": [
       "packages/domain-claims/src/staff-claims/current-claim-record.test.ts",
       "packages/domain-claims/src/staff-claims/current-claim-record.ts",
+      "packages/domain-claims/src/staff-claims/matter-allowance.test.ts",
+      "packages/domain-claims/src/staff-claims/matter-allowance.ts",
       "packages/domain-claims/src/staff-claims/update-status.test.ts",
+      "packages/domain-claims/src/staff-claims/update-status.transaction.test.ts",
       "packages/domain-claims/src/staff-claims/update-status.ts"
     ],
     "closeoutWriterPaths": [
