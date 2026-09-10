@@ -15,15 +15,15 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID       | Status      | Owner      | Work              | Exit Criteria                             |
-| -------- | ----------- | ---------- | ----------------- | ----------------------------------------- |
-| `T-117C` | `completed` | `platform` | Member rendering. | Product and protected-main checks passed. |
+| ID                                   | Status    | Owner      | Work                              | Exit Criteria                                        |
+| ------------------------------------ | --------- | ---------- | --------------------------------- | ---------------------------------------------------- |
+| `STAFF-CURRENT-CLAIM-TENANT-CONTEXT` | `pending` | `platform` | Tenant-scoped current-claim read. | Exact promotion, implementation and main proof pass. |
 
 ## Proof Ledger
 
-| ID       | Source Refs                                                                                                   | Execution  | Run ID     | Run Root    | Sonar  | Docker           | Sentry           | Learning | Evidence Refs                   |
-| -------- | ------------------------------------------------------------------------------------------------------------- | ---------- | ---------- | ----------- | ------ | ---------------- | ---------------- | -------- | ------------------------------- |
-| `T-117C` | [gate](./2026-09-07-t117c-rendering-design-gate.md); [admission](./2026-09-07-t117c-rendering-admission.json) | `scripted` | `PR #1736` | `Z620 + CI` | `pass` | `not_applicable` | `not_applicable` | `pass`   | CI, E2E, smoke and main passed. |
+| ID                                   | Source Refs                                                                                                                                         | Execution | Run ID    | Run Root  | Sonar     | Docker           | Sentry           | Learning  | Evidence Refs                              |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | --------- | --------- | --------- | ---------------- | ---------------- | --------- | ------------------------------------------ |
+| `STAFF-CURRENT-CLAIM-TENANT-CONTEXT` | [gate](./2026-09-10-staff-current-claim-tenant-context-design-gate.md); [admission](./2026-09-10-staff-current-claim-tenant-context-admission.json) | `pending` | `pending` | `pending` | `pending` | `not_applicable` | `not_applicable` | `pending` | Promotion #1741 and product trial pending. |
 
 Terminal: promotion `#1691`; product head
 `503d4b179251f9d3d06e07349ec80f85805565ae`, tree
@@ -45,9 +45,10 @@ E2E edit; it produces the same URL as the current expression. Migration trials r
 
 #1691/#1675 closed CUTOVER; #1724 failed; #1726/#1727 repaired. #1731 admits 52 paths; #1733 corpus main proof passed. #1734 merged; #1737 admits 53 paths, main CI/Sonar passed. Promotion #1738 and product #1736 merged; T117C implementation is delivered. Closeout records an inactive projection; successor promotion remains separate.
 
-| Future UI branch | Status         | Constraint                                                                          |
-| ---------------- | -------------- | ----------------------------------------------------------------------------------- |
-| Post-T117C fixes | `not_promoted` | Tenant transaction, currency parsing, failed-run retry; bounded admission required. |
+| Future successor branch             | Status              | Constraint                                                   |
+| ----------------------------------- | ------------------- | ------------------------------------------------------------ |
+| Tenant transaction                  | `promotion_pending` | PR #1741; exact four-path map admitted by #1740.             |
+| Currency parsing / failed-run retry | `not_promoted`      | Separate bounded successors after the first migration trial. |
 
 ## Lean Authority
 
@@ -56,12 +57,30 @@ E2E edit; it produces the same URL as the current expression. Migration trials r
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "inactive",
+  "lifecycle": "promotion_pending",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": null
+  "activeSlice": {
+    "sliceId": "STAFF-CURRENT-CLAIM-TENANT-CONTEXT",
+    "tier": 3,
+    "promotionPrNumber": 1741,
+    "promotionBaseSha": "4b4bb609feb3aa55f58aa062e64ae4ee9ef9f7d6",
+    "expectedProductBranch": "codex/staff-current-claim-tenant-context",
+    "gateSha256": "b4a9171a8180c1ea7536550e4891b4a3f6530d1e17ac961b0c855ef6bea240a6",
+    "admissionSha256": "346349f4f249ed059edcdffe825e41419575eece39ee6be50dc90f2e0dec502b",
+    "productWriterPaths": [
+      "packages/domain-claims/src/staff-claims/current-claim-record.test.ts",
+      "packages/domain-claims/src/staff-claims/current-claim-record.ts",
+      "packages/domain-claims/src/staff-claims/update-status.test.ts",
+      "packages/domain-claims/src/staff-claims/update-status.ts"
+    ],
+    "closeoutWriterPaths": [
+      "docs/plans/current-program.md",
+      "docs/plans/current-tracker.md"
+    ]
+  }
 }
 ```
 
