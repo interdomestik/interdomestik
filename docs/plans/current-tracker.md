@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-09
+last_reviewed: 2026-09-10
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -15,15 +15,15 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID       | Status    | Owner      | Work              | Exit Criteria                     |
-| -------- | --------- | ---------- | ----------------- | --------------------------------- |
-| `T-117C` | `pending` | `platform` | Member rendering. | Merge `#1734`; deliver candidate. |
+| ID       | Status    | Owner      | Work              | Exit Criteria                       |
+| -------- | --------- | ---------- | ----------------- | ----------------------------------- |
+| `T-117C` | `pending` | `platform` | Member rendering. | Bind new promotion; continue #1736. |
 
 ## Proof Ledger
 
-| ID       | Source Refs                                                                                                   | Execution  | Run ID     | Run Root | Sonar     | Docker           | Sentry           | Learning | Evidence Refs              |
-| -------- | ------------------------------------------------------------------------------------------------------------- | ---------- | ---------- | -------- | --------- | ---------------- | ---------------- | -------- | -------------------------- |
-| `T-117C` | [gate](./2026-09-07-t117c-rendering-design-gate.md); [admission](./2026-09-07-t117c-rendering-admission.json) | `scripted` | `PR #1734` | `Z620`   | `pending` | `not_applicable` | `not_applicable` | `pass`   | Build pass; proof pending. |
+| ID       | Source Refs                                                                                                   | Execution  | Run ID       | Run Root | Sonar     | Docker           | Sentry           | Learning | Evidence Refs              |
+| -------- | ------------------------------------------------------------------------------------------------------------- | ---------- | ------------ | -------- | --------- | ---------------- | ---------------- | -------- | -------------------------- |
+| `T-117C` | [gate](./2026-09-07-t117c-rendering-design-gate.md); [admission](./2026-09-07-t117c-rendering-admission.json) | `scripted` | `PR pending` | `Z620`   | `pending` | `not_applicable` | `not_applicable` | `pass`   | Build pass; proof pending. |
 
 Terminal: promotion `#1691`; product head
 `503d4b179251f9d3d06e07349ec80f85805565ae`, tree
@@ -35,11 +35,11 @@ delivery `33863200387` attempt 2, main CI/Sonar/CodeQL/security green; CD
 
 ## Next Selection
 
-#1691/#1675 closed CUTOVER; #1724 failed; #1726/#1727 repaired. #1731 admits 52 paths; #1733 corpus main proof passed. #1734 is pending; runtime denied.
+#1691/#1675 closed CUTOVER; #1724 failed; #1726/#1727 repaired. #1731 admits 52 paths; #1733 corpus main proof passed. #1734 merged; #1737 admits 53 paths, main CI/Sonar passed. New promotion unassigned; runtime denied.
 
-| Future UI branch | Status              | Constraint                                                           |
-| ---------------- | ------------------- | -------------------------------------------------------------------- |
-| `T-117C`         | `promotion_pending` | Promotion `#1734`; product branch `codex/t117c-qualified-candidate`. |
+| Future UI branch | Status              | Constraint                                                               |
+| ---------------- | ------------------- | ------------------------------------------------------------------------ |
+| `T-117C`         | `promotion_pending` | New promotion pending; product branch `codex/t117c-qualified-candidate`. |
 
 ## Lean Authority
 
@@ -56,11 +56,11 @@ delivery `33863200387` attempt 2, main CI/Sonar/CodeQL/security green; CD
   "activeSlice": {
     "sliceId": "T-117C",
     "tier": 3,
-    "promotionPrNumber": 1734,
-    "promotionBaseSha": "c328162d70ff9386799952d5cffeac23bfbf7dea",
+    "promotionPrNumber": null,
+    "promotionBaseSha": "1fd26bdbe5fa2cd4abe0b2f609a909f5fa083f20",
     "expectedProductBranch": "codex/t117c-qualified-candidate",
-    "gateSha256": "acc751fed815d20e63308abf627fd969de478cd05e60b0e37db20fcb29e04a81",
-    "admissionSha256": "16428ec75cafaf2e5d78a88e6f481c36921127e037f1eff1865d42c60bccf1ec",
+    "gateSha256": "e1d59189d5fcd4a98628bbecddbf38a5b12cb7233f49497321c9f46a2bcde87f",
+    "admissionSha256": "9700517d613914e65a1386517522994e98f1ddab0867d5e8c247a1cf575232c8",
     "productWriterPaths": [
       "apps/web/e2e/gate/member-home-cta.spec.ts",
       "apps/web/e2e/gate/member-parallel-routes.spec.ts",
@@ -86,6 +86,7 @@ delivery `33863200387` attempt 2, main CI/Sonar/CodeQL/security green; CD
       "apps/web/src/app/[locale]/(app)/member/page.tsx",
       "apps/web/src/app/[locale]/(auth)/login/page.tsx",
       "apps/web/src/app/[locale]/(auth)/register/page.tsx",
+      "apps/web/src/app/[locale]/(site)/business-membership/page.test.tsx",
       "apps/web/src/app/[locale]/(site)/business-membership/page.tsx",
       "apps/web/src/app/[locale]/(site)/nps/[token]/page.tsx",
       "apps/web/src/app/[locale]/(site)/pricing/page.tsx",

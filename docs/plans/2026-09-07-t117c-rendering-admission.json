@@ -3,20 +3,20 @@
   "status": "promotion_pending",
   "sliceId": "T-117C",
   "tier": 3,
-  "baseSha": "c328162d70ff9386799952d5cffeac23bfbf7dea",
-  "promotionPrNumber": 1734,
+  "baseSha": "1fd26bdbe5fa2cd4abe0b2f609a909f5fa083f20",
+  "promotionPrNumber": null,
   "candidate": {
-    "commitSha": "a82fab94a4c121fe8fd89d832105899d1bd9d7fd",
-    "treeSha": "cf01136ab5b7ab4c12997b271990cfe53623204e",
-    "binaryDiffSha256": "b81704945bb3ec6ec2c38657acc568dc76e0e354e8aa3c752085c2af11693f70"
+    "commitSha": "18e7b03013ce05fe2093684a6615c604e103884a",
+    "treeSha": "39d5c609d98f2aa340492ca7134579d490166d8d",
+    "binaryDiffSha256": "042d14f229c5071293f6c24377059b1439920480eb82c92b657ddb95a4aacae2"
   },
   "prerequisite": {
-    "pullRequestNumber": 1735,
-    "headSha": "0e985501a0adcb79381e78a74b1d4e9a58c0116e",
-    "mergeSha": "c328162d70ff9386799952d5cffeac23bfbf7dea",
+    "pullRequestNumber": 1737,
+    "headSha": "b12d8becb7fec2e52c531145fef145f7d12026b5",
+    "mergeSha": "1fd26bdbe5fa2cd4abe0b2f609a909f5fa083f20",
     "status": "merged_and_verified"
   },
-  "authorityArtifactSha256": "acc751fed815d20e63308abf627fd969de478cd05e60b0e37db20fcb29e04a81",
+  "authorityArtifactSha256": "e1d59189d5fcd4a98628bbecddbf38a5b12cb7233f49497321c9f46a2bcde87f",
   "productOutcomes": [
     "Named member regions share one request identity and two tenant projections.",
     "Public shell supports no-JS; request-bound pages and lead UUID preserve native submission."
@@ -46,6 +46,7 @@
     "apps/web/src/app/[locale]/(app)/member/page.tsx",
     "apps/web/src/app/[locale]/(auth)/login/page.tsx",
     "apps/web/src/app/[locale]/(auth)/register/page.tsx",
+    "apps/web/src/app/[locale]/(site)/business-membership/page.test.tsx",
     "apps/web/src/app/[locale]/(site)/business-membership/page.tsx",
     "apps/web/src/app/[locale]/(site)/nps/[token]/page.tsx",
     "apps/web/src/app/[locale]/(site)/pricing/page.tsx",
@@ -75,7 +76,7 @@
     "apps/web/src/lib/rendering-build-mode.test.ts",
     "apps/web/src/lib/rendering-build-mode.ts"
   ],
-  "productWriterMapSha256": "9ef46b0675e8c6ec590c8e1e2776ee2124593b4e36ea9df65856ed707477d1ac",
+  "productWriterMapSha256": "fdeabba36aa7bb6096b96b0d5b3ace250a4851ccc2c8673139f61aee69b93de1",
   "proofSurfaces": [
     {
       "id": "mode-and-global-rendering",
@@ -267,20 +268,20 @@
       "readWriteDelete": "Exactly two existing read projections; old page deletion and new group paths listed; no domain/schema writes.",
       "mountErrorPaths": "Home defaults, implicit null child, sibling loading/error/empty, 17 sibling routes and unknown URL behavior explicitly contracted.",
       "capabilityRequirements": "Protected-main Next 16.3.3 closure, paired modes, request-issued lead UUID/native progressive submission and both launch mismatch probes.",
-      "testCollectors": "Focused files and three gate collectors; broad all-role/API/C31 acceptance retained.",
+      "testCollectors": "Focused tests include business-page child rendering; three gate collectors and all-role/API/C31 acceptance retained.",
       "baselineOwnership": "Bound post-prerequisite base; measured candidate capacity; no invented reserve."
     }
   },
   "capacityAllocation": {
     "id": "t117c-rendering",
     "mode": "bounded",
-    "maxTrackedBytesDelta": 89388,
+    "maxTrackedBytesDelta": 89487,
     "maxTrackedFilesDelta": 20,
     "maxCategoryBytesDelta": {
       "config/data/messages": 17136,
       "docs/text": 17265,
       "source/scripts": 13566,
-      "tests/e2e": 41421
+      "tests/e2e": 41520
     },
     "maxPathBytesDelta": {
       "apps/web/e2e/gate/member-parallel-routes.spec.ts": 7527,
@@ -327,19 +328,20 @@
       "docs/plans/2026-09-07-t117c-rendering-admission.json": 17136,
       "apps/web/src/app/[locale]/components/home/free-start-intake-shell/use-draft-lifecycle.ts": 35,
       "apps/web/src/app/[locale]/(site)/business-membership/page.tsx": 500,
-      "apps/web/src/components/pricing/business-lead-form.test.tsx": 700
+      "apps/web/src/components/pricing/business-lead-form.test.tsx": 700,
+      "apps/web/src/app/[locale]/(site)/business-membership/page.test.tsx": 99
     },
     "repair": {
       "pullRequestNumber": 1720,
       "headSha": "24fbb4550dfca06914477c5f03cf9a49d8821679",
       "mergeSha": "1ccdf308f07b407f9eabdececc0224bbca70807d"
     },
-    "derivation": "#1731 supplies the protected 52-path allocation; #1720 is historical. Predecessor ownership, T116 program/tracker ownership, 20-addition ceiling and reserve remain unchanged."
+    "derivation": "#1737 adds the existing business-page test (+99 bytes) to #1731 capacity. Historical #1720, ownership, 20-addition ceiling and reserve remain unchanged."
   },
   "successorConditions": [
     "T117B-CUTOVER exact predecessor remains verified.",
-    "#1726 closed failure; #1731 admits 52 paths and historical replay; #1733 admits the corpus, main verified.",
-    "Bind #1734 before exact delivery and closeout.",
+    "#1731/#1733 historical map/corpus proof retained; #1737 admits 53 paths, main CI/Sonar passed.",
+    "Bind a new promotion PR before delivery; continue draft #1736.",
     "No successor or extra product trial is implied."
   ],
   "highestRiskCases": [
@@ -353,5 +355,5 @@
     "mechanism": "Discard owned unmerged candidate; after merge revert only exact T-117C product merge, rebuild for same authorized nonce mode, restore inactive projections and preserve CUTOVER/DATA/PORTAL/unrelated state.",
     "trigger": "Auth/tenant/nonce/query/route/a11y/capacity/writer-map/review/CI/merge/main-health proof fails."
   },
-  "firstImplementationAction": "Verify #1735 main; merge #1734; open the bound branch’s new product PR for a82fab94a4c121fe8fd89d832105899d1bd9d7fd; preserve #1729."
+  "firstImplementationAction": "Bind and merge the new promotion; rematerialize both test fixes on its merge for draft #1736. Preserve #1729."
 }
