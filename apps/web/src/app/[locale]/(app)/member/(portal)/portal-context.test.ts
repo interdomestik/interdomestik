@@ -245,7 +245,7 @@ describe('member portal request context', () => {
     expect(layout.type).toBe(PortalPage);
     const ready = layout.props.content;
     expect(ready.props['data-testid']).toBe('member-dashboard-ready');
-    expect(ready.props.children[0].props).toEqual({
+    expect(ready.props.children.props).toEqual({
       copy: context.copy,
       caseRegion: cases,
       actionsRegion: actions,

@@ -1,6 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next/server', () => ({ connection: vi.fn().mockResolvedValue(undefined) }));
+
 vi.mock('./_core.entry', () => ({
   __esModule: true,
   default: () => (
@@ -18,8 +20,8 @@ vi.mock('./_core.entry', () => ({
 import BusinessMembershipPage from './page';
 
 describe('Business membership page', () => {
-  it('renders the assisted business membership entry surface', () => {
-    render(<BusinessMembershipPage params={Promise.resolve({ locale: 'sq' })} />);
+  it('renders the assisted business membership entry surface', async () => {
+    render(await BusinessMembershipPage({ params: Promise.resolve({ locale: 'sq' }) }));
 
     expect(screen.getByTestId('business-membership-page-ready')).toBeInTheDocument();
     expect(screen.getByText('pricing.businessLead.title')).toBeInTheDocument();
