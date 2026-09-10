@@ -5,6 +5,8 @@ import {
   eq,
   serviceUsage,
   sql,
+  withTenantContext,
+  type TenantTransaction,
 } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
@@ -60,7 +62,9 @@ type UpdateClaimStatusParams = {
   session: ClaimsSession | null;
   requestHeaders?: Headers;
 };
+type StatusChangeResult = ActionResult & { afterCommit?: () => Promise<void> };
 type RecoveryStatusChangeParams = {
+  tx: TenantTransaction;
   claimId: string;
   currentClaim: CurrentClaimRecord;
   deps: ClaimsDeps;
@@ -76,8 +80,9 @@ type RecoveryStatusChangeParams = {
 };
 async function handleStaffLedRecoveryStatusChange(
   params: RecoveryStatusChangeParams
-): Promise<ActionResult> {
+): Promise<StatusChangeResult> {
   const {
+    tx,
     claimId,
     currentClaim,
     deps,
@@ -102,7 +107,7 @@ async function handleStaffLedRecoveryStatusChange(
       error: commercialScopeError,
     };
   }
-  const [agreement] = await db
+  const [agreement] = await tx
     .select({
       acceptedAt: claimEscalationAgreements.acceptedAt,
       decisionNextStatus: claimEscalationAgreements.decisionNextStatus,
@@ -187,6 +192,7 @@ async function handleStaffLedRecoveryStatusChange(
   }
 
   const matterAllowanceSubscription = await getMatterAllowanceSubscriptionContextForUser({
+    tx,
     tenantId,
     userId: currentClaim.userId,
   });
@@ -199,30 +205,28 @@ async function handleStaffLedRecoveryStatusChange(
   }
 
   const matterServiceCode = getRecoveryMatterServiceCode(claimId);
+  const matterAllowanceContext = await getMatterAllowanceContextForSubscription({
+    tx,
+    subscription: matterAllowanceSubscription,
+    tenantId,
+  });
   const alreadyConsumedForClaim = await hasRecoveryMatterUsageForClaim({
+    tx,
     claimId,
     subscriptionId: matterAllowanceSubscription.subscriptionId,
     tenantId,
   });
 
-  if (!alreadyConsumedForClaim) {
-    const matterAllowanceContext = await getMatterAllowanceContextForSubscription({
-      subscription: matterAllowanceSubscription,
-      tenantId,
-    });
-
-    if (
-      matterAllowanceContext.consumedCount >= matterAllowanceContext.allowanceTotal &&
-      !trimmedAllowanceOverrideReason
-    ) {
-      return {
-        success: false,
-        error: RECOVERY_ALLOWANCE_EXHAUSTED_ERROR,
-      };
-    }
+  if (
+    !alreadyConsumedForClaim &&
+    matterAllowanceContext.consumedCount >= matterAllowanceContext.allowanceTotal &&
+    !trimmedAllowanceOverrideReason
+  ) {
+    return { success: false, error: RECOVERY_ALLOWANCE_EXHAUSTED_ERROR };
   }
 
   return finalizeClaimStatusChange({
+    tx,
     afterTransitionPersisted: async tx => {
       if (alreadyConsumedForClaim) {
         return;
@@ -328,50 +332,36 @@ function scheduleStatusChangeNotification(params: {
   })();
 }
 
-async function finalizeClaimStatusChange(params: {
-  afterTransitionPersisted?: (tx: ClaimsTransaction) => Promise<void>;
-  beforePersistAuthorized?: (tx: AuthorizedTransitionHookTx) => Promise<void>;
-  claimId: string;
-  currentStatus: ClaimStatus | null;
-  currentStaffId: string | null;
-  currentTitle: string;
-  currentUserId: string;
-  deps: ClaimsDeps;
-  hostId?: string | null;
-  isPublicChange: boolean;
-  note?: string;
-  staffScopeWhere: StaffScopeWhere;
-  requestHeaders?: Headers;
-  session: ClaimsSession;
-  status: ClaimStatus;
-  tenantId: string;
-}): Promise<ActionResult> {
-  const { afterTransitionPersisted, beforePersistAuthorized, ...rest } = params;
+async function finalizeClaimStatusChange(
+  params: Omit<RecoveryStatusChangeParams, 'currentClaim' | 'trimmedAllowanceOverrideReason'> & {
+    afterTransitionPersisted?: (tx: ClaimsTransaction) => Promise<void>;
+    beforePersistAuthorized?: (tx: AuthorizedTransitionHookTx) => Promise<void>;
+    currentStatus: ClaimStatus | null;
+    currentStaffId: string | null;
+    currentTitle: string;
+    currentUserId: string;
+  }
+): Promise<StatusChangeResult> {
+  const { tx, afterTransitionPersisted, beforePersistAuthorized, ...rest } = params;
 
   // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-  const transitionResult = await db.transaction(async tx => {
-    const result = await transitionClaimStatusInTransaction(
-      tx as unknown as Parameters<typeof transitionClaimStatusInTransaction>[0],
-      {
-        actor: { id: rest.session.user.id, role: 'staff' },
-        claimId: rest.claimId,
-        hostId: rest.hostId,
-        isPublic: rest.isPublicChange,
-        note: rest.note ?? null,
-        requiredWhereCondition: rest.staffScopeWhere,
-        tenantId: rest.tenantId,
-        toStatus: rest.status,
-        beforePersistAuthorized,
-      }
-    );
-
-    if (!result.success) {
-      return result;
+  const transitionResult = await transitionClaimStatusInTransaction(
+    tx as unknown as Parameters<typeof transitionClaimStatusInTransaction>[0],
+    {
+      actor: { id: rest.session.user.id, role: 'staff' },
+      claimId: rest.claimId,
+      hostId: rest.hostId,
+      isPublic: rest.isPublicChange,
+      note: rest.note ?? null,
+      requiredWhereCondition: rest.staffScopeWhere,
+      tenantId: rest.tenantId,
+      toStatus: rest.status,
+      beforePersistAuthorized,
     }
+  );
 
-    if (afterTransitionPersisted) {
-      await afterTransitionPersisted(tx);
-    }
+  if (transitionResult.success) {
+    await afterTransitionPersisted?.(tx);
 
     await assignClaimToActingStaffIfUnassigned({
       currentStaffId: rest.currentStaffId,
@@ -380,9 +370,7 @@ async function finalizeClaimStatusChange(params: {
       tenantId: rest.tenantId,
       tx,
     });
-
-    return result;
-  });
+  }
 
   if (!transitionResult.success) {
     return {
@@ -396,24 +384,27 @@ async function finalizeClaimStatusChange(params: {
 
   const sideEffectParams = { ...rest, currentStatus: transitionResult.fromStatus };
 
-  await activateClaimStatusAuditProjection({
-    deps: sideEffectParams.deps,
-    tenantId: sideEffectParams.tenantId,
-  });
+  return {
+    success: true,
+    afterCommit: async () => {
+      await activateClaimStatusAuditProjection({
+        deps: sideEffectParams.deps,
+        tenantId: sideEffectParams.tenantId,
+      });
 
-  if (sideEffectParams.isPublicChange) {
-    scheduleStatusChangeNotification({
-      claimId: sideEffectParams.claimId,
-      claimTitle: sideEffectParams.currentTitle,
-      deps: sideEffectParams.deps,
-      newStatus: sideEffectParams.status,
-      oldStatus: sideEffectParams.currentStatus,
-      tenantId: sideEffectParams.tenantId,
-      userId: sideEffectParams.currentUserId,
-    });
-  }
-
-  return { success: true };
+      if (sideEffectParams.isPublicChange) {
+        scheduleStatusChangeNotification({
+          claimId: sideEffectParams.claimId,
+          claimTitle: sideEffectParams.currentTitle,
+          deps: sideEffectParams.deps,
+          newStatus: sideEffectParams.status,
+          oldStatus: sideEffectParams.currentStatus,
+          tenantId: sideEffectParams.tenantId,
+          userId: sideEffectParams.currentUserId,
+        });
+      }
+    },
+  };
 }
 
 /** Update claim status and optionally add a history note */
@@ -426,46 +417,99 @@ export async function updateClaimStatusCore(
   if (session?.user?.role !== 'staff') {
     return { success: false, error: 'Unauthorized' };
   }
-
   // Validate status
   const parsed = claimStatusSchema.safeParse({ status: newStatus });
   if (!parsed.success) {
     return { success: false, error: 'Invalid status' };
   }
   const status = parsed.data.status as ClaimStatus; // NOSONAR
-
   const scopeArgs = resolveScopedStaffClaimAccess({ claimId, session });
   const tenantId = scopeArgs.tenantId;
   const staffScopeWhere = buildScopedStaffClaimWhere(scopeArgs);
   const trimmedNote = note?.trim() || undefined;
   const trimmedAllowanceOverrideReason = params.allowanceOverrideReason?.trim() || undefined;
   const trimmedDecisionExplanation = params.decisionExplanation?.trim() || undefined;
-
   try {
-    const currentClaimResult = await loadStaffCurrentClaimRecord(staffScopeWhere);
-    if (currentClaimResult.status === 'not_found') {
-      return { success: false, error: STAFF_SCOPE_ACCESS_DENIED_ERROR };
-    }
-    if (currentClaimResult.status === 'invalid_current_status') {
-      return { success: false, error: 'Invalid current claim status' };
-    }
-    const { currentClaim } = currentClaimResult;
+    const result = await withTenantContext({ tenantId, role: session.user.role }, async tx => {
+      const currentClaimResult = await loadStaffCurrentClaimRecord(tx, staffScopeWhere);
+      if (currentClaimResult.status === 'not_found') {
+        return { success: false, error: STAFF_SCOPE_ACCESS_DENIED_ERROR };
+      }
+      if (currentClaimResult.status === 'invalid_current_status') {
+        return { success: false, error: 'Invalid current claim status' };
+      }
+      const { currentClaim } = currentClaimResult;
 
-    if (currentClaim.status === status && !trimmedNote) {
-      return { success: true }; // No change needed
-    }
+      if (currentClaim.status === status && !trimmedNote) {
+        return { success: true }; // No change needed
+      }
 
-    if (currentClaim.status !== status && status === 'rejected' && !params.declineReasonCode) {
-      return {
-        success: false,
-        error: 'Decline reason category is required when staff reject a recovery matter.',
-      };
-    }
+      if (currentClaim.status !== status && status === 'rejected' && !params.declineReasonCode) {
+        return {
+          success: false,
+          error: 'Decline reason category is required when staff reject a recovery matter.',
+        };
+      }
 
-    if (currentClaim.status !== status && STAFF_LED_RECOVERY_STATUSES.has(status)) {
-      return handleStaffLedRecoveryStatusChange({
+      if (currentClaim.status !== status && STAFF_LED_RECOVERY_STATUSES.has(status)) {
+        return handleStaffLedRecoveryStatusChange({
+          tx,
+          claimId,
+          currentClaim,
+          deps,
+          hostId: params.hostId,
+          isPublicChange,
+          note: trimmedNote,
+          requestHeaders: params.requestHeaders,
+          session,
+          status,
+          staffScopeWhere,
+          tenantId,
+          trimmedAllowanceOverrideReason,
+        });
+      }
+
+      if (currentClaim.status !== status && status === 'rejected' && params.declineReasonCode) {
+        const publicDeclineNote =
+          trimmedNote || getRecoveryDeclineMemberDescription(params.declineReasonCode);
+
+        return finalizeClaimStatusChange({
+          tx,
+          beforePersistAuthorized: async tx => {
+            await upsertRecoveryDecisionRecord({
+              claimId,
+              decisionType: 'declined',
+              declineReasonCode: params.declineReasonCode,
+              explanation: trimmedDecisionExplanation,
+              session,
+              tenantId,
+              tx,
+            });
+          },
+          claimId,
+          currentStatus: currentClaim.status,
+          currentStaffId: currentClaim.staffId,
+          currentTitle: currentClaim.title,
+          currentUserId: currentClaim.userId,
+          deps,
+          hostId: params.hostId,
+          isPublicChange,
+          note: publicDeclineNote,
+          requestHeaders: params.requestHeaders,
+          session,
+          status,
+          staffScopeWhere,
+          tenantId,
+        });
+      }
+
+      return finalizeClaimStatusChange({
+        tx,
         claimId,
-        currentClaim,
+        currentStatus: currentClaim.status,
+        currentStaffId: currentClaim.staffId,
+        currentTitle: currentClaim.title,
+        currentUserId: currentClaim.userId,
         deps,
         hostId: params.hostId,
         isPublicChange,
@@ -475,59 +519,10 @@ export async function updateClaimStatusCore(
         status,
         staffScopeWhere,
         tenantId,
-        trimmedAllowanceOverrideReason,
       });
-    }
-
-    if (currentClaim.status !== status && status === 'rejected' && params.declineReasonCode) {
-      const publicDeclineNote =
-        trimmedNote || getRecoveryDeclineMemberDescription(params.declineReasonCode);
-
-      return finalizeClaimStatusChange({
-        beforePersistAuthorized: async tx => {
-          await upsertRecoveryDecisionRecord({
-            claimId,
-            decisionType: 'declined',
-            declineReasonCode: params.declineReasonCode,
-            explanation: trimmedDecisionExplanation,
-            session,
-            tenantId,
-            tx,
-          });
-        },
-        claimId,
-        currentStatus: currentClaim.status,
-        currentStaffId: currentClaim.staffId,
-        currentTitle: currentClaim.title,
-        currentUserId: currentClaim.userId,
-        deps,
-        hostId: params.hostId,
-        isPublicChange,
-        note: publicDeclineNote,
-        requestHeaders: params.requestHeaders,
-        session,
-        status,
-        staffScopeWhere,
-        tenantId,
-      });
-    }
-
-    return finalizeClaimStatusChange({
-      claimId,
-      currentStatus: currentClaim.status,
-      currentStaffId: currentClaim.staffId,
-      currentTitle: currentClaim.title,
-      currentUserId: currentClaim.userId,
-      deps,
-      hostId: params.hostId,
-      isPublicChange,
-      note: trimmedNote,
-      requestHeaders: params.requestHeaders,
-      session,
-      status,
-      staffScopeWhere,
-      tenantId,
     });
+    if (result.success) await result.afterCommit?.();
+    return { success: result.success, error: result.error };
   } catch (error) {
     console.error('Failed to update claim status:', error);
     return { success: false, error: 'Failed to update claim status' };

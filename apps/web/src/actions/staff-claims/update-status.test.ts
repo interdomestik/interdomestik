@@ -3,7 +3,7 @@ import * as nextCache from 'next/cache';
 
 const mocks = vi.hoisted(() => ({
   dbSelect: vi.fn(),
-  dbTransaction: vi.fn(),
+  withTenantContext: vi.fn(),
 }));
 
 vi.mock('@interdomestik/database', () => ({
@@ -15,16 +15,8 @@ vi.mock('@interdomestik/database', () => ({
     status: { name: 'status' },
   },
   claimStageHistory: { tenantId: { name: 'tenantId' } },
-  db: {
-    select: () => ({
-      from: () => ({
-        where: () => ({
-          limit: () => mocks.dbSelect(),
-        }),
-      }),
-    }),
-    transaction: mocks.dbTransaction,
-  },
+  db: {},
+  withTenantContext: (...args: unknown[]) => mocks.withTenantContext(...args),
   and: vi.fn(),
   eq: vi.fn(),
 }));
@@ -40,7 +32,13 @@ describe('updateClaimStatusCore', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.dbTransaction.mockResolvedValue({ success: true });
+    mocks.withTenantContext.mockImplementation(async (_context, run) =>
+      run({
+        select: () => ({
+          from: () => ({ where: () => ({ limit: () => mocks.dbSelect() }) }),
+        }),
+      })
+    );
   });
 
   it('no-ops when status unchanged and no note', async () => {
@@ -57,14 +55,16 @@ describe('updateClaimStatusCore', () => {
       } as unknown as NonNullable<import('./context').Session>,
     });
 
-    expect(result).toEqual({ success: true });
-    expect(mocks.dbTransaction).not.toHaveBeenCalled();
-    for (const locale of LOCALES) {
-      expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}/staff/claims/claim-1`);
-      expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}/staff/claims`);
-      expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}/member/claims/claim-1`);
-      expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}/member/claims`);
-    }
+    expect(result).toEqual({ success: true, error: undefined });
+    expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
+    for (const locale of LOCALES)
+      for (const path of [
+        '/staff/claims/claim-1',
+        '/staff/claims',
+        '/member/claims/claim-1',
+        '/member/claims',
+      ])
+        expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}${path}`);
     expect(nextCache.revalidatePath).toHaveBeenCalledTimes(LOCALES.length * 4);
   });
 });

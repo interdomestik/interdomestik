@@ -14,9 +14,9 @@ import type {
 import { updateClaimStatusCore } from './update-status';
 function createSelectChain() {
   return {
-    from: vi.fn(),
-    leftJoin: vi.fn(),
-    where: vi.fn(),
+    from: vi.fn().mockReturnThis(),
+    leftJoin: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
     limit: vi.fn(),
   };
 }
@@ -74,14 +74,17 @@ const STANDARD_SUBSCRIPTION = {
   currentPeriodEnd: new Date('2026-12-31T23:59:59Z'),
 };
 const mocks = vi.hoisted(() => {
-  const claimSelectChain = createSelectChain();
   const agreementSelectChain = createSelectChain();
   const subscriptionSelectChain = createSelectChain();
   const serviceUsageExistsSelectChain = createSelectChain();
   const serviceUsageCountSelectChain = createSelectChain();
+  const tenantReadSelectChain = createSelectChain();
   const txSelectChain = createSelectChain();
   const txExecute = vi.fn(async query => {
     const rendered = JSON.stringify(query).toLowerCase();
+    if (rendered.includes('pg_advisory_xact_lock')) {
+      return [];
+    }
     if (rendered.includes('claim_escalation_agreements') && rendered.includes('for update')) {
       return [
         {
@@ -107,6 +110,9 @@ const mocks = vi.hoisted(() => {
   const txUpdateWhere = vi.fn(() => ({ returning: txUpdateReturning }));
   const txUpdateSet = vi.fn(() => ({ where: txUpdateWhere }));
   const txUpdate = vi.fn(() => ({ set: txUpdateSet }));
+  const withTenantContext = vi.fn(async (_context, cb) =>
+    cb({ execute: txExecute, insert: txInsert, select: txSelect, update: txUpdate })
+  );
   const transaction = vi.fn(async cb =>
     cb({ execute: txExecute, insert: txInsert, select: txSelect, update: txUpdate })
   );
@@ -117,7 +123,9 @@ const mocks = vi.hoisted(() => {
           findFirst: vi.fn().mockResolvedValue({ email: 'member@example.com' }),
         },
       },
-      select: vi.fn(),
+      select: vi.fn(() => {
+        throw new Error('Global select forbidden');
+      }),
       transaction,
     },
     logAuditEvent: vi.fn(),
@@ -205,11 +213,11 @@ const mocks = vi.hoisted(() => {
     })),
     withTenant: vi.fn((_tenantId, _column, condition) => ({ scoped: true, condition })),
     ensureTenantId: vi.fn(() => 'tenant-1'),
-    claimSelectChain,
     agreementSelectChain,
     subscriptionSelectChain,
     serviceUsageExistsSelectChain,
     serviceUsageCountSelectChain,
+    tenantReadSelectChain,
     txInsert,
     txExecute,
     txSelect,
@@ -221,6 +229,7 @@ const mocks = vi.hoisted(() => {
     txUpdateReturning,
     txUpdateSet,
     txUpdateWhere,
+    withTenantContext,
   };
 });
 vi.mock('@interdomestik/database', () => ({
@@ -242,6 +251,7 @@ vi.mock('@interdomestik/database', () => ({
   relayClaimStatusAuditProjectionEvents: vi.fn(),
   sql: mocks.sql,
   subscriptions: mocks.subscriptions,
+  withTenantContext: mocks.withTenantContext,
 }));
 vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: mocks.withTenant,
@@ -288,15 +298,12 @@ function mockRecoverySelects(options?: {
   matterCount?: Array<{ count: number }>;
   subscription?: Array<typeof STANDARD_SUBSCRIPTION>;
 }) {
-  mocks.db.select
-    .mockReturnValueOnce(mocks.claimSelectChain)
+  mocks.txSelect
     .mockReturnValueOnce(mocks.agreementSelectChain)
     .mockReturnValueOnce(mocks.subscriptionSelectChain)
+    .mockReturnValueOnce(mocks.serviceUsageCountSelectChain)
     .mockReturnValueOnce(mocks.serviceUsageExistsSelectChain);
-  if ((options?.existingClaimUsage?.length ?? 0) === 0) {
-    mocks.db.select.mockReturnValueOnce(mocks.serviceUsageCountSelectChain);
-  }
-  mocks.claimSelectChain.limit.mockResolvedValue(
+  mocks.tenantReadSelectChain.limit.mockResolvedValue(
     (
       options?.claim ?? [
         {
@@ -316,11 +323,9 @@ function mockRecoverySelects(options?: {
   mocks.subscriptionSelectChain.limit.mockResolvedValue(
     options?.subscription ?? [STANDARD_SUBSCRIPTION]
   );
-  if ((options?.existingClaimUsage?.length ?? 0) === 0) {
-    mocks.serviceUsageCountSelectChain.limit.mockResolvedValue(
-      options?.matterCount ?? [{ count: 0 }]
-    );
-  }
+  mocks.serviceUsageCountSelectChain.limit.mockResolvedValue(
+    options?.matterCount ?? [{ count: 0 }]
+  );
   mocks.serviceUsageExistsSelectChain.limit.mockResolvedValue(options?.existingClaimUsage ?? []);
 }
 async function runNegotiationUpdate(
@@ -350,21 +355,11 @@ function expectBlockedStatusChange(
 describe('staff updateClaimStatusCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.db.select.mockReset();
+    mocks.txSelect
+      .mockReset()
+      .mockReturnValue(mocks.txSelectChain)
+      .mockReturnValueOnce(mocks.tenantReadSelectChain);
     mocks.db.query.user.findFirst.mockResolvedValue({ email: 'member@example.com' });
-    mocks.claimSelectChain.from.mockReturnValue(mocks.claimSelectChain);
-    mocks.claimSelectChain.where.mockReturnValue(mocks.claimSelectChain);
-    mocks.agreementSelectChain.from.mockReturnValue(mocks.agreementSelectChain);
-    mocks.agreementSelectChain.where.mockReturnValue(mocks.agreementSelectChain);
-    mocks.subscriptionSelectChain.from.mockReturnValue(mocks.subscriptionSelectChain);
-    mocks.subscriptionSelectChain.where.mockReturnValue(mocks.subscriptionSelectChain);
-    mocks.serviceUsageExistsSelectChain.from.mockReturnValue(mocks.serviceUsageExistsSelectChain);
-    mocks.serviceUsageExistsSelectChain.where.mockReturnValue(mocks.serviceUsageExistsSelectChain);
-    mocks.serviceUsageCountSelectChain.from.mockReturnValue(mocks.serviceUsageCountSelectChain);
-    mocks.serviceUsageCountSelectChain.where.mockReturnValue(mocks.serviceUsageCountSelectChain);
-    mocks.txSelectChain.from.mockReturnValue(mocks.txSelectChain);
-    mocks.txSelectChain.leftJoin.mockReturnValue(mocks.txSelectChain);
-    mocks.txSelectChain.where.mockReturnValue(mocks.txSelectChain);
     mocks.txSelectChain.limit.mockResolvedValue([transitionClaimFixture('evaluation')]);
     mocks.txInsertReturning.mockResolvedValue([{ id: 'usage-claim-1' }]);
     mocks.txUpdateReturning.mockResolvedValue([{ id: 'claim-1', lifecycleVersion: 2 }]);
@@ -464,7 +459,8 @@ describe('staff updateClaimStatusCore', () => {
     expect(result).toEqual({ success: true, error: undefined });
     expect(mocks.txUpdateSet).toHaveBeenCalledWith(
       expect.objectContaining({
-        caseLifecycleState: 'recovery', recoveryLifecycleState: 'negotiation',
+        caseLifecycleState: 'recovery',
+        recoveryLifecycleState: 'negotiation',
         updatedAt: expect.any(Date),
       })
     );
@@ -483,8 +479,7 @@ describe('staff updateClaimStatusCore', () => {
   });
 
   it('auto-assigns the acting staff member when an unassigned claim is triaged', async () => {
-    mocks.db.select.mockReturnValueOnce(mocks.claimSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([
+    mocks.tenantReadSelectChain.limit.mockResolvedValue([
       claimFixture('submitted', { title: 'Vehicle claim', staffId: null }),
     ]);
 
@@ -500,7 +495,8 @@ describe('staff updateClaimStatusCore', () => {
       1,
       expect.objectContaining({
         lifecycleVersion: expect.objectContaining({ op: 'sql' }),
-        caseLifecycleState: 'verification', recoveryLifecycleState: 'not_started',
+        caseLifecycleState: 'verification',
+        recoveryLifecycleState: 'not_started',
         statusUpdatedAt: expect.any(Date),
         updatedAt: expect.any(Date),
       })
@@ -544,8 +540,7 @@ describe('staff updateClaimStatusCore', () => {
   it('skips lifecycle-derived same-status requests without writing', async () => {
     const staleClaim = claimFixture('evaluation', { title: 'Vehicle claim', staffId: 'staff-1' });
     staleClaim.status = 'submitted';
-    mocks.db.select.mockReturnValueOnce(mocks.claimSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([staleClaim]);
+    mocks.tenantReadSelectChain.limit.mockResolvedValue([staleClaim]);
     const result = await updateClaimStatusCore({
       claimId: 'claim-1',
       newStatus: 'evaluation',
@@ -558,8 +553,7 @@ describe('staff updateClaimStatusCore', () => {
 
   it('sends a tenant-scoped notification for public staff status changes', async () => {
     const notifyStatusChanged = vi.fn().mockResolvedValue({ success: true });
-    mocks.db.select.mockReturnValueOnce(mocks.claimSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([
+    mocks.tenantReadSelectChain.limit.mockResolvedValue([
       claimFixture('submitted', { title: 'Vehicle claim', staffId: 'staff-1' }),
     ]);
     mocks.txSelectChain.limit.mockResolvedValueOnce([transitionClaimFixture('submitted')]);
@@ -594,8 +588,7 @@ describe('staff updateClaimStatusCore', () => {
   });
 
   it('denies status changes for claims outside the acting staff scope', async () => {
-    mocks.db.select.mockReturnValueOnce(mocks.claimSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([]);
+    mocks.tenantReadSelectChain.limit.mockResolvedValue([]);
 
     const result = await updateClaimStatusCore({
       claimId: 'claim-1',
@@ -612,8 +605,7 @@ describe('staff updateClaimStatusCore', () => {
   });
 
   it('rejects invalid guarded transitions before status, history, or assignment writes', async () => {
-    mocks.db.select.mockReturnValueOnce(mocks.claimSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([
+    mocks.tenantReadSelectChain.limit.mockResolvedValue([
       claimFixture('submitted', { title: 'Vehicle claim', staffId: null }),
     ]);
     mocks.txSelectChain.limit.mockResolvedValueOnce([
@@ -656,7 +648,7 @@ describe('staff updateClaimStatusCore', () => {
     );
   });
 
-  it('skips allowance total and usage window queries when the claim already consumed a recovery matter', async () => {
+  it('locks and counts but skips insert when the claim already consumed a recovery matter', async () => {
     mockRecoverySelects({
       existingClaimUsage: [{ id: 'usage-claim-1' }],
     });
@@ -664,7 +656,7 @@ describe('staff updateClaimStatusCore', () => {
     const result = await runNegotiationUpdate();
 
     expect(result).toEqual({ success: true, error: undefined });
-    expect(mocks.serviceUsageCountSelectChain.limit).not.toHaveBeenCalled();
+    expect(mocks.serviceUsageCountSelectChain.limit).toHaveBeenCalledOnce();
     expect(mocks.txInsertOnConflictDoNothing).not.toHaveBeenCalled();
   });
 
@@ -753,8 +745,7 @@ describe('staff updateClaimStatusCore', () => {
   });
 
   it('requires an explicit reason when staff reject a recovery matter', async () => {
-    mocks.db.select.mockReturnValueOnce(mocks.claimSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([claimFixture('negotiation')]);
+    mocks.tenantReadSelectChain.limit.mockResolvedValue([claimFixture('negotiation')]);
 
     const result = await updateClaimStatusCore({
       claimId: 'claim-1',
@@ -773,8 +764,7 @@ describe('staff updateClaimStatusCore', () => {
   it('activates audit projection when staff decline a recovery matter', async () => {
     const requestHeaders = new Headers({ 'user-agent': 'Vitest' });
 
-    mocks.db.select.mockReturnValueOnce(mocks.claimSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([claimFixture('negotiation')]);
+    mocks.tenantReadSelectChain.limit.mockResolvedValue([claimFixture('negotiation')]);
     mocks.txSelectChain.limit
       .mockResolvedValueOnce([transitionClaimFixture('negotiation')])
       .mockResolvedValueOnce([]);
