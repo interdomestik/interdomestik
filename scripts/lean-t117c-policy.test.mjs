@@ -139,6 +139,34 @@ test('T117C admits only the exact 52-path progressive-form repair map', () => {
   );
 });
 
+test('T117C admits only the exact 53-path business-page test repair map', () => {
+  const repairedPaths = [...paths];
+  repairedPaths.splice(
+    paths.indexOf('apps/web/src/app/[locale]/(site)/nps/[token]/page.tsx'),
+    0,
+    'apps/web/src/app/[locale]/(site)/business-membership/page.test.tsx',
+    'apps/web/src/app/[locale]/(site)/business-membership/page.tsx'
+  );
+  const repaired = { ...slice, productWriterPaths: repairedPaths };
+  assert.equal(repairedPaths.length, 53);
+  assert.equal(
+    createHash('sha256').update(JSON.stringify(repairedPaths)).digest('hex'),
+    'fdeabba36aa7bb6096b96b0d5b3ace250a4851ccc2c8673139f61aee69b93de1'
+  );
+  assert.equal(validateSlice(repaired), repaired);
+  for (const path of repairedPaths) assert.equal(classifyWriterPath(path, repaired).allowed, true);
+  for (const productWriterPaths of [
+    [...repairedPaths].reverse(),
+    [...repairedPaths, 'apps/web/src/proxy.ts'],
+    [...repairedPaths, 'apps/web/src/app/[locale]/(site)/pricing/page.test.tsx'],
+  ]) {
+    assert.throws(
+      () => validateSlice({ ...repaired, productWriterPaths }),
+      /schema or policy mismatch/
+    );
+  }
+});
+
 test('T117C retains its historical 44- and 45-path maps for authority replay', () => {
   const historical45 = {
     ...slice,
