@@ -15,9 +15,9 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID       | Status   | Owner      | Work              | Exit Criteria                             |
-| -------- | -------- | ---------- | ----------------- | ----------------------------------------- |
-| `T-117C` | `closed` | `platform` | Member rendering. | Product and protected-main checks passed. |
+| ID       | Status      | Owner      | Work              | Exit Criteria                             |
+| -------- | ----------- | ---------- | ----------------- | ----------------------------------------- |
+| `T-117C` | `completed` | `platform` | Member rendering. | Product and protected-main checks passed. |
 
 ## Proof Ledger
 
