@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-09
+last_reviewed: 2026-09-10
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -79,7 +79,7 @@ tree `61b2316606c9b3facd6c8aff2a14bb4402d80c82`, and squash
 `31cae997e42dbc0bee13ca670899b988576bd42c` matched. The member route mounts DATA-backed PORTAL
 through one fail-closed request identity while preserving neutral-host drafts. Exact-head and main
 checks were green; CD had no deployment effect. T-117C `#1724` failed on public no-JS;
-`#1726/#1727` closed and admitted its repair. Historical build and 7/7 Z620 passed. #1731 admits 52 paths; #1733 admits the final corpus with main verified. Promotion #1734 is pending; runtime remains denied.
+`#1726/#1727` closed and admitted its repair. Historical build and 7/7 Z620 passed. #1731 admits 52 paths; #1733 admits the final corpus with main verified. #1734 merged; #1737 admits 53 paths, main CI/Sonar passed. Promotion #1738 pending; runtime denied.
 
 Closed `IDA-WF01-ONE-APPROVAL-DELIVERY` remains immutable evidence through its
 [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),
@@ -96,9 +96,9 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate       | Dependencies   | Promotion constraint              |
-| -------: | --------------- | -------------- | --------------------------------- |
-|        1 | `T-117C` Tier 3 | CUTOVER closed | Merge `#1734`; deliver candidate. |
+| Priority | Candidate       | Dependencies   | Promotion constraint                |
+| -------: | --------------- | -------------- | ----------------------------------- |
+|        1 | `T-117C` Tier 3 | CUTOVER closed | Bind new promotion; continue #1736. |
 
 ## Unified Portal Direction
 
@@ -141,11 +141,11 @@ and global headers remain T-117C.
   "activeSlice": {
     "sliceId": "T-117C",
     "tier": 3,
-    "promotionPrNumber": 1734,
-    "promotionBaseSha": "c328162d70ff9386799952d5cffeac23bfbf7dea",
+    "promotionPrNumber": 1738,
+    "promotionBaseSha": "1fd26bdbe5fa2cd4abe0b2f609a909f5fa083f20",
     "expectedProductBranch": "codex/t117c-qualified-candidate",
-    "gateSha256": "acc751fed815d20e63308abf627fd969de478cd05e60b0e37db20fcb29e04a81",
-    "admissionSha256": "16428ec75cafaf2e5d78a88e6f481c36921127e037f1eff1865d42c60bccf1ec",
+    "gateSha256": "889efae886805db5ad0e3af97596f2e01b8ed4d4afb441aa3294fa748aa821f4",
+    "admissionSha256": "15c3541f40fc12251aff0c719e392c435cf77c772affa484cdc4f7cb89fe2137",
     "productWriterPaths": [
       "apps/web/e2e/gate/member-home-cta.spec.ts",
       "apps/web/e2e/gate/member-parallel-routes.spec.ts",
@@ -171,6 +171,7 @@ and global headers remain T-117C.
       "apps/web/src/app/[locale]/(app)/member/page.tsx",
       "apps/web/src/app/[locale]/(auth)/login/page.tsx",
       "apps/web/src/app/[locale]/(auth)/register/page.tsx",
+      "apps/web/src/app/[locale]/(site)/business-membership/page.test.tsx",
       "apps/web/src/app/[locale]/(site)/business-membership/page.tsx",
       "apps/web/src/app/[locale]/(site)/nps/[token]/page.tsx",
       "apps/web/src/app/[locale]/(site)/pricing/page.tsx",

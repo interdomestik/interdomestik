@@ -3,14 +3,14 @@ plan_role: input
 status: draft
 source_of_truth: false
 owner: platform
-last_reviewed: 2026-09-09
+last_reviewed: 2026-09-10
 ---
 
 # T-117C — nonce-compatible member rendering
 
-> Status: promotion pending in PR `#1734`. Runtime remains denied until exact promotion merge and live resolution.
+> Status: promotion #1738 pending; #1737 main CI/Sonar passed. Runtime remains denied until exact promotion merge and live resolution.
 
-The user authorized this bounded outcome. Promotions through #1723 merged exactly, while product PR #1724 failed closed before merge after its final-head full gate exposed a public no-JavaScript shell regression. Failure closeout #1726 restored inactive authority. Prerequisite #1727 then admitted the minimal six-path repair while preserving replay of the historical 44- and 45-path maps. The repaired product diff is rematerialized as candidate `a82fab94a4c121fe8fd89d832105899d1bd9d7fd`, tree `cf01136ab5b7ab4c12997b271990cfe53623204e`, binary-diff SHA-256 `b81704945bb3ec6ec2c38657acc568dc76e0e354e8aa3c752085c2af11693f70`. Promotion #1734 remains denied until exact owner review, checks, squash merge and live resolution match.
+The user authorized this bounded outcome. Promotions through #1723 merged exactly, while product PR #1724 failed closed before merge after its final-head full gate exposed a public no-JavaScript shell regression. Failure closeout #1726 restored inactive authority. Prerequisite #1727 then admitted the minimal six-path repair while preserving replay of the historical 44- and 45-path maps. Promotion #1734 merged its historical 52-path admission. #1737 admits the existing business-page test; this candidate includes its correction and the already admitted portal-context test correction. Production inputs retain the intended behavior.
 
 ## Outcome
 
@@ -44,36 +44,37 @@ An artifact built for the existing authorized nonce-off mode enables Cache Compo
 22. `apps/web/src/app/[locale]/(app)/member/page.tsx`
 23. `apps/web/src/app/[locale]/(auth)/login/page.tsx`
 24. `apps/web/src/app/[locale]/(auth)/register/page.tsx`
-25. `apps/web/src/app/[locale]/(site)/business-membership/page.tsx`
-26. `apps/web/src/app/[locale]/(site)/nps/[token]/page.tsx`
-27. `apps/web/src/app/[locale]/(site)/pricing/page.tsx`
-28. `apps/web/src/app/[locale]/(staff)/staff/layout.tsx`
-29. `apps/web/src/app/[locale]/admin/commissions/page.tsx`
-30. `apps/web/src/app/[locale]/admin/layout.tsx`
-31. `apps/web/src/app/[locale]/admin/members/number/[memberNumber]/page.tsx`
-32. `apps/web/src/app/[locale]/admin/settings/page.tsx`
-33. `apps/web/src/app/[locale]/admin/users/[id]/page.tsx`
-34. `apps/web/src/app/[locale]/components/home/footer.test.tsx`
-35. `apps/web/src/app/[locale]/components/home/footer.tsx`
-36. `apps/web/src/app/[locale]/components/home/free-start-intake-shell/use-draft-lifecycle.ts`
-37. `apps/web/src/app/[locale]/layout.tsx`
-38. `apps/web/src/app/[locale]/stats/page.tsx`
-39. `apps/web/src/app/api/claims/route.ts`
-40. `apps/web/src/app/api/csp-report/route.ts`
-41. `apps/web/src/app/api/e2e/branches/route.ts`
-42. `apps/web/src/app/track/[token]/page.test.tsx`
-43. `apps/web/src/app/track/[token]/page.tsx`
-44. `apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx`
-45. `apps/web/src/components/dashboard/member-portal-runtime.tsx`
-46. `apps/web/src/components/pricing/business-lead-form.test.tsx`
-47. `apps/web/src/components/pricing/business-lead-form.tsx`
-48. `apps/web/src/components/shell/request-boundary.test.tsx`
-49. `apps/web/src/components/shell/request-boundary.tsx`
-50. `apps/web/src/instrumentation.ts`
-51. `apps/web/src/lib/rendering-build-mode.test.ts`
-52. `apps/web/src/lib/rendering-build-mode.ts`
+25. `apps/web/src/app/[locale]/(site)/business-membership/page.test.tsx`
+26. `apps/web/src/app/[locale]/(site)/business-membership/page.tsx`
+27. `apps/web/src/app/[locale]/(site)/nps/[token]/page.tsx`
+28. `apps/web/src/app/[locale]/(site)/pricing/page.tsx`
+29. `apps/web/src/app/[locale]/(staff)/staff/layout.tsx`
+30. `apps/web/src/app/[locale]/admin/commissions/page.tsx`
+31. `apps/web/src/app/[locale]/admin/layout.tsx`
+32. `apps/web/src/app/[locale]/admin/members/number/[memberNumber]/page.tsx`
+33. `apps/web/src/app/[locale]/admin/settings/page.tsx`
+34. `apps/web/src/app/[locale]/admin/users/[id]/page.tsx`
+35. `apps/web/src/app/[locale]/components/home/footer.test.tsx`
+36. `apps/web/src/app/[locale]/components/home/footer.tsx`
+37. `apps/web/src/app/[locale]/components/home/free-start-intake-shell/use-draft-lifecycle.ts`
+38. `apps/web/src/app/[locale]/layout.tsx`
+39. `apps/web/src/app/[locale]/stats/page.tsx`
+40. `apps/web/src/app/api/claims/route.ts`
+41. `apps/web/src/app/api/csp-report/route.ts`
+42. `apps/web/src/app/api/e2e/branches/route.ts`
+43. `apps/web/src/app/track/[token]/page.test.tsx`
+44. `apps/web/src/app/track/[token]/page.tsx`
+45. `apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx`
+46. `apps/web/src/components/dashboard/member-portal-runtime.tsx`
+47. `apps/web/src/components/pricing/business-lead-form.test.tsx`
+48. `apps/web/src/components/pricing/business-lead-form.tsx`
+49. `apps/web/src/components/shell/request-boundary.test.tsx`
+50. `apps/web/src/components/shell/request-boundary.tsx`
+51. `apps/web/src/instrumentation.ts`
+52. `apps/web/src/lib/rendering-build-mode.test.ts`
+53. `apps/web/src/lib/rendering-build-mode.ts`
 
-Ordered writer-array SHA-256: `9ef46b0675e8c6ec590c8e1e2776ee2124593b4e36ea9df65856ed707477d1ac`. Hash the canonical ordered array with compact JSON and no trailing newline. Fifty-two governed paths are a closed map admitted by prerequisite #1731 on protected main; Git reports 51 rename-aware paths because the source member page becomes `portal-context.ts`, while `--no-renames` reports all 52 governed paths. Additions invalidate the freeze. Delete the old member home page only when its behavior has moved to the home group. Preserve all predecessor and unrelated files.
+Ordered writer-array SHA-256: `fdeabba36aa7bb6096b96b0d5b3ace250a4851ccc2c8673139f61aee69b93de1` (compact JSON, no newline). The 53-path map adds only the existing business-page test to #1731’s 52 paths. Both stale tests now follow the admitted request boundary/child behavior. Additions invalidate the freeze. Preserve predecessor and unrelated files.
 
 ## Rendering and security contract
 
@@ -103,21 +104,21 @@ Required commands remain `pnpm pr:verify`, `pnpm security:guard`, `pnpm e2e:gate
 
 ## Authorized feasibility sequence
 
-The product candidate is rematerialized with identical product inputs to `0dd8a3412baa8157fed911025282744aaa2d4d69` at commit `a82fab94a4c121fe8fd89d832105899d1bd9d7fd`, tree `cf01136ab5b7ab4c12997b271990cfe53623204e`, base `c328162d70ff9386799952d5cffeac23bfbf7dea`, and binary-diff digest `b81704945bb3ec6ec2c38657acc568dc76e0e354e8aa3c752085c2af11693f70`. Git reports 51 rename-aware and 52 no-renames paths. Historical feasibility produced 426 pages and seven focused no-JavaScript passes. Final product inputs at `0dd8a3412baa8157fed911025282744aaa2d4d69` passed the 500-second production build and 54/54 focused browser tests in 113 seconds, with zero skips, failures or retries (build ID `hFqbYi_JmyXXT1hv-vHrA`). Neither historical evidence nor identical product inputs replace required final-head delivery proof or activate runtime before promotion.
+Test-repaired candidate `18e7b03013ce05fe2093684a6615c604e103884a`, tree `39d5c609d98f2aa340492ca7134579d490166d8d`, base `1fd26bdbe5fa2cd4abe0b2f609a909f5fa083f20`, binary-diff SHA-256 `042d14f229c5071293f6c24377059b1439920480eb82c92b657ddb95a4aacae2`, contains all 53 no-renames paths. Historical feasibility produced 426 pages and seven focused no-JavaScript passes. Final product inputs at `0dd8a3412baa8157fed911025282744aaa2d4d69` passed the 500-second production build and 54/54 focused browser tests in 113 seconds, with zero skips, failures or retries (build ID `hFqbYi_JmyXXT1hv-vHrA`). Neither historical evidence nor identical product inputs replace required final-head delivery proof or activate runtime before promotion.
 
 Record this as explicit user-authorized feasibility, not `runtimeAuthorized:true`, production deployment or a completed migration trial. Do not spoof the Lean resolver, owner marker, branch or evidence.
 
 ## Merged exact prerequisite
 
-PR #1731 merged as protected-main commit `7140fa82cfccf85da17180c972ac02213540b8ac`, admitting the exact 52-path map and bounded capacity while preserving historical map replay. PR #1733 merged head `45843979f1fb1d0f7e1545858eb746904a4df6c5` as `b32b90f83f3632af9450dfc1ce68d0b27583de9a` at 2026-09-09T20:53:35Z and admitted final E2E corpus `cb8eb99c86a6be0fe19bae56053138006f6647b2`. Protected-main CI #34403760505 and Sonar #34403760500 (attempt 2) passed; these facts do not authorize runtime. PR #1735 merged head `0e985501a0adcb79381e78a74b1d4e9a58c0116e` as `c328162d70ff9386799952d5cffeac23bfbf7dea`, repairing exact historical closeout lookup. Main CI #34409267368 and Sonar #34409267340 passed; E2E evidence reuse resolved success:true. Earlier promotions, failures and closeouts remain historical evidence.
+PR #1731 merged as protected-main commit `7140fa82cfccf85da17180c972ac02213540b8ac`, admitting the exact 52-path map and bounded capacity while preserving historical map replay. PR #1733 merged head `45843979f1fb1d0f7e1545858eb746904a4df6c5` as `b32b90f83f3632af9450dfc1ce68d0b27583de9a` at 2026-09-09T20:53:35Z and admitted final E2E corpus `cb8eb99c86a6be0fe19bae56053138006f6647b2`. Protected-main CI #34403760505 and Sonar #34403760500 (attempt 2) passed; these facts do not authorize runtime. PR #1735 merged head `0e985501a0adcb79381e78a74b1d4e9a58c0116e` as `c328162d70ff9386799952d5cffeac23bfbf7dea`, repairing exact historical closeout lookup. Main CI #34409267368 and Sonar #34409267340 passed; E2E evidence reuse resolved success:true. Earlier promotions, failures and closeouts remain historical evidence. PR #1737 merged head `b12d8becb7fec2e52c531145fef145f7d12026b5` as `1fd26bdbe5fa2cd4abe0b2f609a909f5fa083f20` at 2026-09-10T07:09:26Z. Main CI #34448568012 and Sonar #34448568165 passed on this exact merge.
 
 ## Adversarial review disposition
 
-Historical reviews inform the risk model but do not approve these rematerialized bytes. After promotion, one repo-owned current-head review must cover the exact candidate and 52-path map. Resolve correctness findings before merge; do not invalidate green exact-head evidence for redundant assertions or ceremony-only edits.
+Historical reviews inform the risk model but do not approve these rematerialized bytes. After promotion, one repo-owned current-head review must cover the exact candidate and 53-path map. Resolve correctness findings before merge; do not invalidate green exact-head evidence for redundant assertions or ceremony-only edits.
 
 ## Promotion and reviewer contract
 
-Promotion writes exactly this gate, its sibling admission, current-program and current-tracker. Gate/admission bind base `c328162d70ff9386799952d5cffeac23bfbf7dea` and candidate commit `a82fab94a4c121fe8fd89d832105899d1bd9d7fd`, tree `cf01136ab5b7ab4c12997b271990cfe53623204e`, with binary-diff digest `b81704945bb3ec6ec2c38657acc568dc76e0e354e8aa3c752085c2af11693f70`. Use live promotion PR `#1734`; bind product branch `codex/t117c-qualified-candidate`, the exact 52 governed writers, and closeout writers ordered program then tracker. PR #1734 is reserved. The unique product branch avoids the reused branch’s #1724/#1729 inventory ambiguity. After promotion, open a new product PR from this bound branch; #1729 remains untouched and is superseded for delivery. Finalize the four-file promotion candidate and obtain a new exact-head owner review before merge.
+Promotion writes exactly this gate, its sibling admission, current-program and current-tracker. Bind base `1fd26bdbe5fa2cd4abe0b2f609a909f5fa083f20` and the candidate above. Promotion PR #1738 binds this amended scope. Preserve product branch `codex/t117c-qualified-candidate` and draft #1736. After promotion, rematerialize both test fixes on its exact merge; qualify the new local/remote head, fork point and 53-path inventory. Preserve old head evidence and unrelated #1729. Obtain a fresh exact-head owner review of this four-file promotion; #1734 review does not approve amended bytes.
 
 Generate `approvalMarker(slice, promotionHeadSha, promotionTreeSha)` only from finalized facts. The exact owner action is one matching COMMENTED GitHub review by arbenl/62884977 with `commit_id` equal to the promotion head and body equal to the generated marker. Confirm four-path scope, owner marker, exact base/sole-parent/merge-tree equality and live validator resolution before product execution.
 
