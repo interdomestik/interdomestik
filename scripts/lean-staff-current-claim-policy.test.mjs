@@ -5,6 +5,7 @@ import { resolveAuthority } from './lean-current-authority-lifecycle.mjs';
 
 // These are explicitly synthetic test fixtures, never approval or runtime evidence.
 const writers = [
+  'apps/web/src/actions/staff-claims/update-status.test.ts',
   'packages/domain-claims/src/staff-claims/current-claim-record.test.ts',
   'packages/domain-claims/src/staff-claims/current-claim-record.ts',
   'packages/domain-claims/src/staff-claims/matter-allowance.test.ts',
@@ -38,7 +39,7 @@ test('admits only the current and transitional legacy staff current-claim maps',
   for (const invalid of [
     { ...slice, tier: 2 },
     { ...slice, sliceId: 'OTHER-SLICE' },
-    { ...slice, productWriterPaths: writers.slice(1) },
+    { ...slice, productWriterPaths: writers.slice(0, -1) },
     { ...slice, productWriterPaths: [...writers].reverse() },
     { ...slice, productWriterPaths: [...writers, 'packages/database/src/tenant.ts'] },
   ])
@@ -90,6 +91,7 @@ test('capacity reserves the product, policy, CI loader and promotion artifact pa
   assert.deepEqual(allocation.writerPaths, writers);
   assert.equal(allocation.maxTrackedFilesDelta, 2);
   assert.deepEqual(allocation.maxPathBytesDelta, {
+    'apps/web/src/actions/staff-claims/update-status.test.ts': 0,
     'packages/domain-claims/src/staff-claims/current-claim-record.test.ts': 2368,
     'packages/domain-claims/src/staff-claims/current-claim-record.ts': 0,
     'packages/domain-claims/src/staff-claims/matter-allowance.test.ts': 1587,
@@ -109,7 +111,7 @@ test('capacity reserves the product, policy, CI loader and promotion artifact pa
   assert.equal(policyAllocation.maxTrackedFilesDelta, 2);
   assert.equal(
     policyAllocation.maxPathBytesDelta['scripts/lean-staff-current-claim-exception.mjs'],
-    1039
+    1109
   );
   const promotionAllocation = budget.allocations.find(
     item => item.id === 'staff-current-claim-tenant-context-promotion'
