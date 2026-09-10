@@ -13,7 +13,12 @@ const writers = [
   'packages/domain-claims/src/staff-claims/update-status.transaction.test.ts',
   'packages/domain-claims/src/staff-claims/update-status.ts',
 ];
-const priorWriters = [writers[0], writers[1], writers[4], writers[6]];
+const priorWriters = [
+  'packages/domain-claims/src/staff-claims/current-claim-record.test.ts',
+  'packages/domain-claims/src/staff-claims/current-claim-record.ts',
+  'packages/domain-claims/src/staff-claims/update-status.test.ts',
+  'packages/domain-claims/src/staff-claims/update-status.ts',
+];
 const slice = {
   sliceId: 'STAFF-CURRENT-CLAIM-TENANT-CONTEXT',
   tier: 3,
@@ -26,7 +31,7 @@ const slice = {
   closeoutWriterPaths: ['docs/plans/current-program.md', 'docs/plans/current-tracker.md'],
 };
 
-test('admits only the exact staff current-claim map and identity', () => {
+test('admits only the current and transitional legacy staff current-claim maps', () => {
   assert.equal(validateSlice(slice), slice);
   assert.doesNotThrow(() => validateSlice({ ...slice, productWriterPaths: priorWriters }));
   for (const path of writers) assert.equal(classifyWriterPath(path, slice).allowed, true);
@@ -69,7 +74,7 @@ test('policy admission alone cannot grant runtime without merged owner promotion
 // Capacity measured from an in-memory signature/caller/mock/regression candidate.
 // No product file was written or executed; these are candidate bounds, not proof.
 // Baseline / candidate bytes, in writer-map order:
-// current-claim-record.test.ts: 0 / 2367; current-claim-record.ts: 1420 / 1372
+// current-claim-record.test.ts: 0 / 2368; current-claim-record.ts: 1420 / 1372
 // matter-allowance.test.ts: 4670 / 6257; matter-allowance.ts: 6160 / 6367
 // update-status.test.ts: 29315 / 28231; update-status.transaction.test.ts: 0 / 5830
 // update-status.ts: 17286 / 17760. Baselines precede candidates on every pair.
@@ -104,7 +109,7 @@ test('capacity reserves the product, policy, CI loader and promotion artifact pa
   assert.equal(policyAllocation.maxTrackedFilesDelta, 2);
   assert.equal(
     policyAllocation.maxPathBytesDelta['scripts/lean-staff-current-claim-exception.mjs'],
-    1000
+    1039
   );
   const promotionAllocation = budget.allocations.find(
     item => item.id === 'staff-current-claim-tenant-context-promotion'
