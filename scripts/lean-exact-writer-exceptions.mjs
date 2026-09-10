@@ -21,6 +21,8 @@ const CHILDREN = new Map([
         '34b78b5355079747ae1166d70a955be94faaff2e7599492daa8b10fc96a1bc1b',
         // Request-issued business-form key preserves progressive submission.
         '9ef46b0675e8c6ec590c8e1e2776ee2124593b4e36ea9df65856ed707477d1ac',
+        // Existing business-page test follows its admitted request boundary.
+        'fdeabba36aa7bb6096b96b0d5b3ace250a4851ccc2c8673139f61aee69b93de1',
       ],
       predecessor: {
         sliceId: 'T117B-CUTOVER',
