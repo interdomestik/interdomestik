@@ -166,8 +166,8 @@ and global headers remain T-117C.
     "promotionPrNumber": 1747,
     "promotionBaseSha": "c3a560efeaf058fdbb9f20066f61aa533bbc6f2b",
     "expectedProductBranch": "codex/staff-current-claim-tenant-context",
-    "gateSha256": "d0ad52bd74d99194756dfa515818f8079a66484033fd310938912ea678862e17",
-    "admissionSha256": "7d75cd3ceb2f78dc30e8b3787c646d2d8c604afba0bb6e0d1c1880e3f2ba7f1d",
+    "gateSha256": "5cc73c7abba820e1aa9851f358fc427882c51c66aea9ae300d70d7fea193c2e7",
+    "admissionSha256": "7fbc5942ae4175fabdb6cf36ddaccaef440142574a7ebabe93ec5a28341cbb35",
     "productWriterPaths": [
       "packages/domain-claims/src/staff-claims/current-claim-record.test.ts",
       "packages/domain-claims/src/staff-claims/current-claim-record.ts",

@@ -11,9 +11,10 @@
     "mergeSha": "c3a560efeaf058fdbb9f20066f61aa533bbc6f2b",
     "status": "merged_and_verified"
   },
-  "authorityArtifactSha256": "d0ad52bd74d99194756dfa515818f8079a66484033fd310938912ea678862e17",
+  "authorityArtifactSha256": "5cc73c7abba820e1aa9851f358fc427882c51c66aea9ae300d70d7fea193c2e7",
   "productOutcomes": [
     "Staff status-change decisions execute inside one trusted tenant transaction.",
+    "Subscription-scoped transaction locking prevents concurrent allowance over-consumption.",
     "Failed decisions roll back status, usage and assignment writes before external effects."
   ],
   "writerPaths": [
@@ -31,7 +32,7 @@
     {
       "criterionId": "tenant-transaction-atomicity",
       "command": "pnpm --filter @interdomestik/domain-claims test:unit --run src/staff-claims/current-claim-record.test.ts src/staff-claims/matter-allowance.test.ts src/staff-claims/update-status.test.ts src/staff-claims/update-status.transaction.test.ts",
-      "expected": "One tenant transaction, rollback-safe decisions, preserved staff and allowance denials.",
+      "expected": "One tenant transaction, serialized allowance decisions, rollback-safe writes, and preserved denials.",
       "skipIsFailure": true
     },
     {

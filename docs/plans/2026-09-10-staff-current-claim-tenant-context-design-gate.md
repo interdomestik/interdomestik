@@ -16,8 +16,9 @@ last_reviewed: 2026-09-10
 
 Execute the staff status-change decision inside one trusted `withTenantContext` transaction. The
 current-claim read, recovery agreement, subscription and allowance reads, transition, service usage
-and assignment writes all use the supplied transaction. Tenant identity remains session-derived and
-the existing claim, branch, assignment, role and lifecycle predicates remain enforced. Audit and
+and assignment writes all use the supplied transaction. A subscription-scoped transaction lock
+serializes allowance decisions before counting usage. Tenant identity remains session-derived and the
+existing claim, branch, assignment, role and lifecycle predicates remain enforced. Audit and
 notification effects begin only after commit, so a rolled-back decision cannot publish success.
 
 Product writers, in hash-bound order:
@@ -36,12 +37,14 @@ Writer-map SHA-256: `621da1c635c4f90c9388103ab4afdca9acb3e2b691441b30b576232aa24
 ## Acceptance
 
 1. Focused tests prove every decision read and write uses the supplied tenant transaction.
-2. Rollback coverage proves failed allowance or transition work leaves no partial status, usage or
+2. A concurrent regression proves two claims cannot consume the same final subscription allowance;
+   the second decision observes the first committed usage.
+3. Rollback coverage proves failed allowance or transition work leaves no partial status, usage or
    assignment persistence; post-commit effects do not run before commit.
-3. Existing out-of-scope, assignment, lifecycle, recovery and allowance denials remain intact.
-4. Required focused domain tests, capacity/modularity checks, `pnpm pr:verify`,
+4. Existing out-of-scope, assignment, lifecycle, recovery and allowance denials remain intact.
+5. Required focused domain tests, capacity/modularity checks, `pnpm pr:verify`,
    `pnpm security:guard`, and `pnpm e2e:gate` pass on the exact product head.
-5. Same-head review, expected-head merge and protected-main health precede closeout; only measured
+6. Same-head review, expected-head merge and protected-main health precede closeout; only measured
    execution through the trusted Z620 provider may earn migration trial 1/3.
 
 ## Promotion and capacity
