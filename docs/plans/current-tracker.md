@@ -15,15 +15,15 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID       | Status    | Owner      | Work              | Exit Criteria                       |
-| -------- | --------- | ---------- | ----------------- | ----------------------------------- |
-| `T-117C` | `pending` | `platform` | Member rendering. | Bind new promotion; continue #1736. |
+| ID       | Status      | Owner      | Work              | Exit Criteria                             |
+| -------- | ----------- | ---------- | ----------------- | ----------------------------------------- |
+| `T-117C` | `completed` | `platform` | Member rendering. | Product and protected-main checks passed. |
 
 ## Proof Ledger
 
-| ID       | Source Refs                                                                                                   | Execution  | Run ID       | Run Root | Sonar     | Docker           | Sentry           | Learning | Evidence Refs              |
-| -------- | ------------------------------------------------------------------------------------------------------------- | ---------- | ------------ | -------- | --------- | ---------------- | ---------------- | -------- | -------------------------- |
-| `T-117C` | [gate](./2026-09-07-t117c-rendering-design-gate.md); [admission](./2026-09-07-t117c-rendering-admission.json) | `scripted` | `PR pending` | `Z620`   | `pending` | `not_applicable` | `not_applicable` | `pass`   | Build pass; proof pending. |
+| ID       | Source Refs                                                                                                   | Execution  | Run ID     | Run Root    | Sonar  | Docker           | Sentry           | Learning | Evidence Refs                   |
+| -------- | ------------------------------------------------------------------------------------------------------------- | ---------- | ---------- | ----------- | ------ | ---------------- | ---------------- | -------- | ------------------------------- |
+| `T-117C` | [gate](./2026-09-07-t117c-rendering-design-gate.md); [admission](./2026-09-07-t117c-rendering-admission.json) | `scripted` | `PR #1736` | `Z620 + CI` | `pass` | `not_applicable` | `not_applicable` | `pass`   | CI, E2E, smoke and main passed. |
 
 Terminal: promotion `#1691`; product head
 `503d4b179251f9d3d06e07349ec80f85805565ae`, tree
@@ -33,13 +33,21 @@ Terminal: promotion `#1691`; product head
 delivery `33863200387` attempt 2, main CI/Sonar/CodeQL/security green; CD
 `33865541227` cancelled, zero jobs.
 
+T117C product: #1736, head `f13c81712d5fa012c6407337852217473a1c4d4d`, merge
+`c3e79d91d103c373ac9014d136956e8d91815991`. CI `34452735233`, E2E/smoke
+`34452735175`, Pilot `34452735196`, finalizer `34452735368`, delivery
+`34452769704` attempt 2 passed. Owner review `5164184965` binds promotion #1738.
+The 50-path product is a subset of the 53-path admission. Protected-main CI `34454527870` and Sonar `34454689720` passed at the exact merge.
+Nonblocking follow-up: use `routes.businessMembership(testInfo)` on the next authorized
+E2E edit; it produces the same URL as the current expression. Migration trials remain 0/3.
+
 ## Next Selection
 
-#1691/#1675 closed CUTOVER; #1724 failed; #1726/#1727 repaired. #1731 admits 52 paths; #1733 corpus main proof passed. #1734 merged; #1737 admits 53 paths, main CI/Sonar passed. Promotion #1738 pending; runtime denied.
+#1691/#1675 closed CUTOVER; #1724 failed; #1726/#1727 repaired. #1731 admits 52 paths; #1733 corpus main proof passed. #1734 merged; #1737 admits 53 paths, main CI/Sonar passed. Promotion #1738 and product #1736 merged; T117C implementation is delivered. Closeout records an inactive projection; successor promotion remains separate.
 
-| Future UI branch | Status              | Constraint                                                               |
-| ---------------- | ------------------- | ------------------------------------------------------------------------ |
-| `T-117C`         | `promotion_pending` | New promotion pending; product branch `codex/t117c-qualified-candidate`. |
+| Future UI branch | Status         | Constraint                                                                          |
+| ---------------- | -------------- | ----------------------------------------------------------------------------------- |
+| Post-T117C fixes | `not_promoted` | Tenant transaction, currency parsing, failed-run retry; bounded admission required. |
 
 ## Lean Authority
 
@@ -48,79 +56,12 @@ delivery `33863200387` attempt 2, main CI/Sonar/CodeQL/security green; CD
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "promotion_pending",
+  "lifecycle": "inactive",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": {
-    "sliceId": "T-117C",
-    "tier": 3,
-    "promotionPrNumber": 1738,
-    "promotionBaseSha": "1fd26bdbe5fa2cd4abe0b2f609a909f5fa083f20",
-    "expectedProductBranch": "codex/t117c-qualified-candidate",
-    "gateSha256": "889efae886805db5ad0e3af97596f2e01b8ed4d4afb441aa3294fa748aa821f4",
-    "admissionSha256": "15c3541f40fc12251aff0c719e392c435cf77c772affa484cdc4f7cb89fe2137",
-    "productWriterPaths": [
-      "apps/web/e2e/gate/member-home-cta.spec.ts",
-      "apps/web/e2e/gate/member-parallel-routes.spec.ts",
-      "apps/web/e2e/gate/rendering-build-mode.spec.ts",
-      "apps/web/next.config.mjs",
-      "apps/web/src/app/[locale]/_core.entry.test.tsx",
-      "apps/web/src/app/[locale]/_core.entry.tsx",
-      "apps/web/src/app/[locale]/(agent)/agent/layout.tsx",
-      "apps/web/src/app/[locale]/(app)/layout.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@actions/default.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@actions/page.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@case/default.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@case/page.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@updates/default.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@updates/page.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/default.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/layout.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/page.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.test.ts",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.ts",
-      "apps/web/src/app/[locale]/(app)/member/layout.tsx",
-      "apps/web/src/app/[locale]/(app)/member/page.test.tsx",
-      "apps/web/src/app/[locale]/(app)/member/page.tsx",
-      "apps/web/src/app/[locale]/(auth)/login/page.tsx",
-      "apps/web/src/app/[locale]/(auth)/register/page.tsx",
-      "apps/web/src/app/[locale]/(site)/business-membership/page.test.tsx",
-      "apps/web/src/app/[locale]/(site)/business-membership/page.tsx",
-      "apps/web/src/app/[locale]/(site)/nps/[token]/page.tsx",
-      "apps/web/src/app/[locale]/(site)/pricing/page.tsx",
-      "apps/web/src/app/[locale]/(staff)/staff/layout.tsx",
-      "apps/web/src/app/[locale]/admin/commissions/page.tsx",
-      "apps/web/src/app/[locale]/admin/layout.tsx",
-      "apps/web/src/app/[locale]/admin/members/number/[memberNumber]/page.tsx",
-      "apps/web/src/app/[locale]/admin/settings/page.tsx",
-      "apps/web/src/app/[locale]/admin/users/[id]/page.tsx",
-      "apps/web/src/app/[locale]/components/home/footer.test.tsx",
-      "apps/web/src/app/[locale]/components/home/footer.tsx",
-      "apps/web/src/app/[locale]/components/home/free-start-intake-shell/use-draft-lifecycle.ts",
-      "apps/web/src/app/[locale]/layout.tsx",
-      "apps/web/src/app/[locale]/stats/page.tsx",
-      "apps/web/src/app/api/claims/route.ts",
-      "apps/web/src/app/api/csp-report/route.ts",
-      "apps/web/src/app/api/e2e/branches/route.ts",
-      "apps/web/src/app/track/[token]/page.test.tsx",
-      "apps/web/src/app/track/[token]/page.tsx",
-      "apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx",
-      "apps/web/src/components/dashboard/member-portal-runtime.tsx",
-      "apps/web/src/components/pricing/business-lead-form.test.tsx",
-      "apps/web/src/components/pricing/business-lead-form.tsx",
-      "apps/web/src/components/shell/request-boundary.test.tsx",
-      "apps/web/src/components/shell/request-boundary.tsx",
-      "apps/web/src/instrumentation.ts",
-      "apps/web/src/lib/rendering-build-mode.test.ts",
-      "apps/web/src/lib/rendering-build-mode.ts"
-    ],
-    "closeoutWriterPaths": [
-      "docs/plans/current-program.md",
-      "docs/plans/current-tracker.md"
-    ]
-  }
+  "activeSlice": null
 }
 ```
 
