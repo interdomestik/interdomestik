@@ -1,10 +1,7 @@
 import { createHash } from 'node:crypto';
-import {
-  exactWriterClassification as legacyExactWriterClassification,
-  isT117BPortalRuntime,
-} from './lean-exact-writer-exceptions.mjs';
+import { exactWriterClassification as legacyExactWriterClassification } from './lean-exact-writer-exceptions.mjs';
 
-export { isT117BPortalRuntime };
+export { isT117BPortalRuntime } from './lean-exact-writer-exceptions.mjs';
 
 const WRITER_HASH = '1754dbc42a20b563be1181e7cb3a1dbabdfb5913f333d186f9973b60c52751be';
 

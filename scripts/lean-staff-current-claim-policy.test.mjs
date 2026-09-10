@@ -68,7 +68,7 @@ test('policy admission alone cannot grant runtime without merged owner promotion
 // packages/domain-claims/src/staff-claims/current-claim-record.ts: 1420 / 1465 / 1420
 // packages/domain-claims/src/staff-claims/update-status.test.ts: 29315 / 29305 / 29315
 // packages/domain-claims/src/staff-claims/update-status.ts: 17286 / 17393 / 17286
-test('capacity reserves only the four product paths and one new focused test', async () => {
+test('capacity reserves the product, policy, CI loader and promotion artifact paths', async () => {
   const { readFileSync } = await import('node:fs');
   const { validateCapacityBudget } = await import('./repo-size-capacity-schema.mjs');
   const budget = validateCapacityBudget(
@@ -89,12 +89,25 @@ test('capacity reserves only the four product paths and one new focused test', a
     item => item.id === 'staff-current-claim-policy'
   );
   assert.deepEqual(policyAllocation.writerPaths, [
+    'scripts/ci/lean-current-authority-contracts.test.mjs',
     'scripts/lean-staff-current-claim-exception.mjs',
     'scripts/lean-staff-current-claim-policy.test.mjs',
   ]);
   assert.equal(policyAllocation.maxTrackedFilesDelta, 2);
   assert.equal(
     policyAllocation.maxPathBytesDelta['scripts/lean-staff-current-claim-exception.mjs'],
-    933
+    1000
   );
+  const promotionAllocation = budget.allocations.find(
+    item => item.id === 'staff-current-claim-tenant-context-promotion'
+  );
+  assert.deepEqual(promotionAllocation.writerPaths, [
+    'docs/plans/2026-09-10-staff-current-claim-tenant-context-design-gate.md',
+    'docs/plans/2026-09-10-staff-current-claim-tenant-context-admission.json',
+  ]);
+  assert.equal(promotionAllocation.maxTrackedFilesDelta, 2);
+  assert.deepEqual(promotionAllocation.maxPathBytesDelta, {
+    'docs/plans/2026-09-10-staff-current-claim-tenant-context-design-gate.md': 4500,
+    'docs/plans/2026-09-10-staff-current-claim-tenant-context-admission.json': 3000,
+  });
 });
