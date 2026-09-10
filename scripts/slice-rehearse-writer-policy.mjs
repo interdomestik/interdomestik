@@ -54,12 +54,7 @@ function evaluateWriterPlan(plan, repository, budget, authorityStops, deficits) 
   const actualLines = repository.writerLineCounts[plan.path] ?? 0;
   const delta = repository.writerDeltas[plan.path];
   const legacy = legacyFocusedTestContract(plan.path);
-  if (
-    legacy &&
-    (actualLines > MODULARITY_POLICY.focusedTest.maxLines ||
-      plan.maxLines > MODULARITY_POLICY.focusedTest.maxLines) &&
-    repository.writerFacts?.[plan.path]?.manifestBaseSha256 !== legacy.baseSha256
-  ) {
+  if (legacy && repository.writerFacts?.[plan.path]?.manifestBaseSha256 !== legacy.baseSha256) {
     authorityStops.push({ code: `modularity:legacy-focused-baseline:${plan.path}` });
   }
   if (Number.isInteger(modularity.maxLines) && actualLines > plan.maxLines) {

@@ -99,6 +99,9 @@ test('legacy staff claim test keeps its exact non-growing rehearsal ceiling', ()
   repository.writerDeltas[path].currentBytes = 29314;
   repository.writerFacts[path].manifestBaseSha256 = 'f'.repeat(64);
   assert.ok(evaluateWriterPolicy(manifest, repository, budget).authorityStops.length > 0);
+  manifest.pathPlans[0].maxLines = 300;
+  repository.writerLineCounts[path] = 300;
+  assert.ok(evaluateWriterPolicy(manifest, repository, budget).authorityStops.length > 0);
 });
 
 test('planned bytes use the exact baseline and enforce final governance byte caps', () => {

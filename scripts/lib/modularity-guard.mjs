@@ -196,22 +196,24 @@ function evaluateFocused(_root, entry, className, current, base) {
     contractBaseMatches &&
     current.lines <= contract.baseLines &&
     current.bytes <= contract.baseBytes;
+  const legacyBaselineMismatch = contract !== null && !contractBaseMatches;
   const legacyGrowth =
     contractBaseMatches &&
     (current.lines > contract.baseLines || current.bytes > contract.baseBytes);
-  const reason =
-    legacyGrowth || (current.lines > MODULARITY_POLICY.focusedTest.maxLines && !stableLegacy)
-      ? 'test-split-required'
-      : null;
+  const requiresSplit =
+    legacyBaselineMismatch ||
+    legacyGrowth ||
+    (current.lines > MODULARITY_POLICY.focusedTest.maxLines && !stableLegacy);
   return {
     className,
-    violation: reason ? finding(entry, className, current, base, reason) : null,
+    violation: requiresSplit
+      ? finding(entry, className, current, base, 'test-split-required')
+      : null,
     advisory: stableLegacy
       ? finding(entry, className, current, base, 'legacy-focused-test-stable')
       : null,
   };
 }
-
 function evaluateStructured(root, entry, className, current, base) {
   let reason = structuredArtifactOwner(entry.file) ? null : 'structured-owner-required';
   if (current.bytes > MODULARITY_POLICY.structuredArtifact.maxBytes) {

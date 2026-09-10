@@ -57,4 +57,7 @@ test('rejects a different baseline and an unrelated oversized test', () => {
       .sort(),
     [TARGET, 'packages/other/update-status.test.ts'].sort()
   );
+
+  writeFile(root, TARGET, 'small\n');
+  assert.ok(resultFor(root, base).violations.some(item => item.file === TARGET));
 });

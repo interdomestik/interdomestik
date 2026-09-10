@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { deriveOperationalEnvelope, rehearsalFactsSha256 } from './slice-rehearse-envelope.mjs';
+import {
+  buildRehearsalReport,
+  deriveOperationalEnvelope,
+  rehearsalFactsSha256,
+} from './slice-rehearse-envelope.mjs';
 import { canonicalJson, compareText, sha256 } from './slice-rehearse-canonical.mjs';
 
 test('canonical ordering uses locale-independent UTF-16 code units', () => {
@@ -29,6 +33,38 @@ test('rehearsal certificate identity excludes host-local checkout roots', () => 
     rehearsalFactsSha256(report),
     rehearsalFactsSha256({ ...report, repository: { ...report.repository, root: '/checkout/b' } })
   );
+});
+
+test('report writer facts digest binds the manifest-base content hashes', () => {
+  const normalized = {
+    sliceId: 'TEST',
+    tier: 3,
+    writerPaths: ['a.test.ts'],
+    pathPlans: [],
+    routineOperations: [],
+    topology: {},
+    proof: {},
+  };
+  const args = {
+    normalized,
+    repo: { origin: 'x', writerFacts: { 'a.test.ts': { manifestBaseSha256: 'a' } } },
+    proposal: {
+      allocation: {},
+      budgetBytes: '{}\n',
+      selfBytesDelta: 0,
+      budget: { maxTrackedBytes: 1, maxTrackedFiles: 1, maxCategoryBytes: {} },
+    },
+    operationResolution: { facts: null },
+    evidenceResult: { decisions: [], reusableLanes: [], missingLanes: [] },
+    proofPlan: { reuse: [], run: [] },
+    deficits: [],
+    authorityStops: [{ code: 'test' }],
+    writerMapDigest: sha256('writers'),
+  };
+  const first = buildRehearsalReport(args).repository.writerFactsDigest;
+  args.repo.writerFacts['a.test.ts'].manifestBaseSha256 = 'b';
+  const second = buildRehearsalReport(args).repository.writerFactsDigest;
+  assert.notEqual(first, second);
 });
 
 test('envelope binds proposal deltas and exact budget artifact instead of global ceilings', () => {
