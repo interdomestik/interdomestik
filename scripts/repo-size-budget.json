@@ -948,16 +948,16 @@
         "scripts/lean-staff-current-claim-exception.mjs",
         "scripts/lean-staff-current-claim-policy.test.mjs"
       ],
-      "maxTrackedBytesDelta": 6599,
+      "maxTrackedBytesDelta": 6791,
       "maxTrackedFilesDelta": 2,
       "maxCategoryBytesDelta": {
-        "source/scripts": 1000,
-        "tests/e2e": 5599
+        "source/scripts": 1039,
+        "tests/e2e": 5752
       },
       "maxPathBytesDelta": {
         "scripts/ci/lean-current-authority-contracts.test.mjs": 64,
-        "scripts/lean-staff-current-claim-exception.mjs": 1000,
-        "scripts/lean-staff-current-claim-policy.test.mjs": 5599
+        "scripts/lean-staff-current-claim-exception.mjs": 1039,
+        "scripts/lean-staff-current-claim-policy.test.mjs": 5752
       }
     }
   ],
@@ -970,14 +970,14 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60920808,
+  "maxTrackedBytes": 60921000,
   "maxTrackedFiles": 6005,
   "maxCategoryBytes": {
     "other": 19184044,
     "large support/generated-ish": 15395985,
     "docs/text": 8532529,
-    "source/scripts": 8745029,
-    "tests/e2e": 6857751,
+    "source/scripts": 8745068,
+    "tests/e2e": 6857904,
     "config/data/messages": 2205470
   },
   "maxLargestFileBytes": 3266530,
