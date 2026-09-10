@@ -1,8 +1,8 @@
 import {
   exactWriterClassification,
+  isStaffCurrentClaimTenantContext,
   isT117BPortalRuntime,
-} from './lean-exact-writer-exceptions.mjs';
-
+} from './lean-staff-current-claim-exception.mjs';
 export const APPROVAL_PREFIX = 'LEAN_AUTHORITY_APPROVAL_V1';
 export const AUTHORITY = 'lean-tier12-v1';
 export const PROGRAM = 'docs/plans/current-program.md';
@@ -125,7 +125,9 @@ export function validateSlice(slice) {
   const checks = [
     keysAre(slice, fields),
     /^[A-Z0-9][A-Z0-9-]+$/u.test(slice?.sliceId ?? ''),
-    [1, 2].includes(slice?.tier) || isT117BPortalRuntime(slice),
+    [1, 2].includes(slice?.tier) ||
+      isT117BPortalRuntime(slice) ||
+      isStaffCurrentClaimTenantContext(slice),
     Number.isSafeInteger(slice?.promotionPrNumber) && slice.promotionPrNumber > 0,
     SHA40.test(slice?.promotionBaseSha ?? ''),
     SHA256.test(slice?.gateSha256 ?? ''),
