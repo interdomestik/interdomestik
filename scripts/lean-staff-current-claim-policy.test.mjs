@@ -7,7 +7,10 @@ import { resolveAuthority } from './lean-current-authority-lifecycle.mjs';
 const writers = [
   'packages/domain-claims/src/staff-claims/current-claim-record.test.ts',
   'packages/domain-claims/src/staff-claims/current-claim-record.ts',
+  'packages/domain-claims/src/staff-claims/matter-allowance.test.ts',
+  'packages/domain-claims/src/staff-claims/matter-allowance.ts',
   'packages/domain-claims/src/staff-claims/update-status.test.ts',
+  'packages/domain-claims/src/staff-claims/update-status.transaction.test.ts',
   'packages/domain-claims/src/staff-claims/update-status.ts',
 ];
 const slice = {
@@ -64,10 +67,10 @@ test('policy admission alone cannot grant runtime without merged owner promotion
 // Capacity measured from an in-memory signature/caller/mock/regression candidate.
 // No product file was written or executed; these are candidate bounds, not proof.
 // current / candidate / baseline bytes, in writer-map order:
-// packages/domain-claims/src/staff-claims/current-claim-record.test.ts: 0 / 2368 / 0
-// packages/domain-claims/src/staff-claims/current-claim-record.ts: 1420 / 1465 / 1420
-// packages/domain-claims/src/staff-claims/update-status.test.ts: 29315 / 29305 / 29315
-// packages/domain-claims/src/staff-claims/update-status.ts: 17286 / 17393 / 17286
+// current-claim-record.test.ts: 0 / 2367; current-claim-record.ts: 1420 / 1372
+// matter-allowance.test.ts: 4670 / 6257; matter-allowance.ts: 6160 / 6367
+// update-status.test.ts: 29315 / 28231; update-status.transaction.test.ts: 0 / 5830
+// update-status.ts: 17286 / 17760. Baselines precede candidates on every pair.
 test('capacity reserves the product, policy, CI loader and promotion artifact paths', async () => {
   const { readFileSync } = await import('node:fs');
   const { validateCapacityBudget } = await import('./repo-size-capacity-schema.mjs');
@@ -78,12 +81,15 @@ test('capacity reserves the product, policy, CI loader and promotion artifact pa
     item => item.id === 'staff-current-claim-tenant-context'
   );
   assert.deepEqual(allocation.writerPaths, writers);
-  assert.equal(allocation.maxTrackedFilesDelta, 1);
+  assert.equal(allocation.maxTrackedFilesDelta, 2);
   assert.deepEqual(allocation.maxPathBytesDelta, {
     'packages/domain-claims/src/staff-claims/current-claim-record.test.ts': 2368,
-    'packages/domain-claims/src/staff-claims/current-claim-record.ts': 45,
+    'packages/domain-claims/src/staff-claims/current-claim-record.ts': 0,
+    'packages/domain-claims/src/staff-claims/matter-allowance.test.ts': 1587,
+    'packages/domain-claims/src/staff-claims/matter-allowance.ts': 207,
     'packages/domain-claims/src/staff-claims/update-status.test.ts': 0,
-    'packages/domain-claims/src/staff-claims/update-status.ts': 107,
+    'packages/domain-claims/src/staff-claims/update-status.transaction.test.ts': 5830,
+    'packages/domain-claims/src/staff-claims/update-status.ts': 474,
   });
   const policyAllocation = budget.allocations.find(
     item => item.id === 'staff-current-claim-policy'

@@ -3,7 +3,7 @@ import { exactWriterClassification as legacyExactWriterClassification } from './
 
 export { isT117BPortalRuntime } from './lean-exact-writer-exceptions.mjs';
 
-const WRITER_HASH = '1754dbc42a20b563be1181e7cb3a1dbabdfb5913f333d186f9973b60c52751be';
+const WRITER_HASH = '621da1c635c4f90c9388103ab4afdca9acb3e2b691441b30b576232aa24a257d';
 
 export function isStaffCurrentClaimTenantContext(slice) {
   const writerHash = Array.isArray(slice?.productWriterPaths)
