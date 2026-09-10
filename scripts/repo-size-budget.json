@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 77003,
+      "trackedBytesDelta": 77145,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 46065,
+        "config/data/messages": 46207,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 46065,
+        "scripts/repo-size-budget.json": 46207,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -623,7 +623,10 @@
       ],
       "maxTrackedBytesDelta": 14073,
       "maxTrackedFilesDelta": 2,
-      "maxCategoryBytesDelta": { "tests/e2e": 8621, "source/scripts": 5452 },
+      "maxCategoryBytesDelta": {
+        "tests/e2e": 8621,
+        "source/scripts": 5452
+      },
       "maxPathBytesDelta": {
         "scripts/ci/main-e2e-reuse-workflow.test.mjs": 726,
         "scripts/ci/workflow-permission-tightening.test.mjs": 7895,
@@ -719,7 +722,9 @@
       "writerPaths": ["apps/web/src/components/auth/login-form.tsx"],
       "maxTrackedBytesDelta": 184,
       "maxTrackedFilesDelta": 0,
-      "maxCategoryBytesDelta": { "source/scripts": 184 },
+      "maxCategoryBytesDelta": {
+        "source/scripts": 184
+      },
       "maxPathBytesDelta": {
         "apps/web/src/components/auth/login-form.tsx": 184
       }
@@ -841,7 +846,10 @@
       ],
       "maxTrackedBytesDelta": 1438,
       "maxTrackedFilesDelta": 0,
-      "maxCategoryBytesDelta": { "source/scripts": 238, "tests/e2e": 1200 },
+      "maxCategoryBytesDelta": {
+        "source/scripts": 238,
+        "tests/e2e": 1200
+      },
       "maxPathBytesDelta": {
         "scripts/check-portal-layout-topology.mjs": 238,
         "scripts/ci/portal-layout-topology.test.mjs": 1200
@@ -877,7 +885,10 @@
       ],
       "maxTrackedBytesDelta": 6361,
       "maxTrackedFilesDelta": 2,
-      "maxCategoryBytesDelta": { "source/scripts": 1629, "tests/e2e": 4732 },
+      "maxCategoryBytesDelta": {
+        "source/scripts": 1629,
+        "tests/e2e": 4732
+      },
       "maxPathBytesDelta": {
         "scripts/lean-current-authority-historical-closeout.mjs": 1629,
         "scripts/lean-current-authority-historical-closeout.test.mjs": 4732
@@ -898,7 +909,10 @@
       ],
       "maxTrackedBytesDelta": 10466,
       "maxTrackedFilesDelta": 2,
-      "maxCategoryBytesDelta": { "source/scripts": 681, "tests/e2e": 9785 },
+      "maxCategoryBytesDelta": {
+        "source/scripts": 681,
+        "tests/e2e": 9785
+      },
       "maxPathBytesDelta": {
         "apps/web/src/actions/staff-claims/update-status.test.ts": 0,
         "packages/domain-claims/src/staff-claims/current-claim-record.test.ts": 2368,
@@ -938,7 +952,10 @@
       ],
       "maxTrackedBytesDelta": 7233,
       "maxTrackedFilesDelta": 2,
-      "maxCategoryBytesDelta": { "source/scripts": 1109, "tests/e2e": 6124 },
+      "maxCategoryBytesDelta": {
+        "source/scripts": 1109,
+        "tests/e2e": 6124
+      },
       "maxPathBytesDelta": {
         "scripts/ci/lean-current-authority-contracts.test.mjs": 64,
         "scripts/lean-staff-current-claim-exception.mjs": 1109,
@@ -954,36 +971,39 @@
         "scripts/ci/pr-delivery-workflow.test.mjs",
         "scripts/ci/repo-size-audit.test.mjs"
       ],
-      "maxTrackedBytesDelta": 1316,
+      "maxTrackedBytesDelta": 1629,
       "maxTrackedFilesDelta": 1,
       "maxCategoryBytesDelta": {
-        "config/data/messages": 44,
-        "tests/e2e": 654,
-        "other": 618
+        "config/data/messages": 134,
+        "tests/e2e": 789,
+        "other": 706
       },
       "maxPathBytesDelta": {
-        ".husky/pre-push": 618,
-        ".github/workflows/pr-delivery-gate.yml": 44,
-        "scripts/ci/pr-delivery-workflow.test.mjs": 175,
-        "scripts/ci/repo-size-audit.test.mjs": 479
+        ".husky/pre-push": 706,
+        ".github/workflows/pr-delivery-gate.yml": 134,
+        "scripts/ci/pr-delivery-workflow.test.mjs": 243,
+        "scripts/ci/repo-size-audit.test.mjs": 546
       }
     }
   ],
   "reserve": {
     "trackedBytes": 474,
     "trackedFiles": 0,
-    "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
+    "categoryBytes": {
+      "docs/text": 3,
+      "large support/generated-ish": 471
+    },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60923471,
+  "maxTrackedBytes": 60923926,
   "maxTrackedFiles": 6006,
   "maxCategoryBytes": {
-    "config/data/messages": 2206227,
+    "config/data/messages": 2206459,
     "docs/text": 8532529,
     "large support/generated-ish": 15395985,
-    "other": 19184662,
+    "other": 19184750,
     "source/scripts": 8745138,
-    "tests/e2e": 6858930
+    "tests/e2e": 6859065
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

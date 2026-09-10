@@ -68,8 +68,9 @@ test('repo size scripts are wired into static and PR verification', () => {
 test('pre-push repo-size check evaluates each pushed commit in an isolated worktree', () => {
   const hook = fs.readFileSync(path.join(repoRoot, '.husky/pre-push'), 'utf8');
   assert.match(hook, /while read -r _local_ref local_sha _remote_ref _remote_sha/u);
+  assert.match(hook, /checkout="\$scratch\/checkout"/u);
   assert.match(hook, /worktree add --quiet --detach "\$checkout" "\$local_sha"/u);
-  assert.match(hook, /"\$checkout\/scripts\/repo-size-audit\.mjs" --check/u);
+  assert.match(hook, /cd "\$checkout" && node scripts\/repo-size-audit\.mjs --check/u);
   assert.doesNotMatch(hook, /pnpm repo:size:check/u);
 });
 
