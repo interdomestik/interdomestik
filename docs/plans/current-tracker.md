@@ -23,7 +23,7 @@ status_command: pnpm plan:status
 
 | ID                                   | Source Refs                                                                                                                                         | Execution | Run ID    | Run Root  | Sonar     | Docker           | Sentry           | Learning  | Evidence Refs                                    |
 | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | --------- | --------- | --------- | ---------------- | ---------------- | --------- | ------------------------------------------------ |
-| `STAFF-CURRENT-CLAIM-TENANT-CONTEXT` | [gate](./2026-09-10-staff-current-claim-tenant-context-design-gate.md); [admission](./2026-09-10-staff-current-claim-tenant-context-admission.json) | `pending` | `pending` | `pending` | `pending` | `not_applicable` | `not_applicable` | `pending` | Promotion #1747 and product trial #1744 pending. |
+| `STAFF-CURRENT-CLAIM-TENANT-CONTEXT` | [gate](./2026-09-10-staff-current-claim-tenant-context-design-gate.md); [admission](./2026-09-10-staff-current-claim-tenant-context-admission.json) | `pending` | `pending` | `pending` | `pending` | `not_applicable` | `not_applicable` | `pending` | Promotion #1749 and product trial #1744 pending. |
 
 Terminal: promotion `#1691`; product head
 `503d4b179251f9d3d06e07349ec80f85805565ae`, tree
@@ -47,7 +47,7 @@ E2E edit; it produces the same URL as the current expression. Migration trials r
 
 | Future successor branch             | Status              | Constraint                                                   |
 | ----------------------------------- | ------------------- | ------------------------------------------------------------ |
-| Tenant transaction                  | `promotion_pending` | PR #1747; exact seven-path map admitted by #1746.            |
+| Tenant transaction                  | `promotion_pending` | PR #1749; exact eight-path map admitted by #1748.            |
 | Currency parsing / failed-run retry | `not_promoted`      | Separate bounded successors after the first migration trial. |
 
 ## Lean Authority
@@ -65,12 +65,13 @@ E2E edit; it produces the same URL as the current expression. Migration trials r
   "activeSlice": {
     "sliceId": "STAFF-CURRENT-CLAIM-TENANT-CONTEXT",
     "tier": 3,
-    "promotionPrNumber": 1747,
-    "promotionBaseSha": "c3a560efeaf058fdbb9f20066f61aa533bbc6f2b",
+    "promotionPrNumber": 1749,
+    "promotionBaseSha": "3c89a6520094f9badab3b528e80c444a831d34c5",
     "expectedProductBranch": "codex/staff-current-claim-tenant-context",
-    "gateSha256": "5cc73c7abba820e1aa9851f358fc427882c51c66aea9ae300d70d7fea193c2e7",
-    "admissionSha256": "7fbc5942ae4175fabdb6cf36ddaccaef440142574a7ebabe93ec5a28341cbb35",
+    "gateSha256": "d0b370c2ea91f63c1e7ebf185832caba613dde8e4df7d3cbeac181c9d04d2b19",
+    "admissionSha256": "4683cea9e0c79ae63240994b63616ab23c1c1208007f9f894b89d35543c50e86",
     "productWriterPaths": [
+      "apps/web/src/actions/staff-claims/update-status.test.ts",
       "packages/domain-claims/src/staff-claims/current-claim-record.test.ts",
       "packages/domain-claims/src/staff-claims/current-claim-record.ts",
       "packages/domain-claims/src/staff-claims/matter-allowance.test.ts",
