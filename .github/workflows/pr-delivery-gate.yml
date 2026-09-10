@@ -13,6 +13,7 @@ on:
         labeled,
         review_requested,
         review_request_removed,
+        closed,
       ]
   pull_request_review:
     types: [submitted, edited, dismissed]
@@ -25,7 +26,7 @@ concurrency:
 
 jobs:
   delivery-gate:
-    if: github.event.pull_request.base.ref == 'main' && !github.event.pull_request.draft
+    if: github.event.pull_request.base.ref == 'main' && github.event.pull_request.state == 'open' && !github.event.pull_request.draft && (github.event.action != 'labeled' || github.event.label.name == 'full-gate')
     permissions:
       actions: read
       checks: read
