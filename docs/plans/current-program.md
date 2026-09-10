@@ -79,7 +79,7 @@ tree `61b2316606c9b3facd6c8aff2a14bb4402d80c82`, and squash
 `31cae997e42dbc0bee13ca670899b988576bd42c` matched. The member route mounts DATA-backed PORTAL
 through one fail-closed request identity while preserving neutral-host drafts. Exact-head and main
 checks were green; CD had no deployment effect. T-117C `#1724` failed on public no-JS;
-`#1726/#1727` closed and admitted its repair. Historical build and 7/7 Z620 passed. #1731 admits 52 paths; #1733 admits the final corpus with main verified. #1734 merged; #1737 admits 53 paths, main CI/Sonar passed. Promotion #1738 pending; runtime denied.
+`#1726/#1727` closed and admitted its repair. Historical build and 7/7 Z620 passed. #1731 admits 52 paths; #1733 admits the final corpus with main verified. #1734 merged; #1737 admits 53 paths, main CI/Sonar passed. Promotion #1738 and product #1736 merged; T117C implementation is delivered. Closeout records an inactive projection; successor promotion remains separate.
 
 Closed `IDA-WF01-ONE-APPROVAL-DELIVERY` remains immutable evidence through its
 [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),
@@ -96,9 +96,26 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate       | Dependencies   | Promotion constraint                |
-| -------: | --------------- | -------------- | ----------------------------------- |
-|        1 | `T-117C` Tier 3 | CUTOVER closed | Bind new promotion; continue #1736. |
+| Priority | Candidate       | Dependencies   | Promotion constraint                           |
+| -------: | --------------- | -------------- | ---------------------------------------------- |
+|        1 | `T-117C` Tier 3 | CUTOVER closed | Closed; successors require separate promotion. |
+
+## T117C Product Delivery
+
+Promotion #1738 bound owner review `5164184965` to head
+`8b2cce527d6ec22114eb2fce3e8bad8a3528feb9`. Product #1736 merged verified head
+`f13c81712d5fa012c6407337852217473a1c4d4d` as
+`c3e79d91d103c373ac9014d136956e8d91815991` on 2026-09-10.
+Its 50 changed paths fit the unchanged 53-path authorization. CI `34452735233`,
+E2E and smoke `34452735175`, Pilot `34452735196`, finalizer `34452735368`, and
+delivery `34452769704` attempt 2 passed. The unused request boundary and its test
+were removed; #1729 was closed as superseded. Protected-main CI `34454527870` and Sonar `34454689720` passed at the exact merge. E2E reused PR evidence; coverage ran again and passed.
+
+Migration remains separate and incomplete: trusted activation and the prospective
+baseline/protocol requirements precede three real product-use trials (currently 0/3).
+After this closeout, prepare bounded admission for the requested tenant-transaction,
+currency-parsing and failed-run retry fixes before selecting the next product slice.
+No successor is activated by this closeout.
 
 ## Unified Portal Direction
 
@@ -133,79 +150,12 @@ and global headers remain T-117C.
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "promotion_pending",
+  "lifecycle": "inactive",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": {
-    "sliceId": "T-117C",
-    "tier": 3,
-    "promotionPrNumber": 1738,
-    "promotionBaseSha": "1fd26bdbe5fa2cd4abe0b2f609a909f5fa083f20",
-    "expectedProductBranch": "codex/t117c-qualified-candidate",
-    "gateSha256": "889efae886805db5ad0e3af97596f2e01b8ed4d4afb441aa3294fa748aa821f4",
-    "admissionSha256": "15c3541f40fc12251aff0c719e392c435cf77c772affa484cdc4f7cb89fe2137",
-    "productWriterPaths": [
-      "apps/web/e2e/gate/member-home-cta.spec.ts",
-      "apps/web/e2e/gate/member-parallel-routes.spec.ts",
-      "apps/web/e2e/gate/rendering-build-mode.spec.ts",
-      "apps/web/next.config.mjs",
-      "apps/web/src/app/[locale]/_core.entry.test.tsx",
-      "apps/web/src/app/[locale]/_core.entry.tsx",
-      "apps/web/src/app/[locale]/(agent)/agent/layout.tsx",
-      "apps/web/src/app/[locale]/(app)/layout.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@actions/default.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@actions/page.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@case/default.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@case/page.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@updates/default.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/@updates/page.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/default.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/layout.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/page.tsx",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.test.ts",
-      "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.ts",
-      "apps/web/src/app/[locale]/(app)/member/layout.tsx",
-      "apps/web/src/app/[locale]/(app)/member/page.test.tsx",
-      "apps/web/src/app/[locale]/(app)/member/page.tsx",
-      "apps/web/src/app/[locale]/(auth)/login/page.tsx",
-      "apps/web/src/app/[locale]/(auth)/register/page.tsx",
-      "apps/web/src/app/[locale]/(site)/business-membership/page.test.tsx",
-      "apps/web/src/app/[locale]/(site)/business-membership/page.tsx",
-      "apps/web/src/app/[locale]/(site)/nps/[token]/page.tsx",
-      "apps/web/src/app/[locale]/(site)/pricing/page.tsx",
-      "apps/web/src/app/[locale]/(staff)/staff/layout.tsx",
-      "apps/web/src/app/[locale]/admin/commissions/page.tsx",
-      "apps/web/src/app/[locale]/admin/layout.tsx",
-      "apps/web/src/app/[locale]/admin/members/number/[memberNumber]/page.tsx",
-      "apps/web/src/app/[locale]/admin/settings/page.tsx",
-      "apps/web/src/app/[locale]/admin/users/[id]/page.tsx",
-      "apps/web/src/app/[locale]/components/home/footer.test.tsx",
-      "apps/web/src/app/[locale]/components/home/footer.tsx",
-      "apps/web/src/app/[locale]/components/home/free-start-intake-shell/use-draft-lifecycle.ts",
-      "apps/web/src/app/[locale]/layout.tsx",
-      "apps/web/src/app/[locale]/stats/page.tsx",
-      "apps/web/src/app/api/claims/route.ts",
-      "apps/web/src/app/api/csp-report/route.ts",
-      "apps/web/src/app/api/e2e/branches/route.ts",
-      "apps/web/src/app/track/[token]/page.test.tsx",
-      "apps/web/src/app/track/[token]/page.tsx",
-      "apps/web/src/components/dashboard/member-portal-runtime-boundary.test.tsx",
-      "apps/web/src/components/dashboard/member-portal-runtime.tsx",
-      "apps/web/src/components/pricing/business-lead-form.test.tsx",
-      "apps/web/src/components/pricing/business-lead-form.tsx",
-      "apps/web/src/components/shell/request-boundary.test.tsx",
-      "apps/web/src/components/shell/request-boundary.tsx",
-      "apps/web/src/instrumentation.ts",
-      "apps/web/src/lib/rendering-build-mode.test.ts",
-      "apps/web/src/lib/rendering-build-mode.ts"
-    ],
-    "closeoutWriterPaths": [
-      "docs/plans/current-program.md",
-      "docs/plans/current-tracker.md"
-    ]
-  }
+  "activeSlice": null
 }
 ```
 
