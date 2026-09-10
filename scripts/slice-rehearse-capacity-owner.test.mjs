@@ -59,6 +59,51 @@ test('production modules use the canonical executable review boundary', () => {
   assert.equal(canonicalModularityForPath('scripts/legacy-module.mjs').maxLines, 300);
 });
 
+test('legacy staff claim test keeps its exact non-growing rehearsal ceiling', () => {
+  const path = 'packages/domain-claims/src/staff-claims/update-status.test.ts';
+  assert.deepEqual(canonicalModularityForPath(path), {
+    fileClass: 'focused-test',
+    maxLines: 804,
+    maxBytes: 29315,
+  });
+  const manifest = {
+    pathPlans: [{ path, change: 'modify', maxBytesDelta: 0, maxLines: 804 }],
+  };
+  const repository = {
+    writerFacts: {
+      [path]: {
+        manifestBaseSha256: '2c9782b2d1ee5501049c2c59c309448c687f477eec4a88e8e19856675dafc627',
+      },
+    },
+    writerLineCounts: { [path]: 803 },
+    writerDeltas: {
+      [path]: {
+        bytes: -1,
+        baseBytes: 29315,
+        currentBytes: 29314,
+        manifestBaseExists: true,
+      },
+    },
+  };
+  const budget = { maxLargestFileBytes: 40000, maxSourceOrTestLines: 1000 };
+  assert.deepEqual(evaluateWriterPolicy(manifest, repository, budget), {
+    authorityStops: [],
+    deficits: [],
+  });
+
+  repository.writerLineCounts[path] = 805;
+  assert.ok(evaluateWriterPolicy(manifest, repository, budget).deficits.length > 0);
+  repository.writerLineCounts[path] = 803;
+  repository.writerDeltas[path].currentBytes = 29316;
+  assert.ok(evaluateWriterPolicy(manifest, repository, budget).deficits.length > 0);
+  repository.writerDeltas[path].currentBytes = 29314;
+  repository.writerFacts[path].manifestBaseSha256 = 'f'.repeat(64);
+  assert.ok(evaluateWriterPolicy(manifest, repository, budget).authorityStops.length > 0);
+  manifest.pathPlans[0].maxLines = 300;
+  repository.writerLineCounts[path] = 300;
+  assert.ok(evaluateWriterPolicy(manifest, repository, budget).authorityStops.length > 0);
+});
+
 test('planned bytes use the exact baseline and enforce final governance byte caps', () => {
   const sourcePolicy = evaluateWriterPolicy(
     {

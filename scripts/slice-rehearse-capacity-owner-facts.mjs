@@ -101,14 +101,16 @@ export function collectWriterFactsAtBase({
       if (baseExists && baseEntry.subarray(0, 3).toString('ascii') !== '100') {
         throw new Error(`Manifest-base writer path is not a regular file: ${filePath}`);
       }
-      const baseBytes = baseExists
-        ? Buffer.byteLength(gitBytes(repository, ['show', `${baseSha}:${filePath}`]))
-        : 0;
+      const baseContent = baseExists
+        ? gitBytes(repository, ['show', `${baseSha}:${filePath}`])
+        : Buffer.alloc(0);
+      const baseBytes = baseContent.byteLength;
       return [
         filePath,
         {
           baseBytes,
           baseExists,
+          baseSha256: baseExists ? sha256(baseContent) : null,
           currentBytes: current.bytes,
           currentExists: current.exists,
           currentLines: current.lines,

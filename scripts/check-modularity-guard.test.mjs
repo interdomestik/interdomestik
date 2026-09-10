@@ -5,6 +5,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { createTempRoot, writeFile } from './plan-test-helpers.mjs';
+import './modularity-guard-legacy-focused.test.mjs';
 import { evaluateModularityGuard, parseNameStatus } from './lib/modularity-guard.mjs';
 import {
   FILE_CLASSES,

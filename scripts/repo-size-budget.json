@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 75514,
+      "trackedBytesDelta": 75642,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 44576,
+        "config/data/messages": 44704,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 44576,
+        "scripts/repo-size-budget.json": 44704,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -77,13 +77,14 @@
         "scripts/lean-current-authority-recovery.test.mjs",
         "scripts/lean-current-authority.test.mjs",
         "scripts/modularity-guard-policy.mjs",
-        "scripts/lean-t117c-policy.test.mjs"
+        "scripts/lean-t117c-policy.test.mjs",
+        "scripts/modularity-guard-legacy-focused.test.mjs"
       ],
-      "maxTrackedBytesDelta": 55054,
-      "maxTrackedFilesDelta": 6,
+      "maxTrackedBytesDelta": 57956,
+      "maxTrackedFilesDelta": 7,
       "maxCategoryBytesDelta": {
-        "source/scripts": 20209,
-        "tests/e2e": 34845
+        "source/scripts": 20554,
+        "tests/e2e": 37402
       },
       "maxPathBytesDelta": {
         "scripts/lean-current-authority-policy.mjs": 487,
@@ -97,12 +98,13 @@
         "scripts/lean-current-authority-evidence.test.mjs": 991,
         "scripts/lean-current-authority-pull-selection.test.mjs": 2493,
         "scripts/lean-current-authority-conformance.test.mjs": 3260,
-        "scripts/modularity-guard-policy.mjs": 516,
-        "scripts/check-modularity-guard.test.mjs": 738,
+        "scripts/modularity-guard-policy.mjs": 1013,
+        "scripts/check-modularity-guard.test.mjs": 785,
         "scripts/lean-current-authority-recovery.mjs": 6810,
         "scripts/lean-current-authority-recovery.test.mjs": 9126,
         "scripts/lean-current-authority-observation.mjs": 2056,
-        "scripts/lean-t117c-policy.test.mjs": 10105
+        "scripts/lean-t117c-policy.test.mjs": 10105,
+        "scripts/modularity-guard-legacy-focused.test.mjs": 2504
       }
     },
     {
@@ -482,13 +484,13 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 673558,
+      "maxTrackedBytesDelta": 677029,
       "maxTrackedFilesDelta": 94,
       "maxCategoryBytesDelta": {
         "config/data/messages": 1154,
         "docs/text": 30439,
-        "source/scripts": 344933,
-        "tests/e2e": 297032
+        "source/scripts": 345515,
+        "tests/e2e": 299921
       },
       "maxPathBytesDelta": {
         ".github/workflows/ci.yml": 1441,
@@ -516,23 +518,23 @@
         "scripts/slice-rehearse-canonical.mjs": 6973,
         "scripts/slice-rehearse-capacity-existing.mjs": 6322,
         "scripts/slice-rehearse-capacity-fixed-point.mjs": 7475,
-        "scripts/slice-rehearse-capacity-owner-facts.mjs": 5145,
-        "scripts/slice-rehearse-capacity-owner.test.mjs": 4146,
+        "scripts/slice-rehearse-capacity-owner-facts.mjs": 5204,
+        "scripts/slice-rehearse-capacity-owner.test.mjs": 5803,
         "scripts/slice-rehearse-capacity-projection.mjs": 5819,
         "scripts/slice-rehearse-capacity-stops.test.mjs": 11068,
         "scripts/slice-rehearse-capacity.mjs": 9274,
         "scripts/slice-rehearse-cleanup.test.mjs": 8728,
         "scripts/slice-rehearse-cli-safety.test.mjs": 10519,
-        "scripts/slice-rehearse-cli.test.mjs": 10076,
+        "scripts/slice-rehearse-cli.test.mjs": 10121,
         "scripts/slice-rehearse-core.mjs": 8032,
         "scripts/slice-rehearse-deferred-operations.test.mjs": 3456,
         "scripts/slice-rehearse-envelope.mjs": 7366,
-        "scripts/slice-rehearse-envelope.test.mjs": 4292,
+        "scripts/slice-rehearse-envelope.test.mjs": 5381,
         "scripts/slice-rehearse-evaluator.mjs": 7421,
         "scripts/slice-rehearse-evidence.mjs": 7456,
         "scripts/slice-rehearse-evidence.test.mjs": 9802,
-        "scripts/slice-rehearse-facts.test.mjs": 11136,
-        "scripts/slice-rehearse-git-facts.mjs": 10356,
+        "scripts/slice-rehearse-facts.test.mjs": 11214,
+        "scripts/slice-rehearse-git-facts.mjs": 10402,
         "scripts/slice-rehearse-github-evidence.mjs": 8377,
         "scripts/slice-rehearse-github-evidence.test.mjs": 6592,
         "scripts/slice-rehearse-init-cli.mjs": 5730,
@@ -564,7 +566,7 @@
         "scripts/slice-rehearse-repository.test.mjs": 9076,
         "scripts/slice-rehearse-review-parity.mjs": 8098,
         "scripts/slice-rehearse-review-parity.test.mjs": 4650,
-        "scripts/slice-rehearse-writer-policy.mjs": 7064,
+        "scripts/slice-rehearse-writer-policy.mjs": 7605,
         "scripts/slice-rehearse.mjs": 11001,
         "scripts/slice-rehearse.test.mjs": 10521,
         "scripts/slice-telemetry-aggregation.mjs": 5353,
@@ -616,16 +618,16 @@
         "scripts/lib/modularity-guard.mjs",
         "scripts/lib/workflow-permission-tightening.mjs"
       ],
-      "maxTrackedBytesDelta": 13155,
+      "maxTrackedBytesDelta": 14073,
       "maxTrackedFilesDelta": 2,
       "maxCategoryBytesDelta": {
         "tests/e2e": 8621,
-        "source/scripts": 4534
+        "source/scripts": 5452
       },
       "maxPathBytesDelta": {
         "scripts/ci/main-e2e-reuse-workflow.test.mjs": 726,
         "scripts/ci/workflow-permission-tightening.test.mjs": 7895,
-        "scripts/lib/modularity-guard.mjs": 156,
+        "scripts/lib/modularity-guard.mjs": 1074,
         "scripts/lib/workflow-permission-tightening.mjs": 4378
       }
     },
@@ -959,15 +961,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60899126,
-  "maxTrackedFiles": 6002,
+  "maxTrackedBytes": 60906545,
+  "maxTrackedFiles": 6003,
   "maxCategoryBytes": {
     "other": 19178464,
     "large support/generated-ish": 15395985,
     "docs/text": 8532529,
-    "source/scripts": 8742655,
-    "tests/e2e": 6844799,
-    "config/data/messages": 2204694
+    "source/scripts": 8744500,
+    "tests/e2e": 6850245,
+    "config/data/messages": 2204822
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

@@ -217,6 +217,7 @@ export function collectRepositoryFacts({
         currentSha256: facts.currentSha256,
         manifestBaseBytes: facts.baseBytes,
         manifestBaseExists: facts.baseExists,
+        manifestBaseSha256: facts.baseSha256,
       },
     ])
   );

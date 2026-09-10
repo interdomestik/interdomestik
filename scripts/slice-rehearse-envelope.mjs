@@ -139,7 +139,7 @@ export function buildRehearsalReport({
   const writerFactsDigest = sha256(
     canonicalJson(
       Object.fromEntries(
-        'baseSha capacityOwnerDeltas capacityBaseSha committedChangedPaths headSha mergeBaseSha protectedMainAdvancedPaths protectedMainSha tracked writerLineCounts writerDeltas'
+        'baseSha capacityOwnerDeltas capacityBaseSha committedChangedPaths headSha mergeBaseSha protectedMainAdvancedPaths protectedMainSha tracked writerFacts writerLineCounts writerDeltas'
           .split(' ')
           .map(key => [key, repo[key]])
       )
