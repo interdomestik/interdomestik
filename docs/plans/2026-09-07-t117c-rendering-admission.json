@@ -4,7 +4,7 @@
   "sliceId": "T-117C",
   "tier": 3,
   "baseSha": "1fd26bdbe5fa2cd4abe0b2f609a909f5fa083f20",
-  "promotionPrNumber": null,
+  "promotionPrNumber": 1738,
   "candidate": {
     "commitSha": "18e7b03013ce05fe2093684a6615c604e103884a",
     "treeSha": "39d5c609d98f2aa340492ca7134579d490166d8d",
@@ -16,7 +16,7 @@
     "mergeSha": "1fd26bdbe5fa2cd4abe0b2f609a909f5fa083f20",
     "status": "merged_and_verified"
   },
-  "authorityArtifactSha256": "e1d59189d5fcd4a98628bbecddbf38a5b12cb7233f49497321c9f46a2bcde87f",
+  "authorityArtifactSha256": "433fe8ded7d16c308f0160eae8a4860413e197a2acf63e321435bfbeffac72ae",
   "productOutcomes": [
     "Named member regions share one request identity and two tenant projections.",
     "Public shell supports no-JS; request-bound pages and lead UUID preserve native submission."
@@ -355,5 +355,5 @@
     "mechanism": "Discard owned unmerged candidate; after merge revert only exact T-117C product merge, rebuild for same authorized nonce mode, restore inactive projections and preserve CUTOVER/DATA/PORTAL/unrelated state.",
     "trigger": "Auth/tenant/nonce/query/route/a11y/capacity/writer-map/review/CI/merge/main-health proof fails."
   },
-  "firstImplementationAction": "Bind and merge the new promotion; rematerialize both test fixes on its merge for draft #1736. Preserve #1729."
+  "firstImplementationAction": "Bind and merge promotion #1738; rematerialize both test fixes on its merge for draft #1736. Preserve #1729."
 }

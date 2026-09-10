@@ -8,7 +8,7 @@ last_reviewed: 2026-09-10
 
 # T-117C — nonce-compatible member rendering
 
-> Status: new promotion PR pending assignment; #1737 main CI/Sonar passed. Runtime remains denied until exact promotion merge and live resolution.
+> Status: promotion #1738 pending; #1737 main CI/Sonar passed. Runtime remains denied until exact promotion merge and live resolution.
 
 The user authorized this bounded outcome. Promotions through #1723 merged exactly, while product PR #1724 failed closed before merge after its final-head full gate exposed a public no-JavaScript shell regression. Failure closeout #1726 restored inactive authority. Prerequisite #1727 then admitted the minimal six-path repair while preserving replay of the historical 44- and 45-path maps. Promotion #1734 merged its historical 52-path admission. #1737 admits the existing business-page test; this candidate includes its correction and the already admitted portal-context test correction. Production inputs retain the intended behavior.
 
@@ -118,7 +118,7 @@ Historical reviews inform the risk model but do not approve these rematerialized
 
 ## Promotion and reviewer contract
 
-Promotion writes exactly this gate, its sibling admission, current-program and current-tracker. Bind base `1fd26bdbe5fa2cd4abe0b2f609a909f5fa083f20` and the candidate above. The new promotion PR is unassigned; its JSON number remains null and cannot pass validation until real assignment. Preserve product branch `codex/t117c-qualified-candidate` and draft #1736. After promotion, rematerialize both test fixes on its exact merge; qualify the new local/remote head, fork point and 53-path inventory. Preserve old head evidence and unrelated #1729. Obtain a fresh exact-head owner review of this four-file promotion; #1734 review does not approve amended bytes.
+Promotion writes exactly this gate, its sibling admission, current-program and current-tracker. Bind base `1fd26bdbe5fa2cd4abe0b2f609a909f5fa083f20` and the candidate above. Promotion PR #1738 binds this amended scope. Preserve product branch `codex/t117c-qualified-candidate` and draft #1736. After promotion, rematerialize both test fixes on its exact merge; qualify the new local/remote head, fork point and 53-path inventory. Preserve old head evidence and unrelated #1729. Obtain a fresh exact-head owner review of this four-file promotion; #1734 review does not approve amended bytes.
 
 Generate `approvalMarker(slice, promotionHeadSha, promotionTreeSha)` only from finalized facts. The exact owner action is one matching COMMENTED GitHub review by arbenl/62884977 with `commit_id` equal to the promotion head and body equal to the generated marker. Confirm four-path scope, owner marker, exact base/sole-parent/merge-tree equality and live validator resolution before product execution.
 

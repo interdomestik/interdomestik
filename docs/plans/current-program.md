@@ -79,7 +79,7 @@ tree `61b2316606c9b3facd6c8aff2a14bb4402d80c82`, and squash
 `31cae997e42dbc0bee13ca670899b988576bd42c` matched. The member route mounts DATA-backed PORTAL
 through one fail-closed request identity while preserving neutral-host drafts. Exact-head and main
 checks were green; CD had no deployment effect. T-117C `#1724` failed on public no-JS;
-`#1726/#1727` closed and admitted its repair. Historical build and 7/7 Z620 passed. #1731 admits 52 paths; #1733 admits the final corpus with main verified. #1734 merged; #1737 admits 53 paths, main CI/Sonar passed. New promotion unassigned; runtime denied.
+`#1726/#1727` closed and admitted its repair. Historical build and 7/7 Z620 passed. #1731 admits 52 paths; #1733 admits the final corpus with main verified. #1734 merged; #1737 admits 53 paths, main CI/Sonar passed. Promotion #1738 pending; runtime denied.
 
 Closed `IDA-WF01-ONE-APPROVAL-DELIVERY` remains immutable evidence through its
 [closeout](./2026-08-21-ida-wf01-one-approval-delivery-closeout.md),
@@ -141,11 +141,11 @@ and global headers remain T-117C.
   "activeSlice": {
     "sliceId": "T-117C",
     "tier": 3,
-    "promotionPrNumber": null,
+    "promotionPrNumber": 1738,
     "promotionBaseSha": "1fd26bdbe5fa2cd4abe0b2f609a909f5fa083f20",
     "expectedProductBranch": "codex/t117c-qualified-candidate",
-    "gateSha256": "e1d59189d5fcd4a98628bbecddbf38a5b12cb7233f49497321c9f46a2bcde87f",
-    "admissionSha256": "9700517d613914e65a1386517522994e98f1ddab0867d5e8c247a1cf575232c8",
+    "gateSha256": "433fe8ded7d16c308f0160eae8a4860413e197a2acf63e321435bfbeffac72ae",
+    "admissionSha256": "96541ad3451302e86417ae6a73c3b26f23847625e9953a61186a43ba10df1fe7",
     "productWriterPaths": [
       "apps/web/e2e/gate/member-home-cta.spec.ts",
       "apps/web/e2e/gate/member-parallel-routes.spec.ts",
