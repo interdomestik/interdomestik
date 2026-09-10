@@ -67,6 +67,7 @@ test('writer existence uses manifest base while capacity deltas use the capacity
         currentSha256: sha256(''),
         manifestBaseBytes: 0,
         manifestBaseExists: false,
+        manifestBaseSha256: null,
       },
       'late.txt': {
         currentBytes: 5,
@@ -74,6 +75,7 @@ test('writer existence uses manifest base while capacity deltas use the capacity
         currentSha256: sha256('late\n'),
         manifestBaseBytes: 5,
         manifestBaseExists: true,
+        manifestBaseSha256: sha256('late\n'),
       },
     });
     assert.deepEqual(facts.writerDeltas, {
@@ -190,7 +192,6 @@ test('advanced protected main uses three-dot slice scope and reports disjoint or
     rmSync(fixture.root, { recursive: true, force: true });
   }
 });
-
 test('missing verified protected-main authority evidence fails closed', () => {
   const fixture = repositoryFixture();
   try {
@@ -207,7 +208,6 @@ test('missing verified protected-main authority evidence fails closed', () => {
     rmSync(fixture.root, { recursive: true, force: true });
   }
 });
-
 test('Git reads disable fsmonitor and writer reads reject symlinks', () => {
   const fixture = repositoryFixture();
   try {

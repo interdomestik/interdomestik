@@ -5,6 +5,21 @@ export const MODULARITY_POLICY = Object.freeze({
   governanceDoc: Object.freeze({ maxLines: 1000, maxBytes: 128 * 1024 }),
   workflowYaml: Object.freeze({}),
 });
+const STAFF_CURRENT_CLAIM_LEGACY_TEST =
+  'packages/domain-claims/src/staff-claims/update-status.test.ts';
+const LEGACY_FOCUSED_TEST_CONTRACTS = new Map([
+  [
+    STAFF_CURRENT_CLAIM_LEGACY_TEST,
+    Object.freeze({
+      baseLines: 804,
+      baseBytes: 29315,
+      baseSha256: '2c9782b2d1ee5501049c2c59c309448c687f477eec4a88e8e19856675dafc627',
+    }),
+  ],
+]);
+export function legacyFocusedTestContract(filePath) {
+  return LEGACY_FOCUSED_TEST_CONTRACTS.get(toPolicyPath(filePath)) ?? null;
+}
 export const MODULARITY_LINE_LIMIT = MODULARITY_POLICY.productionCode.preferredLines;
 export const FILE_CLASSES = Object.freeze({
   productionCode: 'production-code',

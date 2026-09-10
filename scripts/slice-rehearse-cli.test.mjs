@@ -160,6 +160,7 @@ test('collectRepositoryFacts returns exact sorted local Git and tracked-size fac
         currentSha256: sha256('changed\n'),
         manifestBaseBytes: 5,
         manifestBaseExists: true,
+        manifestBaseSha256: sha256('base\n'),
       },
     });
     assert.match(facts.writerFactsDigest, /^[0-9a-f]{64}$/u);
@@ -189,7 +190,6 @@ test('collectRepositoryFacts returns exact sorted local Git and tracked-size fac
     rmSync(fixture.root, { recursive: true, force: true });
   }
 });
-
 test('runSliceRehearsal validates through the core and emits canonical reports with exit 0 or 2', () => {
   const fixture = createRepository();
   try {
