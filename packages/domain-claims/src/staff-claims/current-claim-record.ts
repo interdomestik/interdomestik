@@ -1,4 +1,4 @@
-import { claims, db } from '@interdomestik/database';
+import { claims, type TenantTransaction } from '@interdomestik/database';
 import type { SQL } from 'drizzle-orm';
 
 import { resolveClaimLifecycleCommandProjection } from '../claims/lifecycle-read-model';
@@ -18,10 +18,10 @@ export type StaffCurrentClaimResult =
   | { status: 'invalid_current_status' };
 
 export async function loadStaffCurrentClaimRecord(
+  tx: TenantTransaction,
   staffScopeWhere: SQL
 ): Promise<StaffCurrentClaimResult> {
-  // db-access-guard: tenant-scoped -- reason: caller supplies scoped staff claim predicate.
-  const [currentClaimRow] = await db
+  const [currentClaimRow] = await tx
     .select({
       caseLifecycleState: claims.caseLifecycleState,
       category: claims.category,
