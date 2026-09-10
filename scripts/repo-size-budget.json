@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 73201,
+      "trackedBytesDelta": 74696,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 42263,
+        "config/data/messages": 43758,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 42263,
+        "scripts/repo-size-budget.json": 43758,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -888,6 +888,46 @@
         "scripts/lean-current-authority-historical-closeout.mjs": 1629,
         "scripts/lean-current-authority-historical-closeout.test.mjs": 4732
       }
+    },
+    {
+      "id": "staff-current-claim-tenant-context",
+      "mode": "bounded",
+      "writerPaths": [
+        "packages/domain-claims/src/staff-claims/current-claim-record.test.ts",
+        "packages/domain-claims/src/staff-claims/current-claim-record.ts",
+        "packages/domain-claims/src/staff-claims/update-status.test.ts",
+        "packages/domain-claims/src/staff-claims/update-status.ts"
+      ],
+      "maxTrackedBytesDelta": 2520,
+      "maxTrackedFilesDelta": 1,
+      "maxCategoryBytesDelta": {
+        "source/scripts": 152,
+        "tests/e2e": 2368
+      },
+      "maxPathBytesDelta": {
+        "packages/domain-claims/src/staff-claims/current-claim-record.test.ts": 2368,
+        "packages/domain-claims/src/staff-claims/current-claim-record.ts": 45,
+        "packages/domain-claims/src/staff-claims/update-status.test.ts": 0,
+        "packages/domain-claims/src/staff-claims/update-status.ts": 107
+      }
+    },
+    {
+      "id": "staff-current-claim-policy",
+      "mode": "bounded",
+      "writerPaths": [
+        "scripts/lean-staff-current-claim-exception.mjs",
+        "scripts/lean-staff-current-claim-policy.test.mjs"
+      ],
+      "maxTrackedBytesDelta": 5343,
+      "maxTrackedFilesDelta": 2,
+      "maxCategoryBytesDelta": {
+        "source/scripts": 933,
+        "tests/e2e": 4410
+      },
+      "maxPathBytesDelta": {
+        "scripts/lean-staff-current-claim-exception.mjs": 933,
+        "scripts/lean-staff-current-claim-policy.test.mjs": 4410
+      }
     }
   ],
   "reserve": {
@@ -899,15 +939,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60880229,
-  "maxTrackedFiles": 5997,
+  "maxTrackedBytes": 60889587,
+  "maxTrackedFiles": 6000,
   "maxCategoryBytes": {
-    "config/data/messages": 2199381,
+    "config/data/messages": 2200876,
     "docs/text": 8528029,
     "large support/generated-ish": 15395985,
     "other": 19178464,
-    "source/scripts": 8741503,
-    "tests/e2e": 6836867
+    "source/scripts": 8742588,
+    "tests/e2e": 6843645
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
