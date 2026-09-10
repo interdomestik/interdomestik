@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 75642,
+      "trackedBytesDelta": 75809,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 44704,
+        "config/data/messages": 44871,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 44704,
+        "scripts/repo-size-budget.json": 44871,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -78,13 +78,15 @@
         "scripts/lean-current-authority.test.mjs",
         "scripts/modularity-guard-policy.mjs",
         "scripts/lean-t117c-policy.test.mjs",
-        "scripts/modularity-guard-legacy-focused.test.mjs"
+        "scripts/modularity-guard-legacy-focused.test.mjs",
+        "scripts/fixtures/update-status-legacy-baseline.test.ts.gz"
       ],
-      "maxTrackedBytesDelta": 57956,
-      "maxTrackedFilesDelta": 7,
+      "maxTrackedBytesDelta": 63590,
+      "maxTrackedFilesDelta": 8,
       "maxCategoryBytesDelta": {
+        "other": 5580,
         "source/scripts": 20554,
-        "tests/e2e": 37402
+        "tests/e2e": 37456
       },
       "maxPathBytesDelta": {
         "scripts/lean-current-authority-policy.mjs": 487,
@@ -104,7 +106,8 @@
         "scripts/lean-current-authority-recovery.test.mjs": 9126,
         "scripts/lean-current-authority-observation.mjs": 2056,
         "scripts/lean-t117c-policy.test.mjs": 10105,
-        "scripts/modularity-guard-legacy-focused.test.mjs": 2504
+        "scripts/modularity-guard-legacy-focused.test.mjs": 2558,
+        "scripts/fixtures/update-status-legacy-baseline.test.ts.gz": 5580
       }
     },
     {
@@ -961,15 +964,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60906545,
-  "maxTrackedFiles": 6003,
+  "maxTrackedBytes": 60912346,
+  "maxTrackedFiles": 6004,
   "maxCategoryBytes": {
-    "other": 19178464,
+    "other": 19184044,
     "large support/generated-ish": 15395985,
     "docs/text": 8532529,
     "source/scripts": 8744500,
-    "tests/e2e": 6850245,
-    "config/data/messages": 2204822
+    "tests/e2e": 6850299,
+    "config/data/messages": 2204989
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
