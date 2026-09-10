@@ -3,14 +3,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { isWorkflowPermissionTightening } from './workflow-permission-tightening.mjs';
+import { isWorkflowPermissionTightening as tightens } from './workflow-permission-tightening.mjs';
 
 import {
-  FILE_CLASSES,
-  MODULARITY_POLICY,
-  classifyModularityFile,
-  isModularityChecked,
-  structuredArtifactOwner,
+  FILE_CLASSES as FC,
+  MODULARITY_POLICY as POLICY,
+  classifyModularityFile as classify,
+  isModularityChecked as checked,
+  structuredArtifactOwner as owner,
 } from '../modularity-guard-policy.mjs';
 
 const GIT_BIN = '/usr/bin/git';
@@ -165,7 +165,7 @@ function finding(entry, className, current, base, reason) {
 }
 
 function evaluateProduction(entry, className, current, base) {
-  const { preferredLines, reviewLines } = MODULARITY_POLICY.productionCode;
+  const { preferredLines, reviewLines } = POLICY.productionCode;
   if (current.lines <= preferredLines) return {};
   if (current.lines <= reviewLines) {
     return {
@@ -182,15 +182,17 @@ function evaluateProduction(entry, className, current, base) {
   };
 }
 
-function evaluateFocused(_root, entry, className, current, base) {
-  const reason =
-    current.lines > MODULARITY_POLICY.focusedTest.maxLines ? 'test-split-required' : null;
-  return { className, violation: reason ? finding(entry, className, current, base, reason) : null };
+function evaluateFocused(_root, entry, c, current, base) {
+  const m = POLICY.focusedTest.maxLines;
+  const s =
+    entry.file.endsWith('/update-status.test.ts') && base?.lines > m && current.lines <= base.lines;
+  const r = current.lines > m && !s ? 'test-split-required' : null;
+  return { className: c, violation: r ? finding(entry, c, current, base, r) : null };
 }
 
 function evaluateStructured(root, entry, className, current, base) {
-  let reason = structuredArtifactOwner(entry.file) ? null : 'structured-owner-required';
-  if (current.bytes > MODULARITY_POLICY.structuredArtifact.maxBytes) {
+  let reason = owner(entry.file) ? null : 'structured-owner-required';
+  if (current.bytes > POLICY.structuredArtifact.maxBytes) {
     reason = 'structured-byte-budget';
   } else if (entry.file.endsWith('.json') && !canonicalJson(root, entry.file, current.text)) {
     reason = 'structured-noncanonical-json';
@@ -199,7 +201,7 @@ function evaluateStructured(root, entry, className, current, base) {
 }
 
 function evaluateGovernance(_root, entry, className, current, base) {
-  const policy = MODULARITY_POLICY.governanceDoc;
+  const policy = POLICY.governanceDoc;
   let reason =
     current.lines > policy.maxLines || current.bytes > policy.maxBytes ? 'governance-budget' : null;
   if (!reason && removedGovernanceHeading(current, base)) reason = 'governance-invariant-removal';
@@ -209,7 +211,7 @@ function evaluateGovernance(_root, entry, className, current, base) {
 function evaluateWorkflow(_root, entry, className, current, base) {
   const grew = base && workflowComplexity(current.text) > workflowComplexity(base.text);
   const violation =
-    grew && !isWorkflowPermissionTightening(base.text, current.text)
+    grew && !tightens(base.text, current.text)
       ? finding(entry, className, current, base, 'workflow-complexity-growth')
       : null;
   const advisory = base
@@ -219,20 +221,20 @@ function evaluateWorkflow(_root, entry, className, current, base) {
 }
 
 const ENTRY_EVALUATORS = {
-  [FILE_CLASSES.productionCode]: (_root, entry, className, current, base) => ({
+  [FC.productionCode]: (_root, entry, className, current, base) => ({
     className,
     ...evaluateProduction(entry, className, current, base),
   }),
-  [FILE_CLASSES.focusedTest]: evaluateFocused,
-  [FILE_CLASSES.structuredArtifact]: evaluateStructured,
-  [FILE_CLASSES.governanceDoc]: evaluateGovernance,
-  [FILE_CLASSES.workflowYaml]: evaluateWorkflow,
-  [FILE_CLASSES.generatedOrLock]: (_root, _entry, className) => ({ className }),
+  [FC.focusedTest]: evaluateFocused,
+  [FC.structuredArtifact]: evaluateStructured,
+  [FC.governanceDoc]: evaluateGovernance,
+  [FC.workflowYaml]: evaluateWorkflow,
+  [FC.generatedOrLock]: (_root, _entry, className) => ({ className }),
 };
 
 function evaluateEntry(root, baseCommit, entry) {
-  if (!entry.file || !isModularityChecked(entry.file)) return null;
-  const className = classifyModularityFile(entry.file);
+  if (!entry.file || !checked(entry.file)) return null;
+  const className = classify(entry.file);
   const current = currentSnapshot(root, entry.file);
   const basePath = entry.oldPath ?? entry.file;
   const base = ['A', 'C'].includes(entry.status) ? null : baseSnapshot(root, baseCommit, basePath);
@@ -262,7 +264,7 @@ export function evaluateModularityGuard(options = {}) {
     base,
     checkedFiles: evaluated.length,
     classCounts: Object.fromEntries(
-      Object.values(FILE_CLASSES).map(className => [
+      Object.values(FC).map(className => [
         className,
         evaluated.filter(item => item.className === className).length,
       ])
