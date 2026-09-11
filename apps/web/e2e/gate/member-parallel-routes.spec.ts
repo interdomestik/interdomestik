@@ -36,7 +36,7 @@ async function expectHome(page: Page, info: TestInfo) {
     const region = regions.nth(index);
     await expect(region).toHaveAccessibleName(copy.regions[key].label);
     await expect(region).toBeVisible();
-    // A real region must settle; generic structural loading alone is not proof.
+    // Regions must settle beyond structural loading.
     const settled =
       key === 'actions' ? 'a,[role="alert"]' : 'article,li,[role="status"],[role="alert"]';
     await expect(region.locator(settled).first()).toBeVisible();
@@ -45,7 +45,7 @@ async function expectHome(page: Page, info: TestInfo) {
 
 async function expectChild(page: Page, info: TestInfo, path: string, marker: string) {
   await expect(page).toHaveURL(url => url.pathname === path);
-  await expect(page.getByTestId(marker)).toBeVisible();
+  await expect(page.locator(`[data-testid="${marker}"]:visible`)).toHaveCount(1);
   await expect(portal(page)).toHaveCount(0);
   await expect(page.getByTestId('member-portal-disclaimer')).toHaveCount(0);
   for (const region of Object.values(copyFor(info).regions)) {
