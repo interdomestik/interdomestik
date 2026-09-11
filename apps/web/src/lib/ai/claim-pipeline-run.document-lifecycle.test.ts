@@ -111,7 +111,11 @@ describe('claimClaimAiRun document lifecycle guard', () => {
         ]),
       })
     );
-    expect(mocks.failDeletedDocumentClaimAiRun).toHaveBeenCalledWith('run-1', expect.any(Function));
+    expect(mocks.failDeletedDocumentClaimAiRun).toHaveBeenCalledWith(
+      'run-1',
+      expect.any(Function),
+      {}
+    );
   });
 
   it('does not apply the deleted-document fallback to malformed active rows', async () => {
@@ -140,11 +144,16 @@ describe('claimClaimAiRun document lifecycle guard', () => {
       workflow: 'claim_intake_extract',
     });
 
-    await expect(claimClaimAiRun('run-1')).resolves.toEqual({
+    await expect(claimClaimAiRun('run-1', { retryFailed: true })).resolves.toEqual({
       status: 'skipped',
       claimId: 'claim-1',
       workflow: 'claim_intake_extract',
     });
+    expect(mocks.failDeletedDocumentClaimAiRun).toHaveBeenCalledWith(
+      'run-1',
+      expect.any(Function),
+      { retryFailed: true }
+    );
   });
 
   it('reclaims only an explicitly retried generic processing failure', async () => {

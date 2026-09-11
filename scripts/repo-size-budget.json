@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 86681,
+      "trackedBytesDelta": 86975,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 49271,
+        "config/data/messages": 49565,
         "source/scripts": 23092,
         "tests/e2e": 14318
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 49271,
+        "scripts/repo-size-budget.json": 49565,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -979,18 +979,22 @@
       "id": "migration-failed-run-retry-trial",
       "mode": "bounded",
       "writerPaths": [
+        "apps/web/src/lib/ai/claim-pipeline-document-lifecycle.test.ts",
+        "apps/web/src/lib/ai/claim-pipeline-document-lifecycle.ts",
         "apps/web/src/lib/ai/claim-pipeline-run.document-lifecycle.test.ts",
         "apps/web/src/lib/ai/claim-pipeline-run.ts",
         "apps/web/src/lib/ai/claim-workflows-persist-failure.test.ts",
         "apps/web/src/lib/ai/claim-workflows.ts",
         "apps/web/src/lib/inngest/functions.ts"
       ],
-      "maxTrackedBytesDelta": 7074,
+      "maxTrackedBytesDelta": 9741,
       "maxTrackedFilesDelta": 0,
-      "maxCategoryBytesDelta": { "source/scripts": 765, "tests/e2e": 6309 },
+      "maxCategoryBytesDelta": { "source/scripts": 1201, "tests/e2e": 8540 },
       "maxPathBytesDelta": {
-        "apps/web/src/lib/ai/claim-pipeline-run.document-lifecycle.test.ts": 3434,
-        "apps/web/src/lib/ai/claim-pipeline-run.ts": 582,
+        "apps/web/src/lib/ai/claim-pipeline-document-lifecycle.test.ts": 2032,
+        "apps/web/src/lib/ai/claim-pipeline-document-lifecycle.ts": 427,
+        "apps/web/src/lib/ai/claim-pipeline-run.document-lifecycle.test.ts": 3633,
+        "apps/web/src/lib/ai/claim-pipeline-run.ts": 591,
         "apps/web/src/lib/ai/claim-workflows-persist-failure.test.ts": 2875,
         "apps/web/src/lib/ai/claim-workflows.ts": 69,
         "apps/web/src/lib/inngest/functions.ts": 114
@@ -1037,15 +1041,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60964421,
+  "maxTrackedBytes": 60967382,
   "maxTrackedFiles": 6010,
   "maxCategoryBytes": {
-    "config/data/messages": 2212641,
+    "config/data/messages": 2212935,
     "docs/text": 8535729,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8753335,
-    "tests/e2e": 6881981
+    "source/scripts": 8753771,
+    "tests/e2e": 6884212
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

@@ -73,7 +73,7 @@ export async function claimClaimAiRun(
     .where(and(eq(aiRuns.id, runId), eq(aiRuns.entityType, 'claim')));
 
   if (!queuedRun) {
-    const deletedRun = await failDeletedDocumentClaimAiRun(runId, isClaimAiWorkflow);
+    const deletedRun = await failDeletedDocumentClaimAiRun(runId, isClaimAiWorkflow, options);
     if (deletedRun) return deletedRun;
     throw new Error(`Queued claim AI run ${runId} was not found.`);
   }
