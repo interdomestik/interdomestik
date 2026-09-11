@@ -53,6 +53,65 @@ test('release selection preserves exact resolved version and rejects unsafe or i
     assert.throws(() => runtime.nodeRelease(...args), /unsupported|invalid|match/);
 });
 
+test('cache selection binds the prepared direct child identity and refuses other owned targets', async t => {
+  const runtime = await import('./setup-private-node-cache.mjs');
+  assert.equal(typeof runtime.validatedPrivateCache, 'function');
+  const temp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'cache-identity-test-')));
+  t.after(() => fs.rmSync(temp, { recursive: true, force: true }));
+  const cache = runtime.preparePrivateNodeCache(temp);
+  const info = fs.statSync(cache);
+  const identity = `${info.dev}:${info.ino}`;
+  assert.equal(runtime.validatedPrivateCache(cache, temp, identity), cache);
+  assert.throws(() => runtime.validatedPrivateCache(cache, temp, '0:0'), /identity/);
+  assert.throws(() => runtime.validatedPrivateCache(temp, temp, identity), /child/);
+  const other = path.join(temp, 'unrelated');
+  fs.mkdirSync(other, { mode: 0o700 });
+  fs.writeFileSync(path.join(other, 'SHASUMS256.txt'), 'keep');
+  assert.throws(() => runtime.validatedPrivateCache(other, temp, identity), /child/);
+  const link = path.join(temp, 'interdomestik-node-ABC123');
+  fs.symlinkSync(cache, link);
+  assert.throws(() => runtime.validatedPrivateCache(link, temp, identity), /symlink/);
+  assert.equal(fs.readFileSync(path.join(other, 'SHASUMS256.txt'), 'utf8'), 'keep');
+});
+
+test('CLI uses prepared state, not caller-asserted identity, and preserves nonempty targets', t => {
+  const temp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'cache-cli-test-')));
+  t.after(() => fs.rmSync(temp, { recursive: true, force: true }));
+  const output = path.join(temp, 'output');
+  fs.writeFileSync(output, '');
+  const env = {
+    ...process.env,
+    RUNNER_ENVIRONMENT: 'github-hosted',
+    RUNNER_TEMP: temp,
+    GITHUB_OUTPUT: output,
+  };
+  const run = (command, extra = {}) =>
+    spawnSync(process.execPath, ['scripts/ci/setup-private-node-cache.mjs', command], {
+      env: { ...env, ...extra },
+      encoding: 'utf8',
+    });
+  assert.equal(run('prepare').status, 0);
+  const cache = fs
+    .readFileSync(output, 'utf8')
+    .split('\n')
+    .find(line => line.startsWith('path='))
+    .slice(5);
+  const other = fs.mkdtempSync(path.join(temp, 'interdomestik-node-'));
+  const info = fs.statSync(other);
+  const escaped = run('provision', {
+    PRIVATE_NODE_CACHE: other,
+    PRIVATE_NODE_CACHE_ID: `${info.dev}:${info.ino}`,
+  });
+  assert.notEqual(escaped.status, 0);
+  assert.match(escaped.stderr, /prepared|identity/);
+  assert.deepEqual(fs.readdirSync(other), []);
+  fs.writeFileSync(path.join(cache, 'SHASUMS256.txt'), 'must survive');
+  const nonempty = run('provision', { PRIVATE_NODE_CACHE: cache });
+  assert.notEqual(nonempty.status, 0);
+  assert.match(nonempty.stderr, /empty/);
+  assert.equal(fs.readFileSync(path.join(cache, 'SHASUMS256.txt'), 'utf8'), 'must survive');
+});
+
 test('archive checksum requires one exact manifest entry and rejects corrupted bytes', async () => {
   const runtime = await import('./setup-private-node-cache.mjs');
   assert.equal(typeof runtime.verifyArchiveHash, 'function');
@@ -67,6 +126,36 @@ test('archive checksum requires one exact manifest entry and rejects corrupted b
   assert.throws(
     () => runtime.verifyArchiveHash(Buffer.from('bad'), manifest, 'node.tar.xz'),
     /checksum/
+  );
+});
+
+test('verified archive persistence never overwrites existing files or follows symlinks', async t => {
+  const runtime = await import('./setup-private-node-cache.mjs');
+  assert.equal(typeof runtime.persistVerifiedArchive, 'function');
+  const temp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'archive-write-test-')));
+  t.after(() => fs.rmSync(temp, { recursive: true, force: true }));
+  const archive = path.join(temp, 'node.tar.xz');
+  const manifest =
+    'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad  node.tar.xz\n';
+  assert.throws(
+    () => runtime.persistVerifiedArchive(Buffer.from('bad'), manifest, archive),
+    /checksum/
+  );
+  assert.equal(fs.existsSync(archive), false);
+  const victim = path.join(temp, 'victim');
+  fs.writeFileSync(victim, 'keep');
+  fs.symlinkSync(victim, archive);
+  assert.throws(
+    () => runtime.persistVerifiedArchive(Buffer.from('abc'), manifest, archive),
+    /EEXIST/
+  );
+  assert.equal(fs.readFileSync(victim, 'utf8'), 'keep');
+  fs.unlinkSync(archive);
+  runtime.persistVerifiedArchive(Buffer.from('abc'), manifest, archive);
+  assert.equal(fs.readFileSync(archive, 'utf8'), 'abc');
+  assert.throws(
+    () => runtime.persistVerifiedArchive(Buffer.from('abc'), manifest, archive),
+    /EEXIST/
   );
 });
 

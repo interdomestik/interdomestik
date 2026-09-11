@@ -1,8 +1,9 @@
 import {
-  appendFileSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   realpathSync,
   statSync,
   unlinkSync,
@@ -10,21 +11,46 @@ import {
 } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
-import { isAbsolute, join, relative, sep } from 'node:path';
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { appendTrustedRunnerFile, readTrustedRunnerFile } from './trusted-runner-file.mjs';
 import {
   checkOwnedPath,
   checkedPackageExecutable,
   packageCommandRuntime,
 } from '../package-command-runtime.mjs';
 
-export function preparePrivateNodeCache(temp) {
+function canonicalRunnerTemp(temp) {
   if (!temp || !isAbsolute(temp) || /[\r\n]/.test(temp)) throw new Error('invalid runner temp');
-  const parent = realpathSync(temp);
+  const parent = realpathSync(`${resolve(temp)}${sep}.`);
+  if (dirname(parent) === parent) throw new Error('invalid runner temp root');
   checkOwnedPath(parent);
   if (!statSync(parent).isDirectory()) throw new Error('runner temp is not a directory');
+  return parent;
+}
+
+export function preparePrivateNodeCache(temp) {
+  const parent = canonicalRunnerTemp(temp);
   // mkdtemp creates an owned 0700 root; GitHub empties runner.temp at job teardown.
   return mkdtempSync(join(parent, 'interdomestik-node-'));
+}
+
+export function validatedPrivateCache(candidate, temp, identity) {
+  const parent = canonicalRunnerTemp(temp);
+  const resolved = resolve(candidate || '.');
+  if (!resolved.startsWith(`${parent}${sep}`) || dirname(resolved) !== parent)
+    throw new Error('private cache must be a direct runner-temp child');
+  const name = basename(resolved);
+  if (!/^interdomestik-node-[A-Za-z0-9]{6}$/.test(name))
+    throw new Error('private cache must be a generated child');
+  const cache = join(parent, name);
+  const info = lstatSync(cache);
+  if (info.isSymbolicLink() || realpathSync(cache) !== cache)
+    throw new Error('private cache symlink is forbidden');
+  if (!info.isDirectory() || info.uid !== process.getuid() || (info.mode & 0o777) !== 0o700)
+    throw new Error('private cache must remain owned and mode 0700');
+  if (identity !== `${info.dev}:${info.ino}`) throw new Error('private cache identity changed');
+  return cache;
 }
 
 export function validateInstalledNode(cache, executable) {
@@ -67,7 +93,7 @@ const bootstrapOptions = {
   maxBuffer: 256 * 1024 * 1024,
 };
 
-function download(url, destination, limit) {
+function download(url, limit) {
   const result = spawnSync(
     '/usr/bin/curl',
     [
@@ -84,20 +110,21 @@ function download(url, destination, limit) {
       '120',
       '--max-filesize',
       String(limit),
-      '--output',
-      destination,
       '--write-out',
-      '%{http_code}',
+      '%{stderr}%{http_code}',
       url,
     ],
-    bootstrapOptions
+    { ...bootstrapOptions, maxBuffer: limit }
   );
-  if (
-    result.status !== 0 ||
-    result.stdout.toString() !== '200' ||
-    statSync(destination).size > limit
-  )
+  if (result.status !== 0 || result.stderr.toString() !== '200' || result.stdout.length > limit)
     throw new Error('official Node download failed');
+  return result.stdout;
+}
+
+export function persistVerifiedArchive(bytes, manifest, archive) {
+  verifyArchiveHash(bytes, manifest, basename(archive));
+  writeFileSync(archive, bytes, { flag: 'wx', mode: 0o600 });
+  return lstatSync(archive);
 }
 
 export function extractNodeBinary(archive, member, cache) {
@@ -123,33 +150,39 @@ export function extractNodeBinary(archive, member, cache) {
 
 function provisionPrivateNode(cache) {
   const started = Date.now();
-  checkOwnedPath(cache);
-  if ((statSync(cache).mode & 0o777) !== 0o700 || statSync(cache).uid !== process.getuid())
-    throw new Error('private cache must remain owned and mode 0700');
+  const prepared = lstatSync(cache);
+  if (readdirSync(cache).length !== 0)
+    throw new Error('private cache must be empty before provisioning');
   const wanted = readFileSync(new URL('../../.nvmrc', import.meta.url), 'utf8').trim();
   const release = nodeRelease(process.versions.node, process.platform, process.arch, wanted);
   const archive = join(cache, release.archive);
-  const manifest = join(cache, 'SHASUMS256.txt');
+  let created;
   try {
-    download(`${release.base}SHASUMS256.txt`, manifest, 1024 * 1024);
-    download(`${release.base}${release.archive}`, archive, 100 * 1024 * 1024);
+    const manifest = download(`${release.base}SHASUMS256.txt`, 1024 * 1024).toString('utf8');
+    const bytes = download(`${release.base}${release.archive}`, 100 * 1024 * 1024);
     // Same-origin HTTPS manifest integrity, not independent signature authentication.
-    verifyArchiveHash(readFileSync(archive), readFileSync(manifest, 'utf8'), release.archive);
+    created = persistVerifiedArchive(bytes, manifest, archive);
     const node = extractNodeBinary(archive, release.member, cache);
     const version = spawnSync(node, ['--version'], bootstrapOptions);
     if (version.status !== 0 || version.stdout.toString().trim() !== process.version)
       throw new Error('private Node version differs from setup-node selection');
-    appendFileSync(process.env.GITHUB_PATH, `${join(cache, 'bin')}\n`);
+    appendTrustedRunnerFile(process.env.GITHUB_PATH, `${join(cache, 'bin')}\n`);
     console.log(
       JSON.stringify({ provisionElapsedMs: Date.now() - started, node, version: process.version })
     );
   } finally {
-    for (const file of [archive, manifest]) {
-      try {
-        unlinkSync(file);
-      } catch (error) {
-        if (error.code !== 'ENOENT') throw error;
-      }
+    if (created) {
+      const current = lstatSync(cache);
+      const file = lstatSync(archive);
+      if (
+        current.isSymbolicLink() ||
+        current.dev !== prepared.dev ||
+        current.ino !== prepared.ino ||
+        file.dev !== created.dev ||
+        file.ino !== created.ino
+      )
+        throw new Error('private download identity changed; refusing cleanup');
+      unlinkSync(archive);
     }
   }
 }
@@ -189,10 +222,29 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     throw new Error('private cache setup is only for disposable GitHub-hosted jobs');
   if (process.argv[2] === 'prepare') {
     const cache = preparePrivateNodeCache(process.env.RUNNER_TEMP);
-    appendFileSync(process.env.GITHUB_OUTPUT, `path=${cache}\nstarted=${Date.now()}\n`);
-  } else if (process.argv[2] === 'verify') {
-    verifyPrivateNode(process.env.PRIVATE_NODE_CACHE);
-  } else if (process.argv[2] === 'provision') {
-    provisionPrivateNode(process.env.PRIVATE_NODE_CACHE);
-  } else throw new Error('expected prepare, provision or verify');
+    const info = statSync(cache);
+    const state = { cache, identity: `${info.dev}:${info.ino}` };
+    writeFileSync(
+      join(canonicalRunnerTemp(process.env.RUNNER_TEMP), 'interdomestik-node-cache.json'),
+      JSON.stringify(state),
+      { flag: 'wx', mode: 0o600 }
+    );
+    appendTrustedRunnerFile(process.env.GITHUB_OUTPUT, `path=${cache}\nstarted=${Date.now()}\n`);
+  } else {
+    const state = JSON.parse(
+      readTrustedRunnerFile(
+        join(canonicalRunnerTemp(process.env.RUNNER_TEMP), 'interdomestik-node-cache.json')
+      )
+    );
+    if (process.env.PRIVATE_NODE_CACHE !== state.cache)
+      throw new Error('private cache differs from prepared identity');
+    const cache = validatedPrivateCache(
+      process.env.PRIVATE_NODE_CACHE,
+      process.env.RUNNER_TEMP,
+      state.identity
+    );
+    if (process.argv[2] === 'verify') verifyPrivateNode(cache);
+    else if (process.argv[2] === 'provision') provisionPrivateNode(cache);
+    else throw new Error('expected prepare, provision or verify');
+  }
 }

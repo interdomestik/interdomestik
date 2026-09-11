@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 92149,
+      "trackedBytesDelta": 92151,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 54739,
+        "config/data/messages": 54741,
         "source/scripts": 23092,
         "tests/e2e": 14318
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 54739,
+        "scripts/repo-size-budget.json": 54741,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -1110,13 +1110,13 @@
         "scripts/package-command-runtime.mjs",
         "scripts/package-e2e-scripts.test.mjs"
       ],
-      "maxTrackedBytesDelta": 75526,
+      "maxTrackedBytesDelta": 81941,
       "maxTrackedFilesDelta": 14,
       "maxCategoryBytesDelta": {
         "docs/text": 4737,
         "config/data/messages": 967,
-        "source/scripts": 34563,
-        "tests/e2e": 35259
+        "source/scripts": 36876,
+        "tests/e2e": 39361
       },
       "maxPathBytesDelta": {
         ".github/copilot-instructions.md": 231,
@@ -1149,8 +1149,8 @@
         "scripts/ci/verify-slice-required-gates.test.mjs": 2098,
         "packages/qa/src/tools/tests.ts": 241,
         ".github/actions/setup/action.yml": 967,
-        "scripts/ci/private-node-cache.test.mjs": 6494,
-        "scripts/ci/setup-private-node-cache.mjs": 7983
+        "scripts/ci/private-node-cache.test.mjs": 10596,
+        "scripts/ci/setup-private-node-cache.mjs": 10296
       }
     }
   ],
@@ -1160,15 +1160,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61072958,
+  "maxTrackedBytes": 61079375,
   "maxTrackedFiles": 6030,
   "maxCategoryBytes": {
-    "config/data/messages": 2219160,
+    "config/data/messages": 2219162,
     "docs/text": 8541936,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8791143,
-    "tests/e2e": 6939984
+    "source/scripts": 8793456,
+    "tests/e2e": 6944086
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
