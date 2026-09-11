@@ -24,6 +24,22 @@ if (['database-command.mjs', 'dev-clean.mjs'].includes(wrapper)) {
     'GIT_EXEC_PATH',
     'GIT_TEMPLATE_DIR',
     'GIT_PROXY_COMMAND',
+    'GIT_DIR',
+    'GIT_WORK_TREE',
+    'GIT_INDEX_FILE',
+    'GIT_COMMON_DIR',
+    'GIT_OBJECT_DIRECTORY',
+    'GIT_ALTERNATE_OBJECT_DIRECTORIES',
+    'GIT_NAMESPACE',
+    'GIT_CEILING_DIRECTORIES',
+    'GIT_EXTERNAL_DIFF',
+    'GIT_PAGER',
+    'GIT_EDITOR',
+    'GIT_ATTR_SOURCE',
+    'GIT_DISCOVERY_ACROSS_FILESYSTEM',
+    'GIT_REPLACE_REF_BASE',
+    'GIT_SEQUENCE_EDITOR',
+    'GIT_SHALLOW_FILE',
   ];
   const hostile = process.env.PACKAGE_COMMAND_TEST_HOSTILE === '1';
   if (hostile) {
@@ -55,6 +71,8 @@ if (['database-command.mjs', 'dev-clean.mjs'].includes(wrapper)) {
         'DATABASE_URL_RLS',
         'BETTER_AUTH_SECRET',
         'BILLING_TEST_MODE',
+        'GIT_AUTHOR_NAME',
+        'GIT_TERMINAL_PROMPT',
       ]) {
         if (options.env[key] !== process.env[key])
           throw new Error('missing application environment');

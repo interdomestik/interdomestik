@@ -106,6 +106,52 @@ test('execAsync truncates oversized stdout without failing the command', () => {
   assert.equal(result.stderrTruncated, false);
 });
 
+for (const api of ['health', 'full']) {
+  test(`${api} runs fallback E2E only when the verifier lacks successful evidence`, () => {
+    const cases = [
+      [0, 0, 0, ['pr:verify', 'security:guard'], 'pass'],
+      [0, 23, 0, ['pr:verify', 'security:guard'], 'fail'],
+      [23, 0, 0, ['pr:verify', 'security:guard', 'e2e:gate'], 'fail'],
+      [23, 0, 31, ['pr:verify', 'security:guard', 'e2e:gate'], 'fail'],
+      [23, 29, 31, ['pr:verify', 'security:guard', 'e2e:gate'], 'fail'],
+    ];
+    const results = runModuleExpression(
+      'packages/qa/src/utils/exec.ts',
+      `(async () => {
+        const cp = (await import('node:child_process')).default;
+        const { syncBuiltinESMExports } = await import('node:module');
+        const { EventEmitter } = await import('node:events');
+        const health = await import('./packages/qa/src/tools/health.ts');
+        const tests = await import('./packages/qa/src/tools/tests.ts');
+        const results = [];
+        for (const [verify, security, e2e] of ${JSON.stringify(cases)}) {
+          const calls = [];
+          const exits = {'pr:verify': verify, 'security:guard': security, 'e2e:gate': e2e};
+          cp.spawn = (file, args) => {
+            if (file !== 'pnpm' || args.length !== 1 || !(args[0] in exits))
+              throw new Error('unexpected operational command');
+            calls.push(args[0]);
+            const child = new EventEmitter();
+            child.stdout = new EventEmitter(); child.stderr = new EventEmitter();
+            process.nextTick(() => child.emit('close', exits[args[0]], null));
+            return child;
+          };
+          syncBuiltinESMExports();
+          const args = {repoRoot: ${JSON.stringify(repoRoot)}};
+          const result = ${JSON.stringify(api)} === 'health'
+            ? await health.checkHealth(args)
+            : await tests.runTestsOrchestrator({...args, suite:'full'});
+          results.push({calls, status:result.structuredContent.status, isError:result.isError});
+        }
+        return results;
+      })()`
+    );
+    cases.forEach(([, , , calls, status], index) => {
+      assert.deepEqual(results[index], { calls, status, isError: status === 'fail' });
+    });
+  });
+}
+
 test('worktree env files are parsed per call without mutating process env', () => {
   const first = fs.mkdtempSync(path.join(os.tmpdir(), 'qa-env-first-'));
   const second = fs.mkdtempSync(path.join(os.tmpdir(), 'qa-env-second-'));

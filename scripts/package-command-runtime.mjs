@@ -15,14 +15,30 @@ const blockedEnv = new Set([
   'CDPATH',
   'ENV',
   'GIT_ASKPASS',
+  'GIT_ALTERNATE_OBJECT_DIRECTORIES',
+  'GIT_ATTR_SOURCE',
+  'GIT_CEILING_DIRECTORIES',
+  'GIT_COMMON_DIR',
   'GIT_CONFIG',
   'GIT_CONFIG_GLOBAL',
   'GIT_CONFIG_SYSTEM',
+  'GIT_DIR',
+  'GIT_DISCOVERY_ACROSS_FILESYSTEM',
+  'GIT_EDITOR',
   'GIT_EXEC_PATH',
+  'GIT_EXTERNAL_DIFF',
+  'GIT_INDEX_FILE',
+  'GIT_NAMESPACE',
+  'GIT_OBJECT_DIRECTORY',
+  'GIT_PAGER',
   'GIT_PROXY_COMMAND',
+  'GIT_REPLACE_REF_BASE',
+  'GIT_SEQUENCE_EDITOR',
+  'GIT_SHALLOW_FILE',
   'GIT_SSH',
   'GIT_SSH_COMMAND',
   'GIT_TEMPLATE_DIR',
+  'GIT_WORK_TREE',
   'GLOBIGNORE',
   'HTTP_PROXY',
   'HTTPS_PROXY',
@@ -70,6 +86,8 @@ export function checkedPackageExecutable(candidate) {
 // Validate PATH and build the controlled child environment as a single boundary.
 // pnpm's env-node shebang must use the already-running, checked Node installation.
 function buildChildEnv() {
+  // Trust in the loaded engine does not authorize siblings for future PATH lookups.
+  checkOwnedPath(dirname(nodeExecutable));
   const directories = (process.env.PATH ?? '').split(delimiter);
   if (directories.some(directory => !isAbsolute(directory))) {
     throw new Error('refused relative or empty executable search directories');

@@ -122,7 +122,7 @@ const SUITES: Record<string, ToolConfigName[]> = {
   e2e_gate: ['e2e_gate'],
   e2e_gate_pr_fast: ['e2e_gate_pr_fast'],
   e2e_state_setup: ['e2e_state_setup'],
-  full: ['pr_verify', 'security_guard'],
+  full: ['pr_verify', 'security_guard', 'e2e_gate'],
   pr_verify: ['pr_verify'],
   pr_verify_hosts: ['pr_verify_hosts'],
   security_guard: ['security_guard'],

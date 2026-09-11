@@ -10,7 +10,7 @@ import fs, {
   symlinkSync,
 } from 'node:fs';
 import { syncBuiltinESMExports } from 'node:module';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { fixture, run } from './fixtures/package-command-fixture.mjs';
@@ -145,6 +145,25 @@ test('Node provenance remains with the invoking runtime, not tool discovery', t 
   }
 });
 
+test('invoking Node directory must be safe before it becomes a child search path', t => {
+  const nodeDirectory = dirname(realpathSync(process.execPath));
+  const original = fs.statSync;
+  t.mock.method(fs, 'statSync', file => {
+    const info = original(file);
+    return file === nodeDirectory ? Object.assign(info, { mode: info.mode | 0o002 }) : info;
+  });
+  t.mock.method(cp, 'spawnSync', () => {
+    assert.fail('unsafe runtime directory must be rejected before launching a child');
+  });
+  syncBuiltinESMExports();
+  try {
+    assert.throws(() => packageCommandRuntime('lsof'), /refused an untrusted/);
+  } finally {
+    t.mock.restoreAll();
+    syncBuiltinESMExports();
+  }
+});
+
 for (const [script, args, children] of [
   ['database-command.mjs', ['generate'], ['PNPM']],
   ['dev-clean.mjs', [], ['LSOF', 'PNPM']],
@@ -177,6 +196,8 @@ for (const [script, args, children] of [
       DATABASE_URL_RLS: 'postgresql://127.0.0.1:1/fixture',
       BETTER_AUTH_SECRET: 'fixture-runtime-auth',
       BILLING_TEST_MODE: '1',
+      GIT_AUTHOR_NAME: 'Fixture Author',
+      GIT_TERMINAL_PROMPT: '0',
     });
     assert.equal(result.status, 0, result.stderr);
     for (const child of children) assert.ok(result.stdout.includes(`PACKAGE_COMMAND_ENV ${child}`));
