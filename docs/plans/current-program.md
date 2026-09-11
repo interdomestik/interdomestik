@@ -137,6 +137,12 @@ feature or authorizes work outside the owner's scope.
   selected task's actual verification requirements and isolate its resources.
 - Record prepared, tested, merged, deployed and user-validated states separately.
   Staging remains intentionally dormant; this work authorizes no deployment.
+  CD subscribes only to version tags and manual dispatch, not `main` pushes.
+  Restore the automatic staging trigger only on explicit owner
+  reactivation of staging. Tag/manual releases retain their existing guards;
+  they are not authorized by a maintenance merge. PR #1760 establishes this
+  boundary before package-command PR #1759 merges. The trusted-parent classifier
+  and runtime-sensitive `package.json` classification remain unchanged.
 
 ## T117C Product Delivery
 

@@ -5,6 +5,12 @@ import { B, H, contract, snapshot } from './pr-delivery-fixtures.mjs';
 
 for (const [name, body, commitId, disposed, blocked] of [
   ['current-head finding', 'P1 finding: tenant data exposure', H, false, true],
+  ['bracketed P0 title', '[P0] Tenant data exposure', H, false, true],
+  ['bracketed P1 title', '[P1] Tenant data exposure', H, false, true],
+  ['bracketed P2 title', '## [P2] Missing regression coverage', H, false, true],
+  ['advisory P3 title', '[P3] Optional cleanup', H, false, false],
+  ['stale bracketed title', '[P1] Old defect', B, false, false],
+  ['disposed bracketed title', '[P1] Reviewed exception', H, true, false],
   ['current-head badge', '![P2](https://img.shields.io/badge/P2-yellow) Defect.', H, false, true],
   ['stale finding', 'P1 finding: old defect', B, false, false],
   ['unbound finding', 'P1 finding: old defect', '', false, false],

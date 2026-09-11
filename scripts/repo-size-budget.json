@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 88297,
+      "trackedBytesDelta": 88745,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 50887,
+        "config/data/messages": 51335,
         "source/scripts": 23092,
         "tests/e2e": 14318
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 50887,
+        "scripts/repo-size-budget.json": 51335,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -194,17 +194,17 @@
         "docs/plans/current-program.md",
         "docs/plans/current-tracker.md"
       ],
-      "maxTrackedBytesDelta": 31349,
+      "maxTrackedBytesDelta": 31795,
       "maxTrackedFilesDelta": 2,
       "maxCategoryBytesDelta": {
         "config/data/messages": 9674,
-        "docs/text": 18234,
+        "docs/text": 18680,
         "large support/generated-ish": 3441
       },
       "maxPathBytesDelta": {
         "docs/plans/2026-08-27-t116-case-summary-design-gate.md": 11495,
         "docs/plans/2026-08-27-t116-case-summary-admission.json": 9748,
-        "docs/plans/current-program.md": 6757,
+        "docs/plans/current-program.md": 7203,
         "docs/plans/current-tracker.md": 3441
       }
     },
@@ -478,13 +478,13 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 688798,
+      "maxTrackedBytesDelta": 689285,
       "maxTrackedFilesDelta": 95,
       "maxCategoryBytesDelta": {
-        "config/data/messages": 1154,
+        "config/data/messages": 1174,
         "docs/text": 31054,
-        "source/scripts": 348559,
-        "tests/e2e": 308031
+        "source/scripts": 348596,
+        "tests/e2e": 308461
       },
       "maxPathBytesDelta": {
         ".github/workflows/ci.yml": 1441,
@@ -494,7 +494,7 @@
         "package.json": 1070,
         "packages/qa/test-tools.ts": 334,
         "scripts/ci/model-review-routes.mjs": 1716,
-        "scripts/ci/pr-delivery-contract.json": 27,
+        "scripts/ci/pr-delivery-contract.json": 47,
         "scripts/ci/pr-delivery-gate.test.mjs": 0,
         "scripts/ci/qa-cli-callers-contracts.test.mjs": 71,
         "scripts/ci/reviewer-preflight-git.mjs": 3807,
@@ -590,8 +590,8 @@
         "scripts/slice-rehearse-proof-ledger.mjs": 6873,
         "scripts/slice-rehearse-proof-obligations.mjs": 6547,
         "scripts/slice-rehearse-proof-obligations.test.mjs": 9032,
-        "scripts/github-pr-governance-report.mjs": 390,
-        "scripts/ci/pr-delivery-api.mjs": 747,
+        "scripts/github-pr-governance-report.mjs": 416,
+        "scripts/ci/pr-delivery-api.mjs": 758,
         "scripts/ci/pr-delivery-gate.mjs": 489,
         "scripts/ci/pr-delivery-cli.mjs": 2589,
         "scripts/ci/pr-delivery-fixtures.mjs": 1604,
@@ -601,7 +601,7 @@
         "scripts/ci/reviewer-route-policy.test.mjs": 6580,
         "scripts/ci/model-review-access.mjs": 212,
         "scripts/ci/model-review-evidence.test.mjs": 2239,
-        "scripts/ci/pr-delivery-review-bodies.test.mjs": 2990
+        "scripts/ci/pr-delivery-review-bodies.test.mjs": 3420
       }
     },
     {
@@ -1060,6 +1060,18 @@
         "scripts/plan-audit.mjs": 235,
         "scripts/plan-audit.test.mjs": 421
       }
+    },
+    {
+      "id": "staging-dormancy",
+      "mode": "bounded",
+      "writerPaths": [".github/workflows/cd.yml", "scripts/ci/cd-staging-dormancy.test.mjs"],
+      "maxTrackedBytesDelta": 1095,
+      "maxTrackedFilesDelta": 1,
+      "maxCategoryBytesDelta": { "config/data/messages": 64, "tests/e2e": 1031 },
+      "maxPathBytesDelta": {
+        ".github/workflows/cd.yml": 64,
+        "scripts/ci/cd-staging-dormancy.test.mjs": 1031
+      }
     }
   ],
   "reserve": {
@@ -1068,15 +1080,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60990871,
-  "maxTrackedFiles": 6015,
+  "maxTrackedBytes": 60993347,
+  "maxTrackedFiles": 6016,
   "maxCategoryBytes": {
-    "config/data/messages": 2214257,
-    "docs/text": 8536344,
+    "config/data/messages": 2214789,
+    "docs/text": 8536790,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8756448,
-    "tests/e2e": 6903087
+    "source/scripts": 8756485,
+    "tests/e2e": 6904548
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

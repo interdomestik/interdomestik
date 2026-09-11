@@ -1,7 +1,8 @@
 name: CD
 on:
   workflow_dispatch:
-  push: { branches: [main], tags: ['v*'] }
+  # Automatic staging is dormant; restore main pushes only on owner reactivation.
+  push: { tags: ['v*'] }
 concurrency: { group: 'cd-staging-canonical-${{ github.repository }}', cancel-in-progress: false }
 env: { REGISTRY: ghcr.io, IMAGE_NAME: '${{ github.repository }}' }
 # prettier-ignore

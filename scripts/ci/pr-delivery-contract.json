@@ -167,6 +167,7 @@
     "Suppressed comments\\s*\\([1-9]\\d*\\)",
     "Previously missed\\s*\\([1-9]\\d*\\)",
     "badge/P[0-2](?:-|\\b)",
+    "\\[P[0-2]\\]",
     "\\bP[0-2]\\s*(?:finding|issue|:|-)"
   ],
   "quiescenceMs": 20000

@@ -109,7 +109,7 @@ export function generatorFeedback(contract, feedback) {
     const author = normalize(item.author);
     if (!allowed.has(author)) apiFail('unknown generator feedback author ' + author);
   }
-  const substantiveReview = /badge\/P[0-2](?:-|\b)|\bP[0-2]\s*(?:finding|issue|:|-)/iu;
+  const substantiveReview = /badge\/P[0-2](?:-|\b)|\[P[0-2]\]|\bP[0-2]\s*(?:finding|issue|:|-)/iu;
   const reviewBodies = reviews.filter(
     item =>
       item.commitId === feedback.headSha &&
