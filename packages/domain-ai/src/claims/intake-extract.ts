@@ -60,18 +60,23 @@ function normalizeCurrency(currency: string | null | undefined) {
 }
 
 function parseAmount(value: string | number | null | undefined) {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value;
+  if (typeof value === 'number') {
+    return Number.isFinite(value) && value >= 0 ? value : null;
   }
 
   if (typeof value === 'string') {
-    const parsed = Number.parseFloat(value.replaceAll(',', ''));
-    if (Number.isFinite(parsed)) {
+    const normalized = value.trim();
+    if (!/^\d+(?:[.,]\d{1,2})?$/.test(normalized)) {
+      return null;
+    }
+
+    const parsed = Number(normalized.replace(',', '.'));
+    if (Number.isFinite(parsed) && parsed >= 0) {
       return parsed;
     }
   }
 
-  return 0;
+  return null;
 }
 
 export async function extractClaimIntake(args: {
@@ -113,9 +118,12 @@ export async function extractClaimIntake(args: {
     warnings.push('Currency defaulted to EUR.');
   }
 
-  const estimatedAmount = parseAmount(args.claim.claimAmount);
-  if (estimatedAmount === 0) {
-    warnings.push('Estimated amount defaulted to 0 because no claim amount was available.');
+  const parsedAmount = parseAmount(args.claim.claimAmount);
+  const estimatedAmount = parsedAmount ?? 0;
+  if (parsedAmount === null) {
+    warnings.push(
+      'Estimated amount defaulted to 0 because the claim amount was missing or invalid.'
+    );
   }
 
   const summaryParts = [normalizeText(args.claim.title), description, documentText].filter(Boolean);
