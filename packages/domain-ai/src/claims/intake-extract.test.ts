@@ -56,6 +56,41 @@ describe('extractClaimIntake', () => {
     expect(result.warnings.length).toBeGreaterThan(0);
   });
 
+  it.each([
+    ['whole string', '650', 650, false],
+    ['dot decimal', '650.50', 650.5, false],
+    ['comma decimal', '650,50', 650.5, false],
+    ['finite number', 650.5, 650.5, false],
+    ['zero string', '0', 0, false],
+    ['zero number', 0, 0, false],
+    ['grouped string', '1,234', 0, true],
+    ['mixed separators', '1.234,56', 0, true],
+    ['negative string', '-1', 0, true],
+    ['negative number', -1, 0, true],
+    ['non-finite number', Number.POSITIVE_INFINITY, 0, true],
+  ])(
+    'parses %s claim amounts without guessing locale',
+    async (_label, claimAmount, expected, expectsWarning) => {
+      const result = await extractClaimIntake({
+        aiCallContext: createDocumentExtractionAiContext(),
+        claim: {
+          title: 'Claim amount',
+          description: '',
+          category: 'travel',
+          claimAmount,
+          currency: 'EUR',
+        },
+        claimSnapshot: { incidentDate: '2026-02-15' },
+        documentText: 'Country: IT.',
+      });
+
+      expect(result.estimatedAmount).toBe(expected);
+      expect(result.warnings.some(warning => warning.includes('Estimated amount'))).toBe(
+        expectsWarning
+      );
+    }
+  );
+
   it('rejects missing runtime AI context before extraction behavior', async () => {
     await expect(
       extractClaimIntake({
