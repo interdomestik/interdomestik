@@ -21,10 +21,10 @@ on:
     types: [created, edited, deleted]
 
 concurrency:
-  # Never cancel an active required check. Same-head feedback bursts may coalesce
-  # while pending, and a new candidate receives an independent gate.
-  group: pr-delivery-gate-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
-  cancel-in-progress: false
+  # Feedback events never cancel an active required check. A new commit does
+  # replace the obsolete head so it cannot keep consuming a runner.
+  group: pr-delivery-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' }}
 
 jobs:
   delivery-gate:

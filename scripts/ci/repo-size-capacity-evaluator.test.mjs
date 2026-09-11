@@ -69,6 +69,27 @@ test('canonical authority size cannot hide another oversized tracked file', () =
     { path: 'docs/plans/current-program.md', bytes: budget.maxLargestFileBytes + 200_000 },
     { path: 'docs/ordinary.md', bytes: budget.maxLargestFileBytes + 1 },
   ];
+  report.tracked.largestCapacityFile = report.tracked.largestFiles[1];
+
+  const result = evaluateCapacityBudget(report, budget, acceptedChangeFacts());
+
+  assert.equal(hasViolation(result, 'largest-file-bytes'), true);
+  assert.equal(
+    result.violations.find(item => item.code === 'largest-file-bytes')?.path,
+    'docs/ordinary.md'
+  );
+});
+
+test('truncated largest-file reporting cannot hide an oversized ordinary file', () => {
+  const budget = allocationBudget();
+  const report = capacityReport();
+  report.tracked.largestFiles = [
+    { path: 'docs/plans/current-program.md', bytes: budget.maxLargestFileBytes + 200_000 },
+  ];
+  report.tracked.largestCapacityFile = {
+    path: 'docs/ordinary.md',
+    bytes: budget.maxLargestFileBytes + 1,
+  };
 
   const result = evaluateCapacityBudget(report, budget, acceptedChangeFacts());
 
@@ -165,6 +186,7 @@ test('capacity rebase permits T118 promotion without a budget edit', () => {
           budget.baseline.trackedFiles + values.reduce((sum, fact) => sum + fact.filesDelta, 0),
       },
       categories,
+      largestCapacityFile: { path: 'pnpm-lock.yaml', bytes: budget.maxLargestFileBytes },
       largestFiles: [{ path: 'pnpm-lock.yaml', bytes: budget.maxLargestFileBytes }],
       sourceHotspots: [{ path: 'baseline-hotspot', lines: budget.maxSourceOrTestLines }],
     },

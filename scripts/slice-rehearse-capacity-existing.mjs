@@ -149,10 +149,10 @@ function capacityStop(stops, code, actual, limit) {
 
 function semanticCapacityExemption(proposal, repo) {
   const exemption = { bytes: 0, categories: {} };
-  for (const path of (proposal.allocation?.writerPaths ?? []).filter(isSemanticGovernanceDocument)) {
+  const deltas = { ...repo.writerDeltas, ...repo.capacityOwnerDeltas };
+  for (const path of Object.keys(deltas).filter(isSemanticGovernanceDocument)) {
     const bytes =
-      Math.max(0, repo.writerDeltas[path]?.bytes ?? 0) +
-      (proposal.projectionHeadroom?.paths[path] ?? 0);
+      Math.max(0, deltas[path]?.bytes ?? 0) + (proposal.projectionHeadroom?.paths[path] ?? 0);
     exemption.bytes += bytes;
     const category = budgetCategory(path);
     exemption.categories[category] = (exemption.categories[category] ?? 0) + bytes;

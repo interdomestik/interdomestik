@@ -26,8 +26,12 @@ test('projection capacity owner paths are the exact protected allocation writer 
         projectionPaths: ['docs/plans/current-program.md'],
       },
     }),
-    ['docs/plans/current-program.md', 'scripts/owner-helper.mjs']
+    ['docs/plans/current-program.md', 'docs/plans/current-tracker.md', 'scripts/owner-helper.mjs']
   );
+  assert.deepEqual(projectionCapacityOwnerPaths(protectedBudget, { topology: {} }), [
+    'docs/plans/current-program.md',
+    'docs/plans/current-tracker.md',
+  ]);
 });
 
 test('capacity owner deltas preserve exact signed bytes and file deletion', () => {

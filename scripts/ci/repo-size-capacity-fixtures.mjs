@@ -73,6 +73,7 @@ export function capacityReport({
         { name: 'source/scripts', bytes: sourceBytes },
         { name: 'tests/e2e', bytes: testBytes },
       ],
+      largestCapacityFile: { path: 'scripts/lean.mjs', bytes: 500 },
       largestFiles: [{ path: 'scripts/lean.mjs', bytes: 500 }],
       sourceHotspots: [{ path: 'scripts/lean.mjs', lines: 20 }],
     },

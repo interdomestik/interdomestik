@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, truncateSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
@@ -163,6 +163,20 @@ test('accepts large canonical authority documents when semantic contracts remain
   const result = spawnSync(process.execPath, [script], { cwd: root, encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /current-authority format audit passed/);
+});
+
+test('rejects authority input beyond the operational read bound before parsing', () => {
+  const { root } = fixture();
+  try {
+    truncateSync(join(root, 'docs/plans/current-program.md'), 16 * 1024 * 1024 + 1);
+
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: 'utf8' });
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /operational read bound/u);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test('rejects append-only revision narratives', () => {

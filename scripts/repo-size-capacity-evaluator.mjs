@@ -25,9 +25,15 @@ function globalViolations(report, budget, facts) {
     budget.maxTrackedBytes + semanticGrowth(facts)
   );
   addOver(violations, 'tracked-files', report.tracked.total.files, budget.maxTrackedFiles);
-  const largest = report.tracked.largestFiles.find(
-    item => !isSemanticGovernanceDocument(item.path)
-  );
+  if (!Object.hasOwn(report.tracked, 'largestCapacityFile')) {
+    violations.push({
+      code: 'inventory-attribution:largest-capacity-file',
+      actual: 1,
+      limit: 0,
+      label: 'Untruncated largest capacity file fact is required',
+    });
+  }
+  const largest = report.tracked.largestCapacityFile;
   if (largest)
     addOver(
       violations,

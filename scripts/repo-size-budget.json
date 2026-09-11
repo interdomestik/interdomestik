@@ -33,27 +33,27 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 82362,
+      "trackedBytesDelta": 83694,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 48556,
-        "source/scripts": 22124,
-        "tests/e2e": 11682
+        "config/data/messages": 48587,
+        "source/scripts": 22579,
+        "tests/e2e": 12528
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 48556,
+        "scripts/repo-size-budget.json": 48587,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
         "scripts/repo-size-capacity-schema.mjs": 8989,
-        "scripts/repo-size-capacity-evaluator.mjs": 8155,
+        "scripts/repo-size-capacity-evaluator.mjs": 8355,
         "scripts/repo-size-git-attribution.mjs": 2737,
-        "scripts/repo-size-inventory.mjs": 3936,
+        "scripts/repo-size-inventory.mjs": 4122,
         "scripts/repo-size-legacy-budget.mjs": 3198,
         "scripts/repo-size-audit-output.mjs": 3377,
-        "scripts/ci/repo-size-capacity-fixtures.mjs": 2571,
+        "scripts/ci/repo-size-capacity-fixtures.mjs": 2640,
         "scripts/ci/repo-size-capacity-schema.test.mjs": 2092,
-        "scripts/ci/repo-size-capacity-evaluator.test.mjs": 6618,
+        "scripts/ci/repo-size-capacity-evaluator.test.mjs": 7464,
         "scripts/ci/repo-size-git-attribution.test.mjs": 2816
       }
     },
@@ -487,13 +487,13 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 680393,
+      "maxTrackedBytesDelta": 680924,
       "maxTrackedFilesDelta": 94,
       "maxCategoryBytesDelta": {
         "config/data/messages": 1154,
         "docs/text": 30439,
-        "source/scripts": 347251,
-        "tests/e2e": 301549
+        "source/scripts": 347583,
+        "tests/e2e": 301748
       },
       "maxPathBytesDelta": {
         ".github/workflows/ci.yml": 1441,
@@ -519,10 +519,10 @@
         "scripts/slice-rehearse-bootstrap.mjs": 10916,
         "scripts/slice-rehearse-bootstrap.test.mjs": 11100,
         "scripts/slice-rehearse-canonical.mjs": 6973,
-        "scripts/slice-rehearse-capacity-existing.mjs": 6939,
+        "scripts/slice-rehearse-capacity-existing.mjs": 6973,
         "scripts/slice-rehearse-capacity-fixed-point.mjs": 7475,
-        "scripts/slice-rehearse-capacity-owner-facts.mjs": 5204,
-        "scripts/slice-rehearse-capacity-owner.test.mjs": 5803,
+        "scripts/slice-rehearse-capacity-owner-facts.mjs": 5502,
+        "scripts/slice-rehearse-capacity-owner.test.mjs": 6002,
         "scripts/slice-rehearse-capacity-projection.mjs": 6140,
         "scripts/slice-rehearse-capacity-stops.test.mjs": 11068,
         "scripts/slice-rehearse-capacity.mjs": 9274,
@@ -971,18 +971,18 @@
         "scripts/ci/pr-delivery-workflow.test.mjs",
         "scripts/ci/repo-size-audit.test.mjs"
       ],
-      "maxTrackedBytesDelta": 2083,
+      "maxTrackedBytesDelta": 2420,
       "maxTrackedFilesDelta": 1,
       "maxCategoryBytesDelta": {
-        "config/data/messages": 328,
-        "tests/e2e": 1049,
+        "config/data/messages": 357,
+        "tests/e2e": 1357,
         "other": 706
       },
       "maxPathBytesDelta": {
         ".husky/pre-push": 706,
-        ".github/workflows/pr-delivery-gate.yml": 328,
+        ".github/workflows/pr-delivery-gate.yml": 357,
         "scripts/ci/pr-delivery-workflow.test.mjs": 503,
-        "scripts/ci/repo-size-audit.test.mjs": 546
+        "scripts/ci/repo-size-audit.test.mjs": 854
       }
     },
     {
@@ -1046,14 +1046,15 @@
         "scripts/current-authority-format-audit.mjs",
         "scripts/current-authority-format-audit.test.mjs"
       ],
-      "maxTrackedBytesDelta": 1037,
+      "maxTrackedBytesDelta": 1605,
       "maxTrackedFilesDelta": 0,
       "maxCategoryBytesDelta": {
-        "tests/e2e": 1037
+        "source/scripts": 78,
+        "tests/e2e": 1527
       },
       "maxPathBytesDelta": {
-        "scripts/current-authority-format-audit.mjs": 0,
-        "scripts/current-authority-format-audit.test.mjs": 1037
+        "scripts/current-authority-format-audit.mjs": 78,
+        "scripts/current-authority-format-audit.test.mjs": 1527
       }
     }
   ],
@@ -1066,15 +1067,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60946437,
+  "maxTrackedBytes": 60949205,
   "maxTrackedFiles": 6010,
   "maxCategoryBytes": {
-    "config/data/messages": 2211602,
+    "config/data/messages": 2211662,
     "docs/text": 8535729,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8750255,
-    "tests/e2e": 6868116
+    "source/scripts": 8751120,
+    "tests/e2e": 6869959
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

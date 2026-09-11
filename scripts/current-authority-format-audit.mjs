@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { validateProjectionArtifacts } from './current-authority-state-lib.mjs';
 import { parseAuthorityDocuments } from './lean-current-authority.mjs';
 import { extractSection, parseTrackerDocument } from './plan-model.mjs';
@@ -18,6 +18,7 @@ const SHA256 = /^[a-f0-9]{64}$/,
   GIT_SHA = /^[a-f0-9]{40}$/;
 const ORIGIN = /^(https:\/\/github\.com\/|git@github\.com:)interdomestik\/interdomestik(\.git)?$/;
 const GIT = '/usr/bin/git';
+const MAX_LIVE_DOCUMENT_BYTES = 16 * 1024 * 1024;
 // prettier-ignore
 const PROGRAM_SECTIONS = ['Current Phase', 'M0-M5 Implementation Blueprint', 'Ordered Candidate Priorities', 'Selection Constraints', 'Historical Authority'];
 const TRACKER_SECTIONS = ['Active Queue', 'Proof Ledger', 'Next Selection', 'Historical Authority'];
@@ -25,6 +26,13 @@ const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const lineCount = text => (text ? text.split(/\r?\n/).length - Number(text.endsWith('\n')) : 0);
 const tableRows = text =>
   Math.max(0, text.split(/\r?\n/).filter(line => line.trimStart().startsWith('|')).length - 2);
+function readLiveDocument(path) {
+  const size = statSync(path).size;
+  if (size > MAX_LIVE_DOCUMENT_BYTES) {
+    throw new Error(`${path}: exceeds ${MAX_LIVE_DOCUMENT_BYTES}-byte operational read bound`);
+  }
+  return readFileSync(path);
+}
 function requireSections(text, path, headings, errors) {
   for (const heading of headings) {
     if (!extractSection(text, heading).trim()) errors.push(`${path}: missing ${heading} section`);
@@ -146,8 +154,8 @@ function validateHistoricalProjection({ projectionBytes, envelopeBytes, receiptB
 }
 function main() {
   const errors = [];
-  const programBytes = readFileSync(PROGRAM);
-  const trackerBytes = readFileSync(TRACKER);
+  const programBytes = readLiveDocument(PROGRAM);
+  const trackerBytes = readLiveDocument(TRACKER);
   const manifestBytes = readFileSync(MANIFEST);
   const projectionBytes = readFileSync(PROJECTION);
   const envelopeBytes = readFileSync(ENVELOPE);

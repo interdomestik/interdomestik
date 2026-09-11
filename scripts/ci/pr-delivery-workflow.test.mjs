@@ -191,8 +191,8 @@ test('delivery workflow stays exact and default-deny', () => {
   assert.equal(job['timeout-minutes'], 90);
   assert.equal(
     workflow.concurrency['cancel-in-progress'],
-    false,
-    'provider-required delivery checks must never be cancelled after materialization'
+    "${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' }}",
+    'only a new candidate head may cancel an obsolete required check'
   );
   assert.deepEqual(job.permissions, {
     actions: 'read',
@@ -220,8 +220,7 @@ test('delivery workflow stays exact and default-deny', () => {
     `github.event.pull_request.base.ref == 'main' && github.event.pull_request.state == 'open' && !github.event.pull_request.draft && (github.event.action != 'labeled' || github.event.label.name == 'full-gate')`
   );
   assert.match(workflow.concurrency.group, /github\.event\.pull_request\.number/u);
-  assert.match(workflow.concurrency.group, /github\.event\.pull_request\.head\.sha/u);
-  assert.doesNotMatch(workflow.concurrency.group, /event_name|event\.action/u);
+  assert.doesNotMatch(workflow.concurrency.group, /event_name|event\.action|head\.sha/u);
   assert.ok(job.steps.some(step => String(step.uses).startsWith('actions/checkout@')));
   const checkout = job.steps.find(step => String(step.uses).startsWith('actions/checkout@'));
   assert.match(checkout.with.ref, /github\.sha/u);
