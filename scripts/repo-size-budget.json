@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 77145,
+      "trackedBytesDelta": 78970,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 46207,
+        "config/data/messages": 48032,
         "source/scripts": 20852,
         "tests/e2e": 10086
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 46207,
+        "scripts/repo-size-budget.json": 48032,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -81,15 +81,15 @@
         "scripts/modularity-guard-legacy-focused.test.mjs",
         "scripts/fixtures/update-status-legacy-baseline.test.ts.gz"
       ],
-      "maxTrackedBytesDelta": 63590,
+      "maxTrackedBytesDelta": 63681,
       "maxTrackedFilesDelta": 8,
       "maxCategoryBytesDelta": {
         "other": 5580,
-        "source/scripts": 20554,
+        "source/scripts": 20645,
         "tests/e2e": 37456
       },
       "maxPathBytesDelta": {
-        "scripts/lean-current-authority-policy.mjs": 487,
+        "scripts/lean-current-authority-policy.mjs": 578,
         "scripts/lean-current-authority-lifecycle.mjs": 473,
         "scripts/lean-current-authority-git.mjs": 1029,
         "scripts/lean-current-authority-pull-selection.mjs": 3270,
@@ -950,14 +950,14 @@
         "scripts/lean-staff-current-claim-exception.mjs",
         "scripts/lean-staff-current-claim-policy.test.mjs"
       ],
-      "maxTrackedBytesDelta": 7233,
+      "maxTrackedBytesDelta": 7275,
       "maxTrackedFilesDelta": 2,
       "maxCategoryBytesDelta": {
         "source/scripts": 1109,
-        "tests/e2e": 6124
+        "tests/e2e": 6166
       },
       "maxPathBytesDelta": {
-        "scripts/ci/lean-current-authority-contracts.test.mjs": 64,
+        "scripts/ci/lean-current-authority-contracts.test.mjs": 106,
         "scripts/lean-staff-current-claim-exception.mjs": 1109,
         "scripts/lean-staff-current-claim-policy.test.mjs": 6124
       }
@@ -984,6 +984,60 @@
         "scripts/ci/pr-delivery-workflow.test.mjs": 243,
         "scripts/ci/repo-size-audit.test.mjs": 546
       }
+    },
+    {
+      "id": "migration-product-trial-policy",
+      "mode": "bounded",
+      "writerPaths": [
+        "scripts/lean-migration-product-trial-exceptions.mjs",
+        "scripts/lean-migration-product-trial-exceptions.test.mjs"
+      ],
+      "maxTrackedBytesDelta": 3192,
+      "maxTrackedFilesDelta": 2,
+      "maxCategoryBytesDelta": {
+        "source/scripts": 660,
+        "tests/e2e": 2532
+      },
+      "maxPathBytesDelta": {
+        "scripts/lean-migration-product-trial-exceptions.mjs": 660,
+        "scripts/lean-migration-product-trial-exceptions.test.mjs": 2532
+      }
+    },
+    {
+      "id": "migration-currency-parsing-trial",
+      "mode": "bounded",
+      "writerPaths": [
+        "packages/domain-ai/src/claims/intake-extract.test.ts",
+        "packages/domain-ai/src/claims/intake-extract.ts"
+      ],
+      "maxTrackedBytesDelta": 2400,
+      "maxTrackedFilesDelta": 0,
+      "maxCategoryBytesDelta": {
+        "source/scripts": 1000,
+        "tests/e2e": 1400
+      },
+      "maxPathBytesDelta": {
+        "packages/domain-ai/src/claims/intake-extract.test.ts": 1400,
+        "packages/domain-ai/src/claims/intake-extract.ts": 1000
+      }
+    },
+    {
+      "id": "migration-currency-parsing-promotion",
+      "mode": "bounded",
+      "writerPaths": [
+        "docs/plans/2026-09-11-claim-intake-locale-currency-design-gate.md",
+        "docs/plans/2026-09-11-claim-intake-locale-currency-admission.json"
+      ],
+      "maxTrackedBytesDelta": 5800,
+      "maxTrackedFilesDelta": 2,
+      "maxCategoryBytesDelta": {
+        "config/data/messages": 2600,
+        "docs/text": 3200
+      },
+      "maxPathBytesDelta": {
+        "docs/plans/2026-09-11-claim-intake-locale-currency-design-gate.md": 3200,
+        "docs/plans/2026-09-11-claim-intake-locale-currency-admission.json": 2600
+      }
     }
   ],
   "reserve": {
@@ -995,15 +1049,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60923926,
-  "maxTrackedFiles": 6006,
+  "maxTrackedBytes": 60937276,
+  "maxTrackedFiles": 6010,
   "maxCategoryBytes": {
-    "config/data/messages": 2206459,
-    "docs/text": 8532529,
+    "config/data/messages": 2210884,
+    "docs/text": 8535729,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8745138,
-    "tests/e2e": 6859065
+    "source/scripts": 8746889,
+    "tests/e2e": 6863039
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
