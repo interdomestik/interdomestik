@@ -15,15 +15,15 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                                   | Status    | Owner      | Work                                      | Exit Criteria                                  |
-| ------------------------------------ | --------- | ---------- | ----------------------------------------- | ---------------------------------------------- |
-| `MIGRATION-CURRENCY-PARSING-TRIAL-1` | `pending` | `platform` | Parse claim-intake comma decimals safely. | Promotion, exact product run, merge, closeout. |
+| ID                                   | Status      | Owner      | Work                                      | Exit Criteria                                  |
+| ------------------------------------ | ----------- | ---------- | ----------------------------------------- | ---------------------------------------------- |
+| `MIGRATION-CURRENCY-PARSING-TRIAL-1` | `completed` | `platform` | Parse claim-intake comma decimals safely. | Promotion, exact product run, merge, closeout. |
 
 ## Proof Ledger
 
-| ID                                   | Source Refs                                                                                                                          | Execution | Run ID    | Run Root  | Sonar   | Docker  | Sentry           | Learning | Evidence Refs                                                                                                                        |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ | --------- | --------- | --------- | ------- | ------- | ---------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `MIGRATION-CURRENCY-PARSING-TRIAL-1` | docs/plans/2026-09-11-claim-intake-locale-currency-design-gate.md; docs/plans/2026-09-11-claim-intake-locale-currency-admission.json | `pending` | `pending` | `pending` | pending | pending | `not_applicable` | pending  | docs/plans/2026-09-11-claim-intake-locale-currency-design-gate.md; docs/plans/2026-09-11-claim-intake-locale-currency-admission.json |
+| ID                                   | Source Refs                                                                                                                          | Execution  | Run ID                         | Run Root   | Sonar | Docker | Sentry           | Learning | Evidence Refs                                                                                                                                                                                      |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------------------------------ | ---------- | ----- | ------ | ---------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MIGRATION-CURRENCY-PARSING-TRIAL-1` | docs/plans/2026-09-11-claim-intake-locale-currency-design-gate.md; docs/plans/2026-09-11-claim-intake-locale-currency-admission.json | `scripted` | `migration-currency-trial1-r4` | docs/plans | pass  | pass   | `not_applicable` | pass     | docs/plans/current-program.md; docs/plans/current-tracker.md; docs/plans/2026-09-11-claim-intake-locale-currency-design-gate.md; docs/plans/2026-09-11-claim-intake-locale-currency-admission.json |
 
 Historical staff rehearsal: retained only as a timing baseline; no migration credit.
 
@@ -62,11 +62,11 @@ pre-execution binding or cleanup means no trial credit.
 T117C was delivered by promotion #1738 and product #1736. Closeout is inactive; successor
 promotion remains separate.
 
-| Future successor branch         | Status              | Constraint                                 |
-| ------------------------------- | ------------------- | ------------------------------------------ |
-| Locale-aware currency parsing   | `promotion_pending` | Promotion #1753; exact two-path trial 1/3. |
-| Bounded failed-run retry        | `deferred`          | Separate two-path trial 2/3 after trial 1. |
-| Third bounded product-use slice | `deferred`          | Select separately for trial 3/3.           |
+| Future successor branch         | Status           | Constraint                                 |
+| ------------------------------- | ---------------- | ------------------------------------------ |
+| Locale-aware currency parsing   | `completed`      | Product #1754; migration trial 1/3 closed. |
+| Bounded failed-run retry        | `next_candidate` | Requires a separate trial 2/3 promotion.   |
+| Third bounded product-use slice | `deferred`       | Select separately for trial 3/3.           |
 
 ## Lean Authority
 
@@ -75,28 +75,12 @@ promotion remains separate.
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "promotion_pending",
+  "lifecycle": "inactive",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": {
-    "sliceId": "MIGRATION-CURRENCY-PARSING-TRIAL-1",
-    "tier": 3,
-    "promotionPrNumber": 1753,
-    "promotionBaseSha": "4acbba33e40ad4aa8b50f504149f25684f3380d9",
-    "expectedProductBranch": "codex/claim-intake-locale-currency",
-    "gateSha256": "b8066de49136a97d86620d54ae5815c22c4b16ae4358a123c9a7a47aee21fbe0",
-    "admissionSha256": "79482c1f75140012f58a15e88d40a6bad7eb6f0d6707670dac9e60f4775bcfe6",
-    "productWriterPaths": [
-      "packages/domain-ai/src/claims/intake-extract.test.ts",
-      "packages/domain-ai/src/claims/intake-extract.ts"
-    ],
-    "closeoutWriterPaths": [
-      "docs/plans/current-program.md",
-      "docs/plans/current-tracker.md"
-    ]
-  }
+  "activeSlice": null
 }
 ```
 
