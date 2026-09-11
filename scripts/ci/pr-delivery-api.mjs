@@ -109,10 +109,19 @@ export function generatorFeedback(contract, feedback) {
     const author = normalize(item.author);
     if (!allowed.has(author)) apiFail('unknown generator feedback author ' + author);
   }
-  return feedback.reviewComments.filter(item => {
+  const substantiveReview = /badge\/P[0-2](?:-|\b)|\bP[0-2]\s*(?:finding|issue|:|-)/iu;
+  const reviewBodies = reviews.filter(
+    item =>
+      item.commitId === feedback.headSha &&
+      item.state !== 'DISMISSED' &&
+      allowed.has(normalize(item.author)) &&
+      substantiveReview.test(item.body ?? '')
+  );
+  const inlineComments = feedback.reviewComments.filter(item => {
     const author = normalize(item.author);
     return !item.resolved && item.commitId === feedback.headSha && allowed.has(author);
   });
+  return [...reviewBodies, ...inlineComments];
 }
 
 export function githubCliBinary() {
