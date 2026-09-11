@@ -1,18 +1,37 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({
-  claimClaimAiRun: vi.fn(),
-  critiqueExtraction: vi.fn(),
-  extractClaimAiCandidate: vi.fn(),
-  loadClaimAiInput: vi.fn(),
-  markClaimAiRunFailed: vi.fn(),
-  persistClaimAiExtraction: vi.fn(),
-  validateClaimAiCandidate: vi.fn(),
-}));
+const mocks = vi.hoisted(() => {
+  const createFunction = vi.fn(
+    (config: unknown, trigger: unknown, handler: (...args: unknown[]) => unknown) => ({
+      config,
+      handler,
+      trigger,
+    })
+  );
 
-vi.mock('@/lib/inngest/client', () => ({ inngest: { send: vi.fn() } }));
+  return {
+    claimClaimAiRun: vi.fn(),
+    createFunction,
+    critiqueExtraction: vi.fn(),
+    extractClaimAiCandidate: vi.fn(),
+    loadClaimAiInput: vi.fn(),
+    markClaimAiRunFailed: vi.fn(),
+    persistClaimAiExtraction: vi.fn(),
+    validateClaimAiCandidate: vi.fn(),
+  };
+});
+
+vi.mock('@/lib/inngest/client', () => ({
+  inngest: { createFunction: mocks.createFunction, send: vi.fn() },
+}));
+vi.mock('@interdomestik/domain-communications/cron-service', () => ({
+  processAnnualReports: vi.fn(),
+  processEmailSequences: vi.fn(),
+  processSeasonalCampaigns: vi.fn(),
+}));
+vi.mock('@/app/api/policies/analyze/_services', () => ({
+  processPolicyAnalysisRunService: vi.fn(),
+}));
 vi.mock('@/lib/reliability/transient-retry', () => ({
   throwTransientRetryFailure: vi.fn(),
   withTransientRetry: vi.fn(async (callback: () => unknown) => ({
@@ -40,6 +59,10 @@ vi.mock('@/lib/ai/extraction-pipeline', async importOriginal => {
 import { ExtractionPipelineError } from '@/lib/ai/extraction-pipeline';
 
 import { processClaimDocumentWorkflowRunService } from './claim-workflows';
+import {
+  claimIntakeExtractionRequested,
+  legalDocumentExtractionRequested,
+} from '@/lib/inngest/functions';
 
 const run = {
   runId: 'run-1',
@@ -112,10 +135,41 @@ describe('processClaimDocumentWorkflowRunService persist failure', () => {
     expect(mocks.markClaimAiRunFailed).toHaveBeenCalledWith({ run, error: failure });
   });
 
-  it('binds both claim workflows to exactly one trusted retry attempt', () => {
-    const source = readFileSync(resolve(process.cwd(), 'src/lib/inngest/functions.ts'), 'utf8');
+  it('binds both claim workflow handlers to exactly one trusted retry attempt', async () => {
+    type ClaimHandler = (args: {
+      event: { data: { runId: string } };
+      step: { run: (name: string, callback: () => unknown) => unknown };
+      attempt: number;
+    }) => Promise<unknown>;
+    const claimIntake = claimIntakeExtractionRequested as unknown as {
+      config: { id: string; retries: number };
+      handler: ClaimHandler;
+    };
+    const legalDocument = legalDocumentExtractionRequested as unknown as {
+      config: { id: string; retries: number };
+      handler: ClaimHandler;
+    };
+    const step = { run: vi.fn(async (_name: string, callback: () => unknown) => callback()) };
+    mocks.claimClaimAiRun.mockResolvedValue({
+      status: 'skipped',
+      claimId: 'claim-1',
+      workflow: 'claim_intake_extract',
+    });
 
-    expect(source.match(/retries: 1/g)).toHaveLength(2);
-    expect(source.match(/retryFailed: attempt === 1/g)).toHaveLength(2);
+    expect(claimIntake.config).toEqual({ id: 'claim-intake-extraction-requested', retries: 1 });
+    expect(legalDocument.config).toEqual({ id: 'legal-document-extraction-requested', retries: 1 });
+
+    for (const [handler, runId] of [
+      [claimIntake.handler, 'run-intake'],
+      [legalDocument.handler, 'run-legal'],
+    ] as const) {
+      for (const attempt of [0, 1, 2]) {
+        mocks.claimClaimAiRun.mockClear();
+        await handler({ event: { data: { runId } }, step, attempt });
+        expect(mocks.claimClaimAiRun).toHaveBeenCalledWith(runId, {
+          retryFailed: attempt === 1,
+        });
+      }
+    }
   });
 });
