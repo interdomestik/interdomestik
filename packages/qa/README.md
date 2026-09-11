@@ -19,8 +19,10 @@ pnpm pr:verify
 pnpm security:guard
 ```
 
-`check_health` runs these two commands once. `pr:verify` includes the mandatory full
-E2E gate and smoke tests; do not repeat that gate for the same candidate/environment.
+`check_health` runs these two commands once. Successful `pr:verify` includes the mandatory
+full E2E gate and smoke tests, so no independent gate is repeated. If `pr:verify` does not
+succeed, `check_health` and the `full` suite run a fallback `pnpm e2e:gate` after security
+to retain E2E diagnostics; the overall result remains failed even if that fallback passes.
 
 The testing/orchestration surface also exposes smaller repo-real commands:
 
@@ -78,7 +80,7 @@ Example prompts:
 
 ### Verification And Test Tools
 
-- `check_health` - Run `pnpm pr:verify` (including the full E2E gate) and `pnpm security:guard` once
+- `check_health` - Run `pnpm pr:verify` and `pnpm security:guard` once, then fallback `pnpm e2e:gate` if verification did not succeed
 - `pr_verify` - Run `pnpm pr:verify`
 - `security_guard` - Run `pnpm security:guard`
 - `e2e_gate` - Run `pnpm e2e:gate`

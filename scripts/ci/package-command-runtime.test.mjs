@@ -157,7 +157,21 @@ test('invoking Node directory must be safe before it becomes a child search path
   });
   syncBuiltinESMExports();
   try {
-    assert.throws(() => packageCommandRuntime('lsof'), /refused an untrusted/);
+    assert.throws(
+      () => packageCommandRuntime('lsof'),
+      error => {
+        assert.match(error.message, /refused an untrusted/);
+        const details = JSON.parse(error.message.split(': ').slice(1).join(': '));
+        assert.equal(details.path, nodeDirectory);
+        assert.ok(details.reasons.includes('world-writable'));
+        assert.equal(details.effectiveUid, process.geteuid());
+        assert.deepEqual(details.groups, process.getgroups());
+        assert.equal(typeof details.uid, 'number');
+        assert.equal(typeof details.gid, 'number');
+        assert.match(details.mode, /^[0-7]+$/);
+        return true;
+      }
+    );
   } finally {
     t.mock.restoreAll();
     syncBuiltinESMExports();

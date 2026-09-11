@@ -57,6 +57,23 @@ const blockedEnv = new Set([
 ]);
 
 // Developer tools may be installed by this user or root, never by another account.
+function untrustedPathError(path, info, adminGroup) {
+  const reasons = [];
+  if (info.uid !== 0 && info.uid !== process.getuid()) reasons.push('foreign-owner');
+  if ((info.mode & 0o002) !== 0) reasons.push('world-writable');
+  if ((info.mode & 0o020) !== 0 && !adminGroup) reasons.push('group-writable');
+  const details = {
+    path,
+    uid: info.uid,
+    gid: info.gid,
+    mode: (info.mode & 0o7777).toString(8),
+    effectiveUid: process.geteuid(),
+    groups: process.getgroups(),
+    reasons,
+  };
+  return new Error(`refused an untrusted executable installation: ${JSON.stringify(details)}`);
+}
+
 function checkOwnedPath(file) {
   for (let current = file; ; current = dirname(current)) {
     const info = statSync(current);
@@ -68,7 +85,7 @@ function checkOwnedPath(file) {
     const stickyRoot =
       current !== file && info.isDirectory() && info.uid === 0 && (info.mode & 0o1000) !== 0;
     if (!trustedOwner || (unsafeWrites && !stickyRoot)) {
-      throw new Error('refused an untrusted executable installation');
+      throw untrustedPathError(current, info, adminGroup);
     }
     if (current === dirname(current)) return;
   }

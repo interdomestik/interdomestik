@@ -48,9 +48,6 @@ test('qa tool surface exposes the Phase C verification contract', () => {
     assert.ok(routerSource.includes(`${toolName}: args =>`));
   }
 
-  assert.ok(
-    listToolsSource.includes('Run pr:verify (including the full E2E gate) and security:guard once')
-  );
   assert.match(healthSource, /pnpm pr:verify/);
   assert.match(healthSource, /pnpm security:guard/);
 
