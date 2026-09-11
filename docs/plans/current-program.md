@@ -16,6 +16,13 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
+Migration trials 1–3 are complete. The owner-approved next work is bounded harness
+repair and adoption of ordinary protected-PR delivery, followed by a separately
+selected product increment. T210 is prepared, not activated. Package-command PR
+#1759 and QA-runtime recovery are separate work; their completion is not assumed.
+
+## Delivered History
+
 `IDA-LA01-LEAN-AUTHORITY-BOOTSTRAP` completed in PR `#1629`: approved head
 `2845d36523f9f4f186f595336d9b3cd0d5158b00`, tree `3657eac816f4ce16678b68f74fff2f5a1a389593`,
 and squash `9f35b2eaf4904f8c0a02542632b51a92f8df4d3e` matched. Nine checks, 12/12 threads,
@@ -96,11 +103,46 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate                       | Dependencies    | Promotion constraint             |
-| -------: | ------------------------------- | --------------- | -------------------------------- |
-|        1 | Locale-aware currency parsing   | Promotion #1753 | Completed migration trial 1/3.   |
-|        2 | Bounded failed-run retry        | Owner direction | Active ordinary-PR trial 2/3.    |
-|        3 | Third bounded product-use slice | Trial 2         | Select separately for trial 3/3. |
+| Priority | Candidate                          | Dependencies    | Promotion constraint           |
+| -------: | ---------------------------------- | --------------- | ------------------------------ |
+|        1 | Locale-aware currency parsing      | Promotion #1753 | Completed migration trial 1/3. |
+|        2 | Bounded failed-run retry           | Owner direction | Completed migration trial 2/3. |
+|        3 | Unsupported claim AI document type | Trial 2         | Completed migration trial 3/3. |
+
+## Ordinary Product Delivery
+
+The owner adopts the ordinary protected-PR workflow demonstrated by trials 2 and 3
+for subsequent explicitly scoped work. This program selects priorities; the tracker
+records status. Neither a green gate nor an inactive legacy resolver selects a new
+feature or authorizes work outside the owner's scope.
+
+- Use one bounded implementation PR with its tests and necessary status updates.
+  No separate routine promotion/closeout PR, per-slice code exception, Brain
+  publication, or model approval panel is required.
+- `AGENTS.md` supplies repository boundaries; the Interdomestik skill guides
+  research, implementation, helper ownership and verification. AI OS/Brain/Wiki
+  remain advisory. Legacy slice runners and Lean authority are explicit-only;
+  their inactive state is not a prohibition on ordinary authorized product work.
+- Preserve tenant/auth/RLS, document lifecycle, data integrity, canonical routes,
+  the read-only proxy boundary, required CI and protected expected-head merges.
+  Focused tests support iteration; `pnpm pr:verify`, `pnpm security:guard` and
+  required E2E evidence still govern delivery. Reuse proof only for matching inputs
+  where existing contracts permit; do not run an already-covered heavy lane twice.
+- Review according to risk, including substantive review bodies and inline
+  comments. Consolidate corrections before the final expensive proof. A real
+  security or product failure remains blocking; diagnose infrastructure failures
+  before repeating unchanged runs.
+- Z620 prospective receipts below establish the historical three-trial result;
+  they are not a new recurring migration-qualification requirement. Follow the
+  selected task's actual verification requirements and isolate its resources.
+- Record prepared, tested, merged, deployed and user-validated states separately.
+  Staging remains intentionally dormant; this work authorizes no deployment.
+  CD subscribes only to version tags and manual dispatch, not `main` pushes.
+  Restore the automatic staging trigger only on explicit owner
+  reactivation of staging. Tag/manual releases retain their existing guards;
+  they are not authorized by a maintenance merge. PR #1760 establishes this
+  boundary before package-command PR #1759 merges. The trusted-parent classifier
+  and runtime-sensitive `package.json` classification remain unchanged.
 
 ## T117C Product Delivery
 
@@ -126,16 +168,15 @@ free. The run establishes a successful technical baseline but earns no migration
 activation and a repo-bound prospective protocol did not both precede product merge and measured
 execution as required by this slice's admission. Migration therefore remains 0/3.
 
-For trials 2 and 3, the owner's explicit execution direction admits one bounded ordinary product PR
+For the completed trials 2 and 3, the owner's explicit execution direction admitted one bounded ordinary product PR
 per trial while Lean authority remains inactive. No separate promotion/closeout PR or hard-coded
 per-slice policy exception is required. Each candidate must freeze its exact base SHA, product head,
 merge-candidate tree and lockfile hash before the repo-native
 `z620-resource-run.mjs --lanes=e2e-pr` execution. The clean detached run uses a task-owned database
 and port; unchanged protected PR evidence may be reused, and the result, redacted log, hashes,
 duration and cleanup state remain external evidence. A run started without that pre-execution
-binding or with failed cleanup earns no credit. Canonical status remains `in_progress` until both
-that evidence and the expected-head merge pass. Trials 1 and 2 are complete; trial 3 is the active
-candidate.
+binding or with failed cleanup earns no credit. Both that evidence and the expected-head merge
+passed for all three trials. Migration progress is 3/3; the ordinary workflow above now applies.
 
 ## Currency Parsing Trial 1 Promotion
 
@@ -171,7 +212,7 @@ in 1,551,834 ms; result SHA-256 is
 reserved port, and runner process were absent after execution; the clean temporary candidate was
 removed while its evidence was retained. All protected PR contexts passed on the unchanged head,
 which squash-merged as `1728afd3c76f952de9a6df87502800965e041093` on 2026-09-11. Migration
-progress is now 2/3.
+progress at that checkpoint was 2/3.
 
 ## Unsupported Claim AI Document Type Trial 3
 
@@ -181,8 +222,16 @@ read the uploaded format. Plain text and PDF decoding remain unchanged. Accepted
 types and unknown types fail permanently as `claim_ai_unsupported_document_type` before either
 claim extractor or extraction persistence runs. The existing upload allowlist, consent, document
 lifecycle, tenant-scoped failure persistence, retry policy, routes, auth, schema and deployment
-surface remain unchanged. Trial 3 stays `in_progress` until exact-head PR gates, the prospective
-Z620 run, cleanup, and expected-head merge all pass.
+surface remain unchanged. Product #1758 merged exact head
+`0819504edd2124ce4606e6102d980d78c2279ec4` as
+`d54fa720ba812ade5584ada9ab51aa02a9fc0c46` on 2026-09-11 at 16:36:22 UTC.
+Head and merge tree matched `145260744f66eee7ecef50d24b1873d181fa71c3`.
+The corrected prospective Z620 run passed in 1,553,241 ms with exit 0;
+result SHA-256 `629850774c15c55c114d005a2e020c52c98916155c81a64808d5f7ef4bb84437`,
+redacted log SHA-256 `f40d568e8c86ca2a56b2c8f50df3d984443695339b8c0bb4770264b6bbb6ab8e`.
+The execution owner reported task database/port/process/candidate cleanup and
+13/13 successful protected-main checks. No production deployment occurred.
+Trial 3 is completed; the three-trial migration is 3/3.
 
 ## Staff Current-Claim Tenant Context Promotion
 
@@ -199,19 +248,20 @@ and global headers remain T-117C.
 
 ## Selection Constraints
 
-- One clean repository worktree and one semantic writer; reviewers remain read-only.
-- Every repository child uses focused RED→GREEN, exact writer-map proof, required Tier-3 gates,
-  same-head feedback intake, expected-head merge, exact-main health, and task-owned cleanup.
-- Invalid authority/proof fails closed with `runtime_authorized:false`, `activeSlice:null`, and
+- Each implementation branch has one integration owner. Independent helpers use
+  disjoint file ownership or isolated worktrees; reviewers remain read-only.
+- Ordinary delivery follows the workflow above. Exact writer-map admission is
+  required only when explicitly invoking a legacy governed slice, not as an
+  additional promotion step for every ordinary PR.
+- For the explicit legacy Lean workflow, invalid authority/proof fails closed with `runtime_authorized:false`, `activeSlice:null`, and
   successors blocked; a valid `promotion_pending` projection may name `activeSlice` while runtime
   remains false.
-- Production executable code prefers `<=150` physical lines; 151–300 is advisory with unchanged
-  complexity, duplication, security, tests, and coverage, while `>300` requires split or exposed
-  cohesion/risk rationale. Focused tests are `<=300`; structured/governance/workflow/generated
-  surfaces follow their typed contracts. No minification.
+- Modularity follows `scripts/modularity-guard-policy.mjs`, not a universal
+  150-line ceiling. No unrelated splitting or minification to satisfy prose.
 - Models, Z620, cache data, and advisory memory can support evidence but cannot grant authority.
-- The repository validator is the sole runtime authority. External skills and MCP state are
-  read-only conveniences and cannot grant or block a Lean slice.
+- The repository validator remains the authority for an explicitly invoked Lean
+  slice. External skills and MCP state cannot grant or block that slice, and
+  ordinary-PR adoption does not change its inactive projection.
 - Existing unrelated worktrees, branches, PRs, artifacts, histories, and provider state are preserved.
 
 ## Lean Authority

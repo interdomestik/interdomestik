@@ -2,6 +2,21 @@
 
 This file contains agent guidelines and commands. For reviews, also follow `code_review.md`.
 
+## Normal Delivery
+
+Use the ordinary protected-PR workflow in `docs/plans/current-program.md`, with
+one canonical tracker in `docs/plans/current-tracker.md`. The completed migration
+trials do not require another qualification cycle. Legacy Lean and slice runners
+remain explicit-only; do not interpret their inactive state as a ban on ordinary
+owner-authorized work or create a promotion/closeout PR for each routine change.
+
+Use the Interdomestik skill for brief relevant research, bounded implementation,
+independent helper ownership and verification. AI OS/Brain/Wiki are advisory, not
+additional approval or publication requirements. Keep the security boundaries and
+required checks below; passing checks never authorizes unrelated scope or deployment.
+Review substantive current-head review bodies as well as inline comments, and
+consolidate accepted corrections before expensive final verification.
+
 ## ⚠️ V3 / Current Program Execution Rules (MANDATORY)
 
 `docs/plans/current-program.md` is the sole authority for the current phase, priorities, and sequencing. Do not infer the active slice from this file: M0→M5 is the conditional architecture-finalization authority when explicitly promoted, while Phase C remains the historical evidence ledger and its guardrails continue to apply.

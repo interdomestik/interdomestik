@@ -11,19 +11,20 @@ status_command: pnpm plan:status
 
 # Current Tracker
 
-> Lean runtime requires matching canonical JSON and live Git/GitHub facts.
+> Ordinary delivery follows the current program. Explicit legacy Lean runtime
+> still requires matching canonical JSON and live Git/GitHub facts.
 
 ## Active Queue
 
-| ID                                            | Status        | Owner      | Work                                                 | Exit Criteria                             |
-| --------------------------------------------- | ------------- | ---------- | ---------------------------------------------------- | ----------------------------------------- |
-| `MIGRATION-UNSUPPORTED-DOCUMENT-TYPE-TRIAL-3` | `in_progress` | `platform` | Fail unreadable claim AI document types permanently. | Exact PR gates, Z620 run, cleanup, merge. |
+| ID                             | Status        | Owner      | Work                                                                   | Exit Criteria                                          |
+| ------------------------------ | ------------- | ---------- | ---------------------------------------------------------------------- | ------------------------------------------------------ |
+| `HARNESS-ORDINARY-PR-ADOPTION` | `in_progress` | `platform` | Adopt the trial-proven workflow and repair confirmed delivery defects. | Regression tests, required PR checks, protected merge. |
 
 ## Proof Ledger
 
-| ID                                            | Source Refs                                                                   | Execution | Run ID    | Run Root | Sonar   | Docker  | Sentry           | Learning | Evidence Refs                                                |
-| --------------------------------------------- | ----------------------------------------------------------------------------- | --------- | --------- | -------- | ------- | ------- | ---------------- | -------- | ------------------------------------------------------------ |
-| `MIGRATION-UNSUPPORTED-DOCUMENT-TYPE-TRIAL-3` | docs/plans/current-program.md; docs/plans/current-tracker.md; owner direction | `pending` | `pending` | pending  | pending | pending | `not_applicable` | pending  | docs/plans/current-program.md; docs/plans/current-tracker.md |
+| ID                             | Source Refs                                                                   | Execution | Run ID    | Run Root | Sonar   | Docker  | Sentry           | Learning | Evidence Refs                                                |
+| ------------------------------ | ----------------------------------------------------------------------------- | --------- | --------- | -------- | ------- | ------- | ---------------- | -------- | ------------------------------------------------------------ |
+| `HARNESS-ORDINARY-PR-ADOPTION` | docs/plans/current-program.md; docs/plans/current-tracker.md; owner direction | `pending` | `pending` | pending  | pending | pending | `not_applicable` | pending  | docs/plans/current-program.md; docs/plans/current-tracker.md |
 
 Historical staff rehearsal: retained only as a timing baseline; no migration credit.
 
@@ -49,9 +50,9 @@ Migration rehearsal: promotion #1749; product #1744 head
 `c5ab7f1ac1898f1b82b23d400b7ae8465b7143c0ee29fa9446e6a1a3285718d9`. Existing protected-main
 evidence was reused. The task database, port, process scope and temporary checkout were cleaned.
 Because live activation and the repo-bound prospective protocol did not both precede merge and
-execution, this is a technical baseline rather than trial 1. Migration remains 0/3.
+execution, this is a technical baseline rather than trial 1. Migration was 0/3 at that checkpoint.
 
-The current protocol for migration trials 2 and 3 is defined in `current-program.md`: each trial
+The historical protocol for completed migration trials 2 and 3 is defined in `current-program.md`: each trial
 uses one bounded ordinary product PR while Lean authority remains inactive, with exact identity
 frozen before its clean detached Z620 run. Existing protected PR evidence is reused when inputs
 match; the result, redacted log, hashes, duration and cleanup state are retained. Missing
@@ -63,18 +64,29 @@ lane in 1,551,834 ms. Result SHA-256 is
 `cb44f5d3b3af05b391141a24f31419f35c1f23d444e02fc87aa254469a7516ea`. Task resources and the
 temporary candidate were cleaned, evidence was retained, and exact source
 `4a6ebbed9bb8a942d707ad81cef57fcede02dd63` squash-merged as
-`1728afd3c76f952de9a6df87502800965e041093`. Migration progress is 2/3.
+`1728afd3c76f952de9a6df87502800965e041093`. Migration progress at that checkpoint was 2/3.
+
+Unsupported-document product #1758 merged head
+`0819504edd2124ce4606e6102d980d78c2279ec4` as
+`d54fa720ba812ade5584ada9ab51aa02a9fc0c46`; head/merge tree matched
+`145260744f66eee7ecef50d24b1873d181fa71c3`. The corrected prospective Z620 run
+passed in 1,553,241 ms with task-resource cleanup; result/log hashes and the
+execution owner's exact-main verification are recorded in the current program.
+Migration is completed at 3/3. This is not production-deployment evidence.
 
 ## Next Selection
 
-T117C was delivered by promotion #1738 and product #1736. Closeout is inactive; successor
-promotion remains separate.
+T117C was delivered by promotion #1738 and product #1736. Its legacy projection
+remains inactive. The owner selected harness adoption next; T210 remains prepared,
+not an active product slice. Package-command PR #1759 and QA-runtime recovery
+proceed separately and are not recorded as completed here.
 
-| Future successor branch            | Status        | Constraint                                            |
-| ---------------------------------- | ------------- | ----------------------------------------------------- |
-| Locale-aware currency parsing      | `completed`   | Product #1754; migration trial 1/3 closed.            |
-| Bounded failed-run retry           | `completed`   | Product #1757; migration trial 2/3 closed.            |
-| Unsupported claim AI document type | `in_progress` | One bounded ordinary product PR; Lean stays inactive. |
+| Future successor branch            | Status      | Constraint                                                                |
+| ---------------------------------- | ----------- | ------------------------------------------------------------------------- |
+| Locale-aware currency parsing      | `completed` | Product #1754; migration trial 1/3 closed.                                |
+| Bounded failed-run retry           | `completed` | Product #1757; migration trial 2/3 closed.                                |
+| Unsupported claim AI document type | `completed` | Product #1758; migration trial 3/3 closed.                                |
+| Member timeline (T210)             | `pending`   | Prepared only; select the bounded product outcome after harness adoption. |
 
 ## Lean Authority
 
