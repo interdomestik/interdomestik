@@ -1,8 +1,5 @@
-import {
-  exactWriterClassification,
-  isStaffCurrentClaimTenantContext,
-  isT117BPortalRuntime,
-} from './lean-staff-current-claim-exception.mjs';
+import * as staff from './lean-staff-current-claim-exception.mjs';
+import * as trial from './lean-migration-product-trial-exceptions.mjs';
 export const APPROVAL_PREFIX = 'LEAN_AUTHORITY_APPROVAL_V1';
 export const AUTHORITY = 'lean-tier12-v1';
 export const PROGRAM = 'docs/plans/current-program.md';
@@ -96,7 +93,8 @@ export function classifyWriterPath(path, slice) {
     !path.includes('\\') &&
     path.split('/').every(part => part && part !== '.' && part !== '..');
   if (!safe) return { allowed: false, classification: 'malformed' };
-  const exactClassification = exactWriterClassification(path, slice);
+  const exactClassification =
+    trial.classify(path, slice) ?? staff.exactWriterClassification(path, slice);
   if (exactClassification) return { allowed: true, classification: exactClassification };
   if (DENY_PATTERNS.some(pattern => pattern.test(path)) || hasProtectedSegment(path)) {
     return { allowed: false, classification: 'protected' };
@@ -115,7 +113,6 @@ export function promotionArtifactPaths(paths) {
     : null;
 }
 export const validPromotionWriterPaths = paths => promotionArtifactPaths(paths) !== null;
-
 export function validateSlice(slice) {
   const fields =
     `sliceId tier promotionPrNumber promotionBaseSha expectedProductBranch gateSha256 admissionSha256 productWriterPaths closeoutWriterPaths`.split(
@@ -126,8 +123,9 @@ export function validateSlice(slice) {
     keysAre(slice, fields),
     /^[A-Z0-9][A-Z0-9-]+$/u.test(slice?.sliceId ?? ''),
     [1, 2].includes(slice?.tier) ||
-      isT117BPortalRuntime(slice) ||
-      isStaffCurrentClaimTenantContext(slice),
+      staff.isT117BPortalRuntime(slice) ||
+      staff.isStaffCurrentClaimTenantContext(slice) ||
+      trial.isExact(slice),
     Number.isSafeInteger(slice?.promotionPrNumber) && slice.promotionPrNumber > 0,
     SHA40.test(slice?.promotionBaseSha ?? ''),
     SHA256.test(slice?.gateSha256 ?? ''),
@@ -136,7 +134,7 @@ export function validateSlice(slice) {
     Array.isArray(writers) &&
       writers.length > 0 &&
       // Exact map hashes already bind both membership and cardinality.
-      (writers.length <= 12 || isT117BPortalRuntime(slice)),
+      (writers.length <= 12 || staff.isT117BPortalRuntime(slice)),
     Array.isArray(writers) && new Set(writers).size === writers.length,
     Array.isArray(writers) && writers.every(path => classifyWriterPath(path, slice).allowed),
     same(slice?.closeoutWriterPaths, CLOSEOUT),

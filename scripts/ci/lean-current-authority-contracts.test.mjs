@@ -6,6 +6,7 @@ const CONTRACT_MODULES = [
   '../lean-current-authority-conformance.test.mjs',
   '../lean-current-authority-evidence.test.mjs',
   '../lean-current-authority-policy.test.mjs',
+  '../lean-migration-product-trial-exceptions.test.mjs',
   '../lean-staff-current-claim-policy.test.mjs',
   '../lean-current-authority.test.mjs',
   '../plan-status.test.mjs',
@@ -14,7 +15,7 @@ const CONTRACT_MODULES = [
 await Promise.all(CONTRACT_MODULES.map(module => import(module)));
 
 test('CI wrapper loads the exact Lean authority contract modules once', () => {
-  assert.equal(CONTRACT_MODULES.length, 7);
+  assert.equal(CONTRACT_MODULES.length, 8);
   assert.equal(new Set(CONTRACT_MODULES).size, CONTRACT_MODULES.length);
   assert.ok(CONTRACT_MODULES.every(module => module.endsWith('.test.mjs')));
 });
