@@ -33,27 +33,27 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 78970,
+      "trackedBytesDelta": 82362,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 48032,
-        "source/scripts": 20852,
-        "tests/e2e": 10086
+        "config/data/messages": 48556,
+        "source/scripts": 22124,
+        "tests/e2e": 11682
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 48032,
+        "scripts/repo-size-budget.json": 48556,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
         "scripts/repo-size-capacity-schema.mjs": 8989,
-        "scripts/repo-size-capacity-evaluator.mjs": 6883,
+        "scripts/repo-size-capacity-evaluator.mjs": 8155,
         "scripts/repo-size-git-attribution.mjs": 2737,
         "scripts/repo-size-inventory.mjs": 3936,
         "scripts/repo-size-legacy-budget.mjs": 3198,
         "scripts/repo-size-audit-output.mjs": 3377,
         "scripts/ci/repo-size-capacity-fixtures.mjs": 2571,
         "scripts/ci/repo-size-capacity-schema.test.mjs": 2092,
-        "scripts/ci/repo-size-capacity-evaluator.test.mjs": 5022,
+        "scripts/ci/repo-size-capacity-evaluator.test.mjs": 6618,
         "scripts/ci/repo-size-git-attribution.test.mjs": 2816
       }
     },
@@ -81,12 +81,12 @@
         "scripts/modularity-guard-legacy-focused.test.mjs",
         "scripts/fixtures/update-status-legacy-baseline.test.ts.gz"
       ],
-      "maxTrackedBytesDelta": 63681,
+      "maxTrackedBytesDelta": 64478,
       "maxTrackedFilesDelta": 8,
       "maxCategoryBytesDelta": {
         "other": 5580,
-        "source/scripts": 20645,
-        "tests/e2e": 37456
+        "source/scripts": 20886,
+        "tests/e2e": 38012
       },
       "maxPathBytesDelta": {
         "scripts/lean-current-authority-policy.mjs": 578,
@@ -100,8 +100,8 @@
         "scripts/lean-current-authority-evidence.test.mjs": 991,
         "scripts/lean-current-authority-pull-selection.test.mjs": 2493,
         "scripts/lean-current-authority-conformance.test.mjs": 3260,
-        "scripts/modularity-guard-policy.mjs": 1013,
-        "scripts/check-modularity-guard.test.mjs": 785,
+        "scripts/modularity-guard-policy.mjs": 1254,
+        "scripts/check-modularity-guard.test.mjs": 1341,
         "scripts/lean-current-authority-recovery.mjs": 6810,
         "scripts/lean-current-authority-recovery.test.mjs": 9126,
         "scripts/lean-current-authority-observation.mjs": 2056,
@@ -487,13 +487,13 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 677029,
+      "maxTrackedBytesDelta": 680393,
       "maxTrackedFilesDelta": 94,
       "maxCategoryBytesDelta": {
         "config/data/messages": 1154,
         "docs/text": 30439,
-        "source/scripts": 345515,
-        "tests/e2e": 299921
+        "source/scripts": 347251,
+        "tests/e2e": 301549
       },
       "maxPathBytesDelta": {
         ".github/workflows/ci.yml": 1441,
@@ -519,11 +519,11 @@
         "scripts/slice-rehearse-bootstrap.mjs": 10916,
         "scripts/slice-rehearse-bootstrap.test.mjs": 11100,
         "scripts/slice-rehearse-canonical.mjs": 6973,
-        "scripts/slice-rehearse-capacity-existing.mjs": 6322,
+        "scripts/slice-rehearse-capacity-existing.mjs": 6939,
         "scripts/slice-rehearse-capacity-fixed-point.mjs": 7475,
         "scripts/slice-rehearse-capacity-owner-facts.mjs": 5204,
         "scripts/slice-rehearse-capacity-owner.test.mjs": 5803,
-        "scripts/slice-rehearse-capacity-projection.mjs": 5819,
+        "scripts/slice-rehearse-capacity-projection.mjs": 6140,
         "scripts/slice-rehearse-capacity-stops.test.mjs": 11068,
         "scripts/slice-rehearse-capacity.mjs": 9274,
         "scripts/slice-rehearse-cleanup.test.mjs": 8728,
@@ -559,17 +559,17 @@
         "scripts/slice-rehearse-ops-cli.mjs": 3996,
         "scripts/slice-rehearse-ops.mjs": 5122,
         "scripts/slice-rehearse-ops.test.mjs": 10127,
-        "scripts/slice-rehearse-projection.test.mjs": 11006,
+        "scripts/slice-rehearse-projection.test.mjs": 11614,
         "scripts/slice-rehearse-proof-execution-cli.test.mjs": 7689,
         "scripts/slice-rehearse-proof-plan.mjs": 5247,
         "scripts/slice-rehearse-proof-plan.test.mjs": 8547,
         "scripts/slice-rehearse-report.mjs": 9628,
         "scripts/slice-rehearse-report.test.mjs": 7440,
         "scripts/slice-rehearse-repository-facts.mjs": 8307,
-        "scripts/slice-rehearse-repository.test.mjs": 9076,
+        "scripts/slice-rehearse-repository.test.mjs": 9803,
         "scripts/slice-rehearse-review-parity.mjs": 8098,
         "scripts/slice-rehearse-review-parity.test.mjs": 4650,
-        "scripts/slice-rehearse-writer-policy.mjs": 7605,
+        "scripts/slice-rehearse-writer-policy.mjs": 7771,
         "scripts/slice-rehearse.mjs": 11001,
         "scripts/slice-rehearse.test.mjs": 10521,
         "scripts/slice-telemetry-aggregation.mjs": 5353,
@@ -621,16 +621,16 @@
         "scripts/lib/modularity-guard.mjs",
         "scripts/lib/workflow-permission-tightening.mjs"
       ],
-      "maxTrackedBytesDelta": 14073,
+      "maxTrackedBytesDelta": 14190,
       "maxTrackedFilesDelta": 2,
       "maxCategoryBytesDelta": {
         "tests/e2e": 8621,
-        "source/scripts": 5452
+        "source/scripts": 5569
       },
       "maxPathBytesDelta": {
         "scripts/ci/main-e2e-reuse-workflow.test.mjs": 726,
         "scripts/ci/workflow-permission-tightening.test.mjs": 7895,
-        "scripts/lib/modularity-guard.mjs": 1074,
+        "scripts/lib/modularity-guard.mjs": 1191,
         "scripts/lib/workflow-permission-tightening.mjs": 4378
       }
     },
@@ -971,17 +971,17 @@
         "scripts/ci/pr-delivery-workflow.test.mjs",
         "scripts/ci/repo-size-audit.test.mjs"
       ],
-      "maxTrackedBytesDelta": 1629,
+      "maxTrackedBytesDelta": 2083,
       "maxTrackedFilesDelta": 1,
       "maxCategoryBytesDelta": {
-        "config/data/messages": 134,
-        "tests/e2e": 789,
+        "config/data/messages": 328,
+        "tests/e2e": 1049,
         "other": 706
       },
       "maxPathBytesDelta": {
         ".husky/pre-push": 706,
-        ".github/workflows/pr-delivery-gate.yml": 134,
-        "scripts/ci/pr-delivery-workflow.test.mjs": 243,
+        ".github/workflows/pr-delivery-gate.yml": 328,
+        "scripts/ci/pr-delivery-workflow.test.mjs": 503,
         "scripts/ci/repo-size-audit.test.mjs": 546
       }
     },
@@ -1038,6 +1038,23 @@
         "docs/plans/2026-09-11-claim-intake-locale-currency-design-gate.md": 3200,
         "docs/plans/2026-09-11-claim-intake-locale-currency-admission.json": 2600
       }
+    },
+    {
+      "id": "semantic-governance-authority",
+      "mode": "bounded",
+      "writerPaths": [
+        "scripts/current-authority-format-audit.mjs",
+        "scripts/current-authority-format-audit.test.mjs"
+      ],
+      "maxTrackedBytesDelta": 1037,
+      "maxTrackedFilesDelta": 0,
+      "maxCategoryBytesDelta": {
+        "tests/e2e": 1037
+      },
+      "maxPathBytesDelta": {
+        "scripts/current-authority-format-audit.mjs": 0,
+        "scripts/current-authority-format-audit.test.mjs": 1037
+      }
     }
   ],
   "reserve": {
@@ -1049,15 +1066,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60937276,
+  "maxTrackedBytes": 60946437,
   "maxTrackedFiles": 6010,
   "maxCategoryBytes": {
-    "config/data/messages": 2210884,
+    "config/data/messages": 2211602,
     "docs/text": 8535729,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8746889,
-    "tests/e2e": 6863039
+    "source/scripts": 8750255,
+    "tests/e2e": 6868116
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

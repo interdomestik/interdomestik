@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
@@ -151,6 +151,20 @@ test('accepts compact authority and reconstructable Git history', () => {
   assert.match(result.stdout, /current-authority format audit passed/);
 });
 
+test('accepts large canonical authority documents when semantic contracts remain valid', () => {
+  const { root } = fixture();
+  for (const name of ['current-program.md', 'current-tracker.md']) {
+    const path = join(root, 'docs/plans', name);
+    const padding = Array.from({ length: 1_100 }, (_, index) => `authority detail ${index}`).join(
+      '\n'
+    );
+    writeFileSync(path, `${readFileSync(path, 'utf8')}\n${padding}\n${'x'.repeat(140_000)}\n`);
+  }
+  const result = spawnSync(process.execPath, [script], { cwd: root, encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /current-authority format audit passed/);
+});
+
 test('rejects append-only revision narratives', () => {
   const { root } = fixture();
   const path = join(root, 'docs/plans/current-program.md');
@@ -167,6 +181,14 @@ test('rejects a missing canonical authority section', () => {
   const result = spawnSync(process.execPath, [script], { cwd: root, encoding: 'utf8' });
   assert.equal(result.status, 1);
   assert.match(result.stderr, /missing Current Phase section/);
+});
+
+test('rejects deletion of a canonical authority document', () => {
+  const { root } = fixture();
+  rmSync(join(root, 'docs/plans/current-tracker.md'));
+  const result = spawnSync(process.execPath, [script], { cwd: root, encoding: 'utf8' });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /current-authority format audit failed/);
 });
 
 test('rejects a repointed manifest in the canonical repository', () => {

@@ -56,10 +56,8 @@ function ensureCommit(commit) {
   });
   if (fetched.status) throw new Error(`exact historical fetch failed: ${fetched.stderr.trim()}`);
 }
-function inspectLiveDocument(path, bytes, byteCeiling, lineCeiling, errors) {
+function inspectLiveDocument(path, bytes, errors) {
   const text = bytes.toString('utf8');
-  if (bytes.length > byteCeiling) errors.push(`${path}: exceeds ${byteCeiling} bytes`);
-  if (lineCount(text) > lineCeiling) errors.push(`${path}: exceeds ${lineCeiling} lines`);
   const markers = text.match(MARKER) ?? [];
   if (markers.length !== 1) errors.push(`${path}: expected exactly one active-goal marker`);
   const revisions = text.match(/^(?:##\s+)?Rev\s+\d+\b/gm) ?? [];
@@ -154,8 +152,8 @@ function main() {
   const projectionBytes = readFileSync(PROJECTION);
   const envelopeBytes = readFileSync(ENVELOPE);
   const receiptBytes = readFileSync(RECEIPT);
-  const program = inspectLiveDocument(PROGRAM, programBytes, 16_384, 220, errors);
-  const tracker = inspectLiveDocument(TRACKER, trackerBytes, 12_288, 160, errors);
+  const program = inspectLiveDocument(PROGRAM, programBytes, errors);
+  const tracker = inspectLiveDocument(TRACKER, trackerBytes, errors);
   requireSections(program.text, PROGRAM, PROGRAM_SECTIONS, errors);
   requireSections(tracker.text, TRACKER, TRACKER_SECTIONS, errors);
   if (tableRows(extractSection(program.text, 'Ordered Candidate Priorities')) > 12) {

@@ -155,7 +155,32 @@ test('writer policy uses absolute global caps and skips line caps without a cano
   );
 });
 
-test('global capacity is an authority stop and governance bytes use the absolute limit', () => {
+test('writer policy leaves canonical authority document size to semantic validators', () => {
+  const path = 'docs/plans/current-program.md';
+  const policy = evaluateWriterPolicy(
+    {
+      pathPlans: [
+        { path, change: 'modify', category: 'docs/text', maxBytesDelta: 500_000, maxLines: 5_000 },
+      ],
+    },
+    {
+      writerLineCounts: { [path]: 5_000 },
+      writerDeltas: {
+        [path]: {
+          bytes: 400_000,
+          baseBytes: 10_000,
+          currentBytes: 410_000,
+          manifestBaseExists: true,
+        },
+      },
+    },
+    { maxLargestFileBytes: 128 * 1024, maxSourceOrTestLines: 300 }
+  );
+
+  assert.deepEqual(policy, { authorityStops: [], deficits: [] });
+});
+
+test('global file capacity remains an authority stop for canonical governance changes', () => {
   const budgetBytes = readFileSync(new URL('./repo-size-budget.json', import.meta.url));
   const budget = JSON.parse(budgetBytes);
   const writerPaths = ['docs/plans/current-program.md', 'docs/plans/current-tracker.md'];
@@ -249,12 +274,17 @@ test('global capacity is an authority stop and governance bytes use the absolute
   });
   assert.ok(report.authorityStops.some(item => item.code === 'capacity:global-tracked-files'));
   assert.ok(report.authorityStops.some(item => item.code.endsWith(writerPaths[0])));
-  assert.ok(report.authorityStops.some(item => item.code.includes('largest-file-current')));
-  assert.ok(report.authorityStops.some(item => item.code.endsWith(writerPaths[1])));
-  assert.ok(
-    report.deficits.some(
-      item => item.code === 'modularity:absolute-byte-cap:docs/plans/current-program.md'
-    )
+  assert.equal(
+    report.authorityStops.some(item => item.code.endsWith(writerPaths[1])),
+    false
+  );
+  assert.equal(
+    report.authorityStops.some(item => item.code.includes('largest-file-current')),
+    false
+  );
+  assert.equal(
+    report.deficits.some(item => item.code.includes('modularity:absolute-byte-cap')),
+    false
   );
   assert.ok(report.deficits.some(item => item.code === 'repository:protected-main-advanced'));
   assert.equal(report.operationalEnvelope, null);

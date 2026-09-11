@@ -170,8 +170,30 @@ test('projection keeps the budget unchanged', () => {
   plannedFacts.writerDeltas[PROGRAM].bytes = 0;
   plannedFacts.writerDeltas[TRACKER].bytes = 0;
   const overCapacity = rehearse(value, plannedFacts);
-  assert.ok(hasStop(overCapacity, 'capacity:global-tracked-bytes'));
-  assert.equal(overCapacity.operationalEnvelope, null);
+  assert.equal(hasStop(overCapacity, 'capacity:global-tracked-bytes'), false);
+});
+test('projection accepts large canonical authority growth without consuming size capacity', () => {
+  const value = manifest({
+    pathPlans: CLOSEOUT.map(path => plan(path, { maxBytesDelta: 250_000, maxLines: 5_000 })),
+  });
+  const facts = repo(value);
+  for (const path of CLOSEOUT) {
+    facts.writerDeltas[path].bytes = 200_000;
+    facts.writerDeltas[path].currentBytes = 300_000;
+    facts.capacityOwnerDeltas[path] = { ...facts.writerDeltas[path] };
+    facts.writerLineCounts[path] = 5_000;
+  }
+  facts.tracked.bytes = budget.maxTrackedBytes + 400_000;
+  facts.tracked.categoryBytes = { ...categoryHeadroom };
+  for (const path of CLOSEOUT) {
+    const category = budgetCategory(path);
+    facts.tracked.categoryBytes[category] += 200_000;
+  }
+
+  const report = rehearse(value, facts);
+
+  assert.deepEqual(report.authorityStops, []);
+  assert.deepEqual(report.deficits, []);
 });
 test('promotion reuses baseline-new writers only within the owner file ceiling', () => {
   const value = promotion();
@@ -228,12 +250,12 @@ test('mixed closeout refuses a governance repair allocation', () => {
   );
   assert.equal(report.operationalEnvelope, null);
 });
-test('projection fails without ownership or headroom', () => {
+test('projection still fails without canonical authority ownership', () => {
   const value = manifest();
   const facts = repo(value);
   facts.writerDeltas[PROGRAM].bytes = allocation(PROJ).maxPathBytesDelta[PROGRAM] + 1;
   const overCap = capacity(value, facts);
-  assert.ok(hasStop(overCap, 'capacity:projection-current-path-insufficient'));
+  assert.equal(hasStop(overCap, 'capacity:projection-current-path-insufficient'), false);
   const ownerlessBudget = structuredClone(budget);
   const owner = allocation(PROJ, ownerlessBudget);
   owner.writerPaths = owner.writerPaths.filter(path => path !== PROGRAM);
@@ -241,7 +263,7 @@ test('projection fails without ownership or headroom', () => {
   const ownerless = capacity(value, facts, ownerlessBudget);
   assert.ok(hasStop(ownerless, 'capacity:projection-writer-unowned'));
 });
-test('projection checks grouped owner headroom', () => {
+test('canonical authority exemption preserves ordinary grouped owner byte checks', () => {
   const value = manifest();
   const facts = repo(value);
   facts.writerDeltas[PROGRAM].bytes = 0;

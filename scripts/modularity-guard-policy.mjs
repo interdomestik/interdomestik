@@ -21,6 +21,10 @@ export function legacyFocusedTestContract(filePath) {
   return LEGACY_FOCUSED_TEST_CONTRACTS.get(toPolicyPath(filePath)) ?? null;
 }
 export const MODULARITY_LINE_LIMIT = MODULARITY_POLICY.productionCode.preferredLines;
+const SEMANTIC_GOVERNANCE_PATHS = new Set([
+  'docs/plans/current-program.md',
+  'docs/plans/current-tracker.md',
+]);
 export const FILE_CLASSES = Object.freeze({
   productionCode: 'production-code',
   focusedTest: 'focused-test',
@@ -99,6 +103,9 @@ const extension = filePath => {
 };
 export function toPolicyPath(filePath) {
   return filePath.replaceAll('\\', '/').replace(/^\/+/, '');
+}
+export function isSemanticGovernanceDocument(filePath) {
+  return SEMANTIC_GOVERNANCE_PATHS.has(toPolicyPath(filePath));
 }
 export function isCheckedTextFile(filePath) {
   return CHECKED_TEXT_EXTENSIONS.has(extension(toPolicyPath(filePath)));

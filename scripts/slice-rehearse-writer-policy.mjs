@@ -1,6 +1,7 @@
 import {
   classifyModularityFile,
   FILE_CLASSES,
+  isSemanticGovernanceDocument,
   MODULARITY_POLICY,
   legacyFocusedTestContract,
   structuredArtifactOwner,
@@ -20,6 +21,9 @@ const IDENTITY_CHANGING_OPERATIONS = new Set([
 
 export function canonicalModularityForPath(path) {
   const fileClass = classifyModularityFile(path);
+  if (isSemanticGovernanceDocument(path)) {
+    return { fileClass, maxLines: null, maxBytes: null };
+  }
   if (fileClass === FILE_CLASSES.productionCode) {
     return {
       fileClass,
@@ -51,6 +55,7 @@ function stopWhenOver(stops, code, actual, limit) {
 
 function evaluateWriterPlan(plan, repository, budget, authorityStops, deficits) {
   const modularity = canonicalModularityForPath(plan.path);
+  const semanticGovernance = isSemanticGovernanceDocument(plan.path);
   const actualLines = repository.writerLineCounts[plan.path] ?? 0;
   const delta = repository.writerDeltas[plan.path];
   const legacy = legacyFocusedTestContract(plan.path);
@@ -90,18 +95,20 @@ function evaluateWriterPlan(plan, repository, budget, authorityStops, deficits) 
       coveredBy: 'extract_cohesive_helper',
     });
   }
-  stopWhenOver(
-    authorityStops,
-    `capacity:largest-file-current:${plan.path}`,
-    delta?.currentBytes ?? 0,
-    budget.maxLargestFileBytes
-  );
-  stopWhenOver(
-    authorityStops,
-    `capacity:largest-file-planned:${plan.path}`,
-    plannedBytes,
-    budget.maxLargestFileBytes
-  );
+  if (!semanticGovernance) {
+    stopWhenOver(
+      authorityStops,
+      `capacity:largest-file-current:${plan.path}`,
+      delta?.currentBytes ?? 0,
+      budget.maxLargestFileBytes
+    );
+    stopWhenOver(
+      authorityStops,
+      `capacity:largest-file-planned:${plan.path}`,
+      plannedBytes,
+      budget.maxLargestFileBytes
+    );
+  }
   if ([FILE_CLASSES.productionCode, FILE_CLASSES.focusedTest].includes(modularity.fileClass)) {
     stopWhenOver(
       authorityStops,
@@ -116,7 +123,11 @@ function evaluateWriterPlan(plan, repository, budget, authorityStops, deficits) 
       budget.maxSourceOrTestLines
     );
   }
-  if (plan.path !== 'scripts/repo-size-budget.json' && delta?.bytes > plan.maxBytesDelta) {
+  if (
+    plan.path !== 'scripts/repo-size-budget.json' &&
+    !semanticGovernance &&
+    delta?.bytes > plan.maxBytesDelta
+  ) {
     authorityStops.push({
       code: `capacity:path-cap-drift:${plan.path}`,
       actual: delta.bytes,

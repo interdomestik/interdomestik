@@ -62,6 +62,50 @@ test('capacity evaluator rejects file-count and hidden Git-attribution drift', (
   assert.equal(hasViolation(hidden, 'inventory-attribution:tracked-bytes'), true);
 });
 
+test('canonical authority size cannot hide another oversized tracked file', () => {
+  const budget = allocationBudget();
+  const report = capacityReport();
+  report.tracked.largestFiles = [
+    { path: 'docs/plans/current-program.md', bytes: budget.maxLargestFileBytes + 200_000 },
+    { path: 'docs/ordinary.md', bytes: budget.maxLargestFileBytes + 1 },
+  ];
+
+  const result = evaluateCapacityBudget(report, budget, acceptedChangeFacts());
+
+  assert.equal(hasViolation(result, 'largest-file-bytes'), true);
+  assert.equal(
+    result.violations.find(item => item.code === 'largest-file-bytes')?.path,
+    'docs/ordinary.md'
+  );
+});
+
+test('canonical authority growth remains Git-attributed without consuming byte capacity', () => {
+  const budget = allocationBudget();
+  budget.allocations.push({
+    id: 'canonical-authority',
+    mode: 'bounded',
+    writerPaths: ['docs/plans/current-program.md'],
+    maxTrackedBytesDelta: 0,
+    maxTrackedFilesDelta: 0,
+    maxCategoryBytesDelta: {},
+    maxPathBytesDelta: { 'docs/plans/current-program.md': 0 },
+  });
+  const facts = [
+    ...acceptedChangeFacts(),
+    { path: 'docs/plans/current-program.md', bytesDelta: 200_000, filesDelta: 0 },
+  ];
+  const report = capacityReport({ bytes: 201_040 });
+  report.tracked.categories.find(item => item.name === 'docs/text').bytes = 200_100;
+  report.tracked.largestFiles = [
+    { path: 'docs/plans/current-program.md', bytes: 300_000 },
+    { path: 'scripts/lean.mjs', bytes: 500 },
+  ];
+
+  const result = evaluateCapacityBudget(report, budget, facts);
+
+  assert.deepEqual(result.violations, []);
+});
+
 test('Git attribution accepts deterministic statuses and fails closed on renames', () => {
   assert.deepEqual(parseGitNameStatus(Buffer.from('M\0scripts/a.mjs\0A\0scripts/b.mjs\0')), [
     { status: 'M', path: 'scripts/a.mjs' },

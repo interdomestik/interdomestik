@@ -1,6 +1,8 @@
 import { compareText } from './slice-rehearse-canonical.mjs';
 import { analyzeProjectionReuse } from './slice-rehearse-capacity-projection.mjs';
 import { unchangedBudgetProposal } from './slice-rehearse-capacity-fixed-point.mjs';
+import { isSemanticGovernanceDocument } from './modularity-guard-policy.mjs';
+import { budgetCategory } from './repo-size-budget-sync-core.mjs';
 
 export const BUDGET_PATH = 'scripts/repo-size-budget.json';
 export const CAPACITY_REBASE_ID = 'capacity-rebase';
@@ -70,14 +72,19 @@ export function proposedAllocation(manifest, id, writerDeltas = {}) {
   const plans = manifest.pathPlans.filter(({ path }) => path !== BUDGET_PATH);
   if (!plans.length) return null;
   const maxCategoryBytesDelta = {};
-  for (const { category, maxBytesDelta } of plans) {
-    maxCategoryBytesDelta[category] = (maxCategoryBytesDelta[category] ?? 0) + maxBytesDelta;
+  for (const { path, category, maxBytesDelta } of plans) {
+    const capacityBytes = isSemanticGovernanceDocument(path) ? 0 : maxBytesDelta;
+    maxCategoryBytesDelta[category] = (maxCategoryBytesDelta[category] ?? 0) + capacityBytes;
   }
   return {
     id,
     mode: 'bounded',
     writerPaths: plans.map(plan => plan.path).sort(compareText),
-    maxTrackedBytesDelta: plans.reduce((sum, { maxBytesDelta }) => sum + maxBytesDelta, 0),
+    maxTrackedBytesDelta: plans.reduce(
+      (sum, { path, maxBytesDelta }) =>
+        sum + (isSemanticGovernanceDocument(path) ? 0 : maxBytesDelta),
+      0
+    ),
     maxTrackedFilesDelta: plans.filter(plan => {
       const facts = writerDeltas[plan.path];
       const baselineExists = facts?.capacityBaselineExists ?? facts?.baselineExists;
@@ -86,7 +93,10 @@ export function proposedAllocation(manifest, id, writerDeltas = {}) {
     maxCategoryBytesDelta,
     maxPathBytesDelta: Object.fromEntries(
       plans
-        .map(({ path, maxBytesDelta }) => [path, maxBytesDelta])
+        .map(({ path, maxBytesDelta }) => [
+          path,
+          isSemanticGovernanceDocument(path) ? 0 : maxBytesDelta,
+        ])
         .sort(([left], [right]) => compareText(left, right))
     ),
   };
@@ -110,6 +120,7 @@ export function existingAllocationStops(owner, need, allocationId, subset = fals
     }
   }
   for (const [path, bytes] of Object.entries(need.maxPathBytesDelta)) {
+    if (isSemanticGovernanceDocument(path)) continue;
     if ((owner.maxPathBytesDelta[path] ?? -1) < bytes) {
       stops.push({
         code: 'capacity:existing-path-insufficient',
@@ -136,7 +147,21 @@ function capacityStop(stops, code, actual, limit) {
   if (actual > limit) stops.push({ code, actual, limit });
 }
 
+function semanticCapacityExemption(proposal, repo) {
+  const exemption = { bytes: 0, categories: {} };
+  for (const path of (proposal.allocation?.writerPaths ?? []).filter(isSemanticGovernanceDocument)) {
+    const bytes =
+      Math.max(0, repo.writerDeltas[path]?.bytes ?? 0) +
+      (proposal.projectionHeadroom?.paths[path] ?? 0);
+    exemption.bytes += bytes;
+    const category = budgetCategory(path);
+    exemption.categories[category] = (exemption.categories[category] ?? 0) + bytes;
+  }
+  return exemption;
+}
+
 export function appendCapacityEvaluation({ proposal, repo, deficits, authorityStops, categories }) {
+  const exemption = semanticCapacityExemption(proposal, repo);
   const capacityAlreadyApplied = proposal.worktreeBudget?.state === 'candidate-exact';
   if (proposal.mode === 'derived' && !capacityAlreadyApplied) {
     for (const [amount, code] of [
@@ -157,7 +182,7 @@ export function appendCapacityEvaluation({ proposal, repo, deficits, authoritySt
     authorityStops,
     'capacity:global-tracked-bytes',
     repo.tracked.bytes + (proposal.projectionHeadroom?.bytes ?? 0),
-    proposal.budget.maxTrackedBytes
+    proposal.budget.maxTrackedBytes + exemption.bytes
   );
   for (const category of categories) {
     capacityStop(
@@ -165,7 +190,7 @@ export function appendCapacityEvaluation({ proposal, repo, deficits, authoritySt
       `capacity:global-category-bytes:${category}`,
       (repo.tracked.categoryBytes[category] ?? 0) +
         (proposal.projectionHeadroom?.categories[category] ?? 0),
-      proposal.budget.maxCategoryBytes[category]
+      proposal.budget.maxCategoryBytes[category] + (exemption.categories[category] ?? 0)
     );
   }
 }

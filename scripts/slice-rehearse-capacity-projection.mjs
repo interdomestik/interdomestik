@@ -1,5 +1,6 @@
 import { allocationDelta, categoryAllocationDelta } from './repo-size-capacity-schema.mjs';
 import { budgetCategory } from './repo-size-budget-sync-core.mjs';
+import { isSemanticGovernanceDocument } from './modularity-guard-policy.mjs';
 import { compareText } from './slice-rehearse-canonical.mjs';
 
 const FACT_KEYS = 'currentBytes currentSha256 files capacityBaselineExists currentExists'.split(
@@ -18,6 +19,7 @@ function recordProjectionPath(context, filePath) {
   const allocation = budget.allocations.find(item => item.id === owner);
   const limit = (allocation.pathBytesDelta ?? allocation.maxPathBytesDelta)[filePath];
   context.projectionPathCaps[filePath] = limit;
+  const semanticGovernance = isSemanticGovernanceDocument(filePath);
   const plan = context.plans.get(filePath);
   const facts = context.writerDeltas[filePath];
   const ownerFacts = capacityOwnerDeltas[filePath];
@@ -38,16 +40,19 @@ function recordProjectionPath(context, filePath) {
   if (plan.change !== 'modify') {
     stop(context, 'capacity:projection-writer-must-modify', filePath);
   }
-  for (const [actual, code] of [
-    [plan.maxBytesDelta, 'capacity:projection-path-insufficient'],
-    [facts.bytes, 'capacity:projection-current-path-insufficient'],
-  ]) {
-    if (actual > limit) authorityStops.push({ code, path: filePath, owner, actual, limit });
+  if (!semanticGovernance) {
+    for (const [actual, code] of [
+      [plan.maxBytesDelta, 'capacity:projection-path-insufficient'],
+      [facts.bytes, 'capacity:projection-current-path-insufficient'],
+    ]) {
+      if (actual > limit) authorityStops.push({ code, path: filePath, owner, actual, limit });
+    }
   }
   const usage = context.usageByOwner.get(owner) ?? { bytes: 0, files: 0, categories: {} };
-  usage.bytes += plan.maxBytesDelta;
+  const capacityBytes = semanticGovernance ? 0 : plan.maxBytesDelta;
+  usage.bytes += capacityBytes;
   usage.files += promotion ? facts.files : Number(plan.change === 'create');
-  usage.categories[plan.category] = (usage.categories[plan.category] ?? 0) + plan.maxBytesDelta;
+  usage.categories[plan.category] = (usage.categories[plan.category] ?? 0) + capacityBytes;
   context.usageByOwner.set(owner, usage);
   const remaining = Math.max(0, plan.maxBytesDelta - facts.bytes);
   context.plannedHeadroom.paths[filePath] = remaining;
@@ -64,10 +69,11 @@ function validateOwnerUsage(context, owner, usage) {
   )) {
     const facts = context.capacityOwnerDeltas[filePath];
     if (!facts) continue;
-    usage.bytes += facts.bytes;
+    const capacityBytes = isSemanticGovernanceDocument(filePath) ? 0 : facts.bytes;
+    usage.bytes += capacityBytes;
     usage.files += facts.files;
     const category = budgetCategory(filePath);
-    usage.categories[category] = (usage.categories[category] ?? 0) + facts.bytes;
+    usage.categories[category] = (usage.categories[category] ?? 0) + capacityBytes;
   }
   for (const [actual, limit, code] of [
     [
@@ -147,5 +153,10 @@ export function analyzeProjectionReuse({
       unexpectedPaths,
     });
   }
-  return { authorityStops, ownerAllocations, plannedHeadroom, projectionPathCaps };
+  return {
+    authorityStops,
+    ownerAllocations,
+    plannedHeadroom,
+    projectionPathCaps,
+  };
 }
