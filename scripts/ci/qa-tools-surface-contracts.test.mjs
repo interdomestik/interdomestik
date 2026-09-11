@@ -49,9 +49,7 @@ test('qa tool surface exposes the Phase C verification contract', () => {
   }
 
   assert.ok(
-    listToolsSource.includes(
-      'Run the full Phase C verification contract (pr:verify, security:guard, e2e:gate)'
-    )
+    listToolsSource.includes('Run pr:verify (including the full E2E gate) and security:guard once')
   );
   assert.match(healthSource, /pnpm pr:verify/);
   assert.match(healthSource, /pnpm security:guard/);

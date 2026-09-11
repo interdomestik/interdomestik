@@ -50,6 +50,44 @@ test('execAsync classifies failed check:fast output by the active stage marker',
   assert.equal(result.failureCategory, 'unit');
 });
 
+test('verification classification matches exact commands and the latest stage', () => {
+  const cases = [
+    ['pnpm unknown', '', null, null],
+    ['pnpm pr:verify:hosts', '', 'pr_verify_hosts', 'e2e'],
+    ['pnpm pr:verify', '', 'pr_verify', 'unknown'],
+    ['pnpm check:fast', '', 'check_fast', 'static'],
+    ['pnpm check:fast', '[check:fast] i18n', 'i18n_check', 'i18n'],
+    ['pnpm check:fast', '[check:fast] entrypoints', 'static_check', 'static'],
+    ['pnpm check:fast', '[check:fast] unit\n[check:fast] architecture', 'static_check', 'static'],
+    ['pnpm security:guard', 'security-guard.mjs', 'security_guard', 'security'],
+    ['pnpm e2e:gate', '', 'e2e_gate', 'e2e'],
+    ['pnpm e2e:gate --help', '', 'e2e_gate', 'e2e'],
+    ['pnpm e2e:gate:pr:fast', '', 'e2e_gate_pr_fast', 'e2e'],
+    ['pnpm e2e:gate:pr:fast --help', 'Running 61 tests using 1 worker', 'e2e_gate_pr_fast', 'e2e'],
+    ['pnpm e2e:gate:pr:fast:unknown', '', null, null],
+    ['pnpm e2e:gate:unknown', '', null, null],
+    ['pnpm e2e:state:setup', '[Setup] Generating state', 'e2e_state_setup', 'e2e'],
+    ['pnpm --filter @interdomestik/web build:ci', 'Running TypeScript', 'build_ci', 'build'],
+    ['pnpm pr:verify', 'test:release-gate', 'release_gate', 'release_gate'],
+    ['pnpm pr:verify', 'db:migrations:check-journal', 'db_migrations_check_journal', 'db'],
+    ['pnpm pr:verify', 'db:rls:test:required', 'db_rls_test_required', 'db'],
+    ['pnpm pr:verify', 'i18n:purity:check', 'i18n_purity_check', 'i18n'],
+    ['pnpm pr:verify', 'coverage:gate', 'coverage_gate', 'coverage'],
+    ['pnpm pr:verify', '[Gatekeeper] Applying Schema', 'db_migrate', 'db'],
+    ['pnpm pr:verify', 'Building production-like standalone web artifact', 'build_ci', 'build'],
+    ['pnpm pr:verify', 'e2e:gate\ne2e:smoke', 'e2e_smoke', 'smoke'],
+    ['pnpm pr:verify', 'e2e:smoke\ne2e:gate', 'e2e_gate', 'e2e'],
+    ['pnpm e2e:gate:pr:fast', 'seed:e2e', 'seed_e2e', 'seed'],
+  ];
+  const results = runModuleExpression(
+    'packages/qa/src/utils/verification-failure.ts',
+    `${JSON.stringify(cases)}.map(([command, output]) => mod.classifyVerificationFailure(command, output))`
+  );
+  cases.forEach(([command, output, failedStage, failureCategory], index) => {
+    assert.deepEqual(results[index], { failedStage, failureCategory }, `${command}: ${output}`);
+  });
+});
+
 test('execAsync truncates oversized stdout without failing the command', () => {
   const result = runModuleExpression(
     'packages/qa/src/utils/exec.ts',

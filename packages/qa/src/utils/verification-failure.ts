@@ -65,7 +65,7 @@ const FAILURE_PATTERNS: FailurePattern[] = [
     stages: [{ marker: 'security-guard.mjs', stage: 'security_guard' }],
   },
   {
-    commandPattern: /\bpnpm e2e:gate\b/,
+    commandPattern: /\bpnpm e2e:gate(?=\s|$)/,
     fallbackStage: 'e2e_gate',
     stages: [
       { marker: '[Gatekeeper] Applying Schema', stage: 'db_migrate' },
@@ -75,7 +75,7 @@ const FAILURE_PATTERNS: FailurePattern[] = [
     ],
   },
   {
-    commandPattern: /\bpnpm e2e:gate:pr:fast\b/,
+    commandPattern: /\bpnpm e2e:gate:pr:fast(?=\s|$)/,
     fallbackStage: 'e2e_gate_pr_fast',
     stages: [
       { marker: '[Gatekeeper] Applying Schema', stage: 'db_migrate' },

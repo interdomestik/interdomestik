@@ -61,7 +61,7 @@ function createRepoNoArgTool(name: string, description: string) {
 const phaseCVerificationTools = [
   createRepoNoArgTool(
     'check_health',
-    'Run the full Phase C verification contract (pr:verify, security:guard, e2e:gate)'
+    'Run pr:verify (including the full E2E gate) and security:guard once'
   ),
   createRepoNoArgTool('pr_verify', 'Run pnpm pr:verify for the repo verification contract'),
   createRepoNoArgTool('security_guard', 'Run pnpm security:guard for the repo security contract'),

@@ -95,7 +95,6 @@ Before opening or merging a PR:
 ```bash
 pnpm pr:verify
 pnpm security:guard
-pnpm e2e:gate
 ```
 
 PRs that fail required checks are invalid. `pr:verify` includes the full `e2e:gate`; a successful
@@ -428,8 +427,9 @@ Before opening or merging a PR:
 ```bash
 pnpm pr:verify
 pnpm security:guard
-pnpm e2e:gate
 ```
+
+The full E2E gate is included in `pr:verify`; its evidence remains mandatory.
 
 For deterministic local host-routed verification, use `pnpm pr:verify:hosts`; CI should continue using `pnpm pr:verify` with explicit host env.
 

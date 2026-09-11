@@ -6,6 +6,13 @@ const http = require('node:http');
 const https = require('node:https');
 const fs = require('node:fs');
 const cp = require('node:child_process');
+const { resolve } = require('node:path');
+const isFastRunner = process.argv[1] === resolve(__dirname, '../../check-fast.mjs');
+const blockedEnvironment = ['NODE_OPTIONS', 'NODE_PATH', 'LD_PRELOAD', 'BASH_ENV'];
+if (isFastRunner) {
+  // Inject after Node startup so this tests the runner's child boundary, not Node itself.
+  for (const key of blockedEnvironment) process.env[key] = 'forbidden-fast-lane-fixture';
+}
 const tsxRequire = createRequire(require.resolve('tsx/package.json'));
 const esbuildRequire = createRequire(tsxRequire.resolve('esbuild/package.json'));
 const esbuildBinary = esbuildRequire.resolve(
@@ -41,8 +48,20 @@ for (const method of ['spawn', 'spawnSync', 'execFile', 'execFileSync']) {
       return original(file, args, options, ...rest);
     }
     if (file !== process.execPath || options?.shell) return deny('external command')();
+    if (isFastRunner && blockedEnvironment.some(key => Object.hasOwn(options.env, key))) {
+      return deny('inherited execution control')();
+    }
     process.stdout.write(`FAST_LANE_COMMAND ${JSON.stringify(args)}\n`);
-    return original(file, args, options, ...rest);
+    // Only this test preload propagates instrumentation; production children have no hook.
+    const instrumented = {
+      ...options,
+      env: {
+        ...(options?.env ?? process.env),
+        NODE_OPTIONS: `--require=${__filename}`,
+        TSX_DISABLE_CACHE: '1',
+      },
+    };
+    return original(file, args, instrumented, ...rest);
   };
 }
 cp.exec = cp.execSync = deny('shell');

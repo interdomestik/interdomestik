@@ -50,7 +50,7 @@
 ## Verification
 
 - Before claiming work is complete, run the commands that prove the claim.
-- Required PR gate commands are `pnpm pr:verify`, `pnpm security:guard`, and `pnpm e2e:gate`.
+- Required PR gate commands are `pnpm pr:verify` and `pnpm security:guard`; the mandatory full `e2e:gate` is included in `pr:verify`.
 - For quick static-guard and case/recovery unit feedback, use `pnpm check:fast`; use
   `pnpm check:static` for full formatting/lint/types and `pnpm test` for all web units.
   `pnpm slice:e2e:pr` is the explicit build/DB/browser lane. A passing `pnpm pr:verify` already

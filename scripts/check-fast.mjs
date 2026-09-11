@@ -25,15 +25,36 @@ const steps = [
   ],
 ];
 const started = performance.now();
+// Match the QA boundary: retain runtime essentials, never caller execution hooks or secrets.
+const safeKeys = [
+  'PATH',
+  'HOME',
+  'USER',
+  'LOGNAME',
+  'TMPDIR',
+  'TMP',
+  'TEMP',
+  'LANG',
+  'LC_ALL',
+  'LC_CTYPE',
+  'TERM',
+  'COLORTERM',
+  'CI',
+  'NO_COLOR',
+  'FORCE_COLOR',
+  'PNPM_HOME',
+  'COREPACK_HOME',
+];
 const env = {
-  ...process.env,
+  ...Object.fromEntries(
+    safeKeys.filter(key => process.env[key] !== undefined).map(key => [key, process.env[key]])
+  ),
   NODE_ENV: 'test',
   REQUIRE_RLS_INTEGRATION: '0',
   DATABASE_URL: 'postgresql://127.0.0.1:1/fast_unit',
   DATABASE_URL_RLS: 'postgresql://127.0.0.1:1/fast_unit',
 };
-// Node's test runner otherwise suppresses nested --test invocations in contract tests.
-delete env.NODE_TEST_CONTEXT;
+// NODE_TEST_CONTEXT is also excluded so contract tests can invoke this nested test lane.
 for (const [name, args] of steps) {
   console.log(`[check:fast] ${name}`);
   const result = spawnSync(process.execPath, args, { cwd: root, stdio: 'inherit', env });

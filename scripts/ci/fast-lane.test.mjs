@@ -22,7 +22,7 @@ test('fast-lane tripwires still refuse arbitrary subprocesses', () => {
 });
 
 test('the actual fast lane runs all declared guards and units without operational effects', () => {
-  const result = spawnSync(process.execPath, ['scripts/check-fast.mjs'], {
+  const result = spawnSync(process.execPath, ['--require', preload, 'scripts/check-fast.mjs'], {
     cwd: root,
     encoding: 'utf8',
     timeout: 30_000,
@@ -34,7 +34,6 @@ test('the actual fast lane runs all declared guards and units without operationa
       REQUIRE_RLS_INTEGRATION: '1',
       DATABASE_URL: 'postgresql://unused:unused@remote.invalid:5432/never-connect',
       DATABASE_URL_RLS: 'postgresql://unused:unused@other.invalid:5432/never-connect',
-      NODE_OPTIONS: `--require=${preload}`,
     },
   });
   assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);

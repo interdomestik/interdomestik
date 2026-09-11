@@ -124,7 +124,7 @@ Before pushing _any_ code, run the verifier:
 pnpm pr:verify
 ```
 
-_Runs: memory precheck, release-gate unit coverage, E2E contract checks, production lint-warning baseline, DB/RLS checks, i18n checks, coverage gate, fast checks, and Web Smoke Tests. Use `pnpm prod:ready:code` for the Docker-free code gate; local E2E lanes run `pnpm run doctor` first._
+_Runs: repository contracts, release-gate tests, E2E contract checks, production lint-warning baseline, DB/RLS checks, i18n checks, coverage gate, the full E2E gate, and Web Smoke Tests. `memory:precheck` is separate opt-in advisory feedback. Use `pnpm prod:ready:code` for the Docker-free code gate; local E2E lanes run `pnpm run doctor` first._
 
 For pilot-launch release proof, also run:
 

@@ -17,10 +17,10 @@ For Interdomestik Phase C work, the important contract is:
 ```bash
 pnpm pr:verify
 pnpm security:guard
-pnpm e2e:gate
 ```
 
-`check_health` now runs exactly that contract.
+`check_health` runs these two commands once. `pr:verify` includes the mandatory full
+E2E gate and smoke tests; do not repeat that gate for the same candidate/environment.
 
 The testing/orchestration surface also exposes smaller repo-real commands:
 

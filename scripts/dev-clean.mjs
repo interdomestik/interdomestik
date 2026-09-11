@@ -1,16 +1,19 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { packageCommandRuntime } from './package-command-runtime.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 if (process.argv.length > 2) {
   console.error('dev:clean accepts no arguments; it checks the configured development port 3000.');
   process.exit(2);
 }
-const probe = spawnSync('lsof', ['-nP', '-t', '-iTCP:3000', '-sTCP:LISTEN'], {
+const probeRuntime = packageCommandRuntime('lsof');
+const probe = spawnSync(probeRuntime.executable, ['-nP', '-t', '-iTCP:3000', '-sTCP:LISTEN'], {
   cwd: root,
   encoding: 'utf8',
   timeout: 5000,
+  env: probeRuntime.env,
 });
 
 if (probe.status === 0 && probe.stdout?.trim()) {
@@ -26,6 +29,11 @@ if (probe.error || probe.status !== 1 || probe.stdout?.trim() || probe.stderr?.t
   process.exit(1);
 }
 
-const result = spawnSync('pnpm', ['dev'], { cwd: root, stdio: 'inherit' });
+const devRuntime = packageCommandRuntime('pnpm');
+const result = spawnSync(devRuntime.executable, ['dev'], {
+  cwd: root,
+  stdio: 'inherit',
+  env: devRuntime.env,
+});
 if (result.error) console.error(`dev:clean could not start dev: ${result.error.code}`);
 process.exit(result.status ?? 1);

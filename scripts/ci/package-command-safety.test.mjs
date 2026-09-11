@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
-import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { chmodSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { fixture, run } from './fixtures/package-command-fixture.mjs';
 
 const realPnpm = spawnSync('which', ['pnpm'], { encoding: 'utf8' }).stdout.trim();
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -15,38 +15,6 @@ const packageJson = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 const databasePackageJson = JSON.parse(
   readFileSync(join(root, 'packages/database/package.json'), 'utf8')
 );
-
-function fixture(t, name = 'pnpm') {
-  const directory = mkdtempSync(join(tmpdir(), 'interdomestik-command-'));
-  const capturePath = join(directory, 'capture.json');
-  const executable = join(directory, name);
-  writeFileSync(
-    executable,
-    `#!/usr/bin/env node
-import { writeFileSync } from 'node:fs';
-const prefix = process.argv[1].endsWith('/lsof') ? 'FAKE_LSOF' : 'FAKE_COMMAND';
-const capture = process.env[prefix + '_CAPTURE'];
-if (capture) {
-  writeFileSync(capture, JSON.stringify(process.argv.slice(2)));
-}
-if (process.env[prefix + '_STDOUT']) process.stdout.write(process.env[prefix + '_STDOUT']);
-if (process.env[prefix + '_STDERR']) process.stderr.write(process.env[prefix + '_STDERR']);
-process.exit(Number(process.env[prefix + '_EXIT'] ?? 0));
-`
-  );
-  chmodSync(executable, 0o755);
-  t.after(() => rmSync(directory, { force: true, recursive: true }));
-  return { capturePath, directory, executable };
-}
-
-function run(script, args, env = {}) {
-  return spawnSync(process.execPath, [script, ...args], {
-    cwd: root,
-    encoding: 'utf8',
-    timeout: 10_000,
-    env: { ...process.env, ...env },
-  });
-}
 
 test('database commands delegate to the intended package tools without applying anything', t => {
   const generate = fixture(t);
@@ -121,6 +89,19 @@ test('database wrapper propagates a delegated command failure', t => {
     PATH: `${current.directory}:${process.env.PATH}`,
   });
   assert.equal(result.status, 7);
+});
+
+test('push-local advertises and forwards short help without applying changes', t => {
+  const current = fixture(t);
+  const env = {
+    PATH: `${current.directory}:${process.env.PATH}`,
+    FAKE_COMMAND_CAPTURE: current.capturePath,
+  };
+  const help = run(databaseCommand, ['push-local', '-h'], env);
+  assert.equal(help.status, 0, help.stderr);
+  assert.equal(JSON.parse(readFileSync(current.capturePath, 'utf8')).at(-1), '-h');
+  const rejected = run(databaseCommand, ['push-local', '--unknown'], env);
+  assert.match(rejected.stderr, /--help, -h/);
 });
 
 test('dev:clean refuses a listener PID and leaves the fixture process alive', async t => {
@@ -229,11 +210,12 @@ test('package generation alias and Husky prepare execute the intended tools in a
       },
     })
   );
-  for (const [command, expected] of [
-    ['db:generate', ['generate']],
-    ['prepare', ['install']],
+  for (const [command, args, expected] of [
+    ['db:generate', [], ['generate']],
+    ['db:generate', ['--name', 'safe-name'], ['generate', '--name', 'safe-name']],
+    ['prepare', [], ['install']],
   ]) {
-    const result = spawnSync(realPnpm, ['run', command], {
+    const result = spawnSync(realPnpm, ['run', command, ...args], {
       cwd: current.directory,
       encoding: 'utf8',
       timeout: 10_000,

@@ -22,6 +22,11 @@ For focused web tests use `pnpm --filter @interdomestik/web test:unit --run <fil
 use the package's `test:unit` command. `pnpm db:rls:test:required` is the explicit DB integration
 lane. Required PR proof below remains the merge standard.
 
+The database and `dev:clean` wrappers resolve absolute tool paths, exclude shared-writable
+search directories, and use the current Node installation for pnpm's shebang. User/root-owned
+installations and macOS admin-group Homebrew installations are supported; relative or empty
+PATH entries are rejected. A missing safe tool reports installation guidance.
+
 Database engines are explicit: `pnpm db:generate` generates Drizzle SQL migrations without
 applying them; `pnpm db:migrate` applies those migrations to the configured DB. `pnpm db:push:local`
 applies the separate Supabase migrations with `--local` and this checkout's `--workdir`. Only
