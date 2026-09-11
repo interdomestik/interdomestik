@@ -1,4 +1,5 @@
 import { allocationDelta, categoryAllocationDelta } from './repo-size-capacity-schema.mjs';
+import { allocatedSemanticBytes } from './repo-size-capacity-evaluator.mjs';
 import { budgetCategory } from './repo-size-budget-sync-core.mjs';
 import { isSemanticGovernanceDocument } from './modularity-guard-policy.mjs';
 import { compareText } from './slice-rehearse-canonical.mjs';
@@ -78,7 +79,7 @@ function validateOwnerUsage(context, owner, usage) {
   for (const [actual, limit, code] of [
     [
       usage.bytes,
-      allocationDelta(allocation, 'trackedBytesDelta'),
+      allocationDelta(allocation, 'trackedBytesDelta') - allocatedSemanticBytes(allocation),
       'capacity:projection-owner-tracked-bytes-insufficient',
     ],
     [
@@ -90,7 +91,8 @@ function validateOwnerUsage(context, owner, usage) {
     if (actual > limit) authorityStops.push({ code, owner, actual, limit });
   }
   for (const [category, actual] of Object.entries(usage.categories)) {
-    const limit = categoryAllocationDelta(allocation, category);
+    const limit =
+      categoryAllocationDelta(allocation, category) - allocatedSemanticBytes(allocation, category);
     if (actual > limit) {
       authorityStops.push({
         code: 'capacity:projection-owner-category-insufficient',

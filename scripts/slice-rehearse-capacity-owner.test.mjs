@@ -10,6 +10,87 @@ import {
   evaluateWriterPolicy,
 } from './slice-rehearse-writer-policy.mjs';
 import { normalizeManifestIdentity } from './slice-rehearse-manifest-identity.mjs';
+import { appendCapacityEvaluation } from './slice-rehearse-capacity-existing.mjs';
+import { analyzeProjectionReuse } from './slice-rehearse-capacity-projection.mjs';
+
+test('projected capacity nets signed semantic deltas across canonical documents', () => {
+  for (const growth of [50, 100, 150]) {
+    const exemption = Math.max(0, growth - 100);
+    const authorityStops = [];
+    appendCapacityEvaluation({
+      proposal: {
+        budget: {
+          maxTrackedFiles: 2,
+          maxTrackedBytes: 1000,
+          maxCategoryBytes: { 'docs/text': 1000, 'large support/generated-ish': 1000 },
+        },
+      },
+      repo: {
+        tracked: {
+          files: 2,
+          bytes: 1001 + exemption,
+          categoryBytes: { 'docs/text': 1001, 'large support/generated-ish': 1000 + growth },
+        },
+        writerDeltas: {
+          'docs/plans/current-program.md': { bytes: -100 },
+          'docs/plans/current-tracker.md': { bytes: growth },
+        },
+      },
+      authorityStops,
+      deficits: [],
+      categories: ['docs/text', 'large support/generated-ish'],
+    });
+    assert.deepEqual(
+      authorityStops.map(item => item.code),
+      ['capacity:global-tracked-bytes', 'capacity:global-category-bytes:docs/text']
+    );
+  }
+});
+
+test('ordinary projection owners cannot borrow excluded semantic allowances', () => {
+  const program = 'docs/plans/current-program.md';
+  const ordinary = 'docs/ordinary.md';
+  const allocation = {
+    id: 'mixed',
+    mode: 'bounded',
+    writerPaths: [program, ordinary],
+    maxTrackedBytesDelta: 125,
+    maxTrackedFilesDelta: 0,
+    maxCategoryBytesDelta: { 'docs/text': 125 },
+    maxPathBytesDelta: { [program]: 100, [ordinary]: 25 },
+  };
+  const programFact = {
+    bytes: 100,
+    currentBytes: 100,
+    currentSha256: 'a'.repeat(64),
+    files: 0,
+    capacityBaselineExists: true,
+    currentExists: true,
+  };
+  const args = {
+    budget: { allocations: [allocation] },
+    manifest: {
+      pathPlans: [{ path: program, category: 'docs/text', change: 'modify', maxBytesDelta: 100 }],
+      topology: { projectionPaths: [program], closeoutMode: 'projection-only' },
+    },
+    writerDeltas: { [program]: programFact },
+    capacityOwnerDeltas: { [program]: programFact, [ordinary]: { bytes: 26, files: 0 } },
+    owners: new Map([
+      [program, 'mixed'],
+      [ordinary, 'mixed'],
+    ]),
+  };
+  const result = analyzeProjectionReuse(args);
+  assert.deepEqual(
+    result.authorityStops.map(item => [item.code, item.actual, item.limit]),
+    [
+      ['capacity:projection-owner-tracked-bytes-insufficient', 26, 25],
+      ['capacity:projection-owner-category-insufficient', 26, 25],
+    ]
+  );
+  args.capacityOwnerDeltas[ordinary].bytes = 25;
+  assert.deepEqual(analyzeProjectionReuse(args).authorityStops, []);
+});
 
 test('projection capacity owner paths are the exact protected allocation writer union', () => {
   const protectedBudget = {

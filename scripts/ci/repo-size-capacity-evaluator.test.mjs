@@ -136,6 +136,44 @@ test('Git attribution accepts deterministic statuses and fails closed on renames
   assert.throws(() => parseGitNameStatus(Buffer.from('R100\0old\0')), /unsupported status/u);
 });
 
+test('semantic growth is netted globally without moving category headroom', () => {
+  for (const growth of [50, 100, 150]) {
+    const budget = allocationBudget();
+    const facts = [
+      ...acceptedChangeFacts(),
+      { path: 'docs/plans/current-program.md', bytesDelta: -100, filesDelta: 0 },
+      { path: 'docs/plans/current-tracker.md', bytesDelta: growth, filesDelta: 0 },
+    ];
+    const exemption = Math.max(0, growth - 100);
+    const report = capacityReport({ bytes: budget.maxTrackedBytes + exemption + 1 });
+    const category = budgetCategory('docs/plans/current-tracker.md');
+    report.tracked.categories.find(item => item.name === category).bytes =
+      budget.maxCategoryBytes[category] + growth;
+    const result = evaluateCapacityBudget(report, budget, facts);
+    assert.ok(
+      result.violations.some(item => item.code === 'tracked-bytes'),
+      `growth ${growth}`
+    );
+    assert.ok(!result.violations.some(item => item.code === `category:${category}`));
+  }
+});
+
+test('bounded ordinary allocation totals exclude semantic writer allowances', () => {
+  const budget = allocationBudget();
+  const owner = budget.allocations[1];
+  const program = 'docs/plans/current-program.md';
+  owner.writerPaths.push(program);
+  owner.maxPathBytesDelta[program] = 100;
+  owner.maxTrackedBytesDelta += 100;
+  owner.maxCategoryBytesDelta['docs/text'] = 100;
+  budget.maxTrackedBytes += 100;
+  budget.maxCategoryBytes['docs/text'] += 100;
+  const facts = [...acceptedChangeFacts(), { path: program, bytesDelta: 100, filesDelta: 0 }];
+  facts.find(item => item.path === 'scripts/lean.mjs').bytesDelta += 1;
+  const result = evaluateCapacityBudget(capacityReport(), budget, facts);
+  assert.ok(result.violations.some(item => item.code === 'allocation-bytes:lean-repair'));
+});
+
 test('capacity rebase permits T118 promotion without a budget edit', () => {
   const budget = JSON.parse(
     fs.readFileSync(path.join(repoRoot, 'scripts/repo-size-budget.json'), 'utf8')

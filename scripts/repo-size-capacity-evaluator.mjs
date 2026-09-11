@@ -7,13 +7,25 @@ function addOver(violations, code, actual, limit, label = code, details = {}) {
 }
 
 function semanticGrowth(facts, category = null) {
-  return [...facts.values()]
+  const signedGrowth = [...facts.values()]
     .filter(
       fact =>
         isSemanticGovernanceDocument(fact.path) &&
         (category === null || budgetCategory(fact.path) === category)
     )
-    .reduce((sum, fact) => sum + Math.max(0, fact.bytesDelta), 0);
+    .reduce((sum, fact) => sum + fact.bytesDelta, 0);
+  return Math.max(0, signedGrowth);
+}
+
+export function allocatedSemanticBytes(allocation, category = null) {
+  const pathBytes = allocation.pathBytesDelta ?? allocation.maxPathBytesDelta;
+  return allocation.writerPaths
+    .filter(
+      path =>
+        isSemanticGovernanceDocument(path) &&
+        (category === null || budgetCategory(path) === category)
+    )
+    .reduce((sum, path) => sum + pathBytes[path], 0);
 }
 
 function globalViolations(report, budget, facts) {
@@ -176,7 +188,7 @@ function addBoundedViolations(violations, allocation, facts) {
     violations,
     `allocation-bytes:${allocation.id}`,
     positiveBytes,
-    allocation.maxTrackedBytesDelta
+    allocation.maxTrackedBytesDelta - allocatedSemanticBytes(allocation)
   );
   addOver(
     violations,
@@ -189,7 +201,8 @@ function addBoundedViolations(violations, allocation, facts) {
       violations,
       `allocation-category:${allocation.id}:${category}`,
       categories.get(category) ?? 0,
-      allocation.maxCategoryBytesDelta[category] ?? 0
+      (allocation.maxCategoryBytesDelta[category] ?? 0) -
+        allocatedSemanticBytes(allocation, category)
     );
 }
 

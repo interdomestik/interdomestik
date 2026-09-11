@@ -151,13 +151,14 @@ function semanticCapacityExemption(proposal, repo) {
   const exemption = { bytes: 0, categories: {} };
   const deltas = { ...repo.writerDeltas, ...repo.capacityOwnerDeltas };
   for (const path of Object.keys(deltas).filter(isSemanticGovernanceDocument)) {
-    const bytes = Math.max(
-      0,
-      (deltas[path]?.bytes ?? 0) + (proposal.projectionHeadroom?.paths[path] ?? 0)
-    );
+    const bytes = (deltas[path]?.bytes ?? 0) + (proposal.projectionHeadroom?.paths[path] ?? 0);
     exemption.bytes += bytes;
     const category = budgetCategory(path);
     exemption.categories[category] = (exemption.categories[category] ?? 0) + bytes;
+  }
+  exemption.bytes = Math.max(0, exemption.bytes);
+  for (const category of Object.keys(exemption.categories)) {
+    exemption.categories[category] = Math.max(0, exemption.categories[category]);
   }
   return exemption;
 }
