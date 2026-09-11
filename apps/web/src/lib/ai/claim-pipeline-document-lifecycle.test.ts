@@ -113,20 +113,80 @@ describe('failDeletedDocumentClaimAiRun', () => {
     expect(mocks.withTenantContext).not.toHaveBeenCalled();
   });
 
-  it('does not skip deleted-document runs that are no longer queued', async () => {
+  it('terminalizes a retryable failure when its document was deleted before retry', async () => {
     mocks.where.mockResolvedValue([
       {
         claimId: 'claim-1',
         deletedAt: new Date('2026-07-03T00:00:00Z'),
-        errorCode: null,
-        status: 'completed',
+        errorCode: 'claim_ai_processing_failed',
+        status: 'failed',
         tenantId: 'tenant-1',
         workflow: 'claim_intake_extract',
       },
     ]);
 
-    await expect(failDeletedDocumentClaimAiRun('run-1', isWorkflow)).resolves.toBeNull();
+    await expect(
+      failDeletedDocumentClaimAiRun('run-1', isWorkflow, { retryFailed: true })
+    ).resolves.toEqual({
+      status: 'skipped',
+      claimId: 'claim-1',
+      workflow: 'claim_intake_extract',
+    });
+    expect(mocks.updateSet).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'failed', errorCode: 'claim_ai_document_deleted' })
+    );
+    expect(mocks.updateWhere).toHaveBeenCalledWith(
+      expect.objectContaining({
+        args: expect.arrayContaining([
+          { op: 'eq', left: 'ai_runs.status', right: 'failed' },
+          { op: 'eq', left: 'ai_runs.error_code', right: 'claim_ai_processing_failed' },
+        ]),
+      })
+    );
+  });
+
+  it.each([
+    ['without retry intent', 'failed', 'claim_ai_processing_failed', {}],
+    ['while processing', 'processing', 'claim_ai_processing_failed', { retryFailed: true }],
+    ['after completion', 'completed', null, { retryFailed: true }],
+    [
+      'for a permanent failure',
+      'failed',
+      'claim_intake_extract_validation_failed',
+      { retryFailed: true },
+    ],
+  ])('does not overwrite deleted-document runs %s', async (_case, status, errorCode, options) => {
+    mocks.where.mockResolvedValue([
+      {
+        claimId: 'claim-1',
+        deletedAt: new Date('2026-07-03T00:00:00Z'),
+        errorCode,
+        status,
+        tenantId: 'tenant-1',
+        workflow: 'claim_intake_extract',
+      },
+    ]);
+
+    await expect(failDeletedDocumentClaimAiRun('run-1', isWorkflow, options)).resolves.toBeNull();
     expect(mocks.withTenantContext).not.toHaveBeenCalled();
+  });
+
+  it('does not return skipped when the failed-run update loses its optimistic lock', async () => {
+    mocks.where.mockResolvedValue([
+      {
+        claimId: 'claim-1',
+        deletedAt: new Date('2026-07-03T00:00:00Z'),
+        errorCode: 'claim_ai_processing_failed',
+        status: 'failed',
+        tenantId: 'tenant-1',
+        workflow: 'claim_intake_extract',
+      },
+    ]);
+    mocks.updateReturning.mockResolvedValue([]);
+
+    await expect(
+      failDeletedDocumentClaimAiRun('run-1', isWorkflow, { retryFailed: true })
+    ).resolves.toBeNull();
   });
 
   it('does not return skipped when the queued update loses its optimistic lock', async () => {

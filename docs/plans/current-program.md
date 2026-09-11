@@ -99,7 +99,7 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 | Priority | Candidate                       | Dependencies    | Promotion constraint             |
 | -------: | ------------------------------- | --------------- | -------------------------------- |
 |        1 | Locale-aware currency parsing   | Promotion #1753 | Completed migration trial 1/3.   |
-|        2 | Bounded failed-run retry        | Trial 1         | Next separate bounded trial 2/3. |
+|        2 | Bounded failed-run retry        | Owner direction | Active ordinary-PR trial 2/3.    |
 |        3 | Third bounded product-use slice | Trial 2         | Select separately for trial 3/3. |
 
 ## T117C Product Delivery
@@ -126,14 +126,15 @@ free. The run establishes a successful technical baseline but earns no migration
 activation and a repo-bound prospective protocol did not both precede product merge and measured
 execution as required by this slice's admission. Migration therefore remains 0/3.
 
-For future trials, the prospective protocol is the repo-native Z620 resource lane. After a separate
-promotion admits a small product slice, freeze its exact base SHA, product head, merge candidate
-tree and lockfile hash before execution. Run one clean detached candidate through the fixed
-`z620-resource-run.mjs --lanes=e2e-pr` command with a task-owned database and port, reuse unchanged
-protected PR evidence, and retain the result, redacted log, hashes, duration and cleanup state. A run started
-without that pre-execution binding or with failed cleanup earns no credit. Currency parsing and
-failed-run retry are separately bounded successors; a third small product-use slice is selected
-only after trial 2. Trial 1 is complete, and this closeout activates no successor.
+For trials 2 and 3, the owner's explicit execution direction admits one bounded ordinary product PR
+per trial while Lean authority remains inactive. No separate promotion/closeout PR or hard-coded
+per-slice policy exception is required. Each candidate must freeze its exact base SHA, product head,
+merge-candidate tree and lockfile hash before the repo-native
+`z620-resource-run.mjs --lanes=e2e-pr` execution. The clean detached run uses a task-owned database
+and port; unchanged protected PR evidence may be reused, and the result, redacted log, hashes,
+duration and cleanup state remain external evidence. A run started without that pre-execution
+binding or with failed cleanup earns no credit. Canonical status remains `in_progress` until both
+that evidence and the expected-head merge pass. Trial 1 is complete; trial 2 is the active candidate.
 
 ## Currency Parsing Trial 1 Promotion
 
@@ -150,6 +151,17 @@ finalizer, and delivery passed on the unchanged head. Product #1754 then squash-
 
 [Shared evidence](https://gist.github.com/arbenl/b1c4fbacb88b110d557baa0d401b6d81/53f1e39febca8bce97389993dfdfad4df4630351)
 retains the freeze, receipt, gate result, and full Z620 log. The tracker points here for stable proof.
+
+## Failed-run Retry Trial 2
+
+The bounded candidate permits exactly one Inngest retry for a claim-document workflow after a
+generic `claim_ai_processing_failed` result. Retry intent comes only from trusted attempt `1`; the
+tenant-scoped compare-and-set binds both `status=failed` and that eligible error code before
+returning the run to `processing`. Completed work, permanent extraction/deletion failures, later or
+duplicate attempts, and a lost compare-and-set race remain skipped. The existing document/claim
+tenant joins, RLS transaction boundary, routes, auth, schema and deployment surface remain
+unchanged. Trial 2 stays `in_progress` until exact-head PR gates, the prospective Z620 run, cleanup,
+and expected-head merge all pass.
 
 ## Staff Current-Claim Tenant Context Promotion
 

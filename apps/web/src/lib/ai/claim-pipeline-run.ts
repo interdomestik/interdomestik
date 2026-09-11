@@ -32,7 +32,8 @@ function isClaimAiWorkflow(workflow: unknown): workflow is ClaimAiWorkflow {
 }
 
 export async function claimClaimAiRun(
-  runId: string
+  runId: string,
+  options: { retryFailed?: boolean } = {}
 ): Promise<
   | { status: 'claimed'; run: ClaimedClaimAiRun }
   | { status: 'skipped'; claimId: string; workflow: ClaimAiWorkflow }
@@ -51,6 +52,7 @@ export async function claimClaimAiRun(
       mimeType: documents.mimeType,
       uploadedAt: documents.uploadedAt,
       status: aiRuns.status,
+      errorCode: aiRuns.errorCode,
       requestJson: aiRuns.requestJson,
       claimTitle: claims.title,
       claimDescription: claims.description,
@@ -71,7 +73,7 @@ export async function claimClaimAiRun(
     .where(and(eq(aiRuns.id, runId), eq(aiRuns.entityType, 'claim')));
 
   if (!queuedRun) {
-    const deletedRun = await failDeletedDocumentClaimAiRun(runId, isClaimAiWorkflow);
+    const deletedRun = await failDeletedDocumentClaimAiRun(runId, isClaimAiWorkflow, options);
     if (deletedRun) return deletedRun;
     throw new Error(`Queued claim AI run ${runId} was not found.`);
   }
@@ -88,17 +90,37 @@ export async function claimClaimAiRun(
     throw new Error(`Queued claim AI run ${runId} was not found.`);
   }
 
-  if (queuedRun.status !== 'queued') {
+  const retryRequested = options.retryFailed === true;
+  const retryingFailedRun =
+    retryRequested &&
+    queuedRun.status === 'failed' &&
+    queuedRun.errorCode === 'claim_ai_processing_failed';
+  const claimingInitialRun = !retryRequested && queuedRun.status === 'queued';
+  if (!claimingInitialRun && !retryingFailedRun) {
     return { status: 'skipped', claimId: queuedRun.claimId, workflow: queuedRun.workflow };
   }
+
+  const claimPredicate = retryingFailedRun
+    ? and(
+        eq(aiRuns.id, runId),
+        eq(aiRuns.status, 'failed'),
+        eq(aiRuns.errorCode, 'claim_ai_processing_failed')
+      )
+    : and(eq(aiRuns.id, runId), eq(aiRuns.status, 'queued'));
 
   const [claimedRun] = await withTenantContext(
     { tenantId: queuedRun.tenantId, role: 'system' },
     async tx =>
       tx
         .update(aiRuns)
-        .set({ status: 'processing', startedAt: new Date(), errorCode: null, errorMessage: null })
-        .where(and(eq(aiRuns.id, runId), eq(aiRuns.status, 'queued')))
+        .set({
+          status: 'processing',
+          startedAt: new Date(),
+          ...(retryingFailedRun ? { completedAt: null } : {}),
+          errorCode: null,
+          errorMessage: null,
+        })
+        .where(claimPredicate)
         .returning({ id: aiRuns.id })
   );
 

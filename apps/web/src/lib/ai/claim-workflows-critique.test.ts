@@ -2,8 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
   const txInsert = vi.fn(() => ({ values: vi.fn() }));
-  const txUpdateReturning = vi.fn().mockResolvedValue([{ id: 'run-1' }]);
-  const txUpdateSet = vi.fn(() => ({ where: vi.fn(() => ({ returning: txUpdateReturning })) }));
+  const txUpdateReturning = vi.fn();
+  const txUpdateSet = vi.fn((values: { errorCode?: string | null }) => {
+    txUpdateReturning.mockResolvedValue([{ id: 'run-1', errorCode: values.errorCode ?? null }]);
+    return { where: vi.fn(() => ({ returning: txUpdateReturning })) };
+  });
   const selectWhere = vi.fn();
   const secondJoin = { where: selectWhere };
   const firstJoin = { innerJoin: vi.fn(() => secondJoin), where: selectWhere };

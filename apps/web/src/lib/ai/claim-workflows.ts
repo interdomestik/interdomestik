@@ -26,6 +26,16 @@ type ProcessClaimDocumentWorkflowDeps = {
   analyzePdf?: ClaimPipelineDeps['analyzePdf'];
 };
 
+export class PersistedClaimAiRetryableError extends Error {
+  readonly cause: unknown;
+
+  constructor(cause: unknown) {
+    super(cause instanceof Error ? cause.message : 'Claim AI processing failed.');
+    this.name = 'PersistedClaimAiRetryableError';
+    this.cause = cause;
+  }
+}
+
 function getEventName(workflow: ClaimAiWorkflow) {
   return workflow === 'legal_doc_extract'
     ? 'legal/extract.requested'
@@ -80,6 +90,7 @@ export async function markClaimAiRunDispatchFailedService(args: {
 
 export async function processClaimDocumentWorkflowRunService(args: {
   runId: string;
+  retryFailed?: boolean;
   deps?: ProcessClaimDocumentWorkflowDeps;
 }): Promise<{
   status: 'completed' | 'failed' | 'skipped';
@@ -92,7 +103,7 @@ export async function processClaimDocumentWorkflowRunService(args: {
   const analyzePdf = args.deps?.analyzePdf ?? analyzeDocumentAsText;
   const deps = { downloadFile, analyzePdf };
 
-  const claimed = await claimClaimAiRun(args.runId);
+  const claimed = await claimClaimAiRun(args.runId, { retryFailed: args.retryFailed === true });
   if (claimed.status === 'skipped') {
     return {
       status: 'skipped',
@@ -128,7 +139,7 @@ export async function processClaimDocumentWorkflowRunService(args: {
       extraction,
     };
   } catch (error) {
-    await markClaimAiRunFailed({ run: claimed.run, error });
+    const failure = await markClaimAiRunFailed({ run: claimed.run, error });
     if (error instanceof ExtractionPipelineError) {
       return {
         status: 'failed',
@@ -137,6 +148,14 @@ export async function processClaimDocumentWorkflowRunService(args: {
         workflow: claimed.run.workflow,
       };
     }
-    throw error;
+    if (failure.errorCode !== 'claim_ai_processing_failed') {
+      return {
+        status: 'failed',
+        runId: args.runId,
+        claimId: claimed.run.claimId,
+        workflow: claimed.run.workflow,
+      };
+    }
+    throw new PersistedClaimAiRetryableError(error);
   }
 }

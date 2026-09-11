@@ -27,7 +27,8 @@ export function throwDeletedClaimDocumentError(): never {
 
 export async function failDeletedDocumentClaimAiRun(
   runId: string,
-  isWorkflow: (workflow: unknown) => workflow is ClaimAiWorkflow
+  isWorkflow: (workflow: unknown) => workflow is ClaimAiWorkflow,
+  options: { retryFailed?: boolean } = {}
 ): Promise<SkippedRun | null> {
   const [run] = await db
     .select({
@@ -57,7 +58,19 @@ export async function failDeletedDocumentClaimAiRun(
     return { status: 'skipped', claimId: run.claimId, workflow: run.workflow };
   }
 
-  if (run.status !== 'queued') return null;
+  const retryingFailedRun =
+    options.retryFailed === true &&
+    run.status === 'failed' &&
+    run.errorCode === 'claim_ai_processing_failed';
+  if (run.status !== 'queued' && !retryingFailedRun) return null;
+
+  const failurePredicate = retryingFailedRun
+    ? and(
+        eq(aiRuns.id, runId),
+        eq(aiRuns.status, 'failed'),
+        eq(aiRuns.errorCode, 'claim_ai_processing_failed')
+      )
+    : and(eq(aiRuns.id, runId), eq(aiRuns.status, 'queued'));
 
   const [failedRun] = await withTenantContext(
     { tenantId: run.tenantId, role: 'system' },
@@ -65,7 +78,7 @@ export async function failDeletedDocumentClaimAiRun(
       tx
         .update(aiRuns)
         .set(buildDeletedClaimRunFailure(new Date()))
-        .where(and(eq(aiRuns.id, runId), eq(aiRuns.status, 'queued')))
+        .where(failurePredicate)
         .returning({ id: aiRuns.id })
   );
 
