@@ -8,6 +8,7 @@ const ACTIONABLE_FEEDBACK_SOURCES = [
   String.raw`Suppressed comments\s*\([1-9]\d*\)`,
   String.raw`Previously missed\s*\([1-9]\d*\)`,
   String.raw`badge/P[0-2](?:-|\b)`,
+  String.raw`\[P[0-2]\]`,
   String.raw`\bP[0-2]\s*(?:finding|issue|:|-)`,
 ];
 const ACTIONABLE_FEEDBACK_PATTERNS = ACTIONABLE_FEEDBACK_SOURCES.map(
