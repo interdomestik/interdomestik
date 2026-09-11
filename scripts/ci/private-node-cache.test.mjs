@@ -17,7 +17,21 @@ test('private provisioning follows normal version resolution and precedes depend
   const steps = action.runs.steps;
   const hosted = steps.find(s => s.name === 'Provision private hosted Node');
   assert.ok(hosted, 'hosted setup must isolate the actual runtime cache');
-  assert.equal(hosted.if, "runner.environment == 'github-hosted'");
+  assert.equal(hosted.if, "runner.environment == 'github-hosted' && runner.os == 'Linux'");
+  for (const [environment, os, enabled] of [
+    ['github-hosted', 'Linux', true],
+    ['github-hosted', 'macOS', false],
+    ['github-hosted', 'Windows', false],
+    ['self-hosted', 'Linux', false],
+  ]) {
+    const runner = { environment, os };
+    const actual = hosted.if.split(' && ').every(clause => {
+      const match = /^runner\.(environment|os) == '([^']+)'$/.exec(clause);
+      assert.ok(match, 'private routing must use explicit runner equality checks');
+      return runner[match[1]] === match[2];
+    });
+    assert.equal(actual, enabled);
+  }
   assert.equal(hosted.run, 'node scripts/ci/setup-private-node-cache.mjs provision');
   assert.equal(hosted.env.PRIVATE_NODE_CACHE, '${{ steps.private-node-cache.outputs.path }}');
   const shared = steps.find(s => s.name === 'Setup Node');

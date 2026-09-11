@@ -37,6 +37,7 @@ const blockedEnv = new Set([
   'GIT_SHALLOW_FILE',
   'GIT_SSH',
   'GIT_SSH_COMMAND',
+  'GIT_SSL_NO_VERIFY',
   'GIT_TEMPLATE_DIR',
   'GIT_WORK_TREE',
   'GLOBIGNORE',

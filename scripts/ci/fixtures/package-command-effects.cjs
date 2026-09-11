@@ -16,6 +16,7 @@ if (['database-command.mjs', 'dev-clean.mjs'].includes(wrapper)) {
     'DYLD_INSERT_LIBRARIES',
     'COREPACK_NPM_REGISTRY',
     'GIT_SSH_COMMAND',
+    'GIT_SSL_NO_VERIFY',
     'GIT_CONFIG_COUNT',
     'GIT_CONFIG_KEY_0',
     'GIT_CONFIG_VALUE_0',

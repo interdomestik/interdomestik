@@ -15,7 +15,7 @@ runs:
         version: 10.28.2
 
     - name: Prepare private hosted Node cache
-      if: runner.environment == 'github-hosted'
+      if: runner.environment == 'github-hosted' && runner.os == 'Linux'
       id: private-node-cache
       shell: bash
       env:
@@ -29,7 +29,7 @@ runs:
         cache: 'pnpm'
 
     - name: Provision private hosted Node
-      if: runner.environment == 'github-hosted'
+      if: runner.environment == 'github-hosted' && runner.os == 'Linux'
       shell: bash
       env:
         RUNNER_ENVIRONMENT: ${{ runner.environment }}
@@ -116,7 +116,7 @@ runs:
       shell: bash
 
     - name: Verify private hosted Node
-      if: runner.environment == 'github-hosted'
+      if: runner.environment == 'github-hosted' && runner.os == 'Linux'
       shell: bash
       env:
         RUNNER_ENVIRONMENT: ${{ runner.environment }}
