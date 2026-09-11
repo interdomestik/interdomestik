@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import cp, { spawnSync } from 'node:child_process';
-import fs, { chmodSync, existsSync, readFileSync, realpathSync, symlinkSync } from 'node:fs';
+import fs, {
+  chmodSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+} from 'node:fs';
 import { syncBuiltinESMExports } from 'node:module';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -141,6 +149,23 @@ for (const [script, args, children] of [
   ['database-command.mjs', ['generate'], ['PNPM']],
   ['dev-clean.mjs', [], ['LSOF', 'PNPM']],
 ]) {
+  test(`${script} excludes sticky root search entries but retains owned descendants`, t => {
+    const command = fixture(t);
+    const probe = fixture(t, 'lsof');
+    const owned = mkdtempSync('/tmp/interdomestik-command-owned-');
+    t.after(() => rmSync(owned, { recursive: true, force: true }));
+    symlinkSync(command.executable, join(owned, 'pnpm'));
+    const result = run(join(root, 'scripts', script), args, {
+      PATH: `/tmp:${owned}:${command.directory}:${probe.directory}:${process.env.PATH}`,
+      PACKAGE_COMMAND_TEST_STICKY: '1',
+      PACKAGE_COMMAND_TEST_SAFE: owned,
+      FAKE_LSOF_EXIT: '1',
+    });
+    assert.equal(result.status, 0, result.stderr);
+    for (const child of children)
+      assert.ok(result.stdout.includes(`PACKAGE_COMMAND_PATH ${child}`));
+    assert.equal(checkedPackageExecutable(join(owned, 'pnpm')), realpathSync(command.executable));
+  });
   test(`${script} strips execution controls and preserves application env on every child`, t => {
     const command = fixture(t);
     const probe = fixture(t, 'lsof');

@@ -2,6 +2,7 @@
 const cp = require('node:child_process');
 const { syncBuiltinESMExports } = require('node:module');
 const { basename } = require('node:path');
+const { realpathSync } = require('node:fs');
 const wrapper = basename(process.argv[1] ?? '');
 if (['database-command.mjs', 'dev-clean.mjs'].includes(wrapper)) {
   const controls = [
@@ -21,6 +22,15 @@ if (['database-command.mjs', 'dev-clean.mjs'].includes(wrapper)) {
   const original = cp.spawnSync;
   cp.spawnSync = (file, args, options) => {
     const name = basename(file).includes('lsof') ? 'LSOF' : 'PNPM';
+    if (process.env.PACKAGE_COMMAND_TEST_STICKY === '1') {
+      if (options.env.PATH.split(':').includes(realpathSync('/tmp')))
+        throw new Error('sticky search directory inherited');
+      if (
+        !options.env.PATH.split(':').includes(realpathSync(process.env.PACKAGE_COMMAND_TEST_SAFE))
+      )
+        throw new Error('safe owned descendant excluded');
+      process.stdout.write(`PACKAGE_COMMAND_PATH ${name}\n`);
+    }
     if (hostile) {
       if (controls.some(key => Object.hasOwn(options.env, key)))
         throw new Error('inherited execution control');

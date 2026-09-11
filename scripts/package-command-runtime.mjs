@@ -45,7 +45,8 @@ function checkOwnedPath(file) {
     const adminGroup = process.platform === 'darwin' && info.gid === 80;
     const unsafeWrites = (info.mode & 0o002) !== 0 || ((info.mode & 0o020) !== 0 && !adminGroup);
     // A root-owned sticky temp ancestor cannot replace a separately checked owned child.
-    const stickyRoot = info.isDirectory() && info.uid === 0 && (info.mode & 0o1000) !== 0;
+    const stickyRoot =
+      current !== file && info.isDirectory() && info.uid === 0 && (info.mode & 0o1000) !== 0;
     if (!trustedOwner || (unsafeWrites && !stickyRoot)) {
       throw new Error('refused an untrusted executable installation');
     }
