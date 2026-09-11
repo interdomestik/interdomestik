@@ -161,6 +161,13 @@ export async function runTestsOrchestrator(args: OrchestratorArgs = {}) {
   }
 
   for (const command of commands) {
+    // The full suite reuses E2E only after its own verifier has succeeded.
+    if (
+      suite === 'full' &&
+      command.tool === 'e2e_gate' &&
+      results.some(r => r.name === 'PR Verify' && r.status === 'pass')
+    )
+      continue;
     results.push(await runCommand(command));
   }
 

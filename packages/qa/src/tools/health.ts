@@ -48,6 +48,12 @@ export async function checkHealth(args: ToolRepoArgs) {
   const checks: QACommandStructuredContent[] = [];
 
   for (const check of HEALTH_CHECKS) {
+    // Only successful same-invocation verification supplies reusable E2E evidence.
+    if (
+      check.tool === 'e2e_gate' &&
+      checks.some(c => c.tool === 'pr_verify' && c.status === 'pass')
+    )
+      continue;
     try {
       const result = await execAsync(check.command, { cwd: context.repoRoot, env });
       checks.push(buildCommandStructuredContent(check.tool, check.label, 'pass', result));

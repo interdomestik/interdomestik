@@ -24,7 +24,9 @@ test('e2e gate scripts keep full and fast lanes distinct', () => {
   assert.equal(fastGate, 'node scripts/run-e2e-lane.mjs gate-fast');
   assert.equal(prGate, 'node scripts/run-e2e-lane.mjs pr');
   assert.equal(prGateFast, 'node scripts/run-e2e-lane.mjs pr-fast');
-  assert.equal(fastCheck, 'node scripts/run-with-default-db-url.mjs pnpm e2e:gate:pr');
+  assert.equal(fastCheck, 'node scripts/check-fast.mjs');
+  assert.notEqual(fastCheck, packageJson.scripts['slice:e2e:pr']);
+  assert.doesNotMatch(fastCheck, /e2e|playwright|build|db:|doctor|kill/u);
 
   assert.match(e2eLaneRunner, /setup\.state\.spec\.ts/);
   assert.match(e2eLaneRunner, /--project=setup-ks/);

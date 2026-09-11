@@ -43,11 +43,53 @@ test('runSecurityGuard returns structured content with command metadata', () => 
 test('execAsync classifies failed check:fast output by the active stage marker', () => {
   const result = runModuleExpression(
     'packages/qa/src/utils/exec.ts',
-    String.raw`mod.classifyVerificationFailure('pnpm check:fast', ['> interdomestik@0.1.0 e2e:state:setup /repo', 'boom'].join('\n'))`
+    String.raw`mod.classifyVerificationFailure('pnpm check:fast', ['[check:fast] country-host-aliases', '[check:fast] unit', 'boom'].join('\n'))`
   );
 
-  assert.equal(result.failedStage, 'e2e_state_setup');
-  assert.equal(result.failureCategory, 'e2e');
+  assert.equal(result.failedStage, 'unit_test');
+  assert.equal(result.failureCategory, 'unit');
+});
+
+test('verification classification matches exact commands and the latest stage', () => {
+  const cases = [
+    ['pnpm unknown', '', null, null],
+    ['pnpm pr:verify:hosts', '', 'pr_verify_hosts', 'e2e'],
+    ['pnpm pr:verify', '', 'pr_verify', 'unknown'],
+    ['pnpm check:fast', '', 'check_fast', 'static'],
+    ['pnpm check:fast', '[check:fast] i18n', 'i18n_check', 'i18n'],
+    ['pnpm check:fast', '[check:fast] entrypoints', 'static_check', 'static'],
+    ['pnpm check:fast', '[check:fast] unit\n[check:fast] architecture', 'static_check', 'static'],
+    ['pnpm security:guard', 'security-guard.mjs', 'security_guard', 'security'],
+    ['pnpm e2e:gate', '', 'e2e_gate', 'e2e'],
+    ['pnpm e2e:gate --help', '', 'e2e_gate', 'e2e'],
+    ['pnpm e2e:gate:pr', '', 'e2e_gate', 'e2e'],
+    ['node scripts/run-with-default-db-url.mjs pnpm e2e:gate:pr', 'seed:e2e', 'seed_e2e', 'seed'],
+    ['pnpm e2e:gate:pr --help', '', 'e2e_gate', 'e2e'],
+    ['pnpm e2e:gate:pr:unknown', '', null, null],
+    ['pnpm e2e:gate:pr:fast', '', 'e2e_gate_pr_fast', 'e2e'],
+    ['pnpm e2e:gate:pr:fast --help', 'Running 61 tests using 1 worker', 'e2e_gate_pr_fast', 'e2e'],
+    ['pnpm e2e:gate:pr:fast:unknown', '', null, null],
+    ['pnpm e2e:gate:unknown', '', null, null],
+    ['pnpm e2e:state:setup', '[Setup] Generating state', 'e2e_state_setup', 'e2e'],
+    ['pnpm --filter @interdomestik/web build:ci', 'Running TypeScript', 'build_ci', 'build'],
+    ['pnpm pr:verify', 'test:release-gate', 'release_gate', 'release_gate'],
+    ['pnpm pr:verify', 'db:migrations:check-journal', 'db_migrations_check_journal', 'db'],
+    ['pnpm pr:verify', 'db:rls:test:required', 'db_rls_test_required', 'db'],
+    ['pnpm pr:verify', 'i18n:purity:check', 'i18n_purity_check', 'i18n'],
+    ['pnpm pr:verify', 'coverage:gate', 'coverage_gate', 'coverage'],
+    ['pnpm pr:verify', '[Gatekeeper] Applying Schema', 'db_migrate', 'db'],
+    ['pnpm pr:verify', 'Building production-like standalone web artifact', 'build_ci', 'build'],
+    ['pnpm pr:verify', 'e2e:gate\ne2e:smoke', 'e2e_smoke', 'smoke'],
+    ['pnpm pr:verify', 'e2e:smoke\ne2e:gate', 'e2e_gate', 'e2e'],
+    ['pnpm e2e:gate:pr:fast', 'seed:e2e', 'seed_e2e', 'seed'],
+  ];
+  const results = runModuleExpression(
+    'packages/qa/src/utils/verification-failure.ts',
+    `${JSON.stringify(cases)}.map(([command, output]) => mod.classifyVerificationFailure(command, output))`
+  );
+  cases.forEach(([command, output, failedStage, failureCategory], index) => {
+    assert.deepEqual(results[index], { failedStage, failureCategory }, `${command}: ${output}`);
+  });
 });
 
 test('execAsync truncates oversized stdout without failing the command', () => {
@@ -63,6 +105,52 @@ test('execAsync truncates oversized stdout without failing the command', () => {
   assert.ok(result.stdout.length <= 1024);
   assert.equal(result.stderrTruncated, false);
 });
+
+for (const api of ['health', 'full']) {
+  test(`${api} runs fallback E2E only when the verifier lacks successful evidence`, () => {
+    const cases = [
+      [0, 0, 0, ['pr:verify', 'security:guard'], 'pass'],
+      [0, 23, 0, ['pr:verify', 'security:guard'], 'fail'],
+      [23, 0, 0, ['pr:verify', 'security:guard', 'e2e:gate'], 'fail'],
+      [23, 0, 31, ['pr:verify', 'security:guard', 'e2e:gate'], 'fail'],
+      [23, 29, 31, ['pr:verify', 'security:guard', 'e2e:gate'], 'fail'],
+    ];
+    const results = runModuleExpression(
+      'packages/qa/src/utils/exec.ts',
+      `(async () => {
+        const cp = (await import('node:child_process')).default;
+        const { syncBuiltinESMExports } = await import('node:module');
+        const { EventEmitter } = await import('node:events');
+        const health = await import('./packages/qa/src/tools/health.ts');
+        const tests = await import('./packages/qa/src/tools/tests.ts');
+        const results = [];
+        for (const [verify, security, e2e] of ${JSON.stringify(cases)}) {
+          const calls = [];
+          const exits = {'pr:verify': verify, 'security:guard': security, 'e2e:gate': e2e};
+          cp.spawn = (file, args) => {
+            if (file !== 'pnpm' || args.length !== 1 || !(args[0] in exits))
+              throw new Error('unexpected operational command');
+            calls.push(args[0]);
+            const child = new EventEmitter();
+            child.stdout = new EventEmitter(); child.stderr = new EventEmitter();
+            process.nextTick(() => child.emit('close', exits[args[0]], null));
+            return child;
+          };
+          syncBuiltinESMExports();
+          const args = {repoRoot: ${JSON.stringify(repoRoot)}};
+          const result = ${JSON.stringify(api)} === 'health'
+            ? await health.checkHealth(args)
+            : await tests.runTestsOrchestrator({...args, suite:'full'});
+          results.push({calls, status:result.structuredContent.status, isError:result.isError});
+        }
+        return results;
+      })()`
+    );
+    cases.forEach(([, , , calls, status], index) => {
+      assert.deepEqual(results[index], { calls, status, isError: status === 'fail' });
+    });
+  });
+}
 
 test('worktree env files are parsed per call without mutating process env', () => {
   const first = fs.mkdtempSync(path.join(os.tmpdir(), 'qa-env-first-'));

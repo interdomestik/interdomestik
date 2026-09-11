@@ -62,7 +62,9 @@ pnpm pr:verify && pnpm security:guard
 
 ### 2. E2E Contracts
 
-Features are only complete when they pass the E2E Gate:
+Features are only complete with full E2E gate evidence. A successful `pnpm pr:verify`
+already supplies it for the same source, configuration, and environment; do not repeat it.
+For a standalone gate when that evidence is not available:
 
 ```bash
 pnpm e2e:gate
@@ -75,7 +77,8 @@ _Respect `data-testid="*-page-ready"` markers. They are quality gates._
 - **Routing/Proxy**: `apps/web/src/proxy.ts` (**READ ONLY** unless authorized)
 - **Domain Logic**: `packages/domain-*`
 - **UI Components**: `packages/ui` or `apps/web/src/components`
-- **Database**: Drizzle ORM (use `pnpm db:push:local` for schema changes)
+- **Database**: `pnpm db:generate` generates Drizzle SQL migrations; `pnpm db:push:local` applies
+  separate Supabase migrations to the local stack only. Generation does not apply changes.
 
 ## 📝 Coding Style
 

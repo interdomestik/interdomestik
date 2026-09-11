@@ -22,7 +22,7 @@
 - Gates:
   - `pnpm pr:verify` (exit: `__`)
   - `pnpm security:guard` (exit: `__`)
-  - `pnpm e2e:gate` or scoped equivalent (exit: `__`)
+  - Full `e2e:gate` evidence included in `pnpm pr:verify` (exit: `__`); do not rerun for identical inputs.
 - Logs: `tmp/pilot-evidence/<day>/<timestamp>/logs/...`
 - Screenshots: `tmp/pilot-evidence/<day>/<timestamp>/screenshots/...`
 - Runbooks: `tmp/pilot-evidence/<day>/<timestamp>/runbooks/...`

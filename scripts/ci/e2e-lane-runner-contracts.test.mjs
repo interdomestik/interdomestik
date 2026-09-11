@@ -44,7 +44,7 @@ test('PR verification owns the full gate and orchestration never repeats it or R
       .length,
     1
   );
-  assert.ok(!verify.includes('pnpm check:fast'), 'the equivalent PR gate would repeat coverage');
+  assert.ok(!verify.includes('pnpm check:fast'), 'fast feedback is not a substitute for PR proof');
   const orchestrator = readFileSync(
     new URL('../multi-agent/orchestrator.sh', import.meta.url),
     'utf8'
@@ -52,6 +52,11 @@ test('PR verification owns the full gate and orchestration never repeats it or R
   assert.doesNotMatch(orchestrator, /pnpm (?:db:rls:test:required|e2e:gate)/u);
   assert.equal(orchestrator.match(/pnpm security:guard/gu)?.length, 2);
   assert.equal(orchestrator.match(/pnpm pr:verify:hosts/gu)?.length, 2);
+  const verifySlice = readFileSync(
+    new URL('../multi-agent/verify-slice.sh', import.meta.url),
+    'utf8'
+  );
+  assert.doesNotMatch(verifySlice, /run_gate "e2e-gate"/);
 });
 
 test('canonical PR lanes consolidate MK while pilot invocations retain the legacy project', () => {

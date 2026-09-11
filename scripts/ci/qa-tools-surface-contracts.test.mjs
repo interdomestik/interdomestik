@@ -48,14 +48,8 @@ test('qa tool surface exposes the Phase C verification contract', () => {
     assert.ok(routerSource.includes(`${toolName}: args =>`));
   }
 
-  assert.ok(
-    listToolsSource.includes(
-      'Run the full Phase C verification contract (pr:verify, security:guard, e2e:gate)'
-    )
-  );
   assert.match(healthSource, /pnpm pr:verify/);
   assert.match(healthSource, /pnpm security:guard/);
-  assert.match(healthSource, /pnpm e2e:gate/);
 
   assert.ok(testsSourceDeclaresSuite(testsSource, 'pr_verify'));
   assert.ok(testsSourceDeclaresSuite(testsSource, 'security_guard'));

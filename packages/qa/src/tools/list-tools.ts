@@ -61,7 +61,7 @@ function createRepoNoArgTool(name: string, description: string) {
 const phaseCVerificationTools = [
   createRepoNoArgTool(
     'check_health',
-    'Run the full Phase C verification contract (pr:verify, security:guard, e2e:gate)'
+    'Run pr:verify and security:guard once; run fallback e2e:gate if pr:verify does not succeed'
   ),
   createRepoNoArgTool('pr_verify', 'Run pnpm pr:verify for the repo verification contract'),
   createRepoNoArgTool('security_guard', 'Run pnpm security:guard for the repo security contract'),
@@ -72,7 +72,7 @@ const phaseCVerificationTools = [
   ),
   createRepoNoArgTool(
     'check_fast',
-    'Run pnpm check:fast for the repo build and fast-gate verification path'
+    'Run pnpm check:fast for repository static guards and pure case/recovery unit tests'
   ),
   createRepoNoArgTool('e2e_state_setup', 'Run the deterministic E2E auth state setup flow only'),
   createRepoNoArgTool(

@@ -25,7 +25,7 @@ Options:
   --allow-main             Allow running on main/master
   --mcp-preflight          Run pnpm mcp:preflight before writing the plan
   --static                 Run slice formatting, lint, type-check, and security:guard
-  --required-gates         Run pnpm pr:verify, pnpm security:guard, and pnpm e2e:gate
+  --required-gates         Run pnpm pr:verify (includes full E2E) and pnpm security:guard
   -h, --help               Show this help
 
 Default behavior writes the reviewer plan and prompts only; no gates are run.
@@ -372,7 +372,7 @@ fi
 if [[ "$RUN_REQUIRED" -eq 1 ]]; then
   run_gate "pr-verify" "pnpm pr:verify"
   run_gate "security-guard" "pnpm security:guard"
-  run_gate "e2e-gate" "pnpm e2e:gate"
+  # pr:verify already ran the full E2E gate in this invocation.
 fi
 
 printf '[verify-slice] PASS\n'
