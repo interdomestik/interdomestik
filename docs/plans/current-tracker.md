@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-10
+last_reviewed: 2026-09-11
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -15,15 +15,18 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                                   | Status    | Owner      | Work                                      | Exit Criteria                                        |
-| ------------------------------------ | --------- | ---------- | ----------------------------------------- | ---------------------------------------------------- |
-| `STAFF-CURRENT-CLAIM-TENANT-CONTEXT` | `pending` | `platform` | Atomic tenant-scoped staff status change. | Exact promotion, implementation and main proof pass. |
+| ID                                   | Status      | Owner      | Work                                      | Exit Criteria                                |
+| ------------------------------------ | ----------- | ---------- | ----------------------------------------- | -------------------------------------------- |
+| `STAFF-CURRENT-CLAIM-TENANT-CONTEXT` | `completed` | `platform` | Atomic tenant-scoped staff status change. | Product merged; later Z620 rehearsal passed. |
 
 ## Proof Ledger
 
-| ID                                   | Source Refs                                                                                                                                         | Execution | Run ID    | Run Root  | Sonar     | Docker           | Sentry           | Learning  | Evidence Refs                                    |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | --------- | --------- | --------- | ---------------- | ---------------- | --------- | ------------------------------------------------ |
-| `STAFF-CURRENT-CLAIM-TENANT-CONTEXT` | [gate](./2026-09-10-staff-current-claim-tenant-context-design-gate.md); [admission](./2026-09-10-staff-current-claim-tenant-context-admission.json) | `pending` | `pending` | `pending` | `pending` | `not_applicable` | `not_applicable` | `pending` | Promotion #1749 and product trial #1744 pending. |
+| ID                                   | Source Refs                                                                                                                                         | Execution  | Run ID                    | Run Root                  | Sonar | Docker | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------------------------- | ------------------------- | ----- | ------ | ---------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `STAFF-CURRENT-CLAIM-TENANT-CONTEXT` | [gate](./2026-09-10-staff-current-claim-tenant-context-design-gate.md); [admission](./2026-09-10-staff-current-claim-tenant-context-admission.json) | `scripted` | `migration-trial1-be7-r2` | `Z620 exact merge e2e-pr` | pass  | pass   | `not_applicable` | pass     | Receipt `/Users/arbenlila/.codex/artifacts/interdomestik-migration-2026-09-07/activation-and-real-use/runtime-r2/trials/trial1-be7-r2/receipt.json`; result `/Users/arbenlila/.codex/artifacts/interdomestik-migration-2026-09-07/activation-and-real-use/runtime-r2/trials/trial1-be7-r2/gate-results.json`; log `/Users/arbenlila/.codex/artifacts/interdomestik-migration-2026-09-07/activation-and-real-use/runtime-r2/trials/trial1-be7-r2/logs/e2e-pr-1.log`; Z620 mirror `/home/arben/ci/interdomestik/runs/migration-trial1-be7-r2`. |
+
+Migration credit: none; this execution is retained only as a successful technical rehearsal and
+timing baseline.
 
 Terminal: promotion `#1691`; product head
 `503d4b179251f9d3d06e07349ec80f85805565ae`, tree
@@ -38,17 +41,33 @@ T117C product: #1736, head `f13c81712d5fa012c6407337852217473a1c4d4d`, merge
 `34452735175`, Pilot `34452735196`, finalizer `34452735368`, delivery
 `34452769704` attempt 2 passed. Owner review `5164184965` binds promotion #1738.
 The 50-path product is a subset of the 53-path admission. Protected-main CI `34454527870` and Sonar `34454689720` passed at the exact merge.
-Nonblocking follow-up: use `routes.businessMembership(testInfo)` on the next authorized
-E2E edit; it produces the same URL as the current expression. Migration trials remain 0/3.
+
+Migration rehearsal: promotion #1749; product #1744 head
+`b9128de3b787e26eb08935a4d85cc7580398d6cd`; exact executed merge
+`be7f1d9f794f4faf338b11dfdfd43e43fe469076`, tree
+`0528a173b2d29d2f5d09e4e066467f513607ca4e`; Z620 `e2e-pr` PASS in 1,548,982 ms. Result SHA-256
+`5d15d07e940511665631d8819ce72345c49ea1b5885e7372a269850270d2fc59`; log SHA-256
+`c5ab7f1ac1898f1b82b23d400b7ae8465b7143c0ee29fa9446e6a1a3285718d9`. Existing protected-main
+evidence was reused. The task database, port, process scope and temporary checkout were cleaned.
+Because live activation and the repo-bound prospective protocol did not both precede merge and
+execution, this is a technical baseline rather than trial 1. Migration remains 0/3.
+
+Future trial protocol: a separate promotion first binds the exact base, head, merge-candidate tree
+and lockfile hash. Only then may one clean detached candidate run the fixed repo-native Z620
+resource command with task-owned database and port. Existing protected PR evidence is reused when
+inputs match; the result, redacted log, hashes, duration and cleanup state are retained. Missing
+pre-execution binding or cleanup means no trial credit.
 
 ## Next Selection
 
-#1691/#1675 closed CUTOVER; #1724 failed; #1726/#1727 repaired. #1731 admits 52 paths; #1733 corpus main proof passed. #1734 merged; #1737 admits 53 paths, main CI/Sonar passed. Promotion #1738 and product #1736 merged; T117C implementation is delivered. Closeout records an inactive projection; successor promotion remains separate.
+T117C was delivered by promotion #1738 and product #1736. Closeout is inactive; successor
+promotion remains separate.
 
-| Future successor branch             | Status              | Constraint                                                   |
-| ----------------------------------- | ------------------- | ------------------------------------------------------------ |
-| Tenant transaction                  | `promotion_pending` | PR #1749; exact eight-path map admitted by #1748.            |
-| Currency parsing / failed-run retry | `not_promoted`      | Separate bounded successors after the first migration trial. |
+| Future successor branch         | Status                        | Constraint                                 |
+| ------------------------------- | ----------------------------- | ------------------------------------------ |
+| Locale-aware currency parsing   | `design_gate_next_unpromoted` | Separate two-path trial 1/3 promotion.     |
+| Bounded failed-run retry        | `deferred`                    | Separate two-path trial 2/3 after trial 1. |
+| Third bounded product-use slice | `deferred`                    | Select separately for trial 3/3.           |
 
 ## Lean Authority
 
@@ -57,34 +76,12 @@ E2E edit; it produces the same URL as the current expression. Migration trials r
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "promotion_pending",
+  "lifecycle": "inactive",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": {
-    "sliceId": "STAFF-CURRENT-CLAIM-TENANT-CONTEXT",
-    "tier": 3,
-    "promotionPrNumber": 1749,
-    "promotionBaseSha": "3c89a6520094f9badab3b528e80c444a831d34c5",
-    "expectedProductBranch": "codex/staff-current-claim-tenant-context",
-    "gateSha256": "d0b370c2ea91f63c1e7ebf185832caba613dde8e4df7d3cbeac181c9d04d2b19",
-    "admissionSha256": "4683cea9e0c79ae63240994b63616ab23c1c1208007f9f894b89d35543c50e86",
-    "productWriterPaths": [
-      "apps/web/src/actions/staff-claims/update-status.test.ts",
-      "packages/domain-claims/src/staff-claims/current-claim-record.test.ts",
-      "packages/domain-claims/src/staff-claims/current-claim-record.ts",
-      "packages/domain-claims/src/staff-claims/matter-allowance.test.ts",
-      "packages/domain-claims/src/staff-claims/matter-allowance.ts",
-      "packages/domain-claims/src/staff-claims/update-status.test.ts",
-      "packages/domain-claims/src/staff-claims/update-status.transaction.test.ts",
-      "packages/domain-claims/src/staff-claims/update-status.ts"
-    ],
-    "closeoutWriterPaths": [
-      "docs/plans/current-program.md",
-      "docs/plans/current-tracker.md"
-    ]
-  }
+  "activeSlice": null
 }
 ```
 

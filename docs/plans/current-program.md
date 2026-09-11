@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-10
+last_reviewed: 2026-09-11
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -96,9 +96,11 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate                                   | Dependencies | Promotion constraint     |
-| -------: | ------------------------------------------- | ------------ | ------------------------ |
-|        1 | `STAFF-CURRENT-CLAIM-TENANT-CONTEXT` Tier 3 | #1748 merged | Promotion #1749 pending. |
+| Priority | Candidate                       | Dependencies                      | Promotion constraint             |
+| -------: | ------------------------------- | --------------------------------- | -------------------------------- |
+|        1 | Locale-aware currency parsing   | Product closeout + trial protocol | Separate bounded trial 1/3.      |
+|        2 | Bounded failed-run retry        | Trial 1                           | Separate bounded trial 2/3.      |
+|        3 | Third bounded product-use slice | Trial 2                           | Select separately for trial 3/3. |
 
 ## T117C Product Delivery
 
@@ -111,16 +113,36 @@ E2E and smoke `34452735175`, Pilot `34452735196`, finalizer `34452735368`, and
 delivery `34452769704` attempt 2 passed. The unused request boundary and its test
 were removed; #1729 was closed as superseded. Protected-main CI `34454527870` and Sonar `34454689720` passed at the exact merge. E2E reused PR evidence; coverage ran again and passed.
 
-Migration remains separate and incomplete: trusted activation and the prospective
-baseline/protocol requirements precede three real product-use trials (currently 0/3).
-After this closeout, prepare bounded admission for the requested tenant-transaction,
-currency-parsing and failed-run retry fixes before selecting the next product slice.
-No successor is activated by this closeout.
+Product PR #1744 head
+`b9128de3b787e26eb08935a4d85cc7580398d6cd` merged as
+`be7f1d9f794f4faf338b11dfdfd43e43fe469076`, tree
+`0528a173b2d29d2f5d09e4e066467f513607ca4e`. Existing protected-main evidence remained green and
+was reused. A later exact clean detached merge rehearsal ran the resource-owned Z620 `e2e-pr` lane in
+1,548,982 ms with exit code 0. Gate result SHA-256 is
+`5d15d07e940511665631d8819ce72345c49ea1b5885e7372a269850270d2fc59`; redacted log SHA-256 is
+`c5ab7f1ac1898f1b82b23d400b7ae8465b7143c0ee29fa9446e6a1a3285718d9`. The task database,
+reserved port, processes, and 5.3 GiB temporary checkout were removed; Z620 returned to 96 GiB
+free. The run establishes a successful technical baseline but earns no migration credit: live
+activation and a repo-bound prospective protocol did not both precede product merge and measured
+execution as required by this slice's admission. Migration therefore remains 0/3.
+
+For future trials, the prospective protocol is the repo-native Z620 resource lane. After a separate
+promotion admits a small product slice, freeze its exact base SHA, product head, merge candidate
+tree and lockfile hash before execution. Run one clean detached candidate through the fixed
+`z620-resource-run.mjs` command ID with a task-owned database and port, reuse unchanged protected
+PR evidence, and retain the result, redacted log, hashes, duration and cleanup state. A run started
+without that pre-execution binding or with failed cleanup earns no credit. Currency parsing and
+failed-run retry are the first two separately bounded successors; a third small product-use slice
+is selected only after trial 2. None is activated by this closeout.
 
 ## Staff Current-Claim Tenant Context Promotion
 
-PR #1749 promotes `STAFF-CURRENT-CLAIM-TENANT-CONTEXT` from prerequisite #1748 and protected-main base
-`3c89a6520094f9badab3b528e80c444a831d34c5`. Its exact eight-path product map keeps the complete status-change decision inside one tenant transaction and defers external effects until commit. Runtime remains pending the exact owner marker and promotion merge. Product PR #1744 is the first prospective migration product-use trial; no trial credit exists at promotion time. Currency parsing and failed-run retry remain separately bounded successors.
+PR #1749 promoted `STAFF-CURRENT-CLAIM-TENANT-CONTEXT` from prerequisite #1748 and protected-main
+base `3c89a6520094f9badab3b528e80c444a831d34c5`. Its exact eight-path product map keeps the complete
+status-change decision inside one tenant transaction and defers external effects until commit.
+Product PR #1744 merged and the later Z620 rehearsal passed, but the missing pre-execution protocol
+means it does not count as a migration trial. This closeout consumes the slice authority and grants
+no successor runtime.
 
 ## Unified Portal Direction
 
@@ -155,34 +177,12 @@ and global headers remain T-117C.
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "promotion_pending",
+  "lifecycle": "inactive",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": {
-    "sliceId": "STAFF-CURRENT-CLAIM-TENANT-CONTEXT",
-    "tier": 3,
-    "promotionPrNumber": 1749,
-    "promotionBaseSha": "3c89a6520094f9badab3b528e80c444a831d34c5",
-    "expectedProductBranch": "codex/staff-current-claim-tenant-context",
-    "gateSha256": "d0b370c2ea91f63c1e7ebf185832caba613dde8e4df7d3cbeac181c9d04d2b19",
-    "admissionSha256": "4683cea9e0c79ae63240994b63616ab23c1c1208007f9f894b89d35543c50e86",
-    "productWriterPaths": [
-      "apps/web/src/actions/staff-claims/update-status.test.ts",
-      "packages/domain-claims/src/staff-claims/current-claim-record.test.ts",
-      "packages/domain-claims/src/staff-claims/current-claim-record.ts",
-      "packages/domain-claims/src/staff-claims/matter-allowance.test.ts",
-      "packages/domain-claims/src/staff-claims/matter-allowance.ts",
-      "packages/domain-claims/src/staff-claims/update-status.test.ts",
-      "packages/domain-claims/src/staff-claims/update-status.transaction.test.ts",
-      "packages/domain-claims/src/staff-claims/update-status.ts"
-    ],
-    "closeoutWriterPaths": [
-      "docs/plans/current-program.md",
-      "docs/plans/current-tracker.md"
-    ]
-  }
+  "activeSlice": null
 }
 ```
 
