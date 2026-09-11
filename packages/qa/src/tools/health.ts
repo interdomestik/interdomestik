@@ -28,11 +28,7 @@ const HEALTH_CHECKS: HealthCheckConfig[] = [
     label: 'Security Guard',
     tool: 'security_guard',
   },
-  {
-    command: { args: ['e2e:gate'], display: 'pnpm e2e:gate', file: 'pnpm' },
-    label: 'E2E Gate',
-    tool: 'e2e_gate',
-  },
+  // pr:verify above already executes the full E2E gate for this invocation.
 ];
 
 function withRepoContext(

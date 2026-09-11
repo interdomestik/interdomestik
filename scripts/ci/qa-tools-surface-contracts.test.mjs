@@ -55,7 +55,8 @@ test('qa tool surface exposes the Phase C verification contract', () => {
   );
   assert.match(healthSource, /pnpm pr:verify/);
   assert.match(healthSource, /pnpm security:guard/);
-  assert.match(healthSource, /pnpm e2e:gate/);
+  assert.doesNotMatch(healthSource, /args: \['e2e:gate'\]/);
+  assert.match(testsSource, /full: \['pr_verify', 'security_guard'\]/);
 
   assert.ok(testsSourceDeclaresSuite(testsSource, 'pr_verify'));
   assert.ok(testsSourceDeclaresSuite(testsSource, 'security_guard'));

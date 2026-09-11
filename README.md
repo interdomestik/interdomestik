@@ -172,6 +172,7 @@ We use **Drizzle ORM** for type-safe database interactions.
 
 ```bash
 # Push schema changes (Local)
+# Applies Supabase migrations with --local, not Drizzle schema push
 pnpm db:push:local
 
 # Open Drizzle Studio

@@ -31,6 +31,12 @@ This repo supports running SonarQube locally via Docker Compose, and running the
    pnpm sonar:full:dotenv
    ```
 
+   After a successful `pr:verify`/`coverage:gate` in this checkout, use `pnpm sonar:scan` to consume
+   the just-produced coverage instead of regenerating it via `sonar:full`. This is valid only while
+   source, lockfile, test configuration, environment, and coverage outputs are unchanged. The scan
+   command does not attest freshness; when identity is uncertain, rerun coverage. `sonar:full`
+   deliberately remains the standalone fresh-coverage path. No cross-machine reuse is implied.
+
 ## Optional: custom Sonar host URL
 
 By default, `pnpm sonar:scan` targets local SonarQube via Docker Desktop using:

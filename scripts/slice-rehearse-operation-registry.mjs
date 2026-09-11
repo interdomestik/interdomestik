@@ -150,7 +150,7 @@ for (const [name, classification, procedure, description, missing] of [
     'dev:clean',
     'unsupported',
     'package.json',
-    'This entrypoint kills listeners selected by port; a port is not task ownership.',
+    'This entrypoint refuses occupied or ambiguous ports and starts dev only when port 3000 is free.',
     ['resource-ownership'],
   ],
   [

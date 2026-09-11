@@ -43,11 +43,11 @@ test('runSecurityGuard returns structured content with command metadata', () => 
 test('execAsync classifies failed check:fast output by the active stage marker', () => {
   const result = runModuleExpression(
     'packages/qa/src/utils/exec.ts',
-    String.raw`mod.classifyVerificationFailure('pnpm check:fast', ['> interdomestik@0.1.0 e2e:state:setup /repo', 'boom'].join('\n'))`
+    String.raw`mod.classifyVerificationFailure('pnpm check:fast', ['[check:fast] country-host-aliases', '[check:fast] unit', 'boom'].join('\n'))`
   );
 
-  assert.equal(result.failedStage, 'e2e_state_setup');
-  assert.equal(result.failureCategory, 'e2e');
+  assert.equal(result.failedStage, 'unit_test');
+  assert.equal(result.failureCategory, 'unit');
 });
 
 test('execAsync truncates oversized stdout without failing the command', () => {

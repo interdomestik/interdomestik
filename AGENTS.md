@@ -72,7 +72,8 @@ pnpm lint                # Run ESLint across all packages
 pnpm type-check          # Type check all packages
 pnpm format              # Format code with Prettier
 pnpm format:check        # Check code formatting
-pnpm check:fast          # Quick checks (format, lint, type-check, test)
+pnpm check:fast          # Locale/entrypoint/architecture guards + case/recovery unit tests
+pnpm check:static        # Full formatting, lint, and type checks
 pnpm check               # Full checks including build
 
 # Testing
@@ -82,8 +83,8 @@ pnpm test:e2e            # Run Playwright e2e tests
 pnpm qa                  # Run quality assurance checks
 
 # Database
-pnpm db:generate         # Generate database client
-pnpm db:push:local       # Push schema changes to local database
+pnpm db:generate         # Generate Drizzle SQL migrations without applying them
+pnpm db:push:local       # Apply Supabase migrations to this checkout's local stack only
 pnpm db:studio           # Open Drizzle Studio
 ```
 
@@ -97,7 +98,9 @@ pnpm security:guard
 pnpm e2e:gate
 ```
 
-PRs that fail either check are invalid.
+PRs that fail required checks are invalid. `pr:verify` includes the full `e2e:gate`; a successful
+run supplies that evidence for the same source, configuration, and environment without running it
+again. `memory:precheck` is a separate opt-in advisory command.
 For deterministic local host-routed verification, use `pnpm pr:verify:hosts`; CI should continue using `pnpm pr:verify` with explicit host env. For Docker-free code proof use `pnpm prod:ready:code`; local E2E lanes run `pnpm run doctor`; production release gates run `pnpm release:evidence:check` for G01-G10 artifacts and hashes.
 
 ### Single Test Commands

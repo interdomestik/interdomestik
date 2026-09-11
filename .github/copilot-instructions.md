@@ -51,5 +51,8 @@
 
 - Before claiming work is complete, run the commands that prove the claim.
 - Required PR gate commands are `pnpm pr:verify`, `pnpm security:guard`, and `pnpm e2e:gate`.
-- For faster local iteration, use `pnpm check:fast`, `pnpm test`, `pnpm test:e2e`, or filtered workspace commands such as `pnpm --filter @interdomestik/web test:unit`.
+- For quick static-guard and case/recovery unit feedback, use `pnpm check:fast`; use
+  `pnpm check:static` for full formatting/lint/types and `pnpm test` for all web units.
+  `pnpm slice:e2e:pr` is the explicit build/DB/browser lane. A passing `pnpm pr:verify` already
+  contains full E2E evidence for the same candidate/environment; do not repeat that gate.
 - For deterministic host-routed verification, use `pnpm pr:verify:hosts`.

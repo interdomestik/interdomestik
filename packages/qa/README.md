@@ -78,12 +78,12 @@ Example prompts:
 
 ### Verification And Test Tools
 
-- `check_health` - Run `pnpm pr:verify`, `pnpm security:guard`, and `pnpm e2e:gate`
+- `check_health` - Run `pnpm pr:verify` (including the full E2E gate) and `pnpm security:guard` once
 - `pr_verify` - Run `pnpm pr:verify`
 - `security_guard` - Run `pnpm security:guard`
 - `e2e_gate` - Run `pnpm e2e:gate`
 - `build_ci` - Run the CI-grade web build used in repo verification
-- `check_fast` - Run `pnpm check:fast`
+- `check_fast` - Run `pnpm check:fast`: repository static guards and case/recovery unit tests
 - `e2e_state_setup` - Run deterministic Playwright auth-state setup only
 - `e2e_gate_pr_fast` - Run the fast PR gate path without the full PR verify contract
 - `pr_verify_hosts` - Run the host-routed PR verification variant

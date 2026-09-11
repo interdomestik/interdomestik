@@ -19,7 +19,7 @@
     "./claim-number": "./src/claim-number.ts"
   },
   "scripts": {
-    "db:generate": "echo 'Skipping supabase gen types (using Drizzle)' && exit 0",
+    "db:generate": "pnpm run generate",
     "db:push": "supabase db push",
     "db:studio": "supabase studio",
     "migrate": "tsx src/migrate.ts",

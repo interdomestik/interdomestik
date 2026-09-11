@@ -75,7 +75,8 @@ _Respect `data-testid="*-page-ready"` markers. They are quality gates._
 - **Routing/Proxy**: `apps/web/src/proxy.ts` (**READ ONLY** unless authorized)
 - **Domain Logic**: `packages/domain-*`
 - **UI Components**: `packages/ui` or `apps/web/src/components`
-- **Database**: Drizzle ORM (use `pnpm db:push:local` for schema changes)
+- **Database**: `pnpm db:generate` generates Drizzle SQL migrations; `pnpm db:push:local` applies
+  separate Supabase migrations to the local stack only. Generation does not apply changes.
 
 ## 📝 Coding Style
 

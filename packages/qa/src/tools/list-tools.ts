@@ -72,7 +72,7 @@ const phaseCVerificationTools = [
   ),
   createRepoNoArgTool(
     'check_fast',
-    'Run pnpm check:fast for the repo build and fast-gate verification path'
+    'Run pnpm check:fast for repository static guards and pure case/recovery unit tests'
   ),
   createRepoNoArgTool('e2e_state_setup', 'Run the deterministic E2E auth state setup flow only'),
   createRepoNoArgTool(
