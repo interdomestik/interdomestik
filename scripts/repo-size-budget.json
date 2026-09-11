@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 91840,
+      "trackedBytesDelta": 92149,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 54430,
+        "config/data/messages": 54739,
         "source/scripts": 23092,
         "tests/e2e": 14318
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 54430,
+        "scripts/repo-size-budget.json": 54739,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -1077,6 +1077,7 @@
       "id": "package-command-cleanup",
       "mode": "bounded",
       "writerPaths": [
+        ".github/actions/setup/action.yml",
         ".github/copilot-instructions.md",
         ".github/pull_request_template.md",
         "README.md",
@@ -1098,8 +1099,10 @@
         "scripts/ci/fixtures/package-command-fixture.mjs",
         "scripts/ci/package-command-runtime.test.mjs",
         "scripts/ci/package-command-safety.test.mjs",
+        "scripts/ci/private-node-cache.test.mjs",
         "scripts/ci/qa-exec-runtime-contracts.test.mjs",
         "scripts/ci/qa-tools-surface-contracts.test.mjs",
+        "scripts/ci/setup-private-node-cache.mjs",
         "scripts/ci/verify-slice-required-gates.test.mjs",
         "scripts/database-command.mjs",
         "scripts/dev-clean.mjs",
@@ -1107,13 +1110,13 @@
         "scripts/package-command-runtime.mjs",
         "scripts/package-e2e-scripts.test.mjs"
       ],
-      "maxTrackedBytesDelta": 60075,
-      "maxTrackedFilesDelta": 12,
+      "maxTrackedBytesDelta": 67478,
+      "maxTrackedFilesDelta": 14,
       "maxCategoryBytesDelta": {
         "docs/text": 4737,
-        "config/data/messages": 0,
-        "source/scripts": 26573,
-        "tests/e2e": 28765
+        "config/data/messages": 976,
+        "source/scripts": 30052,
+        "tests/e2e": 31713
       },
       "maxPathBytesDelta": {
         ".github/copilot-instructions.md": 231,
@@ -1140,11 +1143,14 @@
         "scripts/package-e2e-scripts.test.mjs": 112,
         "scripts/ci/fixtures/package-command-fixture.mjs": 2351,
         "scripts/ci/package-command-runtime.test.mjs": 8568,
-        "scripts/package-command-runtime.mjs": 7083,
+        "scripts/package-command-runtime.mjs": 7090,
         "scripts/ci/fixtures/package-command-effects.cjs": 3539,
         ".github/pull_request_template.md": 53,
         "scripts/ci/verify-slice-required-gates.test.mjs": 2098,
-        "packages/qa/src/tools/tests.ts": 241
+        "packages/qa/src/tools/tests.ts": 241,
+        ".github/actions/setup/action.yml": 976,
+        "scripts/ci/private-node-cache.test.mjs": 2948,
+        "scripts/ci/setup-private-node-cache.mjs": 3472
       }
     }
   ],
@@ -1154,15 +1160,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61057119,
-  "maxTrackedFiles": 6028,
+  "maxTrackedBytes": 61064831,
+  "maxTrackedFiles": 6030,
   "maxCategoryBytes": {
-    "config/data/messages": 2217884,
+    "config/data/messages": 2219169,
     "docs/text": 8541936,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8783074,
-    "tests/e2e": 6933490
+    "source/scripts": 8786553,
+    "tests/e2e": 6936438
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

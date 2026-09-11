@@ -14,7 +14,25 @@ runs:
       with:
         version: 10.28.2
 
+    - name: Prepare private hosted Node cache
+      if: runner.environment == 'github-hosted'
+      id: private-node-cache
+      shell: bash
+      env:
+        RUNNER_ENVIRONMENT: ${{ runner.environment }}
+      run: node scripts/ci/setup-private-node-cache.mjs prepare
+
+    - name: Setup private hosted Node
+      if: runner.environment == 'github-hosted'
+      uses: actions/setup-node@v5
+      env:
+        RUNNER_TOOL_CACHE: ${{ steps.private-node-cache.outputs.path }}
+      with:
+        node-version-file: '.nvmrc'
+        cache: 'pnpm'
+
     - name: Setup Node
+      if: runner.environment != 'github-hosted'
       uses: actions/setup-node@v5
       with:
         node-version-file: '.nvmrc'
@@ -98,6 +116,15 @@ runs:
     - name: Install dependencies
       run: pnpm install --frozen-lockfile --prefer-offline
       shell: bash
+
+    - name: Verify private hosted Node
+      if: runner.environment == 'github-hosted'
+      shell: bash
+      env:
+        RUNNER_ENVIRONMENT: ${{ runner.environment }}
+        PRIVATE_NODE_CACHE: ${{ steps.private-node-cache.outputs.path }}
+        NODE_SETUP_STARTED: ${{ steps.private-node-cache.outputs.started }}
+      run: node scripts/ci/setup-private-node-cache.mjs verify
 
     - name: Playwright Browser Cache
       if: inputs.install-playwright == 'true'

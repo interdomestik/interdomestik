@@ -74,7 +74,7 @@ function untrustedPathError(path, info, adminGroup) {
   return new Error(`refused an untrusted executable installation: ${JSON.stringify(details)}`);
 }
 
-function checkOwnedPath(file) {
+export function checkOwnedPath(file) {
   for (let current = file; ; current = dirname(current)) {
     const info = statSync(current);
     const trustedOwner = info.uid === 0 || info.uid === process.getuid();
