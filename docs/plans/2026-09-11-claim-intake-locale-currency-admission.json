@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "status": "promotion_pending",
+  "sliceId": "MIGRATION-CURRENCY-PARSING-TRIAL-1",
+  "tier": 3,
+  "baseSha": "4acbba33e40ad4aa8b50f504149f25684f3380d9",
+  "promotionPrNumber": 1753,
+  "prerequisite": {
+    "pullRequestNumber": 1752,
+    "mergeSha": "4acbba33e40ad4aa8b50f504149f25684f3380d9",
+    "status": "merged_and_verified"
+  },
+  "authorityArtifactSha256": "b8066de49136a97d86620d54ae5815c22c4b16ae4358a123c9a7a47aee21fbe0",
+  "productOutcomes": [
+    "Whole and dot/comma decimal amounts parse.",
+    "Ambiguous amounts fail closed.",
+    "One bound Z620 run measures the exact candidate."
+  ],
+  "writerPaths": [
+    "packages/domain-ai/src/claims/intake-extract.test.ts",
+    "packages/domain-ai/src/claims/intake-extract.ts"
+  ],
+  "productWriterMapSha256": "d28e9bef19d9188ef963605909c009b333c4cab242fb15f61521f5ade5ba7d5b",
+  "closeoutWriterPaths": ["docs/plans/current-program.md", "docs/plans/current-tracker.md"],
+  "acceptanceMatrix": [
+    {
+      "criterionId": "product-and-delivery-controls",
+      "command": "pnpm --filter @interdomestik/domain-ai test:unit --run src/claims/intake-extract.test.ts && pnpm repo:size:check && pnpm security:guard",
+      "expected": "Focused, capacity/modularity/security, and exact-head PR evidence pass.",
+      "skipIsFailure": true
+    },
+    {
+      "criterionId": "exact-z620-trial",
+      "command": "test \"$(git rev-parse HEAD)\" = \"$FROZEN_HEAD\" && test \"$(git rev-parse HEAD^{tree})\" = \"$FROZEN_TREE\" && test -z \"$(git status --porcelain)\" && CI_LOCAL_HEAD_SHA=\"$FROZEN_HEAD\" pnpm ci:z620:resource-run -- --sha=\"$FROZEN_HEAD\" --lane=migration-currency-trial-1 --attempt=r1 --lanes=e2e-pr --evidence-dir=\"$MANAGED_RUN_DIR\" --state-root=\"$MANAGED_STATE_ROOT\"",
+      "expected": "Frozen head/tree passes once, records head and lanes=e2e-pr, with evidence and cleanup.",
+      "skipIsFailure": true
+    }
+  ],
+  "capacityAllocation": {
+    "prerequisitePullRequest": 1752,
+    "productAllocationId": "migration-currency-parsing-trial",
+    "promotionAllocationId": "migration-currency-parsing-promotion",
+    "promotionMaxTrackedBytesDelta": 5800,
+    "promotionMaxTrackedFilesDelta": 2
+  },
+  "successorConditions": [
+    "Owner-bound #1753 merges before product work.",
+    "Freeze base, head, tree, and lock before execution.",
+    "Merge, pass once, retain proof, and clean up before credit."
+  ],
+  "firstImplementationAction": "Test, then implement the parser in the admitted files."
+}

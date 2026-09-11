@@ -96,11 +96,11 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 ## Ordered Candidate Priorities
 
-| Priority | Candidate                       | Dependencies                      | Promotion constraint             |
-| -------: | ------------------------------- | --------------------------------- | -------------------------------- |
-|        1 | Locale-aware currency parsing   | Product closeout + trial protocol | Separate bounded trial 1/3.      |
-|        2 | Bounded failed-run retry        | Trial 1                           | Separate bounded trial 2/3.      |
-|        3 | Third bounded product-use slice | Trial 2                           | Select separately for trial 3/3. |
+| Priority | Candidate                       | Dependencies    | Promotion constraint             |
+| -------: | ------------------------------- | --------------- | -------------------------------- |
+|        1 | Locale-aware currency parsing   | Promotion #1753 | Separate bounded trial 1/3.      |
+|        2 | Bounded failed-run retry        | Trial 1         | Separate bounded trial 2/3.      |
+|        3 | Third bounded product-use slice | Trial 2         | Select separately for trial 3/3. |
 
 ## T117C Product Delivery
 
@@ -129,20 +129,23 @@ execution as required by this slice's admission. Migration therefore remains 0/3
 For future trials, the prospective protocol is the repo-native Z620 resource lane. After a separate
 promotion admits a small product slice, freeze its exact base SHA, product head, merge candidate
 tree and lockfile hash before execution. Run one clean detached candidate through the fixed
-`z620-resource-run.mjs` command ID with a task-owned database and port, reuse unchanged protected
-PR evidence, and retain the result, redacted log, hashes, duration and cleanup state. A run started
+`z620-resource-run.mjs --lanes=e2e-pr` command with a task-owned database and port, reuse unchanged
+protected PR evidence, and retain the result, redacted log, hashes, duration and cleanup state. A run started
 without that pre-execution binding or with failed cleanup earns no credit. Currency parsing and
 failed-run retry are the first two separately bounded successors; a third small product-use slice
 is selected only after trial 2. None is activated by this closeout.
 
+## Currency Parsing Trial 1 Promotion
+
+Promotion #1753 admits only `MIGRATION-CURRENCY-PARSING-TRIAL-1` from prerequisite #1752 and base
+`4acbba33e40ad4aa8b50f504149f25684f3380d9`. Its exact two-file map fixes comma-decimal claim
+intake without locale guessing. Runtime remains inactive until the owner-bound promotion merges;
+the product candidate must then be frozen before one `--lanes=e2e-pr` Z620 execution. This
+promotion itself grants no migration credit.
+
 ## Staff Current-Claim Tenant Context Promotion
 
-PR #1749 promoted `STAFF-CURRENT-CLAIM-TENANT-CONTEXT` from prerequisite #1748 and protected-main
-base `3c89a6520094f9badab3b528e80c444a831d34c5`. Its exact eight-path product map keeps the complete
-status-change decision inside one tenant transaction and defers external effects until commit.
-Product PR #1744 merged and the later Z620 rehearsal passed, but the missing pre-execution protocol
-means it does not count as a migration trial. This closeout consumes the slice authority and grants
-no successor runtime.
+Promotion #1749 and product #1744 are closed; their later rehearsal is baseline evidence only.
 
 ## Unified Portal Direction
 
@@ -177,12 +180,28 @@ and global headers remain T-117C.
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "inactive",
+  "lifecycle": "promotion_pending",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": null
+  "activeSlice": {
+    "sliceId": "MIGRATION-CURRENCY-PARSING-TRIAL-1",
+    "tier": 3,
+    "promotionPrNumber": 1753,
+    "promotionBaseSha": "4acbba33e40ad4aa8b50f504149f25684f3380d9",
+    "expectedProductBranch": "codex/claim-intake-locale-currency",
+    "gateSha256": "b8066de49136a97d86620d54ae5815c22c4b16ae4358a123c9a7a47aee21fbe0",
+    "admissionSha256": "79482c1f75140012f58a15e88d40a6bad7eb6f0d6707670dac9e60f4775bcfe6",
+    "productWriterPaths": [
+      "packages/domain-ai/src/claims/intake-extract.test.ts",
+      "packages/domain-ai/src/claims/intake-extract.ts"
+    ],
+    "closeoutWriterPaths": [
+      "docs/plans/current-program.md",
+      "docs/plans/current-tracker.md"
+    ]
+  }
 }
 ```
 

@@ -15,18 +15,17 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                                   | Status      | Owner      | Work                                      | Exit Criteria                                |
-| ------------------------------------ | ----------- | ---------- | ----------------------------------------- | -------------------------------------------- |
-| `STAFF-CURRENT-CLAIM-TENANT-CONTEXT` | `completed` | `platform` | Atomic tenant-scoped staff status change. | Product merged; later Z620 rehearsal passed. |
+| ID                                   | Status    | Owner      | Work                                      | Exit Criteria                                  |
+| ------------------------------------ | --------- | ---------- | ----------------------------------------- | ---------------------------------------------- |
+| `MIGRATION-CURRENCY-PARSING-TRIAL-1` | `pending` | `platform` | Parse claim-intake comma decimals safely. | Promotion, exact product run, merge, closeout. |
 
 ## Proof Ledger
 
-| ID                                   | Source Refs                                                                                                                                         | Execution  | Run ID                    | Run Root                  | Sonar | Docker | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------------------------- | ------------------------- | ----- | ------ | ---------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `STAFF-CURRENT-CLAIM-TENANT-CONTEXT` | [gate](./2026-09-10-staff-current-claim-tenant-context-design-gate.md); [admission](./2026-09-10-staff-current-claim-tenant-context-admission.json) | `scripted` | `migration-trial1-be7-r2` | `Z620 exact merge e2e-pr` | pass  | pass   | `not_applicable` | pass     | Receipt `/Users/arbenlila/.codex/artifacts/interdomestik-migration-2026-09-07/activation-and-real-use/runtime-r2/trials/trial1-be7-r2/receipt.json`; result `/Users/arbenlila/.codex/artifacts/interdomestik-migration-2026-09-07/activation-and-real-use/runtime-r2/trials/trial1-be7-r2/gate-results.json`; log `/Users/arbenlila/.codex/artifacts/interdomestik-migration-2026-09-07/activation-and-real-use/runtime-r2/trials/trial1-be7-r2/logs/e2e-pr-1.log`; Z620 mirror `/home/arben/ci/interdomestik/runs/migration-trial1-be7-r2`. |
+| ID                                   | Source Refs                                                                                                                          | Execution | Run ID    | Run Root  | Sonar   | Docker  | Sentry           | Learning | Evidence Refs                                                                                                                        |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ | --------- | --------- | --------- | ------- | ------- | ---------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `MIGRATION-CURRENCY-PARSING-TRIAL-1` | docs/plans/2026-09-11-claim-intake-locale-currency-design-gate.md; docs/plans/2026-09-11-claim-intake-locale-currency-admission.json | `pending` | `pending` | `pending` | pending | pending | `not_applicable` | pending  | docs/plans/2026-09-11-claim-intake-locale-currency-design-gate.md; docs/plans/2026-09-11-claim-intake-locale-currency-admission.json |
 
-Migration credit: none; this execution is retained only as a successful technical rehearsal and
-timing baseline.
+Historical staff rehearsal: retained only as a timing baseline; no migration credit.
 
 Terminal: promotion `#1691`; product head
 `503d4b179251f9d3d06e07349ec80f85805565ae`, tree
@@ -54,7 +53,7 @@ execution, this is a technical baseline rather than trial 1. Migration remains 0
 
 Future trial protocol: a separate promotion first binds the exact base, head, merge-candidate tree
 and lockfile hash. Only then may one clean detached candidate run the fixed repo-native Z620
-resource command with task-owned database and port. Existing protected PR evidence is reused when
+resource command with `--lanes=e2e-pr`, task-owned database and port. Existing protected PR evidence is reused when
 inputs match; the result, redacted log, hashes, duration and cleanup state are retained. Missing
 pre-execution binding or cleanup means no trial credit.
 
@@ -63,11 +62,11 @@ pre-execution binding or cleanup means no trial credit.
 T117C was delivered by promotion #1738 and product #1736. Closeout is inactive; successor
 promotion remains separate.
 
-| Future successor branch         | Status                        | Constraint                                 |
-| ------------------------------- | ----------------------------- | ------------------------------------------ |
-| Locale-aware currency parsing   | `design_gate_next_unpromoted` | Separate two-path trial 1/3 promotion.     |
-| Bounded failed-run retry        | `deferred`                    | Separate two-path trial 2/3 after trial 1. |
-| Third bounded product-use slice | `deferred`                    | Select separately for trial 3/3.           |
+| Future successor branch         | Status              | Constraint                                 |
+| ------------------------------- | ------------------- | ------------------------------------------ |
+| Locale-aware currency parsing   | `promotion_pending` | Promotion #1753; exact two-path trial 1/3. |
+| Bounded failed-run retry        | `deferred`          | Separate two-path trial 2/3 after trial 1. |
+| Third bounded product-use slice | `deferred`          | Select separately for trial 3/3.           |
 
 ## Lean Authority
 
@@ -76,12 +75,28 @@ promotion remains separate.
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "inactive",
+  "lifecycle": "promotion_pending",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": null
+  "activeSlice": {
+    "sliceId": "MIGRATION-CURRENCY-PARSING-TRIAL-1",
+    "tier": 3,
+    "promotionPrNumber": 1753,
+    "promotionBaseSha": "4acbba33e40ad4aa8b50f504149f25684f3380d9",
+    "expectedProductBranch": "codex/claim-intake-locale-currency",
+    "gateSha256": "b8066de49136a97d86620d54ae5815c22c4b16ae4358a123c9a7a47aee21fbe0",
+    "admissionSha256": "79482c1f75140012f58a15e88d40a6bad7eb6f0d6707670dac9e60f4775bcfe6",
+    "productWriterPaths": [
+      "packages/domain-ai/src/claims/intake-extract.test.ts",
+      "packages/domain-ai/src/claims/intake-extract.ts"
+    ],
+    "closeoutWriterPaths": [
+      "docs/plans/current-program.md",
+      "docs/plans/current-tracker.md"
+    ]
+  }
 }
 ```
 
