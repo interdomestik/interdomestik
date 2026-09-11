@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 92265,
+      "trackedBytesDelta": 92266,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 54855,
+        "config/data/messages": 54856,
         "source/scripts": 23092,
         "tests/e2e": 14318
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 54855,
+        "scripts/repo-size-budget.json": 54856,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -639,25 +639,25 @@
         "scripts/ci/actions-check-supersession.mjs",
         "scripts/ci/actions-check-supersession.test.mjs"
       ],
-      "maxTrackedBytesDelta": 24861,
+      "maxTrackedBytesDelta": 27962,
       "maxTrackedFilesDelta": 5,
       "maxCategoryBytesDelta": {
-        "config/data/messages": 150,
-        "tests/e2e": 16503,
+        "config/data/messages": 284,
+        "tests/e2e": 19470,
         "source/scripts": 8208
       },
       "maxPathBytesDelta": {
-        ".github/workflows/pr-finalizer.yml": 150,
+        ".github/workflows/pr-finalizer.yml": 284,
         "scripts/ci/e2e-lane-runner-contracts.test.mjs": 1100,
         "scripts/ci/github-governance-contracts.test.mjs": 150,
-        "scripts/ci/pr-finalizer-workflow.test.mjs": 680,
+        "scripts/ci/pr-finalizer-workflow.test.mjs": 1369,
         "scripts/pr-review-ready.sh": 1279,
         "scripts/ci/pr-delivery-feedback.mjs": 3726,
         "scripts/ci/pr-delivery-ordering.test.mjs": 4723,
         "scripts/ci/pr-review-ready.test.mjs": 3672,
         "scripts/pr-finalizer.sh": 451,
         "scripts/ci/actions-check-supersession.mjs": 2752,
-        "scripts/ci/actions-check-supersession.test.mjs": 6178
+        "scripts/ci/actions-check-supersession.test.mjs": 8456
       }
     },
     {
@@ -937,13 +937,13 @@
         "scripts/ci/pr-delivery-workflow.test.mjs",
         "scripts/ci/repo-size-audit.test.mjs"
       ],
-      "maxTrackedBytesDelta": 2924,
+      "maxTrackedBytesDelta": 3156,
       "maxTrackedFilesDelta": 1,
-      "maxCategoryBytesDelta": { "config/data/messages": 652, "tests/e2e": 1566, "other": 706 },
+      "maxCategoryBytesDelta": { "config/data/messages": 754, "tests/e2e": 1696, "other": 706 },
       "maxPathBytesDelta": {
         ".husky/pre-push": 706,
-        ".github/workflows/pr-delivery-gate.yml": 652,
-        "scripts/ci/pr-delivery-workflow.test.mjs": 712,
+        ".github/workflows/pr-delivery-gate.yml": 754,
+        "scripts/ci/pr-delivery-workflow.test.mjs": 842,
         "scripts/ci/repo-size-audit.test.mjs": 854
       }
     },
@@ -1162,15 +1162,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61087798,
+  "maxTrackedBytes": 61091132,
   "maxTrackedFiles": 6031,
   "maxCategoryBytes": {
-    "config/data/messages": 2219348,
+    "config/data/messages": 2219585,
     "docs/text": 8541936,
     "large support/generated-ish": 15395985,
     "other": 19184750,
     "source/scripts": 8794997,
-    "tests/e2e": 6950782
+    "tests/e2e": 6953879
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

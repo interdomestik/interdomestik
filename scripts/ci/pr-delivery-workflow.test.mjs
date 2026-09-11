@@ -191,8 +191,8 @@ test('delivery workflow stays exact and default-deny', () => {
   assert.equal(job['timeout-minutes'], 90);
   assert.equal(
     workflow.concurrency['cancel-in-progress'],
-    "${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' }}",
-    'only a new candidate head may cancel an obsolete required check'
+    "${{ (github.event_name == 'pull_request' && github.event.action == 'synchronize') || github.event_name == 'pull_request_review' || github.event_name == 'pull_request_review_comment' }}",
+    'a new candidate head or newer same-head feedback may cancel its own obsolete required check'
   );
   assert.deepEqual(job.permissions, {
     actions: 'read',

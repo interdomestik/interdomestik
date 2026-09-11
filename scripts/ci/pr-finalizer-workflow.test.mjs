@@ -13,6 +13,25 @@ function readWorkflow(relativePath) {
   return yaml.load(fs.readFileSync(path.join(rootDir, relativePath), 'utf8'));
 }
 
+test('PR finalizer refreshes on the same review and review-comment activity as the delivery gate', () => {
+  const workflow = readWorkflow('.github/workflows/pr-finalizer.yml');
+  assert.deepEqual(Object.keys(workflow.on), [
+    'pull_request',
+    'pull_request_review',
+    'pull_request_review_comment',
+  ]);
+  assert.deepEqual(workflow.on.pull_request_review.types, ['submitted', 'edited', 'dismissed']);
+  assert.deepEqual(workflow.on.pull_request_review_comment.types, ['created', 'edited', 'deleted']);
+  assert.deepEqual(workflow.on.pull_request.types, [
+    'opened',
+    'synchronize',
+    'reopened',
+    'ready_for_review',
+    'converted_to_draft',
+    'labeled',
+  ]);
+});
+
 test('PR finalizer forces current-head required-check polling for the full lane', () => {
   const workflow = readWorkflow('.github/workflows/pr-finalizer.yml');
   assert.deepEqual(workflow.jobs['pr-finalizer'].permissions, {

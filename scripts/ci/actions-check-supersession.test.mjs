@@ -84,6 +84,62 @@ test('invalid producer identity and incomplete run enumeration fail closed', asy
   );
 });
 
+test('delivery gate cancels stale feedback and finalizer refreshes on the same events', () => {
+  const root = path.resolve(import.meta.dirname, '../..');
+  const gate = fs.readFileSync(path.join(root, '.github/workflows/pr-delivery-gate.yml'), 'utf8');
+  const finalizer = fs.readFileSync(path.join(root, '.github/workflows/pr-finalizer.yml'), 'utf8');
+
+  assert.match(gate, /\non:\n {2}pull_request:\n/u);
+  assert.match(gate, /\n {2}pull_request_review:\n {4}types: \[submitted, edited, dismissed\]\n/u);
+  assert.match(
+    gate,
+    /\n {2}pull_request_review_comment:\n {4}types: \[created, edited, deleted\]\n/u
+  );
+
+  const gateGroup = gate.match(/ {2}group: (.*)\n/u)[1];
+  assert.match(gateGroup, /synchronize-\{0\}.*pull_request\.head\.sha/u);
+  assert.match(gateGroup, /format\('event-\{0\}', github\.run_id\)/u);
+  assert.match(gateGroup, /format\('feedback-\{0\}', github\.event\.pull_request\.head\.sha\)/u);
+
+  const gateCancel = gate.match(/ {2}cancel-in-progress: (.*)\n/u)[1];
+  assert.equal(
+    gateCancel,
+    "${{ (github.event_name == 'pull_request' && github.event.action == 'synchronize') || github.event_name == 'pull_request_review' || github.event_name == 'pull_request_review_comment' }}",
+    'synchronize and both feedback event families must cancel their own obsolete run, unrelated pull_request events must not'
+  );
+
+  assert.match(
+    finalizer,
+    /\n {2}pull_request_review:\n {4}types: \[submitted, edited, dismissed\]\n/u
+  );
+  assert.match(
+    finalizer,
+    /\n {2}pull_request_review_comment:\n {4}types: \[created, edited, deleted\]\n/u
+  );
+  assert.match(
+    finalizer,
+    /types: \[opened, synchronize, reopened, ready_for_review, converted_to_draft, labeled\]/u
+  );
+  assert.equal(
+    finalizer.match(/ {2}group: (.*)\n/u)[1],
+    'pr-finalizer-${{ github.event.pull_request.number }}'
+  );
+  assert.equal(finalizer.match(/ {2}cancel-in-progress: (.*)\n/u)[1], 'true');
+
+  for (const source of [gate, finalizer]) {
+    for (const forbidden of [
+      'pull_request_review_thread',
+      'workflow_dispatch',
+      'actions: write',
+      '/rerun',
+      'permissions: write-all',
+      'checks: write',
+    ]) {
+      assert.ok(!source.includes(forbidden), `unexpected "${forbidden}" in workflow source`);
+    }
+  }
+});
+
 test('workflow lookup permits only the fixed PR event and exact SHA query', () => {
   assert.equal(
     trustedGitHubApiUrl(
