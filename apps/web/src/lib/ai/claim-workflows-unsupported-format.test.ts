@@ -93,7 +93,10 @@ vi.mock('@interdomestik/domain-claims', () => ({
   resolveClaimDocumentAiExtractionConsent: vi.fn(),
 }));
 
-import { processClaimDocumentWorkflowRunService } from './claim-workflows';
+import {
+  PersistedClaimAiRetryableError,
+  processClaimDocumentWorkflowRunService,
+} from './claim-workflows';
 import { claimIntakeExtractionRequested } from '@/lib/inngest/functions';
 
 type Workflow = 'claim_intake_extract' | 'legal_doc_extract';
@@ -134,17 +137,17 @@ function failedUpdate() {
 describe('claim workflow unsupported formats', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.downloadClaimAiFileWithRetry.mockResolvedValue(Buffer.from('binary'));
+    mocks.downloadClaimAiFileWithRetry.mockRejectedValue(new Error('blob unavailable'));
   });
 
   it.each([
     ['claim_intake_extract', 'image/jpeg'],
     ['legal_doc_extract', 'audio/webm'],
   ] as const)(
-    'fails %s permanently through the real service decoder',
+    'fails %s permanently before downloading the unsupported format',
     async (workflow, mimeType) => {
       mocks.selectWhere.mockResolvedValue([queuedRun(workflow, mimeType)]);
-      const downloadFile = vi.fn().mockResolvedValue(Buffer.from('binary'));
+      const downloadFile = vi.fn().mockRejectedValue(new Error('blob unavailable'));
 
       await expect(
         processClaimDocumentWorkflowRunService({ runId: 'run-1', deps: { downloadFile } })
@@ -155,11 +158,7 @@ describe('claim workflow unsupported formats', () => {
         workflow,
       });
 
-      expect(downloadFile).toHaveBeenCalledWith(
-        'claim-evidence',
-        'pii/tenants/tenant-1/claims/claim-1/evidence',
-        'tenant-1'
-      );
+      expect(downloadFile).not.toHaveBeenCalled();
       expect(failedUpdate()).toEqual(
         expect.objectContaining({
           status: 'failed',
@@ -168,6 +167,29 @@ describe('claim workflow unsupported formats', () => {
       );
       expect(mocks.extractClaimIntake).not.toHaveBeenCalled();
       expect(mocks.extractLegalDocument).not.toHaveBeenCalled();
+      expect(mocks.txInsert).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each(['application/pdf', 'text/plain'] as const)(
+    'keeps %s download failures on the generic retry path',
+    async mimeType => {
+      mocks.selectWhere.mockResolvedValue([queuedRun('claim_intake_extract', mimeType)]);
+      const downloadFile = vi.fn().mockRejectedValue(new Error('blob unavailable'));
+
+      await expect(
+        processClaimDocumentWorkflowRunService({ runId: 'run-1', deps: { downloadFile } })
+      ).rejects.toBeInstanceOf(PersistedClaimAiRetryableError);
+
+      expect(downloadFile).toHaveBeenCalledWith(
+        'claim-evidence',
+        'pii/tenants/tenant-1/claims/claim-1/evidence',
+        'tenant-1'
+      );
+      expect(failedUpdate()).toEqual(
+        expect.objectContaining({ status: 'failed', errorCode: 'claim_ai_processing_failed' })
+      );
+      expect(mocks.extractClaimIntake).not.toHaveBeenCalled();
       expect(mocks.txInsert).not.toHaveBeenCalled();
     }
   );
@@ -188,11 +210,7 @@ describe('claim workflow unsupported formats', () => {
     });
 
     expect(step.run).toHaveBeenCalledWith('process-claim-intake-extraction', expect.any(Function));
-    expect(mocks.downloadClaimAiFileWithRetry).toHaveBeenCalledWith({
-      bucket: 'claim-evidence',
-      filePath: 'pii/tenants/tenant-1/claims/claim-1/evidence',
-      tenantId: 'tenant-1',
-    });
+    expect(mocks.downloadClaimAiFileWithRetry).not.toHaveBeenCalled();
     expect(failedUpdate()).toEqual(
       expect.objectContaining({ errorCode: 'claim_ai_unsupported_document_type' })
     );

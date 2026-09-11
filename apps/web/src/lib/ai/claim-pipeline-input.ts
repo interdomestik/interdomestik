@@ -14,6 +14,7 @@ import { claimIntakeExtractSchema } from '@interdomestik/domain-ai/schemas/claim
 import { legalDocExtractSchema } from '@interdomestik/domain-ai/schemas/legal-doc-extract';
 
 import { readClaimPipelineAiCallContext } from './claim-pipeline-ai-context';
+import { assertClaimDocumentTypeSupported } from './claim-document-text';
 import { CLAIM_DELETED_DOCUMENT_FAILURE } from './claim-pipeline-document-lifecycle';
 import type { ClaimedClaimAiRun } from './claim-pipeline-run';
 
@@ -67,6 +68,7 @@ export async function loadClaimAiInput(
   const requestJson = run.requestJson && typeof run.requestJson === 'object' ? run.requestJson : {};
   const bucket = getBucketFromRequestJson(requestJson);
   await assertProcessingRunHasActiveDocument(run, CLAIM_DELETED_DOCUMENT_FAILURE);
+  assertClaimDocumentTypeSupported(run.mimeType);
   const fileBuffer = await deps.downloadFile(bucket, run.storagePath, run.tenantId);
   const documentText = await deps.analyzePdf(fileBuffer, run.mimeType);
 
