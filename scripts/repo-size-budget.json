@@ -1111,13 +1111,13 @@
         "scripts/package-command-runtime.mjs",
         "scripts/package-e2e-scripts.test.mjs"
       ],
-      "maxTrackedBytesDelta": 88946,
+      "maxTrackedBytesDelta": 90250,
       "maxTrackedFilesDelta": 15,
       "maxCategoryBytesDelta": {
         "docs/text": 4737,
         "config/data/messages": 1039,
-        "source/scripts": 38264,
-        "tests/e2e": 44906
+        "source/scripts": 38417,
+        "tests/e2e": 46057
       },
       "maxPathBytesDelta": {
         ".github/copilot-instructions.md": 231,
@@ -1151,8 +1151,8 @@
         "packages/qa/src/tools/tests.ts": 241,
         ".github/actions/setup/action.yml": 1039,
         "scripts/ci/private-node-cache.test.mjs": 11179,
-        "scripts/ci/private-node-download.test.mjs": 4962,
-        "scripts/ci/setup-private-node-cache.mjs": 11636
+        "scripts/ci/private-node-download.test.mjs": 6113,
+        "scripts/ci/setup-private-node-cache.mjs": 11789
       }
     }
   ],
@@ -1162,15 +1162,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61086494,
+  "maxTrackedBytes": 61087798,
   "maxTrackedFiles": 6031,
   "maxCategoryBytes": {
     "config/data/messages": 2219348,
     "docs/text": 8541936,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8794844,
-    "tests/e2e": 6949631
+    "source/scripts": 8794997,
+    "tests/e2e": 6950782
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

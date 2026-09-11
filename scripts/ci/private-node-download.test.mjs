@@ -6,6 +6,43 @@ import test from 'node:test';
 import childProcess from 'node:child_process';
 import { syncBuiltinESMExports } from 'node:module';
 
+test('private runtime success output retains proof metrics without absolute installation paths', async t => {
+  const runtime = await import('./setup-private-node-cache.mjs');
+  assert.equal(typeof runtime.logPrivateNodeResult, 'function');
+  const output = [];
+  t.mock.method(console, 'log', value => output.push(value));
+  runtime.logPrivateNodeResult({
+    version: 'v24.20.0',
+    provisionElapsedMs: 4000,
+    node: '/private/runtime/bin/node',
+  });
+  runtime.logPrivateNodeResult({
+    version: 'v24.20.0',
+    diskKiB: 123504,
+    setupElapsedMs: 25000,
+    nestedNode: 'pass',
+    databaseHelp: 'pass',
+    cleanup: 'runner.temp job teardown',
+    node: '/private/runtime/bin/node',
+    pnpm: '/private/tools/pnpm',
+  });
+  assert.deepEqual(
+    output.map(value => JSON.parse(value)),
+    [
+      { version: 'v24.20.0', provisionElapsedMs: 4000 },
+      {
+        version: 'v24.20.0',
+        diskKiB: 123504,
+        setupElapsedMs: 25000,
+        nestedNode: 'pass',
+        databaseHelp: 'pass',
+        cleanup: 'runner.temp job teardown',
+      },
+    ]
+  );
+  assert.doesNotMatch(output.join('\n'), /\/private\/|"node"|"pnpm"/);
+});
+
 test('cleanup preserves primary errors, combines dual failures, and never deletes a replaced archive', async t => {
   const runtime = await import('./setup-private-node-cache.mjs');
   assert.equal(typeof runtime.finishPrivateDownload, 'function');

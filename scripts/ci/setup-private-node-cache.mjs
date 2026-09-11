@@ -189,6 +189,20 @@ export function finishPrivateDownload(cache, archive, prepared, created, primary
   if (primaryError || cleanupError) throw primaryError ?? cleanupError;
 }
 
+export function logPrivateNodeResult(result) {
+  console.log(
+    JSON.stringify(result, [
+      'version',
+      'provisionElapsedMs',
+      'diskKiB',
+      'setupElapsedMs',
+      'nestedNode',
+      'databaseHelp',
+      'cleanup',
+    ])
+  );
+}
+
 async function provisionPrivateNode(cache) {
   const started = Date.now();
   const prepared = lstatSync(cache);
@@ -211,9 +225,7 @@ async function provisionPrivateNode(cache) {
     if (version.status !== 0 || version.stdout.toString().trim() !== process.version)
       throw new Error('private Node version differs from setup-node selection');
     appendTrustedRunnerFile(process.env.GITHUB_PATH, `${join(cache, 'bin')}\n`);
-    console.log(
-      JSON.stringify({ provisionElapsedMs: Date.now() - started, node, version: process.version })
-    );
+    logPrivateNodeResult({ provisionElapsedMs: Date.now() - started, version: process.version });
   } catch (error) {
     primaryError = error;
   }
@@ -236,18 +248,14 @@ function verifyPrivateNode(cache) {
     throw new Error('real database generation help failed under private runtime');
   const disk = spawnSync('/usr/bin/du', ['-sk', cache], options);
   if (disk.status !== 0) throw new Error('cannot measure private runtime disk usage');
-  console.log(
-    JSON.stringify({
-      node,
-      version: process.version,
-      pnpm: runtime.executable,
-      diskKiB: Number(disk.stdout.trim().split(/\s/)[0]),
-      setupElapsedMs: Date.now() - Number(process.env.NODE_SETUP_STARTED),
-      nestedNode: 'pass',
-      databaseHelp: 'pass',
-      cleanup: 'runner.temp job teardown',
-    })
-  );
+  logPrivateNodeResult({
+    version: process.version,
+    diskKiB: Number(disk.stdout.trim().split(/\s/)[0]),
+    setupElapsedMs: Date.now() - Number(process.env.NODE_SETUP_STARTED),
+    nestedNode: 'pass',
+    databaseHelp: 'pass',
+    cleanup: 'runner.temp job teardown',
+  });
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
