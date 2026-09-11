@@ -3,9 +3,24 @@ import {
   processEmailSequences,
   processSeasonalCampaigns,
 } from '@interdomestik/domain-communications/cron-service';
-import { processClaimDocumentWorkflowRunService } from '@/lib/ai/claim-workflows';
+import {
+  PersistedClaimAiRetryableError,
+  processClaimDocumentWorkflowRunService,
+} from '@/lib/ai/claim-workflows';
 import { processPolicyAnalysisRunService } from '@/app/api/policies/analyze/_services';
+import { NonRetriableError } from 'inngest';
 import { inngest } from './client';
+
+async function processClaimAiStep(runId: string, retryFailed: boolean) {
+  try {
+    return await processClaimDocumentWorkflowRunService({ runId, retryFailed });
+  } catch (error) {
+    if (error instanceof PersistedClaimAiRetryableError) throw error;
+    throw new NonRetriableError('Claim AI run failed before retry eligibility was persisted.', {
+      cause: error,
+    });
+  }
+}
 
 /**
  * Daily Email Sequences Function
@@ -67,10 +82,7 @@ export const claimIntakeExtractionRequested = inngest.createFunction(
   { event: 'claim/intake-extract.requested' },
   async ({ event, step, attempt }) => {
     return step.run('process-claim-intake-extraction', async () => {
-      return processClaimDocumentWorkflowRunService({
-        runId: event.data.runId,
-        retryFailed: attempt === 1,
-      });
+      return processClaimAiStep(event.data.runId, attempt === 1);
     });
   }
 );
@@ -80,10 +92,7 @@ export const legalDocumentExtractionRequested = inngest.createFunction(
   { event: 'legal/extract.requested' },
   async ({ event, step, attempt }) => {
     return step.run('process-legal-document-extraction', async () => {
-      return processClaimDocumentWorkflowRunService({
-        runId: event.data.runId,
-        retryFailed: attempt === 1,
-      });
+      return processClaimAiStep(event.data.runId, attempt === 1);
     });
   }
 );

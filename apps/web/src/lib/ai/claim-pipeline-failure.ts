@@ -24,4 +24,6 @@ export async function markClaimAiRunFailed(args: { run: ClaimedClaimAiRun; error
       })
       .where(eq(aiRuns.id, args.run.runId));
   });
+
+  return { errorCode };
 }

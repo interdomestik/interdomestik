@@ -57,6 +57,7 @@ vi.mock('@/lib/ai/extraction-pipeline', async importOriginal => {
 });
 
 import { ExtractionPipelineError } from '@/lib/ai/extraction-pipeline';
+import { NonRetriableError } from 'inngest';
 
 import { processClaimDocumentWorkflowRunService } from './claim-workflows';
 import {
@@ -84,10 +85,22 @@ const run = {
   claimCurrency: 'EUR',
 };
 
+type ClaimHandler = (args: {
+  event: { data: { runId: string } };
+  step: { run: (name: string, callback: () => unknown) => unknown };
+  attempt: number;
+}) => Promise<unknown>;
+
+const claimHandlers = [
+  claimIntakeExtractionRequested,
+  legalDocumentExtractionRequested,
+] as unknown as Array<{ config: { id: string; retries: number }; handler: ClaimHandler }>;
+
 describe('processClaimDocumentWorkflowRunService persist failure', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.claimClaimAiRun.mockResolvedValue({ status: 'claimed', run });
+    mocks.markClaimAiRunFailed.mockResolvedValue({ errorCode: 'claim_ai_processing_failed' });
     mocks.loadClaimAiInput.mockResolvedValue({ metrics: { hasText: true } });
     mocks.extractClaimAiCandidate.mockResolvedValue({
       candidate: {},
@@ -135,20 +148,64 @@ describe('processClaimDocumentWorkflowRunService persist failure', () => {
     expect(mocks.markClaimAiRunFailed).toHaveBeenCalledWith({ run, error: failure });
   });
 
+  it('returns failed for a persisted non-generic error without retrying it', async () => {
+    const failure = Object.assign(new Error('Provider rejected input.'), {
+      errorCode: 'claim_ai_provider_rejected',
+    });
+    mocks.persistClaimAiExtraction.mockRejectedValue(failure);
+    mocks.markClaimAiRunFailed.mockResolvedValue({ errorCode: failure.errorCode });
+
+    await expect(processClaimDocumentWorkflowRunService({ runId: 'run-1' })).resolves.toEqual({
+      status: 'failed',
+      runId: 'run-1',
+      claimId: 'claim-1',
+      workflow: 'claim_intake_extract',
+    });
+  });
+
+  it('keeps a confirmed persisted generic failure retriable in both actual handlers', async () => {
+    mocks.persistClaimAiExtraction.mockRejectedValue(new Error('processing failed'));
+    const step = { run: vi.fn(async (_name: string, callback: () => unknown) => callback()) };
+
+    for (const { handler } of claimHandlers) {
+      const thrown = await handler({
+        event: { data: { runId: 'run-1' } },
+        step,
+        attempt: 0,
+      }).catch(error => error);
+      expect(thrown).toMatchObject({
+        name: 'PersistedClaimAiRetryableError',
+        message: 'processing failed',
+      });
+      expect(thrown).not.toBeInstanceOf(NonRetriableError);
+    }
+  });
+
+  it.each([
+    [
+      'pre-claim rejection',
+      () => mocks.claimClaimAiRun.mockRejectedValue(new Error('claim failed')),
+    ],
+    [
+      'failure-persistence rejection',
+      () => {
+        mocks.persistClaimAiExtraction.mockRejectedValue(new Error('processing failed'));
+        mocks.markClaimAiRunFailed.mockRejectedValue(new Error('failure persistence failed'));
+      },
+    ],
+  ])('marks %s non-retriable in both actual handlers', async (_case, arrange) => {
+    arrange();
+    const step = { run: vi.fn(async (_name: string, callback: () => unknown) => callback()) };
+
+    for (const { handler } of claimHandlers) {
+      await expect(
+        handler({ event: { data: { runId: 'run-1' } }, step, attempt: 0 })
+      ).rejects.toBeInstanceOf(NonRetriableError);
+    }
+  });
+
   it('binds both claim workflow handlers to exactly one trusted retry attempt', async () => {
-    type ClaimHandler = (args: {
-      event: { data: { runId: string } };
-      step: { run: (name: string, callback: () => unknown) => unknown };
-      attempt: number;
-    }) => Promise<unknown>;
-    const claimIntake = claimIntakeExtractionRequested as unknown as {
-      config: { id: string; retries: number };
-      handler: ClaimHandler;
-    };
-    const legalDocument = legalDocumentExtractionRequested as unknown as {
-      config: { id: string; retries: number };
-      handler: ClaimHandler;
-    };
+    const [claimIntake, legalDocument] = claimHandlers;
     const step = { run: vi.fn(async (_name: string, callback: () => unknown) => callback()) };
     mocks.claimClaimAiRun.mockResolvedValue({
       status: 'skipped',
