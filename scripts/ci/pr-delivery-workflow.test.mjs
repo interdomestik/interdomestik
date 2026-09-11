@@ -221,6 +221,7 @@ test('delivery workflow stays exact and default-deny', () => {
   );
   assert.match(workflow.concurrency.group, /github\.event\.pull_request\.number/u);
   assert.match(workflow.concurrency.group, /event_name.*event\.action.*synchronize/u);
+  assert.match(workflow.concurrency.group, /synchronize-\{0\}.*pull_request\.head\.sha/u);
   assert.match(workflow.concurrency.group, /github\.run_id/u);
   assert.match(workflow.concurrency.group, /pull_request\.head\.sha/u);
   assert.ok(job.steps.some(step => String(step.uses).startsWith('actions/checkout@')));

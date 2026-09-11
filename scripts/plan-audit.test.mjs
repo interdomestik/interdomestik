@@ -67,6 +67,17 @@ test('passes with one canonical plan, one tracker, one execution log, and govern
   assert.match(result.stdout, /plan:audit passed/);
 });
 
+test('fails closed before reading an oversized governed document', () => {
+  const root = createTempRoot('plan-audit-oversized-');
+  writeGovernedDocs(root);
+  writeFile(root, 'docs/plans/current-program.md', 'x'.repeat(16 * 1024 * 1024 + 1));
+
+  const result = runAudit(root);
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /current-program\.md: exceeds 16777216-byte operational read bound/);
+});
+
 test('fails when multiple active trackers exist', () => {
   assertAuditFailure(
     'plan-audit-duplicate-',
