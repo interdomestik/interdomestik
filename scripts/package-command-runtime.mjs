@@ -15,10 +15,14 @@ const blockedEnv = new Set([
   'CDPATH',
   'ENV',
   'GIT_ASKPASS',
+  'GIT_CONFIG',
   'GIT_CONFIG_GLOBAL',
   'GIT_CONFIG_SYSTEM',
+  'GIT_EXEC_PATH',
+  'GIT_PROXY_COMMAND',
   'GIT_SSH',
   'GIT_SSH_COMMAND',
+  'GIT_TEMPLATE_DIR',
   'GLOBIGNORE',
   'HTTP_PROXY',
   'HTTPS_PROXY',
@@ -86,7 +90,7 @@ function buildChildEnv() {
         const normalized = key.toUpperCase();
         return (
           !blockedEnv.has(normalized) &&
-          !/^(COREPACK_|NPM_CONFIG_|PNPM_CONFIG_|LD_|DYLD_|BASH_FUNC_)/.test(normalized)
+          !/^(COREPACK_|NPM_CONFIG_|PNPM_CONFIG_|GIT_CONFIG_|LD_|DYLD_|BASH_FUNC_)/.test(normalized)
         );
       })
     ),

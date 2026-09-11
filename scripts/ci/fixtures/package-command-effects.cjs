@@ -16,9 +16,23 @@ if (['database-command.mjs', 'dev-clean.mjs'].includes(wrapper)) {
     'DYLD_INSERT_LIBRARIES',
     'COREPACK_NPM_REGISTRY',
     'GIT_SSH_COMMAND',
+    'GIT_CONFIG_COUNT',
+    'GIT_CONFIG_KEY_0',
+    'GIT_CONFIG_VALUE_0',
+    'GIT_CONFIG_PARAMETERS',
+    'GIT_CONFIG',
+    'GIT_EXEC_PATH',
+    'GIT_TEMPLATE_DIR',
+    'GIT_PROXY_COMMAND',
   ];
   const hostile = process.env.PACKAGE_COMMAND_TEST_HOSTILE === '1';
-  if (hostile) for (const key of controls) process.env[key] = 'forbidden-test-control';
+  if (hostile) {
+    for (const key of controls) process.env[key] = 'forbidden-test-control';
+    process.env.GIT_CONFIG_COUNT = '1';
+    process.env.GIT_CONFIG_KEY_0 = 'core.sshCommand';
+    process.env.GIT_CONFIG_VALUE_0 = 'forbidden-test-control';
+    process.env.GIT_CONFIG_PARAMETERS = "'core.sshCommand'='forbidden-test-control'";
+  }
 
   const assertStickyPath = (options, name) => {
     if (process.env.PACKAGE_COMMAND_TEST_STICKY === '1') {
