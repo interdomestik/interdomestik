@@ -98,8 +98,8 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 | Priority | Candidate                       | Dependencies    | Promotion constraint             |
 | -------: | ------------------------------- | --------------- | -------------------------------- |
-|        1 | Locale-aware currency parsing   | Promotion #1753 | Separate bounded trial 1/3.      |
-|        2 | Bounded failed-run retry        | Trial 1         | Separate bounded trial 2/3.      |
+|        1 | Locale-aware currency parsing   | Promotion #1753 | Completed migration trial 1/3.   |
+|        2 | Bounded failed-run retry        | Trial 1         | Next separate bounded trial 2/3. |
 |        3 | Third bounded product-use slice | Trial 2         | Select separately for trial 3/3. |
 
 ## T117C Product Delivery
@@ -132,16 +132,24 @@ tree and lockfile hash before execution. Run one clean detached candidate throug
 `z620-resource-run.mjs --lanes=e2e-pr` command with a task-owned database and port, reuse unchanged
 protected PR evidence, and retain the result, redacted log, hashes, duration and cleanup state. A run started
 without that pre-execution binding or with failed cleanup earns no credit. Currency parsing and
-failed-run retry are the first two separately bounded successors; a third small product-use slice
-is selected only after trial 2. None is activated by this closeout.
+failed-run retry are separately bounded successors; a third small product-use slice is selected
+only after trial 2. Trial 1 is complete, and this closeout activates no successor.
 
 ## Currency Parsing Trial 1 Promotion
 
-Promotion #1753 admits only `MIGRATION-CURRENCY-PARSING-TRIAL-1` from prerequisite #1752 and base
-`4acbba33e40ad4aa8b50f504149f25684f3380d9`. Its exact two-file map fixes comma-decimal claim
-intake without locale guessing. Runtime remains inactive until the owner-bound promotion merges;
-the product candidate must then be frozen before one `--lanes=e2e-pr` Z620 execution. This
-promotion itself grants no migration credit.
+Promotion #1753 admitted only `MIGRATION-CURRENCY-PARSING-TRIAL-1`. Product #1754 fixed exact head
+`9547770dce4d21b0c9dd24e42d3e38c3a6d61095`, tree
+`8825fbc3a039ad5253c49b873b6a1c6343ae27fb`, and merge candidate tree matched the immutable
+pre-execution freeze. The Z620 `e2e-pr` lane passed in 1,456,046 ms; result SHA-256 is
+`3075f62bd505efabea25d943465a214ece8910c4f222bdea4b0316fa29ec89af` and log SHA-256 is
+`6248d80f016c83c520d986017516b20560acde74d42881affc35445fe3cb74a8`. The task database,
+reserved port, and runner process were absent after execution; the private workspace returned
+clean at the exact head/tree with 5.0 GiB free. GitHub Full E2E attempt 2, Pilot, CI, Sonar,
+finalizer, and delivery passed on the unchanged head. Product #1754 then squash-merged as
+`a6a634169020e73341932bd37001864b41563733` on 2026-09-11. Migration progress is now 1/3.
+
+[Shared evidence](https://gist.github.com/arbenl/b1c4fbacb88b110d557baa0d401b6d81/53f1e39febca8bce97389993dfdfad4df4630351)
+retains the freeze, receipt, gate result, and full Z620 log. The tracker points here for stable proof.
 
 ## Staff Current-Claim Tenant Context Promotion
 
@@ -180,28 +188,12 @@ and global headers remain T-117C.
 {
   "schemaVersion": 1,
   "authority": "lean-tier12-v1",
-  "lifecycle": "promotion_pending",
+  "lifecycle": "inactive",
   "owner": {
     "login": "arbenl",
     "id": 62884977
   },
-  "activeSlice": {
-    "sliceId": "MIGRATION-CURRENCY-PARSING-TRIAL-1",
-    "tier": 3,
-    "promotionPrNumber": 1753,
-    "promotionBaseSha": "4acbba33e40ad4aa8b50f504149f25684f3380d9",
-    "expectedProductBranch": "codex/claim-intake-locale-currency",
-    "gateSha256": "b8066de49136a97d86620d54ae5815c22c4b16ae4358a123c9a7a47aee21fbe0",
-    "admissionSha256": "79482c1f75140012f58a15e88d40a6bad7eb6f0d6707670dac9e60f4775bcfe6",
-    "productWriterPaths": [
-      "packages/domain-ai/src/claims/intake-extract.test.ts",
-      "packages/domain-ai/src/claims/intake-extract.ts"
-    ],
-    "closeoutWriterPaths": [
-      "docs/plans/current-program.md",
-      "docs/plans/current-tracker.md"
-    ]
-  }
+  "activeSlice": null
 }
 ```
 
