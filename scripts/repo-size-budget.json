@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 86975,
+      "trackedBytesDelta": 86976,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 49565,
+        "config/data/messages": 49566,
         "source/scripts": 23092,
         "tests/e2e": 14318
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 49565,
+        "scripts/repo-size-budget.json": 49566,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -987,14 +987,14 @@
         "apps/web/src/lib/ai/claim-workflows.ts",
         "apps/web/src/lib/inngest/functions.ts"
       ],
-      "maxTrackedBytesDelta": 9741,
+      "maxTrackedBytesDelta": 10237,
       "maxTrackedFilesDelta": 0,
-      "maxCategoryBytesDelta": { "source/scripts": 1201, "tests/e2e": 8540 },
+      "maxCategoryBytesDelta": { "source/scripts": 1311, "tests/e2e": 8926 },
       "maxPathBytesDelta": {
         "apps/web/src/lib/ai/claim-pipeline-document-lifecycle.test.ts": 2032,
         "apps/web/src/lib/ai/claim-pipeline-document-lifecycle.ts": 427,
-        "apps/web/src/lib/ai/claim-pipeline-run.document-lifecycle.test.ts": 3633,
-        "apps/web/src/lib/ai/claim-pipeline-run.ts": 591,
+        "apps/web/src/lib/ai/claim-pipeline-run.document-lifecycle.test.ts": 4019,
+        "apps/web/src/lib/ai/claim-pipeline-run.ts": 701,
         "apps/web/src/lib/ai/claim-workflows-persist-failure.test.ts": 2875,
         "apps/web/src/lib/ai/claim-workflows.ts": 69,
         "apps/web/src/lib/inngest/functions.ts": 114
@@ -1041,15 +1041,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60967382,
+  "maxTrackedBytes": 60967879,
   "maxTrackedFiles": 6010,
   "maxCategoryBytes": {
-    "config/data/messages": 2212935,
+    "config/data/messages": 2212936,
     "docs/text": 8535729,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8753771,
-    "tests/e2e": 6884212
+    "source/scripts": 8753881,
+    "tests/e2e": 6884598
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

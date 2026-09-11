@@ -90,11 +90,13 @@ export async function claimClaimAiRun(
     throw new Error(`Queued claim AI run ${runId} was not found.`);
   }
 
+  const retryRequested = options.retryFailed === true;
   const retryingFailedRun =
-    options.retryFailed === true &&
+    retryRequested &&
     queuedRun.status === 'failed' &&
     queuedRun.errorCode === 'claim_ai_processing_failed';
-  if (queuedRun.status !== 'queued' && !retryingFailedRun) {
+  const claimingInitialRun = !retryRequested && queuedRun.status === 'queued';
+  if (!claimingInitialRun && !retryingFailedRun) {
     return { status: 'skipped', claimId: queuedRun.claimId, workflow: queuedRun.workflow };
   }
 

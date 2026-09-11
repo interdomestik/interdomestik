@@ -177,6 +177,17 @@ describe('claimClaimAiRun document lifecycle guard', () => {
     );
   });
 
+  it('does not claim queued work when invoked in retry mode', async () => {
+    mocks.where.mockResolvedValue([activeRun('queued')]);
+
+    await expect(claimClaimAiRun('run-1', { retryFailed: true })).resolves.toEqual({
+      status: 'skipped',
+      claimId: 'claim-1',
+      workflow: 'claim_intake_extract',
+    });
+    expect(mocks.withTenantContext).not.toHaveBeenCalled();
+  });
+
   it('does not reclaim a generic failure without explicit retry intent', async () => {
     mocks.where.mockResolvedValue([activeRun('failed', 'claim_ai_processing_failed')]);
 
