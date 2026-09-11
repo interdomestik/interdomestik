@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
-import { chmodSync, existsSync, readFileSync, symlinkSync } from 'node:fs';
-import { join } from 'node:path';
+import cp, { spawnSync } from 'node:child_process';
+import fs, { chmodSync, existsSync, readFileSync, realpathSync, symlinkSync } from 'node:fs';
+import { syncBuiltinESMExports } from 'node:module';
+import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { fixture, run } from './fixtures/package-command-fixture.mjs';
+import { checkedPackageExecutable, packageCommandRuntime } from '../package-command-runtime.mjs';
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const databaseCommand = join(root, 'scripts/database-command.mjs');
 
@@ -44,12 +46,7 @@ test('package wrappers refuse writable executables and symlinks to unsafe instal
   const link = fixture(t, 'placeholder');
   symlinkSync(writable.executable, join(link.directory, 'pnpm'));
   for (const directory of [writable.directory, link.directory]) {
-    const result = run(databaseCommand, ['generate'], {
-      PATH: `${directory}:${process.env.PATH}`,
-      FAKE_COMMAND_CAPTURE: writable.capturePath,
-    });
-    assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /refused an untrusted/);
+    assert.throws(() => checkedPackageExecutable(join(directory, 'pnpm')), /refused an untrusted/);
     assert.equal(existsSync(writable.capturePath), false);
   }
 });
@@ -58,12 +55,10 @@ test('package wrappers support safe symlinked installations and real pnpm sheban
   const safe = fixture(t);
   const link = fixture(t, 'placeholder');
   symlinkSync(safe.executable, join(link.directory, 'pnpm'));
-  const result = run(databaseCommand, ['generate'], {
-    PATH: `${link.directory}:${process.env.PATH}`,
-    FAKE_COMMAND_CAPTURE: safe.capturePath,
-  });
-  assert.equal(result.status, 0, result.stderr);
-  assert.ok(existsSync(safe.capturePath));
+  assert.equal(
+    checkedPackageExecutable(join(link.directory, 'pnpm')),
+    realpathSync(safe.executable)
+  );
   // Read-only invocation of the installed pnpm, through exactly the production boundary.
   const probe = spawnSync(
     process.execPath,
@@ -87,12 +82,58 @@ test('package wrappers support safe symlinked installations and real pnpm sheban
   assert.match(probe.stdout, /10\.28\.2/);
 });
 
-test('package wrappers explain how to recover when no safe executable exists', t => {
-  const empty = fixture(t, 'placeholder');
-  const result = run(databaseCommand, ['generate'], { PATH: empty.directory });
-  assert.notEqual(result.status, 0);
-  assert.match(
-    result.stderr,
-    /No safe pnpm executable found\. Install it in an absolute PATH directory/
-  );
+test('package wrappers explain how to recover when no supported executable exists', t => {
+  t.mock.method(fs, 'lstatSync', () => {
+    throw Object.assign(new Error('missing fixture'), { code: 'ENOENT' });
+  });
+  syncBuiltinESMExports();
+  try {
+    assert.throws(
+      () => packageCommandRuntime('pnpm'),
+      /No safe pnpm executable found\. This repository requires pnpm@10\.28\.2/
+    );
+  } finally {
+    t.mock.restoreAll();
+    syncBuiltinESMExports();
+  }
+});
+
+test('package wrappers refuse mismatched pnpm before any operational command', t => {
+  t.mock.method(cp, 'spawnSync', () => ({ status: 0, stdout: '0.0.0\n' }));
+  syncBuiltinESMExports();
+  try {
+    assert.throws(() => packageCommandRuntime('pnpm'), /requires pnpm@10\.28\.2/);
+  } finally {
+    t.mock.restoreAll();
+    syncBuiltinESMExports();
+  }
+});
+
+test('caller PATH cannot select a pnpm executable even from an owned directory', t => {
+  const injected = fixture(t);
+  const previous = process.env.PATH;
+  process.env.PATH = `${injected.directory}:${previous}`;
+  try {
+    assert.notEqual(packageCommandRuntime('pnpm').executable, realpathSync(injected.executable));
+    assert.equal(existsSync(injected.capturePath), false);
+  } finally {
+    process.env.PATH = previous;
+  }
+});
+
+test('the current Node installation is the explicit CI toolcache trust anchor', t => {
+  const executable = realpathSync(process.execPath);
+  const anchor = dirname(dirname(executable));
+  const original = fs.statSync;
+  t.mock.method(fs, 'statSync', file => {
+    assert.notEqual(file, dirname(anchor), 'must not inspect unrelated toolcache ancestors');
+    return original(file);
+  });
+  syncBuiltinESMExports();
+  try {
+    assert.equal(checkedPackageExecutable(executable), executable);
+  } finally {
+    t.mock.restoreAll();
+    syncBuiltinESMExports();
+  }
 });

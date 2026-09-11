@@ -1,5 +1,13 @@
-import { accessSync, constants, lstatSync, realpathSync, statSync } from 'node:fs';
+import { accessSync, constants, lstatSync, readFileSync, realpathSync, statSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { userInfo } from 'node:os';
 import { delimiter, dirname, isAbsolute, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// The executing Node installation is the runtime trust anchor, including isolated CI toolcaches.
+const nodeExecutable = realpathSync(process.execPath);
+const nodeInstallation = dirname(dirname(nodeExecutable));
+const root = fileURLToPath(new URL('..', import.meta.url));
 
 // Developer tools may be installed by this user or root, never by another account.
 function checkOwnedPath(file) {
@@ -14,8 +22,17 @@ function checkOwnedPath(file) {
     if (!trustedOwner || (unsafeWrites && !stickyRoot)) {
       throw new Error('refused an untrusted executable installation');
     }
-    if (current === dirname(current)) return;
+    if (current === nodeInstallation || current === dirname(current)) return;
   }
+}
+
+export function checkedPackageExecutable(candidate) {
+  checkOwnedPath(realpathSync(dirname(candidate)));
+  const executable = realpathSync(candidate);
+  checkOwnedPath(executable);
+  if (!statSync(executable).isFile()) throw new Error('executable is not a regular file');
+  accessSync(executable, constants.X_OK);
+  return executable;
 }
 
 export function packageCommandRuntime(name) {
@@ -35,28 +52,57 @@ export function packageCommandRuntime(name) {
     }
   });
   // pnpm's env-node shebang must use the already-running, checked Node installation.
-  const nodeExecutable = realpathSync(process.execPath);
   checkOwnedPath(nodeExecutable);
-  for (const directory of safeDirectories) {
-    const candidate = join(directory, name);
+  const env = {
+    ...process.env,
+    PATH: [dirname(nodeExecutable), ...safeDirectories].join(delimiter),
+    COREPACK_ENABLE_PROJECT_SPEC: '1',
+    COREPACK_ENABLE_STRICT: '1',
+    COREPACK_ENABLE_NETWORK: '0',
+    npm_config_manage_package_manager_versions: 'false',
+  };
+  // Executable identity never comes from caller PATH. Support the pinned Node install,
+  // Homebrew and system installations; PATH is only a filtered child environment.
+  const candidates =
+    name === 'pnpm'
+      ? [
+          join(dirname(process.execPath), 'pnpm'),
+          '/opt/homebrew/bin/pnpm',
+          '/usr/local/bin/pnpm',
+          '/usr/bin/pnpm',
+          join(userInfo().homedir, 'setup-pnpm/node_modules/.bin/pnpm'),
+          join(userInfo().homedir, '.local/share/pnpm/pnpm'),
+          join(userInfo().homedir, 'Library/pnpm/pnpm'),
+        ]
+      : ['/usr/sbin/lsof', '/usr/bin/lsof'];
+  const expected = JSON.parse(
+    readFileSync(new URL('../package.json', import.meta.url), 'utf8')
+  ).packageManager;
+  for (const candidate of candidates) {
     try {
       lstatSync(candidate);
     } catch (error) {
       if (error.code === 'ENOENT' || error.code === 'ENOTDIR') continue;
       throw error;
     }
-    // Check both the lookup directory and the resolved target; symlinks cannot bypass trust.
-    checkOwnedPath(realpathSync(directory));
-    const executable = realpathSync(candidate);
-    checkOwnedPath(executable);
-    if (!statSync(executable).isFile()) throw new Error('executable is not a regular file');
-    accessSync(executable, constants.X_OK);
+    const executable = checkedPackageExecutable(candidate);
+    if (name === 'pnpm') {
+      const version = spawnSync(executable, ['--version'], {
+        cwd: root,
+        env,
+        encoding: 'utf8',
+        timeout: 10000,
+      });
+      if (version.status !== 0 || `pnpm@${version.stdout.trim()}` !== expected) {
+        continue;
+      }
+    }
     return {
       executable,
-      env: { ...process.env, PATH: [dirname(nodeExecutable), ...safeDirectories].join(delimiter) },
+      env,
     };
   }
   throw new Error(
-    `No safe ${name} executable found. Install it in an absolute PATH directory owned by you or root, without write access for unprivileged groups or other users.`
+    `No safe ${name} executable found. This repository requires ${expected}. Install pnpm beside Node, in Homebrew/system bin, or the standard user pnpm/pnpm-action directory; install lsof in /usr/sbin or /usr/bin. Installations must be owned by you or root without unprivileged write access. No operational command was launched.`
   );
 }

@@ -1,9 +1,21 @@
 import { spawnSync } from 'node:child_process';
-import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../../..', import.meta.url));
+const preload = fileURLToPath(new URL('./package-command-effects.cjs', import.meta.url));
+
+export function commandFixtureEnv(env = {}) {
+  const result = { ...process.env, ...env, NODE_OPTIONS: `--require=${preload}` };
+  for (const name of ['pnpm', 'lsof']) {
+    const directory = result.PATH.split(':').find(
+      dir => dir.includes('/interdomestik-command-') && existsSync(join(dir, name))
+    );
+    if (directory) result[`PACKAGE_COMMAND_FIXTURE_${name.toUpperCase()}`] = '1';
+  }
+  return result;
+}
 
 export function fixture(t, name = 'pnpm') {
   const directory = mkdtempSync(join(tmpdir(), 'interdomestik-command-'));
@@ -29,10 +41,17 @@ process.exit(Number(process.env[prefix + '_EXIT'] ?? 0));
 }
 
 export function run(script, args, env = {}) {
-  return spawnSync(process.execPath, [script, ...args], {
+  const result = spawnSync(process.execPath, [script, ...args], {
     cwd: root,
     encoding: 'utf8',
     timeout: 10_000,
-    env: { ...process.env, ...env },
+    env: commandFixtureEnv(env),
   });
+  for (const line of (result.stdout ?? '').split('\n')) {
+    if (!line.startsWith('PACKAGE_COMMAND_CAPTURE ')) continue;
+    const capture = JSON.parse(line.slice('PACKAGE_COMMAND_CAPTURE '.length));
+    const target = env[capture.name === 'LSOF' ? 'FAKE_LSOF_CAPTURE' : 'FAKE_COMMAND_CAPTURE'];
+    if (target) writeFileSync(target, JSON.stringify(capture.args));
+  }
+  return result;
 }

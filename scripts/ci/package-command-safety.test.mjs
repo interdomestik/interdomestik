@@ -5,7 +5,7 @@ import { chmodSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { fixture, run } from './fixtures/package-command-fixture.mjs';
+import { commandFixtureEnv, fixture, run } from './fixtures/package-command-fixture.mjs';
 
 const realPnpm = spawnSync('which', ['pnpm'], { encoding: 'utf8' }).stdout.trim();
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -178,15 +178,16 @@ test('pnpm forwards root command arguments without shell evaluation', t => {
       cwd: root,
       encoding: 'utf8',
       timeout: 10_000,
-      env: {
-        ...process.env,
+      env: commandFixtureEnv({
         FAKE_COMMAND_CAPTURE: current.capturePath,
         PATH: `${current.directory}:${process.env.PATH}`,
-      },
+      }),
     }
   );
   assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(JSON.parse(readFileSync(current.capturePath, 'utf8')).slice(-2), [
+  const line = result.stdout.split('\n').find(line => line.startsWith('PACKAGE_COMMAND_CAPTURE '));
+  assert.ok(line, result.stdout);
+  assert.deepEqual(JSON.parse(line.slice('PACKAGE_COMMAND_CAPTURE '.length)).args.slice(-2), [
     '--name',
     'name;$(not-a-command)',
   ]);
@@ -228,6 +229,15 @@ test('package generation alias and Husky prepare execute the intended tools in a
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(JSON.parse(readFileSync(current.capturePath, 'utf8')), expected);
   }
+});
+
+test('test command doubles fail closed without a matching fixture', () => {
+  const database = run(databaseCommand, ['generate']);
+  assert.notEqual(database.status, 0);
+  assert.match(database.stderr, /failed to start: ENOENT/);
+  const dev = run(devClean, []);
+  assert.notEqual(dev.status, 0);
+  assert.match(dev.stderr, /could not safely determine/);
 });
 
 test('package command contracts remain truthful and keep heavy proof explicit', () => {
