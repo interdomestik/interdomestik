@@ -81,7 +81,7 @@ export function nodeRelease(version, platform, arch, wanted) {
 
 export function verifyArchiveHash(bytes, manifest, archive) {
   const entries = manifest.split('\n').filter(line => line.slice(66) === archive);
-  if (entries.length !== 1 || !/^[a-f0-9]{64}  /.test(entries[0]))
+  if (entries.length !== 1 || !/^[a-f0-9]{64} {2}/.test(entries[0]))
     throw new Error('invalid Node checksum manifest entry');
   if (createHash('sha256').update(bytes).digest('hex') !== entries[0].slice(0, 64))
     throw new Error('Node archive checksum mismatch');
@@ -93,8 +93,8 @@ const bootstrapOptions = {
   maxBuffer: 256 * 1024 * 1024,
 };
 
-function download(url, limit) {
-  const result = spawnSync(
+function downloadAttempt(url, limit, timeout) {
+  return spawnSync(
     '/usr/bin/curl',
     [
       '--disable',
@@ -107,18 +107,35 @@ function download(url, limit) {
       '--connect-timeout',
       '15',
       '--max-time',
-      '120',
+      String(timeout / 1000),
       '--max-filesize',
       String(limit),
       '--write-out',
       '%{stderr}%{http_code}',
       url,
     ],
-    { ...bootstrapOptions, maxBuffer: limit }
+    { ...bootstrapOptions, maxBuffer: limit, timeout }
   );
-  if (result.status !== 0 || result.stderr.toString() !== '200' || result.stdout.length > limit)
-    throw new Error('official Node download failed');
-  return result.stdout;
+}
+
+export async function download(url, limit) {
+  const deadline = Date.now() + 120000;
+  for (let attempt = 0; attempt < 3 && Date.now() < deadline; attempt++) {
+    const result = downloadAttempt(url, limit, Math.min(40000, deadline - Date.now()));
+    if (result.status === 0 && result.stderr.toString() === '200' && result.stdout.length <= limit)
+      return result.stdout;
+    const transient =
+      [5, 6, 7, 18, 28, 52, 55, 56].includes(result.status) ||
+      result.error?.code === 'ETIMEDOUT' ||
+      (result.status === 22 &&
+        /(?:408|429|500|502|503|504|522|524)$/.test(result.stderr.toString()));
+    if (!transient || result.error?.code === 'ENOBUFS' || attempt === 2 || Date.now() >= deadline)
+      break;
+    await new Promise(resolve =>
+      setTimeout(resolve, Math.min(1000 * (attempt + 1), deadline - Date.now()))
+    );
+  }
+  throw new Error('official Node download failed within retry/deadline limits');
 }
 
 export function persistVerifiedArchive(bytes, manifest, archive) {
@@ -148,29 +165,9 @@ export function extractNodeBinary(archive, member, cache) {
   return validateInstalledNode(cache, node);
 }
 
-function provisionPrivateNode(cache) {
-  const started = Date.now();
-  const prepared = lstatSync(cache);
-  if (readdirSync(cache).length !== 0)
-    throw new Error('private cache must be empty before provisioning');
-  const wanted = readFileSync(new URL('../../.nvmrc', import.meta.url), 'utf8').trim();
-  const release = nodeRelease(process.versions.node, process.platform, process.arch, wanted);
-  const archive = join(cache, release.archive);
-  let created;
+export function finishPrivateDownload(cache, archive, prepared, created, primaryError) {
+  let cleanupError;
   try {
-    const manifest = download(`${release.base}SHASUMS256.txt`, 1024 * 1024).toString('utf8');
-    const bytes = download(`${release.base}${release.archive}`, 100 * 1024 * 1024);
-    // Same-origin HTTPS manifest integrity, not independent signature authentication.
-    created = persistVerifiedArchive(bytes, manifest, archive);
-    const node = extractNodeBinary(archive, release.member, cache);
-    const version = spawnSync(node, ['--version'], bootstrapOptions);
-    if (version.status !== 0 || version.stdout.toString().trim() !== process.version)
-      throw new Error('private Node version differs from setup-node selection');
-    appendTrustedRunnerFile(process.env.GITHUB_PATH, `${join(cache, 'bin')}\n`);
-    console.log(
-      JSON.stringify({ provisionElapsedMs: Date.now() - started, node, version: process.version })
-    );
-  } finally {
     if (created) {
       const current = lstatSync(cache);
       const file = lstatSync(archive);
@@ -184,7 +181,43 @@ function provisionPrivateNode(cache) {
         throw new Error('private download identity changed; refusing cleanup');
       unlinkSync(archive);
     }
+  } catch (error) {
+    cleanupError = error;
   }
+  if (primaryError && cleanupError)
+    throw new AggregateError([primaryError, cleanupError], 'Node provisioning and cleanup failed');
+  if (primaryError || cleanupError) throw primaryError ?? cleanupError;
+}
+
+async function provisionPrivateNode(cache) {
+  const started = Date.now();
+  const prepared = lstatSync(cache);
+  if (readdirSync(cache).length !== 0)
+    throw new Error('private cache must be empty before provisioning');
+  const wanted = readFileSync(new URL('../../.nvmrc', import.meta.url), 'utf8').trim();
+  const release = nodeRelease(process.versions.node, process.platform, process.arch, wanted);
+  const archive = join(cache, release.archive);
+  let created;
+  let primaryError;
+  try {
+    const manifest = (await download(`${release.base}SHASUMS256.txt`, 1024 * 1024)).toString(
+      'utf8'
+    );
+    const bytes = await download(`${release.base}${release.archive}`, 100 * 1024 * 1024);
+    // Same-origin HTTPS manifest integrity, not independent signature authentication.
+    created = persistVerifiedArchive(bytes, manifest, archive);
+    const node = extractNodeBinary(archive, release.member, cache);
+    const version = spawnSync(node, ['--version'], bootstrapOptions);
+    if (version.status !== 0 || version.stdout.toString().trim() !== process.version)
+      throw new Error('private Node version differs from setup-node selection');
+    appendTrustedRunnerFile(process.env.GITHUB_PATH, `${join(cache, 'bin')}\n`);
+    console.log(
+      JSON.stringify({ provisionElapsedMs: Date.now() - started, node, version: process.version })
+    );
+  } catch (error) {
+    primaryError = error;
+  }
+  finishPrivateDownload(cache, archive, prepared, created, primaryError);
 }
 
 function verifyPrivateNode(cache) {
@@ -244,7 +277,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       state.identity
     );
     if (process.argv[2] === 'verify') verifyPrivateNode(cache);
-    else if (process.argv[2] === 'provision') provisionPrivateNode(cache);
+    else if (process.argv[2] === 'provision') await provisionPrivateNode(cache);
     else throw new Error('expected prepare, provision or verify');
   }
 }
