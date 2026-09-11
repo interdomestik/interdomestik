@@ -53,6 +53,12 @@ function stopWhenOver(stops, code, actual, limit) {
   if (actual > limit) stops.push({ code, actual, limit });
 }
 
+function plannedWriterBytes(plan, delta) {
+  return plan.change === 'create'
+    ? plan.maxBytesDelta
+    : Math.max(delta?.currentBytes ?? 0, (delta?.baseBytes ?? 0) + plan.maxBytesDelta);
+}
+
 function evaluateWriterPlan(plan, repository, budget, authorityStops, deficits) {
   const modularity = canonicalModularityForPath(plan.path);
   const semanticGovernance = isSemanticGovernanceDocument(plan.path);
@@ -80,10 +86,7 @@ function evaluateWriterPlan(plan, repository, budget, authorityStops, deficits) 
   ) {
     authorityStops.push({ code: `modularity:structured-owner-missing:${plan.path}` });
   }
-  const plannedBytes =
-    plan.change === 'create'
-      ? plan.maxBytesDelta
-      : Math.max(delta?.currentBytes ?? 0, (delta?.baseBytes ?? 0) + plan.maxBytesDelta);
+  const plannedBytes = plannedWriterBytes(plan, delta);
   if (
     Number.isInteger(modularity.maxBytes) &&
     Math.max(delta?.currentBytes ?? 0, plannedBytes) > modularity.maxBytes

@@ -9,6 +9,16 @@ const FACT_KEYS = 'currentBytes currentSha256 files capacityBaselineExists curre
 );
 const stop = (context, code, path) => context.authorityStops.push({ code, path });
 
+function validateProjectionPathBytes(stops, filePath, owner, limit, plan, facts) {
+  if (isSemanticGovernanceDocument(filePath)) return;
+  for (const [actual, code] of [
+    [plan.maxBytesDelta, 'capacity:projection-path-insufficient'],
+    [facts.bytes, 'capacity:projection-current-path-insufficient'],
+  ]) {
+    if (actual > limit) stops.push({ code, path: filePath, owner, actual, limit });
+  }
+}
+
 function recordProjectionPath(context, filePath) {
   const { authorityStops, budget, capacityOwnerDeltas, ownerAllocations, owners } = context;
   const owner = owners.get(filePath);
@@ -41,14 +51,7 @@ function recordProjectionPath(context, filePath) {
   if (plan.change !== 'modify') {
     stop(context, 'capacity:projection-writer-must-modify', filePath);
   }
-  if (!semanticGovernance) {
-    for (const [actual, code] of [
-      [plan.maxBytesDelta, 'capacity:projection-path-insufficient'],
-      [facts.bytes, 'capacity:projection-current-path-insufficient'],
-    ]) {
-      if (actual > limit) authorityStops.push({ code, path: filePath, owner, actual, limit });
-    }
-  }
+  validateProjectionPathBytes(authorityStops, filePath, owner, limit, plan, facts);
   const usage = context.usageByOwner.get(owner) ?? { bytes: 0, files: 0, categories: {} };
   const capacityBytes = semanticGovernance ? 0 : plan.maxBytesDelta;
   usage.bytes += capacityBytes;

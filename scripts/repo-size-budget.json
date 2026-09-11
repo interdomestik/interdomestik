@@ -477,12 +477,12 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 684565,
+      "maxTrackedBytesDelta": 684815,
       "maxTrackedFilesDelta": 94,
       "maxCategoryBytesDelta": {
         "config/data/messages": 1154,
         "docs/text": 30439,
-        "source/scripts": 347931,
+        "source/scripts": 348181,
         "tests/e2e": 305041
       },
       "maxPathBytesDelta": {
@@ -513,7 +513,7 @@
         "scripts/slice-rehearse-capacity-fixed-point.mjs": 7475,
         "scripts/slice-rehearse-capacity-owner-facts.mjs": 5502,
         "scripts/slice-rehearse-capacity-owner.test.mjs": 8791,
-        "scripts/slice-rehearse-capacity-projection.mjs": 6307,
+        "scripts/slice-rehearse-capacity-projection.mjs": 6477,
         "scripts/slice-rehearse-capacity-stops.test.mjs": 11068,
         "scripts/slice-rehearse-capacity.mjs": 9274,
         "scripts/slice-rehearse-cleanup.test.mjs": 8728,
@@ -559,7 +559,7 @@
         "scripts/slice-rehearse-repository.test.mjs": 9803,
         "scripts/slice-rehearse-review-parity.mjs": 8098,
         "scripts/slice-rehearse-review-parity.test.mjs": 4650,
-        "scripts/slice-rehearse-writer-policy.mjs": 7771,
+        "scripts/slice-rehearse-writer-policy.mjs": 7851,
         "scripts/slice-rehearse.mjs": 11001,
         "scripts/slice-rehearse.test.mjs": 10521,
         "scripts/slice-telemetry-aggregation.mjs": 5353,
@@ -1016,14 +1016,14 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60956172,
+  "maxTrackedBytes": 60956422,
   "maxTrackedFiles": 6010,
   "maxCategoryBytes": {
     "config/data/messages": 2211716,
     "docs/text": 8535729,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8752320,
+    "source/scripts": 8752570,
     "tests/e2e": 6875672
   },
   "maxLargestFileBytes": 3266530,
