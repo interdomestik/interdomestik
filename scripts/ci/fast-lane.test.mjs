@@ -6,6 +6,21 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const preload = fileURLToPath(new URL('./fixtures/fast-lane-effects.cjs', import.meta.url));
 
+test('fast-lane tripwires still refuse arbitrary subprocesses', () => {
+  const result = spawnSync(
+    process.execPath,
+    [
+      '--require',
+      preload,
+      '--eval',
+      "require('node:child_process').spawn('/bin/sh', ['-c', 'exit 0'])",
+    ],
+    { cwd: root, encoding: 'utf8' }
+  );
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /FAST_LANE_FORBIDDEN_EFFECT: external command/);
+});
+
 test('the actual fast lane runs all declared guards and units without operational effects', () => {
   const result = spawnSync(process.execPath, ['scripts/check-fast.mjs'], {
     cwd: root,
@@ -15,6 +30,7 @@ test('the actual fast lane runs all declared guards and units without operationa
       ...process.env,
       // Hostile caller settings must never turn this unit lane into an integration run.
       NODE_ENV: 'production',
+      TSX_DISABLE_CACHE: '1',
       REQUIRE_RLS_INTEGRATION: '1',
       DATABASE_URL: 'postgresql://unused:unused@remote.invalid:5432/never-connect',
       DATABASE_URL_RLS: 'postgresql://unused:unused@other.invalid:5432/never-connect',
@@ -23,6 +39,7 @@ test('the actual fast lane runs all declared guards and units without operationa
   });
   assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
   assert.doesNotMatch(result.stderr, /FAST_LANE_FORBIDDEN_EFFECT/);
+  assert.match(result.stdout, /FAST_LANE_TRANSFORM esbuild/);
   const commands = result.stdout
     .split('\n')
     .filter(line => line.startsWith('FAST_LANE_COMMAND '))
