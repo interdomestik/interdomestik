@@ -15,15 +15,15 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                                   | Status        | Owner      | Work                                           | Exit Criteria                             |
-| ------------------------------------ | ------------- | ---------- | ---------------------------------------------- | ----------------------------------------- |
-| `MIGRATION-FAILED-RUN-RETRY-TRIAL-2` | `in_progress` | `platform` | Retry eligible failed claim AI work once only. | Exact PR gates, Z620 run, cleanup, merge. |
+| ID                                            | Status        | Owner      | Work                                                 | Exit Criteria                             |
+| --------------------------------------------- | ------------- | ---------- | ---------------------------------------------------- | ----------------------------------------- |
+| `MIGRATION-UNSUPPORTED-DOCUMENT-TYPE-TRIAL-3` | `in_progress` | `platform` | Fail unreadable claim AI document types permanently. | Exact PR gates, Z620 run, cleanup, merge. |
 
 ## Proof Ledger
 
-| ID                                   | Source Refs                                                                   | Execution | Run ID    | Run Root | Sonar   | Docker  | Sentry           | Learning | Evidence Refs                                                |
-| ------------------------------------ | ----------------------------------------------------------------------------- | --------- | --------- | -------- | ------- | ------- | ---------------- | -------- | ------------------------------------------------------------ |
-| `MIGRATION-FAILED-RUN-RETRY-TRIAL-2` | docs/plans/current-program.md; docs/plans/current-tracker.md; owner direction | `pending` | `pending` | pending  | pending | pending | `not_applicable` | pending  | docs/plans/current-program.md; docs/plans/current-tracker.md |
+| ID                                            | Source Refs                                                                   | Execution | Run ID    | Run Root | Sonar   | Docker  | Sentry           | Learning | Evidence Refs                                                |
+| --------------------------------------------- | ----------------------------------------------------------------------------- | --------- | --------- | -------- | ------- | ------- | ---------------- | -------- | ------------------------------------------------------------ |
+| `MIGRATION-UNSUPPORTED-DOCUMENT-TYPE-TRIAL-3` | docs/plans/current-program.md; docs/plans/current-tracker.md; owner direction | `pending` | `pending` | pending  | pending | pending | `not_applicable` | pending  | docs/plans/current-program.md; docs/plans/current-tracker.md |
 
 Historical staff rehearsal: retained only as a timing baseline; no migration credit.
 
@@ -57,16 +57,24 @@ frozen before its clean detached Z620 run. Existing protected PR evidence is reu
 match; the result, redacted log, hashes, duration and cleanup state are retained. Missing
 pre-execution binding or cleanup means no trial credit.
 
+Failed-run retry product #1757 passed all protected PR contexts and its exact-head Z620 `e2e-pr`
+lane in 1,551,834 ms. Result SHA-256 is
+`4ad149d001623f5ba63dfb8609e849704e4c26583695c5558e585177a52d0ad6`; log SHA-256 is
+`cb44f5d3b3af05b391141a24f31419f35c1f23d444e02fc87aa254469a7516ea`. Task resources and the
+temporary candidate were cleaned, evidence was retained, and exact source
+`4a6ebbed9bb8a942d707ad81cef57fcede02dd63` squash-merged as
+`1728afd3c76f952de9a6df87502800965e041093`. Migration progress is 2/3.
+
 ## Next Selection
 
 T117C was delivered by promotion #1738 and product #1736. Closeout is inactive; successor
 promotion remains separate.
 
-| Future successor branch         | Status        | Constraint                                            |
-| ------------------------------- | ------------- | ----------------------------------------------------- |
-| Locale-aware currency parsing   | `completed`   | Product #1754; migration trial 1/3 closed.            |
-| Bounded failed-run retry        | `in_progress` | One bounded ordinary product PR; Lean stays inactive. |
-| Third bounded product-use slice | `deferred`    | Select separately after trial 2 evidence and merge.   |
+| Future successor branch            | Status        | Constraint                                            |
+| ---------------------------------- | ------------- | ----------------------------------------------------- |
+| Locale-aware currency parsing      | `completed`   | Product #1754; migration trial 1/3 closed.            |
+| Bounded failed-run retry           | `completed`   | Product #1757; migration trial 2/3 closed.            |
+| Unsupported claim AI document type | `in_progress` | One bounded ordinary product PR; Lean stays inactive. |
 
 ## Lean Authority
 

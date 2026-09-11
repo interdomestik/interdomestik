@@ -10,6 +10,7 @@ import {
   validateClaimAiCandidate,
   type ClaimPipelineDeps,
 } from './claim-pipeline-input';
+import { analyzeClaimDocumentAsText } from './claim-document-text';
 import { markClaimAiRunFailed } from './claim-pipeline-failure';
 import { persistClaimAiExtraction } from './claim-pipeline-persist';
 import { claimClaimAiRun, type ClaimAiWorkflow } from './claim-pipeline-run';
@@ -48,17 +49,6 @@ async function downloadFileFromStorage(
   tenantId: string
 ): Promise<Buffer> {
   return downloadClaimAiFileWithRetry({ bucket, filePath, tenantId });
-}
-
-async function analyzeDocumentAsText(buffer: Buffer, mimeType: string): Promise<string> {
-  if (mimeType === 'text/plain') return buffer.toString('utf8');
-
-  if (mimeType !== 'application/pdf') return '';
-
-  const pdfModule = await import('pdf-parse');
-  const pdf = pdfModule.default ?? pdfModule;
-  const result = await pdf(buffer);
-  return result.text ?? '';
 }
 
 export async function emitClaimAiRunRequestedService(queuedRun: QueuedClaimAiRun) {
@@ -100,7 +90,7 @@ export async function processClaimDocumentWorkflowRunService(args: {
   extraction?: Record<string, unknown>;
 }> {
   const downloadFile = args.deps?.downloadFile ?? downloadFileFromStorage;
-  const analyzePdf = args.deps?.analyzePdf ?? analyzeDocumentAsText;
+  const analyzePdf = args.deps?.analyzePdf ?? analyzeClaimDocumentAsText;
   const deps = { downloadFile, analyzePdf };
 
   const claimed = await claimClaimAiRun(args.runId, { retryFailed: args.retryFailed === true });

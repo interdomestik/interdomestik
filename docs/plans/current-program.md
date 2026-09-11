@@ -134,7 +134,8 @@ merge-candidate tree and lockfile hash before the repo-native
 and port; unchanged protected PR evidence may be reused, and the result, redacted log, hashes,
 duration and cleanup state remain external evidence. A run started without that pre-execution
 binding or with failed cleanup earns no credit. Canonical status remains `in_progress` until both
-that evidence and the expected-head merge pass. Trial 1 is complete; trial 2 is the active candidate.
+that evidence and the expected-head merge pass. Trials 1 and 2 are complete; trial 3 is the active
+candidate.
 
 ## Currency Parsing Trial 1 Promotion
 
@@ -160,8 +161,28 @@ tenant-scoped compare-and-set binds both `status=failed` and that eligible error
 returning the run to `processing`. Completed work, permanent extraction/deletion failures, later or
 duplicate attempts, and a lost compare-and-set race remain skipped. The existing document/claim
 tenant joins, RLS transaction boundary, routes, auth, schema and deployment surface remain
-unchanged. Trial 2 stays `in_progress` until exact-head PR gates, the prospective Z620 run, cleanup,
-and expected-head merge all pass.
+unchanged.
+
+Product #1757 fixed head `4a6ebbed9bb8a942d707ad81cef57fcede02dd63`, tree and merge-candidate
+tree `fb3ee8f53f290b82b43dbde16fc6cd6a8749f5bf`. The exact-head Z620 `e2e-pr` lane passed
+in 1,551,834 ms; result SHA-256 is
+`4ad149d001623f5ba63dfb8609e849704e4c26583695c5558e585177a52d0ad6` and log SHA-256 is
+`cb44f5d3b3af05b391141a24f31419f35c1f23d444e02fc87aa254469a7516ea`. The task database,
+reserved port, and runner process were absent after execution; the clean temporary candidate was
+removed while its evidence was retained. All protected PR contexts passed on the unchanged head,
+which squash-merged as `1728afd3c76f952de9a6df87502800965e041093` on 2026-09-11. Migration
+progress is now 2/3.
+
+## Unsupported Claim AI Document Type Trial 3
+
+The bounded candidate preserves accepted claim image/audio uploads and human access to the source,
+but the default AI workflow no longer records a completed metadata-only extraction when it cannot
+read the uploaded format. Plain text and PDF decoding remain unchanged. Accepted image/audio MIME
+types and unknown types fail permanently as `claim_ai_unsupported_document_type` before either
+claim extractor or extraction persistence runs. The existing upload allowlist, consent, document
+lifecycle, tenant-scoped failure persistence, retry policy, routes, auth, schema and deployment
+surface remain unchanged. Trial 3 stays `in_progress` until exact-head PR gates, the prospective
+Z620 run, cleanup, and expected-head merge all pass.
 
 ## Staff Current-Claim Tenant Context Promotion
 
