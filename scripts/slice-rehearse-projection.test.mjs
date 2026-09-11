@@ -159,10 +159,8 @@ test('projection keeps the budget unchanged', () => {
   const facts = repo(value);
   const proposal = capacity(value, facts);
   assert.deepEqual(proposal.budget, budget);
-  assert.deepEqual(
-    [proposal.allocation.id, proposal.allocation.mode],
-    ['t117b-data-projection', 'projection-existing']
-  );
+  assert.equal(proposal.allocation.id, 't117b-data-projection');
+  assert.equal(proposal.allocation.mode, 'projection-existing');
   assert.deepEqual(Object.keys(proposal.projectionPathCaps), CLOSEOUT);
   const report = rehearse(value, facts);
   assert.deepEqual(report.authorityStops, []);
@@ -185,15 +183,21 @@ test('projection accepts large canonical authority growth without consuming size
   }
   facts.tracked.bytes = budget.maxTrackedBytes + 400_000;
   facts.tracked.categoryBytes = { ...categoryHeadroom };
-  for (const path of CLOSEOUT) {
-    const category = budgetCategory(path);
-    facts.tracked.categoryBytes[category] += 200_000;
-  }
-
+  for (const path of CLOSEOUT) facts.tracked.categoryBytes[budgetCategory(path)] += 200_000;
   const report = rehearse(value, facts);
-
-  assert.deepEqual(report.authorityStops, []);
-  assert.deepEqual(report.deficits, []);
+  assert.deepEqual([report.authorityStops, report.deficits], [[], []]);
+});
+test('projected semantic exemption nets temporary shrinkage before global capacity', () => {
+  const value = manifest({
+    pathPlans: CLOSEOUT.map(path => plan(path, { maxBytesDelta: path === PROGRAM ? 10 : 0 })),
+  });
+  const facts = repo(value, { bytes: budget.maxTrackedBytes });
+  for (const path of CLOSEOUT) {
+    facts.writerDeltas[path].bytes = 0;
+    facts.capacityOwnerDeltas[path] = { ...facts.writerDeltas[path] };
+  }
+  facts.capacityOwnerDeltas[PROGRAM].bytes = -100;
+  assert.ok(hasStop(rehearse(value, facts), 'capacity:global-tracked-bytes'));
 });
 test('promotion reuses baseline-new writers only within the owner file ceiling', () => {
   const value = promotion();

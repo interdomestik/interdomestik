@@ -487,13 +487,13 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 680924,
+      "maxTrackedBytesDelta": 681442,
       "maxTrackedFilesDelta": 94,
       "maxCategoryBytesDelta": {
         "config/data/messages": 1154,
         "docs/text": 30439,
-        "source/scripts": 347583,
-        "tests/e2e": 301748
+        "source/scripts": 347597,
+        "tests/e2e": 302252
       },
       "maxPathBytesDelta": {
         ".github/workflows/ci.yml": 1441,
@@ -519,7 +519,7 @@
         "scripts/slice-rehearse-bootstrap.mjs": 10916,
         "scripts/slice-rehearse-bootstrap.test.mjs": 11100,
         "scripts/slice-rehearse-canonical.mjs": 6973,
-        "scripts/slice-rehearse-capacity-existing.mjs": 6973,
+        "scripts/slice-rehearse-capacity-existing.mjs": 6987,
         "scripts/slice-rehearse-capacity-fixed-point.mjs": 7475,
         "scripts/slice-rehearse-capacity-owner-facts.mjs": 5502,
         "scripts/slice-rehearse-capacity-owner.test.mjs": 6002,
@@ -559,7 +559,7 @@
         "scripts/slice-rehearse-ops-cli.mjs": 3996,
         "scripts/slice-rehearse-ops.mjs": 5122,
         "scripts/slice-rehearse-ops.test.mjs": 10127,
-        "scripts/slice-rehearse-projection.test.mjs": 11614,
+        "scripts/slice-rehearse-projection.test.mjs": 12118,
         "scripts/slice-rehearse-proof-execution-cli.test.mjs": 7689,
         "scripts/slice-rehearse-proof-plan.mjs": 5247,
         "scripts/slice-rehearse-proof-plan.test.mjs": 8547,
@@ -971,17 +971,17 @@
         "scripts/ci/pr-delivery-workflow.test.mjs",
         "scripts/ci/repo-size-audit.test.mjs"
       ],
-      "maxTrackedBytesDelta": 2420,
+      "maxTrackedBytesDelta": 2785,
       "maxTrackedFilesDelta": 1,
       "maxCategoryBytesDelta": {
-        "config/data/messages": 357,
-        "tests/e2e": 1357,
+        "config/data/messages": 604,
+        "tests/e2e": 1475,
         "other": 706
       },
       "maxPathBytesDelta": {
         ".husky/pre-push": 706,
-        ".github/workflows/pr-delivery-gate.yml": 357,
-        "scripts/ci/pr-delivery-workflow.test.mjs": 503,
+        ".github/workflows/pr-delivery-gate.yml": 604,
+        "scripts/ci/pr-delivery-workflow.test.mjs": 621,
         "scripts/ci/repo-size-audit.test.mjs": 854
       }
     },
@@ -1067,15 +1067,15 @@
     },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60949309,
+  "maxTrackedBytes": 60950192,
   "maxTrackedFiles": 6010,
   "maxCategoryBytes": {
-    "config/data/messages": 2211662,
+    "config/data/messages": 2211909,
     "docs/text": 8535729,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8751224,
-    "tests/e2e": 6869959
+    "source/scripts": 8751238,
+    "tests/e2e": 6870581
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

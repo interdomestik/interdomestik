@@ -220,7 +220,9 @@ test('delivery workflow stays exact and default-deny', () => {
     `github.event.pull_request.base.ref == 'main' && github.event.pull_request.state == 'open' && !github.event.pull_request.draft && (github.event.action != 'labeled' || github.event.label.name == 'full-gate')`
   );
   assert.match(workflow.concurrency.group, /github\.event\.pull_request\.number/u);
-  assert.doesNotMatch(workflow.concurrency.group, /event_name|event\.action|head\.sha/u);
+  assert.match(workflow.concurrency.group, /event_name.*event\.action.*synchronize/u);
+  assert.match(workflow.concurrency.group, /github\.run_id/u);
+  assert.match(workflow.concurrency.group, /pull_request\.head\.sha/u);
   assert.ok(job.steps.some(step => String(step.uses).startsWith('actions/checkout@')));
   const checkout = job.steps.find(step => String(step.uses).startsWith('actions/checkout@'));
   assert.match(checkout.with.ref, /github\.sha/u);
