@@ -1,4 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   claimClaimAiRun: vi.fn(),
@@ -60,7 +62,8 @@ const run = {
 };
 
 describe('processClaimDocumentWorkflowRunService persist failure', () => {
-  it('returns failed when persistence rejects a deleted-document run', async () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
     mocks.claimClaimAiRun.mockResolvedValue({ status: 'claimed', run });
     mocks.loadClaimAiInput.mockResolvedValue({ metrics: { hasText: true } });
     mocks.extractClaimAiCandidate.mockResolvedValue({
@@ -77,6 +80,9 @@ describe('processClaimDocumentWorkflowRunService persist failure', () => {
       escalationRecommended: false,
       persistenceAllowed: true,
     });
+  });
+
+  it('returns failed when persistence rejects a deleted-document run', async () => {
     mocks.persistClaimAiExtraction.mockRejectedValue(
       new ExtractionPipelineError('claim_ai_document_deleted', 'Document was deleted.')
     );
@@ -87,9 +93,29 @@ describe('processClaimDocumentWorkflowRunService persist failure', () => {
       claimId: 'claim-1',
       workflow: 'claim_intake_extract',
     });
+    expect(mocks.claimClaimAiRun).toHaveBeenCalledWith('run-1', { retryFailed: false });
     expect(mocks.markClaimAiRunFailed).toHaveBeenCalledWith({
       run,
       error: expect.objectContaining({ errorCode: 'claim_ai_document_deleted' }),
     });
+  });
+
+  it('rethrows a generic failure after persisting it and forwards explicit retry intent', async () => {
+    const failure = new Error('Storage temporarily unavailable.');
+    mocks.persistClaimAiExtraction.mockRejectedValue(failure);
+
+    await expect(
+      processClaimDocumentWorkflowRunService({ runId: 'run-1', retryFailed: true })
+    ).rejects.toThrow('Storage temporarily unavailable.');
+
+    expect(mocks.claimClaimAiRun).toHaveBeenCalledWith('run-1', { retryFailed: true });
+    expect(mocks.markClaimAiRunFailed).toHaveBeenCalledWith({ run, error: failure });
+  });
+
+  it('binds both claim workflows to exactly one trusted retry attempt', () => {
+    const source = readFileSync(resolve(process.cwd(), 'src/lib/inngest/functions.ts'), 'utf8');
+
+    expect(source.match(/retries: 1/g)).toHaveLength(2);
+    expect(source.match(/retryFailed: attempt === 1/g)).toHaveLength(2);
   });
 });

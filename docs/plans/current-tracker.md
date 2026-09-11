@@ -15,15 +15,15 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                                   | Status      | Owner      | Work                                      | Exit Criteria                                  |
-| ------------------------------------ | ----------- | ---------- | ----------------------------------------- | ---------------------------------------------- |
-| `MIGRATION-CURRENCY-PARSING-TRIAL-1` | `completed` | `platform` | Parse claim-intake comma decimals safely. | Promotion, exact product run, merge, closeout. |
+| ID                                   | Status        | Owner      | Work                                           | Exit Criteria                             |
+| ------------------------------------ | ------------- | ---------- | ---------------------------------------------- | ----------------------------------------- |
+| `MIGRATION-FAILED-RUN-RETRY-TRIAL-2` | `in_progress` | `platform` | Retry eligible failed claim AI work once only. | Exact PR gates, Z620 run, cleanup, merge. |
 
 ## Proof Ledger
 
-| ID                                   | Source Refs                                                                                                                          | Execution  | Run ID                         | Run Root   | Sonar | Docker | Sentry           | Learning | Evidence Refs                                                                                                                                                                                      |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------------------------------ | ---------- | ----- | ------ | ---------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MIGRATION-CURRENCY-PARSING-TRIAL-1` | docs/plans/2026-09-11-claim-intake-locale-currency-design-gate.md; docs/plans/2026-09-11-claim-intake-locale-currency-admission.json | `scripted` | `migration-currency-trial1-r4` | docs/plans | pass  | pass   | `not_applicable` | pass     | docs/plans/current-program.md; docs/plans/current-tracker.md; docs/plans/2026-09-11-claim-intake-locale-currency-design-gate.md; docs/plans/2026-09-11-claim-intake-locale-currency-admission.json |
+| ID                                   | Source Refs                                                                   | Execution | Run ID    | Run Root | Sonar   | Docker  | Sentry           | Learning | Evidence Refs                                                |
+| ------------------------------------ | ----------------------------------------------------------------------------- | --------- | --------- | -------- | ------- | ------- | ---------------- | -------- | ------------------------------------------------------------ |
+| `MIGRATION-FAILED-RUN-RETRY-TRIAL-2` | docs/plans/current-program.md; docs/plans/current-tracker.md; owner direction | `pending` | `pending` | pending  | pending | pending | `not_applicable` | pending  | docs/plans/current-program.md; docs/plans/current-tracker.md |
 
 Historical staff rehearsal: retained only as a timing baseline; no migration credit.
 
@@ -62,11 +62,11 @@ pre-execution binding or cleanup means no trial credit.
 T117C was delivered by promotion #1738 and product #1736. Closeout is inactive; successor
 promotion remains separate.
 
-| Future successor branch         | Status           | Constraint                                 |
-| ------------------------------- | ---------------- | ------------------------------------------ |
-| Locale-aware currency parsing   | `completed`      | Product #1754; migration trial 1/3 closed. |
-| Bounded failed-run retry        | `next_candidate` | Requires a separate trial 2/3 promotion.   |
-| Third bounded product-use slice | `deferred`       | Select separately for trial 3/3.           |
+| Future successor branch         | Status        | Constraint                                            |
+| ------------------------------- | ------------- | ----------------------------------------------------- |
+| Locale-aware currency parsing   | `completed`   | Product #1754; migration trial 1/3 closed.            |
+| Bounded failed-run retry        | `in_progress` | One bounded ordinary product PR; Lean stays inactive. |
+| Third bounded product-use slice | `deferred`    | Select separately after trial 2 evidence and merge.   |
 
 ## Lean Authority
 

@@ -80,6 +80,7 @@ export async function markClaimAiRunDispatchFailedService(args: {
 
 export async function processClaimDocumentWorkflowRunService(args: {
   runId: string;
+  retryFailed?: boolean;
   deps?: ProcessClaimDocumentWorkflowDeps;
 }): Promise<{
   status: 'completed' | 'failed' | 'skipped';
@@ -92,7 +93,7 @@ export async function processClaimDocumentWorkflowRunService(args: {
   const analyzePdf = args.deps?.analyzePdf ?? analyzeDocumentAsText;
   const deps = { downloadFile, analyzePdf };
 
-  const claimed = await claimClaimAiRun(args.runId);
+  const claimed = await claimClaimAiRun(args.runId, { retryFailed: args.retryFailed === true });
   if (claimed.status === 'skipped') {
     return {
       status: 'skipped',

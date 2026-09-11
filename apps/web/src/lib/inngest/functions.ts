@@ -63,24 +63,26 @@ export const policyExtractionRequested = inngest.createFunction(
 );
 
 export const claimIntakeExtractionRequested = inngest.createFunction(
-  { id: 'claim-intake-extraction-requested' },
+  { id: 'claim-intake-extraction-requested', retries: 1 },
   { event: 'claim/intake-extract.requested' },
-  async ({ event, step }) => {
+  async ({ event, step, attempt }) => {
     return step.run('process-claim-intake-extraction', async () => {
       return processClaimDocumentWorkflowRunService({
         runId: event.data.runId,
+        retryFailed: attempt === 1,
       });
     });
   }
 );
 
 export const legalDocumentExtractionRequested = inngest.createFunction(
-  { id: 'legal-document-extraction-requested' },
+  { id: 'legal-document-extraction-requested', retries: 1 },
   { event: 'legal/extract.requested' },
-  async ({ event, step }) => {
+  async ({ event, step, attempt }) => {
     return step.run('process-legal-document-extraction', async () => {
       return processClaimDocumentWorkflowRunService({
         runId: event.data.runId,
+        retryFailed: attempt === 1,
       });
     });
   }
