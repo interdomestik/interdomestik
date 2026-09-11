@@ -3,13 +3,11 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
-const lsof = process.env.INTERDOMESTIK_LSOF_EXECUTABLE || 'lsof';
-const devCommand = process.env.INTERDOMESTIK_DEV_COMMAND_EXECUTABLE || 'pnpm';
 if (process.argv.length > 2) {
   console.error('dev:clean accepts no arguments; it checks the configured development port 3000.');
   process.exit(2);
 }
-const probe = spawnSync(lsof, ['-nP', '-t', '-iTCP:3000', '-sTCP:LISTEN'], {
+const probe = spawnSync('lsof', ['-nP', '-t', '-iTCP:3000', '-sTCP:LISTEN'], {
   cwd: root,
   encoding: 'utf8',
   timeout: 5000,
@@ -28,6 +26,6 @@ if (probe.error || probe.status !== 1 || probe.stdout?.trim() || probe.stderr?.t
   process.exit(1);
 }
 
-const result = spawnSync(devCommand, ['dev'], { cwd: root, stdio: 'inherit' });
+const result = spawnSync('pnpm', ['dev'], { cwd: root, stdio: 'inherit' });
 if (result.error) console.error(`dev:clean could not start dev: ${result.error.code}`);
 process.exit(result.status ?? 1);

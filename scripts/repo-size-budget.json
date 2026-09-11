@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 90495,
+      "trackedBytesDelta": 90494,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 53085,
+        "config/data/messages": 53084,
         "source/scripts": 23092,
         "tests/e2e": 14318
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 53085,
+        "scripts/repo-size-budget.json": 53084,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -1086,13 +1086,13 @@
         "scripts/multi-agent/verify-slice.sh",
         "scripts/package-e2e-scripts.test.mjs"
       ],
-      "maxTrackedBytesDelta": 26298,
+      "maxTrackedBytesDelta": 25605,
       "maxTrackedFilesDelta": 7,
       "maxCategoryBytesDelta": {
         "docs/text": 2885,
         "config/data/messages": 0,
-        "source/scripts": 10607,
-        "tests/e2e": 12806
+        "source/scripts": 10363,
+        "tests/e2e": 12357
       },
       "maxPathBytesDelta": {
         ".github/copilot-instructions.md": 191,
@@ -1108,13 +1108,13 @@
         "packages/qa/src/utils/exec.ts": 0,
         "packages/qa/src/utils/verification-failure.ts": 4797,
         "scripts/check-fast.mjs": 1768,
-        "scripts/ci/fast-lane.test.mjs": 2502,
-        "scripts/ci/fixtures/fast-lane-effects.cjs": 1321,
-        "scripts/ci/package-command-safety.test.mjs": 10100,
+        "scripts/ci/fast-lane.test.mjs": 2250,
+        "scripts/ci/fixtures/fast-lane-effects.cjs": 1311,
+        "scripts/ci/package-command-safety.test.mjs": 9903,
         "scripts/ci/qa-exec-runtime-contracts.test.mjs": 6,
         "scripts/ci/qa-tools-surface-contracts.test.mjs": 86,
-        "scripts/database-command.mjs": 1429,
-        "scripts/dev-clean.mjs": 1250,
+        "scripts/database-command.mjs": 1342,
+        "scripts/dev-clean.mjs": 1103,
         "scripts/multi-agent/verify-slice.sh": 30,
         "scripts/package-e2e-scripts.test.mjs": 112
       }
@@ -1126,15 +1126,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61015644,
+  "maxTrackedBytes": 61014950,
   "maxTrackedFiles": 6021,
   "maxCategoryBytes": {
-    "config/data/messages": 2216455,
+    "config/data/messages": 2216454,
     "docs/text": 8538681,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8766693,
-    "tests/e2e": 6913080
+    "source/scripts": 8766449,
+    "tests/e2e": 6912631
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

@@ -1,18 +1,12 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const preload = fileURLToPath(new URL('./fixtures/fast-lane-effects.cjs', import.meta.url));
 
-test('the actual fast lane runs all declared guards and units without operational effects', t => {
-  const dir = mkdtempSync(join(tmpdir(), 'interdomestik-fast-effects-'));
-  t.after(() => rmSync(dir, { recursive: true, force: true }));
-  const capture = join(dir, 'commands.jsonl');
+test('the actual fast lane runs all declared guards and units without operational effects', () => {
   const result = spawnSync(process.execPath, ['scripts/check-fast.mjs'], {
     cwd: root,
     encoding: 'utf8',
@@ -24,13 +18,15 @@ test('the actual fast lane runs all declared guards and units without operationa
       REQUIRE_RLS_INTEGRATION: '1',
       DATABASE_URL: 'postgresql://unused:unused@remote.invalid:5432/never-connect',
       DATABASE_URL_RLS: 'postgresql://unused:unused@other.invalid:5432/never-connect',
-      FAST_LANE_CAPTURE: capture,
       NODE_OPTIONS: `--require=${preload}`,
     },
   });
   assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
   assert.doesNotMatch(result.stderr, /FAST_LANE_FORBIDDEN_EFFECT/);
-  const commands = readFileSync(capture, 'utf8').trim().split('\n').map(JSON.parse);
+  const commands = result.stdout
+    .split('\n')
+    .filter(line => line.startsWith('FAST_LANE_COMMAND '))
+    .map(line => JSON.parse(line.slice('FAST_LANE_COMMAND '.length)));
   const guards = commands.filter(args => args[0]?.startsWith('scripts/'));
   assert.deepEqual(guards, [
     ['scripts/check-i18n.mjs'],

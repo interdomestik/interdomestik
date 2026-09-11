@@ -7,6 +7,7 @@ import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+const realPnpm = spawnSync('which', ['pnpm'], { encoding: 'utf8' }).stdout.trim();
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const databaseCommand = join(root, 'scripts/database-command.mjs');
 const devClean = join(root, 'scripts/dev-clean.mjs');
@@ -15,15 +16,15 @@ const databasePackageJson = JSON.parse(
   readFileSync(join(root, 'packages/database/package.json'), 'utf8')
 );
 
-function fixture(t, name = 'command') {
+function fixture(t, name = 'pnpm') {
   const directory = mkdtempSync(join(tmpdir(), 'interdomestik-command-'));
   const capturePath = join(directory, 'capture.json');
-  const executable = join(directory, `${name}.mjs`);
+  const executable = join(directory, name);
   writeFileSync(
     executable,
     `#!/usr/bin/env node
 import { writeFileSync } from 'node:fs';
-const prefix = process.argv[1].endsWith('/lsof.mjs') ? 'FAKE_LSOF' : 'FAKE_COMMAND';
+const prefix = process.argv[1].endsWith('/lsof') ? 'FAKE_LSOF' : 'FAKE_COMMAND';
 const capture = process.env[prefix + '_CAPTURE'];
 if (capture) {
   writeFileSync(capture, JSON.stringify(process.argv.slice(2)));
@@ -51,7 +52,7 @@ test('database commands delegate to the intended package tools without applying 
   const generate = fixture(t);
   const generateResult = run(databaseCommand, ['generate', '--name', 'safe-name'], {
     FAKE_COMMAND_CAPTURE: generate.capturePath,
-    INTERDOMESTIK_PACKAGE_COMMAND_EXECUTABLE: generate.executable,
+    PATH: `${generate.directory}:${process.env.PATH}`,
   });
   assert.equal(generateResult.status, 0, generateResult.stderr);
   assert.deepEqual(JSON.parse(readFileSync(generate.capturePath, 'utf8')), [
@@ -66,7 +67,7 @@ test('database commands delegate to the intended package tools without applying 
   const push = fixture(t);
   const pushResult = run(databaseCommand, ['push-local', '--dry-run', '--include-all'], {
     FAKE_COMMAND_CAPTURE: push.capturePath,
-    INTERDOMESTIK_PACKAGE_COMMAND_EXECUTABLE: push.executable,
+    PATH: `${push.directory}:${process.env.PATH}`,
   });
   assert.equal(pushResult.status, 0, pushResult.stderr);
   assert.deepEqual(JSON.parse(readFileSync(push.capturePath, 'utf8')), [
@@ -104,7 +105,7 @@ test('push-local rejects every target override before launching the package comm
     const current = fixture(t);
     const result = run(databaseCommand, ['push-local', '--dry-run', argument], {
       FAKE_COMMAND_CAPTURE: current.capturePath,
-      INTERDOMESTIK_PACKAGE_COMMAND_EXECUTABLE: current.executable,
+      PATH: `${current.directory}:${process.env.PATH}`,
     });
     assert.equal(result.status, 2, `${argument}: ${result.stderr}`);
     assert.match(result.stderr, /refused unsafe push-local argument/u);
@@ -117,7 +118,7 @@ test('database wrapper propagates a delegated command failure', t => {
   const current = fixture(t);
   const result = run(databaseCommand, ['generate'], {
     FAKE_COMMAND_EXIT: '7',
-    INTERDOMESTIK_PACKAGE_COMMAND_EXECUTABLE: current.executable,
+    PATH: `${current.directory}:${process.env.PATH}`,
   });
   assert.equal(result.status, 7);
 });
@@ -130,12 +131,11 @@ test('dev:clean refuses a listener PID and leaves the fixture process alive', as
     await once(dummy, 'exit');
   });
   const probe = fixture(t, 'lsof');
-  const dev = fixture(t, 'dev');
+  const dev = fixture(t);
   const result = run(devClean, [], {
     FAKE_COMMAND_CAPTURE: dev.capturePath,
     FAKE_LSOF_STDOUT: `${dummy.pid}\n`,
-    INTERDOMESTIK_DEV_COMMAND_EXECUTABLE: dev.executable,
-    INTERDOMESTIK_LSOF_EXECUTABLE: probe.executable,
+    PATH: `${probe.directory}:${dev.directory}:${process.env.PATH}`,
   });
   assert.equal(result.status, 1, result.stderr);
   assert.match(result.stderr, /port 3000 is already in use/u);
@@ -145,12 +145,11 @@ test('dev:clean refuses a listener PID and leaves the fixture process alive', as
 
 test('dev:clean starts dev only when the listener probe proves the port is free', t => {
   const probe = fixture(t, 'lsof');
-  const dev = fixture(t, 'dev');
+  const dev = fixture(t);
   const result = run(devClean, [], {
     FAKE_COMMAND_CAPTURE: dev.capturePath,
     FAKE_LSOF_EXIT: '1',
-    INTERDOMESTIK_DEV_COMMAND_EXECUTABLE: dev.executable,
-    INTERDOMESTIK_LSOF_EXECUTABLE: probe.executable,
+    PATH: `${probe.directory}:${dev.directory}:${process.env.PATH}`,
   });
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(JSON.parse(readFileSync(dev.capturePath, 'utf8')), ['dev']);
@@ -158,12 +157,11 @@ test('dev:clean starts dev only when the listener probe proves the port is free'
 
 test('dev:clean fails closed when the listener probe is ambiguous', t => {
   const probe = fixture(t, 'lsof');
-  const dev = fixture(t, 'dev');
+  const dev = fixture(t);
   const result = run(devClean, [], {
     FAKE_LSOF_EXIT: '2',
     FAKE_COMMAND_CAPTURE: dev.capturePath,
-    INTERDOMESTIK_DEV_COMMAND_EXECUTABLE: dev.executable,
-    INTERDOMESTIK_LSOF_EXECUTABLE: probe.executable,
+    PATH: `${probe.directory}:${dev.directory}:${process.env.PATH}`,
   });
   assert.equal(result.status, 1);
   assert.match(result.stderr, /could not safely determine/u);
@@ -172,16 +170,15 @@ test('dev:clean fails closed when the listener probe is ambiguous', t => {
 
 test('dev:clean refuses probe errors, ambiguous output and unsupported arguments', t => {
   const probe = fixture(t, 'lsof');
-  const dev = fixture(t, 'dev');
+  const dev = fixture(t);
   for (const env of [
     { FAKE_LSOF_EXIT: '0' },
     { FAKE_LSOF_EXIT: '1', FAKE_LSOF_STDERR: 'permission denied' },
     { FAKE_LSOF_EXIT: '1', FAKE_LSOF_STDOUT: '123' },
-    { INTERDOMESTIK_LSOF_EXECUTABLE: join(probe.directory, 'missing') },
+    { PATH: join(probe.directory, 'missing') },
   ]) {
     const result = run(devClean, [], {
-      INTERDOMESTIK_LSOF_EXECUTABLE: probe.executable,
-      INTERDOMESTIK_DEV_COMMAND_EXECUTABLE: dev.executable,
+      PATH: `${probe.directory}:${dev.directory}:${process.env.PATH}`,
       FAKE_COMMAND_CAPTURE: dev.capturePath,
       ...env,
     });
@@ -194,7 +191,7 @@ test('dev:clean refuses probe errors, ambiguous output and unsupported arguments
 test('pnpm forwards root command arguments without shell evaluation', t => {
   const current = fixture(t);
   const result = spawnSync(
-    'pnpm',
+    realPnpm,
     ['run', 'db:generate', '--', '--name', 'name;$(not-a-command)'],
     {
       cwd: root,
@@ -203,7 +200,7 @@ test('pnpm forwards root command arguments without shell evaluation', t => {
       env: {
         ...process.env,
         FAKE_COMMAND_CAPTURE: current.capturePath,
-        INTERDOMESTIK_PACKAGE_COMMAND_EXECUTABLE: current.executable,
+        PATH: `${current.directory}:${process.env.PATH}`,
       },
     }
   );
@@ -215,7 +212,7 @@ test('pnpm forwards root command arguments without shell evaluation', t => {
 });
 
 test('package generation alias and Husky prepare execute the intended tools in a fixture', t => {
-  const current = fixture(t);
+  const current = fixture(t, 'command.mjs');
   for (const tool of ['drizzle-kit', 'husky']) {
     const executable = join(current.directory, tool);
     writeFileSync(executable, readFileSync(current.executable));
@@ -236,7 +233,7 @@ test('package generation alias and Husky prepare execute the intended tools in a
     ['db:generate', ['generate']],
     ['prepare', ['install']],
   ]) {
-    const result = spawnSync('pnpm', ['run', command], {
+    const result = spawnSync(realPnpm, ['run', command], {
       cwd: current.directory,
       encoding: 'utf8',
       timeout: 10_000,

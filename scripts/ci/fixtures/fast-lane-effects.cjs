@@ -23,7 +23,7 @@ for (const method of ['spawn', 'spawnSync', 'execFile', 'execFileSync']) {
   const original = cp[method];
   cp[method] = (file, args, options, ...rest) => {
     if (file !== process.execPath || options?.shell) return deny('external command')();
-    fs.appendFileSync(process.env.FAST_LANE_CAPTURE, `${JSON.stringify(args)}\n`);
+    process.stdout.write(`FAST_LANE_COMMAND ${JSON.stringify(args)}\n`);
     return original(file, args, options, ...rest);
   };
 }
