@@ -29,8 +29,8 @@ const env = {
   ...process.env,
   NODE_ENV: 'test',
   REQUIRE_RLS_INTEGRATION: '0',
-  DATABASE_URL: 'postgresql://unused:unused@127.0.0.1:1/fast_unit',
-  DATABASE_URL_RLS: 'postgresql://unused:unused@127.0.0.1:1/fast_unit',
+  DATABASE_URL: 'postgresql://127.0.0.1:1/fast_unit',
+  DATABASE_URL_RLS: 'postgresql://127.0.0.1:1/fast_unit',
 };
 // Node's test runner otherwise suppresses nested --test invocations in contract tests.
 delete env.NODE_TEST_CONTEXT;

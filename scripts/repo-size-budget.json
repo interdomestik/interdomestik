@@ -1086,12 +1086,12 @@
         "scripts/multi-agent/verify-slice.sh",
         "scripts/package-e2e-scripts.test.mjs"
       ],
-      "maxTrackedBytesDelta": 26925,
+      "maxTrackedBytesDelta": 26897,
       "maxTrackedFilesDelta": 7,
       "maxCategoryBytesDelta": {
         "docs/text": 2885,
         "config/data/messages": 0,
-        "source/scripts": 11170,
+        "source/scripts": 11142,
         "tests/e2e": 12870
       },
       "maxPathBytesDelta": {
@@ -1107,7 +1107,7 @@
         "packages/qa/src/tools/test-configs.ts": 0,
         "packages/qa/src/utils/exec.ts": 0,
         "packages/qa/src/utils/verification-failure.ts": 4797,
-        "scripts/check-fast.mjs": 1768,
+        "scripts/check-fast.mjs": 1740,
         "scripts/ci/fast-lane.test.mjs": 2763,
         "scripts/ci/fixtures/fast-lane-effects.cjs": 2118,
         "scripts/ci/package-command-safety.test.mjs": 9903,
@@ -1126,14 +1126,14 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61016270,
+  "maxTrackedBytes": 61016242,
   "maxTrackedFiles": 6021,
   "maxCategoryBytes": {
     "config/data/messages": 2216454,
     "docs/text": 8538681,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8767256,
+    "source/scripts": 8767228,
     "tests/e2e": 6913144
   },
   "maxLargestFileBytes": 3266530,
