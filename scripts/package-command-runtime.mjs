@@ -63,12 +63,9 @@ export function checkedPackageExecutable(candidate) {
   return executable;
 }
 
-export function packageCommandRuntime(name) {
-  if (!['darwin', 'linux'].includes(process.platform))
-    throw new Error(
-      'Package command wrappers require macOS or Linux (POSIX); Windows is not supported.'
-    );
-  if (!['pnpm', 'lsof'].includes(name)) throw new Error('unsupported package command tool');
+// Validate PATH and build the controlled child environment as a single boundary.
+// pnpm's env-node shebang must use the already-running, checked Node installation.
+function buildChildEnv() {
   const directories = (process.env.PATH ?? '').split(delimiter);
   if (directories.some(directory => !isAbsolute(directory))) {
     throw new Error('refused relative or empty executable search directories');
@@ -83,8 +80,7 @@ export function packageCommandRuntime(name) {
       return [];
     }
   });
-  // pnpm's env-node shebang must use the already-running, checked Node installation.
-  const env = {
+  return {
     ...Object.fromEntries(
       Object.entries(process.env).filter(([key]) => {
         const normalized = key.toUpperCase();
@@ -100,6 +96,25 @@ export function packageCommandRuntime(name) {
     COREPACK_ENABLE_NETWORK: '0',
     npm_config_manage_package_manager_versions: 'false',
   };
+}
+
+function matchesPinnedPnpm(executable, env, expected) {
+  const version = spawnSync(executable, ['--version'], {
+    cwd: root,
+    env,
+    encoding: 'utf8',
+    timeout: 10000,
+  });
+  return version.status === 0 && `pnpm@${version.stdout.trim()}` === expected;
+}
+
+export function packageCommandRuntime(name) {
+  if (!['darwin', 'linux'].includes(process.platform))
+    throw new Error(
+      'Package command wrappers require macOS or Linux (POSIX); Windows is not supported.'
+    );
+  if (!['pnpm', 'lsof'].includes(name)) throw new Error('unsupported package command tool');
+  const env = buildChildEnv();
   // Executable identity never comes from caller PATH. Support the pinned Node install,
   // Homebrew and system installations; PATH is only a filtered child environment.
   const candidates =
@@ -130,17 +145,7 @@ export function packageCommandRuntime(name) {
     } catch {
       continue;
     } // Exclude unsafe installations; never execute them as a fallback.
-    if (name === 'pnpm') {
-      const version = spawnSync(executable, ['--version'], {
-        cwd: root,
-        env,
-        encoding: 'utf8',
-        timeout: 10000,
-      });
-      if (version.status !== 0 || `pnpm@${version.stdout.trim()}` !== expected) {
-        continue;
-      }
-    }
+    if (name === 'pnpm' && !matchesPinnedPnpm(executable, env, expected)) continue;
     return {
       executable,
       env,

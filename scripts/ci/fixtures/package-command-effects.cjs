@@ -19,9 +19,8 @@ if (['database-command.mjs', 'dev-clean.mjs'].includes(wrapper)) {
   ];
   const hostile = process.env.PACKAGE_COMMAND_TEST_HOSTILE === '1';
   if (hostile) for (const key of controls) process.env[key] = 'forbidden-test-control';
-  const original = cp.spawnSync;
-  cp.spawnSync = (file, args, options) => {
-    const name = basename(file).includes('lsof') ? 'LSOF' : 'PNPM';
+
+  const assertStickyPath = (options, name) => {
     if (process.env.PACKAGE_COMMAND_TEST_STICKY === '1') {
       if (options.env.PATH.split(':').includes(realpathSync('/tmp')))
         throw new Error('sticky search directory inherited');
@@ -31,6 +30,9 @@ if (['database-command.mjs', 'dev-clean.mjs'].includes(wrapper)) {
         throw new Error('safe owned descendant excluded');
       process.stdout.write(`PACKAGE_COMMAND_PATH ${name}\n`);
     }
+  };
+
+  const assertHostileEnv = (options, name) => {
     if (hostile) {
       if (controls.some(key => Object.hasOwn(options.env, key)))
         throw new Error('inherited execution control');
@@ -45,6 +47,13 @@ if (['database-command.mjs', 'dev-clean.mjs'].includes(wrapper)) {
       }
       process.stdout.write(`PACKAGE_COMMAND_ENV ${name}\n`);
     }
+  };
+
+  const original = cp.spawnSync;
+  cp.spawnSync = (file, args, options) => {
+    const name = basename(file).includes('lsof') ? 'LSOF' : 'PNPM';
+    assertStickyPath(options, name);
+    assertHostileEnv(options, name);
     if (args.length === 1 && args[0] === '--version') return original(file, args, options);
     if (process.env[`PACKAGE_COMMAND_FIXTURE_${name}`] !== '1') {
       return { status: null, error: { code: 'ENOENT' } };
