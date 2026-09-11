@@ -8,6 +8,33 @@ import { fileURLToPath } from 'node:url';
 // These wrappers validate newly selected tools; they cannot re-attest their own running engine.
 const nodeExecutable = realpathSync(process.execPath);
 const root = fileURLToPath(new URL('..', import.meta.url));
+// Equivalent execution-control exclusions to the QA boundary; retain application/DB values.
+const blockedEnv = new Set([
+  'ALL_PROXY',
+  'BASH_ENV',
+  'CDPATH',
+  'ENV',
+  'GIT_ASKPASS',
+  'GIT_CONFIG_GLOBAL',
+  'GIT_CONFIG_SYSTEM',
+  'GIT_SSH',
+  'GIT_SSH_COMMAND',
+  'GLOBIGNORE',
+  'HTTP_PROXY',
+  'HTTPS_PROXY',
+  'NO_PROXY',
+  'NODE_EXTRA_CA_CERTS',
+  'NODE_OPTIONS',
+  'NODE_PATH',
+  'NODE_TLS_REJECT_UNAUTHORIZED',
+  'PS4',
+  'SHELL',
+  'SHELLOPTS',
+  'SSL_CERT_DIR',
+  'SSL_CERT_FILE',
+  'SSH_ASKPASS',
+  'ZDOTDIR',
+]);
 
 // Developer tools may be installed by this user or root, never by another account.
 function checkOwnedPath(file) {
@@ -57,7 +84,15 @@ export function packageCommandRuntime(name) {
   });
   // pnpm's env-node shebang must use the already-running, checked Node installation.
   const env = {
-    ...process.env,
+    ...Object.fromEntries(
+      Object.entries(process.env).filter(([key]) => {
+        const normalized = key.toUpperCase();
+        return (
+          !blockedEnv.has(normalized) &&
+          !/^(COREPACK_|NPM_CONFIG_|PNPM_CONFIG_|LD_|DYLD_|BASH_FUNC_)/.test(normalized)
+        );
+      })
+    ),
     PATH: [dirname(nodeExecutable), ...safeDirectories].join(delimiter),
     COREPACK_ENABLE_PROJECT_SPEC: '1',
     COREPACK_ENABLE_STRICT: '1',

@@ -9,10 +9,10 @@ const preload = fileURLToPath(new URL('./package-command-effects.cjs', import.me
 export function commandFixtureEnv(env = {}) {
   const result = { ...process.env, ...env, NODE_OPTIONS: `--require=${preload}` };
   for (const name of ['pnpm', 'lsof']) {
-    const directory = result.PATH.split(':').find(
+    const hasFixture = result.PATH.split(':').some(
       dir => dir.includes('/interdomestik-command-') && existsSync(join(dir, name))
     );
-    if (directory) result[`PACKAGE_COMMAND_FIXTURE_${name.toUpperCase()}`] = '1';
+    if (hasFixture) result[`PACKAGE_COMMAND_FIXTURE_${name.toUpperCase()}`] = '1';
   }
   return result;
 }

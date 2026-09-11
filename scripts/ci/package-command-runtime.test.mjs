@@ -136,3 +136,28 @@ test('Node provenance remains with the invoking runtime, not tool discovery', t 
     syncBuiltinESMExports();
   }
 });
+
+for (const [script, args, children] of [
+  ['database-command.mjs', ['generate'], ['PNPM']],
+  ['dev-clean.mjs', [], ['LSOF', 'PNPM']],
+]) {
+  test(`${script} strips execution controls and preserves application env on every child`, t => {
+    const command = fixture(t);
+    const probe = fixture(t, 'lsof');
+    const result = run(join(root, 'scripts', script), args, {
+      PATH: `${command.directory}:${probe.directory}:${process.env.PATH}`,
+      PACKAGE_COMMAND_TEST_HOSTILE: '1',
+      FAKE_LSOF_EXIT: '1',
+      DATABASE_URL: 'postgresql://127.0.0.1:1/fixture',
+      DATABASE_URL_RLS: 'postgresql://127.0.0.1:1/fixture',
+      BETTER_AUTH_SECRET: 'fixture-runtime-auth',
+      BILLING_TEST_MODE: '1',
+    });
+    assert.equal(result.status, 0, result.stderr);
+    for (const child of children) assert.ok(result.stdout.includes(`PACKAGE_COMMAND_ENV ${child}`));
+    assert.doesNotMatch(
+      result.stderr,
+      /inherited execution control|missing application environment/
+    );
+  });
+}

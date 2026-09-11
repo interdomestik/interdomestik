@@ -1091,18 +1091,18 @@
         "scripts/package-command-runtime.mjs",
         "scripts/package-e2e-scripts.test.mjs"
       ],
-      "maxTrackedBytesDelta": 46747,
+      "maxTrackedBytesDelta": 49629,
       "maxTrackedFilesDelta": 11,
       "maxCategoryBytesDelta": {
-        "docs/text": 4326,
+        "docs/text": 4511,
         "config/data/messages": 0,
-        "source/scripts": 21416,
-        "tests/e2e": 21005
+        "source/scripts": 23113,
+        "tests/e2e": 22005
       },
       "maxPathBytesDelta": {
         ".github/copilot-instructions.md": 231,
         "README.md": 249,
-        "docs/DEVELOPMENT.md": 2825,
+        "docs/DEVELOPMENT.md": 3010,
         "docs/SONAR.md": 491,
         "gemini.md": 295,
         "packages/database/package.json": 0,
@@ -1122,10 +1122,10 @@
         "scripts/dev-clean.mjs": 1361,
         "scripts/multi-agent/verify-slice.sh": 30,
         "scripts/package-e2e-scripts.test.mjs": 112,
-        "scripts/ci/fixtures/package-command-fixture.mjs": 2349,
-        "scripts/ci/package-command-runtime.test.mjs": 5305,
-        "scripts/package-command-runtime.mjs": 4870,
-        "scripts/ci/fixtures/package-command-effects.cjs": 1088,
+        "scripts/ci/fixtures/package-command-fixture.mjs": 2351,
+        "scripts/ci/package-command-runtime.test.mjs": 6305,
+        "scripts/package-command-runtime.mjs": 5681,
+        "scripts/ci/fixtures/package-command-effects.cjs": 1972,
         ".github/pull_request_template.md": 53
       }
     }
@@ -1136,14 +1136,14 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61036705,
+  "maxTrackedBytes": 61039587,
   "maxTrackedFiles": 6025,
   "maxCategoryBytes": {
     "other": 19184750,
     "large support/generated-ish": 15395985,
-    "docs/text": 8540173,
-    "source/scripts": 8777502,
-    "tests/e2e": 6921279,
+    "docs/text": 8540358,
+    "source/scripts": 8779199,
+    "tests/e2e": 6922279,
     "config/data/messages": 2217016
   },
   "maxLargestFileBytes": 3266530,
