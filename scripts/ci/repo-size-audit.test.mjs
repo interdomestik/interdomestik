@@ -84,6 +84,14 @@ test('repo size audit emits JSON with tracked inventory and budget result', t =>
   assert.equal(report.tracked.total.files > 0, true);
   assert.equal(report.tracked.total.bytes > 0, true);
   assert.equal(report.tracked.largestFiles.length, 2);
+  assert.equal(typeof report.tracked.largestCapacityFile?.path, 'string');
+  assert.equal(report.tracked.largestCapacityFile.bytes > 0, true);
+  assert.equal(
+    ['docs/plans/current-program.md', 'docs/plans/current-tracker.md'].includes(
+      report.tracked.largestCapacityFile.path
+    ),
+    false
+  );
 });
 
 test('repo size audit fails when the supplied budget is below current tracked size', t => {

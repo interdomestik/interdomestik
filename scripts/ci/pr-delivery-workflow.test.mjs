@@ -189,7 +189,11 @@ test('delivery workflow stays exact and default-deny', () => {
 
   assert.ok(job);
   assert.equal(job['timeout-minutes'], 90);
-  assert.equal(workflow.concurrency['cancel-in-progress'], true);
+  assert.equal(
+    workflow.concurrency['cancel-in-progress'],
+    "${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' }}",
+    'only a new candidate head may cancel an obsolete required check'
+  );
   assert.deepEqual(job.permissions, {
     actions: 'read',
     checks: 'read',
@@ -198,13 +202,13 @@ test('delivery workflow stays exact and default-deny', () => {
     'pull-requests': 'read',
     statuses: 'read',
   });
-  assert.deepEqual(workflow.on.pull_request_review.types, ['submitted', 'edited', 'dismissed']);
-  assert.deepEqual(workflow.on.pull_request_review_comment.types, ['created', 'edited', 'deleted']);
-  assert.deepEqual(Object.keys(workflow.on).sort(), [
+  assert.deepEqual(Object.keys(workflow.on), [
     'pull_request',
     'pull_request_review',
     'pull_request_review_comment',
   ]);
+  assert.deepEqual(workflow.on.pull_request_review.types, ['submitted', 'edited', 'dismissed']);
+  assert.deepEqual(workflow.on.pull_request_review_comment.types, ['created', 'edited', 'deleted']);
   assert.ok(workflow.on.pull_request.types.includes('review_requested'));
   assert.ok(workflow.on.pull_request.types.includes('review_request_removed'));
   assert.ok(workflow.on.pull_request.types.includes('closed'));
@@ -216,6 +220,10 @@ test('delivery workflow stays exact and default-deny', () => {
     `github.event.pull_request.base.ref == 'main' && github.event.pull_request.state == 'open' && !github.event.pull_request.draft && (github.event.action != 'labeled' || github.event.label.name == 'full-gate')`
   );
   assert.match(workflow.concurrency.group, /github\.event\.pull_request\.number/u);
+  assert.match(workflow.concurrency.group, /event_name.*event\.action.*synchronize/u);
+  assert.match(workflow.concurrency.group, /synchronize-\{0\}.*pull_request\.head\.sha/u);
+  assert.match(workflow.concurrency.group, /github\.run_id/u);
+  assert.match(workflow.concurrency.group, /pull_request\.head\.sha/u);
   assert.ok(job.steps.some(step => String(step.uses).startsWith('actions/checkout@')));
   const checkout = job.steps.find(step => String(step.uses).startsWith('actions/checkout@'));
   assert.match(checkout.with.ref, /github\.sha/u);

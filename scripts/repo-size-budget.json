@@ -33,27 +33,27 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 78970,
+      "trackedBytesDelta": 85756,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 48032,
-        "source/scripts": 20852,
-        "tests/e2e": 10086
+        "config/data/messages": 48346,
+        "source/scripts": 23092,
+        "tests/e2e": 14318
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 48032,
+        "scripts/repo-size-budget.json": 48346,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
         "scripts/repo-size-capacity-schema.mjs": 8989,
-        "scripts/repo-size-capacity-evaluator.mjs": 6883,
+        "scripts/repo-size-capacity-evaluator.mjs": 8868,
         "scripts/repo-size-git-attribution.mjs": 2737,
-        "scripts/repo-size-inventory.mjs": 3936,
+        "scripts/repo-size-inventory.mjs": 4122,
         "scripts/repo-size-legacy-budget.mjs": 3198,
         "scripts/repo-size-audit-output.mjs": 3377,
-        "scripts/ci/repo-size-capacity-fixtures.mjs": 2571,
+        "scripts/ci/repo-size-capacity-fixtures.mjs": 2640,
         "scripts/ci/repo-size-capacity-schema.test.mjs": 2092,
-        "scripts/ci/repo-size-capacity-evaluator.test.mjs": 5022,
+        "scripts/ci/repo-size-capacity-evaluator.test.mjs": 9254,
         "scripts/ci/repo-size-git-attribution.test.mjs": 2816
       }
     },
@@ -81,13 +81,9 @@
         "scripts/modularity-guard-legacy-focused.test.mjs",
         "scripts/fixtures/update-status-legacy-baseline.test.ts.gz"
       ],
-      "maxTrackedBytesDelta": 63681,
+      "maxTrackedBytesDelta": 64478,
       "maxTrackedFilesDelta": 8,
-      "maxCategoryBytesDelta": {
-        "other": 5580,
-        "source/scripts": 20645,
-        "tests/e2e": 37456
-      },
+      "maxCategoryBytesDelta": { "other": 5580, "source/scripts": 20886, "tests/e2e": 38012 },
       "maxPathBytesDelta": {
         "scripts/lean-current-authority-policy.mjs": 578,
         "scripts/lean-current-authority-lifecycle.mjs": 473,
@@ -100,8 +96,8 @@
         "scripts/lean-current-authority-evidence.test.mjs": 991,
         "scripts/lean-current-authority-pull-selection.test.mjs": 2493,
         "scripts/lean-current-authority-conformance.test.mjs": 3260,
-        "scripts/modularity-guard-policy.mjs": 1013,
-        "scripts/check-modularity-guard.test.mjs": 785,
+        "scripts/modularity-guard-policy.mjs": 1254,
+        "scripts/check-modularity-guard.test.mjs": 1341,
         "scripts/lean-current-authority-recovery.mjs": 6810,
         "scripts/lean-current-authority-recovery.test.mjs": 9126,
         "scripts/lean-current-authority-observation.mjs": 2056,
@@ -119,10 +115,7 @@
       ],
       "maxTrackedBytesDelta": 27753,
       "maxTrackedFilesDelta": 2,
-      "maxCategoryBytesDelta": {
-        "config/data/messages": 9687,
-        "docs/text": 18066
-      },
+      "maxCategoryBytesDelta": { "config/data/messages": 9687, "docs/text": 18066 },
       "maxPathBytesDelta": {
         "docs/plans/2026-08-25-t118-design-system-design.md": 18066,
         "docs/plans/2026-08-25-t118-design-system-admission.json": 9687
@@ -224,10 +217,7 @@
       ],
       "maxTrackedBytesDelta": 27188,
       "maxTrackedFilesDelta": 2,
-      "maxCategoryBytesDelta": {
-        "config/data/messages": 13021,
-        "docs/text": 14167
-      },
+      "maxCategoryBytesDelta": { "config/data/messages": 13021, "docs/text": 14167 },
       "maxPathBytesDelta": {
         "docs/plans/2026-08-28-t117b-portal-runtime-design-gate.md": 14167,
         "docs/plans/2026-08-28-t117b-portal-runtime-admission.json": 13021
@@ -487,13 +477,13 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 677029,
+      "maxTrackedBytesDelta": 684815,
       "maxTrackedFilesDelta": 94,
       "maxCategoryBytesDelta": {
         "config/data/messages": 1154,
         "docs/text": 30439,
-        "source/scripts": 345515,
-        "tests/e2e": 299921
+        "source/scripts": 348181,
+        "tests/e2e": 305041
       },
       "maxPathBytesDelta": {
         ".github/workflows/ci.yml": 1441,
@@ -519,11 +509,11 @@
         "scripts/slice-rehearse-bootstrap.mjs": 10916,
         "scripts/slice-rehearse-bootstrap.test.mjs": 11100,
         "scripts/slice-rehearse-canonical.mjs": 6973,
-        "scripts/slice-rehearse-capacity-existing.mjs": 6322,
+        "scripts/slice-rehearse-capacity-existing.mjs": 7154,
         "scripts/slice-rehearse-capacity-fixed-point.mjs": 7475,
-        "scripts/slice-rehearse-capacity-owner-facts.mjs": 5204,
-        "scripts/slice-rehearse-capacity-owner.test.mjs": 5803,
-        "scripts/slice-rehearse-capacity-projection.mjs": 5819,
+        "scripts/slice-rehearse-capacity-owner-facts.mjs": 5502,
+        "scripts/slice-rehearse-capacity-owner.test.mjs": 8791,
+        "scripts/slice-rehearse-capacity-projection.mjs": 6477,
         "scripts/slice-rehearse-capacity-stops.test.mjs": 11068,
         "scripts/slice-rehearse-capacity.mjs": 9274,
         "scripts/slice-rehearse-cleanup.test.mjs": 8728,
@@ -559,17 +549,17 @@
         "scripts/slice-rehearse-ops-cli.mjs": 3996,
         "scripts/slice-rehearse-ops.mjs": 5122,
         "scripts/slice-rehearse-ops.test.mjs": 10127,
-        "scripts/slice-rehearse-projection.test.mjs": 11006,
+        "scripts/slice-rehearse-projection.test.mjs": 12118,
         "scripts/slice-rehearse-proof-execution-cli.test.mjs": 7689,
         "scripts/slice-rehearse-proof-plan.mjs": 5247,
         "scripts/slice-rehearse-proof-plan.test.mjs": 8547,
         "scripts/slice-rehearse-report.mjs": 9628,
         "scripts/slice-rehearse-report.test.mjs": 7440,
         "scripts/slice-rehearse-repository-facts.mjs": 8307,
-        "scripts/slice-rehearse-repository.test.mjs": 9076,
+        "scripts/slice-rehearse-repository.test.mjs": 9803,
         "scripts/slice-rehearse-review-parity.mjs": 8098,
         "scripts/slice-rehearse-review-parity.test.mjs": 4650,
-        "scripts/slice-rehearse-writer-policy.mjs": 7605,
+        "scripts/slice-rehearse-writer-policy.mjs": 7851,
         "scripts/slice-rehearse.mjs": 11001,
         "scripts/slice-rehearse.test.mjs": 10521,
         "scripts/slice-telemetry-aggregation.mjs": 5353,
@@ -621,16 +611,13 @@
         "scripts/lib/modularity-guard.mjs",
         "scripts/lib/workflow-permission-tightening.mjs"
       ],
-      "maxTrackedBytesDelta": 14073,
+      "maxTrackedBytesDelta": 14190,
       "maxTrackedFilesDelta": 2,
-      "maxCategoryBytesDelta": {
-        "tests/e2e": 8621,
-        "source/scripts": 5452
-      },
+      "maxCategoryBytesDelta": { "tests/e2e": 8621, "source/scripts": 5569 },
       "maxPathBytesDelta": {
         "scripts/ci/main-e2e-reuse-workflow.test.mjs": 726,
         "scripts/ci/workflow-permission-tightening.test.mjs": 7895,
-        "scripts/lib/modularity-guard.mjs": 1074,
+        "scripts/lib/modularity-guard.mjs": 1191,
         "scripts/lib/workflow-permission-tightening.mjs": 4378
       }
     },
@@ -691,15 +678,15 @@
         "scripts/ci/main-e2e-reuse-core.test.mjs",
         "scripts/ci/main-e2e-reuse-github.test.mjs"
       ],
-      "maxTrackedBytesDelta": 26576,
+      "maxTrackedBytesDelta": 26680,
       "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
-        "source/scripts": 9698,
+        "source/scripts": 9802,
         "tests/e2e": 14185,
         "config/data/messages": 2693
       },
       "maxPathBytesDelta": {
-        "scripts/ci/main-e2e-reuse.mjs": 831,
+        "scripts/ci/main-e2e-reuse.mjs": 935,
         "scripts/ci/main-e2e-reuse-core.mjs": 975,
         "scripts/ci/main-e2e-reuse-github.mjs": 17,
         "scripts/ci/main-e2e-reuse-cli.test.mjs": 2831,
@@ -722,12 +709,8 @@
       "writerPaths": ["apps/web/src/components/auth/login-form.tsx"],
       "maxTrackedBytesDelta": 184,
       "maxTrackedFilesDelta": 0,
-      "maxCategoryBytesDelta": {
-        "source/scripts": 184
-      },
-      "maxPathBytesDelta": {
-        "apps/web/src/components/auth/login-form.tsx": 184
-      }
+      "maxCategoryBytesDelta": { "source/scripts": 184 },
+      "maxPathBytesDelta": { "apps/web/src/components/auth/login-form.tsx": 184 }
     },
     {
       "id": "t117c-rendering",
@@ -846,10 +829,7 @@
       ],
       "maxTrackedBytesDelta": 1438,
       "maxTrackedFilesDelta": 0,
-      "maxCategoryBytesDelta": {
-        "source/scripts": 238,
-        "tests/e2e": 1200
-      },
+      "maxCategoryBytesDelta": { "source/scripts": 238, "tests/e2e": 1200 },
       "maxPathBytesDelta": {
         "scripts/check-portal-layout-topology.mjs": 238,
         "scripts/ci/portal-layout-topology.test.mjs": 1200
@@ -865,11 +845,7 @@
       ],
       "maxTrackedBytesDelta": 323104,
       "maxTrackedFilesDelta": 1,
-      "maxCategoryBytesDelta": {
-        "other": 322048,
-        "config/data/messages": 63,
-        "tests/e2e": 993
-      },
+      "maxCategoryBytesDelta": { "other": 322048, "config/data/messages": 63, "tests/e2e": 993 },
       "maxPathBytesDelta": {
         "patches/next@16.3.3.patch": 322048,
         "pnpm-workspace.yaml": 63,
@@ -885,10 +861,7 @@
       ],
       "maxTrackedBytesDelta": 6361,
       "maxTrackedFilesDelta": 2,
-      "maxCategoryBytesDelta": {
-        "source/scripts": 1629,
-        "tests/e2e": 4732
-      },
+      "maxCategoryBytesDelta": { "source/scripts": 1629, "tests/e2e": 4732 },
       "maxPathBytesDelta": {
         "scripts/lean-current-authority-historical-closeout.mjs": 1629,
         "scripts/lean-current-authority-historical-closeout.test.mjs": 4732
@@ -909,10 +882,7 @@
       ],
       "maxTrackedBytesDelta": 10466,
       "maxTrackedFilesDelta": 2,
-      "maxCategoryBytesDelta": {
-        "source/scripts": 681,
-        "tests/e2e": 9785
-      },
+      "maxCategoryBytesDelta": { "source/scripts": 681, "tests/e2e": 9785 },
       "maxPathBytesDelta": {
         "apps/web/src/actions/staff-claims/update-status.test.ts": 0,
         "packages/domain-claims/src/staff-claims/current-claim-record.test.ts": 2368,
@@ -933,10 +903,7 @@
       ],
       "maxTrackedBytesDelta": 7500,
       "maxTrackedFilesDelta": 2,
-      "maxCategoryBytesDelta": {
-        "config/data/messages": 3000,
-        "docs/text": 4500
-      },
+      "maxCategoryBytesDelta": { "config/data/messages": 3000, "docs/text": 4500 },
       "maxPathBytesDelta": {
         "docs/plans/2026-09-10-staff-current-claim-tenant-context-design-gate.md": 4500,
         "docs/plans/2026-09-10-staff-current-claim-tenant-context-admission.json": 3000
@@ -952,10 +919,7 @@
       ],
       "maxTrackedBytesDelta": 7275,
       "maxTrackedFilesDelta": 2,
-      "maxCategoryBytesDelta": {
-        "source/scripts": 1109,
-        "tests/e2e": 6166
-      },
+      "maxCategoryBytesDelta": { "source/scripts": 1109, "tests/e2e": 6166 },
       "maxPathBytesDelta": {
         "scripts/ci/lean-current-authority-contracts.test.mjs": 106,
         "scripts/lean-staff-current-claim-exception.mjs": 1109,
@@ -971,18 +935,14 @@
         "scripts/ci/pr-delivery-workflow.test.mjs",
         "scripts/ci/repo-size-audit.test.mjs"
       ],
-      "maxTrackedBytesDelta": 1629,
+      "maxTrackedBytesDelta": 2924,
       "maxTrackedFilesDelta": 1,
-      "maxCategoryBytesDelta": {
-        "config/data/messages": 134,
-        "tests/e2e": 789,
-        "other": 706
-      },
+      "maxCategoryBytesDelta": { "config/data/messages": 652, "tests/e2e": 1566, "other": 706 },
       "maxPathBytesDelta": {
         ".husky/pre-push": 706,
-        ".github/workflows/pr-delivery-gate.yml": 134,
-        "scripts/ci/pr-delivery-workflow.test.mjs": 243,
-        "scripts/ci/repo-size-audit.test.mjs": 546
+        ".github/workflows/pr-delivery-gate.yml": 652,
+        "scripts/ci/pr-delivery-workflow.test.mjs": 712,
+        "scripts/ci/repo-size-audit.test.mjs": 854
       }
     },
     {
@@ -994,10 +954,7 @@
       ],
       "maxTrackedBytesDelta": 3192,
       "maxTrackedFilesDelta": 2,
-      "maxCategoryBytesDelta": {
-        "source/scripts": 660,
-        "tests/e2e": 2532
-      },
+      "maxCategoryBytesDelta": { "source/scripts": 660, "tests/e2e": 2532 },
       "maxPathBytesDelta": {
         "scripts/lean-migration-product-trial-exceptions.mjs": 660,
         "scripts/lean-migration-product-trial-exceptions.test.mjs": 2532
@@ -1012,10 +969,7 @@
       ],
       "maxTrackedBytesDelta": 2400,
       "maxTrackedFilesDelta": 0,
-      "maxCategoryBytesDelta": {
-        "source/scripts": 1000,
-        "tests/e2e": 1400
-      },
+      "maxCategoryBytesDelta": { "source/scripts": 1000, "tests/e2e": 1400 },
       "maxPathBytesDelta": {
         "packages/domain-ai/src/claims/intake-extract.test.ts": 1400,
         "packages/domain-ai/src/claims/intake-extract.ts": 1000
@@ -1030,34 +984,47 @@
       ],
       "maxTrackedBytesDelta": 5800,
       "maxTrackedFilesDelta": 2,
-      "maxCategoryBytesDelta": {
-        "config/data/messages": 2600,
-        "docs/text": 3200
-      },
+      "maxCategoryBytesDelta": { "config/data/messages": 2600, "docs/text": 3200 },
       "maxPathBytesDelta": {
         "docs/plans/2026-09-11-claim-intake-locale-currency-design-gate.md": 3200,
         "docs/plans/2026-09-11-claim-intake-locale-currency-admission.json": 2600
+      }
+    },
+    {
+      "id": "semantic-governance-authority",
+      "mode": "bounded",
+      "writerPaths": [
+        "scripts/current-authority-format-audit.mjs",
+        "scripts/current-authority-format-audit.test.mjs",
+        "scripts/plan-audit.mjs",
+        "scripts/plan-audit.test.mjs"
+      ],
+      "maxTrackedBytesDelta": 2261,
+      "maxTrackedFilesDelta": 0,
+      "maxCategoryBytesDelta": { "source/scripts": 313, "tests/e2e": 1948 },
+      "maxPathBytesDelta": {
+        "scripts/current-authority-format-audit.mjs": 78,
+        "scripts/current-authority-format-audit.test.mjs": 1527,
+        "scripts/plan-audit.mjs": 235,
+        "scripts/plan-audit.test.mjs": 421
       }
     }
   ],
   "reserve": {
     "trackedBytes": 474,
     "trackedFiles": 0,
-    "categoryBytes": {
-      "docs/text": 3,
-      "large support/generated-ish": 471
-    },
+    "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 60937276,
+  "maxTrackedBytes": 60956422,
   "maxTrackedFiles": 6010,
   "maxCategoryBytes": {
-    "config/data/messages": 2210884,
+    "config/data/messages": 2211716,
     "docs/text": 8535729,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8746889,
-    "tests/e2e": 6863039
+    "source/scripts": 8752570,
+    "tests/e2e": 6875672
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

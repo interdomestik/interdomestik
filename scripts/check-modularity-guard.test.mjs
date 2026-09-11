@@ -238,12 +238,22 @@ test('governance documents cannot silently remove baseline headings', () => {
   writeFile(root, 'docs/protocol.md', '# Protocol\n\n## Invariant\n');
   const base = commitAll(root);
   writeFile(root, 'docs/protocol.md', '# Protocol\n');
-
   const result = resultFor(root, base);
-
   assert.equal(result.violations[0].reason, 'governance-invariant-removal');
 });
-
+test('canonical authority documents use semantic checks instead of size or heading preservation', () => {
+  const root = initRepo('modularity-canonical-authority-');
+  writeFile(
+    root,
+    'docs/plans/current-program.md',
+    '# Current Program\n\n## Retired Historical Heading\n\nOld history.\n'
+  );
+  const base = commitAll(root);
+  writeFile(root, 'docs/plans/current-program.md', `# Current Program\n${largeLines(1001)}`);
+  const result = resultFor(root, base);
+  assert.deepEqual(result.violations, []);
+  assert.equal(result.checkedFiles, 1);
+});
 test('workflow YAML has no line cap but rejects inline complexity growth', () => {
   const root = initRepo('modularity-workflow-');
   writeFile(root, '.github/workflows/ci.yml', `jobs:\n  first:\n    steps:\n      - run: one\n`);

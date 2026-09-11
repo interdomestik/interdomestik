@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { isSemanticGovernanceDocument } from './modularity-guard-policy.mjs';
 import { budgetCategory } from './repo-size-budget-sync-core.mjs';
 
 const SOURCE_EXTENSIONS = new Set(['.cjs', '.css', '.js', '.mjs', '.sh', '.ts', '.tsx']);
@@ -90,6 +91,8 @@ export function collectTrackedStats(repoRoot, trackedFiles, options) {
     missingFiles,
     categories: [...categories.values()].sort(compareNamed),
     directories: [...directories.values()].sort(compareNamed),
+    largestCapacityFile:
+      largestFiles.find(item => !isSemanticGovernanceDocument(item.path)) ?? null,
     largestFiles: largestFiles.slice(0, options.top),
     sourceHotspots: sourceHotspots.slice(0, options.top),
   };

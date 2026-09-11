@@ -1,16 +1,60 @@
 import { budgetCategory } from './repo-size-budget-sync-core.mjs';
 import { CAPACITY_CATEGORIES, validateCapacityBudget } from './repo-size-capacity-schema.mjs';
+import { isSemanticGovernanceDocument } from './modularity-guard-policy.mjs';
 
-function addOver(violations, code, actual, limit, label = code) {
-  if (actual > limit) violations.push({ code, actual, limit, label });
+function addOver(violations, code, actual, limit, label = code, details = {}) {
+  if (actual > limit) violations.push({ code, actual, limit, label, ...details });
 }
 
-function globalViolations(report, budget) {
+function semanticGrowth(facts, category = null) {
+  const signedGrowth = [...facts.values()]
+    .filter(
+      fact =>
+        isSemanticGovernanceDocument(fact.path) &&
+        (category === null || budgetCategory(fact.path) === category)
+    )
+    .reduce((sum, fact) => sum + fact.bytesDelta, 0);
+  return Math.max(0, signedGrowth);
+}
+
+export function allocatedSemanticBytes(allocation, category = null) {
+  const pathBytes = allocation.pathBytesDelta ?? allocation.maxPathBytesDelta;
+  return allocation.writerPaths
+    .filter(
+      path =>
+        isSemanticGovernanceDocument(path) &&
+        (category === null || budgetCategory(path) === category)
+    )
+    .reduce((sum, path) => sum + pathBytes[path], 0);
+}
+
+function globalViolations(report, budget, facts) {
   const violations = [];
-  addOver(violations, 'tracked-bytes', report.tracked.total.bytes, budget.maxTrackedBytes);
+  addOver(
+    violations,
+    'tracked-bytes',
+    report.tracked.total.bytes,
+    budget.maxTrackedBytes + semanticGrowth(facts)
+  );
   addOver(violations, 'tracked-files', report.tracked.total.files, budget.maxTrackedFiles);
-  const largest = report.tracked.largestFiles[0];
-  if (largest) addOver(violations, 'largest-file-bytes', largest.bytes, budget.maxLargestFileBytes);
+  if (!Object.hasOwn(report.tracked, 'largestCapacityFile')) {
+    violations.push({
+      code: 'inventory-attribution:largest-capacity-file',
+      actual: 1,
+      limit: 0,
+      label: 'Untruncated largest capacity file fact is required',
+    });
+  }
+  const largest = report.tracked.largestCapacityFile;
+  if (largest)
+    addOver(
+      violations,
+      'largest-file-bytes',
+      largest.bytes,
+      budget.maxLargestFileBytes,
+      'largest-file-bytes',
+      { path: largest.path }
+    );
   const hotspot = report.tracked.sourceHotspots[0];
   if (hotspot)
     addOver(violations, 'source-or-test-lines', hotspot.lines, budget.maxSourceOrTestLines);
@@ -30,7 +74,7 @@ function globalViolations(report, budget) {
       violations,
       `category:${category}`,
       categories.get(category) ?? 0,
-      budget.maxCategoryBytes[category]
+      budget.maxCategoryBytes[category] + semanticGrowth(facts, category)
     );
   return violations;
 }
@@ -73,6 +117,7 @@ function addInventoryViolations(violations, report, budget, facts) {
 
 function addExactViolations(violations, allocation, facts) {
   for (const fact of facts) {
+    if (isSemanticGovernanceDocument(fact.path)) continue;
     const expected = allocation.pathBytesDelta[fact.path];
     if (fact.bytesDelta !== expected)
       violations.push({
@@ -82,13 +127,19 @@ function addExactViolations(violations, allocation, facts) {
         label: `Exact allocation path delta (${fact.path})`,
       });
   }
-  const bytes = facts.reduce((sum, fact) => sum + fact.bytesDelta, 0);
+  const capacityFacts = facts.filter(fact => !isSemanticGovernanceDocument(fact.path));
+  const bytes = capacityFacts.reduce((sum, fact) => sum + fact.bytesDelta, 0);
   const files = facts.reduce((sum, fact) => sum + fact.filesDelta, 0);
-  if (bytes !== allocation.trackedBytesDelta)
+  const expectedBytes =
+    allocation.trackedBytesDelta -
+    allocation.writerPaths
+      .filter(isSemanticGovernanceDocument)
+      .reduce((sum, path) => sum + allocation.pathBytesDelta[path], 0);
+  if (bytes !== expectedBytes)
     violations.push({
       code: `allocation-bytes:${allocation.id}`,
       actual: bytes,
-      limit: allocation.trackedBytesDelta,
+      limit: expectedBytes,
       label: allocation.id,
     });
   if (files !== allocation.trackedFilesDelta)
@@ -99,10 +150,13 @@ function addExactViolations(violations, allocation, facts) {
       label: allocation.id,
     });
   for (const category of CAPACITY_CATEGORIES) {
-    const actual = facts
+    const actual = capacityFacts
       .filter(fact => budgetCategory(fact.path) === category)
       .reduce((sum, fact) => sum + fact.bytesDelta, 0);
-    const expected = allocation.categoryBytesDelta[category] ?? 0;
+    const semanticExpected = allocation.writerPaths
+      .filter(path => isSemanticGovernanceDocument(path) && budgetCategory(path) === category)
+      .reduce((sum, path) => sum + allocation.pathBytesDelta[path], 0);
+    const expected = (allocation.categoryBytesDelta[category] ?? 0) - semanticExpected;
     if (actual !== expected)
       violations.push({
         code: `allocation-category:${allocation.id}:${category}`,
@@ -118,7 +172,7 @@ function addBoundedViolations(violations, allocation, facts) {
   let positiveFiles = 0;
   const categories = new Map();
   for (const fact of facts) {
-    const bytes = Math.max(0, fact.bytesDelta);
+    const bytes = isSemanticGovernanceDocument(fact.path) ? 0 : Math.max(0, fact.bytesDelta);
     const category = budgetCategory(fact.path);
     positiveBytes += bytes;
     positiveFiles += Math.max(0, fact.filesDelta);
@@ -134,7 +188,7 @@ function addBoundedViolations(violations, allocation, facts) {
     violations,
     `allocation-bytes:${allocation.id}`,
     positiveBytes,
-    allocation.maxTrackedBytesDelta
+    allocation.maxTrackedBytesDelta - allocatedSemanticBytes(allocation)
   );
   addOver(
     violations,
@@ -147,18 +201,19 @@ function addBoundedViolations(violations, allocation, facts) {
       violations,
       `allocation-category:${allocation.id}:${category}`,
       categories.get(category) ?? 0,
-      allocation.maxCategoryBytesDelta[category] ?? 0
+      (allocation.maxCategoryBytesDelta[category] ?? 0) -
+        allocatedSemanticBytes(allocation, category)
     );
 }
 
 export function evaluateCapacityBudget(report, budget, changeFacts) {
   validateCapacityBudget(budget);
-  const violations = globalViolations(report, budget);
   const facts = new Map();
   for (const fact of changeFacts) {
     if (facts.has(fact.path)) throw new Error(`duplicate repo-size change fact: ${fact.path}`);
     facts.set(fact.path, fact);
   }
+  const violations = globalViolations(report, budget, facts);
   addInventoryViolations(violations, report, budget, facts);
   const owners = new Map(
     budget.allocations.flatMap(item => item.writerPaths.map(filePath => [filePath, item]))

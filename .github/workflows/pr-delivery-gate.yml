@@ -21,8 +21,10 @@ on:
     types: [created, edited, deleted]
 
 concurrency:
-  group: pr-delivery-gate-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  # Synchronize runs replace only obsolete synchronize work. Other PR events
+  # are unique, while same-head review feedback may coalesce independently.
+  group: pr-delivery-gate-${{ github.event.pull_request.number }}-${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' && format('synchronize-{0}', github.event.pull_request.head.sha) || github.event_name == 'pull_request' && format('event-{0}', github.run_id) || format('feedback-{0}', github.event.pull_request.head.sha) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' }}
 
 jobs:
   delivery-gate:

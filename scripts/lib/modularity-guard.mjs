@@ -10,6 +10,7 @@ import {
   FILE_CLASSES,
   MODULARITY_POLICY,
   classifyModularityFile,
+  isSemanticGovernanceDocument,
   isModularityChecked,
   legacyFocusedTestContract,
   structuredArtifactOwner,
@@ -223,15 +224,14 @@ function evaluateStructured(root, entry, className, current, base) {
   }
   return { className, violation: reason ? finding(entry, className, current, base, reason) : null };
 }
-
 function evaluateGovernance(_root, entry, className, current, base) {
+  if (isSemanticGovernanceDocument(entry.file)) return { className, violation: null };
   const policy = MODULARITY_POLICY.governanceDoc;
   let reason =
     current.lines > policy.maxLines || current.bytes > policy.maxBytes ? 'governance-budget' : null;
   if (!reason && removedGovernanceHeading(current, base)) reason = 'governance-invariant-removal';
   return { className, violation: reason ? finding(entry, className, current, base, reason) : null };
 }
-
 function evaluateWorkflow(_root, entry, className, current, base) {
   const grew = base && workflowComplexity(current.text) > workflowComplexity(base.text);
   const violation =

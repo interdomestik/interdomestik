@@ -18,7 +18,7 @@ const CANONICAL_PLAN_PATH = 'docs/plans/current-program.md';
 const CANONICAL_TRACKER_PATH = 'docs/plans/current-tracker.md';
 const LIVE_MARKERS = [/^Current phase:/im, /^## Next Up\b/im, /^## Top 12 Next Actions\b/im];
 const LOCAL_TASK_PATH = '.agent/tasks/current_task.md';
-
+const MAX_GOVERNED_DOCUMENT_BYTES = 16 * 1024 * 1024;
 function parseArgs(argv) {
   const args = [...argv];
   let root = process.cwd();
@@ -114,14 +114,15 @@ function loadGovernedDocs(root) {
   });
 
   const docs = [];
-
   for (const file of files) {
+    if (fs.statSync(file).size > MAX_GOVERNED_DOCUMENT_BYTES)
+      throw new Error(
+        `${toRepoPath(root, file)}: exceeds ${MAX_GOVERNED_DOCUMENT_BYTES}-byte operational read bound`
+      );
     const content = fs.readFileSync(file, 'utf8');
     const frontMatter = parseFrontMatter(content);
 
-    if (!frontMatter?.metadata?.plan_role) {
-      continue;
-    }
+    if (!frontMatter?.metadata?.plan_role) continue;
 
     docs.push({
       path: toRepoPath(root, file),
@@ -131,7 +132,6 @@ function loadGovernedDocs(root) {
       meta: frontMatter.metadata,
     });
   }
-
   return docs;
 }
 
