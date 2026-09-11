@@ -51,10 +51,10 @@ evidence was reused. The task database, port, process scope and temporary checko
 Because live activation and the repo-bound prospective protocol did not both precede merge and
 execution, this is a technical baseline rather than trial 1. Migration remains 0/3.
 
-Future trial protocol: a separate promotion first binds the exact base, head, merge-candidate tree
-and lockfile hash. Only then may one clean detached candidate run the fixed repo-native Z620
-resource command with `--lanes=e2e-pr`, task-owned database and port. Existing protected PR evidence is reused when
-inputs match; the result, redacted log, hashes, duration and cleanup state are retained. Missing
+The current protocol for migration trials 2 and 3 is defined in `current-program.md`: each trial
+uses one bounded ordinary product PR while Lean authority remains inactive, with exact identity
+frozen before its clean detached Z620 run. Existing protected PR evidence is reused when inputs
+match; the result, redacted log, hashes, duration and cleanup state are retained. Missing
 pre-execution binding or cleanup means no trial credit.
 
 ## Next Selection
