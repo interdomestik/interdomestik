@@ -1,4 +1,14 @@
-import { appendFileSync, mkdtempSync, readFileSync, realpathSync, statSync } from 'node:fs';
+import {
+  appendFileSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs';
+import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { isAbsolute, join, relative, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -26,6 +36,122 @@ export function validateInstalledNode(cache, executable) {
   if (statSync(root).uid !== process.getuid() || (statSync(root).mode & 0o777) !== 0o700)
     throw new Error('private cache must remain owned and mode 0700');
   return checkedPackageExecutable(node);
+}
+
+export function nodeRelease(version, platform, arch, wanted) {
+  if (!/^\d+\.\d+\.\d+$/.test(version) || !/^\d+(?:\.\d+){0,2}$/.test(wanted))
+    throw new Error('invalid Node version');
+  if (platform !== 'linux' || !['x64', 'arm64'].includes(arch))
+    throw new Error('unsupported hosted Node platform');
+  if (version !== wanted && !version.startsWith(`${wanted}.`))
+    throw new Error('resolved Node does not match .nvmrc');
+  const name = `node-v${version}-${platform}-${arch}`;
+  return {
+    archive: `${name}.tar.xz`,
+    member: `${name}/bin/node`,
+    base: `https://nodejs.org/dist/v${version}/`,
+  };
+}
+
+export function verifyArchiveHash(bytes, manifest, archive) {
+  const entries = manifest.split('\n').filter(line => line.slice(66) === archive);
+  if (entries.length !== 1 || !/^[a-f0-9]{64}  /.test(entries[0]))
+    throw new Error('invalid Node checksum manifest entry');
+  if (createHash('sha256').update(bytes).digest('hex') !== entries[0].slice(0, 64))
+    throw new Error('Node archive checksum mismatch');
+}
+
+const bootstrapOptions = {
+  env: { PATH: '/usr/bin:/bin', LANG: 'C' },
+  timeout: 180000,
+  maxBuffer: 256 * 1024 * 1024,
+};
+
+function download(url, destination, limit) {
+  const result = spawnSync(
+    '/usr/bin/curl',
+    [
+      '--disable',
+      '--fail',
+      '--silent',
+      '--show-error',
+      '--proto',
+      '=https',
+      '--tlsv1.2',
+      '--connect-timeout',
+      '15',
+      '--max-time',
+      '120',
+      '--max-filesize',
+      String(limit),
+      '--output',
+      destination,
+      '--write-out',
+      '%{http_code}',
+      url,
+    ],
+    bootstrapOptions
+  );
+  if (
+    result.status !== 0 ||
+    result.stdout.toString() !== '200' ||
+    statSync(destination).size > limit
+  )
+    throw new Error('official Node download failed');
+}
+
+export function extractNodeBinary(archive, member, cache) {
+  // Read only the exact regular-file member to stdout: archive paths never reach the filesystem.
+  const listing = spawnSync('/usr/bin/tar', ['-tJvf', archive, member], bootstrapOptions);
+  const lines = listing.stdout.toString().trim().split('\n');
+  if (
+    listing.status !== 0 ||
+    lines.length !== 1 ||
+    !lines[0].startsWith('-') ||
+    !lines[0].endsWith(` ${member}`)
+  )
+    throw new Error('invalid Node archive member');
+  const extracted = spawnSync('/usr/bin/tar', ['-xOJf', archive, member], bootstrapOptions);
+  if (extracted.status !== 0 || !extracted.stdout.length)
+    throw new Error('Node archive extraction failed');
+  const bin = join(cache, 'bin');
+  mkdirSync(bin, { mode: 0o755 });
+  const node = join(bin, 'node');
+  writeFileSync(node, extracted.stdout, { mode: 0o755, flag: 'wx' });
+  return validateInstalledNode(cache, node);
+}
+
+function provisionPrivateNode(cache) {
+  const started = Date.now();
+  checkOwnedPath(cache);
+  if ((statSync(cache).mode & 0o777) !== 0o700 || statSync(cache).uid !== process.getuid())
+    throw new Error('private cache must remain owned and mode 0700');
+  const wanted = readFileSync(new URL('../../.nvmrc', import.meta.url), 'utf8').trim();
+  const release = nodeRelease(process.versions.node, process.platform, process.arch, wanted);
+  const archive = join(cache, release.archive);
+  const manifest = join(cache, 'SHASUMS256.txt');
+  try {
+    download(`${release.base}SHASUMS256.txt`, manifest, 1024 * 1024);
+    download(`${release.base}${release.archive}`, archive, 100 * 1024 * 1024);
+    // Same-origin HTTPS manifest integrity, not independent signature authentication.
+    verifyArchiveHash(readFileSync(archive), readFileSync(manifest, 'utf8'), release.archive);
+    const node = extractNodeBinary(archive, release.member, cache);
+    const version = spawnSync(node, ['--version'], bootstrapOptions);
+    if (version.status !== 0 || version.stdout.toString().trim() !== process.version)
+      throw new Error('private Node version differs from setup-node selection');
+    appendFileSync(process.env.GITHUB_PATH, `${join(cache, 'bin')}\n`);
+    console.log(
+      JSON.stringify({ provisionElapsedMs: Date.now() - started, node, version: process.version })
+    );
+  } finally {
+    for (const file of [archive, manifest]) {
+      try {
+        unlinkSync(file);
+      } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+      }
+    }
+  }
 }
 
 function verifyPrivateNode(cache) {
@@ -66,5 +192,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     appendFileSync(process.env.GITHUB_OUTPUT, `path=${cache}\nstarted=${Date.now()}\n`);
   } else if (process.argv[2] === 'verify') {
     verifyPrivateNode(process.env.PRIVATE_NODE_CACHE);
-  } else throw new Error('expected prepare or verify');
+  } else if (process.argv[2] === 'provision') {
+    provisionPrivateNode(process.env.PRIVATE_NODE_CACHE);
+  } else throw new Error('expected prepare, provision or verify');
 }

@@ -81,9 +81,9 @@
         "scripts/modularity-guard-legacy-focused.test.mjs",
         "scripts/fixtures/update-status-legacy-baseline.test.ts.gz"
       ],
-      "maxTrackedBytesDelta": 64478,
+      "maxTrackedBytesDelta": 64557,
       "maxTrackedFilesDelta": 8,
-      "maxCategoryBytesDelta": { "other": 5580, "source/scripts": 20886, "tests/e2e": 38012 },
+      "maxCategoryBytesDelta": { "other": 5580, "source/scripts": 20965, "tests/e2e": 38012 },
       "maxPathBytesDelta": {
         "scripts/lean-current-authority-policy.mjs": 578,
         "scripts/lean-current-authority-lifecycle.mjs": 473,
@@ -96,7 +96,7 @@
         "scripts/lean-current-authority-evidence.test.mjs": 991,
         "scripts/lean-current-authority-pull-selection.test.mjs": 2493,
         "scripts/lean-current-authority-conformance.test.mjs": 3260,
-        "scripts/modularity-guard-policy.mjs": 1254,
+        "scripts/modularity-guard-policy.mjs": 1333,
         "scripts/check-modularity-guard.test.mjs": 1341,
         "scripts/lean-current-authority-recovery.mjs": 6810,
         "scripts/lean-current-authority-recovery.test.mjs": 9126,
@@ -1110,13 +1110,13 @@
         "scripts/package-command-runtime.mjs",
         "scripts/package-e2e-scripts.test.mjs"
       ],
-      "maxTrackedBytesDelta": 67478,
+      "maxTrackedBytesDelta": 75526,
       "maxTrackedFilesDelta": 14,
       "maxCategoryBytesDelta": {
         "docs/text": 4737,
-        "config/data/messages": 976,
-        "source/scripts": 30052,
-        "tests/e2e": 31713
+        "config/data/messages": 967,
+        "source/scripts": 34563,
+        "tests/e2e": 35259
       },
       "maxPathBytesDelta": {
         ".github/copilot-instructions.md": 231,
@@ -1148,9 +1148,9 @@
         ".github/pull_request_template.md": 53,
         "scripts/ci/verify-slice-required-gates.test.mjs": 2098,
         "packages/qa/src/tools/tests.ts": 241,
-        ".github/actions/setup/action.yml": 976,
-        "scripts/ci/private-node-cache.test.mjs": 2948,
-        "scripts/ci/setup-private-node-cache.mjs": 3472
+        ".github/actions/setup/action.yml": 967,
+        "scripts/ci/private-node-cache.test.mjs": 6494,
+        "scripts/ci/setup-private-node-cache.mjs": 7983
       }
     }
   ],
@@ -1160,15 +1160,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61064831,
+  "maxTrackedBytes": 61072958,
   "maxTrackedFiles": 6030,
   "maxCategoryBytes": {
-    "config/data/messages": 2219169,
+    "config/data/messages": 2219160,
     "docs/text": 8541936,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8786553,
-    "tests/e2e": 6936438
+    "source/scripts": 8791143,
+    "tests/e2e": 6939984
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

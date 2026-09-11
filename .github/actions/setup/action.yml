@@ -22,21 +22,19 @@ runs:
         RUNNER_ENVIRONMENT: ${{ runner.environment }}
       run: node scripts/ci/setup-private-node-cache.mjs prepare
 
-    - name: Setup private hosted Node
-      if: runner.environment == 'github-hosted'
+    - name: Setup Node
       uses: actions/setup-node@v5
-      env:
-        RUNNER_TOOL_CACHE: ${{ steps.private-node-cache.outputs.path }}
       with:
         node-version-file: '.nvmrc'
         cache: 'pnpm'
 
-    - name: Setup Node
-      if: runner.environment != 'github-hosted'
-      uses: actions/setup-node@v5
-      with:
-        node-version-file: '.nvmrc'
-        cache: 'pnpm'
+    - name: Provision private hosted Node
+      if: runner.environment == 'github-hosted'
+      shell: bash
+      env:
+        RUNNER_ENVIRONMENT: ${{ runner.environment }}
+        PRIVATE_NODE_CACHE: ${{ steps.private-node-cache.outputs.path }}
+      run: node scripts/ci/setup-private-node-cache.mjs provision
 
     - name: Ensure ripgrep
       shell: bash
