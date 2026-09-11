@@ -4,9 +4,9 @@ import { userInfo } from 'node:os';
 import { delimiter, dirname, isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// The executing Node installation is the runtime trust anchor, including isolated CI toolcaches.
+// Node provenance belongs to the invoking runtime, including isolated CI toolcaches.
+// These wrappers validate newly selected tools; they cannot re-attest their own running engine.
 const nodeExecutable = realpathSync(process.execPath);
-const nodeInstallation = dirname(dirname(nodeExecutable));
 const root = fileURLToPath(new URL('..', import.meta.url));
 
 // Developer tools may be installed by this user or root, never by another account.
@@ -22,7 +22,7 @@ function checkOwnedPath(file) {
     if (!trustedOwner || (unsafeWrites && !stickyRoot)) {
       throw new Error('refused an untrusted executable installation');
     }
-    if (current === nodeInstallation || current === dirname(current)) return;
+    if (current === dirname(current)) return;
   }
 }
 
@@ -36,6 +36,10 @@ export function checkedPackageExecutable(candidate) {
 }
 
 export function packageCommandRuntime(name) {
+  if (!['darwin', 'linux'].includes(process.platform))
+    throw new Error(
+      'Package command wrappers require macOS or Linux (POSIX); Windows is not supported.'
+    );
   if (!['pnpm', 'lsof'].includes(name)) throw new Error('unsupported package command tool');
   const directories = (process.env.PATH ?? '').split(delimiter);
   if (directories.some(directory => !isAbsolute(directory))) {
@@ -52,7 +56,6 @@ export function packageCommandRuntime(name) {
     }
   });
   // pnpm's env-node shebang must use the already-running, checked Node installation.
-  checkOwnedPath(nodeExecutable);
   const env = {
     ...process.env,
     PATH: [dirname(nodeExecutable), ...safeDirectories].join(delimiter),
@@ -85,7 +88,12 @@ export function packageCommandRuntime(name) {
       if (error.code === 'ENOENT' || error.code === 'ENOTDIR') continue;
       throw error;
     }
-    const executable = checkedPackageExecutable(candidate);
+    let executable;
+    try {
+      executable = checkedPackageExecutable(candidate);
+    } catch {
+      continue;
+    } // Exclude unsafe installations; never execute them as a fallback.
     if (name === 'pnpm') {
       const version = spawnSync(executable, ['--version'], {
         cwd: root,

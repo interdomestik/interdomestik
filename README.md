@@ -126,7 +126,8 @@ pnpm pr:verify
 
 _Runs: repository contracts, release-gate tests, E2E contract checks, production lint-warning baseline, DB/RLS checks, i18n checks, coverage gate, the full E2E gate, and Web Smoke Tests. `memory:precheck` is separate opt-in advisory feedback. Use `pnpm prod:ready:code` for the Docker-free code gate; local E2E lanes run `pnpm run doctor` first._
 
-For pilot-launch release proof, also run:
+For standalone pilot-launch checks when these results are not already covered by a successful
+`pr:verify` for the same source, configuration, and environment, run:
 
 ```bash
 pnpm check:e2e-contracts

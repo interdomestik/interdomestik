@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import cp, { spawnSync } from 'node:child_process';
 import fs, { chmodSync, existsSync, readFileSync, realpathSync, symlinkSync } from 'node:fs';
 import { syncBuiltinESMExports } from 'node:module';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { fixture, run } from './fixtures/package-command-fixture.mjs';
@@ -121,17 +121,16 @@ test('caller PATH cannot select a pnpm executable even from an owned directory',
   }
 });
 
-test('the current Node installation is the explicit CI toolcache trust anchor', t => {
+test('Node provenance remains with the invoking runtime, not tool discovery', t => {
   const executable = realpathSync(process.execPath);
-  const anchor = dirname(dirname(executable));
   const original = fs.statSync;
   t.mock.method(fs, 'statSync', file => {
-    assert.notEqual(file, dirname(anchor), 'must not inspect unrelated toolcache ancestors');
+    assert.notEqual(file, executable, 'must not re-attest the already-running Node engine');
     return original(file);
   });
   syncBuiltinESMExports();
   try {
-    assert.equal(checkedPackageExecutable(executable), executable);
+    assert.ok(packageCommandRuntime('pnpm').executable);
   } finally {
     t.mock.restoreAll();
     syncBuiltinESMExports();

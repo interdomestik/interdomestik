@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 90964,
+      "trackedBytesDelta": 91056,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 53554,
+        "config/data/messages": 53646,
         "source/scripts": 23092,
         "tests/e2e": 14318
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 53554,
+        "scripts/repo-size-budget.json": 53646,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -1064,6 +1064,7 @@
       "mode": "bounded",
       "writerPaths": [
         ".github/copilot-instructions.md",
+        ".github/pull_request_template.md",
         "README.md",
         "docs/DEVELOPMENT.md",
         "docs/SONAR.md",
@@ -1090,20 +1091,20 @@
         "scripts/package-command-runtime.mjs",
         "scripts/package-e2e-scripts.test.mjs"
       ],
-      "maxTrackedBytesDelta": 45318,
+      "maxTrackedBytesDelta": 46747,
       "maxTrackedFilesDelta": 11,
       "maxCategoryBytesDelta": {
-        "docs/text": 3840,
+        "docs/text": 4326,
         "config/data/messages": 0,
-        "source/scripts": 20875,
-        "tests/e2e": 20603
+        "source/scripts": 21416,
+        "tests/e2e": 21005
       },
       "maxPathBytesDelta": {
         ".github/copilot-instructions.md": 231,
-        "README.md": 127,
-        "docs/DEVELOPMENT.md": 2694,
+        "README.md": 249,
+        "docs/DEVELOPMENT.md": 2825,
         "docs/SONAR.md": 491,
-        "gemini.md": 115,
+        "gemini.md": 295,
         "packages/database/package.json": 0,
         "packages/qa/README.md": 182,
         "packages/qa/src/tools/health.ts": 0,
@@ -1111,9 +1112,9 @@
         "packages/qa/src/tools/test-configs.ts": 0,
         "packages/qa/src/utils/exec.ts": 0,
         "packages/qa/src/utils/verification-failure.ts": 4809,
-        "scripts/check-fast.mjs": 2143,
-        "scripts/ci/fast-lane.test.mjs": 2741,
-        "scripts/ci/fixtures/fast-lane-effects.cjs": 2975,
+        "scripts/check-fast.mjs": 2179,
+        "scripts/ci/fast-lane.test.mjs": 3213,
+        "scripts/ci/fixtures/fast-lane-effects.cjs": 3217,
         "scripts/ci/package-command-safety.test.mjs": 9973,
         "scripts/ci/qa-exec-runtime-contracts.test.mjs": 2341,
         "scripts/ci/qa-tools-surface-contracts.test.mjs": 61,
@@ -1122,9 +1123,10 @@
         "scripts/multi-agent/verify-slice.sh": 30,
         "scripts/package-e2e-scripts.test.mjs": 112,
         "scripts/ci/fixtures/package-command-fixture.mjs": 2349,
-        "scripts/ci/package-command-runtime.test.mjs": 5375,
-        "scripts/package-command-runtime.mjs": 4607,
-        "scripts/ci/fixtures/package-command-effects.cjs": 1088
+        "scripts/ci/package-command-runtime.test.mjs": 5305,
+        "scripts/package-command-runtime.mjs": 4870,
+        "scripts/ci/fixtures/package-command-effects.cjs": 1088,
+        ".github/pull_request_template.md": 53
       }
     }
   ],
@@ -1134,15 +1136,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61035184,
+  "maxTrackedBytes": 61036705,
   "maxTrackedFiles": 6025,
   "maxCategoryBytes": {
     "other": 19184750,
     "large support/generated-ish": 15395985,
-    "docs/text": 8539687,
-    "source/scripts": 8776961,
-    "tests/e2e": 6920877,
-    "config/data/messages": 2216924
+    "docs/text": 8540173,
+    "source/scripts": 8777502,
+    "tests/e2e": 6921279,
+    "config/data/messages": 2217016
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

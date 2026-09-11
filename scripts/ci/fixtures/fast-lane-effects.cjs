@@ -51,6 +51,10 @@ for (const method of ['spawn', 'spawnSync', 'execFile', 'execFileSync']) {
     if (isFastRunner && blockedEnvironment.some(key => Object.hasOwn(options.env, key))) {
       return deny('inherited execution control')();
     }
+    if (isFastRunner && options.timeout !== 30_000) return deny('unbounded child')();
+    if (isFastRunner && process.env.FAST_LANE_TEST_TIMEOUT === '1') {
+      return { status: null, error: { code: 'ETIMEDOUT' }, signal: 'SIGTERM' };
+    }
     process.stdout.write(`FAST_LANE_COMMAND ${JSON.stringify(args)}\n`);
     // Only this test preload propagates instrumentation; production children have no hook.
     const instrumented = {

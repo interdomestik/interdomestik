@@ -57,7 +57,12 @@ const env = {
 // NODE_TEST_CONTEXT is also excluded so contract tests can invoke this nested test lane.
 for (const [name, args] of steps) {
   console.log(`[check:fast] ${name}`);
-  const result = spawnSync(process.execPath, args, { cwd: root, stdio: 'inherit', env });
+  const result = spawnSync(process.execPath, args, {
+    cwd: root,
+    stdio: 'inherit',
+    env,
+    timeout: 30_000,
+  });
   if (result.error) console.error(`check:fast could not start ${name}: ${result.error.code}`);
   if (result.status !== 0) process.exit(result.status ?? 1);
 }

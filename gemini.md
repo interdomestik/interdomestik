@@ -62,7 +62,9 @@ pnpm pr:verify && pnpm security:guard
 
 ### 2. E2E Contracts
 
-Features are only complete when they pass the E2E Gate:
+Features are only complete with full E2E gate evidence. A successful `pnpm pr:verify`
+already supplies it for the same source, configuration, and environment; do not repeat it.
+For a standalone gate when that evidence is not available:
 
 ```bash
 pnpm e2e:gate

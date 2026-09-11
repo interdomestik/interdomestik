@@ -7,7 +7,8 @@
   - Note: avoid `pnpm dev -- --hostname ...` because Next treats `--` as end-of-options and misreads `--hostname` as a positional project directory.
 - Run unit tests: `pnpm test`
 - Run bounded edit feedback: `pnpm check:fast` (locale, entrypoint, architecture guards and the
-  complete case/recovery unit suites; no DB, network, browser, build, cache wipe, or process kill).
+  complete case/recovery unit suites; no DB, network, browser, build, cache wipe, or unrelated
+  process termination). Each step has a 30-second timeout for its own child process.
 - Run full formatting, lint, and type checks: `pnpm check:static`.
 - Run full local code checks and build: `pnpm check`.
 - Run the prepared PR browser lane explicitly: `pnpm slice:e2e:pr`. This migrates/reseeds the test
@@ -22,11 +23,12 @@ For focused web tests use `pnpm --filter @interdomestik/web test:unit --run <fil
 use the package's `test:unit` command. `pnpm db:rls:test:required` is the explicit DB integration
 lane. Required PR proof below remains the merge standard.
 
-The database and `dev:clean` wrappers select tools only from known Node, Homebrew, system,
+The database and `dev:clean` wrappers support macOS and Linux (POSIX), not Windows.
+They select tools only from known Node, Homebrew, system,
 and standard user pnpm/pnpm-action installations, not caller PATH. They verify the effective
 pnpm version against `packageManager` before operational commands, including Corepack shims;
-missing cached versions fail without automatic downloads. The executing Node installation is
-the runtime trust anchor (including isolated CI toolcaches), and its Node handles shebangs.
+missing cached versions fail without automatic downloads. The executing Node engine is trusted
+from the invoking runtime (including isolated CI toolcaches), and handles child shebangs.
 User/root-owned installations and privileged macOS admin-group Homebrew paths are supported.
 Shared-writable child search paths are excluded; relative or empty PATH entries are rejected.
 Missing tools or a version mismatch report installation guidance without running the operation.

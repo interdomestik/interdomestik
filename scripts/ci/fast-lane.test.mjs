@@ -21,6 +21,18 @@ test('fast-lane tripwires still refuse arbitrary subprocesses', () => {
   assert.match(result.stderr, /FAST_LANE_FORBIDDEN_EFFECT: external command/);
 });
 
+test('the fast lane reports a child timeout and stops before later stages', () => {
+  const result = spawnSync(process.execPath, ['--require', preload, 'scripts/check-fast.mjs'], {
+    cwd: root,
+    encoding: 'utf8',
+    timeout: 5000,
+    env: { ...process.env, FAST_LANE_TEST_TIMEOUT: '1' },
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /i18n: ETIMEDOUT/);
+  assert.doesNotMatch(result.stdout, /\[check:fast\] (entrypoints|unit|passed)/);
+});
+
 test('the actual fast lane runs all declared guards and units without operational effects', () => {
   const result = spawnSync(process.execPath, ['--require', preload, 'scripts/check-fast.mjs'], {
     cwd: root,
