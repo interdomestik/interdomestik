@@ -9,6 +9,22 @@ const replacementEvents = new Set([
   'pull_request_review',
   'pull_request_review_comment',
 ]);
+const replacementActions = new Map([
+  ['pull_request', new Set(['synchronize'])],
+  ['pull_request_review', new Set(['submitted', 'edited', 'dismissed'])],
+  ['pull_request_review_comment', new Set(['created', 'edited', 'deleted'])],
+]);
+const replacementRunNames = new Set(['PR delivery gate', 'PR finalizer']);
+
+function isMarkedReplacementProducer(run, head) {
+  const actions = replacementActions.get(run.event);
+  if (!actions || typeof run.display_title !== 'string') return false;
+  return [...replacementRunNames].some(name =>
+    [...actions].some(
+      action => run.display_title === `${name} [supersession:v1:${run.event}:${action}:${head}]`
+    )
+  );
+}
 
 export async function hasPendingCheckReplacement(client, check, head) {
   if (check.appId !== 15368) return false;
@@ -44,7 +60,9 @@ export async function hasPendingCheckReplacement(client, check, head) {
         positiveId(candidate.run_attempt) &&
         candidate.workflow_id === run.workflow_id &&
         candidate.head_sha === head &&
-        replacementEvents.has(candidate.event)
+        replacementEvents.has(candidate.event) &&
+        (candidate.id === check.runId ||
+          (isMarkedReplacementProducer(run, head) && isMarkedReplacementProducer(candidate, head)))
     )
     .sort((left, right) => right.id - left.id || right.run_attempt - left.run_attempt)[0];
   return Boolean(

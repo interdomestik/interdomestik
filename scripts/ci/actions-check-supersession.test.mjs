@@ -1,7 +1,5 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { hasPendingCheckReplacement } from './actions-check-supersession.mjs';
@@ -9,7 +7,14 @@ import { trustedGitHubApiUrl } from './pr-delivery-api.mjs';
 
 const head = 'a'.repeat(40);
 const check = { appId: 15368, headSha: head, runId: 10, runAttempt: 1 };
-const producer = { id: 10, workflow_id: 20, head_sha: head, event: 'pull_request' };
+const runTitle = (event, action) => `PR delivery gate [supersession:v1:${event}:${action}:${head}]`;
+const producer = {
+  id: 10,
+  workflow_id: 20,
+  head_sha: head,
+  event: 'pull_request',
+  display_title: runTitle('pull_request', 'synchronize'),
+};
 const active = { ...producer, id: 11, run_attempt: 1, status: 'in_progress' };
 function fixture(runs = [active], source = producer, complete = true) {
   return {
@@ -42,8 +47,22 @@ test('feedback producer event families supersede each other on the same workflow
   const eventNames = ['pull_request', 'pull_request_review', 'pull_request_review_comment'];
   for (const sourceEvent of eventNames) {
     for (const replacementEvent of eventNames) {
-      const source = { ...producer, event: sourceEvent };
-      const replacement = { ...active, event: replacementEvent };
+      const source = {
+        ...producer,
+        event: sourceEvent,
+        display_title: runTitle(
+          sourceEvent,
+          sourceEvent === 'pull_request' ? 'synchronize' : 'edited'
+        ),
+      };
+      const replacement = {
+        ...active,
+        event: replacementEvent,
+        display_title: runTitle(
+          replacementEvent,
+          replacementEvent === 'pull_request' ? 'synchronize' : 'edited'
+        ),
+      };
       assert.equal(
         await hasPendingCheckReplacement(fixture([replacement], source), check, head),
         true,
@@ -51,6 +70,25 @@ test('feedback producer event families supersede each other on the same workflow
       );
     }
   }
+});
+
+test('unrelated pull-request lifecycle runs cannot defer a failed producer', async () => {
+  const unrelated = {
+    ...active,
+    display_title: runTitle('pull_request', 'review_requested'),
+  };
+  assert.equal(await hasPendingCheckReplacement(fixture([unrelated]), check, head), false);
+  assert.equal(
+    await hasPendingCheckReplacement(
+      fixture([active], {
+        ...producer,
+        display_title: runTitle('pull_request', 'review_request_removed'),
+      }),
+      check,
+      head
+    ),
+    false
+  );
 });
 
 test('other workflows, heads, events and older attempts cannot defer a failure', async () => {
@@ -104,6 +142,11 @@ test('delivery gate cancels stale feedback and finalizer refreshes on the same e
   const gate = fs.readFileSync(path.join(root, '.github/workflows/pr-delivery-gate.yml'), 'utf8');
   const finalizer = fs.readFileSync(path.join(root, '.github/workflows/pr-finalizer.yml'), 'utf8');
 
+  assert.match(
+    gate,
+    /run-name: 'PR delivery gate \[supersession:v1:\$\{\{ github\.event_name \}\}:\$\{\{ github\.event\.action \}\}:\$\{\{ github\.event\.pull_request\.head\.sha \}\}\]'/u
+  );
+
   assert.match(gate, /\non:\n {2}pull_request:\n/u);
   assert.match(gate, /\n {2}pull_request_review:\n {4}types: \[submitted, edited, dismissed\]\n/u);
   assert.match(
@@ -137,7 +180,11 @@ test('delivery gate cancels stale feedback and finalizer refreshes on the same e
   );
   assert.equal(
     finalizer.match(/ {2}group: (.*)\n/u)[1],
-    'pr-finalizer-${{ github.event.pull_request.number }}'
+    'pr-finalizer-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}'
+  );
+  assert.match(
+    finalizer,
+    /run-name: 'PR finalizer \[supersession:v1:\$\{\{ github\.event_name \}\}:\$\{\{ github\.event\.action \}\}:\$\{\{ github\.event\.pull_request\.head\.sha \}\}\]'/u
   );
   assert.equal(finalizer.match(/ {2}cancel-in-progress: (.*)\n/u)[1], 'true');
 
@@ -174,79 +221,5 @@ test('workflow lookup permits exact SHA and rejects unsupported event filters', 
         trustedGitHubApiUrl(`repos/interdomestik/interdomestik/actions/workflows/20/runs?${query}`),
       /trusted boundary/
     );
-  }
-});
-
-test('finalizer refreshes superseded failures, fails genuine failures, and bounds waiting', () => {
-  const root = path.resolve(import.meta.dirname, '../..');
-  const source = fs
-    .readFileSync(path.join(root, 'scripts/pr-finalizer.sh'), 'utf8')
-    .split('\nif [[ "${1:-}" == "--help"')[0]
-    .replaceAll('$(dirname "${BASH_SOURCE[0]}")', '${REPLACEMENT_SCRIPT_DIR}');
-  const old = {
-    name: 'audit',
-    app: { id: 15368 },
-    head_sha: head,
-    status: 'completed',
-    conclusion: 'failure',
-    started_at: '2026-09-07T00:00:00Z',
-  };
-  const next = { ...old, conclusion: 'success', started_at: '2026-09-07T00:01:00Z' };
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'check-supersession-'));
-  try {
-    for (const scenario of [
-      { pending: true, success: true, exit: 0, calls: 2 },
-      { pending: false, success: false, exit: 1, calls: 1 },
-      { pending: true, success: false, exit: 1, calls: 2 },
-    ]) {
-      const counter = path.join(directory, 'calls');
-      fs.writeFileSync(counter, '0');
-      const code = `${source}
-required_check_records() { printf 'audit\\t15368\\n'; }
-defer_async_generators() { :; }
-sleep() { :; }
-node() {
-  [[ "$1" == scripts/ci/actions-check-supersession.mjs ]] || return 99
-  cat >/dev/null
-  printf '${scenario.pending}\\n'
-}
-gh() {
-  if [[ "$*" == *'/pulls/'* ]]; then
-    printf '%s' '{"head":{"sha":"${head}"}}'
-    return
-  fi
-  count="$(cat "$REPLACEMENT_COUNTER")"
-  printf '%s' "$((count + 1))" > "$REPLACEMENT_COUNTER"
-  if [[ "$count" -gt 0 && '${scenario.success}' == true ]]; then
-    printf '%s' '${JSON.stringify([{ check_runs: [next] }])}'
-  else
-    printf '%s' '${JSON.stringify([{ check_runs: [old] }])}'
-  fi
-}
-require_gh_checks
-`;
-      const harness = path.join(directory, 'harness.sh');
-      fs.writeFileSync(harness, code, { mode: 0o600 });
-      const result = spawnSync('bash', ['--', harness], {
-        cwd: root,
-        encoding: 'utf8',
-        timeout: 5000,
-        env: {
-          ...process.env,
-          GITHUB_ACTIONS: 'false',
-          GH_TOKEN: 'fixture',
-          PR_NUMBER: '1695',
-          GITHUB_REPOSITORY: 'interdomestik/interdomestik',
-          PR_FINALIZER_SKIP_CHECK_POLLING: '',
-          PR_FINALIZER_MAX_CHECK_RETRIES: '2',
-          REPLACEMENT_COUNTER: counter,
-          REPLACEMENT_SCRIPT_DIR: path.join(root, 'scripts'),
-        },
-      });
-      assert.equal(result.status, scenario.exit, result.stdout + result.stderr);
-      assert.equal(Number(fs.readFileSync(counter, 'utf8')), scenario.calls);
-    }
-  } finally {
-    fs.rmSync(directory, { recursive: true, force: true });
   }
 });
