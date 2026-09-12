@@ -225,6 +225,13 @@ resolution, and the retained member navigation path. A tightly scoped browser re
 ordinary required checks remain delivery evidence; no authenticated competitor-portal inspection
 or claimant usability validation is claimed.
 
+The current member screen is a legacy behavioral integration surface only, not an approved visual
+target. Browser evidence for this increment proves notification semantics and keyboard operation;
+it does not approve or freeze that screen's layout, styling, hierarchy, or navigation presentation.
+The owner intends a net-new member UI/UX using current interaction patterns within the unified
+portal shell, not separate role-specific dashboard designs. That redesign is separate scope;
+canonical role routes and readiness markers remain technical access-control and test contracts.
+
 ## T117C Product Delivery
 
 Promotion #1738 bound owner review `5164184965` to head

@@ -18,6 +18,9 @@ status_command: pnpm plan:status
 
 The owner selected one bounded notification acknowledgement correctness increment after T210.
 T210 remains completed evidence and no automatic successor is inferred.
+The current member screen is legacy integration evidence only. The planned net-new member UI/UX
+belongs in the unified portal shell; canonical role routes and readiness markers do not authorize
+separate dashboard designs or freeze the legacy presentation.
 
 | ID                                  | Status        | Owner     | Work                                                                   | Exit Criteria                                                       |
 | ----------------------------------- | ------------- | --------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------- |

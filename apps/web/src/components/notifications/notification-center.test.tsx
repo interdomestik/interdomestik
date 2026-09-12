@@ -37,6 +37,16 @@ vi.mock('@/lib/supabase', () => ({
   },
 }));
 
+vi.mock('next-intl', async () => {
+  const [{ default: notifications }, { default: common }, { createUseTranslationsMock }] =
+    await Promise.all([
+      import('@/messages/en/notifications.json'),
+      import('@/messages/en/common.json'),
+      import('@/test/next-intl-mock'),
+    ]);
+  return { useTranslations: createUseTranslationsMock(() => ({ ...notifications, ...common })) };
+});
+
 // Mock UI primitives to avoid portal/open-state complexity.
 vi.mock('@interdomestik/ui', () => ({
   Badge: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
@@ -59,6 +69,7 @@ vi.mock('@interdomestik/ui', () => ({
     </div>
   ),
   DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuItem: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(' '),
 }));
@@ -72,7 +83,7 @@ describe('NotificationCenter', () => {
   it('shows empty state when there are no notifications', async () => {
     render(<NotificationCenter subscriberId="user-123" />);
 
-    expect(await screen.findByText('All caught up!')).toBeInTheDocument();
+    expect(await screen.findByText('No notifications yet')).toBeInTheDocument();
   });
 
   it('shows unread count and renders notification content', async () => {
@@ -112,16 +123,16 @@ describe('NotificationCenter', () => {
 
     render(<NotificationCenter subscriberId="user-123" fetchOnMount={false} />);
 
-    expect(screen.getByText('All caught up!')).toBeInTheDocument();
+    expect(screen.getByText('No notifications yet')).toBeInTheDocument();
 
     fireEvent.click(screen.getByText('Open menu'));
 
     await waitFor(() => {
-      expect(screen.queryByText('All caught up!')).not.toBeInTheDocument();
+      expect(screen.queryByText('No notifications yet')).not.toBeInTheDocument();
     });
 
     resolveNotifications?.([]);
 
-    expect(await screen.findByText('All caught up!')).toBeInTheDocument();
+    expect(await screen.findByText('No notifications yet')).toBeInTheDocument();
   });
 });

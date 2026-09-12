@@ -6,147 +6,232 @@ import {
   Button,
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuTrigger,
-  cn,
 } from '@interdomestik/ui';
-import { formatDistanceToNow } from 'date-fns';
-import {
-  AlertCircle,
-  Bell,
-  Check,
-  CheckCheck,
-  ClipboardCheck,
-  ExternalLink,
-  Loader2,
-  MessageSquare,
-  UserPlus,
-} from 'lucide-react';
-import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { Bell } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-interface Notification {
-  id: string;
-  userId: string;
-  type: string;
-  title: string;
-  content: string;
-  actionUrl: string | null;
-  isRead: boolean;
-  createdAt: Date | string;
-}
-
+import type { Notification } from './notification-item';
+import { NotificationFeedback } from './notification-feedback';
+import { NotificationList } from './notification-list';
 interface NotificationCenterProps {
   readonly subscriberId: string;
   readonly fetchOnMount?: boolean;
 }
 
+interface NotificationSnapshot {
+  readonly subscriberId: string;
+  readonly items: Notification[];
+}
+
+interface LoadingState {
+  readonly subscriberId: string;
+  readonly active: boolean;
+}
+
 export function NotificationCenter({ subscriberId, fetchOnMount = true }: NotificationCenterProps) {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(fetchOnMount);
+  const t = useTranslations('notifications');
+  const tCommon = useTranslations('common');
+  const [snapshot, setSnapshot] = useState<NotificationSnapshot>({ subscriberId, items: [] });
+  const [loadingState, setLoadingState] = useState<LoadingState>({
+    subscriberId,
+    active: fetchOnMount,
+  });
   const [isOpen, setIsOpen] = useState(false);
+  const [pendingIds, setPendingIds] = useState<ReadonlySet<string>>(new Set());
+  const [pendingAll, setPendingAll] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState('');
+  const activeSubscriberRef = useRef(subscriberId);
+  const subscriberEpochRef = useRef(0);
+  const latestFetchRef = useRef(0);
+  const stateRevisionRef = useRef(0);
+  const pendingIdsRef = useRef<ReadonlySet<string>>(new Set());
+  const pendingAllRef = useRef(false);
+  const previousOpenRef = useRef(false);
+  const isOpenRef = useRef(isOpen);
+
+  activeSubscriberRef.current = subscriberId;
+  isOpenRef.current = isOpen;
+
+  const notifications = snapshot.subscriberId === subscriberId ? snapshot.items : [];
+  const unreadCount = useMemo(
+    () => notifications.filter(notification => !notification.isRead).length,
+    [notifications]
+  );
+  const loading =
+    loadingState.subscriberId === subscriberId ? loadingState.active : fetchOnMount || isOpen;
 
   const fetchInitialNotifications = useCallback(async () => {
-    setLoading(true);
+    const requestId = ++latestFetchRef.current;
+    const requestSubscriberId = subscriberId;
+    const requestSubscriberEpoch = subscriberEpochRef.current;
+    const requestRevision = stateRevisionRef.current;
+    setLoadingState({ subscriberId: requestSubscriberId, active: true });
     try {
-      const data = await getNotifications();
-      setNotifications(data as unknown as Notification[]);
-      const unread = data.filter(n => !n.isRead).length;
-      setUnreadCount(unread);
+      const data = (await getNotifications()) as unknown as Notification[];
+      if (
+        activeSubscriberRef.current === requestSubscriberId &&
+        subscriberEpochRef.current === requestSubscriberEpoch &&
+        latestFetchRef.current === requestId &&
+        stateRevisionRef.current === requestRevision
+      ) {
+        setSnapshot({ subscriberId: requestSubscriberId, items: data });
+      }
     } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+      if (activeSubscriberRef.current === requestSubscriberId) {
+        console.error('Failed to fetch notifications:', error);
+      }
     } finally {
-      setLoading(false);
+      if (
+        activeSubscriberRef.current === requestSubscriberId &&
+        subscriberEpochRef.current === requestSubscriberEpoch &&
+        latestFetchRef.current === requestId
+      ) {
+        setLoadingState({ subscriberId: requestSubscriberId, active: false });
+      }
     }
-  }, []);
+  }, [subscriberId]);
 
   useEffect(() => {
-    if (!fetchOnMount) {
-      setLoading(false);
-      return;
-    }
+    subscriberEpochRef.current += 1;
+    pendingIdsRef.current = new Set();
+    pendingAllRef.current = false;
+    setPendingIds(new Set());
+    setPendingAll(false);
+    setErrorMessage(null);
+    setStatusMessage('');
+    stateRevisionRef.current += 1;
 
-    fetchInitialNotifications();
-  }, [subscriberId, fetchInitialNotifications, fetchOnMount]);
+    if (fetchOnMount || isOpenRef.current) {
+      void fetchInitialNotifications();
+    } else {
+      setLoadingState({ subscriberId, active: false });
+    }
+  }, [fetchInitialNotifications, fetchOnMount, subscriberId]);
 
   useEffect(() => {
-    if (!isOpen) return;
-    void fetchInitialNotifications();
-  }, [isOpen, fetchInitialNotifications]);
+    if (isOpen && !previousOpenRef.current) void fetchInitialNotifications();
+    previousOpenRef.current = isOpen;
+  }, [fetchInitialNotifications, isOpen]);
 
-  const handleMarkAsRead = async (id: string, e?: React.MouseEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
+  const handleMarkAsRead = async (id: string, event?: React.MouseEvent) => {
+    event?.preventDefault();
+    event?.stopPropagation();
+    if (pendingAllRef.current || pendingIdsRef.current.has(id)) return;
+
+    const mutationSubscriberId = subscriberId;
+    const mutationSubscriberEpoch = subscriberEpochRef.current;
+    const nextPendingIds = new Set(pendingIdsRef.current).add(id);
+    pendingIdsRef.current = nextPendingIds;
+    setPendingIds(nextPendingIds);
+    setErrorMessage(null);
+    setStatusMessage(tCommon('processing'));
+    stateRevisionRef.current += 1;
+
     try {
-      await markAsRead(id);
-      setNotifications(prev => prev.map(n => (n.id === id ? { ...n, isRead: true } : n)));
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      const result = await markAsRead(id);
+      if (
+        activeSubscriberRef.current !== mutationSubscriberId ||
+        subscriberEpochRef.current !== mutationSubscriberEpoch
+      ) {
+        return;
+      }
+      if (!result.success) {
+        setStatusMessage('');
+        setErrorMessage(tCommon('errors.generic'));
+        return;
+      }
+      stateRevisionRef.current += 1;
+      setSnapshot(previous =>
+        previous.subscriberId === mutationSubscriberId
+          ? {
+              ...previous,
+              items: previous.items.map(notification =>
+                notification.id === id ? { ...notification, isRead: true } : notification
+              ),
+            }
+          : previous
+      );
+      setStatusMessage(t('markedRead'));
     } catch (error) {
-      console.error('Failed to mark as read:', error);
+      if (
+        activeSubscriberRef.current === mutationSubscriberId &&
+        subscriberEpochRef.current === mutationSubscriberEpoch
+      ) {
+        console.error('Failed to mark as read:', error);
+        setStatusMessage('');
+        setErrorMessage(tCommon('errors.generic'));
+      }
+    } finally {
+      if (
+        activeSubscriberRef.current === mutationSubscriberId &&
+        subscriberEpochRef.current === mutationSubscriberEpoch
+      ) {
+        const remainingIds = new Set(pendingIdsRef.current);
+        remainingIds.delete(id);
+        pendingIdsRef.current = remainingIds;
+        setPendingIds(remainingIds);
+      }
     }
   };
 
-  const handleMarkAllAsRead = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleMarkAllAsRead = async (event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (pendingAllRef.current || pendingIdsRef.current.size > 0) return;
+
+    const mutationSubscriberId = subscriberId;
+    const mutationSubscriberEpoch = subscriberEpochRef.current;
+    pendingAllRef.current = true;
+    setPendingAll(true);
+    setErrorMessage(null);
+    setStatusMessage(tCommon('processing'));
+    stateRevisionRef.current += 1;
+
     try {
-      await markAllAsRead();
-      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-      setUnreadCount(0);
+      const result = await markAllAsRead();
+      if (
+        activeSubscriberRef.current !== mutationSubscriberId ||
+        subscriberEpochRef.current !== mutationSubscriberEpoch
+      ) {
+        return;
+      }
+      if (!result.success) {
+        setStatusMessage('');
+        setErrorMessage(tCommon('errors.generic'));
+        return;
+      }
+      stateRevisionRef.current += 1;
+      setSnapshot(previous =>
+        previous.subscriberId === mutationSubscriberId
+          ? {
+              ...previous,
+              items: previous.items.map(notification => ({ ...notification, isRead: true })),
+            }
+          : previous
+      );
+      setStatusMessage(t('markedAllRead'));
     } catch (error) {
-      console.error('Failed to mark all as read:', error);
+      if (
+        activeSubscriberRef.current === mutationSubscriberId &&
+        subscriberEpochRef.current === mutationSubscriberEpoch
+      ) {
+        console.error('Failed to mark all as read:', error);
+        setStatusMessage('');
+        setErrorMessage(tCommon('errors.generic'));
+      }
+    } finally {
+      if (
+        activeSubscriberRef.current === mutationSubscriberId &&
+        subscriberEpochRef.current === mutationSubscriberEpoch
+      ) {
+        pendingAllRef.current = false;
+        setPendingAll(false);
+      }
     }
-  };
-
-  const getIcon = (type: string) => {
-    switch (type) {
-      case 'claim_submitted':
-        return <ClipboardCheck className="h-4 w-4 text-primary" />;
-      case 'claim_assigned':
-        return <UserPlus className="h-4 w-4 text-blue-500" />;
-      case 'new_message':
-        return <MessageSquare className="h-4 w-4 text-green-500" />;
-      case 'claim_status_changed':
-        return <CheckCheck className="h-4 w-4 text-purple-500" />;
-      case 'sla_warning':
-        return <AlertCircle className="h-4 w-4 text-amber-500" />;
-      default:
-        return <Bell className="h-4 w-4 text-muted-foreground" />;
-    }
-  };
-
-  const renderContent = () => {
-    if (loading) {
-      return (
-        <div className="flex h-32 items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
-      );
-    }
-    if (notifications.length === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center h-48 text-center p-6 space-y-2 opacity-60">
-          <Bell className="h-10 w-10 text-muted-foreground/30" />
-          <p className="text-xs font-medium">All caught up!</p>
-          <p className="text-[10px] text-muted-foreground">No new notifications.</p>
-        </div>
-      );
-    }
-    return (
-      <div className="grid">
-        {notifications.map(notification => (
-          <NotificationItem
-            key={notification.id}
-            notification={notification}
-            onMarkAsRead={handleMarkAsRead}
-            onClose={() => setIsOpen(false)}
-            getIcon={getIcon}
-          />
-        ))}
-      </div>
-    );
   };
 
   return (
@@ -157,6 +242,7 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
           size="icon"
           className="relative h-9 w-9 rounded-full transition-colors hover:bg-accent/50"
           data-testid="notification-center-trigger"
+          aria-label={t('title')}
         >
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
@@ -174,92 +260,41 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
         align="end"
       >
         <div className="flex items-center justify-between p-4 border-b">
-          <h4 className="text-sm font-semibold">Notifications</h4>
+          <h4 className="text-sm font-semibold">{t('title')}</h4>
           {unreadCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 py-0 px-2 text-xs text-muted-foreground hover:text-primary transition-colors"
-              onClick={handleMarkAllAsRead}
+            <DropdownMenuItem
+              asChild
+              disabled={pendingAll || pendingIds.size > 0}
+              onSelect={event => event.preventDefault()}
             >
-              Mark all read
-            </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 py-0 px-2 text-xs text-muted-foreground hover:text-primary transition-colors"
+                onClick={handleMarkAllAsRead}
+                disabled={pendingAll || pendingIds.size > 0}
+                aria-busy={pendingAll}
+                data-testid="notification-mark-all"
+              >
+                {t('markAllRead')}
+              </Button>
+            </DropdownMenuItem>
           )}
         </div>
 
-        <div className="overflow-y-auto overflow-x-hidden flex-1">{renderContent()}</div>
+        <NotificationFeedback statusMessage={statusMessage} errorMessage={errorMessage} />
+
+        <div className="overflow-y-auto overflow-x-hidden flex-1">
+          <NotificationList
+            loading={loading}
+            notifications={notifications}
+            pendingAll={pendingAll}
+            pendingIds={pendingIds}
+            onMarkAsRead={handleMarkAsRead}
+            onClose={() => setIsOpen(false)}
+          />
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
-  );
-}
-
-function NotificationItem({
-  notification,
-  onMarkAsRead,
-  onClose,
-  getIcon,
-}: {
-  notification: Notification;
-  onMarkAsRead: (id: string, e?: React.MouseEvent) => Promise<void>;
-  onClose: () => void;
-  getIcon: (type: string) => React.ReactNode;
-}) {
-  const isRead = notification.isRead;
-
-  return (
-    <div
-      data-testid={`notification-item-${notification.type}`}
-      className={cn(
-        'relative flex gap-3 p-4 transition-all duration-200 hover:bg-accent/30 list-none border-b last:border-0',
-        !isRead && 'bg-primary/5 border-l-2 border-primary'
-      )}
-    >
-      <div className="shrink-0 mt-1">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-background border shadow-sm">
-          {getIcon(notification.type)}
-        </div>
-      </div>
-      <div className="flex flex-col flex-1 gap-1">
-        <div className="flex items-start justify-between gap-2">
-          <p
-            className={cn(
-              'text-xs font-semibold leading-tight',
-              !isRead ? 'text-foreground' : 'text-muted-foreground'
-            )}
-          >
-            {notification.title}
-          </p>
-          {!isRead && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-5 w-5 rounded-full hover:bg-primary/20 hover:text-primary"
-              onClick={e => onMarkAsRead(notification.id, e)}
-            >
-              <Check className="h-3 w-3" />
-            </Button>
-          )}
-        </div>
-        <p className="text-[11px] text-muted-foreground line-clamp-2">{notification.content}</p>
-        <div className="flex items-center justify-between mt-1">
-          <span className="text-[10px] text-muted-foreground/60 font-medium">
-            {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
-          </span>
-          {notification.actionUrl && (
-            <Link
-              href={notification.actionUrl}
-              onClick={() => {
-                if (!isRead) void onMarkAsRead(notification.id);
-                window.setTimeout(onClose, 0);
-              }}
-              className="inline-flex items-center gap-1 text-[10px] font-bold text-primary hover:underline"
-              data-testid="notification-action"
-            >
-              View <ExternalLink className="h-2 w-2" />
-            </Link>
-          )}
-        </div>
-      </div>
-    </div>
   );
 }

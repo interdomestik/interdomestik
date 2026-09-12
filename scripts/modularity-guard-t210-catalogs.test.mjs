@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { structuredArtifactOwner } from './modularity-guard-policy.mjs';
+import './modularity-guard-t410-catalogs.test.mjs';
 
 test('T210 owns only the canonical member timeline locale catalogs', () => {
   for (const locale of ['en', 'mk', 'sq', 'sr']) {

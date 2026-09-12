@@ -87,6 +87,12 @@ const T210_CATALOGS = new Set([
   'apps/web/src/messages/sq/claims-tracking.json',
   'apps/web/src/messages/sr/claims-tracking.json',
 ]);
+const T410_CATALOGS = new Set([
+  'apps/web/src/messages/en/notifications.json',
+  'apps/web/src/messages/mk/notifications.json',
+  'apps/web/src/messages/sq/notifications.json',
+  'apps/web/src/messages/sr/notifications.json',
+]);
 const GENERATED_EXACT_FILES = new Set([
   'bun.lockb',
   'package-lock.json',
@@ -128,6 +134,9 @@ export function structuredArtifactOwner(filePath) {
   }
   if (T210_CATALOGS.has(relPath)) {
     return 't210-member-timeline-i18n-contract';
+  }
+  if (T410_CATALOGS.has(relPath)) {
+    return 't410-notification-acknowledgement-i18n-contract';
   }
   return STRUCTURED_OWNERS.find(([pattern]) => pattern.test(relPath))?.[1] ?? null;
 }

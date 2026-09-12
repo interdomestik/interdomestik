@@ -1,8 +1,11 @@
 {
   "notifications": {
-    "title": "Njoftimet",
-    "empty": "Nuk ka njoftime ende",
-    "markAllRead": "Shëno të gjitha si të lexuara",
+    "title": "Известувања",
+    "empty": "Сè уште нема известувања",
+    "markRead": "Означи како прочитано: {title}",
+    "markAllRead": "Означи ги сите како прочитани",
+    "markedRead": "Известувањето е означено како прочитано.",
+    "markedAllRead": "Сите известувања се означени како прочитани.",
     "viewAll": "Shiko të gjitha njoftimet",
     "settings": "Cilësimet e Njoftimeve",
     "preferences": {
