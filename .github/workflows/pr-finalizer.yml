@@ -12,8 +12,8 @@ on:
     types: [created, edited, deleted]
 
 concurrency:
-  group: pr-finalizer-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
-  cancel-in-progress: true
+  group: pr-finalizer-${{ github.event.pull_request.number }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' }}
 
 jobs:
   pr-finalizer:

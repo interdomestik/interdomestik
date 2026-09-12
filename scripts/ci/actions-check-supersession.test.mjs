@@ -180,13 +180,17 @@ test('delivery gate cancels stale feedback and finalizer refreshes on the same e
   );
   assert.equal(
     finalizer.match(/ {2}group: (.*)\n/u)[1],
-    'pr-finalizer-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}'
+    'pr-finalizer-${{ github.event.pull_request.number }}'
   );
   assert.match(
     finalizer,
     /run-name: 'PR finalizer \[supersession:v1:\$\{\{ github\.event_name \}\}:\$\{\{ github\.event\.action \}\}:\$\{\{ github\.event\.pull_request\.head\.sha \}\}\]'/u
   );
-  assert.equal(finalizer.match(/ {2}cancel-in-progress: (.*)\n/u)[1], 'true');
+  assert.equal(
+    finalizer.match(/ {2}cancel-in-progress: (.*)\n/u)[1],
+    "${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' }}",
+    'a new head must cancel obsolete work, while stale feedback must not cancel the current head'
+  );
 
   for (const source of [gate, finalizer]) {
     for (const forbidden of [

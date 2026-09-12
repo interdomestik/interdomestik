@@ -36,11 +36,11 @@ test('PR finalizer refreshes on the same review and review-comment activity as t
     workflow['run-name'],
     'PR finalizer [supersession:v1:${{ github.event_name }}:${{ github.event.action }}:${{ github.event.pull_request.head.sha }}]'
   );
+  assert.equal(workflow.concurrency.group, 'pr-finalizer-${{ github.event.pull_request.number }}');
   assert.equal(
-    workflow.concurrency.group,
-    'pr-finalizer-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}'
+    workflow.concurrency['cancel-in-progress'],
+    "${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' }}"
   );
-  assert.equal(workflow.concurrency['cancel-in-progress'], true);
   assert.equal(
     workflow.jobs['pr-finalizer'].if,
     "github.event_name == 'pull_request' || (github.event.pull_request.state == 'open' && github.event.pull_request.draft == false && github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.repo.full_name == github.repository)"
