@@ -62,6 +62,7 @@ const PRODUCTION_EXTENSIONS = new Set([
   '.tsx',
 ]);
 const STRUCTURED_EXTENSIONS = new Set(['.json', '.jsonl', '.toml', '.yaml', '.yml']);
+/** @type {ReadonlyArray<readonly [RegExp, string]>} */
 const STRUCTURED_OWNERS = [
   [/^\.github\/actions\/setup\/action\.yml$/u, 'private-node-cache-contract'],
   [/^scripts\/ci\/reviewer-no-tools\.toml$/u, 'reviewer-tool-denial-contract'],
