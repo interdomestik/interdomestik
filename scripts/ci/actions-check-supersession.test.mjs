@@ -91,6 +91,36 @@ test('unrelated pull-request lifecycle runs cannot defer a failed producer', asy
   );
 });
 
+test('exact provider workflows may replace their prior pull-request runs', async () => {
+  for (const workflowPath of [
+    '.github/workflows/ci.yml',
+    '.github/workflows/e2e-pr.yml',
+    '.github/workflows/pilot-gate.yml',
+  ]) {
+    const source = { ...producer, display_title: 'PR lifecycle event', path: workflowPath };
+    const replacement = { ...active, display_title: 'PR lifecycle event', path: workflowPath };
+    assert.equal(
+      await hasPendingCheckReplacement(fixture([replacement], source), check, head),
+      true,
+      `${workflowPath} should retain its provider replacement contract`
+    );
+  }
+  const source = {
+    ...producer,
+    display_title: 'PR lifecycle event',
+    path: '.github/workflows/ci.yml',
+  };
+  const replacement = {
+    ...active,
+    display_title: 'PR lifecycle event',
+    path: '.github/workflows/untrusted.yml',
+  };
+  assert.equal(
+    await hasPendingCheckReplacement(fixture([replacement], source), check, head),
+    false
+  );
+});
+
 test('other workflows, heads, events and older attempts cannot defer a failure', async () => {
   for (const change of [
     { workflow_id: 21 },

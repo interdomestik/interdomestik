@@ -15,6 +15,11 @@ const replacementActions = new Map([
   ['pull_request_review_comment', new Set(['created', 'edited', 'deleted'])],
 ]);
 const replacementRunNames = new Set(['PR delivery gate', 'PR finalizer']);
+const providerWorkflowPaths = new Set([
+  '.github/workflows/ci.yml',
+  '.github/workflows/e2e-pr.yml',
+  '.github/workflows/pilot-gate.yml',
+]);
 
 function isMarkedReplacementProducer(run, head) {
   const actions = replacementActions.get(run.event);
@@ -23,6 +28,18 @@ function isMarkedReplacementProducer(run, head) {
     [...actions].some(
       action => run.display_title === `${name} [supersession:v1:${run.event}:${action}:${head}]`
     )
+  );
+}
+
+function isSupportedCrossRunReplacement(source, candidate, head) {
+  if (isMarkedReplacementProducer(source, head) && isMarkedReplacementProducer(candidate, head)) {
+    return true;
+  }
+  return (
+    source.event === 'pull_request' &&
+    candidate.event === 'pull_request' &&
+    providerWorkflowPaths.has(source.path) &&
+    candidate.path === source.path
   );
 }
 
@@ -61,8 +78,7 @@ export async function hasPendingCheckReplacement(client, check, head) {
         candidate.workflow_id === run.workflow_id &&
         candidate.head_sha === head &&
         replacementEvents.has(candidate.event) &&
-        (candidate.id === check.runId ||
-          (isMarkedReplacementProducer(run, head) && isMarkedReplacementProducer(candidate, head)))
+        (candidate.id === check.runId || isSupportedCrossRunReplacement(run, candidate, head))
     )
     .sort((left, right) => right.id - left.id || right.run_attempt - left.run_attempt)[0];
   return Boolean(
