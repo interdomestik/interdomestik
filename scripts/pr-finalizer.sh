@@ -58,6 +58,71 @@ fail() {
   exit 1
 }
 
+configure_gh_token() {
+  local gh_token="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
+  if [[ -n "${gh_token}" ]]; then
+    export GH_TOKEN="${gh_token}"
+  fi
+}
+
+resolve_repository() {
+  local repo="${GITHUB_REPOSITORY:-}"
+  if [[ -z "${repo}" ]]; then
+    repo="$(git remote get-url origin 2>/dev/null | sed -E 's#(git@github.com:|https://github.com/)##; s#\.git$##' || true)"
+  fi
+  if [[ -z "${repo}" ]]; then
+    fail "unable to resolve repository context"
+  fi
+  echo "${repo}"
+}
+
+require_expected_head_value() {
+  local current_head_sha="$1"
+  local expected_head_sha="${EXPECTED_HEAD_SHA:-}"
+  if [[ -z "${expected_head_sha}" ]]; then
+    return 0
+  fi
+  if [[ ! "${expected_head_sha}" =~ ^[a-f0-9]{40}$ ]]; then
+    fail "invalid EXPECTED_HEAD_SHA value"
+  fi
+  if [[ "${current_head_sha}" != "${expected_head_sha}" ]]; then
+    echo "[pr-finalizer] INFO: stale event head ${expected_head_sha}; current PR head is ${current_head_sha}."
+    exit 0
+  fi
+}
+
+require_expected_head_current() {
+  local repo="$1"
+  local pr_number="$2"
+  if [[ -z "${EXPECTED_HEAD_SHA:-}" ]]; then
+    return 0
+  fi
+  configure_gh_token
+  if ! command -v gh >/dev/null 2>&1; then
+    fail "GitHub CLI (gh) is required for expected-head validation"
+  fi
+  if ! command -v jq >/dev/null 2>&1; then
+    fail "jq is required for expected-head validation"
+  fi
+  local current_head_sha
+  current_head_sha="$(
+    gh api -H "${GH_ACCEPT_HEADER}" "repos/${repo}/pulls/${pr_number}" | jq -r '.head.sha // empty'
+  )"
+  if [[ -z "${current_head_sha}" || "${current_head_sha}" == "null" ]]; then
+    fail "unable to resolve current head SHA for PR #${pr_number}"
+  fi
+  require_expected_head_value "${current_head_sha}"
+}
+
+require_current_review_threads() {
+  local repo="${1:-}"
+  local pr_number="${2:-}"
+  require_review_threads_resolved
+  if [[ -n "${EXPECTED_HEAD_SHA:-}" ]]; then
+    require_expected_head_current "${repo}" "${pr_number}"
+  fi
+}
+
 # shellcheck source=scripts/pr-finalizer-lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/pr-finalizer-lib.sh"
 # shellcheck source=scripts/pr-finalizer-feedback-lib.sh
@@ -109,10 +174,7 @@ require_gh_checks() {
     fail "invalid PR_FINALIZER_MAX_CHECK_RETRIES value: ${max_check_retries}"
   fi
 
-  local gh_token="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
-  if [[ -n "${gh_token}" ]]; then
-    export GH_TOKEN="${gh_token}"
-  fi
+  configure_gh_token
 
   if ! command -v gh >/dev/null 2>&1; then
     fail "GitHub CLI (gh) is required for check validation"
@@ -127,13 +189,8 @@ require_gh_checks() {
     fail "unable to resolve pull request number"
   fi
 
-  local repo="${GITHUB_REPOSITORY:-}"
-  if [[ -z "${repo}" ]]; then
-    repo="$(git remote get-url origin 2>/dev/null | sed -E 's#(git@github.com:|https://github.com/)##; s#\.git$##' || true)"
-  fi
-  if [[ -z "${repo}" ]]; then
-    fail "unable to resolve repository context"
-  fi
+  local repo
+  repo="$(resolve_repository)"
 
   local pr_json
   pr_json="$(gh api -H "${GH_ACCEPT_HEADER}" "repos/${repo}/pulls/${pr_number}")"
@@ -146,6 +203,7 @@ require_gh_checks() {
   if [[ -z "${head_sha}" || "${head_sha}" == "null" ]]; then
     fail "unable to resolve head SHA for PR #${pr_number}"
   fi
+  require_expected_head_value "${head_sha}"
 
   local checks_json
   checks_json="$(fetch_check_runs "${repo}" "${head_sha}")"
@@ -174,6 +232,7 @@ require_gh_checks() {
 
         echo "[pr-finalizer] INFO: '${check_name}' check is not present yet. Retrying in ${check_retry_delay_seconds}s..."
         sleep "${check_retry_delay_seconds}"
+        require_expected_head_current "${repo}" "${pr_number}"
         checks_json="$(fetch_check_runs "${repo}" "${head_sha}")"
         matching_checks="$(resolve_matching_checks "${check_name}" "${app_id}" "${checks_json}")"
         continue
@@ -203,6 +262,7 @@ require_gh_checks() {
 
       echo "[pr-finalizer] INFO: '${check_name}' checks still running (${in_progress_count} in progress). Retrying in ${check_retry_delay_seconds}s..."
       sleep "${check_retry_delay_seconds}"
+      require_expected_head_current "${repo}" "${pr_number}"
       checks_json="$(fetch_check_runs "${repo}" "${head_sha}")"
       matching_checks="$(resolve_matching_checks "${check_name}" "${app_id}" "${checks_json}")"
     done
@@ -221,9 +281,17 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
 fi
 
 require_clean_tree
+if [[ -n "${EXPECTED_HEAD_SHA:-}" ]]; then
+  finalizer_pr_number="$(pr_context)"
+  finalizer_repository="$(resolve_repository)"
+  require_expected_head_current "${finalizer_repository}" "${finalizer_pr_number}"
+fi
 classify_pr
 run_local_verifications
 require_gh_checks
-require_review_threads_resolved
+if [[ -n "${EXPECTED_HEAD_SHA:-}" ]]; then
+  require_expected_head_current "${finalizer_repository}" "${finalizer_pr_number}"
+fi
+require_current_review_threads "${finalizer_repository:-}" "${finalizer_pr_number:-}"
 
 echo "[pr-finalizer] PASS: local checks, manifest leaf prerequisites, and review threads pass"

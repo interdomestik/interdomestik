@@ -1,17 +1,31 @@
 name: pr-finalizer
+run-name: 'PR finalizer [supersession:v1:${{ github.event_name }}:${{ github.event.action }}:${{ github.event.pull_request.head.sha }}]'
 
 on:
   pull_request:
     branches:
       - main
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, labeled]
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+  pull_request_review_comment:
+    types: [created, edited, deleted]
 
 concurrency:
-  group: pr-finalizer-${{ github.event.pull_request.number }}
+  # Trusted eligible feedback always executes the complete snapshot and may
+  # coalesce. Lifecycle, fork, draft, and other deferred events stay unique.
+  group: pr-finalizer-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}-${{ github.event_name != 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.state == 'open' && github.event.pull_request.draft == false && github.event.pull_request.base.ref == 'main' && 'full-feedback' || format('deferred-{0}', github.run_id) }}
   cancel-in-progress: true
 
 jobs:
   pr-finalizer:
+    name: "${{ (github.event_name == 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.state == 'open' && github.event.pull_request.draft == false && github.event.pull_request.base.ref == 'main')) && 'pr-finalizer' || 'pr-finalizer-feedback-deferred' }}"
+    if: >-
+      github.event_name == 'pull_request' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.state == 'open' &&
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.base.ref == 'main')
     permissions:
       contents: read
       actions: read
@@ -36,8 +50,13 @@ jobs:
         with:
           policy-json: ${{ toJSON(steps.gate_policy.outputs) }}
       - name: Report quick draft lane
-        if: steps.certification.outputs.run_broad != 'true'
-        run: echo "PR finalizer attestation deferred (${{ steps.certification.outputs.certification_reason }})."
+        env:
+          RUN_BROAD: ${{ steps.certification.outputs.run_broad }}
+          CERTIFICATION_REASON: ${{ steps.certification.outputs.certification_reason }}
+        run: |
+          if [[ "$RUN_BROAD" != "true" ]]; then
+            echo "PR finalizer attestation deferred ($CERTIFICATION_REASON)."
+          fi
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         if: steps.certification.outputs.run_broad == 'true'
         with:
@@ -46,6 +65,7 @@ jobs:
       - name: Run PR finalizer gate
         if: steps.certification.outputs.run_broad == 'true'
         env:
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           GH_TOKEN: ${{ github.token }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}

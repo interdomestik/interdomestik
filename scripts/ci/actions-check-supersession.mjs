@@ -4,6 +4,57 @@ import { GitHubCliClient } from './pr-delivery-cli.mjs';
 
 const positiveId = value => Number.isSafeInteger(value) && value > 0;
 const activeStatuses = new Set(['queued', 'in_progress', 'requested', 'waiting', 'pending']);
+const replacementEvents = new Set([
+  'pull_request',
+  'pull_request_review',
+  'pull_request_review_comment',
+]);
+const replacementActions = new Map([
+  [
+    'pull_request',
+    new Set([
+      'opened',
+      'synchronize',
+      'reopened',
+      'ready_for_review',
+      'converted_to_draft',
+      'labeled',
+      'review_requested',
+      'review_request_removed',
+      'closed',
+    ]),
+  ],
+  ['pull_request_review', new Set(['submitted', 'edited', 'dismissed'])],
+  ['pull_request_review_comment', new Set(['created', 'edited', 'deleted'])],
+]);
+const replacementRunNames = new Set(['PR delivery gate', 'PR finalizer']);
+const providerWorkflowPaths = new Set([
+  '.github/workflows/ci.yml',
+  '.github/workflows/e2e-pr.yml',
+  '.github/workflows/pilot-gate.yml',
+]);
+
+function isMarkedReplacementProducer(run, head) {
+  const actions = replacementActions.get(run.event);
+  if (!actions || typeof run.display_title !== 'string') return false;
+  return [...replacementRunNames].some(name =>
+    [...actions].some(
+      action => run.display_title === `${name} [supersession:v1:${run.event}:${action}:${head}]`
+    )
+  );
+}
+
+function isSupportedCrossRunReplacement(source, candidate, head) {
+  if (isMarkedReplacementProducer(source, head) && isMarkedReplacementProducer(candidate, head)) {
+    return true;
+  }
+  return (
+    source.event === 'pull_request' &&
+    candidate.event === 'pull_request' &&
+    providerWorkflowPaths.has(source.path) &&
+    candidate.path === source.path
+  );
+}
 
 export async function hasPendingCheckReplacement(client, check, head) {
   if (check.appId !== 15368) return false;
@@ -22,13 +73,13 @@ export async function hasPendingCheckReplacement(client, check, head) {
   if (
     run.id !== check.runId ||
     run.head_sha !== head ||
-    run.event !== 'pull_request' ||
+    !replacementEvents.has(run.event) ||
     !positiveId(run.workflow_id)
   ) {
     throw new Error('replacement producer identity mismatch');
   }
   const candidates = await client.pages(
-    `repos/${client.repository}/actions/workflows/${run.workflow_id}/runs?event=pull_request&head_sha=${head}`,
+    `repos/${client.repository}/actions/workflows/${run.workflow_id}/runs?head_sha=${head}`,
     'workflow_runs'
   );
   if (!candidates.complete) throw new Error('replacement workflow pagination incomplete');
@@ -39,7 +90,8 @@ export async function hasPendingCheckReplacement(client, check, head) {
         positiveId(candidate.run_attempt) &&
         candidate.workflow_id === run.workflow_id &&
         candidate.head_sha === head &&
-        candidate.event === run.event
+        replacementEvents.has(candidate.event) &&
+        (candidate.id === check.runId || isSupportedCrossRunReplacement(run, candidate, head))
     )
     .sort((left, right) => right.id - left.id || right.run_attempt - left.run_attempt)[0];
   return Boolean(

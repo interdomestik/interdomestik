@@ -10,6 +10,7 @@ function fixture({
   replacement = false,
 } = {}) {
   const feedbackCalls = [];
+  const replacementTitle = `PR delivery gate [supersession:v1:pull_request:synchronize:${H}]`;
   const pull = { number: 1694, state: 'open', head: { sha: H }, base: { sha: B } };
   const checks = checksFor().map(item => ({
     ...item,
@@ -35,6 +36,7 @@ function fixture({
           workflow_id: 20,
           head_sha: H,
           event: 'pull_request',
+          display_title: replacementTitle,
         };
       const sha = endpoint.split('/').at(-1);
       assert.ok([B, H, T].includes(sha), endpoint);
@@ -53,6 +55,7 @@ function fixture({
                   workflow_id: 20,
                   head_sha: H,
                   event: 'pull_request',
+                  display_title: replacementTitle,
                   run_attempt: 1,
                   status: 'in_progress',
                 },

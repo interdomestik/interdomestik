@@ -1,4 +1,5 @@
 name: PR Delivery Gate
+run-name: 'PR delivery gate [supersession:v1:${{ github.event_name }}:${{ github.event.action }}:${{ github.event.pull_request.head.sha }}]'
 
 on:
   pull_request:
@@ -21,13 +22,14 @@ on:
     types: [created, edited, deleted]
 
 concurrency:
-  # Synchronize runs replace only obsolete synchronize work. Other PR events
-  # are unique, while same-head review feedback may coalesce independently.
-  group: pr-delivery-gate-${{ github.event.pull_request.number }}-${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' && format('synchronize-{0}', github.event.pull_request.head.sha) || github.event_name == 'pull_request' && format('event-{0}', github.run_id) || format('feedback-{0}', github.event.pull_request.head.sha) }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' }}
+  # Only events admitted to the complete snapshot may replace it. Deferred
+  # events use a unique group and cannot preempt an authoritative required job.
+  group: pr-delivery-gate-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}-${{ github.event.pull_request.base.ref == 'main' && github.event.pull_request.state == 'open' && !github.event.pull_request.draft && (github.event.action != 'labeled' || github.event.label.name == 'full-gate') && (github.event.pull_request.head.repo.full_name == github.repository && 'same-repository' || 'fork') || format('deferred-{0}', github.run_id) }}
+  cancel-in-progress: true
 
 jobs:
   delivery-gate:
+    name: "${{ github.event.pull_request.base.ref == 'main' && github.event.pull_request.state == 'open' && !github.event.pull_request.draft && (github.event.action != 'labeled' || github.event.label.name == 'full-gate') && 'delivery-gate' || 'delivery-gate-deferred' }}"
     if: github.event.pull_request.base.ref == 'main' && github.event.pull_request.state == 'open' && !github.event.pull_request.draft && (github.event.action != 'labeled' || github.event.label.name == 'full-gate')
     permissions:
       actions: read
