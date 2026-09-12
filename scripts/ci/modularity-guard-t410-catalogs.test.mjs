@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { structuredArtifactOwner } from './modularity-guard-policy.mjs';
+import { structuredArtifactOwner } from '../modularity-guard-policy.mjs';
 
 test('T410 owns only the canonical notification locale catalogs', () => {
   for (const locale of ['en', 'mk', 'sq', 'sr']) {
