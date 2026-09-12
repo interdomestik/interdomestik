@@ -30,7 +30,7 @@ export function checksFor(currentContract = contract) {
 export function snapshot(overrides = {}) {
   return {
     expected: { base: B, head: H, testedMerge: T },
-    pull: { state: 'open', baseSha: B, headSha: H },
+    pull: { state: 'open', draft: false, baseSha: B, headSha: H },
     commits: {
       [B]: { tree: '5'.repeat(40), parents: [] },
       [H]: { tree: TREE, parents: [B] },

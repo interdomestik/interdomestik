@@ -11,7 +11,7 @@ function fixture({
 } = {}) {
   const feedbackCalls = [];
   const replacementTitle = `PR delivery gate [supersession:v1:pull_request:synchronize:${H}]`;
-  const pull = { number: 1694, state: 'open', head: { sha: H }, base: { sha: B } };
+  const pull = { number: 1694, state: 'open', draft: false, head: { sha: H }, base: { sha: B } };
   const checks = checksFor().map(item => ({
     ...item,
     name: item.context,
@@ -29,7 +29,7 @@ function fixture({
       return { runId: item.runId, runAttempt: 1 };
     },
     async request(endpoint) {
-      if (endpoint.endsWith('/pulls/1694')) return pull;
+      if (endpoint.endsWith('/pulls/1694')) return structuredClone(pull);
       if (endpoint.includes('/actions/runs/'))
         return {
           id: Number(endpoint.split('/').at(-1)),
@@ -127,4 +127,83 @@ test('governance diagnostics continue collecting feedback while checks are pendi
   const snapshot = await collectSnapshot(client, contract, expected, 1694);
   assert.equal(feedbackCalls.length, 4);
   assert.equal(snapshot.checks[0].status, 'in_progress');
+});
+
+for (const [label, mutate] of [
+  [
+    'closed',
+    pull => {
+      pull.state = 'closed';
+    },
+  ],
+  [
+    'draft',
+    pull => {
+      pull.draft = true;
+    },
+  ],
+  [
+    'new head',
+    pull => {
+      pull.head = { sha: '9'.repeat(40) };
+    },
+  ],
+  [
+    'new base',
+    pull => {
+      pull.base = { sha: '9'.repeat(40) };
+    },
+  ],
+]) {
+  test(`delivery rejects ${label} PR observed after feedback collection`, async () => {
+    const { client, pull } = fixture();
+    const pages = client.pages.bind(client);
+    client.pages = async endpoint => {
+      const result = await pages(endpoint);
+      if (endpoint.endsWith('/reviews')) mutate(pull);
+      return result;
+    };
+    await assert.rejects(collect(client), /pull request identity changed/u);
+  });
+}
+
+test('delivery rereads pending reviewers after feedback collection', async () => {
+  const { client, pull } = fixture();
+  const pages = client.pages.bind(client);
+  client.pages = async endpoint => {
+    const result = await pages(endpoint);
+    if (endpoint.endsWith('/reviews')) {
+      pull.requested_reviewers = [{ login: 'reviewer' }];
+    }
+    return result;
+  };
+  const snapshot = await collect(client);
+  assert.throws(
+    () => evaluateDeliverySnapshot(contract, snapshot),
+    /WAIT: reviewers remain pending/u
+  );
+});
+
+test('feedback retains immutable reviewer identity from REST evidence', async () => {
+  const { client } = fixture();
+  const pages = client.pages.bind(client);
+  client.pages = async endpoint =>
+    endpoint.endsWith('/reviews')
+      ? {
+          values: [
+            {
+              id: 5187830187,
+              user: { id: 175728472, type: 'Bot', login: 'copilot-pull-request-reviewer[bot]' },
+              commit_id: H,
+              state: 'COMMENTED',
+              body: '',
+              submitted_at: '2026-09-12T20:06:11Z',
+            },
+          ],
+          complete: true,
+        }
+      : pages(endpoint);
+  const { feedback } = await collect(client);
+  assert.equal(feedback.reviews[0].authorId, 175728472);
+  assert.equal(feedback.reviews[0].authorType, 'Bot');
 });

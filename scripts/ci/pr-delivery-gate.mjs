@@ -14,7 +14,7 @@ import {
   evaluateValidationSurface,
 } from './validation-surface-policy-lib.mjs';
 import { readTrustedRunnerFile } from './trusted-runner-file.mjs';
-import { collectFeedback } from './pr-delivery-feedback.mjs';
+import { collectFeedback, pendingReviewers } from './pr-delivery-feedback.mjs';
 import { hasPendingCheckReplacement } from './actions-check-supersession.mjs';
 import {
   evaluateDeliveryChecks,
@@ -135,7 +135,7 @@ export async function collectSnapshot(
   );
   const snapshot = {
     expected: bound,
-    pull: { state: pull.state, baseSha: pull.base.sha, headSha: pull.head.sha },
+    pull: { state: pull.state, draft: pull.draft, baseSha: pull.base.sha, headSha: pull.head.sha },
     commits: { [bound.base]: base, [bound.head]: head, [bound.testedMerge]: testedMerge },
     validationSurface: evaluateValidationSurface({
       eventName: 'pull_request',
@@ -162,6 +162,17 @@ export async function collectSnapshot(
   snapshot.feedback = await collectFeedback(client, pull);
   snapshot.feedback.pagination.checks = checks.complete;
   snapshot.feedback.pagination.annotations = checks.annotationsComplete;
+  const finalPull = await client.request(`repos/${client.repository}/pulls/${number}`);
+  snapshot.pull = {
+    state: finalPull.state,
+    draft: finalPull.draft,
+    baseSha: finalPull.base.sha,
+    headSha: finalPull.head.sha,
+  };
+  verifyCommitGraph(snapshot);
+  snapshot.feedback.pendingReviewers = [
+    ...new Set([...snapshot.feedback.pendingReviewers, ...pendingReviewers(finalPull)]),
+  ];
   return snapshot;
 }
 
