@@ -232,7 +232,7 @@ The owner intends a net-new member UI/UX using current interaction patterns with
 portal shell, not separate role-specific dashboard designs. That redesign is separate scope;
 canonical role routes and readiness markers remain technical access-control and test contracts.
 
-Source-bound local proof passed at `dffa6c358e5314722b098f43c409afc732184670`: 26 focused
+Source-bound local proof passed at `c1973ad738bf9de70b2e699874eeab186c1d6dbd`: 27 focused
 notification tests, both focused IDA-host browser variants, the full `pr:verify` gate, and
 `security:guard`. The full gate included 1,048 CI contracts, 154 release-gate tests, 41 RLS tests,
 81.25% repository line coverage, 252 browser-gate passes with 12 intentional skips, and 13 smoke
