@@ -16,18 +16,19 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-No product slice is active. The canonical one-row queue/proof schema retains T210 as the latest
-completed closure record; owner selection is required before another product increment starts.
+The owner selected one bounded notification acknowledgement correctness increment after T210.
+T210 remains completed evidence and no automatic successor is inferred.
 
-| ID                     | Status      | Owner     | Work                                                                     | Exit Criteria                                                |
-| ---------------------- | ----------- | --------- | ------------------------------------------------------------------------ | ------------------------------------------------------------ |
-| `T210-MEMBER-TIMELINE` | `completed` | `product` | Mounted the safe event registry over the existing T-206 member timeline. | Required checks, focused review, and protected merge passed. |
+| ID                                  | Status        | Owner     | Work                                                                   | Exit Criteria                                                       |
+| ----------------------------------- | ------------- | --------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `T410-NOTIFICATION-ACK-CORRECTNESS` | `in_progress` | `product` | Make member notification read state reflect confirmed server outcomes. | Focused/browser/required checks, reviews, and protected merge pass. |
 
 ## Proof Ledger
 
-| ID                     | Source Refs                                    | Execution  | Run ID   | Run Root | Sonar | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                                                                                                                                                                                                      |
-| ---------------------- | ---------------------------------------------- | ---------- | -------- | -------- | ----- | ------ | ---------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `T210-MEMBER-TIMELINE` | docs/plans/current-program.md; owner direction | `scripted` | 061ea591 | local/CI | pass  | pass   | `not_applicable` | `not_applicable` | https://github.com/interdomestik/interdomestik/pull/1763; https://github.com/interdomestik/interdomestik/actions/runs/34703433627; https://api.github.com/repos/interdomestik/interdomestik/check-runs/103580834614; https://github.com/interdomestik/interdomestik/actions/runs/34703433721; local proof 061ea5910ea63aab67009bccfb2b219505733fa9 |
+| ID                                  | Source Refs                                    | Execution  | Run ID   | Run Root | Sonar   | Docker  | Sentry           | Learning         | Evidence Refs                                                                                                                                                                                                                                                                                                                                      |
+| ----------------------------------- | ---------------------------------------------- | ---------- | -------- | -------- | ------- | ------- | ---------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `T410-NOTIFICATION-ACK-CORRECTNESS` | docs/plans/current-program.md; owner direction | `scripted` | pending  | local/CI | pending | pending | `not_applicable` | pending          | active branch; shared research and contract in current program                                                                                                                                                                                                                                                                                     |
+| `T210-MEMBER-TIMELINE`              | docs/plans/current-program.md; owner direction | `scripted` | 061ea591 | local/CI | pass    | pass    | `not_applicable` | `not_applicable` | https://github.com/interdomestik/interdomestik/pull/1763; https://github.com/interdomestik/interdomestik/actions/runs/34703433627; https://api.github.com/repos/interdomestik/interdomestik/check-runs/103580834614; https://github.com/interdomestik/interdomestik/actions/runs/34703433721; local proof 061ea5910ea63aab67009bccfb2b219505733fa9 |
 
 Historical staff rehearsal: retained only as a timing baseline; no migration credit.
 
@@ -101,17 +102,19 @@ Migration is completed at 3/3. This is not production-deployment evidence.
 
 T117C was delivered by promotion #1738 and product #1736. Its legacy projection remains inactive.
 Harness adoption completed through #1761 and #1762. T210 completed through product #1763. The
-current program names no successor, so the active product queue is empty pending owner selection.
+owner selected the bounded notification acknowledgement correctness increment as the only active
+ordinary product slice; it is not full T-410 completion and does not select T-411.
 
-| Completed historical priority      | Status      | Constraint                                                            |
-| ---------------------------------- | ----------- | --------------------------------------------------------------------- |
-| Locale-aware currency parsing      | `completed` | Product #1754; migration trial 1/3 closed.                            |
-| Bounded failed-run retry           | `completed` | Product #1757; migration trial 2/3 closed.                            |
-| Unsupported claim AI document type | `completed` | Product #1758; migration trial 3/3 closed.                            |
-| Member timeline (T210)             | `completed` | Product #1763; main CI and Sonar passed at the exact protected merge. |
+| Completed historical priority            | Status        | Constraint                                                                       |
+| ---------------------------------------- | ------------- | -------------------------------------------------------------------------------- |
+| Locale-aware currency parsing            | `completed`   | Product #1754; migration trial 1/3 closed.                                       |
+| Bounded failed-run retry                 | `completed`   | Product #1757; migration trial 2/3 closed.                                       |
+| Unsupported claim AI document type       | `completed`   | Product #1758; migration trial 3/3 closed.                                       |
+| Member timeline (T210)                   | `completed`   | Product #1763; main CI and Sonar passed at the exact protected merge.            |
+| Notification acknowledgement correctness | `in_progress` | Owner-selected prerequisite increment toward T-410; no broader completion claim. |
 
-No successor row is recorded. A recommendation does not become program priority until the owner
-selects it and the current program records that decision.
+No further successor row is recorded. A recommendation does not become program priority until the
+owner selects it and the current program records that decision.
 
 ## Lean Authority
 
