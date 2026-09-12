@@ -36,7 +36,8 @@ its completed history is retained in the current program, outside the single act
 
 T210 is medium complexity: bounded UI integration and privacy/fallback regression coverage over an
 unchanged authorized query. Implementation owner: Sol/high. Sonnet 5 reviewed snapshot `fa959214`
-and found only prepared-versus-live wording ambiguity; clarify it without expanding visibility.
+and found only prepared-versus-live wording ambiguity, which was clarified without expanding
+visibility.
 Gemini 3.1 Pro proposed adversarial cases; three useful cases were integrated, duplicate cases and
 an incomplete mapper fixture were rejected. The resulting 24 focused tests pass. Both repo-owned
 route receipts are retained in the task workspace. Independent Astra review and local `pr:verify`
@@ -46,9 +47,9 @@ The subsequent tracker-only enum correction does not change product code; that l
 bound to its original source. Final product head `87c291f21d74c9a1dfd8d92683124c29af89f4f7`, tree
 `a24e6b186f829994a693eb89fb95981e5db024e9`, and squash merge
 `00794c98cc6b4d395493370552ab7b9eae525db7` matched. Final-head focused review found no unresolved
-issue. Protected-main CI `34703433627` passed all six jobs, SonarCloud Code Analysis check
-`103580834614` passed, and Sonar Main Gate `34703433721` attempt 2 passed at the exact merge. No
-deployment or claimant usability validation is claimed.
+issue. Protected-main CI `34703433627` passed, SonarCloud Code Analysis check `103580834614`
+passed, and Sonar Main Gate `34703433721` attempt 2 passed at the exact merge. No deployment or
+claimant usability validation is claimed.
 
 Terminal: promotion `#1691`; product head
 `503d4b179251f9d3d06e07349ec80f85805565ae`, tree
@@ -102,7 +103,7 @@ T117C was delivered by promotion #1738 and product #1736. Its legacy projection 
 Harness adoption completed through #1761 and #1762. T210 completed through product #1763. The
 current program names no successor, so the active product queue is empty pending owner selection.
 
-| Future successor branch            | Status      | Constraint                                                            |
+| Completed historical priority      | Status      | Constraint                                                            |
 | ---------------------------------- | ----------- | --------------------------------------------------------------------- |
 | Locale-aware currency parsing      | `completed` | Product #1754; migration trial 1/3 closed.                            |
 | Bounded failed-run retry           | `completed` | Product #1757; migration trial 2/3 closed.                            |
