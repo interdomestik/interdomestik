@@ -16,15 +16,18 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                     | Status        | Owner     | Work                                                                   | Exit Criteria                                        |
-| ---------------------- | ------------- | --------- | ---------------------------------------------------------------------- | ---------------------------------------------------- |
-| `T210-MEMBER-TIMELINE` | `in_progress` | `product` | Mount the safe event registry over the existing T-206 member timeline. | Focused/required checks and protected product merge. |
+No product slice is active. The canonical one-row queue/proof schema retains T210 as the latest
+completed closure record; owner selection is required before another product increment starts.
+
+| ID                     | Status      | Owner     | Work                                                                     | Exit Criteria                                                |
+| ---------------------- | ----------- | --------- | ------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| `T210-MEMBER-TIMELINE` | `completed` | `product` | Mounted the safe event registry over the existing T-206 member timeline. | Required checks, focused review, and protected merge passed. |
 
 ## Proof Ledger
 
-| ID                     | Source Refs                                    | Execution  | Run ID   | Run Root | Sonar   | Docker | Sentry           | Learning       | Evidence Refs                                   |
-| ---------------------- | ---------------------------------------------- | ---------- | -------- | -------- | ------- | ------ | ---------------- | -------------- | ----------------------------------------------- |
-| `T210-MEMBER-TIMELINE` | docs/plans/current-program.md; owner direction | `scripted` | 061ea591 | local/CI | pending | pass   | `not_applicable` | not_applicable | PR #1763; source-bound local verification below |
+| ID                     | Source Refs                                    | Execution  | Run ID   | Run Root | Sonar | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                                                                                                                                                                                                      |
+| ---------------------- | ---------------------------------------------- | ---------- | -------- | -------- | ----- | ------ | ---------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `T210-MEMBER-TIMELINE` | docs/plans/current-program.md; owner direction | `scripted` | 061ea591 | local/CI | pass  | pass   | `not_applicable` | `not_applicable` | https://github.com/interdomestik/interdomestik/pull/1763; https://github.com/interdomestik/interdomestik/actions/runs/34703433627; https://api.github.com/repos/interdomestik/interdomestik/check-runs/103580834614; https://github.com/interdomestik/interdomestik/actions/runs/34703433721; local proof 061ea5910ea63aab67009bccfb2b219505733fa9 |
 
 Historical staff rehearsal: retained only as a timing baseline; no migration credit.
 
@@ -33,15 +36,20 @@ its completed history is retained in the current program, outside the single act
 
 T210 is medium complexity: bounded UI integration and privacy/fallback regression coverage over an
 unchanged authorized query. Implementation owner: Sol/high. Sonnet 5 reviewed snapshot `fa959214`
-and found only prepared-versus-live wording ambiguity; clarify it without expanding visibility.
+and found only prepared-versus-live wording ambiguity, which was clarified without expanding
+visibility.
 Gemini 3.1 Pro proposed adversarial cases; three useful cases were integrated, duplicate cases and
 an incomplete mapper fixture were rejected. The resulting 24 focused tests pass. Both repo-owned
 route receipts are retained in the task workspace. Independent Astra review and local `pr:verify`
 passed at `061ea5910ea63aab67009bccfb2b219505733fa9` (773,700 ms, exit 0; gate 252 passed/10 skipped,
 smoke 13 passed/11 skipped; repository line coverage 81.09%). Same-source `security:guard` passed.
 The subsequent tracker-only enum correction does not change product code; that local proof remains
-bound to its original source. Hosted checks and current-head review disposition remain pending in
-PR #1763. No merge, deployment, or claimant usability validation is claimed.
+bound to its original source. Final product head `87c291f21d74c9a1dfd8d92683124c29af89f4f7`, tree
+`a24e6b186f829994a693eb89fb95981e5db024e9`, and squash merge
+`00794c98cc6b4d395493370552ab7b9eae525db7` matched. Final-head focused review found no unresolved
+issue. Protected-main CI `34703433627` passed, SonarCloud Code Analysis check `103580834614`
+passed, and Sonar Main Gate `34703433721` attempt 2 passed at the exact merge. No deployment or
+claimant usability validation is claimed.
 
 Terminal: promotion `#1691`; product head
 `503d4b179251f9d3d06e07349ec80f85805565ae`, tree
@@ -92,15 +100,18 @@ Migration is completed at 3/3. This is not production-deployment evidence.
 ## Next Selection
 
 T117C was delivered by promotion #1738 and product #1736. Its legacy projection remains inactive.
-Harness adoption completed through #1761 and #1762. The owner selected T210 as the next bounded
-ordinary product increment; its protected merge is not yet assumed.
+Harness adoption completed through #1761 and #1762. T210 completed through product #1763. The
+current program names no successor, so the active product queue is empty pending owner selection.
 
-| Future successor branch            | Status        | Constraint                                                                 |
-| ---------------------------------- | ------------- | -------------------------------------------------------------------------- |
-| Locale-aware currency parsing      | `completed`   | Product #1754; migration trial 1/3 closed.                                 |
-| Bounded failed-run retry           | `completed`   | Product #1757; migration trial 2/3 closed.                                 |
-| Unsupported claim AI document type | `completed`   | Product #1758; migration trial 3/3 closed.                                 |
-| Member timeline (T210)             | `in_progress` | Selected after harness adoption; deliver through one bounded protected PR. |
+| Completed historical priority      | Status      | Constraint                                                            |
+| ---------------------------------- | ----------- | --------------------------------------------------------------------- |
+| Locale-aware currency parsing      | `completed` | Product #1754; migration trial 1/3 closed.                            |
+| Bounded failed-run retry           | `completed` | Product #1757; migration trial 2/3 closed.                            |
+| Unsupported claim AI document type | `completed` | Product #1758; migration trial 3/3 closed.                            |
+| Member timeline (T210)             | `completed` | Product #1763; main CI and Sonar passed at the exact protected merge. |
+
+No successor row is recorded. A recommendation does not become program priority until the owner
+selects it and the current program records that decision.
 
 ## Lean Authority
 

@@ -19,9 +19,14 @@ status_command: pnpm plan:status
 Migration trials 1–3 and ordinary protected-PR harness adoption are complete.
 PR #1761 delivered bounded delivery/finalizer repair as
 `a1eaeb654109312d303f1eeb97f709f39048bf26`; PR #1762 delivered its main-push test-harness repair
-as `12b22bada268dc0961d32792a553e54dea9a2bff`. The owner selected T210 as the next ordinary product
-increment. Its candidate remains bounded to the member timeline registry over the existing T-206
-query and existing member surface; protected merge is not assumed.
+as `12b22bada268dc0961d32792a553e54dea9a2bff`. T210 completed through product PR #1763: final head
+`87c291f21d74c9a1dfd8d92683124c29af89f4f7`, tree
+`a24e6b186f829994a693eb89fb95981e5db024e9`, and squash merge
+`00794c98cc6b4d395493370552ab7b9eae525db7` matched. Protected-main CI `34703433627`, SonarCloud
+Code Analysis check `103580834614`, and Sonar Main Gate `34703433721` attempt 2 passed at the exact
+merge.
+The ordered current-program backlog names no post-T210 successor, so no product slice is active
+pending owner selection.
 
 ## Delivered History
 
@@ -111,6 +116,10 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 |        2 | Bounded failed-run retry           | Owner direction | Completed migration trial 2/3. |
 |        3 | Unsupported claim AI document type | Trial 2         | Completed migration trial 3/3. |
 
+These rows are completed historical priorities. The committed post-T210 priority set is empty;
+owner selection and a corresponding current-program update are required before another product
+increment starts.
+
 ## Ordinary Product Delivery
 
 The owner adopts the ordinary protected-PR workflow demonstrated by trials 2 and 3
@@ -146,9 +155,9 @@ feature or authorizes work outside the owner's scope.
   boundary before package-command PR #1759 merges. The trusted-parent classifier
   and runtime-sensitive `package.json` classification remain unchanged.
 
-## T210 Member Timeline Candidate
+## T210 Member Timeline Delivery
 
-T210 mounts a typed event-presentation registry into the existing single-query T-206 member timeline
+T210 mounted a typed event-presentation registry into the existing single-query T-206 member timeline
 path. The query's tenant, claim, entity, public-history join, and `claim.status_changed` visibility
 constraints remain unchanged. Valid status events retain their authorized public note; unknown
 names/versions and malformed status payloads render a generic row; an erased/unavailable subject
@@ -170,6 +179,16 @@ notification noise, task-list substitution, invented ETAs, raw technical event n
 competitor trade dress. This is public-description evidence, not an authenticated-portal inspection
 or claimant usability test. Focused proof covers every registered key, fallback/redaction,
 non-mutation/non-leakage, locale resolution, and the shared member timeline rendering path.
+
+Product PR #1763 merged final head `87c291f21d74c9a1dfd8d92683124c29af89f4f7` and tree
+`a24e6b186f829994a693eb89fb95981e5db024e9` as
+`00794c98cc6b4d395493370552ab7b9eae525db7`. Source-bound local `pr:verify` and
+`security:guard` passed at `061ea5910ea63aab67009bccfb2b219505733fa9`. Changes after that proof
+were limited to tracker correction, required-test wiring, modularity policy, and capacity budget;
+they did not change product behavior. Final-head focused review found no unresolved issue.
+Protected-main CI `34703433627`, SonarCloud Code Analysis check `103580834614`, and Sonar Main Gate
+`34703433721` attempt 2 passed at the exact squash merge. This records implementation and merge
+only; no deployment or claimant usability validation is claimed.
 
 ## T117C Product Delivery
 
