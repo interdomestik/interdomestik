@@ -18,6 +18,8 @@ function finalizerSource() {
 function harnessEnv(extra = {}) {
   return {
     ...process.env,
+    GITHUB_ACTIONS: 'false',
+    GITHUB_EVENT_PATH: '',
     GH_TOKEN: 'fixture',
     REPLACEMENT_SCRIPT_DIR: path.join(rootDir, 'scripts'),
     ...extra,
