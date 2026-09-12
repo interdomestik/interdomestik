@@ -232,6 +232,15 @@ The owner intends a net-new member UI/UX using current interaction patterns with
 portal shell, not separate role-specific dashboard designs. That redesign is separate scope;
 canonical role routes and readiness markers remain technical access-control and test contracts.
 
+Source-bound local proof passed at `a30a5066e6f19b09420c4928c1717d74a2954ea8`: 17 focused
+notification tests, both focused IDA-host browser variants, the full `pr:verify` gate, and
+`security:guard`. The full gate included 1,048 CI contracts, 154 release-gate tests, 41 RLS tests,
+81.20% repository line coverage, 252 browser-gate passes with 12 intentional skips, and 13 smoke
+passes with 11 intentional skips. Repo-owned route receipts record PASS from Claude Sonnet 5,
+Gemini 3.1 Pro, and Gemini 3.8 Flash; independent Astra review found no remaining issue. Protected
+PR evidence and merge are still pending, so the increment remains `in_progress`; no deployment or
+claimant usability validation is claimed.
+
 ## T117C Product Delivery
 
 Promotion #1738 bound owner review `5164184965` to head

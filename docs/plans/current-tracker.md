@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-12
+last_reviewed: 2026-09-13
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -28,10 +28,10 @@ separate dashboard designs or freeze the legacy presentation.
 
 ## Proof Ledger
 
-| ID                                  | Source Refs                                    | Execution  | Run ID   | Run Root | Sonar   | Docker  | Sentry           | Learning         | Evidence Refs                                                                                                                                                                                                                                                                                                                                      |
-| ----------------------------------- | ---------------------------------------------- | ---------- | -------- | -------- | ------- | ------- | ---------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `T410-NOTIFICATION-ACK-CORRECTNESS` | docs/plans/current-program.md; owner direction | `scripted` | pending  | local/CI | pending | pending | `not_applicable` | pending          | active branch; shared research and contract in current program                                                                                                                                                                                                                                                                                     |
-| `T210-MEMBER-TIMELINE`              | docs/plans/current-program.md; owner direction | `scripted` | 061ea591 | local/CI | pass    | pass    | `not_applicable` | `not_applicable` | https://github.com/interdomestik/interdomestik/pull/1763; https://github.com/interdomestik/interdomestik/actions/runs/34703433627; https://api.github.com/repos/interdomestik/interdomestik/check-runs/103580834614; https://github.com/interdomestik/interdomestik/actions/runs/34703433721; local proof 061ea5910ea63aab67009bccfb2b219505733fa9 |
+| ID                                  | Source Refs                                    | Execution  | Run ID   | Run Root | Sonar   | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                                                                                                                                                                                                      |
+| ----------------------------------- | ---------------------------------------------- | ---------- | -------- | -------- | ------- | ------ | ---------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `T410-NOTIFICATION-ACK-CORRECTNESS` | docs/plans/current-program.md; owner direction | `scripted` | a30a5066 | local/CI | pending | pass   | `not_applicable` | `not_applicable` | source-bound local proof `a30a5066e6f19b09420c4928c1717d74a2954ea8`; Sonnet/Gemini Pro/Gemini Flash and independent Astra review pass; protected PR evidence pending                                                                                                                                                                               |
+| `T210-MEMBER-TIMELINE`              | docs/plans/current-program.md; owner direction | `scripted` | 061ea591 | local/CI | pass    | pass   | `not_applicable` | `not_applicable` | https://github.com/interdomestik/interdomestik/pull/1763; https://github.com/interdomestik/interdomestik/actions/runs/34703433627; https://api.github.com/repos/interdomestik/interdomestik/check-runs/103580834614; https://github.com/interdomestik/interdomestik/actions/runs/34703433721; local proof 061ea5910ea63aab67009bccfb2b219505733fa9 |
 
 Historical staff rehearsal: retained only as a timing baseline; no migration credit.
 
@@ -54,6 +54,15 @@ bound to its original source. Final product head `87c291f21d74c9a1dfd8d92683124c
 issue. Protected-main CI `34703433627` passed, SonarCloud Code Analysis check `103580834614`
 passed, and Sonar Main Gate `34703433721` attempt 2 passed at the exact merge. No deployment or
 claimant usability validation is claimed.
+
+T410 local source-bound proof passed at `a30a5066e6f19b09420c4928c1717d74a2954ea8`:
+17 focused notification tests, both focused IDA-host browser variants, `pr:verify` (1,048 CI
+contracts, 154 release-gate tests, 41 RLS tests, 81.20% repository line coverage, 252 gate passes
+with 12 intentional skips, and 13 smoke passes with 11 intentional skips), and
+`security:guard`. Repo-owned route receipts record PASS from Claude Sonnet 5, Gemini 3.1 Pro, and
+Gemini 3.8 Flash; an independent Astra review also found no remaining issue. This is implementation
+and scripted behavior evidence only: protected PR checks/reviews and merge remain pending, and no
+legacy visual approval, claimant usability validation, or deployment is claimed.
 
 Terminal: promotion `#1691`; product head
 `503d4b179251f9d3d06e07349ec80f85805565ae`, tree
