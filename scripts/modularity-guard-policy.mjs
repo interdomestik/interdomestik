@@ -122,12 +122,13 @@ export function isExplicitModularityException(filePath) {
 }
 export function structuredArtifactOwner(filePath) {
   const relPath = toPolicyPath(filePath);
-  const owner = T117B_CATALOGS.has(relPath)
-    ? 't117b-member-portal-i18n-contract'
-    : T210_CATALOGS.has(relPath)
-      ? 't210-member-timeline-i18n-contract'
-      : STRUCTURED_OWNERS.find(([pattern]) => pattern.test(relPath))?.[1];
-  return owner ?? null;
+  if (T117B_CATALOGS.has(relPath)) {
+    return 't117b-member-portal-i18n-contract';
+  }
+  if (T210_CATALOGS.has(relPath)) {
+    return 't210-member-timeline-i18n-contract';
+  }
+  return STRUCTURED_OWNERS.find(([pattern]) => pattern.test(relPath))?.[1] ?? null;
 }
 export function classifyModularityFile(filePath) {
   const relPath = toPolicyPath(filePath);

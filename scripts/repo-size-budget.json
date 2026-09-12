@@ -1174,11 +1174,11 @@
         "scripts/modularity-guard-policy.mjs",
         "scripts/modularity-guard-t210-catalogs.test.mjs"
       ],
-      "maxTrackedBytesDelta": 21057,
+      "maxTrackedBytesDelta": 21056,
       "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
         "config/data/messages": 657,
-        "source/scripts": 6667,
+        "source/scripts": 6666,
         "tests/e2e": 13733
       },
       "maxPathBytesDelta": {
@@ -1192,7 +1192,7 @@
         "apps/web/src/messages/mk/claims-tracking.json": 214,
         "apps/web/src/messages/sq/claims-tracking.json": 164,
         "apps/web/src/messages/sr/claims-tracking.json": 148,
-        "scripts/modularity-guard-policy.mjs": 1653,
+        "scripts/modularity-guard-policy.mjs": 1652,
         "scripts/modularity-guard-t210-catalogs.test.mjs": 629
       }
     }
@@ -1203,14 +1203,14 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61136601,
+  "maxTrackedBytes": 61136600,
   "maxTrackedFiles": 6037,
   "maxCategoryBytes": {
     "config/data/messages": 2224416,
     "docs/text": 8541936,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8804069,
+    "source/scripts": 8804068,
     "tests/e2e": 6985445
   },
   "maxLargestFileBytes": 3266530,
