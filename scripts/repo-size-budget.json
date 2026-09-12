@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 92511,
+      "trackedBytesDelta": 94626,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 55101,
+        "config/data/messages": 57216,
         "source/scripts": 23092,
         "tests/e2e": 14318
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 55101,
+        "scripts/repo-size-budget.json": 57216,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -61,7 +61,6 @@
       "id": "lean-compatibility-repair",
       "mode": "bounded",
       "writerPaths": [
-        "scripts/check-modularity-guard.test.mjs",
         "scripts/lean-current-authority-conformance.test.mjs",
         "scripts/lean-current-authority-evidence.mjs",
         "scripts/lean-current-authority-evidence.test.mjs",
@@ -76,14 +75,13 @@
         "scripts/lean-current-authority-recovery.mjs",
         "scripts/lean-current-authority-recovery.test.mjs",
         "scripts/lean-current-authority.test.mjs",
-        "scripts/modularity-guard-policy.mjs",
         "scripts/lean-t117c-policy.test.mjs",
         "scripts/modularity-guard-legacy-focused.test.mjs",
         "scripts/fixtures/update-status-legacy-baseline.test.ts.gz"
       ],
-      "maxTrackedBytesDelta": 64557,
+      "maxTrackedBytesDelta": 61883,
       "maxTrackedFilesDelta": 8,
-      "maxCategoryBytesDelta": { "other": 5580, "source/scripts": 20965, "tests/e2e": 38012 },
+      "maxCategoryBytesDelta": { "other": 5580, "source/scripts": 19632, "tests/e2e": 36671 },
       "maxPathBytesDelta": {
         "scripts/lean-current-authority-policy.mjs": 578,
         "scripts/lean-current-authority-lifecycle.mjs": 473,
@@ -96,8 +94,6 @@
         "scripts/lean-current-authority-evidence.test.mjs": 991,
         "scripts/lean-current-authority-pull-selection.test.mjs": 2493,
         "scripts/lean-current-authority-conformance.test.mjs": 3260,
-        "scripts/modularity-guard-policy.mjs": 1333,
-        "scripts/check-modularity-guard.test.mjs": 1341,
         "scripts/lean-current-authority-recovery.mjs": 6810,
         "scripts/lean-current-authority-recovery.test.mjs": 9126,
         "scripts/lean-current-authority-observation.mjs": 2056,
@@ -1158,6 +1154,47 @@
         "scripts/ci/private-node-download.test.mjs": 6113,
         "scripts/ci/setup-private-node-cache.mjs": 11789
       }
+    },
+    {
+      "id": "t210-member-timeline",
+      "mode": "bounded",
+      "writerPaths": [
+        "apps/web/src/features/claims/tracking/components/member-timeline-presentation.test.tsx",
+        "apps/web/src/features/claims/tracking/components/useTrackingLabelTranslator.test.tsx",
+        "apps/web/src/features/claims/tracking/server/member-domain-event-timeline.test.ts",
+        "apps/web/src/features/claims/tracking/server/member-domain-event-timeline.ts",
+        "apps/web/src/features/claims/tracking/server/member-event-presentation-registry.test.ts",
+        "apps/web/src/features/claims/tracking/server/member-event-presentation-registry.ts",
+        "apps/web/src/messages/en/claims-tracking.json",
+        "apps/web/src/messages/mk/claims-tracking.json",
+        "apps/web/src/messages/sq/claims-tracking.json",
+        "apps/web/src/messages/sr/claims-tracking.json",
+        "scripts/check-modularity-guard.test.mjs",
+        "scripts/modularity-guard-policy.mjs",
+        "scripts/modularity-guard-t210-catalogs.test.mjs"
+      ],
+      "maxTrackedBytesDelta": 22504,
+      "maxTrackedFilesDelta": 4,
+      "maxCategoryBytesDelta": {
+        "config/data/messages": 657,
+        "source/scripts": 6722,
+        "tests/e2e": 15125
+      },
+      "maxPathBytesDelta": {
+        "apps/web/src/features/claims/tracking/components/member-timeline-presentation.test.tsx": 3621,
+        "apps/web/src/features/claims/tracking/components/useTrackingLabelTranslator.test.tsx": 697,
+        "apps/web/src/features/claims/tracking/server/member-domain-event-timeline.test.ts": 412,
+        "apps/web/src/features/claims/tracking/server/member-domain-event-timeline.ts": 0,
+        "apps/web/src/features/claims/tracking/server/member-event-presentation-registry.test.ts": 8374,
+        "apps/web/src/features/claims/tracking/server/member-event-presentation-registry.ts": 5014,
+        "apps/web/src/messages/en/claims-tracking.json": 131,
+        "apps/web/src/messages/mk/claims-tracking.json": 214,
+        "apps/web/src/messages/sq/claims-tracking.json": 164,
+        "apps/web/src/messages/sr/claims-tracking.json": 148,
+        "scripts/check-modularity-guard.test.mjs": 1392,
+        "scripts/modularity-guard-policy.mjs": 1708,
+        "scripts/modularity-guard-t210-catalogs.test.mjs": 629
+      }
     }
   ],
   "reserve": {
@@ -1166,15 +1203,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61114762,
-  "maxTrackedFiles": 6033,
+  "maxTrackedBytes": 61136707,
+  "maxTrackedFiles": 6037,
   "maxCategoryBytes": {
-    "config/data/messages": 2221644,
+    "config/data/messages": 2224416,
     "docs/text": 8541936,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8798735,
-    "tests/e2e": 6971712
+    "source/scripts": 8804124,
+    "tests/e2e": 6985496
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

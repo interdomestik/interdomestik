@@ -3,9 +3,9 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
-
 import { createTempRoot, writeFile } from './plan-test-helpers.mjs';
 import './modularity-guard-legacy-focused.test.mjs';
+import './modularity-guard-t210-catalogs.test.mjs';
 import { evaluateModularityGuard, parseNameStatus } from './lib/modularity-guard.mjs';
 import {
   FILE_CLASSES,

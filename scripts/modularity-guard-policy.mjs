@@ -62,6 +62,7 @@ const PRODUCTION_EXTENSIONS = new Set([
   '.tsx',
 ]);
 const STRUCTURED_EXTENSIONS = new Set(['.json', '.jsonl', '.toml', '.yaml', '.yml']);
+/** @type {ReadonlyArray<readonly [RegExp, string]>} */
 const STRUCTURED_OWNERS = [
   [/^\.github\/actions\/setup\/action\.yml$/u, 'private-node-cache-contract'],
   [/^scripts\/ci\/reviewer-no-tools\.toml$/u, 'reviewer-tool-denial-contract'],
@@ -79,6 +80,12 @@ const T117B_CATALOGS = new Set([
   'apps/web/src/messages/mk/dashboard.json',
   'apps/web/src/messages/sq/dashboard.json',
   'apps/web/src/messages/sr/dashboard.json',
+]);
+const T210_CATALOGS = new Set([
+  'apps/web/src/messages/en/claims-tracking.json',
+  'apps/web/src/messages/mk/claims-tracking.json',
+  'apps/web/src/messages/sq/claims-tracking.json',
+  'apps/web/src/messages/sr/claims-tracking.json',
 ]);
 const GENERATED_EXACT_FILES = new Set([
   'bun.lockb',
@@ -116,10 +123,13 @@ export function isExplicitModularityException(filePath) {
 }
 export function structuredArtifactOwner(filePath) {
   const relPath = toPolicyPath(filePath);
-  const owner = T117B_CATALOGS.has(relPath)
-    ? 't117b-member-portal-i18n-contract'
-    : STRUCTURED_OWNERS.find(([pattern]) => pattern.test(relPath))?.[1];
-  return owner ?? null;
+  if (T117B_CATALOGS.has(relPath)) {
+    return 't117b-member-portal-i18n-contract';
+  }
+  if (T210_CATALOGS.has(relPath)) {
+    return 't210-member-timeline-i18n-contract';
+  }
+  return STRUCTURED_OWNERS.find(([pattern]) => pattern.test(relPath))?.[1] ?? null;
 }
 export function classifyModularityFile(filePath) {
   const relPath = toPolicyPath(filePath);

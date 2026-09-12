@@ -11,7 +11,10 @@
       "timeline": {
         "empty": "Nema dostupnih događaja na vremenskoj liniji.",
         "generic": "Ažuriranje slučaja",
-        "redacted": "Ažuriranje slučaja nije dostupno"
+        "redacted": "Ažuriranje slučaja nije dostupno",
+        "caseUpdate": "Ažuriranje slučaja",
+        "recoveryUpdate": "Ažuriranje naplate",
+        "membershipUpdate": "Ažuriranje članstva"
       },
       "documents": {
         "title": "Dokumenti",
