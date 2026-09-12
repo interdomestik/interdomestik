@@ -68,6 +68,26 @@ describe('presentMemberDomainEvent', () => {
     expect(result.date).toBe(defaultDate);
   });
 
+  it('accepts a valid status payload without an object prototype', () => {
+    const payload = Object.assign(Object.create(null) as object, {
+      fromStatus: 'submitted',
+      toStatus: 'evaluation',
+    });
+
+    expect(
+      presentMemberDomainEvent(defaultContext, {
+        ...baseRow,
+        eventName: 'claim.status_changed',
+        note: 'Member-visible update',
+        payload,
+      })
+    ).toMatchObject({
+      statusFrom: 'submitted',
+      statusTo: 'evaluation',
+      note: 'Member-visible update',
+    });
+  });
+
   it.each(verifiedCaseEvents)('maps verified case event %s to fixed case update', fullEventKey => {
     const [eventName, versionStr] = fullEventKey.split('@');
     const row: MemberEventPresentationRow = Object.freeze({
@@ -154,7 +174,7 @@ describe('presentMemberDomainEvent', () => {
       { ...baseRow, eventName: 'claim.status_changed', eventVersion: 999 },
       {
         ...baseRow,
-        eventName: 'unknown.custom_event',
+        eventName: 'unknown.event<script>alert(1)</script>',
         note: 'fallback-private-note',
         payload: { actorEmail: 'fallback-leak@interdomestik.test' },
       },
@@ -164,7 +184,11 @@ describe('presentMemberDomainEvent', () => {
         payload: { fromStatus: 'not_a_status', toStatus: 'invalid_status' },
       },
       { ...baseRow, eventName: 'claim.status_changed', payload: null },
-      { ...baseRow, eventName: 'claim.status_changed', payload: [] },
+      {
+        ...baseRow,
+        eventName: 'claim.status_changed',
+        payload: Object.assign([], { fromStatus: 'submitted', toStatus: 'evaluation' }),
+      },
     ];
 
     for (const row of rows) {
@@ -178,6 +202,7 @@ describe('presentMemberDomainEvent', () => {
       expect(result.isPublic).toBe(true);
       expect(JSON.stringify(result)).not.toContain('fallback-private-note');
       expect(JSON.stringify(result)).not.toContain('fallback-leak@interdomestik.test');
+      expect(result.labelKey).not.toContain('<script>');
     }
   });
 

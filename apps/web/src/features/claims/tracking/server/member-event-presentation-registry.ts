@@ -120,6 +120,7 @@ function renderClaimStatusChanged(
   };
 }
 
+// Only claim.status_changed is currently selected by the member query; other entries are prepared mappings, not live member history.
 const registry = {
   'case.created@1': renderCaseUpdate,
   'case.lifecycle_changed@1': renderCaseUpdate,

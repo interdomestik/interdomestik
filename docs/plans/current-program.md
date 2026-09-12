@@ -153,7 +153,8 @@ path. The query's tenant, claim, entity, public-history join, and `claim.status_
 constraints remain unchanged. Valid status events retain their authorized public note; unknown
 names/versions and malformed status payloads render a generic row; an erased/unavailable subject
 renders a redacted row. Verified `case.*`, `recovery.*`, and `membership.*` version-1 events have
-fixed, payload-independent SQ/MK/EN/SR labels for reuse by the same existing timeline primitive. No
+prepared fixed, payload-independent SQ/MK/EN/SR mappings, but are not selected by the current query
+and are not delivered member history. Any future visibility expansion requires separate scope. No
 raw payload, payload PII, actor identity, internal note, or raw event name reaches the member DTO. Flight and
 assistance families remain excluded because no current payload allowlist supports them.
 

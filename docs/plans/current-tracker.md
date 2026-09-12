@@ -30,6 +30,14 @@ status_command: pnpm plan:status
 
 Historical staff rehearsal: retained only as a timing baseline; no migration credit.
 
+T210 is medium complexity: bounded UI integration and privacy/fallback regression coverage over an
+unchanged authorized query. Implementation owner: Sol/high. Sonnet 5 reviewed snapshot `fa959214`
+and found only prepared-versus-live wording ambiguity; clarify it without expanding visibility.
+Gemini 3.1 Pro proposed adversarial cases; three useful cases were integrated, duplicate cases and
+an incomplete mapper fixture were rejected. The resulting 24 focused tests pass. Both repo-owned
+route receipts are retained in the task workspace; final independent Astra and required proof remain
+pending. No merge, deployment, or claimant usability validation is claimed.
+
 Terminal: promotion `#1691`; product head
 `503d4b179251f9d3d06e07349ec80f85805565ae`, tree
 `61b2316606c9b3facd6c8aff2a14bb4402d80c82`, squash
