@@ -220,8 +220,11 @@ test('delivery workflow stays exact and default-deny', () => {
     `github.event.pull_request.base.ref == 'main' && github.event.pull_request.state == 'open' && !github.event.pull_request.draft && (github.event.action != 'labeled' || github.event.label.name == 'full-gate')`
   );
   assert.match(workflow.concurrency.group, /github\.event\.pull_request\.number/u);
-  assert.match(workflow.concurrency.group, /event_name.*event\.action.*synchronize/u);
-  assert.match(workflow.concurrency.group, /synchronize-\{0\}.*pull_request\.head\.sha/u);
+  assert.equal(
+    workflow.concurrency.group,
+    "pr-delivery-gate-${{ github.event.pull_request.number }}-${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' && 'synchronize' || github.event_name == 'pull_request' && format('event-{0}', github.run_id) || format('feedback-{0}', github.event.pull_request.head.sha) }}",
+    'synchronize runs share a PR-wide group while feedback remains isolated by head'
+  );
   assert.match(workflow.concurrency.group, /github\.run_id/u);
   assert.match(workflow.concurrency.group, /pull_request\.head\.sha/u);
   assert.ok(job.steps.some(step => String(step.uses).startsWith('actions/checkout@')));

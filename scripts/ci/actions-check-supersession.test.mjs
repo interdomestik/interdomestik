@@ -91,6 +91,14 @@ test('unrelated pull-request lifecycle runs cannot defer a failed producer', asy
   );
 });
 
+test('full-gate label reruns remain eligible replacement producers', async () => {
+  const labeled = {
+    ...active,
+    display_title: runTitle('pull_request', 'labeled'),
+  };
+  assert.equal(await hasPendingCheckReplacement(fixture([labeled]), check, head), true);
+});
+
 test('exact provider workflows may replace their prior pull-request runs', async () => {
   for (const workflowPath of [
     '.github/workflows/ci.yml',
@@ -185,7 +193,7 @@ test('delivery gate cancels stale feedback and finalizer refreshes on the same e
   );
 
   const gateGroup = gate.match(/ {2}group: (.*)\n/u)[1];
-  assert.match(gateGroup, /synchronize-\{0\}.*pull_request\.head\.sha/u);
+  assert.match(gateGroup, /event\.action == 'synchronize' && 'synchronize'/u);
   assert.match(gateGroup, /format\('event-\{0\}', github\.run_id\)/u);
   assert.match(gateGroup, /format\('feedback-\{0\}', github\.event\.pull_request\.head\.sha\)/u);
 
@@ -210,7 +218,7 @@ test('delivery gate cancels stale feedback and finalizer refreshes on the same e
   );
   assert.equal(
     finalizer.match(/ {2}group: (.*)\n/u)[1],
-    'pr-finalizer-${{ github.event.pull_request.number }}'
+    "pr-finalizer-${{ github.event.pull_request.number }}-${{ github.event_name == 'pull_request' && 'lifecycle' || format('feedback-{0}', github.event.pull_request.head.sha) }}"
   );
   assert.match(
     finalizer,

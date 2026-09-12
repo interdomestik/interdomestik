@@ -36,7 +36,11 @@ test('PR finalizer refreshes on the same review and review-comment activity as t
     workflow['run-name'],
     'PR finalizer [supersession:v1:${{ github.event_name }}:${{ github.event.action }}:${{ github.event.pull_request.head.sha }}]'
   );
-  assert.equal(workflow.concurrency.group, 'pr-finalizer-${{ github.event.pull_request.number }}');
+  assert.equal(
+    workflow.concurrency.group,
+    "pr-finalizer-${{ github.event.pull_request.number }}-${{ github.event_name == 'pull_request' && 'lifecycle' || format('feedback-{0}', github.event.pull_request.head.sha) }}",
+    'stale-head feedback cannot replace pending current-head lifecycle work'
+  );
   assert.equal(
     workflow.concurrency['cancel-in-progress'],
     "${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' }}"

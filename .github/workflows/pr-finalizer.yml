@@ -12,7 +12,10 @@ on:
     types: [created, edited, deleted]
 
 concurrency:
-  group: pr-finalizer-${{ github.event.pull_request.number }}
+  # Lifecycle work remains PR-scoped so a new synchronize event cancels stale
+  # lifecycle work. Feedback is head-scoped so delayed stale-head feedback can
+  # never replace a pending current-head lifecycle run.
+  group: pr-finalizer-${{ github.event.pull_request.number }}-${{ github.event_name == 'pull_request' && 'lifecycle' || format('feedback-{0}', github.event.pull_request.head.sha) }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' }}
 
 jobs:
