@@ -10,8 +10,9 @@ import {
   MessageSquare,
   UserPlus,
 } from 'lucide-react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+
+import { LOCALES } from '@/i18n/locales';
+import { Link, useRouter } from '@/i18n/routing';
 
 export interface Notification {
   readonly id: string;
@@ -31,6 +32,18 @@ interface NotificationItemProps {
   readonly onClose: () => void;
   readonly markReadLabel: string;
   readonly viewLabel: string;
+}
+
+export function normalizeNotificationActionHref(actionUrl: string): string {
+  if (!actionUrl.startsWith('/')) return actionUrl;
+
+  const localeMatch = /^\/([^/?#]+)(?=\/|[?#]|$)/.exec(actionUrl);
+  if (!localeMatch || !LOCALES.includes(localeMatch[1] as (typeof LOCALES)[number])) {
+    return actionUrl;
+  }
+
+  const localeFreeHref = actionUrl.slice(localeMatch[0].length);
+  return localeFreeHref.startsWith('/') ? localeFreeHref : `/${localeFreeHref}`;
 }
 
 function notificationIcon(type: string) {
@@ -61,6 +74,7 @@ export function NotificationItem({
   const router = useRouter();
   const isRead = notification.isRead;
   const actionUrl = notification.actionUrl;
+  const actionHref = actionUrl ? normalizeNotificationActionHref(actionUrl) : null;
 
   return (
     <div
@@ -107,11 +121,22 @@ export function NotificationItem({
           <span className="text-[10px] text-muted-foreground/60 font-medium">
             {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
           </span>
-          {actionUrl && (
-            <DropdownMenuItem asChild onSelect={event => !isRead && event.preventDefault()}>
+          {actionHref && (
+            <DropdownMenuItem
+              asChild
+              disabled={pending}
+              onSelect={event => (!isRead || pending) && event.preventDefault()}
+            >
               <Link
-                href={actionUrl}
+                href={actionHref}
+                aria-disabled={pending}
+                tabIndex={pending ? -1 : undefined}
                 onClick={async event => {
+                  if (pending) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    return;
+                  }
                   if (isRead) {
                     onClose();
                     return;
@@ -122,9 +147,12 @@ export function NotificationItem({
                   if (!acknowledged) return;
 
                   onClose();
-                  router.push(actionUrl);
+                  router.push(actionHref);
                 }}
-                className="inline-flex items-center gap-1 text-[10px] font-bold text-primary hover:underline"
+                className={cn(
+                  'inline-flex items-center gap-1 text-[10px] font-bold text-primary hover:underline',
+                  pending && 'pointer-events-none opacity-50'
+                )}
                 data-testid="notification-action"
               >
                 {viewLabel} <ExternalLink className="h-2 w-2" />

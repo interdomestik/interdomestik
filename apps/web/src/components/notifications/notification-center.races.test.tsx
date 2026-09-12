@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NotificationCenter } from './notification-center';
 import { deferred } from './notification-test-ui';
 
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock('@/i18n/routing', () => ({ Link: 'a', useRouter: () => ({ push: vi.fn() }) }));
 
 const mocks = vi.hoisted(() => ({
   getNotifications: vi.fn<() => Promise<unknown[]>>(),
@@ -164,7 +164,7 @@ describe('NotificationCenter race boundaries', () => {
   });
 
   it('keeps a new bulk request pending across an A-to-B-to-A subscriber cycle', async () => {
-    const oldAcknowledgement = deferred<{ success: true; notificationIds: string[] }>();
+    const oldAcknowledgement = deferred<{ success: true }>();
     const currentAcknowledgement = deferred<{ success: false; error: string }>();
     mocks.markAllAsRead
       .mockReturnValueOnce(oldAcknowledgement.promise)
@@ -186,9 +186,7 @@ describe('NotificationCenter race boundaries', () => {
     fireEvent.click(currentButton);
     expect(mocks.markAllAsRead).toHaveBeenCalledTimes(2);
 
-    await act(async () =>
-      oldAcknowledgement.resolve({ success: true, notificationIds: ['shared-id'] })
-    );
+    await act(async () => oldAcknowledgement.resolve({ success: true }));
     expect(currentButton).toBeDisabled();
     expect(screen.getByText('1')).toBeInTheDocument();
     fireEvent.click(currentButton);

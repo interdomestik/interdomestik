@@ -210,7 +210,7 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
         return;
       }
       stateRevisionRef.current += 1;
-      const confirmedIds = new Set(result.notificationIds);
+      const confirmedIds = new Set(requestedUnreadIds);
       setSnapshot(previous =>
         previous.subscriberId === mutationSubscriberId
           ? {
@@ -221,11 +221,6 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
             }
           : previous
       );
-      if (!requestedUnreadIds.every(id => confirmedIds.has(id))) {
-        setStatusMessage('');
-        setErrorMessage(tCommon('errors.generic'));
-        return;
-      }
       setStatusMessage(t('markedAllRead'));
     } catch (error) {
       if (

@@ -9,7 +9,7 @@
     "viewAll": "Prikaži sva obaveštenja",
     "settings": "Podešavanja obaveštenja",
     "preferences": {
-      "title": "Postavke obaveštenja",
+      "title": "Podešavanja obaveštenja",
       "description": "Izaberite kako i kada želite da primate obaveštenja",
       "email": "Obaveštenja putem e-pošte",
       "emailDescription": "Primajte novosti putem e-pošte",

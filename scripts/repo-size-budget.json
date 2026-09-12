@@ -1221,8 +1221,8 @@
       "maxTrackedFilesDelta": 6,
       "maxCategoryBytesDelta": {
         "config/data/messages": 1200,
-        "source/scripts": 12900,
-        "tests/e2e": 26900
+        "source/scripts": 13500,
+        "tests/e2e": 26300
       },
       "maxPathBytesDelta": {
         "apps/web/e2e/gate/front-door-session-context.spec.ts": 4000,
@@ -1232,7 +1232,7 @@
         "apps/web/src/components/notifications/notification-center.test.tsx": 600,
         "apps/web/src/components/notifications/notification-center.tsx": 2500,
         "apps/web/src/components/notifications/notification-test-ui.tsx": 2500,
-        "apps/web/src/components/notifications/notification-item.tsx": 4600,
+        "apps/web/src/components/notifications/notification-item.tsx": 5700,
         "apps/web/src/components/notifications/notification-list.tsx": 10000,
         "apps/web/src/messages/en/notifications.json": 500,
         "apps/web/src/messages/mk/notifications.json": 700,
@@ -1257,8 +1257,8 @@
     "docs/text": 8541936,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8817024,
-    "tests/e2e": 7012396
+    "source/scripts": 8817624,
+    "tests/e2e": 7011796
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

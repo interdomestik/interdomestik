@@ -48,7 +48,7 @@ export async function markAllAsReadCore(params: { session: Session | null }) {
   const tenantId = ensureTenantId(session);
   const userId = session.user.id;
   const userRole = session.user.role;
-  const updatedNotifications = await withTenantContext({ tenantId, role: userRole }, tx =>
+  await withTenantContext({ tenantId, role: userRole }, tx =>
     tx
       .update(notifications)
       .set({ isRead: true })
@@ -59,11 +59,7 @@ export async function markAllAsReadCore(params: { session: Session | null }) {
           and(eq(notifications.userId, userId), eq(notifications.isRead, false))
         )
       )
-      .returning({ id: notifications.id })
   );
 
-  return {
-    success: true,
-    notificationIds: updatedNotifications.map(notification => notification.id),
-  } as const;
+  return { success: true } as const;
 }

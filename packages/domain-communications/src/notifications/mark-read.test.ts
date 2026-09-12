@@ -86,16 +86,14 @@ describe('notifications/markAsReadCore', () => {
     expect(result).toEqual({ success: false, error: 'Notification not found' });
   });
 
-  it('returns the notification IDs confirmed by a bulk acknowledgement', async () => {
-    mocks.returning.mockResolvedValue([{ id: 'n1' }, { id: 'n2' }]);
-
+  it('confirms the bulk write without materializing an unbounded ID response', async () => {
     const result = await markAllAsReadCore({
       session: {
         user: { id: 'u1', role: 'user', tenantId: 't1' },
       } as any,
     });
 
-    expect(result).toEqual({ success: true, notificationIds: ['n1', 'n2'] });
+    expect(result).toEqual({ success: true });
     expect(mocks.where).toHaveBeenCalledWith({
       operator: 'and',
       args: [
@@ -103,5 +101,6 @@ describe('notifications/markAsReadCore', () => {
         { operator: 'eq', column: 'notifications.isRead', value: false },
       ],
     });
+    expect(mocks.returning).not.toHaveBeenCalled();
   });
 });

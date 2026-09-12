@@ -2,10 +2,10 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { NotificationCenter } from './notification-center';
-import { NotificationItem } from './notification-item';
+import { NotificationItem, normalizeNotificationActionHref } from './notification-item';
 import { deferred } from './notification-test-ui';
 
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: mocks.routerPush }) }));
+vi.mock('@/i18n/routing', () => ({ Link: 'a', useRouter: () => ({ push: mocks.routerPush }) }));
 
 const mocks = vi.hoisted(() => ({
   getNotifications: vi.fn<() => Promise<unknown[]>>(),
@@ -49,6 +49,21 @@ const unreadNotification = {
   isRead: false,
   createdAt: '2026-09-12T00:00:00.000Z',
 };
+
+function renderUnreadAction(pending: boolean, onMarkAsRead = vi.fn(async () => true)) {
+  const onClose = vi.fn();
+  render(
+    <NotificationItem
+      notification={{ ...unreadNotification, actionUrl: '/member/messages' }}
+      pending={pending}
+      onMarkAsRead={onMarkAsRead}
+      onClose={onClose}
+      markReadLabel="Mark as read"
+      viewLabel="View"
+    />
+  );
+  return { onClose, onMarkAsRead };
+}
 
 describe('NotificationCenter acknowledgement truth', () => {
   beforeEach(() => {
@@ -142,7 +157,7 @@ describe('NotificationCenter acknowledgement truth', () => {
   });
 
   it('keeps bulk acknowledgement pending until success and blocks single overlap', async () => {
-    const acknowledgement = deferred<{ success: true; notificationIds: string[] }>();
+    const acknowledgement = deferred<{ success: true }>();
     mocks.getNotifications.mockResolvedValue([
       unreadNotification,
       { ...unreadNotification, id: 'n2', type: 'claim_assigned', title: 'Claim assigned' },
@@ -161,32 +176,11 @@ describe('NotificationCenter acknowledgement truth', () => {
     expect(mocks.markAsRead).not.toHaveBeenCalled();
     expect(screen.getByText('2')).toBeInTheDocument();
 
-    await act(async () =>
-      acknowledgement.resolve({ success: true, notificationIds: ['n1', 'n2'] })
-    );
+    await act(async () => acknowledgement.resolve({ success: true }));
 
     expect(screen.queryByText('2')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Mark all as read' })).not.toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('All notifications marked as read.');
-  });
-
-  it('does not announce bulk success when the server confirms only some unread rows', async () => {
-    mocks.getNotifications.mockResolvedValue([
-      unreadNotification,
-      { ...unreadNotification, id: 'n2', type: 'claim_assigned', title: 'Claim assigned' },
-    ]);
-    mocks.markAllAsRead.mockResolvedValue({ success: true, notificationIds: ['n1'] });
-    render(<NotificationCenter subscriberId="user-123" />);
-
-    await screen.findByText('New message');
-    fireEvent.click(screen.getByRole('button', { name: 'Mark all as read' }));
-
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Something went wrong. Please try again.'
-    );
-    expect(screen.getByText('1')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Claim assigned/ })).toBeEnabled();
-    expect(screen.queryByText('All notifications marked as read.')).not.toBeInTheDocument();
   });
 
   it('preserves every row and clears bulk pending state when mark-all throws', async () => {
@@ -206,21 +200,8 @@ describe('NotificationCenter acknowledgement truth', () => {
 
   it('keeps the menu open when an unread action acknowledgement fails', async () => {
     vi.useFakeTimers();
-    const onClose = vi.fn();
     const onMarkAsRead = vi.fn(async () => false);
-    render(
-      <NotificationItem
-        notification={{
-          ...unreadNotification,
-          actionUrl: '/member/messages',
-        }}
-        pending={false}
-        onMarkAsRead={onMarkAsRead}
-        onClose={onClose}
-        markReadLabel="Mark as read"
-        viewLabel="View"
-      />
-    );
+    const { onClose } = renderUnreadAction(false, onMarkAsRead);
 
     fireEvent.click(screen.getByRole('link', { name: /View/ }));
     await act(async () => {
@@ -235,5 +216,21 @@ describe('NotificationCenter acknowledgement truth', () => {
     expect(onClose).not.toHaveBeenCalled();
     expect(mocks.routerPush).not.toHaveBeenCalled();
     vi.useRealTimers();
+  });
+
+  it('normalizes stored localized actions before locale-aware navigation', () => {
+    expect(normalizeNotificationActionHref('/sq/member/messages?claim=1')).toBe(
+      '/member/messages?claim=1'
+    );
+  });
+
+  it('makes a pending action non-focusable and ignores activation', () => {
+    const { onMarkAsRead } = renderUnreadAction(true);
+    const action = screen.getByRole('link', { name: /View/ });
+    expect(action).toHaveAttribute('aria-disabled', 'true');
+    expect(action).toHaveAttribute('tabindex', '-1');
+    fireEvent.click(action);
+    expect(onMarkAsRead).not.toHaveBeenCalled();
+    expect(mocks.routerPush).not.toHaveBeenCalled();
   });
 });
