@@ -19,7 +19,7 @@ const B = '1'.repeat(40),
 function snapshot() {
   return {
     expected: { base: B, head: H, testedMerge: T },
-    pull: { state: 'open', baseSha: B, headSha: H },
+    pull: { state: 'open', draft: false, baseSha: B, headSha: H },
     commits: {
       [B]: { tree: B, parents: [] },
       [H]: { tree: TREE, parents: [B] },
