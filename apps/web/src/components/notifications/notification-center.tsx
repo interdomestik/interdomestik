@@ -13,8 +13,7 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { Notification } from './notification-item';
-import { NotificationFeedback } from './notification-feedback';
-import { NotificationHeader, NotificationList } from './notification-list';
+import { NotificationFeedback, NotificationHeader, NotificationList } from './notification-list';
 interface NotificationCenterProps {
   readonly subscriberId: string;
   readonly fetchOnMount?: boolean;

@@ -1206,7 +1206,7 @@
         "apps/web/src/components/notifications/notification-center.races.test.tsx",
         "apps/web/src/components/notifications/notification-center.test.tsx",
         "apps/web/src/components/notifications/notification-center.tsx",
-        "apps/web/src/components/notifications/notification-feedback.tsx",
+        "apps/web/src/components/notifications/notification-test-ui.tsx",
         "apps/web/src/components/notifications/notification-item.tsx",
         "apps/web/src/components/notifications/notification-list.tsx",
         "apps/web/src/messages/en/notifications.json",
@@ -1221,8 +1221,8 @@
       "maxTrackedFilesDelta": 6,
       "maxCategoryBytesDelta": {
         "config/data/messages": 1000,
-        "source/scripts": 12500,
-        "tests/e2e": 27500
+        "source/scripts": 12600,
+        "tests/e2e": 27400
       },
       "maxPathBytesDelta": {
         "apps/web/e2e/gate/front-door-session-context.spec.ts": 4000,
@@ -1231,9 +1231,9 @@
         "apps/web/src/components/notifications/notification-center.races.test.tsx": 11000,
         "apps/web/src/components/notifications/notification-center.test.tsx": 600,
         "apps/web/src/components/notifications/notification-center.tsx": 2500,
-        "apps/web/src/components/notifications/notification-feedback.tsx": 600,
+        "apps/web/src/components/notifications/notification-test-ui.tsx": 2500,
         "apps/web/src/components/notifications/notification-item.tsx": 4600,
-        "apps/web/src/components/notifications/notification-list.tsx": 4000,
+        "apps/web/src/components/notifications/notification-list.tsx": 10000,
         "apps/web/src/messages/en/notifications.json": 500,
         "apps/web/src/messages/mk/notifications.json": 500,
         "apps/web/src/messages/sq/notifications.json": 500,
@@ -1257,8 +1257,8 @@
     "docs/text": 8541936,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8816624,
-    "tests/e2e": 7012996
+    "source/scripts": 8816724,
+    "tests/e2e": 7012896
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

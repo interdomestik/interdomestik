@@ -40,41 +40,15 @@ vi.mock('@/lib/supabase', () => ({
 }));
 
 vi.mock('next-intl', async () => {
-  const [{ default: notifications }, { default: common }, { createUseTranslationsMock }] =
-    await Promise.all([
-      import('@/messages/en/notifications.json'),
-      import('@/messages/en/common.json'),
-      import('@/test/next-intl-mock'),
-    ]);
-  return { useTranslations: createUseTranslationsMock(() => ({ ...notifications, ...common })) };
+  const { createNotificationTranslationsMock } = await import('./notification-test-ui');
+  return createNotificationTranslationsMock();
 });
 
 // Mock UI primitives to avoid portal/open-state complexity.
-vi.mock('@interdomestik/ui', () => ({
-  Badge: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
-  Button: ({
-    children,
-    ...props
-  }: React.PropsWithChildren<React.ButtonHTMLAttributes<HTMLButtonElement>>) => (
-    <button {...props}>{children}</button>
-  ),
-  DropdownMenu: ({
-    children,
-    onOpenChange,
-  }: {
-    children: React.ReactNode;
-    onOpenChange?: (open: boolean) => void;
-  }) => (
-    <div>
-      <button onClick={() => onOpenChange?.(true)}>Open menu</button>
-      {children}
-    </div>
-  ),
-  DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DropdownMenuItem: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(' '),
-}));
+vi.mock('@interdomestik/ui', async () => {
+  const { createNotificationUiMock } = await import('./notification-test-ui');
+  return createNotificationUiMock({ withOpenControl: true });
+});
 
 describe('NotificationCenter', () => {
   beforeEach(() => {

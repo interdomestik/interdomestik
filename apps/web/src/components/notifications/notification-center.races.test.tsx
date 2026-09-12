@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { NotificationCenter } from './notification-center';
+import { deferred } from './notification-test-ui';
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
@@ -14,40 +15,14 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/actions/notifications', () => mocks);
 
 vi.mock('next-intl', async () => {
-  const [{ default: notifications }, { default: common }, { createUseTranslationsMock }] =
-    await Promise.all([
-      import('@/messages/en/notifications.json'),
-      import('@/messages/en/common.json'),
-      import('@/test/next-intl-mock'),
-    ]);
-  return { useTranslations: createUseTranslationsMock(() => ({ ...notifications, ...common })) };
+  const { createNotificationTranslationsMock } = await import('./notification-test-ui');
+  return createNotificationTranslationsMock();
 });
 
-vi.mock('@interdomestik/ui', () => ({
-  Badge: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
-  Button: ({
-    children,
-    ...props
-  }: React.PropsWithChildren<React.ButtonHTMLAttributes<HTMLButtonElement>>) => (
-    <button {...props}>{children}</button>
-  ),
-  DropdownMenu: ({
-    children,
-    onOpenChange,
-  }: {
-    children: React.ReactNode;
-    onOpenChange?: (open: boolean) => void;
-  }) => (
-    <div>
-      <button onClick={() => onOpenChange?.(true)}>Open menu</button>
-      {children}
-    </div>
-  ),
-  DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DropdownMenuItem: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(' '),
-}));
+vi.mock('@interdomestik/ui', async () => {
+  const { createNotificationUiMock } = await import('./notification-test-ui');
+  return createNotificationUiMock({ withOpenControl: true });
+});
 
 function notification(userId: string, title: string) {
   return {
@@ -60,14 +35,6 @@ function notification(userId: string, title: string) {
     isRead: false,
     createdAt: '2026-09-12T00:00:00.000Z',
   };
-}
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>(resolvePromise => {
-    resolve = resolvePromise;
-  });
-  return { promise, resolve };
 }
 
 describe('NotificationCenter race boundaries', () => {

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { NotificationCenter } from './notification-center';
 import { NotificationItem } from './notification-item';
+import { deferred } from './notification-test-ui';
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: mocks.routerPush }) }));
 
@@ -16,29 +17,14 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/actions/notifications', () => mocks);
 
 vi.mock('next-intl', async () => {
-  const [{ default: notifications }, { default: common }, { createUseTranslationsMock }] =
-    await Promise.all([
-      import('@/messages/en/notifications.json'),
-      import('@/messages/en/common.json'),
-      import('@/test/next-intl-mock'),
-    ]);
-  return { useTranslations: createUseTranslationsMock(() => ({ ...notifications, ...common })) };
+  const { createNotificationTranslationsMock } = await import('./notification-test-ui');
+  return createNotificationTranslationsMock();
 });
 
-vi.mock('@interdomestik/ui', () => ({
-  Badge: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
-  Button: ({
-    children,
-    ...props
-  }: React.PropsWithChildren<React.ButtonHTMLAttributes<HTMLButtonElement>>) => (
-    <button {...props}>{children}</button>
-  ),
-  DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DropdownMenuItem: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(' '),
-}));
+vi.mock('@interdomestik/ui', async () => {
+  const { createNotificationUiMock } = await import('./notification-test-ui');
+  return createNotificationUiMock({ withOpenControl: true });
+});
 
 const unreadNotification = {
   id: 'n1',
@@ -50,16 +36,6 @@ const unreadNotification = {
   isRead: false,
   createdAt: '2026-09-12T00:00:00.000Z',
 };
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  let reject!: (reason?: unknown) => void;
-  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
-    resolve = resolvePromise;
-    reject = rejectPromise;
-  });
-  return { promise, resolve, reject };
-}
 
 describe('NotificationCenter acknowledgement truth', () => {
   beforeEach(() => {
