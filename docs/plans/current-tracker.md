@@ -30,7 +30,7 @@ separate dashboard designs or freeze the legacy presentation.
 
 | ID                                  | Source Refs                                    | Execution  | Run ID   | Run Root | Sonar   | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                                                                                           |
 | ----------------------------------- | ---------------------------------------------- | ---------- | -------- | -------- | ------- | ------ | ---------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `T410-NOTIFICATION-ACK-CORRECTNESS` | docs/plans/current-program.md; owner direction | `scripted` | 9e29d269 | local/CI | pending | pass   | `not_applicable` | `not_applicable` | source-bound local proof `9e29d269793613c5cb8626bf749ac7cb3ae086e6`; Sonnet/Gemini proposal receipts at `adc3ca314`; earlier Astra implementation review at `833496eb`; current-head protected review and protected PR evidence pending |
+| `T410-NOTIFICATION-ACK-CORRECTNESS` | docs/plans/current-program.md; owner direction | `scripted` | dffa6c35 | local/CI | pending | pass   | `not_applicable` | `not_applicable` | source-bound local proof `dffa6c358e5314722b098f43c409afc732184670`; Sonnet/Gemini proposal receipts at `adc3ca314`; earlier Astra implementation review at `833496eb`; current-head protected review and protected PR evidence pending |
 
 Historical staff rehearsal: retained only as a timing baseline; no migration credit.
 
@@ -54,9 +54,9 @@ issue. Protected-main CI `34703433627` passed, SonarCloud Code Analysis check `1
 passed, and Sonar Main Gate `34703433721` attempt 2 passed at the exact merge. No deployment or
 claimant usability validation is claimed.
 
-T410 local source-bound proof passed at `9e29d269793613c5cb8626bf749ac7cb3ae086e6`:
+T410 local source-bound proof passed at `dffa6c358e5314722b098f43c409afc732184670`:
 26 focused notification tests, both focused IDA-host browser variants, `pr:verify` (1,048 CI
-contracts, 154 release-gate tests, 41 RLS tests, 81.24% repository line coverage, 252 gate passes
+contracts, 154 release-gate tests, 41 RLS tests, 81.25% repository line coverage, 252 gate passes
 with 12 intentional skips, and 13 smoke passes with 11 intentional skips), and
 `security:guard`. Repo-owned routes completed Claude Sonnet 5 design and Gemini 3.1 Pro/Gemini 3.8
 Flash test-screening proposals against specification commit `adc3ca314`; those receipts informed

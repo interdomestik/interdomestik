@@ -232,10 +232,10 @@ The owner intends a net-new member UI/UX using current interaction patterns with
 portal shell, not separate role-specific dashboard designs. That redesign is separate scope;
 canonical role routes and readiness markers remain technical access-control and test contracts.
 
-Source-bound local proof passed at `9e29d269793613c5cb8626bf749ac7cb3ae086e6`: 26 focused
+Source-bound local proof passed at `dffa6c358e5314722b098f43c409afc732184670`: 26 focused
 notification tests, both focused IDA-host browser variants, the full `pr:verify` gate, and
 `security:guard`. The full gate included 1,048 CI contracts, 154 release-gate tests, 41 RLS tests,
-81.24% repository line coverage, 252 browser-gate passes with 12 intentional skips, and 13 smoke
+81.25% repository line coverage, 252 browser-gate passes with 12 intentional skips, and 13 smoke
 passes with 11 intentional skips. Repo-owned routes completed Claude Sonnet 5 design and Gemini 3.1
 Pro/Gemini 3.8 Flash test-screening proposals against specification commit `adc3ca314`; those
 receipts informed implementation but are not implementation-review evidence. An earlier independent
