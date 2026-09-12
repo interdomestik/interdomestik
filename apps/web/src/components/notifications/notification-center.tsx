@@ -6,7 +6,6 @@ import {
   Button,
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@interdomestik/ui';
 import { Bell } from 'lucide-react';
@@ -15,7 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { Notification } from './notification-item';
 import { NotificationFeedback } from './notification-feedback';
-import { NotificationList } from './notification-list';
+import { NotificationHeader, NotificationList } from './notification-list';
 interface NotificationCenterProps {
   readonly subscriberId: string;
   readonly fetchOnMount?: boolean;
@@ -103,6 +102,7 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
     setPendingAll(false);
     setErrorMessage(null);
     setStatusMessage('');
+    setSnapshot({ subscriberId, items: [] });
     stateRevisionRef.current += 1;
 
     if (fetchOnMount || isOpenRef.current) {
@@ -120,7 +120,7 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
   const handleMarkAsRead = async (id: string, event?: React.MouseEvent) => {
     event?.preventDefault();
     event?.stopPropagation();
-    if (pendingAllRef.current || pendingIdsRef.current.has(id)) return;
+    if (pendingAllRef.current || pendingIdsRef.current.has(id)) return false;
 
     const mutationSubscriberId = subscriberId;
     const mutationSubscriberEpoch = subscriberEpochRef.current;
@@ -137,12 +137,12 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
         activeSubscriberRef.current !== mutationSubscriberId ||
         subscriberEpochRef.current !== mutationSubscriberEpoch
       ) {
-        return;
+        return false;
       }
-      if (!result.success) {
+      if (!result.success || result.notificationId !== id) {
         setStatusMessage('');
         setErrorMessage(tCommon('errors.generic'));
-        return;
+        return false;
       }
       stateRevisionRef.current += 1;
       setSnapshot(previous =>
@@ -156,6 +156,7 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
           : previous
       );
       setStatusMessage(t('markedRead'));
+      return true;
     } catch (error) {
       if (
         activeSubscriberRef.current === mutationSubscriberId &&
@@ -165,6 +166,7 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
         setStatusMessage('');
         setErrorMessage(tCommon('errors.generic'));
       }
+      return false;
     } finally {
       if (
         activeSubscriberRef.current === mutationSubscriberId &&
@@ -185,6 +187,9 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
 
     const mutationSubscriberId = subscriberId;
     const mutationSubscriberEpoch = subscriberEpochRef.current;
+    const requestedUnreadIds = notifications
+      .filter(notification => !notification.isRead)
+      .map(notification => notification.id);
     pendingAllRef.current = true;
     setPendingAll(true);
     setErrorMessage(null);
@@ -205,14 +210,22 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
         return;
       }
       stateRevisionRef.current += 1;
+      const confirmedIds = new Set(result.notificationIds);
       setSnapshot(previous =>
         previous.subscriberId === mutationSubscriberId
           ? {
               ...previous,
-              items: previous.items.map(notification => ({ ...notification, isRead: true })),
+              items: previous.items.map(notification =>
+                confirmedIds.has(notification.id) ? { ...notification, isRead: true } : notification
+              ),
             }
           : previous
       );
+      if (!requestedUnreadIds.every(id => confirmedIds.has(id))) {
+        setStatusMessage('');
+        setErrorMessage(tCommon('errors.generic'));
+        return;
+      }
       setStatusMessage(t('markedAllRead'));
     } catch (error) {
       if (
@@ -259,28 +272,12 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
         className="w-80 bg-background/95 backdrop-blur-xl border shadow-2xl z-50 rounded-xl max-h-[500px] flex flex-col"
         align="end"
       >
-        <div className="flex items-center justify-between p-4 border-b">
-          <h4 className="text-sm font-semibold">{t('title')}</h4>
-          {unreadCount > 0 && (
-            <DropdownMenuItem
-              asChild
-              disabled={pendingAll || pendingIds.size > 0}
-              onSelect={event => event.preventDefault()}
-            >
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 py-0 px-2 text-xs text-muted-foreground hover:text-primary transition-colors"
-                onClick={handleMarkAllAsRead}
-                disabled={pendingAll || pendingIds.size > 0}
-                aria-busy={pendingAll}
-                data-testid="notification-mark-all"
-              >
-                {t('markAllRead')}
-              </Button>
-            </DropdownMenuItem>
-          )}
-        </div>
+        <NotificationHeader
+          unreadCount={unreadCount}
+          pendingAll={pendingAll}
+          pendingIds={pendingIds}
+          onMarkAllAsRead={handleMarkAllAsRead}
+        />
 
         <NotificationFeedback statusMessage={statusMessage} errorMessage={errorMessage} />
 

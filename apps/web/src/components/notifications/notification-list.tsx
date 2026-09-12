@@ -1,3 +1,4 @@
+import { Button, DropdownMenuItem } from '@interdomestik/ui';
 import { Bell, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -8,8 +9,50 @@ interface NotificationListProps {
   readonly notifications: Notification[];
   readonly pendingAll: boolean;
   readonly pendingIds: ReadonlySet<string>;
-  readonly onMarkAsRead: (id: string, event?: React.MouseEvent) => Promise<void>;
+  readonly onMarkAsRead: (id: string, event?: React.MouseEvent) => Promise<boolean>;
   readonly onClose: () => void;
+}
+
+interface NotificationHeaderProps {
+  readonly unreadCount: number;
+  readonly pendingAll: boolean;
+  readonly pendingIds: ReadonlySet<string>;
+  readonly onMarkAllAsRead: (event: React.MouseEvent) => Promise<void>;
+}
+
+export function NotificationHeader({
+  unreadCount,
+  pendingAll,
+  pendingIds,
+  onMarkAllAsRead,
+}: NotificationHeaderProps) {
+  const t = useTranslations('notifications');
+  const acknowledgementPending = pendingAll || pendingIds.size > 0;
+
+  return (
+    <div className="flex items-center justify-between p-4 border-b">
+      <h4 className="text-sm font-semibold">{t('title')}</h4>
+      {unreadCount > 0 && (
+        <DropdownMenuItem
+          asChild
+          disabled={acknowledgementPending}
+          onSelect={event => event.preventDefault()}
+        >
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 py-0 px-2 text-xs text-muted-foreground hover:text-primary transition-colors"
+            onClick={onMarkAllAsRead}
+            disabled={acknowledgementPending}
+            aria-busy={pendingAll}
+            data-testid="notification-mark-all"
+          >
+            {t('markAllRead')}
+          </Button>
+        </DropdownMenuItem>
+      )}
+    </div>
+  );
 }
 
 export function NotificationList({

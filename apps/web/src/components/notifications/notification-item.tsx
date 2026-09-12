@@ -11,6 +11,7 @@ import {
   UserPlus,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export interface Notification {
   readonly id: string;
@@ -26,7 +27,7 @@ export interface Notification {
 interface NotificationItemProps {
   readonly notification: Notification;
   readonly pending: boolean;
-  readonly onMarkAsRead: (id: string, event?: React.MouseEvent) => Promise<void>;
+  readonly onMarkAsRead: (id: string, event?: React.MouseEvent) => Promise<boolean>;
   readonly onClose: () => void;
   readonly markReadLabel: string;
   readonly viewLabel: string;
@@ -57,7 +58,9 @@ export function NotificationItem({
   markReadLabel,
   viewLabel,
 }: NotificationItemProps) {
+  const router = useRouter();
   const isRead = notification.isRead;
+  const actionUrl = notification.actionUrl;
 
   return (
     <div
@@ -104,13 +107,22 @@ export function NotificationItem({
           <span className="text-[10px] text-muted-foreground/60 font-medium">
             {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
           </span>
-          {notification.actionUrl && (
+          {actionUrl && (
             <DropdownMenuItem asChild>
               <Link
-                href={notification.actionUrl}
-                onClick={() => {
-                  if (!isRead) void onMarkAsRead(notification.id);
-                  window.setTimeout(onClose, 0);
+                href={actionUrl}
+                onClick={async event => {
+                  if (isRead) {
+                    onClose();
+                    return;
+                  }
+
+                  event.preventDefault();
+                  const acknowledged = await onMarkAsRead(notification.id, event);
+                  if (!acknowledged) return;
+
+                  onClose();
+                  router.push(actionUrl);
                 }}
                 className="inline-flex items-center gap-1 text-[10px] font-bold text-primary hover:underline"
                 data-testid="notification-action"

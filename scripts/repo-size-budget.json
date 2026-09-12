@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 96846,
+      "trackedBytesDelta": 97293,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 59436,
+        "config/data/messages": 59883,
         "source/scripts": 23092,
         "tests/e2e": 14318
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 59436,
+        "scripts/repo-size-budget.json": 59883,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -1201,6 +1201,7 @@
       "mode": "bounded",
       "writerPaths": [
         "apps/web/e2e/gate/front-door-session-context.spec.ts",
+        "apps/web/src/actions/notifications/mark-read.test.ts",
         "apps/web/src/components/notifications/notification-center.acknowledgement.test.tsx",
         "apps/web/src/components/notifications/notification-center.races.test.tsx",
         "apps/web/src/components/notifications/notification-center.test.tsx",
@@ -1212,28 +1213,33 @@
         "apps/web/src/messages/mk/notifications.json",
         "apps/web/src/messages/sq/notifications.json",
         "apps/web/src/messages/sr/notifications.json",
+        "packages/domain-communications/src/notifications/mark-read.test.ts",
+        "packages/domain-communications/src/notifications/mark-read.ts",
         "scripts/ci/modularity-guard-t410-catalogs.test.mjs"
       ],
-      "maxTrackedBytesDelta": 36000,
+      "maxTrackedBytesDelta": 41000,
       "maxTrackedFilesDelta": 6,
       "maxCategoryBytesDelta": {
         "config/data/messages": 1000,
-        "source/scripts": 10000,
-        "tests/e2e": 25000
+        "source/scripts": 12500,
+        "tests/e2e": 27500
       },
       "maxPathBytesDelta": {
         "apps/web/e2e/gate/front-door-session-context.spec.ts": 4000,
-        "apps/web/src/components/notifications/notification-center.acknowledgement.test.tsx": 8500,
-        "apps/web/src/components/notifications/notification-center.races.test.tsx": 10000,
+        "apps/web/src/actions/notifications/mark-read.test.ts": 200,
+        "apps/web/src/components/notifications/notification-center.acknowledgement.test.tsx": 10500,
+        "apps/web/src/components/notifications/notification-center.races.test.tsx": 11000,
         "apps/web/src/components/notifications/notification-center.test.tsx": 600,
         "apps/web/src/components/notifications/notification-center.tsx": 2500,
         "apps/web/src/components/notifications/notification-feedback.tsx": 600,
-        "apps/web/src/components/notifications/notification-item.tsx": 4500,
-        "apps/web/src/components/notifications/notification-list.tsx": 2000,
+        "apps/web/src/components/notifications/notification-item.tsx": 4600,
+        "apps/web/src/components/notifications/notification-list.tsx": 4000,
         "apps/web/src/messages/en/notifications.json": 500,
         "apps/web/src/messages/mk/notifications.json": 500,
         "apps/web/src/messages/sq/notifications.json": 500,
         "apps/web/src/messages/sr/notifications.json": 500,
+        "packages/domain-communications/src/notifications/mark-read.test.ts": 1400,
+        "packages/domain-communications/src/notifications/mark-read.ts": 800,
         "scripts/ci/modularity-guard-t410-catalogs.test.mjs": 700
       }
     }
@@ -1244,15 +1250,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61174927,
+  "maxTrackedBytes": 61180374,
   "maxTrackedFiles": 6043,
   "maxCategoryBytes": {
-    "config/data/messages": 2227636,
+    "config/data/messages": 2228083,
     "docs/text": 8541936,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8814124,
-    "tests/e2e": 7010496
+    "source/scripts": 8816624,
+    "tests/e2e": 7012996
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

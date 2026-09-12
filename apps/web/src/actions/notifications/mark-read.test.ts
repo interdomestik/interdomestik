@@ -3,8 +3,8 @@ import { markAsReadCore } from './mark-read.core';
 
 // Mock the domain function
 vi.mock('@interdomestik/domain-communications/notifications/mark-read', () => ({
-  markAsReadCore: vi.fn(async () => ({ success: true })),
-  markAllAsReadCore: vi.fn(async () => ({ success: true })),
+  markAsReadCore: vi.fn(async () => ({ success: true, notificationId: 'notif-123' })),
+  markAllAsReadCore: vi.fn(async () => ({ success: true, notificationIds: [] })),
 }));
 
 describe('actions/notifications markAsReadCore', () => {
@@ -24,6 +24,6 @@ describe('actions/notifications markAsReadCore', () => {
       notificationId: 'notif-123',
       requestHeaders: new Headers(),
     });
-    expect(result).toEqual({ success: true });
+    expect(result).toEqual({ success: true, notificationId: 'notif-123' });
   });
 });

@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { NotificationCenter } from './notification-center';
 
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
+
 const mocks = vi.hoisted(() => ({
   getNotifications: vi.fn<() => Promise<unknown[]>>(),
   markAsRead: vi.fn<(notificationId: string) => Promise<unknown>>(),
@@ -91,7 +93,7 @@ describe('NotificationCenter race boundaries', () => {
   });
 
   it('ignores an old subscriber acknowledgement after subscriber change', async () => {
-    const acknowledgement = deferred<{ success: true }>();
+    const acknowledgement = deferred<{ success: true; notificationId: string }>();
     mocks.markAsRead.mockReturnValue(acknowledgement.promise);
     mocks.getNotifications
       .mockResolvedValueOnce([notification('user-123', 'Previous subscriber')])
@@ -104,14 +106,14 @@ describe('NotificationCenter race boundaries', () => {
     const currentRow = await screen.findByTestId('notification-item-new_message');
     expect(within(currentRow).getByText('Current subscriber')).toBeInTheDocument();
 
-    await act(async () => acknowledgement.resolve({ success: true }));
+    await act(async () => acknowledgement.resolve({ success: true, notificationId: 'shared-id' }));
     expect(within(currentRow).getByRole('button')).toBeInTheDocument();
     expect(screen.getByText('1')).toBeInTheDocument();
   });
 
   it('does not let a stale refetch overwrite a confirmed acknowledgement', async () => {
     const refetch = deferred<unknown[]>();
-    const acknowledgement = deferred<{ success: true }>();
+    const acknowledgement = deferred<{ success: true; notificationId: string }>();
     mocks.getNotifications
       .mockResolvedValueOnce([notification('user-123', 'New message')])
       .mockReturnValueOnce(refetch.promise);
@@ -121,7 +123,7 @@ describe('NotificationCenter race boundaries', () => {
     const row = await screen.findByTestId('notification-item-new_message');
     fireEvent.click(within(row).getByRole('button'));
     fireEvent.click(screen.getByText('Open menu'));
-    await act(async () => acknowledgement.resolve({ success: true }));
+    await act(async () => acknowledgement.resolve({ success: true, notificationId: 'shared-id' }));
     await act(async () => refetch.resolve([notification('user-123', 'New message')]));
 
     const currentRow = await screen.findByTestId('notification-item-new_message');
@@ -130,7 +132,7 @@ describe('NotificationCenter race boundaries', () => {
   });
 
   it('keeps a new single pending across an A-to-B-to-A subscriber cycle', async () => {
-    const oldAcknowledgement = deferred<{ success: true }>();
+    const oldAcknowledgement = deferred<{ success: true; notificationId: string }>();
     const currentAcknowledgement = deferred<{ success: false; error: string }>();
     mocks.markAsRead
       .mockReturnValueOnce(oldAcknowledgement.promise)
@@ -153,7 +155,9 @@ describe('NotificationCenter race boundaries', () => {
     fireEvent.click(currentButton);
     expect(mocks.markAsRead).toHaveBeenCalledTimes(2);
 
-    await act(async () => oldAcknowledgement.resolve({ success: true }));
+    await act(async () =>
+      oldAcknowledgement.resolve({ success: true, notificationId: 'shared-id' })
+    );
     expect(currentButton).toBeDisabled();
     expect(screen.getByText('1')).toBeInTheDocument();
     fireEvent.click(currentButton);
@@ -167,7 +171,7 @@ describe('NotificationCenter race boundaries', () => {
   });
 
   it('keeps a new bulk request pending across an A-to-B-to-A subscriber cycle', async () => {
-    const oldAcknowledgement = deferred<{ success: true }>();
+    const oldAcknowledgement = deferred<{ success: true; notificationIds: string[] }>();
     const currentAcknowledgement = deferred<{ success: false; error: string }>();
     mocks.markAllAsRead
       .mockReturnValueOnce(oldAcknowledgement.promise)
@@ -189,7 +193,9 @@ describe('NotificationCenter race boundaries', () => {
     fireEvent.click(currentButton);
     expect(mocks.markAllAsRead).toHaveBeenCalledTimes(2);
 
-    await act(async () => oldAcknowledgement.resolve({ success: true }));
+    await act(async () =>
+      oldAcknowledgement.resolve({ success: true, notificationIds: ['shared-id'] })
+    );
     expect(currentButton).toBeDisabled();
     expect(screen.getByText('1')).toBeInTheDocument();
     fireEvent.click(currentButton);
@@ -215,5 +221,18 @@ describe('NotificationCenter race boundaries', () => {
     expect(await screen.findByText('Subscriber B')).toBeInTheDocument();
     expect(screen.queryByText('Subscriber A')).not.toBeInTheDocument();
     expect(mocks.getNotifications).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not reuse an old snapshot after a closed lazy A-to-B-to-A cycle', async () => {
+    mocks.getNotifications.mockResolvedValueOnce([notification('user-123', 'Old subscriber A')]);
+    const view = render(<NotificationCenter subscriberId="user-123" />);
+
+    await screen.findByText('Old subscriber A');
+    view.rerender(<NotificationCenter subscriberId="user-456" fetchOnMount={false} />);
+    view.rerender(<NotificationCenter subscriberId="user-123" fetchOnMount={false} />);
+
+    expect(screen.queryByText('Old subscriber A')).not.toBeInTheDocument();
+    expect(screen.getByText('No notifications yet')).toBeInTheDocument();
+    expect(mocks.getNotifications).toHaveBeenCalledTimes(1);
   });
 });
