@@ -27,7 +27,7 @@ vi.mock('@interdomestik/database/schema', () => ({
 }));
 
 vi.mock('drizzle-orm', () => ({
-  eq: vi.fn(val => ({ operator: 'eq', val })),
+  eq: vi.fn((column, value) => ({ operator: 'eq', column, value })),
   and: vi.fn((...args) => ({ operator: 'and', args })),
 }));
 
@@ -96,5 +96,12 @@ describe('notifications/markAsReadCore', () => {
     });
 
     expect(result).toEqual({ success: true, notificationIds: ['n1', 'n2'] });
+    expect(mocks.where).toHaveBeenCalledWith({
+      operator: 'and',
+      args: [
+        { operator: 'eq', column: 'notifications.userId', value: 'u1' },
+        { operator: 'eq', column: 'notifications.isRead', value: false },
+      ],
+    });
   });
 });

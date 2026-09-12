@@ -52,7 +52,13 @@ export async function markAllAsReadCore(params: { session: Session | null }) {
     tx
       .update(notifications)
       .set({ isRead: true })
-      .where(withTenant(tenantId, notifications.tenantId, eq(notifications.userId, userId)))
+      .where(
+        withTenant(
+          tenantId,
+          notifications.tenantId,
+          and(eq(notifications.userId, userId), eq(notifications.isRead, false))
+        )
+      )
       .returning({ id: notifications.id })
   );
 

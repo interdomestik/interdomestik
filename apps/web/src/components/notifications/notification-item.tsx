@@ -108,7 +108,7 @@ export function NotificationItem({
             {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
           </span>
           {actionUrl && (
-            <DropdownMenuItem asChild>
+            <DropdownMenuItem asChild onSelect={event => !isRead && event.preventDefault()}>
               <Link
                 href={actionUrl}
                 onClick={async event => {

@@ -154,6 +154,7 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
             }
           : previous
       );
+      setErrorMessage(null);
       setStatusMessage(t('markedRead'));
       return true;
     } catch (error) {

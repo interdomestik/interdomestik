@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   markAsRead: vi.fn<(notificationId: string) => Promise<unknown>>(),
   markAllAsRead: vi.fn<() => Promise<unknown>>(),
   routerPush: vi.fn(),
+  menuItemSelectHandlers: [] as Array<((event: { preventDefault(): void }) => void) | undefined>,
 }));
 
 vi.mock('@/actions/notifications', () => mocks);
@@ -23,7 +24,19 @@ vi.mock('next-intl', async () => {
 
 vi.mock('@interdomestik/ui', async () => {
   const { createNotificationUiMock } = await import('./notification-test-ui');
-  return createNotificationUiMock({ withOpenControl: true });
+  return {
+    ...createNotificationUiMock({ withOpenControl: true }),
+    DropdownMenuItem: ({
+      children,
+      onSelect,
+    }: {
+      children: React.ReactNode;
+      onSelect?: (event: { preventDefault(): void }) => void;
+    }) => {
+      mocks.menuItemSelectHandlers.push(onSelect);
+      return <>{children}</>;
+    },
+  };
 });
 
 const unreadNotification = {
@@ -40,6 +53,7 @@ const unreadNotification = {
 describe('NotificationCenter acknowledgement truth', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.menuItemSelectHandlers.length = 0;
     mocks.getNotifications.mockResolvedValue([unreadNotification]);
   });
 
@@ -215,6 +229,9 @@ describe('NotificationCenter acknowledgement truth', () => {
     });
 
     expect(onMarkAsRead).toHaveBeenCalledWith('n1', expect.anything());
+    const preventDefault = vi.fn();
+    mocks.menuItemSelectHandlers.at(-1)?.({ preventDefault });
+    expect(preventDefault).toHaveBeenCalledOnce();
     expect(onClose).not.toHaveBeenCalled();
     expect(mocks.routerPush).not.toHaveBeenCalled();
     vi.useRealTimers();

@@ -98,6 +98,32 @@ describe('NotificationCenter race boundaries', () => {
     expect(screen.queryByText('1')).not.toBeInTheDocument();
   });
 
+  it('clears an earlier failure when a concurrent acknowledgement later succeeds', async () => {
+    const failed = deferred<{ success: false; error: string }>();
+    const succeeded = deferred<{ success: true; notificationId: string }>();
+    mocks.markAsRead.mockReturnValueOnce(failed.promise).mockReturnValueOnce(succeeded.promise);
+    mocks.getNotifications.mockResolvedValue([
+      notification('user-123', 'First message'),
+      {
+        ...notification('user-123', 'Second message'),
+        id: 'second-id',
+        type: 'claim_assigned',
+      },
+    ]);
+    render(<NotificationCenter subscriberId="user-123" />);
+
+    const rows = await screen.findAllByTestId(/notification-item-/);
+    fireEvent.click(within(rows[0]).getByRole('button'));
+    fireEvent.click(within(rows[1]).getByRole('button'));
+
+    await act(async () => failed.resolve({ success: false, error: 'first request failed' }));
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+
+    await act(async () => succeeded.resolve({ success: true, notificationId: 'second-id' }));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Notification marked as read.');
+  });
+
   it('keeps a new single pending across an A-to-B-to-A subscriber cycle', async () => {
     const oldAcknowledgement = deferred<{ success: true; notificationId: string }>();
     const currentAcknowledgement = deferred<{ success: false; error: string }>();
