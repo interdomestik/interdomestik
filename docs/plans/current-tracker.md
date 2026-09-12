@@ -30,7 +30,7 @@ separate dashboard designs or freeze the legacy presentation.
 
 | ID                                  | Source Refs                                    | Execution  | Run ID   | Run Root | Sonar   | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                                                                                                                                                                                                      |
 | ----------------------------------- | ---------------------------------------------- | ---------- | -------- | -------- | ------- | ------ | ---------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `T410-NOTIFICATION-ACK-CORRECTNESS` | docs/plans/current-program.md; owner direction | `scripted` | a30a5066 | local/CI | pending | pass   | `not_applicable` | `not_applicable` | source-bound local proof `a30a5066e6f19b09420c4928c1717d74a2954ea8`; Sonnet/Gemini Pro/Gemini Flash and independent Astra review pass; protected PR evidence pending                                                                                                                                                                               |
+| `T410-NOTIFICATION-ACK-CORRECTNESS` | docs/plans/current-program.md; owner direction | `scripted` | a30a5066 | local/CI | pending | pass   | `not_applicable` | `not_applicable` | source-bound local proof `a30a5066e6f19b09420c4928c1717d74a2954ea8`; Sonnet/Gemini proposal receipts at `adc3ca314`; independent Astra implementation review pass; protected PR evidence pending                                                                                                                                                   |
 | `T210-MEMBER-TIMELINE`              | docs/plans/current-program.md; owner direction | `scripted` | 061ea591 | local/CI | pass    | pass   | `not_applicable` | `not_applicable` | https://github.com/interdomestik/interdomestik/pull/1763; https://github.com/interdomestik/interdomestik/actions/runs/34703433627; https://api.github.com/repos/interdomestik/interdomestik/check-runs/103580834614; https://github.com/interdomestik/interdomestik/actions/runs/34703433721; local proof 061ea5910ea63aab67009bccfb2b219505733fa9 |
 
 Historical staff rehearsal: retained only as a timing baseline; no migration credit.
@@ -59,10 +59,13 @@ T410 local source-bound proof passed at `a30a5066e6f19b09420c4928c1717d74a2954ea
 17 focused notification tests, both focused IDA-host browser variants, `pr:verify` (1,048 CI
 contracts, 154 release-gate tests, 41 RLS tests, 81.20% repository line coverage, 252 gate passes
 with 12 intentional skips, and 13 smoke passes with 11 intentional skips), and
-`security:guard`. Repo-owned route receipts record PASS from Claude Sonnet 5, Gemini 3.1 Pro, and
-Gemini 3.8 Flash; an independent Astra review also found no remaining issue. This is implementation
-and scripted behavior evidence only: protected PR checks/reviews and merge remain pending, and no
-legacy visual approval, claimant usability validation, or deployment is claimed.
+`security:guard`. Repo-owned routes completed Claude Sonnet 5 design and Gemini 3.1 Pro/Gemini 3.8
+Flash test-screening proposals against specification commit `adc3ca314`; those receipts informed
+implementation but are not implementation-review evidence. Independent Astra implementation
+review at the final code head found no product, security, or CI issue after the evidence-label
+correction. This is implementation and scripted behavior evidence only: protected PR checks/reviews
+and merge remain pending, and no legacy visual approval, claimant usability validation, or
+deployment is claimed.
 
 Terminal: promotion `#1691`; product head
 `503d4b179251f9d3d06e07349ec80f85805565ae`, tree

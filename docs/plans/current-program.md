@@ -236,10 +236,12 @@ Source-bound local proof passed at `a30a5066e6f19b09420c4928c1717d74a2954ea8`: 1
 notification tests, both focused IDA-host browser variants, the full `pr:verify` gate, and
 `security:guard`. The full gate included 1,048 CI contracts, 154 release-gate tests, 41 RLS tests,
 81.20% repository line coverage, 252 browser-gate passes with 12 intentional skips, and 13 smoke
-passes with 11 intentional skips. Repo-owned route receipts record PASS from Claude Sonnet 5,
-Gemini 3.1 Pro, and Gemini 3.8 Flash; independent Astra review found no remaining issue. Protected
-PR evidence and merge are still pending, so the increment remains `in_progress`; no deployment or
-claimant usability validation is claimed.
+passes with 11 intentional skips. Repo-owned routes completed Claude Sonnet 5 design and Gemini 3.1
+Pro/Gemini 3.8 Flash test-screening proposals against specification commit `adc3ca314`; those
+receipts informed implementation but are not implementation-review evidence. Independent Astra
+implementation review at the final code head found no product, security, or CI issue after this
+evidence-label correction. Protected PR evidence and merge are still pending, so the increment
+remains `in_progress`; no deployment or claimant usability validation is claimed.
 
 ## T117C Product Delivery
 
