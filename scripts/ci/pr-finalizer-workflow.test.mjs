@@ -30,6 +30,10 @@ test('PR finalizer refreshes on the same review and review-comment activity as t
     'converted_to_draft',
     'labeled',
   ]);
+  assert.equal(
+    workflow.jobs['pr-finalizer'].if,
+    "github.event_name == 'pull_request' || (github.event.pull_request.state == 'open' && github.event.pull_request.draft == false && github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.repo.full_name == github.repository)"
+  );
 });
 
 test('PR finalizer forces current-head required-check polling for the full lane', () => {

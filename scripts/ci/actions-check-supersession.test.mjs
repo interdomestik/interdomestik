@@ -23,7 +23,7 @@ function fixture(runs = [active], source = producer, complete = true) {
       assert.equal(key, 'workflow_runs');
       assert.equal(
         endpoint,
-        `repos/interdomestik/interdomestik/actions/workflows/20/runs?event=pull_request&head_sha=${head}`
+        `repos/interdomestik/interdomestik/actions/workflows/20/runs?head_sha=${head}`
       );
       return { values: runs, complete };
     },
@@ -36,6 +36,21 @@ test('defers an old failed wrapper only for a newer active same-head producer', 
     await hasPendingCheckReplacement(fixture([{ ...active, id: 10, run_attempt: 2 }]), check, head),
     true
   );
+});
+
+test('feedback producer event families supersede each other on the same workflow and head', async () => {
+  const eventNames = ['pull_request', 'pull_request_review', 'pull_request_review_comment'];
+  for (const sourceEvent of eventNames) {
+    for (const replacementEvent of eventNames) {
+      const source = { ...producer, event: sourceEvent };
+      const replacement = { ...active, event: replacementEvent };
+      assert.equal(
+        await hasPendingCheckReplacement(fixture([replacement], source), check, head),
+        true,
+        `${sourceEvent} should defer to ${replacementEvent}`
+      );
+    }
+  }
 });
 
 test('other workflows, heads, events and older attempts cannot defer a failure', async () => {
@@ -140,7 +155,13 @@ test('delivery gate cancels stale feedback and finalizer refreshes on the same e
   }
 });
 
-test('workflow lookup permits only the fixed PR event and exact SHA query', () => {
+test('workflow lookup permits exact SHA and rejects unsupported event filters', () => {
+  assert.equal(
+    trustedGitHubApiUrl(
+      `repos/interdomestik/interdomestik/actions/workflows/20/runs?head_sha=${head}`
+    ).hostname,
+    'api.github.com'
+  );
   assert.equal(
     trustedGitHubApiUrl(
       `repos/interdomestik/interdomestik/actions/workflows/20/runs?event=pull_request&head_sha=${head}`

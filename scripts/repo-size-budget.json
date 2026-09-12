@@ -639,25 +639,25 @@
         "scripts/ci/actions-check-supersession.mjs",
         "scripts/ci/actions-check-supersession.test.mjs"
       ],
-      "maxTrackedBytesDelta": 27962,
+      "maxTrackedBytesDelta": 29590,
       "maxTrackedFilesDelta": 5,
       "maxCategoryBytesDelta": {
-        "config/data/messages": 284,
-        "tests/e2e": 19470,
-        "source/scripts": 8208
+        "config/data/messages": 718,
+        "tests/e2e": 20553,
+        "source/scripts": 8319
       },
       "maxPathBytesDelta": {
-        ".github/workflows/pr-finalizer.yml": 284,
+        ".github/workflows/pr-finalizer.yml": 718,
         "scripts/ci/e2e-lane-runner-contracts.test.mjs": 1100,
         "scripts/ci/github-governance-contracts.test.mjs": 150,
-        "scripts/ci/pr-finalizer-workflow.test.mjs": 1369,
+        "scripts/ci/pr-finalizer-workflow.test.mjs": 1679,
         "scripts/pr-review-ready.sh": 1279,
         "scripts/ci/pr-delivery-feedback.mjs": 3726,
         "scripts/ci/pr-delivery-ordering.test.mjs": 4723,
         "scripts/ci/pr-review-ready.test.mjs": 3672,
         "scripts/pr-finalizer.sh": 451,
-        "scripts/ci/actions-check-supersession.mjs": 2752,
-        "scripts/ci/actions-check-supersession.test.mjs": 8456
+        "scripts/ci/actions-check-supersession.mjs": 2863,
+        "scripts/ci/actions-check-supersession.test.mjs": 9229
       }
     },
     {
@@ -1162,15 +1162,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61091132,
+  "maxTrackedBytes": 61092760,
   "maxTrackedFiles": 6031,
   "maxCategoryBytes": {
-    "config/data/messages": 2219585,
+    "config/data/messages": 2220019,
     "docs/text": 8541936,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8794997,
-    "tests/e2e": 6953879
+    "source/scripts": 8795108,
+    "tests/e2e": 6954962
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
