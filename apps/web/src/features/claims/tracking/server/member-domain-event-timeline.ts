@@ -1,10 +1,13 @@
 import { and, claimStageHistory, db, desc, domainEvents, eq, sql } from '@interdomestik/database';
-import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
+import type { ClaimStatus } from '@interdomestik/database/constants';
 import type { ClaimTimelineEvent } from '../types';
+import {
+  type MemberEventPresentationRow,
+  presentMemberDomainEvent,
+} from './member-event-presentation-registry';
 
 const GENERIC_EVENT_LABEL = 'claims-tracking.tracking.timeline.generic';
 const REDACTED_EVENT_LABEL = 'claims-tracking.tracking.timeline.redacted';
-const claimStatusSet = new Set<string>(CLAIM_STATUSES);
 
 export type AuthorizedClaimTimelineContext = {
   claimId: string;
@@ -15,20 +18,10 @@ export type AuthorizedClaimTimelineContext = {
   updatedAt: Date | null;
 };
 
-export type MemberDomainEventTimelineRow = {
+export type MemberDomainEventTimelineRow = MemberEventPresentationRow & {
   aggregateVersion: number;
-  createdAt: Date;
   entityType: string;
-  eventName: string;
-  eventVersion: number;
-  id: string;
-  note: string | null;
-  payload: Record<string, unknown>;
 };
-
-function isClaimStatus(value: unknown): value is ClaimStatus {
-  return typeof value === 'string' && claimStatusSet.has(value);
-}
 
 function fallbackEvent(
   context: AuthorizedClaimTimelineContext,
@@ -50,28 +43,18 @@ export function mapDomainEventToMemberTimelineEvent(
   row: MemberDomainEventTimelineRow,
   options: { piiStatus?: 'available' | 'erased_or_unavailable' } = {}
 ): ClaimTimelineEvent {
-  if (options.piiStatus === 'erased_or_unavailable') {
-    return { ...fallbackEvent(context, REDACTED_EVENT_LABEL), id: row.id, date: row.createdAt };
-  }
+  const piiStatus =
+    context.piiStatus === 'erased_or_unavailable' || options.piiStatus === 'erased_or_unavailable'
+      ? 'erased_or_unavailable'
+      : 'available';
 
-  if (row.eventName !== 'claim.status_changed' || row.eventVersion !== 1) {
-    return { ...fallbackEvent(context), id: row.id, date: row.createdAt };
-  }
-
-  const { fromStatus, toStatus } = row.payload;
-  if (!isClaimStatus(fromStatus) || !isClaimStatus(toStatus)) {
-    return { ...fallbackEvent(context), id: row.id, date: row.createdAt };
-  }
-
-  return {
-    id: row.id,
-    date: row.createdAt,
-    statusFrom: fromStatus,
-    statusTo: toStatus,
-    labelKey: `claims-tracking.status.${toStatus}`,
-    note: row.note,
-    isPublic: true,
-  };
+  return presentMemberDomainEvent(
+    {
+      currentStatus: context.currentStatus,
+      piiStatus,
+    },
+    row
+  );
 }
 
 export function buildMemberTimelineFromDomainEvents(

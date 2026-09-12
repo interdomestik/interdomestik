@@ -11,7 +11,10 @@
       "timeline": {
         "empty": "No timeline events available.",
         "generic": "Case update",
-        "redacted": "Case update unavailable"
+        "redacted": "Case update unavailable",
+        "caseUpdate": "Case update",
+        "recoveryUpdate": "Recovery update",
+        "membershipUpdate": "Membership update"
       },
       "documents": {
         "title": "Documents",

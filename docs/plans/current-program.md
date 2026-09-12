@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-11
+last_reviewed: 2026-09-12
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -16,10 +16,12 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-Migration trials 1–3 are complete. The owner-approved next work is bounded harness
-repair and adoption of ordinary protected-PR delivery, followed by a separately
-selected product increment. T210 is prepared, not activated. Package-command PR
-#1759 and QA-runtime recovery are separate work; their completion is not assumed.
+Migration trials 1–3 and ordinary protected-PR harness adoption are complete.
+PR #1761 delivered bounded delivery/finalizer repair as
+`a1eaeb654109312d303f1eeb97f709f39048bf26`; PR #1762 delivered its main-push test-harness repair
+as `12b22bada268dc0961d32792a553e54dea9a2bff`. The owner selected T210 as the next ordinary product
+increment. Its candidate remains bounded to the member timeline registry over the existing T-206
+query and existing member surface; protected merge is not assumed.
 
 ## Delivered History
 
@@ -143,6 +145,30 @@ feature or authorizes work outside the owner's scope.
   they are not authorized by a maintenance merge. PR #1760 establishes this
   boundary before package-command PR #1759 merges. The trusted-parent classifier
   and runtime-sensitive `package.json` classification remain unchanged.
+
+## T210 Member Timeline Candidate
+
+T210 mounts a typed event-presentation registry into the existing single-query T-206 member timeline
+path. The query's tenant, claim, entity, public-history join, and `claim.status_changed` visibility
+constraints remain unchanged. Valid status events retain their authorized public note; unknown
+names/versions and malformed status payloads render a generic row; an erased/unavailable subject
+renders a redacted row. Verified `case.*`, `recovery.*`, and `membership.*` version-1 events have
+fixed, payload-independent SQ/MK/EN/SR labels for reuse by the same existing timeline primitive. No
+raw payload, payload PII, actor identity, internal note, or raw event name reaches the member DTO. Flight and
+assistance families remain excluded because no current payload allowlist supports them.
+
+The UI/UX brief was refreshed on 2026-09-12 against official public descriptions:
+[AirHelp](https://www.airhelp.com/en/contact-us/) combines dashboard status, email updates, and
+explanations for quiet stages; [Allianz Assistance](https://www.allianz-assistance.co.uk/help-and-advice/claim-centre.html)
+offers claim tracking with human-support fallback; and
+[ADAC](https://www.adac.de/services/apps/pannenhilfe/) describes current status and waiting-time
+visibility in its roadside-assistance journey. These are comparison patterns, not evidence that
+Interdomestik has reliable ETA data. T210 adopts calm chronological history,
+plain fixed labels, and safe fallback continuity in the existing Case Companion surface. It rejects
+notification noise, task-list substitution, invented ETAs, raw technical event names, and copied
+competitor trade dress. This is public-description evidence, not an authenticated-portal inspection
+or claimant usability test. Focused proof covers every registered key, fallback/redaction,
+non-mutation/non-leakage, locale resolution, and the shared member timeline rendering path.
 
 ## T117C Product Delivery
 

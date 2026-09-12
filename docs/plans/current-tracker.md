@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-11
+last_reviewed: 2026-09-12
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -18,13 +18,15 @@ status_command: pnpm plan:status
 
 | ID                             | Status        | Owner      | Work                                                                   | Exit Criteria                                          |
 | ------------------------------ | ------------- | ---------- | ---------------------------------------------------------------------- | ------------------------------------------------------ |
-| `HARNESS-ORDINARY-PR-ADOPTION` | `in_progress` | `platform` | Adopt the trial-proven workflow and repair confirmed delivery defects. | Regression tests, required PR checks, protected merge. |
+| `HARNESS-ORDINARY-PR-ADOPTION` | `completed`   | `platform` | Adopt the trial-proven workflow and repair confirmed delivery defects. | PR #1761 and repair PR #1762 merged with green checks. |
+| `T210-MEMBER-TIMELINE`         | `in_progress` | `product`  | Mount the safe event registry over the existing T-206 member timeline. | Focused/required checks and protected product merge.   |
 
 ## Proof Ledger
 
-| ID                             | Source Refs                                                                   | Execution | Run ID    | Run Root | Sonar   | Docker  | Sentry           | Learning | Evidence Refs                                                |
-| ------------------------------ | ----------------------------------------------------------------------------- | --------- | --------- | -------- | ------- | ------- | ---------------- | -------- | ------------------------------------------------------------ |
-| `HARNESS-ORDINARY-PR-ADOPTION` | docs/plans/current-program.md; docs/plans/current-tracker.md; owner direction | `pending` | `pending` | pending  | pending | pending | `not_applicable` | pending  | docs/plans/current-program.md; docs/plans/current-tracker.md |
+| ID                             | Source Refs                                       | Execution | Run ID    | Run Root | Sonar   | Docker | Sentry           | Learning | Evidence Refs                                          |
+| ------------------------------ | ------------------------------------------------- | --------- | --------- | -------- | ------- | ------ | ---------------- | -------- | ------------------------------------------------------ |
+| `HARNESS-ORDINARY-PR-ADOPTION` | docs/plans/current-program.md; PR #1761; PR #1762 | `passed`  | GitHub PR | GitHub   | passed  | N/A    | `not_applicable` | closed   | PR #1761 merge `a1eaeb654`; PR #1762 merge `12b22bada` |
+| `T210-MEMBER-TIMELINE`         | docs/plans/current-program.md; owner direction    | `pending` | pending   | local/CI | pending | N/A    | `not_applicable` | pending  | current product branch and protected PR                |
 
 Historical staff rehearsal: retained only as a timing baseline; no migration credit.
 
@@ -76,17 +78,16 @@ Migration is completed at 3/3. This is not production-deployment evidence.
 
 ## Next Selection
 
-T117C was delivered by promotion #1738 and product #1736. Its legacy projection
-remains inactive. The owner selected harness adoption next; T210 remains prepared,
-not an active product slice. Package-command PR #1759 and QA-runtime recovery
-proceed separately and are not recorded as completed here.
+T117C was delivered by promotion #1738 and product #1736. Its legacy projection remains inactive.
+Harness adoption completed through #1761 and #1762. The owner selected T210 as the next bounded
+ordinary product increment; its protected merge is not yet assumed.
 
-| Future successor branch            | Status      | Constraint                                                                |
-| ---------------------------------- | ----------- | ------------------------------------------------------------------------- |
-| Locale-aware currency parsing      | `completed` | Product #1754; migration trial 1/3 closed.                                |
-| Bounded failed-run retry           | `completed` | Product #1757; migration trial 2/3 closed.                                |
-| Unsupported claim AI document type | `completed` | Product #1758; migration trial 3/3 closed.                                |
-| Member timeline (T210)             | `pending`   | Prepared only; select the bounded product outcome after harness adoption. |
+| Future successor branch            | Status        | Constraint                                                                 |
+| ---------------------------------- | ------------- | -------------------------------------------------------------------------- |
+| Locale-aware currency parsing      | `completed`   | Product #1754; migration trial 1/3 closed.                                 |
+| Bounded failed-run retry           | `completed`   | Product #1757; migration trial 2/3 closed.                                 |
+| Unsupported claim AI document type | `completed`   | Product #1758; migration trial 3/3 closed.                                 |
+| Member timeline (T210)             | `in_progress` | Selected after harness adoption; deliver through one bounded protected PR. |
 
 ## Lean Authority
 

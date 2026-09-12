@@ -11,7 +11,10 @@
       "timeline": {
         "empty": "Nuk ka ngjarje në kohështrirje.",
         "generic": "Përditësim i rastit",
-        "redacted": "Përditësimi i rastit nuk është i disponueshëm"
+        "redacted": "Përditësimi i rastit nuk është i disponueshëm",
+        "caseUpdate": "Përditësim i rastit",
+        "recoveryUpdate": "Përditësim i rikuperimit",
+        "membershipUpdate": "Përditësim i anëtarësimit"
       },
       "documents": {
         "title": "Dokumentet",

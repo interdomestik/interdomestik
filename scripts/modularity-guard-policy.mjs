@@ -80,6 +80,12 @@ const T117B_CATALOGS = new Set([
   'apps/web/src/messages/sq/dashboard.json',
   'apps/web/src/messages/sr/dashboard.json',
 ]);
+const T210_CATALOGS = new Set([
+  'apps/web/src/messages/en/claims-tracking.json',
+  'apps/web/src/messages/mk/claims-tracking.json',
+  'apps/web/src/messages/sq/claims-tracking.json',
+  'apps/web/src/messages/sr/claims-tracking.json',
+]);
 const GENERATED_EXACT_FILES = new Set([
   'bun.lockb',
   'package-lock.json',
@@ -118,7 +124,9 @@ export function structuredArtifactOwner(filePath) {
   const relPath = toPolicyPath(filePath);
   const owner = T117B_CATALOGS.has(relPath)
     ? 't117b-member-portal-i18n-contract'
-    : STRUCTURED_OWNERS.find(([pattern]) => pattern.test(relPath))?.[1];
+    : T210_CATALOGS.has(relPath)
+      ? 't210-member-timeline-i18n-contract'
+      : STRUCTURED_OWNERS.find(([pattern]) => pattern.test(relPath))?.[1];
   return owner ?? null;
 }
 export function classifyModularityFile(filePath) {

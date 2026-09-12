@@ -130,6 +130,19 @@ describe('member domain-event timeline', () => {
     });
   });
 
+  it('does not let an available option override an erased authorized context', () => {
+    expect(
+      mapDomainEventToMemberTimelineEvent(
+        { ...context, piiStatus: 'erased_or_unavailable' },
+        eventRow({ note: 'must remain hidden' }),
+        { piiStatus: 'available' }
+      )
+    ).toMatchObject({
+      labelKey: 'claims-tracking.tracking.timeline.redacted',
+      note: null,
+    });
+  });
+
   it('falls back to the authorized claim status when domain_events has no rows', () => {
     expect(buildMemberTimelineFromDomainEvents(context, [])).toEqual([
       {
