@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 92269,
+      "trackedBytesDelta": 92511,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 54859,
+        "config/data/messages": 55101,
         "source/scripts": 23092,
         "tests/e2e": 14318
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 54859,
+        "scripts/repo-size-budget.json": 55101,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -630,7 +630,9 @@
         ".github/workflows/pr-finalizer.yml",
         "scripts/ci/e2e-lane-runner-contracts.test.mjs",
         "scripts/ci/github-governance-contracts.test.mjs",
+        "scripts/ci/pr-finalizer-stale-head.test.mjs",
         "scripts/ci/pr-finalizer-workflow.test.mjs",
+        "scripts/ci/pr-gate-concurrency-state.test.mjs",
         "scripts/pr-review-ready.sh",
         "scripts/ci/pr-delivery-feedback.mjs",
         "scripts/ci/pr-delivery-ordering.test.mjs",
@@ -639,25 +641,27 @@
         "scripts/ci/actions-check-supersession.mjs",
         "scripts/ci/actions-check-supersession.test.mjs"
       ],
-      "maxTrackedBytesDelta": 35863,
-      "maxTrackedFilesDelta": 5,
+      "maxTrackedBytesDelta": 50216,
+      "maxTrackedFilesDelta": 7,
       "maxCategoryBytesDelta": {
-        "config/data/messages": 1454,
-        "tests/e2e": 24798,
-        "source/scripts": 9611
+        "config/data/messages": 1751,
+        "tests/e2e": 36519,
+        "source/scripts": 11946
       },
       "maxPathBytesDelta": {
-        ".github/workflows/pr-finalizer.yml": 1454,
+        ".github/workflows/pr-finalizer.yml": 1751,
         "scripts/ci/e2e-lane-runner-contracts.test.mjs": 1100,
         "scripts/ci/github-governance-contracts.test.mjs": 150,
-        "scripts/ci/pr-finalizer-workflow.test.mjs": 5430,
+        "scripts/ci/pr-finalizer-stale-head.test.mjs": 6973,
+        "scripts/ci/pr-finalizer-workflow.test.mjs": 16396,
+        "scripts/ci/pr-gate-concurrency-state.test.mjs": 3102,
         "scripts/pr-review-ready.sh": 1279,
         "scripts/ci/pr-delivery-feedback.mjs": 3726,
         "scripts/ci/pr-delivery-ordering.test.mjs": 4912,
         "scripts/ci/pr-review-ready.test.mjs": 3672,
-        "scripts/pr-finalizer.sh": 451,
-        "scripts/ci/actions-check-supersession.mjs": 4155,
-        "scripts/ci/actions-check-supersession.test.mjs": 9534
+        "scripts/pr-finalizer.sh": 2592,
+        "scripts/ci/actions-check-supersession.mjs": 4349,
+        "scripts/ci/actions-check-supersession.test.mjs": 10289
       }
     },
     {
@@ -937,13 +941,13 @@
         "scripts/ci/pr-delivery-workflow.test.mjs",
         "scripts/ci/repo-size-audit.test.mjs"
       ],
-      "maxTrackedBytesDelta": 3512,
+      "maxTrackedBytesDelta": 4231,
       "maxTrackedFilesDelta": 1,
-      "maxCategoryBytesDelta": { "config/data/messages": 847, "tests/e2e": 1959, "other": 706 },
+      "maxCategoryBytesDelta": { "config/data/messages": 1101, "tests/e2e": 2424, "other": 706 },
       "maxPathBytesDelta": {
         ".husky/pre-push": 706,
-        ".github/workflows/pr-delivery-gate.yml": 847,
-        "scripts/ci/pr-delivery-workflow.test.mjs": 1105,
+        ".github/workflows/pr-delivery-gate.yml": 1101,
+        "scripts/ci/pr-delivery-workflow.test.mjs": 1570,
         "scripts/ci/repo-size-audit.test.mjs": 854
       }
     },
@@ -1162,15 +1166,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61099392,
-  "maxTrackedFiles": 6031,
+  "maxTrackedBytes": 61114706,
+  "maxTrackedFiles": 6033,
   "maxCategoryBytes": {
-    "config/data/messages": 2220851,
+    "config/data/messages": 2221644,
     "docs/text": 8541936,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8796400,
-    "tests/e2e": 6959470
+    "source/scripts": 8798735,
+    "tests/e2e": 6971656
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

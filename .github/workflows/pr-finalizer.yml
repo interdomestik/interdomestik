@@ -12,17 +12,18 @@ on:
     types: [created, edited, deleted]
 
 concurrency:
-  # Lifecycle work remains PR-scoped so a new synchronize event cancels stale
-  # lifecycle work. Feedback is head-scoped so delayed stale-head feedback can
-  # never replace a pending current-head lifecycle run.
-  group: pr-finalizer-${{ github.event.pull_request.number }}-${{ github.event_name == 'pull_request' && 'lifecycle' || format('feedback-{0}', github.event.pull_request.head.sha) }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' }}
+  # Trusted eligible feedback always executes the complete snapshot and may
+  # coalesce. Lifecycle, fork, draft, and other deferred events stay unique.
+  group: pr-finalizer-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}-${{ github.event_name != 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.state == 'open' && github.event.pull_request.draft == false && github.event.pull_request.base.ref == 'main' && 'full-feedback' || format('deferred-{0}', github.run_id) }}
+  cancel-in-progress: true
 
 jobs:
   pr-finalizer:
+    name: "${{ (github.event_name == 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.state == 'open' && github.event.pull_request.draft == false && github.event.pull_request.base.ref == 'main')) && 'pr-finalizer' || 'pr-finalizer-feedback-deferred' }}"
     if: >-
       github.event_name == 'pull_request' ||
-      (github.event.pull_request.state == 'open' &&
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.state == 'open' &&
       github.event.pull_request.draft == false &&
       github.event.pull_request.base.ref == 'main')
     permissions:
@@ -47,11 +48,7 @@ jobs:
         id: certification
         uses: interdomestik/interdomestik/.github/actions/exact-head-certification@ecd31cf47a5d2fbd6c164aea0c0c6fcfb686011b
         with:
-          policy-json: >-
-            ${{ (github.event_name == 'pull_request' ||
-            github.event.pull_request.head.repo.full_name == github.repository) &&
-            toJSON(steps.gate_policy.outputs) ||
-            '{"should_run":"false","run_full":"false","force_full":"false","reason":"fork-feedback-deferred"}' }}
+          policy-json: ${{ toJSON(steps.gate_policy.outputs) }}
       - name: Report quick draft lane
         env:
           RUN_BROAD: ${{ steps.certification.outputs.run_broad }}
@@ -68,6 +65,7 @@ jobs:
       - name: Run PR finalizer gate
         if: steps.certification.outputs.run_broad == 'true'
         env:
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           GH_TOKEN: ${{ github.token }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}

@@ -72,23 +72,43 @@ test('feedback producer event families supersede each other on the same workflow
   }
 });
 
-test('unrelated pull-request lifecycle runs cannot defer a failed producer', async () => {
-  const unrelated = {
-    ...active,
-    display_title: runTitle('pull_request', 'review_requested'),
-  };
-  assert.equal(await hasPendingCheckReplacement(fixture([unrelated]), check, head), false);
-  assert.equal(
-    await hasPendingCheckReplacement(
-      fixture([active], {
+test('every configured pull-request snapshot action may supersede another', async () => {
+  const actions = [
+    'opened',
+    'synchronize',
+    'reopened',
+    'ready_for_review',
+    'converted_to_draft',
+    'labeled',
+    'review_requested',
+    'review_request_removed',
+    'closed',
+  ];
+  for (const sourceAction of actions) {
+    for (const replacementAction of actions) {
+      const source = {
         ...producer,
-        display_title: runTitle('pull_request', 'review_request_removed'),
-      }),
-      check,
-      head
-    ),
-    false
-  );
+        display_title: runTitle('pull_request', sourceAction),
+      };
+      const replacement = {
+        ...active,
+        display_title: runTitle('pull_request', replacementAction),
+      };
+      assert.equal(
+        await hasPendingCheckReplacement(fixture([replacement], source), check, head),
+        true,
+        `${sourceAction} should defer to ${replacementAction}`
+      );
+    }
+  }
+});
+
+test('unsupported pull-request actions cannot supersede a failed producer', async () => {
+  const unsupported = {
+    ...active,
+    display_title: runTitle('pull_request', 'assigned'),
+  };
+  assert.equal(await hasPendingCheckReplacement(fixture([unsupported]), check, head), false);
 });
 
 test('full-gate label reruns remain eligible replacement producers', async () => {
@@ -193,15 +213,16 @@ test('delivery gate cancels stale feedback and finalizer refreshes on the same e
   );
 
   const gateGroup = gate.match(/ {2}group: (.*)\n/u)[1];
-  assert.match(gateGroup, /event\.action == 'synchronize' && 'synchronize'/u);
-  assert.match(gateGroup, /format\('event-\{0\}', github\.run_id\)/u);
-  assert.match(gateGroup, /format\('feedback-\{0\}', github\.event\.pull_request\.head\.sha\)/u);
+  assert.equal(
+    gateGroup,
+    "pr-delivery-gate-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}-${{ github.event.pull_request.base.ref == 'main' && github.event.pull_request.state == 'open' && !github.event.pull_request.draft && (github.event.action != 'labeled' || github.event.label.name == 'full-gate') && (github.event.pull_request.head.repo.full_name == github.repository && 'same-repository' || 'fork') || format('deferred-{0}', github.run_id) }}"
+  );
 
   const gateCancel = gate.match(/ {2}cancel-in-progress: (.*)\n/u)[1];
   assert.equal(
     gateCancel,
-    "${{ (github.event_name == 'pull_request' && github.event.action == 'synchronize') || github.event_name == 'pull_request_review' || github.event_name == 'pull_request_review_comment' }}",
-    'synchronize and both feedback event families must cancel their own obsolete run, unrelated pull_request events must not'
+    'true',
+    'all same-origin, same-head snapshot refreshes replace obsolete work'
   );
 
   assert.match(
@@ -218,7 +239,7 @@ test('delivery gate cancels stale feedback and finalizer refreshes on the same e
   );
   assert.equal(
     finalizer.match(/ {2}group: (.*)\n/u)[1],
-    "pr-finalizer-${{ github.event.pull_request.number }}-${{ github.event_name == 'pull_request' && 'lifecycle' || format('feedback-{0}', github.event.pull_request.head.sha) }}"
+    "pr-finalizer-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}-${{ github.event_name != 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.state == 'open' && github.event.pull_request.draft == false && github.event.pull_request.base.ref == 'main' && 'full-feedback' || format('deferred-{0}', github.run_id) }}"
   );
   assert.match(
     finalizer,
@@ -226,8 +247,8 @@ test('delivery gate cancels stale feedback and finalizer refreshes on the same e
   );
   assert.equal(
     finalizer.match(/ {2}cancel-in-progress: (.*)\n/u)[1],
-    "${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' }}",
-    'a new head must cancel obsolete work, while stale feedback must not cancel the current head'
+    'true',
+    'trusted same-head refreshes coalesce while the group key isolates fork feedback'
   );
 
   for (const source of [gate, finalizer]) {

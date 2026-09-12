@@ -38,28 +38,22 @@ test('PR finalizer refreshes on the same review and review-comment activity as t
   );
   assert.equal(
     workflow.concurrency.group,
-    "pr-finalizer-${{ github.event.pull_request.number }}-${{ github.event_name == 'pull_request' && 'lifecycle' || format('feedback-{0}', github.event.pull_request.head.sha) }}",
-    'stale-head feedback cannot replace pending current-head lifecycle work'
+    "pr-finalizer-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}-${{ github.event_name != 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.state == 'open' && github.event.pull_request.draft == false && github.event.pull_request.base.ref == 'main' && 'full-feedback' || format('deferred-{0}', github.run_id) }}",
+    'only trusted eligible feedback can replace full feedback validation'
   );
-  assert.equal(
-    workflow.concurrency['cancel-in-progress'],
-    "${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' }}"
-  );
+  assert.equal(workflow.concurrency['cancel-in-progress'], true);
   assert.equal(
     workflow.jobs['pr-finalizer'].if,
-    "github.event_name == 'pull_request' || (github.event.pull_request.state == 'open' && github.event.pull_request.draft == false && github.event.pull_request.base.ref == 'main')"
+    "github.event_name == 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.state == 'open' && github.event.pull_request.draft == false && github.event.pull_request.base.ref == 'main')"
+  );
+  assert.equal(
+    workflow.jobs['pr-finalizer'].name,
+    "${{ (github.event_name == 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.state == 'open' && github.event.pull_request.draft == false && github.event.pull_request.base.ref == 'main')) && 'pr-finalizer' || 'pr-finalizer-feedback-deferred' }}"
   );
   const certification = workflow.jobs['pr-finalizer'].steps.find(step =>
     step.uses?.includes('/.github/actions/exact-head-certification@')
   );
-  assert.match(
-    certification.with['policy-json'],
-    /github\.event_name == 'pull_request' \|\| github\.event\.pull_request\.head\.repo\.full_name == github\.repository/u
-  );
-  assert.match(
-    certification.with['policy-json'],
-    /"should_run":"false","run_full":"false","force_full":"false","reason":"fork-feedback-deferred"/u
-  );
+  assert.equal(certification.with['policy-json'], '${{ toJSON(steps.gate_policy.outputs) }}');
 });
 
 test('PR finalizer forces current-head required-check polling for the full lane', () => {
@@ -84,6 +78,7 @@ test('PR finalizer forces current-head required-check polling for the full lane'
   assert.equal(runStep.run.trim(), 'bash scripts/pr-finalizer.sh');
   assert.equal(runStep.env.PR_FINALIZER_SKIP_CHECK_POLLING, 'false');
   assert.equal(runStep.env.PR_FINALIZER_MAX_CHECK_RETRIES, '360');
+  assert.equal(runStep.env.EXPECTED_HEAD_SHA, '${{ github.event.pull_request.head.sha }}');
   const setup = workflow.jobs['pr-finalizer'].steps.find(step =>
     step.uses?.startsWith('actions/setup-node@')
   );

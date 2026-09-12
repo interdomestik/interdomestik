@@ -10,7 +10,20 @@ const replacementEvents = new Set([
   'pull_request_review_comment',
 ]);
 const replacementActions = new Map([
-  ['pull_request', new Set(['synchronize', 'labeled'])],
+  [
+    'pull_request',
+    new Set([
+      'opened',
+      'synchronize',
+      'reopened',
+      'ready_for_review',
+      'converted_to_draft',
+      'labeled',
+      'review_requested',
+      'review_request_removed',
+      'closed',
+    ]),
+  ],
   ['pull_request_review', new Set(['submitted', 'edited', 'dismissed'])],
   ['pull_request_review_comment', new Set(['created', 'edited', 'deleted'])],
 ]);

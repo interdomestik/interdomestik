@@ -5,9 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-
 import yaml from 'js-yaml';
-
 import {
   GitHubClient,
   eventPullNumber,
@@ -15,7 +13,6 @@ import {
   waitForDelivery,
 } from './pr-delivery-api.mjs';
 import { resolvePackageJsonSurface } from './pr-delivery-gate.mjs';
-
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 const B = '1'.repeat(40);
@@ -186,13 +183,15 @@ test('delivery workflow stays exact and default-deny', () => {
   const source = read('.github/workflows/pr-delivery-gate.yml');
   const workflow = yaml.load(source);
   const job = workflow.jobs['delivery-gate'];
+  const admission =
+    "github.event.pull_request.base.ref == 'main' && github.event.pull_request.state == 'open' && !github.event.pull_request.draft && (github.event.action != 'labeled' || github.event.label.name == 'full-gate')";
 
   assert.ok(job);
   assert.equal(job['timeout-minutes'], 90);
   assert.equal(
     workflow.concurrency['cancel-in-progress'],
-    "${{ (github.event_name == 'pull_request' && github.event.action == 'synchronize') || github.event_name == 'pull_request_review' || github.event_name == 'pull_request_review_comment' }}",
-    'a new candidate head or newer same-head feedback may cancel its own obsolete required check'
+    true,
+    'every same-origin, same-head refresh may replace obsolete snapshot work'
   );
   assert.deepEqual(job.permissions, {
     actions: 'read',
@@ -215,18 +214,21 @@ test('delivery workflow stays exact and default-deny', () => {
   assert.ok(workflow.on.pull_request.types.includes('labeled'));
   assert.deepEqual(Object.keys(workflow.jobs), ['delivery-gate']);
   assert.equal(job.needs, undefined);
+  assert.equal(job.if, admission);
   assert.equal(
-    job.if,
-    `github.event.pull_request.base.ref == 'main' && github.event.pull_request.state == 'open' && !github.event.pull_request.draft && (github.event.action != 'labeled' || github.event.label.name == 'full-gate')`
+    job.name,
+    "${{ github.event.pull_request.base.ref == 'main' && github.event.pull_request.state == 'open' && !github.event.pull_request.draft && (github.event.action != 'labeled' || github.event.label.name == 'full-gate') && 'delivery-gate' || 'delivery-gate-deferred' }}",
+    'a skipped event must not publish the required delivery-gate name'
   );
   assert.match(workflow.concurrency.group, /github\.event\.pull_request\.number/u);
   assert.equal(
     workflow.concurrency.group,
-    "pr-delivery-gate-${{ github.event.pull_request.number }}-${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' && 'synchronize' || github.event_name == 'pull_request' && format('event-{0}', github.run_id) || format('feedback-{0}', github.event.pull_request.head.sha) }}",
-    'synchronize runs share a PR-wide group while feedback remains isolated by head'
+    "pr-delivery-gate-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}-${{ github.event.pull_request.base.ref == 'main' && github.event.pull_request.state == 'open' && !github.event.pull_request.draft && (github.event.action != 'labeled' || github.event.label.name == 'full-gate') && (github.event.pull_request.head.repo.full_name == github.repository && 'same-repository' || 'fork') || format('deferred-{0}', github.run_id) }}",
+    'the job admission predicate also controls authoritative concurrency admission'
   );
-  assert.match(workflow.concurrency.group, /github\.run_id/u);
+  assert.match(workflow.concurrency.group, /format\('deferred-\{0\}', github\.run_id\)/u);
   assert.match(workflow.concurrency.group, /pull_request\.head\.sha/u);
+  assert.match(workflow.concurrency.group, /pull_request\.head\.repo\.full_name/u);
   assert.ok(job.steps.some(step => String(step.uses).startsWith('actions/checkout@')));
   const checkout = job.steps.find(step => String(step.uses).startsWith('actions/checkout@'));
   assert.match(checkout.with.ref, /github\.sha/u);
