@@ -43,7 +43,18 @@ test('PR finalizer refreshes on the same review and review-comment activity as t
   );
   assert.equal(
     workflow.jobs['pr-finalizer'].if,
-    "github.event_name == 'pull_request' || (github.event.pull_request.state == 'open' && github.event.pull_request.draft == false && github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.repo.full_name == github.repository)"
+    "github.event_name == 'pull_request' || (github.event.pull_request.state == 'open' && github.event.pull_request.draft == false && github.event.pull_request.base.ref == 'main')"
+  );
+  const certification = workflow.jobs['pr-finalizer'].steps.find(step =>
+    step.uses?.includes('/.github/actions/exact-head-certification@')
+  );
+  assert.match(
+    certification.with['policy-json'],
+    /github\.event_name == 'pull_request' \|\| github\.event\.pull_request\.head\.repo\.full_name == github\.repository/u
+  );
+  assert.match(
+    certification.with['policy-json'],
+    /"should_run":"false","run_full":"false","force_full":"false","reason":"fork-feedback-deferred"/u
   );
 });
 

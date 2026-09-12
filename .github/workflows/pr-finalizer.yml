@@ -21,8 +21,7 @@ jobs:
       github.event_name == 'pull_request' ||
       (github.event.pull_request.state == 'open' &&
       github.event.pull_request.draft == false &&
-      github.event.pull_request.base.ref == 'main' &&
-      github.event.pull_request.head.repo.full_name == github.repository)
+      github.event.pull_request.base.ref == 'main')
     permissions:
       contents: read
       actions: read
@@ -45,7 +44,11 @@ jobs:
         id: certification
         uses: interdomestik/interdomestik/.github/actions/exact-head-certification@ecd31cf47a5d2fbd6c164aea0c0c6fcfb686011b
         with:
-          policy-json: ${{ toJSON(steps.gate_policy.outputs) }}
+          policy-json: >-
+            ${{ (github.event_name == 'pull_request' ||
+            github.event.pull_request.head.repo.full_name == github.repository) &&
+            toJSON(steps.gate_policy.outputs) ||
+            '{"should_run":"false","run_full":"false","force_full":"false","reason":"fork-feedback-deferred"}' }}
       - name: Report quick draft lane
         env:
           RUN_BROAD: ${{ steps.certification.outputs.run_broad }}
