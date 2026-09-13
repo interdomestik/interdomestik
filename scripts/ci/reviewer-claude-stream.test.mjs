@@ -77,6 +77,11 @@ test('typed reasoning telemetry is retained without becoming response text', () 
   };
   events.splice(2, 0, progress, thinking);
   assert.equal(inspectClaudeStream(stream(events), model).reviewVerdict, 'PASS');
+  thinking.message.content = [{ type: 'redacted_thinking', data: 'opaque-redaction' }];
+  assert.equal(inspectClaudeStream(stream(events), model).reviewVerdict, 'PASS');
+  thinking.message.content[0].data = null;
+  assert.throws(() => inspectClaudeStream(stream(events), model), /tool_or_unknown_content/u);
+  thinking.message.content[0].data = 'opaque-redaction';
   thinking.message.model = 'other';
   assert.throws(() => inspectClaudeStream(stream(events), model), /primary_model_mismatch/u);
   thinking.message.model = model;

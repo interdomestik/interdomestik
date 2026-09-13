@@ -70,6 +70,7 @@ export function inspectClaudeStream(stdout, expectedModel) {
     for (const part of message.content)
       requireClaude(
         (part.type === 'text' && typeof part.text === 'string') ||
+          (part.type === 'redacted_thinking' && typeof part.data === 'string') ||
           (part.type === 'thinking' &&
             typeof part.thinking === 'string' &&
             typeof part.signature === 'string'),
