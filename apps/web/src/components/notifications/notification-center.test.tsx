@@ -2,6 +2,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NotificationCenter } from './notification-center';
 
+vi.mock('@/i18n/routing', () => ({ Link: 'a', useRouter: () => ({ push: vi.fn() }) }));
+
 const mocks = vi.hoisted(() => {
   const getNotifications = vi.fn<() => Promise<unknown[]>>();
   const markAsRead = vi.fn<(notificationId: string) => Promise<unknown>>();
@@ -37,31 +39,16 @@ vi.mock('@/lib/supabase', () => ({
   },
 }));
 
+vi.mock('next-intl', async () => {
+  const { createNotificationTranslationsMock } = await import('./notification-test-ui');
+  return createNotificationTranslationsMock();
+});
+
 // Mock UI primitives to avoid portal/open-state complexity.
-vi.mock('@interdomestik/ui', () => ({
-  Badge: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
-  Button: ({
-    children,
-    ...props
-  }: React.PropsWithChildren<React.ButtonHTMLAttributes<HTMLButtonElement>>) => (
-    <button {...props}>{children}</button>
-  ),
-  DropdownMenu: ({
-    children,
-    onOpenChange,
-  }: {
-    children: React.ReactNode;
-    onOpenChange?: (open: boolean) => void;
-  }) => (
-    <div>
-      <button onClick={() => onOpenChange?.(true)}>Open menu</button>
-      {children}
-    </div>
-  ),
-  DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(' '),
-}));
+vi.mock('@interdomestik/ui', async () => {
+  const { createNotificationUiMock } = await import('./notification-test-ui');
+  return createNotificationUiMock({ withOpenControl: true });
+});
 
 describe('NotificationCenter', () => {
   beforeEach(() => {
@@ -72,7 +59,7 @@ describe('NotificationCenter', () => {
   it('shows empty state when there are no notifications', async () => {
     render(<NotificationCenter subscriberId="user-123" />);
 
-    expect(await screen.findByText('All caught up!')).toBeInTheDocument();
+    expect(await screen.findByText('No notifications yet')).toBeInTheDocument();
   });
 
   it('shows unread count and renders notification content', async () => {
@@ -112,16 +99,16 @@ describe('NotificationCenter', () => {
 
     render(<NotificationCenter subscriberId="user-123" fetchOnMount={false} />);
 
-    expect(screen.getByText('All caught up!')).toBeInTheDocument();
+    expect(screen.getByText('No notifications yet')).toBeInTheDocument();
 
     fireEvent.click(screen.getByText('Open menu'));
 
     await waitFor(() => {
-      expect(screen.queryByText('All caught up!')).not.toBeInTheDocument();
+      expect(screen.queryByText('No notifications yet')).not.toBeInTheDocument();
     });
 
     resolveNotifications?.([]);
 
-    expect(await screen.findByText('All caught up!')).toBeInTheDocument();
+    expect(await screen.findByText('No notifications yet')).toBeInTheDocument();
   });
 });

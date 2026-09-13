@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-12
+last_reviewed: 2026-09-13
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -16,18 +16,21 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-No product slice is active. The canonical one-row queue/proof schema retains T210 as the latest
-completed closure record; owner selection is required before another product increment starts.
+The owner selected one bounded notification acknowledgement correctness increment after T210.
+T210 remains completed evidence and no automatic successor is inferred.
+The current member screen is legacy integration evidence only. The planned net-new member UI/UX
+belongs in the unified portal shell; canonical role routes and readiness markers do not authorize
+separate dashboard designs or freeze the legacy presentation.
 
-| ID                     | Status      | Owner     | Work                                                                     | Exit Criteria                                                |
-| ---------------------- | ----------- | --------- | ------------------------------------------------------------------------ | ------------------------------------------------------------ |
-| `T210-MEMBER-TIMELINE` | `completed` | `product` | Mounted the safe event registry over the existing T-206 member timeline. | Required checks, focused review, and protected merge passed. |
+| ID                                  | Status        | Owner     | Work                                                                   | Exit Criteria                                                       |
+| ----------------------------------- | ------------- | --------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `T410-NOTIFICATION-ACK-CORRECTNESS` | `in_progress` | `product` | Make member notification read state reflect confirmed server outcomes. | Focused/browser/required checks, reviews, and protected merge pass. |
 
 ## Proof Ledger
 
-| ID                     | Source Refs                                    | Execution  | Run ID   | Run Root | Sonar | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                                                                                                                                                                                                      |
-| ---------------------- | ---------------------------------------------- | ---------- | -------- | -------- | ----- | ------ | ---------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `T210-MEMBER-TIMELINE` | docs/plans/current-program.md; owner direction | `scripted` | 061ea591 | local/CI | pass  | pass   | `not_applicable` | `not_applicable` | https://github.com/interdomestik/interdomestik/pull/1763; https://github.com/interdomestik/interdomestik/actions/runs/34703433627; https://api.github.com/repos/interdomestik/interdomestik/check-runs/103580834614; https://github.com/interdomestik/interdomestik/actions/runs/34703433721; local proof 061ea5910ea63aab67009bccfb2b219505733fa9 |
+| ID                                  | Source Refs                                    | Execution  | Run ID   | Run Root | Sonar   | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                                                                                           |
+| ----------------------------------- | ---------------------------------------------- | ---------- | -------- | -------- | ------- | ------ | ---------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `T410-NOTIFICATION-ACK-CORRECTNESS` | docs/plans/current-program.md; owner direction | `scripted` | bdeabe37 | local/CI | pending | pass   | `not_applicable` | `not_applicable` | source-bound local proof `bdeabe3795b7d6d4d35004cfba19f1efbbdd3648`; Sonnet/Gemini proposal receipts at `adc3ca314`; earlier Astra implementation review at `833496eb`; current-head protected review and protected PR evidence pending |
 
 Historical staff rehearsal: retained only as a timing baseline; no migration credit.
 
@@ -50,6 +53,23 @@ bound to its original source. Final product head `87c291f21d74c9a1dfd8d92683124c
 issue. Protected-main CI `34703433627` passed, SonarCloud Code Analysis check `103580834614`
 passed, and Sonar Main Gate `34703433721` attempt 2 passed at the exact merge. No deployment or
 claimant usability validation is claimed.
+
+T410 local source-bound proof passed at `bdeabe3795b7d6d4d35004cfba19f1efbbdd3648`:
+30 focused notification tests, both focused IDA-host browser variants, `pr:verify` (1,048 CI
+contracts, 154 release-gate tests, 41 RLS tests, 81.25% repository line coverage
+(21,643/26,637), 252 gate passes with 12 intentional skips, and 13 smoke passes with 11 intentional
+skips), and
+`security:guard`. Repo-owned routes completed Claude Sonnet 5 design and Gemini 3.1 Pro/Gemini 3.8
+Flash test-screening proposals against specification commit `adc3ca314`; those receipts informed
+implementation but are not current-head implementation-review evidence. An earlier independent
+Astra implementation review passed at `833496eb`. Later externally reported findings were
+reproduced and corrected, including bounded bulk responses, locale-safe action routing, disabled
+pending actions, and Serbian glossary consistency; the corrected behavior is covered by the new
+source-bound proof. Bulk acknowledgement still updates the full tenant/user unread backlog and the
+client changes represented requested rows only after server confirmation. This is implementation
+and scripted behavior evidence only: current-head protected review, protected PR checks, and merge
+remain pending, and no legacy visual approval, claimant usability validation, or deployment is
+claimed.
 
 Terminal: promotion `#1691`; product head
 `503d4b179251f9d3d06e07349ec80f85805565ae`, tree
@@ -101,17 +121,19 @@ Migration is completed at 3/3. This is not production-deployment evidence.
 
 T117C was delivered by promotion #1738 and product #1736. Its legacy projection remains inactive.
 Harness adoption completed through #1761 and #1762. T210 completed through product #1763. The
-current program names no successor, so the active product queue is empty pending owner selection.
+owner selected the bounded notification acknowledgement correctness increment as the only active
+ordinary product slice; it is not full T-410 completion and does not select T-411.
 
-| Completed historical priority      | Status      | Constraint                                                            |
-| ---------------------------------- | ----------- | --------------------------------------------------------------------- |
-| Locale-aware currency parsing      | `completed` | Product #1754; migration trial 1/3 closed.                            |
-| Bounded failed-run retry           | `completed` | Product #1757; migration trial 2/3 closed.                            |
-| Unsupported claim AI document type | `completed` | Product #1758; migration trial 3/3 closed.                            |
-| Member timeline (T210)             | `completed` | Product #1763; main CI and Sonar passed at the exact protected merge. |
+| Completed historical priority            | Status        | Constraint                                                                       |
+| ---------------------------------------- | ------------- | -------------------------------------------------------------------------------- |
+| Locale-aware currency parsing            | `completed`   | Product #1754; migration trial 1/3 closed.                                       |
+| Bounded failed-run retry                 | `completed`   | Product #1757; migration trial 2/3 closed.                                       |
+| Unsupported claim AI document type       | `completed`   | Product #1758; migration trial 3/3 closed.                                       |
+| Member timeline (T210)                   | `completed`   | Product #1763; main CI and Sonar passed at the exact protected merge.            |
+| Notification acknowledgement correctness | `in_progress` | Owner-selected prerequisite increment toward T-410; no broader completion claim. |
 
-No successor row is recorded. A recommendation does not become program priority until the owner
-selects it and the current program records that decision.
+No further successor row is recorded. A recommendation does not become program priority until the
+owner selects it and the current program records that decision.
 
 ## Lean Authority
 

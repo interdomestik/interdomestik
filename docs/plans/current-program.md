@@ -25,8 +25,10 @@ as `12b22bada268dc0961d32792a553e54dea9a2bff`. T210 completed through product PR
 `00794c98cc6b4d395493370552ab7b9eae525db7` matched. Protected-main CI `34703433627`, SonarCloud
 Code Analysis check `103580834614`, and Sonar Main Gate `34703433721` attempt 2 passed at the exact
 merge.
-The ordered current-program backlog names no post-T210 successor, so no product slice is active
-pending owner selection.
+The owner selected `T410-NOTIFICATION-ACK-CORRECTNESS` as the next bounded ordinary product
+increment after T210. It fixes truthful notification acknowledgement over the existing member
+notification surface and server-action contract. This increment is a prerequisite step toward
+blueprint T-410; it does not complete all of T-410, select T-411, or reactivate legacy Lean.
 
 ## Delivered History
 
@@ -117,8 +119,7 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 |        3 | Unsupported claim AI document type | Trial 2         | Completed migration trial 3/3. |
 
 These rows are completed historical priorities. The committed post-T210 priority set is empty;
-owner selection and a corresponding current-program update are required before another product
-increment starts.
+the owner-selected notification acknowledgement increment below is the only active product work.
 
 ## Ordinary Product Delivery
 
@@ -189,6 +190,65 @@ they did not change product behavior. Final-head focused review found no unresol
 Protected-main CI `34703433627`, SonarCloud Code Analysis check `103580834614`, and Sonar Main Gate
 `34703433721` attempt 2 passed at the exact squash merge. This records implementation and merge
 only; no deployment or claimant usability validation is claimed.
+
+## T410 Notification Acknowledgement Correctness Increment
+
+`T410-NOTIFICATION-ACK-CORRECTNESS` is a medium-complexity, Sol/high ordinary product slice. Its
+risk drivers are coupled asynchronous UI state, typed server outcomes, concurrency/race
+regressions, localization, and accessibility over an established contract. One implementation
+owner retains integration. Existing blueprint dependencies T401 and T002 are recorded complete;
+this increment does not claim broader T-410 completion.
+
+The member notification center currently awaits single/all acknowledgement actions but ignores a
+returned `{ success: false, error }` before changing the represented rows and a separately stored
+unread count. The bounded correction makes read state server-confirmed, derives the count from the
+represented list, prevents duplicate and overlapping single/all mutations, ignores stale fetch or
+mutation results after subscriber changes, and exposes localized accessible pending, success, and
+failure feedback. Bulk acknowledgement still updates the full tenant/user unread backlog but
+returns a bounded success result; after confirmation, the client marks only its represented
+requested rows read. Existing lazy fetching and action-link navigation remain, with locale-aware
+normalization for stored action paths and disabled semantics while an item is pending. Notification
+generation/delivery, server auth and tenant filters, schema, routes/proxy, billing, case/recovery
+state, and deployment remain unchanged.
+
+The shared brief was checked on 2026-09-12. The current
+[React `useOptimistic` reference](https://react.dev/reference/react/useOptimistic) describes
+temporary pre-confirmation UI and currently documents React 19.3, while this repository resolves
+React 19.2.8; this slice rejects speculative read state and does not add `useOptimistic` merely to
+match a blueprint term. The
+[WCAG 2.2 status-message guidance](https://www.w3.org/WAI/WCAG22/Understanding/status-messages)
+supports programmatically announced waiting, result, and error feedback without taking focus; the
+slice adopts a restrained live status/alert region with understandable control names. AirHelp's
+[public fee description](https://www.airhelp.com/en-int/our-fees/) says claimants are kept updated,
+but it neither exposes nor validates its notification UX; this slice therefore adopts only the
+member outcome of truthful update handling and rejects copied wording or visual design. Focused
+proof must reproduce the false-success bug and cover typed failures, thrown errors, duplicate and
+single/all concurrency, count/list consistency, subscriber/fetch races, accessible names, locale
+resolution, and the retained member navigation path. A tightly scoped browser regression and the
+ordinary required checks remain delivery evidence; no authenticated competitor-portal inspection
+or claimant usability validation is claimed.
+
+The current member screen is a legacy behavioral integration surface only, not an approved visual
+target. Browser evidence for this increment proves notification semantics and keyboard operation;
+it does not approve or freeze that screen's layout, styling, hierarchy, or navigation presentation.
+The owner intends a net-new member UI/UX using current interaction patterns within the unified
+portal shell, not separate role-specific dashboard designs. That redesign is separate scope;
+canonical role routes and readiness markers remain technical access-control and test contracts.
+
+Source-bound local proof passed at `bdeabe3795b7d6d4d35004cfba19f1efbbdd3648`: 30 focused
+notification tests, both focused IDA-host browser variants, the full `pr:verify` gate, and
+`security:guard`. The full gate included 1,048 CI contracts, 154 release-gate tests, 41 RLS tests,
+81.25% repository line coverage (21,643/26,637), 252 browser-gate passes with 12 intentional skips,
+and 13 smoke passes with 11 intentional skips. Repo-owned routes completed Claude Sonnet 5 design
+and Gemini 3.1 Pro/Gemini 3.8 Flash test-screening proposals against specification commit
+`adc3ca314`; those receipts informed implementation but are not current-head implementation-review
+evidence. An earlier independent Astra implementation review passed at `833496eb`. Subsequent
+externally reported findings were reproduced and corrected: concurrent single-acknowledgement error
+state, pending unread-menu closure, Macedonian/Serbian translations, unread-only bulk writes,
+unbounded bulk responses, locale-safe action routing, disabled pending actions, and Serbian glossary
+consistency. The corrected behavior and regressions are covered by the new source-bound proof.
+Current-head protected review, protected PR evidence, and merge are still pending, so the increment
+remains `in_progress`; no deployment or claimant usability validation is claimed.
 
 ## T117C Product Delivery
 

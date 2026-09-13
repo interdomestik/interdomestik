@@ -2,7 +2,10 @@
   "notifications": {
     "title": "Notifications",
     "empty": "No notifications yet",
+    "markRead": "Mark as read: {title}",
     "markAllRead": "Mark all as read",
+    "markedRead": "Notification marked as read.",
+    "markedAllRead": "All notifications marked as read.",
     "viewAll": "View all notifications",
     "settings": "Notification Settings",
     "preferences": {

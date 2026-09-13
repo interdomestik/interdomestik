@@ -1,16 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { markAsReadCore } from './mark-read';
+import { markAllAsReadCore, markAsReadCore } from './mark-read';
 
 const mocks = vi.hoisted(() => ({
   update: vi.fn(),
   set: vi.fn(),
   where: vi.fn(),
+  returning: vi.fn(),
+  withTenantContext: vi.fn(),
 }));
 
 vi.mock('@interdomestik/database', () => ({
-  db: {
-    update: mocks.update,
-  },
+  withTenantContext: mocks.withTenantContext,
 }));
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
@@ -27,7 +27,7 @@ vi.mock('@interdomestik/database/schema', () => ({
 }));
 
 vi.mock('drizzle-orm', () => ({
-  eq: vi.fn(val => ({ operator: 'eq', val })),
+  eq: vi.fn((column, value) => ({ operator: 'eq', column, value })),
   and: vi.fn((...args) => ({ operator: 'and', args })),
 }));
 
@@ -36,6 +36,11 @@ describe('notifications/markAsReadCore', () => {
     vi.clearAllMocks();
     mocks.update.mockReturnValue({ set: mocks.set });
     mocks.set.mockReturnValue({ where: mocks.where });
+    mocks.where.mockReturnValue({ returning: mocks.returning });
+    mocks.returning.mockResolvedValue([{ id: 'n1' }]);
+    mocks.withTenantContext.mockImplementation((_context, action) =>
+      action({ update: mocks.update })
+    );
   });
 
   it('marks notification as read scoped to user', async () => {
@@ -47,6 +52,10 @@ describe('notifications/markAsReadCore', () => {
     });
 
     expect(mocks.update).toHaveBeenCalled();
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 't1', role: 'user' },
+      expect.any(Function)
+    );
     const whereCall = mocks.where.mock.calls[0][0];
 
     // Structure: withTenant(..., AND(eq(id), eq(userId))) -> mocked to AND(...)
@@ -62,5 +71,36 @@ describe('notifications/markAsReadCore', () => {
     await expect(markAsReadCore({ session: null, notificationId: 'n1' })).rejects.toThrow(
       'Not authenticated'
     );
+  });
+
+  it('reports a failed acknowledgement when no notification row was updated', async () => {
+    mocks.returning.mockResolvedValue([]);
+
+    const result = await markAsReadCore({
+      session: {
+        user: { id: 'u1', role: 'user', tenantId: 't1' },
+      } as any,
+      notificationId: 'missing-notification',
+    });
+
+    expect(result).toEqual({ success: false, error: 'Notification not found' });
+  });
+
+  it('confirms the bulk write without materializing an unbounded ID response', async () => {
+    const result = await markAllAsReadCore({
+      session: {
+        user: { id: 'u1', role: 'user', tenantId: 't1' },
+      } as any,
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(mocks.where).toHaveBeenCalledWith({
+      operator: 'and',
+      args: [
+        { operator: 'eq', column: 'notifications.userId', value: 'u1' },
+        { operator: 'eq', column: 'notifications.isRead', value: false },
+      ],
+    });
+    expect(mocks.returning).not.toHaveBeenCalled();
   });
 });

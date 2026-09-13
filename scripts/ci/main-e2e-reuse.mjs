@@ -8,18 +8,20 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const LANE_SHA256 = 'ff019f739b4ae106650a0dff94527154e9579468d0ea2d5a5eecff7c2f715b64';
 const CONFIG_SHA256 = '97ca0f14c9f7b121cf00121eb9a0f5867b0cf9f3e52b7215a504c3d7183f2d30';
 const E2E_TREE_SHAS = new Set([
-  // T117C marker checks ignore hidden React server-stream buffers.
+  // T117C marker compatibility.
   '01c8cb3319414240877198446673b055a2974f28',
-  // Final T117C regressions share PR/main gate selection.
+  // Final T117C gate corpus.
   'cb8eb99c86a6be0fe19bae56053138006f6647b2',
-  // Native form regression runs in both PR and main gate projects.
+  // Native-form gate corpus.
   '7b61dce5634a68e08d19438e51b37837ec2e541c',
   // Protected main before T117C.
   '56c526c1695d1dec5d18d0f058e85c5293a8fcbe',
-  // Exact E2E tree carried by the qualified T117C product candidate.
+  // Qualified T117C product corpus.
   '6b7939c62599c7e017a576d562f7e7111464b7db',
-  // T117C with the optional nonce assertion corrected for strict TypeScript.
+  // T117C nonce correction.
   '110a4d174a4149f9c2eac14ad3e1aff848371d32',
+  // T410 notification acknowledgement behavior proof.
+  'da128e3de157958a6dd39a1552648cb817abaece',
 ]);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {

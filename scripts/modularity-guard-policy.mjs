@@ -75,17 +75,10 @@ const STRUCTURED_OWNERS = [
   [/^(?:components|turbo|vercel)\.json$/u, 'repository-config-contract'],
   [/^\.codex\/config\.toml$/u, 'codex-config-contract'],
 ];
-const T117B_CATALOGS = new Set([
-  'apps/web/src/messages/en/dashboard.json',
-  'apps/web/src/messages/mk/dashboard.json',
-  'apps/web/src/messages/sq/dashboard.json',
-  'apps/web/src/messages/sr/dashboard.json',
-]);
-const T210_CATALOGS = new Set([
-  'apps/web/src/messages/en/claims-tracking.json',
-  'apps/web/src/messages/mk/claims-tracking.json',
-  'apps/web/src/messages/sq/claims-tracking.json',
-  'apps/web/src/messages/sr/claims-tracking.json',
+const LOCALE_CATALOG_OWNERS = new Map([
+  ['dashboard.json', 't117b-member-portal-i18n-contract'],
+  ['claims-tracking.json', 't210-member-timeline-i18n-contract'],
+  ['notifications.json', 't410-notification-acknowledgement-i18n-contract'],
 ]);
 const GENERATED_EXACT_FILES = new Set([
   'bun.lockb',
@@ -123,12 +116,9 @@ export function isExplicitModularityException(filePath) {
 }
 export function structuredArtifactOwner(filePath) {
   const relPath = toPolicyPath(filePath);
-  if (T117B_CATALOGS.has(relPath)) {
-    return 't117b-member-portal-i18n-contract';
-  }
-  if (T210_CATALOGS.has(relPath)) {
-    return 't210-member-timeline-i18n-contract';
-  }
+  const localeCatalog = /^apps\/web\/src\/messages\/(?:en|mk|sq|sr)\/([^/]+\.json)$/u.exec(relPath);
+  const localeOwner = localeCatalog ? LOCALE_CATALOG_OWNERS.get(localeCatalog[1]) : null;
+  if (localeOwner) return localeOwner;
   return STRUCTURED_OWNERS.find(([pattern]) => pattern.test(relPath))?.[1] ?? null;
 }
 export function classifyModularityFile(filePath) {
