@@ -11,9 +11,53 @@ const repoRoot = path.resolve(scriptDir, '../..');
 const accessScript = path.join(repoRoot, 'scripts/ci/model-review-access.mjs');
 const evidenceScript = path.join(repoRoot, 'scripts/ci/model-review-evidence.mjs');
 
-function addFakeClaude(binDir) {
-  const executable = path.join(binDir, 'claude');
-  fs.writeFileSync(executable, '#!/bin/sh\nprintf "OK\\n"\n', { mode: 0o755 });
+function writeIsolatedPreload(root, failure = null) {
+  const preload = path.join(root, 'preload.mjs');
+  const routesUrl = new URL('./model-review-routes.mjs', import.meta.url).href;
+  fs.writeFileSync(
+    preload,
+    `
+    import fs from 'node:fs';
+    import childProcess from 'node:child_process';
+    import { syncBuiltinESMExports } from 'node:module';
+    import { modelReviewRoutes, googleReviewArgs } from ${JSON.stringify(routesUrl)};
+    const fixture = 'console.log(JSON.stringify({model:"fixture-model",result:"VERDICT: PASS"}))';
+    for (const route of Object.values(modelReviewRoutes)) {
+      Object.assign(route, {
+        command: process.execPath, nativeProtocol: undefined,
+        provider: 'fixture', model: 'fixture-model', args: () => ['-e', fixture],
+      });
+    }
+    const failure = ${JSON.stringify(failure)};
+    if (failure) {
+      fs.readdirSync = () => {
+        if (failure === 'conflict') return ['admin.toml'];
+        throw Object.assign(new Error('policy unavailable'), { code: 'EACCES' });
+      };
+      for (const name of ['gemini', 'flash']) {
+        modelReviewRoutes[name].args = prompt => googleReviewArgs(prompt, 'fixture-model');
+      }
+    }
+    const spawn = childProcess.spawn;
+    const unexpected = () => {
+      fs.writeFileSync(${JSON.stringify(path.join(root, 'provider-started'))}, 'unexpected');
+      throw new Error('Unexpected subprocess: provider execution forbidden in contract tests');
+    };
+    childProcess.spawn = (command, args, options) => {
+      if (command !== process.execPath || args.length !== 2 ||
+          args[0] !== '-e' || args[1] !== fixture) return unexpected();
+      return spawn(command, args, options);
+    };
+    childProcess.spawnSync = unexpected;
+    childProcess.exec = unexpected;
+    childProcess.execFile = unexpected;
+    childProcess.execSync = unexpected;
+    childProcess.execFileSync = unexpected;
+    childProcess.fork = unexpected;
+    syncBuiltinESMExports();
+  `
+  );
+  return preload;
 }
 
 function withReceipt(receipt, callback) {
@@ -37,16 +81,15 @@ function runEvidence(root, args = []) {
   });
 }
 
-function runAccessWithFakeClaude(name, args) {
+function runIsolatedAccess(name, args) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), `model-review-${name}-`));
-  const binDir = path.join(root, 'bin');
-  fs.mkdirSync(binDir);
-  addFakeClaude(binDir);
-  const result = spawnSync(process.execPath, [accessScript, '--run-root', root, ...args], {
-    cwd: repoRoot,
-    encoding: 'utf8',
-    env: { ...process.env, PATH: `${binDir}:${process.env.PATH}` },
-  });
+  const preload = writeIsolatedPreload(root);
+  const result = spawnSync(
+    process.execPath,
+    ['--import', preload, accessScript, '--run-root', root, ...args],
+    { cwd: repoRoot, encoding: 'utf8', timeout: 10_000 }
+  );
+  assert.equal(fs.existsSync(path.join(root, 'provider-started')), false);
   return { result, root };
 }
 
@@ -86,6 +129,18 @@ test('model-review evidence fails when a required route is blocked', () => {
   });
 });
 
+for (const status of ['failed', 'skipped', 'unknown', undefined]) {
+  test(`model-review evidence rejects required status ${status}`, () => {
+    withReceipt({ results: [{ reviewer: 'sonnet', status }] }, root => {
+      for (const args of [[], ['--require-call']]) {
+        const result = runEvidence(root, args);
+        assert.notEqual(result.status, 0);
+        assert.match(result.stderr, /required reviewers blocked/u);
+      }
+    });
+  });
+}
+
 test('model-review evidence requires call proof when requested', () => {
   withReceipt({ results: [{ reviewer: 'sonnet', status: 'available' }] }, root => {
     const result = runEvidence(root, ['--required', 'sonnet', '--require-call']);
@@ -124,7 +179,7 @@ test('model-review access writes receipts for callable and command-only routes',
   ];
 
   for (const scenario of scenarios) {
-    const { result, root } = runAccessWithFakeClaude(scenario.name, scenario.args);
+    const { result, root } = runIsolatedAccess(scenario.name, scenario.args);
     try {
       assert.equal(result.status, 0, result.stderr);
       const receipt = readAccessReceipt(root);
@@ -143,25 +198,7 @@ for (const failure of ['conflict', 'unreadable']) {
   for (const required of ['sonnet', 'gemini']) {
     test(`access receipt retains ${failure} Google refusal with required ${required}`, () => {
       const root = fs.mkdtempSync(path.join(os.tmpdir(), 'access-policy-refusal-'));
-      const preload = path.join(root, 'preload.mjs');
-      fs.writeFileSync(
-        preload,
-        `
-        import fs from 'node:fs';
-        import childProcess from 'node:child_process';
-        import { syncBuiltinESMExports } from 'node:module';
-        fs.readdirSync = () => {
-          if (${JSON.stringify(failure)} === 'conflict') return ['admin.toml'];
-          throw Object.assign(new Error('policy unavailable'), { code: 'EACCES' });
-        };
-        childProcess.spawnSync = command => {
-          if (command === '/bin/sh' || command === 'claude') return {status: 0};
-          fs.writeFileSync('provider-started', 'unexpected');
-          throw new Error('Google provider must not start');
-        };
-        syncBuiltinESMExports();
-      `
-      );
+      const preload = writeIsolatedPreload(root, failure);
       try {
         const result = spawnSync(
           process.execPath,
@@ -176,7 +213,7 @@ for (const failure of ['conflict', 'unreadable']) {
             '--required',
             required,
           ],
-          { cwd: root, encoding: 'utf8' }
+          { cwd: root, encoding: 'utf8', timeout: 10_000 }
         );
         assert.equal(result.status, required === 'sonnet' ? 0 : 1, result.stderr);
         const receipt = readAccessReceipt(root);

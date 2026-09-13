@@ -210,6 +210,8 @@ async function main() {
     provider: route.provider,
     model: route.model,
     command: route.command,
+    nativeProtocol: route.nativeProtocol,
+    prompt,
     args: preparedArgs.map(argument => (argument === '<prompt>' ? prompt : argument)),
     commandInvoked,
     candidateIdentity: packet.identity,

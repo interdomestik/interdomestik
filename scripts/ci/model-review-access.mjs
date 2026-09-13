@@ -1,7 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { commandAvailable } from './reviewer-route-utils.mjs';
+import { runReviewerRoute } from './reviewer-route-runtime.mjs';
 import process from 'node:process';
+import { pathToFileURL } from 'node:url';
 import {
   assertKnownReviewers,
   modelReviewRoutes,
@@ -9,7 +11,7 @@ import {
 } from './model-review-routes.mjs';
 
 const PROMPT =
-  'Interdomestik model-review access check. Reply OK only. No repository data included.';
+  'Public transport check only. No private context, files, tools, or delegation. Reply exactly: VERDICT: PASS';
 
 function argValue(args, name, fallback = '') {
   const index = args.indexOf(name);
@@ -20,42 +22,41 @@ function timestamp() {
   return new Date().toISOString().replace(/[-:.]/g, '').slice(0, 15);
 }
 
-function commandAvailable(command) {
-  return spawnSync('/bin/sh', ['-c', `command -v ${command}`], {
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-}
-
-function runProbe(route, probe) {
-  const available = commandAvailable(route.command);
-  if (available.status !== 0) {
+export async function runProbe(route, probe, routeName) {
+  if (!commandAvailable(route.command, process.env)) {
     return { status: 'blocked', reason: `${route.command} command unavailable` };
   }
   if (probe === 'command') {
-    return { status: 'available', reason: 'command available; auth/quota not probed' };
+    return {
+      status: 'available',
+      reason: 'command available; signature/auth/quota/model not probed',
+    };
   }
   let args;
   try {
     args = route.args(PROMPT);
   } catch (error) {
-    return {
-      status: 'blocked',
-      reason: `reviewer_argument_preparation: ${String(error?.message ?? error).slice(0, 240)}`,
-    };
+    return { status: 'blocked', reason: `reviewer_argument_preparation: ${error.message}` };
   }
-  const result = spawnSync(route.command, args, {
-    encoding: 'utf8',
-    timeout: 45000,
-    stdio: ['ignore', 'pipe', 'pipe'],
+  const receipt = await runReviewerRoute({
+    routeName,
+    provider: route.provider,
+    model: route.model,
+    command: route.command,
+    nativeProtocol: route.nativeProtocol,
+    prompt: PROMPT,
+    args,
+    commandInvoked: [route.command, ...route.args('<prompt>')],
+    candidateIdentity: { purpose: 'public-only access probe; not a private review' },
   });
-  if (result.status === 0)
-    return { status: 'completed', reason: 'minimal access prompt completed' };
-  const output = `${result.stderr || ''}${result.stdout || ''}`.trim().slice(0, 240);
-  return { status: 'blocked', reason: output || `exit ${result.status ?? 'unknown'}` };
+  return {
+    status: receipt.status === 'ran' ? 'completed' : receipt.status,
+    reason: receipt.error || receipt.blockerReason || `probe ${receipt.status}`,
+    receipt,
+  };
 }
 
-function main() {
+async function main() {
   const args = process.argv.slice(2);
   const required = parseReviewerList(argValue(args, '--required'), ['sonnet']);
   const reviewers = [
@@ -68,17 +69,18 @@ function main() {
   const runRoot =
     argValue(args, '--run-root') || path.join('tmp', 'model-review-access', timestamp());
   const reviewDir = path.join(runRoot, 'reviews');
-  fs.mkdirSync(reviewDir, { recursive: true });
+  fs.mkdirSync(reviewDir, { recursive: true, mode: 0o700 });
 
-  const results = reviewers.map(reviewer => {
+  const results = [];
+  for (const reviewer of reviewers) {
     const route = modelReviewRoutes[reviewer];
-    return {
+    results.push({
       reviewer,
       required: required.includes(reviewer),
       label: route.label,
-      ...runProbe(route, probe),
-    };
-  });
+      ...(await runProbe(route, probe, reviewer)),
+    });
+  }
   const acceptableRequired = probe === 'command' ? ['available', 'completed'] : ['completed'];
   const blockedRequired = results.filter(
     result => result.required && !acceptableRequired.includes(result.status)
@@ -98,9 +100,9 @@ function main() {
     results,
   };
   const out = path.join(reviewDir, 'model-review-access.json');
-  fs.writeFileSync(out, `${JSON.stringify(receipt, null, 2)}\n`);
+  fs.writeFileSync(out, `${JSON.stringify(receipt, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
   console.log(`[model-review-access] receipt=${out}`);
   if (blockedRequired.length > 0) process.exitCode = 1;
 }
 
-main();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await main();

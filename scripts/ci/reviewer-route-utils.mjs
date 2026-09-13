@@ -1,6 +1,23 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+export function providerFailureReason(text) {
+  for (const [pattern, reason] of [
+    [/UNSUPPORTED_CLIENT|unsupported client/iu, 'unsupported_client'],
+    [/quota|rate.?limit|resource.?exhausted|429|capacity exhausted/iu, 'quota_or_rate_limit'],
+    [
+      /not logged in|login required|unauthenticated|authentication.failed|401|oauth/iu,
+      'login_required',
+    ],
+    [
+      /503|502|504|service unavailable|upstream|temporarily unavailable|overloaded/iu,
+      'upstream_unavailable',
+    ],
+  ])
+    if (pattern.test(text)) return reason;
+  return '';
+}
+
 export function commandAvailable(command, env) {
   const candidates = command.includes(path.sep)
     ? [command]
@@ -38,4 +55,22 @@ export function statusForClose(blockerReason, code) {
   if (blockerReason) return 'blocked';
   if (code === 0) return 'ran';
   return 'failed';
+}
+
+const BLOCKERS = [
+  [
+    /AuthorizationRequired|re-authorization required|OAuth token refresh failed/i,
+    'mcp_auth_required',
+  ],
+  [/401 Unauthorized|Missing bearer or basic authentication/i, 'api_auth_required'],
+  [
+    /rate limit|quota exceeded|insufficient_quota|429|too many requests|resource exhausted/i,
+    'quota_or_rate_limit',
+  ],
+  [/Please login|not logged in|login required/i, 'login_required'],
+  [/ENOENT|command not found|not found|not on PATH/i, 'missing_cli'],
+];
+
+export function classifyBlocker(text) {
+  return BLOCKERS.find(([pattern]) => pattern.test(text))?.[1] || '';
 }

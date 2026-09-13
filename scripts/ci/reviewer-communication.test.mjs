@@ -1,0 +1,230 @@
+import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import test from 'node:test';
+import { runProbe } from './model-review-access.mjs';
+import { modelReviewRoutes } from './model-review-routes.mjs';
+import { checkClaudeBilling, claudeRestrictedArgs } from './reviewer-claude-execution.mjs';
+import { reviewerLifecycle } from './reviewer-process-lifecycle.mjs';
+import { checkNativeBilling } from './reviewer-native-process.mjs';
+import { runReviewerRoute } from './reviewer-route-runtime.mjs';
+import { writeRouteReceipt } from './reviewer-route-receipts.mjs';
+
+test('restricted Claude flags exclude hooks, tools, MCP, Chrome and inherited settings', () => {
+  const args = claudeRestrictedArgs('public', 'claude-sonnet-5');
+  for (const [flag, value] of [
+    ['--tools', ''],
+    ['--setting-sources', ''],
+    ['--settings', '{"disableAllHooks":true}'],
+    ['--mcp-config', '{"mcpServers":{}}'],
+    ['--output-format', 'stream-json'],
+    ['--model', 'claude-sonnet-5'],
+  ])
+    assert.equal(args[args.indexOf(flag) + 1], value);
+  for (const flag of [
+    '--strict-mcp-config',
+    '--no-chrome',
+    '--no-session-persistence',
+    '--disable-slash-commands',
+  ])
+    assert.ok(args.includes(flag));
+  assert.ok(!args.includes('--bare'));
+});
+
+test('native billing rejects enabled, malformed and ambiguous paid-credit settings', () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'reviewer-billing-'));
+  const directory = path.join(home, '.gemini/antigravity-cli');
+  const settings = path.join(directory, 'settings.json');
+  fs.mkdirSync(directory, { recursive: true });
+  try {
+    assert.equal(checkNativeBilling(home).source, 'pinned-default');
+    fs.writeFileSync(settings, JSON.stringify({ useG1Credits: false }));
+    assert.equal(checkNativeBilling(home).source, 'explicit');
+    for (const value of [true, 'false', null, 0]) {
+      fs.writeFileSync(settings, JSON.stringify({ useG1Credits: value }));
+      assert.throws(() => checkNativeBilling(home), /paid_fallback_enabled/u);
+    }
+    fs.writeFileSync(settings, 'broken');
+    assert.throws(() => checkNativeBilling(home), /billing_settings_unreadable/u);
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test('Claude refuses enabled or unknown local extra usage before transmission', () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-billing-'));
+  const file = path.join(home, '.claude.json');
+  try {
+    assert.throws(() => checkClaudeBilling(home), /billing_state_unknown/u);
+    for (const value of [true, null, 'false', undefined]) {
+      fs.writeFileSync(
+        file,
+        JSON.stringify({
+          oauthAccount: { hasExtraUsageEnabled: value, billingType: 'stripe_subscription' },
+        })
+      );
+      assert.throws(() => checkClaudeBilling(home), /subscription_only_required/u);
+    }
+    fs.writeFileSync(
+      file,
+      JSON.stringify({
+        oauthAccount: { hasExtraUsageEnabled: false, billingType: 'stripe_subscription' },
+      })
+    );
+    assert.equal(checkClaudeBilling(home).hasExtraUsageEnabled, false);
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
+for (const routeName of ['sonnet', 'gemini', 'flash']) {
+  test(`${routeName} access calls reject an executable wrapper via the same restricted runner`, async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'reviewer-wrapper-'));
+    const command = path.join(root, 'wrapper');
+    fs.writeFileSync(command, '#!/bin/sh\nexit 0\n', { mode: 0o700 });
+    try {
+      const route = { ...modelReviewRoutes[routeName], command };
+      const presence = await runProbe(route, 'command', routeName);
+      assert.equal(presence.status, 'available');
+      assert.match(presence.reason, /not probed/u);
+      const call = await runProbe(route, 'call', routeName);
+      assert.equal(call.status, 'blocked');
+      assert.equal(call.receipt.providerReportedModel, null);
+      assert.equal(call.receipt.reviewVerdict, null);
+      assert.match(call.receipt.error, /untrusted|codesign/u);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+}
+
+test('missing native binary yields blocked diagnostic without another provider', async () => {
+  const result = await runProbe(
+    { ...modelReviewRoutes.flash, command: '/missing/native-agy' },
+    'call',
+    'flash'
+  );
+  assert.equal(result.status, 'blocked');
+  assert.match(result.reason, /unavailable/u);
+});
+
+test('silent process failure cannot claim public probe completion', async () => {
+  const result = await runProbe(
+    {
+      command: process.execPath,
+      provider: 'test',
+      model: 'test',
+      args: () => ['-e', 'process.exit(1)'],
+    },
+    'call',
+    'silent-failure'
+  );
+  assert.equal(result.status, 'failed');
+  assert.equal(result.reason, 'probe failed');
+  assert.equal(result.receipt.exitCode, 1);
+});
+
+test('receipt shows native inference and null server model distinctly', () => {
+  const receipt = {
+    routeName: 'native-inference-test',
+    status: 'ran',
+    provider: 'google',
+    model: 'gemini-3.8-flash-low',
+    providerReportedModel: null,
+    nativeSelectedModel: 'gemini-3.8-flash-low',
+    evidenceBasis: 'native-selection-inference',
+    nativeExecutionInference: { limitation: 'No independent server attestation.' },
+    commandInvoked: ['agy'],
+    startedAt: new Date().toISOString(),
+    endedAt: new Date().toISOString(),
+    elapsedMs: 1,
+    firstOutputTimeout: { timedOut: false },
+    totalTimeout: { timedOut: false },
+  };
+  const files = writeRouteReceipt(receipt);
+  const second = writeRouteReceipt(receipt);
+  try {
+    assert.notEqual(files.jsonPath, second.jsonPath);
+    assert.equal(fs.statSync(files.jsonPath).mode & 0o777, 0o600);
+    const md = fs.readFileSync(files.mdPath, 'utf8');
+    assert.match(md, /provider-reported model: null/u);
+    assert.match(md, /native-selected model: gemini-3.8-flash-low/u);
+    assert.match(md, /native-selection-inference/u);
+    assert.match(md, /No independent server attestation/u);
+  } finally {
+    for (const file of [...Object.values(files), ...Object.values(second)]) fs.rmSync(file);
+  }
+});
+
+test('spawn failure waits for lifecycle cleanup and retains its actual error', async () => {
+  const before = process.listenerCount('SIGTERM');
+  const result = await runReviewerRoute({
+    routeName: 'spawn-error',
+    provider: 'test',
+    model: 'test',
+    command: os.tmpdir(),
+    args: [],
+  });
+  assert.equal(result.status, 'blocked');
+  assert.equal(result.exitCode, 127);
+  assert.match(result.error, /EACCES|EPERM/u);
+  assert.equal(process.listenerCount('SIGTERM'), before);
+});
+
+test('AbortSignal cancels a reviewer and removes process listeners', async () => {
+  const controller = new AbortController();
+  const before = process.listenerCount('SIGTERM');
+  const promise = runReviewerRoute({
+    routeName: 'cancel-test',
+    provider: 'test',
+    model: 'test',
+    command: process.execPath,
+    args: ['-e', 'setInterval(() => {}, 1000)'],
+    signal: controller.signal,
+  });
+  setTimeout(() => controller.abort(), 30);
+  const result = await promise;
+  assert.equal(result.status, 'blocked');
+  assert.equal(result.blockerReason, 'reviewer_cancelled');
+  assert.equal(process.listenerCount('SIGTERM'), before);
+});
+
+test('owned process group cancellation stops a descendant retaining output pipes', async () => {
+  const child = spawn(
+    process.execPath,
+    [
+      '-e',
+      `
+    const {spawn} = require('node:child_process');
+    const descendant = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], {stdio: ['ignore', 1, 2]});
+    console.log(descendant.pid);
+    setInterval(() => {}, 1000);
+  `,
+    ],
+    { detached: process.platform !== 'win32', stdio: ['ignore', 'pipe', 'pipe'] }
+  );
+  const lifecycle = reviewerLifecycle(child, () => {});
+  const pid = await new Promise(resolve =>
+    child.stdout.once('data', chunk => resolve(Number(chunk.toString().trim())))
+  );
+  const closed = new Promise(resolve => child.once('close', resolve));
+  lifecycle.stop();
+  await closed;
+  const cleanupError = lifecycle.close();
+  assert.equal(cleanupError, undefined);
+  if (process.platform !== 'linux') {
+    assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' });
+    return;
+  }
+  // Container PID 1 may leave the terminated orphan unreaped.
+  let status;
+  try {
+    status = fs.readFileSync(`/proc/${pid}/stat`, 'utf8');
+  } catch (error) {
+    assert.equal(error.code, 'ENOENT');
+    return;
+  }
+  assert.equal(status.slice(status.lastIndexOf(')') + 2, status.lastIndexOf(')') + 3), 'Z');
+});

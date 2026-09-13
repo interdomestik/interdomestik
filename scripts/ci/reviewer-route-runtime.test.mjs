@@ -1,3 +1,4 @@
+import { claudeRestrictedArgs } from './reviewer-claude-execution.mjs';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -182,7 +183,11 @@ test('Opus routes use explicit priority and lightweight model identifiers', () =
   assert.match(modelReviewRoutes.opus.label, /Opus 5/u);
   assert.ok(modelReviewRoutes.opus.args('<prompt>').includes('stream-json'));
   assert.ok(modelReviewRoutes.opus.args('<prompt>').includes('--disable-slash-commands'));
-  assert.ok(modelReviewRoutes.sonnet.args('<prompt>').includes('--disable-slash-commands'));
+  assert.ok(
+    claudeRestrictedArgs('<prompt>', modelReviewRoutes.sonnet.model).includes(
+      '--disable-slash-commands'
+    )
+  );
   assert.ok(modelReviewRoutes.opus48.args('<prompt>').includes('--disable-slash-commands'));
   assert.equal(timeoutConfig('opus').totalTimeoutMs, 30 * 60_000);
   assert.equal(modelReviewRoutes.opus48.model, 'claude-opus-4-8');
