@@ -13,10 +13,6 @@ vi.mock('@interdomestik/database', () => ({
   withTenantContext: mocks.withTenantContext,
 }));
 
-vi.mock('@interdomestik/database/tenant-security', () => ({
-  withTenant: vi.fn((t, col, cond) => cond),
-}));
-
 vi.mock('@interdomestik/database/schema', () => ({
   notifications: {
     id: 'notifications.id',
@@ -58,13 +54,13 @@ describe('notifications/markAsReadCore', () => {
     );
     const whereCall = mocks.where.mock.calls[0][0];
 
-    // Structure: withTenant(..., AND(eq(id), eq(userId))) -> mocked to AND(...)
     expect(whereCall.operator).toBe('and');
     const args = whereCall.args;
-    // expect eq(id, n1) and eq(userId, u1)
-    expect(args).toHaveLength(2);
-    // Checking equality logic roughly
-    // args[0] -> eq(id, n1) or eq(userId, u1) order depends on impl
+    expect(args).toEqual([
+      { operator: 'eq', column: 'notifications.tenantId', value: 't1' },
+      { operator: 'eq', column: 'notifications.id', value: 'n1' },
+      { operator: 'eq', column: 'notifications.userId', value: 'u1' },
+    ]);
   });
 
   it('throws if unauthorized', async () => {
@@ -97,6 +93,7 @@ describe('notifications/markAsReadCore', () => {
     expect(mocks.where).toHaveBeenCalledWith({
       operator: 'and',
       args: [
+        { operator: 'eq', column: 'notifications.tenantId', value: 't1' },
         { operator: 'eq', column: 'notifications.userId', value: 'u1' },
         { operator: 'eq', column: 'notifications.isRead', value: false },
       ],

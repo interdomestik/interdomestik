@@ -111,10 +111,8 @@ test.describe('Front-door session context', () => {
     const projectHeaders = testInfo.project.use.extraHTTPHeaders ?? {};
     const tenantId = frontDoorTenant(testInfo);
     const isIdaHost = new URL(origin).hostname.startsWith('ida.');
-    test.skip(
-      tenantId === null || !isIdaHost,
-      'notification acknowledgement browser proof only runs in neutral IDA front-door projects'
-    );
+    // prettier-ignore
+    test.skip(tenantId === null || !isIdaHost, 'notification acknowledgement browser proof only runs in neutral IDA front-door projects'); // NOSONAR -- intentional neutral-host matrix scope.
     if (tenantId === null || !isIdaHost) {
       throw new Error('unreachable: notification front-door skip did not abort the test');
     }

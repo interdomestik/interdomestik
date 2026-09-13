@@ -1,5 +1,4 @@
 import { withTenantContext } from '@interdomestik/database';
-import { withTenant } from '@interdomestik/database/tenant-security';
 import { notifications } from '@interdomestik/database/schema';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
@@ -21,10 +20,10 @@ export async function markAsReadCore(params: { session: Session | null; notifica
       .update(notifications)
       .set({ isRead: true })
       .where(
-        withTenant(
-          tenantId,
-          notifications.tenantId,
-          and(eq(notifications.id, notificationId), eq(notifications.userId, userId))
+        and(
+          eq(notifications.tenantId, tenantId),
+          eq(notifications.id, notificationId),
+          eq(notifications.userId, userId)
         )
       )
       .returning({ id: notifications.id })
@@ -53,10 +52,10 @@ export async function markAllAsReadCore(params: { session: Session | null }) {
       .update(notifications)
       .set({ isRead: true })
       .where(
-        withTenant(
-          tenantId,
-          notifications.tenantId,
-          and(eq(notifications.userId, userId), eq(notifications.isRead, false))
+        and(
+          eq(notifications.tenantId, tenantId),
+          eq(notifications.userId, userId),
+          eq(notifications.isRead, false)
         )
       )
   );

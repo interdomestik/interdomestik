@@ -68,10 +68,10 @@ export function NotificationList({
 
   if (loading) {
     return (
-      <div className="flex h-32 items-center justify-center" role="status">
+      <output className="flex h-32 items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         <span className="sr-only">{tCommon('loading')}</span>
-      </div>
+      </output>
     );
   }
   if (notifications.length === 0) {
