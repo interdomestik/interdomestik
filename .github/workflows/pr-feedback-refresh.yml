@@ -1,0 +1,42 @@
+name: PR feedback refresh
+
+on:
+  schedule:
+    - cron: '2-57/5 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: pr-feedback-refresh-main
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    if: >-
+      github.repository_id == '1128472973' &&
+      github.ref == 'refs/heads/main' &&
+      github.workflow_ref == 'interdomestik/interdomestik/.github/workflows/pr-feedback-refresh.yml@refs/heads/main' &&
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: write
+      issues: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+        with:
+          ref: ${{ github.workflow_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Refresh changed feedback on eligible native gate runs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REFRESH_APPLY: 'true'
+        run: node scripts/ci/pr-feedback-controller.mjs

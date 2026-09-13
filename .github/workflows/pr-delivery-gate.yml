@@ -4,22 +4,7 @@ run-name: 'PR delivery gate [supersession:v1:${{ github.event_name }}:${{ github
 on:
   pull_request:
     branches: [main]
-    types:
-      [
-        opened,
-        synchronize,
-        reopened,
-        ready_for_review,
-        converted_to_draft,
-        labeled,
-        review_requested,
-        review_request_removed,
-        closed,
-      ]
-  pull_request_review:
-    types: [submitted, edited, dismissed]
-  pull_request_review_comment:
-    types: [created, edited, deleted]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, labeled, closed]
 
 concurrency:
   # Only events admitted to the complete snapshot may replace it. Deferred
@@ -47,11 +32,9 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
       - name: Node setup
-        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
-        with:
-          node-version-file: .nvmrc
-          package-manager-cache: false
-      - name: Gate
+        id: feedback
+        uses: ./.github/actions/pr-feedback-setup
+      - name: ${{ steps.feedback.outputs.marker || 'Gate' }}
         env:
           EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
