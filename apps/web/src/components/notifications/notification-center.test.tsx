@@ -5,39 +5,16 @@ import { deferred } from './notification-test-ui';
 
 vi.mock('@/i18n/routing', () => ({ Link: 'a', useRouter: () => ({ push: vi.fn() }) }));
 
-const mocks = vi.hoisted(() => {
-  const getNotifications = vi.fn<() => Promise<unknown[]>>();
-  const markAsRead = vi.fn<(notificationId: string) => Promise<unknown>>();
-  const markAllAsRead = vi.fn<() => Promise<unknown>>();
-
-  const subscribe = vi.fn<() => { id: string }>(() => ({ id: 'channel' }));
-  const on = vi.fn(() => ({ subscribe }));
-  const channel = vi.fn<(name: string) => { on: typeof on; subscribe: typeof subscribe }>(() => ({
-    on,
-    subscribe,
-  }));
-  const removeChannel = vi.fn();
-
-  return {
-    getNotifications,
-    markAsRead,
-    markAllAsRead,
-    channel,
-    removeChannel,
-  };
-});
+const mocks = vi.hoisted(() => ({
+  getNotifications: vi.fn<() => Promise<unknown[]>>(),
+  markAsRead: vi.fn<(notificationId: string) => Promise<unknown>>(),
+  markAllAsRead: vi.fn<() => Promise<unknown>>(),
+}));
 
 vi.mock('@/actions/notifications', () => ({
   getNotifications: mocks.getNotifications,
   markAsRead: mocks.markAsRead,
   markAllAsRead: mocks.markAllAsRead,
-}));
-
-vi.mock('@/lib/supabase', () => ({
-  supabase: {
-    channel: mocks.channel,
-    removeChannel: mocks.removeChannel,
-  },
 }));
 
 vi.mock('next-intl', async () => {

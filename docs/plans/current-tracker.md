@@ -84,6 +84,13 @@ findings concerning duplicate fetches, failed-fetch truth and successful action 
 being consolidated before renewed review and full proof; earlier full proof remains bound to
 `af64f73c82164a6189a93be7bdcd9b0af1c10a19` and does not certify these subsequent changes.
 
+Capacity for the consolidated regressions transfers 4,750 observed unused bytes into T410:
+3,820 from T117C rendering (1,500 source and 2,320 test bytes), 370 test bytes from T117B cutover,
+460 test bytes from CI deduplication, and 100 test bytes from the completed currency trial.
+The aggregate/category ceilings, reserve, file count and writer scopes remain fixed; all donor
+allocations remain above their measured usage. Unused Supabase channel mocks were removed from
+the existing notification test without removing assertions.
+
 Terminal: promotion `#1691`; product head
 `503d4b179251f9d3d06e07349ec80f85805565ae`, tree
 `61b2316606c9b3facd6c8aff2a14bb4402d80c82`, squash

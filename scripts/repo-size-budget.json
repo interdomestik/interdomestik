@@ -320,13 +320,13 @@
         "apps/web/src/messages/sq/dashboard.json",
         "apps/web/src/messages/sr/dashboard.json"
       ],
-      "maxTrackedBytesDelta": 42188,
+      "maxTrackedBytesDelta": 41818,
       "maxTrackedFilesDelta": 5,
       "maxCategoryBytesDelta": {
         "config/data/messages": 16229,
         "docs/text": 2824,
         "source/scripts": 7660,
-        "tests/e2e": 15475
+        "tests/e2e": 15105
       },
       "maxPathBytesDelta": {
         "docs/plans/2026-08-28-t117b-cutover-design-gate.md": 2949,
@@ -637,11 +637,11 @@
         "scripts/ci/actions-check-supersession.mjs",
         "scripts/ci/actions-check-supersession.test.mjs"
       ],
-      "maxTrackedBytesDelta": 50272,
+      "maxTrackedBytesDelta": 49812,
       "maxTrackedFilesDelta": 7,
       "maxCategoryBytesDelta": {
         "config/data/messages": 1751,
-        "tests/e2e": 36575,
+        "tests/e2e": 36115,
         "source/scripts": 11946
       },
       "maxPathBytesDelta": {
@@ -765,13 +765,13 @@
         "apps/web/src/components/pricing/business-lead-form.test.tsx",
         "apps/web/src/app/[locale]/(site)/business-membership/page.test.tsx"
       ],
-      "maxTrackedBytesDelta": 89487,
+      "maxTrackedBytesDelta": 85667,
       "maxTrackedFilesDelta": 20,
       "maxCategoryBytesDelta": {
         "config/data/messages": 17136,
         "docs/text": 17265,
-        "source/scripts": 13566,
-        "tests/e2e": 41520
+        "source/scripts": 12066,
+        "tests/e2e": 39200
       },
       "maxPathBytesDelta": {
         "apps/web/e2e/gate/member-parallel-routes.spec.ts": 7527,
@@ -969,9 +969,9 @@
         "packages/domain-ai/src/claims/intake-extract.test.ts",
         "packages/domain-ai/src/claims/intake-extract.ts"
       ],
-      "maxTrackedBytesDelta": 2400,
+      "maxTrackedBytesDelta": 2300,
       "maxTrackedFilesDelta": 0,
-      "maxCategoryBytesDelta": { "source/scripts": 1000, "tests/e2e": 1400 },
+      "maxCategoryBytesDelta": { "source/scripts": 1000, "tests/e2e": 1300 },
       "maxPathBytesDelta": {
         "packages/domain-ai/src/claims/intake-extract.test.ts": 1400,
         "packages/domain-ai/src/claims/intake-extract.ts": 1000
@@ -1217,18 +1217,18 @@
         "packages/domain-communications/src/notifications/mark-read.ts",
         "scripts/ci/modularity-guard-t410-catalogs.test.mjs"
       ],
-      "maxTrackedBytesDelta": 40958,
+      "maxTrackedBytesDelta": 45708,
       "maxTrackedFilesDelta": 6,
       "maxCategoryBytesDelta": {
         "config/data/messages": 1200,
-        "source/scripts": 13458,
-        "tests/e2e": 26300
+        "source/scripts": 14958,
+        "tests/e2e": 29550
       },
       "maxPathBytesDelta": {
         "apps/web/e2e/gate/front-door-session-context.spec.ts": 4000,
         "apps/web/src/actions/notifications/mark-read.test.ts": 200,
         "apps/web/src/components/notifications/notification-center.acknowledgement.test.tsx": 10500,
-        "apps/web/src/components/notifications/notification-center.races.test.tsx": 11000,
+        "apps/web/src/components/notifications/notification-center.races.test.tsx": 13000,
         "apps/web/src/components/notifications/notification-center.test.tsx": 600,
         "apps/web/src/components/notifications/notification-center.tsx": 2500,
         "apps/web/src/components/notifications/notification-test-ui.tsx": 2500,
