@@ -15,15 +15,9 @@ function readWorkflow(relativePath) {
   return yaml.load(fs.readFileSync(path.join(rootDir, relativePath), 'utf8'));
 }
 
-test('PR finalizer refreshes on the same review and review-comment activity as the delivery gate', () => {
+test('PR finalizer keeps native lifecycle admission while feedback refresh uses the controller', () => {
   const workflow = readWorkflow('.github/workflows/pr-finalizer.yml');
-  assert.deepEqual(Object.keys(workflow.on), [
-    'pull_request',
-    'pull_request_review',
-    'pull_request_review_comment',
-  ]);
-  assert.deepEqual(workflow.on.pull_request_review.types, ['submitted', 'edited', 'dismissed']);
-  assert.deepEqual(workflow.on.pull_request_review_comment.types, ['created', 'edited', 'deleted']);
+  assert.deepEqual(Object.keys(workflow.on), ['pull_request']);
   assert.deepEqual(workflow.on.pull_request.types, [
     'opened',
     'synchronize',
@@ -61,6 +55,7 @@ test('PR finalizer forces current-head required-check polling for the full lane'
   assert.deepEqual(workflow.jobs['pr-finalizer'].permissions, {
     contents: 'read',
     actions: 'read',
+    issues: 'read',
     'pull-requests': 'read',
     checks: 'read',
     statuses: 'read',
@@ -69,7 +64,7 @@ test('PR finalizer forces current-head required-check polling for the full lane'
     step.uses?.startsWith('actions/checkout@')
   );
   const runStep = workflow.jobs['pr-finalizer'].steps.find(
-    step => step?.name === 'Run PR finalizer gate'
+    step => step.run?.trim() === 'bash scripts/pr-finalizer.sh'
   );
 
   assert.ok(checkout);
@@ -79,7 +74,7 @@ test('PR finalizer forces current-head required-check polling for the full lane'
   assert.equal(runStep.env.PR_FINALIZER_SKIP_CHECK_POLLING, 'false');
   assert.equal(runStep.env.PR_FINALIZER_MAX_CHECK_RETRIES, '360');
   assert.equal(runStep.env.EXPECTED_HEAD_SHA, '${{ github.event.pull_request.head.sha }}');
-  const setup = workflow.jobs['pr-finalizer'].steps.find(step =>
+  const setup = readWorkflow('.github/actions/pr-feedback-setup/action.yml').runs.steps.find(step =>
     step.uses?.startsWith('actions/setup-node@')
   );
   assert.equal(setup.with['node-version-file'], '.nvmrc');

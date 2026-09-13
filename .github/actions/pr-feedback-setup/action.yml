@@ -1,0 +1,30 @@
+name: Set up PR feedback validation
+description: Set up Node and capture a source-bound feedback snapshot before the native gate runs.
+outputs:
+  marker:
+    description: Source and digest marker for the subsequent validation step name.
+    value: ${{ steps.feedback.outputs.marker }}
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+      with:
+        node-version-file: .nvmrc
+        package-manager-cache: false
+    - name: Capture feedback before validation
+      id: feedback
+      # Refresh metadata must not prevent the required validator from running.
+      continue-on-error: true
+      if: >-
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        github.event.pull_request.state == 'open' &&
+        github.event.pull_request.draft == false &&
+        github.event.pull_request.base.ref == 'main'
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        EXPECTED_TESTED_MERGE_SHA: ${{ github.sha }}
+      run: node scripts/ci/pr-feedback-snapshot.mjs

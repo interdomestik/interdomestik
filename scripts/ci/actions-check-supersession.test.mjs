@@ -195,7 +195,7 @@ test('invalid producer identity and incomplete run enumeration fail closed', asy
   );
 });
 
-test('delivery gate cancels stale feedback and finalizer refreshes on the same events', () => {
+test('native lifecycle runs retain supersession identity without direct feedback subscriptions', () => {
   const root = path.resolve(import.meta.dirname, '../..');
   const gate = fs.readFileSync(path.join(root, '.github/workflows/pr-delivery-gate.yml'), 'utf8');
   const finalizer = fs.readFileSync(path.join(root, '.github/workflows/pr-finalizer.yml'), 'utf8');
@@ -206,11 +206,7 @@ test('delivery gate cancels stale feedback and finalizer refreshes on the same e
   );
 
   assert.match(gate, /\non:\n {2}pull_request:\n/u);
-  assert.match(gate, /\n {2}pull_request_review:\n {4}types: \[submitted, edited, dismissed\]\n/u);
-  assert.match(
-    gate,
-    /\n {2}pull_request_review_comment:\n {4}types: \[created, edited, deleted\]\n/u
-  );
+  assert.doesNotMatch(gate, /\n {2}pull_request_review(?:_comment)?:/u);
 
   const gateGroup = gate.match(/ {2}group: (.*)\n/u)[1];
   assert.equal(
@@ -225,14 +221,7 @@ test('delivery gate cancels stale feedback and finalizer refreshes on the same e
     'all same-origin, same-head snapshot refreshes replace obsolete work'
   );
 
-  assert.match(
-    finalizer,
-    /\n {2}pull_request_review:\n {4}types: \[submitted, edited, dismissed\]\n/u
-  );
-  assert.match(
-    finalizer,
-    /\n {2}pull_request_review_comment:\n {4}types: \[created, edited, deleted\]\n/u
-  );
+  assert.doesNotMatch(finalizer, /\n {2}pull_request_review(?:_comment)?:/u);
   assert.match(
     finalizer,
     /types: \[opened, synchronize, reopened, ready_for_review, converted_to_draft, labeled\]/u

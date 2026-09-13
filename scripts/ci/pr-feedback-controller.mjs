@@ -1,0 +1,155 @@
+import { GitHubClient, isDirectInvocation } from './pr-delivery-api.mjs';
+import { eligiblePull, parseFeedbackMarker, planRefresh } from './pr-feedback-refresh.mjs';
+import { captureFeedback } from './pr-feedback-snapshot.mjs';
+
+const REPOSITORY = 'interdomestik/interdomestik';
+const WORKFLOW_FILES = ['pr-finalizer.yml', 'pr-delivery-gate.yml'];
+
+async function completePages(client, endpoint, key) {
+  const result = await client.pages(endpoint, key);
+  if (!result.complete) throw new Error('refresh pagination incomplete');
+  return result.values;
+}
+
+async function inspect(client, number, workflow, now) {
+  const prefix = `repos/${REPOSITORY}`;
+  const pull = await client.request(`${prefix}/pulls/${number}`);
+  if (!eligiblePull(pull) || pull.number !== number) return null;
+  if (!Number.isSafeInteger(workflow?.id) || workflow.id < 1)
+    throw new Error('invalid refresh workflow');
+  const runs = await completePages(
+    client,
+    `${prefix}/actions/workflows/${workflow.id}/runs?event=pull_request&head_sha=${pull.head.sha}`,
+    'workflow_runs'
+  );
+  const latest = runs.sort((a, b) => b.id - a.id)[0];
+  if (!Number.isSafeInteger(latest?.id) || latest.id < 1) return null;
+  const run = await client.request(`${prefix}/actions/runs/${latest.id}`);
+  if (
+    run.id !== latest.id ||
+    run.status !== 'completed' ||
+    !['success', 'failure'].includes(run.conclusion) ||
+    !Number.isSafeInteger(run.run_attempt) ||
+    run.run_attempt < 1 ||
+    run.run_attempt >= 50 ||
+    run.actor?.type !== 'User' ||
+    !/^[a-z0-9-]{1,39}$/iu.test(run.actor.login)
+  )
+    return null;
+  const jobs = await completePages(
+    client,
+    `${prefix}/actions/runs/${run.id}/attempts/${run.run_attempt}/jobs`,
+    'jobs'
+  );
+  if (jobs.length !== 1 || !jobs[0].steps?.some(step => parseFeedbackMarker(step.name)))
+    return null;
+  const permission = await client.request(`${prefix}/collaborators/${run.actor.login}/permission`);
+  const feedback = await captureFeedback(client, number, {
+    base: pull.base.sha,
+    head: pull.head.sha,
+    testedMerge: pull.merge_commit_sha,
+  });
+  const evidence = { pull, workflow, run, jobs, permission, feedback, now };
+  const plan = planRefresh(evidence);
+  return plan ? { plan, digest: feedback.digest, evidence } : null;
+}
+
+async function stillCurrent(client, current, now) {
+  const { run, pull, workflow, jobs, feedback } = current.evidence;
+  const prefix = `repos/${REPOSITORY}`;
+  const [freshPull, freshRun, freshWorkflow, permission, latestRuns] = await Promise.all([
+    client.request(`${prefix}/pulls/${pull.number}`),
+    client.request(`${prefix}/actions/runs/${run.id}`),
+    client.request(`${prefix}/actions/workflows/${workflow.id}`),
+    client.request(`${prefix}/collaborators/${run.actor.login}/permission`),
+    completePages(
+      client,
+      `${prefix}/actions/workflows/${workflow.id}/runs?event=pull_request&head_sha=${run.head_sha}`,
+      'workflow_runs'
+    ),
+  ]);
+  if (latestRuns.sort((a, b) => b.id - a.id)[0]?.id !== run.id) return false;
+  const plan = planRefresh({
+    pull: freshPull,
+    run: freshRun,
+    workflow: freshWorkflow,
+    jobs,
+    feedback,
+    permission,
+    now,
+  });
+  return JSON.stringify(plan) === JSON.stringify(current.plan);
+}
+
+export async function refreshOne(
+  client,
+  number,
+  workflow,
+  { now = Date.now(), apply = false } = {}
+) {
+  if (client.repository !== REPOSITORY || !Number.isSafeInteger(number) || number < 1)
+    throw new Error('refresh runtime mismatch');
+  const first = await inspect(client, number, workflow, now);
+  if (!first) return { status: 'no-refresh' };
+  if (!apply) return { status: 'would-refresh', ...first.plan };
+  // Re-read every mutable selection input; no cache may authorize the POST.
+  const current = await inspect(client, number, workflow, now);
+  if (!current || JSON.stringify(first) !== JSON.stringify(current))
+    return { status: 'selection-changed' };
+  if (!(await stillCurrent(client, current, now))) return { status: 'selection-changed' };
+  // This is the only write. Never approve a workflow or manufacture a check result.
+  // A transport error is surfaced, not retried: the server may have accepted it.
+  await client.response(`repos/${REPOSITORY}/actions/runs/${current.plan.runId}/rerun`, {
+    method: 'POST',
+  });
+  return { status: 'refresh-requested', ...current.plan };
+}
+
+export function validateControllerEnvironment(env) {
+  if (
+    env.GITHUB_REPOSITORY !== REPOSITORY ||
+    env.GITHUB_REPOSITORY_ID !== '1128472973' ||
+    env.GITHUB_REF !== 'refs/heads/main' ||
+    !['schedule', 'workflow_dispatch'].includes(env.GITHUB_EVENT_NAME) ||
+    env.GITHUB_WORKFLOW_REF !==
+      `${REPOSITORY}/.github/workflows/pr-feedback-refresh.yml@refs/heads/main` ||
+    !/^[a-f0-9]{40}$/u.test(env.GITHUB_SHA) ||
+    env.GITHUB_SHA !== env.GITHUB_WORKFLOW_SHA ||
+    !env.GITHUB_TOKEN ||
+    !['true', 'false'].includes(env.REFRESH_APPLY)
+  )
+    throw new Error('trusted refresh runtime mismatch');
+  return env.REFRESH_APPLY === 'true';
+}
+
+async function main() {
+  const apply = validateControllerEnvironment(process.env);
+  const client = new GitHubClient(REPOSITORY, process.env.GITHUB_TOKEN);
+  const data = await client.graphql(
+    `query { repository(owner:"interdomestik",name:"interdomestik") {
+    pullRequests(first:20,states:OPEN,baseRefName:"main") { nodes { number } pageInfo { hasNextPage } }
+  } }`,
+    {}
+  );
+  const pulls = data?.repository?.pullRequests;
+  if (!Array.isArray(pulls?.nodes) || pulls.pageInfo?.hasNextPage !== false)
+    throw new Error('refresh open-PR bound exceeded or pagination incomplete');
+  const workflows = await Promise.all(
+    WORKFLOW_FILES.map(file => client.request(`repos/${REPOSITORY}/actions/workflows/${file}`))
+  );
+  for (const { number } of pulls.nodes) {
+    for (const workflow of workflows) {
+      const result = await refreshOne(client, number, workflow, { apply });
+      process.stdout.write(`${JSON.stringify({ number, workflow: workflow.path, ...result })}\n`);
+    }
+  }
+}
+
+if (isDirectInvocation(import.meta.url)) {
+  try {
+    await main();
+  } catch (error) {
+    process.stderr.write(`feedback refresh failed: ${error.message}\n`);
+    process.exitCode = 1;
+  }
+}
