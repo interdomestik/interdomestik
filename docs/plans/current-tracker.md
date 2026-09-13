@@ -79,10 +79,62 @@ The 2026-09-13 concurrency correction is HIGH complexity, owned solely by Astra/
 chief's reassignment. At `38dda40d82eb26b5bfa8bc25f3f0b36b722ce51b`, the real Suspense regression
 passes after failing on the render-phase mutation baseline. Claude Sonnet 5 and Gemini 3.1 Pro
 both reviewed that correction through the repo-owned routes, with configured and served models
-matching. Flash's invalid direct component-invocation proposal was rejected. Later current-review
-findings concerning duplicate fetches, failed-fetch truth and successful action navigation are
-being consolidated before renewed review and full proof; earlier full proof remains bound to
+reported as matching by the receipts. Subsequent inspection found that the local Gemini wrapper
+copies the requested model name into its response and maps calls through `agy`; its served model
+is therefore unverified. Retained Gemini/Flash outputs are advisory proposals, not independent
+model-identity evidence. Flash's invalid direct component-invocation proposal was rejected.
+Current-review findings concerning duplicate fetches, failed-fetch truth and successful action
+navigation are consolidated at `b5e67972e05a6108b2bbd39588a97ab6f4312371`; 32 focused web tests
+and four domain tests pass. Claude Sonnet 5's native receipt at `20260913T043700-sonnet` reports
+PASS on that source. Independent Astra source review found no actionable implementation defect,
+was advisory while verified Gemini contribution was required. Earlier full proof remains bound to
 `af64f73c82164a6189a93be7bdcd9b0af1c10a19` and does not certify these subsequent changes.
+
+The official installed Gemini CLI 0.56.0 was tested separately from the wrappers using the
+existing repo runner, subscription OAuth, deny-all admin policy, extensions disabled, and a
+non-private probe with automatic context, hooks, MCP, IDE and telemetry disabled. Its native
+policy engine denied file-read, write, shell, web-fetch and MCP-shaped calls under the repo rule.
+The network-enabled probe failed before a model response with `IneligibleTierError` /
+`UNSUPPORTED_CLIENT`: Google no longer supports this client for this account's Code Assist
+individual tier and directs it to Antigravity. Receipt `20260913T045420-flash` retains the exact
+error (exit 55, 2,787 ms); no private candidate packet was supplied to that probe. This does not
+establish native Flash availability or served identity. The chief was notified; final proof and
+delivery were paused pending a supported, verifiable Gemini route. Existing owner export
+approval stands; no new approval request, paid fallback or global tooling change was made.
+
+On resumption, the authenticated Antigravity catalog listed Gemini 3.8 Flash Low/Medium/High.
+A non-private arithmetic probe pinned to `gemini-3.8-flash-low` returned native `SUCCESS`,
+the correct answer, and real usage in 10,331 ms (`20260913T050734-flash`). This establishes
+connectivity, not accepted review evidence: native init reports the requested model, while the
+existing receipt parser rejects the different event shape as `provider model unattested`.
+The requested workspace no-tools agent was not discovered: the native log reports fallback to
+the default agent despite init echoing the requested agent name. Both documented Markdown
+locations and a Git boundary initially failed discovery; explicitly adding the temporary
+directory with `--add-dir` then exposed both agents. Paired capability tests show effective
+tool exclusion: a neutral `tools: []` agent could not read a public canary and emitted no tool
+events (`20260913T051304-flash`); the identical prompt with only `view_file` permitted produced
+native file-read events and returned the canary (`20260913T051405-flash`). Both used resolved
+custom agents. Native init enumerates the global tool inventory, not this effective distinction.
+No private review packet was sent in these diagnostics. The chief has the minimal task-local
+adapter proposal. Its task-local parser passes 16 negative/identity tests and correctly rejects
+the real positive-control tool stream. The chief accepts native pinned/no-fallback execution
+as operational evidence by explicit inference, not independent server attestation. The unchanged
+repo runner cannot represent that distinction: Google routes require a non-null matching
+`providerReportedModel`. No model field or provider label was fabricated to evade this check.
+Separate runner evidence-representation work was isolated from T410 and remains parked at
+`5705cdd3130ed928df3cb991d629873de009471d`; its worktree and raw receipts are preserved,
+with no tooling imported into this product branch.
+
+On 2026-09-13 the owner directed: "Skip them ise astra model and complete the slice".
+This explicitly waives both Claude and Gemini review requirements for this notification slice
+only, not future work or required protected checks. Astra/high remains sole implementation
+owner. Fresh independent read-only Astra final review found no actionable blocker or hardening
+against production head `b5e67972e05a6108b2bbd39588a97ab6f4312371`, including all substantive
+PR #1765 review bodies and inline findings. Independently executed 28 web and four domain tests
+passed; the reviewer also checked the frozen diff. No provider failure is relabeled as approval.
+Renewed source-bound `pr:verify`, security/E2E, current-head review disposition, protected merge
+and postmerge health remain required. The single IDA entrance and unified capability shell
+remain settled requirements; legacy visuals are behavioral evidence, not a redesign target.
 
 Capacity for the consolidated regressions transfers 4,750 observed unused bytes into T410:
 3,820 from T117C rendering (1,500 source and 2,320 test bytes), 370 test bytes from T117B cutover,

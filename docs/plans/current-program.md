@@ -263,6 +263,13 @@ are covered by the new source-bound proof.
 Current-head protected review, protected PR evidence, and merge are still pending, so the increment
 remains `in_progress`; no deployment or claimant usability validation is claimed.
 
+On 2026-09-13 the owner waived Claude and Gemini reviews for this notification increment only
+and directed Astra completion. Astra/high is the implementation owner, with a fresh independent
+read-only Astra final review before renewed mandatory source-bound verification. Earlier Gemini
+wrapper receipts do not establish served-model identity and remain advisory; the isolated native
+communication repair is parked, not part of this product PR. No permanent model-policy change,
+protected-check bypass, UI redesign or deployment follows from this one-slice waiver.
+
 ## T117C Product Delivery
 
 Promotion #1738 bound owner review `5164184965` to head
