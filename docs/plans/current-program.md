@@ -235,8 +235,9 @@ The owner intends a net-new member UI/UX using current interaction patterns with
 portal shell, not separate role-specific dashboard designs. That redesign is separate scope;
 canonical role routes and readiness markers remain technical access-control and test contracts.
 
-Source-bound local proof passed at `bdeabe3795b7d6d4d35004cfba19f1efbbdd3648`: 30 focused
-notification tests, both focused IDA-host browser variants, the full `pr:verify` gate, and
+Source-bound local proof passed at `af64f73c82164a6189a93be7bdcd9b0af1c10a19`: 61 focused
+notification/domain tests (57 web and 4 domain), both focused IDA-host browser variants, the full
+`pr:verify` gate, and
 `security:guard`. The full gate included 1,048 CI contracts, 154 release-gate tests, 41 RLS tests,
 81.25% repository line coverage (21,643/26,637), 252 browser-gate passes with 12 intentional skips,
 and 13 smoke passes with 11 intentional skips. Repo-owned routes completed Claude Sonnet 5 design
@@ -245,8 +246,11 @@ and Gemini 3.1 Pro/Gemini 3.8 Flash test-screening proposals against specificati
 evidence. An earlier independent Astra implementation review passed at `833496eb`. Subsequent
 externally reported findings were reproduced and corrected: concurrent single-acknowledgement error
 state, pending unread-menu closure, Macedonian/Serbian translations, unread-only bulk writes,
-unbounded bulk responses, locale-safe action routing, disabled pending actions, and Serbian glossary
-consistency. The corrected behavior and regressions are covered by the new source-bound proof.
+unbounded bulk responses, locale-safe action routing, disabled pending actions, Serbian glossary
+consistency, semantic status output, and explicit tenant/user predicates without the deprecated
+helper overload. The changed E2E corpus fingerprint is registered within the existing fixed-capacity
+CI evidence allocation, with no repository-ceiling increase. The corrected behavior and regressions
+are covered by the new source-bound proof.
 Current-head protected review, protected PR evidence, and merge are still pending, so the increment
 remains `in_progress`; no deployment or claimant usability validation is claimed.
 
