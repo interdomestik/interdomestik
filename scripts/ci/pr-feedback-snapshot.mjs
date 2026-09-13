@@ -4,6 +4,28 @@ import { GitHubClient, isDirectInvocation } from './pr-delivery-api.mjs';
 import { collectFeedback, pendingReviewers } from './pr-delivery-feedback.mjs';
 import { eligiblePull, sameFeedbackIdentity } from './pr-feedback-refresh.mjs';
 
+const feedbackAuthors = new Set(
+  JSON.parse(fs.readFileSync(new URL('./pr-delivery-contract.json', import.meta.url), 'utf8'))
+    .feedbackAuthors
+);
+
+function issueAuthorIdentities(comments) {
+  // generatorFeedback uses issue comments only for bot identity, not body or time.
+  // Trusted human dispositions are already represented by disposedReviewIds.
+  return [
+    ...new Set(
+      comments.flatMap(({ author }) => {
+        const normalized = author.replace(/\[bot\]$/u, '').toLowerCase();
+        return feedbackAuthors.has(normalized) ||
+          author.endsWith('[bot]') ||
+          normalized === 'copilot'
+          ? [normalized]
+          : [];
+      })
+    ),
+  ];
+}
+
 // Feedback collections are sets: API ordering alone must not schedule another run.
 function canonical(value) {
   if (Array.isArray(value))
@@ -50,6 +72,7 @@ export async function captureFeedback(client, number, expected) {
   feedback.pendingReviewers = [
     ...new Set([...feedback.pendingReviewers, ...pendingReviewers(finalPull)]),
   ];
+  feedback.issueComments = issueAuthorIdentities(feedback.issueComments);
   const bound = identity(finalPull);
   const digest = createHash('sha256')
     .update(JSON.stringify(canonical({ ...bound, feedback })))

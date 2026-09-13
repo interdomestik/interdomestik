@@ -9,6 +9,8 @@ import { captureFeedback } from './pr-feedback-snapshot.mjs';
 
 const REPOSITORY = 'interdomestik/interdomestik';
 const WORKFLOW_FILES = ['pr-finalizer.yml', 'pr-delivery-gate.yml'];
+const RUN_SELECTION_LIMIT = 20;
+const INCOMPLETE_SELECTION = 'refresh run selection incomplete; native source refresh required';
 
 async function completePages(client, endpoint, key) {
   const result = await client.pages(endpoint, key);
@@ -23,7 +25,7 @@ async function latestAuthoritative(client, pull, workflow) {
     `${prefix}/actions/workflows/${workflow.id}/runs?event=pull_request&head_sha=${pull.head.sha}`,
     'workflow_runs'
   );
-  for (const summary of runs.sort((a, b) => b.id - a.id).slice(0, 20)) {
+  for (const summary of runs.sort((a, b) => b.id - a.id).slice(0, RUN_SELECTION_LIMIT)) {
     if (!Number.isSafeInteger(summary?.id) || summary.id < 1) return null;
     const run = await client.request(`${prefix}/actions/runs/${summary.id}`);
     if (run.id !== summary.id) return null;
@@ -36,6 +38,7 @@ async function latestAuthoritative(client, pull, workflow) {
     );
     if (!isDeferredLabel(pull, workflow, run, jobs)) return run;
   }
+  if (runs.length > RUN_SELECTION_LIMIT) throw new Error(INCOMPLETE_SELECTION);
   return null;
 }
 
@@ -139,27 +142,85 @@ export function validateControllerEnvironment(env) {
   return env.REFRESH_APPLY === 'true';
 }
 
+async function openPullNumbers(client) {
+  const numbers = new Set();
+  const cursors = new Set();
+  let cursor = null;
+  for (let page = 0; page < 100; page++) {
+    const data = await client.graphql(
+      `query($cursor:String) { repository(owner:"interdomestik",name:"interdomestik") {
+        pullRequests(first:100,after:$cursor,states:OPEN,baseRefName:"main") {
+          nodes { number } pageInfo { hasNextPage endCursor }
+        }
+      } }`,
+      { cursor }
+    );
+    const pulls = data?.repository?.pullRequests;
+    if (
+      !Array.isArray(pulls?.nodes) ||
+      pulls.nodes.length > 100 ||
+      typeof pulls.pageInfo?.hasNextPage !== 'boolean'
+    )
+      throw new Error('refresh inventory malformed');
+    for (const item of pulls.nodes) {
+      if (!Number.isSafeInteger(item?.number) || item.number < 1 || numbers.has(item.number))
+        throw new Error('refresh inventory PR identity invalid or repeated');
+      numbers.add(item.number);
+    }
+    if (!pulls.pageInfo.hasNextPage) return [...numbers];
+    cursor = pulls.pageInfo.endCursor;
+    if (typeof cursor !== 'string' || !cursor || cursors.has(cursor))
+      throw new Error('refresh inventory cursor missing or repeated');
+    cursors.add(cursor);
+  }
+  throw new Error('refresh inventory bound exceeded; action required');
+}
+
+export async function refreshRepository(client, { apply = false, report = () => {}, now } = {}) {
+  if (client.repository !== REPOSITORY) throw new Error('refresh runtime mismatch');
+  // Complete the bounded inventory before any mutation; never silently process a partial list.
+  const numbers = await openPullNumbers(client);
+  const workflows = await Promise.all(
+    WORKFLOW_FILES.map(async file => {
+      try {
+        return await client.request(`repos/${REPOSITORY}/actions/workflows/${file}`);
+      } catch {
+        return null;
+      }
+    })
+  );
+  let failed = 0;
+  for (const number of numbers) {
+    for (const [index, workflow] of workflows.entries()) {
+      let result;
+      try {
+        if (!workflow) throw new Error('workflow metadata unavailable');
+        result = await refreshOne(client, number, workflow, { apply, now });
+      } catch (error) {
+        // Do not echo remote error bodies or retry a potentially accepted POST.
+        failed++;
+        result = {
+          status: 'refresh-failed',
+          reason:
+            error.message === INCOMPLETE_SELECTION
+              ? INCOMPLETE_SELECTION
+              : 'inspection or dispatch failed',
+        };
+      }
+      report({ number, workflow: WORKFLOW_FILES[index], ...result });
+    }
+  }
+  return { failed };
+}
+
 async function main() {
   const apply = validateControllerEnvironment(process.env);
   const client = new GitHubClient(REPOSITORY, process.env.GITHUB_TOKEN);
-  const data = await client.graphql(
-    `query { repository(owner:"interdomestik",name:"interdomestik") {
-    pullRequests(first:20,states:OPEN,baseRefName:"main") { nodes { number } pageInfo { hasNextPage } }
-  } }`,
-    {}
-  );
-  const pulls = data?.repository?.pullRequests;
-  if (!Array.isArray(pulls?.nodes) || pulls.pageInfo?.hasNextPage !== false)
-    throw new Error('refresh open-PR bound exceeded or pagination incomplete');
-  const workflows = await Promise.all(
-    WORKFLOW_FILES.map(file => client.request(`repos/${REPOSITORY}/actions/workflows/${file}`))
-  );
-  for (const { number } of pulls.nodes) {
-    for (const workflow of workflows) {
-      const result = await refreshOne(client, number, workflow, { apply });
-      process.stdout.write(`${JSON.stringify({ number, workflow: workflow.path, ...result })}\n`);
-    }
-  }
+  const result = await refreshRepository(client, {
+    apply,
+    report: item => process.stdout.write(`${JSON.stringify(item)}\n`),
+  });
+  if (result.failed) process.exitCode = 1;
 }
 
 if (isDirectInvocation(import.meta.url)) {

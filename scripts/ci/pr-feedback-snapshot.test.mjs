@@ -117,3 +117,59 @@ test('feedback digest ignores response ordering but detects new pending reviewer
   client.pull.requested_reviewers = [{ login: 'human' }];
   assert.notEqual((await captureFeedback(client, 17, expected)).digest, before.digest);
 });
+
+test('ordinary issue comment bodies, timestamps and deletion do not refresh gates', async () => {
+  const { captureFeedback } = await implementation();
+  const client = feedbackClient();
+  const expected = { base, head, testedMerge: merge };
+  const before = await captureFeedback(client, 17, expected);
+  client.data.issueComments = [{ user: { login: 'human' }, body: 'hello', updated_at: 'one' }];
+  assert.equal((await captureFeedback(client, 17, expected)).digest, before.digest);
+  client.data.issueComments[0].body = 'edited conversation';
+  client.data.issueComments[0].updated_at = 'two';
+  assert.equal((await captureFeedback(client, 17, expected)).digest, before.digest);
+  client.data.issueComments = [];
+  assert.equal((await captureFeedback(client, 17, expected)).digest, before.digest);
+});
+
+test('bot issue author presence is retained, but redundant bodies and timestamps are not', async () => {
+  const { captureFeedback } = await implementation();
+  const client = feedbackClient();
+  const expected = { base, head, testedMerge: merge };
+  const initial = (await captureFeedback(client, 17, expected)).digest;
+  for (const author of ['unrecognized[bot]', 'copilot', 'copilot-pull-request-reviewer']) {
+    client.data.issueComments = [{ user: { login: author }, body: 'one', updated_at: 'one' }];
+    const present = (await captureFeedback(client, 17, expected)).digest;
+    assert.notEqual(present, initial, 'unknown bot identities must remain visible to the gate');
+    client.data.issueComments.push({ user: { login: author }, body: 'two', updated_at: 'two' });
+    assert.equal((await captureFeedback(client, 17, expected)).digest, present);
+    client.data.issueComments = [];
+    assert.equal((await captureFeedback(client, 17, expected)).digest, initial);
+  }
+});
+
+test('trusted disposition edits, deletion and permission revocation still refresh gates', async () => {
+  const { captureFeedback } = await implementation();
+  const client = feedbackClient();
+  const expected = { base, head, testedMerge: merge };
+  let permission = 'write';
+  const request = client.request;
+  client.request = endpoint =>
+    endpoint.endsWith('/collaborators/human/permission') ? { permission } : request(endpoint);
+  const initial = (await captureFeedback(client, 17, expected)).digest;
+  const disposition = {
+    user: { login: 'human' },
+    author_association: 'COLLABORATOR',
+    body: `<!-- pr-delivery-disposition:v1 review=1 head=${head} -->`,
+  };
+  client.data.issueComments = [disposition];
+  const trusted = (await captureFeedback(client, 17, expected)).digest;
+  assert.notEqual(trusted, initial);
+  disposition.body = `<!-- pr-delivery-disposition:v1 review=2 head=${head} -->`;
+  assert.notEqual((await captureFeedback(client, 17, expected)).digest, trusted);
+  permission = 'read';
+  assert.equal((await captureFeedback(client, 17, expected)).digest, initial);
+  permission = 'write';
+  client.data.issueComments = [];
+  assert.equal((await captureFeedback(client, 17, expected)).digest, initial);
+});

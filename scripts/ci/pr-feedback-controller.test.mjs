@@ -1,77 +1,51 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
 import test from 'node:test';
-import { validRefresh, repository, base, head, merge } from './pr-feedback-refresh-fixtures.mjs';
+import * as controller from './pr-feedback-controller.mjs';
+import { refreshOne, validateControllerEnvironment } from './pr-feedback-controller.mjs';
+import {
+  controllerFixture as fixture,
+  repository,
+  base,
+  head,
+} from './pr-feedback-refresh-fixtures.mjs';
 
-const moduleUrl = new URL('./pr-feedback-controller.mjs', import.meta.url);
-async function implementation() {
-  assert.ok(fs.existsSync(moduleUrl), 'trusted feedback controller is not present');
-  return import(moduleUrl);
-}
-function fixture() {
-  const evidence = validRefresh();
-  const writes = [];
-  let runReads = 0;
-  const client = {
-    repository,
-    async request(endpoint) {
-      if (endpoint.endsWith('/actions/workflows/20')) return structuredClone(evidence.workflow);
-      if (endpoint.endsWith('/pulls/17')) return structuredClone(evidence.pull);
-      if (endpoint.endsWith(`/actions/runs/${evidence.run.id}`)) {
-        runReads++;
-        return structuredClone(evidence.run);
-      }
-      if (endpoint.endsWith('/collaborators/maintainer/permission')) return evidence.permission;
-      if (endpoint.endsWith('/git/commits/' + merge))
-        return { parents: [{ sha: base }, { sha: head }] };
-      assert.fail(endpoint);
-    },
-    async pages(endpoint, key) {
-      if (
-        endpoint ===
-        `repos/${repository}/actions/workflows/20/runs?event=pull_request&head_sha=${'f'.repeat(40)}`
-      ) {
-        return { values: [], complete: true };
-      }
-      if (
-        endpoint ===
-        `repos/${repository}/actions/workflows/20/runs?event=pull_request&head_sha=${head}`
-      ) {
-        assert.equal(key, 'workflow_runs');
-        return { values: [structuredClone(evidence.run)], complete: true };
-      }
-      if (
-        endpoint ===
-        `repos/${repository}/actions/runs/${evidence.run.id}/attempts/${evidence.run.run_attempt}/jobs`
-      ) {
-        assert.equal(key, 'jobs');
-        return { values: structuredClone(evidence.jobs), complete: true };
-      }
-      assert.ok(
-        ['/pulls/17/reviews', '/issues/17/comments', '/pulls/17/comments'].some(route =>
-          endpoint.endsWith(route)
-        ),
-        endpoint
-      );
-      return { values: [], complete: true };
-    },
-    async graphql() {
-      return {
-        repository: {
-          pullRequest: { reviewThreads: { nodes: [], pageInfo: { hasNextPage: false } } },
-        },
-      };
-    },
-    async response(endpoint, options) {
-      writes.push({ endpoint, options });
-      return { status: 201 };
-    },
+test('ambiguous dispatch failure is not retried and does not starve another workflow', async () => {
+  const f = fixture();
+  const request = f.client.request;
+  f.client.request = endpoint =>
+    endpoint.includes('/actions/workflows/pr-')
+      ? structuredClone(f.evidence.workflow)
+      : request(endpoint);
+  const graphql = f.client.graphql;
+  f.client.graphql = (query, variables) =>
+    query.includes('pullRequests(')
+      ? {
+          repository: {
+            pullRequests: { nodes: [{ number: 17 }], pageInfo: { hasNextPage: false } },
+          },
+        }
+      : graphql(query, variables);
+  f.client.response = async endpoint => {
+    f.writes.push(endpoint);
+    // The server may have accepted the POST: the next independent inspection must see this.
+    f.evidence.run.status = 'in_progress';
+    throw new Error('transport interrupted');
   };
-  return { client, evidence, writes, runReads: () => runReads };
-}
+  const reports = [];
+  const result = await controller.refreshRepository(f.client, {
+    now: f.evidence.now,
+    apply: true,
+    report: item => reports.push(item),
+  });
+  assert.equal(result.failed, 1);
+  assert.equal(f.writes.length, 1);
+  assert.deepEqual(
+    reports.map(item => item.status),
+    ['refresh-failed', 'no-refresh']
+  );
+});
 
 test('controller dry-run is read only; apply revalidates before its single exact rerun', async () => {
-  const { refreshOne } = await implementation();
   const f = fixture();
   const options = { now: f.evidence.now, apply: false };
   assert.equal(
@@ -98,7 +72,6 @@ for (const mutation of [
   'pagination',
 ]) {
   test(`controller performs no write when ${mutation} changes before dispatch`, async () => {
-    const { refreshOne } = await implementation();
     const f = fixture();
     const request = f.client.request;
     let pullReads = 0;
@@ -128,7 +101,6 @@ for (const mutation of [
 }
 
 test('ambiguous POST failure is surfaced and never automatically retried', async () => {
-  const { refreshOne } = await implementation();
   const f = fixture();
   f.client.response = async () => {
     f.writes.push('attempt');
@@ -142,7 +114,6 @@ test('ambiguous POST failure is surfaced and never automatically retried', async
 });
 
 test('controller rejects non-main and untrusted invocation before any network activity', async () => {
-  const { validateControllerEnvironment } = await implementation();
   const env = {
     GITHUB_REPOSITORY: repository,
     GITHUB_REPOSITORY_ID: '1128472973',
@@ -166,7 +137,6 @@ test('controller rejects non-main and untrusted invocation before any network ac
 });
 
 test('a native run starting during the final feedback read is not rerun', async () => {
-  const { refreshOne } = await implementation();
   const f = fixture();
   const request = f.client.request;
   let reads = 0;
@@ -182,9 +152,8 @@ test('a native run starting during the final feedback read is not rerun', async 
   assert.deepEqual(f.writes, []);
 });
 
-for (const lane of ['delivery', 'finalizer']) {
+for (const lane of ['delivery', 'raw-delivery', 'finalizer']) {
   test(`a proven deferred ${lane} label run cannot hide the latest real gate`, async () => {
-    const { refreshOne } = await implementation();
     const f = fixture();
     if (lane === 'finalizer') {
       f.evidence.workflow.path = f.evidence.run.path = '.github/workflows/pr-finalizer.yml';
@@ -194,7 +163,7 @@ for (const lane of ['delivery', 'finalizer']) {
     const deferred = {
       ...f.evidence.run,
       id: 200,
-      conclusion: lane === 'delivery' ? 'skipped' : 'success',
+      conclusion: lane !== 'finalizer' ? 'skipped' : 'success',
       display_title: f.evidence.run.display_title.replace(':opened:', ':labeled:'),
     };
     const job = {
@@ -203,9 +172,12 @@ for (const lane of ['delivery', 'finalizer']) {
       run_attempt: 1,
       status: 'completed',
       conclusion: deferred.conclusion,
-      name: lane === 'delivery' ? 'delivery-gate-deferred' : 'pr-finalizer',
+      name: lane !== 'finalizer' ? 'delivery-gate-deferred' : 'pr-finalizer',
       steps: [],
     };
+    if (lane === 'raw-delivery')
+      job.name =
+        "github.event.pull_request.base.ref == 'main' && github.event.pull_request.state == 'open' && !github.event.pull_request.draft && (github.event.action != 'labeled' || github.event.label.name == 'full-gate') && 'delivery-gate' || 'delivery-gate-deferred'";
     if (lane === 'finalizer')
       job.steps = [
         'Run actions/checkout@v5',
@@ -237,6 +209,37 @@ for (const lane of ['delivery', 'finalizer']) {
       'refresh-requested'
     );
     assert.equal(f.writes.length, 1);
+    const singleRequest = f.client.request;
+    const singlePages = f.client.pages;
+    for (const count of [19, 20]) {
+      const deferredRuns = Array.from({ length: count }, (_, i) => ({ ...deferred, id: 200 + i }));
+      f.client.request = endpoint => {
+        const match = deferredRuns.find(run => endpoint.endsWith(`/actions/runs/${run.id}`));
+        return match ? structuredClone(match) : singleRequest(endpoint);
+      };
+      f.client.pages = async (endpoint, key) => {
+        if (key === 'workflow_runs')
+          return { values: [...deferredRuns, f.evidence.run], complete: true };
+        const match = deferredRuns.find(run =>
+          endpoint.endsWith(`/actions/runs/${run.id}/attempts/1/jobs`)
+        );
+        if (match)
+          return { values: [{ ...job, id: match.id + 1000, run_id: match.id }], complete: true };
+        return singlePages(endpoint, key);
+      };
+      f.writes.length = 0;
+      const refresh = refreshOne(f.client, 17, f.evidence.workflow, {
+        now: f.evidence.now,
+        apply: true,
+      });
+      if (count === 19) assert.equal((await refresh).status, 'refresh-requested');
+      else {
+        await assert.rejects(refresh, /run selection incomplete/u);
+        assert.deepEqual(f.writes, []);
+      }
+    }
+    f.client.request = singleRequest;
+    f.client.pages = singlePages;
     const before = f.client.request;
     let deferredReads = 0;
     f.client.request = endpoint => {

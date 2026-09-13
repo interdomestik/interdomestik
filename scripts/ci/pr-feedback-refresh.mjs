@@ -1,6 +1,9 @@
 const REPOSITORY = 'interdomestik/interdomestik';
 const REPOSITORY_ID = 1128472973;
 const SHA = /^[a-f0-9]{40}$/u;
+// GitHub preserves this unevaluated name for jobs skipped before runner allocation.
+const DEFERRED_DELIVERY_NAME =
+  "github.event.pull_request.base.ref == 'main' && github.event.pull_request.state == 'open' && !github.event.pull_request.draft && (github.event.action != 'labeled' || github.event.label.name == 'full-gate') && 'delivery-gate' || 'delivery-gate-deferred'";
 const MARKER =
   /^feedback-snapshot:v1:([1-9]\d*):([a-f0-9]{40}):([a-f0-9]{40}):([a-f0-9]{40}):([a-f0-9]{64})$/u;
 const WORKFLOWS = {
@@ -84,7 +87,7 @@ export function isDeferredLabel(pull, workflow, run, jobs) {
   if (rule.context === 'delivery-gate')
     return (
       run.conclusion === 'skipped' &&
-      job.name === 'delivery-gate-deferred' &&
+      ['delivery-gate-deferred', DEFERRED_DELIVERY_NAME].includes(job.name) &&
       job.conclusion === 'skipped' &&
       job.steps.every(step => step.status === 'completed' && step.conclusion === 'skipped')
     );
