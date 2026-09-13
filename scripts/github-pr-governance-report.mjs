@@ -201,6 +201,7 @@ export function verifyCommitGraph(snapshot) {
   }
   if (
     snapshot.pull.state !== 'open' ||
+    snapshot.pull.draft !== false ||
     snapshot.pull.baseSha !== base ||
     snapshot.pull.headSha !== head
   )

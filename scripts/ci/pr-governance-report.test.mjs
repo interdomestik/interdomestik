@@ -34,6 +34,7 @@ function reportClient(checks, drift = false) {
       payload = {
         number: 1693,
         state: 'open',
+        draft: false,
         base: { sha: B },
         head: { sha: drift && pullReads === 3 ? '9'.repeat(40) : H },
         merge_commit_sha: T,
@@ -92,12 +93,10 @@ for (const [older, newer, pass] of [
 }
 
 test('report collection refuses PR head drift during its reads', async () => {
-  const report = await collectGovernanceReport(
-    reportClient(reportSnapshot().checks, true),
-    contract,
-    1693
+  await assert.rejects(
+    collectGovernanceReport(reportClient(reportSnapshot().checks, true), contract, 1693),
+    /pull request identity changed/u
   );
-  assert.match(report.failures.join('\n'), /pull request identity changed/u);
 });
 
 for (const [label, change, pattern] of [

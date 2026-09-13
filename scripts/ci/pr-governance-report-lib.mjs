@@ -63,11 +63,5 @@ export async function collectGovernanceReport(client, contract, number) {
   const snapshot = await collectSnapshot(client, contract, expected, number, [
     contract.deliveryContext,
   ]);
-  const finalPull = await client.request(endpoint);
-  snapshot.pull = {
-    state: finalPull.state,
-    baseSha: finalPull.base.sha,
-    headSha: finalPull.head.sha,
-  };
   return governanceReport(contract, snapshot);
 }

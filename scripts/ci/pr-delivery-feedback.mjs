@@ -2,6 +2,13 @@ import { deliveryDispositionCandidates, deliveryDispositionReviewIds } from './p
 
 const MAX_PAGES = 100;
 
+export function pendingReviewers(pull) {
+  return [
+    ...(pull.requested_reviewers ?? []).map(item => item.login),
+    ...(pull.requested_teams ?? []).map(item => item.slug),
+  ];
+}
+
 async function collectThreads(client, number) {
   const [owner, name] = client.repository.split('/');
   const nodes = [];
@@ -69,13 +76,12 @@ export async function collectFeedback(client, pull) {
       threads: threads.complete,
     },
     unresolvedThreads: threads.values.filter(item => !item.isResolved),
-    pendingReviewers: [
-      ...(pull.requested_reviewers ?? []).map(item => item.login),
-      ...(pull.requested_teams ?? []).map(item => item.slug),
-    ],
+    pendingReviewers: pendingReviewers(pull),
     reviews: reviews.values.map(item => ({
       id: item.id,
       author: item.user?.login ?? '',
+      authorId: item.user?.id ?? null,
+      authorType: item.user?.type ?? '',
       commitId: item.commit_id ?? '',
       state: item.state ?? '',
       body: item.body ?? '',
