@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { runNativeReviewer } from './reviewer-native-evidence.mjs';
 import { commandAvailable, statusForClose, timeoutConfig } from './reviewer-route-utils.mjs';
 
 const BLOCKERS = [
@@ -164,6 +165,17 @@ export function runReviewerRoute(options) {
     stdout,
     stderr,
   });
+
+  if (options.nativeProtocol !== undefined) {
+    if (options.nativeProtocol === 'antigravity-v1') {
+      return runNativeReviewer(options).then(result => ({
+        ...finishReceipt(result),
+        ...result,
+      }));
+    }
+    blockerReason = 'unsupported_native_protocol';
+    return Promise.resolve(finishReceipt({ status: 'blocked', exitCode: 125 }));
+  }
 
   if (!commandAvailable(options.command, env)) {
     blockerReason = 'missing_cli';
