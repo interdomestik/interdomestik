@@ -8,6 +8,7 @@ import { runProbe } from './model-review-access.mjs';
 import { modelReviewRoutes } from './model-review-routes.mjs';
 import { claudeRestrictedArgs } from './reviewer-claude-execution.mjs';
 import { reviewerLifecycle } from './reviewer-process-lifecycle.mjs';
+import { checkNativeBilling } from './reviewer-native-process.mjs';
 import { runReviewerRoute } from './reviewer-route-runtime.mjs';
 import { writeRouteReceipt } from './reviewer-route-receipts.mjs';
 
@@ -30,6 +31,26 @@ test('restricted Claude flags exclude hooks, tools, MCP, Chrome and inherited se
   ])
     assert.ok(args.includes(flag));
   assert.ok(!args.includes('--bare'));
+});
+
+test('native billing rejects enabled, malformed and ambiguous paid-credit settings', () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'reviewer-billing-'));
+  const directory = path.join(home, '.gemini/antigravity-cli');
+  const settings = path.join(directory, 'settings.json');
+  fs.mkdirSync(directory, { recursive: true });
+  try {
+    assert.equal(checkNativeBilling(home).source, 'pinned-default');
+    fs.writeFileSync(settings, JSON.stringify({ useG1Credits: false }));
+    assert.equal(checkNativeBilling(home).source, 'explicit');
+    for (const value of [true, 'false', null, 0]) {
+      fs.writeFileSync(settings, JSON.stringify({ useG1Credits: value }));
+      assert.throws(() => checkNativeBilling(home), /paid_fallback_enabled/u);
+    }
+    fs.writeFileSync(settings, 'broken');
+    assert.throws(() => checkNativeBilling(home), /billing_settings_unreadable/u);
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
 });
 
 for (const routeName of ['sonnet', 'gemini', 'flash']) {

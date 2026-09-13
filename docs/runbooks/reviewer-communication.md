@@ -18,16 +18,20 @@ the same restricted runner as a review, with a fixed public prompt.
 
 ## Execution and evidence
 
-- Sonnet uses the signed native Claude executable at `~/.npm-global/bin/claude`,
+- Sonnet uses the signed, SHA-pinned native Claude executable at `~/.npm-global/bin/claude`,
   a private executable copy, fresh empty working directory, empty tools/MCP,
   disabled hooks/skills/Chrome, and no persisted session. The minimal environment
   preserves subscription HOME, USER and LOGNAME; it excludes API keys and loader
   overrides. Do not use bare mode, which excludes subscription login.
+  Effort is explicitly requested as medium; receipts attest model identity, not effort.
+  Typed reasoning progress and opaque thinking signatures remain captured within a 2 MB bound.
 - Gemini uses the signed, SHA-pinned native Antigravity executable at
   `~/.local/bin/agy`. The `gemini` wrappers are not accepted. Each run checks the
   catalog and runs fresh negative/positive public canary controls before sending
   a private packet. The custom agent is explicitly registered with `--add-dir`.
   An echoed agent name alone is insufficient because missing agents can fall back.
+  Before and after each subprocess, the runner rejects enabled or malformed `useG1Credits`
+  settings; absence uses the pinned build's disabled default. No global setting is changed.
 - Pro is pinned to `gemini-3.1-pro-high`; Flash to `gemini-3.8-flash-low`. No
   provider, model, API-key or paid fallback occurs. Init tool inventory is distinct
   from the effective custom-agent allowlist; actual tool events in a review fail.
@@ -43,6 +47,9 @@ print their receipt path. Native subprocess records, control logs and executable
 identity are retained in the task's temporary evidence directory referenced by the
 receipt. Preserve these artifacts when cleaning a worktree; they can contain private
 review responses and must not be published indiscriminately.
+Archive required receipts and raw controls privately before deleting only their referenced
+task evidence directories. These directories contain executable copies as well as transcripts;
+retention is operator-controlled and no global temporary-directory cleanup is performed.
 
 ## Diagnosis
 

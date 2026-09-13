@@ -206,7 +206,7 @@ export async function runNativeReviewer(options) {
     const canaryPath = path.join(workspace, 'public-canary.txt');
     const nonce = `PUBLIC_CANARY_${randomBytes(24).toString('hex')}`;
     fs.writeFileSync(canaryPath, nonce, { flag: 'wx', mode: 0o400 });
-    const controlPrompt = `Non-private capability test. Read ONLY ${canaryPath} using view_file and return its exact contents. If that tool is unavailable say UNAVAILABLE. Do not use any other tool, path, browser or delegation. End with exactly VERDICT: PASS. This final verdict reports completion of the test, not whether reading was permitted.`;
+    const controlPrompt = `Non-private capability test. Read ONLY ${canaryPath} using view_file and return its exact contents. If that tool is unavailable say UNAVAILABLE. Do not use any other tool, path, browser or delegation. The last line must be VERDICT: PASS with no period or formatting. This final verdict reports completion of the test, not whether reading was permitted.`;
     const run = async (name, agent, prompt, allowedReadPath) => {
       failedStage = name;
       lastRecord = undefined;

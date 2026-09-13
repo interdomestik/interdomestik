@@ -17,7 +17,7 @@ function captureScenario(scenario) {
     const context = vm.createContext({ Buffer, Date, setTimeout, clearTimeout, process: { platform: 'darwin' } });
     let child;
     const scenario = process.argv[1];
-    const fakeFs = { readFileSync: () => Buffer.from('signed fixture'), writeFileSync() {
+    const fakeFs = { readFileSync: file => String(file).endsWith('settings.json') ? '{}' : Buffer.from('signed fixture'), writeFileSync() {
       if (scenario === 'write-error') throw Object.assign(new Error('disk full'), { code: 'ENOSPC' });
     }};
     const replacements = {
@@ -39,7 +39,7 @@ function captureScenario(scenario) {
     });
     await module.evaluate();
     let result = { settled: false };
-    const promise = module.namespace.captureNative('/test/agy', [], { env: {}, cwd: '/tmp', deadline: Date.now() + 2000, receiptPath: '/tmp/unused' });
+    const promise = module.namespace.captureNative('/test/agy', [], { env: { HOME: '/test' }, cwd: '/tmp', deadline: Date.now() + 2000, receiptPath: '/tmp/unused' });
     promise.then(record => { result = { settled: true, record }; }, error => { result = { settled: true, reason: error.message, record: error.record }; });
     const bytes = Buffer.from('Gjetje në kod: €');
     const cut = bytes.indexOf(Buffer.from('€')) + 1;

@@ -4,6 +4,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
+const CLAUDE_SHA256 = '19ed536dd0e94dade3f8c49c3c6ddeff22b06f5d5c86b30f1c88eeb9a04f45e5';
+const digest = file => createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+
 export function claudeRestrictedArgs(prompt, model) {
   return [
     '-p',
@@ -69,13 +72,15 @@ export async function runRestrictedClaude(options, capture) {
         ],
         { env, timeout: 30_000, maxBuffer: 20_000, stdio: ['ignore', 'pipe', 'pipe'] }
       );
+    if (digest(options.command) !== CLAUDE_SHA256) throw new Error('claude_executable_untrusted');
     verify(options.command);
     evidenceDirectory = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'claude-reviewer-')));
     const executable = path.join(evidenceDirectory, 'claude');
     fs.copyFileSync(options.command, executable, fs.constants.COPYFILE_EXCL);
     fs.chmodSync(executable, 0o500);
     verify(executable);
-    const sha256 = createHash('sha256').update(fs.readFileSync(executable)).digest('hex');
+    const sha256 = digest(executable);
+    if (sha256 !== CLAUDE_SHA256) throw new Error('claude_executable_untrusted');
     const cwd = path.join(evidenceDirectory, 'workspace');
     fs.mkdirSync(cwd, { mode: 0o700 });
     const args = claudeRestrictedArgs(options.prompt, options.model);

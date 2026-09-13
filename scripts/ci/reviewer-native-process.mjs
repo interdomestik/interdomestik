@@ -14,6 +14,28 @@ export function requireNative(condition, reason) {
   if (!condition) throw new Error(`native_${reason}`);
 }
 
+export function checkNativeBilling(home) {
+  const settingsPath = path.join(home, '.gemini/antigravity-cli/settings.json');
+  let settings = {};
+  try {
+    settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw new Error('native_billing_settings_unreadable');
+  }
+  // This pinned build sparsely persists settings; absent means the disabled default.
+  requireNative(
+    settings &&
+      !Array.isArray(settings) &&
+      typeof settings === 'object' &&
+      (settings.useG1Credits === undefined || settings.useG1Credits === false),
+    'paid_fallback_enabled'
+  );
+  return {
+    useG1Credits: false,
+    source: settings.useG1Credits === false ? 'explicit' : 'pinned-default',
+  };
+}
+
 export function verifyExecutable(executable, env) {
   requireNative(
     process.platform === 'darwin' && path.isAbsolute(executable),
@@ -87,6 +109,7 @@ export function nativeFailureReceipt(error, evidenceDirectory) {
 
 export function captureNative(executable, args, context) {
   verifyExecutable(executable, context.env);
+  const billingControl = checkNativeBilling(context.env.HOME);
   return new Promise((resolve, reject) => {
     const child = spawn(executable, args, {
       cwd: context.cwd,
@@ -96,6 +119,7 @@ export function captureNative(executable, args, context) {
     });
     const record = {
       pid: child.pid,
+      billingControl,
       argv: [
         executable,
         ...args.map((arg, index) => (args[index - 1] === '-p' ? '<prompt>' : arg)),
@@ -144,6 +168,11 @@ export function captureNative(executable, args, context) {
       for (const channel of ['stdout', 'stderr'])
         record[channel] = Buffer.concat(chunks[channel]).toString('utf8');
       Object.assign(record, { exitCode: code, signal, endedAt: new Date().toISOString() });
+      try {
+        checkNativeBilling(context.env.HOME);
+      } catch (error) {
+        reason ||= error.message;
+      }
       try {
         fs.writeFileSync(context.receiptPath, JSON.stringify(record, null, 2), {
           flag: 'wx',
