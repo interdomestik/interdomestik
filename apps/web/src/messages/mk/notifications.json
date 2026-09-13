@@ -1,26 +1,29 @@
 {
   "notifications": {
-    "title": "Njoftimet",
-    "empty": "Nuk ka njoftime ende",
-    "markAllRead": "Shëno të gjitha si të lexuara",
-    "viewAll": "Shiko të gjitha njoftimet",
-    "settings": "Cilësimet e Njoftimeve",
+    "title": "Известувања",
+    "empty": "Сè уште нема известувања",
+    "markRead": "Означи како прочитано: {title}",
+    "markAllRead": "Означи ги сите како прочитани",
+    "markedRead": "Известувањето е означено како прочитано.",
+    "markedAllRead": "Сите известувања се означени како прочитани.",
+    "viewAll": "Прикажи ги сите известувања",
+    "settings": "Поставки за известувања",
     "preferences": {
-      "title": "Preferencat e Njoftimeve",
-      "description": "Zgjidhni si dhe kur dëshironi të merrni njoftime",
-      "email": "Njoftimet me email",
-      "emailDescription": "Merrni përditësime përmes emailit",
-      "inApp": "Njoftimet në aplikacion",
-      "inAppDescription": "Merrni njoftime brenda aplikacionit",
-      "push": "Njoftimet push",
-      "pushDescription": "Merrni njoftime push në pajisjen tuaj"
+      "title": "Преференции за известувања",
+      "description": "Изберете како и кога сакате да примате известувања",
+      "email": "Известувања по е-пошта",
+      "emailDescription": "Примајте ажурирања преку е-пошта",
+      "inApp": "Известувања во апликацијата",
+      "inAppDescription": "Примајте известувања во апликацијата",
+      "push": "Push известувања",
+      "pushDescription": "Примајте push известувања на вашиот уред"
     },
     "types": {
-      "claimSubmitted": "Kërkesa e Dorëzuar",
-      "claimAssigned": "Kërkesa e Caktuar",
-      "statusChanged": "Statusi Ndryshoi",
-      "newMessage": "Mesazh i Ri",
-      "slaWarning": "Paralajmërim SLA"
+      "claimSubmitted": "Поднесено барање",
+      "claimAssigned": "Доделено барање",
+      "statusChanged": "Променет статус",
+      "newMessage": "Нова порака",
+      "slaWarning": "SLA предупредување"
     }
   }
 }

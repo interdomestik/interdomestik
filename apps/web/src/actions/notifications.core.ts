@@ -17,14 +17,7 @@ function isUnauthorizedError(error: unknown): boolean {
  */
 export async function getNotifications(limit = 20) {
   const { session } = await getActionContext();
-  try {
-    return await getNotificationsCore({ session, limit });
-  } catch (error) {
-    if (isUnauthorizedError(error)) {
-      return [];
-    }
-    throw error;
-  }
+  return getNotificationsCore({ session, limit });
 }
 
 /**

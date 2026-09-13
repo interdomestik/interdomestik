@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-12
+last_reviewed: 2026-09-13
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -25,8 +25,10 @@ as `12b22bada268dc0961d32792a553e54dea9a2bff`. T210 completed through product PR
 `00794c98cc6b4d395493370552ab7b9eae525db7` matched. Protected-main CI `34703433627`, SonarCloud
 Code Analysis check `103580834614`, and Sonar Main Gate `34703433721` attempt 2 passed at the exact
 merge.
-The ordered current-program backlog names no post-T210 successor, so no product slice is active
-pending owner selection.
+The owner selected `T410-NOTIFICATION-ACK-CORRECTNESS` as the next bounded ordinary product
+increment after T210. It fixes truthful notification acknowledgement over the existing member
+notification surface and server-action contract. This increment is a prerequisite step toward
+blueprint T-410; it does not complete all of T-410, select T-411, or reactivate legacy Lean.
 
 ## Delivered History
 
@@ -117,8 +119,7 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 |        3 | Unsupported claim AI document type | Trial 2         | Completed migration trial 3/3. |
 
 These rows are completed historical priorities. The committed post-T210 priority set is empty;
-owner selection and a corresponding current-program update are required before another product
-increment starts.
+the owner-selected notification acknowledgement increment below is the only active product work.
 
 ## Ordinary Product Delivery
 
@@ -189,6 +190,112 @@ they did not change product behavior. Final-head focused review found no unresol
 Protected-main CI `34703433627`, SonarCloud Code Analysis check `103580834614`, and Sonar Main Gate
 `34703433721` attempt 2 passed at the exact squash merge. This records implementation and merge
 only; no deployment or claimant usability validation is claimed.
+
+## T410 Notification Acknowledgement Correctness Increment
+
+`T410-NOTIFICATION-ACK-CORRECTNESS` is a high-complexity, Astra/high ordinary product slice.
+The chief reassigned its sole implementation owner from Sol/high after a reproduced abandoned
+React render stranded committed acknowledgement state. Risk drivers include concurrent rendering,
+subscriber epochs, asynchronous UI state, typed server outcomes, localization, and accessibility
+over an established contract. Existing blueprint dependencies T401 and T002 are recorded complete;
+this increment does not claim broader T-410 completion.
+
+The member notification center currently awaits single/all acknowledgement actions but ignores a
+returned `{ success: false, error }` before changing the represented rows and a separately stored
+unread count. The bounded correction makes read state server-confirmed, derives the count from the
+represented list, prevents duplicate and overlapping single/all mutations, ignores stale fetch or
+mutation results after subscriber changes, and exposes localized accessible pending, success, and
+failure feedback. Bulk acknowledgement still updates the full tenant/user unread backlog but
+returns a bounded success result; after confirmation, the client marks its represented requested
+rows read and reconciles a bounded authoritative snapshot. Existing lazy fetching and action-link navigation remain, with locale-aware
+normalization for stored action paths and disabled semantics while an item is pending. Notification
+generation/delivery, server auth and tenant filters, schema, routes/proxy, billing, case/recovery
+state, and deployment remain unchanged.
+
+The shared brief was checked on 2026-09-12. The current
+[React `useOptimistic` reference](https://react.dev/reference/react/useOptimistic) describes
+temporary pre-confirmation UI and currently documents React 19.3, while this repository resolves
+React 19.2.8; this slice rejects speculative read state and does not add `useOptimistic` merely to
+match a blueprint term. The
+[WCAG 2.2 status-message guidance](https://www.w3.org/WAI/WCAG22/Understanding/status-messages)
+supports programmatically announced waiting, result, and error feedback without taking focus; the
+slice adopts a restrained live status/alert region with understandable control names. AirHelp's
+[public fee description](https://www.airhelp.com/en-int/our-fees/) says claimants are kept updated,
+but it neither exposes nor validates its notification UX; this slice therefore adopts only the
+member outcome of truthful update handling and rejects copied wording or visual design. Focused
+proof must reproduce the false-success bug and cover typed failures, thrown errors, duplicate and
+single/all concurrency, count/list consistency, subscriber/fetch races, accessible names, locale
+resolution, and the retained member navigation path. A tightly scoped browser regression and the
+ordinary required checks remain delivery evidence; no authenticated competitor-portal inspection
+or claimant usability validation is claimed.
+
+The 2026-09-13 correction follows React's [ref guidance](https://react.dev/reference/react/useRef)
+and [layout-effect timing](https://react.dev/reference/react/useLayoutEffect), checked against
+the installed React 19.2.8: commit-phase synchronization prevents abandoned renders from changing
+the active subscriber. A real Suspense transition test failed before the correction and passed
+after it. The correction also coalesces pending same-subscriber fetches, distinguishes fetch
+failure from an empty inbox with a localized retry action, and tests acknowledgement before
+navigation. These findings were consolidated before renewed full verification.
+
+The current member screen is a legacy behavioral integration surface only, not an approved visual
+target. Browser evidence for this increment proves notification semantics and keyboard operation;
+it does not approve or freeze that screen's layout, styling, hierarchy, or navigation presentation.
+The owner intends a net-new member UI/UX using current interaction patterns within the unified
+portal shell, not separate role-specific dashboard designs. That redesign is separate scope;
+canonical role routes and readiness markers remain technical access-control and test contracts.
+
+Source-bound local proof passed at `af64f73c82164a6189a93be7bdcd9b0af1c10a19`: 61 focused
+notification/domain tests (57 web and 4 domain), both focused IDA-host browser variants, the full
+`pr:verify` gate, and
+`security:guard`. The full gate included 1,048 CI contracts, 154 release-gate tests, 41 RLS tests,
+81.25% repository line coverage (21,643/26,637), 252 browser-gate passes with 12 intentional skips,
+and 13 smoke passes with 11 intentional skips. Repo-owned routes completed Claude Sonnet 5 design
+and Gemini 3.1 Pro/Gemini 3.8 Flash test-screening proposals against specification commit
+`adc3ca314`; those receipts informed implementation but are not current-head implementation-review
+evidence. An earlier independent Astra implementation review passed at `833496eb`. Subsequent
+externally reported findings were reproduced and corrected: concurrent single-acknowledgement error
+state, pending unread-menu closure, Macedonian/Serbian translations, unread-only bulk writes,
+unbounded bulk responses, locale-safe action routing, disabled pending actions, Serbian glossary
+consistency, semantic status output, and explicit tenant/user predicates without the deprecated
+helper overload. The changed E2E corpus fingerprint is registered within the existing fixed-capacity
+CI evidence allocation, with no repository-ceiling increase. The corrected behavior and regressions
+are covered by the new source-bound proof.
+Current-head protected review, protected PR evidence, and merge are still pending, so the increment
+remains `in_progress`; no deployment or claimant usability validation is claimed.
+
+On 2026-09-13 the owner waived Claude and Gemini reviews for this notification increment only
+and directed Astra completion. Astra/high is the implementation owner, with a fresh independent
+read-only Astra final review before renewed mandatory source-bound verification. Earlier Gemini
+wrapper receipts do not establish served-model identity and remain advisory; the isolated native
+communication repair is parked, not part of this product PR. No permanent model-policy change,
+protected-check bypass, UI redesign or deployment follows from this one-slice waiver.
+
+Renewed source-bound local proof passed at `045b0c7ee609776613ff47a076bf47ce1ec7660c`:
+full `pr:verify` (649,494 ms), security guard and both focused IDA notification browser variants.
+The full gate passed 1,048 CI contracts, 154 release tests, 41 RLS tests, 81.24% line coverage,
+252 browser tests with 12 intentional skips and 13 smoke tests with 11 intentional skips.
+Astra independently cleared unchanged production head `b5e67972` with 28 web/four domain tests.
+The successful run used a task-only database and supported upload-disabled local environment;
+an interrupted earlier Sentry upload remains separately recorded in the tracker. Protected
+current-head checks and merge remain pending; no deployment or visual approval is claimed.
+
+The subsequent `aed9f024` review reproduced two fetch-boundary regressions: the action masked
+expired sessions as an empty inbox, and revision-discarded fetches missed newly arrived rows.
+The bounded correction propagates fetch failures and coalesces a fresh current-subscriber/epoch
+fetch after invalidation. Existing server authorization is unchanged. Zero-row bulk success
+remains idempotent: another tab may already have acknowledged the authorized unread backlog;
+affected-row counts cannot distinguish that from deletion and are not a valid failure rule.
+Focused regressions cover both acknowledgement variants, post-mount session expiry and bounded
+zero-row success. These changes require renewed source-bound full proof before protected merge.
+
+Review at `61e17a02` reproduced a further bulk ordering: a fetch completed while acknowledgement
+was pending, adding a row outside the captured list before the server read the backlog. Successful
+bulk acknowledgement now requests bounded reconciliation even when no fetch remains in flight.
+The regression matrix covers single/bulk fetch completion before/after acknowledgement, arrivals
+still unread after the database write, wrong-ID refusal, failed reconciliation with explicit retry,
+and subscriber-epoch isolation. Independent Astra review cleared this correction after 41 focused
+web/four domain owner tests passed. Full proof at `61e17a02` remains old-source evidence; the final
+correction requires renewed verification and protected merge.
 
 ## T117C Product Delivery
 
