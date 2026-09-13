@@ -176,6 +176,18 @@ async function openPullNumbers(client) {
   throw new Error('refresh inventory bound exceeded; action required');
 }
 
+function refreshFailure(client, error) {
+  // Classify failures without exposing remote error bodies.
+  if (client.budget?.reason) return { status: 'deferred-budget', reason: client.budget.reason };
+  return {
+    status: 'refresh-failed',
+    reason:
+      error.message === INCOMPLETE_SELECTION
+        ? INCOMPLETE_SELECTION
+        : 'inspection or dispatch failed',
+  };
+}
+
 export async function refreshRepository(
   client,
   { apply = false, report = () => {}, now = Date.now() } = {}
@@ -202,9 +214,10 @@ export async function refreshRepository(
   let failed = 0;
   let deferred = 0;
   // Rotate pairs, not just PRs: neither workflow may starve at a quota boundary.
-  const pairs = numbers
-    .sort((a, b) => a - b)
-    .flatMap(number => workflows.map((workflow, index) => ({ number, workflow, index })));
+  numbers.sort((a, b) => a - b);
+  const pairs = numbers.flatMap(number =>
+    workflows.map((workflow, index) => ({ number, workflow, index }))
+  );
   const offset = Math.floor(now / 300_000) % pairs.length;
   for (let position = 0; position < pairs.length; position++) {
     if (client.budget?.reason) {
@@ -222,21 +235,10 @@ export async function refreshRepository(
       if (!workflow) throw new Error('workflow metadata unavailable');
       result = await refreshOne(client, number, workflow, { apply, now });
     } catch (error) {
-      // Do not echo remote error bodies or retry a potentially accepted POST.
-      if (client.budget?.reason) {
-        deferred++;
-        result = { status: 'deferred-budget', reason: client.budget.reason };
-      } else {
-        failed++;
-        result = {
-          status: 'refresh-failed',
-          reason:
-            error.message === INCOMPLETE_SELECTION
-              ? INCOMPLETE_SELECTION
-              : 'inspection or dispatch failed',
-        };
-      }
+      result = refreshFailure(client, error);
     }
+    failed += Number(result.status === 'refresh-failed');
+    deferred += Number(result.status === 'deferred-budget');
     report({ number, workflow: WORKFLOW_FILES[index], ...result });
   }
   return { failed, deferred };
