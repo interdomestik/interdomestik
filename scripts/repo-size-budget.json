@@ -585,12 +585,12 @@
         "scripts/slice-rehearse-proof-failure.test.mjs": 9630,
         "scripts/slice-rehearse-proof-ledger.mjs": 6873,
         "scripts/slice-rehearse-proof-obligations.mjs": 6547,
-        "scripts/slice-rehearse-proof-obligations.test.mjs": 9032,
-        "scripts/github-pr-governance-report.mjs": 416,
+        "scripts/slice-rehearse-proof-obligations.test.mjs": 9046,
+        "scripts/github-pr-governance-report.mjs": 453,
         "scripts/ci/pr-delivery-api.mjs": 758,
         "scripts/ci/pr-delivery-gate.mjs": 489,
         "scripts/ci/pr-delivery-cli.mjs": 2589,
-        "scripts/ci/pr-delivery-fixtures.mjs": 1604,
+        "scripts/ci/pr-delivery-fixtures.mjs": 1618,
         "scripts/ci/pr-governance-report-lib.mjs": 2166,
         "scripts/ci/pr-governance-report.test.mjs": 7110,
         "scripts/ci/reviewer-no-tools.toml": 57,
@@ -637,12 +637,12 @@
         "scripts/ci/actions-check-supersession.mjs",
         "scripts/ci/actions-check-supersession.test.mjs"
       ],
-      "maxTrackedBytesDelta": 49812,
+      "maxTrackedBytesDelta": 53972,
       "maxTrackedFilesDelta": 7,
       "maxCategoryBytesDelta": {
         "config/data/messages": 1751,
-        "tests/e2e": 36115,
-        "source/scripts": 11946
+        "tests/e2e": 40124,
+        "source/scripts": 12097
       },
       "maxPathBytesDelta": {
         ".github/workflows/pr-finalizer.yml": 1751,
@@ -652,8 +652,8 @@
         "scripts/ci/pr-finalizer-workflow.test.mjs": 16396,
         "scripts/ci/pr-gate-concurrency-state.test.mjs": 3102,
         "scripts/pr-review-ready.sh": 1279,
-        "scripts/ci/pr-delivery-feedback.mjs": 3726,
-        "scripts/ci/pr-delivery-ordering.test.mjs": 4912,
+        "scripts/ci/pr-delivery-feedback.mjs": 3877,
+        "scripts/ci/pr-delivery-ordering.test.mjs": 8927,
         "scripts/ci/pr-review-ready.test.mjs": 3672,
         "scripts/pr-finalizer.sh": 2592,
         "scripts/ci/actions-check-supersession.mjs": 4349,
@@ -1250,15 +1250,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61182903,
+  "maxTrackedBytes": 61187063,
   "maxTrackedFiles": 6043,
   "maxCategoryBytes": {
     "config/data/messages": 2228284,
     "docs/text": 8541936,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8817654,
-    "tests/e2e": 7014294
+    "source/scripts": 8817805,
+    "tests/e2e": 7018303
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
