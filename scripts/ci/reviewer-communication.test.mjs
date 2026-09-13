@@ -63,6 +63,22 @@ test('missing native binary yields blocked diagnostic without another provider',
   assert.match(result.reason, /unavailable/u);
 });
 
+test('silent process failure cannot claim public probe completion', async () => {
+  const result = await runProbe(
+    {
+      command: process.execPath,
+      provider: 'test',
+      model: 'test',
+      args: () => ['-e', 'process.exit(1)'],
+    },
+    'call',
+    'silent-failure'
+  );
+  assert.equal(result.status, 'failed');
+  assert.equal(result.reason, 'probe failed');
+  assert.equal(result.receipt.exitCode, 1);
+});
+
 test('receipt shows native inference and null server model distinctly', () => {
   const receipt = {
     routeName: 'native-inference-test',

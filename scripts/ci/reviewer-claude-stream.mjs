@@ -34,6 +34,26 @@ export function inspectClaudeStream(stdout, expectedModel) {
     );
   }
   for (const event of events.slice(1, -1)) {
+    if (event.type === 'system' && event.subtype === 'thinking_tokens') {
+      requireClaude(
+        Object.keys(event).every(key =>
+          [
+            'type',
+            'subtype',
+            'estimated_tokens',
+            'estimated_tokens_delta',
+            'uuid',
+            'session_id',
+          ].includes(key)
+        ) &&
+          Number.isSafeInteger(event.estimated_tokens) &&
+          event.estimated_tokens >= 0 &&
+          Number.isSafeInteger(event.estimated_tokens_delta) &&
+          event.estimated_tokens_delta >= 0,
+        'invalid_thinking_progress'
+      );
+      continue;
+    }
     if (event.type === 'rate_limit_event') {
       requireClaude(event.rate_limit_info?.isUsingOverage !== true, 'paid_overage');
       requireClaude(
@@ -49,7 +69,10 @@ export function inspectClaudeStream(stdout, expectedModel) {
     requireClaude(Array.isArray(message.content) && message.content.length > 0, 'missing_content');
     for (const part of message.content)
       requireClaude(
-        part.type === 'text' && typeof part.text === 'string',
+        (part.type === 'text' && typeof part.text === 'string') ||
+          (part.type === 'thinking' &&
+            typeof part.thinking === 'string' &&
+            typeof part.signature === 'string'),
         'tool_or_unknown_content'
       );
     assistants.push(message);
@@ -66,7 +89,9 @@ export function inspectClaudeStream(stdout, expectedModel) {
   );
   requireClaude(result.api_error_status == null, 'provider_error');
   requireClaude(typeof result.result === 'string', 'missing_result');
-  const response = assistants.flatMap(message => message.content.map(part => part.text)).join('');
+  const response = assistants
+    .flatMap(message => message.content.filter(part => part.type === 'text').map(part => part.text))
+    .join('');
   requireClaude(response === result.result, 'response_mismatch');
   const finalLine = result.result.trimEnd().split('\n').at(-1)?.trim();
   const reviewVerdict = /^VERDICT:[ \t]*(PASS|FINDINGS)$/u.exec(finalLine)?.[1];

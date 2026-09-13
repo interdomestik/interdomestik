@@ -51,7 +51,7 @@ export async function runProbe(route, probe, routeName) {
   });
   return {
     status: receipt.status === 'ran' ? 'completed' : receipt.status,
-    reason: receipt.error || receipt.blockerReason || 'restricted public probe completed',
+    reason: receipt.error || receipt.blockerReason || `probe ${receipt.status}`,
     receipt,
   };
 }

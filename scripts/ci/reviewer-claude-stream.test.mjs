@@ -59,6 +59,31 @@ test('primary Claude identity is separate from all aggregate usage', () => {
   assert.deepEqual(facts.primaryResponseUsage, [events[2].message.usage]);
 });
 
+test('typed reasoning telemetry is retained without becoming response text', () => {
+  const events = fixture();
+  const progress = {
+    type: 'system',
+    subtype: 'thinking_tokens',
+    session_id: 's1',
+    estimated_tokens: 100,
+    estimated_tokens_delta: 50,
+  };
+  const thinking = {
+    ...events[2],
+    message: {
+      ...events[2].message,
+      content: [{ type: 'thinking', thinking: '', signature: 'opaque-signature' }],
+    },
+  };
+  events.splice(2, 0, progress, thinking);
+  assert.equal(inspectClaudeStream(stream(events), model).reviewVerdict, 'PASS');
+  thinking.message.model = 'other';
+  assert.throws(() => inspectClaudeStream(stream(events), model), /primary_model_mismatch/u);
+  thinking.message.model = model;
+  progress.estimated_tokens_delta = -1;
+  assert.throws(() => inspectClaudeStream(stream(events), model), /invalid_thinking_progress/u);
+});
+
 for (const [name, mutate] of [
   ['missing primary model', e => delete e[2].message.model],
   ['wrong primary model', e => (e[2].message.model = 'claude-haiku-4-5')],
