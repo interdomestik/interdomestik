@@ -28,9 +28,9 @@ separate dashboard designs or freeze the legacy presentation.
 
 ## Proof Ledger
 
-| ID                                  | Source Refs                                    | Execution  | Run ID   | Run Root | Sonar   | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                                                                                           |
-| ----------------------------------- | ---------------------------------------------- | ---------- | -------- | -------- | ------- | ------ | ---------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `T410-NOTIFICATION-ACK-CORRECTNESS` | docs/plans/current-program.md; owner direction | `scripted` | af64f73c | local/CI | pending | pass   | `not_applicable` | `not_applicable` | source-bound local proof `af64f73c82164a6189a93be7bdcd9b0af1c10a19`; Sonnet/Gemini proposal receipts at `adc3ca314`; earlier Astra implementation review at `833496eb`; current-head protected review and protected PR evidence pending |
+| ID                                  | Source Refs                                    | Execution  | Run ID   | Run Root | Sonar   | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                                                                               |
+| ----------------------------------- | ---------------------------------------------- | ---------- | -------- | -------- | ------- | ------ | ---------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `T410-NOTIFICATION-ACK-CORRECTNESS` | docs/plans/current-program.md; owner direction | `scripted` | 045b0c7e | local/CI | pending | pass   | `not_applicable` | `not_applicable` | source-bound full local proof `045b0c7ee609776613ff47a076bf47ce1ec7660c`; fresh Astra review on unchanged production `b5e67972`; one-slice owner Claude/Gemini waiver; current-head protected PR evidence and merge pending |
 
 Historical staff rehearsal: retained only as a timing baseline; no migration credit.
 
@@ -135,6 +135,20 @@ passed; the reviewer also checked the frozen diff. No provider failure is relabe
 Renewed source-bound `pr:verify`, security/E2E, current-head review disposition, protected merge
 and postmerge health remain required. The single IDA entrance and unified capability shell
 remain settled requirements; legacy visuals are behavioral evidence, not a redesign target.
+
+Renewed full `pr:verify` passed on `045b0c7ee609776613ff47a076bf47ce1ec7660c`
+(649,494 ms): 1,048 CI contracts, 154 release-gate tests, 41 RLS tests,
+81.24% repository line coverage (21,651/26,651), 252 browser-gate passes/12 intentional
+skips and 13 smoke passes/11 intentional skips. Both focused neutral-IDA notification browser
+variants passed on the same build (3.8 seconds); same-head security guard passed. All DB URLs
+used a unique task-owned database, not shared `postgres`. An initial run was interrupted at an
+inherited Sentry source-map upload (exit 143; remote upload effects unknown); the successful
+run explicitly disabled artifact upload through existing local-build environment controls and
+retained every required verification phase. Full successful log SHA-256:
+`265bc738253be31ddbccdcac6b671f506c0ddf9748368b980583597e1226aa9a`.
+The automatic generated `next-env.d.ts` import was restored to its pre-build tracked form;
+no notification source changed. This ledger update does not transfer local proof to a new head.
+Current-head hosted checks, review disposition, protected merge and postmerge health are pending.
 
 Capacity for the consolidated regressions transfers 4,750 observed unused bytes into T410:
 3,820 from T117C rendering (1,500 source and 2,320 test bytes), 370 test bytes from T117B cutover,

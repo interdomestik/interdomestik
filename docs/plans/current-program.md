@@ -270,6 +270,15 @@ wrapper receipts do not establish served-model identity and remain advisory; the
 communication repair is parked, not part of this product PR. No permanent model-policy change,
 protected-check bypass, UI redesign or deployment follows from this one-slice waiver.
 
+Renewed source-bound local proof passed at `045b0c7ee609776613ff47a076bf47ce1ec7660c`:
+full `pr:verify` (649,494 ms), security guard and both focused IDA notification browser variants.
+The full gate passed 1,048 CI contracts, 154 release tests, 41 RLS tests, 81.24% line coverage,
+252 browser tests with 12 intentional skips and 13 smoke tests with 11 intentional skips.
+Astra independently cleared unchanged production head `b5e67972` with 28 web/four domain tests.
+The successful run used a task-only database and supported upload-disabled local environment;
+an interrupted earlier Sentry upload remains separately recorded in the tracker. Protected
+current-head checks and merge remain pending; no deployment or visual approval is claimed.
+
 ## T117C Product Delivery
 
 Promotion #1738 bound owner review `5164184965` to head
