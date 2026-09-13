@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-12
+last_reviewed: 2026-09-13
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -193,10 +193,11 @@ only; no deployment or claimant usability validation is claimed.
 
 ## T410 Notification Acknowledgement Correctness Increment
 
-`T410-NOTIFICATION-ACK-CORRECTNESS` is a medium-complexity, Sol/high ordinary product slice. Its
-risk drivers are coupled asynchronous UI state, typed server outcomes, concurrency/race
-regressions, localization, and accessibility over an established contract. One implementation
-owner retains integration. Existing blueprint dependencies T401 and T002 are recorded complete;
+`T410-NOTIFICATION-ACK-CORRECTNESS` is a high-complexity, Astra/high ordinary product slice.
+The chief reassigned its sole implementation owner from Sol/high after a reproduced abandoned
+React render stranded committed acknowledgement state. Risk drivers include concurrent rendering,
+subscriber epochs, asynchronous UI state, typed server outcomes, localization, and accessibility
+over an established contract. Existing blueprint dependencies T401 and T002 are recorded complete;
 this increment does not claim broader T-410 completion.
 
 The member notification center currently awaits single/all acknowledgement actions but ignores a
@@ -227,6 +228,14 @@ single/all concurrency, count/list consistency, subscriber/fetch races, accessib
 resolution, and the retained member navigation path. A tightly scoped browser regression and the
 ordinary required checks remain delivery evidence; no authenticated competitor-portal inspection
 or claimant usability validation is claimed.
+
+The 2026-09-13 correction follows React's [ref guidance](https://react.dev/reference/react/useRef)
+and [layout-effect timing](https://react.dev/reference/react/useLayoutEffect), checked against
+the installed React 19.2.8: commit-phase synchronization prevents abandoned renders from changing
+the active subscriber. A real Suspense transition test failed before the correction and passed
+after it. The correction also coalesces pending same-subscriber fetches, distinguishes fetch
+failure from an empty inbox with a localized retry action, and tests acknowledgement before
+navigation. These findings were consolidated before renewed full verification.
 
 The current member screen is a legacy behavioral integration surface only, not an approved visual
 target. Browser evidence for this increment proves notification semantics and keyboard operation;

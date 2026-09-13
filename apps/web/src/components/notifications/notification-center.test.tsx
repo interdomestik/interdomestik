@@ -1,6 +1,7 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NotificationCenter } from './notification-center';
+import { deferred } from './notification-test-ui';
 
 vi.mock('@/i18n/routing', () => ({ Link: 'a', useRouter: () => ({ push: vi.fn() }) }));
 
@@ -86,6 +87,34 @@ describe('NotificationCenter', () => {
     render(<NotificationCenter subscriberId="user-123" fetchOnMount={false} />);
 
     expect(mocks.getNotifications).not.toHaveBeenCalled();
+  });
+
+  it('reuses a pending prefetch when the menu opens', async () => {
+    const prefetch = deferred<unknown[]>();
+    mocks.getNotifications.mockReturnValue(prefetch.promise);
+    render(<NotificationCenter subscriberId="user-123" />);
+
+    fireEvent.click(screen.getByText('Open menu'));
+    expect(mocks.getNotifications).toHaveBeenCalledTimes(1);
+    await act(async () => prefetch.resolve([]));
+    expect(await screen.findByText('No notifications yet')).toBeInTheDocument();
+  });
+
+  it('shows an error instead of an empty inbox and retries a failed fetch', async () => {
+    mocks.getNotifications
+      .mockRejectedValueOnce(new Error('network unavailable'))
+      .mockResolvedValueOnce([]);
+    render(<NotificationCenter subscriberId="user-123" />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Something went wrong. Please try again.'
+    );
+    expect(screen.queryByText('No notifications yet')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(await screen.findByText('No notifications yet')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(mocks.getNotifications).toHaveBeenCalledTimes(2);
   });
 
   it('shows a loading state when opened after lazy mount', async () => {

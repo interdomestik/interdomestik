@@ -224,6 +224,21 @@ describe('NotificationCenter acknowledgement truth', () => {
     );
   });
 
+  it('waits for acknowledgement before closing and navigating an unread action', async () => {
+    const acknowledgement = deferred<boolean>();
+    const onMarkAsRead = vi.fn(() => acknowledgement.promise);
+    const { onClose } = renderUnreadAction(false, onMarkAsRead);
+
+    fireEvent.click(screen.getByRole('link', { name: /View/ }));
+    expect(onMarkAsRead).toHaveBeenCalledWith('n1', expect.anything());
+    expect(onClose).not.toHaveBeenCalled();
+    expect(mocks.routerPush).not.toHaveBeenCalled();
+
+    await act(async () => acknowledgement.resolve(true));
+    expect(onClose).toHaveBeenCalledOnce();
+    expect(mocks.routerPush).toHaveBeenCalledExactlyOnceWith('/member/messages');
+  });
+
   it('makes a pending action non-focusable and ignores activation', () => {
     const { onMarkAsRead } = renderUnreadAction(true);
     const action = screen.getByRole('link', { name: /View/ });

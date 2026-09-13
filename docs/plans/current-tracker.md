@@ -75,6 +75,15 @@ and scripted behavior evidence only: current-head protected review, protected PR
 remain pending, and no legacy visual approval, claimant usability validation, or deployment is
 claimed.
 
+The 2026-09-13 concurrency correction is HIGH complexity, owned solely by Astra/high under the
+chief's reassignment. At `38dda40d82eb26b5bfa8bc25f3f0b36b722ce51b`, the real Suspense regression
+passes after failing on the render-phase mutation baseline. Claude Sonnet 5 and Gemini 3.1 Pro
+both reviewed that correction through the repo-owned routes, with configured and served models
+matching. Flash's invalid direct component-invocation proposal was rejected. Later current-review
+findings concerning duplicate fetches, failed-fetch truth and successful action navigation are
+being consolidated before renewed review and full proof; earlier full proof remains bound to
+`af64f73c82164a6189a93be7bdcd9b0af1c10a19` and does not certify these subsequent changes.
+
 Terminal: promotion `#1691`; product head
 `503d4b179251f9d3d06e07349ec80f85805565ae`, tree
 `61b2316606c9b3facd6c8aff2a14bb4402d80c82`, squash

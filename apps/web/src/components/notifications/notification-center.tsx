@@ -1,19 +1,17 @@
 'use client';
 
 import { getNotifications, markAllAsRead, markAsRead } from '@/actions/notifications';
-import {
-  Badge,
-  Button,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from '@interdomestik/ui';
-import { Bell } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent } from '@interdomestik/ui';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import type { Notification } from './notification-item';
-import { NotificationFeedback, NotificationHeader, NotificationList } from './notification-list';
+import {
+  NotificationFeedback,
+  NotificationHeader,
+  NotificationList,
+  NotificationTrigger,
+} from './notification-list';
 interface NotificationCenterProps {
   readonly subscriberId: string;
   readonly fetchOnMount?: boolean;
@@ -27,6 +25,7 @@ interface NotificationSnapshot {
 interface LoadingState {
   readonly subscriberId: string;
   readonly active: boolean;
+  readonly failed?: boolean;
 }
 
 export function NotificationCenter({ subscriberId, fetchOnMount = true }: NotificationCenterProps) {
@@ -45,6 +44,7 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
   const activeSubscriberRef = useRef(subscriberId);
   const subscriberEpochRef = useRef(0);
   const latestFetchRef = useRef(0);
+  const inFlightFetchRef = useRef<{ subscriberId: string; epoch: number; id: number } | null>(null);
   const stateRevisionRef = useRef(0);
   const pendingIdsRef = useRef<ReadonlySet<string>>(new Set());
   const pendingAllRef = useRef(false);
@@ -65,10 +65,21 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
     loadingState.subscriberId === subscriberId ? loadingState.active : fetchOnMount || isOpen;
 
   const fetchInitialNotifications = useCallback(async () => {
-    const requestId = ++latestFetchRef.current;
     const requestSubscriberId = subscriberId;
     const requestSubscriberEpoch = subscriberEpochRef.current;
+    if (
+      inFlightFetchRef.current?.subscriberId === requestSubscriberId &&
+      inFlightFetchRef.current.epoch === requestSubscriberEpoch
+    )
+      return;
+    const requestId = ++latestFetchRef.current;
+    inFlightFetchRef.current = {
+      subscriberId: requestSubscriberId,
+      epoch: requestSubscriberEpoch,
+      id: requestId,
+    };
     const requestRevision = stateRevisionRef.current;
+    let failed = false;
     setLoadingState({ subscriberId: requestSubscriberId, active: true });
     try {
       const data = (await getNotifications()) as unknown as Notification[];
@@ -81,16 +92,18 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
         setSnapshot({ subscriberId: requestSubscriberId, items: data });
       }
     } catch (error) {
+      failed = true;
       if (activeSubscriberRef.current === requestSubscriberId) {
         console.error('Failed to fetch notifications:', error);
       }
     } finally {
+      if (inFlightFetchRef.current?.id === requestId) inFlightFetchRef.current = null;
       if (
         activeSubscriberRef.current === requestSubscriberId &&
         subscriberEpochRef.current === requestSubscriberEpoch &&
         latestFetchRef.current === requestId
       ) {
-        setLoadingState({ subscriberId: requestSubscriberId, active: false });
+        setLoadingState({ subscriberId: requestSubscriberId, active: false, failed });
       }
     }
   }, [subscriberId]);
@@ -246,25 +259,7 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative h-9 w-9 rounded-full transition-colors hover:bg-accent/50"
-          data-testid="notification-center-trigger"
-          aria-label={t('title')}
-        >
-          <Bell className="h-5 w-5" />
-          {unreadCount > 0 && (
-            <Badge
-              variant="destructive"
-              className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full p-0 text-[10px]"
-            >
-              {unreadCount}
-            </Badge>
-          )}
-        </Button>
-      </DropdownMenuTrigger>
+      <NotificationTrigger unreadCount={unreadCount} />
       <DropdownMenuContent
         className="w-80 bg-background/95 backdrop-blur-xl border shadow-2xl z-50 rounded-xl max-h-[500px] flex flex-col"
         align="end"
@@ -281,6 +276,8 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
         <div className="overflow-y-auto overflow-x-hidden flex-1">
           <NotificationList
             loading={loading}
+            fetchFailed={loadingState.subscriberId === subscriberId && loadingState.failed === true}
+            onRetry={fetchInitialNotifications}
             notifications={notifications}
             pendingAll={pendingAll}
             pendingIds={pendingIds}
