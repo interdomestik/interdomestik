@@ -206,8 +206,8 @@ unread count. The bounded correction makes read state server-confirmed, derives 
 represented list, prevents duplicate and overlapping single/all mutations, ignores stale fetch or
 mutation results after subscriber changes, and exposes localized accessible pending, success, and
 failure feedback. Bulk acknowledgement still updates the full tenant/user unread backlog but
-returns a bounded success result; after confirmation, the client marks only its represented
-requested rows read. Existing lazy fetching and action-link navigation remain, with locale-aware
+returns a bounded success result; after confirmation, the client marks its represented requested
+rows read and reconciles a bounded authoritative snapshot. Existing lazy fetching and action-link navigation remain, with locale-aware
 normalization for stored action paths and disabled semantics while an item is pending. Notification
 generation/delivery, server auth and tenant filters, schema, routes/proxy, billing, case/recovery
 state, and deployment remain unchanged.
@@ -287,6 +287,15 @@ remains idempotent: another tab may already have acknowledged the authorized unr
 affected-row counts cannot distinguish that from deletion and are not a valid failure rule.
 Focused regressions cover both acknowledgement variants, post-mount session expiry and bounded
 zero-row success. These changes require renewed source-bound full proof before protected merge.
+
+Review at `61e17a02` reproduced a further bulk ordering: a fetch completed while acknowledgement
+was pending, adding a row outside the captured list before the server read the backlog. Successful
+bulk acknowledgement now requests bounded reconciliation even when no fetch remains in flight.
+The regression matrix covers single/bulk fetch completion before/after acknowledgement, arrivals
+still unread after the database write, wrong-ID refusal, failed reconciliation with explicit retry,
+and subscriber-epoch isolation. Independent Astra review cleared this correction after 41 focused
+web/four domain owner tests passed. Full proof at `61e17a02` remains old-source evidence; the final
+correction requires renewed verification and protected merge.
 
 ## T117C Product Delivery
 

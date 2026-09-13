@@ -241,6 +241,7 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
           : previous
       );
       setStatusMessage(t('markedAllRead'));
+      void fetchInitialNotifications();
     } catch (error) {
       if (
         activeSubscriberRef.current === mutationSubscriberId &&

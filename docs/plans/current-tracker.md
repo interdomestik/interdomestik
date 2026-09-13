@@ -156,14 +156,39 @@ schedule one coalesced fresh request for the current subscriber epoch. Single/bu
 regressions failed before the fix. An explicit zero-row domain test preserves idempotent bulk
 success without an unbounded ID response; the proposed zero-count failure rule was rejected
 because a concurrent tab can legitimately have read the entire backlog. Concurrent deletion is
-not distinguishable from already-read state by affected-row count. No immediate deletion-refresh
-feature or broader notification synchronization contract is introduced by this increment.
+not distinguishable from already-read state by affected-row count. This rejects count-based
+failure semantics; later bounded post-bulk reconciliation below also removes stale snapshot rows.
 Independent Astra review cleared the production correction before final proof; focused test
 setup was then consolidated without losing failure, subscriber or arrival scenarios. Further
 capacity transfers 270 unused topology-test bytes and 220 unused currency-trial bytes (100 source,
 120 tests) into T410, retaining every global/category ceiling, file allowance and reserve. The
 wrapper regression has no byte growth. Earlier local/hosted passes remain bound to their old
 source; the corrected candidate still requires fresh full verification and protected merge.
+
+Full `pr:verify` passed at `61e17a02a9c8091438b7789d824ce1656ffcb163` in 646,480 ms:
+1,048 CI contracts, 154 release tests, 41 RLS tests, 81.24% lines (21,649/26,648),
+252 browser passes/12 intentional skips and 13 smoke passes/11 intentional skips. Log SHA-256:
+`252fb44f50d4890788c443c23febf5e6ff1cecf6380ab00d75abc29bbe63a6dc`.
+The run remained undisturbed while current-head review `5190033096` identified a bulk ordering:
+a fetch may add a row during acknowledgement and finish before the bulk result, leaving that row
+outside the captured update. The correction always requests coalesced bounded reconciliation
+after successful bulk acknowledgement. New regressions failed before this one-line fix; the
+expanded suite passes 41 web/four domain tests. Wrong-ID success is refused, late arrivals retain
+their authoritative unread state, reconciliation failure preserves confirmed state and exposes
+explicit retry, and old-subscriber success cannot initiate a replacement-subscriber fetch.
+Fresh independent Astra review cleared the production correction and interleaving matrix;
+its narrower independent execution passed 38 web/four domain tests. Current-source full proof
+remains pending; the completed `61e17a02` run is not transferred to changed code.
+
+After runtime rejected broad completion authority for a capacity-ceiling change, the owner
+explicitly approved the exact 2,529-byte adjustment in the chief task. T410 test allocation
+increases 29,940→32,438 (+2,498), source 15,058→15,088 (+30), total 46,200→48,728.
+Affected test path limits become 11,537 and 3,052 bytes of baseline-relative growth. One byte
+of budget self-size is recorded in the existing exact allocation. Conservation requires derived
+global limits 61,180,374→61,182,903 total; 7,011,796→7,014,294 tests;
+8,817,624→8,817,654 source; 2,228,283→2,228,284 config. This exact owner-approved
+maintenance preserves positive-only accounting, baseline, reserves, file caps and other owners;
+no deleted-byte credit, extra buffer or evaluator change is used.
 
 Capacity for the consolidated regressions transfers 4,750 observed unused bytes into T410:
 3,820 from T117C rendering (1,500 source and 2,320 test bytes), 370 test bytes from T117B cutover,

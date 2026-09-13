@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NotificationCenter } from './notification-center';
 import { deferred } from './notification-test-ui';
@@ -123,5 +123,62 @@ describe('NotificationCenter', () => {
     resolveNotifications?.([]);
 
     expect(await screen.findByText('No notifications yet')).toBeInTheDocument();
+  });
+
+  it.each([
+    ['single', false],
+    ['single', true],
+    ['bulk', false],
+    ['bulk', true],
+  ])('reconciles %s acknowledgement (fetch finishes first: %s)', async (kind, fetchFirst) => {
+    const initial = {
+      id: 'n1',
+      userId: 'user-123',
+      type: 'new_message',
+      title: 'Initial message',
+      content: 'Message content',
+      isRead: false,
+      actionUrl: null,
+      createdAt: '2026-09-13T00:00:00.000Z',
+    };
+    const arrival = { ...initial, id: 'n2', type: 'claim_assigned', title: 'New arrival' };
+    const arrivalRead = kind === 'bulk' && fetchFirst;
+    const refetch = deferred<unknown[]>();
+    const acknowledgement = deferred<{ success: true; notificationId: string }>();
+    mocks.getNotifications
+      .mockResolvedValueOnce([initial])
+      .mockReturnValueOnce(refetch.promise)
+      .mockResolvedValueOnce([
+        { ...initial, isRead: true },
+        { ...arrival, isRead: arrivalRead },
+      ]);
+    mocks.markAsRead.mockReturnValue(acknowledgement.promise);
+    mocks.markAllAsRead.mockReturnValue(acknowledgement.promise);
+    render(<NotificationCenter subscriberId="user-123" />);
+
+    const row = await screen.findByTestId('notification-item-new_message');
+    fireEvent.click(
+      kind === 'single' ? within(row).getByRole('button') : screen.getByText('Mark all as read')
+    );
+    fireEvent.click(screen.getByText('Open menu'));
+    if (fetchFirst) await act(async () => refetch.resolve([initial, arrival]));
+    await act(async () => acknowledgement.resolve({ success: true, notificationId: 'n1' }));
+    if (!fetchFirst) await act(async () => refetch.resolve([initial]));
+
+    expect(await screen.findByText('New arrival')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('notification-item-new_message')).queryByRole('button')
+    ).not.toBeInTheDocument();
+    const arrivalButton = within(
+      screen.getByTestId('notification-item-claim_assigned')
+    ).queryByRole('button');
+    if (arrivalRead) {
+      expect(arrivalButton).not.toBeInTheDocument();
+      expect(screen.queryByText('1')).not.toBeInTheDocument();
+    } else {
+      expect(arrivalButton).toBeEnabled();
+      expect(screen.getByText('1')).toBeInTheDocument();
+    }
+    expect(mocks.getNotifications).toHaveBeenCalledTimes(kind === 'single' && fetchFirst ? 2 : 3);
   });
 });

@@ -93,21 +93,27 @@ describe('NotificationCenter acknowledgement truth', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Notification marked as read.');
   });
 
-  it.each(['typed', 'thrown'])('preserves truth and clears pending on %s failure', async kind => {
-    if (kind === 'typed')
-      mocks.markAsRead.mockResolvedValue({ success: false, error: 'Unauthorized' });
-    else mocks.markAsRead.mockRejectedValue(new Error('network unavailable'));
-    render(<NotificationCenter subscriberId="user-123" />);
+  it.each(['typed', 'thrown', 'wrong ID'])(
+    'preserves truth and clears pending on %s failure',
+    async kind => {
+      if (kind === 'typed')
+        mocks.markAsRead.mockResolvedValue({ success: false, error: 'Unauthorized' });
+      else if (kind === 'wrong ID')
+        mocks.markAsRead.mockResolvedValue({ success: true, notificationId: 'other-id' });
+      else mocks.markAsRead.mockRejectedValue(new Error('network unavailable'));
+      render(<NotificationCenter subscriberId="user-123" />);
 
-    const row = await screen.findByTestId('notification-item-new_message');
-    fireEvent.click(within(row).getByRole('button'));
+      const row = await screen.findByTestId('notification-item-new_message');
+      fireEvent.click(within(row).getByRole('button'));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Something went wrong. Please try again.'
-    );
-    expect(within(row).getByRole('button')).toBeEnabled();
-    expect(screen.getByText('1')).toBeInTheDocument();
-  });
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'Something went wrong. Please try again.'
+      );
+      expect(within(row).getByRole('button')).toBeEnabled();
+      expect(screen.getByText('1')).toBeInTheDocument();
+      expect(screen.getByRole('status')).not.toHaveTextContent('Notification marked as read.');
+    }
+  );
 
   it('blocks duplicate single and overlapping mark-all acknowledgements', async () => {
     const acknowledgement = deferred<{ success: true; notificationId: string }>();
@@ -164,6 +170,10 @@ describe('NotificationCenter acknowledgement truth', () => {
     expect(mocks.markAsRead).not.toHaveBeenCalled();
     expect(screen.getByText('2')).toBeInTheDocument();
 
+    mocks.getNotifications.mockResolvedValue([
+      { ...unreadNotification, isRead: true },
+      { ...unreadNotification, id: 'n2', isRead: true },
+    ]);
     await act(async () => acknowledgement.resolve({ success: true }));
 
     expect(screen.queryByText('2')).not.toBeInTheDocument();
@@ -184,6 +194,29 @@ describe('NotificationCenter acknowledgement truth', () => {
     expect(screen.getByRole('button', { name: 'Mark all as read' })).toBeEnabled();
     expect(screen.getByRole('button', { name: /New message/ })).toBeEnabled();
     expect(screen.getByText('1')).toBeInTheDocument();
+  });
+
+  it('keeps bulk success truthful when reconciliation fails and retries only on request', async () => {
+    mocks.getNotifications
+      .mockResolvedValueOnce([unreadNotification])
+      .mockRejectedValueOnce(new Error('refresh unavailable'))
+      .mockResolvedValueOnce([{ ...unreadNotification, isRead: true }]);
+    mocks.markAllAsRead.mockResolvedValue({ success: true });
+    render(<NotificationCenter subscriberId="user-123" />);
+    await screen.findByText('New message');
+    fireEvent.click(screen.getByText('Mark all as read'));
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('All notifications marked as read.');
+    expect(screen.queryByText('1')).not.toBeInTheDocument();
+    expect(mocks.getNotifications).toHaveBeenCalledTimes(2);
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+
+    const row = await screen.findByTestId('notification-item-new_message');
+    expect(within(row).queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(mocks.getNotifications).toHaveBeenCalledTimes(3);
+    expect(mocks.markAllAsRead).toHaveBeenCalledTimes(1);
   });
 
   it('keeps the menu open when an unread action acknowledgement fails', async () => {

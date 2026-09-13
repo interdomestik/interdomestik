@@ -133,36 +133,6 @@ describe('NotificationCenter race boundaries', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Notification marked as read.');
   });
 
-  it.each(['single', 'bulk'])('reconciles a stale fetch after %s acknowledgement', async kind => {
-    const initial = notification('user-123', 'New message');
-    const refetch = deferred<unknown[]>();
-    const acknowledgement = deferred<{ success: true; notificationId: string }>();
-    mocks.getNotifications
-      .mockResolvedValueOnce([initial])
-      .mockReturnValueOnce(refetch.promise)
-      .mockResolvedValueOnce([
-        { ...initial, isRead: true },
-        { ...initial, id: 'n2', type: 'claim_assigned', title: 'Arrived during acknowledgement' },
-      ]);
-    mocks.markAsRead.mockReturnValue(acknowledgement.promise);
-    mocks.markAllAsRead.mockReturnValue(acknowledgement.promise);
-    render(<NotificationCenter subscriberId="user-123" />);
-
-    const row = await screen.findByTestId('notification-item-new_message');
-    fireEvent.click(
-      kind === 'single' ? within(row).getByRole('button') : screen.getByText('Mark all as read')
-    );
-    fireEvent.click(screen.getByText('Open menu'));
-    await act(async () => acknowledgement.resolve({ success: true, notificationId: 'shared-id' }));
-    await act(async () => refetch.resolve([initial]));
-
-    expect(await screen.findByText('Arrived during acknowledgement')).toBeInTheDocument();
-    const currentRow = await screen.findByTestId('notification-item-new_message');
-    expect(within(currentRow).queryByRole('button')).not.toBeInTheDocument();
-    expect(screen.getByText('1')).toBeInTheDocument();
-    expect(mocks.getNotifications).toHaveBeenCalledTimes(3);
-  });
-
   it('clears an earlier failure when a concurrent acknowledgement later succeeds', async () => {
     const failed = deferred<{ success: false; error: string }>();
     const succeeded = deferred<{ success: true; notificationId: string }>();
@@ -252,6 +222,7 @@ describe('NotificationCenter race boundaries', () => {
     expect(mocks.markAllAsRead).toHaveBeenCalledTimes(2);
 
     await act(async () => oldAcknowledgement.resolve({ success: true }));
+    expect(mocks.getNotifications).toHaveBeenCalledTimes(3);
     expect(currentButton).toBeDisabled();
     expect(screen.getByText('1')).toBeInTheDocument();
     fireEvent.click(currentButton);
