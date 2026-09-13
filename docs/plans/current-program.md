@@ -25,10 +25,11 @@ as `12b22bada268dc0961d32792a553e54dea9a2bff`. T210 completed through product PR
 `00794c98cc6b4d395493370552ab7b9eae525db7` matched. Protected-main CI `34703433627`, SonarCloud
 Code Analysis check `103580834614`, and Sonar Main Gate `34703433721` attempt 2 passed at the exact
 merge.
-The owner selected `T410-NOTIFICATION-ACK-CORRECTNESS` as the next bounded ordinary product
-increment after T210. It fixes truthful notification acknowledgement over the existing member
-notification surface and server-action contract. This increment is a prerequisite step toward
-blueprint T-410; it does not complete all of T-410, select T-411, or reactivate legacy Lean.
+`T410-NOTIFICATION-ACK-CORRECTNESS` completed through protected product PR #1765, with exact-main
+CI and Sonar passing as recorded below. It delivered truthful notification acknowledgement over
+the existing notification surface and server-action contract. No product slice is now active.
+This prerequisite increment does not complete all of blueprint T-410, select T-411, or reactivate
+legacy Lean; no successor has been selected.
 
 ## Delivered History
 
@@ -118,8 +119,8 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 |        2 | Bounded failed-run retry           | Owner direction | Completed migration trial 2/3. |
 |        3 | Unsupported claim AI document type | Trial 2         | Completed migration trial 3/3. |
 
-These rows are completed historical priorities. The committed post-T210 priority set is empty;
-the owner-selected notification acknowledgement increment below is the only active product work.
+These rows are completed historical priorities. The notification acknowledgement increment is
+also complete; the committed priority set is empty pending explicit owner selection.
 
 ## Ordinary Product Delivery
 
@@ -193,14 +194,14 @@ only; no deployment or claimant usability validation is claimed.
 
 ## T410 Notification Acknowledgement Correctness Increment
 
-`T410-NOTIFICATION-ACK-CORRECTNESS` is a high-complexity, Astra/high ordinary product slice.
+`T410-NOTIFICATION-ACK-CORRECTNESS` completed as a high-complexity, Astra/high ordinary product slice.
 The chief reassigned its sole implementation owner from Sol/high after a reproduced abandoned
 React render stranded committed acknowledgement state. Risk drivers include concurrent rendering,
 subscriber epochs, asynchronous UI state, typed server outcomes, localization, and accessibility
 over an established contract. Existing blueprint dependencies T401 and T002 are recorded complete;
 this increment does not claim broader T-410 completion.
 
-The member notification center currently awaits single/all acknowledgement actions but ignores a
+The member notification center previously awaited single/all acknowledgement actions but ignored a
 returned `{ success: false, error }` before changing the represented rows and a separately stored
 unread count. The bounded correction makes read state server-confirmed, derives the count from the
 represented list, prevents duplicate and overlapping single/all mutations, ignores stale fetch or
@@ -211,6 +212,21 @@ rows read and reconciles a bounded authoritative snapshot. Existing lazy fetchin
 normalization for stored action paths and disabled semantics while an item is pending. Notification
 generation/delivery, server auth and tenant filters, schema, routes/proxy, billing, case/recovery
 state, and deployment remain unchanged.
+
+Product PR [#1765](https://github.com/interdomestik/interdomestik/pull/1765) merged final head
+`abf37e7c62490ebbbf2d2fbb35685b847e17b68c` as `bc4a7fe940b245f57cbc442258b21f6bb5870a7f`;
+both trees match `a817b68d7af207b2c89ba5022cf1e9b8570025b9`. Full `pr:verify`, `security:guard`,
+both focused neutral-IDA keyboard variants and independent Astra review passed on that source.
+All required hosted checks and strict review readiness passed, with zero unresolved review threads.
+Exact-main [CI](https://github.com/interdomestik/interdomestik/actions/runs/34754164766),
+[SonarCloud analysis](https://api.github.com/repos/interdomestik/interdomestik/check-runs/103716794800)
+and [Sonar Main Gate](https://github.com/interdomestik/interdomestik/actions/runs/34754164793) passed.
+The tracker records detailed source-bound evidence. This owner-authorized two-file transcription
+records the actual outcome, following #1764; it does not establish routine closeout PRs or authorize
+deployment, claimant usability approval, redesign, or a successor.
+
+The following research and intermediate verification notes are historical. Their then-pending
+checks are superseded only by the exact final-source and protected-main evidence above.
 
 The shared brief was checked on 2026-09-12. The current
 [React `useOptimistic` reference](https://react.dev/reference/react/useOptimistic) describes
@@ -260,8 +276,8 @@ consistency, semantic status output, and explicit tenant/user predicates without
 helper overload. The changed E2E corpus fingerprint is registered within the existing fixed-capacity
 CI evidence allocation, with no repository-ceiling increase. The corrected behavior and regressions
 are covered by the new source-bound proof.
-Current-head protected review, protected PR evidence, and merge are still pending, so the increment
-remains `in_progress`; no deployment or claimant usability validation is claimed.
+At that intermediate source, protected review, PR evidence and merge remained pending;
+no deployment or claimant usability validation was claimed.
 
 On 2026-09-13 the owner waived Claude and Gemini reviews for this notification increment only
 and directed Astra completion. Astra/high is the implementation owner, with a fresh independent
@@ -277,7 +293,7 @@ The full gate passed 1,048 CI contracts, 154 release tests, 41 RLS tests, 81.24%
 Astra independently cleared unchanged production head `b5e67972` with 28 web/four domain tests.
 The successful run used a task-only database and supported upload-disabled local environment;
 an interrupted earlier Sentry upload remains separately recorded in the tracker. Protected
-current-head checks and merge remain pending; no deployment or visual approval is claimed.
+checks and merge were then pending; no deployment or visual approval is claimed.
 
 The subsequent `aed9f024` review reproduced two fetch-boundary regressions: the action masked
 expired sessions as an empty inbox, and revision-discarded fetches missed newly arrived rows.
@@ -286,7 +302,7 @@ fetch after invalidation. Existing server authorization is unchanged. Zero-row b
 remains idempotent: another tab may already have acknowledged the authorized unread backlog;
 affected-row counts cannot distinguish that from deletion and are not a valid failure rule.
 Focused regressions cover both acknowledgement variants, post-mount session expiry and bounded
-zero-row success. These changes require renewed source-bound full proof before protected merge.
+zero-row success. These changes required renewed source-bound full proof before protected merge.
 
 Review at `61e17a02` reproduced a further bulk ordering: a fetch completed while acknowledgement
 was pending, adding a row outside the captured list before the server read the backlog. Successful
@@ -295,7 +311,7 @@ The regression matrix covers single/bulk fetch completion before/after acknowled
 still unread after the database write, wrong-ID refusal, failed reconciliation with explicit retry,
 and subscriber-epoch isolation. Independent Astra review cleared this correction after 41 focused
 web/four domain owner tests passed. Full proof at `61e17a02` remains old-source evidence; the final
-correction requires renewed verification and protected merge.
+correction received its own renewed verification before protected merge, as recorded above.
 
 ## T117C Product Delivery
 
