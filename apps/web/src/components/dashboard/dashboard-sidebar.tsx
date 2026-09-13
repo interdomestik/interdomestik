@@ -40,7 +40,7 @@ function DashboardSidebarInner({
     >
       <SidebarBrand role={role} />
 
-      <SidebarContent className="mx-2 my-3 rounded-2xl border border-white/70 bg-white/70 px-2.5 py-3 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.65)] backdrop-blur-xl">
+      <SidebarContent className="mx-2 my-3 rounded-2xl border border-white/70 bg-white/70 px-2.5 py-3 group-data-[state=collapsed]:mx-0 group-data-[state=collapsed]:px-0 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.65)] backdrop-blur-xl">
         <ShellNavigation
           label={t('menu')}
           pathname={pathname}

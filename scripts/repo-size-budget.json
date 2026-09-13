@@ -969,9 +969,9 @@
         "packages/domain-ai/src/claims/intake-extract.test.ts",
         "packages/domain-ai/src/claims/intake-extract.ts"
       ],
-      "maxTrackedBytesDelta": 2016,
+      "maxTrackedBytesDelta": 1874,
       "maxTrackedFilesDelta": 0,
-      "maxCategoryBytesDelta": { "source/scripts": 836, "tests/e2e": 1180 },
+      "maxCategoryBytesDelta": { "source/scripts": 694, "tests/e2e": 1180 },
       "maxPathBytesDelta": {
         "packages/domain-ai/src/claims/intake-extract.test.ts": 1400,
         "packages/domain-ai/src/claims/intake-extract.ts": 1000
@@ -1292,11 +1292,11 @@
         "apps/web/src/components/staff/staff-sidebar.test.tsx",
         "apps/web/src/components/admin/admin-sidebar.test.tsx"
       ],
-      "maxTrackedBytesDelta": 4164,
+      "maxTrackedBytesDelta": 4306,
       "maxTrackedFilesDelta": 1,
-      "maxCategoryBytesDelta": { "source/scripts": 3566, "tests/e2e": 598 },
+      "maxCategoryBytesDelta": { "source/scripts": 3708, "tests/e2e": 598 },
       "maxPathBytesDelta": {
-        "apps/web/src/components/shell/shell-navigation.tsx": 3566,
+        "apps/web/src/components/shell/shell-navigation.tsx": 3708,
         "apps/web/src/components/staff/staff-sidebar.test.tsx": 162,
         "apps/web/src/components/admin/admin-sidebar.test.tsx": 436
       }

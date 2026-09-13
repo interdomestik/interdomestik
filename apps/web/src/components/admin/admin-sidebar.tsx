@@ -193,7 +193,7 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
         </Link>
       </SidebarHeader>
 
-      <SidebarContent className="px-3 py-4">
+      <SidebarContent className="px-3 py-4 group-data-[state=collapsed]:px-0">
         <ShellNavigation
           label={tNav('menu')}
           pathname={pathname}

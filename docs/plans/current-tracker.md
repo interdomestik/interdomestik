@@ -44,18 +44,27 @@ within their baseline bytes. Independent Astra review identified dark active ico
 the sidebar primitive; the shared renderer now inherits the active link color explicitly. The
 corrected source and focused regressions are rechecked before full proof; prepared and tested do not yet mean merged, deployed or user-validated.
 
-Capacity preflight adds one 3,566-byte source file and 598 positive test bytes using measured
-unused historical allowances. Transfers: source 2,049 T117B cutover, 1,453 T117C rendering, 64
+Capacity preflight adds one 3,708-byte source file and 598 positive test bytes using measured
+unused historical allowances. Transfers: source 2,049 T117B cutover, 1,453 T117C rendering, 206
 currency trial; tests 496 CI deduplication and 102 delivery-event coalescing; one unused T117C
 file slot. Budget self-growth is exactly 685 config bytes funded from five existing donors.
 Global/category ceilings, baseline, reserves, donor path caps and observed evidence remain intact;
 no deleted-byte credit or guard relaxation is used. Full inventory/attribution preflight passes.
 
-Local proof uses only task database `shared_shell_nav_2e33` and port 3117, with source-map upload
+Local proof uses only task database `shared_shell_nav_2e33` and port 3000, with source-map upload
 disabled. Doctor and task-database migration succeeded. Playwright MCP reported `Browser is already
 in use for /tmp/interdomestik-pilot-evidence/playwright-mcp-profile, use --isolated to run multiple
 instances of the same browser`; that session is preserved and browser validation uses an isolated
 fallback. No PR #1769 changes or infrastructure improvements are imported.
+
+The first full attempt at `bc3272bb` passed 1,048 CI contracts, 154 release tests, 41 RLS tests,
+81.30% repository line coverage and the production build, then stopped after 111 browser passes:
+three unchanged neutral-host tests hardcode port 3000 while that attempt used 3117. Port 3000
+was verified free and assigned to this task for the final attempt. That failed run is not a pass.
+Supplemental browser inspection also found collapsed padding clipping navigation icons; shared
+group/caller collapsed padding and label truncation are corrected before renewed final proof.
+The unchanged Sidebar/Radix drawer closes on Escape without restoring toggle focus; independent
+source review confirmed that baseline limitation, which this slice does not claim to repair.
 
 ### Final T410 delivery
 

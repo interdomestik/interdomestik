@@ -58,8 +58,12 @@ export function ShellNavigation({
     <nav aria-label={label} data-testid="shell-navigation">
       {uniqueGroups.map(group =>
         group.items.length ? (
-          <SidebarGroup key={group.id}>
-            {group.label && <SidebarGroupLabel>{group.label}</SidebarGroupLabel>}
+          <SidebarGroup key={group.id} className="group-data-[state=collapsed]:px-1">
+            {group.label && (
+              <SidebarGroupLabel>
+                <span className="truncate">{group.label}</span>
+              </SidebarGroupLabel>
+            )}
             <SidebarGroupContent>
               <SidebarMenu className="gap-1.5">
                 {group.items.map(item => (
