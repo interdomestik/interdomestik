@@ -1,213 +1,186 @@
-import { render, screen } from '@testing-library/react';
+import type { ComponentProps, ReactNode } from 'react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { SidebarProvider, useSidebar } from '@interdomestik/ui';
+import { Home } from 'lucide-react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ShellNavigation, type ShellNavigationItem } from '../shell/shell-navigation';
+
+const state = vi.hoisted(() => ({ mobile: false }));
+vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
+vi.mock('./sidebar-user-menu', () => ({ SidebarUserMenu: () => <div>Account</div> }));
+vi.mock('@/lib/auth-client', () => ({ authClient: { useSession: () => ({ data: null }) } }));
+vi.mock('@/actions/admin-access', () => ({ canAccessAdmin: vi.fn() }));
 import { DashboardSidebar } from './dashboard-sidebar';
-
-// Mock the useDashboardNavigation hook
-vi.mock('@/hooks/use-dashboard-navigation', () => ({
-  useDashboardNavigation: vi.fn(),
-}));
-
-import { useDashboardNavigation } from '@/hooks/use-dashboard-navigation';
-const mockUseDashboardNavigation = vi.mocked(useDashboardNavigation);
-
-// Mock next-intl
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => {
-    const translations: Record<string, string> = {
-      overview: 'Overview',
-      claims: 'Claims',
-      documents: 'Documents',
-      newClaim: 'New Claim',
-      consumerRights: 'Consumer Rights',
-      settings: 'Settings',
-      help: 'Help',
-      menu: 'Menu',
-      agentCrm: 'CRM',
-      agentLeads: 'Leads',
-      agentWorkspace: 'Workspace',
-      adminDashboard: 'Admin Dashboard',
-    };
-    return translations[key] || key;
-  },
-}));
-
-// Mock routing
+vi.mock('@interdomestik/ui/hooks/use-mobile', () => ({ useIsMobile: () => state.mobile }));
 vi.mock('@/i18n/routing', () => ({
-  Link: ({ children, href }: { children: React.ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
-  ),
-  usePathname: () => '/en/member',
+  Link: (props: ComponentProps<'a'>) => <a {...props} />,
+  usePathname: () => '/member',
 }));
 
-// Mock UI components
-vi.mock('@interdomestik/ui', () => ({
-  Sidebar: ({ children }: { children: React.ReactNode }) => (
-    <aside data-testid="sidebar">{children}</aside>
-  ),
-  SidebarContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  SidebarFooter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  SidebarGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  SidebarGroupContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  SidebarGroupLabel: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
-  SidebarHeader: ({ children }: { children: React.ReactNode }) => <header>{children}</header>,
-  SidebarMenu: ({ children }: { children: React.ReactNode }) => <nav>{children}</nav>,
-  SidebarMenuButton: ({ children }: { children: React.ReactNode; asChild?: boolean }) => (
-    <div>{children}</div>
-  ),
-  SidebarMenuItem: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  SidebarRail: () => <div data-testid="sidebar-rail" />,
-}));
+const item = (href: string, title = href): ShellNavigationItem => ({ href, title, icon: Home });
+const memberItems = [
+  { ...item('/member', 'Overview'), exact: true },
+  item('/member/claims', 'Claims'),
+  item('/member/claims/new', 'New claim'),
+];
+function DrawerControl() {
+  const { openMobile, setOpenMobile } = useSidebar();
+  return <button onClick={() => setOpenMobile(true)}>{openMobile ? 'Open' : 'Closed'}</button>;
+}
+function Wrapper({ children }: { children: ReactNode }) {
+  return (
+    <SidebarProvider>
+      <DrawerControl />
+      {children}
+    </SidebarProvider>
+  );
+}
+const nav = (items = memberItems, pathname = '/member') => (
+  <ShellNavigation label="Workspace" pathname={pathname} groups={[{ id: 'main', items }]} />
+);
+const current = () => screen.getAllByRole('link').filter(link => link.hasAttribute('aria-current'));
 
-// Mock child components
-vi.mock('./sidebar-brand', () => ({
-  SidebarBrand: ({ role }: { role?: string }) => (
-    <div data-testid="sidebar-brand">Interdomestik ({role || 'user'})</div>
-  ),
-}));
-
-vi.mock('./sidebar-user-menu', () => ({
-  SidebarUserMenu: () => <div data-testid="sidebar-user-menu">User Menu</div>,
-}));
-
-// Create a simple mock icon component - cast to any to bypass LucideIcon type constraints
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const MockIcon: any = () => <span data-testid="icon">Icon</span>;
-
-describe('DashboardSidebar', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+beforeEach(() => {
+  state.mobile = false;
+});
+describe('shared shell navigation', () => {
+  it('renders semantic navigation and one current link', () => {
+    render(nav(memberItems, '/member/claims/new'), { wrapper: Wrapper });
+    const navigation = screen.getByRole('navigation', { name: 'Workspace' });
+    expect(within(navigation).getByRole('list')).toBeInTheDocument();
+    expect(within(navigation).queryByRole('menu')).not.toBeInTheDocument();
+    expect(current()).toEqual([screen.getByRole('link', { name: 'New claim' })]);
+    expect(screen.getByRole('link', { name: 'New claim' })).toHaveAttribute('data-active', 'true');
+    expect(navigation.querySelectorAll('svg[aria-hidden="true"]')).toHaveLength(3);
   });
 
-  it('renders sidebar with member menu items for regular users', () => {
-    const memberItems = [
-      { title: 'Overview', href: '/member', icon: MockIcon },
-      { title: 'Claims', href: '/member/claims', icon: MockIcon },
-      { title: 'Documents', href: '/member/documents', icon: MockIcon },
-      { title: 'New Claim', href: '/member/claims/new', icon: MockIcon },
-      { title: 'Consumer Rights', href: '/member/rights', icon: MockIcon },
-      { title: 'Settings', href: '/member/settings', icon: MockIcon },
-      { title: 'Help', href: '/member/help', icon: MockIcon },
-    ];
-    mockUseDashboardNavigation.mockReturnValue({
-      items: memberItems,
-      memberItems,
-      agentItems: [],
-      adminItems: [],
-      role: 'user',
-    });
-
-    render(<DashboardSidebar />);
-
-    expect(screen.getByTestId('sidebar')).toBeInTheDocument();
-    expect(screen.getByText('Overview')).toBeInTheDocument();
-    expect(screen.getByText('Claims')).toBeInTheDocument();
-    expect(screen.getByText('Documents')).toBeInTheDocument();
-    expect(screen.getByText('New Claim')).toBeInTheDocument();
-    expect(screen.getByText('Consumer Rights')).toBeInTheDocument();
-    expect(screen.getByText('Settings')).toBeInTheDocument();
-    expect(screen.getByText('Help')).toBeInTheDocument();
+  it.each([
+    ['/member', 'Overview'],
+    ['/member/claims/case-1', 'Claims'],
+    ['/member/claims/new/step-2', 'New claim'],
+    ['/member/claimsmith', null],
+    ['/member/claims/newish', 'Claims'],
+    ['/member/settings', null],
+  ])('selects segment-aware routes for %s', (pathname, title) => {
+    render(nav(memberItems, pathname), { wrapper: Wrapper });
+    expect(current()).toEqual(title ? [screen.getByRole('link', { name: title })] : []);
   });
 
-  it('renders agent menu items for agent role', () => {
-    const agentItems = [
-      { title: 'Workspace', href: '/agent', icon: MockIcon },
-      { title: 'CRM', href: '/agent/crm', icon: MockIcon },
-      { title: 'Leads', href: '/agent/leads', icon: MockIcon },
-      { title: 'Settings', href: '/agent/settings', icon: MockIcon },
-      { title: 'Help', href: '/agent/help', icon: MockIcon },
-    ];
-    const memberItems = [
-      { title: 'Overview', href: '/member', icon: MockIcon },
-      { title: 'Documents', href: '/member/documents', icon: MockIcon },
-    ];
-    mockUseDashboardNavigation.mockReturnValue({
-      items: [...agentItems, ...memberItems],
-      memberItems,
-      agentItems,
-      adminItems: [],
-      role: 'agent',
-    });
-
-    render(<DashboardSidebar />);
-
-    expect(screen.getByText('CRM')).toBeInTheDocument();
-    expect(screen.getByText('Leads')).toBeInTheDocument();
-    expect(screen.getByText('Workspace')).toBeInTheDocument();
-    expect(screen.getByText('Settings')).toBeInTheDocument();
-    expect(screen.getByText('Help')).toBeInTheDocument();
-    expect(screen.queryByText('My Protection')).not.toBeInTheDocument();
-    expect(screen.queryByText('Documents')).not.toBeInTheDocument();
-    expect(screen.queryByText('Overview')).not.toBeInTheDocument();
+  it('deduplicates destinations but preserves query variants', () => {
+    render(
+      <ShellNavigation
+        label="Workspace"
+        pathname="/admin/users"
+        groups={[
+          { id: 'member', items: [item('/member')] },
+          {
+            id: 'extra',
+            items: [item('/member'), item('/admin/users'), item('/admin/users?role=agent')],
+          },
+        ]}
+      />,
+      { wrapper: Wrapper }
+    );
+    expect(screen.getAllByRole('link').map(link => link.getAttribute('href'))).toEqual([
+      '/member',
+      '/admin/users',
+      '/admin/users?role=agent',
+    ]);
+    expect(current()).toHaveLength(1);
   });
 
-  it('renders admin menu items for admin role', () => {
-    const memberItems = [
-      { title: 'Overview', href: '/member', icon: MockIcon },
-      { title: 'Claims', href: '/member/claims', icon: MockIcon },
-    ];
-    const adminItems = [{ title: 'Admin Dashboard', href: '/admin', icon: MockIcon }];
-    mockUseDashboardNavigation.mockReturnValue({
-      items: [...memberItems, ...adminItems],
-      memberItems,
-      agentItems: [],
-      adminItems,
-      role: 'admin',
-    });
-
-    render(<DashboardSidebar />);
-
-    // Admin sees member items plus admin dashboard
-    expect(screen.getByText('Overview')).toBeInTheDocument();
-    expect(screen.getByText('Claims')).toBeInTheDocument();
-    expect(screen.getByText('Admin Dashboard')).toBeInTheDocument();
+  it('updates caller selection and tenant context', () => {
+    const view = (tenant: string) =>
+      nav(
+        [
+          { ...item(`/admin/users?tenantId=${tenant}`, 'Members'), selected: false },
+          { ...item(`/admin/users?tenantId=${tenant}&role=agent`, 'Agents'), selected: true },
+        ],
+        '/admin/users'
+      );
+    const { rerender } = render(view('ks'), { wrapper: Wrapper });
+    expect(current()).toEqual([screen.getByRole('link', { name: 'Agents' })]);
+    rerender(view('mk'));
+    expect(screen.getByRole('link', { name: 'Agents' })).toHaveAttribute(
+      'href',
+      '/admin/users?tenantId=mk&role=agent'
+    );
+    expect(
+      screen.getAllByRole('link').every(link => !link.getAttribute('href')?.includes('=ks'))
+    ).toBe(true);
   });
 
-  it('renders brand logo and name', () => {
-    mockUseDashboardNavigation.mockReturnValue({
-      items: [{ title: 'Overview', href: '/member', icon: MockIcon }],
-      memberItems: [{ title: 'Overview', href: '/member', icon: MockIcon }],
-      agentItems: [],
-      adminItems: [],
-      role: 'user',
-    });
-
-    render(<DashboardSidebar />);
-
-    expect(screen.getByTestId('sidebar-brand')).toBeInTheDocument();
+  it('replaces items and preserves empty-state content', () => {
+    const view = (items: ShellNavigationItem[]) => (
+      <>
+        {nav(items)}
+        <h1>Case content</h1>
+      </>
+    );
+    const { rerender } = render(view([item('/agent/leads')]), { wrapper: Wrapper });
+    rerender(view([item('/staff/claims')]));
+    expect(screen.queryByRole('link', { name: '/agent/leads' })).not.toBeInTheDocument();
+    rerender(view([]));
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.queryByRole('list')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Case content' })).toBeInTheDocument();
   });
 
-  it('renders menu label', () => {
-    mockUseDashboardNavigation.mockReturnValue({
-      items: [{ title: 'Overview', href: '/member', icon: MockIcon }],
-      memberItems: [{ title: 'Overview', href: '/member', icon: MockIcon }],
-      agentItems: [],
-      adminItems: [],
-      role: 'user',
-    });
-
-    render(<DashboardSidebar />);
-
-    // The component uses SidebarGroupLabel for sections now, checking if 'Menu' is still there
-    // If it fails, I will remove this test or update it.
+  it('keeps native keyboard semantics', async () => {
+    const user = userEvent.setup();
+    render(nav(), { wrapper: Wrapper });
+    await user.tab();
+    await user.tab();
+    const overview = screen.getByRole('link', { name: 'Overview' });
+    expect(overview).toHaveFocus();
+    const clicked = vi.fn((event: Event) => event.preventDefault());
+    overview.addEventListener('click', clicked);
+    await user.keyboard(' ');
+    expect(clicked).not.toHaveBeenCalled();
+    await user.keyboard('{Enter}');
+    expect(clicked).toHaveBeenCalledOnce();
   });
 
-  it('handles null session gracefully', () => {
-    const memberItems = [
-      { title: 'Overview', href: '/member', icon: MockIcon },
-      { title: 'Claims', href: '/member/claims', icon: MockIcon },
-    ];
-    mockUseDashboardNavigation.mockReturnValue({
-      items: memberItems,
-      memberItems,
-      agentItems: [],
-      adminItems: [],
-      role: undefined,
+  it('closes mobile navigation only for normal clicks', () => {
+    state.mobile = true;
+    render(nav(), { wrapper: Wrapper });
+    fireEvent.click(screen.getByRole('button', { name: 'Closed' }));
+    const link = screen.getByRole('link', { name: 'Claims' });
+    fireEvent.click(link, { ctrlKey: true });
+    expect(screen.getByRole('button', { name: 'Open' })).toBeInTheDocument();
+    fireEvent.click(link);
+    expect(screen.getByRole('button', { name: 'Closed' })).toBeInTheDocument();
+  });
+});
+
+const shellUser = (role: string) => ({ id: 'user', name: 'User', email: 'user@example.com', role });
+describe('DashboardSidebar consumers', () => {
+  it.each(['member', 'agent', 'admin'])('integrates the %s model and caller chrome', role => {
+    const { rerender } = render(<DashboardSidebar user={shellUser(role)} />, {
+      wrapper: Wrapper,
     });
-
-    render(<DashboardSidebar />);
-
-    // Should render member items by default when no role
-    expect(screen.getByText('Overview')).toBeInTheDocument();
-    expect(screen.getByText('Claims')).toBeInTheDocument();
+    const links = () =>
+      within(screen.getByTestId('shell-navigation'))
+        .getAllByRole('link')
+        .map(link => link.getAttribute('href'));
+    expect(links()).toContain(role === 'agent' ? '/agent' : '/member');
+    expect(links()).toContain(role === 'agent' ? '/agent/claims' : '/member/claims');
+    expect(links()).not.toContain(role === 'agent' ? '/member' : '/agent');
+    expect(links().includes('/admin/overview')).toBe(role === 'admin');
+    expect(screen.getByText('Account')).toBeInTheDocument();
+    expect(screen.getByText('Interdomestik')).toBeInTheDocument();
+    rerender(<DashboardSidebar user={shellUser('agent')} agentTier="office" />);
+    expect(links()).toContain('/agent/leads');
+    expect(links()).toContain('/agent/import');
+    rerender(<DashboardSidebar user={shellUser('agent')} />);
+    expect(links()).not.toContain('/agent/import');
+    expect(links()).not.toContain('/agent/leads');
+  });
+  it('retains the established session fallback', () => {
+    render(<DashboardSidebar />, { wrapper: Wrapper });
+    expect(
+      within(screen.getByTestId('shell-navigation')).getByRole('link', { name: 'overview' })
+    ).toBeInTheDocument();
   });
 });

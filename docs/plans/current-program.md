@@ -27,9 +27,10 @@ Code Analysis check `103580834614`, and Sonar Main Gate `34703433721` attempt 2 
 merge.
 `T410-NOTIFICATION-ACK-CORRECTNESS` completed through protected product PR #1765, with exact-main
 CI and Sonar passing as recorded below. It delivered truthful notification acknowledgement over
-the existing notification surface and server-action contract. No product slice is now active.
-This prerequisite increment does not complete all of blueprint T-410, select T-411, or reactivate
-legacy Lean; no successor has been selected.
+the existing notification surface and server-action contract. The owner now selects
+`SHARED-SHELL-NAVIGATION`: reuse admitted navigation presentation across member, agent, staff and
+admin in one ordinary product PR. This does not complete all of T-410 or the all-role platform,
+select T-411, or reactivate legacy Lean.
 
 ## Delivered History
 
@@ -120,7 +121,40 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 |        3 | Unsupported claim AI document type | Trial 2         | Completed migration trial 3/3. |
 
 These rows are completed historical priorities. The notification acknowledgement increment is
-also complete; the committed priority set is empty pending explicit owner selection.
+also complete; the sole new committed increment is `SHARED-SHELL-NAVIGATION` below.
+
+## Shared Shell Navigation Increment
+
+Owner-selected on 2026-09-13; high complexity, Astra/high implementation because role and tenant
+navigation must preserve access boundaries. Generalize existing sidebar rendering into one mounted
+presentation for member/agent, staff and admin. Existing navigation models, server-authorized role
+inputs, agent tiers, staff CRM visibility, admin branch scope and query-sensitive people selection
+remain the admission contracts. No new permission model or domain query is introduced. T117A's
+Case/Actions/Timeline slots and T117B's member runtime remain caller-owned; this is navigation
+reuse, not all-role portal completion. Proxy, canonical URLs, auth, tenancy and readiness markers
+remain unchanged. PR #1769 is parked and is not a dependency.
+
+Brief checked 2026-09-13 for installed Next.js 16.3.3, React 19.2.8 and next-intl 4.13.4:
+[W3C navigation semantics](https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/examples/disclosure-navigation/)
+support named navigation, native links and current-page indication; adopt those principles and
+native Tab/Enter behavior, reject a menu widget or custom Space activation. [WCAG consistent
+navigation](https://www.w3.org/WAI/WCAG22/Understanding/consistent-navigation.html) supports stable
+relative ordering. [next-intl navigation](https://next-intl.dev/docs/routing/navigation) confirms
+locale-free `usePathname` and localized links; retain those wrappers. These are reference checks,
+not usability validation. Prior T117A shared-shell findings remain applicable.
+
+Owner-supplied front-runners already contributed: Sonnet 5 Medium proposed supplied-item rendering
+and caller-owned slots; Gemini 3.1 Pro proposed duplicate/empty/stale-context, route, keyboard/mobile
+and server-rejection cases. Adopt applicable repository contracts; reject invented capability
+literals, frontend permission maps, universal 403 behavior and a shadow dashboard. These were
+proposals, not source reviews or executed tests; no repeat helper call is required.
+
+Acceptance: actual role consumers share navigation rendering; duplicate destinations render once,
+query variants remain distinct, one most-specific segment match identifies the current page,
+caller selection handles admin people filters, changed inputs replace stale links, empty navigation
+preserves caller content, collapsed links retain names, and ordinary mobile activation closes the
+existing drawer. Focused tests, independent Astra review, unchanged required repository proof,
+protected expected-head merge and exact-main health remain delivery requirements.
 
 ## Ordinary Product Delivery
 

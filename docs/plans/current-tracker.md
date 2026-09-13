@@ -16,21 +16,67 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-No product slice is active. The canonical one-row queue/proof schema retains the completed
-notification acknowledgement increment; T210 remains history and no successor is selected.
+`SHARED-SHELL-NAVIGATION` is the sole owner-selected ordinary product increment.
+T410 notification acknowledgement and T210 remain completed history.
 The current member screen is legacy integration evidence only. The planned net-new member UI/UX
 belongs in the unified portal shell; canonical role routes and readiness markers do not authorize
 separate dashboard designs or freeze the legacy presentation.
 
-| ID                                  | Status      | Owner     | Work                                                                   | Exit Criteria                                    |
-| ----------------------------------- | ----------- | --------- | ---------------------------------------------------------------------- | ------------------------------------------------ |
-| `T410-NOTIFICATION-ACK-CORRECTNESS` | `completed` | `product` | Make member notification read state reflect confirmed server outcomes. | PR #1765 merged; exact-main CI and Sonar passed. |
+| ID                        | Status        | Owner     | Work                                                                        | Exit Criteria                                                                  |
+| ------------------------- | ------------- | --------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `SHARED-SHELL-NAVIGATION` | `in_progress` | `product` | Shared admitted navigation rendering across member, agent, staff and admin. | Focused/full proof, independent review, protected merge and exact-main health. |
 
 ## Proof Ledger
 
-| ID                                  | Source Refs                                    | Execution  | Run ID   | Run Root | Sonar | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                                                    |
-| ----------------------------------- | ---------------------------------------------- | ---------- | -------- | -------- | ----- | ------ | ---------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `T410-NOTIFICATION-ACK-CORRECTNESS` | docs/plans/current-program.md; owner direction | `scripted` | abf37e7c | local/CI | pass  | pass   | `not_applicable` | `not_applicable` | final-source full proof and independent Astra review; protected PR #1765; matching merge tree; exact-main CI 34754164766 and Sonar 103716794800/34754164793 pass; one-slice Claude/Gemini waiver |
+| ID                        | Source Refs                                    | Execution  | Run ID  | Run Root | Sonar   | Docker  | Sentry           | Learning         | Evidence Refs                                                                                   |
+| ------------------------- | ---------------------------------------------- | ---------- | ------- | -------- | ------- | ------- | ---------------- | ---------------- | ----------------------------------------------------------------------------------------------- |
+| `SHARED-SHELL-NAVIGATION` | docs/plans/current-program.md; owner direction | `scripted` | pending | local/CI | pending | pending | `not_applicable` | `not_applicable` | Local full/focused proof and independent review passed at 0bd1d322; protected delivery pending. |
+
+### Shared navigation candidate
+
+Prepared on base `643b91d5d8863a717895b5dda3d6115d6f82f169`. Sole implementation owner Astra/high;
+Sonnet 5 Medium design and Gemini 3.1 Pro adversarial proposals reused from owner handoff.
+Five focused test files pass 39 tests, including the existing server tenant-access rejections;
+web type-check, changed-file lint and modularity pass. The admin sidebar shrinks to 300 lines,
+within its review boundary; its retained role/query/account concerns stay cohesive.
+The replacement dashboard tests use real sidebar primitives and add navigation behavior coverage
+within their baseline bytes. Independent Astra review identified dark active icons inherited from
+the sidebar primitive; the shared renderer now inherits the active link color explicitly. The
+corrected source and focused regressions are rechecked before full proof; prepared and tested do not yet mean merged, deployed or user-validated.
+
+Capacity preflight adds one 3,708-byte source file and 598 positive test bytes using measured
+unused historical allowances. Transfers: source 2,049 T117B cutover, 1,453 T117C rendering, 206
+currency trial; tests 496 CI deduplication and 102 delivery-event coalescing; one unused T117C
+file slot. Budget self-growth is exactly 685 config bytes funded from five existing donors.
+Global/category ceilings, baseline, reserves, donor path caps and observed evidence remain intact;
+no deleted-byte credit or guard relaxation is used. Full inventory/attribution preflight passes.
+
+Local proof uses only task database `shared_shell_nav_2e33` and port 3000, with source-map upload
+disabled. Doctor and task-database migration succeeded. Playwright MCP reported `Browser is already
+in use for /tmp/interdomestik-pilot-evidence/playwright-mcp-profile, use --isolated to run multiple
+instances of the same browser`; that session is preserved and browser validation uses an isolated
+fallback. No PR #1769 changes or infrastructure improvements are imported.
+
+The first full attempt at `bc3272bb` passed 1,178 CI contracts, 154 release tests, 41 RLS tests,
+81.30% repository line coverage and the production build, then stopped after 111 browser passes:
+three unchanged neutral-host tests hardcode port 3000 while that attempt used 3117. Port 3000
+was verified free and assigned to this task for the final attempt. That failed run is not a pass.
+Supplemental browser inspection also found collapsed padding clipping navigation icons; shared
+group/caller collapsed padding and label truncation are corrected before renewed final proof.
+The unchanged Sidebar/Radix drawer closes on Escape without restoring toggle focus; independent
+source review confirmed that baseline limitation, which this slice does not claim to repair.
+
+Full `pnpm pr:verify` passed at `0bd1d322003c1a4ca0f26d806b31d2ef560688bf`:
+1,178 CI contracts, 154 release tests, 41 RLS tests, 3,381 web tests/12 skips,
+81.30% repository lines (21,666/26,650), 252 gate passes/12 intentional skips and
+13 smoke passes/11 intentional skips. Same-source security guard passed. Private full-log SHA-256:
+`5a80e98548ec9fe98c7b687a03f0b6c3e9b459c9786c3eab7ee90712808be928`.
+Eight supplemental browser checks pass in KS/sq and MK/mk: desktop/collapsed navigation for
+all four roles, mobile drawers for agent/staff/admin and retained member page shortcuts.
+Independent Astra recheck cleared the consolidated source. This subsequent ledger update does
+not transfer that local proof to a new commit; final-head hosted checks remain required.
+The member's existing mobile page shortcuts remain unchanged; shared drawer behavior applies
+to consumers exposing a mobile toggle. No all-role mobile-shell completion is claimed.
 
 ### Final T410 delivery
 
@@ -281,7 +327,8 @@ Migration is completed at 3/3. This is not production-deployment evidence.
 T117C was delivered by promotion #1738 and product #1736. Its legacy projection remains inactive.
 Harness adoption completed through #1761 and #1762. T210 completed through product #1763. The
 owner-selected bounded notification acknowledgement increment completed through #1765 with exact-main
-health verified. No product slice is active; this is not full T-410 completion and does not select T-411.
+health verified. SHARED-SHELL-NAVIGATION is the sole active increment; this is not full T-410
+completion and does not select T-411.
 
 | Completed historical priority            | Status      | Constraint                                                                    |
 | ---------------------------------------- | ----------- | ----------------------------------------------------------------------------- |
