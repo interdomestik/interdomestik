@@ -25,6 +25,9 @@ the same restricted runner as a review, with a fixed public prompt.
   overrides. Do not use bare mode, which excludes subscription login.
   Effort is explicitly requested as medium; receipts attest model identity, not effort.
   Typed reasoning progress and opaque thinking signatures remain captured within a 2 MB bound.
+  Local account metadata must identify subscription billing with Extra Usage disabled before
+  transmission and after completion. This is local account-state evidence, not a fresh billing
+  server attestation; the terminal stream also rejects reported overage use.
 - Gemini uses the signed, SHA-pinned native Antigravity executable at
   `~/.local/bin/agy`. The `gemini` wrappers are not accepted. Each run checks the
   catalog and runs fresh negative/positive public canary controls before sending

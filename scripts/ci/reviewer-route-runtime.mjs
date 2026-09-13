@@ -219,7 +219,12 @@ export function runReviewerRoute(options) {
           options.maxCaptureBytes || 20_000
         );
       let reason = overflow ? 'reviewer_output_limit' : '';
-      if (stream === 'stdout' && hasToolRequest(stdout)) reason = 'reviewer_tool_request';
+      if (
+        stream === 'stdout' &&
+        options.outputProtocol !== 'claude-stream-v1' &&
+        hasToolRequest(stdout)
+      )
+        reason = 'reviewer_tool_request';
       else if (stream === 'stderr') reason = classifyBlocker(chunk.toString());
       if (reason && !blockerReason) {
         blockerReason = reason;

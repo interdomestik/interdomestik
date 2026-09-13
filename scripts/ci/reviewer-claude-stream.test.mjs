@@ -154,3 +154,24 @@ test('typed Claude evidence survives the subprocess receipt boundary', async () 
   assert.equal(wrong.exitCode, 0);
   assert.equal(wrong.stdout, stream(events));
 });
+
+test('quoted tool syntax is review text, while actual typed tool content fails', async () => {
+  const events = fixture();
+  events[2].message.content[0].text = 'Finding: reject `<invoke name="Bash">`.\nVERDICT: FINDINGS';
+  events[3].result = events[2].message.content[0].text;
+  const run = () =>
+    runReviewerRoute({
+      routeName: 'quoted-code',
+      provider: 'anthropic',
+      model,
+      outputProtocol: 'claude-stream-v1',
+      command: process.execPath,
+      args: ['-e', `process.stdout.write(${JSON.stringify(stream(events))})`],
+    });
+  assert.equal((await run()).status, 'ran');
+  events[2].message.content.push({ type: 'tool_use', name: 'Bash' });
+  const rejected = await run();
+  assert.equal(rejected.status, 'failed');
+  assert.equal(rejected.reviewVerdict, null);
+  assert.match(rejected.error, /tool_or_unknown_content/u);
+});

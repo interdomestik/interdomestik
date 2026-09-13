@@ -6,7 +6,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { runProbe } from './model-review-access.mjs';
 import { modelReviewRoutes } from './model-review-routes.mjs';
-import { claudeRestrictedArgs } from './reviewer-claude-execution.mjs';
+import { checkClaudeBilling, claudeRestrictedArgs } from './reviewer-claude-execution.mjs';
 import { reviewerLifecycle } from './reviewer-process-lifecycle.mjs';
 import { checkNativeBilling } from './reviewer-native-process.mjs';
 import { runReviewerRoute } from './reviewer-route-runtime.mjs';
@@ -48,6 +48,32 @@ test('native billing rejects enabled, malformed and ambiguous paid-credit settin
     }
     fs.writeFileSync(settings, 'broken');
     assert.throws(() => checkNativeBilling(home), /billing_settings_unreadable/u);
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test('Claude refuses enabled or unknown local extra usage before transmission', () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-billing-'));
+  const file = path.join(home, '.claude.json');
+  try {
+    assert.throws(() => checkClaudeBilling(home), /billing_state_unknown/u);
+    for (const value of [true, null, 'false', undefined]) {
+      fs.writeFileSync(
+        file,
+        JSON.stringify({
+          oauthAccount: { hasExtraUsageEnabled: value, billingType: 'stripe_subscription' },
+        })
+      );
+      assert.throws(() => checkClaudeBilling(home), /subscription_only_required/u);
+    }
+    fs.writeFileSync(
+      file,
+      JSON.stringify({
+        oauthAccount: { hasExtraUsageEnabled: false, billingType: 'stripe_subscription' },
+      })
+    );
+    assert.equal(checkClaudeBilling(home).hasExtraUsageEnabled, false);
   } finally {
     fs.rmSync(home, { recursive: true, force: true });
   }

@@ -7,6 +7,18 @@ import path from 'node:path';
 const CLAUDE_SHA256 = '19ed536dd0e94dade3f8c49c3c6ddeff22b06f5d5c86b30f1c88eeb9a04f45e5';
 const digest = file => createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 
+export function checkClaudeBilling(home) {
+  let account;
+  try {
+    account = JSON.parse(fs.readFileSync(path.join(home, '.claude.json'), 'utf8')).oauthAccount;
+  } catch {
+    throw new Error('claude_billing_state_unknown');
+  }
+  if (account?.hasExtraUsageEnabled !== false || account?.billingType !== 'stripe_subscription')
+    throw new Error('claude_subscription_only_required');
+  return { hasExtraUsageEnabled: false, evidenceBasis: 'local-account-state' };
+}
+
 export function claudeRestrictedArgs(prompt, model) {
   return [
     '-p',
@@ -84,6 +96,7 @@ export async function runRestrictedClaude(options, capture) {
     const cwd = path.join(evidenceDirectory, 'workspace');
     fs.mkdirSync(cwd, { mode: 0o700 });
     const args = claudeRestrictedArgs(options.prompt, options.model);
+    const billingControl = checkClaudeBilling(env.HOME);
     result = await capture({
       ...options,
       nativeProtocol: undefined,
@@ -95,10 +108,12 @@ export async function runRestrictedClaude(options, capture) {
       cwd,
       commandInvoked: [executable, ...claudeRestrictedArgs('<prompt>', options.model)],
     });
+    checkClaudeBilling(env.HOME);
     result.restrictedExecution = {
       protocol: 'claude-stream-v1',
       evidenceDirectory,
       cwd,
+      billingControl,
       executable: { path: executable, sha256, publisherTeam: 'Q6L2SF6YDW' },
       limitation: 'Signed CLI primary-response metadata; host and same-UID processes are trusted.',
     };
