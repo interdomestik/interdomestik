@@ -33,12 +33,12 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 98727,
+      "trackedBytesDelta": 98721,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
         "config/data/messages": 61317,
         "source/scripts": 23092,
-        "tests/e2e": 14318
+        "tests/e2e": 14312
       },
       "pathBytesDelta": {
         "scripts/repo-size-budget.json": 61317,
@@ -53,7 +53,7 @@
         "scripts/repo-size-audit-output.mjs": 3377,
         "scripts/ci/repo-size-capacity-fixtures.mjs": 2640,
         "scripts/ci/repo-size-capacity-schema.test.mjs": 2092,
-        "scripts/ci/repo-size-capacity-evaluator.test.mjs": 9254,
+        "scripts/ci/repo-size-capacity-evaluator.test.mjs": 9248,
         "scripts/ci/repo-size-git-attribution.test.mjs": 2816
       }
     },
@@ -1285,7 +1285,7 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61233200,
+  "maxTrackedBytes": 61233194,
   "maxTrackedFiles": 6053,
   "maxCategoryBytes": {
     "config/data/messages": 2232228,
@@ -1293,7 +1293,7 @@
     "large support/generated-ish": 15395985,
     "other": 19184750,
     "source/scripts": 8836208,
-    "tests/e2e": 7042093
+    "tests/e2e": 7042087
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
