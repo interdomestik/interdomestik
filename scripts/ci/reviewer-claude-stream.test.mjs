@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { inspectClaudeStream } from './reviewer-claude-stream.mjs';
+import { runReviewerRoute } from './reviewer-route-runtime.mjs';
 
 const model = 'claude-sonnet-5';
 function fixture() {
@@ -99,4 +100,32 @@ for (const [name, mutate] of [
 test('malformed and JSON-only Claude output cannot receive stream identity', () => {
   for (const value of ['', stream(fixture()) + '\ninvalid', JSON.stringify(fixture().at(-1))])
     assert.throws(() => inspectClaudeStream(value, model), /claude_/u);
+});
+
+test('typed Claude evidence survives the subprocess receipt boundary', async () => {
+  const events = fixture();
+  const result = await runReviewerRoute({
+    routeName: 'claude-fixture',
+    provider: 'anthropic',
+    model,
+    outputProtocol: 'claude-stream-v1',
+    command: process.execPath,
+    args: ['-e', `process.stdout.write(${JSON.stringify(stream(events))})`],
+  });
+  assert.equal(result.status, 'ran');
+  assert.equal(result.providerReportedModel, model);
+  assert.deepEqual(result.aggregateModelUsage, events.at(-1).modelUsage);
+  events[2].message.model = 'wrong';
+  const wrong = await runReviewerRoute({
+    routeName: 'claude-fixture',
+    provider: 'anthropic',
+    model,
+    outputProtocol: 'claude-stream-v1',
+    command: process.execPath,
+    args: ['-e', `process.stdout.write(${JSON.stringify(stream(events))})`],
+  });
+  assert.equal(wrong.status, 'failed');
+  assert.equal(wrong.error, 'claude_primary_model_mismatch');
+  assert.equal(wrong.exitCode, 0);
+  assert.equal(wrong.stdout, stream(events));
 });

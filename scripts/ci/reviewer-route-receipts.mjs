@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 
 function receiptMarkdown(receipt) {
   return [
@@ -41,12 +42,12 @@ function receiptDir() {
 
 export function writeRouteReceipt(receipt) {
   const safeDir = receiptDir();
-  fs.mkdirSync(safeDir, { recursive: true });
+  fs.mkdirSync(safeDir, { recursive: true, mode: 0o700 });
   const stamp = receipt.startedAt.replace(/[-:.]/g, '').slice(0, 15);
-  const base = `${safeSegment(stamp, 'receipt')}-${safeSegment(receipt.routeName, 'route')}`;
+  const base = `${safeSegment(stamp, 'receipt')}-${safeSegment(receipt.routeName, 'route')}-${randomUUID()}`;
   const jsonPath = path.join(safeDir, `${base}.json`);
   const mdPath = path.join(safeDir, `${base}.md`);
-  fs.writeFileSync(jsonPath, `${JSON.stringify(receipt, null, 2)}\n`);
-  fs.writeFileSync(mdPath, receiptMarkdown(receipt));
+  fs.writeFileSync(jsonPath, `${JSON.stringify(receipt, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
+  fs.writeFileSync(mdPath, receiptMarkdown(receipt), { flag: 'wx', mode: 0o600 });
   return { jsonPath, mdPath };
 }

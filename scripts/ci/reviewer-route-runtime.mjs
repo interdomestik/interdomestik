@@ -131,7 +131,8 @@ export function runReviewerRoute(options) {
   const commandInvoked = options.commandInvoked || [options.command, ...(options.args || [])];
   let stdout = '',
     stderr = '',
-    blockerReason = '';
+    blockerReason = '',
+    spawnError = '';
   let firstOutputTimedOut = false,
     totalTimedOut = false;
 
@@ -239,9 +240,8 @@ export function runReviewerRoute(options) {
     child.stdout.on('data', chunk => collect('stdout', chunk));
     child.stderr.on('data', chunk => collect('stderr', chunk));
     child.on('error', error => {
-      blockerReason = classifyBlocker(error.message);
-      const status = blockerReason ? 'blocked' : 'failed';
-      finish(finishReceipt({ status, exitCode: 127, error: error.message }));
+      blockerReason ||= classifyBlocker(error.message) || 'reviewer_spawn_failed';
+      spawnError = error.message;
     });
     child.on('close', (code, signal) => {
       const cleanupError = lifecycle.close();
@@ -254,7 +254,7 @@ export function runReviewerRoute(options) {
             providerFailureReason(`${stderr}\n${stdout}`));
       blockerReason = outputBlocker;
       let status = statusForClose(blockerReason, code);
-      let error = '';
+      let error = spawnError;
       stdout += decoders.stdout.end();
       stderr += decoders.stderr.end();
       const {
@@ -280,7 +280,7 @@ export function runReviewerRoute(options) {
         status = 'failed';
         error = 'no explicit PASS or FINDINGS';
       }
-      finish(finishReceipt({ status, exitCode: code ?? null, signal, error }));
+      finish(finishReceipt({ status, exitCode: spawnError ? 127 : (code ?? null), signal, error }));
     });
   });
 }

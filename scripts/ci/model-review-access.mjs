@@ -69,7 +69,7 @@ async function main() {
   const runRoot =
     argValue(args, '--run-root') || path.join('tmp', 'model-review-access', timestamp());
   const reviewDir = path.join(runRoot, 'reviews');
-  fs.mkdirSync(reviewDir, { recursive: true });
+  fs.mkdirSync(reviewDir, { recursive: true, mode: 0o700 });
 
   const results = [];
   for (const reviewer of reviewers) {
@@ -100,7 +100,7 @@ async function main() {
     results,
   };
   const out = path.join(reviewDir, 'model-review-access.json');
-  fs.writeFileSync(out, `${JSON.stringify(receipt, null, 2)}\n`);
+  fs.writeFileSync(out, `${JSON.stringify(receipt, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
   console.log(`[model-review-access] receipt=${out}`);
   if (blockedRequired.length > 0) process.exitCode = 1;
 }

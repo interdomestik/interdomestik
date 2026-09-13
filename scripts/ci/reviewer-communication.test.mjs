@@ -81,15 +81,33 @@ test('receipt shows native inference and null server model distinctly', () => {
     totalTimeout: { timedOut: false },
   };
   const files = writeRouteReceipt(receipt);
+  const second = writeRouteReceipt(receipt);
   try {
+    assert.notEqual(files.jsonPath, second.jsonPath);
+    assert.equal(fs.statSync(files.jsonPath).mode & 0o777, 0o600);
     const md = fs.readFileSync(files.mdPath, 'utf8');
     assert.match(md, /provider-reported model: null/u);
     assert.match(md, /native-selected model: gemini-3.8-flash-low/u);
     assert.match(md, /native-selection-inference/u);
     assert.match(md, /No independent server attestation/u);
   } finally {
-    for (const file of Object.values(files)) fs.rmSync(file);
+    for (const file of [...Object.values(files), ...Object.values(second)]) fs.rmSync(file);
   }
+});
+
+test('spawn failure waits for lifecycle cleanup and retains its actual error', async () => {
+  const before = process.listenerCount('SIGTERM');
+  const result = await runReviewerRoute({
+    routeName: 'spawn-error',
+    provider: 'test',
+    model: 'test',
+    command: os.tmpdir(),
+    args: [],
+  });
+  assert.equal(result.status, 'blocked');
+  assert.equal(result.exitCode, 127);
+  assert.match(result.error, /EACCES|EPERM/u);
+  assert.equal(process.listenerCount('SIGTERM'), before);
 });
 
 test('AbortSignal cancels a reviewer and removes process listeners', async () => {
