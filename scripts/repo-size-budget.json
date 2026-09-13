@@ -1258,20 +1258,20 @@
         "scripts/ci/pr-feedback-snapshot.test.mjs",
         "scripts/ci/pr-feedback-workflow.test.mjs"
       ],
-      "trackedBytesDelta": 38789,
+      "trackedBytesDelta": 44702,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
         "config/data/messages": 2509,
-        "source/scripts": 15721,
-        "tests/e2e": 20559
+        "source/scripts": 18403,
+        "tests/e2e": 23790
       },
       "pathBytesDelta": {
         ".github/actions/pr-feedback-setup/action.yml": 1271,
         ".github/workflows/pr-feedback-refresh.yml": 1238,
-        "scripts/ci/pr-feedback-controller.mjs": 6226,
-        "scripts/ci/pr-feedback-controller.test.mjs": 6529,
+        "scripts/ci/pr-feedback-controller.mjs": 6671,
+        "scripts/ci/pr-feedback-controller.test.mjs": 9760,
         "scripts/ci/pr-feedback-refresh-fixtures.mjs": 1996,
-        "scripts/ci/pr-feedback-refresh.mjs": 4324,
+        "scripts/ci/pr-feedback-refresh.mjs": 6561,
         "scripts/ci/pr-feedback-refresh.test.mjs": 4272,
         "scripts/ci/pr-feedback-snapshot.mjs": 3175,
         "scripts/ci/pr-feedback-snapshot.test.mjs": 4188,
@@ -1285,15 +1285,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61227287,
+  "maxTrackedBytes": 61233200,
   "maxTrackedFiles": 6053,
   "maxCategoryBytes": {
     "config/data/messages": 2232228,
     "docs/text": 8541936,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8833526,
-    "tests/e2e": 7038862
+    "source/scripts": 8836208,
+    "tests/e2e": 7042093
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
