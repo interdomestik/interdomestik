@@ -178,7 +178,7 @@ test('capacity rebase permits T118 promotion without a budget edit', () => {
   const budget = JSON.parse(
     fs.readFileSync(path.join(repoRoot, 'scripts/repo-size-budget.json'), 'utf8')
   );
-  const exact = budget.allocations.find(item => item.id === 'capacity-rebase');
+  const exact = budget.allocations.filter(item => item.mode === 'exact');
   const promotion = budget.allocations.find(item => item.id === 't118-promotion');
   const existingPaths = new Set([
     'scripts/repo-size-budget.json',
@@ -187,14 +187,12 @@ test('capacity rebase permits T118 promotion without a budget edit', () => {
     'scripts/ci/repo-size-budget-sync.test.mjs',
   ]);
   const facts = new Map(
-    exact.writerPaths.map(filePath => [
-      filePath,
-      {
-        path: filePath,
-        bytesDelta: exact.pathBytesDelta[filePath],
-        filesDelta: Number(!existingPaths.has(filePath)),
-      },
-    ])
+    exact.flatMap(({ pathBytesDelta }) =>
+      Object.entries(pathBytesDelta).map(([path, bytesDelta]) => [
+        path,
+        { path, bytesDelta, filesDelta: Number(!existingPaths.has(path)) },
+      ])
+    )
   );
   for (const filePath of promotion.writerPaths) {
     const prior = facts.get(filePath) ?? { path: filePath, bytesDelta: 0, filesDelta: 0 };

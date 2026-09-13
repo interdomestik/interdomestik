@@ -64,6 +64,7 @@ const PRODUCTION_EXTENSIONS = new Set([
 const STRUCTURED_EXTENSIONS = new Set(['.json', '.jsonl', '.toml', '.yaml', '.yml']);
 /** @type {ReadonlyArray<readonly [RegExp, string]>} */
 const STRUCTURED_OWNERS = [
+  [/^\.github\/actions\/pr-feedback-setup\/action\.yml$/u, 'pr-feedback-refresh-contract'],
   [/^\.github\/actions\/setup\/action\.yml$/u, 'private-node-cache-contract'],
   [/^scripts\/ci\/reviewer-no-tools\.toml$/u, 'reviewer-tool-denial-contract'],
   [/^\.github\/actions\/validation-surface\/action\.yml$/u, 'main-e2e-reuse-workflow-contract'],

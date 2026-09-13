@@ -201,15 +201,9 @@ test('delivery workflow stays exact and default-deny', () => {
     'pull-requests': 'read',
     statuses: 'read',
   });
-  assert.deepEqual(Object.keys(workflow.on), [
-    'pull_request',
-    'pull_request_review',
-    'pull_request_review_comment',
-  ]);
-  assert.deepEqual(workflow.on.pull_request_review.types, ['submitted', 'edited', 'dismissed']);
-  assert.deepEqual(workflow.on.pull_request_review_comment.types, ['created', 'edited', 'deleted']);
-  assert.ok(workflow.on.pull_request.types.includes('review_requested'));
-  assert.ok(workflow.on.pull_request.types.includes('review_request_removed'));
+  assert.deepEqual(Object.keys(workflow.on), ['pull_request']);
+  assert.ok(!workflow.on.pull_request.types.includes('review_requested'));
+  assert.ok(!workflow.on.pull_request.types.includes('review_request_removed'));
   assert.ok(workflow.on.pull_request.types.includes('closed'));
   assert.ok(workflow.on.pull_request.types.includes('labeled'));
   assert.deepEqual(Object.keys(workflow.jobs), ['delivery-gate']);
@@ -232,17 +226,18 @@ test('delivery workflow stays exact and default-deny', () => {
   assert.ok(job.steps.some(step => String(step.uses).startsWith('actions/checkout@')));
   const checkout = job.steps.find(step => String(step.uses).startsWith('actions/checkout@'));
   assert.match(checkout.with.ref, /github\.sha/u);
-  const setupNodeIndex = job.steps.findIndex(step =>
-    String(step.uses).startsWith('actions/setup-node@')
+  const setupNodeIndex = job.steps.findIndex(
+    step => step.uses === './.github/actions/pr-feedback-setup'
   );
   const gateIndex = job.steps.findIndex(step =>
     String(step.run).includes('scripts/ci/pr-delivery-gate.mjs')
   );
   assert.ok(setupNodeIndex >= 0, 'setup-node missing');
   assert.ok(setupNodeIndex < gateIndex, 'setup-node after gate');
-  assert.equal(job.steps[setupNodeIndex].with['node-version-file'], '.nvmrc');
-  assert.equal(job.steps[setupNodeIndex].with['package-manager-cache'], false);
-  assert.match(job.steps[setupNodeIndex].uses, /@[a-f0-9]{40}$/u);
+  const setup = yaml.load(read('.github/actions/pr-feedback-setup/action.yml')).runs.steps[0];
+  assert.equal(setup.with['node-version-file'], '.nvmrc');
+  assert.equal(setup.with['package-manager-cache'], false);
+  assert.match(setup.uses, /@[a-f0-9]{40}$/u);
   assert.ok(job.steps.some(step => String(step.run).includes('scripts/ci/pr-delivery-gate.mjs')));
   const gate = job.steps.find(step => String(step.run).includes('scripts/ci/pr-delivery-gate.mjs'));
   assert.match(gate.env.PR_NUMBER, /github\.event\.pull_request\.number/u);

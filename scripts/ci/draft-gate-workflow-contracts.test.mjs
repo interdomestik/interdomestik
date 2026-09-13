@@ -1,13 +1,10 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import path from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
 
 import yaml from 'js-yaml';
 import './pr-e2e-evidence-workflow-contracts.mjs';
 
-const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const TRUSTED_GATE_ACTION =
   'interdomestik/interdomestik/.github/actions/pr-gate-policy@f4b39fc4f7fed7e875363807faea11cc2c4cf717';
 const EVENT_TYPES = [
@@ -19,23 +16,16 @@ const EVENT_TYPES = [
   'labeled',
 ];
 
-function readWorkflow(name) {
-  return yaml.load(fs.readFileSync(path.join(rootDir, '.github/workflows', name), 'utf8'));
+function readYaml(...parts) {
+  const url = new URL(`../../.github/${parts.join('/')}`, import.meta.url);
+  return yaml.load(fs.readFileSync(url, 'utf8'));
 }
 
-function readAction(name) {
-  return yaml.load(
-    fs.readFileSync(path.join(rootDir, '.github/actions', name, 'action.yml'), 'utf8')
-  );
-}
+const readWorkflow = name => readYaml('workflows', name);
+const readAction = name => readYaml('actions', name, 'action.yml');
 
-function findStep(job, name) {
-  return job.steps.find(step => step?.name === name);
-}
-
-function needs(job, dependency) {
-  return [job.needs].flat().includes(dependency);
-}
+const findStep = (job, name) => job.steps.find(step => step?.name === name);
+const needs = (job, dependency) => [job.needs].flat().includes(dependency);
 
 test('draft-aware workflows react to lifecycle and full-gate label events', () => {
   for (const name of [
@@ -143,7 +133,10 @@ test('PR finalizer stays required but only attests full-lane current heads', () 
   const workflow = readWorkflow('pr-finalizer.yml');
   const job = workflow.jobs['pr-finalizer'];
   const policy = findStep(job, 'Evaluate PR gate policy');
-  const finalizer = findStep(job, 'Run PR finalizer gate');
+  const finalizer = findStep(
+    job,
+    "${{ steps.feedback.outputs.marker || 'Run PR finalizer gate' }}"
+  );
 
   assert.ok(policy);
   assert.ok(findStep(job, 'Report quick draft lane'));
