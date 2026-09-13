@@ -16,21 +16,54 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-The owner selected one bounded notification acknowledgement correctness increment after T210.
-T210 remains completed evidence and no automatic successor is inferred.
+No product slice is active. The canonical one-row queue/proof schema retains the completed
+notification acknowledgement increment; T210 remains history and no successor is selected.
 The current member screen is legacy integration evidence only. The planned net-new member UI/UX
 belongs in the unified portal shell; canonical role routes and readiness markers do not authorize
 separate dashboard designs or freeze the legacy presentation.
 
-| ID                                  | Status        | Owner     | Work                                                                   | Exit Criteria                                                       |
-| ----------------------------------- | ------------- | --------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| `T410-NOTIFICATION-ACK-CORRECTNESS` | `in_progress` | `product` | Make member notification read state reflect confirmed server outcomes. | Focused/browser/required checks, reviews, and protected merge pass. |
+| ID                                  | Status      | Owner     | Work                                                                   | Exit Criteria                                    |
+| ----------------------------------- | ----------- | --------- | ---------------------------------------------------------------------- | ------------------------------------------------ |
+| `T410-NOTIFICATION-ACK-CORRECTNESS` | `completed` | `product` | Make member notification read state reflect confirmed server outcomes. | PR #1765 merged; exact-main CI and Sonar passed. |
 
 ## Proof Ledger
 
-| ID                                  | Source Refs                                    | Execution  | Run ID   | Run Root | Sonar   | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                                                                               |
-| ----------------------------------- | ---------------------------------------------- | ---------- | -------- | -------- | ------- | ------ | ---------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `T410-NOTIFICATION-ACK-CORRECTNESS` | docs/plans/current-program.md; owner direction | `scripted` | 045b0c7e | local/CI | pending | pass   | `not_applicable` | `not_applicable` | source-bound full local proof `045b0c7ee609776613ff47a076bf47ce1ec7660c`; fresh Astra review on unchanged production `b5e67972`; one-slice owner Claude/Gemini waiver; current-head protected PR evidence and merge pending |
+| ID                                  | Source Refs                                    | Execution  | Run ID   | Run Root | Sonar | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                                                    |
+| ----------------------------------- | ---------------------------------------------- | ---------- | -------- | -------- | ----- | ------ | ---------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `T410-NOTIFICATION-ACK-CORRECTNESS` | docs/plans/current-program.md; owner direction | `scripted` | abf37e7c | local/CI | pass  | pass   | `not_applicable` | `not_applicable` | final-source full proof and independent Astra review; protected PR #1765; matching merge tree; exact-main CI 34754164766 and Sonar 103716794800/34754164793 pass; one-slice Claude/Gemini waiver |
+
+### Final T410 delivery
+
+Product [PR #1765](https://github.com/interdomestik/interdomestik/pull/1765) merged at
+2026-09-13T11:20:02Z: head `abf37e7c62490ebbbf2d2fbb35685b847e17b68c`, squash
+`bc4a7fe940b245f57cbc442258b21f6bb5870a7f`, matching tree
+`a817b68d7af207b2c89ba5022cf1e9b8570025b9`. Unchanged full `pr:verify` exited 0:
+1,048 CI contracts, 154 release tests, 41 RLS tests, 3,371 web passes/12 skips,
+81.24% repository lines (21,650/26,649), 252 browser passes/12 intentional skips,
+13 smoke passes/11 intentional skips. Both neutral-IDA keyboard variants and same-head
+`security:guard` passed. Private full-log SHA-256:
+`3856a5b1cfa538b8fbe173c903212531272f986a676083a8680fe56a4a6a6bd4`.
+Focused owner proof passed 41 web/four domain tests; independent Astra passed 38 web/four
+domain tests and cleared production plus exact capacity bookkeeping. Final automated review's
+unallocated-growth claim was disproved by wrapper size 2,917→2,915 bytes; its ledger concern was
+dispositioned with explicit source binding and the completed final proof. All threads were resolved.
+Hosted CI `34753060459`, E2E `34753060419`, pilot `34753060446`, Sonar check `103713465685`
+and strict `pr:review-ready` passed. Finalizer `34753060461` and delivery `34753060433` passed
+attempt 2 after the two review threads were resolved; initial failures remain historical evidence.
+
+Exact-main [CI](https://github.com/interdomestik/interdomestik/actions/runs/34754164766),
+[SonarCloud analysis](https://api.github.com/repos/interdomestik/interdomestik/check-runs/103716794800)
+and [Sonar Main Gate](https://github.com/interdomestik/interdomestik/actions/runs/34754164793) passed.
+The task-only database was removed after zero clients, its inactive port reservation released,
+and proof/configuration retained privately. No shared database/container/profile was removed.
+The owner directly approved committing the exact 2,529-byte adjustment in the product task after
+relayed authority was rejected. No further ceiling change is made here. This authorized two-file
+transcription follows #1764 without creating a routine closeout policy. No deployment, claimant
+usability validation, redesign, broader T-410 completion or successor selection is claimed.
+
+### Historical source-bound progress
+
+The notes below retain earlier proof and then-pending states; final completion is recorded above.
 
 Historical staff rehearsal: retained only as a timing baseline; no migration credit.
 
@@ -177,8 +210,8 @@ expanded suite passes 41 web/four domain tests. Wrong-ID success is refused, lat
 their authoritative unread state, reconciliation failure preserves confirmed state and exposes
 explicit retry, and old-subscriber success cannot initiate a replacement-subscriber fetch.
 Fresh independent Astra review cleared the production correction and interleaving matrix;
-its narrower independent execution passed 38 web/four domain tests. Current-source full proof
-remains pending; the completed `61e17a02` run is not transferred to changed code.
+its narrower independent execution passed 38 web/four domain tests. Final-source proof was then
+pending and subsequently passed at `abf37e7c`; the `61e17a02` run is not transferred to changed code.
 
 After runtime rejected broad completion authority for a capacity-ceiling change, the owner
 explicitly approved the exact 2,529-byte adjustment in the chief task. T410 test allocation
@@ -247,16 +280,16 @@ Migration is completed at 3/3. This is not production-deployment evidence.
 
 T117C was delivered by promotion #1738 and product #1736. Its legacy projection remains inactive.
 Harness adoption completed through #1761 and #1762. T210 completed through product #1763. The
-owner selected the bounded notification acknowledgement correctness increment as the only active
-ordinary product slice; it is not full T-410 completion and does not select T-411.
+owner-selected bounded notification acknowledgement increment completed through #1765 with exact-main
+health verified. No product slice is active; this is not full T-410 completion and does not select T-411.
 
-| Completed historical priority            | Status        | Constraint                                                                       |
-| ---------------------------------------- | ------------- | -------------------------------------------------------------------------------- |
-| Locale-aware currency parsing            | `completed`   | Product #1754; migration trial 1/3 closed.                                       |
-| Bounded failed-run retry                 | `completed`   | Product #1757; migration trial 2/3 closed.                                       |
-| Unsupported claim AI document type       | `completed`   | Product #1758; migration trial 3/3 closed.                                       |
-| Member timeline (T210)                   | `completed`   | Product #1763; main CI and Sonar passed at the exact protected merge.            |
-| Notification acknowledgement correctness | `in_progress` | Owner-selected prerequisite increment toward T-410; no broader completion claim. |
+| Completed historical priority            | Status      | Constraint                                                                    |
+| ---------------------------------------- | ----------- | ----------------------------------------------------------------------------- |
+| Locale-aware currency parsing            | `completed` | Product #1754; migration trial 1/3 closed.                                    |
+| Bounded failed-run retry                 | `completed` | Product #1757; migration trial 2/3 closed.                                    |
+| Unsupported claim AI document type       | `completed` | Product #1758; migration trial 3/3 closed.                                    |
+| Member timeline (T210)                   | `completed` | Product #1763; main CI and Sonar passed at the exact protected merge.         |
+| Notification acknowledgement correctness | `completed` | Product #1765; exact-main CI/Sonar passed; no broader T-410 completion claim. |
 
 No further successor row is recorded. A recommendation does not become program priority until the
 owner selects it and the current program records that decision.
