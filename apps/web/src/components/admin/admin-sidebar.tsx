@@ -1,5 +1,6 @@
 'use client';
 
+import { ShellNavigation } from '@/components/shell/shell-navigation';
 import { Link, usePathname, useRouter } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
 import { signOutAndRedirectToLogin } from '@/lib/auth/logout';
@@ -18,12 +19,8 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
   SidebarHeader,
-  SidebarMenu,
   SidebarMenuButton,
-  SidebarMenuItem,
   SidebarRail,
 } from '@interdomestik/ui';
 import {
@@ -107,6 +104,9 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
     });
   };
 
+  // Retain the server-authorized user's existing role and branch rules here.
+  // ShellNavigation consumes this admitted list; it does not decide access.
+  // Query-sensitive people selection also remains owned by this consumer.
   const sidebarItems = [
     {
       title: 'dashboard',
@@ -194,57 +194,25 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
       </SidebarHeader>
 
       <SidebarContent className="px-3 py-4">
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu className="gap-2">
-              {sidebarItems.map(item => {
-                const isPeopleRoute = pathname.startsWith('/admin/users');
-                let isActive = false;
-
-                if (item.peopleKey !== undefined) {
-                  isActive = isPeopleRoute && peopleRole === item.peopleKey;
-                } else if (item.href === '/admin/overview') {
-                  isActive = pathname.startsWith('/admin/overview');
-                } else {
-                  isActive = pathname.startsWith(item.href);
-                }
-
-                return (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      asChild
-                      tooltip={t(item.title)}
-                      className={`
-                        h-auto py-3 px-4 rounded-xl transition-all duration-300 
-                        hover:bg-muted/50 hover:pl-6
-                        data-[state=open]:bg-primary data-[state=open]:text-primary-foreground
-                        ${
-                          isActive
-                            ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25 ring-0'
-                            : 'text-muted-foreground hover:text-foreground'
-                        }
-                      `}
-                      isActive={isActive}
-                    >
-                      <Link
-                        href={withAdminContext(item.href)}
-                        className="flex items-center gap-3 font-medium"
-                      >
-                        <item.icon
-                          className={`h-5 w-5 shrink-0 ${isActive ? 'animate-pulse' : ''}`}
-                        />
-                        <span className="group-data-[state=collapsed]:hidden">{t(item.title)}</span>
-                        {isActive && (
-                          <div className="ml-auto h-2 w-2 rounded-full bg-white/20 animate-ping group-data-[state=collapsed]:hidden" />
-                        )}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        <ShellNavigation
+          label={tNav('menu')}
+          pathname={pathname}
+          groups={[
+            {
+              id: 'admin',
+              items: sidebarItems.map(item => ({
+                href: withAdminContext(item.href),
+                title: t(item.title),
+                icon: item.icon,
+                selected:
+                  item.peopleKey === undefined
+                    ? undefined
+                    : (pathname === '/admin/users' || pathname.startsWith('/admin/users/')) &&
+                      peopleRole === item.peopleKey,
+              })),
+            },
+          ]}
+        />
       </SidebarContent>
 
       <SidebarFooter className="p-3 border-t border-white/10">

@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { AdminSidebar } from './admin-sidebar';
@@ -48,10 +49,8 @@ vi.mock('@/lib/roles-i18n', () => ({
 
 // Mock routing
 vi.mock('@/i18n/routing', () => ({
-  Link: ({ children, href }: { children: React.ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
-  ),
-  usePathname: () => '/en/admin',
+  Link: (props: ComponentProps<'a'>) => <a {...props} />,
+  usePathname: () => '/admin/users',
   useRouter: () => ({
     push: vi.fn(),
     replace: vi.fn(),
@@ -71,6 +70,7 @@ vi.mock('@/lib/auth-client', () => ({
 
 // Mock UI components
 vi.mock('@interdomestik/ui', () => ({
+  useSidebar: () => ({ isMobile: false, setOpenMobile: vi.fn() }),
   DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DropdownMenuItem: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -87,6 +87,7 @@ vi.mock('@interdomestik/ui', () => ({
   SidebarContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   SidebarFooter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   SidebarGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  SidebarGroupLabel: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
   SidebarGroupContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   SidebarHeader: ({ children }: { children: React.ReactNode }) => <header>{children}</header>,
   SidebarMenu: ({ children }: { children: React.ReactNode }) => <nav>{children}</nav>,
@@ -207,6 +208,9 @@ describe('AdminSidebar', () => {
       'href',
       '/admin/crm?tenantId=tenant_ks'
     );
+    expect(screen.getByRole('link', { name: 'Staff' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Agents' })).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('link', { name: 'Members' })).not.toHaveAttribute('aria-current');
     expect(screen.getByRole('link', { name: 'Staff' })).toHaveAttribute(
       'href',
       '/admin/users?tenantId=tenant_ks&role=admin%2Cstaff'

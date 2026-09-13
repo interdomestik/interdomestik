@@ -16,21 +16,46 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-No product slice is active. The canonical one-row queue/proof schema retains the completed
-notification acknowledgement increment; T210 remains history and no successor is selected.
+`SHARED-SHELL-NAVIGATION` is the sole owner-selected ordinary product increment.
+T410 notification acknowledgement and T210 remain completed history.
 The current member screen is legacy integration evidence only. The planned net-new member UI/UX
 belongs in the unified portal shell; canonical role routes and readiness markers do not authorize
 separate dashboard designs or freeze the legacy presentation.
 
-| ID                                  | Status      | Owner     | Work                                                                   | Exit Criteria                                    |
-| ----------------------------------- | ----------- | --------- | ---------------------------------------------------------------------- | ------------------------------------------------ |
-| `T410-NOTIFICATION-ACK-CORRECTNESS` | `completed` | `product` | Make member notification read state reflect confirmed server outcomes. | PR #1765 merged; exact-main CI and Sonar passed. |
+| ID                        | Status        | Owner     | Work                                                                        | Exit Criteria                                                                  |
+| ------------------------- | ------------- | --------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `SHARED-SHELL-NAVIGATION` | `in_progress` | `product` | Shared admitted navigation rendering across member, agent, staff and admin. | Focused/full proof, independent review, protected merge and exact-main health. |
 
 ## Proof Ledger
 
-| ID                                  | Source Refs                                    | Execution  | Run ID   | Run Root | Sonar | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                                                    |
-| ----------------------------------- | ---------------------------------------------- | ---------- | -------- | -------- | ----- | ------ | ---------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `T410-NOTIFICATION-ACK-CORRECTNESS` | docs/plans/current-program.md; owner direction | `scripted` | abf37e7c | local/CI | pass  | pass   | `not_applicable` | `not_applicable` | final-source full proof and independent Astra review; protected PR #1765; matching merge tree; exact-main CI 34754164766 and Sonar 103716794800/34754164793 pass; one-slice Claude/Gemini waiver |
+| ID                        | Source Refs                                    | Execution  | Run ID  | Run Root | Sonar   | Docker  | Sentry           | Learning         | Evidence Refs                                                                                      |
+| ------------------------- | ---------------------------------------------- | ---------- | ------- | -------- | ------- | ------- | ---------------- | ---------------- | -------------------------------------------------------------------------------------------------- |
+| `SHARED-SHELL-NAVIGATION` | docs/plans/current-program.md; owner direction | `scripted` | pending | local/CI | pending | pending | `not_applicable` | `not_applicable` | Implementation and focused proof in progress; full proof, independent review and delivery pending. |
+
+### Shared navigation candidate
+
+Prepared on base `643b91d5d8863a717895b5dda3d6115d6f82f169`. Sole implementation owner Astra/high;
+Sonnet 5 Medium design and Gemini 3.1 Pro adversarial proposals reused from owner handoff.
+Five focused test files pass 39 tests, including the existing server tenant-access rejections;
+web type-check, changed-file lint and modularity pass. The admin sidebar shrinks to 300 lines,
+within its review boundary; its retained role/query/account concerns stay cohesive.
+The replacement dashboard tests use real sidebar primitives and add navigation behavior coverage
+within their baseline bytes. Independent Astra review identified dark active icons inherited from
+the sidebar primitive; the shared renderer now inherits the active link color explicitly. The
+corrected source and focused regressions are rechecked before full proof; prepared and tested do not yet mean merged, deployed or user-validated.
+
+Capacity preflight adds one 3,566-byte source file and 598 positive test bytes using measured
+unused historical allowances. Transfers: source 2,049 T117B cutover, 1,453 T117C rendering, 64
+currency trial; tests 496 CI deduplication and 102 delivery-event coalescing; one unused T117C
+file slot. Budget self-growth is exactly 685 config bytes funded from five existing donors.
+Global/category ceilings, baseline, reserves, donor path caps and observed evidence remain intact;
+no deleted-byte credit or guard relaxation is used. Full inventory/attribution preflight passes.
+
+Local proof uses only task database `shared_shell_nav_2e33` and port 3117, with source-map upload
+disabled. Doctor and task-database migration succeeded. Playwright MCP reported `Browser is already
+in use for /tmp/interdomestik-pilot-evidence/playwright-mcp-profile, use --isolated to run multiple
+instances of the same browser`; that session is preserved and browser validation uses an isolated
+fallback. No PR #1769 changes or infrastructure improvements are imported.
 
 ### Final T410 delivery
 

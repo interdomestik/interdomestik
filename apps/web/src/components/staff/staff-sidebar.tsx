@@ -1,5 +1,6 @@
 'use client';
 
+import { ShellNavigation } from '@/components/shell/shell-navigation';
 import { Link, usePathname } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
 import { signOutAndRedirectToLogin } from '@/lib/auth/logout';
@@ -12,8 +13,6 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -76,26 +75,11 @@ function StaffSidebarInner({ user }: Readonly<{ user: StaffSidebarUser | null | 
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navItems.map(item => {
-                const isActive = pathname.startsWith(item.href);
-
-                return (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
-                      <Link href={item.href}>
-                        <item.icon className="size-4" />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        <ShellNavigation
+          label={tNav('menu')}
+          pathname={pathname}
+          groups={[{ id: 'staff', items: navItems }]}
+        />
       </SidebarContent>
 
       <SidebarFooter>
