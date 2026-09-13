@@ -204,7 +204,10 @@ returned `{ success: false, error }` before changing the represented rows and a 
 unread count. The bounded correction makes read state server-confirmed, derives the count from the
 represented list, prevents duplicate and overlapping single/all mutations, ignores stale fetch or
 mutation results after subscriber changes, and exposes localized accessible pending, success, and
-failure feedback. Existing lazy fetching and action-link navigation remain. Notification
+failure feedback. Bulk acknowledgement still updates the full tenant/user unread backlog but
+returns a bounded success result; after confirmation, the client marks only its represented
+requested rows read. Existing lazy fetching and action-link navigation remain, with locale-aware
+normalization for stored action paths and disabled semantics while an item is pending. Notification
 generation/delivery, server auth and tenant filters, schema, routes/proxy, billing, case/recovery
 state, and deployment remain unchanged.
 
@@ -232,17 +235,20 @@ The owner intends a net-new member UI/UX using current interaction patterns with
 portal shell, not separate role-specific dashboard designs. That redesign is separate scope;
 canonical role routes and readiness markers remain technical access-control and test contracts.
 
-Source-bound local proof passed at `c1973ad738bf9de70b2e699874eeab186c1d6dbd`: 27 focused
+Source-bound local proof passed at `bdeabe3795b7d6d4d35004cfba19f1efbbdd3648`: 30 focused
 notification tests, both focused IDA-host browser variants, the full `pr:verify` gate, and
 `security:guard`. The full gate included 1,048 CI contracts, 154 release-gate tests, 41 RLS tests,
-81.25% repository line coverage, 252 browser-gate passes with 12 intentional skips, and 13 smoke
-passes with 11 intentional skips. Repo-owned routes completed Claude Sonnet 5 design and Gemini 3.1
-Pro/Gemini 3.8 Flash test-screening proposals against specification commit `adc3ca314`; those
-receipts informed implementation but are not implementation-review evidence. An earlier independent
-Astra implementation review passed at `833496eb`; later externally reported findings were
-reproduced, corrected, and covered by the new source-bound proof. Current-head protected review,
-protected PR evidence, and merge are still pending, so the increment remains `in_progress`; no
-deployment or claimant usability validation is claimed.
+81.25% repository line coverage (21,643/26,637), 252 browser-gate passes with 12 intentional skips,
+and 13 smoke passes with 11 intentional skips. Repo-owned routes completed Claude Sonnet 5 design
+and Gemini 3.1 Pro/Gemini 3.8 Flash test-screening proposals against specification commit
+`adc3ca314`; those receipts informed implementation but are not current-head implementation-review
+evidence. An earlier independent Astra implementation review passed at `833496eb`. Subsequent
+externally reported findings were reproduced and corrected: concurrent single-acknowledgement error
+state, pending unread-menu closure, Macedonian/Serbian translations, unread-only bulk writes,
+unbounded bulk responses, locale-safe action routing, disabled pending actions, and Serbian glossary
+consistency. The corrected behavior and regressions are covered by the new source-bound proof.
+Current-head protected review, protected PR evidence, and merge are still pending, so the increment
+remains `in_progress`; no deployment or claimant usability validation is claimed.
 
 ## T117C Product Delivery
 

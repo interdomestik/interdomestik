@@ -30,7 +30,7 @@ separate dashboard designs or freeze the legacy presentation.
 
 | ID                                  | Source Refs                                    | Execution  | Run ID   | Run Root | Sonar   | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                                                                                           |
 | ----------------------------------- | ---------------------------------------------- | ---------- | -------- | -------- | ------- | ------ | ---------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `T410-NOTIFICATION-ACK-CORRECTNESS` | docs/plans/current-program.md; owner direction | `scripted` | c1973ad7 | local/CI | pending | pass   | `not_applicable` | `not_applicable` | source-bound local proof `c1973ad738bf9de70b2e699874eeab186c1d6dbd`; Sonnet/Gemini proposal receipts at `adc3ca314`; earlier Astra implementation review at `833496eb`; current-head protected review and protected PR evidence pending |
+| `T410-NOTIFICATION-ACK-CORRECTNESS` | docs/plans/current-program.md; owner direction | `scripted` | bdeabe37 | local/CI | pending | pass   | `not_applicable` | `not_applicable` | source-bound local proof `bdeabe3795b7d6d4d35004cfba19f1efbbdd3648`; Sonnet/Gemini proposal receipts at `adc3ca314`; earlier Astra implementation review at `833496eb`; current-head protected review and protected PR evidence pending |
 
 Historical staff rehearsal: retained only as a timing baseline; no migration credit.
 
@@ -54,17 +54,22 @@ issue. Protected-main CI `34703433627` passed, SonarCloud Code Analysis check `1
 passed, and Sonar Main Gate `34703433721` attempt 2 passed at the exact merge. No deployment or
 claimant usability validation is claimed.
 
-T410 local source-bound proof passed at `c1973ad738bf9de70b2e699874eeab186c1d6dbd`:
-27 focused notification tests, both focused IDA-host browser variants, `pr:verify` (1,048 CI
-contracts, 154 release-gate tests, 41 RLS tests, 81.25% repository line coverage, 252 gate passes
-with 12 intentional skips, and 13 smoke passes with 11 intentional skips), and
+T410 local source-bound proof passed at `bdeabe3795b7d6d4d35004cfba19f1efbbdd3648`:
+30 focused notification tests, both focused IDA-host browser variants, `pr:verify` (1,048 CI
+contracts, 154 release-gate tests, 41 RLS tests, 81.25% repository line coverage
+(21,643/26,637), 252 gate passes with 12 intentional skips, and 13 smoke passes with 11 intentional
+skips), and
 `security:guard`. Repo-owned routes completed Claude Sonnet 5 design and Gemini 3.1 Pro/Gemini 3.8
 Flash test-screening proposals against specification commit `adc3ca314`; those receipts informed
-implementation but are not implementation-review evidence. An earlier independent Astra
-implementation review passed at `833496eb`; later externally reported findings were reproduced,
-corrected, and covered by the new source-bound proof. This is implementation and scripted behavior
-evidence only: current-head protected review, protected PR checks, and merge remain pending, and no
-legacy visual approval, claimant usability validation, or deployment is claimed.
+implementation but are not current-head implementation-review evidence. An earlier independent
+Astra implementation review passed at `833496eb`. Later externally reported findings were
+reproduced and corrected, including bounded bulk responses, locale-safe action routing, disabled
+pending actions, and Serbian glossary consistency; the corrected behavior is covered by the new
+source-bound proof. Bulk acknowledgement still updates the full tenant/user unread backlog and the
+client changes represented requested rows only after server confirmation. This is implementation
+and scripted behavior evidence only: current-head protected review, protected PR checks, and merge
+remain pending, and no legacy visual approval, claimant usability validation, or deployment is
+claimed.
 
 Terminal: promotion `#1691`; product head
 `503d4b179251f9d3d06e07349ec80f85805565ae`, tree
