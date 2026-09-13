@@ -21,6 +21,8 @@ function captureScenario(scenario) {
       if (scenario === 'write-error') throw Object.assign(new Error('disk full'), { code: 'ENOSPC' });
     }};
     const replacements = {
+      './reviewer-process-lifecycle.mjs': { reviewerLifecycle: () => ({ stop() {}, close() {} }) },
+      './reviewer-route-utils.mjs': { providerFailureReason: () => '' },
       'node:fs': { default: fakeFs },
       'node:crypto': { createHash: () => ({ update() { return this; }, digest: () => '${nativeProcess.EXECUTABLE_SHA256}' }) },
       'node:child_process': { execFileSync() {}, spawn() {

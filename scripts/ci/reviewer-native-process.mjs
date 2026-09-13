@@ -3,6 +3,8 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { reviewerLifecycle } from './reviewer-process-lifecycle.mjs';
+import { providerFailureReason } from './reviewer-route-utils.mjs';
 
 // Revalidate the protocol deliberately whenever this native build changes.
 export const EXECUTABLE_SHA256 = 'cabadc15a61944372bede1fdff186701c17467dd9d718e97dc79283055d3c101';
@@ -57,9 +59,15 @@ export function prepareNativeExecutable(command) {
 
 export function nativeFailureReceipt(error, evidenceDirectory) {
   const record = error.record;
+  const providerReason = record && providerFailureReason(`${record.stderr}\n${record.stdout}`);
   return {
     status: 'blocked',
-    blockerReason: error.message.startsWith('native_') ? error.message : 'native_preflight_failed',
+    blockerReason:
+      error.message === 'native_process_failed' && providerReason
+        ? providerReason
+        : error.message.startsWith('native_')
+          ? error.message
+          : 'native_preflight_failed',
     error: error.message,
     providerReportedModel: null,
     reviewVerdict: null,
@@ -84,6 +92,7 @@ export function captureNative(executable, args, context) {
       cwd: context.cwd,
       env: context.env,
       stdio: ['ignore', 'pipe', 'pipe'],
+      detached: process.platform !== 'win32',
     });
     const record = {
       pid: child.pid,
@@ -99,12 +108,16 @@ export function captureNative(executable, args, context) {
     const chunks = { stdout: [], stderr: [] };
     const sizes = { stdout: 0, stderr: 0 };
     let reason;
+    const lifecycle = reviewerLifecycle(
+      child,
+      () => {
+        reason ||= 'native_cancelled';
+      },
+      context.signal
+    );
     const stop = value => {
       reason ||= value;
-      child.kill('SIGTERM');
-      setTimeout(() => {
-        if (child.exitCode === null) child.kill('SIGKILL');
-      }, 1000).unref();
+      lifecycle.stop();
     };
     const firstTimer = setTimeout(() => stop('native_no_output_timeout'), 300_000);
     const timer = setTimeout(
@@ -124,6 +137,8 @@ export function captureNative(executable, args, context) {
       reason ||= `native_spawn_error:${error.code}`;
     });
     child.on('close', (code, signal) => {
+      const cleanupError = lifecycle.close();
+      reason ||= cleanupError;
       clearTimeout(timer);
       clearTimeout(firstTimer);
       for (const channel of ['stdout', 'stderr'])

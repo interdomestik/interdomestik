@@ -1,7 +1,9 @@
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-function googleReviewArgs(prompt, model) {
+export function googleReviewArgs(prompt, model) {
   // Gemini 0.56: system policies override --admin-policy, so refuse that case.
   const directory =
     {
@@ -38,21 +40,11 @@ export const modelReviewRoutes = {
     label: 'Claude Sonnet 5 routine review',
     provider: 'anthropic',
     model: 'claude-sonnet-5',
-    command: 'claude',
+    command: path.join(os.homedir(), '.npm-global/bin/claude'),
+    nativeProtocol: 'claude-stream-v1',
     timeoutMs: 10 * 60_000,
     noOutputTimeoutMs: 300_000,
-    args: prompt => [
-      '-p',
-      prompt,
-      '--model',
-      'claude-sonnet-5',
-      '--tools',
-      '',
-      '--disable-slash-commands',
-      '--output-format',
-      'json',
-      '--no-session-persistence',
-    ],
+    args: () => [],
   },
   opus: {
     label: 'Claude Opus 5 escalation',
@@ -98,20 +90,22 @@ export const modelReviewRoutes = {
   gemini: {
     label: 'Gemini product/design review',
     provider: 'google',
-    model: 'gemini-3.1-pro-preview',
-    command: 'gemini',
+    model: 'gemini-3.1-pro-high',
+    command: path.join(os.homedir(), '.local/bin/agy'),
+    nativeProtocol: 'antigravity-v1',
     timeoutMs: 10 * 60_000,
     noOutputTimeoutMs: 300_000,
-    args: prompt => googleReviewArgs(prompt, 'gemini-3.1-pro-preview'),
+    args: () => [],
   },
   flash: {
     label: 'Gemini 3.8 Flash fast review',
     provider: 'google',
-    model: 'gemini-3.8-flash',
-    command: 'gemini',
+    model: 'gemini-3.8-flash-low',
+    command: path.join(os.homedir(), '.local/bin/agy'),
+    nativeProtocol: 'antigravity-v1',
     timeoutMs: 10 * 60_000,
     noOutputTimeoutMs: 300_000,
-    args: prompt => googleReviewArgs(prompt, 'gemini-3.8-flash'),
+    args: () => [],
   },
 };
 

@@ -6,7 +6,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { structuredArtifactOwner } from '../modularity-guard-policy.mjs';
-import { defaultReviewers, modelReviewRoutes } from './model-review-routes.mjs';
+import { defaultReviewers, googleReviewArgs, modelReviewRoutes } from './model-review-routes.mjs';
 import { boundedReviewFrame, buildReviewerPrompt } from './run-model-reviewer-route.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -68,12 +68,21 @@ test('current reviewer routes keep fast work optional and pin the requested mode
   for (const [route, model] of [
     ['sonnet', 'claude-sonnet-5'],
     ['opus', 'claude-opus-5'],
-    ['gemini', 'gemini-3.1-pro-preview'],
-    ['flash', 'gemini-3.8-flash'],
+    ['gemini', 'gemini-3.1-pro-high'],
+    ['flash', 'gemini-3.8-flash-low'],
   ]) {
     const config = modelReviewRoutes[route];
     assert.equal(config.model, model);
     const args = config.args('bounded review');
+    if (config.nativeProtocol) {
+      assert.deepEqual(args, []);
+      assert.ok(path.isAbsolute(config.command));
+      assert.equal(
+        config.nativeProtocol,
+        route === 'sonnet' ? 'claude-stream-v1' : 'antigravity-v1'
+      );
+      continue;
+    }
     assert.equal(args[args.indexOf('--model') + 1], model);
     assert.ok(args.includes('--model'));
     assert.ok(args.includes('--output-format'));
@@ -86,7 +95,7 @@ test('current reviewer routes keep fast work optional and pin the requested mode
 
 test('Google reviewers install a fixed deny-all policy before tool execution', () => {
   for (const route of ['gemini', 'flash']) {
-    const args = modelReviewRoutes[route].args('review');
+    const args = googleReviewArgs('review', modelReviewRoutes[route].model);
     assert.equal(args[args.indexOf('--approval-mode') + 1], 'default');
     assert.equal(args[args.indexOf('--extensions') + 1], 'none');
     assert.ok(args.includes('--admin-policy'));
@@ -107,7 +116,7 @@ test('Google route refuses system policy overrides and unreadable policy directo
     },
   ]) {
     const mock = t.mock.method(fs, 'readdirSync', operation);
-    assert.throws(() => modelReviewRoutes.flash.args('review'));
+    assert.throws(() => googleReviewArgs('review', modelReviewRoutes.flash.model));
     mock.mock.restore();
   }
 });
@@ -131,6 +140,9 @@ for (const route of ['gemini', 'flash']) {
         import fs from 'node:fs';
         import childProcess from 'node:child_process';
         import { syncBuiltinESMExports } from 'node:module';
+        const { modelReviewRoutes, googleReviewArgs } = await import(${JSON.stringify(new URL('./model-review-routes.mjs', import.meta.url).href)});
+        modelReviewRoutes[${JSON.stringify(route)}].args = prompt => googleReviewArgs(prompt, 'legacy-test');
+        modelReviewRoutes[${JSON.stringify(route)}].command = 'gemini';
         const read = fs.readdirSync;
         fs.readdirSync = function(directory, ...args) {
           if (String(directory).endsWith('policies')) {

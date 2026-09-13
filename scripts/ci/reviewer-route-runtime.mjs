@@ -1,20 +1,16 @@
 import { spawn } from 'node:child_process';
+import { StringDecoder } from 'node:string_decoder';
+import { runRestrictedClaude } from './reviewer-claude-execution.mjs';
+import { inspectClaudeStream } from './reviewer-claude-stream.mjs';
+import { reviewerLifecycle } from './reviewer-process-lifecycle.mjs';
 import { runNativeReviewer } from './reviewer-native-evidence.mjs';
-import { commandAvailable, statusForClose, timeoutConfig } from './reviewer-route-utils.mjs';
-
-const BLOCKERS = [
-  [
-    /AuthorizationRequired|re-authorization required|OAuth token refresh failed/i,
-    'mcp_auth_required',
-  ],
-  [/401 Unauthorized|Missing bearer or basic authentication/i, 'api_auth_required'],
-  [
-    /rate limit|quota exceeded|insufficient_quota|429|too many requests|resource exhausted/i,
-    'quota_or_rate_limit',
-  ],
-  [/Please login|not logged in|login required/i, 'login_required'],
-  [/ENOENT|command not found|not found|not on PATH/i, 'missing_cli'],
-];
+import {
+  classifyBlocker,
+  commandAvailable,
+  providerFailureReason,
+  statusForClose,
+  timeoutConfig,
+} from './reviewer-route-utils.mjs';
 
 const iso = () => new Date().toISOString();
 
@@ -22,10 +18,6 @@ function appendBounded(current, chunk, maxBytes) {
   const next = current + chunk.toString();
   if (Buffer.byteLength(next) <= maxBytes) return next;
   return next.slice(Math.max(0, next.length - maxBytes));
-}
-
-function classifyBlocker(text) {
-  return BLOCKERS.find(([pattern]) => pattern.test(text))?.[1] || '';
 }
 
 function isNamedInvokeTag(tag) {
@@ -71,7 +63,14 @@ function hasToolRequest(stdout) {
   });
 }
 
-function reviewFacts(stdout) {
+function reviewFacts(stdout, options = {}) {
+  if (options.outputProtocol === 'claude-stream-v1') {
+    try {
+      return inspectClaudeStream(stdout, options.model);
+    } catch (error) {
+      return { providerReportedModel: null, reviewVerdict: null, validationError: error.message };
+    }
+  }
   const models = new Set();
   let verdict = null;
   for (const line of [stdout.trim(), ...stdout.trim().split('\n')]) {
@@ -97,13 +96,6 @@ function reviewFacts(stdout) {
     providerReportedModel: models.size === 1 ? [...models][0] : null,
     reviewVerdict: hasToolRequest(stdout) ? null : verdict,
   };
-}
-
-function terminate(child) {
-  child.kill('SIGTERM');
-  setTimeout(() => {
-    if (child.exitCode === null) child.kill('SIGKILL');
-  }, 1000).unref();
 }
 
 export function skippedRouteReceipt(options) {
@@ -148,7 +140,7 @@ export function runReviewerRoute(options) {
     provider: options.provider,
     model: options.model,
     configuredModel: options.model,
-    ...reviewFacts(stdout),
+    ...reviewFacts(stdout, options),
     candidateIdentity: options.candidateIdentity ?? null,
     commandInvoked,
     startedAt,
@@ -167,6 +159,12 @@ export function runReviewerRoute(options) {
   });
 
   if (options.nativeProtocol !== undefined) {
+    if (options.nativeProtocol === 'claude-stream-v1') {
+      return runRestrictedClaude(options, runReviewerRoute).then(result => ({
+        ...finishReceipt(result),
+        ...result,
+      }));
+    }
     if (options.nativeProtocol === 'antigravity-v1') {
       return runNativeReviewer(options).then(result => ({
         ...finishReceipt(result),
@@ -183,11 +181,20 @@ export function runReviewerRoute(options) {
   }
 
   return new Promise(resolve => {
+    const decoders = { stdout: new StringDecoder('utf8'), stderr: new StringDecoder('utf8') };
     const child = spawn(options.command, options.args || [], {
       cwd: options.cwd || process.cwd(),
       env,
       stdio: ['ignore', 'pipe', 'pipe'],
+      detached: process.platform !== 'win32',
     });
+    const lifecycle = reviewerLifecycle(
+      child,
+      () => {
+        blockerReason ||= 'reviewer_cancelled';
+      },
+      options.signal
+    );
     const finish = receipt => {
       clearTimeout(firstTimer);
       clearTimeout(totalTimer);
@@ -199,26 +206,35 @@ export function runReviewerRoute(options) {
         stream === 'stdout' &&
         Buffer.byteLength(stdout) + chunk.length > (options.maxCaptureBytes || 256_000);
       if (stream === 'stdout')
-        stdout = appendBounded(stdout, chunk, options.maxCaptureBytes || 256_000);
-      else stderr = appendBounded(stderr, chunk, options.maxCaptureBytes || 20_000);
+        stdout = appendBounded(
+          stdout,
+          decoders.stdout.write(chunk),
+          options.maxCaptureBytes || 256_000
+        );
+      else
+        stderr = appendBounded(
+          stderr,
+          decoders.stderr.write(chunk),
+          options.maxCaptureBytes || 20_000
+        );
       let reason = overflow ? 'reviewer_output_limit' : '';
       if (stream === 'stdout' && hasToolRequest(stdout)) reason = 'reviewer_tool_request';
       else if (stream === 'stderr') reason = classifyBlocker(chunk.toString());
       if (reason && !blockerReason) {
         blockerReason = reason;
-        terminate(child);
+        lifecycle.stop();
       }
     };
     const firstTimer = setTimeout(() => {
       if (stdout || stderr || blockerReason) return;
       firstOutputTimedOut = true;
       blockerReason = 'reviewer_no_output_timeout';
-      terminate(child);
+      lifecycle.stop();
     }, firstOutputTimeoutMs);
     const totalTimer = setTimeout(() => {
       totalTimedOut = true;
       blockerReason ||= 'reviewer_total_timeout';
-      terminate(child);
+      lifecycle.stop();
     }, totalTimeoutMs);
     child.stdout.on('data', chunk => collect('stdout', chunk));
     child.stderr.on('data', chunk => collect('stderr', chunk));
@@ -228,19 +244,33 @@ export function runReviewerRoute(options) {
       finish(finishReceipt({ status, exitCode: 127, error: error.message }));
     });
     child.on('close', (code, signal) => {
+      const cleanupError = lifecycle.close();
+      blockerReason ||= cleanupError;
       const outputBlocker =
-        blockerReason || (code === 0 ? '' : classifyBlocker(`${stderr}\n${stdout}`));
+        blockerReason ||
+        (code === 0
+          ? ''
+          : classifyBlocker(`${stderr}\n${stdout}`) ||
+            providerFailureReason(`${stderr}\n${stdout}`));
       blockerReason = outputBlocker;
       let status = statusForClose(blockerReason, code);
       let error = '';
-      const { providerReportedModel: reported, reviewVerdict } = reviewFacts(stdout);
+      stdout += decoders.stdout.end();
+      stderr += decoders.stderr.end();
+      const {
+        providerReportedModel: reported,
+        reviewVerdict,
+        validationError,
+      } = reviewFacts(stdout, options);
       if (
         status === 'ran' &&
         ['anthropic', 'google', 'openai'].includes(options.provider) &&
         reported !== options.model
       ) {
         status = 'failed';
-        error = reported ? `provider model differs: ${reported}` : 'provider model unattested';
+        error =
+          validationError ||
+          (reported ? `provider model differs: ${reported}` : 'provider model unattested');
       }
       if (
         status === 'ran' &&

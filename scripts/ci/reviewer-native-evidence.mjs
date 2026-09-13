@@ -196,6 +196,7 @@ export async function runNativeReviewer(options) {
         cwd: workspace,
         env,
         deadline,
+        signal: options.signal,
         receiptPath: path.join(evidenceDirectory, `${name}.json`),
       });
       return lastRecord;
