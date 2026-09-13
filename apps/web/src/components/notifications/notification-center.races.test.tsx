@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { Suspense, startTransition } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { NotificationCenter } from './notification-center';
@@ -35,6 +36,32 @@ function notification(userId: string, title: string) {
     isRead: false,
     createdAt: '2026-09-12T00:00:00.000Z',
   };
+}
+
+function SuspendReplacement({
+  subscriberId,
+  blocker,
+}: {
+  readonly subscriberId: string;
+  readonly blocker: Promise<void>;
+}) {
+  if (subscriberId === 'user-456') throw blocker;
+  return null;
+}
+
+function ConcurrentNotificationCenter({
+  subscriberId,
+  blocker,
+}: {
+  readonly subscriberId: string;
+  readonly blocker: Promise<void>;
+}) {
+  return (
+    <Suspense fallback={<p>Loading replacement subscriber</p>}>
+      <NotificationCenter subscriberId={subscriberId} />
+      <SuspendReplacement subscriberId={subscriberId} blocker={blocker} />
+    </Suspense>
+  );
 }
 
 describe('NotificationCenter race boundaries', () => {
@@ -76,6 +103,41 @@ describe('NotificationCenter race boundaries', () => {
     await act(async () => acknowledgement.resolve({ success: true, notificationId: 'shared-id' }));
     expect(within(currentRow).getByRole('button')).toBeInTheDocument();
     expect(screen.getByText('1')).toBeInTheDocument();
+  });
+
+  it('keeps committed acknowledgement state through an abandoned subscriber render', async () => {
+    const acknowledgement = deferred<{ success: true; notificationId: string }>();
+    const replacementBlocker = deferred<void>();
+    mocks.markAsRead.mockReturnValue(acknowledgement.promise);
+    mocks.getNotifications.mockResolvedValue([notification('user-123', 'Committed subscriber')]);
+    const view = render(
+      <ConcurrentNotificationCenter subscriberId="user-123" blocker={replacementBlocker.promise} />
+    );
+
+    const row = await screen.findByTestId('notification-item-new_message');
+    const button = within(row).getByRole('button');
+    fireEvent.click(button);
+    expect(button).toBeDisabled();
+
+    act(() => {
+      startTransition(() => {
+        view.rerender(
+          <ConcurrentNotificationCenter
+            subscriberId="user-456"
+            blocker={replacementBlocker.promise}
+          />
+        );
+      });
+    });
+
+    expect(screen.getByText('Committed subscriber')).toBeInTheDocument();
+    expect(screen.queryByText('Loading replacement subscriber')).not.toBeInTheDocument();
+
+    await act(async () => acknowledgement.resolve({ success: true, notificationId: 'shared-id' }));
+
+    expect(within(row).queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.queryByText('1')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Notification marked as read.');
   });
 
   it('does not let a stale refetch overwrite a confirmed acknowledgement', async () => {

@@ -10,7 +10,7 @@ import {
 } from '@interdomestik/ui';
 import { Bell } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import type { Notification } from './notification-item';
 import { NotificationFeedback, NotificationHeader, NotificationList } from './notification-list';
@@ -51,8 +51,10 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
   const previousOpenRef = useRef(false);
   const isOpenRef = useRef(isOpen);
 
-  activeSubscriberRef.current = subscriberId;
-  isOpenRef.current = isOpen;
+  useLayoutEffect(() => {
+    activeSubscriberRef.current = subscriberId;
+    isOpenRef.current = isOpen;
+  }, [isOpen, subscriberId]);
 
   const notifications = snapshot.subscriberId === subscriberId ? snapshot.items : [];
   const unreadCount = useMemo(
