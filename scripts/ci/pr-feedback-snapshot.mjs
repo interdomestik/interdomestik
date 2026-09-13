@@ -83,6 +83,25 @@ export async function captureFeedback(client, number, expected) {
   return { ...bound, digest };
 }
 
+export async function recordFeedbackMarker(client, number, expected, publish) {
+  const { base, head, testedMerge } = expected;
+  const identity = { base, head, testedMerge };
+  if (
+    client.repository !== 'interdomestik/interdomestik' ||
+    !Number.isSafeInteger(number) ||
+    number < 1 ||
+    !Object.values(identity).every(sha => typeof sha === 'string' && /^[a-f0-9]{40}$/u.test(sha))
+  )
+    throw new Error('feedback marker identity invalid');
+  let digest = 'unavailable';
+  try {
+    ({ digest } = await captureFeedback(client, number, identity));
+  } finally {
+    // Missing feedback is explicit, never a fabricated digest or successful capture.
+    publish(`feedback-snapshot:v1:${number}:${base}:${head}:${testedMerge}:${digest}`);
+  }
+}
+
 async function main() {
   const { GITHUB_REPOSITORY: repository, GITHUB_TOKEN: token, GITHUB_OUTPUT: output } = process.env;
   const number = Number(process.env.PR_NUMBER);
@@ -95,13 +114,16 @@ async function main() {
   ) {
     throw new Error('feedback capture runtime mismatch');
   }
-  const snapshot = await captureFeedback(new GitHubClient(repository, token), number, {
-    base: process.env.EXPECTED_BASE_SHA,
-    head: process.env.EXPECTED_HEAD_SHA,
-    testedMerge: process.env.EXPECTED_TESTED_MERGE_SHA,
-  });
-  const marker = `feedback-snapshot:v1:${snapshot.number}:${snapshot.base}:${snapshot.head}:${snapshot.testedMerge}:${snapshot.digest}`;
-  fs.appendFileSync(output, `marker=${marker}\n`);
+  await recordFeedbackMarker(
+    new GitHubClient(repository, token),
+    number,
+    {
+      base: process.env.EXPECTED_BASE_SHA,
+      head: process.env.EXPECTED_HEAD_SHA,
+      testedMerge: process.env.EXPECTED_TESTED_MERGE_SHA,
+    },
+    marker => fs.appendFileSync(output, `marker=${marker}\n`)
+  );
 }
 
 if (isDirectInvocation(import.meta.url)) {

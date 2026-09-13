@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { validRefresh, repository, base, head, merge } from './pr-feedback-refresh-fixtures.mjs';
+import { parseFeedbackMarker } from './pr-feedback-refresh.mjs';
 
 const moduleUrl = new URL('./pr-feedback-snapshot.mjs', import.meta.url);
 async function implementation() {
@@ -43,6 +48,105 @@ export function feedbackClient() {
     },
   };
 }
+
+test('marker recording preserves the successful digest and publishes exactly once', async () => {
+  const { captureFeedback, recordFeedbackMarker } = await implementation();
+  const client = feedbackClient();
+  const expected = { base, head, testedMerge: merge };
+  const captured = await captureFeedback(client, 17, expected);
+  const markers = [];
+  await recordFeedbackMarker(client, 17, expected, marker => markers.push(marker));
+  assert.equal(markers.length, 1);
+  assert.deepEqual(parseFeedbackMarker(markers[0]), captured);
+});
+
+for (const failure of ['transport', 'pagination', 'head', 'merge']) {
+  test(`failed ${failure} capture retains only an unavailable source-bound recovery marker`, async () => {
+    const { recordFeedbackMarker } = await implementation();
+    const client = feedbackClient();
+    const pages = client.pages;
+    client.pages = async endpoint => {
+      if (failure === 'transport') throw new Error('transient API failure');
+      const result = await pages(endpoint);
+      if (failure === 'pagination') result.complete = false;
+      if (failure === 'head') client.pull.head.sha = 'f'.repeat(40);
+      if (failure === 'merge') client.pull.merge_commit_sha = 'f'.repeat(40);
+      return result;
+    };
+    const markers = [];
+    await assert.rejects(
+      recordFeedbackMarker(client, 17, { base, head, testedMerge: merge }, marker =>
+        markers.push(marker)
+      ),
+      /transient|pagination|identity/u
+    );
+    assert.equal(markers.length, 1);
+    assert.deepEqual(parseFeedbackMarker(markers[0]), {
+      number: 17,
+      base,
+      head,
+      testedMerge: merge,
+      digest: 'unavailable',
+    });
+  });
+}
+
+test('invalid recording identities cannot publish a marker or make a request', async () => {
+  const { recordFeedbackMarker } = await implementation();
+  for (const mutation of ['repository', 'number', 'base', 'head', 'testedMerge']) {
+    const client = feedbackClient();
+    let calls = 0;
+    client.request = async () => {
+      calls++;
+      throw new Error('unexpected request');
+    };
+    const expected = { base, head, testedMerge: merge };
+    if (mutation === 'repository') client.repository = 'other/repository';
+    if (['base', 'head', 'testedMerge'].includes(mutation))
+      expected[mutation] = 'invalid\nmarker=x';
+    const markers = [];
+    await assert.rejects(
+      recordFeedbackMarker(client, mutation === 'number' ? 0 : 17, expected, marker =>
+        markers.push(marker)
+      ),
+      /identity/u
+    );
+    assert.deepEqual(markers, []);
+    assert.equal(calls, 0);
+  }
+});
+
+test('the native capture command records unavailable output but still exits unsuccessfully', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'feedback-marker-'));
+  const output = path.join(directory, 'output');
+  try {
+    const preload =
+      'data:text/javascript,' +
+      encodeURIComponent(
+        "globalThis.fetch = async () => { throw new Error('temporary API outage'); };"
+      );
+    const result = spawnSync(process.execPath, ['--import', preload, fileURLToPath(moduleUrl)], {
+      encoding: 'utf8',
+      env: {
+        GITHUB_REPOSITORY: repository,
+        GITHUB_TOKEN: 'fixture-token',
+        GITHUB_OUTPUT: output,
+        PR_NUMBER: '17',
+        EXPECTED_BASE_SHA: base,
+        EXPECTED_HEAD_SHA: head,
+        EXPECTED_TESTED_MERGE_SHA: merge,
+      },
+    });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /temporary API outage/u);
+    assert.equal(
+      fs.readFileSync(output, 'utf8'),
+      `marker=feedback-snapshot:v1:17:${base}:${head}:${merge}:unavailable\n`
+    );
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
 
 test('feedback digest changes for review edits, dismissals, deletion and thread resolution', async () => {
   const { captureFeedback } = await implementation();

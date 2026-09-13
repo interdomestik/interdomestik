@@ -1,7 +1,34 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
-import { validRefresh } from './pr-feedback-refresh-fixtures.mjs';
+import {
+  validRefresh,
+  controllerFixture,
+  base,
+  head,
+  merge,
+} from './pr-feedback-refresh-fixtures.mjs';
+import { captureFeedback } from './pr-feedback-snapshot.mjs';
+import { refreshOne } from './pr-feedback-controller.mjs';
+
+test('an unavailable snapshot recovers through fresh proof and does not loop after recovery', async () => {
+  const f = controllerFixture();
+  const marker = f.evidence.jobs[0].steps[1];
+  marker.name = `feedback-snapshot:v1:17:${base}:${head}:${merge}:unavailable`;
+  const options = { now: f.evidence.now, apply: true };
+  assert.equal(
+    (await refreshOne(f.client, 17, f.evidence.workflow, options)).status,
+    'refresh-requested'
+  );
+  assert.equal(f.writes.length, 1);
+  assert.ok(f.runReads() >= 3);
+  const current = await captureFeedback(f.client, 17, { base, head, testedMerge: merge });
+  marker.name = `feedback-snapshot:v1:17:${base}:${head}:${merge}:${current.digest}`;
+  f.evidence.run.run_attempt++;
+  f.evidence.jobs[0].run_attempt++;
+  assert.equal((await refreshOne(f.client, 17, f.evidence.workflow, options)).status, 'no-refresh');
+  assert.equal(f.writes.length, 1);
+});
 
 const moduleUrl = new URL('./pr-feedback-refresh.mjs', import.meta.url);
 test('refresh decisions bind changed feedback to an exact native run, not an approval request', async () => {
@@ -201,14 +228,36 @@ for (const [name, mutate] of [
     },
   ],
 ]) {
-  test(`refresh refuses ${name} without proposing a remote write`, async () => {
-    assert.ok(fs.existsSync(moduleUrl), 'bounded feedback refresh implementation is not present');
-    const { planRefresh } = await import(moduleUrl);
-    const fixture = validRefresh();
-    mutate(fixture);
-    assert.equal(planRefresh(fixture), null);
-  });
+  for (const unavailable of [false, true]) {
+    if (unavailable && name === 'unchanged feedback') continue;
+    test(`refresh refuses ${name} without a write (unavailable=${unavailable})`, async () => {
+      assert.ok(fs.existsSync(moduleUrl), 'bounded feedback refresh implementation is not present');
+      const { planRefresh } = await import(moduleUrl);
+      const fixture = validRefresh();
+      if (unavailable)
+        fixture.jobs[0].steps[1].name = fixture.jobs[0].steps[1].name.replace(
+          /:[a-f0-9]{64}$/u,
+          ':unavailable'
+        );
+      mutate(fixture);
+      assert.equal(planRefresh(fixture), null);
+    });
+  }
 }
+
+test('unavailable is accepted only for prior metadata, never as current complete feedback', async () => {
+  const { parseFeedbackMarker, planRefresh } = await import(moduleUrl);
+  const fixture = validRefresh();
+  const marker = fixture.jobs[0].steps[1];
+  marker.name = marker.name.replace(/:[a-f0-9]{64}$/u, ':unavailable');
+  assert.equal(parseFeedbackMarker(marker.name)?.digest, 'unavailable');
+  assert.equal(planRefresh(fixture)?.runId, 100);
+  fixture.feedback.digest = 'unavailable';
+  assert.equal(planRefresh(fixture), null);
+  assert.equal(parseFeedbackMarker(marker.name.replace(':unavailable', ':unknown')), null);
+  marker.name = 'Gate';
+  assert.equal(planRefresh(fixture), null);
+});
 
 test('changed feedback can refresh a genuine failure but identical failed input cannot loop', async () => {
   assert.ok(fs.existsSync(moduleUrl), 'bounded feedback refresh implementation is not present');

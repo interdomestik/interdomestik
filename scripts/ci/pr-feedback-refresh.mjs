@@ -5,7 +5,7 @@ const SHA = /^[a-f0-9]{40}$/u;
 const DEFERRED_DELIVERY_NAME =
   "github.event.pull_request.base.ref == 'main' && github.event.pull_request.state == 'open' && !github.event.pull_request.draft && (github.event.action != 'labeled' || github.event.label.name == 'full-gate') && 'delivery-gate' || 'delivery-gate-deferred'";
 const MARKER =
-  /^feedback-snapshot:v1:([1-9]\d*):([a-f0-9]{40}):([a-f0-9]{40}):([a-f0-9]{40}):([a-f0-9]{64})$/u;
+  /^feedback-snapshot:v1:([1-9]\d*):([a-f0-9]{40}):([a-f0-9]{40}):([a-f0-9]{40}):([a-f0-9]{64}|unavailable)$/u;
 const WORKFLOWS = {
   '.github/workflows/pr-delivery-gate.yml': {
     context: 'delivery-gate',
