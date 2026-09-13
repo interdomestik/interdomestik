@@ -22,6 +22,8 @@ const E2E_TREE_SHAS = new Set([
   '110a4d174a4149f9c2eac14ad3e1aff848371d32',
   // T410 notification acknowledgement behavior proof.
   'da128e3de157958a6dd39a1552648cb817abaece',
+  // T410 notification acknowledgement proof with explicit neutral-host scope.
+  '3db8d37ffa6eb3b10b68cd20fe63727108507239',
 ]);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {

@@ -680,15 +680,15 @@
         "scripts/ci/main-e2e-reuse-core.test.mjs",
         "scripts/ci/main-e2e-reuse-github.test.mjs"
       ],
-      "maxTrackedBytesDelta": 26680,
+      "maxTrackedBytesDelta": 26722,
       "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
-        "source/scripts": 9802,
+        "source/scripts": 9844,
         "tests/e2e": 14185,
         "config/data/messages": 2693
       },
       "maxPathBytesDelta": {
-        "scripts/ci/main-e2e-reuse.mjs": 935,
+        "scripts/ci/main-e2e-reuse.mjs": 977,
         "scripts/ci/main-e2e-reuse-core.mjs": 975,
         "scripts/ci/main-e2e-reuse-github.mjs": 17,
         "scripts/ci/main-e2e-reuse-cli.test.mjs": 2831,
@@ -1217,11 +1217,11 @@
         "packages/domain-communications/src/notifications/mark-read.ts",
         "scripts/ci/modularity-guard-t410-catalogs.test.mjs"
       ],
-      "maxTrackedBytesDelta": 41000,
+      "maxTrackedBytesDelta": 40958,
       "maxTrackedFilesDelta": 6,
       "maxCategoryBytesDelta": {
         "config/data/messages": 1200,
-        "source/scripts": 13500,
+        "source/scripts": 13458,
         "tests/e2e": 26300
       },
       "maxPathBytesDelta": {
