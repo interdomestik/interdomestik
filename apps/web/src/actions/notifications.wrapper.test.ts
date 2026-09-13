@@ -50,7 +50,7 @@ describe('actions/notifications wrapper', () => {
     expect(revalidatePath).toHaveBeenCalledWith('/dashboard');
   });
 
-  it('returns safe unauthorized results instead of throwing', async () => {
+  it('reports fetch and mutation failures', async () => {
     const { getActionContext } = await import('./notifications/context');
     const { getNotificationsCore } = await import('./notifications/get');
     const { markAsReadCore, markAllAsReadCore } = await import('./notifications/mark-read');
@@ -70,7 +70,7 @@ describe('actions/notifications wrapper', () => {
       new Error('Not authenticated')
     );
 
-    await expect(getNotifications()).resolves.toEqual([]);
+    await expect(getNotifications()).rejects.toThrow('Not authenticated');
     await expect(markAsRead('n1')).resolves.toEqual({ success: false, error: 'Unauthorized' });
     await expect(markAllAsRead()).resolves.toEqual({ success: false, error: 'Unauthorized' });
   });

@@ -2,7 +2,10 @@
   "notifications": {
     "title": "Njoftimet",
     "empty": "Nuk ka njoftime ende",
+    "markRead": "Shëno si të lexuar: {title}",
     "markAllRead": "Shëno të gjitha si të lexuara",
+    "markedRead": "Njoftimi u shënua si i lexuar.",
+    "markedAllRead": "Të gjitha njoftimet u shënuan si të lexuara.",
     "viewAll": "Shiko të gjitha njoftimet",
     "settings": "Cilësimet e Njoftimeve",
     "preferences": {

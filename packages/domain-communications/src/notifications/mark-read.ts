@@ -1,5 +1,4 @@
-import { db } from '@interdomestik/database';
-import { withTenant } from '@interdomestik/database/tenant-security';
+import { withTenantContext } from '@interdomestik/database';
 import { notifications } from '@interdomestik/database/schema';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
@@ -14,18 +13,28 @@ export async function markAsReadCore(params: { session: Session | null; notifica
   }
 
   const tenantId = ensureTenantId(session);
-  await db
-    .update(notifications)
-    .set({ isRead: true })
-    .where(
-      withTenant(
-        tenantId,
-        notifications.tenantId,
-        and(eq(notifications.id, notificationId), eq(notifications.userId, session.user.id))
+  const userId = session.user.id;
+  const userRole = session.user.role;
+  const updatedNotifications = await withTenantContext({ tenantId, role: userRole }, tx =>
+    tx
+      .update(notifications)
+      .set({ isRead: true })
+      .where(
+        and(
+          eq(notifications.tenantId, tenantId),
+          eq(notifications.id, notificationId),
+          eq(notifications.userId, userId)
+        )
       )
-    );
+      .returning({ id: notifications.id })
+  );
 
-  return { success: true };
+  const updatedNotification = updatedNotifications[0];
+  if (!updatedNotification) {
+    return { success: false, error: 'Notification not found' } as const;
+  }
+
+  return { success: true, notificationId: updatedNotification.id } as const;
 }
 
 export async function markAllAsReadCore(params: { session: Session | null }) {
@@ -36,10 +45,20 @@ export async function markAllAsReadCore(params: { session: Session | null }) {
   }
 
   const tenantId = ensureTenantId(session);
-  await db
-    .update(notifications)
-    .set({ isRead: true })
-    .where(withTenant(tenantId, notifications.tenantId, eq(notifications.userId, session.user.id)));
+  const userId = session.user.id;
+  const userRole = session.user.role;
+  await withTenantContext({ tenantId, role: userRole }, tx =>
+    tx
+      .update(notifications)
+      .set({ isRead: true })
+      .where(
+        and(
+          eq(notifications.tenantId, tenantId),
+          eq(notifications.userId, userId),
+          eq(notifications.isRead, false)
+        )
+      )
+  );
 
-  return { success: true };
+  return { success: true } as const;
 }
