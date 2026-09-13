@@ -279,6 +279,15 @@ The successful run used a task-only database and supported upload-disabled local
 an interrupted earlier Sentry upload remains separately recorded in the tracker. Protected
 current-head checks and merge remain pending; no deployment or visual approval is claimed.
 
+The subsequent `aed9f024` review reproduced two fetch-boundary regressions: the action masked
+expired sessions as an empty inbox, and revision-discarded fetches missed newly arrived rows.
+The bounded correction propagates fetch failures and coalesces a fresh current-subscriber/epoch
+fetch after invalidation. Existing server authorization is unchanged. Zero-row bulk success
+remains idempotent: another tab may already have acknowledged the authorized unread backlog;
+affected-row counts cannot distinguish that from deletion and are not a valid failure rule.
+Focused regressions cover both acknowledgement variants, post-mount session expiry and bounded
+zero-row success. These changes require renewed source-bound full proof before protected merge.
+
 ## T117C Product Delivery
 
 Promotion #1738 bound owner review `5164184965` to head

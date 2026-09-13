@@ -38,24 +38,17 @@ function notification(userId: string, title: string) {
   };
 }
 
-function SuspendReplacement({
-  subscriberId,
-  blocker,
-}: {
+interface SubscriberReplacementProps {
   readonly subscriberId: string;
   readonly blocker: Promise<void>;
-}) {
+}
+
+function SuspendReplacement({ subscriberId, blocker }: SubscriberReplacementProps) {
   if (subscriberId === 'user-456') throw blocker;
   return null;
 }
 
-function ConcurrentNotificationCenter({
-  subscriberId,
-  blocker,
-}: {
-  readonly subscriberId: string;
-  readonly blocker: Promise<void>;
-}) {
+function ConcurrentNotificationCenter({ subscriberId, blocker }: SubscriberReplacementProps) {
   return (
     <Suspense fallback={<p>Loading replacement subscriber</p>}>
       <NotificationCenter subscriberId={subscriberId} />
@@ -140,24 +133,34 @@ describe('NotificationCenter race boundaries', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Notification marked as read.');
   });
 
-  it('does not let a stale refetch overwrite a confirmed acknowledgement', async () => {
+  it.each(['single', 'bulk'])('reconciles a stale fetch after %s acknowledgement', async kind => {
+    const initial = notification('user-123', 'New message');
     const refetch = deferred<unknown[]>();
     const acknowledgement = deferred<{ success: true; notificationId: string }>();
     mocks.getNotifications
-      .mockResolvedValueOnce([notification('user-123', 'New message')])
-      .mockReturnValueOnce(refetch.promise);
+      .mockResolvedValueOnce([initial])
+      .mockReturnValueOnce(refetch.promise)
+      .mockResolvedValueOnce([
+        { ...initial, isRead: true },
+        { ...initial, id: 'n2', type: 'claim_assigned', title: 'Arrived during acknowledgement' },
+      ]);
     mocks.markAsRead.mockReturnValue(acknowledgement.promise);
+    mocks.markAllAsRead.mockReturnValue(acknowledgement.promise);
     render(<NotificationCenter subscriberId="user-123" />);
 
     const row = await screen.findByTestId('notification-item-new_message');
-    fireEvent.click(within(row).getByRole('button'));
+    fireEvent.click(
+      kind === 'single' ? within(row).getByRole('button') : screen.getByText('Mark all as read')
+    );
     fireEvent.click(screen.getByText('Open menu'));
     await act(async () => acknowledgement.resolve({ success: true, notificationId: 'shared-id' }));
-    await act(async () => refetch.resolve([notification('user-123', 'New message')]));
+    await act(async () => refetch.resolve([initial]));
 
+    expect(await screen.findByText('Arrived during acknowledgement')).toBeInTheDocument();
     const currentRow = await screen.findByTestId('notification-item-new_message');
     expect(within(currentRow).queryByRole('button')).not.toBeInTheDocument();
-    expect(screen.queryByText('1')).not.toBeInTheDocument();
+    expect(screen.getByText('1')).toBeInTheDocument();
+    expect(mocks.getNotifications).toHaveBeenCalledTimes(3);
   });
 
   it('clears an earlier failure when a concurrent acknowledgement later succeeds', async () => {

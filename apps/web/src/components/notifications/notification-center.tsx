@@ -64,49 +64,53 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
   const loading =
     loadingState.subscriberId === subscriberId ? loadingState.active : fetchOnMount || isOpen;
 
-  const fetchInitialNotifications = useCallback(async () => {
-    const requestSubscriberId = subscriberId;
-    const requestSubscriberEpoch = subscriberEpochRef.current;
-    if (
-      inFlightFetchRef.current?.subscriberId === requestSubscriberId &&
-      inFlightFetchRef.current.epoch === requestSubscriberEpoch
-    )
-      return;
-    const requestId = ++latestFetchRef.current;
-    inFlightFetchRef.current = {
-      subscriberId: requestSubscriberId,
-      epoch: requestSubscriberEpoch,
-      id: requestId,
-    };
-    const requestRevision = stateRevisionRef.current;
-    let failed = false;
-    setLoadingState({ subscriberId: requestSubscriberId, active: true });
-    try {
-      const data = (await getNotifications()) as unknown as Notification[];
+  const fetchInitialNotifications = useCallback(
+    async function fetchNotifications() {
+      const requestSubscriberId = subscriberId;
+      const requestSubscriberEpoch = subscriberEpochRef.current;
       if (
-        activeSubscriberRef.current === requestSubscriberId &&
-        subscriberEpochRef.current === requestSubscriberEpoch &&
-        latestFetchRef.current === requestId &&
-        stateRevisionRef.current === requestRevision
-      ) {
-        setSnapshot({ subscriberId: requestSubscriberId, items: data });
+        inFlightFetchRef.current?.subscriberId === requestSubscriberId &&
+        inFlightFetchRef.current.epoch === requestSubscriberEpoch
+      )
+        return;
+      const requestId = ++latestFetchRef.current;
+      inFlightFetchRef.current = {
+        subscriberId: requestSubscriberId,
+        epoch: requestSubscriberEpoch,
+        id: requestId,
+      };
+      const requestRevision = stateRevisionRef.current;
+      let failed = false;
+      setLoadingState({ subscriberId: requestSubscriberId, active: true });
+      try {
+        const data = (await getNotifications()) as unknown as Notification[];
+        if (
+          activeSubscriberRef.current === requestSubscriberId &&
+          subscriberEpochRef.current === requestSubscriberEpoch &&
+          latestFetchRef.current === requestId &&
+          stateRevisionRef.current === requestRevision
+        ) {
+          setSnapshot({ subscriberId: requestSubscriberId, items: data });
+        }
+      } catch (error) {
+        failed = true;
+        if (activeSubscriberRef.current === requestSubscriberId) {
+          console.error('Failed to fetch notifications:', error);
+        }
+      } finally {
+        if (inFlightFetchRef.current?.id === requestId) inFlightFetchRef.current = null;
+        if (
+          activeSubscriberRef.current === requestSubscriberId &&
+          subscriberEpochRef.current === requestSubscriberEpoch &&
+          latestFetchRef.current === requestId
+        ) {
+          setLoadingState({ subscriberId: requestSubscriberId, active: false, failed });
+          if (stateRevisionRef.current !== requestRevision) void fetchNotifications();
+        }
       }
-    } catch (error) {
-      failed = true;
-      if (activeSubscriberRef.current === requestSubscriberId) {
-        console.error('Failed to fetch notifications:', error);
-      }
-    } finally {
-      if (inFlightFetchRef.current?.id === requestId) inFlightFetchRef.current = null;
-      if (
-        activeSubscriberRef.current === requestSubscriberId &&
-        subscriberEpochRef.current === requestSubscriberEpoch &&
-        latestFetchRef.current === requestId
-      ) {
-        setLoadingState({ subscriberId: requestSubscriberId, active: false, failed });
-      }
-    }
-  }, [subscriberId]);
+    },
+    [subscriberId]
+  );
 
   useEffect(() => {
     subscriberEpochRef.current += 1;

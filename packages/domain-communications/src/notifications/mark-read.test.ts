@@ -83,6 +83,8 @@ describe('notifications/markAsReadCore', () => {
   });
 
   it('confirms the bulk write without materializing an unbounded ID response', async () => {
+    // Another tab may have already acknowledged the entire unread backlog.
+    mocks.where.mockResolvedValueOnce({ count: 0 });
     const result = await markAllAsReadCore({
       session: {
         user: { id: 'u1', role: 'user', tenantId: 't1' },

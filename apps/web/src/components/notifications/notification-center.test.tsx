@@ -30,7 +30,7 @@ vi.mock('@interdomestik/ui', async () => {
 
 describe('NotificationCenter', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     mocks.getNotifications.mockResolvedValue([]);
   });
 
@@ -77,11 +77,18 @@ describe('NotificationCenter', () => {
     expect(await screen.findByText('No notifications yet')).toBeInTheDocument();
   });
 
-  it('shows an error instead of an empty inbox and retries a failed fetch', async () => {
-    mocks.getNotifications
-      .mockRejectedValueOnce(new Error('network unavailable'))
-      .mockResolvedValueOnce([]);
+  it.each([
+    ['network unavailable', false],
+    ['Not authenticated', false],
+    ['Not authenticated', true],
+  ])('shows a retryable error for %s (after mount: %s)', async (error, afterMount) => {
+    if (afterMount) mocks.getNotifications.mockResolvedValueOnce([]);
+    mocks.getNotifications.mockRejectedValueOnce(new Error(error)).mockResolvedValueOnce([]);
     render(<NotificationCenter subscriberId="user-123" />);
+    if (afterMount) {
+      await screen.findByText('No notifications yet');
+      fireEvent.click(screen.getByText('Open menu'));
+    }
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Something went wrong. Please try again.'
@@ -91,7 +98,7 @@ describe('NotificationCenter', () => {
 
     expect(await screen.findByText('No notifications yet')).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    expect(mocks.getNotifications).toHaveBeenCalledTimes(2);
+    expect(mocks.getNotifications).toHaveBeenCalledTimes(afterMount ? 3 : 2);
   });
 
   it('shows a loading state when opened after lazy mount', async () => {

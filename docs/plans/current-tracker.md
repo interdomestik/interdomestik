@@ -150,6 +150,21 @@ The automatic generated `next-env.d.ts` import was restored to its pre-build tra
 no notification source changed. This ledger update does not transfer local proof to a new head.
 Current-head hosted checks, review disposition, protected merge and postmerge health are pending.
 
+Review of `aed9f024` found two reproduced fetch issues after that successful proof. The action
+now propagates authentication failures instead of returning an empty list; invalidated fetches
+schedule one coalesced fresh request for the current subscriber epoch. Single/bulk arrival
+regressions failed before the fix. An explicit zero-row domain test preserves idempotent bulk
+success without an unbounded ID response; the proposed zero-count failure rule was rejected
+because a concurrent tab can legitimately have read the entire backlog. Concurrent deletion is
+not distinguishable from already-read state by affected-row count. No immediate deletion-refresh
+feature or broader notification synchronization contract is introduced by this increment.
+Independent Astra review cleared the production correction before final proof; focused test
+setup was then consolidated without losing failure, subscriber or arrival scenarios. Further
+capacity transfers 270 unused topology-test bytes and 220 unused currency-trial bytes (100 source,
+120 tests) into T410, retaining every global/category ceiling, file allowance and reserve. The
+wrapper regression has no byte growth. Earlier local/hosted passes remain bound to their old
+source; the corrected candidate still requires fresh full verification and protected merge.
+
 Capacity for the consolidated regressions transfers 4,750 observed unused bytes into T410:
 3,820 from T117C rendering (1,500 source and 2,320 test bytes), 370 test bytes from T117B cutover,
 460 test bytes from CI deduplication, and 100 test bytes from the completed currency trial.

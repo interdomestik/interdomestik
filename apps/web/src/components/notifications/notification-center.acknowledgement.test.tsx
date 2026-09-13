@@ -93,22 +93,10 @@ describe('NotificationCenter acknowledgement truth', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Notification marked as read.');
   });
 
-  it('preserves truth and announces a localized typed failure', async () => {
-    mocks.markAsRead.mockResolvedValue({ success: false, error: 'Unauthorized' });
-    render(<NotificationCenter subscriberId="user-123" />);
-
-    const row = await screen.findByTestId('notification-item-new_message');
-    fireEvent.click(within(row).getByRole('button'));
-
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Something went wrong. Please try again.'
-    );
-    expect(within(row).getByRole('button')).toBeInTheDocument();
-    expect(screen.getByText('1')).toBeInTheDocument();
-  });
-
-  it('preserves truth and clears pending state when acknowledgement throws', async () => {
-    mocks.markAsRead.mockRejectedValue(new Error('network unavailable'));
+  it.each(['typed', 'thrown'])('preserves truth and clears pending on %s failure', async kind => {
+    if (kind === 'typed')
+      mocks.markAsRead.mockResolvedValue({ success: false, error: 'Unauthorized' });
+    else mocks.markAsRead.mockRejectedValue(new Error('network unavailable'));
     render(<NotificationCenter subscriberId="user-123" />);
 
     const row = await screen.findByTestId('notification-item-new_message');
