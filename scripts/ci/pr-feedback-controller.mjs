@@ -1,5 +1,10 @@
 import { GitHubClient, isDirectInvocation } from './pr-delivery-api.mjs';
-import { eligiblePull, parseFeedbackMarker, planRefresh } from './pr-feedback-refresh.mjs';
+import {
+  eligiblePull,
+  isDeferredLabel,
+  parseFeedbackMarker,
+  planRefresh,
+} from './pr-feedback-refresh.mjs';
 import { captureFeedback } from './pr-feedback-snapshot.mjs';
 
 const REPOSITORY = 'interdomestik/interdomestik';
@@ -11,22 +16,38 @@ async function completePages(client, endpoint, key) {
   return result.values;
 }
 
+async function latestAuthoritative(client, pull, workflow) {
+  const prefix = `repos/${REPOSITORY}`;
+  const runs = await completePages(
+    client,
+    `${prefix}/actions/workflows/${workflow.id}/runs?event=pull_request&head_sha=${pull.head.sha}`,
+    'workflow_runs'
+  );
+  for (const summary of runs.sort((a, b) => b.id - a.id).slice(0, 20)) {
+    if (!Number.isSafeInteger(summary?.id) || summary.id < 1) return null;
+    const run = await client.request(`${prefix}/actions/runs/${summary.id}`);
+    if (run.id !== summary.id) return null;
+    if (run.status !== 'completed' || !Number.isSafeInteger(run.run_attempt) || run.run_attempt < 1)
+      return run;
+    const jobs = await completePages(
+      client,
+      `${prefix}/actions/runs/${run.id}/attempts/${run.run_attempt}/jobs`,
+      'jobs'
+    );
+    if (!isDeferredLabel(pull, workflow, run, jobs)) return run;
+  }
+  return null;
+}
+
 async function inspect(client, number, workflow, now) {
   const prefix = `repos/${REPOSITORY}`;
   const pull = await client.request(`${prefix}/pulls/${number}`);
   if (!eligiblePull(pull) || pull.number !== number) return null;
   if (!Number.isSafeInteger(workflow?.id) || workflow.id < 1)
     throw new Error('invalid refresh workflow');
-  const runs = await completePages(
-    client,
-    `${prefix}/actions/workflows/${workflow.id}/runs?event=pull_request&head_sha=${pull.head.sha}`,
-    'workflow_runs'
-  );
-  const latest = runs.sort((a, b) => b.id - a.id)[0];
-  if (!Number.isSafeInteger(latest?.id) || latest.id < 1) return null;
-  const run = await client.request(`${prefix}/actions/runs/${latest.id}`);
+  const run = await latestAuthoritative(client, pull, workflow);
   if (
-    run.id !== latest.id ||
+    !run ||
     run.status !== 'completed' ||
     !['success', 'failure'].includes(run.conclusion) ||
     !Number.isSafeInteger(run.run_attempt) ||
@@ -57,21 +78,17 @@ async function inspect(client, number, workflow, now) {
 async function stillCurrent(client, current, now) {
   const { run, pull, workflow, jobs, feedback } = current.evidence;
   const prefix = `repos/${REPOSITORY}`;
-  const [freshPull, freshRun, freshWorkflow, permission, latestRuns] = await Promise.all([
+  const [freshPull, freshWorkflow, permission] = await Promise.all([
     client.request(`${prefix}/pulls/${pull.number}`),
-    client.request(`${prefix}/actions/runs/${run.id}`),
     client.request(`${prefix}/actions/workflows/${workflow.id}`),
     client.request(`${prefix}/collaborators/${run.actor.login}/permission`),
-    completePages(
-      client,
-      `${prefix}/actions/workflows/${workflow.id}/runs?event=pull_request&head_sha=${run.head_sha}`,
-      'workflow_runs'
-    ),
   ]);
-  if (latestRuns.sort((a, b) => b.id - a.id)[0]?.id !== run.id) return false;
+  if (!eligiblePull(freshPull)) return false;
+  const latest = await latestAuthoritative(client, freshPull, freshWorkflow);
+  if (latest?.id !== run.id) return false;
   const plan = planRefresh({
     pull: freshPull,
-    run: freshRun,
+    run: latest,
     workflow: freshWorkflow,
     jobs,
     feedback,

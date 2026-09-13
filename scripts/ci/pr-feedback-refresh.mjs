@@ -48,6 +48,72 @@ export function sameFeedbackIdentity(left, right) {
   return ['number', 'base', 'head', 'testedMerge'].every(key => left?.[key] === right?.[key]);
 }
 
+export function isDeferredLabel(pull, workflow, run, jobs) {
+  const rule = WORKFLOWS[workflow?.path];
+  if (
+    !eligiblePull(pull) ||
+    !rule ||
+    !positive(run?.id) ||
+    !positive(run.run_attempt) ||
+    run.status !== 'completed' ||
+    run.event !== 'pull_request' ||
+    run.workflow_id !== workflow.id ||
+    run.path !== workflow.path ||
+    run.head_sha !== pull.head.sha ||
+    run.head_branch !== pull.head.ref ||
+    !sameRepository(run.repository) ||
+    !sameRepository(run.head_repository) ||
+    !positive(run.actor?.id) ||
+    !['User', 'Bot'].includes(run.actor.type) ||
+    !run.actor.login ||
+    run.display_title !== `${rule.title} [supersession:v1:pull_request:labeled:${pull.head.sha}]` ||
+    !Array.isArray(run.pull_requests) ||
+    run.pull_requests.some(item => item.number !== pull.number) ||
+    jobs.length !== 1
+  )
+    return false;
+  const job = jobs[0];
+  if (
+    !positive(job.id) ||
+    job.run_id !== run.id ||
+    job.run_attempt !== run.run_attempt ||
+    job.status !== 'completed' ||
+    !Array.isArray(job.steps)
+  )
+    return false;
+  if (rule.context === 'delivery-gate')
+    return (
+      run.conclusion === 'skipped' &&
+      job.name === 'delivery-gate-deferred' &&
+      job.conclusion === 'skipped' &&
+      job.steps.every(step => step.status === 'completed' && step.conclusion === 'skipped')
+    );
+  if (run.conclusion !== 'success' || job.conclusion !== 'success' || job.name !== rule.context)
+    return false;
+  const required = [
+    'Run actions/checkout@v5',
+    'Evaluate PR gate policy',
+    'Resolve exact-head certification admission',
+    'Report quick draft lane',
+    'Node setup',
+    'Run PR finalizer gate',
+  ];
+  const optional = ['Set up job', 'Post Run actions/checkout@v5', 'Complete job'];
+  const steps = job.steps.filter(step => !optional.includes(step.name));
+  return (
+    steps.length === required.length &&
+    steps.every(
+      (step, i) =>
+        step.name === required[i] &&
+        step.status === 'completed' &&
+        step.conclusion === (i < 4 ? 'success' : 'skipped')
+    ) &&
+    job.steps
+      .filter(step => optional.includes(step.name))
+      .every(step => step.status === 'completed' && step.conclusion === 'success')
+  );
+}
+
 export function planRefresh({ pull, workflow, run, jobs, permission, feedback, now }) {
   const rule = WORKFLOWS[workflow?.path];
   if (!eligiblePull(pull) || !rule || workflow.state !== 'active' || !positive(workflow.id))

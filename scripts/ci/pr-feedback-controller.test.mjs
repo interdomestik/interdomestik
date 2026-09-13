@@ -181,3 +181,99 @@ test('a native run starting during the final feedback read is not rerun', async 
   assert.equal(result.status, 'selection-changed');
   assert.deepEqual(f.writes, []);
 });
+
+for (const lane of ['delivery', 'finalizer']) {
+  test(`a proven deferred ${lane} label run cannot hide the latest real gate`, async () => {
+    const { refreshOne } = await implementation();
+    const f = fixture();
+    if (lane === 'finalizer') {
+      f.evidence.workflow.path = f.evidence.run.path = '.github/workflows/pr-finalizer.yml';
+      f.evidence.run.display_title = `PR finalizer [supersession:v1:pull_request:opened:${head}]`;
+      f.evidence.jobs[0].name = 'pr-finalizer';
+    }
+    const deferred = {
+      ...f.evidence.run,
+      id: 200,
+      conclusion: lane === 'delivery' ? 'skipped' : 'success',
+      display_title: f.evidence.run.display_title.replace(':opened:', ':labeled:'),
+    };
+    const job = {
+      id: 201,
+      run_id: 200,
+      run_attempt: 1,
+      status: 'completed',
+      conclusion: deferred.conclusion,
+      name: lane === 'delivery' ? 'delivery-gate-deferred' : 'pr-finalizer',
+      steps: [],
+    };
+    if (lane === 'finalizer')
+      job.steps = [
+        'Run actions/checkout@v5',
+        'Evaluate PR gate policy',
+        'Resolve exact-head certification admission',
+        'Report quick draft lane',
+        'Node setup',
+        'Run PR finalizer gate',
+      ].map((name, i) => ({
+        name,
+        number: i + 1,
+        status: 'completed',
+        conclusion: i < 4 ? 'success' : 'skipped',
+      }));
+    const request = f.client.request;
+    f.client.request = endpoint =>
+      endpoint.endsWith('/actions/runs/200') ? structuredClone(deferred) : request(endpoint);
+    const pages = f.client.pages;
+    f.client.pages = async (endpoint, key) => {
+      if (endpoint.endsWith('/actions/runs/200/attempts/1/jobs'))
+        return { values: [structuredClone(job)], complete: true };
+      const result = await pages(endpoint, key);
+      if (key === 'workflow_runs') result.values.unshift(structuredClone(deferred));
+      return result;
+    };
+    assert.equal(
+      (await refreshOne(f.client, 17, f.evidence.workflow, { now: f.evidence.now, apply: true }))
+        .status,
+      'refresh-requested'
+    );
+    assert.equal(f.writes.length, 1);
+    const before = f.client.request;
+    let deferredReads = 0;
+    f.client.request = endpoint => {
+      if (endpoint.endsWith('/actions/runs/200') && ++deferredReads === 3)
+        deferred.status = 'in_progress';
+      return before(endpoint);
+    };
+    f.writes.length = 0;
+    assert.equal(
+      (
+        await refreshOne(f.client, 17, f.evidence.workflow, {
+          now: f.evidence.now,
+          apply: true,
+        })
+      ).status,
+      'selection-changed'
+    );
+    assert.deepEqual(f.writes, [], 'deferred attempts must be reread immediately before POST');
+    f.client.request = before;
+    deferred.status = 'completed';
+    for (const mutate of [
+      () => {
+        deferred.status = 'in_progress';
+      },
+      () => {
+        deferred.status = 'completed';
+        job.run_attempt = 2;
+      },
+      () => {
+        job.run_attempt = 1;
+        job.name = 'unknown';
+      },
+    ]) {
+      mutate();
+      f.writes.length = 0;
+      await refreshOne(f.client, 17, f.evidence.workflow, { now: f.evidence.now, apply: true });
+      assert.deepEqual(f.writes, []);
+    }
+  });
+}
