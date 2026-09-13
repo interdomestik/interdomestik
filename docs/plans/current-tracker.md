@@ -28,9 +28,9 @@ separate dashboard designs or freeze the legacy presentation.
 
 ## Proof Ledger
 
-| ID                        | Source Refs                                    | Execution  | Run ID  | Run Root | Sonar   | Docker  | Sentry           | Learning         | Evidence Refs                                                                                      |
-| ------------------------- | ---------------------------------------------- | ---------- | ------- | -------- | ------- | ------- | ---------------- | ---------------- | -------------------------------------------------------------------------------------------------- |
-| `SHARED-SHELL-NAVIGATION` | docs/plans/current-program.md; owner direction | `scripted` | pending | local/CI | pending | pending | `not_applicable` | `not_applicable` | Implementation and focused proof in progress; full proof, independent review and delivery pending. |
+| ID                        | Source Refs                                    | Execution  | Run ID  | Run Root | Sonar   | Docker  | Sentry           | Learning         | Evidence Refs                                                                                   |
+| ------------------------- | ---------------------------------------------- | ---------- | ------- | -------- | ------- | ------- | ---------------- | ---------------- | ----------------------------------------------------------------------------------------------- |
+| `SHARED-SHELL-NAVIGATION` | docs/plans/current-program.md; owner direction | `scripted` | pending | local/CI | pending | pending | `not_applicable` | `not_applicable` | Local full/focused proof and independent review passed at 0bd1d322; protected delivery pending. |
 
 ### Shared navigation candidate
 
@@ -57,7 +57,7 @@ in use for /tmp/interdomestik-pilot-evidence/playwright-mcp-profile, use --isola
 instances of the same browser`; that session is preserved and browser validation uses an isolated
 fallback. No PR #1769 changes or infrastructure improvements are imported.
 
-The first full attempt at `bc3272bb` passed 1,048 CI contracts, 154 release tests, 41 RLS tests,
+The first full attempt at `bc3272bb` passed 1,178 CI contracts, 154 release tests, 41 RLS tests,
 81.30% repository line coverage and the production build, then stopped after 111 browser passes:
 three unchanged neutral-host tests hardcode port 3000 while that attempt used 3117. Port 3000
 was verified free and assigned to this task for the final attempt. That failed run is not a pass.
@@ -65,6 +65,18 @@ Supplemental browser inspection also found collapsed padding clipping navigation
 group/caller collapsed padding and label truncation are corrected before renewed final proof.
 The unchanged Sidebar/Radix drawer closes on Escape without restoring toggle focus; independent
 source review confirmed that baseline limitation, which this slice does not claim to repair.
+
+Full `pnpm pr:verify` passed at `0bd1d322003c1a4ca0f26d806b31d2ef560688bf`:
+1,178 CI contracts, 154 release tests, 41 RLS tests, 3,381 web tests/12 skips,
+81.30% repository lines (21,666/26,650), 252 gate passes/12 intentional skips and
+13 smoke passes/11 intentional skips. Same-source security guard passed. Private full-log SHA-256:
+`5a80e98548ec9fe98c7b687a03f0b6c3e9b459c9786c3eab7ee90712808be928`.
+Eight supplemental browser checks pass in KS/sq and MK/mk: desktop/collapsed navigation for
+all four roles, mobile drawers for agent/staff/admin and retained member page shortcuts.
+Independent Astra recheck cleared the consolidated source. This subsequent ledger update does
+not transfer that local proof to a new commit; final-head hosted checks remain required.
+The member's existing mobile page shortcuts remain unchanged; shared drawer behavior applies
+to consumers exposing a mobile toggle. No all-role mobile-shell completion is claimed.
 
 ### Final T410 delivery
 
@@ -315,7 +327,8 @@ Migration is completed at 3/3. This is not production-deployment evidence.
 T117C was delivered by promotion #1738 and product #1736. Its legacy projection remains inactive.
 Harness adoption completed through #1761 and #1762. T210 completed through product #1763. The
 owner-selected bounded notification acknowledgement increment completed through #1765 with exact-main
-health verified. No product slice is active; this is not full T-410 completion and does not select T-411.
+health verified. SHARED-SHELL-NAVIGATION is the sole active increment; this is not full T-410
+completion and does not select T-411.
 
 | Completed historical priority            | Status      | Constraint                                                                    |
 | ---------------------------------------- | ----------- | ----------------------------------------------------------------------------- |
