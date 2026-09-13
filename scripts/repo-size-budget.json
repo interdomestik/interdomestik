@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 98836,
+      "trackedBytesDelta": 99038,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 61432,
+        "config/data/messages": 61634,
         "source/scripts": 23092,
         "tests/e2e": 14312
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 61432,
+        "scripts/repo-size-budget.json": 61634,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -1257,27 +1257,31 @@
         "scripts/ci/pr-feedback-snapshot.mjs",
         "scripts/ci/pr-feedback-snapshot.test.mjs",
         "scripts/ci/pr-feedback-workflow.test.mjs",
-        "scripts/ci/pr-feedback-repository.test.mjs"
+        "scripts/ci/pr-feedback-repository.test.mjs",
+        "scripts/ci/pr-feedback-budget.mjs",
+        "scripts/ci/pr-feedback-budget.test.mjs"
       ],
-      "trackedBytesDelta": 57308,
-      "trackedFilesDelta": 11,
+      "trackedBytesDelta": 68604,
+      "trackedFilesDelta": 13,
       "categoryBytesDelta": {
         "config/data/messages": 2509,
-        "source/scripts": 23901,
-        "tests/e2e": 30898
+        "source/scripts": 26591,
+        "tests/e2e": 39504
       },
       "pathBytesDelta": {
         ".github/actions/pr-feedback-setup/action.yml": 1271,
         ".github/workflows/pr-feedback-refresh.yml": 1238,
-        "scripts/ci/pr-feedback-controller.mjs": 8857,
+        "scripts/ci/pr-feedback-controller.mjs": 9869,
         "scripts/ci/pr-feedback-controller.test.mjs": 10170,
         "scripts/ci/pr-feedback-refresh-fixtures.mjs": 4140,
-        "scripts/ci/pr-feedback-refresh.mjs": 6967,
+        "scripts/ci/pr-feedback-refresh.mjs": 6966,
         "scripts/ci/pr-feedback-refresh.test.mjs": 4272,
-        "scripts/ci/pr-feedback-snapshot.mjs": 3937,
+        "scripts/ci/pr-feedback-snapshot.mjs": 4022,
         "scripts/ci/pr-feedback-snapshot.test.mjs": 7217,
         "scripts/ci/pr-feedback-workflow.test.mjs": 5570,
-        "scripts/ci/pr-feedback-repository.test.mjs": 3669
+        "scripts/ci/pr-feedback-repository.test.mjs": 5505,
+        "scripts/ci/pr-feedback-budget.mjs": 1594,
+        "scripts/ci/pr-feedback-budget.test.mjs": 6770
       }
     }
   ],
@@ -1287,15 +1291,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61245915,
-  "maxTrackedFiles": 6054,
+  "maxTrackedBytes": 61257413,
+  "maxTrackedFiles": 6056,
   "maxCategoryBytes": {
-    "config/data/messages": 2232343,
+    "config/data/messages": 2232545,
     "docs/text": 8541936,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8841706,
-    "tests/e2e": 7049195
+    "source/scripts": 8844396,
+    "tests/e2e": 7057801
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

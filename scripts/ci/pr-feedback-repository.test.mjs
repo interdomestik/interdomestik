@@ -3,6 +3,46 @@ import test from 'node:test';
 import * as controller from './pr-feedback-controller.mjs';
 import { repository } from './pr-feedback-refresh-fixtures.mjs';
 
+test('quota-deferred pairs rotate across both workflows without more network calls', async () => {
+  const visited = [];
+  for (const now of [0, 300000, 600000, 900000]) {
+    const f = repositoryFixture([
+      { nodes: [{ number: 17 }, { number: 18 }], pageInfo: { hasNextPage: false } },
+    ]);
+    f.client.budget = { reason: '' };
+    const request = f.client.request;
+    f.client.request = endpoint => {
+      if (endpoint.includes('/pulls/')) f.client.budget.reason = 'shared-quota';
+      return request(endpoint);
+    };
+    const result = await controller.refreshRepository(f.client, { now, report: f.report });
+    assert.equal(result.failed, 0);
+    assert.equal(result.deferred, 3);
+    assert.equal(f.requests.filter(path => path.includes('/pulls/')).length, 1);
+    assert.equal(f.reports.at(-1).status, 'deferred-budget');
+    assert.equal(f.reports.at(-1).remainingPairs, 3);
+    visited.push([f.reports[0].number, f.reports[0].workflow]);
+  }
+  assert.equal(new Set(visited.map(item => JSON.stringify(item))).size, 4);
+});
+
+test('an interrupted quota-bound inspection cannot claim no-refresh or hide deferral', async () => {
+  const f = repositoryFixture([{ nodes: [{ number: 17 }], pageInfo: { hasNextPage: false } }]);
+  f.client.budget = { reason: '' };
+  const request = f.client.request;
+  f.client.request = endpoint => {
+    if (endpoint.includes('/pulls/')) {
+      f.client.budget.reason = 'request-budget';
+      throw new Error('feedback budget deferred');
+    }
+    return request(endpoint);
+  };
+  const result = await controller.refreshRepository(f.client, { now: 0, report: f.report });
+  assert.equal(result.failed, 0);
+  assert.equal(result.deferred, 2);
+  assert.ok(f.reports.every(item => item.status === 'deferred-budget'));
+});
+
 function repositoryFixture(pages) {
   const requests = [];
   const reports = [];
@@ -31,7 +71,11 @@ test('repository refresh paginates more than twenty open PRs before any write', 
     },
     { nodes: [{ number: 21 }], pageInfo: { hasNextPage: false } },
   ]);
-  const result = await controller.refreshRepository(f.client, { apply: true, report: f.report });
+  const result = await controller.refreshRepository(f.client, {
+    now: 0,
+    apply: true,
+    report: f.report,
+  });
   assert.equal(result.failed, 0);
   assert.equal(f.reports.length, 42);
   assert.equal(f.requests.filter(path => path.endsWith('/pulls/21')).length, 2);
@@ -68,7 +112,11 @@ test('one PR failure does not starve the next PR and diagnostics never echo API 
     if (endpoint.endsWith('/pulls/17')) throw new Error('secret API response\n::error::injected');
     return request(endpoint);
   };
-  const result = await controller.refreshRepository(f.client, { apply: true, report: f.report });
+  const result = await controller.refreshRepository(f.client, {
+    now: 0,
+    apply: true,
+    report: f.report,
+  });
   assert.equal(result.failed, 2);
   assert.equal(f.reports.length, 4);
   assert.deepEqual(
@@ -85,7 +133,10 @@ test('workflow metadata failure does not starve the other workflow', async () =>
     if (endpoint.endsWith('/pr-finalizer.yml')) throw new Error('API unavailable');
     return request(endpoint);
   };
-  assert.equal((await controller.refreshRepository(f.client, { report: f.report })).failed, 1);
+  assert.equal(
+    (await controller.refreshRepository(f.client, { now: 0, report: f.report })).failed,
+    1
+  );
   assert.deepEqual(
     f.reports.map(item => item.status),
     ['refresh-failed', 'no-refresh']

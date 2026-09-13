@@ -101,8 +101,8 @@ export function isDeferredLabel(pull, workflow, run, jobs) {
     'Node setup',
     'Run PR finalizer gate',
   ];
-  const optional = ['Set up job', 'Post Run actions/checkout@v5', 'Complete job'];
-  const steps = job.steps.filter(step => !optional.includes(step.name));
+  const optional = new Set(['Set up job', 'Post Run actions/checkout@v5', 'Complete job']);
+  const steps = job.steps.filter(step => !optional.has(step.name));
   return (
     steps.length === required.length &&
     steps.every(
@@ -112,7 +112,7 @@ export function isDeferredLabel(pull, workflow, run, jobs) {
         step.conclusion === (i < 4 ? 'success' : 'skipped')
     ) &&
     job.steps
-      .filter(step => optional.includes(step.name))
+      .filter(step => optional.has(step.name))
       .every(step => step.status === 'completed' && step.conclusion === 'success')
   );
 }

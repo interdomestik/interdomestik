@@ -1,4 +1,5 @@
-import { GitHubClient, isDirectInvocation } from './pr-delivery-api.mjs';
+import { isDirectInvocation } from './pr-delivery-api.mjs';
+import { createRefreshClient } from './pr-feedback-budget.mjs';
 import {
   eligiblePull,
   isDeferredLabel,
@@ -50,8 +51,7 @@ async function inspect(client, number, workflow, now) {
     throw new Error('invalid refresh workflow');
   const run = await latestAuthoritative(client, pull, workflow);
   if (
-    !run ||
-    run.status !== 'completed' ||
+    run?.status !== 'completed' ||
     !['success', 'failure'].includes(run.conclusion) ||
     !Number.isSafeInteger(run.run_attempt) ||
     run.run_attempt < 1 ||
@@ -176,10 +176,20 @@ async function openPullNumbers(client) {
   throw new Error('refresh inventory bound exceeded; action required');
 }
 
-export async function refreshRepository(client, { apply = false, report = () => {}, now } = {}) {
+export async function refreshRepository(
+  client,
+  { apply = false, report = () => {}, now = Date.now() } = {}
+) {
   if (client.repository !== REPOSITORY) throw new Error('refresh runtime mismatch');
   // Complete the bounded inventory before any mutation; never silently process a partial list.
-  const numbers = await openPullNumbers(client);
+  let numbers;
+  try {
+    numbers = await openPullNumbers(client);
+  } catch (error) {
+    if (!client.budget?.reason) throw error;
+    report({ status: 'deferred-budget', reason: client.budget.reason, scope: 'inventory' });
+    return { failed: 0, deferred: 1 };
+  }
   const workflows = await Promise.all(
     WORKFLOW_FILES.map(async file => {
       try {
@@ -190,14 +200,33 @@ export async function refreshRepository(client, { apply = false, report = () => 
     })
   );
   let failed = 0;
-  for (const number of numbers) {
-    for (const [index, workflow] of workflows.entries()) {
-      let result;
-      try {
-        if (!workflow) throw new Error('workflow metadata unavailable');
-        result = await refreshOne(client, number, workflow, { apply, now });
-      } catch (error) {
-        // Do not echo remote error bodies or retry a potentially accepted POST.
+  let deferred = 0;
+  // Rotate pairs, not just PRs: neither workflow may starve at a quota boundary.
+  const pairs = numbers
+    .sort((a, b) => a - b)
+    .flatMap(number => workflows.map((workflow, index) => ({ number, workflow, index })));
+  const offset = Math.floor(now / 300_000) % pairs.length;
+  for (let position = 0; position < pairs.length; position++) {
+    if (client.budget?.reason) {
+      deferred += pairs.length - position;
+      report({
+        status: 'deferred-budget',
+        reason: client.budget.reason,
+        remainingPairs: pairs.length - position,
+      });
+      break;
+    }
+    const { number, workflow, index } = pairs[(offset + position) % pairs.length];
+    let result;
+    try {
+      if (!workflow) throw new Error('workflow metadata unavailable');
+      result = await refreshOne(client, number, workflow, { apply, now });
+    } catch (error) {
+      // Do not echo remote error bodies or retry a potentially accepted POST.
+      if (client.budget?.reason) {
+        deferred++;
+        result = { status: 'deferred-budget', reason: client.budget.reason };
+      } else {
         failed++;
         result = {
           status: 'refresh-failed',
@@ -207,15 +236,15 @@ export async function refreshRepository(client, { apply = false, report = () => 
               : 'inspection or dispatch failed',
         };
       }
-      report({ number, workflow: WORKFLOW_FILES[index], ...result });
     }
+    report({ number, workflow: WORKFLOW_FILES[index], ...result });
   }
-  return { failed };
+  return { failed, deferred };
 }
 
 async function main() {
   const apply = validateControllerEnvironment(process.env);
-  const client = new GitHubClient(REPOSITORY, process.env.GITHUB_TOKEN);
+  const client = createRefreshClient(process.env.GITHUB_TOKEN);
   const result = await refreshRepository(client, {
     apply,
     report: item => process.stdout.write(`${JSON.stringify(item)}\n`),
