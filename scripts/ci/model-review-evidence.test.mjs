@@ -129,6 +129,18 @@ test('model-review evidence fails when a required route is blocked', () => {
   });
 });
 
+for (const status of ['failed', 'skipped', 'unknown', undefined]) {
+  test(`model-review evidence rejects required status ${status}`, () => {
+    withReceipt({ results: [{ reviewer: 'sonnet', status }] }, root => {
+      for (const args of [[], ['--require-call']]) {
+        const result = runEvidence(root, args);
+        assert.notEqual(result.status, 0);
+        assert.match(result.stderr, /required reviewers blocked/u);
+      }
+    });
+  });
+}
+
 test('model-review evidence requires call proof when requested', () => {
   withReceipt({ results: [{ reviewer: 'sonnet', status: 'available' }] }, root => {
     const result = runEvidence(root, ['--required', 'sonnet', '--require-call']);

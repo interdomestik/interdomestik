@@ -26,11 +26,11 @@ export function evaluateReceipt(receipt, options) {
   const missingRequired = options.required.filter(reviewer => !resultByReviewer.has(reviewer));
   const blockedRequired = options.required.filter(reviewer => {
     const result = resultByReviewer.get(reviewer);
-    return result?.status === 'blocked';
+    return !['completed', 'available'].includes(result?.status);
   });
   const blockedOptional = options.optional.filter(reviewer => {
     const result = resultByReviewer.get(reviewer);
-    return result?.status === 'blocked';
+    return !['completed', 'available'].includes(result?.status);
   });
   const commandOnlyRequired = options.requireCall
     ? options.required.filter(reviewer => resultByReviewer.get(reviewer)?.status === 'available')

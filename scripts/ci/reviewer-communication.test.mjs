@@ -214,5 +214,17 @@ test('owned process group cancellation stops a descendant retaining output pipes
   await closed;
   const cleanupError = lifecycle.close();
   assert.equal(cleanupError, undefined);
-  assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' });
+  if (process.platform !== 'linux') {
+    assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' });
+    return;
+  }
+  // Container PID 1 may leave the terminated orphan unreaped.
+  let status;
+  try {
+    status = fs.readFileSync(`/proc/${pid}/stat`, 'utf8');
+  } catch (error) {
+    assert.equal(error.code, 'ENOENT');
+    return;
+  }
+  assert.equal(status.slice(status.lastIndexOf(')') + 2, status.lastIndexOf(')') + 3), 'Z');
 });

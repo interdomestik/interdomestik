@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 100571,
+      "trackedBytesDelta": 100671,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 63167,
+        "config/data/messages": 63267,
         "source/scripts": 23092,
         "tests/e2e": 14312
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 63167,
+        "scripts/repo-size-budget.json": 63267,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -474,13 +474,13 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 693581,
+      "maxTrackedBytesDelta": 694033,
       "maxTrackedFilesDelta": 95,
       "maxCategoryBytesDelta": {
         "config/data/messages": 1174,
         "docs/text": 31463,
         "source/scripts": 350595,
-        "tests/e2e": 310349
+        "tests/e2e": 310801
       },
       "maxPathBytesDelta": {
         ".github/workflows/ci.yml": 1441,
@@ -596,7 +596,7 @@
         "scripts/ci/reviewer-no-tools.toml": 57,
         "scripts/ci/reviewer-route-policy.test.mjs": 7234,
         "scripts/ci/model-review-access.mjs": 473,
-        "scripts/ci/model-review-evidence.test.mjs": 3369,
+        "scripts/ci/model-review-evidence.test.mjs": 3821,
         "scripts/ci/pr-delivery-review-bodies.test.mjs": 3420
       }
     },
@@ -1257,23 +1257,25 @@
         "scripts/ci/reviewer-native-process.mjs",
         "scripts/ci/reviewer-native-process.test.mjs",
         "scripts/ci/reviewer-process-lifecycle.mjs",
-        "scripts/ci/reviewer-route-utils.mjs"
+        "scripts/ci/reviewer-route-utils.mjs",
+        "scripts/ci/model-review-evidence.mjs"
       ],
-      "maxTrackedBytesDelta": 66284,
+      "maxTrackedBytesDelta": 66701,
       "maxTrackedFilesDelta": 10,
-      "maxCategoryBytesDelta": { "docs/text": 5331, "source/scripts": 29836, "tests/e2e": 31117 },
+      "maxCategoryBytesDelta": { "docs/text": 5331, "source/scripts": 29884, "tests/e2e": 31486 },
       "maxPathBytesDelta": {
         "docs/runbooks/reviewer-communication.md": 5331,
         "scripts/ci/reviewer-claude-execution.mjs": 4629,
         "scripts/ci/reviewer-claude-stream.mjs": 4344,
         "scripts/ci/reviewer-claude-stream.test.mjs": 6932,
-        "scripts/ci/reviewer-communication.test.mjs": 8352,
+        "scripts/ci/reviewer-communication.test.mjs": 8721,
         "scripts/ci/reviewer-native-evidence.mjs": 11939,
         "scripts/ci/reviewer-native-evidence.test.mjs": 7014,
         "scripts/ci/reviewer-native-process.mjs": 6535,
         "scripts/ci/reviewer-native-process.test.mjs": 8819,
         "scripts/ci/reviewer-process-lifecycle.mjs": 1216,
-        "scripts/ci/reviewer-route-utils.mjs": 1173
+        "scripts/ci/reviewer-route-utils.mjs": 1173,
+        "scripts/ci/model-review-evidence.mjs": 48
       }
     },
     {
@@ -1324,15 +1326,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61335819,
+  "maxTrackedBytes": 61336788,
   "maxTrackedFiles": 6066,
   "maxCategoryBytes": {
-    "config/data/messages": 2234078,
+    "config/data/messages": 2234178,
     "docs/text": 8547267,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8876949,
-    "tests/e2e": 7096790
+    "source/scripts": 8876997,
+    "tests/e2e": 7097611
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
