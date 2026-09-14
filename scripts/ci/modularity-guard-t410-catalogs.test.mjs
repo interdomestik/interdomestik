@@ -11,18 +11,9 @@ import { structuredArtifactOwner } from '../modularity-guard-policy.mjs';
 const AUDITED = ['apps/web/src/components/notifications/notification-center.tsx'];
 const TEST_UI = 'apps/web/src/components/notifications/notification-test-ui.tsx';
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
-const SKIP_DIRS = new Set([
-  '__mocks__',
-  '__tests__',
-  'build',
-  'dist',
-  'e2e',
-  'fixtures',
-  'node_modules',
-  'stories',
-  'test',
-  'tests',
-]);
+const SKIP_DIRS = new Set(
+  '__mocks__ __tests__ build dist e2e fixtures node_modules stories test tests'.split(' ')
+);
 
 const toPosix = value => value.split(path.sep).join('/');
 
@@ -44,21 +35,28 @@ function containsHook(source, name) {
     ts.ScriptKind[`${/\.[cm]?js/u.test(name) ? 'J' : 'T'}S${name.endsWith('x') ? 'X' : ''}`];
   const ast = ts.createSourceFile(name, source, ts.ScriptTarget.Latest, true, kind);
   const hookKeys = new Set();
-  const hookKey = node =>
-    (ts.isStringLiteralLike(node) && node.text === 'useOptimistic') ||
-    (ts.isIdentifier(node) && hookKeys.has(node.text)) ||
-    (ts.isComputedPropertyName(node) && hookKey(node.expression));
-  let found = false;
-  const visit = node => {
+  const hookKey = outer => {
+    const node = ts.skipOuterExpressions(outer);
+    return (
+      (ts.isStringLiteralLike(node) && node.text === 'useOptimistic') ||
+      (ts.isIdentifier(node) && hookKeys.has(node.text)) ||
+      (ts.isComputedPropertyName(node) && hookKey(node.expression))
+    );
+  };
+  const collect = node => {
     if (
       ts.isVariableDeclaration(node) &&
       ts.isIdentifier(node.name) &&
       node.initializer &&
-      ts.isStringLiteralLike(node.initializer) &&
-      node.initializer.text === 'useOptimistic'
+      hookKey(node.initializer)
     ) {
       hookKeys.add(node.name.text);
     }
+    ts.forEachChild(node, collect);
+  };
+  collect(ast);
+  let found = false;
+  const visit = node => {
     if (
       (ts.isIdentifier(node) && node.text === 'useOptimistic') ||
       (ts.isElementAccessExpression(node) && hookKey(node.argumentExpression)) ||
@@ -106,7 +104,7 @@ function boundary(discovered) {
   };
 }
 
-test('T410 owns only the canonical notification locale catalogs', () => {
+test('owns the T410 locale catalogs', () => {
   for (const locale of ['en', 'mk', 'sq', 'sr']) {
     const path = `apps/web/src/messages/${locale}/notifications.json`;
     assert.equal(structuredArtifactOwner(path), 't410-notification-acknowledgement-i18n-contract');
@@ -116,31 +114,33 @@ test('T410 owns only the canonical notification locale catalogs', () => {
   assert.equal(structuredArtifactOwner('apps/web/src/messages/en/unrelated.json'), null);
 });
 
-test('recognizes React hook imports and calls without matching comments or strings', () => {
+test('finds hook syntax but not comments or strings', () => {
   assert.equal(containsHook('// useOptimistic\nconst note = "useOptimistic";', 'a.ts'), false);
   for (const [source, file] of [
     ["import {'useOptimistic' as useFast} from 'react';", 'a.ts'],
     ["import * as R from 'react'; R.useOptimistic([]);", 'a.tsx'],
-    ["const hook = React['useOptimistic'];", 'a.ts'],
-    ['const key = `useOptimistic`; const {[key]: hook} = React;', 'a.jsx'],
+    ['React[("useOptimistic")]();', 'a.ts'],
+    ['function C(){return React[key]()} const key=`useOptimistic` as const;', 'a.jsx'],
     ['const {"useOptimistic": hook} = React;', 'a.js'],
   ]) {
     assert.equal(containsHook(source, file), true);
   }
 });
 
-test('covers supported production modules and only established test scaffolding', () => {
+test('covers production modules, not the test helper', () => {
   for (const file of [
     'apps/web/src/claims/status.jsx',
     'apps/web/src/claims/generated/status.tsx',
     'apps/web/src/claims/status-test-ui.tsx',
+    'packages/x/src/a.mjs',
+    'packages/x/src/a.cjs',
   ]) {
-    assert.equal(isProduction(file), true);
+    assert.ok(isProduction(file));
   }
   assert.equal(isProduction(TEST_UI), false);
 });
 
-test('reports unregistered and stale consumers while excluding test modules', () => {
+test('reports unregistered and stale consumers', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 't410-optimistic-boundary-'));
   const write = (relativePath, source) => {
     const absolutePath = path.join(root, relativePath);
@@ -173,7 +173,7 @@ test('reports unregistered and stale consumers while excluding test modules', ()
   }
 });
 
-test('repository has exactly the audited reversible optimistic consumer', () => {
+test('repository has only the audited consumer', () => {
   const discovered = findConsumers(ROOT);
   assert.deepEqual(boundary(discovered), { unexpected: [], missing: [] });
   assert.deepEqual(discovered, AUDITED);
