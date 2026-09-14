@@ -245,19 +245,26 @@ re-export specifiers. The stale ordered-priority sentence now names this increme
 selection.
 
 A later current-head review found that raw-source mutation matching could reject inert comments or
-user-facing strings. Exact corrected implementation head
-`1b1812e85c274495e736544001bec5dae392b86f` now derives both hook and mutation references from the
-TypeScript syntax tree, decodes identifier/string-literal names without comment trivia, resolves
-locally declared literal alias chains to a fixed point, and parses each discovered file with its real
-TS/TSX/JS/JSX/MJS/CJS name. Its bounded static coverage is named imports/exports, calls, member and
-element access, destructuring, and locally resolvable literal aliases; it does not claim arbitrary
-runtime-computed names, reflection or whole-program cross-module renaming. Four focused contracts,
-capacity/modularity/plan/Prettier/diff checks, and fresh independent Astra/high adversarial review
-passed with no remaining findings. The 6,497-byte contract remains inside the approved 6,500-byte
-path cap.
+user-facing strings. A subsequent review at pushed head `df221bd9` found that unconditional bare
+identifier matching could likewise classify inert object and type keys named `useOptimistic` as
+live hook consumers. Exact corrected implementation head
+`2360ad271636d4cb6499b9552146fd7184ad07b1` now derives hook and mutation references semantically
+from the TypeScript syntax tree: named imports/exports, binding elements and shorthand values are
+explicit, while ordinary identifiers must be in expression context. It therefore detects live
+calls, values, member/element access, destructuring and locally resolvable literal aliases without
+classifying comments, inert strings, property/type/interface/class/method/declaration/parameter
+names or JSX attribute names. It parses each discovered TS/TSX/JS/JSX/MJS/CJS file under its real
+filename. Arbitrary runtime-computed names, reflection and whole-program cross-module renaming are
+not claimed. Four focused contracts, capacity/modularity/plan/Prettier/diff checks, a 12-inert /
+14-live hook matrix, 13 mutation forms, 22 inventory names, 64 alias-chain orderings and fresh
+independent Astra/high adversarial review passed with no remaining findings. The 6,467-byte contract
+remains inside the approved 6,500-byte path cap.
 
 The same exact implementation head passed the unchanged full `pnpm pr:verify` and separate
-`pnpm security:guard`. Full proof used fully migrated isolated task database
+`pnpm security:guard`. One earlier exact-source attempt passed the complete non-browser code proof
+but was discarded when `CI=true` made the local host helper require unavailable passwordless sudo;
+the clean whole-command rerun used the repository-supported nip.io host route. Full proof used fully
+migrated isolated task database
 `interdomestik_ci_t410_boundary_01a09f54_v3`, canonical CI-parity credentials and disabled
 source-map upload; it passed the complete CI and release contract suites, 41 RLS tests, 3,383 web
 tests with 12 intentional skips, 81.29% repository line coverage, 252 browser-gate tests with 12

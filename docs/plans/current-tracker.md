@@ -29,9 +29,9 @@ separate dashboard designs or freeze the legacy presentation.
 
 ## Proof Ledger
 
-| ID                                   | Source Refs                                     | Execution  | Run ID     | Run Root | Sonar          | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                                 |
-| ------------------------------------ | ----------------------------------------------- | ---------- | ---------- | -------- | -------------- | ------ | ---------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | current program; architecture T-410/T-401/T-002 | `scripted` | `1b1812e8` | local    | not_applicable | pass   | `not_applicable` | `not_applicable` | Comprehensive semantic AST correction, four focused contracts, adversarial Astra review, renewed full proof and security guard passed; protected checks/merge remain pending. |
+| ID                                   | Source Refs                                     | Execution  | Run ID     | Run Root | Sonar          | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                               |
+| ------------------------------------ | ----------------------------------------------- | ---------- | ---------- | -------- | -------------- | ------ | ---------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | current program; architecture T-410/T-401/T-002 | `scripted` | `2360ad27` | local    | not_applicable | pass   | `not_applicable` | `not_applicable` | Semantic value-reference correction, four focused contracts, adversarial Astra review, renewed full proof and security guard passed; protected checks/merge remain pending. |
 
 ### T410 pessimistic mutation boundary progress
 
@@ -91,15 +91,27 @@ boundary is named imports/exports, calls, member access, destructuring and local
 aliases; arbitrary runtime-computed names, reflection and whole-program cross-module renaming are not
 claimed.
 
-Fresh independent Astra/high review passed the exact `1b1812e8` content blob
-`0825bf679e49731ae64dabbec975d50a05330b0c` after exercising both TSX discovery paths, nine mutation
-forms across 22 inventory names, quoted import/export aliases, 64 chained-alias orderings, cycle
-termination, inert comments/strings/object keys, exclusions and stale/unregistered consumers. Four
+Review at pushed head `df221bd9` then found that unconditional bare identifier matching could still
+classify inert object and type keys named `useOptimistic` as live references. Exact implementation
+head `2360ad271636d4cb6499b9552146fd7184ad07b1` replaces that branch with semantic classification:
+named imports/exports, bindings and shorthand properties are explicit references, while ordinary
+identifiers must be in expression context. Inert property/type/interface/class/method/declaration/
+parameter names and JSX attributes are ignored, while real calls, values, shorthand, member/element
+access, destructuring and aliases remain detected. The contract is 6,467 bytes; SHA-256
+`d73a7a8ce4531c3bf09438d5fdfb5af6d50296da6f373b721f45701d07c04b1f`, Git blob
+`0ea8615932b09b646daf628c64f921dc3874297f`.
+
+Fresh independent Astra/high review passed after first finding and correcting the shorthand-value
+counterexample before publication. Its final adversarial matrix covered 12 inert and 14 live hook
+forms, 13 mutation forms, 22 inventory names, quoted aliases, 64 chained-alias orderings, cycle
+termination, both TSX discovery regressions, exclusions and stale/unregistered consumers. Four
 focused contracts, repo-size, modularity, plan, Prettier and diff checks passed. After a discarded
 environmental attempt against an accidentally unmigrated database, the next isolated database was
 created, migrated, and preflighted at 86 public tables with all 11 checked critical tables under RLS;
-its standalone required RLS lane passed before the expensive gate. The same exact implementation
-head then passed `pnpm pr:verify` against
+its standalone required RLS lane passed before the expensive gate. A first whole-command proof on
+the corrected source passed all non-browser code gates but was discarded when `CI=true` required an
+unavailable passwordless-sudo `/etc/hosts` change. The clean rerun used the repository-supported
+nip.io route. The same exact implementation head then passed `pnpm pr:verify` against
 `interdomestik_ci_t410_boundary_01a09f54_v3`: the complete CI and release contract suites, 41 RLS
 tests, 3,383 web passes with 12 intentional skips, 81.29% repository line coverage, 252 gate passes
 with 12 intentional skips, and 13 smoke passes with 11 intentional skips. The separate
