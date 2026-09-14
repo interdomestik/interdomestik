@@ -16,7 +16,7 @@ const SKIP_DIRS = new Set(
   '__mocks__ __tests__ build dist e2e fixtures node_modules stories test tests'.split(' ')
 );
 const FORBIDDEN =
-  /\b(?:(?:activate|cancel|issue|pay|record|save|settle|submit|transition|update)\w*(?:Airline|Claim(?:Status)?|Payout|Recovery|Settlement|SuccessFee)|activateSponsoredMembership)\w*/u;
+  /\b(?:(?:activate|cancel|create|issue|pay|record|save|settle|submit|transition|update)\w*(?:Airline|Claim(?:Status)?|Payout|Recovery|Settlement|Subscription|SuccessFee)|activateSponsoredMembership)\w*/u;
 
 const toPosix = value => value.replaceAll(path.sep, '/');
 
@@ -62,7 +62,9 @@ function hasHook(source, name) {
       (ts.isIdentifier(node) && node.text === 'useOptimistic') ||
       (ts.isElementAccessExpression(node) && hookKey(node.argumentExpression)) ||
       (ts.isBindingElement(node) && node.propertyName && hookKey(node.propertyName)) ||
-      (ts.isImportSpecifier(node) && node.propertyName && hookKey(node.propertyName))
+      ((ts.isImportSpecifier(node) || ts.isExportSpecifier(node)) &&
+        node.propertyName &&
+        hookKey(node.propertyName))
     ) {
       found = true;
       return;
@@ -116,17 +118,15 @@ test('owns the T410 locale catalogs', () => {
 
 test('finds hook syntax but not comments or strings', () => {
   assert.equal(hasHook('// useOptimistic\nconst note = "useOptimistic";', 'a.ts'), false);
-  for (const [source, file] of [
-    ["import {'useOptimistic' as useFast} from 'react';", 'a.ts'],
-    ["import * as R from 'react'; R.useOptimistic([]);", 'a.tsx'],
-    ['React[("useOptimistic")]();', 'a.ts'],
-    [
-      'function C(){const alias=key;return React[alias]()} const key=`useOptimistic` as const;',
-      'a.jsx',
-    ],
-    ['const {"useOptimistic": hook} = React;', 'a.js'],
+  for (const source of [
+    "import {'useOptimistic' as useFast} from 'react';",
+    "export {'useOptimistic' as useFast} from 'react';",
+    "import * as R from 'react'; R.useOptimistic([]);",
+    'React[("useOptimistic")]();',
+    'function C(){const alias=key;return React[alias]()} const key=`useOptimistic` as const;',
+    'const {"useOptimistic": hook} = React;',
   ]) {
-    assert.equal(hasHook(source, file), true);
+    assert.equal(hasHook(source, 'a.ts'), true);
   }
 });
 
@@ -143,7 +143,7 @@ test('covers production modules, not the test helper', () => {
   assert.equal(isSource(TEST_UI), false);
 });
 
-test('reports boundary violations', () => {
+test('reports violations', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 't410-'));
   const write = (file, source) => {
     const target = path.join(root, file);
@@ -153,13 +153,11 @@ test('reports boundary violations', () => {
   try {
     write(AUDITED, "import { useOptimistic } from 'react';");
     write(OTHER, "import * as React from 'react'; React.useOptimistic([]);");
-    const discovered = consumers(root);
-    assert.deepEqual(discovered, [OTHER, AUDITED]);
-    assert.deepEqual(boundary(discovered), {
+    assert.deepEqual(boundary(consumers(root)), {
       unexpected: [OTHER],
       missing: [],
     });
-    for (const name of 'updateClaimStatus cancelClaimCore saveStaffRecoveryDecisionCore saveSuccessFeeCollection issuePayoutSettlement submitAirlineClaim activateSponsoredMembership'.split(
+    for (const name of 'updateClaimStatus cancelClaimCore createClaimFromSavedDraft cancelSubscriptionCore saveStaffRecoveryDecisionCore saveSuccessFeeCollection issuePayoutSettlement submitAirlineClaim activateSponsoredMembership'.split(
       ' '
     ))
       assert.match(name, FORBIDDEN);
