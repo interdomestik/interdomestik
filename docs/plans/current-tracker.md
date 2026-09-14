@@ -23,15 +23,15 @@ The current member screen is legacy integration evidence only. The planned net-n
 belongs in the unified portal shell; canonical role routes and readiness markers do not authorize
 separate dashboard designs or freeze the legacy presentation.
 
-| ID                                   | Status        | Owner    | Work                                                          | Exit Criteria                                                                  |
-| ------------------------------------ | ------------- | -------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | `in_progress` | Sol/high | Admit only audited reversible production `useOptimistic` use. | Focused/full proof, independent review, protected merge and exact-main health. |
+| ID                                   | Status        | Owner      | Work                                                          | Exit Criteria                                                                  |
+| ------------------------------------ | ------------- | ---------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | `in_progress` | Astra/high | Admit only audited reversible production `useOptimistic` use. | Focused/full proof, independent review, protected merge and exact-main health. |
 
 ## Proof Ledger
 
-| ID                                   | Source Refs                                     | Execution  | Run ID     | Run Root | Sonar          | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                               |
-| ------------------------------------ | ----------------------------------------------- | ---------- | ---------- | -------- | -------------- | ------ | ---------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | current program; architecture T-410/T-401/T-002 | `scripted` | `2360ad27` | local    | not_applicable | pass   | `not_applicable` | `not_applicable` | Semantic value-reference correction, four focused contracts, adversarial Astra review, renewed full proof and security guard passed; protected checks/merge remain pending. |
+| ID                                   | Source Refs                                     | Execution  | Run ID     | Run Root | Sonar          | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                                         |
+| ------------------------------------ | ----------------------------------------------- | ---------- | ---------- | -------- | -------------- | ------ | ---------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | current program; architecture T-410/T-401/T-002 | `scripted` | `d681cf09` | local    | not_applicable | pass   | `not_applicable` | `not_applicable` | Comprehensive static-reference correction, 150 independent Astra checks, four focused contracts, renewed full proof and security guard passed; protected checks/merge remain pending. |
 
 ### T410 pessimistic mutation boundary progress
 
@@ -40,13 +40,16 @@ The exact owner-approved adjustment keeps stable allocation `t410-notification-a
 global total becomes 61,273,546 and global tests 7,072,947. Files remain seven and budget self-size
 remains 62,480. The unchanged 4,000-byte front-door cap uses equivalent JSON notation `4e3` only
 to preserve byte-identical self-size. There is no capacity change to that path, deleted-byte credit,
-reserve use, new file or guard weakening.
+reserve use, new file or guard weakening. The owner subsequently approved the complete reviewed
+footprint's exact 1,687-byte supplement: total 57,982→59,669, tests 41,600→43,287, CI path
+6,500→8,187, global total 61,273,546→61,275,233 and global tests 7,072,947→7,074,634.
+Files and budget self-allocation remain unchanged. Further capacity requires approval before push.
 
-The bounded AST contract admits only the notification-center consumer, rejects unregistered and
+The initial bounded AST contract admitted only the notification-center consumer, rejected unregistered and
 stale allowlist entries, ignores comments/strings and established test scaffolding, detects aliases,
 indirection, computed access and declaration-after-use, covers production TS/TSX/JS/JSX/MJS/CJS,
 and derives repository identity from `import.meta.url`. Four focused contracts pass in under one
-second; the capacity audit and modularity guard pass. Sonnet 5 and Gemini 3.1 Pro
+second at that historical source; the capacity audit and modularity guard passed. Sonnet 5 and Gemini 3.1 Pro
 implementation-snapshot reviews reported the configured served models. Accepted review corrections
 removed a one-byte unrelated cap change, broadened identifier detection and removed CWD dependence.
 Gemini's category and formatting claims are disproved by the passing repository budget audit and
@@ -120,6 +123,31 @@ same-database CI-parity configuration; source-map upload was disabled and no dep
 results bind to the implementation head; this evidence-only plan update does not transfer them to
 changed product code. Protected final-head checks, expected-head merge and exact-main health remain
 pending.
+
+Current correction: review at `bcaee170` found renamed destructuring assignments were missed and
+ordinary string display/telemetry aliases were falsely counted as callable references. Product CI
+passed; finalizer `34861048756` correctly rejected the two unresolved threads. Astra/high took sole
+implementation ownership because the repeated semantic escapes required a comprehensive checkpoint.
+Exact source `d681cf09326db53e0482aab2df5eee3415158341` classifies assignment targets using
+TypeScript and resolves literal initializer chains through lexical symbols with cycle protection.
+Literals remain data, consumed only as computed keys or to exclude data reads. Callable references
+are discovered where introduced, so later renaming cannot hide their file. Type-only imports/queries
+are excluded; live generic instantiation and class extends expressions remain discoverable.
+Dynamic reflection, reassigned-key flow, cross-module renamed wrappers and runtime React provenance
+are outside this static named-reference contract. Existing inventory/catalog/discovery assertions remain.
+
+Fresh read-only Astra/high review passed 150 independent checks against scanner SHA-256
+`0e2f65f8334526655a9e8c2a0a68cdf0c049728f6315af8644df071fb078f9ef`, size 8,187 bytes.
+Four focused contracts, including 58 paired hook/mutation cases, passed. Reviewer findings were
+consolidated before final proof and capacity was explicitly approved before execution. Actual DB,
+credentials, hosts, port, disk and competing-job preflight passed. The uninterrupted renewed
+`pnpm pr:verify` on `d681cf09` passed 1,181 CI contracts, 154 release tests, 41 RLS tests,
+3,383 web tests/12 intentional skips, 81.29% lines (21,664/26,649), 252 browser-gate tests/12
+intentional skips and 13 smoke tests/11 intentional skips. Same-source security guard passed.
+Private full-log SHA-256: `f70961f4caa70a8d259fa25a909155d6a9b7c0c3d49591c593daa6b6def885e9`.
+This proof uses the isolated v3 database and supported nip.io route, with source-map upload disabled.
+The build-generated declaration change is excluded. Protected checks, current-head review disposition,
+expected-head merge and exact-main health remain pending; no gate repair, deployment or successor.
 
 ### Final shared navigation delivery
 

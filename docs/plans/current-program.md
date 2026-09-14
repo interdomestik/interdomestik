@@ -213,14 +213,15 @@ or broader T-410 completion is claimed.
 ## T410 Pessimistic Mutation Boundary Increment
 
 Owner-selected on 2026-09-14 from exact main `ef1d972ef4c77c4c92dfa135dcf4962e05ca91d6`.
-This Sol/high bounded CI-contract slice completes the remaining T-410 convention outcome: production
+This high-complexity bounded CI-contract slice is now owned by Astra/high after repeated semantic
+review escapes required reassignment from Sol/high. It completes the T-410 convention outcome: production
 `useOptimistic` consumers must be explicitly audited, and only the delivered reversible notification
 acknowledgement module is admitted. T-401 and T-002/T-002b are complete; T-411 remains unselected
 because SVC-CORE and FLIGHT-03 are not complete.
 
 Member outcome: claim-status, recovery, subscription, settlement, payout and other unaudited
 mutations cannot gain speculative-success presentation without failing the required CI contract.
-Acceptance discovers every production consumer, rejects an unregistered consumer and stale audited
+Acceptance discovers production consumers within the static-reference contract below, rejects an unregistered consumer and stale audited
 entry, retains the four notification catalog checks, and passes focused contracts, independent
 reviews, frozen required proof, protected expected-head merge and exact-main health. Scope is limited
 to the current program/tracker, the existing T410 CI contract and its stable capacity allocation.
@@ -232,44 +233,41 @@ The owner approved the exact stable-allocation adjustment on 2026-09-14: T410 to
 61,267,746→61,273,546 and global tests 7,067,147→7,072,947. Files remain seven and budget
 self-size remains 62,480. No deleted-byte credit, reserve, new file or guard weakening is used.
 To retain byte-identical budget self-size, the unchanged 4,000-byte front-door path cap is encoded
-as the equivalent JSON number `4e3`; its parsed allocation is unchanged.
+as the equivalent JSON number `4e3`; its parsed allocation is unchanged. After the complete reviewed
+correction exposed its footprint, the owner approved a further exact 1,687 bytes: total
+57,982→59,669, tests 41,600→43,287, existing CI path 6,500→8,187, global total
+61,273,546→61,275,233 and global tests 7,072,947→7,074,634. Files and budget self-allocation
+remain unchanged. Any further capacity need must be fully identified and approved before pushing.
 
-PR #1772 reviews and independent inventory produced the accepted contract corrections. A terminating
-fixed-point alias pass revisits key aliases declared before their terminal hook-name aliases. The
-audited notification consumer is also checked against a fail-closed forbidden-mutation inventory so
-that claim-status, recovery, subscription, settlement, payout, success-fee, airline-claim and
-sponsored-membership mutations cannot become speculative merely by sharing the audited module; this
-includes the existing claim- and subscription-cancellation wrappers and the public
-`createClaimFromSavedDraft` lifecycle wrapper. Hook discovery also covers string-literal import and
-re-export specifiers. The stale ordered-priority sentence now names this increment as the sole
-selection.
+PR #1772's repeated failures were review-gate rejections, not permission to repair gate workflows.
+Product CI at `bcaee170` passed, but review found missed renamed destructuring assignments and string
+data promoted into callable aliases. The comprehensive correction at exact implementation head
+`d681cf09326db53e0482aab2df5eee3415158341` uses TypeScript assignment-target classification and
+single-file lexical symbol resolution. Literal initializer chains are data: they resolve computed
+keys or exclude ordinary data reads, never become callable aliases. Actual callable references are
+detected at their imports, exports, member accesses or binding introductions, preserving file-level
+discovery through later renaming. Assignment targets, defaults, nested patterns, shadowing and
+cycles are covered. Type-only syntax is excluded while runtime generic instantiations and class
+extends expressions remain visible. Each production TS/TSX/JS/JSX/MJS/CJS file uses its real filename.
+The audited notification consumer retains the forbidden named-mutation inventory, including claim
+and subscription cancellation, `createClaimFromSavedDraft`, recovery, settlement, payout, success
+fee, airline claim and sponsored membership. Catalog, stale-entry, unregistered-consumer and source
+discovery contracts remain intact. Arbitrary runtime-computed names, reassigned-key flow, reflection,
+cross-module renamed wrappers and runtime React provenance are outside this bounded static guard.
 
-A later current-head review found that raw-source mutation matching could reject inert comments or
-user-facing strings. A subsequent review at pushed head `df221bd9` found that unconditional bare
-identifier matching could likewise classify inert object and type keys named `useOptimistic` as
-live hook consumers. Exact corrected implementation head
-`2360ad271636d4cb6499b9552146fd7184ad07b1` now derives hook and mutation references semantically
-from the TypeScript syntax tree: named imports/exports, binding elements and shorthand values are
-explicit, while ordinary identifiers must be in expression context. It therefore detects live
-calls, values, member/element access, destructuring and locally resolvable literal aliases without
-classifying comments, inert strings, property/type/interface/class/method/declaration/parameter
-names or JSX attribute names. It parses each discovered TS/TSX/JS/JSX/MJS/CJS file under its real
-filename. Arbitrary runtime-computed names, reflection and whole-program cross-module renaming are
-not claimed. Four focused contracts, capacity/modularity/plan/Prettier/diff checks, a 12-inert /
-14-live hook matrix, 13 mutation forms, 22 inventory names, 64 alias-chain orderings and fresh
-independent Astra/high adversarial review passed with no remaining findings. The 6,467-byte contract
-remains inside the approved 6,500-byte path cap.
-
-The same exact implementation head passed the unchanged full `pnpm pr:verify` and separate
-`pnpm security:guard`. One earlier exact-source attempt passed the complete non-browser code proof
-but was discarded when `CI=true` made the local host helper require unavailable passwordless sudo;
-the clean whole-command rerun used the repository-supported nip.io host route. Full proof used fully
-migrated isolated task database
-`interdomestik_ci_t410_boundary_01a09f54_v3`, canonical CI-parity credentials and disabled
-source-map upload; it passed the complete CI and release contract suites, 41 RLS tests, 3,383 web
-tests with 12 intentional skips, 81.29% repository line coverage, 252 browser-gate tests with 12
-intentional skips, and 13 smoke tests with 11 intentional skips. It did not deploy. Protected
-current-head checks, expected-head merge and exact-main health remain required.
+Fresh independent Astra/high review passed 150 adversarial checks against the 8,187-byte scanner
+SHA-256 `0e2f65f8334526655a9e8c2a0a68cdf0c049728f6315af8644df071fb078f9ef`. Its type-only and
+runtime-generic findings were corrected before full verification. Four focused contracts (including
+58 paired hook/mutation cases), capacity, modularity, formatting and diff checks passed. The actual
+verification environment was preflighted before the uninterrupted final run: isolated migrated task
+database `interdomestik_ci_t410_boundary_01a09f54_v3`, canonical CI-parity credentials, nip.io
+hosts, free port 3000, disk headroom and no competing heavy job; source-map upload was disabled.
+The same implementation head passed unchanged `pnpm pr:verify`: 1,181 CI contracts, 154 release
+tests, 41 RLS tests, 3,383 web tests/12 intentional skips, 81.29% repository line coverage,
+252 browser-gate tests/12 intentional skips and 13 smoke tests/11 intentional skips. Separate
+`pnpm security:guard` passed. Earlier passes are historical, not transferred to this correction.
+Protected current-head checks, expected-head merge and exact-main health remain required; no
+deployment or successor is authorized.
 
 ## Ordinary Product Delivery
 
