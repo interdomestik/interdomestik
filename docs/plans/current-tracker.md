@@ -374,7 +374,8 @@ T117C was delivered by promotion #1738 and product #1736. Its legacy projection 
 Harness adoption completed through #1761 and #1762. T210 completed through product #1763. The
 owner-selected bounded notification acknowledgement increment completed through #1765 with exact-main
 health verified, and shared shell navigation completed through #1770. `T410-OPTIMISTIC-NOTIFICATION-ACK`
-is the sole active increment; this is not full T-410 completion and does not select T-411.
+completed through protected product PR #1771; no successor is selected. This is not full T-410
+completion and does not select T-411.
 
 | Completed historical priority            | Status      | Constraint                                                                    |
 | ---------------------------------------- | ----------- | ----------------------------------------------------------------------------- |
@@ -384,8 +385,8 @@ is the sole active increment; this is not full T-410 completion and does not sel
 | Member timeline (T210)                   | `completed` | Product #1763; main CI and Sonar passed at the exact protected merge.         |
 | Notification acknowledgement correctness | `completed` | Product #1765; exact-main CI/Sonar passed; no broader T-410 completion claim. |
 
-The active successor is recorded above. A recommendation does not become program priority until the
-owner selects it and the current program records that decision.
+No active successor is selected. A recommendation does not become program priority until the owner
+selects it and the current program records that decision.
 
 ## Lean Authority
 
