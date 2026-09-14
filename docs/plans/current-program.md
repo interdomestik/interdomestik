@@ -234,16 +234,19 @@ self-size remains 62,480. No deleted-byte credit, reserve, new file or guard wea
 To retain byte-identical budget self-size, the unchanged 4,000-byte front-door path cap is encoded
 as the equivalent JSON number `4e3`; its parsed allocation is unchanged.
 
-PR #1772 reviews produced four accepted contract corrections. A terminating fixed-point alias pass
+PR #1772 reviews produced six accepted contract corrections. A terminating fixed-point alias pass
 now revisits key aliases declared before their terminal hook-name aliases. The audited notification
 consumer is also checked against a fail-closed forbidden-mutation inventory so that claim-status,
-recovery, settlement, payout, success-fee, airline-claim and sponsored-membership mutations cannot
-become speculative merely by sharing the audited module; this includes the existing claim-cancellation
-wrapper that transitions the status spine. The stale ordered-priority sentence now names this
-increment as the sole selection. Exact corrected implementation head
-`b45d8e4507525bef7e20a7f7ca4219e32c31ab4c` passed five focused contracts, the unchanged full
+recovery, subscription, settlement, payout, success-fee, airline-claim and sponsored-membership
+mutations cannot become speculative merely by sharing the audited module; this includes the existing
+claim- and subscription-cancellation wrappers. Hook discovery also covers string-literal import and
+re-export specifiers. Fresh independent inventory then found the public `createClaimFromSavedDraft`
+wrapper that creates submitted lifecycle state; the final classifier and regression seed cover it.
+The stale ordered-priority sentence now names this increment as the sole selection. Exact corrected
+implementation head `92102e84eafd9d75087f28a16d373ababa732c5f` passed five focused contracts, the unchanged full
 `pnpm pr:verify`, the separate `pnpm security:guard`, capacity and modularity audits, and fresh
-independent Astra/high review with no remaining findings. Full proof used isolated task database
+independent Astra/high review with no remaining findings. The 6,497-byte contract remains inside the
+approved 6,500-byte path cap. Full proof used isolated task database
 `interdomestik_ci_t410_boundary_01a09f54`, canonical CI-parity credentials and disabled source-map
 upload; it passed 1,182 CI contracts, 154 release tests, 41 RLS tests, 3,383 web tests with 12
 intentional skips, 81.29% repository line coverage, 252 browser-gate tests with 12 intentional skips,
