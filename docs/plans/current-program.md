@@ -234,14 +234,20 @@ self-size remains 62,480. No deleted-byte credit, reserve, new file or guard wea
 To retain byte-identical budget self-size, the unchanged 4,000-byte front-door path cap is encoded
 as the equivalent JSON number `4e3`; its parsed allocation is unchanged.
 
-PR #1772 current-head review found that a key alias declared before its terminal hook-name alias was
-not revisited. The accepted correction uses a terminating fixed-point alias pass for arbitrary
-ordering and chains. Exact corrected implementation head
-`82565632a0a4f3b7c53cb1f7408f38f4fcfa1862` passed five focused contracts, the unchanged full
+PR #1772 reviews produced three accepted contract corrections. A terminating fixed-point alias pass
+now revisits key aliases declared before their terminal hook-name aliases. The audited notification
+consumer is also checked against a fail-closed forbidden-mutation inventory so that claim-status,
+recovery, settlement, payout, success-fee, airline-claim and sponsored-membership mutations cannot
+become speculative merely by sharing the audited module. The stale ordered-priority sentence now
+names this increment as the sole selection. Exact corrected implementation head
+`1cb7e9783b5a561810ac58fb4a21f2f3c691d972` passed five focused contracts, the unchanged full
 `pnpm pr:verify`, the separate `pnpm security:guard`, capacity and modularity audits, and fresh
-independent Astra/high review with no remaining findings. Full proof used an isolated task database,
-canonical CI-parity credentials and disabled source-map upload; it did not deploy. Protected
-current-head checks, expected-head merge and exact-main health remain required.
+independent Astra/high review with no remaining findings. Full proof used isolated task database
+`interdomestik_ci_t410_boundary_01a09f54`, canonical CI-parity credentials and disabled source-map
+upload; it passed 1,182 CI contracts, 154 release tests, 41 RLS tests, 3,383 web tests with 12
+intentional skips, 81.29% repository line coverage, 252 browser-gate tests with 12 intentional skips,
+and 13 smoke tests with 11 intentional skips. It did not deploy. Protected current-head checks,
+expected-head merge and exact-main health remain required.
 
 ## Ordinary Product Delivery
 
