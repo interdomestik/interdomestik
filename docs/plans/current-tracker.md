@@ -29,9 +29,9 @@ separate dashboard designs or freeze the legacy presentation.
 
 ## Proof Ledger
 
-| ID                                   | Source Refs                                     | Execution | Run ID     | Run Root | Sonar   | Docker  | Sentry           | Learning         | Evidence Refs                                                                                                   |
-| ------------------------------------ | ----------------------------------------------- | --------- | ---------- | -------- | ------- | ------- | ---------------- | ---------------- | --------------------------------------------------------------------------------------------------------------- |
-| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | current program; architecture T-410/T-401/T-002 | `pending` | `ef1d972e` | local    | pending | pending | `not_applicable` | `not_applicable` | T-411 excluded: SVC-CORE and FLIGHT-03 remain incomplete; capacity and helper proposals precede implementation. |
+| ID                                   | Source Refs                                     | Execution  | Run ID     | Run Root | Sonar          | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                           |
+| ------------------------------------ | ----------------------------------------------- | ---------- | ---------- | -------- | -------------- | ------ | ---------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | current program; architecture T-410/T-401/T-002 | `scripted` | `ea41ed2c` | local    | not_applicable | pass   | `not_applicable` | `not_applicable` | Five focused contracts, full required proof, security guard and independent Astra review passed; protected checks/merge remain pending. |
 
 ### T410 pessimistic mutation boundary progress
 
@@ -43,13 +43,24 @@ to preserve byte-identical self-size. There is no capacity change to that path, 
 reserve use, new file or guard weakening.
 
 The bounded AST contract admits only the notification-center consumer, rejects unregistered and
-stale allowlist entries, ignores comments/strings and test scaffolding, detects aliases,
-indirection and computed access, and derives repository identity from `import.meta.url`. Focused
-proof passes four tests in under one second; the capacity audit and modularity guard pass. Sonnet 5
-and Gemini 3.1 Pro current-head reviews reported the configured served models. Accepted review
-corrections removed a one-byte unrelated cap change, broadened identifier detection and removed CWD
-dependence. Gemini's category and formatting claims are disproved by the passing repository budget
-audit and Prettier check; full frozen proof, Astra review, protected checks and merge remain pending.
+stale allowlist entries, ignores comments/strings and established test scaffolding, detects aliases,
+indirection, computed access and declaration-after-use, covers production TS/TSX/JS/JSX/MJS/CJS,
+and derives repository identity from `import.meta.url`. Five focused contracts pass in under one
+second; the capacity audit and modularity guard pass. Sonnet 5 and Gemini 3.1 Pro current-head
+reviews reported the configured served models. Accepted review corrections removed a one-byte
+unrelated cap change, broadened identifier detection and removed CWD dependence. Gemini's category
+and formatting claims are disproved by the passing repository budget audit and Prettier check.
+
+Independent Astra/high review passed exact implementation head
+`ea41ed2c3dd7391c435f0770fa1ff6c9d3af3de9` after exercising seven syntax and seven production-path
+counterexamples; no actionable findings remain. The same frozen head passed `pnpm pr:verify` against
+isolated task database `interdomestik_ci_t410_boundary_01a09f54`: 1,182 CI contracts, 154 release
+tests, 41 RLS tests, 3,383 web passes with 12 intentional skips, 81.29% repository line coverage,
+252 gate passes with 12 intentional skips, and 13 smoke passes with 11 intentional skips. The
+separate `pnpm security:guard` also passed. Source-map upload was disabled and no deployment ran.
+These local results bind to the implementation head; the following evidence-only tracker commit
+does not transfer them to changed product code. Protected current-head checks, expected-head merge
+and exact-main health remain pending.
 
 ### Final shared navigation delivery
 
