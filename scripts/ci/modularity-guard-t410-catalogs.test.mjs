@@ -12,10 +12,10 @@ const AUDITED = 'apps/web/src/components/notifications/notification-center.tsx';
 const TEST_UI = 'apps/web/src/components/notifications/notification-test-ui.tsx';
 const OTHER = 'apps/web/src/x.tsx';
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
-const SKIP_DIRS = new Set(
+const SKIP = new Set(
   '__mocks__ __tests__ build dist e2e fixtures node_modules stories test tests'.split(' ')
 );
-const FORBIDDEN =
+const MUTATION =
   /\b(?:(?:activate|cancel|create|issue|pay|record|save|settle|submit|transition|update)\w*(?:Airline|Claim(?:Status)?|Payout|Recovery|Settlement|Subscription|SuccessFee)|activateSponsoredMembership)\w*/u;
 
 function isSource(file) {
@@ -23,53 +23,63 @@ function isSource(file) {
     /\.[cm]?[jt]sx?$/u.test(file) &&
     !/(?:\.d\.[cm]?ts|\.(?:fixture|mock|spec|stories|test)\.[cm]?[jt]sx?)$/u.test(file) &&
     file !== TEST_UI &&
-    (file.startsWith('apps/web/src/') || /^packages\/[^/]+\/src\//u.test(file)) &&
-    !file.split('/').some(segment => SKIP_DIRS.has(segment))
+    /^(?:apps\/web|packages\/[^/]+)\/src\//u.test(file) &&
+    !file.split('/').some(segment => SKIP.has(segment))
   );
 }
 
 function scan(source, name = 'x.tsx') {
-  const nodes = [],
-    hookKeys = new Set(),
-    mutationKeys = new Set();
+  const nodes = [];
   const collect = node => {
+    const erasedType =
+      ts.isTypeNode(node) && (!ts.isExpressionWithTypeArguments(node) || ts.isPartOfTypeNode(node));
+    if (erasedType || ts.isTypeOnlyImportOrExportDeclaration(node)) return;
     nodes.push(node);
     ts.forEachChild(node, collect);
   };
-  collect(ts.createSourceFile(name, source, ts.ScriptTarget.Latest, true));
-  const named = [
-    ts.isElementAccessExpression,
-    ts.isBindingElement,
-    ts.isImportSpecifier,
-    ts.isExportSpecifier,
-    ts.isShorthandPropertyAssignment,
-  ];
-  const member = node =>
-    named.some(isNamed => isNamed(node))
-      ? (node.propertyName ?? node.name ?? node.argumentExpression)
-      : ts.isIdentifier(node) && ts.isInExpressionContext(node)
-        ? node
-        : null;
-  const nameOf = outer => {
+  const tree = ts.createSourceFile(name, source, ts.ScriptTarget.Latest, true);
+  collect(tree);
+  const options = { noLib: true, noResolve: true, allowJs: true };
+  const host = ts.createCompilerHost(options);
+  host.getSourceFile = file => (file === name ? tree : undefined);
+  const checker = ts.createProgram([name], options, host).getTypeChecker();
+  // Literal aliases are data, resolved only for computed keys or to exclude data reads.
+  const literal = (outer, seen = new Set()) => {
     if (!outer) return;
     const node = ts.skipOuterExpressions(outer);
-    if (ts.isIdentifier(node) || ts.isStringLiteralLike(node)) return node.text;
-    if (ts.isComputedPropertyName(node)) return nameOf(node.expression);
+    if (ts.isStringLiteralLike(node)) return node.text;
+    if (!ts.isIdentifier(node)) return;
+    const symbol = ts.isShorthandPropertyAssignment(node.parent)
+      ? checker.getShorthandAssignmentValueSymbol(node.parent)
+      : checker.getSymbolAtLocation(node);
+    const declaration = symbol?.valueDeclaration;
+    if (!declaration || seen.has(declaration) || !ts.isVariableDeclaration(declaration)) return;
+    seen.add(declaration);
+    return literal(declaration.initializer, seen);
   };
-  const hookKey = node => nameOf(node) === 'useOptimistic' || hookKeys.has(nameOf(node));
-  const mutationKey = node => mutationKeys.has(nameOf(node)) || FORBIDDEN.test(nameOf(node) || '');
-  let size;
-  do {
-    size = hookKeys.size + mutationKeys.size;
-    for (const node of nodes)
-      if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
-        if (hookKey(node.initializer)) hookKeys.add(node.name.text);
-        if (mutationKey(node.initializer)) mutationKeys.add(node.name.text);
-      }
-  } while (hookKeys.size + mutationKeys.size !== size);
+  const key = node => (ts.isComputedPropertyName(node) ? literal(node.expression) : node.text);
+  // Capture callable references where introduced; later renaming cannot hide the file.
+  const reference = node => {
+    if (ts.isElementAccessExpression(node)) return literal(node.argumentExpression);
+    if (
+      ts.isBindingElement(node) ||
+      ts.isImportSpecifier(node) ||
+      ts.isExportSpecifier(node) ||
+      (ts.isPropertyAssignment(node) && ts.isAssignmentTarget(node.parent))
+    )
+      return key(node.propertyName ?? node.name);
+    if (ts.isPropertyAccessExpression(node)) return node.name.text;
+    if (ts.isShorthandPropertyAssignment(node))
+      return ts.isAssignmentTarget(node.parent) || literal(node.name) === undefined
+        ? node.name.text
+        : undefined;
+    if (ts.isIdentifier(node) && ts.isInExpressionContext(node) && literal(node) === undefined)
+      return node.text;
+  };
+  const references = nodes.map(reference);
   return {
-    forbidden: nodes.some(node => mutationKey(member(node))),
-    hook: nodes.some(node => hookKey(member(node))),
+    forbidden: references.some(name => MUTATION.test(name || '')),
+    hook: references.includes('useOptimistic'),
   };
 }
 
@@ -78,12 +88,11 @@ function walk(root, directory, files) {
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
     const absolute = path.join(directory, entry.name);
     if (entry.isDirectory()) {
-      if (!SKIP_DIRS.has(entry.name)) walk(root, absolute, files);
-      continue;
+      if (!SKIP.has(entry.name)) walk(root, absolute, files);
+    } else if (entry.isFile()) {
+      const relative = path.relative(root, absolute).replaceAll(path.sep, '/');
+      if (isSource(relative)) files.push(relative);
     }
-    if (entry.isSymbolicLink()) continue;
-    const relative = path.relative(root, absolute).replaceAll(path.sep, '/');
-    if (isSource(relative)) files.push({ absolute, relative });
   }
 }
 
@@ -92,8 +101,7 @@ function consumers(root) {
   for (const sourceRoot of ['apps/web/src', 'packages'])
     walk(root, path.join(root, sourceRoot), files);
   return files
-    .filter(file => scan(fs.readFileSync(file.absolute, 'utf8'), file.relative).hook)
-    .map(file => file.relative)
+    .filter(file => scan(fs.readFileSync(path.join(root, file), 'utf8'), file).hook)
     .sort();
 }
 
@@ -113,24 +121,60 @@ test('i18n', () => {
   assert.equal(owner('apps/web/src/messages/en/unrelated.json'), null);
 });
 
-test('AST', () => {
-  assert.ok(!scan('({useOptimistic:"useOptimistic"}as{useOptimistic:0})').hook);
-  for (const source of `import{'useOptimistic'as useFast}from'react'|export{'useOptimistic'as useFast}from'react'|import*as R from'react';R.useOptimistic([])|React[("useOptimistic")]()|const o={useOptimistic}|const alias=key;React[alias]();const key=\`useOptimistic\`|const C=()=> <b/>;const{"useOptimistic":hook}=React`.split(
-    '|'
-  ))
-    assert.ok(scan(source).hook);
-  assert.ok(
-    !scan('//cancelClaim\n"cancelClaim";({cancelClaim:0});a[("safe"/*cancelClaim*/)]').forbidden
-  );
-  assert.ok(
-    `import{'cancelClaim'as x}from'x'|export{'cancelClaim'as x}from'x'|a.cancelClaim()|const a=b,b=c,c='cancelClaim';x[a]|const key='cancelClaim',{[key]:x}=a|function cancelClaim(){}cancelClaim()`
-      .split('|')
-      .every(source => scan(source).forbidden)
-  );
+test('AST references versus string data', () => {
+  for (const [name, field] of [
+    ['useOptimistic', 'hook'],
+    ['cancelClaim', 'forbidden'],
+  ])
+    for (const [expected, cases] of [
+      [
+        true,
+        [
+          `import{'NAME'as hook}from'x'`,
+          `export{'NAME'as hook}from'x'`,
+          `x.NAME()`,
+          `x[('NAME')]`,
+          `const value={NAME}`,
+          `const alias=key;x[alias];const key='NAME'`,
+          `<b/>;const{'NAME':hook}=x`,
+          `const {NAME}=x`,
+          `const key='NAME',{[key]:hook=fallback}=x`,
+          `let hook;({NAME:hook}=x);hook([],reducer)`,
+          `let NAME;({NAME}=x)`,
+          `const key='NAME';({[key]:hook=fallback}=x)`,
+          `[{nested:{NAME:hook}}]=x`,
+          `const a=x.NAME,b=a,c=b;c()`,
+          `const callable=x.NAME<State>;callable(state)`,
+          `class C extends (x.NAME(),Base) {}`,
+        ],
+      ],
+      [
+        false,
+        [
+          `//NAME\n'NAME';({NAME:0}as{NAME:number})`,
+          `const label='NAME';return <span>{label}</span>`,
+          `const event='NAME';analytics.track(event);event()`,
+          `const key='NAME',alias=key;const value={alias};fn(alias)`,
+          `({safe}= {NAME:hook});target={NAME:hook}`,
+          `interface X{NAME():void};class X{NAME(){}}`,
+          `interface X extends R.NAME{};class C implements R.NAME{}`,
+          `type X=typeof React.NAME`,
+          `import type {NAME} from 'react';export type {NAME}`,
+          `import {type NAME} from 'react';export {type NAME}`,
+          `const key='NAME';function f(){const key='safe';x[key]}`,
+          `const a=b,b=a;x[a]`,
+          `<Widget NAME='NAME'/>`,
+        ],
+      ],
+    ])
+      for (const source of cases) {
+        const input = source.replaceAll('NAME', name);
+        assert.equal(scan(input)[field], expected, input);
+      }
 });
 
 test('guard', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 't-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 't410-'));
   const write = (file, source) => {
     const target = path.join(root, file);
     fs.mkdirSync(path.dirname(target), { recursive: true });
