@@ -16,22 +16,22 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-`T410-OPTIMISTIC-NOTIFICATION-ACK` completed through protected product PR #1771.
-No successor is selected; shared shell navigation, T410 notification correctness and T210 are
-completed history.
+`T410-PESSIMISTIC-MUTATION-BOUNDARY` is the sole selected successor on exact main `ef1d972e`.
+Shared shell navigation, T410 notification correctness, optimistic notification acknowledgement and
+T210 are completed history.
 The current member screen is legacy integration evidence only. The planned net-new member UI/UX
 belongs in the unified portal shell; canonical role routes and readiness markers do not authorize
 separate dashboard designs or freeze the legacy presentation.
 
-| ID                                 | Status      | Owner     | Work                                                        | Exit Criteria                                                                  |
-| ---------------------------------- | ----------- | --------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `T410-OPTIMISTIC-NOTIFICATION-ACK` | `completed` | `product` | Immediate reversible notification acknowledgement feedback. | Focused/full proof, independent review, protected merge and exact-main health. |
+| ID                                   | Status        | Owner    | Work                                                          | Exit Criteria                                                                  |
+| ------------------------------------ | ------------- | -------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | `in_progress` | Sol/high | Admit only audited reversible production `useOptimistic` use. | Focused/full proof, independent review, protected merge and exact-main health. |
 
 ## Proof Ledger
 
-| ID                                 | Source Refs                                    | Execution  | Run ID     | Run Root | Sonar | Docker | Sentry           | Learning         | Evidence Refs                                                                            |
-| ---------------------------------- | ---------------------------------------------- | ---------- | ---------- | -------- | ----- | ------ | ---------------- | ---------------- | ---------------------------------------------------------------------------------------- |
-| `T410-OPTIMISTIC-NOTIFICATION-ACK` | docs/plans/current-program.md; owner direction | `scripted` | `32921c88` | local    | pass  | pass   | `not_applicable` | `not_applicable` | Exact-source proof and reviews passed; protected PR #1771 records merge and main health. |
+| ID                                   | Source Refs                                     | Execution | Run ID     | Run Root | Sonar   | Docker  | Sentry           | Learning         | Evidence Refs                                                                                                   |
+| ------------------------------------ | ----------------------------------------------- | --------- | ---------- | -------- | ------- | ------- | ---------------- | ---------------- | --------------------------------------------------------------------------------------------------------------- |
+| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | current program; architecture T-410/T-401/T-002 | `pending` | `ef1d972e` | local    | pending | pending | `not_applicable` | `not_applicable` | T-411 excluded: SVC-CORE and FLIGHT-03 remain incomplete; capacity and helper proposals precede implementation. |
 
 ### Final shared navigation delivery
 

@@ -27,8 +27,9 @@ Code Analysis check `103580834614`, and Sonar Main Gate `34703433721` attempt 2 
 merge.
 `T410-NOTIFICATION-ACK-CORRECTNESS` completed through protected product PR #1765. Shared shell
 navigation completed through protected product PR #1770 and exact-main health as recorded below.
-`T410-OPTIMISTIC-NOTIFICATION-ACK` completed through protected product PR #1771. No successor is
-selected; this does not complete all of T-410, select T-411, or reactivate legacy Lean.
+`T410-OPTIMISTIC-NOTIFICATION-ACK` completed through protected product PR #1771.
+`T410-PESSIMISTIC-MUTATION-BOUNDARY` is the sole selected successor; it completes the remaining
+T-410 convention guard without selecting T-411 or reactivating legacy Lean.
 
 ## Delivered History
 
@@ -207,6 +208,23 @@ Product source head `32921c88ae4e41a4ce01500866ace884ad08eba9` passed the unchan
 proof and security guard. Protected [PR #1771](https://github.com/interdomestik/interdomestik/pull/1771)
 records current-head review, hosted checks, expected-head merge and exact-main health. No deployment
 or broader T-410 completion is claimed.
+
+## T410 Pessimistic Mutation Boundary Increment
+
+Owner-selected on 2026-09-14 from exact main `ef1d972ef4c77c4c92dfa135dcf4962e05ca91d6`.
+This Sol/high bounded CI-contract slice completes the remaining T-410 convention outcome: production
+`useOptimistic` consumers must be explicitly audited, and only the delivered reversible notification
+acknowledgement module is admitted. T-401 and T-002/T-002b are complete; T-411 remains unselected
+because SVC-CORE and FLIGHT-03 are not complete.
+
+Member outcome: claim-status, recovery, subscription, settlement, payout and other unaudited
+mutations cannot gain speculative-success presentation without failing the required CI contract.
+Acceptance discovers every production consumer, rejects an unregistered consumer and stale audited
+entry, retains the four notification catalog checks, and passes focused contracts, independent
+reviews, frozen required proof, protected expected-head merge and exact-main health. Scope is limited
+to the current program/tracker, the existing T410 CI contract and its stable capacity allocation.
+App runtime/UI, proxy/routes, auth/tenant/RLS, schema/data, billing behavior, T-411/SVC/FLIGHT,
+deployment and general tooling repair remain excluded.
 
 ## Ordinary Product Delivery
 
