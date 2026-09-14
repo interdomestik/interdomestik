@@ -27,9 +27,8 @@ Code Analysis check `103580834614`, and Sonar Main Gate `34703433721` attempt 2 
 merge.
 `T410-NOTIFICATION-ACK-CORRECTNESS` completed through protected product PR #1765. Shared shell
 navigation completed through protected product PR #1770 and exact-main health as recorded below.
-The owner now selects `T410-OPTIMISTIC-NOTIFICATION-ACK`: add immediate, reversible read feedback
-to the mounted notification center over its existing typed action and concurrency contracts. This
-does not complete all of T-410, select T-411, or reactivate legacy Lean.
+`T410-OPTIMISTIC-NOTIFICATION-ACK` completed through protected product PR #1771. No successor is
+selected; this does not complete all of T-410, select T-411, or reactivate legacy Lean.
 
 ## Delivered History
 
@@ -203,6 +202,11 @@ deleted-byte credit, reserve, evaluator change or unrelated allocation. The owne
 approved the initial figures on 2026-09-14. Final review then found that restoring stable allocation
 identity requires 25 additional config bytes; the owner approved the corrected +3,614-byte and
 +1-file global total on 2026-09-14. No broader capacity authority is inferred.
+
+Product source head `32921c88ae4e41a4ce01500866ace884ad08eba9` passed the unchanged full local
+proof and security guard. Protected [PR #1771](https://github.com/interdomestik/interdomestik/pull/1771)
+records current-head review, hosted checks, expected-head merge and exact-main health. No deployment
+or broader T-410 completion is claimed.
 
 ## Ordinary Product Delivery
 
