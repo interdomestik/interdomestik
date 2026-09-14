@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-13
+last_reviewed: 2026-09-14
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -25,12 +25,10 @@ as `12b22bada268dc0961d32792a553e54dea9a2bff`. T210 completed through product PR
 `00794c98cc6b4d395493370552ab7b9eae525db7` matched. Protected-main CI `34703433627`, SonarCloud
 Code Analysis check `103580834614`, and Sonar Main Gate `34703433721` attempt 2 passed at the exact
 merge.
-`T410-NOTIFICATION-ACK-CORRECTNESS` completed through protected product PR #1765, with exact-main
-CI and Sonar passing as recorded below. It delivered truthful notification acknowledgement over
-the existing notification surface and server-action contract. The owner now selects
-`SHARED-SHELL-NAVIGATION`: reuse admitted navigation presentation across member, agent, staff and
-admin in one ordinary product PR. This does not complete all of T-410 or the all-role platform,
-select T-411, or reactivate legacy Lean.
+`T410-NOTIFICATION-ACK-CORRECTNESS` completed through protected product PR #1765. Shared shell
+navigation completed through protected product PR #1770 and exact-main health as recorded below.
+`T410-OPTIMISTIC-NOTIFICATION-ACK` completed through protected product PR #1771. No successor is
+selected; this does not complete all of T-410, select T-411, or reactivate legacy Lean.
 
 ## Delivered History
 
@@ -120,12 +118,13 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 |        2 | Bounded failed-run retry           | Owner direction | Completed migration trial 2/3. |
 |        3 | Unsupported claim AI document type | Trial 2         | Completed migration trial 3/3. |
 
-These rows are completed historical priorities. The notification acknowledgement increment is
-also complete; the sole new committed increment is `SHARED-SHELL-NAVIGATION` below.
+These rows, the notification correctness increment and shared shell navigation are completed
+history. The sole new committed increment is `T410-OPTIMISTIC-NOTIFICATION-ACK` below.
 
 ## Shared Shell Navigation Increment
 
-Owner-selected on 2026-09-13; high complexity, Astra/high implementation because role and tenant
+Owner-selected on 2026-09-13 and completed through protected product
+[PR #1770](https://github.com/interdomestik/interdomestik/pull/1770); high complexity, Astra/high implementation because role and tenant
 navigation must preserve access boundaries. Generalize existing sidebar rendering into one mounted
 presentation for member/agent, staff and admin. Existing navigation models, server-authorized role
 inputs, agent tiers, staff CRM visibility, admin branch scope and query-sensitive people selection
@@ -155,6 +154,59 @@ caller selection handles admin people filters, changed inputs replace stale link
 preserves caller content, collapsed links retain names, and ordinary mobile activation closes the
 existing drawer. Focused tests, independent Astra review, unchanged required repository proof,
 protected expected-head merge and exact-main health remain delivery requirements.
+
+Product head `049a6f4b2d8c47d94b71cf4ba8b4195f050c8dd3` squash-merged as
+`8e4abb9272a144e91b27b988b2476f5dd45c9c40` on 2026-09-13. Required protected PR checks,
+including CI, full E2E, Pilot, security, CodeQL and SonarCloud, passed. Exact-main CI
+`34788807428`, Sonar Main Gate `34788807382`, Secret Scan `34788807371`, CodeQL quality
+`34788806958` and CodeQL security `34788807132` passed at that merge. A later successful feedback
+refresh superseded one unrelated failed refresh; neither run demonstrated a product defect. No
+deployment or all-role portal completion is claimed.
+
+## T410 Optimistic Notification Acknowledgement Increment
+
+Owner-selected on 2026-09-14; high complexity and Astra/high implementation because the mounted
+notification center combines concurrent React rendering, asynchronous mutation/fetch ordering and
+subscriber epochs. Blueprint dependencies T-401 and T-002 are complete. Selected main had no
+production `useOptimistic` call. The bounded increment adds immediate read-state presentation for
+single and bulk acknowledgement, commits the canonical snapshot only for matching typed success, and
+rolls back typed failure, thrown failure or a mismatched notification ID. Action-link navigation
+still waits for confirmed success. Claim status and every other mutation domain remain unchanged.
+
+Brief checked 2026-09-14 for installed React 19.2.8. The matching React 19.2 source guidance
+requires optimistic dispatch inside an async transition and derives rollback by removing the
+optimistic overlay when the action settles without a canonical update; adopt that base/overlay
+split. Existing WCAG status-message guidance remains applicable: retain announced processing,
+success and error feedback without focusing the status region; pending and rollback keep the
+active acknowledgement control mounted and focusable. The earlier correctness increment rejected
+speculative state while the available reference documented a different React version; this
+increment uses version-matching evidence and explicit rollback tests rather than adding the hook
+by name alone. Claude Sonnet 5 supplied the bounded transition proposal and Gemini 3.1 Pro supplied
+independent fetch, subscriber and navigation counterexamples; both reported the requested served
+models. Gemini's overlapping single/bulk premise is rejected because synchronous refs already
+forbid that second action.
+
+Acceptance: single and bulk acknowledgement update the represented unread state immediately;
+typed, thrown and wrong-ID failures roll back; duplicate/overlap, subscriber replacement,
+fetch-reconciliation and confirmed-before-navigation behavior remain; focused tests, independent
+final review, unchanged required repository
+proof, protected expected-head merge and exact-main health pass. Server notification actions and
+queries, proxy/routes, auth/tenant/RLS, schema, claim status, money/legal actions, billing,
+navigation design and deployment remain unchanged.
+
+The candidate keeps the real-Radix focus regression that caught native-disabled focus loss. Its
+exact capacity proposal changes T410 total 48,728→52,182 bytes, source 15,088→15,180, tests
+32,438→35,800 and files 6→7; exact budget self-attribution is +160 config bytes. Derived global
+changes are +3,614 total, +92 source, +3,362 tests, +160 config and +1 file. This proposal uses no
+deleted-byte credit, reserve, evaluator change or unrelated allocation. The owner explicitly
+approved the initial figures on 2026-09-14. Final review then found that restoring stable allocation
+identity requires 25 additional config bytes; the owner approved the corrected +3,614-byte and
++1-file global total on 2026-09-14. No broader capacity authority is inferred.
+
+Product source head `32921c88ae4e41a4ce01500866ace884ad08eba9` passed the unchanged full local
+proof and security guard. Protected [PR #1771](https://github.com/interdomestik/interdomestik/pull/1771)
+records current-head review, hosted checks, expected-head merge and exact-main health. No deployment
+or broader T-410 completion is claimed.
 
 ## Ordinary Product Delivery
 

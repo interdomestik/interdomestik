@@ -28,6 +28,7 @@ export interface Notification {
 interface NotificationItemProps {
   readonly notification: Notification;
   readonly pending: boolean;
+  readonly blocked: boolean;
   readonly onMarkAsRead: (id: string, event?: React.MouseEvent) => Promise<boolean>;
   readonly onClose: () => void;
   readonly markReadLabel: string;
@@ -66,6 +67,7 @@ function notificationIcon(type: string) {
 export function NotificationItem({
   notification,
   pending,
+  blocked,
   onMarkAsRead,
   onClose,
   markReadLabel,
@@ -100,14 +102,21 @@ export function NotificationItem({
           >
             {notification.title}
           </p>
-          {!isRead && (
-            <DropdownMenuItem asChild disabled={pending} onSelect={event => event.preventDefault()}>
+          {(!isRead || pending) && (
+            <DropdownMenuItem asChild onSelect={event => event.preventDefault()}>
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-5 w-5 rounded-full hover:bg-primary/20 hover:text-primary"
-                onClick={event => onMarkAsRead(notification.id, event)}
-                disabled={pending}
+                onClick={event => {
+                  if (blocked) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    return;
+                  }
+                  return onMarkAsRead(notification.id, event);
+                }}
+                aria-disabled={blocked}
                 aria-busy={pending}
                 aria-label={markReadLabel}
               >
@@ -124,15 +133,15 @@ export function NotificationItem({
           {actionHref && (
             <DropdownMenuItem
               asChild
-              disabled={pending}
-              onSelect={event => (!isRead || pending) && event.preventDefault()}
+              disabled={blocked}
+              onSelect={event => (!isRead || blocked) && event.preventDefault()}
             >
               <Link
                 href={actionHref}
-                aria-disabled={pending}
-                tabIndex={pending ? -1 : undefined}
+                aria-disabled={blocked}
+                tabIndex={blocked ? -1 : undefined}
                 onClick={async event => {
-                  if (pending) {
+                  if (blocked) {
                     event.preventDefault();
                     event.stopPropagation();
                     return;
@@ -151,7 +160,7 @@ export function NotificationItem({
                 }}
                 className={cn(
                   'inline-flex items-center gap-1 text-[10px] font-bold text-primary hover:underline',
-                  pending && 'pointer-events-none opacity-50'
+                  blocked && 'pointer-events-none opacity-50'
                 )}
                 data-testid="notification-action"
               >
