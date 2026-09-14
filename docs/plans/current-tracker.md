@@ -29,9 +29,9 @@ separate dashboard designs or freeze the legacy presentation.
 
 ## Proof Ledger
 
-| ID                                   | Source Refs                                     | Execution  | Run ID     | Run Root | Sonar          | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                                   |
-| ------------------------------------ | ----------------------------------------------- | ---------- | ---------- | -------- | -------------- | ------ | ---------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | current program; architecture T-410/T-401/T-002 | `scripted` | `1cb7e978` | local    | not_applicable | pass   | `not_applicable` | `not_applicable` | Three accepted review corrections, five focused contracts, renewed full proof, security guard and fresh independent Astra review passed; protected checks/merge remain pending. |
+| ID                                   | Source Refs                                     | Execution  | Run ID     | Run Root | Sonar          | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                                  |
+| ------------------------------------ | ----------------------------------------------- | ---------- | ---------- | -------- | -------------- | ------ | ---------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | current program; architecture T-410/T-401/T-002 | `scripted` | `b45d8e45` | local    | not_applicable | pass   | `not_applicable` | `not_applicable` | Four accepted review corrections, five focused contracts, renewed full proof, security guard and fresh independent Astra review passed; protected checks/merge remain pending. |
 
 ### T410 pessimistic mutation boundary progress
 
@@ -62,18 +62,26 @@ forbidden-mutation inventory covers claim status, recovery, settlement, payout, 
 airline-claim and sponsored-membership writers even through aliases, namespace access and computed
 keys, and the sole-selection prose names the pessimistic boundary.
 
-Fresh independent Astra/high review passed exact head `1cb7e978` after exercising 56 forbidden
-examples, eight hook syntax cases, all 64 orderings of a 32-link alias chain, cycle termination, all
-eight production extensions, exclusions, and stale/unregistered consumers. Five focused contracts,
-repo-size, modularity, plan, Prettier and diff checks passed. The same exact implementation head
-passed `pnpm pr:verify` against isolated task database `interdomestik_ci_t410_boundary_01a09f54`:
-1,182 CI contracts, 154 release tests, 41 RLS tests, 3,383 web passes with 12 intentional skips,
-81.29% repository line coverage, 252 gate passes with 12 intentional skips, and 13 smoke passes with
-11 intentional skips. The separate `pnpm security:guard` passed. The successful run used the
-protected workflow's canonical same-database CI-parity configuration; source-map upload was disabled
-and no deployment ran. These results bind to the implementation head; this evidence-only plan update
-does not transfer them to changed product code. Protected final-head checks, expected-head merge and
-exact-main health remain pending.
+Final-head review at `5b39aea4` found one additional actual status-spine wrapper: `cancelClaim`
+delegates through `cancelClaimCore` to `transitionClaimStatus`, but the forbidden verb inventory did
+not include cancellation. Exact implementation head `b45d8e4507525bef7e20a7f7ca4219e32c31ab4c`
+adds cancellation and its regression seed while keeping the existing CI contract at 6,496 bytes,
+inside the unchanged 6,500-byte cap.
+
+Fresh independent Astra/high review passed the exact `b45d8e45` content after exercising 14 direct,
+aliased, namespace, computed-key, destructured and template-access cancellation forms. Its earlier
+review passed the remaining 56 forbidden examples, eight hook syntax cases, all 64 orderings of a
+32-link alias chain, cycle termination, all eight production extensions, exclusions, and
+stale/unregistered consumers. Five focused contracts, repo-size, modularity, plan, Prettier and diff
+checks passed. The same exact implementation head passed `pnpm pr:verify` against isolated task
+database `interdomestik_ci_t410_boundary_01a09f54`: 1,182 CI contracts, 154 release tests, 41 RLS
+tests, 3,383 web passes with 12 intentional skips, 81.29% repository line coverage, 252 gate passes
+with 12 intentional skips, and 13 smoke passes with 11 intentional skips. The separate
+`pnpm security:guard` passed. The successful run used the protected workflow's canonical
+same-database CI-parity configuration; source-map upload was disabled and no deployment ran. These
+results bind to the implementation head; this evidence-only plan update does not transfer them to
+changed product code. Protected final-head checks, expected-head merge and exact-main health remain
+pending.
 
 ### Final shared navigation delivery
 
