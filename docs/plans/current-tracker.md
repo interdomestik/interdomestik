@@ -29,9 +29,9 @@ separate dashboard designs or freeze the legacy presentation.
 
 ## Proof Ledger
 
-| ID                                   | Source Refs                                     | Execution  | Run ID     | Run Root | Sonar          | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                           |
-| ------------------------------------ | ----------------------------------------------- | ---------- | ---------- | -------- | -------------- | ------ | ---------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | current program; architecture T-410/T-401/T-002 | `scripted` | `ea41ed2c` | local    | not_applicable | pass   | `not_applicable` | `not_applicable` | Five focused contracts, full required proof, security guard and independent Astra review passed; protected checks/merge remain pending. |
+| ID                                   | Source Refs                                     | Execution  | Run ID     | Run Root | Sonar          | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                                          |
+| ------------------------------------ | ----------------------------------------------- | ---------- | ---------- | -------- | -------------- | ------ | ---------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | current program; architecture T-410/T-401/T-002 | `scripted` | `82565632` | local    | not_applicable | pass   | `not_applicable` | `not_applicable` | Accepted current-head review correction, five focused contracts, full required proof, security guard and fresh independent Astra review passed; protected checks/merge remain pending. |
 
 ### T410 pessimistic mutation boundary progress
 
@@ -46,21 +46,28 @@ The bounded AST contract admits only the notification-center consumer, rejects u
 stale allowlist entries, ignores comments/strings and established test scaffolding, detects aliases,
 indirection, computed access and declaration-after-use, covers production TS/TSX/JS/JSX/MJS/CJS,
 and derives repository identity from `import.meta.url`. Five focused contracts pass in under one
-second; the capacity audit and modularity guard pass. Sonnet 5 and Gemini 3.1 Pro current-head
-reviews reported the configured served models. Accepted review corrections removed a one-byte
-unrelated cap change, broadened identifier detection and removed CWD dependence. Gemini's category
-and formatting claims are disproved by the passing repository budget audit and Prettier check.
+second; the capacity audit and modularity guard pass. Sonnet 5 and Gemini 3.1 Pro
+implementation-snapshot reviews reported the configured served models. Accepted review corrections
+removed a one-byte unrelated cap change, broadened identifier detection and removed CWD dependence.
+Gemini's category and formatting claims are disproved by the passing repository budget audit and
+Prettier check.
 
-Independent Astra/high review passed exact implementation head
-`ea41ed2c3dd7391c435f0770fa1ff6c9d3af3de9` after exercising seven syntax and seven production-path
-counterexamples; no actionable findings remain. The same frozen head passed `pnpm pr:verify` against
-isolated task database `interdomestik_ci_t410_boundary_01a09f54`: 1,182 CI contracts, 154 release
-tests, 41 RLS tests, 3,383 web passes with 12 intentional skips, 81.29% repository line coverage,
-252 gate passes with 12 intentional skips, and 13 smoke passes with 11 intentional skips. The
-separate `pnpm security:guard` also passed. Source-map upload was disabled and no deployment ran.
-These local results bind to the implementation head; the following evidence-only tracker commit
-does not transfer them to changed product code. Protected current-head checks, expected-head merge
-and exact-main health remain pending.
+PR #1772 current-head review at `f99c181a` found one actionable ordering gap: a key alias declared
+before its terminal hook-name alias was never revisited. Corrected head
+`82565632a0a4f3b7c53cb1f7408f38f4fcfa1862` uses a terminating fixed-point pass, and its regression
+contract covers the declaration-before-use chain. Fresh independent Astra/high review passed that
+exact head after exercising all ten syntax cases, 64 orderings of a 32-link chain, three terminating
+cycles, production-path exclusions and stale/unregistered consumers; no actionable findings remain.
+The same corrected head passed `pnpm pr:verify` against isolated task database
+`interdomestik_ci_t410_boundary_01a09f54`: 1,182 CI contracts, 154 release tests, 41 RLS tests,
+3,383 web passes with 12 intentional skips, 81.29% repository line coverage, 252 gate passes with
+12 intentional skips, and 13 smoke passes with 11 intentional skips. The first renewed attempt used
+a nonexistent local `app_user` credential and stopped before migration; the successful ordered run
+used the protected workflow's canonical same-database CI-parity configuration. The separate
+`pnpm security:guard` also passed. Source-map upload was disabled and no deployment ran. These local
+results bind to the corrected implementation head; the following evidence-only tracker commit does
+not transfer them to changed product code. Protected current-head checks, expected-head merge and
+exact-main health remain pending.
 
 ### Final shared navigation delivery
 

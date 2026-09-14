@@ -233,11 +233,14 @@ self-size remains 62,480. No deleted-byte credit, reserve, new file or guard wea
 To retain byte-identical budget self-size, the unchanged 4,000-byte front-door path cap is encoded
 as the equivalent JSON number `4e3`; its parsed allocation is unchanged.
 
-Exact implementation head `ea41ed2c3dd7391c435f0770fa1ff6c9d3af3de9` passed five focused
-contracts, the unchanged full `pnpm pr:verify`, the separate `pnpm security:guard`, capacity and
-modularity audits, and independent Astra/high review with no remaining findings. Full proof used an
-isolated task database and disabled source-map upload; it did not deploy. Protected current-head
-checks, expected-head merge and exact-main health remain required.
+PR #1772 current-head review found that a key alias declared before its terminal hook-name alias was
+not revisited. The accepted correction uses a terminating fixed-point alias pass for arbitrary
+ordering and chains. Exact corrected implementation head
+`82565632a0a4f3b7c53cb1f7408f38f4fcfa1862` passed five focused contracts, the unchanged full
+`pnpm pr:verify`, the separate `pnpm security:guard`, capacity and modularity audits, and fresh
+independent Astra/high review with no remaining findings. Full proof used an isolated task database,
+canonical CI-parity credentials and disabled source-map upload; it did not deploy. Protected
+current-head checks, expected-head merge and exact-main health remain required.
 
 ## Ordinary Product Delivery
 
