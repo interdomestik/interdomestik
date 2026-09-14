@@ -119,8 +119,9 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 |        2 | Bounded failed-run retry           | Owner direction | Completed migration trial 2/3. |
 |        3 | Unsupported claim AI document type | Trial 2         | Completed migration trial 3/3. |
 
-These rows, the notification correctness increment and shared shell navigation are completed
-history. The sole new committed increment is `T410-OPTIMISTIC-NOTIFICATION-ACK` below.
+These rows, the notification correctness increment, shared shell navigation and optimistic
+notification acknowledgement are completed history. The sole selected increment is
+`T410-PESSIMISTIC-MUTATION-BOUNDARY` below.
 
 ## Shared Shell Navigation Increment
 

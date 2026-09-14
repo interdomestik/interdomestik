@@ -8,32 +8,31 @@ import ts from 'typescript';
 
 import { structuredArtifactOwner as owner } from '../modularity-guard-policy.mjs';
 
-const AUDITED = ['apps/web/src/components/notifications/notification-center.tsx'];
+const AUDITED = 'apps/web/src/components/notifications/notification-center.tsx';
 const TEST_UI = 'apps/web/src/components/notifications/notification-test-ui.tsx';
+const OTHER = 'apps/web/src/components/claims/status.tsx';
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const SKIP_DIRS = new Set(
   '__mocks__ __tests__ build dist e2e fixtures node_modules stories test tests'.split(' ')
 );
+const FORBIDDEN =
+  /\b(?:(?:activate|issue|pay|record|save|settle|submit|transition|update)\w*(?:Airline|Claim(?:Status)?|Payout|Recovery|Settlement|SuccessFee)|activateSponsoredMembership)\w*/u;
 
-const toPosix = value => value.split(path.sep).join('/');
+const toPosix = value => value.replaceAll(path.sep, '/');
 
 function isSource(file) {
-  const base = path.basename(file);
-  const relative = toPosix(file);
   return (
-    /\.[cm]?[jt]sx?$/u.test(base) &&
-    !/\.d\.[cm]?ts$/u.test(base) &&
-    !/\.(?:fixture|mock|spec|stories|test)\.[cm]?[jt]sx?$/u.test(base) &&
-    relative !== TEST_UI &&
-    (relative.startsWith('apps/web/src/') || /^packages\/[^/]+\/src\//u.test(relative)) &&
-    !relative.split('/').some(segment => SKIP_DIRS.has(segment))
+    /\.[cm]?[jt]sx?$/u.test(file) &&
+    !/\.d\.[cm]?ts$/u.test(file) &&
+    !/\.(?:fixture|mock|spec|stories|test)\.[cm]?[jt]sx?$/u.test(file) &&
+    file !== TEST_UI &&
+    (file.startsWith('apps/web/src/') || /^packages\/[^/]+\/src\//u.test(file)) &&
+    !file.split('/').some(segment => SKIP_DIRS.has(segment))
   );
 }
 
 function hasHook(source, name) {
-  const kind =
-    ts.ScriptKind[`${/\.[cm]?js/u.test(name) ? 'J' : 'T'}S${name.endsWith('x') ? 'X' : ''}`];
-  const ast = ts.createSourceFile(name, source, ts.ScriptTarget.Latest, true, kind);
+  const ast = ts.createSourceFile(name, source, ts.ScriptTarget.Latest, true);
   const keys = new Set();
   const vars = [];
   const hookKey = outer => {
@@ -90,9 +89,8 @@ function walk(root, directory, files) {
 
 function consumers(root) {
   const files = [];
-  for (const sourceRoot of ['apps/web/src', 'packages']) {
+  for (const sourceRoot of ['apps/web/src', 'packages'])
     walk(root, path.join(root, sourceRoot), files);
-  }
   return files
     .filter(file => hasHook(fs.readFileSync(file.absolute, 'utf8'), file.relative))
     .map(file => file.relative)
@@ -101,8 +99,8 @@ function consumers(root) {
 
 function boundary(discovered) {
   return {
-    unexpected: discovered.filter(file => !AUDITED.includes(file)),
-    missing: AUDITED.filter(file => !discovered.includes(file)),
+    unexpected: discovered.filter(file => file !== AUDITED),
+    missing: discovered.includes(AUDITED) ? [] : [AUDITED],
   };
 }
 
@@ -145,33 +143,30 @@ test('covers production modules, not the test helper', () => {
   assert.equal(isSource(TEST_UI), false);
 });
 
-test('reports unregistered and stale consumers', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 't410-optimistic-boundary-'));
-  const write = (relativePath, source) => {
-    const absolutePath = path.join(root, relativePath);
-    fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
-    fs.writeFileSync(absolutePath, source);
+test('reports unregistered, stale, and forbidden consumers', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 't410-'));
+  const write = (file, source) => {
+    const target = path.join(root, file);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, source);
   };
   try {
-    write(AUDITED[0], "import { useOptimistic } from 'react';");
-    write(
-      'apps/web/src/components/claims/status.tsx',
-      "import * as React from 'react'; React.useOptimistic([]);"
-    );
-    write(
-      'apps/web/src/components/claims/status.test.tsx',
-      "import { useOptimistic } from 'react';"
-    );
+    write(AUDITED, "import { useOptimistic } from 'react';");
+    write(OTHER, "import * as React from 'react'; React.useOptimistic([]);");
     const discovered = consumers(root);
-    assert.deepEqual(discovered, ['apps/web/src/components/claims/status.tsx', AUDITED[0]]);
+    assert.deepEqual(discovered, [OTHER, AUDITED]);
     assert.deepEqual(boundary(discovered), {
-      unexpected: ['apps/web/src/components/claims/status.tsx'],
+      unexpected: [OTHER],
       missing: [],
     });
-    write(AUDITED[0], 'export const settled = true;');
+    for (const name of 'updateClaimStatus saveStaffRecoveryDecisionCore saveSuccessFeeCollection issuePayoutSettlement submitAirlineClaim activateSponsoredMembership'.split(
+      ' '
+    ))
+      assert.match(name, FORBIDDEN);
+    write(AUDITED, 'export const settled = true;');
     assert.deepEqual(boundary(consumers(root)), {
-      unexpected: ['apps/web/src/components/claims/status.tsx'],
-      missing: AUDITED,
+      unexpected: [OTHER],
+      missing: [AUDITED],
     });
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
@@ -181,5 +176,6 @@ test('reports unregistered and stale consumers', () => {
 test('repository has only the audited consumer', () => {
   const discovered = consumers(ROOT);
   assert.deepEqual(boundary(discovered), { unexpected: [], missing: [] });
-  assert.deepEqual(discovered, AUDITED);
+  assert.deepEqual(discovered, [AUDITED]);
+  assert.doesNotMatch(fs.readFileSync(path.join(ROOT, AUDITED), 'utf8'), FORBIDDEN);
 });
