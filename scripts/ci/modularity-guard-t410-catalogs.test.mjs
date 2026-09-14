@@ -6,7 +6,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 
-import { structuredArtifactOwner } from '../modularity-guard-policy.mjs';
+import { structuredArtifactOwner as owner } from '../modularity-guard-policy.mjs';
 
 const AUDITED = ['apps/web/src/components/notifications/notification-center.tsx'];
 const TEST_UI = 'apps/web/src/components/notifications/notification-test-ui.tsx';
@@ -17,7 +17,7 @@ const SKIP_DIRS = new Set(
 
 const toPosix = value => value.split(path.sep).join('/');
 
-function isProduction(file) {
+function isSource(file) {
   const base = path.basename(file);
   const relative = toPosix(file);
   return (
@@ -30,31 +30,33 @@ function isProduction(file) {
   );
 }
 
-function containsHook(source, name) {
+function hasHook(source, name) {
   const kind =
     ts.ScriptKind[`${/\.[cm]?js/u.test(name) ? 'J' : 'T'}S${name.endsWith('x') ? 'X' : ''}`];
   const ast = ts.createSourceFile(name, source, ts.ScriptTarget.Latest, true, kind);
-  const hookKeys = new Set();
+  const keys = new Set();
+  const vars = [];
   const hookKey = outer => {
     const node = ts.skipOuterExpressions(outer);
     return (
       (ts.isStringLiteralLike(node) && node.text === 'useOptimistic') ||
-      (ts.isIdentifier(node) && hookKeys.has(node.text)) ||
+      (ts.isIdentifier(node) && keys.has(node.text)) ||
       (ts.isComputedPropertyName(node) && hookKey(node.expression))
     );
   };
   const collect = node => {
-    if (
-      ts.isVariableDeclaration(node) &&
-      ts.isIdentifier(node.name) &&
-      node.initializer &&
-      hookKey(node.initializer)
-    ) {
-      hookKeys.add(node.name.text);
-    }
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer)
+      vars.push(node);
     ts.forEachChild(node, collect);
   };
   collect(ast);
+  let size;
+  do {
+    size = keys.size;
+    for (const node of vars) {
+      if (hookKey(node.initializer)) keys.add(node.name.text);
+    }
+  } while (keys.size !== size);
   let found = false;
   const visit = node => {
     if (
@@ -72,27 +74,27 @@ function containsHook(source, name) {
   return found;
 }
 
-function walkProduction(root, directory, files) {
+function walk(root, directory, files) {
   if (!fs.existsSync(directory)) return;
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
     const absolute = path.join(directory, entry.name);
     if (entry.isDirectory()) {
-      if (!SKIP_DIRS.has(entry.name)) walkProduction(root, absolute, files);
+      if (!SKIP_DIRS.has(entry.name)) walk(root, absolute, files);
       continue;
     }
     if (entry.isSymbolicLink()) continue;
     const relative = toPosix(path.relative(root, absolute));
-    if (isProduction(relative)) files.push({ absolute, relative });
+    if (isSource(relative)) files.push({ absolute, relative });
   }
 }
 
-function findConsumers(root) {
+function consumers(root) {
   const files = [];
   for (const sourceRoot of ['apps/web/src', 'packages']) {
-    walkProduction(root, path.join(root, sourceRoot), files);
+    walk(root, path.join(root, sourceRoot), files);
   }
   return files
-    .filter(file => containsHook(fs.readFileSync(file.absolute, 'utf8'), file.relative))
+    .filter(file => hasHook(fs.readFileSync(file.absolute, 'utf8'), file.relative))
     .map(file => file.relative)
     .sort((left, right) => left.localeCompare(right));
 }
@@ -107,23 +109,26 @@ function boundary(discovered) {
 test('owns the T410 locale catalogs', () => {
   for (const locale of ['en', 'mk', 'sq', 'sr']) {
     const path = `apps/web/src/messages/${locale}/notifications.json`;
-    assert.equal(structuredArtifactOwner(path), 't410-notification-acknowledgement-i18n-contract');
+    assert.equal(owner(path), 't410-notification-acknowledgement-i18n-contract');
   }
 
-  assert.equal(structuredArtifactOwner('apps/web/src/messages/de/notifications.json'), null);
-  assert.equal(structuredArtifactOwner('apps/web/src/messages/en/unrelated.json'), null);
+  assert.equal(owner('apps/web/src/messages/de/notifications.json'), null);
+  assert.equal(owner('apps/web/src/messages/en/unrelated.json'), null);
 });
 
 test('finds hook syntax but not comments or strings', () => {
-  assert.equal(containsHook('// useOptimistic\nconst note = "useOptimistic";', 'a.ts'), false);
+  assert.equal(hasHook('// useOptimistic\nconst note = "useOptimistic";', 'a.ts'), false);
   for (const [source, file] of [
     ["import {'useOptimistic' as useFast} from 'react';", 'a.ts'],
     ["import * as R from 'react'; R.useOptimistic([]);", 'a.tsx'],
     ['React[("useOptimistic")]();', 'a.ts'],
-    ['function C(){return React[key]()} const key=`useOptimistic` as const;', 'a.jsx'],
+    [
+      'function C(){const alias=key;return React[alias]()} const key=`useOptimistic` as const;',
+      'a.jsx',
+    ],
     ['const {"useOptimistic": hook} = React;', 'a.js'],
   ]) {
-    assert.equal(containsHook(source, file), true);
+    assert.equal(hasHook(source, file), true);
   }
 });
 
@@ -135,9 +140,9 @@ test('covers production modules, not the test helper', () => {
     'packages/x/src/a.mjs',
     'packages/x/src/a.cjs',
   ]) {
-    assert.ok(isProduction(file));
+    assert.ok(isSource(file));
   }
-  assert.equal(isProduction(TEST_UI), false);
+  assert.equal(isSource(TEST_UI), false);
 });
 
 test('reports unregistered and stale consumers', () => {
@@ -157,14 +162,14 @@ test('reports unregistered and stale consumers', () => {
       'apps/web/src/components/claims/status.test.tsx',
       "import { useOptimistic } from 'react';"
     );
-    const discovered = findConsumers(root);
+    const discovered = consumers(root);
     assert.deepEqual(discovered, ['apps/web/src/components/claims/status.tsx', AUDITED[0]]);
     assert.deepEqual(boundary(discovered), {
       unexpected: ['apps/web/src/components/claims/status.tsx'],
       missing: [],
     });
     write(AUDITED[0], 'export const settled = true;');
-    assert.deepEqual(boundary(findConsumers(root)), {
+    assert.deepEqual(boundary(consumers(root)), {
       unexpected: ['apps/web/src/components/claims/status.tsx'],
       missing: AUDITED,
     });
@@ -174,7 +179,7 @@ test('reports unregistered and stale consumers', () => {
 });
 
 test('repository has only the audited consumer', () => {
-  const discovered = findConsumers(ROOT);
+  const discovered = consumers(ROOT);
   assert.deepEqual(boundary(discovered), { unexpected: [], missing: [] });
   assert.deepEqual(discovered, AUDITED);
 });
