@@ -29,9 +29,9 @@ separate dashboard designs or freeze the legacy presentation.
 
 ## Proof Ledger
 
-| ID                                   | Source Refs                                     | Execution  | Run ID     | Run Root | Sonar          | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                                        |
-| ------------------------------------ | ----------------------------------------------- | ---------- | ---------- | -------- | -------------- | ------ | ---------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | current program; architecture T-410/T-401/T-002 | `scripted` | `92102e84` | local    | not_applicable | pass   | `not_applicable` | `not_applicable` | Six accepted PR-review corrections plus one Astra inventory correction, five focused contracts, renewed full proof and security guard passed; protected checks/merge remain pending. |
+| ID                                   | Source Refs                                     | Execution  | Run ID     | Run Root | Sonar          | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                                 |
+| ------------------------------------ | ----------------------------------------------- | ---------- | ---------- | -------- | -------------- | ------ | ---------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | current program; architecture T-410/T-401/T-002 | `scripted` | `1b1812e8` | local    | not_applicable | pass   | `not_applicable` | `not_applicable` | Comprehensive semantic AST correction, four focused contracts, adversarial Astra review, renewed full proof and security guard passed; protected checks/merge remain pending. |
 
 ### T410 pessimistic mutation boundary progress
 
@@ -45,7 +45,7 @@ reserve use, new file or guard weakening.
 The bounded AST contract admits only the notification-center consumer, rejects unregistered and
 stale allowlist entries, ignores comments/strings and established test scaffolding, detects aliases,
 indirection, computed access and declaration-after-use, covers production TS/TSX/JS/JSX/MJS/CJS,
-and derives repository identity from `import.meta.url`. Five focused contracts pass in under one
+and derives repository identity from `import.meta.url`. Four focused contracts pass in under one
 second; the capacity audit and modularity guard pass. Sonnet 5 and Gemini 3.1 Pro
 implementation-snapshot reviews reported the configured served models. Accepted review corrections
 removed a one-byte unrelated cap change, broadened identifier detection and removed CWD dependence.
@@ -79,14 +79,28 @@ implementation head `92102e84eafd9d75087f28a16d373ababa732c5f` adds that real wr
 classifier and regression seed. The final contract is 6,497 bytes, inside the approved 6,500-byte
 path cap, without changing any capacity value.
 
-Fresh independent Astra/high review passed the exact `92102e84` implementation content after
-exercising 60 mutation variants across 20 existing names, quoted import/export aliases,
-namespace/element/destructuring access, 20 chained-alias orderings, cycle termination,
-comments/strings, exclusions and stale/unregistered consumers. Its content blob was
-`5c1c25f6e3d3ee750f983021b2d245e3aa2d4df1`. Five focused contracts, repo-size, modularity,
-plan, Prettier and diff checks passed. The same exact implementation head passed `pnpm pr:verify`
-against isolated task
-database `interdomestik_ci_t410_boundary_01a09f54`: 1,182 CI contracts, 154 release tests, 41 RLS
+Review at pushed head `62e7ceed` then found a distinct false-positive boundary: raw-source matching
+could treat inert comments or user-facing strings as forbidden mutation references. The
+comprehensive correction at exact implementation head
+`1b1812e85c274495e736544001bec5dae392b86f` parses real file kinds and derives hook/mutation names
+only from syntax-tree identifiers and decoded string literals. It resolves hook and mutation literal
+aliases to a terminating fixed point, preserves quoted imports/exports, calls, member/element access
+and computed destructuring, and ignores comment trivia, inert strings and object keys. Astra review
+also exposed and verified the necessary real-filename TSX parsing after JSX. The explicit support
+boundary is named imports/exports, calls, member access, destructuring and locally resolvable literal
+aliases; arbitrary runtime-computed names, reflection and whole-program cross-module renaming are not
+claimed.
+
+Fresh independent Astra/high review passed the exact `1b1812e8` content blob
+`0825bf679e49731ae64dabbec975d50a05330b0c` after exercising both TSX discovery paths, nine mutation
+forms across 22 inventory names, quoted import/export aliases, 64 chained-alias orderings, cycle
+termination, inert comments/strings/object keys, exclusions and stale/unregistered consumers. Four
+focused contracts, repo-size, modularity, plan, Prettier and diff checks passed. After a discarded
+environmental attempt against an accidentally unmigrated database, the next isolated database was
+created, migrated, and preflighted at 86 public tables with all 11 checked critical tables under RLS;
+its standalone required RLS lane passed before the expensive gate. The same exact implementation
+head then passed `pnpm pr:verify` against
+`interdomestik_ci_t410_boundary_01a09f54_v3`: the complete CI and release contract suites, 41 RLS
 tests, 3,383 web passes with 12 intentional skips, 81.29% repository line coverage, 252 gate passes
 with 12 intentional skips, and 13 smoke passes with 11 intentional skips. The separate
 `pnpm security:guard` passed. The successful run used the protected workflow's canonical

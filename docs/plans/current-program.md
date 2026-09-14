@@ -234,24 +234,35 @@ self-size remains 62,480. No deleted-byte credit, reserve, new file or guard wea
 To retain byte-identical budget self-size, the unchanged 4,000-byte front-door path cap is encoded
 as the equivalent JSON number `4e3`; its parsed allocation is unchanged.
 
-PR #1772 reviews produced six accepted contract corrections. A terminating fixed-point alias pass
-now revisits key aliases declared before their terminal hook-name aliases. The audited notification
-consumer is also checked against a fail-closed forbidden-mutation inventory so that claim-status,
-recovery, subscription, settlement, payout, success-fee, airline-claim and sponsored-membership
-mutations cannot become speculative merely by sharing the audited module; this includes the existing
-claim- and subscription-cancellation wrappers. Hook discovery also covers string-literal import and
-re-export specifiers. Fresh independent inventory then found the public `createClaimFromSavedDraft`
-wrapper that creates submitted lifecycle state; the final classifier and regression seed cover it.
-The stale ordered-priority sentence now names this increment as the sole selection. Exact corrected
-implementation head `92102e84eafd9d75087f28a16d373ababa732c5f` passed five focused contracts, the unchanged full
-`pnpm pr:verify`, the separate `pnpm security:guard`, capacity and modularity audits, and fresh
-independent Astra/high review with no remaining findings. The 6,497-byte contract remains inside the
-approved 6,500-byte path cap. Full proof used isolated task database
-`interdomestik_ci_t410_boundary_01a09f54`, canonical CI-parity credentials and disabled source-map
-upload; it passed 1,182 CI contracts, 154 release tests, 41 RLS tests, 3,383 web tests with 12
-intentional skips, 81.29% repository line coverage, 252 browser-gate tests with 12 intentional skips,
-and 13 smoke tests with 11 intentional skips. It did not deploy. Protected current-head checks,
-expected-head merge and exact-main health remain required.
+PR #1772 reviews and independent inventory produced the accepted contract corrections. A terminating
+fixed-point alias pass revisits key aliases declared before their terminal hook-name aliases. The
+audited notification consumer is also checked against a fail-closed forbidden-mutation inventory so
+that claim-status, recovery, subscription, settlement, payout, success-fee, airline-claim and
+sponsored-membership mutations cannot become speculative merely by sharing the audited module; this
+includes the existing claim- and subscription-cancellation wrappers and the public
+`createClaimFromSavedDraft` lifecycle wrapper. Hook discovery also covers string-literal import and
+re-export specifiers. The stale ordered-priority sentence now names this increment as the sole
+selection.
+
+A later current-head review found that raw-source mutation matching could reject inert comments or
+user-facing strings. Exact corrected implementation head
+`1b1812e85c274495e736544001bec5dae392b86f` now derives both hook and mutation references from the
+TypeScript syntax tree, decodes identifier/string-literal names without comment trivia, resolves
+locally declared literal alias chains to a fixed point, and parses each discovered file with its real
+TS/TSX/JS/JSX/MJS/CJS name. Its bounded static coverage is named imports/exports, calls, member and
+element access, destructuring, and locally resolvable literal aliases; it does not claim arbitrary
+runtime-computed names, reflection or whole-program cross-module renaming. Four focused contracts,
+capacity/modularity/plan/Prettier/diff checks, and fresh independent Astra/high adversarial review
+passed with no remaining findings. The 6,497-byte contract remains inside the approved 6,500-byte
+path cap.
+
+The same exact implementation head passed the unchanged full `pnpm pr:verify` and separate
+`pnpm security:guard`. Full proof used fully migrated isolated task database
+`interdomestik_ci_t410_boundary_01a09f54_v3`, canonical CI-parity credentials and disabled
+source-map upload; it passed the complete CI and release contract suites, 41 RLS tests, 3,383 web
+tests with 12 intentional skips, 81.29% repository line coverage, 252 browser-gate tests with 12
+intentional skips, and 13 smoke tests with 11 intentional skips. It did not deploy. Protected
+current-head checks, expected-head merge and exact-main health remain required.
 
 ## Ordinary Product Delivery
 
