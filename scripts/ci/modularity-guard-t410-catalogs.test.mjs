@@ -16,7 +16,7 @@ const SKIP_DIRS = new Set(
   '__mocks__ __tests__ build dist e2e fixtures node_modules stories test tests'.split(' ')
 );
 const FORBIDDEN =
-  /\b(?:(?:activate|issue|pay|record|save|settle|submit|transition|update)\w*(?:Airline|Claim(?:Status)?|Payout|Recovery|Settlement|SuccessFee)|activateSponsoredMembership)\w*/u;
+  /\b(?:(?:activate|cancel|issue|pay|record|save|settle|submit|transition|update)\w*(?:Airline|Claim(?:Status)?|Payout|Recovery|Settlement|SuccessFee)|activateSponsoredMembership)\w*/u;
 
 const toPosix = value => value.replaceAll(path.sep, '/');
 
@@ -143,7 +143,7 @@ test('covers production modules, not the test helper', () => {
   assert.equal(isSource(TEST_UI), false);
 });
 
-test('reports unregistered, stale, and forbidden consumers', () => {
+test('reports boundary violations', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 't410-'));
   const write = (file, source) => {
     const target = path.join(root, file);
@@ -159,7 +159,7 @@ test('reports unregistered, stale, and forbidden consumers', () => {
       unexpected: [OTHER],
       missing: [],
     });
-    for (const name of 'updateClaimStatus saveStaffRecoveryDecisionCore saveSuccessFeeCollection issuePayoutSettlement submitAirlineClaim activateSponsoredMembership'.split(
+    for (const name of 'updateClaimStatus cancelClaimCore saveStaffRecoveryDecisionCore saveSuccessFeeCollection issuePayoutSettlement submitAirlineClaim activateSponsoredMembership'.split(
       ' '
     ))
       assert.match(name, FORBIDDEN);
