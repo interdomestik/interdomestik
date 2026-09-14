@@ -29,27 +29,32 @@ function isSource(file) {
 }
 
 function scan(source, name = 'x.tsx') {
-  const nodes = [];
-  const hookKeys = new Set();
-  const mutationKeys = new Set();
+  const nodes = [],
+    hookKeys = new Set(),
+    mutationKeys = new Set();
   const collect = node => {
     nodes.push(node);
     ts.forEachChild(node, collect);
   };
   collect(ts.createSourceFile(name, source, ts.ScriptTarget.Latest, true));
+  const named = [
+    ts.isElementAccessExpression,
+    ts.isBindingElement,
+    ts.isImportSpecifier,
+    ts.isExportSpecifier,
+    ts.isShorthandPropertyAssignment,
+  ];
   const member = node =>
-    ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)
-      ? (node.name ?? node.argumentExpression)
-      : ts.isCallExpression(node)
-        ? node.expression
-        : ts.isBindingElement(node) || ts.isImportSpecifier(node) || ts.isExportSpecifier(node)
-          ? (node.propertyName ?? node.name)
-          : null;
+    named.some(isNamed => isNamed(node))
+      ? (node.propertyName ?? node.name ?? node.argumentExpression)
+      : ts.isIdentifier(node) && ts.isInExpressionContext(node)
+        ? node
+        : null;
   const nameOf = outer => {
-    if (!outer) return false;
+    if (!outer) return;
     const node = ts.skipOuterExpressions(outer);
     if (ts.isIdentifier(node) || ts.isStringLiteralLike(node)) return node.text;
-    return ts.isComputedPropertyName(node) ? nameOf(node.expression) : false;
+    if (ts.isComputedPropertyName(node)) return nameOf(node.expression);
   };
   const hookKey = node => nameOf(node) === 'useOptimistic' || hookKeys.has(nameOf(node));
   const mutationKey = node => mutationKeys.has(nameOf(node)) || FORBIDDEN.test(nameOf(node) || '');
@@ -64,9 +69,7 @@ function scan(source, name = 'x.tsx') {
   } while (hookKeys.size + mutationKeys.size !== size);
   return {
     forbidden: nodes.some(node => mutationKey(member(node))),
-    hook: nodes.some(
-      node => (ts.isIdentifier(node) && node.text === 'useOptimistic') || hookKey(member(node))
-    ),
+    hook: nodes.some(node => hookKey(member(node))),
   };
 }
 
@@ -111,8 +114,8 @@ test('i18n', () => {
 });
 
 test('AST', () => {
-  assert.ok(!scan('// useOptimistic\nconst note="useOptimistic"').hook);
-  for (const source of `import{'useOptimistic'as useFast}from'react'|export{'useOptimistic'as useFast}from'react'|import*as R from'react';R.useOptimistic([])|React[("useOptimistic")]()|const alias=key;React[alias]();const key=\`useOptimistic\`|const C=()=> <b/>;const{"useOptimistic":hook}=React`.split(
+  assert.ok(!scan('({useOptimistic:"useOptimistic"}as{useOptimistic:0})').hook);
+  for (const source of `import{'useOptimistic'as useFast}from'react'|export{'useOptimistic'as useFast}from'react'|import*as R from'react';R.useOptimistic([])|React[("useOptimistic")]()|const o={useOptimistic}|const alias=key;React[alias]();const key=\`useOptimistic\`|const C=()=> <b/>;const{"useOptimistic":hook}=React`.split(
     '|'
   ))
     assert.ok(scan(source).hook);
@@ -127,7 +130,7 @@ test('AST', () => {
 });
 
 test('guard', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 't410-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 't-'));
   const write = (file, source) => {
     const target = path.join(root, file);
     fs.mkdirSync(path.dirname(target), { recursive: true });
