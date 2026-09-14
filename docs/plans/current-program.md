@@ -226,6 +226,13 @@ to the current program/tracker, the existing T410 CI contract and its stable cap
 App runtime/UI, proxy/routes, auth/tenant/RLS, schema/data, billing behavior, T-411/SVC/FLIGHT,
 deployment and general tooling repair remain excluded.
 
+The owner approved the exact stable-allocation adjustment on 2026-09-14: T410 total
+52,182→57,982 bytes, tests 35,800→41,600, the existing CI-contract path 700→6,500, global total
+61,267,746→61,273,546 and global tests 7,067,147→7,072,947. Files remain seven and budget
+self-size remains 62,480. No deleted-byte credit, reserve, new file or guard weakening is used.
+To retain byte-identical budget self-size, the unchanged 4,000-byte front-door path cap is encoded
+as the equivalent JSON number `4e3`; its parsed allocation is unchanged.
+
 ## Ordinary Product Delivery
 
 The owner adopts the ordinary protected-PR workflow demonstrated by trials 2 and 3

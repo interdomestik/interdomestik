@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 
 import { structuredArtifactOwner } from '../modularity-guard-policy.mjs';
@@ -10,6 +11,7 @@ import { structuredArtifactOwner } from '../modularity-guard-policy.mjs';
 const AUDITED_OPTIMISTIC_MODULES = [
   'apps/web/src/components/notifications/notification-center.tsx',
 ];
+const REPO_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const SOURCE_ROOTS = ['apps/web/src', 'packages'];
 const EXCLUDED_DIRECTORIES = new Set([
   '__mocks__',
@@ -164,7 +166,7 @@ test('reports unregistered and stale consumers while excluding test modules', ()
 });
 
 test('repository has exactly the audited reversible optimistic consumer', () => {
-  const discovered = findOptimisticModules(process.cwd());
+  const discovered = findOptimisticModules(REPO_ROOT);
   assert.deepEqual(optimisticBoundary(discovered), { unexpected: [], missing: [] });
   assert.deepEqual(discovered, AUDITED_OPTIMISTIC_MODULES);
 });

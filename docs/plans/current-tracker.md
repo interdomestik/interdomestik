@@ -33,6 +33,24 @@ separate dashboard designs or freeze the legacy presentation.
 | ------------------------------------ | ----------------------------------------------- | --------- | ---------- | -------- | ------- | ------- | ---------------- | ---------------- | --------------------------------------------------------------------------------------------------------------- |
 | `T410-PESSIMISTIC-MUTATION-BOUNDARY` | current program; architecture T-410/T-401/T-002 | `pending` | `ef1d972e` | local    | pending | pending | `not_applicable` | `not_applicable` | T-411 excluded: SVC-CORE and FLIGHT-03 remain incomplete; capacity and helper proposals precede implementation. |
 
+### T410 pessimistic mutation boundary progress
+
+The exact owner-approved adjustment keeps stable allocation `t410-notification-acknowledgement`:
+52,182→57,982 total bytes, 35,800→41,600 test bytes and 700→6,500 for the existing CI contract;
+global total becomes 61,273,546 and global tests 7,072,947. Files remain seven and budget self-size
+remains 62,480. The unchanged 4,000-byte front-door cap uses equivalent JSON notation `4e3` only
+to preserve byte-identical self-size. There is no capacity change to that path, deleted-byte credit,
+reserve use, new file or guard weakening.
+
+The bounded AST contract admits only the notification-center consumer, rejects unregistered and
+stale allowlist entries, ignores comments/strings and test scaffolding, detects aliases,
+indirection and computed access, and derives repository identity from `import.meta.url`. Focused
+proof passes four tests in under one second; the capacity audit and modularity guard pass. Sonnet 5
+and Gemini 3.1 Pro current-head reviews reported the configured served models. Accepted review
+corrections removed a one-byte unrelated cap change, broadened identifier detection and removed CWD
+dependence. Gemini's category and formatting claims are disproved by the passing repository budget
+audit and Prettier check; full frozen proof, Astra review, protected checks and merge remain pending.
+
 ### Final shared navigation delivery
 
 Prepared on base `643b91d5d8863a717895b5dda3d6115d6f82f169`. Sole implementation owner Astra/high;
