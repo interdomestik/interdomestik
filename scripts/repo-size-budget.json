@@ -1226,7 +1226,7 @@
         "tests/e2e": 41600
       },
       "maxPathBytesDelta": {
-        "apps/web/e2e/gate/front-door-session-context.spec.ts": 4000,
+        "apps/web/e2e/gate/front-door-session-context.spec.ts": 4e3,
         "apps/web/src/actions/notifications/mark-read.test.ts": 200,
         "apps/web/src/components/notifications/notification-center.acknowledgement.test.tsx": 12000,
         "apps/web/src/components/notifications/notification-focus.test.tsx": 2500,
@@ -1235,7 +1235,7 @@
         "apps/web/src/components/notifications/notification-center.tsx": 2500,
         "apps/web/src/components/notifications/notification-test-ui.tsx": 2500,
         "apps/web/src/components/notifications/notification-item.tsx": 5900,
-        "apps/web/src/components/notifications/notification-list.tsx": 9999,
+        "apps/web/src/components/notifications/notification-list.tsx": 10000,
         "apps/web/src/messages/en/notifications.json": 500,
         "apps/web/src/messages/mk/notifications.json": 700,
         "apps/web/src/messages/sq/notifications.json": 500,

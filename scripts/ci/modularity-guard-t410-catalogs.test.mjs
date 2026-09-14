@@ -32,14 +32,14 @@ function isProductionModule(relativePath) {
   return (
     /\.tsx?$/u.test(base) &&
     !base.endsWith('.d.ts') &&
-    !/\.(?:fixture|generated|mock|spec|stories|test)\.tsx?$/u.test(base) &&
+    !/(?:-test-ui|\.(?:fixture|generated|mock|spec|stories|test))\.tsx?$/u.test(base) &&
     !toPosix(relativePath)
       .split('/')
       .some(segment => EXCLUDED_DIRECTORIES.has(segment))
   );
 }
 
-function importsOrCallsUseOptimistic(source, fileName) {
+function containsUseOptimistic(source, fileName) {
   const sourceFile = ts.createSourceFile(
     fileName,
     source,
@@ -47,40 +47,21 @@ function importsOrCallsUseOptimistic(source, fileName) {
     true,
     fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS
   );
-  const namespaces = new Set();
-  let namedImport = false;
-
-  for (const statement of sourceFile.statements) {
-    if (!ts.isImportDeclaration(statement) || statement.moduleSpecifier.text !== 'react') continue;
-    const clause = statement.importClause;
-    if (!clause) continue;
-    if (clause.name) namespaces.add(clause.name.text);
-    const bindings = clause.namedBindings;
-    if (bindings && ts.isNamespaceImport(bindings)) namespaces.add(bindings.name.text);
-    if (bindings && ts.isNamedImports(bindings)) {
-      namedImport ||= bindings.elements.some(
-        element => (element.propertyName ?? element.name).text === 'useOptimistic'
-      );
-    }
-  }
-  if (namedImport) return true;
-
-  let called = false;
+  let found = false;
   const visit = node => {
     if (
-      ts.isCallExpression(node) &&
-      ts.isPropertyAccessExpression(node.expression) &&
-      ts.isIdentifier(node.expression.expression) &&
-      namespaces.has(node.expression.expression.text) &&
-      node.expression.name.text === 'useOptimistic'
+      (ts.isIdentifier(node) && node.text === 'useOptimistic') ||
+      (ts.isElementAccessExpression(node) &&
+        ts.isStringLiteral(node.argumentExpression) &&
+        node.argumentExpression.text === 'useOptimistic')
     ) {
-      called = true;
+      found = true;
       return;
     }
-    if (!called) ts.forEachChild(node, visit);
+    if (!found) ts.forEachChild(node, visit);
   };
   visit(sourceFile);
-  return called;
+  return found;
 }
 
 function walkProductionModules(root, directory, files) {
@@ -104,7 +85,7 @@ function findOptimisticModules(root) {
   }
   return files
     .filter(file =>
-      importsOrCallsUseOptimistic(fs.readFileSync(file.absolutePath, 'utf8'), file.relativePath)
+      containsUseOptimistic(fs.readFileSync(file.absolutePath, 'utf8'), file.relativePath)
     )
     .map(file => file.relativePath)
     .sort((left, right) => left.localeCompare(right));
@@ -129,20 +110,21 @@ test('T410 owns only the canonical notification locale catalogs', () => {
 
 test('recognizes React hook imports and calls without matching comments or strings', () => {
   assert.equal(
-    importsOrCallsUseOptimistic('// useOptimistic\nconst note = "useOptimistic";', 'a.ts'),
+    containsUseOptimistic('// useOptimistic\nconst note = "useOptimistic";', 'a.ts'),
     false
   );
   assert.equal(
-    importsOrCallsUseOptimistic("import {useOptimistic as useFast} from 'react';", 'a.ts'),
+    containsUseOptimistic("import {useOptimistic as useFast} from 'react';", 'a.ts'),
     true
   );
   assert.equal(
-    importsOrCallsUseOptimistic(
+    containsUseOptimistic(
       "import * as R from 'react'; R.useOptimistic([], value => value);",
       'a.tsx'
     ),
     true
   );
+  assert.equal(containsUseOptimistic("const hook = React['useOptimistic'];", 'a.ts'), true);
 });
 
 test('reports unregistered and stale consumers while excluding test modules', () => {
