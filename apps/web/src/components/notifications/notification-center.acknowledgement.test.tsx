@@ -132,11 +132,9 @@ describe('NotificationCenter ack truth', () => {
     const row = await screen.findByTestId('notification-item-new_message');
     const markButton = within(row).getByRole('button');
     const markAll = bulkButton();
-    act(() => {
-      fireEvent.click(markButton);
-      fireEvent.click(markButton);
-      fireEvent.click(markAll);
-    });
+    fireEvent.click(markButton);
+    fireEvent.click(markButton);
+    fireEvent.click(markAll);
 
     expect(mocks.markAsRead).toHaveBeenCalledTimes(1);
     expect(mocks.markAllAsRead).not.toHaveBeenCalled();
@@ -195,10 +193,8 @@ describe('NotificationCenter ack truth', () => {
     const firstRow = await screen.findByTestId('notification-item-new_message');
     const markAllButton = bulkButton();
     const single = within(firstRow).getByRole('button');
-    act(() => {
-      fireEvent.click(markAllButton);
-      fireEvent.click(single);
-    });
+    fireEvent.click(markAllButton);
+    fireEvent.click(single);
 
     expect(screen.getByRole('button', { name: 'Mark all as read' })).toHaveAttribute(
       'aria-disabled',

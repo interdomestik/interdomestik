@@ -4,19 +4,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NotificationCenter } from './notification-center';
 import { deferred } from './notification-test-ui';
 
-vi.mock('@/i18n/routing', () => ({ Link: 'a', useRouter: () => ({ push: vi.fn() }) }));
-
 const mocks = vi.hoisted(() => ({
   getNotifications: vi.fn<() => Promise<unknown[]>>(),
   markAsRead: vi.fn<(notificationId: string) => Promise<unknown>>(),
   markAllAsRead: vi.fn<() => Promise<unknown>>(),
 }));
 
-vi.mock('@/actions/notifications', () => mocks);
 vi.mock('next-intl', async () => {
   const { createNotificationTranslationsMock } = await import('./notification-test-ui');
   return createNotificationTranslationsMock();
 });
+vi.mock('@/actions/notifications', () => mocks);
+vi.mock('@/i18n/routing', () => ({ Link: 'a', useRouter: () => ({ push: vi.fn() }) }));
 
 const unread = {
   id: 'n1',
@@ -41,9 +40,7 @@ describe('NotificationCenter acknowledgement focus', () => {
     mocks.markAllAsRead.mockReturnValue(ack.promise);
     render(<NotificationCenter subscriberId="user-123" />);
 
-    await act(async () => {
-      fireEvent.keyDown(screen.getByTestId('notification-center-trigger'), { key: 'ArrowDown' });
-    });
+    fireEvent.keyDown(screen.getByTestId('notification-center-trigger'), { key: 'ArrowDown' });
     await screen.findByText('New message');
 
     const getControl = () =>
