@@ -282,8 +282,13 @@ files 7→8; budget self-allocation 62,480→62,581 and capacity-rebase 99,884�
 Global total is 61,282,310, tests 7,076,578, source 8,850,254, config 2,232,807 and files 6,058.
 Scope additionally includes `scripts/ci/t410-reference-guard.mjs`; no reserve, deleted-byte credit
 or guard weakening. The 123-line helper and 233-line test preserve the reviewed split exactly.
-Six focused contracts pass. Previous full proof remains historical; renewed full proof, current-head
-review disposition, protected merge and exact-main health remain pending for this correction.
+Six focused contracts pass. Exact implementation `ee59416494987281b8fab20c8a947f04325478e7`
+passed uninterrupted full proof and security guard: 1,183 CI contracts, 154 release, 41 RLS,
+3,383 web/12 skips, 81.29% line coverage, 252 browser-gate/12 skips and 13 smoke/11 skips.
+Native Gemini Pro supplied five executed proposals without a new defect; the owner waived Claude
+after its five-minute no-output timeout. Independent Astra review remains valid for the unchanged
+split. The tracker records identities and limitations. Current-head review disposition, protected
+merge and exact-main health remain pending; no deployment or successor is authorized.
 
 ## Ordinary Product Delivery
 

@@ -34,14 +34,25 @@ The split helper (5,032 bytes, 123 lines) and test (10,131 bytes, 233 lines) mat
 The independent review recorded 48 source-backed writers and 140 adversarial checks; the applied
 split passes all six focused contracts, capacity and modularity. Direct dependency admission
 covers five modules/eighteen symbols without granting whole-program provenance guarantees.
-Renewed source-bound full proof/security, protected review/merge and exact-main health are pending;
-the following full-proof ledger is historical and does not certify this changed candidate.
+Exact implementation `ee59416494987281b8fab20c8a947f04325478e7` passed uninterrupted `pr:verify`:
+1,183 CI contracts, 154 release, 41 RLS, 3,383 web/12 skips, 252 browser-gate/12 skips and
+13 smoke/11 skips; line coverage 81.29% (21,664/26,649). Separate security guard passed.
+The isolated v3 database, nip.io hosts, port and disk were preflighted; uploads stayed disabled.
+Private full-log SHA-256: `f1e0222da4cc0cde7073c0313170faefd54ad1fe96fb3197fe2c1d893ec43e5a`.
+Gemini's native pinned `gemini-3.1-pro-high` returned five fixtures without tool events; all were
+executed against the bounded contract. Function-name admission, wrong-module permission and
+whole-program shadowing expectations were rejected. No new defect or source change resulted.
+Native model identity is client-reported, not independent server attestation. Sonnet returned no
+output in five minutes (`20260914T204241-sonnet`); the owner explicitly waived Claude for this
+slice after authorizing both subscription reviews. Existing independent Astra review is retained.
+The build-generated declaration is excluded. Protected review/merge and exact-main health remain
+pending; this evidence-only update does not transfer proof to changed implementation.
 
 ## Proof Ledger
 
-| ID                                   | Source Refs                                     | Execution  | Run ID     | Run Root | Sonar          | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                                         |
-| ------------------------------------ | ----------------------------------------------- | ---------- | ---------- | -------- | -------------- | ------ | ---------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | current program; architecture T-410/T-401/T-002 | `scripted` | `d681cf09` | local    | not_applicable | pass   | `not_applicable` | `not_applicable` | Comprehensive static-reference correction, 150 independent Astra checks, four focused contracts, renewed full proof and security guard passed; protected checks/merge remain pending. |
+| ID                                   | Source Refs                                     | Execution  | Run ID     | Run Root | Sonar          | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                |
+| ------------------------------------ | ----------------------------------------------- | ---------- | ---------- | -------- | -------------- | ------ | ---------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | current program; architecture T-410/T-401/T-002 | `scripted` | `ee594164` | local    | not_applicable | pass   | `not_applicable` | `not_applicable` | Consolidated inventory/admission correction, 140 independent Astra checks, six contracts, full proof/security passed; protected checks/merge remain pending. |
 
 ### T410 pessimistic mutation boundary progress
 
