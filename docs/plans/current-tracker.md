@@ -27,6 +27,16 @@ separate dashboard designs or freeze the legacy presentation.
 | ------------------------------------ | ------------- | ---------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | `T410-PESSIMISTIC-MUTATION-BOUNDARY` | `in_progress` | Astra/high | Admit only audited reversible production `useOptimistic` use. | Focused/full proof, independent review, protected merge and exact-main health. |
 
+The commission-writer correction and exact 7,077-byte/one-helper supplement are owner-approved.
+The split helper (5,032 bytes, 123 lines) and test (10,131 bytes, 233 lines) match reviewed SHA-256
+`44bab82f076d41a40c355bd09f680bb0a79fc74eb82125be3e3b969dd581a1c2` and
+`24a501237ed76d2d7e26fb0790f0c059e2eb17aac8475317422b0a26c2460cac` respectively.
+The independent review recorded 48 source-backed writers and 140 adversarial checks; the applied
+split passes all six focused contracts, capacity and modularity. Direct dependency admission
+covers five modules/eighteen symbols without granting whole-program provenance guarantees.
+Renewed source-bound full proof/security, protected review/merge and exact-main health are pending;
+the following full-proof ledger is historical and does not certify this changed candidate.
+
 ## Proof Ledger
 
 | ID                                   | Source Refs                                     | Execution  | Run ID     | Run Root | Sonar          | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                                         |

@@ -4,9 +4,9 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import ts from 'typescript';
 
 import { structuredArtifactOwner as owner } from '../modularity-guard-policy.mjs';
+import { AUDITED_IMPORTS, scan } from './t410-reference-guard.mjs';
 
 const AUDITED = 'apps/web/src/components/notifications/notification-center.tsx';
 const TEST_UI = 'apps/web/src/components/notifications/notification-test-ui.tsx';
@@ -15,9 +15,6 @@ const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const SKIP = new Set(
   '__mocks__ __tests__ build dist e2e fixtures node_modules stories test tests'.split(' ')
 );
-const MUTATION =
-  /\b(?:(?:activate|cancel|create|issue|pay|record|save|settle|submit|transition|update)\w*(?:Airline|Claim(?:Status)?|Payout|Recovery|Settlement|Subscription|SuccessFee)|activateSponsoredMembership)\w*/u;
-
 function isSource(file) {
   return (
     /\.[cm]?[jt]sx?$/u.test(file) &&
@@ -26,61 +23,6 @@ function isSource(file) {
     /^(?:apps\/web|packages\/[^/]+)\/src\//u.test(file) &&
     !file.split('/').some(segment => SKIP.has(segment))
   );
-}
-
-function scan(source, name = 'x.tsx') {
-  const nodes = [];
-  const collect = node => {
-    const erasedType =
-      ts.isTypeNode(node) && (!ts.isExpressionWithTypeArguments(node) || ts.isPartOfTypeNode(node));
-    if (erasedType || ts.isTypeOnlyImportOrExportDeclaration(node)) return;
-    nodes.push(node);
-    ts.forEachChild(node, collect);
-  };
-  const tree = ts.createSourceFile(name, source, ts.ScriptTarget.Latest, true);
-  collect(tree);
-  const options = { noLib: true, noResolve: true, allowJs: true };
-  const host = ts.createCompilerHost(options);
-  host.getSourceFile = file => (file === name ? tree : undefined);
-  const checker = ts.createProgram([name], options, host).getTypeChecker();
-  // Literal aliases are data, resolved only for computed keys or to exclude data reads.
-  const literal = (outer, seen = new Set()) => {
-    if (!outer) return;
-    const node = ts.skipOuterExpressions(outer);
-    if (ts.isStringLiteralLike(node)) return node.text;
-    if (!ts.isIdentifier(node)) return;
-    const symbol = ts.isShorthandPropertyAssignment(node.parent)
-      ? checker.getShorthandAssignmentValueSymbol(node.parent)
-      : checker.getSymbolAtLocation(node);
-    const declaration = symbol?.valueDeclaration;
-    if (!declaration || seen.has(declaration) || !ts.isVariableDeclaration(declaration)) return;
-    seen.add(declaration);
-    return literal(declaration.initializer, seen);
-  };
-  const key = node => (ts.isComputedPropertyName(node) ? literal(node.expression) : node.text);
-  // Capture callable references where introduced; later renaming cannot hide the file.
-  const reference = node => {
-    if (ts.isElementAccessExpression(node)) return literal(node.argumentExpression);
-    if (
-      ts.isBindingElement(node) ||
-      ts.isImportSpecifier(node) ||
-      ts.isExportSpecifier(node) ||
-      (ts.isPropertyAssignment(node) && ts.isAssignmentTarget(node.parent))
-    )
-      return key(node.propertyName ?? node.name);
-    if (ts.isPropertyAccessExpression(node)) return node.name.text;
-    if (ts.isShorthandPropertyAssignment(node))
-      return ts.isAssignmentTarget(node.parent) || literal(node.name) === undefined
-        ? node.name.text
-        : undefined;
-    if (ts.isIdentifier(node) && ts.isInExpressionContext(node) && literal(node) === undefined)
-      return node.text;
-  };
-  const references = nodes.map(reference);
-  return {
-    forbidden: references.some(name => MUTATION.test(name || '')),
-    hook: references.includes('useOptimistic'),
-  };
 }
 
 function walk(root, directory, files) {
@@ -173,6 +115,92 @@ test('AST references versus string data', () => {
       }
 });
 
+test('audited runtime dependencies', () => {
+  for (const [module, names] of AUDITED_IMPORTS)
+    for (const name of names)
+      assert.deepEqual(scan(`import {'${name}' as local} from '${module}'`).unaudited, []);
+
+  for (const source of [
+    `import type { Payment } from 'unreviewed'`,
+    `import { type Payment } from 'unreviewed'`,
+    `export type { Payment } from 'unreviewed'`,
+    `export { type Payment } from 'unreviewed'`,
+    `export type * from 'unreviewed'`,
+    `import type Payment = require('unreviewed')`,
+    `import {type Payment, markAsRead as ack} from '@/actions/notifications'`,
+    `export {markAsRead as ack} from '@/actions/notifications'`,
+    `const label='require';analytics.track(label)`,
+    `const x={require:'display'};type T=typeof import('unreviewed')`,
+  ])
+    assert.deepEqual(scan(source).unaudited, [], source);
+
+  for (const source of [
+    `import {run as innocent} from 'unreviewed'`,
+    `import {newAction as innocent} from '@/actions/notifications'`,
+    `import {markAsRead} from 'unreviewed'`,
+    `import {type Payment, newAction} from '@/actions/notifications'`,
+    `import unknown from 'react'`,
+    `import * as actions from '@/actions/notifications'`,
+    `import '@/actions/notifications'`,
+    `import {} from '@/actions/notifications'`,
+    `export {run as innocent} from 'unreviewed'`,
+    `export {newAction as innocent} from '@/actions/notifications'`,
+    `export * from '@/actions/notifications'`,
+    `export * as actions from '@/actions/notifications'`,
+    `export {} from '@/actions/notifications'`,
+    `import actions = require('@/actions/notifications')`,
+    `import('@/actions/notifications')`,
+    `const load=require;load('@/actions/notifications')`,
+    `module['require']('@/actions/notifications')`,
+  ])
+    assert.ok(scan(source).unaudited.length > 0, source);
+});
+
+test('money and legal command inventory cannot enter through unaudited imports', () => {
+  // Source-backed commands/wrappers from the bounded T410 inventory, not a verb heuristic.
+  const writers = `
+    updateStatus updateStatusAction persistAuthorizedTransition
+    saveNoFeeEvidenceCore saveStaffNoFeeEvidenceCore upsertRecoveryDecisionRecord
+    updateCommissionStatus updateCommissionStatusCore bulkApproveCommissions bulkApproveCommissionsCore
+    createCommission createCommissionCore createRenewalCommissionCore
+    updateAgentCommissionRates updateAgentCommissionRatesCore
+    updateMemberReferralRewardStatus updateMemberReferralRewardStatusAdminCore
+    updateMemberReferralRewardStatusCore createMemberReferralRewardCore
+    updateMemberReferralProgramSettings updateMemberReferralProgramSettingsCore
+    upsertMemberReferralProgramSettingsCore startPaymentAction startPayment
+    verifyCashAction verifyCashPayment verifyCashAttemptAction verifyCashAttemptCore
+    resubmitCashAttemptAction resubmitCashAttemptCore convertLeadToMember
+    registerMember registerMemberCore importMembersCore relayRecoverySuccessFeeBillingEvents
+    handlePaddleEvent handleSubscriptionChanged handleSubscriptionPastDue upsertSubscription
+    persistInvoiceAndLedgerInvariants handleNewSubscriptionExtras handleRenewalSubscriptionExtras
+    executeMemberEntityMigration rollbackMemberEntityMigration
+    recordJurisdictionHandoff recordJurisdictionHandoffInTransaction
+    setRecoveryLegalTenantIfUnset insertHandoffGrant
+  `
+    .trim()
+    .split(/\s+/u);
+  for (const name of writers) {
+    // These synthetic imports exercise admission independently of name-based matching.
+    assert.deepEqual(scan(`import {${name} as harmless} from 'unreviewed'`).unaudited, [
+      `unreviewed:${name}`,
+    ]);
+    assert.ok(scan(`import {${name} as harmless} from '@/actions/notifications'`).unaudited.length);
+    assert.ok(scan(`export {${name} as harmless} from 'unreviewed'`).unaudited.length);
+    assert.equal(scan(`const label='${name}';analytics.track(label)`).forbidden, false);
+  }
+  for (const name of `
+    getAllCommissions getMyCommissions getGlobalCommissionSummary preflightCommissionPayability
+    calculateCommission listMemberReferralRewards calculateSuccessFeeAmount resolveSuccessFeeCollectionPlan
+    canTransition evaluateRecoveryInvariants assignClaim assignOwner unassignOwner
+    updateAgentTier updateUserAgent registerMemberPOS handleTransactionCompleted getPaymentUpdateUrl
+  `
+    .trim()
+    .split(/\s+/u))
+    assert.equal(scan(`${name}()`).forbidden, false, name);
+  for (const name of ['updateCommissionStatus', 'bulkApproveCommissions'])
+    assert.ok(scan(`${name}()`).forbidden, name);
+});
+
 test('guard', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 't410-'));
   const write = (file, source) => {
@@ -199,5 +227,7 @@ test('guard', () => {
 test('repo', () => {
   assert.ok(isSource('packages/x/src/a.mjs') && !isSource(TEST_UI));
   assert.deepEqual(boundary(consumers(ROOT)), { unexpected: [], missing: [] });
-  assert.ok(!scan(fs.readFileSync(path.join(ROOT, AUDITED), 'utf8'), AUDITED).forbidden);
+  const audited = scan(fs.readFileSync(path.join(ROOT, AUDITED), 'utf8'), AUDITED);
+  assert.ok(!audited.forbidden);
+  assert.deepEqual(audited.unaudited, []);
 });

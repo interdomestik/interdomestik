@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 99884,
+      "trackedBytesDelta": 99985,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 62480,
+        "config/data/messages": 62581,
         "source/scripts": 23092,
         "tests/e2e": 14312
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 62480,
+        "scripts/repo-size-budget.json": 62581,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -1216,14 +1216,15 @@
         "apps/web/src/messages/sr/notifications.json",
         "packages/domain-communications/src/notifications/mark-read.test.ts",
         "packages/domain-communications/src/notifications/mark-read.ts",
-        "scripts/ci/modularity-guard-t410-catalogs.test.mjs"
+        "scripts/ci/modularity-guard-t410-catalogs.test.mjs",
+        "scripts/ci/t410-reference-guard.mjs"
       ],
-      "maxTrackedBytesDelta": 59669,
-      "maxTrackedFilesDelta": 7,
+      "maxTrackedBytesDelta": 66645,
+      "maxTrackedFilesDelta": 8,
       "maxCategoryBytesDelta": {
         "config/data/messages": 1202,
-        "source/scripts": 15180,
-        "tests/e2e": 43287
+        "source/scripts": 20212,
+        "tests/e2e": 45231
       },
       "maxPathBytesDelta": {
         "apps/web/e2e/gate/front-door-session-context.spec.ts": 4e3,
@@ -1242,7 +1243,8 @@
         "apps/web/src/messages/sr/notifications.json": 500,
         "packages/domain-communications/src/notifications/mark-read.test.ts": 1600,
         "packages/domain-communications/src/notifications/mark-read.ts": 900,
-        "scripts/ci/modularity-guard-t410-catalogs.test.mjs": 8187
+        "scripts/ci/modularity-guard-t410-catalogs.test.mjs": 10131,
+        "scripts/ci/t410-reference-guard.mjs": 5032
       }
     },
     {
@@ -1310,15 +1312,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61275233,
-  "maxTrackedFiles": 6057,
+  "maxTrackedBytes": 61282310,
+  "maxTrackedFiles": 6058,
   "maxCategoryBytes": {
-    "config/data/messages": 2232706,
+    "config/data/messages": 2232807,
     "docs/text": 8541936,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8845222,
-    "tests/e2e": 7074634
+    "source/scripts": 8850254,
+    "tests/e2e": 7076578
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

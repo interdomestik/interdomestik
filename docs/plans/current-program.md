@@ -269,6 +269,22 @@ tests, 41 RLS tests, 3,383 web tests/12 intentional skips, 81.29% repository lin
 Protected current-head checks, expected-head merge and exact-main health remain required; no
 deployment or successor is authorized.
 
+The subsequent commission-writer review found a real inventory gap despite green product CI.
+The consolidated correction adds commission references and explicit direct-runtime-import admission
+for the audited notification consumer (five modules, eighteen symbols). Forty-eight source-backed
+money/legal writers are covered; reader/calculation exclusions do not grant import admission.
+The contract remains bounded: changed behavior behind admitted symbols, transitive wrappers,
+reflection and reassigned-key flow are not whole-program guarantees.
+
+The owner approved the exact additional 7,077 bytes and one helper file: T410 total 59,669→66,645,
+tests 43,287→45,231, source 15,180→20,212, existing CI path 8,187→10,131, helper 0→5,032,
+files 7→8; budget self-allocation 62,480→62,581 and capacity-rebase 99,884→99,985.
+Global total is 61,282,310, tests 7,076,578, source 8,850,254, config 2,232,807 and files 6,058.
+Scope additionally includes `scripts/ci/t410-reference-guard.mjs`; no reserve, deleted-byte credit
+or guard weakening. The 123-line helper and 233-line test preserve the reviewed split exactly.
+Six focused contracts pass. Previous full proof remains historical; renewed full proof, current-head
+review disposition, protected merge and exact-main health remain pending for this correction.
+
 ## Ordinary Product Delivery
 
 The owner adopts the ordinary protected-PR workflow demonstrated by trials 2 and 3
