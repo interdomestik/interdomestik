@@ -28,9 +28,9 @@ separate dashboard designs or freeze the legacy presentation.
 
 ## Proof Ledger
 
-| ID                                 | Source Refs                                    | Execution  | Run ID  | Run Root | Sonar   | Docker  | Sentry           | Learning         | Evidence Refs                                                   |
-| ---------------------------------- | ---------------------------------------------- | ---------- | ------- | -------- | ------- | ------- | ---------------- | ---------------- | --------------------------------------------------------------- |
-| `T410-OPTIMISTIC-NOTIFICATION-ACK` | docs/plans/current-program.md; owner direction | `scripted` | pending | local/CI | pending | pending | `not_applicable` | `not_applicable` | Selection and front-runner proposals bound to main `8e4abb927`. |
+| ID                                 | Source Refs                                    | Execution  | Run ID     | Run Root | Sonar            | Docker | Sentry           | Learning         | Evidence Refs                                                                                     |
+| ---------------------------------- | ---------------------------------------------- | ---------- | ---------- | -------- | ---------------- | ------ | ---------------- | ---------------- | ------------------------------------------------------------------------------------------------- |
+| `T410-OPTIMISTIC-NOTIFICATION-ACK` | docs/plans/current-program.md; owner direction | `scripted` | `def1e94a` | local    | `not_applicable` | pass   | `not_applicable` | `not_applicable` | Focused proof, independent review, full local gate and security pass; protected delivery pending. |
 
 ### Final shared navigation delivery
 
@@ -114,6 +114,12 @@ configured subscription helper returned `spawnSync agy ETIMEDOUT` after 180.6 se
 (`20260914T074426-gemini`). Neither route produced a verdict, and neither is counted as approval.
 The approved fallback request was not authorized for a different model destination, so no retry or
 workaround was used; the independent Astra PASS remains the final code-review authority.
+Repository-first `pr:verify` transport timed out after 300 seconds, but its unchanged child process
+continued through the ordered `&&` chain and completed the final smoke lane. The final report records
+13 passes, 11 intentional skips, zero unexpected and zero flaky tests; reaching and completing that
+lane establishes that every preceding contract, release, RLS, i18n, architecture, coverage and full
+E2E stage succeeded. MCP `security:guard` then passed on exact head `def1e94a` in 1,681 ms. The
+generated `next-env.d.ts` line was removed and the committed worktree restored exactly clean.
 
 ### Final T410 delivery
 
