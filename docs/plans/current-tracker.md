@@ -108,6 +108,12 @@ and +1-file global total on 2026-09-14; no broader authority is inferred.
 Independent Astra/high final review cleared React transition semantics, concurrency and subscriber
 races, bulk-arrival blocking, confirmed navigation, real-Radix focus behavior, bounded scope and
 the corrected capacity ledger with no remaining findings. Frozen review hash: `90fdbce57536`.
+Repository-owned committed-source review routes bound to `fa37977c`: Sonnet 5 was blocked by the
+five-minute no-output timeout (`20260914T074417-sonnet`), while Gemini 3.1 Pro failed when its
+configured subscription helper returned `spawnSync agy ETIMEDOUT` after 180.6 seconds
+(`20260914T074426-gemini`). Neither route produced a verdict, and neither is counted as approval.
+The approved fallback request was not authorized for a different model destination, so no retry or
+workaround was used; the independent Astra PASS remains the final code-review authority.
 
 ### Final T410 delivery
 
