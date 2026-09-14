@@ -3,7 +3,16 @@
 import { getNotifications, markAllAsRead, markAsRead } from '@/actions/notifications';
 import { DropdownMenu, DropdownMenuContent } from '@interdomestik/ui';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  startTransition,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useOptimistic,
+  useRef,
+  useState,
+} from 'react';
 
 import type { Notification } from './notification-item';
 import {
@@ -19,7 +28,20 @@ interface NotificationCenterProps {
 
 interface NotificationSnapshot {
   readonly subscriberId: string;
+  readonly epoch: number;
   readonly items: Notification[];
+}
+
+interface Acknowledgement extends Omit<NotificationSnapshot, 'items'> {
+  readonly ids: ReadonlySet<string>;
+}
+
+function readSnapshot(snapshot: NotificationSnapshot, ack: Acknowledgement): NotificationSnapshot {
+  if (snapshot.subscriberId !== ack.subscriberId || snapshot.epoch !== ack.epoch) return snapshot;
+  return {
+    ...snapshot,
+    items: snapshot.items.map(item => (ack.ids.has(item.id) ? { ...item, isRead: true } : item)),
+  };
 }
 
 interface LoadingState {
@@ -31,7 +53,11 @@ interface LoadingState {
 export function NotificationCenter({ subscriberId, fetchOnMount = true }: NotificationCenterProps) {
   const t = useTranslations('notifications');
   const tCommon = useTranslations('common');
-  const [snapshot, setSnapshot] = useState<NotificationSnapshot>({ subscriberId, items: [] });
+  const [snapshot, setSnapshot] = useState<NotificationSnapshot>({
+    subscriberId,
+    epoch: 0,
+    items: [],
+  });
   const [loadingState, setLoadingState] = useState<LoadingState>({
     subscriberId,
     active: fetchOnMount,
@@ -39,6 +65,15 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
   const [isOpen, setIsOpen] = useState(false);
   const [pendingIds, setPendingIds] = useState<ReadonlySet<string>>(new Set());
   const [pendingAll, setPendingAll] = useState(false);
+  const [optimisticSnapshot, readOptimistically] = useOptimistic(
+    snapshot,
+    // React entangles concurrent Actions; settled failures must stop overlaying immediately.
+    (base, ack: Acknowledgement) =>
+      readSnapshot(base, {
+        ...ack,
+        ids: new Set([...ack.ids].filter(id => pendingAll || pendingIds.has(id))),
+      })
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState('');
   const activeSubscriberRef = useRef(subscriberId);
@@ -56,7 +91,8 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
     isOpenRef.current = isOpen;
   }, [isOpen, subscriberId]);
 
-  const notifications = snapshot.subscriberId === subscriberId ? snapshot.items : [];
+  const notifications =
+    optimisticSnapshot.subscriberId === subscriberId ? optimisticSnapshot.items : [];
   const unreadCount = useMemo(
     () => notifications.filter(notification => !notification.isRead).length,
     [notifications]
@@ -90,7 +126,11 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
           latestFetchRef.current === requestId &&
           stateRevisionRef.current === requestRevision
         ) {
-          setSnapshot({ subscriberId: requestSubscriberId, items: data });
+          setSnapshot({
+            subscriberId: requestSubscriberId,
+            epoch: requestSubscriberEpoch,
+            items: data,
+          });
         }
       } catch (error) {
         failed = true;
@@ -120,7 +160,7 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
     setPendingAll(false);
     setErrorMessage(null);
     setStatusMessage('');
-    setSnapshot({ subscriberId, items: [] });
+    setSnapshot({ subscriberId, epoch: subscriberEpochRef.current, items: [] });
     stateRevisionRef.current += 1;
 
     if (fetchOnMount || isOpenRef.current) {
@@ -135,133 +175,87 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
     previousOpenRef.current = isOpen;
   }, [fetchInitialNotifications, isOpen]);
 
-  const handleMarkAsRead = async (id: string, event?: React.MouseEvent) => {
-    event?.preventDefault();
-    event?.stopPropagation();
-    if (pendingAllRef.current || pendingIdsRef.current.has(id)) return false;
+  const acknowledge = async (id?: string): Promise<boolean> => {
+    if (
+      pendingAllRef.current ||
+      (id ? pendingIdsRef.current.has(id) : pendingIdsRef.current.size > 0)
+    )
+      return false;
 
-    const mutationSubscriberId = subscriberId;
-    const mutationSubscriberEpoch = subscriberEpochRef.current;
-    const nextPendingIds = new Set(pendingIdsRef.current).add(id);
-    pendingIdsRef.current = nextPendingIds;
-    setPendingIds(nextPendingIds);
+    const epoch = subscriberEpochRef.current;
+    const ids = new Set(
+      id ? [id] : notifications.filter(notification => !notification.isRead).map(item => item.id)
+    );
+    const acknowledgement = { subscriberId, epoch, ids };
+    const isCurrent = () =>
+      activeSubscriberRef.current === subscriberId && subscriberEpochRef.current === epoch;
+    if (id) {
+      pendingIdsRef.current = new Set(pendingIdsRef.current).add(id);
+      setPendingIds(pendingIdsRef.current);
+    } else {
+      pendingAllRef.current = true;
+      setPendingIds(ids);
+      setPendingAll(true);
+    }
     setErrorMessage(null);
     setStatusMessage(tCommon('processing'));
     stateRevisionRef.current += 1;
 
-    try {
-      const result = await markAsRead(id);
-      if (
-        activeSubscriberRef.current !== mutationSubscriberId ||
-        subscriberEpochRef.current !== mutationSubscriberEpoch
-      ) {
-        return false;
-      }
-      if (!result.success || result.notificationId !== id) {
-        setStatusMessage('');
-        setErrorMessage(tCommon('errors.generic'));
-        return false;
-      }
-      stateRevisionRef.current += 1;
-      setSnapshot(previous =>
-        previous.subscriberId === mutationSubscriberId
-          ? {
-              ...previous,
-              items: previous.items.map(notification =>
-                notification.id === id ? { ...notification, isRead: true } : notification
-              ),
+    return new Promise(resolve => {
+      startTransition(async () => {
+        readOptimistically(acknowledgement);
+        let confirmed = false;
+        try {
+          const result = id ? await markAsRead(id) : await markAllAsRead();
+          if (!isCurrent()) return;
+          confirmed =
+            result.success && (!id || ('notificationId' in result && result.notificationId === id));
+          if (!confirmed) {
+            setStatusMessage('');
+            setErrorMessage(tCommon('errors.generic'));
+            return;
+          }
+          stateRevisionRef.current += 1;
+          setSnapshot(previous => readSnapshot(previous, acknowledgement));
+          setErrorMessage(null);
+          setStatusMessage(t(id ? 'markedRead' : 'markedAllRead'));
+          if (!id) void fetchInitialNotifications();
+        } catch (error) {
+          if (isCurrent()) {
+            console.error('Failed to acknowledge notifications:', error);
+            setStatusMessage('');
+            setErrorMessage(tCommon('errors.generic'));
+          }
+        } finally {
+          if (isCurrent()) {
+            if (id) {
+              const remaining = new Set(pendingIdsRef.current);
+              remaining.delete(id);
+              pendingIdsRef.current = remaining;
+              setPendingIds(remaining);
+            } else {
+              pendingAllRef.current = false;
+              setPendingIds(new Set());
+              setPendingAll(false);
             }
-          : previous
-      );
-      setErrorMessage(null);
-      setStatusMessage(t('markedRead'));
-      return true;
-    } catch (error) {
-      if (
-        activeSubscriberRef.current === mutationSubscriberId &&
-        subscriberEpochRef.current === mutationSubscriberEpoch
-      ) {
-        console.error('Failed to mark as read:', error);
-        setStatusMessage('');
-        setErrorMessage(tCommon('errors.generic'));
-      }
-      return false;
-    } finally {
-      if (
-        activeSubscriberRef.current === mutationSubscriberId &&
-        subscriberEpochRef.current === mutationSubscriberEpoch
-      ) {
-        const remainingIds = new Set(pendingIdsRef.current);
-        remainingIds.delete(id);
-        pendingIdsRef.current = remainingIds;
-        setPendingIds(remainingIds);
-      }
-    }
+          }
+          resolve(confirmed);
+        }
+      });
+    });
+  };
+
+  const handleMarkAsRead = async (id: string, event?: React.MouseEvent) => {
+    event?.preventDefault();
+    event?.stopPropagation();
+    return acknowledge(id);
   };
 
   const handleMarkAllAsRead = async (event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
-    if (pendingAllRef.current || pendingIdsRef.current.size > 0) return;
-
-    const mutationSubscriberId = subscriberId;
-    const mutationSubscriberEpoch = subscriberEpochRef.current;
-    const requestedUnreadIds = notifications
-      .filter(notification => !notification.isRead)
-      .map(notification => notification.id);
-    pendingAllRef.current = true;
-    setPendingAll(true);
-    setErrorMessage(null);
-    setStatusMessage(tCommon('processing'));
-    stateRevisionRef.current += 1;
-
-    try {
-      const result = await markAllAsRead();
-      if (
-        activeSubscriberRef.current !== mutationSubscriberId ||
-        subscriberEpochRef.current !== mutationSubscriberEpoch
-      ) {
-        return;
-      }
-      if (!result.success) {
-        setStatusMessage('');
-        setErrorMessage(tCommon('errors.generic'));
-        return;
-      }
-      stateRevisionRef.current += 1;
-      const confirmedIds = new Set(requestedUnreadIds);
-      setSnapshot(previous =>
-        previous.subscriberId === mutationSubscriberId
-          ? {
-              ...previous,
-              items: previous.items.map(notification =>
-                confirmedIds.has(notification.id) ? { ...notification, isRead: true } : notification
-              ),
-            }
-          : previous
-      );
-      setStatusMessage(t('markedAllRead'));
-      void fetchInitialNotifications();
-    } catch (error) {
-      if (
-        activeSubscriberRef.current === mutationSubscriberId &&
-        subscriberEpochRef.current === mutationSubscriberEpoch
-      ) {
-        console.error('Failed to mark all as read:', error);
-        setStatusMessage('');
-        setErrorMessage(tCommon('errors.generic'));
-      }
-    } finally {
-      if (
-        activeSubscriberRef.current === mutationSubscriberId &&
-        subscriberEpochRef.current === mutationSubscriberEpoch
-      ) {
-        pendingAllRef.current = false;
-        setPendingAll(false);
-      }
-    }
+    await acknowledge();
   };
-
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <NotificationTrigger unreadCount={unreadCount} />
@@ -284,8 +278,8 @@ export function NotificationCenter({ subscriberId, fetchOnMount = true }: Notifi
             fetchFailed={loadingState.subscriberId === subscriberId && loadingState.failed === true}
             onRetry={fetchInitialNotifications}
             notifications={notifications}
-            pendingAll={pendingAll}
             pendingIds={pendingIds}
+            pendingAll={pendingAll}
             onMarkAsRead={handleMarkAsRead}
             onClose={() => setIsOpen(false)}
           />

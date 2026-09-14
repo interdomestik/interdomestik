@@ -34,8 +34,8 @@ interface NotificationListProps {
   readonly fetchFailed: boolean;
   readonly onRetry: () => Promise<void>;
   readonly notifications: Notification[];
-  readonly pendingAll: boolean;
   readonly pendingIds: ReadonlySet<string>;
+  readonly pendingAll: boolean;
   readonly onMarkAsRead: (id: string, event?: React.MouseEvent) => Promise<boolean>;
   readonly onClose: () => void;
 }
@@ -59,18 +59,21 @@ export function NotificationHeader({
   return (
     <div className="flex items-center justify-between p-4 border-b">
       <h4 className="text-sm font-semibold">{t('title')}</h4>
-      {unreadCount > 0 && (
-        <DropdownMenuItem
-          asChild
-          disabled={acknowledgementPending}
-          onSelect={event => event.preventDefault()}
-        >
+      {(unreadCount > 0 || acknowledgementPending) && (
+        <DropdownMenuItem asChild onSelect={event => event.preventDefault()}>
           <Button
             variant="ghost"
             size="sm"
             className="h-8 py-0 px-2 text-xs text-muted-foreground hover:text-primary transition-colors"
-            onClick={onMarkAllAsRead}
-            disabled={acknowledgementPending}
+            onClick={event => {
+              if (acknowledgementPending) {
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+              }
+              return onMarkAllAsRead(event);
+            }}
+            aria-disabled={acknowledgementPending}
             aria-busy={pendingAll}
             data-testid="notification-mark-all"
           >
@@ -87,8 +90,8 @@ export function NotificationList({
   fetchFailed,
   onRetry,
   notifications,
-  pendingAll,
   pendingIds,
+  pendingAll,
   onMarkAsRead,
   onClose,
 }: NotificationListProps) {
@@ -131,7 +134,8 @@ export function NotificationList({
         <NotificationItem
           key={notification.id}
           notification={notification}
-          pending={pendingAll || pendingIds.has(notification.id)}
+          pending={pendingIds.has(notification.id)}
+          blocked={pendingAll || pendingIds.has(notification.id)}
           onMarkAsRead={onMarkAsRead}
           onClose={onClose}
           markReadLabel={t('markRead', { title: notification.title })}

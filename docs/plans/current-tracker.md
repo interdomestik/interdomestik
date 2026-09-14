@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-13
+last_reviewed: 2026-09-14
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -16,23 +16,23 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-`SHARED-SHELL-NAVIGATION` is the sole owner-selected ordinary product increment.
-T410 notification acknowledgement and T210 remain completed history.
+`T410-OPTIMISTIC-NOTIFICATION-ACK` is the sole owner-selected ordinary product increment.
+Shared shell navigation, T410 notification correctness and T210 are completed history.
 The current member screen is legacy integration evidence only. The planned net-new member UI/UX
 belongs in the unified portal shell; canonical role routes and readiness markers do not authorize
 separate dashboard designs or freeze the legacy presentation.
 
-| ID                        | Status        | Owner     | Work                                                                        | Exit Criteria                                                                  |
-| ------------------------- | ------------- | --------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `SHARED-SHELL-NAVIGATION` | `in_progress` | `product` | Shared admitted navigation rendering across member, agent, staff and admin. | Focused/full proof, independent review, protected merge and exact-main health. |
+| ID                                 | Status        | Owner     | Work                                                        | Exit Criteria                                                                  |
+| ---------------------------------- | ------------- | --------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `T410-OPTIMISTIC-NOTIFICATION-ACK` | `in_progress` | `product` | Immediate reversible notification acknowledgement feedback. | Focused/full proof, independent review, protected merge and exact-main health. |
 
 ## Proof Ledger
 
-| ID                        | Source Refs                                    | Execution  | Run ID  | Run Root | Sonar   | Docker  | Sentry           | Learning         | Evidence Refs                                                                                   |
-| ------------------------- | ---------------------------------------------- | ---------- | ------- | -------- | ------- | ------- | ---------------- | ---------------- | ----------------------------------------------------------------------------------------------- |
-| `SHARED-SHELL-NAVIGATION` | docs/plans/current-program.md; owner direction | `scripted` | pending | local/CI | pending | pending | `not_applicable` | `not_applicable` | Local full/focused proof and independent review passed at 0bd1d322; protected delivery pending. |
+| ID                                 | Source Refs                                    | Execution  | Run ID  | Run Root | Sonar   | Docker  | Sentry           | Learning         | Evidence Refs                                                   |
+| ---------------------------------- | ---------------------------------------------- | ---------- | ------- | -------- | ------- | ------- | ---------------- | ---------------- | --------------------------------------------------------------- |
+| `T410-OPTIMISTIC-NOTIFICATION-ACK` | docs/plans/current-program.md; owner direction | `scripted` | pending | local/CI | pending | pending | `not_applicable` | `not_applicable` | Selection and front-runner proposals bound to main `8e4abb927`. |
 
-### Shared navigation candidate
+### Final shared navigation delivery
 
 Prepared on base `643b91d5d8863a717895b5dda3d6115d6f82f169`. Sole implementation owner Astra/high;
 Sonnet 5 Medium design and Gemini 3.1 Pro adversarial proposals reused from owner handoff.
@@ -77,6 +77,37 @@ Independent Astra recheck cleared the consolidated source. This subsequent ledge
 not transfer that local proof to a new commit; final-head hosted checks remain required.
 The member's existing mobile page shortcuts remain unchanged; shared drawer behavior applies
 to consumers exposing a mobile toggle. No all-role mobile-shell completion is claimed.
+
+Product [PR #1770](https://github.com/interdomestik/interdomestik/pull/1770) merged head
+`049a6f4b2d8c47d94b71cf4ba8b4195f050c8dd3` as
+`8e4abb9272a144e91b27b988b2476f5dd45c9c40` on 2026-09-13. All required hosted PR checks passed.
+Exact-main CI `34788807428`, Sonar Main Gate `34788807382`, Secret Scan `34788807371`, CodeQL
+quality `34788806958` and CodeQL security `34788807132` passed at that merge. Feedback refresh
+`34808850544` later passed and superseded unrelated failed run `34792363977`; no product defect or
+delivery gap is inferred. Prepared, tested and merged are recorded; deployment and user validation
+are not claimed.
+
+### Optimistic notification acknowledgement candidate
+
+Selected on exact main `8e4abb9272a144e91b27b988b2476f5dd45c9c40`. Sole implementation owner
+Astra/high because the mounted component carries concurrent fetch/mutation ordering and subscriber
+epochs. T-401 and T-002 are complete; selected main had no production `useOptimistic` use. Claude
+Sonnet 5 and Gemini 3.1 Pro both served the requested models on the shared bounded packet. The accepted design
+keeps the server-confirmed snapshot canonical, layers optimistic single/bulk read presentation
+inside async transitions, and rolls back by omission on typed, thrown or wrong-ID failure. Existing
+overlap prevention makes Gemini's proposed concurrent single/bulk request invalid by contract;
+subscriber/fetch/navigation counterexamples remain acceptance tests. Server actions, auth/tenant,
+claim-status and money/legal mutations are excluded. Five focused notification files pass 39 tests;
+web type-check, lint, architecture/modularity/plan audits and executable capacity preflight pass.
+The exact proposal changes T410 total 48,728→52,182, source 15,088→15,180, tests 32,438→35,800
+and files 6→7; +160 exact budget bytes derive global changes of +3,614 total, +92 source, +3,362
+tests, +160 config and +1 file. No deleted-byte credit, reserve, evaluator or unrelated allocation
+is used. The owner approved the initial figures on 2026-09-14; final review found the restored
+stable allocation ID needs 25 additional config bytes. The owner approved the corrected +3,614-byte
+and +1-file global total on 2026-09-14; no broader authority is inferred.
+Independent Astra/high final review cleared React transition semantics, concurrency and subscriber
+races, bulk-arrival blocking, confirmed navigation, real-Radix focus behavior, bounded scope and
+the corrected capacity ledger with no remaining findings. Frozen review hash: `90fdbce57536`.
 
 ### Final T410 delivery
 
@@ -327,8 +358,8 @@ Migration is completed at 3/3. This is not production-deployment evidence.
 T117C was delivered by promotion #1738 and product #1736. Its legacy projection remains inactive.
 Harness adoption completed through #1761 and #1762. T210 completed through product #1763. The
 owner-selected bounded notification acknowledgement increment completed through #1765 with exact-main
-health verified. SHARED-SHELL-NAVIGATION is the sole active increment; this is not full T-410
-completion and does not select T-411.
+health verified, and shared shell navigation completed through #1770. `T410-OPTIMISTIC-NOTIFICATION-ACK`
+is the sole active increment; this is not full T-410 completion and does not select T-411.
 
 | Completed historical priority            | Status      | Constraint                                                                    |
 | ---------------------------------------- | ----------- | ----------------------------------------------------------------------------- |
@@ -338,7 +369,7 @@ completion and does not select T-411.
 | Member timeline (T210)                   | `completed` | Product #1763; main CI and Sonar passed at the exact protected merge.         |
 | Notification acknowledgement correctness | `completed` | Product #1765; exact-main CI/Sonar passed; no broader T-410 completion claim. |
 
-No further successor row is recorded. A recommendation does not become program priority until the
+The active successor is recorded above. A recommendation does not become program priority until the
 owner selects it and the current program records that decision.
 
 ## Lean Authority

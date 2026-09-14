@@ -161,7 +161,17 @@ describe('NotificationCenter', () => {
       kind === 'single' ? within(row).getByRole('button') : screen.getByText('Mark all as read')
     );
     fireEvent.click(screen.getByText('Open menu'));
-    if (fetchFirst) await act(async () => refetch.resolve([initial, arrival]));
+    if (fetchFirst) {
+      await act(async () => refetch.resolve([initial, arrival]));
+      if (kind === 'bulk') {
+        const arrivalControl = within(
+          screen.getByTestId('notification-item-claim_assigned')
+        ).getByRole('button');
+        expect(arrivalControl).toHaveAttribute('aria-disabled', 'true');
+        fireEvent.click(arrivalControl);
+        expect(mocks.markAsRead).not.toHaveBeenCalled();
+      }
+    }
     await act(async () => acknowledgement.resolve({ success: true, notificationId: 'n1' }));
     if (!fetchFirst) await act(async () => refetch.resolve([initial]));
 

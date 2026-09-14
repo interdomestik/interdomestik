@@ -39,7 +39,7 @@ vi.mock('@interdomestik/ui', async () => {
   };
 });
 
-const unreadNotification = {
+const unread = {
   id: 'n1',
   userId: 'user-123',
   type: 'new_message',
@@ -54,8 +54,9 @@ function renderUnreadAction(pending: boolean, onMarkAsRead = vi.fn(async () => t
   const onClose = vi.fn();
   render(
     <NotificationItem
-      notification={{ ...unreadNotification, actionUrl: '/member/messages' }}
+      notification={{ ...unread, actionUrl: '/member/messages' }}
       pending={pending}
+      blocked={pending}
       onMarkAsRead={onMarkAsRead}
       onClose={onClose}
       markReadLabel="Mark as read"
@@ -65,142 +66,165 @@ function renderUnreadAction(pending: boolean, onMarkAsRead = vi.fn(async () => t
   return { onClose, onMarkAsRead };
 }
 
-describe('NotificationCenter acknowledgement truth', () => {
+const bulkButton = () => screen.getByRole('button', { name: 'Mark all as read' });
+
+describe('NotificationCenter ack truth', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.menuItemSelectHandlers.length = 0;
-    mocks.getNotifications.mockResolvedValue([unreadNotification]);
+    mocks.getNotifications.mockResolvedValue([unread]);
   });
 
-  it('changes row and derived count only after confirmed success', async () => {
-    const acknowledgement = deferred<{ success: true; notificationId: string }>();
-    mocks.markAsRead.mockReturnValue(acknowledgement.promise);
+  it('optimistically reads the row and count until confirmation', async () => {
+    const ack = deferred<{ success: true; notificationId: string }>();
+    mocks.markAsRead.mockReturnValue(ack.promise);
+    mocks.getNotifications.mockResolvedValue([{ ...unread, actionUrl: '/member/messages' }]);
     render(<NotificationCenter subscriberId="user-123" />);
 
     const row = await screen.findByTestId('notification-item-new_message');
-    const markButton = within(row).getByRole('button');
-    fireEvent.click(markButton);
+    fireEvent.click(within(row).getByRole('link'));
+    expect(mocks.routerPush).not.toHaveBeenCalled();
 
-    expect(markButton).toBeDisabled();
-    expect(markButton).toHaveAttribute('aria-busy', 'true');
-    expect(screen.getByText('1')).toBeInTheDocument();
+    expect(within(row).getByRole('button')).toHaveAttribute('aria-disabled', 'true');
+    expect(row).toHaveAttribute('aria-busy', 'true');
+    expect(screen.queryByText('1')).not.toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('Processing...');
 
-    await act(async () => acknowledgement.resolve({ success: true, notificationId: 'n1' }));
+    await act(async () => ack.resolve({ success: true, notificationId: 'n1' }));
+    expect(mocks.routerPush).toHaveBeenCalledExactlyOnceWith('/member/messages');
 
     expect(within(row).queryByRole('button')).not.toBeInTheDocument();
     expect(screen.queryByText('1')).not.toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('Notification marked as read.');
   });
 
-  it.each(['typed', 'thrown', 'wrong ID'])(
-    'preserves truth and clears pending on %s failure',
-    async kind => {
-      if (kind === 'typed')
-        mocks.markAsRead.mockResolvedValue({ success: false, error: 'Unauthorized' });
-      else if (kind === 'wrong ID')
-        mocks.markAsRead.mockResolvedValue({ success: true, notificationId: 'other-id' });
-      else mocks.markAsRead.mockRejectedValue(new Error('network unavailable'));
-      render(<NotificationCenter subscriberId="user-123" />);
+  it.each(['typed', 'thrown', 'wrong ID'])('rolls back optimism on %s failure', async kind => {
+    const ack = deferred<unknown>();
+    mocks.markAsRead.mockReturnValue(ack.promise);
+    render(<NotificationCenter subscriberId="user-123" />);
 
-      const row = await screen.findByTestId('notification-item-new_message');
-      fireEvent.click(within(row).getByRole('button'));
+    const row = await screen.findByTestId('notification-item-new_message');
+    const control = within(row).getByRole('button');
+    control.focus();
+    fireEvent.click(control);
+    expect(control).toHaveFocus();
+    expect(control).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.queryByText('1')).not.toBeInTheDocument();
+    await act(async () => {
+      if (kind === 'thrown') ack.reject(new Error('offline'));
+      else ack.resolve({ success: kind === 'wrong ID', notificationId: 'other-id' });
+    });
 
-      expect(await screen.findByRole('alert')).toHaveTextContent(
-        'Something went wrong. Please try again.'
-      );
-      expect(within(row).getByRole('button')).toBeEnabled();
-      expect(screen.getByText('1')).toBeInTheDocument();
-      expect(screen.getByRole('status')).not.toHaveTextContent('Notification marked as read.');
-    }
-  );
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Something went wrong. Please try again.'
+    );
+    expect(within(row).getByRole('button')).toBeEnabled();
+    expect(within(row).getByRole('button')).toHaveFocus();
+    expect(screen.getByText('1')).toBeInTheDocument();
+    expect(screen.getByRole('status')).not.toHaveTextContent('Notification marked as read.');
+  });
 
   it('blocks duplicate single and overlapping mark-all acknowledgements', async () => {
-    const acknowledgement = deferred<{ success: true; notificationId: string }>();
-    mocks.markAsRead.mockReturnValue(acknowledgement.promise);
+    const ack = deferred<{ success: true; notificationId: string }>();
+    mocks.markAsRead.mockReturnValue(ack.promise);
     render(<NotificationCenter subscriberId="user-123" />);
 
     const row = await screen.findByTestId('notification-item-new_message');
     const markButton = within(row).getByRole('button');
-    fireEvent.click(markButton);
-    fireEvent.click(markButton);
-    fireEvent.click(screen.getByRole('button', { name: 'Mark all as read' }));
+    const markAll = bulkButton();
+    act(() => {
+      fireEvent.click(markButton);
+      fireEvent.click(markButton);
+      fireEvent.click(markAll);
+    });
 
     expect(mocks.markAsRead).toHaveBeenCalledTimes(1);
     expect(mocks.markAllAsRead).not.toHaveBeenCalled();
 
-    await act(async () => acknowledgement.resolve({ success: true, notificationId: 'n1' }));
+    await act(async () => ack.resolve({ success: true, notificationId: 'n1' }));
   });
 
-  it('keeps every row unread when mark-all returns a typed failure', async () => {
+  it.each(['typed', 'thrown'])('rolls every row back on bulk %s failure', async kind => {
     mocks.getNotifications.mockResolvedValue([
-      unreadNotification,
-      { ...unreadNotification, id: 'n2', type: 'claim_assigned', title: 'Claim assigned' },
+      unread,
+      { ...unread, id: 'n2', type: 'claim_assigned', title: 'Claim assigned' },
+      { ...unread, id: 'n3', type: 'sla_warning', title: 'Already read', isRead: true },
     ]);
-    mocks.markAllAsRead.mockResolvedValue({ success: false, error: 'Unauthorized' });
+    const ack = deferred<unknown>();
+    mocks.markAllAsRead.mockReturnValue(ack.promise);
     render(<NotificationCenter subscriberId="user-123" />);
 
     await screen.findByText('New message');
-    fireEvent.click(screen.getByRole('button', { name: 'Mark all as read' }));
+    const markAll = bulkButton();
+    markAll.focus();
+    fireEvent.click(markAll);
+    expect(markAll).toHaveFocus();
+    expect(screen.queryByText('2')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /New message/ })).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('button', { name: /Claim assigned/ })).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.queryByRole('button', { name: /Already read/ })).not.toBeInTheDocument();
+    await act(async () => {
+      if (kind === 'thrown') ack.reject(new Error('offline'));
+      else ack.resolve({ success: false, error: 'Unauthorized' });
+    });
 
-    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong.');
+    expect(bulkButton()).toBeEnabled();
+    expect(bulkButton()).toHaveFocus();
     expect(screen.getByText('2')).toBeInTheDocument();
-    expect(screen.getAllByTestId(/notification-item-/)).toHaveLength(2);
-    expect(screen.getByRole('button', { name: /New message/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Claim assigned/ })).toBeInTheDocument();
+    expect(screen.getAllByTestId(/notification-item-/)).toHaveLength(3);
+    expect(screen.getByRole('button', { name: /New message/ })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /Claim assigned/ })).toBeEnabled();
   });
 
-  it('keeps bulk acknowledgement pending until success and blocks single overlap', async () => {
-    const acknowledgement = deferred<{ success: true }>();
+  it('keeps bulk ack pending until success and blocks single overlap', async () => {
+    const ack = deferred<{ success: true }>();
     mocks.getNotifications.mockResolvedValue([
-      unreadNotification,
-      { ...unreadNotification, id: 'n2', type: 'claim_assigned', title: 'Claim assigned' },
+      unread,
+      { ...unread, id: 'n2', type: 'claim_assigned', title: 'Claim assigned' },
     ]);
-    mocks.markAllAsRead.mockReturnValue(acknowledgement.promise);
+    mocks.markAllAsRead.mockReturnValue(ack.promise);
     render(<NotificationCenter subscriberId="user-123" />);
 
     const firstRow = await screen.findByTestId('notification-item-new_message');
-    const markAllButton = screen.getByRole('button', { name: 'Mark all as read' });
-    fireEvent.click(markAllButton);
-    fireEvent.click(within(firstRow).getByRole('button'));
+    const markAllButton = bulkButton();
+    const single = within(firstRow).getByRole('button');
+    act(() => {
+      fireEvent.click(markAllButton);
+      fireEvent.click(single);
+    });
 
-    expect(markAllButton).toBeDisabled();
-    expect(markAllButton).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByRole('button', { name: 'Mark all as read' })).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(firstRow).toHaveAttribute('aria-busy', 'true');
     expect(mocks.markAllAsRead).toHaveBeenCalledTimes(1);
     expect(mocks.markAsRead).not.toHaveBeenCalled();
-    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(screen.queryByText('2')).not.toBeInTheDocument();
 
     mocks.getNotifications.mockResolvedValue([
-      { ...unreadNotification, isRead: true },
-      { ...unreadNotification, id: 'n2', isRead: true },
+      { ...unread, isRead: true },
+      { ...unread, id: 'n2', isRead: true },
     ]);
-    await act(async () => acknowledgement.resolve({ success: true }));
+    await act(async () => ack.resolve({ success: true }));
 
     expect(screen.queryByText('2')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Mark all as read' })).not.toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('All notifications marked as read.');
   });
 
-  it('preserves every row and clears bulk pending state when mark-all throws', async () => {
-    mocks.markAllAsRead.mockRejectedValue(new Error('network unavailable'));
-    render(<NotificationCenter subscriberId="user-123" />);
-
-    await screen.findByText('New message');
-    fireEvent.click(screen.getByRole('button', { name: 'Mark all as read' }));
-
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Something went wrong. Please try again.'
-    );
-    expect(screen.getByRole('button', { name: 'Mark all as read' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: /New message/ })).toBeEnabled();
-    expect(screen.getByText('1')).toBeInTheDocument();
-  });
-
   it('keeps bulk success truthful when reconciliation fails and retries only on request', async () => {
     mocks.getNotifications
-      .mockResolvedValueOnce([unreadNotification])
+      .mockResolvedValueOnce([unread])
       .mockRejectedValueOnce(new Error('refresh unavailable'))
-      .mockResolvedValueOnce([{ ...unreadNotification, isRead: true }]);
+      .mockResolvedValueOnce([{ ...unread, isRead: true }]);
     mocks.markAllAsRead.mockResolvedValue({ success: true });
     render(<NotificationCenter subscriberId="user-123" />);
     await screen.findByText('New message');
@@ -219,7 +243,7 @@ describe('NotificationCenter acknowledgement truth', () => {
     expect(mocks.markAllAsRead).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps the menu open when an unread action acknowledgement fails', async () => {
+  it('keeps the menu open when an unread action ack fails', async () => {
     vi.useFakeTimers();
     const onMarkAsRead = vi.fn(async () => false);
     const { onClose } = renderUnreadAction(false, onMarkAsRead);
@@ -245,9 +269,9 @@ describe('NotificationCenter acknowledgement truth', () => {
     );
   });
 
-  it('waits for acknowledgement before closing and navigating an unread action', async () => {
-    const acknowledgement = deferred<boolean>();
-    const onMarkAsRead = vi.fn(() => acknowledgement.promise);
+  it('waits for ack before closing and navigating an unread action', async () => {
+    const ack = deferred<boolean>();
+    const onMarkAsRead = vi.fn(() => ack.promise);
     const { onClose } = renderUnreadAction(false, onMarkAsRead);
 
     fireEvent.click(screen.getByRole('link', { name: /View/ }));
@@ -255,7 +279,7 @@ describe('NotificationCenter acknowledgement truth', () => {
     expect(onClose).not.toHaveBeenCalled();
     expect(mocks.routerPush).not.toHaveBeenCalled();
 
-    await act(async () => acknowledgement.resolve(true));
+    await act(async () => ack.resolve(true));
     expect(onClose).toHaveBeenCalledOnce();
     expect(mocks.routerPush).toHaveBeenCalledExactlyOnceWith('/member/messages');
   });

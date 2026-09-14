@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 99724,
+      "trackedBytesDelta": 99884,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 62320,
+        "config/data/messages": 62480,
         "source/scripts": 23092,
         "tests/e2e": 14312
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 62320,
+        "scripts/repo-size-budget.json": 62480,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -1203,6 +1203,7 @@
         "apps/web/e2e/gate/front-door-session-context.spec.ts",
         "apps/web/src/actions/notifications/mark-read.test.ts",
         "apps/web/src/components/notifications/notification-center.acknowledgement.test.tsx",
+        "apps/web/src/components/notifications/notification-focus.test.tsx",
         "apps/web/src/components/notifications/notification-center.races.test.tsx",
         "apps/web/src/components/notifications/notification-center.test.tsx",
         "apps/web/src/components/notifications/notification-center.tsx",
@@ -1217,22 +1218,23 @@
         "packages/domain-communications/src/notifications/mark-read.ts",
         "scripts/ci/modularity-guard-t410-catalogs.test.mjs"
       ],
-      "maxTrackedBytesDelta": 48728,
-      "maxTrackedFilesDelta": 6,
+      "maxTrackedBytesDelta": 52182,
+      "maxTrackedFilesDelta": 7,
       "maxCategoryBytesDelta": {
         "config/data/messages": 1202,
-        "source/scripts": 15088,
-        "tests/e2e": 32438
+        "source/scripts": 15180,
+        "tests/e2e": 35800
       },
       "maxPathBytesDelta": {
         "apps/web/e2e/gate/front-door-session-context.spec.ts": 4000,
         "apps/web/src/actions/notifications/mark-read.test.ts": 200,
-        "apps/web/src/components/notifications/notification-center.acknowledgement.test.tsx": 11537,
+        "apps/web/src/components/notifications/notification-center.acknowledgement.test.tsx": 12000,
+        "apps/web/src/components/notifications/notification-focus.test.tsx": 2500,
         "apps/web/src/components/notifications/notification-center.races.test.tsx": 13300,
-        "apps/web/src/components/notifications/notification-center.test.tsx": 3052,
+        "apps/web/src/components/notifications/notification-center.test.tsx": 3500,
         "apps/web/src/components/notifications/notification-center.tsx": 2500,
         "apps/web/src/components/notifications/notification-test-ui.tsx": 2500,
-        "apps/web/src/components/notifications/notification-item.tsx": 5700,
+        "apps/web/src/components/notifications/notification-item.tsx": 5900,
         "apps/web/src/components/notifications/notification-list.tsx": 10000,
         "apps/web/src/messages/en/notifications.json": 500,
         "apps/web/src/messages/mk/notifications.json": 700,
@@ -1308,15 +1310,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61264132,
-  "maxTrackedFiles": 6056,
+  "maxTrackedBytes": 61267746,
+  "maxTrackedFiles": 6057,
   "maxCategoryBytes": {
-    "config/data/messages": 2232546,
+    "config/data/messages": 2232706,
     "docs/text": 8541936,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8845130,
-    "tests/e2e": 7063785
+    "source/scripts": 8845222,
+    "tests/e2e": 7067147
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
