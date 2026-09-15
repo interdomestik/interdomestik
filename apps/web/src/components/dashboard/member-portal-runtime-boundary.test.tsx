@@ -44,6 +44,7 @@ const copy: MemberPortalCopy = {
     '{"description":"Safe portal description","disclaimer":"No outcome is promised.","navigation":{"cases":"Cases","documents":"Docs","helpNow":"Help","label":"Shortcuts","membership":"Membership"},"referenceFallback":"Reference unavailable","regions":{"actions":{"empty":"None","error":"Unavailable","label":"Actions","loading":"Loading actions"},"case":{"empty":"No cases yet","error":"Unavailable","label":"Case","loading":"Loading case"},"updates":{"empty":"No updates yet","error":"Updates unavailable","label":"Recent case updates","loading":"Loading updates"}},"title":"My cases"}'
   ),
   actions,
+  caseEntryLabel: 'View case',
   caseLabels: summary => ({
     documentCount: 'Documents',
     nextStep: 'Next step',
@@ -72,9 +73,37 @@ describe('Member portal', () => {
     render(await PortalCasesRegion({ copy, promise: Promise.resolve(summaries) }));
     expect(screen.getByRole('heading', { name: 'Case' })).toBeVisible();
     expect(screen.getByRole('article', { name: 'CLM-001' })).toHaveTextContent('Team review');
-    expect(screen.getByRole('article', { name: 'Reference unavailable' })).toHaveTextContent('0');
+    expect(screen.getByRole('article', { name: 'Reference unavailable 2' })).toHaveTextContent('0');
     expect(screen.queryByText('claim-1')).not.toBeInTheDocument();
     expect(screen.queryByText('member_action')).not.toBeInTheDocument();
+  });
+
+  it('maps one unambiguous detail link to each represented case', async () => {
+    const anotherMissingReference = { ...summaries[1]!, id: 'claim-3', reference: '   ' };
+    render(
+      await PortalCasesRegion({
+        copy,
+        promise: Promise.resolve([...summaries, anotherMissingReference]),
+      })
+    );
+
+    expect(screen.getByRole('link', { name: 'View case CLM-001' })).toHaveAttribute(
+      'href',
+      '/member/claims/claim-1'
+    );
+    expect(screen.getByRole('link', { name: 'View case Reference unavailable 2' })).toHaveAttribute(
+      'href',
+      '/member/claims/claim-2'
+    );
+    expect(screen.getByRole('link', { name: 'View case Reference unavailable 3' })).toHaveAttribute(
+      'href',
+      '/member/claims/claim-3'
+    );
+    expect(screen.getAllByRole('link')).toHaveLength(3);
+    for (const article of screen.getAllByRole('article')) {
+      expect(article.querySelectorAll('a')).toHaveLength(1);
+      expect(article.querySelector('button')).toBeNull();
+    }
   });
 
   it('maps lifecycle actions', async () => {
@@ -156,10 +185,15 @@ describe('Member portal', () => {
   });
 
   it('keeps four catalog contracts aligned', () => {
-    const portals = [enMessages, mkMessages, sqMessages, srMessages].map(
-      ({ dashboard }) => dashboard.portal
-    );
+    const catalogs = [enMessages, mkMessages, sqMessages, srMessages];
+    const portals = catalogs.map(({ dashboard }) => dashboard.portal);
     for (const portal of portals) expect(leafPaths(portal).sort().join('|')).toBe(PATHS);
+    expect(catalogs.map(({ dashboard }) => dashboard.member_assistance.cases.open)).toEqual([
+      'View case',
+      'Види случај',
+      'Shiko rastin',
+      'Vidi slučaj',
+    ]);
     expect(new Set(portals.map(portal => portal.title))).toHaveLength(4);
     for (const portal of portals) {
       expect(portal.warnings.active_in_grace).not.toBe(portal.actions.active_in_grace);
