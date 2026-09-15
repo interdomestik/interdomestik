@@ -69,7 +69,7 @@ const STRUCTURED_OWNERS = [
 ];
 const LOCALE_CATALOG_OWNERS = new Map([
   ['dashboard.json', 't117b-member-portal-i18n-contract'],
-  ['claims.json', 'member-case-detail-continuity-contract'],
+  ['claims.json', 'member-evidence-upload-locale-contract'],
   ['claims-tracking.json', 't210-member-timeline-i18n-contract'],
   ['notifications.json', 't410-notification-acknowledgement-i18n-contract'],
 ]);

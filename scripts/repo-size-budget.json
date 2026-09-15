@@ -1306,15 +1306,15 @@
       }
     },
     {
-      "id": "member-case-detail-continuity",
+      "id": "member-upload-l10n",
       "mode": "bounded",
       "writerPaths": [
         "docs/superpowers/specs/2026-09-15-member-case-detail-continuity-design.md",
         "docs/superpowers/plans/2026-09-15-member-case-detail-continuity.md",
         "apps/web/src/features/member/claims/components/MemberClaimDetailHeader.tsx",
         "apps/web/src/features/member/claims/components/MemberClaimDetailHeader.test.tsx",
-        "apps/web/src/features/member/claims/components/MemberClaimDetailOpsPage.tsx",
         "apps/web/src/features/member/claims/components/MemberClaimDetailOpsPage.test.tsx",
+        "apps/web/src/features/member/claims/components/ClaimEvidenceUploadDialog.test.tsx",
         "apps/web/e2e/gate/member-vault-consent-display.spec.ts",
         "apps/web/e2e/golden/member-claim-detail-ops.spec.ts",
         "apps/web/src/messages/en/claims.json",
@@ -1331,18 +1331,18 @@
         "tests/e2e": 22500
       },
       "maxPathBytesDelta": {
-        "docs/superpowers/specs/2026-09-15-member-case-detail-continuity-design.md": 10500,
+        "docs/superpowers/specs/2026-09-15-member-case-detail-continuity-design.md": 9999,
         "docs/superpowers/plans/2026-09-15-member-case-detail-continuity.md": 18000,
         "apps/web/src/features/member/claims/components/MemberClaimDetailHeader.tsx": 8000,
         "apps/web/src/features/member/claims/components/MemberClaimDetailHeader.test.tsx": 9000,
-        "apps/web/src/features/member/claims/components/MemberClaimDetailOpsPage.tsx": 0,
         "apps/web/src/features/member/claims/components/MemberClaimDetailOpsPage.test.tsx": 4000,
-        "apps/web/e2e/gate/member-vault-consent-display.spec.ts": 3500,
+        "apps/web/src/features/member/claims/components/ClaimEvidenceUploadDialog.test.tsx": 7700,
+        "apps/web/e2e/gate/member-vault-consent-display.spec.ts": 7800,
         "apps/web/e2e/golden/member-claim-detail-ops.spec.ts": 6000,
-        "apps/web/src/messages/en/claims.json": 1000,
-        "apps/web/src/messages/mk/claims.json": 1000,
-        "apps/web/src/messages/sq/claims.json": 1000,
-        "apps/web/src/messages/sr/claims.json": 1000
+        "apps/web/src/messages/en/claims.json": 860,
+        "apps/web/src/messages/mk/claims.json": 1222,
+        "apps/web/src/messages/sq/claims.json": 982,
+        "apps/web/src/messages/sr/claims.json": 936
       }
     }
   ],

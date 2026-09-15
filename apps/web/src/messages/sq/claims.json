@@ -158,6 +158,20 @@
       "view_plans": "Shiko Planet"
     },
     "detail": {
+      "evidenceUpload": {
+        "description": "Bashkëngjit foto ose dokumente për këtë rast.",
+        "typeLabel": "Lloji i dokumentit",
+        "file": "Skedari",
+        "pending": "Duke ngarkuar...",
+        "success": "Dëshmia u ngarkua me sukses",
+        "failed": "Ngarkimi i dëshmisë dështoi",
+        "storage": "Shërbimi i ruajtjes nuk është i disponueshëm",
+        "aiConsent": "Pranoj nxjerrjen e të dhënave nga ky dokument i ngarkuar me inteligjencë artificiale, për të përgatitur fushat e kërkesës për shqyrtim nga një person.",
+        "types": {
+          "evidence": "Dëshmi",
+          "legal": "Dokument ligjor"
+        }
+      },
       "continuity": {
         "backToWorkspace": "Kthehu te hapësira e anëtarit",
         "caseLabel": "Rasti",

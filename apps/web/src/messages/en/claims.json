@@ -158,6 +158,20 @@
       "view_plans": "View Plans"
     },
     "detail": {
+      "evidenceUpload": {
+        "description": "Attach photos or documents to this case.",
+        "typeLabel": "Document Type",
+        "file": "File",
+        "pending": "Uploading...",
+        "success": "Evidence uploaded successfully",
+        "failed": "Failed to upload evidence",
+        "storage": "Storage client unavailable",
+        "aiConsent": "I agree to AI document extraction for this uploaded file to prepare claim fields for human review.",
+        "types": {
+          "evidence": "Evidence",
+          "legal": "Legal document"
+        }
+      },
       "continuity": {
         "backToWorkspace": "Back to member workspace",
         "caseLabel": "Case",
