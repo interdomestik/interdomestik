@@ -38,14 +38,16 @@ through PR #1775 as `55875e31b024e6ac9f4648f106be3bfea96facbd`.
 Sonar main gate, passed. `MEMBER-CASE-DETAIL-CONTINUITY` completed through protected product PR
 #1777: head `2797a96f7a2af63aae75f2e284e197208e3afe2c`, squash merge
 `b5a234b30b9cb6ed89ae6d81b81960a3a8135b25`, and all required exact-main checks passed. The owner
-now selects the bounded member evidence-upload localization below.
+completed `MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY` through protected PR #1778 as
+`81a219608dacf4ee9cfd8ee9f201e8ab156e54d2`; all 13 exact-main checks passed. The owner
+now selects the bounded S1 agent message visibility slice below.
 
 ## Owner-adopted enterprise delivery sequence (2026-09-15)
 
 The owner adopts this near-term sequence after the enterprise audit and Opus 5 consultation.
-Finish `MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY` without expanding it; then select one bounded
-successor at a time below. S1–S3 are roadmap labels, not replacements for architecture T IDs.
-This section governs successor ordering over older suggestions; the active slice remains unchanged.
+`MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY` is completed; S1 is selected and in progress.
+Select one bounded successor at a time below. S1–S3 are roadmap labels, not replacements for
+architecture T IDs. This section governs successor ordering over older suggestions.
 
 Core M0–M5 has recorded acceptance, not proof of conformance by every app-layer consumer.
 T-410 remains partial; T-411 retains its SVC-CORE/FLIGHT-03 dependencies. Unknown overlay status
@@ -77,11 +79,87 @@ repo/program/accepted ADR authority remains controlling until explicitly amended
    internal-message exclusion and unauthorized member/agent/branch paths. A representative locale
    does not replace existing four-locale coverage; branding isolation applies where exercised.
 
-After this sequence, select the next ready bounded outcome: the first unmet SVC-CORE clause and
-SVC-06 Help Now (retaining its business priority when approvals/dependencies are ready), approved
-agent acquisition/handoffs, branch oversight and tenant-admin controls with separate platform-admin
-authority, then recovery/settlement/closure gaps. Flight/T-411/SVC-DASH/CQRS retain the existing
-architecture dependency rows; they are not blanket prerequisites for unrelated journeys.
+### Owner-adopted product-readiness roadmap (2026-09-15)
+
+Maintain the [requirement disposition map](requirement-disposition-map.md) as the full SRS and
+architecture-frontier index, not another execution queue. Update affected requirement evidence
+with each slice. Unknown applicability is unresolved, never an implicit post-pilot deferral.
+Pilot readiness does not close the enterprise backlog; only cited owner decisions defer scope.
+Each mapped requirement separately records software, operational and business readiness, evidence
+and accountable ownership. Whole-requirement completion requires all applicable dimensions satisfied;
+not-applicable dimensions need a reason. Prepare operations and business acceptance alongside their
+dependent slices, not only at S14; no existing approval or delivered capability is inferred missing.
+
+The owner adopts the corrected Opus consultation as the following product-readiness sequence.
+S1–S3 retain their bounded scopes; the localization predecessor is delivered. UI/UX is part of each user-facing
+outcome, not a final polish phase. All role journeys use the delivered unified shell; legacy
+dashboards are not the visual target. Credit #1775–#1777 and other delivered contracts before
+selecting a gap. Roadmap rows are bounded outcome families, not permission for one large PR.
+Split a family into the smallest useful increments at selection; preserve the family identifier.
+
+| Order             | Outcome and required UI/UX                                                                                                                                 | Direct dependency / acceptance and cut point                                                                                                                                                                              |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S4, conditional   | Repair the first unsupported S3 handoff, with minimal UI integration where needed.                                                                         | S3 reproduction; real contract and extended journey proof. Repeat only for an evidenced next gap; no entire domain refactor.                                                                                              |
+| S5                | Member front door and first case: public guidance, situation selection, preparation, secure save/account continuity, submission and confirmation.          | Reconcile existing front-door authority and receipts first. Prove a new member reaches the correct saved case without lost input or misleading commitments; implement only missing steps.                                 |
+| S6                | Member continuation and membership access: truthful status, permitted next action, evidence, messages, membership/Asistencë ID access and contextual help. | Reuse delivered workspace/detail and S3. Prove return visits, information requests and recovery from errors. Do not duplicate existing panels or invent required documents, owners, states or ETAs.                       |
+| S7                | Staff handling: usable owned/unowned queue, case review, evidence request/acknowledgement and distinct internal/public communication.                      | Existing handling/assignment contracts and S1/S3 where exercised; member–staff round-trip and internal-note exclusion. New reassignment or lifecycle rules are separate contract gaps.                                    |
+| S8                | Agent clients and bounded handoff: permitted case depth, clear recipient and transfer acknowledgement.                                                     | S1 and established assignment/visibility/handoff contracts. Test assigned/unassigned and cross-tenant paths. Only a genuine unresolved authority change waits for business disposition.                                   |
+| S9                | Agent-assisted member activation: offer/invite, onboarding and first-case continuity.                                                                      | Existing attribution, membership and Paddle contracts plus S8 only where reused. Prove attribution preservation and member ownership; exclude campaigns and new payment providers.                                        |
+| S10               | Branch-manager oversight: scoped queue, permitted actions/escalations and attributable metrics.                                                            | S2 and reused handling contracts. Two-branch/missing-branch/admin baselines. Preserve authorized aggregates; attribution decisions block only affected metric restoration, not the whole journey.                         |
+| S11               | Tenant-admin operations: people, branch assignment, settings and access lifecycle on the unified shell.                                                    | Existing tenant/auth contracts. Split invite/first-login and deactivation/revocation into bounded increments if needed; prove correct scope and the contracted revocation behavior. No custom-role/auth rewrite.          |
+| S12               | Platform-admin operations: tenant onboarding, technical support and platform controls distinct from tenant business authority.                             | Verify the existing platform contract and only reused S11 dependencies. Prove permitted technical actions and forbidden business/cross-tenant actions; no implicit impersonation or privilege expansion.                  |
+| H1, priority lane | First unmet SVC-CORE clause, then SVC-06 Help Now: clear urgent entry, approved guidance, fallback and human-contact path.                                 | Retain business priority as soon as direct dependencies and country/content/stop rules permit. Split core gaps from entry UI; prove approved-country and stop-rule behavior. No invented dispatch, representation or ETA. |
+| S13               | Member/staff outcome and closure: understandable decision, permitted follow-up and contracted recovery/payment information.                                | Verify closure/recovery receipts and pilot scope; implement only gaps. Prove authorized transitions and truthful financial display, not new settlement mechanics.                                                         |
+| S14               | Whole-pilot rehearsal and readiness disposition across all in-scope roles.                                                                                 | Delivered journey receipts, representative-user task results and operational proof below. No deployment implied.                                                                                                          |
+
+After S3, use this default ordering, advancing a ready independent outcome when a direct dependency
+is blocked and recording why in the tracker. H1 retains its priority lane; it is not postponed by
+table position. UI preparation may run in parallel with disjoint ownership; shared files and heavy
+verification remain coordinated. Flight/T-411/SVC-DASH/CQRS retain their architecture dependencies,
+not blanket prerequisite status. No completion is inferred from a row, a mockup or a helper proposal.
+
+At selection, map only that outcome's SRS/architecture requirements to existing implementation,
+mounted UI and delivery receipts. Record implemented, verified, user-validated or missing separately.
+Each UI brief states the task, screen/interaction change, direct contracts, forbidden scope and
+acceptance, including keyboard/focus, mobile reflow, loading/error/empty/retry and truthful copy.
+Preserve existing EN/SQ/MK/SR coverage; pilot cohort choices do not silently narrow locale contracts.
+
+#### Pilot acceptance, not merely CI acceptance
+
+- Confirm existing decisions before reopening any: countries, services, cohort and roles,
+  membership/billing/recovery scope, support hours, and release/rollback ownership. The chief records
+  unresolved decisions with the product owner or named delegate and the first dependent slice;
+  no new sign-off ceremony is imposed for already accepted decisions.
+- Every in-scope role completes its core tasks and cross-role handoffs on the redesigned shell.
+  Run small representative-user rounds alongside relevant increments and a final rehearsal;
+  include disabled users and staff exception/support scenarios. Record failures and corrections;
+  automated browser success is not user validation. No task-blocking issue remains at pilot admission.
+- Assess applicable WCAG 2.2 A/AA criteria across complete pilot processes, with manual keyboard,
+  screen-reader and responsive checks as well as automation. Track criterion-level results;
+  a spot check or absence of severe findings does not establish AA conformance. Resolve applicable
+  failures before claiming conformance and state any narrower assessment honestly.
+- Validate all four locale journeys and obtain appropriate language review of critical copy.
+  Show only contract-backed status, ownership and next action; out-of-scope capabilities must not
+  appear as working promises or bypass server-side authorization.
+- Required tenant/branch/role/privacy, data integrity, security and delivery checks remain mandatory.
+  Support ownership, monitoring/alerts, incident handling and rollback must have usable evidence.
+  Reuse existing legal/data-protection/billing and release evidence where valid; resolve actual gaps.
+- S14 records readiness or concrete unmet criteria. Controlled pilot release needs separate explicit
+  deployment authorization. Merged, deployed and user-accepted remain distinct states.
+
+#### Research applied to this roadmap
+
+Reuse the primary sources checked on 2026-09-15: [AirHelp's public claim guide](https://www.airhelp.com/en/blog/how-to-use-airhelp-to-claim-flight-compensation/)
+supports guided intake and stable claim references; [Allianz's public help page](https://www.allianztravelinsurance.com/travel/insurance-101/how-our-website-can-help.htm)
+supports status and missing-document clarity; [ADAC's assistance description](https://www.adac.de/services/pannenhilfe/was-ist-pannenhilfe-online/)
+supports location fallback and assistance continuity. These are public descriptions, not measured
+usability improvements or inspected private portals. The unsupported Allianz no-save claim is not
+adopted. Use original design and existing domain semantics, not competitor branding or fee models.
+[W3C conformance requirements](https://www.w3.org/TR/WCAG22/#conformance-reqs) and
+[GOV.UK research planning](https://www.gov.uk/service-manual/user-research/plan-user-research-for-your-service)
+inform complete-process accessibility and small iterative user rounds. Refresh relevant evidence
+at slice design only when needed. Verified fm, Safari/Simulator and profiling tools are optional
+measured aids, not new infrastructure, production AI or prerequisites.
 
 The chief prepares evidence; the product owner decides business policy or names a delegate.
 Record the accountable person and needed-by slice in the tracker for branch attribution, agent
@@ -101,9 +179,23 @@ No routine promotion/closeout PR or tooling project is added. Merged is not depl
 Reuse the 2026-09-15 DORA small-batch/AI and GOV.UK whole-journey research; measured local tools
 are supplemental, not another prerequisite. This is sequencing authority, not completion evidence.
 
-## Selected Member Evidence Upload Locale Continuity
+## Selected S1 — Agent Message Visibility
 
-`MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY` is the sole selected product slice. It is medium
+`S1-AGENT-MESSAGE-VISIBILITY` is the sole selected product slice, high complexity,
+Astra/high, from protected main `81a219608dacf4ee9cfd8ee9f201e8ab156e54d2`. Scope is the
+agent workspace's latest-message and unread-count reads plus database-backed and rendered
+regressions. Preserve active agent-client assignment, tenant/branch scope, selected-claim
+retention, the 100-row cap, ordering and DTO shape. No general agent messaging authority,
+proxy/auth/routing/schema refactor, dashboard redesign or deployment is selected.
+
+Implementation is in progress in task `01a0a6b8-163e-74f3-b8e9-6dc43f1bb357`.
+Current-head full verification, protected delivery and exact-main health remain pending;
+this selection does not claim S1 completion.
+
+## Completed Member Evidence Upload Locale Continuity
+
+`MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY` completed through protected PR #1778 as
+`81a219608dacf4ee9cfd8ee9f201e8ab156e54d2`, with all 13 exact-main checks passed. It was medium
 complexity, Sol/high: localize the established member `ClaimEvidenceUploadDialog` wrapper and prove
 it on the mounted claim-detail header/evidence and documents surfaces. The shared upload component,
 direct/signed transport, MIME handling, claim/category mapping, optional AI-extraction consent,
@@ -121,7 +213,7 @@ motion and blocked upload traffic. The exact admitted E2E tree is
 Gemini supplied bounded implementation/test counterexamples; accepted corrections include canonical
 category/error assertions and extraction-specific MK consent. Fresh independent Astra/high review
 found no actionable issue and independently passed the focused contract/capacity checks. Final full
-proof, protected review, merge and exact-main health remain pending.
+proof, protected review, merge and exact-main health passed for #1778. No deployment is claimed.
 
 ## Completed Member Case Detail Continuity
 
@@ -383,7 +475,7 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 These rows, the notification correctness increment, shared shell navigation, both notification
 acknowledgement increments, `MEMBER-CASE-WORKSPACE-REDESIGN` and `MEMBER-CASE-DETAIL-CONTINUITY`
 are completed history. The sole selected increment is
-`MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY`, defined above.
+`S1-AGENT-MESSAGE-VISIBILITY`, defined above; the localization predecessor is completed.
 
 ## Shared Shell Navigation Increment
 

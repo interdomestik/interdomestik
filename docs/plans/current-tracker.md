@@ -16,27 +16,68 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-`MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY` is the sole selected successor on exact main
-`b5a234b30b9cb6ed89ae6d81b81960a3a8135b25`. Predecessor `MEMBER-CASE-DETAIL-CONTINUITY`
-protected-merged in PR #1777 from head `2797a96f7a2af63aae75f2e284e197208e3afe2c`; all required
-exact-main checks, including the Sonar main gate, passed. The mounted detail and documents surfaces
-and established shared upload contract are authoritative; no backend or routing expansion is selected.
+`S1-AGENT-MESSAGE-VISIBILITY` is the sole selected product slice on protected main
+`81a219608dacf4ee9cfd8ee9f201e8ab156e54d2`. The localization predecessor completed through
+PR #1778 with all 13 exact-main checks passed. S1 implementation is in progress in task
+`01a0a6b8-163e-74f3-b8e9-6dc43f1bb357`; full verification and protected delivery remain pending.
 
-| ID                                         | Status        | Owner    | Work                                                            | Exit Criteria                                                                                                       |
-| ------------------------------------------ | ------------- | -------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY` | `in_progress` | Sol/high | Localize and prove the established member evidence-upload flow. | Exact EN/SQ/MK/SR copy/payload/reset/error proof; mounted detail/documents continuity; reviewed protected delivery. |
+| ID                            | Status        | Owner      | Work                                                                  | Exit Criteria                                                                                                                     |
+| ----------------------------- | ------------- | ---------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `S1-AGENT-MESSAGE-VISIBILITY` | `in_progress` | Astra/high | Exclude internal messages from agent latest-message and unread reads. | Real query and mounted visibility proof; unchanged tenant/assignment/DTO contracts; required verification and protected delivery. |
 
 ### Owner-adopted successor queue (2026-09-15)
 
-Follow the current program's enterprise delivery sequence after the active localization slice.
+Follow the current program's enterprise delivery sequence; localization is delivered and S1 is active.
 Queued is not in progress or verified. Each successor gets a bounded current-main brief and model
 classification before implementation; no new approval ceremony is required for already authorized scope.
 
 | Roadmap item                       | Status             | Entry / exit evidence                                                                                                             |
 | ---------------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| S1 — Agent message visibility      | queued_next        | Actual query-path reproduction; visibility reuse and internal/public/unassigned/cross-tenant proof; no agent-authority expansion. |
+| S1 — Agent message visibility      | in_progress        | Actual query-path reproduction; visibility reuse and internal/public/unassigned/cross-tenant proof; no agent-authority expansion. |
 | S2 — Branch overview scope         | queued_conditional | Record current authorized capability, then query-path scope protection with branch/tenant/admin regression proof.                 |
 | S3 — Member–staff evidence journey | queued_conditional | Reuse delivered contracts/fixtures; prove the bounded handoff sequence or record the first missing contract as its cut point.     |
+
+### Product-readiness roadmap queue
+
+The [requirement disposition map](requirement-disposition-map.md) retains all 510 SRS requirements
+and the unresolved architecture frontier. Maintain affected rows alongside ordinary slice receipts;
+record explicit owner approval for post-pilot deferrals. Its unresolved rows are not automatically
+missing features or blanket prerequisites. Resolve pilot applicability before readiness admission.
+Update software, operational and business readiness independently with evidence and known owners.
+Unassigned means ownership has not been recorded; do not invent appointments. Mark a whole
+requirement delivered only after all applicable readiness dimensions are satisfied.
+
+Owner-adopted on 2026-09-15; detailed scope and acceptance live only in the current program's
+product-readiness roadmap. These rows do not change the active slice or mark future work complete.
+S4–S14 are outcome families to split into bounded implementation slices, not architecture T IDs.
+
+| Item                                    | Status              | Next evidence                                                                                      |
+| --------------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------- |
+| S4 — S3 handoff gap                     | conditional         | Only the first reproduced unsupported handoff; minimal integration and extended journey proof.     |
+| S5 — Member first-case journey          | queued_conditional  | Reconcile front-door/preparation/save/submission receipts; implement remaining UI/UX gaps.         |
+| S6 — Member continuation and membership | queued_conditional  | Credit #1775–#1777; complete only missing return/evidence/message/membership access outcomes.      |
+| S7 — Staff handling journey             | queued_conditional  | Existing handling contracts; queue and evidence round-trip with internal/public separation.        |
+| S8 — Agent client/handoff journey       | queued_conditional  | Existing authority and attribution; only unresolved capability changes need disposition.           |
+| S9 — Agent-assisted activation          | queued_conditional  | Member ownership, attribution and Paddle continuity on established contracts.                      |
+| S10 — Branch-manager oversight          | queued_conditional  | S2; existing authorized scope; metric decisions block only affected restoration.                   |
+| S11 — Tenant-admin operations           | queued_conditional  | People/branches and contracted access lifecycle, split into bounded increments.                    |
+| S12 — Platform-admin operations         | queued_conditional  | Technical operations and separate business-authority boundary.                                     |
+| H1 — SVC-CORE / Help Now                | priority_when_ready | First unmet clause, country/content/stop-rule authority and usable assistance path.                |
+| S13 — Outcome and closure               | queued_conditional  | Closure/recovery receipts and pilot scope; truthful member/staff outcome UI.                       |
+| S14 — Pilot rehearsal                   | queued_conditional  | All in-scope role journeys, user acceptance, accessibility, four locales and operational evidence. |
+
+Before selecting each family, record its exact bounded gap, direct predecessor receipts, model/risk,
+UI acceptance and exclusions in the existing active queue. Record why any independent ready outcome
+advances out of default order; H1 retains business priority. S1–S3 do not
+wait for whole-roadmap reconciliation. Completed work is credited, never rebuilt from an unknown.
+
+Readiness decisions: chief prepares existing evidence; product owner or named delegate resolves only
+unsettled country/service/cohort/role, billing/recovery and support choices before their dependents.
+Record named accountability and needed-by slice when unresolved; do not invent an assignment or
+reopen an accepted decision. Release/rollback ownership and any genuine legal/data-protection gap
+must be resolved before pilot admission. UI acceptance rounds follow relevant delivered increments;
+the final rehearsal cannot substitute for ongoing usability work. No pilot-ready or deployed claim
+is made by this queue. Preserve EN/SQ/MK/SR and all existing required proof.
 
 Decision preparation: chief. Business disposition: product owner or named delegate, recorded before
 dependent work. Branch attribution gates metric restoration; agent authority gates agent handoff
@@ -110,7 +151,11 @@ dispositioned as the approved conservative live-name policy, not proof of runtim
 records the limitation. No such symbol exists in the current repository; import admission remains
 independent and no exact-runtime-effect guarantee is claimed.
 
-### Member evidence upload locale continuity progress
+### Completed member evidence upload locale continuity
+
+PR #1778 protected-merged as `81a219608dacf4ee9cfd8ee9f201e8ab156e54d2`; all 13 exact-main
+checks passed. The following notes retain its intermediate source-bound evidence. S1 is now
+selected by the active queue above; the localization slice is not an outstanding prerequisite.
 
 - Fresh protected main and clean branch `codex/member-evidence-upload-locale-continuity` started at
   `b5a234b30b9cb6ed89ae6d81b81960a3a8135b25`; PR #1777 and exact-main health are complete.
@@ -137,7 +182,8 @@ independent and no exact-runtime-effect guarantee is claimed.
   capacity tests. Actual served model/effort were not exposed to the child runtime, so the requested
   route is recorded without unsupported server attestation.
 - Final `pnpm pr:verify`, separate `pnpm security:guard`, protected current-head review/checks, merge
-  and exact-main health remain pending. No deployment or successor implementation is authorized here.
+  and exact-main health passed for #1778. No deployment is claimed; S1 authorization is recorded
+  in the active queue and current program, not inferred from these historical proof notes.
 
 ### Completed member case detail continuity
 
@@ -281,9 +327,9 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                                         | Source Refs                       | Execution | Run ID | Run Root | Sonar   | Docker | Sentry | Learning         | Evidence Refs                                                                                                                   |
-| ------------------------------------------ | --------------------------------- | --------- | ------ | -------- | ------- | ------ | ------ | ---------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY` | current program; base `b5a234b30` | `manual`  | local  | local    | pending | pass   | `pass` | `not_applicable` | Candidate proof: dialog 14/14, focused 37/37, mounted gate 8/8, Astra review clear; final proof and protected delivery pending. |
+| ID                            | Source Refs                       | Execution | Run ID | Run Root | Sonar   | Docker | Sentry    | Learning         | Evidence Refs                                                                                                                                     |
+| ----------------------------- | --------------------------------- | --------- | ------ | -------- | ------- | ------ | --------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S1-AGENT-MESSAGE-VISIBILITY` | current program; base `81a219608` | `manual`  | local  | local    | pending | pass   | `pending` | `not_applicable` | Active task reports reviewed implementation and focused query/mounted 4/4 proof; full verification, hosted review and protected delivery pending. |
 
 ### Member case overview entry progress
 
@@ -796,8 +842,8 @@ completed through protected product PR #1771, and the bounded
 `T410-PESSIMISTIC-MUTATION-BOUNDARY` protected-merged through PR #1772 as `62376c15`. This does not
 claim full T-410 completion. `MEMBER-CASE-OVERVIEW-ENTRY` completed in PR #1775,
 `MEMBER-CASE-WORKSPACE-REDESIGN` completed in PR #1776 and `MEMBER-CASE-DETAIL-CONTINUITY`
-completed in PR #1777. The selected successor is `MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY`;
-S1–S3 remain queued and this does not select T-411 Smart Next Step.
+completed in PR #1777; localization completed in PR #1778. The selected successor is `S1-AGENT-MESSAGE-VISIBILITY`;
+S1 is in progress; S2/S3 remain queued. This does not select T-411 Smart Next Step.
 
 | Completed historical priority            | Status      | Constraint                                                                    |
 | ---------------------------------------- | ----------- | ----------------------------------------------------------------------------- |
