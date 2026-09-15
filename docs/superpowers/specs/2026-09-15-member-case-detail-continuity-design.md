@@ -72,9 +72,13 @@ Render a labelled `nav` containing a list of locale-aware native anchors in this
 3. History
 4. Messages
 
-Each target has a stable page-local ID, a structural section or landmark, and scroll offset that
-keeps the target visible below the shell. Links wrap or scroll safely at 320 CSS pixels and expose a
-visible focus indicator. They do not activate tabs, hide content or store navigation state.
+Freeze the public fragments as `#member-claim-detail-progress`, `#member-claim-detail-evidence`,
+`#member-claim-detail-history` and the existing `#member-claim-detail-messaging`. Progress targets a
+structural wrapper that begins with the recorded progress card and includes the separate Case
+Companion next-step card after it. Each target is a section or landmark named by its existing heading
+through `aria-labelledby`, and carries a `scroll-mt-*` offset that keeps the target visible below the
+shell. Links wrap or scroll safely at 320 CSS pixels and expose a visible focus indicator. They do
+not activate tabs, hide content or store navigation state.
 
 ### Information hierarchy
 
@@ -95,7 +99,9 @@ identity, service promise or automated decision language. `MessagingPanel` remai
 In scope:
 
 - the mounted member detail presentation;
-- one cohesive extracted header/navigation component if executable modularity requires it;
+- one mandatory cohesive extracted header/navigation component at
+  `apps/web/src/features/member/claims/components/MemberClaimDetailHeader.tsx`, with focused tests at
+  `apps/web/src/features/member/claims/components/MemberClaimDetailHeader.test.tsx`;
 - four `claims.json` locale catalogs;
 - focused component and mounted browser contracts;
 - canonical program/tracker status and exact capacity metadata required by the bounded diff.
@@ -113,19 +119,26 @@ Out of scope:
 
 The slice adds no data fetch or mutation. Existing not-found, auth redirect, action disabled state,
 upload/consent behavior, messaging errors and empty timeline/document states remain authoritative.
-Hash navigation degrades to ordinary document reading if enhanced navigation is unavailable.
+Hash navigation degrades to ordinary document reading if enhanced navigation is unavailable. The
+message action keeps the existing target-focus behavior. When `prefers-reduced-motion: reduce`
+matches it uses `scrollIntoView({ behavior: 'auto', block: 'start' })`; otherwise it preserves the
+existing smooth scroll. Native section links add no scripted animation.
 
 ## Test contract
 
 Focused proof must cover:
 
-- exact `/member` return destination through the locale-aware Link;
-- labelled navigation with four descriptive anchors and exact matching target IDs;
+- logical `/member` return destination through the locale-aware Link in unit proof, plus the rendered
+  same-locale destination such as `/en/member` in mounted browser proof;
+- labelled navigation with four descriptive anchors and exact matching target IDs
+  `member-claim-detail-progress`, `member-claim-detail-evidence`,
+  `member-claim-detail-history` and `member-claim-detail-messaging`;
 - one visible progress summary and one Case Companion next step in that order;
 - unchanged case ID, localized status, dates, timeline order, notes, SLA/trust/recovery/allowance data,
   case description and conditional rendering;
 - both existing upload triggers and unchanged consent/document behavior;
-- member messaging with `allowInternal={false}` and retained header message scroll/focus behavior;
+- member messaging with `allowInternal={false}`, retained header message focus, smooth scrolling by
+  default and `auto` scrolling under reduced motion;
 - SQ/MK/EN/SR catalog parity and no new timing, outcome or document promise;
 - native keyboard activation, visible focus, 320/390/768/1440 reflow, 200% text, long ID/labels, dark
   mode and reduced motion in the actual mounted page;
@@ -139,15 +152,20 @@ health. The included E2E gate must not be rerun for identical inputs.
 ## Capacity and implementation planning
 
 The existing `MemberClaimDetailOpsPage.tsx` is above the executable 300-line review boundary. It must
-not grow. Planning should extract one cohesive header/navigation unit and reduce the mounted page
-while preserving behavior. Add focused tests beside the extracted unit instead of expanding the
-already large page test indiscriminately.
+not grow. Extract `MemberClaimDetailHeader.tsx` and reduce the mounted page while preserving behavior.
+The parent retains translation of tracking/status values, action derivation, the messaging ref and
+the message callback; the extracted presentation receives the already-derived upload/message
+actions and callbacks. Add focused tests in `MemberClaimDetailHeader.test.tsx` instead of expanding
+the already large page test indiscriminately.
 
 Before implementation, freeze the complete changed path set and exact bounded source, test,
 message/config, documentation and capacity-metadata allowances. Count new files and the budget
 self-change. Use no deleted-byte credit, reserve, guard relaxation or unrelated donor. If current
 authority does not cover the exact figures, obtain one consolidated owner approval before product
-edits.
+edits. The implementation plan must name populated fixtures covering timeline, notes, SLA, recovery
+and allowance plus an absent-condition fixture, and make progress-before-next-step and target-order
+DOM assertions explicit. Do not treat the current golden spec's claim-absent skip as sufficient
+proof.
 
 ## Review sequence
 
