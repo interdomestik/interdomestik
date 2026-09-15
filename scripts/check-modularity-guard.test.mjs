@@ -212,12 +212,12 @@ test('structured ownership', () => {
   );
 });
 
-test('T-117B/member case catalog ownership', () => {
+test('T117B/member upload catalog ownership', () => {
   for (const locale of ['en', 'mk', 'sq', 'sr']) {
     const prefix = `apps/web/src/messages/${locale}/`;
     assert.deepEqual(
       ['dashboard.json', 'claims.json'].map(file => structuredArtifactOwner(prefix + file)),
-      ['t117b-member-portal-i18n-contract', 'member-case-detail-continuity-contract']
+      ['t117b-member-portal-i18n-contract', 'member-evidence-upload-locale-contract']
     );
   }
 

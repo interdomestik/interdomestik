@@ -158,6 +158,20 @@
       "view_plans": "Pogledaj Planove"
     },
     "detail": {
+      "evidenceUpload": {
+        "description": "Priložite fotografije ili dokumente za ovaj slučaj.",
+        "typeLabel": "Vrsta dokumenta",
+        "file": "Fajl",
+        "pending": "Otpremanje...",
+        "success": "Dokaz je uspešno otpremljen",
+        "failed": "Otpremanje dokaza nije uspelo",
+        "storage": "Usluga skladištenja nije dostupna",
+        "aiConsent": "Pristajem na izdvajanje podataka iz ovog otpremljenog dokumenta pomoću veštačke inteligencije, radi pripreme polja zahteva za ljudski pregled.",
+        "types": {
+          "evidence": "Dokaz",
+          "legal": "Pravni dokument"
+        }
+      },
       "continuity": {
         "backToWorkspace": "Nazad u prostor za članove",
         "caseLabel": "Slučaj",

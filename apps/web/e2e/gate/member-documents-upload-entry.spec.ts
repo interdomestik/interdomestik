@@ -32,7 +32,7 @@ test.describe('Member Documents Upload Entry', () => {
     await expect(uploadActions.first()).toBeVisible();
     await expect(uploadActions).toHaveCount(cardCount);
 
-    const uploadDialog = page.getByRole('dialog', { name: /upload evidence/i });
+    const uploadDialog = page.getByRole('dialog');
 
     await expect
       .poll(

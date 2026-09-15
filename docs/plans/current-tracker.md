@@ -16,16 +16,33 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-`MEMBER-CASE-DETAIL-CONTINUITY` is the sole selected successor on exact main `06d90f570`.
-Predecessor `MEMBER-CASE-WORKSPACE-REDESIGN` protected-merged in PR #1776; all 13 required
-exact-main checks, including the Sonar main gate, passed.
-Shared shell navigation, the bounded T410 notification increments and T210 are completed history.
-The mounted member claim detail is the authority; its V2 variant remains dormant. Canonical role
-routes and readiness markers do not authorize a second detail experience.
+`MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY` is the sole selected successor on exact main
+`b5a234b30b9cb6ed89ae6d81b81960a3a8135b25`. Predecessor `MEMBER-CASE-DETAIL-CONTINUITY`
+protected-merged in PR #1777 from head `2797a96f7a2af63aae75f2e284e197208e3afe2c`; all required
+exact-main checks, including the Sonar main gate, passed. The mounted detail and documents surfaces
+and established shared upload contract are authoritative; no backend or routing expansion is selected.
 
-| ID                              | Status        | Owner    | Work                                                                   | Exit Criteria                                                                                                               |
-| ------------------------------- | ------------- | -------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `MEMBER-CASE-DETAIL-CONTINUITY` | `in_progress` | Sol/high | Continue the case-first workspace into the mounted member detail page. | Approved confidence-first hierarchy; localized native section navigation; preserved contracts; reviewed protected delivery. |
+| ID                                         | Status        | Owner    | Work                                                            | Exit Criteria                                                                                                       |
+| ------------------------------------------ | ------------- | -------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY` | `in_progress` | Sol/high | Localize and prove the established member evidence-upload flow. | Exact EN/SQ/MK/SR copy/payload/reset/error proof; mounted detail/documents continuity; reviewed protected delivery. |
+
+### Owner-adopted successor queue (2026-09-15)
+
+Follow the current program's enterprise delivery sequence after the active localization slice.
+Queued is not in progress or verified. Each successor gets a bounded current-main brief and model
+classification before implementation; no new approval ceremony is required for already authorized scope.
+
+| Roadmap item                       | Status             | Entry / exit evidence                                                                                                             |
+| ---------------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| S1 — Agent message visibility      | queued_next        | Actual query-path reproduction; visibility reuse and internal/public/unassigned/cross-tenant proof; no agent-authority expansion. |
+| S2 — Branch overview scope         | queued_conditional | Record current authorized capability, then query-path scope protection with branch/tenant/admin regression proof.                 |
+| S3 — Member–staff evidence journey | queued_conditional | Reuse delivered contracts/fixtures; prove the bounded handoff sequence or record the first missing contract as its cut point.     |
+
+Decision preparation: chief. Business disposition: product owner or named delegate, recorded before
+dependent work. Branch attribution gates metric restoration; agent authority gates agent handoff
+changes; country/content/stop-rule approval gates the affected Help Now outcome. Missing decisions
+do not block independent ready work. Unrelated T-410/T-115/overlay reconciliation stays off this queue's
+critical path. Existing architecture rows retain detailed dependencies and historical receipts.
 
 T410 PR #1772 protected-merged as `62376c156bc0058e0491d550f261cb621eb4f02e` at
 2026-09-15T05:02:15Z. Exact-merge CI static/unit/E2E, audit, CodeQL, gitleaks, Sonar analysis and
@@ -93,7 +110,42 @@ dispositioned as the approved conservative live-name policy, not proof of runtim
 records the limitation. No such symbol exists in the current repository; import admission remains
 independent and no exact-runtime-effect guarantee is claimed.
 
-### Member case detail continuity progress
+### Member evidence upload locale continuity progress
+
+- Fresh protected main and clean branch `codex/member-evidence-upload-locale-continuity` started at
+  `b5a234b30b9cb6ed89ae6d81b81960a3a8135b25`; PR #1777 and exact-main health are complete.
+- Medium Sol/high scope is limited to the member wrapper and mounted detail/documents proof. Shared
+  upload behavior and all auth, proxy, tenant/RLS, schema/database/storage/API, billing and route
+  authorities remain unchanged. No dependency or backend taxonomy expansion is admitted.
+- Subscription Sonnet requested and served `claude-sonnet-5`; accepted canonical category/error
+  assertions and extraction-specific MK consent wording. Gemini requested and served
+  `gemini-3.1-pro-preview`; accepted exact no-fallback, reset, payload, raw-error, focus, narrow-layout,
+  real-dark and reduced-motion counterexamples. No paid fallback or repeated research was used.
+- Exact EN/SQ/MK/SR catalog and wrapper unit proof passes 14/14. The broader focused upload/action/API
+  set passes 37/37. i18n catalog and purity checks, modularity guard and repository-size audit pass.
+  Aggregate/global/category/file ceilings and reserve are unchanged; no new tracked file is used.
+- The worktree-specific isolated database was migrated and seeded; `seed:assert-e2e` passed. Host
+  routing, neutral/default hosts, port 3000, Docker/Supabase/PostgreSQL, disk and competing jobs were
+  preflighted. Sentry uploads stayed disabled and billing remained in test mode.
+- The canonical mounted lane passes 8/8 across SQ/EN and MK/SR. It proves the two detail triggers and
+  documents trigger with exact fixture identity, keyboard open/close and focus return, 320px/desktop,
+  long translations, actual dark mode, reduced motion and aborted upload traffic. Transition locators
+  are scoped to the active localized root; consent proof uses the exact fixture row.
+- Exact E2E tree `469d483c0727f755a5dd27eb02f54192c484ebf6` is admitted fail-closed; resolver proof passes 12/12.
+- Fresh independent Astra/high review of exact head `b83177b6c661cb3e0db66be1c065b07e7e1e5184`
+  found no actionable findings and independently passed 14 dialog, 31 resolver/modularity and 19
+  capacity tests. Actual served model/effort were not exposed to the child runtime, so the requested
+  route is recorded without unsupported server attestation.
+- Final `pnpm pr:verify`, separate `pnpm security:guard`, protected current-head review/checks, merge
+  and exact-main health remain pending. No deployment or successor implementation is authorized here.
+
+### Completed member case detail continuity
+
+Protected product PR #1777 merged head `2797a96f7a2af63aae75f2e284e197208e3afe2c` as
+`b5a234b30b9cb6ed89ae6d81b81960a3a8135b25` on 2026-09-15. All required exact-main checks,
+including CI static/unit/E2E/audit, CodeQL, gitleaks, Sonar analysis and Sonar gate, passed. No
+deployment or claimant usability validation is claimed. The following notes retain intermediate
+source-bound evidence and then-pending wording.
 
 - Fresh remote main, clean worktree and branch `codex/member-case-detail-continuity` verified at
   `06d90f570d8757764a9fac8124ee924bd3b8aa1f`. PR #1776 is merged and exact-main health is green.
@@ -229,9 +281,9 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                              | Source Refs                       | Execution | Run ID | Run Root | Sonar   | Docker | Sentry | Learning         | Evidence Refs                                                                                        |
-| ------------------------------- | --------------------------------- | --------- | ------ | -------- | ------- | ------ | ------ | ---------------- | ---------------------------------------------------------------------------------------------------- |
-| `MEMBER-CASE-DETAIL-CONTINUITY` | current program; base `06d90f570` | `manual`  | local  | local    | pending | pass   | `pass` | `not_applicable` | Candidate proof: unit 8/8, seed 8/8, gate 4/4, golden 4/4; final proof and protected review pending. |
+| ID                                         | Source Refs                       | Execution | Run ID | Run Root | Sonar   | Docker | Sentry | Learning         | Evidence Refs                                                                                                                   |
+| ------------------------------------------ | --------------------------------- | --------- | ------ | -------- | ------- | ------ | ------ | ---------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY` | current program; base `b5a234b30` | `manual`  | local  | local    | pending | pass   | `pass` | `not_applicable` | Candidate proof: dialog 14/14, focused 37/37, mounted gate 8/8, Astra review clear; final proof and protected delivery pending. |
 
 ### Member case overview entry progress
 
@@ -742,9 +794,10 @@ owner-selected bounded notification acknowledgement increment completed through 
 health verified, and shared shell navigation completed through #1770. `T410-OPTIMISTIC-NOTIFICATION-ACK`
 completed through protected product PR #1771, and the bounded
 `T410-PESSIMISTIC-MUTATION-BOUNDARY` protected-merged through PR #1772 as `62376c15`. This does not
-claim full T-410 completion. `MEMBER-CASE-OVERVIEW-ENTRY` completed in PR #1775 and
-`MEMBER-CASE-WORKSPACE-REDESIGN` completed in PR #1776. The selected successor is
-`MEMBER-CASE-DETAIL-CONTINUITY`; it does not select T-411 Smart Next Step.
+claim full T-410 completion. `MEMBER-CASE-OVERVIEW-ENTRY` completed in PR #1775,
+`MEMBER-CASE-WORKSPACE-REDESIGN` completed in PR #1776 and `MEMBER-CASE-DETAIL-CONTINUITY`
+completed in PR #1777. The selected successor is `MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY`;
+S1–S3 remain queued and this does not select T-411 Smart Next Step.
 
 | Completed historical priority            | Status      | Constraint                                                                    |
 | ---------------------------------------- | ----------- | ----------------------------------------------------------------------------- |
