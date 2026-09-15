@@ -19,7 +19,7 @@ status_command: pnpm plan:status
 `S1-AGENT-MESSAGE-VISIBILITY` is the sole selected product slice on protected main
 `81a219608dacf4ee9cfd8ee9f201e8ab156e54d2`. The localization predecessor completed through
 PR #1778 with all 13 exact-main checks passed. S1 implementation is in progress in task
-`01a0a6b8-163e-74f3-b8e9-6dc43f1bb357`; prior full verification passed at `d161bdd1`; the dedicated-agent fixture correction awaits renewed final proof;
+`01a0a6b8-163e-74f3-b8e9-6dc43f1bb357`; renewed full verification and separate security passed at `94ac9167` after the dedicated-agent and synthetic baseline corrections;
 protected delivery and exact-main health remain pending.
 
 | ID                            | Status        | Owner      | Work                                                                  | Exit Criteria                                                                                                                     |
@@ -253,13 +253,25 @@ independent and no exact-runtime-effect guarantee is claimed.
   with a one-connection main pool; the original selection consumer retains its seeded claim.
   Independent fixture/auth logic review passed without duplicate execution; focused consumer inventory
   found no further S1-induced held-ID collision. Six-worker S1/selection/CRM execution passed 44 cases
-  against the recorded working-candidate file hashes and E2E corpus. Renewed full proof is pending.
+  against the recorded working-candidate file hashes and E2E corpus. Renewed full proof passed below.
 
 - The first dedicated-agent full attempt at `93e24a23` stopped with 1,184/1,185 CI contracts
   passing. The synthetic T118 capacity example counted the existing CRM test as a new file.
   Its presence in the fixed capacity baseline was verified; a one-line existing-path entry corrects
   that example, with 57 bytes attributed to the capacity-test allocation. Evaluator, policy and
   assertions remain unchanged. This is a synthetic baseline-inventory issue, not a product defect.
+
+- Independent integrated review passed `93e24a23`; the baseline-only delta review passed
+  `94ac9167`, with no duplicate test execution. Full CI contracts passed 1,185/1,185 before retry.
+  Renewed uninterrupted `pnpm pr:verify` passed at `94ac916725143c2291e3fc2db0dee40703905a35`
+  (tree `6b7b2c5c3af15b81dba0105571b86ff24e5694f6`): 1,185 CI contracts, 154 release tests,
+  41 RLS tests, 3,394 web tests/12 skips, 81.32% line coverage, 260 browser passes/12 skips,
+  and 13 smoke passes/11 skips; 653 seconds. Separate security passed at the same source.
+  Private log SHA-256: `6d3d4daa6645f16d1fbc569e31fddc9b83842c9087bad2cc6f1263ed3f4319f0`.
+  The following receipt-only update changes no tested input; retain this full-proof identity and
+  recheck affected document/capacity/security guards. Protected delivery and exact-main health remain
+  pending. Lesson: fixture isolation must cover sibling consumers as well as project copies; no
+  elapsed-time saving is inferred from these runs.
 
 ### Completed member evidence upload locale continuity
 
@@ -437,9 +449,9 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                            | Source Refs                       | Execution | Run ID | Run Root | Sonar   | Docker | Sentry    | Learning         | Evidence Refs                                                                                                                  |
-| ----------------------------- | --------------------------------- | --------- | ------ | -------- | ------- | ------ | --------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `S1-AGENT-MESSAGE-VISIBILITY` | current program; proof `d161bdd1` | `manual`  | local  | local    | pending | pass   | `pending` | `not_applicable` | Prior proof d161bdd1 retained; dedicated-agent correction requires renewed full proof; protected delivery/main health pending. |
+| ID                            | Source Refs                       | Execution | Run ID | Run Root | Sonar   | Docker | Sentry    | Learning         | Evidence Refs                                                                                                              |
+| ----------------------------- | --------------------------------- | --------- | ------ | -------- | ------- | ------ | --------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `S1-AGENT-MESSAGE-VISIBILITY` | current program; proof `94ac9167` | `manual`  | local  | local    | pending | pass   | `pending` | `not_applicable` | Final local pr:verify/security and independent review passed at94ac9167; protected delivery and exact-main health pending. |
 
 ### Member case overview entry progress
 
