@@ -6,8 +6,6 @@ import { gotoApp } from '../utils/navigation';
 import { withAgentMessageFixture } from './agent-message-visibility.fixture';
 
 test.describe('Agent message visibility', () => {
-  // Both probes add claims for the same seeded agent; keep their fixtures disjoint in time.
-  test.describe.configure({ mode: 'default' });
   test('real query excludes internal metadata and preserves scope, ordering and selection', async ({}, info) => {
     await withAgentMessageFixture(info.project.name, async fixture => {
       const { agentId: userId, tenantId, claimIds, deniedIds } = fixture;

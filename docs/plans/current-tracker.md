@@ -19,8 +19,8 @@ status_command: pnpm plan:status
 `S1-AGENT-MESSAGE-VISIBILITY` is the sole selected product slice on protected main
 `81a219608dacf4ee9cfd8ee9f201e8ab156e54d2`. The localization predecessor completed through
 PR #1778 with all 13 exact-main checks passed. S1 implementation is in progress in task
-`01a0a6b8-163e-74f3-b8e9-6dc43f1bb357`; required local verification passed at `832e7d898`,
-with protected delivery and exact-main health pending.
+`01a0a6b8-163e-74f3-b8e9-6dc43f1bb357`; initial full verification passed at `832e7d898`; the reviewed cross-project fixture correction
+requires fresh proof before protected delivery and exact-main health.
 
 | ID                            | Status        | Owner      | Work                                                                  | Exit Criteria                                                                                                                     |
 | ----------------------------- | ------------- | ---------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
@@ -181,11 +181,11 @@ independent and no exact-runtime-effect guarantee is claimed.
 - Fresh independent Astra/high review passed all eight changed files at `cfbb171f` after helper
   corrections; the requested route has no independent runtime model/effort attestation. The
   read-only rebase delta review also passed at `832e7d898`, without duplicating tests.
-- Exact new test allocation is 8,162 bytes/two files plus 523 bytes of budget metadata; existing
+- Exact new test allocation is 8,544 bytes/two files plus 523 bytes of budget metadata; existing
   source is below capacity-baseline bytes and remains 327 lines. Capacity-only independent review
   interprets the owner's S1-through-completion instruction as authority for this necessary scoped
   allocation, not prior numeric approval. Reserve and unrelated allocations remain unchanged.
-- Admitted E2E tree `4d03af121d613894f6b1699de64bb5bc153194c6` adds only S1 fixtures/tests; focused resolver/capacity proof passes 32/32. A registered corpus hash is not an execution receipt.
+- Admitted E2E tree `df9b745895b840ec5ba9e9ec48edbf1531713129` adds only S1 fixtures/tests; focused resolver/capacity proof passes 32/32. A registered corpus hash is not an execution receipt.
 - Supplemental pre-rebase harness proof passes 299/299 and `track:audit` passes. The two stale
   proof-ledger findings from `plan:audit` are resolved by the roadmap merge and rechecked here.
 - Uninterrupted full `pnpm pr:verify` passed at `832e7d898ee0df3e9accd8e398d33b02b53a2fa0`
@@ -199,7 +199,18 @@ independent and no exact-runtime-effect guarantee is claimed.
   Protected current-head review/delivery and exact-main health remain pending.
 - Delivery lesson: inspect actual DTOs and portal placement before test integration, and include
   harness/plan audits before the first push. Local fixture/locator corrections are recorded above;
-  no hosted first-push result or measured time saving is claimed before that evidence exists.
+  the first hosted push found a cross-project fixture race, so a first-push review pass is not claimed.
+  No measured time saving is claimed.
+- Hosted P2 [cross-project isolation finding](https://github.com/interdomestik/interdomestik/pull/1780#discussion_r4020554901)
+  reproduced in both tenants: project-local ordering cannot isolate the shared seeded agent.
+  A dedicated one-connection PostgreSQL client holds a per-agent advisory lock before fixture writes
+  through callback/cleanup and closes in an outer finally. Production code is unchanged. Actual
+  concurrent query and thrown-callback cleanup/reacquisition probes pass with `DB_MAX_CONNECTIONS=1`.
+  Gemini's targeted proposal review passed (81 seconds); browser-name/count guesses were rejected.
+  [Playwright parallelism](https://playwright.dev/docs/test-parallel) and
+  [PostgreSQL 15 advisory locks](https://www.postgresql.org/docs/15/explicit-locking.html#ADVISORY-LOCKS)
+  were checked for this correction. Six-worker project execution, independent delta review and
+  fresh full proof remain required; earlier full proof is retained only for its original test inputs.
 - Read-only helper inventory: general `messages/get.ts` already filters agents and tenant-scopes
   messages; send returns the inserted permitted row. Legacy `domain-claims/claims/list.ts` unread
   restricts claimant sender but lacks an explicit internal predicate; mounted V2 `/api/claims`
@@ -382,9 +393,9 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                            | Source Refs                        | Execution | Run ID | Run Root | Sonar   | Docker | Sentry    | Learning         | Evidence Refs                                                                                                                                                                |
-| ----------------------------- | ---------------------------------- | --------- | ------ | -------- | ------- | ------ | --------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S1-AGENT-MESSAGE-VISIBILITY` | current program; proof `832e7d898` | `manual`  | local  | local    | pending | pass   | `pending` | `not_applicable` | Reviewed implementation, full pr:verify/security and 299 harness tests passed; source-bound receipts above. Hosted review, protected delivery and exact-main health pending. |
+| ID                            | Source Refs                        | Execution | Run ID | Run Root | Sonar   | Docker | Sentry    | Learning         | Evidence Refs                                                                                                                                                                 |
+| ----------------------------- | ---------------------------------- | --------- | ------ | -------- | ------- | ------ | --------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S1-AGENT-MESSAGE-VISIBILITY` | current program; proof `832e7d898` | `manual`  | local  | local    | pending | pass   | `pending` | `not_applicable` | Initial full proof passed at 832e7d898; hosted review identified cross-project fixture collision. Corrected tests require fresh proof and protected delivery; receipts above. |
 
 ### Member case overview entry progress
 

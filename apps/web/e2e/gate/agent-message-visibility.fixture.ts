@@ -2,6 +2,7 @@ import { agentClients, claimMessages, claims, db, E2E_USERS, user } from '@inter
 import { claimLifecycleFieldsForStatus } from '@interdomestik/database/claim-lifecycle';
 import { eq, inArray } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
+import postgres from 'postgres';
 
 export async function withAgentMessageFixture<T>(
   projectName: string,
@@ -41,67 +42,74 @@ export async function withAgentMessageFixture<T>(
     createdAt: date(index),
     ...overrides,
   });
+  // Project copies share the seeded agent. Keep writes, browser reads and cleanup exclusive.
+  const lock = postgres(process.env.DATABASE_URL_RLS ?? process.env.DATABASE_URL!, { max: 1 });
   try {
-    await db.insert(user).values(
-      memberIds.map(id => ({
-        id,
-        tenantId,
-        name: id,
-        email: `${id}@example.com`,
-        role: 'member',
-        emailVerified: true,
-        branchId: agent.branchId,
-        createdAt: date(0),
-        updatedAt: date(0),
-      }))
-    );
-    await db.insert(agentClients).values(
-      assignmentIds.map((id, index) => ({
-        id,
-        tenantId,
-        agentId: agent.id,
-        memberId: memberIds[index],
-        status: index === 0 ? 'active' : 'inactive',
-      }))
-    );
-    await db.insert(claims).values(
-      allClaimIds.map((id, index) => ({
-        id,
-        tenantId: id === deniedIds[0] ? foreignTenantId : tenantId,
-        userId:
-          id === deniedIds[1] ? memberIds[1] : id === deniedIds[2] ? memberIds[2] : memberIds[0],
-        branchId: agent.branchId,
-        title: id,
-        claimNumber: id,
-        companyName: 'S1 synthetic fixture',
-        category: 'vehicle',
-        ...claimLifecycleFieldsForStatus('submitted'),
-        createdAt: date(200 - index),
-        updatedAt: date(200 - index),
-      }))
-    );
-    await db
-      .insert(claimMessages)
-      .values([
-        message(claimIds[0], 'S1 old internal', 1, { isInternal: true }),
-        message(claimIds[0], 'S1 public read', 2, { readAt: date(3) }),
-        message(claimIds[0], 'S1 public incoming', 4),
-        message(claimIds[0], 'S1 public agent reply', 5, { senderId: agent.id }),
-        message(claimIds[0], 'S1 newest internal secret', 6, { isInternal: true }),
-        message(claimIds[1], 'S1 internal only secret', 7, { isInternal: true }),
-        message(claimIds[3], 'S1 unspecified visibility', 8, { isInternal: null }),
-        message(claimIds[104], 'S1 selected public', 9),
-        message(claimIds[104], 'S1 selected internal secret', 10, { isInternal: true }),
-        message(deniedIds[0], 'S1 foreign claim secret', 11, { tenantId: foreignTenantId }),
-        message(deniedIds[1], 'S1 inactive assignment secret', 12),
-        message(deniedIds[2], 'S1 unassigned secret', 13),
-        message(claimIds[0], 'S1 foreign message secret', 14, { tenantId: foreignTenantId }),
-      ]);
-    return await action({ agentId: agent.id, tenantId, claimIds, deniedIds });
+    await lock`select pg_advisory_lock(hashtext('s1-agent-messages'), hashtext(${`${tenantId}:${agent.id}`}))`;
+    try {
+      await db.insert(user).values(
+        memberIds.map(id => ({
+          id,
+          tenantId,
+          name: id,
+          email: `${id}@example.com`,
+          role: 'member',
+          emailVerified: true,
+          branchId: agent.branchId,
+          createdAt: date(0),
+          updatedAt: date(0),
+        }))
+      );
+      await db.insert(agentClients).values(
+        assignmentIds.map((id, index) => ({
+          id,
+          tenantId,
+          agentId: agent.id,
+          memberId: memberIds[index],
+          status: index === 0 ? 'active' : 'inactive',
+        }))
+      );
+      await db.insert(claims).values(
+        allClaimIds.map((id, index) => ({
+          id,
+          tenantId: id === deniedIds[0] ? foreignTenantId : tenantId,
+          userId:
+            id === deniedIds[1] ? memberIds[1] : id === deniedIds[2] ? memberIds[2] : memberIds[0],
+          branchId: agent.branchId,
+          title: id,
+          claimNumber: id,
+          companyName: 'S1 synthetic fixture',
+          category: 'vehicle',
+          ...claimLifecycleFieldsForStatus('submitted'),
+          createdAt: date(200 - index),
+          updatedAt: date(200 - index),
+        }))
+      );
+      await db
+        .insert(claimMessages)
+        .values([
+          message(claimIds[0], 'S1 old internal', 1, { isInternal: true }),
+          message(claimIds[0], 'S1 public read', 2, { readAt: date(3) }),
+          message(claimIds[0], 'S1 public incoming', 4),
+          message(claimIds[0], 'S1 public agent reply', 5, { senderId: agent.id }),
+          message(claimIds[0], 'S1 newest internal secret', 6, { isInternal: true }),
+          message(claimIds[1], 'S1 internal only secret', 7, { isInternal: true }),
+          message(claimIds[3], 'S1 unspecified visibility', 8, { isInternal: null }),
+          message(claimIds[104], 'S1 selected public', 9),
+          message(claimIds[104], 'S1 selected internal secret', 10, { isInternal: true }),
+          message(deniedIds[0], 'S1 foreign claim secret', 11, { tenantId: foreignTenantId }),
+          message(deniedIds[1], 'S1 inactive assignment secret', 12),
+          message(deniedIds[2], 'S1 unassigned secret', 13),
+          message(claimIds[0], 'S1 foreign message secret', 14, { tenantId: foreignTenantId }),
+        ]);
+      return await action({ agentId: agent.id, tenantId, claimIds, deniedIds });
+    } finally {
+      await db.delete(claimMessages).where(inArray(claimMessages.claimId, allClaimIds));
+      await db.delete(claims).where(inArray(claims.id, allClaimIds));
+      await db.delete(agentClients).where(inArray(agentClients.id, assignmentIds));
+      await db.delete(user).where(inArray(user.id, memberIds));
+    }
   } finally {
-    await db.delete(claimMessages).where(inArray(claimMessages.claimId, allClaimIds));
-    await db.delete(claims).where(inArray(claims.id, allClaimIds));
-    await db.delete(agentClients).where(inArray(agentClients.id, assignmentIds));
-    await db.delete(user).where(inArray(user.id, memberIds));
+    await lock.end({ timeout: 5 });
   }
 }

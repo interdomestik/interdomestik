@@ -1361,12 +1361,12 @@
         "apps/web/e2e/gate/agent-message-visibility.fixture.ts",
         "apps/web/e2e/gate/agent-message-visibility.spec.ts"
       ],
-      "trackedBytesDelta": 8162,
+      "trackedBytesDelta": 8544,
       "trackedFilesDelta": 2,
-      "categoryBytesDelta": { "tests/e2e": 8162 },
+      "categoryBytesDelta": { "tests/e2e": 8544 },
       "pathBytesDelta": {
-        "apps/web/e2e/gate/agent-message-visibility.fixture.ts": 4386,
-        "apps/web/e2e/gate/agent-message-visibility.spec.ts": 3776
+        "apps/web/e2e/gate/agent-message-visibility.fixture.ts": 4909,
+        "apps/web/e2e/gate/agent-message-visibility.spec.ts": 3635
       }
     }
   ],
@@ -1376,7 +1376,7 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61432646,
+  "maxTrackedBytes": 61433028,
   "maxTrackedFiles": 6065,
   "maxCategoryBytes": {
     "config/data/messages": 2241418,
@@ -1384,7 +1384,7 @@
     "large support/generated-ish": 15395985,
     "other": 19184750,
     "source/scripts": 8863098,
-    "tests/e2e": 7112490
+    "tests/e2e": 7112872
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

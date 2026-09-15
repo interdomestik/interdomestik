@@ -204,7 +204,8 @@ policies, both tenant fixtures and rendered exclusion. No production posture is 
 
 Implementation is in progress in task `01a0a6b8-163e-74f3-b8e9-6dc43f1bb357`.
 Full `pnpm pr:verify` and separate `pnpm security:guard` passed at `832e7d898`;
-protected delivery and exact-main health remain pending. This selection does not claim S1 completion.
+A hosted cross-project fixture finding requires refreshed test proof before protected delivery
+and exact-main health. This selection does not claim S1 completion.
 
 ## Completed Member Evidence Upload Locale Continuity
 
