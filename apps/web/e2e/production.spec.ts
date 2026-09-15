@@ -80,11 +80,11 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
       );
       await expect(regions.nth(2).getByRole('listitem').first()).toBeVisible();
       const navigation = portal.getByRole('navigation');
-      await expect(navigation.locator('a').nth(0)).toHaveAttribute(
+      await expect(navigation.locator('a').nth(3)).toHaveAttribute(
         'href',
         new RegExp(`/${routes.getLocale(testInfo)}/help-now$`)
       );
-      await expect(navigation.locator('a').nth(2)).toHaveAttribute(
+      await expect(navigation.locator('a').nth(1)).toHaveAttribute(
         'href',
         `${routes.member(testInfo)}/documents`
       );
