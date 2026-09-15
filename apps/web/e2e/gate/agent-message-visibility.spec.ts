@@ -6,6 +6,8 @@ import { gotoApp } from '../utils/navigation';
 import { withAgentMessageFixture } from './agent-message-visibility.fixture';
 
 test.describe('Agent message visibility', () => {
+  // Both probes add claims for the same seeded agent; keep their fixtures disjoint in time.
+  test.describe.configure({ mode: 'default' });
   test('real query excludes internal metadata and preserves scope, ordering and selection', async ({}, info) => {
     await withAgentMessageFixture(info.project.name, async fixture => {
       const { agentId: userId, tenantId, claimIds, deniedIds } = fixture;
@@ -45,8 +47,9 @@ test.describe('Agent message visibility', () => {
       await gotoApp(agentPage, routes.agentWorkspaceClaims(info), info, {
         marker: 'agent-claims-pro-page',
       });
+      const workspace = agentPage.locator('[data-testid="agent-claims-pro-page"]:visible').last();
       const rowFor = (id: string) =>
-        agentPage.getByRole('row').filter({
+        workspace.getByRole('row').filter({
           has: agentPage.getByText(id, { exact: true }),
         });
       const row = rowFor(claimIds[0]);
@@ -54,7 +57,7 @@ test.describe('Agent message visibility', () => {
       await expect(row.getByTestId(`unread-badge-${claimIds[0]}`)).toHaveText('1');
       for (const index of [1, 2, 3]) {
         await expect(rowFor(claimIds[index])).toBeVisible();
-        await expect(agentPage.getByTestId(`unread-badge-${claimIds[index]}`)).toHaveCount(0);
+        await expect(workspace.getByTestId(`unread-badge-${claimIds[index]}`)).toHaveCount(0);
       }
       await expect(agentPage.locator('body')).not.toContainText('secret');
       await expect(agentPage.locator('body')).not.toContainText('S1 unspecified visibility');
@@ -67,7 +70,7 @@ test.describe('Agent message visibility', () => {
         }
       );
       await expect(agentPage.getByTestId('workspace-selected-claim-id')).toHaveText(claimIds[104]);
-      await expect(agentPage.getByTestId(`unread-badge-${claimIds[104]}`)).toHaveText('1');
+      await expect(workspace.getByTestId(`unread-badge-${claimIds[104]}`)).toHaveText('1');
       await expect(agentPage.locator('body')).toContainText('S1 selected public');
       await expect(agentPage.locator('body')).not.toContainText('secret');
     });

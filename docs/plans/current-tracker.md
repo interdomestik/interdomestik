@@ -167,7 +167,20 @@ independent and no exact-runtime-effect guarantee is claimed.
 - The deterministic matrix covers mixed public/internal, internal-only, empty, nullable visibility,
   read/self exclusion, foreign message tenant, foreign claim, inactive assignment, unassigned claim,
   ordering, exact 100 cap and selected metadata outside the initial page. Existing core/page tests
-  pass 6/6. Browser proof, fresh helper review, independent Astra review and final proof remain pending.
+  pass 6/6. The query+mounted KS/MK gate passes 4/4. First mounted attempt passed 3/4: MK transition
+  briefly duplicated the badge locator; scoping the current visible workspace fixed the test. No
+  product change or rebuild was needed for that test correction. Independent Astra and final proof
+  remain pending.
+- Subscription lifecycle review of `a1740cad` returned no findings: requested/reported
+  `claude-sonnet-5` (110 seconds) and `gemini-3.1-pro-preview` (159 seconds). Their role claims
+  are provider-reported, not independent attestation; their statements of executed proof are
+  proposals unless matched by owner receipts. Corrected mounted-test follow-up is separate.
+- Exact new test allocation is 8,080 bytes/two files plus 523 bytes of budget metadata; existing
+  source is below capacity-baseline bytes and remains 327 lines. Capacity-only independent review
+  interprets the owner's S1-through-completion instruction as authority for this necessary scoped
+  allocation, not prior numeric approval. Reserve and unrelated allocations remain unchanged.
+- Admitted E2E tree `1006732abbbec113d2df309b85168e1cf4579d04` adds only S1 fixtures/tests; focused resolver proof must pass before
+  final delivery. A registered corpus hash is not an execution receipt.
 - Read-only helper inventory: general `messages/get.ts` already filters agents and tenant-scopes
   messages; send returns the inserted permitted row. Legacy `domain-claims/claims/list.ts` unread
   restricts claimant sender but lacks an explicit internal predicate; mounted V2 `/api/claims`
