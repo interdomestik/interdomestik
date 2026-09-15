@@ -23,8 +23,27 @@ export const AUDITED_IMPORTS = new Map([
     ['NotificationFeedback', 'NotificationHeader', 'NotificationList', 'NotificationTrigger'],
   ],
 ]);
-const MUTATION =
-  /\b(?:(?:activate|cancel|create|issue|pay|record|save|settle|submit|transition|update)\w*(?:Airline|Claim(?:Status)?|Commission|Payout|Recovery|Settlement|Subscription|SuccessFee)|activateSponsoredMembership|bulkApproveCommissions)\w*/u;
+const MUTATIONS = [
+  /\b(?:activate|cancel|create|issue|pay|record|save|settle|submit|transition|update)\w*(?:Airline|Claim|Commission|Payout|Recovery|Settlement|Subscription|SuccessFee)\w*/u,
+  /\b(?:activateSponsoredMembership|bulkApproveCommissions)\w*/u,
+];
+
+function importNames(clause) {
+  const bindings = clause?.namedBindings;
+  const names =
+    bindings && ts.isNamedImports(bindings)
+      ? bindings.elements
+          .filter(item => !item.isTypeOnly)
+          .map(item => (item.propertyName ?? item.name).text)
+      : [];
+  if (
+    !clause ||
+    clause.name ||
+    (bindings && (ts.isNamespaceImport(bindings) || bindings.elements.length === 0))
+  )
+    names.push('*');
+  return names;
+}
 
 export function scan(source, name = 'x.tsx') {
   const nodes = [];
@@ -41,7 +60,7 @@ export function scan(source, name = 'x.tsx') {
   const host = ts.createCompilerHost(options);
   host.getSourceFile = file => (file === name ? tree : undefined);
   const checker = ts.createProgram([name], options, host).getTypeChecker();
-  // Literal aliases are data, resolved only for computed keys or to exclude data reads.
+  // Literal aliases resolve computed keys; ordinary reads remain data.
   const literal = (outer, seen = new Set()) => {
     if (!outer) return;
     const node = ts.skipOuterExpressions(outer);
@@ -88,23 +107,8 @@ export function scan(source, name = 'x.tsx') {
       if (!AUDITED_IMPORTS.get(module)?.includes(name)) unaudited.push(`${module}:${name}`);
   };
   for (const node of nodes) {
-    if (ts.isImportDeclaration(node)) {
-      const clause = node.importClause;
-      if (clause?.isTypeOnly) continue;
-      const bindings = clause?.namedBindings;
-      const names =
-        bindings && ts.isNamedImports(bindings)
-          ? bindings.elements
-              .filter(item => !item.isTypeOnly)
-              .map(item => key(item.propertyName ?? item.name))
-          : [];
-      if (
-        !clause ||
-        clause.name ||
-        (bindings && (ts.isNamespaceImport(bindings) || bindings.elements.length === 0))
-      )
-        names.push('*');
-      admit(node.moduleSpecifier.text, names);
+    if (ts.isImportDeclaration(node) && !node.importClause?.isTypeOnly) {
+      admit(node.moduleSpecifier.text, importNames(node.importClause));
     } else if (ts.isExportDeclaration(node) && node.moduleSpecifier && !node.isTypeOnly) {
       const clause = node.exportClause;
       admit(
@@ -123,7 +127,7 @@ export function scan(source, name = 'x.tsx') {
   }
   if (references.includes('require')) unaudited.push('CommonJS module binding');
   return {
-    forbidden: references.some(name => MUTATION.test(name || '')),
+    forbidden: references.some(name => MUTATIONS.some(pattern => pattern.test(name || ''))),
     hook: references.includes('useOptimistic'),
     unaudited,
   };

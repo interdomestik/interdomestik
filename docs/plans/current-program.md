@@ -301,7 +301,12 @@ Files, budget self-size, config, reserves and guards are unchanged. Previous ful
 historical. Renewed full `pr:verify` and separate `security:guard` passed at
 `c050edd6de682971cc3cd5e3e7a6eca1e7922519`: 1,183 CI contracts, 154 release tests, 41 RLS tests,
 81.29% line coverage, 252 browser-gate passes/12 skips and 13 smoke passes/11 skips.
-Protected current-head review/checks, expected-head merge and exact-main health remain pending.
+Protected review and all leaf checks passed at `aa0147ec`, but delivery `34926953847` rejected
+Sonar annotations despite its green summary: regex complexity 27/20 and scan complexity 24/15.
+The bounded correction splits the equivalent regex alternatives and extracts import-name handling,
+preserving conservative matching and import admission. Official `eslint-plugin-sonarjs` 4.2.0
+reproduced both findings and now passes both rules. The helper is 5,175 bytes within its unchanged
+5,181-byte cap; no tests, capacity, policy or guard are removed. Fresh full proof is required.
 
 ## Ordinary Product Delivery
 

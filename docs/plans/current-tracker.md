@@ -62,7 +62,27 @@ Renewed full `pr:verify` and separate `security:guard` passed at
 81.29% line coverage (21,664/26,649), two browser preflights, 252 gate passes/12 skips and
 13 smoke passes/11 skips. Private full-log SHA-256:
 `78e97760085b273cc1687320d9bc46f914cee559a77b43c2354d273915cfc72e`.
-Protected current-head review/checks, merge and exact-main health remain pending.
+Protected review and all leaf checks passed at `aa0147ec`. Delivery `34926953847` instead blocked
+two actionable Sonar complexity annotations hidden by its green quality summary. The unchanged
+strict delivery gate is retained. A behavior-preserving helper refactor splits regex alternatives
+and extracts import-name handling; official `eslint-plugin-sonarjs` 4.2.0 reproduces the original
+27/20 regex and 24/15 function findings and reports neither on the correction. Research checked
+the [official regex rule](https://github.com/SonarSource/SonarJS/blob/master/packages/jsts/src/rules/S5843/rule.ts)
+and installed official rules on 2026-09-15; the rule-doc site was robots-blocked. No repo dependency
+or configuration change. Owner equivalence proof passed 64,572 regex comparisons, 33 import
+fixtures and all 3,117 source-file scanner results. Gemini supplied four proposals, executed as
+six assertions; inert declarations were distinguished from regex-name matching. Native request
+`40b70d24-792c-45a2-8f9c-67c8899cf52b` used the pinned Pro route with no tool calls; model identity
+has the same client-reporting limitation recorded below. Claude remains owner-waived. Helper
+SHA-256 `4a43664fc747ae7af8cc137170dc05daca32cb18f149b74ad5f27dcc9518aeff`, 5,175 bytes/134 lines;
+test hash and all capacity values unchanged. Independent review passed 47,664 regex comparisons,
+36 scanner-equivalence fixtures, five import assertions, six contracts and both Sonar rules.
+The full local recommended Sonar rule set also reports no findings. Renewed full proof is pending.
+The hypothetical `updateClaimStatusLabel` naming collision was independently reproduced and
+dispositioned as the approved conservative live-name policy, not proof of runtime mutation;
+[review reply](https://github.com/interdomestik/interdomestik/pull/1772#discussion_r4011853886)
+records the limitation. No such symbol exists in the current repository; import admission remains
+independent and no exact-runtime-effect guarantee is claimed.
 
 ## Proof Ledger
 
