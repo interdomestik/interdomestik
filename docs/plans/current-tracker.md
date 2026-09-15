@@ -152,7 +152,7 @@ independent and no exact-runtime-effect guarantee is claimed.
   repository default-DB wrapper, billing test mode and an upload-disabled Sentry build environment.
   The initial bare seed lacked `DATABASE_URL`; the supported wrapper succeeded. Build-generated
   `next-env.d.ts` drift was restored and is not part of the candidate.
-- The focused Ops test was compacted from 524 to 276 lines without losing its seven scenarios.
+- The focused Ops test was compacted from 524 to 281 lines without losing its seven scenarios.
   Owner-approved modularity governance assigns only EN/MK/SQ/SR `claims.json` to
   `member-case-detail-continuity-contract`; unrelated catalogs remain denied, all 25 related guard
   tests pass, and both policy files shrink. `pnpm check:modularity-guard` passes across 19 changed

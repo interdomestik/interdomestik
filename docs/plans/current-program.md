@@ -54,7 +54,7 @@ corrected deterministic continuity gate passes 4/4 across SQ/EN and MK/SR, inclu
 reflow, enlarged text, dark and reduced-motion behavior. The conditional golden passes 4/4 while
 reporting no seeded detail link, so the isolated gate remains the authoritative mounted proof. The
 exact admitted E2E tree is `5674d194c0a301beecdb98c1c81c96b7d9ffe5d5`. The executable modularity
-guard passes after compacting the focused Ops test to 276 lines and assigning only the four
+guard passes after compacting the focused Ops test to 281 lines and assigning only the four
 `claims.json` catalogs the owner-approved `member-case-detail-continuity-contract`; no threshold,
 exception or capacity was widened. Protected review, final proof, merge and exact-main health remain
 pending.
