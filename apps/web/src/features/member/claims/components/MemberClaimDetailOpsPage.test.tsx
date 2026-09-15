@@ -200,9 +200,12 @@ describe('MemberClaimDetailOpsPage', () => {
     expect(screen.getByText(claimId)).toHaveTextContent(claimId);
     expect(screen.getByTestId('ops-status-badge').textContent?.replace(/\s+/g, ' ').trim()).toBe('Evaluation');
     expectTestIdText([
+      ['member-claim-current-state', 'Evaluation'],
+      ['member-claim-latest-update', 'Verification'],
       ['member-claim-latest-update-date', 'Apr 15, 2026, 12:30 PM'],
       ['member-claim-sla-status-phase', 'Response timer is running.'],
       ['member-claim-trust-sla-state', 'Response timer active'],
+      ['member-claim-trust-sla-latest', 'Apr 15, 2026, 12:30 PM'],
       ['member-claim-trust-sla-body', 'Your claim is in an active handling stage.'],
       ['member-claim-matter-allowance-used', '1'], ['member-claim-matter-allowance-remaining', '1'],
       ['member-claim-matter-allowance-total', '2'],
@@ -219,7 +222,9 @@ describe('MemberClaimDetailOpsPage', () => {
     expect(timeline[0].compareDocumentPosition(timeline[1])).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(screen.getByTestId('member-claim-trust-sla-support-link')).toHaveAttribute('href', supportHref);
     expect(screen.getAllByTestId('ops-document-row')).toHaveLength(1);
-    expect(screen.getAllByTestId('claim-evidence-upload-dialog')).toHaveLength(2);
+    const uploads = screen.getAllByTestId('claim-evidence-upload-dialog');
+    expect(uploads).toHaveLength(2);
+    uploads.forEach(upload => expect(upload).toHaveAttribute('data-claim-id', claimId));
     expect(hoisted.messagingPanelMock).toHaveBeenCalledWith(expect.objectContaining({
       claimId, allowInternal: false, currentUser: expect.objectContaining({ role: 'member' }),
     }));
