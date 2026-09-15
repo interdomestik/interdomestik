@@ -158,6 +158,15 @@
       "view_plans": "Shiko Planet"
     },
     "detail": {
+      "continuity": {
+        "backToWorkspace": "Kthehu te hapësira e anëtarit",
+        "caseLabel": "Rasti",
+        "sectionNavigation": "Seksionet e rastit",
+        "progress": "Ecuria",
+        "evidence": "Dëshmitë",
+        "history": "Kronologjia",
+        "messages": "Mesazhet"
+      },
       "caseDetails": "Detajet e Rastit",
       "description": "Përshkrimi",
       "claimAmount": "Shuma e Kërkesës për Dëmshpërblim",
