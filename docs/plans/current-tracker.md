@@ -91,9 +91,9 @@ independent and no exact-runtime-effect guarantee is claimed.
 
 ## Proof Ledger
 
-| ID                                   | Source Refs                                     | Execution  | Run ID     | Run Root | Sonar            | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                        |
-| ------------------------------------ | ----------------------------------------------- | ---------- | ---------- | -------- | ---------------- | ------ | ---------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | current program; architecture T-410/T-401/T-002 | `scripted` | `4849de16` | local    | local rules pass | pass   | `not_applicable` | `not_applicable` | Behavior-preserving complexity correction independently reviewed; full proof/security passed; protected checks/merge remain pending. |
+| ID                                   | Source Refs                                     | Execution  | Run ID     | Run Root | Sonar   | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                        |
+| ------------------------------------ | ----------------------------------------------- | ---------- | ---------- | -------- | ------- | ------ | ---------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | current program; architecture T-410/T-401/T-002 | `scripted` | `4849de16` | local    | pending | pass   | `not_applicable` | `not_applicable` | Behavior-preserving complexity correction independently reviewed; full proof/security passed; protected checks/merge remain pending. |
 
 ### T410 pessimistic mutation boundary progress
 
