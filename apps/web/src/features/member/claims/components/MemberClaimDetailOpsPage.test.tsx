@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { deriveCaseCompanionNextStep } from '@interdomestik/domain-claims';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -98,6 +98,21 @@ vi.mock('next-intl', () => ({
         return translations[key] || `claims-tracking.tracking.assurance.${key}`;
       };
     }
+    if (namespace === 'claims.detail.continuity') {
+      return (key: string) => {
+        const translations: Record<string, string> = {
+          backToWorkspace: 'Back to member workspace',
+          caseLabel: 'Case',
+          sectionNavigation: 'Case sections',
+          progress: 'Progress',
+          evidence: 'Evidence',
+          history: 'History',
+          messages: 'Messages',
+        };
+
+        return translations[key] || `claims.detail.continuity.${key}`;
+      };
+    }
     if (namespace === 'claims') {
       return (key: string) => {
         const translations: Record<string, string> = {
@@ -188,6 +203,189 @@ function renderPage(claimOverrides: Partial<TestClaim> = {}) {
 }
 
 describe('MemberClaimDetailOpsPage', () => {
+  it('connects the localized header navigation to exactly four stable page targets', () => {
+    renderPage();
+
+    expect(screen.getByRole('link', { name: 'Back to member workspace' })).toHaveAttribute(
+      'href',
+      '/member'
+    );
+    expect(screen.getByText('Case')).toBeInTheDocument();
+
+    const targetContracts = [
+      ['member-claim-detail-progress', 'Progress', 'region'],
+      ['member-claim-detail-evidence', 'Evidence', 'region'],
+      ['member-claim-detail-history', 'History', 'complementary'],
+      ['member-claim-detail-messaging', 'Messages', 'region'],
+    ] as const;
+    const targets = targetContracts.map(([id, accessibleName, role]) => {
+      const target = screen.getByRole(role, { name: accessibleName });
+      expect(target).toHaveAttribute('id', id);
+      expect(target).toHaveAttribute('aria-label', accessibleName);
+      return target;
+    });
+
+    expect(document.querySelectorAll('[id^="member-claim-detail-"]')).toHaveLength(4);
+    const navigationLinks = within(
+      screen.getByRole('navigation', { name: 'Case sections' })
+    ).getAllByRole('link');
+    expect(navigationLinks.map(link => link.getAttribute('href'))).toEqual(
+      targetContracts.map(([id]) => `#${id}`)
+    );
+    navigationLinks.forEach((link, index) => {
+      expect(link).toHaveAccessibleName(targetContracts[index][1]);
+    });
+
+    const progressTarget = targets[0];
+    const progressSummary = within(progressTarget).getByTestId('member-claim-progress-summary');
+    const caseCompanion = within(progressTarget).getByTestId(
+      'member-claim-case-companion-next-step'
+    );
+    expect(progressTarget.children).toHaveLength(2);
+    expect(progressSummary.compareDocumentPosition(caseCompanion)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+    expect(screen.getAllByTestId('member-claim-case-companion-next-step')).toHaveLength(1);
+  });
+
+  it('preserves populated member case detail content and action contracts', () => {
+    const claimId = 'CASE / 2026 # 001';
+    const supportHref =
+      '/member/help?claimId=CASE%20%2F%202026%20%23%20001&source=member_claim_detail';
+    renderPage({
+      id: claimId,
+      title: 'Delayed flight recovery',
+      status: 'evaluation',
+      description: 'Flight ID 404 arrived more than four hours late.',
+      amount: '550.00',
+      currency: 'EUR',
+      documents: [
+        {
+          id: 'document-1',
+          name: 'boarding-pass.pdf',
+          category: 'evidence',
+          createdAt: '2026-04-14T09:00:00',
+          fileType: 'application/pdf',
+          fileSize: 2048,
+        },
+      ],
+      timeline: [
+        {
+          id: 'timeline-1',
+          date: '2026-04-14T09:00:00',
+          statusFrom: 'submitted',
+          statusTo: 'evaluation',
+          labelKey: 'claims-tracking.status.evaluation',
+          note: 'We received your documents.',
+          isPublic: true,
+        },
+        {
+          id: 'timeline-2',
+          date: '2026-04-15T12:30:00',
+          statusFrom: 'evaluation',
+          statusTo: 'verification',
+          labelKey: 'claims-tracking.status.verification',
+          note: 'A specialist started the evidence review.',
+          isPublic: true,
+        },
+      ],
+      progressSummary: {
+        currentStatusLabelKey: 'claims-tracking.status.evaluation',
+        latestUpdateAt: '2026-04-15T12:30:00',
+        latestUpdateLabelKey: 'claims-tracking.status.verification',
+        latestUpdateNote: 'Your case moved into specialist review.',
+        nextStepKey: 'claims-tracking.status.next_step.evaluation',
+      },
+      memberTrustSummary: {
+        state: 'active_handling',
+        titleKey: 'claims-tracking.tracking.assurance.title',
+        bodyKey: 'claims-tracking.tracking.assurance.body.active_handling',
+        stateLabelKey: 'claims-tracking.tracking.assurance.state.active_handling',
+        supportHref,
+      },
+      recoveryDecision: {
+        status: 'accepted',
+        title: 'Accepted for staff-led recovery',
+        description: 'We accepted this matter for staff-led recovery.',
+      },
+      matterAllowance: {
+        allowanceTotal: 2,
+        consumedCount: 1,
+        remainingCount: 1,
+        windowStart: '2026-01-01T00:00:00',
+        windowEnd: '2026-12-31T23:59:59',
+      },
+    });
+
+    expect(screen.getByText(claimId)).toHaveTextContent(claimId);
+    expect(screen.getByTestId('ops-status-badge').textContent?.replace(/\s+/g, ' ').trim()).toBe(
+      'Evaluation'
+    );
+    expect(screen.getByTestId('member-claim-latest-update-date')).toHaveTextContent(
+      'Apr 15, 2026, 12:30 PM'
+    );
+    expect(screen.getByTestId('member-claim-current-state')).toHaveTextContent('Evaluation');
+    expect(screen.getByTestId('member-claim-latest-update')).toHaveTextContent('Verification');
+    expect(
+      screen.getByText('Flight ID 404 arrived more than four hours late.')
+    ).toBeInTheDocument();
+    expect(screen.getByText('550.00 EUR')).toBeInTheDocument();
+
+    const timelineItems = screen.getAllByTestId('ops-timeline-item');
+    expect(timelineItems).toHaveLength(2);
+    expect(within(timelineItems[0]).getByText('We received your documents.')).toBeInTheDocument();
+    expect(
+      within(timelineItems[1]).getByText('A specialist started the evidence review.')
+    ).toBeInTheDocument();
+    expect(timelineItems[0].compareDocumentPosition(timelineItems[1])).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+
+    expect(screen.getByTestId('member-claim-sla-status-phase')).toHaveTextContent(
+      'Response timer is running.'
+    );
+    expect(screen.getByTestId('member-claim-trust-sla-state')).toHaveTextContent(
+      'Response timer active'
+    );
+    expect(screen.getByTestId('member-claim-trust-sla-body')).toHaveTextContent(
+      'Your claim is in an active handling stage.'
+    );
+    expect(screen.getByTestId('member-claim-trust-sla-support-link')).toHaveAttribute(
+      'href',
+      supportHref
+    );
+    expect(screen.getByText('Accepted for staff-led recovery')).toBeInTheDocument();
+    expect(screen.getByText('We accepted this matter for staff-led recovery.')).toBeInTheDocument();
+    expect(screen.getByTestId('member-claim-matter-allowance-used')).toHaveTextContent('1');
+    expect(screen.getByTestId('member-claim-matter-allowance-remaining')).toHaveTextContent('1');
+    expect(screen.getByTestId('member-claim-matter-allowance-total')).toHaveTextContent('2');
+    expect(screen.getAllByTestId('ops-document-row')).toHaveLength(1);
+    expect(screen.getByText('boarding-pass.pdf')).toBeInTheDocument();
+    expect(screen.getAllByTestId('claim-evidence-upload-dialog')).toHaveLength(2);
+    expect(hoisted.claimEvidenceUploadDialogMock).toHaveBeenCalledTimes(2);
+    expect(hoisted.claimEvidenceUploadDialogMock).toHaveBeenCalledWith(
+      expect.objectContaining({ claimId })
+    );
+    expect(screen.getByTestId('member-claim-latest-update-note')).toHaveTextContent(
+      'Your case moved into specialist review.'
+    );
+    expect(screen.queryByTestId('member-claim-expected-next-action')).not.toBeInTheDocument();
+    expect(hoisted.messagingPanelMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        claimId,
+        allowInternal: false,
+      })
+    );
+  });
+
+  it('keeps optional recovery, allowance, and latest-note content absent by default', () => {
+    renderPage();
+
+    expect(screen.queryByTestId('member-claim-recovery-decision')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('member-claim-matter-allowance')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('member-claim-latest-update-note')).not.toBeInTheDocument();
+  });
+
   it('translates claim timeline status keys without using the claims namespace', () => {
     renderPage({
       timeline: [
@@ -242,129 +440,6 @@ describe('MemberClaimDetailOpsPage', () => {
     );
   });
 
-  it('shows active handling assurance with the latest public update date', () => {
-    renderPage({
-      memberTrustSummary: {
-        state: 'active_handling',
-        titleKey: 'claims-tracking.tracking.assurance.title',
-        bodyKey: 'claims-tracking.tracking.assurance.body.active_handling',
-        stateLabelKey: 'claims-tracking.tracking.assurance.state.active_handling',
-        supportHref: '/member/help?claimId=claim-1&source=member_claim_detail',
-      },
-      progressSummary: {
-        currentStatusLabelKey: 'claims-tracking.status.evaluation',
-        latestUpdateAt: '2026-04-15T12:30:00.000Z',
-        latestUpdateLabelKey: 'claims-tracking.status.evaluation',
-        latestUpdateNote: null,
-        nextStepKey: 'claims-tracking.status.next_step.evaluation',
-      },
-    });
-
-    expect(screen.getByTestId('member-claim-trust-sla-state')).toHaveTextContent(
-      'Response timer active'
-    );
-    expect(screen.getByText('SLA Status')).toBeInTheDocument();
-    expect(screen.getByTestId('member-claim-sla-status-phase')).toHaveTextContent(
-      'Response timer is running.'
-    );
-    expect(screen.getByTestId('member-claim-trust-sla-latest')).toBeInTheDocument();
-    expect(screen.getByTestId('member-claim-trust-sla-body')).toHaveTextContent(
-      'Your claim is in an active handling stage.'
-    );
-    expect(screen.getByTestId('member-claim-trust-sla-support-link')).toHaveAttribute(
-      'href',
-      '/member/help?claimId=claim-1&source=member_claim_detail'
-    );
-  });
-
-  it('shows current state and latest public update separately from the Case Companion card', () => {
-    renderPage({
-      progressSummary: {
-        currentStatusLabelKey: 'claims-tracking.status.verification',
-        latestUpdateAt: '2026-04-15T12:30:00.000Z',
-        latestUpdateLabelKey: 'claims-tracking.status.evaluation',
-        latestUpdateNote: 'We reviewed your boarding pass and moved the case forward.',
-        nextStepKey: 'claims-tracking.status.next_step.evaluation',
-      },
-    });
-
-    expect(screen.getByTestId('member-claim-progress-summary')).toBeInTheDocument();
-    expect(screen.getByText('Progress summary')).toBeInTheDocument();
-    expect(screen.getByText('Current state')).toBeInTheDocument();
-    expect(screen.getByTestId('member-claim-current-state')).toHaveTextContent('Verification');
-    expect(screen.getByTestId('member-claim-latest-update')).toHaveTextContent('Evaluation');
-    expect(screen.getByTestId('member-claim-latest-update-note')).toHaveTextContent(
-      'We reviewed your boarding pass and moved the case forward.'
-    );
-    expect(screen.queryByTestId('member-claim-expected-next-action')).not.toBeInTheDocument();
-    expect(screen.getAllByTestId('member-claim-case-companion-next-step')).toHaveLength(1);
-  });
-
-  it('shows annual matter usage and remaining allowance when the snapshot is available', () => {
-    renderPage({
-      id: 'claim-3',
-      title: 'Negotiation Claim',
-      status: 'negotiation',
-      slaPhase: 'not_applicable',
-      statusLabelKey: 'claims-tracking.status.negotiation',
-      description: 'Recovery in progress',
-      amount: '550',
-      matterAllowance: {
-        allowanceTotal: 2,
-        consumedCount: 1,
-        remainingCount: 1,
-        windowStart: testNow,
-        windowEnd: testNow,
-      },
-    });
-
-    expect(screen.getByText('Matter allowance')).toBeInTheDocument();
-    expect(screen.queryByTestId('member-claim-sla-status')).not.toBeInTheDocument();
-    expect(screen.getByText('Used this year')).toBeInTheDocument();
-    expect(screen.getByText('Remaining this year')).toBeInTheDocument();
-    expect(screen.getByText('Plan allowance')).toBeInTheDocument();
-    expect(screen.getAllByText('1')).toHaveLength(2);
-    expect(screen.getByText('2')).toBeInTheDocument();
-  });
-
-  it('renders claim messaging on the canonical member detail surface without internal-note controls', () => {
-    renderPage({
-      id: 'claim-4',
-      title: 'Messaging Claim',
-      description: 'Claim details',
-      amount: '120',
-    });
-
-    expect(screen.getByTestId('member-claim-messaging')).toBeInTheDocument();
-    expect(hoisted.messagingPanelMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        claimId: 'claim-4',
-        allowInternal: false,
-        currentUser: expect.objectContaining({
-          role: 'member',
-        }),
-      })
-    );
-  });
-
-  it('wires both member upload evidence triggers through the shared upload dialog', () => {
-    renderPage({
-      id: 'claim-6',
-      title: 'Upload Claim',
-      description: 'Claim details',
-      amount: '120',
-    });
-
-    expect(screen.getAllByTestId('claim-evidence-upload-dialog')).toHaveLength(2);
-    expect(hoisted.claimEvidenceUploadDialogMock).toHaveBeenCalledTimes(2);
-    expect(hoisted.claimEvidenceUploadDialogMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        claimId: 'claim-6',
-        trigger: expect.anything(),
-      })
-    );
-  });
-
   it('scrolls to the existing messaging panel when the header send message action is used', async () => {
     const user = userEvent.setup();
     const scrollIntoView = vi.fn();
@@ -402,23 +477,47 @@ describe('MemberClaimDetailOpsPage', () => {
     }
   });
 
-  it('shows a member-safe recovery decision summary when staff accept the matter', () => {
-    renderPage({
-      id: 'claim-5',
-      title: 'Accepted Claim',
-      status: 'evaluation',
-      description: 'Waiting for staff-led recovery to start',
-      amount: '550',
-      ...({
-        recoveryDecision: {
-          status: 'accepted',
-          title: 'Accepted for staff-led recovery',
-          description: 'We accepted this matter for staff-led recovery.',
-        },
-      } as unknown as Partial<TestClaim>),
+  it('uses instant message scrolling while reduced motion is preferred', async () => {
+    const user = userEvent.setup();
+    const scrollIntoView = vi.fn();
+    const originalScrollIntoView = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      'scrollIntoView'
+    );
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query === '(prefers-reduced-motion: reduce)',
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoView,
     });
 
-    expect(screen.getByText('Accepted for staff-led recovery')).toBeInTheDocument();
-    expect(screen.getByText('We accepted this matter for staff-led recovery.')).toBeInTheDocument();
+    try {
+      renderPage();
+
+      await user.click(screen.getByRole('button', { name: 'Send message' }));
+
+      expect(window.matchMedia).toHaveBeenCalledWith('(prefers-reduced-motion: reduce)');
+      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'auto', block: 'start' });
+      expect(screen.getByTestId('member-claim-detail-messaging')).toHaveFocus();
+    } finally {
+      window.matchMedia = originalMatchMedia;
+      if (originalScrollIntoView) {
+        Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', originalScrollIntoView);
+      } else {
+        Reflect.deleteProperty(
+          HTMLElement.prototype as unknown as Record<string, unknown>,
+          'scrollIntoView'
+        );
+      }
+    }
   });
 });
