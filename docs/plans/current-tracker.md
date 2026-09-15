@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-14
+last_reviewed: 2026-09-15
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -16,18 +16,22 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-`T410-PESSIMISTIC-MUTATION-BOUNDARY` is the sole selected successor on exact main `ef1d972e`.
-Shared shell navigation, T410 notification correctness, optimistic notification acknowledgement and
-T210 are completed history.
+`MEMBER-CASE-OVERVIEW-ENTRY` is the sole selected successor on exact main `62376c15`.
+Shared shell navigation, the bounded T410 notification increments and T210 are completed history.
 The current member screen is legacy integration evidence only. The planned net-new member UI/UX
 belongs in the unified portal shell; canonical role routes and readiness markers do not authorize
 separate dashboard designs or freeze the legacy presentation.
 
-| ID                                   | Status        | Owner      | Work                                                          | Exit Criteria                                                                  |
-| ------------------------------------ | ------------- | ---------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | `in_progress` | Astra/high | Admit only audited reversible production `useOptimistic` use. | Focused/full proof, independent review, protected merge and exact-main health. |
+| ID                                   | Status        | Owner      | Work                                                          | Exit Criteria                                                                   |
+| ------------------------------------ | ------------- | ---------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `MEMBER-CASE-OVERVIEW-ENTRY`         | `in_progress` | Sol/high   | Add direct entries to represented member case cards.          | Accessible locale-correct mapping, focused/full proof, review and protected PR. |
+| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | `completed`   | Astra/high | Admit only audited reversible production `useOptimistic` use. | PR #1772 protected-merged; exact-merge required checks succeeded.               |
 
-The commission-writer correction and exact 7,077-byte/one-helper supplement are owner-approved.
+T410 PR #1772 protected-merged as `62376c156bc0058e0491d550f261cb621eb4f02e` at
+2026-09-15T05:02:15Z. Exact-merge CI static/unit/E2E, audit, CodeQL, gitleaks, Sonar analysis and
+Sonar gate checks succeeded. This completes the bounded pessimistic-mutation slice only; it does not
+claim full T-410 completion. The commission-writer correction and exact 7,077-byte/one-helper
+supplement were owner-approved.
 The split helper (5,032 bytes, 123 lines) and test (10,131 bytes, 233 lines) match reviewed SHA-256
 `44bab82f076d41a40c355bd09f680bb0a79fc74eb82125be3e3b969dd581a1c2` and
 `24a501237ed76d2d7e26fb0790f0c059e2eb17aac8475317422b0a26c2460cac` respectively.
@@ -91,9 +95,45 @@ independent and no exact-runtime-effect guarantee is claimed.
 
 ## Proof Ledger
 
-| ID                                   | Source Refs                                     | Execution  | Run ID     | Run Root | Sonar   | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                        |
-| ------------------------------------ | ----------------------------------------------- | ---------- | ---------- | -------- | ------- | ------ | ---------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | current program; architecture T-410/T-401/T-002 | `scripted` | `4849de16` | local    | pending | pass   | `not_applicable` | `not_applicable` | Behavior-preserving complexity correction independently reviewed; full proof/security passed; protected checks/merge remain pending. |
+| ID                                   | Source Refs                                     | Execution  | Run ID     | Run Root | Sonar   | Docker | Sentry           | Learning         | Evidence Refs                                                                                     |
+| ------------------------------------ | ----------------------------------------------- | ---------- | ---------- | -------- | ------- | ------ | ---------------- | ---------------- | ------------------------------------------------------------------------------------------------- |
+| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | current program; architecture T-410/T-401/T-002 | `scripted` | `4849de16` | local    | pass    | pass   | `not_applicable` | `not_applicable` | Protected PR #1772 merged as `62376c15`; exact-merge required checks passed.                      |
+| `MEMBER-CASE-OVERVIEW-ENTRY`         | current program; architecture T-116/T-117/T-118 | `manual`   | pending    | local    | pending | pass   | `not_applicable` | `not_applicable` | RED/GREEN route mapping and four-locale catalog checks pass; final review and full proof pending. |
+
+### Member case overview entry progress
+
+The mounted `@case` slot and `PortalCasesRegion` were confirmed on exact main `62376c15`; the dormant
+legacy member dashboard is not used. The bounded candidate keeps the existing projection and
+case-kind registry, adds no fetch or visibility, and passes one localized, descriptive detail-link
+node into each card. Missing references become numbered localized case fallbacks so separate
+destinations do not share an ambiguous name. The cards keep reference, status, document count and
+next-step source order while adding wrapping, a 44px minimum link target and visible focus styling.
+
+The focused route-mapping test failed RED with no link role, then passed GREEN for three distinct
+cases and exact logical paths. Case renderer, portal boundary/catalog and request-context suites pass
+36 tests; web type-check passes. The executable modularity policy passes with one advisory: the
+existing portal runtime is 157 lines against the 150-line preferred checkpoint and remains below the
+300-line review boundary. The initial capacity check exposed the complete changed source/test
+surface before final verification. The consolidated measured proposal, pending owner authority, is:
+`t117b-portal` total 16,644→17,449, source 2,904→3,603, tests 2,341→2,447, and its three
+changed path caps 1,062→1,670, 2,341→2,447 and 832→923; `t117b-cutover` total
+39,769→41,738, source 5,611→6,329, tests 15,105→16,356 and the boundary-test path
+8,634→9,895; `t117c-rendering` total 84,210→84,292, source 10,613→10,695 and the
+portal-context path 4,138→4,220. Applying those approved values proved the terminating budget
+fixed point is byte-identical: capacity-rebase self/config remains 62,581 and total remains 99,985.
+Derived global ceilings are total 61,283,259→61,286,115, source 8,850,403→8,851,902 and tests
+7,077,378→7,078,735; config remains 2,232,807. This is 528 bytes below the approved total/config
+upper estimate rather than padded metadata. Files and every other ceiling remain unchanged. No
+reserve, deleted-byte credit, new file, catalog growth or guard weakening is used.
+
+The one requested non-sensitive `fm` label-template trial failed with ModelManager error 1008 and
+was rejected as zero-benefit, with no retry or dependency. The repo subscription probe found Gemini
+3.1 Pro callable and Claude Sonnet 5 installed but not authenticated (`Not logged in · Please run
+/login`). Runtime policy separately requires explicit approval before disclosing the bounded
+non-secret source/interface packet to Gemini. No T410 Claude waiver is transferred. Independent
+Astra/high review found the long-reference 320px reflow risk and blank-reference ambiguity; the
+candidate now bounds and wraps the link and maps blank references to the same distinct fallback
+contract. Browser proof, helper proposals and expensive final proof remain pending.
 
 ### T410 pessimistic mutation boundary progress
 
@@ -552,8 +592,10 @@ T117C was delivered by promotion #1738 and product #1736. Its legacy projection 
 Harness adoption completed through #1761 and #1762. T210 completed through product #1763. The
 owner-selected bounded notification acknowledgement increment completed through #1765 with exact-main
 health verified, and shared shell navigation completed through #1770. `T410-OPTIMISTIC-NOTIFICATION-ACK`
-completed through protected product PR #1771. `T410-PESSIMISTIC-MUTATION-BOUNDARY` is the selected
-successor; this is not full T-410 completion and does not select T-411.
+completed through protected product PR #1771, and the bounded
+`T410-PESSIMISTIC-MUTATION-BOUNDARY` protected-merged through PR #1772 as `62376c15`. This does not
+claim full T-410 completion. `MEMBER-CASE-OVERVIEW-ENTRY` is the owner-selected member-journey
+successor over T-116/T-117/T-118; it does not select the T-411 Smart Next Step framework.
 
 | Completed historical priority            | Status      | Constraint                                                                    |
 | ---------------------------------------- | ----------- | ----------------------------------------------------------------------------- |

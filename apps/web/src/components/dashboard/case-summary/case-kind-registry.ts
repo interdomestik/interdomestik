@@ -1,4 +1,4 @@
-import { createElement, type ComponentType, type ReactElement } from 'react';
+import { createElement, type ComponentType, type ReactElement, type ReactNode } from 'react';
 
 import type { CaseSummary, CaseSummaryKind } from '@interdomestik/domain-member';
 
@@ -16,7 +16,12 @@ export const caseKindRegistry = {
   generic: { component: GenericCaseSummary },
 } satisfies Record<CaseSummaryKind, CaseKindDescriptor>;
 
-export function renderCaseSummary(summary: CaseSummary, labels: CaseSummaryLabels): ReactElement {
+export function renderCaseSummary(
+  summary: CaseSummary,
+  labels: CaseSummaryLabels,
+  entry: ReactNode,
+  referenceValue: string
+): ReactElement {
   const Component = caseKindRegistry[summary.caseKind].component;
-  return createElement(Component, { labels, summary });
+  return createElement(Component, { entry, labels, referenceValue, summary });
 }

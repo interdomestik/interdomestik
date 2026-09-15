@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 import type { CaseSummary } from '@interdomestik/domain-member';
 
 export type CaseSummaryLabels = {
@@ -11,32 +13,43 @@ export type CaseSummaryLabels = {
 };
 
 export type CaseSummaryCardProps = Readonly<{
-  summary: CaseSummary;
+  entry: ReactNode;
   labels: CaseSummaryLabels;
+  referenceValue: string;
+  summary: CaseSummary;
 }>;
 
-export function CaseSummaryCard({ labels, summary }: CaseSummaryCardProps) {
+export function CaseSummaryCard({ entry, labels, referenceValue, summary }: CaseSummaryCardProps) {
   const headingId = `case-summary-${summary.id}`;
-  const reference = summary.reference ?? labels.referenceFallback;
 
   return (
-    <article aria-labelledby={headingId}>
-      <p>{labels.reference}</p>
-      <h3 id={headingId}>{reference}</h3>
-      <dl>
-        <div>
+    <article
+      aria-labelledby={headingId}
+      className="grid min-w-0 gap-4 rounded-2xl border border-border/70 bg-background/80 p-4 sm:p-5"
+    >
+      <div className="min-w-0 space-y-1">
+        <p className="text-xs font-medium uppercase tracking-wide text-foreground/65">
+          {labels.reference}
+        </p>
+        <h3 id={headingId} className="break-words text-lg font-semibold">
+          {referenceValue}
+        </h3>
+      </div>
+      <dl className="grid min-w-0 gap-3 sm:grid-cols-3">
+        <div className="min-w-0">
           <dt>{labels.status}</dt>
-          <dd>{labels.statusValue}</dd>
+          <dd className="break-words font-medium">{labels.statusValue}</dd>
         </div>
-        <div>
+        <div className="min-w-0">
           <dt>{labels.documentCount}</dt>
-          <dd>{summary.documentCount}</dd>
+          <dd className="break-words font-medium">{summary.documentCount}</dd>
         </div>
-        <div>
+        <div className="min-w-0">
           <dt>{labels.nextStep}</dt>
-          <dd>{labels.nextStepValue}</dd>
+          <dd className="break-words font-medium">{labels.nextStepValue}</dd>
         </div>
       </dl>
+      {entry}
     </article>
   );
 }

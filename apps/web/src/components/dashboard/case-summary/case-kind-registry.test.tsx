@@ -32,8 +32,15 @@ describe('caseKindRegistry', () => {
   });
 
   it('renders semantic facts in source order with explicit zero and localized labels', () => {
-    render(<CaseSummaryCard summary={summary} labels={labels} />);
-    const article = screen.getByRole('article', { name: 'Reference unavailable' });
+    render(
+      <CaseSummaryCard
+        entry={null}
+        labels={labels}
+        referenceValue="Reference unavailable 1"
+        summary={summary}
+      />
+    );
+    const article = screen.getByRole('article', { name: 'Reference unavailable 1' });
     expect(article.querySelectorAll('dt')).toHaveLength(3);
     expect([...article.querySelectorAll('dt')].map(node => node.textContent)).toEqual([
       'Status',

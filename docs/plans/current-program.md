@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-14
+last_reviewed: 2026-09-15
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -28,8 +28,41 @@ merge.
 `T410-NOTIFICATION-ACK-CORRECTNESS` completed through protected product PR #1765. Shared shell
 navigation completed through protected product PR #1770 and exact-main health as recorded below.
 `T410-OPTIMISTIC-NOTIFICATION-ACK` completed through protected product PR #1771.
-`T410-PESSIMISTIC-MUTATION-BOUNDARY` is the sole selected successor; it completes the remaining
-T-410 convention guard without selecting T-411 or reactivating legacy Lean.
+`T410-PESSIMISTIC-MUTATION-BOUNDARY` protected-merged through PR #1772 as
+`62376c156bc0058e0491d550f261cb621eb4f02e` at 2026-09-15T05:02:15Z; exact-merge static, unit,
+E2E, audit, CodeQL, gitleaks, Sonar analysis and Sonar gate checks succeeded. This closes that bounded
+convention slice without claiming full T-410 completion. The owner selected
+`MEMBER-CASE-OVERVIEW-ENTRY` next from exact main `62376c15`.
+
+## Selected Member Case Overview Entry
+
+`MEMBER-CASE-OVERVIEW-ENTRY` is a medium-complexity Sol/high presentation integration over the
+mounted T-116 case-summary registry and T-117/T-118 unified portal shell. It gives each already
+authorized represented case one clear, localized, keyboard-accessible entry to its matching existing
+`/member/claims/[id]` detail route. It does not activate T-411 Smart Next Step, add a query, change
+visibility, prioritize cases, or introduce new state, entitlement, ETA, status or event semantics.
+
+Acceptance requires exact per-case route mapping for multiple cases; a unique numbered display and
+link fallback when a reference is absent; descriptive SQ/MK/EN/SR link copy; one link and no nested
+interactive control per card; visible focus; usable 320 CSS-pixel reflow; and unchanged loading,
+error, empty, disclaimer, streaming, status, next-step and document-count behavior. Proxy/routes,
+auth/tenant/RLS, DB/schema, billing, money/legal writers and deployment remain excluded.
+
+Research was checked or reused on 2026-09-15. AirHelp's public claim guide describes a unique claim
+ID and online status tracking; Allianz Assistance's public Claim Centre describes online tracking
+with a human-support fallback. These are public descriptions, not authenticated usability audits.
+WCAG 2.2 guidance for
+[link purpose](https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html),
+[visible focus](https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html), and
+[reflow](https://www.w3.org/WAI/WCAG22/Understanding/reflow.html) supports descriptive link names,
+persistent focus indication and one-direction reading at 320 CSS pixels. The installed stack is
+Next.js 16.3.3, React 19.2.8 and next-intl 4.13.4; the current
+[Next Link reference](https://nextjs.org/docs/app/api-reference/components/link) retains anchor
+semantics and client navigation. Adopt recognizable reference, truthful status/next action,
+explicit case entry, visible focus and wrapping cards; reject invented times/outcomes, copied trade
+dress, marketing claims as usability proof, and any generic task framework. Test with focused
+component/context contracts, all four locale catalogs, existing route/browser gates, keyboard focus,
+mobile/desktop screenshots and 320-pixel reflow.
 
 ## Delivered History
 

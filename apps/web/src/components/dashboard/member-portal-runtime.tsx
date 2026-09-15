@@ -14,6 +14,7 @@ import type { MemberPortalRegionCopy } from './member-portal-region-boundary';
 type ActionCopy = Readonly<{ description: string; label: string; warning: string | null }>;
 export type MemberPortalCopy = Readonly<{
   actions: Record<Member.MembershipLifecycleBucket, ActionCopy>;
+  caseEntryLabel: string;
   caseLabels: (summary: Member.CaseSummary) => CaseSummaryLabels;
   description: string;
   disclaimer: string;
@@ -38,9 +39,22 @@ export async function PortalCasesRegion({ copy, promise }: CaseProps) {
   return (
     <PortalUi.RefractiveGlassPanel className="grid gap-5">
       <h2>{copy.regions.case.label}</h2>
-      {summaries.map(summary => (
-        <div key={summary.id}>{renderCaseSummary(summary, copy.caseLabels(summary))}</div>
-      ))}
+      {summaries.map((summary, index) => {
+        const labels = copy.caseLabels(summary);
+        const referenceValue =
+          summary.reference?.trim() || `${labels.referenceFallback} ${index + 1}`;
+        const entry = (
+          <Link
+            className="inline-block min-h-11 w-fit max-w-full whitespace-normal rounded-lg px-3 py-2.5 font-medium underline decoration-2 underline-offset-4 [overflow-wrap:anywhere] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            href={`/member/claims/${encodeURIComponent(summary.id)}`}
+          >
+            {copy.caseEntryLabel} {referenceValue}
+          </Link>
+        );
+        return (
+          <div key={summary.id}>{renderCaseSummary(summary, labels, entry, referenceValue)}</div>
+        );
+      })}
     </PortalUi.RefractiveGlassPanel>
   );
 }

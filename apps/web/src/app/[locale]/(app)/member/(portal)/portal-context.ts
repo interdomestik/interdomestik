@@ -16,7 +16,7 @@ import { getMemberDashboardCore } from '../_core';
 import { resolveMemberActorRoleOnSession } from '../actor-role-on-session';
 
 // prettier-ignore
-type PortalMessages = Omit<MemberPortalCopy, 'actions' | 'caseLabels' | 'navigation' | 'referenceFallback' | 'status'> & { actions: Record<keyof MemberPortalCopy['actions'], string>; navigation: Omit<MemberPortalCopy['navigation'], 'helpNow'> & { help_now: string }; next_steps: Record<'court_schedule' | 'external_response' | 'member_action' | 'team_review', string>; warnings: Record<'active_in_grace' | 'grace_expired' | 'scheduled_cancel', string> };
+type PortalMessages = Omit<MemberPortalCopy, 'actions' | 'caseEntryLabel' | 'caseLabels' | 'navigation' | 'referenceFallback' | 'status'> & { actions: Record<keyof MemberPortalCopy['actions'], string>; navigation: Omit<MemberPortalCopy['navigation'], 'helpNow'> & { help_now: string }; next_steps: Record<'court_schedule' | 'external_response' | 'member_action' | 'team_review', string>; warnings: Record<'active_in_grace' | 'grace_expired' | 'scheduled_cancel', string> };
 
 // prettier-ignore
 export const getMemberPortalContext = cache(async (requestedLocale: string) => {
@@ -53,6 +53,7 @@ export const getMemberPortalContext = cache(async (requestedLocale: string) => {
     ...portal,
     // prettier-ignore
     actions: { active: action('active'), active_in_grace: action('active_in_grace', 'active_in_grace'), canceled: action('canceled'), grace_expired: action('grace_expired', 'grace_expired'), none: action('none'), scheduled_cancel: action('scheduled_cancel', 'scheduled_cancel'), trialing: action('trialing') },
+    caseEntryLabel: dashboard('member_assistance.cases.open'),
     // prettier-ignore
     caseLabels: summary => ({ documentCount: t('detail.evidence'), nextStep: t('detail.progress.nextAction'), nextStepValue: nextStep(summary), reference: t('success.case_id'), referenceFallback: t('claim'), status: t('table.status'), statusValue: status(summary.status) }),
     navigation: { ...nav, helpNow },
