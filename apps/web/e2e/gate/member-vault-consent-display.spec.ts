@@ -15,9 +15,9 @@ const S = ['progress', 'evidence', 'history', 'messaging'] as const;
 const V = [[320, 740, ''], [390, 844, ''], [768, 1024, ''], [1440, 900, ''], [320, 740, '200%']] as const;
 const C = { en, mk, sq, sr } as const;
 
-test.describe('MOB-03a member Vault consent display', () => {
+test.describe('MOB-03a member Vault consent', () => {
   // prettier-ignore
-  test('shows only safe AI extraction metadata for MK and fails closed for KS', async ({ authenticatedPage: page }, info) => {
+  test('keeps Vault metadata safe for MK and absent for KS', async ({ authenticatedPage: page }, info) => {
     test.setTimeout(90_000);
     await withMemberVaultConsentFixture(info, async ctx => {
       const isMk = isMkVaultConsentProject(info.project.name);
@@ -30,25 +30,25 @@ test.describe('MOB-03a member Vault consent display', () => {
       await expect(card).toContainText(ctx.privacyVersion!);
       await expect(card).toContainText(ctx.recordedDate!);
       await expect(card).not.toContainText(ctx.foreignPrivacyVersion!);
-      for (const value of [ctx.documentId, ctx.documentName, ctx.documentPath]) {
-        await expect(card).not.toContainText(value!); await expect(card.locator(`a[href*="${value!}"]`)).toHaveCount(0);
+      for (const v of [ctx.documentId, ctx.documentName, ctx.documentPath]) {
+        await expect(card).not.toContainText(v!); await expect(card.locator(`a[href*="${v!}"]`)).toHaveCount(0);
       }
-      const controls = card.locator('a,button,input,select,textarea');
-      await expect(controls).toHaveCount(0); await page.keyboard.press('Tab'); await expect(controls).toHaveCount(0);
+      const f = card.locator('a,button,input,select,textarea');
+      await expect(f).toHaveCount(0); await page.keyboard.press('Tab'); await expect(f).toHaveCount(0);
       await page.setViewportSize({ width: 320, height: 740 }); await expect(card).toBeVisible();
       expect(await card.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
     });
   });
 
   // prettier-ignore
-  test('keeps continuity accessible', async ({ authenticatedPage: page }, info) => {
+  test('continuity', async ({ authenticatedPage: page }, info) => {
     test.setTimeout(120_000);
     await withMemberVaultConsentFixture(info, async ctx => {
       const ls = isMkVaultConsentProject(info.project.name) ? (['mk', 'sr'] as const) : (['sq', 'en'] as const);
       for (const l of ls) {
         const c = C[l].claims;
         const x = c.detail.continuity;
-        const labels = S.map(s => x[s]);
+        const labels = [x.progress, x.evidence, x.history, x.messages];
         const href = routes.member(l);
         await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'no-preference' }); await gotoApp(page, routes.memberClaimDetail(ctx.claimId, l), info, { marker: 'member-claim-detail-messaging' });
 
@@ -59,8 +59,8 @@ test.describe('MOB-03a member Vault consent display', () => {
         const q = S.map(s => `#member-claim-detail-${s}`).join(',');
         const nodes = page.locator(`header:has(a[href="${href}"]),nav[aria-label="${x.sectionNavigation}"],${q}`);
         const layout = async () => {
-          expect(await nodes.evaluateAll(items => items.length === 6 && items.every(item => { const box = item.getBoundingClientRect(); return item.getClientRects().length > 0 && box.left >= -1 && box.right <= window.innerWidth + 1; }))).toBe(true);
-          expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+          expect(await nodes.evaluateAll(items => { const w = document.documentElement.clientWidth; return items.length === 6 && items.every(item => { const box = item.getBoundingClientRect(); return item.getClientRects().length > 0 && box.left >= -1 && box.right <= w + 1; }); })).toBe(true);
+          expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
         };
         await expect(links).toHaveCount(S.length);
         for (const [index, s] of S.entries()) {
