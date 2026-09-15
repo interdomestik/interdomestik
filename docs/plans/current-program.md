@@ -47,6 +47,18 @@ contracts; no auth/session, tenant/RLS, route, query, schema, document-lifecycle
 high-risk boundary is selected. A fresh independent Astra/high review follows the required Sonnet 5
 design/implementation and Gemini counterexample/test contributions before expensive final proof.
 
+The bounded candidate now implements the localized identity header and native section anchors on
+the mounted detail page without changing routing, authorization, tenancy, data or shared-panel
+contracts. Focused component proof passes 8/8; the isolated seed contract passes 8/8; and the
+corrected deterministic continuity gate passes 4/4 across SQ/EN and MK/SR, including keyboard,
+reflow, enlarged text, dark and reduced-motion behavior. The conditional golden passes 4/4 while
+reporting no seeded detail link, so the isolated gate remains the authoritative mounted proof. The
+exact admitted E2E tree is `ebcadfce6b12e7793aa05cba01083e3f9d94b1d0`. The executable modularity
+guard passes after compacting the focused Ops test to 276 lines and assigning only the four
+`claims.json` catalogs the owner-approved `member-case-detail-continuity-contract`; no threshold,
+exception or capacity was widened. Protected review, final proof, merge and exact-main health remain
+pending.
+
 The approved confidence-first design continues the case-first member workspace into one coherent
 detail experience. It adds a clear localized return to `/member`, strong case identity, and native
 in-page links to existing progress, evidence, public history and member messaging. Progress remains

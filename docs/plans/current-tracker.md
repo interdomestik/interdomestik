@@ -134,6 +134,29 @@ independent and no exact-runtime-effect guarantee is claimed.
 - The independently reviewed implementation plan is approved. Affected unit, deterministic gate,
   conditional golden and fail-closed fingerprint contracts are frozen; smoke behavior is unaffected.
   Fresh independent Astra/high final review remains required after the candidate and focused proof.
+- The mounted candidate preserves the established case/status/date, timeline/note, SLA/trust,
+  recovery/allowance, description, consent/upload and external-only messaging contracts while adding
+  one localized `/member` return plus ordered Progress, Evidence, History and Messages anchors. The
+  dormant V2 page, proxy, canonical routes, auth/tenant/RLS, queries/schema and shared panels remain
+  unchanged. Header and mounted integration reviews are green; focused unit proof passes 8/8.
+- Playwright collection selects four deterministic gate cases and four golden cases (two setup plus
+  two product). The seeded isolation contract passes 8/8. The corrected mounted continuity gate
+  passes 4/4 across SQ/EN and MK/SR with native keyboard activation, visible focus, 320/390/768/1440
+  layouts, 200% text, dark mode and reduced-motion `auto` scroll plus message focus. Golden passes
+  4/4 but both product cases report no detail link; the deterministic isolated gate is authoritative.
+- The exact final E2E tree `ebcadfce6b12e7793aa05cba01083e3f9d94b1d0` is admitted fail-closed and
+  the resolver passes 12/12. The first mounted gate exposed transition-duplicate global locators and
+  a concurrent consent-row count; both were narrowed to the active localized detail and exact
+  fixture privacy row, independently reviewed, and rerun green. No snapshot baseline was written.
+- Local environment proof used healthy Docker, Supabase and PostgreSQL, standard port 3000, the
+  repository default-DB wrapper, billing test mode and an upload-disabled Sentry build environment.
+  The initial bare seed lacked `DATABASE_URL`; the supported wrapper succeeded. Build-generated
+  `next-env.d.ts` drift was restored and is not part of the candidate.
+- The focused Ops test was compacted from 524 to 276 lines without losing its seven scenarios.
+  Owner-approved modularity governance assigns only EN/MK/SQ/SR `claims.json` to
+  `member-case-detail-continuity-contract`; unrelated catalogs remain denied, all 25 related guard
+  tests pass, and both policy files shrink. `pnpm check:modularity-guard` passes across 19 changed
+  text files. No exception, threshold, reserve, deleted-byte credit or capacity increase was used.
 
 ### Completed member workspace redesign
 
@@ -206,9 +229,9 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                              | Source Refs                       | Execution | Run ID  | Run Root | Sonar   | Docker | Sentry           | Learning         | Evidence Refs                                                                     |
-| ------------------------------- | --------------------------------- | --------- | ------- | -------- | ------- | ------ | ---------------- | ---------------- | --------------------------------------------------------------------------------- |
-| `MEMBER-CASE-DETAIL-CONTINUITY` | current program; base `06d90f570` | `manual`  | pending | local    | pending | pass   | `not_applicable` | `not_applicable` | Design approved; capacity, helpers, focused proof and independent review pending. |
+| ID                              | Source Refs                       | Execution | Run ID | Run Root | Sonar   | Docker | Sentry | Learning         | Evidence Refs                                                                                        |
+| ------------------------------- | --------------------------------- | --------- | ------ | -------- | ------- | ------ | ------ | ---------------- | ---------------------------------------------------------------------------------------------------- |
+| `MEMBER-CASE-DETAIL-CONTINUITY` | current program; base `06d90f570` | `manual`  | local  | local    | pending | pass   | `pass` | `not_applicable` | Candidate proof: unit 8/8, seed 8/8, gate 4/4, golden 4/4; final proof and protected review pending. |
 
 ### Member case overview entry progress
 
