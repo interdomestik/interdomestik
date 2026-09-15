@@ -22,10 +22,9 @@ The current member screen is legacy integration evidence only. The planned net-n
 belongs in the unified portal shell; canonical role routes and readiness markers do not authorize
 separate dashboard designs or freeze the legacy presentation.
 
-| ID                                   | Status        | Owner      | Work                                                          | Exit Criteria                                                                   |
-| ------------------------------------ | ------------- | ---------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `MEMBER-CASE-OVERVIEW-ENTRY`         | `in_progress` | Sol/high   | Add direct entries to represented member case cards.          | Accessible locale-correct mapping, focused/full proof, review and protected PR. |
-| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | `completed`   | Astra/high | Admit only audited reversible production `useOptimistic` use. | PR #1772 protected-merged; exact-merge required checks succeeded.               |
+| ID                           | Status        | Owner    | Work                                                 | Exit Criteria                                                                   |
+| ---------------------------- | ------------- | -------- | ---------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `MEMBER-CASE-OVERVIEW-ENTRY` | `in_progress` | Sol/high | Add direct entries to represented member case cards. | Accessible locale-correct mapping, focused/full proof, review and protected PR. |
 
 T410 PR #1772 protected-merged as `62376c156bc0058e0491d550f261cb621eb4f02e` at
 2026-09-15T05:02:15Z. Exact-merge CI static/unit/E2E, audit, CodeQL, gitleaks, Sonar analysis and
@@ -95,10 +94,9 @@ independent and no exact-runtime-effect guarantee is claimed.
 
 ## Proof Ledger
 
-| ID                                   | Source Refs                                     | Execution  | Run ID     | Run Root | Sonar   | Docker | Sentry           | Learning         | Evidence Refs                                                                           |
-| ------------------------------------ | ----------------------------------------------- | ---------- | ---------- | -------- | ------- | ------ | ---------------- | ---------------- | --------------------------------------------------------------------------------------- |
-| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | current program; architecture T-410/T-401/T-002 | `scripted` | `4849de16` | local    | pass    | pass   | `not_applicable` | `not_applicable` | Protected PR #1772 merged as `62376c15`; exact-merge required checks passed.            |
-| `MEMBER-CASE-OVERVIEW-ENTRY`         | current program; architecture T-116/T-117/T-118 | `manual`   | pending    | local    | pending | pass   | `not_applicable` | `not_applicable` | Focused review/browser proof pass; expensive full proof and protected delivery pending. |
+| ID                           | Source Refs                                     | Execution | Run ID  | Run Root | Sonar   | Docker | Sentry           | Learning         | Evidence Refs                                                                           |
+| ---------------------------- | ----------------------------------------------- | --------- | ------- | -------- | ------- | ------ | ---------------- | ---------------- | --------------------------------------------------------------------------------------- |
+| `MEMBER-CASE-OVERVIEW-ENTRY` | current program; architecture T-116/T-117/T-118 | `manual`  | pending | local    | pending | pass   | `not_applicable` | `not_applicable` | Focused review/browser proof pass; expensive full proof and protected delivery pending. |
 
 ### Member case overview entry progress
 
