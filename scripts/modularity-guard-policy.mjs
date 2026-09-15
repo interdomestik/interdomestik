@@ -51,16 +51,7 @@ export const CHECKED_TEXT_EXTENSIONS = new Set([
   '.yaml',
   '.yml',
 ]);
-const PRODUCTION_EXTENSIONS = new Set([
-  '.cjs',
-  '.css',
-  '.js',
-  '.jsx',
-  '.mjs',
-  '.sh',
-  '.ts',
-  '.tsx',
-]);
+const PRODUCTION_EXTENSIONS = new Set('.cjs .css .js .jsx .mjs .sh .ts .tsx'.split(' '));
 const STRUCTURED_EXTENSIONS = new Set(['.json', '.jsonl', '.toml', '.yaml', '.yml']);
 /** @type {ReadonlyArray<readonly [RegExp, string]>} */
 const STRUCTURED_OWNERS = [
@@ -78,6 +69,7 @@ const STRUCTURED_OWNERS = [
 ];
 const LOCALE_CATALOG_OWNERS = new Map([
   ['dashboard.json', 't117b-member-portal-i18n-contract'],
+  ['claims.json', 'member-case-detail-continuity-contract'],
   ['claims-tracking.json', 't210-member-timeline-i18n-contract'],
   ['notifications.json', 't410-notification-acknowledgement-i18n-contract'],
 ]);
@@ -117,8 +109,8 @@ export function isExplicitModularityException(filePath) {
 }
 export function structuredArtifactOwner(filePath) {
   const relPath = toPolicyPath(filePath);
-  const localeCatalog = /^apps\/web\/src\/messages\/(?:en|mk|sq|sr)\/([^/]+\.json)$/u.exec(relPath);
-  const localeOwner = localeCatalog ? LOCALE_CATALOG_OWNERS.get(localeCatalog[1]) : null;
+  const match = /^apps\/web\/src\/messages\/(?:en|mk|sq|sr)\/([^/]+\.json)$/u.exec(relPath);
+  const localeOwner = LOCALE_CATALOG_OWNERS.get(match?.[1]);
   if (localeOwner) return localeOwner;
   return STRUCTURED_OWNERS.find(([pattern]) => pattern.test(relPath))?.[1] ?? null;
 }

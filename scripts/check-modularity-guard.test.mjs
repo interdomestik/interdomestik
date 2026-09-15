@@ -212,15 +212,13 @@ test('structured ownership', () => {
   );
 });
 
-test('T-117B ownership is exact and other catalogs stay denied', () => {
-  const catalogs = [
-    'apps/web/src/messages/en/dashboard.json',
-    'apps/web/src/messages/mk/dashboard.json',
-    'apps/web/src/messages/sq/dashboard.json',
-    'apps/web/src/messages/sr/dashboard.json',
-  ];
-  for (const catalog of catalogs) {
-    assert.equal(structuredArtifactOwner(catalog), 't117b-member-portal-i18n-contract');
+test('T-117B/member case catalog ownership', () => {
+  for (const locale of ['en', 'mk', 'sq', 'sr']) {
+    const prefix = `apps/web/src/messages/${locale}/`;
+    assert.deepEqual(
+      ['dashboard.json', 'claims.json'].map(file => structuredArtifactOwner(prefix + file)),
+      ['t117b-member-portal-i18n-contract', 'member-case-detail-continuity-contract']
+    );
   }
 
   for (const denied of [
@@ -228,6 +226,7 @@ test('T-117B ownership is exact and other catalogs stay denied', () => {
     'apps/web/src/messages/en/common.json',
     'apps/web/src/messages/en/portal.json',
     'apps/web/src/messages/sq/membership.json',
+    'apps/web/src/messages/de/claims.json',
   ]) {
     assert.equal(structuredArtifactOwner(denied), null, denied);
   }
