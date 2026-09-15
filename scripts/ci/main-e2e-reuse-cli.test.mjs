@@ -86,7 +86,7 @@ test('member case detail continuity preserves corpus parity', () => {
   assert.equal(
     inspectRepositoryParity({
       ...sources(),
-      e2eTreeSha: '1cbbed1e590172ce3320fbec5d59487883c328d5',
+      e2eTreeSha: 'e6460237cffe71d0860d0ef7b4c409041e7a2491',
     }).commandChain,
     true
   );

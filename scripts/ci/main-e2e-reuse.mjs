@@ -27,7 +27,7 @@ const E2E_TREE_SHAS = new Set([
   // Member workspace layout and keyboard order.
   'baafedc62dc19da78a47579ac69d91074346e31b',
   // Member case detail continuity.
-  '1cbbed1e590172ce3320fbec5d59487883c328d5',
+  'e6460237cffe71d0860d0ef7b4c409041e7a2491',
 ]);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {
