@@ -15,15 +15,6 @@
   },
   "allocations": [
     {
-      "id": "product-readiness-requirement-map",
-      "mode": "exact",
-      "writerPaths": ["docs/plans/requirement-disposition-map.md"],
-      "trackedBytesDelta": 63467,
-      "trackedFilesDelta": 1,
-      "categoryBytesDelta": { "docs/text": 63467 },
-      "pathBytesDelta": { "docs/plans/requirement-disposition-map.md": 63467 }
-    },
-    {
       "id": "capacity-rebase",
       "mode": "exact",
       "writerPaths": [
@@ -65,6 +56,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs": 9248,
         "scripts/ci/repo-size-git-attribution.test.mjs": 2816
       }
+    },
+    {
+      "id": "product-readiness-requirement-map",
+      "mode": "exact",
+      "writerPaths": ["docs/plans/requirement-disposition-map.md"],
+      "trackedBytesDelta": 63467,
+      "trackedFilesDelta": 1,
+      "categoryBytesDelta": { "docs/text": 63467 },
+      "pathBytesDelta": { "docs/plans/requirement-disposition-map.md": 63467 }
     },
     {
       "id": "lean-compatibility-repair",

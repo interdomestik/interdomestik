@@ -38,14 +38,16 @@ through PR #1775 as `55875e31b024e6ac9f4648f106be3bfea96facbd`.
 Sonar main gate, passed. `MEMBER-CASE-DETAIL-CONTINUITY` completed through protected product PR
 #1777: head `2797a96f7a2af63aae75f2e284e197208e3afe2c`, squash merge
 `b5a234b30b9cb6ed89ae6d81b81960a3a8135b25`, and all required exact-main checks passed. The owner
-now selects the bounded member evidence-upload localization below.
+completed `MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY` through protected PR #1778 as
+`81a219608dacf4ee9cfd8ee9f201e8ab156e54d2`; all 13 exact-main checks passed. The owner
+now selects the bounded S1 agent message visibility slice below.
 
 ## Owner-adopted enterprise delivery sequence (2026-09-15)
 
 The owner adopts this near-term sequence after the enterprise audit and Opus 5 consultation.
-Finish `MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY` without expanding it; then select one bounded
-successor at a time below. S1–S3 are roadmap labels, not replacements for architecture T IDs.
-This section governs successor ordering over older suggestions; the active slice remains unchanged.
+`MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY` is completed; S1 is selected and in progress.
+Select one bounded successor at a time below. S1–S3 are roadmap labels, not replacements for
+architecture T IDs. This section governs successor ordering over older suggestions.
 
 Core M0–M5 has recorded acceptance, not proof of conformance by every app-layer consumer.
 T-410 remains partial; T-411 retains its SVC-CORE/FLIGHT-03 dependencies. Unknown overlay status
@@ -89,7 +91,7 @@ not-applicable dimensions need a reason. Prepare operations and business accepta
 dependent slices, not only at S14; no existing approval or delivered capability is inferred missing.
 
 The owner adopts the corrected Opus consultation as the following product-readiness sequence.
-S1–S3 and the active localization scope above are unchanged. UI/UX is part of each user-facing
+S1–S3 retain their bounded scopes; the localization predecessor is delivered. UI/UX is part of each user-facing
 outcome, not a final polish phase. All role journeys use the delivered unified shell; legacy
 dashboards are not the visual target. Credit #1775–#1777 and other delivered contracts before
 selecting a gap. Roadmap rows are bounded outcome families, not permission for one large PR.
@@ -177,9 +179,23 @@ No routine promotion/closeout PR or tooling project is added. Merged is not depl
 Reuse the 2026-09-15 DORA small-batch/AI and GOV.UK whole-journey research; measured local tools
 are supplemental, not another prerequisite. This is sequencing authority, not completion evidence.
 
-## Selected Member Evidence Upload Locale Continuity
+## Selected S1 — Agent Message Visibility
 
-`MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY` is the sole selected product slice. It is medium
+`S1-AGENT-MESSAGE-VISIBILITY` is the sole selected product slice, high complexity,
+Astra/high, from protected main `81a219608dacf4ee9cfd8ee9f201e8ab156e54d2`. Scope is the
+agent workspace's latest-message and unread-count reads plus database-backed and rendered
+regressions. Preserve active agent-client assignment, tenant/branch scope, selected-claim
+retention, the 100-row cap, ordering and DTO shape. No general agent messaging authority,
+proxy/auth/routing/schema refactor, dashboard redesign or deployment is selected.
+
+Implementation is in progress in task `01a0a6b8-163e-74f3-b8e9-6dc43f1bb357`.
+Current-head full verification, protected delivery and exact-main health remain pending;
+this selection does not claim S1 completion.
+
+## Completed Member Evidence Upload Locale Continuity
+
+`MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY` completed through protected PR #1778 as
+`81a219608dacf4ee9cfd8ee9f201e8ab156e54d2`, with all 13 exact-main checks passed. It was medium
 complexity, Sol/high: localize the established member `ClaimEvidenceUploadDialog` wrapper and prove
 it on the mounted claim-detail header/evidence and documents surfaces. The shared upload component,
 direct/signed transport, MIME handling, claim/category mapping, optional AI-extraction consent,
@@ -197,7 +213,7 @@ motion and blocked upload traffic. The exact admitted E2E tree is
 Gemini supplied bounded implementation/test counterexamples; accepted corrections include canonical
 category/error assertions and extraction-specific MK consent. Fresh independent Astra/high review
 found no actionable issue and independently passed the focused contract/capacity checks. Final full
-proof, protected review, merge and exact-main health remain pending.
+proof, protected review, merge and exact-main health passed for #1778. No deployment is claimed.
 
 ## Completed Member Case Detail Continuity
 
@@ -459,7 +475,7 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 These rows, the notification correctness increment, shared shell navigation, both notification
 acknowledgement increments, `MEMBER-CASE-WORKSPACE-REDESIGN` and `MEMBER-CASE-DETAIL-CONTINUITY`
 are completed history. The sole selected increment is
-`MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY`, defined above.
+`S1-AGENT-MESSAGE-VISIBILITY`, defined above; the localization predecessor is completed.
 
 ## Shared Shell Navigation Increment
 
