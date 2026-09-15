@@ -57,14 +57,18 @@ opposite-direction regressions address it. The owner approved the 759-byte suppl
 further 190 bytes: helper 5,181 bytes/130 lines, test 10,931 bytes/247 lines; no new files or
 budget self-size change. Gemini's bounded contribution supplied four proposals, executed as eight
 paired checks; all passed. Independent review passed 92 checks on the corrected candidate.
-Renewed full proof remains pending;
-the `ee594164` proof below is historical and does not certify the changed default-binding source.
+Renewed full `pr:verify` and separate `security:guard` passed at
+`c050edd6de682971cc3cd5e3e7a6eca1e7922519`: 1,183 CI contracts, 154 release tests, 41 RLS tests,
+81.29% line coverage (21,664/26,649), two browser preflights, 252 gate passes/12 skips and
+13 smoke passes/11 skips. Private full-log SHA-256:
+`78e97760085b273cc1687320d9bc46f914cee559a77b43c2354d273915cfc72e`.
+Protected current-head review/checks, merge and exact-main health remain pending.
 
 ## Proof Ledger
 
-| ID                                   | Source Refs                                     | Execution  | Run ID     | Run Root | Sonar          | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                |
-| ------------------------------------ | ----------------------------------------------- | ---------- | ---------- | -------- | -------------- | ------ | ---------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | current program; architecture T-410/T-401/T-002 | `scripted` | `ee594164` | local    | not_applicable | pass   | `not_applicable` | `not_applicable` | Consolidated inventory/admission correction, 140 independent Astra checks, six contracts, full proof/security passed; protected checks/merge remain pending. |
+| ID                                   | Source Refs                                     | Execution  | Run ID     | Run Root | Sonar          | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                            |
+| ------------------------------------ | ----------------------------------------------- | ---------- | ---------- | -------- | -------------- | ------ | ---------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | current program; architecture T-410/T-401/T-002 | `scripted` | `c050edd6` | local    | not_applicable | pass   | `not_applicable` | `not_applicable` | Default-binding/target correction, 92 independent checks, eight Gemini-derived checks, six contracts, full proof/security passed; protected checks/merge remain pending. |
 
 ### T410 pessimistic mutation boundary progress
 

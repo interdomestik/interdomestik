@@ -298,7 +298,10 @@ The owner approved 759 more bytes and a further 190 bytes for matching the check
 the parser and covering parameter/body shadowing: helper 5,181, test 10,931, T410 total 67,594,
 source 20,361 and tests 46,031; global total 61,283,259, source 8,850,403 and tests 7,077,378.
 Files, budget self-size, config, reserves and guards are unchanged. Previous full proof is
-historical; renewed full verification is required for this default-binding correction.
+historical. Renewed full `pr:verify` and separate `security:guard` passed at
+`c050edd6de682971cc3cd5e3e7a6eca1e7922519`: 1,183 CI contracts, 154 release tests, 41 RLS tests,
+81.29% line coverage, 252 browser-gate passes/12 skips and 13 smoke passes/11 skips.
+Protected current-head review/checks, expected-head merge and exact-main health remain pending.
 
 ## Ordinary Product Delivery
 
