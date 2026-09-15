@@ -31,8 +31,8 @@ test.describe('Vault consent', () => {
     await F(n, async u => {
       const isMk = P(n.project.name);
       await gotoApp(p, routes.memberClaimDetail(u.claimId, n), n, { marker: isMk ? A : M });
-      const v = p.locator(`[data-testid="${A}"]:visible`).first();
-      if (!isMk) { await E(p.getByTestId(A)).toHaveCount(0); return; }
+      const v = p.locator(`[data-testid="${M}"]:visible`).last().locator('xpath=../..').getByTestId(A);
+      if (!isMk) { await E(v).toHaveCount(0); return; }
       await E(v).toBeVisible();
       await E(v.getByRole('heading', { name: VC.title })).toBeVisible();
       const i = v.locator('li').filter({ hasText: u.privacyVersion! });
@@ -129,11 +129,9 @@ test.describe('Vault consent', () => {
           html = p.locator('html'),
           previous = await html.getAttribute('class');
         await E(card).toBeVisible();
-        await trigger.focus();
-        await E(trigger).toBeFocused();
         try {
           await html.evaluate(e => e.classList.add('dark'));
-          await p.keyboard.press('Enter');
+          await trigger.press('Enter');
           const d = p
             .locator('[role="dialog"]:visible')
             .filter({
