@@ -19,7 +19,8 @@ status_command: pnpm plan:status
 `S1-AGENT-MESSAGE-VISIBILITY` is the sole selected product slice on protected main
 `81a219608dacf4ee9cfd8ee9f201e8ab156e54d2`. The localization predecessor completed through
 PR #1778 with all 13 exact-main checks passed. S1 implementation is in progress in task
-`01a0a6b8-163e-74f3-b8e9-6dc43f1bb357`; full verification and protected delivery remain pending.
+`01a0a6b8-163e-74f3-b8e9-6dc43f1bb357`; required local verification passed at `832e7d898`,
+with protected delivery and exact-main health pending.
 
 | ID                            | Status        | Owner      | Work                                                                  | Exit Criteria                                                                                                                     |
 | ----------------------------- | ------------- | ---------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
@@ -170,8 +171,7 @@ independent and no exact-runtime-effect guarantee is claimed.
   pass 6/6. The query+mounted KS/MK gate passes 4/4. First mounted attempt passed 3/4: MK transition
   briefly duplicated the badge locator; scoping the current visible workspace fixed the test. No
   product change was needed for that test correction. The final drawer-locator run passed 4/4
-  at `cfbb171f`; its stale build stamp triggered a guarded rebuild (126 seconds total). Full
-  `pr:verify`, protected review/delivery and exact-main health remain required before completion.
+  at `cfbb171f`; its stale build stamp triggered a guarded rebuild (126 seconds total).
 - Subscription lifecycle review of `a1740cad` returned no findings: requested/reported
   `claude-sonnet-5` (110 seconds) and `gemini-3.1-pro-preview` (159 seconds). Their role claims
   are provider-reported, not independent attestation; their statements of executed proof are
@@ -179,8 +179,8 @@ independent and no exact-runtime-effect guarantee is claimed.
   to the visible drawer. Its suggested workspace-parent scope was rejected because SheetContent
   portals outside that root. The corrected locator is included in the final 4/4 execution receipt.
 - Fresh independent Astra/high review passed all eight changed files at `cfbb171f` after helper
-  corrections; the requested route has no independent runtime model/effort attestation. Rebase
-  reconciliation receives a bounded delta review before final full proof.
+  corrections; the requested route has no independent runtime model/effort attestation. The
+  read-only rebase delta review also passed at `832e7d898`, without duplicating tests.
 - Exact new test allocation is 8,162 bytes/two files plus 523 bytes of budget metadata; existing
   source is below capacity-baseline bytes and remains 327 lines. Capacity-only independent review
   interprets the owner's S1-through-completion instruction as authority for this necessary scoped
@@ -188,6 +188,18 @@ independent and no exact-runtime-effect guarantee is claimed.
 - Admitted E2E tree `4d03af121d613894f6b1699de64bb5bc153194c6` adds only S1 fixtures/tests; focused resolver/capacity proof passes 32/32. A registered corpus hash is not an execution receipt.
 - Supplemental pre-rebase harness proof passes 299/299 and `track:audit` passes. The two stale
   proof-ledger findings from `plan:audit` are resolved by the roadmap merge and rechecked here.
+- Uninterrupted full `pnpm pr:verify` passed at `832e7d898ee0df3e9accd8e398d33b02b53a2fa0`
+  (tree `5c73028ff8c059caad13a54c66c4ae5d80ba5e72`): 1,185 CI contracts, 154 release tests,
+  41 RLS tests, 3,394 web tests/12 skips, 81.32% line coverage, 260 browser passes/12 skips,
+  and 13 smoke passes/11 skips. Separate security guard passed. Runtime: isolated local S1 DB,
+  explicit KS/MK nip.io hosts, upload disabled; elapsed 699 seconds. Log SHA-256:
+  `70ac415660c53346eee056cb64bf9ecb1b6f0ac2b370ec2a1fb6961f10b5d30f`.
+  This subsequent evidence-only edit changes no runtime, configuration, tests or workflow inputs;
+  retain the named heavy-proof identity and rerun affected plan/capacity/security checks.
+  Protected current-head review/delivery and exact-main health remain pending.
+- Delivery lesson: inspect actual DTOs and portal placement before test integration, and include
+  harness/plan audits before the first push. Local fixture/locator corrections are recorded above;
+  no hosted first-push result or measured time saving is claimed before that evidence exists.
 - Read-only helper inventory: general `messages/get.ts` already filters agents and tenant-scopes
   messages; send returns the inserted permitted row. Legacy `domain-claims/claims/list.ts` unread
   restricts claimant sender but lacks an explicit internal predicate; mounted V2 `/api/claims`
@@ -370,9 +382,9 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                            | Source Refs                       | Execution | Run ID | Run Root | Sonar   | Docker | Sentry    | Learning         | Evidence Refs                                                                                                                                     |
-| ----------------------------- | --------------------------------- | --------- | ------ | -------- | ------- | ------ | --------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S1-AGENT-MESSAGE-VISIBILITY` | current program; base `81a219608` | `manual`  | local  | local    | pending | pass   | `pending` | `not_applicable` | Active task reports reviewed implementation and focused query/mounted 4/4 proof; full verification, hosted review and protected delivery pending. |
+| ID                            | Source Refs                        | Execution | Run ID | Run Root | Sonar   | Docker | Sentry    | Learning         | Evidence Refs                                                                                                                                                                |
+| ----------------------------- | ---------------------------------- | --------- | ------ | -------- | ------- | ------ | --------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S1-AGENT-MESSAGE-VISIBILITY` | current program; proof `832e7d898` | `manual`  | local  | local    | pending | pass   | `pending` | `not_applicable` | Reviewed implementation, full pr:verify/security and 299 harness tests passed; source-bound receipts above. Hosted review, protected delivery and exact-main health pending. |
 
 ### Member case overview entry progress
 
