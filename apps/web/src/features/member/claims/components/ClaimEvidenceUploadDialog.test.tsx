@@ -11,7 +11,7 @@ const catalogs = { en, mk, sq, sr } as const;
 const localizedCopy = {
   en: {
     dialogTitle: 'Upload Evidence',
-    dialogDescription: 'Attach photos or documents relevant to this claim.',
+    dialogDescription: 'Attach photos or documents relevant to this case.',
     documentTypeLabel: 'Document Type',
     documentTypePlaceholder: 'Select document type',
     fileLabel: 'File',
@@ -54,7 +54,7 @@ const localizedCopy = {
     uploadFailed: 'Неуспешно прикачување на доказот',
     storageUnavailable: 'Услугата за складирање не е достапна',
     aiExtractionConsent:
-      'Се согласувам овој прикачен документ да биде обработен со вештачка интелигенција за да се подготват полињата на барањето за преглед од човек.',
+      'Се согласувам со извлекување податоци со вештачка интелигенција од овој прикачен документ, за да се подготват полињата на барањето за преглед од човек.',
     types: { evidence: 'Доказ', legal: 'Правен документ' },
   },
   sr: {
@@ -102,6 +102,16 @@ function dialogElement(locale: SupportedLocale = 'mk', triggerLabel = 'Open') {
 
 function renderDialog(locale: SupportedLocale = 'mk', triggerLabel = 'Open') {
   return render(dialogElement(locale, triggerLabel));
+}
+
+function openDialog(locale: SupportedLocale = 'mk', triggerLabel = 'Open') {
+  renderDialog(locale, triggerLabel);
+  fireEvent.click(screen.getByRole('button', { name: triggerLabel }));
+}
+
+function selectCategory(label: string) {
+  fireEvent.click(screen.getByRole('combobox'));
+  fireEvent.click(screen.getByRole('option', { name: label }));
 }
 
 vi.mock('@/features/member/claims/actions', () => ({
@@ -193,8 +203,8 @@ describe('ClaimEvidenceUploadDialog AI extraction consent', () => {
   );
 
   it('sends explicit member opt-in through signed upload confirmation', async () => {
-    renderDialog();
-    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+    openDialog();
+    selectCategory(localizedCopy.mk.types.legal);
     fireEvent.change(screen.getByLabelText(localizedCopy.mk.fileLabel), {
       target: { files: [new File(['dummy'], 'evidence.pdf', { type: 'application/pdf' })] },
     });
@@ -206,14 +216,14 @@ describe('ClaimEvidenceUploadDialog AI extraction consent', () => {
         expect.objectContaining({
           aiExtractionConsentGranted: true,
           aiExtractionConsentLocale: 'mk',
+          category: 'legal',
         })
       );
     });
   });
 
   it('does not carry opt-in across selected files', async () => {
-    renderDialog();
-    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+    openDialog();
     const fileInput = screen.getByLabelText(localizedCopy.mk.fileLabel);
     fireEvent.change(fileInput, {
       target: { files: [new File(['one'], 'one.pdf', { type: 'application/pdf' })] },
@@ -229,6 +239,74 @@ describe('ClaimEvidenceUploadDialog AI extraction consent', () => {
         expect.objectContaining({ aiExtractionConsentGranted: false })
       );
     });
+  });
+
+  it('submits canonical locale, category, and consent fields through direct upload', async () => {
+    openDialog('sr');
+    selectCategory(localizedCopy.sr.types.legal);
+    const file = new File(['dummy'], 'evidence.docx', { type: '' });
+    fireEvent.change(screen.getByLabelText(localizedCopy.sr.fileLabel), {
+      target: { files: [file] },
+    });
+    fireEvent.click(screen.getByLabelText(localizedCopy.sr.aiExtractionConsent));
+    fireEvent.click(screen.getByRole('button', { name: localizedCopy.sr.uploadButton }));
+
+    await waitFor(() => expect(mocks.fetch).toHaveBeenCalledTimes(1));
+    const request = mocks.fetch.mock.calls[0]?.[1] as { body: FormData };
+    expect(Object.fromEntries(request.body.entries())).toEqual({
+      aiExtractionConsentGranted: 'true',
+      category: 'legal',
+      claimId: 'claim-1',
+      file,
+      locale: 'sr',
+    });
+  });
+
+  it('resets the selected file and consent after cancel and returns focus to the trigger', () => {
+    openDialog('sq', 'Ngarko provë');
+    const fileInput = screen.getByLabelText(localizedCopy.sq.fileLabel);
+    fireEvent.change(fileInput, {
+      target: { files: [new File(['one'], 'one.pdf', { type: 'application/pdf' })] },
+    });
+    fireEvent.click(screen.getByLabelText(localizedCopy.sq.aiExtractionConsent));
+    fireEvent.click(screen.getByRole('button', { name: localizedCopy.sq.cancel }));
+
+    expect(screen.getByRole('button', { name: 'Ngarko provë' })).toHaveFocus();
+    fireEvent.click(screen.getByRole('button', { name: 'Ngarko provë' }));
+    expect(screen.getByLabelText(localizedCopy.sq.aiExtractionConsent)).not.toBeChecked();
+    expect(screen.getByLabelText(localizedCopy.sq.fileLabel)).toHaveValue('');
+  });
+
+  it('keeps provider errors verbatim and uses the localized fallback for unknown failures', async () => {
+    openDialog('sq');
+    fireEvent.change(screen.getByLabelText(localizedCopy.sq.fileLabel), {
+      target: { files: [new File(['one'], 'one.pdf', { type: 'application/pdf' })] },
+    });
+    mocks.uploadToSignedUrl.mockResolvedValueOnce({ error: { message: 'Provider is offline' } });
+    fireEvent.click(screen.getByRole('button', { name: localizedCopy.sq.uploadButton }));
+    await waitFor(() => expect(mocks.toastError).toHaveBeenCalledWith('Provider is offline'));
+
+    mocks.toastError.mockClear();
+    mocks.uploadToSignedUrl.mockRejectedValueOnce({ reason: 'opaque' });
+    fireEvent.click(screen.getByRole('button', { name: localizedCopy.sq.uploadButton }));
+    await waitFor(() =>
+      expect(mocks.toastError).toHaveBeenCalledWith(localizedCopy.sq.uploadFailed)
+    );
+  });
+
+  it('passes server errors through and renders localized pending state', async () => {
+    let resolveResponse: ((value: unknown) => void) | undefined;
+    mocks.fetch.mockReturnValueOnce(new Promise(resolve => (resolveResponse = resolve)));
+    openDialog('en');
+    fireEvent.change(screen.getByLabelText(localizedCopy.en.fileLabel), {
+      target: { files: [new File(['one'], 'one.docx', { type: '' })] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: localizedCopy.en.uploadButton }));
+    expect(screen.getByRole('button', { name: localizedCopy.en.uploading })).toBeDisabled();
+    expect(screen.getByRole('button', { name: localizedCopy.en.cancel })).toBeDisabled();
+
+    resolveResponse?.({ ok: false, json: async () => ({ error: 'Server rejected fixture' }) });
+    await waitFor(() => expect(mocks.toastError).toHaveBeenCalledWith('Server rejected fixture'));
   });
 });
 
