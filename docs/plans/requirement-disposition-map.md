@@ -18,10 +18,17 @@ backlog after pilot readiness. Ordering and active scope remain in those two can
 
 - Source: SRS v0.9 Approved Decisions Integration Review, 2026-08-17;
   SHA-256 `8bc2b69c9babf8f228941378a01a32340f23d3ff061f92c574a9a908472981a2`.
+- Retrievable owner-held source, relative to the owner's macOS home:
+  `Documents/Codex/2026-07-28/referenced-chatgpt-conversation-this-is-untrusted/outputs/srs-v09/Interdomestik_IDA_Enterprise_SRS_v0.9_Approved_Decisions_Integration_Review.docx`.
+  The owner supplied this document; its hash was rechecked on 2026-09-15. It is not bundled
+  into the repository. On another host, obtain the matching document from the product owner
+  before reconciling an affected normative clause; never infer it from the title alone.
 - Requirement IDs and titles reuse the historical
   `Interdomestik_IDA_SRS_v0.9_As_Built_Audit.csv` (2026-08-17). Its 510 unique IDs
   were compared with all 510 IDs in the source DOCX: exact match.
   Titles are navigation labels, not substitutes for normative acceptance clauses.
+  The CSV is in the same owner's `outputs/srs-v09-as-built-audit/` directory; the DOCX,
+  not that historical audit, supplies normative wording.
 - Source maturity is retained: Canonical means an SRS constraint, NOT implemented;
   Target means a target requirement, NOT post-pilot authorization.
 - Scope classification and delivery evidence are independent. A pilot-required requirement
@@ -85,13 +92,14 @@ this map and the tracker in normal delivery, without another status system or cl
 
 ## Credited delivery, without whole-requirement overclaim
 
-| Delivered increment       | Receipt                                            | Requirement links to reconcile        | Remaining acceptance                                                |
-| ------------------------- | -------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------- |
-| Unified shell/navigation  | Current program, PR #1770                          | IDA-CTX-003; IDA-CTR-039              | All role journeys, not just shell                                   |
-| Member overview entry     | PR #1775, 55875e31b024e6ac9f4648f106be3bfea96facbd | IDA-NFR-008; IDA-CAS-007              | Whole member journey/user acceptance                                |
-| Member workspace redesign | PR #1776, 06d90f570d8757764a9fac8124ee924bd3b8aa1f | IDA-NFR-006; IDA-NFR-007; IDA-NFR-008 | Criterion-level accessibility and user acceptance                   |
-| Member detail continuity  | PR #1777, b5a234b30b9cb6ed89ae6d81b81960a3a8135b25 | IDA-CAS-007; IDA-COM-005; IDA-NFR-008 | Cross-role acceptance; S1 visibility correction                     |
-| Core M0–M5                | Architecture tracker recorded milestones           | TEN/IAM/CAS/BHV/CTR clauses           | Consumer conformance and individual acceptance; do not rebuild core |
+| Delivered increment        | Receipt                                            | Requirement links to reconcile        | Remaining acceptance                                                                 |
+| -------------------------- | -------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------ |
+| Unified shell/navigation   | Current program, PR #1770                          | IDA-CTX-003; IDA-CTR-039              | All role journeys, not just shell                                                    |
+| Member overview entry      | PR #1775, 55875e31b024e6ac9f4648f106be3bfea96facbd | IDA-NFR-008; IDA-CAS-007              | Whole member journey/user acceptance                                                 |
+| Member workspace redesign  | PR #1776, 06d90f570d8757764a9fac8124ee924bd3b8aa1f | IDA-NFR-006; IDA-NFR-007; IDA-NFR-008 | Criterion-level accessibility and user acceptance                                    |
+| Member detail continuity   | PR #1777, b5a234b30b9cb6ed89ae6d81b81960a3a8135b25 | IDA-CAS-007; IDA-COM-005; IDA-NFR-008 | Cross-role acceptance; S1 visibility correction                                      |
+| Member upload localization | PR #1778, 81a219608dacf4ee9cfd8ee9f201e8ab156e54d2 | IDA-NFR-007; IDA-DOC-012              | EN/SQ/MK/SR upload and consent copy credited; S3/S6/S7 cross-role acceptance remains |
+| Core M0–M5                 | Architecture tracker recorded milestones           | TEN/IAM/CAS/BHV/CTR clauses           | Consumer conformance and individual acceptance; do not rebuild core                  |
 
 ## Architecture frontier retained
 
