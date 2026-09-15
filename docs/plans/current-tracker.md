@@ -19,7 +19,7 @@ status_command: pnpm plan:status
 `S1-AGENT-MESSAGE-VISIBILITY` is the sole selected product slice on protected main
 `81a219608dacf4ee9cfd8ee9f201e8ab156e54d2`. The localization predecessor completed through
 PR #1778 with all 13 exact-main checks passed. S1 implementation is in progress in task
-`01a0a6b8-163e-74f3-b8e9-6dc43f1bb357`; renewed full verification passed at `d161bdd1` after the consolidated hosted-review corrections;
+`01a0a6b8-163e-74f3-b8e9-6dc43f1bb357`; prior full verification passed at `d161bdd1`; the dedicated-agent fixture correction awaits renewed final proof;
 protected delivery and exact-main health remain pending.
 
 | ID                            | Status        | Owner      | Work                                                                  | Exit Criteria                                                                                                                     |
@@ -181,11 +181,13 @@ independent and no exact-runtime-effect guarantee is claimed.
 - Fresh independent Astra/high review passed all eight changed files at `cfbb171f` after helper
   corrections; the requested route has no independent runtime model/effort attestation. The
   read-only rebase delta review also passed at `832e7d898`, without duplicating tests.
-- Exact new test allocation is 8,813 bytes/two files plus 523 bytes of budget metadata; existing
+- Exact test allocation is 10,434 bytes (two new files and 73 added bytes in the existing CRM test)
+  plus 651 bytes of budget metadata; existing
   source is below capacity-baseline bytes and is 326 lines. Capacity-only independent review
   interprets the owner's S1-through-completion instruction as authority for this necessary scoped
   allocation, not prior numeric approval. Reserve and unrelated allocations remain unchanged.
-- Admitted E2E tree `1fbdcbaeb135a2ef3dc5d820536641f19d9d5a94` adds only S1 fixtures/tests; focused resolver/capacity proof passes 32/32. A registered corpus hash is not an execution receipt.
+- Admitted E2E tree `8892fb8818e0d6861ac7d152249a4b15a5221890` includes S1 fixtures/tests
+  and the bounded CRM fixture selector correction. A registered corpus hash is not an execution receipt.
 - Supplemental pre-rebase harness proof passes 299/299 and `track:audit` passes. The two stale
   proof-ledger findings from `plan:audit` are resolved by the roadmap merge and rechecked here.
 - Uninterrupted full `pnpm pr:verify` passed at `832e7d898ee0df3e9accd8e398d33b02b53a2fa0`
@@ -203,8 +205,8 @@ independent and no exact-runtime-effect guarantee is claimed.
   No measured time saving is claimed.
 - Hosted P2 [cross-project isolation finding](https://github.com/interdomestik/interdomestik/pull/1780#discussion_r4020554901)
   reproduced in both tenants: project-local ordering cannot isolate the shared seeded agent.
-  A dedicated one-connection PostgreSQL client holds a per-agent advisory lock before fixture writes
-  through callback/cleanup and closes in an outer finally. Production code is unchanged. Actual
+  The first correction used a dedicated one-connection PostgreSQL client for a per-agent advisory
+  lock through callback/cleanup. The later sibling-consumer correction below supersedes it. Production code is unchanged. Actual
   concurrent query and thrown-callback cleanup/reacquisition probes pass with `DB_MAX_CONNECTIONS=1`.
   Gemini's targeted proposal review passed (81 seconds); browser-name/count guesses were rejected.
   [Playwright parallelism](https://playwright.dev/docs/test-parallel) and
@@ -229,8 +231,8 @@ independent and no exact-runtime-effect guarantee is claimed.
   (tree `4609f0e3209ee47a238ec66e0894a9d841b6d575`): 1,185 CI, 154 release, 41 RLS,
   3,394 web/12 skips, 81.32% coverage, 260 browser/12 skips and 13 smoke/11 skips; 661 seconds.
   Private log SHA-256: `8059feaf02bb43210e7cf873fe401cbe38c8f923e2a02c6abd61ac5ea3c8579a`.
-  The subsequent receipt-only update changes no tested runtime/configuration/test/workflow input;
-  rerun affected document/capacity/security checks and retain the named full-proof source identity.
+  The `34d5a473` receipt-only update changed no tested input. The later fixture correction changes
+  test inputs and requires new full proof; retain these results under their original identity.
   Lesson confirmed by the first hosted review: inspect cross-project fixture sharing and actual
   helper deprecations, and read annotations even when check summaries pass. No time saving is claimed.
 - Read-only helper inventory: general `messages/get.ts` already filters agents and tenant-scopes
@@ -238,6 +240,20 @@ independent and no exact-runtime-effect guarantee is claimed.
   restricts claimant sender but lacks an explicit internal predicate; mounted V2 `/api/claims`
   unread also lacks it and uses different own-claim scope. Both stay outside S1 remediation.
   Admin users unread is admin-only. No general agent authority or full SRS completion is claimed.
+
+- Second hosted P2 [sibling consumer finding](https://github.com/interdomestik/interdomestik/pull/1780#discussion_r4020785277)
+  reproduced KS/MK: the selection spec picked an S1 temporary assignment and lost its claim on
+  cleanup. Each S1 fixture now owns a unique branch, agent, credential and members. Mounted tests
+  sign in through the normal email endpoint and assert the returned agent identity. Exact cleanup
+  removes owned messages, claims, assignments, sessions, accounts, users and branch. The obsolete
+  advisory lock and its Sonar nested-template warning are removed.
+- Focused consumer inventory found the CRM routing spec's tenant-wide arbitrary-agent picker.
+  The chief authorized pinning it to the existing tenant-scoped seeded agent with no fallback;
+  no production CRM change is included. Concurrent core matrices and thrown-callback cleanup pass
+  with a one-connection main pool; the original selection consumer retains its seeded claim.
+  Independent fixture/auth logic review passed without duplicate execution; focused consumer inventory
+  found no further S1-induced held-ID collision. Six-worker S1/selection/CRM execution passed 44 cases
+  against the recorded working-candidate file hashes and E2E corpus. Renewed full proof is pending.
 
 ### Completed member evidence upload locale continuity
 
@@ -415,9 +431,9 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                            | Source Refs                       | Execution | Run ID | Run Root | Sonar   | Docker | Sentry    | Learning         | Evidence Refs                                                                                                                                                             |
-| ----------------------------- | --------------------------------- | --------- | ------ | -------- | ------- | ------ | --------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S1-AGENT-MESSAGE-VISIBILITY` | current program; proof `d161bdd1` | `manual`  | local  | local    | pending | pass   | `pending` | `not_applicable` | Renewed full pr:verify/security and independent review passed at d161bdd1 after hosted corrections; protected current-head review/delivery and exact-main health pending. |
+| ID                            | Source Refs                       | Execution | Run ID | Run Root | Sonar   | Docker | Sentry    | Learning         | Evidence Refs                                                                                                                  |
+| ----------------------------- | --------------------------------- | --------- | ------ | -------- | ------- | ------ | --------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `S1-AGENT-MESSAGE-VISIBILITY` | current program; proof `d161bdd1` | `manual`  | local  | local    | pending | pass   | `pending` | `not_applicable` | Prior proof d161bdd1 retained; dedicated-agent correction requires renewed full proof; protected delivery/main health pending. |
 
 ### Member case overview entry progress
 

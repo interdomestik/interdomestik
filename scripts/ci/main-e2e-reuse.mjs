@@ -29,7 +29,7 @@ const E2E_TREE_SHAS = new Set([
   // Member upload locale continuity.
   '469d483c0727f755a5dd27eb02f54192c484ebf6',
   // S1 agent message visibility SQL and mounted exclusion.
-  '1fbdcbaeb135a2ef3dc5d820536641f19d9d5a94',
+  '8892fb8818e0d6861ac7d152249a4b15a5221890',
 ]);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {

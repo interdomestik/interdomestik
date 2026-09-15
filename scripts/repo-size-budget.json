@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 102998,
+      "trackedBytesDelta": 103126,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 65594,
+        "config/data/messages": 65722,
         "source/scripts": 23092,
         "tests/e2e": 14312
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 65594,
+        "scripts/repo-size-budget.json": 65722,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -1359,14 +1359,16 @@
       "mode": "exact",
       "writerPaths": [
         "apps/web/e2e/gate/agent-message-visibility.fixture.ts",
-        "apps/web/e2e/gate/agent-message-visibility.spec.ts"
+        "apps/web/e2e/gate/agent-message-visibility.spec.ts",
+        "apps/web/e2e/gate/admin-crm-routing-rules.spec.ts"
       ],
-      "trackedBytesDelta": 8813,
+      "trackedBytesDelta": 10434,
       "trackedFilesDelta": 2,
-      "categoryBytesDelta": { "tests/e2e": 8813 },
+      "categoryBytesDelta": { "tests/e2e": 10434 },
       "pathBytesDelta": {
-        "apps/web/e2e/gate/agent-message-visibility.fixture.ts": 4965,
-        "apps/web/e2e/gate/agent-message-visibility.spec.ts": 3848
+        "apps/web/e2e/gate/agent-message-visibility.fixture.ts": 5776,
+        "apps/web/e2e/gate/agent-message-visibility.spec.ts": 4585,
+        "apps/web/e2e/gate/admin-crm-routing-rules.spec.ts": 73
       }
     }
   ],
@@ -1376,15 +1378,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61433297,
+  "maxTrackedBytes": 61435046,
   "maxTrackedFiles": 6065,
   "maxCategoryBytes": {
-    "config/data/messages": 2241418,
+    "config/data/messages": 2241546,
     "docs/text": 8634905,
     "large support/generated-ish": 15395985,
     "other": 19184750,
     "source/scripts": 8863098,
-    "tests/e2e": 7113141
+    "tests/e2e": 7114762
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

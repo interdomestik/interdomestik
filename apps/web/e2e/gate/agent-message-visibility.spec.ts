@@ -1,6 +1,8 @@
 import { db } from '@interdomestik/database';
 import { getAgentWorkspaceClaimsCore } from '../../src/app/[locale]/(agent)/agent/workspace/claims/_core';
 import { expect, test } from '../fixtures/auth.fixture';
+import { credsFor } from '../fixtures/auth-users';
+import { getProjectUrlInfo, ipForRole } from '../fixtures/auth.project';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 import { withAgentMessageFixture } from './agent-message-visibility.fixture';
@@ -43,9 +45,24 @@ test.describe('Agent message visibility', () => {
   });
 
   test('mounted workspace renders public snippets and excludes internal counts and content', async ({
-    agentPage,
+    page: agentPage,
   }, info) => {
-    await withAgentMessageFixture(info.project.name, async ({ claimIds }) => {
+    await withAgentMessageFixture(info.project.name, async ({ agentId, email, claimIds }) => {
+      const { origin } = getProjectUrlInfo(info, null);
+      await agentPage.context().clearCookies();
+      const login = await agentPage.request.post(`${origin}/api/auth/sign-in/email`, {
+        data: {
+          email,
+          password: credsFor('agent', info.project.name.includes('mk') ? 'mk' : 'ks').password,
+        },
+        headers: {
+          Origin: origin,
+          'x-forwarded-for': ipForRole('agent'),
+          ...info.project.use.extraHTTPHeaders,
+        },
+      });
+      expect(login.ok()).toBeTruthy();
+      expect((await login.json()).user.id).toBe(agentId);
       await gotoApp(agentPage, routes.agentWorkspaceClaims(info), info, {
         marker: 'agent-claims-pro-page',
       });
