@@ -159,7 +159,7 @@ independent and no exact-runtime-effect guarantee is claimed.
   `agentClients.status`, fixed limit, selection retention and no inferred HTTP 404.
 - Reproduction in isolated local `interdomestik_ci_s1_e040`: internal-only snippet/count leaked;
   mixed rows counted internal notes and admitted a synthetic mismatched-tenant message. One local
-  predicate now reuses `withTenant` and the existing public conversation condition for both reads.
+  predicate now shares exact tenant equality and the existing public conversation condition for both reads.
 - The page imports `db` through `db.server`; database `db = dbRls`. Local role `postgres` has
   BYPASSRLS and no tenant setting. Existing message RLS is tenant-only. Focused actual-core proof
   passes KS/MK under the runtime client and local `interdomestik_rls_test` (NOBYPASSRLS) with
@@ -181,11 +181,11 @@ independent and no exact-runtime-effect guarantee is claimed.
 - Fresh independent Astra/high review passed all eight changed files at `cfbb171f` after helper
   corrections; the requested route has no independent runtime model/effort attestation. The
   read-only rebase delta review also passed at `832e7d898`, without duplicating tests.
-- Exact new test allocation is 8,544 bytes/two files plus 523 bytes of budget metadata; existing
-  source is below capacity-baseline bytes and remains 327 lines. Capacity-only independent review
+- Exact new test allocation is 8,813 bytes/two files plus 523 bytes of budget metadata; existing
+  source is below capacity-baseline bytes and is 326 lines. Capacity-only independent review
   interprets the owner's S1-through-completion instruction as authority for this necessary scoped
   allocation, not prior numeric approval. Reserve and unrelated allocations remain unchanged.
-- Admitted E2E tree `df9b745895b840ec5ba9e9ec48edbf1531713129` adds only S1 fixtures/tests; focused resolver/capacity proof passes 32/32. A registered corpus hash is not an execution receipt.
+- Admitted E2E tree `1fbdcbaeb135a2ef3dc5d820536641f19d9d5a94` adds only S1 fixtures/tests; focused resolver/capacity proof passes 32/32. A registered corpus hash is not an execution receipt.
 - Supplemental pre-rebase harness proof passes 299/299 and `track:audit` passes. The two stale
   proof-ledger findings from `plan:audit` are resolved by the roadmap merge and rechecked here.
 - Uninterrupted full `pnpm pr:verify` passed at `832e7d898ee0df3e9accd8e398d33b02b53a2fa0`
@@ -209,8 +209,19 @@ independent and no exact-runtime-effect guarantee is claimed.
   Gemini's targeted proposal review passed (81 seconds); browser-name/count guesses were rejected.
   [Playwright parallelism](https://playwright.dev/docs/test-parallel) and
   [PostgreSQL 15 advisory locks](https://www.postgresql.org/docs/15/explicit-locking.html#ADVISORY-LOCKS)
-  were checked for this correction. Six-worker project execution, independent delta review and
-  fresh full proof remain required; earlier full proof is retained only for its original test inputs.
+  were checked for this correction. Six-worker all-project execution passed 14/14 at `9923746f`
+  (two setup checks plus twelve query/mounted cases), including a one-connection main pool.
+  Independent delta review and fresh full proof remain required for the consolidated corrections;
+  earlier full proof is retained only for its original test inputs.
+- Sonar's green summary contained two deprecated `withTenant` annotations and a fixture nested
+  ternary. The task chief directed preservation of exact existing tenant equality with the smallest
+  local predicate: inline the same conjunction in the shared message predicate, matching the core's
+  existing claim scope. `claimMessages` has no `accessTenantId`; no incompatible column alias,
+  trimming change, warning suppression or generalized helper is introduced. Fixture owner lookup
+  replaces the nested ternary, and real-query cases assert missing/padded tenant IDs stay denied.
+  Sonnet returned the supporting static proposal (89 seconds, reported `claude-sonnet-5`), but its
+  route receipt failed with `no explicit PASS or FINDINGS` because the verdict was Markdown-bold.
+  Retain that failed receipt and raw contribution; do not count it as a passing route or repeat it.
 - Read-only helper inventory: general `messages/get.ts` already filters agents and tenant-scopes
   messages; send returns the inserted permitted row. Legacy `domain-claims/claims/list.ts` unread
   restricts claimant sender but lacks an explicit internal predicate; mounted V2 `/api/claims`

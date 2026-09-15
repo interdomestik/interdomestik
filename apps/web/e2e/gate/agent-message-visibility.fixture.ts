@@ -25,6 +25,10 @@ export async function withAgentMessageFixture<T>(
   const claimIds = Array.from({ length: 105 }, (_, index) => `${prefix}-claim-${index}`);
   const deniedIds = ['foreign', 'inactive', 'unassigned'].map(name => `${prefix}-${name}-claim`);
   const allClaimIds = [...claimIds, ...deniedIds];
+  const deniedOwners: Record<string, string> = {
+    [deniedIds[1]]: memberIds[1],
+    [deniedIds[2]]: memberIds[2],
+  };
   const date = (index: number) => new Date(Date.UTC(2099, 0, 1, 0, 0, index));
   const message = (
     claimId: string,
@@ -73,8 +77,7 @@ export async function withAgentMessageFixture<T>(
         allClaimIds.map((id, index) => ({
           id,
           tenantId: id === deniedIds[0] ? foreignTenantId : tenantId,
-          userId:
-            id === deniedIds[1] ? memberIds[1] : id === deniedIds[2] ? memberIds[2] : memberIds[0],
+          userId: deniedOwners[id] ?? memberIds[0],
           branchId: agent.branchId,
           title: id,
           claimNumber: id,

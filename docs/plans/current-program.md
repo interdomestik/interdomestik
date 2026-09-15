@@ -190,8 +190,8 @@ proxy/auth/routing/schema refactor, dashboard redesign or deployment is selected
 
 The actual core reproduced internal-only content/count leakage. Local runtime `db` aliases
 `dbRls`, but its configured fallback role is BYPASSRLS; the tenant-only message policy does
-not encode internal-message visibility. Reuse `withTenant` and the established conversation
-reader's `isInternal = false` semantics through one local predicate for both implicated reads.
+not encode internal-message visibility. Reuse the established conversation reader's
+`isInternal = false` semantics and exact tenant equality through one local predicate for both reads.
 `NULL` visibility remains excluded, matching that reader. Source inventory identifies separate
 legacy/V2 unread readers; they are recorded, not expanded into S1.
 

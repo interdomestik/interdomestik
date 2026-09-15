@@ -95,7 +95,7 @@ test('S1 agent message visibility preserves corpus parity', () => {
   assert.equal(
     inspectRepositoryParity({
       ...sources(),
-      e2eTreeSha: 'df9b745895b840ec5ba9e9ec48edbf1531713129',
+      e2eTreeSha: '1fbdcbaeb135a2ef3dc5d820536641f19d9d5a94',
     }).commandChain,
     true
   );

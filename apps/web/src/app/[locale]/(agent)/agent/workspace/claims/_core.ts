@@ -1,7 +1,6 @@
 import { agentClients, claimMessages, claims, user } from '@interdomestik/database/schema';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import type * as DatabaseModule from '@interdomestik/database';
-import { withTenant } from '@interdomestik/database/tenant-security';
 import { and, count, desc, eq, inArray, isNull, ne, or } from 'drizzle-orm';
 type DatabaseClient = typeof DatabaseModule.db;
 
@@ -152,10 +151,10 @@ async function getClaimByIdInWorkspaceScope(params: {
 
 function buildVisibleMessagesWhere(tenantId: string, claimIds: string[]) {
   // Match the public conversation reader; internal and unspecified visibility stay private.
-  return withTenant(
-    tenantId,
-    claimMessages.tenantId,
-    and(inArray(claimMessages.claimId, claimIds), eq(claimMessages.isInternal, false))
+  return and(
+    eq(claimMessages.tenantId, tenantId),
+    inArray(claimMessages.claimId, claimIds),
+    eq(claimMessages.isInternal, false)
   );
 }
 

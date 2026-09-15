@@ -11,6 +11,10 @@ test.describe('Agent message visibility', () => {
       const { agentId: userId, tenantId, claimIds, deniedIds } = fixture;
       const read = (selectedClaimId?: string) =>
         getAgentWorkspaceClaimsCore({ db, userId, tenantId, selectedClaimId });
+      for (const invalidTenantId of ['', ` ${tenantId} `]) {
+        const denied = await getAgentWorkspaceClaimsCore({ db, userId, tenantId: invalidTenantId });
+        expect(denied.claims).toEqual([]);
+      }
       const initial = await read();
       expect(initial.claims.map(claim => claim.id)).toEqual(claimIds.slice(0, 100));
       expect(initial.claims[0]).toMatchObject({
