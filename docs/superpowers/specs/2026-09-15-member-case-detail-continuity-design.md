@@ -75,10 +75,12 @@ Render a labelled `nav` containing a list of locale-aware native anchors in this
 Freeze the public fragments as `#member-claim-detail-progress`, `#member-claim-detail-evidence`,
 `#member-claim-detail-history` and the existing `#member-claim-detail-messaging`. Progress targets a
 structural wrapper that begins with the recorded progress card and includes the separate Case
-Companion next-step card after it. Each target is a section or landmark named by its existing heading
-through `aria-labelledby`, and carries a `scroll-mt-*` offset that keeps the target visible below the
-shell. Links wrap or scroll safely at 320 CSS pixels and expose a visible focus indicator. They do
-not activate tabs, hide content or store navigation state.
+Companion next-step card after it. Each target is a section or landmark with an accessible localized
+name: use `aria-labelledby` when the owned heading ID is directly controllable and otherwise use an
+`aria-label` matching the localized section-navigation label. This does not select changes to shared
+panel APIs or duplicate visible headings. Each target carries a `scroll-mt-*` offset that keeps it
+visible below the shell. Links wrap or scroll safely at 320 CSS pixels and expose a visible focus
+indicator. They do not activate tabs, hide content or store navigation state.
 
 ### Information hierarchy
 
