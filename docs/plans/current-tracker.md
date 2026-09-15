@@ -137,7 +137,9 @@ accepted. Sonnet's catalog/import confirmation items were satisfied by the exist
 browser-only 320px reflow and native keyboard-focus recommendations remain in the proof plan.
 Independent Astra/high review found the long-reference reflow risk and blank-reference ambiguity;
 the candidate now bounds and wraps the link and maps blank references to the same distinct fallback
-contract. Post-helper Astra confirmation and expensive final proof remain pending.
+contract. Post-helper Astra/high review passed the corrected production delta, including generic-kind
+forwarding, locale-aware links, key semantics, encoding and unchanged data/security boundaries.
+Actual-browser 320px/focus/navigation evidence and expensive final proof remain pending.
 
 ### T410 pessimistic mutation boundary progress
 
