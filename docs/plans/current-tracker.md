@@ -115,9 +115,25 @@ independent and no exact-runtime-effect guarantee is claimed.
   loyalty, J.D. Power claims, Deloitte EMEA insurance, KPMG UK claims, Mastercard subscription and
   current ADAC signals favor tangible value, simplicity, control, progress visibility and human
   reassurance. That briefing does not widen this product PR.
-- Sonnet 5 design/implementation advice and Gemini disjoint counterexamples/tests remain required
-  before fresh independent Astra/high final review. Complete source/test/config capacity and affected
-  unit/gate/golden/smoke contracts must be frozen before implementation and final proof.
+- The owner approved the written design and one consolidated bounded capacity envelope: 63,000 bytes
+  and four new files across documentation, source, tests and locale messages; 2,000 bytes extends the
+  existing fail-closed E2E resolver allocation. The derived budget self-change uses no reserve,
+  deleted-byte credit, relaxed guard or unrelated writer. Capacity schema/evaluator tests pass.
+- Subscription Claude requested and actually served `claude-sonnet-5`; no fallback was configured.
+  Accepted: one exported fragment-ID constant, plain same-document anchors, optional `matchMedia`,
+  target scroll offsets and preservation-focused tests. Rejected: any shared-panel API change or
+  expanded progress wrapper. The CLI reported a usage-cost estimate, but the authorized subscription
+  path was used and no API key or paid fallback was selected.
+- The initial Gemini packet containing internal source identity was denied by the external-data safety
+  gate and was not sent. A materially safer synthetic packet contained no repository, branch, source,
+  component, fixture or customer data. It requested `gemini-3.1-pro-high`; the actual response
+  identified itself as Gemini 3.8 Flash High. Accepted: long-label/reflow, visible-focus,
+  populated/absent target existence and history DOM-order counterchecks. Rejected: invented route
+  security cases, programmatic focus for native hash targets, nonexistent contrast helpers, fake
+  fingerprints and changing focus from the messages section to an input.
+- The independently reviewed implementation plan is approved. Affected unit, deterministic gate,
+  conditional golden and fail-closed fingerprint contracts are frozen; smoke behavior is unaffected.
+  Fresh independent Astra/high final review remains required after the candidate and focused proof.
 
 ### Completed member workspace redesign
 
