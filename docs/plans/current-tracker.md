@@ -127,13 +127,17 @@ upper estimate rather than padded metadata. Files and every other ceiling remain
 reserve, deleted-byte credit, new file, catalog growth or guard weakening is used.
 
 The one requested non-sensitive `fm` label-template trial failed with ModelManager error 1008 and
-was rejected as zero-benefit, with no retry or dependency. The repo subscription probe found Gemini
-3.1 Pro callable and Claude Sonnet 5 installed but not authenticated (`Not logged in · Please run
-/login`). Runtime policy separately requires explicit approval before disclosing the bounded
-non-secret source/interface packet to Gemini. No T410 Claude waiver is transferred. Independent
-Astra/high review found the long-reference 320px reflow risk and blank-reference ambiguity; the
-candidate now bounds and wraps the link and maps blank references to the same distinct fallback
-contract. Browser proof, helper proposals and expensive final proof remain pending.
+was rejected as zero-benefit, with no retry or dependency. After explicit owner approval for the
+bounded non-secret packet, the configured subscription routes served `claude-sonnet-5` and
+`gemini-3.1-pro-preview` against exact candidate `a9b1d589`. Both questioned generic-kind forwarding;
+the unchanged `GenericCaseSummary` spreads every typed prop to `CaseSummaryCard`, and the existing
+`claim-2` assertion exercises that generic route and link, so no redundant test or product edit was
+accepted. Sonnet's catalog/import confirmation items were satisfied by the existing SQ/MK/EN/SR
+`member_assistance.cases.open` values and locale-aware `@/i18n/routing` Link import. Their valid
+browser-only 320px reflow and native keyboard-focus recommendations remain in the proof plan.
+Independent Astra/high review found the long-reference reflow risk and blank-reference ambiguity;
+the candidate now bounds and wraps the link and maps blank references to the same distinct fallback
+contract. Post-helper Astra confirmation and expensive final proof remain pending.
 
 ### T410 pessimistic mutation boundary progress
 
