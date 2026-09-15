@@ -44,6 +44,9 @@ The [requirement disposition map](requirement-disposition-map.md) retains all 51
 and the unresolved architecture frontier. Maintain affected rows alongside ordinary slice receipts;
 record explicit owner approval for post-pilot deferrals. Its unresolved rows are not automatically
 missing features or blanket prerequisites. Resolve pilot applicability before readiness admission.
+Update software, operational and business readiness independently with evidence and known owners.
+Unassigned means ownership has not been recorded; do not invent appointments. Mark a whole
+requirement delivered only after all applicable readiness dimensions are satisfied.
 
 Owner-adopted on 2026-09-15; detailed scope and acceptance live only in the current program's
 product-readiness roadmap. These rows do not change the active slice or mark future work complete.

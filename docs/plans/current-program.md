@@ -83,6 +83,10 @@ Maintain the [requirement disposition map](requirement-disposition-map.md) as th
 architecture-frontier index, not another execution queue. Update affected requirement evidence
 with each slice. Unknown applicability is unresolved, never an implicit post-pilot deferral.
 Pilot readiness does not close the enterprise backlog; only cited owner decisions defer scope.
+Each mapped requirement separately records software, operational and business readiness, evidence
+and accountable ownership. Whole-requirement completion requires all applicable dimensions satisfied;
+not-applicable dimensions need a reason. Prepare operations and business acceptance alongside their
+dependent slices, not only at S14; no existing approval or delivered capability is inferred missing.
 
 The owner adopts the corrected Opus consultation as the following product-readiness sequence.
 S1–S3 and the active localization scope above are unchanged. UI/UX is part of each user-facing
