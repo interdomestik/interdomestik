@@ -25,31 +25,45 @@ export function CaseSummaryCard({ entry, labels, referenceValue, summary }: Case
   return (
     <article
       aria-labelledby={headingId}
-      className="grid min-w-0 gap-4 rounded-2xl border border-border bg-background/80 p-4 sm:p-5"
+      className="min-w-0 overflow-hidden rounded-2xl border border-[hsl(var(--border-strong))] bg-[hsl(var(--surface))] shadow-sm forced-colors:border-[CanvasText]"
     >
-      <div className="min-w-0 space-y-1">
-        <p className="text-xs font-medium uppercase tracking-wide text-foreground/65">
-          {labels.reference}
-        </p>
-        <h3 id={headingId} className="text-lg font-semibold [overflow-wrap:anywhere]">
-          {referenceValue}
-        </h3>
+      <div className="flex min-w-0 flex-wrap items-start justify-between gap-4 p-5 sm:p-6">
+        <div className="min-w-0 space-y-1">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-foreground/65">
+            {labels.reference}
+          </p>
+          <h3 id={headingId} className="text-lg font-semibold [overflow-wrap:anywhere]">
+            {referenceValue}
+          </h3>
+        </div>
+        <dl className="min-w-0 max-w-full shrink-0">
+          <div>
+            <dt className="sr-only">{labels.status}</dt>
+            <dd className="max-w-full rounded-full border border-[hsl(var(--border-strong))] px-3 py-1.5 text-xs font-semibold [overflow-wrap:anywhere] forced-colors:border-[CanvasText]">
+              {labels.statusValue}
+            </dd>
+          </div>
+        </dl>
       </div>
-      <dl className="grid min-w-0 gap-3 sm:grid-cols-3">
+      <dl className="min-w-0 border-y border-[hsl(var(--border))] bg-[hsl(var(--primary-soft))]/50 px-5 py-4 sm:px-6 sm:py-5">
         <div className="min-w-0">
-          <dt>{labels.status}</dt>
-          <dd className="break-words font-medium">{labels.statusValue}</dd>
-        </div>
-        <div className="min-w-0">
-          <dt>{labels.documentCount}</dt>
-          <dd className="font-medium">{summary.documentCount}</dd>
-        </div>
-        <div className="min-w-0">
-          <dt>{labels.nextStep}</dt>
-          <dd className="break-words font-medium">{labels.nextStepValue}</dd>
+          <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-foreground/65">
+            {labels.nextStep}
+          </dt>
+          <dd className="mt-1 text-lg font-semibold text-[hsl(var(--primary))] dark:text-foreground [overflow-wrap:anywhere] sm:text-xl">
+            {labels.nextStepValue}
+          </dd>
         </div>
       </dl>
-      {entry}
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-4 p-5 sm:p-6">
+        <dl className="min-w-0">
+          <div>
+            <dt className="text-xs text-foreground/65">{labels.documentCount}</dt>
+            <dd className="text-lg font-semibold">{summary.documentCount}</dd>
+          </div>
+        </dl>
+        {entry}
+      </div>
     </article>
   );
 }

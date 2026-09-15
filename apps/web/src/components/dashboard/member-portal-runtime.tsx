@@ -37,23 +37,28 @@ export async function PortalCasesRegion({ copy, promise }: CaseProps) {
   if (!summaries) return <Boundary copy={copy.regions.case} state="error" />;
   if (summaries.length === 0) return <Boundary copy={copy.regions.case} state="empty" />;
   return (
-    <PortalUi.RefractiveGlassPanel className="grid gap-5">
-      <h2>{copy.regions.case.label}</h2>
+    <div className="grid min-w-0 gap-4 sm:gap-5">
+      <h2 className="text-lg font-semibold tracking-tight">{copy.regions.case.label}</h2>
       {summaries.map((summary, index) => {
         const labels = copy.caseLabels(summary);
         const referenceValue =
           summary.reference?.trim() || `${labels.referenceFallback} ${index + 1}`;
         const entry = (
           <Link
-            className="inline-block min-h-11 max-w-full rounded-lg p-3 font-medium underline decoration-2 underline-offset-4 [overflow-wrap:anywhere] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="inline-flex min-h-11 w-full max-w-full items-center justify-between gap-4 rounded-xl bg-[hsl(var(--primary))] px-4 py-3 text-sm font-semibold text-[hsl(var(--primary-foreground))] [overflow-wrap:anywhere] hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 forced-colors:border forced-colors:border-[CanvasText] sm:w-auto"
             href={`/member/claims/${encodeURIComponent(summary.id)}`}
           >
-            {copy.caseEntryLabel} {referenceValue}
+            <span className="min-w-0 [overflow-wrap:anywhere]">
+              {copy.caseEntryLabel} {referenceValue}
+            </span>
+            <span aria-hidden="true" className="shrink-0 text-lg leading-none">
+              →
+            </span>
           </Link>
         );
         return renderCaseSummary(summary, labels, entry, referenceValue);
       })}
-    </PortalUi.RefractiveGlassPanel>
+    </div>
   );
 }
 
@@ -74,14 +79,19 @@ export async function PortalActionsRegion({
   if (inactive && !canDraft) path = 'membership';
   const href = `/${locale}/member/${path}`;
   return (
-    <div className="grid min-w-0 gap-3">
-      <h2>{copy.regions.actions.label}</h2>
+    <div className="grid min-w-0 gap-4">
+      <h2 className="text-lg font-semibold tracking-tight">{copy.regions.actions.label}</h2>
       <PortalUi.MatteAnchorCard
+        className="border-[hsl(var(--primary)/0.2)] bg-[hsl(var(--primary-soft))] shadow-none hover:border-[hsl(var(--primary)/0.4)]"
         description={action.description}
         href={href}
         label={path === 'membership' ? copy.navigation.membership : action.label}
       />
-      {action.warning ? <p className="rounded-xl border p-4 text-sm">{action.warning}</p> : null}
+      {action.warning ? (
+        <p className="rounded-xl border border-[hsl(var(--border-strong))] bg-[hsl(var(--surface))] p-4 text-sm text-foreground/75 forced-colors:border-[CanvasText]">
+          {action.warning}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -103,8 +113,8 @@ export async function PortalUpdatesRegion({ copy, locale, promise }: UpdateProps
       : []
   );
   return (
-    <PortalUi.RefractiveGlassPanel>
-      <h2>{copy.regions.updates.label}</h2>
+    <PortalUi.RefractiveGlassPanel className="space-y-5 bg-[hsl(var(--surface))]/80 shadow-none">
+      <h2 className="text-lg font-semibold tracking-tight">{copy.regions.updates.label}</h2>
       <PortalUi.Timeline
         ariaLabel={copy.regions.updates.label}
         emptyLabel={copy.regions.updates.empty}
@@ -123,30 +133,58 @@ type FrameProps = Readonly<{
 
 export function MemberPortalFrame({ actionsRegion, caseRegion, copy, updatesRegion }: FrameProps) {
   return (
-    <section aria-labelledby="member-portal-title" className="min-w-0 space-y-6 p-4 sm:p-6 md:p-0">
-      <header className="space-y-2">
-        <h1 id="member-portal-title" className="text-2xl">
+    <section
+      aria-labelledby="member-portal-title"
+      className="min-w-0 space-y-7 p-4 sm:space-y-8 sm:p-6 md:p-0"
+    >
+      <header className="max-w-3xl space-y-3 py-1 sm:py-2">
+        <h1
+          id="member-portal-title"
+          className="text-3xl font-semibold tracking-[-0.035em] sm:text-4xl"
+        >
           {copy.title}
         </h1>
-        <p className="max-w-3xl text-sm text-foreground/70 sm:text-base">{copy.description}</p>
+        <p className="max-w-2xl text-sm leading-6 text-foreground/70 sm:text-base">
+          {copy.description}
+        </p>
       </header>
       <nav
         aria-label={copy.navigation.label}
-        className="flex flex-wrap gap-3 text-sm [&_a]:inline-flex [&_a]:min-h-11 [&_a]:items-center [&_a]:px-3 [&_a]:focus-visible:ring-2"
+        className="flex flex-wrap gap-2 text-sm [&_a]:inline-flex [&_a]:min-h-11 [&_a]:items-center [&_a]:rounded-xl [&_a]:px-4 [&_a]:font-medium [&_a]:focus-visible:outline-none [&_a]:focus-visible:ring-2 [&_a]:focus-visible:ring-ring [&_a]:focus-visible:ring-offset-2"
       >
-        <Link href="/help-now">{copy.navigation.helpNow}</Link>
-        <Link href="/member/claims">{copy.navigation.cases}</Link>
+        <Link
+          className="bg-[hsl(var(--primary-soft))] text-[hsl(var(--primary))] dark:text-foreground"
+          href="/member/claims"
+        >
+          {copy.navigation.cases}
+        </Link>
         <Link href="/member/documents">{copy.navigation.documents}</Link>
         <Link href="/member/membership">{copy.navigation.membership}</Link>
+        <Link
+          className="border border-[hsl(var(--border-strong))] bg-[hsl(var(--surface))]/70 sm:ml-auto"
+          href="/help-now"
+        >
+          <span aria-hidden="true" className="me-2">
+            ↗
+          </span>
+          {copy.navigation.helpNow}
+        </Link>
       </nav>
-      <aside data-testid="member-portal-disclaimer" className="rounded-xl border p-4">
-        {copy.disclaimer}
+      <aside
+        data-testid="member-portal-disclaimer"
+        className="flex max-w-3xl items-start gap-2 text-xs leading-5 text-foreground/70"
+      >
+        <span aria-hidden="true" className="shrink-0 text-[hsl(var(--primary))]">
+          ◇
+        </span>
+        <span>{copy.disclaimer}</span>
       </aside>
       <PortalUi.UnifiedPortalShell
         actionsLabel={copy.regions.actions.label}
         actionsRegion={actionsRegion}
         caseLabel={copy.regions.case.label}
         caseRegion={caseRegion}
+        className="md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] md:items-start"
         timelineLabel={copy.regions.updates.label}
         timelineRegion={updatesRegion}
       />

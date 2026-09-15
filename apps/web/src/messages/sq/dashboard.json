@@ -15,8 +15,8 @@
       "empty_body": "Kur ta dërgoni kërkesën e parë, ajo do të shfaqet këtu."
     },
     "portal": {
-      "title": "Rastet e mia",
-      "description": "Rasti, veprimi i radhës dhe përditësimet.",
+      "title": "Rastet tuaja, qartë.",
+      "description": "Mbani rastet, dokumentet dhe hapat e radhës në një vend.",
       "disclaimer": "Vetëm udhëzim; pa rezultat të premtuar. Mund të duhet shqyrtim.",
       "navigation": {
         "label": "Shkurtore për anëtarin",
@@ -33,22 +33,22 @@
       },
       "regions": {
         "case": {
-          "label": "Rasti",
-          "loading": "Po ngarkohet",
-          "empty": "Nuk ka raste",
-          "error": "E padisponueshme"
+          "label": "Rastet tuaja",
+          "loading": "Po ngarkohen rastet tuaja…",
+          "empty": "Ende nuk ka raste këtu. Përdorni hapin më poshtë kur të jeni gati të filloni.",
+          "error": "Rastet tuaja nuk mund të ngarkoheshin."
         },
         "actions": {
-          "label": "Veprimet",
-          "loading": "Po ngarkohet",
-          "empty": "Nuk ka veprime",
-          "error": "E padisponueshme"
+          "label": "Nisni diçka të re",
+          "loading": "Po ngarkohet hapi i radhës…",
+          "empty": "Nuk ka hap të radhës të disponueshëm.",
+          "error": "Hapi i radhës nuk mund të ngarkohej."
         },
         "updates": {
-          "label": "Përditësimet e fundit",
-          "loading": "Po ngarkohet",
-          "empty": "Nuk ka përditësime",
-          "error": "E padisponueshme"
+          "label": "Datat dhe statusi i rasteve",
+          "loading": "Po ngarkohen datat e rasteve…",
+          "empty": "Datat e rasteve do të shfaqen këtu kur të jenë të disponueshme.",
+          "error": "Datat e rasteve nuk mund të ngarkoheshin."
         }
       },
       "actions": {

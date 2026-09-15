@@ -15,8 +15,8 @@
       "empty_body": "Kada podnesete svoj prvi zahtev, on će se pojaviti ovde."
     },
     "portal": {
-      "title": "Moji slučajevi",
-      "description": "Slučajevi, radnje, ažuriranja.",
+      "title": "Vaši slučajevi, jasno.",
+      "description": "Držite slučajeve, dokumente i sledeće korake na jednom mestu.",
       "disclaimer": "Samo smernice; ishodi nisu obećani. Moguća stručna provera.",
       "navigation": {
         "label": "Prečice",
@@ -33,22 +33,22 @@
       },
       "regions": {
         "case": {
-          "label": "Slučaj",
-          "loading": "Učitavanje",
-          "empty": "Nema slučajeva",
-          "error": "Nedostupno"
+          "label": "Vaši slučajevi",
+          "loading": "Učitavanje vaših slučajeva…",
+          "empty": "Ovde još nema slučajeva. Kada budete spremni, koristite sledeći korak ispod.",
+          "error": "Vaši slučajevi nisu mogli da se učitaju."
         },
         "actions": {
-          "label": "Radnje",
-          "loading": "Učitavanje",
-          "empty": "Nema radnji",
-          "error": "Nedostupno"
+          "label": "Započnite nešto novo",
+          "loading": "Učitavanje sledećeg koraka…",
+          "empty": "Nema dostupnog sledećeg koraka.",
+          "error": "Sledeći korak nije mogao da se učita."
         },
         "updates": {
-          "label": "Nedavne novosti",
-          "loading": "Učitavanje",
-          "empty": "Nema ažuriranja",
-          "error": "Nedostupno"
+          "label": "Datumi i status slučajeva",
+          "loading": "Učitavanje datuma slučajeva…",
+          "empty": "Datumi slučajeva će se pojaviti ovde kada budu dostupni.",
+          "error": "Datumi slučajeva nisu mogli da se učitaju."
         }
       },
       "actions": {

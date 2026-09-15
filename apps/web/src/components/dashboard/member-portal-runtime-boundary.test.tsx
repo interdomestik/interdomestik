@@ -79,7 +79,7 @@ describe('Member portal', () => {
   });
 
   it('maps one unambiguous detail link to each represented case', async () => {
-    const anotherMissingReference = { ...summaries[1]!, id: 'claim-3', reference: '   ' };
+    const anotherMissingReference = { ...summaries[1]!, id: 'claim-3/../?&%#', reference: '   ' };
     render(
       await PortalCasesRegion({
         copy,
@@ -97,7 +97,7 @@ describe('Member portal', () => {
     );
     expect(screen.getByRole('link', { name: 'View case Reference unavailable 3' })).toHaveAttribute(
       'href',
-      '/member/claims/claim-3'
+      '/member/claims/claim-3%2F..%2F%3F%26%25%23'
     );
     expect(screen.getAllByRole('link')).toHaveLength(3);
     for (const article of screen.getAllByRole('article')) {
@@ -182,6 +182,35 @@ describe('Member portal', () => {
     expect(screen.getByRole('alert', { name: 'Recent case updates' })).toBeVisible();
     expect(screen.getByRole('link', { name: 'Cases' })).toHaveAttribute('href', '/member/claims');
     expect(screen.queryByTestId('member-dashboard-ready')).not.toBeInTheDocument();
+  });
+
+  it.each(['null', 'reject'] as const)('keeps failed data distinct from empty: %s', async mode => {
+    const promise = () =>
+      mode === 'null' ? Promise.resolve(null) : Promise.reject(new Error('private failure'));
+    const view = render(await PortalCasesRegion({ copy, promise: promise() }));
+    expect(screen.getByRole('alert', { name: 'Case' })).toHaveTextContent('Unavailable');
+    expect(screen.queryByText('No cases yet')).not.toBeInTheDocument();
+    view.rerender(
+      await PortalActionsRegion({
+        canDraft: true,
+        copy,
+        isAgent: false,
+        locale: 'en',
+        promise: promise(),
+      })
+    );
+    expect(screen.getByRole('alert', { name: 'Actions' })).toBeVisible();
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    view.rerender(await PortalUpdatesRegion({ copy, locale: 'en', promise: promise() }));
+    expect(screen.getByRole('alert', { name: 'Recent case updates' })).toBeVisible();
+    expect(screen.queryByText('private failure')).not.toBeInTheDocument();
+  });
+
+  it('keeps incident dates and input order without inventing updates for undated cases', async () => {
+    render(await PortalUpdatesRegion({ copy, locale: 'en', promise: Promise.resolve(summaries) }));
+    expect(screen.getAllByRole('listitem')).toHaveLength(1);
+    expect(document.querySelector('time')).toHaveAttribute('datetime', summaries[0]!.occurredAt);
+    expect(screen.queryByText('Reference unavailable')).not.toBeInTheDocument();
   });
 
   it('keeps four catalog contracts aligned', () => {

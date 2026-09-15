@@ -16,15 +16,17 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-`MEMBER-CASE-OVERVIEW-ENTRY` is the sole selected successor on exact main `62376c15`.
+`MEMBER-CASE-WORKSPACE-REDESIGN` is the sole selected successor on exact main `55875e31`.
+Predecessor `MEMBER-CASE-OVERVIEW-ENTRY` protected-merged in PR #1775; the dashboard retry task
+is superseded by the owner's new member-journey direction.
 Shared shell navigation, the bounded T410 notification increments and T210 are completed history.
 The current member screen is legacy integration evidence only. The planned net-new member UI/UX
 belongs in the unified portal shell; canonical role routes and readiness markers do not authorize
 separate dashboard designs or freeze the legacy presentation.
 
-| ID                           | Status        | Owner    | Work                                                 | Exit Criteria                                                                   |
-| ---------------------------- | ------------- | -------- | ---------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `MEMBER-CASE-OVERVIEW-ENTRY` | `in_progress` | Sol/high | Add direct entries to represented member case cards. | Accessible locale-correct mapping, focused/full proof, review and protected PR. |
+| ID                               | Status        | Owner    | Work                                                                | Exit Criteria                                                                                                         |
+| -------------------------------- | ------------- | -------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `MEMBER-CASE-WORKSPACE-REDESIGN` | `in_progress` | Sol/high | Redesign member arrival and case continuation in the unified shell. | New case-first hierarchy; localized accessible states; helpers, independent review and exact-head protected delivery. |
 
 T410 PR #1772 protected-merged as `62376c156bc0058e0491d550f261cb621eb4f02e` at
 2026-09-15T05:02:15Z. Exact-merge CI static/unit/E2E, audit, CodeQL, gitleaks, Sonar analysis and
@@ -92,13 +94,47 @@ dispositioned as the approved conservative live-name policy, not proof of runtim
 records the limitation. No such symbol exists in the current repository; import admission remains
 independent and no exact-runtime-effect guarantee is claimed.
 
+### Member workspace redesign progress
+
+- Base and fresh remote main verified at `55875e31b024e6ac9f4648f106be3bfea96facbd`; new worktree
+  clean before preparation, branch `codex/member-journey-redesign`. Predecessor PR #1775 is merged.
+- Original journey and mounted home/detail reconciled. Actual local host-routed member screen inspected
+  with seeded fixture access and Playwright MCP. Local auth URL was explicitly configured for HTTP;
+  no auth code or cookie bypass was used. Before screenshot and synthetic design checkpoint retained
+  in `/tmp/member-journey-redesign`; preview presented in-task before product implementation.
+- Sonnet 5 design and Gemini test packets share the dated brief, source identity and existing contracts.
+  The owner explicitly approved sharing both complete packets after automatic approval review
+  required payload-specific disclosure authorization. Both subscription requests completed. Sonnet reports `claude-sonnet-5`; native Gemini was
+  pinned to `gemini-3.1-pro-high`, but its JSON receipt does not independently attest served model.
+  Proposals are advisory. Accepted hierarchy, long-label/focus checks and a reserved-character ID
+  fixture; rejected invented statuses/routes/copy, new fields and replacement readiness markers.
+- Implementation reassessed from Astra/high design reconciliation to bounded Sol/high execution.
+  Sol completed three existing presentation components; chief owns copy/tests/canonical records.
+- Locked dependencies installed offline. Baseline executable capacity audit passed. Xcode 27 and
+  existing iOS 27 devices verified; 22 GiB disk available initially. Single non-sensitive `fm` trial
+  failed with `ModelManagerServices.ModelManagerError error 1008`; rejected with no retry/dependency.
+- Implemented the new case-first hierarchy and localized states. All 39 focused component/context
+  tests, web typecheck, focused lint, locale and E2E-contract checks pass. Actual Playwright checks
+  cover four locales, 320/390/768/1440 reflow, long unbroken labels and native keyboard focus.
+  Full proof, protected PR and post-merge health remain pending.
+- Fresh independent Astra review cleared the corrected source after two contrast corrections.
+  Dark next-step/shortcut text uses semantic foreground; disclaimer uses foreground/70. Browser
+  contrast is at least 5.79:1 light and 9.04:1 dark for those elements. Shared palette tokens stay
+  unchanged. Empty authenticated state and 200% root text at 320px also pass browser reflow checks.
+- Security guard passes. The owner approved and applied the exact +5,889-byte capacity adjustment;
+  the unchanged executable capacity check passes. No full-proof or merge claim follows.
+
 ## Proof Ledger
 
-| ID                           | Source Refs                                     | Execution | Run ID  | Run Root | Sonar   | Docker | Sentry           | Learning         | Evidence Refs                                                                           |
-| ---------------------------- | ----------------------------------------------- | --------- | ------- | -------- | ------- | ------ | ---------------- | ---------------- | --------------------------------------------------------------------------------------- |
-| `MEMBER-CASE-OVERVIEW-ENTRY` | current program; architecture T-116/T-117/T-118 | `manual`  | pending | local    | pending | pass   | `not_applicable` | `not_applicable` | Focused review/browser proof pass; expensive full proof and protected delivery pending. |
+| ID                               | Source Refs                      | Execution | Run ID  | Run Root | Sonar   | Docker | Sentry           | Learning         | Evidence Refs                                                                                 |
+| -------------------------------- | -------------------------------- | --------- | ------- | -------- | ------- | ------ | ---------------- | ---------------- | --------------------------------------------------------------------------------------------- |
+| `MEMBER-CASE-WORKSPACE-REDESIGN` | current program; base `55875e31` | `manual`  | pending | local    | pending | pass   | `not_applicable` | `not_applicable` | 39 focused tests and browser checks pass; helpers, independent review and full proof pending. |
 
 ### Member case overview entry progress
+
+Completed through protected PR #1775 as `55875e31b024e6ac9f4648f106be3bfea96facbd`.
+The following intermediate notes retain their original source-bound evidence and pending wording;
+they do not describe the active redesign.
 
 The mounted `@case` slot and `PortalCasesRegion` were confirmed on exact main `62376c15`; the dormant
 legacy member dashboard is not used. The bounded candidate keeps the existing projection and
@@ -603,8 +639,8 @@ owner-selected bounded notification acknowledgement increment completed through 
 health verified, and shared shell navigation completed through #1770. `T410-OPTIMISTIC-NOTIFICATION-ACK`
 completed through protected product PR #1771, and the bounded
 `T410-PESSIMISTIC-MUTATION-BOUNDARY` protected-merged through PR #1772 as `62376c15`. This does not
-claim full T-410 completion. `MEMBER-CASE-OVERVIEW-ENTRY` is the owner-selected member-journey
-successor over T-116/T-117/T-118; it does not select the T-411 Smart Next Step framework.
+claim full T-410 completion. `MEMBER-CASE-OVERVIEW-ENTRY` completed in PR #1775. The selected
+successor is `MEMBER-CASE-WORKSPACE-REDESIGN`; it does not select T-411 Smart Next Step.
 
 | Completed historical priority            | Status      | Constraint                                                                    |
 | ---------------------------------------- | ----------- | ----------------------------------------------------------------------------- |

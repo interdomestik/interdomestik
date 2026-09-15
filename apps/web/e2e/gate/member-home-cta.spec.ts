@@ -48,7 +48,7 @@ test.describe('Unified Member Portal', () => {
     ).toBe(true);
     const navigation = portal.getByRole('navigation');
     // prettier-ignore
-    const hrefs = [`/${routes.getLocale(testInfo)}/help-now`, `${routes.member(testInfo)}/claims`, `${routes.member(testInfo)}/documents`, `${routes.member(testInfo)}/membership`];
+    const hrefs = [`${routes.member(testInfo)}/claims`, `${routes.member(testInfo)}/documents`, `${routes.member(testInfo)}/membership`, `/${routes.getLocale(testInfo)}/help-now`];
     await expect(navigation.locator('a')).toHaveCount(hrefs.length);
     // prettier-ignore
     for (const [index, href] of hrefs.entries())
@@ -127,15 +127,15 @@ test.describe('Unified Member Portal', () => {
       expect(await links.evaluateAll(nodes => nodes.every(node => { const box = node.getBoundingClientRect(); return box.height >= 44 && box.width >= 44; }))).toBe(true);
 
       const nav = portal.getByRole('navigation');
-      const help = nav.locator('a').nth(0);
-      const cases = nav.locator('a').nth(1);
-      const docs = nav.locator('a').nth(2);
-      await help.focus();
-      await expect(help).toBeFocused();
-      await page.keyboard.press('Tab');
+      const cases = nav.locator('a').nth(0);
+      const docs = nav.locator('a').nth(1);
+      const membership = nav.locator('a').nth(2);
+      await cases.focus();
       await expect(cases).toBeFocused();
       await page.keyboard.press('Tab');
       await expect(docs).toBeFocused();
+      await page.keyboard.press('Tab');
+      await expect(membership).toBeFocused();
     });
   }
 });
