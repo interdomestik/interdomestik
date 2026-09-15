@@ -144,7 +144,7 @@ independent and no exact-runtime-effect guarantee is claimed.
   passes 4/4 across SQ/EN and MK/SR with native keyboard activation, visible focus, 320/390/768/1440
   layouts, 200% text, dark mode and reduced-motion `auto` scroll plus message focus. Golden passes
   4/4 but both product cases report no detail link; the deterministic isolated gate is authoritative.
-- The exact final E2E tree `ebcadfce6b12e7793aa05cba01083e3f9d94b1d0` is admitted fail-closed and
+- The exact final E2E tree `5674d194c0a301beecdb98c1c81c96b7d9ffe5d5` is admitted fail-closed and
   the resolver passes 12/12. The first mounted gate exposed transition-duplicate global locators and
   a concurrent consent-row count; both were narrowed to the active localized detail and exact
   fixture privacy row, independently reviewed, and rerun green. No snapshot baseline was written.
