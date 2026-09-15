@@ -19,8 +19,8 @@ status_command: pnpm plan:status
 `S1-AGENT-MESSAGE-VISIBILITY` is the sole selected product slice on protected main
 `81a219608dacf4ee9cfd8ee9f201e8ab156e54d2`. The localization predecessor completed through
 PR #1778 with all 13 exact-main checks passed. S1 implementation is in progress in task
-`01a0a6b8-163e-74f3-b8e9-6dc43f1bb357`; initial full verification passed at `832e7d898`; the reviewed cross-project fixture correction
-requires fresh proof before protected delivery and exact-main health.
+`01a0a6b8-163e-74f3-b8e9-6dc43f1bb357`; renewed full verification passed at `d161bdd1` after the consolidated hosted-review corrections;
+protected delivery and exact-main health remain pending.
 
 | ID                            | Status        | Owner      | Work                                                                  | Exit Criteria                                                                                                                     |
 | ----------------------------- | ------------- | ---------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
@@ -211,8 +211,8 @@ independent and no exact-runtime-effect guarantee is claimed.
   [PostgreSQL 15 advisory locks](https://www.postgresql.org/docs/15/explicit-locking.html#ADVISORY-LOCKS)
   were checked for this correction. Six-worker all-project execution passed 14/14 at `9923746f`
   (two setup checks plus twelve query/mounted cases), including a one-connection main pool.
-  Independent delta review and fresh full proof remain required for the consolidated corrections;
-  earlier full proof is retained only for its original test inputs.
+  Independent consolidated review and renewed full proof passed at `d161bdd1`; earlier full
+  proof remains attributed to its original test inputs.
 - Sonar's green summary contained two deprecated `withTenant` annotations and a fixture nested
   ternary. The task chief directed preservation of exact existing tenant equality with the smallest
   local predicate: inline the same conjunction in the shared message predicate, matching the core's
@@ -222,6 +222,17 @@ independent and no exact-runtime-effect guarantee is claimed.
   Sonnet returned the supporting static proposal (89 seconds, reported `claude-sonnet-5`), but its
   route receipt failed with `no explicit PASS or FINDINGS` because the verdict was Markdown-bold.
   Retain that failed receipt and raw contribution; do not count it as a passing route or repeat it.
+- Consolidated independent Astra/high review passed all eight files at `d161bdd1`; it ran no
+  duplicate tests. Fresh real-query cases pass 2/2, runtime/restricted-role matrices and six core/page
+  tests pass; harness 299/299, plan/track/capacity/modularity/security checks pass. Renewed uninterrupted
+  `pnpm pr:verify` passed at `d161bdd1e1ef1d1661fff2ad671464f774b56c5a`
+  (tree `4609f0e3209ee47a238ec66e0894a9d841b6d575`): 1,185 CI, 154 release, 41 RLS,
+  3,394 web/12 skips, 81.32% coverage, 260 browser/12 skips and 13 smoke/11 skips; 661 seconds.
+  Private log SHA-256: `8059feaf02bb43210e7cf873fe401cbe38c8f923e2a02c6abd61ac5ea3c8579a`.
+  The subsequent receipt-only update changes no tested runtime/configuration/test/workflow input;
+  rerun affected document/capacity/security checks and retain the named full-proof source identity.
+  Lesson confirmed by the first hosted review: inspect cross-project fixture sharing and actual
+  helper deprecations, and read annotations even when check summaries pass. No time saving is claimed.
 - Read-only helper inventory: general `messages/get.ts` already filters agents and tenant-scopes
   messages; send returns the inserted permitted row. Legacy `domain-claims/claims/list.ts` unread
   restricts claimant sender but lacks an explicit internal predicate; mounted V2 `/api/claims`
@@ -404,9 +415,9 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                            | Source Refs                        | Execution | Run ID | Run Root | Sonar   | Docker | Sentry    | Learning         | Evidence Refs                                                                                                                                                                 |
-| ----------------------------- | ---------------------------------- | --------- | ------ | -------- | ------- | ------ | --------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S1-AGENT-MESSAGE-VISIBILITY` | current program; proof `832e7d898` | `manual`  | local  | local    | pending | pass   | `pending` | `not_applicable` | Initial full proof passed at 832e7d898; hosted review identified cross-project fixture collision. Corrected tests require fresh proof and protected delivery; receipts above. |
+| ID                            | Source Refs                       | Execution | Run ID | Run Root | Sonar   | Docker | Sentry    | Learning         | Evidence Refs                                                                                                                                                             |
+| ----------------------------- | --------------------------------- | --------- | ------ | -------- | ------- | ------ | --------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S1-AGENT-MESSAGE-VISIBILITY` | current program; proof `d161bdd1` | `manual`  | local  | local    | pending | pass   | `pending` | `not_applicable` | Renewed full pr:verify/security and independent review passed at d161bdd1 after hosted corrections; protected current-head review/delivery and exact-main health pending. |
 
 ### Member case overview entry progress
 

@@ -203,9 +203,9 @@ latest-row selection; reject reliance on a client alias as proof of RLS. Verify 
 policies, both tenant fixtures and rendered exclusion. No production posture is inferred.
 
 Implementation is in progress in task `01a0a6b8-163e-74f3-b8e9-6dc43f1bb357`.
-Full `pnpm pr:verify` and separate `pnpm security:guard` passed at `832e7d898`;
-A hosted cross-project fixture finding requires refreshed test proof before protected delivery
-and exact-main health. This selection does not claim S1 completion.
+Renewed full `pnpm pr:verify` and separate `pnpm security:guard` passed at `d161bdd1`
+after the hosted fixture-isolation and Sonar corrections. Protected delivery and exact-main
+health remain pending. This selection does not claim S1 completion.
 
 ## Completed Member Evidence Upload Locale Continuity
 
