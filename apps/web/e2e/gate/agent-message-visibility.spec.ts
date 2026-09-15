@@ -69,7 +69,8 @@ test.describe('Agent message visibility', () => {
           marker: 'agent-claims-pro-page',
         }
       );
-      await expect(agentPage.getByTestId('workspace-selected-claim-id')).toHaveText(claimIds[104]);
+      const drawer = agentPage.locator('[data-testid="ops-drawer"]:visible').last();
+      await expect(drawer.getByTestId('workspace-selected-claim-id')).toHaveText(claimIds[104]);
       await expect(workspace.getByTestId(`unread-badge-${claimIds[104]}`)).toHaveText('1');
       await expect(agentPage.locator('body')).toContainText('S1 selected public');
       await expect(agentPage.locator('body')).not.toContainText('secret');

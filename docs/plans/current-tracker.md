@@ -153,7 +153,7 @@ independent and no exact-runtime-effect guarantee is claimed.
 
 ### S1 — Agent message visibility progress
 
-- Clean fresh S1 worktree starts at #1778 merge; the separate roadmap amendment remains separately owned.
+- S1 started at #1778 and rebased onto protected roadmap merge `520adfcf0781d80eebefda500f24c55acc341888`. Preserve its requirement map and chief-owned status/ledger corrections.
 - Reused supplied Sonnet/Gemini preparation, correcting `lastMessage: string | null`, active
   `agentClients.status`, fixed limit, selection retention and no inferred HTTP 404.
 - Reproduction in isolated local `interdomestik_ci_s1_e040`: internal-only snippet/count leaked;
@@ -169,18 +169,25 @@ independent and no exact-runtime-effect guarantee is claimed.
   ordering, exact 100 cap and selected metadata outside the initial page. Existing core/page tests
   pass 6/6. The query+mounted KS/MK gate passes 4/4. First mounted attempt passed 3/4: MK transition
   briefly duplicated the badge locator; scoping the current visible workspace fixed the test. No
-  product change or rebuild was needed for that test correction. Independent Astra and final proof
-  remain pending.
+  product change was needed for that test correction. The final drawer-locator run passed 4/4
+  at `cfbb171f`; its stale build stamp triggered a guarded rebuild (126 seconds total). Full
+  `pr:verify`, protected review/delivery and exact-main health remain required before completion.
 - Subscription lifecycle review of `a1740cad` returned no findings: requested/reported
   `claude-sonnet-5` (110 seconds) and `gemini-3.1-pro-preview` (159 seconds). Their role claims
   are provider-reported, not independent attestation; their statements of executed proof are
-  proposals unless matched by owner receipts. Corrected mounted-test follow-up is separate.
-- Exact new test allocation is 8,080 bytes/two files plus 523 bytes of budget metadata; existing
+  proposals unless matched by owner receipts. Targeted Gemini follow-up identified the remaining selected-marker transition risk; scope it
+  to the visible drawer. Its suggested workspace-parent scope was rejected because SheetContent
+  portals outside that root. The corrected locator is included in the final 4/4 execution receipt.
+- Fresh independent Astra/high review passed all eight changed files at `cfbb171f` after helper
+  corrections; the requested route has no independent runtime model/effort attestation. Rebase
+  reconciliation receives a bounded delta review before final full proof.
+- Exact new test allocation is 8,162 bytes/two files plus 523 bytes of budget metadata; existing
   source is below capacity-baseline bytes and remains 327 lines. Capacity-only independent review
   interprets the owner's S1-through-completion instruction as authority for this necessary scoped
   allocation, not prior numeric approval. Reserve and unrelated allocations remain unchanged.
-- Admitted E2E tree `1006732abbbec113d2df309b85168e1cf4579d04` adds only S1 fixtures/tests; focused resolver proof must pass before
-  final delivery. A registered corpus hash is not an execution receipt.
+- Admitted E2E tree `4d03af121d613894f6b1699de64bb5bc153194c6` adds only S1 fixtures/tests; focused resolver/capacity proof passes 32/32. A registered corpus hash is not an execution receipt.
+- Supplemental pre-rebase harness proof passes 299/299 and `track:audit` passes. The two stale
+  proof-ledger findings from `plan:audit` are resolved by the roadmap merge and rechecked here.
 - Read-only helper inventory: general `messages/get.ts` already filters agents and tenant-scopes
   messages; send returns the inserted permitted row. Legacy `domain-claims/claims/list.ts` unread
   restricts claimant sender but lacks an explicit internal predicate; mounted V2 `/api/claims`
