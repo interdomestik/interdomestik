@@ -26,21 +26,21 @@ test.describe('Vault consent', () => {
     await F(info, async ctx => {
       const isMk = P(info.project.name);
       await gotoApp(page, routes.memberClaimDetail(ctx.claimId, info), info, { marker: isMk ? A : M });
-      const card = page.locator(`[data-testid="${A}"]:visible`).first();
+      const v = page.locator(`[data-testid="${A}"]:visible`).first();
       if (!isMk) { await expect(page.getByTestId(A)).toHaveCount(0); return; }
-      await expect(card).toBeVisible();
-      await expect(card.getByRole('heading', { name: VC.title })).toBeVisible();
-      await expect(card.locator('dd', { hasText: VC.statusAccepted })).toHaveCount(1);
-      await expect(card).toContainText(ctx.privacyVersion!);
-      await expect(card).toContainText(ctx.recordedDate!);
-      await expect(card).not.toContainText(ctx.foreignPrivacyVersion!);
-      for (const v of [ctx.documentId, ctx.documentName, ctx.documentPath]) {
-        await expect(card).not.toContainText(v!); await expect(card.locator(`a[href*="${v!}"]`)).toHaveCount(0);
+      await expect(v).toBeVisible();
+      await expect(v.getByRole('heading', { name: VC.title })).toBeVisible();
+      const i = v.locator('li').filter({ hasText: ctx.privacyVersion! });
+      await expect(i).toHaveCount(1); await expect(i).toContainText(ctx.recordedDate!);
+      await expect(i.locator('dd', { hasText: VC.statusAccepted })).toHaveCount(1);
+      await expect(v).not.toContainText(ctx.foreignPrivacyVersion!);
+      for (const raw of [ctx.documentId, ctx.documentName, ctx.documentPath]) {
+        await expect(v).not.toContainText(raw!); await expect(v.locator(`a[href*="${raw!}"]`)).toHaveCount(0);
       }
-      const f = card.locator('a,button,input,select,textarea');
+      const f = v.locator('a,button,input,select,textarea');
       await expect(f).toHaveCount(0); await page.keyboard.press('Tab'); await expect(f).toHaveCount(0);
-      await page.setViewportSize({ width: 320, height: 740 }); await expect(card).toBeVisible();
-      expect(await card.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+      await page.setViewportSize({ width: 320, height: 740 }); await expect(v).toBeVisible();
+      expect(await v.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
     });
   });
 
@@ -53,8 +53,8 @@ test.describe('Vault consent', () => {
         const c = C[l].claims, x = c.detail.continuity, labels = [x.progress, x.evidence, x.history, x.messages], h = routes.member(l);
         await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'no-preference' }); await gotoApp(page, routes.memberClaimDetail(ctx.claimId, l), info, { marker: M });
 
-        const back = page.getByRole('link', { name: x.backToWorkspace, exact: true }), card = back.locator('xpath=ancestor::div[contains(@class,"bg-card")][1]'), nav = page.getByRole('navigation', { name: x.sectionNavigation, exact: true }), links = nav.getByRole('link'), q = S.map(s => `#member-claim-detail-${s}`).join(','), nodes = page.locator(`header:has(a[href="${h}"]),nav[aria-label="${x.sectionNavigation}"],${q}`);
-        await expect(back).toBeVisible(); await expect(back).toHaveAttribute('href', h);
+        const b = page.getByRole('link', { name: x.backToWorkspace, exact: true }), k = b.locator('xpath=ancestor::div[contains(@class,"bg-card")][1]'), r = k.locator('xpath=..'), nav = r.getByRole('navigation', { name: x.sectionNavigation, exact: true }), links = nav.getByRole('link'), q = S.map(s => `#member-claim-detail-${s}`).join(','), nodes = r.locator(`header:has(a[href="${h}"]),nav[aria-label="${x.sectionNavigation}"],${q}`);
+        await expect(b).toBeVisible(); await expect(b).toHaveAttribute('href', h);
         const fit = async () => expect(await nodes.evaluateAll(items => { const d = document.documentElement, w = d.clientWidth; return d.scrollWidth <= w + 1 && items.length === 6 && items.every(item => { const box = item.getBoundingClientRect(); return item.getClientRects().length > 0 && box.left >= -1 && box.right <= w + 1; }); })).toBe(true);
         await expect(links).toHaveCount(S.length);
         for (const [i, s] of S.entries()) {
@@ -63,18 +63,18 @@ test.describe('Vault consent', () => {
           await link.focus(); await expect(link).toBeFocused();
           expect(await link.evaluate(element => { const style = getComputedStyle(element); return style.outlineStyle !== 'none' || style.boxShadow !== 'none'; })).toBe(true);
           await page.keyboard.press('Enter'); await expect.poll(() => new URL(page.url()).hash).toBe(`#${id}`);
-          await expect(page.locator(`#${id}`)).toBeInViewport();
+          await expect(r.locator(`#${id}`)).toBeInViewport();
         }
 
         for (const [width, height, f] of V) { await page.setViewportSize({ width, height }); await page.evaluate(value => (document.documentElement.style.fontSize = value), f); await fit(); }
         await page.evaluate(() => (document.documentElement.style.fontSize = ''));
 
         await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
-        await expect(card).toBeVisible(); await expect(card).toHaveClass(/\bbg-card\b/); await expect(back).toBeVisible();
+        await expect(k).toBeVisible(); await expect(k).toHaveClass(/\bbg-card\b/); await expect(b).toBeVisible();
         await page.evaluate(() => { const p = Element.prototype, o = p.scrollIntoView; Reflect.set(p, '_memberScroll', o); p.scrollIntoView = function (v) { document.body.dataset.b = typeof v === 'object' ? v?.behavior : undefined; o.call(this, v); }; });
         try {
-          await page.getByRole('button', { name: c.claimsPro.actions.sendMessage, exact: true }).click();
-          await expect(page.locator(`#${M}`)).toBeFocused(); await expect(page.locator('body')).toHaveAttribute('data-b', 'auto');
+          await r.getByRole('button', { name: c.claimsPro.actions.sendMessage, exact: true }).click();
+          await expect(r.locator(`#${M}`)).toBeFocused(); await expect(page.locator('body')).toHaveAttribute('data-b', 'auto');
         } finally {
           await page.evaluate(() => { const p = Element.prototype; p.scrollIntoView = Reflect.get(p, '_memberScroll'); Reflect.deleteProperty(p, '_memberScroll'); delete document.body.dataset.b; });
         }
