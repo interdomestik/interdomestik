@@ -172,7 +172,7 @@ export function MemberPortalFrame({ actionsRegion, caseRegion, copy, updatesRegi
       </nav>
       <aside
         data-testid="member-portal-disclaimer"
-        className="flex max-w-3xl items-start gap-2 text-xs leading-5 text-foreground/70"
+        className="max-w-3xl text-xs leading-5 text-foreground/70"
       >
         {copy.disclaimer}
       </aside>
@@ -180,7 +180,9 @@ export function MemberPortalFrame({ actionsRegion, caseRegion, copy, updatesRegi
         actionsLabel={copy.regions.actions.label}
         actionsRegion={actionsRegion}
         caseLabel={copy.regions.case.label}
-        caseRegion={caseRegion}
+        caseRegion={
+          <div className="min-h-[calc(100svh-16rem)] min-w-0 md:min-h-0">{caseRegion}</div>
+        }
         className="md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] md:items-start"
         timelineLabel={copy.regions.updates.label}
         timelineRegion={updatesRegion}

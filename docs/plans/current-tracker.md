@@ -138,6 +138,25 @@ stopped after 44 browser passes at the exact disclaimer text assertion: the new 
 changed textContent. The diamond is removed; the existing assertion remains strict. Single IDA entry
 and routing authority remain unchanged. These partial runs do not constitute full proof.
 
+At `27c722a6`, coverage/build passed and the full browser gate passed 252 tests with 12 intentional
+skips. Two smoke assertions still encoded the previous navigation order; those expectations and the
+matching corpus hash `baafedc62dc19da78a47579ac69d91074346e31b` are corrected in `12c206a2`.
+The corrected smoke lane passes 13 tests with 11 intentional skips; security passes.
+
+Matched production probes exposed intermittent mobile streaming CLS (up to 0.425 in ten runs,
+versus zero in ten baseline runs). A persistent mobile case wrapper now reserves the remaining
+viewport while keeping contents at natural height; desktop resets to normal. Empty/error states
+retain space so support does not jump upward. Top navigation remains available. The equivalent CSS
+prototype measured zero CLS in ten runs; compiled-source proof remains pending. This is a measured
+regression correction, not an optional optimization after freeze. The extra fetched route scripts
+arrive after initial loading; no initial-bundle speedup is claimed.
+
+Installed iOS Safari rendered the single public IDA entry; authenticated Safari automation was
+blocked by its disabled remote-automation setting. The task simulator is shut down. One 15-second
+Node trace produced no usable CPU profile; native bottleneck attribution is unavailable. Browser
+measurements, synthetic-navigation RSS samples, and private local evidence remain under
+`/tmp/member-journey-redesign`. No field Web Vitals, memory leak, or server speedup claim follows.
+
 ## Proof Ledger
 
 | ID                               | Source Refs                      | Execution | Run ID  | Run Root | Sonar   | Docker | Sentry           | Learning         | Evidence Refs                                                                                 |
