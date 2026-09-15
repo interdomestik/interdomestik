@@ -131,6 +131,13 @@ transfer from 484 measured unused source bytes in the completed currency trial. 
 self-size transfers from 20 unused T410 config bytes. Global/category ceilings and reserves stay at
 the owner's approved values. Renewed full proof is required.
 
+The next run passed CI/release/RLS/static checks but five existing hostname tests rejected the
+launcher-specific IDA_HOST override. Removing only that override restores all seven focused hostname
+tests. The corrected-environment run passed 81.30% coverage and production build/size checks, then
+stopped after 44 browser passes at the exact disclaimer text assertion: the new decorative diamond
+changed textContent. The diamond is removed; the existing assertion remains strict. Single IDA entry
+and routing authority remain unchanged. These partial runs do not constitute full proof.
+
 ## Proof Ledger
 
 | ID                               | Source Refs                      | Execution | Run ID  | Run Root | Sonar   | Docker | Sentry           | Learning         | Evidence Refs                                                                                 |

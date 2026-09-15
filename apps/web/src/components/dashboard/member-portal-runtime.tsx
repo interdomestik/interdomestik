@@ -174,10 +174,7 @@ export function MemberPortalFrame({ actionsRegion, caseRegion, copy, updatesRegi
         data-testid="member-portal-disclaimer"
         className="flex max-w-3xl items-start gap-2 text-xs leading-5 text-foreground/70"
       >
-        <span aria-hidden="true" className="shrink-0 text-[hsl(var(--primary))]">
-          ◇
-        </span>
-        <span>{copy.disclaimer}</span>
+        {copy.disclaimer}
       </aside>
       <PortalUi.UnifiedPortalShell
         actionsLabel={copy.regions.actions.label}
