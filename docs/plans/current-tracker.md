@@ -151,7 +151,11 @@ dispositioned as the approved conservative live-name policy, not proof of runtim
 records the limitation. No such symbol exists in the current repository; import admission remains
 independent and no exact-runtime-effect guarantee is claimed.
 
-### Member evidence upload locale continuity progress
+### Completed member evidence upload locale continuity
+
+PR #1778 protected-merged as `81a219608dacf4ee9cfd8ee9f201e8ab156e54d2`; all 13 exact-main
+checks passed. The following notes retain its intermediate source-bound evidence. S1 is now
+selected by the active queue above; the localization slice is not an outstanding prerequisite.
 
 - Fresh protected main and clean branch `codex/member-evidence-upload-locale-continuity` started at
   `b5a234b30b9cb6ed89ae6d81b81960a3a8135b25`; PR #1777 and exact-main health are complete.
@@ -178,7 +182,8 @@ independent and no exact-runtime-effect guarantee is claimed.
   capacity tests. Actual served model/effort were not exposed to the child runtime, so the requested
   route is recorded without unsupported server attestation.
 - Final `pnpm pr:verify`, separate `pnpm security:guard`, protected current-head review/checks, merge
-  and exact-main health remain pending. No deployment or successor implementation is authorized here.
+  and exact-main health passed for #1778. No deployment is claimed; S1 authorization is recorded
+  in the active queue and current program, not inferred from these historical proof notes.
 
 ### Completed member case detail continuity
 
