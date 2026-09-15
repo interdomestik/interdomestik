@@ -90,8 +90,11 @@ its dependents; record why a ready independent outcome advances. Check only dire
 T-410 disposition, T-115/OD17 reconciliation, stale SVC-CORE-b and unrelated inventory are not
 prerequisites for S1–S3. Material scope/authority changes remain subject to explicit disposition.
 
-Use the existing model/helper and review policy. Keep `pnpm pr:verify` including full E2E,
-`pnpm security:guard`, capacity and protected delivery; avoid duplicate runs, not required proof.
+Use the existing model/helper and review policy. Every slice must satisfy `pnpm pr:verify` (including
+full E2E), `pnpm security:guard`, capacity and protected-delivery requirements. Reuse prior gate
+evidence only where repository contracts permit and source, relevant configuration and environment
+identity remain valid; being the same PR is not sufficient. Do not duplicate E2E already validly
+covered by `pr:verify`, and never treat unrelated or invalidated proof as satisfying a required gate.
 Update canonical evidence with ordinary delivery, verify exact-main health, then retire the clean
 worktree and start the next implementation fresh. Preserve dirty/unmerged work until reconciled.
 No routine promotion/closeout PR or tooling project is added. Merged is not deployed or user-accepted.
