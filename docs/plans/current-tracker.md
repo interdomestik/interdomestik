@@ -182,7 +182,7 @@ independent and no exact-runtime-effect guarantee is claimed.
   corrections; the requested route has no independent runtime model/effort attestation. The
   read-only rebase delta review also passed at `832e7d898`, without duplicating tests.
 - Exact test allocation is 10,434 bytes (two new files and 73 added bytes in the existing CRM test)
-  plus 651 bytes of budget metadata; existing
+  plus 651 bytes of budget metadata and 57 bytes for the existing capacity test fixture; existing
   source is below capacity-baseline bytes and is 326 lines. Capacity-only independent review
   interprets the owner's S1-through-completion instruction as authority for this necessary scoped
   allocation, not prior numeric approval. Reserve and unrelated allocations remain unchanged.
@@ -254,6 +254,12 @@ independent and no exact-runtime-effect guarantee is claimed.
   Independent fixture/auth logic review passed without duplicate execution; focused consumer inventory
   found no further S1-induced held-ID collision. Six-worker S1/selection/CRM execution passed 44 cases
   against the recorded working-candidate file hashes and E2E corpus. Renewed full proof is pending.
+
+- The first dedicated-agent full attempt at `93e24a23` stopped with 1,184/1,185 CI contracts
+  passing. The synthetic T118 capacity example counted the existing CRM test as a new file.
+  Its presence in the fixed capacity baseline was verified; a one-line existing-path entry corrects
+  that example, with 57 bytes attributed to the capacity-test allocation. Evaluator, policy and
+  assertions remain unchanged. This is a synthetic baseline-inventory issue, not a product defect.
 
 ### Completed member evidence upload locale continuity
 
