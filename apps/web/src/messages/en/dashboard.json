@@ -15,8 +15,8 @@
       "empty_body": "When you submit your first claim, it will appear here."
     },
     "portal": {
-      "title": "My cases",
-      "description": "Cases, actions and updates.",
+      "title": "Your cases, clearly.",
+      "description": "Keep your cases, documents and next steps together.",
       "disclaimer": "Guidance only; outcomes are not promised.",
       "navigation": {
         "label": "Shortcuts",
@@ -33,22 +33,22 @@
       },
       "regions": {
         "case": {
-          "label": "Case",
-          "loading": "Loading",
-          "empty": "No cases",
-          "error": "Unavailable"
+          "label": "Your cases",
+          "loading": "Loading your cases…",
+          "empty": "No cases here yet. Use the next step below when you are ready to begin.",
+          "error": "Your cases could not be loaded."
         },
         "actions": {
-          "label": "Actions",
-          "loading": "Loading",
-          "empty": "No actions",
-          "error": "Unavailable"
+          "label": "Start something new",
+          "loading": "Loading your next step…",
+          "empty": "No next step available.",
+          "error": "Your next step could not be loaded."
         },
         "updates": {
-          "label": "Recent updates",
-          "loading": "Loading",
-          "empty": "No updates",
-          "error": "Unavailable"
+          "label": "Case dates and status",
+          "loading": "Loading case dates…",
+          "empty": "Case dates will appear here when available.",
+          "error": "Case dates could not be loaded."
         }
       },
       "actions": {

@@ -16,11 +16,11 @@ test.describe('Unified member portal agent consumer', () => {
       routes.memberNewClaim(testInfo)
     );
     const navigation = portal.getByRole('navigation');
-    await expect(navigation.locator('a').nth(0)).toHaveAttribute(
+    await expect(navigation.locator('a').nth(3)).toHaveAttribute(
       'href',
       new RegExp(`/${routes.getLocale(testInfo)}/help-now$`)
     );
-    await expect(navigation.locator('a').nth(1)).toHaveAttribute(
+    await expect(navigation.locator('a').nth(0)).toHaveAttribute(
       'href',
       new RegExp(`${routes.member(testInfo)}/claims$`)
     );

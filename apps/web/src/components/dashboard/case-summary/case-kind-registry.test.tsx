@@ -44,12 +44,13 @@ describe('caseKindRegistry', () => {
     expect(article.querySelectorAll('dt')).toHaveLength(3);
     expect([...article.querySelectorAll('dt')].map(node => node.textContent)).toEqual([
       'Status',
-      'Documents',
       'Next step',
+      'Documents',
     ]);
     const values = article.querySelectorAll('dd');
     expect(values[0]).toHaveTextContent('Submitted');
-    expect(values[1]?.textContent).toBe('0');
+    expect(values[1]).toHaveTextContent(labels.nextStepValue);
+    expect(values[2]?.textContent).toBe('0');
     expect(article).not.toHaveTextContent('team_review');
     expect(article).not.toHaveTextContent('claim-1');
   });

@@ -18,9 +18,13 @@ export function MemberPortalRegionBoundary({
   const role = { empty: 'status', error: 'alert', loading: undefined } as const;
 
   return (
-    <RefractiveGlassPanel data-region-state={state}>
-      <h2>{copy.label}</h2>
-      <p aria-label={copy.label} className="text-sm text-foreground/70" role={role[state]}>
+    <RefractiveGlassPanel className="space-y-3 shadow-none" data-region-state={state}>
+      <h2 className="text-lg font-semibold tracking-tight">{copy.label}</h2>
+      <p
+        aria-label={copy.label}
+        className="max-w-prose text-sm leading-6 text-foreground/70"
+        role={role[state]}
+      >
         {text}
       </p>
     </RefractiveGlassPanel>

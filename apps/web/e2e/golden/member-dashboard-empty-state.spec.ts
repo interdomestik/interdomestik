@@ -38,7 +38,7 @@ test.describe('Empty portal', () => {
       );
       await expect(regions.nth(0).getByRole('article')).toHaveCount(0);
       await expect(regions.nth(1).getByRole('link')).toHaveAttribute('href', membership);
-      await expect(navigation.locator('a').nth(3)).toHaveAttribute('href', membership);
+      await expect(navigation.locator('a').nth(2)).toHaveAttribute('href', membership);
       await expect(regions.nth(2).getByRole('status')).toBeVisible();
       await expect(regions.nth(2).getByRole('listitem')).toHaveCount(0);
     } finally {

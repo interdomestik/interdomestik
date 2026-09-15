@@ -31,10 +31,91 @@ navigation completed through protected product PR #1770 and exact-main health as
 `T410-PESSIMISTIC-MUTATION-BOUNDARY` protected-merged through PR #1772 as
 `62376c156bc0058e0491d550f261cb621eb4f02e` at 2026-09-15T05:02:15Z; exact-merge static, unit,
 E2E, audit, CodeQL, gitleaks, Sonar analysis and Sonar gate checks succeeded. This closes that bounded
-convention slice without claiming full T-410 completion. The owner selected
-`MEMBER-CASE-OVERVIEW-ENTRY` next from exact main `62376c15`.
+convention slice without claiming full T-410 completion. `MEMBER-CASE-OVERVIEW-ENTRY` completed through PR #1775 as
+`55875e31b024e6ac9f4648f106be3bfea96facbd`. The owner now selects the new member journey
+experience below; the mistakenly queued dashboard retry task is superseded.
 
-## Selected Member Case Overview Entry
+## Selected Member Case Workspace Redesign
+
+`MEMBER-CASE-WORKSPACE-REDESIGN` is the sole selected product slice. The owner authorizes a new
+member arrival and case-continuation experience within the already mounted unified shell, with
+one ordinary product PR including predecessor completion and this selection. Initial journey/design
+reconciliation is high complexity, Astra/high: cross-surface information hierarchy and conflicting
+historical visual assumptions. After the design checkpoint, execution is medium complexity,
+Sol/high: three existing presentation components over established contracts, with one implementation
+owner and chief integration. A fresh independent Astra review follows both subscription helpers and
+focused evidence, before expensive final verification.
+
+The complete intended journey is public guidance and situation selection → anonymous preparation →
+secure save/account continuity → member arrival → evidence, case progress and support → explicitly
+agreed recovery where applicable. The entry tree in
+[the original front-door authority](./2026-08-17-ida-t115-p0a-canonical-front-door-dg45.md),
+[mobile journey input](../product/mobile-experience-blueprint-part-2.md), T-116 summaries,
+T-117 shell and T210 detail timeline were reconciled with the mounted screens. The mobile blueprint
+is design input, not authority for its example ETAs, handler assignments, offline packs or collapsed
+case prioritization. The original case-first intent is adopted; unsupported behavior is excluded.
+
+### First experience and interaction acceptance
+
+- A generous workspace heading and calm, original Crystal-compatible presentation lead into a
+  dominant case column and a narrower supporting column. Keep the existing unified navigation.
+- Every represented case stays in source order and visibly exposes its reference, truthful status,
+  existing next-step text, document count and one clear localized detail link. Missing/blank references
+  keep distinct numbered fallbacks. No task engine, new priority ranking or inferred missing files.
+- Preserve Case → Actions → Timeline reading order, the parallel slots and their independent loading,
+  error and empty states. A failed case region must not withhold an available membership action.
+- Preparation and membership use the unchanged lifecycle-dependent destinations and warnings.
+  Help Now remains a recognizable existing link, separate from asynchronous case continuation.
+- The overview date rows represent incident dates and current status, so label them as case dates
+  and status. They are not the detailed T210 history and must not imply last-update timestamps.
+- Preserve the visible disclaimer before the regions while reducing its visual dominance. Use clear
+  section-specific loading/error/empty copy in SQ/MK/EN/SR without new outcome or timing promises.
+- Verify native keyboard/focus, at least 44px primary targets, long translations/references,
+  320/390/768/1440 CSS-pixel reflow, enlarged text, dark mode and reduced motion. Keep readiness
+  markers, canonical routes, exact case mapping and existing protected detail destinations.
+
+The in-task design checkpoint was presented before product edits on 2026-09-15. It is a synthetic
+preview of the new hierarchy; current mounted screens are behavioral evidence, not a visual lock.
+This slice does not claim completion of the full member journey or select T411/SVC-CORE/Help Now.
+Proxy, auth/tenant/RLS, queries, schema/database, claim/money/legal writers, Paddle and deployment
+remain outside scope. The next member surface requires a fresh bounded choice after delivery.
+
+### Dated research and concrete decisions
+
+Checked 2026-09-15; operator evidence below is public description unless explicitly noted. No
+competitor authenticated portal or user study was inspected, and no usability improvement is yet
+measured. Installed stack: Next.js 16.3.3, React 19.2.8, next-intl 4.13.4 and Tailwind 3.4.19.
+
+| Primary source                                                                                                                                                                                                                                               | Evidence and decision                                                                                                                                                                                                                                                                                          | Member need and testable benefit                                                                                                      |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| [AirHelp contact and tracking](https://www.airhelp.com/en/contact-us/)                                                                                                                                                                                       | Public tracking description and variable wait explanation. Adopt recognizable case continuation and honest state; reject promised ETAs/outcomes and copied trade dress.                                                                                                                                        | Member can identify and open the matching case; assert exact links and existing status text.                                          |
+| [Allianz Claim Centre](https://www.allianz-assistance.co.uk/help-and-advice/claim-centre.html)                                                                                                                                                               | Public submit/track and support description. The linked [portal entry](https://allianz-protection.com/homepage) was inspected in Playwright: policy-type choice before access. Deeper flow was not inspected after locator timeouts. Adopt clear start/continue distinction; reject unrelated policy taxonomy. | Existing case work remains visually primary while membership/preparation remains reachable. Validate both populated and empty states. |
+| [ADAC assistance](https://www.adac.de/services/pannenhilfe/)                                                                                                                                                                                                 | Public urgent-assistance entry and contact alternatives. Keep urgent guidance distinct; reject dispatch, location and arrival-time promises unsupported by Interdomestik data.                                                                                                                                 | Members can distinguish Help Now from case work; check distinct native destinations.                                                  |
+| [Apple mobile design](https://developer.apple.com/design/tips/) and [layout](https://developer.apple.com/design/human-interface-guidelines/layout)                                                                                                           | Official mobile guidance supports readable hierarchy, contextual controls and adaptable layout. The HIG page required JavaScript; indexed official text and the public tips page supply the bounded guidance. Adopt generous targets and stacking; reject desktop-only density and decorative motion.          | Check narrow screens, text enlargement and keyboard visibility; Safari/Simulator supplement Playwright proof.                         |
+| [WCAG reflow](https://www.w3.org/WAI/WCAG22/Understanding/reflow.html), [target size](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html), [focus visibility](https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html) | Standards guidance: 320 CSS-pixel reflow, AA 24px target minimum with exceptions, unobscured focus. Choose 44px controls as a design target; do not claim full conformance from component tests.                                                                                                               | Measure overflow/target bounds and keyboard focus in actual browser.                                                                  |
+| [Next.js parallel slots](https://nextjs.org/docs/app/api-reference/file-conventions/parallel-routes)                                                                                                                                                         | Context7 official-source guidance and installed package docs confirm independent loading/error streaming and named slot props. Preserve the existing layout and promise boundaries.                                                                                                                            | Slow/rejected case data cannot serialize or remove the other regions.                                                                 |
+
+### Visual trends and performance acceptance
+
+Additional owner-requested trend research checked 2026-09-15:
+[Apple WWDC26 design guidance](https://developer.apple.com/wwdc26/guides/design/) emphasizes
+readability, consistency and adaptation; [Apple materials guidance](https://developer.apple.com/design/human-interface-guidelines/materials)
+keeps Liquid Glass in the navigation/control layer rather than reading content. Adopt restrained
+depth and solid case surfaces within the existing shell; do not add per-card glass effects.
+[Google expressive-design research](https://design.google/library/expressive-material-design-google-research)
+supports emphasis through size, color and grouping; adopt a clear case action and next-step hierarchy,
+without transferring its study results to this untested member population.
+[Adobe's April 2026 palette guidance](https://www.adobe.com/express/learn/blog/what-trending-color-palettes-mean)
+supports selective accents within a stable palette. Keep existing brand and semantic tokens across
+light/dark states; no independent trend palette or token-definition change is selected.
+
+Performance is part of acceptance: inspect client JavaScript/dependency growth, font/image requests,
+layout stability and rendering cost, then measure the production build where available. The current
+source adds no imports, client hooks, queries, dependencies, image/font assets or animation library;
+it removes the outer case-region glass panel. These are source observations, not measured speed gains.
+Production timing and layout-shift evidence remain pending; development timings are not a baseline.
+
+### Completed Member Case Overview Entry
 
 `MEMBER-CASE-OVERVIEW-ENTRY` is a medium-complexity Sol/high presentation integration over the
 mounted T-116 case-summary registry and T-117/T-118 unified portal shell. It gives each already
@@ -153,8 +234,8 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 |        3 | Unsupported claim AI document type | Trial 2         | Completed migration trial 3/3. |
 
 These rows, the notification correctness increment, shared shell navigation and optimistic
-notification acknowledgement are completed history. The sole selected increment is
-`T410-PESSIMISTIC-MUTATION-BOUNDARY` below.
+notification acknowledgement and pessimistic-mutation boundary are completed history. The sole
+selected increment is `MEMBER-CASE-WORKSPACE-REDESIGN`, defined above.
 
 ## Shared Shell Navigation Increment
 

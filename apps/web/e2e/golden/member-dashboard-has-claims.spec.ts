@@ -33,7 +33,7 @@ test.describe('Portal with cases', () => {
       for (const rawValue of raw) await expect(region).not.toContainText(rawValue);
     for (let index = 0; index < expected; index += 1) {
       await expect(articles.nth(index).locator('dt')).toHaveCount(3);
-      await expect(articles.nth(index).locator('dd').nth(1)).toHaveText(/^\d+$/);
+      await expect(articles.nth(index).locator('dd').nth(2)).toHaveText(/^\d+$/);
     }
     await expect(portal.getByRole('navigation').locator('a')).toHaveCount(4);
   });
