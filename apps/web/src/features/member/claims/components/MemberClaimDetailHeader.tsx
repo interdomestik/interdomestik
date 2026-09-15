@@ -16,16 +16,16 @@ export const MEMBER_CLAIM_DETAIL_SECTION_IDS = Object.freeze({
   messaging: 'member-claim-detail-messaging',
 } as const);
 
+type BoundOpsActionConfig = OpsActionConfig & { onClick: () => void };
+
 interface MemberClaimDetailHeaderProps {
   claimId: string;
   title: string;
   status: MemberClaimDetailOpsClaim['status'];
   localizedStatusLabel: string;
   uploadAction?: OpsActionConfig;
-  secondaryActions: OpsActionConfig[];
+  secondaryActions: BoundOpsActionConfig[];
 }
-
-type BoundOpsActionConfig = OpsActionConfig & { onClick?: () => void };
 
 export function MemberClaimDetailHeader({
   claimId,
@@ -99,25 +99,21 @@ export function MemberClaimDetailHeader({
               ) : null}
               {secondaryActions
                 .filter(action => action.visible !== false)
-                .map(actionConfig => {
-                  const action = actionConfig as BoundOpsActionConfig;
-
-                  return (
-                    <Button
-                      key={action.id}
-                      className="h-auto min-h-11 whitespace-normal"
-                      data-testid={action.testId}
-                      disabled={action.disabled}
-                      onClick={action.onClick}
-                      size="sm"
-                      title={action.disabledReason}
-                      variant={action.variant ?? 'outline'}
-                    >
-                      {action.icon}
-                      {action.label}
-                    </Button>
-                  );
-                })}
+                .map(action => (
+                  <Button
+                    key={action.id}
+                    className="h-auto min-h-11 whitespace-normal"
+                    data-testid={action.testId}
+                    disabled={action.disabled}
+                    onClick={action.onClick}
+                    size="sm"
+                    title={action.disabledReason}
+                    variant={action.variant ?? 'outline'}
+                  >
+                    {action.icon}
+                    {action.label}
+                  </Button>
+                ))}
             </div>
           </div>
         </header>

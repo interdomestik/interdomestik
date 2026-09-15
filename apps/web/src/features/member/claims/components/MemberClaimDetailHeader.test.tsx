@@ -91,16 +91,18 @@ describe('MemberClaimDetailHeader', () => {
     );
 
     const navigation = screen.getByRole('navigation', { name: 'Case sections' });
-    expect(
-      within(navigation)
-        .getAllByRole('link')
-        .map(link => link.getAttribute('href'))
-    ).toEqual([
-      '#member-claim-detail-progress',
-      '#member-claim-detail-evidence',
-      '#member-claim-detail-history',
-      '#member-claim-detail-messaging',
-    ]);
+    const sectionLinks = within(navigation).getAllByRole('link');
+    const expectedSectionLinks = [
+      ['Progress', '#member-claim-detail-progress'],
+      ['Evidence', '#member-claim-detail-evidence'],
+      ['History', '#member-claim-detail-history'],
+      ['Messages', '#member-claim-detail-messaging'],
+    ] as const;
+    expect(sectionLinks).toHaveLength(expectedSectionLinks.length);
+    expectedSectionLinks.forEach(([accessibleName, href], index) => {
+      expect(sectionLinks[index]).toHaveAccessibleName(accessibleName);
+      expect(sectionLinks[index]).toHaveAttribute('href', href);
+    });
     expect(Object.isFrozen(MEMBER_CLAIM_DETAIL_SECTION_IDS)).toBe(true);
 
     expect(screen.getByTestId('claim-evidence-upload-dialog')).toHaveAttribute(
