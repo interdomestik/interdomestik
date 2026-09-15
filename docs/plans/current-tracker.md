@@ -16,22 +16,200 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-`T410-OPTIMISTIC-NOTIFICATION-ACK` completed through protected product PR #1771.
-No successor is selected; shared shell navigation, T410 notification correctness and T210 are
-completed history.
+`T410-PESSIMISTIC-MUTATION-BOUNDARY` is the sole selected successor on exact main `ef1d972e`.
+Shared shell navigation, T410 notification correctness, optimistic notification acknowledgement and
+T210 are completed history.
 The current member screen is legacy integration evidence only. The planned net-new member UI/UX
 belongs in the unified portal shell; canonical role routes and readiness markers do not authorize
 separate dashboard designs or freeze the legacy presentation.
 
-| ID                                 | Status      | Owner     | Work                                                        | Exit Criteria                                                                  |
-| ---------------------------------- | ----------- | --------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `T410-OPTIMISTIC-NOTIFICATION-ACK` | `completed` | `product` | Immediate reversible notification acknowledgement feedback. | Focused/full proof, independent review, protected merge and exact-main health. |
+| ID                                   | Status        | Owner      | Work                                                          | Exit Criteria                                                                  |
+| ------------------------------------ | ------------- | ---------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | `in_progress` | Astra/high | Admit only audited reversible production `useOptimistic` use. | Focused/full proof, independent review, protected merge and exact-main health. |
+
+The commission-writer correction and exact 7,077-byte/one-helper supplement are owner-approved.
+The split helper (5,032 bytes, 123 lines) and test (10,131 bytes, 233 lines) match reviewed SHA-256
+`44bab82f076d41a40c355bd09f680bb0a79fc74eb82125be3e3b969dd581a1c2` and
+`24a501237ed76d2d7e26fb0790f0c059e2eb17aac8475317422b0a26c2460cac` respectively.
+The independent review recorded 48 source-backed writers and 140 adversarial checks; the applied
+split passes all six focused contracts, capacity and modularity. Direct dependency admission
+covers five modules/eighteen symbols without granting whole-program provenance guarantees.
+Exact implementation `ee59416494987281b8fab20c8a947f04325478e7` passed uninterrupted `pr:verify`:
+1,183 CI contracts, 154 release, 41 RLS, 3,383 web/12 skips, 252 browser-gate/12 skips and
+13 smoke/11 skips; line coverage 81.29% (21,664/26,649). Separate security guard passed.
+The isolated v3 database, nip.io hosts, port and disk were preflighted; uploads stayed disabled.
+Private full-log SHA-256: `f1e0222da4cc0cde7073c0313170faefd54ad1fe96fb3197fe2c1d893ec43e5a`.
+Gemini's native pinned `gemini-3.1-pro-high` returned five fixtures without tool events; all were
+executed against the bounded contract. Function-name admission, wrong-module permission and
+whole-program shadowing expectations were rejected. No new defect or source change resulted.
+Native model identity is client-reported, not independent server attestation. Sonnet returned no
+output in five minutes (`20260914T204241-sonnet`); the owner explicitly waived Claude for this
+slice after authorizing both subscription reviews. Existing independent Astra review is retained.
+The build-generated declaration is excluded. Protected review/merge and exact-main health remain
+pending; this evidence-only update does not transfer proof to changed implementation.
+
+Default-binding correction: review at `52a0b908` reproduced missed destructuring/parameter
+literal defaults. The added regression failed before the fix and all six focused contracts pass
+after it. Own initializer chains now include binding elements and parameters; object projection
+and reassigned-key flow remain excluded. Independent review additionally caught parameter/body
+shadowing under the checker's default ES5 target; matching the parser's Latest target and two
+opposite-direction regressions address it. The owner approved the 759-byte supplement and a
+further 190 bytes: helper 5,181 bytes/130 lines, test 10,931 bytes/247 lines; no new files or
+budget self-size change. Gemini's bounded contribution supplied four proposals, executed as eight
+paired checks; all passed. Independent review passed 92 checks on the corrected candidate.
+Renewed full `pr:verify` and separate `security:guard` passed at
+`c050edd6de682971cc3cd5e3e7a6eca1e7922519`: 1,183 CI contracts, 154 release tests, 41 RLS tests,
+81.29% line coverage (21,664/26,649), two browser preflights, 252 gate passes/12 skips and
+13 smoke passes/11 skips. Private full-log SHA-256:
+`78e97760085b273cc1687320d9bc46f914cee559a77b43c2354d273915cfc72e`.
+Protected review and all leaf checks passed at `aa0147ec`. Delivery `34926953847` instead blocked
+two actionable Sonar complexity annotations hidden by its green quality summary. The unchanged
+strict delivery gate is retained. A behavior-preserving helper refactor splits regex alternatives
+and extracts import-name handling; official `eslint-plugin-sonarjs` 4.2.0 reproduces the original
+27/20 regex and 24/15 function findings and reports neither on the correction. Research checked
+the [official regex rule](https://github.com/SonarSource/SonarJS/blob/master/packages/jsts/src/rules/S5843/rule.ts)
+and installed official rules on 2026-09-15; the rule-doc site was robots-blocked. No repo dependency
+or configuration change. Owner equivalence proof passed 64,572 regex comparisons, 33 import
+fixtures and all 3,117 source-file scanner results. Gemini supplied four proposals, executed as
+six assertions; inert declarations were distinguished from regex-name matching. Native request
+`40b70d24-792c-45a2-8f9c-67c8899cf52b` used the pinned Pro route with no tool calls; model identity
+has the same client-reporting limitation recorded below. Claude remains owner-waived. Helper
+SHA-256 `4a43664fc747ae7af8cc137170dc05daca32cb18f149b74ad5f27dcc9518aeff`, 5,175 bytes/134 lines;
+test hash and all capacity values unchanged. Independent review passed 47,664 regex comparisons,
+36 scanner-equivalence fixtures, five import assertions, six contracts and both Sonar rules.
+The full local recommended Sonar rule set also reports no findings. Renewed uninterrupted
+`pr:verify` and separate `security:guard` passed at `4849de16928fb9ccb1d35fccd3e4e541e0e76da1`:
+1,183 CI contracts, 154 release tests, 41 RLS tests, 81.29% coverage (21,664/26,649), two browser
+preflights, 252 gate passes/12 skips and 13 smoke passes/11 skips. Private full-log SHA-256:
+`638d0594ebff30a1d2db47ca0abeffb0ccd5f5459cece002e1ec44edd26b7ec3`.
+Protected current-head review/checks, merge and exact-main health remain pending.
+The hypothetical `updateClaimStatusLabel` naming collision was independently reproduced and
+dispositioned as the approved conservative live-name policy, not proof of runtime mutation;
+[review reply](https://github.com/interdomestik/interdomestik/pull/1772#discussion_r4011853886)
+records the limitation. No such symbol exists in the current repository; import admission remains
+independent and no exact-runtime-effect guarantee is claimed.
 
 ## Proof Ledger
 
-| ID                                 | Source Refs                                    | Execution  | Run ID     | Run Root | Sonar | Docker | Sentry           | Learning         | Evidence Refs                                                                            |
-| ---------------------------------- | ---------------------------------------------- | ---------- | ---------- | -------- | ----- | ------ | ---------------- | ---------------- | ---------------------------------------------------------------------------------------- |
-| `T410-OPTIMISTIC-NOTIFICATION-ACK` | docs/plans/current-program.md; owner direction | `scripted` | `32921c88` | local    | pass  | pass   | `not_applicable` | `not_applicable` | Exact-source proof and reviews passed; protected PR #1771 records merge and main health. |
+| ID                                   | Source Refs                                     | Execution  | Run ID     | Run Root | Sonar   | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                        |
+| ------------------------------------ | ----------------------------------------------- | ---------- | ---------- | -------- | ------- | ------ | ---------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | current program; architecture T-410/T-401/T-002 | `scripted` | `4849de16` | local    | pending | pass   | `not_applicable` | `not_applicable` | Behavior-preserving complexity correction independently reviewed; full proof/security passed; protected checks/merge remain pending. |
+
+### T410 pessimistic mutation boundary progress
+
+The exact owner-approved adjustment keeps stable allocation `t410-notification-acknowledgement`:
+52,182→57,982 total bytes, 35,800→41,600 test bytes and 700→6,500 for the existing CI contract;
+global total becomes 61,273,546 and global tests 7,072,947. Files remain seven and budget self-size
+remains 62,480. The unchanged 4,000-byte front-door cap uses equivalent JSON notation `4e3` only
+to preserve byte-identical self-size. There is no capacity change to that path, deleted-byte credit,
+reserve use, new file or guard weakening. The owner subsequently approved the complete reviewed
+footprint's exact 1,687-byte supplement: total 57,982→59,669, tests 41,600→43,287, CI path
+6,500→8,187, global total 61,273,546→61,275,233 and global tests 7,072,947→7,074,634.
+Files and budget self-allocation remain unchanged. Further capacity requires approval before push.
+
+The initial bounded AST contract admitted only the notification-center consumer, rejected unregistered and
+stale allowlist entries, ignores comments/strings and established test scaffolding, detects aliases,
+indirection, computed access and declaration-after-use, covers production TS/TSX/JS/JSX/MJS/CJS,
+and derives repository identity from `import.meta.url`. Four focused contracts pass in under one
+second at that historical source; the capacity audit and modularity guard passed. Sonnet 5 and Gemini 3.1 Pro
+implementation-snapshot reviews reported the configured served models. Accepted review corrections
+removed a one-byte unrelated cap change, broadened identifier detection and removed CWD dependence.
+Gemini's category and formatting claims are disproved by the passing repository budget audit and
+Prettier check.
+
+PR #1772 current-head review at `f99c181a` found one actionable ordering gap: a key alias declared
+before its terminal hook-name alias was never revisited. The terminating fixed-point correction at
+`82565632a0a4f3b7c53cb1f7408f38f4fcfa1862` covers arbitrary alias ordering and chains. Fresh review
+at `096085c2` then found that the audited notification consumer could itself import a forbidden
+mutation and that the ordered-priority prose still named the completed optimistic increment as sole.
+Exact implementation head `1cb7e9783b5a561810ac58fb4a21f2f3c691d972` fixes both: a conservative
+forbidden-mutation inventory covers claim status, recovery, settlement, payout, success fee,
+airline-claim and sponsored-membership writers even through aliases, namespace access and computed
+keys, and the sole-selection prose names the pessimistic boundary.
+
+Final-head review at `5b39aea4` found one additional actual status-spine wrapper: `cancelClaim`
+delegates through `cancelClaimCore` to `transitionClaimStatus`, but the forbidden verb inventory did
+not include cancellation. Exact implementation head `b45d8e4507525bef7e20a7f7ca4219e32c31ab4c`
+adds cancellation and its regression seed while keeping the existing CI contract at 6,496 bytes,
+inside the unchanged 6,500-byte cap.
+
+Review at `29d74be9` found two further concrete gaps: the existing `cancelSubscription` /
+`cancelSubscriptionCore` action pair was outside the suffix inventory, and a string-literal
+`ExportSpecifier` could re-export `useOptimistic` under an alias without discovery. Both are covered
+through the same classifier branches as claim cancellation and import specifiers. The linked
+finalizer run `34844384999` correctly rejected that stale head because these two threads remained
+unresolved; it was not a CI defect. Fresh Astra inventory then found `createClaimFromSavedDraft`, a
+public server action that invokes `submitClaimCore` and creates submitted lifecycle state. Exact
+implementation head `92102e84eafd9d75087f28a16d373ababa732c5f` adds that real wrapper to the
+classifier and regression seed. The final contract is 6,497 bytes, inside the approved 6,500-byte
+path cap, without changing any capacity value.
+
+Review at pushed head `62e7ceed` then found a distinct false-positive boundary: raw-source matching
+could treat inert comments or user-facing strings as forbidden mutation references. The
+comprehensive correction at exact implementation head
+`1b1812e85c274495e736544001bec5dae392b86f` parses real file kinds and derives hook/mutation names
+only from syntax-tree identifiers and decoded string literals. It resolves hook and mutation literal
+aliases to a terminating fixed point, preserves quoted imports/exports, calls, member/element access
+and computed destructuring, and ignores comment trivia, inert strings and object keys. Astra review
+also exposed and verified the necessary real-filename TSX parsing after JSX. The explicit support
+boundary is named imports/exports, calls, member access, destructuring and locally resolvable literal
+aliases; arbitrary runtime-computed names, reflection and whole-program cross-module renaming are not
+claimed.
+
+Review at pushed head `df221bd9` then found that unconditional bare identifier matching could still
+classify inert object and type keys named `useOptimistic` as live references. Exact implementation
+head `2360ad271636d4cb6499b9552146fd7184ad07b1` replaces that branch with semantic classification:
+named imports/exports, bindings and shorthand properties are explicit references, while ordinary
+identifiers must be in expression context. Inert property/type/interface/class/method/declaration/
+parameter names and JSX attributes are ignored, while real calls, values, shorthand, member/element
+access, destructuring and aliases remain detected. The contract is 6,467 bytes; SHA-256
+`d73a7a8ce4531c3bf09438d5fdfb5af6d50296da6f373b721f45701d07c04b1f`, Git blob
+`0ea8615932b09b646daf628c64f921dc3874297f`.
+
+Fresh independent Astra/high review passed after first finding and correcting the shorthand-value
+counterexample before publication. Its final adversarial matrix covered 12 inert and 14 live hook
+forms, 13 mutation forms, 22 inventory names, quoted aliases, 64 chained-alias orderings, cycle
+termination, both TSX discovery regressions, exclusions and stale/unregistered consumers. Four
+focused contracts, repo-size, modularity, plan, Prettier and diff checks passed. After a discarded
+environmental attempt against an accidentally unmigrated database, the next isolated database was
+created, migrated, and preflighted at 86 public tables with all 11 checked critical tables under RLS;
+its standalone required RLS lane passed before the expensive gate. A first whole-command proof on
+the corrected source passed all non-browser code gates but was discarded when `CI=true` required an
+unavailable passwordless-sudo `/etc/hosts` change. The clean rerun used the repository-supported
+nip.io route. The same exact implementation head then passed `pnpm pr:verify` against
+`interdomestik_ci_t410_boundary_01a09f54_v3`: the complete CI and release contract suites, 41 RLS
+tests, 3,383 web passes with 12 intentional skips, 81.29% repository line coverage, 252 gate passes
+with 12 intentional skips, and 13 smoke passes with 11 intentional skips. The separate
+`pnpm security:guard` passed. The successful run used the protected workflow's canonical
+same-database CI-parity configuration; source-map upload was disabled and no deployment ran. These
+results bind to the implementation head; this evidence-only plan update does not transfer them to
+changed product code. Protected final-head checks, expected-head merge and exact-main health remain
+pending.
+
+Current correction: review at `bcaee170` found renamed destructuring assignments were missed and
+ordinary string display/telemetry aliases were falsely counted as callable references. Product CI
+passed; finalizer `34861048756` correctly rejected the two unresolved threads. Astra/high took sole
+implementation ownership because the repeated semantic escapes required a comprehensive checkpoint.
+Exact source `d681cf09326db53e0482aab2df5eee3415158341` classifies assignment targets using
+TypeScript and resolves literal initializer chains through lexical symbols with cycle protection.
+Literals remain data, consumed only as computed keys or to exclude data reads. Callable references
+are discovered where introduced, so later renaming cannot hide their file. Type-only imports/queries
+are excluded; live generic instantiation and class extends expressions remain discoverable.
+Dynamic reflection, reassigned-key flow, cross-module renamed wrappers and runtime React provenance
+are outside this static named-reference contract. Existing inventory/catalog/discovery assertions remain.
+
+Fresh read-only Astra/high review passed 150 independent checks against scanner SHA-256
+`0e2f65f8334526655a9e8c2a0a68cdf0c049728f6315af8644df071fb078f9ef`, size 8,187 bytes.
+Four focused contracts, including 58 paired hook/mutation cases, passed. Reviewer findings were
+consolidated before final proof and capacity was explicitly approved before execution. Actual DB,
+credentials, hosts, port, disk and competing-job preflight passed. The uninterrupted renewed
+`pnpm pr:verify` on `d681cf09` passed 1,181 CI contracts, 154 release tests, 41 RLS tests,
+3,383 web tests/12 intentional skips, 81.29% lines (21,664/26,649), 252 browser-gate tests/12
+intentional skips and 13 smoke tests/11 intentional skips. Same-source security guard passed.
+Private full-log SHA-256: `f70961f4caa70a8d259fa25a909155d6a9b7c0c3d49591c593daa6b6def885e9`.
+This proof uses the isolated v3 database and supported nip.io route, with source-map upload disabled.
+The build-generated declaration change is excluded. Protected checks, current-head review disposition,
+expected-head merge and exact-main health remain pending; no gate repair, deployment or successor.
 
 ### Final shared navigation delivery
 
@@ -374,8 +552,8 @@ T117C was delivered by promotion #1738 and product #1736. Its legacy projection 
 Harness adoption completed through #1761 and #1762. T210 completed through product #1763. The
 owner-selected bounded notification acknowledgement increment completed through #1765 with exact-main
 health verified, and shared shell navigation completed through #1770. `T410-OPTIMISTIC-NOTIFICATION-ACK`
-completed through protected product PR #1771; no successor is selected. This is not full T-410
-completion and does not select T-411.
+completed through protected product PR #1771. `T410-PESSIMISTIC-MUTATION-BOUNDARY` is the selected
+successor; this is not full T-410 completion and does not select T-411.
 
 | Completed historical priority            | Status      | Constraint                                                                    |
 | ---------------------------------------- | ----------- | ----------------------------------------------------------------------------- |
@@ -385,8 +563,8 @@ completion and does not select T-411.
 | Member timeline (T210)                   | `completed` | Product #1763; main CI and Sonar passed at the exact protected merge.         |
 | Notification acknowledgement correctness | `completed` | Product #1765; exact-main CI/Sonar passed; no broader T-410 completion claim. |
 
-No active successor is selected. A recommendation does not become program priority until the owner
-selects it and the current program records that decision.
+The active successor is recorded in the queue above. No later recommendation becomes program
+priority until the owner selects it and the current program records that decision.
 
 ## Lean Authority
 

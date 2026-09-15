@@ -27,8 +27,9 @@ Code Analysis check `103580834614`, and Sonar Main Gate `34703433721` attempt 2 
 merge.
 `T410-NOTIFICATION-ACK-CORRECTNESS` completed through protected product PR #1765. Shared shell
 navigation completed through protected product PR #1770 and exact-main health as recorded below.
-`T410-OPTIMISTIC-NOTIFICATION-ACK` completed through protected product PR #1771. No successor is
-selected; this does not complete all of T-410, select T-411, or reactivate legacy Lean.
+`T410-OPTIMISTIC-NOTIFICATION-ACK` completed through protected product PR #1771.
+`T410-PESSIMISTIC-MUTATION-BOUNDARY` is the sole selected successor; it completes the remaining
+T-410 convention guard without selecting T-411 or reactivating legacy Lean.
 
 ## Delivered History
 
@@ -118,8 +119,9 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 |        2 | Bounded failed-run retry           | Owner direction | Completed migration trial 2/3. |
 |        3 | Unsupported claim AI document type | Trial 2         | Completed migration trial 3/3. |
 
-These rows, the notification correctness increment and shared shell navigation are completed
-history. The sole new committed increment is `T410-OPTIMISTIC-NOTIFICATION-ACK` below.
+These rows, the notification correctness increment, shared shell navigation and optimistic
+notification acknowledgement are completed history. The sole selected increment is
+`T410-PESSIMISTIC-MUTATION-BOUNDARY` below.
 
 ## Shared Shell Navigation Increment
 
@@ -207,6 +209,107 @@ Product source head `32921c88ae4e41a4ce01500866ace884ad08eba9` passed the unchan
 proof and security guard. Protected [PR #1771](https://github.com/interdomestik/interdomestik/pull/1771)
 records current-head review, hosted checks, expected-head merge and exact-main health. No deployment
 or broader T-410 completion is claimed.
+
+## T410 Pessimistic Mutation Boundary Increment
+
+Owner-selected on 2026-09-14 from exact main `ef1d972ef4c77c4c92dfa135dcf4962e05ca91d6`.
+This high-complexity bounded CI-contract slice is now owned by Astra/high after repeated semantic
+review escapes required reassignment from Sol/high. It completes the T-410 convention outcome: production
+`useOptimistic` consumers must be explicitly audited, and only the delivered reversible notification
+acknowledgement module is admitted. T-401 and T-002/T-002b are complete; T-411 remains unselected
+because SVC-CORE and FLIGHT-03 are not complete.
+
+Member outcome: claim-status, recovery, subscription, settlement, payout and other unaudited
+mutations cannot gain speculative-success presentation without failing the required CI contract.
+Acceptance discovers production consumers within the static-reference contract below, rejects an unregistered consumer and stale audited
+entry, retains the four notification catalog checks, and passes focused contracts, independent
+reviews, frozen required proof, protected expected-head merge and exact-main health. Scope is limited
+to the current program/tracker, the existing T410 CI contract and its stable capacity allocation.
+App runtime/UI, proxy/routes, auth/tenant/RLS, schema/data, billing behavior, T-411/SVC/FLIGHT,
+deployment and general tooling repair remain excluded.
+
+The owner approved the exact stable-allocation adjustment on 2026-09-14: T410 total
+52,182→57,982 bytes, tests 35,800→41,600, the existing CI-contract path 700→6,500, global total
+61,267,746→61,273,546 and global tests 7,067,147→7,072,947. Files remain seven and budget
+self-size remains 62,480. No deleted-byte credit, reserve, new file or guard weakening is used.
+To retain byte-identical budget self-size, the unchanged 4,000-byte front-door path cap is encoded
+as the equivalent JSON number `4e3`; its parsed allocation is unchanged. After the complete reviewed
+correction exposed its footprint, the owner approved a further exact 1,687 bytes: total
+57,982→59,669, tests 41,600→43,287, existing CI path 6,500→8,187, global total
+61,273,546→61,275,233 and global tests 7,072,947→7,074,634. Files and budget self-allocation
+remain unchanged. Any further capacity need must be fully identified and approved before pushing.
+
+PR #1772's repeated failures were review-gate rejections, not permission to repair gate workflows.
+Product CI at `bcaee170` passed, but review found missed renamed destructuring assignments and string
+data promoted into callable aliases. The comprehensive correction at exact implementation head
+`d681cf09326db53e0482aab2df5eee3415158341` uses TypeScript assignment-target classification and
+single-file lexical symbol resolution. Literal initializer chains are data: they resolve computed
+keys or exclude ordinary data reads, never become callable aliases. Actual callable references are
+detected at their imports, exports, member accesses or binding introductions, preserving file-level
+discovery through later renaming. Assignment targets, defaults, nested patterns, shadowing and
+cycles are covered. Type-only syntax is excluded while runtime generic instantiations and class
+extends expressions remain visible. Each production TS/TSX/JS/JSX/MJS/CJS file uses its real filename.
+The audited notification consumer retains the forbidden named-mutation inventory, including claim
+and subscription cancellation, `createClaimFromSavedDraft`, recovery, settlement, payout, success
+fee, airline claim and sponsored membership. Catalog, stale-entry, unregistered-consumer and source
+discovery contracts remain intact. Arbitrary runtime-computed names, reassigned-key flow, reflection,
+cross-module renamed wrappers and runtime React provenance are outside this bounded static guard.
+
+Fresh independent Astra/high review passed 150 adversarial checks against the 8,187-byte scanner
+SHA-256 `0e2f65f8334526655a9e8c2a0a68cdf0c049728f6315af8644df071fb078f9ef`. Its type-only and
+runtime-generic findings were corrected before full verification. Four focused contracts (including
+58 paired hook/mutation cases), capacity, modularity, formatting and diff checks passed. The actual
+verification environment was preflighted before the uninterrupted final run: isolated migrated task
+database `interdomestik_ci_t410_boundary_01a09f54_v3`, canonical CI-parity credentials, nip.io
+hosts, free port 3000, disk headroom and no competing heavy job; source-map upload was disabled.
+The same implementation head passed unchanged `pnpm pr:verify`: 1,181 CI contracts, 154 release
+tests, 41 RLS tests, 3,383 web tests/12 intentional skips, 81.29% repository line coverage,
+252 browser-gate tests/12 intentional skips and 13 smoke tests/11 intentional skips. Separate
+`pnpm security:guard` passed. Earlier passes are historical, not transferred to this correction.
+Protected current-head checks, expected-head merge and exact-main health remain required; no
+deployment or successor is authorized.
+
+The subsequent commission-writer review found a real inventory gap despite green product CI.
+The consolidated correction adds commission references and explicit direct-runtime-import admission
+for the audited notification consumer (five modules, eighteen symbols). Forty-eight source-backed
+money/legal writers are covered; reader/calculation exclusions do not grant import admission.
+The contract remains bounded: changed behavior behind admitted symbols, transitive wrappers,
+reflection and reassigned-key flow are not whole-program guarantees.
+
+The owner approved the exact additional 7,077 bytes and one helper file: T410 total 59,669→66,645,
+tests 43,287→45,231, source 15,180→20,212, existing CI path 8,187→10,131, helper 0→5,032,
+files 7→8; budget self-allocation 62,480→62,581 and capacity-rebase 99,884→99,985.
+Global total is 61,282,310, tests 7,076,578, source 8,850,254, config 2,232,807 and files 6,058.
+Scope additionally includes `scripts/ci/t410-reference-guard.mjs`; no reserve, deleted-byte credit
+or guard weakening. The 123-line helper and 233-line test preserve the reviewed split exactly.
+Six focused contracts pass. Exact implementation `ee59416494987281b8fab20c8a947f04325478e7`
+passed uninterrupted full proof and security guard: 1,183 CI contracts, 154 release, 41 RLS,
+3,383 web/12 skips, 81.29% line coverage, 252 browser-gate/12 skips and 13 smoke/11 skips.
+Native Gemini Pro supplied five executed proposals without a new defect; the owner waived Claude
+after its five-minute no-output timeout. Independent Astra review remains valid for the unchanged
+split. The tracker records identities and limitations. Current-head review disposition, protected
+merge and exact-main health remain pending; no deployment or successor is authorized.
+
+Fresh review of `52a0b908` identified defaulted computed-key declarations missing from literal
+resolution. The correction follows own initializers on variables, binding elements and parameters;
+renamed/array/parameter defaults, lexical aliases, inert data, shadowing and cycles are covered.
+Object-property projection and reassigned-key flow remain outside the bounded contract.
+The owner approved 759 more bytes and a further 190 bytes for matching the checker's target to
+the parser and covering parameter/body shadowing: helper 5,181, test 10,931, T410 total 67,594,
+source 20,361 and tests 46,031; global total 61,283,259, source 8,850,403 and tests 7,077,378.
+Files, budget self-size, config, reserves and guards are unchanged. Previous full proof is
+historical. Renewed full `pr:verify` and separate `security:guard` passed at
+`c050edd6de682971cc3cd5e3e7a6eca1e7922519`: 1,183 CI contracts, 154 release tests, 41 RLS tests,
+81.29% line coverage, 252 browser-gate passes/12 skips and 13 smoke passes/11 skips.
+Protected review and all leaf checks passed at `aa0147ec`, but delivery `34926953847` rejected
+Sonar annotations despite its green summary: regex complexity 27/20 and scan complexity 24/15.
+The bounded correction splits the equivalent regex alternatives and extracts import-name handling,
+preserving conservative matching and import admission. Official `eslint-plugin-sonarjs` 4.2.0
+reproduced both findings and now passes both rules. The helper is 5,175 bytes within its unchanged
+5,181-byte cap; no tests, capacity, policy or guard are removed. Renewed full `pr:verify` and
+separate `security:guard` passed at `4849de16928fb9ccb1d35fccd3e4e541e0e76da1`: 1,183 CI contracts,
+154 release tests, 41 RLS tests, 81.29% coverage, 252 browser-gate passes/12 skips and 13 smoke
+passes/11 skips. Protected current-head review/checks, merge and exact-main health remain pending.
 
 ## Ordinary Product Delivery
 
