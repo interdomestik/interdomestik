@@ -124,6 +124,13 @@ independent and no exact-runtime-effect guarantee is claimed.
 - Security guard passes. The owner approved and applied the exact +5,889-byte capacity adjustment;
   the unchanged executable capacity check passes. No full-proof or merge claim follows.
 
+The first full run at `b287252b` stopped at 2/1,183 CI contracts because the changed browser corpus
+was unregistered. The exact E2E tree `0a47e316e48978c48cb9956f6cccc9e9a58f5bdb` is now registered;
+11 focused resolver tests pass and independent review cleared that data-only correction. Its 95 bytes
+transfer from 484 measured unused source bytes in the completed currency trial. One byte of budget
+self-size transfers from 20 unused T410 config bytes. Global/category ceilings and reserves stay at
+the owner's approved values. Renewed full proof is required.
+
 ## Proof Ledger
 
 | ID                               | Source Refs                      | Execution | Run ID  | Run Root | Sonar   | Docker | Sentry           | Learning         | Evidence Refs                                                                                 |

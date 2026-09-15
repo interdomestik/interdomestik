@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 99986,
+      "trackedBytesDelta": 99987,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 62582,
+        "config/data/messages": 62583,
         "source/scripts": 23092,
         "tests/e2e": 14312
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 62582,
+        "scripts/repo-size-budget.json": 62583,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -680,15 +680,15 @@
         "scripts/ci/main-e2e-reuse-core.test.mjs",
         "scripts/ci/main-e2e-reuse-github.test.mjs"
       ],
-      "maxTrackedBytesDelta": 26722,
+      "maxTrackedBytesDelta": 26817,
       "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
-        "source/scripts": 9844,
+        "source/scripts": 9939,
         "tests/e2e": 14185,
         "config/data/messages": 2693
       },
       "maxPathBytesDelta": {
-        "scripts/ci/main-e2e-reuse.mjs": 977,
+        "scripts/ci/main-e2e-reuse.mjs": 1072,
         "scripts/ci/main-e2e-reuse-core.mjs": 975,
         "scripts/ci/main-e2e-reuse-github.mjs": 17,
         "scripts/ci/main-e2e-reuse-cli.test.mjs": 2831,
@@ -969,9 +969,9 @@
         "packages/domain-ai/src/claims/intake-extract.test.ts",
         "packages/domain-ai/src/claims/intake-extract.ts"
       ],
-      "maxTrackedBytesDelta": 1874,
+      "maxTrackedBytesDelta": 1779,
       "maxTrackedFilesDelta": 0,
-      "maxCategoryBytesDelta": { "source/scripts": 694, "tests/e2e": 1180 },
+      "maxCategoryBytesDelta": { "source/scripts": 599, "tests/e2e": 1180 },
       "maxPathBytesDelta": {
         "packages/domain-ai/src/claims/intake-extract.test.ts": 1400,
         "packages/domain-ai/src/claims/intake-extract.ts": 1000
@@ -1219,10 +1219,10 @@
         "scripts/ci/modularity-guard-t410-catalogs.test.mjs",
         "scripts/ci/t410-reference-guard.mjs"
       ],
-      "maxTrackedBytesDelta": 67594,
+      "maxTrackedBytesDelta": 67593,
       "maxTrackedFilesDelta": 8,
       "maxCategoryBytesDelta": {
-        "config/data/messages": 1202,
+        "config/data/messages": 1201,
         "source/scripts": 20361,
         "tests/e2e": 46031
       },
