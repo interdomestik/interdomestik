@@ -38,6 +38,40 @@ classification before implementation; no new approval ceremony is required for a
 | S2 — Branch overview scope         | queued_conditional | Record current authorized capability, then query-path scope protection with branch/tenant/admin regression proof.                 |
 | S3 — Member–staff evidence journey | queued_conditional | Reuse delivered contracts/fixtures; prove the bounded handoff sequence or record the first missing contract as its cut point.     |
 
+### Product-readiness roadmap queue
+
+Owner-adopted on 2026-09-15; detailed scope and acceptance live only in the current program's
+product-readiness roadmap. These rows do not change the active slice or mark future work complete.
+S4–S14 are outcome families to split into bounded implementation slices, not architecture T IDs.
+
+| Item                                    | Status              | Next evidence                                                                                      |
+| --------------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------- |
+| S4 — S3 handoff gap                     | conditional         | Only the first reproduced unsupported handoff; minimal integration and extended journey proof.     |
+| S5 — Member first-case journey          | queued_conditional  | Reconcile front-door/preparation/save/submission receipts; implement remaining UI/UX gaps.         |
+| S6 — Member continuation and membership | queued_conditional  | Credit #1775–#1777; complete only missing return/evidence/message/membership access outcomes.      |
+| S7 — Staff handling journey             | queued_conditional  | Existing handling contracts; queue and evidence round-trip with internal/public separation.        |
+| S8 — Agent client/handoff journey       | queued_conditional  | Existing authority and attribution; only unresolved capability changes need disposition.           |
+| S9 — Agent-assisted activation          | queued_conditional  | Member ownership, attribution and Paddle continuity on established contracts.                      |
+| S10 — Branch-manager oversight          | queued_conditional  | S2; existing authorized scope; metric decisions block only affected restoration.                   |
+| S11 — Tenant-admin operations           | queued_conditional  | People/branches and contracted access lifecycle, split into bounded increments.                    |
+| S12 — Platform-admin operations         | queued_conditional  | Technical operations and separate business-authority boundary.                                     |
+| H1 — SVC-CORE / Help Now                | priority_when_ready | First unmet clause, country/content/stop-rule authority and usable assistance path.                |
+| S13 — Outcome and closure               | queued_conditional  | Closure/recovery receipts and pilot scope; truthful member/staff outcome UI.                       |
+| S14 — Pilot rehearsal                   | queued_conditional  | All in-scope role journeys, user acceptance, accessibility, four locales and operational evidence. |
+
+Before selecting each family, record its exact bounded gap, direct predecessor receipts, model/risk,
+UI acceptance and exclusions in the existing active queue. Record why any independent ready outcome
+advances out of default order; H1 retains business priority. Current localization and S1–S3 do not
+wait for whole-roadmap reconciliation. Completed work is credited, never rebuilt from an unknown.
+
+Readiness decisions: chief prepares existing evidence; product owner or named delegate resolves only
+unsettled country/service/cohort/role, billing/recovery and support choices before their dependents.
+Record named accountability and needed-by slice when unresolved; do not invent an assignment or
+reopen an accepted decision. Release/rollback ownership and any genuine legal/data-protection gap
+must be resolved before pilot admission. UI acceptance rounds follow relevant delivered increments;
+the final rehearsal cannot substitute for ongoing usability work. No pilot-ready or deployed claim
+is made by this queue. Preserve EN/SQ/MK/SR and all existing required proof.
+
 Decision preparation: chief. Business disposition: product owner or named delegate, recorded before
 dependent work. Branch attribution gates metric restoration; agent authority gates agent handoff
 changes; country/content/stop-rule approval gates the affected Help Now outcome. Missing decisions
