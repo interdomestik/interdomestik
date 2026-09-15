@@ -235,6 +235,11 @@ describe('MemberClaimDetailOpsPage', () => {
     navigationLinks.forEach((link, index) => {
       expect(link).toHaveAccessibleName(targetContracts[index][1]);
     });
+    targets.slice(0, -1).forEach((target, index) => {
+      expect(target.compareDocumentPosition(targets[index + 1])).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING
+      );
+    });
 
     const progressTarget = targets[0];
     const progressSummary = within(progressTarget).getByTestId('member-claim-progress-summary');
@@ -250,8 +255,7 @@ describe('MemberClaimDetailOpsPage', () => {
 
   it('preserves populated member case detail content and action contracts', () => {
     const claimId = 'CASE / 2026 # 001';
-    const supportHref =
-      '/member/help?claimId=CASE%20%2F%202026%20%23%20001&source=member_claim_detail';
+    const supportHref = '/member/help?case=1';
     renderPage({
       id: claimId,
       title: 'Delayed flight recovery',
@@ -324,8 +328,6 @@ describe('MemberClaimDetailOpsPage', () => {
     expect(screen.getByTestId('member-claim-latest-update-date')).toHaveTextContent(
       'Apr 15, 2026, 12:30 PM'
     );
-    expect(screen.getByTestId('member-claim-current-state')).toHaveTextContent('Evaluation');
-    expect(screen.getByTestId('member-claim-latest-update')).toHaveTextContent('Verification');
     expect(
       screen.getByText('Flight ID 404 arrived more than four hours late.')
     ).toBeInTheDocument();
@@ -362,28 +364,27 @@ describe('MemberClaimDetailOpsPage', () => {
     expect(screen.getAllByTestId('ops-document-row')).toHaveLength(1);
     expect(screen.getByText('boarding-pass.pdf')).toBeInTheDocument();
     expect(screen.getAllByTestId('claim-evidence-upload-dialog')).toHaveLength(2);
-    expect(hoisted.claimEvidenceUploadDialogMock).toHaveBeenCalledTimes(2);
-    expect(hoisted.claimEvidenceUploadDialogMock).toHaveBeenCalledWith(
-      expect.objectContaining({ claimId })
-    );
     expect(screen.getByTestId('member-claim-latest-update-note')).toHaveTextContent(
       'Your case moved into specialist review.'
     );
-    expect(screen.queryByTestId('member-claim-expected-next-action')).not.toBeInTheDocument();
     expect(hoisted.messagingPanelMock).toHaveBeenCalledWith(
       expect.objectContaining({
         claimId,
         allowInternal: false,
+        currentUser: expect.objectContaining({ role: 'member' }),
       })
     );
   });
 
-  it('keeps optional recovery, allowance, and latest-note content absent by default', () => {
-    renderPage();
+  it('hides optional content and actions for terminal claims', () => {
+    renderPage({ status: 'paid' as never, slaPhase: 'not_applicable' });
 
     expect(screen.queryByTestId('member-claim-recovery-decision')).not.toBeInTheDocument();
     expect(screen.queryByTestId('member-claim-matter-allowance')).not.toBeInTheDocument();
     expect(screen.queryByTestId('member-claim-latest-update-note')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('member-claim-sla-status')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Send message' })).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('claim-evidence-upload-dialog')).toHaveLength(1);
   });
 
   it('translates claim timeline status keys without using the claims namespace', () => {

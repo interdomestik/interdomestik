@@ -307,17 +307,6 @@ export function MemberClaimDetailOpsPage({
               vaultConsentDisplay={claim.vaultConsentDisplay}
             />
           </section>
-
-          <section
-            ref={messagingSectionRef}
-            id={MEMBER_CLAIM_DETAIL_SECTION_IDS.messaging}
-            aria-label={tContinuity('messages')}
-            className="scroll-mt-24"
-            data-testid="member-claim-detail-messaging"
-            tabIndex={-1}
-          >
-            <MessagingPanel claimId={claim.id} currentUser={currentUser} allowInternal={false} />
-          </section>
         </div>
 
         {/* Sidebar */}
@@ -333,6 +322,17 @@ export function MemberClaimDetailOpsPage({
             formatTimestamp={value => formatPilotDateTime(value, locale, String(value))}
           />
         </aside>
+
+        <section
+          ref={messagingSectionRef}
+          id={MEMBER_CLAIM_DETAIL_SECTION_IDS.messaging}
+          aria-label={tContinuity('messages')}
+          className="scroll-mt-24 lg:col-span-2"
+          data-testid="member-claim-detail-messaging"
+          tabIndex={-1}
+        >
+          <MessagingPanel claimId={claim.id} currentUser={currentUser} allowInternal={false} />
+        </section>
       </div>
     </div>
   );
