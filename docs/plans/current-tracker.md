@@ -77,7 +77,12 @@ has the same client-reporting limitation recorded below. Claude remains owner-wa
 SHA-256 `4a43664fc747ae7af8cc137170dc05daca32cb18f149b74ad5f27dcc9518aeff`, 5,175 bytes/134 lines;
 test hash and all capacity values unchanged. Independent review passed 47,664 regex comparisons,
 36 scanner-equivalence fixtures, five import assertions, six contracts and both Sonar rules.
-The full local recommended Sonar rule set also reports no findings. Renewed full proof is pending.
+The full local recommended Sonar rule set also reports no findings. Renewed uninterrupted
+`pr:verify` and separate `security:guard` passed at `4849de16928fb9ccb1d35fccd3e4e541e0e76da1`:
+1,183 CI contracts, 154 release tests, 41 RLS tests, 81.29% coverage (21,664/26,649), two browser
+preflights, 252 gate passes/12 skips and 13 smoke passes/11 skips. Private full-log SHA-256:
+`638d0594ebff30a1d2db47ca0abeffb0ccd5f5459cece002e1ec44edd26b7ec3`.
+Protected current-head review/checks, merge and exact-main health remain pending.
 The hypothetical `updateClaimStatusLabel` naming collision was independently reproduced and
 dispositioned as the approved conservative live-name policy, not proof of runtime mutation;
 [review reply](https://github.com/interdomestik/interdomestik/pull/1772#discussion_r4011853886)
@@ -86,9 +91,9 @@ independent and no exact-runtime-effect guarantee is claimed.
 
 ## Proof Ledger
 
-| ID                                   | Source Refs                                     | Execution  | Run ID     | Run Root | Sonar          | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                            |
-| ------------------------------------ | ----------------------------------------------- | ---------- | ---------- | -------- | -------------- | ------ | ---------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | current program; architecture T-410/T-401/T-002 | `scripted` | `c050edd6` | local    | not_applicable | pass   | `not_applicable` | `not_applicable` | Default-binding/target correction, 92 independent checks, eight Gemini-derived checks, six contracts, full proof/security passed; protected checks/merge remain pending. |
+| ID                                   | Source Refs                                     | Execution  | Run ID     | Run Root | Sonar            | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                        |
+| ------------------------------------ | ----------------------------------------------- | ---------- | ---------- | -------- | ---------------- | ------ | ---------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | current program; architecture T-410/T-401/T-002 | `scripted` | `4849de16` | local    | local rules pass | pass   | `not_applicable` | `not_applicable` | Behavior-preserving complexity correction independently reviewed; full proof/security passed; protected checks/merge remain pending. |
 
 ### T410 pessimistic mutation boundary progress
 

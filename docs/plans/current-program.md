@@ -306,7 +306,10 @@ Sonar annotations despite its green summary: regex complexity 27/20 and scan com
 The bounded correction splits the equivalent regex alternatives and extracts import-name handling,
 preserving conservative matching and import admission. Official `eslint-plugin-sonarjs` 4.2.0
 reproduced both findings and now passes both rules. The helper is 5,175 bytes within its unchanged
-5,181-byte cap; no tests, capacity, policy or guard are removed. Fresh full proof is required.
+5,181-byte cap; no tests, capacity, policy or guard are removed. Renewed full `pr:verify` and
+separate `security:guard` passed at `4849de16928fb9ccb1d35fccd3e4e541e0e76da1`: 1,183 CI contracts,
+154 release tests, 41 RLS tests, 81.29% coverage, 252 browser-gate passes/12 skips and 13 smoke
+passes/11 skips. Protected current-head review/checks, merge and exact-main health remain pending.
 
 ## Ordinary Product Delivery
 
