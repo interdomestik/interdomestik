@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 99987,
+      "trackedBytesDelta": 102127,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 62583,
+        "config/data/messages": 64723,
         "source/scripts": 23092,
         "tests/e2e": 14312
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 62583,
+        "scripts/repo-size-budget.json": 64723,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -680,18 +680,18 @@
         "scripts/ci/main-e2e-reuse-core.test.mjs",
         "scripts/ci/main-e2e-reuse-github.test.mjs"
       ],
-      "maxTrackedBytesDelta": 26817,
+      "maxTrackedBytesDelta": 28817,
       "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
-        "source/scripts": 9939,
-        "tests/e2e": 14185,
+        "source/scripts": 10439,
+        "tests/e2e": 15685,
         "config/data/messages": 2693
       },
       "maxPathBytesDelta": {
-        "scripts/ci/main-e2e-reuse.mjs": 1072,
+        "scripts/ci/main-e2e-reuse.mjs": 1572,
         "scripts/ci/main-e2e-reuse-core.mjs": 975,
         "scripts/ci/main-e2e-reuse-github.mjs": 17,
-        "scripts/ci/main-e2e-reuse-cli.test.mjs": 2831,
+        "scripts/ci/main-e2e-reuse-cli.test.mjs": 4331,
         "scripts/ci/coverage-input-identity.mjs": 2920,
         "scripts/ci/main-coverage-reuse.mjs": 4861,
         "scripts/ci/main-coverage-reuse.test.mjs": 9808,
@@ -1304,6 +1304,46 @@
         "apps/web/src/components/staff/staff-sidebar.test.tsx": 162,
         "apps/web/src/components/admin/admin-sidebar.test.tsx": 436
       }
+    },
+    {
+      "id": "member-case-detail-continuity",
+      "mode": "bounded",
+      "writerPaths": [
+        "docs/superpowers/specs/2026-09-15-member-case-detail-continuity-design.md",
+        "docs/superpowers/plans/2026-09-15-member-case-detail-continuity.md",
+        "apps/web/src/features/member/claims/components/MemberClaimDetailHeader.tsx",
+        "apps/web/src/features/member/claims/components/MemberClaimDetailHeader.test.tsx",
+        "apps/web/src/features/member/claims/components/MemberClaimDetailOpsPage.tsx",
+        "apps/web/src/features/member/claims/components/MemberClaimDetailOpsPage.test.tsx",
+        "apps/web/e2e/gate/member-vault-consent-display.spec.ts",
+        "apps/web/e2e/golden/member-claim-detail-ops.spec.ts",
+        "apps/web/src/messages/en/claims.json",
+        "apps/web/src/messages/mk/claims.json",
+        "apps/web/src/messages/sq/claims.json",
+        "apps/web/src/messages/sr/claims.json"
+      ],
+      "maxTrackedBytesDelta": 63000,
+      "maxTrackedFilesDelta": 4,
+      "maxCategoryBytesDelta": {
+        "docs/text": 28500,
+        "config/data/messages": 4000,
+        "source/scripts": 8000,
+        "tests/e2e": 22500
+      },
+      "maxPathBytesDelta": {
+        "docs/superpowers/specs/2026-09-15-member-case-detail-continuity-design.md": 10500,
+        "docs/superpowers/plans/2026-09-15-member-case-detail-continuity.md": 18000,
+        "apps/web/src/features/member/claims/components/MemberClaimDetailHeader.tsx": 8000,
+        "apps/web/src/features/member/claims/components/MemberClaimDetailHeader.test.tsx": 9000,
+        "apps/web/src/features/member/claims/components/MemberClaimDetailOpsPage.tsx": 0,
+        "apps/web/src/features/member/claims/components/MemberClaimDetailOpsPage.test.tsx": 4000,
+        "apps/web/e2e/gate/member-vault-consent-display.spec.ts": 3500,
+        "apps/web/e2e/golden/member-claim-detail-ops.spec.ts": 6000,
+        "apps/web/src/messages/en/claims.json": 1000,
+        "apps/web/src/messages/mk/claims.json": 1000,
+        "apps/web/src/messages/sq/claims.json": 1000,
+        "apps/web/src/messages/sr/claims.json": 1000
+      }
     }
   ],
   "reserve": {
@@ -1312,15 +1352,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61292004,
-  "maxTrackedFiles": 6058,
+  "maxTrackedBytes": 61359144,
+  "maxTrackedFiles": 6062,
   "maxCategoryBytes": {
-    "config/data/messages": 2234407,
-    "docs/text": 8541936,
+    "config/data/messages": 2240547,
+    "docs/text": 8570436,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8854598,
-    "tests/e2e": 7080328
+    "source/scripts": 8863098,
+    "tests/e2e": 7104328
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

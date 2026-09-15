@@ -158,6 +158,15 @@
       "view_plans": "Pogledaj Planove"
     },
     "detail": {
+      "continuity": {
+        "backToWorkspace": "Nazad u prostor za članove",
+        "caseLabel": "Slučaj",
+        "sectionNavigation": "Odeljci slučaja",
+        "progress": "Napredak",
+        "evidence": "Dokazi",
+        "history": "Hronologija",
+        "messages": "Poruke"
+      },
       "caseDetails": "Detalji Slučaja",
       "description": "Opis",
       "claimAmount": "Traženi Iznos",

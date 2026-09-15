@@ -158,6 +158,15 @@
       "view_plans": "Погледни планови"
     },
     "detail": {
+      "continuity": {
+        "backToWorkspace": "Назад кон членскиот простор",
+        "caseLabel": "Случај",
+        "sectionNavigation": "Делови од случајот",
+        "progress": "Напредок",
+        "evidence": "Докази",
+        "history": "Хронологија",
+        "messages": "Пораки"
+      },
       "caseDetails": "Детали за случајот",
       "description": "Опис",
       "claimAmount": "Баран Износ",

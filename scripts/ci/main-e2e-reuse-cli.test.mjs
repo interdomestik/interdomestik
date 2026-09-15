@@ -82,6 +82,15 @@ test('T117C nonce assertion correction preserves corpus parity', () => {
     true
   );
 });
+test('member case detail continuity preserves corpus parity', () => {
+  assert.equal(
+    inspectRepositoryParity({
+      ...sources(),
+      e2eTreeSha: '5674d194c0a301beecdb98c1c81c96b7d9ffe5d5',
+    }).commandChain,
+    true
+  );
+});
 test('parity drift always resolves to a fail-closed reuse decision', async () => {
   const current = sources();
   const checkout = 'ref: ${{ github.event.pull_request.head.sha || github.sha }}';

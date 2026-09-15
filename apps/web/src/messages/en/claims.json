@@ -158,6 +158,15 @@
       "view_plans": "View Plans"
     },
     "detail": {
+      "continuity": {
+        "backToWorkspace": "Back to member workspace",
+        "caseLabel": "Case",
+        "sectionNavigation": "Case sections",
+        "progress": "Progress",
+        "evidence": "Evidence",
+        "history": "History",
+        "messages": "Messages"
+      },
       "caseDetails": "Case Details",
       "description": "Description",
       "claimAmount": "Claim Amount",
