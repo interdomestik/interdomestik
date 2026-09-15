@@ -151,6 +151,29 @@ dispositioned as the approved conservative live-name policy, not proof of runtim
 records the limitation. No such symbol exists in the current repository; import admission remains
 independent and no exact-runtime-effect guarantee is claimed.
 
+### S1 — Agent message visibility progress
+
+- Clean fresh S1 worktree starts at #1778 merge; the separate roadmap amendment remains separately owned.
+- Reused supplied Sonnet/Gemini preparation, correcting `lastMessage: string | null`, active
+  `agentClients.status`, fixed limit, selection retention and no inferred HTTP 404.
+- Reproduction in isolated local `interdomestik_ci_s1_e040`: internal-only snippet/count leaked;
+  mixed rows counted internal notes and admitted a synthetic mismatched-tenant message. One local
+  predicate now reuses `withTenant` and the existing public conversation condition for both reads.
+- The page imports `db` through `db.server`; database `db = dbRls`. Local role `postgres` has
+  BYPASSRLS and no tenant setting. Existing message RLS is tenant-only. Focused actual-core proof
+  passes KS/MK under the runtime client and local `interdomestik_rls_test` (NOBYPASSRLS) with
+  explicit tenant context; absent context denies. Test-role SELECT grants are local fixture setup.
+  The page itself supplies no transaction context; production configuration was not accessed.
+- The deterministic matrix covers mixed public/internal, internal-only, empty, nullable visibility,
+  read/self exclusion, foreign message tenant, foreign claim, inactive assignment, unassigned claim,
+  ordering, exact 100 cap and selected metadata outside the initial page. Existing core/page tests
+  pass 6/6. Browser proof, fresh helper review, independent Astra review and final proof remain pending.
+- Read-only helper inventory: general `messages/get.ts` already filters agents and tenant-scopes
+  messages; send returns the inserted permitted row. Legacy `domain-claims/claims/list.ts` unread
+  restricts claimant sender but lacks an explicit internal predicate; mounted V2 `/api/claims`
+  unread also lacks it and uses different own-claim scope. Both stay outside S1 remediation.
+  Admin users unread is admin-only. No general agent authority or full SRS completion is claimed.
+
 ### Completed member evidence upload locale continuity
 
 PR #1778 protected-merged as `81a219608dacf4ee9cfd8ee9f201e8ab156e54d2`; all 13 exact-main

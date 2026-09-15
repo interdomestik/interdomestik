@@ -1,6 +1,7 @@
 import { agentClients, claimMessages, claims, user } from '@interdomestik/database/schema';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import type * as DatabaseModule from '@interdomestik/database';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { and, count, desc, eq, inArray, isNull, ne, or } from 'drizzle-orm';
 type DatabaseClient = typeof DatabaseModule.db;
 
@@ -34,7 +35,8 @@ type ClaimRow = {
   id: string;
   title: string | null;
   claimNumber: string | null;
-  caseLifecycleState: string | null; recoveryLifecycleState: string | null;
+  caseLifecycleState: string | null;
+  recoveryLifecycleState: string | null;
   createdAt: Date | string | null;
   updatedAt: Date | string | null;
   user?: {
@@ -88,9 +90,6 @@ function dedupeClaimsById(claims: AgentProClaimDTO[]): AgentProClaimDTO[] {
   });
 }
 
-/**
- * Pure helper for the claims where clause.
- */
 export function buildAgentWorkspaceClaimsWhere(params: {
   tenantId: string;
   assignedMemberIds: string[];
@@ -151,18 +150,15 @@ async function getClaimByIdInWorkspaceScope(params: {
   return mapToAgentProClaim(matched[0] as ClaimRow);
 }
 
-function buildUnreadMessagesWhere(params: { userId: string; claimIds: string[] }) {
-  return and(
-    inArray(claimMessages.claimId, params.claimIds),
-    isNull(claimMessages.readAt),
-    ne(claimMessages.senderId, params.userId)
+function buildVisibleMessagesWhere(tenantId: string, claimIds: string[]) {
+  // Match the public conversation reader; internal and unspecified visibility stay private.
+  return withTenant(
+    tenantId,
+    claimMessages.tenantId,
+    and(inArray(claimMessages.claimId, claimIds), eq(claimMessages.isInternal, false))
   );
 }
 
-/**
- * Pure core logic for the Agent Workspace Claims Page.
- * Fetches claims, unread counts, and last message snippets.
- */
 export async function getAgentWorkspaceClaimsCore(params: {
   tenantId: string;
   userId: string;
@@ -253,7 +249,6 @@ export async function getAgentWorkspaceClaimsCore(params: {
   const snippetMap = new Map<string, string>();
 
   if (metadataClaimIds.length > 0) {
-    // 3. Fetch Unread Counts (incoming messages only)
     // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
     const unreadCounts = await db
       .select({
@@ -261,14 +256,19 @@ export async function getAgentWorkspaceClaimsCore(params: {
         count: count(claimMessages.id),
       })
       .from(claimMessages)
-      .where(buildUnreadMessagesWhere({ userId, claimIds: metadataClaimIds }))
+      .where(
+        and(
+          buildVisibleMessagesWhere(tenantId, metadataClaimIds),
+          isNull(claimMessages.readAt),
+          ne(claimMessages.senderId, userId)
+        )
+      )
       .groupBy(claimMessages.claimId);
 
     unreadCounts.forEach((row: Record<string, unknown>) =>
       unreadMap.set(row.claimId as string, Number(row.count))
     );
 
-    // 4. Fetch Last Messages (using selectDistinctOn for PG or manual aggregation if needed)
     const lastMessages = await db
       .selectDistinctOn([claimMessages.claimId], {
         claimId: claimMessages.claimId,
@@ -276,7 +276,7 @@ export async function getAgentWorkspaceClaimsCore(params: {
         createdAt: claimMessages.createdAt,
       })
       .from(claimMessages)
-      .where(inArray(claimMessages.claimId, metadataClaimIds))
+      .where(buildVisibleMessagesWhere(tenantId, metadataClaimIds))
       .orderBy(claimMessages.claimId, desc(claimMessages.createdAt));
 
     lastMessages.forEach((row: Record<string, unknown>) =>

@@ -1,0 +1,75 @@
+import { db } from '@interdomestik/database';
+import { getAgentWorkspaceClaimsCore } from '../../src/app/[locale]/(agent)/agent/workspace/claims/_core';
+import { expect, test } from '../fixtures/auth.fixture';
+import { routes } from '../routes';
+import { gotoApp } from '../utils/navigation';
+import { withAgentMessageFixture } from './agent-message-visibility.fixture';
+
+test.describe('Agent message visibility', () => {
+  test('real query excludes internal metadata and preserves scope, ordering and selection', async ({}, info) => {
+    await withAgentMessageFixture(info.project.name, async fixture => {
+      const { agentId: userId, tenantId, claimIds, deniedIds } = fixture;
+      const read = (selectedClaimId?: string) =>
+        getAgentWorkspaceClaimsCore({ db, userId, tenantId, selectedClaimId });
+      const initial = await read();
+      expect(initial.claims.map(claim => claim.id)).toEqual(claimIds.slice(0, 100));
+      expect(initial.claims[0]).toMatchObject({
+        lastMessage: 'S1 public agent reply',
+        unreadCount: 1,
+        policy: null,
+      });
+      for (const index of [1, 2, 3]) {
+        expect(initial.claims[index]).toMatchObject({ lastMessage: null, unreadCount: 0 });
+      }
+      const selected = await read(` ${claimIds[104]} `);
+      expect(selected.claims.map(claim => claim.id)).toEqual([
+        ...claimIds.slice(0, 99),
+        claimIds[104],
+      ]);
+      expect(selected.claims[99]).toMatchObject({
+        lastMessage: 'S1 selected public',
+        unreadCount: 1,
+      });
+      for (const selectedClaimId of deniedIds) {
+        const denied = await read(selectedClaimId);
+        expect(denied.claims.map(claim => claim.id)).toEqual(claimIds.slice(0, 100));
+      }
+      expect(JSON.stringify([initial, selected])).not.toMatch(/secret|unspecified visibility/);
+    });
+  });
+
+  test('mounted workspace renders public snippets and excludes internal counts and content', async ({
+    agentPage,
+  }, info) => {
+    await withAgentMessageFixture(info.project.name, async ({ claimIds }) => {
+      await gotoApp(agentPage, routes.agentWorkspaceClaims(info), info, {
+        marker: 'agent-claims-pro-page',
+      });
+      const rowFor = (id: string) =>
+        agentPage.getByRole('row').filter({
+          has: agentPage.getByText(id, { exact: true }),
+        });
+      const row = rowFor(claimIds[0]);
+      await expect(row).toContainText('S1 public agent reply');
+      await expect(row.getByTestId(`unread-badge-${claimIds[0]}`)).toHaveText('1');
+      for (const index of [1, 2, 3]) {
+        await expect(rowFor(claimIds[index])).toBeVisible();
+        await expect(agentPage.getByTestId(`unread-badge-${claimIds[index]}`)).toHaveCount(0);
+      }
+      await expect(agentPage.locator('body')).not.toContainText('secret');
+      await expect(agentPage.locator('body')).not.toContainText('S1 unspecified visibility');
+      await gotoApp(
+        agentPage,
+        `${routes.agentWorkspaceClaims(info)}?claimId=${claimIds[104]}`,
+        info,
+        {
+          marker: 'agent-claims-pro-page',
+        }
+      );
+      await expect(agentPage.getByTestId('workspace-selected-claim-id')).toHaveText(claimIds[104]);
+      await expect(agentPage.getByTestId(`unread-badge-${claimIds[104]}`)).toHaveText('1');
+      await expect(agentPage.locator('body')).toContainText('S1 selected public');
+      await expect(agentPage.locator('body')).not.toContainText('secret');
+    });
+  });
+});
