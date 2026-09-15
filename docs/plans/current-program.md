@@ -31,20 +31,68 @@ navigation completed through protected product PR #1770 and exact-main health as
 `T410-PESSIMISTIC-MUTATION-BOUNDARY` protected-merged through PR #1772 as
 `62376c156bc0058e0491d550f261cb621eb4f02e` at 2026-09-15T05:02:15Z; exact-merge static, unit,
 E2E, audit, CodeQL, gitleaks, Sonar analysis and Sonar gate checks succeeded. This closes that bounded
-convention slice without claiming full T-410 completion. `MEMBER-CASE-OVERVIEW-ENTRY` completed through PR #1775 as
-`55875e31b024e6ac9f4648f106be3bfea96facbd`. The owner now selects the new member journey
-experience below; the mistakenly queued dashboard retry task is superseded.
+convention slice without claiming full T-410 completion. `MEMBER-CASE-OVERVIEW-ENTRY` completed
+through PR #1775 as `55875e31b024e6ac9f4648f106be3bfea96facbd`.
+`MEMBER-CASE-WORKSPACE-REDESIGN` completed through protected product PR #1776 as
+`06d90f570d8757764a9fac8124ee924bd3b8aa1f`; all 13 required exact-main checks, including the
+Sonar main gate, passed. The owner now selects the bounded member-detail continuation below.
 
-## Selected Member Case Workspace Redesign
+## Selected Member Case Detail Continuity
 
-`MEMBER-CASE-WORKSPACE-REDESIGN` is the sole selected product slice. The owner authorizes a new
-member arrival and case-continuation experience within the already mounted unified shell, with
-one ordinary product PR including predecessor completion and this selection. Initial journey/design
-reconciliation is high complexity, Astra/high: cross-surface information hierarchy and conflicting
-historical visual assumptions. After the design checkpoint, execution is medium complexity,
-Sol/high: three existing presentation components over established contracts, with one implementation
-owner and chief integration. A fresh independent Astra review follows both subscription helpers and
-focused evidence, before expensive final verification.
+`MEMBER-CASE-DETAIL-CONTINUITY` is the sole selected product slice. It is medium complexity,
+Sol/high: presentation and native navigation across the already mounted
+`MemberClaimDetailOpsPage`, four locale catalogs and focused UI/browser contracts. The risk drivers
+are coupled information hierarchy, localization, focus/reflow behavior and exact existing-content
+contracts; no auth/session, tenant/RLS, route, query, schema, document-lifecycle, billing or other
+high-risk boundary is selected. A fresh independent Astra/high review follows the required Sonnet 5
+design/implementation and Gemini counterexample/test contributions before expensive final proof.
+
+The approved confidence-first design continues the case-first member workspace into one coherent
+detail experience. It adds a clear localized return to `/member`, strong case identity, and native
+in-page links to existing progress, evidence, public history and member messaging. Progress remains
+distinct from the existing Case Companion next step. Existing SLA, trust, recovery, matter
+allowance, case description, consent, upload, ordered public timeline and external-only messaging
+remain visible and semantically unchanged. The mounted page remains authoritative; the V2 variant
+is not activated.
+
+### Detail continuity acceptance
+
+- Use native locale-aware links and hash targets; add no tab state, navigation engine, client
+  dependency, invented milestone, ETA, required document, handler or outcome.
+- Preserve exact case identity, status, dates, public timeline order, legal/disclaimer meaning,
+  membership/SLA/recovery data, conditional actions, consent/upload contracts, focus behavior and
+  `allowInternal={false}` messaging.
+- Keep solid reading surfaces with restrained Crystal depth around identity/navigation. Do not copy
+  operator branding or expand this into a portal or membership-pricing redesign.
+- Localize the return and section navigation in SQ/MK/EN/SR. Verify descriptive link purpose,
+  keyboard operation and visible focus, 320/390/768/1440 reflow, enlarged text, dark mode and
+  reduced motion.
+- Map any changed label, order or exact copy to affected unit, gate, golden and smoke assertions;
+  reconcile the browser-corpus fingerprint only through focused resolver contracts.
+
+### Detail-specific research and decisions
+
+Checked 2026-09-15. AirHelp's public contact page exposes claim status through one customer area and
+asks members to use their claim reference when contacting support; Allianz's public Claim Centre
+combines online submit/track with a human-support fallback. Adopt recognizable case identity,
+progress and contextual support; reject their branding, policy taxonomy and any unverified portal
+behavior. W3C's WCAG 2.2 bypass-blocks guidance names links to page areas, landmarks and headings as
+ways to help keyboard and assistive-technology users reach content efficiently; adopt a labelled
+native section list and structural targets without claiming full conformance. The installed Next.js
+16.3.3 Link contract retains anchor semantics and hash navigation; use it without a new client state
+layer. The still-applicable #1776 Apple/Google/WCAG brief supports readable hierarchy, selective
+emphasis, solid content surfaces, reflow and visible focus. Expected benefit: members can orient to
+the correct case, distinguish state from action, and reach evidence, history or a human conversation
+without hunting through the complete page. Test that behavior directly; no usability uplift is yet
+claimed.
+
+## Completed Member Case Workspace Redesign
+
+`MEMBER-CASE-WORKSPACE-REDESIGN` completed the new member arrival and case-continuation experience
+within the mounted unified shell. Initial journey/design reconciliation was high complexity,
+Astra/high; execution was medium complexity, Sol/high, across three existing presentation
+components over established contracts. Protected product PR #1776 merged as
+`06d90f570d8757764a9fac8124ee924bd3b8aa1f`; all 13 required exact-main checks passed.
 
 The complete intended journey is public guidance and situation selection → anonymous preparation →
 secure save/account continuity → member arrival → evidence, case progress and support → explicitly
@@ -76,9 +124,9 @@ case prioritization. The original case-first intent is adopted; unsupported beha
 
 The in-task design checkpoint was presented before product edits on 2026-09-15. It is a synthetic
 preview of the new hierarchy; current mounted screens are behavioral evidence, not a visual lock.
-This slice does not claim completion of the full member journey or select T411/SVC-CORE/Help Now.
+This slice did not claim completion of the full member journey or select T411/SVC-CORE/Help Now.
 Proxy, auth/tenant/RLS, queries, schema/database, claim/money/legal writers, Paddle and deployment
-remain outside scope. The next member surface requires a fresh bounded choice after delivery.
+remained outside scope. The owner subsequently selected `MEMBER-CASE-DETAIL-CONTINUITY` above.
 
 ### Dated research and concrete decisions
 
@@ -233,9 +281,9 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 |        2 | Bounded failed-run retry           | Owner direction | Completed migration trial 2/3. |
 |        3 | Unsupported claim AI document type | Trial 2         | Completed migration trial 3/3. |
 
-These rows, the notification correctness increment, shared shell navigation and optimistic
-notification acknowledgement and pessimistic-mutation boundary are completed history. The sole
-selected increment is `MEMBER-CASE-WORKSPACE-REDESIGN`, defined above.
+These rows, the notification correctness increment, shared shell navigation, both notification
+acknowledgement increments and `MEMBER-CASE-WORKSPACE-REDESIGN` are completed history. The sole
+selected increment is `MEMBER-CASE-DETAIL-CONTINUITY`, defined above.
 
 ## Shared Shell Navigation Increment
 

@@ -16,17 +16,16 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-`MEMBER-CASE-WORKSPACE-REDESIGN` is the sole selected successor on exact main `55875e31`.
-Predecessor `MEMBER-CASE-OVERVIEW-ENTRY` protected-merged in PR #1775; the dashboard retry task
-is superseded by the owner's new member-journey direction.
+`MEMBER-CASE-DETAIL-CONTINUITY` is the sole selected successor on exact main `06d90f570`.
+Predecessor `MEMBER-CASE-WORKSPACE-REDESIGN` protected-merged in PR #1776; all 13 required
+exact-main checks, including the Sonar main gate, passed.
 Shared shell navigation, the bounded T410 notification increments and T210 are completed history.
-The current member screen is legacy integration evidence only. The planned net-new member UI/UX
-belongs in the unified portal shell; canonical role routes and readiness markers do not authorize
-separate dashboard designs or freeze the legacy presentation.
+The mounted member claim detail is the authority; its V2 variant remains dormant. Canonical role
+routes and readiness markers do not authorize a second detail experience.
 
-| ID                               | Status        | Owner    | Work                                                                | Exit Criteria                                                                                                         |
-| -------------------------------- | ------------- | -------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `MEMBER-CASE-WORKSPACE-REDESIGN` | `in_progress` | Sol/high | Redesign member arrival and case continuation in the unified shell. | New case-first hierarchy; localized accessible states; helpers, independent review and exact-head protected delivery. |
+| ID                              | Status        | Owner    | Work                                                                   | Exit Criteria                                                                                                               |
+| ------------------------------- | ------------- | -------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `MEMBER-CASE-DETAIL-CONTINUITY` | `in_progress` | Sol/high | Continue the case-first workspace into the mounted member detail page. | Approved confidence-first hierarchy; localized native section navigation; preserved contracts; reviewed protected delivery. |
 
 T410 PR #1772 protected-merged as `62376c156bc0058e0491d550f261cb621eb4f02e` at
 2026-09-15T05:02:15Z. Exact-merge CI static/unit/E2E, audit, CodeQL, gitleaks, Sonar analysis and
@@ -94,7 +93,39 @@ dispositioned as the approved conservative live-name policy, not proof of runtim
 records the limitation. No such symbol exists in the current repository; import admission remains
 independent and no exact-runtime-effect guarantee is claimed.
 
-### Member workspace redesign progress
+### Member case detail continuity progress
+
+- Fresh remote main, clean worktree and branch `codex/member-case-detail-continuity` verified at
+  `06d90f570d8757764a9fac8124ee924bd3b8aa1f`. PR #1776 is merged and exact-main health is green.
+- Complexity is medium, Sol/high. The slice is presentation/navigation over established detail
+  contracts; proxy, auth/tenant/RLS, routes, queries, schema/data, billing and deployment are excluded.
+- Mounted behavior confirms the gap: the detail page exposes all required content but has no return
+  to the case workspace or in-page route among progress, evidence, public history and messaging.
+  History follows the complete main column on narrow screens. The V2 detail variant is not mounted.
+- The owner approved visual Option A, confidence-first continuity, after a market-signal checkpoint.
+  The design uses strong case identity, separate progress and Case Companion action, native anchors,
+  solid reading surfaces and contextual human support. No hidden tabs, new state engine or invented
+  case semantics are selected.
+- Detail research checked 2026-09-15: AirHelp and Allianz public descriptions support recognizable
+  tracking plus human fallback; W3C bypass-block guidance supports labelled links to page areas,
+  landmarks and headings; installed Next.js Link retains native anchor/hash semantics. Reused #1776
+  Apple/Google/WCAG findings support readable hierarchy, selective depth, reflow and visible focus.
+  These are public/standards signals, not authenticated competitor testing or measured uplift.
+- Broader membership research was sent to the chief architect for later platform selection. Deloitte
+  loyalty, J.D. Power claims, Deloitte EMEA insurance, KPMG UK claims, Mastercard subscription and
+  current ADAC signals favor tangible value, simplicity, control, progress visibility and human
+  reassurance. That briefing does not widen this product PR.
+- Sonnet 5 design/implementation advice and Gemini disjoint counterexamples/tests remain required
+  before fresh independent Astra/high final review. Complete source/test/config capacity and affected
+  unit/gate/golden/smoke contracts must be frozen before implementation and final proof.
+
+### Completed member workspace redesign
+
+Protected product PR #1776 merged head `95b4ae95a04a2eea5ed3154536887402ecc571cd` as
+`06d90f570d8757764a9fac8124ee924bd3b8aa1f` on 2026-09-15. All 13 required exact-main checks,
+including CI static/unit/E2E/audit, CodeQL, gitleaks, Sonar analysis and Sonar gate, passed. No
+deployment or claimant usability validation is claimed. The following notes retain intermediate
+source-bound evidence and then-pending wording.
 
 - Base and fresh remote main verified at `55875e31b024e6ac9f4648f106be3bfea96facbd`; new worktree
   clean before preparation, branch `codex/member-journey-redesign`. Predecessor PR #1775 is merged.
@@ -159,9 +190,9 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                               | Source Refs                      | Execution | Run ID  | Run Root | Sonar   | Docker | Sentry           | Learning         | Evidence Refs                                                                                 |
-| -------------------------------- | -------------------------------- | --------- | ------- | -------- | ------- | ------ | ---------------- | ---------------- | --------------------------------------------------------------------------------------------- |
-| `MEMBER-CASE-WORKSPACE-REDESIGN` | current program; base `55875e31` | `manual`  | pending | local    | pending | pass   | `not_applicable` | `not_applicable` | 39 focused tests and browser checks pass; helpers, independent review and full proof pending. |
+| ID                              | Source Refs                       | Execution | Run ID  | Run Root | Sonar   | Docker | Sentry           | Learning         | Evidence Refs                                                                     |
+| ------------------------------- | --------------------------------- | --------- | ------- | -------- | ------- | ------ | ---------------- | ---------------- | --------------------------------------------------------------------------------- |
+| `MEMBER-CASE-DETAIL-CONTINUITY` | current program; base `06d90f570` | `manual`  | pending | local    | pending | pass   | `not_applicable` | `not_applicable` | Design approved; capacity, helpers, focused proof and independent review pending. |
 
 ### Member case overview entry progress
 
@@ -672,8 +703,9 @@ owner-selected bounded notification acknowledgement increment completed through 
 health verified, and shared shell navigation completed through #1770. `T410-OPTIMISTIC-NOTIFICATION-ACK`
 completed through protected product PR #1771, and the bounded
 `T410-PESSIMISTIC-MUTATION-BOUNDARY` protected-merged through PR #1772 as `62376c15`. This does not
-claim full T-410 completion. `MEMBER-CASE-OVERVIEW-ENTRY` completed in PR #1775. The selected
-successor is `MEMBER-CASE-WORKSPACE-REDESIGN`; it does not select T-411 Smart Next Step.
+claim full T-410 completion. `MEMBER-CASE-OVERVIEW-ENTRY` completed in PR #1775 and
+`MEMBER-CASE-WORKSPACE-REDESIGN` completed in PR #1776. The selected successor is
+`MEMBER-CASE-DETAIL-CONTINUITY`; it does not select T-411 Smart Next Step.
 
 | Completed historical priority            | Status      | Constraint                                                                    |
 | ---------------------------------------- | ----------- | ----------------------------------------------------------------------------- |
