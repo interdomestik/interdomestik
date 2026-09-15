@@ -86,7 +86,9 @@ describe('MemberClaimDetailHeader', () => {
     expect(screen.getByText('Case')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Delayed flight' })).toBeInTheDocument();
     expect(screen.getByText(claimId)).toBeInTheDocument();
-    expect(screen.getByTestId('ops-status-badge')).toHaveTextContent('Evaluation');
+    expect(screen.getByTestId('ops-status-badge').textContent?.replace(/\s+/g, ' ').trim()).toBe(
+      'Evaluation'
+    );
 
     const navigation = screen.getByRole('navigation', { name: 'Case sections' });
     expect(
