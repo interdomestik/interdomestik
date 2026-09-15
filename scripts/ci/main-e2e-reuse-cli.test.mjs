@@ -82,11 +82,11 @@ test('T117C nonce assertion correction preserves corpus parity', () => {
     true
   );
 });
-test('member case detail continuity preserves corpus parity', () => {
+test('member upload locale continuity preserves corpus parity', () => {
   assert.equal(
     inspectRepositoryParity({
       ...sources(),
-      e2eTreeSha: '5674d194c0a301beecdb98c1c81c96b7d9ffe5d5',
+      e2eTreeSha: '469d483c0727f755a5dd27eb02f54192c484ebf6',
     }).commandChain,
     true
   );
