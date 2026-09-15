@@ -35,19 +35,103 @@ convention slice without claiming full T-410 completion. `MEMBER-CASE-OVERVIEW-E
 through PR #1775 as `55875e31b024e6ac9f4648f106be3bfea96facbd`.
 `MEMBER-CASE-WORKSPACE-REDESIGN` completed through protected product PR #1776 as
 `06d90f570d8757764a9fac8124ee924bd3b8aa1f`; all 13 required exact-main checks, including the
-Sonar main gate, passed. The owner now selects the bounded member-detail continuation below.
+Sonar main gate, passed. `MEMBER-CASE-DETAIL-CONTINUITY` completed through protected product PR
+#1777: head `2797a96f7a2af63aae75f2e284e197208e3afe2c`, squash merge
+`b5a234b30b9cb6ed89ae6d81b81960a3a8135b25`, and all required exact-main checks passed. The owner
+now selects the bounded member evidence-upload localization below.
 
-## Selected Member Case Detail Continuity
+## Owner-adopted enterprise delivery sequence (2026-09-15)
 
-`MEMBER-CASE-DETAIL-CONTINUITY` is the sole selected product slice. It is medium complexity,
-Sol/high: presentation and native navigation across the already mounted
+The owner adopts this near-term sequence after the enterprise audit and Opus 5 consultation.
+Finish `MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY` without expanding it; then select one bounded
+successor at a time below. S1–S3 are roadmap labels, not replacements for architecture T IDs.
+This section governs successor ordering over older suggestions; the active slice remains unchanged.
+
+Core M0–M5 has recorded acceptance, not proof of conformance by every app-layer consumer.
+T-410 remains partial; T-411 retains its SVC-CORE/FLIGHT-03 dependencies. Unknown overlay status
+proves neither completion nor absence. Preserve delivered shell, projections, timeline and contracts.
+SRS v0.9 (2026-08-17 review baseline; SHA-256
+`8bc2b69c9babf8f228941378a01a32340f23d3ff061f92c574a9a908472981a2`) guides requirement mapping;
+repo/program/accepted ADR authority remains controlling until explicitly amended.
+
+1. **S1 — Agent message visibility.** Reproduce internal latest-message and unread-count leakage
+   through the actual query path and identify client/RLS behavior. Reuse existing visibility logic
+   where bounded; preserve tenant/assignment scope, ordering and selected-claim limits. Require
+   database-backed internal/public, internal-only, unread, cross-tenant and unassigned cases plus
+   rendered-output exclusion. Check in-flight ownership first. Inventory sibling reads inside S1;
+   do not fix unrelated hits or change general agent messaging authority. Production assessment
+   runs alongside remediation and creates no implicit production access or deployment authority.
+2. **S2 — Branch overview scope protection.** The selected brief must determine whether current
+   contracts authorize tenant-wide branch-manager aggregates. If not, explicitly withhold metrics
+   without canonical branch attribution or restrict the page under that contract. If authorized,
+   preserve them and limit this slice to missing-branch failure handling and tests. Do not invent
+   attribution or silently remove capabilities; an unresolved contract blocks only that decision.
+   Verify actual route admission, metric content, two same-tenant branches, another tenant,
+   missing branch and unchanged tenant-admin output on the real query path. Attribution-correct
+   restoration follows its approved decision; no global auth rewrite.
+3. **S3 — Member–staff evidence journey.** Exercise submission, staff acceptance, evidence request,
+   member upload and staff acknowledgement on the existing shell. Map steps to SRS IDs and existing
+   contract receipts; reuse current E2E/multi-role fixtures and the localization predecessor. Stop
+   at the first unsupported handoff and select its bounded contract gap next; do not absorb it
+   into this slice or claim complete end-to-end acceptance. Include continuity, contracted events,
+   internal-message exclusion and unauthorized member/agent/branch paths. A representative locale
+   does not replace existing four-locale coverage; branding isolation applies where exercised.
+
+After this sequence, select the next ready bounded outcome: the first unmet SVC-CORE clause and
+SVC-06 Help Now (retaining its business priority when approvals/dependencies are ready), approved
+agent acquisition/handoffs, branch oversight and tenant-admin controls with separate platform-admin
+authority, then recovery/settlement/closure gaps. Flight/T-411/SVC-DASH/CQRS retain the existing
+architecture dependency rows; they are not blanket prerequisites for unrelated journeys.
+
+The chief prepares evidence; the product owner decides business policy or names a delegate.
+Record the accountable person and needed-by slice in the tracker for branch attribution, agent
+authority/SRS-ADR conflicts and country/content/stop-rule approval. A blocked decision blocks only
+its dependents; record why a ready independent outcome advances. Check only direct predecessors;
+T-410 disposition, T-115/OD17 reconciliation, stale SVC-CORE-b and unrelated inventory are not
+prerequisites for S1–S3. Material scope/authority changes remain subject to explicit disposition.
+
+Use the existing model/helper and review policy. Keep `pnpm pr:verify` including full E2E,
+`pnpm security:guard`, capacity and protected delivery; avoid duplicate runs, not required proof.
+Update canonical evidence with ordinary delivery, verify exact-main health, then retire the clean
+worktree and start the next implementation fresh. Preserve dirty/unmerged work until reconciled.
+No routine promotion/closeout PR or tooling project is added. Merged is not deployed or user-accepted.
+Reuse the 2026-09-15 DORA small-batch/AI and GOV.UK whole-journey research; measured local tools
+are supplemental, not another prerequisite. This is sequencing authority, not completion evidence.
+
+## Selected Member Evidence Upload Locale Continuity
+
+`MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY` is the sole selected product slice. It is medium
+complexity, Sol/high: localize the established member `ClaimEvidenceUploadDialog` wrapper and prove
+it on the mounted claim-detail header/evidence and documents surfaces. The shared upload component,
+direct/signed transport, MIME handling, claim/category mapping, optional AI-extraction consent,
+reset/focus behavior and raw provider/server errors remain authoritative and unchanged. No backend
+taxonomy, auth/proxy/tenant/RLS, schema/database/storage/API, billing, routing, dependency or shared
+admin-consumer expansion is selected.
+
+The candidate adds exact EN/SQ/MK/SR wrapper catalogs and active-locale payload wiring. Four-locale
+unit contracts cover exact copy/no English fallback, consent false/true/reset, file-change and reopen
+reset, direct/signed payloads, pending/cancel/failure/success, raw error passthrough and focus return.
+The deterministic mounted lane passes 8/8 across SQ/EN and MK/SR with both detail triggers and the
+documents trigger, keyboard activation, 320px/desktop layout, long copy, actual dark mode, reduced
+motion and blocked upload traffic. The exact admitted E2E tree is
+`469d483c0727f755a5dd27eb02f54192c484ebf6`; its fail-closed resolver passes 12/12. Sonnet 5 and
+Gemini supplied bounded implementation/test counterexamples; accepted corrections include canonical
+category/error assertions and extraction-specific MK consent. Fresh independent Astra/high review
+found no actionable issue and independently passed the focused contract/capacity checks. Final full
+proof, protected review, merge and exact-main health remain pending.
+
+## Completed Member Case Detail Continuity
+
+`MEMBER-CASE-DETAIL-CONTINUITY` completed through protected product PR #1777 as
+`b5a234b30b9cb6ed89ae6d81b81960a3a8135b25`. It was medium complexity, Sol/high: presentation
+and native navigation across the already mounted
 `MemberClaimDetailOpsPage`, four locale catalogs and focused UI/browser contracts. The risk drivers
 are coupled information hierarchy, localization, focus/reflow behavior and exact existing-content
 contracts; no auth/session, tenant/RLS, route, query, schema, document-lifecycle, billing or other
-high-risk boundary is selected. A fresh independent Astra/high review follows the required Sonnet 5
-design/implementation and Gemini counterexample/test contributions before expensive final proof.
+high-risk boundary was selected. Fresh independent Astra/high review followed the required Sonnet 5
+design/implementation and Gemini counterexample/test contributions before final proof.
 
-The bounded candidate now implements the localized identity header and native section anchors on
+The delivered slice implements the localized identity header and native section anchors on
 the mounted detail page without changing routing, authorization, tenancy, data or shared-panel
 contracts. Focused component proof passes 8/8; the isolated seed contract passes 8/8; and the
 corrected deterministic continuity gate passes 4/4 across SQ/EN and MK/SR, including keyboard,
@@ -56,8 +140,8 @@ reporting no seeded detail link, so the isolated gate remains the authoritative 
 exact admitted E2E tree is `5674d194c0a301beecdb98c1c81c96b7d9ffe5d5`. The executable modularity
 guard passes after compacting the focused Ops test to 281 lines and assigning only the four
 `claims.json` catalogs the owner-approved `member-case-detail-continuity-contract`; no threshold,
-exception or capacity was widened. Protected review, final proof, merge and exact-main health remain
-pending.
+exception or capacity was widened. Protected review, final proof, merge and exact-main health passed;
+no deployment or claimant usability validation is claimed.
 
 The approved confidence-first design continues the case-first member workspace into one coherent
 detail experience. It adds a clear localized return to `/member`, strong case identity, and native
@@ -294,8 +378,9 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 |        3 | Unsupported claim AI document type | Trial 2         | Completed migration trial 3/3. |
 
 These rows, the notification correctness increment, shared shell navigation, both notification
-acknowledgement increments and `MEMBER-CASE-WORKSPACE-REDESIGN` are completed history. The sole
-selected increment is `MEMBER-CASE-DETAIL-CONTINUITY`, defined above.
+acknowledgement increments, `MEMBER-CASE-WORKSPACE-REDESIGN` and `MEMBER-CASE-DETAIL-CONTINUITY`
+are completed history. The sole selected increment is
+`MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY`, defined above.
 
 ## Shared Shell Navigation Increment
 
