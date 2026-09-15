@@ -91,6 +91,15 @@ test('member upload locale continuity preserves corpus parity', () => {
     true
   );
 });
+test('S1 agent message visibility preserves corpus parity', () => {
+  assert.equal(
+    inspectRepositoryParity({
+      ...sources(),
+      e2eTreeSha: '8892fb8818e0d6861ac7d152249a4b15a5221890',
+    }).commandChain,
+    true
+  );
+});
 test('parity drift always resolves to a fail-closed reuse decision', async () => {
   const current = sources();
   const checkout = 'ref: ${{ github.event.pull_request.head.sha || github.sha }}';

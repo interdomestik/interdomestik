@@ -19,7 +19,8 @@ status_command: pnpm plan:status
 `S1-AGENT-MESSAGE-VISIBILITY` is the sole selected product slice on protected main
 `81a219608dacf4ee9cfd8ee9f201e8ab156e54d2`. The localization predecessor completed through
 PR #1778 with all 13 exact-main checks passed. S1 implementation is in progress in task
-`01a0a6b8-163e-74f3-b8e9-6dc43f1bb357`; full verification and protected delivery remain pending.
+`01a0a6b8-163e-74f3-b8e9-6dc43f1bb357`; renewed full verification and separate security passed at `94ac9167` after the dedicated-agent and synthetic baseline corrections;
+protected delivery and exact-main health remain pending.
 
 | ID                            | Status        | Owner      | Work                                                                  | Exit Criteria                                                                                                                     |
 | ----------------------------- | ------------- | ---------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
@@ -150,6 +151,127 @@ dispositioned as the approved conservative live-name policy, not proof of runtim
 [review reply](https://github.com/interdomestik/interdomestik/pull/1772#discussion_r4011853886)
 records the limitation. No such symbol exists in the current repository; import admission remains
 independent and no exact-runtime-effect guarantee is claimed.
+
+### S1 — Agent message visibility progress
+
+- S1 started at #1778 and rebased onto protected roadmap merge `520adfcf0781d80eebefda500f24c55acc341888`. Preserve its requirement map and chief-owned status/ledger corrections.
+- Reused supplied Sonnet/Gemini preparation, correcting `lastMessage: string | null`, active
+  `agentClients.status`, fixed limit, selection retention and no inferred HTTP 404.
+- Reproduction in isolated local `interdomestik_ci_s1_e040`: internal-only snippet/count leaked;
+  mixed rows counted internal notes and admitted a synthetic mismatched-tenant message. One local
+  predicate now shares exact tenant equality and the existing public conversation condition for both reads.
+- The page imports `db` through `db.server`; database `db = dbRls`. Local role `postgres` has
+  BYPASSRLS and no tenant setting. Existing message RLS is tenant-only. Focused actual-core proof
+  passes KS/MK under the runtime client and local `interdomestik_rls_test` (NOBYPASSRLS) with
+  explicit tenant context; absent context denies. Test-role SELECT grants are local fixture setup.
+  The page itself supplies no transaction context; production configuration was not accessed.
+- The deterministic matrix covers mixed public/internal, internal-only, empty, nullable visibility,
+  read/self exclusion, foreign message tenant, foreign claim, inactive assignment, unassigned claim,
+  ordering, exact 100 cap and selected metadata outside the initial page. Existing core/page tests
+  pass 6/6. The query+mounted KS/MK gate passes 4/4. First mounted attempt passed 3/4: MK transition
+  briefly duplicated the badge locator; scoping the current visible workspace fixed the test. No
+  product change was needed for that test correction. The final drawer-locator run passed 4/4
+  at `cfbb171f`; its stale build stamp triggered a guarded rebuild (126 seconds total).
+- Subscription lifecycle review of `a1740cad` returned no findings: requested/reported
+  `claude-sonnet-5` (110 seconds) and `gemini-3.1-pro-preview` (159 seconds). Their role claims
+  are provider-reported, not independent attestation; their statements of executed proof are
+  proposals unless matched by owner receipts. Targeted Gemini follow-up identified the remaining selected-marker transition risk; scope it
+  to the visible drawer. Its suggested workspace-parent scope was rejected because SheetContent
+  portals outside that root. The corrected locator is included in the final 4/4 execution receipt.
+- Fresh independent Astra/high review passed all eight changed files at `cfbb171f` after helper
+  corrections; the requested route has no independent runtime model/effort attestation. The
+  read-only rebase delta review also passed at `832e7d898`, without duplicating tests.
+- Exact test allocation is 10,434 bytes (two new files and 73 added bytes in the existing CRM test)
+  plus 651 bytes of budget metadata and 57 bytes for the existing capacity test fixture; existing
+  source is below capacity-baseline bytes and is 326 lines. Capacity-only independent review
+  interprets the owner's S1-through-completion instruction as authority for this necessary scoped
+  allocation, not prior numeric approval. Reserve and unrelated allocations remain unchanged.
+- Admitted E2E tree `8892fb8818e0d6861ac7d152249a4b15a5221890` includes S1 fixtures/tests
+  and the bounded CRM fixture selector correction. A registered corpus hash is not an execution receipt.
+- Supplemental pre-rebase harness proof passes 299/299 and `track:audit` passes. The two stale
+  proof-ledger findings from `plan:audit` are resolved by the roadmap merge and rechecked here.
+- Uninterrupted full `pnpm pr:verify` passed at `832e7d898ee0df3e9accd8e398d33b02b53a2fa0`
+  (tree `5c73028ff8c059caad13a54c66c4ae5d80ba5e72`): 1,185 CI contracts, 154 release tests,
+  41 RLS tests, 3,394 web tests/12 skips, 81.32% line coverage, 260 browser passes/12 skips,
+  and 13 smoke passes/11 skips. Separate security guard passed. Runtime: isolated local S1 DB,
+  explicit KS/MK nip.io hosts, upload disabled; elapsed 699 seconds. Log SHA-256:
+  `70ac415660c53346eee056cb64bf9ecb1b6f0ac2b370ec2a1fb6961f10b5d30f`.
+  This subsequent evidence-only edit changes no runtime, configuration, tests or workflow inputs;
+  retain the named heavy-proof identity and rerun affected plan/capacity/security checks.
+  Protected current-head review/delivery and exact-main health remain pending.
+- Delivery lesson: inspect actual DTOs and portal placement before test integration, and include
+  harness/plan audits before the first push. Local fixture/locator corrections are recorded above;
+  the first hosted push found a cross-project fixture race, so a first-push review pass is not claimed.
+  No measured time saving is claimed.
+- Hosted P2 [cross-project isolation finding](https://github.com/interdomestik/interdomestik/pull/1780#discussion_r4020554901)
+  reproduced in both tenants: project-local ordering cannot isolate the shared seeded agent.
+  The first correction used a dedicated one-connection PostgreSQL client for a per-agent advisory
+  lock through callback/cleanup. The later sibling-consumer correction below supersedes it. Production code is unchanged. Actual
+  concurrent query and thrown-callback cleanup/reacquisition probes pass with `DB_MAX_CONNECTIONS=1`.
+  Gemini's targeted proposal review passed (81 seconds); browser-name/count guesses were rejected.
+  [Playwright parallelism](https://playwright.dev/docs/test-parallel) and
+  [PostgreSQL 15 advisory locks](https://www.postgresql.org/docs/15/explicit-locking.html#ADVISORY-LOCKS)
+  were checked for this correction. Six-worker all-project execution passed 14/14 at `9923746f`
+  (two setup checks plus twelve query/mounted cases), including a one-connection main pool.
+  Independent consolidated review and renewed full proof passed at `d161bdd1`; earlier full
+  proof remains attributed to its original test inputs.
+- Sonar's green summary contained two deprecated `withTenant` annotations and a fixture nested
+  ternary. The task chief directed preservation of exact existing tenant equality with the smallest
+  local predicate: inline the same conjunction in the shared message predicate, matching the core's
+  existing claim scope. `claimMessages` has no `accessTenantId`; no incompatible column alias,
+  trimming change, warning suppression or generalized helper is introduced. Fixture owner lookup
+  replaces the nested ternary, and real-query cases assert missing/padded tenant IDs stay denied.
+  Sonnet returned the supporting static proposal (89 seconds, reported `claude-sonnet-5`), but its
+  route receipt failed with `no explicit PASS or FINDINGS` because the verdict was Markdown-bold.
+  Retain that failed receipt and raw contribution; do not count it as a passing route or repeat it.
+- Consolidated independent Astra/high review passed all eight files at `d161bdd1`; it ran no
+  duplicate tests. Fresh real-query cases pass 2/2, runtime/restricted-role matrices and six core/page
+  tests pass; harness 299/299, plan/track/capacity/modularity/security checks pass. Renewed uninterrupted
+  `pnpm pr:verify` passed at `d161bdd1e1ef1d1661fff2ad671464f774b56c5a`
+  (tree `4609f0e3209ee47a238ec66e0894a9d841b6d575`): 1,185 CI, 154 release, 41 RLS,
+  3,394 web/12 skips, 81.32% coverage, 260 browser/12 skips and 13 smoke/11 skips; 661 seconds.
+  Private log SHA-256: `8059feaf02bb43210e7cf873fe401cbe38c8f923e2a02c6abd61ac5ea3c8579a`.
+  The `34d5a473` receipt-only update changed no tested input. The later fixture correction changes
+  test inputs and requires new full proof; retain these results under their original identity.
+  Lesson confirmed by the first hosted review: inspect cross-project fixture sharing and actual
+  helper deprecations, and read annotations even when check summaries pass. No time saving is claimed.
+- Read-only helper inventory: general `messages/get.ts` already filters agents and tenant-scopes
+  messages; send returns the inserted permitted row. Legacy `domain-claims/claims/list.ts` unread
+  restricts claimant sender but lacks an explicit internal predicate; mounted V2 `/api/claims`
+  unread also lacks it and uses different own-claim scope. Both stay outside S1 remediation.
+  Admin users unread is admin-only. No general agent authority or full SRS completion is claimed.
+
+- Second hosted P2 [sibling consumer finding](https://github.com/interdomestik/interdomestik/pull/1780#discussion_r4020785277)
+  reproduced KS/MK: the selection spec picked an S1 temporary assignment and lost its claim on
+  cleanup. Each S1 fixture now owns a unique branch, agent, credential and members. Mounted tests
+  sign in through the normal email endpoint and assert the returned agent identity. Exact cleanup
+  removes owned messages, claims, assignments, sessions, accounts, users and branch. The obsolete
+  advisory lock and its Sonar nested-template warning are removed.
+- Focused consumer inventory found the CRM routing spec's tenant-wide arbitrary-agent picker.
+  The chief authorized pinning it to the existing tenant-scoped seeded agent with no fallback;
+  no production CRM change is included. Concurrent core matrices and thrown-callback cleanup pass
+  with a one-connection main pool; the original selection consumer retains its seeded claim.
+  Independent fixture/auth logic review passed without duplicate execution; focused consumer inventory
+  found no further S1-induced held-ID collision. Six-worker S1/selection/CRM execution passed 44 cases
+  against the recorded working-candidate file hashes and E2E corpus. Renewed full proof passed below.
+
+- The first dedicated-agent full attempt at `93e24a23` stopped with 1,184/1,185 CI contracts
+  passing. The synthetic T118 capacity example counted the existing CRM test as a new file.
+  Its presence in the fixed capacity baseline was verified; a one-line existing-path entry corrects
+  that example, with 57 bytes attributed to the capacity-test allocation. Evaluator, policy and
+  assertions remain unchanged. This is a synthetic baseline-inventory issue, not a product defect.
+
+- Independent integrated review passed `93e24a23`; the baseline-only delta review passed
+  `94ac9167`, with no duplicate test execution. Full CI contracts passed 1,185/1,185 before retry.
+  Renewed uninterrupted `pnpm pr:verify` passed at `94ac916725143c2291e3fc2db0dee40703905a35`
+  (tree `6b7b2c5c3af15b81dba0105571b86ff24e5694f6`): 1,185 CI contracts, 154 release tests,
+  41 RLS tests, 3,394 web tests/12 skips, 81.32% line coverage, 260 browser passes/12 skips,
+  and 13 smoke passes/11 skips; 653 seconds. Separate security passed at the same source.
+  Private log SHA-256: `6d3d4daa6645f16d1fbc569e31fddc9b83842c9087bad2cc6f1263ed3f4319f0`.
+  The following receipt-only update changes no tested input; retain this full-proof identity and
+  recheck affected document/capacity/security guards. Protected delivery and exact-main health remain
+  pending. Lesson: fixture isolation must cover sibling consumers as well as project copies; no
+  elapsed-time saving is inferred from these runs.
 
 ### Completed member evidence upload locale continuity
 
@@ -327,9 +449,9 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                            | Source Refs                       | Execution | Run ID | Run Root | Sonar   | Docker | Sentry    | Learning         | Evidence Refs                                                                                                                                     |
-| ----------------------------- | --------------------------------- | --------- | ------ | -------- | ------- | ------ | --------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S1-AGENT-MESSAGE-VISIBILITY` | current program; base `81a219608` | `manual`  | local  | local    | pending | pass   | `pending` | `not_applicable` | Active task reports reviewed implementation and focused query/mounted 4/4 proof; full verification, hosted review and protected delivery pending. |
+| ID                            | Source Refs                       | Execution | Run ID | Run Root | Sonar   | Docker | Sentry    | Learning         | Evidence Refs                                                                                                              |
+| ----------------------------- | --------------------------------- | --------- | ------ | -------- | ------- | ------ | --------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `S1-AGENT-MESSAGE-VISIBILITY` | current program; proof `94ac9167` | `manual`  | local  | local    | pending | pass   | `pending` | `not_applicable` | Final local pr:verify/security and independent review passed at94ac9167; protected delivery and exact-main health pending. |
 
 ### Member case overview entry progress
 

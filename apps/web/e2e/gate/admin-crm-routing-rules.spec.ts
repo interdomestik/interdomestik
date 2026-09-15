@@ -32,7 +32,11 @@ async function resolveAdminRoutingContext(testInfo: Parameters<typeof getTenantF
 
   const agent = await db.query.user.findFirst({
     columns: { branchId: true, id: true, tenantId: true },
-    where: and(eq(user.tenantId, admin.tenantId), eq(user.role, 'agent')),
+    where: and(
+      eq(user.tenantId, admin.tenantId),
+      eq(user.role, 'agent'),
+      eq(user.email, credsFor('agent', tenant).email)
+    ),
   });
 
   if (!agent?.id) {

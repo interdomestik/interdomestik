@@ -188,9 +188,25 @@ regressions. Preserve active agent-client assignment, tenant/branch scope, selec
 retention, the 100-row cap, ordering and DTO shape. No general agent messaging authority,
 proxy/auth/routing/schema refactor, dashboard redesign or deployment is selected.
 
+The actual core reproduced internal-only content/count leakage. Local runtime `db` aliases
+`dbRls`, but its configured fallback role is BYPASSRLS; the tenant-only message policy does
+not encode internal-message visibility. Reuse the established conversation reader's
+`isInternal = false` semantics and exact tenant equality through one local predicate for both reads.
+`NULL` visibility remains excluded, matching that reader. Source inventory identifies separate
+legacy/V2 unread readers; they are recorded, not expanded into S1.
+
+Research checked 2026-09-15: installed Drizzle 0.45.2 and local PostgreSQL 15.8.
+[PostgreSQL RLS](https://www.postgresql.org/docs/15/ddl-rowsecurity.html) explains that BYPASSRLS
+roles bypass policies; [Drizzle select](https://orm.drizzle.team/docs/select) documents filters
+and PostgreSQL distinct-on ordering. Adopt explicit public/tenant predicates before count or
+latest-row selection; reject reliance on a client alias as proof of RLS. Verify actual role,
+policies, both tenant fixtures and rendered exclusion. No production posture is inferred.
+
 Implementation is in progress in task `01a0a6b8-163e-74f3-b8e9-6dc43f1bb357`.
-Current-head full verification, protected delivery and exact-main health remain pending;
-this selection does not claim S1 completion.
+Renewed full `pnpm pr:verify` and separate `pnpm security:guard` passed at `94ac9167`.
+Dedicated fixture agents/branches and a deterministic CRM test agent resolve the hosted
+cross-project and sibling-consumer findings. Protected delivery and exact-main health
+remain pending. This selection does not claim S1 completion.
 
 ## Completed Member Evidence Upload Locale Continuity
 

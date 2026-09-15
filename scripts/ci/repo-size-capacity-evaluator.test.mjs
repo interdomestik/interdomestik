@@ -181,6 +181,7 @@ test('capacity rebase permits T118 promotion without a budget edit', () => {
   const exact = budget.allocations.filter(item => item.mode === 'exact');
   const promotion = budget.allocations.find(item => item.id === 't118-promotion');
   const existingPaths = new Set([
+    'apps/web/e2e/gate/admin-crm-routing-rules.spec.ts',
     'scripts/repo-size-budget.json',
     'scripts/repo-size-budget-sync-core.mjs',
     'scripts/repo-size-audit.mjs',
