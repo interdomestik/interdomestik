@@ -45,15 +45,13 @@ export async function PortalCasesRegion({ copy, promise }: CaseProps) {
           summary.reference?.trim() || `${labels.referenceFallback} ${index + 1}`;
         const entry = (
           <Link
-            className="inline-block min-h-11 w-fit max-w-full whitespace-normal rounded-lg px-3 py-2.5 font-medium underline decoration-2 underline-offset-4 [overflow-wrap:anywhere] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="inline-block min-h-11 max-w-full rounded-lg p-3 font-medium underline decoration-2 underline-offset-4 [overflow-wrap:anywhere] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             href={`/member/claims/${encodeURIComponent(summary.id)}`}
           >
             {copy.caseEntryLabel} {referenceValue}
           </Link>
         );
-        return (
-          <div key={summary.id}>{renderCaseSummary(summary, labels, entry, referenceValue)}</div>
-        );
+        return renderCaseSummary(summary, labels, entry, referenceValue);
       })}
     </PortalUi.RefractiveGlassPanel>
   );

@@ -1,4 +1,4 @@
-import { createElement, type ComponentType, type ReactElement, type ReactNode } from 'react';
+import { createElement, type ComponentType, type ReactNode } from 'react';
 
 import type { CaseSummary, CaseSummaryKind } from '@interdomestik/domain-member';
 
@@ -9,7 +9,7 @@ import {
 } from './accident-case-summary';
 import { GenericCaseSummary } from './generic-case-summary';
 
-export type CaseKindDescriptor = { component: ComponentType<CaseSummaryCardProps> };
+type CaseKindDescriptor = { component: ComponentType<CaseSummaryCardProps> };
 
 export const caseKindRegistry = {
   accident: { component: CaseSummaryCard },
@@ -21,7 +21,7 @@ export function renderCaseSummary(
   labels: CaseSummaryLabels,
   entry: ReactNode,
   referenceValue: string
-): ReactElement {
+) {
   const Component = caseKindRegistry[summary.caseKind].component;
-  return createElement(Component, { entry, labels, referenceValue, summary });
+  return createElement(Component, { entry, key: summary.id, labels, referenceValue, summary });
 }

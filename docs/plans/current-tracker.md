@@ -112,9 +112,9 @@ next-step source order while adding wrapping, a 44px minimum link target and vis
 The focused route-mapping test failed RED with no link role, then passed GREEN for three distinct
 cases and exact logical paths. Case renderer, portal boundary/catalog and request-context suites pass
 36 tests; web type-check passes. The executable modularity policy passes with one advisory: the
-existing portal runtime is 157 lines against the 150-line preferred checkpoint and remains below the
+existing portal runtime is 155 lines against the 150-line preferred checkpoint and remains below the
 300-line review boundary. The initial capacity check exposed the complete changed source/test
-surface before final verification. The consolidated measured proposal, pending owner authority, is:
+surface before final verification. The consolidated measured proposal is owner-approved and applied:
 `t117b-portal` total 16,644→17,449, source 2,904→3,603, tests 2,341→2,447, and its three
 changed path caps 1,062→1,670, 2,341→2,447 and 832→923; `t117b-cutover` total
 39,769→41,738, source 5,611→6,329, tests 15,105→16,356 and the boundary-test path
