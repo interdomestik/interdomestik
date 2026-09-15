@@ -48,6 +48,18 @@ slice after authorizing both subscription reviews. Existing independent Astra re
 The build-generated declaration is excluded. Protected review/merge and exact-main health remain
 pending; this evidence-only update does not transfer proof to changed implementation.
 
+Default-binding correction: review at `52a0b908` reproduced missed destructuring/parameter
+literal defaults. The added regression failed before the fix and all six focused contracts pass
+after it. Own initializer chains now include binding elements and parameters; object projection
+and reassigned-key flow remain excluded. Independent review additionally caught parameter/body
+shadowing under the checker's default ES5 target; matching the parser's Latest target and two
+opposite-direction regressions address it. The owner approved the 759-byte supplement and a
+further 190 bytes: helper 5,181 bytes/130 lines, test 10,931 bytes/247 lines; no new files or
+budget self-size change. Gemini's bounded contribution supplied four proposals, executed as eight
+paired checks; all passed. Independent review passed 92 checks on the corrected candidate.
+Renewed full proof remains pending;
+the `ee594164` proof below is historical and does not certify the changed default-binding source.
+
 ## Proof Ledger
 
 | ID                                   | Source Refs                                     | Execution  | Run ID     | Run Root | Sonar          | Docker | Sentry           | Learning         | Evidence Refs                                                                                                                                                |

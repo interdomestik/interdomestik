@@ -37,7 +37,7 @@ export function scan(source, name = 'x.tsx') {
   };
   const tree = ts.createSourceFile(name, source, ts.ScriptTarget.Latest, true);
   collect(tree);
-  const options = { noLib: true, noResolve: true, allowJs: true };
+  const options = { noLib: true, noResolve: true, allowJs: true, target: ts.ScriptTarget.Latest };
   const host = ts.createCompilerHost(options);
   host.getSourceFile = file => (file === name ? tree : undefined);
   const checker = ts.createProgram([name], options, host).getTypeChecker();
@@ -51,7 +51,14 @@ export function scan(source, name = 'x.tsx') {
       ? checker.getShorthandAssignmentValueSymbol(node.parent)
       : checker.getSymbolAtLocation(node);
     const declaration = symbol?.valueDeclaration;
-    if (!declaration || seen.has(declaration) || !ts.isVariableDeclaration(declaration)) return;
+    if (
+      !declaration ||
+      seen.has(declaration) ||
+      (!ts.isVariableDeclaration(declaration) &&
+        !ts.isBindingElement(declaration) &&
+        !ts.isParameter(declaration))
+    )
+      return;
     seen.add(declaration);
     return literal(declaration.initializer, seen);
   };

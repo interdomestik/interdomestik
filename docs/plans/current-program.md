@@ -290,6 +290,16 @@ after its five-minute no-output timeout. Independent Astra review remains valid 
 split. The tracker records identities and limitations. Current-head review disposition, protected
 merge and exact-main health remain pending; no deployment or successor is authorized.
 
+Fresh review of `52a0b908` identified defaulted computed-key declarations missing from literal
+resolution. The correction follows own initializers on variables, binding elements and parameters;
+renamed/array/parameter defaults, lexical aliases, inert data, shadowing and cycles are covered.
+Object-property projection and reassigned-key flow remain outside the bounded contract.
+The owner approved 759 more bytes and a further 190 bytes for matching the checker's target to
+the parser and covering parameter/body shadowing: helper 5,181, test 10,931, T410 total 67,594,
+source 20,361 and tests 46,031; global total 61,283,259, source 8,850,403 and tests 7,077,378.
+Files, budget self-size, config, reserves and guards are unchanged. Previous full proof is
+historical; renewed full verification is required for this default-binding correction.
+
 ## Ordinary Product Delivery
 
 The owner adopts the ordinary protected-PR workflow demonstrated by trials 2 and 3

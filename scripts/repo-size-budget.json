@@ -1219,12 +1219,12 @@
         "scripts/ci/modularity-guard-t410-catalogs.test.mjs",
         "scripts/ci/t410-reference-guard.mjs"
       ],
-      "maxTrackedBytesDelta": 66645,
+      "maxTrackedBytesDelta": 67594,
       "maxTrackedFilesDelta": 8,
       "maxCategoryBytesDelta": {
         "config/data/messages": 1202,
-        "source/scripts": 20212,
-        "tests/e2e": 45231
+        "source/scripts": 20361,
+        "tests/e2e": 46031
       },
       "maxPathBytesDelta": {
         "apps/web/e2e/gate/front-door-session-context.spec.ts": 4e3,
@@ -1243,8 +1243,8 @@
         "apps/web/src/messages/sr/notifications.json": 500,
         "packages/domain-communications/src/notifications/mark-read.test.ts": 1600,
         "packages/domain-communications/src/notifications/mark-read.ts": 900,
-        "scripts/ci/modularity-guard-t410-catalogs.test.mjs": 10131,
-        "scripts/ci/t410-reference-guard.mjs": 5032
+        "scripts/ci/modularity-guard-t410-catalogs.test.mjs": 10931,
+        "scripts/ci/t410-reference-guard.mjs": 5181
       }
     },
     {
@@ -1312,15 +1312,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61282310,
+  "maxTrackedBytes": 61283259,
   "maxTrackedFiles": 6058,
   "maxCategoryBytes": {
     "config/data/messages": 2232807,
     "docs/text": 8541936,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8850254,
-    "tests/e2e": 7076578
+    "source/scripts": 8850403,
+    "tests/e2e": 7077378
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
