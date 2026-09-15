@@ -79,6 +79,11 @@ repo/program/accepted ADR authority remains controlling until explicitly amended
 
 ### Owner-adopted product-readiness roadmap (2026-09-15)
 
+Maintain the [requirement disposition map](requirement-disposition-map.md) as the full SRS and
+architecture-frontier index, not another execution queue. Update affected requirement evidence
+with each slice. Unknown applicability is unresolved, never an implicit post-pilot deferral.
+Pilot readiness does not close the enterprise backlog; only cited owner decisions defer scope.
+
 The owner adopts the corrected Opus consultation as the following product-readiness sequence.
 S1–S3 and the active localization scope above are unchanged. UI/UX is part of each user-facing
 outcome, not a final polish phase. All role journeys use the delivered unified shell; legacy

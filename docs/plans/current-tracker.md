@@ -40,6 +40,11 @@ classification before implementation; no new approval ceremony is required for a
 
 ### Product-readiness roadmap queue
 
+The [requirement disposition map](requirement-disposition-map.md) retains all 510 SRS requirements
+and the unresolved architecture frontier. Maintain affected rows alongside ordinary slice receipts;
+record explicit owner approval for post-pilot deferrals. Its unresolved rows are not automatically
+missing features or blanket prerequisites. Resolve pilot applicability before readiness admission.
+
 Owner-adopted on 2026-09-15; detailed scope and acceptance live only in the current program's
 product-readiness roadmap. These rows do not change the active slice or mark future work complete.
 S4–S14 are outcome families to split into bounded implementation slices, not architecture T IDs.
