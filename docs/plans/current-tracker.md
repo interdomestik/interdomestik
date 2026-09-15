@@ -95,10 +95,10 @@ independent and no exact-runtime-effect guarantee is claimed.
 
 ## Proof Ledger
 
-| ID                                   | Source Refs                                     | Execution  | Run ID     | Run Root | Sonar   | Docker | Sentry           | Learning         | Evidence Refs                                                                                     |
-| ------------------------------------ | ----------------------------------------------- | ---------- | ---------- | -------- | ------- | ------ | ---------------- | ---------------- | ------------------------------------------------------------------------------------------------- |
-| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | current program; architecture T-410/T-401/T-002 | `scripted` | `4849de16` | local    | pass    | pass   | `not_applicable` | `not_applicable` | Protected PR #1772 merged as `62376c15`; exact-merge required checks passed.                      |
-| `MEMBER-CASE-OVERVIEW-ENTRY`         | current program; architecture T-116/T-117/T-118 | `manual`   | pending    | local    | pending | pass   | `not_applicable` | `not_applicable` | RED/GREEN route mapping and four-locale catalog checks pass; final review and full proof pending. |
+| ID                                   | Source Refs                                     | Execution  | Run ID     | Run Root | Sonar   | Docker | Sentry           | Learning         | Evidence Refs                                                                           |
+| ------------------------------------ | ----------------------------------------------- | ---------- | ---------- | -------- | ------- | ------ | ---------------- | ---------------- | --------------------------------------------------------------------------------------- |
+| `T410-PESSIMISTIC-MUTATION-BOUNDARY` | current program; architecture T-410/T-401/T-002 | `scripted` | `4849de16` | local    | pass    | pass   | `not_applicable` | `not_applicable` | Protected PR #1772 merged as `62376c15`; exact-merge required checks passed.            |
+| `MEMBER-CASE-OVERVIEW-ENTRY`         | current program; architecture T-116/T-117/T-118 | `manual`   | pending    | local    | pending | pass   | `not_applicable` | `not_applicable` | Focused review/browser proof pass; expensive full proof and protected delivery pending. |
 
 ### Member case overview entry progress
 
@@ -134,12 +134,17 @@ the unchanged `GenericCaseSummary` spreads every typed prop to `CaseSummaryCard`
 `claim-2` assertion exercises that generic route and link, so no redundant test or product edit was
 accepted. Sonnet's catalog/import confirmation items were satisfied by the existing SQ/MK/EN/SR
 `member_assistance.cases.open` values and locale-aware `@/i18n/routing` Link import. Their valid
-browser-only 320px reflow and native keyboard-focus recommendations remain in the proof plan.
+browser-only 320px reflow and native keyboard-focus recommendations were accepted into proof.
 Independent Astra/high review found the long-reference reflow risk and blank-reference ambiguity;
 the candidate now bounds and wraps the link and maps blank references to the same distinct fallback
 contract. Post-helper Astra/high review passed the corrected production delta, including generic-kind
 forwarding, locale-aware links, key semantics, encoding and unchanged data/security boundaries.
-Actual-browser 320px/focus/navigation evidence and expensive final proof remain pending.
+Actual-browser comparison on the exact pre-change commit and corrected candidate covered desktop and
+320px mobile in EN/MK/SQ/SR. Every locale showed six represented cases with zero direct entries
+before and exactly six after; all after-links preserved locale and reached the existing detail marker.
+Native Tab exposed the configured visible focus ring, and both normal and injected 160-character
+unbroken references held document and card scroll widths to their client widths at 320px. Expensive
+final proof remains pending.
 
 ### T410 pessimistic mutation boundary progress
 
