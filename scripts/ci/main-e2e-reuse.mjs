@@ -30,6 +30,8 @@ const E2E_TREE_SHAS = new Set([
   '469d483c0727f755a5dd27eb02f54192c484ebf6',
   // S1 agent message visibility SQL and mounted exclusion.
   '8892fb8818e0d6861ac7d152249a4b15a5221890',
+  // S2 branch overview scope protection and mounted isolation proof.
+  '354b38ebe3d79b06b994103aa63dc21baf2f5294',
 ]);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {

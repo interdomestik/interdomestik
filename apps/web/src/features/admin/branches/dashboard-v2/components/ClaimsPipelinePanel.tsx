@@ -47,7 +47,11 @@ export function ClaimsPipelinePanel({ pipeline }: ClaimsPipelinePanelProps) {
       <div className="p-4 flex-1 overflow-auto">
         <div className="space-y-2">
           {sorted.map(item => (
-            <div key={item.status} className="flex items-center justify-between text-sm">
+            <div
+              key={item.status}
+              className="flex items-center justify-between text-sm"
+              data-testid={`branch-pipeline-${item.status}`}
+            >
               <span className="capitalize text-muted-foreground">
                 {LOCALIZED_CLAIMS_PIPELINE_STATUSES.has(item.status)
                   ? t(`statuses.${item.status}`)

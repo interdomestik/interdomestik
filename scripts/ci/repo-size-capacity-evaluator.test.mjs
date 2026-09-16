@@ -182,6 +182,15 @@ test('capacity rebase permits T118 promotion without a budget edit', () => {
   const promotion = budget.allocations.find(item => item.id === 't118-promotion');
   const existingPaths = new Set([
     'apps/web/e2e/gate/admin-crm-routing-rules.spec.ts',
+    'apps/web/src/app/[locale]/admin/overview/page.test.tsx',
+    'apps/web/src/app/[locale]/admin/overview/page.tsx',
+    'apps/web/src/features/admin/branches/components/BranchDashboardV2Page.tsx',
+    'apps/web/src/features/admin/branches/dashboard-v2/components/BranchKpiRow.tsx',
+    'apps/web/src/features/admin/branches/dashboard-v2/components/ClaimsPipelinePanel.tsx',
+    'apps/web/src/features/admin/branches/dashboard-v2/server/getBranchDashboardV2Data.ts',
+    'apps/web/src/features/admin/overview/server/get-admin-overview-data.ts',
+    'scripts/ci/main-e2e-reuse-cli.test.mjs',
+    'scripts/ci/main-e2e-reuse.mjs',
     'scripts/repo-size-budget.json',
     'scripts/repo-size-budget-sync-core.mjs',
     'scripts/repo-size-audit.mjs',

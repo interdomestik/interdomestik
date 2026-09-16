@@ -7,7 +7,10 @@ import {
 } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { withTenantContext } from '@interdomestik/database';
 import { branches, claims, user } from '@interdomestik/database/schema';
+import { ROLES, type Role } from '@interdomestik/shared-auth';
 import { and, count, desc, eq, gte } from 'drizzle-orm';
+
+const TENANT_OVERVIEW_ROLES = new Set<Role>([ROLES.admin, ROLES.super_admin, ROLES.tenant_admin]);
 
 export type AdminOverviewReadModel = {
   kpis: {
@@ -28,9 +31,12 @@ export type AdminOverviewReadModel = {
 };
 
 export async function getAdminOverviewData(params: {
+  role: Role;
   tenantId: string;
 }): Promise<AdminOverviewReadModel> {
-  const { tenantId } = params;
+  const { role, tenantId } = params;
+  if (!TENANT_OVERVIEW_ROLES.has(role)) throw new Error('Forbidden: Tenant Overview');
+
   const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const lifecycleStatus = claimLifecycleStatusSql();
 

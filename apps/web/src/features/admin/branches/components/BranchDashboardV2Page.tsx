@@ -33,8 +33,14 @@ export async function BranchDashboardV2Page({
     notFound();
   }
 
-  if (userRole === ROLES.branch_manager && session.user.branchId !== branchId) {
-    redirect(`/${locale}/admin/branches/${session.user.branchId}`);
+  if (userRole === ROLES.branch_manager) {
+    const assignedBranchId = session.user.branchId?.trim();
+    if (!assignedBranchId) {
+      notFound();
+    }
+    if (assignedBranchId !== branchId) {
+      redirect(`/${locale}/admin/branches/${encodeURIComponent(assignedBranchId)}`);
+    }
   }
 
   // Fetch V2 Data

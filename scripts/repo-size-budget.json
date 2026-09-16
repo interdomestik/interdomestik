@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 103183,
+      "trackedBytesDelta": 106106,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 65722,
+        "config/data/messages": 68015,
         "source/scripts": 23092,
-        "tests/e2e": 14369
+        "tests/e2e": 14999
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 65722,
+        "scripts/repo-size-budget.json": 68015,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -53,7 +53,7 @@
         "scripts/repo-size-audit-output.mjs": 3377,
         "scripts/ci/repo-size-capacity-fixtures.mjs": 2640,
         "scripts/ci/repo-size-capacity-schema.test.mjs": 2092,
-        "scripts/ci/repo-size-capacity-evaluator.test.mjs": 9305,
+        "scripts/ci/repo-size-capacity-evaluator.test.mjs": 9935,
         "scripts/ci/repo-size-git-attribution.test.mjs": 2816
       }
     },
@@ -1370,6 +1370,41 @@
         "apps/web/e2e/gate/agent-message-visibility.spec.ts": 4585,
         "apps/web/e2e/gate/admin-crm-routing-rules.spec.ts": 73
       }
+    },
+    {
+      "id": "s2-branch-overview-scope",
+      "mode": "exact",
+      "writerPaths": [
+        "apps/web/src/app/[locale]/admin/overview/page.test.tsx",
+        "apps/web/src/app/[locale]/admin/overview/page.tsx",
+        "apps/web/src/features/admin/branches/components/BranchDashboardV2Page.test.tsx",
+        "apps/web/src/features/admin/branches/components/BranchDashboardV2Page.tsx",
+        "apps/web/src/features/admin/branches/dashboard-v2/components/BranchKpiRow.tsx",
+        "apps/web/src/features/admin/branches/dashboard-v2/components/ClaimsPipelinePanel.tsx",
+        "apps/web/src/features/admin/branches/dashboard-v2/server/getBranchDashboardV2Data.test.ts",
+        "apps/web/src/features/admin/branches/dashboard-v2/server/getBranchDashboardV2Data.ts",
+        "apps/web/src/features/admin/overview/server/get-admin-overview-data.test.ts",
+        "apps/web/src/features/admin/overview/server/get-admin-overview-data.ts",
+        "apps/web/e2e/gate/branch-overview-scope.fixture.ts",
+        "apps/web/e2e/gate/branch-overview-scope.spec.ts"
+      ],
+      "trackedBytesDelta": 21166,
+      "trackedFilesDelta": 5,
+      "categoryBytesDelta": { "source/scripts": 873, "tests/e2e": 20293 },
+      "pathBytesDelta": {
+        "apps/web/src/app/[locale]/admin/overview/page.test.tsx": 1678,
+        "apps/web/src/app/[locale]/admin/overview/page.tsx": 219,
+        "apps/web/src/features/admin/branches/components/BranchDashboardV2Page.test.tsx": 2785,
+        "apps/web/src/features/admin/branches/components/BranchDashboardV2Page.tsx": 139,
+        "apps/web/src/features/admin/branches/dashboard-v2/components/BranchKpiRow.tsx": 320,
+        "apps/web/src/features/admin/branches/dashboard-v2/components/ClaimsPipelinePanel.tsx": 102,
+        "apps/web/src/features/admin/branches/dashboard-v2/server/getBranchDashboardV2Data.test.ts": 1804,
+        "apps/web/src/features/admin/branches/dashboard-v2/server/getBranchDashboardV2Data.ts": -178,
+        "apps/web/src/features/admin/overview/server/get-admin-overview-data.test.ts": 816,
+        "apps/web/src/features/admin/overview/server/get-admin-overview-data.ts": 271,
+        "apps/web/e2e/gate/branch-overview-scope.fixture.ts": 7780,
+        "apps/web/e2e/gate/branch-overview-scope.spec.ts": 5430
+      }
     }
   ],
   "reserve": {
@@ -1378,15 +1413,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61435103,
-  "maxTrackedFiles": 6065,
+  "maxTrackedBytes": 61459192,
+  "maxTrackedFiles": 6070,
   "maxCategoryBytes": {
-    "config/data/messages": 2241546,
+    "config/data/messages": 2243839,
     "docs/text": 8634905,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8863098,
-    "tests/e2e": 7114819
+    "source/scripts": 8863971,
+    "tests/e2e": 7135742
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

@@ -39,13 +39,14 @@ Sonar main gate, passed. `MEMBER-CASE-DETAIL-CONTINUITY` completed through prote
 #1777: head `2797a96f7a2af63aae75f2e284e197208e3afe2c`, squash merge
 `b5a234b30b9cb6ed89ae6d81b81960a3a8135b25`, and all required exact-main checks passed. The owner
 completed `MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY` through protected PR #1778 as
-`81a219608dacf4ee9cfd8ee9f201e8ab156e54d2`; all 13 exact-main checks passed. The owner
-now selects the bounded S1 agent message visibility slice below.
+`81a219608dacf4ee9cfd8ee9f201e8ab156e54d2`; all 13 exact-main checks passed. S1 completed
+through protected PR #1780 as `f3d36b2e7781654fe5448fab11da891368d95f19`, with all 13
+exact-main checks passed. The owner now selects the bounded S2 branch overview scope slice below.
 
 ## Owner-adopted enterprise delivery sequence (2026-09-15)
 
 The owner adopts this near-term sequence after the enterprise audit and Opus 5 consultation.
-`MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY` is completed; S1 is selected and in progress.
+`MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY` and S1 are completed; S2 is selected and in progress.
 Select one bounded successor at a time below. S1–S3 are roadmap labels, not replacements for
 architecture T IDs. This section governs successor ordering over older suggestions.
 
@@ -179,10 +180,65 @@ No routine promotion/closeout PR or tooling project is added. Merged is not depl
 Reuse the 2026-09-15 DORA small-batch/AI and GOV.UK whole-journey research; measured local tools
 are supplemental, not another prerequisite. This is sequencing authority, not completion evidence.
 
-## Selected S1 — Agent Message Visibility
+## Selected S2 — Branch Overview Scope Protection
 
-`S1-AGENT-MESSAGE-VISIBILITY` is the sole selected product slice, high complexity,
-Astra/high, from protected main `81a219608dacf4ee9cfd8ee9f201e8ab156e54d2`. Scope is the
+`S2-BRANCH-OVERVIEW-SCOPE` is the sole selected product slice, medium complexity with a
+security-sensitive authorization edge, Sol/high, from protected main
+`f3d36b2e7781654fe5448fab11da891368d95f19`. The mounted unified-shell route is
+`/[locale]/admin/overview`; proxy admission remains unchanged and `apps/web/src/proxy.ts` is
+read-only. Accepted ADR-09 and shared-auth scope define `branch_manager` as branch-scoped, so the
+tenant-wide overview is not an authorized branch-manager capability. Assigned branch managers
+redirect to their canonical branch detail, while missing assignments fail closed; `admin`,
+`super_admin` and `tenant_admin` retain the tenant-wide overview.
+
+The actual branch-detail query already scopes its branch, pipeline, counts, staff and cash metrics
+by tenant and branch. Its per-agent open/SLA subqueries omitted the branch predicate, allowing
+same-tenant sibling-branch claims attributed to the same agent to contaminate the branch view.
+Add the explicit branch predicate while preserving tenant equality and the existing metric
+definitions. Verify the mounted route and real database query in KS/MK with two same-tenant
+branches, a foreign tenant, missing branch, the complete metric list and unchanged tenant-admin
+output. The local runtime role may bypass RLS, so explicit query predicates remain required.
+
+Sonnet 5 and Gemini preparation were served through the repository-owned reviewer routes as
+`claude-sonnet-5` and `gemini-3.1-pro-preview`; their initial empty-diff verdicts are retained as
+preparation, not passing implementation review. The changed-diff Sonnet follow-up reported focused
+guard/evidence gaps; equivalent page/query unit coverage was added and the existing route helper
+plus admitted E2E tree were confirmed. Gemini's changed-diff route timed out without output, so its
+failed receipt is retained without repetition. The one required final Opus review was served as
+`claude-opus-5` and reported findings. Accepted corrections add overview-reader role defense,
+telemetry for branch-detail scope denial, and a fixture-owned synthetic foreign tenant. The proposed
+extra cash/query tests are covered by existing cash predicate unit proof and the mounted real-query
+regression; comment removal keeps the touched legacy source below its original size and within the
+executable modularity policy.
+
+At product head `b3fa63e46be0754762f12d1a8678b716f4f6616a`, focused unit proof passes
+19/19, web type-check passes, and the exact production-build KS/MK Playwright lane passes 2/2
+against isolated `interdomestik_ci_s2_d02f`; failure- and success-path fixture residue checks are
+zero. Exact capacity registration is 21,166 product/test bytes: 873 source bytes and 20,293 test/E2E
+bytes across seven existing paths and five new files. The fixed-baseline evaluator grows 630 bytes,
+the capacity budget self-size grows 2,293 bytes, file growth is five, and reserve plus unrelated
+allocations remain unchanged. Admitted E2E tree
+`354b38ebe3d79b06b994103aa63dc21baf2f5294` passes its contract guard. A full required run and
+separate security guard passed on the immediate pre-review-correction product candidate. Renewed
+uninterrupted `pnpm pr:verify` passed on evidence head
+`81c87bdcdc5cf0a5019bfb06ced8917d3ba6f7aa` (tree
+`60405a4a2922b838adae5660cabd1fff2b2f8ec1`): 1,186 CI contracts, 154 release tests, 41 RLS
+tests, 3,412 web tests/12 skips, 81.11% repository line coverage, 262 browser passes/12 skips and
+13 smoke passes/11 skips. Separate `pnpm security:guard` passed. Full-log SHA-256 is
+`60150d194b16f79da7039ad3e251e4cb70f878bb491004b135a2de42a2c35f3e`; security-log SHA-256 is
+`7865d7a498a8435749920e68875ab522a958f36ddf012b94385eb88cb284bea1`. Protected delivery and
+exact-main health remain pending.
+
+The currently mounted branch dashboard presentation is legacy and is not the visual target. S2
+makes no styling, information-architecture, shell-redesign, deployment or user-acceptance claim;
+a current-trends redesign remains a separate bounded product slice and must preserve these scope
+contracts.
+
+## Completed S1 — Agent Message Visibility
+
+`S1-AGENT-MESSAGE-VISIBILITY` completed through protected PR #1780: head
+`9dc383ad` and squash merge `f3d36b2e7781654fe5448fab11da891368d95f19`, with all 13
+required exact-main checks passed. It was high complexity, Astra/high. Scope was the
 agent workspace's latest-message and unread-count reads plus database-backed and rendered
 regressions. Preserve active agent-client assignment, tenant/branch scope, selected-claim
 retention, the 100-row cap, ordering and DTO shape. No general agent messaging authority,
@@ -202,11 +258,10 @@ and PostgreSQL distinct-on ordering. Adopt explicit public/tenant predicates bef
 latest-row selection; reject reliance on a client alias as proof of RLS. Verify actual role,
 policies, both tenant fixtures and rendered exclusion. No production posture is inferred.
 
-Implementation is in progress in task `01a0a6b8-163e-74f3-b8e9-6dc43f1bb357`.
 Renewed full `pnpm pr:verify` and separate `pnpm security:guard` passed at `94ac9167`.
 Dedicated fixture agents/branches and a deterministic CRM test agent resolve the hosted
-cross-project and sibling-consumer findings. Protected delivery and exact-main health
-remain pending. This selection does not claim S1 completion.
+cross-project and sibling-consumer findings. Protected delivery and exact-main health passed for
+PR #1780. No deployment or broader agent messaging authority is claimed.
 
 ## Completed Member Evidence Upload Locale Continuity
 
@@ -490,8 +545,8 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 These rows, the notification correctness increment, shared shell navigation, both notification
 acknowledgement increments, `MEMBER-CASE-WORKSPACE-REDESIGN` and `MEMBER-CASE-DETAIL-CONTINUITY`
-are completed history. The sole selected increment is
-`S1-AGENT-MESSAGE-VISIBILITY`, defined above; the localization predecessor is completed.
+are completed history. The sole selected increment is `S2-BRANCH-OVERVIEW-SCOPE`, defined above;
+S1 and the localization predecessor are completed.
 
 ## Shared Shell Navigation Increment
 
