@@ -201,13 +201,26 @@ output. The local runtime role may bypass RLS, so explicit query predicates rema
 
 Sonnet 5 and Gemini preparation were served through the repository-owned reviewer routes as
 `claude-sonnet-5` and `gemini-3.1-pro-preview`; their initial empty-diff verdicts are retained as
-preparation, not passing implementation review. Focused unit/type proof and the mounted two-tenant
-Playwright lane pass against isolated `interdomestik_ci_s2_d02f`; both failure- and success-path
-fixture residue checks are zero. The changed-diff Sonnet follow-up reported focused guard/evidence
-gaps; equivalent page/query unit coverage was added and the existing route helper plus admitted E2E
-tree were confirmed. Gemini's changed-diff route timed out without output, so its failed receipt is
-retained without repetition. Independent Astra review, full required verification, protected
-delivery and exact-main health remain pending.
+preparation, not passing implementation review. The changed-diff Sonnet follow-up reported focused
+guard/evidence gaps; equivalent page/query unit coverage was added and the existing route helper
+plus admitted E2E tree were confirmed. Gemini's changed-diff route timed out without output, so its
+failed receipt is retained without repetition. The one required final Opus review was served as
+`claude-opus-5` and reported findings. Accepted corrections add overview-reader role defense,
+telemetry for branch-detail scope denial, and a fixture-owned synthetic foreign tenant. The proposed
+extra cash/query tests are covered by existing cash predicate unit proof and the mounted real-query
+regression; comment removal keeps the touched legacy source below its original size and within the
+executable modularity policy.
+
+At product head `b3fa63e46be0754762f12d1a8678b716f4f6616a`, focused unit proof passes
+19/19, web type-check passes, and the exact production-build KS/MK Playwright lane passes 2/2
+against isolated `interdomestik_ci_s2_d02f`; failure- and success-path fixture residue checks are
+zero. Exact capacity registration is 21,166 product/test bytes: 873 source bytes and 20,293 test/E2E
+bytes across seven existing paths and five new files. The fixed-baseline evaluator grows 630 bytes,
+the capacity budget self-size grows 2,293 bytes, file growth is five, and reserve plus unrelated
+allocations remain unchanged. Admitted E2E tree
+`354b38ebe3d79b06b994103aa63dc21baf2f5294` passes its contract guard. A full required run and
+separate security guard passed on the immediate pre-review-correction product candidate; renewed
+final-source verification, protected delivery and exact-main health remain pending.
 
 The currently mounted branch dashboard presentation is legacy and is not the visual target. S2
 makes no styling, information-architecture, shell-redesign, deployment or user-acceptance claim;

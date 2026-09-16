@@ -289,19 +289,19 @@ independent and no exact-runtime-effect guarantee is claimed.
   tenant+branch predicates. Per-agent open/SLA subqueries used tenant+agent only; they now add the
   branch predicate without changing definitions, DTOs, routing or RLS policy.
 - Isolated database `interdomestik_ci_s2_d02f` migrated and passed deterministic E2E seed assertion.
-  Focused route/query guard proof passes 15/15 and web type-check passes. Mounted KS/MK proof passes 2/2 concurrently with
-  `DB_MAX_CONNECTIONS=1`: all five KPI cards, pipeline, agent and staff rows are branch-bounded;
+  Focused route/query guard proof passes 19/19 and web type-check passes. The exact production-build
+  KS/MK proof passes 2/2 concurrently: all five KPI cards, pipeline, agent and staff rows are branch-bounded;
   same-tenant sibling and foreign routes are denied; missing assignment fails closed; tenant-admin
   branch totals remain tenant-wide. Failure- and success-path residue checks are zero.
-- Exact capacity registration is 19,155 product/test bytes across six existing files, two new unit
-  files and two new E2E files: 422 source bytes and 18,733 test bytes. The synthetic fixed-baseline
-  fixture adds 469 bytes, and the budget's terminating self-size is 1,945 bytes. File growth is
-  exactly four; reserve,
-  unrelated allocations and enforcement thresholds are unchanged. Capacity and modularity guards pass.
+- Exact capacity registration is 21,166 product/test bytes across seven existing paths, three new
+  unit files and two new E2E files: 873 source bytes and 20,293 test/E2E bytes. The synthetic
+  fixed-baseline evaluator adds 630 bytes, and the budget's terminating self-size is 2,293 bytes.
+  File growth is exactly five; reserve, unrelated allocations and enforcement thresholds are
+  unchanged. Capacity and modularity guards pass.
 - A watched Playwright-MCP session signed in through the normal KS credential flow, landed on
   `/sq/admin/branches/ks_branch_a`, rendered the branch metrics, and redirected a direct
   `ks_branch_b` attempt back to the assigned branch. No auth/cookie bypass was used.
-- Exact admitted E2E tree `b3676a7d394d2c31044b8e06b44f6b562029e068` contains the new gate
+- Exact admitted E2E tree `354b38ebe3d79b06b994103aa63dc21baf2f5294` contains the new gate
   fixture/spec; `check:e2e-contracts` passes. The existing `routes.adminBranchDetail` helper is
   confirmed at `apps/web/e2e/routes.ts:106` and both projects compiled and passed it.
 - Initial repo-owned subscription preparation receipts report `claude-sonnet-5` and
@@ -310,7 +310,17 @@ independent and no exact-runtime-effect guarantee is claimed.
   branch-detail/query guard cases now address the two actionable findings. Its route-helper and
   cleanup findings were dispositioned by compilation/mounted proof and the mandatory modularity
   correction. Gemini's changed-diff route timed out after 180.5 seconds without output; the failed
-  receipt is retained and not repeated. Independent Astra review remains due before full proof.
+  receipt is retained and not repeated. The one required final review was served as
+  `claude-opus-5` against `6f0bb61d`; it returned findings rather than a pass. Accepted corrections
+  add a role allowlist inside the tenant-overview reader, Sentry telemetry for branch-scope denial,
+  and a fixture-owned synthetic foreign tenant. Existing cash predicate tests and the mounted real
+  query cover the optional extra-test requests; legacy comment removal leaves the touched query
+  source one line smaller than protected main and satisfies the executable modularity policy.
+- Product head `b3fa63e46be0754762f12d1a8678b716f4f6616a` contains the accepted Opus
+  corrections. Its focused unit/type, capacity, E2E-contract, repository-size and exact
+  production-build KS/MK proof pass. The earlier full `pr:verify` and separate `security:guard`
+  passed at `6f0bb61d`; they are not transferred across the accepted code/test changes. Renewed
+  final-source full verification, protected delivery and exact-main health remain pending.
 - The screenshot-confirmed mounted dashboard is legacy presentation. S2 makes no redesign,
   latest-trends, deployment or user-acceptance claim; a later bounded redesign must preserve the
   protected route and query contracts.
