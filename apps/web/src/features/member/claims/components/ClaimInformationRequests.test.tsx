@@ -7,7 +7,10 @@ import sq from '@/messages/sq/claims.json';
 import mk from '@/messages/mk/claims.json';
 import sr from '@/messages/sr/claims.json';
 import { ClaimInformationRequests } from './ClaimInformationRequests';
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllEnvs();
+});
 const request = {
   requestId: '12345678-1234-4234-8234-123456789012',
   requestedInformation: '<script>estimate</script>',
@@ -34,7 +37,25 @@ it.each([
   expect(screen.getByText(request.requestedInformation)).toBeInTheDocument();
   expect(container.querySelector('script')).toBeNull();
   expect(container.querySelector('time')).toHaveAttribute('datetime', request.dueAt);
+  expect(container.querySelector('time')).toHaveTextContent('00:00 UTC');
   expect(screen.queryByRole('button')).not.toBeInTheDocument();
+});
+it('renders the same explicit UTC deadline in different runtime timezones', () => {
+  const renderDeadline = (timeZone: string) => {
+    vi.stubEnv('TZ', timeZone);
+    const { container, unmount } = render(
+      <NextIntlClientProvider locale="sq" messages={sq} timeZone={timeZone}>
+        <ClaimInformationRequests requests={[request]} />
+      </NextIntlClientProvider>
+    );
+    const text = container.querySelector('time')?.textContent;
+    unmount();
+    return text;
+  };
+  const serverDeadline = renderDeadline('UTC');
+  expect(serverDeadline).toContain('00:00 UTC');
+  expect(renderDeadline('Europe/Berlin')).toBe(serverDeadline);
+  expect(renderDeadline('America/Los_Angeles')).toBe(serverDeadline);
 });
 it('does not invent a request in the empty state', () => {
   const { container } = render(

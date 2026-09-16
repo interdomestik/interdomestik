@@ -17,14 +17,6 @@ CREATE TABLE "claim_information_requests" (
 );
 --> statement-breakpoint
 ALTER TABLE "claim_information_requests" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
-ALTER TABLE "engagement_email_sends" ALTER COLUMN "created_at" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "engagement_email_sends" ALTER COLUMN "created_at" SET DEFAULT now();--> statement-breakpoint
-ALTER TABLE "billing_invoices" ALTER COLUMN "updated_at" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "billing_invoices" ALTER COLUMN "updated_at" SET DEFAULT now();--> statement-breakpoint
-ALTER TABLE "free_start_drafts" ALTER COLUMN "created_at" SET DATA TYPE timestamp (3) with time zone;--> statement-breakpoint
-ALTER TABLE "free_start_drafts" ALTER COLUMN "created_at" SET DEFAULT now();--> statement-breakpoint
-ALTER TABLE "free_start_drafts" ALTER COLUMN "updated_at" SET DATA TYPE timestamp (3) with time zone;--> statement-breakpoint
-ALTER TABLE "free_start_drafts" ALTER COLUMN "updated_at" SET DEFAULT now();--> statement-breakpoint
 ALTER TABLE "claim_information_requests" ADD CONSTRAINT "claim_information_requests_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "claim_information_requests" ADD CONSTRAINT "claim_information_requests_claim_id_claim_id_fk" FOREIGN KEY ("claim_id") REFERENCES "public"."claim"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "claim_information_requests" ADD CONSTRAINT "claim_information_requests_responsible_staff_id_user_id_fk" FOREIGN KEY ("responsible_staff_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint

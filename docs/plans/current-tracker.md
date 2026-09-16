@@ -28,14 +28,20 @@ due date with no inferred range/default; request-local incomplete SLA posture; n
 opaque member request ID; safe public projection; tenant/ownership checks; idempotent same-payload
 retry and mutated-correlation conflict. Distinct requests are permitted. Upload/acknowledgement,
 CRM duplication, wider roles, notifications and deployment remain outside this increment.
-Sonnet/Gemini preparation `20260916T180205` is reused. Opus 5 final review and focused/database/
-mounted journey proof, capacity/security/full checks, protected delivery and retirement are pending.
+Sonnet/Gemini preparation `20260916T180205` is reused. Opus 5 receipt `20260916T182837-opus`
+was blocked before provider invocation: the complete generated-snapshot diff exceeded its 512 KiB
+packet bound. The owner-authorized independent Astra fallback reviewed `637087e09b40` and found
+deadline SSR timezone divergence and unrelated timestamp ALTERs. Both are corrected: the card
+displays explicit UTC with cross-timezone regression coverage, and SQL touches only the new table;
+the complete generated snapshot retains reconciled prior timestamp metadata. Focused isolated Z620
+migration/database proof passed at that checkpoint. Corrected-head review, mounted/full proof,
+protected delivery and retirement remain pending.
 Approved capacity ceiling: +609,000 bytes / 16 new files, including generated migration snapshot;
 apply exact measured disjoint allocations without reserves or padding.
 
-| ID                                 | Status        | Owner | Work                                                                                            | Exit Criteria                                                                                                                                                                                                                                                           |
-| ---------------------------------- | ------------- | ----- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S3-MEMBER-STAFF-SUPPORTED-PREFIX` | `in_progress` | Codex | Prove member submission → staff `submitted`→`verification` acceptance → member-safe continuity. | Exact isolated-DB journey, unauthorized-path and focused regressions, capacity/security/full gate, two independent Astra/high reviews under the owner-authorized S3 exception, protected checks and exact-main health; no IDA-CLM-010 implementation or whole-S3 claim. |
+| ID                               | Status        | Owner | Work                                                                                                               | Exit Criteria                                                                                                                                                                                               |
+| -------------------------------- | ------------- | ----- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S4-MISSING-INFORMATION-REQUEST` | `in_progress` | Codex | Assigned staff creates a scoped missing-information request; the owning member sees its safe read-only projection. | Independent final review, isolated database and mounted journey, capacity/security/full gate, protected checks, exact-main health and task retirement; no upload/acknowledgement or broader workflow claim. |
 
 The completed #1782 acceptance-link amendment historically set the requirement-map allocation to
 72,094 bytes, +7,625 over its predecessor. S3 changes use the map's synchronized exact allocation;
@@ -110,11 +116,11 @@ Follow the current program's enterprise delivery sequence; localization, S1 and 
 Queued is not in progress or verified. Each successor gets a bounded current-main brief and model
 classification before implementation; no new approval ceremony is required for already authorized scope.
 
-| Roadmap item                       | Status      | Entry / exit evidence                                                                                                       |
-| ---------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------- |
-| S1 — Agent message visibility      | completed   | Protected PR #1780; exact-main health passed; no agent-authority expansion or deployment claim.                             |
-| S2 — Branch overview scope         | completed   | Protected PR #1781, de15d4cac; 13 exact-main checks passed; bounded branch route/query protection.                          |
-| S3 — Member–staff evidence journey | in_progress | Supported submission → verification → continuity prefix is under proof; IDA-CLM-010 is the recorded first missing contract. |
+| Roadmap item                       | Status            | Entry / exit evidence                                                                                                              |
+| ---------------------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| S1 — Agent message visibility      | completed         | Protected PR #1780; exact-main health passed; no agent-authority expansion or deployment claim.                                    |
+| S2 — Branch overview scope         | completed         | Protected PR #1781, de15d4cac; 13 exact-main checks passed; bounded branch route/query protection.                                 |
+| S3 — Member–staff evidence journey | completed_bounded | Supported submission → verification → continuity prefix completed through #1783; the IDA-CLM-010 gap is selected separately in S4. |
 
 ### Product-readiness roadmap queue
 
@@ -1115,8 +1121,9 @@ claim full T-410 completion. `MEMBER-CASE-OVERVIEW-ENTRY` completed in PR #1775,
 `MEMBER-CASE-WORKSPACE-REDESIGN` completed in PR #1776 and `MEMBER-CASE-DETAIL-CONTINUITY`
 completed in PR #1777; localization completed in PR #1778. S1 completed through protected PR
 #1780 and exact-main health passed. S2 completed through #1781 with exact-main health passed.
-The acceptance-link amendment completed through #1782. The bounded supported-path prefix of S3 is
-selected; conditional S4 and T-411 Smart Next Step are not selected.
+The acceptance-link amendment completed through #1782. The bounded supported-path prefix of S3
+completed through #1783. S4's missing-information request increment is selected; T-411 Smart Next
+Step remains unselected.
 
 | Completed historical priority            | Status      | Constraint                                                                    |
 | ---------------------------------------- | ----------- | ----------------------------------------------------------------------------- |

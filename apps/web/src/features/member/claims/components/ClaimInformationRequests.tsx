@@ -3,11 +3,21 @@
 import type { PublicInformationRequest } from '@interdomestik/domain-claims';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { useLocale, useTranslations } from 'next-intl';
-import { formatPilotDateTime } from '@/lib/utils/date';
+import { resolveDateLocale } from '@/lib/utils/date';
 
 export function ClaimInformationRequests({ requests }: { requests: PublicInformationRequest[] }) {
   const t = useTranslations('claims.informationRequests');
   const locale = useLocale();
+  // Explicit UTC keeps server rendering and browser hydration on the same deadline.
+  const deadlineFormatter = new Intl.DateTimeFormat(resolveDateLocale(locale), {
+    timeZone: 'UTC',
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  });
   if (!requests.length) return null;
   return (
     <section aria-label={t('title')} data-testid="claim-information-requests" className="space-y-4">
@@ -28,7 +38,7 @@ export function ClaimInformationRequests({ requests }: { requests: PublicInforma
                 <dt className="text-muted-foreground">{t('dueAt')}</dt>
                 <dd>
                   <time dateTime={request.dueAt}>
-                    {formatPilotDateTime(request.dueAt, locale, request.dueAt)}
+                    {deadlineFormatter.format(new Date(request.dueAt))} UTC
                   </time>
                 </dd>
               </div>

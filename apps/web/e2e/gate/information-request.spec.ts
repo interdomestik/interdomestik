@@ -62,6 +62,9 @@ test('S4 staff request persists and is visible in a fresh member session', async
       await expect(card).toContainText('S4 member-visible assessment explanation');
       await expect(card).toContainText(rows[0].id);
       await expect(card.locator('time')).toHaveAttribute('datetime', rows[0].dueAt.toISOString());
+      await expect(card.locator('time')).toContainText(
+        `${rows[0].dueAt.toISOString().slice(11, 16)} UTC`
+      );
       await expect(member.page.locator('body')).not.toContainText(fixture.privateNote);
       const html = await member.page.content();
       expect(html).not.toContain(rows[0].correlationId);
