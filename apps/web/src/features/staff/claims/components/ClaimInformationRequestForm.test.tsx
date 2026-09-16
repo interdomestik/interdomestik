@@ -12,7 +12,10 @@ vi.mock('@/actions/staff-claims/information-request', () => ({
 }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: h.refresh }) }));
 import { ClaimInformationRequestForm } from './ClaimInformationRequestForm';
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 beforeEach(() => vi.clearAllMocks());
 function fill() {
   fireEvent.change(screen.getByLabelText('Information needed'), {
@@ -85,4 +88,33 @@ it('rejects whitespace and preserves input on a domain error', async () => {
   fireEvent.submit(screen.getByRole('form'));
   await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('verification'));
   expect(screen.getByLabelText('Information needed')).toHaveValue('Repair estimate');
+});
+
+it('creates a valid correlation UUID when the HTTP host lacks randomUUID', async () => {
+  vi.stubGlobal('crypto', { getRandomValues: crypto.getRandomValues.bind(crypto) });
+  h.create.mockResolvedValueOnce({ success: true, requestId: 'request-1' });
+  mount();
+  fill();
+  fireEvent.submit(screen.getByRole('form'));
+  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('saved'));
+  expect(h.create.mock.calls[0][0].correlationId).toMatch(
+    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+  );
+});
+
+it('reports entropy failure without submitting and allows a later retry', async () => {
+  vi.stubGlobal('crypto', undefined);
+  mount();
+  fill();
+  fireEvent.submit(screen.getByRole('form'));
+  await waitFor(() =>
+    expect(screen.getByRole('alert')).toHaveTextContent('Retry with the same details')
+  );
+  expect(h.create).not.toHaveBeenCalled();
+  expect(screen.getByRole('button')).toBeEnabled();
+  expect(screen.getByLabelText('Information needed')).toHaveValue('Repair estimate');
+  vi.unstubAllGlobals();
+  h.create.mockResolvedValueOnce({ success: true, requestId: 'request-1' });
+  fireEvent.submit(screen.getByRole('form'));
+  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('saved'));
 });

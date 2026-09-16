@@ -6,6 +6,14 @@ import { useTranslations } from 'next-intl';
 import { Button, Input, Label, Textarea } from '@interdomestik/ui';
 import { createClaimInformationRequest } from '@/actions/staff-claims/information-request';
 
+function createCorrelationId(): string {
+  const bytes = globalThis.crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6]! & 15) | 64;
+  bytes[8] = (bytes[8]! & 63) | 128;
+  const value = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+  return `${value.slice(0, 8)}-${value.slice(8, 12)}-${value.slice(12, 16)}-${value.slice(16, 20)}-${value.slice(20)}`;
+}
+
 export function ClaimInformationRequestForm({ claimId }: { claimId: string }) {
   const t = useTranslations('agent-claims.claims.informationRequest');
   const router = useRouter();
@@ -38,13 +46,13 @@ export function ClaimInformationRequestForm({ claimId }: { claimId: string }) {
       return;
     }
     const fingerprint = JSON.stringify(input);
-    if (attempt.current?.fingerprint !== fingerprint) {
-      attempt.current = { fingerprint, correlationId: crypto.randomUUID() };
-    }
     pending.current = true;
     setBusy(true);
     setFeedback(null);
     try {
+      if (attempt.current?.fingerprint !== fingerprint) {
+        attempt.current = { fingerprint, correlationId: createCorrelationId() };
+      }
       const result = await createClaimInformationRequest({
         ...input,
         correlationId: attempt.current.correlationId,

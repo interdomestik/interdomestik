@@ -46,6 +46,20 @@ retained 93/97 corpus capability rejects the expanded live directory. Its exact 
 tests must be refreshed before new full proof. Projected prerequisite growth is under 8,000 bytes,
 zero new files, within the existing aggregate ceiling; only measured growth will be allocated.
 
+At `e9b3fd5a`, the repaired supported route reached provider-reported `claude-opus-5`
+(receipt `20260916T192003-opus`, 221.415 seconds) and returned `FINDINGS`, not approval.
+The complete diff and generated snapshot were delivered through bounded stdin. Accepted fixes:
+cryptographically random UUID generation using `getRandomValues` inside the form's error boundary,
+with HTTP-host/entropy-failure regressions, plus assigned-staff/verification form visibility tests.
+The newline/format claim is rejected: `.prettierignore` explicitly ignores `drizzle/meta/**`.
+The stale compiled-database claim is rejected: the package exports `./src/index.ts` directly and
+the isolated live SQL proof has executed successfully. Installed Zod is 4.2.1. Open-only request
+state is the approved S4 boundary, not a future fulfilment contract; optional component relocation
+and performance changes are deferred. Fresh corrected-candidate review and full proof are pending.
+Prior prerequisite source `aba1b50d` passed 73 retained tests, two PG16 runtime-role tests, 1,188 CI
+contracts and 299 harness tests (task-local umask022); `e9b3fd5a` passed 1,191 CI contracts and
+capacity/security/plan audits. These are source-bound preflight results, not final S4 delivery proof.
+
 | ID                               | Status        | Owner | Work                                                                                                               | Exit Criteria                                                                                                                                                                                               |
 | -------------------------------- | ------------- | ----- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `S4-MISSING-INFORMATION-REQUEST` | `in_progress` | Codex | Assigned staff creates a scoped missing-information request; the owning member sees its safe read-only projection. | Independent final review, isolated database and mounted journey, capacity/security/full gate, protected checks, exact-main health and task retirement; no upload/acknowledgement or broader workflow claim. |
