@@ -113,7 +113,7 @@ test('S3 member-staff supported journey preserves corpus parity', () => {
   assert.equal(
     inspectRepositoryParity({
       ...sources(),
-      e2eTreeSha: '4393d436aceece607ac0bd77b8ff06ee078161c9',
+      e2eTreeSha: '46b0eb7ba070fe71d84d5fe7e9582703c6980dc0',
     }).commandChain,
     true
   );
