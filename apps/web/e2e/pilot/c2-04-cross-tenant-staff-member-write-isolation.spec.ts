@@ -133,7 +133,7 @@ test('C2-04: staff/member cross-tenant writes are denied without mutation', asyn
   if (staffStatusResult.success) {
     throw new Error('Expected cross-tenant staff status update to be denied');
   }
-  expect(staffStatusResult.error).toBe('Claim not found');
+  expect(staffStatusResult.error).toBe('Claim not found or access denied');
 
   const memberCancelResult = await cancelClaimCore({
     session: memberSession,

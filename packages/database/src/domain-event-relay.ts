@@ -22,6 +22,9 @@ export { domainEventDeliveryIdempotencyKey } from './domain-event-delivery-keys'
 type RelayTx = DomainEventTx & {
   execute<T>(query: unknown): Promise<T[]>;
 };
+type DomainEventRelayRow = Omit<DomainEventRelayEvent, 'createdAt'> & {
+  createdAt: Date | string;
+};
 
 function assertNonBlank(value: string, field: string): string {
   const normalized = value.trim();
@@ -34,6 +37,14 @@ function assertLimit(limit: number): number {
     throw new Error('domain event relay requires limit between 1 and 100');
   }
   return limit;
+}
+
+function normalizeCreatedAt(value: Date | string): Date {
+  const createdAt = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(createdAt.getTime())) {
+    throw new Error('domain event relay requires a valid createdAt');
+  }
+  return createdAt;
 }
 
 export async function selectDomainEventsForRelay(
@@ -75,7 +86,7 @@ export async function selectDomainEventsForRelay(
       )`
     : sql``;
   const lockClause = mode === 'replay' ? sql`` : sql`for update skip locked`;
-  return tx.execute<DomainEventRelayEvent>(sql`
+  const rows = await tx.execute<DomainEventRelayRow>(sql`
     select
       e."id",
       e."tenant_id" as "tenantId",
@@ -100,6 +111,7 @@ export async function selectDomainEventsForRelay(
     limit ${limit}
     ${lockClause}
   `);
+  return rows.map(row => ({ ...row, createdAt: normalizeCreatedAt(row.createdAt) }));
 }
 
 export async function relayDomainEvents(

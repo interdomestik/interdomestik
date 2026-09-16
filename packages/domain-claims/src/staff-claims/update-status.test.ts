@@ -517,6 +517,9 @@ describe('staff updateClaimStatusCore', () => {
         updatedAt: expect.any(Date),
       })
     );
+    const assignmentUpdate = (mocks.txUpdateSet.mock.calls as unknown[][])[1]?.[0] as {
+      updatedAt: Date;
+    };
     expect(mocks.sql).toHaveBeenNthCalledWith(
       2,
       expect.any(Array),
@@ -527,7 +530,7 @@ describe('staff updateClaimStatusCore', () => {
       3,
       expect.any(Array),
       mocks.claims.assignedAt,
-      expect.any(Date)
+      assignmentUpdate.updatedAt.toISOString()
     );
     expect(mocks.sql).toHaveBeenNthCalledWith(
       4,

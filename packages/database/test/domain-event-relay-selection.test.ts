@@ -105,17 +105,43 @@ describe('domain event relay selection', () => {
     assert.equal(tx.query, undefined);
   });
 
-  it('returns the selected event rows without mapping them in userland', async () => {
-    const event = { id: 'event-1', tenantId: 'tenant-1' } as DomainEventRelayEvent;
+  it('normalizes selected driver timestamp strings without changing timezone meaning', async () => {
+    const event = {
+      createdAt: '2026-06-04T12:00:00.000+02:00',
+      id: 'event-1',
+      tenantId: 'tenant-1',
+    } as unknown as DomainEventRelayEvent;
     const tx = { execute: async () => [event] };
 
-    await assert.doesNotReject(
-      async () =>
-        await selectDomainEventsForRelay(tx as never, {
-          consumerName: 'audit_projection',
-          limit: 1,
-          tenantId: 'tenant-1',
-        })
+    const selected = await selectDomainEventsForRelay(tx as never, {
+      consumerName: 'audit_projection',
+      limit: 1,
+      tenantId: 'tenant-1',
+    });
+
+    assert.equal(selected[0].createdAt instanceof Date, true);
+    assert.equal(selected[0].createdAt.toISOString(), '2026-06-04T10:00:00.000Z');
+  });
+
+  it('preserves native dates and rejects invalid driver timestamps', async () => {
+    const createdAt = new Date('2026-06-04T10:00:00.000Z');
+    const native = await selectDomainEventsForRelay(
+      { execute: async () => [{ createdAt, id: 'event-1', tenantId: 'tenant-1' }] } as never,
+      { consumerName: 'audit_projection', limit: 1, tenantId: 'tenant-1' }
+    );
+    assert.equal(native[0].createdAt, createdAt);
+
+    await assert.rejects(
+      () =>
+        selectDomainEventsForRelay(
+          {
+            execute: async () => [
+              { createdAt: 'not-a-timestamp', id: 'event-2', tenantId: 'tenant-1' },
+            ],
+          } as never,
+          { consumerName: 'audit_projection', limit: 1, tenantId: 'tenant-1' }
+        ),
+      /valid createdAt/
     );
   });
 });

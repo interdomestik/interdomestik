@@ -17,12 +17,12 @@ status_command: pnpm plan:status
 ## Active Queue
 
 S1 (#1780) and S2 (#1781) are complete; all 13 exact-main checks passed at their merges.
-Current protected main is `de15d4cac87d7ba6ce15d98c75069445bb84dcb4` (S2).
-The owner-authorized documentation amendment precedes S3 implementation; S3 remains queued.
+The acceptance-link amendment completed through protected PR #1782. Current protected main is
+`7db57a30c35112a679271e6469d20974f83dd061`.
 
-| ID                             | Status        | Owner | Work                                                                              | Exit Criteria                                                                                                                                                |
-| ------------------------------ | ------------- | ----- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `SRS-ROADMAP-ACCEPTANCE-LINKS` | `in_progress` | Codex | Reconcile delivered status and acceptance links within existing roadmap families. | Existing validation-surface classification, security/capacity checks, current-head review, all protected checks and exact-main health; no S3 implementation. |
+| ID                                 | Status        | Owner | Work                                                                                            | Exit Criteria                                                                                                                                                                                                           |
+| ---------------------------------- | ------------- | ----- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S3-MEMBER-STAFF-SUPPORTED-PREFIX` | `in_progress` | Codex | Prove member submission → staff `submitted`→`verification` acceptance → member-safe continuity. | Exact isolated-DB journey, unauthorized-path and focused regressions, capacity/security/full gate, current-head Opus 5 review, protected checks and exact-main health; no IDA-CLM-010 implementation or whole-S3 claim. |
 
 The owner-authorized amendment includes necessary exact capacity accounting: requirement map
 72,094 bytes, +7,625 over main; its existing allocation and aggregate docs ceiling grow equally.
@@ -35,11 +35,11 @@ Follow the current program's enterprise delivery sequence; localization, S1 and 
 Queued is not in progress or verified. Each successor gets a bounded current-main brief and model
 classification before implementation; no new approval ceremony is required for already authorized scope.
 
-| Roadmap item                       | Status             | Entry / exit evidence                                                                                                         |
-| ---------------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| S1 — Agent message visibility      | completed          | Protected PR #1780; exact-main health passed; no agent-authority expansion or deployment claim.                               |
-| S2 — Branch overview scope         | completed          | Protected PR #1781, de15d4cac; 13 exact-main checks passed; bounded branch route/query protection.                            |
-| S3 — Member–staff evidence journey | queued_conditional | Reuse delivered contracts/fixtures; prove the bounded handoff sequence or record the first missing contract as its cut point. |
+| Roadmap item                       | Status      | Entry / exit evidence                                                                                                       |
+| ---------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------- |
+| S1 — Agent message visibility      | completed   | Protected PR #1780; exact-main health passed; no agent-authority expansion or deployment claim.                             |
+| S2 — Branch overview scope         | completed   | Protected PR #1781, de15d4cac; 13 exact-main checks passed; bounded branch route/query protection.                          |
+| S3 — Member–staff evidence journey | in_progress | Supported submission → verification → continuity prefix is under proof; IDA-CLM-010 is the recorded first missing contract. |
 
 ### Product-readiness roadmap queue
 
@@ -60,20 +60,20 @@ Owner-adopted on 2026-09-15; detailed scope and acceptance live only in the curr
 product-readiness roadmap. These rows do not change the active slice or mark future work complete.
 S4–S14 are outcome families to split into bounded implementation slices, not architecture T IDs.
 
-| Item                                    | Status              | Next evidence                                                                                      |
-| --------------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------- |
-| S4 — S3 handoff gap                     | conditional         | Only the first reproduced unsupported handoff; minimal integration and extended journey proof.     |
-| S5 — Member first-case journey          | queued_conditional  | Reconcile front-door/preparation/save/submission receipts; implement remaining UI/UX gaps.         |
-| S6 — Member continuation and membership | queued_conditional  | Credit #1775–#1777; complete only missing return/evidence/message/membership access outcomes.      |
-| S7 — Staff handling journey             | queued_conditional  | Existing handling contracts; queue and evidence round-trip with internal/public separation.        |
-| S8 — Agent client/handoff journey       | queued_conditional  | Existing authority and attribution; only unresolved capability changes need disposition.           |
-| S9 — Agent-assisted activation          | queued_conditional  | Member ownership, attribution and Paddle continuity on established contracts.                      |
-| S10 — Branch-manager oversight          | queued_conditional  | S2; existing authorized scope; metric decisions block only affected restoration.                   |
-| S11 — Tenant-admin operations           | queued_conditional  | People/branches and contracted access lifecycle, split into bounded increments.                    |
-| S12 — Platform-admin operations         | queued_conditional  | Technical operations and separate business-authority boundary.                                     |
-| H1 — SVC-CORE / Help Now                | priority_when_ready | First unmet clause, country/content/stop-rule authority and usable assistance path.                |
-| S13 — Outcome and closure               | queued_conditional  | Closure/recovery receipts and pilot scope; truthful member/staff outcome UI.                       |
-| S14 — Pilot rehearsal                   | queued_conditional  | All in-scope role journeys, user acceptance, accessibility, four locales and operational evidence. |
+| Item                                    | Status                | Next evidence                                                                                                            |
+| --------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| S4 — S3 handoff gap                     | proposed_not_selected | IDA-CLM-010 request aggregate/correlation/due-date gap only; minimal integration and extended journey proof if selected. |
+| S5 — Member first-case journey          | queued_conditional    | Reconcile front-door/preparation/save/submission receipts; implement remaining UI/UX gaps.                               |
+| S6 — Member continuation and membership | queued_conditional    | Credit #1775–#1777; complete only missing return/evidence/message/membership access outcomes.                            |
+| S7 — Staff handling journey             | queued_conditional    | Existing handling contracts; queue and evidence round-trip with internal/public separation.                              |
+| S8 — Agent client/handoff journey       | queued_conditional    | Existing authority and attribution; only unresolved capability changes need disposition.                                 |
+| S9 — Agent-assisted activation          | queued_conditional    | Member ownership, attribution and Paddle continuity on established contracts.                                            |
+| S10 — Branch-manager oversight          | queued_conditional    | S2; existing authorized scope; metric decisions block only affected restoration.                                         |
+| S11 — Tenant-admin operations           | queued_conditional    | People/branches and contracted access lifecycle, split into bounded increments.                                          |
+| S12 — Platform-admin operations         | queued_conditional    | Technical operations and separate business-authority boundary.                                                           |
+| H1 — SVC-CORE / Help Now                | priority_when_ready   | First unmet clause, country/content/stop-rule authority and usable assistance path.                                      |
+| S13 — Outcome and closure               | queued_conditional    | Closure/recovery receipts and pilot scope; truthful member/staff outcome UI.                                             |
+| S14 — Pilot rehearsal                   | queued_conditional    | All in-scope role journeys, user acceptance, accessibility, four locales and operational evidence.                       |
 
 Before selecting each family, record its exact bounded gap, direct predecessor receipts, model/risk,
 UI acceptance and exclusions in the existing active queue. Record why any independent ready outcome
@@ -523,9 +523,10 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                             | Source Refs     | Execution | Run ID | Run Root | Sonar   | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                          |
-| ------------------------------ | --------------- | --------- | ------ | -------- | ------- | ---------------- | ---------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SRS-ROADMAP-ACCEPTANCE-LINKS` | current program | `manual`  | local  | local    | pending | `not_applicable` | `not_applicable` | pending  | PR #1782; plan/track/format/capacity/security, 1,186 CI contracts and 299 harness checks pass. Existing non-product classification controls runtime lanes; protected delivery pending. |
+| ID                                 | Source Refs                                                   | Execution                           | Run ID | Run Root         | Sonar   | Docker              | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                            |
+| ---------------------------------- | ------------------------------------------------------------- | ----------------------------------- | ------ | ---------------- | ------- | ------------------- | ---------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SRS-ROADMAP-ACCEPTANCE-LINKS`     | current program                                               | `manual`                            | #1782  | protected main   | passed  | `not_applicable`    | `not_applicable` | recorded | Protected merge `7db57a30c35112a679271e6469d20974f83dd061`; amendment completed without S3 implementation.                                                                                                                                                                                               |
+| `S3-MEMBER-STAFF-SUPPORTED-PREFIX` | current program; IDA-CLM-001/014; IDA-CAS-005/006/007/008/015 | `gate-ks-sq` plus focused contracts | local  | isolated task DB | pending | local PostgreSQL 16 | `not_applicable` | pending  | Real UI journey passes; cross-tenant staff/member writes are denied without mutation; 308 database contracts (300 pass, 8 environment-skipped) and 24 status/authority contracts pass. Sonnet 5 preparation and Gemini adversarial reviews passed. Protected delivery pending; IDA-CLM-010 remains open. |
 
 ### Member case overview entry progress
 
@@ -1040,8 +1041,8 @@ claim full T-410 completion. `MEMBER-CASE-OVERVIEW-ENTRY` completed in PR #1775,
 `MEMBER-CASE-WORKSPACE-REDESIGN` completed in PR #1776 and `MEMBER-CASE-DETAIL-CONTINUITY`
 completed in PR #1777; localization completed in PR #1778. S1 completed through protected PR
 #1780 and exact-main health passed. S2 completed through #1781 with exact-main health passed.
-The acceptance-link amendment precedes queued S3 implementation. This does not select T-411
-Smart Next Step.
+The acceptance-link amendment completed through #1782. The bounded supported-path prefix of S3 is
+selected; conditional S4 and T-411 Smart Next Step are not selected.
 
 | Completed historical priority            | Status      | Constraint                                                                    |
 | ---------------------------------------- | ----------- | ----------------------------------------------------------------------------- |
