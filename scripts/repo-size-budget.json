@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 115307,
+      "trackedBytesDelta": 115308,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 77216,
+        "config/data/messages": 77217,
         "source/scripts": 23092,
         "tests/e2e": 14999
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 77216,
+        "scripts/repo-size-budget.json": 77217,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -199,17 +199,17 @@
         "docs/plans/current-program.md",
         "docs/plans/current-tracker.md"
       ],
-      "maxTrackedBytesDelta": 36445,
+      "maxTrackedBytesDelta": 37203,
       "maxTrackedFilesDelta": 2,
       "maxCategoryBytesDelta": {
         "config/data/messages": 9674,
-        "docs/text": 23330,
+        "docs/text": 24088,
         "large support/generated-ish": 3441
       },
       "maxPathBytesDelta": {
         "docs/plans/2026-08-27-t116-case-summary-design-gate.md": 11495,
         "docs/plans/2026-08-27-t116-case-summary-admission.json": 9748,
-        "docs/plans/current-program.md": 11853,
+        "docs/plans/current-program.md": 12611,
         "docs/plans/current-tracker.md": 3441
       }
     },
@@ -483,13 +483,13 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 689597,
+      "maxTrackedBytesDelta": 695226,
       "maxTrackedFilesDelta": 95,
       "maxCategoryBytesDelta": {
         "config/data/messages": 1061,
         "docs/text": 31463,
-        "source/scripts": 348612,
-        "tests/e2e": 308461
+        "source/scripts": 349630,
+        "tests/e2e": 313072
       },
       "maxPathBytesDelta": {
         ".github/workflows/ci.yml": 1441,
@@ -498,7 +498,7 @@
         "docs/superpowers/specs/2026-08-29-harness-v2-efficiency-design.md": 14685,
         "package.json": 1070,
         "packages/qa/test-tools.ts": 334,
-        "scripts/ci/model-review-routes.mjs": 1716,
+        "scripts/ci/model-review-routes.mjs": 1742,
         "scripts/ci/pr-delivery-contract.json": 47,
         "scripts/ci/pr-delivery-gate.test.mjs": 0,
         "scripts/ci/qa-cli-callers-contracts.test.mjs": 71,
@@ -506,9 +506,9 @@
         "scripts/ci/reviewer-preflight.mjs": 0,
         "scripts/ci/reviewer-preflight.test.mjs": 1996,
         "scripts/ci/reviewer-route-receipts.mjs": 301,
-        "scripts/ci/reviewer-route-runtime.mjs": 3510,
-        "scripts/ci/reviewer-route-runtime.test.mjs": 6765,
-        "scripts/ci/run-model-reviewer-route.mjs": 5111,
+        "scripts/ci/reviewer-route-runtime.mjs": 4091,
+        "scripts/ci/reviewer-route-runtime.test.mjs": 7315,
+        "scripts/ci/run-model-reviewer-route.mjs": 5522,
         "scripts/ci/z620-parity.json": 0,
         "scripts/slice-rehearse-authority-boundary.mjs": 2932,
         "scripts/slice-rehearse-authority-boundary.test.mjs": 2733,
@@ -603,7 +603,7 @@
         "scripts/ci/pr-governance-report-lib.mjs": 2166,
         "scripts/ci/pr-governance-report.test.mjs": 7110,
         "scripts/ci/reviewer-no-tools.toml": 57,
-        "scripts/ci/reviewer-route-policy.test.mjs": 6580,
+        "scripts/ci/reviewer-route-policy.test.mjs": 10641,
         "scripts/ci/model-review-access.mjs": 212,
         "scripts/ci/model-review-evidence.test.mjs": 2239,
         "scripts/ci/pr-delivery-review-bodies.test.mjs": 3420
@@ -689,18 +689,18 @@
         "scripts/ci/main-e2e-reuse-core.test.mjs",
         "scripts/ci/main-e2e-reuse-github.test.mjs"
       ],
-      "maxTrackedBytesDelta": 28895,
+      "maxTrackedBytesDelta": 29222,
       "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
-        "source/scripts": 10517,
-        "tests/e2e": 15685,
+        "source/scripts": 10606,
+        "tests/e2e": 15923,
         "config/data/messages": 2693
       },
       "maxPathBytesDelta": {
-        "scripts/ci/main-e2e-reuse.mjs": 1650,
+        "scripts/ci/main-e2e-reuse.mjs": 1739,
         "scripts/ci/main-e2e-reuse-core.mjs": 975,
         "scripts/ci/main-e2e-reuse-github.mjs": 17,
-        "scripts/ci/main-e2e-reuse-cli.test.mjs": 4331,
+        "scripts/ci/main-e2e-reuse-cli.test.mjs": 4569,
         "scripts/ci/coverage-input-identity.mjs": 2920,
         "scripts/ci/main-coverage-reuse.mjs": 4861,
         "scripts/ci/main-coverage-reuse.test.mjs": 9808,
@@ -1182,11 +1182,11 @@
         "scripts/modularity-guard-policy.mjs",
         "scripts/modularity-guard-t210-catalogs.test.mjs"
       ],
-      "maxTrackedBytesDelta": 22504,
+      "maxTrackedBytesDelta": 22577,
       "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
         "config/data/messages": 657,
-        "source/scripts": 6722,
+        "source/scripts": 6795,
         "tests/e2e": 15125
       },
       "maxPathBytesDelta": {
@@ -1201,7 +1201,7 @@
         "apps/web/src/messages/sq/claims-tracking.json": 164,
         "apps/web/src/messages/sr/claims-tracking.json": 148,
         "scripts/check-modularity-guard.test.mjs": 1392,
-        "scripts/modularity-guard-policy.mjs": 1708,
+        "scripts/modularity-guard-policy.mjs": 1781,
         "scripts/modularity-guard-t210-catalogs.test.mjs": 629
       }
     },
@@ -1331,11 +1331,11 @@
         "apps/web/src/messages/sq/claims.json",
         "apps/web/src/messages/sr/claims.json"
       ],
-      "maxTrackedBytesDelta": 64644,
+      "maxTrackedBytesDelta": 64649,
       "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
         "docs/text": 28500,
-        "config/data/messages": 5644,
+        "config/data/messages": 5649,
         "source/scripts": 8000,
         "tests/e2e": 22500
       },
@@ -1348,9 +1348,9 @@
         "apps/web/src/features/member/claims/components/ClaimEvidenceUploadDialog.test.tsx": 7700,
         "apps/web/e2e/gate/member-vault-consent-display.spec.ts": 7800,
         "apps/web/e2e/golden/member-claim-detail-ops.spec.ts": 6000,
-        "apps/web/src/messages/en/claims.json": 1217,
+        "apps/web/src/messages/en/claims.json": 1221,
         "apps/web/src/messages/mk/claims.json": 1764,
-        "apps/web/src/messages/sq/claims.json": 1363,
+        "apps/web/src/messages/sq/claims.json": 1364,
         "apps/web/src/messages/sr/claims.json": 1300
       }
     },
@@ -1564,15 +1564,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 62042344,
+  "maxTrackedBytes": 62049137,
   "maxTrackedFiles": 6091,
   "maxCategoryBytes": {
-    "config/data/messages": 2261499,
-    "docs/text": 8648806,
+    "config/data/messages": 2261505,
+    "docs/text": 8649564,
     "large support/generated-ish": 15867894,
     "other": 19184750,
-    "source/scripts": 8883112,
-    "tests/e2e": 7196283
+    "source/scripts": 8884292,
+    "tests/e2e": 7201132
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

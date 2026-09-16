@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -10,6 +11,112 @@ import { defaultReviewers, modelReviewRoutes } from './model-review-routes.mjs';
 import { boundedReviewFrame, buildReviewerPrompt } from './run-model-reviewer-route.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+
+for (const [bytes, accepted] of [
+  [650_000, true],
+  [1_100_000, false],
+]) {
+  test(`Opus transports a complete ${bytes}-byte candidate or rejects before provider start`, () => {
+    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'reviewer-packet-'));
+    const git = (...args) => execFileSync('/usr/bin/git', args, { cwd, encoding: 'utf8' }).trim();
+    try {
+      git('init', '-q');
+      fs.mkdirSync(path.join(cwd, 'docs/plans'), { recursive: true });
+      for (const file of ['AGENTS.md', 'code_review.md', 'docs/plans/current-program.md'])
+        fs.writeFileSync(path.join(cwd, file), `Authority ${file}\n`);
+      git('add', '.');
+      git(
+        '-c',
+        'user.name=Fixture',
+        '-c',
+        'user.email=fixture@example.test',
+        'commit',
+        '-qm',
+        'base'
+      );
+      const baseSha = git('rev-parse', 'HEAD');
+      git('update-ref', 'refs/remotes/origin/main', baseSha);
+      fs.writeFileSync(
+        path.join(cwd, 'snapshot.json'),
+        JSON.stringify({ complete: 'x'.repeat(bytes) })
+      );
+      git('add', '.');
+      git(
+        '-c',
+        'user.name=Fixture',
+        '-c',
+        'user.email=fixture@example.test',
+        'commit',
+        '-qm',
+        'candidate'
+      );
+      const diff = execFileSync(
+        '/usr/bin/git',
+        ['diff', '--no-ext-diff', '--unified=3', 'origin/main...HEAD'],
+        { cwd, encoding: 'utf8', maxBuffer: 2_000_000 }
+      );
+      fs.writeFileSync(path.join(cwd, 'expected-diff'), diff);
+      fs.mkdirSync(path.join(cwd, 'bin'));
+      fs.writeFileSync(
+        path.join(cwd, 'bin/claude'),
+        `#!${process.execPath}\n
+        const fs = require('node:fs');
+        fs.writeFileSync('provider-started', 'yes');
+        let input = '';
+        process.stdin.setEncoding('utf8');
+        process.stdin.on('data', chunk => input += chunk);
+        process.stdin.on('end', () => console.log(JSON.stringify({
+          model: 'claude-opus-5', result: 'VERDICT: PASS',
+          complete: input.includes(fs.readFileSync('expected-diff', 'utf8')),
+          authority: ['AGENTS.md', 'code_review.md', 'docs/plans/current-program.md'].every(file => input.includes('Authority ' + file)),
+          boundedArgs: process.argv.join(' ').length < 1000
+        })));
+      `,
+        { mode: 0o700 }
+      );
+      const result = spawnSync(
+        process.execPath,
+        [
+          path.join(scriptDir, 'run-model-reviewer-route.mjs'),
+          '--route',
+          'opus',
+          '--allow-escalation',
+        ],
+        {
+          cwd,
+          encoding: 'utf8',
+          env: { ...process.env, PATH: `${path.join(cwd, 'bin')}:${process.env.PATH}` },
+          timeout: 10_000,
+        }
+      );
+      assert.equal(result.status, accepted ? 0 : 125, result.stderr || result.stdout);
+      const summary = JSON.parse(result.stdout);
+      const receipt = JSON.parse(fs.readFileSync(summary.receipt.jsonPath, 'utf8'));
+      assert.equal(fs.existsSync(path.join(cwd, 'provider-started')), accepted);
+      if (accepted) {
+        assert.equal(receipt.status, 'ran');
+        assert.equal(receipt.providerReportedModel, 'claude-opus-5');
+        assert.equal(receipt.reviewVerdict, 'PASS');
+        assert.deepEqual(receipt.candidateIdentity, {
+          baseSha,
+          headSha: git('rev-parse', 'HEAD'),
+          treeSha: git('rev-parse', 'HEAD^{tree}'),
+          diffSha256: createHash('sha256').update(diff).digest('hex'),
+        });
+        const delivered = JSON.parse(receipt.stdout);
+        assert.equal(delivered.complete, true);
+        assert.equal(delivered.authority, true);
+        assert.equal(delivered.boundedArgs, true);
+      } else {
+        assert.equal(receipt.blockerReason, 'reviewer_packet_preparation');
+        assert.match(receipt.error, /review candidate diff exceeds the bounded packet limit/u);
+        assert.equal(receipt.reviewVerdict, null);
+      }
+    } finally {
+      fs.rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+}
 
 test('no-tools reviewer prompt contains its review frame and forbids deferred inspection', () => {
   const prompt = buildReviewerPrompt({

@@ -28,11 +28,28 @@ async function runFake(name, body, options = {}) {
       timeoutPreset: options.timeoutPreset,
       candidateIdentity: options.candidateIdentity,
       maxCaptureBytes: options.maxCaptureBytes,
+      input: options.input,
     });
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
 }
+
+test('oversized stdin is rejected before a provider can produce a verdict', async () => {
+  const receipt = await runFake(
+    'opus',
+    'console.log(JSON.stringify({model:"claude-opus-5",result:"VERDICT: PASS"}))',
+    {
+      provider: 'anthropic',
+      model: 'claude-opus-5',
+      input: 'x'.repeat(1_572_865),
+    }
+  );
+  assert.equal(receipt.status, 'blocked');
+  assert.equal(receipt.blockerReason, 'reviewer_input_limit');
+  assert.equal(receipt.stdout, '');
+  assert.equal(receipt.reviewVerdict, null);
+});
 
 test('OpenAI reviewer quota blocker writes deterministic JSON and Markdown receipts', async () => {
   const receipt = await runFake(

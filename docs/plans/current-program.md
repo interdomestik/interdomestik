@@ -143,6 +143,15 @@ measured disjoint growth. Derive manifests from committed canonical inputs, run 
 capability and runtime-role regressions plus full CI preflight, then independent review and fresh
 required S4 proof. Historical 93/97 receipts remain bound to their original source.
 
+The owner additionally requested repair and actual use of the supported Opus 5 review route
+after S4 exceeded its original 512 KiB diff buffer. The bounded transport correction owns only
+the existing reviewer route/config/runtime and their direct tests, these scope/evidence records
+and measured capacity metadata. Admit complete diffs up to 1 MiB, preserve full candidate hashes
+and authority, deliver Opus prompts through stdin bounded at 1.5 MiB, and retain tool denial,
+output bounds, model attestation and explicit verdict requirements. No truncation, omitted
+generated/security evidence, new provider integration or dependency is authorized. Record the
+actual provider result before deciding any fallback; this is distinct from the S4 product change.
+
 Research reused from 2026-09-16: AirHelp's public claim guide
 (`https://www.airhelp.com/en-int/blog/how-to-use-airhelp-to-claim-flight-compensation/`) supports
 specific trackable document requests, not an inferred authenticated portal. GOV.UK task-list guidance

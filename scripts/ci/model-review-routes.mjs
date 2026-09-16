@@ -59,6 +59,7 @@ export const modelReviewRoutes = {
     provider: 'anthropic',
     model: 'claude-opus-5',
     command: 'claude',
+    promptViaStdin: true,
     timeoutMs: 30 * 60_000,
     noOutputTimeoutMs: 300_000,
     args: prompt => [

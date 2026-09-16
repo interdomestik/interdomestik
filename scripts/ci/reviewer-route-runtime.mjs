@@ -150,6 +150,7 @@ export function runReviewerRoute(options) {
     ...reviewFacts(stdout),
     candidateIdentity: options.candidateIdentity ?? null,
     commandInvoked,
+    promptTransport: options.input === undefined ? 'argv' : 'stdin',
     startedAt,
     endedAt: iso(),
     elapsedMs: Date.now() - startedMs,
@@ -165,6 +166,14 @@ export function runReviewerRoute(options) {
     stderr,
   });
 
+  if (
+    options.input !== undefined &&
+    (typeof options.input !== 'string' || Buffer.byteLength(options.input) > 1_572_864)
+  ) {
+    blockerReason = 'reviewer_input_limit';
+    return Promise.resolve(finishReceipt({ status: 'blocked', exitCode: 125 }));
+  }
+
   if (!commandAvailable(options.command, env)) {
     blockerReason = 'missing_cli';
     return Promise.resolve(finishReceipt({ status: 'blocked', exitCode: 127 }));
@@ -174,7 +183,7 @@ export function runReviewerRoute(options) {
     const child = spawn(options.command, options.args || [], {
       cwd: options.cwd || process.cwd(),
       env,
-      stdio: ['ignore', 'pipe', 'pipe'],
+      stdio: [options.input === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe'],
     });
     const finish = receipt => {
       clearTimeout(firstTimer);
@@ -240,5 +249,12 @@ export function runReviewerRoute(options) {
       }
       finish(finishReceipt({ status, exitCode: code ?? null, signal, error }));
     });
+    if (options.input !== undefined) {
+      child.stdin.on('error', () => {
+        blockerReason ||= 'reviewer_input_error';
+        terminate(child);
+      });
+      child.stdin.end(options.input);
+    }
   });
 }
