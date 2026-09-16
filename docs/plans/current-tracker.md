@@ -24,6 +24,11 @@ The owner-authorized documentation amendment precedes S3 implementation; S3 rema
 | ------------------------------ | ------------- | ----- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `SRS-ROADMAP-ACCEPTANCE-LINKS` | `in_progress` | Codex | Reconcile delivered status and acceptance links within existing roadmap families. | Existing validation-surface classification, security/capacity checks, current-head review, all protected checks and exact-main health; no S3 implementation. |
 
+The owner-authorized amendment includes necessary exact capacity accounting: requirement map
+72,094 bytes, +7,625 over main; its existing allocation and aggregate docs ceiling grow equally.
+No new file, reserve consumption, allocation reorder or budget self-size growth. Program/tracker
+retain semantic governance classification. This records the bounded authorization, not a new cap waiver.
+
 ### Owner-adopted successor queue (2026-09-15)
 
 Follow the current program's enterprise delivery sequence; localization, S1 and S2 are delivered.
