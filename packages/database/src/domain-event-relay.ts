@@ -19,9 +19,7 @@ export type {
 export { recordDomainEventDelivery } from './domain-event-delivery-recording';
 export { domainEventDeliveryIdempotencyKey } from './domain-event-delivery-keys';
 
-type RelayTx = DomainEventTx & {
-  execute<T>(query: unknown): Promise<T[]>;
-};
+type RelayTx = DomainEventTx;
 type DomainEventRelayRow = Omit<DomainEventRelayEvent, 'createdAt'> & {
   createdAt: Date | string;
 };

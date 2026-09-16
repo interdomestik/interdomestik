@@ -32,8 +32,8 @@ const E2E_TREE_SHAS = new Set([
   '8892fb8818e0d6861ac7d152249a4b15a5221890',
   // S2 branch overview scope protection and mounted isolation proof.
   '354b38ebe3d79b06b994103aa63dc21baf2f5294',
-  // S3 corpus with retry-safe ownership and authoritative notification cleanup proof.
-  '192c688bdaee5098c68378ffb93cb457b71a9339',
+  // S3 corpus with retry-safe ownership and deterministically ordered notification cleanup proof.
+  'a9d2ee8c28ade4e41f1c105cd729ec1a2c215bb6',
 ]);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {

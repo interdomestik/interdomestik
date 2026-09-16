@@ -6,8 +6,9 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
 import { selectDomainEventsForRelay, type DomainEventRelayEvent } from '../src/domain-event-relay';
-import { domainEvents } from '../src/schema/domain-events';
-import { tenants } from '../src/schema/tenants';
+import * as schema from '../src/schema';
+
+const { domainEvents, tenants } = schema;
 
 class FakeSelectTx {
   query?: unknown;
@@ -40,7 +41,7 @@ describe('domain event relay selection', () => {
     const eventId = `relay-proof-${randomUUID()}`;
     const eventName = `test.relay_timestamp.${randomUUID()}`;
     try {
-      const database = drizzle(client);
+      const database = drizzle(client, { schema });
       const [column] = await client<{ data_type: string }[]>`
         select data_type
         from information_schema.columns
