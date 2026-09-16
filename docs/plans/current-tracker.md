@@ -319,8 +319,17 @@ independent and no exact-runtime-effect guarantee is claimed.
 - Product head `b3fa63e46be0754762f12d1a8678b716f4f6616a` contains the accepted Opus
   corrections. Its focused unit/type, capacity, E2E-contract, repository-size and exact
   production-build KS/MK proof pass. The earlier full `pr:verify` and separate `security:guard`
-  passed at `6f0bb61d`; they are not transferred across the accepted code/test changes. Renewed
-  final-source full verification, protected delivery and exact-main health remain pending.
+  passed at `6f0bb61d`; they are not transferred across the accepted code/test changes.
+- Renewed uninterrupted `pnpm pr:verify` passed at evidence head
+  `81c87bdcdc5cf0a5019bfb06ced8917d3ba6f7aa` (tree
+  `60405a4a2922b838adae5660cabd1fff2b2f8ec1`): 1,186 CI contracts, 154 release tests, 41 RLS
+  tests, 3,412 web tests/12 skips, 81.11% repository line coverage, 262 browser passes/12 skips and
+  13 smoke passes/11 skips. Separate `pnpm security:guard` passed. Full/security log SHA-256 values
+  are `60150d194b16f79da7039ad3e251e4cb70f878bb491004b135a2de42a2c35f3e` and
+  `7865d7a498a8435749920e68875ab522a958f36ddf012b94385eb88cb284bea1`. An initial full attempt
+  used port 3112 and stopped at the pre-existing neutral-host test's fixed port 3000 after 116
+  browser passes; the clean port-3000 rerun above is authoritative. Protected delivery and
+  exact-main health remain pending.
 - The screenshot-confirmed mounted dashboard is legacy presentation. S2 makes no redesign,
   latest-trends, deployment or user-acceptance claim; a later bounded redesign must preserve the
   protected route and query contracts.

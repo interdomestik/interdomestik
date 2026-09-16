@@ -219,8 +219,15 @@ bytes across seven existing paths and five new files. The fixed-baseline evaluat
 the capacity budget self-size grows 2,293 bytes, file growth is five, and reserve plus unrelated
 allocations remain unchanged. Admitted E2E tree
 `354b38ebe3d79b06b994103aa63dc21baf2f5294` passes its contract guard. A full required run and
-separate security guard passed on the immediate pre-review-correction product candidate; renewed
-final-source verification, protected delivery and exact-main health remain pending.
+separate security guard passed on the immediate pre-review-correction product candidate. Renewed
+uninterrupted `pnpm pr:verify` passed on evidence head
+`81c87bdcdc5cf0a5019bfb06ced8917d3ba6f7aa` (tree
+`60405a4a2922b838adae5660cabd1fff2b2f8ec1`): 1,186 CI contracts, 154 release tests, 41 RLS
+tests, 3,412 web tests/12 skips, 81.11% repository line coverage, 262 browser passes/12 skips and
+13 smoke passes/11 skips. Separate `pnpm security:guard` passed. Full-log SHA-256 is
+`60150d194b16f79da7039ad3e251e4cb70f878bb491004b135a2de42a2c35f3e`; security-log SHA-256 is
+`7865d7a498a8435749920e68875ab522a958f36ddf012b94385eb88cb284bea1`. Protected delivery and
+exact-main health remain pending.
 
 The currently mounted branch dashboard presentation is legacy and is not the visual target. S2
 makes no styling, information-architecture, shell-redesign, deployment or user-acceptance claim;
