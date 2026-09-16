@@ -281,7 +281,7 @@ async function assignClaimToActingStaffIfUnassigned(params: {
     .update(claims)
     .set({
       staffId: sql`coalesce(${claims.staffId}, ${params.session.user.id})`,
-      assignedAt: sql`coalesce(${claims.assignedAt}, ${now.toISOString()})`,
+      assignedAt: sql`coalesce(${claims.assignedAt}, ${now.toISOString().slice(0, -1)})`,
       assignedById: sql`coalesce(${claims.assignedById}, ${params.session.user.id})`,
       updatedAt: now,
     })

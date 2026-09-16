@@ -89,8 +89,9 @@ repo/program/accepted ADR authority remains controlling until explicitly amended
 The selected S3 increment stops after the real supported path: member submission, authorized staff
 transition from `submitted` to `verification`, and member-visible status/public-history continuity
 with staff-private history excluded. Submission and the public staff transition run through mounted
-UI; the private same-status note uses the existing staff core contract before a fresh mounted member
-session proves exclusion. The first reproduced unsupported handoff is IDA-CLM-010:
+UI, and their member notifications use the canonical `/member/claims/[id]` route; the private
+same-status note uses the existing staff core contract before a fresh mounted member session proves
+exclusion. The first reproduced unsupported handoff is IDA-CLM-010:
 there is no evidence-request aggregate/command/read model with request correlation and due date, so
 the generic upload path cannot prove a request-bound member upload or staff acknowledgement. S4 is
 therefore a proposed conditional successor, not selected work. This increment does not claim full

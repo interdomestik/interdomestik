@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 107054,
+      "trackedBytesDelta": 107465,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 68963,
+        "config/data/messages": 69374,
         "source/scripts": 23092,
         "tests/e2e": 14999
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 68963,
+        "scripts/repo-size-budget.json": 69374,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -891,16 +891,16 @@
         "packages/domain-claims/src/staff-claims/update-status.transaction.test.ts",
         "packages/domain-claims/src/staff-claims/update-status.ts"
       ],
-      "maxTrackedBytesDelta": 10566,
+      "maxTrackedBytesDelta": 10466,
       "maxTrackedFilesDelta": 2,
-      "maxCategoryBytesDelta": { "source/scripts": 681, "tests/e2e": 9885 },
+      "maxCategoryBytesDelta": { "source/scripts": 681, "tests/e2e": 9785 },
       "maxPathBytesDelta": {
         "apps/web/src/actions/staff-claims/update-status.test.ts": 0,
         "packages/domain-claims/src/staff-claims/current-claim-record.test.ts": 2368,
         "packages/domain-claims/src/staff-claims/current-claim-record.ts": 0,
         "packages/domain-claims/src/staff-claims/matter-allowance.test.ts": 1587,
         "packages/domain-claims/src/staff-claims/matter-allowance.ts": 207,
-        "packages/domain-claims/src/staff-claims/update-status.test.ts": 100,
+        "packages/domain-claims/src/staff-claims/update-status.test.ts": 0,
         "packages/domain-claims/src/staff-claims/update-status.transaction.test.ts": 5830,
         "packages/domain-claims/src/staff-claims/update-status.ts": 474
       }
@@ -1412,19 +1412,25 @@
       "writerPaths": [
         "apps/web/e2e/gate/member-staff-evidence-journey.fixture.ts",
         "apps/web/e2e/gate/member-staff-evidence-journey.spec.ts",
+        "apps/web/e2e/gate/tenant-resolution.spec.ts",
         "apps/web/e2e/utils/navigation.ts",
         "packages/database/src/domain-event-relay.ts",
-        "packages/database/test/domain-event-relay-selection.test.ts"
+        "packages/database/test/domain-event-relay-selection.test.ts",
+        "packages/domain-communications/src/notifications/notify.test.ts",
+        "packages/domain-communications/src/notifications/notify.ts"
       ],
-      "maxTrackedBytesDelta": 22800,
+      "maxTrackedBytesDelta": 25600,
       "maxTrackedFilesDelta": 2,
-      "maxCategoryBytesDelta": { "source/scripts": 1500, "tests/e2e": 21300 },
+      "maxCategoryBytesDelta": { "source/scripts": 1500, "tests/e2e": 24100 },
       "maxPathBytesDelta": {
-        "apps/web/e2e/gate/member-staff-evidence-journey.fixture.ts": 8500,
+        "apps/web/e2e/gate/member-staff-evidence-journey.fixture.ts": 9000,
         "apps/web/e2e/gate/member-staff-evidence-journey.spec.ts": 10000,
+        "apps/web/e2e/gate/tenant-resolution.spec.ts": 300,
         "apps/web/e2e/utils/navigation.ts": 100,
         "packages/database/src/domain-event-relay.ts": 1500,
-        "packages/database/test/domain-event-relay-selection.test.ts": 2700
+        "packages/database/test/domain-event-relay-selection.test.ts": 3800,
+        "packages/domain-communications/src/notifications/notify.test.ts": 900,
+        "packages/domain-communications/src/notifications/notify.ts": 0
       }
     }
   ],
@@ -1434,15 +1440,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61492203,
+  "maxTrackedBytes": 61495314,
   "maxTrackedFiles": 6072,
   "maxCategoryBytes": {
-    "config/data/messages": 2244787,
+    "config/data/messages": 2245198,
     "docs/text": 8644068,
     "large support/generated-ish": 15395985,
     "other": 19184750,
     "source/scripts": 8865471,
-    "tests/e2e": 7157142
+    "tests/e2e": 7159842
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

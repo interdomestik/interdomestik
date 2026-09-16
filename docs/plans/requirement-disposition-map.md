@@ -372,7 +372,7 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-CAS-003 | Sole transition writer | Canonical | unresolved | S3/S6/S7/S13 | open | none | U | U | U |
 | IDA-CAS-004 | Transition validation | Canonical | unresolved | S3/S6/S7/S13 | open | none | U | U | U |
 | IDA-CAS-005 | Atomic history | Canonical | unresolved | S3/S6/S7/S13 | S3 candidate asserts the exact transition, first staff assignment and history rows after the real staff action; broader concurrency/retry acceptance remains open | none | U | U | U |
-| IDA-CAS-006 | Public/private intent | Canonical | pilot-required | S3/S6/S7/S13 | S3 candidate persists the public transition through mounted staff UI, adds a private same-status note through the existing staff core contract, and renders only the public note to a fresh member session; broader communication acceptance remains open | none | U | U | U |
+| IDA-CAS-006 | Public/private intent | Canonical | pilot-required | S3/S6/S7/S13 | S3 candidate persists the mounted public transition, adds a core private same-status note, and renders only the public note to a fresh front-door E2E member session. It uses a tenant-selection header, not host-derived proof; broader communication acceptance remains open | none | U | U | U |
 | IDA-CAS-007 | Case timeline | Target | pilot-required | S3/S6/S7/S13 | S3 candidate renders the public staff verification note in the returning member's mounted timeline; whole-journey and user acceptance remain open | none | U | U | U |
 | IDA-CAS-008 | Internal notes isolation | Target | pilot-required | S3/S6/S7/S13 | S3 candidate proves the core-created private same-status staff note is absent from the exact fresh-session member detail; other roles and surfaces remain open | none | U | U | U |
 | IDA-CAS-009 | Submission package | Target | unresolved | S3/S6/S7/S13 | open | none | U | U | U |
@@ -381,7 +381,7 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-CAS-012 | Case SLA clocks | Target | unresolved | S3/S6/S7/S13 | open | none | U | U | U |
 | IDA-CAS-013 | Reopen control | Target | unresolved | S3/S6/S7/S13 | open | none | U | U | U |
 | IDA-CAS-014 | Closeout prerequisites | Target | unresolved | S3/S6/S7/S13 | open | none | U | U | U |
-| IDA-CAS-015 | Domain event | Canonical | unresolved | S3/S6/S7/S13 | S3 candidate observes exact-claim `case.created` and `claim.status_changed`; relay regression parses deterministic UTC and explicit-offset PostgreSQL strings as `Date`, preserving native typed `Date` and audit projection delivery. Broader event-family acceptance remains open | none | U | U | U |
+| IDA-CAS-015 | Domain event | Canonical | unresolved | S3/S6/S7/S13 | S3 candidate observes exact-claim `case.created` and `claim.status_changed`; relay proof checks PostgreSQL `timestamptz` UTC under `Europe/Berlin`, parses explicit offsets as `Date` and retains audit delivery. Broader event-family acceptance remains open | none | U | U | U |
 | IDA-CAS-016 | Event payload minimization | Canonical | unresolved | S3/S6/S7/S13 | open | none | U | U | U |
 | IDA-REC-001 | Recovery eligibility | Target | unresolved | S13; recovery scope | open | none | U | U | U |
 | IDA-REC-002 | No recovery by recommendation alone | Canonical | unresolved | S13; recovery scope | open | none | U | U | U |

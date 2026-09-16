@@ -26,20 +26,23 @@ The acceptance-link amendment completed through protected PR #1782. Current prot
 
 The completed #1782 acceptance-link amendment historically set the requirement-map allocation to
 72,094 bytes, +7,625 over its predecessor. S3 changes use the map's synchronized exact allocation;
-the program/tracker remain inside named bounded allocation `t116-case-summary`. The S3 E2E/relay
-allocation is separately bounded. Executable capacity proof, rather than either historical figure,
-governs the candidate; no reserve, deleted-byte credit, allocation reorder or guard weakening is used.
+the program/tracker remain inside named bounded allocation `t116-case-summary`. The S3
+journey/relay/notification-test allocation is separately bounded. Executable capacity proof, rather
+than either historical figure, governs the candidate; no reserve, deleted-byte credit, allocation
+reorder or guard weakening is used.
 
 S3 implementation evidence is deliberately split: mounted UI owns member save/resume/submission and
 the public staff `submitted`→`verification` action; the existing staff core owns a private same-status
 note, followed by a fresh authenticated member context proving it absent. Exact member, agent and
 branch-manager core calls against that claim return `Unauthorized` without history mutation. Cleanup
-removes the exact draft, claim, history, event delivery/event, audit and notification rows; the claim
-number sequence remains a monotonic database sequence and the isolated task database is also removed.
-The test first observes the emitted claim notification at its exact action URL; cleanup and residue
-checks match the claim-ID substring so absolute or localized URL variants cannot orphan it. The required
-`e2e:gate` and `e2e:gate:pr` commands use one worker; therefore the shared seeded member's temporary
-claim cannot overlap a sibling gate consumer and is removed before the next test starts.
+binds cleanup to the actual persisted claim row, then one transaction removes its exact claim,
+history, event delivery/event, audit and canonical-action notification rows; the exact draft is also
+removed. The claim-number sequence remains monotonic, and the isolated task database is removed after
+verification. The test observes the staff-status notification at `/member/claims/[id]`; exact equality
+avoids SQL wildcard ambiguity. Required `e2e:gate` and `e2e:gate:pr` commands use one worker, so the
+seeded member's temporary claim cannot overlap a sibling gate consumer. The fresh IDA member context
+uses the established front-door tenant-selection header/additional-data contract; it proves a new
+authenticated session and private-note exclusion, not host-derived tenant selection.
 
 The pre-existing C2-04 pilot assertion still expects the older scoped-status error. Its source contract
 changed in `be7f1d9f79`, while default `e2e:gate` excludes `/pilot/`; S3 does not silently normalize or
@@ -51,7 +54,9 @@ The relay raw query now formats `createdAt` deterministically as UTC with micros
 accepts space or `T` plus `Z`, `+HH`, `+HHMM` or `+HH:MM`, and pads or truncates fractional seconds to
 JavaScript milliseconds while rejecting offset-less strings and non-array row results. The audit
 projection is the only selected S3 consumer that dereferences relay `event.createdAt`; delivery
-idempotency remains event ID + consumer. The raw `tx.execute<T>` inventory contains six sites (relay,
+idempotency remains event ID + consumer. PostgreSQL-backed proof confirms the column is `timestamp
+with time zone` and the exact expression returns `2026-09-16T10:00:00.123456Z` with the session set to
+`Europe/Berlin`. The raw `tx.execute<T>` inventory contains six sites (relay,
 two recovery evidence readers, transition evidence, AI persistence and policy lifecycle guard counting
 as six call sites); only the relay selects this event timestamp. Sibling sites remain inventory only.
 An explicit-offset parse failure aborts and retries the locked relay batch for every consumer; this is
@@ -60,11 +65,12 @@ the intentional fail-closed poison-batch posture until the driver contract is re
 The same mounted journey reproduced Drizzle raw-SQL `Date` binding failure in the first staff
 assignment: `Failed query: select $1 as value`, with the parameter rendered as the host-local
 `Wed Sep 16 2026 12:00:00 GMT+0200 (Central European Summer Time)`. The staff writer now binds the
-same `updatedAt` instant as UTC ISO text inside `coalesce`; its focused test asserts identity of those
-instants. The writer's only sibling raw-SQL bindings are staff/assigner string IDs, so no other `Date`
-binding is in scope. Both writer/test paths remain governed by the existing named
-`staff-current-claim-tenant-context` allocation; its focused-test cap is expanded exactly for S3,
-while the separately named S3 allocation owns only the new E2E and relay paths.
+UTC wall-clock ISO value without a zone suffix to the schema's `timestamp without time zone` inside
+`coalesce`. Focused binding proof and the mounted database row prove the initial `assignedAt` equals
+that assignment write's `updatedAt`; the later private note may legitimately advance only `updatedAt`.
+The writer's only sibling raw-SQL bindings are staff/assigner string IDs. Both writer/test paths remain
+under `staff-current-claim-tenant-context`; its test cap stays unchanged at zero growth, while the
+candidate remains below the protected 794-line/28,150-byte baseline.
 
 ### Owner-adopted successor queue (2026-09-15)
 

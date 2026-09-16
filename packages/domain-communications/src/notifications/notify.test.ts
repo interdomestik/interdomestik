@@ -48,6 +48,7 @@ import { sendEmail } from '../email';
 import {
   clearSupportHandoffPublicResponseNotifications,
   notifyRecoveryDecision,
+  notifyStatusChanged,
   notifySupportHandoffPublicResponse,
   sendNotification,
 } from './notify';
@@ -88,7 +89,7 @@ describe('sendNotification', () => {
   });
 
   it('persists an in-app notification when the recipient email is not verified', async () => {
-    mocks.findFirst.mockResolvedValueOnce({
+    mocks.findFirst.mockResolvedValue({
       email: 'unverified@example.com',
       emailVerified: false,
       tenantId: 'tenant-1',
@@ -102,6 +103,34 @@ describe('sendNotification', () => {
         tenantId: 'tenant-1',
         type: 'new_message',
       })
+    );
+  });
+
+  it('uses the canonical member claim route for status notifications', async () => {
+    const sendPushToUser = vi.fn().mockResolvedValue(undefined);
+    mocks.findFirst.mockResolvedValueOnce({
+      email: 'verified@example.com',
+      emailVerified: true,
+      tenantId: 'tenant-1',
+    });
+
+    expect(
+      await notifyStatusChanged(
+        'user-1',
+        'member@example.com',
+        { id: 'claim-1', title: 'Vehicle claim' },
+        'submitted',
+        'verification',
+        { sendPushToUser, tenantId: 'tenant-1' }
+      )
+    ).toEqual({ success: true });
+    expect(mocks.insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({ actionUrl: '/member/claims/claim-1' })
+    );
+    expect(sendPushToUser).toHaveBeenCalledWith(
+      'user-1',
+      'claim_updates',
+      expect.objectContaining({ url: '/member/claims/claim-1' })
     );
   });
 

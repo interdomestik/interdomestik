@@ -478,7 +478,7 @@ describe('staff updateClaimStatusCore', () => {
     );
   });
 
-  it('auto-assigns the acting staff member when an unassigned claim is triaged', async () => {
+  it('auto-assigns acting staff when an unassigned claim is triaged', async () => {
     mocks.tenantReadSelectChain.limit.mockResolvedValue([
       claimFixture('submitted', { title: 'Vehicle claim', staffId: null }),
     ]);
@@ -519,7 +519,11 @@ describe('staff updateClaimStatusCore', () => {
     const updates = mocks.txUpdateSet.mock.calls as unknown as [{ updatedAt: Date }][];
     expect(mocks.sql.mock.calls.slice(1, 4)).toEqual([
       [expect.any(Array), mocks.claims.staffId, 'staff-1'],
-      [expect.any(Array), mocks.claims.assignedAt, updates[1][0].updatedAt.toISOString()],
+      [
+        expect.any(Array),
+        mocks.claims.assignedAt,
+        updates[1][0].updatedAt.toISOString().slice(0, -1),
+      ],
       [expect.any(Array), mocks.claims.assignedById, 'staff-1'],
     ]);
   });

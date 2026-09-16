@@ -139,7 +139,8 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
         const rows = await db.query.notifications.findMany({
           where: and(
             eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
-            eq(notifications.actionUrl, `/dashboard/claims/${submitted.claimId}`)
+            eq(notifications.type, 'claim_status_changed'),
+            eq(notifications.actionUrl, `/member/claims/${submitted.claimId}`)
           ),
           columns: { id: true },
         });
@@ -160,6 +161,15 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
       role: E2E_USERS.KS_STAFF.dbRole,
       tenantId: E2E_USERS.KS_STAFF.tenantId,
     });
+    const assignedClaim = await db.query.claims.findFirst({
+      where: and(
+        eq(claims.id, submitted.claimId),
+        eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId)
+      ),
+      columns: { assignedAt: true, staffId: true, updatedAt: true },
+    });
+    expect(assignedClaim?.staffId).toBe(staffActor.id);
+    expect(assignedClaim?.assignedAt?.toISOString()).toBe(assignedClaim?.updatedAt?.toISOString());
     const privateResult = await updateClaimStatusCore({
       claimId: submitted.claimId,
       newStatus: 'verification',

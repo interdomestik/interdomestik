@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import postgres from 'postgres';
 
 import { selectDomainEventsForRelay, type DomainEventRelayEvent } from '../src/domain-event-relay';
 
@@ -22,6 +23,33 @@ function sqlText(value: unknown): string {
 }
 
 describe('domain event relay selection', () => {
+  it('formats the timestamptz column as UTC under a non-UTC database session', async t => {
+    if (!process.env.DATABASE_URL) return t.skip('DATABASE_URL is required for relay SQL proof');
+    const client = postgres(process.env.DATABASE_URL, { max: 1 });
+    try {
+      const [column] = await client<{ data_type: string }[]>`
+        select data_type
+        from information_schema.columns
+        where table_schema = 'public'
+          and table_name = 'domain_events'
+          and column_name = 'created_at'
+      `;
+      assert.equal(column?.data_type, 'timestamp with time zone');
+      await client.begin(async tx => {
+        await tx`set local time zone 'Europe/Berlin'`;
+        const [row] = await tx<{ created_at: string }[]>`
+          select to_char(
+            '2026-09-16T10:00:00.123456Z'::timestamptz at time zone 'UTC',
+            'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'
+          ) as created_at
+        `;
+        assert.equal(row?.created_at, '2026-09-16T10:00:00.123456Z');
+      });
+    } finally {
+      await client.end();
+    }
+  });
+
   it('selects undelivered batches with tenant scope and transaction-safe locking', async () => {
     const tx = new FakeSelectTx();
 

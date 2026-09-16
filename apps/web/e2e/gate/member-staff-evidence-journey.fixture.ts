@@ -14,7 +14,6 @@ import {
   notifications,
 } from '@interdomestik/database';
 import { like } from 'drizzle-orm';
-import { createHash } from 'node:crypto';
 import type { Browser, BrowserContext, Page, TestInfo } from '@playwright/test';
 import { expect } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
@@ -67,21 +66,34 @@ export async function submitExactDraft(
     columns: { id: true, ownerUserId: true },
   });
   if (!draft) throw new Error('Exact saved draft missing before S3 submission');
-  const claimId = `fsd_${createHash('sha256')
-    .update(JSON.stringify([E2E_USERS.KS_MEMBER.tenantId, draft.ownerUserId, draft.id]))
-    .digest('hex')}`;
-  rememberClaimId(claimId);
   await exactDraft.locator('[data-testid^="free-start-resume-"]').click();
   const submit = intake.getByTestId('claim-draft-submit');
   await expect(submit).toBeEnabled();
   await submit.click();
+  let claimId: string | undefined;
+  await expect
+    .poll(async () => {
+      const createdClaim = await db.query.claims.findFirst({
+        where: and(
+          eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId),
+          eq(claims.userId, draft.ownerUserId),
+          like(claims.description, `%Summary: ${journey.summary}`)
+        ),
+        columns: { id: true },
+      });
+      claimId = createdClaim?.id;
+      return claimId;
+    })
+    .toMatch(/^fsd_[a-f0-9]{64}$/u);
+  rememberClaimId(claimId!);
   const success = memberPage.getByTestId('claim-created-success');
   await expect(success).toBeVisible({ timeout: 15_000 });
   const claimNumber = await success.getAttribute('data-claim-number');
   expect(claimNumber).toMatch(/^CLM-[A-Z0-9]{2,10}-\d{4}-\d{6}$/);
   const claimHref = await success.locator('a').getAttribute('href');
-  expect(claimHref).toBe(routes.memberClaimDetail(claimId, testInfo));
-  return { claimId, claimNumber: claimNumber!, claimHref: claimHref! };
+  if (!claimHref) throw new Error('Created claim success link is missing');
+  expect(claimHref).toBe(routes.memberClaimDetail(claimId!, testInfo));
+  return { claimId: claimId!, claimNumber: claimNumber!, claimHref };
 }
 
 export async function establishDraftTenantContext(
@@ -111,8 +123,9 @@ export function idaBaseURL(testInfo: TestInfo): string {
   const projectPort = new URL(projectBaseURL).port;
   const configured =
     process.env.IDA_HOST?.trim() || `ida.127.0.0.1.nip.io${projectPort ? `:${projectPort}` : ''}`;
-  const authority = new URL(configured.includes('://') ? configured : `http://${configured}`).host;
-  return `http://${authority}/${routes.getLocale(testInfo)}`;
+  const url = new URL(configured.includes('://') ? configured : `http://${configured}`);
+  if (!url.port && projectPort) url.port = projectPort;
+  return `${url.origin}/${routes.getLocale(testInfo)}`;
 }
 
 export async function openMemberContext(
@@ -144,35 +157,37 @@ export async function openMemberContext(
 
 export async function cleanupJourney(claimId: string | null, summary: string): Promise<void> {
   if (claimId) {
-    const events = await db.query.domainEvents.findMany({
-      where: and(
-        eq(domainEvents.entityId, claimId),
-        eq(domainEvents.tenantId, E2E_USERS.KS_MEMBER.tenantId)
-      ),
-      columns: { id: true },
+    await db.transaction(async tx => {
+      const events = await tx.query.domainEvents.findMany({
+        where: and(
+          eq(domainEvents.entityId, claimId),
+          eq(domainEvents.tenantId, E2E_USERS.KS_MEMBER.tenantId)
+        ),
+        columns: { id: true },
+      });
+      const eventIds = events.map(event => event.id);
+      await tx
+        .delete(notifications)
+        .where(
+          and(
+            eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
+            eq(notifications.actionUrl, `/member/claims/${claimId}`)
+          )
+        );
+      await tx
+        .delete(auditLog)
+        .where(
+          and(eq(auditLog.tenantId, E2E_USERS.KS_MEMBER.tenantId), eq(auditLog.entityId, claimId))
+        );
+      if (eventIds.length) {
+        await tx
+          .delete(domainEventDeliveries)
+          .where(inArray(domainEventDeliveries.eventId, eventIds));
+        await tx.delete(domainEvents).where(inArray(domainEvents.id, eventIds));
+      }
+      await tx.delete(claimStageHistory).where(eq(claimStageHistory.claimId, claimId));
+      await tx.delete(claims).where(eq(claims.id, claimId));
     });
-    const eventIds = events.map(event => event.id);
-    await db
-      .delete(notifications)
-      .where(
-        and(
-          eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
-          like(notifications.actionUrl, `%${claimId}%`)
-        )
-      );
-    await db
-      .delete(auditLog)
-      .where(
-        and(eq(auditLog.tenantId, E2E_USERS.KS_MEMBER.tenantId), eq(auditLog.entityId, claimId))
-      );
-    if (eventIds.length) {
-      await db
-        .delete(domainEventDeliveries)
-        .where(inArray(domainEventDeliveries.eventId, eventIds));
-      await db.delete(domainEvents).where(inArray(domainEvents.id, eventIds));
-    }
-    await db.delete(claimStageHistory).where(eq(claimStageHistory.claimId, claimId));
-    await db.delete(claims).where(eq(claims.id, claimId));
   }
   await db
     .delete(freeStartDrafts)
@@ -216,7 +231,7 @@ export async function expectJourneyClean(claimId: string | null, summary: string
         ? db.query.notifications.findMany({
             where: and(
               eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
-              like(notifications.actionUrl, `%${claimId}%`)
+              eq(notifications.actionUrl, `/member/claims/${claimId}`)
             ),
             columns: { id: true },
           })

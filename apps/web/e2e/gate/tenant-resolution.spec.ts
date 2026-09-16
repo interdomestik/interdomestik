@@ -19,6 +19,7 @@ function neutralProjectURL(baseURL: string | undefined): URL {
 }
 
 test.describe('Tenant resolution contract', () => {
+  // Ensure no project-level storage state (cookies) interferes with tenant resolution logic.
   test.use({ storageState: { cookies: [], origins: [] } });
 
   test('Tenant host login shows no chooser', async ({ page }, testInfo) => {
@@ -144,6 +145,7 @@ test.describe('Tenant resolution contract', () => {
   test('Neutral host resolves a default public tenant without showing chooser', async ({
     browser,
   }, testInfo) => {
+    // Keep the neutral-host probe on the active isolated Playwright port.
     const neutral = neutralProjectURL(testInfo.project.use.baseURL?.toString());
     const context = await browser.newContext({ storageState: undefined });
     const page = await context.newPage();
@@ -159,6 +161,7 @@ test.describe('Tenant resolution contract', () => {
   test('Neutral host keeps auth entry chooser-free even if locale is /sq', async ({
     browser,
   }, testInfo) => {
+    // Override project-level x-forwarded-host, which otherwise forces a tenant.
     const neutral = neutralProjectURL(testInfo.project.use.baseURL?.toString());
     const context = await browser.newContext({ storageState: undefined });
     const page = await context.newPage();
@@ -187,6 +190,7 @@ test.describe('Tenant resolution contract', () => {
     ]);
 
     const page = await context.newPage();
+    // Rely on the cookie while preserving the active neutral-host port.
     await page.setExtraHTTPHeaders({ 'x-forwarded-host': neutral.host });
 
     await gotoApp(page, `${neutral.origin}/sq/login`, testInfo, { marker: 'domcontentloaded' });
