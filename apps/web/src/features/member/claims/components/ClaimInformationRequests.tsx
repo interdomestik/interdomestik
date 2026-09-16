@@ -5,7 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { useLocale, useTranslations } from 'next-intl';
 import { resolveDateLocale } from '@/lib/utils/date';
 
-export function ClaimInformationRequests({ requests }: { requests: PublicInformationRequest[] }) {
+export function ClaimInformationRequests({
+  requests,
+}: {
+  requests: PublicInformationRequest[] | null;
+}) {
   const t = useTranslations('claims.informationRequests');
   const locale = useLocale();
   // Explicit UTC keeps server rendering and browser hydration on the same deadline.
@@ -18,6 +22,7 @@ export function ClaimInformationRequests({ requests }: { requests: PublicInforma
     minute: '2-digit',
     hourCycle: 'h23',
   });
+  if (requests === null) return <p role="status">{t('loadError')}</p>;
   if (!requests.length) return null;
   return (
     <section aria-label={t('title')} data-testid="claim-information-requests" className="space-y-4">

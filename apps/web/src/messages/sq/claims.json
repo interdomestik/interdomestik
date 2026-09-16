@@ -216,7 +216,8 @@
       "dueAt": "Afati i kërkuar",
       "owner": "Ekipi përgjegjës",
       "ownerLabel": "Ekipi i rasteve Interdomestik",
-      "incomplete": "Informacioni mungonte kur u krijua kjo kërkesë. Gjendja aktuale e përgjigjes për rastin shfaqet më poshtë."
+      "incomplete": "Informacioni mungonte kur u krijua kjo kërkesë.",
+      "loadError": "Kërkesat për informacion nuk mund të ngarkoheshin. Detajet e tjera të rastit mbeten të disponueshme."
     }
   }
 }

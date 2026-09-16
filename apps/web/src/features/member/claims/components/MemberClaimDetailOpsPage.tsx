@@ -13,7 +13,7 @@ import { formatPilotDateTime } from '@/lib/utils/date';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { LifeBuoy } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useRef } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { CaseCompanionNextStepCard } from './CaseCompanionNextStepCard';
 import { MemberClaimEvidenceSection } from './MemberClaimEvidenceSection';
 import {
@@ -23,6 +23,7 @@ import {
 import type { MemberClaimDetailOpsClaim } from './member-claim-detail-types';
 
 interface MemberClaimDetailOpsPageProps {
+  informationRequests?: ReactNode;
   claim: MemberClaimDetailOpsClaim;
   currentUser: {
     id: string;
@@ -35,6 +36,7 @@ interface MemberClaimDetailOpsPageProps {
 export function MemberClaimDetailOpsPage({
   claim,
   currentUser,
+  informationRequests,
 }: Readonly<MemberClaimDetailOpsPageProps>) {
   const messagingSectionRef = useRef<HTMLElement | null>(null);
   const locale = useLocale();
@@ -52,7 +54,6 @@ export function MemberClaimDetailOpsPage({
 
     return tAssurance(labelKey.replace('claims-tracking.tracking.assurance.', ''));
   };
-
   // Transform events and translate titles
   const opsEvents = toOpsTimelineEvents(claim.timeline).map(e => ({
     ...e,
@@ -69,7 +70,6 @@ export function MemberClaimDetailOpsPage({
     }
   })();
 
-  // Policy-driven actions
   const { secondary } = getClaimActions(claim, t);
 
   const handleAction = (id: string) => {
@@ -91,7 +91,6 @@ export function MemberClaimDetailOpsPage({
     ...config,
     onClick: () => handleAction(config.id),
   });
-
   const uploadAction = secondary.find(action => action.id === 'upload');
   const secondaryActions = secondary.filter(action => action.id !== 'upload').map(mapAction);
   const latestUpdateDate = formatPilotDateTime(
@@ -158,6 +157,7 @@ export function MemberClaimDetailOpsPage({
             </Card>
 
             <CaseCompanionNextStepCard nextStep={claim.caseCompanionNextStep} />
+            {informationRequests}
           </section>
 
           {hasMemberSlaStatus ? (

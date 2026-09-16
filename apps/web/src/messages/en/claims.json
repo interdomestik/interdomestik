@@ -216,7 +216,8 @@
       "dueAt": "Requested by",
       "owner": "Responsible team",
       "ownerLabel": "Interdomestik case team",
-      "incomplete": "Information was missing when this request was created. Your claim’s current response status is shown below."
+      "incomplete": "Information was missing when this request was created.",
+      "loadError": "Information requests could not be loaded. Other case details remain available."
     }
   }
 }

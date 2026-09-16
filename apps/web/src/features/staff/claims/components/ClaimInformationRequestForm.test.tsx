@@ -63,10 +63,16 @@ it('preserves correlation for uncertain retries and prevents duplicate concurren
   );
   mount();
   fill();
+  const button = screen.getByRole('button');
+  const status = screen.getByRole('status');
+  const alert = screen.getByRole('alert');
+  button.focus();
   fireEvent.submit(screen.getByRole('form'));
   fireEvent.submit(screen.getByRole('form'));
   expect(h.create).toHaveBeenCalledTimes(1);
-  expect(screen.getByRole('button')).toBeDisabled();
+  expect(button).toBeEnabled();
+  expect(button).toHaveAttribute('aria-disabled', 'true');
+  expect(button).toHaveFocus();
   await act(async () => reject(new Error('network')));
   expect(screen.getByRole('alert')).toHaveTextContent('Retry with the same details');
   h.create.mockResolvedValueOnce({ success: true, requestId: 'request-1' });
@@ -75,6 +81,9 @@ it('preserves correlation for uncertain retries and prevents duplicate concurren
   expect(h.create.mock.calls[0][0]).toEqual(h.create.mock.calls[1][0]);
   expect(h.create.mock.calls[0][0]).not.toHaveProperty('responsibleStaffId');
   expect(h.refresh).toHaveBeenCalledOnce();
+  expect(button).toHaveFocus();
+  expect(screen.getByRole('status')).toBe(status);
+  expect(screen.getByRole('alert')).toBe(alert);
 });
 it('rejects whitespace and preserves input on a domain error', async () => {
   mount();

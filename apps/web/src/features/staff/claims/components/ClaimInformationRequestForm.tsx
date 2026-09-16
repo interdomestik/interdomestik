@@ -106,13 +106,14 @@ export function ClaimInformationRequestForm({ claimId }: { claimId: string }) {
           <Input id="request-due-at" name="dueAt" type="datetime-local" required />
           <p className="text-xs text-muted-foreground">{t('dueHint')}</p>
         </div>
-        <Button type="submit">{t(busy ? 'saving' : 'submit')}</Button>
       </fieldset>
-      {feedback ? (
-        <p role={failed ? 'alert' : 'status'} className="text-sm">
-          {feedback}
-        </p>
-      ) : null}
+      <Button type="submit" aria-disabled={busy} aria-busy={busy}>
+        {t(busy ? 'saving' : 'submit')}
+      </Button>
+      <div className="text-sm">
+        <p role="status">{failed ? null : feedback}</p>
+        <p role="alert">{failed ? feedback : null}</p>
+      </div>
     </form>
   );
 }

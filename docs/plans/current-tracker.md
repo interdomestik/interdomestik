@@ -60,6 +60,14 @@ Prior prerequisite source `aba1b50d` passed 73 retained tests, two PG16 runtime-
 contracts and 299 harness tests (task-local umask022); `e9b3fd5a` passed 1,191 CI contracts and
 capacity/security/plan audits. These are source-bound preflight results, not final S4 delivery proof.
 
+Follow-up Opus 5 receipt `20260916T192806-opus` reviewed `0e1ef7c5` and confirmed the UUID
+correction and security/corpus boundaries, while requesting mounted-UI hardening. Consolidated
+corrections keep failed request reads local with a truthful four-locale error state, keep the
+member card after identity inside progress, preserve submit focus and stable feedback regions,
+and make request-posture copy position-independent. Regressions now isolate the non-staff form
+gate, exercise the legacy `user` read role in live SQL, and admit a complete near-1-MiB reviewer
+packet. No pagination, lifecycle, auth normalization or unrelated component relocation was added.
+
 | ID                               | Status        | Owner | Work                                                                                                               | Exit Criteria                                                                                                                                                                                               |
 | -------------------------------- | ------------- | ----- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `S4-MISSING-INFORMATION-REQUEST` | `in_progress` | Codex | Assigned staff creates a scoped missing-information request; the owning member sees its safe read-only projection. | Independent final review, isolated database and mounted journey, capacity/security/full gate, protected checks, exact-main health and task retirement; no upload/acknowledgement or broader workflow claim. |

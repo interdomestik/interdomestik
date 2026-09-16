@@ -107,6 +107,7 @@ test('S4 real request command, concurrency, projection and tenant RLS', async t 
       { success: false, error: 'access_denied' }
     );
     const visible = await getInformationRequests(actor(member, 'member'), claimId);
+    assert.deepEqual(await getInformationRequests(actor(member, 'user'), claimId), visible);
     assert.equal(visible.length, 1);
     assert.deepEqual(Object.keys(visible[0]).sort(), [
       'createdAt',

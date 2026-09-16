@@ -31,7 +31,7 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
   if (!claim) {
     return notFound();
   }
-  const informationRequests = await getInformationRequests(memberSession, id);
+  const informationRequests = await getInformationRequests(memberSession, id).catch(() => null);
 
   // Serialize dates for Client Component
   const serializedClaim = {
@@ -62,19 +62,15 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
   };
 
   return (
-    <>
-      <div className="max-w-5xl mx-auto px-4 md:px-8">
-        <ClaimInformationRequests requests={informationRequests} />
-      </div>
-      <MemberClaimDetailOpsPage
-        claim={serializedClaim}
-        currentUser={{
-          id: memberSession.user.id,
-          name: memberSession.user.name ?? 'Member',
-          image: memberSession.user.image ?? null,
-          role: memberSession.user.role || 'member',
-        }}
-      />
-    </>
+    <MemberClaimDetailOpsPage
+      informationRequests={<ClaimInformationRequests requests={informationRequests} />}
+      claim={serializedClaim}
+      currentUser={{
+        id: memberSession.user.id,
+        name: memberSession.user.name ?? 'Member',
+        image: memberSession.user.image ?? null,
+        role: memberSession.user.role || 'member',
+      }}
+    />
   );
 }

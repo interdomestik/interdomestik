@@ -14,6 +14,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 
 for (const [bytes, accepted] of [
   [650_000, true],
+  [1_048_000, true],
   [1_100_000, false],
 ]) {
   test(`Opus transports a complete ${bytes}-byte candidate or rejects before provider start`, () => {

@@ -19,6 +19,15 @@ const request = {
   slaPosture: 'incomplete' as const,
   createdAt: '2026-09-16T10:00:00.000Z',
 };
+it('reports a failed read without inventing an empty request list', () => {
+  render(
+    <NextIntlClientProvider locale="en" messages={en}>
+      <ClaimInformationRequests requests={null} />
+    </NextIntlClientProvider>
+  );
+  expect(screen.getByRole('status')).toHaveTextContent('could not be loaded');
+  expect(screen.queryByTestId('claim-information-request')).not.toBeInTheDocument();
+});
 it.each([
   { locale: 'en', messages: en },
   { locale: 'sq', messages: sq },

@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { buildCommercialHandlingScopeSnapshot } from '@interdomestik/domain-claims/staff-claims/commercial-handling-scope';
+import { getInformationRequests } from '@interdomestik/domain-claims';
 
 const hoisted = vi.hoisted(() => ({
   locale: 'en',
@@ -238,19 +239,25 @@ describe('StaffClaimDetailsPage', () => {
     expect(screen.getByText('Mesazhet')).toBeInTheDocument();
   });
 
-  it('renders annual matter usage and remaining allowance on the canonical staff claim detail page', async () => {
-    await renderPage('en');
+  it.each([false, true])(
+    'preserves annual matter detail when information requests fail: %s',
+    async failed => {
+      if (failed)
+        vi.mocked(getInformationRequests).mockRejectedValueOnce(new Error('private DB detail'));
+      await renderPage('en');
 
-    expect(screen.getByTestId('staff-claim-detail-ready')).toBeInTheDocument();
-    expect(screen.getByText('Matter allowance')).toBeInTheDocument();
-    expect(screen.getByText('SLA Status')).toBeInTheDocument();
-    expect(screen.getByText('Running')).toBeInTheDocument();
-    expect(screen.getByText('Used this year')).toBeInTheDocument();
-    expect(screen.getByText('Remaining this year')).toBeInTheDocument();
-    expect(screen.getByText('Plan allowance')).toBeInTheDocument();
-    expect(screen.getByText('0')).toBeInTheDocument();
-    expect(screen.getAllByText('2')).toHaveLength(2);
-  });
+      expect(screen.getByTestId('staff-claim-detail-ready')).toBeInTheDocument();
+      expect(screen.getByText('Matter allowance')).toBeInTheDocument();
+      expect(screen.getByText('SLA Status')).toBeInTheDocument();
+      expect(screen.getByText('Running')).toBeInTheDocument();
+      expect(screen.getByText('Used this year')).toBeInTheDocument();
+      expect(screen.getByText('Remaining this year')).toBeInTheDocument();
+      expect(screen.getByText('Plan allowance')).toBeInTheDocument();
+      expect(screen.getByText('0')).toBeInTheDocument();
+      expect(screen.getAllByText('2')).toHaveLength(2);
+      if (failed) expect(screen.getByRole('status')).toHaveTextContent('loadError');
+    }
+  );
 
   it('renders claim messaging with internal-note controls on the canonical staff claim detail page', async () => {
     await renderPage('en');
@@ -269,6 +276,11 @@ describe('StaffClaimDetailsPage', () => {
   });
 
   it('shows a read-only operator notice for branch managers', async () => {
+    const detail = await hoisted.getStaffClaimDetailMock.getMockImplementation()!();
+    hoisted.getStaffClaimDetailMock.mockResolvedValueOnce({
+      ...detail,
+      claim: { ...detail.claim, status: 'verification', staffId: 'manager-1' },
+    });
     hoisted.getSessionMock.mockResolvedValueOnce({
       user: {
         id: 'manager-1',

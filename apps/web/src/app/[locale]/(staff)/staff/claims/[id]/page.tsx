@@ -72,7 +72,7 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
     : [];
   const claimStatus = toClaimStatus(detail.claim.status);
   const slaPhase = deriveClaimSlaPhase(claimStatus);
-  const informationRequests = await getInformationRequests(session, id);
+  const informationRequests = await getInformationRequests(session, id).catch(() => null);
 
   return (
     <div className="space-y-6" data-testid="staff-claim-detail-ready">
