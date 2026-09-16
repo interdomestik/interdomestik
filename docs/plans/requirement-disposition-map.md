@@ -381,7 +381,7 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-CAS-012 | Case SLA clocks | Target | unresolved | S3/S6/S7/S13 | open | none | U | U | U |
 | IDA-CAS-013 | Reopen control | Target | unresolved | S3/S6/S7/S13 | open | none | U | U | U |
 | IDA-CAS-014 | Closeout prerequisites | Target | unresolved | S3/S6/S7/S13 | open | none | U | U | U |
-| IDA-CAS-015 | Domain event | Canonical | unresolved | S3/S6/S7/S13 | S3 candidate observes `case.created` and `claim.status_changed` for the exact claim; relay regression normalizes explicit-offset PostgreSQL strings to `Date`, preserves native `Date` identity and retains audit projection delivery. Broader event-family acceptance remains open | none | U | U | U |
+| IDA-CAS-015 | Domain event | Canonical | unresolved | S3/S6/S7/S13 | S3 candidate observes exact-claim `case.created` and `claim.status_changed`; relay regression parses deterministic UTC and explicit-offset PostgreSQL strings as `Date`, preserving native typed `Date` and audit projection delivery. Broader event-family acceptance remains open | none | U | U | U |
 | IDA-CAS-016 | Event payload minimization | Canonical | unresolved | S3/S6/S7/S13 | open | none | U | U | U |
 | IDA-REC-001 | Recovery eligibility | Target | unresolved | S13; recovery scope | open | none | U | U | U |
 | IDA-REC-002 | No recovery by recommendation alone | Canonical | unresolved | S13; recovery scope | open | none | U | U | U |
