@@ -33,7 +33,7 @@ const E2E_TREE_SHAS = new Set([
   // S2 branch overview scope protection and mounted isolation proof.
   '354b38ebe3d79b06b994103aa63dc21baf2f5294',
   // S3 member submission, staff verification, and member-safe continuity proof.
-  '7d4e80368ed731d54997d5a6a6e3fcfa724c03ae',
+  '719bba45ba118e41e1189e4d656d9e8d081d66fb',
 ]);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {
