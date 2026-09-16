@@ -100,6 +100,15 @@ test('S1 agent message visibility preserves corpus parity', () => {
     true
   );
 });
+test('S2 branch overview scope protection preserves corpus parity', () => {
+  assert.equal(
+    inspectRepositoryParity({
+      ...sources(),
+      e2eTreeSha: '1d0f0b3a85cf1e2180078547ee35f02f65005f5c',
+    }).commandChain,
+    true
+  );
+});
 test('parity drift always resolves to a fail-closed reuse decision', async () => {
   const current = sources();
   const checkout = 'ref: ${{ github.event.pull_request.head.sha || github.sha }}';

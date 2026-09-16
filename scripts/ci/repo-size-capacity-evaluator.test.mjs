@@ -188,6 +188,8 @@ test('capacity rebase permits T118 promotion without a budget edit', () => {
     'apps/web/src/features/admin/branches/dashboard-v2/components/BranchKpiRow.tsx',
     'apps/web/src/features/admin/branches/dashboard-v2/components/ClaimsPipelinePanel.tsx',
     'apps/web/src/features/admin/branches/dashboard-v2/server/getBranchDashboardV2Data.ts',
+    'scripts/ci/main-e2e-reuse-cli.test.mjs',
+    'scripts/ci/main-e2e-reuse.mjs',
     'scripts/repo-size-budget.json',
     'scripts/repo-size-budget-sync-core.mjs',
     'scripts/repo-size-audit.mjs',
