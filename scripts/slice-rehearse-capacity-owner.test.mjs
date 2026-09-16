@@ -148,24 +148,24 @@ test('legacy staff claim test keeps its exact non-growing rehearsal ceiling', ()
   const path = 'packages/domain-claims/src/staff-claims/update-status.test.ts';
   assert.deepEqual(canonicalModularityForPath(path), {
     fileClass: 'focused-test',
-    maxLines: 804,
-    maxBytes: 29315,
+    maxLines: 794,
+    maxBytes: 28150,
   });
   const manifest = {
-    pathPlans: [{ path, change: 'modify', maxBytesDelta: 0, maxLines: 804 }],
+    pathPlans: [{ path, change: 'modify', maxBytesDelta: 0, maxLines: 794 }],
   };
   const repository = {
     writerFacts: {
       [path]: {
-        manifestBaseSha256: '2c9782b2d1ee5501049c2c59c309448c687f477eec4a88e8e19856675dafc627',
+        manifestBaseSha256: 'e9e3d69ecc2a5b41c18bfa6282356377e96da5ac082ed9c5b4456264b379dfea',
       },
     },
-    writerLineCounts: { [path]: 803 },
+    writerLineCounts: { [path]: 793 },
     writerDeltas: {
       [path]: {
         bytes: -1,
-        baseBytes: 29315,
-        currentBytes: 29314,
+        baseBytes: 28150,
+        currentBytes: 28149,
         manifestBaseExists: true,
       },
     },
@@ -176,12 +176,12 @@ test('legacy staff claim test keeps its exact non-growing rehearsal ceiling', ()
     deficits: [],
   });
 
-  repository.writerLineCounts[path] = 805;
+  repository.writerLineCounts[path] = 795;
   assert.ok(evaluateWriterPolicy(manifest, repository, budget).deficits.length > 0);
-  repository.writerLineCounts[path] = 803;
-  repository.writerDeltas[path].currentBytes = 29316;
+  repository.writerLineCounts[path] = 793;
+  repository.writerDeltas[path].currentBytes = 28151;
   assert.ok(evaluateWriterPolicy(manifest, repository, budget).deficits.length > 0);
-  repository.writerDeltas[path].currentBytes = 29314;
+  repository.writerDeltas[path].currentBytes = 28149;
   repository.writerFacts[path].manifestBaseSha256 = 'f'.repeat(64);
   assert.ok(evaluateWriterPolicy(manifest, repository, budget).authorityStops.length > 0);
   manifest.pathPlans[0].maxLines = 300;
