@@ -689,15 +689,15 @@
         "scripts/ci/main-e2e-reuse-core.test.mjs",
         "scripts/ci/main-e2e-reuse-github.test.mjs"
       ],
-      "maxTrackedBytesDelta": 28857,
+      "maxTrackedBytesDelta": 28895,
       "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
-        "source/scripts": 10479,
+        "source/scripts": 10517,
         "tests/e2e": 15685,
         "config/data/messages": 2693
       },
       "maxPathBytesDelta": {
-        "scripts/ci/main-e2e-reuse.mjs": 1612,
+        "scripts/ci/main-e2e-reuse.mjs": 1650,
         "scripts/ci/main-e2e-reuse-core.mjs": 975,
         "scripts/ci/main-e2e-reuse-github.mjs": 17,
         "scripts/ci/main-e2e-reuse-cli.test.mjs": 4331,
@@ -1520,14 +1520,14 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 62038070,
+  "maxTrackedBytes": 62038108,
   "maxTrackedFiles": 6091,
   "maxCategoryBytes": {
     "config/data/messages": 2258497,
     "docs/text": 8647338,
     "large support/generated-ish": 15869770,
     "other": 19184750,
-    "source/scripts": 8882898,
+    "source/scripts": 8882936,
     "tests/e2e": 7194817
   },
   "maxLargestFileBytes": 3266530,

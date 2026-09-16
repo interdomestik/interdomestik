@@ -118,6 +118,15 @@ test('hardened S3 member-staff journey preserves corpus parity', () => {
     true
   );
 });
+test('S4 missing-information request preserves corpus parity', () => {
+  assert.equal(
+    inspectRepositoryParity({
+      ...sources(),
+      e2eTreeSha: 'c879d42364cdec73d4c7d4e4fa051a533ab76d95',
+    }).commandChain,
+    true
+  );
+});
 test('parity drift always resolves to a fail-closed reuse decision', async () => {
   const current = sources();
   const checkout = 'ref: ${{ github.event.pull_request.head.sha || github.sha }}';
