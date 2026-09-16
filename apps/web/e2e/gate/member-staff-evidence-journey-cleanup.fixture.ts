@@ -52,26 +52,27 @@ async function drainJourneyNotifications(claimIds: string[]): Promise<void> {
       columns: { caseLifecycleState: true, recoveryLifecycleState: true },
     });
     if (!claim) continue;
-    const expectedTypes = ['claim_submitted'];
+    const types = ['claim_submitted'];
     if (claimStatusFromLifecycleFields(claim) !== 'submitted') {
-      expectedTypes.push('claim_status_changed');
+      types.unshift('claim_status_changed');
     }
     await expect
       .poll(
         async () => {
-          const rows = await db.query.notifications.findMany({
+          const r = await db.query.notifications.findMany({
             where: and(
               eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
               eq(notifications.actionUrl, `/member/claims/${claimId}`),
-              inArray(notifications.type, expectedTypes)
+              inArray(notifications.type, types)
             ),
             columns: { type: true },
+            orderBy: notifications.type,
           });
-          return rows.map(row => row.type).sort();
+          return r.map(row => row.type);
         },
         { timeout: 15_000 }
       )
-      .toEqual(expectedTypes.sort());
+      .toEqual(types);
   }
 }
 
