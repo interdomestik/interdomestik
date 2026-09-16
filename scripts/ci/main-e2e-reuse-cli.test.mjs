@@ -122,7 +122,7 @@ test('S4 missing-information request preserves corpus parity', () => {
   assert.equal(
     inspectRepositoryParity({
       ...sources(),
-      e2eTreeSha: 'c879d42364cdec73d4c7d4e4fa051a533ab76d95',
+      e2eTreeSha: '95070799ae47b1c597bcce652fddc4ff99ce36c5',
     }).commandChain,
     true
   );

@@ -20,7 +20,8 @@ test('S4 staff request persists and is visible in a fresh member session', async
     await gotoApp(staffPage, routes.staffClaimDetail(fixture.claimId, testInfo), testInfo, {
       marker: 'staff-claim-detail-ready',
     });
-    const form = staffPage.getByTestId('staff-information-request-form');
+    const form = staffPage.getByTestId('staff-information-request-form').filter({ visible: true });
+    await expect(form).toHaveCount(1);
     await expect(form).toBeVisible();
     await form.locator('[name="requestedInformation"]').fill('S4 repair estimate');
     await form
@@ -56,7 +57,7 @@ test('S4 staff request persists and is visible in a fresh member session', async
         baseURL,
         marker: 'member-claim-progress-summary',
       });
-      const card = member.page.getByTestId('claim-information-request');
+      const card = member.page.getByTestId('claim-information-request').filter({ visible: true });
       await expect(card).toHaveCount(1);
       await expect(card).toContainText('S4 repair estimate');
       await expect(card).toContainText('S4 member-visible assessment explanation');
