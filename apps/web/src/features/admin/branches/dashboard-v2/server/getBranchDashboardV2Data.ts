@@ -68,8 +68,11 @@ export async function getBranchDashboardV2Data(
           throw new Error('Forbidden');
         }
 
-        if (userRole === ROLES.branch_manager && session.user.branchId !== branchId) {
-          throw new Error('Forbidden: Branch Mismatch');
+        if (userRole === ROLES.branch_manager) {
+          const assignedBranchId = session.user.branchId?.trim();
+          if (!assignedBranchId || assignedBranchId !== branchId) {
+            return null;
+          }
         }
 
         // Tenant Scoping
@@ -112,7 +115,6 @@ export async function getBranchDashboardV2Data(
           agentsData,
           staffData,
         ] = await Promise.all([
-          // 1. KPI: Open Claims
           db
             .select({ count: count() })
             .from(claims)
@@ -124,10 +126,8 @@ export async function getBranchDashboardV2Data(
               )
             ),
 
-          // 2. KPI: unresolved cash verification load for this branch.
           getBranchCashPendingCount({ tenantId, branchId: resolvedBranchId }),
 
-          // 3. KPI: SLA Breaches
           db
             .select({ count: count() })
             .from(claims)
@@ -139,7 +139,6 @@ export async function getBranchDashboardV2Data(
               )
             ),
 
-          // 4. Counts: Agents
           db
             .select({ count: count() })
             .from(user)
@@ -151,7 +150,6 @@ export async function getBranchDashboardV2Data(
               )
             ),
 
-          // 5. Counts: Members
           db
             .select({ count: count() })
             .from(user)
@@ -163,27 +161,16 @@ export async function getBranchDashboardV2Data(
               )
             ),
 
-          // 6. Pipeline: Group by Status
           db
             .select({ status: lifecycleSql.claimLifecycleStatusSql(), count: count() })
             .from(claims)
             .where(and(eq(claims.branchId, resolvedBranchId), eq(claims.tenantId, tenantId)))
             .groupBy(lifecycleSql.claimLifecycleStatusSql()),
 
-          // 7. Agent Health Data
-          // We need advanced metrics per agent to compute health scores
           getAgentMetrics(resolvedBranchId, tenantId),
 
-          // 8. Staff Load Data
           getStaffLoad(resolvedBranchId, tenantId),
         ]);
-
-        console.log('[DEBUG-DASH] Counts:', {
-          open: openClaimsCount[0]?.count,
-          agents: totalAgentsCount[0]?.count,
-          kvAgents: agentsData.length,
-          kvStaff: staffData.length,
-        });
 
         // Compute Branch Health
         const kpis = {
@@ -266,7 +253,12 @@ async function getAgentMetrics(branchId: string, tenantId: string) {
           .select({ count: count() })
           .from(claims)
           .where(
-            and(eq(claims.agentId, agent.id), eq(claims.tenantId, tenantId), getOpenClaimsFilter())
+            and(
+              eq(claims.agentId, agent.id),
+              eq(claims.branchId, branchId),
+              eq(claims.tenantId, tenantId),
+              getOpenClaimsFilter()
+            )
           ),
 
         // SLA Breaches linked to agent
@@ -274,7 +266,12 @@ async function getAgentMetrics(branchId: string, tenantId: string) {
           .select({ count: count() })
           .from(claims)
           .where(
-            and(eq(claims.agentId, agent.id), eq(claims.tenantId, tenantId), getSlaBreachesFilter())
+            and(
+              eq(claims.agentId, agent.id),
+              eq(claims.branchId, branchId),
+              eq(claims.tenantId, tenantId),
+              getSlaBreachesFilter()
+            )
           ),
       ]);
 

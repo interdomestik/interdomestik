@@ -1,7 +1,7 @@
 import { getAdminOverviewData } from '@/features/admin/overview/server/get-admin-overview-data';
 import { getSessionSafe } from '@/components/shell/session';
 import { localizeSeededBranchName } from '@/lib/localize-seeded-branch-name';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 export default async function AdminOverviewPage({
@@ -16,11 +16,17 @@ export default async function AdminOverviewPage({
 
   const session = await getSessionSafe('AdminOverviewPage');
   if (!session) return notFound();
+
+  if (session.user.role === 'branch_manager') {
+    const branchId = session.user.branchId?.trim();
+    if (!branchId) return notFound();
+    return redirect(`/${locale}/admin/branches/${encodeURIComponent(branchId)}`);
+  }
+
   if (
     session.user.role !== 'admin' &&
     session.user.role !== 'super_admin' &&
-    session.user.role !== 'tenant_admin' &&
-    session.user.role !== 'branch_manager'
+    session.user.role !== 'tenant_admin'
   ) {
     return notFound();
   }

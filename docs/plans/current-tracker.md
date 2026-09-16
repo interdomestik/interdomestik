@@ -16,27 +16,26 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-`S1-AGENT-MESSAGE-VISIBILITY` is the sole selected product slice on protected main
-`81a219608dacf4ee9cfd8ee9f201e8ab156e54d2`. The localization predecessor completed through
-PR #1778 with all 13 exact-main checks passed. S1 implementation is in progress in task
-`01a0a6b8-163e-74f3-b8e9-6dc43f1bb357`; renewed full verification and separate security passed at `94ac9167` after the dedicated-agent and synthetic baseline corrections;
-protected delivery and exact-main health remain pending.
+`S2-BRANCH-OVERVIEW-SCOPE` is the sole selected product slice on protected main
+`f3d36b2e7781654fe5448fab11da891368d95f19`. S1 completed through protected PR #1780 with all
+13 exact-main checks passed. S2 implementation is in progress with isolated mounted-query proof;
+full required verification, protected delivery and exact-main health remain pending.
 
-| ID                            | Status        | Owner      | Work                                                                  | Exit Criteria                                                                                                                     |
-| ----------------------------- | ------------- | ---------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `S1-AGENT-MESSAGE-VISIBILITY` | `in_progress` | Astra/high | Exclude internal messages from agent latest-message and unread reads. | Real query and mounted visibility proof; unchanged tenant/assignment/DTO contracts; required verification and protected delivery. |
+| ID                         | Status        | Owner    | Work                                                                                           | Exit Criteria                                                                                                                            |
+| -------------------------- | ------------- | -------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `S2-BRANCH-OVERVIEW-SCOPE` | `in_progress` | Sol/high | Withhold tenant-wide overview from branch managers and close branch-detail metric scope leaks. | Real mounted/query proof for branch, tenant, missing assignment and tenant-admin baseline; required verification and protected delivery. |
 
 ### Owner-adopted successor queue (2026-09-15)
 
-Follow the current program's enterprise delivery sequence; localization is delivered and S1 is active.
+Follow the current program's enterprise delivery sequence; localization and S1 are delivered and S2 is active.
 Queued is not in progress or verified. Each successor gets a bounded current-main brief and model
 classification before implementation; no new approval ceremony is required for already authorized scope.
 
-| Roadmap item                       | Status             | Entry / exit evidence                                                                                                             |
-| ---------------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| S1 — Agent message visibility      | in_progress        | Actual query-path reproduction; visibility reuse and internal/public/unassigned/cross-tenant proof; no agent-authority expansion. |
-| S2 — Branch overview scope         | queued_conditional | Record current authorized capability, then query-path scope protection with branch/tenant/admin regression proof.                 |
-| S3 — Member–staff evidence journey | queued_conditional | Reuse delivered contracts/fixtures; prove the bounded handoff sequence or record the first missing contract as its cut point.     |
+| Roadmap item                       | Status             | Entry / exit evidence                                                                                                         |
+| ---------------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| S1 — Agent message visibility      | completed          | Protected PR #1780; exact-main health passed; no agent-authority expansion or deployment claim.                               |
+| S2 — Branch overview scope         | in_progress        | Branch-scoped route/query protection with two-branch, foreign-tenant, missing-assignment and tenant-admin regression proof.   |
+| S3 — Member–staff evidence journey | queued_conditional | Reuse delivered contracts/fixtures; prove the bounded handoff sequence or record the first missing contract as its cut point. |
 
 ### Product-readiness roadmap queue
 
@@ -152,7 +151,12 @@ dispositioned as the approved conservative live-name policy, not proof of runtim
 records the limitation. No such symbol exists in the current repository; import admission remains
 independent and no exact-runtime-effect guarantee is claimed.
 
-### S1 — Agent message visibility progress
+### Completed S1 — Agent message visibility
+
+- Protected PR #1780 merged head `9dc383ad` as
+  `f3d36b2e7781654fe5448fab11da891368d95f19`; all 13 required exact-main checks passed. The
+  retained notes below are source-bound intermediate evidence and no longer describe an active
+  slice. No deployment is claimed.
 
 - S1 started at #1778 and rebased onto protected roadmap merge `520adfcf0781d80eebefda500f24c55acc341888`. Preserve its requirement map and chief-owned status/ledger corrections.
 - Reused supplied Sonnet/Gemini preparation, correcting `lastMessage: string | null`, active
@@ -269,15 +273,46 @@ independent and no exact-runtime-effect guarantee is claimed.
   and 13 smoke passes/11 skips; 653 seconds. Separate security passed at the same source.
   Private log SHA-256: `6d3d4daa6645f16d1fbc569e31fddc9b83842c9087bad2cc6f1263ed3f4319f0`.
   The following receipt-only update changes no tested input; retain this full-proof identity and
-  recheck affected document/capacity/security guards. Protected delivery and exact-main health remain
-  pending. Lesson: fixture isolation must cover sibling consumers as well as project copies; no
-  elapsed-time saving is inferred from these runs.
+  recheck affected document/capacity/security guards. At that intermediate checkpoint protected
+  delivery and exact-main health remained pending; PR #1780 and the completion receipt above now
+  supersede that status. Lesson: fixture isolation must cover sibling consumers as well as project
+  copies; no elapsed-time saving is inferred from these runs.
+
+### S2 — Branch overview scope protection progress
+
+- Selected from exact protected main `f3d36b2e7781654fe5448fab11da891368d95f19` as medium
+  Sol/high with a security-sensitive authorization edge. `apps/web/src/proxy.ts` remains untouched.
+  The accepted branch-manager contract is branch-scoped, so the mounted unified-shell overview now
+  redirects an assigned branch manager to their canonical branch detail and fails closed on a
+  missing assignment. Tenant admins retain the existing tenant-wide overview.
+- Actual query inventory found the branch, pipeline, count, staff and cash metrics already use
+  tenant+branch predicates. Per-agent open/SLA subqueries used tenant+agent only; they now add the
+  branch predicate without changing definitions, DTOs, routing or RLS policy.
+- Isolated database `interdomestik_ci_s2_d02f` migrated and passed deterministic E2E seed assertion.
+  Unit proof passes 5/5 and web type-check passes. Mounted KS/MK proof passes 2/2 concurrently with
+  `DB_MAX_CONNECTIONS=1`: all five KPI cards, pipeline, agent and staff rows are branch-bounded;
+  same-tenant sibling and foreign routes are denied; missing assignment fails closed; tenant-admin
+  branch totals remain tenant-wide. Failure- and success-path residue checks are zero.
+- Exact capacity registration is 14,671 product/test bytes across six existing files and two new E2E
+  files: 422 source bytes and 14,249 test bytes. The synthetic fixed-baseline fixture adds 469 bytes,
+  and the budget's terminating self-size is 1,551 bytes. File growth is exactly two; reserve,
+  unrelated allocations and enforcement thresholds are unchanged. Capacity and modularity guards pass.
+- A watched Playwright-MCP session signed in through the normal KS credential flow, landed on
+  `/sq/admin/branches/ks_branch_a`, rendered the branch metrics, and redirected a direct
+  `ks_branch_b` attempt back to the assigned branch. No auth/cookie bypass was used.
+- Initial repo-owned subscription preparation receipts report `claude-sonnet-5` and
+  `gemini-3.1-pro-preview`; both correctly identified the route/query risks but saw an empty diff,
+  so neither is counted as implementation clearance. Targeted changed-diff follow-up and independent
+  Astra review remain due before full proof.
+- The screenshot-confirmed mounted dashboard is legacy presentation. S2 makes no redesign,
+  latest-trends, deployment or user-acceptance claim; a later bounded redesign must preserve the
+  protected route and query contracts.
 
 ### Completed member evidence upload locale continuity
 
 PR #1778 protected-merged as `81a219608dacf4ee9cfd8ee9f201e8ab156e54d2`; all 13 exact-main
-checks passed. The following notes retain its intermediate source-bound evidence. S1 is now
-selected by the active queue above; the localization slice is not an outstanding prerequisite.
+checks passed. The following notes retain its intermediate source-bound evidence. S1 is delivered
+and S2 is selected by the active queue above; the localization slice is not an outstanding prerequisite.
 
 - Fresh protected main and clean branch `codex/member-evidence-upload-locale-continuity` started at
   `b5a234b30b9cb6ed89ae6d81b81960a3a8135b25`; PR #1777 and exact-main health are complete.
@@ -304,8 +339,8 @@ selected by the active queue above; the localization slice is not an outstanding
   capacity tests. Actual served model/effort were not exposed to the child runtime, so the requested
   route is recorded without unsupported server attestation.
 - Final `pnpm pr:verify`, separate `pnpm security:guard`, protected current-head review/checks, merge
-  and exact-main health passed for #1778. No deployment is claimed; S1 authorization is recorded
-  in the active queue and current program, not inferred from these historical proof notes.
+  and exact-main health passed for #1778. No deployment is claimed; successor authorization is
+  recorded in the active queue and current program, not inferred from these historical proof notes.
 
 ### Completed member case detail continuity
 
@@ -449,9 +484,9 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                            | Source Refs                       | Execution | Run ID | Run Root | Sonar   | Docker | Sentry    | Learning         | Evidence Refs                                                                                                              |
-| ----------------------------- | --------------------------------- | --------- | ------ | -------- | ------- | ------ | --------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `S1-AGENT-MESSAGE-VISIBILITY` | current program; proof `94ac9167` | `manual`  | local  | local    | pending | pass   | `pending` | `not_applicable` | Final local pr:verify/security and independent review passed at94ac9167; protected delivery and exact-main health pending. |
+| ID                         | Source Refs     | Execution | Run ID | Run Root | Sonar   | Docker | Sentry           | Learning  | Evidence Refs                                                                                                                |
+| -------------------------- | --------------- | --------- | ------ | -------- | ------- | ------ | ---------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `S2-BRANCH-OVERVIEW-SCOPE` | current program | `manual`  | local  | local    | pending | pass   | `not_applicable` | `pending` | Focused isolated unit/type/mounted proof passes; full verification, protected delivery and exact-main health remain pending. |
 
 ### Member case overview entry progress
 
@@ -964,8 +999,10 @@ completed through protected product PR #1771, and the bounded
 `T410-PESSIMISTIC-MUTATION-BOUNDARY` protected-merged through PR #1772 as `62376c15`. This does not
 claim full T-410 completion. `MEMBER-CASE-OVERVIEW-ENTRY` completed in PR #1775,
 `MEMBER-CASE-WORKSPACE-REDESIGN` completed in PR #1776 and `MEMBER-CASE-DETAIL-CONTINUITY`
-completed in PR #1777; localization completed in PR #1778. The selected successor is `S1-AGENT-MESSAGE-VISIBILITY`;
-S1 is in progress; S2/S3 remain queued. This does not select T-411 Smart Next Step.
+completed in PR #1777; localization completed in PR #1778. S1 completed through protected PR
+#1780 and exact-main health passed. The selected successor is
+`S2-BRANCH-OVERVIEW-SCOPE`; S2 is in progress and S3 remains queued. This does not select T-411
+Smart Next Step.
 
 | Completed historical priority            | Status      | Constraint                                                                    |
 | ---------------------------------------- | ----------- | ----------------------------------------------------------------------------- |

@@ -1,8 +1,16 @@
 import mkAdminDashboard from '@/messages/mk/admin-dashboard.json';
 import mkClaims from '@/messages/mk/claims.json';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AdminOverviewPage from './page';
+
+type MockSession = {
+  user: {
+    role: string;
+    tenantId: string;
+    branchId?: string | null;
+  };
+};
 
 function getTranslationValue(source: unknown, key: string): string {
   const value = key.split('.').reduce<unknown>((current, segment) => {
@@ -17,11 +25,8 @@ function getTranslationValue(source: unknown, key: string): string {
 }
 
 const hoisted = vi.hoisted(() => ({
-  getSessionSafeMock: vi.fn(async () => ({
-    user: {
-      role: 'admin',
-      tenantId: 'tenant_mk',
-    },
+  getSessionSafeMock: vi.fn<() => Promise<MockSession>>(async () => ({
+    user: { role: 'admin', tenantId: 'tenant_mk' },
   })),
   getAdminOverviewDataMock: vi.fn(async () => ({
     kpis: {
@@ -33,6 +38,8 @@ const hoisted = vi.hoisted(() => ({
     claimsByStage: [{ stage: 'submitted', count: 2 }],
     claimsByBranch: [{ branchId: 'mk_branch_a', branchName: 'MK Branch A (Main)', count: 2 }],
   })),
+  notFoundMock: vi.fn(() => null),
+  redirectMock: vi.fn(() => null),
   setRequestLocaleMock: vi.fn(),
 }));
 
@@ -45,7 +52,8 @@ vi.mock('@/features/admin/overview/server/get-admin-overview-data', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  notFound: vi.fn(() => null),
+  notFound: hoisted.notFoundMock,
+  redirect: hoisted.redirectMock,
 }));
 
 vi.mock('next-intl/server', () => ({
@@ -65,6 +73,16 @@ vi.mock('next-intl/server', () => ({
 }));
 
 describe('AdminOverviewPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    hoisted.getSessionSafeMock.mockResolvedValue({
+      user: {
+        role: 'admin',
+        tenantId: 'tenant_mk',
+      },
+    });
+  });
+
   it('renders Macedonian copy for the MK locale route', async () => {
     const tree = await AdminOverviewPage({
       params: Promise.resolve({ locale: 'mk' }),
@@ -82,4 +100,38 @@ describe('AdminOverviewPage', () => {
     expect(screen.getByText('Филијала MK A (Главна)')).toBeInTheDocument();
     expect(screen.queryByText('MK Branch A (Main)')).not.toBeInTheDocument();
   });
+
+  it('redirects a branch manager to the assigned branch without reading tenant aggregates', async () => {
+    hoisted.getSessionSafeMock.mockResolvedValue({
+      user: {
+        role: 'branch_manager',
+        tenantId: 'tenant_mk',
+        branchId: 'mk branch/a',
+      },
+    });
+
+    await AdminOverviewPage({ params: Promise.resolve({ locale: 'mk' }) });
+
+    expect(hoisted.redirectMock).toHaveBeenCalledWith('/mk/admin/branches/mk%20branch%2Fa');
+    expect(hoisted.getAdminOverviewDataMock).not.toHaveBeenCalled();
+  });
+
+  it.each([null, '', '   '])(
+    'fails closed for a branch manager without a usable branch assignment (%j)',
+    async branchId => {
+      hoisted.getSessionSafeMock.mockResolvedValue({
+        user: {
+          role: 'branch_manager',
+          tenantId: 'tenant_mk',
+          branchId,
+        },
+      });
+
+      await AdminOverviewPage({ params: Promise.resolve({ locale: 'mk' }) });
+
+      expect(hoisted.notFoundMock).toHaveBeenCalledOnce();
+      expect(hoisted.redirectMock).not.toHaveBeenCalled();
+      expect(hoisted.getAdminOverviewDataMock).not.toHaveBeenCalled();
+    }
+  );
 });

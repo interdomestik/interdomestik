@@ -22,6 +22,7 @@ export function BranchKpiRow({ kpis }: BranchKpiRowProps) {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
       <KpiCard
+        testId="branch-kpi-open-claims"
         label={t('open_claims')}
         value={kpis.openClaims}
         icon={FileText}
@@ -29,6 +30,7 @@ export function BranchKpiRow({ kpis }: BranchKpiRowProps) {
         warning={kpis.openClaims > 10}
       />
       <KpiCard
+        testId="branch-kpi-cash-pending"
         label={t('cash_pending')}
         value={kpis.cashPending}
         icon={Banknote}
@@ -36,24 +38,37 @@ export function BranchKpiRow({ kpis }: BranchKpiRowProps) {
         // Any cash pending is bad practice, usually implies risk
       />
       <KpiCard
+        testId="branch-kpi-sla-breaches"
         label={t('sla_breaches')}
         value={kpis.slaBreaches}
         icon={AlertOctagon}
         alert={kpis.slaBreaches > 0} // Zero tolerance
       />
-      <KpiCard label={t('total_agents')} value={kpis.totalAgents} icon={Briefcase} />
-      <KpiCard label={t('total_members')} value={kpis.totalMembers} icon={Users} />
+      <KpiCard
+        testId="branch-kpi-total-agents"
+        label={t('total_agents')}
+        value={kpis.totalAgents}
+        icon={Briefcase}
+      />
+      <KpiCard
+        testId="branch-kpi-total-members"
+        label={t('total_members')}
+        value={kpis.totalMembers}
+        icon={Users}
+      />
     </div>
   );
 }
 
 function KpiCard({
+  testId,
   label,
   value,
   icon: Icon,
   alert,
   warning,
 }: {
+  testId: string;
   label: string;
   value: number;
   icon: LucideIcon;
@@ -62,6 +77,7 @@ function KpiCard({
 }) {
   return (
     <GlassCard
+      data-testid={testId}
       className={cn(
         'p-4 flex items-center justify-between transition-colors',
         alert && 'bg-red-500/5 border-red-500/20',
