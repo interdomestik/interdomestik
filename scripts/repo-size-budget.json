@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 105203,
+      "trackedBytesDelta": 105597,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 67273,
+        "config/data/messages": 67667,
         "source/scripts": 23092,
         "tests/e2e": 14838
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 67273,
+        "scripts/repo-size-budget.json": 67667,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -1377,22 +1377,26 @@
       "writerPaths": [
         "apps/web/src/app/[locale]/admin/overview/page.test.tsx",
         "apps/web/src/app/[locale]/admin/overview/page.tsx",
+        "apps/web/src/features/admin/branches/components/BranchDashboardV2Page.test.tsx",
         "apps/web/src/features/admin/branches/components/BranchDashboardV2Page.tsx",
         "apps/web/src/features/admin/branches/dashboard-v2/components/BranchKpiRow.tsx",
         "apps/web/src/features/admin/branches/dashboard-v2/components/ClaimsPipelinePanel.tsx",
+        "apps/web/src/features/admin/branches/dashboard-v2/server/getBranchDashboardV2Data.test.ts",
         "apps/web/src/features/admin/branches/dashboard-v2/server/getBranchDashboardV2Data.ts",
         "apps/web/e2e/gate/branch-overview-scope.fixture.ts",
         "apps/web/e2e/gate/branch-overview-scope.spec.ts"
       ],
-      "trackedBytesDelta": 14671,
-      "trackedFilesDelta": 2,
-      "categoryBytesDelta": { "source/scripts": 422, "tests/e2e": 14249 },
+      "trackedBytesDelta": 19155,
+      "trackedFilesDelta": 4,
+      "categoryBytesDelta": { "source/scripts": 422, "tests/e2e": 18733 },
       "pathBytesDelta": {
         "apps/web/src/app/[locale]/admin/overview/page.test.tsx": 1552,
         "apps/web/src/app/[locale]/admin/overview/page.tsx": 190,
+        "apps/web/src/features/admin/branches/components/BranchDashboardV2Page.test.tsx": 2785,
         "apps/web/src/features/admin/branches/components/BranchDashboardV2Page.tsx": 139,
         "apps/web/src/features/admin/branches/dashboard-v2/components/BranchKpiRow.tsx": 320,
         "apps/web/src/features/admin/branches/dashboard-v2/components/ClaimsPipelinePanel.tsx": 102,
+        "apps/web/src/features/admin/branches/dashboard-v2/server/getBranchDashboardV2Data.test.ts": 1699,
         "apps/web/src/features/admin/branches/dashboard-v2/server/getBranchDashboardV2Data.ts": -329,
         "apps/web/e2e/gate/branch-overview-scope.fixture.ts": 7492,
         "apps/web/e2e/gate/branch-overview-scope.spec.ts": 5205
@@ -1405,15 +1409,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61451794,
-  "maxTrackedFiles": 6067,
+  "maxTrackedBytes": 61456672,
+  "maxTrackedFiles": 6069,
   "maxCategoryBytes": {
-    "config/data/messages": 2243097,
+    "config/data/messages": 2243491,
     "docs/text": 8634905,
     "large support/generated-ish": 15395985,
     "other": 19184750,
     "source/scripts": 8863520,
-    "tests/e2e": 7129537
+    "tests/e2e": 7134021
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

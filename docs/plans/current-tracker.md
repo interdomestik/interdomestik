@@ -289,21 +289,28 @@ independent and no exact-runtime-effect guarantee is claimed.
   tenant+branch predicates. Per-agent open/SLA subqueries used tenant+agent only; they now add the
   branch predicate without changing definitions, DTOs, routing or RLS policy.
 - Isolated database `interdomestik_ci_s2_d02f` migrated and passed deterministic E2E seed assertion.
-  Unit proof passes 5/5 and web type-check passes. Mounted KS/MK proof passes 2/2 concurrently with
+  Focused route/query guard proof passes 15/15 and web type-check passes. Mounted KS/MK proof passes 2/2 concurrently with
   `DB_MAX_CONNECTIONS=1`: all five KPI cards, pipeline, agent and staff rows are branch-bounded;
   same-tenant sibling and foreign routes are denied; missing assignment fails closed; tenant-admin
   branch totals remain tenant-wide. Failure- and success-path residue checks are zero.
-- Exact capacity registration is 14,671 product/test bytes across six existing files and two new E2E
-  files: 422 source bytes and 14,249 test bytes. The synthetic fixed-baseline fixture adds 469 bytes,
-  and the budget's terminating self-size is 1,551 bytes. File growth is exactly two; reserve,
+- Exact capacity registration is 19,155 product/test bytes across six existing files, two new unit
+  files and two new E2E files: 422 source bytes and 18,733 test bytes. The synthetic fixed-baseline
+  fixture adds 469 bytes, and the budget's terminating self-size is 1,945 bytes. File growth is
+  exactly four; reserve,
   unrelated allocations and enforcement thresholds are unchanged. Capacity and modularity guards pass.
 - A watched Playwright-MCP session signed in through the normal KS credential flow, landed on
   `/sq/admin/branches/ks_branch_a`, rendered the branch metrics, and redirected a direct
   `ks_branch_b` attempt back to the assigned branch. No auth/cookie bypass was used.
+- Exact admitted E2E tree `b3676a7d394d2c31044b8e06b44f6b562029e068` contains the new gate
+  fixture/spec; `check:e2e-contracts` passes. The existing `routes.adminBranchDetail` helper is
+  confirmed at `apps/web/e2e/routes.ts:106` and both projects compiled and passed it.
 - Initial repo-owned subscription preparation receipts report `claude-sonnet-5` and
-  `gemini-3.1-pro-preview`; both correctly identified the route/query risks but saw an empty diff,
-  so neither is counted as implementation clearance. Targeted changed-diff follow-up and independent
-  Astra review remain due before full proof.
+  `gemini-3.1-pro-preview`; both correctly identified the route/query risks but saw an empty diff.
+  Changed-diff Sonnet then reported guard-unit and evidence gaps against `e4e771fe`; 10 focused
+  branch-detail/query guard cases now address the two actionable findings. Its route-helper and
+  cleanup findings were dispositioned by compilation/mounted proof and the mandatory modularity
+  correction. Gemini's changed-diff route timed out after 180.5 seconds without output; the failed
+  receipt is retained and not repeated. Independent Astra review remains due before full proof.
 - The screenshot-confirmed mounted dashboard is legacy presentation. S2 makes no redesign,
   latest-trends, deployment or user-acceptance claim; a later bounded redesign must preserve the
   protected route and query contracts.

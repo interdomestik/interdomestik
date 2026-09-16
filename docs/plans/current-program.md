@@ -203,8 +203,11 @@ Sonnet 5 and Gemini preparation were served through the repository-owned reviewe
 `claude-sonnet-5` and `gemini-3.1-pro-preview`; their initial empty-diff verdicts are retained as
 preparation, not passing implementation review. Focused unit/type proof and the mounted two-tenant
 Playwright lane pass against isolated `interdomestik_ci_s2_d02f`; both failure- and success-path
-fixture residue checks are zero. Final helper follow-up, independent Astra review, full required
-verification, protected delivery and exact-main health remain pending.
+fixture residue checks are zero. The changed-diff Sonnet follow-up reported focused guard/evidence
+gaps; equivalent page/query unit coverage was added and the existing route helper plus admitted E2E
+tree were confirmed. Gemini's changed-diff route timed out without output, so its failed receipt is
+retained without repetition. Independent Astra review, full required verification, protected
+delivery and exact-main health remain pending.
 
 The currently mounted branch dashboard presentation is legacy and is not the visual target. S2
 makes no styling, information-architecture, shell-redesign, deployment or user-acceptance claim;
