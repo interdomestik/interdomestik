@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 106815,
+      "trackedBytesDelta": 106960,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 68724,
+        "config/data/messages": 68869,
         "source/scripts": 23092,
         "tests/e2e": 14999
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 68724,
+        "scripts/repo-size-budget.json": 68869,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -1410,15 +1410,17 @@
       "id": "s3-member-staff-evidence-journey",
       "mode": "bounded",
       "writerPaths": [
+        "apps/web/e2e/gate/member-staff-evidence-journey.fixture.ts",
         "apps/web/e2e/gate/member-staff-evidence-journey.spec.ts",
         "packages/database/src/domain-event-relay.ts",
         "packages/database/test/domain-event-relay-selection.test.ts"
       ],
       "maxTrackedBytesDelta": 21700,
-      "maxTrackedFilesDelta": 1,
+      "maxTrackedFilesDelta": 2,
       "maxCategoryBytesDelta": { "source/scripts": 1200, "tests/e2e": 20500 },
       "maxPathBytesDelta": {
-        "apps/web/e2e/gate/member-staff-evidence-journey.spec.ts": 18000,
+        "apps/web/e2e/gate/member-staff-evidence-journey.fixture.ts": 8500,
+        "apps/web/e2e/gate/member-staff-evidence-journey.spec.ts": 9500,
         "packages/database/src/domain-event-relay.ts": 1200,
         "packages/database/test/domain-event-relay-selection.test.ts": 2500
       }
@@ -1430,10 +1432,10 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61490864,
-  "maxTrackedFiles": 6071,
+  "maxTrackedBytes": 61491009,
+  "maxTrackedFiles": 6072,
   "maxCategoryBytes": {
-    "config/data/messages": 2244548,
+    "config/data/messages": 2244693,
     "docs/text": 8644068,
     "large support/generated-ish": 15395985,
     "other": 19184750,

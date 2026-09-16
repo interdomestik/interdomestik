@@ -95,7 +95,7 @@ test('capacity reserves the product, policy, CI loader and promotion artifact pa
     'packages/domain-claims/src/staff-claims/current-claim-record.ts': 0,
     'packages/domain-claims/src/staff-claims/matter-allowance.test.ts': 1587,
     'packages/domain-claims/src/staff-claims/matter-allowance.ts': 207,
-    'packages/domain-claims/src/staff-claims/update-status.test.ts': 0,
+    'packages/domain-claims/src/staff-claims/update-status.test.ts': 100,
     'packages/domain-claims/src/staff-claims/update-status.transaction.test.ts': 5830,
     'packages/domain-claims/src/staff-claims/update-status.ts': 474,
   });
