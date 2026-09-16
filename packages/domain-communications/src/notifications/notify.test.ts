@@ -57,6 +57,7 @@ import {
 describe('sendNotification', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.findFirst.mockReset();
     mocks.delete.mockReturnValue({ where: mocks.deleteWhere });
     mocks.deleteWhere.mockResolvedValue(undefined);
     mocks.insert.mockReturnValue({ values: mocks.insertValues });
@@ -90,7 +91,7 @@ describe('sendNotification', () => {
   });
 
   it('persists an in-app notification when the recipient email is not verified', async () => {
-    mocks.findFirst.mockResolvedValue({
+    mocks.findFirst.mockResolvedValueOnce({
       email: 'unverified@example.com',
       emailVerified: false,
       tenantId: 'tenant-1',
@@ -109,7 +110,7 @@ describe('sendNotification', () => {
 
   it('uses the canonical member claim route for status notifications', async () => {
     const sendPushToUser = vi.fn().mockResolvedValue(undefined);
-    mocks.findFirst.mockResolvedValueOnce({
+    mocks.findFirst.mockResolvedValue({
       email: 'verified@example.com',
       emailVerified: true,
       tenantId: 'tenant-1',
@@ -136,7 +137,7 @@ describe('sendNotification', () => {
   });
 
   it('uses the canonical member claim route for the submitting member', async () => {
-    mocks.findFirst.mockResolvedValueOnce({
+    mocks.findFirst.mockResolvedValue({
       email: 'member@example.com',
       emailVerified: false,
       tenantId: 'tenant-1',

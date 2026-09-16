@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { describe, it } from 'node:test';
-import { eq, sql } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
@@ -58,42 +58,43 @@ describe('domain event relay selection', () => {
           and column_name = 'assignedAt'
       `;
       assert.equal(assignedAtColumn?.data_type, 'timestamp without time zone');
-      await database.transaction(async tx => {
-        await tx.execute(sql`set local time zone 'Europe/Berlin'`);
-        await tx.insert(tenants).values({
-          countryCode: 'DE',
-          id: tenantId,
-          legalName: 'Relay proof tenant',
-          name: 'Relay proof tenant',
-        });
-        await tx.insert(domainEvents).values({
-          actorId: 'relay-proof-actor',
-          actorRole: 'system',
-          aggregateVersion: 1,
-          correlationId: eventId,
-          createdAt: new Date('2026-09-16T10:00:00.123Z'),
-          entityId: 'relay-proof-entity',
-          entityType: 'test',
-          eventName,
-          eventVersion: 1,
-          id: eventId,
-          payload: {},
-          tenantId,
-        });
+      await assert.rejects(
+        database.transaction(async tx => {
+          await tx.execute(sql`set local time zone 'Europe/Berlin'`);
+          await tx.insert(tenants).values({
+            countryCode: 'DE',
+            id: tenantId,
+            legalName: 'Relay proof',
+            name: 'Relay proof',
+          });
+          await tx.insert(domainEvents).values({
+            actorId: 'proof',
+            actorRole: 'system',
+            aggregateVersion: 1,
+            correlationId: eventId,
+            createdAt: new Date('2026-09-16T10:00:00.123Z'),
+            entityId: 'proof',
+            entityType: 'test',
+            eventName,
+            eventVersion: 1,
+            id: eventId,
+            payload: {},
+            tenantId,
+          });
 
-        const [selected] = await selectDomainEventsForRelay(tx, {
-          consumerName: 'relay_sql_proof',
-          eventName,
-          limit: 1,
-          mode: 'replay',
-          tenantId,
-        });
-        assert.equal(selected?.id, eventId);
-        assert.equal(selected?.createdAt.toISOString(), '2026-09-16T10:00:00.123Z');
-
-        await tx.delete(domainEvents).where(eq(domainEvents.id, eventId));
-        await tx.delete(tenants).where(eq(tenants.id, tenantId));
-      });
+          const [selected] = await selectDomainEventsForRelay(tx, {
+            consumerName: 'relay_sql_proof',
+            eventName,
+            limit: 1,
+            mode: 'replay',
+            tenantId,
+          });
+          assert.equal(selected?.id, eventId);
+          assert.equal(selected?.createdAt.toISOString(), '2026-09-16T10:00:00.123Z');
+          throw new Error('rollback');
+        }),
+        /rollback/
+      );
     } finally {
       await client.end({ timeout: 5 });
     }
