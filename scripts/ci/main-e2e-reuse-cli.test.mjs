@@ -109,6 +109,15 @@ test('S2 branch overview scope protection preserves corpus parity', () => {
     true
   );
 });
+test('S3 member-staff supported journey preserves corpus parity', () => {
+  assert.equal(
+    inspectRepositoryParity({
+      ...sources(),
+      e2eTreeSha: '4393d436aceece607ac0bd77b8ff06ee078161c9',
+    }).commandChain,
+    true
+  );
+});
 test('parity drift always resolves to a fail-closed reuse decision', async () => {
   const current = sources();
   const checkout = 'ref: ${{ github.event.pull_request.head.sha || github.sha }}';
