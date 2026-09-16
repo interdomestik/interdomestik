@@ -45,7 +45,7 @@ function summary(
     contract_version: 'canonical_migration_ledger_inspection_v1',
     ledger_state: ledgerState,
     applied_migrations: applied,
-    pending_migrations: 93 - applied,
+    pending_migrations: 94 - applied,
     callback_plan_sha256: callbackPlanSha256,
     read_only: true,
     execution_authorized: false,

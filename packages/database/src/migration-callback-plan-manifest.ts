@@ -16,17 +16,17 @@ export const CALLBACK_SOURCE_MANIFEST = Object.freeze([
     sha256: 'a7d7921c939b228a3f1295be5f024a8c264169e368f591c2d29072ffe079b14e',
   }),
 ]);
-export const CALLBACK_MIGRATIONS = 93;
-export const CALLBACK_STATEMENTS = 750;
-export const CALLBACK_ITEMS = 843;
+export const CALLBACK_MIGRATIONS = 94;
+export const CALLBACK_STATEMENTS = 759;
+export const CALLBACK_ITEMS = 853;
 export const MAX_CALLBACK_SOURCE_BYTES = 2_097_152n;
 export const MAX_CALLBACK_SQL_BYTES = 1_048_576;
 export const MAX_CALLBACK_ITEM_BYTES = 65_536;
-export const CALLBACK_SERIALIZED_BYTES = 246_041;
-export const CALLBACK_ITEMS_BYTES = 227_222;
+export const CALLBACK_SERIALIZED_BYTES = 249_248;
+export const CALLBACK_ITEMS_BYTES = 230_204;
 export const CALLBACK_MAX_ITEM_BYTES = 7_933;
 export const CALLBACK_RAW_SHA256 =
-  'e64bacbf140385ab07133aade986063133a906d3d8257a0eb079b2fa03d0142d';
+  '4612528fdfedc8d9506c45ea72d00e7198348f2adef0cda54f53d912623e4663';
 export const CALLBACK_DOMAIN = 'interdomestik-pg-proxy-full-callback-plan-v1\0';
 export const CALLBACK_PLAN_SHA256 =
-  'f4486654346a7e7c66a5cdbff57f4611268b1c5144e0ab7cea3ac3a1b7e2ab3f';
+  '6ac643da5e79e378bde338a7a41073999b6231d928550eeeae3057292ee39549';

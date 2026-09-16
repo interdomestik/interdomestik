@@ -53,7 +53,7 @@ missing-information request increment from that main; the whole S3 journey remai
 
 The owner adopts this near-term sequence after the enterprise audit and Opus 5 consultation.
 `MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY`, S1, S2 and the acceptance-link amendment are
-completed. S3 is selected from the amendment's protected merge.
+completed. S3's bounded supported prefix completed through #1783; S4 is selected from that merge.
 Select one bounded successor at a time below. S1–S3 are roadmap labels, not replacements for
 architecture T IDs. This section governs successor ordering over older suggestions.
 
@@ -87,7 +87,7 @@ repo/program/accepted ADR authority remains controlling until explicitly amended
    internal-message exclusion and unauthorized member/agent/branch paths. A representative locale
    does not replace existing four-locale coverage; branding isolation applies where exercised.
 
-The selected S3 increment stops after the real supported path: member submission, authorized staff
+The completed bounded S3 increment stops after the real supported path: member submission, authorized staff
 transition from `submitted` to `verification`, and member-visible status/public-history continuity
 with staff-private history excluded. Submission and the public staff transition run through mounted
 UI, and their member notifications use the canonical `/member/claims/[id]` route; the private
@@ -127,6 +127,21 @@ protected delivery remain mandatory. The approved ceiling is +609,000 bytes and 
 (aggregate file ceiling 6091), with exact measured disjoint allocations and generated snapshot cost
 included; no reserve consumption or padding. S3 retirement removed its owned worktree/database;
 S4 uses its own isolated verification resources.
+
+Owner-approved S4 prerequisite amendment (2026-09-16): refresh the retained exact migration
+corpus/callback/ledger/execution metadata and direct regression tests for additive `0093` in this
+same branch. Astra/medium remains sole implementation owner. Owned paths are the existing
+`packages/database/src/migration-{corpus,callback-plan,ledger,execution}*` modules only where
+their fixed metadata depends on this corpus, their direct `packages/database/test/migration-*`
+and runtime-role tests, these canonical scope/evidence records and measured capacity metadata.
+Preserve all preceding SQL bytes and journal entries, exact source/root/topology/hash checks,
+callback order, lock/ledger bounds and tamper rejection. No generic refactor, subset acceptance,
+archived duplicate corpus, capability retirement, deployment or infrastructure change is authorized.
+Projected incremental footprint is under 8,000 bytes and zero new files; total S4 remains below
+the approved +609,000 bytes / 16 files ceiling. This projection is not an allocation: register only
+measured disjoint growth. Derive manifests from committed canonical inputs, run the retained
+capability and runtime-role regressions plus full CI preflight, then independent review and fresh
+required S4 proof. Historical 93/97 receipts remain bound to their original source.
 
 Research reused from 2026-09-16: AirHelp's public claim guide
 (`https://www.airhelp.com/en-int/blog/how-to-use-airhelp-to-claim-flight-compensation/`) supports
@@ -637,8 +652,9 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 These rows, the notification correctness increment, shared shell navigation, both notification
 acknowledgement increments, `MEMBER-CASE-WORKSPACE-REDESIGN` and `MEMBER-CASE-DETAIL-CONTINUITY`
-are completed history, as are S1, S2 and the localization predecessor. The selected work is the
-bounded S3 supported-path increment described above; the acceptance-link amendment is completed.
+are completed history, as are S1, S2, the localization predecessor, the acceptance-link amendment
+and S3's bounded supported prefix (#1783). Selected work is the bounded S4 missing-information
+request increment and its explicitly approved migration-capability prerequisite described above.
 
 ## Shared Shell Navigation Increment
 

@@ -16,9 +16,9 @@ import { makeTempCorpus } from './migration-corpus.support';
 const SUMMARY = Object.freeze({
   contract_version: 'canonical_migration_corpus_v1',
   integrity_verified: true,
-  journaled_migrations: 93,
+  journaled_migrations: 94,
   excluded_legacy_orphans: 4,
-  sql_files: 97,
+  sql_files: 98,
 });
 
 test('verifies the canonical corpus and returns only the frozen summary', async () => {

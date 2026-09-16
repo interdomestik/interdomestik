@@ -49,6 +49,15 @@ test('canonical count, bps, time, hash, chunks, bytes and digest reject drift', 
       value.pop();
     },
     value => {
+      value.push(value[0]);
+    },
+    value => {
+      [value[0], value[1]] = [value[1], value[0]];
+    },
+    value => {
+      value[93].sql[0] += ' ';
+    },
+    value => {
       value[0].bps = false;
     },
     value => {
@@ -87,7 +96,7 @@ test('builder owns and deeply freezes the exact current plan', async () => {
   assert.ok(Object.isFrozen(plan.callbackItems));
   assert.equal(
     plan.callbackPlanSha256,
-    'f4486654346a7e7c66a5cdbff57f4611268b1c5144e0ab7cea3ac3a1b7e2ab3f'
+    '6ac643da5e79e378bde338a7a41073999b6231d928550eeeae3057292ee39549'
   );
 });
 

@@ -13,7 +13,7 @@ const reject = (): never => {
 };
 
 function validatePlan(migrations: readonly OwnedMigration[]): void {
-  if (migrations.length !== 93) reject();
+  if (migrations.length !== 94) reject();
   for (const migration of migrations) {
     if (
       migration.bps !== true ||
