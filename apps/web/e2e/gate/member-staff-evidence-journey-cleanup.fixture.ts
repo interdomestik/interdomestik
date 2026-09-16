@@ -44,11 +44,36 @@ async function claimIdsForJourney(
   return [...new Set([claimId, ...matchingClaims.map(row => row.id)].filter(Boolean))] as string[];
 }
 
+async function drainSubmissionNotification(claimIds: string[]): Promise<void> {
+  if (!claimIds.length) return;
+  await expect
+    .poll(
+      async () => {
+        const rows = await db.query.notifications.findMany({
+          where: and(
+            eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
+            eq(notifications.type, 'claim_submitted'),
+            inArray(
+              notifications.actionUrl,
+              claimIds.map(id => `/member/claims/${id}`)
+            )
+          ),
+          columns: { id: true },
+        });
+        return rows.length;
+      },
+      { timeout: 5_000 }
+    )
+    .toBeGreaterThan(0)
+    .catch(() => undefined);
+}
+
 export async function cleanupJourney(
   claimId: string | null,
   journey: S3JourneyIdentity
 ): Promise<void> {
   const claimIds = await claimIdsForJourney(claimId, journey);
+  await drainSubmissionNotification(claimIds);
   await db.transaction(async tx => {
     if (claimIds.length) {
       const events = await tx.query.domainEvents.findMany({

@@ -6,6 +6,7 @@ import {
   db,
   domainEvents,
   eq,
+  inArray,
   notifications,
   user,
 } from '@interdomestik/database';
@@ -51,7 +52,7 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
       'One exact isolated-DB project owns S3 residue'
     );
     expect(testInfo.config.workers).toBe(1);
-    expect(testInfo.workerIndex).toBe(0);
+    expect(testInfo.parallelIndex).toBe(0);
     test.setTimeout(120_000);
     const memberBaseURL = idaBaseURL(testInfo);
     const locale = routes.getLocale(testInfo);
@@ -144,14 +145,14 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
         const rows = await db.query.notifications.findMany({
           where: and(
             eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
-            eq(notifications.type, 'claim_status_changed'),
+            inArray(notifications.type, ['claim_submitted', 'claim_status_changed']),
             eq(notifications.actionUrl, `/member/claims/${submitted.claimId}`)
           ),
-          columns: { id: true },
+          columns: { type: true },
         });
-        return rows.length;
+        return [...new Set(rows.map(row => row.type))].sort();
       })
-      .toBeGreaterThan(0);
+      .toEqual(['claim_status_changed', 'claim_submitted']);
 
     const staffActor = await db.query.user.findFirst({
       where: and(

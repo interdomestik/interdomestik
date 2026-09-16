@@ -1430,9 +1430,9 @@
         "tests/e2e": 30000
       },
       "maxPathBytesDelta": {
-        "apps/web/e2e/gate/member-staff-evidence-journey-cleanup.fixture.ts": 5500,
+        "apps/web/e2e/gate/member-staff-evidence-journey-cleanup.fixture.ts": 6200,
         "apps/web/e2e/gate/member-staff-evidence-journey.fixture.ts": 6000,
-        "apps/web/e2e/gate/member-staff-evidence-journey.spec.ts": 10100,
+        "apps/web/e2e/gate/member-staff-evidence-journey.spec.ts": 10200,
         "apps/web/e2e/gate/tenant-resolution.spec.ts": 300,
         "apps/web/e2e/utils/navigation.ts": 100,
         "apps/web/src/components/notifications/notification-action-href.test.ts": 800,
