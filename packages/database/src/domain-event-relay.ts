@@ -40,28 +40,24 @@ function assertLimit(limit: number): number {
 function normalizeCreatedAt(value: Date | string): Date {
   if (value instanceof Date) {
     if (Number.isNaN(value.getTime())) {
-      throw new Error('domain event relay requires a valid createdAt');
+      throw new TypeError('domain event relay requires a valid createdAt');
     }
     return value;
   }
-  const match =
-    /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})(?:\.(\d{1,6}))?(Z|[+-]\d{2}(?::?\d{2})?)$/.exec(
-      value
-    );
-  if (!match) throw new Error('domain event relay requires an explicit-offset createdAt');
+  const match = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})(?:\.(\d{1,6}))?(.+)$/.exec(value);
+  if (!match || !/^(?:Z|[+-]\d{2}(?::?\d{2})?)$/.test(match[4])) {
+    throw new TypeError('domain event relay requires an explicit-offset createdAt');
+  }
   const rawOffset = match[4];
-  const offset =
-    rawOffset === 'Z'
-      ? rawOffset
-      : rawOffset.length === 3
-        ? `${rawOffset}:00`
-        : rawOffset.length === 5
-          ? `${rawOffset.slice(0, 3)}:${rawOffset.slice(3)}`
-          : rawOffset;
+  let offset = rawOffset;
+  if (rawOffset !== 'Z' && rawOffset.length === 3) offset = `${rawOffset}:00`;
+  if (rawOffset !== 'Z' && rawOffset.length === 5) {
+    offset = `${rawOffset.slice(0, 3)}:${rawOffset.slice(3)}`;
+  }
   const milliseconds = (match[3] ?? '').padEnd(3, '0').slice(0, 3);
   const createdAt = new Date(`${match[1]}T${match[2]}.${milliseconds}${offset}`);
   if (Number.isNaN(createdAt.getTime())) {
-    throw new Error('domain event relay requires a valid createdAt');
+    throw new TypeError('domain event relay requires a valid createdAt');
   }
   return createdAt;
 }

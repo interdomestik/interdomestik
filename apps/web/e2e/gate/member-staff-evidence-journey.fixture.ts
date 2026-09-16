@@ -119,8 +119,8 @@ export function idaBaseURL(testInfo: TestInfo): string {
   const projectBaseURL = testInfo.project.use.baseURL;
   if (!projectBaseURL) throw new Error('Gate project baseURL missing');
   const projectPort = new URL(projectBaseURL).port;
-  const configured =
-    process.env.IDA_HOST?.trim() || `ida.127.0.0.1.nip.io${projectPort ? `:${projectPort}` : ''}`;
+  const portSuffix = projectPort ? `:${projectPort}` : '';
+  const configured = process.env.IDA_HOST?.trim() || `ida.127.0.0.1.nip.io${portSuffix}`;
   const url = new URL(configured.includes('://') ? configured : `http://${configured}`);
   if (!url.port && projectPort) url.port = projectPort;
   return `${url.origin}/${routes.getLocale(testInfo)}`;

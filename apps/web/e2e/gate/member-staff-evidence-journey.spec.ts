@@ -47,10 +47,8 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
     browser,
     staffPage,
   }, testInfo) => {
-    test.skip(
-      testInfo.project.name !== 'gate-ks-sq',
-      'One exact isolated-DB project owns S3 residue'
-    );
+    // Only gate-ks-sq may own S3 residue.
+    test.skip(testInfo.project.name !== 'gate-ks-sq', 'Other project');
     expect(testInfo.config.workers).toBe(1);
     expect(testInfo.parallelIndex).toBe(0);
     test.setTimeout(120_000);
