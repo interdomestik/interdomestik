@@ -19,8 +19,9 @@ export type {
 export { recordDomainEventDelivery } from './domain-event-delivery-recording';
 export { domainEventDeliveryIdempotencyKey } from './domain-event-delivery-keys';
 
-type RelayTx = DomainEventTx & {
-  execute<T>(query: unknown): Promise<T[]>;
+type RelayTx = DomainEventTx;
+type DomainEventRelayRow = Omit<DomainEventRelayEvent, 'createdAt'> & {
+  createdAt: Date | string;
 };
 
 function assertNonBlank(value: string, field: string): string {
@@ -34,6 +35,31 @@ function assertLimit(limit: number): number {
     throw new Error('domain event relay requires limit between 1 and 100');
   }
   return limit;
+}
+
+function normalizeCreatedAt(value: Date | string): Date {
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) {
+      throw new TypeError('domain event relay requires a valid createdAt');
+    }
+    return value;
+  }
+  const match = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})(?:\.(\d{1,6}))?(.+)$/.exec(value);
+  if (!match || !/^(?:Z|[+-]\d{2}(?::?\d{2})?)$/.test(match[4])) {
+    throw new TypeError('domain event relay requires an explicit-offset createdAt');
+  }
+  const rawOffset = match[4];
+  let offset = rawOffset;
+  if (rawOffset !== 'Z' && rawOffset.length === 3) offset = `${rawOffset}:00`;
+  if (rawOffset !== 'Z' && rawOffset.length === 5) {
+    offset = `${rawOffset.slice(0, 3)}:${rawOffset.slice(3)}`;
+  }
+  const milliseconds = (match[3] ?? '').padEnd(3, '0').slice(0, 3);
+  const createdAt = new Date(`${match[1]}T${match[2]}.${milliseconds}${offset}`);
+  if (Number.isNaN(createdAt.getTime())) {
+    throw new TypeError('domain event relay requires a valid createdAt');
+  }
+  return createdAt;
 }
 
 export async function selectDomainEventsForRelay(
@@ -75,7 +101,7 @@ export async function selectDomainEventsForRelay(
       )`
     : sql``;
   const lockClause = mode === 'replay' ? sql`` : sql`for update skip locked`;
-  return tx.execute<DomainEventRelayEvent>(sql`
+  const rows = await tx.execute<DomainEventRelayRow>(sql`
     select
       e."id",
       e."tenant_id" as "tenantId",
@@ -88,7 +114,10 @@ export async function selectDomainEventsForRelay(
       e."aggregate_version" as "aggregateVersion",
       e."correlation_id" as "correlationId",
       e."payload",
-      e."created_at" as "createdAt"
+      to_char(
+        e."created_at" at time zone 'UTC',
+        'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'
+      ) as "createdAt"
     from "domain_events" e
     where 1 = 1
     and e."tenant_id" = ${tenantId}
@@ -100,6 +129,8 @@ export async function selectDomainEventsForRelay(
     limit ${limit}
     ${lockClause}
   `);
+  if (!Array.isArray(rows)) throw new Error('domain event relay requires a row-array result');
+  return rows.map(row => ({ ...row, createdAt: normalizeCreatedAt(row.createdAt) }));
 }
 
 export async function relayDomainEvents(

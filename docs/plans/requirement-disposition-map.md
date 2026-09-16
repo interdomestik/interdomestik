@@ -349,7 +349,7 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-VON-026 | Sensitive payload minimization | Canonical | unresolved | Flight scope/T411 | open | none | U | U | U |
 | IDA-VON-027 | VONESA reporting | Target | unresolved | Flight scope/T411 | open | none | U | U | U |
 | IDA-VON-028 | VONESA audit trail | Canonical | unresolved | Flight scope/T411 | open | none | U | U | U |
-| IDA-CLM-001 | Unique intake identifier | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
+| IDA-CLM-001 | Unique intake identifier | Target | unresolved | S3/S5/S7 | S3 candidate proves one real saved/submitted claim retains its exact opaque claim ID and generated claim number through staff and member reads; broader intake acceptance remains open | none | U | U | U |
 | IDA-CLM-002 | Incident separation | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-003 | Claimant and participant roles | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-004 | Typed subject facts | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
@@ -358,11 +358,11 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-CLM-007 | No destructive duplicate merge | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-008 | Jurisdiction classification | Canonical | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-009 | Completeness outcome | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
-| IDA-CLM-010 | Missing-information request | Target | pilot-required | S3/S5/S7 | open | none | U | U | U |
+| IDA-CLM-010 | Missing-information request | Target | pilot-required | S3/S5/S7 | First unsupported S3 handoff: no request aggregate/command/read model, request correlation or due date; generic upload cannot prove request-bound member upload or staff acknowledgement. S4 proposed, not selected | none | U | U | U |
 | IDA-CLM-011 | Conflict-of-interest stop | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-012 | Time-limit posture | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-013 | Fraud/integrity signal | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
-| IDA-CLM-014 | Acceptance authority | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
+| IDA-CLM-014 | Acceptance authority | Target | unresolved | S3/S5/S7 | S3 candidate proves authorized staff acceptance of the exact submitted claim into existing `verification` state on the mounted route; whole acceptance policy and role acceptance remain open | none | U | U | U |
 | IDA-CLM-015 | Decline explanation | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-016 | Assignment | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-017 | Claim number authority | Canonical | unresolved | S3/S5/S7 | open | none | U | U | U |
@@ -371,17 +371,17 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-CAS-002 | Lifecycle read authority | Canonical | unresolved | S3/S6/S7/S13 | open | none | U | U | U |
 | IDA-CAS-003 | Sole transition writer | Canonical | unresolved | S3/S6/S7/S13 | open | none | U | U | U |
 | IDA-CAS-004 | Transition validation | Canonical | unresolved | S3/S6/S7/S13 | open | none | U | U | U |
-| IDA-CAS-005 | Atomic history | Canonical | unresolved | S3/S6/S7/S13 | open | none | U | U | U |
-| IDA-CAS-006 | Public/private intent | Canonical | pilot-required | S3/S6/S7/S13 | open | none | U | U | U |
-| IDA-CAS-007 | Case timeline | Target | pilot-required | S3/S6/S7/S13 | open | none | U | U | U |
-| IDA-CAS-008 | Internal notes isolation | Target | pilot-required | S3/S6/S7/S13 | open | none | U | U | U |
+| IDA-CAS-005 | Atomic history | Canonical | unresolved | S3/S6/S7/S13 | S3 candidate asserts the exact transition, first staff assignment and history rows after the real staff action; broader concurrency/retry acceptance remains open | none | U | U | U |
+| IDA-CAS-006 | Public/private intent | Canonical | pilot-required | S3/S6/S7/S13 | S3 candidate persists the mounted public transition, adds a core private same-status note, and renders only the public note to a fresh front-door E2E member session. It uses a tenant-selection header, not host-derived proof; broader communication acceptance remains open | none | U | U | U |
+| IDA-CAS-007 | Case timeline | Target | pilot-required | S3/S6/S7/S13 | S3 candidate renders the public staff verification note in the returning member's mounted timeline; whole-journey and user acceptance remain open | none | U | U | U |
+| IDA-CAS-008 | Internal notes isolation | Target | pilot-required | S3/S6/S7/S13 | S3 candidate proves the core-created private same-status staff note is absent from the exact fresh-session member detail; other roles and surfaces remain open | none | U | U | U |
 | IDA-CAS-009 | Submission package | Target | unresolved | S3/S6/S7/S13 | open | none | U | U | U |
 | IDA-CAS-010 | Offer/refusal capture | Target | unresolved | S3/S6/S7/S13 | open | none | U | U | U |
 | IDA-CAS-011 | Objection approval | Target | unresolved | S3/S6/S7/S13 | open | none | U | U | U |
 | IDA-CAS-012 | Case SLA clocks | Target | unresolved | S3/S6/S7/S13 | open | none | U | U | U |
 | IDA-CAS-013 | Reopen control | Target | unresolved | S3/S6/S7/S13 | open | none | U | U | U |
 | IDA-CAS-014 | Closeout prerequisites | Target | unresolved | S3/S6/S7/S13 | open | none | U | U | U |
-| IDA-CAS-015 | Domain event | Canonical | unresolved | S3/S6/S7/S13 | open | none | U | U | U |
+| IDA-CAS-015 | Domain event | Canonical | unresolved | S3/S6/S7/S13 | S3 candidate observes exact-claim `case.created` and `claim.status_changed`; relay proof checks PostgreSQL `timestamptz` UTC under `Europe/Berlin`, parses explicit offsets as `Date` and retains audit delivery. Broader event-family acceptance remains open | none | U | U | U |
 | IDA-CAS-016 | Event payload minimization | Canonical | unresolved | S3/S6/S7/S13 | open | none | U | U | U |
 | IDA-REC-001 | Recovery eligibility | Target | unresolved | S13; recovery scope | open | none | U | U | U |
 | IDA-REC-002 | No recovery by recommendation alone | Canonical | unresolved | S13; recovery scope | open | none | U | U | U |

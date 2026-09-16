@@ -43,13 +43,16 @@ completed `MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY` through protected PR #1778 
 through protected PR #1780 as `f3d36b2e7781654fe5448fab11da891368d95f19`, with all 13
 exact-main checks passed. S2 completed through protected PR #1781 as
 `de15d4cac87d7ba6ce15d98c75069445bb84dcb4`, with all 13 exact-main checks passed.
-The owner authorizes the bounded roadmap acceptance-link amendment before S3 implementation.
+The bounded roadmap acceptance-link amendment completed through protected PR #1782 as
+`7db57a30c35112a679271e6469d20974f83dd061`. The owner has selected S3 from that exact main;
+the active increment is the supported member submission → staff acceptance into verification →
+member continuity prefix, not the whole S3 journey.
 
 ## Owner-adopted enterprise delivery sequence (2026-09-15)
 
 The owner adopts this near-term sequence after the enterprise audit and Opus 5 consultation.
-`MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY`, S1 and S2 are completed. S3 remains queued;
-start its implementation only from the merged acceptance-link amendment.
+`MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY`, S1, S2 and the acceptance-link amendment are
+completed. S3 is selected from the amendment's protected merge.
 Select one bounded successor at a time below. S1–S3 are roadmap labels, not replacements for
 architecture T IDs. This section governs successor ordering over older suggestions.
 
@@ -82,6 +85,17 @@ repo/program/accepted ADR authority remains controlling until explicitly amended
    into this slice or claim complete end-to-end acceptance. Include continuity, contracted events,
    internal-message exclusion and unauthorized member/agent/branch paths. A representative locale
    does not replace existing four-locale coverage; branding isolation applies where exercised.
+
+The selected S3 increment stops after the real supported path: member submission, authorized staff
+transition from `submitted` to `verification`, and member-visible status/public-history continuity
+with staff-private history excluded. Submission and the public staff transition run through mounted
+UI, and their member notifications use the canonical `/member/claims/[id]` route; the private
+same-status note uses the existing staff core contract before a fresh mounted member session proves
+exclusion. The first reproduced unsupported handoff is IDA-CLM-010:
+there is no evidence-request aggregate/command/read model with request correlation and due date, so
+the generic upload path cannot prove a request-bound member upload or staff acknowledgement. S4 is
+therefore a proposed conditional successor, not selected work. This increment does not claim full
+S3, request-bound upload/acknowledgement, four-locale user acceptance or deployment readiness.
 
 ### Owner-adopted product-readiness roadmap (2026-09-15)
 
@@ -585,7 +599,7 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 These rows, the notification correctness increment, shared shell navigation, both notification
 acknowledgement increments, `MEMBER-CASE-WORKSPACE-REDESIGN` and `MEMBER-CASE-DETAIL-CONTINUITY`
 are completed history, as are S1, S2 and the localization predecessor. The selected work is the
-acceptance-link documentation amendment; S3 implementation remains queued until its merge.
+bounded S3 supported-path increment described above; the acceptance-link amendment is completed.
 
 ## Shared Shell Navigation Increment
 

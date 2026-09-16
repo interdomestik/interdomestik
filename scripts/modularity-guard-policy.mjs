@@ -11,9 +11,9 @@ const LEGACY_FOCUSED_TEST_CONTRACTS = new Map([
   [
     STAFF_CURRENT_CLAIM_LEGACY_TEST,
     Object.freeze({
-      baseLines: 804,
-      baseBytes: 29315,
-      baseSha256: '2c9782b2d1ee5501049c2c59c309448c687f477eec4a88e8e19856675dafc627',
+      baseLines: 794,
+      baseBytes: 28150,
+      baseSha256: 'e9e3d69ecc2a5b41c18bfa6282356377e96da5ac082ed9c5b4456264b379dfea',
     }),
   ],
 ]);

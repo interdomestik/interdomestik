@@ -17,17 +17,79 @@ status_command: pnpm plan:status
 ## Active Queue
 
 S1 (#1780) and S2 (#1781) are complete; all 13 exact-main checks passed at their merges.
-Current protected main is `de15d4cac87d7ba6ce15d98c75069445bb84dcb4` (S2).
-The owner-authorized documentation amendment precedes S3 implementation; S3 remains queued.
+The acceptance-link amendment completed through protected PR #1782. Current protected main is
+`7db57a30c35112a679271e6469d20974f83dd061`.
 
-| ID                             | Status        | Owner | Work                                                                              | Exit Criteria                                                                                                                                                |
-| ------------------------------ | ------------- | ----- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `SRS-ROADMAP-ACCEPTANCE-LINKS` | `in_progress` | Codex | Reconcile delivered status and acceptance links within existing roadmap families. | Existing validation-surface classification, security/capacity checks, current-head review, all protected checks and exact-main health; no S3 implementation. |
+| ID                                 | Status        | Owner | Work                                                                                            | Exit Criteria                                                                                                                                                                                                                                                           |
+| ---------------------------------- | ------------- | ----- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S3-MEMBER-STAFF-SUPPORTED-PREFIX` | `in_progress` | Codex | Prove member submission → staff `submitted`→`verification` acceptance → member-safe continuity. | Exact isolated-DB journey, unauthorized-path and focused regressions, capacity/security/full gate, two independent Astra/high reviews under the owner-authorized S3 exception, protected checks and exact-main health; no IDA-CLM-010 implementation or whole-S3 claim. |
 
-The owner-authorized amendment includes necessary exact capacity accounting: requirement map
-72,094 bytes, +7,625 over main; its existing allocation and aggregate docs ceiling grow equally.
-No new file, reserve consumption, allocation reorder or budget self-size growth. Program/tracker
-retain semantic governance classification. This records the bounded authorization, not a new cap waiver.
+The completed #1782 acceptance-link amendment historically set the requirement-map allocation to
+72,094 bytes, +7,625 over its predecessor. S3 changes use the map's synchronized exact allocation;
+the program/tracker remain inside named bounded allocation `t116-case-summary`. The S3
+journey/relay/notification-test allocation is separately bounded. Final review hardening increases
+the existing named capacity ceilings by exactly +816 test bytes, +37 package-command bytes and +1
+capacity-budget self byte. The historical `a112029` checkpoint measured +1,084 test bytes from
+`3782eb87`; the corrected current source measures +1,035 test bytes and +39 package bytes from that
+same base, with the remainder absorbed by existing headroom. The superseded S3 E2E corpus entry is
+replaced by the current hash; prior-slice entries remain. Executable capacity proof, rather than
+either historical figure, governs the candidate; no reserve, deleted-byte credit, allocation reorder
+or guard weakening is used.
+
+S3 implementation evidence is deliberately split: mounted UI owns member save/resume/submission and
+the public staff `submitted`→`verification` action; the existing staff core owns a private same-status
+note, followed by a fresh authenticated member context proving it absent. Exact member, agent and
+branch-manager core calls against that claim return `Unauthorized` without history mutation. These
+are deliberately exact core-call denials for the selected claim contract; generic route admission is
+separately enforced and is not relabelled as S3 route-level proof. Cleanup binds to the actual
+persisted claim row, derives expected notification types from its lifecycle, then one transaction
+authoritatively removes the exact claim, history, event delivery/event, audit and both canonical-action
+notification rows; the exact draft is also removed. The claim-number sequence remains monotonic, and
+the isolated task database is removed after verification. An exact database read after the private
+note observes exactly `claim_submitted` and `claim_status_changed` at `/member/claims/[id]` and proves
+neither notification exposes the private text. The subsequent mounted member return independently
+proves fresh-session continuity and private-note exclusion. Exact equality avoids SQL wildcard
+ambiguity. Required `e2e:gate` and `e2e:gate:pr` commands use one worker, so the seeded member's
+temporary claim cannot overlap a sibling gate consumer. The fresh IDA member context uses the
+established authentication-entry tenant selector in the header/additional-data contract; ordinary
+recognized front-door routing does not derive tenant authority from that header, and the authenticated
+session is authoritative after login. This proves a new session and private-note exclusion, not
+host-derived or header-derived post-auth tenant authority.
+
+The pre-existing C2-04 pilot assertion still expects the older scoped-status error. Its source contract
+changed in `be7f1d9f79`, while default `e2e:gate` excludes `/pilot/`; S3 does not silently normalize or
+credit that stale, explicitly selected pilot lane. The new exact-claim role probes supply S3's required
+negative coverage without changing the older test.
+
+The relay raw query now formats `createdAt` deterministically as UTC with microseconds and a trailing
+`Z`, independent of PostgreSQL `DateStyle`. Its fail-closed boundary preserves native `Date` identity,
+accepts space or `T` plus `Z`, `+HH`, `+HHMM` or `+HH:MM`, and pads or truncates fractional seconds to
+JavaScript milliseconds while rejecting offset-less strings and non-array row results. The audit
+projection is the only selected S3 consumer that dereferences relay `event.createdAt`; delivery
+idempotency remains event ID + consumer. PostgreSQL-backed proof confirms the column is `timestamp
+with time zone` and the exact expression returns `2026-09-16T10:00:00.123456Z` with the session set to
+`Europe/Berlin`. The raw `tx.execute<T>` inventory contains six sites (relay,
+two recovery evidence readers, transition evidence, AI persistence and policy lifecycle guard counting
+as six call sites); only the relay selects this event timestamp. Sibling sites remain inventory only.
+An explicit-offset parse failure aborts and retries the locked relay batch for every consumer; this is
+the intentional fail-closed poison-batch posture until the driver contract is restored. The live SQL
+proof always aborts its transaction deliberately, and the post-run residue query returns zero matching
+tenant and domain-event rows.
+
+The same mounted journey reproduced Drizzle raw-SQL `Date` binding failure in the first staff
+assignment: `Failed query: select $1 as value`, with the parameter rendered as the host-local
+`Wed Sep 16 2026 12:00:00 GMT+0200 (Central European Summer Time)`. The staff writer now binds the
+UTC wall-clock ISO value without a zone suffix to the schema's `timestamp without time zone` inside
+`coalesce`. The required RLS lane now fails closed unless its live SQL proof runs, and that proof
+asserts `claim.assignedAt` is `timestamp without time zone` while relay `created_at` is `timestamp with
+time zone`. Focused binding proof and the mounted database row prove `assignedAt` is a native `Date`
+whose value equals that assignment write's `updatedAt`; the later private note may legitimately advance
+only `updatedAt`.
+The writer's only sibling raw-SQL bindings are staff/assigner string IDs. Both writer/test paths remain
+under `staff-current-claim-tenant-context`; its test cap stays unchanged at zero growth, while the
+candidate remains below the protected 794-line/28,150-byte baseline. That baseline was independently
+derived from protected base `7db57a30` and matches the decompressed legacy fixture SHA-256
+`e9e3d69ecc2a5b41c18bfa6282356377e96da5ac082ed9c5b4456264b379dfea`.
 
 ### Owner-adopted successor queue (2026-09-15)
 
@@ -35,11 +97,11 @@ Follow the current program's enterprise delivery sequence; localization, S1 and 
 Queued is not in progress or verified. Each successor gets a bounded current-main brief and model
 classification before implementation; no new approval ceremony is required for already authorized scope.
 
-| Roadmap item                       | Status             | Entry / exit evidence                                                                                                         |
-| ---------------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| S1 — Agent message visibility      | completed          | Protected PR #1780; exact-main health passed; no agent-authority expansion or deployment claim.                               |
-| S2 — Branch overview scope         | completed          | Protected PR #1781, de15d4cac; 13 exact-main checks passed; bounded branch route/query protection.                            |
-| S3 — Member–staff evidence journey | queued_conditional | Reuse delivered contracts/fixtures; prove the bounded handoff sequence or record the first missing contract as its cut point. |
+| Roadmap item                       | Status      | Entry / exit evidence                                                                                                       |
+| ---------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------- |
+| S1 — Agent message visibility      | completed   | Protected PR #1780; exact-main health passed; no agent-authority expansion or deployment claim.                             |
+| S2 — Branch overview scope         | completed   | Protected PR #1781, de15d4cac; 13 exact-main checks passed; bounded branch route/query protection.                          |
+| S3 — Member–staff evidence journey | in_progress | Supported submission → verification → continuity prefix is under proof; IDA-CLM-010 is the recorded first missing contract. |
 
 ### Product-readiness roadmap queue
 
@@ -60,20 +122,20 @@ Owner-adopted on 2026-09-15; detailed scope and acceptance live only in the curr
 product-readiness roadmap. These rows do not change the active slice or mark future work complete.
 S4–S14 are outcome families to split into bounded implementation slices, not architecture T IDs.
 
-| Item                                    | Status              | Next evidence                                                                                      |
-| --------------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------- |
-| S4 — S3 handoff gap                     | conditional         | Only the first reproduced unsupported handoff; minimal integration and extended journey proof.     |
-| S5 — Member first-case journey          | queued_conditional  | Reconcile front-door/preparation/save/submission receipts; implement remaining UI/UX gaps.         |
-| S6 — Member continuation and membership | queued_conditional  | Credit #1775–#1777; complete only missing return/evidence/message/membership access outcomes.      |
-| S7 — Staff handling journey             | queued_conditional  | Existing handling contracts; queue and evidence round-trip with internal/public separation.        |
-| S8 — Agent client/handoff journey       | queued_conditional  | Existing authority and attribution; only unresolved capability changes need disposition.           |
-| S9 — Agent-assisted activation          | queued_conditional  | Member ownership, attribution and Paddle continuity on established contracts.                      |
-| S10 — Branch-manager oversight          | queued_conditional  | S2; existing authorized scope; metric decisions block only affected restoration.                   |
-| S11 — Tenant-admin operations           | queued_conditional  | People/branches and contracted access lifecycle, split into bounded increments.                    |
-| S12 — Platform-admin operations         | queued_conditional  | Technical operations and separate business-authority boundary.                                     |
-| H1 — SVC-CORE / Help Now                | priority_when_ready | First unmet clause, country/content/stop-rule authority and usable assistance path.                |
-| S13 — Outcome and closure               | queued_conditional  | Closure/recovery receipts and pilot scope; truthful member/staff outcome UI.                       |
-| S14 — Pilot rehearsal                   | queued_conditional  | All in-scope role journeys, user acceptance, accessibility, four locales and operational evidence. |
+| Item                                    | Status                | Next evidence                                                                                                            |
+| --------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| S4 — S3 handoff gap                     | proposed_not_selected | IDA-CLM-010 request aggregate/correlation/due-date gap only; minimal integration and extended journey proof if selected. |
+| S5 — Member first-case journey          | queued_conditional    | Reconcile front-door/preparation/save/submission receipts; implement remaining UI/UX gaps.                               |
+| S6 — Member continuation and membership | queued_conditional    | Credit #1775–#1777; complete only missing return/evidence/message/membership access outcomes.                            |
+| S7 — Staff handling journey             | queued_conditional    | Existing handling contracts; queue and evidence round-trip with internal/public separation.                              |
+| S8 — Agent client/handoff journey       | queued_conditional    | Existing authority and attribution; only unresolved capability changes need disposition.                                 |
+| S9 — Agent-assisted activation          | queued_conditional    | Member ownership, attribution and Paddle continuity on established contracts.                                            |
+| S10 — Branch-manager oversight          | queued_conditional    | S2; existing authorized scope; metric decisions block only affected restoration.                                         |
+| S11 — Tenant-admin operations           | queued_conditional    | People/branches and contracted access lifecycle, split into bounded increments.                                          |
+| S12 — Platform-admin operations         | queued_conditional    | Technical operations and separate business-authority boundary.                                                           |
+| H1 — SVC-CORE / Help Now                | priority_when_ready   | First unmet clause, country/content/stop-rule authority and usable assistance path.                                      |
+| S13 — Outcome and closure               | queued_conditional    | Closure/recovery receipts and pilot scope; truthful member/staff outcome UI.                                             |
+| S14 — Pilot rehearsal                   | queued_conditional    | All in-scope role journeys, user acceptance, accessibility, four locales and operational evidence.                       |
 
 Before selecting each family, record its exact bounded gap, direct predecessor receipts, model/risk,
 UI acceptance and exclusions in the existing active queue. Record why any independent ready outcome
@@ -523,9 +585,9 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                             | Source Refs     | Execution | Run ID | Run Root | Sonar   | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                          |
-| ------------------------------ | --------------- | --------- | ------ | -------- | ------- | ---------------- | ---------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SRS-ROADMAP-ACCEPTANCE-LINKS` | current program | `manual`  | local  | local    | pending | `not_applicable` | `not_applicable` | pending  | PR #1782; plan/track/format/capacity/security, 1,186 CI contracts and 299 harness checks pass. Existing non-product classification controls runtime lanes; protected delivery pending. |
+| ID                                 | Source Refs                                                   | Execution  | Run ID | Run Root         | Sonar   | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ---------------------------------- | ------------------------------------------------------------- | ---------- | ------ | ---------------- | ------- | ---------------- | ---------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S3-MEMBER-STAFF-SUPPORTED-PREFIX` | current program; IDA-CLM-001/014; IDA-CAS-005/006/007/008/015 | `scripted` | local  | isolated task DB | pending | `not_applicable` | `not_applicable` | pending  | Exact mounted UI journey passes with a fresh member return, exact member/agent/branch-manager core denial, private-note and notification-content exclusion, and zero exact-row residue. Exact corrected implementation head `f617637ca371475fc24861673a3351dc13d63817`, tree `e968925d1afe9b50d09e9933bdf2d917f0c20b24` and current S3 E2E corpus tree `18357bb3596c54b0aca7fdd9bf5db3a665b5a127` passed `pr:verify`: 1,187 CI, 154 release, 51 required RLS, 3,413 web/12 skips, 81.15% repository line coverage (21,726/26,772), 263 browser/13 skips and 13 smoke/11 skips; same-source `security:guard` passed. The required RLS command proves live PostgreSQL column types and fails closed without that proof; its proof transaction deliberately rolls back and a post-run query finds zero proof rows. Focused status and communications regressions pass, and the mounted S3 proof uses isolated port 3103 and database `interdomestik_ci_7db57_s3_local_r1`. Protected-base status test identity is independently proven as 794 lines/28,150 bytes/SHA-256 `e9e3d69ecc2a5b41c18bfa6282356377e96da5ac082ed9c5b4456264b379dfea`; the candidate remains 785/28,139. Sonnet 5 and Gemini passed. Independent Astra/high found and verified the retry-worker correction at `3782eb877787b5d8c4087cda09980e0c0aee4ab8`. Independent Astra/high final integrated review then verified clean evidence head `867ee048497889b88fdf8eaa533cb807d3246195`, tree `539984db025fbbbdf699eeb20d67c1349d95f0fd`, with no remaining production blocker or evidence overstatement at that source. Fresh current-prior-head receipt `20260916T150955-opus` reached provider-reported `claude-opus-5` and correctly identified persistent notification-test mocks, committed SQL-proof writes, and stale evidence/review hashes. The mocks now reset between tests while remaining persistent within each two-lookup flow; the SQL proof always rolls back; and this ledger replaces the stale hashes. Complete caller inventory proves both shared notification types target the claim-owning member. The protected-base fixture matches its live source exactly, ordered status assertions bind the final update timestamp, and cleanup remains referentially fail-closed; those review observations require no product change. Seven actionable hosted Sonar annotations on the prior head were addressed with behavior-preserving relay parsing simplification, specific type errors, an explicit cross-project skip rationale and a non-nested fixture URL. A final Codex P2 then identified that a failed notification-drain assertion could bypass retry cleanup; `try/finally` now preserves that assertion failure while always running the exact deletion transaction. The exact corrected implementation source then passed the full local proof above. Current-head Opus receipt `20260916T164952-opus` reached provider-reported `claude-opus-5` but is explicitly blocked by `reviewer_output_limit` with no verdict and supplies no approval. Under the owner-authorized fallback, independent Astra/high technical and governance reviews verified clean head `1bce76c2ac628aa49a991c51b7caadd23ddcf790`, tree `dba5580a5dd85fa8d9a53eb57a51dae25e3f4849`, including all drain/delete failure combinations, proof identity and capacity, with no actionable findings. Final independent review is complete; protected delivery remains pending and IDA-CLM-010 remains open. |
 
 ### Member case overview entry progress
 
@@ -1040,8 +1102,8 @@ claim full T-410 completion. `MEMBER-CASE-OVERVIEW-ENTRY` completed in PR #1775,
 `MEMBER-CASE-WORKSPACE-REDESIGN` completed in PR #1776 and `MEMBER-CASE-DETAIL-CONTINUITY`
 completed in PR #1777; localization completed in PR #1778. S1 completed through protected PR
 #1780 and exact-main health passed. S2 completed through #1781 with exact-main health passed.
-The acceptance-link amendment precedes queued S3 implementation. This does not select T-411
-Smart Next Step.
+The acceptance-link amendment completed through #1782. The bounded supported-path prefix of S3 is
+selected; conditional S4 and T-411 Smart Next Step are not selected.
 
 | Completed historical priority            | Status      | Constraint                                                                    |
 | ---------------------------------------- | ----------- | ----------------------------------------------------------------------------- |

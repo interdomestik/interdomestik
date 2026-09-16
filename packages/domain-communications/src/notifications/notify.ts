@@ -237,7 +237,7 @@ export async function notifyClaimSubmitted(
     },
     {
       title: 'Claim Submitted',
-      actionUrl: `/dashboard/claims/${claim.id}`,
+      actionUrl: `/member/claims/${claim.id}`,
     }
   );
 
@@ -312,7 +312,7 @@ export async function notifyStatusChanged(
     },
     {
       title: 'Claim Status Updated',
-      actionUrl: `/dashboard/claims/${claim.id}`,
+      actionUrl: `/member/claims/${claim.id}`,
       tenantId: deps?.tenantId,
     }
   );
@@ -325,7 +325,7 @@ export async function notifyStatusChanged(
     push(userId, 'claim_updates', {
       title: 'Claim Status Updated',
       body: `${claim.title}: ${oldStatus} → ${newStatus}`,
-      url: `/dashboard/claims/${claim.id}`,
+      url: `/member/claims/${claim.id}`,
     }).catch(error => console.error('Failed to send status change push:', error));
   }
 

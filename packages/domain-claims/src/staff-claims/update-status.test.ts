@@ -478,9 +478,9 @@ describe('staff updateClaimStatusCore', () => {
     );
   });
 
-  it('auto-assigns the acting staff member when an unassigned claim is triaged', async () => {
+  it('auto-assigns acting staff when an unassigned claim is triaged', async () => {
     mocks.tenantReadSelectChain.limit.mockResolvedValue([
-      claimFixture('submitted', { title: 'Vehicle claim', staffId: null }),
+      claimFixture('submitted', { staffId: null }),
     ]);
 
     const result = await updateClaimStatusCore({
@@ -489,7 +489,6 @@ describe('staff updateClaimStatusCore', () => {
       note: 'Initial staff triage',
       session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
     });
-
     expect(result).toEqual({ success: true, error: undefined });
     expect(mocks.txUpdateSet).toHaveBeenNthCalledWith(
       1,
@@ -517,24 +516,16 @@ describe('staff updateClaimStatusCore', () => {
         updatedAt: expect.any(Date),
       })
     );
-    expect(mocks.sql).toHaveBeenNthCalledWith(
-      2,
-      expect.any(Array),
-      mocks.claims.staffId,
-      'staff-1'
-    );
-    expect(mocks.sql).toHaveBeenNthCalledWith(
-      3,
-      expect.any(Array),
-      mocks.claims.assignedAt,
-      expect.any(Date)
-    );
-    expect(mocks.sql).toHaveBeenNthCalledWith(
-      4,
-      expect.any(Array),
-      mocks.claims.assignedById,
-      'staff-1'
-    );
+    const updates = mocks.txUpdateSet.mock.calls as unknown as [{ updatedAt: Date }][];
+    expect(mocks.sql.mock.calls.slice(1, 4)).toEqual([
+      [expect.any(Array), mocks.claims.staffId, 'staff-1'],
+      [
+        expect.arrayContaining(['::timestamp)']),
+        mocks.claims.assignedAt,
+        updates[1][0].updatedAt.toISOString().slice(0, -1),
+      ],
+      [expect.any(Array), mocks.claims.assignedById, 'staff-1'],
+    ]);
   });
 
   it('skips lifecycle-derived same-status requests without writing', async () => {

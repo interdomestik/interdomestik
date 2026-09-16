@@ -47,7 +47,9 @@ vi.mock('../email', () => ({
 import { sendEmail } from '../email';
 import {
   clearSupportHandoffPublicResponseNotifications,
+  notifyClaimSubmitted,
   notifyRecoveryDecision,
+  notifyStatusChanged,
   notifySupportHandoffPublicResponse,
   sendNotification,
 } from './notify';
@@ -55,6 +57,7 @@ import {
 describe('sendNotification', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.findFirst.mockReset();
     mocks.delete.mockReturnValue({ where: mocks.deleteWhere });
     mocks.deleteWhere.mockResolvedValue(undefined);
     mocks.insert.mockReturnValue({ values: mocks.insertValues });
@@ -101,6 +104,57 @@ describe('sendNotification', () => {
       expect.objectContaining({
         tenantId: 'tenant-1',
         type: 'new_message',
+      })
+    );
+  });
+
+  it('uses the canonical member claim route for status notifications', async () => {
+    const sendPushToUser = vi.fn().mockResolvedValue(undefined);
+    mocks.findFirst.mockResolvedValue({
+      email: 'verified@example.com',
+      emailVerified: true,
+      tenantId: 'tenant-1',
+    });
+
+    expect(
+      await notifyStatusChanged(
+        'user-1',
+        'member@example.com',
+        { id: 'claim-1', title: 'Vehicle claim' },
+        'submitted',
+        'verification',
+        { sendPushToUser, tenantId: 'tenant-1' }
+      )
+    ).toEqual({ success: true });
+    expect(mocks.insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({ actionUrl: '/member/claims/claim-1' })
+    );
+    expect(sendPushToUser).toHaveBeenCalledWith(
+      'user-1',
+      'claim_updates',
+      expect.objectContaining({ url: '/member/claims/claim-1' })
+    );
+  });
+
+  it('uses the canonical member claim route for the submitting member', async () => {
+    mocks.findFirst.mockResolvedValue({
+      email: 'member@example.com',
+      emailVerified: false,
+      tenantId: 'tenant-1',
+    });
+
+    expect(
+      await notifyClaimSubmitted('member-1', 'member@example.com', {
+        category: 'vehicle',
+        id: 'claim-1',
+        title: 'Vehicle claim',
+      })
+    ).toEqual({ success: true });
+    expect(mocks.insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionUrl: '/member/claims/claim-1',
+        type: 'claim_submitted',
+        userId: 'member-1',
       })
     );
   });

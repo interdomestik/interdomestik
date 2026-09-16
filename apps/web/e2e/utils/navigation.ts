@@ -52,12 +52,12 @@ export async function gotoApp(
   page: Page,
   path: PathLike,
   testInfo: TestInfo,
-  options?: { marker?: string; markerTimeoutMs?: number }
+  options?: { baseURL?: string; marker?: string; markerTimeoutMs?: number }
 ): Promise<PlaywrightResponse | null> {
   const raw = path; // wherever you currently take it from
   const pathStr = normalizePath(raw);
 
-  const baseUrl = testInfo.project.use.baseURL || '';
+  const baseUrl = options?.baseURL ?? testInfo.project.use.baseURL ?? '';
   const origin = new URL(baseUrl).origin;
 
   let targetUrl: string;
