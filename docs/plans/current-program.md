@@ -584,8 +584,8 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 These rows, the notification correctness increment, shared shell navigation, both notification
 acknowledgement increments, `MEMBER-CASE-WORKSPACE-REDESIGN` and `MEMBER-CASE-DETAIL-CONTINUITY`
-are completed history. The sole selected increment is `S2-BRANCH-OVERVIEW-SCOPE`, defined above;
-S1 and the localization predecessor are completed.
+are completed history, as are S1, S2 and the localization predecessor. The selected work is the
+acceptance-link documentation amendment; S3 implementation remains queued until its merge.
 
 ## Shared Shell Navigation Increment
 
