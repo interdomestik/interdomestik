@@ -19,7 +19,7 @@ status_command: pnpm plan:status
 `S2-BRANCH-OVERVIEW-SCOPE` is the sole selected product slice on protected main
 `f3d36b2e7781654fe5448fab11da891368d95f19`. S1 completed through protected PR #1780 with all
 13 exact-main checks passed. S2 implementation is in progress with isolated mounted-query proof;
-full required verification, protected delivery and exact-main health remain pending.
+full required verification has passed, while protected delivery and exact-main health remain pending.
 
 | ID                         | Status        | Owner    | Work                                                                                           | Exit Criteria                                                                                                                            |
 | -------------------------- | ------------- | -------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
@@ -510,9 +510,9 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                         | Source Refs     | Execution | Run ID | Run Root | Sonar   | Docker | Sentry           | Learning  | Evidence Refs                                                                                                                |
-| -------------------------- | --------------- | --------- | ------ | -------- | ------- | ------ | ---------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `S2-BRANCH-OVERVIEW-SCOPE` | current program | `manual`  | local  | local    | pending | pass   | `not_applicable` | `pending` | Focused isolated unit/type/mounted proof passes; full verification, protected delivery and exact-main health remain pending. |
+| ID                         | Source Refs     | Execution | Run ID | Run Root | Sonar   | Docker | Sentry           | Learning  | Evidence Refs                                                                                                        |
+| -------------------------- | --------------- | --------- | ------ | -------- | ------- | ------ | ---------------- | --------- | -------------------------------------------------------------------------------------------------------------------- |
+| `S2-BRANCH-OVERVIEW-SCOPE` | current program | `manual`  | local  | local    | pending | pass   | `not_applicable` | `pending` | Focused isolated proof and full required verification pass; protected delivery and exact-main health remain pending. |
 
 ### Member case overview entry progress
 
