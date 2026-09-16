@@ -31,16 +31,6 @@ export type InformationRequestResult =
   | { success: true; requestId: string }
   | { success: false; error: 'invalid_input' | 'access_denied' | 'invalid_state' | 'conflict' };
 
-/** Public projection: request identity is safe; correlation and staff identity are not. */
-const publicColumns = {
-  requestId: claimInformationRequests.id,
-  requestedInformation: claimInformationRequests.requestedInformation,
-  explanationForMember: claimInformationRequests.explanationForMember,
-  dueAt: claimInformationRequests.dueAt,
-  slaPosture: claimInformationRequests.slaPosture,
-  createdAt: claimInformationRequests.createdAt,
-};
-
 export async function createInformationRequest(
   session: ClaimsSession | null,
   input: unknown
@@ -113,7 +103,15 @@ export async function getInformationRequests(session: ClaimsSession | null, clai
   const tenantId = actor.tenantId;
   return withTenantContext({ tenantId, role: actor.role! }, async tx => {
     const rows = await tx
-      .select(publicColumns)
+      // Public projection excludes private correlation and staff identity.
+      .select({
+        requestId: claimInformationRequests.id,
+        requestedInformation: claimInformationRequests.requestedInformation,
+        explanationForMember: claimInformationRequests.explanationForMember,
+        dueAt: claimInformationRequests.dueAt,
+        slaPosture: claimInformationRequests.slaPosture,
+        createdAt: claimInformationRequests.createdAt,
+      })
       .from(claimInformationRequests)
       .innerJoin(
         claims,
