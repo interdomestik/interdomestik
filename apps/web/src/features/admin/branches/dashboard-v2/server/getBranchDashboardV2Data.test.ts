@@ -47,7 +47,9 @@ describe('getBranchDashboardV2Data branch-manager guard', () => {
 
       await expect(getBranchDashboardV2Data('branch-a')).resolves.toBeNull();
       expect(hoisted.scopeFilterMock).not.toHaveBeenCalled();
-      expect(hoisted.captureExceptionMock).not.toHaveBeenCalled();
+      expect(hoisted.captureExceptionMock).toHaveBeenCalledWith(expect.any(Error), {
+        extra: { assignedBranchId: branchId?.trim(), branchId: 'branch-a' },
+      });
     }
   );
 });

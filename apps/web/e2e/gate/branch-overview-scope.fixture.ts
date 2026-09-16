@@ -6,6 +6,7 @@ import {
   E2E_PASSWORD,
   E2E_USERS,
   session,
+  tenants,
   user,
 } from '@interdomestik/database';
 import { claimLifecycleFieldsForStatus } from '@interdomestik/database/claim-lifecycle';
@@ -51,9 +52,9 @@ export async function withBranchOverviewScopeFixture<T>(
   });
   if (!credential?.password) throw new Error('Missing seeded branch-manager credential');
 
-  const targetTenantId = seededManager.tenantId;
-  const foreignTenantId = targetTenantId === 'tenant_mk' ? 'tenant_ks' : 'tenant_mk';
   const prefix = `s2-${randomUUID()}`;
+  const targetTenantId = seededManager.tenantId;
+  const foreignTenantId = `${prefix}-tenant-foreign`;
   const at = new Date();
   const old = new Date(at.getTime() - 45 * 24 * 60 * 60 * 1000);
   const ownBranch = { id: `${prefix}-a`, name: `${prefix} Branch A` };
@@ -96,6 +97,15 @@ export async function withBranchOverviewScopeFixture<T>(
   const allBranchIds = [ownBranch.id, siblingBranch.id, foreignBranch.id];
 
   try {
+    await db.insert(tenants).values({
+      id: foreignTenantId,
+      name: `${prefix} Foreign Tenant`,
+      legalName: `${prefix} Foreign Tenant`,
+      countryCode: isMk ? 'XK' : 'MK',
+      createdAt: at,
+      updatedAt: at,
+    });
+
     await db.insert(branches).values([
       {
         ...ownBranch,
@@ -248,5 +258,6 @@ export async function withBranchOverviewScopeFixture<T>(
     await db.delete(account).where(inArray(account.userId, authenticatedUserIds));
     await db.delete(user).where(inArray(user.id, allUserIds));
     await db.delete(branches).where(inArray(branches.id, allBranchIds));
+    await db.delete(tenants).where(eq(tenants.id, foreignTenantId));
   }
 }

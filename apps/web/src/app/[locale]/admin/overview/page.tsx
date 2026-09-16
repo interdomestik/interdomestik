@@ -32,6 +32,7 @@ export default async function AdminOverviewPage({
   }
 
   const overview = await getAdminOverviewData({
+    role: session.user.role,
     tenantId: session.user.tenantId,
   });
 

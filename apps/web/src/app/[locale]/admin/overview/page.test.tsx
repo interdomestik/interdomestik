@@ -99,6 +99,10 @@ describe('AdminOverviewPage', () => {
     expect(screen.getByText('Барања по филијала')).toBeInTheDocument();
     expect(screen.getByText('Филијала MK A (Главна)')).toBeInTheDocument();
     expect(screen.queryByText('MK Branch A (Main)')).not.toBeInTheDocument();
+    expect(hoisted.getAdminOverviewDataMock).toHaveBeenCalledWith({
+      role: 'admin',
+      tenantId: 'tenant_mk',
+    });
   });
 
   it('redirects a branch manager to the assigned branch without reading tenant aggregates', async () => {

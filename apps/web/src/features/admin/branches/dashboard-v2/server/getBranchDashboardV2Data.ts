@@ -71,6 +71,8 @@ export async function getBranchDashboardV2Data(
         if (userRole === ROLES.branch_manager) {
           const assignedBranchId = session.user.branchId?.trim();
           if (!assignedBranchId || assignedBranchId !== branchId) {
+            const error = new Error('Forbidden: Branch Scope');
+            Sentry.captureException(error, { extra: { assignedBranchId, branchId } });
             return null;
           }
         }
