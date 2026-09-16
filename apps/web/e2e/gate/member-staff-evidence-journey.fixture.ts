@@ -13,6 +13,8 @@ import {
   inArray,
   notifications,
 } from '@interdomestik/database';
+import { like } from 'drizzle-orm';
+import { createHash } from 'node:crypto';
 import type { Browser, BrowserContext, Page, TestInfo } from '@playwright/test';
 import { expect } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
@@ -31,9 +33,12 @@ const visibleIntake = (page: Page) =>
 export async function submitExactDraft(
   memberPage: Page,
   testInfo: TestInfo,
-  journey: { counterparty: string; summary: string }
+  memberBaseURL: string,
+  journey: { counterparty: string; summary: string },
+  rememberClaimId: (claimId: string) => void
 ) {
   await gotoApp(memberPage, routes.memberNewClaim(testInfo), testInfo, {
+    baseURL: memberBaseURL,
     marker: 'new-claim-page-ready',
   });
   const intake = visibleIntake(memberPage);
@@ -54,6 +59,18 @@ export async function submitExactDraft(
     hasText: journey.summary,
   });
   await expect(exactDraft).toHaveCount(1);
+  const draft = await db.query.freeStartDrafts.findFirst({
+    where: and(
+      eq(freeStartDrafts.tenantId, E2E_USERS.KS_MEMBER.tenantId),
+      eq(freeStartDrafts.summary, journey.summary)
+    ),
+    columns: { id: true, ownerUserId: true },
+  });
+  if (!draft) throw new Error('Exact saved draft missing before S3 submission');
+  const claimId = `fsd_${createHash('sha256')
+    .update(JSON.stringify([E2E_USERS.KS_MEMBER.tenantId, draft.ownerUserId, draft.id]))
+    .digest('hex')}`;
+  rememberClaimId(claimId);
   await exactDraft.locator('[data-testid^="free-start-resume-"]').click();
   const submit = intake.getByTestId('claim-draft-submit');
   await expect(submit).toBeEnabled();
@@ -63,14 +80,15 @@ export async function submitExactDraft(
   const claimNumber = await success.getAttribute('data-claim-number');
   expect(claimNumber).toMatch(/^CLM-[A-Z0-9]{2,10}-\d{4}-\d{6}$/);
   const claimHref = await success.locator('a').getAttribute('href');
-  expect(claimHref).toMatch(/^\/sq\/member\/claims\/fsd_[a-f0-9]{64}$/);
-  const claimId = decodeURIComponent(claimHref!.split('/').at(-1)!);
+  expect(claimHref).toBe(`/sq/member/claims/${claimId}`);
   return { claimId, claimNumber: claimNumber!, claimHref: claimHref! };
 }
 
-export async function establishDraftTenantContext(memberPage: Page, testInfo: TestInfo) {
-  const baseURL = testInfo.project.use.baseURL;
-  if (!baseURL) throw new Error('Gate project baseURL missing');
+export async function establishDraftTenantContext(
+  memberPage: Page,
+  baseURL: string,
+  locale: string
+) {
   const origin = new URL(baseURL).origin;
   const response = await memberPage.request.post(`${origin}/api/auth/sign-in/email`, {
     data: {
@@ -80,33 +98,27 @@ export async function establishDraftTenantContext(memberPage: Page, testInfo: Te
     },
     headers: {
       Origin: origin,
-      Referer: `${origin}${routes.login(testInfo)}`,
+      Referer: `${origin}${routes.login(locale)}`,
       'x-tenant-id': E2E_USERS.KS_MEMBER.tenantId,
     },
   });
   expect(response.ok()).toBe(true);
 }
 
-export function idaTestInfo(testInfo: TestInfo): TestInfo {
+export function idaBaseURL(testInfo: TestInfo): string {
   const projectBaseURL = testInfo.project.use.baseURL;
   if (!projectBaseURL) throw new Error('Gate project baseURL missing');
   const projectPort = new URL(projectBaseURL).port;
   const configured =
     process.env.IDA_HOST?.trim() || `ida.127.0.0.1.nip.io${projectPort ? `:${projectPort}` : ''}`;
   const authority = new URL(configured.includes('://') ? configured : `http://${configured}`).host;
-  const baseURL = `http://${authority}/${routes.getLocale(testInfo)}`;
-  return {
-    ...testInfo,
-    project: { ...testInfo.project, use: { ...testInfo.project.use, baseURL } },
-  } as TestInfo;
+  return `http://${authority}/${routes.getLocale(testInfo)}`;
 }
 
 export async function openMemberContext(
   browser: Browser,
-  testInfo: TestInfo
+  baseURL: string
 ): Promise<{ context: BrowserContext; page: Page }> {
-  const baseURL = testInfo.project.use.baseURL;
-  if (!baseURL) throw new Error('Gate project baseURL missing');
   const origin = new URL(baseURL);
   const context = await browser.newContext({
     baseURL,
@@ -145,7 +157,7 @@ export async function cleanupJourney(claimId: string | null, summary: string): P
       .where(
         and(
           eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
-          eq(notifications.actionUrl, `/dashboard/claims/${claimId}`)
+          like(notifications.actionUrl, `%${claimId}%`)
         )
       );
     await db
@@ -204,7 +216,7 @@ export async function expectJourneyClean(claimId: string | null, summary: string
         ? db.query.notifications.findMany({
             where: and(
               eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
-              eq(notifications.actionUrl, `/dashboard/claims/${claimId}`)
+              like(notifications.actionUrl, `%${claimId}%`)
             ),
             columns: { id: true },
           })

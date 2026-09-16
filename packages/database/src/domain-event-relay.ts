@@ -47,16 +47,21 @@ function normalizeCreatedAt(value: Date | string): Date {
     return value;
   }
   const match =
-    /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?)([+-]\d{2}(?::?\d{2})?)$/.exec(value);
+    /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})(?:\.(\d{1,6}))?(Z|[+-]\d{2}(?::?\d{2})?)$/.exec(
+      value
+    );
   if (!match) throw new Error('domain event relay requires an explicit-offset createdAt');
-  const rawOffset = match[3];
+  const rawOffset = match[4];
   const offset =
-    rawOffset.length === 3
-      ? `${rawOffset}:00`
-      : rawOffset.length === 5
-        ? `${rawOffset.slice(0, 3)}:${rawOffset.slice(3)}`
-        : rawOffset;
-  const createdAt = new Date(`${match[1]}T${match[2]}${offset}`);
+    rawOffset === 'Z'
+      ? rawOffset
+      : rawOffset.length === 3
+        ? `${rawOffset}:00`
+        : rawOffset.length === 5
+          ? `${rawOffset.slice(0, 3)}:${rawOffset.slice(3)}`
+          : rawOffset;
+  const milliseconds = (match[3] ?? '').padEnd(3, '0').slice(0, 3);
+  const createdAt = new Date(`${match[1]}T${match[2]}.${milliseconds}${offset}`);
   if (Number.isNaN(createdAt.getTime())) {
     throw new Error('domain event relay requires a valid createdAt');
   }
@@ -115,7 +120,10 @@ export async function selectDomainEventsForRelay(
       e."aggregate_version" as "aggregateVersion",
       e."correlation_id" as "correlationId",
       e."payload",
-      e."created_at" as "createdAt"
+      to_char(
+        e."created_at" at time zone 'UTC',
+        'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'
+      ) as "createdAt"
     from "domain_events" e
     where 1 = 1
     and e."tenant_id" = ${tenantId}
@@ -127,6 +135,7 @@ export async function selectDomainEventsForRelay(
     limit ${limit}
     ${lockClause}
   `);
+  if (!Array.isArray(rows)) throw new Error('domain event relay requires a row-array result');
   return rows.map(row => ({ ...row, createdAt: normalizeCreatedAt(row.createdAt) }));
 }
 

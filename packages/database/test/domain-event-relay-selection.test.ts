@@ -35,6 +35,8 @@ describe('domain event relay selection', () => {
     assert.match(query, /not exists/);
     assert.match(query, /consumer_name/);
     assert.match(query, /tenant_id/);
+    assert.match(query, /to_char/);
+    assert.match(query, /time zone/);
     assert.match(query, /for update skip locked/);
   });
 
@@ -135,6 +137,18 @@ describe('domain event relay selection', () => {
       );
       assert.equal(selected[0].createdAt.toISOString(), expected);
     }
+  });
+
+  it('accepts canonical T/Z input and truncates microseconds explicitly', async () => {
+    const selected = await selectDomainEventsForRelay(
+      {
+        execute: async () => [
+          { createdAt: '2026-06-04T10:00:00.987654Z', id: 'event-1', tenantId: 'tenant-1' },
+        ],
+      } as never,
+      { consumerName: 'audit_projection', limit: 1, tenantId: 'tenant-1' }
+    );
+    assert.equal(selected[0].createdAt.toISOString(), '2026-06-04T10:00:00.987Z');
   });
 
   it('preserves native dates and rejects ambiguous or invalid driver timestamps', async () => {

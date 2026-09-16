@@ -19,12 +19,26 @@ import {
   cleanupJourney,
   establishDraftTenantContext,
   expectJourneyClean,
-  idaTestInfo,
+  idaBaseURL,
   openMemberContext,
   submitExactDraft,
 } from './member-staff-evidence-journey.fixture';
 
 test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
+  let residue: {
+    claimId: string | null;
+    memberSession: Awaited<ReturnType<typeof openMemberContext>> | null;
+    summary: string;
+  } | null = null;
+
+  test.afterEach(async () => {
+    if (!residue) return;
+    await residue.memberSession?.context.close();
+    await cleanupJourney(residue.claimId, residue.summary);
+    await expectJourneyClean(residue.claimId, residue.summary);
+    residue = null;
+  });
+
   test('persists submission, staff verification, and member-safe continuity', async ({
     browser,
     staffPage,
@@ -34,207 +48,208 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
       'One exact isolated-DB project owns S3 residue'
     );
     test.setTimeout(120_000);
-    const memberTestInfo = idaTestInfo(testInfo);
+    const memberBaseURL = idaBaseURL(testInfo);
+    const locale = routes.getLocale(testInfo);
     const journeyId = randomUUID();
     const journey = {
       counterparty: `S3 operator ${journeyId}`,
       summary: `S3 member-to-staff journey ${journeyId}`,
     };
-    let claimId: string | null = null;
-    let memberSession: Awaited<ReturnType<typeof openMemberContext>> | null =
-      await openMemberContext(browser, memberTestInfo);
-    try {
-      const publicNote = `S3 public verification ${randomUUID()}`;
-      const privateNote = `S3 private staff note ${randomUUID()}`;
-      const unauthorizedNotes: string[] = [];
-      await establishDraftTenantContext(memberSession.page, memberTestInfo);
-      const submitted = await submitExactDraft(memberSession.page, memberTestInfo, journey);
-      claimId = submitted.claimId;
-      await memberSession.context.close();
-      memberSession = null;
-
-      await expect
-        .poll(async () => {
-          const row = await db.query.claims.findFirst({
-            where: and(
-              eq(claims.id, submitted.claimId),
-              eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId)
-            ),
-            columns: {
-              caseLifecycleState: true,
-              recoveryLifecycleState: true,
-            },
-          });
-          return row ? claimStatusFromLifecycleFields(row) : null;
-        })
-        .toBe('submitted');
-
-      for (const seeded of [E2E_USERS.KS_MEMBER, E2E_USERS.KS_AGENT, E2E_USERS.KS_BRANCH_MANAGER]) {
-        const actor = await db.query.user.findFirst({
-          where: and(eq(user.email, seeded.email), eq(user.tenantId, E2E_USERS.KS_MEMBER.tenantId)),
-          columns: { branchId: true, id: true, role: true, tenantId: true },
-        });
-        expect(actor).toMatchObject({
-          branchId: seeded.branchId,
-          role: seeded.dbRole,
-          tenantId: seeded.tenantId,
-        });
-        if (!actor) throw new Error(`Seeded ${seeded.dbRole} actor missing`);
-        const probeNote = `S3 unauthorized ${seeded.dbRole} ${randomUUID()}`;
-        unauthorizedNotes.push(probeNote);
-        const result = await updateClaimStatusCore({
-          claimId: submitted.claimId,
-          newStatus: 'verification',
-          note: probeNote,
-          isPublicChange: false,
-          session: { user: actor },
-        });
-        expect(result).toEqual({ success: false, error: 'Unauthorized' });
+    residue = { claimId: null, memberSession: null, summary: journey.summary };
+    residue.memberSession = await openMemberContext(browser, memberBaseURL);
+    const publicNote = `S3 public verification ${randomUUID()}`;
+    const privateNote = `S3 private staff note ${randomUUID()}`;
+    const unauthorizedNotes: string[] = [];
+    await establishDraftTenantContext(residue.memberSession.page, memberBaseURL, locale);
+    const submitted = await submitExactDraft(
+      residue.memberSession.page,
+      testInfo,
+      memberBaseURL,
+      journey,
+      claimId => {
+        residue!.claimId = claimId;
       }
+    );
+    await residue.memberSession.context.close();
+    residue.memberSession = null;
 
-      const stillSubmitted = await db.query.claims.findFirst({
-        where: and(
-          eq(claims.id, submitted.claimId),
-          eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId)
-        ),
-        columns: { caseLifecycleState: true, recoveryLifecycleState: true },
-      });
-      expect(stillSubmitted ? claimStatusFromLifecycleFields(stillSubmitted) : null).toBe(
-        'submitted'
-      );
+    await expect
+      .poll(async () => {
+        const row = await db.query.claims.findFirst({
+          where: and(
+            eq(claims.id, submitted.claimId),
+            eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId)
+          ),
+          columns: {
+            caseLifecycleState: true,
+            recoveryLifecycleState: true,
+          },
+        });
+        return row ? claimStatusFromLifecycleFields(row) : null;
+      })
+      .toBe('submitted');
 
-      await gotoApp(staffPage, routes.staffClaimDetail(submitted.claimId, testInfo), testInfo, {
-        marker: 'staff-claim-detail-ready',
-      });
-      const staffDetail = staffPage.getByTestId('staff-claim-detail-ready').first();
-      await expect(staffDetail).toContainText(submitted.claimNumber);
-      await staffDetail.locator('#claim-status-select').click();
-      await staffPage.getByRole('option', { name: 'Verifikim', exact: true }).click();
-      await staffDetail.getByLabel('Shënim statusi').fill(publicNote);
-      await staffDetail.getByTestId('staff-update-claim-button').click();
-      await expect(staffPage.getByText('Statusi i rastit u përditësua')).toBeVisible();
-      await expect(staffDetail.getByTestId('staff-claim-detail-note')).toContainText(publicNote);
-      await expect
-        .poll(async () => {
-          const rows = await db.query.notifications.findMany({
-            where: and(
-              eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
-              eq(notifications.actionUrl, `/dashboard/claims/${submitted.claimId}`)
-            ),
-            columns: { id: true },
-          });
-          return rows.length;
-        })
-        .toBeGreaterThan(0);
-
-      const staffActor = await db.query.user.findFirst({
-        where: and(
-          eq(user.email, E2E_USERS.KS_STAFF.email),
-          eq(user.tenantId, E2E_USERS.KS_STAFF.tenantId)
-        ),
+    for (const seeded of [E2E_USERS.KS_MEMBER, E2E_USERS.KS_AGENT, E2E_USERS.KS_BRANCH_MANAGER]) {
+      const actor = await db.query.user.findFirst({
+        where: and(eq(user.email, seeded.email), eq(user.tenantId, E2E_USERS.KS_MEMBER.tenantId)),
         columns: { branchId: true, id: true, role: true, tenantId: true },
       });
-      if (!staffActor?.id || !staffActor.tenantId) throw new Error('Seeded KS staff actor missing');
-      expect(staffActor).toMatchObject({
-        branchId: E2E_USERS.KS_STAFF.branchId,
-        role: E2E_USERS.KS_STAFF.dbRole,
-        tenantId: E2E_USERS.KS_STAFF.tenantId,
+      expect(actor).toMatchObject({
+        branchId: seeded.branchId,
+        role: seeded.dbRole,
+        tenantId: seeded.tenantId,
       });
-      const privateResult = await updateClaimStatusCore({
+      if (!actor) throw new Error(`Seeded ${seeded.dbRole} actor missing`);
+      const probeNote = `S3 unauthorized ${seeded.dbRole} ${randomUUID()}`;
+      unauthorizedNotes.push(probeNote);
+      const result = await updateClaimStatusCore({
         claimId: submitted.claimId,
         newStatus: 'verification',
-        note: privateNote,
+        note: probeNote,
         isPublicChange: false,
-        session: { user: staffActor },
+        session: { user: actor },
       });
-      expect(privateResult.success).toBe(true);
-
-      const persistedClaim = await db.query.claims.findFirst({
-        where: and(
-          eq(claims.id, submitted.claimId),
-          eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId)
-        ),
-        columns: {
-          caseLifecycleState: true,
-          claimNumber: true,
-          recoveryLifecycleState: true,
-          staffId: true,
-        },
-      });
-      expect(persistedClaim?.claimNumber).toBe(submitted.claimNumber);
-      expect(persistedClaim ? claimStatusFromLifecycleFields(persistedClaim) : null).toBe(
-        'verification'
-      );
-      expect(persistedClaim?.staffId).toBe(staffActor.id);
-
-      const histories = await db.query.claimStageHistory.findMany({
-        where: and(
-          eq(claimStageHistory.claimId, submitted.claimId),
-          eq(claimStageHistory.tenantId, E2E_USERS.KS_MEMBER.tenantId)
-        ),
-        columns: { fromStatus: true, isPublic: true, note: true, toStatus: true },
-      });
-      expect(histories).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ fromStatus: null, isPublic: true, toStatus: 'submitted' }),
-          expect.objectContaining({
-            fromStatus: 'submitted',
-            isPublic: true,
-            note: publicNote,
-            toStatus: 'verification',
-          }),
-          expect.objectContaining({
-            fromStatus: 'verification',
-            isPublic: false,
-            note: privateNote,
-            toStatus: 'verification',
-          }),
-        ])
-      );
-      for (const unauthorizedNote of unauthorizedNotes) {
-        expect(histories).not.toEqual(
-          expect.arrayContaining([expect.objectContaining({ note: unauthorizedNote })])
-        );
-      }
-
-      const events = await db.query.domainEvents.findMany({
-        where: and(
-          eq(domainEvents.entityId, submitted.claimId),
-          eq(domainEvents.tenantId, E2E_USERS.KS_MEMBER.tenantId)
-        ),
-        columns: { eventName: true },
-      });
-      expect(events.map(event => event.eventName)).toEqual(
-        expect.arrayContaining(['case.created', 'claim.status_changed'])
-      );
-
-      memberSession = await openMemberContext(browser, memberTestInfo);
-      await establishDraftTenantContext(memberSession.page, memberTestInfo);
-      await gotoApp(memberSession.page, submitted.claimHref, memberTestInfo, {
-        marker: 'member-claim-progress-summary',
-      });
-      await expect(memberSession.page.getByTestId('member-claim-current-state').first()).toHaveText(
-        'Verifikim'
-      );
-      await expect(
-        memberSession.page.getByTestId('member-claim-latest-update-note').first()
-      ).toHaveText(publicNote);
-      await expect(
-        memberSession.page.getByTestId('ops-timeline-item').filter({ hasText: publicNote }).first()
-      ).toBeVisible();
-      await expect(memberSession.page.locator('body')).not.toContainText(privateNote);
-      await expect(
-        memberSession.page.getByTestId('member-claim-sla-status-phase').first()
-      ).toBeVisible();
-
-      testInfo.annotations.push({
-        type: 'isolated-task-db-cleanup',
-        description: `S3 canonical claim ${submitted.claimNumber}; exact rows are removed in finally and the isolated task database is dropped after verification.`,
-      });
-    } finally {
-      await memberSession?.context.close();
-      await cleanupJourney(claimId, journey.summary);
-      await expectJourneyClean(claimId, journey.summary);
+      expect(result).toEqual({ success: false, error: 'Unauthorized' });
     }
+
+    const stillSubmitted = await db.query.claims.findFirst({
+      where: and(
+        eq(claims.id, submitted.claimId),
+        eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId)
+      ),
+      columns: { caseLifecycleState: true, recoveryLifecycleState: true },
+    });
+    expect(stillSubmitted ? claimStatusFromLifecycleFields(stillSubmitted) : null).toBe(
+      'submitted'
+    );
+
+    await gotoApp(staffPage, routes.staffClaimDetail(submitted.claimId, testInfo), testInfo, {
+      marker: 'staff-claim-detail-ready',
+    });
+    const staffDetail = staffPage.getByTestId('staff-claim-detail-ready').first();
+    await expect(staffDetail).toContainText(submitted.claimNumber);
+    await staffDetail.locator('#claim-status-select').click();
+    await staffPage.getByRole('option', { name: 'Verifikim', exact: true }).click();
+    await staffDetail.getByLabel('Shënim statusi').fill(publicNote);
+    await staffDetail.getByTestId('staff-update-claim-button').click();
+    await expect(staffPage.getByText('Statusi i rastit u përditësua')).toBeVisible();
+    await expect(staffDetail.getByTestId('staff-claim-detail-note')).toContainText(publicNote);
+    await expect
+      .poll(async () => {
+        const rows = await db.query.notifications.findMany({
+          where: and(
+            eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
+            eq(notifications.actionUrl, `/dashboard/claims/${submitted.claimId}`)
+          ),
+          columns: { id: true },
+        });
+        return rows.length;
+      })
+      .toBeGreaterThan(0);
+
+    const staffActor = await db.query.user.findFirst({
+      where: and(
+        eq(user.email, E2E_USERS.KS_STAFF.email),
+        eq(user.tenantId, E2E_USERS.KS_STAFF.tenantId)
+      ),
+      columns: { branchId: true, id: true, role: true, tenantId: true },
+    });
+    if (!staffActor?.id || !staffActor.tenantId) throw new Error('Seeded KS staff actor missing');
+    expect(staffActor).toMatchObject({
+      branchId: E2E_USERS.KS_STAFF.branchId,
+      role: E2E_USERS.KS_STAFF.dbRole,
+      tenantId: E2E_USERS.KS_STAFF.tenantId,
+    });
+    const privateResult = await updateClaimStatusCore({
+      claimId: submitted.claimId,
+      newStatus: 'verification',
+      note: privateNote,
+      isPublicChange: false,
+      session: { user: staffActor },
+    });
+    expect(privateResult.success).toBe(true);
+
+    const persistedClaim = await db.query.claims.findFirst({
+      where: and(
+        eq(claims.id, submitted.claimId),
+        eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId)
+      ),
+      columns: {
+        caseLifecycleState: true,
+        claimNumber: true,
+        recoveryLifecycleState: true,
+        staffId: true,
+      },
+    });
+    expect(persistedClaim?.claimNumber).toBe(submitted.claimNumber);
+    expect(persistedClaim ? claimStatusFromLifecycleFields(persistedClaim) : null).toBe(
+      'verification'
+    );
+    expect(persistedClaim?.staffId).toBe(staffActor.id);
+
+    const histories = await db.query.claimStageHistory.findMany({
+      where: and(
+        eq(claimStageHistory.claimId, submitted.claimId),
+        eq(claimStageHistory.tenantId, E2E_USERS.KS_MEMBER.tenantId)
+      ),
+      columns: { fromStatus: true, isPublic: true, note: true, toStatus: true },
+    });
+    expect(histories).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ fromStatus: null, isPublic: true, toStatus: 'submitted' }),
+        expect.objectContaining({
+          fromStatus: 'submitted',
+          isPublic: true,
+          note: publicNote,
+          toStatus: 'verification',
+        }),
+        expect.objectContaining({
+          fromStatus: 'verification',
+          isPublic: false,
+          note: privateNote,
+          toStatus: 'verification',
+        }),
+      ])
+    );
+    for (const unauthorizedNote of unauthorizedNotes) {
+      expect(histories).not.toEqual(
+        expect.arrayContaining([expect.objectContaining({ note: unauthorizedNote })])
+      );
+    }
+
+    const events = await db.query.domainEvents.findMany({
+      where: and(
+        eq(domainEvents.entityId, submitted.claimId),
+        eq(domainEvents.tenantId, E2E_USERS.KS_MEMBER.tenantId)
+      ),
+      columns: { eventName: true },
+    });
+    expect(events.map(event => event.eventName)).toEqual(
+      expect.arrayContaining(['case.created', 'claim.status_changed'])
+    );
+
+    residue.memberSession = await openMemberContext(browser, memberBaseURL);
+    await establishDraftTenantContext(residue.memberSession.page, memberBaseURL, locale);
+    await gotoApp(residue.memberSession.page, submitted.claimHref, testInfo, {
+      baseURL: memberBaseURL,
+      marker: 'member-claim-progress-summary',
+    });
+    const memberPage = residue.memberSession.page;
+    await expect(memberPage.getByTestId('member-claim-current-state').first()).toHaveText(
+      'Verifikim'
+    );
+    await expect(memberPage.getByTestId('member-claim-latest-update-note').first()).toHaveText(
+      publicNote
+    );
+    await expect(
+      memberPage.getByTestId('ops-timeline-item').filter({ hasText: publicNote }).first()
+    ).toBeVisible();
+    await expect(memberPage.locator('body')).not.toContainText(privateNote);
+    await expect(memberPage.getByTestId('member-claim-sla-status-phase').first()).toBeVisible();
+
+    testInfo.annotations.push({
+      type: 'isolated-task-db-cleanup',
+      description: `S3 canonical claim ${submitted.claimNumber}; afterEach removes exact rows and the isolated task database is dropped after verification.`,
+    });
   });
 });
