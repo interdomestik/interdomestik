@@ -107,7 +107,7 @@ describe('domain event relay selection', () => {
 
   it('normalizes selected driver timestamp strings without changing timezone meaning', async () => {
     const event = {
-      createdAt: '2026-06-04T12:00:00.000+02:00',
+      createdAt: '2026-06-04 12:00:00.123456+02',
       id: 'event-1',
       tenantId: 'tenant-1',
     } as unknown as DomainEventRelayEvent;
@@ -120,10 +120,24 @@ describe('domain event relay selection', () => {
     });
 
     assert.equal(selected[0].createdAt instanceof Date, true);
-    assert.equal(selected[0].createdAt.toISOString(), '2026-06-04T10:00:00.000Z');
+    assert.equal(selected[0].createdAt.toISOString(), '2026-06-04T10:00:00.123Z');
   });
 
-  it('preserves native dates and rejects invalid driver timestamps', async () => {
+  it('accepts compact and colon offsets from PostgreSQL without local-time inference', async () => {
+    for (const [createdAt, expected] of [
+      ['2026-06-04 12:00:00.123+0200', '2026-06-04T10:00:00.123Z'],
+      ['2026-06-04 12:00:00.123+02:30', '2026-06-04T09:30:00.123Z'],
+      ['2026-06-04 10:00:00.123+00', '2026-06-04T10:00:00.123Z'],
+    ] as const) {
+      const selected = await selectDomainEventsForRelay(
+        { execute: async () => [{ createdAt, id: 'event-1', tenantId: 'tenant-1' }] } as never,
+        { consumerName: 'audit_projection', limit: 1, tenantId: 'tenant-1' }
+      );
+      assert.equal(selected[0].createdAt.toISOString(), expected);
+    }
+  });
+
+  it('preserves native dates and rejects ambiguous or invalid driver timestamps', async () => {
     const createdAt = new Date('2026-06-04T10:00:00.000Z');
     const native = await selectDomainEventsForRelay(
       { execute: async () => [{ createdAt, id: 'event-1', tenantId: 'tenant-1' }] } as never,
@@ -136,12 +150,25 @@ describe('domain event relay selection', () => {
         selectDomainEventsForRelay(
           {
             execute: async () => [
-              { createdAt: 'not-a-timestamp', id: 'event-2', tenantId: 'tenant-1' },
+              { createdAt: '2026-99-99 10:00:00+00', id: 'event-2', tenantId: 'tenant-1' },
             ],
           } as never,
           { consumerName: 'audit_projection', limit: 1, tenantId: 'tenant-1' }
         ),
       /valid createdAt/
+    );
+
+    await assert.rejects(
+      () =>
+        selectDomainEventsForRelay(
+          {
+            execute: async () => [
+              { createdAt: '2026-06-04 10:00:00.123', id: 'event-3', tenantId: 'tenant-1' },
+            ],
+          } as never,
+          { consumerName: 'audit_projection', limit: 1, tenantId: 'tenant-1' }
+        ),
+      /explicit-offset createdAt/
     );
   });
 });

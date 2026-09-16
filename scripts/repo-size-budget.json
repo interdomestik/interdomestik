@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 106988,
+      "trackedBytesDelta": 106813,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 68897,
+        "config/data/messages": 68722,
         "source/scripts": 23092,
         "tests/e2e": 14999
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 68897,
+        "scripts/repo-size-budget.json": 68722,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -61,10 +61,10 @@
       "id": "product-readiness-requirement-map",
       "mode": "exact",
       "writerPaths": ["docs/plans/requirement-disposition-map.md"],
-      "trackedBytesDelta": 74116,
+      "trackedBytesDelta": 73632,
       "trackedFilesDelta": 1,
-      "categoryBytesDelta": { "docs/text": 74116 },
-      "pathBytesDelta": { "docs/plans/requirement-disposition-map.md": 74116 }
+      "categoryBytesDelta": { "docs/text": 73632 },
+      "pathBytesDelta": { "docs/plans/requirement-disposition-map.md": 73632 }
     },
     {
       "id": "lean-compatibility-repair",
@@ -1411,18 +1411,16 @@
       "mode": "bounded",
       "writerPaths": [
         "apps/web/e2e/gate/member-staff-evidence-journey.spec.ts",
-        "apps/web/e2e/pilot/c2-04-cross-tenant-staff-member-write-isolation.spec.ts",
         "packages/database/src/domain-event-relay.ts",
         "packages/database/test/domain-event-relay-selection.test.ts"
       ],
-      "maxTrackedBytesDelta": 13800,
+      "maxTrackedBytesDelta": 21700,
       "maxTrackedFilesDelta": 1,
-      "maxCategoryBytesDelta": { "source/scripts": 600, "tests/e2e": 13200 },
+      "maxCategoryBytesDelta": { "source/scripts": 1200, "tests/e2e": 20500 },
       "maxPathBytesDelta": {
-        "apps/web/e2e/gate/member-staff-evidence-journey.spec.ts": 12000,
-        "apps/web/e2e/pilot/c2-04-cross-tenant-staff-member-write-isolation.spec.ts": 100,
-        "packages/database/src/domain-event-relay.ts": 600,
-        "packages/database/test/domain-event-relay-selection.test.ts": 1100
+        "apps/web/e2e/gate/member-staff-evidence-journey.spec.ts": 18000,
+        "packages/database/src/domain-event-relay.ts": 1200,
+        "packages/database/test/domain-event-relay-selection.test.ts": 2500
       }
     }
   ],
@@ -1432,15 +1430,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61483521,
+  "maxTrackedBytes": 61490762,
   "maxTrackedFiles": 6071,
   "maxCategoryBytes": {
-    "config/data/messages": 2244721,
-    "docs/text": 8644552,
+    "config/data/messages": 2244546,
+    "docs/text": 8644068,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8864571,
-    "tests/e2e": 7148942
+    "source/scripts": 8865171,
+    "tests/e2e": 7156242
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

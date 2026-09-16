@@ -40,7 +40,23 @@ function assertLimit(limit: number): number {
 }
 
 function normalizeCreatedAt(value: Date | string): Date {
-  const createdAt = value instanceof Date ? value : new Date(value);
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) {
+      throw new Error('domain event relay requires a valid createdAt');
+    }
+    return value;
+  }
+  const match =
+    /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?)([+-]\d{2}(?::?\d{2})?)$/.exec(value);
+  if (!match) throw new Error('domain event relay requires an explicit-offset createdAt');
+  const rawOffset = match[3];
+  const offset =
+    rawOffset.length === 3
+      ? `${rawOffset}:00`
+      : rawOffset.length === 5
+        ? `${rawOffset.slice(0, 3)}:${rawOffset.slice(3)}`
+        : rawOffset;
+  const createdAt = new Date(`${match[1]}T${match[2]}${offset}`);
   if (Number.isNaN(createdAt.getTime())) {
     throw new Error('domain event relay requires a valid createdAt');
   }

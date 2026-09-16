@@ -24,10 +24,32 @@ The acceptance-link amendment completed through protected PR #1782. Current prot
 | ---------------------------------- | ------------- | ----- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `S3-MEMBER-STAFF-SUPPORTED-PREFIX` | `in_progress` | Codex | Prove member submission → staff `submitted`→`verification` acceptance → member-safe continuity. | Exact isolated-DB journey, unauthorized-path and focused regressions, capacity/security/full gate, current-head Opus 5 review, protected checks and exact-main health; no IDA-CLM-010 implementation or whole-S3 claim. |
 
-The owner-authorized amendment includes necessary exact capacity accounting: requirement map
-72,094 bytes, +7,625 over main; its existing allocation and aggregate docs ceiling grow equally.
-No new file, reserve consumption, allocation reorder or budget self-size growth. Program/tracker
-retain semantic governance classification. This records the bounded authorization, not a new cap waiver.
+The completed #1782 acceptance-link amendment historically set the requirement-map allocation to
+72,094 bytes, +7,625 over its predecessor. S3 changes use the map's synchronized exact allocation;
+the program/tracker remain inside named bounded allocation `t116-case-summary`. The S3 E2E/relay
+allocation is separately bounded. Executable capacity proof, rather than either historical figure,
+governs the candidate; no reserve, deleted-byte credit, allocation reorder or guard weakening is used.
+
+S3 implementation evidence is deliberately split: mounted UI owns member save/resume/submission and
+the public staff `submitted`→`verification` action; the existing staff core owns a private same-status
+note, followed by a fresh authenticated member context proving it absent. Exact member, agent and
+branch-manager core calls against that claim return `Unauthorized` without history mutation. Cleanup
+removes the exact draft, claim, history, event delivery/event, audit and notification rows; the claim
+number sequence remains a monotonic database sequence and the isolated task database is also removed.
+
+The pre-existing C2-04 pilot assertion still expects the older scoped-status error. Its source contract
+changed in `be7f1d9f79`, while default `e2e:gate` excludes `/pilot/`; S3 does not silently normalize or
+credit that stale, explicitly selected pilot lane. The new exact-claim role probes supply S3's required
+negative coverage without changing the older test.
+
+PostgreSQL 16 returned relay `createdAt` as the string `2026-09-16 09:54:40.663+00`. The relay boundary
+now accepts the explicit-offset PostgreSQL forms, preserves native `Date` identity and rejects
+offset-less strings instead of applying host-local time. The audit projection is the only selected S3
+consumer that dereferences relay `event.createdAt`; delivery idempotency remains event ID + consumer.
+The raw `tx.execute<T>` inventory contains six sites (relay, two recovery evidence readers, transition
+evidence, AI persistence and policy lifecycle guard counting as six call sites); only the relay selects
+this event timestamp. The string normalization supersedes the earlier no-userland-mapping assumption
+because the live driver value violates the typed `Date` boundary. Sibling sites remain inventory only.
 
 ### Owner-adopted successor queue (2026-09-15)
 
@@ -523,10 +545,10 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                                 | Source Refs                                                   | Execution                           | Run ID | Run Root         | Sonar   | Docker              | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                            |
-| ---------------------------------- | ------------------------------------------------------------- | ----------------------------------- | ------ | ---------------- | ------- | ------------------- | ---------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SRS-ROADMAP-ACCEPTANCE-LINKS`     | current program                                               | `manual`                            | #1782  | protected main   | passed  | `not_applicable`    | `not_applicable` | recorded | Protected merge `7db57a30c35112a679271e6469d20974f83dd061`; amendment completed without S3 implementation.                                                                                                                                                                                               |
-| `S3-MEMBER-STAFF-SUPPORTED-PREFIX` | current program; IDA-CLM-001/014; IDA-CAS-005/006/007/008/015 | `gate-ks-sq` plus focused contracts | local  | isolated task DB | pending | local PostgreSQL 16 | `not_applicable` | pending  | Real UI journey passes; cross-tenant staff/member writes are denied without mutation; 308 database contracts (300 pass, 8 environment-skipped) and 24 status/authority contracts pass. Sonnet 5 preparation and Gemini adversarial reviews passed. Protected delivery pending; IDA-CLM-010 remains open. |
+| ID                                 | Source Refs                                                   | Execution                           | Run ID | Run Root         | Sonar   | Docker              | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ---------------------------------- | ------------------------------------------------------------- | ----------------------------------- | ------ | ---------------- | ------- | ------------------- | ---------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SRS-ROADMAP-ACCEPTANCE-LINKS`     | current program                                               | `manual`                            | #1782  | protected main   | passed  | `not_applicable`    | `not_applicable` | recorded | Protected merge `7db57a30c35112a679271e6469d20974f83dd061`; amendment completed without S3 implementation.                                                                                                                                                                                                                                                                                                                          |
+| `S3-MEMBER-STAFF-SUPPORTED-PREFIX` | current program; IDA-CLM-001/014; IDA-CAS-005/006/007/008/015 | `gate-ks-sq` plus focused contracts | local  | isolated task DB | pending | local PostgreSQL 16 | `not_applicable` | pending  | Exact mounted UI journey passes with a fresh member return, exact member/agent/branch-manager denial, private-note exclusion and zero exact-row residue; 309 database contracts (301 pass, 8 environment-skipped) and 19 focused status contracts pass. Sonnet 5 and Gemini reviews passed; first Opus 5 review findings are corrected and current-head re-review is pending. Protected delivery pending; IDA-CLM-010 remains open. |
 
 ### Member case overview entry progress
 

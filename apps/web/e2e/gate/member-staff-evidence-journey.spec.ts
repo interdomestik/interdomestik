@@ -2,17 +2,22 @@ import {
   E2E_PASSWORD,
   E2E_USERS,
   and,
+  auditLog,
   claimStageHistory,
   claims,
   db,
+  domainEventDeliveries,
   domainEvents,
   eq,
+  freeStartDrafts,
+  inArray,
+  notifications,
   user,
 } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import { updateClaimStatusCore } from '@interdomestik/domain-claims/staff-claims/update-status';
 import { randomUUID } from 'node:crypto';
-import type { Page, TestInfo } from '@playwright/test';
+import type { Browser, BrowserContext, Page, TestInfo } from '@playwright/test';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
@@ -27,10 +32,11 @@ const facts = {
 const visibleIntake = (page: Page) =>
   page.locator('[data-testid="claim-draft-intake"]:visible').first();
 
-async function submitExactDraft(memberPage: Page, testInfo: TestInfo) {
-  const journeyId = randomUUID();
-  const counterparty = `S3 operator ${journeyId}`;
-  const summary = `S3 member-to-staff journey ${journeyId}`;
+async function submitExactDraft(
+  memberPage: Page,
+  testInfo: TestInfo,
+  journey: { counterparty: string; summary: string }
+) {
   await gotoApp(memberPage, routes.memberNewClaim(testInfo), testInfo, {
     marker: 'new-claim-page-ready',
   });
@@ -39,19 +45,19 @@ async function submitExactDraft(memberPage: Page, testInfo: TestInfo) {
   const panel = intake.getByTestId('claim-draft-main-panel');
   await intake.getByTestId(`claim-draft-category-${facts.category}`).click();
   await intake.getByTestId('claim-draft-category-continue').click();
-  await panel.locator('select').nth(0).selectOption(facts.issue);
-  await panel.locator('input[type="date"]').fill(facts.date);
-  await panel.locator('input[type="text"]').fill(counterparty);
-  await panel.locator('select').nth(1).selectOption(facts.outcome);
-  await panel.locator('textarea').fill(summary);
-  await panel.locator('button').last().click();
+  await panel.locator(`select:has(option[value="${facts.issue}"])`).selectOption(facts.issue);
+  await panel.getByLabel('Kur ndodhi?').fill(facts.date);
+  await panel.getByLabel('Me kë po merresh?').fill(journey.counterparty);
+  await panel.locator(`select:has(option[value="${facts.outcome}"])`).selectOption(facts.outcome);
+  await panel.getByLabel('Përmbledhje e shkurtër').fill(journey.summary);
+  await panel.getByRole('button', { name: 'Shikoni përmbledhjen', exact: true }).click();
   await expect(intake.getByTestId('claim-draft-dormant-preview')).toBeVisible();
 
   await intake.getByTestId('free-start-save-open').click();
   await expect(intake.getByTestId('free-start-save-status')).toHaveAttribute('data-state', 'saved');
   await intake.getByTestId('free-start-manage-open').click();
   const exactDraft = memberPage.locator('[data-testid^="free-start-draft-"]').filter({
-    hasText: summary,
+    hasText: journey.summary,
   });
   await expect(exactDraft).toHaveCount(1);
   await exactDraft.locator('[data-testid^="free-start-resume-"]').click();
@@ -66,7 +72,7 @@ async function submitExactDraft(memberPage: Page, testInfo: TestInfo) {
   const claimHref = await success.locator('a').getAttribute('href');
   expect(claimHref).toMatch(/^\/sq\/member\/claims\/fsd_[a-f0-9]{64}$/);
   const claimId = decodeURIComponent(claimHref!.split('/').at(-1)!);
-  return { claimId, claimNumber: claimNumber!, claimHref: claimHref!, summary };
+  return { claimId, claimNumber: claimNumber!, claimHref: claimHref! };
 }
 
 async function establishDraftTenantContext(memberPage: Page, testInfo: TestInfo) {
@@ -89,13 +95,145 @@ async function establishDraftTenantContext(memberPage: Page, testInfo: TestInfo)
 }
 
 function idaTestInfo(testInfo: TestInfo): TestInfo {
-  const configured = process.env.IDA_HOST?.trim() || 'ida.127.0.0.1.nip.io:3000';
+  const projectBaseURL = testInfo.project.use.baseURL;
+  if (!projectBaseURL) throw new Error('Gate project baseURL missing');
+  const projectPort = new URL(projectBaseURL).port;
+  const configured =
+    process.env.IDA_HOST?.trim() || `ida.127.0.0.1.nip.io${projectPort ? `:${projectPort}` : ''}`;
   const authority = new URL(configured.includes('://') ? configured : `http://${configured}`).host;
   const baseURL = `http://${authority}/${routes.getLocale(testInfo)}`;
   return {
     ...testInfo,
     project: { ...testInfo.project, use: { ...testInfo.project.use, baseURL } },
   } as TestInfo;
+}
+
+async function openMemberContext(
+  browser: Browser,
+  testInfo: TestInfo
+): Promise<{ context: BrowserContext; page: Page }> {
+  const baseURL = testInfo.project.use.baseURL;
+  if (!baseURL) throw new Error('Gate project baseURL missing');
+  const origin = new URL(baseURL);
+  const context = await browser.newContext({
+    baseURL,
+    extraHTTPHeaders: { 'x-tenant-id': E2E_USERS.KS_MEMBER.tenantId },
+    storageState: {
+      cookies: [
+        {
+          domain: origin.hostname,
+          expires: -1,
+          httpOnly: false,
+          name: 'cookie_consent',
+          path: '/',
+          sameSite: 'Lax',
+          secure: origin.protocol === 'https:',
+          value: 'necessary',
+        },
+      ],
+      origins: [],
+    },
+  });
+  return { context, page: await context.newPage() };
+}
+
+async function cleanupJourney(claimId: string | null, summary: string): Promise<void> {
+  if (claimId) {
+    const events = await db.query.domainEvents.findMany({
+      where: and(
+        eq(domainEvents.entityId, claimId),
+        eq(domainEvents.tenantId, E2E_USERS.KS_MEMBER.tenantId)
+      ),
+      columns: { id: true },
+    });
+    const eventIds = events.map(event => event.id);
+    await db
+      .delete(notifications)
+      .where(
+        and(
+          eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
+          eq(notifications.actionUrl, `/dashboard/claims/${claimId}`)
+        )
+      );
+    await db
+      .delete(auditLog)
+      .where(
+        and(eq(auditLog.tenantId, E2E_USERS.KS_MEMBER.tenantId), eq(auditLog.entityId, claimId))
+      );
+    if (eventIds.length) {
+      await db
+        .delete(domainEventDeliveries)
+        .where(inArray(domainEventDeliveries.eventId, eventIds));
+      await db.delete(domainEvents).where(inArray(domainEvents.id, eventIds));
+    }
+    await db.delete(claimStageHistory).where(eq(claimStageHistory.claimId, claimId));
+    await db.delete(claims).where(eq(claims.id, claimId));
+  }
+  await db
+    .delete(freeStartDrafts)
+    .where(
+      and(
+        eq(freeStartDrafts.tenantId, E2E_USERS.KS_MEMBER.tenantId),
+        eq(freeStartDrafts.summary, summary)
+      )
+    );
+}
+
+async function expectJourneyClean(claimId: string | null, summary: string): Promise<void> {
+  const [claimRows, draftRows, eventRows, historyRows, notificationRows, auditRows] =
+    await Promise.all([
+      claimId
+        ? db.query.claims.findMany({ where: eq(claims.id, claimId), columns: { id: true } })
+        : [],
+      db.query.freeStartDrafts.findMany({
+        where: and(
+          eq(freeStartDrafts.tenantId, E2E_USERS.KS_MEMBER.tenantId),
+          eq(freeStartDrafts.summary, summary)
+        ),
+        columns: { id: true },
+      }),
+      claimId
+        ? db.query.domainEvents.findMany({
+            where: and(
+              eq(domainEvents.entityId, claimId),
+              eq(domainEvents.tenantId, E2E_USERS.KS_MEMBER.tenantId)
+            ),
+            columns: { id: true },
+          })
+        : [],
+      claimId
+        ? db.query.claimStageHistory.findMany({
+            where: eq(claimStageHistory.claimId, claimId),
+            columns: { id: true },
+          })
+        : [],
+      claimId
+        ? db.query.notifications.findMany({
+            where: and(
+              eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
+              eq(notifications.actionUrl, `/dashboard/claims/${claimId}`)
+            ),
+            columns: { id: true },
+          })
+        : [],
+      claimId
+        ? db.query.auditLog.findMany({
+            where: and(
+              eq(auditLog.tenantId, E2E_USERS.KS_MEMBER.tenantId),
+              eq(auditLog.entityId, claimId)
+            ),
+            columns: { id: true },
+          })
+        : [],
+    ]);
+  expect({ auditRows, claimRows, draftRows, eventRows, historyRows, notificationRows }).toEqual({
+    auditRows: [],
+    claimRows: [],
+    draftRows: [],
+    eventRows: [],
+    historyRows: [],
+    notificationRows: [],
+  });
 }
 
 test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
@@ -109,34 +247,24 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
     );
     test.setTimeout(120_000);
     const memberTestInfo = idaTestInfo(testInfo);
-    const baseURL = memberTestInfo.project.use.baseURL;
-    if (!baseURL) throw new Error('Gate project baseURL missing');
-    const origin = new URL(baseURL);
-    const memberContext = await browser.newContext({
-      baseURL,
-      extraHTTPHeaders: { 'x-tenant-id': E2E_USERS.KS_MEMBER.tenantId },
-      storageState: {
-        cookies: [
-          {
-            domain: origin.hostname,
-            expires: -1,
-            httpOnly: false,
-            name: 'cookie_consent',
-            path: '/',
-            sameSite: 'Lax',
-            secure: origin.protocol === 'https:',
-            value: 'necessary',
-          },
-        ],
-        origins: [],
-      },
-    });
-    const memberPage = await memberContext.newPage();
+    const idaAuthority = new URL(memberTestInfo.project.use.baseURL!).host;
+    const journeyId = randomUUID();
+    const journey = {
+      counterparty: `S3 operator ${journeyId}`,
+      summary: `S3 member-to-staff journey ${journeyId}`,
+    };
+    let claimId: string | null = null;
+    let memberSession: Awaited<ReturnType<typeof openMemberContext>> | null =
+      await openMemberContext(browser, memberTestInfo);
     try {
       const publicNote = `S3 public verification ${randomUUID()}`;
       const privateNote = `S3 private staff note ${randomUUID()}`;
-      await establishDraftTenantContext(memberPage, memberTestInfo);
-      const submitted = await submitExactDraft(memberPage, memberTestInfo);
+      const unauthorizedNotes: string[] = [];
+      await establishDraftTenantContext(memberSession.page, memberTestInfo);
+      const submitted = await submitExactDraft(memberSession.page, memberTestInfo, journey);
+      claimId = submitted.claimId;
+      await memberSession.context.close();
+      memberSession = null;
 
       await expect
         .poll(async () => {
@@ -153,6 +281,41 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
           return row ? claimStatusFromLifecycleFields(row) : null;
         })
         .toBe('submitted');
+
+      for (const seeded of [E2E_USERS.KS_MEMBER, E2E_USERS.KS_AGENT, E2E_USERS.KS_BRANCH_MANAGER]) {
+        const actor = await db.query.user.findFirst({
+          where: and(eq(user.email, seeded.email), eq(user.tenantId, E2E_USERS.KS_MEMBER.tenantId)),
+          columns: { branchId: true, id: true, role: true, tenantId: true },
+        });
+        expect(actor).toMatchObject({
+          branchId: seeded.branchId,
+          role: seeded.dbRole,
+          tenantId: seeded.tenantId,
+        });
+        if (!actor) throw new Error(`Seeded ${seeded.dbRole} actor missing`);
+        const probeNote = `S3 unauthorized ${seeded.dbRole} ${randomUUID()}`;
+        unauthorizedNotes.push(probeNote);
+        const result = await updateClaimStatusCore({
+          claimId: submitted.claimId,
+          newStatus: 'verification',
+          note: probeNote,
+          isPublicChange: false,
+          session: { user: actor },
+          requestHeaders: new Headers({ 'x-forwarded-host': idaAuthority }),
+        });
+        expect(result).toEqual({ success: false, error: 'Unauthorized' });
+      }
+
+      const stillSubmitted = await db.query.claims.findFirst({
+        where: and(
+          eq(claims.id, submitted.claimId),
+          eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId)
+        ),
+        columns: { caseLifecycleState: true, recoveryLifecycleState: true },
+      });
+      expect(stillSubmitted ? claimStatusFromLifecycleFields(stillSubmitted) : null).toBe(
+        'submitted'
+      );
 
       await gotoApp(staffPage, routes.staffClaimDetail(submitted.claimId, testInfo), testInfo, {
         marker: 'staff-claim-detail-ready',
@@ -174,13 +337,18 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
         columns: { branchId: true, id: true, role: true, tenantId: true },
       });
       if (!staffActor?.id || !staffActor.tenantId) throw new Error('Seeded KS staff actor missing');
+      expect(staffActor).toMatchObject({
+        branchId: E2E_USERS.KS_STAFF.branchId,
+        role: E2E_USERS.KS_STAFF.dbRole,
+        tenantId: E2E_USERS.KS_STAFF.tenantId,
+      });
       const privateResult = await updateClaimStatusCore({
         claimId: submitted.claimId,
         newStatus: 'verification',
         note: privateNote,
         isPublicChange: false,
         session: { user: staffActor },
-        requestHeaders: new Headers({ 'x-forwarded-host': 'ida.127.0.0.1.nip.io:3000' }),
+        requestHeaders: new Headers({ 'x-forwarded-host': idaAuthority }),
       });
       expect(privateResult.success).toBe(true);
 
@@ -226,6 +394,11 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
           }),
         ])
       );
+      for (const unauthorizedNote of unauthorizedNotes) {
+        expect(histories).not.toEqual(
+          expect.arrayContaining([expect.objectContaining({ note: unauthorizedNote })])
+        );
+      }
 
       const events = await db.query.domainEvents.findMany({
         where: and(
@@ -238,27 +411,33 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
         expect.arrayContaining(['case.created', 'claim.status_changed'])
       );
 
-      await gotoApp(memberPage, submitted.claimHref, memberTestInfo, {
+      memberSession = await openMemberContext(browser, memberTestInfo);
+      await establishDraftTenantContext(memberSession.page, memberTestInfo);
+      await gotoApp(memberSession.page, submitted.claimHref, memberTestInfo, {
         marker: 'member-claim-progress-summary',
       });
-      await expect(memberPage.getByTestId('member-claim-current-state').first()).toHaveText(
+      await expect(memberSession.page.getByTestId('member-claim-current-state').first()).toHaveText(
         'Verifikim'
       );
-      await expect(memberPage.getByTestId('member-claim-latest-update-note').first()).toHaveText(
-        publicNote
-      );
       await expect(
-        memberPage.getByTestId('ops-timeline-item').filter({ hasText: publicNote }).first()
+        memberSession.page.getByTestId('member-claim-latest-update-note').first()
+      ).toHaveText(publicNote);
+      await expect(
+        memberSession.page.getByTestId('ops-timeline-item').filter({ hasText: publicNote }).first()
       ).toBeVisible();
-      await expect(memberPage.getByText(privateNote)).toHaveCount(0);
-      await expect(memberPage.getByTestId('member-claim-sla-status-phase').first()).toBeVisible();
+      await expect(memberSession.page.locator('body')).not.toContainText(privateNote);
+      await expect(
+        memberSession.page.getByTestId('member-claim-sla-status-phase').first()
+      ).toBeVisible();
 
       testInfo.annotations.push({
-        type: 'isolated-task-db-residue',
-        description: `S3 canonical claim ${submitted.claimNumber}; task database is dropped after verification.`,
+        type: 'isolated-task-db-cleanup',
+        description: `S3 canonical claim ${submitted.claimNumber}; exact rows are removed in finally and the isolated task database is dropped after verification.`,
       });
     } finally {
-      await memberContext.close();
+      await memberSession?.context.close();
+      await cleanupJourney(claimId, journey.summary);
+      await expectJourneyClean(claimId, journey.summary);
     }
   });
 });
