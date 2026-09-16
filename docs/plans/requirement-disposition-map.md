@@ -92,17 +92,17 @@ this map and the tracker in normal delivery, without another status system or cl
 
 ## Credited delivery, without whole-requirement overclaim
 
-| Delivered increment         | Receipt                                                                  | Requirement links to reconcile        | Remaining acceptance                                                                 |
-| --------------------------- | ------------------------------------------------------------------------ | ------------------------------------- | ------------------------------------------------------------------------------------ |
-| Unified shell/navigation    | Current program, PR #1770                                                | IDA-CTX-003; IDA-CTR-039              | All role journeys, not just shell                                                    |
-| Member overview entry       | PR #1775, 55875e31b024e6ac9f4648f106be3bfea96facbd                       | IDA-NFR-008; IDA-CAS-007              | Whole member journey/user acceptance                                                 |
-| Member workspace redesign   | PR #1776, 06d90f570d8757764a9fac8124ee924bd3b8aa1f                       | IDA-NFR-006; IDA-NFR-007; IDA-NFR-008 | Criterion-level accessibility and user acceptance                                    |
-| Member detail continuity    | PR #1777, b5a234b30b9cb6ed89ae6d81b81960a3a8135b25                       | IDA-CAS-007; IDA-COM-005; IDA-NFR-008 | Cross-role acceptance; completed S1 correction credited below                        |
-| Member upload localization  | PR #1778, 81a219608dacf4ee9cfd8ee9f201e8ab156e54d2                       | IDA-NFR-007; IDA-DOC-012              | EN/SQ/MK/SR upload and consent copy credited; S3/S6/S7 cross-role acceptance remains |
-| S1 agent message visibility | PR #1780, f3d36b2e7781654fe5448fab11da891368d95f19; 13 exact-main checks | IAM/COM/CRM visibility clauses        | Bounded query/render exclusion only; broader role acceptance remains                 |
-| S2 branch overview scope    | PR #1781, de15d4cac87d7ba6ce15d98c75069445bb84dcb4; 13 exact-main checks | TEN/IAM/RPT/KPI scope clauses         | Bounded branch route/query protection only; full oversight remains                   |
-| Help Now / Trip Mode        | MOB-01 #1296; accessibility #1297; vehicle path #1347                    | DIA/SVC/AST clauses                   | Reconcile selected corridor/pack/guidance acceptance; no whole-domain completion     |
-| Core M0–M5                  | Architecture tracker recorded milestones                                 | TEN/IAM/CAS/BHV/CTR clauses           | Consumer conformance and individual acceptance; do not rebuild core                  |
+| Delivered increment         | Receipt                                                                                                                                                                              | Requirement links to reconcile        | Remaining acceptance                                                                 |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------- | ------------------------------------------------------------------------------------ |
+| Unified shell/navigation    | Current program, PR #1770                                                                                                                                                            | IDA-CTX-003; IDA-CTR-039              | All role journeys, not just shell                                                    |
+| Member overview entry       | PR #1775, 55875e31b024e6ac9f4648f106be3bfea96facbd                                                                                                                                   | IDA-NFR-008; IDA-CAS-007              | Whole member journey/user acceptance                                                 |
+| Member workspace redesign   | PR #1776, 06d90f570d8757764a9fac8124ee924bd3b8aa1f                                                                                                                                   | IDA-NFR-006; IDA-NFR-007; IDA-NFR-008 | Criterion-level accessibility and user acceptance                                    |
+| Member detail continuity    | PR #1777, b5a234b30b9cb6ed89ae6d81b81960a3a8135b25                                                                                                                                   | IDA-CAS-007; IDA-COM-005; IDA-NFR-008 | Cross-role acceptance; completed S1 correction credited below                        |
+| Member upload localization  | PR #1778, 81a219608dacf4ee9cfd8ee9f201e8ab156e54d2                                                                                                                                   | IDA-NFR-007; IDA-DOC-012              | EN/SQ/MK/SR upload and consent copy credited; S3/S6/S7 cross-role acceptance remains |
+| S1 agent message visibility | PR #1780, f3d36b2e7781654fe5448fab11da891368d95f19; 13 exact-main checks                                                                                                             | IAM/COM/CRM visibility clauses        | Bounded query/render exclusion only; broader role acceptance remains                 |
+| S2 branch overview scope    | PR #1781, de15d4cac87d7ba6ce15d98c75069445bb84dcb4; 13 exact-main checks                                                                                                             | TEN/IAM/RPT/KPI scope clauses         | Bounded branch route/query protection only; full oversight remains                   |
+| Help Now / Trip Mode        | [MOB-01 #1296/#1297 receipt](../product/2026-07-03-mob-dg01-help-now-trip-mode-gate-packet.md); [vehicle #1347 receipt](2026-07-14-ida-dg09-complete-public-help-now-journey-map.md) | DIA/SVC/AST clauses                   | Reconcile selected corridor/pack/guidance acceptance; no whole-domain completion     |
+| Core M0–M5                  | Architecture tracker recorded milestones                                                                                                                                             | TEN/IAM/CAS/BHV/CTR clauses           | Consumer conformance and individual acceptance; do not rebuild core                  |
 
 ## Architecture frontier retained
 
@@ -281,46 +281,46 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-DIA-018 | Cross-border promise control | Canonical | unresolved | S5/S6; conditional recovery; see acceptance links | open | none | U | U | U |
 | IDA-DIA-019 | Diaspora localization | Target | unresolved | S5/S6; see acceptance links | open | none | U | U | U |
 | IDA-DIA-020 | Minimized diaspora analytics | Canonical | unresolved | selected analytics; see acceptance links | open | none | U | U | U |
-| IDA-SVC-001 | Canonical ten-service catalogue | Canonical | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-002 | Shared architecture spine | Canonical | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-003 | Service zones | Canonical | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-004 | Versioned service definition | Target | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-005 | Versioned rule packs | Canonical | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-006 | Typed assistance outcome | Canonical | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-007 | Protective disclosure | Canonical | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-008 | Service release gate | Canonical | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-009 | Legal-basis orientation | Target | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-010 | Legal-basis uncertainty | Target | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-011 | No final legal opinion | Canonical | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-012 | Procedure phase awareness | Target | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-013 | Procedure provenance | Target | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-014 | Procedure no representation | Canonical | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-015 | Injury explicit consent | Canonical | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-016 | Injury hard stops | Canonical | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-017 | No automated diagnosis | Canonical | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-018 | Vehicle-damage stage model | Target | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-019 | Vehicle-damage evidence | Target | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-020 | Vehicle expert boundary | Canonical | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-021 | Invalidity member boundary | Canonical | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-022 | Invalidity human review | Canonical | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-023 | Invalidity no AI finality | Canonical | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-024 | Help Now free entry | Canonical | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-025 | Help Now safer-path control | Canonical | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-026 | Help Now operational coverage | Canonical | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-027 | Expert appointment | Canonical | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-028 | Expert cost approval | Canonical | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-029 | Expert custody and revocation | Canonical | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-030 | Discount matrix | Canonical | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-031 | Discount timing | Canonical | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-032 | Discount transparency | Target | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-033 | Court escalation prerequisites | Canonical | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-034 | Court no automatic escalation | Canonical | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-035 | Court decision trace | Target | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-036 | Legal partner agreement | Canonical | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-037 | Legal case-scoped access | Canonical | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-038 | Legal handoff lifecycle | Target | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-039 | Service catalogue analytics | Target | unresolved | H1; service scope | open | none | U | U | U |
-| IDA-SVC-040 | Service-to-case continuity | Target | unresolved | H1; service scope | open | none | U | U | U |
+| IDA-SVC-001 | Canonical ten-service catalogue | Canonical | unresolved | H1; core; see acceptance links | open | none | U | U | U |
+| IDA-SVC-002 | Shared architecture spine | Canonical | unresolved | H1; core; see acceptance links | open | none | U | U | U |
+| IDA-SVC-003 | Service zones | Canonical | unresolved | H1; core; see acceptance links | open | none | U | U | U |
+| IDA-SVC-004 | Versioned service definition | Target | unresolved | H1; core; see acceptance links | open | none | U | U | U |
+| IDA-SVC-005 | Versioned rule packs | Canonical | unresolved | H1; core; see acceptance links | open | none | U | U | U |
+| IDA-SVC-006 | Typed assistance outcome | Canonical | unresolved | H1; core; see acceptance links | open | none | U | U | U |
+| IDA-SVC-007 | Protective disclosure | Canonical | unresolved | H1; core; see acceptance links | open | none | U | U | U |
+| IDA-SVC-008 | Service release gate | Canonical | unresolved | H1; core; see acceptance links | open | none | U | U | U |
+| IDA-SVC-009 | Legal-basis orientation | Target | unresolved | SVC-01; see acceptance links | open | none | U | U | U |
+| IDA-SVC-010 | Legal-basis uncertainty | Target | unresolved | SVC-01; see acceptance links | open | none | U | U | U |
+| IDA-SVC-011 | No final legal opinion | Canonical | unresolved | SVC-01; see acceptance links | open | none | U | U | U |
+| IDA-SVC-012 | Procedure phase awareness | Target | unresolved | SVC-02; see acceptance links | open | none | U | U | U |
+| IDA-SVC-013 | Procedure provenance | Target | unresolved | SVC-02; see acceptance links | open | none | U | U | U |
+| IDA-SVC-014 | Procedure no representation | Canonical | unresolved | SVC-02; see acceptance links | open | none | U | U | U |
+| IDA-SVC-015 | Injury explicit consent | Canonical | unresolved | SVC-03; see acceptance links | open | none | U | U | U |
+| IDA-SVC-016 | Injury hard stops | Canonical | unresolved | SVC-03; see acceptance links | open | none | U | U | U |
+| IDA-SVC-017 | No automated diagnosis | Canonical | unresolved | SVC-03; see acceptance links | open | none | U | U | U |
+| IDA-SVC-018 | Vehicle-damage stage model | Target | unresolved | SVC-04; see acceptance links | open | none | U | U | U |
+| IDA-SVC-019 | Vehicle-damage evidence | Target | unresolved | SVC-04; see acceptance links | open | none | U | U | U |
+| IDA-SVC-020 | Vehicle expert boundary | Canonical | unresolved | SVC-04; see acceptance links | open | none | U | U | U |
+| IDA-SVC-021 | Invalidity member boundary | Canonical | unresolved | SVC-05; see acceptance links | open | none | U | U | U |
+| IDA-SVC-022 | Invalidity human review | Canonical | unresolved | SVC-05; see acceptance links | open | none | U | U | U |
+| IDA-SVC-023 | Invalidity no AI finality | Canonical | unresolved | SVC-05; see acceptance links | open | none | U | U | U |
+| IDA-SVC-024 | Help Now free entry | Canonical | unresolved | SVC-06; see acceptance links | open | none | U | U | U |
+| IDA-SVC-025 | Help Now safer-path control | Canonical | unresolved | SVC-06; see acceptance links | open | none | U | U | U |
+| IDA-SVC-026 | Help Now operational coverage | Canonical | unresolved | SVC-06; see acceptance links | open | none | U | U | U |
+| IDA-SVC-027 | Expert appointment | Canonical | unresolved | SVC-07; see acceptance links | open | none | U | U | U |
+| IDA-SVC-028 | Expert cost approval | Canonical | unresolved | SVC-07; see acceptance links | open | none | U | U | U |
+| IDA-SVC-029 | Expert custody and revocation | Canonical | unresolved | SVC-07; see acceptance links | open | none | U | U | U |
+| IDA-SVC-030 | Discount matrix | Canonical | unresolved | SVC-08; see acceptance links | open | none | U | U | U |
+| IDA-SVC-031 | Discount timing | Canonical | unresolved | SVC-08; see acceptance links | open | none | U | U | U |
+| IDA-SVC-032 | Discount transparency | Target | unresolved | SVC-08; see acceptance links | open | none | U | U | U |
+| IDA-SVC-033 | Court escalation prerequisites | Canonical | unresolved | SVC-09; see acceptance links | open | none | U | U | U |
+| IDA-SVC-034 | Court no automatic escalation | Canonical | unresolved | SVC-09; see acceptance links | open | none | U | U | U |
+| IDA-SVC-035 | Court decision trace | Target | unresolved | SVC-09; see acceptance links | open | none | U | U | U |
+| IDA-SVC-036 | Legal partner agreement | Canonical | unresolved | SVC-10; see acceptance links | open | none | U | U | U |
+| IDA-SVC-037 | Legal case-scoped access | Canonical | unresolved | SVC-10; see acceptance links | open | none | U | U | U |
+| IDA-SVC-038 | Legal handoff lifecycle | Target | unresolved | SVC-10; see acceptance links | open | none | U | U | U |
+| IDA-SVC-039 | Service catalogue analytics | Target | unresolved | selected analytics; see acceptance links | open | none | U | U | U |
+| IDA-SVC-040 | Service-to-case continuity | Target | unresolved | later S5/S7 handoff; see acceptance links | open | none | U | U | U |
 | IDA-VON-001 | First-class vertical | Canonical | unresolved | Flight scope/T411 | open | none | U | U | U |
 | IDA-VON-002 | Feature-flag isolation | Canonical | unresolved | Flight scope/T411 | open | none | U | U | U |
 | IDA-VON-003 | Shared lifecycle authorities | Canonical | unresolved | Flight scope/T411 | open | none | U | U | U |

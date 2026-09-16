@@ -61,10 +61,10 @@
       "id": "product-readiness-requirement-map",
       "mode": "exact",
       "writerPaths": ["docs/plans/requirement-disposition-map.md"],
-      "trackedBytesDelta": 70425,
+      "trackedBytesDelta": 72094,
       "trackedFilesDelta": 1,
-      "categoryBytesDelta": { "docs/text": 70425 },
-      "pathBytesDelta": { "docs/plans/requirement-disposition-map.md": 70425 }
+      "categoryBytesDelta": { "docs/text": 72094 },
+      "pathBytesDelta": { "docs/plans/requirement-disposition-map.md": 72094 }
     },
     {
       "id": "lean-compatibility-repair",
@@ -1413,11 +1413,11 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61465148,
+  "maxTrackedBytes": 61466817,
   "maxTrackedFiles": 6070,
   "maxCategoryBytes": {
     "config/data/messages": 2243839,
-    "docs/text": 8640861,
+    "docs/text": 8642530,
     "large support/generated-ish": 15395985,
     "other": 19184750,
     "source/scripts": 8863971,

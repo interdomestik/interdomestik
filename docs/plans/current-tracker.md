@@ -20,9 +20,9 @@ S1 (#1780) and S2 (#1781) are complete; all 13 exact-main checks passed at their
 Current protected main is `de15d4cac87d7ba6ce15d98c75069445bb84dcb4` (S2).
 The owner-authorized documentation amendment precedes S3 implementation; S3 remains queued.
 
-| ID                             | Status        | Owner | Work                                                                              | Exit Criteria                                                                                       |
-| ------------------------------ | ------------- | ----- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `SRS-ROADMAP-ACCEPTANCE-LINKS` | `in_progress` | Codex | Reconcile delivered status and acceptance links within existing roadmap families. | Docs-only checks, current-head review, protected merge and exact-main health; no S3 implementation. |
+| ID                             | Status        | Owner | Work                                                                              | Exit Criteria                                                                                                                                                |
+| ------------------------------ | ------------- | ----- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `SRS-ROADMAP-ACCEPTANCE-LINKS` | `in_progress` | Codex | Reconcile delivered status and acceptance links within existing roadmap families. | Existing validation-surface classification, security/capacity checks, current-head review, all protected checks and exact-main health; no S3 implementation. |
 
 ### Owner-adopted successor queue (2026-09-15)
 
@@ -518,10 +518,9 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID  | Source Refs | Execution | Run ID | Run Root | Sonar | Docker | Sentry | Learning | Evidence Refs |
-| --- | ----------- | --------- | ------ | -------- | ----- | ------ | ------ | -------- | ------------- |
-
-| `SRS-ROADMAP-ACCEPTANCE-LINKS` | current program | `manual` | local | local | pending | `not_applicable` | `not_applicable` | pending | Documentation amendment; checks and protected delivery pending. |
+| ID                             | Source Refs     | Execution | Run ID | Run Root | Sonar   | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                          |
+| ------------------------------ | --------------- | --------- | ------ | -------- | ------- | ---------------- | ---------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SRS-ROADMAP-ACCEPTANCE-LINKS` | current program | `manual`  | local  | local    | pending | `not_applicable` | `not_applicable` | pending  | PR #1782; plan/track/format/capacity/security, 1,186 CI contracts and 299 harness checks pass. Existing non-product classification controls runtime lanes; protected delivery pending. |
 
 ### Member case overview entry progress
 
