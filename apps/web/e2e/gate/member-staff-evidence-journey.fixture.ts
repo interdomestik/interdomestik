@@ -80,7 +80,7 @@ export async function submitExactDraft(
   const claimNumber = await success.getAttribute('data-claim-number');
   expect(claimNumber).toMatch(/^CLM-[A-Z0-9]{2,10}-\d{4}-\d{6}$/);
   const claimHref = await success.locator('a').getAttribute('href');
-  expect(claimHref).toBe(`/sq/member/claims/${claimId}`);
+  expect(claimHref).toBe(routes.memberClaimDetail(claimId, testInfo));
   return { claimId, claimNumber: claimNumber!, claimHref: claimHref! };
 }
 
