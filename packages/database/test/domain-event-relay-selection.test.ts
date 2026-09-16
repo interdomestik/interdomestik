@@ -1,8 +1,13 @@
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import { describe, it } from 'node:test';
+import { eq, sql } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
 import { selectDomainEventsForRelay, type DomainEventRelayEvent } from '../src/domain-event-relay';
+import { domainEvents } from '../src/schema/domain-events';
+import { tenants } from '../src/schema/tenants';
 
 class FakeSelectTx {
   query?: unknown;
@@ -24,9 +29,18 @@ function sqlText(value: unknown): string {
 
 describe('domain event relay selection', () => {
   it('formats the timestamptz column as UTC under a non-UTC database session', async t => {
-    if (!process.env.DATABASE_URL) return t.skip('DATABASE_URL is required for relay SQL proof');
+    if (!process.env.DATABASE_URL) {
+      if (process.env.REQUIRE_DOMAIN_EVENT_RELAY_SQL_PROOF === '1') {
+        assert.fail('required relay SQL proof needs DATABASE_URL');
+      }
+      return t.skip('DATABASE_URL is required for relay SQL proof');
+    }
     const client = postgres(process.env.DATABASE_URL, { max: 1 });
+    const tenantId = `relay-proof-${randomUUID()}`;
+    const eventId = `relay-proof-${randomUUID()}`;
+    const eventName = `test.relay_timestamp.${randomUUID()}`;
     try {
+      const database = drizzle(client);
       const [column] = await client<{ data_type: string }[]>`
         select data_type
         from information_schema.columns
@@ -35,18 +49,44 @@ describe('domain event relay selection', () => {
           and column_name = 'created_at'
       `;
       assert.equal(column?.data_type, 'timestamp with time zone');
-      await client.begin(async tx => {
-        await tx`set local time zone 'Europe/Berlin'`;
-        const [row] = await tx<{ created_at: string }[]>`
-          select to_char(
-            '2026-09-16T10:00:00.123456Z'::timestamptz at time zone 'UTC',
-            'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'
-          ) as created_at
-        `;
-        assert.equal(row?.created_at, '2026-09-16T10:00:00.123456Z');
+      await database.transaction(async tx => {
+        await tx.execute(sql`set local time zone 'Europe/Berlin'`);
+        await tx.insert(tenants).values({
+          countryCode: 'DE',
+          id: tenantId,
+          legalName: 'Relay proof tenant',
+          name: 'Relay proof tenant',
+        });
+        await tx.insert(domainEvents).values({
+          actorId: 'relay-proof-actor',
+          actorRole: 'system',
+          aggregateVersion: 1,
+          correlationId: eventId,
+          createdAt: new Date('2026-09-16T10:00:00.123Z'),
+          entityId: 'relay-proof-entity',
+          entityType: 'test',
+          eventName,
+          eventVersion: 1,
+          id: eventId,
+          payload: {},
+          tenantId,
+        });
+
+        const [selected] = await selectDomainEventsForRelay(tx, {
+          consumerName: 'relay_sql_proof',
+          eventName,
+          limit: 1,
+          mode: 'replay',
+          tenantId,
+        });
+        assert.equal(selected?.id, eventId);
+        assert.equal(selected?.createdAt.toISOString(), '2026-09-16T10:00:00.123Z');
+
+        await tx.delete(domainEvents).where(eq(domainEvents.id, eventId));
+        await tx.delete(tenants).where(eq(tenants.id, tenantId));
       });
     } finally {
-      await client.end();
+      await client.end({ timeout: 5 });
     }
   });
 

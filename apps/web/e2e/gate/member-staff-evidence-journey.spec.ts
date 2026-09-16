@@ -17,8 +17,10 @@ import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 import {
   cleanupJourney,
-  establishDraftTenantContext,
   expectJourneyClean,
+} from './member-staff-evidence-journey-cleanup.fixture';
+import {
+  establishDraftTenantContext,
   idaBaseURL,
   openMemberContext,
   submitExactDraft,
@@ -27,6 +29,7 @@ import {
 test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
   let residue: {
     claimId: string | null;
+    counterparty: string;
     memberSession: Awaited<ReturnType<typeof openMemberContext>> | null;
     summary: string;
   } | null = null;
@@ -34,8 +37,8 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
   test.afterEach(async () => {
     if (!residue) return;
     await residue.memberSession?.context.close();
-    await cleanupJourney(residue.claimId, residue.summary);
-    await expectJourneyClean(residue.claimId, residue.summary);
+    await cleanupJourney(residue.claimId, residue);
+    await expectJourneyClean(residue.claimId, residue);
     residue = null;
   });
 
@@ -47,6 +50,8 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
       testInfo.project.name !== 'gate-ks-sq',
       'One exact isolated-DB project owns S3 residue'
     );
+    expect(testInfo.config.workers).toBe(1);
+    expect(testInfo.workerIndex).toBe(0);
     test.setTimeout(120_000);
     const memberBaseURL = idaBaseURL(testInfo);
     const locale = routes.getLocale(testInfo);
@@ -55,7 +60,7 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
       counterparty: `S3 operator ${journeyId}`,
       summary: `S3 member-to-staff journey ${journeyId}`,
     };
-    residue = { claimId: null, memberSession: null, summary: journey.summary };
+    residue = { claimId: null, memberSession: null, ...journey };
     residue.memberSession = await openMemberContext(browser, memberBaseURL);
     const publicNote = `S3 public verification ${randomUUID()}`;
     const privateNote = `S3 private staff note ${randomUUID()}`;

@@ -34,6 +34,8 @@ const E2E_TREE_SHAS = new Set([
   '354b38ebe3d79b06b994103aa63dc21baf2f5294',
   // S3 corpus with canonical routes and isolated-port proof.
   'd7b9b1840181188e63c09fdf461b9672c8fe1126',
+  // S3 corpus with exact-identity cleanup and worker-ownership proof.
+  'b8329ab15017a0136c3cbf6d49b00b42d752efef',
 ]);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {

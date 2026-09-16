@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 107465,
+      "trackedBytesDelta": 108016,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 69374,
+        "config/data/messages": 69925,
         "source/scripts": 23092,
         "tests/e2e": 14999
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 69374,
+        "scripts/repo-size-budget.json": 69925,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -689,15 +689,15 @@
         "scripts/ci/main-e2e-reuse-core.test.mjs",
         "scripts/ci/main-e2e-reuse-github.test.mjs"
       ],
-      "maxTrackedBytesDelta": 28817,
+      "maxTrackedBytesDelta": 28857,
       "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
-        "source/scripts": 10439,
+        "source/scripts": 10479,
         "tests/e2e": 15685,
         "config/data/messages": 2693
       },
       "maxPathBytesDelta": {
-        "scripts/ci/main-e2e-reuse.mjs": 1572,
+        "scripts/ci/main-e2e-reuse.mjs": 1612,
         "scripts/ci/main-e2e-reuse-core.mjs": 975,
         "scripts/ci/main-e2e-reuse-github.mjs": 17,
         "scripts/ci/main-e2e-reuse-cli.test.mjs": 4331,
@@ -1410,26 +1410,36 @@
       "id": "s3-member-staff-evidence-journey",
       "mode": "bounded",
       "writerPaths": [
+        "apps/web/e2e/gate/member-staff-evidence-journey-cleanup.fixture.ts",
         "apps/web/e2e/gate/member-staff-evidence-journey.fixture.ts",
         "apps/web/e2e/gate/member-staff-evidence-journey.spec.ts",
         "apps/web/e2e/gate/tenant-resolution.spec.ts",
         "apps/web/e2e/utils/navigation.ts",
+        "apps/web/src/components/notifications/notification-action-href.test.ts",
+        "apps/web/src/components/notifications/notification-action-href.ts",
         "packages/database/src/domain-event-relay.ts",
         "packages/database/test/domain-event-relay-selection.test.ts",
         "packages/domain-communications/src/notifications/notify.test.ts",
         "packages/domain-communications/src/notifications/notify.ts"
       ],
-      "maxTrackedBytesDelta": 25600,
-      "maxTrackedFilesDelta": 2,
-      "maxCategoryBytesDelta": { "source/scripts": 1500, "tests/e2e": 24100 },
+      "maxTrackedBytesDelta": 35000,
+      "maxTrackedFilesDelta": 5,
+      "maxCategoryBytesDelta": {
+        "config/data/messages": 2000,
+        "source/scripts": 3000,
+        "tests/e2e": 30000
+      },
       "maxPathBytesDelta": {
-        "apps/web/e2e/gate/member-staff-evidence-journey.fixture.ts": 9000,
-        "apps/web/e2e/gate/member-staff-evidence-journey.spec.ts": 10000,
+        "apps/web/e2e/gate/member-staff-evidence-journey-cleanup.fixture.ts": 5500,
+        "apps/web/e2e/gate/member-staff-evidence-journey.fixture.ts": 6000,
+        "apps/web/e2e/gate/member-staff-evidence-journey.spec.ts": 10100,
         "apps/web/e2e/gate/tenant-resolution.spec.ts": 300,
         "apps/web/e2e/utils/navigation.ts": 100,
-        "packages/database/src/domain-event-relay.ts": 1500,
-        "packages/database/test/domain-event-relay-selection.test.ts": 3800,
-        "packages/domain-communications/src/notifications/notify.test.ts": 900,
+        "apps/web/src/components/notifications/notification-action-href.test.ts": 800,
+        "apps/web/src/components/notifications/notification-action-href.ts": 900,
+        "packages/database/src/domain-event-relay.ts": 1600,
+        "packages/database/test/domain-event-relay-selection.test.ts": 5200,
+        "packages/domain-communications/src/notifications/notify.test.ts": 1600,
         "packages/domain-communications/src/notifications/notify.ts": 0
       }
     }
@@ -1440,15 +1450,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61495314,
-  "maxTrackedFiles": 6072,
+  "maxTrackedBytes": 61505305,
+  "maxTrackedFiles": 6075,
   "maxCategoryBytes": {
-    "config/data/messages": 2245198,
+    "config/data/messages": 2247749,
     "docs/text": 8644068,
     "large support/generated-ish": 15395985,
     "other": 19184750,
-    "source/scripts": 8865471,
-    "tests/e2e": 7159842
+    "source/scripts": 8867011,
+    "tests/e2e": 7165742
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

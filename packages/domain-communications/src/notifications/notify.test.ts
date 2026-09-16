@@ -47,6 +47,7 @@ vi.mock('../email', () => ({
 import { sendEmail } from '../email';
 import {
   clearSupportHandoffPublicResponseNotifications,
+  notifyClaimSubmitted,
   notifyRecoveryDecision,
   notifyStatusChanged,
   notifySupportHandoffPublicResponse,
@@ -131,6 +132,29 @@ describe('sendNotification', () => {
       'user-1',
       'claim_updates',
       expect.objectContaining({ url: '/member/claims/claim-1' })
+    );
+  });
+
+  it('uses the canonical member claim route for the submitting member', async () => {
+    mocks.findFirst.mockResolvedValueOnce({
+      email: 'member@example.com',
+      emailVerified: false,
+      tenantId: 'tenant-1',
+    });
+
+    expect(
+      await notifyClaimSubmitted('member-1', 'member@example.com', {
+        category: 'vehicle',
+        id: 'claim-1',
+        title: 'Vehicle claim',
+      })
+    ).toEqual({ success: true });
+    expect(mocks.insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionUrl: '/member/claims/claim-1',
+        type: 'claim_submitted',
+        userId: 'member-1',
+      })
     );
   });
 

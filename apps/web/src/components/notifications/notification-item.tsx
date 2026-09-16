@@ -11,8 +11,10 @@ import {
   UserPlus,
 } from 'lucide-react';
 
-import { LOCALES } from '@/i18n/locales';
 import { Link, useRouter } from '@/i18n/routing';
+import { normalizeNotificationActionHref } from './notification-action-href';
+
+export { normalizeNotificationActionHref } from './notification-action-href';
 
 export interface Notification {
   readonly id: string;
@@ -33,18 +35,6 @@ interface NotificationItemProps {
   readonly onClose: () => void;
   readonly markReadLabel: string;
   readonly viewLabel: string;
-}
-
-export function normalizeNotificationActionHref(actionUrl: string): string {
-  if (!actionUrl.startsWith('/')) return actionUrl;
-
-  const localeMatch = /^\/([^/?#]+)(?=\/|[?#]|$)/.exec(actionUrl);
-  if (!localeMatch || !LOCALES.includes(localeMatch[1] as (typeof LOCALES)[number])) {
-    return actionUrl;
-  }
-
-  const localeFreeHref = actionUrl.slice(localeMatch[0].length);
-  return localeFreeHref.startsWith('/') ? localeFreeHref : `/${localeFreeHref}`;
 }
 
 function notificationIcon(type: string) {
@@ -76,7 +66,9 @@ export function NotificationItem({
   const router = useRouter();
   const isRead = notification.isRead;
   const actionUrl = notification.actionUrl;
-  const actionHref = actionUrl ? normalizeNotificationActionHref(actionUrl) : null;
+  const actionHref = actionUrl
+    ? normalizeNotificationActionHref(actionUrl, notification.type)
+    : null;
 
   return (
     <div

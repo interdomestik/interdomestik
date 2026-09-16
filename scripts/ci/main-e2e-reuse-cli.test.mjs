@@ -109,11 +109,11 @@ test('S2 branch overview scope protection preserves corpus parity', () => {
     true
   );
 });
-test('S3 member-staff supported journey preserves corpus parity', () => {
+test('hardened S3 member-staff journey preserves corpus parity', () => {
   assert.equal(
     inspectRepositoryParity({
       ...sources(),
-      e2eTreeSha: 'd7b9b1840181188e63c09fdf461b9672c8fe1126',
+      e2eTreeSha: 'b8329ab15017a0136c3cbf6d49b00b42d752efef',
     }).commandChain,
     true
   );

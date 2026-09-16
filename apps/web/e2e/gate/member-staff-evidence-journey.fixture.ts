@@ -2,26 +2,24 @@ import {
   E2E_PASSWORD,
   E2E_USERS,
   and,
-  auditLog,
-  claimStageHistory,
   claims,
   db,
-  domainEventDeliveries,
-  domainEvents,
   eq,
   freeStartDrafts,
-  inArray,
-  notifications,
 } from '@interdomestik/database';
-import { like } from 'drizzle-orm';
 import type { Browser, BrowserContext, Page, TestInfo } from '@playwright/test';
 import { expect } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
+import {
+  S3_JOURNEY_INCIDENT_DATE,
+  exactClaimDescription,
+  type S3JourneyIdentity,
+} from './member-staff-evidence-journey-cleanup.fixture';
 
 const facts = {
   category: 'vehicle',
-  date: '2026-09-16',
+  date: S3_JOURNEY_INCIDENT_DATE,
   issue: 'collision',
   outcome: 'repair',
 } as const;
@@ -33,7 +31,7 @@ export async function submitExactDraft(
   memberPage: Page,
   testInfo: TestInfo,
   memberBaseURL: string,
-  journey: { counterparty: string; summary: string },
+  journey: S3JourneyIdentity,
   rememberClaimId: (claimId: string) => void
 ) {
   await gotoApp(memberPage, routes.memberNewClaim(testInfo), testInfo, {
@@ -77,7 +75,7 @@ export async function submitExactDraft(
         where: and(
           eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId),
           eq(claims.userId, draft.ownerUserId),
-          like(claims.description, `%Summary: ${journey.summary}`)
+          eq(claims.description, exactClaimDescription(journey))
         ),
         columns: { id: true },
       });
@@ -153,105 +151,4 @@ export async function openMemberContext(
     },
   });
   return { context, page: await context.newPage() };
-}
-
-export async function cleanupJourney(claimId: string | null, summary: string): Promise<void> {
-  if (claimId) {
-    await db.transaction(async tx => {
-      const events = await tx.query.domainEvents.findMany({
-        where: and(
-          eq(domainEvents.entityId, claimId),
-          eq(domainEvents.tenantId, E2E_USERS.KS_MEMBER.tenantId)
-        ),
-        columns: { id: true },
-      });
-      const eventIds = events.map(event => event.id);
-      await tx
-        .delete(notifications)
-        .where(
-          and(
-            eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
-            eq(notifications.actionUrl, `/member/claims/${claimId}`)
-          )
-        );
-      await tx
-        .delete(auditLog)
-        .where(
-          and(eq(auditLog.tenantId, E2E_USERS.KS_MEMBER.tenantId), eq(auditLog.entityId, claimId))
-        );
-      if (eventIds.length) {
-        await tx
-          .delete(domainEventDeliveries)
-          .where(inArray(domainEventDeliveries.eventId, eventIds));
-        await tx.delete(domainEvents).where(inArray(domainEvents.id, eventIds));
-      }
-      await tx.delete(claimStageHistory).where(eq(claimStageHistory.claimId, claimId));
-      await tx.delete(claims).where(eq(claims.id, claimId));
-    });
-  }
-  await db
-    .delete(freeStartDrafts)
-    .where(
-      and(
-        eq(freeStartDrafts.tenantId, E2E_USERS.KS_MEMBER.tenantId),
-        eq(freeStartDrafts.summary, summary)
-      )
-    );
-}
-
-export async function expectJourneyClean(claimId: string | null, summary: string): Promise<void> {
-  const [claimRows, draftRows, eventRows, historyRows, notificationRows, auditRows] =
-    await Promise.all([
-      claimId
-        ? db.query.claims.findMany({ where: eq(claims.id, claimId), columns: { id: true } })
-        : [],
-      db.query.freeStartDrafts.findMany({
-        where: and(
-          eq(freeStartDrafts.tenantId, E2E_USERS.KS_MEMBER.tenantId),
-          eq(freeStartDrafts.summary, summary)
-        ),
-        columns: { id: true },
-      }),
-      claimId
-        ? db.query.domainEvents.findMany({
-            where: and(
-              eq(domainEvents.entityId, claimId),
-              eq(domainEvents.tenantId, E2E_USERS.KS_MEMBER.tenantId)
-            ),
-            columns: { id: true },
-          })
-        : [],
-      claimId
-        ? db.query.claimStageHistory.findMany({
-            where: eq(claimStageHistory.claimId, claimId),
-            columns: { id: true },
-          })
-        : [],
-      claimId
-        ? db.query.notifications.findMany({
-            where: and(
-              eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
-              eq(notifications.actionUrl, `/member/claims/${claimId}`)
-            ),
-            columns: { id: true },
-          })
-        : [],
-      claimId
-        ? db.query.auditLog.findMany({
-            where: and(
-              eq(auditLog.tenantId, E2E_USERS.KS_MEMBER.tenantId),
-              eq(auditLog.entityId, claimId)
-            ),
-            columns: { id: true },
-          })
-        : [],
-    ]);
-  expect({ auditRows, claimRows, draftRows, eventRows, historyRows, notificationRows }).toEqual({
-    auditRows: [],
-    claimRows: [],
-    draftRows: [],
-    eventRows: [],
-    historyRows: [],
-    notificationRows: [],
-  });
 }
