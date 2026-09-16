@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-15
+last_reviewed: 2026-09-16
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -16,28 +16,32 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-`S2-BRANCH-OVERVIEW-SCOPE` is the sole selected product slice on protected main
-`f3d36b2e7781654fe5448fab11da891368d95f19`. S1 completed through protected PR #1780 with all
-13 exact-main checks passed. S2 implementation is in progress with isolated mounted-query proof;
-full required verification has passed, while protected delivery and exact-main health remain pending.
+S1 (#1780) and S2 (#1781) are complete; all 13 exact-main checks passed at their merges.
+Current protected main is `de15d4cac87d7ba6ce15d98c75069445bb84dcb4` (S2).
+The owner-authorized documentation amendment precedes S3 implementation; S3 remains queued.
 
-| ID                         | Status        | Owner    | Work                                                                                           | Exit Criteria                                                                                                                            |
-| -------------------------- | ------------- | -------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `S2-BRANCH-OVERVIEW-SCOPE` | `in_progress` | Sol/high | Withhold tenant-wide overview from branch managers and close branch-detail metric scope leaks. | Real mounted/query proof for branch, tenant, missing assignment and tenant-admin baseline; required verification and protected delivery. |
+| ID                             | Status        | Owner | Work                                                                              | Exit Criteria                                                                                       |
+| ------------------------------ | ------------- | ----- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `SRS-ROADMAP-ACCEPTANCE-LINKS` | `in_progress` | Codex | Reconcile delivered status and acceptance links within existing roadmap families. | Docs-only checks, current-head review, protected merge and exact-main health; no S3 implementation. |
 
 ### Owner-adopted successor queue (2026-09-15)
 
-Follow the current program's enterprise delivery sequence; localization and S1 are delivered and S2 is active.
+Follow the current program's enterprise delivery sequence; localization, S1 and S2 are delivered.
 Queued is not in progress or verified. Each successor gets a bounded current-main brief and model
 classification before implementation; no new approval ceremony is required for already authorized scope.
 
 | Roadmap item                       | Status             | Entry / exit evidence                                                                                                         |
 | ---------------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
 | S1 — Agent message visibility      | completed          | Protected PR #1780; exact-main health passed; no agent-authority expansion or deployment claim.                               |
-| S2 — Branch overview scope         | in_progress        | Branch-scoped route/query protection with two-branch, foreign-tenant, missing-assignment and tenant-admin regression proof.   |
+| S2 — Branch overview scope         | completed          | Protected PR #1781, de15d4cac; 13 exact-main checks passed; bounded branch route/query protection.                            |
 | S3 — Member–staff evidence journey | queued_conditional | Reuse delivered contracts/fixtures; prove the bounded handoff sequence or record the first missing contract as its cut point. |
 
 ### Product-readiness roadmap queue
+
+The 2026-09-16 [acceptance links](current-program.md#acceptance-links-adopted-on-2026-09-16)
+refine evidence at existing family selection, without a new queue or pilot-scope disposition.
+Preserve S3/S4 cut points and all OD decisions; record only actual unresolved choices before
+their first dependent outcome. The full audit remains owner-held, not a repository deliverable.
 
 The [requirement disposition map](requirement-disposition-map.md) retains all 510 SRS requirements
 and the unresolved architecture frontier. Maintain affected rows alongside ordinary slice receipts;
@@ -278,7 +282,11 @@ independent and no exact-runtime-effect guarantee is claimed.
   supersede that status. Lesson: fixture isolation must cover sibling consumers as well as project
   copies; no elapsed-time saving is inferred from these runs.
 
-### S2 — Branch overview scope protection progress
+### Completed S2 — Branch overview scope protection
+
+- Protected PR #1781 merged as `de15d4cac87d7ba6ce15d98c75069445bb84dcb4`; all 13
+  exact-main checks passed. Delivery DB/worktree retired per delivery receipt. The following
+  source-bound intermediate notes are superseded as status; no deployment or whole-role acceptance.
 
 - Selected from exact protected main `f3d36b2e7781654fe5448fab11da891368d95f19` as medium
   Sol/high with a security-sensitive authorization edge. `apps/web/src/proxy.ts` remains untouched.
@@ -338,7 +346,7 @@ independent and no exact-runtime-effect guarantee is claimed.
 
 PR #1778 protected-merged as `81a219608dacf4ee9cfd8ee9f201e8ab156e54d2`; all 13 exact-main
 checks passed. The following notes retain its intermediate source-bound evidence. S1 is delivered
-and S2 is selected by the active queue above; the localization slice is not an outstanding prerequisite.
+and S2 is complete; the localization slice is not an outstanding prerequisite.
 
 - Fresh protected main and clean branch `codex/member-evidence-upload-locale-continuity` started at
   `b5a234b30b9cb6ed89ae6d81b81960a3a8135b25`; PR #1777 and exact-main health are complete.
@@ -510,9 +518,10 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                         | Source Refs     | Execution | Run ID | Run Root | Sonar   | Docker | Sentry           | Learning  | Evidence Refs                                                                                                        |
-| -------------------------- | --------------- | --------- | ------ | -------- | ------- | ------ | ---------------- | --------- | -------------------------------------------------------------------------------------------------------------------- |
-| `S2-BRANCH-OVERVIEW-SCOPE` | current program | `manual`  | local  | local    | pending | pass   | `not_applicable` | `pending` | Focused isolated proof and full required verification pass; protected delivery and exact-main health remain pending. |
+| ID  | Source Refs | Execution | Run ID | Run Root | Sonar | Docker | Sentry | Learning | Evidence Refs |
+| --- | ----------- | --------- | ------ | -------- | ----- | ------ | ------ | -------- | ------------- |
+
+| `SRS-ROADMAP-ACCEPTANCE-LINKS` | current program | `manual` | local | local | pending | `not_applicable` | `not_applicable` | pending | Documentation amendment; checks and protected delivery pending. |
 
 ### Member case overview entry progress
 
@@ -1026,8 +1035,8 @@ completed through protected product PR #1771, and the bounded
 claim full T-410 completion. `MEMBER-CASE-OVERVIEW-ENTRY` completed in PR #1775,
 `MEMBER-CASE-WORKSPACE-REDESIGN` completed in PR #1776 and `MEMBER-CASE-DETAIL-CONTINUITY`
 completed in PR #1777; localization completed in PR #1778. S1 completed through protected PR
-#1780 and exact-main health passed. The selected successor is
-`S2-BRANCH-OVERVIEW-SCOPE`; S2 is in progress and S3 remains queued. This does not select T-411
+#1780 and exact-main health passed. S2 completed through #1781 with exact-main health passed.
+The acceptance-link amendment precedes queued S3 implementation. This does not select T-411
 Smart Next Step.
 
 | Completed historical priority            | Status      | Constraint                                                                    |
