@@ -1,0 +1,110 @@
+'use client';
+
+import { useRef, useState, type FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { Button, Input, Label, Textarea } from '@interdomestik/ui';
+import { createClaimInformationRequest } from '@/actions/staff-claims/information-request';
+
+export function ClaimInformationRequestForm({ claimId }: { claimId: string }) {
+  const t = useTranslations('agent-claims.claims.informationRequest');
+  const router = useRouter();
+  const pending = useRef(false);
+  const attempt = useRef<{ fingerprint: string; correlationId: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (pending.current) return;
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const due = new Date(String(data.get('dueAt')));
+    if (!Number.isFinite(due.getTime())) {
+      setFailed(true);
+      setFeedback(t('invalid_input'));
+      return;
+    }
+    const input = {
+      claimId,
+      requestedInformation: String(data.get('requestedInformation')).trim(),
+      explanationForMember: String(data.get('explanationForMember')).trim(),
+      dueAt: due.toISOString(),
+    };
+    if (!input.requestedInformation || !input.explanationForMember) {
+      setFailed(true);
+      setFeedback(t('invalid_input'));
+      return;
+    }
+    const fingerprint = JSON.stringify(input);
+    if (attempt.current?.fingerprint !== fingerprint) {
+      attempt.current = { fingerprint, correlationId: crypto.randomUUID() };
+    }
+    pending.current = true;
+    setBusy(true);
+    setFeedback(null);
+    try {
+      const result = await createClaimInformationRequest({
+        ...input,
+        correlationId: attempt.current.correlationId,
+      });
+      setFailed(!result.success);
+      setFeedback(t(result.success ? 'success' : result.error));
+      if (result.success) {
+        form.reset();
+        attempt.current = null;
+        router.refresh();
+      }
+    } catch {
+      setFailed(true);
+      setFeedback(t('failed'));
+    } finally {
+      pending.current = false;
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form
+      onSubmit={submit}
+      className="rounded-lg border bg-card p-4 space-y-4"
+      data-testid="staff-information-request-form"
+      aria-label={t('title')}
+    >
+      <h2 className="font-semibold">{t('title')}</h2>
+      <p className="text-sm text-muted-foreground">{t('description')}</p>
+      <fieldset disabled={busy} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="requested-information">{t('requestedInformation')}</Label>
+          <Textarea
+            id="requested-information"
+            name="requestedInformation"
+            required
+            maxLength={1000}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="request-explanation">{t('explanationForMember')}</Label>
+          <Textarea
+            id="request-explanation"
+            name="explanationForMember"
+            required
+            maxLength={1000}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="request-due-at">{t('dueAt')}</Label>
+          <Input id="request-due-at" name="dueAt" type="datetime-local" required />
+          <p className="text-xs text-muted-foreground">{t('dueHint')}</p>
+        </div>
+        <Button type="submit">{t(busy ? 'saving' : 'submit')}</Button>
+      </fieldset>
+      {feedback ? (
+        <p role={failed ? 'alert' : 'status'} className="text-sm">
+          {feedback}
+        </p>
+      ) : null}
+    </form>
+  );
+}

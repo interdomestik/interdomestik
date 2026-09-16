@@ -1,4 +1,7 @@
-import { getStaffClaimDetail } from '@interdomestik/domain-claims';
+import { getInformationRequests, getStaffClaimDetail } from '@interdomestik/domain-claims';
+import { ClaimInformationRequestForm } from '@/features/staff/claims/components/ClaimInformationRequestForm';
+import { ClaimInformationRequests } from '@/features/member/claims/components/ClaimInformationRequests';
+import { LatestStatusNoteContent } from '@/features/staff/claims/components/LatestStatusNoteContent';
 import { deriveClaimSlaPhase } from '@/features/claims/policy';
 import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -18,35 +21,8 @@ interface PageProps {
   }>;
 }
 
-type LatestStatusNote = Awaited<ReturnType<typeof getLatestPublicStatusNoteCore>>;
-
 function toClaimStatus(value: unknown): ClaimStatus {
   return CLAIM_STATUSES.includes(value as ClaimStatus) ? (value as ClaimStatus) : 'draft';
-}
-
-function LatestStatusNoteContent({
-  latestStatusNote,
-  emptyLabel,
-  locale,
-}: {
-  latestStatusNote: LatestStatusNote;
-  emptyLabel: string;
-  locale: string;
-}) {
-  if (!latestStatusNote?.note) {
-    return <p className="text-muted-foreground">{emptyLabel}</p>;
-  }
-
-  return (
-    <>
-      <p className="whitespace-pre-wrap text-slate-900">{latestStatusNote.note}</p>
-      <p className="text-xs text-muted-foreground">
-        {latestStatusNote.createdAt
-          ? new Date(latestStatusNote.createdAt).toLocaleString(locale)
-          : ''}
-      </p>
-    </>
-  );
 }
 
 export default async function StaffClaimDetailsPage({ params }: PageProps) {
@@ -96,6 +72,7 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
     : [];
   const claimStatus = toClaimStatus(detail.claim.status);
   const slaPhase = deriveClaimSlaPhase(claimStatus);
+  const informationRequests = await getInformationRequests(session, id);
 
   return (
     <div className="space-y-6" data-testid="staff-claim-detail-ready">
@@ -215,6 +192,13 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
           </p>
         </section>
       ) : null}
+
+      {session.user.role === 'staff' &&
+      detail.claim.staffId === session.user.id &&
+      claimStatus === 'verification' ? (
+        <ClaimInformationRequestForm claimId={id} />
+      ) : null}
+      <ClaimInformationRequests requests={informationRequests} />
 
       <section className="rounded-lg border bg-white p-4" data-testid="staff-claim-detail-agent">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">

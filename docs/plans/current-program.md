@@ -44,9 +44,10 @@ through protected PR #1780 as `f3d36b2e7781654fe5448fab11da891368d95f19`, with a
 exact-main checks passed. S2 completed through protected PR #1781 as
 `de15d4cac87d7ba6ce15d98c75069445bb84dcb4`, with all 13 exact-main checks passed.
 The bounded roadmap acceptance-link amendment completed through protected PR #1782 as
-`7db57a30c35112a679271e6469d20974f83dd061`. The owner has selected S3 from that exact main;
-the active increment is the supported member submission → staff acceptance into verification →
-member continuity prefix, not the whole S3 journey.
+`7db57a30c35112a679271e6469d20974f83dd061`. S3's supported submission → verification → member
+continuity prefix merged through PR #1783 as `135338a5501267a3377ce6a67b053ba61ef54c9c`, with
+all 13 protected checks green and retirement confirmed. The owner selected the bounded S4
+missing-information request increment from that main; the whole S3 journey remains open.
 
 ## Owner-adopted enterprise delivery sequence (2026-09-15)
 
@@ -94,8 +95,46 @@ same-status note uses the existing staff core contract before a fresh mounted me
 exclusion. The first reproduced unsupported handoff is IDA-CLM-010:
 there is no evidence-request aggregate/command/read model with request correlation and due date, so
 the generic upload path cannot prove a request-bound member upload or staff acknowledgement. S4 is
-therefore a proposed conditional successor, not selected work. This increment does not claim full
+now the owner-selected bounded successor described below. This increment does not claim full
 S3, request-bound upload/acknowledgement, four-locale user acceptance or deployment readiness.
+
+### Selected S4 — Missing-information request (2026-09-16)
+
+IDA-CLM-010 requires a specific request, due date, responsible owner, member-visible explanation,
+and SLA posture when minimum information is absent. Its acceptance covers authorized, denied,
+malformed, boundary and retry/concurrency behavior with traceable build/data and no unauthorized
+disclosure/mutation. The owner authorizes a new claim request record, command, safe projection and
+minimal mounted staff/member UI. Claim information requests are the sole source of truth; future
+CRM references require separate S8/S9 authority and must not duplicate requests or broaden access.
+
+Creation is limited to the current assigned staff owner and the existing verification handoff.
+Assigned-owner creation is the accepted bounded design choice; SRS does not prescribe that role.
+The explicit due date is a valid ISO instant, with no future floor, cap, default, computation or
+escalation. Existing due-date policy treats such bounds as separate business authority. The request
+records the verification posture `incomplete`; it does not mutate claim lifecycle or timers.
+Tenant/claim ownership is enforced; the member sees an opaque request ID and public information,
+explanation, due date and team label, never internal correlation or staff identifiers. Identical
+correlation/payload retries return the original request; changed payload reuse conflicts. Distinct
+requests remain permitted. Request-bound upload, acknowledgement, fulfilment, notifications,
+generic workflow/SLA engines, role redesign and deployment are excluded.
+
+The sole implementation owner is Astra at medium reasoning, explicitly owner-authorized over the
+skill default because this bounded slice includes schema/RLS/concurrency. Raise reasoning only for
+a concrete unresolved risk. Reuse Sonnet `claude-sonnet-5` PASS and Gemini
+`gemini-3.1-pro-preview` adversarial preparation receipts `20260916T180205`; Opus 5 owns the first
+independent final review, with Astra fallback only if unavailable or unusable. Required checks and
+protected delivery remain mandatory. The approved ceiling is +609,000 bytes and 16 new files
+(aggregate file ceiling 6091), with exact measured disjoint allocations and generated snapshot cost
+included; no reserve consumption or padding. S3 retirement removed its owned worktree/database;
+S4 uses its own isolated verification resources.
+
+Research reused from 2026-09-16: AirHelp's public claim guide
+(`https://www.airhelp.com/en-int/blog/how-to-use-airhelp-to-claim-flight-compensation/`) supports
+specific trackable document requests, not an inferred authenticated portal. GOV.UK task-list guidance
+(`https://design-system.service.gov.uk/components/task-list/`) supports a focused single-action form.
+W3C status-message and error-identification guidance informs accessible feedback. Test the mounted
+request and fresh-session member projection, exact ownership/tenant denials, canonical retries,
+concurrency, private-field exclusion and four-locale controls. No duplicate research audit is needed.
 
 ### Owner-adopted product-readiness roadmap (2026-09-15)
 

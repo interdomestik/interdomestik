@@ -209,6 +209,14 @@
       "actor_staff": "Staf",
       "actor_member": "Anëtar",
       "actor_admin": "Admini"
+    },
+    "informationRequests": {
+      "title": "Informacion i kërkuar",
+      "reference": "Referenca e kërkesës",
+      "dueAt": "Afati i kërkuar",
+      "owner": "Ekipi përgjegjës",
+      "ownerLabel": "Ekipi i rasteve Interdomestik",
+      "incomplete": "Informacioni mungonte kur u krijua kjo kërkesë. Gjendja aktuale e përgjigjes për rastin shfaqet më poshtë."
     }
   }
 }

@@ -170,6 +170,7 @@ vi.mock('@/components/shell/session', () => ({
 }));
 
 vi.mock('@interdomestik/domain-claims', () => ({
+  getInformationRequests: vi.fn(async () => []),
   getStaffClaimDetail: hoisted.getStaffClaimDetailMock,
 }));
 

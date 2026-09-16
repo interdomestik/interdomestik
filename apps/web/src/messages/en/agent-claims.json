@@ -1,6 +1,22 @@
 {
   "agent-claims": {
     "claims": {
+      "informationRequest": {
+        "title": "Request missing information",
+        "description": "Describe exactly what is missing and why the member needs to provide it.",
+        "requestedInformation": "Information needed",
+        "explanationForMember": "Explanation for the member",
+        "dueAt": "Due date and time",
+        "dueHint": "Use your local time. This date does not change the claim’s response timer.",
+        "submit": "Send request",
+        "saving": "Sending…",
+        "success": "Information request saved.",
+        "invalid_input": "Enter the information needed, an explanation, and a valid date and time.",
+        "access_denied": "Only the assigned staff owner can create this request.",
+        "invalid_state": "Information can only be requested while the claim is in verification.",
+        "conflict": "This request attempt was already used with different details. Refresh and try again.",
+        "failed": "The request could not be confirmed. Retry with the same details."
+      },
       "staff_queue": {
         "subtitle": "What needs action today.",
         "results_count": "{count, plural, one {# claim} other {# claims}}",

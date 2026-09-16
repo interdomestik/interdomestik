@@ -5,6 +5,8 @@ import { serializeMemberVaultConsentDisplay } from '@/features/claims/tracking/s
 import { MemberClaimDetailOpsPage } from '@/features/member/claims/components/MemberClaimDetailOpsPage';
 import { setRequestLocale } from 'next-intl/server';
 import { withMemberActorRoleOnSession } from '../../actor-role-on-session';
+import { getInformationRequests } from '@interdomestik/domain-claims';
+import { ClaimInformationRequests } from '@/features/member/claims/components/ClaimInformationRequests';
 
 interface PageProps {
   params: Promise<{
@@ -29,6 +31,7 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
   if (!claim) {
     return notFound();
   }
+  const informationRequests = await getInformationRequests(memberSession, id);
 
   // Serialize dates for Client Component
   const serializedClaim = {
@@ -59,14 +62,19 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
   };
 
   return (
-    <MemberClaimDetailOpsPage
-      claim={serializedClaim}
-      currentUser={{
-        id: memberSession.user.id,
-        name: memberSession.user.name ?? 'Member',
-        image: memberSession.user.image ?? null,
-        role: memberSession.user.role || 'member',
-      }}
-    />
+    <>
+      <div className="max-w-5xl mx-auto px-4 md:px-8">
+        <ClaimInformationRequests requests={informationRequests} />
+      </div>
+      <MemberClaimDetailOpsPage
+        claim={serializedClaim}
+        currentUser={{
+          id: memberSession.user.id,
+          name: memberSession.user.name ?? 'Member',
+          image: memberSession.user.image ?? null,
+          role: memberSession.user.role || 'member',
+        }}
+      />
+    </>
   );
 }

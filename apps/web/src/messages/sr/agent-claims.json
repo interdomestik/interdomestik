@@ -1,6 +1,22 @@
 {
   "agent-claims": {
     "claims": {
+      "informationRequest": {
+        "title": "Zatraži nedostajuće informacije",
+        "description": "Opišite tačno šta nedostaje i zašto član treba to da dostavi.",
+        "requestedInformation": "Potrebne informacije",
+        "explanationForMember": "Objašnjenje za člana",
+        "dueAt": "Datum i vreme roka",
+        "dueHint": "Koristite lokalno vreme. Ovaj rok ne menja vreme odgovora za predmet.",
+        "submit": "Pošalji zahtev",
+        "saving": "Slanje…",
+        "success": "Zahtev za informacije je sačuvan.",
+        "invalid_input": "Unesite potrebne informacije, objašnjenje i važeći datum i vreme.",
+        "access_denied": "Samo dodeljeni zaposleni može da kreira ovaj zahtev.",
+        "invalid_state": "Informacije se mogu tražiti samo tokom provere predmeta.",
+        "conflict": "Ovaj pokušaj je već korišćen sa drugim podacima. Osvežite i pokušajte ponovo.",
+        "failed": "Zahtev nije mogao biti potvrđen. Pokušajte ponovo sa istim podacima."
+      },
       "staff_queue": {
         "subtitle": "Šta danas traži akciju.",
         "results_count": "{count, plural, one {# zahtev} other {# zahteva}}",

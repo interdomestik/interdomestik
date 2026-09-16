@@ -209,6 +209,14 @@
       "actor_staff": "Staff",
       "actor_member": "Member",
       "actor_admin": "Admin"
+    },
+    "informationRequests": {
+      "title": "Information requested",
+      "reference": "Request reference",
+      "dueAt": "Requested by",
+      "owner": "Responsible team",
+      "ownerLabel": "Interdomestik case team",
+      "incomplete": "Information was missing when this request was created. Your claim’s current response status is shown below."
     }
   }
 }

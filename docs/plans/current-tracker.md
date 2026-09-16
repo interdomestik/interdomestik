@@ -17,8 +17,21 @@ status_command: pnpm plan:status
 ## Active Queue
 
 S1 (#1780) and S2 (#1781) are complete; all 13 exact-main checks passed at their merges.
-The acceptance-link amendment completed through protected PR #1782. Current protected main is
-`7db57a30c35112a679271e6469d20974f83dd061`.
+S3's bounded supported prefix completed through protected PR #1783. Its merge is
+`135338a5501267a3377ce6a67b053ba61ef54c9c`; all 13 checks passed. Task retirement confirmed
+the owned 9ace worktree removed without force, branch retained, isolated database removed after
+zero active connections, and shared Supabase untouched. The owner selected S4 from this main.
+
+S4 — `S4-MISSING-INFORMATION-REQUEST` — is in implementation under Astra/medium, explicitly
+owner-authorized. Contract: current assigned staff creates only in verification; explicit valid ISO
+due date with no inferred range/default; request-local incomplete SLA posture; no claim mutation;
+opaque member request ID; safe public projection; tenant/ownership checks; idempotent same-payload
+retry and mutated-correlation conflict. Distinct requests are permitted. Upload/acknowledgement,
+CRM duplication, wider roles, notifications and deployment remain outside this increment.
+Sonnet/Gemini preparation `20260916T180205` is reused. Opus 5 final review and focused/database/
+mounted journey proof, capacity/security/full checks, protected delivery and retirement are pending.
+Approved capacity ceiling: +609,000 bytes / 16 new files, including generated migration snapshot;
+apply exact measured disjoint allocations without reserves or padding.
 
 | ID                                 | Status        | Owner | Work                                                                                            | Exit Criteria                                                                                                                                                                                                                                                           |
 | ---------------------------------- | ------------- | ----- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -122,20 +135,20 @@ Owner-adopted on 2026-09-15; detailed scope and acceptance live only in the curr
 product-readiness roadmap. These rows do not change the active slice or mark future work complete.
 S4–S14 are outcome families to split into bounded implementation slices, not architecture T IDs.
 
-| Item                                    | Status                | Next evidence                                                                                                            |
-| --------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| S4 — S3 handoff gap                     | proposed_not_selected | IDA-CLM-010 request aggregate/correlation/due-date gap only; minimal integration and extended journey proof if selected. |
-| S5 — Member first-case journey          | queued_conditional    | Reconcile front-door/preparation/save/submission receipts; implement remaining UI/UX gaps.                               |
-| S6 — Member continuation and membership | queued_conditional    | Credit #1775–#1777; complete only missing return/evidence/message/membership access outcomes.                            |
-| S7 — Staff handling journey             | queued_conditional    | Existing handling contracts; queue and evidence round-trip with internal/public separation.                              |
-| S8 — Agent client/handoff journey       | queued_conditional    | Existing authority and attribution; only unresolved capability changes need disposition.                                 |
-| S9 — Agent-assisted activation          | queued_conditional    | Member ownership, attribution and Paddle continuity on established contracts.                                            |
-| S10 — Branch-manager oversight          | queued_conditional    | S2; existing authorized scope; metric decisions block only affected restoration.                                         |
-| S11 — Tenant-admin operations           | queued_conditional    | People/branches and contracted access lifecycle, split into bounded increments.                                          |
-| S12 — Platform-admin operations         | queued_conditional    | Technical operations and separate business-authority boundary.                                                           |
-| H1 — SVC-CORE / Help Now                | priority_when_ready   | First unmet clause, country/content/stop-rule authority and usable assistance path.                                      |
-| S13 — Outcome and closure               | queued_conditional    | Closure/recovery receipts and pilot scope; truthful member/staff outcome UI.                                             |
-| S14 — Pilot rehearsal                   | queued_conditional    | All in-scope role journeys, user acceptance, accessibility, four locales and operational evidence.                       |
+| Item                                    | Status              | Next evidence                                                                                                                            |
+| --------------------------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| S4 — S3 handoff gap                     | in_progress         | Owner-selected IDA-CLM-010 request creation/read/UI increment; bounded contract above. Request-bound upload/acknowledgement remain open. |
+| S5 — Member first-case journey          | queued_conditional  | Reconcile front-door/preparation/save/submission receipts; implement remaining UI/UX gaps.                                               |
+| S6 — Member continuation and membership | queued_conditional  | Credit #1775–#1777; complete only missing return/evidence/message/membership access outcomes.                                            |
+| S7 — Staff handling journey             | queued_conditional  | Existing handling contracts; queue and evidence round-trip with internal/public separation.                                              |
+| S8 — Agent client/handoff journey       | queued_conditional  | Existing authority and attribution; only unresolved capability changes need disposition.                                                 |
+| S9 — Agent-assisted activation          | queued_conditional  | Member ownership, attribution and Paddle continuity on established contracts.                                                            |
+| S10 — Branch-manager oversight          | queued_conditional  | S2; existing authorized scope; metric decisions block only affected restoration.                                                         |
+| S11 — Tenant-admin operations           | queued_conditional  | People/branches and contracted access lifecycle, split into bounded increments.                                                          |
+| S12 — Platform-admin operations         | queued_conditional  | Technical operations and separate business-authority boundary.                                                                           |
+| H1 — SVC-CORE / Help Now                | priority_when_ready | First unmet clause, country/content/stop-rule authority and usable assistance path.                                                      |
+| S13 — Outcome and closure               | queued_conditional  | Closure/recovery receipts and pilot scope; truthful member/staff outcome UI.                                                             |
+| S14 — Pilot rehearsal                   | queued_conditional  | All in-scope role journeys, user acceptance, accessibility, four locales and operational evidence.                                       |
 
 Before selecting each family, record its exact bounded gap, direct predecessor receipts, model/risk,
 UI acceptance and exclusions in the existing active queue. Record why any independent ready outcome

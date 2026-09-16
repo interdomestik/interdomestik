@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 108017,
+      "trackedBytesDelta": 112305,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 69926,
+        "config/data/messages": 74214,
         "source/scripts": 23092,
         "tests/e2e": 14999
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 69926,
+        "scripts/repo-size-budget.json": 74214,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -61,10 +61,10 @@
       "id": "product-readiness-requirement-map",
       "mode": "exact",
       "writerPaths": ["docs/plans/requirement-disposition-map.md"],
-      "trackedBytesDelta": 73632,
+      "trackedBytesDelta": 73720,
       "trackedFilesDelta": 1,
-      "categoryBytesDelta": { "docs/text": 73632 },
-      "pathBytesDelta": { "docs/plans/requirement-disposition-map.md": 73632 }
+      "categoryBytesDelta": { "docs/text": 73720 },
+      "pathBytesDelta": { "docs/plans/requirement-disposition-map.md": 73720 }
     },
     {
       "id": "lean-compatibility-repair",
@@ -199,18 +199,18 @@
         "docs/plans/current-program.md",
         "docs/plans/current-tracker.md"
       ],
-      "maxTrackedBytesDelta": 31795,
+      "maxTrackedBytesDelta": 36346,
       "maxTrackedFilesDelta": 2,
       "maxCategoryBytesDelta": {
         "config/data/messages": 9674,
-        "docs/text": 18680,
-        "large support/generated-ish": 3441
+        "docs/text": 21862,
+        "large support/generated-ish": 4810
       },
       "maxPathBytesDelta": {
         "docs/plans/2026-08-27-t116-case-summary-design-gate.md": 11495,
         "docs/plans/2026-08-27-t116-case-summary-admission.json": 9748,
-        "docs/plans/current-program.md": 7203,
-        "docs/plans/current-tracker.md": 3441
+        "docs/plans/current-program.md": 10385,
+        "docs/plans/current-tracker.md": 4810
       }
     },
     {
@@ -1120,11 +1120,11 @@
         "scripts/package-command-runtime.mjs",
         "scripts/package-e2e-scripts.test.mjs"
       ],
-      "maxTrackedBytesDelta": 90287,
+      "maxTrackedBytesDelta": 90327,
       "maxTrackedFilesDelta": 15,
       "maxCategoryBytesDelta": {
         "docs/text": 4737,
-        "config/data/messages": 1076,
+        "config/data/messages": 1116,
         "source/scripts": 38417,
         "tests/e2e": 46057
       },
@@ -1134,7 +1134,7 @@
         "docs/DEVELOPMENT.md": 3010,
         "docs/SONAR.md": 491,
         "gemini.md": 295,
-        "packages/database/package.json": 37,
+        "packages/database/package.json": 77,
         "packages/qa/README.md": 408,
         "packages/qa/src/tools/health.ts": 220,
         "packages/qa/src/tools/list-tools.ts": 22,
@@ -1236,7 +1236,7 @@
         "tests/e2e": 46031
       },
       "maxPathBytesDelta": {
-        "apps/web/e2e/gate/front-door-session-context.spec.ts": 4e3,
+        "apps/web/e2e/gate/front-door-session-context.spec.ts": 4000,
         "apps/web/src/actions/notifications/mark-read.test.ts": 200,
         "apps/web/src/components/notifications/notification-center.acknowledgement.test.tsx": 12000,
         "apps/web/src/components/notifications/notification-focus.test.tsx": 2500,
@@ -1331,11 +1331,11 @@
         "apps/web/src/messages/sq/claims.json",
         "apps/web/src/messages/sr/claims.json"
       ],
-      "maxTrackedBytesDelta": 63000,
+      "maxTrackedBytesDelta": 64644,
       "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
         "docs/text": 28500,
-        "config/data/messages": 4000,
+        "config/data/messages": 5644,
         "source/scripts": 8000,
         "tests/e2e": 22500
       },
@@ -1348,10 +1348,10 @@
         "apps/web/src/features/member/claims/components/ClaimEvidenceUploadDialog.test.tsx": 7700,
         "apps/web/e2e/gate/member-vault-consent-display.spec.ts": 7800,
         "apps/web/e2e/golden/member-claim-detail-ops.spec.ts": 6000,
-        "apps/web/src/messages/en/claims.json": 860,
-        "apps/web/src/messages/mk/claims.json": 1222,
-        "apps/web/src/messages/sq/claims.json": 982,
-        "apps/web/src/messages/sr/claims.json": 936
+        "apps/web/src/messages/en/claims.json": 1217,
+        "apps/web/src/messages/mk/claims.json": 1764,
+        "apps/web/src/messages/sq/claims.json": 1363,
+        "apps/web/src/messages/sr/claims.json": 1300
       }
     },
     {
@@ -1442,6 +1442,76 @@
         "packages/domain-communications/src/notifications/notify.test.ts": 1600,
         "packages/domain-communications/src/notifications/notify.ts": 0
       }
+    },
+    {
+      "id": "s4-missing-information-request",
+      "mode": "bounded",
+      "writerPaths": [
+        "apps/web/src/app/[locale]/(app)/member/claims/[id]/page.test.tsx",
+        "apps/web/src/app/[locale]/(app)/member/claims/[id]/page.tsx",
+        "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page.test.tsx",
+        "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page.tsx",
+        "apps/web/src/messages/en/agent-claims.json",
+        "apps/web/src/messages/mk/agent-claims.json",
+        "apps/web/src/messages/sq/agent-claims.json",
+        "apps/web/src/messages/sr/agent-claims.json",
+        "packages/database/drizzle/meta/_journal.json",
+        "packages/database/src/schema/index.ts",
+        "packages/domain-claims/src/index.ts",
+        "apps/web/e2e/gate/information-request-cleanup.fixture.ts",
+        "apps/web/e2e/gate/information-request.fixture.ts",
+        "apps/web/e2e/gate/information-request.spec.ts",
+        "apps/web/src/actions/staff-claims/information-request.core.test.ts",
+        "apps/web/src/actions/staff-claims/information-request.ts",
+        "apps/web/src/features/member/claims/components/ClaimInformationRequests.test.tsx",
+        "apps/web/src/features/member/claims/components/ClaimInformationRequests.tsx",
+        "apps/web/src/features/staff/claims/components/ClaimInformationRequestForm.test.tsx",
+        "apps/web/src/features/staff/claims/components/ClaimInformationRequestForm.tsx",
+        "apps/web/src/features/staff/claims/components/LatestStatusNoteContent.tsx",
+        "packages/database/drizzle/0093_s4_claim_information_requests.sql",
+        "packages/database/drizzle/meta/0093_snapshot.json",
+        "packages/database/src/schema/claim-information-requests.ts",
+        "packages/database/test/claim-information-requests.test.ts",
+        "packages/domain-claims/src/claims/information-requests.test.ts",
+        "packages/domain-claims/src/claims/information-requests.ts"
+      ],
+      "maxTrackedBytesDelta": 520502,
+      "maxTrackedFilesDelta": 16,
+      "maxCategoryBytesDelta": {
+        "tests/e2e": 27375,
+        "source/scripts": 15573,
+        "config/data/messages": 4738,
+        "large support/generated-ish": 472816
+      },
+      "maxPathBytesDelta": {
+        "apps/web/src/app/[locale]/(app)/member/claims/[id]/page.test.tsx": 100,
+        "apps/web/src/app/[locale]/(app)/member/claims/[id]/page.tsx": 424,
+        "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page.test.tsx": 49,
+        "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page.tsx": 21,
+        "apps/web/src/messages/en/agent-claims.json": 1029,
+        "apps/web/src/messages/mk/agent-claims.json": 1593,
+        "apps/web/src/messages/sq/agent-claims.json": 1097,
+        "apps/web/src/messages/sr/agent-claims.json": 1019,
+        "packages/database/drizzle/meta/_journal.json": 157,
+        "packages/database/src/schema/index.ts": 46,
+        "packages/domain-claims/src/index.ts": 47,
+        "apps/web/e2e/gate/information-request-cleanup.fixture.ts": 1141,
+        "apps/web/e2e/gate/information-request.fixture.ts": 1805,
+        "apps/web/e2e/gate/information-request.spec.ts": 3394,
+        "apps/web/src/actions/staff-claims/information-request.core.test.ts": 1454,
+        "apps/web/src/actions/staff-claims/information-request.ts": 650,
+        "apps/web/src/features/member/claims/components/ClaimInformationRequests.test.tsx": 1925,
+        "apps/web/src/features/member/claims/components/ClaimInformationRequests.tsx": 1909,
+        "apps/web/src/features/staff/claims/components/ClaimInformationRequestForm.test.tsx": 3824,
+        "apps/web/src/features/staff/claims/components/ClaimInformationRequestForm.tsx": 3789,
+        "apps/web/src/features/staff/claims/components/LatestStatusNoteContent.tsx": 609,
+        "packages/database/drizzle/0093_s4_claim_information_requests.sql": 3922,
+        "packages/database/drizzle/meta/0093_snapshot.json": 468737,
+        "packages/database/src/schema/claim-information-requests.ts": 2509,
+        "packages/database/test/claim-information-requests.test.ts": 8166,
+        "packages/domain-claims/src/claims/information-requests.test.ts": 5517,
+        "packages/domain-claims/src/claims/information-requests.ts": 5569
+      }
     }
   ],
   "reserve": {
@@ -1450,15 +1520,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61506159,
-  "maxTrackedFiles": 6075,
+  "maxTrackedBytes": 62037272,
+  "maxTrackedFiles": 6091,
   "maxCategoryBytes": {
-    "config/data/messages": 2247787,
-    "docs/text": 8644068,
-    "large support/generated-ish": 15395985,
+    "config/data/messages": 2258497,
+    "docs/text": 8647338,
+    "large support/generated-ish": 15870170,
     "other": 19184750,
-    "source/scripts": 8867011,
-    "tests/e2e": 7166558
+    "source/scripts": 8882584,
+    "tests/e2e": 7193933
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

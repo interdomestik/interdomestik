@@ -209,6 +209,14 @@
       "actor_staff": "Osoblje",
       "actor_member": "Član",
       "actor_admin": "Administrator"
+    },
+    "informationRequests": {
+      "title": "Tražene informacije",
+      "reference": "Referenca zahteva",
+      "dueAt": "Traženi rok",
+      "owner": "Odgovorni tim",
+      "ownerLabel": "Interdomestik tim za predmete",
+      "incomplete": "Informacije su nedostajale kada je ovaj zahtev kreiran. Trenutni status odgovora za predmet prikazan je ispod."
     }
   }
 }
