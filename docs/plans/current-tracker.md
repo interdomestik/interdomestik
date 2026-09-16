@@ -22,7 +22,7 @@ S3's bounded supported prefix completed through protected PR #1783. Its merge is
 the owned 9ace worktree removed without force, branch retained, isolated database removed after
 zero active connections, and shared Supabase untouched. The owner selected S4 from this main.
 
-S4 — `S4-MISSING-INFORMATION-REQUEST` — is in implementation under Astra/medium, explicitly
+S4 — `S4-MISSING-INFORMATION-REQUEST` — is verified pending protected delivery under Astra/medium, explicitly
 owner-authorized. Contract: current assigned staff creates only in verification; explicit valid ISO
 due date with no inferred range/default; request-local incomplete SLA posture; no claim mutation;
 opaque member request ID; safe public projection; tenant/ownership checks; idempotent same-payload
@@ -67,6 +67,25 @@ member card after identity inside progress, preserve submit focus and stable fee
 and make request-posture copy position-independent. Regressions now isolate the non-staff form
 gate, exercise the legacy `user` read role in live SQL, and admit a complete near-1-MiB reviewer
 packet. No pagination, lifecycle, auth normalization or unrelated component relocation was added.
+
+Final product source `211d57b04c21296533ab2184cd265b617085eb24`, tree
+`67620a4c92b1e6bcabba6b5d8bda10b38e7c2b12`, passed provider-attested `claude-opus-5`
+review `20260916T214531-opus` after the quota reset (349,462 ms). The prior full run exposed
+eager schema-column access through the domain barrel; the identical public projection now resolves
+inside the authorized read. All 14 affected suites (63 tests) and 30 request-domain tests pass.
+No Astra review fallback was used after the owner's explicit prohibition.
+
+Fresh isolated Z620 `pr:verify` passed on that source in 2,749.132 seconds: 1,192 CI contracts,
+154 release tests, 52 mandatory RLS tests, 81.19% repository line coverage (21,819/26,873),
+264 browser-gate passes/14 intentional skips and 13 smoke passes/11 intentional skips.
+Separate `security:guard` passed; the owned database had zero connections before deletion and
+the reserved port was released. The only generated worktree change was Next's root-params type
+import in `next-env.d.ts`, not product code. The same source also passed all 299 retained harness
+tests. Full log SHA-256: `01bf0dd4936c2d70e2d36f0703b6703ecde7981dde5211ae84d714a2f42dadf5`.
+Result SHA-256: `4a14665057c2bcc474b2c44bc72397f08688472acc0a58cc44ac9a34a69fb199`.
+Receipts are retained outside the task worktree at `.codex/artifacts/interdomestik/s4`.
+This evidence-only update preserves the product source identity; protected current-head checks,
+review intake, merge, exact-main health and requested worktree retirement remain required.
 
 | ID                               | Status        | Owner | Work                                                                                                               | Exit Criteria                                                                                                                                                                                               |
 | -------------------------------- | ------------- | ----- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

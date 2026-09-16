@@ -128,6 +128,12 @@ protected delivery remain mandatory. The approved ceiling is +609,000 bytes and 
 included; no reserve consumption or padding. S3 retirement removed its owned worktree/database;
 S4 uses its own isolated verification resources.
 
+Product source `211d57b04c21296533ab2184cd265b617085eb24` has current-source Opus 5
+PASS and successful full isolated verification/security proof, recorded in the current tracker.
+The owner's later instruction prohibits Astra review fallback; quota-blocked Opus review must
+wait for reset. Protected delivery and exact-main health remain required before bounded completion;
+preserve receipts outside the worktree before the owner-requested task-resource retirement.
+
 Owner-approved S4 prerequisite amendment (2026-09-16): refresh the retained exact migration
 corpus/callback/ledger/execution metadata and direct regression tests for additive `0093` in this
 same branch. Astra/medium remains sole implementation owner. Owned paths are the existing

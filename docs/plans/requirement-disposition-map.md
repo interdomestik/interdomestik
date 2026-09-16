@@ -358,7 +358,7 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-CLM-007 | No destructive duplicate merge | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-008 | Jurisdiction classification | Canonical | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-009 | Completeness outcome | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
-| IDA-CLM-010 | Missing-information request | Target | pilot-required | S3/S4/S5/S7 | Owner selected S4 from S3 merge 135338a55: assigned-owner request creation in verification, explicit due date, safe member explanation/reference, request-local SLA posture and correlation retry proof. Implementation/review/proof pending; request-bound upload and staff acknowledgement remain open | none | U | U | U |
+| IDA-CLM-010 | Missing-information request | Target | pilot-required | S3/S4/S5/S7 | S4 source 211d57b0 implements assigned-owner request creation in verification, explicit due date, safe member explanation/reference, request-local SLA posture and correlation retries. Opus 5 and full isolated proof pass; protected delivery pending. Request-bound upload and staff acknowledgement remain open | Current tracker S4 source-bound receipt | U | U | U |
 | IDA-CLM-011 | Conflict-of-interest stop | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-012 | Time-limit posture | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-013 | Fraud/integrity signal | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
