@@ -1386,9 +1386,9 @@
         "apps/web/e2e/gate/branch-overview-scope.fixture.ts",
         "apps/web/e2e/gate/branch-overview-scope.spec.ts"
       ],
-      "trackedBytesDelta": 19155,
+      "trackedBytesDelta": 19380,
       "trackedFilesDelta": 4,
-      "categoryBytesDelta": { "source/scripts": 422, "tests/e2e": 18733 },
+      "categoryBytesDelta": { "source/scripts": 422, "tests/e2e": 18958 },
       "pathBytesDelta": {
         "apps/web/src/app/[locale]/admin/overview/page.test.tsx": 1552,
         "apps/web/src/app/[locale]/admin/overview/page.tsx": 190,
@@ -1399,7 +1399,7 @@
         "apps/web/src/features/admin/branches/dashboard-v2/server/getBranchDashboardV2Data.test.ts": 1699,
         "apps/web/src/features/admin/branches/dashboard-v2/server/getBranchDashboardV2Data.ts": -329,
         "apps/web/e2e/gate/branch-overview-scope.fixture.ts": 7492,
-        "apps/web/e2e/gate/branch-overview-scope.spec.ts": 5205
+        "apps/web/e2e/gate/branch-overview-scope.spec.ts": 5430
       }
     }
   ],
@@ -1409,7 +1409,7 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61456755,
+  "maxTrackedBytes": 61456980,
   "maxTrackedFiles": 6069,
   "maxCategoryBytes": {
     "config/data/messages": 2243491,
@@ -1417,7 +1417,7 @@
     "large support/generated-ish": 15395985,
     "other": 19184750,
     "source/scripts": 8863520,
-    "tests/e2e": 7134104
+    "tests/e2e": 7134329
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

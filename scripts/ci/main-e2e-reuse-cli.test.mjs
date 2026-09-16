@@ -104,7 +104,7 @@ test('S2 branch overview scope protection preserves corpus parity', () => {
   assert.equal(
     inspectRepositoryParity({
       ...sources(),
-      e2eTreeSha: '1d0f0b3a85cf1e2180078547ee35f02f65005f5c',
+      e2eTreeSha: '944499bd35241f009a4732d6b98aa51b6384cd76',
     }).commandChain,
     true
   );

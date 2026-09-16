@@ -25,7 +25,17 @@ async function signIn(
 }
 
 async function expectKpi(page: Page, testId: string, value: number): Promise<void> {
-  await expect(page.getByTestId(testId).locator('span').last()).toHaveText(String(value));
+  await expect(page.locator(`[data-testid="${testId}"]:visible`).locator('span').last()).toHaveText(
+    String(value)
+  );
+}
+
+async function expectBranchTitle(page: Page, name: string): Promise<void> {
+  await expect(
+    page
+      .locator('[data-testid="dashboard-page-ready"]:visible')
+      .getByTestId('branch-dashboard-title')
+  ).toHaveText(name);
 }
 
 test.describe('S2 branch overview scope protection', () => {
@@ -44,27 +54,25 @@ test.describe('S2 branch overview scope protection', () => {
       await expect(page).toHaveURL(
         new RegExp(`/admin/branches/${encodeURIComponent(fixture.branches.own.id)}$`)
       );
-      await expect(page.getByTestId('branch-dashboard-title')).toHaveText(
-        fixture.branches.own.name
-      );
+      await expectBranchTitle(page, fixture.branches.own.name);
 
       await expectKpi(page, 'branch-kpi-open-claims', 1);
       await expectKpi(page, 'branch-kpi-cash-pending', 0);
       await expectKpi(page, 'branch-kpi-sla-breaches', 1);
       await expectKpi(page, 'branch-kpi-total-agents', 1);
       await expectKpi(page, 'branch-kpi-total-members', 1);
-      await expect(page.getByTestId('branch-pipeline-submitted').locator('span').last()).toHaveText(
-        '1'
-      );
+      await expect(
+        page.locator('[data-testid="branch-pipeline-submitted"]:visible').locator('span').last()
+      ).toHaveText('1');
 
-      const agentRow = page.getByRole('row').filter({
+      const agentRow = page.locator('tr:visible').filter({
         has: page.getByText(fixture.agent.name, { exact: true }),
       });
       await expect(agentRow.getByRole('cell').nth(2)).toHaveText('1');
       await expect(agentRow.getByRole('cell').nth(3)).toHaveText('-');
       await expect(agentRow.getByRole('cell').nth(4)).toHaveText('1');
 
-      const staffRow = page.getByRole('row').filter({
+      const staffRow = page.locator('tr:visible').filter({
         has: page.getByText(fixture.staffName, { exact: true }),
       });
       await expect(staffRow.getByRole('cell').nth(1)).toHaveText('1');
@@ -76,9 +84,7 @@ test.describe('S2 branch overview scope protection', () => {
         await expect(page).toHaveURL(
           new RegExp(`/admin/branches/${encodeURIComponent(fixture.branches.own.id)}$`)
         );
-        await expect(page.getByTestId('branch-dashboard-title')).toHaveText(
-          fixture.branches.own.name
-        );
+        await expectBranchTitle(page, fixture.branches.own.name);
         await expect(page.locator('body')).not.toContainText(deniedBranch.name);
       }
 
@@ -113,7 +119,7 @@ test.describe('S2 branch overview scope protection', () => {
       await gotoApp(page, routes.admin(info), info, { marker: 'not-found-page' });
       await expect(page).toHaveURL(/\/admin\/overview$/);
       await expect(page).not.toHaveURL(/\/admin\/branches\/(null|undefined)$/);
-      await expect(page.getByTestId('not-found-page')).toBeVisible();
+      await expect(page.locator('[data-testid="not-found-page"]:visible')).toBeVisible();
 
       await gotoApp(page, routes.adminBranchDetail(fixture.branches.own.id, info), info, {
         marker: 'not-found-page',
@@ -121,7 +127,7 @@ test.describe('S2 branch overview scope protection', () => {
       await expect(page).toHaveURL(
         new RegExp(`/admin/branches/${encodeURIComponent(fixture.branches.own.id)}$`)
       );
-      await expect(page.getByTestId('not-found-page')).toBeVisible();
+      await expect(page.locator('[data-testid="not-found-page"]:visible')).toBeVisible();
     });
   });
 });
