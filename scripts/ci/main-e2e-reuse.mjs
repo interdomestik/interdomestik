@@ -32,10 +32,8 @@ const E2E_TREE_SHAS = new Set([
   '8892fb8818e0d6861ac7d152249a4b15a5221890',
   // S2 branch overview scope protection and mounted isolation proof.
   '354b38ebe3d79b06b994103aa63dc21baf2f5294',
-  // S3 corpus with canonical routes and isolated-port proof.
-  'd7b9b1840181188e63c09fdf461b9672c8fe1126',
-  // S3 corpus with retry-safe ownership and async-notification cleanup proof.
-  '302b0040f035c4465870c2b69d153acdb540587f',
+  // S3 corpus with retry-safe ownership and authoritative notification cleanup proof.
+  '192c688bdaee5098c68378ffb93cb457b71a9339',
 ]);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {

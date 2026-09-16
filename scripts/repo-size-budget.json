@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 108016,
+      "trackedBytesDelta": 108017,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 69925,
+        "config/data/messages": 69926,
         "source/scripts": 23092,
         "tests/e2e": 14999
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 69925,
+        "scripts/repo-size-budget.json": 69926,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -1120,11 +1120,11 @@
         "scripts/package-command-runtime.mjs",
         "scripts/package-e2e-scripts.test.mjs"
       ],
-      "maxTrackedBytesDelta": 90250,
+      "maxTrackedBytesDelta": 90287,
       "maxTrackedFilesDelta": 15,
       "maxCategoryBytesDelta": {
         "docs/text": 4737,
-        "config/data/messages": 1039,
+        "config/data/messages": 1076,
         "source/scripts": 38417,
         "tests/e2e": 46057
       },
@@ -1134,7 +1134,7 @@
         "docs/DEVELOPMENT.md": 3010,
         "docs/SONAR.md": 491,
         "gemini.md": 295,
-        "packages/database/package.json": 0,
+        "packages/database/package.json": 37,
         "packages/qa/README.md": 408,
         "packages/qa/src/tools/health.ts": 220,
         "packages/qa/src/tools/list-tools.ts": 22,
@@ -1422,23 +1422,23 @@
         "packages/domain-communications/src/notifications/notify.test.ts",
         "packages/domain-communications/src/notifications/notify.ts"
       ],
-      "maxTrackedBytesDelta": 35000,
+      "maxTrackedBytesDelta": 35816,
       "maxTrackedFilesDelta": 5,
       "maxCategoryBytesDelta": {
         "config/data/messages": 2000,
         "source/scripts": 3000,
-        "tests/e2e": 30000
+        "tests/e2e": 30816
       },
       "maxPathBytesDelta": {
-        "apps/web/e2e/gate/member-staff-evidence-journey-cleanup.fixture.ts": 6200,
+        "apps/web/e2e/gate/member-staff-evidence-journey-cleanup.fixture.ts": 6622,
         "apps/web/e2e/gate/member-staff-evidence-journey.fixture.ts": 6000,
-        "apps/web/e2e/gate/member-staff-evidence-journey.spec.ts": 10200,
+        "apps/web/e2e/gate/member-staff-evidence-journey.spec.ts": 10418,
         "apps/web/e2e/gate/tenant-resolution.spec.ts": 300,
         "apps/web/e2e/utils/navigation.ts": 100,
         "apps/web/src/components/notifications/notification-action-href.test.ts": 800,
         "apps/web/src/components/notifications/notification-action-href.ts": 900,
         "packages/database/src/domain-event-relay.ts": 1600,
-        "packages/database/test/domain-event-relay-selection.test.ts": 5200,
+        "packages/database/test/domain-event-relay-selection.test.ts": 5484,
         "packages/domain-communications/src/notifications/notify.test.ts": 1600,
         "packages/domain-communications/src/notifications/notify.ts": 0
       }
@@ -1450,15 +1450,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61505305,
+  "maxTrackedBytes": 61506159,
   "maxTrackedFiles": 6075,
   "maxCategoryBytes": {
-    "config/data/messages": 2247749,
+    "config/data/messages": 2247787,
     "docs/text": 8644068,
     "large support/generated-ish": 15395985,
     "other": 19184750,
     "source/scripts": 8867011,
-    "tests/e2e": 7165742
+    "tests/e2e": 7166558
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

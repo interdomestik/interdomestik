@@ -140,20 +140,6 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
     await staffDetail.getByTestId('staff-update-claim-button').click();
     await expect(staffPage.getByText('Statusi i rastit u përditësua')).toBeVisible();
     await expect(staffDetail.getByTestId('staff-claim-detail-note')).toContainText(publicNote);
-    await expect
-      .poll(async () => {
-        const rows = await db.query.notifications.findMany({
-          where: and(
-            eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
-            inArray(notifications.type, ['claim_submitted', 'claim_status_changed']),
-            eq(notifications.actionUrl, `/member/claims/${submitted.claimId}`)
-          ),
-          columns: { type: true },
-        });
-        return [...new Set(rows.map(row => row.type))].sort();
-      })
-      .toEqual(['claim_status_changed', 'claim_submitted']);
-
     const staffActor = await db.query.user.findFirst({
       where: and(
         eq(user.email, E2E_USERS.KS_STAFF.email),
@@ -175,6 +161,7 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
       columns: { assignedAt: true, staffId: true, updatedAt: true },
     });
     expect(assignedClaim?.staffId).toBe(staffActor.id);
+    expect(assignedClaim?.assignedAt).toBeInstanceOf(Date);
     expect(assignedClaim?.assignedAt?.toISOString()).toBe(assignedClaim?.updatedAt?.toISOString());
     const privateResult = await updateClaimStatusCore({
       claimId: submitted.claimId,
@@ -184,6 +171,25 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
       session: { user: staffActor },
     });
     expect(privateResult.success).toBe(true);
+    await expect
+      .poll(async () => {
+        const rows = await db.query.notifications.findMany({
+          where: and(
+            eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
+            inArray(notifications.type, ['claim_submitted', 'claim_status_changed']),
+            eq(notifications.actionUrl, `/member/claims/${submitted.claimId}`)
+          ),
+          columns: { content: true, title: true, type: true },
+        });
+        return {
+          privateLeak: rows.some(row => `${row.title}${row.content}`.includes(privateNote)),
+          types: rows.map(row => row.type).sort(),
+        };
+      })
+      .toEqual({
+        privateLeak: false,
+        types: ['claim_status_changed', 'claim_submitted'],
+      });
 
     const persistedClaim = await db.query.claims.findFirst({
       where: and(

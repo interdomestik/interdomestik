@@ -49,6 +49,14 @@ describe('domain event relay selection', () => {
           and column_name = 'created_at'
       `;
       assert.equal(column?.data_type, 'timestamp with time zone');
+      const [assignedAtColumn] = await client<{ data_type: string }[]>`
+        select data_type
+        from information_schema.columns
+        where table_schema = 'public'
+          and table_name = 'claim'
+          and column_name = 'assignedAt'
+      `;
+      assert.equal(assignedAtColumn?.data_type, 'timestamp without time zone');
       await database.transaction(async tx => {
         await tx.execute(sql`set local time zone 'Europe/Berlin'`);
         await tx.insert(tenants).values({
