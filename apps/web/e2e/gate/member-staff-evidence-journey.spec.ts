@@ -328,6 +328,18 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
       await staffDetail.getByTestId('staff-update-claim-button').click();
       await expect(staffPage.getByText('Statusi i rastit u përditësua')).toBeVisible();
       await expect(staffDetail.getByTestId('staff-claim-detail-note')).toContainText(publicNote);
+      await expect
+        .poll(async () => {
+          const rows = await db.query.notifications.findMany({
+            where: and(
+              eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
+              eq(notifications.actionUrl, `/dashboard/claims/${submitted.claimId}`)
+            ),
+            columns: { id: true },
+          });
+          return rows.length;
+        })
+        .toBeGreaterThan(0);
 
       const staffActor = await db.query.user.findFirst({
         where: and(

@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 106813,
+      "trackedBytesDelta": 106815,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 68722,
+        "config/data/messages": 68724,
         "source/scripts": 23092,
         "tests/e2e": 14999
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 68722,
+        "scripts/repo-size-budget.json": 68724,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -891,16 +891,16 @@
         "packages/domain-claims/src/staff-claims/update-status.transaction.test.ts",
         "packages/domain-claims/src/staff-claims/update-status.ts"
       ],
-      "maxTrackedBytesDelta": 10466,
+      "maxTrackedBytesDelta": 10566,
       "maxTrackedFilesDelta": 2,
-      "maxCategoryBytesDelta": { "source/scripts": 681, "tests/e2e": 9785 },
+      "maxCategoryBytesDelta": { "source/scripts": 681, "tests/e2e": 9885 },
       "maxPathBytesDelta": {
         "apps/web/src/actions/staff-claims/update-status.test.ts": 0,
         "packages/domain-claims/src/staff-claims/current-claim-record.test.ts": 2368,
         "packages/domain-claims/src/staff-claims/current-claim-record.ts": 0,
         "packages/domain-claims/src/staff-claims/matter-allowance.test.ts": 1587,
         "packages/domain-claims/src/staff-claims/matter-allowance.ts": 207,
-        "packages/domain-claims/src/staff-claims/update-status.test.ts": 0,
+        "packages/domain-claims/src/staff-claims/update-status.test.ts": 100,
         "packages/domain-claims/src/staff-claims/update-status.transaction.test.ts": 5830,
         "packages/domain-claims/src/staff-claims/update-status.ts": 474
       }
@@ -1430,15 +1430,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61490762,
+  "maxTrackedBytes": 61490864,
   "maxTrackedFiles": 6071,
   "maxCategoryBytes": {
-    "config/data/messages": 2244546,
+    "config/data/messages": 2244548,
     "docs/text": 8644068,
     "large support/generated-ish": 15395985,
     "other": 19184750,
     "source/scripts": 8865171,
-    "tests/e2e": 7156242
+    "tests/e2e": 7156342
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

@@ -36,6 +36,10 @@ note, followed by a fresh authenticated member context proving it absent. Exact 
 branch-manager core calls against that claim return `Unauthorized` without history mutation. Cleanup
 removes the exact draft, claim, history, event delivery/event, audit and notification rows; the claim
 number sequence remains a monotonic database sequence and the isolated task database is also removed.
+The test first observes the emitted claim notification at the same exact action URL used for cleanup,
+so the notification predicate is exercised rather than self-validating dead code. The required
+`e2e:gate` and `e2e:gate:pr` commands use one worker; therefore the shared seeded member's temporary
+claim cannot overlap a sibling gate consumer and is removed before the next test starts.
 
 The pre-existing C2-04 pilot assertion still expects the older scoped-status error. Its source contract
 changed in `be7f1d9f79`, while default `e2e:gate` excludes `/pilot/`; S3 does not silently normalize or
@@ -50,6 +54,17 @@ The raw `tx.execute<T>` inventory contains six sites (relay, two recovery eviden
 evidence, AI persistence and policy lifecycle guard counting as six call sites); only the relay selects
 this event timestamp. The string normalization supersedes the earlier no-userland-mapping assumption
 because the live driver value violates the typed `Date` boundary. Sibling sites remain inventory only.
+An explicit-offset parse failure aborts and retries the locked relay batch for every consumer; this is
+the intentional fail-closed poison-batch posture until the driver contract is restored.
+
+The same mounted journey reproduced Drizzle raw-SQL `Date` binding failure in the first staff
+assignment: `Failed query: select $1 as value`, with the parameter rendered as the host-local
+`Wed Sep 16 2026 12:00:00 GMT+0200 (Central European Summer Time)`. The staff writer now binds the
+same `updatedAt` instant as UTC ISO text inside `coalesce`; its focused test asserts identity of those
+instants. The writer's only sibling raw-SQL bindings are staff/assigner string IDs, so no other `Date`
+binding is in scope. Both writer/test paths remain governed by the existing named
+`staff-current-claim-tenant-context` allocation; its focused-test cap is expanded exactly for S3,
+while the separately named S3 allocation owns only the new E2E and relay paths.
 
 ### Owner-adopted successor queue (2026-09-15)
 
@@ -545,10 +560,10 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                                 | Source Refs                                                   | Execution                           | Run ID | Run Root         | Sonar   | Docker              | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| ---------------------------------- | ------------------------------------------------------------- | ----------------------------------- | ------ | ---------------- | ------- | ------------------- | ---------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SRS-ROADMAP-ACCEPTANCE-LINKS`     | current program                                               | `manual`                            | #1782  | protected main   | passed  | `not_applicable`    | `not_applicable` | recorded | Protected merge `7db57a30c35112a679271e6469d20974f83dd061`; amendment completed without S3 implementation.                                                                                                                                                                                                                                                                                                                          |
-| `S3-MEMBER-STAFF-SUPPORTED-PREFIX` | current program; IDA-CLM-001/014; IDA-CAS-005/006/007/008/015 | `gate-ks-sq` plus focused contracts | local  | isolated task DB | pending | local PostgreSQL 16 | `not_applicable` | pending  | Exact mounted UI journey passes with a fresh member return, exact member/agent/branch-manager denial, private-note exclusion and zero exact-row residue; 309 database contracts (301 pass, 8 environment-skipped) and 19 focused status contracts pass. Sonnet 5 and Gemini reviews passed; first Opus 5 review findings are corrected and current-head re-review is pending. Protected delivery pending; IDA-CLM-010 remains open. |
+| ID                                 | Source Refs                                                   | Execution                           | Run ID | Run Root         | Sonar   | Docker              | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ---------------------------------- | ------------------------------------------------------------- | ----------------------------------- | ------ | ---------------- | ------- | ------------------- | ---------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SRS-ROADMAP-ACCEPTANCE-LINKS`     | current program                                               | `manual`                            | #1782  | protected main   | passed  | `not_applicable`    | `not_applicable` | recorded | Protected merge `7db57a30c35112a679271e6469d20974f83dd061`; amendment completed without S3 implementation.                                                                                                                                                                                                                                                                                                                                          |
+| `S3-MEMBER-STAFF-SUPPORTED-PREFIX` | current program; IDA-CLM-001/014; IDA-CAS-005/006/007/008/015 | `gate-ks-sq` plus focused contracts | local  | isolated task DB | pending | local PostgreSQL 16 | `not_applicable` | pending  | Exact mounted UI journey passes with a fresh member return, exact member/agent/branch-manager denial, private-note exclusion and zero exact-row residue; 309 database contracts (301 pass, 8 environment-skipped) and 19 focused status contracts pass. Sonnet 5 and Gemini reviews passed; two Opus 5 finding rounds are consolidated and corrected, with a final current-head pass pending. Protected delivery pending; IDA-CLM-010 remains open. |
 
 ### Member case overview entry progress
 
