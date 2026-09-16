@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-15
+last_reviewed: 2026-09-16
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -41,12 +41,15 @@ Sonar main gate, passed. `MEMBER-CASE-DETAIL-CONTINUITY` completed through prote
 completed `MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY` through protected PR #1778 as
 `81a219608dacf4ee9cfd8ee9f201e8ab156e54d2`; all 13 exact-main checks passed. S1 completed
 through protected PR #1780 as `f3d36b2e7781654fe5448fab11da891368d95f19`, with all 13
-exact-main checks passed. The owner now selects the bounded S2 branch overview scope slice below.
+exact-main checks passed. S2 completed through protected PR #1781 as
+`de15d4cac87d7ba6ce15d98c75069445bb84dcb4`, with all 13 exact-main checks passed.
+The owner authorizes the bounded roadmap acceptance-link amendment before S3 implementation.
 
 ## Owner-adopted enterprise delivery sequence (2026-09-15)
 
 The owner adopts this near-term sequence after the enterprise audit and Opus 5 consultation.
-`MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY` and S1 are completed; S2 is selected and in progress.
+`MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY`, S1 and S2 are completed. S3 remains queued;
+start its implementation only from the merged acceptance-link amendment.
 Select one bounded successor at a time below. S1–S3 are roadmap labels, not replacements for
 architecture T IDs. This section governs successor ordering over older suggestions.
 
@@ -125,6 +128,40 @@ Each UI brief states the task, screen/interaction change, direct contracts, forb
 acceptance, including keyboard/focus, mobile reflow, loading/error/empty/retry and truthful copy.
 Preserve existing EN/SQ/MK/SR coverage; pilot cohort choices do not silently narrow locale contracts.
 
+#### Acceptance links adopted on 2026-09-16
+
+The whole-source reconciliation confirms 510 numbered clauses, including acceptance/attributes,
+and retains supplementary controls. It establishes traceability, not whole-requirement completion.
+Use the [requirement map](requirement-disposition-map.md#acceptance-links-for-existing-outcomes)
+at each existing family selection. The audit's 43 groupings are not a new slice queue; its 468
+unresolved requirements are neither mandatory pilot work nor approved post-pilot deferrals.
+S3 and conditional S4 retain their exact cut points above; later diaspora/service gaps never
+expand them. Credit the delivered shell, member surfaces, S1/S2, Trip Mode and service contracts.
+
+| Existing destination                      | Acceptance to reconcile before its dependent outcome                                                                                                                                                                                                                                                                                                                                       |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| S5/S6 preparation; H1 guidance            | DIA-001–008: corridor/context, signed/current packs, integrity/expiry and full retry/recovery states. DIA-009–012: reviewed police/EAS/emergency guidance; DIA-010 applies to both Trip Mode and H1. DIA-019: preserve EN/SQ/MK/SR and reconcile historical scoped German authority before affected language acceptance, not a universal fifth locale.                                     |
+| Later S5/S7 handoff; conditional recovery | DIA-013–015: validated facts, consent/authority recheck and receiver acknowledgement, reusing S3/S4 contracts without enlarging them. DIA-016/018: cross-border legal/entity/partner approval before professional action or marketing promises, including S5/S6 copy. DIA-017 remains conditional under OD-18; DIA-020 requires minimized analytics.                                       |
+| H1 and individually selected services     | Preserve each SVC-01–10 row and direct edges in the architecture tracker; H1 covers the first unmet core clause and SVC-06, not all services. The map links each service's distinct acceptance. VONESA remains separate with FLIGHT/T-411/CQRS dependencies; no blanket flight prerequisite.                                                                                               |
+| S6/S9 membership; S8/S9 CRM               | First prove existing active/grace membership and Asistencë ID access; reconcile lifecycle exceptions separately. S9 proves assisted offer/Paddle activation and attribution, not a prerequisite for S6 access. CRM acceptance includes consent/provenance, dedup, suppression/retention and accepted/rejected/timed-out handoff; campaigns remain excluded from S9.                        |
+| S7 handling; S13 closure                  | Separate insurer dispatch/ack/failure, objection and task/deadline exceptions from the first evidence round-trip. Prepare finance reconciliation and privacy revocation/DSR/hold outputs before dependent promises. Recovery/partner/mandate/cost authority precedes professional action; S13 remains truthful outcome/display, not new settlement mechanics or a predecessor to recovery. |
+| S10–S12 role journeys; each consumer/S14  | Exercise branch scope, purpose-bound support, read-only audit and independent business approval only where applicable; reuse canonical roles, not new job-title runtime roles. Attach SEC/NFR/OPS, BR/SOD, KPI/interface/AI/import acceptance to selected consumers. CI alone does not satisfy business/operating acceptance.                                                              |
+
+Locate accepted operating outputs first: country/content reviewer, dated sources and expiry;
+receiving queue/calendar/escalation; qualified partner and mandate/cost approval; financial
+reconciliation/statutory responsibility; processor/retention/DSR evidence; support/incident/restore
+rehearsal and representative-user/accessibility/language results. Prepare them alongside software,
+before the first dependent promise; S14 assembles their scoped evidence. Missing references are
+not proof of absent outputs or unassigned owners. The chief prepares evidence; accountable owners
+accept their outputs. Reuse all 29 approved OD policies in the owner-held SRS decision register (see the map
+baseline/source reference), including MK→KS→AL; gift/sponsor stays dark under OD-18 controls.
+
+**Unresolved owner choices, only where not already settled:** additional pilot services/corridors/
+cohorts; inclusion of professional recovery, VONESA, gift/sponsor, broader CRM campaigns, new
+interfaces, AI purposes or legacy-data import. Resolve only the choice affecting the next consumer,
+not the whole enterprise backlog. Resolve an actual SRS/ADR or scoped-language conflict only after
+checking accepted authority. These links adopt no new capability, pilot inclusion or deferral.
+
 #### Pilot acceptance, not merely CI acceptance
 
 - Confirm existing decisions before reopening any: countries, services, cohort and roles,
@@ -180,9 +217,11 @@ No routine promotion/closeout PR or tooling project is added. Merged is not depl
 Reuse the 2026-09-15 DORA small-batch/AI and GOV.UK whole-journey research; measured local tools
 are supplemental, not another prerequisite. This is sequencing authority, not completion evidence.
 
-## Selected S2 — Branch Overview Scope Protection
+## Completed S2 — Branch Overview Scope Protection
 
-`S2-BRANCH-OVERVIEW-SCOPE` is the sole selected product slice, medium complexity with a
+S2 completed through #1781 at `de15d4cac87d7ba6ce15d98c75069445bb84dcb4`; all 13
+exact-main checks passed. The retained brief below describes the delivered bounded scope,
+not an active selection. It was medium complexity with a
 security-sensitive authorization edge, Sol/high, from protected main
 `f3d36b2e7781654fe5448fab11da891368d95f19`. The mounted unified-shell route is
 `/[locale]/admin/overview`; proxy admission remains unchanged and `apps/web/src/proxy.ts` is
@@ -227,7 +266,7 @@ tests, 3,412 web tests/12 skips, 81.11% repository line coverage, 262 browser pa
 13 smoke passes/11 skips. Separate `pnpm security:guard` passed. Full-log SHA-256 is
 `60150d194b16f79da7039ad3e251e4cb70f878bb491004b135a2de42a2c35f3e`; security-log SHA-256 is
 `7865d7a498a8435749920e68875ab522a958f36ddf012b94385eb88cb284bea1`. Protected delivery and
-exact-main health remain pending.
+exact-main health subsequently passed through #1781 as recorded above.
 
 The currently mounted branch dashboard presentation is legacy and is not the visual target. S2
 makes no styling, information-architecture, shell-redesign, deployment or user-acceptance claim;
@@ -545,8 +584,8 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 These rows, the notification correctness increment, shared shell navigation, both notification
 acknowledgement increments, `MEMBER-CASE-WORKSPACE-REDESIGN` and `MEMBER-CASE-DETAIL-CONTINUITY`
-are completed history. The sole selected increment is `S2-BRANCH-OVERVIEW-SCOPE`, defined above;
-S1 and the localization predecessor are completed.
+are completed history, as are S1, S2 and the localization predecessor. The selected work is the
+acceptance-link documentation amendment; S3 implementation remains queued until its merge.
 
 ## Shared Shell Navigation Increment
 
