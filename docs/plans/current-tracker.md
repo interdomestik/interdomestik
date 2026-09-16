@@ -29,11 +29,12 @@ The completed #1782 acceptance-link amendment historically set the requirement-m
 the program/tracker remain inside named bounded allocation `t116-case-summary`. The S3
 journey/relay/notification-test allocation is separately bounded. Final review hardening increases
 the existing named capacity ceilings by exactly +816 test bytes, +37 package-command bytes and +1
-capacity-budget self byte; measured growth from `3782eb87` is +1,084 test bytes and +39 package bytes,
-with the remainder absorbed by existing headroom. The superseded S3 E2E corpus entry is replaced by
-the current hash; prior-slice entries remain. Executable capacity proof, rather than either historical
-figure, governs the candidate; no reserve, deleted-byte credit, allocation reorder or guard weakening
-is used.
+capacity-budget self byte. The historical `a112029` checkpoint measured +1,084 test bytes from
+`3782eb87`; the corrected current source measures +1,060 test bytes and +39 package bytes from that
+same base, with the remainder absorbed by existing headroom. The superseded S3 E2E corpus entry is
+replaced by the current hash; prior-slice entries remain. Executable capacity proof, rather than
+either historical figure, governs the candidate; no reserve, deleted-byte credit, allocation reorder
+or guard weakening is used.
 
 S3 implementation evidence is deliberately split: mounted UI owns member save/resume/submission and
 the public staff `submitted`→`verification` action; the existing staff core owns a private same-status
