@@ -26,18 +26,17 @@ This bounded S5 increment reconciles the silent-DE entry contradiction before de
 after it closes, selection again follows direct prerequisites for S6/S7 evidence,
 diaspora packs, H1 and later roles; it must not select a test-only predecessor merely for small size.
 
-The initial S5 explicit-country local proof completed at head
-`33c07f52df0b4a282d728318393d68ab2516b9e5`, tree
-`f6ac2c47c42e682940f816ed77db040942ccf74a`, database
+S5 explicit-country local proof is complete at head
+`6a93158d6a6ae95f373883395c167e62fbf3501e`, tree
+`f524042ba31a80aacecd3aeaf6b96645f2d0a534`, database
 `interdomestik_ci_33c07f52_pr_verify_r2` and port 3107. `pnpm pr:verify` exited 0 with 1,193 CI
 contracts, 154 release tests, 52/52 mandatory RLS cases, 644 web files/3,454 tests, 81.21%
-repository line coverage (21,829/26,881), 264 browser passes/14 intentional skips and 13 smoke
-passes/11 intentional skips. Both tenant projects passed the changed mounted diaspora spec; focused
-page coverage independently passed 11 cases. A separate same-head `pnpm security:guard` exited 0.
-The first two same-head full attempts are retained only as environmental diagnostics for disk
-exhaustion and a browser cache removed during Docker recovery. Accepted final-review hardening is
-not covered by this initial receipt; a fresh exact-candidate full/security run, protected delivery,
-exact-main health, archived receipts and retirement remain pending, so the queue row stays
+repository line coverage (21,828/26,880), 264 browser passes/14 intentional skips and 13 smoke
+passes/11 intentional skips. Both tenant projects passed neutral and selected EN/SQ/MK/SR mounted
+diaspora states at 320px; focused page coverage independently passed 11 cases. A separate same-head
+`pnpm security:guard` exited 0. Initial and intermediate full runs remain superseded evidence; Opus
+receipt `20260917T200207-opus` drove the final capacity and locale-proof corrections. Protected
+delivery, exact-main health, archived receipts and retirement remain pending, so the queue row stays
 `in_progress`.
 
 S5.d retirement receipt (2026-09-17): local `9dcc` and both owned Z620 worktrees are absent;
@@ -742,9 +741,9 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                                     | Source Refs                      | Execution  | Run ID                       | Run Root                            | Sonar   | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                                                                                                                                     |
-| -------------------------------------- | -------------------------------- | ---------- | ---------------------------- | ----------------------------------- | ------- | ---------------- | ---------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S5-EXPLICIT-DIASPORA-COUNTRY-CONTEXT` | current program; S5; DIA-002/003 | `scripted` | local-33c07f52-pre-hardening | local Mac + protected GitHub checks | pending | `not_applicable` | `not_applicable` | pass     | Initial exact-head `pr:verify` and separate `security:guard` passed on Mac at `33c07f52`; mounted diaspora acceptance passed in both tenant projects. Accepted review hardening requires a fresh exact-candidate full/security receipt before protected delivery. Exact-main health, archived checksummed receipts and owned-resource retirement remain pending. Full DIA-002 corridor/pack outcomes remain open. |
+| ID                                     | Source Refs                      | Execution  | Run ID         | Run Root                            | Sonar   | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                                                                                                 |
+| -------------------------------------- | -------------------------------- | ---------- | -------------- | ----------------------------------- | ------- | ---------------- | ---------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S5-EXPLICIT-DIASPORA-COUNTRY-CONTEXT` | current program; S5; DIA-002/003 | `scripted` | local-6a93158d | local Mac + protected GitHub checks | pending | `not_applicable` | `not_applicable` | pass     | Exact-head `pr:verify` and separate `security:guard` passed on Mac at `6a93158d`; mounted neutral and selected EN/SQ/MK/SR diaspora acceptance passed in both tenant projects at 320px. Protected current-head review/checks, exact-main health, archived checksummed receipts and owned-resource retirement remain pending. Full DIA-002 corridor/pack outcomes remain open. |
 
 ### Historical S5.d claim-start proof
 

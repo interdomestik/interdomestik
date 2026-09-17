@@ -275,22 +275,22 @@ self-attribution. Derived category growth is +2,443 config, +389 docs, +2,533 so
 test/E2E bytes. Reserve, deleted-byte credit, enforcement thresholds and unrelated owners remain
 unchanged; the existing S5.d allocation is extended only for the four paths reused by this slice.
 
-The initial pre-hardening local proof is bound to product/evidence head
-`33c07f52df0b4a282d728318393d68ab2516b9e5`, tree
-`f6ac2c47c42e682940f816ed77db040942ccf74a`, task database
+Authoritative local proof is bound to product/evidence head
+`6a93158d6a6ae95f373883395c167e62fbf3501e`, tree
+`f524042ba31a80aacecd3aeaf6b96645f2d0a534`, task database
 `interdomestik_ci_33c07f52_pr_verify_r2` and isolated port 3107. One uninterrupted
 `pnpm pr:verify` passed 1,193 CI contracts, 154 release-gate tests, 52 mandatory live RLS tests,
 644 web test files/3,454 tests with 12 intentional skips, 81.21% repository line coverage
-(21,829/26,881), 264 browser-gate passes/14 intentional skips and 13 smoke passes/11 intentional
-skips. The changed mounted diaspora spec passed in both tenant projects, including its neutral
-four-locale 320px state, exact current-country selection and S5.d handoff. A separate same-head
-`pnpm security:guard` passed. Earlier same-head attempts stopped on host disk exhaustion and then a
-missing Playwright browser after Docker recovery; neither reached a product assertion failure and
-neither is credited as proof. The generated Next type stub was reversed after the successful run.
-That receipt does not cover the subsequently accepted rejected-input equivalence, selected-state
-mobile reflow and country-code typing hardening. A fresh exact-candidate `pr:verify`, separate
-`security:guard`, protected delivery, current-head hosted review/checks, exact-main health, receipt
-archival and owned-resource retirement remain required before this bounded increment closes.
+(21,828/26,880), 264 browser-gate passes/14 intentional skips and 13 smoke passes/11 intentional
+skips. The changed mounted diaspora spec passed in both tenant projects, including neutral and
+selected 320px states for EN/SQ/MK/SR, exact current-country semantics and the S5.d handoff. A
+separate same-head `pnpm security:guard` passed. The initial `33c07f52` proof and the `32b13d14`
+post-review rerun remain retained as superseded evidence; the latter exposed no gate failure, and
+its Opus FINDINGS receipt `20260917T200207-opus` drove exact capacity reconciliation and positive
+four-locale selected-state proof before this authoritative rerun. The generated Next type stub was
+reversed after each successful run. Protected delivery, current-head hosted review/checks,
+exact-main health, receipt archival and owned-resource retirement remain required before this
+bounded increment closes.
 
 Full DIA-002 origin/destination/transit corridor capture, persona gating, signed/current pack
 metadata, integrity/expiry, offline/retry/recovery, police/EAS content approval, multi-country
