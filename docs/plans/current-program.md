@@ -275,6 +275,21 @@ self-attribution. Derived category growth is +2,443 config, +389 docs, +2,414 so
 test/E2E bytes. Reserve, deleted-byte credit, enforcement thresholds and unrelated owners remain
 unchanged; the existing S5.d allocation is extended only for the four paths reused by this slice.
 
+Authoritative local proof is bound to product/evidence head
+`33c07f52df0b4a282d728318393d68ab2516b9e5`, tree
+`f6ac2c47c42e682940f816ed77db040942ccf74a`, task database
+`interdomestik_ci_33c07f52_pr_verify_r2` and isolated port 3107. One uninterrupted
+`pnpm pr:verify` passed 1,193 CI contracts, 154 release-gate tests, 52 mandatory live RLS tests,
+644 web test files/3,454 tests with 12 intentional skips, 81.21% repository line coverage
+(21,829/26,881), 264 browser-gate passes/14 intentional skips and 13 smoke passes/11 intentional
+skips. The changed mounted diaspora spec passed in both tenant projects, including its neutral
+four-locale 320px state, exact current-country selection and S5.d handoff. A separate same-head
+`pnpm security:guard` passed. Earlier same-head attempts stopped on host disk exhaustion and then a
+missing Playwright browser after Docker recovery; neither reached a product assertion failure and
+neither is credited as proof. The generated Next type stub was reversed after the successful run.
+Protected delivery, current-head hosted review/checks, exact-main health, receipt archival and
+owned-resource retirement remain required before this bounded increment closes.
+
 Full DIA-002 origin/destination/transit corridor capture, persona gating, signed/current pack
 metadata, integrity/expiry, offline/retry/recovery, police/EAS content approval, multi-country
 itineraries, geolocation and S6/S7 handoffs remain open. This increment must not mark DIA-002,
