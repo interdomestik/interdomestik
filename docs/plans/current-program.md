@@ -196,6 +196,12 @@ mounted correction. The actual Interdomestik contradiction, rather than a compet
 drives the design. Test the truthful CTA, default-unconfirmed state, keyboard confirmation, tampered
 or absent confirmation, provenance wording, explicit-data precedence and four-locale copy.
 
+The owner approved a bounded ceiling of +11,528 bytes and zero files on 2026-09-17. The byte-identical
+ledger application uses only +10,922 bytes: 7,225 for the named S5.d source/test/catalog allocation,
+1,382 to extend the existing owner of the four `claims.json` catalogs, and 2,315 for capacity-budget
+self-attribution. Derived category growth is 3,422 source, 3,780 test and 3,720 config bytes. Files,
+reserve, deleted-byte credit, limits, unrelated allocations and guard behavior remain unchanged.
+
 ### Owner-adopted product-readiness roadmap (2026-09-15)
 
 Maintain the [requirement disposition map](requirement-disposition-map.md) as the full SRS and

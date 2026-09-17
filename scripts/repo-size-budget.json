@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 115487,
+      "trackedBytesDelta": 117802,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 77396,
+        "config/data/messages": 79711,
         "source/scripts": 23092,
         "tests/e2e": 14999
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 77396,
+        "scripts/repo-size-budget.json": 79711,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -1331,11 +1331,11 @@
         "apps/web/src/messages/sq/claims.json",
         "apps/web/src/messages/sr/claims.json"
       ],
-      "maxTrackedBytesDelta": 65466,
+      "maxTrackedBytesDelta": 66848,
       "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
         "docs/text": 28500,
-        "config/data/messages": 5902,
+        "config/data/messages": 7284,
         "source/scripts": 8000,
         "tests/e2e": 23064
       },
@@ -1348,10 +1348,10 @@
         "apps/web/src/features/member/claims/components/ClaimEvidenceUploadDialog.test.tsx": 7700,
         "apps/web/e2e/gate/member-vault-consent-display.spec.ts": 7800,
         "apps/web/e2e/golden/member-claim-detail-ops.spec.ts": 6000,
-        "apps/web/src/messages/en/claims.json": 1267,
-        "apps/web/src/messages/mk/claims.json": 1848,
-        "apps/web/src/messages/sq/claims.json": 1429,
-        "apps/web/src/messages/sr/claims.json": 1358
+        "apps/web/src/messages/en/claims.json": 1556,
+        "apps/web/src/messages/mk/claims.json": 2325,
+        "apps/web/src/messages/sq/claims.json": 1743,
+        "apps/web/src/messages/sr/claims.json": 1660
       }
     },
     {
@@ -1558,6 +1558,47 @@
         "packages/domain-claims/src/claims/information-requests.ts": 5548,
         "packages/domain-claims/src/index.ts": 47
       }
+    },
+    {
+      "id": "s5d-diaspora-claim-start-truth",
+      "mode": "bounded",
+      "writerPaths": [
+        "apps/web/src/actions/claims/create-from-saved-draft.test.ts",
+        "apps/web/src/actions/claims/create-from-saved-draft.ts",
+        "apps/web/src/app/[locale]/(app)/member/diaspora/page.test.tsx",
+        "apps/web/src/app/[locale]/(app)/member/diaspora/page.tsx",
+        "apps/web/src/components/claims/claim-draft-intake/claim-draft-intake.test.tsx",
+        "apps/web/src/components/claims/claim-draft-intake/dormant-preview.tsx",
+        "apps/web/src/components/claims/claim-draft-intake/index.tsx",
+        "apps/web/src/components/claims/claim-draft-intake/main-panel.tsx",
+        "apps/web/src/components/claims/claim-draft-intake/saved-draft-submit.test.tsx",
+        "apps/web/src/components/claims/claim-draft-intake/use-saved-draft-claim.ts",
+        "apps/web/src/messages/mk/diaspora.json",
+        "apps/web/src/messages/sq/diaspora.json",
+        "packages/domain-claims/src/claims/incident-country-writers.test.ts"
+      ],
+      "maxTrackedBytesDelta": 7225,
+      "maxTrackedFilesDelta": 0,
+      "maxCategoryBytesDelta": {
+        "tests/e2e": 3780,
+        "source/scripts": 3422,
+        "config/data/messages": 23
+      },
+      "maxPathBytesDelta": {
+        "apps/web/src/actions/claims/create-from-saved-draft.test.ts": 1371,
+        "apps/web/src/actions/claims/create-from-saved-draft.ts": 774,
+        "apps/web/src/app/[locale]/(app)/member/diaspora/page.test.tsx": 11,
+        "apps/web/src/app/[locale]/(app)/member/diaspora/page.tsx": 36,
+        "apps/web/src/components/claims/claim-draft-intake/claim-draft-intake.test.tsx": 842,
+        "apps/web/src/components/claims/claim-draft-intake/dormant-preview.tsx": 616,
+        "apps/web/src/components/claims/claim-draft-intake/index.tsx": 1233,
+        "apps/web/src/components/claims/claim-draft-intake/main-panel.tsx": 460,
+        "apps/web/src/components/claims/claim-draft-intake/saved-draft-submit.test.tsx": 959,
+        "apps/web/src/components/claims/claim-draft-intake/use-saved-draft-claim.ts": 303,
+        "apps/web/src/messages/mk/diaspora.json": 12,
+        "apps/web/src/messages/sq/diaspora.json": 11,
+        "packages/domain-claims/src/claims/incident-country-writers.test.ts": 597
+      }
     }
   ],
   "reserve": {
@@ -1566,15 +1607,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 62060575,
+  "maxTrackedBytes": 62071497,
   "maxTrackedFiles": 6091,
   "maxCategoryBytes": {
-    "config/data/messages": 2261937,
+    "config/data/messages": 2265657,
     "docs/text": 8650298,
     "large support/generated-ish": 15870738,
     "other": 19184750,
-    "source/scripts": 8885403,
-    "tests/e2e": 7207449
+    "source/scripts": 8888825,
+    "tests/e2e": 7211229
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
