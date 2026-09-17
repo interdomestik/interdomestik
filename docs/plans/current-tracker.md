@@ -16,6 +16,46 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
+Dependency ordering follows current-program.md, "Dependency-first selection (owner direction,
+2026-09-17)". S5.d claim-start truth merged in #1788 as
+`0091f6ecf39c0888a9decf2fa8c0a1a498d3119c`; exact-main workflows passed on 2026-09-17.
+Older in-progress S5.d/proof wording below is historical. Whole S5 and diaspora remain open;
+S5.d retirement is confirmed below. No next runtime increment is selected by this audit.
+Next selection reconciles remaining S5 gaps, then follows direct prerequisites for S6/S7 evidence,
+diaspora packs, H1 and later roles; it must not select a test-only predecessor merely for small size.
+
+S5.d retirement receipt (2026-09-17): local `9dcc` and both owned Z620 worktrees are absent;
+the task DB is absent, port 3100 is clear, eight checkout-bound helper/MCP processes were stopped,
+and shared Supabase was preserved. The owner-supplied receipt reports 3,536,756 KiB recovered.
+43 ignored verification receipts are preserved under
+`~/.codex/task-receipts/interdomestik/S5.d-DIASPORA-CLAIM-START-TRUTH/2026-09-17/`
+in `s5d-verification-receipts-c2af2f168ca6.tar.gz`; SHA-256 independently checked:
+`09a25dee8a3fb409be810fb917d5ca57b74dae40934d03f334750f80875fb83d`.
+Git history/branches remain; no force removal, deployment or verification rerun occurred.
+
+S5.d final proof identity: the authoritative Mac run used product head
+`c2af2f168ca6445b44d9d1803bde1db684689684`, tree
+`863ede92a6b7daf9bcd942e11f57170d5818913c`, task database
+`interdomestik_ci_c2af2f168ca6_pr_verify_r1` and isolated port 3100. `pnpm pr:verify` exited 0:
+52/52 mandatory RLS cases, 644 web files/3,445 tests, 78 domain-claims files/551 tests,
+81.20% repository line coverage (21,824/26,877), 264 browser-gate passes/14 intentional skips and
+13 smoke passes/11 intentional skips. A separate `pnpm security:guard` exited 0. Generated
+`next-env.d.ts` was reversed and the exact head was clean before retirement. The earlier
+`33954bb267f12fde9326ddc4cd6f900b3cd39321` / Z620
+`cfda2761b0575bb2ee54455d30bd45217433837a` receipts, tree
+`848f8bcddfd21f28bc2d224cd942f7ba35cf4dbd`, remain historical and are not transferred.
+
+Acceptance is layered without overclaiming one test as every dimension. Mounted
+`member-diaspora.spec.ts` passed the canonical diaspora → Italy vehicle handoff, vehicle-only draft,
+default-unchecked confirmation, focus and Space activation. Action regressions passed false,
+mismatched and unsupported-country rejection before any read/write and dropped diaspora handoff from
+a resumed property draft. Domain regressions passed explicit submitted-country precedence, null
+incident-country authority for guidance-only context, provenance/filter recognition and exclusion of
+guidance-only notes from backfill authority. EN/SQ/MK/SR confirmation copy remained present; the i18n
+purity report has no regressions. The retirement archive independently retains the final smoke report
+with zero unexpected/flaky tests, all 18 coverage summaries yielding 21,824/26,877 covered lines,
+the clean i18n report and guard summaries; it is supporting evidence, not a replacement full log.
+
 S1 (#1780) and S2 (#1781) are complete; all 13 exact-main checks passed at their merges.
 S3's bounded supported prefix completed through protected PR #1783. Its merge is
 `135338a5501267a3377ce6a67b053ba61ef54c9c`; all 13 checks passed. Task retirement confirmed
@@ -121,9 +161,9 @@ protected squash merge `1eecb57a7244f37aded3392c5bf38a32fec08584`; all required 
 checks passed and owned task resources were retired. Final merge/cleanup facts are retained with
 these receipts under `.codex/artifacts/interdomestik/s4`. No deployment is claimed.
 
-| ID                                | Status        | Owner | Work                                                                                                                                | Exit Criteria                                                                                                                                                                                               |
-| --------------------------------- | ------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S5.d-DIASPORA-CLAIM-START-TRUTH` | `in_progress` | Codex | A diaspora member enters supported vehicle preparation and explicitly confirms incident country before claim authority is recorded. | Truthful mounted CTA and confirmation; unconfirmed handoff context cannot persist incident-country authority; provenance wording, four-locale controls, focused/full/security proof and protected delivery. |
+| ID                                | Status      | Owner | Work                                                                           | Exit Criteria                                                                                                                                                                                                                                                                                                                                                                                                    |
+| --------------------------------- | ----------- | ----- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S5.d-DIASPORA-CLAIM-START-TRUTH` | `completed` | Codex | Supported vehicle preparation requires explicit incident-country confirmation. | Exit contract: truthful mounted CTA and confirmation; unconfirmed handoff context cannot persist incident-country authority; provenance wording, four-locale controls, focused/full/security proof and protected delivery. Protected PR #1788 merged as `0091f6ecf39c0888a9decf2fa8c0a1a498d3119c`; exact-main checks succeeded; owned resources retired with archived receipts. Whole S5/diaspora remains open. |
 
 The completed #1782 acceptance-link amendment historically set the requirement-map allocation to
 72,094 bytes, +7,625 over its predecessor. S3 changes use the map's synchronized exact allocation;
@@ -226,7 +266,7 @@ S4–S14 are outcome families to split into bounded implementation slices, not a
 | Item                                    | Status              | Next evidence                                                                                      |
 | --------------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------- |
 | S4 — S3 handoff gap                     | completed_bounded   | Protected PR #1786; request-bound upload/acknowledgement remain open.                              |
-| S5 — Member first-case journey          | in_progress_bounded | Selected S5.d diaspora claim-start truth; no full-S5 or diaspora-family completion claim.          |
+| S5 — Member first-case journey          | in_progress_bounded | S5.d completed through #1788; reconcile and select one remaining S5 entry/continuity gap.          |
 | S6 — Member continuation and membership | queued_conditional  | Credit #1775–#1777; complete only missing return/evidence/message/membership access outcomes.      |
 | S7 — Staff handling journey             | queued_conditional  | Existing handling contracts; queue and evidence round-trip with internal/public separation.        |
 | S8 — Agent client/handoff journey       | queued_conditional  | Existing authority and attribution; only unresolved capability changes need disposition.           |
@@ -686,9 +726,9 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                                | Source Refs                      | Execution  | Run ID | Run Root                | Sonar   | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                        |
-| --------------------------------- | -------------------------------- | ---------- | ------ | ----------------------- | ------- | ---------------- | ---------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S5.d-DIASPORA-CLAIM-START-TRUTH` | current program; S5; DIA-013–015 | `scripted` | local  | isolated task resources | pending | `not_applicable` | `not_applicable` | pending  | Sonnet 5 proposal passed after owner selection was recorded; Gemini supplied absent, mismatched and tampered confirmation plus provenance counterexamples. Focused, full, security and mounted proof remain pending. |
+| ID                                | Source Refs                      | Execution  | Run ID | Run Root                            | Sonar | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| --------------------------------- | -------------------------------- | ---------- | ------ | ----------------------------------- | ----- | ---------------- | ---------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S5.d-DIASPORA-CLAIM-START-TRUTH` | current program; S5; DIA-013–015 | `scripted` | PR1788 | local Mac + protected GitHub checks | pass  | `not_applicable` | `not_applicable` | pass     | Final local proof: `c2af2f168ca6445b44d9d1803bde1db684689684`, tree `863ede92a6b7daf9bcd942e11f57170d5818913c`; `pr:verify` and separate `security:guard` passed with mounted, tampering, provenance/backfill and EN/SQ/MK/SR evidence described above. The protected merge `0091f6ecf39c0888a9decf2fa8c0a1a498d3119c` has the identical tree. PR runs CI `35231307224`, E2E `35231307287`, Pilot `35231307206`, Security `35231307243`, Secret Scan `35231307255`, finalizer `35231307295` attempt 2 and delivery `35231307163` attempt 2 passed. Exact-main CI `35234402525`, Sonar `35234402853`, CodeQL `35234402674`/`35234401880` and Secret Scan `35234402411` passed. Earlier-tree receipts remain historical. Lessons: preflight the registered verification worktree, migrated task DB and isolated port together; new verification defaults to Mac. Retirement is recorded explicitly above. |
 
 ### Historical S3 supported-prefix proof
 
@@ -1208,8 +1248,9 @@ claim full T-410 completion. `MEMBER-CASE-OVERVIEW-ENTRY` completed in PR #1775,
 completed in PR #1777; localization completed in PR #1778. S1 completed through protected PR
 #1780 and exact-main health passed. S2 completed through #1781 with exact-main health passed.
 The acceptance-link amendment completed through #1782. The bounded supported-path prefix of S3
-completed through #1783. S4 completed through protected PR #1786, and the owner selected the bounded
-`S5.d-DIASPORA-CLAIM-START-TRUTH` increment. T-411 Smart Next Step remains unselected.
+completed through #1783. S4 completed through protected PR #1786, and bounded
+`S5.d-DIASPORA-CLAIM-START-TRUTH` completed through protected PR #1788. Whole S5 and the diaspora
+family remain open. T-411 Smart Next Step remains unselected.
 
 | Completed historical priority            | Status      | Constraint                                                                    |
 | ---------------------------------------- | ----------- | ----------------------------------------------------------------------------- |
@@ -1219,8 +1260,9 @@ completed through #1783. S4 completed through protected PR #1786, and the owner 
 | Member timeline (T210)                   | `completed` | Product #1763; main CI and Sonar passed at the exact protected merge.         |
 | Notification acknowledgement correctness | `completed` | Product #1765; exact-main CI/Sonar passed; no broader T-410 completion claim. |
 
-The active successor is recorded in the queue above. No later recommendation becomes program
-priority until the owner selects it and the current program records that decision.
+No active successor is selected. The queue above records the remaining outcome families and
+dependency order; no later recommendation becomes program priority until the owner selects it and
+the current program records that decision.
 
 ## Lean Authority
 
