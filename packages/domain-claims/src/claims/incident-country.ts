@@ -111,5 +111,5 @@ export function buildClaimStartPublicNote(
     return null;
   }
 
-  return `Member-submitted Diaspora / Green Card quickstart provenance. Guidance country selected: ${incidentCountry.incidentCountryCode}. This note does not establish the incident country.`;
+  return `Member-submitted Diaspora/Green Card guidance: ${incidentCountry.incidentCountryCode}; not incident-country authority.`;
 }
