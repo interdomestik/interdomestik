@@ -329,25 +329,6 @@ describe('submitClaimCore', () => {
       })
     );
   });
-  it('records diaspora country as guidance provenance without implying confirmation', async () => {
-    await submitClaimCore(
-      buildSubmitArgs({
-        files: [],
-        handoffContext: {
-          source: 'diaspora-green-card',
-          country: 'IT',
-          incidentLocation: 'abroad',
-        },
-      })
-    );
-
-    expect(hoisted.txInsertValues).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        note: 'Started from Diaspora / Green Card quickstart. Guidance country selected: IT. The incident country is recorded separately from member-confirmed claim details.',
-      })
-    );
-  });
   it('records claim attribution audit metadata', async () => {
     await submitClaimCore(buildSubmitArgs({ files: [] }), {
       logAuditEvent: hoisted.logAuditEvent,

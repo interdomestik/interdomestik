@@ -62,7 +62,7 @@ vi.mock('nanoid', () => ({ nanoid: vi.fn(() => 'claim-1') }));
 vi.mock('./ai-workflows', () => ({ queueClaimDocumentAiWorkflows: vi.fn().mockResolvedValue([]) }));
 import { createClaimCore } from './create';
 import { updateDraftClaimCore } from './draft';
-import { resolveClaimIncidentCountryUpdate } from './incident-country';
+import { buildClaimStartPublicNote, resolveClaimIncidentCountryUpdate } from './incident-country';
 import { submitClaimCore } from './submit';
 import type { CreateClaimValues } from '../validators/claims';
 
@@ -126,6 +126,16 @@ describe('claim incident-country writers', () => {
     });
 
     expect(h.values).toHaveBeenNthCalledWith(1, expectedIncidentCountry('CH'));
+  });
+
+  it('labels the handoff country as guidance provenance rather than confirmation', () => {
+    const note = buildClaimStartPublicNote({
+      country: 'IT',
+      incidentLocation: 'abroad',
+      source: 'diaspora-green-card',
+    });
+    expect(note).toContain('Guidance country selected: IT');
+    expect(note).not.toMatch(/confirmed|verified|authoritative/i);
   });
 
   it('keeps draft updates nullable for ambiguous country input', async () => {
