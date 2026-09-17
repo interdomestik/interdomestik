@@ -197,9 +197,10 @@ drives the design. Test the truthful CTA, default-unconfirmed state, keyboard co
 or absent confirmation, provenance wording, explicit-data precedence and four-locale copy.
 
 The owner approved a bounded ceiling of +11,528 bytes and zero files on 2026-09-17. The corrected
-byte-identical ledger uses +11,412 bytes: 7,715 for the named S5.d source/test/catalog allocation,
-1,382 to extend the existing owner of the four `claims.json` catalogs, and 2,315 for capacity-budget
-self-attribution. Derived category growth is 3,387 source, 4,305 test and 3,720 config bytes. Locale
+byte-identical ledger uses +11,496 bytes: 7,715 for the named S5.d source/test/catalog allocation,
+1,382 to extend the existing owner of the four `claims.json` catalogs, 84 for the existing E2E reuse
+owner, and 2,315 for capacity-budget self-attribution. Derived category growth is 3,471 source, 4,305
+test and 3,720 config bytes. Locale
 catalog modularity is assigned to `s5d-diaspora-claim-start-i18n-contract`; enforcement thresholds
 and the deny posture remain unchanged. Files, reserve, deleted-byte credit and unrelated allocations
 remain unchanged.
