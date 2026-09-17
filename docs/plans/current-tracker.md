@@ -68,7 +68,7 @@ and make request-posture copy position-independent. Regressions now isolate the 
 gate, exercise the legacy `user` read role in live SQL, and admit a complete near-1-MiB reviewer
 packet. No pagination, lifecycle, auth normalization or unrelated component relocation was added.
 
-Final product source `211d57b04c21296533ab2184cd265b617085eb24`, tree
+Earlier product source `211d57b04c21296533ab2184cd265b617085eb24`, tree
 `67620a4c92b1e6bcabba6b5d8bda10b38e7c2b12`, passed provider-attested `claude-opus-5`
 review `20260916T214531-opus` after the quota reset (349,462 ms). The prior full run exposed
 eager schema-column access through the domain barrel; the identical public projection now resolves
@@ -86,6 +86,32 @@ Result SHA-256: `4a14665057c2bcc474b2c44bc72397f08688472acc0a58cc44ac9a34a69fb19
 Receipts are retained outside the task worktree at `.codex/artifacts/interdomestik/s4`.
 This evidence-only update preserves the product source identity; protected current-head checks,
 review intake, merge, exact-main health and requested worktree retirement remain required.
+
+Current verified product source is `1acc8cc7ac81023527048d8fd380972a2b0d7a38`, tree
+`740adfe0e1160f7bd21d0a30091be92397a1f077`. Hosted feedback corrections validate text-valued
+FormData, use native stable live outputs and readonly props, explain the locale skip, and preserve
+focused fields with native readOnly while saving. Ten Sonar issues are fixed; the owner approved
+Accepted disposition of four deprecated withTenant uses because the request table has tenantId
+only, not the accessTenantId required by the proposed replacement. No predicate or gate was weakened.
+Opus 5 receipt `20260917T041103-opus` attests claude-opus-5 and returns FINDINGS, with no blocker.
+The focus hardening from the preceding review is fixed with a red-first regression. Its follow-up
+readonly-date concern did not reproduce in Chromium 153: editable ArrowUp changes the date;
+readonly key input preserves value/focus and showPicker rejects immutable controls. This native
+control fixture is supplemental, not mounted-journey or universal-browser proof. Optional prop-type,
+status-region and non-owning-role presentation changes are deferred; the diff-buffer concern is
+rejected against the explicit maxBuffer. Full dispositions and raw reviews are retained externally;
+the provider verdict is not rewritten as PASS and no Astra fallback was used.
+
+Fresh isolated `pr:verify` passed on that exact source in 2,761.446 seconds, followed by
+`security:guard` in 10.369 seconds. Browser gate: 264 passed/14 intentional skips; smoke:
+13 passed/11 intentional skips. The database had zero connections before deletion and the port
+was released. Only generated next-env.d.ts changed after build. Result SHA-256:
+`bf89bcab7c0dc06e19640a9396f2f4cd4845a0766df003e66e8efeaf51111d87`;
+full log SHA-256: `4e8adefbfb6bf18c6c0e9b0c13a5f06b7d3a08e95a30f99aa8b7e57370c9528d`.
+PR #1786 was green at this product source. This subsequent evidence-only amendment does not claim
+a rerun on its own commit: final-head hosted checks/readiness, protected merge, exact-main health
+and retirement remain required. Final merge/cleanup facts are retained with these receipts under
+`.codex/artifacts/interdomestik/s4`; automatic check-ins remain paused. No deployment is claimed.
 
 | ID                               | Status        | Owner | Work                                                                                                               | Exit Criteria                                                                                                                                                                                               |
 | -------------------------------- | ------------- | ----- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -652,9 +678,9 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                               | Source Refs                  | Execution  | Run ID | Run Root         | Sonar   | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| -------------------------------- | ---------------------------- | ---------- | ------ | ---------------- | ------- | ---------------- | ---------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `S4-MISSING-INFORMATION-REQUEST` | current program; IDA-CLM-010 | `scripted` | local  | isolated task DB | pending | `not_applicable` | `not_applicable` | pending  | S4 implementation and focused tests are prepared; full proof, protected delivery and retirement remain pending. Prior source `a0a937` passed 1,188 CI and 154 release tests before the C13 journal-tail assumption blocked its RLS lane. Corrected source `8751994a` passed 1,188 CI tests. The owner-approved additive-0093 retained migration prerequisite is being consolidated; no prior-head result is credited as a full current-candidate pass. |
+| ID                               | Source Refs                  | Execution  | Run ID | Run Root         | Sonar   | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                               |
+| -------------------------------- | ---------------------------- | ---------- | ------ | ---------------- | ------- | ---------------- | ---------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S4-MISSING-INFORMATION-REQUEST` | current program; IDA-CLM-010 | `scripted` | local  | isolated task DB | pending | `not_applicable` | `not_applicable` | pending  | Product source `1acc8cc7` passed full isolated pr:verify/security, 264 gate and 13 smoke tests. Opus 5 findings have explicit dispositions above. PR #1786 final-head protected delivery, exact-main health and worktree retirement remain pending; no deployment or broader request fulfilment is claimed. |
 
 ### Historical S3 supported-prefix proof
 

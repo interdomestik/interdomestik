@@ -128,8 +128,10 @@ protected delivery remain mandatory. The approved ceiling is +609,000 bytes and 
 included; no reserve consumption or padding. S3 retirement removed its owned worktree/database;
 S4 uses its own isolated verification resources.
 
-Product source `211d57b04c21296533ab2184cd265b617085eb24` has current-source Opus 5
-PASS and successful full isolated verification/security proof, recorded in the current tracker.
+Product source `1acc8cc7ac81023527048d8fd380972a2b0d7a38` has completed Opus 5 review
+with documented dispositions and successful full isolated verification/security proof in the tracker.
+The review's `FINDINGS` verdict is retained, not relabeled as a provider PASS. PR #1786 carries
+the evidence-only amendment separately from that verified product source.
 The owner's later instruction prohibits Astra review fallback; quota-blocked Opus review must
 wait for reset. Protected delivery and exact-main health remain required before bounded completion;
 preserve receipts outside the worktree before the owner-requested task-resource retirement.
