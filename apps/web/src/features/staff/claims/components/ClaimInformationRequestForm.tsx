@@ -94,12 +94,13 @@ export function ClaimInformationRequestForm({ claimId }: { readonly claimId: str
     >
       <h2 className="font-semibold">{t('title')}</h2>
       <p className="text-sm text-muted-foreground">{t('description')}</p>
-      <fieldset disabled={busy} className="space-y-4">
+      <fieldset aria-busy={busy} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="requested-information">{t('requestedInformation')}</Label>
           <Textarea
             id="requested-information"
             name="requestedInformation"
+            readOnly={busy}
             required
             maxLength={1000}
           />
@@ -109,13 +110,14 @@ export function ClaimInformationRequestForm({ claimId }: { readonly claimId: str
           <Textarea
             id="request-explanation"
             name="explanationForMember"
+            readOnly={busy}
             required
             maxLength={1000}
           />
         </div>
         <div className="space-y-2">
           <Label htmlFor="request-due-at">{t('dueAt')}</Label>
-          <Input id="request-due-at" name="dueAt" type="datetime-local" required />
+          <Input id="request-due-at" name="dueAt" type="datetime-local" readOnly={busy} required />
           <p className="text-xs text-muted-foreground">{t('dueHint')}</p>
         </div>
       </fieldset>

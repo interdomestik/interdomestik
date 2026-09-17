@@ -1498,11 +1498,11 @@
         "packages/domain-claims/src/claims/information-requests.ts",
         "packages/domain-claims/src/index.ts"
       ],
-      "maxTrackedBytesDelta": 528359,
+      "maxTrackedBytesDelta": 529424,
       "maxTrackedFilesDelta": 16,
       "maxCategoryBytesDelta": {
-        "tests/e2e": 34611,
-        "source/scripts": 17101,
+        "tests/e2e": 35603,
+        "source/scripts": 17174,
         "config/data/messages": 4738,
         "large support/generated-ish": 471909
       },
@@ -1519,8 +1519,8 @@
         "apps/web/src/features/member/claims/components/ClaimInformationRequests.test.tsx": 3148,
         "apps/web/src/features/member/claims/components/ClaimInformationRequests.tsx": 2402,
         "apps/web/src/features/member/claims/components/MemberClaimDetailOpsPage.tsx": 0,
-        "apps/web/src/features/staff/claims/components/ClaimInformationRequestForm.test.tsx": 6362,
-        "apps/web/src/features/staff/claims/components/ClaimInformationRequestForm.tsx": 4687,
+        "apps/web/src/features/staff/claims/components/ClaimInformationRequestForm.test.tsx": 7354,
+        "apps/web/src/features/staff/claims/components/ClaimInformationRequestForm.tsx": 4760,
         "apps/web/src/features/staff/claims/components/LatestStatusNoteContent.tsx": 636,
         "apps/web/src/messages/en/agent-claims.json": 1029,
         "apps/web/src/messages/mk/agent-claims.json": 1593,
@@ -1566,15 +1566,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 62057195,
+  "maxTrackedBytes": 62058260,
   "maxTrackedFiles": 6091,
   "maxCategoryBytes": {
     "config/data/messages": 2261937,
     "docs/text": 8650077,
     "large support/generated-ish": 15868644,
     "other": 19184750,
-    "source/scripts": 8885330,
-    "tests/e2e": 7206457
+    "source/scripts": 8885403,
+    "tests/e2e": 7207449
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

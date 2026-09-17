@@ -102,6 +102,27 @@ it('rejects whitespace and preserves input on a domain error', async () => {
   expect(screen.getByLabelText('Information needed')).toHaveValue('Repair estimate');
 });
 
+it('keeps fields focusable but read-only while a date-field submission is pending', async () => {
+  let resolve!: (value: { success: false; error: 'invalid_state' }) => void;
+  h.create.mockImplementationOnce(() => new Promise(done => (resolve = done)));
+  mount();
+  fill();
+  const date = screen.getByLabelText('Due date and time');
+  date.focus();
+  fireEvent.submit(screen.getByRole('form'));
+  for (const label of ['Information needed', 'Explanation for the member', 'Due date and time']) {
+    expect(screen.getByLabelText(label)).toBeEnabled();
+    expect(screen.getByLabelText(label)).toHaveAttribute('readonly');
+  }
+  expect(date).toHaveFocus();
+  fireEvent.submit(screen.getByRole('form'));
+  expect(h.create).toHaveBeenCalledOnce();
+  await act(async () => resolve({ success: false, error: 'invalid_state' }));
+  expect(date).toHaveFocus();
+  expect(date).not.toHaveAttribute('readonly');
+  expect(screen.getByLabelText('Information needed')).toHaveValue('Repair estimate');
+});
+
 it.each(['dueAt', 'requestedInformation', 'explanationForMember'])(
   'rejects a non-text %s value without submitting',
   field => {
