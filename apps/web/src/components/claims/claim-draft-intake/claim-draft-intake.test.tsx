@@ -120,6 +120,30 @@ describe('ClaimDraftIntake', () => {
     expect(Object.values(a).every(action => action.mock.calls.length === 0)).toBe(true);
   });
 
+  it('keeps diaspora country as context until the member confirms it', () => {
+    render(
+      <ClaimDraftIntake
+        freeStartMessages={{}}
+        handoffContext={{
+          source: 'diaspora-green-card',
+          country: 'IT',
+          incidentLocation: 'abroad',
+        }}
+        initialCategory="vehicle"
+        locale="en"
+        tenantId="tenant_ks"
+      />
+    );
+    expect(screen.getByTestId('claim-draft-category-vehicle')).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    const confirmation = screen.getByTestId('claim-wizard-country-confirmation');
+    expect(confirmation).not.toBeChecked();
+    fireEvent.click(confirmation);
+    expect(confirmation).toBeChecked();
+  });
+
   it.each(saveStates)('keeps the reused live save state perceivable: %s', async state => {
     render(
       <SecureSaveBand

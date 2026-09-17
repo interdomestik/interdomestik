@@ -31,6 +31,15 @@ const context = { accessTenantId: 'tenant_ks', actorRole: 'member', ownerUserId:
 // prettier-ignore
 const draft = { category: 'vehicle', clientRequestId: 'request-1', counterparty: 'Example Insurer', createdAt: '2026-08-08T00:00:00.000Z', desiredOutcome: 'repair', id: '63ffc31e-8c64-4758-995a-c57f40de7568', incidentDate: '2026-07-20', issueType: 'collision', resumeStep: 'preview', summary: 'The vehicle was damaged and needs a documented repair.', updatedAt: '2026-08-08T00:00:00.000Z', version: 3 };
 const input = { id: draft.id, expectedVersion: 3 };
+const confirmedClaimStart = {
+  confirmed: true as const,
+  handoffContext: {
+    source: 'diaspora-green-card' as const,
+    country: 'IT' as const,
+    incidentLocation: 'abroad' as const,
+  },
+  incidentCountryCode: 'IT' as const,
+};
 const claimId = `fsd_${createHash('sha256')
   .update(JSON.stringify(['tenant_ks', 'member-1', draft.id]))
   .digest('hex')}`;
@@ -76,6 +85,35 @@ describe('createClaimFromSavedDraft', () => {
         },
       })
     );
+  });
+  it('submits an explicitly confirmed diaspora country with provenance context', async () => {
+    await expect(
+      createClaimFromSavedDraft({ ...input, claimStart: confirmedClaimStart })
+    ).resolves.toEqual(success);
+    expect(h.submit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ incidentCountryCode: 'IT' }),
+        handoffContext: confirmedClaimStart.handoffContext,
+      })
+    );
+  });
+  it.each([
+    ['false confirmation', { ...confirmedClaimStart, confirmed: false }],
+    ['mismatched country', { ...confirmedClaimStart, incidentCountryCode: 'DE' }],
+    [
+      'unsupported country',
+      {
+        ...confirmedClaimStart,
+        handoffContext: { ...confirmedClaimStart.handoffContext, country: 'FR' },
+        incidentCountryCode: 'FR',
+      },
+    ],
+  ])('rejects %s before reading or writing', async (_name, claimStart) => {
+    await expect(createClaimFromSavedDraft({ ...input, claimStart })).resolves.toMatchObject({
+      success: false,
+    });
+    expect(h.resolveSession).not.toHaveBeenCalled();
+    expect(h.submit).not.toHaveBeenCalled();
   });
   it('maps the fixed property codes without accepting client labels', async () => {
     h.resumeDraft.mockResolvedValue({

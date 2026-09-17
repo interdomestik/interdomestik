@@ -27,7 +27,7 @@ const hoisted = vi.hoisted(() => ({
       },
       actions: {
         support: 'Contact support now',
-        claim: 'Start travel claim',
+        claim: 'Prepare vehicle claim',
       },
     };
 
@@ -90,9 +90,9 @@ describe('DiasporaPage', () => {
       'href',
       'tel:+38349900600'
     );
-    expect(screen.getByRole('link', { name: 'Start travel claim' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Prepare vehicle claim' })).toHaveAttribute(
       'href',
-      '/member/claims/new?category=travel&source=diaspora-green-card&country=DE&incidentLocation=abroad'
+      '/member/claims/new?category=vehicle&source=diaspora-green-card&country=DE&incidentLocation=abroad'
     );
   });
 
@@ -107,9 +107,9 @@ describe('DiasporaPage', () => {
     expect(screen.getByTestId('diaspora-selected-country')).toHaveTextContent('Italy');
     expect(screen.getByText('113')).toBeInTheDocument();
     expect(screen.getByText('115')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Start travel claim' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Prepare vehicle claim' })).toHaveAttribute(
       'href',
-      '/member/claims/new?category=travel&source=diaspora-green-card&country=IT&incidentLocation=abroad'
+      '/member/claims/new?category=vehicle&source=diaspora-green-card&country=IT&incidentLocation=abroad'
     );
   });
 });

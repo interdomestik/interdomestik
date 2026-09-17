@@ -21,9 +21,9 @@ test.describe('Diaspora Feature', () => {
     await expect(page.getByTestId('diaspora-selected-country')).toBeVisible();
     await expect(
       page.getByRole('link', {
-        name: /(Start travel claim|Започни патно барање|Nis kërkesën e udhëtimit|Pokreni zahtev za putovanje)/i,
+        name: /(Prepare vehicle claim|Подготви барање за возило|Përgatit kërkesën për automjet|Pripremi zahtev za vozilo)/i,
       })
-    ).toHaveAttribute('href', /\/member\/claims\/new\?category=travel/);
+    ).toHaveAttribute('href', /\/member\/claims\/new\?category=vehicle/);
     await expect(
       page.getByRole('link', {
         name: /(Contact support now|Контактирај поддршка сега|Kontakto mbështetjen tani|Kontaktiraj podršku sada)/i,
@@ -41,21 +41,29 @@ test.describe('Diaspora Feature', () => {
     );
 
     const claimStartLink = page.getByRole('link', {
-      name: /(Start travel claim|Започни патно барање|Nis kërkesën e udhëtimit|Pokreni zahtev za putovanje)/i,
+      name: /(Prepare vehicle claim|Подготви барање за возило|Përgatit kërkesën për automjet|Pripremi zahtev za vozilo)/i,
     });
     await expect(claimStartLink).toHaveAttribute(
       'href',
-      /\/member\/claims\/new\?category=travel&source=diaspora-green-card&country=IT&incidentLocation=abroad/
+      /\/member\/claims\/new\?category=vehicle&source=diaspora-green-card&country=IT&incidentLocation=abroad/
     );
 
     await Promise.all([
       page.waitForURL(
-        /\/member\/claims\/new\?category=travel&source=diaspora-green-card&country=IT&incidentLocation=abroad/
+        /\/member\/claims\/new\?category=vehicle&source=diaspora-green-card&country=IT&incidentLocation=abroad/
       ),
       claimStartLink.click(),
     ]);
 
     await expect(page.getByTestId('claim-wizard-handoff')).toBeVisible();
     await expect(page.getByTestId('claim-wizard-handoff')).toContainText(/(Italy|Италија|Italia)/i);
+    await expect(page.getByTestId('claim-draft-category-vehicle')).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    const confirmation = page.getByTestId('claim-wizard-country-confirmation');
+    await expect(confirmation).not.toBeChecked();
+    await confirmation.check();
+    await expect(confirmation).toBeChecked();
   });
 });

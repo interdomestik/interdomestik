@@ -11,8 +11,27 @@ import { z } from 'zod';
 import { readSavedDraftClaim, savedDraftClaimId } from './saved-draft-claim-identity';
 import { submitClaimCore } from './submit.core';
 
+const diasporaCountrySchema = z.enum(['DE', 'CH', 'AT', 'IT']);
+const claimStartSchema = z
+  .object({
+    confirmed: z.literal(true),
+    handoffContext: z
+      .object({
+        source: z.literal('diaspora-green-card'),
+        country: diasporaCountrySchema,
+        incidentLocation: z.literal('abroad'),
+      })
+      .strict(),
+    incidentCountryCode: diasporaCountrySchema,
+  })
+  .strict()
+  .refine(value => value.incidentCountryCode === value.handoffContext.country);
 const inputSchema = z
-  .object({ id: z.string().uuid(), expectedVersion: z.number().int().positive() })
+  .object({
+    id: z.string().uuid(),
+    expectedVersion: z.number().int().positive(),
+    claimStart: claimStartSchema.optional(),
+  })
   .strict();
 const lookupSchema = z.object({ id: z.string().uuid() }).strict();
 const CATEGORY = { vehicle: 'Vehicle', property: 'Property' } as const;
@@ -29,7 +48,10 @@ function ownValue(record: Readonly<Record<string, string>>, key: string | null) 
   return key && Object.hasOwn(record, key) ? record[key] : null;
 }
 
-function mapDraft(draft: FreeStartDraft): CreateClaimValues | null {
+function mapDraft(
+  draft: FreeStartDraft,
+  incidentCountryCode?: z.infer<typeof diasporaCountrySchema>
+): CreateClaimValues | null {
   const category = ownValue(CATEGORY, draft.category);
   const issue = ownValue(ISSUE, draft.issueType);
   const outcome = ownValue(OUTCOME, draft.desiredOutcome);
@@ -51,6 +73,7 @@ function mapDraft(draft: FreeStartDraft): CreateClaimValues | null {
     ].join('\n'),
     files: [],
     incidentDate: draft.incidentDate,
+    ...(incidentCountryCode ? { incidentCountryCode } : {}),
     title: `${category}: ${issue}`,
   };
   const parsed = createClaimSchema.safeParse(data);
@@ -118,7 +141,7 @@ export async function createClaimFromSavedDraft(input: unknown): Promise<SavedDr
     ) {
       return unavailable();
     }
-    const data = mapDraft(resumed.draft);
+    const data = mapDraft(resumed.draft, parsed.data.claimStart?.incidentCountryCode);
     if (!data) return unavailable();
     const limit = await enforceRateLimitForAction({
       name: 'action:submit-claim',
@@ -131,6 +154,7 @@ export async function createClaimFromSavedDraft(input: unknown): Promise<SavedDr
     try {
       const result = await submitClaimCore({
         data,
+        handoffContext: parsed.data.claimStart?.handoffContext,
         idempotencyKey: `ida-ui03a2-b1:${resumed.draft.id}`,
         requestHeaders,
         session,

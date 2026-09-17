@@ -114,7 +114,10 @@
         "title": "Kontekst zahteva u inostranstvu",
         "sourceLabel": "Izvor",
         "sourceValue": "Dijaspora / brzi vodič za Zeleni karton",
-        "countryLabel": "Izabrana država",
+        "countryLabel": "Država za smernice",
+        "countryContext": "Ova država potiče iz brzog vodiča. Ne postaje deo vašeg slučaja dok je ne potvrdite.",
+        "confirmCountry": "Potvrđujem da se nezgoda dogodila u {country}.",
+        "confirmationRequired": "Potvrdite državu incidenta pre podnošenja ovog sačuvanog nacrta.",
         "incidentLocationLabel": "Lokacija nezgode",
         "incidentLocationValue": "U inostranstvu"
       }

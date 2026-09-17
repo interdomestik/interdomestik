@@ -10,19 +10,19 @@ import {
 import type { CategoryId } from '@/app/[locale]/components/home/free-start-intake-shell/types';
 import { useDraftLifecycle } from '@/app/[locale]/components/home/free-start-intake-shell/use-draft-lifecycle';
 import { useOrganizerFlow } from '@/app/[locale]/components/home/free-start-intake-shell/use-organizer-flow';
+import type { ClaimStartHandoffContext } from '@interdomestik/domain-claims/claims/types';
 import { NextIntlClientProvider, useTranslations, type AbstractIntlMessages } from 'next-intl';
+import { useState } from 'react';
 
 // prettier-ignore
 import { parseClaimDraftCopy, type ClaimDraftCopy, type SavedDraftSubmitCopy } from './dormant-preview';
 import { ClaimDraftMainPanel } from './main-panel';
 
 // prettier-ignore
-type HandoffContext = Readonly<{ source: 'diaspora-green-card'; country: 'DE' | 'CH' | 'AT' | 'IT'; incidentLocation: 'abroad' }>;
-// prettier-ignore
-type Props = Readonly<{ freeStartMessages: AbstractIntlMessages; handoffContext?: HandoffContext | null; initialCategory?: string; locale: string; managerOnly?: boolean; neutralOtpHost?: string | null; tenantId: string }>;
+type Props = Readonly<{ freeStartMessages: AbstractIntlMessages; handoffContext?: ClaimStartHandoffContext | null; initialCategory?: string; locale: string; managerOnly?: boolean; neutralOtpHost?: string | null; tenantId: string }>;
 
 // prettier-ignore
-type BodyProps = Omit<Props, 'freeStartMessages'> & Readonly<{ copy: ClaimDraftCopy; handoffCountryLabel: string | null; submitCopy: SavedDraftSubmitCopy; t: (key: string) => string }>;
+type BodyProps = Omit<Props, 'freeStartMessages'> & Readonly<{ copy: ClaimDraftCopy; handoffCountryLabel: string | null; submitCopy: SavedDraftSubmitCopy; t: (key: string, values?: Record<string, string>) => string }>;
 
 function supportedCategory(value?: string): CategoryId | undefined {
   if (value === 'auto' || value === 'vehicle') return 'vehicle';
@@ -34,6 +34,10 @@ function ClaimDraftIntakeBody({ copy, handoffContext, handoffCountryLabel, initi
   const tFree = useTranslations('freeStart');
   const flow = useOrganizerFlow(supportedCategory(initialCategory));
   const isUnsupportedTravel = initialCategory === 'travel';
+  const [confirmedHandoffCountry, setConfirmedHandoffCountry] = useState<
+    ClaimStartHandoffContext['country'] | null
+  >(null);
+  const handoffCountryConfirmed = confirmedHandoffCountry === handoffContext?.country;
   const lifecycle = useDraftLifecycle({
     category: flow.selectedCategory,
     draft: flow.draft,
@@ -71,6 +75,9 @@ className="rounded-2xl border border-slate-200 bg-white p-4"
 aria-label={t('wizard.handoff.title')}
 >
 <h3 className="font-bold text-[#001a33]">{t('wizard.handoff.title')}</h3>
+<p id="claim-wizard-handoff-context" className="mt-1 text-sm text-[#526274]">
+{t('wizard.handoff.countryContext')}
+</p>
 <dl className="mt-2 grid gap-2 text-sm sm:grid-cols-3">
 <div>
 <dt className="text-[#526274]">{t('wizard.handoff.sourceLabel')}</dt>
@@ -85,6 +92,17 @@ aria-label={t('wizard.handoff.title')}
 <dd>{t('wizard.handoff.incidentLocationValue')}</dd>
 </div>
 </dl>
+<label className="mt-4 flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border border-[#006f72]/30 bg-[#eaf5f2] p-3 font-semibold text-[#173b43]">
+<input
+type="checkbox"
+data-testid="claim-wizard-country-confirmation"
+checked={handoffCountryConfirmed}
+onChange={event => setConfirmedHandoffCountry(event.target.checked ? handoffContext.country : null)}
+aria-describedby="claim-wizard-handoff-context"
+className="mt-1 h-5 w-5 shrink-0 accent-[#006f72]"
+/>
+<span>{t('wizard.handoff.confirmCountry', { country: handoffCountryLabel ?? handoffContext.country })}</span>
+</label>
 </aside>
 ) : null}
 {flow.validationError ? (
@@ -101,6 +119,9 @@ className="rounded-xl border border-rose-300 bg-rose-50 p-3 font-semibold text-r
 <ClaimDraftMainPanel
 activeDraftId={lifecycle.active?.id}
 activeDraftVersion={lifecycle.active?.version}
+claimStart={handoffContext && handoffCountryConfirmed ? { confirmed: true, handoffContext, incidentCountryCode: handoffContext.country } : undefined}
+confirmationRequired={Boolean(handoffContext && !handoffCountryConfirmed)}
+confirmationRequiredCopy={t('wizard.handoff.confirmationRequired')}
 copy={copy}
 flow={flow}
 hasUnsavedChanges={lifecycle.hasUnsavedChanges}

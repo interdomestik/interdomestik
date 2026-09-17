@@ -4,6 +4,7 @@ import {
   createClaimFromSavedDraft,
   lookupSavedDraftClaim,
 } from '@/actions/claims/create-from-saved-draft';
+import type { ClaimStartHandoffContext } from '@interdomestik/domain-claims/claims/types';
 import { useEffect, useRef, useState, useTransition } from 'react';
 
 type Claim = { id: string; number: string };
@@ -19,13 +20,18 @@ type Options = Readonly<{
   draftVersion?: number | null;
   eligible: boolean;
   failedCopy: string;
+  claimStart?: {
+    confirmed: true;
+    handoffContext: ClaimStartHandoffContext;
+    incidentCountryCode: ClaimStartHandoffContext['country'];
+  };
   unexpectedCopy: string;
 }>;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export const isSavedDraftId = (value?: string | null) => Boolean(value && UUID.test(value));
 
 export function useSavedDraftClaim(options: Options) {
-  const { draftId, draftVersion, eligible, failedCopy, unexpectedCopy } = options;
+  const { claimStart, draftId, draftVersion, eligible, failedCopy, unexpectedCopy } = options;
   const validId = isSavedDraftId(draftId);
   const identity = validId && draftVersion ? `${draftId!.toLowerCase()}:${draftVersion}` : null;
   const initialStatus: LookupStatus = identity ? 'checking' : 'idle';
@@ -79,6 +85,7 @@ export function useSavedDraftClaim(options: Options) {
     startTransition(async () => {
       try {
         const result = await createClaimFromSavedDraft({
+          ...(claimStart ? { claimStart } : {}),
           id: draftId,
           expectedVersion: draftVersion,
         });

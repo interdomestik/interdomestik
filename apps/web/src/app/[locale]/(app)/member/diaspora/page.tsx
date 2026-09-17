@@ -38,7 +38,7 @@ function resolveCountryCode(rawCountry: string | undefined): SupportedQuickstart
 
 function buildClaimStartHref(selectedCountry: SupportedQuickstartCountry): string {
   const params = new URLSearchParams({
-    category: 'travel',
+    category: 'vehicle',
     source: 'diaspora-green-card',
     country: selectedCountry,
     incidentLocation: 'abroad',
@@ -260,7 +260,7 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
                 className="w-full justify-between rounded-2xl"
               >
                 <Link href={buildClaimStartHref(selectedCountry)}>
-                  <span>{t('actions.claim')}</span>
+                  <span data-testid="diaspora-claim-start">{t('actions.claim')}</span>
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>

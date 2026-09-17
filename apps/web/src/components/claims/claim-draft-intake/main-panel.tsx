@@ -5,13 +5,14 @@ import type {
   FreeStartCopy,
   IssueId,
 } from '@/app/[locale]/components/home/free-start-intake-shell/types';
+import type { ClaimStartHandoffContext } from '@interdomestik/domain-claims/claims/types';
 import type { useOrganizerFlow } from '@/app/[locale]/components/home/free-start-intake-shell/use-organizer-flow';
 import { useEffect, useState } from 'react';
 
 import { DormantPreview, type ClaimDraftCopy, type SavedDraftSubmitCopy } from './dormant-preview';
 
 // prettier-ignore
-type Props = Readonly<{ activeDraftId?: string | null; activeDraftVersion?: number | null; copy: ClaimDraftCopy; flow: ReturnType<typeof useOrganizerFlow>; hasUnsavedChanges?: boolean; issueIds: ReadonlyArray<IssueId>; labels: { category: string; issue: string; outcome: string }; managerOnly?: boolean; neutralOtpHost?: string | null; submitCopy: SavedDraftSubmitCopy; tFree: FreeStartCopy & { raw: (key: string) => unknown } }>;
+type Props = Readonly<{ activeDraftId?: string | null; activeDraftVersion?: number | null; claimStart?: { confirmed: true; handoffContext: ClaimStartHandoffContext; incidentCountryCode: ClaimStartHandoffContext['country'] }; confirmationRequired?: boolean; confirmationRequiredCopy?: string; copy: ClaimDraftCopy; flow: ReturnType<typeof useOrganizerFlow>; hasUnsavedChanges?: boolean; issueIds: ReadonlyArray<IssueId>; labels: { category: string; issue: string; outcome: string }; managerOnly?: boolean; neutralOtpHost?: string | null; submitCopy: SavedDraftSubmitCopy; tFree: FreeStartCopy & { raw: (key: string) => unknown } }>;
 
 const NEUTRAL_HOSTS = new Set(['ida.interdomestik.com', 'ida.localhost', 'ida.127.0.0.1.nip.io']);
 const ACTION_CLASS =
@@ -48,6 +49,9 @@ export function ClaimDraftMainPanel(props: Props) {
           key={`${props.activeDraftId}:${props.activeDraftVersion}`}
           activeDraftId={props.activeDraftId}
           activeDraftVersion={props.activeDraftVersion}
+          claimStart={props.claimStart}
+          confirmationRequired={props.confirmationRequired}
+          confirmationRequiredCopy={props.confirmationRequiredCopy}
           copy={copy}
           draft={flow.draft}
           hasUnsavedChanges={props.hasUnsavedChanges}

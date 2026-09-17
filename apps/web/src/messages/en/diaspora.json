@@ -31,10 +31,10 @@
     },
     "actions": {
       "title": "Next move",
-      "description": "Use direct support if you need help now, or start the travel claim so triage begins in the existing member flow.",
+      "description": "Use direct support if you need help now, or prepare a supported vehicle claim draft for later submission.",
       "support": "Contact support now",
       "whatsapp": "Open WhatsApp support",
-      "claim": "Start travel claim"
+      "claim": "Prepare vehicle claim"
     },
     "boundary": {
       "title": "What this quickstart does",

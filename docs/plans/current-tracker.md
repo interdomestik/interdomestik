@@ -116,9 +116,8 @@ protected squash merge `1eecb57a7244f37aded3392c5bf38a32fec08584`; all required 
 checks passed and owned task resources were retired. Final merge/cleanup facts are retained with
 these receipts under `.codex/artifacts/interdomestik/s4`. No deployment is claimed.
 
-| ID                               | Status        | Owner | Work                                                                                                               | Exit Criteria                                                                                                                                                                                               |
-| -------------------------------- | ------------- | ----- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S4-MISSING-INFORMATION-REQUEST` | `completed_bounded` | Codex | Assigned staff creates a scoped missing-information request; the owning member sees its safe read-only projection. | Protected PR #1786 merged as `1eecb57a`; exact-main health and task retirement passed. Upload/acknowledgement and broader workflow remain open. |
+| ID                                | Status        | Owner | Work                                                                                                                                | Exit Criteria                                                                                                                                                                                               |
+| --------------------------------- | ------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `S5.d-DIASPORA-CLAIM-START-TRUTH` | `in_progress` | Codex | A diaspora member enters supported vehicle preparation and explicitly confirms incident country before claim authority is recorded. | Truthful mounted CTA and confirmation; unconfirmed handoff context cannot persist incident-country authority; provenance wording, four-locale controls, focused/full/security proof and protected delivery. |
 
 The completed #1782 acceptance-link amendment historically set the requirement-map allocation to
@@ -219,20 +218,20 @@ Owner-adopted on 2026-09-15; detailed scope and acceptance live only in the curr
 product-readiness roadmap. These rows do not change the active slice or mark future work complete.
 S4–S14 are outcome families to split into bounded implementation slices, not architecture T IDs.
 
-| Item                                    | Status              | Next evidence                                                                                                                            |
-| --------------------------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| S4 — S3 handoff gap                     | completed_bounded   | Protected PR #1786; request-bound upload/acknowledgement remain open.                                                                    |
-| S5 — Member first-case journey          | in_progress_bounded | Selected S5.d diaspora claim-start truth; no full-S5 or diaspora-family completion claim.                                                |
-| S6 — Member continuation and membership | queued_conditional  | Credit #1775–#1777; complete only missing return/evidence/message/membership access outcomes.                                            |
-| S7 — Staff handling journey             | queued_conditional  | Existing handling contracts; queue and evidence round-trip with internal/public separation.                                              |
-| S8 — Agent client/handoff journey       | queued_conditional  | Existing authority and attribution; only unresolved capability changes need disposition.                                                 |
-| S9 — Agent-assisted activation          | queued_conditional  | Member ownership, attribution and Paddle continuity on established contracts.                                                            |
-| S10 — Branch-manager oversight          | queued_conditional  | S2; existing authorized scope; metric decisions block only affected restoration.                                                         |
-| S11 — Tenant-admin operations           | queued_conditional  | People/branches and contracted access lifecycle, split into bounded increments.                                                          |
-| S12 — Platform-admin operations         | queued_conditional  | Technical operations and separate business-authority boundary.                                                                           |
-| H1 — SVC-CORE / Help Now                | priority_when_ready | First unmet clause, country/content/stop-rule authority and usable assistance path.                                                      |
-| S13 — Outcome and closure               | queued_conditional  | Closure/recovery receipts and pilot scope; truthful member/staff outcome UI.                                                             |
-| S14 — Pilot rehearsal                   | queued_conditional  | All in-scope role journeys, user acceptance, accessibility, four locales and operational evidence.                                       |
+| Item                                    | Status              | Next evidence                                                                                      |
+| --------------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------- |
+| S4 — S3 handoff gap                     | completed_bounded   | Protected PR #1786; request-bound upload/acknowledgement remain open.                              |
+| S5 — Member first-case journey          | in_progress_bounded | Selected S5.d diaspora claim-start truth; no full-S5 or diaspora-family completion claim.          |
+| S6 — Member continuation and membership | queued_conditional  | Credit #1775–#1777; complete only missing return/evidence/message/membership access outcomes.      |
+| S7 — Staff handling journey             | queued_conditional  | Existing handling contracts; queue and evidence round-trip with internal/public separation.        |
+| S8 — Agent client/handoff journey       | queued_conditional  | Existing authority and attribution; only unresolved capability changes need disposition.           |
+| S9 — Agent-assisted activation          | queued_conditional  | Member ownership, attribution and Paddle continuity on established contracts.                      |
+| S10 — Branch-manager oversight          | queued_conditional  | S2; existing authorized scope; metric decisions block only affected restoration.                   |
+| S11 — Tenant-admin operations           | queued_conditional  | People/branches and contracted access lifecycle, split into bounded increments.                    |
+| S12 — Platform-admin operations         | queued_conditional  | Technical operations and separate business-authority boundary.                                     |
+| H1 — SVC-CORE / Help Now                | priority_when_ready | First unmet clause, country/content/stop-rule authority and usable assistance path.                |
+| S13 — Outcome and closure               | queued_conditional  | Closure/recovery receipts and pilot scope; truthful member/staff outcome UI.                       |
+| S14 — Pilot rehearsal                   | queued_conditional  | All in-scope role journeys, user acceptance, accessibility, four locales and operational evidence. |
 
 Before selecting each family, record its exact bounded gap, direct predecessor receipts, model/risk,
 UI acceptance and exclusions in the existing active queue. Record why any independent ready outcome
@@ -682,9 +681,9 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                               | Source Refs                  | Execution  | Run ID | Run Root         | Sonar   | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                               |
-| -------------------------------- | ---------------------------- | ---------- | ------ | ---------------- | ------- | ---------------- | ---------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S4-MISSING-INFORMATION-REQUEST` | current program; IDA-CLM-010 | `scripted` | local  | isolated task DB | pending | `not_applicable` | `not_applicable` | pending  | Product source `1acc8cc7` passed full isolated pr:verify/security, 264 gate and 13 smoke tests. Opus 5 findings have explicit dispositions above. PR #1786 final-head protected delivery, exact-main health and worktree retirement remain pending; no deployment or broader request fulfilment is claimed. |
+| ID                                | Source Refs                      | Execution  | Run ID | Run Root                | Sonar   | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                        |
+| --------------------------------- | -------------------------------- | ---------- | ------ | ----------------------- | ------- | ---------------- | ---------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S5.d-DIASPORA-CLAIM-START-TRUTH` | current program; S5; DIA-013–015 | `scripted` | local  | isolated task resources | pending | `not_applicable` | `not_applicable` | pending  | Sonnet 5 proposal passed after owner selection was recorded; Gemini supplied absent, mismatched and tampered confirmation plus provenance counterexamples. Focused, full, security and mounted proof remain pending. |
 
 ### Historical S3 supported-prefix proof
 

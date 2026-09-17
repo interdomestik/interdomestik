@@ -58,6 +58,7 @@ describe('saved draft canonical submit', () => {
     ['manager only', { managerOnly: true }, copy.submitMembershipExplanation],
     ['manager-only dirty', { managerOnly: true, hasUnsavedChanges: true }, copy.submitMembershipExplanation],
     ['manager-only incomplete', { managerOnly: true, draft: { ...draft, summary: '' } }, copy.submitMembershipExplanation],
+    ['unconfirmed diaspora country', { confirmationRequired: true, confirmationRequiredCopy: 'Confirm the incident country.' }, 'Confirm the incident country.'],
   ])('keeps submit inert when the draft is %s', (_name, overrides, explanation) => {
     view(overrides as never);
     const disabled = screen.getByTestId('claim-draft-submit-disabled');
@@ -104,6 +105,29 @@ describe('saved draft canonical submit', () => {
       '/en/member/claims/claim-1'
     );
     expect(screen.queryByRole('button', { name: submitCopy.label })).not.toBeInTheDocument();
+  });
+  it('forwards only an explicitly confirmed diaspora country to the submit action', async () => {
+    h.submit.mockResolvedValue({
+      success: true,
+      claimId: 'claim-1',
+      claimNumber: 'CLM-KS-2026-000001',
+    });
+    const claimStart = {
+      confirmed: true as const,
+      handoffContext: {
+        source: 'diaspora-green-card' as const,
+        country: 'IT' as const,
+        incidentLocation: 'abroad' as const,
+      },
+      incidentCountryCode: 'IT' as const,
+    };
+    view({ claimStart });
+    const button = screen.getByRole('button', { name: submitCopy.label });
+    await waitFor(() => expect(button).toBeEnabled());
+    fireEvent.click(button);
+    await waitFor(() =>
+      expect(h.submit).toHaveBeenCalledWith({ id, expectedVersion: 3, claimStart })
+    );
   });
 
   it('supports native keyboard activation at the bounded mobile viewport', async () => {
