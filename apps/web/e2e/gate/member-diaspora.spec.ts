@@ -76,6 +76,7 @@ test.describe('Diaspora Feature', () => {
       await expect(page).toHaveURL(new RegExp(`${routes.memberDiaspora(locale)}\\?country=IT$`));
       await expect(page.getByTestId('diaspora-selected-country')).toContainText(italyLabel);
       await expect(localizedItalySelector).toHaveAttribute('aria-current', 'page');
+      await expect(page.getByText('113', { exact: true }).first()).toBeVisible();
       await expect(page.getByRole('link', { name: claimLabel })).toHaveAttribute(
         'href',
         /\/member\/claims\/new\?category=vehicle&source=diaspora-green-card&country=IT&incidentLocation=abroad/
@@ -89,15 +90,17 @@ test.describe('Diaspora Feature', () => {
         .toBe(true);
     }
 
-    await gotoApp(page, routes.memberDiaspora('en'), testInfo, { marker: 'diaspora-page' });
+    await gotoApp(page, routes.memberDiaspora(testInfo), testInfo, { marker: 'diaspora-page' });
 
     const italySelector = page.getByRole('link', {
-      name: 'Italy',
+      name: /(Italy|Италија|Italia)/i,
     });
     await italySelector.click();
 
     await expect(page).toHaveURL(/\/member\/diaspora\?country=IT/);
-    await expect(page.getByTestId('diaspora-selected-country')).toContainText('Italy');
+    await expect(page.getByTestId('diaspora-selected-country')).toContainText(
+      /(Italy|Италија|Italia)/i
+    );
     await expect(italySelector).toHaveAttribute('aria-current', 'page');
     await expect
       .poll(() =>
@@ -110,7 +113,7 @@ test.describe('Diaspora Feature', () => {
     await page.setViewportSize(originalViewport);
 
     const claimStartLink = page.getByRole('link', {
-      name: 'Prepare vehicle claim',
+      name: /(Prepare vehicle claim|Подготви барање за возило|Përgatit kërkesën për automjet|Pripremi zahtev za vozilo)/i,
     });
     await expect(claimStartLink).toHaveAttribute(
       'href',
@@ -125,7 +128,7 @@ test.describe('Diaspora Feature', () => {
     ]);
 
     await expect(page.getByTestId('claim-wizard-handoff')).toBeVisible();
-    await expect(page.getByTestId('claim-wizard-handoff')).toContainText('Italy');
+    await expect(page.getByTestId('claim-wizard-handoff')).toContainText(/(Italy|Италија|Italia)/i);
     const details = page.getByTestId('claim-draft-main-panel');
     await expect(details.locator('option[value="collision"]')).toHaveCount(1);
     await expect(page.getByTestId('claim-draft-travel')).toHaveCount(0);

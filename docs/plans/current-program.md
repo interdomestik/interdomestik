@@ -268,10 +268,10 @@ consumes no new global docs allocation; the exact requirement map remains separa
 pre-review measurement was +6,398 product/test/catalog/E2E bytes and one selector file before review
 corrections and exact registration; the final measured ledger below replaces that initial figure.
 The owner approved a bounded ceiling of +15,000 bytes and
-one file on 2026-09-17. The exact aggregate ledger increase is +10,559 bytes and one file: +2,563 for
-the new selector/EN/SR owner, +4,390 for the existing S5.d page/test/MK/SQ owner, +2,475 for the
+one file on 2026-09-17. The exact aggregate ledger increase is +10,844 bytes and one file: +2,563 for
+the new selector/EN/SR owner, +4,390 for the existing S5.d page/test/MK/SQ owner, +2,760 for the
 existing diaspora E2E owner, +389 for the exact requirement map and +742 for capacity-budget
-self-attribution. Derived category growth is +2,443 config, +389 docs, +2,533 source and +5,194
+self-attribution. Derived category growth is +2,443 config, +389 docs, +2,533 source and +5,479
 test/E2E bytes. Reserve, deleted-byte credit, enforcement thresholds and unrelated owners remain
 unchanged; the existing S5.d allocation is extended only for the four paths reused by this slice.
 
