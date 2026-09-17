@@ -31,10 +31,10 @@
     },
     "actions": {
       "title": "Hapi i radhës",
-      "description": "Përdorni mbështetjen direkte nëse ju duhet ndihmë tani, ose nisni kërkesën e udhëtimit që triagimi të fillojë në rrjedhën ekzistuese të anëtarit.",
+      "description": "Përdorni mbështetjen direkte nëse ju duhet ndihmë tani, ose përgatitni një skicë të mbështetur të kërkesës për automjet për dorëzim të mëvonshëm.",
       "support": "Kontakto mbështetjen tani",
       "whatsapp": "Hap mbështetjen në WhatsApp",
-      "claim": "Nis kërkesën e udhëtimit"
+      "claim": "Përgatit kërkesën për automjet"
     },
     "boundary": {
       "title": "Çfarë bën ky udhëzues i shpejtë",

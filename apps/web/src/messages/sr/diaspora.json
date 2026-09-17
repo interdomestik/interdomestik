@@ -31,10 +31,10 @@
     },
     "actions": {
       "title": "Sledeći korak",
-      "description": "Koristite direktnu podršku ako vam je pomoć potrebna odmah, ili pokrenite zahtev za putovanje kako bi trijaža počela u postojećem članskom toku.",
+      "description": "Koristite direktnu podršku ako vam je pomoć potrebna odmah, ili pripremite podržan nacrt zahteva za vozilo za kasnije podnošenje.",
       "support": "Kontaktiraj podršku sada",
       "whatsapp": "Otvori WhatsApp podršku",
-      "claim": "Pokreni zahtev za putovanje"
+      "claim": "Pripremi zahtev za vozilo"
     },
     "boundary": {
       "title": "Šta radi ovaj brzi vodič",

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import en from '../../../messages/en/claims.json';
 import mk from '../../../messages/mk/claims.json';
@@ -17,6 +18,12 @@ vi.mock('@/actions/free-start-drafts', () => ({
   resumeFreeStartDraft: a.resume,
   updateFreeStartDraft: a.update,
 }));
+const claim = vi.hoisted(() => ({
+  lookup: vi.fn().mockResolvedValue({ claim: null }),
+  submit: vi.fn(),
+}));
+// prettier-ignore
+vi.mock('@/actions/claims/create-from-saved-draft', () => ({ createClaimFromSavedDraft: claim.submit, lookupSavedDraftClaim: claim.lookup }));
 
 // prettier-ignore
 const saveStates: DraftSaveState[] = ['idle', 'saving', 'saved', 'dirty', 'loading', 'conflict', 'limit', 'invalid', 'unsupported', 'accountContext', 'error', 'deleted'];
@@ -41,6 +48,10 @@ const secureCopy = {
   otp: { body: 'Body', changeEmail: 'Change', codeLabel: 'Code', emailLabel: 'Email', heading: 'Verify',
     send: 'Send', sending: 'Sending', sent: 'Sent', verify: 'Verify', verifying: 'Verifying', errors: {} },
 };
+// prettier-ignore
+const savedDraft = { category: 'vehicle', clientRequestId: 'req-1', counterparty: 'Insurer', createdAt: '2026-07-01T00:00:00.000Z', desiredOutcome: 'repair', id: '63ffc31e-8c64-4758-995a-c57f40de7568', incidentDate: '2026-07-01', issueType: 'collision', resumeStep: 'preview', summary: 'Saved facts.', updatedAt: '2026-07-02T00:00:00.000Z', version: 1 };
+// prettier-ignore
+const claimStart = { confirmed: true as const, handoffContext: { source: 'diaspora-green-card' as const, country: 'IT' as const, incidentLocation: 'abroad' as const }, incidentCountryCode: 'IT' as const };
 vi.mock('next-intl', () => ({
   NextIntlClientProvider: ({ children }: { children: React.ReactNode }) => children,
   useLocale: () => 'en',
@@ -78,13 +89,11 @@ function enter(label: string, value: string) {
 
 describe('ClaimDraftIntake', () => {
   it('keeps manager-only closed until explicit Manage then Resume', async () => {
+    a.list.mockResolvedValueOnce({ items: [savedDraft], nextCursor: null, ok: true });
+    a.resume.mockResolvedValueOnce({ draft: savedDraft, ok: true });
     // prettier-ignore
-    const draft = { category: 'property', clientRequestId: 'req-1', counterparty: 'Insurer', createdAt: '2026-07-01T00:00:00.000Z', desiredOutcome: 'repair', id: 'draft-1', incidentDate: '2026-07-01', issueType: 'water_damage', resumeStep: 'preview', summary: 'Saved facts.', updatedAt: '2026-07-02T00:00:00.000Z', version: 1 };
-    a.list.mockResolvedValueOnce({ items: [draft], nextCursor: null, ok: true });
-    a.resume.mockResolvedValueOnce({ draft, ok: true });
-    // prettier-ignore
-    render(<ClaimDraftIntake freeStartMessages={{}} locale="en" managerOnly neutralOtpHost={location.host} tenantId="tenant_ks" />);
-    expect(screen.queryByTestId('claim-draft-main-panel')).not.toBeInTheDocument();
+    render(<ClaimDraftIntake freeStartMessages={{}} handoffContext={claimStart.handoffContext} initialCategory="property" locale="en" managerOnly neutralOtpHost={location.host} tenantId="tenant_ks" />);
+    expect(screen.queryByTestId(/claim-(wizard-handoff|draft-main-panel)/)).toBeNull();
     expect(screen.queryByTestId('free-start-save-open')).not.toBeInTheDocument();
     expect(Object.values(a).every(action => action.mock.calls.length === 0)).toBe(true);
     fireEvent.click(await screen.findByTestId('free-start-manage-open'));
@@ -118,6 +127,37 @@ describe('ClaimDraftIntake', () => {
     expect(submit.closest('form')).toBeNull();
     for (const key of ['Enter', ' ']) fireEvent.keyDown(submit, { key });
     expect(Object.values(a).every(action => action.mock.calls.length === 0)).toBe(true);
+  });
+
+  it('forwards country only after keyboard confirmation', async () => {
+    const user = userEvent.setup();
+    a.list.mockResolvedValueOnce({ items: [savedDraft], nextCursor: null, ok: true });
+    a.resume.mockResolvedValueOnce({ draft: savedDraft, ok: true });
+    claim.submit.mockResolvedValue({ success: true, claimId: 'claim-1', claimNumber: 'CLM-1' });
+    render(
+      <ClaimDraftIntake
+        freeStartMessages={{}}
+        handoffContext={claimStart.handoffContext}
+        initialCategory="vehicle"
+        locale="en"
+        neutralOtpHost={location.host}
+        tenantId="tenant_ks"
+      />
+    );
+    expect(screen.getByLabelText('details.issueType')).toBeVisible();
+    const confirmation = screen.getByTestId('claim-wizard-country-confirmation');
+    expect(confirmation).not.toBeChecked();
+    await user.click(await screen.findByTestId('free-start-manage-open'));
+    await user.click(await screen.findByRole('button', { name: 'Resume' }));
+    expect(await screen.findByTestId('claim-draft-submit-disabled')).toBeDisabled();
+    confirmation.focus();
+    await user.keyboard('[Space]');
+    expect(confirmation).toBeChecked();
+    const submit = await screen.findByTestId('claim-draft-submit');
+    await waitFor(() => expect(submit).toBeEnabled());
+    await user.click(submit);
+    // prettier-ignore
+    await waitFor(() => expect(claim.submit).toHaveBeenCalledWith({ id: savedDraft.id, expectedVersion: 1, claimStart }));
   });
 
   it.each(saveStates)('keeps the reused live save state perceivable: %s', async state => {

@@ -68,6 +68,7 @@ const STRUCTURED_OWNERS = [
   [/^\.codex\/config\.toml$/u, 'codex-config-contract'],
 ];
 const LOCALE_CATALOG_OWNERS = new Map([
+  ['diaspora.json', 's5d-diaspora-claim-start-i18n-contract'],
   ['dashboard.json', 't117b-member-portal-i18n-contract'],
   ['claims.json', 'member-evidence-upload-locale-contract'],
   ['agent-claims.json', 's4-missing-information-request-i18n-contract'],

@@ -38,7 +38,7 @@ function resolveCountryCode(rawCountry: string | undefined): SupportedQuickstart
 
 function buildClaimStartHref(selectedCountry: SupportedQuickstartCountry): string {
   const params = new URLSearchParams({
-    category: 'travel',
+    category: 'vehicle',
     source: 'diaspora-green-card',
     country: selectedCountry,
     incidentLocation: 'abroad',

@@ -36,6 +36,8 @@ const E2E_TREE_SHAS = new Set([
   '18357bb3596c54b0aca7fdd9bf5db3a665b5a127',
   // S4 missing-information request with exact cleanup and explicit UTC display.
   '985c4b06bf15b79b7690c2b5ff3c3f06890549dd',
+  // S5.d diaspora claim-start truth.
+  'd647e82145ca2a262a1d673aa3e80e2c0317cdcb',
 ]);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {

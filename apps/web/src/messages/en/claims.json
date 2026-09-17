@@ -114,7 +114,10 @@
         "title": "Abroad claim context",
         "sourceLabel": "Source",
         "sourceValue": "Diaspora / Green Card quickstart",
-        "countryLabel": "Selected country",
+        "countryLabel": "Guidance country",
+        "countryContext": "This country came from the quickstart. It is not part of your case until you confirm it.",
+        "confirmCountry": "I confirm {country} is the incident country.",
+        "confirmationRequired": "Confirm the incident country before submitting this saved draft.",
         "incidentLocationLabel": "Incident location",
         "incidentLocationValue": "Abroad"
       }

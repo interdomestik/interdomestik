@@ -45,8 +45,7 @@ describe('saved draft canonical submit', () => {
   // prettier-ignore
   it.each([
     ['dirty', { hasUnsavedChanges: true }, copy.submitUnsavedExplanation],
-    ['not persisted', { activeDraftId: null, activeDraftVersion: null }, copy.submitFirstSaveExplanation],
-    ['not persisted undefined', { activeDraftId: undefined, activeDraftVersion: undefined }, copy.submitFirstSaveExplanation],
+    ['new and unconfirmed', { activeDraftId: null, activeDraftVersion: null, confirmationRequired: true, confirmationRequiredCopy: 'Confirm the incident country.' }, copy.submitFirstSaveExplanation],
     ['missing version', { activeDraftVersion: null }, copy.submitExplanation],
     ['malformed id', { activeDraftId: 'draft-1' }, copy.submitExplanation],
     ['missing issue', { draft: { ...draft, issueType: '' } }, copy.submitIncompleteExplanation],
@@ -54,10 +53,11 @@ describe('saved draft canonical submit', () => {
     ['missing counterparty', { draft: { ...draft, counterparty: '' } }, copy.submitIncompleteExplanation],
     ['missing outcome', { draft: { ...draft, desiredOutcome: '' } }, copy.submitIncompleteExplanation],
     ['missing summary', { draft: { ...draft, summary: '' } }, copy.submitIncompleteExplanation],
-    ['incomplete dirty', { draft: { ...draft, summary: '' }, hasUnsavedChanges: true }, copy.submitIncompleteExplanation],
+    ['incomplete dirty and unconfirmed', { draft: { ...draft, summary: '' }, hasUnsavedChanges: true, confirmationRequired: true, confirmationRequiredCopy: 'Confirm the incident country.' }, copy.submitIncompleteExplanation],
     ['manager only', { managerOnly: true }, copy.submitMembershipExplanation],
     ['manager-only dirty', { managerOnly: true, hasUnsavedChanges: true }, copy.submitMembershipExplanation],
     ['manager-only incomplete', { managerOnly: true, draft: { ...draft, summary: '' } }, copy.submitMembershipExplanation],
+    ['unconfirmed diaspora country', { confirmationRequired: true, confirmationRequiredCopy: 'Confirm the incident country.' }, 'Confirm the incident country.'],
   ])('keeps submit inert when the draft is %s', (_name, overrides, explanation) => {
     view(overrides as never);
     const disabled = screen.getByTestId('claim-draft-submit-disabled');
@@ -105,7 +105,6 @@ describe('saved draft canonical submit', () => {
     );
     expect(screen.queryByRole('button', { name: submitCopy.label })).not.toBeInTheDocument();
   });
-
   it('supports native keyboard activation at the bounded mobile viewport', async () => {
     h.submit.mockResolvedValue({
       success: true,

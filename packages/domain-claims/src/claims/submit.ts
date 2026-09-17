@@ -134,10 +134,7 @@ async function persistSubmittedClaim(args: {
 }): Promise<{ claimNumber: string; queuedRuns: QueuedClaimAiRun[] }> {
   const { title, description, category, companyName, claimAmount, currency, files } = args.data;
   const publicNote = buildClaimStartPublicNote(args.handoffContext);
-  const incidentCountry = resolveSubmittedClaimIncidentCountry({
-    data: args.data,
-    handoffContext: args.handoffContext,
-  });
+  const incidentCountry = resolveSubmittedClaimIncidentCountry(args.data);
   let claimNumber = '';
 
   // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause

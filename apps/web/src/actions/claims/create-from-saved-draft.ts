@@ -11,9 +11,11 @@ import { z } from 'zod';
 import { readSavedDraftClaim, savedDraftClaimId } from './saved-draft-claim-identity';
 import { submitClaimCore } from './submit.core';
 
-const inputSchema = z
-  .object({ id: z.string().uuid(), expectedVersion: z.number().int().positive() })
-  .strict();
+const diasporaCountrySchema = z.enum(['DE', 'CH', 'AT', 'IT']);
+// prettier-ignore
+const claimStartSchema = z.object({ confirmed: z.literal(true), handoffContext: z.object({ source: z.literal('diaspora-green-card'), country: diasporaCountrySchema, incidentLocation: z.literal('abroad') }).strict(), incidentCountryCode: diasporaCountrySchema }).strict().refine(value => value.incidentCountryCode === value.handoffContext.country);
+// prettier-ignore
+const inputSchema = z.object({ id: z.string().uuid(), expectedVersion: z.number().int().positive(), claimStart: claimStartSchema.optional() }).strict();
 const lookupSchema = z.object({ id: z.string().uuid() }).strict();
 const CATEGORY = { vehicle: 'Vehicle', property: 'Property' } as const;
 // prettier-ignore
@@ -29,7 +31,8 @@ function ownValue(record: Readonly<Record<string, string>>, key: string | null) 
   return key && Object.hasOwn(record, key) ? record[key] : null;
 }
 
-function mapDraft(draft: FreeStartDraft): CreateClaimValues | null {
+// prettier-ignore
+function mapDraft(draft: FreeStartDraft, incidentCountryCode?: z.infer<typeof diasporaCountrySchema>): CreateClaimValues | null {
   const category = ownValue(CATEGORY, draft.category);
   const issue = ownValue(ISSUE, draft.issueType);
   const outcome = ownValue(OUTCOME, draft.desiredOutcome);
@@ -51,6 +54,7 @@ function mapDraft(draft: FreeStartDraft): CreateClaimValues | null {
     ].join('\n'),
     files: [],
     incidentDate: draft.incidentDate,
+    ...(incidentCountryCode ? { incidentCountryCode } : {}),
     title: `${category}: ${issue}`,
   };
   const parsed = createClaimSchema.safeParse(data);
@@ -104,21 +108,12 @@ export async function createClaimFromSavedDraft(input: unknown): Promise<SavedDr
     if (!resumed.ok) return unavailable();
     const claimId = savedDraftClaimId(tenantId, actorId, resumed.draft.id);
     const existing = await readSavedDraftClaim(claimId, tenantId, actorId);
-    if (existing.kind === 'found') {
-      return {
-        success: true as const,
-        claimId: existing.claimId,
-        claimNumber: existing.claimNumber,
-      };
-    }
-    if (
-      existing.kind === 'invalid' ||
-      resumed.draft.version !== parsed.data.expectedVersion ||
-      resumed.draft.resumeStep !== 'preview'
-    ) {
-      return unavailable();
-    }
-    const data = mapDraft(resumed.draft);
+    // prettier-ignore
+    if (existing.kind === 'found') return { success: true as const, claimId: existing.claimId, claimNumber: existing.claimNumber };
+    // prettier-ignore
+    if (existing.kind === 'invalid' || resumed.draft.version !== parsed.data.expectedVersion || resumed.draft.resumeStep !== 'preview') return unavailable();
+    const claimStart = resumed.draft.category === 'vehicle' ? parsed.data.claimStart : undefined;
+    const data = mapDraft(resumed.draft, claimStart?.incidentCountryCode);
     if (!data) return unavailable();
     const limit = await enforceRateLimitForAction({
       name: 'action:submit-claim',
@@ -131,6 +126,7 @@ export async function createClaimFromSavedDraft(input: unknown): Promise<SavedDr
     try {
       const result = await submitClaimCore({
         data,
+        handoffContext: claimStart?.handoffContext,
         idempotencyKey: `ida-ui03a2-b1:${resumed.draft.id}`,
         requestHeaders,
         session,

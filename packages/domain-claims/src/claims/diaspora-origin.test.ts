@@ -2,21 +2,21 @@ import { describe, expect, it } from 'vitest';
 
 import { parseDiasporaOriginFromPublicNote } from './diaspora-origin';
 
-describe('parseDiasporaOriginFromPublicNote', () => {
-  it('extracts diaspora provenance from the canonical Green Card submit note', () => {
-    expect(
-      parseDiasporaOriginFromPublicNote(
-        'Started from Diaspora / Green Card quickstart. Country: IT. Incident location: abroad.'
-      )
-    ).toEqual({
-      country: 'IT',
+describe('diaspora note parser', () => {
+  it.each([
+    [
+      'Started from Diaspora / Green Card quickstart. Country: IT. Incident location: abroad.',
+      'IT',
+    ],
+    ['Member-submitted Diaspora/Green Card guidance: CH; not incident-country authority.', 'CH'],
+  ])('parses %s', (note, country) => {
+    expect(parseDiasporaOriginFromPublicNote(note)).toEqual({
+      country,
       source: 'diaspora-green-card',
     });
   });
 
-  it('returns null for unrelated public notes', () => {
-    expect(
-      parseDiasporaOriginFromPublicNote('Member provided a new invoice and passport scan.')
-    ).toBeNull();
+  it('rejects unrelated notes', () => {
+    expect(parseDiasporaOriginFromPublicNote('Unrelated public note.')).toBeNull();
   });
 });

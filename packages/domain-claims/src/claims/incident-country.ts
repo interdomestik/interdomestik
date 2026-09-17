@@ -97,16 +97,10 @@ export function resolveHandoffIncidentCountry(
   return resolveClaimIncidentCountry({ incidentCountryCode: handoffContext.country });
 }
 
-export function resolveSubmittedClaimIncidentCountry(args: {
-  data: ClaimIncidentCountryInput;
-  handoffContext: ClaimStartHandoffContext | null | undefined;
-}): ClaimIncidentCountry {
-  const handoffCountry = resolveHandoffIncidentCountry(args.handoffContext);
-  if (handoffCountry.incidentCountryCode) {
-    return handoffCountry;
-  }
-
-  return resolveClaimIncidentCountry(args.data);
+export function resolveSubmittedClaimIncidentCountry(
+  data: ClaimIncidentCountryInput
+): ClaimIncidentCountry {
+  return resolveClaimIncidentCountry(data);
 }
 
 export function buildClaimStartPublicNote(
@@ -117,5 +111,5 @@ export function buildClaimStartPublicNote(
     return null;
   }
 
-  return `Started from Diaspora / Green Card quickstart. Country: ${incidentCountry.incidentCountryCode}. Incident location: ${handoffContext.incidentLocation}.`;
+  return `Member-submitted Diaspora/Green Card guidance: ${incidentCountry.incidentCountryCode}; not incident-country authority.`;
 }

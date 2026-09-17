@@ -62,7 +62,7 @@ vi.mock('nanoid', () => ({ nanoid: vi.fn(() => 'claim-1') }));
 vi.mock('./ai-workflows', () => ({ queueClaimDocumentAiWorkflows: vi.fn().mockResolvedValue([]) }));
 import { createClaimCore } from './create';
 import { updateDraftClaimCore } from './draft';
-import { resolveClaimIncidentCountryUpdate } from './incident-country';
+import { buildClaimStartPublicNote, resolveClaimIncidentCountryUpdate } from './incident-country';
 import { submitClaimCore } from './submit';
 import type { CreateClaimValues } from '../validators/claims';
 
@@ -103,7 +103,7 @@ describe('claim incident-country writers', () => {
     expect(h.values).toHaveBeenNthCalledWith(1, expectedIncidentCountry('DE'));
   });
 
-  it('persists diaspora handoff country on submitted claims', async () => {
+  it('does not promote diaspora handoff context into submitted incident-country authority', async () => {
     await submitClaimCore({
       data: claimData(),
       handoffContext: { country: 'IT', incidentLocation: 'abroad', source: 'diaspora-green-card' },
@@ -111,17 +111,30 @@ describe('claim incident-country writers', () => {
       session,
     });
 
-    expect(h.values).toHaveBeenNthCalledWith(1, expectedIncidentCountry('IT'));
+    expect(h.values).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ incidentCountryCode: null, incidentJurisdiction: null })
+    );
   });
 
-  it('persists explicit submitted claim incident country without diaspora handoff', async () => {
+  it('persists explicit submitted incident country ahead of diaspora provenance', async () => {
     await submitClaimCore({
       data: claimData({ incidentCountryCode: 'ch' }),
+      handoffContext: { country: 'IT', incidentLocation: 'abroad', source: 'diaspora-green-card' },
       requestHeaders: new Headers(),
       session,
     });
 
     expect(h.values).toHaveBeenNthCalledWith(1, expectedIncidentCountry('CH'));
+  });
+
+  it('labels the handoff country as guidance provenance rather than confirmation', () => {
+    const note = buildClaimStartPublicNote({
+      country: 'IT',
+      incidentLocation: 'abroad',
+      source: 'diaspora-green-card',
+    });
+    expect(note).toMatch(/Member-submitted.*guidance: IT; not incident-country authority/);
   });
 
   it('keeps draft updates nullable for ambiguous country input', async () => {

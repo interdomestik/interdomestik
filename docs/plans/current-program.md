@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-16
+last_reviewed: 2026-09-17
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -46,14 +46,17 @@ exact-main checks passed. S2 completed through protected PR #1781 as
 The bounded roadmap acceptance-link amendment completed through protected PR #1782 as
 `7db57a30c35112a679271e6469d20974f83dd061`. S3's supported submission → verification → member
 continuity prefix merged through PR #1783 as `135338a5501267a3377ce6a67b053ba61ef54c9c`, with
-all 13 protected checks green and retirement confirmed. The owner selected the bounded S4
-missing-information request increment from that main; the whole S3 journey remains open.
+all 13 protected checks green and retirement confirmed. S4 completed through protected PR #1786
+as `1eecb57a7244f37aded3392c5bf38a32fec08584`, with all exact-main checks green and its owned
+verification resources retired. The owner selected the bounded S5.d diaspora claim-start truth
+increment below; the whole S3 and S5 journey families remain open.
 
 ## Owner-adopted enterprise delivery sequence (2026-09-15)
 
 The owner adopts this near-term sequence after the enterprise audit and Opus 5 consultation.
 `MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY`, S1, S2 and the acceptance-link amendment are
-completed. S3's bounded supported prefix completed through #1783; S4 is selected from that merge.
+completed. S3's bounded supported prefix completed through #1783, and S4 completed through #1786.
+The bounded S5.d increment below is selected from that protected merge.
 Select one bounded successor at a time below. S1–S3 are roadmap labels, not replacements for
 architecture T IDs. This section governs successor ordering over older suggestions.
 
@@ -167,6 +170,47 @@ specific trackable document requests, not an inferred authenticated portal. GOV.
 W3C status-message and error-identification guidance informs accessible feedback. Test the mounted
 request and fresh-session member projection, exact ownership/tenant denials, canonical retries,
 concurrency, private-field exclusion and four-locale controls. No duplicate research audit is needed.
+
+### Selected S5.d — Diaspora claim-start truth (2026-09-17)
+
+The owner selected `S5.d-DIASPORA-CLAIM-START-TRUTH` after reconciling S5, the mounted diaspora
+quickstart and DIA-013–015. The selected guidance country is context and provenance, not incident-
+country authority. The claim-start action must enter the supported vehicle preparation flow, clearly
+label that boundary, and require an explicit member confirmation before the selected country can be
+submitted as `incidentCountryCode`. A missing, changed or malformed confirmation must never promote
+the query value into claim authority. The public start note may retain the quickstart source and
+guidance country only with wording that does not imply confirmation.
+
+Acceptance is one mounted diaspora route → country confirmation → supported vehicle-draft proof,
+plus domain/action regressions showing explicit submitted data wins and unconfirmed handoff context
+persists no incident country. Reuse the delivered save, submission and case-continuity contracts;
+the generic integrated proof is acceptance evidence, not a prerequisite or a test-only successor.
+Preserve EN/SQ/MK/SR, native keyboard/focus behavior, canonical routes, auth/tenant boundaries and
+the read-only proxy. Schema/migrations, Trip Mode/offline packs, receiver acknowledgement or full
+DIA-015, recovery/legal/partner authority, staff handling, routing/auth changes and deployment are
+excluded. This is one bounded S5 increment, not completion of S5 or the diaspora requirement family.
+
+Research reused on 2026-09-17: W3C WCAG 2.2 labeling, error and status guidance informs the native
+confirmation control and perceivable blocked state; DORA small-batch guidance supports this narrow
+mounted correction. The actual Interdomestik contradiction, rather than a competitor visual pattern,
+drives the design. Test the truthful CTA, default-unconfirmed state, keyboard confirmation, tampered
+or absent confirmation, provenance wording, explicit-data precedence and four-locale copy.
+
+The owner approved a bounded ceiling of +11,528 bytes and zero files on 2026-09-17. The corrected
+byte-identical ledger uses +11,528 bytes: 7,738 for the named S5.d source/test/catalog allocation,
+1,391 to extend the existing owner of the four `claims.json` catalogs, 84 for the existing E2E reuse
+owner, and 2,315 for capacity-budget self-attribution. Derived category growth is 3,427 source, 4,372
+test and 3,729 config bytes. Locale
+catalog modularity is assigned to `s5d-diaspora-claim-start-i18n-contract`; enforcement thresholds
+and the deny posture remain unchanged. Files, reserve, deleted-byte credit and unrelated allocations
+remain unchanged.
+
+The production `submitClaimCore` inventory has two entry surfaces: the legacy exported action has no
+mounted production caller, while saved-draft submission is the mounted caller and is the only surface
+that supplies confirmed diaspora provenance. Domain submission keeps provenance-note generation
+separate from incident-country resolution; only explicit submitted `incidentCountryCode` data is
+authoritative. A resumed draft without diaspora handoff context therefore persists no incident
+country; re-entry through the handoff URL requires confirmation again without adding draft schema.
 
 ### Owner-adopted product-readiness roadmap (2026-09-15)
 
