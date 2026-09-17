@@ -14,6 +14,7 @@ import { ArrowRight, Phone, ShieldCheck, Siren, TriangleAlert } from 'lucide-rea
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { DiasporaCountryRequiredCard, DiasporaCountrySelector } from './diaspora-country-selector';
+import type { DiasporaCountryCode } from './diaspora-country-selector';
 
 const QUICKSTART_COUNTRIES = [
   { code: 'DE', labelKey: 'selector.options.DE' },
@@ -22,7 +23,7 @@ const QUICKSTART_COUNTRIES = [
   { code: 'IT', labelKey: 'selector.options.IT' },
 ] as const;
 
-type SupportedQuickstartCountry = (typeof QUICKSTART_COUNTRIES)[number]['code'];
+type SupportedQuickstartCountry = DiasporaCountryCode;
 
 function resolveCountryCode(
   rawCountry: string | string[] | undefined
@@ -36,11 +37,8 @@ function resolveCountryCode(
     return null;
   }
 
-  if (!QUICKSTART_COUNTRIES.some(country => country.code === parsed.data)) {
-    return null;
-  }
-
-  return parsed.data as SupportedQuickstartCountry;
+  const supportedCountry = QUICKSTART_COUNTRIES.find(country => country.code === parsed.data);
+  return supportedCountry?.code ?? null;
 }
 
 function buildClaimStartHref(selectedCountry: SupportedQuickstartCountry): string {

@@ -2,15 +2,17 @@ import { Link } from '@/i18n/routing';
 import { Button, Card, CardDescription, CardHeader, CardTitle } from '@interdomestik/ui';
 import { Siren } from 'lucide-react';
 
+export type DiasporaCountryCode = 'DE' | 'CH' | 'AT' | 'IT';
+
 type CountryOption = {
-  code: string;
+  code: DiasporaCountryCode;
   label: string;
 };
 
 type Props = {
   countries: readonly CountryOption[];
   labelledBy: string;
-  selectedCountry: string | null;
+  selectedCountry: DiasporaCountryCode | null;
 };
 
 export function DiasporaCountrySelector({

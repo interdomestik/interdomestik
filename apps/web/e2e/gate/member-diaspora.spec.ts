@@ -52,7 +52,6 @@ test.describe('Diaspora Feature', () => {
         .toBe(true);
     }
 
-    await page.setViewportSize(originalViewport);
     await gotoApp(page, routes.memberDiaspora('en'), testInfo, { marker: 'diaspora-page' });
 
     const italySelector = page.getByRole('link', {
@@ -70,6 +69,8 @@ test.describe('Diaspora Feature', () => {
         )
       )
       .toBe(true);
+
+    await page.setViewportSize(originalViewport);
 
     const claimStartLink = page.getByRole('link', {
       name: 'Prepare vehicle claim',

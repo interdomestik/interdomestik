@@ -113,13 +113,13 @@ describe('DiasporaPage', () => {
     ['unsupported', 'FR'],
     ['malformed', 'Germany'],
     ['repeated', ['DE', 'IT'] as string[]],
-  ] as const)('fails closed for %s country context', async (_case, country) => {
+  ] as const)('fails closed without echoing %s country context', async (_case, country) => {
     const tree = await DiasporaPage({
       params: Promise.resolve({ locale: 'en' }),
       searchParams: Promise.resolve({ country }),
     });
 
-    render(tree);
+    const invalidRender = render(tree);
 
     expect(screen.getByTestId('diaspora-country-required')).toBeInTheDocument();
     expect(screen.queryByTestId('diaspora-selected-country')).not.toBeInTheDocument();
@@ -128,6 +128,14 @@ describe('DiasporaPage', () => {
       'href',
       'tel:+38349900600'
     );
+
+    const neutralTree = await DiasporaPage({
+      params: Promise.resolve({ locale: 'en' }),
+      searchParams: Promise.resolve({}),
+    });
+    const neutralRender = render(neutralTree);
+
+    expect(invalidRender.container.innerHTML).toBe(neutralRender.container.innerHTML);
   });
 
   it('renders country-specific guidance when a supported country is selected', async () => {
@@ -152,7 +160,7 @@ describe('DiasporaPage', () => {
   // Locale-specific copy is covered by the mounted gate; this unit case proves only that the
   // explicit country code is independent from the interface locale.
   it.each(['en', 'sq', 'mk', 'sr'])(
-    'keeps an explicit lowercase country independent from the %s interface locale',
+    'normalizes an explicit lowercase country independently from the %s interface locale',
     async locale => {
       const tree = await DiasporaPage({
         params: Promise.resolve({ locale }),
