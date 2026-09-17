@@ -17,7 +17,7 @@ function row(overrides: Partial<IncidentCountryBackfillRow> = {}): IncidentCount
 }
 
 describe('buildIncidentCountryBackfillPlan', () => {
-  it('prefers claim-pack JSON country over diaspora notes for missing rows', () => {
+  it('prefers claim-pack country to diaspora notes', () => {
     const plan = buildIncidentCountryBackfillPlan([
       row({
         claimPackJson: { answers: { incidentCountry: ' de ' } },
@@ -43,7 +43,7 @@ describe('buildIncidentCountryBackfillPlan', () => {
     });
   });
 
-  it('uses a later valid claim-pack country code when an earlier value is invalid', () => {
+  it('uses a later valid claim-pack country', () => {
     const plan = buildIncidentCountryBackfillPlan([
       row({
         claimPackJson: { answers: { incidentCountry: 'Germany', incidentCountryCode: 'DE' } },
@@ -60,9 +60,15 @@ describe('buildIncidentCountryBackfillPlan', () => {
     expect(plan.skippedInvalidSource).toBe(0);
   });
 
-  it('uses diaspora origin notes when no claim-pack JSON source exists', () => {
+  it('backfills only legacy authoritative diaspora notes', () => {
     const plan = buildIncidentCountryBackfillPlan([
       row({ id: 'claim-2', diasporaPublicNotes: [diasporaNote] }),
+      row({
+        id: 'claim-3',
+        diasporaPublicNotes: [
+          'Member-submitted Diaspora/Green Card guidance: IT; not incident-country authority.',
+        ],
+      }),
     ]);
 
     expect(plan.updates).toEqual([
@@ -73,9 +79,10 @@ describe('buildIncidentCountryBackfillPlan', () => {
         source: 'diaspora_origin_note',
       }),
     ]);
+    expect(plan.skippedNoDurableSource).toBe(1);
   });
 
-  it('includes recovery law routing values for supported incident countries', () => {
+  it('includes supported-country recovery routing', () => {
     const plan = buildIncidentCountryBackfillPlan([
       row({ claimPackJson: { answers: { incidentCountryCode: 'MK' } } }),
     ]);
@@ -90,7 +97,7 @@ describe('buildIncidentCountryBackfillPlan', () => {
     ]);
   });
 
-  it('plans recovery routing for supported rows that already have incident country', () => {
+  it('completes routing for an existing country', () => {
     const plan = buildIncidentCountryBackfillPlan([
       row({
         incidentCountryCode: 'XK',
@@ -111,7 +118,7 @@ describe('buildIncidentCountryBackfillPlan', () => {
     ]);
   });
 
-  it('does not plan updates for rows that already have full incident-country routing', () => {
+  it('leaves fully routed rows unchanged', () => {
     const plan = buildIncidentCountryBackfillPlan([
       row({
         claimPackJson: { answers: { incidentCountry: 'DE' } },
@@ -126,7 +133,7 @@ describe('buildIncidentCountryBackfillPlan', () => {
     expect(plan.updates).toEqual([]);
   });
 
-  it('does not invent recovery routing for unsupported existing incident countries', () => {
+  it('does not route unsupported existing countries', () => {
     const plan = buildIncidentCountryBackfillPlan([
       row({ incidentCountryCode: 'CH', incidentJurisdiction: 'country:CH' }),
     ]);
@@ -135,7 +142,7 @@ describe('buildIncidentCountryBackfillPlan', () => {
     expect(plan.updates).toEqual([]);
   });
 
-  it('reports invalid source values separately from missing durable sources', () => {
+  it('separates invalid from missing sources', () => {
     const plan = buildIncidentCountryBackfillPlan([
       row({ claimPackJson: { answers: { incidentCountry: 'Germany' } } }),
       row({ id: 'claim-2', diasporaPublicNotes: ['Member added a receipt.'] }),

@@ -1,9 +1,6 @@
-import { parseDiasporaOriginFromPublicNote } from './diaspora-origin';
 import { resolveClaimIncidentCountry, type ClaimIncidentCountry } from './incident-country';
 export type IncidentCountryBackfillSource =
-  | 'claim_pack_json'
-  | 'diaspora_origin_note'
-  | 'existing_incident_country';
+  'claim_pack_json' | 'diaspora_origin_note' | 'existing_incident_country';
 export type IncidentCountryBackfillRow = {
   claimPackJson?: unknown;
   diasporaPublicNotes?: Array<string | null | undefined>;
@@ -81,8 +78,12 @@ function readClaimPackCandidate(row: IncidentCountryBackfillRow) {
 
 function readDiasporaCandidate(row: IncidentCountryBackfillRow) {
   for (const note of row.diasporaPublicNotes ?? []) {
-    const origin = parseDiasporaOriginFromPublicNote(note);
-    const candidate = resolveCandidate('diaspora_origin_note', origin?.country ?? null);
+    const candidate = resolveCandidate(
+      'diaspora_origin_note',
+      note?.match(
+        /^Started from Diaspora \/ Green Card quickstart\. Country: (.{2})\. Incident location: abroad\.$/
+      )?.[1] ?? null
+    );
     if (candidate) return candidate;
   }
 
