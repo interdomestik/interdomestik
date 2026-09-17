@@ -23,26 +23,21 @@ const QUICKSTART_COUNTRIES = [
 ] as const;
 
 type SupportedQuickstartCountry = (typeof QUICKSTART_COUNTRIES)[number]['code'];
-
 function resolveCountryCode(
   rawCountry: string | string[] | undefined
 ): SupportedQuickstartCountry | null {
   if (typeof rawCountry !== 'string') {
     return null;
   }
-
   const parsed = CountryCodeSchema.safeParse(rawCountry.toUpperCase());
   if (!parsed.success) {
     return null;
   }
-
   if (!QUICKSTART_COUNTRIES.some(country => country.code === parsed.data)) {
     return null;
   }
-
   return parsed.data as SupportedQuickstartCountry;
 }
-
 function buildClaimStartHref(selectedCountry: SupportedQuickstartCountry): string {
   const params = new URLSearchParams({
     category: 'vehicle',
@@ -50,10 +45,8 @@ function buildClaimStartHref(selectedCountry: SupportedQuickstartCountry): strin
     country: selectedCountry,
     incidentLocation: 'abroad',
   });
-
   return `/member/claims/new?${params.toString()}`;
 }
-
 type Props = {
   params: Promise<{ locale: string }>;
   searchParams?: Promise<{ country?: string | string[] }>;
@@ -66,7 +59,12 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
   const search = await searchParams;
   const selectedCountry = resolveCountryCode(search?.country);
   const t = await getTranslations('diaspora');
-  const guidance = selectedCountry && countryGuidanceService.getGuidance(selectedCountry, locale);
+  const countryContext = selectedCountry
+    ? {
+        code: selectedCountry,
+        guidance: countryGuidanceService.getGuidance(selectedCountry, locale),
+      }
+    : null;
   const contacts = getSupportContacts({ locale });
 
   return (
@@ -108,7 +106,7 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
       </section>
 
       <div className="grid gap-6 lg:grid-cols-[1.35fr_0.95fr]">
-        {selectedCountry && guidance ? (
+        {countryContext ? (
           <Card className="rounded-[2rem] border border-slate-200/80 bg-white">
             <CardHeader className="space-y-3">
               <div className="flex items-center gap-3">
@@ -117,7 +115,7 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
                 </div>
                 <div>
                   <CardTitle data-testid="diaspora-selected-country">
-                    {t(`selector.options.${selectedCountry}`)}
+                    {t(`selector.options.${countryContext.code}`)}
                   </CardTitle>
                   <CardDescription>{t('guidance.countryDescription')}</CardDescription>
                 </div>
@@ -133,26 +131,26 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
                     <div className="flex items-center justify-between gap-4">
                       <dt className="text-slate-600">{t('guidance.police')}</dt>
                       <dd className="font-semibold text-slate-950">
-                        {guidance.emergencyNumbers.police}
+                        {countryContext.guidance.emergencyNumbers.police}
                       </dd>
                     </div>
                     <div className="flex items-center justify-between gap-4">
                       <dt className="text-slate-600">{t('guidance.ambulance')}</dt>
                       <dd className="font-semibold text-slate-950">
-                        {guidance.emergencyNumbers.ambulance}
+                        {countryContext.guidance.emergencyNumbers.ambulance}
                       </dd>
                     </div>
                     <div className="flex items-center justify-between gap-4">
                       <dt className="text-slate-600">{t('guidance.fire')}</dt>
                       <dd className="font-semibold text-slate-950">
-                        {guidance.emergencyNumbers.fire}
+                        {countryContext.guidance.emergencyNumbers.fire}
                       </dd>
                     </div>
-                    {guidance.emergencyNumbers.general ? (
+                    {countryContext.guidance.emergencyNumbers.general ? (
                       <div className="flex items-center justify-between gap-4">
                         <dt className="text-slate-600">{t('guidance.general')}</dt>
                         <dd className="font-semibold text-slate-950">
-                          {guidance.emergencyNumbers.general}
+                          {countryContext.guidance.emergencyNumbers.general}
                         </dd>
                       </div>
                     ) : null}
@@ -166,22 +164,24 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
                   <div className="mt-3 space-y-3 text-sm text-slate-700">
                     <div className="rounded-xl bg-white p-3">
                       <p className="font-semibold text-slate-900">
-                        {guidance.rules.policeRequired
+                        {countryContext.guidance.rules.policeRequired
                           ? t('guidance.policeRequired')
                           : t('guidance.policeNotRequired')}
                       </p>
                     </div>
                     <div className="rounded-xl bg-white p-3">
                       <p className="font-semibold text-slate-900">
-                        {guidance.rules.europeanAccidentStatementAllowed
+                        {countryContext.guidance.rules.europeanAccidentStatementAllowed
                           ? t('guidance.europeanFormAllowed')
                           : t('guidance.europeanFormNotAllowed')}
                       </p>
                     </div>
-                    {guidance.rules.additionalNotes ? (
+                    {countryContext.guidance.rules.additionalNotes ? (
                       <div className="rounded-xl bg-white p-3">
                         <p className="font-semibold text-slate-900">{t('guidance.notes')}</p>
-                        <p className="mt-1 text-slate-600">{guidance.rules.additionalNotes}</p>
+                        <p className="mt-1 text-slate-600">
+                          {countryContext.guidance.rules.additionalNotes}
+                        </p>
                       </div>
                     ) : null}
                   </div>
@@ -199,7 +199,7 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
                   </div>
                 </div>
                 <ol className="mt-4 space-y-3">
-                  {guidance.rules.firstSteps.map(step => (
+                  {countryContext.guidance.rules.firstSteps.map(step => (
                     <li
                       key={step.step}
                       className="flex gap-3 rounded-2xl border border-amber-200/80 bg-white/80 p-3"
@@ -234,7 +234,7 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
             <CardHeader>
               <CardTitle>{t('actions.title')}</CardTitle>
               <CardDescription className="text-slate-300">
-                {t(selectedCountry ? 'actions.description' : 'actions.selectionRequired')}
+                {t(countryContext ? 'actions.description' : 'actions.selectionRequired')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -266,14 +266,14 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
                 </Button>
               ) : null}
 
-              {selectedCountry ? (
+              {countryContext ? (
                 <Button
                   asChild
                   size="lg"
                   variant="secondary"
                   className="w-full justify-between rounded-2xl"
                 >
-                  <Link href={buildClaimStartHref(selectedCountry)}>
+                  <Link href={buildClaimStartHref(countryContext.code)}>
                     <span>{t('actions.claim')}</span>
                     <ArrowRight className="h-4 w-4" />
                   </Link>

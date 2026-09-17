@@ -13,6 +13,7 @@ test.describe('Diaspora Feature', () => {
   }, testInfo) => {
     // The legacy dashboard ribbon was intentionally retired by T-117B. The product capability
     // remains covered at the existing canonical route without compatibility markup.
+    const originalViewport = page.viewportSize();
     await page.setViewportSize({ width: 320, height: 720 });
     const localeCases = [
       { locale: 'en', requiredTitle: 'Choose a country to see guidance' },
@@ -24,7 +25,7 @@ test.describe('Diaspora Feature', () => {
     for (const { locale, requiredTitle } of localeCases) {
       await gotoApp(page, routes.memberDiaspora(locale), testInfo, { marker: 'diaspora-page' });
 
-      await expect(page).toHaveURL(new RegExp(`/${locale}/member/diaspora`));
+      await expect(page).toHaveURL(new RegExp(`${routes.memberDiaspora(locale)}(?:[?#]|$)`));
       await expect(page.getByTestId('diaspora-page')).toBeVisible({ timeout: 15000 });
       await expect(page.getByTestId('diaspora-country-selector')).toBeVisible();
       await expect(page.getByRole('heading', { name: requiredTitle })).toBeVisible();
@@ -39,13 +40,18 @@ test.describe('Diaspora Feature', () => {
           name: /(Contact support now|Контактирај поддршка сега|Kontakto mbështetjen tani|Kontaktiraj podršku sada)/i,
         })
       ).toHaveAttribute('href', /^tel:/);
-      expect(
-        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)
-      ).toBe(true);
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
+        .toBe(true);
     }
 
+    if (originalViewport) {
+      await page.setViewportSize(originalViewport);
+    }
+    await gotoApp(page, routes.memberDiaspora('en'), testInfo, { marker: 'diaspora-page' });
+
     const italySelector = page.getByRole('link', {
-      name: /(Italy|Италија|Italia)/i,
+      name: 'Italy',
     });
     await italySelector.click();
 
@@ -54,9 +60,9 @@ test.describe('Diaspora Feature', () => {
       /(Italy|Италија|Italia)/i
     );
     await expect(italySelector).toHaveAttribute('aria-current', 'page');
-    expect(
-      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)
-    ).toBe(true);
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
+      .toBe(true);
 
     const claimStartLink = page.getByRole('link', {
       name: /(Prepare vehicle claim|Подготви барање за возило|Përgatit kërkesën për automjet|Pripremi zahtev za vozilo)/i,

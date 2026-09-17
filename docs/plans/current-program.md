@@ -256,10 +256,10 @@ verdicts are retained as pre-implementation evidence, not approvals. Codex indep
 the fail-closed/repeated/current-choice cases and preserved the existing lowercase contract.
 Preflight measures +6,398 product/test/catalog/E2E bytes and one cohesive selector file before
 canonical evidence and capacity metadata. The owner approved a bounded ceiling of +15,000 bytes and
-one file on 2026-09-17. The exact aggregate ledger increase is +7,505 bytes and one file: +1,749 for
-the new selector/EN/SR owner, +3,702 for the existing S5.d page/test/MK/SQ owner, +938 for the
-existing diaspora E2E owner, +375 for the exact requirement map and +741 for capacity-budget
-self-attribution. Derived category growth is +2,442 config, +375 docs, +1,710 source and +2,978
+one file on 2026-09-17. The exact aggregate ledger increase is +7,995 bytes and one file: +1,749 for
+the new selector/EN/SR owner, +3,956 for the existing S5.d page/test/MK/SQ owner, +1,159 for the
+existing diaspora E2E owner, +389 for the exact requirement map and +742 for capacity-budget
+self-attribution. Derived category growth is +2,443 config, +389 docs, +1,964 source and +3,199
 test/E2E bytes. Reserve, deleted-byte credit, enforcement thresholds and unrelated owners remain
 unchanged; the existing S5.d allocation is extended only for the four paths reused by this slice.
 
