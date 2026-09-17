@@ -19,7 +19,7 @@ function option(args, name, fallback = '') {
   );
 }
 
-const MAX_DIFF_BYTES = 512 * 1024;
+const MAX_DIFF_BYTES = 1024 * 1024;
 const MAX_AUTHORITY_FILE_BYTES = 128 * 1024;
 const MAX_REVIEW_FRAME_BYTES = 256 * 1024;
 const SAFE_GIT = Object.freeze({
@@ -68,11 +68,18 @@ function candidatePacket() {
   ).trim();
   const headSha = execFileSync('/usr/bin/git', ['rev-parse', 'HEAD^{commit}'], SAFE_GIT).trim();
   const treeSha = execFileSync('/usr/bin/git', ['rev-parse', 'HEAD^{tree}'], SAFE_GIT).trim();
-  const diff = execFileSync(
-    '/usr/bin/git',
-    ['diff', '--no-ext-diff', '--unified=3', `${baseSha}...${headSha}`],
-    SAFE_GIT
-  );
+  let diff;
+  try {
+    diff = execFileSync(
+      '/usr/bin/git',
+      ['diff', '--no-ext-diff', '--unified=3', `${baseSha}...${headSha}`],
+      SAFE_GIT
+    );
+  } catch (error) {
+    if (error.code === 'ENOBUFS')
+      throw new Error('review candidate diff exceeds the bounded packet limit');
+    throw error;
+  }
   if (Buffer.byteLength(diff) > MAX_DIFF_BYTES) {
     throw new Error('review candidate diff exceeds the bounded packet limit');
   }
@@ -169,7 +176,10 @@ async function main() {
     console.log(JSON.stringify(printableReceipt(receipt, paths), null, 2));
     process.exit(exitForReceipt(receipt));
   }
-  const commandInvoked = [route.command, ...preparedArgs];
+  const commandInvoked = [
+    route.command,
+    ...preparedArgs.filter(argument => !route.promptViaStdin || argument !== '<prompt>'),
+  ];
 
   if (requireEscalation) {
     const receipt = skippedRouteReceipt({
@@ -210,7 +220,10 @@ async function main() {
     provider: route.provider,
     model: route.model,
     command: route.command,
-    args: preparedArgs.map(argument => (argument === '<prompt>' ? prompt : argument)),
+    args: route.promptViaStdin
+      ? preparedArgs.filter(argument => argument !== '<prompt>')
+      : preparedArgs.map(argument => (argument === '<prompt>' ? prompt : argument)),
+    input: route.promptViaStdin ? prompt : undefined,
     commandInvoked,
     candidateIdentity: packet.identity,
   });

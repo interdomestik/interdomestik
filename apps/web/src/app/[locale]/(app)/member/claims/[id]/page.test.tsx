@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+vi.mock('@interdomestik/domain-claims', () => ({ getInformationRequests: vi.fn(async () => []) }));
 
 const hoisted = vi.hoisted(() => ({
   getSessionSafeMock: vi.fn(async () => ({
@@ -84,8 +85,20 @@ vi.mock('@/features/member/claims/components/MemberClaimDetailOpsPage', () => ({
 }));
 
 import ClaimDetailsPage from './page';
+import { getInformationRequests } from '@interdomestik/domain-claims';
 
 describe('ClaimDetailsPage', () => {
+  it('keeps the existing claim detail when its request projection fails', async () => {
+    vi.mocked(getInformationRequests).mockRejectedValueOnce(new Error('private DB detail'));
+    render(await ClaimDetailsPage({ params: Promise.resolve({ locale: 'en', id: 'claim-1' }) }));
+    const props = hoisted.memberClaimDetailOpsPageMock.mock.calls.at(-1)![0] as {
+      claim: { id: string };
+      informationRequests: { props: { requests: unknown } };
+    };
+    expect(props.claim.id).toBe('claim-1');
+    expect(props.informationRequests.props.requests).toBeNull();
+    expect(screen.queryByText('private DB detail')).not.toBeInTheDocument();
+  });
   it('passes the authenticated member identity to the canonical member detail UI', async () => {
     const tree = await ClaimDetailsPage({
       params: Promise.resolve({

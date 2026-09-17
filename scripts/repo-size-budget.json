@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 108017,
+      "trackedBytesDelta": 115487,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 69926,
+        "config/data/messages": 77396,
         "source/scripts": 23092,
         "tests/e2e": 14999
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 69926,
+        "scripts/repo-size-budget.json": 77396,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -61,10 +61,10 @@
       "id": "product-readiness-requirement-map",
       "mode": "exact",
       "writerPaths": ["docs/plans/requirement-disposition-map.md"],
-      "trackedBytesDelta": 73632,
+      "trackedBytesDelta": 73809,
       "trackedFilesDelta": 1,
-      "categoryBytesDelta": { "docs/text": 73632 },
-      "pathBytesDelta": { "docs/plans/requirement-disposition-map.md": 73632 }
+      "categoryBytesDelta": { "docs/text": 73809 },
+      "pathBytesDelta": { "docs/plans/requirement-disposition-map.md": 73809 }
     },
     {
       "id": "lean-compatibility-repair",
@@ -199,18 +199,18 @@
         "docs/plans/current-program.md",
         "docs/plans/current-tracker.md"
       ],
-      "maxTrackedBytesDelta": 31795,
+      "maxTrackedBytesDelta": 40692,
       "maxTrackedFilesDelta": 2,
       "maxCategoryBytesDelta": {
         "config/data/messages": 9674,
-        "docs/text": 18680,
-        "large support/generated-ish": 3441
+        "docs/text": 24733,
+        "large support/generated-ish": 6285
       },
       "maxPathBytesDelta": {
         "docs/plans/2026-08-27-t116-case-summary-design-gate.md": 11495,
         "docs/plans/2026-08-27-t116-case-summary-admission.json": 9748,
-        "docs/plans/current-program.md": 7203,
-        "docs/plans/current-tracker.md": 3441
+        "docs/plans/current-program.md": 13256,
+        "docs/plans/current-tracker.md": 6285
       }
     },
     {
@@ -483,13 +483,13 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 689597,
+      "maxTrackedBytesDelta": 695101,
       "maxTrackedFilesDelta": 95,
       "maxCategoryBytesDelta": {
         "config/data/messages": 1061,
         "docs/text": 31463,
-        "source/scripts": 348612,
-        "tests/e2e": 308461
+        "source/scripts": 349630,
+        "tests/e2e": 312947
       },
       "maxPathBytesDelta": {
         ".github/workflows/ci.yml": 1441,
@@ -498,7 +498,7 @@
         "docs/superpowers/specs/2026-08-29-harness-v2-efficiency-design.md": 14685,
         "package.json": 1070,
         "packages/qa/test-tools.ts": 334,
-        "scripts/ci/model-review-routes.mjs": 1716,
+        "scripts/ci/model-review-routes.mjs": 1742,
         "scripts/ci/pr-delivery-contract.json": 47,
         "scripts/ci/pr-delivery-gate.test.mjs": 0,
         "scripts/ci/qa-cli-callers-contracts.test.mjs": 71,
@@ -506,9 +506,9 @@
         "scripts/ci/reviewer-preflight.mjs": 0,
         "scripts/ci/reviewer-preflight.test.mjs": 1996,
         "scripts/ci/reviewer-route-receipts.mjs": 301,
-        "scripts/ci/reviewer-route-runtime.mjs": 3510,
-        "scripts/ci/reviewer-route-runtime.test.mjs": 6765,
-        "scripts/ci/run-model-reviewer-route.mjs": 5111,
+        "scripts/ci/reviewer-route-runtime.mjs": 4091,
+        "scripts/ci/reviewer-route-runtime.test.mjs": 7169,
+        "scripts/ci/run-model-reviewer-route.mjs": 5522,
         "scripts/ci/z620-parity.json": 0,
         "scripts/slice-rehearse-authority-boundary.mjs": 2932,
         "scripts/slice-rehearse-authority-boundary.test.mjs": 2733,
@@ -603,7 +603,7 @@
         "scripts/ci/pr-governance-report-lib.mjs": 2166,
         "scripts/ci/pr-governance-report.test.mjs": 7110,
         "scripts/ci/reviewer-no-tools.toml": 57,
-        "scripts/ci/reviewer-route-policy.test.mjs": 6580,
+        "scripts/ci/reviewer-route-policy.test.mjs": 10662,
         "scripts/ci/model-review-access.mjs": 212,
         "scripts/ci/model-review-evidence.test.mjs": 2239,
         "scripts/ci/pr-delivery-review-bodies.test.mjs": 3420
@@ -689,18 +689,18 @@
         "scripts/ci/main-e2e-reuse-core.test.mjs",
         "scripts/ci/main-e2e-reuse-github.test.mjs"
       ],
-      "maxTrackedBytesDelta": 28857,
+      "maxTrackedBytesDelta": 29222,
       "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
-        "source/scripts": 10479,
-        "tests/e2e": 15685,
+        "source/scripts": 10606,
+        "tests/e2e": 15923,
         "config/data/messages": 2693
       },
       "maxPathBytesDelta": {
-        "scripts/ci/main-e2e-reuse.mjs": 1612,
+        "scripts/ci/main-e2e-reuse.mjs": 1739,
         "scripts/ci/main-e2e-reuse-core.mjs": 975,
         "scripts/ci/main-e2e-reuse-github.mjs": 17,
-        "scripts/ci/main-e2e-reuse-cli.test.mjs": 4331,
+        "scripts/ci/main-e2e-reuse-cli.test.mjs": 4569,
         "scripts/ci/coverage-input-identity.mjs": 2920,
         "scripts/ci/main-coverage-reuse.mjs": 4861,
         "scripts/ci/main-coverage-reuse.test.mjs": 9808,
@@ -1120,11 +1120,11 @@
         "scripts/package-command-runtime.mjs",
         "scripts/package-e2e-scripts.test.mjs"
       ],
-      "maxTrackedBytesDelta": 90287,
+      "maxTrackedBytesDelta": 90327,
       "maxTrackedFilesDelta": 15,
       "maxCategoryBytesDelta": {
         "docs/text": 4737,
-        "config/data/messages": 1076,
+        "config/data/messages": 1116,
         "source/scripts": 38417,
         "tests/e2e": 46057
       },
@@ -1134,7 +1134,7 @@
         "docs/DEVELOPMENT.md": 3010,
         "docs/SONAR.md": 491,
         "gemini.md": 295,
-        "packages/database/package.json": 37,
+        "packages/database/package.json": 77,
         "packages/qa/README.md": 408,
         "packages/qa/src/tools/health.ts": 220,
         "packages/qa/src/tools/list-tools.ts": 22,
@@ -1182,11 +1182,11 @@
         "scripts/modularity-guard-policy.mjs",
         "scripts/modularity-guard-t210-catalogs.test.mjs"
       ],
-      "maxTrackedBytesDelta": 22504,
+      "maxTrackedBytesDelta": 22577,
       "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
         "config/data/messages": 657,
-        "source/scripts": 6722,
+        "source/scripts": 6795,
         "tests/e2e": 15125
       },
       "maxPathBytesDelta": {
@@ -1201,7 +1201,7 @@
         "apps/web/src/messages/sq/claims-tracking.json": 164,
         "apps/web/src/messages/sr/claims-tracking.json": 148,
         "scripts/check-modularity-guard.test.mjs": 1392,
-        "scripts/modularity-guard-policy.mjs": 1708,
+        "scripts/modularity-guard-policy.mjs": 1781,
         "scripts/modularity-guard-t210-catalogs.test.mjs": 629
       }
     },
@@ -1236,7 +1236,7 @@
         "tests/e2e": 46031
       },
       "maxPathBytesDelta": {
-        "apps/web/e2e/gate/front-door-session-context.spec.ts": 4e3,
+        "apps/web/e2e/gate/front-door-session-context.spec.ts": 4000,
         "apps/web/src/actions/notifications/mark-read.test.ts": 200,
         "apps/web/src/components/notifications/notification-center.acknowledgement.test.tsx": 12000,
         "apps/web/src/components/notifications/notification-focus.test.tsx": 2500,
@@ -1331,27 +1331,27 @@
         "apps/web/src/messages/sq/claims.json",
         "apps/web/src/messages/sr/claims.json"
       ],
-      "maxTrackedBytesDelta": 63000,
+      "maxTrackedBytesDelta": 65466,
       "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
         "docs/text": 28500,
-        "config/data/messages": 4000,
+        "config/data/messages": 5902,
         "source/scripts": 8000,
-        "tests/e2e": 22500
+        "tests/e2e": 23064
       },
       "maxPathBytesDelta": {
         "docs/superpowers/specs/2026-09-15-member-case-detail-continuity-design.md": 9999,
         "docs/superpowers/plans/2026-09-15-member-case-detail-continuity.md": 18000,
         "apps/web/src/features/member/claims/components/MemberClaimDetailHeader.tsx": 8000,
         "apps/web/src/features/member/claims/components/MemberClaimDetailHeader.test.tsx": 9000,
-        "apps/web/src/features/member/claims/components/MemberClaimDetailOpsPage.test.tsx": 4000,
+        "apps/web/src/features/member/claims/components/MemberClaimDetailOpsPage.test.tsx": 4564,
         "apps/web/src/features/member/claims/components/ClaimEvidenceUploadDialog.test.tsx": 7700,
         "apps/web/e2e/gate/member-vault-consent-display.spec.ts": 7800,
         "apps/web/e2e/golden/member-claim-detail-ops.spec.ts": 6000,
-        "apps/web/src/messages/en/claims.json": 860,
-        "apps/web/src/messages/mk/claims.json": 1222,
-        "apps/web/src/messages/sq/claims.json": 982,
-        "apps/web/src/messages/sr/claims.json": 936
+        "apps/web/src/messages/en/claims.json": 1267,
+        "apps/web/src/messages/mk/claims.json": 1848,
+        "apps/web/src/messages/sq/claims.json": 1429,
+        "apps/web/src/messages/sr/claims.json": 1358
       }
     },
     {
@@ -1442,6 +1442,122 @@
         "packages/domain-communications/src/notifications/notify.test.ts": 1600,
         "packages/domain-communications/src/notifications/notify.ts": 0
       }
+    },
+    {
+      "id": "s4-missing-information-request",
+      "mode": "bounded",
+      "writerPaths": [
+        "apps/web/e2e/gate/information-request-cleanup.fixture.ts",
+        "apps/web/e2e/gate/information-request.fixture.ts",
+        "apps/web/e2e/gate/information-request.spec.ts",
+        "apps/web/src/actions/staff-claims/information-request.core.test.ts",
+        "apps/web/src/actions/staff-claims/information-request.ts",
+        "apps/web/src/app/[locale]/(app)/member/claims/[id]/page.test.tsx",
+        "apps/web/src/app/[locale]/(app)/member/claims/[id]/page.tsx",
+        "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page.test.tsx",
+        "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page.tsx",
+        "apps/web/src/features/member/claims/components/ClaimInformationRequests.test.tsx",
+        "apps/web/src/features/member/claims/components/ClaimInformationRequests.tsx",
+        "apps/web/src/features/member/claims/components/MemberClaimDetailOpsPage.tsx",
+        "apps/web/src/features/staff/claims/components/ClaimInformationRequestForm.test.tsx",
+        "apps/web/src/features/staff/claims/components/ClaimInformationRequestForm.tsx",
+        "apps/web/src/features/staff/claims/components/LatestStatusNoteContent.tsx",
+        "apps/web/src/messages/en/agent-claims.json",
+        "apps/web/src/messages/mk/agent-claims.json",
+        "apps/web/src/messages/sq/agent-claims.json",
+        "apps/web/src/messages/sr/agent-claims.json",
+        "packages/database/drizzle/0093_s4_claim_information_requests.sql",
+        "packages/database/drizzle/meta/0093_snapshot.json",
+        "packages/database/drizzle/meta/_journal.json",
+        "packages/database/src/migration-callback-plan-manifest.ts",
+        "packages/database/src/migration-corpus-capability.ts",
+        "packages/database/src/migration-corpus-directories.ts",
+        "packages/database/src/migration-corpus-manifest.ts",
+        "packages/database/src/migration-corpus-validator.ts",
+        "packages/database/src/migration-execution-contracts.ts",
+        "packages/database/src/migration-execution-plan.ts",
+        "packages/database/src/migration-ledger-catalog.ts",
+        "packages/database/src/migration-ledger-inspection.ts",
+        "packages/database/src/migration-ledger-prefix.ts",
+        "packages/database/src/schema/claim-information-requests.ts",
+        "packages/database/src/schema/index.ts",
+        "packages/database/test/claim-information-requests.test.ts",
+        "packages/database/test/free-start-drafts-migration.test.ts",
+        "packages/database/test/migration-callback-boundary.test.ts",
+        "packages/database/test/migration-callback-plan.test.ts",
+        "packages/database/test/migration-callback-validation.test.ts",
+        "packages/database/test/migration-corpus-journal.test.ts",
+        "packages/database/test/migration-corpus.test.ts",
+        "packages/database/test/migration-execution-boundary.test.ts",
+        "packages/database/test/migration-execution-faults.test.ts",
+        "packages/database/test/migration-execution-kernel.test.ts",
+        "packages/database/test/migration-ledger-inspection.test.ts",
+        "packages/database/test/migration-ledger-prefix.test.ts",
+        "packages/database/test/pg16/migration-runtime-role-fixture.test.ts",
+        "packages/domain-claims/src/claims/information-requests.test.ts",
+        "packages/domain-claims/src/claims/information-requests.ts",
+        "packages/domain-claims/src/index.ts"
+      ],
+      "maxTrackedBytesDelta": 529424,
+      "maxTrackedFilesDelta": 16,
+      "maxCategoryBytesDelta": {
+        "tests/e2e": 35603,
+        "source/scripts": 17174,
+        "config/data/messages": 4738,
+        "large support/generated-ish": 471909
+      },
+      "maxPathBytesDelta": {
+        "apps/web/e2e/gate/information-request-cleanup.fixture.ts": 1141,
+        "apps/web/e2e/gate/information-request.fixture.ts": 1737,
+        "apps/web/e2e/gate/information-request.spec.ts": 3704,
+        "apps/web/src/actions/staff-claims/information-request.core.test.ts": 1454,
+        "apps/web/src/actions/staff-claims/information-request.ts": 650,
+        "apps/web/src/app/[locale]/(app)/member/claims/[id]/page.test.tsx": 821,
+        "apps/web/src/app/[locale]/(app)/member/claims/[id]/page.tsx": 361,
+        "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page.test.tsx": 1002,
+        "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page.tsx": 39,
+        "apps/web/src/features/member/claims/components/ClaimInformationRequests.test.tsx": 3148,
+        "apps/web/src/features/member/claims/components/ClaimInformationRequests.tsx": 2402,
+        "apps/web/src/features/member/claims/components/MemberClaimDetailOpsPage.tsx": 0,
+        "apps/web/src/features/staff/claims/components/ClaimInformationRequestForm.test.tsx": 7354,
+        "apps/web/src/features/staff/claims/components/ClaimInformationRequestForm.tsx": 4760,
+        "apps/web/src/features/staff/claims/components/LatestStatusNoteContent.tsx": 636,
+        "apps/web/src/messages/en/agent-claims.json": 1029,
+        "apps/web/src/messages/mk/agent-claims.json": 1593,
+        "apps/web/src/messages/sq/agent-claims.json": 1097,
+        "apps/web/src/messages/sr/agent-claims.json": 1019,
+        "packages/database/drizzle/0093_s4_claim_information_requests.sql": 3015,
+        "packages/database/drizzle/meta/0093_snapshot.json": 468737,
+        "packages/database/drizzle/meta/_journal.json": 157,
+        "packages/database/src/migration-callback-plan-manifest.ts": 0,
+        "packages/database/src/migration-corpus-capability.ts": 0,
+        "packages/database/src/migration-corpus-directories.ts": 0,
+        "packages/database/src/migration-corpus-manifest.ts": 70,
+        "packages/database/src/migration-corpus-validator.ts": 106,
+        "packages/database/src/migration-execution-contracts.ts": 0,
+        "packages/database/src/migration-execution-plan.ts": 0,
+        "packages/database/src/migration-ledger-catalog.ts": 0,
+        "packages/database/src/migration-ledger-inspection.ts": 0,
+        "packages/database/src/migration-ledger-prefix.ts": 0,
+        "packages/database/src/schema/claim-information-requests.ts": 2509,
+        "packages/database/src/schema/index.ts": 46,
+        "packages/database/test/claim-information-requests.test.ts": 8259,
+        "packages/database/test/free-start-drafts-migration.test.ts": 124,
+        "packages/database/test/migration-callback-boundary.test.ts": 0,
+        "packages/database/test/migration-callback-plan.test.ts": 0,
+        "packages/database/test/migration-callback-validation.test.ts": 176,
+        "packages/database/test/migration-corpus-journal.test.ts": 1052,
+        "packages/database/test/migration-corpus.test.ts": 0,
+        "packages/database/test/migration-execution-boundary.test.ts": 0,
+        "packages/database/test/migration-execution-faults.test.ts": 0,
+        "packages/database/test/migration-execution-kernel.test.ts": 45,
+        "packages/database/test/migration-ledger-inspection.test.ts": 65,
+        "packages/database/test/migration-ledger-prefix.test.ts": 4,
+        "packages/database/test/pg16/migration-runtime-role-fixture.test.ts": 0,
+        "packages/domain-claims/src/claims/information-requests.test.ts": 5517,
+        "packages/domain-claims/src/claims/information-requests.ts": 5548,
+        "packages/domain-claims/src/index.ts": 47
+      }
     }
   ],
   "reserve": {
@@ -1450,15 +1566,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 61506159,
-  "maxTrackedFiles": 6075,
+  "maxTrackedBytes": 62060575,
+  "maxTrackedFiles": 6091,
   "maxCategoryBytes": {
-    "config/data/messages": 2247787,
-    "docs/text": 8644068,
-    "large support/generated-ish": 15395985,
+    "config/data/messages": 2261937,
+    "docs/text": 8650298,
+    "large support/generated-ish": 15870738,
     "other": 19184750,
-    "source/scripts": 8867011,
-    "tests/e2e": 7166558
+    "source/scripts": 8885403,
+    "tests/e2e": 7207449
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

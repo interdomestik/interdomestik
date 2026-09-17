@@ -44,15 +44,16 @@ through protected PR #1780 as `f3d36b2e7781654fe5448fab11da891368d95f19`, with a
 exact-main checks passed. S2 completed through protected PR #1781 as
 `de15d4cac87d7ba6ce15d98c75069445bb84dcb4`, with all 13 exact-main checks passed.
 The bounded roadmap acceptance-link amendment completed through protected PR #1782 as
-`7db57a30c35112a679271e6469d20974f83dd061`. The owner has selected S3 from that exact main;
-the active increment is the supported member submission → staff acceptance into verification →
-member continuity prefix, not the whole S3 journey.
+`7db57a30c35112a679271e6469d20974f83dd061`. S3's supported submission → verification → member
+continuity prefix merged through PR #1783 as `135338a5501267a3377ce6a67b053ba61ef54c9c`, with
+all 13 protected checks green and retirement confirmed. The owner selected the bounded S4
+missing-information request increment from that main; the whole S3 journey remains open.
 
 ## Owner-adopted enterprise delivery sequence (2026-09-15)
 
 The owner adopts this near-term sequence after the enterprise audit and Opus 5 consultation.
 `MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY`, S1, S2 and the acceptance-link amendment are
-completed. S3 is selected from the amendment's protected merge.
+completed. S3's bounded supported prefix completed through #1783; S4 is selected from that merge.
 Select one bounded successor at a time below. S1–S3 are roadmap labels, not replacements for
 architecture T IDs. This section governs successor ordering over older suggestions.
 
@@ -86,7 +87,7 @@ repo/program/accepted ADR authority remains controlling until explicitly amended
    internal-message exclusion and unauthorized member/agent/branch paths. A representative locale
    does not replace existing four-locale coverage; branding isolation applies where exercised.
 
-The selected S3 increment stops after the real supported path: member submission, authorized staff
+The completed bounded S3 increment stops after the real supported path: member submission, authorized staff
 transition from `submitted` to `verification`, and member-visible status/public-history continuity
 with staff-private history excluded. Submission and the public staff transition run through mounted
 UI, and their member notifications use the canonical `/member/claims/[id]` route; the private
@@ -94,8 +95,78 @@ same-status note uses the existing staff core contract before a fresh mounted me
 exclusion. The first reproduced unsupported handoff is IDA-CLM-010:
 there is no evidence-request aggregate/command/read model with request correlation and due date, so
 the generic upload path cannot prove a request-bound member upload or staff acknowledgement. S4 is
-therefore a proposed conditional successor, not selected work. This increment does not claim full
+now the owner-selected bounded successor described below. This increment does not claim full
 S3, request-bound upload/acknowledgement, four-locale user acceptance or deployment readiness.
+
+### Selected S4 — Missing-information request (2026-09-16)
+
+IDA-CLM-010 requires a specific request, due date, responsible owner, member-visible explanation,
+and SLA posture when minimum information is absent. Its acceptance covers authorized, denied,
+malformed, boundary and retry/concurrency behavior with traceable build/data and no unauthorized
+disclosure/mutation. The owner authorizes a new claim request record, command, safe projection and
+minimal mounted staff/member UI. Claim information requests are the sole source of truth; future
+CRM references require separate S8/S9 authority and must not duplicate requests or broaden access.
+
+Creation is limited to the current assigned staff owner and the existing verification handoff.
+Assigned-owner creation is the accepted bounded design choice; SRS does not prescribe that role.
+The explicit due date is a valid ISO instant, with no future floor, cap, default, computation or
+escalation. Existing due-date policy treats such bounds as separate business authority. The request
+records the verification posture `incomplete`; it does not mutate claim lifecycle or timers.
+Tenant/claim ownership is enforced; the member sees an opaque request ID and public information,
+explanation, due date and team label, never internal correlation or staff identifiers. Identical
+correlation/payload retries return the original request; changed payload reuse conflicts. Distinct
+requests remain permitted. Request-bound upload, acknowledgement, fulfilment, notifications,
+generic workflow/SLA engines, role redesign and deployment are excluded.
+
+The sole implementation owner is Astra at medium reasoning, explicitly owner-authorized over the
+skill default because this bounded slice includes schema/RLS/concurrency. Raise reasoning only for
+a concrete unresolved risk. Reuse Sonnet `claude-sonnet-5` PASS and Gemini
+`gemini-3.1-pro-preview` adversarial preparation receipts `20260916T180205`; Opus 5 owns the first
+independent final review, with Astra fallback only if unavailable or unusable. Required checks and
+protected delivery remain mandatory. The approved ceiling is +609,000 bytes and 16 new files
+(aggregate file ceiling 6091), with exact measured disjoint allocations and generated snapshot cost
+included; no reserve consumption or padding. S3 retirement removed its owned worktree/database;
+S4 uses its own isolated verification resources.
+
+Product source `1acc8cc7ac81023527048d8fd380972a2b0d7a38` has completed Opus 5 review
+with documented dispositions and successful full isolated verification/security proof in the tracker.
+The review's `FINDINGS` verdict is retained, not relabeled as a provider PASS. PR #1786 carries
+the evidence-only amendment separately from that verified product source.
+The owner's later instruction prohibits Astra review fallback; quota-blocked Opus review must
+wait for reset. Protected delivery and exact-main health remain required before bounded completion;
+preserve receipts outside the worktree before the owner-requested task-resource retirement.
+
+Owner-approved S4 prerequisite amendment (2026-09-16): refresh the retained exact migration
+corpus/callback/ledger/execution metadata and direct regression tests for additive `0093` in this
+same branch. Astra/medium remains sole implementation owner. Owned paths are the existing
+`packages/database/src/migration-{corpus,callback-plan,ledger,execution}*` modules only where
+their fixed metadata depends on this corpus, their direct `packages/database/test/migration-*`
+and runtime-role tests, these canonical scope/evidence records and measured capacity metadata.
+Preserve all preceding SQL bytes and journal entries, exact source/root/topology/hash checks,
+callback order, lock/ledger bounds and tamper rejection. No generic refactor, subset acceptance,
+archived duplicate corpus, capability retirement, deployment or infrastructure change is authorized.
+Projected incremental footprint is under 8,000 bytes and zero new files; total S4 remains below
+the approved +609,000 bytes / 16 files ceiling. This projection is not an allocation: register only
+measured disjoint growth. Derive manifests from committed canonical inputs, run the retained
+capability and runtime-role regressions plus full CI preflight, then independent review and fresh
+required S4 proof. Historical 93/97 receipts remain bound to their original source.
+
+The owner additionally requested repair and actual use of the supported Opus 5 review route
+after S4 exceeded its original 512 KiB diff buffer. The bounded transport correction owns only
+the existing reviewer route/config/runtime and their direct tests, these scope/evidence records
+and measured capacity metadata. Admit complete diffs up to 1 MiB, preserve full candidate hashes
+and authority, deliver Opus prompts through stdin bounded at 1.5 MiB, and retain tool denial,
+output bounds, model attestation and explicit verdict requirements. No truncation, omitted
+generated/security evidence, new provider integration or dependency is authorized. Record the
+actual provider result before deciding any fallback; this is distinct from the S4 product change.
+
+Research reused from 2026-09-16: AirHelp's public claim guide
+(`https://www.airhelp.com/en-int/blog/how-to-use-airhelp-to-claim-flight-compensation/`) supports
+specific trackable document requests, not an inferred authenticated portal. GOV.UK task-list guidance
+(`https://design-system.service.gov.uk/components/task-list/`) supports a focused single-action form.
+W3C status-message and error-identification guidance informs accessible feedback. Test the mounted
+request and fresh-session member projection, exact ownership/tenant denials, canonical retries,
+concurrency, private-field exclusion and four-locale controls. No duplicate research audit is needed.
 
 ### Owner-adopted product-readiness roadmap (2026-09-15)
 
@@ -598,8 +669,9 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 
 These rows, the notification correctness increment, shared shell navigation, both notification
 acknowledgement increments, `MEMBER-CASE-WORKSPACE-REDESIGN` and `MEMBER-CASE-DETAIL-CONTINUITY`
-are completed history, as are S1, S2 and the localization predecessor. The selected work is the
-bounded S3 supported-path increment described above; the acceptance-link amendment is completed.
+are completed history, as are S1, S2, the localization predecessor, the acceptance-link amendment
+and S3's bounded supported prefix (#1783). Selected work is the bounded S4 missing-information
+request increment and its explicitly approved migration-capability prerequisite described above.
 
 ## Shared Shell Navigation Increment
 

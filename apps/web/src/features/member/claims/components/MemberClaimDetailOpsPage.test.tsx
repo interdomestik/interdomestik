@@ -100,6 +100,20 @@ function buildClaim(overrides: Partial<TestClaim> = {}): TestClaim {
 function renderPage(overrides: Partial<TestClaim> = {}) {
   render(<MemberClaimDetailOpsPage currentUser={memberUser} claim={buildClaim(overrides)} />);
 }
+it('keeps requested information below case identity inside the progress section', () => {
+  render(
+    <MemberClaimDetailOpsPage
+      currentUser={memberUser}
+      claim={buildClaim()}
+      informationRequests={<p>Requested repair estimate</p>}
+    />
+  );
+  const request = within(screen.getByRole('region', { name: 'Progress' })).getByText(
+    'Requested repair estimate'
+  );
+  const back = screen.getByRole('link', { name: 'Back to member workspace' });
+  expect(back.compareDocumentPosition(request) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+});
 function expectTestIdText(contracts: ReadonlyArray<readonly [string, string]>) {
   contracts.forEach(([id, text]) => expect(screen.getByTestId(id)).toHaveTextContent(text));
 }

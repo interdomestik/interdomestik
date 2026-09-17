@@ -27,10 +27,10 @@ test('authentic corpus builds the exact frozen callback-plan summary', async () 
   assert.deepEqual(JSON.parse(JSON.stringify(result.capability)), {
     contract_version: 'canonical_pg_proxy_callback_plan_v1',
     drizzle_orm_version: '0.45.2',
-    journaled_migrations: 93,
-    statement_chunks: 750,
-    callback_items: 843,
-    callback_plan_sha256: 'f4486654346a7e7c66a5cdbff57f4611268b1c5144e0ab7cea3ac3a1b7e2ab3f',
+    journaled_migrations: 94,
+    statement_chunks: 759,
+    callback_items: 853,
+    callback_plan_sha256: '6ac643da5e79e378bde338a7a41073999b6231d928550eeeae3057292ee39549',
   });
   assert.ok(Object.isFrozen(result.capability));
 });
@@ -81,7 +81,7 @@ test('pure pg-proxy parity emits the same one flat full-corpus callback', async 
   );
   assert.equal(calls.length, 3);
   assert.deepEqual(captured, local.callbackItems);
-  assert.equal(captured?.length, 843);
+  assert.equal(captured?.length, 853);
 });
 
 test('forged corpus fails before dependency resolution', async () => {

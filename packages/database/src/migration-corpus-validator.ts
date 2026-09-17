@@ -24,7 +24,6 @@ function keys(value: object, expected: readonly string[]): boolean {
   const actual = Object.keys(value).sort((left, right) => left.localeCompare(right));
   return actual.length === expected.length && actual.every((key, index) => key === expected[index]);
 }
-
 function journalNames(bytes: Uint8Array): readonly string[] {
   let parsed: unknown;
   try {
@@ -40,7 +39,7 @@ function journalNames(bytes: Uint8Array): readonly string[] {
     value.version !== '7' ||
     value.dialect !== 'postgresql' ||
     !Array.isArray(value.entries) ||
-    value.entries.length !== 93
+    value.entries.length !== 94
   )
     rejectJournal();
   const seenTags = new Set<string>();
@@ -75,7 +74,9 @@ function journalNames(bytes: Uint8Array): readonly string[] {
     entries[0]?.tag !== '0000_watery_rawhide_kid' ||
     entries[0]?.when !== 1766044468466 ||
     entries[92]?.tag !== '0092_ida_free_start_drafts' ||
-    entries[92]?.when !== 1784332800000
+    entries[92]?.when !== 1784332800000 ||
+    entries[93]?.tag !== '0093_s4_claim_information_requests' ||
+    entries[93]?.when !== 1789582619012
   )
     rejectJournal();
   for (let index = 1; index < entries.length; index += 1) {
@@ -91,7 +92,6 @@ function journalNames(bytes: Uint8Array): readonly string[] {
   }
   return Object.freeze(entries.map(entry => `${entry.tag}.sql`));
 }
-
 function digest(bytes: Uint8Array): string {
   return createHash('sha256').update(bytes).digest('hex');
 }

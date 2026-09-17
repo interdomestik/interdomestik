@@ -5,6 +5,8 @@ import { serializeMemberVaultConsentDisplay } from '@/features/claims/tracking/s
 import { MemberClaimDetailOpsPage } from '@/features/member/claims/components/MemberClaimDetailOpsPage';
 import { setRequestLocale } from 'next-intl/server';
 import { withMemberActorRoleOnSession } from '../../actor-role-on-session';
+import { getInformationRequests } from '@interdomestik/domain-claims';
+import { ClaimInformationRequests } from '@/features/member/claims/components/ClaimInformationRequests';
 
 interface PageProps {
   params: Promise<{
@@ -29,6 +31,7 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
   if (!claim) {
     return notFound();
   }
+  const informationRequests = await getInformationRequests(memberSession, id).catch(() => null);
 
   // Serialize dates for Client Component
   const serializedClaim = {
@@ -60,6 +63,7 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
 
   return (
     <MemberClaimDetailOpsPage
+      informationRequests={<ClaimInformationRequests requests={informationRequests} />}
       claim={serializedClaim}
       currentUser={{
         id: memberSession.user.id,

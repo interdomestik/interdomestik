@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { buildCommercialHandlingScopeSnapshot } from '@interdomestik/domain-claims/staff-claims/commercial-handling-scope';
+import { getInformationRequests } from '@interdomestik/domain-claims';
 
 const hoisted = vi.hoisted(() => ({
   locale: 'en',
@@ -159,6 +160,7 @@ vi.mock('next-intl/server', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
   notFound: () => {
     throw new Error('notFound');
   },
@@ -170,6 +172,7 @@ vi.mock('@/components/shell/session', () => ({
 }));
 
 vi.mock('@interdomestik/domain-claims', () => ({
+  getInformationRequests: vi.fn(async () => []),
   getStaffClaimDetail: hoisted.getStaffClaimDetailMock,
 }));
 
@@ -195,16 +198,29 @@ vi.mock('@/components/messaging/messaging-panel', () => ({
 
 import StaffClaimDetailsPage from './page';
 
-describe('StaffClaimDetailsPage', () => {
-  it('localizes section labels on non-English staff claim detail routes', async () => {
-    const tree = await StaffClaimDetailsPage({
-      params: Promise.resolve({
-        locale: 'sq',
-        id: 'claim-1',
-      }),
-    });
+async function renderPage(locale = 'en') {
+  render(await StaffClaimDetailsPage({ params: Promise.resolve({ locale, id: 'claim-1' }) }));
+}
 
-    render(tree);
+describe('StaffClaimDetailsPage', () => {
+  it.each([
+    ['staff-1', 'verification', true],
+    ['other-staff', 'verification', false],
+    ['staff-1', 'negotiation', false],
+  ])(
+    'shows the information form only for its assigned verifying staff (%s, %s)',
+    async (staffId, status, visible) => {
+      const detail = await hoisted.getStaffClaimDetailMock.getMockImplementation()!();
+      hoisted.getStaffClaimDetailMock.mockResolvedValueOnce({
+        ...detail,
+        claim: { ...detail.claim, staffId: String(staffId), status: String(status) },
+      });
+      await renderPage();
+      expect(screen.queryByTestId('staff-information-request-form') !== null).toBe(visible);
+    }
+  );
+  it('localizes section labels on non-English staff claim detail routes', async () => {
+    await renderPage('sq');
 
     expect(screen.getAllByText('Negociim')).toHaveLength(2);
     expect(screen.getByText('Rasti')).toBeInTheDocument();
@@ -223,36 +239,28 @@ describe('StaffClaimDetailsPage', () => {
     expect(screen.getByText('Mesazhet')).toBeInTheDocument();
   });
 
-  it('renders annual matter usage and remaining allowance on the canonical staff claim detail page', async () => {
-    const tree = await StaffClaimDetailsPage({
-      params: Promise.resolve({
-        locale: 'en',
-        id: 'claim-1',
-      }),
-    });
+  it.each([false, true])(
+    'preserves annual matter detail when information requests fail: %s',
+    async failed => {
+      if (failed)
+        vi.mocked(getInformationRequests).mockRejectedValueOnce(new Error('private DB detail'));
+      await renderPage('en');
 
-    render(tree);
-
-    expect(screen.getByTestId('staff-claim-detail-ready')).toBeInTheDocument();
-    expect(screen.getByText('Matter allowance')).toBeInTheDocument();
-    expect(screen.getByText('SLA Status')).toBeInTheDocument();
-    expect(screen.getByText('Running')).toBeInTheDocument();
-    expect(screen.getByText('Used this year')).toBeInTheDocument();
-    expect(screen.getByText('Remaining this year')).toBeInTheDocument();
-    expect(screen.getByText('Plan allowance')).toBeInTheDocument();
-    expect(screen.getByText('0')).toBeInTheDocument();
-    expect(screen.getAllByText('2')).toHaveLength(2);
-  });
+      expect(screen.getByTestId('staff-claim-detail-ready')).toBeInTheDocument();
+      expect(screen.getByText('Matter allowance')).toBeInTheDocument();
+      expect(screen.getByText('SLA Status')).toBeInTheDocument();
+      expect(screen.getByText('Running')).toBeInTheDocument();
+      expect(screen.getByText('Used this year')).toBeInTheDocument();
+      expect(screen.getByText('Remaining this year')).toBeInTheDocument();
+      expect(screen.getByText('Plan allowance')).toBeInTheDocument();
+      expect(screen.getByText('0')).toBeInTheDocument();
+      expect(screen.getAllByText('2')).toHaveLength(2);
+      if (failed) expect(screen.getByRole('status')).toHaveTextContent('loadError');
+    }
+  );
 
   it('renders claim messaging with internal-note controls on the canonical staff claim detail page', async () => {
-    const tree = await StaffClaimDetailsPage({
-      params: Promise.resolve({
-        locale: 'en',
-        id: 'claim-1',
-      }),
-    });
-
-    render(tree);
+    await renderPage('en');
 
     expect(screen.getByTestId('staff-claim-messaging-panel')).toBeInTheDocument();
     expect(hoisted.messagingPanelMock).toHaveBeenCalledWith(
@@ -268,6 +276,11 @@ describe('StaffClaimDetailsPage', () => {
   });
 
   it('shows a read-only operator notice for branch managers', async () => {
+    const detail = await hoisted.getStaffClaimDetailMock.getMockImplementation()!();
+    hoisted.getStaffClaimDetailMock.mockResolvedValueOnce({
+      ...detail,
+      claim: { ...detail.claim, status: 'verification', staffId: 'manager-1' },
+    });
     hoisted.getSessionMock.mockResolvedValueOnce({
       user: {
         id: 'manager-1',
@@ -277,17 +290,11 @@ describe('StaffClaimDetailsPage', () => {
       },
     });
 
-    const tree = await StaffClaimDetailsPage({
-      params: Promise.resolve({
-        locale: 'en',
-        id: 'claim-1',
-      }),
-    });
-
-    render(tree);
+    await renderPage('en');
 
     expect(screen.getByTestId('staff-claim-readonly-notice')).toBeInTheDocument();
     expect(screen.queryByTestId('staff-claim-messaging-panel')).not.toBeInTheDocument();
     expect(screen.queryByTestId('staff-claim-action-panel')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('staff-information-request-form')).not.toBeInTheDocument();
   });
 });

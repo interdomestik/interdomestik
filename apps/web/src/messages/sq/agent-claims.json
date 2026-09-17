@@ -1,6 +1,22 @@
 {
   "agent-claims": {
     "claims": {
+      "informationRequest": {
+        "title": "Kërko informacionin që mungon",
+        "description": "Përshkruaj saktësisht çfarë mungon dhe pse anëtari duhet ta japë.",
+        "requestedInformation": "Informacioni i nevojshëm",
+        "explanationForMember": "Shpjegimi për anëtarin",
+        "dueAt": "Data dhe ora e afatit",
+        "dueHint": "Përdor orën lokale. Ky afat nuk ndryshon kohëmatësin e përgjigjes së rastit.",
+        "submit": "Dërgo kërkesën",
+        "saving": "Duke dërguar…",
+        "success": "Kërkesa për informacion u ruajt.",
+        "invalid_input": "Shkruaj informacionin e nevojshëm, shpjegimin dhe një datë e orë të vlefshme.",
+        "access_denied": "Vetëm punonjësi i caktuar mund ta krijojë këtë kërkesë.",
+        "invalid_state": "Informacioni mund të kërkohet vetëm gjatë verifikimit të rastit.",
+        "conflict": "Kjo përpjekje është përdorur me të dhëna të tjera. Rifresko dhe provo sërish.",
+        "failed": "Kërkesa nuk mund të konfirmohej. Provo sërish me të njëjtat të dhëna."
+      },
       "staff_queue": {
         "subtitle": "Çfarë ka nevojë për veprim sot.",
         "results_count": "{count, plural, one {# rast} other {# raste}}",

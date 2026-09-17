@@ -209,6 +209,15 @@
       "actor_staff": "Staf",
       "actor_member": "Anëtar",
       "actor_admin": "Admini"
+    },
+    "informationRequests": {
+      "title": "Informacion i kërkuar",
+      "reference": "Referenca e kërkesës",
+      "dueAt": "Afati i kërkuar",
+      "owner": "Ekipi përgjegjës",
+      "ownerLabel": "Ekipi i rasteve Interdomestik",
+      "incomplete": "Informacioni mungonte kur u krijua kjo kërkesë.",
+      "loadError": "Kërkesat për informacion nuk mund të ngarkoheshin. Detajet e tjera të rastit mbeten të disponueshme."
     }
   }
 }

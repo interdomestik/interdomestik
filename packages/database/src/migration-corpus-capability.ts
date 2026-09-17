@@ -8,9 +8,9 @@ import { verifyMigrationCorpusRoot } from './migration-corpus-validator';
 const SUMMARY = Object.freeze({
   contract_version: 'canonical_migration_corpus_v1' as const,
   integrity_verified: true as const,
-  journaled_migrations: 93 as const,
+  journaled_migrations: 94 as const,
   excluded_legacy_orphans: 4 as const,
-  sql_files: 97 as const,
+  sql_files: 98 as const,
 });
 const TOKEN = Symbol('migration-corpus-capability');
 const STATES = new WeakMap<object, Readonly<MigrationCorpusState>>();

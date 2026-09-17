@@ -17,12 +17,105 @@ status_command: pnpm plan:status
 ## Active Queue
 
 S1 (#1780) and S2 (#1781) are complete; all 13 exact-main checks passed at their merges.
-The acceptance-link amendment completed through protected PR #1782. Current protected main is
-`7db57a30c35112a679271e6469d20974f83dd061`.
+S3's bounded supported prefix completed through protected PR #1783. Its merge is
+`135338a5501267a3377ce6a67b053ba61ef54c9c`; all 13 checks passed. Task retirement confirmed
+the owned 9ace worktree removed without force, branch retained, isolated database removed after
+zero active connections, and shared Supabase untouched. The owner selected S4 from this main.
 
-| ID                                 | Status        | Owner | Work                                                                                            | Exit Criteria                                                                                                                                                                                                                                                           |
-| ---------------------------------- | ------------- | ----- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S3-MEMBER-STAFF-SUPPORTED-PREFIX` | `in_progress` | Codex | Prove member submission → staff `submitted`→`verification` acceptance → member-safe continuity. | Exact isolated-DB journey, unauthorized-path and focused regressions, capacity/security/full gate, two independent Astra/high reviews under the owner-authorized S3 exception, protected checks and exact-main health; no IDA-CLM-010 implementation or whole-S3 claim. |
+S4 — `S4-MISSING-INFORMATION-REQUEST` — is verified pending protected delivery under Astra/medium, explicitly
+owner-authorized. Contract: current assigned staff creates only in verification; explicit valid ISO
+due date with no inferred range/default; request-local incomplete SLA posture; no claim mutation;
+opaque member request ID; safe public projection; tenant/ownership checks; idempotent same-payload
+retry and mutated-correlation conflict. Distinct requests are permitted. Upload/acknowledgement,
+CRM duplication, wider roles, notifications and deployment remain outside this increment.
+Sonnet/Gemini preparation `20260916T180205` is reused. Opus 5 receipt `20260916T182837-opus`
+was blocked before provider invocation: the complete generated-snapshot diff exceeded its 512 KiB
+packet bound. The owner-authorized independent Astra fallback reviewed `637087e09b40` and found
+deadline SSR timezone divergence and unrelated timestamp ALTERs. Both are corrected: the card
+displays explicit UTC with cross-timezone regression coverage, and SQL touches only the new table;
+the complete generated snapshot retains reconciled prior timestamp metadata. Focused isolated Z620
+migration/database proof passed at that checkpoint. Corrected-head review, mounted/full proof,
+protected delivery and retirement remain pending.
+Approved capacity ceiling: +609,000 bytes / 16 new files, including generated migration snapshot;
+apply exact measured disjoint allocations without reserves or padding.
+
+The owner approved the bounded exact migration-capability refresh for additive `0093`; scope and
+sole ownership are recorded in the current program. No security boundary is relaxed. At `8751994a`,
+1,188 remote CI contracts pass and the corrected C13 historical-entry assertion passes, but the
+retained 93/97 corpus capability rejects the expanded live directory. Its exact metadata and direct
+tests must be refreshed before new full proof. Projected prerequisite growth is under 8,000 bytes,
+zero new files, within the existing aggregate ceiling; only measured growth will be allocated.
+
+At `e9b3fd5a`, the repaired supported route reached provider-reported `claude-opus-5`
+(receipt `20260916T192003-opus`, 221.415 seconds) and returned `FINDINGS`, not approval.
+The complete diff and generated snapshot were delivered through bounded stdin. Accepted fixes:
+cryptographically random UUID generation using `getRandomValues` inside the form's error boundary,
+with HTTP-host/entropy-failure regressions, plus assigned-staff/verification form visibility tests.
+The newline/format claim is rejected: `.prettierignore` explicitly ignores `drizzle/meta/**`.
+The stale compiled-database claim is rejected: the package exports `./src/index.ts` directly and
+the isolated live SQL proof has executed successfully. Installed Zod is 4.2.1. Open-only request
+state is the approved S4 boundary, not a future fulfilment contract; optional component relocation
+and performance changes are deferred. Fresh corrected-candidate review and full proof are pending.
+Prior prerequisite source `aba1b50d` passed 73 retained tests, two PG16 runtime-role tests, 1,188 CI
+contracts and 299 harness tests (task-local umask022); `e9b3fd5a` passed 1,191 CI contracts and
+capacity/security/plan audits. These are source-bound preflight results, not final S4 delivery proof.
+
+Follow-up Opus 5 receipt `20260916T192806-opus` reviewed `0e1ef7c5` and confirmed the UUID
+correction and security/corpus boundaries, while requesting mounted-UI hardening. Consolidated
+corrections keep failed request reads local with a truthful four-locale error state, keep the
+member card after identity inside progress, preserve submit focus and stable feedback regions,
+and make request-posture copy position-independent. Regressions now isolate the non-staff form
+gate, exercise the legacy `user` read role in live SQL, and admit a complete near-1-MiB reviewer
+packet. No pagination, lifecycle, auth normalization or unrelated component relocation was added.
+
+Earlier product source `211d57b04c21296533ab2184cd265b617085eb24`, tree
+`67620a4c92b1e6bcabba6b5d8bda10b38e7c2b12`, passed provider-attested `claude-opus-5`
+review `20260916T214531-opus` after the quota reset (349,462 ms). The prior full run exposed
+eager schema-column access through the domain barrel; the identical public projection now resolves
+inside the authorized read. All 14 affected suites (63 tests) and 30 request-domain tests pass.
+No Astra review fallback was used after the owner's explicit prohibition.
+
+Fresh isolated Z620 `pr:verify` passed on that source in 2,749.132 seconds: 1,192 CI contracts,
+154 release tests, 52 mandatory RLS tests, 81.19% repository line coverage (21,819/26,873),
+264 browser-gate passes/14 intentional skips and 13 smoke passes/11 intentional skips.
+Separate `security:guard` passed; the owned database had zero connections before deletion and
+the reserved port was released. The only generated worktree change was Next's root-params type
+import in `next-env.d.ts`, not product code. The same source also passed all 299 retained harness
+tests. Full log SHA-256: `01bf0dd4936c2d70e2d36f0703b6703ecde7981dde5211ae84d714a2f42dadf5`.
+Result SHA-256: `4a14665057c2bcc474b2c44bc72397f08688472acc0a58cc44ac9a34a69fb199`.
+Receipts are retained outside the task worktree at `.codex/artifacts/interdomestik/s4`.
+This evidence-only update preserves the product source identity; protected current-head checks,
+review intake, merge, exact-main health and requested worktree retirement remain required.
+
+Current verified product source is `1acc8cc7ac81023527048d8fd380972a2b0d7a38`, tree
+`740adfe0e1160f7bd21d0a30091be92397a1f077`. Hosted feedback corrections validate text-valued
+FormData, use native stable live outputs and readonly props, explain the locale skip, and preserve
+focused fields with native readOnly while saving. Ten Sonar issues are fixed; the owner approved
+Accepted disposition of four deprecated withTenant uses because the request table has tenantId
+only, not the accessTenantId required by the proposed replacement. No predicate or gate was weakened.
+Opus 5 receipt `20260917T041103-opus` attests claude-opus-5 and returns FINDINGS, with no blocker.
+The focus hardening from the preceding review is fixed with a red-first regression. Its follow-up
+readonly-date concern did not reproduce in Chromium 153: editable ArrowUp changes the date;
+readonly key input preserves value/focus and showPicker rejects immutable controls. This native
+control fixture is supplemental, not mounted-journey or universal-browser proof. Optional prop-type,
+status-region and non-owning-role presentation changes are deferred; the diff-buffer concern is
+rejected against the explicit maxBuffer. Full dispositions and raw reviews are retained externally;
+the provider verdict is not rewritten as PASS and no Astra fallback was used.
+
+Fresh isolated `pr:verify` passed on that exact source in 2,761.446 seconds, followed by
+`security:guard` in 10.369 seconds. Browser gate: 264 passed/14 intentional skips; smoke:
+13 passed/11 intentional skips. The database had zero connections before deletion and the port
+was released. Only generated next-env.d.ts changed after build. Result SHA-256:
+`bf89bcab7c0dc06e19640a9396f2f4cd4845a0766df003e66e8efeaf51111d87`;
+full log SHA-256: `4e8adefbfb6bf18c6c0e9b0c13a5f06b7d3a08e95a30f99aa8b7e57370c9528d`.
+PR #1786 was green at this product source. This subsequent evidence-only amendment does not claim
+a rerun on its own commit: final-head hosted checks/readiness, protected merge, exact-main health
+and retirement remain required. Final merge/cleanup facts are retained with these receipts under
+`.codex/artifacts/interdomestik/s4`; automatic check-ins remain paused. No deployment is claimed.
+
+| ID                               | Status        | Owner | Work                                                                                                               | Exit Criteria                                                                                                                                                                                               |
+| -------------------------------- | ------------- | ----- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S4-MISSING-INFORMATION-REQUEST` | `in_progress` | Codex | Assigned staff creates a scoped missing-information request; the owning member sees its safe read-only projection. | Independent final review, isolated database and mounted journey, capacity/security/full gate, protected checks, exact-main health and task retirement; no upload/acknowledgement or broader workflow claim. |
 
 The completed #1782 acceptance-link amendment historically set the requirement-map allocation to
 72,094 bytes, +7,625 over its predecessor. S3 changes use the map's synchronized exact allocation;
@@ -97,11 +190,11 @@ Follow the current program's enterprise delivery sequence; localization, S1 and 
 Queued is not in progress or verified. Each successor gets a bounded current-main brief and model
 classification before implementation; no new approval ceremony is required for already authorized scope.
 
-| Roadmap item                       | Status      | Entry / exit evidence                                                                                                       |
-| ---------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------- |
-| S1 — Agent message visibility      | completed   | Protected PR #1780; exact-main health passed; no agent-authority expansion or deployment claim.                             |
-| S2 — Branch overview scope         | completed   | Protected PR #1781, de15d4cac; 13 exact-main checks passed; bounded branch route/query protection.                          |
-| S3 — Member–staff evidence journey | in_progress | Supported submission → verification → continuity prefix is under proof; IDA-CLM-010 is the recorded first missing contract. |
+| Roadmap item                       | Status            | Entry / exit evidence                                                                                                              |
+| ---------------------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| S1 — Agent message visibility      | completed         | Protected PR #1780; exact-main health passed; no agent-authority expansion or deployment claim.                                    |
+| S2 — Branch overview scope         | completed         | Protected PR #1781, de15d4cac; 13 exact-main checks passed; bounded branch route/query protection.                                 |
+| S3 — Member–staff evidence journey | completed_bounded | Supported submission → verification → continuity prefix completed through #1783; the IDA-CLM-010 gap is selected separately in S4. |
 
 ### Product-readiness roadmap queue
 
@@ -122,20 +215,20 @@ Owner-adopted on 2026-09-15; detailed scope and acceptance live only in the curr
 product-readiness roadmap. These rows do not change the active slice or mark future work complete.
 S4–S14 are outcome families to split into bounded implementation slices, not architecture T IDs.
 
-| Item                                    | Status                | Next evidence                                                                                                            |
-| --------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| S4 — S3 handoff gap                     | proposed_not_selected | IDA-CLM-010 request aggregate/correlation/due-date gap only; minimal integration and extended journey proof if selected. |
-| S5 — Member first-case journey          | queued_conditional    | Reconcile front-door/preparation/save/submission receipts; implement remaining UI/UX gaps.                               |
-| S6 — Member continuation and membership | queued_conditional    | Credit #1775–#1777; complete only missing return/evidence/message/membership access outcomes.                            |
-| S7 — Staff handling journey             | queued_conditional    | Existing handling contracts; queue and evidence round-trip with internal/public separation.                              |
-| S8 — Agent client/handoff journey       | queued_conditional    | Existing authority and attribution; only unresolved capability changes need disposition.                                 |
-| S9 — Agent-assisted activation          | queued_conditional    | Member ownership, attribution and Paddle continuity on established contracts.                                            |
-| S10 — Branch-manager oversight          | queued_conditional    | S2; existing authorized scope; metric decisions block only affected restoration.                                         |
-| S11 — Tenant-admin operations           | queued_conditional    | People/branches and contracted access lifecycle, split into bounded increments.                                          |
-| S12 — Platform-admin operations         | queued_conditional    | Technical operations and separate business-authority boundary.                                                           |
-| H1 — SVC-CORE / Help Now                | priority_when_ready   | First unmet clause, country/content/stop-rule authority and usable assistance path.                                      |
-| S13 — Outcome and closure               | queued_conditional    | Closure/recovery receipts and pilot scope; truthful member/staff outcome UI.                                             |
-| S14 — Pilot rehearsal                   | queued_conditional    | All in-scope role journeys, user acceptance, accessibility, four locales and operational evidence.                       |
+| Item                                    | Status              | Next evidence                                                                                                                            |
+| --------------------------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| S4 — S3 handoff gap                     | in_progress         | Owner-selected IDA-CLM-010 request creation/read/UI increment; bounded contract above. Request-bound upload/acknowledgement remain open. |
+| S5 — Member first-case journey          | queued_conditional  | Reconcile front-door/preparation/save/submission receipts; implement remaining UI/UX gaps.                                               |
+| S6 — Member continuation and membership | queued_conditional  | Credit #1775–#1777; complete only missing return/evidence/message/membership access outcomes.                                            |
+| S7 — Staff handling journey             | queued_conditional  | Existing handling contracts; queue and evidence round-trip with internal/public separation.                                              |
+| S8 — Agent client/handoff journey       | queued_conditional  | Existing authority and attribution; only unresolved capability changes need disposition.                                                 |
+| S9 — Agent-assisted activation          | queued_conditional  | Member ownership, attribution and Paddle continuity on established contracts.                                                            |
+| S10 — Branch-manager oversight          | queued_conditional  | S2; existing authorized scope; metric decisions block only affected restoration.                                                         |
+| S11 — Tenant-admin operations           | queued_conditional  | People/branches and contracted access lifecycle, split into bounded increments.                                                          |
+| S12 — Platform-admin operations         | queued_conditional  | Technical operations and separate business-authority boundary.                                                                           |
+| H1 — SVC-CORE / Help Now                | priority_when_ready | First unmet clause, country/content/stop-rule authority and usable assistance path.                                                      |
+| S13 — Outcome and closure               | queued_conditional  | Closure/recovery receipts and pilot scope; truthful member/staff outcome UI.                                                             |
+| S14 — Pilot rehearsal                   | queued_conditional  | All in-scope role journeys, user acceptance, accessibility, four locales and operational evidence.                                       |
 
 Before selecting each family, record its exact bounded gap, direct predecessor receipts, model/risk,
 UI acceptance and exclusions in the existing active queue. Record why any independent ready outcome
@@ -585,9 +678,13 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                                 | Source Refs                                                   | Execution  | Run ID | Run Root         | Sonar   | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| ---------------------------------- | ------------------------------------------------------------- | ---------- | ------ | ---------------- | ------- | ---------------- | ---------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S3-MEMBER-STAFF-SUPPORTED-PREFIX` | current program; IDA-CLM-001/014; IDA-CAS-005/006/007/008/015 | `scripted` | local  | isolated task DB | pending | `not_applicable` | `not_applicable` | pending  | Exact mounted UI journey passes with a fresh member return, exact member/agent/branch-manager core denial, private-note and notification-content exclusion, and zero exact-row residue. Exact corrected implementation head `f617637ca371475fc24861673a3351dc13d63817`, tree `e968925d1afe9b50d09e9933bdf2d917f0c20b24` and current S3 E2E corpus tree `18357bb3596c54b0aca7fdd9bf5db3a665b5a127` passed `pr:verify`: 1,187 CI, 154 release, 51 required RLS, 3,413 web/12 skips, 81.15% repository line coverage (21,726/26,772), 263 browser/13 skips and 13 smoke/11 skips; same-source `security:guard` passed. The required RLS command proves live PostgreSQL column types and fails closed without that proof; its proof transaction deliberately rolls back and a post-run query finds zero proof rows. Focused status and communications regressions pass, and the mounted S3 proof uses isolated port 3103 and database `interdomestik_ci_7db57_s3_local_r1`. Protected-base status test identity is independently proven as 794 lines/28,150 bytes/SHA-256 `e9e3d69ecc2a5b41c18bfa6282356377e96da5ac082ed9c5b4456264b379dfea`; the candidate remains 785/28,139. Sonnet 5 and Gemini passed. Independent Astra/high found and verified the retry-worker correction at `3782eb877787b5d8c4087cda09980e0c0aee4ab8`. Independent Astra/high final integrated review then verified clean evidence head `867ee048497889b88fdf8eaa533cb807d3246195`, tree `539984db025fbbbdf699eeb20d67c1349d95f0fd`, with no remaining production blocker or evidence overstatement at that source. Fresh current-prior-head receipt `20260916T150955-opus` reached provider-reported `claude-opus-5` and correctly identified persistent notification-test mocks, committed SQL-proof writes, and stale evidence/review hashes. The mocks now reset between tests while remaining persistent within each two-lookup flow; the SQL proof always rolls back; and this ledger replaces the stale hashes. Complete caller inventory proves both shared notification types target the claim-owning member. The protected-base fixture matches its live source exactly, ordered status assertions bind the final update timestamp, and cleanup remains referentially fail-closed; those review observations require no product change. Seven actionable hosted Sonar annotations on the prior head were addressed with behavior-preserving relay parsing simplification, specific type errors, an explicit cross-project skip rationale and a non-nested fixture URL. A final Codex P2 then identified that a failed notification-drain assertion could bypass retry cleanup; `try/finally` now preserves that assertion failure while always running the exact deletion transaction. The exact corrected implementation source then passed the full local proof above. Current-head Opus receipt `20260916T164952-opus` reached provider-reported `claude-opus-5` but is explicitly blocked by `reviewer_output_limit` with no verdict and supplies no approval. Under the owner-authorized fallback, independent Astra/high technical and governance reviews verified clean head `1bce76c2ac628aa49a991c51b7caadd23ddcf790`, tree `dba5580a5dd85fa8d9a53eb57a51dae25e3f4849`, including all drain/delete failure combinations, proof identity and capacity, with no actionable findings. Final independent review is complete; protected delivery remains pending and IDA-CLM-010 remains open. |
+| ID                               | Source Refs                  | Execution  | Run ID | Run Root         | Sonar   | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                               |
+| -------------------------------- | ---------------------------- | ---------- | ------ | ---------------- | ------- | ---------------- | ---------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S4-MISSING-INFORMATION-REQUEST` | current program; IDA-CLM-010 | `scripted` | local  | isolated task DB | pending | `not_applicable` | `not_applicable` | pending  | Product source `1acc8cc7` passed full isolated pr:verify/security, 264 gate and 13 smoke tests. Opus 5 findings have explicit dispositions above. PR #1786 final-head protected delivery, exact-main health and worktree retirement remain pending; no deployment or broader request fulfilment is claimed. |
+
+### Historical S3 supported-prefix proof
+
+Historical implementation-head evidence (before protected delivery): exact mounted UI journey passes with a fresh member return, exact member/agent/branch-manager core denial, private-note and notification-content exclusion, and zero exact-row residue. Exact corrected implementation head `f617637ca371475fc24861673a3351dc13d63817`, tree `e968925d1afe9b50d09e9933bdf2d917f0c20b24` and current S3 E2E corpus tree `18357bb3596c54b0aca7fdd9bf5db3a665b5a127` passed `pr:verify`: 1,187 CI, 154 release, 51 required RLS, 3,413 web/12 skips, 81.15% repository line coverage (21,726/26,772), 263 browser/13 skips and 13 smoke/11 skips; same-source `security:guard` passed. The required RLS command proves live PostgreSQL column types and fails closed without that proof; its proof transaction deliberately rolls back and a post-run query finds zero proof rows. Focused status and communications regressions pass, and the mounted S3 proof uses isolated port 3103 and database `interdomestik_ci_7db57_s3_local_r1`. Protected-base status test identity is independently proven as 794 lines/28,150 bytes/SHA-256 `e9e3d69ecc2a5b41c18bfa6282356377e96da5ac082ed9c5b4456264b379dfea`; the candidate remains 785/28,139. Sonnet 5 and Gemini passed. Independent Astra/high found and verified the retry-worker correction at `3782eb877787b5d8c4087cda09980e0c0aee4ab8`. Independent Astra/high final integrated review then verified clean evidence head `867ee048497889b88fdf8eaa533cb807d3246195`, tree `539984db025fbbbdf699eeb20d67c1349d95f0fd`, with no remaining production blocker or evidence overstatement at that source. Fresh current-prior-head receipt `20260916T150955-opus` reached provider-reported `claude-opus-5` and correctly identified persistent notification-test mocks, committed SQL-proof writes, and stale evidence/review hashes. The mocks now reset between tests while remaining persistent within each two-lookup flow; the SQL proof always rolls back; and this ledger replaces the stale hashes. Complete caller inventory proves both shared notification types target the claim-owning member. The protected-base fixture matches its live source exactly, ordered status assertions bind the final update timestamp, and cleanup remains referentially fail-closed; those review observations require no product change. Seven actionable hosted Sonar annotations on the prior head were addressed with behavior-preserving relay parsing simplification, specific type errors, an explicit cross-project skip rationale and a non-nested fixture URL. A final Codex P2 then identified that a failed notification-drain assertion could bypass retry cleanup; `try/finally` now preserves that assertion failure while always running the exact deletion transaction. The exact corrected implementation source then passed the full local proof above. Current-head Opus receipt `20260916T164952-opus` reached provider-reported `claude-opus-5` but is explicitly blocked by `reviewer_output_limit` with no verdict and supplies no approval. Under the owner-authorized fallback, independent Astra/high technical and governance reviews verified clean head `1bce76c2ac628aa49a991c51b7caadd23ddcf790`, tree `dba5580a5dd85fa8d9a53eb57a51dae25e3f4849`, including all drain/delete failure combinations, proof identity and capacity, with no actionable findings. Final receipt: protected PR #1783 merged as `135338a5501267a3377ce6a67b053ba61ef54c9c`; all 13 exact-main checks passed and owned worktree/database retirement completed. This closes only the supported S3 prefix; IDA-CLM-010 is selected separately in S4, not credited as delivered by S3.
 
 ### Member case overview entry progress
 
@@ -1102,8 +1199,9 @@ claim full T-410 completion. `MEMBER-CASE-OVERVIEW-ENTRY` completed in PR #1775,
 `MEMBER-CASE-WORKSPACE-REDESIGN` completed in PR #1776 and `MEMBER-CASE-DETAIL-CONTINUITY`
 completed in PR #1777; localization completed in PR #1778. S1 completed through protected PR
 #1780 and exact-main health passed. S2 completed through #1781 with exact-main health passed.
-The acceptance-link amendment completed through #1782. The bounded supported-path prefix of S3 is
-selected; conditional S4 and T-411 Smart Next Step are not selected.
+The acceptance-link amendment completed through #1782. The bounded supported-path prefix of S3
+completed through #1783. S4's missing-information request increment is selected; T-411 Smart Next
+Step remains unselected.
 
 | Completed historical priority            | Status      | Constraint                                                                    |
 | ---------------------------------------- | ----------- | ----------------------------------------------------------------------------- |
