@@ -62,7 +62,9 @@ test.describe('Diaspora Feature', () => {
     await expect(page.getByTestId('claim-draft-travel')).toHaveCount(0);
     const confirmation = page.getByTestId('claim-wizard-country-confirmation');
     await expect(confirmation).not.toBeChecked();
-    await confirmation.check();
+    await confirmation.focus();
+    await expect(confirmation).toBeFocused();
+    await confirmation.press('Space');
     await expect(confirmation).toBeChecked();
   });
 });

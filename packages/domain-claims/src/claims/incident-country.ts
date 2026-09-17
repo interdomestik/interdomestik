@@ -97,11 +97,10 @@ export function resolveHandoffIncidentCountry(
   return resolveClaimIncidentCountry({ incidentCountryCode: handoffContext.country });
 }
 
-export function resolveSubmittedClaimIncidentCountry(args: {
-  data: ClaimIncidentCountryInput;
-  handoffContext: ClaimStartHandoffContext | null | undefined;
-}): ClaimIncidentCountry {
-  return resolveClaimIncidentCountry(args.data);
+export function resolveSubmittedClaimIncidentCountry(
+  data: ClaimIncidentCountryInput
+): ClaimIncidentCountry {
+  return resolveClaimIncidentCountry(data);
 }
 
 export function buildClaimStartPublicNote(

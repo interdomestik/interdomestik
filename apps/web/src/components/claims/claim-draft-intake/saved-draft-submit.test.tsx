@@ -54,7 +54,7 @@ describe('saved draft canonical submit', () => {
     ['missing counterparty', { draft: { ...draft, counterparty: '' } }, copy.submitIncompleteExplanation],
     ['missing outcome', { draft: { ...draft, desiredOutcome: '' } }, copy.submitIncompleteExplanation],
     ['missing summary', { draft: { ...draft, summary: '' } }, copy.submitIncompleteExplanation],
-    ['incomplete dirty', { draft: { ...draft, summary: '' }, hasUnsavedChanges: true }, copy.submitIncompleteExplanation],
+    ['incomplete dirty and unconfirmed', { draft: { ...draft, summary: '' }, hasUnsavedChanges: true, confirmationRequired: true, confirmationRequiredCopy: 'Confirm the incident country.' }, copy.submitIncompleteExplanation],
     ['manager only', { managerOnly: true }, copy.submitMembershipExplanation],
     ['manager-only dirty', { managerOnly: true, hasUnsavedChanges: true }, copy.submitMembershipExplanation],
     ['manager-only incomplete', { managerOnly: true, draft: { ...draft, summary: '' } }, copy.submitMembershipExplanation],
@@ -106,30 +106,6 @@ describe('saved draft canonical submit', () => {
     );
     expect(screen.queryByRole('button', { name: submitCopy.label })).not.toBeInTheDocument();
   });
-  it('forwards only an explicitly confirmed diaspora country to the submit action', async () => {
-    h.submit.mockResolvedValue({
-      success: true,
-      claimId: 'claim-1',
-      claimNumber: 'CLM-KS-2026-000001',
-    });
-    const claimStart = {
-      confirmed: true as const,
-      handoffContext: {
-        source: 'diaspora-green-card' as const,
-        country: 'IT' as const,
-        incidentLocation: 'abroad' as const,
-      },
-      incidentCountryCode: 'IT' as const,
-    };
-    view({ claimStart });
-    const button = screen.getByRole('button', { name: submitCopy.label });
-    await waitFor(() => expect(button).toBeEnabled());
-    fireEvent.click(button);
-    await waitFor(() =>
-      expect(h.submit).toHaveBeenCalledWith({ id, expectedVersion: 3, claimStart })
-    );
-  });
-
   it('supports native keyboard activation at the bounded mobile viewport', async () => {
     h.submit.mockResolvedValue({
       success: true,

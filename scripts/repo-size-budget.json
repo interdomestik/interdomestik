@@ -1577,23 +1577,23 @@
         "apps/web/src/messages/sq/diaspora.json",
         "packages/domain-claims/src/claims/incident-country-writers.test.ts"
       ],
-      "maxTrackedBytesDelta": 7225,
+      "maxTrackedBytesDelta": 7715,
       "maxTrackedFilesDelta": 0,
       "maxCategoryBytesDelta": {
-        "tests/e2e": 3780,
-        "source/scripts": 3422,
+        "tests/e2e": 4305,
+        "source/scripts": 3387,
         "config/data/messages": 23
       },
       "maxPathBytesDelta": {
         "apps/web/src/actions/claims/create-from-saved-draft.test.ts": 1371,
         "apps/web/src/actions/claims/create-from-saved-draft.ts": 774,
         "apps/web/src/app/[locale]/(app)/member/diaspora/page.test.tsx": 11,
-        "apps/web/src/app/[locale]/(app)/member/diaspora/page.tsx": 36,
-        "apps/web/src/components/claims/claim-draft-intake/claim-draft-intake.test.tsx": 842,
+        "apps/web/src/app/[locale]/(app)/member/diaspora/page.tsx": 1,
+        "apps/web/src/components/claims/claim-draft-intake/claim-draft-intake.test.tsx": 2062,
         "apps/web/src/components/claims/claim-draft-intake/dormant-preview.tsx": 616,
         "apps/web/src/components/claims/claim-draft-intake/index.tsx": 1233,
         "apps/web/src/components/claims/claim-draft-intake/main-panel.tsx": 460,
-        "apps/web/src/components/claims/claim-draft-intake/saved-draft-submit.test.tsx": 959,
+        "apps/web/src/components/claims/claim-draft-intake/saved-draft-submit.test.tsx": 264,
         "apps/web/src/components/claims/claim-draft-intake/use-saved-draft-claim.ts": 303,
         "apps/web/src/messages/mk/diaspora.json": 12,
         "apps/web/src/messages/sq/diaspora.json": 11,
@@ -1607,15 +1607,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 62071497,
+  "maxTrackedBytes": 62071987,
   "maxTrackedFiles": 6091,
   "maxCategoryBytes": {
     "config/data/messages": 2265657,
     "docs/text": 8650298,
     "large support/generated-ish": 15870738,
     "other": 19184750,
-    "source/scripts": 8888825,
-    "tests/e2e": 7211229
+    "source/scripts": 8888790,
+    "tests/e2e": 7211754
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

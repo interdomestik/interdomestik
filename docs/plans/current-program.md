@@ -196,11 +196,20 @@ mounted correction. The actual Interdomestik contradiction, rather than a compet
 drives the design. Test the truthful CTA, default-unconfirmed state, keyboard confirmation, tampered
 or absent confirmation, provenance wording, explicit-data precedence and four-locale copy.
 
-The owner approved a bounded ceiling of +11,528 bytes and zero files on 2026-09-17. The byte-identical
-ledger application uses only +10,922 bytes: 7,225 for the named S5.d source/test/catalog allocation,
+The owner approved a bounded ceiling of +11,528 bytes and zero files on 2026-09-17. The corrected
+byte-identical ledger uses +11,412 bytes: 7,715 for the named S5.d source/test/catalog allocation,
 1,382 to extend the existing owner of the four `claims.json` catalogs, and 2,315 for capacity-budget
-self-attribution. Derived category growth is 3,422 source, 3,780 test and 3,720 config bytes. Files,
-reserve, deleted-byte credit, limits, unrelated allocations and guard behavior remain unchanged.
+self-attribution. Derived category growth is 3,387 source, 4,305 test and 3,720 config bytes. Locale
+catalog modularity is assigned to `s5d-diaspora-claim-start-i18n-contract`; enforcement thresholds
+and the deny posture remain unchanged. Files, reserve, deleted-byte credit and unrelated allocations
+remain unchanged.
+
+The production `submitClaimCore` inventory has two entry surfaces: the legacy exported action has no
+mounted production caller, while saved-draft submission is the mounted caller and is the only surface
+that supplies confirmed diaspora provenance. Domain submission keeps provenance-note generation
+separate from incident-country resolution; only explicit submitted `incidentCountryCode` data is
+authoritative. A resumed draft without diaspora handoff context therefore persists no incident
+country; re-entry through the handoff URL requires confirmation again without adding draft schema.
 
 ### Owner-adopted product-readiness roadmap (2026-09-15)
 
