@@ -27,15 +27,17 @@ after it closes, selection again follows direct prerequisites for S6/S7 evidence
 diaspora packs, H1 and later roles; it must not select a test-only predecessor merely for small size.
 
 S5 explicit-country local proof is complete at head
-`6a93158d6a6ae95f373883395c167e62fbf3501e`, tree
-`f524042ba31a80aacecd3aeaf6b96645f2d0a534`, database
+`f9ee97de852fe1c0e2c35587a166aa3a8abf82fa`, tree
+`c73014b776df23e850709e04af0eff94b3d28702`, database
 `interdomestik_ci_33c07f52_pr_verify_r2` and port 3107. `pnpm pr:verify` exited 0 with 1,193 CI
 contracts, 154 release tests, 52/52 mandatory RLS cases, 644 web files/3,454 tests, 81.21%
 repository line coverage (21,828/26,880), 264 browser passes/14 intentional skips and 13 smoke
 passes/11 intentional skips. Both tenant projects passed neutral and selected EN/SQ/MK/SR mounted
-diaspora states at 320px; focused page coverage independently passed 11 cases. A separate same-head
-`pnpm security:guard` exited 0. Initial and intermediate full runs remain superseded evidence; Opus
-receipt `20260917T200207-opus` drove the final capacity and locale-proof corrections. Protected
+diaspora states at 320px, explicit Italy guidance and their localized S5.d handoffs; focused page
+coverage independently passed 11 cases. A separate same-head `pnpm security:guard` exited 0.
+Initial and intermediate full runs remain superseded evidence; Opus receipts
+`20260917T200207-opus` and `20260917T204619-opus` drove the final capacity, locale-content and
+localized-handoff corrections. Protected
 delivery, exact-main health, archived receipts and retirement remain pending, so the queue row stays
 `in_progress`.
 
@@ -741,9 +743,9 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                                     | Source Refs                      | Execution  | Run ID         | Run Root                            | Sonar   | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                                                                                                 |
-| -------------------------------------- | -------------------------------- | ---------- | -------------- | ----------------------------------- | ------- | ---------------- | ---------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S5-EXPLICIT-DIASPORA-COUNTRY-CONTEXT` | current program; S5; DIA-002/003 | `scripted` | local-6a93158d | local Mac + protected GitHub checks | pending | `not_applicable` | `not_applicable` | pass     | Exact-head `pr:verify` and separate `security:guard` passed on Mac at `6a93158d`; mounted neutral and selected EN/SQ/MK/SR diaspora acceptance passed in both tenant projects at 320px. Protected current-head review/checks, exact-main health, archived checksummed receipts and owned-resource retirement remain pending. Full DIA-002 corridor/pack outcomes remain open. |
+| ID                                     | Source Refs                      | Execution  | Run ID         | Run Root                            | Sonar   | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                                                                                                                                             |
+| -------------------------------------- | -------------------------------- | ---------- | -------------- | ----------------------------------- | ------- | ---------------- | ---------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S5-EXPLICIT-DIASPORA-COUNTRY-CONTEXT` | current program; S5; DIA-002/003 | `scripted` | local-f9ee97de | local Mac + protected GitHub checks | pending | `not_applicable` | `not_applicable` | pass     | Exact-head `pr:verify` and separate `security:guard` passed on Mac at `f9ee97de`; mounted neutral and selected EN/SQ/MK/SR diaspora acceptance, Italy guidance and localized S5.d handoffs passed in both tenant projects at 320px. Protected current-head review/checks, exact-main health, archived checksummed receipts and owned-resource retirement remain pending. Full DIA-002 corridor/pack outcomes remain open. |
 
 ### Historical S5.d claim-start proof
 

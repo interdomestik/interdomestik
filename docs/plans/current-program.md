@@ -276,8 +276,8 @@ test/E2E bytes. Reserve, deleted-byte credit, enforcement thresholds and unrelat
 unchanged; the existing S5.d allocation is extended only for the four paths reused by this slice.
 
 Authoritative local proof is bound to product/evidence head
-`6a93158d6a6ae95f373883395c167e62fbf3501e`, tree
-`f524042ba31a80aacecd3aeaf6b96645f2d0a534`, task database
+`f9ee97de852fe1c0e2c35587a166aa3a8abf82fa`, tree
+`c73014b776df23e850709e04af0eff94b3d28702`, task database
 `interdomestik_ci_33c07f52_pr_verify_r2` and isolated port 3107. One uninterrupted
 `pnpm pr:verify` passed 1,193 CI contracts, 154 release-gate tests, 52 mandatory live RLS tests,
 644 web test files/3,454 tests with 12 intentional skips, 81.21% repository line coverage
@@ -287,8 +287,9 @@ selected 320px states for EN/SQ/MK/SR, exact current-country semantics and the S
 separate same-head `pnpm security:guard` passed. The initial `33c07f52` proof and the `32b13d14`
 post-review rerun remain retained as superseded evidence; the latter exposed no gate failure, and
 its Opus FINDINGS receipt `20260917T200207-opus` drove exact capacity reconciliation and positive
-four-locale selected-state proof before this authoritative rerun. The generated Next type stub was
-reversed after each successful run. Protected delivery, current-head hosted review/checks,
+four-locale selected-state proof. Opus receipt `20260917T204619-opus` then drove cross-locale pack
+content assertions and restored the SQ/MK S5.d handoff before this authoritative rerun. The
+generated Next type stub was reversed after each successful run. Protected delivery, current-head hosted review/checks,
 exact-main health, receipt archival and owned-resource retirement remain required before this
 bounded increment closes.
 
