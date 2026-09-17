@@ -14,7 +14,6 @@ import { ArrowRight, Phone, ShieldCheck, Siren, TriangleAlert } from 'lucide-rea
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { DiasporaCountryRequiredCard, DiasporaCountrySelector } from './diaspora-country-selector';
-import type { DiasporaCountryCode } from './diaspora-country-selector';
 
 const QUICKSTART_COUNTRIES = [
   { code: 'DE', labelKey: 'selector.options.DE' },
@@ -23,7 +22,7 @@ const QUICKSTART_COUNTRIES = [
   { code: 'IT', labelKey: 'selector.options.IT' },
 ] as const;
 
-type SupportedQuickstartCountry = DiasporaCountryCode;
+type SupportedQuickstartCountry = (typeof QUICKSTART_COUNTRIES)[number]['code'];
 
 function resolveCountryCode(
   rawCountry: string | string[] | undefined

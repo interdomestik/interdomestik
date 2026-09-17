@@ -19,13 +19,33 @@ test.describe('Diaspora Feature', () => {
     }
     await page.setViewportSize({ width: 320, height: 720 });
     const localeCases = [
-      { locale: 'en', requiredTitle: 'Choose a country to see guidance' },
-      { locale: 'sq', requiredTitle: 'Zgjidhni një shtet për të parë udhëzimet' },
-      { locale: 'mk', requiredTitle: 'Изберете држава за да ги видите насоките' },
-      { locale: 'sr', requiredTitle: 'Izaberite državu da biste videli uputstva' },
+      {
+        locale: 'en',
+        requiredTitle: 'Choose a country to see guidance',
+        italyLabel: 'Italy',
+        claimLabel: 'Prepare vehicle claim',
+      },
+      {
+        locale: 'sq',
+        requiredTitle: 'Zgjidhni një shtet për të parë udhëzimet',
+        italyLabel: 'Italia',
+        claimLabel: 'Përgatit kërkesën për automjet',
+      },
+      {
+        locale: 'mk',
+        requiredTitle: 'Изберете држава за да ги видите насоките',
+        italyLabel: 'Италија',
+        claimLabel: 'Подготви барање за возило',
+      },
+      {
+        locale: 'sr',
+        requiredTitle: 'Izaberite državu da biste videli uputstva',
+        italyLabel: 'Italija',
+        claimLabel: 'Pripremi zahtev za vozilo',
+      },
     ] as const;
 
-    for (const { locale, requiredTitle } of localeCases) {
+    for (const { locale, requiredTitle, italyLabel, claimLabel } of localeCases) {
       await gotoApp(page, routes.memberDiaspora(locale), testInfo, { marker: 'diaspora-page' });
 
       await expect(page).toHaveURL(new RegExp(`${routes.memberDiaspora(locale)}(?:[?#]|$)`));
@@ -43,6 +63,23 @@ test.describe('Diaspora Feature', () => {
           name: /(Contact support now|Контактирај поддршка сега|Kontakto mbështetjen tani|Kontaktiraj podršku sada)/i,
         })
       ).toHaveAttribute('href', /^tel:/);
+      await expect
+        .poll(() =>
+          page.evaluate(
+            () => document.documentElement.scrollWidth <= document.documentElement.clientWidth
+          )
+        )
+        .toBe(true);
+
+      const localizedItalySelector = page.getByRole('link', { name: italyLabel });
+      await localizedItalySelector.click();
+      await expect(page).toHaveURL(new RegExp(`${routes.memberDiaspora(locale)}\\?country=IT$`));
+      await expect(page.getByTestId('diaspora-selected-country')).toContainText(italyLabel);
+      await expect(localizedItalySelector).toHaveAttribute('aria-current', 'page');
+      await expect(page.getByRole('link', { name: claimLabel })).toHaveAttribute(
+        'href',
+        /\/member\/claims\/new\?category=vehicle&source=diaspora-green-card&country=IT&incidentLocation=abroad/
+      );
       await expect
         .poll(() =>
           page.evaluate(

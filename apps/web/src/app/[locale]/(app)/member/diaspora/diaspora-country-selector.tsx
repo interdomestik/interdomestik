@@ -1,25 +1,24 @@
-import { Link } from '@/i18n/routing';
 import { Button, Card, CardDescription, CardHeader, CardTitle } from '@interdomestik/ui';
 import { Siren } from 'lucide-react';
 
-export type DiasporaCountryCode = 'DE' | 'CH' | 'AT' | 'IT';
+import { Link } from '@/i18n/routing';
 
-type CountryOption = {
-  code: DiasporaCountryCode;
+type CountryOption<Code extends string> = {
+  code: Code;
   label: string;
 };
 
-type Props = {
-  countries: readonly CountryOption[];
+type Props<Code extends string> = {
+  countries: readonly CountryOption<Code>[];
   labelledBy: string;
-  selectedCountry: DiasporaCountryCode | null;
+  selectedCountry: Code | null;
 };
 
-export function DiasporaCountrySelector({
+export function DiasporaCountrySelector<Code extends string>({
   countries,
   labelledBy,
   selectedCountry,
-}: Readonly<Props>) {
+}: Readonly<Props<Code>>) {
   return (
     <nav
       aria-labelledby={labelledBy}
