@@ -1577,21 +1577,21 @@
         "apps/web/src/messages/sq/diaspora.json",
         "packages/domain-claims/src/claims/incident-country-writers.test.ts"
       ],
-      "maxTrackedBytesDelta": 7715,
+      "maxTrackedBytesDelta": 7597,
       "maxTrackedFilesDelta": 0,
       "maxCategoryBytesDelta": {
         "tests/e2e": 4305,
-        "source/scripts": 3387,
+        "source/scripts": 3269,
         "config/data/messages": 23
       },
       "maxPathBytesDelta": {
         "apps/web/src/actions/claims/create-from-saved-draft.test.ts": 1371,
-        "apps/web/src/actions/claims/create-from-saved-draft.ts": 774,
+        "apps/web/src/actions/claims/create-from-saved-draft.ts": 698,
         "apps/web/src/app/[locale]/(app)/member/diaspora/page.test.tsx": 11,
         "apps/web/src/app/[locale]/(app)/member/diaspora/page.tsx": 1,
         "apps/web/src/components/claims/claim-draft-intake/claim-draft-intake.test.tsx": 2062,
-        "apps/web/src/components/claims/claim-draft-intake/dormant-preview.tsx": 616,
-        "apps/web/src/components/claims/claim-draft-intake/index.tsx": 1233,
+        "apps/web/src/components/claims/claim-draft-intake/dormant-preview.tsx": 592,
+        "apps/web/src/components/claims/claim-draft-intake/index.tsx": 1215,
         "apps/web/src/components/claims/claim-draft-intake/main-panel.tsx": 460,
         "apps/web/src/components/claims/claim-draft-intake/saved-draft-submit.test.tsx": 264,
         "apps/web/src/components/claims/claim-draft-intake/use-saved-draft-claim.ts": 303,
@@ -1607,14 +1607,14 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 62072071,
+  "maxTrackedBytes": 62071953,
   "maxTrackedFiles": 6091,
   "maxCategoryBytes": {
     "config/data/messages": 2265657,
     "docs/text": 8650298,
     "large support/generated-ish": 15870738,
     "other": 19184750,
-    "source/scripts": 8888874,
+    "source/scripts": 8888756,
     "tests/e2e": 7211754
   },
   "maxLargestFileBytes": 3266530,

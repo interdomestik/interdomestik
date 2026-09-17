@@ -1,5 +1,4 @@
 'use client';
-
 import { SecureSaveBand } from '@/app/[locale]/components/home/free-start-intake-shell/secure-save-band';
 import {
   getIssueIds,
@@ -13,30 +12,23 @@ import { useOrganizerFlow } from '@/app/[locale]/components/home/free-start-inta
 import type { ClaimStartHandoffContext } from '@interdomestik/domain-claims/claims/types';
 import { NextIntlClientProvider, useTranslations, type AbstractIntlMessages } from 'next-intl';
 import { useState } from 'react';
-
 // prettier-ignore
 import { parseClaimDraftCopy, type ClaimDraftCopy, type SavedDraftSubmitCopy } from './dormant-preview';
 import { ClaimDraftMainPanel } from './main-panel';
-
 // prettier-ignore
 type Props = Readonly<{ freeStartMessages: AbstractIntlMessages; handoffContext?: ClaimStartHandoffContext | null; initialCategory?: string; locale: string; managerOnly?: boolean; neutralOtpHost?: string | null; tenantId: string }>;
-
 // prettier-ignore
 type BodyProps = Omit<Props, 'freeStartMessages'> & Readonly<{ copy: ClaimDraftCopy; handoffCountryLabel: string | null; submitCopy: SavedDraftSubmitCopy; t: (key: string, values?: Record<string, string>) => string }>;
-
 function supportedCategory(value?: string): CategoryId | undefined {
   if (value === 'auto' || value === 'vehicle') return 'vehicle';
   return value === 'property' ? 'property' : undefined;
 }
-
 // prettier-ignore
 function ClaimDraftIntakeBody({ copy, handoffContext, handoffCountryLabel, initialCategory, locale, managerOnly, neutralOtpHost, submitCopy, t, tenantId }: BodyProps) {
   const tFree = useTranslations('freeStart');
   const flow = useOrganizerFlow(supportedCategory(initialCategory));
   const isUnsupportedTravel = initialCategory === 'travel';
-  const [confirmedHandoffCountry, setConfirmedHandoffCountry] = useState<
-    ClaimStartHandoffContext['country'] | null
-  >(null);
+  const [confirmedHandoffCountry, setConfirmedHandoffCountry] = useState<ClaimStartHandoffContext['country'] | null>(null);
   const handoffCountryConfirmed = confirmedHandoffCountry === handoffContext?.country;
   const lifecycle = useDraftLifecycle({
     category: flow.selectedCategory,
@@ -52,7 +44,6 @@ function ClaimDraftIntakeBody({ copy, handoffContext, handoffCountryLabel, initi
     outcome: getSelectedOutcomeLabel(tFree, flow.draft.desiredOutcome),
   };
   const saveBandProps = { lifecycle, locale, manageOnly: managerOnly, neutralOtpHost, tenantId };
-
   // prettier-ignore
   return (
 <section
@@ -75,9 +66,7 @@ className="rounded-2xl border border-slate-200 bg-white p-4"
 aria-label={t('wizard.handoff.title')}
 >
 <h3 className="font-bold text-[#001a33]">{t('wizard.handoff.title')}</h3>
-<p id="claim-wizard-handoff-context" className="mt-1 text-sm text-[#526274]">
-{t('wizard.handoff.countryContext')}
-</p>
+<p id="claim-wizard-handoff-context" className="mt-1 text-sm text-[#526274]">{t('wizard.handoff.countryContext')}</p>
 <dl className="mt-2 grid gap-2 text-sm sm:grid-cols-3">
 <div>
 <dt className="text-[#526274]">{t('wizard.handoff.sourceLabel')}</dt>
@@ -137,7 +126,6 @@ tFree={tFree}
 </section>
 );
 }
-
 export function ClaimDraftIntake({ freeStartMessages, ...props }: Props) {
   const t = useTranslations('claims');
   const tDiaspora = useTranslations('diaspora');

@@ -24,10 +24,7 @@ function selectSubmitExplanation(copy: ClaimDraftCopy, membership: boolean, conf
 }
 export function DormantPreview(props: Props) {
   // prettier-ignore
-  const { activeDraftId, activeDraftVersion, claimStart, confirmationRequired, confirmationRequiredCopy, copy, draft, hasUnsavedChanges, headingRef, labels, managerOnly, submitCopy, tFree } = props;
-  const failureRef = useRef<HTMLParagraphElement>(null);
-  const successRef = useRef<HTMLOutputElement>(null);
-  const locale = useLocale();
+  const { activeDraftId, activeDraftVersion, claimStart, confirmationRequired, confirmationRequiredCopy, copy, draft, hasUnsavedChanges, headingRef, labels, managerOnly, submitCopy, tFree } = props, failureRef = useRef<HTMLParagraphElement>(null), successRef = useRef<HTMLOutputElement>(null), locale = useLocale();
   // prettier-ignore
   const facts = [[tFree('preview.categoryLabel'), labels.category], [tFree('preview.issueLabel'), labels.issue], [tFree('preview.dateLabel'), draft.incidentDate], [tFree('preview.counterpartyLabel'), draft.counterparty], [tFree('preview.outcomeLabel'), labels.outcome], [tFree('preview.summaryLabel'), draft.summary]];
   // prettier-ignore
