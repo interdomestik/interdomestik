@@ -112,5 +112,5 @@ export function buildClaimStartPublicNote(
     return null;
   }
 
-  return `Started from Diaspora / Green Card quickstart. Guidance country selected: ${incidentCountry.incidentCountryCode}. The incident country is recorded separately from member-confirmed claim details.`;
+  return `Started from Diaspora / Green Card quickstart. Guidance country selected: ${incidentCountry.incidentCountryCode}. The incident country is recorded separately from submitted case details.`;
 }
