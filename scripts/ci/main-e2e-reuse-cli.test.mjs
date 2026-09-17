@@ -131,7 +131,7 @@ test('S5 explicit diaspora country context preserves corpus parity', () => {
   assert.equal(
     inspectRepositoryParity({
       ...sources(),
-      e2eTreeSha: 'a98491be4b4b56550fce69d8143cc80f72124a1d',
+      e2eTreeSha: 'cacb1feef816ded4c09ad3555e8831a248e24871',
     }).commandChain,
     true
   );
