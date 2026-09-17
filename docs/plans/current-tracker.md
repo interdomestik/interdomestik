@@ -745,7 +745,7 @@ Exact-main CI `35234402525`, Sonar `35234402853`, CodeQL `35234402674`/`35234401
 Scan `35234402411` passed. Earlier-tree receipts remain historical. The lesson retained for the
 active slice is to preflight the registered verification worktree, migrated task DB and isolated
 port together; new verification defaults to Mac. Retirement and the checksummed receipt archive
-remain recorded above.
+remain recorded above. Docker and Sentry were both `not_applicable` for that completed proof.
 
 ### Historical S3 supported-prefix proof
 

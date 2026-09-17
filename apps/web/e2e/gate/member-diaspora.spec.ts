@@ -61,9 +61,7 @@ test.describe('Diaspora Feature', () => {
     await italySelector.click();
 
     await expect(page).toHaveURL(/\/member\/diaspora\?country=IT/);
-    await expect(page.getByTestId('diaspora-selected-country')).toContainText(
-      /(Italy|Италија|Italia)/i
-    );
+    await expect(page.getByTestId('diaspora-selected-country')).toContainText('Italy');
     await expect(italySelector).toHaveAttribute('aria-current', 'page');
     await expect
       .poll(() =>
@@ -74,7 +72,7 @@ test.describe('Diaspora Feature', () => {
       .toBe(true);
 
     const claimStartLink = page.getByRole('link', {
-      name: /(Prepare vehicle claim|Подготви барање за возило|Përgatit kërkesën për automjet|Pripremi zahtev za vozilo)/i,
+      name: 'Prepare vehicle claim',
     });
     await expect(claimStartLink).toHaveAttribute(
       'href',
@@ -89,7 +87,7 @@ test.describe('Diaspora Feature', () => {
     ]);
 
     await expect(page.getByTestId('claim-wizard-handoff')).toBeVisible();
-    await expect(page.getByTestId('claim-wizard-handoff')).toContainText(/(Italy|Италија|Italia)/i);
+    await expect(page.getByTestId('claim-wizard-handoff')).toContainText('Italy');
     const details = page.getByTestId('claim-draft-main-panel');
     await expect(details.locator('option[value="collision"]')).toHaveCount(1);
     await expect(page.getByTestId('claim-draft-travel')).toHaveCount(0);

@@ -149,6 +149,8 @@ describe('DiasporaPage', () => {
     );
   });
 
+  // Locale-specific copy is covered by the mounted gate; this unit case proves only that the
+  // explicit country code is independent from the interface locale.
   it.each(['en', 'sq', 'mk', 'sr'])(
     'keeps an explicit lowercase country independent from the %s interface locale',
     async locale => {

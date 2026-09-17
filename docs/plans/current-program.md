@@ -233,8 +233,10 @@ immediately exposing Germany-specific guidance and a DE claim-start URL without 
 Acceptance is a mounted choose-country state with neutral telephone/WhatsApp support and no
 country-specific guidance or claim handoff until the member selects supported `DE`, `CH`, `AT` or
 `IT`. Repeated values are ambiguous and fail closed; empty, whitespace-padded, malformed and
-unsupported values fail closed. Existing case-insensitive code normalization remains because a
-lowercase supported code is explicit and unambiguous, not locale or host inference. A selected
+unsupported values fail closed to the same neutral chooser without echoing the rejected input. A
+distinct invalid-link message is intentionally outside this bounded increment. Existing
+case-insensitive code normalization remains because a lowercase supported code is explicit and
+unambiguous, not locale or host inference. A selected
 country is programmatically current, preserves the existing guidance and exact handoff URL, and
 still reaches S5.d's explicit intake confirmation. EN/SQ/MK/SR must render the same selection state
 without inferring or changing country. Mobile reflow, keyboard/current-choice semantics and the
@@ -260,13 +262,14 @@ all 14 setup/gate/smoke cases for the changed spec. Consumer inventory finds the
 state only in this gate and the focused page tests; the other diaspora references are route links
 and do not assert the retired default. The current program/tracker remain within their existing
 `t116-case-summary` path/category caps, so their semantic evidence growth consumes no new global
-docs allocation; the exact requirement map remains separately attributed.
-Preflight measures +6,398 product/test/catalog/E2E bytes and one cohesive selector file before
-canonical evidence and capacity metadata. The owner approved a bounded ceiling of +15,000 bytes and
-one file on 2026-09-17. The exact aggregate ledger increase is +8,833 bytes and one file: +2,475 for
-the new selector/EN/SR owner, +3,870 for the existing S5.d page/test/MK/SQ owner, +1,357 for the
+docs allocation; the exact requirement map remains separately attributed. The superseded
+pre-review measurement was +6,398 product/test/catalog/E2E bytes and one selector file before review
+corrections and exact registration; the final measured ledger below replaces that initial figure.
+The owner approved a bounded ceiling of +15,000 bytes and
+one file on 2026-09-17. The exact aggregate ledger increase is +8,828 bytes and one file: +2,475 for
+the new selector/EN/SR owner, +4,039 for the existing S5.d page/test/MK/SQ owner, +1,183 for the
 existing diaspora E2E owner, +389 for the exact requirement map and +742 for capacity-budget
-self-attribution. Derived category growth is +2,443 config, +389 docs, +2,408 source and +3,593
+self-attribution. Derived category growth is +2,443 config, +389 docs, +2,414 source and +3,582
 test/E2E bytes. Reserve, deleted-byte credit, enforcement thresholds and unrelated owners remain
 unchanged; the existing S5.d allocation is extended only for the four paths reused by this slice.
 

@@ -97,7 +97,7 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
 
           <div className="rounded-[1.5rem] border border-slate-200 bg-white/90 p-4 shadow-[0_18px_34px_-28px_rgba(15,23,42,0.55)]">
             <div className="mb-3">
-              <p id="country-label" className="text-sm font-semibold text-slate-900">
+              <p id="diaspora-country" className="text-sm font-semibold text-slate-900">
                 {t('selector.label')}
               </p>
               <p className="text-sm text-slate-500">{t('selector.hint')}</p>
@@ -107,7 +107,7 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
                 code: country.code,
                 label: t(country.labelKey),
               }))}
-              labelledBy="country-label"
+              labelledBy="diaspora-country"
               selectedCountry={selectedCountry}
             />
           </div>
