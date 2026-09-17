@@ -116,7 +116,7 @@
         "sourceValue": "Diaspora / udhëzuesi i shpejtë Green Card",
         "countryLabel": "Shteti i udhëzimit",
         "countryContext": "Ky shtet vjen nga udhëzuesi i shpejtë. Nuk bëhet pjesë e rastit tuaj derisa ta konfirmoni.",
-        "confirmCountry": "Konfirmoj se aksidenti ndodhi në {country}.",
+        "confirmCountry": "Konfirmoj se {country} është shteti i incidentit.",
         "confirmationRequired": "Konfirmoni shtetin e incidentit para se ta dorëzoni këtë skicë të ruajtur.",
         "incidentLocationLabel": "Vendndodhja e incidentit",
         "incidentLocationValue": "Jashtë vendit"

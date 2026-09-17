@@ -116,7 +116,7 @@
         "sourceValue": "Diaspora / Green Card quickstart",
         "countryLabel": "Guidance country",
         "countryContext": "This country came from the quickstart. It is not part of your case until you confirm it.",
-        "confirmCountry": "I confirm the accident happened in {country}.",
+        "confirmCountry": "I confirm {country} is the incident country.",
         "confirmationRequired": "Confirm the incident country before submitting this saved draft.",
         "incidentLocationLabel": "Incident location",
         "incidentLocationValue": "Abroad"

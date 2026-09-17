@@ -23,10 +23,10 @@ the owned 9ace worktree removed without force, branch retained, isolated databas
 zero active connections, and shared Supabase untouched. S4 completed through protected PR #1786 as
 `1eecb57a7244f37aded3392c5bf38a32fec08584`; all exact-main checks passed and owned resources were
 retired. The owner selected `S5.d-DIASPORA-CLAIM-START-TRUTH` from that protected merge.
-The owner then approved +11,528 bytes and zero files. The corrected exact ledger increase is +11,378:
-the new named S5.d allocation is 7,597 bytes, the four-catalog owner grows 1,382 bytes, the E2E reuse
+The owner then approved +11,528 bytes and zero files. The corrected exact ledger increase is +11,528:
+the new named S5.d allocation is 7,738 bytes, the four-catalog owner grows 1,391 bytes, the E2E reuse
 owner grows 84 bytes, and budget self-attribution grows 2,315 bytes. Global source/test/config ceilings
-grow 3,353/4,305/3,720 bytes respectively; no reserve, deleted-byte credit, threshold or file allowance
+grow 3,427/4,372/3,729 bytes respectively; no reserve, deleted-byte credit, threshold or file allowance
 is consumed.
 
 The following S4 execution ledger retains source-bound intermediate wording, including then-pending

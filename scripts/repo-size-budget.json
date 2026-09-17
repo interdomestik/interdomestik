@@ -1331,11 +1331,11 @@
         "apps/web/src/messages/sq/claims.json",
         "apps/web/src/messages/sr/claims.json"
       ],
-      "maxTrackedBytesDelta": 66848,
+      "maxTrackedBytesDelta": 66857,
       "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
         "docs/text": 28500,
-        "config/data/messages": 7284,
+        "config/data/messages": 7293,
         "source/scripts": 8000,
         "tests/e2e": 23064
       },
@@ -1349,8 +1349,8 @@
         "apps/web/e2e/gate/member-vault-consent-display.spec.ts": 7800,
         "apps/web/e2e/golden/member-claim-detail-ops.spec.ts": 6000,
         "apps/web/src/messages/en/claims.json": 1556,
-        "apps/web/src/messages/mk/claims.json": 2325,
-        "apps/web/src/messages/sq/claims.json": 1743,
+        "apps/web/src/messages/mk/claims.json": 2329,
+        "apps/web/src/messages/sq/claims.json": 1750,
         "apps/web/src/messages/sr/claims.json": 1660
       }
     },
@@ -1577,16 +1577,16 @@
         "apps/web/src/messages/sq/diaspora.json",
         "packages/domain-claims/src/claims/incident-country-writers.test.ts"
       ],
-      "maxTrackedBytesDelta": 7597,
+      "maxTrackedBytesDelta": 7738,
       "maxTrackedFilesDelta": 0,
       "maxCategoryBytesDelta": {
-        "tests/e2e": 4305,
-        "source/scripts": 3269,
+        "tests/e2e": 4372,
+        "source/scripts": 3343,
         "config/data/messages": 23
       },
       "maxPathBytesDelta": {
-        "apps/web/src/actions/claims/create-from-saved-draft.test.ts": 1371,
-        "apps/web/src/actions/claims/create-from-saved-draft.ts": 698,
+        "apps/web/src/actions/claims/create-from-saved-draft.test.ts": 1438,
+        "apps/web/src/actions/claims/create-from-saved-draft.ts": 772,
         "apps/web/src/app/[locale]/(app)/member/diaspora/page.test.tsx": 11,
         "apps/web/src/app/[locale]/(app)/member/diaspora/page.tsx": 1,
         "apps/web/src/components/claims/claim-draft-intake/claim-draft-intake.test.tsx": 2062,
@@ -1607,15 +1607,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 62071953,
+  "maxTrackedBytes": 62072103,
   "maxTrackedFiles": 6091,
   "maxCategoryBytes": {
-    "config/data/messages": 2265657,
+    "config/data/messages": 2265666,
     "docs/text": 8650298,
     "large support/generated-ish": 15870738,
     "other": 19184750,
-    "source/scripts": 8888756,
-    "tests/e2e": 7211754
+    "source/scripts": 8888830,
+    "tests/e2e": 7211821
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

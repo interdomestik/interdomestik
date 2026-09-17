@@ -112,7 +112,8 @@ export async function createClaimFromSavedDraft(input: unknown): Promise<SavedDr
     if (existing.kind === 'found') return { success: true as const, claimId: existing.claimId, claimNumber: existing.claimNumber };
     // prettier-ignore
     if (existing.kind === 'invalid' || resumed.draft.version !== parsed.data.expectedVersion || resumed.draft.resumeStep !== 'preview') return unavailable();
-    const data = mapDraft(resumed.draft, parsed.data.claimStart?.incidentCountryCode);
+    const claimStart = resumed.draft.category === 'vehicle' ? parsed.data.claimStart : undefined;
+    const data = mapDraft(resumed.draft, claimStart?.incidentCountryCode);
     if (!data) return unavailable();
     const limit = await enforceRateLimitForAction({
       name: 'action:submit-claim',
@@ -125,7 +126,7 @@ export async function createClaimFromSavedDraft(input: unknown): Promise<SavedDr
     try {
       const result = await submitClaimCore({
         data,
-        handoffContext: parsed.data.claimStart?.handoffContext,
+        handoffContext: claimStart?.handoffContext,
         idempotencyKey: `ida-ui03a2-b1:${resumed.draft.id}`,
         requestHeaders,
         session,

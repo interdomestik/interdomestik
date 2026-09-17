@@ -115,7 +115,7 @@ describe('createClaimFromSavedDraft', () => {
     expect(h.resolveSession).not.toHaveBeenCalled();
     expect(h.submit).not.toHaveBeenCalled();
   });
-  it('maps the fixed property codes without accepting client labels', async () => {
+  it('maps property codes and drops diaspora handoff', async () => {
     h.resumeDraft.mockResolvedValue({
       ok: true,
       draft: {
@@ -125,16 +125,11 @@ describe('createClaimFromSavedDraft', () => {
         desiredOutcome: 'reimbursement',
       },
     });
-    await createClaimFromSavedDraft(input);
-    expect(h.submit).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          category: 'property',
-          title: 'Property: Water damage',
-          description: expect.stringContaining('Desired outcome: Reimbursement'),
-        }),
-      })
-    );
+    await createClaimFromSavedDraft({ ...input, claimStart: confirmedClaimStart });
+    const payload = h.submit.mock.calls[0]![0];
+    // prettier-ignore
+    expect(payload).toMatchObject({ data: { category: 'property', description: expect.stringContaining('Desired outcome: Reimbursement'), title: 'Property: Water damage' }, handoffContext: undefined });
+    expect(payload.data).not.toHaveProperty('incidentCountryCode');
   });
   // prettier-ignore
   it.each([
