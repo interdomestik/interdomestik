@@ -32,6 +32,7 @@ const hoisted = vi.hoisted(() => ({
       },
       actions: {
         support: 'Contact support now',
+        whatsapp: 'Open WhatsApp support',
         claim: 'Prepare vehicle claim',
         selectionRequired:
           'Contact support now, or choose the accident country above before preparing a vehicle claim.',
@@ -98,6 +99,10 @@ describe('DiasporaPage', () => {
     expect(screen.getByRole('link', { name: /Contact support now/ })).toHaveAttribute(
       'href',
       'tel:+38349900600'
+    );
+    expect(screen.getByRole('link', { name: 'Open WhatsApp support' })).toHaveAttribute(
+      'href',
+      'https://wa.me/38349900600'
     );
     expect(screen.queryByRole('link', { name: 'Prepare vehicle claim' })).not.toBeInTheDocument();
   });

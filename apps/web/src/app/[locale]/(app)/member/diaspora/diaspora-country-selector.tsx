@@ -1,5 +1,6 @@
 import { Link } from '@/i18n/routing';
-import { Button } from '@interdomestik/ui';
+import { Button, Card, CardDescription, CardHeader, CardTitle } from '@interdomestik/ui';
+import { Siren } from 'lucide-react';
 
 type CountryOption = {
   code: string;
@@ -8,14 +9,18 @@ type CountryOption = {
 
 type Props = {
   countries: readonly CountryOption[];
-  label: string;
+  labelledBy: string;
   selectedCountry: string | null;
 };
 
-export function DiasporaCountrySelector({ countries, label, selectedCountry }: Readonly<Props>) {
+export function DiasporaCountrySelector({
+  countries,
+  labelledBy,
+  selectedCountry,
+}: Readonly<Props>) {
   return (
     <nav
-      aria-label={label}
+      aria-labelledby={labelledBy}
       className="flex flex-wrap gap-2"
       data-testid="diaspora-country-selector"
     >
@@ -39,5 +44,27 @@ export function DiasporaCountrySelector({ countries, label, selectedCountry }: R
         );
       })}
     </nav>
+  );
+}
+
+type RequiredCardProps = {
+  description: string;
+  title: string;
+};
+
+export function DiasporaCountryRequiredCard({ description, title }: Readonly<RequiredCardProps>) {
+  return (
+    <Card
+      className="rounded-[2rem] border border-slate-200/80 bg-white"
+      data-testid="diaspora-country-required"
+    >
+      <CardHeader className="space-y-3">
+        <div className="w-fit rounded-2xl bg-sky-50 p-3 text-sky-700">
+          <Siren className="h-5 w-5" />
+        </div>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+    </Card>
   );
 }

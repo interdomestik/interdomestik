@@ -13,7 +13,7 @@ import {
 import { ArrowRight, Phone, ShieldCheck, Siren, TriangleAlert } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { DiasporaCountrySelector } from './diaspora-country-selector';
+import { DiasporaCountryRequiredCard, DiasporaCountrySelector } from './diaspora-country-selector';
 
 const QUICKSTART_COUNTRIES = [
   { code: 'DE', labelKey: 'selector.options.DE' },
@@ -23,21 +23,26 @@ const QUICKSTART_COUNTRIES = [
 ] as const;
 
 type SupportedQuickstartCountry = (typeof QUICKSTART_COUNTRIES)[number]['code'];
+
 function resolveCountryCode(
   rawCountry: string | string[] | undefined
 ): SupportedQuickstartCountry | null {
   if (typeof rawCountry !== 'string') {
     return null;
   }
+
   const parsed = CountryCodeSchema.safeParse(rawCountry.toUpperCase());
   if (!parsed.success) {
     return null;
   }
+
   if (!QUICKSTART_COUNTRIES.some(country => country.code === parsed.data)) {
     return null;
   }
+
   return parsed.data as SupportedQuickstartCountry;
 }
+
 function buildClaimStartHref(selectedCountry: SupportedQuickstartCountry): string {
   const params = new URLSearchParams({
     category: 'vehicle',
@@ -45,8 +50,10 @@ function buildClaimStartHref(selectedCountry: SupportedQuickstartCountry): strin
     country: selectedCountry,
     incidentLocation: 'abroad',
   });
+
   return `/member/claims/new?${params.toString()}`;
 }
+
 type Props = {
   params: Promise<{ locale: string }>;
   searchParams?: Promise<{ country?: string | string[] }>;
@@ -90,7 +97,9 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
 
           <div className="rounded-[1.5rem] border border-slate-200 bg-white/90 p-4 shadow-[0_18px_34px_-28px_rgba(15,23,42,0.55)]">
             <div className="mb-3">
-              <p className="text-sm font-semibold text-slate-900">{t('selector.label')}</p>
+              <p id="country-label" className="text-sm font-semibold text-slate-900">
+                {t('selector.label')}
+              </p>
               <p className="text-sm text-slate-500">{t('selector.hint')}</p>
             </div>
             <DiasporaCountrySelector
@@ -98,7 +107,7 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
                 code: country.code,
                 label: t(country.labelKey),
               }))}
-              label={t('selector.label')}
+              labelledBy="country-label"
               selectedCountry={selectedCountry}
             />
           </div>
@@ -215,18 +224,10 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
             </CardContent>
           </Card>
         ) : (
-          <Card
-            className="rounded-[2rem] border border-slate-200/80 bg-white"
-            data-testid="diaspora-country-required"
-          >
-            <CardHeader className="space-y-3">
-              <div className="w-fit rounded-2xl bg-sky-50 p-3 text-sky-700">
-                <Siren className="h-5 w-5" />
-              </div>
-              <CardTitle>{t('selector.required.title')}</CardTitle>
-              <CardDescription>{t('selector.required.description')}</CardDescription>
-            </CardHeader>
-          </Card>
+          <DiasporaCountryRequiredCard
+            title={t('selector.required.title')}
+            description={t('selector.required.description')}
+          />
         )}
 
         <div className="space-y-6">

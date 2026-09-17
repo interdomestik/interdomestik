@@ -254,12 +254,19 @@ reasoning. Provider-attested Sonnet 5 design receipt `20260917T180154-sonnet` an
 adversarial receipt `20260917T180154-gemini` supplied bounded proposals; their empty-diff FINDINGS
 verdicts are retained as pre-implementation evidence, not approvals. Codex independently accepted
 the fail-closed/repeated/current-choice cases and preserved the existing lowercase contract.
+Repository contract evidence confirms `apps/web/e2e/routes.ts` accepts either a locale string or
+Playwright `TestInfo` and always prefixes the resolved locale; focused Playwright discovery lists
+all 14 setup/gate/smoke cases for the changed spec. Consumer inventory finds the selected-country
+state only in this gate and the focused page tests; the other diaspora references are route links
+and do not assert the retired default. The current program/tracker remain within their existing
+`t116-case-summary` path/category caps, so their semantic evidence growth consumes no new global
+docs allocation; the exact requirement map remains separately attributed.
 Preflight measures +6,398 product/test/catalog/E2E bytes and one cohesive selector file before
 canonical evidence and capacity metadata. The owner approved a bounded ceiling of +15,000 bytes and
-one file on 2026-09-17. The exact aggregate ledger increase is +7,995 bytes and one file: +1,749 for
-the new selector/EN/SR owner, +3,956 for the existing S5.d page/test/MK/SQ owner, +1,159 for the
+one file on 2026-09-17. The exact aggregate ledger increase is +8,833 bytes and one file: +2,475 for
+the new selector/EN/SR owner, +3,870 for the existing S5.d page/test/MK/SQ owner, +1,357 for the
 existing diaspora E2E owner, +389 for the exact requirement map and +742 for capacity-budget
-self-attribution. Derived category growth is +2,443 config, +389 docs, +1,964 source and +3,199
+self-attribution. Derived category growth is +2,443 config, +389 docs, +2,408 source and +3,593
 test/E2E bytes. Reserve, deleted-byte credit, enforcement thresholds and unrelated owners remain
 unchanged; the existing S5.d allocation is extended only for the four paths reused by this slice.
 

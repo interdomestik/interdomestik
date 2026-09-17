@@ -14,6 +14,9 @@ test.describe('Diaspora Feature', () => {
     // The legacy dashboard ribbon was intentionally retired by T-117B. The product capability
     // remains covered at the existing canonical route without compatibility markup.
     const originalViewport = page.viewportSize();
+    if (!originalViewport) {
+      throw new Error('Diaspora gate requires a configured Playwright viewport.');
+    }
     await page.setViewportSize({ width: 320, height: 720 });
     const localeCases = [
       { locale: 'en', requiredTitle: 'Choose a country to see guidance' },
@@ -41,13 +44,15 @@ test.describe('Diaspora Feature', () => {
         })
       ).toHaveAttribute('href', /^tel:/);
       await expect
-        .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
+        .poll(() =>
+          page.evaluate(
+            () => document.documentElement.scrollWidth <= document.documentElement.clientWidth
+          )
+        )
         .toBe(true);
     }
 
-    if (originalViewport) {
-      await page.setViewportSize(originalViewport);
-    }
+    await page.setViewportSize(originalViewport);
     await gotoApp(page, routes.memberDiaspora('en'), testInfo, { marker: 'diaspora-page' });
 
     const italySelector = page.getByRole('link', {
@@ -61,7 +66,11 @@ test.describe('Diaspora Feature', () => {
     );
     await expect(italySelector).toHaveAttribute('aria-current', 'page');
     await expect
-      .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
+      .poll(() =>
+        page.evaluate(
+          () => document.documentElement.scrollWidth <= document.documentElement.clientWidth
+        )
+      )
       .toBe(true);
 
     const claimStartLink = page.getByRole('link', {
