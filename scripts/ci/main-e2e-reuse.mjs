@@ -39,7 +39,7 @@ const E2E_TREE_SHAS = new Set([
   // S5.d diaspora claim-start truth.
   'd647e82145ca2a262a1d673aa3e80e2c0317cdcb',
   // S5 explicit diaspora country context.
-  'b7610d822d2326ca7b9a92aa272017895adda13b',
+  'a98491be4b4b56550fce69d8143cc80f72124a1d',
 ]);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {
