@@ -212,6 +212,55 @@ separate from incident-country resolution; only explicit submitted `incidentCoun
 authoritative. A resumed draft without diaspora handoff context therefore persists no incident
 country; re-entry through the handoff URL requires confirmation again without adding draft schema.
 
+### Dependency-first selection (owner direction, 2026-09-17)
+
+Use this order within the existing roadmap, not a second queue. A dependency blocks only the
+outcome that consumes it. Before selecting implementation, identify its exact required contract,
+delivery receipt and mounted acceptance; an absent receipt is uncertainty, not permission to rebuild.
+If a required contract is genuinely missing, select that bounded gap before its dependent UI.
+
+1. Credit S2, the supported S3 prefix, bounded S4 (#1786), and S5.d claim-start truth (#1788,
+   `0091f6ecf39c0888a9decf2fa8c0a1a498d3119c`). Neither S3 nor the S5/diaspora family is complete.
+2. Reconcile remaining S5 entry/continuity gaps before selecting S6. Reuse existing tests; a new
+   integrated test is not an independent prerequisite when the product increment can include it.
+3. Before S6/S7 promises a request-bound evidence round-trip, close the missing upload correlation,
+   authorized staff acknowledgement and fulfilment contracts, in that order where dependent.
+   Existing S4 request creation/read UI is the predecessor, not proof of these capabilities.
+   Independent membership/status UI may proceed without this round-trip.
+4. For S5.d/S6.d preparation, establish explicit corridor and locale-independent country context
+   before dependent pack selection; establish reviewed signed-pack/version/integrity/expiry contracts
+   before claiming offline readiness. Then prove retry/recovery. Shared police/EAS guidance requires
+   accepted country/content rules before H1 or Trip Mode exposes it. No flight dependency is invented.
+5. Complete S6/S7 scoped journeys over those contracts; then S8 handoff before dependent S9 activation,
+   and S10/S11/S12 against their actual scope/role/assignment contracts. S2 is the S10 scope baseline.
+   Independent outcomes may advance under the existing ready-work rule; H1 keeps priority when ready.
+6. Before S13 displays recovery, settlement or payment completion, verify the applicable consent,
+   mandate, partner, lifecycle and billing receipts; close only missing pilot-required contracts.
+   S14 follows all selected journey acceptance plus operational/business readiness, not CI alone.
+
+Architecture frontier reconciliation (source: architecture-finalization tracker and current receipts):
+
+| Frontier                                | Dependency disposition                                                                                                                                                                                                                                           |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Core M0–M5                              | 82 historical T rows record DONE; preserve scoped receipts, not whole-consumer acceptance.                                                                                                                                                                       |
+| T-115/OD17; T-116/117/118; T-210; T-309 | Credit current-program delivery, cutover and cache receipts. Historical blank overlay status or terminal governance is not a new implementation prerequisite; recheck only changed consumer acceptance.                                                          |
+| T-310                                   | Whole-node acceptance is not established here. Before tenant branding/settings, reconcile session-derived tokens, neutral public state and cross-tenant tests; fix a demonstrated gap before that consumer, not before unrelated journeys.                       |
+| T-410                                   | Partial: credit #1765/#1771/#1772. Apply pessimistic status/money/legal boundaries and rollback proof to each changed action; select any remaining contract gap before its consumer, not all UI.                                                                 |
+| SVC-CORE / H1                           | Reconcile first unmet registry/outcome/consent clause before the service that needs it; then SVC-06/Help Now. Stale SVC-CORE-b TODO is not evidence to rebuild the delivered loader.                                                                             |
+| T-411                                   | Keep T-401 + SVC-CORE + FLIGHT-03 prerequisites. FLIGHT-03 depends on FLIGHT-01/02 and their schema/spec chain. No Smart Next Step consumer before these contracts; ordinary member UI is not gated by it.                                                       |
+| SVC-DASH / FLIGHT / CQRS                | Preserve architecture tracker direct edges and promotion conditions. T-411 precedes its catalog/flight UI consumers; CQRS-00/01 precede dependent projections, with FLIGHT-08/T-204 for fee receivables. No whole-overlay pilot prerequisite or silent deferral. |
+
+Resolve pilot applicability for each consumed service/overlay before promising it. Reuse the existing
+requirement map for software, operating and business evidence; preserve unresolved items explicitly.
+This ordering authorizes no new runtime scope, capacity, deployment or weakening of required proof.
+
+Owner-approved closeout rule (2026-09-17): after protected merge and exact-main health, preserve
+receipts outside the disposable worktree, retire only owned task databases/processes/worktrees,
+and record bounded completion in the program/tracker. Do not leave an active row describing a
+merged increment as implementation-in-progress. Pre-merge records say awaiting merge; final facts
+join the next authorized amendment without a separate routine closeout PR. Cleanup is immediate
+unless unmerged work or another explicit ownership blocker must be preserved and reported.
+
 ### Owner-adopted product-readiness roadmap (2026-09-15)
 
 Maintain the [requirement disposition map](requirement-disposition-map.md) as the full SRS and

@@ -16,6 +16,23 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
+Dependency ordering follows current-program.md, "Dependency-first selection (owner direction,
+2026-09-17)". S5.d claim-start truth merged in #1788 as
+`0091f6ecf39c0888a9decf2fa8c0a1a498d3119c`; exact-merge checks inspected on 2026-09-17 succeeded.
+Older in-progress S5.d/proof wording below is historical. Whole S5 and diaspora remain open;
+S5 retirement is confirmed below. No next runtime increment is selected by this audit.
+Next selection reconciles remaining S5 gaps, then follows direct prerequisites for S6/S7 evidence,
+diaspora packs, H1 and later roles; it must not select a test-only predecessor merely for small size.
+
+S5 retirement receipt (2026-09-17): local `9dcc` and both owned Z620 worktrees are absent;
+the task DB is absent, port 3100 is clear, eight checkout-bound helper/MCP processes were stopped,
+and shared Supabase was preserved. The owner-supplied receipt reports 3,536,756 KiB recovered.
+43 ignored verification receipts are preserved under
+`~/.codex/task-receipts/interdomestik/S5.d-DIASPORA-CLAIM-START-TRUTH/2026-09-17/`
+in `s5d-verification-receipts-c2af2f168ca6.tar.gz`; SHA-256 independently checked:
+`09a25dee8a3fb409be810fb917d5ca57b74dae40934d03f334750f80875fb83d`.
+Git history/branches remain; no force removal, deployment or verification rerun occurred.
+
 S1 (#1780) and S2 (#1781) are complete; all 13 exact-main checks passed at their merges.
 S3's bounded supported prefix completed through protected PR #1783. Its merge is
 `135338a5501267a3377ce6a67b053ba61ef54c9c`; all 13 checks passed. Task retirement confirmed
@@ -121,9 +138,9 @@ protected squash merge `1eecb57a7244f37aded3392c5bf38a32fec08584`; all required 
 checks passed and owned task resources were retired. Final merge/cleanup facts are retained with
 these receipts under `.codex/artifacts/interdomestik/s4`. No deployment is claimed.
 
-| ID                                | Status        | Owner | Work                                                                                                                                | Exit Criteria                                                                                                                                                                                               |
-| --------------------------------- | ------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S5.d-DIASPORA-CLAIM-START-TRUTH` | `in_progress` | Codex | A diaspora member enters supported vehicle preparation and explicitly confirms incident country before claim authority is recorded. | Truthful mounted CTA and confirmation; unconfirmed handoff context cannot persist incident-country authority; provenance wording, four-locale controls, focused/full/security proof and protected delivery. |
+| ID                                | Status      | Owner | Work                                                                           | Exit Criteria                                                                                                                                                                         |
+| --------------------------------- | ----------- | ----- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S5.d-DIASPORA-CLAIM-START-TRUTH` | `completed` | Codex | Supported vehicle preparation requires explicit incident-country confirmation. | Protected PR #1788 merged as `0091f6ecf39c0888a9decf2fa8c0a1a498d3119c`; exact-main checks succeeded; owned resources retired with archived receipts. Whole S5/diaspora remains open. |
 
 The completed #1782 acceptance-link amendment historically set the requirement-map allocation to
 72,094 bytes, +7,625 over its predecessor. S3 changes use the map's synchronized exact allocation;
@@ -686,9 +703,9 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                                | Source Refs                      | Execution  | Run ID | Run Root                | Sonar   | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                        |
-| --------------------------------- | -------------------------------- | ---------- | ------ | ----------------------- | ------- | ---------------- | ---------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S5.d-DIASPORA-CLAIM-START-TRUTH` | current program; S5; DIA-013–015 | `scripted` | local  | isolated task resources | pending | `not_applicable` | `not_applicable` | pending  | Sonnet 5 proposal passed after owner selection was recorded; Gemini supplied absent, mismatched and tampered confirmation plus provenance counterexamples. Focused, full, security and mounted proof remain pending. |
+| ID                                | Source Refs                      | Execution  | Run ID | Run Root                | Sonar | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                                                                                                                       |
+| --------------------------------- | -------------------------------- | ---------- | ------ | ----------------------- | ----- | ---------------- | ---------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S5.d-DIASPORA-CLAIM-START-TRUTH` | current program; S5; DIA-013–015 | `scripted` | PR1788 | protected GitHub checks | pass  | `not_applicable` | `not_applicable` | pass     | Protected merge `0091f6ecf39c0888a9decf2fa8c0a1a498d3119c`; exact-main CI/E2E, Sonar and security checks inspected successfully on 2026-09-17. Earlier implementation-head receipts remain source-bound. Lessons: registered verification worktree, migrated task DB and isolated port must be preflighted together; new verification defaults to Mac. Retirement tracked separately, not inferred. |
 
 ### Historical S3 supported-prefix proof
 
