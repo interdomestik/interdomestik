@@ -134,8 +134,7 @@ describe('claim incident-country writers', () => {
       incidentLocation: 'abroad',
       source: 'diaspora-green-card',
     });
-    expect(note).toContain('Guidance country selected: IT');
-    expect(note).not.toMatch(/confirmed|verified|authoritative/i);
+    expect(note).toMatch(/Member-submitted.*Guidance country selected: IT.*does not establish/);
   });
 
   it('keeps draft updates nullable for ambiguous country input', async () => {

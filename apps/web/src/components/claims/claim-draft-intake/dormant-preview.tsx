@@ -18,9 +18,9 @@ type Props = Readonly<{ activeDraftId?: string | null; activeDraftVersion?: numb
 function selectSubmitExplanation(copy: ClaimDraftCopy, membership: boolean, confirmationRequired: boolean, confirmationRequiredCopy: string | undefined, incomplete: boolean, unsaved: boolean, firstSaveExplanation: string | false): string {
   if (membership) return copy.submitMembershipExplanation;
   if (incomplete) return copy.submitIncompleteExplanation;
-  if (confirmationRequired && confirmationRequiredCopy) return confirmationRequiredCopy;
   if (unsaved) return copy.submitUnsavedExplanation;
-  return firstSaveExplanation || copy.submitExplanation;
+  if (firstSaveExplanation) return firstSaveExplanation;
+  return (confirmationRequired && confirmationRequiredCopy) || copy.submitExplanation;
 }
 export function DormantPreview(props: Props) {
   // prettier-ignore

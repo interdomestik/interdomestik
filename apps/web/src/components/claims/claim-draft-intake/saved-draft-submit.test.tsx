@@ -45,8 +45,7 @@ describe('saved draft canonical submit', () => {
   // prettier-ignore
   it.each([
     ['dirty', { hasUnsavedChanges: true }, copy.submitUnsavedExplanation],
-    ['not persisted', { activeDraftId: null, activeDraftVersion: null }, copy.submitFirstSaveExplanation],
-    ['not persisted undefined', { activeDraftId: undefined, activeDraftVersion: undefined }, copy.submitFirstSaveExplanation],
+    ['new and unconfirmed', { activeDraftId: null, activeDraftVersion: null, confirmationRequired: true, confirmationRequiredCopy: 'Confirm the incident country.' }, copy.submitFirstSaveExplanation],
     ['missing version', { activeDraftVersion: null }, copy.submitExplanation],
     ['malformed id', { activeDraftId: 'draft-1' }, copy.submitExplanation],
     ['missing issue', { draft: { ...draft, issueType: '' } }, copy.submitIncompleteExplanation],

@@ -1589,15 +1589,15 @@
         "apps/web/src/actions/claims/create-from-saved-draft.ts": 772,
         "apps/web/src/app/[locale]/(app)/member/diaspora/page.test.tsx": 11,
         "apps/web/src/app/[locale]/(app)/member/diaspora/page.tsx": 1,
-        "apps/web/src/components/claims/claim-draft-intake/claim-draft-intake.test.tsx": 2062,
+        "apps/web/src/components/claims/claim-draft-intake/claim-draft-intake.test.tsx": 2123,
         "apps/web/src/components/claims/claim-draft-intake/dormant-preview.tsx": 592,
         "apps/web/src/components/claims/claim-draft-intake/index.tsx": 1215,
         "apps/web/src/components/claims/claim-draft-intake/main-panel.tsx": 460,
-        "apps/web/src/components/claims/claim-draft-intake/saved-draft-submit.test.tsx": 264,
+        "apps/web/src/components/claims/claim-draft-intake/saved-draft-submit.test.tsx": 234,
         "apps/web/src/components/claims/claim-draft-intake/use-saved-draft-claim.ts": 303,
         "apps/web/src/messages/mk/diaspora.json": 12,
         "apps/web/src/messages/sq/diaspora.json": 11,
-        "packages/domain-claims/src/claims/incident-country-writers.test.ts": 597
+        "packages/domain-claims/src/claims/incident-country-writers.test.ts": 566
       }
     }
   ],

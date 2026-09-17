@@ -27,9 +27,9 @@ function supportedCategory(value?: string): CategoryId | undefined {
 function ClaimDraftIntakeBody({ copy, handoffContext, handoffCountryLabel, initialCategory, locale, managerOnly, neutralOtpHost, submitCopy, t, tenantId }: BodyProps) {
   const tFree = useTranslations('freeStart');
   const flow = useOrganizerFlow(supportedCategory(initialCategory));
-  const isUnsupportedTravel = initialCategory === 'travel';
+  const handoff = flow.selectedCategory === 'vehicle' ? handoffContext : null;
   const [confirmedHandoffCountry, setConfirmedHandoffCountry] = useState<ClaimStartHandoffContext['country'] | null>(null);
-  const handoffCountryConfirmed = confirmedHandoffCountry === handoffContext?.country;
+  const handoffCountryConfirmed = confirmedHandoffCountry === handoff?.country;
   const lifecycle = useDraftLifecycle({
     category: flow.selectedCategory,
     draft: flow.draft,
@@ -58,8 +58,8 @@ className="mx-auto max-w-5xl space-y-6"
 {flow.step !== 'preview' && flow.step !== 'complete' ? <div className="rounded-2xl border border-[#006f72]/30 bg-[#eaf5f2] p-4 text-sm font-semibold leading-6 text-[#173b43]">
 {copy.truth}
 </div> : null}
-{isUnsupportedTravel && <p data-testid="claim-draft-travel">{copy.unsupported}</p>}
-{handoffContext ? (
+{initialCategory === 'travel' && <p data-testid="claim-draft-travel">{copy.unsupported}</p>}
+{handoff ? (
 <aside
 data-testid="claim-wizard-handoff"
 className="rounded-2xl border border-slate-200 bg-white p-4"
@@ -86,11 +86,11 @@ aria-label={t('wizard.handoff.title')}
 type="checkbox"
 data-testid="claim-wizard-country-confirmation"
 checked={handoffCountryConfirmed}
-onChange={event => setConfirmedHandoffCountry(event.target.checked ? handoffContext.country : null)}
+onChange={event => setConfirmedHandoffCountry(event.target.checked ? handoff.country : null)}
 aria-describedby="claim-wizard-handoff-context"
 className="mt-1 h-5 w-5 shrink-0 accent-[#006f72]"
 />
-<span>{t('wizard.handoff.confirmCountry', { country: handoffCountryLabel ?? handoffContext.country })}</span>
+<span>{t('wizard.handoff.confirmCountry', { country: handoffCountryLabel ?? handoff.country })}</span>
 </label>
 </aside>
 ) : null}
@@ -108,8 +108,8 @@ className="rounded-xl border border-rose-300 bg-rose-50 p-3 font-semibold text-r
 <ClaimDraftMainPanel
 activeDraftId={lifecycle.active?.id}
 activeDraftVersion={lifecycle.active?.version}
-claimStart={handoffContext && handoffCountryConfirmed ? { confirmed: true, handoffContext, incidentCountryCode: handoffContext.country } : undefined}
-confirmationRequired={Boolean(handoffContext && !handoffCountryConfirmed)}
+claimStart={handoff && handoffCountryConfirmed ? { confirmed: true, handoffContext: handoff, incidentCountryCode: handoff.country } : undefined}
+confirmationRequired={Boolean(handoff && !handoffCountryConfirmed)}
 confirmationRequiredCopy={t('wizard.handoff.confirmationRequired')}
 copy={copy}
 flow={flow}

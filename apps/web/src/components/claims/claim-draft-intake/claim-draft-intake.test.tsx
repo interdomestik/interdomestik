@@ -89,12 +89,11 @@ function enter(label: string, value: string) {
 
 describe('ClaimDraftIntake', () => {
   it('keeps manager-only closed until explicit Manage then Resume', async () => {
-    const draft = savedDraft;
-    a.list.mockResolvedValueOnce({ items: [draft], nextCursor: null, ok: true });
-    a.resume.mockResolvedValueOnce({ draft, ok: true });
+    a.list.mockResolvedValueOnce({ items: [savedDraft], nextCursor: null, ok: true });
+    a.resume.mockResolvedValueOnce({ draft: savedDraft, ok: true });
     // prettier-ignore
-    render(<ClaimDraftIntake freeStartMessages={{}} locale="en" managerOnly neutralOtpHost={location.host} tenantId="tenant_ks" />);
-    expect(screen.queryByTestId('claim-draft-main-panel')).not.toBeInTheDocument();
+    render(<ClaimDraftIntake freeStartMessages={{}} handoffContext={claimStart.handoffContext} initialCategory="property" locale="en" managerOnly neutralOtpHost={location.host} tenantId="tenant_ks" />);
+    expect(screen.queryByTestId(/claim-(wizard-handoff|draft-main-panel)/)).toBeNull();
     expect(screen.queryByTestId('free-start-save-open')).not.toBeInTheDocument();
     expect(Object.values(a).every(action => action.mock.calls.length === 0)).toBe(true);
     fireEvent.click(await screen.findByTestId('free-start-manage-open'));
