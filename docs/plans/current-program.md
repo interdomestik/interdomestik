@@ -260,9 +260,11 @@ Repository contract evidence confirms `apps/web/e2e/routes.ts` accepts either a 
 Playwright `TestInfo` and always prefixes the resolved locale; focused Playwright discovery lists
 all 14 setup/gate/smoke cases for the changed spec. Consumer inventory finds the selected-country
 state only in this gate and the focused page tests; the other diaspora references are route links
-and do not assert the retired default. The current program/tracker remain within their existing
-`t116-case-summary` path/category caps, so their semantic evidence growth consumes no new global
-docs allocation; the exact requirement map remains separately attributed. The superseded
+and do not assert the retired default. The exact changed E2E tree is admitted through the existing
+fail-closed CI evidence-reuse owner with a direct parity regression; its source and test additions
+fit that owner's existing headroom and consume no S5 capacity. The current program/tracker remain
+within their existing `t116-case-summary` path/category caps, so their semantic evidence growth
+consumes no new global docs allocation; the exact requirement map remains separately attributed. The superseded
 pre-review measurement was +6,398 product/test/catalog/E2E bytes and one selector file before review
 corrections and exact registration; the final measured ledger below replaces that initial figure.
 The owner approved a bounded ceiling of +15,000 bytes and
