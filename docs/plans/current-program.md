@@ -268,14 +268,14 @@ consumes no new global docs allocation; the exact requirement map remains separa
 pre-review measurement was +6,398 product/test/catalog/E2E bytes and one selector file before review
 corrections and exact registration; the final measured ledger below replaces that initial figure.
 The owner approved a bounded ceiling of +15,000 bytes and
-one file on 2026-09-17. The exact aggregate ledger increase is +8,828 bytes and one file: +2,475 for
-the new selector/EN/SR owner, +4,039 for the existing S5.d page/test/MK/SQ owner, +1,183 for the
+one file on 2026-09-17. The exact aggregate ledger increase is +9,245 bytes and one file: +2,563 for
+the new selector/EN/SR owner, +4,367 for the existing S5.d page/test/MK/SQ owner, +1,184 for the
 existing diaspora E2E owner, +389 for the exact requirement map and +742 for capacity-budget
-self-attribution. Derived category growth is +2,443 config, +389 docs, +2,414 source and +3,582
+self-attribution. Derived category growth is +2,443 config, +389 docs, +2,519 source and +3,894
 test/E2E bytes. Reserve, deleted-byte credit, enforcement thresholds and unrelated owners remain
 unchanged; the existing S5.d allocation is extended only for the four paths reused by this slice.
 
-Authoritative local proof is bound to product/evidence head
+The initial pre-hardening local proof is bound to product/evidence head
 `33c07f52df0b4a282d728318393d68ab2516b9e5`, tree
 `f6ac2c47c42e682940f816ed77db040942ccf74a`, task database
 `interdomestik_ci_33c07f52_pr_verify_r2` and isolated port 3107. One uninterrupted
@@ -287,8 +287,10 @@ four-locale 320px state, exact current-country selection and S5.d handoff. A sep
 `pnpm security:guard` passed. Earlier same-head attempts stopped on host disk exhaustion and then a
 missing Playwright browser after Docker recovery; neither reached a product assertion failure and
 neither is credited as proof. The generated Next type stub was reversed after the successful run.
-Protected delivery, current-head hosted review/checks, exact-main health, receipt archival and
-owned-resource retirement remain required before this bounded increment closes.
+That receipt does not cover the subsequently accepted rejected-input equivalence, selected-state
+mobile reflow and country-code typing hardening. A fresh exact-candidate `pr:verify`, separate
+`security:guard`, protected delivery, current-head hosted review/checks, exact-main health, receipt
+archival and owned-resource retirement remain required before this bounded increment closes.
 
 Full DIA-002 origin/destination/transit corridor capture, persona gating, signed/current pack
 metadata, integrity/expiry, offline/retry/recovery, police/EAS content approval, multi-country
