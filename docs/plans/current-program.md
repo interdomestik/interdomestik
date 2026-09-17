@@ -48,15 +48,16 @@ The bounded roadmap acceptance-link amendment completed through protected PR #17
 continuity prefix merged through PR #1783 as `135338a5501267a3377ce6a67b053ba61ef54c9c`, with
 all 13 protected checks green and retirement confirmed. S4 completed through protected PR #1786
 as `1eecb57a7244f37aded3392c5bf38a32fec08584`, with all exact-main checks green and its owned
-verification resources retired. The owner selected the bounded S5.d diaspora claim-start truth
-increment below; the whole S3 and S5 journey families remain open.
+verification resources retired. The bounded S5.d diaspora claim-start truth increment merged through
+#1788 as `0091f6ecf39c0888a9decf2fa8c0a1a498d3119c`; exact-main checks passed and its owned
+resources were retired. The whole S3 and S5 journey families remain open. No successor is selected yet.
 
 ## Owner-adopted enterprise delivery sequence (2026-09-15)
 
 The owner adopts this near-term sequence after the enterprise audit and Opus 5 consultation.
 `MEMBER-EVIDENCE-UPLOAD-LOCALE-CONTINUITY`, S1, S2 and the acceptance-link amendment are
 completed. S3's bounded supported prefix completed through #1783, and S4 completed through #1786.
-The bounded S5.d increment below is selected from that protected merge.
+The bounded S5.d increment below subsequently completed through #1788.
 Select one bounded successor at a time below. S1–S3 are roadmap labels, not replacements for
 architecture T IDs. This section governs successor ordering over older suggestions.
 
@@ -171,7 +172,7 @@ W3C status-message and error-identification guidance informs accessible feedback
 request and fresh-session member projection, exact ownership/tenant denials, canonical retries,
 concurrency, private-field exclusion and four-locale controls. No duplicate research audit is needed.
 
-### Selected S5.d — Diaspora claim-start truth (2026-09-17)
+### Completed S5.d — Diaspora claim-start truth (2026-09-17)
 
 The owner selected `S5.d-DIASPORA-CLAIM-START-TRUTH` after reconciling S5, the mounted diaspora
 quickstart and DIA-013–015. The selected guidance country is context and provenance, not incident-
@@ -212,6 +213,13 @@ separate from incident-country resolution; only explicit submitted `incidentCoun
 authoritative. A resumed draft without diaspora handoff context therefore persists no incident
 country; re-entry through the handoff URL requires confirmation again without adding draft schema.
 
+Final product head `c2af2f168ca6445b44d9d1803bde1db684689684` and protected squash merge
+`0091f6ecf39c0888a9decf2fa8c0a1a498d3119c` share tree
+`863ede92a6b7daf9bcd942e11f57170d5818913c`. The tracker's final proof identity records the
+exact-head Mac verification, layered mounted/tampering/four-locale acceptance, hosted delivery and
+retirement. This completes only S5.d; remaining S5 entry/continuity and diaspora-family outcomes stay
+open and no successor is selected by this closeout.
+
 ### Dependency-first selection (owner direction, 2026-09-17)
 
 Use this order within the existing roadmap, not a second queue. A dependency blocks only the
@@ -219,7 +227,7 @@ outcome that consumes it. Before selecting implementation, identify its exact re
 delivery receipt and mounted acceptance; an absent receipt is uncertainty, not permission to rebuild.
 If a required contract is genuinely missing, select that bounded gap before its dependent UI.
 
-1. Credit S2, the supported S3 prefix, bounded S4 (#1786), and S5.d claim-start truth (#1788,
+1. Credit S1, S2, the supported S3 prefix, bounded S4 (#1786), and S5.d claim-start truth (#1788,
    `0091f6ecf39c0888a9decf2fa8c0a1a498d3119c`). Neither S3 nor the S5/diaspora family is complete.
 2. Reconcile remaining S5 entry/continuity gaps before selecting S6. Reuse existing tests; a new
    integrated test is not an independent prerequisite when the product increment can include it.
@@ -227,7 +235,8 @@ If a required contract is genuinely missing, select that bounded gap before its 
    authorized staff acknowledgement and fulfilment contracts, in that order where dependent.
    Existing S4 request creation/read UI is the predecessor, not proof of these capabilities.
    Independent membership/status UI may proceed without this round-trip.
-4. For S5.d/S6.d preparation, establish explicit corridor and locale-independent country context
+4. For diaspora preparation within S5/S6 (historically labelled S5.d/S6.d, not separate queue rows),
+   establish explicit corridor and locale-independent country context
    before dependent pack selection; establish reviewed signed-pack/version/integrity/expiry contracts
    before claiming offline readiness. Then prove retry/recovery. Shared police/EAS guidance requires
    accepted country/content rules before H1 or Trip Mode exposes it. No flight dependency is invented.
@@ -260,6 +269,8 @@ and record bounded completion in the program/tracker. Do not leave an active row
 merged increment as implementation-in-progress. Pre-merge records say awaiting merge; final facts
 join the next authorized amendment without a separate routine closeout PR. Cleanup is immediate
 unless unmerged work or another explicit ownership blocker must be preserved and reported.
+This canonical-doc amendment does not enlarge or consume the closed S5.d product allocation;
+executable governance, formatting and repository-size checks govern its two existing plan files.
 
 ### Owner-adopted product-readiness roadmap (2026-09-15)
 
@@ -763,8 +774,9 @@ grants no product, auth, routing, tenancy, schema/RLS, billing, provider, E2E, A
 These rows, the notification correctness increment, shared shell navigation, both notification
 acknowledgement increments, `MEMBER-CASE-WORKSPACE-REDESIGN` and `MEMBER-CASE-DETAIL-CONTINUITY`
 are completed history, as are S1, S2, the localization predecessor, the acceptance-link amendment
-and S3's bounded supported prefix (#1783). Selected work is the bounded S4 missing-information
-request increment and its explicitly approved migration-capability prerequisite described above.
+and S3's bounded supported prefix (#1783). S4 and its migration-capability prerequisite completed
+through #1786, followed by bounded S5.d through #1788. Select the next unfinished outcome using
+the dependency-first section above; these historical rows do not select new implementation.
 
 ## Shared Shell Navigation Increment
 
@@ -952,7 +964,8 @@ reproduced both findings and now passes both rules. The helper is 5,175 bytes wi
 5,181-byte cap; no tests, capacity, policy or guard are removed. Renewed full `pr:verify` and
 separate `security:guard` passed at `4849de16928fb9ccb1d35fccd3e4e541e0e76da1`: 1,183 CI contracts,
 154 release tests, 41 RLS tests, 81.29% coverage, 252 browser-gate passes/12 skips and 13 smoke
-passes/11 skips. Protected current-head review/checks, merge and exact-main health remain pending.
+passes/11 skips. Those then-pending delivery steps subsequently completed through #1772 and
+exact-main health as recorded in Current Phase; whole T-410 acceptance is not implied.
 
 ## Ordinary Product Delivery
 
