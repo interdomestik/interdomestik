@@ -50,7 +50,8 @@ all 13 protected checks green and retirement confirmed. S4 completed through pro
 as `1eecb57a7244f37aded3392c5bf38a32fec08584`, with all exact-main checks green and its owned
 verification resources retired. The bounded S5.d diaspora claim-start truth increment merged through
 #1788 as `0091f6ecf39c0888a9decf2fa8c0a1a498d3119c`; exact-main checks passed and its owned
-resources were retired. The whole S3 and S5 journey families remain open. No successor is selected yet.
+resources were retired. The whole S3 and S5 journey families remain open. The selected bounded S5
+successor is explicit diaspora country context, recorded below.
 
 ## Owner-adopted enterprise delivery sequence (2026-09-15)
 
@@ -219,6 +220,83 @@ Final product head `c2af2f168ca6445b44d9d1803bde1db684689684` and protected squa
 exact-head Mac verification, layered mounted/tampering/four-locale acceptance, hosted delivery and
 retirement. This completes only S5.d; remaining S5 entry/continuity and diaspora-family outcomes stay
 open and no successor is selected by this closeout.
+
+### Selected S5 — Explicit diaspora country context (2026-09-17)
+
+The owner selected `S5-EXPLICIT-DIASPORA-COUNTRY-CONTEXT` from fresh protected main
+`255ca5ee3c85756e8c8260aaed26f38bea8a9057`. Direct predecessors are the mounted diaspora
+quickstart/country-guidance service and S5.d claim-start truth from #1788; no schema, pack, auth,
+routing or proxy predecessor is missing. The reproduced contradiction is narrower than full
+`IDA-DIA-002`: absent, malformed or unsupported `country` query context currently becomes `DE`,
+immediately exposing Germany-specific guidance and a DE claim-start URL without a user selection.
+
+Acceptance is a mounted choose-country state with neutral telephone/WhatsApp support and no
+country-specific guidance or claim handoff until the member selects supported `DE`, `CH`, `AT` or
+`IT`. Repeated values are ambiguous and fail closed; empty, whitespace-padded, malformed and
+unsupported values fail closed to the same neutral chooser without echoing the rejected input. A
+distinct invalid-link message is intentionally outside this bounded increment. Existing
+case-insensitive code normalization remains because a lowercase supported code is explicit and
+unambiguous, not locale or host inference. A selected
+country is programmatically current, preserves the existing guidance and exact handoff URL, and
+still reaches S5.d's explicit intake confirmation. EN/SQ/MK/SR must render the same selection state
+without inferring or changing country. Mobile reflow, keyboard/current-choice semantics and the
+empty/error boundary are in scope.
+
+Research checked on 2026-09-17: [GOV.UK Foreign Travel Advice](https://www.gov.uk/foreign-travel-advice?action=countrySearch)
+exposes country-specific content from an explicit country or territory choice; [ADAC accident-abroad
+guidance](https://www.adac.de/rund-ums-fahrzeug/unfall-schaden-panne/unfall/ausland/) keeps general
+support available while distinguishing country-specific information; and [W3C ARIA26](https://www.w3.org/WAI/WCAG21/Techniques/aria/ARIA26)
+requires a visually current item in a related set to be programmatically identified. Adopt explicit
+selection, neutral support and `aria-current`; reject a default country and any new emergency/legal
+content. These public descriptions are design evidence, not usability testing or authority for pack
+content.
+
+This is a medium-complexity localized presentation/integration slice owned by Sol 5.6 at high
+reasoning. Provider-attested Sonnet 5 design receipt `20260917T180154-sonnet` and Gemini 3.1 Pro
+adversarial receipt `20260917T180154-gemini` supplied bounded proposals; their empty-diff FINDINGS
+verdicts are retained as pre-implementation evidence, not approvals. Codex independently accepted
+the fail-closed/repeated/current-choice cases and preserved the existing lowercase contract.
+Repository contract evidence confirms `apps/web/e2e/routes.ts` accepts either a locale string or
+Playwright `TestInfo` and always prefixes the resolved locale; focused Playwright discovery lists
+all 14 setup/gate/smoke cases for the changed spec. Consumer inventory finds the selected-country
+state only in this gate and the focused page tests; the other diaspora references are route links
+and do not assert the retired default. The exact changed E2E tree is admitted through the existing
+fail-closed CI evidence-reuse owner with a direct parity regression; its source and test additions
+fit that owner's existing headroom and consume no S5 capacity. The current program/tracker remain
+within their existing `t116-case-summary` path/category caps, so their semantic evidence growth
+consumes no new global docs allocation; the exact requirement map remains separately attributed. The superseded
+pre-review measurement was +6,398 product/test/catalog/E2E bytes and one selector file before review
+corrections and exact registration; the final measured ledger below replaces that initial figure.
+The owner approved a bounded ceiling of +15,000 bytes and
+one file on 2026-09-17. The exact aggregate ledger increase is +10,844 bytes and one file: +2,563 for
+the new selector/EN/SR owner, +4,390 for the existing S5.d page/test/MK/SQ owner, +2,760 for the
+existing diaspora E2E owner, +389 for the exact requirement map and +742 for capacity-budget
+self-attribution. Derived category growth is +2,443 config, +389 docs, +2,533 source and +5,479
+test/E2E bytes. Reserve, deleted-byte credit, enforcement thresholds and unrelated owners remain
+unchanged; the existing S5.d allocation is extended only for the four paths reused by this slice.
+
+Authoritative local proof is bound to product/evidence head
+`f9ee97de852fe1c0e2c35587a166aa3a8abf82fa`, tree
+`c73014b776df23e850709e04af0eff94b3d28702`, task database
+`interdomestik_ci_33c07f52_pr_verify_r2` and isolated port 3107. One uninterrupted
+`pnpm pr:verify` passed 1,193 CI contracts, 154 release-gate tests, 52 mandatory live RLS tests,
+644 web test files/3,454 tests with 12 intentional skips, 81.21% repository line coverage
+(21,828/26,880), 264 browser-gate passes/14 intentional skips and 13 smoke passes/11 intentional
+skips. The changed mounted diaspora spec passed in both tenant projects, including neutral and
+selected 320px states for EN/SQ/MK/SR, exact current-country semantics and the S5.d handoff. A
+separate same-head `pnpm security:guard` passed. The initial `33c07f52` proof and the `32b13d14`
+post-review rerun remain retained as superseded evidence; the latter exposed no gate failure, and
+its Opus FINDINGS receipt `20260917T200207-opus` drove exact capacity reconciliation and positive
+four-locale selected-state proof. Opus receipt `20260917T204619-opus` then drove cross-locale pack
+content assertions and restored the SQ/MK S5.d handoff before this authoritative rerun. The
+generated Next type stub was reversed after each successful run. Protected delivery, current-head hosted review/checks,
+exact-main health, receipt archival and owned-resource retirement remain required before this
+bounded increment closes.
+
+Full DIA-002 origin/destination/transit corridor capture, persona gating, signed/current pack
+metadata, integrity/expiry, offline/retry/recovery, police/EAS content approval, multi-country
+itineraries, geolocation and S6/S7 handoffs remain open. This increment must not mark DIA-002,
+DIA-003, S5 or the diaspora family complete and does not deploy.
 
 ### Dependency-first selection (owner direction, 2026-09-17)
 

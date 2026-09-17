@@ -6,6 +6,10 @@
     "selector": {
       "label": "Zgjidh shtetin",
       "hint": "Përdor shtetin ku ka ndodhur aksidenti.",
+      "required": {
+        "title": "Zgjidhni një shtet për të parë udhëzimet",
+        "description": "Numrat e urgjencës sipas shtetit dhe përgatitja e kërkesës shfaqen vetëm pasi të zgjidhni ku ka ndodhur aksidenti."
+      },
       "options": {
         "DE": "Gjermania",
         "CH": "Zvicra",
@@ -32,6 +36,7 @@
     "actions": {
       "title": "Hapi i radhës",
       "description": "Përdorni mbështetjen direkte nëse ju duhet ndihmë tani, ose përgatitni një skicë të mbështetur të kërkesës për automjet për dorëzim të mëvonshëm.",
+      "selectionRequired": "Kontaktoni mbështetjen tani ose zgjidhni më lart shtetin e aksidentit para se të përgatitni një kërkesë për automjet.",
       "support": "Kontakto mbështetjen tani",
       "whatsapp": "Hap mbështetjen në WhatsApp",
       "claim": "Përgatit kërkesën për automjet"

@@ -20,9 +20,26 @@ Dependency ordering follows current-program.md, "Dependency-first selection (own
 2026-09-17)". S5.d claim-start truth merged in #1788 as
 `0091f6ecf39c0888a9decf2fa8c0a1a498d3119c`; exact-main workflows passed on 2026-09-17.
 Older in-progress S5.d/proof wording below is historical. Whole S5 and diaspora remain open;
-S5.d retirement is confirmed below. No next runtime increment is selected by this audit.
-Next selection reconciles remaining S5 gaps, then follows direct prerequisites for S6/S7 evidence,
+S5.d retirement is confirmed below. The owner selected
+`S5-EXPLICIT-DIASPORA-COUNTRY-CONTEXT` from exact main `255ca5ee3c85756e8c8260aaed26f38bea8a9057`.
+This bounded S5 increment reconciles the silent-DE entry contradiction before dependent pack work;
+after it closes, selection again follows direct prerequisites for S6/S7 evidence,
 diaspora packs, H1 and later roles; it must not select a test-only predecessor merely for small size.
+
+S5 explicit-country local proof is complete at head
+`f9ee97de852fe1c0e2c35587a166aa3a8abf82fa`, tree
+`c73014b776df23e850709e04af0eff94b3d28702`, database
+`interdomestik_ci_33c07f52_pr_verify_r2` and port 3107. `pnpm pr:verify` exited 0 with 1,193 CI
+contracts, 154 release tests, 52/52 mandatory RLS cases, 644 web files/3,454 tests, 81.21%
+repository line coverage (21,828/26,880), 264 browser passes/14 intentional skips and 13 smoke
+passes/11 intentional skips. Both tenant projects passed neutral and selected EN/SQ/MK/SR mounted
+diaspora states at 320px, explicit Italy guidance and their localized S5.d handoffs; focused page
+coverage independently passed 11 cases. A separate same-head `pnpm security:guard` exited 0.
+Initial and intermediate full runs remain superseded evidence; Opus receipts
+`20260917T200207-opus` and `20260917T204619-opus` drove the final capacity, locale-content and
+localized-handoff corrections. Protected
+delivery, exact-main health, archived receipts and retirement remain pending, so the queue row stays
+`in_progress`.
 
 S5.d retirement receipt (2026-09-17): local `9dcc` and both owned Z620 worktrees are absent;
 the task DB is absent, port 3100 is clear, eight checkout-bound helper/MCP processes were stopped,
@@ -161,9 +178,9 @@ protected squash merge `1eecb57a7244f37aded3392c5bf38a32fec08584`; all required 
 checks passed and owned task resources were retired. Final merge/cleanup facts are retained with
 these receipts under `.codex/artifacts/interdomestik/s4`. No deployment is claimed.
 
-| ID                                | Status      | Owner | Work                                                                           | Exit Criteria                                                                                                                                                                                                                                                                                                                                                                                                    |
-| --------------------------------- | ----------- | ----- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S5.d-DIASPORA-CLAIM-START-TRUTH` | `completed` | Codex | Supported vehicle preparation requires explicit incident-country confirmation. | Exit contract: truthful mounted CTA and confirmation; unconfirmed handoff context cannot persist incident-country authority; provenance wording, four-locale controls, focused/full/security proof and protected delivery. Protected PR #1788 merged as `0091f6ecf39c0888a9decf2fa8c0a1a498d3119c`; exact-main checks succeeded; owned resources retired with archived receipts. Whole S5/diaspora remains open. |
+| ID                                     | Status        | Owner | Work                                                                                     | Exit Criteria                                                                                                                                                                                                                                                                                                                                                                                          |
+| -------------------------------------- | ------------- | ----- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `S5-EXPLICIT-DIASPORA-COUNTRY-CONTEXT` | `in_progress` | Codex | Require an explicit supported country before guidance or country-specific claim handoff. | Exit contract: missing/invalid/repeated country fails closed with neutral support; explicit DE/CH/AT/IT keeps existing guidance and exact handoff; locale never infers country; EN/SQ/MK/SR, current-choice semantics, mobile reflow, S5.d confirmation, focused/full/security proof, protected delivery, exact-main health and owned-resource retirement. Full corridor and pack clauses remain open. |
 
 The completed #1782 acceptance-link amendment historically set the requirement-map allocation to
 72,094 bytes, +7,625 over its predecessor. S3 changes use the map's synchronized exact allocation;
@@ -266,7 +283,7 @@ S4–S14 are outcome families to split into bounded implementation slices, not a
 | Item                                    | Status              | Next evidence                                                                                      |
 | --------------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------- |
 | S4 — S3 handoff gap                     | completed_bounded   | Protected PR #1786; request-bound upload/acknowledgement remain open.                              |
-| S5 — Member first-case journey          | in_progress_bounded | S5.d completed through #1788; reconcile and select one remaining S5 entry/continuity gap.          |
+| S5 — Member first-case journey          | in_progress_bounded | S5.d completed through #1788; explicit diaspora country context is the selected bounded increment. |
 | S6 — Member continuation and membership | queued_conditional  | Credit #1775–#1777; complete only missing return/evidence/message/membership access outcomes.      |
 | S7 — Staff handling journey             | queued_conditional  | Existing handling contracts; queue and evidence round-trip with internal/public separation.        |
 | S8 — Agent client/handoff journey       | queued_conditional  | Existing authority and attribution; only unresolved capability changes need disposition.           |
@@ -726,9 +743,24 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                                | Source Refs                      | Execution  | Run ID | Run Root                            | Sonar | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| --------------------------------- | -------------------------------- | ---------- | ------ | ----------------------------------- | ----- | ---------------- | ---------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S5.d-DIASPORA-CLAIM-START-TRUTH` | current program; S5; DIA-013–015 | `scripted` | PR1788 | local Mac + protected GitHub checks | pass  | `not_applicable` | `not_applicable` | pass     | Final local proof: `c2af2f168ca6445b44d9d1803bde1db684689684`, tree `863ede92a6b7daf9bcd942e11f57170d5818913c`; `pr:verify` and separate `security:guard` passed with mounted, tampering, provenance/backfill and EN/SQ/MK/SR evidence described above. The protected merge `0091f6ecf39c0888a9decf2fa8c0a1a498d3119c` has the identical tree. PR runs CI `35231307224`, E2E `35231307287`, Pilot `35231307206`, Security `35231307243`, Secret Scan `35231307255`, finalizer `35231307295` attempt 2 and delivery `35231307163` attempt 2 passed. Exact-main CI `35234402525`, Sonar `35234402853`, CodeQL `35234402674`/`35234401880` and Secret Scan `35234402411` passed. Earlier-tree receipts remain historical. Lessons: preflight the registered verification worktree, migrated task DB and isolated port together; new verification defaults to Mac. Retirement is recorded explicitly above. |
+| ID                                     | Source Refs                      | Execution  | Run ID         | Run Root                            | Sonar   | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                                                                                                                                             |
+| -------------------------------------- | -------------------------------- | ---------- | -------------- | ----------------------------------- | ------- | ---------------- | ---------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S5-EXPLICIT-DIASPORA-COUNTRY-CONTEXT` | current program; S5; DIA-002/003 | `scripted` | local-f9ee97de | local Mac + protected GitHub checks | pending | `not_applicable` | `not_applicable` | pass     | Exact-head `pr:verify` and separate `security:guard` passed on Mac at `f9ee97de`; mounted neutral and selected EN/SQ/MK/SR diaspora acceptance, Italy guidance and localized S5.d handoffs passed in both tenant projects at 320px. Protected current-head review/checks, exact-main health, archived checksummed receipts and owned-resource retirement remain pending. Full DIA-002 corridor/pack outcomes remain open. |
+
+### Historical S5.d claim-start proof
+
+`S5.d-DIASPORA-CLAIM-START-TRUTH` completed through protected PR #1788. Its final local proof was
+head `c2af2f168ca6445b44d9d1803bde1db684689684`, tree
+`863ede92a6b7daf9bcd942e11f57170d5818913c`; `pr:verify` and separate `security:guard` passed
+with mounted, tampering, provenance/backfill and EN/SQ/MK/SR evidence described above. The
+protected merge `0091f6ecf39c0888a9decf2fa8c0a1a498d3119c` has the identical tree. PR runs CI
+`35231307224`, E2E `35231307287`, Pilot `35231307206`, Security `35231307243`, Secret Scan
+`35231307255`, finalizer `35231307295` attempt 2 and delivery `35231307163` attempt 2 passed.
+Exact-main CI `35234402525`, Sonar `35234402853`, CodeQL `35234402674`/`35234401880` and Secret
+Scan `35234402411` passed. Earlier-tree receipts remain historical. The lesson retained for the
+active slice is to preflight the registered verification worktree, migrated task DB and isolated
+port together; new verification defaults to Mac. Retirement and the checksummed receipt archive
+remain recorded above. Docker and Sentry were both `not_applicable` for that completed proof.
 
 ### Historical S3 supported-prefix proof
 

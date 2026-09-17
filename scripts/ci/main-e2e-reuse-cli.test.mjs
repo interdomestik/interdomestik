@@ -127,6 +127,13 @@ test('S4 missing-information request preserves corpus parity', () => {
     true
   );
 });
+test('S5 explicit diaspora country context preserves corpus parity', () => {
+  const parity = inspectRepositoryParity({
+    ...sources(),
+    e2eTreeSha: 'cacb1feef816ded4c09ad3555e8831a248e24871',
+  });
+  assert.ok(parity.commandChain, 'the S5 E2E tree must stay in the exact command chain');
+});
 test('parity drift always resolves to a fail-closed reuse decision', async () => {
   const current = sources();
   const checkout = 'ref: ${{ github.event.pull_request.head.sha || github.sha }}';

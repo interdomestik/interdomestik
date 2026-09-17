@@ -6,6 +6,10 @@
     "selector": {
       "label": "Izaberite državu",
       "hint": "Koristite državu u kojoj se desila nezgoda.",
+      "required": {
+        "title": "Izaberite državu da biste videli uputstva",
+        "description": "Hitni brojevi po državi i priprema zahteva prikazuju se tek kada izaberete gde se nezgoda dogodila."
+      },
       "options": {
         "DE": "Nemačka",
         "CH": "Švajcarska",
@@ -32,6 +36,7 @@
     "actions": {
       "title": "Sledeći korak",
       "description": "Koristite direktnu podršku ako vam je pomoć potrebna odmah, ili pripremite podržan nacrt zahteva za vozilo za kasnije podnošenje.",
+      "selectionRequired": "Kontaktirajte podršku sada ili izaberite državu nezgode iznad pre nego što pripremite zahtev za vozilo.",
       "support": "Kontaktiraj podršku sada",
       "whatsapp": "Otvori WhatsApp podršku",
       "claim": "Pripremi zahtev za vozilo"

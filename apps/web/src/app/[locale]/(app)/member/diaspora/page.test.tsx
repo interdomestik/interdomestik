@@ -10,6 +10,11 @@ const hoisted = vi.hoisted(() => ({
       selector: {
         label: 'Choose country',
         hint: 'Use the country where the accident happened.',
+        required: {
+          title: 'Choose a country to see guidance',
+          description:
+            'Country-specific emergency numbers and claim preparation appear only after you choose where the accident happened.',
+        },
         options: {
           DE: 'Germany',
           CH: 'Switzerland',
@@ -27,7 +32,10 @@ const hoisted = vi.hoisted(() => ({
       },
       actions: {
         support: 'Contact support now',
+        whatsapp: 'Open WhatsApp support',
         claim: 'Prepare vehicle claim',
+        selectionRequired:
+          'Contact support now, or choose the accident country above before preparing a vehicle claim.',
       },
     };
 
@@ -69,7 +77,7 @@ vi.mock('@/lib/support-contacts', () => ({
 import DiasporaPage from './page';
 
 describe('DiasporaPage', () => {
-  it('renders a Green Card quickstart with default country guidance and direct actions', async () => {
+  it('requires an explicit country before showing guidance or a claim handoff', async () => {
     const tree = await DiasporaPage({
       params: Promise.resolve({ locale: 'en' }),
       searchParams: Promise.resolve({}),
@@ -82,18 +90,52 @@ describe('DiasporaPage', () => {
     expect(
       screen.getByRole('heading', { name: 'Green Card abroad quickstart' })
     ).toBeInTheDocument();
-    expect(screen.getByTestId('diaspora-selected-country')).toHaveTextContent('Germany');
-    expect(screen.getByText('110')).toBeInTheDocument();
-    expect(screen.getAllByText('112')).toHaveLength(2);
-    expect(screen.getByText('Police report usually not required')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Choose a country to see guidance' })
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('diaspora-selected-country')).not.toBeInTheDocument();
+    expect(screen.queryByText('110')).not.toBeInTheDocument();
+    expect(screen.queryByText('Police report usually not required')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Contact support now/ })).toHaveAttribute(
       'href',
       'tel:+38349900600'
     );
-    expect(screen.getByRole('link', { name: 'Prepare vehicle claim' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Open WhatsApp support' })).toHaveAttribute(
       'href',
-      '/member/claims/new?category=vehicle&source=diaspora-green-card&country=DE&incidentLocation=abroad'
+      'https://wa.me/38349900600'
     );
+    expect(screen.queryByRole('link', { name: 'Prepare vehicle claim' })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['empty', ''],
+    ['surrounding whitespace', ' DE '],
+    ['unsupported', 'FR'],
+    ['malformed', 'Germany'],
+    ['repeated', ['DE', 'IT'] as string[]],
+  ] as const)('fails closed without echoing %s country context', async (_case, country) => {
+    const tree = await DiasporaPage({
+      params: Promise.resolve({ locale: 'en' }),
+      searchParams: Promise.resolve({ country }),
+    });
+
+    const invalidRender = render(tree);
+
+    expect(screen.getByTestId('diaspora-country-required')).toBeInTheDocument();
+    expect(screen.queryByTestId('diaspora-selected-country')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Prepare vehicle claim' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Contact support now/ })).toHaveAttribute(
+      'href',
+      'tel:+38349900600'
+    );
+
+    const neutralTree = await DiasporaPage({
+      params: Promise.resolve({ locale: 'en' }),
+      searchParams: Promise.resolve({}),
+    });
+    const neutralRender = render(neutralTree);
+
+    expect(invalidRender.container.innerHTML).toBe(neutralRender.container.innerHTML);
   });
 
   it('renders country-specific guidance when a supported country is selected', async () => {
@@ -105,6 +147,8 @@ describe('DiasporaPage', () => {
     render(tree);
 
     expect(screen.getByTestId('diaspora-selected-country')).toHaveTextContent('Italy');
+    expect(screen.getByRole('link', { name: 'Italy' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Germany' })).not.toHaveAttribute('aria-current');
     expect(screen.getByText('113')).toBeInTheDocument();
     expect(screen.getByText('115')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Prepare vehicle claim' })).toHaveAttribute(
@@ -112,4 +156,25 @@ describe('DiasporaPage', () => {
       '/member/claims/new?category=vehicle&source=diaspora-green-card&country=IT&incidentLocation=abroad'
     );
   });
+
+  // Locale-specific copy is covered by the mounted gate; this unit case proves only that the
+  // explicit country code is independent from the interface locale.
+  it.each(['en', 'sq', 'mk', 'sr'])(
+    'normalizes an explicit lowercase country independently from the %s interface locale',
+    async locale => {
+      const tree = await DiasporaPage({
+        params: Promise.resolve({ locale }),
+        searchParams: Promise.resolve({ country: 'it' }),
+      });
+
+      render(tree);
+
+      expect(hoisted.setRequestLocaleMock).toHaveBeenCalledWith(locale);
+      expect(screen.getByTestId('diaspora-selected-country')).toHaveTextContent('Italy');
+      expect(screen.getByRole('link', { name: 'Prepare vehicle claim' })).toHaveAttribute(
+        'href',
+        '/member/claims/new?category=vehicle&source=diaspora-green-card&country=IT&incidentLocation=abroad'
+      );
+    }
+  );
 });
