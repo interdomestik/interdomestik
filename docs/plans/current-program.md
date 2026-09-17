@@ -50,7 +50,8 @@ all 13 protected checks green and retirement confirmed. S4 completed through pro
 as `1eecb57a7244f37aded3392c5bf38a32fec08584`, with all exact-main checks green and its owned
 verification resources retired. The bounded S5.d diaspora claim-start truth increment merged through
 #1788 as `0091f6ecf39c0888a9decf2fa8c0a1a498d3119c`; exact-main checks passed and its owned
-resources were retired. The whole S3 and S5 journey families remain open. No successor is selected yet.
+resources were retired. The whole S3 and S5 journey families remain open. The selected bounded S5
+successor is explicit diaspora country context, recorded below.
 
 ## Owner-adopted enterprise delivery sequence (2026-09-15)
 
@@ -219,6 +220,53 @@ Final product head `c2af2f168ca6445b44d9d1803bde1db684689684` and protected squa
 exact-head Mac verification, layered mounted/tampering/four-locale acceptance, hosted delivery and
 retirement. This completes only S5.d; remaining S5 entry/continuity and diaspora-family outcomes stay
 open and no successor is selected by this closeout.
+
+### Selected S5 — Explicit diaspora country context (2026-09-17)
+
+The owner selected `S5-EXPLICIT-DIASPORA-COUNTRY-CONTEXT` from fresh protected main
+`255ca5ee3c85756e8c8260aaed26f38bea8a9057`. Direct predecessors are the mounted diaspora
+quickstart/country-guidance service and S5.d claim-start truth from #1788; no schema, pack, auth,
+routing or proxy predecessor is missing. The reproduced contradiction is narrower than full
+`IDA-DIA-002`: absent, malformed or unsupported `country` query context currently becomes `DE`,
+immediately exposing Germany-specific guidance and a DE claim-start URL without a user selection.
+
+Acceptance is a mounted choose-country state with neutral telephone/WhatsApp support and no
+country-specific guidance or claim handoff until the member selects supported `DE`, `CH`, `AT` or
+`IT`. Repeated values are ambiguous and fail closed; empty, whitespace-padded, malformed and
+unsupported values fail closed. Existing case-insensitive code normalization remains because a
+lowercase supported code is explicit and unambiguous, not locale or host inference. A selected
+country is programmatically current, preserves the existing guidance and exact handoff URL, and
+still reaches S5.d's explicit intake confirmation. EN/SQ/MK/SR must render the same selection state
+without inferring or changing country. Mobile reflow, keyboard/current-choice semantics and the
+empty/error boundary are in scope.
+
+Research checked on 2026-09-17: [GOV.UK Foreign Travel Advice](https://www.gov.uk/foreign-travel-advice?action=countrySearch)
+exposes country-specific content from an explicit country or territory choice; [ADAC accident-abroad
+guidance](https://www.adac.de/rund-ums-fahrzeug/unfall-schaden-panne/unfall/ausland/) keeps general
+support available while distinguishing country-specific information; and [W3C ARIA26](https://www.w3.org/WAI/WCAG21/Techniques/aria/ARIA26)
+requires a visually current item in a related set to be programmatically identified. Adopt explicit
+selection, neutral support and `aria-current`; reject a default country and any new emergency/legal
+content. These public descriptions are design evidence, not usability testing or authority for pack
+content.
+
+This is a medium-complexity localized presentation/integration slice owned by Sol 5.6 at high
+reasoning. Provider-attested Sonnet 5 design receipt `20260917T180154-sonnet` and Gemini 3.1 Pro
+adversarial receipt `20260917T180154-gemini` supplied bounded proposals; their empty-diff FINDINGS
+verdicts are retained as pre-implementation evidence, not approvals. Codex independently accepted
+the fail-closed/repeated/current-choice cases and preserved the existing lowercase contract.
+Preflight measures +6,398 product/test/catalog/E2E bytes and one cohesive selector file before
+canonical evidence and capacity metadata. The owner approved a bounded ceiling of +15,000 bytes and
+one file on 2026-09-17. The exact aggregate ledger increase is +7,505 bytes and one file: +1,749 for
+the new selector/EN/SR owner, +3,702 for the existing S5.d page/test/MK/SQ owner, +938 for the
+existing diaspora E2E owner, +375 for the exact requirement map and +741 for capacity-budget
+self-attribution. Derived category growth is +2,442 config, +375 docs, +1,710 source and +2,978
+test/E2E bytes. Reserve, deleted-byte credit, enforcement thresholds and unrelated owners remain
+unchanged; the existing S5.d allocation is extended only for the four paths reused by this slice.
+
+Full DIA-002 origin/destination/transit corridor capture, persona gating, signed/current pack
+metadata, integrity/expiry, offline/retry/recovery, police/EAS content approval, multi-country
+itineraries, geolocation and S6/S7 handoffs remain open. This increment must not mark DIA-002,
+DIA-003, S5 or the diaspora family complete and does not deploy.
 
 ### Dependency-first selection (owner direction, 2026-09-17)
 

@@ -13,22 +13,36 @@ test.describe('Diaspora Feature', () => {
   }, testInfo) => {
     // The legacy dashboard ribbon was intentionally retired by T-117B. The product capability
     // remains covered at the existing canonical route without compatibility markup.
-    await gotoApp(page, routes.memberDiaspora(testInfo), testInfo, { marker: 'diaspora-page' });
+    await page.setViewportSize({ width: 320, height: 720 });
+    const localeCases = [
+      { locale: 'en', requiredTitle: 'Choose a country to see guidance' },
+      { locale: 'sq', requiredTitle: 'Zgjidhni një shtet për të parë udhëzimet' },
+      { locale: 'mk', requiredTitle: 'Изберете држава за да ги видите насоките' },
+      { locale: 'sr', requiredTitle: 'Izaberite državu da biste videli uputstva' },
+    ] as const;
 
-    await expect(page).toHaveURL(/\/member\/diaspora/);
-    await expect(page.getByTestId('diaspora-page')).toBeVisible({ timeout: 15000 });
-    await expect(page.getByTestId('diaspora-country-selector')).toBeVisible();
-    await expect(page.getByTestId('diaspora-selected-country')).toBeVisible();
-    await expect(
-      page.getByRole('link', {
-        name: /(Prepare vehicle claim|Подготви барање за возило|Përgatit kërkesën për automjet|Pripremi zahtev za vozilo)/i,
-      })
-    ).toHaveAttribute('href', /\/member\/claims\/new\?category=vehicle/);
-    await expect(
-      page.getByRole('link', {
-        name: /(Contact support now|Контактирај поддршка сега|Kontakto mbështetjen tani|Kontaktiraj podršku sada)/i,
-      })
-    ).toHaveAttribute('href', /^tel:/);
+    for (const { locale, requiredTitle } of localeCases) {
+      await gotoApp(page, routes.memberDiaspora(locale), testInfo, { marker: 'diaspora-page' });
+
+      await expect(page).toHaveURL(new RegExp(`/${locale}/member/diaspora`));
+      await expect(page.getByTestId('diaspora-page')).toBeVisible({ timeout: 15000 });
+      await expect(page.getByTestId('diaspora-country-selector')).toBeVisible();
+      await expect(page.getByRole('heading', { name: requiredTitle })).toBeVisible();
+      await expect(page.getByTestId('diaspora-selected-country')).toHaveCount(0);
+      await expect(
+        page.getByRole('link', {
+          name: /(Prepare vehicle claim|Подготви барање за возило|Përgatit kërkesën për automjet|Pripremi zahtev za vozilo)/i,
+        })
+      ).toHaveCount(0);
+      await expect(
+        page.getByRole('link', {
+          name: /(Contact support now|Контактирај поддршка сега|Kontakto mbështetjen tani|Kontaktiraj podršku sada)/i,
+        })
+      ).toHaveAttribute('href', /^tel:/);
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)
+      ).toBe(true);
+    }
 
     const italySelector = page.getByRole('link', {
       name: /(Italy|Италија|Italia)/i,
@@ -39,6 +53,10 @@ test.describe('Diaspora Feature', () => {
     await expect(page.getByTestId('diaspora-selected-country')).toContainText(
       /(Italy|Италија|Italia)/i
     );
+    await expect(italySelector).toHaveAttribute('aria-current', 'page');
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)
+    ).toBe(true);
 
     const claimStartLink = page.getByRole('link', {
       name: /(Prepare vehicle claim|Подготви барање за возило|Përgatit kërkesën për automjet|Pripremi zahtev za vozilo)/i,

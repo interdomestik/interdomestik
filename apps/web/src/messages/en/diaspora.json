@@ -6,6 +6,10 @@
     "selector": {
       "label": "Choose country",
       "hint": "Use the country where the accident happened.",
+      "required": {
+        "title": "Choose a country to see guidance",
+        "description": "Country-specific emergency numbers and claim preparation appear only after you choose where the accident happened."
+      },
       "options": {
         "DE": "Germany",
         "CH": "Switzerland",
@@ -32,6 +36,7 @@
     "actions": {
       "title": "Next move",
       "description": "Use direct support if you need help now, or prepare a supported vehicle claim draft for later submission.",
+      "selectionRequired": "Contact support now, or choose the accident country above before preparing a vehicle claim.",
       "support": "Contact support now",
       "whatsapp": "Open WhatsApp support",
       "claim": "Prepare vehicle claim"
