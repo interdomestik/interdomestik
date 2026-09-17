@@ -8,7 +8,7 @@ import { resolveDateLocale } from '@/lib/utils/date';
 export function ClaimInformationRequests({
   requests,
 }: {
-  requests: PublicInformationRequest[] | null;
+  readonly requests: PublicInformationRequest[] | null;
 }) {
   const t = useTranslations('claims.informationRequests');
   const locale = useLocale();
@@ -22,7 +22,12 @@ export function ClaimInformationRequests({
     minute: '2-digit',
     hourCycle: 'h23',
   });
-  if (requests === null) return <p role="status">{t('loadError')}</p>;
+  if (requests === null)
+    return (
+      <output className="block" aria-live="polite" aria-atomic="true">
+        {t('loadError')}
+      </output>
+    );
   if (!requests.length) return null;
   return (
     <section aria-label={t('title')} data-testid="claim-information-requests" className="space-y-4">

@@ -65,6 +65,9 @@ it('preserves correlation for uncertain retries and prevents duplicate concurren
   fill();
   const button = screen.getByRole('button');
   const status = screen.getByRole('status');
+  expect(status.tagName).toBe('OUTPUT');
+  expect(status).toHaveAttribute('aria-live', 'polite');
+  expect(status).toHaveAttribute('aria-atomic', 'true');
   const alert = screen.getByRole('alert');
   button.focus();
   fireEvent.submit(screen.getByRole('form'));
@@ -98,6 +101,28 @@ it('rejects whitespace and preserves input on a domain error', async () => {
   await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('verification'));
   expect(screen.getByLabelText('Information needed')).toHaveValue('Repair estimate');
 });
+
+it.each(['dueAt', 'requestedInformation', 'explanationForMember'])(
+  'rejects a non-text %s value without submitting',
+  field => {
+    const NativeFormData = globalThis.FormData;
+    vi.stubGlobal(
+      'FormData',
+      class extends NativeFormData {
+        constructor(form?: HTMLFormElement) {
+          super(form);
+          this.set(field, new File(['not text'], 'unexpected.txt'));
+        }
+      }
+    );
+    mount();
+    fill();
+    fireEvent.submit(screen.getByRole('form'));
+    expect(h.create).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter the information');
+    expect(screen.getByLabelText('Information needed')).toHaveValue('Repair estimate');
+  }
+);
 
 it('creates a valid correlation UUID when the HTTP host lacks randomUUID', async () => {
   vi.stubGlobal('crypto', { getRandomValues: crypto.getRandomValues.bind(crypto) });

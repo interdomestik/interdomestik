@@ -53,7 +53,7 @@ export async function createInformationRequest(
       .from(claims)
       .where(withTenant(tenantId, claims.tenantId, eq(claims.id, data.claimId)))
       .for('update');
-    if (!claim || claim.staffId !== actorId) return { success: false, error: 'access_denied' };
+    if (claim?.staffId !== actorId) return { success: false, error: 'access_denied' };
 
     const correlationScope = withTenant(
       tenantId,

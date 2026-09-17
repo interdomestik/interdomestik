@@ -13,6 +13,7 @@ test('S4 staff request persists and is visible in a fresh member session', async
   staffPage,
   browser,
 }, testInfo) => {
+  // This fixture owns KS tenant identities; other locale projects must not reuse its records.
   test.skip(testInfo.project.name !== 'gate-ks-sq', 'S4 owns its isolated KS verification fixture');
   test.setTimeout(120_000);
   await withInformationRequestFixture(async fixture => {

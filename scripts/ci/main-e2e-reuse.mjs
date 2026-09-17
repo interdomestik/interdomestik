@@ -35,7 +35,7 @@ const E2E_TREE_SHAS = new Set([
   // S3 corpus with retry-safe ownership and deterministically ordered notification cleanup proof.
   '18357bb3596c54b0aca7fdd9bf5db3a665b5a127',
   // S4 missing-information request with exact cleanup and explicit UTC display.
-  '95070799ae47b1c597bcce652fddc4ff99ce36c5',
+  '985c4b06bf15b79b7690c2b5ff3c3f06890549dd',
 ]);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {

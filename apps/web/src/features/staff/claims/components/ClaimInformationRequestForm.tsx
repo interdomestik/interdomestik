@@ -14,7 +14,7 @@ function createCorrelationId(): string {
   return `${value.slice(0, 8)}-${value.slice(8, 12)}-${value.slice(12, 16)}-${value.slice(16, 20)}-${value.slice(20)}`;
 }
 
-export function ClaimInformationRequestForm({ claimId }: { claimId: string }) {
+export function ClaimInformationRequestForm({ claimId }: { readonly claimId: string }) {
   const t = useTranslations('agent-claims.claims.informationRequest');
   const router = useRouter();
   const pending = useRef(false);
@@ -28,7 +28,19 @@ export function ClaimInformationRequestForm({ claimId }: { claimId: string }) {
     if (pending.current) return;
     const form = event.currentTarget;
     const data = new FormData(form);
-    const due = new Date(String(data.get('dueAt')));
+    const dueAt = data.get('dueAt');
+    const requestedInformation = data.get('requestedInformation');
+    const explanationForMember = data.get('explanationForMember');
+    if (
+      typeof dueAt !== 'string' ||
+      typeof requestedInformation !== 'string' ||
+      typeof explanationForMember !== 'string'
+    ) {
+      setFailed(true);
+      setFeedback(t('invalid_input'));
+      return;
+    }
+    const due = new Date(dueAt);
     if (!Number.isFinite(due.getTime())) {
       setFailed(true);
       setFeedback(t('invalid_input'));
@@ -36,8 +48,8 @@ export function ClaimInformationRequestForm({ claimId }: { claimId: string }) {
     }
     const input = {
       claimId,
-      requestedInformation: String(data.get('requestedInformation')).trim(),
-      explanationForMember: String(data.get('explanationForMember')).trim(),
+      requestedInformation: requestedInformation.trim(),
+      explanationForMember: explanationForMember.trim(),
       dueAt: due.toISOString(),
     };
     if (!input.requestedInformation || !input.explanationForMember) {
@@ -111,7 +123,9 @@ export function ClaimInformationRequestForm({ claimId }: { claimId: string }) {
         {t(busy ? 'saving' : 'submit')}
       </Button>
       <div className="text-sm">
-        <p role="status">{failed ? null : feedback}</p>
+        <output className="block" aria-live="polite" aria-atomic="true">
+          {failed ? null : feedback}
+        </output>
         <p role="alert">{failed ? feedback : null}</p>
       </div>
     </form>

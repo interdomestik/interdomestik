@@ -3,9 +3,9 @@ export function LatestStatusNoteContent({
   emptyLabel,
   locale,
 }: {
-  latestStatusNote: { note: string | null; createdAt: Date | null } | null;
-  emptyLabel: string;
-  locale: string;
+  readonly latestStatusNote: { note: string | null; createdAt: Date | null } | null;
+  readonly emptyLabel: string;
+  readonly locale: string;
 }) {
   if (!latestStatusNote?.note) return <p className="text-muted-foreground">{emptyLabel}</p>;
   return (

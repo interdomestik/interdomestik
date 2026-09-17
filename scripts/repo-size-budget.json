@@ -1498,18 +1498,18 @@
         "packages/domain-claims/src/claims/information-requests.ts",
         "packages/domain-claims/src/index.ts"
       ],
-      "maxTrackedBytesDelta": 526859,
+      "maxTrackedBytesDelta": 528359,
       "maxTrackedFilesDelta": 16,
       "maxCategoryBytesDelta": {
-        "tests/e2e": 33647,
-        "source/scripts": 16565,
+        "tests/e2e": 34611,
+        "source/scripts": 17101,
         "config/data/messages": 4738,
         "large support/generated-ish": 471909
       },
       "maxPathBytesDelta": {
         "apps/web/e2e/gate/information-request-cleanup.fixture.ts": 1141,
         "apps/web/e2e/gate/information-request.fixture.ts": 1737,
-        "apps/web/e2e/gate/information-request.spec.ts": 3609,
+        "apps/web/e2e/gate/information-request.spec.ts": 3704,
         "apps/web/src/actions/staff-claims/information-request.core.test.ts": 1454,
         "apps/web/src/actions/staff-claims/information-request.ts": 650,
         "apps/web/src/app/[locale]/(app)/member/claims/[id]/page.test.tsx": 821,
@@ -1517,11 +1517,11 @@
         "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page.test.tsx": 1002,
         "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page.tsx": 39,
         "apps/web/src/features/member/claims/components/ClaimInformationRequests.test.tsx": 3148,
-        "apps/web/src/features/member/claims/components/ClaimInformationRequests.tsx": 2307,
+        "apps/web/src/features/member/claims/components/ClaimInformationRequests.tsx": 2402,
         "apps/web/src/features/member/claims/components/MemberClaimDetailOpsPage.tsx": 0,
-        "apps/web/src/features/staff/claims/components/ClaimInformationRequestForm.test.tsx": 5493,
-        "apps/web/src/features/staff/claims/components/ClaimInformationRequestForm.tsx": 4264,
-        "apps/web/src/features/staff/claims/components/LatestStatusNoteContent.tsx": 609,
+        "apps/web/src/features/staff/claims/components/ClaimInformationRequestForm.test.tsx": 6362,
+        "apps/web/src/features/staff/claims/components/ClaimInformationRequestForm.tsx": 4687,
+        "apps/web/src/features/staff/claims/components/LatestStatusNoteContent.tsx": 636,
         "apps/web/src/messages/en/agent-claims.json": 1029,
         "apps/web/src/messages/mk/agent-claims.json": 1593,
         "apps/web/src/messages/sq/agent-claims.json": 1097,
@@ -1555,7 +1555,7 @@
         "packages/database/test/migration-ledger-prefix.test.ts": 4,
         "packages/database/test/pg16/migration-runtime-role-fixture.test.ts": 0,
         "packages/domain-claims/src/claims/information-requests.test.ts": 5517,
-        "packages/domain-claims/src/claims/information-requests.ts": 5557,
+        "packages/domain-claims/src/claims/information-requests.ts": 5548,
         "packages/domain-claims/src/index.ts": 47
       }
     }
@@ -1566,15 +1566,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 62055695,
+  "maxTrackedBytes": 62057195,
   "maxTrackedFiles": 6091,
   "maxCategoryBytes": {
     "config/data/messages": 2261937,
     "docs/text": 8650077,
     "large support/generated-ish": 15868644,
     "other": 19184750,
-    "source/scripts": 8884794,
-    "tests/e2e": 7205493
+    "source/scripts": 8885330,
+    "tests/e2e": 7206457
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
