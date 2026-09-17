@@ -57,10 +57,9 @@ test.describe('Diaspora Feature', () => {
 
     await expect(page.getByTestId('claim-wizard-handoff')).toBeVisible();
     await expect(page.getByTestId('claim-wizard-handoff')).toContainText(/(Italy|Италија|Italia)/i);
-    await expect(page.getByTestId('claim-draft-category-vehicle')).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    );
+    const details = page.getByTestId('claim-draft-main-panel');
+    await expect(details.locator('option[value="collision"]')).toHaveCount(1);
+    await expect(page.getByTestId('claim-draft-travel')).toHaveCount(0);
     const confirmation = page.getByTestId('claim-wizard-country-confirmation');
     await expect(confirmation).not.toBeChecked();
     await confirmation.check();

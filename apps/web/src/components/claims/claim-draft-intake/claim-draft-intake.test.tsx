@@ -134,10 +134,9 @@ describe('ClaimDraftIntake', () => {
         tenantId="tenant_ks"
       />
     );
-    expect(screen.getByTestId('claim-draft-category-vehicle')).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    );
+    expect(screen.getByLabelText('details.issueType')).toBeVisible();
+    expect(screen.getByRole('option', { name: 'issues.vehicle.collision' })).toBeInTheDocument();
+    expect(screen.queryByTestId('claim-draft-travel')).not.toBeInTheDocument();
     const confirmation = screen.getByTestId('claim-wizard-country-confirmation');
     expect(confirmation).not.toBeChecked();
     fireEvent.click(confirmation);
