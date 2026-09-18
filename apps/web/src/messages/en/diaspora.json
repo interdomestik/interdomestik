@@ -53,6 +53,13 @@
         "IE": "Ireland"
       }
     },
+    "packStatus": {
+      "title": "Help Now pack status for this corridor",
+      "description": "Availability follows the current reviewed Help Now pack registry.",
+      "exposed": "Exposed",
+      "unavailable": "Unavailable",
+      "boundary": "Pack exposure does not mean downloaded, current, verified, or ready offline."
+    },
     "guidance": {
       "countryDescription": "Country-specific Green Card accident guidance.",
       "emergency": "Emergency numbers",

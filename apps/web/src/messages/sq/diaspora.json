@@ -53,6 +53,13 @@
         "IE": "Irlanda"
       }
     },
+    "packStatus": {
+      "title": "Statusi i paketës Help Now për këtë korridor",
+      "description": "Disponueshmëria ndjek regjistrin aktual të paketave të shqyrtuara Help Now.",
+      "exposed": "E shfaqur",
+      "unavailable": "E padisponueshme",
+      "boundary": "Shfaqja e paketës nuk do të thotë se është shkarkuar, aktuale, e verifikuar ose gati jashtë linje."
+    },
     "guidance": {
       "countryDescription": "Udhëzime sipas shtetit për aksident me Green Card.",
       "emergency": "Numrat e urgjencës",

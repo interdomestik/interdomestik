@@ -49,7 +49,8 @@ const hoisted = vi.hoisted(() => ({
         return (value as Record<string, unknown>)[part];
       }, messages) ?? key;
 
-    translate.raw = (key: string) => (key === 'corridor' ? corridorProps.copy : key);
+    const rawMessages = { corridor: corridorProps.copy, packStatus: packStatusCopy } as const;
+    translate.raw = (key: string) => rawMessages[key as keyof typeof rawMessages] ?? key;
     return translate;
   }),
   getSupportContactsMock: vi.fn(() => ({
@@ -111,6 +112,14 @@ const corridorProps = {
     transitHint: 'Add every transit country in travel order.',
   },
   initialContext: null,
+};
+
+const packStatusCopy = {
+  boundary: 'Pack exposure does not mean downloaded or ready offline.',
+  description: 'Availability follows the current reviewed Help Now pack registry.',
+  exposed: 'Exposed',
+  title: 'Help Now pack status for this corridor',
+  unavailable: 'Unavailable',
 };
 
 describe('DiasporaCorridorCapture', () => {
@@ -206,6 +215,7 @@ describe('DiasporaPage', () => {
       'https://wa.me/38349900600'
     );
     expect(screen.queryByRole('link', { name: 'Prepare vehicle claim' })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('diaspora-pack-status')).not.toBeInTheDocument();
   });
 
   it.each([
@@ -260,6 +270,7 @@ describe('DiasporaPage', () => {
     expect(screen.getByTestId('diaspora-corridor-summary')).toHaveTextContent(
       'Germany → Austria → Italy'
     );
+    expect(screen.getByTestId('diaspora-pack-status')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Prepare vehicle claim' })).toHaveAttribute(
       'href',
       '/member/claims/new?category=vehicle&source=diaspora-green-card&country=IT&incidentLocation=abroad'

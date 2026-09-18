@@ -103,6 +103,107 @@ test.describe('Diaspora Feature', () => {
     }
   });
 
+  test('discloses fail-closed pack status only for an applied explicit corridor', async ({
+    authenticatedPage: page,
+  }, testInfo) => {
+    const originalViewport = page.viewportSize();
+    if (!originalViewport) throw new Error('Diaspora gate requires a configured viewport.');
+    await gotoApp(page, routes.memberDiaspora('en'), testInfo, { marker: 'diaspora-page-ready' });
+    await expect(page.getByTestId('diaspora-pack-status')).toHaveCount(0);
+    await page.getByLabel('Origin').selectOption('DE');
+    await page.getByLabel('Destination').selectOption('IT');
+    const addTransit = page.getByRole('button', { name: 'Add transit country' });
+    for (const [position, country] of ['MK', 'AT', 'MK'].entries()) {
+      await addTransit.click();
+      await page
+        .getByRole('combobox', { name: `Transit country ${position + 1}`, exact: true })
+        .selectOption(country);
+    }
+    await page.getByRole('button', { name: 'Show corridor summary' }).click();
+    const corridorQuery = 'origin=DE&destination=IT&transit=MK&transit=AT&transit=MK';
+    await expect.poll(() => new URL(page.url()).search.slice(1)).toBe(corridorQuery);
+    const disclosure = page.getByTestId('diaspora-pack-status');
+    await expect(disclosure).toBeVisible();
+    await expect(disclosure.getByRole('status')).toHaveText(
+      'Germany: Unavailable; North Macedonia: Exposed; Austria: Unavailable; Italy: Unavailable'
+    );
+    await expect(disclosure.getByRole('listitem')).toHaveCount(4);
+    await expect(disclosure).toContainText('does not mean downloaded, current, verified');
+    await page.setViewportSize({ width: 320, height: 720 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await expect
+      .poll(() => page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches))
+      .toBe(true);
+    await expectNoHorizontalOverflow(page);
+    const originalThemeClass = await disclosure.evaluate(element => {
+      const themeHost = element.parentElement!;
+      const originalClass = themeHost.getAttribute('class');
+      themeHost.classList.add('dark');
+      return originalClass;
+    });
+    await expect
+      .poll(() =>
+        disclosure.evaluate(element => [
+          getComputedStyle(element).backgroundColor,
+          getComputedStyle(element.querySelector('li')!).backgroundColor,
+        ])
+      )
+      .toEqual(['rgb(2, 6, 23)', 'rgb(15, 23, 42)']);
+    const motionDurations = await disclosure.evaluate(element => [
+      getComputedStyle(element).animationDuration,
+      getComputedStyle(element).transitionDuration,
+    ]);
+    expect(motionDurations.every(value => Number.parseFloat(value) <= 0.001)).toBe(true);
+    await disclosure.evaluate((element, originalClass) => {
+      element.parentElement!.setAttribute('class', originalClass ?? '');
+    }, originalThemeClass);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.setViewportSize(originalViewport);
+    const localizedCases = [
+      {
+        countries: ['Gjermania', 'Maqedonia e Veriut', 'Austri', 'Italia'],
+        exposed: 'E shfaqur',
+        locale: 'sq',
+        title: 'Statusi i paketës Help Now për këtë korridor',
+        unavailable: 'E padisponueshme',
+      },
+      {
+        countries: ['Германија', 'Северна Македонија', 'Австрија', 'Италија'],
+        exposed: 'Изложен',
+        locale: 'mk',
+        title: 'Статус на Help Now пакетите за овој коридор',
+        unavailable: 'Недостапен',
+      },
+      {
+        countries: ['Nemačka', 'Severna Makedonija', 'Austrija', 'Italija'],
+        exposed: 'Izložen',
+        locale: 'sr',
+        title: 'Status Help Now paketa za ovaj koridor',
+        unavailable: 'Nedostupan',
+      },
+    ] as const;
+    for (const packCase of localizedCases) {
+      await gotoApp(page, `${routes.memberDiaspora(packCase.locale)}?${corridorQuery}`, testInfo, {
+        marker: 'diaspora-page-ready',
+      });
+      await expect(page.getByRole('heading', { name: packCase.title })).toBeVisible();
+      const items = page.getByTestId('diaspora-pack-status').getByRole('listitem');
+      await expect(items).toHaveCount(4);
+      for (const [index, country] of packCase.countries.entries()) {
+        await expect(items.nth(index)).toContainText(country);
+        await expect(items.nth(index)).toContainText(
+          index === 1 ? packCase.exposed : packCase.unavailable
+        );
+      }
+    }
+    for (const query of ['country=DE', 'origin=DE&destination=ZZ']) {
+      await gotoApp(page, `${routes.memberDiaspora('en')}?${query}`, testInfo, {
+        marker: 'diaspora-page-ready',
+      });
+      await expect(page.getByTestId('diaspora-pack-status')).toHaveCount(0);
+      await expect(page.getByText('ZZ', { exact: true })).toHaveCount(0);
+    }
+  });
   test('Member can use the retained diaspora workflow from its canonical route', async ({
     authenticatedPage: page,
   }, testInfo) => {
@@ -137,12 +238,10 @@ test.describe('Diaspora Feature', () => {
         claimLabel: 'Pripremi zahtev za vozilo',
       },
     ] as const;
-
     for (const { locale, requiredTitle, italyLabel, claimLabel } of localeCases) {
       await gotoApp(page, routes.memberDiaspora(locale), testInfo, {
         marker: 'diaspora-page-ready',
       });
-
       await expect(page).toHaveURL(new RegExp(`${routes.memberDiaspora(locale)}(?:[?#]|$)`));
       await expect(page.getByTestId('diaspora-page-ready')).toBeVisible({ timeout: 15000 });
       await expect(page.getByTestId('diaspora-country-selector')).toBeVisible();
@@ -159,7 +258,6 @@ test.describe('Diaspora Feature', () => {
         })
       ).toHaveAttribute('href', /^tel:/);
       await expectNoHorizontalOverflow(page);
-
       const localizedItalySelector = page.getByRole('link', { name: italyLabel });
       await localizedItalySelector.click();
       await expect(page).toHaveURL(new RegExp(`${routes.memberDiaspora(locale)}\\?country=IT$`));
@@ -170,33 +268,10 @@ test.describe('Diaspora Feature', () => {
         'href',
         /\/member\/claims\/new\?category=vehicle&source=diaspora-green-card&country=IT&incidentLocation=abroad/
       );
-      await expect
-        .poll(() =>
-          page.evaluate(
-            () => document.documentElement.scrollWidth <= document.documentElement.clientWidth
-          )
-        )
-        .toBe(true);
+      await expectNoHorizontalOverflow(page);
     }
 
-    await gotoApp(page, routes.memberDiaspora(testInfo), testInfo, {
-      marker: 'diaspora-page-ready',
-    });
-
-    const italySelector = page.getByRole('link', {
-      name: /(Italy|Италија|Italia)/i,
-    });
-    await italySelector.click();
-
-    await expect(page).toHaveURL(/\/member\/diaspora\?country=IT/);
-    await expect(page.getByTestId('diaspora-selected-country')).toContainText(
-      /(Italy|Италија|Italia)/i
-    );
-    await expect(italySelector).toHaveAttribute('aria-current', 'page');
-    await expectNoHorizontalOverflow(page);
-
     await page.setViewportSize(originalViewport);
-
     const claimStartLink = page.getByRole('link', {
       name: /(Prepare vehicle claim|Подготви барање за возило|Përgatit kërkesën për automjet|Pripremi zahtev za vozilo)/i,
     });
@@ -204,16 +279,14 @@ test.describe('Diaspora Feature', () => {
       'href',
       /\/member\/claims\/new\?category=vehicle&source=diaspora-green-card&country=IT&incidentLocation=abroad/
     );
-
     await Promise.all([
       page.waitForURL(
         /\/member\/claims\/new\?category=vehicle&source=diaspora-green-card&country=IT&incidentLocation=abroad/
       ),
       claimStartLink.click(),
     ]);
-
     await expect(page.getByTestId('claim-wizard-handoff')).toBeVisible();
-    await expect(page.getByTestId('claim-wizard-handoff')).toContainText(/(Italy|Италија|Italia)/i);
+    await expect(page.getByTestId('claim-wizard-handoff')).toContainText(/Italy|Италија|Italij?a/i);
     const details = page.getByTestId('claim-draft-main-panel');
     await expect(details.locator('option[value="collision"]')).toHaveCount(1);
     await expect(page.getByTestId('claim-draft-travel')).toHaveCount(0);
