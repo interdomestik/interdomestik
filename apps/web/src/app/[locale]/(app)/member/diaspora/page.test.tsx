@@ -1,6 +1,10 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { COUNTRY_CODES } from '@interdomestik/domain-country-guidance';
 import { describe, expect, it, vi } from 'vitest';
+import enDiaspora from '@/messages/en/diaspora.json';
+import mkDiaspora from '@/messages/mk/diaspora.json';
+import sqDiaspora from '@/messages/sq/diaspora.json';
+import srDiaspora from '@/messages/sr/diaspora.json';
 
 const hoisted = vi.hoisted(() => ({
   setRequestLocaleMock: vi.fn(),
@@ -61,7 +65,6 @@ const hoisted = vi.hoisted(() => ({
   })),
   pathnameMock: vi.fn(() => '/member/diaspora'),
   replaceMock: vi.fn(),
-  searchMock: vi.fn(() => 'country=CH'),
 }));
 
 vi.mock('next-intl/server', () => ({
@@ -77,10 +80,6 @@ vi.mock('@/i18n/routing', () => ({
   ),
   usePathname: hoisted.pathnameMock,
   useRouter: () => ({ replace: hoisted.replaceMock }),
-}));
-
-vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams(hoisted.searchMock()),
 }));
 
 vi.mock('@/lib/support-contacts', () => ({
@@ -103,7 +102,6 @@ const corridorProps = {
     apply: 'Show corridor summary',
     chooseCountry: 'Choose a country',
     destination: 'Destination',
-    error: 'Choose valid corridor countries.',
     origin: 'Origin',
     options: Object.fromEntries(
       COUNTRY_CODES.map(code => [code, corridorNames[code] ?? code])
@@ -121,6 +119,7 @@ const corridorProps = {
 
 describe('DiasporaCorridorCapture', () => {
   it('preserves ordered duplicate transit and query state', () => {
+    window.history.replaceState({}, '', '/?country=CH');
     render(<DiasporaCorridorCapture {...corridorProps} />);
 
     fireEvent.change(screen.getByLabelText('Origin'), { target: { value: 'DE' } });
@@ -144,6 +143,7 @@ describe('DiasporaCorridorCapture', () => {
     fireEvent.change(screen.getByLabelText('Transit country 1'), { target: { value: 'AT' } });
     fireEvent.click(screen.getByRole('button', { name: 'Remove transit country 1' }));
     expect(screen.queryByLabelText('Transit country 1')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add transit country' })).toHaveFocus();
 
     rerender(
       <DiasporaCorridorCapture
@@ -154,6 +154,14 @@ describe('DiasporaCorridorCapture', () => {
 
     expect(screen.getByRole('heading', { name: 'Your trip corridor' })).toBeInTheDocument();
     expect(screen.getByTestId('diaspora-corridor-summary')).toHaveTextContent('Germany → Italy');
+  });
+
+  it('keeps every locale corridor catalog aligned with the country vocabulary', () => {
+    for (const messages of [enDiaspora, sqDiaspora, mkDiaspora, srDiaspora]) {
+      expect(Object.keys(messages.diaspora.corridor.options).sort()).toEqual(
+        [...COUNTRY_CODES].sort()
+      );
+    }
   });
 });
 

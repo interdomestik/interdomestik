@@ -23,17 +23,16 @@ import {
 } from '@interdomestik/ui';
 import { Check, ChevronUp, Globe, Home, LogOut } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useSearchParams } from 'next/navigation';
 import type { ClientShellUser } from '@/components/shell/client-shell-user';
 import { getRoleLabel } from '@/lib/roles-i18n';
 
 const DIASPORA_QUERY_KEYS = new Set(['country', 'origin', 'destination', 'transit']);
 
-function localeSwitchHref(pathname: string, searchParams: URLSearchParams): string {
+function localeSwitchHref(pathname: string, search: string): string {
   if (pathname !== '/member/diaspora') return pathname;
 
   const retainedParams = new URLSearchParams();
-  for (const [key, value] of searchParams) {
+  for (const [key, value] of new URLSearchParams(search)) {
     if (DIASPORA_QUERY_KEYS.has(key)) retainedParams.append(key, value);
   }
 
@@ -44,11 +43,13 @@ function localeSwitchHref(pathname: string, searchParams: URLSearchParams): stri
 function SidebarUserMenuInner({ user }: { user: ClientShellUser | null }) {
   const pathname = usePathname();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const locale = useLocale();
   const t = useTranslations('nav');
   const tCommon = useTranslations('common');
-  const localizedHref = localeSwitchHref(pathname, searchParams);
+
+  const switchLocale = (nextLocale: 'en' | 'sq' | 'mk' | 'sr') => {
+    router.replace(localeSwitchHref(pathname, window.location.search), { locale: nextLocale });
+  };
 
   const handleSignOut = async () => {
     await signOutAndRedirectToLogin({
@@ -110,31 +111,19 @@ function SidebarUserMenuInner({ user }: { user: ClientShellUser | null }) {
               </DropdownMenuSubTrigger>
               <DropdownMenuPortal>
                 <DropdownMenuSubContent>
-                  <DropdownMenuItem
-                    onClick={() => router.replace(localizedHref, { locale: 'en' })}
-                    className="cursor-pointer"
-                  >
+                  <DropdownMenuItem onClick={() => switchLocale('en')} className="cursor-pointer">
                     <span className="mr-2">🇬🇧</span> English
                     {locale === 'en' && <Check className="ml-auto h-4 w-4" />}
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => router.replace(localizedHref, { locale: 'sq' })}
-                    className="cursor-pointer"
-                  >
+                  <DropdownMenuItem onClick={() => switchLocale('sq')} className="cursor-pointer">
                     <span className="mr-2">🇦🇱</span> Shqip
                     {locale === 'sq' && <Check className="ml-auto h-4 w-4" />}
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => router.replace(localizedHref, { locale: 'mk' })}
-                    className="cursor-pointer"
-                  >
+                  <DropdownMenuItem onClick={() => switchLocale('mk')} className="cursor-pointer">
                     <span className="mr-2">🇲🇰</span> Македонски
                     {locale === 'mk' && <Check className="ml-auto h-4 w-4" />}
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => router.replace(localizedHref, { locale: 'sr' })}
-                    className="cursor-pointer"
-                  >
+                  <DropdownMenuItem onClick={() => switchLocale('sr')} className="cursor-pointer">
                     <span className="mr-2">🇷🇸</span> Srpski
                     {locale === 'sr' && <Check className="ml-auto h-4 w-4" />}
                   </DropdownMenuItem>

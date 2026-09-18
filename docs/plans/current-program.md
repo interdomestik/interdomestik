@@ -309,7 +309,7 @@ DIA-003, S5 or the diaspora family complete and does not deploy.
 ### Selected S5 — Diaspora corridor preparation (2026-09-18)
 
 The owner selected `S5-DIASPORA-CORRIDOR-PREPARATION` from protected main
-`8db18b31717fbce999589aaaa4e83198de8289ad` under dependency-first item 4 and
+`2b474ea50fb09cb94f8338691e4ddb4917b8fefd` under dependency-first item 4 and
 `IDA-DIA-002`. The exact owner-held SRS v0.9 source was re-read at its recorded SHA-256
 `8bc2b69c9babf8f228941378a01a32340f23d3ff061f92c574a9a908472981a2`. IDA-DIA-002
 requires Trip Mode to capture origin, destination and transit countries from explicit user input and
@@ -321,12 +321,16 @@ capture. This is the reproduced direct S5 blocker. Existing saved-draft, account
 continuity contracts are credited and are not missing prerequisites.
 
 Before implementation, the owner approved one consolidated ceiling of +42,000 tracked bytes and
-three new tracked files. The allocation is +20,000/three files for the new corridor owner,
-+6,000 for the existing S5.d page/test/MK/SQ owner, +4,500 for the existing selector/EN/SR
-owner, +5,000 for the existing diaspora E2E owner, +500 for CI corpus reuse, +500 for the exact
-requirement map, +3,500 for current program/tracker evidence and +2,000 for capacity-budget
-self-accounting. Deleted-byte credit, reserve consumption, allocation reorder and guard weakening
-are forbidden; the executable budget remains controlling.
+three new tracked files in the 2026-09-18 task thread. Implementation began from the later exact
+protected-main head `8db18b31717fbce999589aaaa4e83198de8289ad`; this records the implementation
+base without rewriting the historical selection provenance. Review-driven precision replaced the
+initial rounded line items with measured positive-byte growth: +15,688/three files for the corridor
+owner, +6,850 for the existing S5.d page/test/MK/SQ owner, +4,055 for the selector/EN/SR owner,
++3,832 for diaspora E2E, +385 for CI corpus reuse, +113 for the exact requirement map, +3,647
+for current program/tracker evidence and +1,455 for capacity-budget self-accounting. The resulting
++36,025 remains below the approved ceiling; unused headroom is not allocated. Deleted-byte credit,
+reserve consumption, allocation padding and guard weakening are forbidden; the executable budget
+remains controlling.
 
 This medium-complexity preparation slice is implementation-ready for Sol 5.6 at high reasoning.
 Acceptance is a pure typed corridor-preparation contract plus mounted member-diaspora capture and
@@ -339,7 +343,7 @@ single invalid endpoint or transit member rejects the whole context. Transit is 
 duplicates, equal endpoints and transit values equal to either endpoint are valid and preserve exact
 order through parse/serialize and locale switches. Add, edit and remove controls remain keyboard
 operable and focus the newly added row.
-The same country values must survive EN/SQ/MK/SR interface-locale changes without locale, host,
+The same applied corridor values must survive EN/SQ/MK/SR interface-locale changes without locale, host,
 IP, referral, device-location or existing single-country query inference. Missing, malformed and
 unsupported values fail closed without producing a corridor context. The context remains
 non-authoritative preparation state: it does not choose a pack, populate a saved draft, create an

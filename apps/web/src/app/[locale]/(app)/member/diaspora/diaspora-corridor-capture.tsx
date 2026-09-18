@@ -2,16 +2,14 @@
 
 import { usePathname, useRouter } from '@/i18n/routing';
 import {
+  MAX_TRANSIT_COUNTRIES,
   parseDiasporaCorridorContext,
   serializeDiasporaCorridorContext,
-  COUNTRY_CODES,
-  MAX_TRANSIT_COUNTRIES,
-  type CountryCode,
   type DiasporaCorridorContext,
-} from '@interdomestik/domain-country-guidance';
+} from '@interdomestik/domain-country-guidance/corridor';
+import { COUNTRY_CODES, type CountryCode } from '@interdomestik/domain-country-guidance/types';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { Plus, Route, Trash2 } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 export type DiasporaCorridorCopy = Readonly<{
@@ -19,7 +17,6 @@ export type DiasporaCorridorCopy = Readonly<{
   apply: string;
   chooseCountry: string;
   destination: string;
-  error: string;
   origin: string;
   options: Readonly<Record<CountryCode, string>>;
   preparationOnly: string;
@@ -52,12 +49,11 @@ function corridorSummary(
 export function DiasporaCorridorCapture({ copy, initialContext }: Props) {
   const pathname = usePathname();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [origin, setOrigin] = useState(initialContext?.origin ?? '');
   const [destination, setDestination] = useState(initialContext?.destination ?? '');
   const [transit, setTransit] = useState<string[]>(initialContext?.transit ?? []);
-  const [error, setError] = useState(false);
   const transitRefs = useRef<Array<HTMLSelectElement | null>>([]);
+  const addTransitRef = useRef<HTMLButtonElement | null>(null);
   const focusTransitIndex = useRef<number | null>(null);
   const countries = useMemo(
     () => COUNTRY_CODES.map(code => ({ code, label: copy.options[code] })),
@@ -68,13 +64,13 @@ export function DiasporaCorridorCapture({ copy, initialContext }: Props) {
     setOrigin(initialContext?.origin ?? '');
     setDestination(initialContext?.destination ?? '');
     setTransit(initialContext?.transit ?? []);
-    setError(false);
   }, [initialContext]);
 
   useEffect(() => {
     const index = focusTransitIndex.current;
     if (index === null) return;
-    transitRefs.current[index]?.focus();
+    if (index < 0) addTransitRef.current?.focus();
+    else transitRefs.current[index]?.focus();
     focusTransitIndex.current = null;
   }, [transit.length]);
 
@@ -85,6 +81,7 @@ export function DiasporaCorridorCapture({ copy, initialContext }: Props) {
   }
 
   function removeTransit(index: number): void {
+    focusTransitIndex.current = transit.length === 1 ? -1 : Math.max(0, index - 1);
     setTransit(current => current.filter((_, currentIndex) => currentIndex !== index));
   }
 
@@ -97,13 +94,12 @@ export function DiasporaCorridorCapture({ copy, initialContext }: Props) {
   function applyCorridor(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
     const context = parseDiasporaCorridorContext({ origin, destination, transit });
-    if (!context) {
-      setError(true);
-      return;
-    }
+    if (!context) return;
 
-    const nextParams = serializeDiasporaCorridorContext(context, new URLSearchParams(searchParams));
-    setError(false);
+    const nextParams = serializeDiasporaCorridorContext(
+      context,
+      new URLSearchParams(window.location.search)
+    );
     router.replace(`${pathname}?${nextParams.toString()}`);
   }
 
@@ -195,6 +191,7 @@ export function DiasporaCorridorCapture({ copy, initialContext }: Props) {
             <Button
               disabled={transit.length >= MAX_TRANSIT_COUNTRIES}
               onClick={addTransit}
+              ref={addTransitRef}
               type="button"
               variant="outline"
             >
@@ -203,11 +200,6 @@ export function DiasporaCorridorCapture({ copy, initialContext }: Props) {
             </Button>
           </fieldset>
 
-          {error ? (
-            <p className="text-sm font-medium text-red-700" role="alert">
-              {copy.error}
-            </p>
-          ) : null}
           <Button className="w-full sm:w-auto" type="submit">
             {copy.apply}
           </Button>

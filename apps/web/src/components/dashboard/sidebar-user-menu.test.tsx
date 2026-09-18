@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { authClient } from '@/lib/auth-client';
 import { signOutAndRedirectToLogin } from '@/lib/auth/logout';
@@ -7,7 +7,6 @@ import { SidebarUserMenu } from './sidebar-user-menu';
 
 const mockSignOutAndRedirectToLogin = vi.mocked(signOutAndRedirectToLogin);
 const replaceMock = vi.fn();
-const searchParamsMock = vi.fn(() => 'origin=DE&destination=IT&transit=AT&transit=CH');
 let pathnameMock = '/member/diaspora';
 
 vi.mock('@/i18n/routing', () => ({
@@ -18,10 +17,6 @@ vi.mock('@/i18n/routing', () => ({
   useRouter: () => ({
     replace: replaceMock,
   }),
-}));
-
-vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams(searchParamsMock()),
 }));
 
 vi.mock('@/lib/auth-client', () => ({
@@ -105,6 +100,12 @@ vi.mock('lucide-react', () => ({
 }));
 
 describe('SidebarUserMenu', () => {
+  beforeEach(() => {
+    pathnameMock = '/member/diaspora';
+    replaceMock.mockClear();
+    window.history.replaceState({}, '', '/?origin=DE&destination=IT&transit=AT&transit=CH');
+  });
+
   it('preserves ordered repeated query values when switching locale', () => {
     render(<SidebarUserMenu />);
 
@@ -117,7 +118,7 @@ describe('SidebarUserMenu', () => {
   });
 
   it('keeps the pathname-only locale switch when no query is present', () => {
-    searchParamsMock.mockReturnValueOnce('');
+    window.history.replaceState({}, '', '/');
     render(<SidebarUserMenu />);
 
     fireEvent.click(screen.getByRole('button', { name: /English/i }));
@@ -132,10 +133,10 @@ describe('SidebarUserMenu', () => {
     fireEvent.click(screen.getByRole('button', { name: /English/i }));
 
     expect(replaceMock).toHaveBeenCalledWith('/admin/users', { locale: 'en' });
-    pathnameMock = '/member/diaspora';
   });
 
   it('signs out with a localized hard redirect for agent users', async () => {
+    pathnameMock = '/agent';
     render(<SidebarUserMenu />);
 
     fireEvent.click(screen.getByRole('button', { name: /logout/i }));
