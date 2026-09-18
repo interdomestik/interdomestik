@@ -106,6 +106,8 @@ test.describe('Diaspora Feature', () => {
   test('discloses fail-closed pack status only for an applied explicit corridor', async ({
     authenticatedPage: page,
   }, testInfo) => {
+    const originalViewport = page.viewportSize();
+    if (!originalViewport) throw new Error('Diaspora gate requires a configured viewport.');
     await gotoApp(page, routes.memberDiaspora('en'), testInfo, { marker: 'diaspora-page-ready' });
     await expect(page.getByTestId('diaspora-pack-status')).toHaveCount(0);
 
@@ -124,6 +126,7 @@ test.describe('Diaspora Feature', () => {
 
     const disclosure = page.getByTestId('diaspora-pack-status');
     await expect(disclosure).toBeVisible();
+    await expect(page.getByRole('status')).toHaveCount(1);
     await expect(disclosure.getByRole('listitem')).toHaveCount(4);
     await expect(page.getByTestId('diaspora-pack-status-DE')).toContainText('Unavailable');
     await expect(page.getByTestId('diaspora-pack-status-MK')).toContainText('Exposed');
@@ -133,25 +136,42 @@ test.describe('Diaspora Feature', () => {
       'Pack exposure does not mean downloaded, current, verified, or ready offline.'
     );
 
+    await page.setViewportSize({ width: 320, height: 720 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await expectNoHorizontalOverflow(page);
+    const html = page.locator('html');
+    const originalHtmlClass = await html.getAttribute('class');
+    try {
+      await html.evaluate(element => element.classList.add('dark'));
+      await expect(disclosure).toHaveClass(/dark:bg-slate-950/);
+      await expect(disclosure.getByRole('listitem').first()).toHaveClass(/dark:bg-slate-900/);
+    } finally {
+      await html.evaluate((element, className) => {
+        if (className === null) element.removeAttribute('class');
+        else element.setAttribute('class', className);
+      }, originalHtmlClass);
+    }
+    await page.setViewportSize(originalViewport);
+
     const localizedCases = [
       {
+        countries: ['Gjermania', 'Maqedonia e Veriut', 'Austri', 'Italia'],
         exposed: 'E shfaqur',
         locale: 'sq',
-        northMacedonia: 'Maqedonia e Veriut',
         title: 'Statusi i paketës Help Now për këtë korridor',
         unavailable: 'E padisponueshme',
       },
       {
+        countries: ['Германија', 'Северна Македонија', 'Австрија', 'Италија'],
         exposed: 'Изложен',
         locale: 'mk',
-        northMacedonia: 'Северна Македонија',
         title: 'Статус на Help Now пакетите за овој коридор',
         unavailable: 'Недостапен',
       },
       {
+        countries: ['Nemačka', 'Severna Makedonija', 'Austrija', 'Italija'],
         exposed: 'Izložen',
         locale: 'sr',
-        northMacedonia: 'Severna Makedonija',
         title: 'Status Help Now paketa za ovaj koridor',
         unavailable: 'Nedostupan',
       },
@@ -162,10 +182,14 @@ test.describe('Diaspora Feature', () => {
         marker: 'diaspora-page-ready',
       });
       await expect(page.getByRole('heading', { name: packCase.title })).toBeVisible();
-      await expect(page.getByTestId('diaspora-pack-status-MK')).toContainText(
-        `${packCase.northMacedonia}${packCase.exposed}`
-      );
-      await expect(page.getByTestId('diaspora-pack-status-IT')).toContainText(packCase.unavailable);
+      const localizedDisclosure = page.getByTestId('diaspora-pack-status');
+      await expect(localizedDisclosure.getByRole('listitem')).toHaveCount(4);
+      for (const [index, country] of packCase.countries.entries()) {
+        await expect(localizedDisclosure.getByRole('listitem').nth(index)).toContainText(country);
+        await expect(localizedDisclosure.getByRole('listitem').nth(index)).toContainText(
+          index === 1 ? packCase.exposed : packCase.unavailable
+        );
+      }
     }
 
     await gotoApp(page, `${routes.memberDiaspora('en')}?country=DE`, testInfo, {

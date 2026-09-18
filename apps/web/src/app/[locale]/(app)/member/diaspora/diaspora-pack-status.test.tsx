@@ -95,6 +95,39 @@ describe('deriveDiasporaPackStatus', () => {
     ]);
     expect(deriveDiasporaPackStatus(null, packs)).toEqual([]);
   });
+
+  it('uses first occurrence when endpoints and transit entries repeat', () => {
+    expect(
+      deriveDiasporaPackStatus({ origin: 'DE', destination: 'IT', transit: ['IT', 'MK', 'DE'] })
+    ).toEqual([
+      { country: 'DE', exposure: 'unavailable' },
+      { country: 'IT', exposure: 'unavailable' },
+      { country: 'MK', exposure: 'exposed' },
+    ]);
+    expect(deriveDiasporaPackStatus({ origin: 'MK', destination: 'MK', transit: [] })).toEqual([
+      { country: 'MK', exposure: 'exposed' },
+    ]);
+  });
+
+  it('fails closed when registry metadata is duplicated for a country', () => {
+    const acceptedPack = {
+      country: 'MK',
+      exposure: 'public',
+      l2SignOff: { reviewer: 'reviewer', date: '2026-09-18', packHash: 'test-only' },
+      marketLabel: 'North Macedonia',
+      reviewStatus: 'accepted',
+    } as const satisfies HelpNowCountryPack;
+
+    expect(
+      deriveDiasporaPackStatus({ origin: 'MK', destination: 'IT', transit: [] }, [
+        acceptedPack,
+        acceptedPack,
+      ])
+    ).toEqual([
+      { country: 'MK', exposure: 'unavailable' },
+      { country: 'IT', exposure: 'unavailable' },
+    ]);
+  });
 });
 
 describe('DiasporaPackStatusDisclosure', () => {
@@ -108,12 +141,27 @@ describe('DiasporaPackStatusDisclosure', () => {
     );
 
     const disclosure = screen.getByTestId('diaspora-pack-status');
+    expect(disclosure).toHaveAttribute('aria-live', 'polite');
+    expect(disclosure).toHaveAttribute('aria-atomic', 'true');
     expect(within(disclosure).getAllByRole('listitem')).toHaveLength(4);
     expect(screen.getByTestId('diaspora-pack-status-MK')).toHaveTextContent(
       'North MacedoniaExposed'
     );
     expect(screen.getByTestId('diaspora-pack-status-IT')).toHaveTextContent('ItalyUnavailable');
     expect(disclosure).toHaveTextContent('does not mean downloaded or ready offline');
+  });
+
+  it('falls back to the country code when a localized label is missing', () => {
+    render(
+      <DiasporaPackStatusDisclosure
+        countryNames={{}}
+        context={{ origin: 'MK', destination: 'IT', transit: [] }}
+        copy={copy}
+      />
+    );
+
+    expect(screen.getByTestId('diaspora-pack-status-MK')).toHaveTextContent('MKExposed');
+    expect(screen.getByTestId('diaspora-pack-status-IT')).toHaveTextContent('ITUnavailable');
   });
 
   it('renders nothing without a valid applied corridor', () => {

@@ -40,14 +40,16 @@ export function deriveDiasporaPackStatus(
 
   return distinctCountries.map(country => ({
     country,
-    exposure: packs.some(pack => pack.country === country && canExposeCountryPack(pack))
-      ? 'exposed'
-      : 'unavailable',
+    exposure:
+      packs.filter(pack => pack.country === country).length === 1 &&
+      packs.some(pack => pack.country === country && canExposeCountryPack(pack))
+        ? 'exposed'
+        : 'unavailable',
   }));
 }
 
 type Props = {
-  countryNames: Readonly<Record<CountryCode, string>>;
+  countryNames: Readonly<Partial<Record<CountryCode, string>>>;
   context: DiasporaCorridorContext | null;
   copy: DiasporaPackStatusCopy;
 };
@@ -58,8 +60,11 @@ export function DiasporaPackStatusDisclosure({ countryNames, context, copy }: Re
 
   return (
     <Card
-      className="rounded-[2rem] border border-slate-200/80 bg-white"
+      aria-atomic="true"
+      aria-live="polite"
+      className="rounded-[2rem] border border-slate-200/80 bg-white dark:border-slate-800/80 dark:bg-slate-950"
       data-testid="diaspora-pack-status"
+      role="status"
     >
       <CardHeader>
         <CardTitle>{copy.title}</CardTitle>
@@ -69,18 +74,20 @@ export function DiasporaPackStatusDisclosure({ countryNames, context, copy }: Re
         <ul className="grid gap-3 sm:grid-cols-2">
           {statuses.map(status => (
             <li
-              className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4"
+              className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900"
               data-testid={`diaspora-pack-status-${status.country}`}
               key={status.country}
             >
-              <span className="font-semibold text-slate-950">{countryNames[status.country]}</span>
+              <span className="font-semibold text-slate-950 dark:text-slate-50">
+                {countryNames[status.country] ?? status.country}
+              </span>
               <Badge variant={status.exposure === 'exposed' ? 'default' : 'secondary'}>
                 {status.exposure === 'exposed' ? copy.exposed : copy.unavailable}
               </Badge>
             </li>
           ))}
         </ul>
-        <p className="text-sm leading-6 text-slate-600">{copy.boundary}</p>
+        <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">{copy.boundary}</p>
       </CardContent>
     </Card>
   );
