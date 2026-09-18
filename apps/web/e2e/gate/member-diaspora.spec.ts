@@ -103,6 +103,33 @@ test.describe('Diaspora Feature', () => {
     }
   });
 
+  test('discloses fail-closed pack status only for an applied explicit corridor', async ({
+    authenticatedPage: page,
+  }, testInfo) => {
+    await gotoApp(
+      page,
+      `${routes.memberDiaspora('en')}?origin=DE&destination=IT&transit=MK&transit=AT&transit=MK`,
+      testInfo,
+      { marker: 'diaspora-page-ready' }
+    );
+
+    const disclosure = page.getByTestId('diaspora-pack-status');
+    await expect(disclosure).toBeVisible();
+    await expect(disclosure.getByRole('listitem')).toHaveCount(4);
+    await expect(page.getByTestId('diaspora-pack-status-DE')).toContainText('Unavailable');
+    await expect(page.getByTestId('diaspora-pack-status-MK')).toContainText('Exposed');
+    await expect(page.getByTestId('diaspora-pack-status-AT')).toContainText('Unavailable');
+    await expect(page.getByTestId('diaspora-pack-status-IT')).toContainText('Unavailable');
+    await expect(disclosure).toContainText(
+      'Pack exposure does not mean downloaded, current, verified, or ready offline.'
+    );
+
+    await gotoApp(page, `${routes.memberDiaspora('en')}?country=DE`, testInfo, {
+      marker: 'diaspora-page-ready',
+    });
+    await expect(page.getByTestId('diaspora-pack-status')).toHaveCount(0);
+  });
+
   test('Member can use the retained diaspora workflow from its canonical route', async ({
     authenticatedPage: page,
   }, testInfo) => {

@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 120417,
+      "trackedBytesDelta": 121109,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 82326,
+        "config/data/messages": 83018,
         "source/scripts": 23092,
         "tests/e2e": 14999
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 82326,
+        "scripts/repo-size-budget.json": 83018,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -61,10 +61,10 @@
       "id": "product-readiness-requirement-map",
       "mode": "exact",
       "writerPaths": ["docs/plans/requirement-disposition-map.md"],
-      "trackedBytesDelta": 74311,
+      "trackedBytesDelta": 74933,
       "trackedFilesDelta": 1,
-      "categoryBytesDelta": { "docs/text": 74311 },
-      "pathBytesDelta": { "docs/plans/requirement-disposition-map.md": 74311 }
+      "categoryBytesDelta": { "docs/text": 74933 },
+      "pathBytesDelta": { "docs/plans/requirement-disposition-map.md": 74933 }
     },
     {
       "id": "lean-compatibility-repair",
@@ -329,19 +329,19 @@
         "apps/web/src/messages/sq/dashboard.json",
         "apps/web/src/messages/sr/dashboard.json"
       ],
-      "maxTrackedBytesDelta": 53162,
+      "maxTrackedBytesDelta": 54380,
       "maxTrackedFilesDelta": 5,
       "maxCategoryBytesDelta": {
         "config/data/messages": 17828,
         "docs/text": 2824,
         "source/scripts": 8004,
-        "tests/e2e": 24506
+        "tests/e2e": 25724
       },
       "maxPathBytesDelta": {
         "docs/plans/2026-08-28-t117b-cutover-design-gate.md": 2949,
         "docs/plans/2026-08-28-t117b-cutover-admission.json": 7771,
         "apps/web/e2e/dashboard-access.spec.ts": 49,
-        "apps/web/e2e/gate/member-diaspora.spec.ts": 6620,
+        "apps/web/e2e/gate/member-diaspora.spec.ts": 7838,
         "apps/web/e2e/gate/member-home-cta.spec.ts": 1057,
         "apps/web/e2e/golden/agent-member-overlay.spec.ts": 90,
         "apps/web/e2e/golden/member-dashboard-empty-state.spec.ts": 1930,
@@ -1577,17 +1577,17 @@
         "apps/web/src/messages/sq/diaspora.json",
         "packages/domain-claims/src/claims/incident-country-writers.test.ts"
       ],
-      "maxTrackedBytesDelta": 19527,
+      "maxTrackedBytesDelta": 22477,
       "maxTrackedFilesDelta": 0,
       "maxCategoryBytesDelta": {
-        "tests/e2e": 11686,
+        "tests/e2e": 12480,
         "source/scripts": 4012,
-        "config/data/messages": 3829
+        "config/data/messages": 5985
       },
       "maxPathBytesDelta": {
         "apps/web/src/actions/claims/create-from-saved-draft.test.ts": 1438,
         "apps/web/src/actions/claims/create-from-saved-draft.ts": 772,
-        "apps/web/src/app/[locale]/(app)/member/diaspora/page.test.tsx": 7325,
+        "apps/web/src/app/[locale]/(app)/member/diaspora/page.test.tsx": 8119,
         "apps/web/src/app/[locale]/(app)/member/diaspora/page.tsx": 670,
         "apps/web/src/components/claims/claim-draft-intake/claim-draft-intake.test.tsx": 2123,
         "apps/web/src/components/claims/claim-draft-intake/dormant-preview.tsx": 592,
@@ -1595,8 +1595,8 @@
         "apps/web/src/components/claims/claim-draft-intake/main-panel.tsx": 460,
         "apps/web/src/components/claims/claim-draft-intake/saved-draft-submit.test.tsx": 234,
         "apps/web/src/components/claims/claim-draft-intake/use-saved-draft-claim.ts": 303,
-        "apps/web/src/messages/mk/diaspora.json": 2213,
-        "apps/web/src/messages/sq/diaspora.json": 1616,
+        "apps/web/src/messages/mk/diaspora.json": 3432,
+        "apps/web/src/messages/sq/diaspora.json": 2553,
         "packages/domain-claims/src/claims/incident-country-writers.test.ts": 566
       }
     },
@@ -1608,16 +1608,16 @@
         "apps/web/src/messages/en/diaspora.json",
         "apps/web/src/messages/sr/diaspora.json"
       ],
-      "maxTrackedBytesDelta": 6515,
+      "maxTrackedBytesDelta": 8285,
       "maxTrackedFilesDelta": 1,
       "maxCategoryBytesDelta": {
         "source/scripts": 3507,
-        "config/data/messages": 3008
+        "config/data/messages": 4778
       },
       "maxPathBytesDelta": {
         "apps/web/src/app/[locale]/(app)/member/diaspora/diaspora-country-selector.tsx": 3507,
-        "apps/web/src/messages/en/diaspora.json": 1481,
-        "apps/web/src/messages/sr/diaspora.json": 1527
+        "apps/web/src/messages/en/diaspora.json": 2351,
+        "apps/web/src/messages/sr/diaspora.json": 2427
       }
     },
     {
@@ -1656,6 +1656,24 @@
         "packages/domain-country-guidance/src/index.ts": 28,
         "packages/domain-country-guidance/src/types.ts": 54
       }
+    },
+    {
+      "id": "s5e-diaspora-corridor-pack-status-disclosure",
+      "mode": "bounded",
+      "writerPaths": [
+        "apps/web/src/app/[locale]/(app)/member/diaspora/diaspora-pack-status.test.tsx",
+        "apps/web/src/app/[locale]/(app)/member/diaspora/diaspora-pack-status.tsx"
+      ],
+      "maxTrackedBytesDelta": 6282,
+      "maxTrackedFilesDelta": 2,
+      "maxCategoryBytesDelta": {
+        "source/scripts": 2627,
+        "tests/e2e": 3655
+      },
+      "maxPathBytesDelta": {
+        "apps/web/src/app/[locale]/(app)/member/diaspora/diaspora-pack-status.test.tsx": 3655,
+        "apps/web/src/app/[locale]/(app)/member/diaspora/diaspora-pack-status.tsx": 2627
+      }
     }
   ],
   "reserve": {
@@ -1664,15 +1682,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 62124916,
-  "maxTrackedFiles": 6095,
+  "maxTrackedBytes": 62138450,
+  "maxTrackedFiles": 6097,
   "maxCategoryBytes": {
-    "config/data/messages": 2275167,
-    "docs/text": 8654662,
+    "config/data/messages": 2279785,
+    "docs/text": 8655284,
     "large support/generated-ish": 15871866,
     "other": 19184750,
-    "source/scripts": 8905215,
-    "tests/e2e": 7233256
+    "source/scripts": 8907842,
+    "tests/e2e": 7238923
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

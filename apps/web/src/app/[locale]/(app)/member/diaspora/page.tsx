@@ -24,6 +24,7 @@ import {
   type SupportedQuickstartCountry,
 } from './diaspora-country-selector';
 import { DiasporaCorridorCapture, type DiasporaCorridorCopy } from './diaspora-corridor-capture';
+import { DiasporaPackStatusDisclosure, type DiasporaPackStatusCopy } from './diaspora-pack-status';
 
 function buildClaimStartHref(selectedCountry: SupportedQuickstartCountry): string {
   const params = new URLSearchParams({
@@ -100,6 +101,11 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
       <DiasporaCorridorCapture
         copy={t.raw('corridor') as DiasporaCorridorCopy}
         initialContext={corridorContext}
+      />
+
+      <DiasporaPackStatusDisclosure
+        context={corridorContext}
+        copy={t.raw('packStatus') as DiasporaPackStatusCopy}
       />
 
       <div className="grid gap-6 lg:grid-cols-[1.35fr_0.95fr]">

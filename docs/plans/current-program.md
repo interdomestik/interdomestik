@@ -52,9 +52,11 @@ verification resources retired. The bounded S5.d diaspora claim-start truth incr
 #1788 as `0091f6ecf39c0888a9decf2fa8c0a1a498d3119c`; exact-main checks passed and its owned
 resources were retired. Explicit diaspora country context then completed through protected PR #1790
 as `2b474ea50fb09cb94f8338691e4ddb4917b8fefd`, with exact-main health and owned-resource
-retirement confirmed. The whole S3 and S5 journey families remain open. The selected bounded S5
-successor, diaspora corridor preparation, completed through protected PR #1792 as
-`e814245335247b8b08e0b9f62010ad48c4642f37`; no successor is selected.
+retirement confirmed. The whole S3 and S5 journey families remain open. The bounded S5 diaspora
+corridor preparation completed through protected PR #1792 as
+`e814245335247b8b08e0b9f62010ad48c4642f37`. The next selected bounded S5 successor is
+`S5.e-DIASPORA-CORRIDOR-PACK-STATUS-DISCLOSURE`; its bounded implementation is now authorized under
+the new numeric capacity recorded below.
 
 ## Owner-adopted enterprise delivery sequence (2026-09-15)
 
@@ -389,9 +391,48 @@ There was no deployment or user validation.
 Signed/current pack metadata, content review, pack selection, persistence/account continuity,
 offline download/integrity/retry/recovery, geolocation, jurisdiction or persona decisions,
 police/EAS content, claim handoff and S6/S7 remain excluded. IDA-DIA-002, IDA-DIA-003, S5 and the
-whole diaspora family remain open after this completed preparation increment. No successor is
-selected. This completion authorizes no deployment, routing/auth/proxy change, schema/migration or
-country expansion.
+whole diaspora family remain open after this completed preparation increment. No successor was
+selected by that closeout. This completion authorizes no deployment, routing/auth/proxy change,
+schema/migration or country expansion.
+
+### Selected bounded S5.e — Diaspora corridor pack-status disclosure (2026-09-18)
+
+From clean protected main `f2830cb6a98ca7b7c97da3180c6fa7acd4da7a2f`, after #1792 and canonical
+closeout #1795, the owner selected `S5.e-DIASPORA-CORRIDOR-PACK-STATUS-DISCLOSURE`. #1792 supplies
+explicit locale-independent origin/destination/transit; the separate Help Now registry supplies the
+fail-closed `canExposeCountryPack` predicate. This is not S6 and does not rebuild corridor capture.
+
+The mounted result is read-only: after an applied corridor, list each distinct route country once in
+first-occurrence order as exposed or unavailable. `CountryCodeSchema`, DE/CH/AT/IT quickstart
+guidance and the XK/MK/AL/DE/AT/HU/RS/HR/ME pack registry remain separate vocabularies; guidance or
+a valid corridor code never approves a pack. For DE → MK → AT → MK → IT, only MK is exposed; DE/AT
+are dark, IT is absent and repeated MK appears once.
+
+Acceptance requires pure deterministic matching, mounted EN/SQ/MK/SR disclosure and browser proof.
+Missing/invalid corridor context renders no result. Guidance country, locale, host, IP, referral and
+device location cannot select. Dark, unaccepted, unsigned or unregistered entries remain unavailable
+without fallback or rejected-input echo. No pack content, guidance change, persistence, download/
+cache, offline-readiness or currency/integrity/expiry claim, claim/handoff, server mutation, schema,
+auth, routing, proxy, billing or deployment is included. IDA-DIA-002/003/004/005 and S5 stay open.
+
+Dependencies are #1792 corridor capture and the MOB-01b exposure registry. Rechecked SRS v0.9
+SHA-256 `8bc2b69c9babf8f228941378a01a32340f23d3ff061f92c574a9a908472981a2` still requires a reviewed
+source set, effective version, release disposition and fail-dark handling for unsigned, expired,
+withdrawn or integrity-failed content. The 2026-07-07 MK receipt proves none of current Trip Mode
+version/integrity/expiry or offline readiness. Those contracts, other-country approvals,
+persistence, download, retry and recovery remain separate successors.
+
+Sol 5.6/high owns this medium slice. Sonnet receipt `20260918T124522-sonnet` supports bounded
+disclosure; Gemini receipt `20260918T124522-gemini` supplied accepted dark/absent/duplicate/ambient
+fixtures, while its XK/AL exposure error was rejected against runtime. A one-shot on-device check
+omitted absent IT, so no output was accepted or rerun.
+
+The owner approved at most +30,000 tracked bytes and exactly two new tracked files on 2026-09-18;
+the +42,000-byte/three-file corridor allowance is not reusable. The request projected +5,500 source,
++13,000 tests/E2E, +4,000 catalogs, +5,000 evidence and +2,500 budget accounting across the new
+component/test, mounted page/test, four catalogs, diaspora gate, canonical docs/map and size budget.
+No implementation preceded approval. Register measured disjoint growth only: no reserve, padding,
+deleted-byte credit or guard weakening.
 
 ### Dependency-first selection (owner direction, 2026-09-17)
 

@@ -53,6 +53,35 @@
         "IE": "Irska"
       }
     },
+    "packStatus": {
+      "title": "Status Help Now paketa za ovaj koridor",
+      "description": "Dostupnost prati trenutni registar pregledanih Help Now paketa.",
+      "exposed": "Izložen",
+      "unavailable": "Nedostupan",
+      "boundary": "Izložen paket ne znači da je preuzet, aktuelan, proveren ili spreman van mreže.",
+      "options": {
+        "AT": "Austrija",
+        "DE": "Nemačka",
+        "CH": "Švajcarska",
+        "IT": "Italija",
+        "MK": "Severna Makedonija",
+        "AL": "Albanija",
+        "XK": "Kosovo (XK)",
+        "FR": "Francuska",
+        "BE": "Belgija",
+        "NL": "Holandija",
+        "ES": "Španija",
+        "PT": "Portugalija",
+        "HU": "Mađarska",
+        "PL": "Poljska",
+        "CZ": "Češka",
+        "RO": "Rumunija",
+        "SE": "Švedska",
+        "NO": "Norveška",
+        "DK": "Danska",
+        "IE": "Irska"
+      }
+    },
     "guidance": {
       "countryDescription": "Uputstva za nezgodu sa Zelenim kartonom po državi.",
       "emergency": "Hitni brojevi",
