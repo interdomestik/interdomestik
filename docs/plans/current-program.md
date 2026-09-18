@@ -429,10 +429,10 @@ omitted absent IT, so no output was accepted or rerun.
 
 The owner approved +30,000 tracked bytes and exactly two new files; prior capacity is not reusable.
 Source/tree/E2E `05bcd02d`/`88e68c1f`/`c96665e7` passed local `pr:verify` and security guard; the
-tracker retains detailed proof. Opus `20260918T131352-opus` drove accepted bounded corrections;
+tracker retains detailed proof. Opus `20260918T140646-opus` drove accepted bounded corrections;
 incompatible suggestions were rejected. Corrected-head review, protected delivery, exact-main health
 and retirement remain. Proxy, auth, routing, tenancy, billing and deployment are untouched. The tree
-measures +20913 net bytes against `origin/main` with exactly two new files; no deployment is claimed.
+measures +24865 net bytes against `origin/main` with exactly two new files; no deployment is claimed.
 
 ### Dependency-first selection (owner direction, 2026-09-17)
 

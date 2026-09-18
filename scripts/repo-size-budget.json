@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 121110,
+      "trackedBytesDelta": 121111,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 83019,
+        "config/data/messages": 83020,
         "source/scripts": 23092,
         "tests/e2e": 14999
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 83019,
+        "scripts/repo-size-budget.json": 83020,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -61,10 +61,10 @@
       "id": "product-readiness-requirement-map",
       "mode": "exact",
       "writerPaths": ["docs/plans/requirement-disposition-map.md"],
-      "trackedBytesDelta": 75232,
+      "trackedBytesDelta": 75209,
       "trackedFilesDelta": 1,
-      "categoryBytesDelta": { "docs/text": 75232 },
-      "pathBytesDelta": { "docs/plans/requirement-disposition-map.md": 75232 }
+      "categoryBytesDelta": { "docs/text": 75209 },
+      "pathBytesDelta": { "docs/plans/requirement-disposition-map.md": 75209 }
     },
     {
       "id": "lean-compatibility-repair",
@@ -329,19 +329,19 @@
         "apps/web/src/messages/sq/dashboard.json",
         "apps/web/src/messages/sr/dashboard.json"
       ],
-      "maxTrackedBytesDelta": 56341,
+      "maxTrackedBytesDelta": 57692,
       "maxTrackedFilesDelta": 5,
       "maxCategoryBytesDelta": {
         "config/data/messages": 17828,
         "docs/text": 2824,
         "source/scripts": 8004,
-        "tests/e2e": 27685
+        "tests/e2e": 29036
       },
       "maxPathBytesDelta": {
         "docs/plans/2026-08-28-t117b-cutover-design-gate.md": 2949,
         "docs/plans/2026-08-28-t117b-cutover-admission.json": 7771,
         "apps/web/e2e/dashboard-access.spec.ts": 49,
-        "apps/web/e2e/gate/member-diaspora.spec.ts": 9799,
+        "apps/web/e2e/gate/member-diaspora.spec.ts": 11150,
         "apps/web/e2e/gate/member-home-cta.spec.ts": 1057,
         "apps/web/e2e/golden/agent-member-overlay.spec.ts": 90,
         "apps/web/e2e/golden/member-dashboard-empty-state.spec.ts": 1930,
@@ -689,18 +689,18 @@
         "scripts/ci/main-e2e-reuse-core.test.mjs",
         "scripts/ci/main-e2e-reuse-github.test.mjs"
       ],
-      "maxTrackedBytesDelta": 29809,
+      "maxTrackedBytesDelta": 30051,
       "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
         "source/scripts": 10892,
-        "tests/e2e": 16224,
+        "tests/e2e": 16466,
         "config/data/messages": 2693
       },
       "maxPathBytesDelta": {
         "scripts/ci/main-e2e-reuse.mjs": 2025,
         "scripts/ci/main-e2e-reuse-core.mjs": 975,
         "scripts/ci/main-e2e-reuse-github.mjs": 17,
-        "scripts/ci/main-e2e-reuse-cli.test.mjs": 4870,
+        "scripts/ci/main-e2e-reuse-cli.test.mjs": 5112,
         "scripts/ci/coverage-input-identity.mjs": 2920,
         "scripts/ci/main-coverage-reuse.mjs": 4861,
         "scripts/ci/main-coverage-reuse.test.mjs": 9808,
@@ -1664,15 +1664,15 @@
         "apps/web/src/app/[locale]/(app)/member/diaspora/diaspora-pack-status.test.tsx",
         "apps/web/src/app/[locale]/(app)/member/diaspora/diaspora-pack-status.tsx"
       ],
-      "maxTrackedBytesDelta": 6365,
+      "maxTrackedBytesDelta": 8423,
       "maxTrackedFilesDelta": 2,
       "maxCategoryBytesDelta": {
-        "source/scripts": 2656,
-        "tests/e2e": 3709
+        "source/scripts": 2986,
+        "tests/e2e": 5437
       },
       "maxPathBytesDelta": {
-        "apps/web/src/app/[locale]/(app)/member/diaspora/diaspora-pack-status.test.tsx": 3709,
-        "apps/web/src/app/[locale]/(app)/member/diaspora/diaspora-pack-status.tsx": 2656
+        "apps/web/src/app/[locale]/(app)/member/diaspora/diaspora-pack-status.test.tsx": 5437,
+        "apps/web/src/app/[locale]/(app)/member/diaspora/diaspora-pack-status.tsx": 2986
       }
     }
   ],
@@ -1682,15 +1682,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 62144380,
+  "maxTrackedBytes": 62148009,
   "maxTrackedFiles": 6097,
   "maxCategoryBytes": {
-    "config/data/messages": 2277438,
-    "docs/text": 8658707,
+    "config/data/messages": 2277439,
+    "docs/text": 8658684,
     "large support/generated-ish": 15874268,
     "other": 19184750,
-    "source/scripts": 8908318,
-    "tests/e2e": 7240899
+    "source/scripts": 8908648,
+    "tests/e2e": 7244220
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
