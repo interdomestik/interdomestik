@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-17
+last_reviewed: 2026-09-18
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -18,17 +18,16 @@ status_command: pnpm plan:status
 
 Dependency ordering follows current-program.md, "Dependency-first selection (owner direction,
 2026-09-17)". S5.d claim-start truth merged in #1788 as
-`0091f6ecf39c0888a9decf2fa8c0a1a498d3119c`; exact-main workflows passed on 2026-09-17.
-Older in-progress S5.d/proof wording below is historical. Whole S5 and diaspora remain open;
-S5.d retirement is confirmed below. The owner selected
-`S5-EXPLICIT-DIASPORA-COUNTRY-CONTEXT` from exact main `255ca5ee3c85756e8c8260aaed26f38bea8a9057`.
-This bounded S5 increment reconciles the silent-DE entry contradiction before dependent pack work;
-after it closes, selection again follows direct prerequisites for S6/S7 evidence,
-diaspora packs, H1 and later roles; it must not select a test-only predecessor merely for small size.
+`0091f6ecf39c0888a9decf2fa8c0a1a498d3119c`. Explicit diaspora country context completed through
+protected PR #1790 as `2b474ea50fb09cb94f8338691e4ddb4917b8fefd`; its exact-main workflows and owned-resource
+retirement passed. Whole S5, DIA-002, DIA-003 and the diaspora family remain open. The owner selected
+`S5-DIASPORA-CORRIDOR-PREPARATION` from that exact main under dependency-first item 4. Exact SRS
+clauses and current source establish an implementation-ready bounded contract, but no capacity has
+been approved and implementation must not start from this selection record alone.
 
-S5 explicit-country local proof is complete at head
-`f9ee97de852fe1c0e2c35587a166aa3a8abf82fa`, tree
-`c73014b776df23e850709e04af0eff94b3d28702`, database
+S5 explicit-country local proof is complete at final head
+`0960da7ebdb66066e296ced8b2cda23b4c71954e`, tree
+`a15229a77a6d238567a45bf6014a3b6f8e5a9f69`, database
 `interdomestik_ci_33c07f52_pr_verify_r2` and port 3107. `pnpm pr:verify` exited 0 with 1,193 CI
 contracts, 154 release tests, 52/52 mandatory RLS cases, 644 web files/3,454 tests, 81.21%
 repository line coverage (21,828/26,880), 264 browser passes/14 intentional skips and 13 smoke
@@ -37,9 +36,10 @@ diaspora states at 320px, explicit Italy guidance and their localized S5.d hando
 coverage independently passed 11 cases. A separate same-head `pnpm security:guard` exited 0.
 Initial and intermediate full runs remain superseded evidence; Opus receipts
 `20260917T200207-opus` and `20260917T204619-opus` drove the final capacity, locale-content and
-localized-handoff corrections. Protected
-delivery, exact-main health, archived receipts and retirement remain pending, so the queue row stays
-`in_progress`.
+localized-handoff corrections. PR #1790 merged at 2026-09-17T22:17:09Z; all protected checks and
+exact-main Sonar `35281242693`, CI `35281242712`, CodeQL `35281242727`/`35281242906` and Secret Scan
+`35281242823` passed. The independently rechecked receipt archive and retirement facts are recorded
+in the proof ledger below.
 
 S5.d retirement receipt (2026-09-17): local `9dcc` and both owned Z620 worktrees are absent;
 the task DB is absent, port 3100 is clear, eight checkout-bound helper/MCP processes were stopped,
@@ -178,9 +178,9 @@ protected squash merge `1eecb57a7244f37aded3392c5bf38a32fec08584`; all required 
 checks passed and owned task resources were retired. Final merge/cleanup facts are retained with
 these receipts under `.codex/artifacts/interdomestik/s4`. No deployment is claimed.
 
-| ID                                     | Status        | Owner | Work                                                                                     | Exit Criteria                                                                                                                                                                                                                                                                                                                                                                                          |
-| -------------------------------------- | ------------- | ----- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `S5-EXPLICIT-DIASPORA-COUNTRY-CONTEXT` | `in_progress` | Codex | Require an explicit supported country before guidance or country-specific claim handoff. | Exit contract: missing/invalid/repeated country fails closed with neutral support; explicit DE/CH/AT/IT keeps existing guidance and exact handoff; locale never infers country; EN/SQ/MK/SR, current-choice semantics, mobile reflow, S5.d confirmation, focused/full/security proof, protected delivery, exact-main health and owned-resource retirement. Full corridor and pack clauses remain open. |
+| ID                                 | Status    | Owner | Work                                                                                        | Exit Criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ---------------------------------- | --------- | ----- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S5-DIASPORA-CORRIDOR-PREPARATION` | `pending` | Codex | Capture explicit origin/destination/transit preparation context independent of UI language. | Selected, implementation-ready contract: typed explicit origin/destination and zero-or-more transit values over the existing country-code vocabulary; no inference from locale/host/referral/location or the guidance-country query; mounted EN/SQ/MK/SR, keyboard/mobile and malformed/unsupported fail-closed proof. Context remains non-authoritative and does not select packs, persist to draft/account/claim, set incident country or authorize handoff. IDA-002/003 and pack/offline/S6/S7 work remain open. Measured capacity approval is required before implementation. |
 
 The completed #1782 acceptance-link amendment historically set the requirement-map allocation to
 72,094 bytes, +7,625 over its predecessor. S3 changes use the map's synchronized exact allocation;
@@ -283,7 +283,7 @@ S4–S14 are outcome families to split into bounded implementation slices, not a
 | Item                                    | Status              | Next evidence                                                                                      |
 | --------------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------- |
 | S4 — S3 handoff gap                     | completed_bounded   | Protected PR #1786; request-bound upload/acknowledgement remain open.                              |
-| S5 — Member first-case journey          | in_progress_bounded | S5.d completed through #1788; explicit diaspora country context is the selected bounded increment. |
+| S5 — Member first-case journey          | in_progress_bounded | S5.d and explicit country context completed through #1788/#1790; corridor preparation selected.    |
 | S6 — Member continuation and membership | queued_conditional  | Credit #1775–#1777; complete only missing return/evidence/message/membership access outcomes.      |
 | S7 — Staff handling journey             | queued_conditional  | Existing handling contracts; queue and evidence round-trip with internal/public separation.        |
 | S8 — Agent client/handoff journey       | queued_conditional  | Existing authority and attribution; only unresolved capability changes need disposition.           |
@@ -743,9 +743,23 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                                     | Source Refs                      | Execution  | Run ID         | Run Root                            | Sonar   | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                                                                                                                                             |
-| -------------------------------------- | -------------------------------- | ---------- | -------------- | ----------------------------------- | ------- | ---------------- | ---------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S5-EXPLICIT-DIASPORA-COUNTRY-CONTEXT` | current program; S5; DIA-002/003 | `scripted` | local-f9ee97de | local Mac + protected GitHub checks | pending | `not_applicable` | `not_applicable` | pass     | Exact-head `pr:verify` and separate `security:guard` passed on Mac at `f9ee97de`; mounted neutral and selected EN/SQ/MK/SR diaspora acceptance, Italy guidance and localized S5.d handoffs passed in both tenant projects at 320px. Protected current-head review/checks, exact-main health, archived checksummed receipts and owned-resource retirement remain pending. Full DIA-002 corridor/pack outcomes remain open. |
+| ID                                 | Source Refs                      | Execution | Run ID  | Run Root | Sonar   | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                      |
+| ---------------------------------- | -------------------------------- | --------- | ------- | -------- | ------- | ---------------- | ---------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S5-DIASPORA-CORRIDOR-PREPARATION` | current program; S5; DIA-002/003 | `pending` | pending | pending  | pending | `not_applicable` | `not_applicable` | pending  | Selected from exact main after the matching SRS clauses and existing source/receipt contracts were read. The bounded contract is implementation-ready, but no capacity is approved and no implementation or execution proof exists. DIA-002/003 and all pack/offline/handoff outcomes remain open. |
+
+### Historical S5 explicit-country proof
+
+`S5-EXPLICIT-DIASPORA-COUNTRY-CONTEXT` completed through protected PR #1790. Final-head
+`pr:verify` and separate `security:guard` passed on Mac at
+`0960da7ebdb66066e296ced8b2cda23b4c71954e`, tree
+`a15229a77a6d238567a45bf6014a3b6f8e5a9f69`. Mounted neutral and selected EN/SQ/MK/SR
+acceptance, Italy guidance and localized S5.d handoffs passed in both tenant projects at 320px.
+Protected merge `2b474ea50fb09cb94f8338691e4ddb4917b8fefd` has the same tree; exact-main
+Sonar/CI/CodeQL/Secret Scan passed. The archive
+`s5-explicit-diaspora-country-context-receipts-2b474ea50fb0.tar.gz` has independently rechecked
+SHA-256 `6b09d357cfbddbdc3fb44d4057c96ab78c76e9c3c3c3a55cf62a91102077b991`. Owned
+worktree/branch/database/port retirement preserved healthy shared Supabase. Full DIA-002 corridor
+and pack outcomes remain open.
 
 ### Historical S5.d claim-start proof
 
@@ -1281,8 +1295,10 @@ completed in PR #1777; localization completed in PR #1778. S1 completed through 
 #1780 and exact-main health passed. S2 completed through #1781 with exact-main health passed.
 The acceptance-link amendment completed through #1782. The bounded supported-path prefix of S3
 completed through #1783. S4 completed through protected PR #1786, and bounded
-`S5.d-DIASPORA-CLAIM-START-TRUTH` completed through protected PR #1788. Whole S5 and the diaspora
-family remain open. T-411 Smart Next Step remains unselected.
+`S5.d-DIASPORA-CLAIM-START-TRUTH` completed through protected PR #1788, followed by
+`S5-EXPLICIT-DIASPORA-COUNTRY-CONTEXT` through protected PR #1790. Whole S5 and the diaspora
+family remain open. `S5-DIASPORA-CORRIDOR-PREPARATION` is the selected bounded successor; T-411
+Smart Next Step remains unselected.
 
 | Completed historical priority            | Status      | Constraint                                                                    |
 | ---------------------------------------- | ----------- | ----------------------------------------------------------------------------- |
@@ -1292,9 +1308,10 @@ family remain open. T-411 Smart Next Step remains unselected.
 | Member timeline (T210)                   | `completed` | Product #1763; main CI and Sonar passed at the exact protected merge.         |
 | Notification acknowledgement correctness | `completed` | Product #1765; exact-main CI/Sonar passed; no broader T-410 completion claim. |
 
-No active successor is selected. The queue above records the remaining outcome families and
-dependency order; no later recommendation becomes program priority until the owner selects it and
-the current program records that decision.
+The active successor is `S5-DIASPORA-CORRIDOR-PREPARATION` as recorded in the queue above. Its
+contract is implementation-ready, but selection grants no capacity or implementation authority;
+no work starts until the owner approves a measured ceiling. Later recommendations do not become
+program priority without a new owner selection recorded in the current program.
 
 ## Lean Authority
 

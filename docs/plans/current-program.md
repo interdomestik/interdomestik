@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-17
+last_reviewed: 2026-09-18
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -50,8 +50,10 @@ all 13 protected checks green and retirement confirmed. S4 completed through pro
 as `1eecb57a7244f37aded3392c5bf38a32fec08584`, with all exact-main checks green and its owned
 verification resources retired. The bounded S5.d diaspora claim-start truth increment merged through
 #1788 as `0091f6ecf39c0888a9decf2fa8c0a1a498d3119c`; exact-main checks passed and its owned
-resources were retired. The whole S3 and S5 journey families remain open. The selected bounded S5
-successor is explicit diaspora country context, recorded below.
+resources were retired. Explicit diaspora country context then completed through protected PR #1790
+as `2b474ea50fb09cb94f8338691e4ddb4917b8fefd`, with exact-main health and owned-resource
+retirement confirmed. The whole S3 and S5 journey families remain open. The selected bounded S5
+successor is diaspora corridor preparation, recorded below.
 
 ## Owner-adopted enterprise delivery sequence (2026-09-15)
 
@@ -221,7 +223,7 @@ exact-head Mac verification, layered mounted/tampering/four-locale acceptance, h
 retirement. This completes only S5.d; remaining S5 entry/continuity and diaspora-family outcomes stay
 open and no successor is selected by this closeout.
 
-### Selected S5 — Explicit diaspora country context (2026-09-17)
+### Completed S5 — Explicit diaspora country context (2026-09-17)
 
 The owner selected `S5-EXPLICIT-DIASPORA-COUNTRY-CONTEXT` from fresh protected main
 `255ca5ee3c85756e8c8260aaed26f38bea8a9057`. Direct predecessors are the mounted diaspora
@@ -275,9 +277,9 @@ self-attribution. Derived category growth is +2,443 config, +389 docs, +2,533 so
 test/E2E bytes. Reserve, deleted-byte credit, enforcement thresholds and unrelated owners remain
 unchanged; the existing S5.d allocation is extended only for the four paths reused by this slice.
 
-Authoritative local proof is bound to product/evidence head
-`f9ee97de852fe1c0e2c35587a166aa3a8abf82fa`, tree
-`c73014b776df23e850709e04af0eff94b3d28702`, task database
+Authoritative local proof is bound to final product/evidence head
+`0960da7ebdb66066e296ced8b2cda23b4c71954e`, tree
+`a15229a77a6d238567a45bf6014a3b6f8e5a9f69`, task database
 `interdomestik_ci_33c07f52_pr_verify_r2` and isolated port 3107. One uninterrupted
 `pnpm pr:verify` passed 1,193 CI contracts, 154 release-gate tests, 52 mandatory live RLS tests,
 644 web test files/3,454 tests with 12 intentional skips, 81.21% repository line coverage
@@ -289,14 +291,54 @@ post-review rerun remain retained as superseded evidence; the latter exposed no 
 its Opus FINDINGS receipt `20260917T200207-opus` drove exact capacity reconciliation and positive
 four-locale selected-state proof. Opus receipt `20260917T204619-opus` then drove cross-locale pack
 content assertions and restored the SQ/MK S5.d handoff before this authoritative rerun. The
-generated Next type stub was reversed after each successful run. Protected delivery, current-head hosted review/checks,
-exact-main health, receipt archival and owned-resource retirement remain required before this
-bounded increment closes.
+generated Next type stub was reversed after each successful run. Protected PR #1790 squash-merged
+as `2b474ea50fb09cb94f8338691e4ddb4917b8fefd` at 2026-09-17T22:17:09Z with the same tree.
+All protected checks were green. Exact-main Sonar `35281242693`, CI `35281242712`, CodeQL
+`35281242727` and `35281242906`, and Secret Scan `35281242823` passed. Receipts are preserved in
+`~/.codex/task-receipts/interdomestik/S5-EXPLICIT-DIASPORA-COUNTRY-CONTEXT/2026-09-18/`
+as `s5-explicit-diaspora-country-context-receipts-2b474ea50fb0.tar.gz`; independently rechecked
+SHA-256: `6b09d357cfbddbdc3fb44d4057c96ab78c76e9c3c3c3a55cf62a91102077b991`.
+The owned worktree, branch, task database and port were retired while shared Supabase remained
+healthy. This closes only the bounded explicit-country increment and does not deploy.
 
 Full DIA-002 origin/destination/transit corridor capture, persona gating, signed/current pack
 metadata, integrity/expiry, offline/retry/recovery, police/EAS content approval, multi-country
 itineraries, geolocation and S6/S7 handoffs remain open. This increment must not mark DIA-002,
 DIA-003, S5 or the diaspora family complete and does not deploy.
+
+### Selected S5 — Diaspora corridor preparation (2026-09-18)
+
+The owner selected `S5-DIASPORA-CORRIDOR-PREPARATION` from protected main
+`2b474ea50fb09cb94f8338691e4ddb4917b8fefd` under dependency-first item 4 and
+`IDA-DIA-002`. The exact owner-held SRS v0.9 source was re-read at its recorded SHA-256
+`8bc2b69c9babf8f228941378a01a32340f23d3ff061f92c574a9a908472981a2`. IDA-DIA-002
+requires Trip Mode to capture origin, destination and transit countries from explicit user input and
+forbids final-authority inference from IP, host, locale, referral or device location. IDA-DIA-003
+requires interface locale to follow user preference independently from selected or incident country
+context. Existing source has a typed `CountryCodeSchema` vocabulary and the mounted explicit
+DE/CH/AT/IT guidance-country selector, but no origin/destination/transit model or mounted corridor
+capture. This is the reproduced direct S5 blocker. Existing saved-draft, account, submission and case
+continuity contracts are credited and are not missing prerequisites.
+
+This medium-complexity preparation slice is implementation-ready for Sol 5.6 at high reasoning.
+Acceptance is a pure typed corridor-preparation contract plus mounted member-diaspora capture and
+summary for required origin, required destination and a zero-or-more transit-country list.
+Every value must come from explicit user input and the existing `CountryCodeSchema`; that schema is
+only the current input vocabulary and does not approve or expose jurisdiction-specific guidance.
+The same country values must survive EN/SQ/MK/SR interface-locale changes without locale, host,
+referral, device-location or existing single-country query inference. Missing, malformed and
+unsupported values fail closed without producing a corridor context. The context remains
+non-authoritative preparation state: it does not choose a pack, populate a saved draft, create an
+account or claim, set `incidentCountryCode`, establish persona/eligibility, or authorize a handoff.
+Mounted keyboard/mobile and locale-independence tests, pure parser/serialization boundaries and
+unchanged canonical route/auth/tenant behavior form the bounded software acceptance.
+
+Signed/current pack metadata, content review, pack selection, persistence/account continuity,
+offline download/integrity/retry/recovery, geolocation, jurisdiction or persona decisions,
+police/EAS content, claim handoff and S6/S7 remain excluded. IDA-DIA-002, IDA-DIA-003, S5 and the
+whole diaspora family remain open after this preparation increment. The selection is contract-ready,
+not capacity approval: implementation must not start until the owner approves a measured byte/file
+ceiling. It authorizes no deployment, routing/auth/proxy change, schema/migration or country expansion.
 
 ### Dependency-first selection (owner direction, 2026-09-17)
 
