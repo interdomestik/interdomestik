@@ -7,6 +7,7 @@ import { SidebarUserMenu } from './sidebar-user-menu';
 
 const mockSignOutAndRedirectToLogin = vi.mocked(signOutAndRedirectToLogin);
 const replaceMock = vi.fn();
+const searchParamsMock = vi.fn(() => 'origin=DE&destination=IT&transit=AT&transit=CH');
 
 vi.mock('@/i18n/routing', () => ({
   Link: ({ children, href }: { children: React.ReactNode; href: string }) => (
@@ -19,7 +20,7 @@ vi.mock('@/i18n/routing', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams('origin=DE&destination=IT&transit=AT&transit=CH'),
+  useSearchParams: () => new URLSearchParams(searchParamsMock()),
 }));
 
 vi.mock('@/lib/auth-client', () => ({
@@ -112,6 +113,15 @@ describe('SidebarUserMenu', () => {
       '/agent?origin=DE&destination=IT&transit=AT&transit=CH',
       { locale: 'en' }
     );
+  });
+
+  it('keeps the pathname-only locale switch when no query is present', () => {
+    searchParamsMock.mockReturnValueOnce('');
+    render(<SidebarUserMenu />);
+
+    fireEvent.click(screen.getByRole('button', { name: /English/i }));
+
+    expect(replaceMock).toHaveBeenCalledWith('/agent', { locale: 'en' });
   });
 
   it('signs out with a localized hard redirect for agent users', async () => {
