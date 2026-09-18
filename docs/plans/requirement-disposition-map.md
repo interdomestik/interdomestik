@@ -3,7 +3,7 @@ plan_role: input
 status: active
 source_of_truth: false
 owner: platform
-last_reviewed: 2026-09-16
+last_reviewed: 2026-09-18
 ---
 
 # Requirement disposition map
@@ -262,8 +262,8 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-AST-015 | Content hotfix | Target | unresolved | H1 | open | none | U | U | U |
 | IDA-AST-016 | Country release hold | Target | unresolved | H1 | open | none | U | U | U |
 | IDA-DIA-001 | Diaspora persona boundary | Canonical | unresolved | S5/S6; see acceptance links | open | none | U | U | U |
-| IDA-DIA-002 | User-selected corridor | Canonical | unresolved | S5/S6; selected S5 country-context increment proves only explicit single supported guidance-country choice and no query fallback; full Trip Mode origin/destination/transit corridor remains open | open | candidate source/tests pending protected receipt | U | U | U |
-| IDA-DIA-003 | Locale independent from country pack | Canonical | unresolved | S5/S6; selected S5 increment exercises locale-independent country selection across EN/SQ/MK/SR; full pack/content rehearsal and non-software readiness remain open | open | candidate source/tests pending protected receipt | U | U | U |
+| IDA-DIA-002 | User-selected corridor | Canonical | unresolved | S5/S6; #1790 proves explicit guidance-country/no fallback only; selected successor covers origin/destination/transit over `CountryCodeSchema`; Trip Mode/persistence/packs/handoff open | open | PR1790 + tracker receipt; no successor capacity | U | U | U |
+| IDA-DIA-003 | Locale independent from country pack | Canonical | unresolved | S5/S6; #1790 proves EN/SQ/MK/SR guidance-country independence; selected successor preserves country values across locale changes; pack/content and non-software readiness open | open | PR1790 + tracker receipt; no successor capacity | U | U | U |
 | IDA-DIA-004 | Signed pack requirement | Canonical | unresolved | S5/S6; see acceptance links | open | none | U | U | U |
 | IDA-DIA-005 | Unsigned pack fail-closed | Canonical | unresolved | S5/S6; see acceptance links | open | none | U | U | U |
 | IDA-DIA-006 | Explicit offline preparation | Target | unresolved | S5/S6; see acceptance links | open | none | U | U | U |
