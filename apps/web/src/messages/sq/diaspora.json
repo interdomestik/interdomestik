@@ -17,6 +17,43 @@
         "IT": "Italia"
       }
     },
+    "corridor": {
+      "title": "Planifiko korridorin e udhëtimit",
+      "preparationOnly": "Vetëm për përgatitje. Kjo nuk hap dhe nuk përditëson një kërkesë.",
+      "origin": "Nisja",
+      "destination": "Destinacioni",
+      "chooseCountry": "Zgjidh një shtet",
+      "transitGroup": "Shtetet e tranzitit",
+      "transitHint": "Shto çdo shtet tranziti sipas radhës së udhëtimit.",
+      "transit": "Shteti i tranzitit {position}",
+      "addTransit": "Shto shtet tranziti",
+      "removeTransit": "Hiq shtetin e tranzitit {position}",
+      "apply": "Shfaq përmbledhjen e korridorit",
+      "error": "Zgjidh shtete të vlefshme për korridorin.",
+      "summaryTitle": "Korridori yt i udhëtimit",
+      "options": {
+        "AT": "Austria",
+        "DE": "Gjermania",
+        "CH": "Zvicra",
+        "IT": "Italia",
+        "MK": "Maqedonia e Veriut",
+        "AL": "Shqipëria",
+        "XK": "Kosova",
+        "FR": "Franca",
+        "BE": "Belgjika",
+        "NL": "Holanda",
+        "ES": "Spanja",
+        "PT": "Portugalia",
+        "HU": "Hungaria",
+        "PL": "Polonia",
+        "CZ": "Çekia",
+        "RO": "Rumania",
+        "SE": "Suedia",
+        "NO": "Norvegjia",
+        "DK": "Danimarka",
+        "IE": "Irlanda"
+      }
+    },
     "guidance": {
       "countryDescription": "Udhëzime sipas shtetit për aksident me Green Card.",
       "emergency": "Numrat e urgjencës",

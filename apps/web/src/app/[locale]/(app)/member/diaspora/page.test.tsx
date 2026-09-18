@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { COUNTRY_CODES } from '@interdomestik/domain-country-guidance';
 import { describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -39,7 +40,7 @@ const hoisted = vi.hoisted(() => ({
       },
     };
 
-    return (key: string) =>
+    const translate = (key: string) =>
       key.split('.').reduce((value: unknown, part: string) => {
         if (!value || typeof value !== 'object') {
           return key;
@@ -47,6 +48,9 @@ const hoisted = vi.hoisted(() => ({
 
         return (value as Record<string, unknown>)[part];
       }, messages) ?? key;
+
+    translate.raw = (key: string) => (key === 'corridor' ? corridorProps.copy : key);
+    return translate;
   }),
   getSupportContactsMock: vi.fn(() => ({
     phoneE164: '+38349900600',
@@ -55,6 +59,9 @@ const hoisted = vi.hoisted(() => ({
     whatsappE164: '+38349900600',
     whatsappHref: 'https://wa.me/38349900600',
   })),
+  pathnameMock: vi.fn(() => '/member/diaspora'),
+  replaceMock: vi.fn(),
+  searchMock: vi.fn(() => 'country=CH'),
 }));
 
 vi.mock('next-intl/server', () => ({
@@ -68,6 +75,12 @@ vi.mock('@/i18n/routing', () => ({
       {children}
     </a>
   ),
+  usePathname: hoisted.pathnameMock,
+  useRouter: () => ({ replace: hoisted.replaceMock }),
+}));
+
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(hoisted.searchMock()),
 }));
 
 vi.mock('@/lib/support-contacts', () => ({
@@ -75,6 +88,74 @@ vi.mock('@/lib/support-contacts', () => ({
 }));
 
 import DiasporaPage from './page';
+import { DiasporaCorridorCapture, type DiasporaCorridorCopy } from './diaspora-corridor-capture';
+
+const corridorNames: Record<string, string> = {
+  AT: 'Austria',
+  CH: 'Switzerland',
+  DE: 'Germany',
+  IT: 'Italy',
+};
+
+const corridorProps = {
+  copy: {
+    addTransit: 'Add transit country',
+    apply: 'Show corridor summary',
+    chooseCountry: 'Choose a country',
+    destination: 'Destination',
+    error: 'Choose valid corridor countries.',
+    origin: 'Origin',
+    options: Object.fromEntries(
+      COUNTRY_CODES.map(code => [code, corridorNames[code] ?? code])
+    ) as DiasporaCorridorCopy['options'],
+    preparationOnly: 'Preparation only. This does not start or update a claim.',
+    removeTransit: 'Remove transit country {position}',
+    summaryTitle: 'Your trip corridor',
+    title: 'Prepare your trip corridor',
+    transit: 'Transit country {position}',
+    transitGroup: 'Transit countries',
+    transitHint: 'Add every transit country in travel order.',
+  },
+  initialContext: null,
+};
+
+describe('DiasporaCorridorCapture', () => {
+  it('preserves ordered duplicate transit and query state', () => {
+    render(<DiasporaCorridorCapture {...corridorProps} />);
+
+    fireEvent.change(screen.getByLabelText('Origin'), { target: { value: 'DE' } });
+    fireEvent.change(screen.getByLabelText('Destination'), { target: { value: 'IT' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add transit country' }));
+    fireEvent.change(screen.getByLabelText('Transit country 1'), { target: { value: 'AT' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add transit country' }));
+    fireEvent.change(screen.getByLabelText('Transit country 2'), { target: { value: 'AT' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Show corridor summary' }));
+
+    expect(hoisted.replaceMock).toHaveBeenCalledWith(
+      '/member/diaspora?country=CH&origin=DE&destination=IT&transit=AT&transit=AT'
+    );
+  });
+
+  it('focuses added transit and shows a bounded summary', async () => {
+    const { rerender } = render(<DiasporaCorridorCapture {...corridorProps} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add transit country' }));
+    await waitFor(() => expect(screen.getByLabelText('Transit country 1')).toHaveFocus());
+    fireEvent.change(screen.getByLabelText('Transit country 1'), { target: { value: 'AT' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Remove transit country 1' }));
+    expect(screen.queryByLabelText('Transit country 1')).not.toBeInTheDocument();
+
+    rerender(
+      <DiasporaCorridorCapture
+        {...corridorProps}
+        initialContext={{ origin: 'DE', destination: 'IT', transit: [] }}
+      />
+    );
+
+    expect(screen.getByRole('heading', { name: 'Your trip corridor' })).toBeInTheDocument();
+    expect(screen.getByTestId('diaspora-corridor-summary')).toHaveTextContent('Germany → Italy');
+  });
+});
 
 describe('DiasporaPage', () => {
   it('requires an explicit country before showing guidance or a claim handoff', async () => {

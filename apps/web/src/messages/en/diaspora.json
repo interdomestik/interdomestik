@@ -17,6 +17,43 @@
         "IT": "Italy"
       }
     },
+    "corridor": {
+      "title": "Plan your travel corridor",
+      "preparationOnly": "Preparation only. This does not start or update a claim.",
+      "origin": "Origin",
+      "destination": "Destination",
+      "chooseCountry": "Choose a country",
+      "transitGroup": "Transit countries",
+      "transitHint": "Add every transit country in travel order.",
+      "transit": "Transit country {position}",
+      "addTransit": "Add transit country",
+      "removeTransit": "Remove transit country {position}",
+      "apply": "Show corridor summary",
+      "error": "Choose valid corridor countries.",
+      "summaryTitle": "Your trip corridor",
+      "options": {
+        "AT": "Austria",
+        "DE": "Germany",
+        "CH": "Switzerland",
+        "IT": "Italy",
+        "MK": "North Macedonia",
+        "AL": "Albania",
+        "XK": "Kosovo",
+        "FR": "France",
+        "BE": "Belgium",
+        "NL": "Netherlands",
+        "ES": "Spain",
+        "PT": "Portugal",
+        "HU": "Hungary",
+        "PL": "Poland",
+        "CZ": "Czechia",
+        "RO": "Romania",
+        "SE": "Sweden",
+        "NO": "Norway",
+        "DK": "Denmark",
+        "IE": "Ireland"
+      }
+    },
     "guidance": {
       "countryDescription": "Country-specific Green Card accident guidance.",
       "emergency": "Emergency numbers",

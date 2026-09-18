@@ -309,7 +309,7 @@ DIA-003, S5 or the diaspora family complete and does not deploy.
 ### Selected S5 — Diaspora corridor preparation (2026-09-18)
 
 The owner selected `S5-DIASPORA-CORRIDOR-PREPARATION` from protected main
-`2b474ea50fb09cb94f8338691e4ddb4917b8fefd` under dependency-first item 4 and
+`8db18b31717fbce999589aaaa4e83198de8289ad` under dependency-first item 4 and
 `IDA-DIA-002`. The exact owner-held SRS v0.9 source was re-read at its recorded SHA-256
 `8bc2b69c9babf8f228941378a01a32340f23d3ff061f92c574a9a908472981a2`. IDA-DIA-002
 requires Trip Mode to capture origin, destination and transit countries from explicit user input and
@@ -320,25 +320,53 @@ DE/CH/AT/IT guidance-country selector, but no origin/destination/transit model o
 capture. This is the reproduced direct S5 blocker. Existing saved-draft, account, submission and case
 continuity contracts are credited and are not missing prerequisites.
 
+Before implementation, the owner approved one consolidated ceiling of +42,000 tracked bytes and
+three new tracked files. The allocation is +20,000/three files for the new corridor owner,
++6,000 for the existing S5.d page/test/MK/SQ owner, +4,500 for the existing selector/EN/SR
+owner, +5,000 for the existing diaspora E2E owner, +500 for CI corpus reuse, +500 for the exact
+requirement map, +3,500 for current program/tracker evidence and +2,000 for capacity-budget
+self-accounting. Deleted-byte credit, reserve consumption, allocation reorder and guard weakening
+are forbidden; the executable budget remains controlling.
+
 This medium-complexity preparation slice is implementation-ready for Sol 5.6 at high reasoning.
 Acceptance is a pure typed corridor-preparation contract plus mounted member-diaspora capture and
 summary for required origin, required destination and a zero-or-more transit-country list.
-Every value must come from explicit user input and the existing `CountryCodeSchema`; that schema is
-only the current input vocabulary and does not approve or expose jurisdiction-specific guidance.
+Every value must come from explicit user input and the existing 20-code `CountryCodeSchema`
+vocabulary (`AT DE CH IT MK AL XK FR BE NL ES PT HU PL CZ RO SE NO DK IE`); that schema is only
+the current input vocabulary and does not approve or expose jurisdiction-specific guidance. The
+bounded URL channel uses `origin`, `destination` and ordered repeated `transit` query values. A
+single invalid endpoint or transit member rejects the whole context. Transit is capped at 12;
+duplicates, equal endpoints and transit values equal to either endpoint are valid and preserve exact
+order through parse/serialize and locale switches. Add, edit and remove controls remain keyboard
+operable and focus the newly added row.
 The same country values must survive EN/SQ/MK/SR interface-locale changes without locale, host,
-referral, device-location or existing single-country query inference. Missing, malformed and
+IP, referral, device-location or existing single-country query inference. Missing, malformed and
 unsupported values fail closed without producing a corridor context. The context remains
 non-authoritative preparation state: it does not choose a pack, populate a saved draft, create an
 account or claim, set `incidentCountryCode`, establish persona/eligibility, or authorize a handoff.
 Mounted keyboard/mobile and locale-independence tests, pure parser/serialization boundaries and
 unchanged canonical route/auth/tenant behavior form the bounded software acceptance.
 
+Brief primary-source research retained the predecessor's explicit-country and neutral-support
+posture from [GOV.UK Foreign Travel Advice](https://www.gov.uk/foreign-travel-advice) and
+[ADAC accident abroad guidance](https://www.adac.de/rund-ums-fahrzeug/unfall-schaden-panne/unfall/unfall-im-ausland/).
+The repeatable control follows the Home Office
+[add another thing](https://design.homeoffice.gov.uk/patterns/add-another-thing) pattern and W3C
+[forms guidance](https://www.w3.org/WAI/tutorials/forms/); explicit query forwarding across locale
+navigation follows current [next-intl navigation guidance](https://next-intl.dev/docs/routing/navigation).
+One bounded Mac foundation-model comparison produced no accepted novel case, three factual errors
+about the existing vocabulary and one overlap with the human list. Gemini preparation review added
+the scalar-array, mixed-invalid, duplicate/order, equal-endpoint, keyboard, mobile and unchanged
+S5.d counterexamples. After repaired first-party subscription authentication, Sonnet preparation
+review added explicit whole-context rejection, a 12-transit limit, URL-channel, IP, member-route and
+remove/edit dispositions. These are preparation consultations, not final review approval.
+
 Signed/current pack metadata, content review, pack selection, persistence/account continuity,
 offline download/integrity/retry/recovery, geolocation, jurisdiction or persona decisions,
 police/EAS content, claim handoff and S6/S7 remain excluded. IDA-DIA-002, IDA-DIA-003, S5 and the
 whole diaspora family remain open after this preparation increment. The selection is contract-ready,
-not capacity approval: implementation must not start until the owner approves a measured byte/file
-ceiling. It authorizes no deployment, routing/auth/proxy change, schema/migration or country expansion.
+and implementation proceeds only inside the approved ceiling above. It authorizes no deployment,
+routing/auth/proxy change, schema/migration or country expansion.
 
 ### Dependency-first selection (owner direction, 2026-09-17)
 

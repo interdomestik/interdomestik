@@ -2,10 +2,86 @@ import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 
+async function switchLocale(
+  page: Parameters<typeof gotoApp>[0],
+  languageLabel: string,
+  optionLabel: string,
+  expectedPath: string
+) {
+  await page.getByTestId('sidebar-user-menu-button').click();
+  await page.getByText(languageLabel, { exact: true }).hover();
+  await page.getByText(optionLabel, { exact: true }).click();
+  await expect.poll(() => new URL(page.url()).pathname).toBe(expectedPath);
+}
+
 test.describe('Diaspora Feature', () => {
   test('retained member handoffs settle', async ({ authenticatedPage: page }, testInfo) => {
     // prettier-ignore
     for (const [path, marker] of [['claim-report', 'report-page-ready'], ['green-card', 'green-card-page-ready'], ['benefits', 'benefits-page-ready']] as const) await gotoApp(page, `${routes.member(testInfo)}/${path}`, testInfo, { marker });
+  });
+
+  test('captures an exact corridor and preserves it through guidance and locale changes', async ({
+    authenticatedPage: page,
+  }, testInfo) => {
+    const originalViewport = page.viewportSize();
+    if (!originalViewport) throw new Error('Diaspora gate requires a configured viewport.');
+
+    await page.setViewportSize({ width: 320, height: 720 });
+    await gotoApp(page, routes.memberDiaspora('en'), testInfo, { marker: 'diaspora-page' });
+    await page.getByLabel('Origin').selectOption('DE');
+    await page.getByLabel('Destination').selectOption('IT');
+
+    const addTransit = page.getByRole('button', { name: 'Add transit country' });
+    await addTransit.focus();
+    await addTransit.press('Enter');
+    await expect(page.getByLabel('Transit country 1')).toBeFocused();
+    await page.getByLabel('Transit country 1').selectOption('AT');
+    await addTransit.click();
+    await page.getByLabel('Transit country 2').selectOption('AT');
+    await page.getByRole('button', { name: 'Show corridor summary' }).click();
+
+    const corridorQuery = 'origin=DE&destination=IT&transit=AT&transit=AT';
+    await expect.poll(() => new URL(page.url()).search.slice(1)).toBe(corridorQuery);
+    await expect(page.getByTestId('diaspora-corridor-summary')).toContainText(
+      'Germany → Austria → Austria → Italy'
+    );
+    await expect(page.getByTestId('diaspora-corridor-summary')).toContainText(
+      'Preparation only. This does not start or update a claim.'
+    );
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => document.documentElement.scrollWidth <= document.documentElement.clientWidth
+        )
+      )
+      .toBe(true);
+
+    await page.getByRole('link', { name: 'Italy' }).click();
+    const preservedQuery = `country=IT&${corridorQuery}`;
+    await expect.poll(() => new URL(page.url()).search.slice(1)).toBe(preservedQuery);
+    await expect(page.getByTestId('diaspora-corridor-summary')).toBeVisible();
+
+    await page.setViewportSize(originalViewport);
+    await switchLocale(page, 'Language', 'Shqip', '/sq/member/diaspora');
+    await expect.poll(() => new URL(page.url()).search.slice(1)).toBe(preservedQuery);
+    await switchLocale(page, 'Gjuha', 'Македонски', '/mk/member/diaspora');
+    await expect.poll(() => new URL(page.url()).search.slice(1)).toBe(preservedQuery);
+    await switchLocale(page, 'Јазик', 'Srpski', '/sr/member/diaspora');
+    await expect.poll(() => new URL(page.url()).search.slice(1)).toBe(preservedQuery);
+
+    for (const query of [
+      '?country=DE',
+      '?origin=DE&destination=',
+      '?origin=de&destination=IT',
+      '?origin=US&destination=IT',
+      '?origin=DE&origin=CH&destination=IT',
+      '?origin=DE&destination=IT&transit=US',
+    ]) {
+      await gotoApp(page, `${routes.memberDiaspora('en')}${query}`, testInfo, {
+        marker: 'diaspora-page',
+      });
+      await expect(page.getByTestId('diaspora-corridor-summary')).toHaveCount(0);
+    }
   });
 
   test('Member can use the retained diaspora workflow from its canonical route', async ({
