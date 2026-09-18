@@ -10,7 +10,7 @@ async function switchLocale(
 ) {
   await page.getByTestId('sidebar-user-menu-button').click();
   await page.getByText(languageLabel, { exact: true }).hover();
-  await page.getByText(optionLabel, { exact: true }).click();
+  await page.getByRole('menuitem').filter({ hasText: optionLabel }).click();
   await expect.poll(() => new URL(page.url()).pathname).toBe(expectedPath);
 }
 
@@ -35,9 +35,9 @@ test.describe('Diaspora Feature', () => {
     await addTransit.focus();
     await addTransit.press('Enter');
     await expect(page.getByLabel('Transit country 1')).toBeFocused();
-    await page.getByLabel('Transit country 1').selectOption('AT');
+    await page.getByLabel('Transit country 1', { exact: true }).selectOption('AT');
     await addTransit.click();
-    await page.getByLabel('Transit country 2').selectOption('AT');
+    await page.getByLabel('Transit country 2', { exact: true }).selectOption('AT');
     await page.getByRole('button', { name: 'Show corridor summary' }).click();
 
     const corridorQuery = 'origin=DE&destination=IT&transit=AT&transit=AT';

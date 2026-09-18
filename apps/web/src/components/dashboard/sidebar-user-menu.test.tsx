@@ -107,7 +107,9 @@ describe('SidebarUserMenu', () => {
   });
 
   it('preserves ordered repeated query values when switching locale', () => {
-    render(<SidebarUserMenu />);
+    render(
+      <SidebarUserMenu retainedLocaleQueryKeys={['country', 'origin', 'destination', 'transit']} />
+    );
 
     fireEvent.click(screen.getByRole('button', { name: /English/i }));
 
@@ -119,7 +121,7 @@ describe('SidebarUserMenu', () => {
 
   it('keeps the pathname-only locale switch when no query is present', () => {
     window.history.replaceState({}, '', '/');
-    render(<SidebarUserMenu />);
+    render(<SidebarUserMenu retainedLocaleQueryKeys={['origin', 'destination', 'transit']} />);
 
     fireEvent.click(screen.getByRole('button', { name: /English/i }));
 

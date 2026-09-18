@@ -26,21 +26,30 @@ import { useLocale, useTranslations } from 'next-intl';
 import type { ClientShellUser } from '@/components/shell/client-shell-user';
 import { getRoleLabel } from '@/lib/roles-i18n';
 
-const DIASPORA_QUERY_KEYS = new Set(['country', 'origin', 'destination', 'transit']);
+function localeSwitchHref(
+  pathname: string,
+  search: string,
+  retainedQueryKeys: readonly string[]
+): string {
+  if (retainedQueryKeys.length === 0) return pathname;
 
-function localeSwitchHref(pathname: string, search: string): string {
-  if (pathname !== '/member/diaspora') return pathname;
-
+  const retainedKeys = new Set(retainedQueryKeys);
   const retainedParams = new URLSearchParams();
   for (const [key, value] of new URLSearchParams(search)) {
-    if (DIASPORA_QUERY_KEYS.has(key)) retainedParams.append(key, value);
+    if (retainedKeys.has(key)) retainedParams.append(key, value);
   }
 
   const query = retainedParams.toString();
   return query ? `${pathname}?${query}` : pathname;
 }
 
-function SidebarUserMenuInner({ user }: { user: ClientShellUser | null }) {
+function SidebarUserMenuInner({
+  user,
+  retainedLocaleQueryKeys,
+}: {
+  user: ClientShellUser | null;
+  retainedLocaleQueryKeys: readonly string[];
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const locale = useLocale();
@@ -48,7 +57,9 @@ function SidebarUserMenuInner({ user }: { user: ClientShellUser | null }) {
   const tCommon = useTranslations('common');
 
   const switchLocale = (nextLocale: 'en' | 'sq' | 'mk' | 'sr') => {
-    router.replace(localeSwitchHref(pathname, window.location.search), { locale: nextLocale });
+    router.replace(localeSwitchHref(pathname, window.location.search, retainedLocaleQueryKeys), {
+      locale: nextLocale,
+    });
   };
 
   const handleSignOut = async () => {
@@ -152,15 +163,30 @@ function SidebarUserMenuInner({ user }: { user: ClientShellUser | null }) {
   );
 }
 
-function SidebarUserMenuFromSession() {
+function SidebarUserMenuFromSession({
+  retainedLocaleQueryKeys,
+}: {
+  retainedLocaleQueryKeys: readonly string[];
+}) {
   const { data: session } = authClient.useSession();
-  return <SidebarUserMenuInner user={(session?.user as ClientShellUser | undefined) ?? null} />;
+  return (
+    <SidebarUserMenuInner
+      retainedLocaleQueryKeys={retainedLocaleQueryKeys}
+      user={(session?.user as ClientShellUser | undefined) ?? null}
+    />
+  );
 }
 
-export function SidebarUserMenu({ user }: { user?: ClientShellUser | null }) {
+export function SidebarUserMenu({
+  user,
+  retainedLocaleQueryKeys = [],
+}: {
+  user?: ClientShellUser | null;
+  retainedLocaleQueryKeys?: readonly string[];
+}) {
   if (user !== undefined) {
-    return <SidebarUserMenuInner user={user} />;
+    return <SidebarUserMenuInner user={user} retainedLocaleQueryKeys={retainedLocaleQueryKeys} />;
   }
 
-  return <SidebarUserMenuFromSession />;
+  return <SidebarUserMenuFromSession retainedLocaleQueryKeys={retainedLocaleQueryKeys} />;
 }

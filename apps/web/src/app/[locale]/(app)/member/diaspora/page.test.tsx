@@ -117,6 +117,29 @@ const corridorProps = {
   initialContext: null,
 };
 
+const corridorCatalogs: readonly DiasporaCorridorCopy[] = [
+  enDiaspora.diaspora.corridor,
+  sqDiaspora.diaspora.corridor,
+  mkDiaspora.diaspora.corridor,
+  srDiaspora.diaspora.corridor,
+];
+
+const corridorCopyKeys = [
+  'addTransit',
+  'apply',
+  'chooseCountry',
+  'destination',
+  'options',
+  'origin',
+  'preparationOnly',
+  'removeTransit',
+  'summaryTitle',
+  'title',
+  'transit',
+  'transitGroup',
+  'transitHint',
+].sort();
+
 describe('DiasporaCorridorCapture', () => {
   it('preserves ordered duplicate transit and query state', () => {
     window.history.replaceState({}, '', '/?country=CH');
@@ -157,11 +180,31 @@ describe('DiasporaCorridorCapture', () => {
   });
 
   it('keeps every locale corridor catalog aligned with the country vocabulary', () => {
-    for (const messages of [enDiaspora, sqDiaspora, mkDiaspora, srDiaspora]) {
-      expect(Object.keys(messages.diaspora.corridor.options).sort()).toEqual(
-        [...COUNTRY_CODES].sort()
-      );
+    for (const copy of corridorCatalogs) {
+      expect(Object.keys(copy).sort()).toEqual(corridorCopyKeys);
+      expect(Object.keys(copy.options).sort()).toEqual([...COUNTRY_CODES].sort());
     }
+  });
+
+  it('disables transit additions at the mounted cap and preserves order after middle removal', () => {
+    render(<DiasporaCorridorCapture {...corridorProps} />);
+    const addTransit = screen.getByRole('button', { name: 'Add transit country' });
+
+    for (let index = 0; index < 12; index += 1) fireEvent.click(addTransit);
+
+    expect(addTransit).toBeDisabled();
+    expect(screen.getByLabelText('Transit country 12', { exact: true })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Transit country 5', { exact: true }), {
+      target: { value: 'DE' },
+    });
+    fireEvent.change(screen.getByLabelText('Transit country 6', { exact: true }), {
+      target: { value: 'IT' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^Remove transit country 5$/ }));
+
+    expect(screen.getByLabelText('Transit country 5', { exact: true })).toHaveValue('IT');
+    expect(screen.getByLabelText('Transit country 4', { exact: true })).toHaveFocus();
+    expect(addTransit).toBeEnabled();
   });
 });
 

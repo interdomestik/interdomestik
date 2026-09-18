@@ -29,7 +29,6 @@
       "addTransit": "Dodaj tranzitnu državu",
       "removeTransit": "Ukloni tranzitnu državu {position}",
       "apply": "Prikaži koridor",
-      "error": "Izaberite važeće države za koridor.",
       "summaryTitle": "Vaš putni koridor",
       "options": {
         "AT": "Austrija",

@@ -52,19 +52,23 @@ export function DiasporaCorridorCapture({ copy, initialContext }: Props) {
   const [origin, setOrigin] = useState(initialContext?.origin ?? '');
   const [destination, setDestination] = useState(initialContext?.destination ?? '');
   const [transit, setTransit] = useState<string[]>(initialContext?.transit ?? []);
+  const [focusRequest, setFocusRequest] = useState(0);
   const transitRefs = useRef<Array<HTMLSelectElement | null>>([]);
   const addTransitRef = useRef<HTMLButtonElement | null>(null);
   const focusTransitIndex = useRef<number | null>(null);
+  const initialOrigin = initialContext?.origin ?? '';
+  const initialDestination = initialContext?.destination ?? '';
+  const initialTransit = initialContext?.transit.join(',') ?? '';
   const countries = useMemo(
     () => COUNTRY_CODES.map(code => ({ code, label: copy.options[code] })),
     [copy.options]
   );
 
   useEffect(() => {
-    setOrigin(initialContext?.origin ?? '');
-    setDestination(initialContext?.destination ?? '');
-    setTransit(initialContext?.transit ?? []);
-  }, [initialContext]);
+    setOrigin(initialOrigin);
+    setDestination(initialDestination);
+    setTransit(initialTransit ? initialTransit.split(',') : []);
+  }, [initialDestination, initialOrigin, initialTransit]);
 
   useEffect(() => {
     const index = focusTransitIndex.current;
@@ -72,17 +76,19 @@ export function DiasporaCorridorCapture({ copy, initialContext }: Props) {
     if (index < 0) addTransitRef.current?.focus();
     else transitRefs.current[index]?.focus();
     focusTransitIndex.current = null;
-  }, [transit.length]);
+  }, [focusRequest]);
 
   function addTransit(): void {
     if (transit.length >= MAX_TRANSIT_COUNTRIES) return;
     focusTransitIndex.current = transit.length;
     setTransit(current => [...current, '']);
+    setFocusRequest(current => current + 1);
   }
 
   function removeTransit(index: number): void {
     focusTransitIndex.current = transit.length === 1 ? -1 : Math.max(0, index - 1);
     setTransit(current => current.filter((_, currentIndex) => currentIndex !== index));
+    setFocusRequest(current => current + 1);
   }
 
   function updateTransit(index: number, value: string): void {

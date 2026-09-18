@@ -29,7 +29,6 @@
       "addTransit": "Add transit country",
       "removeTransit": "Remove transit country {position}",
       "apply": "Show corridor summary",
-      "error": "Choose valid corridor countries.",
       "summaryTitle": "Your trip corridor",
       "options": {
         "AT": "Austria",

@@ -29,7 +29,6 @@
       "addTransit": "Shto shtet tranziti",
       "removeTransit": "Hiq shtetin e tranzitit {position}",
       "apply": "Shfaq përmbledhjen e korridorit",
-      "error": "Zgjidh shtete të vlefshme për korridorin.",
       "summaryTitle": "Korridori yt i udhëtimit",
       "options": {
         "AT": "Austria",
