@@ -326,9 +326,9 @@ protected-main head `8db18b31717fbce999589aaaa4e83198de8289ad`; this records the
 base without rewriting the historical selection provenance. Review-driven precision replaced the
 initial rounded line items with measured positive-byte growth: +19,385/three files for the corridor
 owner, +7,399 for the existing S5.d page/test/MK/SQ owner, +3,952 for the selector/EN/SR owner,
-+3,860 for diaspora E2E, +397 for CI corpus reuse, +113 for the exact requirement map, +4,864
++3,860 for diaspora E2E, +397 for CI corpus reuse, +113 for the exact requirement map, +4,749
 for current program/tracker evidence and +1,873 for capacity-budget self-accounting. The resulting
-+41,843 remains below the approved ceiling; unused headroom is not allocated. Deleted-byte credit,
++41,728 remains below the approved ceiling; unused headroom is not allocated. Deleted-byte credit,
 reserve consumption, allocation padding and guard weakening are forbidden; the executable budget
 remains controlling.
 
@@ -374,9 +374,9 @@ S5.d counterexamples. After repaired first-party subscription authentication, So
 review added explicit whole-context rejection, a 12-transit limit, URL-channel, IP, member-route and
 remove/edit dispositions. These are preparation consultations, not final review approval.
 
-Corrected product head `5778b1bf94be186170f3fcbb0d85cb67e7f113ef` passed full local proof recorded in
-the tracker after the accepted findings from Opus 5 receipt `20260918T092405-opus` were consolidated.
-This subsequent evidence-only amendment records that proof; protected-PR CI must bind the final head.
+Corrected product head `757aa6238979ac8718729ce8de21fd48825c01f2` passed full local proof recorded in
+the tracker after accepted Opus 5 receipt `20260918T092405-opus` and hosted Sonar annotations were
+resolved. This evidence-only amendment records that proof; protected-PR CI must bind the final head.
 Protected delivery, merge, exact-main health and retirement remain pending; there is no deployment or
 user validation.
 
