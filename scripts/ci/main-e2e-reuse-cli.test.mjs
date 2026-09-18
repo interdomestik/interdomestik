@@ -25,7 +25,7 @@ import { commandChainDrifts } from './main-e2e-reuse-fixture.mjs';
 import { readLocalGitObjectId } from './main-e2e-reuse-github.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const E2E_TREE = readLocalGitObjectId(root, 'HEAD:apps/web/e2e');
-const S5_CORRIDOR_TREE = '6771a5aeb7bfc125635b1aa2c2214d4cb88483b0';
+const S5_CORRIDOR_TREE = 'b4bdce696f241d1c060861c4db36732e98f7df3e';
 const SAFE = { reuse: false, reason: 'evidence_not_exact' };
 const fail = () => {
   throw new Error('token=secret body=secret');
@@ -136,6 +136,7 @@ test('S5 explicit diaspora country context preserves corpus parity', () => {
   assert.ok(parity.commandChain, 'the S5 E2E tree must stay in the exact command chain');
 });
 test('S5 corridor preparation preserves corpus parity', () => {
+  assert.equal(E2E_TREE, S5_CORRIDOR_TREE);
   assert.equal(
     inspectRepositoryParity({ ...sources(), e2eTreeSha: S5_CORRIDOR_TREE }).commandChain,
     true

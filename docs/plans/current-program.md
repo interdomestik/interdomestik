@@ -324,11 +324,11 @@ Before implementation, the owner approved one consolidated ceiling of +42,000 tr
 three new tracked files in the 2026-09-18 task thread. Implementation began from the later exact
 protected-main head `8db18b31717fbce999589aaaa4e83198de8289ad`; this records the implementation
 base without rewriting the historical selection provenance. Review-driven precision replaced the
-initial rounded line items with measured positive-byte growth: +16,891/three files for the corridor
-owner, +8,145 for the existing S5.d page/test/MK/SQ owner, +3,947 for the selector/EN/SR owner,
-+3,881 for diaspora E2E, +385 for CI corpus reuse, +113 for the exact requirement map, +3,647
-for current program/tracker evidence and +1,594 for capacity-budget self-accounting. The resulting
-+38,603 remains below the approved ceiling; unused headroom is not allocated. Deleted-byte credit,
+initial rounded line items with measured positive-byte growth: +17,737/three files for the corridor
+owner, +8,468 for the existing S5.d page/test/MK/SQ owner, +3,947 for the selector/EN/SR owner,
++3,937 for diaspora E2E, +429 for CI corpus reuse, +113 for the exact requirement map, +3,841
+for current program/tracker evidence and +1,743 for capacity-budget self-accounting. The resulting
++40,215 remains below the approved ceiling; unused headroom is not allocated. Deleted-byte credit,
 reserve consumption, allocation padding and guard weakening are forbidden; the executable budget
 remains controlling.
 
@@ -348,6 +348,8 @@ IP, referral, device-location or existing single-country query inference. Missin
 unsupported values fail closed without producing a corridor context. The context remains
 non-authoritative preparation state: it does not choose a pack, populate a saved draft, create an
 account or claim, set `incidentCountryCode`, establish persona/eligibility, or authorize a handoff.
+The existing explicit guidance `country` query also survives locale switching as an intentional
+IDA-DIA-003 continuity correction; it remains independent from the corridor and claim-start href.
 Mounted keyboard/mobile and locale-independence tests, pure parser/serialization boundaries and
 unchanged canonical route/auth/tenant behavior form the bounded software acceptance.
 

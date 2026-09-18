@@ -27,7 +27,7 @@ test.describe('Diaspora Feature', () => {
     if (!originalViewport) throw new Error('Diaspora gate requires a configured viewport.');
 
     await page.setViewportSize({ width: 320, height: 720 });
-    await gotoApp(page, routes.memberDiaspora('en'), testInfo, { marker: 'diaspora-page' });
+    await gotoApp(page, routes.memberDiaspora('en'), testInfo, { marker: 'diaspora-page-ready' });
     await page.getByLabel('Origin').selectOption('DE');
     await page.getByLabel('Destination').selectOption('IT');
 
@@ -87,7 +87,7 @@ test.describe('Diaspora Feature', () => {
       '?origin=DE&destination=IT&transit=US',
     ]) {
       await gotoApp(page, `${routes.memberDiaspora('en')}${query}`, testInfo, {
-        marker: 'diaspora-page',
+        marker: 'diaspora-page-ready',
       });
       await expect(page.getByTestId('diaspora-corridor-summary')).toHaveCount(0);
     }
@@ -131,10 +131,12 @@ test.describe('Diaspora Feature', () => {
     ] as const;
 
     for (const { locale, requiredTitle, italyLabel, claimLabel } of localeCases) {
-      await gotoApp(page, routes.memberDiaspora(locale), testInfo, { marker: 'diaspora-page' });
+      await gotoApp(page, routes.memberDiaspora(locale), testInfo, {
+        marker: 'diaspora-page-ready',
+      });
 
       await expect(page).toHaveURL(new RegExp(`${routes.memberDiaspora(locale)}(?:[?#]|$)`));
-      await expect(page.getByTestId('diaspora-page')).toBeVisible({ timeout: 15000 });
+      await expect(page.getByTestId('diaspora-page-ready')).toBeVisible({ timeout: 15000 });
       await expect(page.getByTestId('diaspora-country-selector')).toBeVisible();
       await expect(page.getByRole('heading', { name: requiredTitle })).toBeVisible();
       await expect(page.getByTestId('diaspora-selected-country')).toHaveCount(0);
@@ -175,7 +177,9 @@ test.describe('Diaspora Feature', () => {
         .toBe(true);
     }
 
-    await gotoApp(page, routes.memberDiaspora(testInfo), testInfo, { marker: 'diaspora-page' });
+    await gotoApp(page, routes.memberDiaspora(testInfo), testInfo, {
+      marker: 'diaspora-page-ready',
+    });
 
     const italySelector = page.getByRole('link', {
       name: /(Italy|Италија|Italia)/i,

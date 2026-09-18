@@ -63,7 +63,7 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
   const contacts = getSupportContacts({ locale });
 
   return (
-    <div className="space-y-6 pb-10" data-testid="diaspora-page">
+    <div className="space-y-6 pb-10" data-testid="diaspora-page-ready">
       <section className="overflow-hidden rounded-[2rem] border border-slate-200/80 bg-gradient-to-br from-emerald-50 via-white to-sky-50 shadow-sm">
         <div className="flex flex-col gap-5 p-6 md:p-8">
           <div className="flex items-start justify-between gap-4">

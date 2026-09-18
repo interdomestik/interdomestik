@@ -183,6 +183,8 @@ describe('DiasporaCorridorCapture', () => {
     for (const copy of corridorCatalogs) {
       expect(Object.keys(copy).sort()).toEqual(corridorCopyKeys);
       expect(Object.keys(copy.options).sort()).toEqual([...COUNTRY_CODES].sort());
+      expect(copy.transit).toContain('{position}');
+      expect(copy.removeTransit).toContain('{position}');
     }
   });
 
@@ -273,7 +275,12 @@ describe('DiasporaPage', () => {
   it('renders country-specific guidance when a supported country is selected', async () => {
     const tree = await DiasporaPage({
       params: Promise.resolve({ locale: 'en' }),
-      searchParams: Promise.resolve({ country: 'IT' }),
+      searchParams: Promise.resolve({
+        country: 'IT',
+        origin: 'DE',
+        destination: 'IT',
+        transit: ['AT'],
+      }),
     });
 
     render(tree);
@@ -283,6 +290,9 @@ describe('DiasporaPage', () => {
     expect(screen.getByRole('link', { name: 'Germany' })).not.toHaveAttribute('aria-current');
     expect(screen.getByText('113')).toBeInTheDocument();
     expect(screen.getByText('115')).toBeInTheDocument();
+    expect(screen.getByTestId('diaspora-corridor-summary')).toHaveTextContent(
+      'Germany → Austria → Italy'
+    );
     expect(screen.getByRole('link', { name: 'Prepare vehicle claim' })).toHaveAttribute(
       'href',
       '/member/claims/new?category=vehicle&source=diaspora-green-card&country=IT&incidentLocation=abroad'
