@@ -324,11 +324,11 @@ Before implementation, the owner approved one consolidated ceiling of +42,000 tr
 three new tracked files in the 2026-09-18 task thread. Implementation began from the later exact
 protected-main head `8db18b31717fbce999589aaaa4e83198de8289ad`; this records the implementation
 base without rewriting the historical selection provenance. Review-driven precision replaced the
-initial rounded line items with measured positive-byte growth: +17,737/three files for the corridor
-owner, +8,468 for the existing S5.d page/test/MK/SQ owner, +3,947 for the selector/EN/SR owner,
+initial rounded line items with measured positive-byte growth: +18,812/three files for the corridor
+owner, +7,414 for the existing S5.d page/test/MK/SQ owner, +3,947 for the selector/EN/SR owner,
 +3,937 for diaspora E2E, +429 for CI corpus reuse, +113 for the exact requirement map, +3,841
-for current program/tracker evidence and +1,743 for capacity-budget self-accounting. The resulting
-+40,215 remains below the approved ceiling; unused headroom is not allocated. Deleted-byte credit,
+for current program/tracker evidence and +1,873 for capacity-budget self-accounting. The resulting
++40,366 remains below the approved ceiling; unused headroom is not allocated. Deleted-byte credit,
 reserve consumption, allocation padding and guard weakening are forbidden; the executable budget
 remains controlling.
 

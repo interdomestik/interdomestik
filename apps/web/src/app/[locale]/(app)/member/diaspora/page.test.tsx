@@ -1,10 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { COUNTRY_CODES } from '@interdomestik/domain-country-guidance';
 import { describe, expect, it, vi } from 'vitest';
-import enDiaspora from '@/messages/en/diaspora.json';
-import mkDiaspora from '@/messages/mk/diaspora.json';
-import sqDiaspora from '@/messages/sq/diaspora.json';
-import srDiaspora from '@/messages/sr/diaspora.json';
 
 const hoisted = vi.hoisted(() => ({
   setRequestLocaleMock: vi.fn(),
@@ -117,29 +113,6 @@ const corridorProps = {
   initialContext: null,
 };
 
-const corridorCatalogs: readonly DiasporaCorridorCopy[] = [
-  enDiaspora.diaspora.corridor,
-  sqDiaspora.diaspora.corridor,
-  mkDiaspora.diaspora.corridor,
-  srDiaspora.diaspora.corridor,
-];
-
-const corridorCopyKeys = [
-  'addTransit',
-  'apply',
-  'chooseCountry',
-  'destination',
-  'options',
-  'origin',
-  'preparationOnly',
-  'removeTransit',
-  'summaryTitle',
-  'title',
-  'transit',
-  'transitGroup',
-  'transitHint',
-].sort();
-
 describe('DiasporaCorridorCapture', () => {
   it('preserves ordered duplicate transit and query state', () => {
     window.history.replaceState({}, '', '/?country=CH');
@@ -177,15 +150,6 @@ describe('DiasporaCorridorCapture', () => {
 
     expect(screen.getByRole('heading', { name: 'Your trip corridor' })).toBeInTheDocument();
     expect(screen.getByTestId('diaspora-corridor-summary')).toHaveTextContent('Germany → Italy');
-  });
-
-  it('keeps every locale corridor catalog aligned with the country vocabulary', () => {
-    for (const copy of corridorCatalogs) {
-      expect(Object.keys(copy).sort()).toEqual(corridorCopyKeys);
-      expect(Object.keys(copy.options).sort()).toEqual([...COUNTRY_CODES].sort());
-      expect(copy.transit).toContain('{position}');
-      expect(copy.removeTransit).toContain('{position}');
-    }
   });
 
   it('disables transit additions at the mounted cap and preserves order after middle removal', () => {
