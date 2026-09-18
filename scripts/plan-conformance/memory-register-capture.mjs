@@ -114,15 +114,19 @@ function stableValue(value) {
   }
 
   if (value && typeof value === 'object') {
-    return Object.keys(value)
-      .sort()
-      .reduce((acc, key) => {
-        acc[key] = stableValue(value[key]);
-        return acc;
-      }, {});
+    // fromEntries defines own keys, so "__proto__" is kept rather than setting the prototype.
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map(key => [key, stableValue(value[key])])
+    );
   }
 
   return value;
+}
+
+function ownField(record, field) {
+  return record && Object.hasOwn(record, field) ? record[field] : undefined;
 }
 
 export function diffRecordPayload(existing, captured) {
@@ -132,8 +136,8 @@ export function diffRecordPayload(existing, captured) {
     .filter(field => !IGNORED_PAYLOAD_FIELDS.has(field))
     .filter(
       field =>
-        JSON.stringify(stableValue(existing?.[field])) !==
-        JSON.stringify(stableValue(captured?.[field]))
+        JSON.stringify(stableValue(ownField(existing, field))) !==
+        JSON.stringify(stableValue(ownField(captured, field)))
     )
     .sort();
 }

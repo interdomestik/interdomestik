@@ -194,6 +194,12 @@ for (const [name, change, field] of [
   ['verification commands', { verification_commands: ['pnpm check:all'] }, 'verification_commands'],
   ['promoted status', { status: 'validated' }, 'status'],
   ['registry-only field', { approved_by: 'owner' }, 'approved_by'],
+  [
+    'nested __proto__ key',
+    { scope: JSON.parse('{"file_path":"package.json","__proto__":"x"}') },
+    'scope',
+  ],
+  ['top-level __proto__ field', JSON.parse('{"__proto__":{}}'), '__proto__'],
 ]) {
   test(`same id with different ${name} is a payload mismatch and never written`, () => {
     const capture = makeCapture();
