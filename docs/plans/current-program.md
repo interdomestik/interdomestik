@@ -374,11 +374,11 @@ S5.d counterexamples. After repaired first-party subscription authentication, So
 review added explicit whole-context rejection, a 12-transit limit, URL-channel, IP, member-route and
 remove/edit dispositions. These are preparation consultations, not final review approval.
 
-Product head `6d554972cba58cb44d2475dfdb604403d7dbf71c` passed full local proof recorded in
-the tracker. Current-head Opus 5 receipt `20260918T092405-opus` found stale ledger/capacity evidence
-and bounded accessibility/contract documentation gaps; accepted corrections require a fresh
-exact-head run. Protected delivery, merge, exact-main health and retirement remain pending; there is
-no deployment or user validation.
+Corrected product head `5778b1bf94be186170f3fcbb0d85cb67e7f113ef` passed full local proof recorded in
+the tracker after the accepted findings from Opus 5 receipt `20260918T092405-opus` were consolidated.
+This subsequent evidence-only amendment records that proof; protected-PR CI must bind the final head.
+Protected delivery, merge, exact-main health and retirement remain pending; there is no deployment or
+user validation.
 
 Signed/current pack metadata, content review, pack selection, persistence/account continuity,
 offline download/integrity/retry/recovery, geolocation, jurisdiction or persona decisions,

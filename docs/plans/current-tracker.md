@@ -23,18 +23,20 @@ protected PR #1790 as `2b474ea50fb09cb94f8338691e4ddb4917b8fefd`; its exact-main
 retirement passed. Whole S5, DIA-002, DIA-003 and the diaspora family remain open. The owner selected
 `S5-DIASPORA-CORRIDOR-PREPARATION` from that exact main under dependency-first item 4, approved
 +42,000 tracked bytes and exactly three new files, and implementation began from exact protected main
-`8db18b31717fbce999589aaaa4e83198de8289ad`. The bounded candidate is locally proven at source head
-`6d554972cba58cb44d2475dfdb604403d7dbf71c`; protected PR delivery and canonical closeout remain
-pending.
+`8db18b31717fbce999589aaaa4e83198de8289ad`. The corrected bounded candidate is locally proven at
+source head `5778b1bf94be186170f3fcbb0d85cb67e7f113ef`; protected PR delivery and canonical closeout remain
+pending. This subsequent amendment is evidence-only, so protected-PR CI must bind the final head.
 
-S5 corridor preparation local proof used tree `e44b8f9ab82c41b4578bec261f94b73a21cfb1a7`, E2E tree
+S5 corridor preparation local proof used tree `30cbb4a37fb81eb6e9510a4983774ceae99afd36`, E2E tree
 `cb5baacf61c72aa57f23a884ad5f865f9ee1f1ee`, isolated database
-`interdomestik_ci_974abbac_s5_corridor_r1` and port 3179. `pnpm pr:verify` exited 0 in 719 seconds:
+`interdomestik_ci_974abbac_s5_corridor_r1` and port 3179. `pnpm pr:verify` exited 0 in 725 seconds:
 1,194 CI contracts, 154 release tests, 52/52 mandatory RLS cases, 644 passing web test files/3,462
 passing tests, 81.26% repository line coverage (21,909/26,960), 266 browser-gate passes/14 intentional
 skips and 13 smoke passes/11 intentional skips. A separate same-head `pnpm security:guard` exited 0.
-The full-log SHA-256 is `9a844ec9ffe9f689a53e7de15826baef7748f97593ea794945c74d42386341ef`;
-the result receipt is `ac840f348979afcf09d1e4c7fbd053b0d9f975005be23a9d97d9bc5089e62450`.
+The full-log SHA-256 is `29e832c410346c3667086a71ac251af1c34682e9195581f408e78b35291206a8`;
+the result receipt is `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa`.
+The security-log SHA-256 is `df0a8a09a268357af1e6eef93d86a29bd5ea295619d32210b984824ca294c5b2`;
+its result receipt is `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa`.
 This proves only explicit corridor preparation and locale continuity; packs, persistence, handoff,
 offline behavior, whole DIA-002/003 acceptance, deployment and user validation remain open.
 
@@ -191,9 +193,9 @@ protected squash merge `1eecb57a7244f37aded3392c5bf38a32fec08584`; all required 
 checks passed and owned task resources were retired. Final merge/cleanup facts are retained with
 these receipts under `.codex/artifacts/interdomestik/s4`. No deployment is claimed.
 
-| ID                                 | Status                      | Owner | Work                                                                                        | Exit Criteria                                                                                                                                                                                                                                                                                                                                                                 |
-| ---------------------------------- | --------------------------- | ----- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S5-DIASPORA-CORRIDOR-PREPARATION` | `post_review_rerun_pending` | Codex | Capture explicit origin/destination/transit preparation context independent of UI language. | Owner approved +42,000 bytes/three files. Product head `6d554972` passed full local proof; Opus 5 current-head review `20260918T092405-opus` found stale evidence plus bounded contract/accessibility corrections now applied. Fresh exact-head proof and protected delivery remain pending. Context stays non-authoritative; DIA-002/003 and pack/offline/S6/S7 remain open. |
+| ID                                 | Status                            | Owner | Work                                                                                        | Exit Criteria                                                                                                                                                                                                                                                                                                    |
+| ---------------------------------- | --------------------------------- | ----- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S5-DIASPORA-CORRIDOR-PREPARATION` | `local_proof_complete_pr_pending` | Codex | Capture explicit origin/destination/transit preparation context independent of UI language. | Owner approved +42,000 bytes/three files. Corrected product head `5778b1bf` passed full local proof after Opus 5 review `20260918T092405-opus`; this evidence-only amendment awaits protected delivery and exact-final-head CI. Context stays non-authoritative; DIA-002/003 and pack/offline/S6/S7 remain open. |
 
 The completed #1782 acceptance-link amendment historically set the requirement-map allocation to
 72,094 bytes, +7,625 over its predecessor. S3 changes use the map's synchronized exact allocation;
@@ -756,9 +758,9 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                                 | Source Refs                      | Execution                   | Run ID     | Run Root  | Sonar                    | Docker           | Sentry           | Learning                 | Evidence Refs                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| ---------------------------------- | -------------------------------- | --------------------------- | ---------- | --------- | ------------------------ | ---------------- | ---------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S5-DIASPORA-CORRIDOR-PREPARATION` | current program; S5; DIA-002/003 | `post_review_rerun_pending` | `6d554972` | task root | full local product proof | `not_applicable` | `not_applicable` | corrections consolidated | Domain 22/22, focused web 39, full `pr:verify` and separate security guard passed at `6d554972` on task DB/port 3179; counts and hashes are recorded above. Opus 5 current-head receipt `20260918T092405-opus` supersedes that approval state with accepted evidence-ledger, capacity, live-region and contract-documentation corrections. Fresh exact-head proof is required. Whole DIA-002/003, S5 and pack/offline/handoff outcomes remain open. |
+| ID                                 | Source Refs                      | Execution                         | Run ID     | Run Root  | Sonar                    | Docker           | Sentry           | Learning           | Evidence Refs                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ---------------------------------- | -------------------------------- | --------------------------------- | ---------- | --------- | ------------------------ | ---------------- | ---------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `S5-DIASPORA-CORRIDOR-PREPARATION` | current program; S5; DIA-002/003 | `local_proof_complete_pr_pending` | `5778b1bf` | task root | full local product proof | `not_applicable` | `not_applicable` | corrections proven | Domain 22/22, focused web 39, full `pr:verify` and separate security guard passed at corrected product head `5778b1bf` on task DB/port 3179; counts and hashes are recorded above. Opus 5 receipt `20260918T092405-opus` findings were accepted and consolidated before that proof. This evidence-only amendment awaits protected-PR exact-final-head CI. Whole DIA-002/003, S5 and pack/offline/handoff outcomes remain open. |
 
 ### Historical S5 explicit-country proof
 
