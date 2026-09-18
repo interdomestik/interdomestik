@@ -42,6 +42,8 @@ const E2E_TREE_SHAS = new Set([
   'cacb1feef816ded4c09ad3555e8831a248e24871',
   // Reviewed S5 diaspora corridor accessibility.
   'cb5baacf61c72aa57f23a884ad5f865f9ee1f1ee',
+  // S5.e bounded diaspora corridor pack-status disclosure.
+  'c96665e77c5057c58d32a494f654d62e5f898180',
 ]);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {

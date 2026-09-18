@@ -49,11 +49,8 @@ const hoisted = vi.hoisted(() => ({
         return (value as Record<string, unknown>)[part];
       }, messages) ?? key;
 
-    translate.raw = (key: string) => {
-      if (key === 'corridor') return corridorProps.copy;
-      if (key === 'packStatus') return packStatusCopy;
-      return key;
-    };
+    const rawMessages = { corridor: corridorProps.copy, packStatus: packStatusCopy } as const;
+    translate.raw = (key: string) => rawMessages[key as keyof typeof rawMessages] ?? key;
     return translate;
   }),
   getSupportContactsMock: vi.fn(() => ({
@@ -273,9 +270,7 @@ describe('DiasporaPage', () => {
     expect(screen.getByTestId('diaspora-corridor-summary')).toHaveTextContent(
       'Germany → Austria → Italy'
     );
-    expect(screen.getByTestId('diaspora-pack-status-DE')).toHaveTextContent('GermanyUnavailable');
-    expect(screen.getByTestId('diaspora-pack-status-AT')).toHaveTextContent('AustriaUnavailable');
-    expect(screen.getByTestId('diaspora-pack-status-IT')).toHaveTextContent('ItalyUnavailable');
+    expect(screen.getByTestId('diaspora-pack-status')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Prepare vehicle claim' })).toHaveAttribute(
       'href',
       '/member/claims/new?category=vehicle&source=diaspora-green-card&country=IT&incidentLocation=abroad'
