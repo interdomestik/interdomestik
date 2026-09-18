@@ -1664,15 +1664,15 @@
         "apps/web/src/app/[locale]/(app)/member/diaspora/diaspora-pack-status.test.tsx",
         "apps/web/src/app/[locale]/(app)/member/diaspora/diaspora-pack-status.tsx"
       ],
-      "maxTrackedBytesDelta": 8765,
+      "maxTrackedBytesDelta": 9491,
       "maxTrackedFilesDelta": 2,
       "maxCategoryBytesDelta": {
-        "source/scripts": 3252,
-        "tests/e2e": 5513
+        "source/scripts": 3280,
+        "tests/e2e": 6211
       },
       "maxPathBytesDelta": {
-        "apps/web/src/app/[locale]/(app)/member/diaspora/diaspora-pack-status.test.tsx": 5513,
-        "apps/web/src/app/[locale]/(app)/member/diaspora/diaspora-pack-status.tsx": 3252
+        "apps/web/src/app/[locale]/(app)/member/diaspora/diaspora-pack-status.test.tsx": 6211,
+        "apps/web/src/app/[locale]/(app)/member/diaspora/diaspora-pack-status.tsx": 3280
       }
     }
   ],
@@ -1682,15 +1682,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 62148460,
+  "maxTrackedBytes": 62149186,
   "maxTrackedFiles": 6097,
   "maxCategoryBytes": {
     "config/data/messages": 2277441,
     "docs/text": 8658642,
     "large support/generated-ish": 15874962,
     "other": 19184750,
-    "source/scripts": 8908914,
-    "tests/e2e": 7243751
+    "source/scripts": 8908942,
+    "tests/e2e": 7244449
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

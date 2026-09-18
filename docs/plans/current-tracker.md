@@ -47,7 +47,7 @@ separate same-candidate `pnpm security:guard`, final review, protected delivery,
 and resource retirement remain pending. No current local-proof completion or deployment is claimed.
 
 Exact positive-growth ledger against `origin/main` (bytes): config/data/messages 2274; docs/text
-3980; large support/generated-ish 3096; source/scripts 3699; tests/e2e 10495; total 23544. Every
+3980; large support/generated-ish 3096; source/scripts 3727; tests/e2e 11193; total 24270. Every
 changed path is nonnegative, and the disjoint executable allocation increases match these actual
 deltas exactly; no deleted-byte credit, reserve consumption or prior-slice capacity is used.
 

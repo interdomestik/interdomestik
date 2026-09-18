@@ -69,12 +69,12 @@ export function DiasporaPackStatusDisclosure({ countryNames, context, copy }: Re
     >
       <CardHeader>
         <CardTitle>{copy.title}</CardTitle>
-        <CardDescription>{copy.description}</CardDescription>
+        <CardDescription className="dark:text-slate-300">{copy.description}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="sr-only" role="status">
+        <output className="sr-only">
           {statuses.map(status => `${countryLabel(status)}: ${disclosureLabel(status)}`).join('; ')}
-        </p>
+        </output>
         <ul className="grid gap-3 sm:grid-cols-2">
           {statuses.map(status => (
             <li

@@ -131,6 +131,30 @@ describe('deriveDiasporaPackStatus', () => {
 });
 
 describe('DiasporaPackStatusDisclosure', () => {
+  it('uses a native output element for the live corridor summary', () => {
+    render(
+      <DiasporaPackStatusDisclosure
+        countryNames={countryNames}
+        context={{ origin: 'DE', destination: 'IT', transit: ['MK'] }}
+        copy={copy}
+      />
+    );
+
+    expect(screen.getByRole('status').tagName).toBe('OUTPUT');
+  });
+
+  it('keeps the description legible against the dark card background', () => {
+    render(
+      <DiasporaPackStatusDisclosure
+        countryNames={countryNames}
+        context={{ origin: 'DE', destination: 'IT', transit: ['MK'] }}
+        copy={copy}
+      />
+    );
+
+    expect(screen.getByText(copy.description)).toHaveClass('dark:text-slate-300');
+  });
+
   it('renders localized country labels and the offline boundary for an explicit corridor', () => {
     render(
       <DiasporaPackStatusDisclosure
