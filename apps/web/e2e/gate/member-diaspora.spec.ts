@@ -64,10 +64,19 @@ test.describe('Diaspora Feature', () => {
     await page.setViewportSize(originalViewport);
     await switchLocale(page, 'Language', 'Shqip', '/sq/member/diaspora');
     await expect.poll(() => new URL(page.url()).search.slice(1)).toBe(preservedQuery);
+    await expect(page.getByTestId('diaspora-corridor-summary')).toContainText(
+      'Gjermania → Austria → Austria → Italia'
+    );
     await switchLocale(page, 'Gjuha', 'Македонски', '/mk/member/diaspora');
     await expect.poll(() => new URL(page.url()).search.slice(1)).toBe(preservedQuery);
+    await expect(page.getByTestId('diaspora-corridor-summary')).toContainText(
+      'Германија → Австрија → Австрија → Италија'
+    );
     await switchLocale(page, 'Јазик', 'Srpski', '/sr/member/diaspora');
     await expect.poll(() => new URL(page.url()).search.slice(1)).toBe(preservedQuery);
+    await expect(page.getByTestId('diaspora-corridor-summary')).toContainText(
+      'Nemačka → Austrija → Austrija → Italija'
+    );
 
     for (const query of [
       '?country=DE',

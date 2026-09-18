@@ -27,6 +27,20 @@ import { useSearchParams } from 'next/navigation';
 import type { ClientShellUser } from '@/components/shell/client-shell-user';
 import { getRoleLabel } from '@/lib/roles-i18n';
 
+const DIASPORA_QUERY_KEYS = new Set(['country', 'origin', 'destination', 'transit']);
+
+function localeSwitchHref(pathname: string, searchParams: URLSearchParams): string {
+  if (pathname !== '/member/diaspora') return pathname;
+
+  const retainedParams = new URLSearchParams();
+  for (const [key, value] of searchParams) {
+    if (DIASPORA_QUERY_KEYS.has(key)) retainedParams.append(key, value);
+  }
+
+  const query = retainedParams.toString();
+  return query ? `${pathname}?${query}` : pathname;
+}
+
 function SidebarUserMenuInner({ user }: { user: ClientShellUser | null }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -34,8 +48,7 @@ function SidebarUserMenuInner({ user }: { user: ClientShellUser | null }) {
   const locale = useLocale();
   const t = useTranslations('nav');
   const tCommon = useTranslations('common');
-  const query = searchParams.toString();
-  const localizedHref = query ? `${pathname}?${query}` : pathname;
+  const localizedHref = localeSwitchHref(pathname, searchParams);
 
   const handleSignOut = async () => {
     await signOutAndRedirectToLogin({

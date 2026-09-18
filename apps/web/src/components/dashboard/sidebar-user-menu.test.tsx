@@ -8,12 +8,13 @@ import { SidebarUserMenu } from './sidebar-user-menu';
 const mockSignOutAndRedirectToLogin = vi.mocked(signOutAndRedirectToLogin);
 const replaceMock = vi.fn();
 const searchParamsMock = vi.fn(() => 'origin=DE&destination=IT&transit=AT&transit=CH');
+let pathnameMock = '/member/diaspora';
 
 vi.mock('@/i18n/routing', () => ({
   Link: ({ children, href }: { children: React.ReactNode; href: string }) => (
     <a href={href}>{children}</a>
   ),
-  usePathname: () => '/agent',
+  usePathname: () => pathnameMock,
   useRouter: () => ({
     replace: replaceMock,
   }),
@@ -110,7 +111,7 @@ describe('SidebarUserMenu', () => {
     fireEvent.click(screen.getByRole('button', { name: /English/i }));
 
     expect(replaceMock).toHaveBeenCalledWith(
-      '/agent?origin=DE&destination=IT&transit=AT&transit=CH',
+      '/member/diaspora?origin=DE&destination=IT&transit=AT&transit=CH',
       { locale: 'en' }
     );
   });
@@ -121,7 +122,17 @@ describe('SidebarUserMenu', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /English/i }));
 
-    expect(replaceMock).toHaveBeenCalledWith('/agent', { locale: 'en' });
+    expect(replaceMock).toHaveBeenCalledWith('/member/diaspora', { locale: 'en' });
+  });
+
+  it('does not forward query state from other role routes', () => {
+    pathnameMock = '/admin/users';
+    render(<SidebarUserMenu />);
+
+    fireEvent.click(screen.getByRole('button', { name: /English/i }));
+
+    expect(replaceMock).toHaveBeenCalledWith('/admin/users', { locale: 'en' });
+    pathnameMock = '/member/diaspora';
   });
 
   it('signs out with a localized hard redirect for agent users', async () => {
