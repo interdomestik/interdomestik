@@ -325,10 +325,10 @@ three new tracked files in the 2026-09-18 task thread. Implementation began from
 protected-main head `8db18b31717fbce999589aaaa4e83198de8289ad`; this records the implementation
 base without rewriting the historical selection provenance. Review-driven precision replaced the
 initial rounded line items with measured positive-byte growth: +18,812/three files for the corridor
-owner, +7,414 for the existing S5.d page/test/MK/SQ owner, +3,947 for the selector/EN/SR owner,
-+3,955 for diaspora E2E, +429 for CI corpus reuse, +113 for the exact requirement map, +3,841
+owner, +7,413 for the existing S5.d page/test/MK/SQ owner, +3,952 for the selector/EN/SR owner,
++3,860 for diaspora E2E, +397 for CI corpus reuse, +113 for the exact requirement map, +5,502
 for current program/tracker evidence and +1,873 for capacity-budget self-accounting. The resulting
-+40,384 remains below the approved ceiling; unused headroom is not allocated. Deleted-byte credit,
++41,922 remains below the approved ceiling; unused headroom is not allocated. Deleted-byte credit,
 reserve consumption, allocation padding and guard weakening are forbidden; the executable budget
 remains controlling.
 
@@ -366,6 +366,14 @@ the scalar-array, mixed-invalid, duplicate/order, equal-endpoint, keyboard, mobi
 S5.d counterexamples. After repaired first-party subscription authentication, Sonnet preparation
 review added explicit whole-context rejection, a 12-transit limit, URL-channel, IP, member-route and
 remove/edit dispositions. These are preparation consultations, not final review approval.
+
+Local product proof passes at source `6d554972cba58cb44d2475dfdb604403d7dbf71c`, tree
+`e44b8f9ab82c41b4578bec261f94b73a21cfb1a7` and E2E tree
+`cb5baacf61c72aa57f23a884ad5f865f9ee1f1ee`. On isolated database
+`interdomestik_ci_974abbac_s5_corridor_r1` and port 3179, `pnpm pr:verify` exited 0 in 719 seconds;
+required CI, release, RLS and coverage checks passed, with 266 gate passes/14 skips and 13 smoke
+passes/11 skips. Separate same-head `pnpm security:guard` passed. Protected delivery, merge,
+exact-main health and resource retirement remain pending; there is no deployment or user validation.
 
 Signed/current pack metadata, content review, pack selection, persistence/account continuity,
 offline download/integrity/retry/recovery, geolocation, jurisdiction or persona decisions,

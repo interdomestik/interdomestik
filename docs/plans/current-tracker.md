@@ -21,9 +21,22 @@ Dependency ordering follows current-program.md, "Dependency-first selection (own
 `0091f6ecf39c0888a9decf2fa8c0a1a498d3119c`. Explicit diaspora country context completed through
 protected PR #1790 as `2b474ea50fb09cb94f8338691e4ddb4917b8fefd`; its exact-main workflows and owned-resource
 retirement passed. Whole S5, DIA-002, DIA-003 and the diaspora family remain open. The owner selected
-`S5-DIASPORA-CORRIDOR-PREPARATION` from that exact main under dependency-first item 4. Exact SRS
-clauses and current source establish an implementation-ready bounded contract, but no capacity has
-been approved and implementation must not start from this selection record alone.
+`S5-DIASPORA-CORRIDOR-PREPARATION` from that exact main under dependency-first item 4, approved
++42,000 tracked bytes and exactly three new files, and implementation began from exact protected main
+`8db18b31717fbce999589aaaa4e83198de8289ad`. The bounded candidate is locally proven at source head
+`6d554972cba58cb44d2475dfdb604403d7dbf71c`; protected PR delivery and canonical closeout remain
+pending.
+
+S5 corridor preparation local proof used tree `e44b8f9ab82c41b4578bec261f94b73a21cfb1a7`, E2E tree
+`cb5baacf61c72aa57f23a884ad5f865f9ee1f1ee`, isolated database
+`interdomestik_ci_974abbac_s5_corridor_r1` and port 3179. `pnpm pr:verify` exited 0 in 719 seconds:
+1,194 CI contracts, 154 release tests, 52/52 mandatory RLS cases, 644 passing web test files/3,462
+passing tests, 81.26% repository line coverage (21,909/26,960), 266 browser-gate passes/14 intentional
+skips and 13 smoke passes/11 intentional skips. A separate same-head `pnpm security:guard` exited 0.
+The full-log SHA-256 is `9a844ec9ffe9f689a53e7de15826baef7748f97593ea794945c74d42386341ef`;
+the result receipt is `ac840f348979afcf09d1e4c7fbd053b0d9f975005be23a9d97d9bc5089e62450`.
+This proves only explicit corridor preparation and locale continuity; packs, persistence, handoff,
+offline behavior, whole DIA-002/003 acceptance, deployment and user validation remain open.
 
 S5 explicit-country local proof is complete at final head
 `0960da7ebdb66066e296ced8b2cda23b4c71954e`, tree
