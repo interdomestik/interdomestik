@@ -136,13 +136,8 @@ test('S5 explicit diaspora country context preserves corpus parity', () => {
   assert.ok(parity.commandChain, 'the S5 E2E tree must stay in the exact command chain');
 });
 test('S5 corridor preparation preserves historical corpus parity', () => {
-  assert.equal(
-    inspectRepositoryParity({
-      ...sources(),
-      e2eTreeSha: 'cb5baacf61c72aa57f23a884ad5f865f9ee1f1ee',
-    }).commandChain,
-    true
-  );
+  // prettier-ignore
+  assert.equal(inspectRepositoryParity({ ...sources(), e2eTreeSha: 'cb5baacf61c72aa57f23a884ad5f865f9ee1f1ee' }).commandChain, true);
 });
 test('S5 pack-status disclosure preserves corpus parity', () => {
   assert.equal(E2E_TREE, S5_PACK_STATUS_TREE);

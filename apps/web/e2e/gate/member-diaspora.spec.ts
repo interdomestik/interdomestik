@@ -153,30 +153,8 @@ test.describe('Diaspora Feature', () => {
     }
     await page.setViewportSize(originalViewport);
 
-    const localizedCases = [
-      {
-        countries: ['Gjermania', 'Maqedonia e Veriut', 'Austri', 'Italia'],
-        exposed: 'E shfaqur',
-        locale: 'sq',
-        title: 'Statusi i paketës Help Now për këtë korridor',
-        unavailable: 'E padisponueshme',
-      },
-      {
-        countries: ['Германија', 'Северна Македонија', 'Австрија', 'Италија'],
-        exposed: 'Изложен',
-        locale: 'mk',
-        title: 'Статус на Help Now пакетите за овој коридор',
-        unavailable: 'Недостапен',
-      },
-      {
-        countries: ['Nemačka', 'Severna Makedonija', 'Austrija', 'Italija'],
-        exposed: 'Izložen',
-        locale: 'sr',
-        title: 'Status Help Now paketa za ovaj koridor',
-        unavailable: 'Nedostupan',
-      },
-    ] as const;
-
+    // prettier-ignore
+    const localizedCases = [{ countries: ['Gjermania', 'Maqedonia e Veriut', 'Austri', 'Italia'], exposed: 'E shfaqur', locale: 'sq', title: 'Statusi i paketës Help Now për këtë korridor', unavailable: 'E padisponueshme' }, { countries: ['Германија', 'Северна Македонија', 'Австрија', 'Италија'], exposed: 'Изложен', locale: 'mk', title: 'Статус на Help Now пакетите за овој коридор', unavailable: 'Недостапен' }, { countries: ['Nemačka', 'Severna Makedonija', 'Austrija', 'Italija'], exposed: 'Izložen', locale: 'sr', title: 'Status Help Now paketa za ovaj koridor', unavailable: 'Nedostupan' }] as const;
     for (const packCase of localizedCases) {
       await gotoApp(page, `${routes.memberDiaspora(packCase.locale)}?${corridorQuery}`, testInfo, {
         marker: 'diaspora-page-ready',
