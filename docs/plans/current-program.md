@@ -53,7 +53,8 @@ verification resources retired. The bounded S5.d diaspora claim-start truth incr
 resources were retired. Explicit diaspora country context then completed through protected PR #1790
 as `2b474ea50fb09cb94f8338691e4ddb4917b8fefd`, with exact-main health and owned-resource
 retirement confirmed. The whole S3 and S5 journey families remain open. The selected bounded S5
-successor is diaspora corridor preparation, recorded below.
+successor, diaspora corridor preparation, completed through protected PR #1792 as
+`e814245335247b8b08e0b9f62010ad48c4642f37`; no successor is selected.
 
 ## Owner-adopted enterprise delivery sequence (2026-09-15)
 
