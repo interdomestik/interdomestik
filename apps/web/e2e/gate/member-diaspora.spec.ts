@@ -8,10 +8,22 @@ async function switchLocale(
   optionLabel: string,
   expectedPath: string
 ) {
-  await page.getByTestId('sidebar-user-menu-button').click();
+  const userMenuButton = page.locator('[data-testid="sidebar-user-menu-button"]:visible');
+  await expect(userMenuButton).toHaveCount(1);
+  await userMenuButton.click();
   await page.getByText(languageLabel, { exact: true }).hover();
   await page.getByRole('menuitem').filter({ hasText: optionLabel }).click();
   await expect.poll(() => new URL(page.url()).pathname).toBe(expectedPath);
+}
+
+async function expectNoHorizontalOverflow(page: Parameters<typeof gotoApp>[0]) {
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth
+      )
+    )
+    .toBe(true);
 }
 
 test.describe('Diaspora Feature', () => {
@@ -34,10 +46,14 @@ test.describe('Diaspora Feature', () => {
     const addTransit = page.getByRole('button', { name: 'Add transit country' });
     await addTransit.focus();
     await addTransit.press('Enter');
-    await expect(page.getByLabel('Transit country 1')).toBeFocused();
-    await page.getByLabel('Transit country 1', { exact: true }).selectOption('AT');
+    const firstTransit = page.getByRole('combobox', {
+      name: 'Transit country 1',
+      exact: true,
+    });
+    await expect(firstTransit).toBeFocused();
+    await firstTransit.selectOption('AT');
     await addTransit.click();
-    await page.getByLabel('Transit country 2', { exact: true }).selectOption('AT');
+    await page.getByRole('combobox', { name: 'Transit country 2', exact: true }).selectOption('AT');
     await page.getByRole('button', { name: 'Show corridor summary' }).click();
 
     const corridorQuery = 'origin=DE&destination=IT&transit=AT&transit=AT';
@@ -48,13 +64,7 @@ test.describe('Diaspora Feature', () => {
     await expect(page.getByTestId('diaspora-corridor-summary')).toContainText(
       'Preparation only. This does not start or update a claim.'
     );
-    await expect
-      .poll(() =>
-        page.evaluate(
-          () => document.documentElement.scrollWidth <= document.documentElement.clientWidth
-        )
-      )
-      .toBe(true);
+    await expectNoHorizontalOverflow(page);
 
     await page.getByRole('link', { name: 'Italy' }).click();
     const preservedQuery = `country=IT&${corridorQuery}`;
@@ -64,19 +74,19 @@ test.describe('Diaspora Feature', () => {
     await page.setViewportSize(originalViewport);
     await switchLocale(page, 'Language', 'Shqip', routes.memberDiaspora('sq'));
     await expect.poll(() => new URL(page.url()).search.slice(1)).toBe(preservedQuery);
-    await expect(page.getByTestId('diaspora-corridor-summary')).toContainText(
-      'Gjermania → Austria → Austria → Italia'
-    );
+    await expect(
+      page.getByRole('region', { name: 'Korridori yt i udhëtimit', exact: true })
+    ).toContainText('Gjermania → Austri → Austri → Italia');
     await switchLocale(page, 'Gjuha', 'Македонски', routes.memberDiaspora('mk'));
     await expect.poll(() => new URL(page.url()).search.slice(1)).toBe(preservedQuery);
-    await expect(page.getByTestId('diaspora-corridor-summary')).toContainText(
-      'Германија → Австрија → Австрија → Италија'
-    );
+    await expect(
+      page.getByRole('region', { name: 'Вашиот патен коридор', exact: true })
+    ).toContainText('Германија → Австрија → Австрија → Италија');
     await switchLocale(page, 'Јазик', 'Srpski', routes.memberDiaspora('sr'));
     await expect.poll(() => new URL(page.url()).search.slice(1)).toBe(preservedQuery);
-    await expect(page.getByTestId('diaspora-corridor-summary')).toContainText(
-      'Nemačka → Austrija → Austrija → Italija'
-    );
+    await expect(
+      page.getByRole('region', { name: 'Vaš putni koridor', exact: true })
+    ).toContainText('Nemačka → Austrija → Austrija → Italija');
 
     for (const query of [
       '?country=DE',
@@ -96,8 +106,6 @@ test.describe('Diaspora Feature', () => {
   test('Member can use the retained diaspora workflow from its canonical route', async ({
     authenticatedPage: page,
   }, testInfo) => {
-    // The legacy dashboard ribbon was intentionally retired by T-117B. The product capability
-    // remains covered at the existing canonical route without compatibility markup.
     const originalViewport = page.viewportSize();
     if (!originalViewport) {
       throw new Error('Diaspora gate requires a configured Playwright viewport.');
@@ -150,13 +158,7 @@ test.describe('Diaspora Feature', () => {
           name: /(Contact support now|Контактирај поддршка сега|Kontakto mbështetjen tani|Kontaktiraj podršku sada)/i,
         })
       ).toHaveAttribute('href', /^tel:/);
-      await expect
-        .poll(() =>
-          page.evaluate(
-            () => document.documentElement.scrollWidth <= document.documentElement.clientWidth
-          )
-        )
-        .toBe(true);
+      await expectNoHorizontalOverflow(page);
 
       const localizedItalySelector = page.getByRole('link', { name: italyLabel });
       await localizedItalySelector.click();
@@ -191,13 +193,7 @@ test.describe('Diaspora Feature', () => {
       /(Italy|Италија|Italia)/i
     );
     await expect(italySelector).toHaveAttribute('aria-current', 'page');
-    await expect
-      .poll(() =>
-        page.evaluate(
-          () => document.documentElement.scrollWidth <= document.documentElement.clientWidth
-        )
-      )
-      .toBe(true);
+    await expectNoHorizontalOverflow(page);
 
     await page.setViewportSize(originalViewport);
 
