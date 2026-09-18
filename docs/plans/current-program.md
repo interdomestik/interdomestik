@@ -55,8 +55,8 @@ as `2b474ea50fb09cb94f8338691e4ddb4917b8fefd`, with exact-main health and owned-
 retirement confirmed. The whole S3 and S5 journey families remain open. The bounded S5 diaspora
 corridor preparation completed through protected PR #1792 as
 `e814245335247b8b08e0b9f62010ad48c4642f37`. The next selected bounded S5 successor is
-`S5.e-DIASPORA-CORRIDOR-PACK-STATUS-DISCLOSURE`; its bounded product source is locally verified and
-awaits protected delivery under the new numeric capacity recorded below.
+`S5.e-DIASPORA-CORRIDOR-PACK-STATUS-DISCLOSURE`; accepted Opus corrections are in progress before
+fresh exact-candidate proof and protected delivery under the numeric capacity recorded below.
 
 ## Owner-adopted enterprise delivery sequence (2026-09-15)
 
@@ -428,11 +428,11 @@ fixtures, while its XK/AL exposure error was rejected against runtime. A one-sho
 omitted absent IT, so no output was accepted or rerun.
 
 The owner approved +30,000 tracked bytes and exactly two new files; prior capacity is not reusable.
-Source/tree/E2E `05bcd02d`/`88e68c1f`/`c96665e7` passed local `pr:verify` and security guard; the
-tracker retains detailed proof. Opus `20260918T140646-opus` drove accepted bounded corrections;
-incompatible suggestions were rejected. Corrected-head review, protected delivery, exact-main health
-and retirement remain. Proxy, auth, routing, tenancy, billing and deployment are untouched. The tree
-measures +24713 net bytes against `origin/main` with exactly two new files; no deployment is claimed.
+Runs recorded before the final Opus findings are superseded rather than transferred to the corrected
+candidate. Opus `20260918T140646-opus` and `20260918T144831-opus` drove accepted bounded corrections;
+fresh exact-candidate `pr:verify`, separate security guard, review, protected delivery, exact-main
+health and retirement remain. Proxy, auth, routing, tenancy, billing and deployment are untouched.
+The tracker owns the measured capacity ledger; no deployment is claimed.
 
 ### Dependency-first selection (owner direction, 2026-09-17)
 

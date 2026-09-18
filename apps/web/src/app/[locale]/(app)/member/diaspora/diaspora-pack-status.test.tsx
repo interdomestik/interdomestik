@@ -49,10 +49,10 @@ describe('deriveDiasporaPackStatus', () => {
         transit: ['MK', 'AT', 'MK'],
       })
     ).toEqual([
-      { country: 'DE', exposure: 'unavailable' },
-      { country: 'MK', exposure: 'exposed' },
-      { country: 'AT', exposure: 'unavailable' },
-      { country: 'IT', exposure: 'unavailable' },
+      { country: 'DE', disclosure: 'unavailable' },
+      { country: 'MK', disclosure: 'exposed' },
+      { country: 'AT', disclosure: 'unavailable' },
+      { country: 'IT', disclosure: 'unavailable' },
     ]);
   });
 
@@ -88,10 +88,10 @@ describe('deriveDiasporaPackStatus', () => {
     expect(
       deriveDiasporaPackStatus({ origin: 'DE', destination: 'IT', transit: ['MK', 'AT'] }, packs)
     ).toEqual([
-      { country: 'DE', exposure: 'unavailable' },
-      { country: 'MK', exposure: 'unavailable' },
-      { country: 'AT', exposure: 'unavailable' },
-      { country: 'IT', exposure: 'unavailable' },
+      { country: 'DE', disclosure: 'unavailable' },
+      { country: 'MK', disclosure: 'unavailable' },
+      { country: 'AT', disclosure: 'unavailable' },
+      { country: 'IT', disclosure: 'unavailable' },
     ]);
     expect(deriveDiasporaPackStatus(null, packs)).toEqual([]);
   });
@@ -100,12 +100,12 @@ describe('deriveDiasporaPackStatus', () => {
     expect(
       deriveDiasporaPackStatus({ origin: 'DE', destination: 'IT', transit: ['IT', 'MK', 'DE'] })
     ).toEqual([
-      { country: 'DE', exposure: 'unavailable' },
-      { country: 'IT', exposure: 'unavailable' },
-      { country: 'MK', exposure: 'exposed' },
+      { country: 'DE', disclosure: 'unavailable' },
+      { country: 'IT', disclosure: 'unavailable' },
+      { country: 'MK', disclosure: 'exposed' },
     ]);
     expect(deriveDiasporaPackStatus({ origin: 'MK', destination: 'MK', transit: [] })).toEqual([
-      { country: 'MK', exposure: 'exposed' },
+      { country: 'MK', disclosure: 'exposed' },
     ]);
   });
 
@@ -124,8 +124,8 @@ describe('deriveDiasporaPackStatus', () => {
         acceptedPack,
       ])
     ).toEqual([
-      { country: 'MK', exposure: 'unavailable' },
-      { country: 'IT', exposure: 'unavailable' },
+      { country: 'MK', disclosure: 'unavailable' },
+      { country: 'IT', disclosure: 'unavailable' },
     ]);
   });
 });
@@ -141,8 +141,9 @@ describe('DiasporaPackStatusDisclosure', () => {
     );
 
     const disclosure = screen.getByTestId('diaspora-pack-status');
-    expect(disclosure).toHaveAttribute('aria-live', 'polite');
-    expect(disclosure).toHaveAttribute('aria-atomic', 'true');
+    expect(within(disclosure).getByRole('status')).toHaveTextContent(
+      'Germany: Unavailable; North Macedonia: Exposed; Austria: Unavailable; Italy: Unavailable'
+    );
     expect(within(disclosure).getAllByRole('listitem')).toHaveLength(4);
     expect(screen.getByTestId('diaspora-pack-status-MK')).toHaveTextContent(
       'North MacedoniaExposed'

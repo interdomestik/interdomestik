@@ -16,7 +16,7 @@ import {
 
 export type DiasporaPackStatus = {
   country: CountryCode;
-  exposure: 'exposed' | 'unavailable';
+  disclosure: 'exposed' | 'unavailable';
 };
 
 export type DiasporaPackStatusCopy = {
@@ -40,7 +40,7 @@ export function deriveDiasporaPackStatus(
 
   return distinctCountries.map(country => ({
     country,
-    exposure:
+    disclosure:
       packs.filter(pack => pack.country === country).length === 1 &&
       packs.some(pack => pack.country === country && canExposeCountryPack(pack))
         ? 'exposed'
@@ -57,20 +57,24 @@ type Props = {
 export function DiasporaPackStatusDisclosure({ countryNames, context, copy }: Readonly<Props>) {
   const statuses = deriveDiasporaPackStatus(context);
   if (statuses.length === 0) return null;
+  const countryLabel = (status: DiasporaPackStatus) =>
+    countryNames[status.country] ?? status.country;
+  const disclosureLabel = (status: DiasporaPackStatus) =>
+    status.disclosure === 'exposed' ? copy.exposed : copy.unavailable;
 
   return (
     <Card
-      aria-atomic="true"
-      aria-live="polite"
       className="rounded-[2rem] border border-slate-200/80 bg-white dark:border-slate-800/80 dark:bg-slate-950"
       data-testid="diaspora-pack-status"
-      role="status"
     >
       <CardHeader>
         <CardTitle>{copy.title}</CardTitle>
         <CardDescription>{copy.description}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        <p className="sr-only" role="status">
+          {statuses.map(status => `${countryLabel(status)}: ${disclosureLabel(status)}`).join('; ')}
+        </p>
         <ul className="grid gap-3 sm:grid-cols-2">
           {statuses.map(status => (
             <li
@@ -79,10 +83,10 @@ export function DiasporaPackStatusDisclosure({ countryNames, context, copy }: Re
               key={status.country}
             >
               <span className="font-semibold text-slate-950 dark:text-slate-50">
-                {countryNames[status.country] ?? status.country}
+                {countryLabel(status)}
               </span>
-              <Badge variant={status.exposure === 'exposed' ? 'default' : 'secondary'}>
-                {status.exposure === 'exposed' ? copy.exposed : copy.unavailable}
+              <Badge variant={status.disclosure === 'exposed' ? 'default' : 'secondary'}>
+                {disclosureLabel(status)}
               </Badge>
             </li>
           ))}
