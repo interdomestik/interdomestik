@@ -25,7 +25,7 @@ import { commandChainDrifts } from './main-e2e-reuse-fixture.mjs';
 import { readLocalGitObjectId } from './main-e2e-reuse-github.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const E2E_TREE = readLocalGitObjectId(root, 'HEAD:apps/web/e2e');
-const S5_CORRIDOR_TREE = 'b4bdce696f241d1c060861c4db36732e98f7df3e';
+const S5_CORRIDOR_TREE = '67ca4bc58ab41e1c5a93591a1259ce34cdee27aa';
 const SAFE = { reuse: false, reason: 'evidence_not_exact' };
 const fail = () => {
   throw new Error('token=secret body=secret');
