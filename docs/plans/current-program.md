@@ -53,7 +53,8 @@ verification resources retired. The bounded S5.d diaspora claim-start truth incr
 resources were retired. Explicit diaspora country context then completed through protected PR #1790
 as `2b474ea50fb09cb94f8338691e4ddb4917b8fefd`, with exact-main health and owned-resource
 retirement confirmed. The whole S3 and S5 journey families remain open. The selected bounded S5
-successor is diaspora corridor preparation, recorded below.
+successor, diaspora corridor preparation, completed through protected PR #1792 as
+`e814245335247b8b08e0b9f62010ad48c4642f37`; no successor is selected.
 
 ## Owner-adopted enterprise delivery sequence (2026-09-15)
 
@@ -306,7 +307,7 @@ metadata, integrity/expiry, offline/retry/recovery, police/EAS content approval,
 itineraries, geolocation and S6/S7 handoffs remain open. This increment must not mark DIA-002,
 DIA-003, S5 or the diaspora family complete and does not deploy.
 
-### Selected S5 — Diaspora corridor preparation (2026-09-18)
+### Completed bounded S5 — Diaspora corridor preparation (2026-09-18)
 
 The owner selected `S5-DIASPORA-CORRIDOR-PREPARATION` from protected main
 `2b474ea50fb09cb94f8338691e4ddb4917b8fefd` under dependency-first item 4 and
@@ -332,7 +333,7 @@ for current program/tracker evidence and +1,873 for capacity-budget self-account
 reserve consumption, allocation padding and guard weakening are forbidden; the executable budget
 remains controlling.
 
-This medium-complexity preparation slice is implementation-ready for Sol 5.6 at high reasoning.
+This medium-complexity preparation slice was implemented by Sol 5.6 at high reasoning.
 Acceptance is a pure typed corridor-preparation contract plus mounted member-diaspora capture and
 summary for required origin, required destination and a zero-or-more transit-country list.
 Every value must come from explicit user input and the existing 20-code `CountryCodeSchema`
@@ -374,18 +375,23 @@ S5.d counterexamples. After repaired first-party subscription authentication, So
 review added explicit whole-context rejection, a 12-transit limit, URL-channel, IP, member-route and
 remove/edit dispositions. These are preparation consultations, not final review approval.
 
-Corrected product head `757aa6238979ac8718729ce8de21fd48825c01f2` passed full local proof recorded in
-the tracker after accepted Opus 5 receipt `20260918T092405-opus` and hosted Sonar annotations were
-resolved. This evidence-only amendment records that proof; protected-PR CI must bind the final head.
-Protected delivery, merge, exact-main health and retirement remain pending; there is no deployment or
-user validation.
+Corrected product head `757aa6238979ac8718729ce8de21fd48825c01f2`, product tree
+`9649f5bc3788c7143c3b7f614310da6e5a099bc9` and E2E tree
+`cb5baacf61c72aa57f23a884ad5f865f9ee1f1ee` passed the full local proof recorded in the tracker
+after accepted Opus 5 receipt `20260918T092405-opus` and hosted Sonar annotations were resolved.
+Final evidence head `dd8d3ee8667b99759ce69a6c6a354dcaf622f7ca` completed protected PR #1792, which
+squash-merged as exact main `e814245335247b8b08e0b9f62010ad48c4642f37`. Exact-main Secret
+Scan `35337509742`, CodeQL `35337509049`, Code Quality `35337509248`, Sonar Main Gate
+`35337509337` and CI `35337509445` passed. The task database, port 3179, original worktree and
+local/remote delivery branch were retired; 51 proof/review files remain archived outside the repo.
+There was no deployment or user validation.
 
 Signed/current pack metadata, content review, pack selection, persistence/account continuity,
 offline download/integrity/retry/recovery, geolocation, jurisdiction or persona decisions,
 police/EAS content, claim handoff and S6/S7 remain excluded. IDA-DIA-002, IDA-DIA-003, S5 and the
-whole diaspora family remain open after this preparation increment. The selection is contract-ready,
-and implementation proceeds only inside the approved ceiling above. It authorizes no deployment,
-routing/auth/proxy change, schema/migration or country expansion.
+whole diaspora family remain open after this completed preparation increment. No successor is
+selected. This completion authorizes no deployment, routing/auth/proxy change, schema/migration or
+country expansion.
 
 ### Dependency-first selection (owner direction, 2026-09-17)
 
