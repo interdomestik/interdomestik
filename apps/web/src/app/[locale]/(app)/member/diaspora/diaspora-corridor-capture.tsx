@@ -213,7 +213,9 @@ export function DiasporaCorridorCapture({ copy, initialContext }: Props) {
 
         {initialContext ? (
           <section
+            aria-atomic="true"
             aria-labelledby="diaspora-corridor-summary-title"
+            aria-live="polite"
             className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4"
             data-testid="diaspora-corridor-summary"
           >

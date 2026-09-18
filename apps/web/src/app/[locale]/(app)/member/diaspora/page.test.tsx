@@ -149,7 +149,10 @@ describe('DiasporaCorridorCapture', () => {
     );
 
     expect(screen.getByRole('heading', { name: 'Your trip corridor' })).toBeInTheDocument();
-    expect(screen.getByTestId('diaspora-corridor-summary')).toHaveTextContent('Germany → Italy');
+    const summary = screen.getByTestId('diaspora-corridor-summary');
+    expect(summary).toHaveTextContent('Germany → Italy');
+    expect(summary).toHaveAttribute('aria-live', 'polite');
+    expect(summary).toHaveAttribute('aria-atomic', 'true');
   });
 
   it('disables transit additions at the mounted cap and preserves order after middle removal', () => {
@@ -263,8 +266,6 @@ describe('DiasporaPage', () => {
     );
   });
 
-  // Locale-specific copy is covered by the mounted gate; this unit case proves only that the
-  // explicit country code is independent from the interface locale.
   it.each(['en', 'sq', 'mk', 'sr'])(
     'normalizes an explicit lowercase country independently from the %s interface locale',
     async locale => {

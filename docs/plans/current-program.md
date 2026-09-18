@@ -324,11 +324,11 @@ Before implementation, the owner approved one consolidated ceiling of +42,000 tr
 three new tracked files in the 2026-09-18 task thread. Implementation began from the later exact
 protected-main head `8db18b31717fbce999589aaaa4e83198de8289ad`; this records the implementation
 base without rewriting the historical selection provenance. Review-driven precision replaced the
-initial rounded line items with measured positive-byte growth: +18,812/three files for the corridor
-owner, +7,413 for the existing S5.d page/test/MK/SQ owner, +3,952 for the selector/EN/SR owner,
-+3,860 for diaspora E2E, +397 for CI corpus reuse, +113 for the exact requirement map, +5,502
+initial rounded line items with measured positive-byte growth: +18,874/three files for the corridor
+owner, +7,399 for the existing S5.d page/test/MK/SQ owner, +3,952 for the selector/EN/SR owner,
++3,860 for diaspora E2E, +397 for CI corpus reuse, +113 for the exact requirement map, +4,985
 for current program/tracker evidence and +1,873 for capacity-budget self-accounting. The resulting
-+41,922 remains below the approved ceiling; unused headroom is not allocated. Deleted-byte credit,
++41,453 remains below the approved ceiling; unused headroom is not allocated. Deleted-byte credit,
 reserve consumption, allocation padding and guard weakening are forbidden; the executable budget
 remains controlling.
 
@@ -353,6 +353,13 @@ IDA-DIA-003 continuity correction; it remains independent from the corridor and 
 Mounted keyboard/mobile and locale-independence tests, pure parser/serialization boundaries and
 unchanged canonical route/auth/tenant behavior form the bounded software acceptance.
 
+Corridor query codes are canonical uppercase only; the predecessor guidance `country` keeps its
+explicit lowercase normalization. Required closed-vocabulary selects make invalid apply unreachable
+through the mounted form, while the parser still fails closed. The contractual ready marker is
+corrected to `diaspora-page-ready`; repository inventory found no old-marker consumer. Both
+responsive on-route language controls use the same `SidebarUserMenu` retention contract. The applied
+summary is a polite atomic live region.
+
 Brief primary-source research retained the predecessor's explicit-country and neutral-support
 posture from [GOV.UK Foreign Travel Advice](https://www.gov.uk/foreign-travel-advice) and
 [ADAC accident abroad guidance](https://www.adac.de/rund-ums-fahrzeug/unfall-schaden-panne/unfall/unfall-im-ausland/).
@@ -367,13 +374,11 @@ S5.d counterexamples. After repaired first-party subscription authentication, So
 review added explicit whole-context rejection, a 12-transit limit, URL-channel, IP, member-route and
 remove/edit dispositions. These are preparation consultations, not final review approval.
 
-Local product proof passes at source `6d554972cba58cb44d2475dfdb604403d7dbf71c`, tree
-`e44b8f9ab82c41b4578bec261f94b73a21cfb1a7` and E2E tree
-`cb5baacf61c72aa57f23a884ad5f865f9ee1f1ee`. On isolated database
-`interdomestik_ci_974abbac_s5_corridor_r1` and port 3179, `pnpm pr:verify` exited 0 in 719 seconds;
-required CI, release, RLS and coverage checks passed, with 266 gate passes/14 skips and 13 smoke
-passes/11 skips. Separate same-head `pnpm security:guard` passed. Protected delivery, merge,
-exact-main health and resource retirement remain pending; there is no deployment or user validation.
+Product head `6d554972cba58cb44d2475dfdb604403d7dbf71c` passed full local proof recorded in
+the tracker. Current-head Opus 5 receipt `20260918T092405-opus` found stale ledger/capacity evidence
+and bounded accessibility/contract documentation gaps; accepted corrections require a fresh
+exact-head run. Protected delivery, merge, exact-main health and retirement remain pending; there is
+no deployment or user validation.
 
 Signed/current pack metadata, content review, pack selection, persistence/account continuity,
 offline download/integrity/retry/recovery, geolocation, jurisdiction or persona decisions,
