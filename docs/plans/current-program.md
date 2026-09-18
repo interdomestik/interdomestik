@@ -55,8 +55,8 @@ as `2b474ea50fb09cb94f8338691e4ddb4917b8fefd`, with exact-main health and owned-
 retirement confirmed. The whole S3 and S5 journey families remain open. The bounded S5 diaspora
 corridor preparation completed through protected PR #1792 as
 `e814245335247b8b08e0b9f62010ad48c4642f37`. The next selected bounded S5 successor is
-`S5.e-DIASPORA-CORRIDOR-PACK-STATUS-DISCLOSURE`; its bounded implementation is now authorized under
-the new numeric capacity recorded below.
+`S5.e-DIASPORA-CORRIDOR-PACK-STATUS-DISCLOSURE`; its bounded product source is locally verified and
+awaits protected delivery under the new numeric capacity recorded below.
 
 ## Owner-adopted enterprise delivery sequence (2026-09-15)
 
@@ -433,6 +433,28 @@ the +42,000-byte/three-file corridor allowance is not reusable. The request proj
 component/test, mounted page/test, four catalogs, diaspora gate, canonical docs/map and size budget.
 No implementation preceded approval. Register measured disjoint growth only: no reserve, padding,
 deleted-byte credit or guard weakening.
+
+Product source `05bcd02d6dd0eba464966a9117331caac4a679dc`, tree
+`88e68c1f1eec9e20fbeb20973e059e7a77d17ec8` and E2E tree
+`c96665e77c5057c58d32a494f654d62e5f898180` completed full local Mac proof against isolated
+database `interdomestik_ci_05bcd02d_s5e_verify_r1` on port 3189. After migrating the newly created
+database, the authoritative full `pnpm pr:verify` rerun exited 0: 1,194 CI contracts, 154 release
+tests, 52/52 mandatory RLS cases with 81/81 covered policies, 645 passing web test files and 3,466
+passing tests, 81.28% repository line coverage (21,927/26,978), 268 browser-gate passes with 14
+intentional skips, 13 smoke passes with 11 intentional skips, and a successful production build and
+bundle-size gate. A separate same-head `pnpm security:guard` exited 0. The initial invocation on the
+empty isolated database stopped at the RLS setup boundary and is superseded by the complete migrated
+rerun; it supplied no product or browser evidence.
+
+Opus 5 receipt `20260918T131352-opus` returned findings against source `283b129b`; it is retained.
+Accepted corrections add direct capacity attribution, actual-locale catalog proof, the mounted
+apply-path assertion, historical-corridor proof relocation and duplicate-country-name-safe output.
+Its incompatible country-exposure claim, broader terminology rewrite and test-only dependency
+injection were rejected against runtime and approved scope. Corrected-head Opus review remains a
+delivery gate. `apps/web/src/proxy.ts`, routing, auth, tenancy, billing and deployment remain
+untouched. Protected PR review, exact-main health and owned-resource retirement are still required;
+no deployment is authorized or claimed. The final pre-PR tracked tree measures +22674 net bytes
+against `origin/main` with exactly two new tracked files, within the owner-approved ceiling.
 
 ### Dependency-first selection (owner direction, 2026-09-17)
 

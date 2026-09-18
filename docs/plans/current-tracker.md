@@ -41,6 +41,18 @@ readiness, integrity/expiry, handoff, server mutation, schema, auth, routing, pr
 is included. Existing MK Help Now exposure is credited; full current/signed/version/integrity/expiry
 contracts and other-country content approval remain direct blockers for later readiness claims.
 
+S5.e product source `05bcd02d6dd0eba464966a9117331caac4a679dc`, tree
+`88e68c1f1eec9e20fbeb20973e059e7a77d17ec8` and E2E tree
+`c96665e77c5057c58d32a494f654d62e5f898180` are locally verified. On isolated database
+`interdomestik_ci_05bcd02d_s5e_verify_r1` and port 3189, the authoritative migrated
+`pnpm pr:verify` run exited 0 with 1,194 CI contracts, 154 release tests, 52/52 mandatory RLS cases,
+81/81 RLS-policy coverage, 645 passing web test files/3,466 passing tests, 81.28% repository line
+coverage (21,927/26,978), 268 browser-gate passes/14 intentional skips, 13 smoke passes/11
+intentional skips and a successful production build/bundle-size gate. Separate same-head
+`pnpm security:guard` also exited 0. The earlier empty-database invocation stopped at RLS setup and
+is superseded by this complete run. Protected PR delivery, exact-main health and resource retirement
+remain pending; no deployment is authorized or claimed.
+
 S5 corridor preparation local proof used tree `9649f5bc3788c7143c3b7f614310da6e5a099bc9`, E2E tree
 `cb5baacf61c72aa57f23a884ad5f865f9ee1f1ee`, isolated database
 `interdomestik_ci_974abbac_s5_corridor_r1` and port 3179. `pnpm pr:verify` exited 0 in 718 seconds:
@@ -776,9 +788,9 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                                              | Source Refs                              | Execution  | Run ID              | Run Root | Sonar            | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                                                                                                                   |
-| ----------------------------------------------- | ---------------------------------------- | ---------- | ------------------- | -------- | ---------------- | ---------------- | ---------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S5.e-DIASPORA-CORRIDOR-PACK-STATUS-DISCLOSURE` | current program; S5; DIA-002/003/004/005 | `scripted` | `approved_capacity` | none     | `not_applicable` | `not_applicable` | `not_applicable` | `pass`   | Selection from clean main `f2830cb6`; #1792 corridor and MOB-01b exposure registry credited. SRS hash rechecked. Sonnet `20260918T124522-sonnet` supports bounded disclosure; Gemini `20260918T124522-gemini` contributes accepted fail-closed fixtures with its XK/AL exposure error rejected. Owner approved +30,000 bytes/exactly two files on 2026-09-18; product proof is now in progress. |
+| ID                                              | Source Refs                              | Execution  | Run ID                      | Run Root                                       | Sonar            | Docker | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ----------------------------------------------- | ---------------------------------------- | ---------- | --------------------------- | ---------------------------------------------- | ---------------- | ------ | ---------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S5.e-DIASPORA-CORRIDOR-PACK-STATUS-DISCLOSURE` | current program; S5; DIA-002/003/004/005 | `scripted` | `mac-05bcd02d-pr-verify-r1` | `interdomestik_ci_05bcd02d_s5e_verify_r1:3189` | `not_applicable` | `pass` | `not_applicable` | `pass`   | Source `05bcd02d`, tree `88e68c1f` and E2E tree `c96665e7`: full migrated `pr:verify` passed 1,194 CI contracts, 154 release tests, 52/52 RLS cases, 645 web files/3,466 tests, 81.28% lines, 268 gate passes/14 skips, 13 smoke passes/11 skips and build/bundle gates; separate security guard passed. Initial empty-DB RLS setup stop is superseded. Sonnet/Gemini receipts and retained Opus `20260918T131352-opus` dispositions informed the corrected source. Protected PR, exact-main health and retirement remain pending; no deployment. |
 
 ### Historical S5 corridor-preparation proof
 
@@ -1344,9 +1356,9 @@ completed through #1783. S4 completed through protected PR #1786, and bounded
 `S5.d-DIASPORA-CLAIM-START-TRUTH` completed through protected PR #1788, followed by
 `S5-EXPLICIT-DIASPORA-COUNTRY-CONTEXT` through protected PR #1790. Bounded
 `S5-DIASPORA-CORRIDOR-PREPARATION` completed through protected PR #1792. Whole S5 and the diaspora
-family remain open. `S5.e-DIASPORA-CORRIDOR-PACK-STATUS-DISCLOSURE` is selected and in progress
-under its owner-approved +30,000 tracked-byte/exactly-two-file ceiling; T-411 Smart Next Step remains
-unselected.
+family remain open. `S5.e-DIASPORA-CORRIDOR-PACK-STATUS-DISCLOSURE` is locally verified and remains
+in progress through protected delivery under its owner-approved +30,000 tracked-byte/exactly-two-file
+ceiling; T-411 Smart Next Step remains unselected.
 
 | Completed historical priority            | Status      | Constraint                                                                    |
 | ---------------------------------------- | ----------- | ----------------------------------------------------------------------------- |
@@ -1356,9 +1368,9 @@ unselected.
 | Member timeline (T210)                   | `completed` | Product #1763; main CI and Sonar passed at the exact protected merge.         |
 | Notification acknowledgement correctness | `completed` | Product #1765; exact-main CI/Sonar passed; no broader T-410 completion claim. |
 
-S5.e is the selected successor and bounded implementation is in progress. The completed corridor
-allowance is not reusable. Later recommendations do not become program priority without a new owner
-selection recorded in the current program.
+S5.e is the selected successor; bounded product proof is complete and protected delivery is in
+progress. The completed corridor allowance is not reusable. Later recommendations do not become
+program priority without a new owner selection recorded in the current program.
 
 ## Lean Authority
 
