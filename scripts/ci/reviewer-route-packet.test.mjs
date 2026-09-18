@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { runReviewerRoute } from './reviewer-route-runtime.mjs';
 import { boundedReviewFrame } from './run-model-reviewer-route.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -171,3 +172,21 @@ for (const [bytes, accepted, padding = {}, rejection = DIFF_LIMIT] of [
     }
   });
 }
+
+test('an argv prompt too large to spawn yields a blocked receipt instead of a crash', async () => {
+  // 2 MiB exceeds both the Linux per-argument limit and the macOS total argument limit.
+  const receipt = await runReviewerRoute({
+    routeName: 'sonnet',
+    provider: 'anthropic',
+    model: 'claude-sonnet-5',
+    command: process.execPath,
+    args: ['-e', '', 'x'.repeat(2 * 1024 * 1024)],
+    commandInvoked: [process.execPath, '<prompt>'],
+  });
+  assert.equal(receipt.status, 'blocked');
+  assert.equal(receipt.blockerReason, 'reviewer_argument_limit');
+  assert.equal(receipt.exitCode, 125);
+  assert.equal(receipt.promptTransport, 'argv');
+  assert.equal(receipt.reviewVerdict, null);
+  assert.match(receipt.error, /E2BIG/u);
+});

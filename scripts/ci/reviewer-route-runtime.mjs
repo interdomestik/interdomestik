@@ -180,11 +180,23 @@ export function runReviewerRoute(options) {
   }
 
   return new Promise(resolve => {
-    const child = spawn(options.command, options.args || [], {
-      cwd: options.cwd || process.cwd(),
-      env,
-      stdio: [options.input === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe'],
-    });
+    let child;
+    try {
+      child = spawn(options.command, options.args || [], {
+        cwd: options.cwd || process.cwd(),
+        env,
+        stdio: [options.input === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe'],
+      });
+    } catch (error) {
+      // Synchronous spawn failures (e.g. E2BIG for an oversized argv prompt) still get a receipt.
+      blockerReason =
+        error.code === 'E2BIG' ? 'reviewer_argument_limit' : classifyBlocker(error.message);
+      const status = blockerReason ? 'blocked' : 'failed';
+      resolve(
+        finishReceipt({ status, exitCode: status === 'blocked' ? 125 : 127, error: error.message })
+      );
+      return;
+    }
     const finish = receipt => {
       clearTimeout(firstTimer);
       clearTimeout(totalTimer);

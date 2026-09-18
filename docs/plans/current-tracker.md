@@ -63,15 +63,17 @@ per-file authority limit while preserving the aggregate bound: the 256 KiB combi
 input, model, tool denial and receipts are unchanged; headings and the other authority files reduce
 one file's usable space, and oversized packets are rejected before provider start, never truncated.
 Because the per-file cap equals the frame cap, the aggregate bound always binds first; exact tests
-pin both. The owner approved one new file and +3,657 bytes of global-ceiling growth: `tests/e2e`
-+3,546 after 11 bytes of existing allocation headroom, and `config/data/messages` +111 of budget
-self-accounting. This entry is a semantic governance document that executable allocations count as
-zero bytes and fits existing ceilings; total physical growth with this entry is +5,417 bytes.
+pin both. The owner approved one new file and +4,812 bytes of global-ceiling growth: `tests/e2e`
++4,353 after 11 bytes and `source/scripts` +348 after 120 bytes of existing allocation headroom,
+and `config/data/messages` +111 of budget self-accounting. This entry is a semantic governance document that executable allocations count as
+zero bytes and fits existing ceilings; total physical growth with this entry is +6,923 bytes.
 A model-free stub packet proof against pinned base `4bc5b1cc` matched the prompt byte for byte; it is
 not a review. Provider-attested `claude-opus-5` receipts `20260918T191816-opus` on `ae8cdc51` and
 `20260918T194923-opus` on `583e3ec7` returned `FINDINGS`. Dispositions: this status entry with the
 approved figures; corrected wording; headroom and tracker growth explained; new tests run under
-`test:ci:contracts`; exact 262,144/262,145-byte combined-frame and per-file tests added. A real-frame
+`test:ci:contracts`; exact 262,144/262,145-byte combined-frame and per-file tests added. Codex P1
+on #1798 is fixed: an argv prompt that fails to spawn (`E2BIG`, e.g. Linux's 128 KiB per-argument
+limit) now yields a blocked `reviewer_argument_limit` receipt instead of a crash. A real-frame
 recurrence guard is left for separate owner selection. Fresh review, `pnpm security:guard` and
 `pnpm pr:verify` on the corrected head are pending; nothing is complete.
 
