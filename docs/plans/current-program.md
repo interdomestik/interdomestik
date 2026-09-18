@@ -54,9 +54,11 @@ resources were retired. Explicit diaspora country context then completed through
 as `2b474ea50fb09cb94f8338691e4ddb4917b8fefd`, with exact-main health and owned-resource
 retirement confirmed. The whole S3 and S5 journey families remain open. The bounded S5 diaspora
 corridor preparation completed through protected PR #1792 as
-`e814245335247b8b08e0b9f62010ad48c4642f37`. The next selected bounded S5 successor is
-`S5.e-DIASPORA-CORRIDOR-PACK-STATUS-DISCLOSURE`; accepted Opus corrections are in progress before
-fresh exact-candidate proof and protected delivery under the numeric capacity recorded below.
+`e814245335247b8b08e0b9f62010ad48c4642f37`. The bounded S5.e diaspora corridor pack-status
+disclosure then completed through protected PR #1796 as
+`6d9eb3f5bd7170dd9fbbd0da9e73009fdd59c139`; its required protected checks and exact-main health
+passed. Whole S5 and the diaspora requirement family remain open, and no successor is selected by
+this closeout.
 
 ## Owner-adopted enterprise delivery sequence (2026-09-15)
 
@@ -395,7 +397,7 @@ whole diaspora family remain open after this completed preparation increment. No
 selected by that closeout. This completion authorizes no deployment, routing/auth/proxy change,
 schema/migration or country expansion.
 
-### Selected bounded S5.e — Diaspora corridor pack-status disclosure (2026-09-18)
+### Completed bounded S5.e — Diaspora corridor pack-status disclosure (2026-09-18)
 
 From clean protected main `f2830cb6a98ca7b7c97da3180c6fa7acd4da7a2f`, after #1792 and canonical
 closeout #1795, the owner selected `S5.e-DIASPORA-CORRIDOR-PACK-STATUS-DISCLOSURE`. #1792 supplies
@@ -428,11 +430,18 @@ fixtures, while its XK/AL exposure error was rejected against runtime. A one-sho
 omitted absent IT, so no output was accepted or rerun.
 
 The owner approved +30,000 tracked bytes and exactly two new files; prior capacity is not reusable.
-Runs recorded before the final Opus findings are superseded rather than transferred to the corrected
-candidate. Opus `20260918T140646-opus` and `20260918T144831-opus` drove accepted bounded corrections;
-fresh exact-candidate `pr:verify`, separate security guard, review, protected delivery, exact-main
-health and retirement remain. Proxy, auth, routing, tenancy, billing and deployment are untouched.
-The tracker owns the measured capacity ledger; no deployment is claimed.
+Runs recorded before the final Opus findings remain superseded rather than transferred. Opus
+`20260918T140646-opus` and `20260918T144831-opus` drove accepted bounded corrections. Local head
+`81b9bcd44c92147a9541dc8333d2149152420fc0` passed `pnpm pr:verify` and a separate
+`pnpm security:guard`; subsequent review corrections produced final product head
+`df1f0bccf3c3f875219fc52a21880abbb18d360e`, tree
+`e8a00b932fc138ccc8e92678f9f33f6a6ec68796`. That final head passed all required protected PR
+checks and squash-merged through #1796 as `6d9eb3f5bd7170dd9fbbd0da9e73009fdd59c139` with the same
+tree. Exact-main CI `35372575468`, Secret Scan `35372575459`, CodeQL `35372574821`, Code Quality
+`35372575008`, Sonar Main Gate `35372575391`, SonarCloud analysis and Vercel passed. The measured
+positive growth is 24,270 tracked bytes with exactly two new tracked files. Proxy, auth, routing,
+tenancy, billing and deployment are untouched. Whole S5 and IDA-DIA-002/003/004/005 remain open;
+no successor is selected or deployment claimed by this bounded completion.
 
 ### Dependency-first selection (owner direction, 2026-09-17)
 
