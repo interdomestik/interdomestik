@@ -13,31 +13,32 @@ const copy: DiasporaPackStatusCopy = {
   boundary: 'Pack exposure does not mean downloaded or ready offline.',
   description: 'Availability follows the current reviewed Help Now pack registry.',
   exposed: 'Exposed',
-  options: {
-    AL: 'Albania',
-    AT: 'Austria',
-    BE: 'Belgium',
-    CH: 'Switzerland',
-    CZ: 'Czechia',
-    DE: 'Germany',
-    DK: 'Denmark',
-    ES: 'Spain',
-    FR: 'France',
-    HU: 'Hungary',
-    IE: 'Ireland',
-    IT: 'Italy',
-    MK: 'North Macedonia',
-    NL: 'Netherlands',
-    NO: 'Norway',
-    PL: 'Poland',
-    PT: 'Portugal',
-    RO: 'Romania',
-    SE: 'Sweden',
-    XK: 'Kosovo',
-  },
   title: 'Help Now pack status for this corridor',
   unavailable: 'Unavailable',
 };
+
+const countryNames = {
+  AL: 'Albania',
+  AT: 'Austria',
+  BE: 'Belgium',
+  CH: 'Switzerland',
+  CZ: 'Czechia',
+  DE: 'Germany',
+  DK: 'Denmark',
+  ES: 'Spain',
+  FR: 'France',
+  HU: 'Hungary',
+  IE: 'Ireland',
+  IT: 'Italy',
+  MK: 'North Macedonia',
+  NL: 'Netherlands',
+  NO: 'Norway',
+  PL: 'Poland',
+  PT: 'Portugal',
+  RO: 'Romania',
+  SE: 'Sweden',
+  XK: 'Kosovo',
+} as const;
 
 describe('deriveDiasporaPackStatus', () => {
   it('keeps first-occurrence route order, removes duplicates, and exposes only accepted packs', () => {
@@ -100,6 +101,7 @@ describe('DiasporaPackStatusDisclosure', () => {
   it('renders localized country labels and the offline boundary for an explicit corridor', () => {
     render(
       <DiasporaPackStatusDisclosure
+        countryNames={countryNames}
         context={{ origin: 'DE', destination: 'IT', transit: ['MK', 'AT', 'MK'] }}
         copy={copy}
       />
@@ -115,7 +117,9 @@ describe('DiasporaPackStatusDisclosure', () => {
   });
 
   it('renders nothing without a valid applied corridor', () => {
-    const { container } = render(<DiasporaPackStatusDisclosure context={null} copy={copy} />);
+    const { container } = render(
+      <DiasporaPackStatusDisclosure countryNames={countryNames} context={null} copy={copy} />
+    );
 
     expect(container).toBeEmptyDOMElement();
   });

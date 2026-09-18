@@ -23,7 +23,6 @@ export type DiasporaPackStatusCopy = {
   boundary: string;
   description: string;
   exposed: string;
-  options: Record<CountryCode, string>;
   title: string;
   unavailable: string;
 };
@@ -48,11 +47,12 @@ export function deriveDiasporaPackStatus(
 }
 
 type Props = {
+  countryNames: Readonly<Record<CountryCode, string>>;
   context: DiasporaCorridorContext | null;
   copy: DiasporaPackStatusCopy;
 };
 
-export function DiasporaPackStatusDisclosure({ context, copy }: Readonly<Props>) {
+export function DiasporaPackStatusDisclosure({ countryNames, context, copy }: Readonly<Props>) {
   const statuses = deriveDiasporaPackStatus(context);
   if (statuses.length === 0) return null;
 
@@ -73,7 +73,7 @@ export function DiasporaPackStatusDisclosure({ context, copy }: Readonly<Props>)
               data-testid={`diaspora-pack-status-${status.country}`}
               key={status.country}
             >
-              <span className="font-semibold text-slate-950">{copy.options[status.country]}</span>
+              <span className="font-semibold text-slate-950">{countryNames[status.country]}</span>
               <Badge variant={status.exposure === 'exposed' ? 'default' : 'secondary'}>
                 {status.exposure === 'exposed' ? copy.exposed : copy.unavailable}
               </Badge>

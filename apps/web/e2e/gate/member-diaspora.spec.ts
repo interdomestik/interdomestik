@@ -106,12 +106,21 @@ test.describe('Diaspora Feature', () => {
   test('discloses fail-closed pack status only for an applied explicit corridor', async ({
     authenticatedPage: page,
   }, testInfo) => {
-    await gotoApp(
-      page,
-      `${routes.memberDiaspora('en')}?origin=DE&destination=IT&transit=MK&transit=AT&transit=MK`,
-      testInfo,
-      { marker: 'diaspora-page-ready' }
-    );
+    await gotoApp(page, routes.memberDiaspora('en'), testInfo, { marker: 'diaspora-page-ready' });
+    await expect(page.getByTestId('diaspora-pack-status')).toHaveCount(0);
+
+    await page.getByLabel('Origin').selectOption('DE');
+    await page.getByLabel('Destination').selectOption('IT');
+    const addTransit = page.getByRole('button', { name: 'Add transit country' });
+    for (const [position, country] of ['MK', 'AT', 'MK'].entries()) {
+      await addTransit.click();
+      await page
+        .getByRole('combobox', { name: `Transit country ${position + 1}`, exact: true })
+        .selectOption(country);
+    }
+    await page.getByRole('button', { name: 'Show corridor summary' }).click();
+    const corridorQuery = 'origin=DE&destination=IT&transit=MK&transit=AT&transit=MK';
+    await expect.poll(() => new URL(page.url()).search.slice(1)).toBe(corridorQuery);
 
     const disclosure = page.getByTestId('diaspora-pack-status');
     await expect(disclosure).toBeVisible();
@@ -123,6 +132,41 @@ test.describe('Diaspora Feature', () => {
     await expect(disclosure).toContainText(
       'Pack exposure does not mean downloaded, current, verified, or ready offline.'
     );
+
+    const localizedCases = [
+      {
+        exposed: 'E shfaqur',
+        locale: 'sq',
+        northMacedonia: 'Maqedonia e Veriut',
+        title: 'Statusi i paketës Help Now për këtë korridor',
+        unavailable: 'E padisponueshme',
+      },
+      {
+        exposed: 'Изложен',
+        locale: 'mk',
+        northMacedonia: 'Северна Македонија',
+        title: 'Статус на Help Now пакетите за овој коридор',
+        unavailable: 'Недостапен',
+      },
+      {
+        exposed: 'Izložen',
+        locale: 'sr',
+        northMacedonia: 'Severna Makedonija',
+        title: 'Status Help Now paketa za ovaj koridor',
+        unavailable: 'Nedostupan',
+      },
+    ] as const;
+
+    for (const packCase of localizedCases) {
+      await gotoApp(page, `${routes.memberDiaspora(packCase.locale)}?${corridorQuery}`, testInfo, {
+        marker: 'diaspora-page-ready',
+      });
+      await expect(page.getByRole('heading', { name: packCase.title })).toBeVisible();
+      await expect(page.getByTestId('diaspora-pack-status-MK')).toContainText(
+        `${packCase.northMacedonia}${packCase.exposed}`
+      );
+      await expect(page.getByTestId('diaspora-pack-status-IT')).toContainText(packCase.unavailable);
+    }
 
     await gotoApp(page, `${routes.memberDiaspora('en')}?country=DE`, testInfo, {
       marker: 'diaspora-page-ready',

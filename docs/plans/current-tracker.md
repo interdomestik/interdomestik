@@ -780,6 +780,19 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 | ----------------------------------------------- | ---------------------------------------- | ---------- | ------------------- | -------- | ---------------- | ---------------- | ---------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `S5.e-DIASPORA-CORRIDOR-PACK-STATUS-DISCLOSURE` | current program; S5; DIA-002/003/004/005 | `scripted` | `approved_capacity` | none     | `not_applicable` | `not_applicable` | `not_applicable` | `pass`   | Selection from clean main `f2830cb6`; #1792 corridor and MOB-01b exposure registry credited. SRS hash rechecked. Sonnet `20260918T124522-sonnet` supports bounded disclosure; Gemini `20260918T124522-gemini` contributes accepted fail-closed fixtures with its XK/AL exposure error rejected. Owner approved +30,000 bytes/exactly two files on 2026-09-18; product proof is now in progress. |
 
+### Historical S5 corridor-preparation proof
+
+`S5-DIASPORA-CORRIDOR-PREPARATION` completed through protected PR #1792. Corrected product source
+`757aa6238979ac8718729ce8de21fd48825c01f2`, tree
+`9649f5bc3788c7143c3b7f614310da6e5a099bc9`, and E2E tree
+`cb5baacf61c72aa57f23a884ad5f865f9ee1f1ee` passed `pnpm pr:verify` and a separate
+`pnpm security:guard` on Mac. Final evidence head
+`dd8d3ee8667b99759ce69a6c6a354dcaf622f7ca` merged as
+`e814245335247b8b08e0b9f62010ad48c4642f37`; exact-main checks and owned-resource retirement
+passed. The proof covers explicit origin/destination and ordered zero-to-12 transit capture,
+fail-closed parsing, query/locale preservation and preparation-only mounted disclosure. It does not
+prove pack selection, persistence, offline readiness, handoff or whole S5 completion.
+
 ### Historical S5 explicit-country proof
 
 `S5-EXPLICIT-DIASPORA-COUNTRY-CONTEXT` completed through protected PR #1790. Final-head

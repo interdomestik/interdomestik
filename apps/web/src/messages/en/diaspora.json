@@ -58,29 +58,7 @@
       "description": "Availability follows the current reviewed Help Now pack registry.",
       "exposed": "Exposed",
       "unavailable": "Unavailable",
-      "boundary": "Pack exposure does not mean downloaded, current, verified, or ready offline.",
-      "options": {
-        "AT": "Austria",
-        "DE": "Germany",
-        "CH": "Switzerland",
-        "IT": "Italy",
-        "MK": "North Macedonia",
-        "AL": "Albania",
-        "XK": "Kosovo",
-        "FR": "France",
-        "BE": "Belgium",
-        "NL": "Netherlands",
-        "ES": "Spain",
-        "PT": "Portugal",
-        "HU": "Hungary",
-        "PL": "Poland",
-        "CZ": "Czechia",
-        "RO": "Romania",
-        "SE": "Sweden",
-        "NO": "Norway",
-        "DK": "Denmark",
-        "IE": "Ireland"
-      }
+      "boundary": "Pack exposure does not mean downloaded, current, verified, or ready offline."
     },
     "guidance": {
       "countryDescription": "Country-specific Green Card accident guidance.",

@@ -121,7 +121,6 @@ const packStatusCopy = {
   boundary: 'Pack exposure does not mean downloaded or ready offline.',
   description: 'Availability follows the current reviewed Help Now pack registry.',
   exposed: 'Exposed',
-  options: corridorProps.copy.options,
   title: 'Help Now pack status for this corridor',
   unavailable: 'Unavailable',
 };

@@ -55,6 +55,8 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
   const selectedCountry = resolveQuickstartCountry(search?.country);
   const corridorContext = parseDiasporaCorridorContext(search ?? {});
   const t = await getTranslations('diaspora');
+  const corridorCopy = t.raw('corridor') as DiasporaCorridorCopy;
+  const packStatusCopy = t.raw('packStatus') as DiasporaPackStatusCopy;
   const countryContext = selectedCountry
     ? {
         code: selectedCountry,
@@ -98,14 +100,12 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
         </div>
       </section>
 
-      <DiasporaCorridorCapture
-        copy={t.raw('corridor') as DiasporaCorridorCopy}
-        initialContext={corridorContext}
-      />
+      <DiasporaCorridorCapture copy={corridorCopy} initialContext={corridorContext} />
 
       <DiasporaPackStatusDisclosure
+        countryNames={corridorCopy.options}
         context={corridorContext}
-        copy={t.raw('packStatus') as DiasporaPackStatusCopy}
+        copy={packStatusCopy}
       />
 
       <div className="grid gap-6 lg:grid-cols-[1.35fr_0.95fr]">
