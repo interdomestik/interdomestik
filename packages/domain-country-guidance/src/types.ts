@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const SupportedLanguages = ['en', 'sq', 'mk', 'de', 'hr'] as const;
 export type SupportedLanguage = (typeof SupportedLanguages)[number];
 
-export const CountryCodeSchema = z.enum([
+export const COUNTRY_CODES = [
   'AT',
   'DE',
   'CH',
@@ -24,7 +24,9 @@ export const CountryCodeSchema = z.enum([
   'NO',
   'DK',
   'IE',
-]);
+] as const;
+
+export const CountryCodeSchema = z.enum(COUNTRY_CODES);
 export type CountryCode = z.infer<typeof CountryCodeSchema>;
 
 export interface CountryGuidanceRule {

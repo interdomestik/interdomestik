@@ -5,7 +5,9 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./corridor": "./src/corridor.ts",
+    "./types": "./src/types.ts"
   },
   "scripts": {
     "type-check": "tsc",

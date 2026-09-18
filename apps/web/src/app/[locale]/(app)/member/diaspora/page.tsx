@@ -1,6 +1,9 @@
 import { Link } from '@/i18n/routing';
 import { getSupportContacts } from '@/lib/support-contacts';
-import { CountryCodeSchema, countryGuidanceService } from '@interdomestik/domain-country-guidance';
+import {
+  countryGuidanceService,
+  parseDiasporaCorridorContext,
+} from '@interdomestik/domain-country-guidance';
 import {
   Badge,
   Button,
@@ -13,32 +16,14 @@ import {
 import { ArrowRight, Phone, ShieldCheck, Siren, TriangleAlert } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { DiasporaCountryRequiredCard, DiasporaCountrySelector } from './diaspora-country-selector';
-
-const QUICKSTART_COUNTRIES = [
-  { code: 'DE', labelKey: 'selector.options.DE' },
-  { code: 'CH', labelKey: 'selector.options.CH' },
-  { code: 'AT', labelKey: 'selector.options.AT' },
-  { code: 'IT', labelKey: 'selector.options.IT' },
-] as const;
-
-type SupportedQuickstartCountry = (typeof QUICKSTART_COUNTRIES)[number]['code'];
-
-function resolveCountryCode(
-  rawCountry: string | string[] | undefined
-): SupportedQuickstartCountry | null {
-  if (typeof rawCountry !== 'string') {
-    return null;
-  }
-
-  const parsed = CountryCodeSchema.safeParse(rawCountry.toUpperCase());
-  if (!parsed.success) {
-    return null;
-  }
-
-  const supportedCountry = QUICKSTART_COUNTRIES.find(country => country.code === parsed.data);
-  return supportedCountry?.code ?? null;
-}
+import {
+  DiasporaCountryRequiredCard,
+  DiasporaCountrySelector,
+  QUICKSTART_COUNTRIES,
+  resolveQuickstartCountry,
+  type SupportedQuickstartCountry,
+} from './diaspora-country-selector';
+import { DiasporaCorridorCapture, type DiasporaCorridorCopy } from './diaspora-corridor-capture';
 
 function buildClaimStartHref(selectedCountry: SupportedQuickstartCountry): string {
   const params = new URLSearchParams({
@@ -53,7 +38,12 @@ function buildClaimStartHref(selectedCountry: SupportedQuickstartCountry): strin
 
 type Props = {
   params: Promise<{ locale: string }>;
-  searchParams?: Promise<{ country?: string | string[] }>;
+  searchParams?: Promise<{
+    country?: string | string[];
+    destination?: string | string[];
+    origin?: string | string[];
+    transit?: string | string[];
+  }>;
 };
 
 export default async function DiasporaPage({ params, searchParams }: Readonly<Props>) {
@@ -61,7 +51,8 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
   setRequestLocale(locale);
 
   const search = await searchParams;
-  const selectedCountry = resolveCountryCode(search?.country);
+  const selectedCountry = resolveQuickstartCountry(search?.country);
+  const corridorContext = parseDiasporaCorridorContext(search ?? {});
   const t = await getTranslations('diaspora');
   const countryContext = selectedCountry
     ? {
@@ -72,7 +63,7 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
   const contacts = getSupportContacts({ locale });
 
   return (
-    <div className="space-y-6 pb-10" data-testid="diaspora-page">
+    <div className="space-y-6 pb-10" data-testid="diaspora-page-ready">
       <section className="overflow-hidden rounded-[2rem] border border-slate-200/80 bg-gradient-to-br from-emerald-50 via-white to-sky-50 shadow-sm">
         <div className="flex flex-col gap-5 p-6 md:p-8">
           <div className="flex items-start justify-between gap-4">
@@ -92,24 +83,24 @@ export default async function DiasporaPage({ params, searchParams }: Readonly<Pr
             </div>
           </div>
 
-          <div className="rounded-[1.5rem] border border-slate-200 bg-white/90 p-4 shadow-[0_18px_34px_-28px_rgba(15,23,42,0.55)]">
-            <div className="mb-3">
-              <p id="diaspora-country" className="text-sm font-semibold text-slate-900">
-                {t('selector.label')}
-              </p>
-              <p className="text-sm text-slate-500">{t('selector.hint')}</p>
-            </div>
-            <DiasporaCountrySelector
-              countries={QUICKSTART_COUNTRIES.map(country => ({
-                code: country.code,
-                label: t(country.labelKey),
-              }))}
-              labelledBy="diaspora-country"
-              selectedCountry={selectedCountry}
-            />
-          </div>
+          <DiasporaCountrySelector
+            countries={QUICKSTART_COUNTRIES.map(country => ({
+              code: country.code,
+              label: t(country.labelKey),
+            }))}
+            corridorContext={corridorContext}
+            hint={t('selector.hint')}
+            label={t('selector.label')}
+            labelledBy="diaspora-country"
+            selectedCountry={selectedCountry}
+          />
         </div>
       </section>
+
+      <DiasporaCorridorCapture
+        copy={t.raw('corridor') as DiasporaCorridorCopy}
+        initialContext={corridorContext}
+      />
 
       <div className="grid gap-6 lg:grid-cols-[1.35fr_0.95fr]">
         {countryContext ? (

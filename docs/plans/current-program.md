@@ -320,25 +320,72 @@ DE/CH/AT/IT guidance-country selector, but no origin/destination/transit model o
 capture. This is the reproduced direct S5 blocker. Existing saved-draft, account, submission and case
 continuity contracts are credited and are not missing prerequisites.
 
+Before implementation, the owner approved one consolidated ceiling of +42,000 tracked bytes and
+three new tracked files in the 2026-09-18 task thread. Implementation began from the later exact
+protected-main head `8db18b31717fbce999589aaaa4e83198de8289ad`; this records the implementation
+base without rewriting the historical selection provenance. Review-driven precision replaced the
+initial rounded line items with measured positive-byte growth: +19,385/three files for the corridor
+owner, +7,399 for the existing S5.d page/test/MK/SQ owner, +3,952 for the selector/EN/SR owner,
++3,860 for diaspora E2E, +397 for CI corpus reuse, +113 for the exact requirement map, +4,749
+for current program/tracker evidence and +1,873 for capacity-budget self-accounting. The resulting
++41,728 remains below the approved ceiling; unused headroom is not allocated. Deleted-byte credit,
+reserve consumption, allocation padding and guard weakening are forbidden; the executable budget
+remains controlling.
+
 This medium-complexity preparation slice is implementation-ready for Sol 5.6 at high reasoning.
 Acceptance is a pure typed corridor-preparation contract plus mounted member-diaspora capture and
 summary for required origin, required destination and a zero-or-more transit-country list.
-Every value must come from explicit user input and the existing `CountryCodeSchema`; that schema is
-only the current input vocabulary and does not approve or expose jurisdiction-specific guidance.
-The same country values must survive EN/SQ/MK/SR interface-locale changes without locale, host,
-referral, device-location or existing single-country query inference. Missing, malformed and
+Every value must come from explicit user input and the existing 20-code `CountryCodeSchema`
+vocabulary (`AT DE CH IT MK AL XK FR BE NL ES PT HU PL CZ RO SE NO DK IE`); that schema is only
+the current input vocabulary and does not approve or expose jurisdiction-specific guidance. The
+bounded URL channel uses `origin`, `destination` and ordered repeated `transit` query values. A
+single invalid endpoint or transit member rejects the whole context. Transit is capped at 12;
+duplicates, equal endpoints and transit values equal to either endpoint are valid and preserve exact
+order through parse/serialize and locale switches. Add, edit and remove controls remain keyboard
+operable and focus the newly added row.
+The same applied corridor values must survive EN/SQ/MK/SR interface-locale changes without locale, host,
+IP, referral, device-location or existing single-country query inference. Missing, malformed and
 unsupported values fail closed without producing a corridor context. The context remains
 non-authoritative preparation state: it does not choose a pack, populate a saved draft, create an
 account or claim, set `incidentCountryCode`, establish persona/eligibility, or authorize a handoff.
+The existing explicit guidance `country` query also survives locale switching as an intentional
+IDA-DIA-003 continuity correction; it remains independent from the corridor and claim-start href.
 Mounted keyboard/mobile and locale-independence tests, pure parser/serialization boundaries and
 unchanged canonical route/auth/tenant behavior form the bounded software acceptance.
+
+Corridor query codes are canonical uppercase only; the predecessor guidance `country` keeps its
+explicit lowercase normalization. Required closed-vocabulary selects make invalid apply unreachable
+through the mounted form, while the parser still fails closed. The contractual ready marker is
+corrected to `diaspora-page-ready`; repository inventory found no old-marker consumer. Both
+responsive on-route language controls use the same `SidebarUserMenu` retention contract. The applied
+summary is a polite atomic live region.
+
+Brief primary-source research retained the predecessor's explicit-country and neutral-support
+posture from [GOV.UK Foreign Travel Advice](https://www.gov.uk/foreign-travel-advice) and
+[ADAC accident abroad guidance](https://www.adac.de/rund-ums-fahrzeug/unfall-schaden-panne/unfall/unfall-im-ausland/).
+The repeatable control follows the Home Office
+[add another thing](https://design.homeoffice.gov.uk/patterns/add-another-thing) pattern and W3C
+[forms guidance](https://www.w3.org/WAI/tutorials/forms/); explicit query forwarding across locale
+navigation follows current [next-intl navigation guidance](https://next-intl.dev/docs/routing/navigation).
+One bounded Mac foundation-model comparison produced no accepted novel case, three factual errors
+about the existing vocabulary and one overlap with the human list. Gemini preparation review added
+the scalar-array, mixed-invalid, duplicate/order, equal-endpoint, keyboard, mobile and unchanged
+S5.d counterexamples. After repaired first-party subscription authentication, Sonnet preparation
+review added explicit whole-context rejection, a 12-transit limit, URL-channel, IP, member-route and
+remove/edit dispositions. These are preparation consultations, not final review approval.
+
+Corrected product head `757aa6238979ac8718729ce8de21fd48825c01f2` passed full local proof recorded in
+the tracker after accepted Opus 5 receipt `20260918T092405-opus` and hosted Sonar annotations were
+resolved. This evidence-only amendment records that proof; protected-PR CI must bind the final head.
+Protected delivery, merge, exact-main health and retirement remain pending; there is no deployment or
+user validation.
 
 Signed/current pack metadata, content review, pack selection, persistence/account continuity,
 offline download/integrity/retry/recovery, geolocation, jurisdiction or persona decisions,
 police/EAS content, claim handoff and S6/S7 remain excluded. IDA-DIA-002, IDA-DIA-003, S5 and the
 whole diaspora family remain open after this preparation increment. The selection is contract-ready,
-not capacity approval: implementation must not start until the owner approves a measured byte/file
-ceiling. It authorizes no deployment, routing/auth/proxy change, schema/migration or country expansion.
+and implementation proceeds only inside the approved ceiling above. It authorizes no deployment,
+routing/auth/proxy change, schema/migration or country expansion.
 
 ### Dependency-first selection (owner direction, 2026-09-17)
 

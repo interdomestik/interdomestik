@@ -1,19 +1,21 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { authClient } from '@/lib/auth-client';
 import { signOutAndRedirectToLogin } from '@/lib/auth/logout';
 import { SidebarUserMenu } from './sidebar-user-menu';
 
 const mockSignOutAndRedirectToLogin = vi.mocked(signOutAndRedirectToLogin);
+const replaceMock = vi.fn();
+let pathnameMock = '/member/diaspora';
 
 vi.mock('@/i18n/routing', () => ({
   Link: ({ children, href }: { children: React.ReactNode; href: string }) => (
     <a href={href}>{children}</a>
   ),
-  usePathname: () => '/agent',
+  usePathname: () => pathnameMock,
   useRouter: () => ({
-    replace: vi.fn(),
+    replace: replaceMock,
   }),
 }));
 
@@ -98,7 +100,45 @@ vi.mock('lucide-react', () => ({
 }));
 
 describe('SidebarUserMenu', () => {
+  beforeEach(() => {
+    pathnameMock = '/member/diaspora';
+    replaceMock.mockClear();
+    window.history.replaceState({}, '', '/?origin=DE&destination=IT&transit=AT&transit=CH');
+  });
+
+  it('preserves ordered repeated query values when switching locale', () => {
+    render(
+      <SidebarUserMenu retainedLocaleQueryKeys={['country', 'origin', 'destination', 'transit']} />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /English/i }));
+
+    expect(replaceMock).toHaveBeenCalledWith(
+      '/member/diaspora?origin=DE&destination=IT&transit=AT&transit=CH',
+      { locale: 'en' }
+    );
+  });
+
+  it('keeps the pathname-only locale switch when no query is present', () => {
+    window.history.replaceState({}, '', '/');
+    render(<SidebarUserMenu retainedLocaleQueryKeys={['origin', 'destination', 'transit']} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /English/i }));
+
+    expect(replaceMock).toHaveBeenCalledWith('/member/diaspora', { locale: 'en' });
+  });
+
+  it('does not forward query state from other role routes', () => {
+    pathnameMock = '/admin/users';
+    render(<SidebarUserMenu />);
+
+    fireEvent.click(screen.getByRole('button', { name: /English/i }));
+
+    expect(replaceMock).toHaveBeenCalledWith('/admin/users', { locale: 'en' });
+  });
+
   it('signs out with a localized hard redirect for agent users', async () => {
+    pathnameMock = '/agent';
     render(<SidebarUserMenu />);
 
     fireEvent.click(screen.getByRole('button', { name: /logout/i }));

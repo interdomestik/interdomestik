@@ -17,6 +17,42 @@
         "IT": "Italija"
       }
     },
+    "corridor": {
+      "title": "Planirajte putni koridor",
+      "preparationOnly": "Samo za pripremu. Ovo ne otvara niti ažurira zahtev.",
+      "origin": "Polazak",
+      "destination": "Odredište",
+      "chooseCountry": "Izaberite državu",
+      "transitGroup": "Tranzitne države",
+      "transitHint": "Dodajte sve tranzitne države redosledom putovanja.",
+      "transit": "Tranzitna država {position}",
+      "addTransit": "Dodaj tranzitnu državu",
+      "removeTransit": "Ukloni tranzitnu državu {position}",
+      "apply": "Prikaži koridor",
+      "summaryTitle": "Vaš putni koridor",
+      "options": {
+        "AT": "Austrija",
+        "DE": "Nemačka",
+        "CH": "Švajcarska",
+        "IT": "Italija",
+        "MK": "Severna Makedonija",
+        "AL": "Albanija",
+        "XK": "Kosovo (XK)",
+        "FR": "Francuska",
+        "BE": "Belgija",
+        "NL": "Holandija",
+        "ES": "Španija",
+        "PT": "Portugalija",
+        "HU": "Mađarska",
+        "PL": "Poljska",
+        "CZ": "Češka",
+        "RO": "Rumunija",
+        "SE": "Švedska",
+        "NO": "Norveška",
+        "DK": "Danska",
+        "IE": "Irska"
+      }
+    },
     "guidance": {
       "countryDescription": "Uputstva za nezgodu sa Zelenim kartonom po državi.",
       "emergency": "Hitni brojevi",

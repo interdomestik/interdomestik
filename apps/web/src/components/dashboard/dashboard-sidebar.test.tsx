@@ -6,16 +6,25 @@ import { Home } from 'lucide-react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ShellNavigation, type ShellNavigationItem } from '../shell/shell-navigation';
 
-const state = vi.hoisted(() => ({ mobile: false }));
+const state = vi.hoisted(() => ({
+  mobile: false,
+  pathname: '/member',
+  userMenuProps: vi.fn(),
+}));
 vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
-vi.mock('./sidebar-user-menu', () => ({ SidebarUserMenu: () => <div>Account</div> }));
+vi.mock('./sidebar-user-menu', () => ({
+  SidebarUserMenu: (props: unknown) => {
+    state.userMenuProps(props);
+    return <div>Account</div>;
+  },
+}));
 vi.mock('@/lib/auth-client', () => ({ authClient: { useSession: () => ({ data: null }) } }));
 vi.mock('@/actions/admin-access', () => ({ canAccessAdmin: vi.fn() }));
 import { DashboardSidebar } from './dashboard-sidebar';
 vi.mock('@interdomestik/ui/hooks/use-mobile', () => ({ useIsMobile: () => state.mobile }));
 vi.mock('@/i18n/routing', () => ({
   Link: (props: ComponentProps<'a'>) => <a {...props} />,
-  usePathname: () => '/member',
+  usePathname: () => state.pathname,
 }));
 
 const item = (href: string, title = href): ShellNavigationItem => ({ href, title, icon: Home });
@@ -43,6 +52,8 @@ const current = () => screen.getAllByRole('link').filter(link => link.hasAttribu
 
 beforeEach(() => {
   state.mobile = false;
+  state.pathname = '/member';
+  state.userMenuProps.mockClear();
 });
 describe('shared shell navigation', () => {
   it('renders semantic navigation and one current link', () => {
@@ -182,5 +193,23 @@ describe('DashboardSidebar consumers', () => {
     expect(
       within(screen.getByTestId('shell-navigation')).getByRole('link', { name: 'overview' })
     ).toBeInTheDocument();
+  });
+
+  it('retains corridor query keys only on the diaspora route', () => {
+    state.pathname = '/member/diaspora';
+    const { rerender } = render(<DashboardSidebar user={shellUser('member')} />, {
+      wrapper: Wrapper,
+    });
+    expect(state.userMenuProps).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        retainedLocaleQueryKeys: ['country', 'origin', 'destination', 'transit'],
+      })
+    );
+
+    state.pathname = '/admin/users';
+    rerender(<DashboardSidebar user={shellUser('admin')} />);
+    expect(state.userMenuProps).toHaveBeenLastCalledWith(
+      expect.objectContaining({ retainedLocaleQueryKeys: undefined })
+    );
   });
 });

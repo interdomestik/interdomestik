@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 118544,
+      "trackedBytesDelta": 120417,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 80453,
+        "config/data/messages": 82326,
         "source/scripts": 23092,
         "tests/e2e": 14999
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 80453,
+        "scripts/repo-size-budget.json": 82326,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -61,10 +61,10 @@
       "id": "product-readiness-requirement-map",
       "mode": "exact",
       "writerPaths": ["docs/plans/requirement-disposition-map.md"],
-      "trackedBytesDelta": 74198,
+      "trackedBytesDelta": 74311,
       "trackedFilesDelta": 1,
-      "categoryBytesDelta": { "docs/text": 74198 },
-      "pathBytesDelta": { "docs/plans/requirement-disposition-map.md": 74198 }
+      "categoryBytesDelta": { "docs/text": 74311 },
+      "pathBytesDelta": { "docs/plans/requirement-disposition-map.md": 74311 }
     },
     {
       "id": "lean-compatibility-repair",
@@ -199,18 +199,18 @@
         "docs/plans/current-program.md",
         "docs/plans/current-tracker.md"
       ],
-      "maxTrackedBytesDelta": 40692,
+      "maxTrackedBytesDelta": 45682,
       "maxTrackedFilesDelta": 2,
       "maxCategoryBytesDelta": {
         "config/data/messages": 9674,
-        "docs/text": 24733,
-        "large support/generated-ish": 6285
+        "docs/text": 28595,
+        "large support/generated-ish": 7413
       },
       "maxPathBytesDelta": {
         "docs/plans/2026-08-27-t116-case-summary-design-gate.md": 11495,
         "docs/plans/2026-08-27-t116-case-summary-admission.json": 9748,
-        "docs/plans/current-program.md": 13256,
-        "docs/plans/current-tracker.md": 6285
+        "docs/plans/current-program.md": 17118,
+        "docs/plans/current-tracker.md": 7413
       }
     },
     {
@@ -329,19 +329,19 @@
         "apps/web/src/messages/sq/dashboard.json",
         "apps/web/src/messages/sr/dashboard.json"
       ],
-      "maxTrackedBytesDelta": 49302,
+      "maxTrackedBytesDelta": 53162,
       "maxTrackedFilesDelta": 5,
       "maxCategoryBytesDelta": {
         "config/data/messages": 17828,
         "docs/text": 2824,
         "source/scripts": 8004,
-        "tests/e2e": 20646
+        "tests/e2e": 24506
       },
       "maxPathBytesDelta": {
         "docs/plans/2026-08-28-t117b-cutover-design-gate.md": 2949,
         "docs/plans/2026-08-28-t117b-cutover-admission.json": 7771,
         "apps/web/e2e/dashboard-access.spec.ts": 49,
-        "apps/web/e2e/gate/member-diaspora.spec.ts": 2760,
+        "apps/web/e2e/gate/member-diaspora.spec.ts": 6620,
         "apps/web/e2e/gate/member-home-cta.spec.ts": 1057,
         "apps/web/e2e/golden/agent-member-overlay.spec.ts": 90,
         "apps/web/e2e/golden/member-dashboard-empty-state.spec.ts": 1930,
@@ -689,18 +689,18 @@
         "scripts/ci/main-e2e-reuse-core.test.mjs",
         "scripts/ci/main-e2e-reuse-github.test.mjs"
       ],
-      "maxTrackedBytesDelta": 29306,
+      "maxTrackedBytesDelta": 29703,
       "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
-        "source/scripts": 10690,
-        "tests/e2e": 15923,
+        "source/scripts": 10786,
+        "tests/e2e": 16224,
         "config/data/messages": 2693
       },
       "maxPathBytesDelta": {
-        "scripts/ci/main-e2e-reuse.mjs": 1823,
+        "scripts/ci/main-e2e-reuse.mjs": 1919,
         "scripts/ci/main-e2e-reuse-core.mjs": 975,
         "scripts/ci/main-e2e-reuse-github.mjs": 17,
-        "scripts/ci/main-e2e-reuse-cli.test.mjs": 4569,
+        "scripts/ci/main-e2e-reuse-cli.test.mjs": 4870,
         "scripts/ci/coverage-input-identity.mjs": 2920,
         "scripts/ci/main-coverage-reuse.mjs": 4861,
         "scripts/ci/main-coverage-reuse.test.mjs": 9808,
@@ -1577,17 +1577,17 @@
         "apps/web/src/messages/sq/diaspora.json",
         "packages/domain-claims/src/claims/incident-country-writers.test.ts"
       ],
-      "maxTrackedBytesDelta": 12128,
+      "maxTrackedBytesDelta": 19527,
       "maxTrackedFilesDelta": 0,
       "maxCategoryBytesDelta": {
-        "tests/e2e": 7091,
+        "tests/e2e": 11686,
         "source/scripts": 4012,
-        "config/data/messages": 1025
+        "config/data/messages": 3829
       },
       "maxPathBytesDelta": {
         "apps/web/src/actions/claims/create-from-saved-draft.test.ts": 1438,
         "apps/web/src/actions/claims/create-from-saved-draft.ts": 772,
-        "apps/web/src/app/[locale]/(app)/member/diaspora/page.test.tsx": 2730,
+        "apps/web/src/app/[locale]/(app)/member/diaspora/page.test.tsx": 7325,
         "apps/web/src/app/[locale]/(app)/member/diaspora/page.tsx": 670,
         "apps/web/src/components/claims/claim-draft-intake/claim-draft-intake.test.tsx": 2123,
         "apps/web/src/components/claims/claim-draft-intake/dormant-preview.tsx": 592,
@@ -1595,8 +1595,8 @@
         "apps/web/src/components/claims/claim-draft-intake/main-panel.tsx": 460,
         "apps/web/src/components/claims/claim-draft-intake/saved-draft-submit.test.tsx": 234,
         "apps/web/src/components/claims/claim-draft-intake/use-saved-draft-claim.ts": 303,
-        "apps/web/src/messages/mk/diaspora.json": 617,
-        "apps/web/src/messages/sq/diaspora.json": 408,
+        "apps/web/src/messages/mk/diaspora.json": 2213,
+        "apps/web/src/messages/sq/diaspora.json": 1616,
         "packages/domain-claims/src/claims/incident-country-writers.test.ts": 566
       }
     },
@@ -1608,16 +1608,53 @@
         "apps/web/src/messages/en/diaspora.json",
         "apps/web/src/messages/sr/diaspora.json"
       ],
-      "maxTrackedBytesDelta": 2563,
+      "maxTrackedBytesDelta": 6515,
       "maxTrackedFilesDelta": 1,
       "maxCategoryBytesDelta": {
-        "source/scripts": 1864,
-        "config/data/messages": 699
+        "source/scripts": 3507,
+        "config/data/messages": 3008
       },
       "maxPathBytesDelta": {
-        "apps/web/src/app/[locale]/(app)/member/diaspora/diaspora-country-selector.tsx": 1864,
-        "apps/web/src/messages/en/diaspora.json": 344,
-        "apps/web/src/messages/sr/diaspora.json": 355
+        "apps/web/src/app/[locale]/(app)/member/diaspora/diaspora-country-selector.tsx": 3507,
+        "apps/web/src/messages/en/diaspora.json": 1481,
+        "apps/web/src/messages/sr/diaspora.json": 1527
+      }
+    },
+    {
+      "id": "s5-diaspora-corridor-preparation",
+      "mode": "bounded",
+      "writerPaths": [
+        "apps/web/src/app/[locale]/(app)/member/diaspora/diaspora-corridor-capture.tsx",
+        "apps/web/src/components/dashboard/dashboard-sidebar.test.tsx",
+        "apps/web/src/components/dashboard/dashboard-sidebar.tsx",
+        "apps/web/src/components/dashboard/sidebar-user-menu.test.tsx",
+        "apps/web/src/components/dashboard/sidebar-user-menu.tsx",
+        "apps/web/src/test/i18n-non-sq-completeness.test.ts",
+        "packages/domain-country-guidance/package.json",
+        "packages/domain-country-guidance/src/corridor.test.ts",
+        "packages/domain-country-guidance/src/corridor.ts",
+        "packages/domain-country-guidance/src/index.ts",
+        "packages/domain-country-guidance/src/types.ts"
+      ],
+      "maxTrackedBytesDelta": 19385,
+      "maxTrackedFilesDelta": 3,
+      "maxCategoryBytesDelta": {
+        "source/scripts": 12113,
+        "tests/e2e": 7200,
+        "config/data/messages": 72
+      },
+      "maxPathBytesDelta": {
+        "apps/web/src/app/[locale]/(app)/member/diaspora/diaspora-corridor-capture.tsx": 9409,
+        "apps/web/src/components/dashboard/dashboard-sidebar.test.tsx": 846,
+        "apps/web/src/components/dashboard/dashboard-sidebar.tsx": 245,
+        "apps/web/src/components/dashboard/sidebar-user-menu.test.tsx": 1413,
+        "apps/web/src/components/dashboard/sidebar-user-menu.tsx": 825,
+        "apps/web/src/test/i18n-non-sq-completeness.test.ts": 1075,
+        "packages/domain-country-guidance/package.json": 72,
+        "packages/domain-country-guidance/src/corridor.test.ts": 3866,
+        "packages/domain-country-guidance/src/corridor.ts": 1552,
+        "packages/domain-country-guidance/src/index.ts": 28,
+        "packages/domain-country-guidance/src/types.ts": 54
       }
     }
   ],
@@ -1627,15 +1664,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 62082947,
-  "maxTrackedFiles": 6092,
+  "maxTrackedBytes": 62124916,
+  "maxTrackedFiles": 6095,
   "maxCategoryBytes": {
-    "config/data/messages": 2268109,
-    "docs/text": 8650687,
-    "large support/generated-ish": 15870738,
+    "config/data/messages": 2275167,
+    "docs/text": 8654662,
+    "large support/generated-ish": 15871866,
     "other": 19184750,
-    "source/scripts": 8891363,
-    "tests/e2e": 7217300
+    "source/scripts": 8905215,
+    "tests/e2e": 7233256
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

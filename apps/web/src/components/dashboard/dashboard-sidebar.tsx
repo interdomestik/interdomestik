@@ -12,6 +12,8 @@ import { ShellNavigation } from '@/components/shell/shell-navigation';
 import { SidebarBrand } from './sidebar-brand';
 import { SidebarUserMenu } from './sidebar-user-menu';
 
+const DIASPORA_LOCALE_QUERY_KEYS = ['country', 'origin', 'destination', 'transit'] as const;
+
 function DashboardSidebarInner({
   user,
   role,
@@ -63,7 +65,12 @@ function DashboardSidebarInner({
       </SidebarContent>
 
       <SidebarFooter className="m-2 rounded-xl border border-white/70 bg-white/70 p-2 shadow-[0_14px_30px_-26px_rgba(15,23,42,0.7)] backdrop-blur-xl">
-        <SidebarUserMenu user={user} />
+        <SidebarUserMenu
+          retainedLocaleQueryKeys={
+            pathname === '/member/diaspora' ? DIASPORA_LOCALE_QUERY_KEYS : undefined
+          }
+          user={user}
+        />
       </SidebarFooter>
       <SidebarRail title={t('toggleSidebar')} aria-label={t('toggleSidebar')} />
     </Sidebar>
