@@ -41,10 +41,15 @@ readiness, integrity/expiry, handoff, server mutation, schema, auth, routing, pr
 is included. Existing MK Help Now exposure is credited; full current/signed/version/integrity/expiry
 contracts and other-country content approval remain direct blockers for later readiness claims.
 
-The `05bcd02d` and `4a9cd101` local runs are historical only: subsequent accepted Opus corrections
-changed the candidate and neither proof is transferred. Fresh exact-candidate `pnpm pr:verify`, a
-separate same-candidate `pnpm security:guard`, final review, protected delivery, exact-main health
-and resource retirement remain pending. No current local-proof completion or deployment is claimed.
+The `05bcd02d` and `4a9cd101` local runs remain historical only: subsequent accepted Opus
+corrections changed the candidate and neither proof is transferred. Local head `81b9bcd44c92147a9541dc8333d2149152420fc0`
+passed `pnpm pr:verify` and a separate `pnpm security:guard`; final review corrections produced
+product head `df1f0bccf3c3f875219fc52a21880abbb18d360e`, tree
+`e8a00b932fc138ccc8e92678f9f33f6a6ec68796`. All required protected checks passed at that head,
+which squash-merged through PR #1796 as `6d9eb3f5bd7170dd9fbbd0da9e73009fdd59c139` with the same
+tree. Exact-main CI, Secret Scan, CodeQL, Code Quality, Sonar analysis/gate and Vercel passed. The
+nine owned verification databases were dropped after confirming zero connections. No deployment is
+claimed; whole S5, IDA-DIA-002/003/004/005 and later readiness contracts remain open.
 
 Exact positive-growth ledger against `origin/main` (bytes): config/data/messages 2274; docs/text
 3980; large support/generated-ish 3096; source/scripts 3727; tests/e2e 11193; total 24270. Every
@@ -221,9 +226,9 @@ protected squash merge `1eecb57a7244f37aded3392c5bf38a32fec08584`; all required 
 checks passed and owned task resources were retired. Final merge/cleanup facts are retained with
 these receipts under `.codex/artifacts/interdomestik/s4`. No deployment is claimed.
 
-| ID                                              | Status        | Owner | Work                                                                                   | Exit Criteria                                                                                                                                                                                                                                                                                                                                                                                                           |
-| ----------------------------------------------- | ------------- | ----- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S5.e-DIASPORA-CORRIDOR-PACK-STATUS-DISCLOSURE` | `in_progress` | Codex | Disclose exposed versus unavailable Help Now packs from the applied explicit corridor. | Under the approved +30,000-byte/exactly-two-file ceiling, deterministic first-occurrence matching and mounted EN/SQ/MK/SR proof must keep corridor, quickstart guidance and pack vocabularies separate; dark/unaccepted/unsigned/unregistered entries fail closed; no content, persistence, download, offline-readiness, integrity/expiry, handoff, server mutation, schema, auth, routing, proxy or deployment change. |
+| ID                                              | Status      | Owner | Work                                                                                   | Exit Criteria                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ----------------------------------------------- | ----------- | ----- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S5.e-DIASPORA-CORRIDOR-PACK-STATUS-DISCLOSURE` | `completed` | Codex | Disclose exposed versus unavailable Help Now packs from the applied explicit corridor. | Under the approved +30,000-byte/exactly-two-file ceiling, deterministic first-occurrence matching and mounted EN/SQ/MK/SR proof must keep corridor, quickstart guidance and pack vocabularies separate; dark/unaccepted/unsigned/unregistered entries fail closed; no content, persistence, download, offline-readiness, integrity/expiry, handoff, server mutation, schema, auth, routing, proxy or deployment change. |
 
 The completed #1782 acceptance-link amendment historically set the requirement-map allocation to
 72,094 bytes, +7,625 over its predecessor. S3 changes use the map's synchronized exact allocation;
@@ -786,9 +791,9 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                                              | Source Refs                              | Execution | Run ID                   | Run Root        | Sonar            | Docker    | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                                                        |
-| ----------------------------------------------- | ---------------------------------------- | --------- | ------------------------ | --------------- | ---------------- | --------- | ---------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `S5.e-DIASPORA-CORRIDOR-PACK-STATUS-DISCLOSURE` | current program; S5; DIA-002/003/004/005 | `pending` | `corrected-head-pending` | `not_allocated` | `not_applicable` | `pending` | `not_applicable` | `pass`   | The `05bcd02d` and `4a9cd101` runs are superseded evidence after accepted Opus corrections. Sonnet/Gemini and Opus `20260918T131352-opus`/`20260918T140646-opus`/`20260918T144831-opus` informed the corrected candidate. Fresh exact-candidate proof, protected PR, exact-main health and retirement remain pending; no deployment. |
+| ID                                              | Source Refs                              | Execution  | Run ID    | Run Root        | Sonar  | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ----------------------------------------------- | ---------------------------------------- | ---------- | --------- | --------------- | ------ | ---------------- | ---------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `S5.e-DIASPORA-CORRIDOR-PACK-STATUS-DISCLOSURE` | current program; S5; DIA-002/003/004/005 | `scripted` | `PR-1796` | `GitHub-hosted` | `pass` | `not_applicable` | `not_applicable` | `pass`   | Local `81b9bcd4` passed `pr:verify` and separate `security:guard`; final head `df1f0bcc` (tree `e8a00b93`) passed all required protected checks and merged as same-tree `6d9eb3f5`. Exact-main CI `35372575468`, Secret Scan `35372575459`, CodeQL `35372574821`, Code Quality `35372575008`, Sonar Main Gate `35372575391`, SonarCloud analysis and Vercel passed. Nine owned databases were retired after zero-connection checks. No deployment; whole S5 and DIA-002/003/004/005 remain open. |
 
 ### Historical S5 corridor-preparation proof
 
@@ -1353,10 +1358,9 @@ The acceptance-link amendment completed through #1782. The bounded supported-pat
 completed through #1783. S4 completed through protected PR #1786, and bounded
 `S5.d-DIASPORA-CLAIM-START-TRUTH` completed through protected PR #1788, followed by
 `S5-EXPLICIT-DIASPORA-COUNTRY-CONTEXT` through protected PR #1790. Bounded
-`S5-DIASPORA-CORRIDOR-PREPARATION` completed through protected PR #1792. Whole S5 and the diaspora
-family remain open. `S5.e-DIASPORA-CORRIDOR-PACK-STATUS-DISCLOSURE` remains in progress through
-corrected-candidate proof and protected delivery under its owner-approved +30,000 tracked-byte/
-exactly-two-file ceiling; T-411 Smart Next Step remains unselected.
+`S5-DIASPORA-CORRIDOR-PREPARATION` completed through protected PR #1792, followed by bounded
+`S5.e-DIASPORA-CORRIDOR-PACK-STATUS-DISCLOSURE` through protected PR #1796. Whole S5 and the
+diaspora family remain open; T-411 Smart Next Step remains unselected.
 
 | Completed historical priority            | Status      | Constraint                                                                    |
 | ---------------------------------------- | ----------- | ----------------------------------------------------------------------------- |
@@ -1366,9 +1370,9 @@ exactly-two-file ceiling; T-411 Smart Next Step remains unselected.
 | Member timeline (T210)                   | `completed` | Product #1763; main CI and Sonar passed at the exact protected merge.         |
 | Notification acknowledgement correctness | `completed` | Product #1765; exact-main CI/Sonar passed; no broader T-410 completion claim. |
 
-S5.e is the selected successor; corrected-candidate proof and protected delivery remain in progress.
-The completed corridor allowance is not reusable. Later recommendations do not become
-program priority without a new owner selection recorded in the current program.
+S5.e is complete through protected PR #1796 and exact-main health. No successor is selected by this
+closeout. The completed corridor and S5.e allowances are not reusable. Later recommendations do not
+become program priority without a new owner selection recorded in the current program.
 
 ## Lean Authority
 
