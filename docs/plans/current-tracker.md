@@ -54,7 +54,7 @@ is superseded by this complete run. Protected PR delivery, exact-main health and
 remain pending; no deployment is authorized or claimed.
 
 Exact positive-growth ledger against `origin/main` (bytes): config/data/messages 2272; docs/text
-4118; large support/generated-ish 4277; source/scripts 3433; tests/e2e 10765; total 24865. Every
+4118; large support/generated-ish 4277; source/scripts 3433; tests/e2e 10613; total 24713. Every
 changed path is nonnegative, so net equals positive growth; budget aggregates are ceilings, not
 actual tree deltas.
 

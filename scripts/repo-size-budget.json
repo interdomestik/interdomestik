@@ -329,19 +329,19 @@
         "apps/web/src/messages/sq/dashboard.json",
         "apps/web/src/messages/sr/dashboard.json"
       ],
-      "maxTrackedBytesDelta": 57692,
+      "maxTrackedBytesDelta": 57548,
       "maxTrackedFilesDelta": 5,
       "maxCategoryBytesDelta": {
         "config/data/messages": 17828,
         "docs/text": 2824,
         "source/scripts": 8004,
-        "tests/e2e": 29036
+        "tests/e2e": 28892
       },
       "maxPathBytesDelta": {
         "docs/plans/2026-08-28-t117b-cutover-design-gate.md": 2949,
         "docs/plans/2026-08-28-t117b-cutover-admission.json": 7771,
         "apps/web/e2e/dashboard-access.spec.ts": 49,
-        "apps/web/e2e/gate/member-diaspora.spec.ts": 11150,
+        "apps/web/e2e/gate/member-diaspora.spec.ts": 11006,
         "apps/web/e2e/gate/member-home-cta.spec.ts": 1057,
         "apps/web/e2e/golden/agent-member-overlay.spec.ts": 90,
         "apps/web/e2e/golden/member-dashboard-empty-state.spec.ts": 1930,
@@ -689,18 +689,18 @@
         "scripts/ci/main-e2e-reuse-core.test.mjs",
         "scripts/ci/main-e2e-reuse-github.test.mjs"
       ],
-      "maxTrackedBytesDelta": 30051,
+      "maxTrackedBytesDelta": 30043,
       "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
         "source/scripts": 10892,
-        "tests/e2e": 16466,
+        "tests/e2e": 16458,
         "config/data/messages": 2693
       },
       "maxPathBytesDelta": {
         "scripts/ci/main-e2e-reuse.mjs": 2025,
         "scripts/ci/main-e2e-reuse-core.mjs": 975,
         "scripts/ci/main-e2e-reuse-github.mjs": 17,
-        "scripts/ci/main-e2e-reuse-cli.test.mjs": 5112,
+        "scripts/ci/main-e2e-reuse-cli.test.mjs": 5104,
         "scripts/ci/coverage-input-identity.mjs": 2920,
         "scripts/ci/main-coverage-reuse.mjs": 4861,
         "scripts/ci/main-coverage-reuse.test.mjs": 9808,
@@ -1682,7 +1682,7 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 62148009,
+  "maxTrackedBytes": 62147857,
   "maxTrackedFiles": 6097,
   "maxCategoryBytes": {
     "config/data/messages": 2277439,
@@ -1690,7 +1690,7 @@
     "large support/generated-ish": 15874268,
     "other": 19184750,
     "source/scripts": 8908648,
-    "tests/e2e": 7244220
+    "tests/e2e": 7244068
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
