@@ -46,10 +46,10 @@ function localeSwitchHref(
 function SidebarUserMenuInner({
   user,
   retainedLocaleQueryKeys,
-}: {
+}: Readonly<{
   user: ClientShellUser | null;
   retainedLocaleQueryKeys: readonly string[];
-}) {
+}>) {
   const pathname = usePathname();
   const router = useRouter();
   const locale = useLocale();
@@ -165,9 +165,9 @@ function SidebarUserMenuInner({
 
 function SidebarUserMenuFromSession({
   retainedLocaleQueryKeys,
-}: {
+}: Readonly<{
   retainedLocaleQueryKeys: readonly string[];
-}) {
+}>) {
   const { data: session } = authClient.useSession();
   return (
     <SidebarUserMenuInner
@@ -180,10 +180,10 @@ function SidebarUserMenuFromSession({
 export function SidebarUserMenu({
   user,
   retainedLocaleQueryKeys = [],
-}: {
+}: Readonly<{
   user?: ClientShellUser | null;
   retainedLocaleQueryKeys?: readonly string[];
-}) {
+}>) {
   if (user !== undefined) {
     return <SidebarUserMenuInner user={user} retainedLocaleQueryKeys={retainedLocaleQueryKeys} />;
   }

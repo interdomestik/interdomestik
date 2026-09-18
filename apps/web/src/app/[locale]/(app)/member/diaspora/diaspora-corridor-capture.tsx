@@ -33,6 +33,12 @@ type Props = Readonly<{
   initialContext: DiasporaCorridorContext | null;
 }>;
 
+type TransitRow = Readonly<{ countryCode: string; id: string }>;
+
+function initialTransitRows(transit: readonly string[]): TransitRow[] {
+  return transit.map((countryCode, index) => ({ countryCode, id: `initial-${index}` }));
+}
+
 function numbered(copy: string, position: number): string {
   return copy.replace('{position}', String(position));
 }
@@ -51,8 +57,11 @@ export function DiasporaCorridorCapture({ copy, initialContext }: Props) {
   const router = useRouter();
   const [origin, setOrigin] = useState(initialContext?.origin ?? '');
   const [destination, setDestination] = useState(initialContext?.destination ?? '');
-  const [transit, setTransit] = useState<string[]>(initialContext?.transit ?? []);
+  const [transit, setTransit] = useState<TransitRow[]>(() =>
+    initialTransitRows(initialContext?.transit ?? [])
+  );
   const [focusRequest, setFocusRequest] = useState(0);
+  const nextTransitId = useRef(0);
   const transitRefs = useRef<Array<HTMLSelectElement | null>>([]);
   const addTransitRef = useRef<HTMLButtonElement | null>(null);
   const focusTransitIndex = useRef<number | null>(null);
@@ -67,7 +76,7 @@ export function DiasporaCorridorCapture({ copy, initialContext }: Props) {
   useEffect(() => {
     setOrigin(initialOrigin);
     setDestination(initialDestination);
-    setTransit(initialTransit ? initialTransit.split(',') : []);
+    setTransit(initialTransitRows(initialTransit ? initialTransit.split(',') : []));
   }, [initialDestination, initialOrigin, initialTransit]);
 
   useEffect(() => {
@@ -81,7 +90,8 @@ export function DiasporaCorridorCapture({ copy, initialContext }: Props) {
   function addTransit(): void {
     if (transit.length >= MAX_TRANSIT_COUNTRIES) return;
     focusTransitIndex.current = transit.length;
-    setTransit(current => [...current, '']);
+    const id = `added-${nextTransitId.current++}`;
+    setTransit(current => [...current, { countryCode: '', id }]);
     setFocusRequest(current => current + 1);
   }
 
@@ -93,13 +103,19 @@ export function DiasporaCorridorCapture({ copy, initialContext }: Props) {
 
   function updateTransit(index: number, value: string): void {
     setTransit(current =>
-      current.map((country, currentIndex) => (currentIndex === index ? value : country))
+      current.map((row, currentIndex) =>
+        currentIndex === index ? { ...row, countryCode: value } : row
+      )
     );
   }
 
   function applyCorridor(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-    const context = parseDiasporaCorridorContext({ origin, destination, transit });
+    const context = parseDiasporaCorridorContext({
+      origin,
+      destination,
+      transit: transit.map(row => row.countryCode),
+    });
     if (!context) return;
 
     const nextParams = serializeDiasporaCorridorContext(
@@ -162,8 +178,8 @@ export function DiasporaCorridorCapture({ copy, initialContext }: Props) {
             <p id="diaspora-transit-hint" className="text-sm text-slate-500">
               {copy.transitHint}
             </p>
-            {transit.map((countryCode, index) => (
-              <div key={index} className="flex items-end gap-2">
+            {transit.map((row, index) => (
+              <div key={row.id} className="flex items-end gap-2">
                 <label className="min-w-0 flex-1 space-y-2 text-sm font-semibold text-slate-900">
                   <span>{numbered(copy.transit, index + 1)}</span>
                   <select
@@ -173,7 +189,7 @@ export function DiasporaCorridorCapture({ copy, initialContext }: Props) {
                       transitRefs.current[index] = node;
                     }}
                     required
-                    value={countryCode}
+                    value={row.countryCode}
                   >
                     <option value="">{copy.chooseCountry}</option>
                     {countries.map(country => (
