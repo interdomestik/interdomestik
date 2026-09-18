@@ -23,9 +23,10 @@ protected PR #1790 as `2b474ea50fb09cb94f8338691e4ddb4917b8fefd`; its exact-main
 retirement passed. Whole S5, DIA-002, DIA-003 and the diaspora family remain open. The owner selected
 `S5-DIASPORA-CORRIDOR-PREPARATION` from that exact main under dependency-first item 4, approved
 +42,000 tracked bytes and exactly three new files, and implementation began from exact protected main
-`8db18b31717fbce999589aaaa4e83198de8289ad`. The corrected bounded candidate is locally proven at
-source head `757aa6238979ac8718729ce8de21fd48825c01f2`; protected PR delivery and canonical closeout remain
-pending. This subsequent amendment is evidence-only, so protected-PR CI must bind the final head.
+`8db18b31717fbce999589aaaa4e83198de8289ad`. Corrected product source
+`757aa6238979ac8718729ce8de21fd48825c01f2` completed through final evidence head
+`dd8d3ee8667b99759ce69a6c6a354dcaf622f7ca`, protected PR #1792 and squash merge
+`e814245335247b8b08e0b9f62010ad48c4642f37`. No successor is selected.
 
 S5 corridor preparation local proof used tree `9649f5bc3788c7143c3b7f614310da6e5a099bc9`, E2E tree
 `cb5baacf61c72aa57f23a884ad5f865f9ee1f1ee`, isolated database
@@ -39,6 +40,10 @@ The security-log SHA-256 is `6b72eb1d0b9c6b8d42c2b678bc3cdca715ed4395ae10d18e533
 its result receipt is `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa`.
 This proves only explicit corridor preparation and locale continuity; packs, persistence, handoff,
 offline behavior, whole DIA-002/003 acceptance, deployment and user validation remain open.
+Exact-main Secret Scan `35337509742`, CodeQL `35337509049`, Code Quality `35337509248`, Sonar Main
+Gate `35337509337` and CI `35337509445` passed on `e8142453`. The task database, port 3179,
+original worktree and local/remote delivery branch were retired. The 51 proof/review files are
+archived outside the repo under the task artifact root.
 
 S5 explicit-country local proof is complete at final head
 `0960da7ebdb66066e296ced8b2cda23b4c71954e`, tree
@@ -193,9 +198,9 @@ protected squash merge `1eecb57a7244f37aded3392c5bf38a32fec08584`; all required 
 checks passed and owned task resources were retired. Final merge/cleanup facts are retained with
 these receipts under `.codex/artifacts/interdomestik/s4`. No deployment is claimed.
 
-| ID                                 | Status        | Owner | Work                                                                                        | Exit Criteria                                                                                                                                                                                                                                                                                              |
-| ---------------------------------- | ------------- | ----- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S5-DIASPORA-CORRIDOR-PREPARATION` | `in_progress` | Codex | Capture explicit origin/destination/transit preparation context independent of UI language. | Owner approved +42,000 bytes/three files. Corrected product head `757aa623` passed full local proof after Opus 5 and hosted Sonar review; this evidence-only amendment awaits protected delivery and exact-final-head CI. Context stays non-authoritative; DIA-002/003 and pack/offline/S6/S7 remain open. |
+| ID                                 | Status      | Owner | Work                                                                                        | Exit Criteria                                                                                                                                                                                                                                                      |
+| ---------------------------------- | ----------- | ----- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `S5-DIASPORA-CORRIDOR-PREPARATION` | `completed` | Codex | Capture explicit origin/destination/transit preparation context independent of UI language. | Corrected product source `757aa623`, final evidence head `dd8d3ee8`, protected PR #1792 and exact main `e8142453` passed required proof and health; owned resources were retired. Context stays non-authoritative; DIA-002/003 and pack/offline/S6/S7 remain open. |
 
 The completed #1782 acceptance-link amendment historically set the requirement-map allocation to
 72,094 bytes, +7,625 over its predecessor. S3 changes use the map's synchronized exact allocation;
@@ -295,20 +300,20 @@ Owner-adopted on 2026-09-15; detailed scope and acceptance live only in the curr
 product-readiness roadmap. These rows do not change the active slice or mark future work complete.
 S4–S14 are outcome families to split into bounded implementation slices, not architecture T IDs.
 
-| Item                                    | Status              | Next evidence                                                                                      |
-| --------------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------- |
-| S4 — S3 handoff gap                     | completed_bounded   | Protected PR #1786; request-bound upload/acknowledgement remain open.                              |
-| S5 — Member first-case journey          | in_progress_bounded | S5.d and explicit country context completed through #1788/#1790; corridor preparation selected.    |
-| S6 — Member continuation and membership | queued_conditional  | Credit #1775–#1777; complete only missing return/evidence/message/membership access outcomes.      |
-| S7 — Staff handling journey             | queued_conditional  | Existing handling contracts; queue and evidence round-trip with internal/public separation.        |
-| S8 — Agent client/handoff journey       | queued_conditional  | Existing authority and attribution; only unresolved capability changes need disposition.           |
-| S9 — Agent-assisted activation          | queued_conditional  | Member ownership, attribution and Paddle continuity on established contracts.                      |
-| S10 — Branch-manager oversight          | queued_conditional  | S2; existing authorized scope; metric decisions block only affected restoration.                   |
-| S11 — Tenant-admin operations           | queued_conditional  | People/branches and contracted access lifecycle, split into bounded increments.                    |
-| S12 — Platform-admin operations         | queued_conditional  | Technical operations and separate business-authority boundary.                                     |
-| H1 — SVC-CORE / Help Now                | priority_when_ready | First unmet clause, country/content/stop-rule authority and usable assistance path.                |
-| S13 — Outcome and closure               | queued_conditional  | Closure/recovery receipts and pilot scope; truthful member/staff outcome UI.                       |
-| S14 — Pilot rehearsal                   | queued_conditional  | All in-scope role journeys, user acceptance, accessibility, four locales and operational evidence. |
+| Item                                    | Status              | Next evidence                                                                                        |
+| --------------------------------------- | ------------------- | ---------------------------------------------------------------------------------------------------- |
+| S4 — S3 handoff gap                     | completed_bounded   | Protected PR #1786; request-bound upload/acknowledgement remain open.                                |
+| S5 — Member first-case journey          | in_progress_bounded | S5.d, explicit country and corridor preparation completed through #1788/#1790/#1792; remainder open. |
+| S6 — Member continuation and membership | queued_conditional  | Credit #1775–#1777; complete only missing return/evidence/message/membership access outcomes.        |
+| S7 — Staff handling journey             | queued_conditional  | Existing handling contracts; queue and evidence round-trip with internal/public separation.          |
+| S8 — Agent client/handoff journey       | queued_conditional  | Existing authority and attribution; only unresolved capability changes need disposition.             |
+| S9 — Agent-assisted activation          | queued_conditional  | Member ownership, attribution and Paddle continuity on established contracts.                        |
+| S10 — Branch-manager oversight          | queued_conditional  | S2; existing authorized scope; metric decisions block only affected restoration.                     |
+| S11 — Tenant-admin operations           | queued_conditional  | People/branches and contracted access lifecycle, split into bounded increments.                      |
+| S12 — Platform-admin operations         | queued_conditional  | Technical operations and separate business-authority boundary.                                       |
+| H1 — SVC-CORE / Help Now                | priority_when_ready | First unmet clause, country/content/stop-rule authority and usable assistance path.                  |
+| S13 — Outcome and closure               | queued_conditional  | Closure/recovery receipts and pilot scope; truthful member/staff outcome UI.                         |
+| S14 — Pilot rehearsal                   | queued_conditional  | All in-scope role journeys, user acceptance, accessibility, four locales and operational evidence.   |
 
 Before selecting each family, record its exact bounded gap, direct predecessor receipts, model/risk,
 UI acceptance and exclusions in the existing active queue. Record why any independent ready outcome
@@ -758,9 +763,9 @@ measurements, synthetic-navigation RSS samples, and private local evidence remai
 
 ## Proof Ledger
 
-| ID                                 | Source Refs                      | Execution  | Run ID     | Run Root  | Sonar            | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                                                                                                                   |
-| ---------------------------------- | -------------------------------- | ---------- | ---------- | --------- | ---------------- | ---------------- | ---------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S5-DIASPORA-CORRIDOR-PREPARATION` | current program; S5; DIA-002/003 | `scripted` | `757aa623` | task root | `not_applicable` | `not_applicable` | `not_applicable` | `pass`   | Domain 22/22, focused web 39, full `pr:verify` and separate security guard passed at corrected product head `757aa623` on task DB/port 3179; counts and hashes are recorded above. Opus 5 and hosted Sonar findings were accepted before that proof. This evidence-only amendment awaits protected-PR exact-final-head CI. Whole DIA-002/003, S5 and pack/offline/handoff outcomes remain open. |
+| ID                                 | Source Refs                      | Execution  | Run ID     | Run Root  | Sonar            | Docker           | Sentry           | Learning | Evidence Refs                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ---------------------------------- | -------------------------------- | ---------- | ---------- | --------- | ---------------- | ---------------- | ---------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S5-DIASPORA-CORRIDOR-PREPARATION` | current program; S5; DIA-002/003 | `scripted` | `757aa623` | task root | `not_applicable` | `not_applicable` | `not_applicable` | `pass`   | Domain 22/22, focused web 39, full `pr:verify` and separate security guard passed at corrected product source `757aa623` on task DB/port 3179; counts and hashes are recorded above. Opus 5 and hosted Sonar findings were accepted before that proof. Final evidence head `dd8d3ee8` protected-merged through #1792 as exact main `e8142453`; required exact-main health passed and owned resources were retired. Whole DIA-002/003, S5 and pack/offline/handoff outcomes remain open. |
 
 ### Historical S5 explicit-country proof
 
@@ -1311,9 +1316,9 @@ completed in PR #1777; localization completed in PR #1778. S1 completed through 
 The acceptance-link amendment completed through #1782. The bounded supported-path prefix of S3
 completed through #1783. S4 completed through protected PR #1786, and bounded
 `S5.d-DIASPORA-CLAIM-START-TRUTH` completed through protected PR #1788, followed by
-`S5-EXPLICIT-DIASPORA-COUNTRY-CONTEXT` through protected PR #1790. Whole S5 and the diaspora
-family remain open. `S5-DIASPORA-CORRIDOR-PREPARATION` is the selected bounded successor; T-411
-Smart Next Step remains unselected.
+`S5-EXPLICIT-DIASPORA-COUNTRY-CONTEXT` through protected PR #1790. Bounded
+`S5-DIASPORA-CORRIDOR-PREPARATION` completed through protected PR #1792. Whole S5 and the diaspora
+family remain open; no successor is selected, and T-411 Smart Next Step remains unselected.
 
 | Completed historical priority            | Status      | Constraint                                                                    |
 | ---------------------------------------- | ----------- | ----------------------------------------------------------------------------- |
@@ -1323,10 +1328,9 @@ Smart Next Step remains unselected.
 | Member timeline (T210)                   | `completed` | Product #1763; main CI and Sonar passed at the exact protected merge.         |
 | Notification acknowledgement correctness | `completed` | Product #1765; exact-main CI/Sonar passed; no broader T-410 completion claim. |
 
-The active successor is `S5-DIASPORA-CORRIDOR-PREPARATION` as recorded in the queue above. Its
-contract is implementation-ready, but selection grants no capacity or implementation authority;
-no work starts until the owner approves a measured ceiling. Later recommendations do not become
-program priority without a new owner selection recorded in the current program.
+No active successor is selected. Later recommendations do not become program priority without a
+new owner selection recorded in the current program, and no work starts until that selection and a
+measured ceiling are owner-approved.
 
 ## Lean Authority
 
