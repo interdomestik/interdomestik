@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 121224,
+      "trackedBytesDelta": 121824,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 83133,
+        "config/data/messages": 83733,
         "source/scripts": 23092,
         "tests/e2e": 14999
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 83133,
+        "scripts/repo-size-budget.json": 83733,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -1676,6 +1676,24 @@
         "apps/web/src/app/[locale]/(app)/member/diaspora/diaspora-pack-status.test.tsx": 6211,
         "apps/web/src/app/[locale]/(app)/member/diaspora/diaspora-pack-status.tsx": 3280
       }
+    },
+    {
+      "id": "memory-register-payload-mismatch",
+      "mode": "bounded",
+      "writerPaths": [
+        "scripts/plan-conformance/memory-register-capture.mjs",
+        "scripts/plan-conformance/memory-register-capture.test.mjs"
+      ],
+      "maxTrackedBytesDelta": 6070,
+      "maxTrackedFilesDelta": 0,
+      "maxCategoryBytesDelta": {
+        "source/scripts": 1368,
+        "tests/e2e": 4702
+      },
+      "maxPathBytesDelta": {
+        "scripts/plan-conformance/memory-register-capture.mjs": 1368,
+        "scripts/plan-conformance/memory-register-capture.test.mjs": 4702
+      }
     }
   ],
   "reserve": {
@@ -1684,15 +1702,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 62153998,
+  "maxTrackedBytes": 62160668,
   "maxTrackedFiles": 6098,
   "maxCategoryBytes": {
-    "config/data/messages": 2277552,
+    "config/data/messages": 2278152,
     "docs/text": 8658642,
     "large support/generated-ish": 15874962,
     "other": 19184750,
-    "source/scripts": 8909290,
-    "tests/e2e": 7248802
+    "source/scripts": 8910658,
+    "tests/e2e": 7253504
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
