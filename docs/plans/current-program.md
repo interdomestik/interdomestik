@@ -443,6 +443,55 @@ positive growth is 24,270 tracked bytes with exactly two new tracked files. Prox
 tenancy, billing and deployment are untouched. Whole S5 and IDA-DIA-002/003/004/005 remain open;
 no successor is selected or deployment claimed by this bounded completion.
 
+### Selected bounded S5 — First-case saved-draft continuity (2026-09-19)
+
+From verified protected main `099bcd45af01eecdedb7962c53758495d148c222`, the owner selected
+`S5-FIRST-CASE-SAVED-DRAFT-CONTINUITY` to reconcile the missing integrated proof that an existing
+active member reaches exactly one correct case. The tested path works; the increment is two
+browser-gate specs and a shared fixture, with no product source, route, auth, schema or migration
+change. Password sign-in before secure save is the owner-accepted path for this proof.
+
+The continuity spec starts signed out on the neutral IDA host, prepares vehicle/collision facts,
+signs the seeded active member in with the existing password flow and secure-saves through the
+existing promotion path. It proves exact persisted facts at `preview`, no claim after save or after a
+fresh-session resume and review, one owner claim only after explicit submission, and the same claim
+on reopen without a second submit. Another member's repository context cannot list, resume, update
+or delete the draft (`notFound`, owner version unchanged) and its mounted saved-draft list omits it.
+
+The foreign-submit spec signs in a second active member of the same tenant (`member.ks.a2`, active
+subscription asserted by a tenant-scoped probe) and rewrites that member's real submit request to
+the owner's real draft id. Both fresh drafts share one version, so the expected version is not
+rewritten. The server returns the generic unavailable result; no claim exists from the owner facts
+or either derived saved-draft claim id, and every returned owner-draft field, including version and
+update time, is unchanged. The same session then submits its own draft successfully, so the refusal
+comes from draft ownership, not membership. A control run without the id rewrite failed at the
+refusal assertion, showing the check depends on the forged owner id. An inverted-visibility run of
+the continuity spec (expecting the foreign list to show the draft) failed as expected; it checks
+assertion sensitivity, not a product mutation. Existing C07–C12 action-boundary, database
+RLS/repository, recovery-spec and C31 smoke evidence is reused.
+
+Both specs run once, in the `gate-ks-sq` project, on the IDA host with the English locale; they do
+not exercise the KS host or the SQ locale, and the map credits nothing beyond that. Cleanup in
+`finally` removes the run's drafts, claims and dependent rows plus the drafts' audit and
+submit-idempotency rows. Every public table's row count returned to baseline after a passing run and
+after a failure injected once each claim existed.
+
+The candidate was integrated onto protected main `efa7fe2131baee5b5435a3c88261f6e95f2a60e9` (#1800)
+without changing its scope. The owner approved a ceiling rise of +20,540 tracked bytes and exactly
+three new files, replacing the earlier +19,247 approval after review corrections (draft-scoped
+cleanup and E2E corpus registration). The ceiling splits into tests/e2e +19,278 for the new
+allocation, docs/text +481 for the exact requirement map, source/scripts +89 for the
+`ci-evidence-reuse` registration and config/data/messages +692 of budget self-accounting; the reuse
+test's +304 stays within that allocation's existing headroom. Physical growth is +25,745 tracked
+bytes; the program (+3,846) and tracker (+1,055) notes stay within existing aggregate headroom and
+consume no new global docs allocation. The registered E2E tree is
+`4ec71855058653402d70c27d8bdf1d9f923437d5`.
+
+Excluded: email-OTP completion for an existing account (no capture sink exists; adding one is an
+auth-architecture decision), new-account registration, membership purchase, S6 continuation,
+diaspora, routing/proxy/auth/schema/migration changes and deployment. IDA-FST-008/010/011/012 and
+whole S5 remain open; the map credits only the exercised clauses.
+
 ### Dependency-first selection (owner direction, 2026-09-17)
 
 Use this order within the existing roadmap, not a second queue. A dependency blocks only the
