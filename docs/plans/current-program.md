@@ -482,9 +482,9 @@ three new files, replacing the earlier +19,247 approval after review corrections
 cleanup and E2E corpus registration). The ceiling splits into tests/e2e +19,278 for the new
 allocation, docs/text +481 for the exact requirement map, source/scripts +89 for the
 `ci-evidence-reuse` registration and config/data/messages +692 of budget self-accounting; the reuse
-test's +304 stays within that allocation's existing headroom. Physical growth is +25,745 tracked
-bytes; the program (+3,846) and tracker (+1,055) notes stay within existing aggregate headroom and
-consume no new global docs allocation. The registered E2E tree is
+test shrinks by 87 bytes because its historical parity checks became table-driven. Physical growth
+is +25,375 tracked bytes; the program (+3,867) and tracker (+1,055) notes stay within existing
+aggregate headroom and consume no new global docs allocation. The registered E2E tree is
 `4ec71855058653402d70c27d8bdf1d9f923437d5`.
 
 Excluded: email-OTP completion for an existing account (no capture sink exists; adding one is an

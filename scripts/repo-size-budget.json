@@ -702,7 +702,7 @@
         "scripts/ci/main-e2e-reuse.mjs": 2114,
         "scripts/ci/main-e2e-reuse-core.mjs": 975,
         "scripts/ci/main-e2e-reuse-github.mjs": 17,
-        "scripts/ci/main-e2e-reuse-cli.test.mjs": 5228,
+        "scripts/ci/main-e2e-reuse-cli.test.mjs": 5169,
         "scripts/ci/coverage-input-identity.mjs": 2920,
         "scripts/ci/main-coverage-reuse.mjs": 4861,
         "scripts/ci/main-coverage-reuse.test.mjs": 9808,

@@ -126,27 +126,15 @@ test('S4 missing-information request preserves corpus parity', () => {
     true
   );
 });
-test('S5 explicit diaspora country context preserves corpus parity', () => {
-  const parity = inspectRepositoryParity({
-    ...sources(),
-    e2eTreeSha: 'cacb1feef816ded4c09ad3555e8831a248e24871',
+for (const [name, e2eTreeSha] of [
+  ['S5 explicit diaspora country context', 'cacb1feef816ded4c09ad3555e8831a248e24871'],
+  ['S5 corridor preparation', 'cb5baacf61c72aa57f23a884ad5f865f9ee1f1ee'],
+  ['S5 pack-status disclosure', 'f24e4a8e5d97bf5f77cd6f097c79758432622c30'],
+])
+  test(`${name} preserves historical corpus parity`, () => {
+    const parity = inspectRepositoryParity({ ...sources(), e2eTreeSha });
+    assert.ok(parity.commandChain, `the ${name} E2E tree must stay in the command chain`);
   });
-  assert.ok(parity.commandChain, 'the S5 E2E tree must stay in the exact command chain');
-});
-test('S5 corridor preparation preserves historical corpus parity', () => {
-  const parity = inspectRepositoryParity({
-    ...sources(),
-    e2eTreeSha: 'cb5baacf61c72aa57f23a884ad5f865f9ee1f1ee',
-  });
-  assert.ok(parity.commandChain, 'the S5 corridor E2E tree must stay in the command chain');
-});
-test('S5 pack-status disclosure preserves historical corpus parity', () => {
-  const parity = inspectRepositoryParity({
-    ...sources(),
-    e2eTreeSha: 'f24e4a8e5d97bf5f77cd6f097c79758432622c30',
-  });
-  assert.ok(parity.commandChain, 'the S5 pack-status E2E tree must stay in the command chain');
-});
 test('S5 saved-draft continuity preserves corpus parity', () => {
   assert.equal(E2E_TREE, S5_SAVED_DRAFT_TREE);
   assert.equal(
