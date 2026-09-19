@@ -56,26 +56,26 @@ Exact positive-growth ledger against `origin/main` (bytes): config/data/messages
 changed path is nonnegative, and the disjoint executable allocation increases match these actual
 deltas exactly; no deleted-byte credit, reserve consumption or prior-slice capacity is used.
 
-Owner-authorized reviewer-transport repair (2026-09-18; no product-priority change): since #1797,
-`docs/plans/current-program.md` (131,711 bytes) exceeded the Opus route's 128 KiB per-file authority
-limit, so `review:opus` blocked in packet preparation before provider start. The repair raises the
-per-file authority limit while preserving the aggregate bound: the 256 KiB combined frame, 1.5 MiB
-input, model, tool denial and receipts are unchanged; headings and the other authority files reduce
-one file's usable space, and oversized packets are rejected before provider start, never truncated.
-Because the per-file cap equals the frame cap, the aggregate bound always binds first; exact tests
-pin both. The owner approved one new file and +4,812 bytes of global-ceiling growth: `tests/e2e`
-+4,353 after 11 bytes and `source/scripts` +348 after 120 bytes of existing allocation headroom,
-and `config/data/messages` +111 of budget self-accounting. This entry is a semantic governance document that executable allocations count as
-zero bytes and fits existing ceilings; total physical growth with this entry is +6,923 bytes.
-A model-free stub packet proof against pinned base `4bc5b1cc` matched the prompt byte for byte; it is
-not a review. Provider-attested `claude-opus-5` receipts `20260918T191816-opus` on `ae8cdc51` and
-`20260918T194923-opus` on `583e3ec7` returned `FINDINGS`. Dispositions: this status entry with the
-approved figures; corrected wording; headroom and tracker growth explained; new tests run under
-`test:ci:contracts`; exact 262,144/262,145-byte combined-frame and per-file tests added. Codex P1
-on #1798 is fixed: an argv prompt that fails to spawn (`E2BIG`, e.g. Linux's 128 KiB per-argument
-limit) now yields a blocked `reviewer_argument_limit` receipt instead of a crash. A real-frame
-recurrence guard is left for separate owner selection. Fresh review, `pnpm security:guard` and
-`pnpm pr:verify` on the corrected head are pending; nothing is complete.
+Owner-authorized reviewer-transport repair completed through protected PR #1798 (2026-09-19; no
+product-priority change). Since #1797, `docs/plans/current-program.md` (131,711 bytes) exceeded the
+Opus route's 128 KiB per-file authority limit, so `review:opus` blocked before provider start. The
+per-file limit now equals the 256 KiB frame cap, so the aggregate bound decides admission; the
+1.5 MiB input cap, model, tool denial and receipts are unchanged, and oversized packets are
+rejected, never truncated. Codex P1 is fixed: an argv launch failing with `E2BIG` now yields a
+blocked `reviewer_argument_limit` receipt instead of crashing; this does not enable argv reviews on
+Linux. Final head `c0a22650b1db0437407079931198bcf370f807d8` passed `pnpm pr:verify`,
+`pnpm security:guard` and 1,204 CI contracts. Squash merge
+`2a9b662ff69ddfb211596b38aea0257c2753202f` has the same tree; exact-main CI `35420752669`, Sonar
+Main Gate `35420752687`, CodeQL `35420752497`, Code Quality `35420752384` and Secret Scan
+`35420752667` passed. Approved capacity: one new file, +6,923 physical and +4,812 global-ceiling
+bytes. Opus `FINDINGS` receipts `20260918T191816-opus`, `20260918T194923-opus`,
+`20260918T200049-opus` and `20260918T204432-opus` and their dispositions are retained; receipts are
+archived under
+`~/.codex/task-receipts/interdomestik/REVIEWER-AUTHORITY-FILE-LIMIT/2026-09-19/` (SHA-256
+`5314354c4639f56814aea418b696f6d4dc58adf7fe9a0e86095a165a1ec0b8ed`). Linux argv transport and a
+real-frame recurrence guard remain unselected. The memory-registration payload-mismatch fix is
+rebased onto that merge within its owner-approved +7,024-byte ceiling allowance (module +1,609,
+tests +4,815, budget self-accounting +600; no new files); its review and proof are pending.
 
 S5 corridor preparation local proof used tree `9649f5bc3788c7143c3b7f614310da6e5a099bc9`, E2E tree
 `cb5baacf61c72aa57f23a884ad5f865f9ee1f1ee`, isolated database

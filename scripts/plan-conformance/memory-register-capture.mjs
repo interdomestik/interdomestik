@@ -8,6 +8,7 @@ import { validateMemoryRegistry } from './memory-validate.mjs';
 
 const DEFAULT_REGISTRY_PATH = path.join('docs', 'plans', '2026-03-03-memory-registry.jsonl');
 const DEFAULT_OUT_PATH = path.join('tmp', 'plan-conformance', 'memory-register-capture-decision.json');
+const IGNORED_PAYLOAD_FIELDS = new Set(['created_at', 'updated_at']);
 
 function parseJsonl(filePath) {
   const absolutePath = path.resolve(filePath);
@@ -67,8 +68,11 @@ export function registerCapturedMemory({
   }
 
   const registryRecords = parseJsonl(registryPath);
-  const exists = registryRecords.some(entry => entry?.id === record.id);
-  const action = determineRegisterAction({ exists, apply });
+  const existing = registryRecords.find(entry => entry?.id === record.id);
+  const exists = existing !== undefined;
+  const payloadDifferences = exists ? diffRecordPayload(existing, record) : [];
+  const payloadMatch = exists ? payloadDifferences.length === 0 : null;
+  const action = determineRegisterAction({ exists, apply, payloadMatch: payloadMatch !== false });
 
   const decision = {
     ok: true,
@@ -77,6 +81,8 @@ export function registerCapturedMemory({
     exists,
     append_line: exists ? '' : JSON.stringify(record),
     action,
+    payload_match: payloadMatch,
+    payload_differences: payloadDifferences,
   };
 
   if (!exists && apply) {
@@ -86,9 +92,9 @@ export function registerCapturedMemory({
   return decision;
 }
 
-export function determineRegisterAction({ exists, apply }) {
+export function determineRegisterAction({ exists, apply, payloadMatch = true }) {
   if (exists) {
-    return 'already_registered';
+    return payloadMatch ? 'already_registered' : 'payload_mismatch';
   }
 
   if (apply) {
@@ -100,6 +106,46 @@ export function determineRegisterAction({ exists, apply }) {
 
 export function validateCapturedRecord(record) {
   return validateMemoryRegistry([record]);
+}
+
+// Canonical key order: UTF-16 code units, independent of locale (unlike localeCompare).
+function compareCanonicalKeys(left, right) {
+  if (left === right) return 0;
+  return left < right ? -1 : 1;
+}
+
+function stableValue(value) {
+  if (Array.isArray(value)) {
+    return value.map(item => stableValue(item));
+  }
+
+  if (value && typeof value === 'object') {
+    // fromEntries defines own keys, so "__proto__" is kept rather than setting the prototype.
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort(compareCanonicalKeys)
+        .map(key => [key, stableValue(value[key])])
+    );
+  }
+
+  return value;
+}
+
+function ownField(record, field) {
+  return record && Object.hasOwn(record, field) ? record[field] : undefined;
+}
+
+export function diffRecordPayload(existing, captured) {
+  const fields = new Set([...Object.keys(existing ?? {}), ...Object.keys(captured ?? {})]);
+
+  return [...fields]
+    .filter(field => !IGNORED_PAYLOAD_FIELDS.has(field))
+    .filter(
+      field =>
+        JSON.stringify(stableValue(ownField(existing, field))) !==
+        JSON.stringify(stableValue(ownField(captured, field)))
+    )
+    .sort(compareCanonicalKeys);
 }
 
 function printUsage() {
