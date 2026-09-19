@@ -8,7 +8,7 @@ import { authRequestAuthority } from './auth-request-authority';
 import { databaseHooks } from './hooks';
 import { userSchemaConfig } from './schema';
 
-const profile = { id: 'gh', name: 'GitHub', email: 'gh@example.com', emailVerified: true };
+const user = { name: 'GitHub', email: 'gh@example.com', emailVerified: true };
 const memoryUserSchema = {
   ...userSchemaConfig,
   additionalFields: {
@@ -31,7 +31,7 @@ async function harness() {
         github: {
           clientId: 'test',
           clientSecret: 'test',
-          getUserInfo: async () => ({ user: profile, data: profile }),
+          getUserInfo: async () => ({ user, data: { ...user, id: 1 } as never }),
         },
       },
     },

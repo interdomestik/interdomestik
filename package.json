@@ -260,7 +260,7 @@
     "gzip-size": "^7.0.0",
     "hono": "^4.13.8",
     "husky": "^8.0.0",
-    "js-yaml": "^4.3.0",
+    "js-yaml": "^4.3.2",
     "jsonwebtoken": "^9.0.3",
     "knip": "^5.87.0",
     "lighthouse": "13.4.1",
@@ -268,7 +268,7 @@
     "postgres": "^3.4.9",
     "prettier": "^3.9.6",
     "release-it": "^19.2.4",
-    "tsx": "^4.23.13",
+    "tsx": "^4.23.1",
     "turbo": "2.10.13",
     "typescript": "^5.9.3"
   },
