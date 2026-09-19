@@ -25,7 +25,7 @@ import { commandChainDrifts } from './main-e2e-reuse-fixture.mjs';
 import { readLocalGitObjectId } from './main-e2e-reuse-github.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const E2E_TREE = readLocalGitObjectId(root, 'HEAD:apps/web/e2e');
-const S5_SAVED_DRAFT_TREE = '4ec71855058653402d70c27d8bdf1d9f923437d5';
+const S5_SAVED_DRAFT_TREE = 'fa75ee0ae7b2f3fb6c6f22c36c898ceb9b1331b7';
 const SAFE = { reuse: false, reason: 'evidence_not_exact' };
 const fail = () => assert.fail('token=secret body=secret');
 const keyPairs =
@@ -130,11 +130,12 @@ for (const [name, e2eTreeSha] of [
   ['S5 explicit diaspora country context', 'cacb1feef816ded4c09ad3555e8831a248e24871'],
   ['S5 corridor preparation', 'cb5baacf61c72aa57f23a884ad5f865f9ee1f1ee'],
   ['S5 pack-status disclosure', 'f24e4a8e5d97bf5f77cd6f097c79758432622c30'],
-])
+]) {
   test(`${name} preserves historical corpus parity`, () => {
     const parity = inspectRepositoryParity({ ...sources(), e2eTreeSha });
     assert.ok(parity.commandChain, `the ${name} E2E tree must stay in the command chain`);
   });
+}
 test('S5 saved-draft continuity preserves corpus parity', () => {
   assert.equal(E2E_TREE, S5_SAVED_DRAFT_TREE);
   assert.equal(

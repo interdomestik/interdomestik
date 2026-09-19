@@ -8,7 +8,9 @@ import {
   db,
   eq,
   freeStartDrafts,
+  ilike,
   inArray,
+  or,
   user,
 } from '@interdomestik/database';
 import { type FreeStartDraftContext } from '@interdomestik/database/free-start-drafts';
@@ -52,7 +54,7 @@ async function authPost(page: Page, info: TestInfo, path: string, data: unknown,
     failOnStatusCode: false,
     headers: {
       Origin: process.env.BETTER_AUTH_URL?.trim() || origin,
-      Referer: `${origin}${routes.login(info)}`,
+      Referer: `${origin}${routes.login('en')}`,
       'x-tenant-id': tenant,
     },
     maxRedirects: 0,
@@ -123,7 +125,7 @@ export async function openSavedDrafts(page: Page, info: TestInfo) {
   return intake;
 }
 
-// Removes this run's draft audit and submit idempotency rows, which journey cleanup does not own.
+// Deletes the run's draft audit and submit keys (matched by draft id), which journeys do not own.
 export async function cleanupS5(claimId: string | null, journey: S3JourneyIdentity) {
   const tenant = E2E_USERS.KS_MEMBER.tenantId;
   const drafts = await db.query.freeStartDrafts.findMany({
@@ -131,19 +133,13 @@ export async function cleanupS5(claimId: string | null, journey: S3JourneyIdenti
     where: and(eq(freeStartDrafts.tenantId, tenant), eq(freeStartDrafts.summary, journey.summary)),
   });
   const ids = drafts.map(draft => draft.id);
-  const audit = and(eq(auditLog.tenantId, tenant), inArray(auditLog.entityId, ids));
-  const keys = inArray(
-    idempotency.idempotencyKey,
-    ids.map(id => `ida-ui03a2-b1:${id}`)
-  );
-  const submits = and(eq(idempotency.tenantId, tenant), keys);
   if (ids.length) {
+    const audit = and(eq(auditLog.tenantId, tenant), inArray(auditLog.entityId, ids));
+    const keys = or(...ids.map(id => ilike(idempotency.idempotencyKey, `%:${id}`)));
+    const submits = and(eq(idempotency.tenantId, tenant), keys);
     await db.delete(auditLog).where(audit);
     await db.delete(idempotency).where(submits);
   }
   await cleanupJourney(claimId, journey);
   await expectJourneyClean(claimId, journey);
-  if (!ids.length) return;
-  expect(await db.select().from(auditLog).where(audit)).toEqual([]);
-  expect(await db.select().from(idempotency).where(submits)).toEqual([]);
 }

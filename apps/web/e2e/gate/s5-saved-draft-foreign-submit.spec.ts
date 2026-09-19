@@ -95,6 +95,7 @@ test.describe('S5 saved-draft foreign submission', () => {
     try {
       const targetDraft = await previewDraft(owner, target);
       const actorDraft = await previewDraft(actor, own);
+      expect(actorDraft.version, 'only the id is forged').toBe(targetDraft.version);
       expect(await resumeFreeStartDraft(actor, targetDraft.id)).toEqual({
         ok: false,
         code: 'notFound',
