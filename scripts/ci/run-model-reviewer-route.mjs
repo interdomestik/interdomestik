@@ -20,7 +20,7 @@ function option(args, name, fallback = '') {
 }
 
 const MAX_DIFF_BYTES = 1024 * 1024;
-const MAX_AUTHORITY_FILE_BYTES = 128 * 1024;
+const MAX_AUTHORITY_FILE_BYTES = 256 * 1024;
 const MAX_REVIEW_FRAME_BYTES = 256 * 1024;
 const SAFE_GIT = Object.freeze({
   encoding: 'utf8',

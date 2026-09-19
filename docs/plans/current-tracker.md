@@ -56,6 +56,27 @@ Exact positive-growth ledger against `origin/main` (bytes): config/data/messages
 changed path is nonnegative, and the disjoint executable allocation increases match these actual
 deltas exactly; no deleted-byte credit, reserve consumption or prior-slice capacity is used.
 
+Owner-authorized reviewer-transport repair (2026-09-18; no product-priority change): since #1797,
+`docs/plans/current-program.md` (131,711 bytes) exceeded the Opus route's 128 KiB per-file authority
+limit, so `review:opus` blocked in packet preparation before provider start. The repair raises the
+per-file authority limit while preserving the aggregate bound: the 256 KiB combined frame, 1.5 MiB
+input, model, tool denial and receipts are unchanged; headings and the other authority files reduce
+one file's usable space, and oversized packets are rejected before provider start, never truncated.
+Because the per-file cap equals the frame cap, the aggregate bound always binds first; exact tests
+pin both. The owner approved one new file and +4,812 bytes of global-ceiling growth: `tests/e2e`
++4,353 after 11 bytes and `source/scripts` +348 after 120 bytes of existing allocation headroom,
+and `config/data/messages` +111 of budget self-accounting. This entry is a semantic governance document that executable allocations count as
+zero bytes and fits existing ceilings; total physical growth with this entry is +6,923 bytes.
+A model-free stub packet proof against pinned base `4bc5b1cc` matched the prompt byte for byte; it is
+not a review. Provider-attested `claude-opus-5` receipts `20260918T191816-opus` on `ae8cdc51` and
+`20260918T194923-opus` on `583e3ec7` returned `FINDINGS`. Dispositions: this status entry with the
+approved figures; corrected wording; headroom and tracker growth explained; new tests run under
+`test:ci:contracts`; exact 262,144/262,145-byte combined-frame and per-file tests added. Codex P1
+on #1798 is fixed: an argv prompt that fails to spawn (`E2BIG`, e.g. Linux's 128 KiB per-argument
+limit) now yields a blocked `reviewer_argument_limit` receipt instead of a crash. A real-frame
+recurrence guard is left for separate owner selection. Fresh review, `pnpm security:guard` and
+`pnpm pr:verify` on the corrected head are pending; nothing is complete.
+
 S5 corridor preparation local proof used tree `9649f5bc3788c7143c3b7f614310da6e5a099bc9`, E2E tree
 `cb5baacf61c72aa57f23a884ad5f865f9ee1f1ee`, isolated database
 `interdomestik_ci_974abbac_s5_corridor_r1` and port 3179. `pnpm pr:verify` exited 0 in 718 seconds:
