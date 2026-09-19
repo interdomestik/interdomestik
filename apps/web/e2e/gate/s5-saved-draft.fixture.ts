@@ -11,6 +11,7 @@ import {
   ilike,
   inArray,
   or,
+  session as authSession,
   user,
 } from '@interdomestik/database';
 import { type FreeStartDraftContext } from '@interdomestik/database/free-start-drafts';
@@ -20,12 +21,11 @@ import { gotoApp } from '../utils/navigation';
 import {
   cleanupJourney,
   exactClaimDescription,
-  expectJourneyClean,
   type S3JourneyIdentity,
 } from './member-staff-evidence-journey-cleanup.fixture';
 
 export type S5Member = { email: string; tenantId: string };
-export type S5Session = { page: Page; tenantId: string; token: string };
+export type S5Session = { page: Page; token: string };
 
 // Golden-seeded active member in the same tenant as E2E_USERS.KS_MEMBER.
 export const KS_MEMBER_A2: S5Member = {
@@ -77,11 +77,11 @@ export async function signIn(page: Page, info: TestInfo, member: S5Member): Prom
   const token = result.body?.token;
   if (!result.response.ok() || typeof token !== 'string')
     throw new Error(`sign-in failed: ${result.response.status()} ${JSON.stringify(result.body)}`);
-  return { page, tenantId, token };
+  return { page, token };
 }
 
-export async function signOut(session: S5Session, info: TestInfo) {
-  await authPost(session.page, info, 'revoke-session', { token: session.token }, session.tenantId);
+export async function signOut(session: S5Session) {
+  await db.delete(authSession).where(eq(authSession.token, session.token));
 }
 
 // Project contexts carry country-host headers; these contexts must present only the IDA host.
@@ -141,5 +141,4 @@ export async function cleanupS5(claimId: string | null, journey: S3JourneyIdenti
     await db.delete(idempotency).where(submits);
   }
   await cleanupJourney(claimId, journey);
-  await expectJourneyClean(claimId, journey);
 }

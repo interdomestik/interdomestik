@@ -8,7 +8,10 @@ import {
 import { expect, test, type Page } from '@playwright/test';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
-import { S3_JOURNEY_INCIDENT_DATE } from './member-staff-evidence-journey-cleanup.fixture';
+import {
+  S3_JOURNEY_INCIDENT_DATE,
+  expectJourneyClean,
+} from './member-staff-evidence-journey-cleanup.fixture';
 import {
   cleanupS5,
   idaOrigin,
@@ -156,9 +159,10 @@ test.describe('S5 first-case saved-draft continuity', () => {
         expect(await journeyClaims(journey), 'still exactly one claim').toHaveLength(1);
       });
     } finally {
-      for (const session of sessions) await signOut(session, info);
-      await Promise.all(pages.map(page => page.context().close()));
       await cleanupS5(claimId, journey);
+      for (const session of sessions) await signOut(session);
+      await Promise.all(pages.map(page => page.context().close()));
+      await expectJourneyClean(claimId, journey);
     }
   });
 });

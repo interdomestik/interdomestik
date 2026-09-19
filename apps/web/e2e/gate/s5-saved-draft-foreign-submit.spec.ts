@@ -9,6 +9,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { createHash, randomUUID } from 'node:crypto';
 import {
   S3_JOURNEY_INCIDENT_DATE,
+  expectJourneyClean,
   type S3JourneyIdentity,
 } from './member-staff-evidence-journey-cleanup.fixture';
 import {
@@ -147,10 +148,12 @@ test.describe('S5 saved-draft foreign submission', () => {
       });
       expect(await journeyClaims(target), 'owner facts still unclaimed').toEqual([]);
     } finally {
-      if (session) await signOut(session, info);
-      await page?.context().close();
       await cleanupS5(null, target);
       await cleanupS5(actorClaimId, own);
+      if (session) await signOut(session);
+      await page?.context().close();
+      await expectJourneyClean(null, target);
+      await expectJourneyClean(actorClaimId, own);
     }
   });
 });

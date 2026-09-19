@@ -471,21 +471,28 @@ assertion sensitivity, not a product mutation. Existing C07–C12 action-boundar
 RLS/repository, recovery-spec and C31 smoke evidence is reused.
 
 Both specs run once, in the `gate-ks-sq` project, on the IDA host with the English locale; they do
-not exercise the KS host or the SQ locale, and the map credits nothing beyond that. Cleanup in
-`finally` removes the run's drafts, claims and dependent rows plus the drafts' audit and
-submit-idempotency rows. Every public table's row count returned to baseline after a passing run and
-after a failure injected once each claim existed.
+not exercise the KS host or the SQ locale, and the map credits nothing beyond that. Teardown
+deletes the run's drafts, claims, dependent rows, draft audit and submit-idempotency rows, then
+revokes its sessions in the database, before closing contexts and verifying. Row counts of all 87
+public tables returned to baseline after a passing run and after failures injected in the test body
+and in the post-cleanup verification; the check compares counts, not row contents.
 
 The candidate was integrated onto protected main `efa7fe2131baee5b5435a3c88261f6e95f2a60e9` (#1800)
 without changing its scope. The owner approved a ceiling rise of up to +20,540 tracked bytes and
 exactly three new files, replacing the earlier +19,247 approval after review corrections
-(draft-scoped cleanup and E2E corpus registration). The final ceiling rise is +20,457: tests/e2e
-+19,195 for the new allocation, docs/text +481 for the exact requirement map, source/scripts +89
+(draft-scoped cleanup and E2E corpus registration). The final ceiling rise is +20,529: tests/e2e
++19,267 for the new allocation, docs/text +481 for the exact requirement map, source/scripts +89
 for the `ci-evidence-reuse` registration and config/data/messages +692 of budget self-accounting;
 the reuse test shrinks by 83 bytes because its historical parity checks became table-driven.
-Physical growth is +25,313 tracked bytes; the program (+3,884) and tracker (+1,055) notes stay
+Physical growth is +25,963 tracked bytes; the program (+4,462) and tracker (+1,055) notes stay
 within existing aggregate headroom and consume no new global docs allocation. The registered E2E
-tree is `fa75ee0ae7b2f3fb6c6f22c36c898ceb9b1331b7`.
+tree is `b35ddb466bcc12c5804aebdfc980304774fe018c`.
+
+Local head `8810a6bd29bbfb6a5b5b69360b172b4235589bd9` passed `pnpm pr:verify` (1,205 CI contracts;
+gate 270 passed, 16 skipped; smoke 13 passed, 11 skipped) and a separate `pnpm security:guard`.
+Opus `20260919T184543-opus`, `20260919T193458-opus` and `20260919T195009-opus` drove the accepted
+corrections; the last one, teardown ordering and database session revocation, produced the final
+head, whose exact-head proof is recorded on the PR.
 
 Excluded: email-OTP completion for an existing account (no capture sink exists; adding one is an
 auth-architecture decision), new-account registration, membership purchase, S6 continuation,
