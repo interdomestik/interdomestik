@@ -1684,15 +1684,15 @@
         "scripts/plan-conformance/memory-register-capture.mjs",
         "scripts/plan-conformance/memory-register-capture.test.mjs"
       ],
-      "maxTrackedBytesDelta": 6070,
+      "maxTrackedBytesDelta": 6424,
       "maxTrackedFilesDelta": 0,
       "maxCategoryBytesDelta": {
-        "source/scripts": 1368,
-        "tests/e2e": 4702
+        "source/scripts": 1609,
+        "tests/e2e": 4815
       },
       "maxPathBytesDelta": {
-        "scripts/plan-conformance/memory-register-capture.mjs": 1368,
-        "scripts/plan-conformance/memory-register-capture.test.mjs": 4702
+        "scripts/plan-conformance/memory-register-capture.mjs": 1609,
+        "scripts/plan-conformance/memory-register-capture.test.mjs": 4815
       }
     }
   ],
@@ -1702,15 +1702,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 62160668,
+  "maxTrackedBytes": 62161022,
   "maxTrackedFiles": 6098,
   "maxCategoryBytes": {
     "config/data/messages": 2278152,
     "docs/text": 8658642,
     "large support/generated-ish": 15874962,
     "other": 19184750,
-    "source/scripts": 8910658,
-    "tests/e2e": 7253504
+    "source/scripts": 8910899,
+    "tests/e2e": 7253617
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

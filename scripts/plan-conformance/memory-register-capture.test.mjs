@@ -172,7 +172,7 @@ function registerAgainst(existing, capturePayload, apply) {
 
 test('identical replay ignores timestamps and top-level or nested key order', () => {
   const scope = { file_path: 'package.json', route: '/member' };
-  const capture = makeCapture({ scope });
+  const capture = makeCapture({ scope, ä: 1, Z: 2 });
   const existing = reversedKeys({
     ...capture.record,
     scope: reversedKeys(scope),
@@ -200,6 +200,7 @@ for (const [name, change, field] of [
     'scope',
   ],
   ['top-level __proto__ field', JSON.parse('{"__proto__":{}}'), '__proto__'],
+  ['mixed-case and non-ASCII fields', { ä: 1, Z: 1, Ä: 1, a: 1 }, ['Z', 'a', 'Ä', 'ä']],
 ]) {
   test(`same id with different ${name} is a payload mismatch and never written`, () => {
     const capture = makeCapture();
@@ -209,7 +210,7 @@ for (const [name, change, field] of [
     assert.equal(result.action, 'payload_mismatch');
     assert.equal(result.exists, true);
     assert.equal(result.payload_match, false);
-    assert.deepEqual(result.payload_differences, [field]);
+    assert.deepEqual(result.payload_differences, [field].flat());
     assert.equal(result.append_line, '');
     assert.equal(unchanged, true);
   });

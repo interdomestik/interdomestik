@@ -74,8 +74,8 @@ archived under
 `~/.codex/task-receipts/interdomestik/REVIEWER-AUTHORITY-FILE-LIMIT/2026-09-19/` (SHA-256
 `5314354c4639f56814aea418b696f6d4dc58adf7fe9a0e86095a165a1ec0b8ed`). Linux argv transport and a
 real-frame recurrence guard remain unselected. The memory-registration payload-mismatch fix is
-rebased onto that merge within its owner-approved +6,670-byte ceiling allowance (module +1,368,
-tests +4,702, budget self-accounting +600; no new files); its review and proof are pending.
+rebased onto that merge within its owner-approved +7,024-byte ceiling allowance (module +1,609,
+tests +4,815, budget self-accounting +600; no new files); its review and proof are pending.
 
 S5 corridor preparation local proof used tree `9649f5bc3788c7143c3b7f614310da6e5a099bc9`, E2E tree
 `cb5baacf61c72aa57f23a884ad5f865f9ee1f1ee`, isolated database

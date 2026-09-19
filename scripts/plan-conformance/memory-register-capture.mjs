@@ -108,6 +108,12 @@ export function validateCapturedRecord(record) {
   return validateMemoryRegistry([record]);
 }
 
+// Canonical key order: UTF-16 code units, independent of locale (unlike localeCompare).
+function compareCanonicalKeys(left, right) {
+  if (left === right) return 0;
+  return left < right ? -1 : 1;
+}
+
 function stableValue(value) {
   if (Array.isArray(value)) {
     return value.map(item => stableValue(item));
@@ -117,7 +123,7 @@ function stableValue(value) {
     // fromEntries defines own keys, so "__proto__" is kept rather than setting the prototype.
     return Object.fromEntries(
       Object.keys(value)
-        .sort()
+        .sort(compareCanonicalKeys)
         .map(key => [key, stableValue(value[key])])
     );
   }
@@ -139,7 +145,7 @@ export function diffRecordPayload(existing, captured) {
         JSON.stringify(stableValue(ownField(existing, field))) !==
         JSON.stringify(stableValue(ownField(captured, field)))
     )
-    .sort();
+    .sort(compareCanonicalKeys);
 }
 
 function printUsage() {
