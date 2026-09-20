@@ -30,6 +30,7 @@ test.describe('S5 first-case saved-draft continuity', () => {
   test('an active member who starts signed out reaches exactly one correct case', async ({
     browser,
   }, testInfo) => {
+    // Runs only in the canonical project: exactly one run may create the single claim under proof.
     test.skip(testInfo.project.name !== 'gate-ks-sq', 'One canonical run creates the claim.');
     test.setTimeout(240_000);
     const info = idaTarget(testInfo);

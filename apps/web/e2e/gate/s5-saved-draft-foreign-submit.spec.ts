@@ -74,6 +74,7 @@ test.describe('S5 saved-draft foreign submission', () => {
   test('another active member cannot submit the owner draft by its real id', async ({
     browser,
   }, testInfo) => {
+    // Runs only in the canonical project: exactly one run may own the drafts under proof.
     test.skip(testInfo.project.name !== 'gate-ks-sq', 'One canonical run owns the drafts.');
     test.setTimeout(180_000);
     const info = idaTarget(testInfo);
