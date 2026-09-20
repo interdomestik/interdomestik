@@ -15,7 +15,7 @@ import {
   user,
 } from '@interdomestik/database';
 import { type FreeStartDraftContext } from '@interdomestik/database/free-start-drafts';
-import { expect, type Browser, type Page, type TestInfo } from '@playwright/test';
+import { expect, test, type Browser, type Page, type TestInfo } from '@playwright/test';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 import {
@@ -141,4 +141,15 @@ export async function cleanupS5(claimId: string | null, journey: S3JourneyIdenti
     await db.delete(idempotency).where(submits);
   }
   await cleanupJourney(claimId, journey);
+}
+
+// Attempts every teardown step, then surfaces teardown failures without hiding the test's own error.
+export async function teardown(steps: Array<() => Promise<unknown>>, testError?: unknown) {
+  const failures: unknown[] = [];
+  for (const step of steps) await step().catch(error => failures.push(error));
+  if (!failures.length) return;
+  const report = new AggregateError(failures, `teardown failed (${failures.length})`);
+  if (testError === undefined) throw report;
+  console.error(report);
+  test.info().annotations.push({ type: 'teardown-error', description: String(report) });
 }

@@ -22,6 +22,7 @@ import {
   ownerContext,
   signIn,
   signOut,
+  teardown,
   type S5Session,
 } from './s5-saved-draft.fixture';
 
@@ -93,6 +94,7 @@ test.describe('S5 saved-draft foreign submission', () => {
     let session: S5Session | null = null;
     let page: Page | null = null;
     let actorClaimId: string | null = null;
+    let failure: unknown;
     try {
       const targetDraft = await previewDraft(owner, target);
       const actorDraft = await previewDraft(actor, own);
@@ -147,13 +149,23 @@ test.describe('S5 saved-draft foreign submission', () => {
         actorClaimId = created[0]!.id;
       });
       expect(await journeyClaims(target), 'owner facts still unclaimed').toEqual([]);
+    } catch (error) {
+      failure = error;
+      throw error;
     } finally {
-      await cleanupS5(null, target);
-      await cleanupS5(actorClaimId, own);
-      if (session) await signOut(session);
-      await page?.context().close();
-      await expectJourneyClean(null, target);
-      await expectJourneyClean(actorClaimId, own);
+      const signedIn = session;
+      const opened = page;
+      await teardown(
+        [
+          () => cleanupS5(null, target),
+          () => cleanupS5(actorClaimId, own),
+          ...(signedIn ? [() => signOut(signedIn)] : []),
+          ...(opened ? [() => opened.context().close()] : []),
+          () => expectJourneyClean(null, target),
+          () => expectJourneyClean(actorClaimId, own),
+        ],
+        failure
+      );
     }
   });
 });

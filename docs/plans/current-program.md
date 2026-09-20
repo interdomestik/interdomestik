@@ -472,21 +472,26 @@ RLS/repository, recovery-spec and C31 smoke evidence is reused.
 
 Both specs run once, in the `gate-ks-sq` project, on the IDA host with the English locale; they do
 not exercise the KS host or the SQ locale, and the map credits nothing beyond that. Teardown
-deletes the run's drafts, claims, dependent rows, draft audit and submit-idempotency rows, then
-revokes its sessions in the database, before closing contexts and verifying. Row counts of all 87
-public tables returned to baseline after a passing run and after failures injected in the test body
-and in the post-cleanup verification; the check compares counts, not row contents.
+attempts every step even when one fails: it deletes the run's drafts, claims, dependent rows, draft
+audit and submit-idempotency rows, revokes its sessions in the database, closes contexts and
+verifies last, keeping that order where steps depend on each other. Teardown failures are reported as
+an aggregate beside the test's own error, never in place of it. Row counts of all 87 public tables
+returned to baseline after a passing run and after failures injected in the test body and in the
+post-cleanup verification; the check compares counts, not row contents. With a failure injected into
+the first cleanup, the later cleanup, session revocation and context close still ran and only the
+failed journey's own rows remained, which the residue check reported.
 
 The candidate was integrated onto protected main `efa7fe2131baee5b5435a3c88261f6e95f2a60e9` (#1800)
 without changing its scope. The owner approved a ceiling rise of up to +20,540 tracked bytes and
-exactly three new files, replacing the earlier +19,247 approval after review corrections
-(draft-scoped cleanup and E2E corpus registration). The final ceiling rise is +20,529: tests/e2e
-+19,267 for the new allocation, docs/text +481 for the exact requirement map, source/scripts +89
-for the `ci-evidence-reuse` registration and config/data/messages +692 of budget self-accounting;
-the reuse test shrinks by 83 bytes because its historical parity checks became table-driven.
-Physical growth is +26,833 tracked bytes; the program (+5,123) and tracker (+1,264) notes stay
-within existing aggregate headroom and consume no new global docs allocation. The registered E2E
-tree is `b35ddb466bcc12c5804aebdfc980304774fe018c`.
+exactly three new files for the scope before review corrections, replacing an earlier +19,247
+approval, and then authorized the teardown correction that both reviewers required. The final
+ceiling rise is +21,581, which is +1,041 above that approval and carries it: tests/e2e +20,319 for
+the new allocation, docs/text +481 for the exact requirement map, source/scripts +89 for the
+`ci-evidence-reuse` registration and config/data/messages +692 of budget self-accounting; the reuse
+test shrinks by 83 bytes because its historical parity checks became table-driven. Physical growth
+is +28,381 tracked bytes; the program (+5,595) and tracker (+1,288) notes stay within existing
+aggregate headroom and consume no new global docs allocation. The registered E2E tree is
+`129964d7cf6c8be669ca688bbe0be272e3d1fa8c`.
 
 Exact head `d5d96b1bcf7b2350083e620c63102a7bebb6b341` passed `pnpm pr:verify` (1,205 CI contracts;
 gate 270 passed, 16 skipped; smoke 13 passed, 11 skipped) and a separate `pnpm security:guard` from

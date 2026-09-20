@@ -86,7 +86,7 @@ candidate `mem_a828baa485107624` remains unapplied; notes and memories stay advi
 
 `S5-FIRST-CASE-SAVED-DRAFT-CONTINUITY` is selected from main `099bcd45` and integrated onto
 `efa7fe21` (see program). The tested path works; delivery is two gate specs, one shared fixture, E2E
-corpus registration and governance updates within the owner-approved +20,540-byte, three-file
+corpus registration and governance updates within the owner-approved capacity, finally +21,581 bytes and three files,
 ceiling. Exact head `d5d96b1b` passed `pnpm pr:verify` (gate 270 passed, 16 skipped; smoke 13 passed,
 11 skipped) and a separate `pnpm security:guard`; the exact-head Opus review returned `blocked` by the
 provider usage window and must complete before merge, which is held for owner approval.

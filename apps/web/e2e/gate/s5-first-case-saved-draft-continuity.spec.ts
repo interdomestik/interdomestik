@@ -22,6 +22,7 @@ import {
   ownerContext,
   signIn,
   signOut,
+  teardown,
   type S5Session,
 } from './s5-saved-draft.fixture';
 
@@ -42,6 +43,7 @@ test.describe('S5 first-case saved-draft continuity', () => {
       return page;
     };
     let claimId: string | null = null;
+    let failure: unknown;
     const owner = await ownerContext(E2E_USERS.KS_MEMBER);
     const other = await ownerContext(E2E_USERS.KS_MEMBER_EMPTY);
     try {
@@ -158,11 +160,19 @@ test.describe('S5 first-case saved-draft continuity', () => {
         await expect(again.getByTestId('claim-draft-submit')).toHaveCount(0);
         expect(await journeyClaims(journey), 'still exactly one claim').toHaveLength(1);
       });
+    } catch (error) {
+      failure = error;
+      throw error;
     } finally {
-      await cleanupS5(claimId, journey);
-      for (const session of sessions) await signOut(session);
-      await Promise.all(pages.map(page => page.context().close()));
-      await expectJourneyClean(claimId, journey);
+      await teardown(
+        [
+          () => cleanupS5(claimId, journey),
+          ...sessions.map(session => () => signOut(session)),
+          ...pages.map(page => () => page.context().close()),
+          () => expectJourneyClean(claimId, journey),
+        ],
+        failure
+      );
     }
   });
 });
