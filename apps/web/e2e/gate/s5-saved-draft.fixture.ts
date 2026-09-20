@@ -137,15 +137,16 @@ export async function cleanupS5(claimId: string | null, journey: S3JourneyIdenti
     where: and(eq(freeStartDrafts.tenantId, tenant), eq(freeStartDrafts.summary, journey.summary)),
   });
   const ids = drafts.map(draft => draft.id);
+  let cleared = 0;
   if (ids.length) {
     const audit = and(eq(auditLog.tenantId, tenant), inArray(auditLog.entityId, ids));
     const keys = or(...ids.map(id => ilike(idempotency.idempotencyKey, `%:${id}`)));
     const submits = and(eq(idempotency.tenantId, tenant), keys);
-    const cleared = await db.delete(auditLog).where(audit).returning({ id: auditLog.id });
-    expect(cleared.length, 'draft audit rows matched').toBeGreaterThanOrEqual(ids.length);
+    cleared = (await db.delete(auditLog).where(audit).returning({ id: auditLog.id })).length;
     await db.delete(idempotency).where(submits);
   }
   await cleanupJourney(claimId, journey);
+  expect(cleared, 'draft audit rows matched').toBeGreaterThanOrEqual(ids.length);
 }
 
 // Attempts every teardown step, then surfaces teardown failures without hiding the test's own error.

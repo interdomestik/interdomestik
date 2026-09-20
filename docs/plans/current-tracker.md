@@ -87,7 +87,7 @@ candidate `mem_a828baa485107624` remains unapplied; notes and memories stay advi
 `S5-FIRST-CASE-SAVED-DRAFT-CONTINUITY` is selected from main `099bcd45` and integrated onto
 `efa7fe21` (see program). The tested path works; delivery is two gate specs, one shared fixture, E2E
 corpus registration and governance updates within the capacity recorded in the program,
-ceiling. The delivered ceiling rise is +21,939 tracked bytes and three files, which is +1,399 above
+ceiling. The delivered ceiling rise is +21,952 tracked bytes and three files, which is +1,412 above
 the last recorded numeric approval and awaits the owner's explicit approval of that figure. Proof and
 the completed exact-head review are recorded in the program; merge is held for owner approval.
 
