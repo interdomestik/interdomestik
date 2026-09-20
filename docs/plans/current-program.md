@@ -483,32 +483,26 @@ failed journey's own rows remained, which the residue check reported.
 
 The candidate was integrated onto protected main `efa7fe2131baee5b5435a3c88261f6e95f2a60e9` (#1800)
 without changing its scope. The owner approved +19,247 tracked bytes, then +20,540 and exactly three
-new files for the scope before review corrections, and then authorized the teardown correction that
-both reviewers required. The delivered ceiling rise is +22,143, which is +1,603 above the last
-recorded numeric approval and awaits the owner's explicit approval of that exact figure; no ceiling
-beyond it is taken. It splits into tests/e2e +20,881 for the new allocation, docs/text +481 for the
-exact requirement map, source/scripts +89 for the `ci-evidence-reuse` registration and
-config/data/messages +692 of budget self-accounting; the reuse test shrinks by 83 bytes because its
-historical parity checks became table-driven. Physical growth is +29,382 tracked bytes; the program
-(+6,072) and tracker (+1,209) notes stay within existing aggregate headroom and consume no new
-global docs allocation. The registered E2E tree is `e1cb05d1683bd65e14003b1fc1df1114b174e4a3`.
+new files for the scope before review corrections, then authorized the teardown correction that both
+reviewers required, and finally approved the delivered figure of +22,143 tracked bytes, three new
+files and +692 of self-accounting. That ceiling was applied to the budget before the final approval
+was recorded; the sequence is retained as it happened and is not presented as prior approval. The
+rise splits into tests/e2e +20,881 for the new allocation, docs/text +481 for the exact requirement
+map, source/scripts +89 for the `ci-evidence-reuse` registration and config/data/messages +692 of
+budget self-accounting; the reuse test shrinks by 83 bytes because its historical parity checks
+became table-driven. Physical growth is +28,726 tracked bytes; the program (+5,457) and tracker
+(+1,209) notes stay within existing aggregate headroom and consume no new global docs allocation. The
+registered E2E tree is `e1cb05d1683bd65e14003b1fc1df1114b174e4a3`.
 
-Exact head `f7e5d2cd14dc5dcb86bdc5500ac238278e82d260`, tree
-`1c87bdd48714306113acbe90ba618ebb66e57a5a`, passed `pnpm repo:size:check`, `pnpm test:ci:contracts`
-(1,205 tests), `pnpm security:guard` and `pnpm pr:verify` (repository coverage 81.28%; gate 270
-passed, 16 skipped; smoke 13 passed, 11 skipped) from a clean tree, with `HEAD:apps/web/e2e` equal to
-the registered tree. Earlier heads passed the same gates and are superseded, not transferred. The
-completed exact-head Opus reviews are `20260920T065438-opus`, `20260920T075227-opus` and
-`20260920T081049-opus`; `20260919T200949-opus` returned `blocked` on the provider usage window and is
-not counted. Opus and Codex both required the teardown correction; Codex also caught the audit
-assertion ordering and SonarCloud the unexplained project skips. Member sign-in in both specs is
-performed out of band against `POST /api/auth/sign-in/email` with an `Origin` taken from
-`BETTER_AUTH_URL`, an explicit `x-tenant-id` header and `additionalData.tenantId`, mirroring the
-repository's existing E2E auth helper; no product surface mints a session that way, so the save-time
-verification surface is not exercised and the credit covers saving, resuming, reviewing and
-submitting with an already-authenticated session. Only this governance paragraph follows the proven
-head; it changes no test, source, script or budget file, the E2E tree is unchanged, and its own
-`repo:size:check` result is recorded on the pull request because that guard measures docs bytes.
+Exact-head gate results, reviewer receipts and the strict readiness report are recorded on the pull
+request and in the archived receipts, not here: binding them to a head inside the same document would
+require a further commit for every correction and could never describe its own commit. Both specs run
+once in the `gate-ks-sq` project on the IDA host in English. Member sign-in is performed out of band
+against `POST /api/auth/sign-in/email` with an `Origin` taken from `BETTER_AUTH_URL`, an explicit
+`x-tenant-id` header and `additionalData.tenantId`, mirroring the repository's existing E2E auth
+helper; no product surface mints a session that way, so the save-time verification surface is not
+exercised and the credit covers saving, resuming, reviewing and submitting with an already
+authenticated session.
 
 Excluded: email-OTP completion for an existing account (no capture sink exists; adding one is an
 auth-architecture decision), new-account registration, membership purchase, S6 continuation,
