@@ -86,10 +86,11 @@ candidate `mem_a828baa485107624` remains unapplied; notes and memories stay advi
 
 `S5-FIRST-CASE-SAVED-DRAFT-CONTINUITY` is selected from main `099bcd45` and integrated onto
 `efa7fe21` (see program). The tested path works; delivery is two gate specs, one shared fixture, E2E
-corpus registration and governance updates. The owner approved the delivered capacity of +22,143
-tracked bytes and three new files, replacing +20,540; the ceiling was applied before that approval
-was recorded. Exact-head gate results, reviewer receipts and the strict readiness report are
-recorded on the pull request and in the archived receipts; merge is held for owner approval.
+corpus registration and governance updates. The owner approved a ceiling of +22,143 tracked bytes
+and three new files, replacing +20,540; the delivered rise is +22,099 and the ceiling was applied
+before that approval was recorded. Exact-head gate results, reviewer receipts and the strict
+readiness report are recorded on the pull request and in the archived receipts; merge is held for
+owner approval.
 
 S5 corridor preparation local proof used tree `9649f5bc3788c7143c3b7f614310da6e5a099bc9`, E2E tree
 `cb5baacf61c72aa57f23a884ad5f865f9ee1f1ee`, isolated database

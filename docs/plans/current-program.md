@@ -490,8 +490,8 @@ final approval was recorded; the sequence is retained as it happened and is not 
 approval. The rise splits into tests/e2e +20,837 for the new allocation, docs/text +481 for the
 exact requirement map, source/scripts +89 for the `ci-evidence-reuse` registration and
 config/data/messages +692 of budget self-accounting; the reuse test shrinks by 83 bytes because its
-historical parity checks became table-driven. Physical growth is +28,745 tracked bytes; the program
-(+5,470) and tracker (+1,259) notes stay within existing aggregate headroom and consume no new
+historical parity checks became table-driven. Physical growth is +28,766 tracked bytes; the program (+5,470) and tracker
+(+1,280) notes stay within existing aggregate headroom and consume no new
 global docs allocation. The registered E2E tree is `199dd0ab4d94a402f25fce850eba3a676f35a974`.
 
 Exact-head gate results, reviewer receipts and the strict readiness report are recorded on the pull
