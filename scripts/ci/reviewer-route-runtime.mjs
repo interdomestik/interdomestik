@@ -21,7 +21,7 @@ const iso = () => new Date().toISOString();
 function appendBounded(current, chunk, maxBytes) {
   const next = current + chunk.toString();
   if (Buffer.byteLength(next) <= maxBytes) return next;
-  return next.slice(Math.max(0, next.length - maxBytes));
+  return Buffer.from(next).subarray(-maxBytes).toString();
 }
 
 function classifyBlocker(text) {

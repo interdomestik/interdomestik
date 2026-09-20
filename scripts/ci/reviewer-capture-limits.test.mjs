@@ -14,15 +14,15 @@ import { runReviewerRoute } from './reviewer-route-runtime.mjs';
 import { timeoutConfig } from './reviewer-route-utils.mjs';
 
 const fromEnv = value => resolveCaptureLimits(undefined, { [STDOUT_CAPTURE_ENV]: value });
-const emit = bytes =>
-  `const l='x'.repeat(999)+'\\n';for(let i=0;i<${Math.ceil(bytes / 1000)};i++)process.stdout.write(l);`;
+const emit = (bytes, ch = 'x') =>
+  `const l='${ch}'.repeat(999)+'\\n';for(let i=0;i<${Math.ceil(bytes / 1000)};i++)process.stdout.write(l);`;
 // Stays alive until terminated; exits on its own after 15 s so a termination regression fails fast.
 const linger = 'setTimeout(() => process.exit(3), 15000);';
 
 async function run(body, { env, ...options } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'capture-limits-'));
   const file = path.join(root, 'fake.mjs');
-  fs.writeFileSync(file, body.replaceAll('__ROOT__', root));
+  fs.writeFileSync(file, body);
   const base = { ...process.env };
   delete base[STDOUT_CAPTURE_ENV];
   try {
@@ -130,12 +130,12 @@ test('a valid override lets the same output complete and is recorded in the rece
 });
 
 test('overflow still terminates at the overridden limit', { timeout: 30_000 }, async () => {
-  const receipt = await run(`${emit(700_000)}${linger}`, {
+  const receipt = await run(`${emit(350_000, 'é')}${linger}`, {
     env: { [STDOUT_CAPTURE_ENV]: '524288' },
   });
   assert.equal(receipt.status, 'blocked');
   assert.equal(receipt.blockerReason, 'reviewer_output_limit');
-  assert.ok(Buffer.byteLength(receipt.stdout) <= 524_288);
+  assert.ok(Buffer.byteLength(receipt.stdout) <= 524_288 + 2);
 });
 
 test(

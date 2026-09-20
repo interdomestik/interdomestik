@@ -484,12 +484,12 @@
         "scripts/slice-telemetry.mjs",
         "scripts/slice-telemetry.test.mjs"
       ],
-      "maxTrackedBytesDelta": 700145,
+      "maxTrackedBytesDelta": 700146,
       "maxTrackedFilesDelta": 96,
       "maxCategoryBytesDelta": {
         "config/data/messages": 1061,
         "docs/text": 31463,
-        "source/scripts": 350321,
+        "source/scripts": 350322,
         "tests/e2e": 317300
       },
       "maxPathBytesDelta": {
@@ -507,7 +507,7 @@
         "scripts/ci/reviewer-preflight.mjs": 0,
         "scripts/ci/reviewer-preflight.test.mjs": 1996,
         "scripts/ci/reviewer-route-receipts.mjs": 301,
-        "scripts/ci/reviewer-route-runtime.mjs": 4902,
+        "scripts/ci/reviewer-route-runtime.mjs": 4903,
         "scripts/ci/reviewer-route-runtime.test.mjs": 7169,
         "scripts/ci/run-model-reviewer-route.mjs": 5522,
         "scripts/ci/z620-parity.json": 0,
@@ -1702,12 +1702,12 @@
         "scripts/ci/reviewer-capture-limits.mjs",
         "scripts/ci/reviewer-capture-limits.test.mjs"
       ],
-      "maxTrackedBytesDelta": 10079,
+      "maxTrackedBytesDelta": 10076,
       "maxTrackedFilesDelta": 2,
-      "maxCategoryBytesDelta": { "source/scripts": 2355, "tests/e2e": 7724 },
+      "maxCategoryBytesDelta": { "source/scripts": 2355, "tests/e2e": 7721 },
       "maxPathBytesDelta": {
         "scripts/ci/reviewer-capture-limits.mjs": 2355,
-        "scripts/ci/reviewer-capture-limits.test.mjs": 7724
+        "scripts/ci/reviewer-capture-limits.test.mjs": 7721
       }
     }
   ],
@@ -1717,15 +1717,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 62171965,
+  "maxTrackedBytes": 62171963,
   "maxTrackedFiles": 6100,
   "maxCategoryBytes": {
     "config/data/messages": 2278673,
     "docs/text": 8658642,
     "large support/generated-ish": 15874962,
     "other": 19184750,
-    "source/scripts": 8913597,
-    "tests/e2e": 7261341
+    "source/scripts": 8913598,
+    "tests/e2e": 7261338
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
