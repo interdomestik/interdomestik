@@ -75,7 +75,22 @@ archived under
 `5314354c4639f56814aea418b696f6d4dc58adf7fe9a0e86095a165a1ec0b8ed`). Linux argv transport and a
 real-frame recurrence guard remain unselected. The memory-registration payload-mismatch fix is
 rebased onto that merge within its owner-approved +7,024-byte ceiling allowance (module +1,609,
-tests +4,815, budget self-accounting +600; no new files); its review and proof are pending.
+tests +4,815, budget self-accounting +600; no new files). It completed through protected PR #1799:
+head `cd8230cf09d332e065ff5ec3fb3c3558e156be96` squash-merged as
+`099bcd45af01eecdedb7962c53758495d148c222`; exact-main CI `35431103616`, Sonar Main Gate
+`35431103612` (passed on attempt 2 after a polling timeout), CodeQL `35431103322`, Code Quality
+`35431103321`, Secret Scan `35431103614` and SonarCloud check `105867471284` passed. Receipts are
+archived at `~/.codex/task-receipts/interdomestik/MEMORY-REGISTER-PAYLOAD-MISMATCH/2026-09-19/memory-register-payload-mismatch-receipts-099bcd45.tar.gz`
+(SHA-256 `c9652a6303e1a1e61ccd6b43fce17a385fef14e12dc5f1555f999df7fdb6442c`). The memory
+candidate `mem_a828baa485107624` remains unapplied; notes and memories stay advisory.
+
+`S5-FIRST-CASE-SAVED-DRAFT-CONTINUITY` is selected from main `099bcd45` and integrated onto
+`efa7fe21` (see program). The tested path works; delivery is two gate specs, one shared fixture, E2E
+corpus registration and governance updates. The owner approved a ceiling of +22,143 tracked bytes
+and three new files, replacing +20,540; the delivered rise is +22,014 and the ceiling was applied
+before that approval was recorded. Exact-head gate results, reviewer receipts and the strict
+readiness report are recorded on the pull request and in the archived receipts; merge is held for
+owner approval.
 
 S5 corridor preparation local proof used tree `9649f5bc3788c7143c3b7f614310da6e5a099bc9`, E2E tree
 `cb5baacf61c72aa57f23a884ad5f865f9ee1f1ee`, isolated database
@@ -352,7 +367,7 @@ S4–S14 are outcome families to split into bounded implementation slices, not a
 | Item                                    | Status              | Next evidence                                                                                        |
 | --------------------------------------- | ------------------- | ---------------------------------------------------------------------------------------------------- |
 | S4 — S3 handoff gap                     | completed_bounded   | Protected PR #1786; request-bound upload/acknowledgement remain open.                                |
-| S5 — Member first-case journey          | in_progress_bounded | S5.d, explicit country and corridor preparation completed through #1788/#1790/#1792; remainder open. |
+| S5 — Member first-case journey          | in_progress_bounded | #1788/#1790/#1792/#1796 completed; first-case saved-draft continuity is selected and awaiting merge. |
 | S6 — Member continuation and membership | queued_conditional  | Credit #1775–#1777; complete only missing return/evidence/message/membership access outcomes.        |
 | S7 — Staff handling journey             | queued_conditional  | Existing handling contracts; queue and evidence round-trip with internal/public separation.          |
 | S8 — Agent client/handoff journey       | queued_conditional  | Existing authority and attribution; only unresolved capability changes need disposition.             |

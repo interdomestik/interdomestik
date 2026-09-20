@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 121824,
+      "trackedBytesDelta": 122516,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 83733,
+        "config/data/messages": 84425,
         "source/scripts": 23092,
         "tests/e2e": 14999
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 83733,
+        "scripts/repo-size-budget.json": 84425,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -61,10 +61,10 @@
       "id": "product-readiness-requirement-map",
       "mode": "exact",
       "writerPaths": ["docs/plans/requirement-disposition-map.md"],
-      "trackedBytesDelta": 75076,
+      "trackedBytesDelta": 75557,
       "trackedFilesDelta": 1,
-      "categoryBytesDelta": { "docs/text": 75076 },
-      "pathBytesDelta": { "docs/plans/requirement-disposition-map.md": 75076 }
+      "categoryBytesDelta": { "docs/text": 75557 },
+      "pathBytesDelta": { "docs/plans/requirement-disposition-map.md": 75557 }
     },
     {
       "id": "lean-compatibility-repair",
@@ -691,15 +691,15 @@
         "scripts/ci/main-e2e-reuse-core.test.mjs",
         "scripts/ci/main-e2e-reuse-github.test.mjs"
       ],
-      "maxTrackedBytesDelta": 30108,
+      "maxTrackedBytesDelta": 30197,
       "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
-        "source/scripts": 10892,
+        "source/scripts": 10981,
         "tests/e2e": 16523,
         "config/data/messages": 2693
       },
       "maxPathBytesDelta": {
-        "scripts/ci/main-e2e-reuse.mjs": 2025,
+        "scripts/ci/main-e2e-reuse.mjs": 2114,
         "scripts/ci/main-e2e-reuse-core.mjs": 975,
         "scripts/ci/main-e2e-reuse-github.mjs": 17,
         "scripts/ci/main-e2e-reuse-cli.test.mjs": 5169,
@@ -1694,6 +1694,23 @@
         "scripts/plan-conformance/memory-register-capture.mjs": 1609,
         "scripts/plan-conformance/memory-register-capture.test.mjs": 4815
       }
+    },
+    {
+      "id": "s5-first-case-saved-draft-continuity",
+      "mode": "bounded",
+      "writerPaths": [
+        "apps/web/e2e/gate/s5-first-case-saved-draft-continuity.spec.ts",
+        "apps/web/e2e/gate/s5-saved-draft-foreign-submit.spec.ts",
+        "apps/web/e2e/gate/s5-saved-draft.fixture.ts"
+      ],
+      "maxTrackedBytesDelta": 20752,
+      "maxTrackedFilesDelta": 3,
+      "maxCategoryBytesDelta": { "tests/e2e": 20752 },
+      "maxPathBytesDelta": {
+        "apps/web/e2e/gate/s5-first-case-saved-draft-continuity.spec.ts": 7881,
+        "apps/web/e2e/gate/s5-saved-draft-foreign-submit.spec.ts": 6724,
+        "apps/web/e2e/gate/s5-saved-draft.fixture.ts": 6147
+      }
     }
   ],
   "reserve": {
@@ -1702,15 +1719,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 62161022,
-  "maxTrackedFiles": 6098,
+  "maxTrackedBytes": 62183036,
+  "maxTrackedFiles": 6101,
   "maxCategoryBytes": {
-    "config/data/messages": 2278152,
-    "docs/text": 8658642,
+    "config/data/messages": 2278844,
+    "docs/text": 8659123,
     "large support/generated-ish": 15874962,
     "other": 19184750,
-    "source/scripts": 8910899,
-    "tests/e2e": 7253617
+    "source/scripts": 8910988,
+    "tests/e2e": 7274369
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

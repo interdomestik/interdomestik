@@ -25,7 +25,7 @@ import { commandChainDrifts } from './main-e2e-reuse-fixture.mjs';
 import { readLocalGitObjectId } from './main-e2e-reuse-github.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const E2E_TREE = readLocalGitObjectId(root, 'HEAD:apps/web/e2e');
-const S5_PACK_STATUS_TREE = 'f24e4a8e5d97bf5f77cd6f097c79758432622c30';
+const S5_SAVED_DRAFT_TREE = '0e5c12cfed594cddf725fad2ba40a3ba951b6f18';
 const SAFE = { reuse: false, reason: 'evidence_not_exact' };
 const fail = () => assert.fail('token=secret body=secret');
 const keyPairs =
@@ -126,24 +126,20 @@ test('S4 missing-information request preserves corpus parity', () => {
     true
   );
 });
-test('S5 explicit diaspora country context preserves corpus parity', () => {
-  const parity = inspectRepositoryParity({
-    ...sources(),
-    e2eTreeSha: 'cacb1feef816ded4c09ad3555e8831a248e24871',
+for (const [name, e2eTreeSha] of [
+  ['S5 explicit diaspora country context', 'cacb1feef816ded4c09ad3555e8831a248e24871'],
+  ['S5 corridor preparation', 'cb5baacf61c72aa57f23a884ad5f865f9ee1f1ee'],
+  ['S5 pack-status disclosure', 'f24e4a8e5d97bf5f77cd6f097c79758432622c30'],
+]) {
+  test(`${name} preserves historical corpus parity`, () => {
+    const parity = inspectRepositoryParity({ ...sources(), e2eTreeSha });
+    assert.ok(parity.commandChain, `the ${name} E2E tree must stay in the command chain`);
   });
-  assert.ok(parity.commandChain, 'the S5 E2E tree must stay in the exact command chain');
-});
-test('S5 corridor preparation preserves historical corpus parity', () => {
-  const parity = inspectRepositoryParity({
-    ...sources(),
-    e2eTreeSha: 'cb5baacf61c72aa57f23a884ad5f865f9ee1f1ee',
-  });
-  assert.ok(parity.commandChain, 'the S5 corridor E2E tree must stay in the command chain');
-});
-test('S5 pack-status disclosure preserves corpus parity', () => {
-  assert.equal(E2E_TREE, S5_PACK_STATUS_TREE);
+}
+test('S5 saved-draft continuity preserves corpus parity', () => {
+  assert.equal(E2E_TREE, S5_SAVED_DRAFT_TREE);
   assert.equal(
-    inspectRepositoryParity({ ...sources(), e2eTreeSha: S5_PACK_STATUS_TREE }).commandChain,
+    inspectRepositoryParity({ ...sources(), e2eTreeSha: S5_SAVED_DRAFT_TREE }).commandChain,
     true
   );
 });

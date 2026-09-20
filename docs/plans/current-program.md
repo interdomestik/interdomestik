@@ -443,6 +443,73 @@ positive growth is 24,270 tracked bytes with exactly two new tracked files. Prox
 tenancy, billing and deployment are untouched. Whole S5 and IDA-DIA-002/003/004/005 remain open;
 no successor is selected or deployment claimed by this bounded completion.
 
+### Selected bounded S5 — First-case saved-draft continuity (2026-09-19)
+
+From verified protected main `099bcd45af01eecdedb7962c53758495d148c222`, the owner selected
+`S5-FIRST-CASE-SAVED-DRAFT-CONTINUITY` to reconcile the missing integrated proof that an existing
+active member reaches exactly one correct case. The tested path works; the increment is two
+browser-gate specs and a shared fixture, with no product source, route, auth, schema or migration
+change. Password sign-in before secure save is the owner-accepted path for this proof.
+
+The continuity spec starts signed out on the neutral IDA host, prepares vehicle/collision facts,
+signs the seeded active member in out of band at the auth API and secure-saves through the
+existing promotion path. It proves exact persisted facts at `preview`, no claim after save or after a
+fresh-session resume and review, one owner claim only after explicit submission, and the same claim
+on reopen without a second submit. Another member's repository context cannot list, resume, update
+or delete the draft (`notFound`, owner version unchanged) and its mounted saved-draft list omits it.
+
+The foreign-submit spec signs in a second active member of the same tenant (`member.ks.a2`, active
+subscription asserted by a tenant-scoped probe) and rewrites that member's real submit request to
+the owner's real draft id. Both fresh drafts share one version, so the expected version is not
+rewritten. The server returns the generic unavailable result; no claim exists from the owner facts
+or either derived saved-draft claim id, and every returned owner-draft field, including version and
+update time, is unchanged. The same session then submits its own draft successfully, so the refusal
+comes from draft ownership, not membership. A control run without the id rewrite failed at the
+refusal assertion, showing the check depends on the forged owner id. An inverted-visibility run of
+the continuity spec (expecting the foreign list to show the draft) failed as expected; it checks
+assertion sensitivity, not a product mutation. Existing C07–C12 action-boundary, database
+RLS/repository, recovery-spec and C31 smoke evidence is reused.
+
+Both specs run once, in the `gate-ks-sq` project, on the IDA host with the English locale; they do
+not exercise the KS host or the SQ locale, and the map credits nothing beyond that. Teardown
+attempts every step even when one fails: it deletes the run's drafts, claims, dependent rows, draft
+audit and submit-idempotency rows, revokes its sessions in the database, closes contexts and
+verifies last, keeping that order where steps depend on each other. Teardown failures are reported as
+an aggregate beside the test's own error, never in place of it. Row counts of all 87 public tables
+returned to baseline after a passing run and after failures injected in the test body and in the
+post-cleanup verification; the check compares counts, not row contents. With a failure injected into
+the first cleanup, the later cleanup, session revocation and context close still ran and only the
+failed journey's own rows remained, which the residue check reported.
+
+The candidate was integrated onto protected main `efa7fe2131baee5b5435a3c88261f6e95f2a60e9` (#1800)
+without changing its scope. The owner approved +19,247 tracked bytes, then +20,540 and exactly three
+new files for the scope before review corrections, then authorized the teardown correction that both
+reviewers required, and finally approved a ceiling of +22,143 tracked bytes and three new files,
+self-accounting included. The committed budget carries the delivered rise of +22,014; the ceiling
+had been applied before that approval was recorded, and the sequence is retained as it happened
+rather than presented as prior approval. The rise splits into tests/e2e +20,752 for the new
+allocation, docs/text +481 for the exact requirement map, source/scripts +89 for the
+`ci-evidence-reuse` registration and config/data/messages +692 of budget self-accounting; the reuse
+test shrinks by 83 bytes because its historical parity checks became table-driven. Physical growth
+is +28,704 tracked bytes; the program (+5,493) and tracker (+1,280) notes stay within existing
+aggregate headroom and consume no new global docs allocation. The registered E2E tree is
+`0e5c12cfed594cddf725fad2ba40a3ba951b6f18`.
+
+Exact-head gate results, reviewer receipts and the strict readiness report are recorded on the pull
+request and in the archived receipts, not here: binding them to a head inside the same document would
+require a further commit for every correction and could never describe its own commit. Both specs run
+once in the `gate-ks-sq` project on the IDA host in English. Member sign-in is performed out of band
+against `POST /api/auth/sign-in/email` with an `Origin` taken from `BETTER_AUTH_URL`, an explicit
+`x-tenant-id` header and `additionalData.tenantId`, mirroring the repository's existing E2E auth
+helper; no product surface mints a session that way, so the save-time verification surface is not
+exercised and the credit covers saving, resuming, reviewing and submitting with an already
+authenticated session.
+
+Excluded: email-OTP completion for an existing account (no capture sink exists; adding one is an
+auth-architecture decision), new-account registration, membership purchase, S6 continuation,
+diaspora, routing/proxy/auth/schema/migration changes and deployment. IDA-FST-008/010/011/012 and
+whole S5 remain open; the map credits only the exercised clauses.
+
 ### Dependency-first selection (owner direction, 2026-09-17)
 
 Use this order within the existing roadmap, not a second queue. A dependency blocks only the

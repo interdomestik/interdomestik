@@ -222,11 +222,11 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-FST-005 | Schema validation | Canonical | unresolved | S5 | open | none | U | U | U |
 | IDA-FST-006 | Stale-tab protection | Canonical | unresolved | S5 | open | none | U | U | U |
 | IDA-FST-007 | Automatic eligible recovery | Canonical | unresolved | S5 | open | none | U | U | U |
-| IDA-FST-008 | Verified secure save | Canonical | pilot-required | S5 | open | none | U | U | U |
+| IDA-FST-008 | Verified secure save | Canonical | pilot-required | S5; S5 continuity spec proves password-authenticated promotion only; email-OTP completion is not exercised | open | none | U | U | U |
 | IDA-FST-009 | Delete after confirmed save | Canonical | unresolved | S5 | open | none | U | U | U |
-| IDA-FST-010 | No automatic claim conversion | Canonical | unresolved | S5 | open | none | U | U | U |
-| IDA-FST-011 | Review before handoff | Canonical | pilot-required | S5 | open | none | U | U | U |
-| IDA-FST-012 | Owner isolation | Canonical | pilot-required | S5 | open | none | U | U | U |
+| IDA-FST-010 | No automatic claim conversion | Canonical | unresolved | S5; S5 continuity spec proves no claim after save or review and one claim only on explicit submit | open | none | U | U | U |
+| IDA-FST-011 | Review before handoff | Canonical | pilot-required | S5; S5 continuity spec proves exact vehicle facts are reviewed before submit; other categories/handoff open | open | none | U | U | U |
+| IDA-FST-012 | Owner isolation | Canonical | pilot-required | S5; S5 specs prove same-tenant foreign list/resume/update/delete `notFound` and an active member's forged submit of the owner draft id is refused; C07–C12 and RLS tests credited | open | none | U | U | U |
 | IDA-FST-013 | Draft deletion | Canonical | unresolved | S5 | open | none | U | U | U |
 | IDA-FST-014 | No representation implication | Target | unresolved | S5 | open | none | U | U | U |
 | IDA-MEM-001 | Offer and proof separation | Canonical | unresolved | S6/S9 | open | none | U | U | U |
