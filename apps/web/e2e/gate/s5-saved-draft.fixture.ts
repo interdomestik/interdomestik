@@ -34,9 +34,10 @@ export const KS_MEMBER_A2: S5Member = {
 };
 
 // The free-start and secure-save surface is served on the neutral IDA host.
-export function idaTarget(info: TestInfo): TestInfo {
+export function idaTarget(info: TestInfo, secureHost?: string): TestInfo {
   const configured = process.env.IDA_HOST?.trim() || 'ida.127.0.0.1.nip.io:3000';
   const target = new URL(configured.includes('://') ? configured : `http://${configured}`);
+  if (secureHost && target.hostname === 'ida.127.0.0.1.nip.io') target.hostname = secureHost;
   const baseURL = `${target.origin}${routes.home('en')}`;
   const use = { ...info.project.use, baseURL, extraHTTPHeaders: {} };
   return { ...info, project: { ...info.project, use } } as TestInfo;

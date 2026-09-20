@@ -33,15 +33,15 @@
         "scripts/ci/repo-size-capacity-evaluator.test.mjs",
         "scripts/ci/repo-size-git-attribution.test.mjs"
       ],
-      "trackedBytesDelta": 122516,
+      "trackedBytesDelta": 123727,
       "trackedFilesDelta": 10,
       "categoryBytesDelta": {
-        "config/data/messages": 84425,
+        "config/data/messages": 85636,
         "source/scripts": 23092,
         "tests/e2e": 14999
       },
       "pathBytesDelta": {
-        "scripts/repo-size-budget.json": 84425,
+        "scripts/repo-size-budget.json": 85636,
         "scripts/repo-size-budget-sync-core.mjs": 195,
         "scripts/repo-size-audit.mjs": -11034,
         "scripts/ci/repo-size-budget-sync.test.mjs": 156,
@@ -61,10 +61,10 @@
       "id": "product-readiness-requirement-map",
       "mode": "exact",
       "writerPaths": ["docs/plans/requirement-disposition-map.md"],
-      "trackedBytesDelta": 75557,
+      "trackedBytesDelta": 76650,
       "trackedFilesDelta": 1,
-      "categoryBytesDelta": { "docs/text": 75557 },
-      "pathBytesDelta": { "docs/plans/requirement-disposition-map.md": 75557 }
+      "categoryBytesDelta": { "docs/text": 76650 },
+      "pathBytesDelta": { "docs/plans/requirement-disposition-map.md": 76650 }
     },
     {
       "id": "lean-compatibility-repair",
@@ -691,15 +691,15 @@
         "scripts/ci/main-e2e-reuse-core.test.mjs",
         "scripts/ci/main-e2e-reuse-github.test.mjs"
       ],
-      "maxTrackedBytesDelta": 30197,
+      "maxTrackedBytesDelta": 30286,
       "maxTrackedFilesDelta": 4,
       "maxCategoryBytesDelta": {
-        "source/scripts": 10981,
+        "source/scripts": 11070,
         "tests/e2e": 16523,
         "config/data/messages": 2693
       },
       "maxPathBytesDelta": {
-        "scripts/ci/main-e2e-reuse.mjs": 2114,
+        "scripts/ci/main-e2e-reuse.mjs": 2203,
         "scripts/ci/main-e2e-reuse-core.mjs": 975,
         "scripts/ci/main-e2e-reuse-github.mjs": 17,
         "scripts/ci/main-e2e-reuse-cli.test.mjs": 5169,
@@ -1579,15 +1579,15 @@
         "apps/web/src/messages/sq/diaspora.json",
         "packages/domain-claims/src/claims/incident-country-writers.test.ts"
       ],
-      "maxTrackedBytesDelta": 21317,
+      "maxTrackedBytesDelta": 21626,
       "maxTrackedFilesDelta": 0,
       "maxCategoryBytesDelta": {
-        "tests/e2e": 12231,
+        "tests/e2e": 12540,
         "source/scripts": 4353,
         "config/data/messages": 4733
       },
       "maxPathBytesDelta": {
-        "apps/web/src/actions/claims/create-from-saved-draft.test.ts": 1438,
+        "apps/web/src/actions/claims/create-from-saved-draft.test.ts": 1756,
         "apps/web/src/actions/claims/create-from-saved-draft.ts": 772,
         "apps/web/src/app/[locale]/(app)/member/diaspora/page.test.tsx": 7870,
         "apps/web/src/app/[locale]/(app)/member/diaspora/page.tsx": 1011,
@@ -1703,13 +1703,42 @@
         "apps/web/e2e/gate/s5-saved-draft-foreign-submit.spec.ts",
         "apps/web/e2e/gate/s5-saved-draft.fixture.ts"
       ],
-      "maxTrackedBytesDelta": 20752,
+      "maxTrackedBytesDelta": 20867,
       "maxTrackedFilesDelta": 3,
-      "maxCategoryBytesDelta": { "tests/e2e": 20752 },
+      "maxCategoryBytesDelta": { "tests/e2e": 20867 },
       "maxPathBytesDelta": {
         "apps/web/e2e/gate/s5-first-case-saved-draft-continuity.spec.ts": 7881,
         "apps/web/e2e/gate/s5-saved-draft-foreign-submit.spec.ts": 6724,
-        "apps/web/e2e/gate/s5-saved-draft.fixture.ts": 6147
+        "apps/web/e2e/gate/s5-saved-draft.fixture.ts": 6262
+      }
+    },
+    {
+      "id": "s5-new-account-otp-secure-save",
+      "mode": "bounded",
+      "writerPaths": [
+        ".github/workflows/e2e-pr.yml",
+        "apps/web/e2e/gate/s5-new-account-otp-secure-save.spec.ts",
+        "apps/web/e2e/gate/s5-otp-mailbox.fixture.ts",
+        "packages/domain-communications/src/email.test.ts",
+        "packages/domain-communications/src/email.ts",
+        "packages/domain-communications/src/sign-in-otp-email.ts",
+        "scripts/ci/pr-e2e-evidence-workflow-contracts.mjs"
+      ],
+      "maxTrackedBytesDelta": 22764,
+      "maxTrackedFilesDelta": 2,
+      "maxCategoryBytesDelta": {
+        "config/data/messages": 625,
+        "source/scripts": 1913,
+        "tests/e2e": 20226
+      },
+      "maxPathBytesDelta": {
+        ".github/workflows/e2e-pr.yml": 625,
+        "apps/web/e2e/gate/s5-new-account-otp-secure-save.spec.ts": 12735,
+        "apps/web/e2e/gate/s5-otp-mailbox.fixture.ts": 5045,
+        "packages/domain-communications/src/email.test.ts": 2446,
+        "packages/domain-communications/src/email.ts": 206,
+        "packages/domain-communications/src/sign-in-otp-email.ts": 1222,
+        "scripts/ci/pr-e2e-evidence-workflow-contracts.mjs": 485
       }
     }
   ],
@@ -1719,15 +1748,15 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 62183036,
-  "maxTrackedFiles": 6101,
+  "maxTrackedBytes": 62208617,
+  "maxTrackedFiles": 6103,
   "maxCategoryBytes": {
-    "config/data/messages": 2278844,
-    "docs/text": 8659123,
+    "config/data/messages": 2280680,
+    "docs/text": 8660216,
     "large support/generated-ish": 15874962,
     "other": 19184750,
-    "source/scripts": 8910988,
-    "tests/e2e": 7274369
+    "source/scripts": 8912990,
+    "tests/e2e": 7295019
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

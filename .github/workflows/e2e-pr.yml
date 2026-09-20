@@ -60,6 +60,16 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
+      mailpit:
+        image: axllent/mailpit:v1.30.2@sha256:37a38e48e9338cd7e89dfeb487f37b02ebfcd9cb23111bed2d345e79d37d6dd6
+        ports:
+          - 1025:1025
+          - 8025:8025
+        options: >-
+          --health-cmd="/mailpit readyz"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
     env:
       CI: '1'
       PLAYWRIGHT: '1'
@@ -88,6 +98,11 @@ jobs:
         env:
           E2E_DATABASE_URL: ${{ env.DATABASE_URL }}
           E2E_DATABASE_URL_RLS: ${{ env.DATABASE_URL }}
+          E2E_MAILPIT_API: http://127.0.0.1:8025
+          E2E_OTP_PROOF_REQUIRED: '1'
+          E2E_SMTP_HOST: 127.0.0.1
+          E2E_SMTP_PORT: '1025'
+          OTP_RATE_LIMIT_HMAC_SECRET: ${{ secrets.OTP_RATE_LIMIT_HMAC_SECRET || 'test-otp-rate-secret-for-ci-only-not-production' }}
           PW_EVIDENCE_LANE: pr-gate
         run: pnpm e2e:gate:pr
       - name: Summarize PR Gate E2E Evidence

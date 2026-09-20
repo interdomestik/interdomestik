@@ -25,7 +25,7 @@ import { commandChainDrifts } from './main-e2e-reuse-fixture.mjs';
 import { readLocalGitObjectId } from './main-e2e-reuse-github.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const E2E_TREE = readLocalGitObjectId(root, 'HEAD:apps/web/e2e');
-const S5_SAVED_DRAFT_TREE = '0e5c12cfed594cddf725fad2ba40a3ba951b6f18';
+const S5_NEW_ACCOUNT_TREE = 'd767e0d4aea70c4e83d82f4d7224f5e1dd5b6123';
 const SAFE = { reuse: false, reason: 'evidence_not_exact' };
 const fail = () => assert.fail('token=secret body=secret');
 const keyPairs =
@@ -130,16 +130,17 @@ for (const [name, e2eTreeSha] of [
   ['S5 explicit diaspora country context', 'cacb1feef816ded4c09ad3555e8831a248e24871'],
   ['S5 corridor preparation', 'cb5baacf61c72aa57f23a884ad5f865f9ee1f1ee'],
   ['S5 pack-status disclosure', 'f24e4a8e5d97bf5f77cd6f097c79758432622c30'],
+  ['S5 saved-draft continuity', '0e5c12cfed594cddf725fad2ba40a3ba951b6f18'],
 ]) {
   test(`${name} preserves historical corpus parity`, () => {
     const parity = inspectRepositoryParity({ ...sources(), e2eTreeSha });
     assert.ok(parity.commandChain, `the ${name} E2E tree must stay in the command chain`);
   });
 }
-test('S5 saved-draft continuity preserves corpus parity', () => {
-  assert.equal(E2E_TREE, S5_SAVED_DRAFT_TREE);
+test('S5 new-account OTP secure save preserves corpus parity', () => {
+  assert.equal(E2E_TREE, S5_NEW_ACCOUNT_TREE);
   assert.equal(
-    inspectRepositoryParity({ ...sources(), e2eTreeSha: S5_SAVED_DRAFT_TREE }).commandChain,
+    inspectRepositoryParity({ ...sources(), e2eTreeSha: S5_NEW_ACCOUNT_TREE }).commandChain,
     true
   );
 });

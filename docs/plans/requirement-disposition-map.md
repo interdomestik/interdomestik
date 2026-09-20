@@ -176,9 +176,9 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-GOV-009 | As-built versus target | Target | unresolved | S14 | open | none | U | U | U |
 | IDA-GOV-010 | Sensitive source handling | Canonical | unresolved | S14 | open | none | U | U | U |
 | IDA-CTX-001 | Product definition | Target | unresolved | S5/S14 | open | none | U | U | U |
-| IDA-CTX-002 | Neutral public gateway | Canonical | pilot-required | S5/S14 | open | none | U | U | U |
-| IDA-CTX-003 | Canonical portals | Canonical | pilot-required | S5/S14 | open | none | U | U | U |
-| IDA-CTX-004 | Proxy authority | Canonical | pilot-required | S5/S14 | open | none | U | U | U |
+| IDA-CTX-002 | Neutral public gateway | Canonical | pilot-required | S5/S14; partial: no-tenant, cookie-free public host; branding neutrality unasserted | open | none | U | U | U |
+| IDA-CTX-003 | Canonical portals | Canonical | pilot-required | S5/S14; partial: role-to-portal mapping, protected redirects; non-canonical rejection unasserted | open | none | U | U | U |
+| IDA-CTX-004 | Proxy authority | Canonical | pilot-required | S5/S14; partial: proxy session-gate tests; bypass rejection unasserted | open | none | U | U | U |
 | IDA-CTX-005 | External systems untrusted | Canonical | unresolved | S5/S14 | open | none | U | U | U |
 | IDA-CTX-006 | System-of-record clarity | Target | unresolved | S5/S14 | open | none | U | U | U |
 | IDA-CTX-007 | No ambient authority | Canonical | unresolved | S5/S14 | open | none | U | U | U |
@@ -215,19 +215,19 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-IAM-014 | Break-glass | Canonical | unresolved | S1/S8/S11–S12 | open | none | U | U | U |
 | IDA-IAM-015 | Unknown role fail-closed | Canonical | pilot-required | S1/S8/S11–S12 | open | none | U | U | U |
 | IDA-IAM-016 | Role review | Target | unresolved | S1/S8/S11–S12 | open | none | U | U | U |
-| IDA-FST-001 | Eligible local continuity | Canonical | unresolved | S5 | open | none | U | U | U |
-| IDA-FST-002 | Injury exclusion | Canonical | unresolved | S5 | open | none | U | U | U |
-| IDA-FST-003 | No anonymous server identity | Canonical | unresolved | S5 | open | none | U | U | U |
-| IDA-FST-004 | Local disclosure | Target | unresolved | S5 | open | none | U | U | U |
-| IDA-FST-005 | Schema validation | Canonical | unresolved | S5 | open | none | U | U | U |
-| IDA-FST-006 | Stale-tab protection | Canonical | unresolved | S5 | open | none | U | U | U |
-| IDA-FST-007 | Automatic eligible recovery | Canonical | unresolved | S5 | open | none | U | U | U |
-| IDA-FST-008 | Verified secure save | Canonical | pilot-required | S5; S5 continuity spec proves password-authenticated promotion only; email-OTP completion is not exercised | open | none | U | U | U |
-| IDA-FST-009 | Delete after confirmed save | Canonical | unresolved | S5 | open | none | U | U | U |
-| IDA-FST-010 | No automatic claim conversion | Canonical | unresolved | S5; S5 continuity spec proves no claim after save or review and one claim only on explicit submit | open | none | U | U | U |
-| IDA-FST-011 | Review before handoff | Canonical | pilot-required | S5; S5 continuity spec proves exact vehicle facts are reviewed before submit; other categories/handoff open | open | none | U | U | U |
+| IDA-FST-001 | Eligible local continuity | Canonical | unresolved | S5; credited: allowlist round-trip test, cold-return E2E | open | none | U | U | U |
+| IDA-FST-002 | Injury exclusion | Canonical | unresolved | S5; credited (local): write rejection, four-locale medical-text tests, server validator | open | none | U | U | U |
+| IDA-FST-003 | No anonymous server identity | Canonical | unresolved | S5; new-account spec: no account or draft row before verification | open | none | U | U | U |
+| IDA-FST-004 | Local disclosure | Target | unresolved | S5; open: boundary asserted after local write, not before | open | none | U | U | U |
+| IDA-FST-005 | Schema validation | Canonical | unresolved | S5; credited: version, size, schema, expiry, scope rejection tests | open | none | U | U | U |
+| IDA-FST-006 | Stale-tab protection | Canonical | unresolved | S5; credited: stale-tab unit tests, serialized-write E2E | open | none | U | U | U |
+| IDA-FST-007 | Automatic eligible recovery | Canonical | unresolved | S5; credited: cold-return E2E; member intake ignores browser copies | open | none | U | U | U |
+| IDA-FST-008 | Verified secure save | Canonical | pilot-required | S5; new-account spec: real OTP delivery, hashed storage, wrong/replayed refusal, account creation, secure save (auth Origin rewritten by the test); password promotion proven | open | none | U | U | U |
+| IDA-FST-009 | Delete after confirmed save | Canonical | unresolved | S5; new-account spec: browser copy kept on refused save, removed on confirmed; server-save failure unit-only | open | none | U | U | U |
+| IDA-FST-010 | No automatic claim conversion | Canonical | unresolved | S5; S5 continuity spec proves no claim after save or review and one claim only on explicit submit; new-account save creates no claim or subscription | open | none | U | U | U |
+| IDA-FST-011 | Review before handoff | Canonical | pilot-required | S5; S5 continuity spec proves exact vehicle facts are reviewed before submit; other categories/handoff open; property: gate unit-tested, no E2E | open | none | U | U | U |
 | IDA-FST-012 | Owner isolation | Canonical | pilot-required | S5; S5 specs prove same-tenant foreign list/resume/update/delete `notFound` and an active member's forged submit of the owner draft id is refused; C07–C12 and RLS tests credited | open | none | U | U | U |
-| IDA-FST-013 | Draft deletion | Canonical | unresolved | S5 | open | none | U | U | U |
+| IDA-FST-013 | Draft deletion | Canonical | unresolved | S5; new-account spec: owner deletion and audit row | open | none | U | U | U |
 | IDA-FST-014 | No representation implication | Target | unresolved | S5 | open | none | U | U | U |
 | IDA-MEM-001 | Offer and proof separation | Canonical | unresolved | S6/S9 | open | none | U | U | U |
 | IDA-MEM-002 | Entity-of-record snapshot | Canonical | unresolved | S6/S9 | open | none | U | U | U |
@@ -264,8 +264,8 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-DIA-001 | Diaspora persona boundary | Canonical | unresolved | S5/S6; see acceptance links | open | none | U | U | U |
 | IDA-DIA-002 | User-selected corridor | Canonical | unresolved | S5/S6; #1790 proves explicit guidance-country/no fallback; #1792 source `757aa623` captures origin/destination and zero-to-12 ordered transit values over `CountryCodeSchema`; completed S5.e #1796 discloses pack status from that explicit corridor only; persistence/handoff open | open | Tracker receipt; #1792 exact-main `e8142453` and S5.e exact-main `6d9eb3f5` health passed. Protected PR #1796 and exact-main health complete the final bounded delivery receipt. | U | U | U |
 | IDA-DIA-003 | Locale independent from country pack | Canonical | unresolved | S5/S6; #1792 source `757aa623` proves in-app locale-switch query retention; completed S5.e #1796 mounts the same ordered status result on EN/SQ/MK/SR applied-corridor routes; pack/content and non-software readiness open | open | Tracker receipt; S5.e exact-head E2E and exact-main health passed. | U | U | U |
-| IDA-DIA-004 | Signed pack requirement | Canonical | unresolved | S5/S6; completed S5.e #1796 discloses only the existing Help Now exposure predicate and does not claim current/versioned/integrity/expiry readiness; full contract remains a later direct dependency | open | Existing fail-closed registry predicate credited; MOB-01b/MK receipt and S5.e do not satisfy the signed/current/versioned/integrity/expiry contract. | U | U | U |
-| IDA-DIA-005 | Unsigned pack fail-closed | Canonical | unresolved | S5/S6; completed S5.e #1796 keeps dark, unaccepted, unsigned, duplicate and unregistered corridor entries unavailable without fallback; expired/withdrawn/integrity-failed contracts remain open | open | S5.e pure derivation and mounted proof passed through exact-main `6d9eb3f5`; full signed-pack acceptance remains open. | U | U | U |
+| IDA-DIA-004 | Signed pack requirement | Canonical | unresolved | S5/S6; completed S5.e #1796 discloses only the existing Help Now exposure predicate and does not claim current/versioned/integrity/expiry readiness; full contract remains a later direct dependency; MK pack (#1312) lacks source set, per-pack version, expiry, digest; owner decision open | open | Existing fail-closed registry predicate credited; MOB-01b/MK receipt and S5.e do not satisfy the signed/current/versioned/integrity/expiry contract. | U | U | U |
+| IDA-DIA-005 | Unsigned pack fail-closed | Canonical | unresolved | S5/S6; completed S5.e #1796 keeps dark, unaccepted, unsigned, duplicate and unregistered corridor entries unavailable without fallback; expired/withdrawn/integrity-failed contracts remain open; MK pack has no expiry or integrity state | open | S5.e pure derivation and mounted proof passed through exact-main `6d9eb3f5`; full signed-pack acceptance remains open. | U | U | U |
 | IDA-DIA-006 | Explicit offline preparation | Target | unresolved | S5/S6; see acceptance links | open | none | U | U | U |
 | IDA-DIA-007 | Offline integrity verification | Canonical | unresolved | S5/S6; see acceptance links | open | none | U | U | U |
 | IDA-DIA-008 | Offline failure recovery | Target | unresolved | S5/S6; see acceptance links | open | none | U | U | U |
@@ -358,7 +358,7 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-CLM-007 | No destructive duplicate merge | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-008 | Jurisdiction classification | Canonical | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-009 | Completeness outcome | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
-| IDA-CLM-010 | Missing-information request | Target | pilot-required | S3/S4/S5/S7 | S4 source 1acc8cc7 implements assigned-owner request creation in verification, explicit due date, safe member explanation/reference, request-local SLA posture and correlation retries. Opus 5 review has documented dispositions; full isolated proof passes. PR #1786 protected delivery pending. Request-bound upload and staff acknowledgement remain open | Current tracker S4 source-bound receipt | U | U | U |
+| IDA-CLM-010 | Missing-information request | Target | pilot-required | S3/S4/S5/S7 | S4 source 1acc8cc7 implements assigned-owner request creation in verification, explicit due date, safe member explanation/reference, request-local SLA posture and correlation retries. Opus 5 review has documented dispositions; full isolated proof passes. PR #1786 delivered. Request-bound upload and staff acknowledgement remain open | Current tracker S4 source-bound receipt | U | U | U |
 | IDA-CLM-011 | Conflict-of-interest stop | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-012 | Time-limit posture | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-013 | Fraud/integrity signal | Target | unresolved | S3/S5/S7 | open | none | U | U | U |

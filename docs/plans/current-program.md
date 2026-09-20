@@ -505,10 +505,53 @@ helper; no product surface mints a session that way, so the save-time verificati
 exercised and the credit covers saving, resuming, reviewing and submitting with an already
 authenticated session.
 
-Excluded: email-OTP completion for an existing account (no capture sink exists; adding one is an
-auth-architecture decision), new-account registration, membership purchase, S6 continuation,
+Excluded: email-OTP completion for an existing account (automated runs then mocked the transport; the next
+section adds a test-only loopback catcher), new-account registration, membership purchase, S6 continuation,
 diaspora, routing/proxy/auth/schema/migration changes and deployment. IDA-FST-008/010/011/012 and
 whole S5 remain open; the map credits only the exercised clauses.
+
+### Selected bounded S5 — New-account email OTP secure save (2026-09-20)
+
+From verified protected main `da90ff545`, the owner selected the missing new-person journey. SRS §18
+specifies pre-membership continuity, so a "new member" here is a person with no account and no
+subscription. Email verification creates the account (role `member`, deferred tenant classification);
+membership purchase and claim submission are excluded, and no subscription or claim is created.
+
+The spec (`gate-ks-sq`, IDA host `ida.localhost`, English, vehicle) starts signed out with eligible
+facts kept only in the browser, requests a code, reads the real message from a loopback Mailpit and
+proves: the subject is the static neutral text, the code is not stored in clear (hashing is
+configured, not asserted), no account exists before verification, a wrong code is refused and keeps
+the browser copy, the right code creates the account and saves the exact facts, the browser copy is
+then removed, a replayed code opens no session, a fresh browser returns with a second real code,
+resumes the exact facts, and deletes the draft with an audit row. Table counts show only user,
+session, draft and audit rows change (`+1` each on save); no membership, claim, lead or other
+business row appears, and teardown returns every table to baseline. The exact mid-journey counts
+rely on the lane running one worker. The account receives a member number (`MEM-…`) from the existing
+user-create hook; that behavior is unchanged.
+
+`E2E_SMTP_HOST` and `E2E_SMTP_PORT` are the only new switches. They apply only in automated runs, only
+to sign-in OTP messages (which opt in), only to loopback hosts, with no external-provider fallback;
+invalid values send nothing and every other automated message stays mocked. Production delivery is
+unchanged. The production-mode test server also needs an `OTP_RATE_LIMIT_HMAC_SECRET` (the repository
+secret, else a fixed CI-only value) and a forwarded client address. Only the PR gate provides Mailpit and sets
+`E2E_OTP_PROOF_REQUIRED`; other lanes skip the spec. That flag fails the spec when the catcher is
+missing but cannot detect the spec being excluded; no lane-level presence check is added.
+
+Limits of the evidence: `ida.localhost` is a secure context, which the browser copy needs, but the
+server does not trust it as an origin, so the spec refetches auth requests with the trusted `Origin`;
+the trusted-origin check is therefore not exercised here. The spec turns off trace, video and
+screenshots and redacts codes from failures; scans of failing runs' report, page snapshot, console and
+server log found no delivered code. Property handoff relies on the shared preview/version gate, now
+table-tested for property drafts (the existing passing property mapping test is the control), not a
+property end-to-end run. IDA-FST-004 stays open. The exposed
+MK Help Now pack (#1312) carries a reviewer role label, date, evidence reference, manifest version and
+accepted status, but no source set, per-pack version, expiry or digest, so IDA-DIA-004/005 remain
+open and are not deferred. Map credits rest on assertion-level reading of
+`anonymous-draft-recovery(.band).test`, `secure-save-flow.test`, `free-start-draft.test`,
+`premium-free-start-recovery.spec`, the proxy and neutral OTP boundary tests, and
+`canonical-routes.test`. The program and tracker growth stays within existing aggregate headroom. The owner approved a ceiling
+of +25,613 tracked bytes and two new files, self-accounting included; the committed budget carries
++25,581. The owner authorized the test-only transport; no production auth change is made.
 
 ### Dependency-first selection (owner direction, 2026-09-17)
 

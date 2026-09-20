@@ -46,6 +46,8 @@ const E2E_TREE_SHAS = new Set([
   'f24e4a8e5d97bf5f77cd6f097c79758432622c30',
   // S5 first-case saved-draft continuity.
   '0e5c12cfed594cddf725fad2ba40a3ba951b6f18',
+  // S5 new-account email OTP secure save.
+  'd767e0d4aea70c4e83d82f4d7224f5e1dd5b6123',
 ]);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {
@@ -85,7 +87,7 @@ function lane(source, name) {
   return { projects, shared: definition[2] === 'true' && projects.length > 0 };
 }
 // The pre-install resolver accepts only the reviewed workflow, including gate failure semantics.
-const PR_WORKFLOW_SHA256 = '5607206adf40e9f63567e71f41311f386519990ffdfbbd6fc7c469c355a720bc';
+const PR_WORKFLOW_SHA256 = 'b7a3f47c834e981ea4d76d3cd5ae615bbc4a10fff109da0d1f99e411877f955d';
 const hasStrictPrGate = source => sha256(source) === PR_WORKFLOW_SHA256;
 function hasExactCommandChain(input) {
   try {
