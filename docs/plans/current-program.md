@@ -452,7 +452,7 @@ browser-gate specs and a shared fixture, with no product source, route, auth, sc
 change. Password sign-in before secure save is the owner-accepted path for this proof.
 
 The continuity spec starts signed out on the neutral IDA host, prepares vehicle/collision facts,
-signs the seeded active member in with the existing password flow and secure-saves through the
+signs the seeded active member in out of band at the auth API and secure-saves through the
 existing promotion path. It proves exact persisted facts at `preview`, no claim after save or after a
 fresh-session resume and review, one owner claim only after explicit submission, and the same claim
 on reopen without a second submit. Another member's repository context cannot list, resume, update
@@ -484,15 +484,16 @@ failed journey's own rows remained, which the residue check reported.
 The candidate was integrated onto protected main `efa7fe2131baee5b5435a3c88261f6e95f2a60e9` (#1800)
 without changing its scope. The owner approved +19,247 tracked bytes, then +20,540 and exactly three
 new files for the scope before review corrections, then authorized the teardown correction that both
-reviewers required, and finally approved up to +22,143 tracked bytes, three new files and +692 of
-self-accounting; the delivered rise is +22,014. That ceiling was applied to the budget before the
-final approval was recorded; the sequence is retained as it happened and is not presented as prior
-approval. The rise splits into tests/e2e +20,752 for the new allocation, docs/text +481 for the
-exact requirement map, source/scripts +89 for the `ci-evidence-reuse` registration and
-config/data/messages +692 of budget self-accounting; the reuse test shrinks by 83 bytes because its
-historical parity checks became table-driven. Physical growth is +28,722 tracked bytes; the program (+5,470) and tracker
-(+1,280) notes stay within existing aggregate headroom and consume no new
-global docs allocation. The registered E2E tree is `0e5c12cfed594cddf725fad2ba40a3ba951b6f18`.
+reviewers required, and finally approved a ceiling of +22,143 tracked bytes and three new files,
+self-accounting included. The committed budget carries the delivered rise of +22,014; the ceiling
+had been applied before that approval was recorded, and the sequence is retained as it happened
+rather than presented as prior approval. The rise splits into tests/e2e +20,752 for the new
+allocation, docs/text +481 for the exact requirement map, source/scripts +89 for the
+`ci-evidence-reuse` registration and config/data/messages +692 of budget self-accounting; the reuse
+test shrinks by 83 bytes because its historical parity checks became table-driven. Physical growth
+is +28,704 tracked bytes; the program (+5,493) and tracker (+1,280) notes stay within existing
+aggregate headroom and consume no new global docs allocation. The registered E2E tree is
+`0e5c12cfed594cddf725fad2ba40a3ba951b6f18`.
 
 Exact-head gate results, reviewer receipts and the strict readiness report are recorded on the pull
 request and in the archived receipts, not here: binding them to a head inside the same document would
