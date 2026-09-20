@@ -87,7 +87,9 @@ candidate `mem_a828baa485107624` remains unapplied; notes and memories stay advi
 `S5-FIRST-CASE-SAVED-DRAFT-CONTINUITY` is selected from main `099bcd45` and integrated onto
 `efa7fe21` (see program). The tested path works; delivery is two gate specs, one shared fixture, E2E
 corpus registration and governance updates within the owner-approved +20,540-byte, three-file
-ceiling. Review and proof are recorded on the PR; merge is held for owner approval.
+ceiling. Exact head `d5d96b1b` passed `pnpm pr:verify` (gate 270 passed, 16 skipped; smoke 13 passed,
+11 skipped) and a separate `pnpm security:guard`; the exact-head Opus review returned `blocked` by the
+provider usage window and must complete before merge, which is held for owner approval.
 
 S5 corridor preparation local proof used tree `9649f5bc3788c7143c3b7f614310da6e5a099bc9`, E2E tree
 `cb5baacf61c72aa57f23a884ad5f865f9ee1f1ee`, isolated database

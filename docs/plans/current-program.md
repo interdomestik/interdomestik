@@ -484,15 +484,22 @@ exactly three new files, replacing the earlier +19,247 approval after review cor
 +19,267 for the new allocation, docs/text +481 for the exact requirement map, source/scripts +89
 for the `ci-evidence-reuse` registration and config/data/messages +692 of budget self-accounting;
 the reuse test shrinks by 83 bytes because its historical parity checks became table-driven.
-Physical growth is +25,963 tracked bytes; the program (+4,462) and tracker (+1,055) notes stay
+Physical growth is +26,833 tracked bytes; the program (+5,123) and tracker (+1,264) notes stay
 within existing aggregate headroom and consume no new global docs allocation. The registered E2E
 tree is `b35ddb466bcc12c5804aebdfc980304774fe018c`.
 
-Local head `8810a6bd29bbfb6a5b5b69360b172b4235589bd9` passed `pnpm pr:verify` (1,205 CI contracts;
-gate 270 passed, 16 skipped; smoke 13 passed, 11 skipped) and a separate `pnpm security:guard`.
-Opus `20260919T184543-opus`, `20260919T193458-opus` and `20260919T195009-opus` drove the accepted
-corrections; the last one, teardown ordering and database session revocation, produced the final
-head, whose exact-head proof is recorded on the PR.
+Exact head `d5d96b1bcf7b2350083e620c63102a7bebb6b341` passed `pnpm pr:verify` (1,205 CI contracts;
+gate 270 passed, 16 skipped; smoke 13 passed, 11 skipped) and a separate `pnpm security:guard` from
+a clean tree, with `HEAD:apps/web/e2e` equal to the registered tree. The earlier head
+`8810a6bd29bbfb6a5b5b69360b172b4235589bd9` passed the same two gates before the teardown correction
+and is superseded, not transferred. Opus `20260919T184543-opus`, `20260919T193458-opus` and
+`20260919T195009-opus` drove the accepted corrections; the exact-head review of the delivered head
+returned `blocked` by the provider usage window (`20260919T200949-opus`) and must complete before
+merge. Member sign-in in both specs is performed out of band against `POST /api/auth/sign-in/email`,
+not through the mounted login or save-time surface, so the credited clauses are saved-draft
+continuity and owner isolation, never an authentication path. Only this governance paragraph and the
+matching tracker note follow the proven head; no test, source, script or budget file changes with
+them, and the E2E tree is unchanged.
 
 Excluded: email-OTP completion for an existing account (no capture sink exists; adding one is an
 auth-architecture decision), new-account registration, membership purchase, S6 continuation,
