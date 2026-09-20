@@ -1703,13 +1703,13 @@
         "apps/web/e2e/gate/s5-saved-draft-foreign-submit.spec.ts",
         "apps/web/e2e/gate/s5-saved-draft.fixture.ts"
       ],
-      "maxTrackedBytesDelta": 20319,
+      "maxTrackedBytesDelta": 20677,
       "maxTrackedFilesDelta": 3,
-      "maxCategoryBytesDelta": { "tests/e2e": 20319 },
+      "maxCategoryBytesDelta": { "tests/e2e": 20677 },
       "maxPathBytesDelta": {
-        "apps/web/e2e/gate/s5-first-case-saved-draft-continuity.spec.ts": 7781,
+        "apps/web/e2e/gate/s5-first-case-saved-draft-continuity.spec.ts": 7870,
         "apps/web/e2e/gate/s5-saved-draft-foreign-submit.spec.ts": 6633,
-        "apps/web/e2e/gate/s5-saved-draft.fixture.ts": 5905
+        "apps/web/e2e/gate/s5-saved-draft.fixture.ts": 6174
       }
     }
   ],
@@ -1719,7 +1719,7 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 62182603,
+  "maxTrackedBytes": 62182961,
   "maxTrackedFiles": 6101,
   "maxCategoryBytes": {
     "config/data/messages": 2278844,
@@ -1727,7 +1727,7 @@
     "large support/generated-ish": 15874962,
     "other": 19184750,
     "source/scripts": 8910988,
-    "tests/e2e": 7273936
+    "tests/e2e": 7274294
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000

@@ -86,10 +86,10 @@ candidate `mem_a828baa485107624` remains unapplied; notes and memories stay advi
 
 `S5-FIRST-CASE-SAVED-DRAFT-CONTINUITY` is selected from main `099bcd45` and integrated onto
 `efa7fe21` (see program). The tested path works; delivery is two gate specs, one shared fixture, E2E
-corpus registration and governance updates within the owner-approved capacity, finally +21,581 bytes and three files,
-ceiling. Exact head `d5d96b1b` passed `pnpm pr:verify` (gate 270 passed, 16 skipped; smoke 13 passed,
-11 skipped) and a separate `pnpm security:guard`; the exact-head Opus review returned `blocked` by the
-provider usage window and must complete before merge, which is held for owner approval.
+corpus registration and governance updates within the capacity recorded in the program,
+ceiling. The delivered ceiling rise is +21,939 tracked bytes and three files, which is +1,399 above
+the last recorded numeric approval and awaits the owner's explicit approval of that figure. Proof and
+the completed exact-head review are recorded in the program; merge is held for owner approval.
 
 S5 corridor preparation local proof used tree `9649f5bc3788c7143c3b7f614310da6e5a099bc9`, E2E tree
 `cb5baacf61c72aa57f23a884ad5f865f9ee1f1ee`, isolated database

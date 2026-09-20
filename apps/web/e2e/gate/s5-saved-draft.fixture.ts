@@ -81,7 +81,11 @@ export async function signIn(page: Page, info: TestInfo, member: S5Member): Prom
 }
 
 export async function signOut(session: S5Session) {
-  await db.delete(authSession).where(eq(authSession.token, session.token));
+  const revoked = await db
+    .delete(authSession)
+    .where(eq(authSession.token, session.token))
+    .returning({ id: authSession.id });
+  expect(revoked, 'the run session was revoked').toHaveLength(1);
 }
 
 // Project contexts carry country-host headers; these contexts must present only the IDA host.
@@ -137,7 +141,8 @@ export async function cleanupS5(claimId: string | null, journey: S3JourneyIdenti
     const audit = and(eq(auditLog.tenantId, tenant), inArray(auditLog.entityId, ids));
     const keys = or(...ids.map(id => ilike(idempotency.idempotencyKey, `%:${id}`)));
     const submits = and(eq(idempotency.tenantId, tenant), keys);
-    await db.delete(auditLog).where(audit);
+    const cleared = await db.delete(auditLog).where(audit).returning({ id: auditLog.id });
+    expect(cleared.length, 'draft audit rows matched').toBeGreaterThanOrEqual(ids.length);
     await db.delete(idempotency).where(submits);
   }
   await cleanupJourney(claimId, journey);

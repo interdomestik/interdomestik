@@ -46,6 +46,7 @@ test.describe('S5 first-case saved-draft continuity', () => {
     let failure: unknown;
     const owner = await ownerContext(E2E_USERS.KS_MEMBER);
     const other = await ownerContext(E2E_USERS.KS_MEMBER_EMPTY);
+    expect(other.tenantId, 'the foreign member shares the tenant').toBe(owner.tenantId);
     try {
       const start = await open();
       await gotoApp(start, routes.home('en'), info, { marker: 'free-start-intake-shell' });

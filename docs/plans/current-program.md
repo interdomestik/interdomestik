@@ -482,29 +482,16 @@ the first cleanup, the later cleanup, session revocation and context close still
 failed journey's own rows remained, which the residue check reported.
 
 The candidate was integrated onto protected main `efa7fe2131baee5b5435a3c88261f6e95f2a60e9` (#1800)
-without changing its scope. The owner approved a ceiling rise of up to +20,540 tracked bytes and
-exactly three new files for the scope before review corrections, replacing an earlier +19,247
-approval, and then authorized the teardown correction that both reviewers required. The final
-ceiling rise is +21,581, which is +1,041 above that approval and carries it: tests/e2e +20,319 for
-the new allocation, docs/text +481 for the exact requirement map, source/scripts +89 for the
-`ci-evidence-reuse` registration and config/data/messages +692 of budget self-accounting; the reuse
-test shrinks by 83 bytes because its historical parity checks became table-driven. Physical growth
-is +28,381 tracked bytes; the program (+5,595) and tracker (+1,288) notes stay within existing
-aggregate headroom and consume no new global docs allocation. The registered E2E tree is
-`129964d7cf6c8be669ca688bbe0be272e3d1fa8c`.
-
-Exact head `d5d96b1bcf7b2350083e620c63102a7bebb6b341` passed `pnpm pr:verify` (1,205 CI contracts;
-gate 270 passed, 16 skipped; smoke 13 passed, 11 skipped) and a separate `pnpm security:guard` from
-a clean tree, with `HEAD:apps/web/e2e` equal to the registered tree. The earlier head
-`8810a6bd29bbfb6a5b5b69360b172b4235589bd9` passed the same two gates before the teardown correction
-and is superseded, not transferred. Opus `20260919T184543-opus`, `20260919T193458-opus` and
-`20260919T195009-opus` drove the accepted corrections; the exact-head review of the delivered head
-returned `blocked` by the provider usage window (`20260919T200949-opus`) and must complete before
-merge. Member sign-in in both specs is performed out of band against `POST /api/auth/sign-in/email`,
-not through the mounted login or save-time surface, so the credited clauses are saved-draft
-continuity and owner isolation, never an authentication path. Only this governance paragraph and the
-matching tracker note follow the proven head; no test, source, script or budget file changes with
-them, and the E2E tree is unchanged.
+without changing its scope. The owner approved +19,247 tracked bytes, then +20,540 and exactly three
+new files for the scope before review corrections, and then authorized the teardown correction that
+both reviewers required. The delivered ceiling rise is +21,939, which is +1,399 above the last
+recorded numeric approval and awaits the owner's explicit approval of that exact figure; no ceiling
+beyond it is taken. It splits into tests/e2e +20,677 for the new allocation, docs/text +481 for the
+exact requirement map, source/scripts +89 for the `ci-evidence-reuse` registration and
+config/data/messages +692 of budget self-accounting; the reuse test shrinks by 83 bytes because its
+historical parity checks became table-driven. Physical growth is +27,678 tracked bytes; the program
+(+4,560) and tracker (+1,262) notes stay within existing aggregate headroom and consume no new
+global docs allocation. The registered E2E tree is `4d9e080f5ac6ca835edc16db001a18030b94ae48`.
 
 Excluded: email-OTP completion for an existing account (no capture sink exists; adding one is an
 auth-architecture decision), new-account registration, membership purchase, S6 continuation,
