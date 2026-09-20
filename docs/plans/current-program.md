@@ -489,9 +489,21 @@ recorded numeric approval and awaits the owner's explicit approval of that exact
 beyond it is taken. It splits into tests/e2e +20,690 for the new allocation, docs/text +481 for the
 exact requirement map, source/scripts +89 for the `ci-evidence-reuse` registration and
 config/data/messages +692 of budget self-accounting; the reuse test shrinks by 83 bytes because its
-historical parity checks became table-driven. Physical growth is +27,691 tracked bytes; the program
-(+4,560) and tracker (+1,262) notes stay within existing aggregate headroom and consume no new
+historical parity checks became table-driven. Physical growth is +28,762 tracked bytes; the program
+(+5,590) and tracker (+1,262) notes stay within existing aggregate headroom and consume no new
 global docs allocation. The registered E2E tree is `d0da8103adab080978f0a661c966a0671ae2b76b`.
+
+Exact head `75b76bc1a` passed `pnpm test:ci:contracts` (1,205 tests), `pnpm security:guard` and
+`pnpm pr:verify` (repository coverage 81.28%; gate 270 passed, 16 skipped; smoke 13 passed, 11
+skipped) from a clean tree, with `HEAD:apps/web/e2e` equal to the registered tree. Earlier heads
+passed the same gates and are superseded, not transferred. Opus `20260920T065438-opus` was the first
+completed exact-head review; `20260919T200949-opus` returned `blocked` on the provider usage window
+and is not counted. Opus and Codex both required the teardown correction, and Codex additionally
+caught the audit assertion ordering; all are fixed. Member sign-in in both specs is performed out of
+band against `POST /api/auth/sign-in/email`, not through the mounted login or save-time surface, so
+the credited clauses are saved-draft continuity and owner isolation, never an authentication path.
+Only this governance paragraph follows the proven head; no test, source, script or budget file
+changes with it, and the E2E tree is unchanged.
 
 Excluded: email-OTP completion for an existing account (no capture sink exists; adding one is an
 auth-architecture decision), new-account registration, membership purchase, S6 continuation,
