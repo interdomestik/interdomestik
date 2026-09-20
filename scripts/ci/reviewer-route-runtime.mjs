@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { resolveCaptureLimits } from './reviewer-capture-limits.mjs';
 import { commandAvailable, statusForClose, timeoutConfig } from './reviewer-route-utils.mjs';
 
 const BLOCKERS = [
@@ -129,6 +130,7 @@ export function skippedRouteReceipt(options) {
 
 export function runReviewerRoute(options) {
   const env = options.env || process.env;
+  const capture = resolveCaptureLimits(options.maxCaptureBytes, env);
   const startedAt = iso();
   const startedMs = Date.now();
   const { firstOutputTimeoutMs, totalTimeoutMs } = timeoutConfig(
@@ -149,6 +151,7 @@ export function runReviewerRoute(options) {
     configuredModel: options.model,
     ...reviewFacts(stdout),
     candidateIdentity: options.candidateIdentity ?? null,
+    captureLimits: capture.limits,
     commandInvoked,
     promptTransport: options.input === undefined ? 'argv' : 'stdin',
     startedAt,
@@ -172,6 +175,13 @@ export function runReviewerRoute(options) {
   ) {
     blockerReason = 'reviewer_input_limit';
     return Promise.resolve(finishReceipt({ status: 'blocked', exitCode: 125 }));
+  }
+
+  if (capture.error) {
+    blockerReason = 'reviewer_capture_limit_invalid';
+    return Promise.resolve(
+      finishReceipt({ status: 'blocked', exitCode: 125, error: capture.error })
+    );
   }
 
   if (!commandAvailable(options.command, env)) {
@@ -202,14 +212,13 @@ export function runReviewerRoute(options) {
       clearTimeout(totalTimer);
       resolve(receipt);
     };
+    const { stdoutBytes, stderrBytes } = capture.limits;
     const collect = (stream, chunk) => {
       clearTimeout(firstTimer);
       const overflow =
-        stream === 'stdout' &&
-        Buffer.byteLength(stdout) + chunk.length > (options.maxCaptureBytes || 256_000);
-      if (stream === 'stdout')
-        stdout = appendBounded(stdout, chunk, options.maxCaptureBytes || 256_000);
-      else stderr = appendBounded(stderr, chunk, options.maxCaptureBytes || 20_000);
+        stream === 'stdout' && Buffer.byteLength(stdout) + chunk.length > stdoutBytes;
+      if (stream === 'stdout') stdout = appendBounded(stdout, chunk, stdoutBytes);
+      else stderr = appendBounded(stderr, chunk, stderrBytes);
       let reason = overflow ? 'reviewer_output_limit' : '';
       if (stream === 'stdout' && hasToolRequest(stdout)) reason = 'reviewer_tool_request';
       else if (stream === 'stderr') reason = classifyBlocker(chunk.toString());
