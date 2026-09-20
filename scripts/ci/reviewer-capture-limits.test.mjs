@@ -14,8 +14,8 @@ import { runReviewerRoute } from './reviewer-route-runtime.mjs';
 import { timeoutConfig } from './reviewer-route-utils.mjs';
 
 const fromEnv = value => resolveCaptureLimits(undefined, { [STDOUT_CAPTURE_ENV]: value });
-const emit = (bytes, ch = 'x') =>
-  `const l='${ch}'.repeat(999)+'\\n';for(let i=0;i<${Math.ceil(bytes / 1000)};i++)process.stdout.write(l);`;
+const emit = bytes =>
+  `const l='x'.repeat(999)+'\\n';for(let i=0;i<${Math.ceil(bytes / 1000)};i++)process.stdout.write(l);`;
 // Stays alive until terminated; exits on its own after 15 s so a termination regression fails fast.
 const linger = 'setTimeout(() => process.exit(3), 15000);';
 
@@ -129,14 +129,20 @@ test('a valid override lets the same output complete and is recorded in the rece
   assert.equal(receipt.captureLimits.source, 'environment');
 });
 
-test('overflow still terminates at the overridden limit', { timeout: 30_000 }, async () => {
-  const receipt = await run(`${emit(350_000, 'é')}${linger}`, {
-    env: { [STDOUT_CAPTURE_ENV]: '524288' },
-  });
-  assert.equal(receipt.status, 'blocked');
-  assert.equal(receipt.blockerReason, 'reviewer_output_limit');
-  assert.ok(Buffer.byteLength(receipt.stdout) <= 524_288 + 2);
-});
+test(
+  'the override terminates the run and retention is bounded by UTF-8 bytes',
+  { timeout: 30_000 },
+  async () => {
+    for (const ch of ['é', '中', '😀']) {
+      const cap = Buffer.byteLength(ch) * 1000 - 1; // cuts inside the first character
+      const env = { [STDOUT_CAPTURE_ENV]: String(cap) };
+      const receipt = await run(`process.stdout.write('${ch}'.repeat(1000));${linger}`, { env });
+      assert.equal(receipt.blockerReason, 'reviewer_output_limit');
+      assert.equal(receipt.stdout, ch.repeat(999));
+      assert.ok(Buffer.byteLength(receipt.stdout) <= cap);
+    }
+  }
+);
 
 test(
   'the stderr limit is independent: it neither follows the stdout limit nor blocks the run',
