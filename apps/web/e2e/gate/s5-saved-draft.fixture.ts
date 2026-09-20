@@ -99,12 +99,12 @@ export async function newPage(browser: Browser, info: TestInfo) {
 }
 
 export async function ownerContext(member: S5Member): Promise<FreeStartDraftContext> {
+  const tenant = member.tenantId;
   const row = await db.query.user.findFirst({
     columns: { id: true },
-    where: eq(user.email, member.email),
+    where: and(eq(user.email, member.email), eq(user.tenantId, tenant)),
   });
-  if (!row) throw new Error(`missing seeded member ${member.email}`);
-  const tenant = member.tenantId;
+  if (!row) throw new Error(`missing seeded member ${member.email} in ${tenant}`);
   return { accessTenantId: tenant, actorRole: 'member', ownerUserId: row.id, tenantId: tenant };
 }
 
