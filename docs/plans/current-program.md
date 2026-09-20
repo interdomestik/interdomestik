@@ -485,14 +485,14 @@ The candidate was integrated onto protected main `efa7fe2131baee5b5435a3c88261f6
 without changing its scope. The owner approved +19,247 tracked bytes, then +20,540 and exactly three
 new files for the scope before review corrections, then authorized the teardown correction that both
 reviewers required, and finally approved up to +22,143 tracked bytes, three new files and +692 of
-self-accounting; the delivered rise is +22,099. That ceiling was applied to the budget before the
+self-accounting; the delivered rise is +22,014. That ceiling was applied to the budget before the
 final approval was recorded; the sequence is retained as it happened and is not presented as prior
-approval. The rise splits into tests/e2e +20,837 for the new allocation, docs/text +481 for the
+approval. The rise splits into tests/e2e +20,752 for the new allocation, docs/text +481 for the
 exact requirement map, source/scripts +89 for the `ci-evidence-reuse` registration and
 config/data/messages +692 of budget self-accounting; the reuse test shrinks by 83 bytes because its
-historical parity checks became table-driven. Physical growth is +28,766 tracked bytes; the program (+5,470) and tracker
+historical parity checks became table-driven. Physical growth is +28,722 tracked bytes; the program (+5,470) and tracker
 (+1,280) notes stay within existing aggregate headroom and consume no new
-global docs allocation. The registered E2E tree is `199dd0ab4d94a402f25fce850eba3a676f35a974`.
+global docs allocation. The registered E2E tree is `0e5c12cfed594cddf725fad2ba40a3ba951b6f18`.
 
 Exact-head gate results, reviewer receipts and the strict readiness report are recorded on the pull
 request and in the archived receipts, not here: binding them to a head inside the same document would

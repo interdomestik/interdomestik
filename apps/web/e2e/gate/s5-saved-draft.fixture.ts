@@ -37,7 +37,6 @@ export const KS_MEMBER_A2: S5Member = {
 export function idaTarget(info: TestInfo): TestInfo {
   const configured = process.env.IDA_HOST?.trim() || 'ida.127.0.0.1.nip.io:3000';
   const target = new URL(configured.includes('://') ? configured : `http://${configured}`);
-  if (target.hostname === 'ida.127.0.0.1.nip.io') target.hostname = 'ida.localhost';
   const baseURL = `${target.origin}${routes.home('en')}`;
   const use = { ...info.project.use, baseURL, extraHTTPHeaders: {} };
   return { ...info, project: { ...info.project, use } } as TestInfo;
