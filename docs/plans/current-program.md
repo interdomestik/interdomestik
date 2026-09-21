@@ -1287,8 +1287,9 @@ feature or authorizes work outside the owner's scope.
   Automatic staging is reactivated by owner decision in the CD staging repair,
   superseding the dormancy PR #1760 set: staging jobs run on GitHub-hosted
   runners and CD subscribes to `main` pushes and version tags. A `main` push never
-  deploys production; tag/manual releases keep their guards and production
-  approval and are not authorized by a maintenance merge. The repair's own merge
+  deploys production; manual dispatch defaults to `target=staging` and reaches
+  production only with `target=production`; tag releases keep their guards and
+  production approval and are not authorized by a maintenance merge. The repair's own merge
   fails the control-path guard and deploys nothing; activating the repaired flow
   needs separate owner approval. CD runs share one group in which a newer queued
   run cancels an older queued run, so do not merge to `main` while a release-tag

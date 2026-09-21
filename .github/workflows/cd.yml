@@ -1,6 +1,12 @@
 name: CD
 on:
   workflow_dispatch:
+    inputs:
+      target:
+        description: Deploy target; production needs environment approval
+        type: choice
+        options: [staging, production]
+        default: staging
   # Main pushes deploy staging; v* tags continue to production after staging passes.
   push: { branches: [main], tags: ['v*'] }
 concurrency: { group: 'cd-staging-canonical-${{ github.repository }}', cancel-in-progress: false }
@@ -218,7 +224,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
   production-evidence:
-    if: needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
+    if: needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' && (inputs.target == 'production' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')))
     needs: [scope, e2e-staging]
     runs-on: ubuntu-latest
     environment: { name: production, deployment: false }
@@ -230,7 +236,7 @@ jobs:
         shell: bash
         run: pnpm release:evidence:check
   build-production:
-    if: needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
+    if: needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' && (inputs.target == 'production' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')))
     needs: [scope, production-evidence]
     runs-on: [self-hosted, interdomestik-mac]
     environment: { name: production }
@@ -271,7 +277,7 @@ jobs:
           supabase-anon-key: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           supabase-production-project-ref: ${{ vars.SUPABASE_PRODUCTION_PROJECT_REF || secrets.SUPABASE_PRODUCTION_PROJECT_REF }}
   deploy-production:
-    if: needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
+    if: needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' && (inputs.target == 'production' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')))
     needs: [scope, build-production]
     runs-on: [self-hosted, interdomestik-mac]
     timeout-minutes: 25
@@ -296,7 +302,7 @@ jobs:
           attested-image-digest: ${{ needs.build-production.outputs.image_digest }}
           vercel-automation-bypass-secret: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
   verify-production:
-    if: needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
+    if: needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' && (inputs.target == 'production' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')))
     needs: [scope, deploy-production]
     runs-on: [self-hosted, interdomestik-mac]
     timeout-minutes: 20
