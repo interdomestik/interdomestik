@@ -6,8 +6,8 @@ import yaml from 'js-yaml';
 const workflow = yaml.load(
   fs.readFileSync(new URL('../../.github/workflows/cd.yml', import.meta.url), 'utf8')
 );
-test('dormancy excludes branch pushes with an explicit tags-only filter', () => {
-  assert.deepEqual(workflow.on.push, { tags: ['v*'] });
+test('main pushes stage; v* tags reach production', () => {
+  assert.deepEqual(workflow.on.push, { branches: ['main'], tags: ['v*'] });
 });
 
 test('explicit manual releases remain available without another event trigger', () => {

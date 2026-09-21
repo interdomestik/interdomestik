@@ -24,9 +24,8 @@ const findStepIndex = (steps, name) => {
 };
 const normalizeNeeds = needs =>
   Array.isArray(needs) ? needs : typeof needs === 'string' ? [needs] : [];
-test('allocates only staging execution to the exclusive Z620 runner', () => {
-  for (const name of staging)
-    assert.deepEqual(cd.jobs[name]['runs-on'], ['self-hosted', 'interdomestik-z620-staging']);
+test('runs staging on GitHub-hosted runners and production on the Mac', () => {
+  for (const name of staging) assert.equal(cd.jobs[name]['runs-on'], 'ubuntu-latest');
   assert.equal(cd.jobs['production-evidence']['runs-on'], 'ubuntu-latest');
   for (const name of production)
     assert.deepEqual(cd.jobs[name]['runs-on'], ['self-hosted', 'interdomestik-mac']);
@@ -72,23 +71,24 @@ test('hosted scope is the direct fail-closed predecessor of every capable job', 
     assert.match(job.if, /needs\.scope\.outputs\.deploy == 'true'/u);
   }
 });
-test('preflights every staging job directly after checkout and bounds heavy jobs', () => {
-  for (const name of staging) {
-    const job = cd.jobs[name];
-    const checkout = stepIndex(job, /actions\/checkout/u);
-    const preflight = stepIndex(job, /cd-runner-preflight\.mjs/u);
-    assert.equal(preflight, checkout + 1, `${name} must preflight directly after checkout`);
-  }
+test('bounds heavy staging jobs and provisions node tooling on hosted runners', () => {
   assert.equal(cd.jobs['build-staging']['timeout-minutes'], 45);
   assert.equal(cd.jobs['e2e-staging']['timeout-minutes'], 30);
+  // Queued pushes coalesce to the newest pending run; a running deploy is never cancelled.
+  assert.equal(cd.concurrency['cancel-in-progress'], false);
   const buildx = step(cd.jobs['build-staging'], 'Set up Docker Buildx');
-  assert.equal(buildx.with.name, 'interdomestik-cd-staging');
-  assert.equal(buildx.with['keep-state'], true);
-  assert.equal(buildx.with.cleanup, true);
-  const verifyBuilder = step(cd.jobs['build-staging'], 'Verify dedicated Docker builder');
-  assert.match(verifyBuilder.run, /cd-runner-preflight\.mjs verify-builder/u);
-  assert.equal(stepIndex(cd.jobs['build-staging'], /Verify dedicated Docker builder/u), 3);
-  assert.equal(step(cd.jobs['build-staging'], 'Prune stale dedicated build cache'), undefined);
+  assert.deepEqual(buildx.with, { driver: 'docker-container' });
+  for (const name of ['deploy-staging', 'e2e-staging', 'rollback-staging-alias']) {
+    const job = cd.jobs[name];
+    const checkout = stepIndex(job, /actions\/checkout/u);
+    const setup = stepIndex(job, /^\.\/\.github\/actions\/setup$/u);
+    assert.equal(setup, checkout + 1, `${name} must set up pnpm and Node directly after checkout`);
+  }
+  for (const name of staging) {
+    const runs = cd.jobs[name].steps.map(candidate => candidate.run || '').join('\n');
+    assert.doesNotMatch(runs, /cd-runner-preflight\.mjs/u, `${name} must not run Z620 preflight`);
+    assert.doesNotMatch(JSON.stringify(cd.jobs[name]), /z620/u, name);
+  }
 });
 test('generates staging image metadata offline from exact trusted inputs', () => {
   const build = cd.jobs['build-staging'];
@@ -162,9 +162,6 @@ test('exclusive label does not activate pre-claimed Linux workflows', () => {
     assert.match(source, /interdomestik-linux/u);
     assert.doesNotMatch(source, /interdomestik-z620-staging/u);
   }
-  const preflight = readText('scripts/ci/cd-runner-preflight.mjs');
-  const destructivePrune = /docker\s+system\s+prune|docker\s+(image|volume|container)\s+prune/u;
-  assert.doesNotMatch(preflight, destructivePrune);
 });
 test('OD17 collector keeps OIDC out of the unprivileged exact-head job', () => {
   const workflow = readWorkflow('.github/workflows/od17-preview-canary.yml');
