@@ -1076,12 +1076,12 @@
       "id": "staging-dormancy",
       "mode": "bounded",
       "writerPaths": [".github/workflows/cd.yml", "scripts/ci/cd-staging-dormancy.test.mjs"],
-      "maxTrackedBytesDelta": 1095,
+      "maxTrackedBytesDelta": 2459,
       "maxTrackedFilesDelta": 1,
-      "maxCategoryBytesDelta": { "config/data/messages": 64, "tests/e2e": 1031 },
+      "maxCategoryBytesDelta": { "config/data/messages": 64, "tests/e2e": 2395 },
       "maxPathBytesDelta": {
         ".github/workflows/cd.yml": 64,
-        "scripts/ci/cd-staging-dormancy.test.mjs": 1031
+        "scripts/ci/cd-staging-dormancy.test.mjs": 2395
       }
     },
     {
@@ -1719,7 +1719,7 @@
     "categoryBytes": { "docs/text": 3, "large support/generated-ish": 471 },
     "rationale": "Solely the observed protected-main squash/tree variance: 3 docs bytes and 471 large-support bytes; changed paths cannot consume it."
   },
-  "maxTrackedBytes": 62183036,
+  "maxTrackedBytes": 62184400,
   "maxTrackedFiles": 6101,
   "maxCategoryBytes": {
     "config/data/messages": 2278844,
@@ -1727,7 +1727,7 @@
     "large support/generated-ish": 15874962,
     "other": 19184750,
     "source/scripts": 8910988,
-    "tests/e2e": 7274369
+    "tests/e2e": 7275733
   },
   "maxLargestFileBytes": 3266530,
   "maxSourceOrTestLines": 3000
