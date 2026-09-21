@@ -1284,12 +1284,16 @@ feature or authorizes work outside the owner's scope.
   they are not a new recurring migration-qualification requirement. Follow the
   selected task's actual verification requirements and isolate its resources.
 - Record prepared, tested, merged, deployed and user-validated states separately.
-  Staging remains intentionally dormant; this work authorizes no deployment.
-  CD subscribes only to version tags and manual dispatch, not `main` pushes.
-  Restore the automatic staging trigger only on explicit owner
-  reactivation of staging. Tag/manual releases retain their existing guards;
-  they are not authorized by a maintenance merge. PR #1760 establishes this
-  boundary before package-command PR #1759 merges. The trusted-parent classifier
+  Automatic staging is reactivated by owner decision in the CD staging repair,
+  superseding the dormancy PR #1760 set: staging jobs run on GitHub-hosted
+  runners and CD subscribes to `main` pushes and version tags. A `main` push never
+  deploys production; tag/manual releases keep their guards and production
+  approval and are not authorized by a maintenance merge. The repair's own merge
+  fails the control-path guard and deploys nothing; activating the repaired flow
+  needs separate owner approval. CD runs share one group in which a newer queued
+  run cancels an older queued run, so do not merge to `main` while a release-tag
+  run is queued or running. Recover a cancelled or failed tag run by re-running
+  that run, never by moving or re-pushing the tag. The trusted-parent classifier
   and runtime-sensitive `package.json` classification remain unchanged.
 
 ## T210 Member Timeline Delivery

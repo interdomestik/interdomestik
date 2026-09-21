@@ -74,7 +74,7 @@ test('hosted scope is the direct fail-closed predecessor of every capable job', 
 test('bounds heavy staging jobs and provisions node tooling on hosted runners', () => {
   assert.equal(cd.jobs['build-staging']['timeout-minutes'], 45);
   assert.equal(cd.jobs['e2e-staging']['timeout-minutes'], 30);
-  // Queued pushes coalesce to the newest pending run; a running deploy is never cancelled.
+  // A running deploy is never cancelled.
   assert.equal(cd.concurrency['cancel-in-progress'], false);
   const buildx = step(cd.jobs['build-staging'], 'Set up Docker Buildx');
   assert.deepEqual(buildx.with, { driver: 'docker-container' });
@@ -162,6 +162,9 @@ test('exclusive label does not activate pre-claimed Linux workflows', () => {
     assert.match(source, /interdomestik-linux/u);
     assert.doesNotMatch(source, /interdomestik-z620-staging/u);
   }
+  const preflight = readText('scripts/ci/cd-runner-preflight.mjs');
+  const destructivePrune = /docker\s+system\s+prune|docker\s+(image|volume|container)\s+prune/u;
+  assert.doesNotMatch(preflight, destructivePrune);
 });
 test('OD17 collector keeps OIDC out of the unprivileged exact-head job', () => {
   const workflow = readWorkflow('.github/workflows/od17-preview-canary.yml');
