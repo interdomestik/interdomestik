@@ -11,6 +11,7 @@ import {
   assertSameApprovedOrigin,
   assertTrustedPreflightReceipt,
   classifyDiagnosticError,
+  createPolicyEnforcedLoginRequest,
   createReadOnlyRequestPolicy,
   responseRedirectChain,
   resolveApprovedRedirect,
@@ -146,6 +147,7 @@ async function runBrowserDiagnostic(origin, credentials, bypassHeaders) {
       locale: 'en',
       authState: createAuthState(),
       forceFresh: true,
+      loginRequest: createPolicyEnforcedLoginRequest(page.request, origin),
     });
     assertSameApprovedOrigin(page.url(), origin, 'login bootstrap');
 

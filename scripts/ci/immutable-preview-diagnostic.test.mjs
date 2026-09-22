@@ -13,6 +13,7 @@ import {
   assertExpectedHealth,
   assertTrustedPreflightReceipt,
   classifyDiagnosticError,
+  createPolicyEnforcedLoginRequest,
   createReadOnlyRequestPolicy,
   resolveApprovedRedirect,
   sanitizeDiagnosticUrl,
@@ -99,6 +100,31 @@ test('read-only request policy permits login but blocks every other unsafe reque
     classify({ method: 'GET', url: `${APPROVED_PREVIEW_ORIGIN}/en/admin` }),
     'allow-read'
   );
+});
+
+test('API login request wrapper rejects non-canonical credential POST redirects', async () => {
+  const calls = [];
+  const request = createPolicyEnforcedLoginRequest(
+    {
+      post: async (...args) => {
+        calls.push(args);
+        return { ok: () => true };
+      },
+    },
+    APPROVED_PREVIEW_ORIGIN
+  );
+
+  await request.post(`${APPROVED_PREVIEW_ORIGIN}/api/auth/sign-in/email`, { maxRedirects: 0 });
+  await assert.rejects(
+    () => request.post(`${APPROVED_PREVIEW_ORIGIN}/api/auth/sign-in/email/`, {}),
+    /blocked non-canonical login POST/u
+  );
+  await assert.rejects(
+    () => request.post(`${APPROVED_PREVIEW_ORIGIN}/api/auth/sign-in/email?retry=true`, {}),
+    /blocked non-canonical login POST/u
+  );
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][1].maxRedirects, 0);
 });
 
 test('redirect validation rejects any origin change before credentials can follow it', () => {

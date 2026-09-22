@@ -72,6 +72,18 @@ export function createReadOnlyRequestPolicy(approvedOrigin) {
   };
 }
 
+export function createPolicyEnforcedLoginRequest(request, approvedOrigin) {
+  const classify = createReadOnlyRequestPolicy(approvedOrigin);
+  return {
+    async post(url, options) {
+      if (classify({ method: 'POST', url }) !== 'allow-login') {
+        throw new Error('diagnostic blocked non-canonical login POST');
+      }
+      return request.post(url, { ...options, maxRedirects: 0 });
+    },
+  };
+}
+
 export function resolveApprovedRedirect(currentUrl, location, approvedOrigin) {
   const origin = assertApprovedPreviewOrigin(approvedOrigin);
   const next = new URL(String(location || ''), String(currentUrl || ''));
