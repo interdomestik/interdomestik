@@ -9,7 +9,7 @@ import {
   head,
 } from './pr-feedback-refresh-fixtures.mjs';
 
-test('ambiguous dispatch failure is not retried and does not starve another workflow', async () => {
+test('ambiguous dispatch failure is not retried by the authoritative workflow controller', async () => {
   const f = fixture();
   const request = f.client.request;
   f.client.request = endpoint =>
@@ -41,7 +41,7 @@ test('ambiguous dispatch failure is not retried and does not starve another work
   assert.equal(f.writes.length, 1);
   assert.deepEqual(
     reports.map(item => item.status),
-    ['refresh-failed', 'no-refresh']
+    ['refresh-failed']
   );
 });
 
@@ -152,18 +152,13 @@ test('a native run starting during the final feedback read is not rerun', async 
   assert.deepEqual(f.writes, []);
 });
 
-for (const lane of ['delivery', 'raw-delivery', 'finalizer']) {
+for (const lane of ['delivery', 'raw-delivery']) {
   test(`a proven deferred ${lane} label run cannot hide the latest real gate`, async () => {
     const f = fixture();
-    if (lane === 'finalizer') {
-      f.evidence.workflow.path = f.evidence.run.path = '.github/workflows/pr-finalizer.yml';
-      f.evidence.run.display_title = `PR finalizer [supersession:v1:pull_request:opened:${head}]`;
-      f.evidence.jobs[0].name = 'pr-finalizer';
-    }
     const deferred = {
       ...f.evidence.run,
       id: 200,
-      conclusion: lane !== 'finalizer' ? 'skipped' : 'success',
+      conclusion: 'skipped',
       display_title: f.evidence.run.display_title.replace(':opened:', ':labeled:'),
     };
     const job = {
@@ -172,26 +167,12 @@ for (const lane of ['delivery', 'raw-delivery', 'finalizer']) {
       run_attempt: 1,
       status: 'completed',
       conclusion: deferred.conclusion,
-      name: lane !== 'finalizer' ? 'delivery-gate-deferred' : 'pr-finalizer',
+      name: 'delivery-gate-deferred',
       steps: [],
     };
     if (lane === 'raw-delivery')
       job.name =
         "github.event.pull_request.base.ref == 'main' && github.event.pull_request.state == 'open' && !github.event.pull_request.draft && (github.event.action != 'labeled' || github.event.label.name == 'full-gate') && 'delivery-gate' || 'delivery-gate-deferred'";
-    if (lane === 'finalizer')
-      job.steps = [
-        'Run actions/checkout@v5',
-        'Evaluate PR gate policy',
-        'Resolve exact-head certification admission',
-        'Report quick draft lane',
-        'Node setup',
-        'Run PR finalizer gate',
-      ].map((name, i) => ({
-        name,
-        number: i + 1,
-        status: 'completed',
-        conclusion: i < 4 ? 'success' : 'skipped',
-      }));
     const request = f.client.request;
     f.client.request = endpoint =>
       endpoint.endsWith('/actions/runs/200') ? structuredClone(deferred) : request(endpoint);

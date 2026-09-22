@@ -91,7 +91,7 @@ export function validateDeliveryContract(contract) {
     .filter(item => item.classification === 'provider')
     .map(item => item.context)
     .sort(compareText);
-  if (!sameJson(provider, declared) || !declared.includes('pr-finalizer')) {
+  if (!sameJson(provider, declared) || declared.includes('pr-finalizer')) {
     gateFail('provider set mismatch');
   }
   if (

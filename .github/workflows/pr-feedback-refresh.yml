@@ -35,7 +35,7 @@ jobs:
         with:
           node-version-file: .nvmrc
           package-manager-cache: false
-      - name: Refresh changed feedback on eligible native gate runs
+      - name: Refresh changed feedback on the authoritative delivery gate
         env:
           GITHUB_TOKEN: ${{ github.token }}
           REFRESH_APPLY: 'true'

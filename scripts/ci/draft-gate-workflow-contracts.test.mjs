@@ -129,18 +129,14 @@ test('pilot and optional deterministic backstops honor the shared full-lane deci
   );
 });
 
-test('PR finalizer stays required but only attests full-lane current heads', () => {
+test('PR finalizer stays required as a permissionless compatibility context', () => {
   const workflow = readWorkflow('pr-finalizer.yml');
   const job = workflow.jobs['pr-finalizer'];
-  const policy = findStep(job, 'Evaluate PR gate policy');
-  const finalizer = findStep(
-    job,
-    "${{ steps.feedback.outputs.marker || 'Run PR finalizer gate' }}"
-  );
+  const compatibility = findStep(job, 'Publish required compatibility context');
 
-  assert.ok(policy);
-  assert.ok(findStep(job, 'Report quick draft lane'));
-  assert.equal(policy.uses, TRUSTED_GATE_ACTION);
-  assert.equal(finalizer.if, "steps.certification.outputs.run_broad == 'true'");
-  assert.equal(finalizer.env.PR_FINALIZER_SKIP_CHECK_POLLING, 'false');
+  assert.equal(job.name, 'pr-finalizer');
+  assert.deepEqual(job.permissions, {});
+  assert.ok(compatibility);
+  assert.match(compatibility.run, /delivery-gate is the authoritative PR decision/u);
+  assert.ok(job.steps.every(step => !step.uses));
 });

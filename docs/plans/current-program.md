@@ -16,16 +16,21 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`ORDINARY-DELIVERY-CURRENT-AUTHORITY-REPAIR` is the sole active implementation. The owner
-authorized a bounded repair of repository instructions, active planning authority, ordinary plan
-validation, legacy-validation selection, review/model guidance and the separately installed local
-Interdomestik skill. It selects no pilot product feature and authorizes no deployment.
+`ORDINARY-DELIVERY-GATE-ORCHESTRATION-REPAIR` is the sole active implementation. The owner
+authorized a bounded removal of overlapping hosted finalizer/delivery polling and review evaluation
+while retaining the app-pinned `pr-finalizer` branch-protection context as a compatibility bridge.
+`delivery-gate` remains the sole authoritative PR decision. This selects no pilot product feature,
+changes no release scenario and authorizes no deployment or branch-protection mutation.
 
-Predecessor PR [#1807](https://github.com/interdomestik/interdomestik/pull/1807) merged as
-`c7c643acdaf0371e29fa01526dd638decf779b77`; tree
-`6048c5be747155adaa10eed1366056a6233be941` matches its reviewed candidate. Exact-main CI, CD
-(including staging E2E), Secret Scan and the rerun Sonar Main Gate passed. Production and rollback
-jobs were skipped. This current repair starts from that exact main and does not repeat its proof.
+The current-authority repair completed through protected PR
+[#1808](https://github.com/interdomestik/interdomestik/pull/1808) as
+`f22127f2ebcf45b5dc64ea521dbeb298b77654be`; tree
+`f48eb434b6274ff266f9f353496410c1670ade4c` matches its reviewed candidate. Its exact-main CI,
+Sonar and security checks passed. The corrected immutable-preview diagnostic later passed the
+staging role-panel visibility precondition, but the original staging failure was not reproduced and
+role grant/revoke scenarios P0.3/P0.4 remain a release-evidence gap. No staging, pilot or production
+readiness is claimed. This repair starts from current protected main
+`82cc2767e03ede3334a0378190544c66062c6ca1`, which includes PR #1810's diagnostic follow-up.
 
 Pilot product implementation remains paused. Completed product increments through S5 first-case
 saved-draft continuity [#1801](https://github.com/interdomestik/interdomestik/pull/1801) are credited;
@@ -33,13 +38,14 @@ whole S5 and the SRS requirement families named below remain open.
 
 ## Program Goals
 
-1. Keep one concise active program and one concise active tracker for current decisions.
-2. Make ordinary delivery consume current safety checks without retired Lean formatting,
-   projection, manifest or rehearsal bookkeeping.
-3. Preserve historical evidence and explicit legacy validation without making either an ordinary
-   product prerequisite.
-4. Match model participation and verification depth to demonstrated risk while preserving
-   independent scrutiny of high-risk work and protected current-head trust semantics.
+1. Keep one authoritative delivery decision for exact candidate identity, trusted producers,
+   current-head review findings and required analysis results.
+2. Preserve the required app-pinned `pr-finalizer` context without duplicate hosted check polling,
+   review evaluation or feedback-triggered reruns.
+3. Refresh only the authoritative delivery decision when current feedback changes, using the
+   existing bounded, idempotent and fail-closed controller.
+4. Preserve local readiness tooling, protected hosted checks, explicit legacy validation and all
+   exact-head, latest-run, annotation, review-body, inline-finding and pagination semantics.
 
 ## Enduring Safety Boundaries
 
@@ -127,17 +133,19 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-- Active instructions are concise, internally consistent and free of hard-coded framework versions.
-- Current program/tracker validators enforce meaningful boundaries and one active tracker without
-  retired Lean markers or historical artifact reconstruction.
-- Legacy artifacts and all Harness tests remain intact; CI selects their full validation only for
-  actual legacy changes or explicit invocation while retaining ordinary shared-safety coverage.
-- Review/model guidance is risk-proportionate, reuses accepted evidence and preserves independent
-  high-risk scrutiny plus exact-current-head semantics.
-- The local Interdomestik skill records the same policy separately; the repository PR does not
-  distribute or install that local file.
-- Focused contracts, `pnpm pr:verify`, `pnpm security:guard`, protected PR checks and review of all
-  current-head findings pass before delivery. No automatic merge or deployment follows.
+- `delivery-gate` alone aggregates the required provider, validation-surface and generator checks;
+  `pr-finalizer` remains a permissionless GitHub Actions compatibility context and is not one of its
+  prerequisites.
+- Exact base/head/tested-merge topology and tree equality, trusted app IDs, latest run and attempt,
+  warning/failure annotations, substantive same-head review bodies, inline findings, unresolved
+  threads, pending reviewers, complete pagination and fail-closed behavior remain covered.
+- Feedback refresh inspects and reruns only `delivery-gate`; ambiguous writes are not retried and
+  changed source or feedback identity cannot reuse an earlier decision.
+- The existing quick-lane coverage for the two named CI contract tests and PR #1808's legacy
+  validation selection remain unchanged. Release scenarios P0.3/P0.4 remain outside this repair.
+- Focused equivalence contracts, independent targeted review, `pnpm pr:verify`,
+  `pnpm security:guard` and protected current-head checks pass before delivery. No automatic merge,
+  deployment, branch-protection mutation or pilot-readiness claim follows.
 
 ## Historical Evidence
 

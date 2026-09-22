@@ -21,7 +21,6 @@
     { "context": "gitleaks", "appId": 15368 },
     { "context": "pilot-gate", "appId": 15368 },
     { "context": "validation-surface", "appId": 15368 },
-    { "context": "pr-finalizer", "appId": 15368 },
     { "context": "commitlint", "appId": 15368 }
   ],
   "deliveryPrerequisites": [
@@ -72,15 +71,6 @@
     },
     {
       "context": "validation-surface",
-      "appId": 15368,
-      "classification": "provider",
-      "requirement": "required",
-      "skipWhen": null,
-      "annotationPolicy": "block-warning-failure",
-      "finalConclusions": ["success"]
-    },
-    {
-      "context": "pr-finalizer",
       "appId": 15368,
       "classification": "provider",
       "requirement": "required",

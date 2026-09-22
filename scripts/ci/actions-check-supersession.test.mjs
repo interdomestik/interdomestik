@@ -228,7 +228,7 @@ test('native lifecycle runs retain supersession identity without direct feedback
   );
   assert.equal(
     finalizer.match(/ {2}group: (.*)\n/u)[1],
-    "pr-finalizer-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}-${{ github.event_name != 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.state == 'open' && github.event.pull_request.draft == false && github.event.pull_request.base.ref == 'main' && 'full-feedback' || format('deferred-{0}', github.run_id) }}"
+    'pr-finalizer-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}'
   );
   assert.match(
     finalizer,
@@ -237,7 +237,7 @@ test('native lifecycle runs retain supersession identity without direct feedback
   assert.equal(
     finalizer.match(/ {2}cancel-in-progress: (.*)\n/u)[1],
     'true',
-    'trusted same-head refreshes coalesce while the group key isolates fork feedback'
+    'same-head compatibility contexts coalesce without feedback evaluation'
   );
 
   for (const source of [gate, finalizer]) {

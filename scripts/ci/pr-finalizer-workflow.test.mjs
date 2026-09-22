@@ -15,7 +15,7 @@ function readWorkflow(relativePath) {
   return yaml.load(fs.readFileSync(path.join(rootDir, relativePath), 'utf8'));
 }
 
-test('PR finalizer keeps native lifecycle admission while feedback refresh uses the controller', () => {
+test('PR finalizer keeps the required app context as a compatibility-only lifecycle job', () => {
   const workflow = readWorkflow('.github/workflows/pr-finalizer.yml');
   assert.deepEqual(Object.keys(workflow.on), ['pull_request']);
   assert.deepEqual(workflow.on.pull_request.types, [
@@ -32,57 +32,35 @@ test('PR finalizer keeps native lifecycle admission while feedback refresh uses 
   );
   assert.equal(
     workflow.concurrency.group,
-    "pr-finalizer-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}-${{ github.event_name != 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.state == 'open' && github.event.pull_request.draft == false && github.event.pull_request.base.ref == 'main' && 'full-feedback' || format('deferred-{0}', github.run_id) }}",
-    'only trusted eligible feedback can replace full feedback validation'
+    'pr-finalizer-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}'
   );
   assert.equal(workflow.concurrency['cancel-in-progress'], true);
-  assert.equal(
-    workflow.jobs['pr-finalizer'].if,
-    "github.event_name == 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.state == 'open' && github.event.pull_request.draft == false && github.event.pull_request.base.ref == 'main')"
-  );
-  assert.equal(
-    workflow.jobs['pr-finalizer'].name,
-    "${{ (github.event_name == 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.state == 'open' && github.event.pull_request.draft == false && github.event.pull_request.base.ref == 'main')) && 'pr-finalizer' || 'pr-finalizer-feedback-deferred' }}"
-  );
-  const certification = workflow.jobs['pr-finalizer'].steps.find(step =>
-    step.uses?.includes('/.github/actions/exact-head-certification@')
-  );
-  assert.equal(certification.with['policy-json'], '${{ toJSON(steps.gate_policy.outputs) }}');
+  const job = workflow.jobs['pr-finalizer'];
+  assert.equal(job.name, 'pr-finalizer');
+  assert.equal(job.if, undefined);
+  assert.deepEqual(job.permissions, {});
+  assert.equal(job['timeout-minutes'], 5);
 });
 
-test('PR finalizer forces current-head required-check polling for the full lane', () => {
+test('hosted PR finalizer publishes no polling, feedback, checkout, or review evaluator', () => {
   const workflow = readWorkflow('.github/workflows/pr-finalizer.yml');
-  assert.deepEqual(workflow.jobs['pr-finalizer'].permissions, {
-    contents: 'read',
-    actions: 'read',
-    issues: 'read',
-    'pull-requests': 'read',
-    checks: 'read',
-    statuses: 'read',
-  });
-  const checkout = workflow.jobs['pr-finalizer'].steps.find(step =>
-    step.uses?.startsWith('actions/checkout@')
-  );
-  const runStep = workflow.jobs['pr-finalizer'].steps.find(
-    step => step.run?.trim() === 'bash scripts/pr-finalizer.sh'
-  );
-
-  assert.ok(checkout);
-  assert.equal(checkout.with['fetch-depth'], 1);
-  assert.ok(runStep);
-  assert.equal(runStep.run.trim(), 'bash scripts/pr-finalizer.sh');
-  assert.equal(runStep.env.PR_FINALIZER_SKIP_CHECK_POLLING, 'false');
-  assert.equal(runStep.env.PR_FINALIZER_MAX_CHECK_RETRIES, '360');
-  assert.equal(runStep.env.EXPECTED_HEAD_SHA, '${{ github.event.pull_request.head.sha }}');
-  const setup = readWorkflow('.github/actions/pr-feedback-setup/action.yml').runs.steps.find(step =>
-    step.uses?.startsWith('actions/setup-node@')
-  );
-  assert.equal(setup.with['node-version-file'], '.nvmrc');
-  assert.equal(setup.with['package-manager-cache'], false);
-  assert.ok(
-    workflow.jobs['pr-finalizer'].steps.every(step => step.uses !== './.github/actions/setup'),
-    'attestation needs Node and GitHub tools, not application dependencies'
-  );
+  const source = fs.readFileSync(path.join(rootDir, '.github/workflows/pr-finalizer.yml'), 'utf8');
+  const steps = workflow.jobs['pr-finalizer'].steps;
+  assert.equal(steps.length, 1);
+  assert.equal(steps[0].name, 'Publish required compatibility context');
+  assert.equal(steps[0].env.EXPECTED_HEAD_SHA, '${{ github.event.pull_request.head.sha }}');
+  assert.equal(steps[0].env.EXPECTED_PR_NUMBER, '${{ github.event.pull_request.number }}');
+  assert.match(steps[0].run, /delivery-gate is the authoritative PR decision/u);
+  for (const forbidden of [
+    'actions/checkout',
+    'pr-feedback-setup',
+    'scripts/pr-finalizer.sh',
+    'PR_FINALIZER_SKIP_CHECK_POLLING',
+    'PR_FINALIZER_MAX_CHECK_RETRIES',
+    'GITHUB_TOKEN',
+  ]) {
+    assert.doesNotMatch(source, new RegExp(forbidden, 'u'));
+  }
 });
 
 test('PR finalizer delegates Sonar validation to governance monitoring in CI', () => {
@@ -92,7 +70,7 @@ test('PR finalizer delegates Sonar validation to governance monitoring in CI', (
   assert.match(finalizerLib, /\$\{GITHUB_ACTIONS:-\}" == "true"/);
 });
 
-test('finalizer refreshes superseded failures, fails genuine failures, and bounds waiting', () => {
+test('local finalizer refreshes superseded failures, fails genuine failures, and bounds waiting', () => {
   const head = 'a'.repeat(40);
   const source = fs
     .readFileSync(path.join(rootDir, 'scripts/pr-finalizer.sh'), 'utf8')
