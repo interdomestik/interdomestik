@@ -8,6 +8,7 @@ import { B, H, T, contract, check, snapshot } from './pr-delivery-fixtures.mjs';
 
 function reportSnapshot() {
   const value = snapshot();
+  value.checks.push(check('pr-finalizer', 15368));
   value.checks.push(check('delivery-gate', 15368));
   return value;
 }
@@ -97,6 +98,40 @@ test('report collection refuses PR head drift during its reads', async () => {
     collectGovernanceReport(reportClient(reportSnapshot().checks, true), contract, 1693),
     /pull request identity changed/u
   );
+});
+
+test('strict governance keeps the compatibility context separate and required', () => {
+  const ready = reportSnapshot();
+  assert.equal(governanceReport(contract, ready).failures.length, 0);
+  for (const [label, mutate, pattern] of [
+    [
+      'missing',
+      value =>
+        value.checks.splice(
+          value.checks.findIndex(item => item.context === 'pr-finalizer'),
+          1
+        ),
+      /missing check pr-finalizer/u,
+    ],
+    [
+      'pending',
+      value => {
+        value.checks.find(item => item.context === 'pr-finalizer').status = 'in_progress';
+      },
+      /pending check pr-finalizer/u,
+    ],
+    [
+      'failed',
+      value => {
+        value.checks.find(item => item.context === 'pr-finalizer').conclusion = 'failure';
+      },
+      /pr-finalizer conclusion failure/u,
+    ],
+  ]) {
+    const value = reportSnapshot();
+    mutate(value);
+    assert.match(governanceReport(contract, value).failures.join('\n'), pattern, label);
+  }
 });
 
 for (const [label, change, pattern] of [

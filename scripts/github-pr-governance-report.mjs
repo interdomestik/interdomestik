@@ -17,7 +17,7 @@ const ACTIONABLE_FEEDBACK_PATTERNS = ACTIONABLE_FEEDBACK_SOURCES.map(
 const compareText = (left, right) => left.localeCompare(right);
 const sameJson = (left, right) => JSON.stringify(left) === JSON.stringify(right);
 const CONTRACT_KEYS =
-  'schemaVersion,repository,deliveryContext,finalizerLeafPrerequisites,providerRequiredContexts,deliveryPrerequisites,generatorAppIds,feedbackAuthors,actionableFeedbackPatterns,quiescenceMs'.split(
+  'schemaVersion,repository,deliveryContext,compatibilityRequiredContexts,finalizerLeafPrerequisites,providerRequiredContexts,deliveryPrerequisites,generatorAppIds,feedbackAuthors,actionableFeedbackPatterns,quiescenceMs'.split(
     ','
   );
 const SPEC_KEYS =
@@ -30,7 +30,7 @@ function exactKeys(value, keys, label) {
     gateFail(label + ' keys mismatch');
   }
 }
-function uniqueContexts(items, label) {
+function uniqueContexts(items, label, expected = items) {
   const valid = item =>
     item &&
     typeof item.context === 'string' &&
@@ -40,7 +40,8 @@ function uniqueContexts(items, label) {
   if (
     !Array.isArray(items) ||
     items.some(item => !valid(item)) ||
-    new Set(items.map(item => item.context)).size !== items.length
+    new Set(items.map(item => item.context)).size !== items.length ||
+    !sameJson(items, expected)
   ) {
     gateFail(label + ' identity mismatch');
   }
@@ -56,6 +57,9 @@ export function validateDeliveryContract(contract) {
   )
     gateFail('delivery contract mismatch');
   uniqueContexts(contract.finalizerLeafPrerequisites, 'finalizer prerequisites');
+  uniqueContexts(contract.compatibilityRequiredContexts, 'compatibility contexts', [
+    { context: 'pr-finalizer', appId: 15368 },
+  ]);
   uniqueContexts(contract.providerRequiredContexts, 'provider contexts');
   uniqueContexts(contract.deliveryPrerequisites, 'delivery prerequisites');
   for (const item of contract.deliveryPrerequisites) {
@@ -76,13 +80,16 @@ export function validateDeliveryContract(contract) {
     gateFail('annotation policy exception mismatch');
   }
   const sets = [
+    contract.compatibilityRequiredContexts,
     contract.finalizerLeafPrerequisites,
     contract.providerRequiredContexts,
     contract.deliveryPrerequisites,
   ];
   if (
     sets.some(items => items.some(item => item.context === 'delivery-gate')) ||
-    contract.finalizerLeafPrerequisites.some(item => item.context === 'pr-finalizer')
+    [contract.finalizerLeafPrerequisites, contract.deliveryPrerequisites].some(items =>
+      items.some(item => item.context === 'pr-finalizer')
+    )
   ) {
     gateFail('delivery contract creates a cycle');
   }
@@ -250,6 +257,7 @@ async function main() {
   const contract = readDeliveryContract();
   const requiredChecks = [
     ...contract.providerRequiredContexts.map(item => item.context),
+    ...contract.compatibilityRequiredContexts.map(item => item.context),
     contract.deliveryContext.context,
   ];
   const monitoredChecks = contract.deliveryPrerequisites

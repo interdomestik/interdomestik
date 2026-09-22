@@ -21,11 +21,15 @@ test('contract keeps local finalizer leaves separate from the authoritative deli
     contract.providerRequiredContexts.map(item => item.context),
     ['audit', 'e2e', 'pnpm-audit', 'gitleaks', 'pilot-gate', 'validation-surface', 'commitlint']
   );
+  assert.deepEqual(contract.compatibilityRequiredContexts, [
+    { context: 'pr-finalizer', appId: 15368 },
+  ]);
   assert.ok(contract.finalizerLeafPrerequisites.every(item => item.context !== 'pr-finalizer'));
   for (const set of [
     contract.finalizerLeafPrerequisites,
     contract.deliveryPrerequisites,
     contract.providerRequiredContexts,
+    contract.compatibilityRequiredContexts,
   ]) {
     assert.ok(set.every(item => item.context !== contract.deliveryContext.context));
   }

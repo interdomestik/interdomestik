@@ -5,6 +5,12 @@
     "context": "delivery-gate",
     "appId": 15368
   },
+  "compatibilityRequiredContexts": [
+    {
+      "context": "pr-finalizer",
+      "appId": 15368
+    }
+  ],
   "finalizerLeafPrerequisites": [
     { "context": "audit", "appId": 15368 },
     { "context": "e2e", "appId": 15368 },
