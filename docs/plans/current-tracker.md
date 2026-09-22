@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-18
+last_reviewed: 2026-09-22
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -15,6 +15,28 @@ status_command: pnpm plan:status
 > still requires matching canonical JSON and live Git/GitHub facts.
 
 ## Active Queue
+
+### Ordinary delivery governance reduction (2026-09-22)
+
+`ORDINARY-DELIVERY-GOVERNANCE-REDUCTION` is owner-authorized and in progress, awaiting review,
+required verification and protected delivery. Its one product PR carries scope and acceptance:
+
+- Ordinary `pnpm repo:size:check` reports total/category bytes, file count and source-line growth
+  as advisory while retaining the existing coarse largest-file cap as blocking. Routine source,
+  test and catalog changes need no exact allocations, budget updates or byte-specific approval.
+  Strict capacity APIs remain available for explicitly invoked legacy workflows; all other safety,
+  build, security and modularity limits remain in force.
+- Final merge health and completion facts belong on the product PR after they exist; canonical
+  status is reconciled in the next authorized amendment. No routine promotion, closeout or status-only
+  PR is required. Pending canonical bookkeeping alone does not block an authorized successor or
+  safe owned-resource cleanup. Actual unresolved scope, security and release blockers remain binding.
+- Acceptance covers ordinary growth without budget edits, preserved coarse-limit rejection and
+  strict legacy behavior, and aligned entry/program/skill instructions. Required `pnpm pr:verify`,
+  `pnpm security:guard` and E2E evidence remain mandatory. No merge, deployment, production change
+  or successor implementation is claimed by this entry.
+
+The following product notes retain their original chronology and scoped evidence; they do not
+override this active improvement or the ordinary delivery contract.
 
 Dependency ordering follows current-program.md, "Dependency-first selection (owner direction,
 2026-09-17)". S5.d claim-start truth merged in #1788 as

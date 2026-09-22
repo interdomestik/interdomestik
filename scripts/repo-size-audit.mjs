@@ -5,20 +5,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 
-import { evaluateCapacityBudget } from './repo-size-capacity-evaluator.mjs';
+import { evaluateOrdinaryBudget } from './repo-size-ordinary-evaluator.mjs';
 import { validateCapacityBudget } from './repo-size-capacity-schema.mjs';
-import { collectGitChangeFacts } from './repo-size-git-attribution.mjs';
 import {
   collectLocalDiskStats,
   collectTrackedStats,
   getTrackedFiles,
 } from './repo-size-inventory.mjs';
 import { printBudgetResult, printReport } from './repo-size-audit-output.mjs';
-import {
-  evaluateLegacyBudget,
-  sanitizeLegacyBudget,
-  validateLegacyBudget,
-} from './repo-size-legacy-budget.mjs';
+import { sanitizeLegacyBudget, validateLegacyBudget } from './repo-size-legacy-budget.mjs';
 
 const DEFAULT_BUDGET_PATH = 'scripts/repo-size-budget.json';
 const SAFE_EXEC_ENV = Object.freeze({ PATH: '/usr/bin:/bin:/usr/sbin:/sbin' });
@@ -64,7 +59,7 @@ function printUsage() {
 
 Options:
   --json               Print machine-readable JSON
-  --check              Validate tracked repo size against the budget file
+  --check              Enforce the coarse file cap; report aggregate growth as advisory
   --budget=<path>      Budget file for --check (default: ${DEFAULT_BUDGET_PATH})
   --top=<count>        Number of ranked entries to print (default: 20)
   --min-lines=<lines>  Source/test line threshold for hotspot list (default: 500)
@@ -116,17 +111,6 @@ function readBudget(budgetPath) {
   return budget;
 }
 
-function evaluateBudget(report, budget, trackedFiles) {
-  if (budget.version !== 2) return evaluateLegacyBudget(report, budget);
-  const changeFacts = collectGitChangeFacts({
-    repoRoot,
-    baseSha: budget.baseline.protectedMainSha,
-    trackedFiles,
-    ...system,
-  });
-  return evaluateCapacityBudget(report, budget, changeFacts);
-}
-
 function main() {
   const options = parseArgs(process.argv.slice(2));
   if (options.check) {
@@ -142,7 +126,7 @@ function main() {
     localDisk: options.includeDisk ? collectLocalDiskStats(repoRoot, system) : [],
   };
   if (options.check) {
-    const result = evaluateBudget(report, budget, trackedFiles);
+    const result = evaluateOrdinaryBudget(report, budget);
     if (options.json) {
       const safeBudget =
         budget.version === 2 ? structuredClone(budget) : sanitizeLegacyBudget(budget);
