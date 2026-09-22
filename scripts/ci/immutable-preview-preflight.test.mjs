@@ -96,6 +96,31 @@ test('persists sanitized network and invalid-health failures', async t => {
     });
   });
 
+  await t.test('standard fetch failure with nested network cause', async () => {
+    await withPreflightReceipt(async outputPath => {
+      const networkError = new TypeError('fetch failed', {
+        cause: Object.assign(new Error('getaddrinfo ENOTFOUND private-host.example'), {
+          code: 'ENOTFOUND',
+        }),
+      });
+      await assert.rejects(
+        runPreflight({
+          env: preflightEnv(),
+          outputPath,
+          timeoutMs: 100,
+          fetchImpl: async () => {
+            throw networkError;
+          },
+        }),
+        error => error === networkError
+      );
+      const receipt = JSON.parse(await fs.readFile(outputPath, 'utf8'));
+      assert.equal(receipt.status, 'unverified');
+      assert.deepEqual(receipt.error, { category: 'network' });
+      assert.doesNotMatch(JSON.stringify(receipt), /private-host|ENOTFOUND|fetch failed/u);
+    });
+  });
+
   await t.test('invalid health provenance', async () => {
     await withPreflightReceipt(async outputPath => {
       await assert.rejects(

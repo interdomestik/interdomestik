@@ -33,6 +33,7 @@ function requiredWorkflowCoordinate(name, env) {
 
 function classifyPreflightError(error) {
   const text = String(error?.message || error).toLowerCase();
+  const causeCode = String(error?.cause?.code || '').toUpperCase();
   if (/redirect limit/u.test(text)) return 'redirect-limit';
   if (/redirect omitted location/u.test(text)) return 'redirect-missing-location';
   if (/redirect escaped/u.test(text)) return 'redirect-origin';
@@ -43,7 +44,14 @@ function classifyPreflightError(error) {
   if (/not a preview deployment/u.test(text)) return 'deploy-env-mismatch';
   if (/missing required|not approved|invalid diagnostic workflow/u.test(text))
     return 'configuration';
-  if (/abort/u.test(text)) return 'network';
+  if (
+    /abort|fetch failed/u.test(text) ||
+    /^(?:EAI_AGAIN|ECONNREFUSED|ECONNRESET|ENETUNREACH|ENOTFOUND|ETIMEDOUT|UND_ERR_CONNECT_TIMEOUT|UND_ERR_SOCKET)$/u.test(
+      causeCode
+    )
+  ) {
+    return 'network';
+  }
   return classifyDiagnosticError(text);
 }
 
