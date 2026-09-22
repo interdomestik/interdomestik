@@ -311,7 +311,7 @@ async function loginAs(page, params) {
 
       try {
         response = await postLoginRequestWithTrustedRedirect({
-          request: page.request,
+          request: params.loginRequest || page.request,
           loginUrl,
           requestOptions: {
             data: { email: credentials.email, password: credentials.password },

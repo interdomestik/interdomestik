@@ -1,0 +1,42 @@
+name: Immutable Preview Diagnostic
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: staging
+      deployment: false
+    env:
+      DIAGNOSTIC_PREVIEW_ORIGIN: https://interdomestik-16cnb0jg6-ecohub.vercel.app
+      DIAGNOSTIC_EXPECTED_SHA: f22127f2ebcf45b5dc64ea521dbeb298b77654be
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
+      - uses: ./.github/actions/setup
+        with:
+          install-playwright: 'true'
+      - name: Verify immutable preview provenance
+        env:
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: node scripts/ci/immutable-preview-diagnostic.mjs --preflight
+      - name: Run immutable preview diagnostic
+        env:
+          RELEASE_GATE_ADMIN_KS_EMAIL: ${{ secrets.RELEASE_GATE_ADMIN_KS_EMAIL }}
+          RELEASE_GATE_ADMIN_KS_PASSWORD: ${{ secrets.RELEASE_GATE_ADMIN_KS_PASSWORD }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: node scripts/ci/immutable-preview-diagnostic.mjs
+      - name: Upload sanitized diagnostic receipt
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: immutable-preview-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}
+          path: tmp/immutable-preview-diagnostic/*.json
+          if-no-files-found: error
+          retention-days: 1

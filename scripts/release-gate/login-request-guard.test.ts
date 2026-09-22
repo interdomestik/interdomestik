@@ -74,6 +74,33 @@ test('loginAs sends Vercel protection headers on preview API login requests', as
   assert.equal(requestCalls[0][1].maxRedirects, 0);
 });
 
+test('loginAs honors an injected API login request boundary', async () => {
+  const page = createLoggedInPage([]);
+  page.request.post = async () => {
+    throw new Error('default request boundary should not receive credentials');
+  };
+  const injectedCalls = [];
+
+  await withBypassSecret(async () => {
+    await loginAs(page, {
+      account: 'member',
+      credentials: { email: 'member@example.com', password: 'test-credential-2026' },
+      baseUrl: RELEASE_GATE_BASE_URL,
+      locale: RELEASE_GATE_LOCALE,
+      authState: createAuthState(),
+      loginRequest: {
+        post: async (...args) => {
+          injectedCalls.push(args);
+          return successLoginResponse();
+        },
+      },
+    });
+  });
+
+  assert.equal(injectedCalls.length, 1);
+  assert.equal(injectedCalls[0][0], `${RELEASE_GATE_BASE_URL}/api/auth/sign-in/email`);
+});
+
 test('loginAs manually follows only same-origin auth canonical redirects', async () => {
   const requestCalls = [];
   const page = createLoggedInPage(requestCalls);
