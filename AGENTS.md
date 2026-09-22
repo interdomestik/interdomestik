@@ -10,6 +10,18 @@ trials do not require another qualification cycle. Legacy Lean and slice runners
 remain explicit-only; do not interpret their inactive state as a ban on ordinary
 owner-authorized work or create a promotion/closeout PR for each routine change.
 
+Ordinary `pnpm repo:size:check` treats total/category bytes, file count and source-line
+growth as advisory; the existing coarse largest-file cap remains blocking. Routine
+source, test and catalog changes need no exact allocations, budget updates or byte-specific
+approval. Strict capacity accounting applies only to explicitly invoked legacy workflows.
+All other safety, build, security and modularity limits remain in force.
+
+One product PR carries scope and acceptance. Record final merge health and completion facts
+on that PR, then reconcile canonical status in the next authorized amendment. Do not create
+a routine status-only PR or block an authorized successor solely for pending canonical
+bookkeeping. Never claim a merge before it happens; actual unresolved scope, security and
+release blockers still apply. Preserve receipts and retire only owned resources safely.
+
 Use the Interdomestik skill for brief relevant research, bounded implementation,
 independent helper ownership and verification. AI OS/Brain/Wiki are advisory, not
 additional approval or publication requirements. Keep the security boundaries and

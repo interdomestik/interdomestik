@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-18
+last_reviewed: 2026-09-22
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -15,6 +15,12 @@ status_command: pnpm plan:status
 > priority, and sequence. Detailed contracts remain in the linked content-addressed artifacts.
 
 ## Current Phase
+
+The owner-authorized `ORDINARY-DELIVERY-GOVERNANCE-REDUCTION` improvement is active,
+awaiting review, required verification and protected delivery. It removes byte-exact accounting
+and routine standalone closeout obligations from ordinary delivery under the contract in
+Ordinary Product Delivery below. The tracker records its bounded acceptance. This selects no
+new product outcome and authorizes no deployment; earlier product receipts remain historical evidence.
 
 Migration trials 1–3 and ordinary protected-PR harness adoption are complete.
 PR #1761 delivered bounded delivery/finalizer repair as
@@ -553,14 +559,14 @@ Resolve pilot applicability for each consumed service/overlay before promising i
 requirement map for software, operating and business evidence; preserve unresolved items explicitly.
 This ordering authorizes no new runtime scope, capacity, deployment or weakening of required proof.
 
-Owner-approved closeout rule (2026-09-17): after protected merge and exact-main health, preserve
-receipts outside the disposable worktree, retire only owned task databases/processes/worktrees,
-and record bounded completion in the program/tracker. Do not leave an active row describing a
-merged increment as implementation-in-progress. Pre-merge records say awaiting merge; final facts
-join the next authorized amendment without a separate routine closeout PR. Cleanup is immediate
-unless unmerged work or another explicit ownership blocker must be preserved and reported.
-This canonical-doc amendment does not enlarge or consume the closed S5.d product allocation;
-executable governance, formatting and repository-size checks govern its two existing plan files.
+Owner-approved completion rule (2026-09-22, superseding the ordinary closeout wording of
+2026-09-17): after protected merge and exact-main health, attach the final facts to the product PR,
+preserve receipts outside the disposable worktree and retire only owned resources safely. Reconcile
+canonical status in the next authorized amendment; pending canonical bookkeeping alone does not
+block an authorized successor or resource cleanup and requires no standalone status-only PR.
+Pre-merge records say awaiting merge. Actual unresolved scope, security, release or resource-ownership
+blockers remain binding. Historical slice allocations retain their original scope and evidence;
+the ordinary repository-size contract below governs routine work.
 
 ### Owner-adopted product-readiness roadmap (2026-09-15)
 
@@ -1264,9 +1270,19 @@ for subsequent explicitly scoped work. This program selects priorities; the trac
 records status. Neither a green gate nor an inactive legacy resolver selects a new
 feature or authorizes work outside the owner's scope.
 
-- Use one bounded implementation PR with its tests and necessary status updates.
-  No separate routine promotion/closeout PR, per-slice code exception, Brain
-  publication, or model approval panel is required.
+- Use one bounded product PR carrying scope, acceptance, tests and necessary status updates.
+  No separate routine promotion, closeout or status-only PR, per-slice code exception, Brain
+  publication, or model approval panel is required. Attach exact merge health and final facts to
+  the product PR after they exist; reconcile canonical status in the next authorized amendment.
+  Pending canonical bookkeeping alone does not block an authorized successor or safe owned-resource
+  cleanup. Never predict a successful merge in pre-merge records. Actual unresolved scope, security
+  and release blockers remain binding.
+- Ordinary `pnpm repo:size:check` reports total/category bytes, file count and source-line growth
+  as advisory, retaining the existing coarse largest-file cap as blocking. Routine source, test
+  and catalog changes require no exact allocations, budget updates or byte-specific approval.
+  Strict capacity APIs and accounting remain available only for explicitly invoked legacy workflows;
+  historical exact allocations are not a new ordinary admission requirement. All other safety,
+  build, security and modularity limits remain in force.
 - `AGENTS.md` supplies repository boundaries; the Interdomestik skill guides
   research, implementation, helper ownership and verification. AI OS/Brain/Wiki
   remain advisory. Legacy slice runners and Lean authority are explicit-only;
