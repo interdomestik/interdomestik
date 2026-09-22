@@ -27,7 +27,7 @@ test('review feedback does not create approval-gated native workflow runs', () =
   }
 });
 
-test('replacement controller uses protected source, serialized scheduling and no check/approval writes', () => {
+test('replacement controller refreshes only the authoritative delivery gate', () => {
   const file = '.github/workflows/pr-feedback-refresh.yml';
   assert.ok(
     fs.existsSync(file),
@@ -50,26 +50,24 @@ test('replacement controller uses protected source, serialized scheduling and no
   assert.ok(job.steps.every(step => !step.uses || /@[a-f0-9]{40}$/u.test(step.uses)));
   const run = job.steps.find(step => step.run?.includes('pr-feedback-controller.mjs'));
   assert.equal(run.env.REFRESH_APPLY, 'true');
-  for (const file of ['pr-delivery-gate', 'pr-finalizer']) {
-    const native = yaml.load(fs.readFileSync(`.github/workflows/${file}.yml`, 'utf8'));
-    const steps = Object.values(native.jobs)[0].steps;
-    const capture = steps.findIndex(step => step.id === 'feedback');
-    const marker = steps.findIndex(step =>
-      step.name?.startsWith('${{ steps.feedback.outputs.marker')
-    );
-    const gate = steps.findIndex(step =>
-      step.run?.includes(
-        file === 'pr-finalizer' ? 'scripts/pr-finalizer.sh' : 'scripts/ci/pr-delivery-gate.mjs'
-      )
-    );
-    assert.ok(
-      capture >= 0 && capture < marker && marker === gate,
-      `${file}: capture precedes validation`
-    );
-  }
+  const controller = fs.readFileSync('scripts/ci/pr-feedback-controller.mjs', 'utf8');
+  assert.match(controller, /WORKFLOW_FILES = \['pr-delivery-gate\.yml'\]/u);
+  assert.doesNotMatch(controller, /pr-finalizer\.yml/u);
+
+  const delivery = yaml.load(fs.readFileSync('.github/workflows/pr-delivery-gate.yml', 'utf8'));
+  const steps = delivery.jobs['delivery-gate'].steps;
+  const capture = steps.findIndex(step => step.id === 'feedback');
+  const marker = steps.findIndex(step =>
+    step.name?.startsWith('${{ steps.feedback.outputs.marker')
+  );
+  const gate = steps.findIndex(step => step.run?.includes('scripts/ci/pr-delivery-gate.mjs'));
+  assert.ok(capture >= 0 && capture < marker && marker === gate);
+
+  const finalizer = fs.readFileSync('.github/workflows/pr-finalizer.yml', 'utf8');
+  assert.doesNotMatch(finalizer, /pr-feedback-setup|feedback-snapshot|pr-finalizer\.sh/u);
 });
 
-test('snapshot capture does not break existing full draft or fork finalizer lanes', () => {
+test('snapshot capture remains limited to eligible authoritative delivery runs', () => {
   const file = '.github/actions/pr-feedback-setup/action.yml';
   assert.ok(fs.existsSync(file), 'shared setup and snapshot action is missing');
   const action = yaml.load(fs.readFileSync(file, 'utf8'));
@@ -103,7 +101,7 @@ test('snapshot capture does not break existing full draft or fork finalizer lane
   }
 });
 
-test('snapshot failure cannot skip the required validator or suppress its failure', () => {
+test('snapshot failure cannot skip or suppress the authoritative delivery validator', () => {
   const action = yaml.load(fs.readFileSync('.github/actions/pr-feedback-setup/action.yml', 'utf8'));
   const snapshot = action.runs.steps.find(step => step.id === 'feedback');
   assert.equal(snapshot['continue-on-error'], true);
@@ -112,17 +110,10 @@ test('snapshot failure cannot skip the required validator or suppress its failur
     undefined,
     'Node setup still fails normally'
   );
-  for (const file of ['pr-delivery-gate', 'pr-finalizer']) {
-    const workflow = yaml.load(fs.readFileSync(`.github/workflows/${file}.yml`, 'utf8'));
-    const steps = Object.values(workflow.jobs)[0].steps;
-    const validator = steps.find(step =>
-      step.name?.startsWith('${{ steps.feedback.outputs.marker')
-    );
-    assert.ok(
-      validator.name.includes(' || '),
-      'unavailable snapshot uses the normal validator name'
-    );
-    assert.equal(validator['continue-on-error'], undefined, 'validator errors remain blocking');
-    assert.ok(!validator.if?.includes('feedback'), 'snapshot output cannot gate validation');
-  }
+  const workflow = yaml.load(fs.readFileSync('.github/workflows/pr-delivery-gate.yml', 'utf8'));
+  const steps = workflow.jobs['delivery-gate'].steps;
+  const validator = steps.find(step => step.name?.startsWith('${{ steps.feedback.outputs.marker'));
+  assert.ok(validator.name.includes(' || '), 'unavailable snapshot uses the normal validator name');
+  assert.equal(validator['continue-on-error'], undefined, 'validator errors remain blocking');
+  assert.ok(!validator.if?.includes('feedback'), 'snapshot output cannot gate validation');
 });

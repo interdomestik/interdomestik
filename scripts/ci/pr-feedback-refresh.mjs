@@ -11,10 +11,6 @@ const WORKFLOWS = {
     context: 'delivery-gate',
     title: 'PR delivery gate',
   },
-  '.github/workflows/pr-finalizer.yml': {
-    context: 'pr-finalizer',
-    title: 'PR finalizer',
-  },
 };
 const finished = value =>
   value?.status === 'completed' && ['success', 'failure'].includes(value.conclusion);
@@ -84,36 +80,11 @@ export function isDeferredLabel(pull, workflow, run, jobs) {
     !Array.isArray(job.steps)
   )
     return false;
-  if (rule.context === 'delivery-gate')
-    return (
-      run.conclusion === 'skipped' &&
-      ['delivery-gate-deferred', DEFERRED_DELIVERY_NAME].includes(job.name) &&
-      job.conclusion === 'skipped' &&
-      job.steps.every(step => step.status === 'completed' && step.conclusion === 'skipped')
-    );
-  if (run.conclusion !== 'success' || job.conclusion !== 'success' || job.name !== rule.context)
-    return false;
-  const required = [
-    'Run actions/checkout@v5',
-    'Evaluate PR gate policy',
-    'Resolve exact-head certification admission',
-    'Report quick draft lane',
-    'Node setup',
-    'Run PR finalizer gate',
-  ];
-  const optional = new Set(['Set up job', 'Post Run actions/checkout@v5', 'Complete job']);
-  const steps = job.steps.filter(step => !optional.has(step.name));
   return (
-    steps.length === required.length &&
-    steps.every(
-      (step, i) =>
-        step.name === required[i] &&
-        step.status === 'completed' &&
-        step.conclusion === (i < 4 ? 'success' : 'skipped')
-    ) &&
-    job.steps
-      .filter(step => optional.has(step.name))
-      .every(step => step.status === 'completed' && step.conclusion === 'success')
+    run.conclusion === 'skipped' &&
+    ['delivery-gate-deferred', DEFERRED_DELIVERY_NAME].includes(job.name) &&
+    job.conclusion === 'skipped' &&
+    job.steps.every(step => step.status === 'completed' && step.conclusion === 'skipped')
   );
 }
 

@@ -9,7 +9,7 @@ import { B, H, T, TREE, contract, check, snapshot } from './pr-delivery-fixtures
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const gateSource = fs.readFileSync(path.join(root, 'scripts/ci/pr-delivery-gate.mjs'), 'utf8');
-test('contract has three acyclic sets and excludes the delivery gate from every input set', () => {
+test('contract keeps local finalizer leaves separate from the authoritative delivery inputs', () => {
   assert.equal(validateDeliveryContract(contract), contract);
   const missingDeliveryApp = structuredClone(contract);
   delete missingDeliveryApp.deliveryContext.appId;
@@ -19,26 +19,21 @@ test('contract has three acyclic sets and excludes the delivery gate from every 
   assert.throws(() => validateDeliveryContract(extraException), /annotation policy/iu);
   assert.deepEqual(
     contract.providerRequiredContexts.map(item => item.context),
-    [
-      'audit',
-      'e2e',
-      'pnpm-audit',
-      'gitleaks',
-      'pilot-gate',
-      'validation-surface',
-      'pr-finalizer',
-      'commitlint',
-    ]
+    ['audit', 'e2e', 'pnpm-audit', 'gitleaks', 'pilot-gate', 'validation-surface', 'commitlint']
   );
+  assert.deepEqual(contract.compatibilityRequiredContexts, [
+    { context: 'pr-finalizer', appId: 15368 },
+  ]);
   assert.ok(contract.finalizerLeafPrerequisites.every(item => item.context !== 'pr-finalizer'));
   for (const set of [
     contract.finalizerLeafPrerequisites,
     contract.deliveryPrerequisites,
     contract.providerRequiredContexts,
+    contract.compatibilityRequiredContexts,
   ]) {
     assert.ok(set.every(item => item.context !== contract.deliveryContext.context));
   }
-  assert.ok(contract.deliveryPrerequisites.some(item => item.context === 'pr-finalizer'));
+  assert.ok(contract.deliveryPrerequisites.every(item => item.context !== 'pr-finalizer'));
 });
 
 test('runtime event input uses the shared trusted-runner file boundary', () => {

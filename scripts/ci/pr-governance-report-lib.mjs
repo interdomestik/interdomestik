@@ -30,7 +30,14 @@ export function governanceReport(contract, snapshot) {
     annotationPolicy: 'block-warning-failure',
     finalConclusions: ['success'],
   };
-  for (const spec of [...contract.deliveryPrerequisites, delivery]) {
+  const compatibility = contract.compatibilityRequiredContexts.map(item => ({
+    ...item,
+    requirement: 'required',
+    skipWhen: null,
+    annotationPolicy: 'block-warning-failure',
+    finalConclusions: ['success'],
+  }));
+  for (const spec of [...contract.deliveryPrerequisites, ...compatibility, delivery]) {
     try {
       const selected = evaluateDeliveryChecks(
         { ...contract, deliveryPrerequisites: [spec] },
@@ -61,6 +68,7 @@ export async function collectGovernanceReport(client, contract, number) {
     testedMerge: pull.merge_commit_sha,
   };
   const snapshot = await collectSnapshot(client, contract, expected, number, [
+    ...contract.compatibilityRequiredContexts,
     contract.deliveryContext,
   ]);
   return governanceReport(contract, snapshot);

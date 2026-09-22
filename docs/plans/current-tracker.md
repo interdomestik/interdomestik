@@ -15,22 +15,22 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                                           | Status        | Owner                    | Work                                                                                                                | Exit Criteria                                                                                                                    |
-| -------------------------------------------- | ------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `ORDINARY-DELIVERY-CURRENT-AUTHORITY-REPAIR` | `in_progress` | Codex / GPT-5.6 Sol high | Compact active authority; separate ordinary and legacy validation; align review/model guidance and the local skill. | Focused contracts, required local proof, independent review and protected PR checks pass; no pilot feature, merge or deployment. |
+| ID                                            | Status        | Owner                    | Work                                                                                                            | Exit Criteria                                                                                                                                       |
+| --------------------------------------------- | ------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ORDINARY-DELIVERY-GATE-ORCHESTRATION-REPAIR` | `in_progress` | Codex / GPT-5.6 Sol high | Make delivery-gate authoritative and retain pr-finalizer only as the required app-pinned compatibility context. | Exact-head/trust/review equivalence, focused contracts, required proof, independent review and protected checks pass; no product or release change. |
 
 ### Current acceptance
 
-- Base: exact main `c7c643acdaf0371e29fa01526dd638decf779b77`, tree
-  `6048c5be747155adaa10eed1366056a6233be941`; predecessor exact-main checks passed.
-- Owned repository surface: `AGENTS.md`, `code_review.md`, active/historical program and tracker,
-  current plan/authority validators and tests, focused legacy-selection/CI contracts, necessary
-  package scripts and workflow parity data.
-- Separately owned local surface: `/Users/arbenlila/.codex/skills/interdomestik/SKILL.md`.
-  The repository PR records but does not distribute that installation-local change.
-- Forbidden: pilot product implementation, finalizer/delivery polling consolidation,
-  release-candidate deduplication, broad verification redesign, auth/routing/domain refactors,
-  deployment and automatic merge.
+- Base: current protected main `82cc2767e03ede3334a0378190544c66062c6ca1`, tree
+  `44201c05b4e515d5ffcd446514d67cb2b16ae2f7`; it contains PR #1808 and PR #1810.
+- Owned repository surface: `pr-finalizer` and `delivery-gate` workflows, delivery/feedback
+  contracts and focused tests, plus this active program/tracker reconciliation.
+- Preserve: exact candidate and tested-merge identity, trusted app IDs, latest run/attempt,
+  annotations, substantive current-head review bodies, inline findings, unresolved threads,
+  pending reviewers, pagination and fail-closed behavior. Branch protection remains unchanged.
+- Forbidden: pilot product work, release scenario changes or weakening, release-candidate
+  deduplication, auth/routing/domain refactors, deployment, branch-protection mutation and automatic
+  merge.
 
 ## Product Queue
 
@@ -54,14 +54,21 @@ SRS/frontier index. Its unresolved rows are not automatic features, deferrals or
 
 | ID | Source Refs | Execution | Run ID | Run Root | Sonar | Docker | Sentry | Learning | Evidence Refs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `ORDINARY-DELIVERY-CURRENT-AUTHORITY-REPAIR` | owner authorization; governance audit; PR #1807 | pending | pending | pending | pending | not_applicable | not_applicable | pending | candidate PR and local-skill delta pending |
+| `ORDINARY-DELIVERY-GATE-ORCHESTRATION-REPAIR` | owner authorization; governance audit; PR #1808; PR #1810 | pending | pending | pending | pending | not_applicable | not_applicable | pending | candidate PR and focused equivalence/review evidence pending |
 
 ## Current Facts
 
-- PR #1807 is merged and exact-main healthy. Its accounting and closeout reduction is effective.
+- PR #1808 merged as `f22127f2ebcf45b5dc64ea521dbeb298b77654be` with reviewed tree
+  `f48eb434b6274ff266f9f353496410c1670ade4c`; exact-main CI, Sonar and security passed.
+- The corrected immutable-preview diagnostic passed role-panel visibility against that immutable
+  preview, but the original staging failure was not reproduced. Role grant/revoke P0.3/P0.4 remain
+  a release-evidence gap and are neither weakened nor claimed complete by this independent repair.
+- Current protected main `82cc2767e03ede3334a0378190544c66062c6ca1` includes PR #1810's
+  diagnostic follow-up.
 - S5 first-case saved-draft continuity completed through protected PR #1801. Whole S5 remains open.
 - PR #1803 and all other pilot feature work remain outside this repair and paused by owner direction.
-- No deployment, product readiness or user-acceptance claim is made here.
+- No deployment, product readiness or user-acceptance claim is made here; staging and pilot
+  readiness also remain unclaimed.
 
 ## Next Selection
 

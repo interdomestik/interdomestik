@@ -268,7 +268,7 @@ test('delivery workflow stays exact and default-deny', () => {
   }
 });
 
-test('manifest consumers are wired and finalizer never waits for delivery-gate', () => {
+test('manifest consumers keep local finalization acyclic and delivery authoritative', () => {
   const contractPath = 'scripts/ci/pr-delivery-contract.json';
   const contract = JSON.parse(read(contractPath));
   const finalizer = read('scripts/pr-finalizer.sh');
@@ -292,4 +292,6 @@ test('manifest consumers are wired and finalizer never waits for delivery-gate',
   assert.match(reviewReady, /\.finalizerLeafPrerequisites \| length\) > 0/u);
   assert.doesNotMatch(governance, /request Copilot review/u);
   assert.ok(contract.finalizerLeafPrerequisites.every(item => item.context !== 'delivery-gate'));
+  assert.ok(contract.providerRequiredContexts.every(item => item.context !== 'pr-finalizer'));
+  assert.ok(contract.deliveryPrerequisites.every(item => item.context !== 'pr-finalizer'));
 });
