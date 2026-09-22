@@ -30,7 +30,7 @@ export function assertExpectedHealth(payload, expectedSha) {
   if (expectedSha !== EXPECTED_COMMIT_SHA) {
     throw new Error('diagnostic expected commit SHA is not approved');
   }
-  if (!payload || payload.status !== 'healthy') {
+  if (payload?.status !== 'healthy') {
     throw new Error('immutable preview health is not healthy');
   }
   if (payload.build?.commitSha !== expectedSha) {
@@ -110,8 +110,10 @@ export function sanitizeDiagnosticUrl(value) {
     if (/^\/(?:en|sq|mk|sr)\/(?:login|admin)\/?$/u.test(parsed.pathname)) {
       return `${APPROVED_PREVIEW_ORIGIN}${parsed.pathname}`;
     }
-    if (/^\/(?:en|sq|mk|sr)\/admin\/users\/[^/]+\/?$/u.test(parsed.pathname)) {
-      return `${APPROVED_PREVIEW_ORIGIN}${parsed.pathname.replace(/[^/]+\/?$/u, '[REDACTED_ID]')}`;
+    const userPathMatch = parsed.pathname.match(/^\/(en|sq|mk|sr)\/admin\/users\/([^/]+)(\/?)$/u);
+    if (userPathMatch) {
+      const [, locale, , trailingSlash] = userPathMatch;
+      return `${APPROVED_PREVIEW_ORIGIN}/${locale}/admin/users/[REDACTED_ID]${trailingSlash}`;
     }
     if (parsed.pathname.startsWith('/_next/')) return `${APPROVED_PREVIEW_ORIGIN}/_next/[ASSET]`;
     return `${APPROVED_PREVIEW_ORIGIN}/[REDACTED_PATH]`;
@@ -158,8 +160,7 @@ export function sanitizeSessionSummary(payload, expectedEmail) {
 }
 
 export function assertTrustedPreflightReceipt(receipt, runId, runAttempt) {
-  if (!receipt || receipt.status !== 'verified')
-    throw new Error('preflight receipt is not verified');
+  if (receipt?.status !== 'verified') throw new Error('preflight receipt is not verified');
   if (receipt.runId !== String(runId) || receipt.runAttempt !== String(runAttempt)) {
     throw new Error('preflight receipt belongs to a different workflow run');
   }

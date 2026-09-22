@@ -129,6 +129,10 @@ test('diagnostic URL and title evidence keeps only enumerated non-sensitive valu
     `${APPROVED_PREVIEW_ORIGIN}/en/admin/users/[REDACTED_ID]`
   );
   assert.equal(
+    sanitizeDiagnosticUrl(`${APPROVED_PREVIEW_ORIGIN}/sq/admin/users/example/`),
+    `${APPROVED_PREVIEW_ORIGIN}/sq/admin/users/[REDACTED_ID]/`
+  );
+  assert.equal(
     sanitizeDiagnosticUrl('https://attacker.example/a/JWT-shaped-secret'),
     '[EXTERNAL_ORIGIN]/[REDACTED_PATH]'
   );
