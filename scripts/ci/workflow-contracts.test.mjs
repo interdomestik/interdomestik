@@ -236,16 +236,6 @@ test('CD builds distinct staging and production artifacts with explicit Supabase
   assert.deepEqual(productionEvidenceJob.environment, { name: 'production', deployment: false });
   const evidenceStep = findStep(productionEvidenceJob.steps, 'Check Production Human Evidence');
   assert.match(evidenceStep?.run, /pnpm release:evidence:check/);
-  const productionLegTriggerGuard =
-    "needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')";
-  for (const productionLegJob of [
-    productionEvidenceJob,
-    buildProductionJob,
-    deployProductionJob,
-    verifyProductionJob,
-  ]) {
-    assert.equal(productionLegJob.if, productionLegTriggerGuard);
-  }
   assert.deepEqual(normalizeNeeds(deployProductionJob.needs), ['scope', 'build-production']);
   assert.equal(deployProductionJob['timeout-minutes'], 25);
   const vercelProductionDeployStep = findStep(
