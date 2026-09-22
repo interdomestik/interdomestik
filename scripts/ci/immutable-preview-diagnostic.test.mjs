@@ -251,6 +251,7 @@ test('manual workflow is staging-protected, least-privilege, read-only, and shor
   ]);
 
   const artifactStep = job.steps.find(step => step.name === 'Upload sanitized diagnostic receipt');
+  assert.equal(artifactStep.if, 'always()');
   assert.equal(artifactStep.with['retention-days'], 1);
   assert.equal(artifactStep.with['if-no-files-found'], 'error');
 

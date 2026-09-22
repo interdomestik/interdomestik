@@ -2,23 +2,23 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
 
 import {
   APPROVED_PREVIEW_ORIGIN,
   EXPECTED_COMMIT_SHA,
   assertApprovedPreviewOrigin,
-  assertExpectedHealth,
   assertSameApprovedOrigin,
   assertTrustedPreflightReceipt,
   classifyDiagnosticError,
   createPolicyEnforcedLoginRequest,
   createReadOnlyRequestPolicy,
   responseRedirectChain,
-  resolveApprovedRedirect,
   sanitizeDiagnosticUrl,
   sanitizePageTitle,
   sanitizeSessionSummary,
 } from './immutable-preview-diagnostic-lib.mjs';
+import { runPreflight } from './immutable-preview-preflight.mjs';
 
 const require = createRequire(import.meta.url);
 const { ACCOUNTS, MARKERS, SELECTORS, TIMEOUTS } = require('../release-gate/config.ts');
@@ -29,35 +29,11 @@ const TARGET_PATH = '/en/admin/users/golden_ks_a_member_1?tenantId=tenant_ks';
 const OUTPUT_DIR = path.resolve('tmp/immutable-preview-diagnostic');
 const OUTPUT_PATH = path.join(OUTPUT_DIR, 'receipt.json');
 const PREFLIGHT_PATH = path.join(OUTPUT_DIR, 'provenance.json');
-const MAX_REDIRECTS = 3;
 
 function requiredEnv(name) {
   const value = String(process.env[name] || '').trim();
   if (!value) throw new Error(`missing required diagnostic environment value: ${name}`);
   return value;
-}
-
-async function fetchHealth(origin, headers) {
-  let url = new URL('/api/health', origin);
-  const redirects = [];
-  for (let attempt = 0; attempt <= MAX_REDIRECTS; attempt += 1) {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers,
-      redirect: 'manual',
-      signal: AbortSignal.timeout(TIMEOUTS.nav),
-    });
-    if (![301, 302, 303, 307, 308].includes(response.status)) {
-      if (!response.ok) throw new Error(`health preflight failed with status ${response.status}`);
-      return { payload: await response.json(), redirects, status: response.status };
-    }
-    const location = response.headers.get('location');
-    if (!location) throw new Error('health preflight redirect omitted Location');
-    const next = resolveApprovedRedirect(url.href, location, origin);
-    redirects.push({ status: response.status, url: sanitizeDiagnosticUrl(next) });
-    url = new URL(next);
-  }
-  throw new Error('health preflight exceeded the redirect limit');
 }
 
 async function markerSnapshot(page) {
@@ -213,29 +189,6 @@ async function writeJson(file, value) {
   await fs.writeFile(file, `${JSON.stringify(value, null, 2)}\n`, { mode: 0o600 });
 }
 
-async function runPreflight() {
-  const origin = assertApprovedPreviewOrigin(requiredEnv('DIAGNOSTIC_PREVIEW_ORIGIN'));
-  const expectedSha = requiredEnv('DIAGNOSTIC_EXPECTED_SHA');
-  if (expectedSha !== EXPECTED_COMMIT_SHA) {
-    throw new Error('diagnostic expected commit SHA is not approved');
-  }
-  const bypassHeaders = buildVercelProtectionHeaders(origin);
-  const health = await fetchHealth(origin, bypassHeaders);
-  const provenance = assertExpectedHealth(health.payload, expectedSha);
-  const receipt = {
-    status: 'verified',
-    runId: requiredEnv('GITHUB_RUN_ID'),
-    runAttempt: requiredEnv('GITHUB_RUN_ATTEMPT'),
-    origin,
-    commitSha: provenance.commitSha,
-    deployEnv: provenance.deployEnv,
-    httpStatus: health.status,
-    redirects: health.redirects,
-  };
-  await writeJson(PREFLIGHT_PATH, receipt);
-  console.log(`[immutable-preview-diagnostic] preflight=verified receipt=${PREFLIGHT_PATH}`);
-}
-
 async function main() {
   const startedAt = new Date().toISOString();
   const report = {
@@ -283,8 +236,10 @@ async function main() {
   process.exitCode = exitCode;
 }
 
-if (process.argv.slice(2).includes('--preflight')) {
-  await runPreflight();
-} else {
-  await main();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  if (process.argv.slice(2).includes('--preflight')) {
+    await runPreflight();
+  } else {
+    await main();
+  }
 }
