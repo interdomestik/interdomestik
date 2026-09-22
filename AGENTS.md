@@ -1,474 +1,131 @@
 # Interdomestik AGENTS.md
 
-This file contains agent guidelines and commands. For reviews, also follow `code_review.md`.
+Use this file for repository-wide instructions. For reviews also follow `code_review.md`.
 
-## Normal Delivery
+## Current Authority
 
-Use the ordinary protected-PR workflow in `docs/plans/current-program.md`, with
-one canonical tracker in `docs/plans/current-tracker.md`. The completed migration
-trials do not require another qualification cycle. Legacy Lean and slice runners
-remain explicit-only; do not interpret their inactive state as a ban on ordinary
-owner-authorized work or create a promotion/closeout PR for each routine change.
+- `docs/plans/current-program.md` is the sole authority for current phase, priority and sequence.
+- `docs/plans/current-tracker.md` is the single active tracker. Completed detail lives in the linked
+  historical ledgers; do not copy it back into active context.
+- Obsidian/AI OS/Brain/Wiki are advisory. Repository source, tests, accepted ADRs, current program
+  and tracker remain authoritative.
+- Use the installed Interdomestik skill for bounded research, implementation and verification. The
+  local skill is installed separately and is not distributed by repository PRs.
+- Legacy Lean and slice runners are explicit-only. Their inactive or malformed state cannot select
+  or block ordinary owner-authorized work.
 
-Ordinary `pnpm repo:size:check` treats total/category bytes, file count and source-line
-growth as advisory; the existing coarse largest-file cap remains blocking. Routine
-source, test and catalog changes need no exact allocations, budget updates or byte-specific
-approval. Strict capacity accounting applies only to explicitly invoked legacy workflows.
-All other safety, build, security and modularity limits remain in force.
+## Non-Negotiable Boundaries
 
-One product PR carries scope and acceptance. Record final merge health and completion facts
-on that PR, then reconcile canonical status in the next authorized amendment. Do not create
-a routine status-only PR or block an authorized successor solely for pending canonical
-bookkeeping. Never claim a merge before it happens; actual unresolved scope, security and
-release blockers still apply. Preserve receipts and retire only owned resources safely.
+- `apps/web/src/proxy.ts` is the sole routing, access-control and tenant-isolation authority. It is
+  read-only unless the owner explicitly authorizes a justified change.
+- Canonical routes `/member`, `/agent`, `/staff` and `/admin` must not be renamed or bypassed.
+- `page-ready` and `*-page-ready` markers are contractual and covered by E2E gates.
+- Supabase Auth is the identity/session system of record, `better-auth` is the orchestrator and
+  `@interdomestik/shared-auth` is the provider-agnostic boundary. Do not collapse this layering.
+- Authentication must never be bypassed, including in development.
+- Tenant/RLS, document lifecycle, privacy and data-integrity protections remain mandatory.
+- Paddle is the only V3 pilot billing provider.
+- No routing, auth, tenancy, domain, schema, billing or other architectural refactor unless the
+  owner explicitly requests it. Conditional M0–M5 work follows the dedicated architecture program
+  and tracker linked from the current program.
+- `README.md`, `AGENTS.md` and architecture documents are governance-owned; change them only when
+  the owner explicitly requests it.
+- Framework and dependency versions come from workspace manifests, especially
+  `apps/web/package.json`; do not duplicate version claims in instructions.
 
-Use the Interdomestik skill for brief relevant research, bounded implementation,
-independent helper ownership and verification. AI OS/Brain/Wiki are advisory, not
-additional approval or publication requirements. Keep the security boundaries and
-required checks below; passing checks never authorizes unrelated scope or deployment.
-Review substantive current-head review bodies as well as inline comments, and
-consolidate accepted corrections before expensive final verification.
+## Ordinary Delivery
 
-## ⚠️ V3 / Current Program Execution Rules (MANDATORY)
+- Use one bounded protected PR for scope, acceptance, implementation and tests. Do not create
+  routine promotion, qualification, closeout, status-only or bookkeeping-only PRs.
+- Keep one implementation owner. Give helpers disjoint ownership; preserve unrelated worktree
+  changes and do not revert other contributors.
+- Use focused tests while editing. Runtime, security, CI/trust and other meaningful behavior changes
+  require `pnpm pr:verify` and `pnpm security:guard` before delivery. `pr:verify` includes E2E gate
+  evidence for the same source/configuration/environment; do not rerun it separately by habit.
+- Instruction-only changes run the current plan/contracts relevant to their surface. Protected
+  hosted checks remain separate trust evidence.
+- `pnpm plan:audit` validates active authority. Retired manifest/projection/Lean validation and the
+  full Harness suite run only through explicit legacy commands or CI selection when those artifacts,
+  their actual consumers or the selection policy change.
+- Ordinary `pnpm repo:size:check` growth is advisory except for the retained coarse largest-file and
+  class-aware modularity limits. No exact allocation, shared-budget edit or byte-specific approval
+  is required for routine source, test or catalog work.
+- Review integrated current-head behavior, review bodies, inline comments and actionable check
+  annotations. Consolidate accepted corrections before one expensive final verification lane.
+- Passing checks authorize only the requested scope. Keep prepared, tested, merged, deployed and
+  user-validated states distinct. Never auto-merge or deploy without explicit authority.
 
-`docs/plans/current-program.md` is the sole authority for the current phase, priorities, and sequencing. Do not infer the active slice from this file: M0→M5 is the conditional architecture-finalization authority when explicitly promoted, while Phase C remains the historical evidence ledger and its guardrails continue to apply.
+## Model And Review Routing
 
-The following rules are non-negotiable for all agents (human or AI):
-
-- `apps/web/src/proxy.ts` is the **sole authority** for routing, access control, and tenant isolation (**READ-ONLY unless explicitly authorized**).
-- Canonical routes (`/member`, `/agent`, `/staff`, `/admin`) MUST NOT be renamed or bypassed.
-- Clarity markers (`*-page-ready`) are contractual and enforced by E2E gates.
-- No architectural refactors (routing, auth, domains, tenancy) unless explicitly requested.
-- Architecture-finalization work, when explicitly authorized, follows `docs/plans/architecture-finalization-program-2026-05-29.md` and `docs/plans/architecture-finalization-tracker-2026-05-29.md` as the canonical M0→M5 execution authority.
-- Paddle-only V3 pilot billing.
-- Do not update README, AGENTS.md, or architecture docs unless explicitly requested.
-- All changes must pass:
-  - `pnpm pr:verify`
-  - `pnpm security:guard`
-  - E2E Gate specs
-
-## Project Overview
-
-- **Type**: Next.js 15 monorepo with Turborepo
-- **Language**: TypeScript with strict mode
-- **Package Manager**: pnpm (workspace protocol)
-- **Architecture**: Modular domain-driven design with separate packages
-- **UI**: React 19 with Tailwind CSS and Radix UI components
-- **Database**: Drizzle ORM with PostgreSQL
-- **Testing**: Vitest (unit) + Playwright (e2e)
-- **Routing Authority**: `apps/web/src/proxy.ts` (canonical routes + access control)
-
-## 🔐 Authentication (V3)
-
-- **Supabase Auth** is the system of record for identities and sessions.
-- **better-auth** is the active orchestrator.
-- **`@interdomestik/shared-auth`** is the provider-agnostic boundary.
-- This is an intentional transition; agents must not collapse or bypass this layering.
+- GPT-5.6 Sol is the normal integration owner. Choose reasoning depth from the demonstrated risk.
+  Reserve Astra escalation for a concrete unresolved gate, security, concurrency, data-loss or
+  cross-domain architecture ambiguity.
+- A routine deterministic change needs no fixed model panel. Use one relevant subscription helper
+  when independent input is useful; add a distinct second perspective for real cross-domain,
+  security or concurrency risk.
+- High-risk work requires independent review separate from implementation judgment. Reuse accepted
+  evidence while its inputs remain unchanged and verify the model actually served.
+- When a provider is exhausted, use an approved adequate alternative for low/medium risk and record
+  the blocker. Do not require a routine waiver ceremony, use a paid API fallback or retry solely to
+  repair advisory formatting.
 
 ## MCP-First Tooling
 
-- Prefer repo-scoped MCP tools over shell-only fallbacks when equivalent capability exists.
-- Confirm repo MCP wiring from `.codex/config.toml` before relying on repo-specific MCP servers.
-- Use `interdomestik_qa` first for repo inspection, file reads, code search, project mapping, and relevant audits.
-- Use Playwright MCP first for browser validation and watched flows. Do not switch to raw Playwright scripts or browser fallbacks unless Playwright MCP is actually blocked.
-- If an MCP tool is blocked or unavailable, report the exact blocker and exact error before considering any fallback path.
-- Use `context7` for current framework guidance, especially Next.js behavior that could have changed.
-- Use `openai_docs` only when OpenAI products or API documentation are directly relevant to the task.
-- Treat `apps/web/src/proxy.ts` as read-only unless a change is explicitly requested and justified.
+- Confirm `.codex/config.toml`, then use `interdomestik_qa` first for repo status, reads, search,
+  project mapping and relevant audits. If a call fails, report the exact error before fallback.
+- Use Playwright MCP first for watched browser validation; use repo commands when MCP is unavailable
+  or the required deterministic lane is command-owned.
+- Use Context7 for framework behavior that may have changed. Use OpenAI documentation only when an
+  OpenAI product or API is directly relevant.
 
-## Conditional Subagent Policy
-
-- Use subagents for bounded independent work when runtime policy permits; no separate user approval is required.
-- Keep the main agent on the critical path. Delegate independent sidecar work such as focused codebase exploration, isolated implementation slices, or non-blocking verification.
-- Do not delegate tightly coupled blocking work by default if the next local action depends on the result.
-- When using subagents, define clear ownership for each delegated task and avoid overlapping write scopes.
-- After delegated work completes, summarize which subagents were used, what each handled, and any follow-up required in the main thread.
-
-## Development Commands
-
-### Root Level Commands
+## Core Commands
 
 ```bash
-# Development
-pnpm dev                  # Start development servers for all packages
-pnpm build               # Build all packages and apps
-pnpm clean               # Clean all build artifacts and node_modules
+pnpm dev
+pnpm build
+pnpm lint
+pnpm type-check
+pnpm test
+pnpm test:unit:domains
+pnpm test:e2e
 
-# Code Quality
-pnpm lint                # Run ESLint across all packages
-pnpm type-check          # Type check all packages
-pnpm format              # Format code with Prettier
-pnpm format:check        # Check code formatting
-pnpm check:fast          # Locale/entrypoint/architecture guards + case/recovery unit tests
-pnpm check:static        # Full formatting, lint, and type checks
-pnpm check               # Full checks including build
+pnpm plan:status
+pnpm plan:audit
+pnpm test:delivery-safety
+pnpm legacy:validate     # complete explicit legacy validation
+pnpm plan:audit:legacy   # explicit legacy authority validation
+pnpm test:harness-v2     # explicit full legacy Harness suite
 
-# Testing
-pnpm test                # Run unit tests for web app
-pnpm test:unit:domains   # Run unit tests for all domain packages
-pnpm test:e2e            # Run Playwright e2e tests
-pnpm qa                  # Run quality assurance checks
-
-# Database
-pnpm db:generate         # Generate Drizzle SQL migrations without applying them
-pnpm db:push:local       # Apply Supabase migrations to this checkout's local stack only
-pnpm db:studio           # Open Drizzle Studio
-```
-
-### Mandatory Verification
-
-Before opening or merging a PR:
-
-```bash
 pnpm pr:verify
 pnpm security:guard
+pnpm pr:verify:hosts
+pnpm prod:ready:code
+pnpm release:evidence:check
 ```
 
-PRs that fail required checks are invalid. `pr:verify` includes the full `e2e:gate`; a successful
-run supplies that evidence for the same source, configuration, and environment without running it
-again. `memory:precheck` is a separate opt-in advisory command.
-For deterministic local host-routed verification, use `pnpm pr:verify:hosts`; CI should continue using `pnpm pr:verify` with explicit host env. For Docker-free code proof use `pnpm prod:ready:code`; local E2E lanes run `pnpm run doctor`; production release gates run `pnpm release:evidence:check` for G01-G10 artifacts and hashes.
-
-### Single Test Commands
+Use package filters for focused checks, for example:
 
 ```bash
-# Unit tests (Vitest)
-pnpm --filter @interdomestik/web test:unit --run fileName.test.tsx
-pnpm --filter @interdomestik/domain-users test:unit --run specific.test.ts
-
-# E2E tests (Playwright)
-pnpm --filter @interdomestik/web test:e2e -- --grep "test name"
+pnpm --filter @interdomestik/web test:unit --run path/to/test.test.tsx
+pnpm --filter @interdomestik/domain-claims test:unit --run path/to/test.test.ts
 pnpm --filter @interdomestik/web test:e2e -- --project=chromium --grep "specific test"
-pnpm --filter @interdomestik/web test:e2e -- tests/auth/login.spec.ts
 ```
 
-### Package-Specific Commands
-
-```bash
-# Web app
-pnpm --filter @interdomestik/web dev
-pnpm --filter @interdomestik/web build
-pnpm --filter @interdomestik/web lint
-pnpm --filter @interdomestik/web test:unit
-pnpm --filter @interdomestik/web test:e2e
-
-# Individual domain packages
-pnpm --filter @interdomestik/domain-users test:unit
-pnpm --filter @interdomestik/domain-claims test:unit
-# ... etc for other domain packages
-```
-
-## Code Style Guidelines
-
-### Formatting (Prettier)
-
-```json
-{
-  "semi": true,
-  "singleQuote": true,
-  "tabWidth": 2,
-  "trailingComma": "es5",
-  "printWidth": 100,
-  "bracketSpacing": true,
-  "arrowParens": "avoid",
-  "endOfLine": "lf"
-}
-```
-
-### Import Organization
-
-```typescript
-// 1. React/Next.js imports
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import type { Metadata } from 'next';
-
-// 2. External packages (alphabetical)
-import { zodResolver } from '@hookform/resolvers';
-import { Button } from '@interdomestik/ui';
-import { ChevronRight } from 'lucide-react';
-import { useForm } from 'react-hook-form';
-
-// 3. Internal packages (workspace dependencies)
-import { db, user } from '@interdomestik/database';
-import { withTenant } from '@interdomestik/database/tenant-security';
-import { requireTenantSession } from '@interdomestik/shared-auth';
-
-// 4. Local imports (relative)
-import { UserAvatar } from './components/user-avatar';
-import { useUserPermissions } from './hooks/use-user-permissions';
-import type { UserSettings } from './types';
-```
-
-### TypeScript Patterns
-
-```typescript
-// Use strict typing with interfaces/types
-interface UserProfile {
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  createdAt: Date;
-}
-
-// Prefer explicit return types for functions
-async function getUserById(id: string): Promise<UserProfile | null> {
-  // Implementation
-}
-
-// Use utility types appropriately
-type PartialUserProfile = Partial<UserProfile>;
-type UserUpdatePayload = Omit<UserProfile, 'id' | 'createdAt'>;
-
-// Use discriminated unions for result types
-type ApiResult<T> = { success: true; data: T } | { success: false; error: string };
-```
-
-### Component Patterns
-
-```typescript
-// Use forwardRef for DOM components
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, children, ...props }, ref) => {
-    return (
-      <button
-        className={cn(buttonVariants({ variant, className }))}
-        ref={ref}
-        {...props}
-      >
-        {children}
-      </button>
-    );
-  }
-);
-
-// Use proper prop interfaces
-interface LoginFormProps {
-  onSubmit?: (data: LoginFormData) => void;
-  loading?: boolean;
-  error?: string | null;
-}
-
-// Default exports for components
-export function LoginForm({ onSubmit, loading, error }: LoginFormProps) {
-  // Component implementation
-}
-```
-
-### Error Handling
-
-```typescript
-// Use try-catch with proper error typing
-async function sendMessage(params: SendMessageParams): Promise<ApiResult<Message>> {
-  try {
-    const message = await db.insert(messageTable).values(params).returning();
-    return { success: true, data: message[0] };
-  } catch (error) {
-    console.error('Failed to send message:', error);
-    return { success: false, error: 'Failed to send message' };
-  }
-}
-
-// Use Result patterns for domain logic
-type DomainResult<T, E = string> = { success: true; data: T } | { success: false; error: E };
-
-function validateEmail(email: string): DomainResult<Email> {
-  if (!email.includes('@')) {
-    return { success: false, error: 'Invalid email format' };
-  }
-  return { success: true, data: email.toLowerCase() };
-}
-```
-
-### Naming Conventions
-
-- **Files**: kebab-case (`user-profile.tsx`, `send-message.ts`)
-- **Components**: PascalCase (`UserProfile`, `SendMessageButton`)
-- **Functions**: camelCase (`getUserById`, `sendMessageDbCore`)
-- **Variables**: camelCase (`userName`, `isLoading`)
-- **Constants**: UPPER_SNAKE_CASE (`API_BASE_URL`, `MAX_RETRIES`)
-- **Types**: PascalCase (`UserProfile`, `ApiResult`)
-
-### Testing Patterns
-
-```typescript
-// Test file naming: *.test.tsx or *.test.ts
-// Use descriptive test descriptions
-describe('LoginForm', () => {
-  it('should render login form with all fields', () => {
-    // Test implementation
-  });
-
-  it('should show validation error for invalid email', async () => {
-    // Test implementation
-  });
-
-  it('should call onSubmit with form data when valid', async () => {
-    // Test implementation
-  });
-});
-
-// Use custom render with providers
-import { renderWithProviders } from '@/test/test-utils';
-
-const { getByLabelText, getByRole } = renderWithProviders(
-  <LoginForm onSubmit={mockOnSubmit} />
-);
-```
-
-### Database Patterns
-
-```typescript
-// Always use withTenant for tenant-scoped queries
-const users = await db.query.user.findMany({
-  where: (t, { eq }) => withTenant(tenantId, t.tenantId, eq(t.isActive, true)),
-  with: {
-    agent: true,
-  },
-});
-
-// Use transactions for complex operations
-await db.transaction(async tx => {
-  await tx.insert(messageTable).values(message);
-  await tx.update(claimTable).set({ updatedAt: new Date() });
-});
-```
-
-### Security Patterns
-
-```typescript
-// Always validate sessions
-const session = await requireTenantSession(request);
-if (!session) {
-  return { success: false, error: 'Unauthorized' };
-}
-
-// Use tenant scoping
-const tenantId = ensureTenantId(session);
-
-// Sanitize user inputs
-const sanitizedContent = content.trim().slice(0, 1000);
-```
-
-### 150-Line Rule (Strict Modularity & Boy Scout Refactoring)
-
-**Retired rule:** There is no universal 150-line ceiling. This legacy heading is
-retained only for governance-heading continuity and does not grant enforcement
-authority.
-
-The canonical, executable authority is `scripts/modularity-guard-policy.mjs` as
-evaluated by `pnpm check:modularity-guard`:
-
-- Production code above the preferred checkpoint is advisory through the policy's
-  review boundary. An advisory alone must not block delivery, force a split, or
-  authorize unrelated refactoring.
-- Production code beyond the review boundary requires review or decomposition;
-  oversized legacy production files remain valid when they do not grow.
-- Focused tests, structured artifacts, governance documents, workflow YAML, and
-  generated/lock files follow their own class-specific policy rather than a
-  universal line count.
-- Refactor only when required by the executable policy, by cohesion or security,
-  or by the explicitly authorized slice. Do not broaden scope solely to reduce a
-  file below 150 lines.
-
-## Architecture Guidelines
-
-### Domain Packages Structure
-
-```
-packages/domain-{name}/src/
-├── index.ts              # Public API exports
-├── types.ts               # Domain types
-├── schema.ts              # Zod schemas
-├── admin/                 # Admin-only functions
-├── agent/                 # Agent-only functions
-├── staff/                 # Staff-only functions
-└── {feature}/             # Feature-specific modules
-```
-
-### Component Organization
-
-```
-src/components/
-├── ui/                    # Reusable UI components
-├── {feature}/             # Feature components
-│   ├── {component}.tsx
-│   └── {component}.test.tsx
-└── layout/                # Layout components
-```
-
-## Performance Guidelines
-
-- Use React.memo() for expensive components
-- Implement proper loading states with skeleton screens
-- Use Next.js dynamic imports for heavy components
-- Optimize database queries with proper indexes
-- Use React Query for data fetching and caching
-
-## Commit Message Style
-
-Use conventional commits:
-
-- `feat: add new user registration flow`
-- `fix: resolve login validation issue`
-- `refactor: extract domain logic to packages`
-- `test: add unit tests for claim service`
-- `docs: update API documentation`
-
-## Security Development Guidelines
-
-### Environment Security
-
-```bash
-# Generate secure development environment
-./scripts/security-setup.sh generate
-
-# Validate security setup
-./scripts/security-setup.sh check
-
-# Generate new secrets
-openssl rand -base64 32  # Auth secrets
-openssl rand -base64 24  # Shorter secrets
-openssl rand -hex 16     # Hex secrets
-```
-
-### Local Service Security
-
-- All Supabase services bind to `127.0.0.1` only
-- Database uses strong passwords and SSL in production
-- Authentication never bypasses, even in development
-- Rate limiting: GET=10/min, POST=5/min for auth endpoints
-
-### Secret Management
-
-- `.env.local` contains development-only secrets (gitignored)
-- Never commit production API keys to any environment file
-- Use development-specific API keys for all external services
-- Rotate authentication secrets every 30-90 days
-
-## Quick Reference (Phase C)
-
-Before opening or merging a PR:
-
-```bash
-pnpm pr:verify
-pnpm security:guard
-```
-
-The full E2E gate is included in `pr:verify`; its evidence remains mandatory.
-
-For deterministic local host-routed verification, use `pnpm pr:verify:hosts`; CI should continue using `pnpm pr:verify` with explicit host env.
-
-For single test debugging:
-
-```bash
-# Unit test
-pnpm --filter @interdomestik/web test:unit --run src/components/auth/login-form.test.tsx
-
-# E2E test
-pnpm --filter @interdomestik/web test:e2e:chromium -- --grep "login form"
-```
+## Implementation Conventions
+
+- TypeScript is strict. Prefer explicit public return types, discriminated results and narrow input
+  validation. Keep files cohesive; executable modularity policy, not a universal 150-line rule,
+  determines required decomposition.
+- Follow repository Prettier/ESLint configuration. Use kebab-case files, PascalCase components/types,
+  camelCase functions/variables and UPPER_SNAKE_CASE constants.
+- For tenant-scoped data, validate the session and use the established tenant/RLS query boundary.
+  Use transactions for multi-write invariants and fail closed on authorization ambiguity.
+- Reuse existing components and locale catalogs. Preserve EN/SQ/MK/SR where the feature exercises
+  user-facing copy. Test relevant loading/error/empty/retry, keyboard/focus, responsive and WCAG
+  behavior in addition to the happy path.
+- Use conventional commits such as `feat:`, `fix:`, `test:`, `refactor:` or `docs:`.
+- Never commit production secrets. Local Supabase services bind to loopback; environment files stay
+  development-only and gitignored.
 
 <!-- FAST-TOOLS PROMPT v1 | codex-mastery | watermark:do-not-alter -->
 
@@ -501,4 +158,4 @@ NEVER use grep for project-wide searches (slow, ignores .gitignore). ALWAYS use 
 
 <!-- END FAST-TOOLS PROMPT v1 | codex-mastery -->
 
-Note: The fast-tools guidance above applies to the `grep` shell command / CLI for repository searches. It does not prohibit tool-specific flags such as Playwright's `--grep`.
+The fast-tools rule applies to shell repository searches; Playwright's `--grep` flag is unaffected.

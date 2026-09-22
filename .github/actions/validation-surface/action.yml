@@ -25,6 +25,15 @@ outputs:
   main_e2e_reuse:
     description: Validation result main_e2e_reuse
     value: ${{ steps.main_e2e_reuse_safe.outputs.reuse }}
+  legacy_validation_should_run:
+    description: Whether retired Lean/Harness validation is relevant to this change
+    value: ${{ steps.legacy_validation.outputs.should_run }}
+  legacy_validation_reason:
+    description: Legacy validation selection reason
+    value: ${{ steps.legacy_validation.outputs.reason }}
+  legacy_validation_matched_paths:
+    description: Paths that selected legacy validation
+    value: ${{ steps.legacy_validation.outputs.matched_paths }}
 
 runs:
   using: composite
@@ -53,6 +62,18 @@ runs:
       with:
         event-name: ${{ github.event_name }}
         event-path: ${{ github.event_path }}
+    - name: Select legacy validation surface
+      id: legacy_validation
+      env:
+        BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      shell: bash
+      run: >-
+        node scripts/ci/legacy-validation-surface.mjs
+        --base "$BASE_SHA"
+        --head "$HEAD_SHA"
+        --root "$GITHUB_WORKSPACE"
+        >> "$GITHUB_OUTPUT"
     - name: Resolve exact-head certification admission
       id: certification
       uses: interdomestik/interdomestik/.github/actions/exact-head-certification@ecd31cf47a5d2fbd6c164aea0c0c6fcfb686011b

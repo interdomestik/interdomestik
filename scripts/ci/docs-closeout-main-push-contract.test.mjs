@@ -28,5 +28,9 @@ test('docs-only closeout merges skip main-push CI without weakening PR checks', 
   assert.match(checkout.uses, /^actions\/checkout@[0-9a-f]{40}$/u);
   assert.equal(setup.if, undefined);
   assert.match(governanceAudit.run, /pnpm track:audit && pnpm plan:audit/u);
+  assert.match(governanceAudit.run, /pnpm test:delivery-safety/u);
+  assert.match(governanceAudit.run, /pnpm legacy:validate/u);
+  assert.match(governanceAudit.run, /if \[\[ "\$RUN_BROAD" != "true" \]\]/u);
   assert.match(governanceAudit.run, /docs-closeout-main-push-contract\.test\.mjs/u);
+  assert.match(governanceAudit.run, /z620-parity-policy\.test\.mjs/u);
 });
