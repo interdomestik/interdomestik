@@ -22,8 +22,11 @@ export function legacyFocusedTestContract(filePath) {
 }
 export const MODULARITY_LINE_LIMIT = MODULARITY_POLICY.productionCode.preferredLines;
 const SEMANTIC_GOVERNANCE_PATHS = new Set([
+  'AGENTS.md',
   'docs/plans/current-program.md',
   'docs/plans/current-tracker.md',
+  'docs/plans/history/2026-09-22-current-program-ledger.md',
+  'docs/plans/history/2026-09-22-current-tracker-ledger.md',
 ]);
 export const FILE_CLASSES = Object.freeze({
   productionCode: 'production-code',

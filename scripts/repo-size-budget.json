@@ -926,7 +926,7 @@
       "id": "staff-current-claim-policy",
       "mode": "bounded",
       "writerPaths": [
-        "scripts/ci/lean-current-authority-contracts.test.mjs",
+        "scripts/ci/lean-current-authority-contracts.legacy.mjs",
         "scripts/lean-staff-current-claim-exception.mjs",
         "scripts/lean-staff-current-claim-policy.test.mjs"
       ],
@@ -934,7 +934,7 @@
       "maxTrackedFilesDelta": 2,
       "maxCategoryBytesDelta": { "source/scripts": 1109, "tests/e2e": 6166 },
       "maxPathBytesDelta": {
-        "scripts/ci/lean-current-authority-contracts.test.mjs": 106,
+        "scripts/ci/lean-current-authority-contracts.legacy.mjs": 106,
         "scripts/lean-staff-current-claim-exception.mjs": 1109,
         "scripts/lean-staff-current-claim-policy.test.mjs": 6124
       }

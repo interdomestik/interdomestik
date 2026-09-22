@@ -34,6 +34,9 @@ jobs:
       ai_eval_reason: ${{ steps.validation.outputs.ai_eval_reason }}
       ai_eval_matched_paths: ${{ steps.validation.outputs.ai_eval_matched_paths }}
       main_e2e_reuse: ${{ steps.validation.outputs.main_e2e_reuse }}
+      legacy_validation_should_run: ${{ steps.validation.outputs.legacy_validation_should_run }}
+      legacy_validation_reason: ${{ steps.validation.outputs.legacy_validation_reason }}
+      legacy_validation_matched_paths: ${{ steps.validation.outputs.legacy_validation_matched_paths }}
     steps:
       # prettier-ignore
       - { uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8, with: { fetch-depth: 0 } } # v6.0.1
@@ -52,8 +55,19 @@ jobs:
       # prettier-ignore
       - { name: Upload OD17 exact-head verdict, if: "always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'codex/ida-t115-od17-performance-proof'", uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f, with: { name: 'od17-verdict-${{ github.event.pull_request.head.sha }}', path: tmp/od17-verdict, if-no-files-found: error, retention-days: 7 } } # v6
       - name: Run lightweight governance audits
-        run: >-
-          pnpm track:audit && pnpm plan:audit && pnpm repo:size:check && pnpm test:harness-v2 && node --test scripts/ci/docs-closeout-main-push-contract.test.mjs scripts/ci/z620-parity-policy.test.mjs
+        env:
+          LEGACY_VALIDATION_SHOULD_RUN: ${{ needs.validation-surface.outputs.legacy_validation_should_run }}
+          RUN_BROAD: ${{ needs.validation-surface.outputs.run_broad }}
+        run: |
+          pnpm track:audit && pnpm plan:audit && pnpm repo:size:check
+          if [[ "$LEGACY_VALIDATION_SHOULD_RUN" == "true" ]]; then
+            pnpm legacy:validate
+          else
+            pnpm test:delivery-safety
+          fi
+          if [[ "$RUN_BROAD" != "true" ]]; then
+            node --test scripts/ci/docs-closeout-main-push-contract.test.mjs scripts/ci/z620-parity-policy.test.mjs
+          fi
       - name: Run Audits
         if: needs.validation-surface.outputs.run_broad == 'true'
         run: |

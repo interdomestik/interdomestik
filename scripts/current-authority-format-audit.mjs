@@ -5,8 +5,10 @@ import { readFileSync, statSync } from 'node:fs';
 import { validateProjectionArtifacts } from './current-authority-state-lib.mjs';
 import { parseAuthorityDocuments } from './lean-current-authority.mjs';
 import { extractSection, parseTrackerDocument } from './plan-model.mjs';
-const PROGRAM = 'docs/plans/current-program.md';
-const TRACKER = 'docs/plans/current-tracker.md';
+const PROGRAM = 'docs/plans/history/2026-09-22-current-program-ledger.md';
+const TRACKER = 'docs/plans/history/2026-09-22-current-tracker-ledger.md';
+const HISTORICAL_PROGRAM = 'docs/plans/current-program.md';
+const HISTORICAL_TRACKER = 'docs/plans/current-tracker.md';
 const MANIFEST = 'docs/plans/history/current-authority/2026-08-16-through-rev-243.manifest.json';
 const PROJECTION = 'docs/plans/current-authority-v1.json';
 const ENVELOPE = 'docs/plans/2026-08-21-ida-wf01-one-approval-delivery-envelope-v1.json';
@@ -115,7 +117,7 @@ function validateManifest(manifest, errors) {
     errors.push(`${MANIFEST}: expected exactly two historical artifacts`);
     return;
   }
-  for (const path of [PROGRAM, TRACKER]) {
+  for (const path of [HISTORICAL_PROGRAM, HISTORICAL_TRACKER]) {
     const matches = manifest.artifacts.filter(artifact => artifact.path === path);
     if (matches.length !== 1) errors.push(`${MANIFEST}: expected one artifact for ${path}`);
     else validateArtifact(manifest.sourceCommit, path, matches[0], errors);
