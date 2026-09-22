@@ -110,7 +110,7 @@ export function sanitizeDiagnosticUrl(value) {
     if (/^\/(?:en|sq|mk|sr)\/(?:login|admin)\/?$/u.test(parsed.pathname)) {
       return `${APPROVED_PREVIEW_ORIGIN}${parsed.pathname}`;
     }
-    const userPathMatch = parsed.pathname.match(/^\/(en|sq|mk|sr)\/admin\/users\/([^/]+)(\/?)$/u);
+    const userPathMatch = /^\/(en|sq|mk|sr)\/admin\/users\/([^/]+)(\/?)$/u.exec(parsed.pathname);
     if (userPathMatch) {
       const [, locale, , trailingSlash] = userPathMatch;
       return `${APPROVED_PREVIEW_ORIGIN}/${locale}/admin/users/[REDACTED_ID]${trailingSlash}`;
