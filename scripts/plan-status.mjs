@@ -13,11 +13,23 @@ const tracker = readFileOrFail(TRACKER_PATH);
 const currentPhase = (extractSection(program, 'Current Phase').split(/\r?\n\s*\r?\n/u)[0] || 'n/a')
   .replace(/\s+/gu, ' ')
   .trim();
+
+function parseNumberedGoal(line) {
+  const trimmed = line.trim();
+  const dot = trimmed.indexOf('.');
+  if (dot < 1) return '';
+  const ordinal = trimmed.slice(0, dot);
+  if (![...ordinal].every(character => character >= '0' && character <= '9')) return '';
+  const remainder = trimmed.slice(dot + 1);
+  if (!remainder || remainder.trimStart() === remainder) return '';
+  return remainder.trim();
+}
+
 const goals = [];
 for (const line of extractSection(program, 'Program Goals').split(/\r?\n/u)) {
-  const start = line.trim().match(/^\d+\.\s+(.+)$/u);
+  const start = parseNumberedGoal(line);
   if (start) {
-    goals.push(start[1]);
+    goals.push(start);
   } else if (line.trim() && goals.length > 0) {
     goals[goals.length - 1] += ` ${line.trim()}`;
   }

@@ -19,6 +19,7 @@ const LEGACY_PREFIXES = [
   'docs/plans/history/current-authority/',
   'scripts/current-authority-format-audit.',
   'scripts/current-authority-state',
+  'scripts/ci/exact-delivery',
   'scripts/lean-',
   'scripts/slice-rehearse',
   'scripts/slice-telemetry',
@@ -111,19 +112,33 @@ function git(root, args) {
   });
 }
 
+export function parseChangedFiles(nameStatusText) {
+  return String(nameStatusText)
+    .split(/\r?\n/u)
+    .filter(Boolean)
+    .flatMap(line => {
+      const [status = '', ...paths] = line.split('\t');
+      if (!/^(?:[ACDMRTUXB]|R\d+|C\d+)$/u.test(status) || paths.length === 0) {
+        throw new Error(`malformed git name-status record: ${line}`);
+      }
+      return paths;
+    });
+}
+
 function evaluateRepository({ root, base, head }) {
   if (!SHA.test(base) || !SHA.test(head)) {
     return evaluateLegacyValidation({ evidenceComplete: false });
   }
   try {
-    const changedFiles = git(root, [
-      'diff',
-      '--name-only',
-      '--diff-filter=ACDMRTUXB',
-      `${base}...${head}`,
-    ])
-      .split(/\r?\n/u)
-      .filter(Boolean);
+    const changedFiles = parseChangedFiles(
+      git(root, [
+        'diff',
+        '--name-status',
+        '--find-renames',
+        '--diff-filter=ACDMRTUXB',
+        `${base}...${head}`,
+      ])
+    );
     let packageBefore = '';
     let packageAfter = '';
     let budgetBefore = '';

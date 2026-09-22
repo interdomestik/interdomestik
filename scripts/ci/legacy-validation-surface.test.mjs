@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { evaluateLegacyValidation } from './legacy-validation-surface.mjs';
+import { evaluateLegacyValidation, parseChangedFiles } from './legacy-validation-surface.mjs';
 
 test('ordinary product and active-plan changes skip full legacy validation', () => {
   assert.deepEqual(
@@ -22,6 +22,9 @@ test('legacy artifacts, consumers and selection policy run full legacy validatio
     'scripts/slice-rehearse-core.mjs',
     'scripts/slice-telemetry.mjs',
     'scripts/ci/lean-current-authority-contracts.legacy.mjs',
+    'scripts/ci/exact-delivery.mjs',
+    'scripts/ci/exact-delivery-lib.mjs',
+    'scripts/ci/exact-delivery.test.mjs',
     'scripts/ci/legacy-validation-surface.mjs',
     '.github/actions/validation-surface/action.yml',
     '.github/workflows/ci.yml',
@@ -30,6 +33,33 @@ test('legacy artifacts, consumers and selection policy run full legacy validatio
     assert.equal(result.shouldRun, true, changedPath);
     assert.deepEqual(result.matchedPaths, [changedPath], changedPath);
   }
+});
+
+test('name-status parsing retains both endpoints of legacy renames', () => {
+  const changedFiles = parseChangedFiles(
+    [
+      'M\tapps/web/src/example.ts',
+      'R100\tscripts/lean-demo.mjs\tapps/web/src/renamed-demo.mjs',
+      'C087\tscripts/ci/exact-delivery.mjs\tscripts/copied-delivery.mjs',
+      '',
+    ].join('\n')
+  );
+  assert.deepEqual(changedFiles, [
+    'apps/web/src/example.ts',
+    'scripts/lean-demo.mjs',
+    'apps/web/src/renamed-demo.mjs',
+    'scripts/ci/exact-delivery.mjs',
+    'scripts/copied-delivery.mjs',
+  ]);
+  assert.deepEqual(evaluateLegacyValidation({ changedFiles }), {
+    shouldRun: true,
+    reason: 'legacy_surface_changed',
+    matchedPaths: ['scripts/ci/exact-delivery.mjs', 'scripts/lean-demo.mjs'],
+  });
+});
+
+test('malformed name-status output fails closed', () => {
+  assert.throws(() => parseChangedFiles('not-a-status\tscripts/lean-demo.mjs'), /malformed/u);
 });
 
 test('package changes select legacy validation only when legacy commands change', () => {

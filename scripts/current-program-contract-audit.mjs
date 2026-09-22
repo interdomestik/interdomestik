@@ -14,6 +14,24 @@ const FILES = Object.freeze({
   trackerHistory: 'docs/plans/history/2026-09-22-current-tracker-ledger.md',
 });
 const MAX_BYTES = 1024 * 1024;
+const AUTHORITY_BOUNDARIES = [
+  [/apps\/web\/src\/proxy\.ts[^]*?read-only unless[^]*?explicit/u, 'read-only proxy authority'],
+  [
+    /\/member[^]*?\/agent[^]*?\/staff[^]*?\/admin[^]*?must not be renamed or bypassed/u,
+    'protected canonical routes',
+  ],
+  [/page-ready[^]*?(?:contractual|enforced)/u, 'contractual clarity markers'],
+  [/Supabase Auth[^]*?better-auth[^]*?@interdomestik\/shared-auth/u, 'authentication layering'],
+  [/Authentication[^]*?never be bypassed[^]*?development/iu, 'no auth bypass'],
+  [/tenant\/RLS[^]*?mandatory/iu, 'mandatory tenant/RLS boundary'],
+  [/Paddle[^]*?only V3 pilot billing provider/u, 'Paddle-only billing boundary'],
+  [/pnpm pr:verify[^]*?pnpm security:guard/u, 'required local verification'],
+  [
+    /README\.md[^]*?AGENTS\.md[^]*?architecture documents[^]*?(?:explicit[^]*?owner request|owner[^]*?explicit[^]*?requests?)/iu,
+    'owner-only governance document changes',
+  ],
+  [/apps\/web\/package\.json/u, 'manifest version authority'],
+];
 
 function parseArgs(argv) {
   const args = [...argv];
@@ -52,15 +70,7 @@ function requireHeadings(text, file, headings, errors) {
   }
 }
 
-function validateCurrentAuthority(root) {
-  const errors = [];
-  const agents = read(root, FILES.agents, errors);
-  const program = read(root, FILES.program, errors);
-  const tracker = read(root, FILES.tracker, errors);
-  const programHistory = read(root, FILES.programHistory, errors);
-  const trackerHistory = read(root, FILES.trackerHistory, errors);
-  const packageText = read(root, FILES.package, errors);
-
+function validateHeadings(program, tracker, errors) {
   requireHeadings(
     program,
     FILES.program,
@@ -89,34 +99,20 @@ function validateCurrentAuthority(root) {
     ],
     errors
   );
+}
 
-  const activeAuthority = [
-    [agents, FILES.agents],
-    [program, FILES.program],
-  ];
+function validateActiveAuthority(activeAuthority, errors) {
   for (const [text, file] of activeAuthority) {
-    for (const [pattern, label] of [
-      [/apps\/web\/src\/proxy\.ts[^]*?read-only unless[^]*?explicit/u, 'read-only proxy authority'],
-      [
-        /\/member[^]*?\/agent[^]*?\/staff[^]*?\/admin[^]*?must not be renamed or bypassed/u,
-        'protected canonical routes',
-      ],
-      [/page-ready[^]*?(?:contractual|enforced)/u, 'contractual clarity markers'],
-      [/Supabase Auth[^]*?better-auth[^]*?@interdomestik\/shared-auth/u, 'authentication layering'],
-      [/Authentication[^]*?never be bypassed[^]*?development/iu, 'no auth bypass'],
-      [/tenant\/RLS[^]*?mandatory/iu, 'mandatory tenant/RLS boundary'],
-      [/Paddle[^]*?only V3 pilot billing provider/u, 'Paddle-only billing boundary'],
-      [/pnpm pr:verify[^]*?pnpm security:guard/u, 'required local verification'],
-      [
-        /README\.md[^]*?AGENTS\.md[^]*?architecture documents[^]*?(?:explicit[^]*?owner request|owner[^]*?explicit[^]*?requests?)/iu,
-        'owner-only governance document changes',
-      ],
-      [/apps\/web\/package\.json/u, 'manifest version authority'],
-    ]) {
+    for (const [pattern, label] of AUTHORITY_BOUNDARIES) {
       requireMatch(text, pattern, file, label, errors);
     }
+    if (/\b(?:Next\.js|React|Tailwind(?: CSS)?|next-intl)\s+v?\d+(?:\.\d+)*\b/iu.test(text)) {
+      errors.push(`${file}: duplicates a hard-coded framework version`);
+    }
   }
+}
 
+function validateProgramReferences(program, errors) {
   for (const [pattern, label] of [
     [/requirement-disposition-map\.md/u, 'SRS requirement map'],
     [/architecture-finalization-program-2026-05-29\.md/u, 'architecture program'],
@@ -128,7 +124,9 @@ function validateCurrentAuthority(root) {
   ]) {
     requireMatch(program, pattern, FILES.program, label, errors);
   }
+}
 
+function validateActiveDocuments(program, tracker, errors) {
   for (const [text, file] of [
     [program, FILES.program],
     [tracker, FILES.tracker],
@@ -141,13 +139,9 @@ function validateCurrentAuthority(root) {
       errors.push(`${file}: contains a raw runtime transcript block`);
     }
   }
+}
 
-  for (const [text, file] of activeAuthority) {
-    if (/\b(?:Next\.js|React|Tailwind(?: CSS)?|next-intl)\s+v?\d+(?:\.\d+)*\b/iu.test(text)) {
-      errors.push(`${file}: duplicates a hard-coded framework version`);
-    }
-  }
-
+function validateTracker(tracker, errors) {
   const { queueRows, proofRows } = parseTrackerDocument(tracker);
   if (queueRows.length === 0) errors.push(`${FILES.tracker}: active queue is empty`);
   if (queueRows.filter(row => row.status === 'in_progress').length > 1) {
@@ -159,7 +153,9 @@ function validateCurrentAuthority(root) {
   if (new Set(proofRows.map(row => row.id)).size !== proofRows.length) {
     errors.push(`${FILES.tracker}: duplicate proof ledger IDs`);
   }
+}
 
+function validateArchives(programHistory, trackerHistory, errors) {
   for (const [text, file] of [
     [programHistory, FILES.programHistory],
     [trackerHistory, FILES.trackerHistory],
@@ -168,39 +164,61 @@ function validateCurrentAuthority(root) {
     requireMatch(text, /^source_of_truth:\s*false$/mu, file, 'non-authoritative status', errors);
     requireMatch(text, /^> Status: Archived/mu, file, 'visible archive banner', errors);
   }
+}
 
-  if (packageText) {
-    let packageJson;
-    try {
-      packageJson = JSON.parse(packageText);
-    } catch {
-      errors.push(`${FILES.package}: invalid JSON`);
-    }
-    if (packageJson) {
-      const scripts = packageJson.scripts ?? {};
-      if (!scripts['plan:audit']?.includes('current-program-contract-audit.mjs')) {
-        errors.push(`${FILES.package}: plan:audit must run the current program contract`);
-      }
-      if (scripts['plan:audit']?.includes('current-authority-format-audit.mjs')) {
-        errors.push(`${FILES.package}: ordinary plan:audit invokes the legacy authority audit`);
-      }
-      if (!scripts['plan:audit:legacy']?.includes('current-authority-format-audit.mjs')) {
-        errors.push(`${FILES.package}: missing explicit legacy authority audit`);
-      }
-      if (!scripts['test:delivery-safety']) {
-        errors.push(`${FILES.package}: missing retained shared delivery-safety tests`);
-      }
-      if (scripts['test:ci:contracts']?.includes('lean-current-authority-contracts')) {
-        errors.push(`${FILES.package}: ordinary CI contracts invoke the legacy authority wrapper`);
-      }
-      if (
-        !scripts['legacy:validate']?.includes('lean-current-authority-contracts.legacy.mjs') ||
-        !scripts['legacy:validate']?.includes('test:harness-v2')
-      ) {
-        errors.push(`${FILES.package}: explicit legacy validation is incomplete`);
-      }
-    }
+function validatePackageScripts(packageText, errors) {
+  if (!packageText) return;
+  let packageJson;
+  try {
+    packageJson = JSON.parse(packageText);
+  } catch {
+    errors.push(`${FILES.package}: invalid JSON`);
+    return;
   }
+  const scripts = packageJson.scripts ?? {};
+  if (!scripts['plan:audit']?.includes('current-program-contract-audit.mjs')) {
+    errors.push(`${FILES.package}: plan:audit must run the current program contract`);
+  }
+  if (scripts['plan:audit']?.includes('current-authority-format-audit.mjs')) {
+    errors.push(`${FILES.package}: ordinary plan:audit invokes the legacy authority audit`);
+  }
+  if (!scripts['plan:audit:legacy']?.includes('current-authority-format-audit.mjs')) {
+    errors.push(`${FILES.package}: missing explicit legacy authority audit`);
+  }
+  if (!scripts['test:delivery-safety']) {
+    errors.push(`${FILES.package}: missing retained shared delivery-safety tests`);
+  }
+  if (scripts['test:ci:contracts']?.includes('lean-current-authority-contracts')) {
+    errors.push(`${FILES.package}: ordinary CI contracts invoke the legacy authority wrapper`);
+  }
+  if (
+    !scripts['legacy:validate']?.includes('lean-current-authority-contracts.legacy.mjs') ||
+    !scripts['legacy:validate']?.includes('test:harness-v2')
+  ) {
+    errors.push(`${FILES.package}: explicit legacy validation is incomplete`);
+  }
+}
+
+function validateCurrentAuthority(root) {
+  const errors = [];
+  const agents = read(root, FILES.agents, errors);
+  const program = read(root, FILES.program, errors);
+  const tracker = read(root, FILES.tracker, errors);
+  const programHistory = read(root, FILES.programHistory, errors);
+  const trackerHistory = read(root, FILES.trackerHistory, errors);
+  const packageText = read(root, FILES.package, errors);
+
+  validateHeadings(program, tracker, errors);
+  const activeAuthority = [
+    [agents, FILES.agents],
+    [program, FILES.program],
+  ];
+  validateActiveAuthority(activeAuthority, errors);
+  validateProgramReferences(program, errors);
+  validateActiveDocuments(program, tracker, errors);
+  validateTracker(tracker, errors);
+  validateArchives(programHistory, trackerHistory, errors);
+  validatePackageScripts(packageText, errors);
 
   return errors;
 }
