@@ -118,41 +118,41 @@ export function SharedEvidenceUploadDialog({
             lastModified: selectedFile.lastModified,
           });
 
-    // Request-linked uploads stay server-mediated so storage and the durable request link
-    // are confirmed through one guarded application path.
-    if (informationRequestId) {
+    if (resolvedMimeType !== storageContentType && !informationRequestId) {
       return handleDirectUpload(selectedFile, selectedCategory);
     }
 
-    if (resolvedMimeType !== storageContentType) {
-      return handleDirectUpload(selectedFile, selectedCategory);
-    }
-
-    const uploadUrlResult = await generateUploadUrl(
-      claimId,
-      selectedFile.name,
-      resolvedMimeType,
-      selectedFile.size
-    );
+    const uploadUrlResult = informationRequestId
+      ? await generateUploadUrl(
+          claimId,
+          selectedFile.name,
+          resolvedMimeType,
+          selectedFile.size,
+          informationRequestId,
+          storageContentType
+        )
+      : await generateUploadUrl(claimId, selectedFile.name, resolvedMimeType, selectedFile.size);
 
     if (!uploadUrlResult.success) {
       throw new Error(uploadUrlResult.error);
     }
 
-    if (!supabase) {
-      throw new Error(messages.storageUnavailable);
-    }
+    if (!uploadUrlResult.deterministicE2E) {
+      if (!supabase) {
+        throw new Error(messages.storageUnavailable);
+      }
 
-    const { error: uploadError } = await supabase.storage
-      .from(uploadUrlResult.bucket)
-      .uploadToSignedUrl(uploadUrlResult.path, uploadUrlResult.token, uploadFile, {
-        contentType: storageContentType,
-        upsert: true,
-        cacheControl: '3600',
-      });
+      const { error: uploadError } = await supabase.storage
+        .from(uploadUrlResult.bucket)
+        .uploadToSignedUrl(uploadUrlResult.path, uploadUrlResult.token, uploadFile, {
+          contentType: storageContentType,
+          upsert: true,
+          cacheControl: '3600',
+        });
 
-    if (uploadError) {
-      throw new Error(uploadError.message || messages.uploadFailed);
+      if (uploadError) {
+        throw new Error(uploadError.message || messages.uploadFailed);
+      }
     }
 
     const confirmResult = await confirmUpload({

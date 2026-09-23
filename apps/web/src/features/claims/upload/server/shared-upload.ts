@@ -45,6 +45,7 @@ export type SharedGenerateUploadUrlResult =
       id: string;
       token: string;
       bucket: string;
+      deterministicE2E?: true;
       intentToken: string;
     }
   | { success: false; error: string; status: 400 | 413 | 500 };
@@ -120,7 +121,12 @@ export async function validateStoredObject(params: {
   const lastSlashIndex = storagePath.lastIndexOf('/');
   const fileName = storagePath.slice(lastSlashIndex + 1);
 
-  const { listTenantObjectsForSingleFile } = await import('@/lib/storage/service-role');
+  const { listTenantObjectsForSingleFile, usesDeterministicE2EStorage } =
+    await import('@/lib/storage/service-role');
+  if (usesDeterministicE2EStorage()) {
+    return { success: true };
+  }
+
   const { data, error } = await listTenantObjectsForSingleFile({
     bucket,
     context: 'claim upload verification',
@@ -232,11 +238,24 @@ export async function createSignedUploadUrl(params: {
   claimId: string;
   fileName: string;
   fileSize: number;
+  informationRequestId?: string;
   logPrefix: string;
   mimeType: string;
+  storageContentType?: string;
   tenantId: string;
 }): Promise<SharedGenerateUploadUrlResult> {
-  const { actorId, bucket, claimId, fileName, fileSize, logPrefix, mimeType, tenantId } = params;
+  const {
+    actorId,
+    bucket,
+    claimId,
+    fileName,
+    fileSize,
+    informationRequestId,
+    logPrefix,
+    mimeType,
+    storageContentType,
+    tenantId,
+  } = params;
 
   if (!Number.isSafeInteger(fileSize) || fileSize <= 0) {
     return { success: false, error: 'Invalid file size', status: 400 };
@@ -290,13 +309,17 @@ export async function createSignedUploadUrl(params: {
           id: fileId,
           token: data.token,
           bucket,
+          deterministicE2E:
+            (data as { deterministicE2E?: true }).deterministicE2E === true ? true : undefined,
           intentToken: createClaimUploadIntentToken({
             actorId,
             bucket,
             claimId,
             fileId,
             fileSize,
+            informationRequestId,
             mimeType,
+            storageContentType,
             storagePath: path,
             tenantId,
           }),

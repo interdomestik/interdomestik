@@ -9,6 +9,7 @@ type UploadUrlSuccess = {
   token: string;
   intentToken: string;
   id: string;
+  deterministicE2E?: true;
 };
 
 type UploadUrlFailure = { success: false; error: string };
@@ -19,7 +20,9 @@ export type GenerateUploadUrlFn = (
   claimId: string,
   fileName: string,
   contentType: string,
-  fileSize: number
+  fileSize: number,
+  informationRequestId?: string,
+  storageContentType?: string
 ) => Promise<UploadUrlSuccess | UploadUrlFailure>;
 
 export type ConfirmUploadFn = (params: {

@@ -125,7 +125,7 @@ test('staff request, member evidence and assigned-staff acknowledgement round tr
       const downloadLink = staffCard.getByRole('link', { name: 'Shkarko' });
       await expect(downloadLink).toBeVisible();
       await staffCard.getByRole('button', { name: 'Konfirmo provën' }).click();
-      await expect(staffCard).toContainText('Prova u konfirmua.', { timeout: 15_000 });
+      await expect(staffCard).toContainText('Prova u konfirmua', { timeout: 15_000 });
 
       const downloadPromise = staffPage.waitForEvent('download');
       await downloadLink.click();

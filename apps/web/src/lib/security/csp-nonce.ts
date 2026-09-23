@@ -57,8 +57,12 @@ export function buildReportToHeader(): string {
   });
 }
 
-export function buildReportOnlyCsp(params: { nonce: string; isProductionHttps: boolean }): string {
-  const { nonce, isProductionHttps } = params;
+export function buildReportOnlyCsp(params: {
+  nonce: string;
+  isProductionHttps: boolean;
+  localSupabaseConnectSource?: string;
+}): string {
+  const { nonce, isProductionHttps, localSupabaseConnectSource = '' } = params;
   const isDevelopment = process.env.NODE_ENV === 'development';
   const directives = [
     "default-src 'self'",
@@ -66,7 +70,7 @@ export function buildReportOnlyCsp(params: { nonce: string; isProductionHttps: b
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https://*.supabase.co https://www.facebook.com",
     "font-src 'self' data:",
-    "connect-src 'self' https://*.supabase.co https://*.posthog.com https://*.sentry.io https://*.ingest.sentry.io https://api.paddle.com https://*.paddle.com https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://connect.facebook.net https://graph.facebook.com",
+    `connect-src 'self' ${localSupabaseConnectSource} https://*.supabase.co https://*.posthog.com https://*.sentry.io https://*.ingest.sentry.io https://api.paddle.com https://*.paddle.com https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://connect.facebook.net https://graph.facebook.com`,
     "frame-src 'self' https://*.paddle.com https://buy.paddle.com",
     "object-src 'none'",
     "base-uri 'self'",

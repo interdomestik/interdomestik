@@ -195,35 +195,32 @@ describe('ClaimEvidenceUploadDialog AI extraction consent', () => {
     });
   });
 
-  it('binds request-linked uploads through the validated direct endpoint', async () => {
+  it('keeps request-linked files above the server body limit on the signed upload path', async () => {
     render(dialogElement('en', 'Upload requested', '12345678-1234-4234-8234-123456789012'));
     fireEvent.click(screen.getByRole('button', { name: 'Upload requested' }));
     const file = new File(['dummy'], 'evidence.pdf', { type: 'application/pdf' });
+    Object.defineProperty(file, 'size', { value: 6 * 1024 * 1024 });
     fireEvent.change(screen.getByLabelText(localizedCopy.en.fileLabel), {
       target: { files: [file] },
     });
     fireEvent.click(screen.getByRole('button', { name: localizedCopy.en.uploadButton }));
 
-    await waitFor(() => expect(mocks.fetch).toHaveBeenCalledTimes(1));
-    const request = mocks.fetch.mock.calls[0]?.[1] as { body: FormData };
-    expect(request.body.get('file')).toBe(file);
-    expect(request.body.get('informationRequestId')).toBe('12345678-1234-4234-8234-123456789012');
-    expect(mocks.generateUploadUrl).not.toHaveBeenCalled();
-    expect(mocks.confirmUpload).not.toHaveBeenCalled();
-  });
-
-  it('binds direct fallback uploads to the selected information request', async () => {
-    render(dialogElement('en', 'Upload requested', '12345678-1234-4234-8234-123456789012'));
-    fireEvent.click(screen.getByRole('button', { name: 'Upload requested' }));
-    const file = new File(['dummy'], 'evidence.docx', { type: '' });
-    fireEvent.change(screen.getByLabelText(localizedCopy.en.fileLabel), {
-      target: { files: [file] },
+    await waitFor(() => {
+      expect(mocks.generateUploadUrl).toHaveBeenCalledWith(
+        'claim-1',
+        'evidence.pdf',
+        'application/pdf',
+        file.size,
+        '12345678-1234-4234-8234-123456789012',
+        'application/pdf'
+      );
+      expect(mocks.confirmUpload).toHaveBeenCalledWith(
+        expect.objectContaining({
+          informationRequestId: '12345678-1234-4234-8234-123456789012',
+        })
+      );
     });
-    fireEvent.click(screen.getByRole('button', { name: localizedCopy.en.uploadButton }));
-
-    await waitFor(() => expect(mocks.fetch).toHaveBeenCalledTimes(1));
-    const request = mocks.fetch.mock.calls[0]?.[1] as { body: FormData };
-    expect(request.body.get('informationRequestId')).toBe('12345678-1234-4234-8234-123456789012');
+    expect(mocks.fetch).not.toHaveBeenCalled();
   });
 
   it('resets file and consent on cancel, then returns focus', async () => {

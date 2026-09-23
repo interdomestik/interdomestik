@@ -15,7 +15,10 @@ import {
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { headers } from 'next/headers';
+import { z } from 'zod';
 import { buildMemberAiExtractionConsent, type ConfirmUploadParams } from './upload-consent';
+
+const informationRequestIdSchema = z.uuid();
 
 export type GenerateUploadUrlResult =
   | {
@@ -25,6 +28,7 @@ export type GenerateUploadUrlResult =
       id: string;
       token: string;
       bucket: string;
+      deterministicE2E?: true;
       intentToken: string;
     }
   | { success: false; error: string; status: 400 | 401 | 404 | 413 | 500 };
@@ -33,7 +37,9 @@ export async function generateUploadUrl(
   claimId: string,
   fileName: string,
   contentType: string,
-  fileSize: number
+  fileSize: number,
+  informationRequestId?: string,
+  storageContentType?: string
 ): Promise<GenerateUploadUrlResult> {
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -67,20 +73,39 @@ export async function generateUploadUrl(
     return { success: false, error: 'Claim not found', status: 404 };
   }
 
+  if (informationRequestId) {
+    const parsedRequestId = informationRequestIdSchema.safeParse(informationRequestId);
+    if (!parsedRequestId.success) {
+      return { success: false, error: 'Invalid information request', status: 400 };
+    }
+    if (
+      !(await findOwnedMemberInformationRequest({
+        claimId,
+        informationRequestId: parsedRequestId.data,
+        tenantId,
+        userId: session.user.id,
+      }))
+    ) {
+      return { success: false, error: 'Information request not found', status: 404 };
+    }
+  }
+
   return createSignedUploadUrl({
     actorId: session.user.id,
     bucket: evidenceBucket,
     claimId,
     fileName,
     fileSize,
+    informationRequestId,
     logPrefix: '[member/claims]',
     mimeType: contentType,
+    storageContentType,
     tenantId,
   });
 }
 
 export type ConfirmUploadResult =
-  { success: true } | { success: false; error: string; status: 401 | 404 | 409 | 500 };
+  { success: true } | { success: false; error: string; status: 400 | 401 | 404 | 409 | 500 };
 
 type ConfirmUploadContext =
   | {
@@ -135,6 +160,10 @@ export async function confirmUpload(params: ConfirmUploadParams): Promise<Confir
     return uploadContext;
   }
   const { session, tenantId, resolvedBucket } = uploadContext;
+
+  if (informationRequestId && !informationRequestIdSchema.safeParse(informationRequestId).success) {
+    return { success: false, error: 'Invalid information request', status: 400 };
+  }
 
   const claim = await findOwnedMemberUploadClaim({
     claimId,

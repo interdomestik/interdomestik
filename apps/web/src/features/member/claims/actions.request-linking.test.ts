@@ -51,7 +51,7 @@ vi.mock('@supabase/supabase-js', () => ({
 }));
 vi.mock('next/cache', () => ({ revalidatePath: hoisted.revalidatePath }));
 
-import { confirmUpload } from './actions';
+import { confirmUpload, generateUploadUrl } from './actions';
 import { createConfirmUploadParams, createUploadIntent } from './actions.test-fixtures';
 
 describe('member request-linked claim upload actions', () => {
@@ -76,6 +76,52 @@ describe('member request-linked claim upload actions', () => {
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://supabase.example.com');
     vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'service-role-key');
     vi.stubEnv('BETTER_AUTH_SECRET', 'upload-intent-test-secret-32-chars-minimum');
+  });
+
+  it('binds the owned information request into the signed upload intent', async () => {
+    hoisted.createSignedUploadUrl.mockResolvedValueOnce({
+      data: { signedUrl: 'https://signed.example.com/upload', token: 'upload-token-1' },
+      error: null,
+    });
+
+    const result = await generateUploadUrl(
+      'claim-1',
+      'evidence.pdf',
+      'application/pdf',
+      1024,
+      '12345678-1234-4234-8234-123456789012',
+      'application/pdf'
+    );
+
+    expect(result).toEqual(expect.objectContaining({ success: true }));
+    expect(hoisted.findOwnedMemberInformationRequest).toHaveBeenCalledWith({
+      claimId: 'claim-1',
+      informationRequestId: '12345678-1234-4234-8234-123456789012',
+      tenantId: 'tenant-1',
+      userId: 'member-1',
+    });
+    if (!result.success) throw new Error('Expected signed upload intent');
+    const [encodedIntent] = result.intentToken.split('.');
+    expect(JSON.parse(Buffer.from(encodedIntent, 'base64url').toString('utf8'))).toEqual(
+      expect.objectContaining({
+        informationRequestId: '12345678-1234-4234-8234-123456789012',
+        storageContentType: 'application/pdf',
+      })
+    );
+  });
+
+  it('rejects malformed request IDs before querying claims or requests', async () => {
+    const result = await confirmUpload(
+      createConfirmUploadParams({ informationRequestId: 'not-a-uuid' })
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Invalid information request',
+      status: 400,
+    });
+    expect(hoisted.findOwnedMemberUploadClaim).not.toHaveBeenCalled();
+    expect(hoisted.findOwnedMemberInformationRequest).not.toHaveBeenCalled();
   });
 
   it('rejects confirmation when the request association differs from the signed intent', async () => {

@@ -12,6 +12,7 @@ import {
   inArray,
 } from '@interdomestik/database';
 import { expect } from '../fixtures/auth.fixture';
+import { hasConfiguredSupabaseStorage } from '@/lib/storage/storage-credentials';
 
 export async function cleanupInformationRequest(claimId: string, tenantId: string) {
   if (!/^s4-[a-f0-9-]{36}$/u.test(claimId)) throw new Error('S4 cleanup identity invalid');
@@ -30,11 +31,13 @@ export async function cleanupInformationRequest(claimId: string, tenantId: strin
       .from(claimDocuments)
       .where(and(eq(claimDocuments.tenantId, tenantId), eq(claimDocuments.claimId, claimId))),
   ]);
-  for (const bucket of new Set(documents.map(document => document.bucket))) {
-    const paths = documents
-      .filter(document => document.bucket === bucket)
-      .map(document => document.path);
-    if (paths.length) await createAdminClient().storage.from(bucket).remove(paths);
+  if (hasConfiguredSupabaseStorage()) {
+    for (const bucket of new Set(documents.map(document => document.bucket))) {
+      const paths = documents
+        .filter(document => document.bucket === bucket)
+        .map(document => document.path);
+      if (paths.length) await createAdminClient().storage.from(bucket).remove(paths);
+    }
   }
   await db.transaction(async tx => {
     if (requests.length) {
