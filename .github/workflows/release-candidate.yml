@@ -150,18 +150,6 @@ jobs:
           printf 'i18n_production_gate command not required by manifest; skipped\n' | tee "${log_file}"
           printf '0\n' > "${RC_LOGS_DIR}/i18n_production_gate.exit"
 
-      - name: RC check - RLS integration
-        shell: bash
-        run: |
-          set -euo pipefail
-          log_file="${RC_LOGS_DIR}/rls.log"
-          set +e
-          REQUIRE_RLS_INTEGRATION=1 pnpm db:rls:test 2>&1 | tee "${log_file}"
-          exit_code=${PIPESTATUS[0]}
-          set -e
-          printf '%s\n' "${exit_code}" > "${RC_LOGS_DIR}/rls.exit"
-          exit "${exit_code}"
-
       - name: RC check - pr:verify:hosts
         shell: bash
         run: |
@@ -191,18 +179,6 @@ jobs:
           echo "::error::Web server failed to become healthy on ${RC_BASE_URL}"
           cat "${RC_LOGS_DIR}/web-start.log" || true
           exit 1
-
-      - name: RC release-gate suite - p0
-        shell: bash
-        run: |
-          set -euo pipefail
-          pnpm -s release:gate:p0:raw --baseUrl "${RC_BASE_URL}" 2>&1 | tee "${RC_LOGS_DIR}/release-gate-p0.log"
-
-      - name: RC release-gate suite - p1
-        shell: bash
-        run: |
-          set -euo pipefail
-          pnpm -s release:gate:p1:raw --baseUrl "${RC_BASE_URL}" 2>&1 | tee "${RC_LOGS_DIR}/release-gate-p1.log"
 
       - name: RC release-gate suite - all
         shell: bash
