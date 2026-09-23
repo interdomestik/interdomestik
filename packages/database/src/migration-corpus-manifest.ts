@@ -1,5 +1,5 @@
-export const JOURNAL_SHA256 = '238015bed69239377ee3504816c2fdaf05623ce608370ef82d8215e683ada35f';
-export const CORPUS_SHA256 = '48ad563c68cc5065c86aa23dfdb6c20edbf5c7dd0e0dd1297be223234db490de';
+export const JOURNAL_SHA256 = '1ded548769577d5a68bc9ea8de1509437977d607f9c5c24763e5782de6e7dd02';
+export const CORPUS_SHA256 = '316b700fb12c878e9c013abfbf74c4e8016e8fd728e821bcf3a334ed12761fb4';
 export const CORPUS_DOMAIN = 'interdomestik-migration-corpus-v1\0';
 export const EXCLUDED_MIGRATION_FILES = Object.freeze([
   '0015_drop_tenant_defaults.sql',
@@ -102,6 +102,7 @@ export const MIGRATION_FILE_HASHES = Object.freeze([
   'fa1bf64dad668984da2137de55aaaf06e56415d10e0a16bb1bbe90236e6ac3fa',
   '24f20b060266d63ff470dd1bd93b65bd8cb0b8998b2b5c16cac9e1e5d4d553ce',
   'addca85e1303b4b6810c6bb811a1e3318e404545efccb04449160319ad7d16f2',
+  'b9eee5c2d67e34868642538f466baded66d315ff863561607fd201ad9bc7bea7',
   '6a09bd57cfd9de9e5faef4ce222c48bcea0f24c203d83e8a7233791dd2ea281f',
   'f4e6464b7d4f8375541d26d82101ef9451f220d4b94c857187577fbf32bbf6cc',
   'c3b4597a85a2a9a0690eaacd54228a6af26790221fd6415484f85838806f2751',

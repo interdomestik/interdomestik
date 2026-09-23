@@ -9,6 +9,7 @@ export type ConfirmUploadParams = {
   mimeType: string;
   fileSize: number;
   fileId: string;
+  informationRequestId?: string;
   uploadIntentToken: string;
   storageContentType?: string;
   uploadedBucket?: string;

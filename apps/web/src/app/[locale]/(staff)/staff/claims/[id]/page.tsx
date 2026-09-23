@@ -198,7 +198,12 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
       claimStatus === 'verification' ? (
         <ClaimInformationRequestForm claimId={id} />
       ) : null}
-      <ClaimInformationRequests requests={informationRequests} />
+      <ClaimInformationRequests
+        audience="staff"
+        canAcknowledge={session.user.role === 'staff' && detail.claim.staffId === session.user.id}
+        claimId={id}
+        requests={informationRequests}
+      />
 
       <section className="rounded-lg border bg-white p-4" data-testid="staff-claim-detail-agent">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">

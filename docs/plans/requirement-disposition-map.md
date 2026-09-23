@@ -358,7 +358,7 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-CLM-007 | No destructive duplicate merge | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-008 | Jurisdiction classification | Canonical | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-009 | Completeness outcome | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
-| IDA-CLM-010 | Missing-information request | Target | pilot-required | S3/S4/S5/S7 | S4 source 1acc8cc7 implements assigned-owner request creation in verification, explicit due date, safe member explanation/reference, request-local SLA posture and correlation retries. Opus 5 review has documented dispositions; full isolated proof passes. PR #1786 protected delivery pending. Request-bound upload and staff acknowledgement remain open | Current tracker S4 source-bound receipt | U | U | U |
+| IDA-CLM-010 | Missing-information request | Target | pilot-required | S3/S4/S5/S7 | Protected delivery includes assigned-owner request creation, explicit due date, safe member explanation/reference, request-local SLA posture and correlation retries. The active request-linked evidence slice adds member upload and assigned-staff acknowledgement while leaving the request open and claim lifecycle/SLA unchanged. Request fulfilment remains open | Current tracker request-linked evidence receipt pending | U | U | U |
 | IDA-CLM-011 | Conflict-of-interest stop | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-012 | Time-limit posture | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-013 | Fraud/integrity signal | Target | unresolved | S3/S5/S7 | open | none | U | U | U |

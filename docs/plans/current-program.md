@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-22
+last_reviewed: 2026-09-23
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -16,11 +16,11 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`ORDINARY-DELIVERY-GATE-ORCHESTRATION-REPAIR` is the sole active implementation. The owner
-authorized a bounded removal of overlapping hosted finalizer/delivery polling and review evaluation
-while retaining the app-pinned `pr-finalizer` branch-protection context as a compatibility bridge.
-`delivery-gate` remains the sole authoritative PR decision. This selects no pilot product feature,
-changes no release scenario and authorizes no deployment or branch-protection mutation.
+`REQUEST-LINKED-EVIDENCE-ROUND-TRIP` is the sole active implementation. The owner authorized a
+bounded member-to-staff evidence round trip: a member uploads evidence against one open information
+request and the claim's assigned staff member explicitly acknowledges that association. The request
+remains open, and the slice changes neither claim lifecycle nor SLA behavior. It authorizes no
+deployment.
 
 The current-authority repair completed through protected PR
 [#1808](https://github.com/interdomestik/interdomestik/pull/1808) as
@@ -29,23 +29,24 @@ The current-authority repair completed through protected PR
 Sonar and security checks passed. The corrected immutable-preview diagnostic later passed the
 staging role-panel visibility precondition, but the original staging failure was not reproduced and
 role grant/revoke scenarios P0.3/P0.4 remain a release-evidence gap. No staging, pilot or production
-readiness is claimed. This repair starts from current protected main
-`82cc2767e03ede3334a0378190544c66062c6ca1`, which includes PR #1810's diagnostic follow-up.
+readiness is claimed. Protected PRs #1811 through #1813 subsequently simplified delivery
+orchestration, enforced domain coverage and deduplicated release-candidate checks. The active slice
+starts from current protected main `f12afb769fc555c3e33ba7064331e7276de58eb2`.
 
-Pilot product implementation remains paused. Completed product increments through S5 first-case
-saved-draft continuity [#1801](https://github.com/interdomestik/interdomestik/pull/1801) are credited;
-whole S5 and the SRS requirement families named below remain open.
+Product implementation resumed with this bounded S5/S7 dependency. Completed increments through
+S5 first-case saved-draft continuity [#1801](https://github.com/interdomestik/interdomestik/pull/1801)
+remain credited; whole S5 and the other SRS requirement families named below remain open.
 
 ## Program Goals
 
-1. Keep one authoritative delivery decision for exact candidate identity, trusted producers,
-   current-head review findings and required analysis results.
-2. Preserve the required app-pinned `pr-finalizer` context without duplicate hosted check polling,
-   review evaluation or feedback-triggered reruns.
-3. Refresh only the authoritative delivery decision when current feedback changes, using the
-   existing bounded, idempotent and fail-closed controller.
-4. Preserve local readiness tooling, protected hosted checks, explicit legacy validation and all
-   exact-head, latest-run, annotation, review-body, inline-finding and pagination semantics.
+1. Give a member a request-specific evidence upload path backed by a durable tenant/claim/request/
+   document association.
+2. Give the claim's assigned staff member an explicit, retry-safe acknowledgement action with
+   durable actor, timestamp and audit evidence.
+3. Show submitted and acknowledged state to both participants across EN, SQ, MK and SR while using
+   the existing document download authorization boundary.
+4. Keep request fulfilment, claim lifecycle, SLA state, routing, authentication and tenancy outside
+   the slice.
 
 ## Enduring Safety Boundaries
 
@@ -114,14 +115,15 @@ clauses and supplementary controls. SRS v0.9 remains the reviewed baseline at SH
 `8bc2b69c9babf8f228941378a01a32340f23d3ff061f92c574a9a908472981a2`; repo/program and accepted
 ADR authority control until explicitly amended.
 
-When product work resumes, continue the owner-adopted outcome order without rebuilding delivered
-behavior: remaining S5 first-case gaps, S6 member continuation/membership, S7 staff handling, S8
+Continue the owner-adopted outcome order without rebuilding delivered behavior: remaining S5
+first-case gaps, S6 member continuation/membership, S7 staff handling, S8
 agent handoff, S9 assisted activation, S10 branch oversight, S11 tenant administration, S12 platform
 operations and S13 outcome/closure, followed by S14 whole-pilot rehearsal. H1 Help Now keeps its
 priority lane when its direct country/content/stop-rule dependencies are ready.
 
-Direct dependencies remain local to their consumers. Request-bound upload, staff acknowledgement
-and fulfilment precede an evidence round-trip claim; reviewed signed/versioned/integrity/expiry
+Direct dependencies remain local to their consumers. This slice proves request-bound upload and
+assigned-staff acknowledgement; request fulfilment remains separate and open. Reviewed
+signed/versioned/integrity/expiry
 contracts precede offline pack readiness; S8 precedes dependent S9; recovery, partner, mandate,
 consent and billing receipts precede affected S13 promises. T-411 keeps its T-401, SVC-CORE and
 FLIGHT-03 dependency chain. No whole-overlay or stale historical row becomes a blanket pilot gate.
@@ -133,19 +135,17 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-- `delivery-gate` alone aggregates the required provider, validation-surface and generator checks;
-  `pr-finalizer` remains a permissionless GitHub Actions compatibility context and is not one of its
-  prerequisites.
-- Exact base/head/tested-merge topology and tree equality, trusted app IDs, latest run and attempt,
-  warning/failure annotations, substantive same-head review bodies, inline findings, unresolved
-  threads, pending reviewers, complete pagination and fail-closed behavior remain covered.
-- Feedback refresh inspects and reruns only `delivery-gate`; ambiguous writes are not retried and
-  changed source or feedback identity cannot reuse an earlier decision.
-- The existing quick-lane coverage for the two named CI contract tests and PR #1808's legacy
-  validation selection remain unchanged. Release scenarios P0.3/P0.4 remain outside this repair.
-- Focused equivalence contracts, independent targeted review, `pnpm pr:verify`,
-  `pnpm security:guard` and protected current-head checks pass before delivery. No automatic merge,
-  deployment, branch-protection mutation or pilot-readiness claim follows.
+- Each uploaded document is durably associated with exactly one open information request for the
+  same tenant, claim and member.
+- Only the claim's current assigned staff member can acknowledge the association. The original
+  actor and timestamp are durable and retry-safe, with one audit event.
+- Member and staff views expose the linked evidence and its submitted or acknowledged state across
+  EN, SQ, MK and SR. Document download keeps the existing authorization boundary.
+- The request remains open after upload and acknowledgement. Claim lifecycle and SLA state are
+  unchanged.
+- Focused persistence, tenant/RLS, domain, upload, UI and E2E contracts, independent targeted
+  review, `pnpm pr:verify`, `pnpm security:guard` and protected current-head checks pass before
+  delivery. No deployment or pilot-readiness claim follows.
 
 ## Historical Evidence
 

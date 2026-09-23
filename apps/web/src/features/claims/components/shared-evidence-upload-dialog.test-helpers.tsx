@@ -52,7 +52,7 @@ export function runSharedEvidenceUploadDialogTests({
       uploadMocks.confirmUpload.mockResolvedValue({ success: true });
       uploadMocks.fetch.mockResolvedValue({
         ok: true,
-        json: async () => ({ success: true }),
+        json: async () => ({ success: true, fileId: 'direct-file-id' }),
       });
     });
 

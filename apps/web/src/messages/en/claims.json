@@ -220,7 +220,21 @@
       "owner": "Responsible team",
       "ownerLabel": "Interdomestik case team",
       "incomplete": "Information was missing when this request was created.",
-      "loadError": "Information requests could not be loaded. Other case details remain available."
+      "loadError": "Information requests could not be loaded. Other case details remain available.",
+      "upload": "Upload requested evidence",
+      "evidenceList": "Evidence submitted for this request",
+      "download": "Download",
+      "submitted": "Submitted for staff review",
+      "acknowledged": "Acknowledged by staff",
+      "acknowledge": "Acknowledge evidence",
+      "acknowledging": "Acknowledging...",
+      "acknowledgementSuccess": "Evidence acknowledged.",
+      "acknowledgementError": "Evidence could not be acknowledged. Refresh and try again.",
+      "progress": {
+        "awaiting_evidence": "Awaiting evidence",
+        "submitted": "Evidence submitted",
+        "acknowledged": "Evidence acknowledged"
+      }
     }
   }
 }

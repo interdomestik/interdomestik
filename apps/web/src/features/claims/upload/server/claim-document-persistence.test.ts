@@ -20,6 +20,7 @@ vi.mock('@interdomestik/database', () => ({
   db: {
     transaction: vi.fn(async callback => callback({ insert: hoisted.insert })),
   },
+  withTenantContext: vi.fn(async (_context, callback) => callback({ insert: hoisted.insert })),
 }));
 
 vi.mock('@interdomestik/domain-claims/claims/ai-workflows', () => ({

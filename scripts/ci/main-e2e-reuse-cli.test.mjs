@@ -25,7 +25,7 @@ import { commandChainDrifts } from './main-e2e-reuse-fixture.mjs';
 import { readLocalGitObjectId } from './main-e2e-reuse-github.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const E2E_TREE = readLocalGitObjectId(root, 'HEAD:apps/web/e2e');
-const S5_SAVED_DRAFT_TREE = '0e5c12cfed594cddf725fad2ba40a3ba951b6f18';
+const REQUEST_LINKED_EVIDENCE_TREE = 'a32edd59e8b5fe497b7bea312efacdccf1dffb74';
 const SAFE = { reuse: false, reason: 'evidence_not_exact' };
 const fail = () => assert.fail('token=secret body=secret');
 const keyPairs =
@@ -136,10 +136,11 @@ for (const [name, e2eTreeSha] of [
     assert.ok(parity.commandChain, `the ${name} E2E tree must stay in the command chain`);
   });
 }
-test('S5 saved-draft continuity preserves corpus parity', () => {
-  assert.equal(E2E_TREE, S5_SAVED_DRAFT_TREE);
+test('request-linked evidence round trip preserves corpus parity', () => {
+  assert.equal(E2E_TREE, REQUEST_LINKED_EVIDENCE_TREE);
   assert.equal(
-    inspectRepositoryParity({ ...sources(), e2eTreeSha: S5_SAVED_DRAFT_TREE }).commandChain,
+    inspectRepositoryParity({ ...sources(), e2eTreeSha: REQUEST_LINKED_EVIDENCE_TREE })
+      .commandChain,
     true
   );
 });

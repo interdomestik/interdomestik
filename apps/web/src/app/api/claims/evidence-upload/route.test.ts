@@ -13,6 +13,7 @@ const hoisted = vi.hoisted(() => ({
   createClaimUploadIntentToken: vi.fn(),
   captureMessage: vi.fn(),
   findOwnedMemberUploadClaim: vi.fn(),
+  findOwnedMemberInformationRequest: vi.fn(),
   and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
 }));
@@ -45,6 +46,7 @@ vi.mock('@/features/member/claims/actions', () => ({
 }));
 vi.mock('@/features/claims/upload/server/access', () => ({
   findAccessibleAdminUploadClaim: hoisted.findAccessibleAdminUploadClaim,
+  findOwnedMemberInformationRequest: hoisted.findOwnedMemberInformationRequest,
   findOwnedMemberUploadClaim: hoisted.findOwnedMemberUploadClaim,
 }));
 vi.mock('@/features/claims/upload/server/shared-upload', () => ({
@@ -57,13 +59,15 @@ vi.mock('@sentry/nextjs', () => ({
 import { POST } from './route';
 
 function createEvidenceUploadRequest(
-  file = new File(['test'], 'evidence.pdf', { type: 'application/pdf' })
+  file = new File(['test'], 'evidence.pdf', { type: 'application/pdf' }),
+  informationRequestId?: string
 ): Request {
   const form = new FormData();
   form.set('claimId', 'claim-1');
   form.set('category', 'evidence');
   form.set('locale', 'mk');
   form.set('file', file);
+  if (informationRequestId) form.set('informationRequestId', informationRequestId);
 
   return {
     headers: new Headers({
@@ -88,6 +92,9 @@ describe('POST /api/claims/evidence-upload', () => {
       staffId: 'staff-1',
     });
     hoisted.findOwnedMemberUploadClaim.mockResolvedValue({ id: 'claim-1' });
+    hoisted.findOwnedMemberInformationRequest.mockResolvedValue({
+      id: '12345678-1234-4234-8234-123456789012',
+    });
     hoisted.upload.mockResolvedValue({ error: null });
     hoisted.createAdminClient.mockReturnValue({
       storage: {
@@ -151,6 +158,71 @@ describe('POST /api/claims/evidence-upload', () => {
         level: 'warning',
       })
     );
+  });
+
+  it('rejects request-linked uploads from an admin surface before storage upload', async () => {
+    const response = await POST(
+      createEvidenceUploadRequest(undefined, '12345678-1234-4234-8234-123456789012')
+    );
+
+    expect(response.status).toBe(404);
+    expect(hoisted.upload).not.toHaveBeenCalled();
+    expect(hoisted.confirmAdminUpload).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unowned member information request before storage upload', async () => {
+    hoisted.getSession.mockResolvedValueOnce({
+      user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' },
+    });
+    hoisted.findOwnedMemberInformationRequest.mockResolvedValueOnce(null);
+
+    const response = await POST(
+      createEvidenceUploadRequest(undefined, '12345678-1234-4234-8234-123456789012')
+    );
+
+    expect(response.status).toBe(404);
+    expect(hoisted.upload).not.toHaveBeenCalled();
+    expect(hoisted.confirmUpload).not.toHaveBeenCalled();
+  });
+
+  it('binds a member direct upload intent and confirmation to its information request', async () => {
+    hoisted.getSession.mockResolvedValueOnce({
+      user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' },
+    });
+    const informationRequestId = '12345678-1234-4234-8234-123456789012';
+
+    const response = await POST(createEvidenceUploadRequest(undefined, informationRequestId));
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data).toMatchObject({ success: true, fileId: expect.any(String) });
+    expect(hoisted.createClaimUploadIntentToken).toHaveBeenCalledWith(
+      expect.objectContaining({ informationRequestId })
+    );
+    expect(hoisted.confirmUpload).toHaveBeenCalledWith(
+      expect.objectContaining({ informationRequestId })
+    );
+  });
+
+  it('preserves a request-link conflict as 409 after storage upload', async () => {
+    hoisted.getSession.mockResolvedValueOnce({
+      user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' },
+    });
+    hoisted.confirmUpload.mockResolvedValueOnce({
+      success: false,
+      error: 'Information request upload conflict',
+      status: 409,
+    });
+
+    const response = await POST(
+      createEvidenceUploadRequest(undefined, '12345678-1234-4234-8234-123456789012')
+    );
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({
+      error: 'Information request upload conflict',
+    });
+    expect(hoisted.captureMessage).toHaveBeenCalled();
   });
 
   it('passes a server-issued upload intent token into metadata confirmation', async () => {

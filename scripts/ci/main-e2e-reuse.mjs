@@ -46,6 +46,8 @@ const E2E_TREE_SHAS = new Set([
   'f24e4a8e5d97bf5f77cd6f097c79758432622c30',
   // S5 first-case saved-draft continuity.
   '0e5c12cfed594cddf725fad2ba40a3ba951b6f18',
+  // Request-linked member evidence and assigned-staff acknowledgement round trip.
+  'a32edd59e8b5fe497b7bea312efacdccf1dffb74',
 ]);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {

@@ -1,4 +1,12 @@
-import { and, claimInformationRequests, claims, db, eq } from '@interdomestik/database';
+import {
+  and,
+  auditLog,
+  claimInformationRequestEvidence,
+  claimInformationRequests,
+  claims,
+  db,
+  eq,
+} from '@interdomestik/database';
 import { expect, test } from '../fixtures/auth.fixture';
 import { gotoApp } from '../utils/navigation';
 import { routes } from '../routes';
@@ -9,7 +17,7 @@ import {
 } from './member-staff-evidence-journey.fixture';
 import { withInformationRequestFixture } from './information-request.fixture';
 
-test('S4 staff request persists and is visible in a fresh member session', async ({
+test('staff request, member evidence and assigned-staff acknowledgement round trip', async ({
   staffPage,
   browser,
 }, testInfo) => {
@@ -71,8 +79,88 @@ test('S4 staff request persists and is visible in a fresh member session', async
       const html = await member.page.content();
       expect(html).not.toContain(rows[0].correlationId);
       expect(html).not.toContain(fixture.staffId);
-      await expect(card.getByRole('button')).toHaveCount(0);
+      await expect(card.getByRole('button', { name: 'Ngarko provën e kërkuar' })).toBeVisible();
       await expect(member.page.getByTestId('staff-information-request-form')).toHaveCount(0);
+
+      await card.getByRole('button', { name: 'Ngarko provën e kërkuar' }).click();
+      const dialog = member.page.getByRole('dialog');
+      const storageRequestFailures: string[] = [];
+      member.page.on('requestfailed', request => {
+        if (request.url().includes('/storage/')) {
+          storageRequestFailures.push(
+            `${new URL(request.url()).pathname}: ${request.failure()?.errorText ?? 'unknown'}`
+          );
+        }
+      });
+      await dialog.getByLabel('Skedari').setInputFiles({
+        name: 'request-evidence.pdf',
+        mimeType: 'application/pdf',
+        buffer: Buffer.from('%PDF-1.4\nrequest-linked evidence\n%%EOF'),
+      });
+      await dialog.getByRole('button', { name: 'Ngarko dëshmi' }).click();
+      const uploadOutcome = await Promise.race([
+        dialog.waitFor({ state: 'hidden', timeout: 30_000 }).then(() => ({ success: true })),
+        member.page
+          .locator('[data-sonner-toast][data-type="error"]')
+          .waitFor({ state: 'visible', timeout: 30_000 })
+          .then(async () => ({
+            success: false,
+            error: await member.page.locator('[data-sonner-toast][data-type="error"]').innerText(),
+          })),
+      ]);
+      expect(
+        uploadOutcome.success,
+        ['error' in uploadOutcome ? uploadOutcome.error : '', ...storageRequestFailures].join('\n')
+      ).toBe(true);
+      await expect(card).toContainText('request-evidence.pdf', { timeout: 15_000 });
+      await expect(card).toContainText('Prova u dorëzua');
+
+      await gotoApp(staffPage, routes.staffClaimDetail(fixture.claimId, testInfo), testInfo, {
+        marker: 'staff-claim-detail-ready',
+      });
+      const staffCard = staffPage
+        .getByTestId('claim-information-request')
+        .filter({ visible: true });
+      await expect(staffCard).toContainText('request-evidence.pdf');
+      const downloadLink = staffCard.getByRole('link', { name: 'Shkarko' });
+      await expect(downloadLink).toBeVisible();
+      await staffCard.getByRole('button', { name: 'Konfirmo provën' }).click();
+      await expect(staffCard).toContainText('Prova u konfirmua.', { timeout: 15_000 });
+
+      const downloadPromise = staffPage.waitForEvent('download');
+      await downloadLink.click();
+      const download = await downloadPromise;
+      expect(download.suggestedFilename()).toBe('request-evidence.pdf');
+      await expect(download.path()).resolves.toBeTruthy();
+
+      const [association] = await db
+        .select()
+        .from(claimInformationRequestEvidence)
+        .where(eq(claimInformationRequestEvidence.requestId, rows[0].id));
+      expect(association).toMatchObject({
+        tenantId: fixture.tenantId,
+        claimId: fixture.claimId,
+        requestId: rows[0].id,
+        acknowledgedByStaffId: fixture.staffId,
+      });
+      expect(association.acknowledgedAt).toBeInstanceOf(Date);
+      expect(
+        await db
+          .select({ id: auditLog.id })
+          .from(auditLog)
+          .where(
+            and(
+              eq(auditLog.action, 'claim_information_request.evidence_acknowledged'),
+              eq(auditLog.entityId, rows[0].id)
+            )
+          )
+      ).toHaveLength(1);
+      expect(await db.query.claims.findFirst({ where: eq(claims.id, fixture.claimId) })).toEqual(
+        before
+      );
+
+      await member.page.reload();
+      await expect(card).toContainText('Prova u konfirmua');
     } finally {
       await member.context.close();
     }

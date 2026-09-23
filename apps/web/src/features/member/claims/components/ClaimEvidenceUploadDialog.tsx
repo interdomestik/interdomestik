@@ -6,10 +6,21 @@ import { useLocale, useTranslations } from 'next-intl';
 
 interface ClaimEvidenceUploadDialogProps {
   claimId: string;
+  informationRequestId?: string;
+  onUploadSuccess?: (evidence: {
+    documentId: string;
+    documentName: string;
+    submittedAt: string;
+  }) => void;
   trigger: React.ReactNode;
 }
 
-export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUploadDialogProps) {
+export function ClaimEvidenceUploadDialog({
+  claimId,
+  informationRequestId,
+  onUploadSuccess,
+  trigger,
+}: ClaimEvidenceUploadDialogProps) {
   const locale = useLocale();
   const t = useTranslations('claims.detail.evidenceUpload');
   const tClaims = useTranslations('claims');
@@ -17,11 +28,12 @@ export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUpl
 
   return (
     <SharedEvidenceUploadDialog
-      categoryFieldId="document-category"
+      categoryFieldId={`document-category-${informationRequestId ?? claimId}`}
       claimId={claimId}
       confirmUpload={confirmUpload}
-      fileFieldId="file"
+      fileFieldId={`file-${informationRequestId ?? claimId}`}
       generateUploadUrl={generateUploadUrl}
+      informationRequestId={informationRequestId}
       locale={locale}
       messages={{
         dialogTitle: tClaims('claimsPro.actions.uploadEvidence'),
@@ -41,6 +53,7 @@ export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUpl
           legal: t('types.legal'),
         },
       }}
+      onUploadSuccess={onUploadSuccess}
       trigger={trigger}
     />
   );

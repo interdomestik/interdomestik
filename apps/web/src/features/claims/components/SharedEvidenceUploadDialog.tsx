@@ -39,8 +39,10 @@ export function SharedEvidenceUploadDialog({
   confirmUpload,
   fileFieldId,
   generateUploadUrl,
+  informationRequestId,
   locale,
   messages,
+  onUploadSuccess,
   trigger,
 }: SharedEvidenceUploadDialogProps) {
   const [open, setOpen] = useState(false);
@@ -82,17 +84,27 @@ export function SharedEvidenceUploadDialog({
     formData.append('category', selectedCategory);
     formData.append('locale', locale);
     formData.append('file', selectedFile);
+    if (informationRequestId) {
+      formData.append('informationRequestId', informationRequestId);
+    }
     formData.append('aiExtractionConsentGranted', String(aiExtractionConsentGranted));
 
     const response = await fetch('/api/claims/evidence-upload', {
       method: 'POST',
       body: formData,
     });
-    const body = (await response.json().catch(() => null)) as { error?: string } | null;
+    const body = (await response.json().catch(() => null)) as {
+      error?: string;
+      fileId?: string;
+    } | null;
 
     if (!response.ok) {
       throw new Error(body?.error || messages.uploadFailed);
     }
+    if (!body?.fileId) {
+      throw new Error(messages.uploadFailed);
+    }
+    return body.fileId;
   };
 
   const handleSignedUpload = async (selectedFile: File, selectedCategory: EvidenceCategory) => {
@@ -106,9 +118,14 @@ export function SharedEvidenceUploadDialog({
             lastModified: selectedFile.lastModified,
           });
 
+    // Request-linked uploads stay server-mediated so storage and the durable request link
+    // are confirmed through one guarded application path.
+    if (informationRequestId) {
+      return handleDirectUpload(selectedFile, selectedCategory);
+    }
+
     if (resolvedMimeType !== storageContentType) {
-      await handleDirectUpload(selectedFile, selectedCategory);
-      return;
+      return handleDirectUpload(selectedFile, selectedCategory);
     }
 
     const uploadUrlResult = await generateUploadUrl(
@@ -145,6 +162,7 @@ export function SharedEvidenceUploadDialog({
       mimeType: resolvedMimeType,
       fileSize: selectedFile.size,
       fileId: uploadUrlResult.id,
+      informationRequestId,
       uploadIntentToken: uploadUrlResult.intentToken,
       storageContentType,
       uploadedBucket: uploadUrlResult.bucket,
@@ -156,6 +174,7 @@ export function SharedEvidenceUploadDialog({
     if (!confirmResult.success) {
       throw new Error(confirmResult.error);
     }
+    return uploadUrlResult.id;
   };
 
   const handleUpload = async () => {
@@ -166,7 +185,12 @@ export function SharedEvidenceUploadDialog({
 
     setUploading(true);
     try {
-      await handleSignedUpload(file, category);
+      const documentId = await handleSignedUpload(file, category);
+      onUploadSuccess?.({
+        documentId,
+        documentName: file.name,
+        submittedAt: new Date().toISOString(),
+      });
       toast.success(messages.uploadSuccess);
       resetDialog();
       router.refresh();

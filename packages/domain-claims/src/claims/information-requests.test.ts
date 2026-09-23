@@ -40,6 +40,7 @@ beforeEach(() => {
       'where',
       'for',
       'innerJoin',
+      'leftJoin',
       'orderBy',
       'onConflictDoNothing',
       'returning',
@@ -156,5 +157,48 @@ describe('information request contract', () => {
       await getInformationRequests({ user: { ...session.user, role: 'agent' } }, input.claimId)
     ).toEqual([]);
     expect(h.transaction).not.toHaveBeenCalled();
+  });
+  it('groups request-linked evidence and derives explicit acknowledgement progress', async () => {
+    h.rows = [
+      [
+        {
+          requestId: 'request-1',
+          requestedInformation: 'Repair estimate',
+          explanationForMember: 'Needed to assess the damage.',
+          dueAt: new Date('2026-01-01T10:00:00.000Z'),
+          slaPosture: 'incomplete',
+          createdAt: new Date('2025-12-01T10:00:00.000Z'),
+          documentId: 'document-1',
+          documentName: 'estimate.pdf',
+          submittedAt: new Date('2025-12-02T10:00:00.000Z'),
+          acknowledgedAt: new Date('2025-12-03T10:00:00.000Z'),
+        },
+      ],
+    ];
+
+    await expect(
+      getInformationRequests(
+        { user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' } },
+        input.claimId
+      )
+    ).resolves.toEqual([
+      {
+        requestId: 'request-1',
+        requestedInformation: 'Repair estimate',
+        explanationForMember: 'Needed to assess the damage.',
+        dueAt: '2026-01-01T10:00:00.000Z',
+        slaPosture: 'incomplete',
+        createdAt: '2025-12-01T10:00:00.000Z',
+        evidence: [
+          {
+            documentId: 'document-1',
+            documentName: 'estimate.pdf',
+            submittedAt: '2025-12-02T10:00:00.000Z',
+            acknowledgedAt: '2025-12-03T10:00:00.000Z',
+          },
+        ],
+        progress: 'acknowledged',
+      },
+    ]);
   });
 });

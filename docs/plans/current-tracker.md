@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-22
+last_reviewed: 2026-09-23
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -15,33 +15,32 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                                            | Status        | Owner                    | Work                                                                                                            | Exit Criteria                                                                                                                                       |
-| --------------------------------------------- | ------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ORDINARY-DELIVERY-GATE-ORCHESTRATION-REPAIR` | `in_progress` | Codex / GPT-5.6 Sol high | Make delivery-gate authoritative and retain pr-finalizer only as the required app-pinned compatibility context. | Exact-head/trust/review equivalence, focused contracts, required proof, independent review and protected checks pass; no product or release change. |
+| ID                                   | Status        | Owner                    | Work                                                                                              | Exit Criteria                                                                                                                                 |
+| ------------------------------------ | ------------- | ------------------------ | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `REQUEST-LINKED-EVIDENCE-ROUND-TRIP` | `in_progress` | Codex / GPT-5.6 Sol high | Bind member evidence to one open request and let only assigned staff acknowledge the association. | Durable tenant-safe association and audit, retry safety, localized UI, focused proof, independent review and protected checks; no deployment. |
 
 ### Current acceptance
 
-- Base: current protected main `82cc2767e03ede3334a0378190544c66062c6ca1`, tree
-  `44201c05b4e515d5ffcd446514d67cb2b16ae2f7`; it contains PR #1808 and PR #1810.
-- Owned repository surface: `pr-finalizer` and `delivery-gate` workflows, delivery/feedback
-  contracts and focused tests, plus this active program/tracker reconciliation.
-- Preserve: exact candidate and tested-merge identity, trusted app IDs, latest run/attempt,
-  annotations, substantive current-head review bodies, inline findings, unresolved threads,
-  pending reviewers, pagination and fail-closed behavior. Branch protection remains unchanged.
-- Forbidden: pilot product work, release scenario changes or weakening, release-candidate
-  deduplication, auth/routing/domain refactors, deployment, branch-protection mutation and automatic
-  merge.
+- Base: current protected main `f12afb769fc555c3e33ba7064331e7276de58eb2`; it contains the
+  completed governance, delivery simplification, domain coverage and release-deduplication work
+  through PR #1813.
+- Owned repository surface: request/document persistence, upload intent and confirmation, claim
+  domain actions, member/staff request UI, locale messages, focused proof and this authority update.
+- Preserve: request remains open; claim lifecycle and SLA state remain unchanged; existing document
+  authorization, canonical routing, authentication and tenant boundaries remain authoritative.
+- Forbidden: request fulfilment semantics, claim lifecycle or SLA changes, proxy/routing/auth
+  refactors, deployment and live-data mutation.
 
 ## Product Queue
 
-Product implementation is paused until this repair is delivered. Completed bounded outcomes remain
-credited; queued does not mean in progress or verified.
+Product implementation resumed for the single bounded request-linked evidence dependency. Completed
+bounded outcomes remain credited; queued does not mean in progress or verified.
 
 | Outcome                                     | Status                | Direct next evidence                                                                                                   |
 | ------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| S5 — member first-case journey              | `paused_open`         | Credit #1788/#1790/#1792/#1796/#1801; select only a remaining bounded gap after owner resume.                          |
+| S5 — member first-case journey              | `active_bounded`      | Request-linked member evidence upload is active; credit #1788/#1790/#1792/#1796/#1801.                                 |
 | S6 — member continuation/membership         | `queued_conditional`  | Reuse delivered case workspace/detail and prove only missing return, evidence, message and membership-access outcomes. |
-| S7 — staff handling                         | `queued_conditional`  | Request-bound upload, acknowledgement and fulfilment where consumed; preserve internal/public separation.              |
+| S7 — staff handling                         | `active_bounded`      | Assigned-staff acknowledgement is active; fulfilment remains open and separate.                                        |
 | S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, member ownership and Paddle contracts.                                            |
 | S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                              |
 | H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause plus accepted country/content/stop-rule authority.                                          |
@@ -54,7 +53,7 @@ SRS/frontier index. Its unresolved rows are not automatic features, deferrals or
 
 | ID | Source Refs | Execution | Run ID | Run Root | Sonar | Docker | Sentry | Learning | Evidence Refs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `ORDINARY-DELIVERY-GATE-ORCHESTRATION-REPAIR` | owner authorization; governance audit; PR #1808; PR #1810 | pending | pending | pending | pending | not_applicable | not_applicable | pending | candidate PR and focused equivalence/review evidence pending |
+| `REQUEST-LINKED-EVIDENCE-ROUND-TRIP` | owner authorization; protected main through PR #1813 | pending | pending | pending | pending | not_applicable | not_applicable | pending | candidate PR persistence/domain/UI/E2E and independent review evidence pending |
 
 ## Current Facts
 
@@ -63,18 +62,19 @@ SRS/frontier index. Its unresolved rows are not automatic features, deferrals or
 - The corrected immutable-preview diagnostic passed role-panel visibility against that immutable
   preview, but the original staging failure was not reproduced. Role grant/revoke P0.3/P0.4 remain
   a release-evidence gap and are neither weakened nor claimed complete by this independent repair.
-- Current protected main `82cc2767e03ede3334a0378190544c66062c6ca1` includes PR #1810's
-  diagnostic follow-up.
+- Current protected main `f12afb769fc555c3e33ba7064331e7276de58eb2` includes delivery
+  simplification, domain coverage enforcement and release-check deduplication through PR #1813.
 - S5 first-case saved-draft continuity completed through protected PR #1801. Whole S5 remains open.
-- PR #1803 and all other pilot feature work remain outside this repair and paused by owner direction.
+- The owner resumed the bounded request-linked evidence and acknowledgement dependency; request
+  fulfilment and all unrelated pilot work remain outside this slice.
 - No deployment, product readiness or user-acceptance claim is made here; staging and pilot
   readiness also remain unclaimed.
 
 ## Next Selection
 
-No product successor is selected while this governance repair is active. After protected delivery,
-the owner may resume one bounded product outcome from the current program. Pending status prose alone
-does not create a new closeout PR or authorize product work.
+No successor is selected while this product slice is active. After protected delivery, the owner
+may select one bounded outcome from the current program. Pending status prose alone does not create
+a new closeout PR or authorize unrelated product work.
 
 ## Historical Evidence
 
