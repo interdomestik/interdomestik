@@ -65,14 +65,16 @@ describe('sendNotification', () => {
   });
 
   it('rejects when tenant does not match user tenant', async () => {
-    mocks.findFirst.mockImplementationOnce(({ where }: { where: Function }) => {
-      where({ id: 'user.id', tenantId: 'user.tenant_id' }, { eq: vi.fn(() => ({ eq: true })) });
-      return Promise.resolve({
-        email: 'verified@example.com',
-        emailVerified: true,
-        tenantId: 'tenant-2',
-      });
-    });
+    mocks.findFirst.mockImplementationOnce(
+      ({ where }: { where: (...args: unknown[]) => unknown }) => {
+        where({ id: 'user.id', tenantId: 'user.tenant_id' }, { eq: vi.fn(() => ({ eq: true })) });
+        return Promise.resolve({
+          email: 'verified@example.com',
+          emailVerified: true,
+          tenantId: 'tenant-2',
+        });
+      }
+    );
 
     const result = await sendNotification(
       'user-1',
@@ -160,7 +162,7 @@ describe('sendNotification', () => {
   });
 
   it('dispatches a recovery decision notification through tenant-scoped in-app and verified-email guards', async () => {
-    mocks.findFirst.mockImplementation(({ where }: { where: Function }) => {
+    mocks.findFirst.mockImplementation(({ where }: { where: (...args: unknown[]) => unknown }) => {
       where({ id: 'user.id', tenantId: 'user.tenant_id' }, { eq: vi.fn(() => ({ eq: true })) });
       return Promise.resolve({
         email: 'verified@example.com',
@@ -200,14 +202,16 @@ describe('sendNotification', () => {
 
   it('persists an in-app support handoff public response notification without email dispatch', async () => {
     mocks.insertValues.mockReturnValueOnce({ onConflictDoNothing: mocks.onConflictDoNothing });
-    mocks.findFirst.mockImplementationOnce(({ where }: { where: Function }) => {
-      where({ id: 'user.id', tenantId: 'user.tenant_id' }, { eq: vi.fn(() => ({ eq: true })) });
-      return Promise.resolve({
-        email: 'verified@example.com',
-        emailVerified: true,
-        tenantId: 'tenant-1',
-      });
-    });
+    mocks.findFirst.mockImplementationOnce(
+      ({ where }: { where: (...args: unknown[]) => unknown }) => {
+        where({ id: 'user.id', tenantId: 'user.tenant_id' }, { eq: vi.fn(() => ({ eq: true })) });
+        return Promise.resolve({
+          email: 'verified@example.com',
+          emailVerified: true,
+          tenantId: 'tenant-1',
+        });
+      }
+    );
 
     const result = await notifySupportHandoffPublicResponse(
       'member-1',

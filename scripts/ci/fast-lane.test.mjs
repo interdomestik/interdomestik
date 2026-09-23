@@ -50,7 +50,6 @@ test('the actual fast lane runs all declared guards and units without operationa
   });
   assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
   assert.doesNotMatch(result.stderr, /FAST_LANE_FORBIDDEN_EFFECT/);
-  assert.match(result.stdout, /FAST_LANE_TRANSFORM esbuild/);
   const commands = result.stdout
     .split('\n')
     .filter(line => line.startsWith('FAST_LANE_COMMAND '))
@@ -64,12 +63,18 @@ test('the actual fast lane runs all declared guards and units without operationa
     ['scripts/check-case-recovery-boundaries.mjs'],
     ['scripts/check-country-host-alias-guard.mjs'],
   ]);
-  assert.ok(commands.some(args => args.includes('packages/domain-case/src/*.test.ts')));
-  assert.ok(commands.some(args => args.includes('packages/domain-recovery/src/*.test.ts')));
+  assert.ok(
+    commands.some(
+      args =>
+        args[0]?.endsWith('/packages/domain-case/node_modules/vitest/vitest.mjs') &&
+        args.includes('packages/domain-case/src') &&
+        args.includes('packages/domain-recovery/src')
+    )
+  );
   for (const args of commands) {
     assert.doesNotMatch(args.join(' '), /run-turbo|gatekeeper|playwright|next build|db:migrate/);
   }
-  assert.match(result.stdout, /tests [1-9][0-9]*/);
-  assert.match(result.stdout, /domain-case owns the case status to lifecycle mapping/);
-  assert.match(result.stdout, /domain-recovery preserves success-fee collected event identity/);
+  assert.match(result.stdout, /tests\s+[1-9][0-9]*/i);
+  assert.match(result.stdout, /packages\/domain-case\/src\/index\.test\.ts/);
+  assert.match(result.stdout, /packages\/domain-recovery\/src\/success-fee-collection\.test\.ts/);
 });

@@ -41,7 +41,7 @@ const persistedNegotiation = {
 const claimScopeTable = { id: 'claims.id', tenantId: 'claims.tenant_id' };
 const eqCondition = { eq: true };
 
-function runClaimScope(query: { where: Function }) {
+function runClaimScope(query: { where: (...args: unknown[]) => unknown }) {
   query.where(claimScopeTable, { eq: vi.fn(() => eqCondition) });
 }
 

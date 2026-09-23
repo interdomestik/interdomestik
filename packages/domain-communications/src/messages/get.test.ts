@@ -67,10 +67,15 @@ describe('getMessagesForClaimCore', () => {
   });
 
   it('scopes claim lookup with tenant filter', async () => {
-    mocks.findFirst.mockImplementationOnce(({ where }: { where: Function }) => {
-      where({ id: 'claims.id', tenantId: 'claims.tenant_id' }, { eq: vi.fn(() => ({ eq: true })) });
-      return null;
-    });
+    mocks.findFirst.mockImplementationOnce(
+      ({ where }: { where: (...args: unknown[]) => unknown }) => {
+        where(
+          { id: 'claims.id', tenantId: 'claims.tenant_id' },
+          { eq: vi.fn(() => ({ eq: true })) }
+        );
+        return null;
+      }
+    );
 
     const result = await getMessagesForClaimCore({
       session: { user: { id: 'user-1', role: 'user', tenantId: 'tenant-1' } } as never,

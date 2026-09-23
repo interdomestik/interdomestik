@@ -9,14 +9,15 @@
   },
   "scripts": {
     "type-check": "tsc --noEmit",
-    "test:unit": "tsx --test 'src/*.test.ts'",
-    "test": "tsx --test 'src/*.test.ts'"
+    "test:unit": "vitest run",
+    "test": "vitest run"
   },
   "dependencies": {
     "@interdomestik/database": "workspace:*"
   },
   "devDependencies": {
-    "tsx": "^4.23.1",
-    "typescript": "^5.8.0"
+    "@vitest/coverage-v8": "^4.1.11",
+    "typescript": "^5.8.0",
+    "vitest": "^4.1.11"
   }
 }

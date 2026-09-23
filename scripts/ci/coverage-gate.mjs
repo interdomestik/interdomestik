@@ -30,30 +30,28 @@ function parseArgs(argv) {
 }
 
 function findCoverageSummaryPaths(rootDir) {
-  const requiredSummaries = [
+  const summaryPaths = [
     path.join(rootDir, 'apps/web/coverage/coverage-summary.json'),
     path.join(rootDir, 'packages/shared-auth/coverage/coverage-summary.json'),
   ];
-  for (const summaryPath of requiredSummaries) {
+  const packagesDir = path.join(rootDir, 'packages');
+  if (fs.existsSync(packagesDir)) {
+    for (const entry of fs.readdirSync(packagesDir, { withFileTypes: true })) {
+      if (!entry.isDirectory() || !entry.name.startsWith('domain-')) {
+        continue;
+      }
+
+      summaryPaths.push(path.join(packagesDir, entry.name, 'coverage/coverage-summary.json'));
+    }
+  }
+
+  for (const summaryPath of summaryPaths) {
     if (!fs.existsSync(summaryPath)) {
       throw new Error(`Required coverage summary is missing: ${summaryPath}`);
     }
   }
-  const summaryPaths = [...requiredSummaries];
-  const packagesDir = path.join(rootDir, 'packages');
-  if (!fs.existsSync(packagesDir)) {
-    return summaryPaths.filter(summaryPath => fs.existsSync(summaryPath));
-  }
 
-  for (const entry of fs.readdirSync(packagesDir, { withFileTypes: true })) {
-    if (!entry.isDirectory() || !entry.name.startsWith('domain-')) {
-      continue;
-    }
-
-    summaryPaths.push(path.join(packagesDir, entry.name, 'coverage/coverage-summary.json'));
-  }
-
-  return summaryPaths.filter(summaryPath => fs.existsSync(summaryPath));
+  return summaryPaths;
 }
 
 function readSummary(summaryPath) {
@@ -64,8 +62,9 @@ function readSummary(summaryPath) {
   if (!Number.isFinite(totalLines) || !Number.isFinite(coveredLines)) {
     throw new Error(`Coverage summary is missing total line data: ${summaryPath}`);
   }
-  if (summaryPath.includes(`${path.sep}packages${path.sep}shared-auth${path.sep}`) && totalLines === 0) {
-    throw new Error(`Required shared-auth coverage summary has zero total lines: ${summaryPath}`);
+  const isRequiredPackage = summaryPath.includes(`${path.sep}packages${path.sep}`);
+  if (isRequiredPackage && totalLines === 0) {
+    throw new Error(`Required package coverage summary has zero total lines: ${summaryPath}`);
   }
   const pct = totalLines === 0 ? 100 : Number(((coveredLines / totalLines) * 100).toFixed(2));
 
