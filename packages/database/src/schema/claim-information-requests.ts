@@ -1,9 +1,11 @@
 import { sql } from 'drizzle-orm';
 import {
   check,
+  foreignKey,
   index,
   pgPolicy,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -11,6 +13,7 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { user } from './auth';
+import { claimDocuments } from './claim-support-tables';
 import { claims } from './claim-core';
 import { tenants } from './tenants';
 
@@ -45,6 +48,11 @@ export const claimInformationRequests = pgTable(
         table.tenantId,
         table.correlationId
       ),
+      uniqueIndex('claim_information_requests_tenant_claim_id_uq').on(
+        table.tenantId,
+        table.claimId,
+        table.id
+      ),
       index('claim_information_requests_claim_idx').on(
         table.tenantId,
         table.claimId,
@@ -66,6 +74,64 @@ export const claimInformationRequests = pgTable(
         for: 'all',
         using: tenantScope,
         withCheck: sql`${tenantScope} and exists (select 1 from "claim" c where c.id = ${table.claimId} and c.tenant_id = ${table.tenantId})`,
+      }),
+    ];
+  }
+).enableRLS();
+
+export const claimInformationRequestEvidence = pgTable(
+  'claim_information_request_evidence',
+  {
+    tenantId: text('tenant_id').notNull(),
+    claimId: text('claim_id').notNull(),
+    requestId: uuid('request_id').notNull(),
+    documentId: text('document_id').notNull(),
+    submittedByMemberId: text('submitted_by_member_id')
+      .notNull()
+      .references(() => user.id),
+    submittedAt: timestamp('submitted_at', { withTimezone: true, precision: 3 })
+      .notNull()
+      .defaultNow(),
+    acknowledgedByStaffId: text('acknowledged_by_staff_id').references(() => user.id),
+    acknowledgedAt: timestamp('acknowledged_at', { withTimezone: true, precision: 3 }),
+  },
+  table => {
+    const tenantScope = sql`${table.tenantId} = (select current_setting('app.current_tenant_id', true))::text`;
+    return [
+      primaryKey({
+        name: 'claim_information_request_evidence_pk',
+        columns: [table.requestId, table.documentId],
+      }),
+      uniqueIndex('claim_information_request_evidence_document_uq').on(table.documentId),
+      index('claim_information_request_evidence_request_idx').on(
+        table.tenantId,
+        table.claimId,
+        table.requestId,
+        table.submittedAt
+      ),
+      foreignKey({
+        name: 'claim_information_request_evidence_request_fk',
+        columns: [table.tenantId, table.claimId, table.requestId],
+        foreignColumns: [
+          claimInformationRequests.tenantId,
+          claimInformationRequests.claimId,
+          claimInformationRequests.id,
+        ],
+      }).onDelete('cascade'),
+      foreignKey({
+        name: 'claim_information_request_evidence_document_fk',
+        columns: [table.tenantId, table.claimId, table.documentId],
+        foreignColumns: [claimDocuments.tenantId, claimDocuments.claimId, claimDocuments.id],
+      }).onDelete('cascade'),
+      check(
+        'claim_information_request_evidence_ack_check',
+        sql`(${table.acknowledgedAt} is null and ${table.acknowledgedByStaffId} is null)
+          or (${table.acknowledgedAt} is not null and ${table.acknowledgedByStaffId} is not null)`
+      ),
+      pgPolicy('claim_information_request_evidence_tenant_policy', {
+        for: 'all',
+        using: tenantScope,
+        withCheck: tenantScope,
       }),
     ];
   }

@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto';
-
 // prettier-ignore
 import { CorpusFault, type CorpusFsOps, type InternalVerificationResult, type MigrationCorpusState } from './migration-corpus-contracts';
 import { withCorpusDirectories } from './migration-corpus-directories';
@@ -15,7 +14,6 @@ import {
 type Entry = Readonly<{ breakpoints: true; idx: number; tag: string; version: '7'; when: number }>;
 const JOURNAL_ERROR = 'MIGRATION_CORPUS_JOURNAL_REJECTED';
 type ReadCode = typeof JOURNAL_ERROR | 'MIGRATION_CORPUS_FILE_REJECTED';
-
 function rejectJournal(): never {
   throw new CorpusFault(JOURNAL_ERROR);
 }
@@ -39,7 +37,7 @@ function journalNames(bytes: Uint8Array): readonly string[] {
     value.version !== '7' ||
     value.dialect !== 'postgresql' ||
     !Array.isArray(value.entries) ||
-    value.entries.length !== 94
+    value.entries.length !== 95
   )
     rejectJournal();
   const seenTags = new Set<string>();
@@ -76,7 +74,9 @@ function journalNames(bytes: Uint8Array): readonly string[] {
     entries[92]?.tag !== '0092_ida_free_start_drafts' ||
     entries[92]?.when !== 1784332800000 ||
     entries[93]?.tag !== '0093_s4_claim_information_requests' ||
-    entries[93]?.when !== 1789582619012
+    entries[93]?.when !== 1789582619012 ||
+    entries[94]?.tag !== '0094_request_linked_evidence' ||
+    entries[94]?.when !== 1790157491381
   )
     rejectJournal();
   for (let index = 1; index < entries.length; index += 1) {

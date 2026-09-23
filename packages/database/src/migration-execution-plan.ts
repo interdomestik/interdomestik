@@ -37,13 +37,13 @@ export function pendingMigrationCallbacks(
   if (
     !Number.isInteger(applied) ||
     applied < 0 ||
-    applied > 94 ||
-    state.migrations.length !== 94 ||
-    state.entryOffsets.length !== 94 ||
-    state.callbackItems.length !== 853
+    applied > 95 ||
+    state.migrations.length !== 95 ||
+    state.entryOffsets.length !== 95 ||
+    state.callbackItems.length !== 865
   )
     drift();
-  const offset = applied === 94 ? state.callbackItems.length : state.entryOffsets[applied];
+  const offset = applied === 95 ? state.callbackItems.length : state.entryOffsets[applied];
   if (!Number.isInteger(offset) || offset < 0 || offset > state.callbackItems.length) drift();
   return state.callbackItems.slice(offset);
 }

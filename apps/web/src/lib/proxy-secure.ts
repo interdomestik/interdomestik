@@ -1,4 +1,4 @@
-import { isProductionDeployment } from '@/lib/runtime-environment';
+import { isLocalE2ERuntime, isProductionDeployment } from '@/lib/runtime-environment';
 import {
   buildReportOnlyCsp,
   buildReportToHeader,
@@ -23,15 +23,29 @@ function compactHeader(value: string): string {
   return value.replace(/\s{2,}/g, ' ').trim();
 }
 
+function getLocalSupabaseConnectSource(): string {
+  if (isProductionDeployment() && !isLocalE2ERuntime()) return '';
+
+  try {
+    const url = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? '');
+    const isLoopback =
+      url.hostname === '127.0.0.1' || url.hostname === 'localhost' || url.hostname === '[::1]';
+    return (url.protocol === 'http:' || url.protocol === 'https:') && isLoopback ? url.origin : '';
+  } catch {
+    return '';
+  }
+}
+
 function buildContentSecurityPolicy(request: NextRequest): string {
   const isDevelopment = process.env.NODE_ENV === 'development';
+  const localSupabaseConnectSource = getLocalSupabaseConnectSource();
   const directives = [
     "default-src 'self'",
     `script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://connect.facebook.net https://www.google-analytics.com https://cdn.paddle.com https://*.paddle.com ${isDevelopment ? "'unsafe-eval'" : ''}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https://*.supabase.co https://www.facebook.com",
     "font-src 'self' data:",
-    "connect-src 'self' https://*.supabase.co https://*.posthog.com https://*.sentry.io https://*.ingest.sentry.io https://api.paddle.com https://*.paddle.com https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://connect.facebook.net https://graph.facebook.com",
+    `connect-src 'self' ${localSupabaseConnectSource} https://*.supabase.co https://*.posthog.com https://*.sentry.io https://*.ingest.sentry.io https://api.paddle.com https://*.paddle.com https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://connect.facebook.net https://graph.facebook.com`,
     "frame-src 'self' https://*.paddle.com https://buy.paddle.com",
     "object-src 'none'",
     "base-uri 'self'",
@@ -57,7 +71,11 @@ export function createSecurityHeaders(request: NextRequest): SecurityHeaders {
   let requestHeaders: Headers | undefined;
   if (isCspNonceActive()) {
     const nonce = generateCspNonce();
-    const reportOnlyCsp = buildReportOnlyCsp({ nonce, isProductionHttps });
+    const reportOnlyCsp = buildReportOnlyCsp({
+      nonce,
+      isProductionHttps,
+      localSupabaseConnectSource: getLocalSupabaseConnectSource(),
+    });
 
     requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-nonce', nonce);

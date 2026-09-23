@@ -10,6 +10,7 @@ export type EvidenceUploadConfirmationInput = {
   claimId: string;
   file: File;
   fileId: string;
+  informationRequestId?: string;
   isAdminSurface: boolean;
   locale: string;
   resolvedMimeType: string;
@@ -28,6 +29,7 @@ export function confirmEvidenceUpload(params: EvidenceUploadConfirmationInput) {
     mimeType: params.resolvedMimeType,
     fileSize: params.file.size,
     fileId: params.fileId,
+    informationRequestId: params.informationRequestId,
     uploadIntentToken: params.uploadIntentToken,
     storageContentType: params.storageContentType,
     uploadedBucket: params.bucket,

@@ -23,7 +23,6 @@
     "apps/web/src/app/[locale]/admin/crm/_backfill-core.ts:36:75:admin,tenant_admin,super_admin",
     "apps/web/src/app/[locale]/admin/crm/_routing-core.ts:28:47:admin,tenant_admin,super_admin",
     "apps/web/src/app/[locale]/admin/crm/page.tsx:82:41:admin,super_admin,tenant_admin",
-    "apps/web/src/app/api/claims/evidence-upload/_core.ts:25:36:admin,super_admin,tenant_admin,branch_manager,staff",
     "apps/web/src/app/api/verification/[id]/_core.ts:41:24:admin,super_admin,branch_manager,tenant_admin,staff",
     "apps/web/src/components/admin/admin-sidebar.tsx:120:16:super_admin,tenant_admin,admin",
     "apps/web/src/components/admin/admin-sidebar.tsx:137:10:super_admin,tenant_admin,admin",

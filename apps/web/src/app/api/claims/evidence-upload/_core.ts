@@ -9,9 +9,9 @@ import {
 } from '@/features/claims/upload/server/storage-path';
 import {
   findAccessibleAdminUploadClaim,
+  findOwnedMemberInformationRequest,
   findOwnedMemberUploadClaim,
 } from '@/features/claims/upload/server/access';
-import { LOCALES } from '@/i18n/locales';
 import { auth } from '@/lib/auth';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 import { uploadTenantObject } from '@/lib/storage/service-role';
@@ -21,36 +21,15 @@ import * as Sentry from '@sentry/nextjs';
 import { randomUUID } from 'node:crypto';
 
 import { confirmEvidenceUpload } from './confirm';
-
-const ADMIN_UPLOAD_ROLES = new Set([
-  'admin',
-  'super_admin',
-  'tenant_admin',
-  'branch_manager',
-  'staff',
-]);
-const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
-
-type UploadCategory = 'evidence' | 'legal';
-type EvidenceUploadForm = {
-  aiExtractionConsentGranted: boolean;
-  category: UploadCategory;
-  claimId: string;
-  file: File;
-  locale: string;
-};
+import { isAdminUploadRole } from './admin-upload-role';
+import { parseEvidenceUploadForm, type UploadCategory } from './parse-evidence-upload-form';
 
 type ResponseResult<T> = { success: true; data: T } | { success: false; response: Response };
 type ClaimAccess =
-  | { success: true; isAdminSurface: boolean }
-  | { success: false; status: 401 | 404 };
+  { success: true; isAdminSurface: boolean } | { success: false; status: 401 | 404 };
 
 function jsonError(error: string, status: number): Response {
   return Response.json({ error }, { status });
-}
-
-function isAdminUploadRole(role: string | null | undefined): boolean {
-  return role ? ADMIN_UPLOAD_ROLES.has(role) : false;
 }
 
 async function validateClaimAccess(params: {
@@ -89,50 +68,6 @@ async function validateClaimAccess(params: {
   return { success: true, isAdminSurface };
 }
 
-async function parseEvidenceUploadForm(
-  request: Request
-): Promise<ResponseResult<EvidenceUploadForm>> {
-  const formData = await request.formData().catch(() => null);
-  if (!formData) {
-    return { success: false, response: jsonError('Invalid form payload', 400) };
-  }
-
-  const claimId = formData.get('claimId');
-  const category = formData.get('category');
-  const locale = formData.get('locale');
-  const aiExtractionConsentGranted = formData.get('aiExtractionConsentGranted');
-  const file = formData.get('file');
-
-  if (
-    typeof claimId !== 'string' ||
-    (category !== 'evidence' && category !== 'legal') ||
-    typeof locale !== 'string' ||
-    !LOCALES.includes(locale as (typeof LOCALES)[number]) ||
-    !(file instanceof File)
-  ) {
-    return { success: false, response: jsonError('Invalid form payload', 400) };
-  }
-
-  if (file.size <= 0) {
-    return { success: false, response: jsonError('Invalid form payload', 400) };
-  }
-
-  if (file.size > MAX_FILE_SIZE_BYTES) {
-    return { success: false, response: jsonError('File too large (max 50MB)', 413) };
-  }
-
-  return {
-    success: true,
-    data: {
-      aiExtractionConsentGranted: aiExtractionConsentGranted === 'true',
-      category,
-      claimId,
-      file,
-      locale,
-    },
-  };
-}
-
 function resolveTenantId(
   session: NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>
 ): ResponseResult<string> {
@@ -163,6 +98,7 @@ function createUploadIntent(params: {
   resolvedMimeType: string;
   storageContentType: string;
   storagePath: string;
+  informationRequestId?: string;
   tenantId: string;
   userId: string;
 }): ResponseResult<string> {
@@ -175,6 +111,7 @@ function createUploadIntent(params: {
         claimId: params.claimId,
         fileId: params.fileId,
         fileSize: params.file.size,
+        informationRequestId: params.informationRequestId,
         mimeType: params.resolvedMimeType,
         storageContentType: params.storageContentType,
         storagePath: params.storagePath,
@@ -251,7 +188,8 @@ export async function POST(request: Request) {
   const evidenceBucket = resolveEvidenceBucket();
   if (!evidenceBucket.success) return evidenceBucket.response;
 
-  const { aiExtractionConsentGranted, category, claimId, file, locale } = form.data;
+  const { aiExtractionConsentGranted, category, claimId, file, informationRequestId, locale } =
+    form.data;
   const tenantId = tenant.data;
   const bucket = evidenceBucket.data;
   const role = session.user.role ?? null;
@@ -270,6 +208,22 @@ export async function POST(request: Request) {
       claimAccess.status === 404 ? 'Claim not found' : 'Unauthorized',
       claimAccess.status
     );
+  }
+
+  if (informationRequestId && claimAccess.isAdminSurface) {
+    return jsonError('Information request not found', 404);
+  }
+
+  if (
+    informationRequestId &&
+    !(await findOwnedMemberInformationRequest({
+      claimId,
+      informationRequestId,
+      tenantId,
+      userId: session.user.id,
+    }))
+  ) {
+    return jsonError('Information request not found', 404);
   }
 
   const resolvedMimeType = resolveUploadMimeType(file);
@@ -303,6 +257,7 @@ export async function POST(request: Request) {
     claimId,
     file,
     fileId,
+    informationRequestId,
     resolvedMimeType,
     storageContentType,
     storagePath,
@@ -328,6 +283,7 @@ export async function POST(request: Request) {
     claimId,
     file,
     fileId,
+    informationRequestId,
     isAdminSurface: claimAccess.isAdminSurface,
     locale,
     resolvedMimeType,

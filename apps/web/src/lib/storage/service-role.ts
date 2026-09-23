@@ -14,6 +14,7 @@ import {
   type SignedDownloadOperation,
   resolveSignedDownloadTtlSeconds,
 } from './signed-url-exposure';
+import { hasConfiguredSupabaseStorage } from './storage-credentials';
 
 export const SIGNED_DOWNLOAD_TTL_SECONDS = SIGNED_DOWNLOAD_TTL_CAPS_SECONDS.default;
 export const VOICE_NOTE_PREVIEW_TTL_SECONDS = SIGNED_DOWNLOAD_TTL_CAPS_SECONDS.voiceNotePreview;
@@ -35,6 +36,10 @@ type UploadTarget = TenantStorageTarget & {
 
 function shouldUseDeterministicE2EUploadSigner(env: NodeJS.ProcessEnv = process.env): boolean {
   return env.INTERDOMESTIK_E2E_FAKE_STORAGE_SIGNING === '1' && isLocalE2ERuntime(env);
+}
+
+export function usesDeterministicE2EStorage(env: NodeJS.ProcessEnv = process.env): boolean {
+  return shouldUseDeterministicE2EUploadSigner(env) && !hasConfiguredSupabaseStorage(env);
 }
 
 function resolveDeterministicE2EStorageBaseUrl(env: NodeJS.ProcessEnv = process.env): string {
@@ -61,17 +66,21 @@ function createDeterministicE2EUploadSignature(args: TenantStorageTarget) {
       path: args.path,
       signedUrl: `${storageBaseUrl}/storage/v1/object/upload/sign/${args.bucket}/${encodedPath}?token=${token}`,
       token,
+      deterministicE2E: true as const,
     },
     error: null,
   };
 }
 
 export async function createTenantSignedUploadUrl(
-  args: TenantStorageTarget & { upsert?: boolean }
+  args: TenantStorageTarget & {
+    allowDeterministicE2ESigning?: boolean;
+    upsert?: boolean;
+  }
 ) {
   assertTenantStoragePath(args);
 
-  if (shouldUseDeterministicE2EUploadSigner()) {
+  if (args.allowDeterministicE2ESigning !== false && usesDeterministicE2EStorage()) {
     return createDeterministicE2EUploadSignature(args);
   }
 
@@ -108,6 +117,15 @@ export async function uploadTenantObject(args: UploadTarget) {
 
 export async function downloadTenantObject(args: TenantStorageTarget) {
   assertTenantStoragePath(args);
+
+  if (usesDeterministicE2EStorage()) {
+    return {
+      data: new Blob(['deterministic-e2e-storage-object'], {
+        type: 'application/octet-stream',
+      }),
+      error: null,
+    };
+  }
 
   return createAdminClient().storage.from(args.bucket).download(args.path);
 }

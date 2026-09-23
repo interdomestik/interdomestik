@@ -109,7 +109,7 @@ test('preserves cleanup failure when abort lands during post-commit unlock', asy
   const harness = await startMigrationExecutionHarness();
   try {
     await harness.reset('table');
-    await harness.fill(94);
+    await harness.fill(95);
     const controller = new AbortController();
     const result = await harness.run({
       signal: controller.signal,

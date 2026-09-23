@@ -35,7 +35,8 @@ test('inspects every positive live ledger state without changing the database', 
     { setup: 'table', applied: 1, ledgerState: 'exact_prefix' },
     { setup: 'table', applied: 92, ledgerState: 'exact_prefix' },
     { setup: 'table', applied: 93, ledgerState: 'exact_prefix' },
-    { setup: 'table', applied: 94, ledgerState: 'all_applied' },
+    { setup: 'table', applied: 94, ledgerState: 'exact_prefix' },
+    { setup: 'table', applied: 95, ledgerState: 'all_applied' },
   ];
   for (const item of cases) {
     await harness.reset(item.setup);
@@ -49,7 +50,7 @@ test('inspects every positive live ledger state without changing the database', 
         contract_version: 'canonical_migration_ledger_inspection_v1',
         ledger_state: item.ledgerState,
         applied_migrations: item.applied,
-        pending_migrations: 94 - item.applied,
+        pending_migrations: 95 - item.applied,
         callback_plan_sha256: harness.state.callbackPlanSha256,
         read_only: true,
         execution_authorized: false,
@@ -86,7 +87,7 @@ test('rejects live ACL, shape, overflow and non-prefix states', async () => {
     ['MIGRATION_LEDGER_SHAPE_REJECTED', tableChange('CREATE RULE extra_rule AS ON UPDATE TO drizzle.__drizzle_migrations DO INSTEAD NOTHING')],
     ['MIGRATION_LEDGER_SHAPE_REJECTED', tableChange('CREATE TRIGGER extra_trigger BEFORE UPDATE ON drizzle.__drizzle_migrations FOR EACH ROW EXECUTE FUNCTION pg_catalog.suppress_redundant_updates_trigger()')],
     ['MIGRATION_LEDGER_SHAPE_REJECTED', async () => { await harness.reset('table_absent'); await harness.execute('CREATE SEQUENCE drizzle.__drizzle_migrations_id_seq'); }],
-    ['MIGRATION_LEDGER_PREFIX_REJECTED', async () => { await harness.reset('table'); await harness.fill(95); }],
+    ['MIGRATION_LEDGER_PREFIX_REJECTED', async () => { await harness.reset('table'); await harness.fill(96); }],
     ['MIGRATION_LEDGER_PREFIX_REJECTED', async () => { await harness.reset('table'); await harness.fill(1); await harness.execute(`UPDATE drizzle.__drizzle_migrations SET hash = '${'f'.repeat(64)}'`); }],
   ];
   for (let index = 0; index < cases.length; index += 1) {
