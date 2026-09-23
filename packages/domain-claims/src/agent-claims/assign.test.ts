@@ -44,10 +44,15 @@ describe('assignClaimCore', () => {
   });
 
   it('scopes claim lookup with tenant filter', async () => {
-    mocks.findFirst.mockImplementationOnce(({ where }: { where: Function }) => {
-      where({ id: 'claims.id', tenantId: 'claims.tenant_id' }, { eq: vi.fn(() => ({ eq: true })) });
-      return null;
-    });
+    mocks.findFirst.mockImplementationOnce(
+      ({ where }: { where: (...args: unknown[]) => unknown }) => {
+        where(
+          { id: 'claims.id', tenantId: 'claims.tenant_id' },
+          { eq: vi.fn(() => ({ eq: true })) }
+        );
+        return null;
+      }
+    );
 
     const result = await assignClaimCore({
       claimId: 'claim-1',

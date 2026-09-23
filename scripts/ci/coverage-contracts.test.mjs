@@ -6,6 +6,8 @@ import test from 'node:test';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import packageJson from '../../package.json' with { type: 'json' };
+import domainCasePackageJson from '../../packages/domain-case/package.json' with { type: 'json' };
+import domainRecoveryPackageJson from '../../packages/domain-recovery/package.json' with { type: 'json' };
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, '../..');
@@ -105,6 +107,21 @@ test('coverage gate fails closed when a required summary is missing or malformed
     () => runCoverageGate({ rootDir: malformedRoot, stdout: false }),
     /zero total lines/
   );
+
+  const missingDomainRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'coverage-gate-missing-domain-'));
+  writeCoverageSummary(missingDomainRoot, 'apps/web', 60, 100);
+  writeCoverageSummary(missingDomainRoot, 'packages/shared-auth', 60, 100);
+  fs.mkdirSync(path.join(missingDomainRoot, 'packages/domain-recovery'), { recursive: true });
+  assert.throws(
+    () => runCoverageGate({ rootDir: missingDomainRoot, stdout: false }),
+    /domain-recovery/
+  );
+
+  writeCoverageSummary(missingDomainRoot, 'packages/domain-recovery', 0, 0);
+  assert.throws(
+    () => runCoverageGate({ rootDir: missingDomainRoot, stdout: false }),
+    /zero total lines/
+  );
 });
 
 test('coverage cleaner removes stale shared-auth output before collection', async () => {
@@ -146,4 +163,9 @@ test('coverage scripts and canonical PR verification wire the blocking repositor
   assert.match(packageJson.scripts['pr:verify'], /\bpnpm coverage:gate\b/);
   assert.match(packageJson.scripts['pr:verify'], /\bpnpm check:e2e-contracts\b/);
   assert.match(packageJson.scripts['pr:verify'], /\bpnpm lint:production-warnings\b/);
+  for (const domainPackage of [domainCasePackageJson, domainRecoveryPackageJson]) {
+    assert.equal(domainPackage.scripts['test:unit'], 'vitest run');
+    assert.equal(domainPackage.devDependencies['@vitest/coverage-v8'], '^4.1.11');
+    assert.equal(domainPackage.devDependencies.vitest, '^4.1.11');
+  }
 });
