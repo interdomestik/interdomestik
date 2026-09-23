@@ -186,17 +186,15 @@ function checkExitCodeZero(exitFilePath) {
 }
 
 function checkRlsIntegration(logsDirPath) {
-  const rlsLogPath = path.join(logsDirPath, 'rls.log');
-  if (!fs.existsSync(rlsLogPath)) {
-    return false;
+  for (const logName of ['pr_verify_hosts.log', 'rls.log']) {
+    try {
+      const content = fs.readFileSync(path.join(logsDirPath, logName), 'utf8');
+      if (content.includes('RLS_INTEGRATION_RAN=1')) return true;
+    } catch {
+      // Treat absent or unreadable evidence as a miss and try the legacy/manual log.
+    }
   }
-
-  try {
-    const content = fs.readFileSync(rlsLogPath, 'utf8');
-    return content.includes('RLS_INTEGRATION_RAN=1');
-  } catch (error) {
-    return false;
-  }
+  return false;
 }
 
 function readGitSha(repoRoot) {

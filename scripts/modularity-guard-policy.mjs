@@ -64,6 +64,10 @@ const STRUCTURED_OWNERS = [
   [/^\.github\/actions\/validation-surface\/action\.yml$/u, 'main-e2e-reuse-workflow-contract'],
   [/^\.github\/reviewer-routing\.json$/u, 'reviewer-routing-contract'],
   [/^docs\/plans\/.*\.json$/u, 'approval-artifact-contract'],
+  [
+    /^scripts\/release-gate\/v1-required-specs\.json$/u,
+    'release-candidate-required-specs-contract',
+  ],
   [/(^|\/)package\.json$|^pnpm-workspace\.yaml$/u, 'package-manifest-contract'],
   [/(^|\/)tsconfig(?:\.[^.]+)?\.json$/u, 'typescript-config-contract'],
   [/^scripts\/(?:ci\/)?[^/]+\.json$/u, 'script-config-contract'],
