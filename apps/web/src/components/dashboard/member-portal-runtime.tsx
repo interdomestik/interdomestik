@@ -19,6 +19,16 @@ export type MemberPortalCopy = Readonly<{
   description: string;
   disclaimer: string;
   navigation: Readonly<Record<'cases' | 'documents' | 'helpNow' | 'label' | 'membership', string>>;
+  membershipStatus: Readonly<{
+    accessAllowed: string;
+    accessDenied: string;
+    accessLabel: string;
+    currentPeriodEndLabel: string;
+    retry: string;
+    statusLabel: string;
+    statuses: Record<Member.MembershipLifecycleBucket, string>;
+    unavailable: string;
+  }>;
   referenceFallback: string;
   regions: Readonly<Record<'actions' | 'case' | 'updates', MemberPortalRegionCopy>>;
   status: (status: Member.CaseLifecycleStatus) => string;
@@ -30,7 +40,7 @@ type CaseProps = Readonly<{
   promise: Promise<Member.CaseSummary[] | null>;
 }>;
 // prettier-ignore
-type ActionProps = Readonly<{ canDraft: boolean; copy: MemberPortalCopy; isAgent: boolean; locale: AppLocale; promise: Promise<Member.MemberPortalMembership | null> }>;
+type ActionProps = Readonly<{ canDraft: boolean; copy: MemberPortalCopy; locale: AppLocale; promise: Promise<Member.MemberPortalMembership | null> }>;
 type UpdateProps = CaseProps & { locale: AppLocale };
 export async function PortalCasesRegion({ copy, promise }: CaseProps) {
   const summaries = await promise.catch(() => null);
@@ -62,25 +72,55 @@ export async function PortalCasesRegion({ copy, promise }: CaseProps) {
   );
 }
 
-export async function PortalActionsRegion({
-  canDraft,
-  copy,
-  isAgent,
-  locale,
-  promise,
-}: ActionProps) {
+export async function PortalActionsRegion({ canDraft, copy, locale, promise }: ActionProps) {
   const membership = await promise.catch(() => null);
-  if (!membership) return <Boundary copy={copy.regions.actions} state="error" />;
-  const bucket = isAgent && membership.bucket === 'none' ? 'active' : membership.bucket;
-  const inactive = ['none', 'canceled', 'grace_expired'].includes(bucket);
+  if (!membership)
+    return (
+      <Boundary
+        action={{ href: '/member', label: copy.membershipStatus.retry }}
+        copy={copy.regions.actions}
+        state="error"
+      />
+    );
+  const bucket = membership.bucket;
+  const grantsAccess = membership.grantsNewCaseAccess;
   const action = copy.actions[bucket];
   let path = 'claims/new';
-  if (inactive) path += '?mode=drafts';
-  if (inactive && !canDraft) path = 'membership';
+  if (!grantsAccess) path += '?mode=drafts';
+  if (!grantsAccess && !canDraft) path = 'membership';
   const href = `/${locale}/member/${path}`;
   return (
     <div className="grid min-w-0 gap-4">
       <h2 className="text-lg font-semibold tracking-tight">{copy.regions.actions.label}</h2>
+      <dl
+        className="grid gap-3 rounded-xl border border-[hsl(var(--border-strong))] bg-[hsl(var(--surface))]/80 p-4 text-sm xl:grid-cols-3 forced-colors:border-[CanvasText]"
+        data-testid="member-membership-access"
+      >
+        <div className="min-w-0 space-y-1">
+          <dt className="text-foreground/65">{copy.membershipStatus.statusLabel}</dt>
+          <dd className="font-semibold" data-lifecycle-status={membership.bucket}>
+            {copy.membershipStatus.statuses[membership.bucket]}
+          </dd>
+        </div>
+        <div className="min-w-0 space-y-1">
+          <dt className="text-foreground/65">{copy.membershipStatus.accessLabel}</dt>
+          <dd className="font-semibold" data-access={grantsAccess ? 'allowed' : 'denied'}>
+            {grantsAccess
+              ? copy.membershipStatus.accessAllowed
+              : copy.membershipStatus.accessDenied}
+          </dd>
+        </div>
+        <div className="min-w-0 space-y-1">
+          <dt className="text-foreground/65">{copy.membershipStatus.currentPeriodEndLabel}</dt>
+          <dd className="font-semibold">
+            {membership.currentPeriodEnd
+              ? new Date(membership.currentPeriodEnd).toLocaleDateString(locale, {
+                  timeZone: 'UTC',
+                })
+              : copy.membershipStatus.unavailable}
+          </dd>
+        </div>
+      </dl>
       <PortalUi.MatteAnchorCard
         className="border-[hsl(var(--primary)/0.2)] bg-[hsl(var(--primary-soft))] shadow-none hover:border-[hsl(var(--primary)/0.4)]"
         description={action.description}

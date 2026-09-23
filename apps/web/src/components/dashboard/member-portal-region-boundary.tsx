@@ -1,5 +1,7 @@
 import { RefractiveGlassPanel } from '@interdomestik/ui';
 
+import { Link } from '@/i18n/routing';
+
 export type MemberPortalRegionCopy = Readonly<{
   empty: string;
   error: string;
@@ -8,9 +10,11 @@ export type MemberPortalRegionCopy = Readonly<{
 }>;
 
 export function MemberPortalRegionBoundary({
+  action,
   copy,
   state,
 }: Readonly<{
+  action?: Readonly<{ href: string; label: string }>;
   copy: MemberPortalRegionCopy;
   state: 'empty' | 'error' | 'loading';
 }>) {
@@ -27,6 +31,14 @@ export function MemberPortalRegionBoundary({
       >
         {text}
       </p>
+      {action ? (
+        <Link
+          className="inline-flex min-h-11 items-center rounded-xl border border-[hsl(var(--border-strong))] px-4 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 forced-colors:border-[CanvasText]"
+          href={action.href}
+        >
+          {action.label}
+        </Link>
+      ) : null}
     </RefractiveGlassPanel>
   );
 }

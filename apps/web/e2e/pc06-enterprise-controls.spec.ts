@@ -4,8 +4,8 @@ import { expect, test } from './fixtures/auth.fixture';
 import { gotoApp } from './utils/navigation';
 
 const KS_TENANT_ID = 'tenant_ks';
-const KS_MEMBER_ID = 'golden_ks_a_member_1';
-const KS_SUBSCRIPTION_ID = 'golden_sub_ks_a_1';
+const KS_MEMBER_ID = 'golden_ks_a_member_2';
+const KS_SUBSCRIPTION_ID = 'golden_sub_ks_a_2';
 const KS_CANONICAL_AGENT_ID = 'golden_ks_agent_a1';
 const KS_DRIFT_AGENT_ID = 'golden_ks_b_agent_1';
 const PC06_COMMISSION_ID = 'pc06_unresolved_ownership_commission';
@@ -82,7 +82,7 @@ test.describe('PC06 enterprise-safe controls', () => {
   test('admin bulk approve returns a typed control violation for unresolved ownership', async ({
     adminPage: page,
   }, testInfo) => {
-    test.skip(!testInfo.project.name.includes('ks'), 'KS golden seed scenario');
+    test.skip(!testInfo.project.name.includes('ks'), 'KS golden seed scenario'); // NOSONAR -- intentional KS-only golden-seed matrix coverage.
 
     await seedUnresolvedOwnershipCommission();
 

@@ -60,6 +60,24 @@
         "scheduled_cancel": "Start a case — membership ending",
         "canceled": "Draft — membership canceled"
       },
+      "membership_status": {
+        "status_label": "Membership status",
+        "access_label": "New-case access",
+        "access_allowed": "Available",
+        "access_denied": "Not available",
+        "current_period_end_label": "Current period ends",
+        "unavailable": "Not available",
+        "retry": "Try again",
+        "statuses": {
+          "none": "No active membership",
+          "active": "Active",
+          "trialing": "Trialing",
+          "active_in_grace": "Active in grace period",
+          "grace_expired": "Grace period ended",
+          "scheduled_cancel": "Scheduled to end",
+          "canceled": "Canceled"
+        }
+      },
       "warnings": {
         "active_in_grace": "Payment issue; access is still active.",
         "grace_expired": "Grace period ended; renew to submit.",

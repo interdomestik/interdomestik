@@ -16,22 +16,27 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`REQUEST-LINKED-EVIDENCE-ROUND-TRIP` is the sole active implementation. The owner authorized a
-bounded member-to-staff evidence round trip: a member uploads evidence against one open information
-request and the claim's assigned staff member explicitly acknowledges that association. The request
-remains open, and the slice changes neither claim lifecycle nor SLA behavior. It authorizes no
-deployment.
+`S6-MEMBER-MEMBERSHIP-ACCESS-STATUS` is the sole active implementation. The owner authorized a
+bounded member-continuation increment on the canonical `/member` portal: disclose the existing
+membership lifecycle state, factual current-period end and the access consequence derived from the
+canonical lifecycle contract. The slice reuses the existing Paddle-only billing, authentication,
+tenant and member-domain boundaries. It adds no offer, activation, renewal, claim fulfilment or SLA
+semantics and authorizes no production deployment.
 
-The current-authority repair completed through protected PR
-[#1808](https://github.com/interdomestik/interdomestik/pull/1808) as
-`f22127f2ebcf45b5dc64ea521dbeb298b77654be`; tree
-`f48eb434b6274ff266f9f353496410c1670ade4c` matches its reviewed candidate. Its exact-main CI,
-Sonar and security checks passed. The corrected immutable-preview diagnostic later passed the
-staging role-panel visibility precondition, but the original staging failure was not reproduced and
-role grant/revoke scenarios P0.3/P0.4 remain a release-evidence gap. No staging, pilot or production
-readiness is claimed. Protected PRs #1811 through #1813 subsequently simplified delivery
-orchestration, enforced domain coverage and deduplicated release-candidate checks. The active slice
-starts from current protected main `f12afb769fc555c3e33ba7064331e7276de58eb2`.
+The earlier P0.3/P0.4 staging-evidence gap is replaced only for the tested staging boundary by
+artifact `staging-verification-35784351048` from successful CD run
+[#35784351048](https://github.com/interdomestik/interdomestik/actions/runs/35784351048) on exact SHA
+`c8f8834434a64962f042356721fa7657f7cc6253`. That artifact is staging evidence; it is not production
+evidence, pilot admission or user acceptance.
+
+The request-linked member evidence upload and assigned-staff acknowledgement predecessor completed
+through protected PR [#1814](https://github.com/interdomestik/interdomestik/pull/1814) as
+`af191e71da589307a21df2a7fce14380a1fdd625`. Its exact-main CI, security, CodeQL and Sonar checks
+passed. Automatic CD run
+[#35901050682](https://github.com/interdomestik/interdomestik/actions/runs/35901050682) built,
+deployed and verified staging successfully; every production build, deploy, verification and
+evidence job was skipped. Request fulfilment, claim lifecycle and SLA semantics remain open and were
+not inferred from that delivery. The active slice starts from that protected main SHA.
 
 Product implementation resumed with this bounded S5/S7 dependency. Completed increments through
 S5 first-case saved-draft continuity [#1801](https://github.com/interdomestik/interdomestik/pull/1801)
@@ -39,14 +44,14 @@ remain credited; whole S5 and the other SRS requirement families named below rem
 
 ## Program Goals
 
-1. Give a member a request-specific evidence upload path backed by a durable tenant/claim/request/
-   document association.
-2. Give the claim's assigned staff member an explicit, retry-safe acknowledgement action with
-   durable actor, timestamp and audit evidence.
-3. Show submitted and acknowledged state to both participants across EN, SQ, MK and SR while using
-   the existing document download authorization boundary.
-4. Keep request fulfilment, claim lifecycle, SLA state, routing, authentication and tenancy outside
-   the slice.
+1. Show the signed-in member the canonical membership lifecycle bucket and factual current-period
+   end on the existing `/member` continuation surface.
+2. State whether the lifecycle currently grants new-case access, using the existing shared
+   lifecycle contract rather than duplicating status rules in the UI.
+3. Preserve fail-closed tenant/member lookup, role behavior, localized EN/SQ/MK/SR copy and a safe
+   retry path when the membership projection cannot be loaded.
+4. Keep offers, price, activation, renewal, cancellation execution, fulfilment, claim lifecycle,
+   routing, authentication, tenancy and production deployment outside the slice.
 
 ## Enduring Safety Boundaries
 
@@ -116,14 +121,16 @@ clauses and supplementary controls. SRS v0.9 remains the reviewed baseline at SH
 ADR authority control until explicitly amended.
 
 Continue the owner-adopted outcome order without rebuilding delivered behavior: remaining S5
-first-case gaps, S6 member continuation/membership, S7 staff handling, S8
+first-case gaps, the active bounded S6 member continuation/membership increment, S7 staff handling, S8
 agent handoff, S9 assisted activation, S10 branch oversight, S11 tenant administration, S12 platform
 operations and S13 outcome/closure, followed by S14 whole-pilot rehearsal. H1 Help Now keeps its
 priority lane when its direct country/content/stop-rule dependencies are ready.
 
-Direct dependencies remain local to their consumers. This slice proves request-bound upload and
-assigned-staff acknowledgement; request fulfilment remains separate and open. Reviewed
-signed/versioned/integrity/expiry
+Direct dependencies remain local to their consumers. PR #1814 proves request-bound upload and
+assigned-staff acknowledgement; request fulfilment remains separate and open. This slice consumes
+the existing persisted subscription projection and lifecycle access contract but does not prove
+provider confirmation, webhook/payment readiness, offer or activation acceptance. `IDA-MEM-006`
+therefore remains explicitly open. Reviewed signed/versioned/integrity/expiry
 contracts precede offline pack readiness; S8 precedes dependent S9; recovery, partner, mandate,
 consent and billing receipts precede affected S13 promises. T-411 keeps its T-401, SVC-CORE and
 FLIGHT-03 dependency chain. No whole-overlay or stale historical row becomes a blanket pilot gate.
@@ -135,17 +142,32 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-- Each uploaded document is durably associated with exactly one open information request for the
-  same tenant, claim and member.
-- Only the claim's current assigned staff member can acknowledge the association. The original
-  actor and timestamp are durable and retry-safe, with one audit event.
-- Member and staff views expose the linked evidence and its submitted or acknowledged state across
-  EN, SQ, MK and SR. Document download keeps the existing authorization boundary.
-- The request remains open after upload and acknowledgement. Claim lifecycle and SLA state are
-  unchanged.
-- Focused persistence, tenant/RLS, domain, upload, UI and E2E contracts, independent targeted
+- The canonical member portal displays the lifecycle bucket returned by the existing membership
+  projection and the current-period end when present; provider, plan and price metadata are absent.
+- New-case access is shown as allowed only for `active`, `trialing`, `active_in_grace` and
+  `scheduled_cancel`, and denied for `none`, `grace_expired` and `canceled`, using
+  `membershipLifecycleGrantsAccess` as the authority.
+- The action destination follows that same access consequence for every permitted portal consumer;
+  no role-specific UI override can advertise access that the claim-entry authorization gate denies.
+- Projection failure exposes localized safe error copy and a keyboard-operable retry link without
+  leaking the underlying error. EN/SQ/MK/SR catalogs remain complete.
+- Focused tenant/member query, lifecycle, UI and E2E contracts, independent targeted security
   review, `pnpm pr:verify`, `pnpm security:guard` and protected current-head checks pass before
-  delivery. No deployment or pilot-readiness claim follows.
+  delivery. No whole-SRS, pilot-readiness, user-acceptance or production-deployment claim follows.
+
+## Bounded Research Brief
+
+Checked 2026-09-23. Paddle's official subscription documentation treats status and scheduled
+changes as subscription facts and distinguishes paused/canceled access consequences; this slice
+therefore renders only reconciled backend state and never derives entitlement from client-side
+offer or price data. Allianz's member portal pattern keeps contract status and service entry
+together, supporting disclosure on the existing continuation surface rather than a new route. WCAG
+2.2 status-message guidance supports the existing accessible error region plus an explicit retry
+control. Sources:
+[Paddle subscription status](https://developer.paddle.com/build/subscriptions/create-subscriptions),
+[Paddle pause and resume](https://developer.paddle.com/build/subscriptions/pause-resume-subscriptions),
+[Allianz customer portal](https://www.allianz.de/service/meine-allianz/), and
+[WCAG 2.2 status messages](https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html).
 
 ## Historical Evidence
 

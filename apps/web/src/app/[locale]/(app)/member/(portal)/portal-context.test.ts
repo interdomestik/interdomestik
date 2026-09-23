@@ -6,13 +6,15 @@ const h = vi.hoisted(() => ({
   requests: new Map<unknown, Map<string, unknown>>(),
   session: vi.fn(),
   cases: vi.fn(async () => []),
-  membership: vi.fn(async () => ({ bucket: 'active' })),
+  membership: vi.fn(async () => ({
+    bucket: 'active',
+    currentPeriodEnd: new Date('2026-12-31T00:00:00.000Z'),
+    grantsNewCaseAccess: true,
+  })),
   neutral: true,
   pathname: '/member',
 }));
 
-// Model distinct RSC request cache lifetimes; production navigation/revocation
-// still needs the real Next server. No module-global production cache is added.
 vi.mock('react', async importOriginal => ({
   ...(await importOriginal<typeof import('react')>()),
   cache: (fn: (locale: string) => unknown) => (locale: string) => {
@@ -56,6 +58,10 @@ vi.mock('next-intl/server', () => ({
           actions: values,
           description: 'description',
           disclaimer: 'disclaimer',
+          membership_status: new Proxy(
+            { statuses: values },
+            { get: (target, key) => (key === 'statuses' ? target.statuses : String(key)) }
+          ),
           navigation: {
             cases: 'cases',
             documents: 'documents',
@@ -85,10 +91,8 @@ import UpdatesSlot from './@updates/page';
 import UpdatesDefault from './@updates/default';
 
 describe('member portal request context', () => {
-  const expectNoProjections = () => {
-    expect(h.cases).not.toHaveBeenCalled();
-    expect(h.membership).not.toHaveBeenCalled();
-  };
+  const expectNoProjections = () =>
+    [h.cases, h.membership].forEach(projection => expect(projection).not.toHaveBeenCalled());
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -104,6 +108,7 @@ describe('member portal request context', () => {
     const context = await getMemberPortalContext(locale);
     expect(context.locale).toBe(locale);
     expect(context.canDraft).toBe(true);
+    expect(context.copy.membershipStatus.accessAllowed).toBe('access_allowed');
     expect(setRequestLocale).toHaveBeenCalledExactlyOnceWith(locale);
     expect(h.session).toHaveBeenCalledTimes(1);
     expect(h.cases).toHaveBeenCalledExactlyOnceWith({
@@ -127,24 +132,19 @@ describe('member portal request context', () => {
   );
 
   it.each([
-    ['member', 'tenant_ks', true, true, false],
-    ['user', 'tenant_ks', true, true, false],
-    ['agent', 'tenant_ks', true, false, true],
-    ['member', 'tenant_mk', true, false, false],
-    ['member', 'tenant_ks', false, false, false],
-  ] as const)(
-    'limits draft access for %s in %s',
-    async (role, tenantId, neutral, canDraft, isAgent) => {
-      h.neutral = neutral;
-      const id = role === 'agent' ? 'agent-a' : 'member-a';
-      h.session.mockResolvedValueOnce({ user: { id, role, tenantId } });
-      expect(await getMemberPortalContext('sq')).toEqual(
-        expect.objectContaining({ canDraft, isAgent })
-      );
-      expect(h.cases).toHaveBeenCalledExactlyOnceWith({ memberId: id, tenantId });
-      expect(h.membership).toHaveBeenCalledExactlyOnceWith({ memberId: id, tenantId });
-    }
-  );
+    ['member', 'tenant_ks', true, true],
+    ['user', 'tenant_ks', true, true],
+    ['agent', 'tenant_ks', true, false],
+    ['member', 'tenant_mk', true, false],
+    ['member', 'tenant_ks', false, false],
+  ] as const)('limits draft access for %s in %s', async (role, tenantId, neutral, canDraft) => {
+    h.neutral = neutral;
+    const id = role === 'agent' ? 'agent-a' : 'member-a';
+    h.session.mockResolvedValueOnce({ user: { id, role, tenantId } });
+    expect(await getMemberPortalContext('sq')).toEqual(expect.objectContaining({ canDraft }));
+    expect(h.cases).toHaveBeenCalledExactlyOnceWith({ memberId: id, tenantId });
+    expect(h.membership).toHaveBeenCalledExactlyOnceWith({ memberId: id, tenantId });
+  });
 
   it.each([
     { id: 'member-a', role: 'member', tenantId: null },

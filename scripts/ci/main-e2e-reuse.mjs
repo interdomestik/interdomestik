@@ -48,6 +48,10 @@ const E2E_TREE_SHAS = new Set([
   '0e5c12cfed594cddf725fad2ba40a3ba951b6f18',
   // Request-linked member evidence and assigned-staff acknowledgement round trip.
   '8f6cf0b8a53c80bd193ae588935c1ca38e5bdac0',
+  // S6 member membership disclosure with fail-closed agent-consumer proof.
+  '435943c918278405b65e54283d3807c0408bfd81',
+  // Same S6 corpus with explicit Sonar rationale on intentional KS-only matrix skips.
+  '5468dfaebd2e284d506eec07713ad5d2729f8711',
 ]);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {
