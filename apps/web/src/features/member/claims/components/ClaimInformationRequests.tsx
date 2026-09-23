@@ -10,15 +10,17 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 import { resolveDateLocale } from '@/lib/utils/date';
 
+type EvidenceAcknowledgementButtonProps = Readonly<{
+  claimId: string;
+  documentId: string;
+  requestId: string;
+}>;
+
 function EvidenceAcknowledgementButton({
   claimId,
   documentId,
   requestId,
-}: {
-  claimId: string;
-  documentId: string;
-  requestId: string;
-}) {
+}: EvidenceAcknowledgementButtonProps) {
   const t = useTranslations('claims.informationRequests');
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
@@ -52,6 +54,29 @@ function EvidenceAcknowledgementButton({
       ) : null}
     </div>
   );
+}
+
+function appendRequestEvidence(
+  requests: PublicInformationRequest[] | null,
+  requestId: string,
+  evidence: PublicInformationRequest['evidence'][number]
+): PublicInformationRequest[] | null {
+  if (!requests) return null;
+
+  return requests.map(request => {
+    if (
+      request.requestId !== requestId ||
+      request.evidence.some(existing => existing.documentId === evidence.documentId)
+    ) {
+      return request;
+    }
+
+    return {
+      ...request,
+      evidence: [...request.evidence, evidence],
+      progress: 'submitted',
+    };
+  });
 }
 
 export function ClaimInformationRequests({
@@ -154,18 +179,11 @@ export function ClaimInformationRequests({
                 claimId={claimId}
                 informationRequestId={request.requestId}
                 onUploadSuccess={evidence => {
-                  setDisplayRequests(
-                    current =>
-                      current?.map(item =>
-                        item.requestId === request.requestId &&
-                        !item.evidence.some(existing => existing.documentId === evidence.documentId)
-                          ? {
-                              ...item,
-                              evidence: [...item.evidence, { ...evidence, acknowledgedAt: null }],
-                              progress: 'submitted',
-                            }
-                          : item
-                      ) ?? null
+                  setDisplayRequests(current =>
+                    appendRequestEvidence(current, request.requestId, {
+                      ...evidence,
+                      acknowledgedAt: null,
+                    })
                   );
                 }}
                 trigger={<Button type="button">{t('upload')}</Button>}

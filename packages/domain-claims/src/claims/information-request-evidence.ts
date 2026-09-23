@@ -7,7 +7,6 @@ import {
   isNull,
   withTenantContext,
 } from '@interdomestik/database';
-import { withTenant } from '@interdomestik/database/tenant-security';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 
@@ -42,18 +41,15 @@ export async function acknowledgeInformationRequestEvidence(
     const [claim] = await tx
       .select({ staffId: claims.staffId })
       .from(claims)
-      .where(withTenant(tenantId, claims.tenantId, eq(claims.id, data.claimId)))
+      .where(and(eq(claims.tenantId, tenantId), eq(claims.id, data.claimId)))
       .for('update');
     if (claim?.staffId !== actorId) return { success: false, error: 'access_denied' };
 
-    const scope = withTenant(
-      tenantId,
-      claimInformationRequestEvidence.tenantId,
-      and(
-        eq(claimInformationRequestEvidence.claimId, data.claimId),
-        eq(claimInformationRequestEvidence.requestId, data.requestId),
-        eq(claimInformationRequestEvidence.documentId, data.documentId)
-      )
+    const scope = and(
+      eq(claimInformationRequestEvidence.tenantId, tenantId),
+      eq(claimInformationRequestEvidence.claimId, data.claimId),
+      eq(claimInformationRequestEvidence.requestId, data.requestId),
+      eq(claimInformationRequestEvidence.documentId, data.documentId)
     );
     const now = new Date();
     const [acknowledged] = await tx

@@ -184,15 +184,13 @@ export async function getInformationRequests(session: ClaimsSession | null, clai
       }
       requests.set(row.requestId, request);
     }
-    return [...requests.values()].map(request => ({
-      ...request,
-      progress:
-        request.evidence.length === 0
-          ? ('awaiting_evidence' as const)
-          : request.evidence.every(item => item.acknowledgedAt)
-            ? ('acknowledged' as const)
-            : ('submitted' as const),
-    }));
+    return [...requests.values()].map(request => {
+      let progress: PublicInformationRequest['progress'] = 'submitted';
+      if (request.evidence.length === 0) progress = 'awaiting_evidence';
+      else if (request.evidence.every(item => item.acknowledgedAt)) progress = 'acknowledged';
+
+      return { ...request, progress };
+    });
   });
 }
 

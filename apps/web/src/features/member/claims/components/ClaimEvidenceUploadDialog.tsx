@@ -5,14 +5,14 @@ import { confirmUpload, generateUploadUrl } from '@/features/member/claims/actio
 import { useLocale, useTranslations } from 'next-intl';
 
 interface ClaimEvidenceUploadDialogProps {
-  claimId: string;
-  informationRequestId?: string;
-  onUploadSuccess?: (evidence: {
+  readonly claimId: string;
+  readonly informationRequestId?: string;
+  readonly onUploadSuccess?: (evidence: {
     documentId: string;
     documentName: string;
     submittedAt: string;
   }) => void;
-  trigger: React.ReactNode;
+  readonly trigger: React.ReactNode;
 }
 
 export function ClaimEvidenceUploadDialog({
