@@ -177,3 +177,41 @@ it('shows request-linked evidence and lets assigned staff acknowledge it once', 
     expect(mocks.refresh).toHaveBeenCalledOnce();
   });
 });
+
+it('keeps the request visible and shows retry feedback when acknowledgement rejects', async () => {
+  mocks.refresh.mockClear();
+  mocks.acknowledge.mockRejectedValueOnce(new Error('temporary failure'));
+  render(
+    <NextIntlClientProvider locale="en" messages={en}>
+      <ClaimInformationRequests
+        audience="staff"
+        canAcknowledge
+        claimId="claim-1"
+        requests={[
+          {
+            ...request,
+            progress: 'submitted',
+            evidence: [
+              {
+                documentId: 'document-1',
+                documentName: 'repair-estimate.pdf',
+                submittedAt: '2026-09-17T09:00:00.000Z',
+                acknowledgedAt: null,
+              },
+            ],
+          },
+        ]}
+      />
+    </NextIntlClientProvider>
+  );
+
+  fireEvent.click(screen.getByRole('button', { name: 'Acknowledge evidence' }));
+
+  await waitFor(() => {
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Evidence could not be acknowledged. Refresh and try again.'
+    );
+  });
+  expect(screen.getByText('repair-estimate.pdf')).toBeInTheDocument();
+  expect(mocks.refresh).not.toHaveBeenCalled();
+});

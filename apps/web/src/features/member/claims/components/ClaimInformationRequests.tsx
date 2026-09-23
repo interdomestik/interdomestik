@@ -35,13 +35,17 @@ function EvidenceAcknowledgementButton({
         onClick={() => {
           setMessage(null);
           startTransition(async () => {
-            const result = await acknowledgeClaimInformationRequestEvidence({
-              claimId,
-              documentId,
-              requestId,
-            });
-            setMessage(result.success ? t('acknowledgementSuccess') : t('acknowledgementError'));
-            if (result.success) router.refresh();
+            try {
+              const result = await acknowledgeClaimInformationRequestEvidence({
+                claimId,
+                documentId,
+                requestId,
+              });
+              setMessage(result.success ? t('acknowledgementSuccess') : t('acknowledgementError'));
+              if (result.success) router.refresh();
+            } catch {
+              setMessage(t('acknowledgementError'));
+            }
           });
         }}
       >

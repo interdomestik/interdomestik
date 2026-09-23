@@ -1,4 +1,4 @@
-import { claimInformationRequests, claims, db } from '@interdomestik/database';
+import { claimInformationRequests, claims, db, withTenantContext } from '@interdomestik/database';
 import { and, eq } from 'drizzle-orm';
 
 type ClaimScopeRecord = {
@@ -99,26 +99,28 @@ export async function findOwnedMemberInformationRequest(args: {
   tenantId: string;
   userId: string;
 }): Promise<{ id: string } | null> {
-  const request = await db
-    .select({ id: claimInformationRequests.id })
-    .from(claimInformationRequests)
-    .innerJoin(
-      claims,
-      and(
-        eq(claims.id, claimInformationRequests.claimId),
-        eq(claims.tenantId, claimInformationRequests.tenantId)
+  return withTenantContext({ tenantId: args.tenantId, role: 'member' }, async tx => {
+    const request = await tx
+      .select({ id: claimInformationRequests.id })
+      .from(claimInformationRequests)
+      .innerJoin(
+        claims,
+        and(
+          eq(claims.id, claimInformationRequests.claimId),
+          eq(claims.tenantId, claimInformationRequests.tenantId)
+        )
       )
-    )
-    .where(
-      and(
-        eq(claimInformationRequests.id, args.informationRequestId),
-        eq(claimInformationRequests.claimId, args.claimId),
-        eq(claimInformationRequests.tenantId, args.tenantId),
-        eq(claimInformationRequests.status, 'open'),
-        eq(claims.userId, args.userId)
+      .where(
+        and(
+          eq(claimInformationRequests.id, args.informationRequestId),
+          eq(claimInformationRequests.claimId, args.claimId),
+          eq(claimInformationRequests.tenantId, args.tenantId),
+          eq(claimInformationRequests.status, 'open'),
+          eq(claims.userId, args.userId)
+        )
       )
-    )
-    .limit(1);
+      .limit(1);
 
-  return request[0] ?? null;
+    return request[0] ?? null;
+  });
 }
