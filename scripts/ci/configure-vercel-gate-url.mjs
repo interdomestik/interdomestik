@@ -110,6 +110,10 @@ async function deploy() {
   let receipt;
   let aliasImpl = aliasStagingDeployment;
   if (process.env.DEPLOY_ENVIRONMENT === 'staging' && process.env.DEPLOY_PRODUCTION !== 'true') {
+    const expectedCommitSha = process.env.COMMIT_SHA;
+    if (!/^[a-f0-9]{40}$/u.test(expectedCommitSha || '')) {
+      throw new Error('COMMIT_SHA must be a full lowercase SHA');
+    }
     const preimage = await state.snapshotStagingAlias();
     const target = receiptPath('STAGING_PREIMAGE_RECEIPT_PATH');
     receipt = { alias: state.CANONICAL_STAGING_ALIAS, ...preimage, aliasMoved: false };
@@ -118,6 +122,17 @@ async function deploy() {
     aliasImpl = async (...args) => {
       await aliasStagingDeployment(...args);
       receipt = { ...receipt, aliasMoved: true };
+      await state.writeAliasReceipt(target, receipt);
+      const assigned = await state.confirmStagingAliasTarget({
+        deploymentHostname: args[0],
+        expectedCommitSha,
+        env: args[2],
+      });
+      receipt = {
+        ...receipt,
+        assignedDeploymentHostname: assigned.deploymentHostname,
+        assignedCommitSha: assigned.commitSha,
+      };
       await state.writeAliasReceipt(target, receipt);
     };
   }

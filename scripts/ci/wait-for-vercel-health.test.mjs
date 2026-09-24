@@ -77,7 +77,7 @@ test('waitForVercelHealth preserves retry order and the successful body', async 
   assert.deepEqual(events, [
     'log:[vercel-health] attempt 1/2',
     'fetch:1',
-    'log:[vercel-health] result=health_check_failed',
+    'log:[vercel-health] result=health_check_failed reason=unknown',
     'log:[vercel-health] attempt 2/2',
     'fetch:2',
     'log:[vercel-health] result=success',
@@ -120,11 +120,11 @@ test('waitForVercelHealth sleeps exactly between failed attempts and sanitizes e
   assert.deepEqual(events, [
     'log:[vercel-health] attempt 1/2',
     'fetch:1',
-    'log:[vercel-health] result=health_check_failed',
+    'log:[vercel-health] result=health_check_failed reason=unknown',
     'sleep:17',
     'log:[vercel-health] attempt 2/2',
     'fetch:2',
-    'log:[vercel-health] result=health_check_failed',
+    'log:[vercel-health] result=health_check_failed reason=unknown',
   ]);
   assert.equal(terminalError?.message, 'Vercel health check failed');
   assert.equal(terminalError?.cause, undefined);
@@ -136,6 +136,36 @@ test('waitForVercelHealth sleeps exactly between failed attempts and sanitizes e
   );
   assertCanaryFree(events.join('\n'), errorCanaries);
 });
+test('waitForVercelHealth exposes only allowlisted failure evidence', async () => {
+  const cases = [
+    [new Error('Health endpoint redirected before returning /api/health'), 'redirect'],
+    [new Error('Health endpoint returned 503: RESPONSE_BODY_CANARY'), 'http_503'],
+    [
+      new Error(
+        `Deployed build provenance mismatch: expected ${'a'.repeat(40)}, got ${'b'.repeat(40)}`
+      ),
+      `provenance_mismatch_actual_${'b'.repeat(40)}`,
+    ],
+    [Object.assign(new Error('TOKEN_CANARY'), { code: 6 }), 'transport_6'],
+    [new SyntaxError('RESPONSE_BODY_CANARY'), 'invalid_json'],
+  ];
+  for (const [failure, reason] of cases) {
+    const events = [];
+    await assert.rejects(
+      waitForVercelHealth({
+        healthUrl: 'https://staging.interdomestik.com/api/health',
+        attempts: 1,
+        log: message => events.push(message),
+        fetchImpl: async () => {
+          throw failure;
+        },
+      }),
+      /Vercel health check failed/u
+    );
+    assert.equal(events.at(-1), `[vercel-health] result=health_check_failed reason=${reason}`);
+    assertCanaryFree(events.join('\n'), ['TOKEN_CANARY', 'RESPONSE_BODY_CANARY']);
+  }
+});
 test('CLI success output never includes the successful response body', async () => {
   const result = await runCli('success');
   assert.equal(result.code, 0, result.stderr);
@@ -146,5 +176,6 @@ test('CLI failure output is deterministic and excludes nested diagnostics', asyn
   const result = await runCli('failure');
   assert.notEqual(result.code, 0);
   assert.equal(result.stderr, 'Vercel health check failed\n');
+  assert.match(result.stdout, /result=health_check_failed reason=unknown/u);
   assertCanaryFree(`${result.stdout}\n${result.stderr}`, errorCanaries);
 });

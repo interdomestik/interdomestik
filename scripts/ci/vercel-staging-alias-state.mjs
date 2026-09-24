@@ -127,6 +127,48 @@ export async function snapshotStagingAlias({
   }
   return { deploymentHostname, commitSha };
 }
+export async function confirmStagingAliasTarget({
+  deploymentHostname,
+  expectedCommitSha,
+  env = process.env,
+  snapshotImpl = snapshotStagingAlias,
+  waitImpl = delay,
+}) {
+  const expectedHostname = deploymentHost(deploymentHostname);
+  if (!/^[a-f0-9]{40}$/u.test(expectedCommitSha || '')) {
+    throw new Error('expected staging commit must be a full lowercase SHA');
+  }
+  const attempts = positiveInt(env.STAGING_ALIAS_CONFIRM_ATTEMPTS, ALIAS_DEFAULTS.attempts);
+  const retryMs = positiveInt(env.STAGING_ALIAS_RETRY_MS, ALIAS_DEFAULTS.retryMs);
+  let observed;
+  let providerError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      observed = await snapshotImpl({ env });
+      providerError = undefined;
+      if (
+        observed.deploymentHostname === expectedHostname &&
+        observed.commitSha === expectedCommitSha
+      ) {
+        return observed;
+      }
+    } catch (error) {
+      observed = undefined;
+      providerError = error;
+    }
+    if (attempt < attempts) await waitImpl(retryMs);
+  }
+  if (observed) {
+    throw new Error(
+      'canonical staging alias provider mapping mismatch: ' +
+        `expected ${expectedHostname} ${expectedCommitSha}, ` +
+        `got ${observed.deploymentHostname} ${observed.commitSha}`
+    );
+  }
+  throw new Error(
+    `canonical staging alias provider confirmation failed: ${boundedProviderText(providerError?.message) || 'unknown'}`
+  );
+}
 export async function restoreStagingAlias({
   deploymentHostname,
   commitSha,
