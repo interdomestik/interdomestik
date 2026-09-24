@@ -7,7 +7,7 @@ import type { CategoryId, DraftSaveState, DraftState, StepId } from './types';
 // prettier-ignore
 type RecoveryState = 'idle' | 'saved' | 'offer' | 'conflict' | 'retained' | 'unavailable' | 'discarded' | 'secure';
 // prettier-ignore
-type Args = Readonly<{ activeFingerprint?: string | null; activeId: string | null; category: CategoryId | null; draft: DraftState; lifecycleState: DraftSaveState; neutralHost?: string | null; onExternalChange?: () => void; onReset: () => void; onRestore: (draft: AnonymousDraftSnapshot) => void; resetCategory: CategoryId | null; step: StepId }>;
+type Args = Readonly<{ activeFingerprint?: string | null; activeId: string | null; allowWrites: boolean; category: CategoryId | null; draft: DraftState; lifecycleState: DraftSaveState; neutralHost?: string | null; onExternalChange?: () => void; onReset: () => void; onRestore: (draft: AnonymousDraftSnapshot) => void; resetCategory: CategoryId | null; step: StepId }>;
 // prettier-ignore
 function isNeutralHost(configured?: string | null) { return typeof location !== 'undefined' && (location.hostname.toLowerCase() === 'ida.localhost' || configured?.toLowerCase() === location.host.toLowerCase()); }
 // prettier-ignore
@@ -64,7 +64,7 @@ export function useAnonymousDraftRecovery(args: Args) {
     addEventListener('storage', onStorage); return () => removeEventListener('storage', onStorage);
   }, [applyRead, args.onExternalChange, markUnavailable, neutralHost, runReconcile]);
   useEffect(() => { // NOSONAR -- the cohesive recovery state machine preserves atomic race ordering.
-    if (!neutralHost || !ready || activeCopyCurrent || copyCurrent || offer || interaction.current || terminalInvalidation.current || (invalidated.current && !reconciliation.current) || pending) return;
+    if (!args.allowWrites || !neutralHost || !ready || activeCopyCurrent || copyCurrent || offer || interaction.current || terminalInvalidation.current || (invalidated.current && !reconciliation.current) || pending) return;
     if (args.activeId && args.lifecycleState === 'saved' && knownRecord.current && recordFingerprint(knownRecord.current) !== currentFingerprint) { setOffer(knownRecord.current); setState('conflict'); return; }
     const snapshot = args.category ? createAnonymousDraftSnapshot(args.category, args.draft, args.step) : null;
     if (!snapshot) { supersede(); if (args.category) { setEnabled(false); } setOffer(null); if (!reconciliation.current) { setState(knownRecord.current ? 'retained' : 'idle'); } return; }
@@ -93,7 +93,7 @@ export function useAnonymousDraftRecovery(args: Args) {
       else if (value.status === 'conflict') { offerRequired.current = true; knownRecord.current = value.record; setOffer(value.record); setState('conflict'); }
       else { invalidated.current = true; if (expected) markRetained(); else markUnavailable(); }
     }).finally(() => { localWrites.current -= 1; });
-  }, [activeCopyCurrent, applyRead, args.category, args.draft, args.step, copyCurrent, currentContext, currentFingerprint, markUnavailable, neutralHost, offer, pending, ready, retry, runLocked, supersede]);
+  }, [activeCopyCurrent, applyRead, args.allowWrites, args.category, args.draft, args.step, copyCurrent, currentContext, currentFingerprint, markUnavailable, neutralHost, offer, pending, ready, retry, runLocked, supersede]);
   useEffect(() => {
     const previous = previousLifecycle.current; previousLifecycle.current = args.lifecycleState;
     if (previous !== 'saving' && args.lifecycleState === 'saving') {
@@ -110,7 +110,7 @@ export function useAnonymousDraftRecovery(args: Args) {
         if (!current() || activeIdRef.current !== promotedId) { return null; } const storage = getAnonymousDraftStorage(), stored = readAnonymousDraft(storage, executionNow), latest = currentSnapshotRef.current;
         if (serverMismatch) return stored.status === 'available' ? { status: 'changed' as const, record: stored.record } : stored;
         if (stored.status !== 'available' || recordFingerprint(stored.record) !== savedFingerprint) { if (stored.status !== 'available') { return stored; } if (latest && recordFingerprint(latest) === savedFingerprint && knownRecord.current && sameAnonymousDraftRecord(stored.record, knownRecord.current)) { return removeAnonymousDraft(storage, stored.record, executionNow); } return { status: 'changed' as const, record: stored.record }; }
-        return latest && recordFingerprint(latest) !== savedFingerprint ? writeAnonymousDraft(storage, latest, stored.record, orderingNow, executionNow) : removeAnonymousDraft(storage, stored.record, executionNow);
+        return latest && recordFingerprint(latest) !== savedFingerprint && args.allowWrites ? writeAnonymousDraft(storage, latest, stored.record, orderingNow, executionNow) : removeAnonymousDraft(storage, stored.record, executionNow);
       }); if (promotionFingerprint.current === activePromotion) promotionFingerprint.current = null;
       if (!output.current || activeIdRef.current !== promotedId) return;
       if (output.result.status === 'unavailable' || !output.result.value || output.result.value.status === 'unavailable') return knownRecord.current ? markRetained() : markUnavailable();
@@ -121,7 +121,7 @@ export function useAnonymousDraftRecovery(args: Args) {
       else if (value.status === 'stale') { invalidated.current = true; if (knownRecord.current) markRetained(); else markUnavailable(); }
       else { offerRequired.current = false; knownRecord.current = null; setOffer(null); setState('secure'); }
     })();
-  }, [args.activeFingerprint, args.activeId, args.lifecycleState, currentFingerprint, markRetained, markUnavailable, offer, runLocked, state]);
+  }, [args.activeFingerprint, args.activeId, args.allowWrites, args.lifecycleState, currentFingerprint, markRetained, markUnavailable, offer, runLocked, state]);
   // prettier-ignore
   const clearDeviceCopy = useCallback(async () => { if (!neutralHost) { return true; } const expected = offer ?? knownRecord.current; const output = await runLocked((current, executionNow) => { if (!current()) { return null; } if (expected) { return removeAnonymousDraft(getAnonymousDraftStorage(), expected, executionNow); } const value = readAnonymousDraft(getAnonymousDraftStorage(), executionNow); return value.status === 'available' ? { status: 'changed' as const, record: value.record } : value; }, currentContext); if (!output.current) { return false; } if (output.result.status === 'unavailable' || !output.result.value) { if (expected) { markRetained(); } else { markUnavailable(); } return false; } const value = output.result.value; if (value.status === 'invalid') { markUnavailable(false); return false; } if (value.status === 'unavailable') { if (expected) { markRetained(); } else { markUnavailable(); } return false; } if (value.status === 'changed') { offerRequired.current = true; knownRecord.current = value.record; setOffer(value.record); setState('conflict'); return false; } terminalInvalidation.current = false; offerRequired.current = false; invalidated.current = false; reconciliation.current = false; promotionFingerprint.current = null; knownRecord.current = null; setEnabled(true); setOffer(null); return true; }, [currentContext, markRetained, markUnavailable, neutralHost, offer, runLocked]);
   const clearBeforeReset = useCallback(async () => {
@@ -143,5 +143,5 @@ export function useAnonymousDraftRecovery(args: Args) {
       else { offerRequired.current = false; invalidated.current = false; knownRecord.current = result.value.record; suppression.current = { from: currentFingerprint, to: recordFingerprint(result.value.record) }; args.onReset(); args.onRestore(result.value.record); setOffer(null); setState('saved'); }
     }).finally(() => { interaction.current = false; actionBusy.current = false; setBusy(false); });
   }, [args.onReset, args.onRestore, currentContext, currentFingerprint, markUnavailable, offer, pending, runLocked]);
-  return { busy, clearBeforeReset, clearDeviceCopy, discard, enabled, neutralHost, offer, pending: pending || busy, ready, resume, state };
+  return { busy, clearBeforeReset, clearDeviceCopy, discard, enabled: enabled && args.allowWrites, neutralHost, offer, pending: pending || busy, ready, resume, state };
 }

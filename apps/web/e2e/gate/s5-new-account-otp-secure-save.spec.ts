@@ -105,6 +105,9 @@ test.describe('S5 new-account email OTP secure save', () => {
       ).toEqual({ origin: idaOrigin(info), secure: true });
       await start.getByTestId('cookie-consent-accept').click();
       const flow = start.getByTestId('premium-free-start-organizer');
+      expect(await localCopy(start), 'browser recovery starts with no local copy').toBe(false);
+      await flow.getByTestId('browser-recovery-enable').click();
+      await expect(flow).toHaveAttribute('data-save-behavior', 'device-recovery');
       await flow.getByTestId('free-start-category-vehicle').click();
       await flow.getByRole('button', { name: 'Continue to guided intake' }).click();
       await flow.getByLabel('What happened?').selectOption('collision');

@@ -8,7 +8,7 @@ import { ClaimDraftIntake } from '@/components/claims/claim-draft-intake';
 import { ANONYMOUS_DRAFT_KEY, ANONYMOUS_DRAFT_LOCK_NAME, ANONYMOUS_DRAFT_TTL_MS, createAnonymousDraftSnapshot, getAnonymousDraftStorage, readAnonymousDraft, removeAnonymousDraft, runAnonymousDraftLocked, writeAnonymousDraft, type AnonymousDraftSnapshot } from './anonymous-draft-recovery';
 import { resetAfterRecoveryClear } from './index';
 import { draftFingerprint } from './types';
-import { useAnonymousDraftRecovery } from './use-anonymous-draft-recovery';
+import { useAnonymousDraftRecovery as useAnonymousDraftRecoveryHook } from './use-anonymous-draft-recovery';
 
 // prettier-ignore
 vi.mock('next-intl', async () => { const [{ default: claims }, { default: diaspora }, { default: freeStart }, helper] = await Promise.all([import('@/messages/en/claims.json'), import('@/messages/en/diaspora.json'), import('@/messages/en/freeStart.json'), import('@/test/next-intl-mock')]); return { NextIntlClientProvider: ({ children }: { children: ReactNode }) => children, useLocale: () => 'en', useTranslations: helper.createUseTranslationsMock(() => ({ claims: claims.claims, diaspora: diaspora.diaspora, freeStart: freeStart.freeStart })) }; });
@@ -22,7 +22,12 @@ vi.mock('@/actions/free-start-drafts', () => ({ createFreeStartDraft: actions.cr
 const NOW = Date.now();
 // prettier-ignore
 const snapshot: AnonymousDraftSnapshot = { category: 'property', draft: { counterparty: 'Northwind Insurance', desiredOutcome: 'repair', incidentDate: '2026-07-15', issueType: 'water_damage', summary: 'Water damaged two rooms.' }, resumeStep: 'preview' };
-type HookProps = Parameters<typeof useAnonymousDraftRecovery>[0];
+type HookProps = Omit<Parameters<typeof useAnonymousDraftRecoveryHook>[0], 'allowWrites'> & {
+  allowWrites?: boolean;
+};
+function useAnonymousDraftRecovery(args: HookProps) {
+  return useAnonymousDraftRecoveryHook({ ...args, allowWrites: args.allowWrites ?? true });
+}
 // prettier-ignore
 function installLocks(request = vi.fn(async (_name, _options, callback) => callback())) { Object.defineProperty(navigator, 'locks', { configurable: true, value: { request } }); return request; }
 // prettier-ignore
@@ -124,6 +129,45 @@ describe('anonymous Free Start recovery', () => {
 
   // prettier-ignore
   it('clears only the exact securely saved facts and retains an edit made during save', async () => { writeAnonymousDraft(localStorage, snapshot, null, NOW); const initial: HookProps = { activeId: null, category: 'property', draft: snapshot.draft, lifecycleState: 'idle', neutralHost: globalThis.location.host, onReset: vi.fn(), onRestore: vi.fn(), resetCategory: 'property', step: 'preview' }; const hook = renderHook(props => useAnonymousDraftRecovery(props), { initialProps: initial }); await waitFor(() => expect(hook.result.current.state).toBe('offer')); act(() => hook.result.current.resume()); await waitFor(() => { expect(initial.onRestore).toHaveBeenCalled(); expect(hook.result.current.offer).toBeNull(); expect(hook.result.current.state).toBe('saved'); }); hook.rerender({ ...initial, lifecycleState: 'saving' }); await act(async () => Promise.resolve()); const edited = { ...initial, draft: { ...snapshot.draft, summary: 'Edit made during secure save.' }, lifecycleState: 'saving' as const }; hook.rerender(edited); hook.rerender({ ...edited, activeFingerprint: draftFingerprint(initial.category, initial.draft, initial.step), activeId: 'server-draft', lifecycleState: 'saved' }); await waitFor(() => expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toContain('Edit made during secure save.')); expect(hook.result.current.state).toBe('saved'); });
+
+  it('never promotes a newer edit into browser storage after explicit opt-out', async () => {
+    const initial: HookProps = {
+      activeId: null,
+      allowWrites: false,
+      category: 'property',
+      draft: snapshot.draft,
+      lifecycleState: 'idle',
+      neutralHost: globalThis.location.host,
+      onReset: vi.fn(),
+      onRestore: vi.fn(),
+      resetCategory: 'property',
+      step: 'preview',
+    };
+    const hook = renderHook(props => useAnonymousDraftRecovery(props), { initialProps: initial });
+    await waitFor(() => expect(hook.result.current.ready).toBe(true));
+
+    writeAnonymousDraft(localStorage, snapshot, null, NOW);
+    act(() => globalThis.dispatchEvent(storageEvent(ANONYMOUS_DRAFT_KEY, localStorage)));
+    await waitFor(() => expect(hook.result.current.state).toBe('saved'));
+    expect(hook.result.current.enabled).toBe(false);
+
+    hook.rerender({ ...initial, lifecycleState: 'saving' });
+    const edited = {
+      ...initial,
+      draft: { ...snapshot.draft, summary: 'Must remain off this device.' },
+      lifecycleState: 'saving' as const,
+    };
+    hook.rerender(edited);
+    hook.rerender({
+      ...edited,
+      activeFingerprint: draftFingerprint(initial.category, initial.draft, initial.step),
+      activeId: 'server-draft',
+      lifecycleState: 'saved',
+    });
+
+    await waitFor(() => expect(hook.result.current.state).toBe('secure'));
+    expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toBeNull();
+  });
 
   // prettier-ignore
   it.each(['accessor denial', 'remove failure'])('does not reset after %s', async failure => { localStorage.setItem(ANONYMOUS_DRAFT_KEY, 'eligible-notes'); const available = localStorage; if (failure === 'accessor denial') vi.spyOn(globalThis, 'localStorage', 'get').mockImplementation(() => { throw new DOMException('blocked'); }); else vi.spyOn(globalThis, 'localStorage', 'get').mockReturnValue({ getItem: available.getItem.bind(available), removeItem: () => { throw new DOMException('blocked'); }, setItem: available.setItem.bind(available) } as unknown as Storage); const startAnother = vi.fn(), clear = () => ['none', 'removed'].includes(removeAnonymousDraft(getAnonymousDraftStorage()).status); await expect(resetAfterRecoveryClear(clear, startAnother)).resolves.toBe(false); expect(startAnother).not.toHaveBeenCalled(); vi.restoreAllMocks(); expect(localStorage.getItem(ANONYMOUS_DRAFT_KEY)).toBe('eligible-notes'); });

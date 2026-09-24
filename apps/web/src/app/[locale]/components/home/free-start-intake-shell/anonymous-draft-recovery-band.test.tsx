@@ -5,14 +5,19 @@ import en from '@/messages/en/freeStart.json';
 import { AnonymousDraftRecoveryBand } from './anonymous-draft-recovery-band';
 // prettier-ignore
 import { ANONYMOUS_DRAFT_KEY, ANONYMOUS_DRAFT_TTL_MS, readAnonymousDraft, writeAnonymousDraft, type AnonymousDraftSnapshot } from './anonymous-draft-recovery';
-import { useAnonymousDraftRecovery } from './use-anonymous-draft-recovery';
+import { useAnonymousDraftRecovery as useAnonymousDraftRecoveryHook } from './use-anonymous-draft-recovery';
 // prettier-ignore
-vi.mock('next-intl', () => ({ useTranslations: () => ({ raw: () => en.freeStart.secureSave }) }));
+vi.mock('next-intl', () => ({ useTranslations: () => ({ raw: (key: string) => key === 'secureSave' ? en.freeStart.secureSave : en.freeStart.localRecoveryDisclosure }) }));
 // prettier-ignore
 function recovery(state: 'discarded' | 'offer' | 'retained' | 'saved' | 'secure' | 'unavailable', pending = false) { return { clearDeviceCopy: vi.fn(), discard: vi.fn(), offer: state === 'offer' ? { category: 'property', draft: {}, expiresAt: '2026-08-27T12:00:00.000Z', resumeStep: 'preview', updatedAt: '2026-07-28T12:00:00.000Z' } : null, pending, resume: vi.fn(), state }; }
 // prettier-ignore
 const snapshot: AnonymousDraftSnapshot = { category: 'property', draft: { counterparty: 'Insurer', desiredOutcome: 'repair', incidentDate: '2026-07-15', issueType: 'water_damage', summary: 'Water damaged two rooms.' }, resumeStep: 'preview' }, fp = (draft = snapshot.draft) => JSON.stringify(['property', draft.counterparty, draft.desiredOutcome, draft.incidentDate, draft.issueType, 'preview', draft.summary]);
-type HookProps = Parameters<typeof useAnonymousDraftRecovery>[0];
+type HookProps = Omit<Parameters<typeof useAnonymousDraftRecoveryHook>[0], 'allowWrites'> & {
+  allowWrites?: boolean;
+};
+function useAnonymousDraftRecovery(args: HookProps) {
+  return useAnonymousDraftRecoveryHook({ ...args, allowWrites: args.allowWrites ?? true });
+}
 function setupRecovery(lifecycleState: 'idle' | 'loading' | 'saved' | 'saving' = 'idle') {
   const calls: string[] = [],
     onReset = vi.fn(() => calls.push('reset'));
@@ -44,7 +49,7 @@ function installHeldLocks(delayed = false) {
 beforeEach(() => { vi.restoreAllMocks(); localStorage.clear(); Object.defineProperty(navigator, 'locks', { configurable: true, value: { request: vi.fn(async (_name, _options, callback) => callback()) } }); });
 describe('AnonymousDraftRecoveryBand', () => {
   // prettier-ignore
-  it('offers explicit keyboard-reachable resume and discard actions', () => { const value = recovery('offer'); render(<AnonymousDraftRecoveryBand recovery={value as never} />); expect(screen.getByTestId('anonymous-draft-recovery-offer')).toHaveAccessibleName('Continue notes from this browser?'); expect(screen.getAllByText('We found eligible notes saved on this browser. Choose whether to continue them or discard them from this device.').filter(node => !node.classList.contains('sr-only'))).toHaveLength(1); const resume = screen.getByRole('button', { name: 'Continue with these notes' }); const discard = screen.getByRole('button', { name: 'Discard from this device' }); expect(resume).toHaveClass('min-h-12'); expect(discard).toHaveClass('min-h-12'); fireEvent.click(resume); fireEvent.click(discard); expect(value.resume).toHaveBeenCalledOnce(); expect(value.discard).toHaveBeenCalledOnce(); });
+  it('offers explicit keyboard-reachable resume and discard actions', () => { const value = recovery('offer'); render(<AnonymousDraftRecoveryBand recovery={value as never} />); const offer = screen.getByTestId('anonymous-draft-recovery-offer'); expect(offer).toHaveAccessibleName('Continue notes from this browser?'); expect(screen.getAllByText('We found eligible notes saved on this browser. Choose whether to continue them or discard them from this device.').filter(node => !node.classList.contains('sr-only'))).toHaveLength(1); expect(offer).toHaveTextContent('screened for common medical terms'); expect(offer).toHaveTextContent('Free text cannot be guaranteed free of health details'); expect(offer).toHaveTextContent('expires after 30 days'); expect(offer).toHaveTextContent('discard it at any time'); expect(offer).toHaveTextContent('Secure save is separate'); expect(offer).toHaveTextContent('review the facts before any later handoff'); const resume = screen.getByRole('button', { name: 'Continue with these notes' }); const discard = screen.getByRole('button', { name: 'Discard from this device' }); expect(resume).toHaveClass('min-h-12'); expect(discard).toHaveClass('min-h-12'); fireEvent.click(resume); fireEvent.click(discard); expect(value.resume).toHaveBeenCalledOnce(); expect(value.discard).toHaveBeenCalledOnce(); });
   // prettier-ignore
   it('states the same-browser boundary after a successful local write', () => { render(<AnonymousDraftRecoveryBand recovery={recovery('saved') as never} />); const region = screen.getByTestId('anonymous-draft-recovery-status'); expect(region).toHaveTextContent('only in this browser'); expect(region).toHaveTextContent('not secure save'); expect(region).toHaveTextContent('30 days'); expect(region).toHaveTextContent('private device'); });
   // prettier-ignore

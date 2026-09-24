@@ -2,7 +2,12 @@
 
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 import { AnonymousDraftRecoveryBand } from './anonymous-draft-recovery-band';
+import {
+  BrowserRecoveryDisclosure,
+  type BrowserRecoveryDecision,
+} from './browser-recovery-disclosure';
 import { EMPTY_DRAFT } from './constants';
 import { useFreeStartViewModel, useSecureIntentGuard } from './free-start-view-model';
 import { FreeStartMainPanel } from './main-panel';
@@ -21,6 +26,7 @@ export async function resetAfterRecoveryClear(clear: () => Promise<boolean> | bo
 export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
   const t = useTranslations('freeStart'),
     tCommon = useTranslations('common');
+  const [recoveryDecision, setRecoveryDecision] = useState<BrowserRecoveryDecision>('pending');
   const flow = useOrganizerFlow(props.initialCategory);
   const draftLifecycle = useDraftLifecycle({
     category: flow.selectedCategory,
@@ -34,6 +40,7 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
   const recovery = useAnonymousDraftRecovery({
     activeFingerprint: draftLifecycle.active ? draftFingerprint(draftLifecycle.active.category, draftLifecycle.active, draftLifecycle.active.resumeStep) : null,
     activeId: draftLifecycle.active?.id ?? null,
+    allowWrites: recoveryDecision === 'enabled',
     category: flow.selectedCategory,
     draft: flow.draft,
     lifecycleState: draftLifecycle.state,
@@ -46,8 +53,21 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
   });
   // prettier-ignore
   const view = useFreeStartViewModel({ flow, props, t, tCommon }), recoveryPending = !recovery.ready || recovery.busy || Boolean(recovery.offer), secureActionsBlocked = recoveryPending || recovery.state === 'retained';
-  // prettier-ignore
-  const recoveryView = { ...recovery, discard: () => { secureIntent.invalidate(); recovery.discard(); }, resume: () => { secureIntent.invalidate(); recovery.resume(); } };
+  const recoveryView = {
+    ...recovery,
+    discard: () => {
+      secureIntent.invalidate();
+      if (recovery.offer || recovery.state === 'conflict' || recovery.state === 'retained') {
+        setRecoveryDecision('disabled');
+      }
+      recovery.discard();
+    },
+    resume: () => {
+      secureIntent.invalidate();
+      setRecoveryDecision('enabled');
+      recovery.resume();
+    },
+  };
   // prettier-ignore
   const selectCategory = (category: CategoryId) => recovery.neutralHost && flow.selectedCategory === 'injury' && (category === 'vehicle' || category === 'property') ? flow.restoreAnonymousDraft({ category, draft: EMPTY_DRAFT, resumeStep: flow.step === 'complete' ? 'preview' : flow.step }) : flow.selectCategory(category);
   const noRecoveryBody = (
@@ -69,6 +89,16 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
         className="mx-auto max-w-6xl space-y-8 px-4 py-12 sm:px-6 md:py-16"
       >
         <AnonymousDraftRecoveryBand recovery={recoveryView} />
+        {recovery.ready &&
+        recovery.neutralHost &&
+        !recovery.offer &&
+        (recovery.state === 'idle' || recovery.state === 'discarded') ? (
+          <BrowserRecoveryDisclosure
+            decision={recoveryDecision}
+            onEnable={() => setRecoveryDecision('enabled')}
+            onSkip={() => setRecoveryDecision('disabled')}
+          />
+        ) : null}
         <OrganizerHeader step={flow.step} t={t} />
         <p
           data-testid="free-start-result-announcement"
