@@ -10,7 +10,6 @@ import {
 } from '../check-workflow-seed-credentials.mjs';
 import { validatePreimageReceipt } from './configure-vercel-gate-url.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const rootDir = root;
 const read = file => yaml.load(fs.readFileSync(path.join(root, file), 'utf8'));
 const readWorkflow = read;
 const readRepoText = file => fs.readFileSync(path.join(root, file), 'utf8');
@@ -99,7 +98,8 @@ test('preimage is uploaded before checks and atomically confirms alias movement'
   const snapshot = configure.indexOf('aliasMoved: false');
   const assignment = configure.indexOf('await aliasStagingDeployment', snapshot);
   const moved = configure.indexOf('aliasMoved: true', assignment);
-  assert.ok(snapshot < assignment && assignment < moved);
+  const confirmation = configure.indexOf('await state.confirmStagingAliasTarget', moved);
+  assert.ok(snapshot < assignment && assignment < moved && moved < confirmation);
 });
 test('post-alias red deploy job restores only from a confirmed receipt', () => {
   assert.equal(scheduled({ deploy: 'failure', e2e: 'skipped' }), true);
@@ -159,7 +159,7 @@ test('ordinary pushes still skip every production job', () => {
 });
 test('workflow seed credential hardening rejects shared release passwords and E2E API placeholders', () => {
   const workflowPaths = fs
-    .readdirSync(path.join(rootDir, '.github', 'workflows'))
+    .readdirSync(path.join(root, '.github', 'workflows'))
     .filter(fileName => /\.ya?ml$/u.test(fileName))
     .map(fileName => `.github/workflows/${fileName}`);
   for (const workflowPath of workflowPaths) {

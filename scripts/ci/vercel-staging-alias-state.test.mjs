@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   CANONICAL_STAGING_ALIAS,
+  confirmStagingAliasTarget,
   restoreStagingAlias,
   snapshotStagingAlias,
 } from './vercel-staging-alias-state.mjs';
@@ -125,6 +126,39 @@ test('provider errors are bounded and redact secrets', async () => {
     error => {
       assert.doesNotMatch(error.message, new RegExp(ENV.VERCEL_TOKEN));
       assert.ok(error.message.length < 300);
+      return true;
+    }
+  );
+});
+test('confirmation retries provider mapping lag and returns the exact target', async () => {
+  const waits = [];
+  const snapshots = [
+    { deploymentHostname: 'interdomestik-stale-ecohub.vercel.app', commitSha: 'b'.repeat(40) },
+    { deploymentHostname: HOST, commitSha: COMMIT },
+  ];
+  const result = await confirmStagingAliasTarget({
+    deploymentHostname: HOST,
+    expectedCommitSha: COMMIT,
+    env: { ...ENV, STAGING_ALIAS_CONFIRM_ATTEMPTS: '2', STAGING_ALIAS_RETRY_MS: '1' },
+    snapshotImpl: async () => snapshots.shift(),
+    waitImpl: async ms => waits.push(ms),
+  });
+  assert.deepEqual(result, { deploymentHostname: HOST, commitSha: COMMIT });
+  assert.deepEqual(waits, [1]);
+});
+test('confirmation fails closed with bounded public mapping evidence', async () => {
+  const staleHost = 'interdomestik-stale-ecohub.vercel.app';
+  const staleCommit = 'b'.repeat(40);
+  await assert.rejects(
+    confirmStagingAliasTarget({
+      deploymentHostname: HOST,
+      expectedCommitSha: COMMIT,
+      env: { ...ENV, STAGING_ALIAS_CONFIRM_ATTEMPTS: '1' },
+      snapshotImpl: async () => ({ deploymentHostname: staleHost, commitSha: staleCommit }),
+    }),
+    error => {
+      assert.match(error.message, new RegExp(`${staleHost} ${staleCommit}`, 'u'));
+      assert.doesNotMatch(error.message, new RegExp(ENV.VERCEL_TOKEN, 'u'));
       return true;
     }
   );
