@@ -12,19 +12,19 @@ import {
   validateImmutablePreviewDiagnosticTarget,
 } from './immutable-preview-diagnostic-target.mjs';
 
-const PINNED_PREVIEW_ORIGIN = 'https://interdomestik-gzd8s5g4r-ecohub.vercel.app';
-const PINNED_COMMIT_SHA = '12699481a1e1f3e231ca6c13844d4152125d02e4';
+const PINNED_PREVIEW_ORIGIN = 'https://interdomestik-9tjrc8i34-ecohub.vercel.app';
+const PINNED_COMMIT_SHA = 'a5dd1e455628b7c9826c80683237adcbd0d2d4f3';
 
 test('request policy accepts only the exact approved immutable preview origin', () => {
   assert.equal(APPROVED_PREVIEW_ORIGIN, PINNED_PREVIEW_ORIGIN);
   assert.equal(assertApprovedPreviewOrigin(APPROVED_PREVIEW_ORIGIN), APPROVED_PREVIEW_ORIGIN);
 
   const rejectedOrigins = [
-    'http://interdomestik-gzd8s5g4r-ecohub.vercel.app',
+    'http://interdomestik-9tjrc8i34-ecohub.vercel.app',
     'https://staging.interdomestik.com',
-    'https://interdomestik-gzd8s5g4r-ecohub.vercel.app.attacker.example',
-    'https://interdomestik-gzd8s5g4r-ecohub.vercel.app/path',
-    'https://user:password@interdomestik-gzd8s5g4r-ecohub.vercel.app',
+    'https://interdomestik-9tjrc8i34-ecohub.vercel.app.attacker.example',
+    'https://interdomestik-9tjrc8i34-ecohub.vercel.app/path',
+    'https://user:password@interdomestik-9tjrc8i34-ecohub.vercel.app',
   ];
   for (const rejected of rejectedOrigins) {
     assert.throws(
