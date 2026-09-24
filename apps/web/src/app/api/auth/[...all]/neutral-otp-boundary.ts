@@ -66,6 +66,32 @@ export function evaluateNeutralOtpHost(headers: Headers, env?: { IDA_HOST?: stri
   return !forwardedRaw || parseHostAuthority(forwardedRaw)?.authority === direct.authority;
 }
 
+export function evaluateNeutralOtpOrigin(request: Request): boolean {
+  const rawOrigin = request.headers.get('origin')?.trim();
+  if (!rawOrigin || rawOrigin === 'null') return false;
+  try {
+    const origin = new URL(rawOrigin);
+    const requestUrl = new URL(request.url);
+    const direct = parseHostAuthority(request.headers.get('host'));
+    const rawForwardedProto = request.headers.get('x-forwarded-proto')?.trim().toLowerCase();
+    if (rawForwardedProto && rawForwardedProto !== 'http' && rawForwardedProto !== 'https') {
+      return false;
+    }
+    const publicProtocol = rawForwardedProto ? `${rawForwardedProto}:` : requestUrl.protocol;
+    // Next's standalone server can expose its loopback bind authority in request.url while the
+    // browser correctly targets the validated public Host and a TLS-terminating proxy reports the
+    // public scheme. Compare those public values so an internal bind address cannot disable the
+    // browser-origin guard. Ambiguous forwarded-proto chains fail closed above.
+    if (origin.host !== direct?.authority || origin.protocol !== publicProtocol) {
+      return false;
+    }
+  } catch {
+    return false;
+  }
+  const fetchSite = request.headers.get('sec-fetch-site')?.trim().toLowerCase();
+  return !fetchSite || fetchSite === 'same-origin';
+}
+
 export function extractNeutralOtpEmail(body: unknown): string | null {
   const email = record(body)?.email;
   if (typeof email !== 'string') return null;

@@ -120,6 +120,53 @@ describe('email delivery fallback', () => {
       expect(message.html.toLowerCase()).not.toContain('membership checkout');
     }
   );
+  describe('automated loopback catcher', () => {
+    const automated = (env: Record<string, string>) => {
+      vi.stubEnv('INTERDOMESTIK_AUTOMATED', '1');
+      for (const key of ['E2E_SMTP_HOST', 'E2E_SMTP_PORT']) vi.stubEnv(key, '');
+      for (const [key, value] of Object.entries(env)) vi.stubEnv(key, value);
+    };
+    const send = async () => (await import('./email')).sendSignInOtpEmail('a@example.com', '1');
+    const mock = { success: true, id: 'mock-id' };
+    const refused = { success: false, error: 'Email provider not configured' };
+    it('stays a mock without a catcher and for messages that do not opt in', async () => {
+      automated({});
+      expect(await send()).toEqual(mock);
+      vi.stubEnv('E2E_SMTP_HOST', '127.0.0.1');
+      const { sendPasswordResetEmail } = await import('./email');
+      expect(await sendPasswordResetEmail('a@example.com', 'https://x.test/r')).toEqual(mock);
+      expect(m.createTransport).not.toHaveBeenCalled();
+      expect(m.resendConstructor).not.toHaveBeenCalled();
+    });
+    it('delivers OTP mail through a loopback catcher only when automated', async () => {
+      m.sendMail.mockResolvedValue({ messageId: 'caught' });
+      automated({ E2E_SMTP_HOST: '127.0.0.1', E2E_SMTP_PORT: '2525' });
+      expect(await send()).toEqual({ success: true, id: 'caught' });
+      expect(m.createTransport).toHaveBeenCalledWith(expect.objectContaining({ port: 2525 }));
+      vi.stubEnv('INTERDOMESTIK_AUTOMATED', '0');
+      vi.stubEnv('SMTP_HOST', '');
+      vi.stubEnv('RESEND_API_KEY', '');
+      m.createTransport.mockClear();
+      expect(await send()).toEqual(refused);
+      expect(m.createTransport).not.toHaveBeenCalled();
+    });
+    it.each([
+      ['smtp.example.com', '1025'],
+      ['127.0.0.1.evil.test', '1025'],
+      ['127.0.0.1', '70000'],
+      ['127.0.0.1', '25x'],
+    ])('rejects %s:%s without sending', async (host, port) => {
+      automated({ E2E_SMTP_HOST: host, E2E_SMTP_PORT: port });
+      expect(await send()).toEqual(refused);
+      expect(m.createTransport).not.toHaveBeenCalled();
+    });
+    it('never falls back to Resend when the catcher fails', async () => {
+      m.sendMail.mockRejectedValue(new Error('ECONNREFUSED'));
+      automated({ E2E_SMTP_HOST: 'localhost', RESEND_API_KEY: 're_key' });
+      expect(await send()).toEqual({ success: false, error: 'Failed to send email' });
+      expect(m.resendConstructor).not.toHaveBeenCalled();
+    });
+  });
   it('preserves default SMTP recipient and message logging', async () => {
     m.sendMail.mockResolvedValue({ messageId: 'default-message-id' });
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});

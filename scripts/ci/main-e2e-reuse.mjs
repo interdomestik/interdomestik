@@ -6,7 +6,7 @@ import { decideMainE2eReuse, normalizeReuseDecision } from './main-e2e-reuse-cor
 import { collectGitHubEvidence, readLocalGitObjectId } from './main-e2e-reuse-github.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const LANE_SHA256 = 'ff019f739b4ae106650a0dff94527154e9579468d0ea2d5a5eecff7c2f715b64';
-const CONFIG_SHA256 = '97ca0f14c9f7b121cf00121eb9a0f5867b0cf9f3e52b7215a504c3d7183f2d30';
+const CONFIG_SHA256 = '370530c9ba0e55cae0e2e152d723eb0c71d3dfede4d41fe4b582102309c238d0';
 const E2E_TREE_SHAS = new Set([
   // T117C marker compatibility.
   '01c8cb3319414240877198446673b055a2974f28',
@@ -52,6 +52,8 @@ const E2E_TREE_SHAS = new Set([
   '435943c918278405b65e54283d3807c0408bfd81',
   // Same S6 corpus with explicit Sonar rationale on intentional KS-only matrix skips.
   '5468dfaebd2e284d506eec07713ad5d2729f8711',
+  // S5 new-account email OTP secure save with native browser origin proof.
+  '5e70dc4ba9de13af548c7ff25e232fe7b34975c3',
 ]);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {
@@ -91,7 +93,7 @@ function lane(source, name) {
   return { projects, shared: definition[2] === 'true' && projects.length > 0 };
 }
 // The pre-install resolver accepts only the reviewed workflow, including gate failure semantics.
-const PR_WORKFLOW_SHA256 = '5607206adf40e9f63567e71f41311f386519990ffdfbbd6fc7c469c355a720bc';
+const PR_WORKFLOW_SHA256 = 'b7a3f47c834e981ea4d76d3cd5ae615bbc4a10fff109da0d1f99e411877f955d';
 const hasStrictPrGate = source => sha256(source) === PR_WORKFLOW_SHA256;
 function hasExactCommandChain(input) {
   try {

@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   classifyNeutralOtpRequest,
   evaluateNeutralOtpHost,
+  evaluateNeutralOtpOrigin,
   extractNeutralOtpEmail,
   neutralOtpPathKind,
 } from './neutral-otp-boundary';
@@ -105,5 +106,61 @@ describe('IDA-UI03a0b2 neutral OTP boundary', () => {
         })
       )
     ).toBe(false);
+  });
+
+  it('C04a requires an exact same-origin browser request', () => {
+    const request = (
+      origin?: string,
+      fetchSite?: string,
+      host = 'ida.interdomestik.com',
+      url = 'https://127.0.0.1:3000/api/auth/sign-in/email-otp',
+      forwardedProto?: string
+    ) =>
+      new Request(url, {
+        method: 'POST',
+        headers: {
+          host,
+          ...(origin ? { origin } : {}),
+          ...(fetchSite ? { 'sec-fetch-site': fetchSite } : {}),
+          ...(forwardedProto ? { 'x-forwarded-proto': forwardedProto } : {}),
+        },
+      });
+    expect(evaluateNeutralOtpOrigin(request('https://ida.interdomestik.com'))).toBe(true);
+    expect(evaluateNeutralOtpOrigin(request('https://ida.interdomestik.com', 'same-origin'))).toBe(
+      true
+    );
+    expect(
+      evaluateNeutralOtpOrigin(
+        request(
+          'https://ida.interdomestik.com',
+          'same-origin',
+          'ida.interdomestik.com',
+          'http://127.0.0.1:3000/api/auth/sign-in/email-otp',
+          'https'
+        )
+      )
+    ).toBe(true);
+    expect(evaluateNeutralOtpOrigin(request())).toBe(false);
+    expect(evaluateNeutralOtpOrigin(request('null'))).toBe(false);
+    expect(evaluateNeutralOtpOrigin(request('https://attacker.example'))).toBe(false);
+    expect(
+      evaluateNeutralOtpOrigin(request('https://ida.interdomestik.com', undefined, 'ida.localhost'))
+    ).toBe(false);
+    expect(evaluateNeutralOtpOrigin(request('http://ida.interdomestik.com'))).toBe(false);
+    expect(
+      evaluateNeutralOtpOrigin(
+        request(
+          'https://ida.interdomestik.com',
+          undefined,
+          'ida.interdomestik.com',
+          'http://127.0.0.1:3000/api/auth/sign-in/email-otp',
+          'https, http'
+        )
+      )
+    ).toBe(false);
+    expect(evaluateNeutralOtpOrigin(request('not an origin'))).toBe(false);
+    expect(evaluateNeutralOtpOrigin(request('https://ida.interdomestik.com', 'cross-site'))).toBe(
+      false
+    );
   });
 });

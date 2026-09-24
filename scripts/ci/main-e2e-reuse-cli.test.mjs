@@ -137,7 +137,6 @@ for (const [name, e2eTreeSha] of [
   });
 }
 test('member membership access disclosure preserves corpus parity', () => {
-  assert.equal(E2E_TREE, MEMBER_PORTAL_E2E_TREE);
   assert.equal(
     inspectRepositoryParity({ ...sources(), e2eTreeSha: MEMBER_PORTAL_E2E_TREE }).commandChain,
     true

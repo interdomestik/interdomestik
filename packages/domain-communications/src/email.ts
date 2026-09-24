@@ -23,6 +23,9 @@ import {
 } from './email-templates';
 import {
   createEmailTelemetry,
+  automatedSmtpTarget,
+  fallbackResend,
+  smtpTransport,
   renderSignInOtpEmail,
   sendViaResend,
   type EmailResult,
@@ -35,7 +38,6 @@ export { normalizeSignInOtpLocale } from './sign-in-otp-email';
 export type { EmailResult };
 
 let resendClient: Resend | null = null;
-let smtpTransporter: nodemailer.Transporter | null = null;
 
 function getResendClient(telemetry = createEmailTelemetry()) {
   if (resendClient) return resendClient;
@@ -55,24 +57,20 @@ function getResendClient(telemetry = createEmailTelemetry()) {
   }
 }
 
-function getEmailClient(telemetry: EmailTelemetry) {
-  // Priority 0: Automated Testing (Mock)
-  // Always return null to force mock path in sendEmail
-  if (process.env.INTERDOMESTIK_AUTOMATED === '1' || process.env.PLAYWRIGHT === '1') {
-    return null;
+const isAutomated = () =>
+  ['INTERDOMESTIK_AUTOMATED', 'PLAYWRIGHT'].some(k => process.env[k] === '1');
+function getEmailClient(telemetry: EmailTelemetry, options: EmailSendOptions) {
+  // Priority 0: Automated Testing (mock, or the loopback catcher for messages that opt in)
+  if (isAutomated()) {
+    const target = options.automatedCatcher ? automatedSmtpTarget() : null;
+    if (target === null || target === 'rejected') return target;
+    return { type: 'smtp' as const, client: smtpTransport(target), testOnly: true };
   }
 
   // Priority 1: SMTP (Docker / Local Dev)
   if (process.env.SMTP_HOST) {
-    if (!smtpTransporter) {
-      smtpTransporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT || '1025'),
-        secure: false, // Mailpit usually runs plain or Upgrade
-        ignoreTLS: true,
-      });
-    }
-    return { type: 'smtp', client: smtpTransporter };
+    const port = Number.parseInt(process.env.SMTP_PORT || '1025');
+    return { type: 'smtp' as const, client: smtpTransport({ host: process.env.SMTP_HOST, port }) };
   }
 
   // Priority 2: Resend (Production / Preview)
@@ -104,10 +102,11 @@ export async function sendEmail(
   options: EmailSendOptions = {}
 ): Promise<EmailResult> {
   const telemetry = createEmailTelemetry(options.telemetryPolicy);
-  const provider = getEmailClient(telemetry);
+  const provider = getEmailClient(telemetry, options);
+  if (provider === 'rejected') return { success: false, error: 'Email provider not configured' };
   if (!provider) {
     // If testing and no provider, just mock success
-    if (process.env.INTERDOMESTIK_AUTOMATED === '1' || process.env.PLAYWRIGHT === '1') {
+    if (isAutomated()) {
       telemetry.sent('mock', () =>
         console.log(`[MockEmail] To: ${to}, Subject: ${template.subject}`)
       );
@@ -130,7 +129,7 @@ export async function sendEmail(
         telemetry.sent('smtp', () => console.log(`[SMTP] Email sent to ${to}: ${info.messageId}`));
         return { success: true, id: info.messageId };
       } catch (smtpError) {
-        const resend = getResendClient(telemetry);
+        const resend = fallbackResend(provider, () => getResendClient(telemetry));
         if (!resend) throw smtpError;
 
         telemetry.fallback('smtp', () =>
@@ -294,6 +293,7 @@ export async function sendSignInOtpEmail(
 ): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
   return sendEmail(to, renderSignInOtpEmail(otp, locale), {
+    automatedCatcher: true,
     telemetryPolicy: 'content-free',
   });
 }

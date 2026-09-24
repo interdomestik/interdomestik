@@ -23,16 +23,19 @@ vi.mock('better-auth/next-js', () => ({
 
 import { POST } from './route';
 
-function verifyRequest(body: Record<string, unknown>) {
-  return new Request('https://ida.interdomestik.com/api/auth/sign-in/email-otp', {
+function verifyRequest(body: Record<string, unknown>, origin = 'https://ida.interdomestik.com') {
+  const request = new Request('https://ida.interdomestik.com/api/auth/sign-in/email-otp', {
     method: 'POST',
     headers: {
       host: 'ida.interdomestik.com',
+      origin,
       'content-type': 'application/json',
       'x-forwarded-for': '203.0.113.9',
     },
     body: JSON.stringify({ email: 'member@example.com', otp: '123456', ...body }),
   });
+  if (!origin) request.headers.delete('origin');
+  return request;
 }
 
 describe('IDA-UI03a0b2 neutral OTP verify route', () => {
@@ -122,5 +125,24 @@ describe('IDA-UI03a0b2 neutral OTP verify route', () => {
     for (const [input] of mocks.enforceOtpRateLimits.mock.calls) {
       expect(input).toEqual(expect.objectContaining({ kind: 'verify', dimensions: ['ip'] }));
     }
+  });
+
+  it('C09 rejects missing and untrusted origins before rate limits or Better Auth', async () => {
+    const body = { onboarding: { tenant: 'tenant_ks', mode: 'deferred' } };
+    const responses = await Promise.all([
+      POST(verifyRequest(body, '')),
+      POST(verifyRequest(body, 'https://attacker.example')),
+    ]);
+
+    for (const response of responses) {
+      expect(response.status).toBe(403);
+      expect(await response.json()).toEqual({
+        code: 'OTP_UNAVAILABLE',
+        message: 'Unable to verify',
+      });
+    }
+    expect(mocks.enforceOtpRateLimits).not.toHaveBeenCalled();
+    expect(mocks.handlerPost).not.toHaveBeenCalled();
+    expect(mocks.getSession).not.toHaveBeenCalled();
   });
 });

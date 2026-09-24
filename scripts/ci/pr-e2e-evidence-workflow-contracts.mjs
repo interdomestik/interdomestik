@@ -20,9 +20,20 @@ test('PR E2E runner keeps gate and smoke evidence lanes separate', () => {
   assert.deepEqual(gate.env, {
     E2E_DATABASE_URL: '${{ env.DATABASE_URL }}',
     E2E_DATABASE_URL_RLS: '${{ env.DATABASE_URL }}',
+    E2E_MAILPIT_API: 'http://127.0.0.1:8025',
+    E2E_OTP_PROOF_REQUIRED: '1',
+    E2E_SMTP_HOST: '127.0.0.1',
+    E2E_SMTP_PORT: '1025',
+    OTP_RATE_LIMIT_HMAC_SECRET:
+      "${{ secrets.OTP_RATE_LIMIT_HMAC_SECRET || 'test-otp-rate-secret-for-ci-only-not-production' }}",
     PW_EVIDENCE_LANE: 'pr-gate',
   });
   assert.equal(smoke.env.PW_EVIDENCE_LANE, 'pr-smoke');
+  assert.equal(smoke.env.E2E_SMTP_HOST, undefined);
+  assert.match(
+    runner.services.mailpit.image,
+    /^axllent\/mailpit:v\d+\.\d+\.\d+@sha256:[0-9a-f]{64}$/
+  );
 });
 
 test('PR E2E uploads exact-head lane reports and canonical evidence summaries', () => {
@@ -53,10 +64,16 @@ test('PR E2E uploads exact-head lane reports and canonical evidence summaries', 
   assert.equal(upload.if, 'always()');
   assert.equal(upload.with.name, 'verification-evidence-e2e-pr');
   assert.equal(upload.with['if-no-files-found'], 'error');
-  assert.deepEqual(upload.with.path.trim().split('\n').map(line => line.trim()), [
-    'tmp/verification-evidence/pr-gate.json',
-    'tmp/verification-evidence/pr-smoke.json',
-    'apps/web/test-results/pr-gate/report.json',
-    'apps/web/test-results/pr-smoke/report.json',
-  ]);
+  assert.deepEqual(
+    upload.with.path
+      .trim()
+      .split('\n')
+      .map(line => line.trim()),
+    [
+      'tmp/verification-evidence/pr-gate.json',
+      'tmp/verification-evidence/pr-smoke.json',
+      'apps/web/test-results/pr-gate/report.json',
+      'apps/web/test-results/pr-smoke/report.json',
+    ]
+  );
 });

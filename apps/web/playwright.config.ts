@@ -4,13 +4,10 @@ import path from 'node:path';
 import { resolvePlaywrightNetwork } from './playwright-network';
 const { BASE_URL, BIND_HOST, PORT } = resolvePlaywrightNetwork();
 const WEB_SERVER_SCRIPT = path.resolve(__dirname, '../../scripts/e2e-webserver.sh');
-function tenantBaseUrl(hostWithPort: string, locale: string): string {
-  return `http://${hostWithPort}/${locale}`;
-}
+const tenantBaseUrl = (hostWithPort: string, locale: string) => `http://${hostWithPort}/${locale}`;
 function normalizeLoopbackTenantHost(hostWithPort: string): string {
   const trimmed = hostWithPort.trim();
-  const normalized = trimmed.toLowerCase();
-  if (!normalized.includes('.localhost')) {
+  if (!trimmed.toLowerCase().includes('.localhost')) {
     return trimmed;
   }
   return trimmed.replace(/\.localhost(?=:\d+$|$)/i, `.${BIND_HOST}.nip.io`);
@@ -198,6 +195,9 @@ const PILOT_HOST = normalizeLoopbackTenantHost(
 const IDA_HOST = normalizeLoopbackTenantHost(
   envOrFallback('IDA_HOST', `ida.${BIND_HOST}.nip.io:${PORT}`)
 );
+// Chromium treats *.localhost as a secure context. The OTP secure-save proof uses this
+// explicit browser origin so native auth requests exercise Better Auth's origin check.
+const SECURE_IDA_HOST = `ida.localhost:${PORT}`;
 process.env.IDA_HOST = IDA_HOST;
 
 fs.mkdirSync(TEST_RESULTS_DIR, { recursive: true });
@@ -459,7 +459,7 @@ export default defineConfig({
             .join(' '),
           NEXT_PUBLIC_APP_URL: BASE_URL,
           BETTER_AUTH_URL: BASE_URL,
-          BETTER_AUTH_TRUSTED_ORIGINS: `http://127.0.0.1:${PORT},http://localhost:${PORT},http://${KS_HOST},http://${MK_HOST},http://${AL_HOST},http://${PILOT_HOST},http://${IDA_HOST},${BASE_URL}`,
+          BETTER_AUTH_TRUSTED_ORIGINS: `http://127.0.0.1:${PORT},http://localhost:${PORT},http://${KS_HOST},http://${MK_HOST},http://${AL_HOST},http://${PILOT_HOST},http://${IDA_HOST},http://${SECURE_IDA_HOST},${BASE_URL}`,
           INTERDOMESTIK_AUTOMATED: '1',
           INTERDOMESTIK_LOCAL_E2E: '1',
           INTERDOMESTIK_E2E_DIAGNOSTICS: '1',

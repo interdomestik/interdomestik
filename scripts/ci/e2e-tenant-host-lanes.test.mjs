@@ -56,6 +56,14 @@ test('tenant-host lane guard passes current inventoried alias and regression fil
   assert.match(result.stdout, /12 projects, 12 files inventoried/u);
 });
 
+test('secure neutral OTP proof uses an explicit trusted browser origin', () => {
+  const config = readRepoText('apps/web/playwright.config.ts');
+
+  assert.match(config, /const SECURE_IDA_HOST = `ida\.localhost:\$\{PORT\}`;/u);
+  assert.match(config, /BETTER_AUTH_TRUSTED_ORIGINS:[^\n]*http:\/\/\$\{SECURE_IDA_HOST\}/u);
+  assert.doesNotMatch(config, /skip(?:CSRF|Origin)Check/u);
+});
+
 test('tenant-host lane guard blocks new dashboard or auth specs from using host as tenant identity', t => {
   const tempRoot = createTempRepo(t);
 

@@ -138,7 +138,7 @@ describe('createClaimFromSavedDraft', () => {
     ['stale version', context, { ...draft, version: 4 }, false],
     ['incomplete draft', context, { ...draft, summary: '' }, false],
     ['short counterparty', context, { ...draft, counterparty: 'x' }, false],
-    ['unsupported category', context, { ...draft, category: 'injury' }, false], ['non-preview step', context, { ...draft, resumeStep: 'details' }, false], ['prototype category', context, { ...draft, category: 'constructor' }, false], ['prototype issue', context, { ...draft, issueType: 'toString' }, false], ['prototype outcome', context, { ...draft, desiredOutcome: 'constructor' }, false], ['outer rate limit', context, draft, true],
+    ['unsupported category', context, { ...draft, category: 'injury' }, false], ['non-preview step', context, { ...draft, resumeStep: 'details' }, false], ['non-preview property step', context, { ...draft, category: 'property', issueType: 'water_damage', desiredOutcome: 'reimbursement', resumeStep: 'details' }, false], ['stale property version', context, { ...draft, category: 'property', issueType: 'water_damage', desiredOutcome: 'reimbursement', version: 4 }, false], ['prototype category', context, { ...draft, category: 'constructor' }, false], ['prototype issue', context, { ...draft, issueType: 'toString' }, false], ['prototype outcome', context, { ...draft, desiredOutcome: 'constructor' }, false], ['outer rate limit', context, draft, true],
   ])('fails closed for %s', async (_name, freshContext, savedDraft, limited) => {
     h.resolveSession.mockResolvedValue({ ok: true, context: freshContext });
     h.resumeDraft.mockResolvedValue({ ok: true, draft: savedDraft });

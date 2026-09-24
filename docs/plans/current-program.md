@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-23
+last_reviewed: 2026-09-24
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -16,12 +16,12 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`S6-MEMBER-MEMBERSHIP-ACCESS-STATUS` is the sole active implementation. The owner authorized a
-bounded member-continuation increment on the canonical `/member` portal: disclose the existing
-membership lifecycle state, factual current-period end and the access consequence derived from the
-canonical lifecycle contract. The slice reuses the existing Paddle-only billing, authentication,
-tenant and member-domain boundaries. It adds no offer, activation, renewal, claim fulfilment or SLA
-semantics and authorizes no production deployment.
+`S5-NEW-ACCOUNT-OTP-SECURE-SAVE` is the sole active implementation. The owner authorized a bounded
+proof and hardening increment for a new person on the neutral public organizer: deliver a real
+email one-time code to an automated loopback catcher, verify through the native browser origin,
+create the member identity and session, persist the exact eligible draft, return in a fresh session,
+resume it and permanently delete it. This slice changes no canonical route, proxy authority,
+billing, claim conversion, membership activation or production deployment behavior.
 
 The earlier P0.3/P0.4 staging-evidence gap is replaced only for the tested staging boundary by
 artifact `staging-verification-35784351048` from successful CD run
@@ -29,14 +29,13 @@ artifact `staging-verification-35784351048` from successful CD run
 `c8f8834434a64962f042356721fa7657f7cc6253`. That artifact is staging evidence; it is not production
 evidence, pilot admission or user acceptance.
 
-The request-linked member evidence upload and assigned-staff acknowledgement predecessor completed
-through protected PR [#1814](https://github.com/interdomestik/interdomestik/pull/1814) as
-`af191e71da589307a21df2a7fce14380a1fdd625`. Its exact-main CI, security, CodeQL and Sonar checks
-passed. Automatic CD run
-[#35901050682](https://github.com/interdomestik/interdomestik/actions/runs/35901050682) built,
-deployed and verified staging successfully; every production build, deploy, verification and
-evidence job was skipped. Request fulfilment, claim lifecycle and SLA semantics remain open and were
-not inferred from that delivery. The active slice starts from that protected main SHA.
+The request-linked member evidence predecessor completed through protected PR
+[#1814](https://github.com/interdomestik/interdomestik/pull/1814) as
+`af191e71da589307a21df2a7fce14380a1fdd625`. The bounded member lifecycle/access disclosure then
+completed through protected PR [#1815](https://github.com/interdomestik/interdomestik/pull/1815) as
+`966a774028dc113757c298876e442e1ae80c73b5`. Those increments remain credited, while request
+fulfilment, whole membership acceptance and the broader S5/S6 families remain open. The active
+slice starts from that protected main SHA.
 
 Product implementation resumed with this bounded S5/S7 dependency. Completed increments through
 S5 first-case saved-draft continuity [#1801](https://github.com/interdomestik/interdomestik/pull/1801)
@@ -44,14 +43,14 @@ remain credited; whole S5 and the other SRS requirement families named below rem
 
 ## Program Goals
 
-1. Show the signed-in member the canonical membership lifecycle bucket and factual current-period
-   end on the existing `/member` continuation surface.
-2. State whether the lifecycle currently grants new-case access, using the existing shared
-   lifecycle contract rather than duplicating status rules in the UI.
-3. Preserve fail-closed tenant/member lookup, role behavior, localized EN/SQ/MK/SR copy and a safe
-   retry path when the membership projection cannot be loaded.
-4. Keep offers, price, activation, renewal, cancellation execution, fulfilment, claim lifecycle,
-   routing, authentication, tenancy and production deployment outside the slice.
+1. Exercise the real new-account email-OTP path with Chromium-supplied Origin and cookies; permit
+   only an explicit test origin and an opted-in loopback mail catcher during automated runs.
+2. Prove wrong codes, replayed codes and untrusted origins fail closed without an account/session
+   side effect, and prevent one-time codes from entering retained test artifacts or failure text.
+3. After verification, prove the exact eligible facts are persisted for the resolved owner, the
+   local copy is removed only after confirmed save, and tenant/owner isolation remains fail closed.
+4. Prove a fresh browser can verify again, resume and permanently delete the draft with audit
+   evidence, while creating no claim, subscription, CRM lead, membership or recovery side effect.
 
 ## Enduring Safety Boundaries
 
@@ -120,17 +119,17 @@ clauses and supplementary controls. SRS v0.9 remains the reviewed baseline at SH
 `8bc2b69c9babf8f228941378a01a32340f23d3ff061f92c574a9a908472981a2`; repo/program and accepted
 ADR authority control until explicitly amended.
 
-Continue the owner-adopted outcome order without rebuilding delivered behavior: remaining S5
-first-case gaps, the active bounded S6 member continuation/membership increment, S7 staff handling, S8
-agent handoff, S9 assisted activation, S10 branch oversight, S11 tenant administration, S12 platform
-operations and S13 outcome/closure, followed by S14 whole-pilot rehearsal. H1 Help Now keeps its
-priority lane when its direct country/content/stop-rule dependencies are ready.
+Continue the owner-adopted outcome order without rebuilding delivered behavior: the active bounded
+S5 new-account secure-save proof, remaining S5 gaps, remaining S6 acceptance after the delivered
+#1815 disclosure, S7 staff handling, S8 agent handoff, S9 assisted activation, S10 branch oversight,
+S11 tenant administration, S12 platform operations and S13 outcome/closure, followed by S14
+whole-pilot rehearsal. H1 Help Now keeps its priority lane when its direct dependencies are ready.
 
 Direct dependencies remain local to their consumers. PR #1814 proves request-bound upload and
-assigned-staff acknowledgement; request fulfilment remains separate and open. This slice consumes
-the existing persisted subscription projection and lifecycle access contract but does not prove
-provider confirmation, webhook/payment readiness, offer or activation acceptance. `IDA-MEM-006`
-therefore remains explicitly open. Reviewed signed/versioned/integrity/expiry
+assigned-staff acknowledgement; PR #1815 proves the bounded member lifecycle/access disclosure.
+This slice consumes the existing auth, tenant, draft and audit boundaries but does not prove local
+disclosure copy (`IDA-FST-004`), provider confirmation, webhook/payment readiness, offer or
+activation acceptance. Reviewed signed/versioned/integrity/expiry
 contracts precede offline pack readiness; S8 precedes dependent S9; recovery, partner, mandate,
 consent and billing receipts precede affected S13 promises. T-411 keeps its T-401, SVC-CORE and
 FLIGHT-03 dependency chain. No whole-overlay or stale historical row becomes a blanket pilot gate.
@@ -142,32 +141,35 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-- The canonical member portal displays the lifecycle bucket returned by the existing membership
-  projection and the current-period end when present; provider, plan and price metadata are absent.
-- New-case access is shown as allowed only for `active`, `trialing`, `active_in_grace` and
-  `scheduled_cancel`, and denied for `none`, `grace_expired` and `canceled`, using
-  `membershipLifecycleGrantsAccess` as the authority.
-- The action destination follows that same access consequence for every permitted portal consumer;
-  no role-specific UI override can advertise access that the claim-entry authorization gate denies.
-- Projection failure exposes localized safe error copy and a keyboard-operable retry link without
-  leaking the underlying error. EN/SQ/MK/SR catalogs remain complete.
-- Focused tenant/member query, lifecycle, UI and E2E contracts, independent targeted security
-  review, `pnpm pr:verify`, `pnpm security:guard` and protected current-head checks pass before
-  delivery. No whole-SRS, pilot-readiness, user-acceptance or production-deployment claim follows.
+- The PR E2E lane runs a pinned Mailpit service on loopback. Only sign-in OTP mail opts into it;
+  invalid or unavailable catcher configuration fails without falling back to an external provider.
+- A native Chromium request from the explicit `ida.localhost` test origin verifies the delivered
+  code, receives an HttpOnly session and persists the exact eligible facts. No request interception,
+  Origin rewriting, CSRF/origin bypass or production trusted-origin expansion is permitted.
+- A cookie-free, valid-code request from an untrusted Origin is rejected before rate limits or the
+  Better Auth handler and does not consume the code; wrong-code and consumed-code replay attempts
+  also fail closed. Retained Playwright trace, video and screenshot capture is disabled for this
+  secret-bearing proof and errors redact every retrieved code.
+- The verified owner can return in a fresh browser, resume exact facts and permanently delete the
+  draft with create/delete audit evidence. A foreign tenant sees `notFound`; no claim, subscription
+  or CRM lead is created. Whole S5, `IDA-FST-004`, operations and user acceptance remain open.
+- Focused contracts, independent high-risk review, `pnpm pr:verify`, `pnpm security:guard` and
+  protected current-head checks pass before delivery. No whole-SRS, pilot-readiness,
+  user-acceptance or production-deployment claim follows.
 
 ## Bounded Research Brief
 
-Checked 2026-09-23. Paddle's official subscription documentation treats status and scheduled
-changes as subscription facts and distinguishes paused/canceled access consequences; this slice
-therefore renders only reconciled backend state and never derives entitlement from client-side
-offer or price data. Allianz's member portal pattern keeps contract status and service entry
-together, supporting disclosure on the existing continuation surface rather than a new route. WCAG
-2.2 status-message guidance supports the existing accessible error region plus an explicit retry
-control. Sources:
-[Paddle subscription status](https://developer.paddle.com/build/subscriptions/create-subscriptions),
-[Paddle pause and resume](https://developer.paddle.com/build/subscriptions/pause-resume-subscriptions),
-[Allianz customer portal](https://www.allianz.de/service/meine-allianz/), and
-[WCAG 2.2 status messages](https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html).
+Checked 2026-09-24 against Better Auth's official options and source for the installed 1.6 family.
+Mutation origin/CSRF validation is a security boundary: trusted browser origins must be enumerated,
+while disabling the check is explicitly unsafe. The adopted test design therefore adds only the
+exact secure local browser origin to the Playwright server environment and adds a same-origin
+preflight for the neutral OTP browser endpoint before any code can be consumed. The E2E proves a
+cookie-free valid-code request from a different Origin returns 403 and the same code remains usable
+on the trusted path. Rewriting Origin in request interception or enabling `disableCSRFCheck` /
+`disableOriginCheck` was rejected because either would stop the E2E from exercising the boundary.
+Sources: [Better Auth options](https://better-auth.com/docs/reference/options),
+[context trusted-origin source](https://github.com/better-auth/better-auth/blob/main/packages/better-auth/src/context/create-context.ts),
+and [Better Auth changelog](https://github.com/better-auth/better-auth/blob/main/packages/better-auth/CHANGELOG.md).
 
 ## Historical Evidence
 
