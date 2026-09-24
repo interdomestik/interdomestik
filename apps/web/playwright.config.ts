@@ -4,13 +4,10 @@ import path from 'node:path';
 import { resolvePlaywrightNetwork } from './playwright-network';
 const { BASE_URL, BIND_HOST, PORT } = resolvePlaywrightNetwork();
 const WEB_SERVER_SCRIPT = path.resolve(__dirname, '../../scripts/e2e-webserver.sh');
-function tenantBaseUrl(hostWithPort: string, locale: string): string {
-  return `http://${hostWithPort}/${locale}`;
-}
+const tenantBaseUrl = (hostWithPort: string, locale: string) => `http://${hostWithPort}/${locale}`;
 function normalizeLoopbackTenantHost(hostWithPort: string): string {
   const trimmed = hostWithPort.trim();
-  const normalized = trimmed.toLowerCase();
-  if (!normalized.includes('.localhost')) {
+  if (!trimmed.toLowerCase().includes('.localhost')) {
     return trimmed;
   }
   return trimmed.replace(/\.localhost(?=:\d+$|$)/i, `.${BIND_HOST}.nip.io`);

@@ -6,7 +6,7 @@ import { decideMainE2eReuse, normalizeReuseDecision } from './main-e2e-reuse-cor
 import { collectGitHubEvidence, readLocalGitObjectId } from './main-e2e-reuse-github.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const LANE_SHA256 = 'ff019f739b4ae106650a0dff94527154e9579468d0ea2d5a5eecff7c2f715b64';
-const CONFIG_SHA256 = 'b8cf18c78d30a5f72c32b06bf02664a445d605d6a9003f5a0100917ae21589be';
+const CONFIG_SHA256 = '370530c9ba0e55cae0e2e152d723eb0c71d3dfede4d41fe4b582102309c238d0';
 const E2E_TREE_SHAS = new Set([
   // T117C marker compatibility.
   '01c8cb3319414240877198446673b055a2974f28',
@@ -53,7 +53,7 @@ const E2E_TREE_SHAS = new Set([
   // Same S6 corpus with explicit Sonar rationale on intentional KS-only matrix skips.
   '5468dfaebd2e284d506eec07713ad5d2729f8711',
   // S5 new-account email OTP secure save with native browser origin proof.
-  '0eff7657d000af6904f84a40a16392052fe98f0b',
+  'a3597a5d70ce89e9744720fc5efa08fb6d89e9b4',
 ]);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {

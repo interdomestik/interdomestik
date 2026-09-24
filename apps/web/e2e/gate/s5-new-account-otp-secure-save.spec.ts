@@ -7,8 +7,6 @@ import {
   db,
   eq,
   freeStartDrafts,
-  inArray,
-  or,
   session as authSession,
   sql,
   subscriptions,
@@ -23,17 +21,16 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 import { S3_JOURNEY_INCIDENT_DATE } from './member-staff-evidence-journey-cleanup.fixture';
+import { cleanupOtpJourney, redactOtpFailure } from './s5-new-account-otp-cleanup.fixture';
 import {
   OtpMail,
-  deleteMail,
   enter,
   localCopy,
   mailboxConfigured,
   postOtpFromBrowser,
-  redact,
   waitForOtpMail,
 } from './s5-otp-mailbox.fixture';
-import { idaOrigin, idaTarget, teardown } from './s5-saved-draft.fixture';
+import { idaOrigin, idaTarget } from './s5-saved-draft.fixture';
 
 // Traces, videos and screenshots would record the typed code, so this spec keeps none.
 test.use({ screenshot: 'off', trace: 'off', video: 'off' });
@@ -288,50 +285,10 @@ test.describe('S5 new-account email OTP secure save', () => {
         expect(await db.$count(crmLeads, eq(crmLeads.email, email))).toBe(0);
       });
     } catch (error) {
-      failure = redact(error, mails);
-      await Promise.all(
-        pages.map(page =>
-          page
-            .locator('input')
-            .evaluateAll(inputs =>
-              inputs.forEach(input => ((input as HTMLInputElement).value = ''))
-            )
-            .catch(() => undefined)
-        )
-      );
+      failure = await redactOtpFailure(error, mails, pages);
       throw failure;
     } finally {
-      const owner = await userRow().catch(() => undefined);
-      await teardown(
-        [
-          async () => {
-            if (!owner) return;
-            const ids = (
-              await db.query.freeStartDrafts.findMany({
-                columns: { id: true },
-                where: eq(freeStartDrafts.ownerUserId, owner.id),
-              })
-            ).map(row => row.id);
-            const audit = or(
-              eq(auditLog.actorId, owner.id),
-              ids.length ? inArray(auditLog.entityId, ids) : undefined
-            );
-            await db.delete(auditLog).where(audit);
-            await db.delete(freeStartDrafts).where(eq(freeStartDrafts.ownerUserId, owner.id));
-            await db.delete(authSession).where(eq(authSession.userId, owner.id));
-            await db.execute(sql`delete from account where "userId" = ${owner.id}`);
-            await db.delete(user).where(eq(user.id, owner.id));
-          },
-          () => db.execute(sql`delete from verification where identifier like ${`%${email}`}`),
-          () => deleteMail(seen),
-          ...pages.map(page => () => page.context().close()),
-          async () => {
-            expect(await userRow(), 'the task-owned account is removed').toBeUndefined();
-            expect(await db.$count(crmLeads, eq(crmLeads.email, email))).toBe(0);
-          },
-        ],
-        failure
-      );
+      await cleanupOtpJourney({ email, failure, pages, seen });
     }
   });
 });
