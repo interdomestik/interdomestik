@@ -19,7 +19,8 @@ const {
 const { invalidateP01ProofForRoleTarget } = require('./p01-canonical-proof.ts');
 const { runP01 } = require('./p01-rbac-runner.ts');
 const { buildP06CanonicalRouteScenarios } = require('./p06-scenarios.ts');
-const { buildRolePanelDiscoveryUrls } = require('./role-panel-targets.ts');
+const { findVisibleRolePanel } = require('./role-panel-discovery.ts');
+const { createRolePanelFailureCapture } = require('./role-panel-failure-snapshot.ts');
 
 const INFRA_NAVIGATION_ERROR_PATTERNS = [
   /ERR_CONNECTION_REFUSED/i,
@@ -213,67 +214,38 @@ async function runP03AndP04(browser, runCtx, deps) {
 
   const rolePanelTarget = resolveConfiguredRolePanelTarget(runCtx);
   const targetUrl = rolePanelTarget.targetUrl;
-  async function waitForRolePanelVisible(page, timeoutMs = TIMEOUTS.nav) {
-    const startedAt = Date.now();
-
-    while (Date.now() - startedAt < timeoutMs) {
-      const triggerVisible = await page
-        .locator(SELECTORS.roleSelectTrigger)
-        .isVisible({ timeout: TIMEOUTS.quickMarker })
-        .catch(() => false);
-      if (triggerVisible) return true;
-
-      const tableVisible = await page
-        .locator(SELECTORS.userRolesTable)
-        .isVisible({ timeout: TIMEOUTS.quickMarker })
-        .catch(() => false);
-      if (tableVisible) {
-        const grantVisible = await page
-          .getByRole('button', { name: SELECTORS.grantRoleButtonName })
-          .isVisible({ timeout: TIMEOUTS.quickMarker })
-          .catch(() => false);
-        if (grantVisible) return true;
-      }
-
-      await sleep(300);
-    }
-
-    return false;
-  }
-
-  async function tryRolePanelTarget(page, targetUrl) {
-    await gotoWithSessionRetry({
-      page,
-      navigate: () =>
-        page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav }),
-      retryLogin: () => loginWithRunContext(page, runCtx, 'admin_ks'),
-    });
-    const ok = await waitForRolePanelVisible(page, TIMEOUTS.nav);
-    evidenceP03.push(`rp ${page.url()} ${ok}`);
-    return ok ? page.url() : null;
-  }
-
-  async function ensureRolePanelLoaded(page) {
-    for (const candidateUrl of buildRolePanelDiscoveryUrls(runCtx, rolePanelTarget)) {
-      const resolved = await tryRolePanelTarget(page, candidateUrl).catch(() => null);
-      if (resolved) return resolved;
-    }
-    return null;
-  }
 
   try {
     await runCheckWithInfraRetry(async attempt => {
       const context = await browser.newContext();
       const page = await context.newPage();
+      let failureCapture = null;
       try {
         await loginWithRunContext(page, runCtx, 'admin_ks', { forceFresh: true });
+        const captureFactory = deps.createRolePanelFailureCapture || createRolePanelFailureCapture;
+        failureCapture = captureFactory(page, {
+          baseUrl: runCtx.baseUrl,
+          expectedEmail: runCtx.credentials?.admin_ks?.email,
+        });
+        await failureCapture.captureSession();
 
-        const resolvedTarget = await ensureRolePanelLoaded(page);
+        const resolvedTarget = await findVisibleRolePanel({
+          failureCapture,
+          loginWithRunContext,
+          page,
+          recordEvidence: line => evidenceP03.push(line),
+          rolePanelTarget,
+          runCtx,
+        });
         evidenceP03.push(
           `attempt=${attempt} target_source=${rolePanelTarget.source}`,
           `target_fallback_allowed=${rolePanelTarget.allowFallbackDiscovery}`
         );
         if (!resolvedTarget) {
+          const failureSnapshot = failureCapture.finish();
+          const snapshotEvidence = `role_panel_failure_snapshot=${JSON.stringify(failureSnapshot)}`;
+          evidenceP03.push(snapshotEvidence);
+          evidenceP04.push(snapshotEvidence);
           failuresP03.push(`P0.3_ROLE_PANEL_UNAVAILABLE target=${targetUrl}`);
           failuresP04.push(`P0.4_ROLE_PANEL_UNAVAILABLE target=${targetUrl}`);
           return;
@@ -337,6 +309,7 @@ async function runP03AndP04(browser, runCtx, deps) {
           failuresP04.push(`P0.4_ROLE_REMOVE_FAILED role=${roleToToggle} target=${resolvedTarget}`);
         }
       } finally {
+        failureCapture?.dispose();
         await context.close();
       }
     });
