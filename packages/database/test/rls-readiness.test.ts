@@ -32,5 +32,10 @@ for (const scenario of [
       { encoding: 'utf8', timeout: 20_000 }
     );
     assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.match(
+      result.stdout,
+      /RLS readiness scenario completed/,
+      'scenario must finish all assertions'
+    );
   });
 }

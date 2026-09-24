@@ -164,6 +164,7 @@ async function main(): Promise<void> {
 }
 
 main()
+  .then(() => console.info('RLS readiness scenario completed'))
   .finally(() => mock.timers.reset())
   .catch(error => {
     console.error(error);
