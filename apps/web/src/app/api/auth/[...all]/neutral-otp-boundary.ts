@@ -73,10 +73,16 @@ export function evaluateNeutralOtpOrigin(request: Request): boolean {
     const origin = new URL(rawOrigin);
     const requestUrl = new URL(request.url);
     const direct = parseHostAuthority(request.headers.get('host'));
+    const rawForwardedProto = request.headers.get('x-forwarded-proto')?.trim().toLowerCase();
+    if (rawForwardedProto && rawForwardedProto !== 'http' && rawForwardedProto !== 'https') {
+      return false;
+    }
+    const publicProtocol = rawForwardedProto ? `${rawForwardedProto}:` : requestUrl.protocol;
     // Next's standalone server can expose its loopback bind authority in request.url while the
-    // browser correctly targets the validated public Host. Compare that Host and the request
-    // scheme separately so an internal bind address cannot disable the browser-origin guard.
-    if (!direct || origin.host !== direct.authority || origin.protocol !== requestUrl.protocol) {
+    // browser correctly targets the validated public Host and a TLS-terminating proxy reports the
+    // public scheme. Compare those public values so an internal bind address cannot disable the
+    // browser-origin guard. Ambiguous forwarded-proto chains fail closed above.
+    if (!direct || origin.host !== direct.authority || origin.protocol !== publicProtocol) {
       return false;
     }
   } catch {
