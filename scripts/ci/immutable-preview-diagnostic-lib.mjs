@@ -1,5 +1,7 @@
-export const APPROVED_PREVIEW_ORIGIN = 'https://interdomestik-16cnb0jg6-ecohub.vercel.app';
-export const EXPECTED_COMMIT_SHA = 'f22127f2ebcf45b5dc64ea521dbeb298b77654be';
+import { IMMUTABLE_PREVIEW_DIAGNOSTIC_TARGET } from './immutable-preview-diagnostic-target.mjs';
+
+export const APPROVED_PREVIEW_ORIGIN = IMMUTABLE_PREVIEW_DIAGNOSTIC_TARGET.origin;
+export const EXPECTED_COMMIT_SHA = IMMUTABLE_PREVIEW_DIAGNOSTIC_TARGET.expectedCommitSha;
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 const LOGIN_PATH = '/api/auth/sign-in/email';

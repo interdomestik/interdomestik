@@ -21,11 +21,12 @@ status_command: pnpm plan:status
 
 ### Current acceptance
 
-- Base: current protected main `966a774028dc113757c298876e442e1ae80c73b5`; it includes protected
-  PR #1814 and the bounded S6 lifecycle/access disclosure in protected PR #1815.
-- Owned repository surface: the neutral OTP same-origin preflight, new-account OTP E2E proof,
-  automated loopback email transport, PR-lane Mailpit service, exact evidence fingerprints and this
-  canonical authority update.
+- Base: current protected main `12699481a1e1f3e231ca6c13844d4152125d02e4`; it includes protected
+  PR #1803, PR #1814 and the bounded S6 lifecycle/access disclosure in protected PR #1815.
+- Credited protected PR #1803 surface: neutral OTP same-origin preflight, new-account OTP E2E proof,
+  automated loopback email transport, PR-lane Mailpit service and exact evidence fingerprints.
+- Owned repository surface: the exact immutable preview target pin, health/SHA preflight,
+  read-only browser receipt, manual workflow contract, focused tests and this tracker update.
 - Preserve: native Better Auth Origin/CSRF validation, Supabase identity, proxy/routing and
   tenant/owner boundaries, exact draft facts, secret redaction and task-owned cleanup.
 - Forbidden: Origin/header rewriting, auth bypass, external-provider fallback, proxy or schema
@@ -36,15 +37,15 @@ status_command: pnpm plan:status
 Product implementation continues with one bounded S5 new-account OTP secure-save increment.
 Completed bounded outcomes remain credited; queued does not mean in progress or verified.
 
-| Outcome                                     | Status                | Direct next evidence                                                                                                         |
-| ------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| S5 — member first-case journey              | `active_bounded`      | Credit #1788/#1790/#1792/#1796/#1801 and #1814; PR #1803 new-account OTP secure-save proof is active; whole S5 remains open. |
-| S6 — member continuation/membership         | `delivered_bounded`   | Credit protected #1815 for lifecycle/current-period/access disclosure; whole S6, offer, activation and renewal remain open.  |
-| S7 — staff handling                         | `delivered_bounded`   | Credit assigned-staff acknowledgement in protected #1814; fulfilment and whole S7 remain open.                               |
-| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, member ownership and Paddle contracts.                                                  |
-| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                    |
-| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause plus accepted country/content/stop-rule authority.                                                |
-| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence, then complete role/accessibility/locale rehearsal.                         |
+| Outcome                                     | Status                | Direct next evidence                                                                                                                         |
+| ------------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| S5 — member first-case journey              | `active_bounded`      | Credit #1788/#1790/#1792/#1796/#1801 and #1814; PR #1803 is merged but staging delivery is blocked pending diagnosis; whole S5 remains open. |
+| S6 — member continuation/membership         | `delivered_bounded`   | Credit protected #1815 for lifecycle/current-period/access disclosure; whole S6, offer, activation and renewal remain open.                  |
+| S7 — staff handling                         | `delivered_bounded`   | Credit assigned-staff acknowledgement in protected #1814; fulfilment and whole S7 remain open.                                               |
+| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, member ownership and Paddle contracts.                                                                  |
+| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                    |
+| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause plus accepted country/content/stop-rule authority.                                                                |
+| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence, then complete role/accessibility/locale rehearsal.                                         |
 
 The [requirement disposition map](requirement-disposition-map.md) remains the complete 510-clause
 SRS/frontier index. Its unresolved rows are not automatic features, deferrals or blanket blockers.
@@ -60,6 +61,20 @@ SRS/frontier index. Its unresolved rows are not automatic features, deferrals or
 - Staging artifact `staging-verification-35784351048` from successful CD run #35784351048 proves the
   exercised P0.3/P0.4 staging boundary on exact SHA `c8f8834434a64962f042356721fa7657f7cc6253`.
   It is not production evidence, pilot admission or user acceptance.
+- PR #1803 merged as `12699481a1e1f3e231ca6c13844d4152125d02e4`. CD run #35984733640
+  deployed immutable preview `dpl_AVTFMcyeCTvqFaas9pnt8uEDqMBg` at
+  `https://interdomestik-gzd8s5g4r-ecohub.vercel.app`; its health endpoint identifies that exact SHA.
+  The run then failed P0.3/P0.4 because every safe KS member candidate reported
+  `ROLE_PANEL_UNAVAILABLE`; automatic rollback succeeded and production was skipped. This is failed
+  diagnostic source context, not staging-delivery evidence.
+- The same role-panel signature failed on initial exact-SHA run #35965718161 for PR #1815 SHA
+  `966a774028dc113757c298876e442e1ae80c73b5`, while controlled run #35968590642 passed without a
+  code change. Do not retry or redeploy merely to clear the gate; capture immutable read-only
+  status, session, marker, error and health/SHA evidence first.
+- Retired diagnostic target `https://interdomestik-16cnb0jg6-ecohub.vercel.app` on SHA
+  `f22127f2ebcf45b5dc64ea521dbeb298b77654be` was inspected read-only after failed CD run
+  #35745073999 and later returned `panel-visible` without a redeploy or code change. It is superseded
+  by the exact PR #1803 target and remains diagnostic context, not staging-delivery evidence.
 - PR #1814 merged as `af191e71da589307a21df2a7fce14380a1fdd625`; exact-main CI,
   security, CodeQL and Sonar passed. Automatic CD run #35901050682 successfully built, deployed and
   verified staging; all production jobs were skipped.

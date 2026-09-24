@@ -5,7 +5,6 @@ import { createRequire } from 'node:module';
 import {
   APPROVED_PREVIEW_ORIGIN,
   EXPECTED_COMMIT_SHA,
-  assertApprovedPreviewOrigin,
   assertExpectedHealth,
   classifyDiagnosticError,
   resolveApprovedRedirect,
@@ -118,11 +117,8 @@ export async function runPreflight({
   try {
     receipt.runId = requiredWorkflowCoordinate('GITHUB_RUN_ID', env);
     receipt.runAttempt = requiredWorkflowCoordinate('GITHUB_RUN_ATTEMPT', env);
-    const origin = assertApprovedPreviewOrigin(requiredEnv('DIAGNOSTIC_PREVIEW_ORIGIN', env));
-    const expectedSha = requiredEnv('DIAGNOSTIC_EXPECTED_SHA', env);
-    if (expectedSha !== EXPECTED_COMMIT_SHA) {
-      throw new Error('diagnostic expected commit SHA is not approved');
-    }
+    const origin = APPROVED_PREVIEW_ORIGIN;
+    const expectedSha = EXPECTED_COMMIT_SHA;
 
     // Cookie mode redirects so a browser can retain Set-Cookie. This manual fetch has no cookie
     // jar and authenticates every hop with the bypass header instead.

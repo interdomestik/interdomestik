@@ -16,12 +16,20 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`S5-NEW-ACCOUNT-OTP-SECURE-SAVE` is the sole active implementation. The owner authorized a bounded
+`S5-NEW-ACCOUNT-OTP-SECURE-SAVE` is the sole active product implementation. The owner authorized a bounded
 proof and hardening increment for a new person on the neutral public organizer: deliver a real
 email one-time code to an automated loopback catcher, verify through the native browser origin,
 create the member identity and session, persist the exact eligible draft, return in a fresh session,
 resume it and permanently delete it. This slice changes no canonical route, proxy authority,
 billing, claim conversion, membership activation or production deployment behavior.
+
+Protected PR #1803 merged as `12699481a1e1f3e231ca6c13844d4152125d02e4`, but CD run #35984733640
+failed the recurring P0.3/P0.4 role-panel boundary and rolled staging back; production was skipped.
+Bounded delivery-diagnostic work is therefore active support for this same slice, not a second
+product implementation. It may only retarget the immutable-preview pin, run health/SHA preflight,
+collect a sanitized read-only browser receipt and update its focused workflow/tests and authority.
+It must not retry staging, mutate roles or make a staging-delivery claim before that evidence is
+reported. The active slice now starts from protected main SHA `12699481a1e1f3e231ca6c13844d4152125d02e4`.
 
 The earlier P0.3/P0.4 staging-evidence gap is replaced only for the tested staging boundary by
 artifact `staging-verification-35784351048` from successful CD run
@@ -34,8 +42,7 @@ The request-linked member evidence predecessor completed through protected PR
 `af191e71da589307a21df2a7fce14380a1fdd625`. The bounded member lifecycle/access disclosure then
 completed through protected PR [#1815](https://github.com/interdomestik/interdomestik/pull/1815) as
 `966a774028dc113757c298876e442e1ae80c73b5`. Those increments remain credited, while request
-fulfilment, whole membership acceptance and the broader S5/S6 families remain open. The active
-slice starts from that protected main SHA.
+fulfilment, whole membership acceptance and the broader S5/S6 families remain open.
 
 Product implementation resumed with this bounded S5/S7 dependency. Completed increments through
 S5 first-case saved-draft continuity [#1801](https://github.com/interdomestik/interdomestik/pull/1801)
@@ -140,6 +147,19 @@ operational ownership, incident/restore evidence and explicit release authorizat
 alone is not business or user acceptance.
 
 ## Current Repair Acceptance
+
+### Current delivery-diagnostic acceptance
+
+- The delivery diagnostic is pinned in source and tests to the exact PR #1803 immutable preview and
+  SHA. Source review, a startup self-check and focused contract tests constrain the pin to a bare
+  Interdomestik immutable Vercel preview host with no port.
+- The health preflight uses the staging Vercel bypass credential and must report the pinned SHA and
+  `preview` environment before diagnostic login credentials are read.
+- Browser collection permits safe reads plus the one canonical login POST, blocks all role or other
+  mutations, and retains only sanitized status, session-summary, marker, error and provenance
+  fields. A diagnostic result is neither staging delivery nor authority to retry staging.
+
+### Credited PR #1803 acceptance
 
 - The PR E2E lane runs a pinned Mailpit service on loopback. Only sign-in OTP mail opts into it;
   invalid or unavailable catcher configuration fails without falling back to an external provider.

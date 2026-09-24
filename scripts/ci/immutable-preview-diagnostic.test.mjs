@@ -9,7 +9,6 @@ import yaml from 'js-yaml';
 import {
   APPROVED_PREVIEW_ORIGIN,
   EXPECTED_COMMIT_SHA,
-  assertApprovedPreviewOrigin,
   assertExpectedHealth,
   assertTrustedPreflightReceipt,
   classifyDiagnosticError,
@@ -22,23 +21,6 @@ import {
 } from './immutable-preview-diagnostic-lib.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-
-test('accepts only the exact approved immutable preview origin', () => {
-  assert.equal(assertApprovedPreviewOrigin(APPROVED_PREVIEW_ORIGIN), APPROVED_PREVIEW_ORIGIN);
-
-  for (const rejected of [
-    'http://interdomestik-16cnb0jg6-ecohub.vercel.app',
-    'https://staging.interdomestik.com',
-    'https://interdomestik-16cnb0jg6-ecohub.vercel.app.attacker.example',
-    'https://interdomestik-16cnb0jg6-ecohub.vercel.app/path',
-    'https://user:password@interdomestik-16cnb0jg6-ecohub.vercel.app',
-  ]) {
-    assert.throws(
-      () => assertApprovedPreviewOrigin(rejected),
-      /approved immutable preview origin/u
-    );
-  }
-});
 
 test('rejects health evidence unless it is the exact preview build SHA', () => {
   assert.deepEqual(
@@ -235,8 +217,11 @@ test('manual workflow is staging-protected, least-privilege, read-only, and shor
   const job = workflow.jobs.diagnose;
   assert.deepEqual(job.environment, { name: 'staging', deployment: false });
   assert.equal(job.if, "github.ref == 'refs/heads/main'");
-  assert.equal(job.env.DIAGNOSTIC_PREVIEW_ORIGIN, APPROVED_PREVIEW_ORIGIN);
-  assert.equal(job.env.DIAGNOSTIC_EXPECTED_SHA, EXPECTED_COMMIT_SHA);
+  assert.doesNotMatch(source, /DIAGNOSTIC_(?:PREVIEW_ORIGIN|EXPECTED_SHA)/u);
+  assert.doesNotMatch(
+    fs.readFileSync(path.join(root, 'scripts/ci/immutable-preview-diagnostic.mjs'), 'utf8'),
+    /DIAGNOSTIC_(?:PREVIEW_ORIGIN|EXPECTED_SHA)/u
+  );
 
   const preflightStep = job.steps.find(step => step.name === 'Verify immutable preview provenance');
   assert.equal(preflightStep.run, 'node scripts/ci/immutable-preview-diagnostic.mjs --preflight');
