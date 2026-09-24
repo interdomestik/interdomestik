@@ -2,10 +2,10 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
 import {
-  assertRlsConnectionRole,
   type RlsConnectionRoleAssertionResult,
   type RlsConnectionRolePosture,
 } from './rls-role-assertion';
+import { createRlsRoleReadiness } from './rls-role-readiness';
 import * as schema from './schema';
 
 const globalQueryClients = global as unknown as {
@@ -107,24 +107,6 @@ async function queryRlsConnectionRolePosture(
     `;
 }
 
-type RlsConnectionRoleAssertionState = 'not_required' | 'pending' | 'passed' | 'failed';
-
-function getInitialRlsConnectionRoleAssertionState(): RlsConnectionRoleAssertionState {
-  if (shouldAssertRlsConnectionRole && rlsConnectionUrlFailure) {
-    return 'failed';
-  }
-
-  if (shouldAssertRlsConnectionRole) {
-    return 'pending';
-  }
-
-  return 'not_required';
-}
-
-let rlsConnectionRoleAssertionState: RlsConnectionRoleAssertionState =
-  getInitialRlsConnectionRoleAssertionState();
-let rlsConnectionRoleAssertionFailure: unknown = rlsConnectionUrlFailure;
-
 type OptionalSentry = {
   addBreadcrumb?: (breadcrumb: {
     category?: string;
@@ -219,72 +201,14 @@ function reportRlsConnectionRoleAssertion(
     });
 }
 
-function resultFromRlsConnectionRoleAssertionError(
-  error: unknown
-): RlsConnectionRoleAssertionResult {
-  if (error instanceof Error && 'result' in error) {
-    return error.result as RlsConnectionRoleAssertionResult;
-  }
-
-  return {
-    ok: false,
-    reason: 'query_failed',
-    cause: error,
-  };
-}
-
-// One pg_roles check per process/isolate cold start, plus one more when DB_RLS_ROLE is set.
-// withTenantContext awaits the same module-scoped promise; this is not a per-request query.
-function startRlsConnectionRoleAssertion(): Promise<RlsConnectionRoleAssertionResult | undefined> {
-  if (!shouldAssertRlsConnectionRole) {
-    return Promise.resolve(undefined);
-  }
-
-  if (rlsConnectionUrlFailure) {
-    reportRlsConnectionRoleAssertion(
-      {
-        ok: false,
-        reason: 'query_failed',
-        cause: rlsConnectionUrlFailure,
-      },
-      rlsConnectionUrlFailure
-    );
-    return Promise.resolve(undefined);
-  }
-
-  return assertRlsConnectionRole({
-    isProduction: shouldAssertRlsConnectionRole,
-    configuredDbRole: process.env.DB_RLS_ROLE,
-    queryRolePosture: queryRlsConnectionRolePosture,
-  })
-    .then(result => {
-      rlsConnectionRoleAssertionState = 'passed';
-      reportRlsConnectionRoleAssertion(result);
-      return result;
-    })
-    .catch(error => {
-      rlsConnectionRoleAssertionState = 'failed';
-      rlsConnectionRoleAssertionFailure = error;
-      reportRlsConnectionRoleAssertion(resultFromRlsConnectionRoleAssertionError(error), error);
-      return undefined;
-    });
-}
-
-const rlsConnectionRoleAssertion = startRlsConnectionRoleAssertion();
-
-function assertRlsDatabaseClientReady(): void {
-  if (!shouldAssertRlsConnectionRole || rlsConnectionRoleAssertionState === 'passed') {
-    return;
-  }
-
-  if (rlsConnectionRoleAssertionState === 'failed') {
-    throw rlsConnectionRoleAssertionFailure instanceof Error
-      ? rlsConnectionRoleAssertionFailure
-      : new Error('DATABASE_URL_RLS role assertion failed');
-  }
-
-  // Pending checks must not make cold-start query builders fail; tenant transactions await readiness.
-}
+// Cache successful posture, but allow a later request to recover from a settled timeout.
+const rlsRoleReadiness = createRlsRoleReadiness({
+  enabled: shouldAssertRlsConnectionRole,
+  initialFailure: rlsConnectionUrlFailure,
+  configuredDbRole: process.env.DB_RLS_ROLE,
+  queryRolePosture: queryRlsConnectionRolePosture,
+  report: reportRlsConnectionRoleAssertion,
+});
 
 function createAssertedRlsDatabaseClient<TClient extends object>(client: TClient): TClient {
   if (!shouldAssertRlsConnectionRole) {
@@ -293,7 +217,7 @@ function createAssertedRlsDatabaseClient<TClient extends object>(client: TClient
 
   return new Proxy(client, {
     get(target, property, receiver) {
-      assertRlsDatabaseClientReady();
+      rlsRoleReadiness.assertClientReady();
       const value = Reflect.get(target, property, receiver);
       return typeof value === 'function' ? value.bind(target) : value;
     },
@@ -301,12 +225,7 @@ function createAssertedRlsDatabaseClient<TClient extends object>(client: TClient
 }
 
 export async function assertRlsConnectionRoleReady(): Promise<void> {
-  await rlsConnectionRoleAssertion;
-  if (rlsConnectionRoleAssertionState === 'failed') {
-    throw rlsConnectionRoleAssertionFailure instanceof Error
-      ? rlsConnectionRoleAssertionFailure
-      : new Error('DATABASE_URL_RLS role assertion failed');
-  }
+  await rlsRoleReadiness.assertReady();
 }
 
 export const dbAdmin = drizzle(adminQueryClient, { schema });
