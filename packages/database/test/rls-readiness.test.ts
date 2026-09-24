@@ -29,7 +29,7 @@ for (const scenario of [
         fileURLToPath(new URL('./fixtures/rls-readiness-scenario.ts', import.meta.url)),
         scenario,
       ],
-      { encoding: 'utf8', timeout: 20_000 }
+      { encoding: 'utf8', timeout: 20_000, env: { ...process.env, NODE_ENV: 'production' } }
     );
     assert.equal(result.status, 0, result.stdout + result.stderr);
     assert.match(

@@ -8,7 +8,6 @@ async function main(): Promise<void> {
   const scenario = process.argv[2];
   const configured = scenario === 'configured' || scenario === 'recovery-configured-superuser';
   // Only the external SQL transport is replaced. Readiness, Drizzle and tenant setup are real.
-  process.env.NODE_ENV = 'production';
   process.env.DATABASE_URL = 'postgres://admin:fixture@db.invalid/test';
   process.env.DATABASE_URL_RLS = 'postgres://tenant:fixture@db.invalid/test';
   delete process.env.DB_RLS_ROLE;
