@@ -7,7 +7,6 @@ import { pathToFileURL } from 'node:url';
 import {
   APPROVED_PREVIEW_ORIGIN,
   EXPECTED_COMMIT_SHA,
-  assertApprovedPreviewOrigin,
   assertSameApprovedOrigin,
   assertTrustedPreflightReceipt,
   classifyDiagnosticError,
@@ -203,8 +202,8 @@ async function main() {
   };
   let exitCode = 1;
   try {
-    const origin = assertApprovedPreviewOrigin(requiredEnv('DIAGNOSTIC_PREVIEW_ORIGIN'));
-    const expectedSha = requiredEnv('DIAGNOSTIC_EXPECTED_SHA');
+    const origin = APPROVED_PREVIEW_ORIGIN;
+    const expectedSha = EXPECTED_COMMIT_SHA;
     const bypassHeaders = buildVercelProtectionHeaders(origin);
     const preflight = JSON.parse(await fs.readFile(PREFLIGHT_PATH, 'utf8'));
     report.provenance = assertTrustedPreflightReceipt(

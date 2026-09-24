@@ -22,13 +22,43 @@ async function withPreflightReceipt(run) {
 
 function preflightEnv() {
   return {
-    DIAGNOSTIC_PREVIEW_ORIGIN: APPROVED_PREVIEW_ORIGIN,
-    DIAGNOSTIC_EXPECTED_SHA: EXPECTED_COMMIT_SHA,
     GITHUB_RUN_ID: '1234',
     GITHUB_RUN_ATTEMPT: '1',
     VERCEL_AUTOMATION_BYPASS_SECRET: 'bypass-secret',
   };
 }
+
+test('uses the source-pinned target even when legacy target environment values are present', async () => {
+  await withPreflightReceipt(async outputPath => {
+    const receipt = await runPreflight({
+      env: {
+        ...preflightEnv(),
+        DIAGNOSTIC_PREVIEW_ORIGIN: 'https://attacker.example',
+        DIAGNOSTIC_EXPECTED_SHA: '0'.repeat(40),
+      },
+      outputPath,
+      timeoutMs: 100,
+      buildProtectionHeaders: () => ({
+        'x-vercel-protection-bypass': 'bypass-secret',
+      }),
+      fetchImpl: async url => {
+        assert.equal(String(url), `${APPROVED_PREVIEW_ORIGIN}/api/health`);
+        return {
+          status: 200,
+          ok: true,
+          headers: new Headers(),
+          json: async () => ({
+            status: 'healthy',
+            build: { commitSha: EXPECTED_COMMIT_SHA, deployEnv: 'preview' },
+          }),
+        };
+      },
+    });
+    assert.equal(receipt.status, 'verified');
+    assert.equal(receipt.origin, APPROVED_PREVIEW_ORIGIN);
+    assert.equal(receipt.commitSha, EXPECTED_COMMIT_SHA);
+  });
+});
 
 test('persists sanitized partial redirects and preserves redirect-limit failure', async () => {
   await withPreflightReceipt(async outputPath => {

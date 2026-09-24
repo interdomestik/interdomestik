@@ -14,9 +14,6 @@ jobs:
     environment:
       name: staging
       deployment: false
-    env:
-      DIAGNOSTIC_PREVIEW_ORIGIN: https://interdomestik-16cnb0jg6-ecohub.vercel.app
-      DIAGNOSTIC_EXPECTED_SHA: f22127f2ebcf45b5dc64ea521dbeb298b77654be
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
       - uses: ./.github/actions/setup
