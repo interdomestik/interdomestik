@@ -25,6 +25,7 @@ function sendRequest(email: string, extra: Record<string, unknown> = {}) {
     method: 'POST',
     headers: {
       host: 'ida.interdomestik.com',
+      origin: 'https://ida.interdomestik.com',
       'content-type': 'application/json',
       'x-forwarded-for': '203.0.113.8',
     },

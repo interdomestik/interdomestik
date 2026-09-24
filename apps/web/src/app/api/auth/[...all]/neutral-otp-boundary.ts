@@ -66,6 +66,18 @@ export function evaluateNeutralOtpHost(headers: Headers, env?: { IDA_HOST?: stri
   return !forwardedRaw || parseHostAuthority(forwardedRaw)?.authority === direct.authority;
 }
 
+export function evaluateNeutralOtpOrigin(request: Request): boolean {
+  const rawOrigin = request.headers.get('origin')?.trim();
+  if (!rawOrigin || rawOrigin === 'null') return false;
+  try {
+    if (new URL(rawOrigin).origin !== new URL(request.url).origin) return false;
+  } catch {
+    return false;
+  }
+  const fetchSite = request.headers.get('sec-fetch-site')?.trim().toLowerCase();
+  return !fetchSite || fetchSite === 'same-origin';
+}
+
 export function extractNeutralOtpEmail(body: unknown): string | null {
   const email = record(body)?.email;
   if (typeof email !== 'string') return null;

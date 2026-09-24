@@ -4,6 +4,7 @@ import { enforceOtpRateLimits } from '@/lib/rate-limit-otp';
 import { getAuthRateLimitConfig } from './_core';
 import {
   evaluateNeutralOtpHost,
+  evaluateNeutralOtpOrigin,
   neutralOtpPathKind,
   otpUnavailable,
   type NeutralOtpKind,
@@ -41,6 +42,7 @@ export async function prepareNeutralOtpRequest(
   const kind = neutralOtpPathKind(request.url);
   if (!kind) return null;
   if (!evaluateNeutralOtpHost(request.headers)) return { response: otpUnavailable() };
+  if (!evaluateNeutralOtpOrigin(request)) return { response: otpUnavailable(403) };
   const limited = await enforceOtpRateLimits({
     kind,
     headers: request.headers,

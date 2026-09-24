@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   classifyNeutralOtpRequest,
   evaluateNeutralOtpHost,
+  evaluateNeutralOtpOrigin,
   extractNeutralOtpEmail,
   neutralOtpPathKind,
 } from './neutral-otp-boundary';
@@ -105,5 +106,27 @@ describe('IDA-UI03a0b2 neutral OTP boundary', () => {
         })
       )
     ).toBe(false);
+  });
+
+  it('C04a requires an exact same-origin browser request', () => {
+    const request = (origin?: string, fetchSite?: string) =>
+      new Request('https://ida.interdomestik.com/api/auth/sign-in/email-otp', {
+        method: 'POST',
+        headers: {
+          ...(origin ? { origin } : {}),
+          ...(fetchSite ? { 'sec-fetch-site': fetchSite } : {}),
+        },
+      });
+    expect(evaluateNeutralOtpOrigin(request('https://ida.interdomestik.com'))).toBe(true);
+    expect(evaluateNeutralOtpOrigin(request('https://ida.interdomestik.com', 'same-origin'))).toBe(
+      true
+    );
+    expect(evaluateNeutralOtpOrigin(request())).toBe(false);
+    expect(evaluateNeutralOtpOrigin(request('null'))).toBe(false);
+    expect(evaluateNeutralOtpOrigin(request('https://attacker.example'))).toBe(false);
+    expect(evaluateNeutralOtpOrigin(request('not an origin'))).toBe(false);
+    expect(evaluateNeutralOtpOrigin(request('https://ida.interdomestik.com', 'cross-site'))).toBe(
+      false
+    );
   });
 });

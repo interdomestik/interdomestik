@@ -23,8 +23,9 @@ status_command: pnpm plan:status
 
 - Base: current protected main `966a774028dc113757c298876e442e1ae80c73b5`; it includes protected
   PR #1814 and the bounded S6 lifecycle/access disclosure in protected PR #1815.
-- Owned repository surface: the new-account OTP E2E proof, automated loopback email transport,
-  PR-lane Mailpit service, exact evidence fingerprints and this canonical authority update.
+- Owned repository surface: the neutral OTP same-origin preflight, new-account OTP E2E proof,
+  automated loopback email transport, PR-lane Mailpit service, exact evidence fingerprints and this
+  canonical authority update.
 - Preserve: native Better Auth Origin/CSRF validation, Supabase identity, proxy/routing and
   tenant/owner boundaries, exact draft facts, secret redaction and task-owned cleanup.
 - Forbidden: Origin/header rewriting, auth bypass, external-provider fallback, proxy or schema
@@ -32,8 +33,8 @@ status_command: pnpm plan:status
 
 ## Product Queue
 
-Product implementation continues with one bounded S6 membership/access disclosure. Completed
-bounded outcomes remain credited; queued does not mean in progress or verified.
+Product implementation continues with one bounded S5 new-account OTP secure-save increment.
+Completed bounded outcomes remain credited; queued does not mean in progress or verified.
 
 | Outcome                                     | Status                | Direct next evidence                                                                                                         |
 | ------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------- |

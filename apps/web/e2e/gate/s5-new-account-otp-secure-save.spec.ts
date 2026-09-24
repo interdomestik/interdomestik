@@ -61,6 +61,7 @@ test.describe('S5 new-account email OTP secure save', () => {
     const mails: OtpMail[] = [];
     const pages: Page[] = [];
     const browserAuthOrigins: string[] = [];
+    const browserAuthHeaderReads: Promise<void>[] = [];
     let failure: unknown;
     const userRow = () => db.query.user.findFirst({ where: eq(user.email, email) });
     const drafts = async () => {
@@ -78,7 +79,11 @@ test.describe('S5 new-account email OTP secure save', () => {
       context.on('request', request => {
         const url = new URL(request.url());
         if (request.method() === 'POST' && url.pathname.startsWith('/api/auth/')) {
-          browserAuthOrigins.push(request.headers().origin ?? '');
+          browserAuthHeaderReads.push(
+            request.allHeaders().then(headers => {
+              browserAuthOrigins.push(headers.origin ?? '');
+            })
+          );
         }
       });
       const page = await context.newPage();
@@ -146,6 +151,30 @@ test.describe('S5 new-account email OTP secure save', () => {
         expect(await localCopy(start), 'the browser copy survives a refused save').toBe(true);
       });
 
+      await test.step('a cookie-free untrusted origin cannot consume a valid code', async () => {
+        const hostile = await browser.newContext({
+          baseURL: info.project.use.baseURL,
+          extraHTTPHeaders: CLIENT,
+          storageState: { cookies: [], origins: [] },
+        });
+        try {
+          const response = await hostile.request.post(
+            `${idaOrigin(info)}/api/auth/sign-in/email-otp`,
+            {
+              data: { email, onboarding: { mode: 'deferred', tenant }, otp: mail.code },
+              failOnStatusCode: false,
+              headers: { Origin: 'https://untrusted.invalid', 'x-tenant-id': tenant },
+            }
+          );
+          expect(response.status(), 'an untrusted pre-auth origin is rejected').toBe(403);
+          expect(await hostile.cookies(), 'origin rejection opens no browser session').toEqual([]);
+          expect(await userRow(), 'origin rejection creates no account').toBeUndefined();
+          expect(await localCopy(start), 'the valid browser copy remains').toBe(true);
+        } finally {
+          await hostile.close();
+        }
+      });
+
       const created = await test.step('the right code creates the account and saves', async () => {
         await enter(panel.getByTestId('free-start-save-code'), mail.code);
         await panel.getByTestId('free-start-save-verify').click();
@@ -166,6 +195,7 @@ test.describe('S5 new-account email OTP secure save', () => {
         expect(sessionCookie, 'the browser receives a real session cookie').toMatchObject({
           httpOnly: true,
         });
+        await Promise.all(browserAuthHeaderReads);
         expect(
           browserAuthOrigins.length,
           'native browser auth mutations were observed'
@@ -191,25 +221,9 @@ test.describe('S5 new-account email OTP secure save', () => {
         return { draftId: saved[0]!.id, ownerId: owner.id };
       });
 
-      await test.step('origin enforcement and one-time-code replay both fail closed', async () => {
+      await test.step('one-time-code replay fails closed on the trusted browser path', async () => {
         const sessions = () => db.$count(authSession, eq(authSession.userId, created.ownerId));
         const before = await sessions();
-        const untrusted = await start.request.post(
-          `${idaOrigin(info)}/api/auth/sign-in/email-otp`,
-          {
-            data: { email, onboarding: { mode: 'deferred', tenant }, otp: '000000' },
-            failOnStatusCode: false,
-            headers: {
-              ...CLIENT,
-              Origin: 'https://untrusted.invalid',
-              'x-tenant-id': tenant,
-            },
-          }
-        );
-        expect(untrusted.status(), 'an untrusted origin is rejected before authentication').toBe(
-          403
-        );
-        expect(await sessions(), 'origin rejection opens no session').toBe(before);
         expect(
           await postOtpFromBrowser(start, email, mail.code, tenant),
           'a consumed code is refused on the native trusted browser path'

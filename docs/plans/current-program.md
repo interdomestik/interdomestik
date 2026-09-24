@@ -146,9 +146,10 @@ alone is not business or user acceptance.
 - A native Chromium request from the explicit `ida.localhost` test origin verifies the delivered
   code, receives an HttpOnly session and persists the exact eligible facts. No request interception,
   Origin rewriting, CSRF/origin bypass or production trusted-origin expansion is permitted.
-- Wrong-code, consumed-code replay and untrusted-origin attempts fail closed; retained Playwright
-  trace, video and screenshot capture is disabled for this secret-bearing proof and errors redact
-  every retrieved code.
+- A cookie-free, valid-code request from an untrusted Origin is rejected before rate limits or the
+  Better Auth handler and does not consume the code; wrong-code and consumed-code replay attempts
+  also fail closed. Retained Playwright trace, video and screenshot capture is disabled for this
+  secret-bearing proof and errors redact every retrieved code.
 - The verified owner can return in a fresh browser, resume exact facts and permanently delete the
   draft with create/delete audit evidence. A foreign tenant sees `notFound`; no claim, subscription
   or CRM lead is created. Whole S5, `IDA-FST-004`, operations and user acceptance remain open.
@@ -161,8 +162,10 @@ alone is not business or user acceptance.
 Checked 2026-09-24 against Better Auth's official options and source for the installed 1.6 family.
 Mutation origin/CSRF validation is a security boundary: trusted browser origins must be enumerated,
 while disabling the check is explicitly unsafe. The adopted test design therefore adds only the
-exact secure local browser origin to the Playwright server environment and proves that a different
-Origin returns 403. Rewriting Origin in request interception or enabling `disableCSRFCheck` /
+exact secure local browser origin to the Playwright server environment and adds a same-origin
+preflight for the neutral OTP browser endpoint before any code can be consumed. The E2E proves a
+cookie-free valid-code request from a different Origin returns 403 and the same code remains usable
+on the trusted path. Rewriting Origin in request interception or enabling `disableCSRFCheck` /
 `disableOriginCheck` was rejected because either would stop the E2E from exercising the boundary.
 Sources: [Better Auth options](https://better-auth.com/docs/reference/options),
 [context trusted-origin source](https://github.com/better-auth/better-auth/blob/main/packages/better-auth/src/context/create-context.ts),
