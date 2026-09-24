@@ -34,6 +34,7 @@ export async function cleanupOtpJourney(args: {
   seen: Set<string>;
 }) {
   const userRow = () => db.query.user.findFirst({ where: eq(user.email, args.email) });
+  const verificationIdentifierPattern = `%${args.email}`;
   const owner = await userRow().catch(() => undefined);
   await teardown(
     [
@@ -55,7 +56,10 @@ export async function cleanupOtpJourney(args: {
         await db.execute(sql`delete from account where "userId" = ${owner.id}`);
         await db.delete(user).where(eq(user.id, owner.id));
       },
-      () => db.execute(sql`delete from verification where identifier like ${`%${args.email}`}`),
+      () =>
+        db.execute(
+          sql`delete from verification where identifier like ${verificationIdentifierPattern}`
+        ),
       () => deleteMail(args.seen),
       ...args.pages.map(page => () => page.context().close()),
       async () => {

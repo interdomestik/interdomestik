@@ -82,7 +82,7 @@ export function evaluateNeutralOtpOrigin(request: Request): boolean {
     // browser correctly targets the validated public Host and a TLS-terminating proxy reports the
     // public scheme. Compare those public values so an internal bind address cannot disable the
     // browser-origin guard. Ambiguous forwarded-proto chains fail closed above.
-    if (!direct || origin.host !== direct.authority || origin.protocol !== publicProtocol) {
+    if (origin.host !== direct?.authority || origin.protocol !== publicProtocol) {
       return false;
     }
   } catch {
