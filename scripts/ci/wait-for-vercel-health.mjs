@@ -29,7 +29,7 @@ export function classifyHealthFailure(error) {
   if (error instanceof SyntaxError) return 'invalid_json';
   const message = typeof error?.message === 'string' ? error.message : '';
   if (/redirected before returning/iu.test(message)) return 'redirect';
-  const status = message.match(/Health endpoint returned ([1-5][0-9]{2}):/u)?.[1];
+  const status = message.match(/Health endpoint returned ([1-5]\d{2}):/u)?.[1];
   if (status) return `http_${status}`;
   const actual = message.match(
     /Deployed build provenance mismatch: expected [a-f0-9]{40}, got ([a-f0-9]{40}|missing)/u
