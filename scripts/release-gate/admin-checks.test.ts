@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import test from 'node:test';
 
+import './role-panel-failure-snapshot.test.ts';
+import './role-panel-failure-snapshot-review.test.ts';
+
 const require = createRequire(import.meta.url);
 const { removeRoleFromTable } = require('./admin-checks.ts');
 
