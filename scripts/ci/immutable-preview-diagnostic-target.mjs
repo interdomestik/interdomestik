@@ -1,5 +1,5 @@
-const APPROVED_ORIGIN = 'https://interdomestik-gzd8s5g4r-ecohub.vercel.app';
-const APPROVED_COMMIT_SHA = '12699481a1e1f3e231ca6c13844d4152125d02e4';
+const APPROVED_ORIGIN = 'https://interdomestik-9tjrc8i34-ecohub.vercel.app';
+const APPROVED_COMMIT_SHA = 'a5dd1e455628b7c9826c80683237adcbd0d2d4f3';
 const APPROVED_HOST_PATTERN = /^interdomestik-[a-z0-9]+-ecohub\.vercel\.app$/u;
 
 export function validateImmutablePreviewDiagnosticTarget(target) {
