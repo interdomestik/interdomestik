@@ -53,7 +53,7 @@ SRS/frontier index. Its unresolved rows are not automatic features, deferrals or
 
 | ID | Source Refs | Execution | Run ID | Run Root | Sonar | Docker | Sentry | Learning | Evidence Refs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `S5-NEW-ACCOUNT-OTP-SECURE-SAVE` | owner authorization; protected main through PR #1815; PR #1803 | pending | pending | pending | pending | pending | not_applicable | pending | focused unit/type/contract checks pass; candidate native-origin OTP E2E, loopback catcher, independent high-risk review and protected evidence pending |
+| `S5-NEW-ACCOUNT-OTP-SECURE-SAVE` | owner authorization; protected main through PR #1815; PR #1803 | `scripted` | `13d088a7f` | pending | pending | pass | not_applicable | pass | apps/web/e2e/gate/s5-new-account-otp-secure-save.spec.ts; apps/web/src/app/api/auth/[...all]/neutral-otp-boundary.test.ts; scripts/ci/main-e2e-reuse-cli.test.mjs |
 
 ## Current Facts
 
@@ -69,6 +69,10 @@ SRS/frontier index. Its unresolved rows are not automatic features, deferrals or
 - PR #1814 also completed the bounded request-linked member upload and assigned-staff
   acknowledgement predecessor. Request fulfilment, claim lifecycle and SLA behavior remain open.
 - The owner selected the bounded new-account email-OTP secure-save proof as the active successor.
+- Candidate `13d088a7f` passed the production-build Mailpit-backed canonical OTP journey (one pass,
+  one intentional matrix skip), focused auth unit tests (10/10), exact-tree/workflow contracts
+  (29/29), web type-check and independent high-risk re-review. Final `pr:verify`,
+  `security:guard` and protected current-head evidence remain pending.
 - `IDA-FST-004` local disclosure, provider confirmation (`IDA-MEM-006`), webhook/payment readiness
   and whole-process user acceptance remain outside it; no production billing incident conclusion is made.
 - No deployment, product readiness or user-acceptance claim is made here; this bounded change does
