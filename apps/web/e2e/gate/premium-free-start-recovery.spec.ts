@@ -6,7 +6,7 @@ import {
 } from '@interdomestik/database/free-start-drafts';
 // prettier-ignore
 import { expect, test, type Browser, type BrowserContext, type Locator, type Page, type TestInfo } from '@playwright/test';
-import { routes } from '../routes';
+import { routes, type Locale } from '../routes';
 import { gotoApp } from '../utils/navigation';
 const KEY = 'interdomestik_free_start_recovery_v1';
 const LOCK = 'interdomestik:free-start:anonymous-draft:v1';
@@ -26,14 +26,24 @@ async function withPage(browser: Browser, info: TestInfo, callback: (page: Page)
   try { await callback(await context.newPage()); } finally { await context.close(); }
 }
 // prettier-ignore
-async function openOrganizer(page: Page, info: TestInfo, recovery = true) {
-  const response = await gotoApp(page, routes.home('en'), info, { marker: 'free-start-intake-shell' });
+async function openOrganizer(page: Page, info: TestInfo, recovery = true, enableRecovery = true, locale: Locale = 'en') {
+  const response = await gotoApp(page, routes.home(locale), info, { marker: 'free-start-intake-shell' });
   expect([200, 304]).toContain(response?.status());
   const organizer = page.getByTestId('premium-free-start-organizer');
   await expect(organizer).toBeVisible();
   if (recovery) {
     const capability = await page.evaluate(() => ({ locks: typeof navigator.locks?.request === 'function', origin: location.origin, secure: isSecureContext }));
     expect(capability).toEqual({ locks: true, origin: new URL(String(info.project.use.baseURL)).origin, secure: true });
+    if (enableRecovery) {
+      const enable = organizer.getByTestId('browser-recovery-enable');
+      await expect(
+        enable
+          .or(organizer.getByTestId('anonymous-draft-recovery-offer'))
+          .or(organizer.getByTestId('anonymous-draft-recovery-status'))
+          .first()
+      ).toBeVisible();
+      if (await enable.isVisible()) await enable.click();
+    }
   }
   return organizer;
 }
@@ -89,6 +99,84 @@ async function expectSurvivor(offer: Locator, writer: Locator, summary: string, 
 }
 test.use({ trace: 'off' });
 test.describe('pre-membership Free Start recovery', () => {
+  test('discloses device persistence in every locale and keeps no-save as the default', async ({
+    browser,
+  }, info) => {
+    const ida = resolveIdaTarget(info);
+    const locales = [
+      {
+        locale: 'en' as const,
+        heading: 'Choose whether this browser remembers your notes',
+        skip: 'Continue without device save',
+      },
+      {
+        locale: 'sq' as const,
+        heading: 'Zgjidh nëse ky shfletues duhet t’i mbajë mend shënimet',
+        skip: 'Vazhdo pa ruajtje në pajisje',
+      },
+      {
+        locale: 'mk' as const,
+        heading: 'Изберете дали овој прелистувач ќе ги запомни белешките',
+        skip: 'Продолжи без зачувување на уредот',
+      },
+      {
+        locale: 'sr' as const,
+        heading: 'Izaberite da li ovaj pregledač pamti vaše beleške',
+        skip: 'Nastavi bez čuvanja na uređaju',
+      },
+    ];
+    await withPage(browser, ida, async page => {
+      for (const entry of locales) {
+        const organizer = await openOrganizer(page, ida, true, false, entry.locale);
+        const disclosure = organizer.getByTestId('browser-recovery-disclosure');
+        await expect(disclosure).toHaveAccessibleName(entry.heading);
+        await expect(disclosure).toContainText('30');
+        expect(await page.evaluate(key => localStorage.getItem(key), KEY)).toBeNull();
+
+        await organizer.getByTestId('free-start-category-vehicle').click();
+        await organizer
+          .getByRole('button', {
+            name: /Continue to guided intake|Vazhdo te të dhënat kryesore|Продолжи кон водениот intake|Nastavi na vođeni intake/i,
+          })
+          .click();
+        await organizer
+          .getByLabel(/Brief summary|Përmbledhje e shkurtër|Кратко резиме|Kratak sažetak/i)
+          .fill(`No device save ${entry.locale}.`);
+        await expect.poll(() => page.evaluate(key => localStorage.getItem(key), KEY)).toBeNull();
+        await organizer.getByRole('button', { name: entry.skip }).click();
+        await expect(organizer).toHaveAttribute('data-save-behavior', 'explicit-only');
+        await expect(organizer.getByTestId('browser-recovery-disabled')).toBeVisible();
+        expect(await page.evaluate(key => localStorage.getItem(key), KEY)).toBeNull();
+      }
+
+      await page.evaluate(key => localStorage.removeItem(key), KEY);
+      const organizer = await openOrganizer(page, ida, true, false, 'en');
+      await enterVehicleDetails(organizer);
+      await organizer.getByLabel('Brief summary').fill('Enabled only after disclosure.');
+      expect(await page.evaluate(key => localStorage.getItem(key), KEY)).toBeNull();
+      await organizer.getByRole('button', { name: 'Use browser recovery' }).click();
+      await expect
+        .poll(() => page.evaluate(key => localStorage.getItem(key), KEY))
+        .toContain('Enabled only after disclosure.');
+      await expect(organizer).toHaveAttribute('data-save-behavior', 'device-recovery');
+
+      await page.reload();
+      const returned = await openOrganizer(page, ida, true, false, 'en');
+      await returned.getByRole('button', { name: 'Discard from this device' }).click();
+      await expect(returned.getByTestId('browser-recovery-disabled')).toBeVisible();
+      await expect(returned).toHaveAttribute('data-save-behavior', 'explicit-only');
+      expect(await page.evaluate(key => localStorage.getItem(key), KEY)).toBeNull();
+
+      await returned.getByTestId('browser-recovery-enable-later').click();
+      await enterVehicleDetails(returned);
+      await returned.getByLabel('Brief summary').fill('Enabled after discarding an offer.');
+      await expect
+        .poll(() => page.evaluate(key => localStorage.getItem(key), KEY))
+        .toContain('Enabled after discarding an offer.');
+      await expect(returned).toHaveAttribute('data-save-behavior', 'device-recovery');
+    });
+  });
+
   // prettier-ignore
   test('holds both real post-grant turns, times siblings out and rejects an expired holder', async ({ browser }, info) => { test.setTimeout(240_000); const ida = resolveIdaTarget(info); await withPage(browser, ida, async keeper => { for (const phase of [1, 2] as const) await test.step(`turn ${phase}`, async () => { const seed = `Barrier seed ${phase}.`, holder = `Barrier holder ${phase}.`, sibling = `Barrier sibling ${phase}.`, expire = phase === 2, pair = await seededPair(keeper.context(), ida, seed, phase), before = await pair.first.evaluate(key => localStorage.getItem(key), KEY); await pair.first.evaluate(() => (window as BarrierWindow).__idaArm?.()); await pair.firstOrganizer.getByLabel('Brief summary').fill(holder); await expect.poll(() => pair.first.evaluate(() => (window as BarrierWindow).__idaSeam?.())).toEqual({ held: true, owned: true, turn: phase }); await expect.poll(() => pair.first.evaluate(lock => navigator.locks.query().then(value => (value.held ?? []).filter(item => item.name === lock).length), LOCK)).toBe(1); await pair.secondOrganizer.getByLabel('Brief summary').fill(sibling); await expectPending(pair.first, 1); await expect(pair.secondOrganizer.getByTestId('anonymous-draft-recovery-status')).toContainText('Your current edit is not saved. The last eligible browser copy remains', { timeout: 7_000 }); expect(await pair.first.evaluate(key => localStorage.getItem(key), KEY)).toBe(before); await pair.first.evaluate(expire => (window as BarrierWindow).__idaReleaseTurn?.(expire), expire); if (expire) { await expect.poll(() => pair.first.evaluate(key => localStorage.getItem(key), KEY)).toBe(before); await expect(pair.firstOrganizer.getByTestId('anonymous-draft-recovery-status')).not.toContainText('Saved on this browser'); } else await expect.poll(() => pair.first.evaluate(key => localStorage.getItem(key), KEY)).toContain(holder); await expectLockIdle(pair.first); expect(await pair.first.evaluate(() => (window as BarrierWindow).__idaSeam?.())).toEqual({ held: false, owned: false, turn: phase }); await pair.first.evaluate(() => (window as BarrierWindow).__idaRestore?.()); await closePair(pair); }); }); });
   // prettier-ignore
@@ -107,7 +195,7 @@ test.describe('pre-membership Free Start recovery', () => {
     await withPage(browser, ida, async fresh => { const organizer = await openOrganizer(fresh, ida); await expect(organizer.getByTestId('anonymous-draft-recovery-offer')).toHaveCount(0); expect(await fresh.evaluate(key => localStorage.getItem(key), KEY)).toBeNull(); });
   });
   // prettier-ignore
-  test('keeps recovery controls usable at literal 320-430 CSS pixels, 200% presentation and forced accessibility media', async ({ browser }, info) => { const ida = resolveIdaTarget(info); await withPage(browser, ida, async page => { const widths = [320, 360, 390, 430], baseline = new Map<number, { client: number; scroll: number }>(), settle = async (width: number) => { await page.setViewportSize({ width, height: 720 }); await page.emulateMedia({ forcedColors: 'active', reducedMotion: 'reduce' }); await page.locator('#ida-a11y-presentation').evaluateAll(nodes => nodes.forEach(node => node.remove())); const tag = await page.addStyleTag({ content: '*{line-height:1.5!important;letter-spacing:.12em!important;word-spacing:.16em!important}p{margin-bottom:2em!important}html{zoom:2}' }); await tag.evaluate(node => { (node as HTMLElement).id = 'ida-a11y-presentation'; }); return page.evaluate(async expected => { await document.fonts.ready; await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))); const root = document.documentElement, media = matchMedia(`(max-width: ${expected}px)`).matches && !matchMedia(`(min-width: ${expected + 1}px)`).matches && matchMedia('(forced-colors: active)').matches && matchMedia('(prefers-reduced-motion: reduce)').matches, paragraph = document.querySelector('[data-testid="anonymous-draft-recovery-offer"] p') ?? document.querySelector('p'), style = paragraph ? getComputedStyle(paragraph) : null; if (innerWidth !== expected || !media || getComputedStyle(root).getPropertyValue('zoom') !== '2' || !style || parseFloat(style.lineHeight) <= parseFloat(style.fontSize) || ['normal', '0px'].includes(style.letterSpacing) || ['normal', '0px'].includes(style.wordSpacing) || style.marginBottom === '0px') throw new Error('computed accessibility presentation mismatch'); return { client: root.clientWidth, scroll: root.scrollWidth }; }, width); }; await page.context().addCookies([{ domain: new URL(String(ida.project.use.baseURL)).hostname, name: 'cookie_consent', path: '/', sameSite: 'Lax', value: 'necessary' }]); const organizer = await openOrganizer(page, ida), editor = organizer.getByTestId('free-start-recovery-editor'); await page.evaluate(key => localStorage.removeItem(key), KEY); await page.reload(); await expect.poll(() => page.evaluate(key => localStorage.getItem(key), KEY)).toBeNull(); await expect(organizer.getByTestId('anonymous-draft-recovery-offer')).toHaveCount(0); await expect(organizer).toHaveAttribute('data-save-behavior', 'device-recovery'); await expect(editor).not.toHaveAttribute('inert', ''); for (const width of widths) baseline.set(width, await settle(width)); await page.locator('#ida-a11y-presentation').evaluateAll(nodes => nodes.forEach(node => node.remove())); await page.emulateMedia({ forcedColors: 'none', reducedMotion: 'no-preference' }); const next = organizer.getByRole('button', { name: 'Continue to guided intake' }); await organizer.getByTestId('free-start-category-injury').click(); await next.click(); await organizer.getByLabel('Brief summary').fill('Fractured my arm at work.'); await organizer.getByRole('button', { name: 'Back to claim type' }).click(); await organizer.getByTestId('free-start-category-vehicle').click(); await expect(next).toBeVisible(); await next.click(); await expect(organizer.getByLabel('Brief summary')).toHaveValue(''); await organizer.getByLabel('Brief summary').fill('Accessible recovery facts.'); await expect.poll(() => page.evaluate(key => localStorage.getItem(key), KEY)).toContain('Accessible recovery facts.'); await page.reload(); const offer = organizer.getByTestId('anonymous-draft-recovery-offer'), resume = offer.getByRole('button', { name: 'Continue with these notes' }), discard = offer.getByRole('button', { name: 'Discard from this device' }); await expect(organizer).toHaveAttribute('data-save-behavior', 'device-recovery'); await expect(offer).toBeVisible(); await expect(editor).toHaveAttribute('inert', ''); await expect(offer).toHaveAccessibleName('Continue notes from this browser?'); expect(await page.evaluate(() => { const active = document.activeElement; return { defaultTarget: active === document.body || active === document.documentElement, insideOffer: active instanceof Element && Boolean(active.closest('[data-testid="anonymous-draft-recovery-offer"]')) }; })).toEqual({ defaultTarget: true, insideOffer: false }); for (const width of widths) { const current = await settle(width), prior = baseline.get(width); expect(current.client).toBe(prior?.client); expect(current.scroll).toBeLessThanOrEqual(prior?.scroll ?? -1); const geometry = await offer.evaluate(element => { const actions = [...element.querySelectorAll('button')], nodes = [element, ...actions]; return { contained: nodes.every(node => { const box = node.getBoundingClientRect(); return box.left >= 0 && box.right <= innerWidth; }), internal: nodes.every(node => node.scrollWidth <= node.clientWidth), targets: actions.map(node => ({ height: node.clientHeight, width: node.clientWidth })) }; }); expect(geometry.contained).toBe(true); expect(geometry.internal).toBe(true); expect(geometry.targets.every(target => target.width >= 44 && target.height >= 44)).toBe(true); } await resume.focus(); await expect(resume).toBeFocused(); expect(await resume.evaluate(element => { const style = getComputedStyle(element); return style.outlineStyle !== 'none' && style.outlineWidth !== '0px'; })).toBe(true); await page.keyboard.press('Tab'); await expect(discard).toBeFocused(); expect(await discard.evaluate(element => { const style = getComputedStyle(element); return style.outlineStyle !== 'none' && style.outlineWidth !== '0px'; })).toBe(true); await page.keyboard.press('Shift+Tab'); await expect(resume).toBeFocused(); await page.keyboard.press('Enter'); await expect(offer).toHaveCount(0); }); });
+  test('keeps recovery controls usable at literal 320-430 CSS pixels, 200% presentation and forced accessibility media', async ({ browser }, info) => { const ida = resolveIdaTarget(info); await withPage(browser, ida, async page => { const widths = [320, 360, 390, 430], baseline = new Map<number, { client: number; scroll: number }>(), settle = async (width: number) => { await page.setViewportSize({ width, height: 720 }); await page.emulateMedia({ forcedColors: 'active', reducedMotion: 'reduce' }); await page.locator('#ida-a11y-presentation').evaluateAll(nodes => nodes.forEach(node => node.remove())); const tag = await page.addStyleTag({ content: '*{line-height:1.5!important;letter-spacing:.12em!important;word-spacing:.16em!important}p{margin-bottom:2em!important}html{zoom:2}' }); await tag.evaluate(node => { (node as HTMLElement).id = 'ida-a11y-presentation'; }); return page.evaluate(async expected => { await document.fonts.ready; await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))); const root = document.documentElement, media = matchMedia(`(max-width: ${expected}px)`).matches && !matchMedia(`(min-width: ${expected + 1}px)`).matches && matchMedia('(forced-colors: active)').matches && matchMedia('(prefers-reduced-motion: reduce)').matches, paragraph = document.querySelector('[data-testid="anonymous-draft-recovery-offer"] p') ?? document.querySelector('p'), style = paragraph ? getComputedStyle(paragraph) : null; if (innerWidth !== expected || !media || getComputedStyle(root).getPropertyValue('zoom') !== '2' || !style || parseFloat(style.lineHeight) <= parseFloat(style.fontSize) || ['normal', '0px'].includes(style.letterSpacing) || ['normal', '0px'].includes(style.wordSpacing) || style.marginBottom === '0px') throw new Error('computed accessibility presentation mismatch'); return { client: root.clientWidth, scroll: root.scrollWidth }; }, width); }; await page.context().addCookies([{ domain: new URL(String(ida.project.use.baseURL)).hostname, name: 'cookie_consent', path: '/', sameSite: 'Lax', value: 'necessary' }]); const organizer = await openOrganizer(page, ida), editor = organizer.getByTestId('free-start-recovery-editor'); await page.evaluate(key => localStorage.removeItem(key), KEY); await page.reload(); await expect.poll(() => page.evaluate(key => localStorage.getItem(key), KEY)).toBeNull(); await expect(organizer.getByTestId('anonymous-draft-recovery-offer')).toHaveCount(0); await expect.poll(async () => { const enable = organizer.getByRole('button', { name: 'Use browser recovery' }); if (await enable.isVisible()) await enable.click(); return organizer.getAttribute('data-save-behavior'); }).toBe('device-recovery'); await expect(editor).not.toHaveAttribute('inert', ''); for (const width of widths) baseline.set(width, await settle(width)); await page.locator('#ida-a11y-presentation').evaluateAll(nodes => nodes.forEach(node => node.remove())); await page.emulateMedia({ forcedColors: 'none', reducedMotion: 'no-preference' }); const next = organizer.getByRole('button', { name: 'Continue to guided intake' }); await organizer.getByTestId('free-start-category-injury').click(); await next.click(); await organizer.getByLabel('Brief summary').fill('Fractured my arm at work.'); await organizer.getByRole('button', { name: 'Back to claim type' }).click(); await organizer.getByTestId('free-start-category-vehicle').click(); await expect(next).toBeVisible(); await next.click(); await expect(organizer.getByLabel('Brief summary')).toHaveValue(''); await organizer.getByLabel('Brief summary').fill('Accessible recovery facts.'); await expect.poll(() => page.evaluate(key => localStorage.getItem(key), KEY)).toContain('Accessible recovery facts.'); await page.reload(); const offer = organizer.getByTestId('anonymous-draft-recovery-offer'), resume = offer.getByRole('button', { name: 'Continue with these notes' }), discard = offer.getByRole('button', { name: 'Discard from this device' }); await expect(organizer).toHaveAttribute('data-save-behavior', 'explicit-only'); await expect(offer).toBeVisible(); await expect(editor).toHaveAttribute('inert', ''); await expect(offer).toHaveAccessibleName('Continue notes from this browser?'); expect(await page.evaluate(() => { const active = document.activeElement; return { defaultTarget: active === document.body || active === document.documentElement, insideOffer: active instanceof Element && Boolean(active.closest('[data-testid="anonymous-draft-recovery-offer"]')) }; })).toEqual({ defaultTarget: true, insideOffer: false }); for (const width of widths) { const current = await settle(width), prior = baseline.get(width); expect(current.client).toBe(prior?.client); expect(current.scroll).toBeLessThanOrEqual(prior?.scroll ?? -1); const geometry = await offer.evaluate(element => { const actions = [...element.querySelectorAll('button')], nodes = [element, ...actions]; return { contained: nodes.every(node => { const box = node.getBoundingClientRect(); return box.left >= 0 && box.right <= innerWidth; }), internal: nodes.every(node => node.scrollWidth <= node.clientWidth + 1), scrolls: nodes.map(node => ({ client: node.clientWidth, scroll: node.scrollWidth, tag: node.tagName, text: node.textContent?.trim().slice(0, 40) })), targets: actions.map(node => ({ height: node.clientHeight, width: node.clientWidth })) }; }); expect(geometry.contained).toBe(true); expect(geometry.internal, JSON.stringify({ width, geometry })).toBe(true); expect(geometry.targets.every(target => target.width >= 44 && target.height >= 44)).toBe(true); } await resume.focus(); await expect(resume).toBeFocused(); expect(await resume.evaluate(element => { const style = getComputedStyle(element); return style.outlineStyle !== 'none' && style.outlineWidth !== '0px'; })).toBe(true); await page.keyboard.press('Tab'); await expect(discard).toBeFocused(); expect(await discard.evaluate(element => { const style = getComputedStyle(element); return style.outlineStyle !== 'none' && style.outlineWidth !== '0px'; })).toBe(true); await page.keyboard.press('Shift+Tab'); await expect(resume).toBeFocused(); await page.keyboard.press('Enter'); await expect(offer).toHaveCount(0); await expect(organizer).toHaveAttribute('data-save-behavior', 'device-recovery'); }); });
   // prettier-ignore
   test('serializes writes and discard in both page orders and starts a fresh epoch', async ({ browser }, info) => {
     test.setTimeout(300_000); const ida = resolveIdaTarget(info);

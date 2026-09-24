@@ -34,6 +34,11 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) { // NOSONAR
     recovery: RecoveryCopy;
     startAnother: string;
   };
+  const disclosure = t.raw('localRecoveryDisclosure') as {
+    eligible: string;
+    lifecycle: string;
+    securePath: string;
+  };
   const copy = secureCopy.recovery;
   if (recovery.state === 'idle') return null;
 
@@ -52,7 +57,7 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) { // NOSONAR
       data-testid={hasOffer ? 'anonymous-draft-recovery-offer' : 'anonymous-draft-recovery-status'}
       aria-labelledby="anonymous-draft-recovery-heading"
       aria-busy={recovery.pending}
-      className="rounded-2xl border border-[#006f72]/25 bg-[#eef8f5] p-4 text-[#173b43]"
+      className="break-words rounded-2xl border border-[#006f72]/25 bg-[#eef8f5] p-4 text-[#173b43]"
     >
       {recoverable && !retained ? (
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#006f72]">
@@ -64,8 +69,14 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) { // NOSONAR
       </h3>
       {recoverable ? (
         <>
-          {!retained ? (
-            <p className="mt-1 text-sm leading-6">{hasOffer ? copy.offerBody : copy.body}</p>
+          {!retained ? <p className="mt-1 text-sm leading-6">{copy.body}</p> : null}
+          {hasOffer ? (
+            <div className="mt-2 space-y-1 text-sm leading-6">
+              <p>{copy.offerBody}</p>
+              <p>{disclosure.eligible}</p>
+              <p>{disclosure.lifecycle}</p>
+              <p>{disclosure.securePath}</p>
+            </div>
           ) : null}
           <p className="mt-1 text-xs leading-5 text-[#526274]">{copy.privateDevice}</p>
         </>

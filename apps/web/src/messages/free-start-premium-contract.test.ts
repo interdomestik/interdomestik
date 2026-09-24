@@ -112,6 +112,32 @@ describe('premium Free Start copy contract', () => {
     expect(keys).toEqual([keys[0], keys[0], keys[0], keys[0]]);
   });
 
+  it('IDA-FST-004 keeps the pre-persistence disclosure contract identical in every locale', () => {
+    const copies = Object.values(localeMessages).map(
+      messages => messages.freeStart.localRecoveryDisclosure
+    );
+    const keys = copies.map(copy => collectKeyPaths(copy).sort());
+
+    expect(keys).toEqual([keys[0], keys[0], keys[0], keys[0]]);
+  });
+
+  it.each(Object.entries(localeMessages))(
+    'IDA-FST-004 %s discloses scope, shared-browser risk, lifecycle and secure handoff',
+    (_locale, messages) => {
+      const copy = collectCopyValues(messages.freeStart.localRecoveryDisclosure).join(' ');
+
+      expect(copy).toMatch(/vehicle|automjet|vozil|возил/i);
+      expect(copy).toMatch(/property|pron|imovin|имот/i);
+      expect(copy).toMatch(/injury|lëndim|povred|повред/i);
+      expect(copy).toMatch(/document|dokument|документ/i);
+      expect(copy).toMatch(/shared|përbashk|zajednič|споделен/i);
+      expect(copy).toMatch(/30/);
+      expect(copy).toMatch(/discard|hedh|odbac|отфрл/i);
+      expect(copy).toMatch(/secure|sigurt|bezbed|безбед/i);
+      expect(copy).toMatch(/review|rishikon|pregleda|преглед/i);
+    }
+  );
+
   it.each(Object.entries(localeMessages))(
     'C33 %s distinguishes local recovery, discard and verified secure save',
     (_locale, messages) => {

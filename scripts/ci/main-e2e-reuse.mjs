@@ -54,6 +54,10 @@ const E2E_TREE_SHAS = new Set([
   '5468dfaebd2e284d506eec07713ad5d2729f8711',
   // S5 new-account email OTP secure save with native browser origin proof.
   '5e70dc4ba9de13af548c7ff25e232fe7b34975c3',
+  // S5 local-draft disclosure before browser persistence.
+  'af7392271f9e8486a384055c3167706ebb8f6cb9',
+  // S5 disclosure review corrections: reversible discard and opt-out promotion safety.
+  '9ef1cb4b99bdba458fffec42ff0e6e4284eceb1a',
 ]);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {
