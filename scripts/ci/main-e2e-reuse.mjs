@@ -53,7 +53,7 @@ const E2E_TREE_SHAS = new Set([
   // Same S6 corpus with explicit Sonar rationale on intentional KS-only matrix skips.
   '5468dfaebd2e284d506eec07713ad5d2729f8711',
   // S5 new-account email OTP secure save with native browser origin proof.
-  '61d444e539cf729b9332acaf36aa7bfae58ebc4f',
+  '0eff7657d000af6904f84a40a16392052fe98f0b',
 ]);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {

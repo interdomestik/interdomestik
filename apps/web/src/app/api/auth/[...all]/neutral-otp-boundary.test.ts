@@ -109,10 +109,11 @@ describe('IDA-UI03a0b2 neutral OTP boundary', () => {
   });
 
   it('C04a requires an exact same-origin browser request', () => {
-    const request = (origin?: string, fetchSite?: string) =>
-      new Request('https://ida.interdomestik.com/api/auth/sign-in/email-otp', {
+    const request = (origin?: string, fetchSite?: string, host = 'ida.interdomestik.com') =>
+      new Request('https://127.0.0.1:3000/api/auth/sign-in/email-otp', {
         method: 'POST',
         headers: {
+          host,
           ...(origin ? { origin } : {}),
           ...(fetchSite ? { 'sec-fetch-site': fetchSite } : {}),
         },
@@ -124,6 +125,10 @@ describe('IDA-UI03a0b2 neutral OTP boundary', () => {
     expect(evaluateNeutralOtpOrigin(request())).toBe(false);
     expect(evaluateNeutralOtpOrigin(request('null'))).toBe(false);
     expect(evaluateNeutralOtpOrigin(request('https://attacker.example'))).toBe(false);
+    expect(
+      evaluateNeutralOtpOrigin(request('https://ida.interdomestik.com', undefined, 'ida.localhost'))
+    ).toBe(false);
+    expect(evaluateNeutralOtpOrigin(request('http://ida.interdomestik.com'))).toBe(false);
     expect(evaluateNeutralOtpOrigin(request('not an origin'))).toBe(false);
     expect(evaluateNeutralOtpOrigin(request('https://ida.interdomestik.com', 'cross-site'))).toBe(
       false

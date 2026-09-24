@@ -26,7 +26,7 @@ import { readLocalGitObjectId } from './main-e2e-reuse-github.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const E2E_TREE = readLocalGitObjectId(root, 'HEAD:apps/web/e2e');
 const MEMBER_PORTAL_E2E_TREE = '5468dfaebd2e284d506eec07713ad5d2729f8711';
-const NEW_ACCOUNT_OTP_E2E_TREE = '61d444e539cf729b9332acaf36aa7bfae58ebc4f';
+const NEW_ACCOUNT_OTP_E2E_TREE = '0eff7657d000af6904f84a40a16392052fe98f0b';
 const SAFE = { reuse: false, reason: 'evidence_not_exact' };
 const fail = () => assert.fail('private diagnostic must not escape');
 const keyPairs =

@@ -95,9 +95,9 @@ test.describe('S5 new-account email OTP secure save', () => {
       const panel = flow.getByTestId('free-start-save-otp');
       await panel.getByTestId('free-start-save-email').fill(email);
       await panel.getByTestId('free-start-save-send-code').click();
+      await expect(panel.getByTestId('free-start-save-code')).toBeVisible();
       const mail = await waitForOtpMail(email, seen);
       mails.push(mail);
-      await expect(panel.getByTestId('free-start-save-code')).toBeVisible();
       return { mail, panel };
     };
     try {

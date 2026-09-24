@@ -70,7 +70,15 @@ export function evaluateNeutralOtpOrigin(request: Request): boolean {
   const rawOrigin = request.headers.get('origin')?.trim();
   if (!rawOrigin || rawOrigin === 'null') return false;
   try {
-    if (new URL(rawOrigin).origin !== new URL(request.url).origin) return false;
+    const origin = new URL(rawOrigin);
+    const requestUrl = new URL(request.url);
+    const direct = parseHostAuthority(request.headers.get('host'));
+    // Next's standalone server can expose its loopback bind authority in request.url while the
+    // browser correctly targets the validated public Host. Compare that Host and the request
+    // scheme separately so an internal bind address cannot disable the browser-origin guard.
+    if (!direct || origin.host !== direct.authority || origin.protocol !== requestUrl.protocol) {
+      return false;
+    }
   } catch {
     return false;
   }
