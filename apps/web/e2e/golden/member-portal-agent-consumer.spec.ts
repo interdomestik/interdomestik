@@ -10,11 +10,15 @@ test.describe('Unified member portal agent consumer', () => {
 
     const portal = page.getByTestId('member-dashboard-ready');
     const regions = portal.locator('section[aria-label]');
+    const membership = `${routes.member(testInfo)}/membership`;
     await expect(regions).toHaveCount(3);
-    await expect(regions.nth(1).getByRole('link')).toHaveAttribute(
-      'href',
-      routes.memberNewClaim(testInfo)
-    );
+    await expect(regions.nth(1).getByRole('link')).toHaveAttribute('href', membership);
+    await expect(
+      page.getByTestId('member-membership-access').first().locator('[data-lifecycle-status]')
+    ).toHaveAttribute('data-lifecycle-status', 'none');
+    await expect(
+      page.getByTestId('member-membership-access').first().locator('[data-access]')
+    ).toHaveAttribute('data-access', 'denied');
     const navigation = portal.getByRole('navigation');
     await expect(navigation.locator('a').nth(3)).toHaveAttribute(
       'href',

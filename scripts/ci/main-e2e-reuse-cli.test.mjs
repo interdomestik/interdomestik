@@ -25,9 +25,9 @@ import { commandChainDrifts } from './main-e2e-reuse-fixture.mjs';
 import { readLocalGitObjectId } from './main-e2e-reuse-github.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const E2E_TREE = readLocalGitObjectId(root, 'HEAD:apps/web/e2e');
-const REQUEST_LINKED_EVIDENCE_TREE = '8f6cf0b8a53c80bd193ae588935c1ca38e5bdac0';
+const MEMBER_PORTAL_E2E_TREE = '5468dfaebd2e284d506eec07713ad5d2729f8711';
 const SAFE = { reuse: false, reason: 'evidence_not_exact' };
-const fail = () => assert.fail('token=secret body=secret');
+const fail = () => assert.fail('private diagnostic must not escape');
 const keyPairs =
   'ciWorkflow=.github/workflows/ci.yml|prWorkflow=.github/workflows/e2e-pr.yml|laneSource=scripts/run-e2e-lane.mjs|playwrightConfig=apps/web/playwright.config.ts|packageJson=package.json';
 const sourceKeys = Object.fromEntries(keyPairs.split('|').map(pair => pair.split('=').reverse()));
@@ -136,11 +136,10 @@ for (const [name, e2eTreeSha] of [
     assert.ok(parity.commandChain, `the ${name} E2E tree must stay in the command chain`);
   });
 }
-test('request-linked evidence round trip preserves corpus parity', () => {
-  assert.equal(E2E_TREE, REQUEST_LINKED_EVIDENCE_TREE);
+test('member membership access disclosure preserves corpus parity', () => {
+  assert.equal(E2E_TREE, MEMBER_PORTAL_E2E_TREE);
   assert.equal(
-    inspectRepositoryParity({ ...sources(), e2eTreeSha: REQUEST_LINKED_EVIDENCE_TREE })
-      .commandChain,
+    inspectRepositoryParity({ ...sources(), e2eTreeSha: MEMBER_PORTAL_E2E_TREE }).commandChain,
     true
   );
 });

@@ -8,9 +8,9 @@ const KS_TENANT_ID = 'tenant_ks';
 const KS_MEMBER_ID = 'golden_ks_a_member_1';
 const KS_SUBSCRIPTION_ID = 'golden_sub_ks_a_1';
 const FIXED_NOW = new Date('2026-04-21T12:00:00.000Z');
-const FUTURE_GRACE_END = new Date('2026-04-23T12:00:00.000Z');
-const EXPIRED_GRACE_END = new Date('2026-04-20T12:00:00.000Z');
-const PERIOD_END = new Date('2026-05-21T12:00:00.000Z');
+const FUTURE_GRACE_END = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+const EXPIRED_GRACE_END = new Date(Date.now() - 24 * 60 * 60 * 1000);
+const PERIOD_END = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 const WATCH_DELAY_MS = Number(process.env.PC05_WATCH_DELAY_MS ?? 0);
 
 type SubscriptionStatus = 'active' | 'past_due' | 'paused' | 'canceled' | 'trialing' | 'expired';
@@ -84,17 +84,20 @@ async function openMemberDetail(page: Page, testInfo: TestInfo, label: string) {
   await gotoApp(page, `${routes.adminUsers(testInfo)}/${KS_MEMBER_ID}`, testInfo, {
     marker: 'body',
   });
-  await expect(page.getByTestId('membership-lifecycle-status')).toBeVisible({ timeout: 30_000 });
+  await expect(
+    page.getByTestId('dashboard-page-ready').getByTestId('membership-lifecycle-status')
+  ).toBeVisible({ timeout: 30_000 });
 }
 
 async function expectLifecycleStatus(page: Page, status: string) {
-  await expect(page.getByTestId('membership-lifecycle-status')).toHaveAttribute(
-    'data-lifecycle-status',
-    status
-  );
+  await expect(
+    page.getByTestId('dashboard-page-ready').getByTestId('membership-lifecycle-status')
+  ).toHaveAttribute('data-lifecycle-status', status);
 }
 
 test.describe('PC05 membership lifecycle reporting truth', () => {
+  test.describe.configure({ mode: 'serial' });
+
   test.afterEach(async () => {
     await resetWatchedSubscription();
   });
@@ -102,7 +105,7 @@ test.describe('PC05 membership lifecycle reporting truth', () => {
   test('admin member detail derives lifecycle badges from the shared subscription read model', async ({
     adminPage: page,
   }, testInfo) => {
-    test.skip(!testInfo.project.name.includes('ks'), 'KS golden seed scenario');
+    test.skip(!testInfo.project.name.includes('ks'), 'KS golden seed scenario'); // NOSONAR -- intentional KS-only golden-seed matrix coverage.
 
     await setWatchedSubscriptionState({
       status: 'past_due',
@@ -112,7 +115,9 @@ test.describe('PC05 membership lifecycle reporting truth', () => {
 
     await watchStep(page, 'Admin badge reports active_in_grace and shows grace end context');
     await expectLifecycleStatus(page, 'active_in_grace');
-    await expect(page.getByTestId('membership-lifecycle-status-detail')).toBeVisible();
+    await expect(
+      page.getByTestId('dashboard-page-ready').getByTestId('membership-lifecycle-status-detail')
+    ).toBeVisible();
 
     await setWatchedSubscriptionState({
       status: 'past_due',
@@ -122,7 +127,9 @@ test.describe('PC05 membership lifecycle reporting truth', () => {
 
     await watchStep(page, 'Admin badge reports grace_expired from the same subscription row');
     await expectLifecycleStatus(page, 'grace_expired');
-    await expect(page.getByTestId('membership-lifecycle-status-detail')).toHaveCount(0);
+    await expect(
+      page.getByTestId('dashboard-page-ready').getByTestId('membership-lifecycle-status-detail')
+    ).toHaveCount(0);
 
     await setWatchedSubscriptionState({
       status: 'active',
@@ -133,6 +140,42 @@ test.describe('PC05 membership lifecycle reporting truth', () => {
 
     await watchStep(page, 'Admin badge reports scheduled_cancel and shows access end context');
     await expectLifecycleStatus(page, 'scheduled_cancel');
-    await expect(page.getByTestId('membership-lifecycle-status-detail')).toBeVisible();
+    await expect(
+      page.getByTestId('dashboard-page-ready').getByTestId('membership-lifecycle-status-detail')
+    ).toBeVisible();
+  });
+
+  test('member portal shows the lifecycle consequence without inventing access', async ({
+    authenticatedPage: page,
+  }, testInfo) => {
+    test.skip(!testInfo.project.name.includes('ks'), 'KS golden seed scenario'); // NOSONAR -- intentional KS-only golden-seed matrix coverage.
+
+    await setWatchedSubscriptionState({
+      status: 'past_due',
+      gracePeriodEndsAt: FUTURE_GRACE_END,
+    });
+    await gotoApp(page, routes.member(testInfo), testInfo, { marker: 'member-dashboard-ready' });
+
+    const membership = page.getByTestId('member-membership-access').first();
+    await expect(membership.locator('[data-lifecycle-status]')).toHaveAttribute(
+      'data-lifecycle-status',
+      'active_in_grace'
+    );
+    await expect(membership.locator('[data-access]')).toHaveAttribute('data-access', 'allowed');
+    await expect(membership).toContainText(
+      PERIOD_END.toLocaleDateString(routes.getLocale(testInfo), { timeZone: 'UTC' })
+    );
+
+    await setWatchedSubscriptionState({
+      status: 'past_due',
+      gracePeriodEndsAt: EXPIRED_GRACE_END,
+    });
+    await page.reload();
+    await expect(page.getByTestId('member-dashboard-ready')).toBeVisible();
+    await expect(membership.locator('[data-lifecycle-status]')).toHaveAttribute(
+      'data-lifecycle-status',
+      'grace_expired'
+    );
+    await expect(membership.locator('[data-access]')).toHaveAttribute('data-access', 'denied');
   });
 });
