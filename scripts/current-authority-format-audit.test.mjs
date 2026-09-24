@@ -20,6 +20,8 @@ const leanBlock = `## Lean Authority\n\n\`\`\`json lean-authority\n${JSON.string
 const envelopePath = 'docs/plans/2026-08-21-ida-wf01-one-approval-delivery-envelope-v1.json';
 const receiptPath = 'docs/plans/2026-08-21-ida-wf01-one-approval-delivery-approval-receipt-r1.json';
 const projectionPath = 'docs/plans/current-authority-v1.json';
+const archivedProgramPath = 'docs/plans/history/2026-09-22-current-program-ledger.md';
+const archivedTrackerPath = 'docs/plans/history/2026-09-22-current-tracker-ledger.md';
 const writers = [
   projectionPath,
   'scripts/current-authority-state.mjs',
@@ -133,12 +135,12 @@ function fixture() {
   );
   write(
     root,
-    'docs/plans/current-program.md',
+    archivedProgramPath,
     `# Current Program\n\n## Current Phase\n\nSelection required.\n\n## M0-M5 Implementation Blueprint\n\nCompact roadmap.\n\n## Ordered Candidate Priorities\n\n| Priority | Candidate |\n| --- | --- |\n| 1 | B10 |\n\n## Selection Constraints\n\nOne slice.\n\n${leanBlock}\n\n## Historical Authority\n\nManifest SHA-256: \`${manifestSha}\`.\n\n${marker}\n`
   );
   write(
     root,
-    'docs/plans/current-tracker.md',
+    archivedTrackerPath,
     `# Current Tracker\n\n## Active Queue\n\n| ID | Status | Owner | Work | Exit Criteria |\n| --- | --- | --- | --- | --- |\n| \`IDA-CI05\` | \`completed\` | platform | closeout | merged |\n\n## Proof Ledger\n\n| ID | Source Refs | Execution | Run ID | Run Root | Sonar | Docker | Sentry | Learning | Evidence Refs |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| \`IDA-CI05\` | gate | manual | pr-1573 | main | pass | not_applicable | not_applicable | pass | closeout |\n\n## Next Selection\n\n${marker}\n\n${leanBlock}\n\n## Historical Authority\n\nManifest SHA-256: \`${manifestSha}\`.\n`
   );
   return { root };
@@ -153,8 +155,8 @@ test('accepts compact authority and reconstructable Git history', () => {
 
 test('accepts large canonical authority documents when semantic contracts remain valid', () => {
   const { root } = fixture();
-  for (const name of ['current-program.md', 'current-tracker.md']) {
-    const path = join(root, 'docs/plans', name);
+  for (const repoPath of [archivedProgramPath, archivedTrackerPath]) {
+    const path = join(root, repoPath);
     const padding = Array.from({ length: 1_100 }, (_, index) => `authority detail ${index}`).join(
       '\n'
     );
@@ -168,7 +170,7 @@ test('accepts large canonical authority documents when semantic contracts remain
 test('rejects authority input beyond the operational read bound before parsing', () => {
   const { root } = fixture();
   try {
-    truncateSync(join(root, 'docs/plans/current-program.md'), 16 * 1024 * 1024 + 1);
+    truncateSync(join(root, archivedProgramPath), 16 * 1024 * 1024 + 1);
 
     const result = spawnSync(process.execPath, [script], { cwd: root, encoding: 'utf8' });
 
@@ -181,7 +183,7 @@ test('rejects authority input beyond the operational read bound before parsing',
 
 test('rejects append-only revision narratives', () => {
   const { root } = fixture();
-  const path = join(root, 'docs/plans/current-program.md');
+  const path = join(root, archivedProgramPath);
   writeFileSync(path, `${readFileSync(path, 'utf8')}\nRev 244 narrative\nRev 245 narrative\n`);
   const result = spawnSync(process.execPath, [script], { cwd: root, encoding: 'utf8' });
   assert.equal(result.status, 1);
@@ -190,7 +192,7 @@ test('rejects append-only revision narratives', () => {
 
 test('rejects a missing canonical authority section', () => {
   const { root } = fixture();
-  const path = join(root, 'docs/plans/current-program.md');
+  const path = join(root, archivedProgramPath);
   writeFileSync(path, readFileSync(path, 'utf8').replace('## Current Phase', 'Current Phase'));
   const result = spawnSync(process.execPath, [script], { cwd: root, encoding: 'utf8' });
   assert.equal(result.status, 1);
@@ -199,7 +201,7 @@ test('rejects a missing canonical authority section', () => {
 
 test('rejects deletion of a canonical authority document', () => {
   const { root } = fixture();
-  rmSync(join(root, 'docs/plans/current-tracker.md'));
+  rmSync(join(root, archivedTrackerPath));
   const result = spawnSync(process.execPath, [script], { cwd: root, encoding: 'utf8' });
   assert.equal(result.status, 1);
   assert.match(result.stderr, /current-authority format audit failed/);

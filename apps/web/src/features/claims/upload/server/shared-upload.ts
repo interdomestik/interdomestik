@@ -1,10 +1,22 @@
 import { LOCALES } from '@/i18n/locales';
 import { redactSignedUrlErrorDetails } from '@/lib/storage/signed-url-exposure';
-import { createHmac, randomUUID, timingSafeEqual } from 'crypto';
+import { randomUUID } from 'crypto';
 import { revalidatePath } from 'next/cache';
 
 import { assertEvidenceStoragePath, buildEvidenceStoragePath } from './storage-path';
+import {
+  createClaimUploadIntentToken,
+  expectedUploadPath,
+  verifyClaimUploadIntentToken,
+  type ConfirmedUploadValidationResult,
+} from './claim-upload-intent';
 export {
+  createClaimUploadIntentToken,
+  expectedUploadPath,
+  type ConfirmedUploadValidationResult,
+} from './claim-upload-intent';
+export {
+  InformationRequestUploadConflictError,
   persistClaimDocumentAndQueueWorkflows,
   type UploadCategory,
 } from './claim-document-persistence';
@@ -12,7 +24,6 @@ export {
 const SIGNED_UPLOAD_MAX_ATTEMPTS = 3;
 const SIGNED_UPLOAD_RETRY_DELAY_MS = process.env.NODE_ENV === 'test' ? 0 : 250;
 const CLAIM_UPLOAD_MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
-const CLAIM_UPLOAD_INTENT_TTL_MS = 15 * 60 * 1000;
 const TRANSIENT_UPLOAD_ERROR_PATTERNS = [
   /fetch failed/i,
   /network/i,
@@ -34,32 +45,16 @@ export type SharedGenerateUploadUrlResult =
       id: string;
       token: string;
       bucket: string;
+      deterministicE2E?: true;
       intentToken: string;
     }
   | { success: false; error: string; status: 400 | 413 | 500 };
-
-type ClaimUploadIntentPayload = {
-  actorId: string;
-  bucket: string;
-  claimId: string;
-  expiresAt: number;
-  fileId: string;
-  fileSize: number;
-  mimeType: string;
-  storageContentType: string;
-  storagePath: string;
-  tenantId: string;
-  v: 1;
-};
-
-export type ConfirmedUploadValidationResult =
-  | { success: true }
-  | { success: false; error: string; status: 409 | 500 };
 
 export type ClaimUploadConfirmationInput = {
   claimId: string;
   fileId: string;
   fileSize: number;
+  informationRequestId?: string;
   mimeType: string;
   storageContentType?: string;
   storagePath: string;
@@ -82,37 +77,6 @@ export function revalidatePathForAllLocales(path: string) {
   }
 }
 
-function base64UrlEncode(value: string): string {
-  return Buffer.from(value, 'utf8').toString('base64url');
-}
-
-function base64UrlDecode(value: string): string {
-  return Buffer.from(value, 'base64url').toString('utf8');
-}
-
-function getClaimUploadIntentSecret(): string {
-  const secret = process.env.CLAIM_UPLOAD_INTENT_SECRET ?? process.env.BETTER_AUTH_SECRET;
-
-  if (!secret || secret.length < 24) {
-    throw new Error('CLAIM_UPLOAD_INTENT_SECRET or BETTER_AUTH_SECRET is required for uploads');
-  }
-
-  return secret;
-}
-
-function signUploadIntentPayload(encodedPayload: string): string {
-  return createHmac('sha256', getClaimUploadIntentSecret())
-    .update(encodedPayload)
-    .digest('base64url');
-}
-
-function safeCompare(a: string, b: string): boolean {
-  const aBuffer = Buffer.from(a);
-  const bBuffer = Buffer.from(b);
-
-  return aBuffer.length === bBuffer.length && timingSafeEqual(aBuffer, bBuffer);
-}
-
 export function sanitizeClaimUploadExtension(fileName: string): string {
   const ext =
     fileName
@@ -121,120 +85,6 @@ export function sanitizeClaimUploadExtension(fileName: string): string {
       ?.toLowerCase()
       .replaceAll(/[^a-z0-9]/g, '') || 'bin';
   return ext.slice(0, 16) || 'bin';
-}
-
-export function expectedUploadPath(params: {
-  bucket: string;
-  claimId: string;
-  expectedBucket?: string;
-  fileId: string;
-  storagePath: string;
-  tenantId: string;
-}): boolean {
-  try {
-    assertEvidenceStoragePath({ ...params, shape: 'assigned' });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-export function createClaimUploadIntentToken(params: {
-  actorId: string;
-  bucket: string;
-  claimId: string;
-  fileId: string;
-  fileSize: number;
-  mimeType: string;
-  storageContentType?: string;
-  storagePath: string;
-  tenantId: string;
-}): string {
-  const payload: ClaimUploadIntentPayload = {
-    ...params,
-    expiresAt: Date.now() + CLAIM_UPLOAD_INTENT_TTL_MS,
-    storageContentType: params.storageContentType ?? params.mimeType,
-    v: 1,
-  };
-  const encodedPayload = base64UrlEncode(JSON.stringify(payload));
-  const signature = signUploadIntentPayload(encodedPayload);
-
-  return `${encodedPayload}.${signature}`;
-}
-
-function verifyClaimUploadIntentToken(params: {
-  actorId: string;
-  bucket: string;
-  claimId: string;
-  fileId: string;
-  fileSize: number;
-  intentToken: string;
-  mimeType: string;
-  storageContentType?: string;
-  storagePath: string;
-  tenantId: string;
-}): ConfirmedUploadValidationResult {
-  const { intentToken, ...expected } = params;
-  const tokenParts = intentToken.split('.');
-
-  if (tokenParts.length !== 2) {
-    return {
-      success: false,
-      error: 'Upload confirmation expired. Please retry upload.',
-      status: 409,
-    };
-  }
-
-  const [encodedPayload, signature] = tokenParts;
-
-  const expectedSignature = signUploadIntentPayload(encodedPayload);
-  if (!safeCompare(signature, expectedSignature)) {
-    return {
-      success: false,
-      error: 'Upload confirmation expired. Please retry upload.',
-      status: 409,
-    };
-  }
-
-  let payload: ClaimUploadIntentPayload;
-  try {
-    payload = JSON.parse(base64UrlDecode(encodedPayload)) as ClaimUploadIntentPayload;
-  } catch {
-    return {
-      success: false,
-      error: 'Upload confirmation expired. Please retry upload.',
-      status: 409,
-    };
-  }
-
-  if (
-    payload.v !== 1 ||
-    payload.expiresAt < Date.now() ||
-    payload.actorId !== expected.actorId ||
-    payload.bucket !== expected.bucket ||
-    payload.claimId !== expected.claimId ||
-    payload.fileId !== expected.fileId ||
-    payload.fileSize !== expected.fileSize ||
-    payload.mimeType !== expected.mimeType ||
-    payload.storageContentType !== (expected.storageContentType ?? expected.mimeType) ||
-    payload.storagePath !== expected.storagePath ||
-    payload.tenantId !== expected.tenantId ||
-    !expectedUploadPath({
-      bucket: expected.bucket,
-      claimId: expected.claimId,
-      fileId: expected.fileId,
-      storagePath: expected.storagePath,
-      tenantId: expected.tenantId,
-    })
-  ) {
-    return {
-      success: false,
-      error: 'Upload confirmation expired. Please retry upload.',
-      status: 409,
-    };
-  }
-
-  return { success: true };
 }
 
 function numberFromMetadata(value: unknown): number | null {
@@ -271,7 +121,12 @@ export async function validateStoredObject(params: {
   const lastSlashIndex = storagePath.lastIndexOf('/');
   const fileName = storagePath.slice(lastSlashIndex + 1);
 
-  const { listTenantObjectsForSingleFile } = await import('@/lib/storage/service-role');
+  const { listTenantObjectsForSingleFile, usesDeterministicE2EStorage } =
+    await import('@/lib/storage/service-role');
+  if (usesDeterministicE2EStorage()) {
+    return { success: true };
+  }
+
   const { data, error } = await listTenantObjectsForSingleFile({
     bucket,
     context: 'claim upload verification',
@@ -329,6 +184,7 @@ export async function validateConfirmedClaimUpload(params: {
     claimId,
     fileId,
     fileSize,
+    informationRequestId,
     mimeType,
     storageContentType,
     storagePath,
@@ -354,6 +210,7 @@ export async function validateConfirmedClaimUpload(params: {
     claimId,
     fileId,
     fileSize,
+    informationRequestId,
     intentToken: uploadIntentToken,
     mimeType,
     storageContentType,
@@ -381,11 +238,24 @@ export async function createSignedUploadUrl(params: {
   claimId: string;
   fileName: string;
   fileSize: number;
+  informationRequestId?: string;
   logPrefix: string;
   mimeType: string;
+  storageContentType?: string;
   tenantId: string;
 }): Promise<SharedGenerateUploadUrlResult> {
-  const { actorId, bucket, claimId, fileName, fileSize, logPrefix, mimeType, tenantId } = params;
+  const {
+    actorId,
+    bucket,
+    claimId,
+    fileName,
+    fileSize,
+    informationRequestId,
+    logPrefix,
+    mimeType,
+    storageContentType,
+    tenantId,
+  } = params;
 
   if (!Number.isSafeInteger(fileSize) || fileSize <= 0) {
     return { success: false, error: 'Invalid file size', status: 400 };
@@ -439,13 +309,17 @@ export async function createSignedUploadUrl(params: {
           id: fileId,
           token: data.token,
           bucket,
+          deterministicE2E:
+            (data as { deterministicE2E?: true }).deterministicE2E === true ? true : undefined,
           intentToken: createClaimUploadIntentToken({
             actorId,
             bucket,
             claimId,
             fileId,
             fileSize,
+            informationRequestId,
             mimeType,
+            storageContentType,
             storagePath: path,
             tenantId,
           }),

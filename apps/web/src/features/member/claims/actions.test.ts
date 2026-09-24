@@ -10,6 +10,7 @@ const hoisted = vi.hoisted(() => {
     ensureTenantId: vi.fn(),
     resolveEvidenceBucketName: vi.fn(),
     findOwnedMemberUploadClaim: vi.fn(),
+    findOwnedMemberInformationRequest: vi.fn(),
     createSignedUploadUrl: vi.fn(),
     listStorageObjects: vi.fn(),
     storageFrom: vi.fn(),
@@ -47,6 +48,7 @@ vi.mock('@/lib/storage/evidence-bucket', () => ({
 }));
 
 vi.mock('@/features/claims/upload/server/access', () => ({
+  findOwnedMemberInformationRequest: hoisted.findOwnedMemberInformationRequest,
   findOwnedMemberUploadClaim: hoisted.findOwnedMemberUploadClaim,
 }));
 
@@ -90,47 +92,8 @@ vi.mock('next/cache', () => ({
   revalidatePath: hoisted.revalidatePath,
 }));
 
-import { createClaimUploadIntentToken } from '@/features/claims/upload/server/shared-upload';
 import { confirmUpload, generateUploadUrl } from './actions';
-
-function createUploadIntent(
-  overrides: Partial<{
-    actorId: string;
-    bucket: string;
-    claimId: string;
-    fileId: string;
-    fileSize: number;
-    mimeType: string;
-    storagePath: string;
-    tenantId: string;
-  }> = {}
-) {
-  return createClaimUploadIntentToken({
-    actorId: 'member-1',
-    bucket: 'claim-evidence',
-    claimId: 'claim-1',
-    fileId: 'uuid-1',
-    fileSize: 1024,
-    mimeType: 'application/pdf',
-    storagePath: 'pii/tenants/tenant-1/claims/claim-1/uuid-1.pdf',
-    tenantId: 'tenant-1',
-    ...overrides,
-  });
-}
-
-function createConfirmUploadParams(overrides: Partial<Parameters<typeof confirmUpload>[0]> = {}) {
-  return {
-    claimId: 'claim-1',
-    storagePath: 'pii/tenants/tenant-1/claims/claim-1/uuid-1.pdf',
-    originalName: 'evidence.pdf',
-    mimeType: 'application/pdf',
-    fileSize: 1024,
-    fileId: 'uuid-1',
-    uploadIntentToken: createUploadIntent(),
-    uploadedBucket: 'claim-evidence',
-    ...overrides,
-  };
-}
+import { createConfirmUploadParams } from './actions.test-fixtures';
 
 describe('member claim upload actions', () => {
   beforeEach(() => {
@@ -143,6 +106,7 @@ describe('member claim upload actions', () => {
     hoisted.ensureTenantId.mockReturnValue('tenant-1');
     hoisted.resolveEvidenceBucketName.mockReturnValue('claim-evidence');
     hoisted.findOwnedMemberUploadClaim.mockResolvedValue({ id: 'claim-1' });
+    hoisted.findOwnedMemberInformationRequest.mockResolvedValue({ id: 'request-1' });
     hoisted.storageFrom.mockReturnValue({
       createSignedUploadUrl: hoisted.createSignedUploadUrl,
       list: hoisted.listStorageObjects,
@@ -275,57 +239,6 @@ describe('member claim upload actions', () => {
       tenantId: 'tenant-1',
       userId: 'member-1',
     });
-  });
-
-  it('rejects forged upload metadata before persisting the document', async () => {
-    const result = await confirmUpload(
-      createConfirmUploadParams({
-        storagePath: 'pii/tenants/tenant-1/claims/claim-1/uuid-2.pdf',
-        fileId: 'uuid-2',
-      })
-    );
-
-    expect(result).toEqual({
-      success: false,
-      error: 'Upload confirmation expired. Please retry upload.',
-      status: 409,
-    });
-    expect(hoisted.insert).not.toHaveBeenCalled();
-  });
-
-  it('rejects upload intent tokens with extra segments before storage verification', async () => {
-    const result = await confirmUpload(
-      createConfirmUploadParams({ uploadIntentToken: `${createUploadIntent()}.extra` })
-    );
-
-    expect(result).toEqual({
-      success: false,
-      error: 'Upload confirmation expired. Please retry upload.',
-      status: 409,
-    });
-    expect(hoisted.listStorageObjects).not.toHaveBeenCalled();
-    expect(hoisted.insert).not.toHaveBeenCalled();
-  });
-
-  it('rejects confirmation when the uploaded object metadata does not match the intent', async () => {
-    hoisted.listStorageObjects.mockResolvedValueOnce({
-      data: [
-        {
-          name: 'uuid-1.pdf',
-          metadata: { size: 2048, mimetype: 'application/pdf' },
-        },
-      ],
-      error: null,
-    });
-
-    const result = await confirmUpload(createConfirmUploadParams());
-
-    expect(result).toEqual({
-      success: false,
-      error: 'Uploaded file metadata mismatch. Please retry upload.',
-      status: 409,
-    });
-    expect(hoisted.insert).not.toHaveBeenCalled();
   });
 
   it('preserves upload and skips AI dispatch when member consent is unchecked', async () => {

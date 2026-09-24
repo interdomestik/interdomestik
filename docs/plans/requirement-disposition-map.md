@@ -3,7 +3,7 @@ plan_role: input
 status: active
 source_of_truth: false
 owner: platform
-last_reviewed: 2026-09-18
+last_reviewed: 2026-09-23
 ---
 
 # Requirement disposition map
@@ -92,17 +92,20 @@ this map and the tracker in normal delivery, without another status system or cl
 
 ## Credited delivery, without whole-requirement overclaim
 
-| Delivered increment         | Receipt                                                                                                                                                                              | Requirement links to reconcile        | Remaining acceptance                                                                 |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------- | ------------------------------------------------------------------------------------ |
-| Unified shell/navigation    | Current program, PR #1770                                                                                                                                                            | IDA-CTX-003; IDA-CTR-039              | All role journeys, not just shell                                                    |
-| Member overview entry       | PR #1775, 55875e31b024e6ac9f4648f106be3bfea96facbd                                                                                                                                   | IDA-NFR-008; IDA-CAS-007              | Whole member journey/user acceptance                                                 |
-| Member workspace redesign   | PR #1776, 06d90f570d8757764a9fac8124ee924bd3b8aa1f                                                                                                                                   | IDA-NFR-006; IDA-NFR-007; IDA-NFR-008 | Criterion-level accessibility and user acceptance                                    |
-| Member detail continuity    | PR #1777, b5a234b30b9cb6ed89ae6d81b81960a3a8135b25                                                                                                                                   | IDA-CAS-007; IDA-COM-005; IDA-NFR-008 | Cross-role acceptance; completed S1 correction credited below                        |
-| Member upload localization  | PR #1778, 81a219608dacf4ee9cfd8ee9f201e8ab156e54d2                                                                                                                                   | IDA-NFR-007; IDA-DOC-012              | EN/SQ/MK/SR upload and consent copy credited; S3/S6/S7 cross-role acceptance remains |
-| S1 agent message visibility | PR #1780, f3d36b2e7781654fe5448fab11da891368d95f19; 13 exact-main checks                                                                                                             | IAM/COM/CRM visibility clauses        | Bounded query/render exclusion only; broader role acceptance remains                 |
-| S2 branch overview scope    | PR #1781, de15d4cac87d7ba6ce15d98c75069445bb84dcb4; 13 exact-main checks                                                                                                             | TEN/IAM/RPT/KPI scope clauses         | Bounded branch route/query protection only; full oversight remains                   |
-| Help Now / Trip Mode        | [MOB-01 #1296/#1297 receipt](../product/2026-07-03-mob-dg01-help-now-trip-mode-gate-packet.md); [vehicle #1347 receipt](2026-07-14-ida-dg09-complete-public-help-now-journey-map.md) | DIA/SVC/AST clauses                   | Reconcile selected corridor/pack/guidance acceptance; no whole-domain completion     |
-| Core M0–M5                  | Architecture tracker recorded milestones                                                                                                                                             | TEN/IAM/CAS/BHV/CTR clauses           | Consumer conformance and individual acceptance; do not rebuild core                  |
+| Delivered increment                | Receipt                                                                                                                                                                              | Requirement links to reconcile        | Remaining acceptance                                                                                      |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Unified shell/navigation           | Current program, PR #1770                                                                                                                                                            | IDA-CTX-003; IDA-CTR-039              | All role journeys, not just shell                                                                         |
+| Member overview entry              | PR #1775, 55875e31b024e6ac9f4648f106be3bfea96facbd                                                                                                                                   | IDA-NFR-008; IDA-CAS-007              | Whole member journey/user acceptance                                                                      |
+| Member workspace redesign          | PR #1776, 06d90f570d8757764a9fac8124ee924bd3b8aa1f                                                                                                                                   | IDA-NFR-006; IDA-NFR-007; IDA-NFR-008 | Criterion-level accessibility and user acceptance                                                         |
+| Member detail continuity           | PR #1777, b5a234b30b9cb6ed89ae6d81b81960a3a8135b25                                                                                                                                   | IDA-CAS-007; IDA-COM-005; IDA-NFR-008 | Cross-role acceptance; completed S1 correction credited below                                             |
+| Member upload localization         | PR #1778, 81a219608dacf4ee9cfd8ee9f201e8ab156e54d2                                                                                                                                   | IDA-NFR-007; IDA-DOC-012              | EN/SQ/MK/SR upload and consent copy credited; S3/S6/S7 cross-role acceptance remains                      |
+| Request-linked evidence round trip | PR #1814, af191e71da589307a21df2a7fce14380a1fdd625                                                                                                                                   | IDA-DOC/CLM/CAS scoped links          | Upload and assigned-staff acknowledgement credited; fulfilment/lifecycle/SLA remain open                  |
+| Member lifecycle/access disclosure | PR #1815, 966a774028dc113757c298876e442e1ae80c73b5                                                                                                                                   | IDA-MEM-008; IDA-MEM-009; IDA-MEM-012 | Bounded portal disclosure delivered; whole membership family and non-software acceptance remain open      |
+| New-account OTP secure save        | Candidate PR #1803, `S5-NEW-ACCOUNT-OTP-SECURE-SAVE`                                                                                                                                 | IDA-CTX/IAM/FST scoped links          | Native-origin verification/save/return/delete proof in progress; whole S5 and user acceptance remain open |
+| S1 agent message visibility        | PR #1780, f3d36b2e7781654fe5448fab11da891368d95f19; 13 exact-main checks                                                                                                             | IAM/COM/CRM visibility clauses        | Bounded query/render exclusion only; broader role acceptance remains                                      |
+| S2 branch overview scope           | PR #1781, de15d4cac87d7ba6ce15d98c75069445bb84dcb4; 13 exact-main checks                                                                                                             | TEN/IAM/RPT/KPI scope clauses         | Bounded branch route/query protection only; full oversight remains                                        |
+| Help Now / Trip Mode               | [MOB-01 #1296/#1297 receipt](../product/2026-07-03-mob-dg01-help-now-trip-mode-gate-packet.md); [vehicle #1347 receipt](2026-07-14-ida-dg09-complete-public-help-now-journey-map.md) | DIA/SVC/AST clauses                   | Reconcile selected corridor/pack/guidance acceptance; no whole-domain completion                          |
+| Core M0–M5                         | Architecture tracker recorded milestones                                                                                                                                             | TEN/IAM/CAS/BHV/CTR clauses           | Consumer conformance and individual acceptance; do not rebuild core                                       |
 
 ## Architecture frontier retained
 
@@ -176,9 +179,9 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-GOV-009 | As-built versus target | Target | unresolved | S14 | open | none | U | U | U |
 | IDA-GOV-010 | Sensitive source handling | Canonical | unresolved | S14 | open | none | U | U | U |
 | IDA-CTX-001 | Product definition | Target | unresolved | S5/S14 | open | none | U | U | U |
-| IDA-CTX-002 | Neutral public gateway | Canonical | pilot-required | S5/S14; partial: no-tenant, cookie-free public host; branding neutrality unasserted | open | none | U | U | U |
-| IDA-CTX-003 | Canonical portals | Canonical | pilot-required | S5/S14; partial: role-to-portal mapping, protected redirects; non-canonical rejection unasserted | open | none | U | U | U |
-| IDA-CTX-004 | Proxy authority | Canonical | pilot-required | S5/S14; partial: proxy session-gate tests; bypass rejection unasserted | open | none | U | U | U |
+| IDA-CTX-002 | Neutral public gateway | Canonical | pilot-required | S5/S14 | PR #1803 candidate exercises the organizer on an explicit neutral `ida.localhost` browser origin; whole gateway acceptance remains open | none | in-progress; native-origin E2E pending protected receipt; Engineering | U | U |
+| IDA-CTX-003 | Canonical portals | Canonical | pilot-required | S5/S14 | PR #1770 shell credit retained; PR #1803 adds or renames no portal and whole role-journey acceptance remains open | none | bounded shell delivered; no new portal claim; Engineering | U | U |
+| IDA-CTX-004 | Proxy authority | Canonical | pilot-required | S5/S14 | PR #1803 candidate keeps `proxy.ts` unchanged and exercises native browser requests through the existing authority without header rewriting or bypass; whole acceptance remains open | none | in-progress; contract/E2E proof pending protected receipt; Engineering | U | U |
 | IDA-CTX-005 | External systems untrusted | Canonical | unresolved | S5/S14 | open | none | U | U | U |
 | IDA-CTX-006 | System-of-record clarity | Target | unresolved | S5/S14 | open | none | U | U | U |
 | IDA-CTX-007 | No ambient authority | Canonical | unresolved | S5/S14 | open | none | U | U | U |
@@ -199,8 +202,8 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-TEN-012 | Tenant lifecycle audit | Target | unresolved | S2/S10–S12 | open | none | U | U | U |
 | IDA-TEN-013 | Validated tenant selection | Canonical | unresolved | S2/S10–S12 | open | none | U | U | U |
 | IDA-TEN-014 | Tenant cache isolation | Canonical | unresolved | S2/S10–S12 | open | none | U | U | U |
-| IDA-IAM-001 | Authentication boundary | Canonical | pilot-required | S1/S8/S11–S12 | open | none | U | U | U |
-| IDA-IAM-002 | Authentication is not authorization | Canonical | unresolved | S1/S8/S11–S12 | open | none | U | U | U |
+| IDA-IAM-001 | Authentication boundary | Canonical | pilot-required | S1/S8/S11–S12 | PR #1803 candidate verifies through Better Auth and Supabase-backed identity/session boundaries with no bypass; whole authentication acceptance remains open | none | in-progress; native OTP/session E2E pending protected receipt; Engineering | U | U |
+| IDA-IAM-002 | Authentication is not authorization | Canonical | unresolved | S1/S8/S11–S12 | PR #1803 candidate separately exercises owner/tenant authorization after authentication; broader authorization acceptance remains open | none | in-progress; isolation proof pending protected receipt; Engineering | U | U |
 | IDA-IAM-003 | Exercised role | Canonical | unresolved | S1/S8/S11–S12 | open | none | U | U | U |
 | IDA-IAM-004 | Role catalogue | Canonical | unresolved | S1/S8/S11–S12 | open | none | U | U | U |
 | IDA-IAM-005 | Technical admin boundary | Canonical | pilot-required | S1/S8/S11–S12 | open | none | U | U | U |
@@ -208,26 +211,26 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-IAM-007 | Support read orientation | Canonical | unresolved | S1/S8/S11–S12 | open | none | U | U | U |
 | IDA-IAM-008 | Auditor read orientation | Canonical | unresolved | S1/S8/S11–S12 | open | none | U | U | U |
 | IDA-IAM-009 | Agent access | Canonical | pilot-required | S1/S8/S11–S12 | open | none | U | U | U |
-| IDA-IAM-010 | Member ownership | Target | pilot-required | S1/S8/S11–S12 | open | none | U | U | U |
+| IDA-IAM-010 | Member ownership | Target | pilot-required | S1/S8/S11–S12 | PR #1803 candidate binds the saved draft to the freshly resolved verified member and returns `notFound` in a foreign tenant context; broader member ownership acceptance remains open | none | in-progress; owner/tenant E2E pending protected receipt; Engineering | U | U |
 | IDA-IAM-011 | Privileged MFA | Target | unresolved | S1/S8/S11–S12 | open | none | U | U | U |
-| IDA-IAM-012 | Session security | Target | unresolved | S1/S8/S11–S12 | open | none | U | U | U |
+| IDA-IAM-012 | Session security | Target | unresolved | S1/S8/S11–S12 | PR #1803 candidate proves an HttpOnly session cookie, fresh-browser reauthentication, untrusted-origin rejection and consumed-code replay refusal; whole session security remains open | none | in-progress; negative-path E2E pending protected receipt; Engineering | U | U |
 | IDA-IAM-013 | Account recovery | Target | unresolved | S1/S8/S11–S12 | open | none | U | U | U |
 | IDA-IAM-014 | Break-glass | Canonical | unresolved | S1/S8/S11–S12 | open | none | U | U | U |
 | IDA-IAM-015 | Unknown role fail-closed | Canonical | pilot-required | S1/S8/S11–S12 | open | none | U | U | U |
 | IDA-IAM-016 | Role review | Target | unresolved | S1/S8/S11–S12 | open | none | U | U | U |
-| IDA-FST-001 | Eligible local continuity | Canonical | unresolved | S5; credited: allowlist round-trip test, cold-return E2E | open | none | U | U | U |
-| IDA-FST-002 | Injury exclusion | Canonical | unresolved | S5; credited (local): write rejection, four-locale medical-text tests, server validator | open | none | U | U | U |
-| IDA-FST-003 | No anonymous server identity | Canonical | unresolved | S5; new-account spec: no account or draft row before verification | open | none | U | U | U |
-| IDA-FST-004 | Local disclosure | Target | unresolved | S5; open: boundary asserted after local write, not before | open | none | U | U | U |
-| IDA-FST-005 | Schema validation | Canonical | unresolved | S5; credited: version, size, schema, expiry, scope rejection tests | open | none | U | U | U |
-| IDA-FST-006 | Stale-tab protection | Canonical | unresolved | S5; credited: stale-tab unit tests, serialized-write E2E | open | none | U | U | U |
-| IDA-FST-007 | Automatic eligible recovery | Canonical | unresolved | S5; credited: cold-return E2E; member intake ignores browser copies | open | none | U | U | U |
-| IDA-FST-008 | Verified secure save | Canonical | pilot-required | S5; new-account spec: real OTP delivery, hashed storage, wrong/replayed refusal, account creation, secure save (auth Origin rewritten by the test); password promotion proven | open | none | U | U | U |
-| IDA-FST-009 | Delete after confirmed save | Canonical | unresolved | S5; new-account spec: browser copy kept on refused save, removed on confirmed; server-save failure unit-only | open | none | U | U | U |
-| IDA-FST-010 | No automatic claim conversion | Canonical | unresolved | S5; S5 continuity spec proves no claim after save or review and one claim only on explicit submit; new-account save creates no claim or subscription | open | none | U | U | U |
-| IDA-FST-011 | Review before handoff | Canonical | pilot-required | S5; S5 continuity spec proves exact vehicle facts are reviewed before submit; other categories/handoff open; property: gate unit-tested, no E2E | open | none | U | U | U |
-| IDA-FST-012 | Owner isolation | Canonical | pilot-required | S5; S5 specs prove same-tenant foreign list/resume/update/delete `notFound` and an active member's forged submit of the owner draft id is refused; C07–C12 and RLS tests credited | open | none | U | U | U |
-| IDA-FST-013 | Draft deletion | Canonical | unresolved | S5; new-account spec: owner deletion and audit row | open | none | U | U | U |
+| IDA-FST-001 | Eligible local continuity | Canonical | unresolved | S5 | PR #1803 candidate keeps the eligible browser copy before verification and after a refused code; whole-category and disclosure acceptance remain open | none | in-progress; native browser E2E pending protected receipt; Engineering | U | U |
+| IDA-FST-002 | Injury exclusion | Canonical | unresolved | S5 | open | none | U | U | U |
+| IDA-FST-003 | No anonymous server identity | Canonical | unresolved | S5 | PR #1803 candidate proves browser-only preparation and OTP delivery create neither a server account nor server draft before successful verification | none | in-progress; database E2E proof pending protected receipt; Engineering | U | U |
+| IDA-FST-004 | Local disclosure | Target | unresolved | S5 | open | none | U | U | U |
+| IDA-FST-005 | Schema validation | Canonical | unresolved | S5 | open | none | U | U | U |
+| IDA-FST-006 | Stale-tab protection | Canonical | unresolved | S5 | open | none | U | U | U |
+| IDA-FST-007 | Automatic eligible recovery | Canonical | unresolved | S5 | open | none | U | U | U |
+| IDA-FST-008 | Verified secure save | Canonical | pilot-required | S5; password-authenticated promotion delivered in #1801; PR #1803 candidate exercises delivered email OTP, verified identity, fresh resolved owner and exact secure draft persistence | open | none | in-progress; OTP/save E2E pending protected receipt; Engineering | U | U |
+| IDA-FST-009 | Delete after confirmed save | Canonical | unresolved | S5; PR #1803 candidate proves the browser copy remains after refusal and is removed only after confirmed secure save | open | none | in-progress; refusal/success E2E pending protected receipt; Engineering | U | U |
+| IDA-FST-010 | No automatic claim conversion | Canonical | unresolved | S5; #1801 proves explicit-submit conversion; PR #1803 candidate additionally proves save/return/delete create no claim, subscription or CRM lead | open | none | in-progress; run-scoped database E2E pending protected receipt; Engineering | U | U |
+| IDA-FST-011 | Review before handoff | Canonical | pilot-required | S5; S5 continuity spec proves exact vehicle facts are reviewed before submit; other categories/handoff open | open | none | U | U | U |
+| IDA-FST-012 | Owner isolation | Canonical | pilot-required | S5; delivered specs prove same-tenant foreign refusal and forged-submit refusal; PR #1803 candidate adds a freshly verified owner and foreign-tenant list/resume `notFound` proof | open | none | in-progress; layered isolation E2E pending protected receipt; Engineering | U | U |
+| IDA-FST-013 | Draft deletion | Canonical | unresolved | S5; PR #1803 candidate proves permanent owner deletion plus scoped create/delete audit evidence and task-owned cleanup | open | none | in-progress; deletion/audit E2E pending protected receipt; Engineering | U | U |
 | IDA-FST-014 | No representation implication | Target | unresolved | S5 | open | none | U | U | U |
 | IDA-MEM-001 | Offer and proof separation | Canonical | unresolved | S6/S9 | open | none | U | U | U |
 | IDA-MEM-002 | Entity-of-record snapshot | Canonical | unresolved | S6/S9 | open | none | U | U | U |
@@ -236,11 +239,11 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-MEM-005 | Price disclosure | Target | unresolved | S6/S9 | open | none | U | U | U |
 | IDA-MEM-006 | Provider confirmation | Target | unresolved | S6/S9 | open | none | U | U | U |
 | IDA-MEM-007 | Idempotent activation | Canonical | unresolved | S6/S9 | open | none | U | U | U |
-| IDA-MEM-008 | Lifecycle states | Canonical | unresolved | S6/S9 | open | none | U | U | U |
-| IDA-MEM-009 | Grace and dunning | Target | unresolved | S6/S9 | open | none | U | U | U |
+| IDA-MEM-008 | Lifecycle states | Canonical | unresolved | S6/S9 | PR #1815 renders the existing canonical lifecycle bucket and derives new-case access from the shared lifecycle contract; whole lifecycle/activation acceptance remains open | none | delivered-bounded; PR #1815 / 966a774028dc113757c298876e442e1ae80c73b5; Product + Engineering | U | U |
+| IDA-MEM-009 | Grace and dunning | Target | unresolved | S6/S9 | PR #1815 distinguishes active-in-grace allowed access from grace-expired denied access and preserves existing truthful warning copy; provider dunning operations and business acceptance remain open | none | delivered-bounded; PR #1815 / 966a774028dc113757c298876e442e1ae80c73b5; Product + Engineering | U | U |
 | IDA-MEM-010 | Cancellation | Target | unresolved | S6/S9 | open | none | U | U | U |
 | IDA-MEM-011 | Refund | Target | unresolved | S6/S9 | open | none | U | U | U |
-| IDA-MEM-012 | Member proof content | Canonical | unresolved | S6/S9 | open | none | U | U | U |
+| IDA-MEM-012 | Member proof content | Canonical | unresolved | S6/S9 | PR #1815 discloses lifecycle status, current-period end when present and access consequence without provider, plan, price, score or quota metadata; broader member proof and acceptance remain open | none | delivered-bounded; PR #1815 / 966a774028dc113757c298876e442e1ae80c73b5; Product + Engineering | U | U |
 | IDA-MEM-013 | Matter allowance | Target | unresolved | S6/S9 | open | none | U | U | U |
 | IDA-MEM-014 | Group privacy | Target | unresolved | S6/S9 | open | none | U | U | U |
 | IDA-MEM-015 | Attribution read-only | Canonical | unresolved | S6/S9 | open | none | U | U | U |
@@ -264,8 +267,8 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-DIA-001 | Diaspora persona boundary | Canonical | unresolved | S5/S6; see acceptance links | open | none | U | U | U |
 | IDA-DIA-002 | User-selected corridor | Canonical | unresolved | S5/S6; #1790 proves explicit guidance-country/no fallback; #1792 source `757aa623` captures origin/destination and zero-to-12 ordered transit values over `CountryCodeSchema`; completed S5.e #1796 discloses pack status from that explicit corridor only; persistence/handoff open | open | Tracker receipt; #1792 exact-main `e8142453` and S5.e exact-main `6d9eb3f5` health passed. Protected PR #1796 and exact-main health complete the final bounded delivery receipt. | U | U | U |
 | IDA-DIA-003 | Locale independent from country pack | Canonical | unresolved | S5/S6; #1792 source `757aa623` proves in-app locale-switch query retention; completed S5.e #1796 mounts the same ordered status result on EN/SQ/MK/SR applied-corridor routes; pack/content and non-software readiness open | open | Tracker receipt; S5.e exact-head E2E and exact-main health passed. | U | U | U |
-| IDA-DIA-004 | Signed pack requirement | Canonical | unresolved | S5/S6; completed S5.e #1796 discloses only the existing Help Now exposure predicate and does not claim current/versioned/integrity/expiry readiness; full contract remains a later direct dependency; MK pack (#1312) lacks source set, per-pack version, expiry, digest; owner decision open | open | Existing fail-closed registry predicate credited; MOB-01b/MK receipt and S5.e do not satisfy the signed/current/versioned/integrity/expiry contract. | U | U | U |
-| IDA-DIA-005 | Unsigned pack fail-closed | Canonical | unresolved | S5/S6; completed S5.e #1796 keeps dark, unaccepted, unsigned, duplicate and unregistered corridor entries unavailable without fallback; expired/withdrawn/integrity-failed contracts remain open; MK pack has no expiry or integrity state | open | S5.e pure derivation and mounted proof passed through exact-main `6d9eb3f5`; full signed-pack acceptance remains open. | U | U | U |
+| IDA-DIA-004 | Signed pack requirement | Canonical | unresolved | S5/S6; completed S5.e #1796 discloses only the existing Help Now exposure predicate and does not claim current/versioned/integrity/expiry readiness; full contract remains a later direct dependency | open | Existing fail-closed registry predicate credited; MOB-01b/MK receipt and S5.e do not satisfy the signed/current/versioned/integrity/expiry contract. | U | U | U |
+| IDA-DIA-005 | Unsigned pack fail-closed | Canonical | unresolved | S5/S6; completed S5.e #1796 keeps dark, unaccepted, unsigned, duplicate and unregistered corridor entries unavailable without fallback; expired/withdrawn/integrity-failed contracts remain open | open | S5.e pure derivation and mounted proof passed through exact-main `6d9eb3f5`; full signed-pack acceptance remains open. | U | U | U |
 | IDA-DIA-006 | Explicit offline preparation | Target | unresolved | S5/S6; see acceptance links | open | none | U | U | U |
 | IDA-DIA-007 | Offline integrity verification | Canonical | unresolved | S5/S6; see acceptance links | open | none | U | U | U |
 | IDA-DIA-008 | Offline failure recovery | Target | unresolved | S5/S6; see acceptance links | open | none | U | U | U |
@@ -358,7 +361,7 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-CLM-007 | No destructive duplicate merge | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-008 | Jurisdiction classification | Canonical | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-009 | Completeness outcome | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
-| IDA-CLM-010 | Missing-information request | Target | pilot-required | S3/S4/S5/S7 | S4 source 1acc8cc7 implements assigned-owner request creation in verification, explicit due date, safe member explanation/reference, request-local SLA posture and correlation retries. Opus 5 review has documented dispositions; full isolated proof passes. PR #1786 delivered. Request-bound upload and staff acknowledgement remain open | Current tracker S4 source-bound receipt | U | U | U |
+| IDA-CLM-010 | Missing-information request | Target | pilot-required | S3/S4/S5/S7 | Protected delivery includes assigned-owner request creation, explicit due date, safe member explanation/reference, request-local SLA posture and correlation retries. The active request-linked evidence slice adds member upload and assigned-staff acknowledgement while leaving the request open and claim lifecycle/SLA unchanged. Request fulfilment remains open | Current tracker request-linked evidence receipt pending | U | U | U |
 | IDA-CLM-011 | Conflict-of-interest stop | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-012 | Time-limit posture | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-013 | Fraud/integrity signal | Target | unresolved | S3/S5/S7 | open | none | U | U | U |

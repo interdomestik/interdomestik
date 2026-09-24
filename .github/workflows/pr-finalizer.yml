@@ -8,69 +8,21 @@ on:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, labeled]
 
 concurrency:
-  # Trusted eligible feedback always executes the complete snapshot and may
-  # coalesce. Lifecycle, fork, draft, and other deferred events stay unique.
-  group: pr-finalizer-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}-${{ github.event_name != 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.state == 'open' && github.event.pull_request.draft == false && github.event.pull_request.base.ref == 'main' && 'full-feedback' || format('deferred-{0}', github.run_id) }}
+  group: pr-finalizer-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
   cancel-in-progress: true
 
 jobs:
   pr-finalizer:
-    name: "${{ (github.event_name == 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.state == 'open' && github.event.pull_request.draft == false && github.event.pull_request.base.ref == 'main')) && 'pr-finalizer' || 'pr-finalizer-feedback-deferred' }}"
-    if: >-
-      github.event_name == 'pull_request' ||
-      (github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.pull_request.state == 'open' &&
-      github.event.pull_request.draft == false &&
-      github.event.pull_request.base.ref == 'main')
-    permissions:
-      contents: read
-      actions: read
-      issues: read
-      pull-requests: read
-      checks: read
-      statuses: read
+    name: pr-finalizer
+    permissions: {}
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 1
-      - name: Evaluate PR gate policy
-        id: gate_policy
-        uses: interdomestik/interdomestik/.github/actions/pr-gate-policy@f4b39fc4f7fed7e875363807faea11cc2c4cf717
-        with:
-          event-name: ${{ github.event_name }}
-          event-path: ${{ github.event_path }}
-      - name: Resolve exact-head certification admission
-        id: certification
-        uses: interdomestik/interdomestik/.github/actions/exact-head-certification@ecd31cf47a5d2fbd6c164aea0c0c6fcfb686011b
-        with:
-          policy-json: ${{ toJSON(steps.gate_policy.outputs) }}
-      - name: Report quick draft lane
-        env:
-          RUN_BROAD: ${{ steps.certification.outputs.run_broad }}
-          CERTIFICATION_REASON: ${{ steps.certification.outputs.certification_reason }}
-        run: |
-          if [[ "$RUN_BROAD" != "true" ]]; then
-            echo "PR finalizer attestation deferred ($CERTIFICATION_REASON)."
-          fi
-      - name: Node setup
-        id: feedback
-        uses: ./.github/actions/pr-feedback-setup
-        if: steps.certification.outputs.run_broad == 'true'
-      - name: ${{ steps.feedback.outputs.marker || 'Run PR finalizer gate' }}
-        if: steps.certification.outputs.run_broad == 'true'
+      - name: Publish required compatibility context
         env:
           EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          GH_TOKEN: ${{ github.token }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          PR_FINALIZER_SKIP_CHECK_POLLING: 'false'
-          PR_FINALIZER_MAX_CHECK_RETRIES: '360'
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || secrets.SONAR_HOST_URL }}
-          SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY || secrets.SONAR_PROJECT_KEY }}
-          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
-          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+          EXPECTED_PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          bash scripts/pr-finalizer.sh
+          [[ "$EXPECTED_HEAD_SHA" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$EXPECTED_PR_NUMBER" =~ ^[1-9][0-9]*$ ]]
+          echo "Compatibility context only; delivery-gate is the authoritative PR decision."

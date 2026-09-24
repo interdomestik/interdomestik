@@ -36,10 +36,18 @@ function printTable(rows, columns) {
 export function printBudgetResult(result) {
   if (result.passed) {
     console.log('Repo size budget passed.');
-    return;
+  } else {
+    console.error('Repo size budget failed.');
+    printBudgetEntries(result.violations);
   }
-  console.error('Repo size budget failed.');
-  const rows = result.violations.map(violation => {
+  if (result.advisories) {
+    console.log('Aggregate growth is advisory; ordinary edits need no allocation or budget sync.');
+    if (result.advisories.length) printBudgetEntries(result.advisories);
+  }
+}
+
+function printBudgetEntries(entries) {
+  const rows = entries.map(violation => {
     const isBytes = violation.code.includes('bytes') || violation.code.startsWith('category:');
     return {
       ...violation,

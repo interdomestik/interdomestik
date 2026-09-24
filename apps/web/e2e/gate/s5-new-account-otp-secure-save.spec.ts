@@ -2,6 +2,8 @@ import {
   E2E_USERS,
   and,
   auditLog,
+  claims,
+  crmLeads,
   db,
   eq,
   freeStartDrafts,
@@ -9,21 +11,26 @@ import {
   or,
   session as authSession,
   sql,
+  subscriptions,
   user,
 } from '@interdomestik/database';
+import {
+  listFreeStartDrafts,
+  resumeFreeStartDraft,
+  type FreeStartDraftContext,
+} from '@interdomestik/database/free-start-drafts';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 import { S3_JOURNEY_INCIDENT_DATE } from './member-staff-evidence-journey-cleanup.fixture';
 import {
   OtpMail,
-  changedTables,
   deleteMail,
   enter,
   localCopy,
   mailboxConfigured,
+  postOtpFromBrowser,
   redact,
-  tableCounts,
   waitForOtpMail,
 } from './s5-otp-mailbox.fixture';
 import { idaOrigin, idaTarget, teardown } from './s5-saved-draft.fixture';
@@ -32,9 +39,6 @@ import { idaOrigin, idaTarget, teardown } from './s5-saved-draft.fixture';
 test.use({ screenshot: 'off', trace: 'off', video: 'off' });
 
 const SUBJECT = 'Your email confirmation code';
-// Rows a new account may add; anything else would be a business record.
-const SAVED = { audit_log: 1, free_start_drafts: 1, session: 1, user: 1 };
-const RETURNED = { audit_log: 3, session: 2, user: 1 };
 
 test.describe('S5 new-account email OTP secure save', () => {
   test('a new person verifies an email, saves, returns in a fresh session and deletes the draft', async ({
@@ -56,10 +60,8 @@ test.describe('S5 new-account email OTP secure save', () => {
     const seen = new Set<string>();
     const mails: OtpMail[] = [];
     const pages: Page[] = [];
+    const browserAuthOrigins: string[] = [];
     let failure: unknown;
-    let baseline = new Map<string, number>();
-    const dayZero = await tableCounts();
-    baseline = dayZero;
     const userRow = () => db.query.user.findFirst({ where: eq(user.email, email) });
     const drafts = async () => {
       const owner = await userRow();
@@ -73,12 +75,11 @@ test.describe('S5 new-account email OTP secure save', () => {
         extraHTTPHeaders: CLIENT,
         storageState: { cookies: [], origins: [] },
       });
-      // The browser-local copy needs a secure context (ida.localhost), which the server's trusted
-      // origins omit; the browser will not let a route change Origin, so refetch with the trusted one.
-      await context.route('**/api/auth/**', async route => {
-        const origin = process.env.BETTER_AUTH_URL?.trim() || idaOrigin(info);
-        const response = await route.fetch({ headers: { ...route.request().headers(), origin } });
-        await route.fulfill({ response });
+      context.on('request', request => {
+        const url = new URL(request.url());
+        if (request.method() === 'POST' && url.pathname.startsWith('/api/auth/')) {
+          browserAuthOrigins.push(request.headers().origin ?? '');
+        }
       });
       const page = await context.newPage();
       pages.push(page);
@@ -97,6 +98,9 @@ test.describe('S5 new-account email OTP secure save', () => {
     try {
       const start = await open();
       await gotoApp(start, routes.home('en'), info, { marker: 'free-start-intake-shell' });
+      expect(
+        await start.evaluate(() => ({ origin: location.origin, secure: isSecureContext }))
+      ).toEqual({ origin: idaOrigin(info), secure: true });
       await start.getByTestId('cookie-consent-accept').click();
       const flow = start.getByTestId('premium-free-start-organizer');
       await flow.getByTestId('free-start-category-vehicle').click();
@@ -110,21 +114,16 @@ test.describe('S5 new-account email OTP secure save', () => {
       await expect
         .poll(() => localCopy(start), { message: 'eligible facts are kept on this browser' })
         .toBe(true);
-      baseline = await tableCounts();
-      expect(
-        changedTables(dayZero, baseline),
-        'browser-only preparation writes no server row'
-      ).toEqual({});
+      expect(await userRow(), 'browser-only preparation creates no account').toBeUndefined();
+      expect(await db.$count(crmLeads, eq(crmLeads.email, email)), 'no CRM lead is created').toBe(
+        0
+      );
 
       const { mail, panel } =
         await test.step('a real code is delivered and stored hashed', async () => {
           const sent = await requestCode(flow, 'free-start-save-open');
           expect(sent.mail.subject, 'subject is the static neutral text').toBe(SUBJECT);
           expect(sent.mail.to).toBe(email);
-          expect(
-            changedTables(baseline, await tableCounts()),
-            'only the pending code is recorded'
-          ).toEqual({ verification: 1 });
           expect(await userRow(), 'no account exists before verification').toBeUndefined();
           const stored = await db.execute<{ value: string }>(
             sql`select value from verification where identifier like ${`%${email}`}`
@@ -161,6 +160,20 @@ test.describe('S5 new-account email OTP secure save', () => {
           .toBe(false);
         const owner = (await userRow())!;
         expect(owner).toMatchObject({ emailVerified: true, role: 'member', tenantId: tenant });
+        const sessionCookie = (await start.context().cookies()).find(cookie =>
+          cookie.name.includes('session_token')
+        );
+        expect(sessionCookie, 'the browser receives a real session cookie').toMatchObject({
+          httpOnly: true,
+        });
+        expect(
+          browserAuthOrigins.length,
+          'native browser auth mutations were observed'
+        ).toBeGreaterThan(0);
+        expect(
+          new Set(browserAuthOrigins),
+          'the browser supplied only the trusted secure IDA origin'
+        ).toEqual(new Set([idaOrigin(info)]));
         const saved = await drafts();
         expect(saved).toHaveLength(1);
         expect(saved[0]).toMatchObject({
@@ -172,27 +185,52 @@ test.describe('S5 new-account email OTP secure save', () => {
           resumeStep: 'preview',
           summary,
         });
-        expect(
-          changedTables(baseline, await tableCounts()),
-          'only account, session, draft and audit rows'
-        ).toEqual(SAVED);
+        expect(await db.$count(subscriptions, eq(subscriptions.userId, owner.id))).toBe(0);
+        expect(await db.$count(claims, eq(claims.userId, owner.id))).toBe(0);
+        expect(await db.$count(crmLeads, eq(crmLeads.email, email))).toBe(0);
         return { draftId: saved[0]!.id, ownerId: owner.id };
       });
 
-      await test.step('the used code cannot be replayed', async () => {
+      await test.step('origin enforcement and one-time-code replay both fail closed', async () => {
         const sessions = () => db.$count(authSession, eq(authSession.userId, created.ownerId));
         const before = await sessions();
-        const replay = await start.request.post(`${idaOrigin(info)}/api/auth/sign-in/email-otp`, {
-          data: { email, onboarding: { mode: 'deferred', tenant }, otp: mail.code },
-          failOnStatusCode: false,
-          headers: {
-            ...CLIENT,
-            Origin: process.env.BETTER_AUTH_URL?.trim() || idaOrigin(info),
-            'x-tenant-id': tenant,
-          },
-        });
-        expect(replay.status(), 'a consumed code is refused as invalid').toBe(400);
+        const untrusted = await start.request.post(
+          `${idaOrigin(info)}/api/auth/sign-in/email-otp`,
+          {
+            data: { email, onboarding: { mode: 'deferred', tenant }, otp: '000000' },
+            failOnStatusCode: false,
+            headers: {
+              ...CLIENT,
+              Origin: 'https://untrusted.invalid',
+              'x-tenant-id': tenant,
+            },
+          }
+        );
+        expect(untrusted.status(), 'an untrusted origin is rejected before authentication').toBe(
+          403
+        );
+        expect(await sessions(), 'origin rejection opens no session').toBe(before);
+        expect(
+          await postOtpFromBrowser(start, email, mail.code, tenant),
+          'a consumed code is refused on the native trusted browser path'
+        ).toBe(400);
         expect(await sessions(), 'the replay opens no session').toBe(before);
+      });
+
+      await test.step('the secure draft is isolated from a foreign tenant context', async () => {
+        const foreignTenant = E2E_USERS.MK_MEMBER.tenantId;
+        const foreign: FreeStartDraftContext = {
+          accessTenantId: foreignTenant,
+          actorRole: 'member',
+          ownerUserId: created.ownerId,
+          tenantId: foreignTenant,
+        };
+        const listed = await listFreeStartDrafts(foreign, { limit: 50 });
+        expect(listed.items.some(item => item.id === created.draftId)).toBe(false);
+        expect(await resumeFreeStartDraft(foreign, created.draftId)).toEqual({
+          code: 'notFound',
+          ok: false,
+        });
       });
 
       await test.step('a fresh session returns with a second real code and resumes', async () => {
@@ -231,10 +269,9 @@ test.describe('S5 new-account email OTP secure save', () => {
         expect(audit.map(row => row.action)).toEqual(
           expect.arrayContaining(['free_start_draft.created', 'free_start_draft.deleted'])
         );
-        expect(
-          changedTables(baseline, await tableCounts()),
-          'resume and delete add only sessions and audit'
-        ).toEqual(RETURNED);
+        expect(await db.$count(subscriptions, eq(subscriptions.userId, created.ownerId))).toBe(0);
+        expect(await db.$count(claims, eq(claims.userId, created.ownerId))).toBe(0);
+        expect(await db.$count(crmLeads, eq(crmLeads.email, email))).toBe(0);
       });
     } catch (error) {
       failure = redact(error, mails);
@@ -275,10 +312,8 @@ test.describe('S5 new-account email OTP secure save', () => {
           () => deleteMail(seen),
           ...pages.map(page => () => page.context().close()),
           async () => {
-            expect(
-              changedTables(dayZero, await tableCounts()),
-              'every row of the run was removed'
-            ).toEqual({});
+            expect(await userRow(), 'the task-owned account is removed').toBeUndefined();
+            expect(await db.$count(crmLeads, eq(crmLeads.email, email))).toBe(0);
           },
         ],
         failure

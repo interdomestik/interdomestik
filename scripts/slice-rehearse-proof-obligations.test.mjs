@@ -55,13 +55,11 @@ function snapshot() {
   };
 }
 
-test('proof graph derives all existing obligations and preserves independent finalizer and health edges', () => {
+test('proof graph derives all authoritative obligations and preserves health edges', () => {
   const graph = deriveProofObligationGraph(contract);
   const nodes = new Map(graph.map(node => [node.id, node]));
-  assert.deepEqual(
-    nodes.get('pr-finalizer').dependencies,
-    contract.finalizerLeafPrerequisites.map(spec => spec.context).sort()
-  );
+  assert.equal(nodes.has('pr-finalizer'), false);
+  for (const spec of contract.finalizerLeafPrerequisites) assert.ok(nodes.has(spec.context));
   for (const spec of contract.deliveryPrerequisites) {
     assert.equal(nodes.get(spec.context).appId, spec.appId);
     assert.ok(nodes.get('delivery-gate').dependencies.includes(spec.context));
@@ -73,7 +71,6 @@ test('proof graph derives all existing obligations and preserves independent fin
     'final-head',
     'pr-e2e',
     'e2e',
-    'pr-finalizer',
     'delivery-gate',
     'protected-main-health',
   ])

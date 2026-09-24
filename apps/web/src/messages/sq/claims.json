@@ -220,7 +220,21 @@
       "owner": "Ekipi përgjegjës",
       "ownerLabel": "Ekipi i rasteve Interdomestik",
       "incomplete": "Informacioni mungonte kur u krijua kjo kërkesë.",
-      "loadError": "Kërkesat për informacion nuk mund të ngarkoheshin. Detajet e tjera të rastit mbeten të disponueshme."
+      "loadError": "Kërkesat për informacion nuk mund të ngarkoheshin. Detajet e tjera të rastit mbeten të disponueshme.",
+      "upload": "Ngarko provën e kërkuar",
+      "evidenceList": "Provat e dorëzuara për këtë kërkesë",
+      "download": "Shkarko",
+      "submitted": "Dorëzuar për shqyrtim nga stafi",
+      "acknowledged": "Konfirmuar nga stafi",
+      "acknowledge": "Konfirmo provën",
+      "acknowledging": "Duke konfirmuar...",
+      "acknowledgementSuccess": "Prova u konfirmua.",
+      "acknowledgementError": "Prova nuk mund të konfirmohej. Rifresko dhe provo përsëri.",
+      "progress": {
+        "awaiting_evidence": "Në pritje të provës",
+        "submitted": "Prova u dorëzua",
+        "acknowledged": "Prova u konfirmua"
+      }
     }
   }
 }

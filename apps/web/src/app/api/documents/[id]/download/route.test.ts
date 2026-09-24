@@ -32,6 +32,25 @@ const mockSelectChain = {
   where: vi.fn().mockResolvedValue([]),
 };
 
+function mockAssignedClaimDocument(claimStaffId: string) {
+  mockSelectChain.where.mockResolvedValueOnce([]).mockResolvedValueOnce([
+    {
+      doc: {
+        id: 'doc-1',
+        claimId: 'claim-1',
+        bucket: 'claim-evidence',
+        filePath: 'pii/tenants/tenant_mk/claims/claim-1/file.pdf',
+        uploadedBy: 'user-1',
+        name: 'file.pdf',
+        fileType: 'application/pdf',
+        fileSize: 123,
+      },
+      claimOwnerId: 'user-1',
+      claimStaffId,
+    },
+  ]);
+}
+
 vi.mock('@interdomestik/database', () => ({
   db: {
     select: hoisted.dbSelect,
@@ -138,6 +157,32 @@ describe('GET /api/documents/[id]/download', () => {
         entityId: 'doc-1',
       })
     );
+  });
+
+  it('denies staff who are not assigned to the claim', async () => {
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'staff-other', role: 'staff', tenantId: 'tenant_mk' },
+    });
+    mockAssignedClaimDocument('staff-assigned');
+
+    const request = new Request('http://localhost:3000/api/documents/doc-1/download');
+    const response = await GET(request, { params: Promise.resolve({ id: 'doc-1' }) });
+
+    expect(response.status).toBe(403);
+    expect(hoisted.storageDownload).not.toHaveBeenCalled();
+  });
+
+  it('allows the staff member assigned to the claim', async () => {
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'staff-assigned', role: 'staff', tenantId: 'tenant_mk' },
+    });
+    mockAssignedClaimDocument('staff-assigned');
+
+    const request = new Request('http://localhost:3000/api/documents/doc-1/download');
+    const response = await GET(request, { params: Promise.resolve({ id: 'doc-1' }) });
+
+    expect(response.status).toBe(200);
+    expect(hoisted.storageDownload).toHaveBeenCalledTimes(1);
   });
 
   it('streams file and sets content-disposition (attachment by default)', async () => {

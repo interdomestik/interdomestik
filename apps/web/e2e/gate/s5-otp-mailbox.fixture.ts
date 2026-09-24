@@ -1,4 +1,3 @@
-import { db, sql } from '@interdomestik/database';
 import { expect, type Locator, type Page } from '@playwright/test';
 
 // Test-only view of the loopback SMTP catcher (Mailpit) behind E2E_SMTP_HOST. One-time codes are
@@ -84,32 +83,6 @@ export function redact(error: unknown, mails: OtpMail[]): Error {
   return new Error(text);
 }
 
-// Row counts of every public table.
-export async function tableCounts(): Promise<Map<string, number>> {
-  const tables = await db.execute<{ table_name: string }>(
-    sql`select table_name from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE'`
-  );
-  const counts = new Map<string, number>();
-  for (const { table_name: name } of tables) {
-    // Expired codes are purged at any time; count live ones.
-    const live = name === 'verification' ? sql` where "expiresAt" > now()` : sql``;
-    const [row] = await db.execute<{ n: number }>(
-      sql`select count(*)::int as n from ${sql.identifier(name)}${live}`
-    );
-    counts.set(name, row?.n ?? 0);
-  }
-  return counts;
-}
-
-export function changedTables(before: Map<string, number>, after: Map<string, number>) {
-  const delta: Record<string, number> = {};
-  for (const [name, count] of after) {
-    const change = count - (before.get(name) ?? 0);
-    if (change !== 0) delta[name] = change;
-  }
-  return delta;
-}
-
 // Sets the value the way a keyboard would, without putting the code in a step title or call log.
 // A failure is rethrown without the code so the step result carries none either.
 export async function enter(field: Locator, code: string) {
@@ -119,6 +92,39 @@ export async function enter(field: Locator, code: string) {
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value);
       input.dispatchEvent(new Event('input', { bubbles: true }));
     }, code);
+  } catch (error) {
+    throw new Error(
+      String((error as Error).message)
+        .split(code)
+        .join(REDACTED)
+    );
+  }
+}
+
+// Uses the page's native fetch path, so Chromium supplies Origin and cookies. Any failure is
+// rethrown only after the delivered code has been removed from its text.
+export async function postOtpFromBrowser(
+  page: Page,
+  email: string,
+  code: string,
+  tenantId: string
+) {
+  try {
+    return await page.evaluate(
+      async input => {
+        const response = await fetch('/api/auth/sign-in/email-otp', {
+          body: JSON.stringify({
+            email: input.email,
+            onboarding: { mode: 'deferred', tenant: input.tenantId },
+            otp: input.code,
+          }),
+          headers: { 'content-type': 'application/json', 'x-tenant-id': input.tenantId },
+          method: 'POST',
+        });
+        return response.status;
+      },
+      { code, email, tenantId }
+    );
   } catch (error) {
     throw new Error(
       String((error as Error).message)

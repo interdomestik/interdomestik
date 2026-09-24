@@ -26,9 +26,6 @@ export function deriveProofObligationGraph(input = readDeliveryContract()) {
       'required proof edge is missing or has a different app'
     );
   }
-  byId.get('pr-finalizer').dependencies = contract.finalizerLeafPrerequisites.map(
-    spec => spec.context
-  );
   must(byId.has('e2e'), 'PR E2E delivery edge is missing');
   byId.get('e2e').dependencies = ['pr-e2e'];
   nodes.push(
@@ -108,8 +105,8 @@ export function evaluateFinalHeadReadiness(contractInput, snapshot) {
   ]) {
     must(snapshot.feedback?.pagination?.[key] === true, 'final-head feedback inventory incomplete');
   }
-  // Finding-producing checks precede final-heavy execution; finalizer/delivery
-  // continue to use their complete existing evaluator after that execution.
+  // Finding-producing checks precede final-heavy execution; local finalizer
+  // tooling and delivery continue to use their complete existing evaluator.
   const selected = evaluateDeliveryChecks(
     {
       ...contract,

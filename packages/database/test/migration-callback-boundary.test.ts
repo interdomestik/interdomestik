@@ -44,7 +44,7 @@ test('plan authority is private, redacted and rejects lookalikes', async () => {
   const value = result.capability;
   const state = readMigrationCallbackPlanState(value);
   assert.ok(state);
-  assert.equal(state.callbackItems.length, 853);
+  assert.equal(state.callbackItems.length, 865);
   const shown = `${inspect(value)} ${JSON.stringify(value)} ${String(value)}`;
   assert.equal(shown.includes('INSERT'), false);
   assert.equal(shown.includes(state.preCorpus.realRoot), false);

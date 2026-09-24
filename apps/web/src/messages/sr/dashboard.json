@@ -60,6 +60,24 @@
         "scheduled_cancel": "Započnite — članstvo se završava",
         "canceled": "Nacrt — članstvo je otkazano"
       },
+      "membership_status": {
+        "status_label": "Status članstva",
+        "access_label": "Pristup novom slučaju",
+        "access_allowed": "Dostupan",
+        "access_denied": "Nedostupan",
+        "current_period_end_label": "Tekući period se završava",
+        "unavailable": "Nije dostupno",
+        "retry": "Pokušajte ponovo",
+        "statuses": {
+          "none": "Bez aktivnog članstva",
+          "active": "Aktivno",
+          "trialing": "Probni period",
+          "active_in_grace": "Aktivno u grejs periodu",
+          "grace_expired": "Grejs period je istekao",
+          "scheduled_cancel": "Zakazano da se završi",
+          "canceled": "Otkazano"
+        }
+      },
       "warnings": {
         "active_in_grace": "Uplata zahteva pažnju; pristup ostaje aktivan tokom perioda tolerancije.",
         "grace_expired": "Tolerancija je istekla; obnovite članstvo pre slanja.",

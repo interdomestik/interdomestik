@@ -1,4 +1,12 @@
-import { boolean, index, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core';
 import { user } from './auth';
 import { claims } from './claim-core';
 import { documentCategoryEnum, statusEnum } from './enums';
@@ -27,7 +35,10 @@ export const claimDocuments = pgTable(
       .references(() => user.id),
     createdAt: timestamp('created_at').defaultNow(),
   },
-  table => [index('claim_documents_access_tenant_idx').on(table.accessTenantId)]
+  table => [
+    index('claim_documents_access_tenant_idx').on(table.accessTenantId),
+    uniqueIndex('claim_documents_tenant_claim_id_uq').on(table.tenantId, table.claimId, table.id),
+  ]
 );
 
 export const claimMessages = pgTable('claim_messages', {

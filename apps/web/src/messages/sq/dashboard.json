@@ -60,6 +60,24 @@
         "scheduled_cancel": "Nisni rast — anëtarësia përfundon",
         "canceled": "Nisni draft — anëtarësia u anulua"
       },
+      "membership_status": {
+        "status_label": "Statusi i anëtarësimit",
+        "access_label": "Qasja për rast të ri",
+        "access_allowed": "E disponueshme",
+        "access_denied": "Nuk është e disponueshme",
+        "current_period_end_label": "Periudha aktuale përfundon",
+        "unavailable": "Nuk është e disponueshme",
+        "retry": "Provo përsëri",
+        "statuses": {
+          "none": "Pa anëtarësim aktiv",
+          "active": "Aktive",
+          "trialing": "Në provë",
+          "active_in_grace": "Aktive në periudhë faljeje",
+          "grace_expired": "Periudha e faljes ka përfunduar",
+          "scheduled_cancel": "E planifikuar të përfundojë",
+          "canceled": "Anuluar"
+        }
+      },
       "warnings": {
         "active_in_grace": "Pagesa kërkon vëmendje; qasja mbetet aktive gjatë periudhës së tolerancës.",
         "grace_expired": "Toleranca përfundoi; riktheni anëtarësinë para dërgimit.",

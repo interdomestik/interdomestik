@@ -54,7 +54,11 @@ describe('getMemberPortalMembership', () => {
 
   it('rejects a missing tenant and performs one tenant/member read', async () => {
     await expect(get('')).rejects.toThrow('Missing tenant context');
-    await expect(get()).resolves.toEqual({ bucket: 'none' });
+    await expect(get()).resolves.toEqual({
+      bucket: 'none',
+      currentPeriodEnd: null,
+      grantsNewCaseAccess: false,
+    });
     expect(h.scope).toHaveBeenCalledWith(
       { tenantId: 'tenant-1', role: 'member' },
       expect.any(Function)
@@ -68,21 +72,47 @@ describe('getMemberPortalMembership', () => {
     ]);
     expect(h.find.mock.calls[0][0].columns).toEqual({
       cancelAtPeriodEnd: true,
+      currentPeriodEnd: true,
       gracePeriodEndsAt: true,
       status: true,
     });
   });
 
   it.each([
-    [{ status: 'active' }, 'active'],
-    [{ status: 'trialing' }, 'trialing'],
-    [{ status: 'past_due', gracePeriodEndsAt: new Date('2026-08-29') }, 'active_in_grace'],
-    [{ status: 'past_due', gracePeriodEndsAt: new Date('2026-08-27') }, 'grace_expired'],
-    [{ status: 'active', cancelAtPeriodEnd: true }, 'scheduled_cancel'],
-    [{ status: 'canceled' }, 'canceled'],
-  ] as const)('uses the canonical lifecycle bucket for %o', async (subscription, bucket) => {
-    h.find.mockResolvedValueOnce(subscription);
-    await expect(get()).resolves.toEqual({ bucket });
+    [{ status: 'active' }, 'active', true],
+    [{ status: 'trialing' }, 'trialing', true],
+    [{ status: 'past_due', gracePeriodEndsAt: new Date('2026-08-29') }, 'active_in_grace', true],
+    [{ status: 'past_due', gracePeriodEndsAt: new Date('2026-08-27') }, 'grace_expired', false],
+    [{ status: 'active', cancelAtPeriodEnd: true }, 'scheduled_cancel', true],
+    [{ status: 'canceled' }, 'canceled', false],
+    [{ status: 'paused' }, 'canceled', false],
+    [{ status: 'expired' }, 'canceled', false],
+  ] as const)(
+    'uses the canonical lifecycle access consequence for %o',
+    async (subscription, bucket, grantsNewCaseAccess) => {
+      h.find.mockResolvedValueOnce(subscription);
+      await expect(get()).resolves.toEqual({
+        bucket,
+        currentPeriodEnd: null,
+        grantsNewCaseAccess,
+      });
+    }
+  );
+
+  it('returns the factual current-period end without offer or provider metadata', async () => {
+    const currentPeriodEnd = new Date('2026-12-31T23:59:59.000Z');
+    h.find.mockResolvedValueOnce({
+      currentPeriodEnd,
+      planId: 'standard-year',
+      providerSubscriptionId: 'sub_private',
+      status: 'active',
+    });
+
+    await expect(get()).resolves.toEqual({
+      bucket: 'active',
+      currentPeriodEnd,
+      grantsNewCaseAccess: true,
+    });
   });
 
   it('propagates read failures', async () => {

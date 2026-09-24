@@ -103,7 +103,7 @@ test('capacity reserves the product, policy, CI loader and promotion artifact pa
     item => item.id === 'staff-current-claim-policy'
   );
   assert.deepEqual(policyAllocation.writerPaths, [
-    'scripts/ci/lean-current-authority-contracts.test.mjs',
+    'scripts/ci/lean-current-authority-contracts.legacy.mjs',
     'scripts/lean-staff-current-claim-exception.mjs',
     'scripts/lean-staff-current-claim-policy.test.mjs',
   ]);

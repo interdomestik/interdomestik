@@ -3,46 +3,13 @@ import { createHash } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ClaimEvidenceUploadDialog } from './ClaimEvidenceUploadDialog';
 import { runSharedEvidenceUploadDialogTests } from '@/features/claims/components/shared-evidence-upload-dialog.test-helpers';
-import en from '@/messages/en/claims.json';
-import enCommon from '@/messages/en/common.json';
-import mk from '@/messages/mk/claims.json';
-import mkCommon from '@/messages/mk/common.json';
-import sq from '@/messages/sq/claims.json';
-import sqCommon from '@/messages/sq/common.json';
-import sr from '@/messages/sr/claims.json';
-import srCommon from '@/messages/sr/common.json';
-
-const catalogs = { en, mk, sq, sr } as const;
-const commonCatalogs = { en: enCommon, mk: mkCommon, sq: sqCommon, sr: srCommon } as const;
-type SupportedLocale = keyof typeof catalogs;
-
-function copy(locale: SupportedLocale) {
-  const claims = catalogs[locale].claims;
-  const upload = claims.detail.evidenceUpload;
-  return {
-    dialogTitle: claims.claimsPro.actions.uploadEvidence,
-    dialogDescription: upload.description,
-    documentTypeLabel: upload.typeLabel,
-    documentTypePlaceholder: upload.typeLabel,
-    fileLabel: upload.file,
-    uploadButton: claims.claimsPro.actions.uploadEvidence,
-    uploading: upload.pending,
-    cancel: commonCatalogs[locale].common.cancel,
-    uploadSuccess: upload.success,
-    uploadFailed: upload.failed,
-    storageUnavailable: upload.storage,
-    aiExtractionConsent: upload.aiConsent,
-    types: upload.types,
-  };
-}
-
-const localizedCopy = { en: copy('en'), mk: copy('mk'), sq: copy('sq'), sr: copy('sr') };
-const exactCopy = {
-  en: '040cbb45ecef013b003a9ae592822382e8adefeb88e6b67dea3bc06932b132d5',
-  sq: '2518ce5d0aed3fe1e70387a9ca5f7ad7ed6036556d0bc45c20662e7a36f77c7b',
-  mk: 'a5f00380bb5d6bc46e9d2e0200de3e9bc95ebf70533f2f0d7ecf2635f6b08e49',
-  sr: '0e492c029956dac99611a186dda11e9761dcffa7ad19f2f2ed63581171731af6',
-} as const;
+import {
+  catalogs,
+  commonCatalogs,
+  exactCopy,
+  localizedCopy,
+  type SupportedLocale,
+} from './claim-evidence-upload-dialog-copy.fixture';
 
 const mocks = vi.hoisted(() => ({
   generateUploadUrl: vi.fn(),
@@ -56,23 +23,24 @@ const mocks = vi.hoisted(() => ({
   messages: {} as Record<string, unknown>,
 }));
 
-function dialogElement(locale: SupportedLocale = 'mk', triggerLabel = 'Open') {
+function dialogElement(
+  locale: SupportedLocale = 'mk',
+  triggerLabel = 'Open',
+  informationRequestId?: string
+) {
   mocks.locale = locale;
   mocks.messages = { ...catalogs[locale], ...commonCatalogs[locale] } as Record<string, unknown>;
   return (
     <ClaimEvidenceUploadDialog
       claimId="claim-1"
+      informationRequestId={informationRequestId}
       trigger={<button type="button">{triggerLabel}</button>}
     />
   );
 }
 
-function renderDialog(locale: SupportedLocale = 'mk', triggerLabel = 'Open') {
-  return render(dialogElement(locale, triggerLabel));
-}
-
 function openDialog(locale: SupportedLocale = 'mk', triggerLabel = 'Open') {
-  renderDialog(locale, triggerLabel);
+  render(dialogElement(locale, triggerLabel));
   fireEvent.click(screen.getByRole('button', { name: triggerLabel }));
 }
 
@@ -130,7 +98,7 @@ describe('ClaimEvidenceUploadDialog AI extraction consent', () => {
     vi.stubGlobal('fetch', mocks.fetch);
     mocks.fetch.mockResolvedValue({
       ok: true,
-      json: async () => ({ success: true }),
+      json: async () => ({ success: true, fileId: 'direct-file-id' }),
     });
     mocks.generateUploadUrl.mockResolvedValue({
       success: true,
@@ -225,6 +193,34 @@ describe('ClaimEvidenceUploadDialog AI extraction consent', () => {
       file,
       locale: 'sr',
     });
+  });
+
+  it('keeps request-linked files above the server body limit on the signed upload path', async () => {
+    render(dialogElement('en', 'Upload requested', '12345678-1234-4234-8234-123456789012'));
+    fireEvent.click(screen.getByRole('button', { name: 'Upload requested' }));
+    const file = new File(['dummy'], 'evidence.pdf', { type: 'application/pdf' });
+    Object.defineProperty(file, 'size', { value: 6 * 1024 * 1024 });
+    fireEvent.change(screen.getByLabelText(localizedCopy.en.fileLabel), {
+      target: { files: [file] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: localizedCopy.en.uploadButton }));
+
+    await waitFor(() => {
+      expect(mocks.generateUploadUrl).toHaveBeenCalledWith(
+        'claim-1',
+        'evidence.pdf',
+        'application/pdf',
+        file.size,
+        '12345678-1234-4234-8234-123456789012',
+        'application/pdf'
+      );
+      expect(mocks.confirmUpload).toHaveBeenCalledWith(
+        expect.objectContaining({
+          informationRequestId: '12345678-1234-4234-8234-123456789012',
+        })
+      );
+    });
+    expect(mocks.fetch).not.toHaveBeenCalled();
   });
 
   it('resets file and consent on cancel, then returns focus', async () => {

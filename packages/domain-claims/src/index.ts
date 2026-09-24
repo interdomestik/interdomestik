@@ -1,6 +1,7 @@
 export * from './claim-pack';
 export * from './claims/create';
 export * from './claims/information-requests';
+export * from './claims/information-request-evidence';
 export * from './claims/documents';
 export * from './claims/draft';
 export * from './claims/submit';

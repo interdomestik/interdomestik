@@ -6,7 +6,7 @@ import { decideMainE2eReuse, normalizeReuseDecision } from './main-e2e-reuse-cor
 import { collectGitHubEvidence, readLocalGitObjectId } from './main-e2e-reuse-github.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const LANE_SHA256 = 'ff019f739b4ae106650a0dff94527154e9579468d0ea2d5a5eecff7c2f715b64';
-const CONFIG_SHA256 = '97ca0f14c9f7b121cf00121eb9a0f5867b0cf9f3e52b7215a504c3d7183f2d30';
+const CONFIG_SHA256 = 'b8cf18c78d30a5f72c32b06bf02664a445d605d6a9003f5a0100917ae21589be';
 const E2E_TREE_SHAS = new Set([
   // T117C marker compatibility.
   '01c8cb3319414240877198446673b055a2974f28',
@@ -46,8 +46,14 @@ const E2E_TREE_SHAS = new Set([
   'f24e4a8e5d97bf5f77cd6f097c79758432622c30',
   // S5 first-case saved-draft continuity.
   '0e5c12cfed594cddf725fad2ba40a3ba951b6f18',
-  // S5 new-account email OTP secure save.
-  'd767e0d4aea70c4e83d82f4d7224f5e1dd5b6123',
+  // Request-linked member evidence and assigned-staff acknowledgement round trip.
+  '8f6cf0b8a53c80bd193ae588935c1ca38e5bdac0',
+  // S6 member membership disclosure with fail-closed agent-consumer proof.
+  '435943c918278405b65e54283d3807c0408bfd81',
+  // Same S6 corpus with explicit Sonar rationale on intentional KS-only matrix skips.
+  '5468dfaebd2e284d506eec07713ad5d2729f8711',
+  // S5 new-account email OTP secure save with native browser origin proof.
+  '39b3b689ed0f53b11d714ab3672e4fdd54af139e',
 ]);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {

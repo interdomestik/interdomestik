@@ -35,8 +35,8 @@ test('schema_absent commits the exact plan once or rolls every mutation back', a
       contract_version: 'canonical_migration_execution_v1',
       callback_plan_sha256: harness.state.callbackPlanSha256,
       applied_before: 0,
-      applied_now: 94,
-      applied_total: 94,
+      applied_now: 95,
+      applied_total: 95,
       session_reserved: true,
       transaction_committed: true,
       session_lock_released: true,
@@ -46,7 +46,7 @@ test('schema_absent commits the exact plan once or rolls every mutation back', a
   assert.deepEqual(await harness.snapshot(), {
     schemaExists: true,
     tableExists: true,
-    ledgerRows: 94,
+    ledgerRows: 95,
   });
 
   await harness.reset('schema_absent');
@@ -72,6 +72,7 @@ test('executes only the exact pending suffix and is idempotent at all_applied', 
     { setup: 'table' as const, applied: 92 },
     { setup: 'table' as const, applied: 93 },
     { setup: 'table' as const, applied: 94 },
+    { setup: 'table' as const, applied: 95 },
   ];
   for (const item of cases) {
     await harness.reset(item.setup);
@@ -79,23 +80,23 @@ test('executes only the exact pending suffix and is idempotent at all_applied', 
     const taggedQueries: string[] = [];
     const result = await harness.run({ taggedQueries });
     const expectedPaths =
-      item.applied === 94
+      item.applied === 95
         ? [ENTRY_PATH, POSTCHECK_PATH]
         : [ENTRY_PATH, CALLBACK_PATH, POSTCHECK_PATH];
     assert.deepEqual(searchPaths(taggedQueries), expectedPaths);
     assert.equal(result.outer.ok, true);
     assert(result.execution?.ok);
     assert.equal(result.execution.summary.applied_before, item.applied);
-    assert.equal(result.execution.summary.applied_now, 94 - item.applied);
-    assert.equal(result.execution.summary.applied_total, 94);
+    assert.equal(result.execution.summary.applied_now, 95 - item.applied);
+    assert.equal(result.execution.summary.applied_total, 95);
     assert.deepEqual(await harness.snapshot(), {
       schemaExists: true,
       tableExists: true,
-      ledgerRows: 94,
+      ledgerRows: 95,
     });
     const again = await harness.run();
     assert(again.execution?.ok);
-    assert.equal(again.execution.summary.applied_before, 94);
+    assert.equal(again.execution.summary.applied_before, 95);
     assert.equal(again.execution.summary.applied_now, 0);
   }
 });
@@ -128,7 +129,6 @@ test('rejects unsafe public, ledger shape and prefix state before callbacks', as
     error: { code: 'MIGRATION_EXECUTION_LEDGER_PREFIX_REJECTED' },
   });
 });
-
 test('fails immediately while the fixed session lock is held elsewhere', async () => {
   await harness.reset('schema_absent');
   await harness.setup`SELECT pg_advisory_lock(673167055, -773281837)`;

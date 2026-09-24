@@ -7,27 +7,41 @@ import {
   parseTrackerDocument,
   readFileOrFail,
 } from './plan-model.mjs';
-import { resolveRepositoryAuthority } from './lean-current-authority.mjs';
 
 const program = readFileOrFail(PROGRAM_PATH);
 const tracker = readFileOrFail(TRACKER_PATH);
-const currentPhase = (extractSection(program, 'Current Phase') || 'n/a').replace(/\n+/g, ' ');
-const goals = extractSection(program, 'Program Goals')
-  .split(/\r?\n/)
-  .filter(line => /^\d+\./.test(line.trim()))
-  .map(line => line.trim().replace(/^\d+\.\s*/, ''));
+const currentPhase = (extractSection(program, 'Current Phase').split(/\r?\n\s*\r?\n/u)[0] || 'n/a')
+  .replace(/\s+/gu, ' ')
+  .trim();
+
+function parseNumberedGoal(line) {
+  const trimmed = line.trim();
+  const dot = trimmed.indexOf('.');
+  if (dot < 1) return '';
+  const ordinal = trimmed.slice(0, dot);
+  if (![...ordinal].every(character => character >= '0' && character <= '9')) return '';
+  const remainder = trimmed.slice(dot + 1);
+  if (!remainder || remainder.trimStart() === remainder) return '';
+  return remainder.trim();
+}
+
+const goals = [];
+for (const line of extractSection(program, 'Program Goals').split(/\r?\n/u)) {
+  const start = parseNumberedGoal(line);
+  if (start) {
+    goals.push(start);
+  } else if (line.trim() && goals.length > 0) {
+    goals[goals.length - 1] += ` ${line.trim()}`;
+  }
+}
 const { queueRows, proofRows } = parseTrackerDocument(tracker);
 const proofById = new Map(proofRows.map(row => [row.id, row]));
-const documentOnly = process.argv.includes('--document-only');
-const leanAuthority = resolveRepositoryAuthority(process.cwd(), !documentOnly);
 
 console.log('=== Interdomestik Current Program Status ===');
 console.log('Program: docs/plans/current-program.md');
 console.log('Tracker: docs/plans/current-tracker.md');
 console.log(`Current phase: ${currentPhase}`);
-console.log(
-  `Lean authority: ${leanAuthority.lifecycle}; runtimeAuthorized=${leanAuthority.runtimeAuthorized}; activeSlice=${leanAuthority.activeSlice ?? 'null'}`
-);
+console.log('Legacy authority: explicit-only (run pnpm plan:audit:legacy when applicable)');
 
 if (goals.length > 0) {
   console.log('\nProgram goals:');
@@ -42,8 +56,6 @@ if (queueRows.length > 0) {
     console.log(`- ${item.id} [${item.status}] ${item.work} (owner: ${item.owner})`);
   }
 }
-
-if (leanAuthority.lifecycle === 'blocked') process.exitCode = 1;
 
 if (queueRows.length > 0) {
   console.log('\nProof snapshot:');

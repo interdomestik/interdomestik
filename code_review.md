@@ -6,6 +6,9 @@ Use repo-owned reviewer scripts for model routes: `pnpm review:sonnet`,
 `gemini` commands in slice playbooks. Codex remains the executor/verifier for
 accepted findings and security scans, not a senior reviewer route.
 
+These are supported routes, not a mandatory panel. Select review depth from the
+changed risk and reuse accepted evidence while its inputs remain unchanged.
+
 ## Review Posture
 
 - Review as an adversarial senior engineer.
@@ -39,9 +42,25 @@ accepted findings and security scans, not a senior reviewer route.
 - `optional`: non-blocking improvement.
 - `rejected`: false positive with repo evidence.
 
+## Review Selection
+
+- Routine deterministic instruction or isolated-module work needs no fixed external-model ritual.
+  Use one subscription route when independent input would materially improve the result.
+- For coupled medium-risk work, give one reviewer a bounded integration focus. Add a second route
+  only for a distinct test, counterexample or boundary question.
+- Auth/session, tenant/RLS, schema/migration, billing, concurrency/data-loss, routing or CI trust
+  changes require independent review separate from implementation judgment. Escalate to a more
+  capable route only for a concrete unresolved risk; model brand alone is not a gate.
+- A review must bind to the current candidate identity. Changed source or relevant configuration
+  invalidates prior review only where its evidence inputs changed.
+- Verify the actually served provider/model. Accepted same-input helper evidence satisfies its role;
+  do not request a redundant whole-context review.
+
 Never count a blocked reviewer route as approval. If an external reviewer route
-is quota-blocked, record the blocker and use the approved fallback instead of
-retrying indefinitely in the same slice.
+is quota-blocked, record the blocker and use an approved adequate alternative.
+Low/medium-risk work needs no routine owner-waiver ceremony solely because one
+provider is exhausted. Do not retry useful advisory analysis solely to repair
+terminal formatting. High-risk work still requires independent scrutiny before delivery.
 Each route receipt must preserve route name, provider/model, command invoked,
 started/ended timestamps, elapsed time, `ran | blocked | skipped | failed`
 status, blocker reason, exit code, first-output timeout, total timeout, and

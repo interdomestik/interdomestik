@@ -3,6 +3,9 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
+const vitestEntry = fileURLToPath(
+  new URL('../packages/domain-case/node_modules/vitest/vitest.mjs', import.meta.url)
+);
 // Fixed scope: whole-repository static guards plus all pure case/recovery unit tests.
 // Direct Node entrypoints avoid package lifecycle hooks, Turbo remote cache, and builds.
 const steps = [
@@ -15,12 +18,12 @@ const steps = [
   [
     'unit',
     [
-      '--import',
-      'tsx',
-      '--test',
-      '--test-concurrency=2',
-      'packages/domain-case/src/*.test.ts',
-      'packages/domain-recovery/src/*.test.ts',
+      vitestEntry,
+      'run',
+      'packages/domain-case/src',
+      'packages/domain-recovery/src',
+      '--pool=threads',
+      '--maxWorkers=2',
     ],
   ],
 ];

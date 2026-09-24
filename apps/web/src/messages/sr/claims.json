@@ -220,7 +220,21 @@
       "owner": "Odgovorni tim",
       "ownerLabel": "Interdomestik tim za predmete",
       "incomplete": "Informacije su nedostajale kada je ovaj zahtev kreiran.",
-      "loadError": "Zahtevi za informacije nisu mogli da se učitaju. Ostali detalji predmeta ostaju dostupni."
+      "loadError": "Zahtevi za informacije nisu mogli da se učitaju. Ostali detalji predmeta ostaju dostupni.",
+      "upload": "Otpremi traženi dokaz",
+      "evidenceList": "Dokazi poslati za ovaj zahtev",
+      "download": "Preuzmi",
+      "submitted": "Poslato osoblju na pregled",
+      "acknowledged": "Osoblje je potvrdilo prijem",
+      "acknowledge": "Potvrdi dokaz",
+      "acknowledging": "Potvrđivanje...",
+      "acknowledgementSuccess": "Dokaz je potvrđen.",
+      "acknowledgementError": "Dokaz nije mogao biti potvrđen. Osvežite i pokušajte ponovo.",
+      "progress": {
+        "awaiting_evidence": "Čeka se dokaz",
+        "submitted": "Dokaz je poslat",
+        "acknowledged": "Dokaz je potvrđen"
+      }
     }
   }
 }

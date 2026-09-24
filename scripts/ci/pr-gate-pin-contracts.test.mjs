@@ -14,7 +14,6 @@ const targets = [
   ['e2e-pr.yml', 'e2e-preflight'],
   ['pilot-gate.yml', 'pilot-gate-preflight'],
   ['pr-deterministic-backstops.yml', 'draft-policy'],
-  ['pr-finalizer.yml', 'pr-finalizer'],
 ];
 
 test('all PR gate callers pin the trusted bootstrap action SHA', () => {

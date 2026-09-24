@@ -16,8 +16,8 @@ function errorCode(result: Awaited<ReturnType<typeof verifyMigrationCorpusRoot>>
   return result.ok ? null : result.error.code;
 }
 
-test('manifest binds all 98 canonical files in journal-plus-orphan order', async () => {
-  assert.equal(MIGRATION_FILE_HASHES.length, 98);
+test('manifest binds all 99 canonical files in journal-plus-orphan order', async () => {
+  assert.equal(MIGRATION_FILE_HASHES.length, 99);
   for (const hash of MIGRATION_FILE_HASHES) assert.match(hash, /^[a-f0-9]{64}$/);
   const journal = JSON.parse(await readFile(join(CANONICAL_ROOT, 'meta', '_journal.json'), 'utf8'));
   const names = [
@@ -35,12 +35,12 @@ test('journal schema, order and sole timestamp inversion are exact', async () =>
   assert.deepEqual(Object.keys(journal).sort(), ['dialect', 'entries', 'version']);
   assert.equal(journal.version, '7');
   assert.equal(journal.dialect, 'postgresql');
-  assert.equal(journal.entries.length, 94);
-  assert.deepEqual(journal.entries[93], {
-    idx: 93,
+  assert.equal(journal.entries.length, 95);
+  assert.deepEqual(journal.entries[94], {
+    idx: 94,
     version: '7',
-    when: 1789582619012,
-    tag: '0093_s4_claim_information_requests',
+    when: 1790157491381,
+    tag: '0094_request_linked_evidence',
     breakpoints: true,
   });
   const inversions: number[] = [];
@@ -90,7 +90,7 @@ test('invalid UTF-8 and malformed JSON are redacted journal failures', async con
 });
 
 test('journaled and excluded SQL tamper both fail integrity', async context => {
-  for (const index of [0, 93, 97]) {
+  for (const index of [0, 94, 98]) {
     const corpus = await makeTempCorpus(context);
     const name = corpus.names[index];
     await appendFile(corpus.file(name), '--tamper');
@@ -106,10 +106,10 @@ test('missing, extra, reordered and conflicting journal entries reject exact int
     const corpus = await makeTempCorpus(context);
     const journal = JSON.parse(await readFile(corpus.journal, 'utf8'));
     if (mutation === 'missing') journal.entries.pop();
-    if (mutation === 'extra') journal.entries.push({ ...journal.entries[93], idx: 94 });
+    if (mutation === 'extra') journal.entries.push({ ...journal.entries[94], idx: 95 });
     if (mutation === 'order') journal.entries.reverse();
-    if (mutation === 'index') journal.entries[93].idx = 92;
-    if (mutation === 'tag') journal.entries[93].tag = journal.entries[92].tag;
+    if (mutation === 'index') journal.entries[94].idx = 93;
+    if (mutation === 'tag') journal.entries[94].tag = journal.entries[93].tag;
     await writeFile(corpus.journal, JSON.stringify(journal));
     assert.equal(
       errorCode(await verifyMigrationCorpusRoot(corpus.root, NODE_FS_OPS)),

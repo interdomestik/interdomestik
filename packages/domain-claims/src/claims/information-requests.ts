@@ -1,5 +1,8 @@
 import {
   and,
+  asc,
+  claimDocuments,
+  claimInformationRequestEvidence,
   claimInformationRequests,
   claims,
   desc,
@@ -111,6 +114,10 @@ export async function getInformationRequests(session: ClaimsSession | null, clai
         dueAt: claimInformationRequests.dueAt,
         slaPosture: claimInformationRequests.slaPosture,
         createdAt: claimInformationRequests.createdAt,
+        documentId: claimInformationRequestEvidence.documentId,
+        documentName: claimDocuments.name,
+        submittedAt: claimInformationRequestEvidence.submittedAt,
+        acknowledgedAt: claimInformationRequestEvidence.acknowledgedAt,
       })
       .from(claimInformationRequests)
       .innerJoin(
@@ -118,6 +125,22 @@ export async function getInformationRequests(session: ClaimsSession | null, clai
         and(
           eq(claims.id, claimInformationRequests.claimId),
           eq(claims.tenantId, claimInformationRequests.tenantId)
+        )
+      )
+      .leftJoin(
+        claimInformationRequestEvidence,
+        and(
+          eq(claimInformationRequestEvidence.tenantId, claimInformationRequests.tenantId),
+          eq(claimInformationRequestEvidence.claimId, claimInformationRequests.claimId),
+          eq(claimInformationRequestEvidence.requestId, claimInformationRequests.id)
+        )
+      )
+      .leftJoin(
+        claimDocuments,
+        and(
+          eq(claimDocuments.tenantId, claimInformationRequestEvidence.tenantId),
+          eq(claimDocuments.claimId, claimInformationRequestEvidence.claimId),
+          eq(claimDocuments.id, claimInformationRequestEvidence.documentId)
         )
       )
       .where(
@@ -130,13 +153,61 @@ export async function getInformationRequests(session: ClaimsSession | null, clai
           )
         )
       )
-      .orderBy(desc(claimInformationRequests.createdAt), desc(claimInformationRequests.id));
-    return rows.map(row => ({
-      ...row,
-      dueAt: row.dueAt.toISOString(),
-      createdAt: row.createdAt.toISOString(),
-    }));
+      .orderBy(
+        desc(claimInformationRequests.createdAt),
+        desc(claimInformationRequests.id),
+        asc(claimInformationRequestEvidence.submittedAt)
+      );
+    const requests = new Map<
+      string,
+      Omit<PublicInformationRequest, 'progress'> & {
+        progress?: PublicInformationRequest['progress'];
+      }
+    >();
+    for (const row of rows) {
+      const request = requests.get(row.requestId) ?? {
+        requestId: row.requestId,
+        requestedInformation: row.requestedInformation,
+        explanationForMember: row.explanationForMember,
+        dueAt: row.dueAt.toISOString(),
+        slaPosture: row.slaPosture,
+        createdAt: row.createdAt.toISOString(),
+        evidence: [],
+      };
+      if (row.documentId && row.documentName && row.submittedAt) {
+        request.evidence.push({
+          documentId: row.documentId,
+          documentName: row.documentName,
+          submittedAt: row.submittedAt.toISOString(),
+          acknowledgedAt: row.acknowledgedAt?.toISOString() ?? null,
+        });
+      }
+      requests.set(row.requestId, request);
+    }
+    return [...requests.values()].map(request => {
+      let progress: PublicInformationRequest['progress'] = 'submitted';
+      if (request.evidence.length === 0) progress = 'awaiting_evidence';
+      else if (request.evidence.every(item => item.acknowledgedAt)) progress = 'acknowledged';
+
+      return { ...request, progress };
+    });
   });
 }
 
-export type PublicInformationRequest = Awaited<ReturnType<typeof getInformationRequests>>[number];
+export type InformationRequestEvidence = {
+  documentId: string;
+  documentName: string;
+  submittedAt: string;
+  acknowledgedAt: string | null;
+};
+
+export type PublicInformationRequest = {
+  requestId: string;
+  requestedInformation: string;
+  explanationForMember: string;
+  dueAt: string;
+  slaPosture: 'incomplete';
+  createdAt: string;
+  evidence: InformationRequestEvidence[];
+  progress: 'awaiting_evidence' | 'submitted' | 'acknowledged';
+};

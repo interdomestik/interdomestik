@@ -55,14 +55,8 @@ test('result enforcement receives only explicit certification evidence', () => {
 const trustedBootstrap =
   'interdomestik/interdomestik/.github/actions/exact-head-certification@ecd31cf47a5d2fbd6c164aea0c0c6fcfb686011b';
 
-test('all five callers pin exact-head admission to the bootstrap SHA', () => {
-  for (const name of [
-    'ci.yml',
-    'e2e-pr.yml',
-    'pilot-gate.yml',
-    'pr-deterministic-backstops.yml',
-    'pr-finalizer.yml',
-  ]) {
+test('all authoritative admission callers pin exact-head admission to the bootstrap SHA', () => {
+  for (const name of ['ci.yml', 'e2e-pr.yml', 'pilot-gate.yml', 'pr-deterministic-backstops.yml']) {
     const source = name === 'ci.yml' ? action('validation-surface') : workflow(name);
     if (name === 'ci.yml')
       assert.match(workflow(name), /uses: \.\/\.github\/actions\/validation-surface/u);

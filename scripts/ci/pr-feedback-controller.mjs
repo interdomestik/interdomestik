@@ -9,7 +9,7 @@ import {
 import { captureFeedback } from './pr-feedback-snapshot.mjs';
 
 const REPOSITORY = 'interdomestik/interdomestik';
-const WORKFLOW_FILES = ['pr-finalizer.yml', 'pr-delivery-gate.yml'];
+const WORKFLOW_FILES = ['pr-delivery-gate.yml'];
 const RUN_SELECTION_LIMIT = 20;
 const INCOMPLETE_SELECTION = 'refresh run selection incomplete; native source refresh required';
 
@@ -213,7 +213,7 @@ export async function refreshRepository(
   );
   let failed = 0;
   let deferred = 0;
-  // Rotate pairs, not just PRs: neither workflow may starve at a quota boundary.
+  // Rotate eligible PRs so the same open PR cannot monopolize a quota boundary.
   numbers.sort((a, b) => a - b);
   const pairs = numbers.flatMap(number =>
     workflows.map((workflow, index) => ({ number, workflow, index }))

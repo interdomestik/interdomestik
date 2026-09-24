@@ -25,9 +25,10 @@ import { commandChainDrifts } from './main-e2e-reuse-fixture.mjs';
 import { readLocalGitObjectId } from './main-e2e-reuse-github.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const E2E_TREE = readLocalGitObjectId(root, 'HEAD:apps/web/e2e');
-const S5_NEW_ACCOUNT_TREE = 'd767e0d4aea70c4e83d82f4d7224f5e1dd5b6123';
+const MEMBER_PORTAL_E2E_TREE = '5468dfaebd2e284d506eec07713ad5d2729f8711';
+const NEW_ACCOUNT_OTP_E2E_TREE = '39b3b689ed0f53b11d714ab3672e4fdd54af139e';
 const SAFE = { reuse: false, reason: 'evidence_not_exact' };
-const fail = () => assert.fail('token=secret body=secret');
+const fail = () => assert.fail('private diagnostic must not escape');
 const keyPairs =
   'ciWorkflow=.github/workflows/ci.yml|prWorkflow=.github/workflows/e2e-pr.yml|laneSource=scripts/run-e2e-lane.mjs|playwrightConfig=apps/web/playwright.config.ts|packageJson=package.json';
 const sourceKeys = Object.fromEntries(keyPairs.split('|').map(pair => pair.split('=').reverse()));
@@ -130,17 +131,22 @@ for (const [name, e2eTreeSha] of [
   ['S5 explicit diaspora country context', 'cacb1feef816ded4c09ad3555e8831a248e24871'],
   ['S5 corridor preparation', 'cb5baacf61c72aa57f23a884ad5f865f9ee1f1ee'],
   ['S5 pack-status disclosure', 'f24e4a8e5d97bf5f77cd6f097c79758432622c30'],
-  ['S5 saved-draft continuity', '0e5c12cfed594cddf725fad2ba40a3ba951b6f18'],
 ]) {
   test(`${name} preserves historical corpus parity`, () => {
     const parity = inspectRepositoryParity({ ...sources(), e2eTreeSha });
     assert.ok(parity.commandChain, `the ${name} E2E tree must stay in the command chain`);
   });
 }
-test('S5 new-account OTP secure save preserves corpus parity', () => {
-  assert.equal(E2E_TREE, S5_NEW_ACCOUNT_TREE);
+test('member membership access disclosure preserves corpus parity', () => {
   assert.equal(
-    inspectRepositoryParity({ ...sources(), e2eTreeSha: S5_NEW_ACCOUNT_TREE }).commandChain,
+    inspectRepositoryParity({ ...sources(), e2eTreeSha: MEMBER_PORTAL_E2E_TREE }).commandChain,
+    true
+  );
+});
+test('new-account OTP secure save preserves current corpus parity', () => {
+  assert.equal(E2E_TREE, NEW_ACCOUNT_OTP_E2E_TREE);
+  assert.equal(
+    inspectRepositoryParity({ ...sources(), e2eTreeSha: NEW_ACCOUNT_OTP_E2E_TREE }).commandChain,
     true
   );
 });

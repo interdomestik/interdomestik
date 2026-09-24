@@ -18,7 +18,6 @@ export default async function MemberActionsSlot({
         copy={context.copy}
         promise={context.membershipTask}
         canDraft={context.canDraft}
-        isAgent={context.isAgent}
         locale={context.locale}
       />
     </Suspense>

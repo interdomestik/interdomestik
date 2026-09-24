@@ -63,7 +63,9 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
 
   return (
     <MemberClaimDetailOpsPage
-      informationRequests={<ClaimInformationRequests requests={informationRequests} />}
+      informationRequests={
+        <ClaimInformationRequests audience="member" claimId={id} requests={informationRequests} />
+      }
       claim={serializedClaim}
       currentUser={{
         id: memberSession.user.id,

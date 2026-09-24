@@ -39,7 +39,7 @@ export async function getBranchStressIndex(
 
   const averageCaseLoad = agingCount / agentCount;
 
-  let stressScore = Math.min((averageCaseLoad / 10) * 100, 100); // Normalize 10 cases/agent as 100% stress
+  const stressScore = Math.min((averageCaseLoad / 10) * 100, 100); // Normalize 10 cases/agent as 100% stress
 
   let status: BranchStressResult['status'] = 'healthy';
   if (averageCaseLoad > 5) status = 'overloaded';

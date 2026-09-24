@@ -52,7 +52,7 @@ export function runSharedEvidenceUploadDialogTests({
       uploadMocks.confirmUpload.mockResolvedValue({ success: true });
       uploadMocks.fetch.mockResolvedValue({
         ok: true,
-        json: async () => ({ success: true }),
+        json: async () => ({ success: true, fileId: 'direct-file-id' }),
       });
     });
 
@@ -108,6 +108,26 @@ export function runSharedEvidenceUploadDialogTests({
         expect(uploadMocks.toastSuccess).toHaveBeenCalledWith(uploadSuccessText);
         expect(uploadMocks.refresh).toHaveBeenCalledTimes(1);
       });
+    });
+
+    it('confirms deterministic local-E2E uploads without calling unavailable storage', async () => {
+      uploadMocks.generateUploadUrl.mockResolvedValueOnce({
+        success: true,
+        bucket: 'claim-evidence',
+        path: 'pii/tenants/t1/claims/c1/e2e-file.pdf',
+        token: 'deterministic-token',
+        intentToken: 'upload-intent-token',
+        id: 'e2e-file-id',
+        deterministicE2E: true,
+      });
+      openDialog();
+      fireEvent.change(screen.getByLabelText(fileLabel), {
+        target: { files: [new File(['dummy'], 'evidence.pdf', { type: 'application/pdf' })] },
+      });
+      fireEvent.click(screen.getByRole('button', { name: uploadTriggerLabel }));
+
+      await waitFor(() => expect(uploadMocks.confirmUpload).toHaveBeenCalledTimes(1));
+      expect(uploadMocks.uploadToSignedUrl).not.toHaveBeenCalled();
     });
 
     it('falls back to the direct upload endpoint for storage-unsafe file types', async () => {

@@ -155,6 +155,7 @@ if ! jq -e '
   .schemaVersion == 1
   and .repository == "interdomestik/interdomestik"
   and .deliveryContext.context == "delivery-gate"
+  and .compatibilityRequiredContexts == [{"context":"pr-finalizer","appId":15368}]
   and (.finalizerLeafPrerequisites | type) == "array"
   and (.finalizerLeafPrerequisites | length) > 0
   and ([.finalizerLeafPrerequisites[].context] | index("delivery-gate") | not)

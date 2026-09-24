@@ -36,6 +36,8 @@ function stubLocalE2EUploadSigningEnv() {
   vi.stubEnv('INTERDOMESTIK_E2E_FAKE_STORAGE_SIGNING', '1');
   vi.stubEnv('INTERDOMESTIK_LOCAL_E2E', '1');
   vi.stubEnv('PLAYWRIGHT', '1');
+  vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', '');
+  vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', '');
 }
 
 describe('service-role storage boundary', () => {
@@ -80,6 +82,8 @@ describe('service-role storage boundary', () => {
     stubLocalE2EUploadSigningEnv();
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('SUPABASE_URL', '/configured-storage/');
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'sb_anon_test_key_local_e2e');
+    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'sb_service_role_test_key_local_e2e');
 
     const { createTenantSignedUploadUrl } = await import('./service-role');
 
@@ -87,6 +91,7 @@ describe('service-role storage boundary', () => {
 
     expect(result).toEqual({
       data: expect.objectContaining({
+        deterministicE2E: true,
         path: VALID_CLAIM_UPLOAD_TARGET.path,
         signedUrl: expect.stringContaining(
           '/configured-storage/storage/v1/object/upload/sign/claim-evidence/pii/tenants/tenant-a/claims/user-1/unassigned/file.pdf'
@@ -117,6 +122,39 @@ describe('service-role storage boundary', () => {
     expect(createSignedUploadUrl).toHaveBeenCalledWith(VALID_CLAIM_UPLOAD_TARGET.path, {
       upsert: true,
     });
+  });
+
+  it('uses Supabase signing for browser-consumable uploads when local E2E has real storage', async () => {
+    stubLocalE2EUploadSigningEnv();
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'http://127.0.0.1:54321');
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'sb_publishable_real-local-key');
+    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'sb_secret_real-local-key');
+    createSignedUploadUrl.mockResolvedValue({
+      data: { path: 'remote-path', signedUrl: 'https://signed.example/upload', token: 'jwt-token' },
+      error: null,
+    });
+    const { createTenantSignedUploadUrl } = await import('./service-role');
+
+    const result = await createTenantSignedUploadUrl({
+      ...VALID_CLAIM_UPLOAD_TARGET,
+    });
+
+    expect(result.data?.token).toBe('jwt-token');
+    expect(storageFrom).toHaveBeenCalledWith('claim-evidence');
+    expect(createSignedUploadUrl).toHaveBeenCalledWith(VALID_CLAIM_UPLOAD_TARGET.path, {
+      upsert: true,
+    });
+  });
+
+  it('returns deterministic download bytes only for local E2E without real storage', async () => {
+    stubLocalE2EUploadSigningEnv();
+    const { downloadTenantObject } = await import('./service-role');
+
+    const result = await downloadTenantObject(VALID_CLAIM_UPLOAD_TARGET);
+
+    expect(result.error).toBeNull();
+    expect(await result.data?.text()).toBe('deterministic-e2e-storage-object');
+    expect(createAdminClient).not.toHaveBeenCalled();
   });
 
   it('passes valid signed download requests to Supabase with the default TTL', async () => {

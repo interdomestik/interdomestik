@@ -106,6 +106,7 @@ test('governance report and terminal evaluator consume the canonical delivery ma
   assert.doesNotMatch(reportScript, /void contract/u);
 
   assert.match(reportScript, /providerRequiredContexts/);
+  assert.match(reportScript, /compatibilityRequiredContexts/);
   assert.match(reportScript, /deliveryPrerequisites/);
 });
 
