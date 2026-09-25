@@ -21,8 +21,12 @@ function subscription(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function storedTransaction(overrides: Record<string, unknown> = {}) {
+function storedTransaction(
+  overrides: Record<string, unknown> = {},
+  processingResult: 'ok' | 'error' | 'retryable_error' | null = 'ok'
+) {
   return {
+    processingResult,
     payload: {
       data: {
         customerId: CUSTOMER_ID,
@@ -62,7 +66,6 @@ describe('resolveCheckoutTransactionEvidence', () => {
         provider: 'provider',
         signatureValid: 'signature_valid',
         eventType: 'event_type',
-        processingResult: 'processing_result',
         processingScopeKey: 'processing_scope_key',
       },
       { and, eq }
@@ -72,8 +75,31 @@ describe('resolveCheckoutTransactionEvidence', () => {
     expect(eq).toHaveBeenCalledWith('provider', 'paddle');
     expect(eq).toHaveBeenCalledWith('signature_valid', true);
     expect(eq).toHaveBeenCalledWith('event_type', 'transaction.completed');
-    expect(eq).toHaveBeenCalledWith('processing_result', 'ok');
     expect(eq).toHaveBeenCalledWith('processing_scope_key', 'entity:mk');
+    expect(query).toMatchObject({ columns: { payload: true, processingResult: true } });
+  });
+
+  it.each([
+    ['in-flight', null],
+    ['retryable transaction failure', 'retryable_error'],
+  ] as const)('defers while exact transaction evidence is %s', async (_label, result) => {
+    hoisted.findFirst.mockResolvedValue(storedTransaction({}, result));
+
+    await expect(
+      resolveCheckoutTransactionEvidence(subscription(), 'entity:mk')
+    ).rejects.toBeInstanceOf(RetryablePaddleWebhookError);
+  });
+
+  it('treats an exact permanently failed transaction receipt as permanent', async () => {
+    const resolvePaddleCustomer = vi.fn();
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    hoisted.findFirst.mockResolvedValue(storedTransaction({}, 'error'));
+
+    await expect(
+      resolveCheckoutTransactionEvidence(subscription(), 'entity:mk', resolvePaddleCustomer)
+    ).resolves.toBeNull();
+    expect(resolvePaddleCustomer).not.toHaveBeenCalled();
+    warnSpy.mockRestore();
   });
 
   it('preserves generic missing-transaction behavior', async () => {
@@ -100,7 +126,10 @@ describe('resolveCheckoutTransactionEvidence', () => {
 
   it('treats malformed stored payload and custom-data conflict as permanent', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    hoisted.findFirst.mockResolvedValueOnce({ payload: { unexpected: true } });
+    hoisted.findFirst.mockResolvedValueOnce({
+      processingResult: 'ok',
+      payload: { unexpected: true },
+    });
     await expect(
       resolveCheckoutTransactionEvidence(subscription(), 'entity:mk')
     ).resolves.toBeNull();

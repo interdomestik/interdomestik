@@ -4,20 +4,24 @@ import { RetryablePaddleWebhookError } from '../errors';
 import { handleSubscriptionChanged } from './subscriptions';
 import { resetPaddleHandlerMocks } from './test-support';
 
-const hoisted = await vi.hoisted(async () => {
-  const { createHoistedPaddleHandlerMocks } = await import('./test-support');
-  return createHoistedPaddleHandlerMocks();
-});
+const hoisted = await vi.hoisted(() =>
+  import('./test-support').then(({ createHoistedPaddleHandlerMocks }) =>
+    createHoistedPaddleHandlerMocks()
+  )
+);
 
-vi.mock('@interdomestik/database', async () =>
-  (await import('./test-support')).createPaddleDatabaseMockModule(hoisted)
-);
-vi.mock('../../commissions/create', async () =>
-  (await import('./test-support')).createCommissionMockModule()
-);
-vi.mock('@interdomestik/database/member-number', async () =>
-  (await import('./test-support')).createMemberNumberMockModule()
-);
+vi.mock('@interdomestik/database', async () => {
+  const support = await import('./test-support');
+  return support.createPaddleDatabaseMockModule(hoisted);
+});
+vi.mock('../../commissions/create', async () => {
+  const support = await import('./test-support');
+  return support.createCommissionMockModule();
+});
+vi.mock('@interdomestik/database/member-number', async () => {
+  const support = await import('./test-support');
+  return support.createMemberNumberMockModule();
+});
 
 const CUSTOMER_ID = 'ctm_01hrffh7gvp29kc7xahm8wddwa';
 
@@ -48,31 +52,34 @@ describe('handleSubscriptionChanged entity retry', () => {
       kind: 'resolved',
       customer: { id: CUSTOMER_ID, email: 'buyer@example.com', status: 'active' },
     });
+    const transactionCustomData = {
+      tenantId: 'tenant_mk',
+      agentId: 'agent_9',
+      acquisitionSource: 'self_serve_web',
+    };
+    const newMember = {
+      id: 'user_new',
+      tenantId: 'tenant_mk',
+      email: 'buyer@example.com',
+      name: 'buyer',
+      memberNumber: 'MEM-2026-000123',
+      branchId: 'branch-mk-main',
+      role: 'member',
+    };
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue(undefined);
     hoisted.db.query.webhookEvents.findFirst.mockResolvedValue({
+      processingResult: 'ok',
       payload: {
         data: {
           customerId: CUSTOMER_ID,
-          customData: {
-            tenantId: 'tenant_mk',
-            agentId: 'agent_9',
-            acquisitionSource: 'self_serve_web',
-          },
+          customData: transactionCustomData,
         },
       },
     });
     hoisted.db.query.user.findFirst
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({
-        id: 'user_new',
-        tenantId: 'tenant_mk',
-        email: 'buyer@example.com',
-        name: 'buyer',
-        memberNumber: 'MEM-2026-000123',
-        branchId: 'branch-mk-main',
-        role: 'member',
-      });
+      .mockResolvedValueOnce(newMember);
     hoisted.db.query.account.findFirst.mockResolvedValue(null);
     hoisted.db.query.tenantSettings.findFirst.mockResolvedValue({
       value: { branchId: 'branch-mk-main' },

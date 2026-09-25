@@ -5,11 +5,12 @@ import {
   createSelfServeOwnershipAttribution,
   revokeAgentClientReadScope,
 } from '../../../ownership-attribution';
-import type { RequestPasswordResetOnboarding, ResolvePaddleCustomer } from '../../types';
-import {
-  resolveCheckoutTransactionEvidence,
-  type SubscriptionPayloadLike,
-} from './checkout-transaction-evidence';
+import type {
+  RequestPasswordResetOnboarding,
+  ResolvePaddleCustomer,
+  SubscriptionPayloadLike,
+} from '../../types';
+import { resolveCheckoutTransactionEvidence } from './checkout-transaction-evidence';
 import { resolveBranchId } from './context';
 
 type ReconcileCheckoutUserDeps = {

@@ -1,28 +1,11 @@
 import { db } from '@interdomestik/database';
 import { resolveBillingEntityForTenantId } from '../../../paddle-server';
 import { RetryablePaddleWebhookError } from '../../errors';
-import type { ResolvePaddleCustomer } from '../../types';
-
-export type CheckoutCustomData = {
-  userId?: string;
-  agentId?: string;
-  tenantId?: string;
-  acquisitionSource?: string;
-  utmSource?: string;
-  utmMedium?: string;
-  utmCampaign?: string;
-  utmContent?: string;
-};
-
-export type SubscriptionPayloadLike = {
-  id: string;
-  customerId?: string | null;
-  customer_id?: string | null;
-  transactionId?: string | null;
-  transaction_id?: string | null;
-  customData?: CheckoutCustomData;
-  custom_data?: CheckoutCustomData;
-};
+import type {
+  CheckoutCustomData,
+  ResolvePaddleCustomer,
+  SubscriptionPayloadLike,
+} from '../../types';
 
 type TransactionPayloadLike = {
   customerId?: string | null;
@@ -98,11 +81,10 @@ export async function resolveCheckoutTransactionEvidence(
             eq(events.provider, 'paddle'),
             eq(events.signatureValid, true),
             eq(events.eventType, 'transaction.completed'),
-            eq(events.processingResult, 'ok'),
             eq(events.processingScopeKey, processingScopeKey)
           )
         : eq(events.providerTransactionId, transactionId),
-    columns: { payload: true },
+    columns: { payload: true, processingResult: true },
   });
 
   if (!webhookEvent) {
@@ -113,6 +95,17 @@ export async function resolveCheckoutTransactionEvidence(
     }
     console.warn(
       `[Webhook] Cannot reconcile checkout user for subscription ${sub.id}; transaction ${transactionId} not found`
+    );
+    return null;
+  }
+  if (isEntityRoute && webhookEvent.processingResult !== 'ok') {
+    if (!webhookEvent.processingResult || webhookEvent.processingResult === 'retryable_error') {
+      throw new RetryablePaddleWebhookError(
+        `Verified transaction ${transactionId} is still processing for subscription ${sub.id}`
+      );
+    }
+    console.warn(
+      `[Webhook] Cannot reconcile checkout user for subscription ${sub.id}; verified transaction ${transactionId} failed permanently`
     );
     return null;
   }
