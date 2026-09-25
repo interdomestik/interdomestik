@@ -1,43 +1,24 @@
-import { db } from '@interdomestik/database';
 import { resolveBillingEntityForTenantId } from '../../../paddle-server';
-import { RetryablePaddleWebhookError } from '../../errors';
 import type {
   CheckoutCustomData,
   ResolvePaddleCustomer,
   SubscriptionPayloadLike,
 } from '../../types';
-
-type TransactionPayloadLike = {
-  customerId?: string | null;
-  customer_id?: string | null;
-  customerEmail?: string | null;
-  customer_email?: string | null;
-  customData?: CheckoutCustomData;
-  custom_data?: CheckoutCustomData;
-};
-
-function normalizeText(value: string | null | undefined): string | null {
-  if (typeof value !== 'string') return null;
-  const normalized = value.trim();
-  return normalized.length > 0 ? normalized : null;
-}
+import {
+  isPaddleCustomerId,
+  loadCheckoutTransactionData,
+  normalizeCheckoutText,
+  resolveEntityCustomerEmail,
+} from './checkout-transaction-authority';
 
 function hasConflict(
   field: 'tenantId' | 'userId',
   current: CheckoutCustomData | undefined,
   stored: CheckoutCustomData | undefined
 ): boolean {
-  const currentValue = normalizeText(current?.[field]);
-  const storedValue = normalizeText(stored?.[field]);
+  const currentValue = normalizeCheckoutText(current?.[field]);
+  const storedValue = normalizeCheckoutText(stored?.[field]);
   return Boolean(currentValue && storedValue && currentValue !== storedValue);
-}
-
-function isValidEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(value);
-}
-
-function isPaddleCustomerId(value: string): boolean {
-  return /^ctm_[a-z\d]{26}$/u.test(value);
 }
 
 export async function resolveCheckoutTransactionEvidence(
@@ -45,7 +26,7 @@ export async function resolveCheckoutTransactionEvidence(
   processingScopeKey: string,
   resolvePaddleCustomer?: ResolvePaddleCustomer
 ): Promise<{ customerEmail: string; customData: CheckoutCustomData } | null> {
-  const transactionId = normalizeText(sub.transactionId || sub.transaction_id);
+  const transactionId = normalizeCheckoutText(sub.transactionId || sub.transaction_id);
   if (!transactionId) {
     console.warn(
       `[Webhook] Cannot reconcile checkout user for subscription ${sub.id}; missing transactionId`
@@ -54,7 +35,7 @@ export async function resolveCheckoutTransactionEvidence(
   }
 
   const subscriptionCustomData = sub.customData || sub.custom_data;
-  const subscriptionTenantId = normalizeText(subscriptionCustomData?.tenantId);
+  const subscriptionTenantId = normalizeCheckoutText(subscriptionCustomData?.tenantId);
   const billingEntity = resolveBillingEntityForTenantId(subscriptionTenantId);
   const isEntityRoute = processingScopeKey.startsWith('entity:');
   if (isEntityRoute && processingScopeKey !== (billingEntity ? `entity:${billingEntity}` : null)) {
@@ -64,7 +45,7 @@ export async function resolveCheckoutTransactionEvidence(
     return null;
   }
 
-  const subscriptionCustomerId = normalizeText(sub.customerId || sub.customer_id);
+  const subscriptionCustomerId = normalizeCheckoutText(sub.customerId || sub.customer_id);
   if (isEntityRoute && (!subscriptionCustomerId || !isPaddleCustomerId(subscriptionCustomerId))) {
     console.warn(
       `[Webhook] Cannot reconcile checkout user for subscription ${sub.id}; verified subscription customer identity is missing or invalid`
@@ -72,50 +53,13 @@ export async function resolveCheckoutTransactionEvidence(
     return null;
   }
 
-  // db-access-guard: system-exempt -- reason: verified Paddle transaction evidence bootstraps checkout reconciliation before user context exists
-  const webhookEvent = await db.query.webhookEvents.findFirst({
-    where: (events, { and, eq }) =>
-      isEntityRoute
-        ? and(
-            eq(events.providerTransactionId, transactionId),
-            eq(events.provider, 'paddle'),
-            eq(events.signatureValid, true),
-            eq(events.eventType, 'transaction.completed'),
-            eq(events.processingScopeKey, processingScopeKey)
-          )
-        : eq(events.providerTransactionId, transactionId),
-    columns: { payload: true, processingResult: true },
+  const transactionData = await loadCheckoutTransactionData({
+    transactionId,
+    subscriptionId: sub.id,
+    processingScopeKey,
+    entityRoute: isEntityRoute,
   });
-
-  if (!webhookEvent) {
-    if (isEntityRoute) {
-      throw new RetryablePaddleWebhookError(
-        `Verified transaction ${transactionId} is not ready for subscription ${sub.id}`
-      );
-    }
-    console.warn(
-      `[Webhook] Cannot reconcile checkout user for subscription ${sub.id}; transaction ${transactionId} not found`
-    );
-    return null;
-  }
-  if (isEntityRoute && webhookEvent.processingResult !== 'ok') {
-    if (!webhookEvent.processingResult || webhookEvent.processingResult === 'retryable_error') {
-      throw new RetryablePaddleWebhookError(
-        `Verified transaction ${transactionId} is still processing for subscription ${sub.id}`
-      );
-    }
-    console.warn(
-      `[Webhook] Cannot reconcile checkout user for subscription ${sub.id}; verified transaction ${transactionId} failed permanently`
-    );
-    return null;
-  }
-
-  const transactionData = (webhookEvent.payload as { data?: TransactionPayloadLike } | undefined)
-    ?.data;
   if (!transactionData) {
-    console.warn(
-      `[Webhook] Cannot reconcile checkout user for subscription ${sub.id}; verified transaction ${transactionId} payload is malformed`
-    );
     return null;
   }
 
@@ -130,56 +74,18 @@ export async function resolveCheckoutTransactionEvidence(
     return null;
   }
   const customData = { ...transactionCustomData, ...subscriptionCustomData };
-  const tenantId = normalizeText(customData.tenantId);
+  const tenantId = normalizeCheckoutText(customData.tenantId);
 
-  let customerEmail: string | null;
-  if (isEntityRoute) {
-    const transactionCustomerId = normalizeText(
-      transactionData.customerId || transactionData.customer_id
-    );
-    if (
-      !transactionCustomerId ||
-      !isPaddleCustomerId(transactionCustomerId) ||
-      subscriptionCustomerId !== transactionCustomerId ||
-      !resolvePaddleCustomer
-    ) {
-      console.warn(
-        `[Webhook] Cannot reconcile checkout user for subscription ${sub.id}; verified customer identity is missing or conflicting`
-      );
-      return null;
-    }
-
-    const lookup = await resolvePaddleCustomer(transactionCustomerId);
-    if (lookup.kind === 'failed') {
-      if (lookup.retryable) {
-        throw new RetryablePaddleWebhookError(
-          `Paddle customer ${transactionCustomerId} is temporarily unavailable for subscription ${sub.id}`
-        );
-      }
-      console.warn(
-        `[Webhook] Cannot reconcile checkout user for subscription ${sub.id}; Paddle customer lookup failed permanently`
-      );
-      return null;
-    }
-
-    customerEmail = normalizeText(lookup.customer.email)?.toLowerCase() ?? null;
-    if (
-      lookup.customer.id !== transactionCustomerId ||
-      lookup.customer.status !== 'active' ||
-      !customerEmail ||
-      !isValidEmail(customerEmail)
-    ) {
-      console.warn(
-        `[Webhook] Cannot reconcile checkout user for subscription ${sub.id}; Paddle customer response is invalid`
-      );
-      return null;
-    }
-  } else {
-    customerEmail =
-      normalizeText(
+  const customerEmail = isEntityRoute
+    ? await resolveEntityCustomerEmail({
+        transactionData,
+        subscriptionCustomerId,
+        subscriptionId: sub.id,
+        resolvePaddleCustomer,
+      })
+    : (normalizeCheckoutText(
         transactionData.customerEmail || transactionData.customer_email
-      )?.toLowerCase() ?? null;
-  }
+      )?.toLowerCase() ?? null);
 
   if (!tenantId || !customerEmail) {
     console.warn(

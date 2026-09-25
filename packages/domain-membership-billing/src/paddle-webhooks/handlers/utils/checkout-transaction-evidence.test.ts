@@ -7,6 +7,7 @@ vi.mock('@interdomestik/database', () => ({
 }));
 
 import { RetryablePaddleWebhookError } from '../../errors';
+import { isValidPaddleCustomerEmail } from './checkout-transaction-authority';
 import { resolveCheckoutTransactionEvidence } from './checkout-transaction-evidence';
 
 const CUSTOMER_ID = 'ctm_01hrffh7gvp29kc7xahm8wddwa';
@@ -40,6 +41,11 @@ function storedTransaction(
 describe('resolveCheckoutTransactionEvidence', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('rejects a long dot-rich value without backtracking email validation', () => {
+    const invalidEmail = `buyer@${'segment.'.repeat(16_384)} `;
+    expect(isValidPaddleCustomerEmail(invalidEmail)).toBe(false);
   });
 
   it('defers a valid entity event before writes while its verified transaction is absent', async () => {
