@@ -47,7 +47,9 @@ export async function continueSavedDraftWithoutMembership(
   await page.context().clearCookies();
   await continuation.focus();
   await page.keyboard.press('Enter');
-  await expect(page).toHaveURL(new RegExp(`/en/login#draft=${args.draftId}$`));
+  await expect(page).toHaveURL(
+    url => url.pathname === routes.login('en') && url.hash === `#draft=${args.draftId}`
+  );
   await args.reauthenticate();
   for (const [locale, catalog] of Object.entries({ en, sq, mk, sr })) {
     if (locale !== 'en') await page.goto(`${args.origin}/${locale}${path}`);

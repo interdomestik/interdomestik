@@ -158,6 +158,28 @@ describe('saved draft continuation mounted contract', () => {
     });
     expect(await screen.findByText(saved.summary)).toBeVisible();
   });
+  it.each([
+    { resumeStep: 'details' },
+    { resumeStep: 'category' },
+    { category: 'injury' },
+    ...['issueType', 'incidentDate', 'counterparty', 'desiredOutcome', 'summary'].map(field => ({
+      [field]: ' ',
+    })),
+  ])('refuses a draft that is no longer review-ready: %j', async changed => {
+    window.history.replaceState(null, '', `/#draft=${id}`);
+    actions.resume
+      .mockResolvedValueOnce({ ok: true, draft: { ...saved, ...changed } })
+      .mockResolvedValueOnce({ ok: true, draft: saved });
+    view();
+    expect(await screen.findByRole('alert')).toBeVisible();
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('claim-draft-dormant-preview')).not.toBeInTheDocument();
+    expect(screen.queryByText(saved.counterparty)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByText(saved.summary)).toBeVisible();
+    for (const key of ['create', 'update', 'remove', 'submit'] as const)
+      expect(actions[key]).not.toHaveBeenCalled();
+  });
   it.each(Object.keys(catalogs) as (keyof typeof catalogs)[])(
     'offers the clean-saved public link with truthful %s copy',
     async locale => {

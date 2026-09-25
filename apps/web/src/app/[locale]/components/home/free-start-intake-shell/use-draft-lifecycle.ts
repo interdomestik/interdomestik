@@ -8,6 +8,7 @@ import {
   updateFreeStartDraft,
 } from '@/actions/free-start-drafts';
 import { useEffect, useRef, useState } from 'react';
+import { isReviewReadySavedDraft } from './saved-draft-continuation';
 
 // prettier-ignore
 import { createUuidV4, draftFailureState, draftFingerprint, draftFingerprintState, resolveEditedDraftState, runDraftTask, withoutDraft, type CategoryId, type DraftSaveState, type DraftState, type SavedDraft, type StepId } from './types';
@@ -104,7 +105,7 @@ export function useDraftLifecycle(args: Args) {
       },
       () => setState('error')
     );
-  const resume = (id: string) =>
+  const resume = (id: string, options?: { reviewOnly: boolean }) =>
     runDraftTask(
       pending,
       async () => {
@@ -112,6 +113,10 @@ export function useDraftLifecycle(args: Args) {
         const result = await resumeFreeStartDraft({ id });
         if (!result.ok) {
           setState(draftFailureState(result.code));
+          return false;
+        }
+        if (options?.reviewOnly && !isReviewReadySavedDraft(result.draft)) {
+          setState('invalid');
           return false;
         }
         args.onResume(result.draft);

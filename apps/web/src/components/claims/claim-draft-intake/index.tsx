@@ -42,7 +42,10 @@ function ClaimDraftIntakeBody({ copy, handoffContext, handoffCountryLabel, initi
     onResume: flow.resumeDraft,
     step: flow.step,
   });
-  const continuation = useDraftContinuation(lifecycle.resume, flow.stageHeadingRef);
+  const continuation = useDraftContinuation(
+    id => lifecycle.resume(id, { reviewOnly: true }),
+    flow.stageHeadingRef
+  );
   const issueIds = getIssueIds(flow.selectedCategory);
   const labels = {
     category: getSelectedCategoryLabel(tFree, flow.selectedCategory),
