@@ -28,10 +28,7 @@ export type RlsConnectionRoleAssertionResult =
   | {
       ok: false;
       reason:
-        | 'invalid_configured_role'
-        | 'missing_role_posture'
-        | 'role_bypasses_rls'
-        | 'query_failed';
+        'invalid_configured_role' | 'missing_role_posture' | 'role_bypasses_rls' | 'query_failed';
       checkedRole?: 'connection' | 'configuredDbRole';
       currentUser?: string;
       configuredDbRole?: string;
@@ -118,6 +115,13 @@ export function assertRlsRoleIdentifier(role: string): string {
   return normalized;
 }
 
+export class RlsRolePostureTimeoutError extends Error {
+  constructor(timeoutMs: number) {
+    super(`DATABASE_URL_RLS role posture query timed out after ${timeoutMs}ms`);
+    this.name = 'RlsRolePostureTimeoutError';
+  }
+}
+
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   try {
@@ -125,7 +129,7 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T
       promise,
       new Promise<never>((_, reject) => {
         timeoutId = setTimeout(() => {
-          reject(new Error(`DATABASE_URL_RLS role posture query timed out after ${timeoutMs}ms`));
+          reject(new RlsRolePostureTimeoutError(timeoutMs));
         }, timeoutMs);
       }),
     ]);
