@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { assertRlsConnectionRoleReady, db } from '@interdomestik/database';
 import { user } from '@interdomestik/database/schema/auth';
 
 import { buildUpstashRedisPingUrl } from './upstash-redis-url';
@@ -48,6 +48,7 @@ function resolveBuildMetadata(): HealthCheckResult['build'] {
 async function checkDatabaseHealth(): Promise<ServiceHealth> {
   try {
     const dbStartTime = Date.now();
+    await assertRlsConnectionRoleReady();
     // db-access-guard: system-exempt -- reason: health-check endpoint performs DB liveness probe only
     await db.select({ id: user.id }).from(user).limit(1);
     const dbResponseTime = Date.now() - dbStartTime;

@@ -114,7 +114,7 @@ async function deploy() {
     if (!/^[a-f0-9]{40}$/u.test(expectedCommitSha || '')) {
       throw new Error('COMMIT_SHA must be a full lowercase SHA');
     }
-    const preimage = await state.snapshotStagingAlias();
+    const preimage = await state.prepareStagingAlias({ baseUrl, hostname, expectedCommitSha });
     const target = receiptPath('STAGING_PREIMAGE_RECEIPT_PATH');
     receipt = { alias: state.CANONICAL_STAGING_ALIAS, ...preimage, aliasMoved: false };
     await state.writeAliasReceipt(target, receipt);

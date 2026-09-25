@@ -63,7 +63,7 @@ export {
 export { withTenantContext, withTenantDb, type TenantTransaction } from './tenant';
 
 // Export Drizzle instance and schema
-export { db, dbAdmin, dbRls } from './db';
+export { assertRlsConnectionRoleReady, db, dbAdmin, dbRls } from './db';
 export * from './schema';
 
 // Re-export Drizzle helpers so consumers use the same module instance

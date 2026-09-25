@@ -8,6 +8,13 @@ import {
 } from './vercel-staging-alias-state.mjs';
 
 const COMMIT = 'a'.repeat(40);
+const METADATA = {
+  environment: 'staging',
+  commitSha: COMMIT,
+  sourceImageDigest: `sha256:${'1'.repeat(64)}`,
+  vercelOutputDigest: `sha256:${'2'.repeat(64)}`,
+};
+const attestationImpl = async () => JSON.stringify(METADATA);
 const DEPLOYMENT_ID = 'dpl_previous';
 const HOST = 'interdomestik-web-old-ecohub.vercel.app';
 const ALIAS_NAME = CANONICAL_STAGING_ALIAS;
@@ -63,12 +70,17 @@ test('snapshot authenticates alias/deployment ownership and captures exact commi
   const result = await snapshotStagingAlias({
     env: ENV,
     fetchImpl: fixture.fetchImpl,
+    attestationImpl,
     healthImpl: async ({ healthUrl }) => {
       assert.equal(healthUrl, `https://${HOST}/api/health`);
       return JSON.stringify({ build: { commitSha: COMMIT } });
     },
   });
-  assert.deepEqual(result, { deploymentHostname: HOST, commitSha: COMMIT });
+  assert.deepEqual(result, {
+    deploymentHostname: HOST,
+    commitSha: COMMIT,
+    previousHealth: { status: 'healthy' },
+  });
   assert.equal(fixture.calls.length, 2);
   assert.equal(new URL(fixture.calls[1].url).pathname, `/v13/deployments/${DEPLOYMENT_ID}`);
   for (const call of fixture.calls) {
@@ -110,9 +122,10 @@ test('snapshot rejects missing or malformed build commits', async () => {
       snapshotStagingAlias({
         env: ENV,
         fetchImpl: fixture.fetchImpl,
+        attestationImpl,
         healthImpl: async () => JSON.stringify({ build: { commitSha } }),
       }),
-      /full lowercase commit SHA/u
+      /commit mismatch/u
     );
   }
 });
@@ -141,6 +154,7 @@ test('confirmation retries provider mapping lag and returns the exact target', a
     expectedCommitSha: COMMIT,
     env: { ...ENV, STAGING_ALIAS_CONFIRM_ATTEMPTS: '2', STAGING_ALIAS_RETRY_MS: '1' },
     snapshotImpl: async () => snapshots.shift(),
+    healthImpl: async () => {},
     waitImpl: async ms => waits.push(ms),
   });
   assert.deepEqual(result, { deploymentHostname: HOST, commitSha: COMMIT });
@@ -182,3 +196,57 @@ for (const [name, failOnHealth, expectedCalls] of [
     assert.deepEqual(fixture.calls, expectedCalls);
   });
 }
+
+test('snapshot preserves owned immutable identity even when the old runtime is unhealthy', async () => {
+  const fixture = snapshotFetch();
+  const result = await snapshotStagingAlias({
+    env: ENV,
+    fetchImpl: fixture.fetchImpl,
+    attestationImpl: async () =>
+      JSON.stringify({
+        environment: 'staging',
+        commitSha: COMMIT,
+        sourceImageDigest: `sha256:${'1'.repeat(64)}`,
+        vercelOutputDigest: `sha256:${'2'.repeat(64)}`,
+      }),
+    healthImpl: async () => {
+      throw new Error('Health endpoint returned 503');
+    },
+  });
+  assert.equal(result.deploymentHostname, HOST);
+  assert.equal(result.commitSha, COMMIT);
+  assert.equal(result.previousHealth.status, 'unavailable');
+});
+
+test('snapshot rejects malformed or non-staging metadata and conflicting runtime identity', async () => {
+  for (const metadata of [
+    {},
+    { ...METADATA, environment: 'production' },
+    { ...METADATA, commitSha: 'bad' },
+    { ...METADATA, sourceImageDigest: 'mutable' },
+    { ...METADATA, vercelOutputDigest: undefined },
+  ]) {
+    const fixture = snapshotFetch();
+    await assert.rejects(
+      snapshotStagingAlias({
+        env: ENV,
+        fetchImpl: fixture.fetchImpl,
+        attestationImpl: async () => JSON.stringify(metadata),
+        healthImpl: async () => {
+          throw new Error('503');
+        },
+      }),
+      /Invalid immutable staging release metadata/u
+    );
+  }
+  const fixture = snapshotFetch();
+  await assert.rejects(
+    snapshotStagingAlias({
+      env: ENV,
+      fetchImpl: fixture.fetchImpl,
+      attestationImpl,
+      healthImpl: async () => JSON.stringify({ build: { commitSha: 'b'.repeat(40) } }),
+    }),
+    /commit mismatch/u
+  );
+});

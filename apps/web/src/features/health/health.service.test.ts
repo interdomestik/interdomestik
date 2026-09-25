@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@interdomestik/database', () => ({
+  assertRlsConnectionRoleReady: vi.fn(async () => undefined),
   db: {
     select: vi.fn(() => ({
       from: vi.fn(() => ({
