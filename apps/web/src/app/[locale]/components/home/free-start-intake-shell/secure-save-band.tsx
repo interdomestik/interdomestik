@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { DeleteDraftConfirmation } from './delete-draft-confirmation';
 import { SavedDraftList } from './saved-draft-list';
-import { continuationDraft, SavedDraftContinuation } from './saved-draft-continuation';
+import { SavedDraftContinuation } from './saved-draft-continuation';
 import { SecureSaveOtp } from './secure-save-otp';
 import { parseSecureSaveCopy, parseSecureSaveReviewCopy, type SavedDraft } from './types';
 import type { useDraftLifecycle } from './use-draft-lifecycle';
@@ -39,7 +39,6 @@ export function SecureSaveBand({
   const alert = ['conflict', 'limit', 'invalid', 'unsupported', 'accountContext', 'error'].includes(lifecycle.state);
   const pending = ['saving', 'loading'].includes(lifecycle.state);
   const status = resolveStatus(lifecycle, locale, copy, reviewCopy);
-  const readyDraft = allowContinuation ? continuationDraft(lifecycle) : null;
   // prettier-ignore
   return (
 <section
@@ -96,9 +95,7 @@ className={`mt-4 text-sm font-semibold outline-none ${alert ? 'text-[#8a2f43]' :
 >
 {status}
 </p>
-{readyDraft ? (
-<SavedDraftContinuation copy={copy.continuation} id={readyDraft.id} locale={locale} />
-) : null}
+<SavedDraftContinuation copy={copy.continuation} enabled={allowContinuation} lifecycle={lifecycle} locale={locale} />
 {lifecycle.intent && !lifecycle.verified && !pending ? (
 <SecureSaveOtp
 key={lifecycle.identityKey}

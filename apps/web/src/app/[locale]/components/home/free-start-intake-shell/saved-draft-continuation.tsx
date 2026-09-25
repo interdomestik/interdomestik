@@ -3,9 +3,7 @@ import { hasIncompleteDraft } from './intake-validation';
 import type { SavedDraft, SecureSaveCopy } from './types';
 import type { useDraftLifecycle } from './use-draft-lifecycle';
 
-export function continuationDraft(
-  lifecycle: ReturnType<typeof useDraftLifecycle>
-): SavedDraft | null {
+function continuationDraft(lifecycle: ReturnType<typeof useDraftLifecycle>): SavedDraft | null {
   if (lifecycle.state !== 'saved' || lifecycle.hasUnsavedChanges || !lifecycle.active) return null;
   return isReviewReadySavedDraft(lifecycle.active) ? lifecycle.active : null;
 }
@@ -20,14 +18,18 @@ export function isReviewReadySavedDraft(draft: SavedDraft): boolean {
 
 export function SavedDraftContinuation({
   copy,
-  id,
+  enabled,
+  lifecycle,
   locale,
 }: Readonly<{
   copy: SecureSaveCopy['continuation'];
-  id: string;
+  enabled?: boolean;
+  lifecycle: ReturnType<typeof useDraftLifecycle>;
   locale: string;
 }>) {
-  const href = savedDraftContinuationHref(locale, id);
+  const draft = enabled ? continuationDraft(lifecycle) : null;
+  if (!draft) return null;
+  const href = savedDraftContinuationHref(locale, draft.id);
   if (!href) return null;
   return (
     <div className="mt-4 space-y-3" data-testid="saved-draft-continuation">
