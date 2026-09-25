@@ -34,8 +34,10 @@ export type SendThankYouLetter = (params: {
   planInterval: string;
   memberSince: Date;
   expiresAt: Date;
-  locale?: 'en' | 'sq';
-}) => unknown;
+  providerReference: string;
+  tenantId: string;
+  locale: 'en' | 'sq' | 'mk' | 'sr';
+}) => Promise<{ success: boolean; error?: string }> | { success: boolean; error?: string };
 
 export type RequestPasswordResetOnboarding = (params: {
   email: string;
@@ -46,6 +48,7 @@ export type CheckoutCustomData = {
   userId?: string;
   agentId?: string;
   tenantId?: string;
+  locale?: 'en' | 'sq' | 'mk' | 'sr';
   acquisitionSource?: string;
   utmSource?: string;
   utmMedium?: string;

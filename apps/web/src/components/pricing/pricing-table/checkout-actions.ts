@@ -87,6 +87,7 @@ async function openPaddleCheckout(args: {
       userId: checkoutUserId,
       agentId: agentId ? String(agentId) : undefined,
       tenantId: args.tenantId ?? args.checkoutConfig.tenantId,
+      locale: args.locale,
       search: globalThis.location.search,
     }),
     settings: {

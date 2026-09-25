@@ -33,6 +33,62 @@ beforeEach(() => {
 });
 
 describe('handleSubscriptionChanged', () => {
+  it('sends confirmation from the exact active raw Paddle payload values', async () => {
+    sendThankYouLetter.mockResolvedValue({ success: true });
+    hoisted.db.query.subscriptions.findFirst.mockResolvedValue(undefined);
+    hoisted.db.query.user.findFirst.mockResolvedValue({
+      id: 'user_123',
+      email: 'member@example.test',
+      name: 'Member One',
+      memberNumber: 'MEM-2026-001',
+      tenantId: 'tenant_mk',
+    });
+
+    await handleSubscriptionChanged(
+      {
+        eventType: 'subscription.created',
+        data: {
+          id: 'sub_provider_1',
+          status: 'active',
+          custom_data: {
+            userId: 'user_123',
+            tenantId: 'tenant_mk',
+            agentId: 'agent_1',
+            locale: 'sr',
+          },
+          items: [
+            {
+              price: {
+                id: 'pri_123',
+                name: 'Annual membership',
+                unit_price: { amount: '2000', currency_code: 'EUR' },
+              },
+            },
+          ],
+          billing_cycle: { frequency: 1, interval: 'year' },
+          current_billing_period: {
+            starts_at: '2026-01-01T00:00:00Z',
+            ends_at: '2027-01-01T00:00:00Z',
+          },
+        },
+      },
+      { logAuditEvent, sendThankYouLetter }
+    );
+
+    expect(sendThankYouLetter).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: 'member@example.test',
+        locale: 'sr',
+        memberNumber: 'MEM-2026-001',
+        planInterval: 'godina',
+        planName: 'Annual membership',
+        planPrice: expect.stringContaining('EUR'),
+        providerReference: 'sub_provider_1',
+        tenantId: 'tenant_mk',
+      })
+    );
+  });
+
   it('validates input and logs audit event on success', async () => {
     // Mock User
     hoisted.db.query.user.findFirst.mockResolvedValue({
@@ -169,7 +225,7 @@ describe('handleSubscriptionChanged', () => {
             currentBillingPeriod: { startsAt: '2026-01-01', endsAt: '2027-01-01' },
           },
         },
-        { logAuditEvent }
+        { logAuditEvent, sendThankYouLetter }
       )
     ).rejects.toThrow('Unable to resolve subscription context');
 
@@ -207,7 +263,7 @@ describe('handleSubscriptionChanged', () => {
             currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
           },
         },
-        { logAuditEvent }
+        { logAuditEvent, sendThankYouLetter }
       )
     ).rejects.toThrow('customData tenant=tenant_bad conflicts with canonical tenant=tenant_real');
 
@@ -248,13 +304,14 @@ describe('handleSubscriptionChanged', () => {
             currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
           },
         },
-        { logAuditEvent }
+        { logAuditEvent, sendThankYouLetter }
       )
     ).rejects.toThrow('customData tenant=tenant_bad conflicts with canonical tenant=tenant_real');
 
     expect(hoisted.db.query.webhookEvents.findFirst).not.toHaveBeenCalled();
     expect(hoisted.tx.insert).not.toHaveBeenCalled();
     expect(logAuditEvent).not.toHaveBeenCalled();
+    expect(sendThankYouLetter).not.toHaveBeenCalled();
   });
 
   it('uses existing subscription canonical user when provider customData omits userId', async () => {

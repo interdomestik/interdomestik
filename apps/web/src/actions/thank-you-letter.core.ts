@@ -20,7 +20,9 @@ export async function sendThankYouLetter(params: {
   planInterval: string;
   memberSince: Date;
   expiresAt: Date;
-  locale?: 'en' | 'sq';
+  providerReference: string;
+  tenantId: string;
+  locale: 'en' | 'sq' | 'mk' | 'sr';
 }): Promise<{ success: boolean; error?: string }> {
   return sendThankYouLetterCore(params satisfies SendThankYouLetterParams);
 }
@@ -34,7 +36,11 @@ export async function previewThankYouLetter(params: {
   planName: string;
   planPrice: string;
   planInterval: string;
-  locale?: 'en' | 'sq';
+  memberSince: Date;
+  expiresAt: Date;
+  providerReference: string;
+  dashboardUrl: string;
+  locale: 'en' | 'sq' | 'mk' | 'sr';
 }): Promise<{ html: string; text: string }> {
   return previewThankYouLetterCore(params satisfies PreviewThankYouLetterParams);
 }

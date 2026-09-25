@@ -6,6 +6,7 @@ const customDataSchema = z
     userId: z.string().optional(),
     agentId: z.string().optional(),
     tenantId: z.string().optional(),
+    locale: z.enum(['en', 'sq', 'mk', 'sr']).optional(),
     acquisitionSource: z.string().optional(),
     utmSource: z.string().optional(),
     utmMedium: z.string().optional(),
@@ -17,11 +18,30 @@ const customDataSchema = z
 const priceSchema = z
   .object({
     id: z.string().optional(),
+    name: z.string().optional(),
     description: z.string().optional(),
     unitPrice: z
       .object({
         amount: z.string().optional(),
         currencyCode: z.string().optional(),
+      })
+      .optional(),
+    unit_price: z
+      .object({
+        amount: z.string().optional(),
+        currency_code: z.string().optional(),
+      })
+      .optional(),
+    billingCycle: z
+      .object({
+        interval: z.enum(['day', 'week', 'month', 'year']),
+        frequency: z.number().int().positive(),
+      })
+      .optional(),
+    billing_cycle: z
+      .object({
+        interval: z.enum(['day', 'week', 'month', 'year']),
+        frequency: z.number().int().positive(),
       })
       .optional(),
   })
@@ -61,6 +81,18 @@ export const subscriptionEventDataSchema = z
     // Billing Period variants
     currentBillingPeriod: billingPeriodSchema.optional(),
     current_billing_period: billingPeriodSchema.optional(), // Paddle snake_case fallback
+    billingCycle: z
+      .object({
+        interval: z.enum(['day', 'week', 'month', 'year']),
+        frequency: z.number().int().positive(),
+      })
+      .optional(),
+    billing_cycle: z
+      .object({
+        interval: z.enum(['day', 'week', 'month', 'year']),
+        frequency: z.number().int().positive(),
+      })
+      .optional(),
 
     // Scheduled Change
     scheduledChange: z.object({ action: z.string().optional() }).optional(),

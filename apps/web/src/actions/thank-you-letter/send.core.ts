@@ -1,16 +1,23 @@
 import { sendEmail } from '@/lib/email';
 import { renderThankYouLetterEmail, ThankYouLetterParams } from '@/lib/email/thank-you-letter';
-
-import { generateMemberQRCode } from './qr';
+import { coerceTenantId, resolveTenantAppOrigin } from '@/lib/tenant/tenant-hosts';
 import type { SendThankYouLetterParams } from './types';
+
+const DATE_LOCALES = {
+  en: 'en-US',
+  sq: 'sq-AL',
+  mk: 'mk-MK',
+  sr: 'sr-Latn-RS',
+} as const;
 
 export async function sendThankYouLetterCore(
   params: SendThankYouLetterParams
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const qrCodeDataUrl = await generateMemberQRCode(params.memberNumber);
+    const tenantId = coerceTenantId(params.tenantId);
+    if (!tenantId) return { success: false, error: 'Unsupported confirmation tenant' };
 
-    const dateFormatter = new Intl.DateTimeFormat(params.locale === 'sq' ? 'sq-AL' : 'en-US', {
+    const dateFormatter = new Intl.DateTimeFormat(DATE_LOCALES[params.locale], {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -24,33 +31,17 @@ export async function sendThankYouLetterCore(
       planInterval: params.planInterval,
       memberSince: dateFormatter.format(params.memberSince),
       expiresAt: dateFormatter.format(params.expiresAt),
-      qrCodeDataUrl,
-      locale: params.locale || 'en',
+      providerReference: params.providerReference,
+      dashboardUrl: new URL(
+        `/${params.locale}/member/membership`,
+        resolveTenantAppOrigin(tenantId)
+      ).toString(),
+      locale: params.locale,
     };
 
     const emailContent = renderThankYouLetterEmail(letterParams);
-
-    const { generateThankYouPDF } = await import('@/lib/pdf/thank-you-letter');
-    const pdfBuffer = await generateThankYouPDF(letterParams);
-
-    await sendEmail(
-      params.email,
-      {
-        subject: emailContent.subject,
-        html: emailContent.html,
-        text: emailContent.text,
-      },
-      {
-        attachments: [
-          {
-            filename: `Interdomestik-Membership-${params.memberNumber}.pdf`,
-            content: pdfBuffer,
-          },
-        ],
-      }
-    );
-
-    return { success: true };
+    const delivery = await sendEmail(params.email, emailContent);
+    return delivery.success ? { success: true } : delivery;
   } catch (error) {
     console.error('[ThankYouLetter] Failed to send:', error);
     return {

@@ -103,6 +103,7 @@ describe('handleSubscriptionChanged entity retry', () => {
   });
 
   it('defers before any write when the verified transaction is absent', async () => {
+    const sendThankYouLetter = vi.fn();
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue(undefined);
     hoisted.db.query.user.findFirst.mockResolvedValue(undefined);
     hoisted.db.query.webhookEvents.findFirst.mockResolvedValue(undefined);
@@ -114,12 +115,13 @@ describe('handleSubscriptionChanged entity retry', () => {
           processingScopeKey: 'entity:mk',
           data: subscriptionData('sub_waiting', 'txn_waiting'),
         },
-        {}
+        { sendThankYouLetter }
       )
     ).rejects.toBeInstanceOf(RetryablePaddleWebhookError);
 
     expect(hoisted.tx.insert).not.toHaveBeenCalled();
     expect(hoisted.tx.update).not.toHaveBeenCalled();
     expect(hoisted.appendEvent).not.toHaveBeenCalled();
+    expect(sendThankYouLetter).not.toHaveBeenCalled();
   });
 });

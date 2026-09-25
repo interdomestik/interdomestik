@@ -39,6 +39,8 @@ describe('thank-you-letter action wrappers', () => {
       planInterval: 'year',
       memberSince: new Date('2025-01-01T00:00:00Z'),
       expiresAt: new Date('2026-01-01T00:00:00Z'),
+      providerReference: 'sub_123',
+      tenantId: 'tenant_ks',
       locale: 'en' as const,
     };
 
@@ -57,6 +59,10 @@ describe('thank-you-letter action wrappers', () => {
       planName: 'Membership',
       planPrice: '€20.00',
       planInterval: 'year',
+      memberSince: new Date('2025-01-01T00:00:00Z'),
+      expiresAt: new Date('2026-01-01T00:00:00Z'),
+      providerReference: 'sub_preview',
+      dashboardUrl: 'https://ks.interdomestik.com/en/member/membership',
       locale: 'sq' as const,
     };
 

@@ -74,8 +74,20 @@ describe('extras', () => {
 
     const mockSub = {
       id: 'sub_123',
-      items: [{ price: { unitPrice: { amount: '2000', currencyCode: 'EUR' } } }],
-      currentBillingPeriod: { endsAt: '2025-01-01T00:00:00Z' },
+      status: 'active',
+      items: [
+        {
+          price: {
+            name: 'Annual membership',
+            unitPrice: { amount: '2000', currencyCode: 'EUR' },
+          },
+        },
+      ],
+      billingCycle: { frequency: 1, interval: 'year' },
+      currentBillingPeriod: {
+        startsAt: '2026-01-01T00:00:00Z',
+        endsAt: '2027-01-01T00:00:00Z',
+      },
     };
 
     const mockUserRecord = {
@@ -95,6 +107,7 @@ describe('extras', () => {
       vi.clearAllMocks();
       // Default success mocks
       (db.query.agentSettings.findFirst as any).mockResolvedValue(null);
+      mockDeps.sendThankYouLetter.mockResolvedValue({ success: true });
       (db.transaction as any).mockImplementation(
         async (callback: (trx: typeof tx) => Promise<unknown> | unknown) => callback(tx)
       );
@@ -233,7 +246,7 @@ describe('extras', () => {
         sub: mockSub,
         userId: 'user_1',
         tenantId: 'tenant_1',
-        customData: undefined,
+        customData: { locale: 'en' },
         priceId: 'price_1',
         userRecord: mockUserRecord,
         deps: mockDeps,
@@ -280,7 +293,7 @@ describe('extras', () => {
         sub: mockSub,
         userId: 'user_1',
         tenantId: 'tenant_1',
-        customData: undefined,
+        customData: { locale: 'en' },
         priceId: 'price_1',
         userRecord: mockUserRecord,
         deps: mockDeps,
@@ -319,12 +332,12 @@ describe('extras', () => {
       expect(createMemberReferralRewardCore).not.toHaveBeenCalled();
     });
 
-    it('should send thank you letter', async () => {
+    it('sends active confirmation from exact provider and member values', async () => {
       await handleNewSubscriptionExtras({
         sub: mockSub,
         userId: 'user_1',
-        tenantId: 'tenant_1',
-        customData: undefined,
+        tenantId: 'tenant_mk',
+        customData: { locale: 'mk' },
         priceId: 'price_1',
         userRecord: mockUserRecord,
         deps: mockDeps,
@@ -333,10 +346,71 @@ describe('extras', () => {
       expect(mockDeps.sendThankYouLetter).toHaveBeenCalledWith(
         expect.objectContaining({
           email: mockUserRecord.email,
-          planPrice: '€20.00',
+          expiresAt: new Date('2027-01-01T00:00:00.000Z'),
+          locale: 'mk',
+          memberSince: new Date('2026-01-01T00:00:00.000Z'),
+          planInterval: 'година',
+          planName: 'Annual membership',
+          planPrice: expect.stringContaining('EUR'),
+          providerReference: 'sub_123',
+          tenantId: 'tenant_mk',
         })
       );
     });
+
+    it.each(['trialing', 'past_due', 'paused', 'canceled', 'deleted'])(
+      'does not send active confirmation for provider status %s',
+      async status => {
+        await handleNewSubscriptionExtras({
+          sub: { ...mockSub, status },
+          userId: 'user_1',
+          tenantId: 'tenant_mk',
+          customData: { locale: 'mk' },
+          priceId: 'price_1',
+          userRecord: mockUserRecord,
+          deps: mockDeps,
+        });
+
+        expect(mockDeps.sendThankYouLetter).not.toHaveBeenCalled();
+      }
+    );
+
+    it.each([
+      ['missing locale', mockSub, undefined, mockUserRecord],
+      [
+        'missing provider price',
+        { ...mockSub, items: [] },
+        { locale: 'mk' as const },
+        mockUserRecord,
+      ],
+      [
+        'missing provider period',
+        { ...mockSub, currentBillingPeriod: undefined },
+        { locale: 'mk' as const },
+        mockUserRecord,
+      ],
+      [
+        'missing member number',
+        mockSub,
+        { locale: 'mk' as const },
+        { ...mockUserRecord, memberNumber: null },
+      ],
+    ])(
+      'does not invent confirmation values when %s',
+      async (_name, sub, customData, userRecord) => {
+        await handleNewSubscriptionExtras({
+          sub,
+          userId: 'user_1',
+          tenantId: 'tenant_mk',
+          customData,
+          priceId: 'price_1',
+          userRecord,
+          deps: mockDeps,
+        });
+
+        expect(mockDeps.sendThankYouLetter).not.toHaveBeenCalled();
+      }
+    );
 
     it('should handle missing thank you letter dep gracefully', async () => {
       const noLetterDeps = { ...mockDeps, sendThankYouLetter: undefined };
@@ -362,7 +436,7 @@ describe('extras', () => {
         sub: mockSub,
         userId: 'user_1',
         tenantId: 'tenant_1',
-        customData: undefined,
+        customData: { locale: 'en' },
         priceId: 'price_1',
         userRecord: mockUserRecord,
         deps: mockDeps,
@@ -372,7 +446,7 @@ describe('extras', () => {
         sub: mockSub,
         userId: 'user_1',
         tenantId: 'tenant_1',
-        customData: undefined,
+        customData: { locale: 'en' },
         priceId: 'price_1',
         userRecord: mockUserRecord,
         deps: mockDeps,

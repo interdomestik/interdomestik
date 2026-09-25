@@ -15,43 +15,51 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                          | Status        | Owner                   | Work                                                                              | Exit Criteria                                                                                               |
-| --------------------------- | ------------- | ----------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `S6-MEMBER-CHECKOUT-REVIEW` | `in_progress` | Codex integration owner | Show existing plan/entity review to signed-in self-service members before Paddle. | Focus/cancel/reselect/retry/query-isolation proof; protected verification and exact-main automatic staging. |
+| ID                              | Status        | Owner                   | Work                                                                                  | Exit Criteria                                                                                                        |
+| ------------------------------- | ------------- | ----------------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `S6-MEMBER-CONFIRMATION-SAFETY` | `in_progress` | Codex integration owner | Send truthful localized confirmation only from complete active Paddle provider state. | Negative-state/missing-value/locale/retry/duplicate/tenant proof; protected checks and exact-main automatic staging. |
 
 ### Current acceptance
 
-- Base: protected main `c020c20c685c6cf5dbf2ae2569eb35eb6deca62c`; #1824 is staging-delivered.
-- Standard/family selection shows the existing review before any checkout initialization.
-- Cancel before continuation opens no checkout and restores CTA focus; reselect and deliberate retry retain the exact selected plan. Checkout initialization locks cancel, continue and plan changes.
-- Existing identity/entity configuration survives review; ambient query values cannot replace it.
-- Existing EN/SQ/MK/SR copy, anonymous OTP, assisted business, pending-session and pilot controls remain.
-- This is presentation-only review, not terms acceptance, an entity snapshot, live activation or whole S6.
+- Base: protected main `d5e657da2ed88ac94db93cf4cc55343718c08e08`; #1825 is staging-delivered.
+- Checkout preserves validated EN/SQ/MK/SR locale in Paddle custom data; provider and tenant context remain authoritative.
+- Exact provider `active` plus complete customer-visible plan, amount/currency, cadence, billing period and member values are required before confirmation.
+- Trialing/past-due/paused/canceled/deleted, missing values, foreign tenant context, out-of-order retry and duplicate receipt cannot send active confirmation.
+- Local price/date/member fallbacks, unsourced benefit/refund/protection claims, generated PDF and unsafe manual resend are removed.
+- Localized next steps link to the tenant membership route and keep saved-case submission separate.
+- This is confirmation safety, not offer/terms approval, a delivery snapshot/retry guarantee, automatic entitlement, case submission or whole S6.
 - No proxy/auth, tenancy, schema, pricing, production or guard bypass changes.
 
 ## Product Queue
 
-| Outcome                                     | Status                | Direct next evidence                                                                                                                                             |
-| ------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| S5 — member first-case journey              | `active_bounded`      | Credit #1801/#1803/#1814/#1817/#1822 and #1823 staging recovery; fresh-account activation and whole S5 remain open.                                              |
-| S6 — member continuation/membership         | `active_bounded`      | Deliver member checkout review; credit #1815 disclosure and #1824 retry; approved versioned offer, acceptance/snapshot, live activation and renewal remain open. |
-| S7 — staff handling                         | `delivered_bounded`   | Credit #1814 assigned-staff acknowledgement; fulfilment and whole S7 remain open.                                                                                |
-| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                                             |
-| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                        |
-| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                                     |
-| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                               |
+| Outcome                                     | Status                | Direct next evidence                                                                                                                                                         |
+| ------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S5 — member first-case journey              | `active_bounded`      | Credit #1801/#1803/#1814/#1817/#1822/#1823 and #1825; truthful provider confirmation remains the direct fresh-account prerequisite.                                          |
+| S6 — member continuation/membership         | `active_bounded`      | Deliver confirmation safety; credit #1815 disclosure, #1824 retry and #1825 review; offer/terms, immutable delivery snapshot/retry, live activation and renewal remain open. |
+| S7 — staff handling                         | `delivered_bounded`   | Credit #1814 assigned-staff acknowledgement; fulfilment and whole S7 remain open.                                                                                            |
+| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                                                         |
+| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                                    |
+| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                                                 |
+| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                                           |
 
 The [requirement disposition map](requirement-disposition-map.md) preserves the full 510-clause
 frontier. Unresolved rows are neither automatic features nor blanket blockers.
 
 ## Proof Ledger
 
-| ID                          | Source Refs                                             | Execution  | Run ID  | Run Root                           | Sonar   | Docker         | Sentry         | Learning | Evidence Refs                                                                                            |
-| --------------------------- | ------------------------------------------------------- | ---------- | ------- | ---------------------------------- | ------- | -------------- | -------------- | -------- | -------------------------------------------------------------------------------------------------------- |
-| `S6-MEMBER-CHECKOUT-REVIEW` | owner continuation; bounded IDA-MEM-005; main `c020c20` | `scripted` | pending | focused mounted review regressions | pending | not_applicable | not_applicable | pending  | apps/web/src/components/pricing/pricing-table*.test.tsx; apps/web/e2e/gate/subscription-contract.spec.ts |
+| ID                              | Source Refs                                                        | Execution  | Run ID  | Run Root                                        | Sonar   | Docker         | Sentry         | Learning | Evidence Refs                                                                                               |
+| ------------------------------- | ------------------------------------------------------------------ | ---------- | ------- | ----------------------------------------------- | ------- | -------------- | -------------- | -------- | ----------------------------------------------------------------------------------------------------------- |
+| `S6-MEMBER-CONFIRMATION-SAFETY` | owner continuation; bounded IDA-MEM-006/007 safety; main `d5e657d` | `scripted` | pending | focused webhook/email/checkout locale contracts | pending | not_applicable | not_applicable | pending  | paddle subscription/extras retry tests; confirmation template/sender tests; pricing table EN/SQ/MK/SR tests |
 
 ## Current Facts
 
+- #1825 protected-merged at `d5e657da2ed88ac94db93cf4cc55343718c08e08`; reviewed head `d99e70b`
+  and main share tree `e386461526354ef19a7608a40f999462a5238f67`. Required local/protected checks passed.
+  Automatic staging CD `36145768095` passed exact-main health and P0.1/P0.2/P0.3/P0.4/P0.6;
+  production jobs were skipped. See the
+  [bounded delivery receipt](https://github.com/interdomestik/interdomestik/pull/1825#issuecomment-5834108770).
+- #1825 proves only the signed-in checkout review. It does not prove terms acceptance, a provider
+  confirmation, live activation, whole S6 or user acceptance.
 - #1824 protected-merged at `c020c20c685c6cf5dbf2ae2569eb35eb6deca62c`; reviewed head `495b6cb`
   and main share tree `28d8151d3a73312a6f1c7e1d42e4e27928258495`. Required checks and strict review
   readiness passed; hosted run `36121982288` passed 292 gate and 24 smoke tests.
@@ -62,7 +70,7 @@ frontier. Unresolved rows are neither automatic features nor blanket blockers.
   live activation, generic anonymous replay, whole IDA-MEM-006/007 or offer/terms snapshots.
 - #1823 exact-main staging repaired readiness and completed #1822 saved-draft continuation.
   #1801 active-member submit/reopen, #1803 real-OTP save/return/delete/isolation, #1814 upload/staff
-  acknowledgement, #1815 membership disclosure and #1817 local disclosure remain credited.
+  acknowledgement, #1815 membership disclosure, #1817 local disclosure and #1825 review remain credited.
 - G06 ratifies historical T-503 continuation. Its referenced MINSAS/MK sources do not establish a
   current approved Paddle pilot offer/version and conflict with current payment/refund behavior.
   Approved versioned offer/entity/terms evidence remains a business dependency for capture.
@@ -73,9 +81,10 @@ frontier. Unresolved rows are neither automatic features nor blanket blockers.
 
 ## Next Selection
 
-Complete this bounded review improvement through one protected product PR and exact-main automatic
-staging. Hand off the approved offer/terms, durable snapshot and live activation gaps without starting
-another slice. Browser success never grants membership; do not substitute synthetic entitlement.
+Complete this bounded confirmation-safety improvement through one protected product PR and exact-main
+automatic staging. Hand off approved offer/terms, immutable confirmation/delivery snapshot, safe mail
+retry/resend, delayed-onboarding localization and live activation gaps without starting another slice.
+Browser success never grants membership; do not substitute synthetic entitlement.
 Final merge/staging facts may be reconciled in the next ordinary authorized product amendment;
 no status-only PR is required.
 

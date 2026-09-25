@@ -7,7 +7,9 @@ export type SendThankYouLetterParams = {
   planInterval: string;
   memberSince: Date;
   expiresAt: Date;
-  locale?: 'en' | 'sq';
+  providerReference: string;
+  tenantId: string;
+  locale: 'en' | 'sq' | 'mk' | 'sr';
 };
 
 export type PreviewThankYouLetterParams = {
@@ -16,5 +18,9 @@ export type PreviewThankYouLetterParams = {
   planName: string;
   planPrice: string;
   planInterval: string;
-  locale?: 'en' | 'sq';
+  memberSince: Date;
+  expiresAt: Date;
+  providerReference: string;
+  dashboardUrl: string;
+  locale: 'en' | 'sq' | 'mk' | 'sr';
 };
