@@ -16,16 +16,19 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`S5-SAVED-DRAFT-ACCESS-CONTINUATION` is the sole active bounded product increment. From
-protected main `9a51d469481a5843b415a5451ad246e51d54048b`, a verified person can explicitly
-continue the exact clean saved eligible draft from the neutral organizer into the existing
-canonical member draft route. The existing server membership decision remains authoritative:
-a newly verified account without active membership can review/manage its draft but cannot submit.
+`STAGING-READINESS-RECOVERY` is the sole active bounded repair, authorized by the owner after
+recurring staging failures blocked #1822. Base is protected main
+`e0cbdf1548fc5968f6714dbf68d630eb44dd4722`. Fix the mounted health probe's missing call into existing
+RLS timeout recovery and remove the deployment deadlock caused by requiring the previous target
+to be healthy before capturing its identity. Do not relax RLS posture or replacement health gates.
 
-Full new-account first-case submission depends on unfinished S6 activation/provider confirmation
-(`IDA-MEM-006`); no entitlement is fabricated to close S5. This independently useful S5 increment
-covers exact selection, review and truthful access refusal under `IDA-FST-008`, `IDA-FST-010`,
-`IDA-FST-011` and `IDA-FST-012`. It does not claim whole-clause business acceptance or whole S5.
+PR [#1822](https://github.com/interdomestik/interdomestik/pull/1822) merged the exact saved-draft
+continuation, including expired-session recovery, with protected current-head proof. Its immutable
+preview reported exact-main healthy; CD [#36103643236](https://github.com/interdomestik/interdomestik/actions/runs/36103643236)
+failed before alias movement because the previous deployment returned database-readiness HTTP 503.
+Canonical staging/browser acceptance remains pending this repair. The continuation preserves
+membership refusal; fresh-account first submission still requires S6 activation (`IDA-MEM-006`).
+Whole S5/S6, business acceptance and production deployment remain outside scope.
 
 PR [#1817](https://github.com/interdomestik/interdomestik/pull/1817) delivered the bounded
 `IDA-FST-004` local disclosure as `a5dd1e455628b7c9826c80683237adcbd0d2d4f3`. Following the separate
@@ -43,15 +46,14 @@ They do not establish new-account activation, request fulfilment, whole S5/S6/S7
 
 ## Program Goals
 
-1. Offer explicit continuation only for a confirmed clean, complete, preview-ready saved draft on the neutral organizer.
-2. Select that exact draft via an opaque fragment on the existing `?mode=drafts` route; resolve it
-   through the existing authenticated owner/tenant action, without query/access-boundary changes.
-   Recover expired sessions using the existing neutral email-code sign-in and an ownership recheck;
-   password sign-in preserves the same selection within the existing role-filtered return contract.
-3. Block editing while the initial read is pending; show localized generic failure, safe retry and
-   return-to-manager controls without disclosing foreign or missing draft facts.
-4. Preserve membership eligibility, deliberate review/submit, EN/SQ/MK/SR and no unintended claim,
-   membership, payment, CRM lead, upload or storage side effects.
+1. Let health-only traffic invoke the existing fail-closed RLS readiness recovery after a settled
+   timeout; preserve cooldown, single-flight behavior and permanent unsafe-role rejection.
+2. Capture the owned previous immutable deployment's identity from validated static staging release
+   metadata, separately recording runtime health. Missing/conflicting identity remains a blocker.
+3. Require the replacement's exact-SHA immutable health before alias mutation and strict immutable,
+   canonical health and provider mapping afterwards. Preserve serialized CD and durable receipts.
+4. Restore a previous target only after fresh exact health; an unavailable rollback stays explicitly
+   failed without moving to an unhealthy target. Verify protected main staging and existing P0 gate.
 
 ## Enduring Safety Boundaries
 
@@ -120,8 +122,8 @@ clauses and supplementary controls. SRS v0.9 remains the reviewed baseline at SH
 `8bc2b69c9babf8f228941378a01a32340f23d3ff061f92c574a9a908472981a2`; repo/program and accepted
 ADR authority control until explicitly amended.
 
-Continue the owner-adopted outcome order without rebuilding delivered behavior: the active bounded
-S5 saved-draft access continuation, remaining S5 gaps, remaining S6 acceptance after the delivered
+Continue the owner-adopted outcome order without rebuilding delivered behavior: the active staging-readiness repair completing
+#1822 staging acceptance, remaining S5 gaps, remaining S6 acceptance after the delivered
 #1815 disclosure, S7 staff handling, S8 agent handoff, S9 assisted activation, S10 branch oversight,
 S11 tenant administration, S12 platform operations and S13 outcome/closure, followed by S14
 whole-pilot rehearsal. H1 Help Now keeps its priority lane when its direct dependencies are ready.
@@ -142,7 +144,20 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-### Current product acceptance
+### Current staging recovery acceptance
+
+- A real readiness regression reproduces timeout → cached health failure, then verifies recovery
+  through health requests alone after SQL settlement/cooldown, including concurrent requests.
+- No liveness query runs while posture is unresolved or unsafe. No new retryable error class,
+  tenant bypass, admin fallback, schema or auth change is introduced.
+- Unhealthy old runtime plus valid owned staging metadata permits preparing a healthy replacement;
+  malformed/foreign/mismatched identity and unhealthy/wrong-SHA replacement fail before movement.
+- Exact new immutable and canonical health remain mandatory after movement. Rollback rechecks the
+  old target and never claims restoration when it cannot safely restore.
+- Final focused, security, protected hosted and exact-main staging P0 evidence bind to the repair;
+  prior #1822 source proof remains credited, not substituted for changed inputs.
+
+### Credited #1822 product acceptance (canonical staging pending)
 
 - A clean confirmed, complete, preview-ready vehicle/property secure draft exposes one explicit continuation action with
   EN/SQ/MK/SR copy stating that membership and separate submission remain necessary. Dirty,
@@ -190,6 +205,18 @@ alone is not business or user acceptance.
   user-acceptance or production-deployment claim follows.
 
 ## Bounded Research Brief
+
+Recovery investigation checked 2026-09-25 against current source and historical exact-deployment
+logs. The previous instance emitted `RlsRolePostureTimeoutError`; mounted health bypassed the
+asynchronous readiness entry point used by tenant requests. This integration omission is reproduced
+by the new regression; logs alone do not identify whether different events share one instance.
+[Official Vercel CLI log implementation](https://github.com/vercel/vercel/blob/main/packages/cli/src/util/logs-v2.ts)
+provided the bounded historical read API. [Postgres.js connection documentation](https://github.com/porsager/postgres/blob/master/README.md)
+explains lazy reconnect on a later query; preserve the existing narrow timeout recovery instead of
+broadening retries speculatively. Static metadata establishes owned immutable identity, not runtime
+health or independent cryptographic verification. Existing CD digest verification stays mandatory.
+
+### Reused saved-draft research
 
 Checked 2026-09-25 against installed workspace manifests and the SRS v0.9 source clauses.
 [ADAC's public online claims description](https://www.adac.de/produkte/versicherungen/autoversicherung/schaden/)

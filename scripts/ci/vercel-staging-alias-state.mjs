@@ -1,6 +1,7 @@
 import { mkdir, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fetchVercelHealth } from './fetch-vercel-health.mjs';
+import { readStagingDeploymentIdentity } from './staging-deployment-identity.mjs';
 import { waitForVercelHealth } from './wait-for-vercel-health.mjs';
 export const CANONICAL_STAGING_ALIAS = 'staging.interdomestik.com';
 const ALIAS_DEFAULTS = { teamSlug: 'ecohub', attempts: 4, retryMs: 5_000 };
@@ -93,6 +94,7 @@ export async function snapshotStagingAlias({
   env = process.env,
   fetchImpl = fetch,
   healthImpl = fetchVercelHealth,
+  attestationImpl,
 } = {}) {
   const alias = canonicalAlias(env.STAGING_ALIAS_DOMAIN);
   const token = requireValue('VERCEL_TOKEN', env.VERCEL_TOKEN);
@@ -120,18 +122,32 @@ export async function snapshotStagingAlias({
   const ownershipMatches =
     deployment.id === deploymentId && deployment.projectId === projectId && resolvedTeam === teamId;
   if (!ownershipMatches) throw new Error('Vercel deployment project/team ownership mismatch');
-  const body = await healthImpl({ healthUrl: `https://${deploymentHostname}/api/health` });
-  const commitSha = JSON.parse(body)?.build?.commitSha;
-  if (!/^[a-f0-9]{40}$/u.test(commitSha || '')) {
-    throw new Error('preimage health must expose a full lowercase commit SHA');
+  const commitSha = await readStagingDeploymentIdentity(deploymentHostname, attestationImpl);
+  let healthCommit;
+  let previousHealth;
+  try {
+    const body = await healthImpl({ healthUrl: `https://${deploymentHostname}/api/health` });
+    const observedCommit = JSON.parse(body)?.build?.commitSha;
+    if (!/^[a-f0-9]{40}$/u.test(observedCommit || '')) {
+      throw new Error('Preimage health has no valid commit identity');
+    }
+    healthCommit = observedCommit;
+    previousHealth = { status: 'healthy' };
+  } catch (error) {
+    previousHealth = { status: 'unavailable', error: boundedProviderText(error?.message) };
   }
-  return { deploymentHostname, commitSha };
+  // Identity disagreement is never downgraded to an unavailable health observation.
+  if (healthCommit !== undefined && healthCommit !== commitSha) {
+    throw new Error('Preimage health and immutable release metadata commit mismatch');
+  }
+  return { deploymentHostname, commitSha, previousHealth };
 }
 export async function confirmStagingAliasTarget({
   deploymentHostname,
   expectedCommitSha,
   env = process.env,
   snapshotImpl = snapshotStagingAlias,
+  healthImpl = fetchVercelHealth,
   waitImpl = delay,
 }) {
   const expectedHostname = deploymentHost(deploymentHostname);
@@ -150,6 +166,14 @@ export async function confirmStagingAliasTarget({
         observed.deploymentHostname === expectedHostname &&
         observed.commitSha === expectedCommitSha
       ) {
+        await healthImpl({
+          healthUrl: `https://${expectedHostname}/api/health`,
+          expectedCommitSha,
+        });
+        await healthImpl({
+          healthUrl: `https://${CANONICAL_STAGING_ALIAS}/api/health`,
+          expectedCommitSha,
+        });
         return observed;
       }
     } catch (error) {
@@ -189,4 +213,21 @@ export async function writeAliasReceipt(filePath, receipt) {
   const temporary = `${target}.${process.pid}.tmp`;
   await writeFile(temporary, `${JSON.stringify({ version: 1, ...receipt })}\n`, { mode: 0o600 });
   await rename(temporary, target);
+}
+
+export async function prepareStagingAlias({
+  baseUrl,
+  hostname,
+  expectedCommitSha,
+  env = process.env,
+  healthImpl = waitForVercelHealth,
+  snapshotImpl = snapshotStagingAlias,
+}) {
+  const host = deploymentHost(hostname);
+  if (baseUrl !== `https://${host}` || !/^[a-f0-9]{40}$/u.test(expectedCommitSha || '')) {
+    throw new Error('Staging candidate must have an exact immutable URL and commit SHA');
+  }
+  // stdout is the GitHub output protocol in the deployment caller.
+  await healthImpl({ healthUrl: `${baseUrl}/api/health`, expectedCommitSha, log: console.error });
+  return snapshotImpl({ env });
 }
