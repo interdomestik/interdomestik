@@ -164,11 +164,16 @@ describe('saved draft continuation mounted contract', () => {
       const free = catalogs[locale][1];
       const copy = JSON.parse(free.freeStart.secureSave).continuation;
       const lifecycle = { active: saved, hasUnsavedChanges: false, state: 'saved' };
-      const content = (state = 'saved', allowContinuation = true, hasUnsavedChanges = false) => (
+      const content = (
+        state = 'saved',
+        allowContinuation = true,
+        hasUnsavedChanges = false,
+        active = saved
+      ) => (
         <NextIntlClientProvider locale={locale} messages={free} timeZone="UTC">
           <SecureSaveBand
             allowContinuation={allowContinuation}
-            lifecycle={{ ...lifecycle, state, hasUnsavedChanges } as never}
+            lifecycle={{ ...lifecycle, state, hasUnsavedChanges, active } as never}
             locale={locale}
             neutralOtpHost={location.host}
           />
@@ -180,6 +185,16 @@ describe('saved draft continuation mounted contract', () => {
       expect(link).toHaveAccessibleDescription(copy.body);
       for (const state of ['loading', 'saving', 'conflict', 'error', 'deleted', 'dirty']) {
         rerender(content(state));
+        expect(screen.queryByTestId('saved-draft-continue')).not.toBeInTheDocument();
+      }
+      for (const active of [
+        { ...saved, resumeStep: 'details' },
+        { ...saved, resumeStep: 'category' },
+        ...['issueType', 'incidentDate', 'counterparty', 'desiredOutcome', 'summary'].map(
+          field => ({ ...saved, [field]: ' ' })
+        ),
+      ]) {
+        rerender(content('saved', true, false, active));
         expect(screen.queryByTestId('saved-draft-continue')).not.toBeInTheDocument();
       }
       rerender(content('saved', false));

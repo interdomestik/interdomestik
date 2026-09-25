@@ -15,9 +15,9 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                                   | Status        | Owner                   | Work                                                                                     | Exit Criteria                                                                                                                                                           |
-| ------------------------------------ | ------------- | ----------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S5-SAVED-DRAFT-ACCESS-CONTINUATION` | `in_progress` | Codex integration owner | Continue the exact saved draft to review through the existing permitted-access decision. | EN/SQ/MK/SR; clean-saved-only link; exact authenticated resume; loading/error/retry; membership refusal and zero unintended side effects; protected current-head proof. |
+| ID                                   | Status        | Owner                   | Work                                                                                     | Exit Criteria                                                                                                                                                                      |
+| ------------------------------------ | ------------- | ----------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S5-SAVED-DRAFT-ACCESS-CONTINUATION` | `in_progress` | Codex integration owner | Continue the exact saved draft to review through the existing permitted-access decision. | EN/SQ/MK/SR; clean-complete-preview-only link; exact authenticated resume; loading/error/retry; membership refusal and zero unintended side effects; protected current-head proof. |
 
 ### Current acceptance
 
@@ -73,7 +73,8 @@ SRS/frontier index. Its unresolved rows are not automatic features, deferrals or
 - Initial disk headroom was 5.5 GiB; installing locked dependencies left 3.6 GiB. Heavy local build
   capacity is insufficient given the prior ENOSPC receipt. Use protected current-head hosted proof
   for the expensive lane; retain focused local proof and document any environment limitation.
-- Pending protected merge/staging is not delivery. No production or whole-program readiness claim.
+- No deployment, product readiness or user-acceptance claim is made for this candidate before
+  protected delivery; prior scoped staging receipts above retain their original meaning.
 
 ## Next Selection
 

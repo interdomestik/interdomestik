@@ -1,5 +1,14 @@
 import { savedDraftContinuationHref } from '@/lib/saved-draft-continuation';
-import type { SecureSaveCopy } from './types';
+import { hasIncompleteDraft } from './intake-validation';
+import type { SavedDraft, SecureSaveCopy } from './types';
+
+export function isReviewReadySavedDraft(draft: SavedDraft): boolean {
+  return (
+    (draft.category === 'vehicle' || draft.category === 'property') &&
+    draft.resumeStep === 'preview' &&
+    !hasIncompleteDraft(draft.category, draft)
+  );
+}
 
 export function SavedDraftContinuation({
   copy,

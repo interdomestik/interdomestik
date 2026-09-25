@@ -43,7 +43,7 @@ They do not establish new-account activation, request fulfilment, whole S5/S6/S7
 
 ## Program Goals
 
-1. Offer explicit continuation only for a confirmed clean saved draft on the neutral organizer.
+1. Offer explicit continuation only for a confirmed clean, complete, preview-ready saved draft on the neutral organizer.
 2. Select that exact draft via an opaque fragment on the existing `?mode=drafts` route; resolve it
    through the existing authenticated owner/tenant action, without query/access-boundary changes.
 3. Block editing while the initial read is pending; show localized generic failure, safe retry and
@@ -142,7 +142,7 @@ alone is not business or user acceptance.
 
 ### Current product acceptance
 
-- A clean confirmed vehicle/property secure draft exposes one explicit continuation action with
+- A clean confirmed, complete, preview-ready vehicle/property secure draft exposes one explicit continuation action with
   EN/SQ/MK/SR copy stating that membership and separate submission remain necessary. Dirty,
   pending, conflicted, failed or deleted drafts expose no continuation action.
 - Only the opaque UUID travels in the URL fragment; no facts, authorization or entitlement travels
