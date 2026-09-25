@@ -18,7 +18,7 @@ const customDataSchema = z
 const priceSchema = z
   .object({
     id: z.string().optional(),
-    name: z.string().optional(),
+    name: z.unknown().optional(),
     description: z.string().optional(),
     unitPrice: z
       .object({

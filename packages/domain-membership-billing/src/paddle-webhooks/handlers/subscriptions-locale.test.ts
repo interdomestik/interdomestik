@@ -65,4 +65,37 @@ describe('subscription locale isolation', () => {
     expect(hoisted.tx.insert).toHaveBeenCalled();
     expect(sendThankYouLetter).not.toHaveBeenCalled();
   });
+
+  it('persists a paid subscription but withholds confirmation for a null provider price name', async () => {
+    await handleSubscriptionChanged(
+      {
+        eventType: 'subscription.created',
+        data: {
+          id: 'sub_null_price_name',
+          status: 'active',
+          customData: {
+            userId: 'user_123',
+            tenantId: 'tenant_mk',
+            agentId: 'agent_1',
+            locale: 'en',
+          },
+          items: [
+            {
+              price: {
+                id: 'pri_123',
+                name: null,
+                unitPrice: { amount: '2000', currencyCode: 'EUR' },
+              },
+            },
+          ],
+          billingCycle: { frequency: 1, interval: 'year' },
+          currentBillingPeriod: { startsAt: '2026-01-01', endsAt: '2027-01-01' },
+        },
+      },
+      { sendThankYouLetter }
+    );
+
+    expect(hoisted.tx.insert).toHaveBeenCalled();
+    expect(sendThankYouLetter).not.toHaveBeenCalled();
+  });
 });
