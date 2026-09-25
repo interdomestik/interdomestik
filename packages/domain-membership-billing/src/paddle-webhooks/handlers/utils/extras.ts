@@ -6,7 +6,8 @@ import { createCommissionCore } from '../../../commissions/create';
 import { createRenewalCommissionCore } from '../../../commissions/create-renewal';
 import { calculateCommission } from '../../../commissions/types';
 import { revokeAgentClientReadScope } from '../../../ownership-attribution';
-import type { PaddleWebhookAuditDeps, PaddleWebhookDeps } from '../../types';
+import type { CheckoutCustomData, PaddleWebhookAuditDeps, PaddleWebhookDeps } from '../../types';
+import { processMembershipConfirmation } from './membership-confirmation';
 import { recordMembershipAttributionRecordedEvent } from './membership-attribution-recorded-event';
 import {
   resolveNewMembershipOwnership,
@@ -14,20 +15,14 @@ import {
   type WebhookUserRecord,
 } from './new-membership-ownership';
 
-export const redactEmail = (email?: string | null) => {
-  if (!email) return 'unknown';
-  const [local, domain] = email.split('@');
-  if (!domain) return 'unknown';
-  const maskedLocal = local.length <= 2 ? `${local[0] ?? ''}*` : `${local[0]}***${local.slice(-1)}`;
-  return `${maskedLocal}@${domain}`;
-};
+export { redactEmail } from './membership-confirmation';
 
 async function processCommissions(args: {
   internalSubscriptionId?: string;
   sub: any;
   userId: string;
   tenantId: string;
-  customData: { agentId?: string } | undefined;
+  customData: CheckoutCustomData | undefined;
   userRecord?: WebhookUserRecord | null;
   priceId: string;
   deps: PaddleWebhookAuditDeps;
@@ -100,7 +95,7 @@ async function processMemberReferralRewards(args: {
   sub: any;
   userId: string;
   tenantId: string;
-  customData: { agentId?: string } | undefined;
+  customData: CheckoutCustomData | undefined;
   userRecord?: WebhookUserRecord | null;
   deps: PaddleWebhookAuditDeps;
 }) {
@@ -150,7 +145,7 @@ async function processMemberReferralRewards(args: {
 async function recordReadOnlyMembershipAttribution(args: {
   tenantId: string;
   userId: string;
-  customData: { agentId?: string } | undefined;
+  customData: CheckoutCustomData | undefined;
   userRecord?: WebhookUserRecord | null;
 }) {
   const ownership = resolveNewMembershipOwnership(args);
@@ -248,47 +243,13 @@ async function processRenewalCommissions(args: {
   }
 }
 
-async function processThankYouLetter(args: {
-  sub: any;
-  userId: string;
-  priceId: string;
-  userRecord: any;
-  deps: Pick<PaddleWebhookDeps, 'sendThankYouLetter'>;
-}) {
-  const { sub, userId, priceId, userRecord, deps } = args;
-  if (!deps.sendThankYouLetter || !userRecord) return;
-
-  try {
-    const planPrice = sub.items?.[0]?.price?.unitPrice?.amount
-      ? (Number.parseFloat(sub.items[0].price.unitPrice.amount) / 100).toFixed(2)
-      : '20.00';
-    const periodEnd = sub.currentBillingPeriod?.endsAt
-      ? new Date(sub.currentBillingPeriod.endsAt)
-      : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
-
-    await deps.sendThankYouLetter({
-      email: userRecord.email,
-      memberName: userRecord.name,
-      memberNumber: userRecord.memberNumber || `M-${userId.slice(0, 8).toUpperCase()}`,
-      planName: priceId || 'Standard',
-      planPrice: `€${planPrice}`,
-      planInterval: 'year',
-      memberSince: new Date(),
-      expiresAt: periodEnd,
-      locale: 'en',
-    });
-    console.log(`[Webhook] 📧 Thank-you Letter sent to ${redactEmail(userRecord.email)}`);
-  } catch (emailError) {
-    console.error('[Webhook] Failed to send Thank-you Letter:', emailError);
-  }
-}
-
 export async function handleNewSubscriptionExtras(args: {
+  eventType: string;
   internalSubscriptionId?: string;
   sub: any;
   userId: string;
   tenantId: string;
-  customData: { agentId?: string } | undefined;
+  customData: CheckoutCustomData | undefined;
   priceId: string;
   userRecord: WebhookUserRecord | null;
   deps: Pick<PaddleWebhookDeps, 'sendThankYouLetter'> & PaddleWebhookAuditDeps;
@@ -296,7 +257,7 @@ export async function handleNewSubscriptionExtras(args: {
   await processCommissions(args);
   await recordReadOnlyMembershipAttribution(args);
   await processMemberReferralRewards(args);
-  await processThankYouLetter(args);
+  await processMembershipConfirmation(args);
 }
 
 export async function handleRenewalSubscriptionExtras(args: {
@@ -304,7 +265,7 @@ export async function handleRenewalSubscriptionExtras(args: {
   sub: any;
   userId: string;
   tenantId: string;
-  customData: { agentId?: string } | undefined;
+  customData: CheckoutCustomData | undefined;
   priceId: string;
   userRecord: any;
   ownership?: {

@@ -108,6 +108,7 @@ describe('PricingTable', () => {
           customer: { email: 'test@example.com' },
           customData: expect.objectContaining({
             acquisitionSource: 'self_serve_web',
+            locale: 'en',
             tenantId: 'tenant_ks',
             userId: 'user-123',
           }),
@@ -158,7 +159,11 @@ describe('PricingTable', () => {
       expect(mockPaddle.Checkout.open).toHaveBeenCalledWith(
         expect.objectContaining({
           items: [{ priceId: checkoutConfig.priceIds.familyYear, quantity: 1 }],
-          customData: expect.objectContaining({ tenantId: 'tenant_ks', userId: 'user-123' }),
+          customData: expect.objectContaining({
+            locale,
+            tenantId: 'tenant_ks',
+            userId: 'user-123',
+          }),
         })
       );
     }
@@ -192,6 +197,7 @@ describe('PricingTable', () => {
           customData: expect.objectContaining({
             acquisitionSource: 'self_serve_web',
             agentId: 'agent-42',
+            locale: 'en',
             tenantId: 'tenant_mk',
             utmSource: 'google',
             utmMedium: 'cpc',

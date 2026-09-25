@@ -12,7 +12,6 @@ import { PreferencesCard } from '@/app/[locale]/admin/users/[id]/_components/pre
 import { RecentClaimsCard } from '@/app/[locale]/admin/users/[id]/_components/recent-claims-card';
 import { UserProfileHeader } from '@/app/[locale]/admin/users/[id]/_components/user-profile-header';
 import { getAdminUserProfileCore } from '@/app/[locale]/admin/users/[id]/_core';
-import { ResendWelcomeEmailButton } from '@/app/[locale]/admin/users/[id]/resend-welcome-button';
 import { type AdminTenantOption } from '@/components/admin/admin-tenant-selector';
 
 const RECENT_CLAIMS_LIMIT = 6;
@@ -117,14 +116,13 @@ export async function AdminUserDetailV2Page({
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+      <div className="flex items-center gap-3 text-sm text-muted-foreground">
         <Button asChild variant="ghost" size="sm">
           <Link href={backHref}>
             <ArrowLeft className="h-4 w-4" />
             {t('actions.back')}
           </Link>
         </Button>
-        <ResendWelcomeEmailButton userId={member.id} />
       </div>
 
       <UserProfileHeader

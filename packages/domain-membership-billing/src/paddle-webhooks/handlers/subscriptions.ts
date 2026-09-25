@@ -82,6 +82,7 @@ export async function handleSubscriptionChanged(
   // 4. Extras (Commission + Email) for new subscriptions
   if (params.eventType === 'subscription.created') {
     await handleNewSubscriptionExtras({
+      eventType: params.eventType,
       internalSubscriptionId: storedSubscriptionId,
       sub,
       userId,

@@ -51,15 +51,18 @@ export function buildCheckoutCustomData(args: {
   userId?: string;
   agentId?: string;
   tenantId?: string | null;
+  locale?: string;
   search?: string;
 }) {
   const attribution = getCheckoutAttribution(args.search ?? '');
+  const locale = ['en', 'sq', 'mk', 'sr'].includes(args.locale ?? '') ? args.locale : undefined;
 
   return {
     acquisitionSource: 'self_serve_web',
     ...(args.userId ? { userId: args.userId } : {}),
     ...(args.agentId ? { agentId: args.agentId } : {}),
     ...(args.tenantId ? { tenantId: args.tenantId } : {}),
+    ...(locale ? { locale } : {}),
     ...(attribution.utmSource ? { utmSource: attribution.utmSource } : {}),
     ...(attribution.utmMedium ? { utmMedium: attribution.utmMedium } : {}),
     ...(attribution.utmCampaign ? { utmCampaign: attribution.utmCampaign } : {}),

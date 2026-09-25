@@ -1,56 +1,15 @@
 import { sendEmail } from '@/lib/email';
-import { renderThankYouLetterEmail, ThankYouLetterParams } from '@/lib/email/thank-you-letter';
-
-import { generateMemberQRCode } from './qr';
+import { renderThankYouLetterEmail } from '@/lib/email/thank-you-letter';
+import { buildThankYouLetterParams } from './params.core';
 import type { SendThankYouLetterParams } from './types';
 
 export async function sendThankYouLetterCore(
   params: SendThankYouLetterParams
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const qrCodeDataUrl = await generateMemberQRCode(params.memberNumber);
-
-    const dateFormatter = new Intl.DateTimeFormat(params.locale === 'sq' ? 'sq-AL' : 'en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-
-    const letterParams: ThankYouLetterParams = {
-      memberName: params.memberName,
-      memberNumber: params.memberNumber,
-      planName: params.planName,
-      planPrice: params.planPrice,
-      planInterval: params.planInterval,
-      memberSince: dateFormatter.format(params.memberSince),
-      expiresAt: dateFormatter.format(params.expiresAt),
-      qrCodeDataUrl,
-      locale: params.locale || 'en',
-    };
-
-    const emailContent = renderThankYouLetterEmail(letterParams);
-
-    const { generateThankYouPDF } = await import('@/lib/pdf/thank-you-letter');
-    const pdfBuffer = await generateThankYouPDF(letterParams);
-
-    await sendEmail(
-      params.email,
-      {
-        subject: emailContent.subject,
-        html: emailContent.html,
-        text: emailContent.text,
-      },
-      {
-        attachments: [
-          {
-            filename: `Interdomestik-Membership-${params.memberNumber}.pdf`,
-            content: pdfBuffer,
-          },
-        ],
-      }
-    );
-
-    return { success: true };
+    const emailContent = renderThankYouLetterEmail(buildThankYouLetterParams(params));
+    const delivery = await sendEmail(params.email, emailContent);
+    return delivery.success ? { success: true } : delivery;
   } catch (error) {
     console.error('[ThankYouLetter] Failed to send:', error);
     return {

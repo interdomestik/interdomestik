@@ -1,7 +1,6 @@
 'use server';
 
 import { previewThankYouLetterCore } from './thank-you-letter/preview';
-import { resendWelcomeEmailCore } from './thank-you-letter/resend';
 import { sendThankYouLetterCore } from './thank-you-letter/send';
 import type {
   PreviewThankYouLetterParams,
@@ -20,7 +19,9 @@ export async function sendThankYouLetter(params: {
   planInterval: string;
   memberSince: Date;
   expiresAt: Date;
-  locale?: 'en' | 'sq';
+  providerReference: string;
+  tenantId: string;
+  locale: 'en' | 'sq' | 'mk' | 'sr';
 }): Promise<{ success: boolean; error?: string }> {
   return sendThankYouLetterCore(params satisfies SendThankYouLetterParams);
 }
@@ -34,14 +35,11 @@ export async function previewThankYouLetter(params: {
   planName: string;
   planPrice: string;
   planInterval: string;
-  locale?: 'en' | 'sq';
+  memberSince: Date;
+  expiresAt: Date;
+  providerReference: string;
+  tenantId: string;
+  locale: 'en' | 'sq' | 'mk' | 'sr';
 }): Promise<{ html: string; text: string }> {
   return previewThankYouLetterCore(params satisfies PreviewThankYouLetterParams);
-}
-
-/**
- * Admin Action: Resend Welcome Email to a user
- */
-export async function resendWelcomeEmail(userId: string) {
-  return resendWelcomeEmailCore(userId);
 }

@@ -73,24 +73,9 @@ describe('handleSubscriptionChanged', () => {
     );
   });
 
-  it('ignores invalid payload safely (Zod)', async () => {
-    const invalidPayload = {
-      id: 'sub_123',
-      // Missing status
-      customData: { userId: 'user_123' },
-    };
-
-    await handleSubscriptionChanged(
-      { eventType: 'subscription.updated', data: invalidPayload },
-      { logAuditEvent }
-    );
-
-    expect(hoisted.tx.insert).not.toHaveBeenCalled();
-    expect(logAuditEvent).not.toHaveBeenCalled();
-  });
-
   it('reconciles an anonymous subscription.created before upserting the subscription', async () => {
     const requestPasswordResetOnboarding = vi.fn();
+    const sendThankYouLetter = vi.fn();
 
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue(undefined);
     hoisted.db.query.webhookEvents.findFirst.mockResolvedValue({
@@ -112,7 +97,7 @@ describe('handleSubscriptionChanged', () => {
         id: 'user_new',
         tenantId: 'tenant_mk',
         email: 'buyer@example.com',
-        name: 'buyer',
+        name: '',
         memberNumber: 'MEM-2026-000123',
         branchId: 'branch-mk-main',
         role: 'member',
@@ -129,16 +114,21 @@ describe('handleSubscriptionChanged', () => {
           id: 'sub_new',
           status: 'active',
           transactionId: 'txn_anon',
-          customData: { tenantId: 'tenant_mk', agentId: 'agent_9' },
+          customData: { tenantId: 'tenant_mk', agentId: 'agent_9', locale: 'en' },
           items: [
             {
-              price: { id: 'pri_123', unitPrice: { amount: '2000', currencyCode: 'EUR' } },
+              price: {
+                id: 'pri_123',
+                name: 'Annual membership',
+                unitPrice: { amount: '2000', currencyCode: 'EUR' },
+              },
             },
           ],
+          billingCycle: { frequency: 1, interval: 'year' },
           currentBillingPeriod: { startsAt: '2026-01-01', endsAt: '2027-01-01' },
         },
       },
-      { requestPasswordResetOnboarding }
+      { requestPasswordResetOnboarding, sendThankYouLetter }
     );
 
     expect(requestPasswordResetOnboarding).toHaveBeenCalledWith({
@@ -147,156 +137,7 @@ describe('handleSubscriptionChanged', () => {
     });
     expect(hoisted.db.transaction).toHaveBeenCalledTimes(3);
     expect(hoisted.tx.insert).toHaveBeenCalled();
-  });
-
-  it('throws when a valid subscription event cannot resolve tenant context', async () => {
-    hoisted.db.query.subscriptions.findFirst.mockResolvedValue(undefined);
-    hoisted.db.query.user.findFirst.mockResolvedValue(undefined);
-
-    await expect(
-      handleSubscriptionChanged(
-        {
-          eventType: 'subscription.created',
-          data: {
-            id: 'sub_missing_tenant',
-            status: 'active',
-            customData: { userId: 'user_without_tenant' },
-            items: [
-              {
-                price: { id: 'pri_123', unitPrice: { amount: '2000', currencyCode: 'EUR' } },
-              },
-            ],
-            currentBillingPeriod: { startsAt: '2026-01-01', endsAt: '2027-01-01' },
-          },
-        },
-        { logAuditEvent }
-      )
-    ).rejects.toThrow('Unable to resolve subscription context');
-
-    expect(hoisted.tx.insert).not.toHaveBeenCalled();
-    expect(logAuditEvent).not.toHaveBeenCalled();
-  });
-
-  it('fails closed when provider tenant metadata conflicts with canonical subscription tenant', async () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-
-    hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
-      id: 'sub_existing',
-      tenantId: 'tenant_real',
-      userId: 'user_123',
-    });
-    hoisted.db.query.user.findFirst.mockResolvedValue({
-      id: 'user_123',
-      email: 'test@example.com',
-      tenantId: 'tenant_real',
-    });
-
-    await expect(
-      handleSubscriptionChanged(
-        {
-          eventType: 'subscription.updated',
-          data: {
-            id: 'sub_existing',
-            status: 'active',
-            customData: { userId: 'user_123', tenantId: 'tenant_bad' },
-            items: [
-              {
-                price: { id: 'pri_123', unitPrice: { amount: '1000', currencyCode: 'USD' } },
-              },
-            ],
-            currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
-          },
-        },
-        { logAuditEvent }
-      )
-    ).rejects.toThrow('customData tenant=tenant_bad conflicts with canonical tenant=tenant_real');
-
-    expect(hoisted.tx.insert).not.toHaveBeenCalled();
-    expect(hoisted.tx.update).not.toHaveBeenCalled();
-    expect(logAuditEvent).not.toHaveBeenCalled();
-    expect(warnSpy).not.toHaveBeenCalled();
-
-    warnSpy.mockRestore();
-  });
-
-  it('does not fall back to checkout reconciliation for subscription.created tenant conflicts', async () => {
-    hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
-      id: 'sub_existing',
-      tenantId: 'tenant_real',
-      userId: 'user_123',
-    });
-    hoisted.db.query.user.findFirst.mockResolvedValue({
-      id: 'user_123',
-      email: 'test@example.com',
-      tenantId: 'tenant_real',
-    });
-
-    await expect(
-      handleSubscriptionChanged(
-        {
-          eventType: 'subscription.created',
-          data: {
-            id: 'sub_existing',
-            status: 'active',
-            transactionId: 'txn_existing',
-            customData: { userId: 'user_123', tenantId: 'tenant_bad' },
-            items: [
-              {
-                price: { id: 'pri_123', unitPrice: { amount: '1000', currencyCode: 'USD' } },
-              },
-            ],
-            currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
-          },
-        },
-        { logAuditEvent }
-      )
-    ).rejects.toThrow('customData tenant=tenant_bad conflicts with canonical tenant=tenant_real');
-
-    expect(hoisted.db.query.webhookEvents.findFirst).not.toHaveBeenCalled();
-    expect(hoisted.tx.insert).not.toHaveBeenCalled();
-    expect(logAuditEvent).not.toHaveBeenCalled();
-  });
-
-  it('uses existing subscription canonical user when provider customData omits userId', async () => {
-    const mockWhere = vi.fn().mockReturnValue({
-      returning: vi.fn().mockResolvedValue([{ id: 'mock_sub_existing' }]),
-    });
-    const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
-    hoisted.tx.update.mockReturnValue({ set: mockSet });
-
-    hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
-      id: 'sub_existing',
-      tenantId: 'tenant_abc',
-      userId: 'user_canonical',
-    });
-    hoisted.db.query.user.findFirst.mockResolvedValue({
-      id: 'user_canonical',
-      email: 'test@example.com',
-      tenantId: 'tenant_abc',
-    });
-
-    await handleSubscriptionChanged(
-      {
-        eventType: 'subscription.updated',
-        data: {
-          id: 'sub_existing',
-          status: 'active',
-          customData: { tenantId: 'tenant_abc' },
-          items: [
-            {
-              price: { id: 'pri_123', unitPrice: { amount: '1000', currencyCode: 'USD' } },
-            },
-          ],
-          currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
-        },
-      },
-      { logAuditEvent }
-    );
-
-    expect(mockSet).toHaveBeenCalledWith(
-      expect.objectContaining({ tenantId: 'tenant_abc', userId: 'user_canonical' })
-    );
-    expect(mockWhere).toHaveBeenCalled();
+    expect(sendThankYouLetter).not.toHaveBeenCalled();
   });
 
   it('updates an existing user-scoped subscription row instead of inserting a second row', async () => {

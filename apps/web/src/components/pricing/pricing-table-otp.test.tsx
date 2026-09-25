@@ -68,6 +68,7 @@ describe('PricingTable', () => {
           customer: { email: 'member@example.com' },
           customData: expect.objectContaining({
             acquisitionSource: 'self_serve_web',
+            locale: 'en',
             tenantId: 'tenant_ks',
             userId: 'otp-user-1',
           }),
