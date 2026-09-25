@@ -7,7 +7,7 @@ import { createRenewalCommissionCore } from '../../../commissions/create-renewal
 import { calculateCommission } from '../../../commissions/types';
 import { revokeAgentClientReadScope } from '../../../ownership-attribution';
 import type { CheckoutCustomData, PaddleWebhookAuditDeps, PaddleWebhookDeps } from '../../types';
-import { processMembershipConfirmation, redactEmail } from './membership-confirmation';
+import { processMembershipConfirmation } from './membership-confirmation';
 import { recordMembershipAttributionRecordedEvent } from './membership-attribution-recorded-event';
 import {
   resolveNewMembershipOwnership,
@@ -15,7 +15,7 @@ import {
   type WebhookUserRecord,
 } from './new-membership-ownership';
 
-export { redactEmail };
+export { redactEmail } from './membership-confirmation';
 
 async function processCommissions(args: {
   internalSubscriptionId?: string;
