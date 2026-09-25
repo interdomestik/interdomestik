@@ -1,5 +1,6 @@
 export { sha256Hex } from './crypto';
 export { handlePaddleEvent } from './handle';
+export { membershipConfirmationDeliveryStore } from './membership-confirmation-delivery';
 export { persistInvoiceAndLedgerInvariants } from './invariants';
 export { isRetryablePaddleWebhookError, RetryablePaddleWebhookError } from './errors';
 export { parsePaddleWebhookBody } from './parse';

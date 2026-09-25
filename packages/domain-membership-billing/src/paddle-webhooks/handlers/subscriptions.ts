@@ -3,16 +3,31 @@ import { subscriptionEventDataSchema } from '../schemas';
 import { mapPaddleStatus } from '../subscription-status';
 
 import type { PaddleWebhookAuditDeps, PaddleWebhookDeps } from '../types';
-import { upsertSubscription } from './subscription-upsert';
+import { resolveSubscriptionForUpsert, upsertSubscription } from './subscription-upsert';
 import { resolveSubscriptionContext } from './utils/context';
 import { handleNewSubscriptionExtras } from './utils/extras';
+import {
+  deliverMembershipConfirmation,
+  prepareMembershipConfirmation,
+  readyMembershipConfirmation,
+} from './utils/membership-confirmation';
 import { reconcileCheckoutUser } from './utils/reconcile-checkout-user';
 
 export async function handleSubscriptionChanged(
-  params: { eventType: string; data: unknown; processingScopeKey?: string },
+  params: {
+    eventType: string;
+    data: unknown;
+    processingScopeKey?: string;
+    providerEventId?: string;
+    webhookPayloadHash?: string;
+  },
   deps: Pick<
     PaddleWebhookDeps,
-    'sendThankYouLetter' | 'requestPasswordResetOnboarding' | 'resolvePaddleCustomer'
+    | 'membershipConfirmationDelivery'
+    | 'prepareThankYouLetter'
+    | 'sendThankYouLetter'
+    | 'requestPasswordResetOnboarding'
+    | 'resolvePaddleCustomer'
   > &
     PaddleWebhookAuditDeps = {}
 ) {
@@ -38,6 +53,32 @@ export async function handleSubscriptionChanged(
     userRecord: canonicalUserRecord,
     customData,
   });
+  const subscriptionForUpsert = await resolveSubscriptionForUpsert({
+    existingSub,
+    tenantId,
+    userId,
+  });
+
+  const confirmationPreparation =
+    params.eventType === 'subscription.created'
+      ? await prepareMembershipConfirmation({
+          eventType: params.eventType,
+          providerEventId: params.providerEventId,
+          webhookPayloadHash: params.webhookPayloadHash,
+          internalSubscriptionId: subscriptionForUpsert?.id ?? sub.id,
+          sub,
+          userId,
+          tenantId,
+          customData,
+          userRecord: canonicalUserRecord,
+          deps,
+        })
+      : { kind: 'continue' as const };
+  if (confirmationPreparation.kind === 'stop') return;
+  if (confirmationPreparation.kind === 'job' && !confirmationPreparation.job.requiresEffects) {
+    await deliverMembershipConfirmation(confirmationPreparation.job);
+    return;
+  }
 
   const priceId = sub.items?.[0]?.price?.id || sub.items?.[0]?.priceId || 'unknown';
   const canonicalPlanState = await resolveCanonicalMembershipPlanState({
@@ -47,19 +88,21 @@ export async function handleSubscriptionChanged(
   const mappedStatus = mapPaddleStatus(sub.status);
 
   // 2. Upsert Subscription
-  const storedSubscriptionId = await upsertSubscription({
+  const subscriptionUpsert = await upsertSubscription({
     sub,
     tenantId,
     userId,
     agentId: resolvedAgentId,
     branchId,
-    existingSub,
+    existingSub: subscriptionForUpsert,
     mappedStatus,
     planState: canonicalPlanState,
+    providerEventId: params.providerEventId,
   });
+  const storedSubscriptionId = subscriptionUpsert.subscriptionId;
 
   // 3. Audit Log
-  if (deps.logAuditEvent) {
+  if (deps.logAuditEvent && subscriptionUpsert.effectsApplied) {
     await deps.logAuditEvent({
       actorRole: 'system',
       action: 'subscription.updated',
@@ -83,6 +126,7 @@ export async function handleSubscriptionChanged(
   if (params.eventType === 'subscription.created') {
     await handleNewSubscriptionExtras({
       eventType: params.eventType,
+      providerEventId: params.providerEventId,
       internalSubscriptionId: storedSubscriptionId,
       sub,
       userId,
@@ -92,6 +136,10 @@ export async function handleSubscriptionChanged(
       userRecord: canonicalUserRecord,
       deps,
     });
+    if (confirmationPreparation.kind === 'job') {
+      await readyMembershipConfirmation(confirmationPreparation.job, storedSubscriptionId);
+      await deliverMembershipConfirmation(confirmationPreparation.job);
+    }
   }
 }
 

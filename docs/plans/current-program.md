@@ -16,15 +16,22 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`S6-MEMBER-CONFIRMATION-SAFETY` is the sole active bounded product increment, selected under the
+`S6-MEMBER-CONFIRMATION-DELIVERY` is the sole active bounded product increment, selected under the
 owner's standing implementation/merge/staging authorization. Base is protected main
-`d5e657da2ed88ac94db93cf4cc55343718c08e08`. A signed `subscription.created` currently sends a
-welcome email and PDF for every provider status, fills missing price/date/member values with local
-fallbacks, forces English and advertises unverified benefits, refund and protection claims. Make
-confirmation fail closed unless Paddle reports an active membership with complete provider/member
-values, then send truthful EN/SQ/MK/SR next steps to the tenant-localized membership route. This is
-bounded IDA-MEM-006 confirmation safety, not an approved offer/terms package, delivery ledger,
-automatic entitlement or whole IDA-MEM-006/007 acceptance.
+`d2a37205ca8db13e684228c9288dd7bbcbd667ec`. PR #1826 already made confirmation fail closed unless
+an exact signed Paddle `subscription.created` is active and complete. Preserve that gate while
+recording one immutable tenant/member/subscription/provider snapshot, retrying failed or uncertain
+delivery from that stored snapshot, and suppressing duplicate or contradictory delivery.
+This is bounded IDA-MEM-006/007 delivery reliability, not an approved offer/terms package, automatic
+entitlement, generic mail platform, live activation or whole IDA-MEM-006/007 acceptance.
+
+PR [#1826](https://github.com/interdomestik/interdomestik/pull/1826) delivered fail-closed localized
+Paddle confirmation as protected merge `d2a37205ca8db13e684228c9288dd7bbcbd667ec`. Its
+[receipt](https://github.com/interdomestik/interdomestik/pull/1826#issuecomment-5839509942) records
+required local/protected checks and automatic staging CD `36185398763`: attempt 1 encountered a
+transient network precheck failure and rolled back, while unchanged-source attempt 2 passed exact-main
+health and P0.1/P0.2/P0.3/P0.4/P0.6. Production jobs were skipped. Credit its active/complete/localized
+gate; do not rebuild it or infer delivery retry, terms acceptance, live activation or user acceptance.
 
 PR [#1825](https://github.com/interdomestik/interdomestik/pull/1825) delivered the signed-in
 plan/entity checkout review as protected merge `d5e657da2ed88ac94db93cf4cc55343718c08e08`.
@@ -66,15 +73,17 @@ They do not establish new-account activation, request fulfilment, whole S5/S6/S7
 
 ## Program Goals
 
-1. Dispatch membership confirmation only for an exact signed Paddle `subscription.created` whose
-   provider status is active and whose customer-visible plan, amount/currency, billing cadence,
-   billing period and authoritative member values are complete.
-2. Carry the validated checkout locale through provider custom data and render EN/SQ/MK/SR copy
-   with the tenant-localized membership route and a separate saved-case submission step.
-3. Remove the inaccurate generated PDF and fail closed for non-active states, missing values,
-   foreign tenant context, duplicate receipts and unsafe manual reconstruction/resend.
-4. Do not invent benefits, coverage, refunds, price/date/member fallbacks, offer or terms approval,
-   a delivery receipt, entitlement, case submission or user acceptance.
+1. Reuse #1826's exact active/complete Paddle gate and persist one immutable confirmation snapshot,
+   including rendered recipient/subject/HTML/text, bound to the canonical tenant, member, internal
+   subscription, provider subscription, event ID and signed payload hash before effects. Resolve the
+   existing one-per-user internal subscription before snapshotting a returning provider subscription.
+2. Record authorization before subscription effects, mark it ready only after those effects, and
+   retry failed or uncertain ready attempts from the stored request with one stable provider
+   idempotency key without replaying completed subscription effects.
+3. Suppress successful replay and contradictory or out-of-order events; same-evidence pending retry
+   must reuse the stored request and provider idempotency key rather than reconstructing delivery.
+4. Do not trigger entitlement from mail success or invent benefits, coverage, refunds, offer/terms
+   approval, case submission, generic resend UI, live activation or user acceptance.
 
 ## Enduring Safety Boundaries
 
@@ -144,7 +153,7 @@ clauses and supplementary controls. SRS v0.9 remains the reviewed baseline at SH
 ADR authority control until explicitly amended.
 
 Continue the owner-adopted outcome order without rebuilding delivered behavior: the active bounded
-S6 provider-confirmation safety prerequisite for fresh-account S5 submission, remaining S5 gaps,
+S6 provider-confirmation delivery prerequisite for fresh-account S5 submission, remaining S5 gaps,
 remaining S6 acceptance after the delivered #1815 disclosure and #1825 review, S7 staff handling,
 S8 agent handoff, S9 assisted activation, S10 branch oversight, S11 tenant administration, S12
 platform operations and S13 outcome/closure, followed by S14 whole-pilot rehearsal. H1 Help Now
@@ -152,9 +161,9 @@ keeps its priority lane when its direct dependencies are ready.
 
 Direct dependencies remain local to their consumers. PR #1814 proves request-bound upload and
 assigned-staff acknowledgement; PR #1815 proves the bounded member lifecycle/access disclosure.
-This slice reuses #1824 provider-event reconciliation/dedupe and #1825 checkout locale/review. Approved
-effective-dated offer/terms, immutable confirmation/delivery snapshots, delayed-onboarding localization,
-safe resend/retry, live activation, renewal, invoice and payment-operations acceptance remain open.
+This slice reuses #1824 provider-event reconciliation/dedupe, #1825 checkout locale/review and #1826
+fail-closed confirmation. Approved effective-dated offer/terms, delayed-onboarding localization, live
+activation, renewal, invoice and payment-operations acceptance remain open.
 Reviewed signed/versioned/integrity/expiry contracts precede offline pack readiness; S8 precedes
 dependent S9; recovery, partner, mandate, consent and billing receipts precede affected S13 promises.
 T-411 keeps its T-401, SVC-CORE and FLIGHT-03 dependency chain. No whole-overlay or stale historical
@@ -167,7 +176,33 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-### Current S6 membership-confirmation safety acceptance
+### Current S6 membership-confirmation delivery acceptance
+
+- The first exact active/complete #1826 confirmation candidate is stored before effects with its
+  tenant, member, internal/provider subscription, provider event ID/payload hash and exact localized
+  recipient, subject, HTML and text. A retry sends that stored request, not recomputed member,
+  provider, template or tenant-host data.
+- One tenant-scoped dedupe key records `authorized` before domain effects and transitions to `pending`
+  only after those effects. Successful and contradictory replays send nothing; a same-evidence ready
+  retry bypasses completed subscription effects and reuses the stored request and provider
+  idempotency key, while out-of-order non-created events retain #1826's no-send behavior.
+- An explicit provider failure records `error`, throws the established typed retryable webhook error
+  and may be compare-and-set back to `pending` only for the same provider event and payload hash.
+- Successful delivery records the provider message ID and `sent` state. The same stable key reaches
+  Resend's idempotency contract so an uncertain provider retry does not create a different request.
+- Claim/readiness failures are typed retryable, and an exact verified `subscription.created` receipt
+  may atomically reclaim a processing lease after five minutes so worker loss does not strand delivery.
+  Provider-event-stable subscription and attribution event identities, existing commission/referral
+  uniqueness, and idempotent ready/sent transitions fence a resumed original worker from duplicating
+  the reclaimed effects.
+- The existing tenant RLS table, signed webhook receipt and audit trail are reused. No schema, proxy,
+  auth, entitlement, pricing, offer/terms, case or production configuration change is introduced.
+- Focused negative/replay/retry/concurrency/tenant tests, independent current-head review, required
+  verification and protected hosted checks precede merge; exact-main staging is separate evidence.
+- No generic/manual resend, indefinite provider dedupe guarantee, approved offer/terms, live paid
+  activation, whole IDA-MEM-006/007, user acceptance or production claim follows.
+
+### Credited #1826 membership-confirmation safety acceptance
 
 - The self-service checkout records only a validated EN/SQ/MK/SR locale in Paddle custom data; URL
   tenant values remain non-authoritative and the established signed webhook boundary is unchanged.
@@ -183,8 +218,9 @@ alone is not business or user acceptance.
   failures occur before confirmation dispatch. Email delivery failure is not logged as success.
 - Focused tests, independent integrated review, required verification and protected hosted checks
   precede merge; exact-main automatic staging is separately evidenced.
-- No approved offer/terms, immutable delivery receipt, retry guarantee, automatic entitlement,
-  case submission, whole IDA-MEM-006/007, user acceptance or production claim.
+- The final protected merge/staging receipt is credited above. No approved offer/terms, immutable
+  delivery receipt, retry guarantee, automatic entitlement, case submission, whole IDA-MEM-006/007,
+  user acceptance or production claim followed from #1826.
 
 ### Credited #1825 member checkout review acceptance
 
@@ -262,7 +298,19 @@ alone is not business or user acceptance.
 
 ## Bounded Research Brief
 
-Checked 2026-09-25 against the installed Paddle SDK, signed webhook path and current SRS map.
+Checked 2026-09-25 against the installed Paddle/Resend SDKs, signed webhook path and current SRS map.
+[Paddle's webhook delivery guidance](https://developer.paddle.com/webhooks/about/respond-to-webhooks/)
+requires duplicate-safe processing because delivery is at least once and may be retried; its webhook
+guide also warns that events can arrive out of order. [Resend's idempotency contract](https://resend.com/changelog/idempotency-keys)
+deduplicates the same request payload and key for 24 hours and rejects a reused key with different
+content. Adopt a tenant-scoped immutable first snapshot, compare-and-set failed retry and a stable
+provider key; reject mutable reconstruction, successful/manual replay and claims of indefinite
+provider dedupe. Expected benefit: a transient delivery failure can retry without changing the
+authorized member/provider facts or normally sending twice. Test first-send, failure/retry, changed
+member data, contradictory event evidence, concurrent claim, tenant scope and successful replay.
+
+### Reused #1826 research
+
 [Paddle's `subscription.created` reference](https://developer.paddle.com/webhooks/subscriptions/subscription-created/)
 defines provider status, customer-visible price name, lowest-denomination amount/currency, billing
 cycle, current billing period and custom data on the signed event. Its active item status means the
@@ -272,8 +320,8 @@ to `active`. Adopt exact active-state gating and the provider/member values alre
 fallback reconstruction, trial-as-active confirmation, marketing/benefit claims and unsafe resend.
 Expected benefit: a member receives a confirmation only when its displayed facts are traceable to
 the signed provider state, with localized separate-case next steps. Test non-active/missing values,
-four locales, out-of-order retry, duplicate receipt and tenant conflict. This does not approve the
-commercial offer or prove mail delivery, provider operations or whole IDA-MEM-006/007.
+four locales, out-of-order retry, duplicate receipt and tenant conflict. #1826 delivered that bounded
+gate; it does not approve the commercial offer or prove whole IDA-MEM-006/007.
 
 G06's SHA-256 matches the release manifest, but its July T-503 ratification references MINSAS
 terms (Lithuanian operator, Stripe/app stores) and MK conditions effective June 2021 (prorated refund,

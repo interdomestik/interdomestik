@@ -1,24 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { processMembershipConfirmation, redactEmail } from './membership-confirmation';
-
-describe('redactEmail', () => {
-  it('rejects missing and malformed addresses', () => {
-    expect(redactEmail(undefined)).toBe('unknown');
-    expect(redactEmail(null)).toBe('unknown');
-    expect(redactEmail('')).toBe('unknown');
-    expect(redactEmail('invalid')).toBe('unknown');
-  });
-
-  it('masks short and long local parts', () => {
-    expect(redactEmail('a@b.com')).toBe('a*@b.com');
-    expect(redactEmail('ab@b.com')).toBe('a*@b.com');
-    expect(redactEmail('john.doe@example.com')).toBe('j***e@example.com');
-    expect(redactEmail('alice@test.com')).toBe('a***e@test.com');
-  });
-});
+import { RetryablePaddleWebhookError } from '../../errors';
+import { processMembershipConfirmation } from './membership-confirmation';
 
 describe('processMembershipConfirmation', () => {
   const sendThankYouLetter = vi.fn();
+  const prepareThankYouLetter = vi.fn();
+  const deliveryStore = {
+    claim: vi.fn(),
+    ready: vi.fn(),
+    complete: vi.fn(),
+    fail: vi.fn(),
+  };
   const userRecord = {
     email: 'member@example.test',
     name: 'Member One',
@@ -44,34 +36,141 @@ describe('processMembershipConfirmation', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    sendThankYouLetter.mockResolvedValue({ success: true });
+    sendThankYouLetter.mockResolvedValue({ success: true, id: 'email_123' });
+    prepareThankYouLetter.mockImplementation(({ email }) => ({
+      to: email,
+      subject: 'Membership confirmed',
+      html: '<p>Membership confirmed</p>',
+      text: 'Membership confirmed',
+    }));
+    deliveryStore.claim.mockImplementation(async ({ snapshot }) => ({
+      kind: 'claimed',
+      deliveryId: 'delivery_123',
+      requiresEffects: true,
+      snapshot,
+    }));
   });
 
   it('sends exact active provider and authoritative member values', async () => {
     await processMembershipConfirmation({
       eventType: 'subscription.created',
+      providerEventId: 'evt_provider_1',
+      webhookPayloadHash: 'payload_hash_1',
       sub: subscription,
       tenantId: 'tenant_mk',
+      userId: 'user_123',
+      internalSubscriptionId: 'subscription_internal_1',
       customData: { locale: 'sr' },
       userRecord,
-      deps: { sendThankYouLetter },
+      deps: {
+        membershipConfirmationDelivery: deliveryStore,
+        prepareThankYouLetter,
+        sendThankYouLetter,
+      },
     });
 
     expect(sendThankYouLetter).toHaveBeenCalledWith(
       expect.objectContaining({
-        email: 'member@example.test',
-        expiresAt: new Date('2027-01-01T00:00:00.000Z'),
-        locale: 'sr',
-        memberNumber: 'MEM-2026-001',
-        memberSince: new Date('2026-01-01T00:00:00.000Z'),
-        planInterval: 'godina',
-        planName: 'Annual membership',
-        planPrice: expect.stringContaining('EUR'),
+        request: {
+          to: 'member@example.test',
+          subject: 'Membership confirmed',
+          html: '<p>Membership confirmed</p>',
+          text: 'Membership confirmed',
+        },
         providerReference: 'sub_provider_1',
         tenantId: 'tenant_mk',
+        idempotencyKey: 'membership-confirmation:v1:tenant_mk:sub_provider_1',
+      })
+    );
+    expect(deliveryStore.complete).toHaveBeenCalledWith({
+      deliveryId: 'delivery_123',
+      idempotencyKey: 'membership-confirmation:v1:tenant_mk:sub_provider_1',
+      providerMessageId: 'email_123',
+      tenantId: 'tenant_mk',
+    });
+  });
+
+  it('retries a failed delivery from the immutable first snapshot', async () => {
+    const immutableSnapshot = {
+      email: 'original@example.test',
+      memberName: 'Original Member',
+      memberNumber: 'MEM-ORIGINAL',
+      planName: 'Original annual membership',
+      planPrice: 'EUR 20.00',
+      planInterval: 'year',
+      memberSince: '2026-01-01T00:00:00.000Z',
+      expiresAt: '2027-01-01T00:00:00.000Z',
+      locale: 'en' as const,
+      tenantId: 'tenant_mk',
+      userId: 'user_123',
+      subscriptionId: 'subscription_internal_1',
+      providerReference: 'sub_provider_1',
+      providerEventId: 'evt_provider_1',
+      webhookPayloadHash: 'payload_hash_1',
+      providerStatus: 'active',
+      eventType: 'subscription.created',
+      emailRequest: {
+        to: 'original@example.test',
+        subject: 'Original subject',
+        html: '<p>Original body</p>',
+        text: 'Original body',
+      },
+    };
+    deliveryStore.claim.mockResolvedValue({
+      kind: 'claimed',
+      deliveryId: 'delivery_123',
+      requiresEffects: false,
+      snapshot: immutableSnapshot,
+    });
+
+    await processMembershipConfirmation({
+      eventType: 'subscription.created',
+      providerEventId: 'evt_provider_1',
+      webhookPayloadHash: 'payload_hash_1',
+      sub: subscription,
+      tenantId: 'tenant_mk',
+      userId: 'user_123',
+      customData: { locale: 'sr' },
+      userRecord,
+      deps: {
+        membershipConfirmationDelivery: deliveryStore,
+        prepareThankYouLetter,
+        sendThankYouLetter,
+      },
+    });
+
+    expect(sendThankYouLetter).toHaveBeenCalledWith(
+      expect.objectContaining({
+        request: immutableSnapshot.emailRequest,
       })
     );
   });
+
+  it.each(['already_sent', 'in_progress', 'conflict'] as const)(
+    'does not dispatch when the delivery claim is %s',
+    async kind => {
+      deliveryStore.claim.mockResolvedValue({ kind });
+
+      await processMembershipConfirmation({
+        eventType: 'subscription.created',
+        providerEventId: 'evt_provider_1',
+        webhookPayloadHash: 'payload_hash_1',
+        sub: subscription,
+        tenantId: 'tenant_mk',
+        userId: 'user_123',
+        customData: { locale: 'en' },
+        userRecord,
+        deps: {
+          membershipConfirmationDelivery: deliveryStore,
+          prepareThankYouLetter,
+          sendThankYouLetter,
+        },
+      });
+
+      expect(sendThankYouLetter).not.toHaveBeenCalled();
+      expect(deliveryStore.complete).not.toHaveBeenCalled();
+    }
+  );
 
   it('refuses an active confirmation from a non-created provider event', async () => {
     await processMembershipConfirmation({
@@ -153,55 +252,39 @@ describe('processMembershipConfirmation', () => {
     expect(sendThankYouLetter).not.toHaveBeenCalled();
   });
 
-  it('does nothing when the delivery dependency is unavailable', async () => {
+  it('makes an unavailable delivery dependency retryable', async () => {
     await expect(
       processMembershipConfirmation({
         eventType: 'subscription.created',
+        providerEventId: 'evt_provider_1',
+        webhookPayloadHash: 'payload_hash_1',
         sub: subscription,
         tenantId: 'tenant_mk',
+        userId: 'user_123',
         customData: { locale: 'mk' },
         userRecord,
         deps: {},
       })
-    ).resolves.toBeUndefined();
+    ).rejects.toBeInstanceOf(RetryablePaddleWebhookError);
   });
 
-  it('does not log delivery failure as success', async () => {
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const success = vi.spyOn(console, 'log').mockImplementation(() => {});
-    sendThankYouLetter.mockResolvedValue({ success: false, error: 'Provider rejected email' });
-
-    await processMembershipConfirmation({
-      eventType: 'subscription.created',
-      sub: subscription,
-      tenantId: 'tenant_mk',
-      customData: { locale: 'mk' },
-      userRecord,
-      deps: { sendThankYouLetter },
-    });
-
-    expect(error).toHaveBeenCalledWith(expect.stringContaining('Provider rejected email'));
-    expect(success).not.toHaveBeenCalled();
-    error.mockRestore();
-    success.mockRestore();
-  });
-
-  it('contains unexpected delivery exceptions', async () => {
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
-    sendThankYouLetter.mockRejectedValue(new Error('Send failed'));
-
+  it('fails closed without immutable provider event identity', async () => {
     await expect(
       processMembershipConfirmation({
         eventType: 'subscription.created',
         sub: subscription,
         tenantId: 'tenant_mk',
-        customData: { locale: 'en' },
+        userId: 'user_123',
+        customData: { locale: 'mk' },
         userRecord,
-        deps: { sendThankYouLetter },
+        deps: {
+          membershipConfirmationDelivery: deliveryStore,
+          prepareThankYouLetter,
+          sendThankYouLetter,
+        },
       })
     ).resolves.toBeUndefined();
-
-    expect(error).toHaveBeenCalled();
-    error.mockRestore();
+    expect(deliveryStore.claim).not.toHaveBeenCalled();
+    expect(sendThankYouLetter).not.toHaveBeenCalled();
   });
 });

@@ -124,4 +124,72 @@ describe('handleSubscriptionChanged entity retry', () => {
     expect(hoisted.appendEvent).not.toHaveBeenCalled();
     expect(sendThankYouLetter).not.toHaveBeenCalled();
   });
+
+  it('retries a persisted confirmation without replaying completed subscription effects', async () => {
+    const sendThankYouLetter = vi.fn().mockResolvedValue({ success: true, id: 'email_retry' });
+    const prepareThankYouLetter = vi.fn(() => ({
+      to: 'member@example.test',
+      subject: 'Current subject',
+      html: '<p>Current body</p>',
+      text: 'Current body',
+    }));
+    const storedRequest = {
+      to: 'member@example.test',
+      subject: 'Stored subject',
+      html: '<p>Stored body</p>',
+      text: 'Stored body',
+    };
+    const membershipConfirmationDelivery = {
+      claim: vi.fn(async ({ snapshot }) => ({
+        kind: 'claimed' as const,
+        deliveryId: 'delivery_retry',
+        requiresEffects: false,
+        snapshot: { ...snapshot, emailRequest: storedRequest },
+      })),
+      ready: vi.fn(),
+      complete: vi.fn(),
+      fail: vi.fn(),
+    };
+    hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
+      id: 'sub_retry',
+      tenantId: 'tenant_mk',
+      userId: 'user_1',
+      status: 'active',
+    });
+    hoisted.db.query.user.findFirst.mockResolvedValue({
+      id: 'user_1',
+      tenantId: 'tenant_mk',
+      email: 'member@example.test',
+      name: 'Member One',
+      memberNumber: 'MEM-1',
+      role: 'member',
+    });
+    const data = subscriptionData('sub_retry', 'txn_retry');
+    data.customData = {
+      tenantId: 'tenant_mk',
+      agentId: 'agent_9',
+      userId: 'user_1',
+      locale: 'en',
+    } as typeof data.customData;
+    Object.assign(data.items[0]!.price, { name: 'Annual membership' });
+    Object.assign(data, { billingCycle: { frequency: 1, interval: 'year' } });
+
+    await handleSubscriptionChanged(
+      {
+        eventType: 'subscription.created',
+        providerEventId: 'evt_retry',
+        webhookPayloadHash: 'payload_hash_retry',
+        data,
+      },
+      { membershipConfirmationDelivery, prepareThankYouLetter, sendThankYouLetter }
+    );
+
+    expect(sendThankYouLetter).toHaveBeenCalledWith(
+      expect.objectContaining({ request: storedRequest })
+    );
+    expect(hoisted.tx.insert).not.toHaveBeenCalled();
+    expect(hoisted.tx.update).not.toHaveBeenCalled();
+    expect(hoisted.appendEvent).not.toHaveBeenCalled();
+    expect(membershipConfirmationDelivery.ready).not.toHaveBeenCalled();
+  });
 });

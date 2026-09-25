@@ -65,6 +65,7 @@ interface PaddleDatabaseMockModule {
 
 interface CommissionMockModule {
   createCommissionCore: MockFunction;
+  createCommissionWithDispositionCore: MockFunction;
 }
 
 interface MemberNumberMockModule {
@@ -136,6 +137,7 @@ export function createPaddleDatabaseMockModule(
 export function createCommissionMockModule(): CommissionMockModule {
   return {
     createCommissionCore: vi.fn(),
+    createCommissionWithDispositionCore: vi.fn(),
   };
 }
 
@@ -199,8 +201,7 @@ export function expectProviderSubscriptionReferenceLookup(
       or: (...clauses) => ({ op: 'or', clauses }),
     }
   ) as
-    | { op?: string; clauses?: Array<{ op?: string; left?: unknown; right?: unknown }> }
-    | undefined;
+    { op?: string; clauses?: Array<{ op?: string; left?: unknown; right?: unknown }> } | undefined;
 
   expect(whereNode).toEqual({
     op: 'or',

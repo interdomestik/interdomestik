@@ -8,6 +8,7 @@ const hoisted = vi.hoisted(() => ({
   isRetryablePaddleWebhookError: vi.fn(() => false),
   markWebhookFailed: vi.fn(),
   markWebhookProcessed: vi.fn(),
+  membershipConfirmationDeliveryStore: {},
   parsePaddleWebhookBody: vi.fn(),
   persistInvalidSignatureAttempt: vi.fn(),
   persistInvoiceAndLedgerInvariants: vi.fn(),
@@ -36,6 +37,12 @@ vi.mock('@interdomestik/domain-membership-billing/paddle-webhooks', () => ({
   sha256Hex: hoisted.sha256Hex,
   verifyPaddleWebhook: hoisted.verifyPaddleWebhook,
 }));
+vi.mock(
+  '@interdomestik/domain-membership-billing/paddle-webhooks/membership-confirmation-delivery',
+  () => ({
+    membershipConfirmationDeliveryStore: hoisted.membershipConfirmationDeliveryStore,
+  })
+);
 vi.mock('@interdomestik/domain-membership-billing/paddle-webhooks/persist', () => ({
   isRetryablePaddleWebhookError: hoisted.isRetryablePaddleWebhookError,
 }));
@@ -96,6 +103,19 @@ describe('handlePaddleWebhookCore retry contract', () => {
     expect(hoisted.handlePaddleEvent).toHaveBeenCalledWith(
       expect.objectContaining({ processingScopeKey: 'entity:mk' }),
       expect.any(Object)
+    );
+  });
+
+  it('binds delivery persistence to the verified event identity', async () => {
+    await expect(callCore()).resolves.toEqual({ status: 200, body: { success: true } });
+    expect(hoisted.handlePaddleEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerEventId: 'evt_retry',
+        webhookPayloadHash: 'payload_hash',
+      }),
+      expect.objectContaining({
+        membershipConfirmationDelivery: hoisted.membershipConfirmationDeliveryStore,
+      })
     );
   });
 

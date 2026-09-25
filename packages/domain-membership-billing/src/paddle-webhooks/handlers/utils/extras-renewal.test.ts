@@ -14,6 +14,7 @@ vi.mock('../../../../../domain-referrals/src', () => ({
 
 vi.mock('../../../commissions/create', () => ({
   createCommissionCore: vi.fn(),
+  createCommissionWithDispositionCore: vi.fn(),
 }));
 
 vi.mock('../../../commissions/create-renewal', () => ({

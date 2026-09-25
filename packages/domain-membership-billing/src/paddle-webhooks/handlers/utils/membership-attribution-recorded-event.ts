@@ -3,6 +3,7 @@ import { appendEvent, type DomainEventTx } from '@interdomestik/database';
 import type { NewMembershipOwnershipSource } from './new-membership-ownership';
 
 export async function recordMembershipAttributionRecordedEvent(params: {
+  eventId?: string;
   memberId: string;
   now: Date;
   ownershipSource: NewMembershipOwnershipSource;
@@ -17,6 +18,7 @@ export async function recordMembershipAttributionRecordedEvent(params: {
     entity: { id: params.memberId, type: 'member' },
     eventName: 'membership.agent_attribution_recorded',
     eventVersion: 1,
+    ...(params.eventId ? { id: params.eventId } : {}),
     payload: {
       ownershipSource: params.ownershipSource,
       readScopeGranted: false,

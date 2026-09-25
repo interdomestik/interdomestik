@@ -1,5 +1,5 @@
 import { db, webhookEvents } from '@interdomestik/database';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull, lt, or } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 import type { PaddleWebhookAuditDeps } from './types';
@@ -161,14 +161,18 @@ export async function insertWebhookEvent(
 }
 
 async function reclaimRetryableWebhookEvent(params: {
+  eventType: string | undefined;
   processingScopeKey: string;
   dedupeKey: string;
   payloadHash: string;
 }) {
-  // db-access-guard: system-exempt -- reason: compare-and-set reclaims only the exact verified failed Paddle receipt.
+  const leaseStartedAt = new Date();
+  const staleBefore = new Date(leaseStartedAt.getTime() - 5 * 60 * 1000);
+  // db-access-guard: system-exempt -- reason: compare-and-set reclaims only the exact verified failed receipt or a stale subscription-created lease.
   const reclaimed = await db
     .update(webhookEvents)
     .set({
+      receivedAt: leaseStartedAt,
       processedAt: null,
       processingResult: null,
       error: null,
@@ -179,7 +183,15 @@ async function reclaimRetryableWebhookEvent(params: {
         eq(webhookEvents.processingScopeKey, params.processingScopeKey),
         eq(webhookEvents.payloadHash, params.payloadHash),
         eq(webhookEvents.signatureValid, true),
-        eq(webhookEvents.processingResult, 'retryable_error')
+        or(
+          eq(webhookEvents.processingResult, 'retryable_error'),
+          and(
+            eq(webhookEvents.eventType, 'subscription.created'),
+            eq(webhookEvents.eventType, params.eventType ?? ''),
+            isNull(webhookEvents.processingResult),
+            lt(webhookEvents.receivedAt, staleBefore)
+          )
+        )
       )
     )
     .returning({ id: webhookEvents.id });

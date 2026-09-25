@@ -16,6 +16,21 @@ export type SendThankYouLetterParams = {
   providerReference: string;
   tenantId: string;
   locale: ConfirmationLocale;
+  idempotencyKey: string;
+};
+
+export type PreparedThankYouLetter = {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+};
+
+export type SendPreparedThankYouLetterParams = {
+  request: PreparedThankYouLetter;
+  providerReference: string;
+  tenantId: string;
+  idempotencyKey: string;
 };
 
 export type PreviewThankYouLetterParams = {

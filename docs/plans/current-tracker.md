@@ -15,44 +15,51 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                              | Status        | Owner                   | Work                                                                                  | Exit Criteria                                                                                                        |
-| ------------------------------- | ------------- | ----------------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `S6-MEMBER-CONFIRMATION-SAFETY` | `in_progress` | Codex integration owner | Send truthful localized confirmation only from complete active Paddle provider state. | Negative-state/missing-value/locale/retry/duplicate/tenant proof; protected checks and exact-main automatic staging. |
+| ID                                | Status        | Owner                   | Work                                                                       | Exit Criteria                                                                                                                 |
+| --------------------------------- | ------------- | ----------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `S6-MEMBER-CONFIRMATION-DELIVERY` | `in_progress` | Codex integration owner | Persist and safely retry the exact #1826-authorized confirmation snapshot. | Immutable snapshot, failure/replay/concurrency/contradiction/tenant proof; protected checks and exact-main automatic staging. |
 
 ### Current acceptance
 
-- Base: protected main `d5e657da2ed88ac94db93cf4cc55343718c08e08`; #1825 is staging-delivered.
-- Checkout preserves validated EN/SQ/MK/SR locale in Paddle custom data; provider and tenant context remain authoritative.
-- Exact provider `active` plus complete customer-visible plan, amount/currency, cadence, billing period and member values are required before confirmation.
-- Trialing/past-due/paused/canceled/deleted, missing values, foreign tenant context, out-of-order retry and duplicate receipt cannot send active confirmation.
-- Local price/date/member fallbacks, unsourced benefit/refund/protection claims, generated PDF and unsafe manual resend are removed.
-- Localized next steps link to the tenant membership route and keep saved-case submission separate.
-- This is confirmation safety, not offer/terms approval, a delivery snapshot/retry guarantee, automatic entitlement, case submission or whole S6.
+- Base: protected main `d2a37205ca8db13e684228c9288dd7bbcbd667ec`; #1826 is staging-delivered.
+- Preserve #1826's exact active/complete/localized Paddle confirmation gate and separate-case next steps.
+- Resolve the existing one-per-user internal subscription first, then store the exact tenant/member/internal subscription/provider event plus rendered recipient/subject/HTML/text before subscription effects.
+- Mark delivery ready only after those effects; retry a failed or uncertain ready delivery for the same provider event/payload from the stored request without replaying completed effects.
+- Successful replay, contradictory source evidence and out-of-order non-created events cannot send a second confirmation; same-evidence retry reuses the stored provider request, while provider-event-stable domain effects and idempotent delivery transitions fence a stale exact receipt's bounded lease recovery.
+- Record provider message ID/success or bounded failure; mail success never grants entitlement.
+- This is delivery reliability, not offer/terms approval, generic/manual resend, live activation, case submission or whole S6.
 - No proxy/auth, tenancy, schema, pricing, production or guard bypass changes.
 
 ## Product Queue
 
-| Outcome                                     | Status                | Direct next evidence                                                                                                                                                         |
-| ------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| S5 — member first-case journey              | `active_bounded`      | Credit #1801/#1803/#1814/#1817/#1822/#1823 and #1825; truthful provider confirmation remains the direct fresh-account prerequisite.                                          |
-| S6 — member continuation/membership         | `active_bounded`      | Deliver confirmation safety; credit #1815 disclosure, #1824 retry and #1825 review; offer/terms, immutable delivery snapshot/retry, live activation and renewal remain open. |
-| S7 — staff handling                         | `delivered_bounded`   | Credit #1814 assigned-staff acknowledgement; fulfilment and whole S7 remain open.                                                                                            |
-| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                                                         |
-| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                                    |
-| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                                                 |
-| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                                           |
+| Outcome                                     | Status                | Direct next evidence                                                                                                                  |
+| ------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| S5 — member first-case journey              | `active_bounded`      | Credit #1801/#1803/#1814/#1817/#1822/#1823/#1825/#1826; reliable provider confirmation remains the direct fresh-account prerequisite. |
+| S6 — member continuation/membership         | `active_bounded`      | Deliver immutable confirmation/retry; credit #1815, #1824, #1825 and #1826; offer/terms, live activation and renewal remain open.     |
+| S7 — staff handling                         | `delivered_bounded`   | Credit #1814 assigned-staff acknowledgement; fulfilment and whole S7 remain open.                                                     |
+| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                  |
+| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                             |
+| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                          |
+| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                    |
 
 The [requirement disposition map](requirement-disposition-map.md) preserves the full 510-clause
 frontier. Unresolved rows are neither automatic features nor blanket blockers.
 
 ## Proof Ledger
 
-| ID                              | Source Refs                                                        | Execution  | Run ID  | Run Root                                        | Sonar   | Docker         | Sentry         | Learning | Evidence Refs                                                                                               |
-| ------------------------------- | ------------------------------------------------------------------ | ---------- | ------- | ----------------------------------------------- | ------- | -------------- | -------------- | -------- | ----------------------------------------------------------------------------------------------------------- |
-| `S6-MEMBER-CONFIRMATION-SAFETY` | owner continuation; bounded IDA-MEM-006/007 safety; main `d5e657d` | `scripted` | pending | focused webhook/email/checkout locale contracts | pending | not_applicable | not_applicable | pending  | paddle subscription/extras retry tests; confirmation template/sender tests; pricing table EN/SQ/MK/SR tests |
+| ID                                | Source Refs                                                          | Execution  | Run ID  | Run Root                                                         | Sonar   | Docker         | Sentry         | Learning | Evidence Refs                                                                                       |
+| --------------------------------- | -------------------------------------------------------------------- | ---------- | ------- | ---------------------------------------------------------------- | ------- | -------------- | -------------- | -------- | --------------------------------------------------------------------------------------------------- |
+| `S6-MEMBER-CONFIRMATION-DELIVERY` | owner continuation; bounded IDA-MEM-006/007 delivery; main `d2a3720` | `scripted` | pending | focused snapshot/retry/replay/concurrency/tenant/email contracts | pending | not_applicable | not_applicable | pending  | membership confirmation delivery store; webhook retry; Resend idempotency; #1826 safety regressions |
 
 ## Current Facts
 
+- #1826 protected-merged at `d2a37205ca8db13e684228c9288dd7bbcbd667ec`. Required local/protected
+  checks passed. Automatic staging CD `36185398763` attempt 1 hit a transient network precheck and
+  rolled back; unchanged-source attempt 2 passed exact-main health and P0.1/P0.2/P0.3/P0.4/P0.6.
+  Production jobs were skipped. See the
+  [final delivery receipt](https://github.com/interdomestik/interdomestik/pull/1826#issuecomment-5839509942).
+- #1826 proves only fail-closed localized confirmation from complete active provider/member state.
+  It does not prove immutable delivery, safe retry, offer/terms, live activation or whole S6.
 - #1825 protected-merged at `d5e657da2ed88ac94db93cf4cc55343718c08e08`; reviewed head `d99e70b`
   and main share tree `e386461526354ef19a7608a40f999462a5238f67`. Required local/protected checks passed.
   Automatic staging CD `36145768095` passed exact-main health and P0.1/P0.2/P0.3/P0.4/P0.6;
@@ -81,9 +88,9 @@ frontier. Unresolved rows are neither automatic features nor blanket blockers.
 
 ## Next Selection
 
-Complete this bounded confirmation-safety improvement through one protected product PR and exact-main
-automatic staging. Hand off approved offer/terms, immutable confirmation/delivery snapshot, safe mail
-retry/resend, delayed-onboarding localization and live activation gaps without starting another slice.
+Complete this bounded confirmation-delivery improvement through one protected product PR and exact-main
+automatic staging. Hand off approved offer/terms, delayed-onboarding localization and live activation
+gaps without starting another slice.
 Browser success never grants membership; do not substitute synthetic entitlement.
 Final merge/staging facts may be reconciled in the next ordinary authorized product amendment;
 no status-only PR is required.

@@ -1,15 +1,49 @@
 import { sendEmail } from '@/lib/email';
 import { renderThankYouLetterEmail } from '@/lib/email/thank-you-letter';
 import { buildThankYouLetterParams } from './params.core';
-import type { SendThankYouLetterParams } from './types';
+import type {
+  PreparedThankYouLetter,
+  SendPreparedThankYouLetterParams,
+  SendThankYouLetterParams,
+} from './types';
+
+export function prepareThankYouLetterCore(
+  params: Omit<SendThankYouLetterParams, 'idempotencyKey'>
+): PreparedThankYouLetter {
+  return {
+    to: params.email,
+    ...renderThankYouLetterEmail(buildThankYouLetterParams(params)),
+  };
+}
+
+export async function sendPreparedThankYouLetterCore(
+  params: SendPreparedThankYouLetterParams
+): Promise<{ success: true; id: string } | { success: false; error: string }> {
+  const expectedIdempotencyKey = `membership-confirmation:v1:${params.tenantId}:${params.providerReference}`;
+  if (params.idempotencyKey !== expectedIdempotencyKey) {
+    return { success: false, error: 'Invalid confirmation idempotency key' };
+  }
+  return sendEmail(
+    params.request.to,
+    {
+      subject: params.request.subject,
+      html: params.request.html,
+      text: params.request.text,
+    },
+    { idempotencyKey: params.idempotencyKey }
+  );
+}
 
 export async function sendThankYouLetterCore(
   params: SendThankYouLetterParams
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: true; id: string } | { success: false; error: string }> {
   try {
-    const emailContent = renderThankYouLetterEmail(buildThankYouLetterParams(params));
-    const delivery = await sendEmail(params.email, emailContent);
-    return delivery.success ? { success: true } : delivery;
+    return await sendPreparedThankYouLetterCore({
+      request: prepareThankYouLetterCore(params),
+      providerReference: params.providerReference,
+      tenantId: params.tenantId,
+      idempotencyKey: params.idempotencyKey,
+    });
   } catch (error) {
     console.error('[ThankYouLetter] Failed to send:', error);
     return {

@@ -18,53 +18,94 @@ type UpsertSubscriptionArgs = {
   existingSub?: ExistingSubscription | null;
   mappedStatus: InternalSubscriptionStatus;
   planState: CanonicalMembershipPlanState;
+  providerEventId?: string;
   sub: any;
   tenantId: string;
   userId: string;
 };
 
 export async function upsertSubscription(args: UpsertSubscriptionArgs) {
-  const { sub, tenantId, userId, agentId, branchId, existingSub, mappedStatus, planState } = args;
+  const {
+    sub,
+    tenantId,
+    userId,
+    agentId,
+    branchId,
+    existingSub,
+    mappedStatus,
+    planState,
+    providerEventId,
+  } = args;
   const values = mapToSubscriptionValues(sub, mappedStatus, planState);
-  const existingSubscription =
-    existingSub ?? (await findExistingSubscriptionForUser(userId, tenantId));
+  const existingSubscription = await resolveSubscriptionForUpsert({
+    existingSub,
+    tenantId,
+    userId,
+  });
+  const eventId = deterministicSubscriptionEventId(tenantId, providerEventId);
 
   if (existingSubscription) {
-    await persistSubscriptionUpdate(existingSubscription, {
-      agentId,
-      branchId,
-      sub,
-      tenantId,
-      userId,
-      values,
-    });
-    return existingSubscription.id;
+    try {
+      await persistSubscriptionUpdate(existingSubscription, {
+        agentId,
+        branchId,
+        eventId,
+        sub,
+        tenantId,
+        userId,
+        values,
+      });
+      return { subscriptionId: existingSubscription.id, effectsApplied: true };
+    } catch (error) {
+      if (!isDomainEventReplay(error, eventId)) throw error;
+      return { subscriptionId: existingSubscription.id, effectsApplied: false };
+    }
   }
 
   try {
-    await persistSubscriptionInsert({ agentId, branchId, sub, tenantId, userId, values });
-    return sub.id as string;
+    await persistSubscriptionInsert({ agentId, branchId, eventId, sub, tenantId, userId, values });
+    return { subscriptionId: sub.id as string, effectsApplied: true };
   } catch (error) {
+    if (isDomainEventReplay(error, eventId)) {
+      const replayedSubscription = await findExistingSubscription(sub.id, userId, tenantId);
+      if (!replayedSubscription) throw error;
+      return { subscriptionId: replayedSubscription.id, effectsApplied: false };
+    }
     if (!isUniqueViolation(error)) throw error;
 
     const racedSubscription = await findExistingSubscription(sub.id, userId, tenantId);
     if (!racedSubscription) throw error;
 
-    await persistSubscriptionUpdate(racedSubscription, {
-      agentId,
-      branchId,
-      sub,
-      tenantId,
-      userId,
-      values,
-    });
-    return racedSubscription.id;
+    try {
+      await persistSubscriptionUpdate(racedSubscription, {
+        agentId,
+        branchId,
+        eventId,
+        sub,
+        tenantId,
+        userId,
+        values,
+      });
+      return { subscriptionId: racedSubscription.id, effectsApplied: true };
+    } catch (updateError) {
+      if (!isDomainEventReplay(updateError, eventId)) throw updateError;
+      return { subscriptionId: racedSubscription.id, effectsApplied: false };
+    }
   }
+}
+
+export async function resolveSubscriptionForUpsert(args: {
+  existingSub?: ExistingSubscription | null;
+  tenantId: string;
+  userId: string;
+}): Promise<ExistingSubscription | null | undefined> {
+  return args.existingSub ?? findExistingSubscriptionForUser(args.userId, args.tenantId);
 }
 
 async function persistSubscriptionInsert(args: {
   agentId?: string | null;
   branchId?: string;
+  eventId?: string;
   sub: any;
   tenantId: string;
   userId: string;
@@ -85,6 +126,7 @@ async function persistSubscriptionInsert(args: {
     await recordMembershipSubscriptionChangedEvent({
       cancelAtPeriodEnd: args.values.cancelAtPeriodEnd,
       fromStatus: 'none',
+      id: args.eventId,
       now: args.values.updatedAt,
       subscriptionId: args.sub.id,
       tenantId: args.tenantId,
@@ -124,6 +166,7 @@ async function persistSubscriptionUpdate(
     await recordMembershipSubscriptionChangedEvent({
       cancelAtPeriodEnd: args.values.cancelAtPeriodEnd,
       fromStatus: normalizeExistingStatus(subscription.status),
+      id: args.eventId,
       now: args.values.updatedAt,
       subscriptionId: subscription.id,
       tenantId: args.tenantId,
@@ -147,4 +190,18 @@ async function findExistingSubscriptionForUser(userId: string, tenantId: string)
       andFn(eqFn(subs.userId, userId), eqFn(subs.tenantId, tenantId)),
     columns: { id: true, status: true, tenantId: true, userId: true },
   });
+}
+
+function deterministicSubscriptionEventId(
+  tenantId: string,
+  providerEventId: string | undefined
+): string | undefined {
+  return providerEventId ? `paddle:${tenantId}:${providerEventId}:subscription-changed` : undefined;
+}
+
+function isDomainEventReplay(error: unknown, eventId: string | undefined): boolean {
+  if (!eventId || !isUniqueViolation(error)) return false;
+  const candidate = error as { constraint?: unknown; constraint_name?: unknown };
+  const constraint = candidate.constraint ?? candidate.constraint_name;
+  return constraint === 'domain_events_pkey' || constraint === 'domain_events_tenant_id_id_uq';
 }
