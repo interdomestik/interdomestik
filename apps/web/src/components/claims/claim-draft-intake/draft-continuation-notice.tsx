@@ -24,7 +24,7 @@ export function DraftContinuationNotice({
           {copy.failed}
         </p>
       ) : (
-        <p role="status">{copy.loading}</p>
+        <output>{copy.loading}</output>
       )}
       {failed && continuation.canRetry ? (
         <button

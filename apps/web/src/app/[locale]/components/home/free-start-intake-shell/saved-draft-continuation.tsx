@@ -1,6 +1,14 @@
 import { savedDraftContinuationHref } from '@/lib/saved-draft-continuation';
 import { hasIncompleteDraft } from './intake-validation';
 import type { SavedDraft, SecureSaveCopy } from './types';
+import type { useDraftLifecycle } from './use-draft-lifecycle';
+
+export function continuationDraft(
+  lifecycle: ReturnType<typeof useDraftLifecycle>
+): SavedDraft | null {
+  if (lifecycle.state !== 'saved' || lifecycle.hasUnsavedChanges || !lifecycle.active) return null;
+  return isReviewReadySavedDraft(lifecycle.active) ? lifecycle.active : null;
+}
 
 export function isReviewReadySavedDraft(draft: SavedDraft): boolean {
   return (

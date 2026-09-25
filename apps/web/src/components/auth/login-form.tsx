@@ -12,6 +12,7 @@ import {
 } from '@/lib/canonical-routes';
 import { getPublicMembershipEntryHref } from '@/lib/public-membership-entry';
 import { isAdmin } from '@/lib/roles.core';
+import { resolveSafeNextPath } from './login-next-path';
 import {
   Button,
   Card,
@@ -31,43 +32,6 @@ import { buildSocialOnboardingPayload } from './register-onboarding-payload';
 const SESSION_SYNC_RETRY_COUNT = 2;
 const SESSION_SYNC_RETRY_DELAY_MS = 250;
 type ResolvedAuthenticatedRole = { role?: string; timedOut: boolean };
-
-function getAllowedSurfacePrefix(role: string, locale: string): string | null {
-  if (role === 'agent') {
-    return `/${locale}/agent`;
-  }
-
-  if (role === 'staff') {
-    return `/${locale}/staff`;
-  }
-
-  if (isAdmin(role)) {
-    return `/${locale}/admin`;
-  }
-
-  if (role === 'member' || role === 'user') {
-    return `/${locale}/member`;
-  }
-
-  return null;
-}
-
-function resolveSafeNextPath(nextPath: string | null, role: string, locale: string): string | null {
-  if (!nextPath) {
-    return null;
-  }
-
-  if (!nextPath.startsWith('/') || nextPath.startsWith('//')) {
-    return null;
-  }
-
-  const allowedPrefix = getAllowedSurfacePrefix(role, locale);
-  if (!allowedPrefix) {
-    return null;
-  }
-
-  return nextPath === allowedPrefix || nextPath.startsWith(`${allowedPrefix}/`) ? nextPath : null;
-}
 
 async function resolveAuthenticatedRole(): Promise<ResolvedAuthenticatedRole> {
   for (let attempt = 0; attempt < SESSION_SYNC_RETRY_COUNT; attempt += 1) {
@@ -206,7 +170,12 @@ export function LoginForm({
                 return;
               }
 
-              const safeNextPath = resolveSafeNextPath(nextPathFromQuery, role, locale);
+              const safeNextPath = resolveSafeNextPath(
+                nextPathFromQuery,
+                role,
+                locale,
+                globalThis.location.hash
+              );
               if (safeNextPath) {
                 globalThis.location.assign(safeNextPath);
                 return;

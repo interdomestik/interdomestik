@@ -46,6 +46,8 @@ They do not establish new-account activation, request fulfilment, whole S5/S6/S7
 1. Offer explicit continuation only for a confirmed clean, complete, preview-ready saved draft on the neutral organizer.
 2. Select that exact draft via an opaque fragment on the existing `?mode=drafts` route; resolve it
    through the existing authenticated owner/tenant action, without query/access-boundary changes.
+   Recover expired sessions using the existing neutral email-code sign-in and an ownership recheck;
+   password sign-in preserves the same selection within the existing role-filtered return contract.
 3. Block editing while the initial read is pending; show localized generic failure, safe retry and
    return-to-manager controls without disclosing foreign or missing draft facts.
 4. Preserve membership eligibility, deliberate review/submit, EN/SQ/MK/SR and no unintended claim,

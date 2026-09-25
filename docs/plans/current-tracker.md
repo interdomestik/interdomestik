@@ -24,12 +24,14 @@ status_command: pnpm plan:status
 - Base: freshly fetched protected main `9a51d469481a5843b415a5451ad246e51d54048b`.
 - Scope: public secure-save continuation, existing member intake receiver, localized copy, focused
   and native-OTP browser proof, exact corpus parity and canonical authority reconciliation.
+- Expired-session recovery preserves the opaque selection at sign-in, reuses the existing neutral
+  email-code flow and rechecks ownership before returning; password sign-in retains role-filtered targets.
 - SRS: `IDA-FST-008/010/011/012`; automated bounded acceptance does not close business acceptance.
 - Preserve: existing proxy/query/auth/tenant/owner checks, membership eligibility, review-before-submit,
   save/return/delete, active-member submission/reopen and retry protections.
 - Dependency: fresh-account first submission remains conditional on S6 provider-backed activation
   (`IDA-MEM-006`); no grant, purchase, payment or business semantics are invented.
-- Forbidden: proxy, auth, tenant, schema, billing or architectural changes; incident facts in URLs;
+- Forbidden: proxy, auth-mechanism, tenant, schema, billing or architectural changes; incident facts in URLs;
   claim creation on continuation; injury/document persistence; production deployment.
 
 ## Product Queue

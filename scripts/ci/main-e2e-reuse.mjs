@@ -9,7 +9,7 @@ const LANE_SHA256 = 'ff019f739b4ae106650a0dff94527154e9579468d0ea2d5a5eecff7c2f7
 const CONFIG_SHA256 = '370530c9ba0e55cae0e2e152d723eb0c71d3dfede4d41fe4b582102309c238d0';
 const E2E_TREE_SHAS = new Set([
   // S5 exact saved-draft continuation through unchanged membership access.
-  'a01b7052e09c25d0390a80d5656123a61cbd32ca',
+  '5c5762360e1d3d31cd74319f47f644b787519d3a',
   // T117C marker compatibility.
   '01c8cb3319414240877198446673b055a2974f28',
   // Final T117C gate corpus.

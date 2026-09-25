@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { DeleteDraftConfirmation } from './delete-draft-confirmation';
 import { SavedDraftList } from './saved-draft-list';
-import { isReviewReadySavedDraft, SavedDraftContinuation } from './saved-draft-continuation';
+import { continuationDraft, SavedDraftContinuation } from './saved-draft-continuation';
 import { SecureSaveOtp } from './secure-save-otp';
 import { parseSecureSaveCopy, parseSecureSaveReviewCopy, type SavedDraft } from './types';
 import type { useDraftLifecycle } from './use-draft-lifecycle';
@@ -39,6 +39,7 @@ export function SecureSaveBand({
   const alert = ['conflict', 'limit', 'invalid', 'unsupported', 'accountContext', 'error'].includes(lifecycle.state);
   const pending = ['saving', 'loading'].includes(lifecycle.state);
   const status = resolveStatus(lifecycle, locale, copy, reviewCopy);
+  const readyDraft = allowContinuation ? continuationDraft(lifecycle) : null;
   // prettier-ignore
   return (
 <section
@@ -95,8 +96,8 @@ className={`mt-4 text-sm font-semibold outline-none ${alert ? 'text-[#8a2f43]' :
 >
 {status}
 </p>
-{allowContinuation && lifecycle.active && lifecycle.state === 'saved' && !lifecycle.hasUnsavedChanges && isReviewReadySavedDraft(lifecycle.active) ? (
-<SavedDraftContinuation copy={copy.continuation} id={lifecycle.active.id} locale={locale} />
+{readyDraft ? (
+<SavedDraftContinuation copy={copy.continuation} id={readyDraft.id} locale={locale} />
 ) : null}
 {lifecycle.intent && !lifecycle.verified && !pending ? (
 <SecureSaveOtp

@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 import { routes } from '../routes';
-import { E2E_USERS } from '@interdomestik/database';
+import { E2E_USERS, claims, crmLeads, db, eq, subscriptions } from '@interdomestik/database';
 import {
   listFreeStartDrafts,
   resumeFreeStartDraft,
@@ -11,6 +11,12 @@ import sq from '../../src/messages/sq/claims.json';
 import mk from '../../src/messages/mk/claims.json';
 import sr from '../../src/messages/sr/claims.json';
 import { S3_JOURNEY_INCIDENT_DATE } from './member-staff-evidence-journey-cleanup.fixture';
+
+export async function expectNoDraftSideEffects(ownerId: string, email: string) {
+  expect(await db.$count(subscriptions, eq(subscriptions.userId, ownerId))).toBe(0);
+  expect(await db.$count(claims, eq(claims.userId, ownerId))).toBe(0);
+  expect(await db.$count(crmLeads, eq(crmLeads.email, email))).toBe(0);
+}
 
 export async function expectDraftTenantIsolation(draftId: string, ownerId: string) {
   const foreignTenant = E2E_USERS.MK_MEMBER.tenantId;
@@ -32,13 +38,17 @@ export async function continueSavedDraftWithoutMembership(
     draftId: string;
     counterparty: string;
     summary: string;
+    reauthenticate: () => Promise<void>;
   }>
 ) {
   const continuation = page.getByTestId('saved-draft-continue');
   const path = `/member/claims/new?mode=drafts#draft=${args.draftId}`;
   await expect(continuation).toHaveAttribute('href', `/en${path}`);
+  await page.context().clearCookies();
   await continuation.focus();
   await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(new RegExp(`/en/login#draft=${args.draftId}$`));
+  await args.reauthenticate();
   for (const [locale, catalog] of Object.entries({ en, sq, mk, sr })) {
     if (locale !== 'en') await page.goto(`${args.origin}/${locale}${path}`);
     const intake = page.locator('[data-testid="claim-draft-intake"]:visible');
