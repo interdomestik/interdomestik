@@ -58,7 +58,7 @@ const catalogs = {
   sr: [sr, srFree],
 } as const;
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
   actions.lookup.mockResolvedValue({ claim: null });
 });
 afterEach(() => window.history.replaceState(null, '', '/'));
@@ -102,12 +102,14 @@ describe('saved draft continuation mounted contract', () => {
       await waitFor(() => expect(screen.getByTestId('claim-draft-dormant-preview')).toBeVisible());
       expect(actions.resume).toHaveBeenCalledExactlyOnceWith({ id });
       expect(screen.getByText(saved.summary)).toBeVisible();
-      expect(
-        screen.getByRole('heading', {
-          level: 3,
-          name: JSON.parse(catalogs[locale][0].claims.draftIntakeCopy).previewHeading,
-        })
-      ).toHaveFocus();
+      await waitFor(() =>
+        expect(
+          screen.getByRole('heading', {
+            level: 3,
+            name: JSON.parse(catalogs[locale][0].claims.draftIntakeCopy).previewHeading,
+          })
+        ).toHaveFocus()
+      );
       expect(screen.getByText(saved.counterparty)).toBeVisible();
       const copy = JSON.parse(catalogs[locale][0].claims.draftIntakeCopy);
       expect(screen.getByTestId('claim-draft-submit-disabled')).toHaveAccessibleDescription(
@@ -128,7 +130,7 @@ describe('saved draft continuation mounted contract', () => {
         .mockResolvedValueOnce({ ok: true, draft: saved });
       view();
       const alert = await screen.findByRole('alert');
-      expect(alert).toHaveFocus();
+      await waitFor(() => expect(alert).toHaveFocus());
       expect(screen.queryByText(saved.summary)).not.toBeInTheDocument();
       expect(screen.queryByTestId('free-start-save-open')).not.toBeInTheDocument();
       const retry = screen.getByRole('button', { name: 'Try again' });
