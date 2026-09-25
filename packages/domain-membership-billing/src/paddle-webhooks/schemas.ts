@@ -6,7 +6,7 @@ const customDataSchema = z
     userId: z.string().optional(),
     agentId: z.string().optional(),
     tenantId: z.string().optional(),
-    locale: z.enum(['en', 'sq', 'mk', 'sr']).optional(),
+    locale: z.unknown().optional(),
     acquisitionSource: z.string().optional(),
     utmSource: z.string().optional(),
     utmMedium: z.string().optional(),

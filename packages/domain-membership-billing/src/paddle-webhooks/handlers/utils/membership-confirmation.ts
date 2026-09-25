@@ -115,7 +115,9 @@ function resolveProviderConfirmation(args: {
   if (args.sub.status !== 'active') return { ok: false, reason: 'provider status is not active' };
 
   const locale = args.customData?.locale;
-  if (!locale) return { ok: false, reason: 'checkout locale is missing' };
+  if (!isConfirmationLocale(locale)) {
+    return { ok: false, reason: 'checkout locale is missing or unsupported' };
+  }
 
   const email = normalizeConfirmationText(args.userRecord.email);
   const memberName = normalizeConfirmationText(args.userRecord.name);
@@ -172,6 +174,10 @@ function normalizeConfirmationText(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : null;
+}
+
+function isConfirmationLocale(value: unknown): value is ConfirmationLocale {
+  return value === 'en' || value === 'sq' || value === 'mk' || value === 'sr';
 }
 
 function parseProviderDate(value: unknown): Date | null {

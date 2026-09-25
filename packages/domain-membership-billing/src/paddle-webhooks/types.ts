@@ -48,7 +48,7 @@ export type CheckoutCustomData = {
   userId?: string;
   agentId?: string;
   tenantId?: string;
-  locale?: 'en' | 'sq' | 'mk' | 'sr';
+  locale?: unknown;
   acquisitionSource?: string;
   utmSource?: string;
   utmMedium?: string;
