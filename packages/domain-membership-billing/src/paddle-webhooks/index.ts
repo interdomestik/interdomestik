@@ -1,6 +1,7 @@
 export { sha256Hex } from './crypto';
 export { handlePaddleEvent } from './handle';
 export { persistInvoiceAndLedgerInvariants } from './invariants';
+export { isRetryablePaddleWebhookError, RetryablePaddleWebhookError } from './errors';
 export { parsePaddleWebhookBody } from './parse';
 export {
   insertWebhookEvent,
@@ -13,8 +14,10 @@ export { mapPaddleStatus, type InternalSubscriptionStatus } from './subscription
 export type {
   AuditEvent,
   AuditLogger,
+  PaddleCustomerLookupResult,
   PaddleWebhookAuditDeps,
   PaddleWebhookDeps,
+  ResolvePaddleCustomer,
   SendPaymentFailedEmail,
   SendThankYouLetter,
 } from './types';

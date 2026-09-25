@@ -22,8 +22,10 @@ import {
   sha256Hex,
   verifyPaddleWebhook,
 } from '@interdomestik/domain-membership-billing/paddle-webhooks';
+import { isRetryablePaddleWebhookError } from '@interdomestik/domain-membership-billing/paddle-webhooks/persist';
 
 import type { Paddle } from '@paddle/paddle-node-sdk';
+import { resolvePaddleCustomer } from './paddle-customer';
 
 export type PaddleWebhookCoreResult = {
   status: 200 | 400 | 401 | 500;
@@ -54,10 +56,8 @@ const PADDLE_LEAD_ID_PATTERN = /^[A-Za-z0-9_:-]{1,128}$/;
 
 function normalizePaddleLeadId(value: unknown): string | null {
   if (typeof value !== 'string') return null;
-
   const leadId = normalizeText(value);
   if (!leadId || !PADDLE_LEAD_ID_PATTERN.test(leadId)) return null;
-
   return leadId;
 }
 
@@ -67,14 +67,12 @@ function getPaddleLeadId(data: unknown): string | null {
 
 function getPaddleCustomData(data: unknown): PaddleWebhookData['customData'] | undefined {
   if (!data || typeof data !== 'object') return undefined;
-
   const payload = data as PaddleWebhookData;
   return payload.custom_data ?? payload.customData;
 }
 
 function getPaddleSubscriptionReferences(data: unknown): string[] {
   if (!data || typeof data !== 'object') return [];
-
   const payload = data as PaddleWebhookData;
   return [
     normalizeText(payload.subscriptionId),
@@ -356,11 +354,12 @@ export async function handlePaddleWebhookCore(args: {
     await reconcilePaddleLeadConversion({ eventType, data, tenantId, subscription });
 
     await handlePaddleEvent(
-      { eventType, data },
+      { eventType, data, processingScopeKey },
       {
         sendPaymentFailedEmail,
         sendThankYouLetter: sendThankYouLetterCore,
         requestPasswordResetOnboarding,
+        resolvePaddleCustomer: customerId => resolvePaddleCustomer(paddle, customerId),
         logAuditEvent,
       }
     );
@@ -376,6 +375,7 @@ export async function handlePaddleWebhookCore(args: {
         eventType,
         eventId: normalizedEventId ?? undefined,
         error: processingError,
+        retryable: isRetryablePaddleWebhookError(processingError),
         tenantId,
       },
       { logAuditEvent }

@@ -42,8 +42,20 @@ export type RequestPasswordResetOnboarding = (params: {
   tenantId: string;
 }) => Promise<void> | void;
 
+export type PaddleCustomerLookupResult =
+  | {
+      kind: 'resolved';
+      customer: { id: string; email: string; status: 'active' | 'archived' };
+    }
+  | { kind: 'failed'; retryable: boolean };
+
+export type ResolvePaddleCustomer = (
+  customerId: string
+) => Promise<PaddleCustomerLookupResult> | PaddleCustomerLookupResult;
+
 export type PaddleWebhookDeps = {
   sendPaymentFailedEmail?: SendPaymentFailedEmail;
   sendThankYouLetter?: SendThankYouLetter;
   requestPasswordResetOnboarding?: RequestPasswordResetOnboarding;
+  resolvePaddleCustomer?: ResolvePaddleCustomer;
 };

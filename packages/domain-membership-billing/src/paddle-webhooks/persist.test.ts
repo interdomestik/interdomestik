@@ -1,33 +1,51 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
+  and: vi.fn((...conditions: unknown[]) => ({ conditions, op: 'and' })),
+  eq: vi.fn((left: unknown, right: unknown) => ({ left, op: 'eq', right })),
   insert: vi.fn(),
   insertValues: vi.fn(),
+  insertReturning: vi.fn(),
   onConflictDoNothing: vi.fn(),
-  returning: vi.fn(),
+  set: vi.fn(),
+  update: vi.fn(),
+  updateReturning: vi.fn(),
+  where: vi.fn(),
+}));
+
+vi.mock('drizzle-orm', () => ({
+  and: hoisted.and,
+  eq: hoisted.eq,
 }));
 
 vi.mock('@interdomestik/database', () => ({
   db: {
     insert: hoisted.insert,
+    update: hoisted.update,
   },
   webhookEvents: {
     id: 'id_col',
     dedupeKey: 'dedupe_key_col',
+    error: 'error_col',
+    payloadHash: 'payload_hash_col',
+    processedAt: 'processed_at_col',
+    processingResult: 'processing_result_col',
     processingScopeKey: 'processing_scope_key_col',
     providerTransactionId: 'provider_transaction_id_col',
+    signatureValid: 'signature_valid_col',
   },
 }));
 
-import { insertWebhookEvent, persistInvalidSignatureAttempt } from './persist';
+import { insertWebhookEvent, markWebhookFailed, persistInvalidSignatureAttempt } from './persist';
 
 describe('webhook persistence idempotency', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    hoisted.returning.mockResolvedValue([{ id: 'we_1' }]);
+    hoisted.insertReturning.mockResolvedValue([{ id: 'we_1' }]);
+    hoisted.updateReturning.mockResolvedValue([]);
     hoisted.onConflictDoNothing.mockReturnValue({
-      returning: hoisted.returning,
+      returning: hoisted.insertReturning,
     });
     hoisted.insertValues.mockReturnValue({
       onConflictDoNothing: hoisted.onConflictDoNothing,
@@ -35,6 +53,9 @@ describe('webhook persistence idempotency', () => {
     hoisted.insert.mockReturnValue({
       values: hoisted.insertValues,
     });
+    hoisted.where.mockReturnValue({ returning: hoisted.updateReturning });
+    hoisted.set.mockReturnValue({ where: hoisted.where });
+    hoisted.update.mockReturnValue({ set: hoisted.set });
   });
 
   it('persists invalid signature attempts with scope-aware dedupe and DB conflict no-op', async () => {
@@ -81,7 +102,7 @@ describe('webhook persistence idempotency', () => {
   });
 
   it('returns duplicate=false when DB unique linkage blocks a replayed transaction identity', async () => {
-    hoisted.returning.mockResolvedValueOnce([{ id: 'we_tx_1' }]).mockResolvedValueOnce([]);
+    hoisted.insertReturning.mockResolvedValueOnce([{ id: 'we_tx_1' }]).mockResolvedValueOnce([]);
 
     const deps = { logAuditEvent: vi.fn() };
     const common = {
@@ -130,7 +151,7 @@ describe('webhook persistence idempotency', () => {
   });
 
   it('preserves duplicate webhook audit behavior when tenantId is nullable', async () => {
-    hoisted.returning.mockResolvedValueOnce([]);
+    hoisted.insertReturning.mockResolvedValueOnce([]);
     const deps = { logAuditEvent: vi.fn() };
 
     const result = await insertWebhookEvent(
@@ -161,6 +182,72 @@ describe('webhook persistence idempotency', () => {
           providerTransactionId: 'txn_dup',
         }),
       })
+    );
+  });
+
+  it('atomically reclaims the exact verified retryable failure', async () => {
+    hoisted.insertReturning.mockResolvedValueOnce([]);
+    hoisted.updateReturning.mockResolvedValueOnce([{ id: 'we_retry' }]);
+    const logAuditEvent = vi.fn();
+
+    const result = await insertWebhookEvent(
+      {
+        headers: new Headers(),
+        processingScopeKey: 'entity:mk',
+        dedupeKey: 'paddle:entity:mk:event:evt_retry',
+        eventType: 'subscription.created',
+        eventId: 'evt_retry',
+        eventTimestamp: new Date('2026-09-25T08:00:00.000Z'),
+        payloadHash: 'hash_retry',
+        parsedPayload: { data: { id: 'sub_retry' } },
+        signatureValid: true,
+        signatureBypassed: false,
+        tenantId: null,
+      },
+      { logAuditEvent }
+    );
+
+    expect(result).toEqual({ inserted: true, webhookEventRowId: 'we_retry' });
+    expect(hoisted.set).toHaveBeenCalledWith({
+      processedAt: null,
+      processingResult: null,
+      error: null,
+    });
+    expect(hoisted.eq).toHaveBeenCalledWith('dedupe_key_col', 'paddle:entity:mk:event:evt_retry');
+    expect(hoisted.eq).toHaveBeenCalledWith('processing_scope_key_col', 'entity:mk');
+    expect(hoisted.eq).toHaveBeenCalledWith('payload_hash_col', 'hash_retry');
+    expect(hoisted.eq).toHaveBeenCalledWith('signature_valid_col', true);
+    expect(hoisted.eq).toHaveBeenCalledWith('processing_result_col', 'retryable_error');
+    expect(logAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'webhook.retry_received', entityId: 'we_retry' })
+    );
+  });
+
+  it('distinguishes retryable pre-write failures from permanent processing failures', async () => {
+    await markWebhookFailed({
+      headers: new Headers(),
+      webhookEventRowId: 'we_retryable',
+      eventType: 'subscription.created',
+      eventId: 'evt_retryable',
+      error: new Error('transaction not ready'),
+      retryable: true,
+      tenantId: null,
+    });
+    expect(hoisted.set).toHaveBeenLastCalledWith(
+      expect.objectContaining({ processingResult: 'retryable_error' })
+    );
+
+    await markWebhookFailed({
+      headers: new Headers(),
+      webhookEventRowId: 'we_permanent',
+      eventType: 'subscription.created',
+      eventId: 'evt_permanent',
+      error: new Error('tenant conflict'),
+      retryable: false,
+      tenantId: null,
+    });
+    expect(hoisted.set).toHaveBeenLastCalledWith(
+      expect.objectContaining({ processingResult: 'error' })
     );
   });
 });
