@@ -75,6 +75,7 @@ describe('handleSubscriptionChanged', () => {
 
   it('reconciles an anonymous subscription.created before upserting the subscription', async () => {
     const requestPasswordResetOnboarding = vi.fn();
+    const sendThankYouLetter = vi.fn();
 
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue(undefined);
     hoisted.db.query.webhookEvents.findFirst.mockResolvedValue({
@@ -113,16 +114,21 @@ describe('handleSubscriptionChanged', () => {
           id: 'sub_new',
           status: 'active',
           transactionId: 'txn_anon',
-          customData: { tenantId: 'tenant_mk', agentId: 'agent_9' },
+          customData: { tenantId: 'tenant_mk', agentId: 'agent_9', locale: 'en' },
           items: [
             {
-              price: { id: 'pri_123', unitPrice: { amount: '2000', currencyCode: 'EUR' } },
+              price: {
+                id: 'pri_123',
+                name: 'Annual membership',
+                unitPrice: { amount: '2000', currencyCode: 'EUR' },
+              },
             },
           ],
+          billingCycle: { frequency: 1, interval: 'year' },
           currentBillingPeriod: { startsAt: '2026-01-01', endsAt: '2027-01-01' },
         },
       },
-      { requestPasswordResetOnboarding }
+      { requestPasswordResetOnboarding, sendThankYouLetter }
     );
 
     expect(requestPasswordResetOnboarding).toHaveBeenCalledWith({
@@ -131,6 +137,7 @@ describe('handleSubscriptionChanged', () => {
     });
     expect(hoisted.db.transaction).toHaveBeenCalledTimes(3);
     expect(hoisted.tx.insert).toHaveBeenCalled();
+    expect(sendThankYouLetter).not.toHaveBeenCalled();
   });
 
   it('updates an existing user-scoped subscription row instead of inserting a second row', async () => {

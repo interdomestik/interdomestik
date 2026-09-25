@@ -124,6 +124,12 @@ describe('processMembershipConfirmation', () => {
       { locale: 'mk' as const },
       { ...userRecord, memberNumber: null },
     ],
+    [
+      'member name is the reconciliation email-prefix placeholder',
+      subscription,
+      { locale: 'mk' as const },
+      { ...userRecord, name: 'member' },
+    ],
   ])('does not invent confirmation values when %s', async (_name, sub, customData, member) => {
     await processMembershipConfirmation({
       eventType: 'subscription.created',

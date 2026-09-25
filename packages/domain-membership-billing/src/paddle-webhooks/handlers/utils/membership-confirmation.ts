@@ -122,7 +122,12 @@ function resolveProviderConfirmation(args: {
   const email = normalizeConfirmationText(args.userRecord.email);
   const memberName = normalizeConfirmationText(args.userRecord.name);
   const memberNumber = normalizeConfirmationText(args.userRecord.memberNumber);
-  if (!email || !memberName || !memberNumber) {
+  if (
+    !email ||
+    !memberName ||
+    !memberNumber ||
+    isReconciliationPlaceholderName(memberName, email)
+  ) {
     return { ok: false, reason: 'authoritative member details are incomplete' };
   }
 
@@ -174,6 +179,10 @@ function normalizeConfirmationText(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : null;
+}
+
+function isReconciliationPlaceholderName(memberName: string, email: string): boolean {
+  return memberName === (email.split('@')[0]?.trim() || 'Member');
 }
 
 function isConfirmationLocale(value: unknown): value is ConfirmationLocale {
