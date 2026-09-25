@@ -291,18 +291,12 @@ importers:
       next-intl:
         specifier: ^4.14.5
         version: 4.14.5(@swc/helpers@0.5.23)(next@16.3.3(patch_hash=6f64cff5fc371f38c9abb3d5c5056a6bf26dfd0afcec921d950b4cfecf9a0a1f)(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@24.12.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
-      pdf-lib:
-        specifier: ^1.17.1
-        version: 1.17.1
       pdf-parse:
         specifier: ^1.1.1
         version: 1.1.1
       posthog-js:
         specifier: ^1.433.4
         version: 1.434.2(@types/react@19.3.0)(react@19.3.0)
-      qrcode:
-        specifier: ^1.5.4
-        version: 1.5.4
       react:
         specifier: ^19.3.0
         version: 19.3.0
@@ -364,9 +358,6 @@ importers:
       '@types/pdf-parse':
         specifier: ^1.1.5
         version: 1.1.5
-      '@types/qrcode':
-        specifier: ^1.5.6
-        version: 1.5.6
       '@types/react':
         specifier: ^19.3.0
         version: 19.3.0
@@ -4291,18 +4282,6 @@ packages:
         integrity: sha512-Qsm6F5C8xf6ZzQXbQc2+wcpe6sggfs/gvc/ytqSurdvYg3kyW0ECHCqE0CWBKZpqgjVfPNX9c7SCS3r2nEIRGg==,
       }
 
-  '@pdf-lib/standard-fonts@1.0.0':
-    resolution:
-      {
-        integrity: sha512-hU30BK9IUN/su0Mn9VdlVKsWBS6GyhVfqjwl1FjZN4TxP6cCw0jP2w7V3Hf5uX7M0AZJ16vey9yE0ny7Sa59ZA==,
-      }
-
-  '@pdf-lib/upng@1.0.1':
-    resolution:
-      {
-        integrity: sha512-dQK2FUMQtowVP00mtIksrlZhdFXQZPC+taih1q4CvPZ5vqdxR/LKBaFg0oAfzd1GlHZXXSPdQfzQnt+ViGvEIQ==,
-      }
-
   '@phun-ky/typeof@2.0.3':
     resolution:
       {
@@ -6731,12 +6710,6 @@ packages:
         integrity: sha512-fKVHpikPdg4GKks3JuLEhvwSyvwzF23hnabPy6DD8ljVbC7+6J5dQzdv4arV6jqq57djnMgs1HKBxX4P8aBI3A==,
       }
 
-  '@types/qrcode@1.5.6':
-    resolution:
-      {
-        integrity: sha512-te7NQcV2BOvdj2b1hCAHzAoMNuj65kNBMz0KBaxM6c3VGBOhU0dURQKOtH8CFNI/dsKkwlv32p26qYQTWoB5bw==,
-      }
-
   '@types/qs@6.15.1':
     resolution:
       {
@@ -7978,13 +7951,6 @@ packages:
       }
     engines: { node: '>= 6' }
 
-  camelcase@5.3.1:
-    resolution:
-      {
-        integrity: sha512-L28STB170nwWS63UjtlEOE3dldQApaJXZkOI1uMFfzf3rRuPegHaHesyee+YxQ+W6SvRDQV6UrdOdRiR153wJg==,
-      }
-    engines: { node: '>=6' }
-
   caniuse-lite@1.0.30001810:
     resolution:
       {
@@ -8152,12 +8118,6 @@ packages:
     resolution:
       {
         integrity: sha512-IV3Ou0jSMzZrd3pZ48nLkT9DA7Ag1pnPzaiQhpW7c3RbcqqzvzzVu+L8gfqMp/8IM2MQtSiqaCxrrcfu8I8rMA==,
-      }
-
-  cliui@6.0.0:
-    resolution:
-      {
-        integrity: sha512-t6wbgtoCXvAzst7QgXxJYqPt0usEfbgQdftEPbLL/cvv6HPE5VgvqCuAIDR0NgU52ds6rFwqrgakNLrHEjCbrQ==,
       }
 
   cliui@8.0.1:
@@ -8632,13 +8592,6 @@ packages:
       supports-color:
         optional: true
 
-  decamelize@1.2.0:
-    resolution:
-      {
-        integrity: sha512-z2S+W9X73hAUUki+N+9Za2lBlun89zigOyGrsax+KUQ6wKW4ZoWpEYBkGhQjwAjjDCkWxhY0VKEhk8wzY7F5cA==,
-      }
-    engines: { node: '>=0.10.0' }
-
   decimal.js-light@2.5.1:
     resolution:
       {
@@ -8775,12 +8728,6 @@ packages:
     resolution:
       {
         integrity: sha512-gxtyfqMg7GKyhQmb056K7M3xszy/myH8w+B4RT+QXBQsvAOdc3XymqDDPHx1BgPgsdAA5SIifona89YtRATDzw==,
-      }
-
-  dijkstrajs@1.0.3:
-    resolution:
-      {
-        integrity: sha512-qiSlmBq9+BCdCA/L46dw8Uy93mloxsPSbwnm5yrKn2vMPiy8KyAskTF6zuV/j5BMsmOGZDPs7KjU+mjb670kfA==,
       }
 
   dlv@1.1.3:
@@ -9667,13 +9614,6 @@ packages:
         integrity: sha512-S8KoZgRZN+a5rNwqTxlZZePjT/4cnm0ROV70LedRHZ0p8u9fRID0hJUZQpkKLzro8LfmC8sx23bY6tVNxv8pQA==,
       }
     engines: { node: '>= 18.0.0' }
-
-  find-up@4.1.0:
-    resolution:
-      {
-        integrity: sha512-PpOwAdQ/YlXQ2vj8a3h8IipDuYRi3wceVQQGYWxNINccq40Anw7BlsEXCMbt1Zt+OLA6Fq9suIpIWD0OsnISlw==,
-      }
-    engines: { node: '>=8' }
 
   find-up@5.0.0:
     resolution:
@@ -11171,13 +11111,6 @@ packages:
       }
     engines: { node: '>=6.11.5' }
 
-  locate-path@5.0.0:
-    resolution:
-      {
-        integrity: sha512-t7hw9pI+WvuwNJXwk5zVHpyhIqzg2qTlklJOf0mVxGSbe3Fp2VieZcduNYjaLDoy6p9uGpQEGWG87WpMKlNq8g==,
-      }
-    engines: { node: '>=8' }
-
   locate-path@6.0.0:
     resolution:
       {
@@ -12018,13 +11951,6 @@ packages:
         integrity: sha512-qE/CIg/spwrTBFt5aKmwe3ifeDdLfA2NESN30E42X/lII5ClF8V7Wt6WIJhcGZjp0/Q+nQ+9vgxGk//xZNX2hg==,
       }
 
-  p-limit@2.3.0:
-    resolution:
-      {
-        integrity: sha512-//88mFWSJx8lxCzwdAABTJL2MyWB12+eIY7MDL2SqLmAkeKU9qxRvWuSyTjm3FUmpBEMuFfckAIqEaVGUDxb6w==,
-      }
-    engines: { node: '>=6' }
-
   p-limit@3.1.0:
     resolution:
       {
@@ -12032,26 +11958,12 @@ packages:
       }
     engines: { node: '>=10' }
 
-  p-locate@4.1.0:
-    resolution:
-      {
-        integrity: sha512-R79ZZ/0wAxKGu3oYMlz8jy/kbhsNrS7SKZ7PxEHBgJ5+F2mtFW2fK2cOtBh1cHYkQsbzFV7I+EoRKe6Yt0oK7A==,
-      }
-    engines: { node: '>=8' }
-
   p-locate@5.0.0:
     resolution:
       {
         integrity: sha512-LaNjtRWUBY++zB5nE/NwcaoMylSPk+S+ZHNB1TzdbMJMny6dynpAGt7X/tl/QYq3TIeE6nxHppbo2LGymrG5Pw==,
       }
     engines: { node: '>=10' }
-
-  p-try@2.2.0:
-    resolution:
-      {
-        integrity: sha512-R4nPAVTAU0B9D35/Gk3uJf/7XYbQcyohSKdvAxIRSNghFl4e71hVoGnBNQz9cWaXxO2I10KTC+3jMdvvoKw6dQ==,
-      }
-    engines: { node: '>=6' }
 
   pac-proxy-agent@7.2.0:
     resolution:
@@ -12071,12 +11983,6 @@ packages:
     resolution:
       {
         integrity: sha512-UEZIS3/by4OC8vL3P2dTXRETpebLI2NiI5vIrjaD/5UtrkFX/tNbwjTSRAGC/+7CAo2pIcBaRgWmcBBHcsaCIw==,
-      }
-
-  pako@1.0.11:
-    resolution:
-      {
-        integrity: sha512-4hLB8Py4zZce5s4yd9XzopqwVv/yGNhV1Bl8NTmCq1763HeK2+EwVTv+leGeL13Dnh2wfbqowVPXCIO0z4taYw==,
       }
 
   parent-module@1.0.1:
@@ -12184,12 +12090,6 @@ packages:
         integrity: sha512-//nshmD55c46FuFw26xV/xFAaB5HF9Xdap7HJBBnrKdAd6/GxDBaNA1870O79+9ueg61cZLSVc+OaFlfmObYVQ==,
       }
     engines: { node: '>= 14.16' }
-
-  pdf-lib@1.17.1:
-    resolution:
-      {
-        integrity: sha512-V/mpyJAoTsN4cnP31vc0wfNA1+p20evqqnap0KLoRUN0Yk/p3wN52DOEsL4oBFcLdb76hlpKPtzJIgo67j/XLw==,
-      }
 
   pdf-parse@1.1.1:
     resolution:
@@ -12353,13 +12253,6 @@ packages:
       }
     engines: { node: '>=20' }
     hasBin: true
-
-  pngjs@5.0.0:
-    resolution:
-      {
-        integrity: sha512-40QW5YalBNfQo5yRYmiw7Yz6TKKVr3h6970B2YE+3fQpsWcrbj1PzJgxeJ19DRQjhMbKPIuMY8rFaXc8moolVw==,
-      }
-    engines: { node: '>=10.13.0' }
 
   po-parser@2.2.0:
     resolution:
@@ -12590,14 +12483,6 @@ packages:
         integrity: sha512-LDOrawV8vfCVk+yLj2ozvajNP4Sv3OV9y3Tpiyy2g2Z+aQlbcozP6KJfI4iSBq7YQER+86ihEtPa5ioiZyWxMQ==,
       }
     engines: { node: '>=22.12.0' }
-
-  qrcode@1.5.4:
-    resolution:
-      {
-        integrity: sha512-1ca71Zgiu6ORjHqFBDpnSMTR2ReToX4l1Au1VFLyVeBTFavzQnv5JxMFr3ukHVKpSrSA2MCk0lNJSykjUfz7Zg==,
-      }
-    engines: { node: '>=10.13.0' }
-    hasBin: true
 
   qs@6.16.0:
     resolution:
@@ -12896,12 +12781,6 @@ packages:
       }
     engines: { node: '>=9.3.0 || >=8.10.0 <9.0.0' }
 
-  require-main-filename@2.0.0:
-    resolution:
-      {
-        integrity: sha512-NKN5kMDylKuldxYLSUfrbo5Tuzh4hd+2E8NPPX02mZtn1VuREQToYe/ZdlJy+J3uCpfaiGF05e7B8W0iXbQHmg==,
-      }
-
   reselect@5.2.0:
     resolution:
       {
@@ -13158,12 +13037,6 @@ packages:
         integrity: sha512-xRXBn0pPqQTVQiC8wyQrKs2MOlX24zQ0POGaj0kultvoOCstBQM5yvOhAVSUwOMjQtTvsPWoNCHfPGwaaQJhTw==,
       }
     engines: { node: '>= 18' }
-
-  set-blocking@2.0.0:
-    resolution:
-      {
-        integrity: sha512-KiKBS8AnWGEyLzofFfmvKwpdPzqiy16LvQfK3yv/fVH7Bj13/wl3JSR1J+rfgRE9q7xUJK4qvgS8raSOeLUehw==,
-      }
 
   set-cookie-parser@3.1.2:
     resolution:
@@ -13959,12 +13832,6 @@ packages:
       }
     engines: { node: '>=6' }
 
-  tslib@1.14.1:
-    resolution:
-      {
-        integrity: sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg==,
-      }
-
   tslib@2.8.1:
     resolution:
       {
@@ -14532,12 +14399,6 @@ packages:
       }
     engines: { node: '>= 0.4' }
 
-  which-module@2.0.1:
-    resolution:
-      {
-        integrity: sha512-iBdZ57RDvnOR9AGBhML2vFZf7h8vmBjhoaZqODJBFWHVtKkDmKuHai3cx5PgVMrX5YDNp27AofYbAwctSS+vhQ==,
-      }
-
   which-typed-array@1.1.22:
     resolution:
       {
@@ -14670,12 +14531,6 @@ packages:
       }
     engines: { node: '>=0.4' }
 
-  y18n@4.0.3:
-    resolution:
-      {
-        integrity: sha512-JKhqTOwSrqNA1NY5lSztJ1GrBiUodLMmIZuLiDaMRJ+itFd+ABVE8XBjOvIWL+rSqNDC74LCSFmlb/U4UZ4hJQ==,
-      }
-
   y18n@5.0.8:
     resolution:
       {
@@ -14697,13 +14552,6 @@ packages:
     engines: { node: '>= 14.6' }
     hasBin: true
 
-  yargs-parser@18.1.3:
-    resolution:
-      {
-        integrity: sha512-o50j0JeToy/4K6OZcaQmW6lyXXKhq7csREXcDwk2omFPJEwUNOVtJKvmDr9EI1fAJZUyZcRF7kxGBWmRXudrCQ==,
-      }
-    engines: { node: '>=6' }
-
   yargs-parser@21.1.1:
     resolution:
       {
@@ -14717,13 +14565,6 @@ packages:
         integrity: sha512-rwu/ClNdSMpkSrUb+d6BRsSkLUq1fmfsY6TOpYzTwvwkg1/NRG85KBy3kq++A8LKQwX6lsu+aWad+2khvuXrqw==,
       }
     engines: { node: ^20.19.0 || ^22.12.0 || >=23 }
-
-  yargs@15.4.1:
-    resolution:
-      {
-        integrity: sha512-aePbxDmcYW++PaqBsJ+HYUFwCdv4LVvdnhBy78E57PIor8/OVvhMrADFFEDh8DHDFRv/O9i3lPhsENjO7QX0+A==,
-      }
-    engines: { node: '>=8' }
 
   yargs@17.7.2:
     resolution:
@@ -16995,14 +16836,6 @@ snapshots:
       legacy-javascript: 0.0.1
       third-party-web: 0.30.0
 
-  '@pdf-lib/standard-fonts@1.0.0':
-    dependencies:
-      pako: 1.0.11
-
-  '@pdf-lib/upng@1.0.1':
-    dependencies:
-      pako: 1.0.11
-
   '@phun-ky/typeof@2.0.3': {}
 
   '@pkgjs/parseargs@0.11.0':
@@ -18571,10 +18404,6 @@ snapshots:
       pg-protocol: 1.16.0
       pg-types: 2.2.0
 
-  '@types/qrcode@1.5.6':
-    dependencies:
-      '@types/node': 24.12.2
-
   '@types/qs@6.15.1': {}
 
   '@types/range-parser@1.2.7': {}
@@ -19446,8 +19275,6 @@ snapshots:
 
   camelcase-css@2.0.1: {}
 
-  camelcase@5.3.1: {}
-
   caniuse-lite@1.0.30001810: {}
 
   canonicalize@1.0.8: {}
@@ -19541,12 +19368,6 @@ snapshots:
   cli-width@4.1.0: {}
 
   client-only@0.0.1: {}
-
-  cliui@6.0.0:
-    dependencies:
-      string-width: 4.2.3
-      strip-ansi: 6.0.1
-      wrap-ansi: 6.2.0
 
   cliui@8.0.1:
     dependencies:
@@ -19806,8 +19627,6 @@ snapshots:
     dependencies:
       ms: 2.1.3
 
-  decamelize@1.2.0: {}
-
   decimal.js-light@2.5.1: {}
 
   decimal.js@10.6.0: {}
@@ -19864,8 +19683,6 @@ snapshots:
   devtools-protocol@0.0.1666840: {}
 
   didyoumean@1.2.2: {}
-
-  dijkstrajs@1.0.3: {}
 
   dlv@1.1.3: {}
 
@@ -20723,11 +20540,6 @@ snapshots:
       statuses: 2.0.2
     transitivePeerDependencies:
       - supports-color
-
-  find-up@4.1.0:
-    dependencies:
-      locate-path: 5.0.0
-      path-exists: 4.0.0
 
   find-up@5.0.0:
     dependencies:
@@ -21702,10 +21514,6 @@ snapshots:
 
   loader-runner@4.3.2: {}
 
-  locate-path@5.0.0:
-    dependencies:
-      p-locate: 4.1.0
-
   locate-path@6.0.0:
     dependencies:
       p-locate: 5.0.0
@@ -22192,23 +22000,13 @@ snapshots:
       - '@emnapi/core'
       - '@emnapi/runtime'
 
-  p-limit@2.3.0:
-    dependencies:
-      p-try: 2.2.0
-
   p-limit@3.1.0:
     dependencies:
       yocto-queue: 0.1.0
 
-  p-locate@4.1.0:
-    dependencies:
-      p-limit: 2.3.0
-
   p-locate@5.0.0:
     dependencies:
       p-limit: 3.1.0
-
-  p-try@2.2.0: {}
 
   pac-proxy-agent@7.2.0:
     dependencies:
@@ -22229,8 +22027,6 @@ snapshots:
       netmask: 2.0.2
 
   package-json-from-dist@1.0.1: {}
-
-  pako@1.0.11: {}
 
   parent-module@1.0.1:
     dependencies:
@@ -22286,13 +22082,6 @@ snapshots:
   pathe@2.0.3: {}
 
   pathval@2.0.1: {}
-
-  pdf-lib@1.17.1:
-    dependencies:
-      '@pdf-lib/standard-fonts': 1.0.0
-      '@pdf-lib/upng': 1.0.1
-      pako: 1.0.11
-      tslib: 1.14.1
 
   pdf-parse@1.1.1:
     dependencies:
@@ -22371,8 +22160,6 @@ snapshots:
   playwright@1.64.0-alpha-2026-09-14:
     dependencies:
       playwright-core: 1.64.0-alpha-2026-09-14
-
-  pngjs@5.0.0: {}
 
   po-parser@2.2.0: {}
 
@@ -22520,12 +22307,6 @@ snapshots:
       - proxy-agent
       - utf-8-validate
       - yauzl
-
-  qrcode@1.5.4:
-    dependencies:
-      dijkstrajs: 1.0.3
-      pngjs: 5.0.0
-      yargs: 15.4.1
 
   qs@6.16.0:
     dependencies:
@@ -22760,8 +22541,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  require-main-filename@2.0.0: {}
-
   reselect@5.2.0: {}
 
   resend@4.8.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
@@ -22962,8 +22741,6 @@ snapshots:
       send: 1.2.1
     transitivePeerDependencies:
       - supports-color
-
-  set-blocking@2.0.0: {}
 
   set-cookie-parser@3.1.2: {}
 
@@ -23519,8 +23296,6 @@ snapshots:
       minimist: 1.2.8
       strip-bom: 3.0.0
 
-  tslib@1.14.1: {}
-
   tslib@2.8.1: {}
 
   tsx@4.23.13:
@@ -24019,8 +23794,6 @@ snapshots:
       is-weakmap: 2.0.2
       is-weakset: 2.0.4
 
-  which-module@2.0.1: {}
-
   which-typed-array@1.1.22:
     dependencies:
       available-typed-arrays: 1.0.7
@@ -24090,36 +23863,15 @@ snapshots:
 
   xtend@4.0.2: {}
 
-  y18n@4.0.3: {}
-
   y18n@5.0.8: {}
 
   yallist@3.1.1: {}
 
   yaml@2.8.3: {}
 
-  yargs-parser@18.1.3:
-    dependencies:
-      camelcase: 5.3.1
-      decamelize: 1.2.0
-
   yargs-parser@21.1.1: {}
 
   yargs-parser@22.0.0: {}
-
-  yargs@15.4.1:
-    dependencies:
-      cliui: 6.0.0
-      decamelize: 1.2.0
-      find-up: 4.1.0
-      get-caller-file: 2.0.5
-      require-directory: 2.1.1
-      require-main-filename: 2.0.0
-      set-blocking: 2.0.0
-      string-width: 4.2.3
-      which-module: 2.0.1
-      y18n: 4.0.3
-      yargs-parser: 18.1.3
 
   yargs@17.7.2:
     dependencies:

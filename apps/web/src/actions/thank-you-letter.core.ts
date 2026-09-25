@@ -1,7 +1,6 @@
 'use server';
 
 import { previewThankYouLetterCore } from './thank-you-letter/preview';
-import { resendWelcomeEmailCore } from './thank-you-letter/resend';
 import { sendThankYouLetterCore } from './thank-you-letter/send';
 import type {
   PreviewThankYouLetterParams,
@@ -43,11 +42,4 @@ export async function previewThankYouLetter(params: {
   locale: 'en' | 'sq' | 'mk' | 'sr';
 }): Promise<{ html: string; text: string }> {
   return previewThankYouLetterCore(params satisfies PreviewThankYouLetterParams);
-}
-
-/**
- * Admin Action: Resend Welcome Email to a user
- */
-export async function resendWelcomeEmail(userId: string) {
-  return resendWelcomeEmailCore(userId);
 }

@@ -3,7 +3,6 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   sendThankYouLetterCore: vi.fn(),
   previewThankYouLetterCore: vi.fn(),
-  resendWelcomeEmailCore: vi.fn(),
 }));
 
 vi.mock('./thank-you-letter/send', () => ({
@@ -12,10 +11,6 @@ vi.mock('./thank-you-letter/send', () => ({
 
 vi.mock('./thank-you-letter/preview', () => ({
   previewThankYouLetterCore: (...args: unknown[]) => mocks.previewThankYouLetterCore(...args),
-}));
-
-vi.mock('./thank-you-letter/resend', () => ({
-  resendWelcomeEmailCore: (...args: unknown[]) => mocks.resendWelcomeEmailCore(...args),
 }));
 
 let actions: typeof import('./thank-you-letter');
@@ -72,14 +67,5 @@ describe('thank-you-letter action wrappers', () => {
 
     expect(mocks.previewThankYouLetterCore).toHaveBeenCalledWith(params);
     expect(result).toEqual({ html: '<p>Hi</p>', text: 'Hi' });
-  });
-
-  it('resendWelcomeEmail delegates to core', async () => {
-    mocks.resendWelcomeEmailCore.mockResolvedValue({ success: true });
-
-    const result = await actions.resendWelcomeEmail('user-1');
-
-    expect(mocks.resendWelcomeEmailCore).toHaveBeenCalledWith('user-1');
-    expect(result).toEqual({ success: true });
   });
 });
