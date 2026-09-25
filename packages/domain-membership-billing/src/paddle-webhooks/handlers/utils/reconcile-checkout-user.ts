@@ -37,10 +37,6 @@ function normalizeText(value: string | null | undefined): string | null {
   return normalized.length > 0 ? normalized : null;
 }
 
-function emailDisplayName(email: string): string {
-  return email.split('@')[0]?.trim() || 'Member';
-}
-
 function shouldPromoteRole(role: string | null | undefined): boolean {
   return !role || role === 'user' || role === 'member';
 }
@@ -124,7 +120,7 @@ export async function reconcileCheckoutUser(
           id: newUserId,
           tenantId,
           branchId,
-          name: emailDisplayName(customerEmail),
+          name: '',
           email: customerEmail,
           emailVerified: false,
           role: 'member',

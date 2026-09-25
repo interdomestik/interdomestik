@@ -55,6 +55,14 @@ describe('sendThankYouLetterCore', () => {
     expect(mocks.sendEmail).not.toHaveBeenCalled();
   });
 
+  it('fails closed for an unsupported runtime locale', async () => {
+    await expect(sendThankYouLetterCore({ ...params, locale: 'de' as never })).resolves.toEqual({
+      success: false,
+      error: 'Unsupported confirmation locale',
+    });
+    expect(mocks.sendEmail).not.toHaveBeenCalled();
+  });
+
   it('returns provider delivery failure instead of logging a false success', async () => {
     mocks.sendEmail.mockResolvedValue({ success: false, error: 'Email provider not configured' });
 

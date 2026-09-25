@@ -32,4 +32,10 @@ describe('previewThankYouLetterCore', () => {
       previewThankYouLetterCore({ ...params, tenantId: 'javascript:alert(1)' })
     ).rejects.toThrow('Unsupported confirmation tenant');
   });
+
+  it('fails closed for an unsupported runtime locale', async () => {
+    await expect(previewThankYouLetterCore({ ...params, locale: 'de' as never })).rejects.toThrow(
+      'Unsupported confirmation locale'
+    );
+  });
 });

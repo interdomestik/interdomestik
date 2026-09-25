@@ -1,3 +1,9 @@
+export type ConfirmationLocale = 'en' | 'sq' | 'mk' | 'sr';
+
+export function isConfirmationLocale(value: unknown): value is ConfirmationLocale {
+  return value === 'en' || value === 'sq' || value === 'mk' || value === 'sr';
+}
+
 export type SendThankYouLetterParams = {
   email: string;
   memberName: string;
@@ -9,7 +15,7 @@ export type SendThankYouLetterParams = {
   expiresAt: Date;
   providerReference: string;
   tenantId: string;
-  locale: 'en' | 'sq' | 'mk' | 'sr';
+  locale: ConfirmationLocale;
 };
 
 export type PreviewThankYouLetterParams = {
@@ -22,5 +28,5 @@ export type PreviewThankYouLetterParams = {
   expiresAt: Date;
   providerReference: string;
   tenantId: string;
-  locale: 'en' | 'sq' | 'mk' | 'sr';
+  locale: ConfirmationLocale;
 };

@@ -1,7 +1,7 @@
 import { sendEmail } from '@/lib/email';
 import { renderThankYouLetterEmail, ThankYouLetterParams } from '@/lib/email/thank-you-letter';
 import { coerceTenantId, resolveTenantAppOrigin } from '@/lib/tenant/tenant-hosts';
-import type { SendThankYouLetterParams } from './types';
+import { isConfirmationLocale, type SendThankYouLetterParams } from './types';
 
 const DATE_LOCALES = {
   en: 'en-US',
@@ -14,6 +14,9 @@ export async function sendThankYouLetterCore(
   params: SendThankYouLetterParams
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    if (!isConfirmationLocale(params.locale)) {
+      return { success: false, error: 'Unsupported confirmation locale' };
+    }
     const tenantId = coerceTenantId(params.tenantId);
     if (!tenantId) return { success: false, error: 'Unsupported confirmation tenant' };
 

@@ -61,7 +61,7 @@ describe('handleSubscriptionChanged entity retry', () => {
       id: 'user_new',
       tenantId: 'tenant_mk',
       email: 'buyer@example.com',
-      name: 'buyer',
+      name: '',
       memberNumber: 'MEM-2026-000123',
       branchId: 'branch-mk-main',
       role: 'member',
