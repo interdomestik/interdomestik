@@ -244,6 +244,7 @@ async function processRenewalCommissions(args: {
 }
 
 export async function handleNewSubscriptionExtras(args: {
+  eventType: string;
   internalSubscriptionId?: string;
   sub: any;
   userId: string;

@@ -60,6 +60,7 @@ describe('handleNewSubscriptionExtras membership events', () => {
 
   it('emits sanitized read-only attribution event without granting read scope', async () => {
     await handleNewSubscriptionExtras({
+      eventType: 'subscription.created',
       customData: { agentId: 'agent_1' },
       deps,
       priceId: 'price_1',

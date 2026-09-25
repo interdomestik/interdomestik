@@ -82,6 +82,40 @@ describe('subscription confirmation dispatch', () => {
     );
   });
 
+  it('does not confirm an out-of-order active subscription.updated event with no existing row', async () => {
+    await handleSubscriptionChanged(
+      {
+        eventType: 'subscription.updated',
+        data: {
+          id: 'sub_provider_updated_first',
+          status: 'active',
+          custom_data: {
+            userId: 'user_123',
+            tenantId: 'tenant_mk',
+            locale: 'sr',
+          },
+          items: [
+            {
+              price: {
+                id: 'pri_123',
+                name: 'Annual membership',
+                unit_price: { amount: '2000', currency_code: 'EUR' },
+              },
+            },
+          ],
+          billing_cycle: { frequency: 1, interval: 'year' },
+          current_billing_period: {
+            starts_at: '2026-01-01T00:00:00Z',
+            ends_at: '2027-01-01T00:00:00Z',
+          },
+        },
+      },
+      { sendThankYouLetter }
+    );
+
+    expect(sendThankYouLetter).not.toHaveBeenCalled();
+  });
+
   it('does not dispatch when checkout tenant conflicts with canonical ownership', async () => {
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
       id: 'sub_existing',

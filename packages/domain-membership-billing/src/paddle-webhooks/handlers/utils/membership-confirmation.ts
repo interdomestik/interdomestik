@@ -50,13 +50,20 @@ export const redactEmail = (email?: string | null) => {
 };
 
 export async function processMembershipConfirmation(args: {
+  eventType: string;
   sub: any;
   tenantId: string;
   customData: CheckoutCustomData | undefined;
   userRecord: WebhookUserRecord | null;
   deps: Pick<PaddleWebhookDeps, 'sendThankYouLetter'>;
 }) {
-  const { sub, tenantId, customData, userRecord, deps } = args;
+  const { eventType, sub, tenantId, customData, userRecord, deps } = args;
+  if (eventType !== 'subscription.created') {
+    console.warn(
+      `[Webhook] Membership confirmation not sent for subscription ${sub.id}; provider event is not subscription.created`
+    );
+    return;
+  }
   if (!deps.sendThankYouLetter || !userRecord) return;
 
   const confirmation = resolveProviderConfirmation({ sub, customData, userRecord });

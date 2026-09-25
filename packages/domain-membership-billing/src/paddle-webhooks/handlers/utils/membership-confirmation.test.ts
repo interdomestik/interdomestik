@@ -49,6 +49,7 @@ describe('processMembershipConfirmation', () => {
 
   it('sends exact active provider and authoritative member values', async () => {
     await processMembershipConfirmation({
+      eventType: 'subscription.created',
       sub: subscription,
       tenantId: 'tenant_mk',
       customData: { locale: 'sr' },
@@ -72,10 +73,24 @@ describe('processMembershipConfirmation', () => {
     );
   });
 
+  it('refuses an active confirmation from a non-created provider event', async () => {
+    await processMembershipConfirmation({
+      eventType: 'subscription.updated',
+      sub: subscription,
+      tenantId: 'tenant_mk',
+      customData: { locale: 'sr' },
+      userRecord,
+      deps: { sendThankYouLetter },
+    });
+
+    expect(sendThankYouLetter).not.toHaveBeenCalled();
+  });
+
   it.each(['trialing', 'past_due', 'paused', 'canceled', 'deleted'])(
     'does not send active confirmation for provider status %s',
     async status => {
       await processMembershipConfirmation({
+        eventType: 'subscription.created',
         sub: { ...subscription, status },
         tenantId: 'tenant_mk',
         customData: { locale: 'mk' },
@@ -109,6 +124,7 @@ describe('processMembershipConfirmation', () => {
     ],
   ])('does not invent confirmation values when %s', async (_name, sub, customData, member) => {
     await processMembershipConfirmation({
+      eventType: 'subscription.created',
       sub,
       tenantId: 'tenant_mk',
       customData,
@@ -122,6 +138,7 @@ describe('processMembershipConfirmation', () => {
   it('does nothing when the delivery dependency is unavailable', async () => {
     await expect(
       processMembershipConfirmation({
+        eventType: 'subscription.created',
         sub: subscription,
         tenantId: 'tenant_mk',
         customData: { locale: 'mk' },
@@ -137,6 +154,7 @@ describe('processMembershipConfirmation', () => {
     sendThankYouLetter.mockResolvedValue({ success: false, error: 'Provider rejected email' });
 
     await processMembershipConfirmation({
+      eventType: 'subscription.created',
       sub: subscription,
       tenantId: 'tenant_mk',
       customData: { locale: 'mk' },
@@ -156,6 +174,7 @@ describe('processMembershipConfirmation', () => {
 
     await expect(
       processMembershipConfirmation({
+        eventType: 'subscription.created',
         sub: subscription,
         tenantId: 'tenant_mk',
         customData: { locale: 'en' },

@@ -36,6 +36,9 @@ vi.mock('../../../commissions/create', () => ({
 
 describe('extras', () => {
   describe('handleNewSubscriptionExtras', () => {
+    const handleCreatedSubscriptionExtras = (
+      args: Omit<Parameters<typeof handleNewSubscriptionExtras>[0], 'eventType'>
+    ) => handleNewSubscriptionExtras({ eventType: 'subscription.created', ...args });
     const mockDeps = {
       logAuditEvent: vi.fn(),
       sendThankYouLetter: vi.fn(),
@@ -64,10 +67,7 @@ describe('extras', () => {
       name: 'Test Member',
       memberNumber: 'M-123',
     };
-    const tx = {
-      insert: vi.fn(),
-      update: vi.fn(),
-    };
+    const tx = { insert: vi.fn(), update: vi.fn() };
     const insertValues = vi.fn();
     const onConflictDoUpdate = vi.fn();
     const updateWhere = vi.fn();
@@ -102,7 +102,7 @@ describe('extras', () => {
     });
 
     it('should process commission if agentId is present', async () => {
-      await handleNewSubscriptionExtras({
+      await handleCreatedSubscriptionExtras({
         sub: mockSub,
         userId: 'user_1',
         tenantId: 'tenant_1',
@@ -140,7 +140,7 @@ describe('extras', () => {
       (db.query.agentSettings.findFirst as any).mockResolvedValue({
         commissionRates: { new_membership: 0.5 }, // 50% custom rate
       });
-      await handleNewSubscriptionExtras({
+      await handleCreatedSubscriptionExtras({
         sub: mockSub,
         userId: 'user_1',
         tenantId: 'tenant_1',
@@ -158,7 +158,7 @@ describe('extras', () => {
     });
 
     it('prefers the canonical user owner over stale webhook agent attribution', async () => {
-      await handleNewSubscriptionExtras({
+      await handleCreatedSubscriptionExtras({
         sub: mockSub,
         userId: 'user_1',
         tenantId: 'tenant_1',
@@ -183,7 +183,7 @@ describe('extras', () => {
     });
 
     it('treats company-owned canonical users as company-owned even when webhook customData is stale', async () => {
-      await handleNewSubscriptionExtras({
+      await handleCreatedSubscriptionExtras({
         sub: mockSub,
         userId: 'user_1',
         tenantId: 'tenant_1',
@@ -207,7 +207,7 @@ describe('extras', () => {
     });
 
     it('should skip commission if no agentId', async () => {
-      await handleNewSubscriptionExtras({
+      await handleCreatedSubscriptionExtras({
         sub: mockSub,
         userId: 'user_1',
         tenantId: 'tenant_1',
@@ -222,7 +222,7 @@ describe('extras', () => {
     });
 
     it('records read-only attribution without reactivating agent-client read-scope links', async () => {
-      await handleNewSubscriptionExtras({
+      await handleCreatedSubscriptionExtras({
         sub: mockSub,
         userId: 'user_1',
         tenantId: 'tenant_1',
@@ -254,7 +254,7 @@ describe('extras', () => {
         },
       });
 
-      await handleNewSubscriptionExtras({
+      await handleCreatedSubscriptionExtras({
         sub: mockSub,
         userId: 'user_1',
         tenantId: 'tenant_1',
@@ -283,7 +283,7 @@ describe('extras', () => {
     });
 
     it('does not stack a member referral reward on top of an agent commission', async () => {
-      await handleNewSubscriptionExtras({
+      await handleCreatedSubscriptionExtras({
         sub: mockSub,
         userId: 'user_1',
         tenantId: 'tenant_1',
