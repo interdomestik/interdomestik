@@ -7,7 +7,7 @@ import { inspectRepositoryParity } from './main-e2e-reuse.mjs';
 import { readLocalGitObjectId } from './main-e2e-reuse-github.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const EXPECTED_E2E_TREE = 'b847ed635896e6eaac1be42d2ac44ac307bf7b23';
+const EXPECTED_E2E_TREE = '35909308c412b1a38c59a59a7de0e013348d48ac';
 const sourceFiles = {
   ciWorkflow: '.github/workflows/ci.yml',
   laneSource: 'scripts/run-e2e-lane.mjs',

@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test';
+import { routes } from '../routes';
 import { E2E_USERS } from '@interdomestik/database';
 import {
   listFreeStartDrafts,
@@ -55,7 +56,7 @@ export async function continueSavedDraftWithoutMembership(
     await expect(intake.getByTestId('claim-created-success')).toHaveCount(0);
     await expect(intake.getByTestId('saved-draft-continue')).toHaveCount(0);
   }
-  await page.goto(`${args.origin}/en/member/claims/new?mode=drafts#draft=malformed`);
+  await page.goto(`${args.origin}${routes.memberNewClaim('en')}?mode=drafts#draft=malformed`);
   const notice = page.getByTestId('draft-continuation-notice');
   await expect(notice.getByRole('alert')).toBeVisible();
   await expect(page.getByTestId('claim-draft-dormant-preview')).toHaveCount(0);
