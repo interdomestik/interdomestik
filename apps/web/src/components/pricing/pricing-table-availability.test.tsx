@@ -139,73 +139,46 @@ describe('PricingTable', () => {
     expect(joinButtons[0]).toBeDisabled();
   });
 
-  it('shows an explicit local checkout warning instead of simulated success when client token is missing', async () => {
-    vi.stubEnv('NODE_ENV', 'development');
-    vi.spyOn(paddleLib, 'getPaddleInstance').mockResolvedValue(null);
+  it.each([
+    ['missing', ''],
+    ['placeholder', 'test_***'],
+  ])(
+    'shows an explicit local warning for a %s client token without simulated success',
+    async (_label, clientToken) => {
+      vi.stubEnv('NODE_ENV', 'development');
+      vi.spyOn(paddleLib, 'getPaddleInstance').mockResolvedValue(null);
+      const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        render(
+          <PricingTable
+            userId="user-123"
+            email="test@example.com"
+            billingTestMode={false}
+            checkoutConfig={{ ...checkoutConfig, clientToken }}
+          />
+        );
 
-    try {
-      render(
-        <PricingTable
-          userId="user-123"
-          email="test@example.com"
-          billingTestMode={false}
-          checkoutConfig={{ ...checkoutConfig, clientToken: '' }}
-        />
-      );
+        fireEvent.click(screen.getAllByText('cta')[0]);
+        expect(mockPaddle.Checkout.open).not.toHaveBeenCalled();
+        fireEvent.click(screen.getByTestId('precheckout-continue-cta'));
 
-      const joinButtons = screen.getAllByText('cta');
-      fireEvent.click(joinButtons[0]);
-      expect(mockPaddle.Checkout.open).not.toHaveBeenCalled();
-      fireEvent.click(screen.getByTestId('precheckout-continue-cta'));
+        await waitFor(() => {
+          expect(screen.getByTestId('pricing-local-checkout-unavailable')).toBeInTheDocument();
+          expect(screen.getByText('localCheckout.title')).toBeInTheDocument();
+          expect(screen.getByText('localCheckout.body')).toBeInTheDocument();
+        });
 
-      await waitFor(() => {
-        expect(screen.getByTestId('pricing-local-checkout-unavailable')).toBeInTheDocument();
-        expect(screen.getByText('localCheckout.title')).toBeInTheDocument();
-        expect(screen.getByText('localCheckout.body')).toBeInTheDocument();
-      });
-
-      expect(mockRouterPush).not.toHaveBeenCalled();
-      expect(mockPaddle.Checkout.open).not.toHaveBeenCalled();
-      expect(consoleWarn).toHaveBeenCalledWith(
-        'Paddle client token missing in development, checkout is unavailable locally.'
-      );
-    } finally {
-      consoleWarn.mockRestore();
+        expect(mockRouterPush).not.toHaveBeenCalled();
+        expect(mockPaddle.Checkout.open).not.toHaveBeenCalled();
+        expect(consoleWarn).toHaveBeenCalledWith(
+          'Paddle client token missing in development, checkout is unavailable locally.'
+        );
+      } finally {
+        consoleWarn.mockRestore();
+      }
     }
-  });
-
-  it('treats placeholder Paddle tokens as missing and shows the explicit local warning', async () => {
-    vi.stubEnv('NODE_ENV', 'development');
-    vi.spyOn(paddleLib, 'getPaddleInstance').mockResolvedValue(null);
-
-    const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-    try {
-      render(
-        <PricingTable
-          userId="user-123"
-          email="test@example.com"
-          billingTestMode={false}
-          checkoutConfig={{ ...checkoutConfig, clientToken: 'test_***' }}
-        />
-      );
-
-      const joinButtons = screen.getAllByText('cta');
-      fireEvent.click(joinButtons[0]);
-      fireEvent.click(screen.getByTestId('precheckout-continue-cta'));
-
-      await waitFor(() => {
-        expect(screen.getByTestId('pricing-local-checkout-unavailable')).toBeInTheDocument();
-      });
-
-      expect(mockRouterPush).not.toHaveBeenCalled();
-      expect(mockPaddle.Checkout.open).not.toHaveBeenCalled();
-    } finally {
-      consoleWarn.mockRestore();
-    }
-  });
+  );
 
   it('suppresses the local checkout warning in production Paddle mode', async () => {
     vi.stubEnv('NODE_ENV', 'production');
