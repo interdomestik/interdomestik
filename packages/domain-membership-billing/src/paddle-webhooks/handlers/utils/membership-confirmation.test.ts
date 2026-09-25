@@ -86,6 +86,22 @@ describe('processMembershipConfirmation', () => {
     expect(sendThankYouLetter).not.toHaveBeenCalled();
   });
 
+  it('refuses a confirmation while a reconciled member still has no authoritative name', async () => {
+    await processMembershipConfirmation({
+      eventType: 'subscription.created',
+      sub: subscription,
+      tenantId: 'tenant_mk',
+      customData: { locale: 'en' },
+      userRecord: {
+        ...userRecord,
+        name: '',
+      },
+      deps: { sendThankYouLetter },
+    });
+
+    expect(sendThankYouLetter).not.toHaveBeenCalled();
+  });
+
   it.each(['trialing', 'past_due', 'paused', 'canceled', 'deleted'])(
     'does not send active confirmation for provider status %s',
     async status => {
