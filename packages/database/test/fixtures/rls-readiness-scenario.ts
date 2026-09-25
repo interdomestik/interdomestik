@@ -4,9 +4,7 @@ import { mock } from 'node:test';
 import type postgres from 'postgres';
 import type { RlsConnectionRolePosture } from '../../src/rls-role-assertion';
 
-async function main(): Promise<void> {
-  const scenario = process.argv[2];
-  const configured = scenario === 'configured' || scenario === 'recovery-configured-superuser';
+function configureFixtureEnvironment(scenario: string, configured: boolean): void {
   // Only the external SQL transport is replaced. Readiness, Drizzle and tenant setup are real.
   process.env.DATABASE_URL = 'postgres://admin:fixture@db.invalid/test';
   process.env.DATABASE_URL_RLS = 'postgres://tenant:fixture@db.invalid/test';
@@ -14,7 +12,19 @@ async function main(): Promise<void> {
   if (configured) process.env.DB_RLS_ROLE = 'tenant_target';
   if (scenario === 'invalid-role') process.env.DB_RLS_ROLE = 'invalid;role';
   if (scenario === 'identical-url') process.env.DATABASE_URL_RLS = process.env.DATABASE_URL;
+}
+
+async function main(): Promise<void> {
+  const scenario = process.argv[2];
+  const configured = scenario === 'configured' || scenario === 'recovery-configured-superuser';
+  configureFixtureEnvironment(scenario, configured);
   const safe = [{ currentUser: 'tenant', roleBypassesRls: false, roleIsSuperuser: false }];
+  const unsafePostures: Record<string, RlsConnectionRolePosture[] | undefined> = {
+    'wrong-role': [{ ...safe[0], roleBypassesRls: true }],
+    superuser: [{ ...safe[0], roleIsSuperuser: true }],
+    malformed: [{ ...safe[0], roleBypassesRls: null }],
+    missing: [],
+  };
   let resolveFirst!: (rows: RlsConnectionRolePosture[]) => void;
   const first = new Promise<RlsConnectionRolePosture[]>(resolve => {
     resolveFirst = resolve;
@@ -32,10 +42,8 @@ async function main(): Promise<void> {
     async (_sql: TemplateStringsArray, role?: string) => {
       queries++;
       roles.push(role);
-      if (scenario === 'wrong-role') return [{ ...safe[0], roleBypassesRls: true }];
-      if (scenario === 'superuser') return [{ ...safe[0], roleIsSuperuser: true }];
-      if (scenario === 'malformed') return [{ ...safe[0], roleBypassesRls: null }];
-      if (scenario === 'missing') return [];
+      const unsafePosture = unsafePostures[scenario];
+      if (unsafePosture) return unsafePosture;
       if (scenario === 'query-error') throw new Error('permission denied');
       if (scenario === 'recovery-configured-superuser' && queries === 4)
         return [{ ...safe[0], roleIsSuperuser: true }];
@@ -150,7 +158,8 @@ async function main(): Promise<void> {
     mock.timers.tick(5_000);
   }
   assert.equal(await request(), 1);
-  assert.equal(queries, scenario === 'configured' ? 4 : scenario === 'repeated' ? 3 : 2);
+  const expectedQueries: Record<string, number> = { configured: 4, repeated: 3 };
+  assert.equal(queries, expectedQueries[scenario] ?? 2);
   if (scenario === 'configured')
     assert.deepEqual(roles, [undefined, 'tenant_target', undefined, 'tenant_target']);
   assert.equal(transactions, 1);

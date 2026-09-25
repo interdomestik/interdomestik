@@ -136,11 +136,13 @@ function reportRlsConnectionRoleAssertion(
   result: RlsConnectionRoleAssertionResult,
   error?: unknown
 ): void {
-  const outcome = result.ok
-    ? 'passed'
-    : result.cause instanceof RlsRolePostureTimeoutError
-      ? 'query_timeout'
-      : `${result.reason}:${result.checkedRole ?? ''}`;
+  let outcome = 'passed';
+  if (!result.ok) {
+    outcome =
+      result.cause instanceof RlsRolePostureTimeoutError
+        ? 'query_timeout'
+        : `${result.reason}:${result.checkedRole ?? ''}`;
+  }
   if (rlsConnectionRoleAssertionTelemetryOutcome === outcome) {
     return;
   }
