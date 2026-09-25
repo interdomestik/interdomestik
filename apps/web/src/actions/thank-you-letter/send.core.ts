@@ -1,48 +1,13 @@
 import { sendEmail } from '@/lib/email';
-import { renderThankYouLetterEmail, ThankYouLetterParams } from '@/lib/email/thank-you-letter';
-import { coerceTenantId, resolveTenantAppOrigin } from '@/lib/tenant/tenant-hosts';
-import { isConfirmationLocale, type SendThankYouLetterParams } from './types';
-
-const DATE_LOCALES = {
-  en: 'en-US',
-  sq: 'sq-AL',
-  mk: 'mk-MK',
-  sr: 'sr-Latn-RS',
-} as const;
+import { renderThankYouLetterEmail } from '@/lib/email/thank-you-letter';
+import { buildThankYouLetterParams } from './params.core';
+import type { SendThankYouLetterParams } from './types';
 
 export async function sendThankYouLetterCore(
   params: SendThankYouLetterParams
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    if (!isConfirmationLocale(params.locale)) {
-      return { success: false, error: 'Unsupported confirmation locale' };
-    }
-    const tenantId = coerceTenantId(params.tenantId);
-    if (!tenantId) return { success: false, error: 'Unsupported confirmation tenant' };
-
-    const dateFormatter = new Intl.DateTimeFormat(DATE_LOCALES[params.locale], {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-
-    const letterParams: ThankYouLetterParams = {
-      memberName: params.memberName,
-      memberNumber: params.memberNumber,
-      planName: params.planName,
-      planPrice: params.planPrice,
-      planInterval: params.planInterval,
-      memberSince: dateFormatter.format(params.memberSince),
-      expiresAt: dateFormatter.format(params.expiresAt),
-      providerReference: params.providerReference,
-      dashboardUrl: new URL(
-        `/${params.locale}/member/membership`,
-        resolveTenantAppOrigin(tenantId)
-      ).toString(),
-      locale: params.locale,
-    };
-
-    const emailContent = renderThankYouLetterEmail(letterParams);
+    const emailContent = renderThankYouLetterEmail(buildThankYouLetterParams(params));
     const delivery = await sendEmail(params.email, emailContent);
     return delivery.success ? { success: true } : delivery;
   } catch (error) {
