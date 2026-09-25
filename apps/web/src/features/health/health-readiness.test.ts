@@ -5,7 +5,7 @@ const fixture = vi.hoisted(() => ({
   readiness: undefined as ReturnType<typeof createRlsRoleReadiness> | undefined,
   query: vi.fn(),
 }));
-vi.mock('@interdomestik/database', () => ({
+vi.mock('@interdomestik/database/db', () => ({
   assertRlsConnectionRoleReady: () => fixture.readiness!.assertReady(),
   db: {
     get select() {

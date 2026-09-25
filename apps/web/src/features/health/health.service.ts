@@ -1,4 +1,4 @@
-import { assertRlsConnectionRoleReady, db } from '@interdomestik/database';
+import { assertRlsConnectionRoleReady, db } from '@interdomestik/database/db';
 import { user } from '@interdomestik/database/schema/auth';
 
 import { buildUpstashRedisPingUrl } from './upstash-redis-url';
