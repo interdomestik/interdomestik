@@ -42,7 +42,6 @@ export function useDraftContinuation(
       mounted.current = false;
     };
     // Only the initial selection may restore facts; later edits and hash changes cannot overwrite them.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
