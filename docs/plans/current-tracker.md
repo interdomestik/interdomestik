@@ -68,7 +68,8 @@ frontier. Unresolved rows are neither automatic features nor blanket blockers.
   Approved versioned offer/entity/terms evidence remains a business dependency for capture.
 - Owner reconfirmed Paddle-only. Provider approval for actual paid services, MK webhook secret and
   deployed entity-token `customer.read` permission remain unresolved/unverified external evidence.
-- Current candidate is not yet verified, merged, staged or user-accepted. No production changes.
+- Current candidate is not yet verified, merged, staged or user-accepted.
+  No deployment, product readiness or user-acceptance claim follows from preparation. No production changes.
 
 ## Next Selection
 
