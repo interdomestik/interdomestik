@@ -38,7 +38,7 @@ export async function previewThankYouLetter(params: {
   memberSince: Date;
   expiresAt: Date;
   providerReference: string;
-  dashboardUrl: string;
+  tenantId: string;
   locale: 'en' | 'sq' | 'mk' | 'sr';
 }): Promise<{ html: string; text: string }> {
   return previewThankYouLetterCore(params satisfies PreviewThankYouLetterParams);

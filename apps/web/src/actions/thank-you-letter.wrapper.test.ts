@@ -57,7 +57,7 @@ describe('thank-you-letter action wrappers', () => {
       memberSince: new Date('2025-01-01T00:00:00Z'),
       expiresAt: new Date('2026-01-01T00:00:00Z'),
       providerReference: 'sub_preview',
-      dashboardUrl: 'https://ks.interdomestik.com/en/member/membership',
+      tenantId: 'tenant_ks',
       locale: 'sq' as const,
     };
 

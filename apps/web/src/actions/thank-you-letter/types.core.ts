@@ -21,6 +21,6 @@ export type PreviewThankYouLetterParams = {
   memberSince: Date;
   expiresAt: Date;
   providerReference: string;
-  dashboardUrl: string;
+  tenantId: string;
   locale: 'en' | 'sq' | 'mk' | 'sr';
 };

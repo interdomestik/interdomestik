@@ -1,4 +1,5 @@
 import { renderThankYouLetterEmail, ThankYouLetterParams } from '@/lib/email/thank-you-letter';
+import { coerceTenantId, resolveTenantAppOrigin } from '@/lib/tenant/tenant-hosts';
 import type { PreviewThankYouLetterParams } from './types';
 
 const DATE_LOCALES = {
@@ -11,6 +12,9 @@ const DATE_LOCALES = {
 export async function previewThankYouLetterCore(
   params: PreviewThankYouLetterParams
 ): Promise<{ html: string; text: string }> {
+  const tenantId = coerceTenantId(params.tenantId);
+  if (!tenantId) throw new Error('Unsupported confirmation tenant');
+
   const dateFormatter = new Intl.DateTimeFormat(DATE_LOCALES[params.locale], {
     year: 'numeric',
     month: 'long',
@@ -26,7 +30,10 @@ export async function previewThankYouLetterCore(
     memberSince: dateFormatter.format(params.memberSince),
     expiresAt: dateFormatter.format(params.expiresAt),
     providerReference: params.providerReference,
-    dashboardUrl: params.dashboardUrl,
+    dashboardUrl: new URL(
+      `/${params.locale}/member/membership`,
+      resolveTenantAppOrigin(tenantId)
+    ).toString(),
     locale: params.locale,
   };
 
