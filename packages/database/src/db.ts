@@ -2,6 +2,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
 import {
+  RlsRolePostureTimeoutError,
   type RlsConnectionRoleAssertionResult,
   type RlsConnectionRolePosture,
 } from './rls-role-assertion';
@@ -118,7 +119,7 @@ type OptionalSentry = {
   captureMessage?: (message: string, options?: Record<string, unknown>) => void;
 };
 
-let rlsConnectionRoleAssertionTelemetryReported = false;
+let rlsConnectionRoleAssertionTelemetryOutcome: string | undefined;
 
 async function loadOptionalSentry(): Promise<OptionalSentry | null> {
   try {
@@ -135,10 +136,15 @@ function reportRlsConnectionRoleAssertion(
   result: RlsConnectionRoleAssertionResult,
   error?: unknown
 ): void {
-  if (rlsConnectionRoleAssertionTelemetryReported) {
+  const outcome = result.ok
+    ? 'passed'
+    : result.cause instanceof RlsRolePostureTimeoutError
+      ? 'query_timeout'
+      : `${result.reason}:${result.checkedRole ?? ''}`;
+  if (rlsConnectionRoleAssertionTelemetryOutcome === outcome) {
     return;
   }
-  rlsConnectionRoleAssertionTelemetryReported = true;
+  rlsConnectionRoleAssertionTelemetryOutcome = outcome;
 
   const event = `database.rls.role_assertion.${result.ok ? 'passed' : 'failed'}`;
   const data = {
