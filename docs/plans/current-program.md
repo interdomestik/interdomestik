@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-24
+last_reviewed: 2026-09-25
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -16,49 +16,40 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`S5-LOCAL-DRAFT-DISCLOSURE` is the sole active product implementation. The owner authorized the
-bounded `IDA-FST-004` increment on the neutral public organizer: before any new browser persistence,
-show an EN/SQ/MK/SR disclosure covering shared-device risk, eligible and excluded data, 30-day
-expiry, deletion and the separate verified-email secure-save path. A person may explicitly enable
-browser recovery or continue without device storage; either path keeps the organizer usable and
-creates no claim, case, membership, payment or handoff side effect. The slice starts from protected
-main SHA `6fbf6a5537613baac12d84b035d3ce8734a9010c`.
+`S5-SAVED-DRAFT-ACCESS-CONTINUATION` is the sole active bounded product increment. From
+protected main `9a51d469481a5843b415a5451ad246e51d54048b`, a verified person can explicitly
+continue the exact clean saved eligible draft from the neutral organizer into the existing
+canonical member draft route. The existing server membership decision remains authoritative:
+a newly verified account without active membership can review/manage its draft but cannot submit.
 
-Protected PR [#1816](https://github.com/interdomestik/interdomestik/pull/1816) merged as that SHA.
-Its authorized manual read-only diagnostic run
-[#36003798077](https://github.com/interdomestik/interdomestik/actions/runs/36003798077) verified the
-exact PR #1803 immutable preview and reported `panel-visible`. This closes the bounded diagnostic;
-it did not mutate roles, retry staging, identify a root cause, establish pilot admission or authorize
-production. The automatic exact-main CD run #36003653726 passed staging P0.3/P0.4 and skipped every
-production job; that is staging evidence only.
+Full new-account first-case submission depends on unfinished S6 activation/provider confirmation
+(`IDA-MEM-006`); no entitlement is fabricated to close S5. This independently useful S5 increment
+covers exact selection, review and truthful access refusal under `IDA-FST-008`, `IDA-FST-010`,
+`IDA-FST-011` and `IDA-FST-012`. It does not claim whole-clause business acceptance or whole S5.
 
-The earlier P0.3/P0.4 staging-evidence gap is replaced only for the tested staging boundary by
-artifact `staging-verification-35784351048` from successful CD run
-[#35784351048](https://github.com/interdomestik/interdomestik/actions/runs/35784351048) on exact SHA
-`c8f8834434a64962f042356721fa7657f7cc6253`. That artifact is staging evidence; it is not production
-evidence, pilot admission or user acceptance.
+PR [#1817](https://github.com/interdomestik/interdomestik/pull/1817) delivered the bounded
+`IDA-FST-004` local disclosure as `a5dd1e455628b7c9826c80683237adcbd0d2d4f3`. Following the separate
+cached RLS posture-timeout recovery in PR [#1821](https://github.com/interdomestik/interdomestik/pull/1821),
+automatic staging run [#36088924719](https://github.com/interdomestik/interdomestik/actions/runs/36088924719)
+passed on exact main `9a51d469481a5843b415a5451ad246e51d54048b`, including P0.1/P0.2/P0.3/P0.4/P0.6.
+Canonical health established the exact SHA; the release report's metadata probe remained `unknown`.
+Production jobs were skipped. The prior task retired its owned worktree and preserved its
+[handoff](https://github.com/interdomestik/interdomestik/pull/1817#issuecomment-5826423914).
+The disclosure and diagnostic/recovery work are credited and are not active slices.
 
-The request-linked member evidence predecessor completed through protected PR
-[#1814](https://github.com/interdomestik/interdomestik/pull/1814) as
-`af191e71da589307a21df2a7fce14380a1fdd625`. The bounded member lifecycle/access disclosure then
-completed through protected PR [#1815](https://github.com/interdomestik/interdomestik/pull/1815) as
-`966a774028dc113757c298876e442e1ae80c73b5`. Those increments remain credited, while request
-fulfilment, whole membership acceptance and the broader S5/S6 families remain open.
-
-Product implementation resumed with this bounded S5/S7 dependency. Completed increments through
-S5 first-case saved-draft continuity [#1801](https://github.com/interdomestik/interdomestik/pull/1801)
-remain credited; whole S5 and the other SRS requirement families named below remain open.
+Earlier #1801 active-member submit/reopen and #1803 new-account OTP save/return/delete proofs
+remain credited, as do #1814 request-linked upload/acknowledgement and #1815 membership disclosure.
+They do not establish new-account activation, request fulfilment, whole S5/S6/S7 or pilot admission.
 
 ## Program Goals
 
-1. Explain the browser-local choice before a fresh eligible draft can be written, including
-   shared-browser risk, vehicle/property eligibility, injury/document exclusion and 30-day expiry.
-2. Offer equally usable explicit opt-in and no-device-save paths, with a reversible no-save choice
-   and truthful status feedback in EN/SQ/MK/SR.
-3. Preserve expiry, discard, stale-tab/conflict and secure-save behavior; remove the local copy only
-   after confirmed verified-email secure save, never merely after viewing the disclosure.
-4. Keep review before any later handoff and prove the disclosure itself creates no account, claim,
-   case, membership, payment, CRM lead or server-side draft.
+1. Offer explicit continuation only for a confirmed clean saved draft on the neutral organizer.
+2. Select that exact draft via an opaque fragment on the existing `?mode=drafts` route; resolve it
+   through the existing authenticated owner/tenant action, without query/access-boundary changes.
+3. Block editing while the initial read is pending; show localized generic failure, safe retry and
+   return-to-manager controls without disclosing foreign or missing draft facts.
+4. Preserve membership eligibility, deliberate review/submit, EN/SQ/MK/SR and no unintended claim,
+   membership, payment, CRM lead, upload or storage side effects.
 
 ## Enduring Safety Boundaries
 
@@ -128,14 +119,14 @@ clauses and supplementary controls. SRS v0.9 remains the reviewed baseline at SH
 ADR authority control until explicitly amended.
 
 Continue the owner-adopted outcome order without rebuilding delivered behavior: the active bounded
-S5 local-draft disclosure, remaining S5 gaps, remaining S6 acceptance after the delivered
+S5 saved-draft access continuation, remaining S5 gaps, remaining S6 acceptance after the delivered
 #1815 disclosure, S7 staff handling, S8 agent handoff, S9 assisted activation, S10 branch oversight,
 S11 tenant administration, S12 platform operations and S13 outcome/closure, followed by S14
 whole-pilot rehearsal. H1 Help Now keeps its priority lane when its direct dependencies are ready.
 
 Direct dependencies remain local to their consumers. PR #1814 proves request-bound upload and
 assigned-staff acknowledgement; PR #1815 proves the bounded member lifecycle/access disclosure.
-This slice consumes the existing anonymous-draft, secure-save, auth, tenant and audit boundaries but
+This slice consumes existing secure-save, member draft, auth, tenant and audit boundaries but
 does not re-prove their delivered outcomes or prove provider confirmation, webhook/payment
 readiness, offer or activation acceptance. Reviewed signed/versioned/integrity/expiry
 contracts precede offline pack readiness; S8 precedes dependent S9; recovery, partner, mandate,
@@ -151,14 +142,23 @@ alone is not business or user acceptance.
 
 ### Current product acceptance
 
-- On a fresh neutral organizer, no new local draft is written until the person chooses browser
-  recovery. Continuing without device storage remains reversible and keeps editing available.
-- Before opt-in or resuming an existing local copy, mounted EN/SQ/MK/SR copy clearly covers
-  shared-device risk, eligible and excluded facts, expiry, deletion and verified-email secure save.
-- Existing expiry, discard, retry, stale-tab/conflict and secure-save semantics remain intact. A
-  local copy is removed only after confirmed secure save or explicit device discard.
-- The mounted flow remains keyboard/focus/responsive accessible, review precedes any later handoff,
-  and neither disclosure choice creates server-side or commercial side effects.
+- A clean confirmed vehicle/property secure draft exposes one explicit continuation action with
+  EN/SQ/MK/SR copy stating that membership and separate submission remain necessary. Dirty,
+  pending, conflicted, failed or deleted drafts expose no continuation action.
+- Only the opaque UUID travels in the URL fragment; no facts, authorization or entitlement travels
+  with it. The existing canonical route/query, proxy, page-ready and membership checks are unchanged.
+- The receiving intake resolves the exact ID through the existing authenticated resume action.
+  Pending reads block editing. Invalid, missing, foreign and refused reads reveal no draft facts;
+  generic failure and keyboard-accessible retry preserve the same ID and perform no writes.
+- Successful load focuses the review heading. The existing manager-only membership explanation and
+  disabled submit remain for an account without membership; an eligible member retains the existing
+  deliberate-submit and idempotent confirmation behavior.
+- The real-OTP journey continues the newly verified owner's exact saved facts in all four locales,
+  retaining zero claims/subscriptions/CRM leads and exact cleanup. Existing owner/tenant isolation,
+  save/return/delete and active-member submit/reopen evidence remains credited.
+- Full new-account activation/submission, broader category journeys, complete-process accessibility,
+  authorized business review and user/operational acceptance remain open. `IDA-MEM-006` requires a
+  verified provider event or reconciled authoritative transaction, never a browser-success grant.
 
 ### Credited PR #1816 diagnostic acceptance
 
@@ -182,27 +182,23 @@ alone is not business or user acceptance.
   secret-bearing proof and errors redact every retrieved code.
 - The verified owner can return in a fresh browser, resume exact facts and permanently delete the
   draft with create/delete audit evidence. A foreign tenant sees `notFound`; no claim, subscription
-  or CRM lead is created. Whole S5, `IDA-FST-004`, operations and user acceptance remain open.
+  or CRM lead is created. Whole S5, operations and user acceptance remain open; bounded `IDA-FST-004` delivery is credited above.
 - Focused contracts, independent high-risk review, `pnpm pr:verify`, `pnpm security:guard` and
   protected current-head checks pass before delivery. No whole-SRS, pilot-readiness,
   user-acceptance or production-deployment claim follows.
 
 ## Bounded Research Brief
 
-Checked 2026-09-24. Observable official guidance supports disclosure before storage and an explicit
-shared-device warning: the UK ICO treats non-essential browser storage, including local storage, as
-requiring prior consent, while the UK NCSC advises people on shared devices not to save sensitive
-information. W3C status-message guidance supports visible programmatic feedback without moving
-focus, and ADAC's public claims journey confirms that save-and-continue-later is a recognizable
-insurance pattern. Adopted inference: default to no new local write, provide an in-page opt-in/no-save
-choice, keep status feedback announced, and leave secure save as a separate verified-email action.
-Rejected: implied consent, a blocking modal, persisting injury/document data, or representing local
-storage as secure server save. User benefit and test: a person can understand and reverse the choice;
-mounted locale and browser tests prove no write before opt-in, no-save truthfulness, later enablement
-and complete disclosure copy. Sources: [ICO storage and access guidance](https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/guide-to-pecr/cookies-and-similar-technologies/),
-[NCSC shared-device guidance](https://www.ncsc.gov.uk/guidance/shopping-online-securely),
-[W3C status messages](https://www.w3.org/WAI/WCAG21/Understanding/status-messages.html), and
-[ADAC claims service](https://www.adac.de/produkte/versicherungen/schadenservice/).
+Checked 2026-09-25 against installed workspace manifests and the SRS v0.9 source clauses.
+[ADAC's public online claims description](https://www.adac.de/produkte/versicherungen/autoversicherung/schaden/)
+explicitly supports saving and continuing later; this is a public description, not an inspected
+private account or usability test. The earlier generic ADAC URL was unavailable; the specific
+claims page was verified instead. [W3C status-message guidance](https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html)
+supports programmatic loading/error feedback. Adopted inference: explicit exact-draft continuation,
+localized loading/failure, blocked editing during load and review focus improve orientation without
+implying case creation. Reject auto-submit, copied incident facts in URLs/storage, entitlement grants,
+and new offer/payment semantics. Test through mounted four-locale controls, retry/negative cases and
+the existing native-origin OTP browser proof. No framework behavior or version change is introduced.
 
 ## Historical Evidence
 

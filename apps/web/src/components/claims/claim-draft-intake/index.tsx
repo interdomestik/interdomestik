@@ -1,12 +1,9 @@
 'use client';
 import { SecureSaveBand } from '@/app/[locale]/components/home/free-start-intake-shell/secure-save-band';
-import {
-  getIssueIds,
-  getSelectedCategoryLabel,
-  getSelectedIssueLabel,
-  getSelectedOutcomeLabel,
-} from '@/app/[locale]/components/home/free-start-intake-shell/helpers';
-import type { CategoryId } from '@/app/[locale]/components/home/free-start-intake-shell/types';
+// prettier-ignore
+import { getIssueIds, getSelectedCategoryLabel, getSelectedIssueLabel, getSelectedOutcomeLabel } from '@/app/[locale]/components/home/free-start-intake-shell/helpers';
+// prettier-ignore
+import { parseSecureSaveCopy, type CategoryId } from '@/app/[locale]/components/home/free-start-intake-shell/types';
 import { useDraftLifecycle } from '@/app/[locale]/components/home/free-start-intake-shell/use-draft-lifecycle';
 import { useOrganizerFlow } from '@/app/[locale]/components/home/free-start-intake-shell/use-organizer-flow';
 import type { ClaimStartHandoffContext } from '@interdomestik/domain-claims/claims/types';
@@ -15,6 +12,8 @@ import { useState } from 'react';
 // prettier-ignore
 import { parseClaimDraftCopy, type ClaimDraftCopy, type SavedDraftSubmitCopy } from './dormant-preview';
 import { ClaimDraftMainPanel } from './main-panel';
+import { DraftContinuationNotice } from './draft-continuation-notice';
+import { useDraftContinuation } from './use-draft-continuation';
 // prettier-ignore
 type Props = Readonly<{ freeStartMessages: AbstractIntlMessages; handoffContext?: ClaimStartHandoffContext | null; initialCategory?: string; locale: string; managerOnly?: boolean; neutralOtpHost?: string | null; tenantId: string }>;
 // prettier-ignore
@@ -25,11 +24,10 @@ function supportedCategory(value?: string): CategoryId | undefined {
 }
 // prettier-ignore
 function ClaimDraftIntakeBody({ copy, handoffContext, handoffCountryLabel, initialCategory, locale, managerOnly, neutralOtpHost, submitCopy, t, tenantId }: BodyProps) {
-  const tFree = useTranslations('freeStart');
-  const flow = useOrganizerFlow(supportedCategory(initialCategory));
+  // prettier-ignore
+  const tFree = useTranslations('freeStart'), flow = useOrganizerFlow(supportedCategory(initialCategory));
   const handoff = flow.selectedCategory === 'vehicle' ? handoffContext : null;
   const [confirmedHandoffCountry, setConfirmedHandoffCountry] = useState<ClaimStartHandoffContext['country'] | null>(null);
-  const handoffCountryConfirmed = confirmedHandoffCountry === handoff?.country;
   const lifecycle = useDraftLifecycle({
     category: flow.selectedCategory,
     draft: flow.draft,
@@ -37,13 +35,15 @@ function ClaimDraftIntakeBody({ copy, handoffContext, handoffCountryLabel, initi
     onResume: flow.resumeDraft,
     step: flow.step,
   });
-  const issueIds = getIssueIds(flow.selectedCategory);
+  // prettier-ignore
+  const issueIds = getIssueIds(flow.selectedCategory), continuation = useDraftContinuation(lifecycle.resume, flow.stageHeadingRef);
   const labels = {
     category: getSelectedCategoryLabel(tFree, flow.selectedCategory),
     issue: getSelectedIssueLabel(tFree, flow.selectedCategory, flow.draft.issueType),
     outcome: getSelectedOutcomeLabel(tFree, flow.draft.desiredOutcome),
   };
   const saveBandProps = { lifecycle, locale, manageOnly: managerOnly, neutralOtpHost, tenantId };
+  if (continuation.blocked) return <section data-testid="claim-draft-intake" data-save-behavior="explicit-only" className="mx-auto max-w-5xl"><DraftContinuationNotice continuation={continuation} copy={parseSecureSaveCopy(tFree.raw('secureSave')).continuation} locale={locale} /></section>;
   // prettier-ignore
   return (
 <section
@@ -85,7 +85,7 @@ aria-label={t('wizard.handoff.title')}
 <input
 type="checkbox"
 data-testid="claim-wizard-country-confirmation"
-checked={handoffCountryConfirmed}
+checked={(confirmedHandoffCountry === handoff?.country)}
 onChange={event => setConfirmedHandoffCountry(event.target.checked ? handoff.country : null)}
 aria-describedby="claim-wizard-handoff-context"
 className="mt-1 h-5 w-5 shrink-0 accent-[#006f72]"
@@ -108,8 +108,8 @@ className="rounded-xl border border-rose-300 bg-rose-50 p-3 font-semibold text-r
 <ClaimDraftMainPanel
 activeDraftId={lifecycle.active?.id}
 activeDraftVersion={lifecycle.active?.version}
-claimStart={handoff && handoffCountryConfirmed ? { confirmed: true, handoffContext: handoff, incidentCountryCode: handoff.country } : undefined}
-confirmationRequired={Boolean(handoff && !handoffCountryConfirmed)}
+claimStart={handoff && (confirmedHandoffCountry === handoff?.country) ? { confirmed: true, handoffContext: handoff, incidentCountryCode: handoff.country } : undefined}
+confirmationRequired={Boolean(handoff && !(confirmedHandoffCountry === handoff?.country))}
 confirmationRequiredCopy={t('wizard.handoff.confirmationRequired')}
 copy={copy}
 flow={flow}
@@ -127,8 +127,8 @@ tFree={tFree}
 );
 }
 export function ClaimDraftIntake({ freeStartMessages, ...props }: Props) {
-  const t = useTranslations('claims');
-  const tDiaspora = useTranslations('diaspora');
+  // prettier-ignore
+  const t = useTranslations('claims'), tDiaspora = useTranslations('diaspora');
   const copy = parseClaimDraftCopy(t.raw('draftIntakeCopy'));
   // prettier-ignore
   const handoffCountryLabel = props.handoffContext ? tDiaspora(`selector.options.${props.handoffContext.country}`) : null;

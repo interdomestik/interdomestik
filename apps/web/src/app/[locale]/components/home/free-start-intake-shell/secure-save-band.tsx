@@ -4,16 +4,24 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { DeleteDraftConfirmation } from './delete-draft-confirmation';
 import { SavedDraftList } from './saved-draft-list';
+import { SavedDraftContinuation } from './saved-draft-continuation';
 import { SecureSaveOtp } from './secure-save-otp';
 import { parseSecureSaveCopy, parseSecureSaveReviewCopy, type SavedDraft } from './types';
 import type { useDraftLifecycle } from './use-draft-lifecycle';
 
 // prettier-ignore
-type Props = Readonly<{ lifecycle: ReturnType<typeof useDraftLifecycle>; locale: string; manageOnly?: boolean; neutralOtpHost?: string | null; tenantId?: string | null }>;
+type Props = Readonly<{ allowContinuation?: boolean; lifecycle: ReturnType<typeof useDraftLifecycle>; locale: string; manageOnly?: boolean; neutralOtpHost?: string | null; tenantId?: string | null }>;
 // prettier-ignore
 const hasSaveableChanges = (lifecycle: ReturnType<typeof useDraftLifecycle>) => ['dirty', 'error'].includes(lifecycle.state) || (lifecycle.state === 'deleted' && lifecycle.hasUnsavedChanges), isNeutralFrontDoor = (neutralOtpHost?: string | null) => ['ida.interdomestik.com', 'ida.localhost', 'ida.127.0.0.1.nip.io'].includes(globalThis.location.hostname) || Boolean(neutralOtpHost && globalThis.location.host.toLowerCase() === neutralOtpHost), resolveStatus = (lifecycle: ReturnType<typeof useDraftLifecycle>, locale: string, copy: ReturnType<typeof parseSecureSaveCopy>, reviewCopy: ReturnType<typeof parseSecureSaveReviewCopy>) => { const directStatus = lifecycle.state === 'unsupported' || lifecycle.state === 'invalid' || lifecycle.state === 'accountContext' ? reviewCopy[lifecycle.state] : copy.status[lifecycle.state]; return (directStatus ?? copy.status.error ?? '').replace('{date}', lifecycle.active ? new Date(lifecycle.active.updatedAt).toLocaleString(locale) : ''); };
 
-export function SecureSaveBand({ lifecycle, locale, manageOnly, neutralOtpHost, tenantId }: Props) {
+export function SecureSaveBand({
+  allowContinuation,
+  lifecycle,
+  locale,
+  manageOnly,
+  neutralOtpHost,
+  tenantId,
+}: Props) {
   const t = useTranslations('freeStart');
   const copy = parseSecureSaveCopy(t.raw('secureSave'));
   const reviewCopy = parseSecureSaveReviewCopy(t.raw('secureSaveReviewCopy'));
@@ -87,6 +95,9 @@ className={`mt-4 text-sm font-semibold outline-none ${alert ? 'text-[#8a2f43]' :
 >
 {status}
 </p>
+{allowContinuation && lifecycle.active && lifecycle.state === 'saved' && !lifecycle.hasUnsavedChanges ? (
+<SavedDraftContinuation copy={copy.continuation} id={lifecycle.active.id} locale={locale} />
+) : null}
 {lifecycle.intent && !lifecycle.verified && !pending ? (
 <SecureSaveOtp
 key={lifecycle.identityKey}

@@ -3,7 +3,14 @@ import { dirname, extname, join, relative, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const root = resolve(__dirname);
-const entries = ['index.tsx', 'main-panel.tsx', 'dormant-preview.tsx', 'use-saved-draft-claim.ts'];
+const entries = [
+  'index.tsx',
+  'main-panel.tsx',
+  'dormant-preview.tsx',
+  'use-saved-draft-claim.ts',
+  'draft-continuation-notice.tsx',
+  'use-draft-continuation.ts',
+];
 const denied = [
   /from\s+['"][^'"]*claim-wizard|<ClaimWizard\b/i,
   /claims\.core/i,
@@ -50,7 +57,7 @@ function walk(path: string, seen = new Map<string, string>()) {
 }
 
 describe('Claim Draft Intake import and scope boundary', () => {
-  it('permits only the dedicated saved-draft submit seam in the three-file graph', () => {
+  it('permits only the dedicated saved-draft submit seam in the intake graph', () => {
     const graph = new Map<string, string>();
     for (const entry of entries) walk(join(root, entry), graph);
     expect([...graph.keys()].map(path => relative(root, path)).sort()).toEqual(entries.sort());

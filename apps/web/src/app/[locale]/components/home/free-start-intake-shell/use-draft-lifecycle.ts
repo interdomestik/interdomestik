@@ -111,13 +111,18 @@ export function useDraftLifecycle(args: Args) {
         setState('loading');
         const result = await resumeFreeStartDraft({ id });
         if (!result.ok) {
-          return setState(draftFailureState(result.code));
+          setState(draftFailureState(result.code));
+          return false;
         }
         args.onResume(result.draft);
         accept(result.draft);
         setIntent(null);
+        return true;
       },
-      () => setState('error')
+      () => {
+        setState('error');
+        return false;
+      }
     );
   const remove = (draft: SavedDraft) =>
     runDraftTask(

@@ -58,6 +58,7 @@ type SecureSaveOtpCopy = Record<'body' | 'changeEmail' | 'codeLabel' | 'emailLab
 
 export type SecureSaveCopy = {
   body: string;
+  continuation: Record<'body' | 'label' | 'loading' | 'failed' | 'retry' | 'back', string>;
   delete: { body: string; cancel: string; confirm: string; heading: string };
   eyebrow: string;
   heading: string;

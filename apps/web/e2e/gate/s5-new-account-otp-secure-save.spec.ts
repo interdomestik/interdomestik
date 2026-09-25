@@ -12,11 +12,6 @@ import {
   subscriptions,
   user,
 } from '@interdomestik/database';
-import {
-  listFreeStartDrafts,
-  resumeFreeStartDraft,
-  type FreeStartDraftContext,
-} from '@interdomestik/database/free-start-drafts';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
@@ -31,6 +26,10 @@ import {
   waitForOtpMail,
 } from './s5-otp-mailbox.fixture';
 import { idaOrigin, idaTarget } from './s5-saved-draft.fixture';
+import {
+  continueSavedDraftWithoutMembership,
+  expectDraftTenantIsolation,
+} from './s5-draft-continuation.fixture';
 
 // Traces, videos and screenshots would record the typed code, so this spec keeps none.
 test.use({ screenshot: 'off', trace: 'off', video: 'off' });
@@ -232,19 +231,7 @@ test.describe('S5 new-account email OTP secure save', () => {
       });
 
       await test.step('the secure draft is isolated from a foreign tenant context', async () => {
-        const foreignTenant = E2E_USERS.MK_MEMBER.tenantId;
-        const foreign: FreeStartDraftContext = {
-          accessTenantId: foreignTenant,
-          actorRole: 'member',
-          ownerUserId: created.ownerId,
-          tenantId: foreignTenant,
-        };
-        const listed = await listFreeStartDrafts(foreign, { limit: 50 });
-        expect(listed.items.some(item => item.id === created.draftId)).toBe(false);
-        expect(await resumeFreeStartDraft(foreign, created.draftId)).toEqual({
-          code: 'notFound',
-          ok: false,
-        });
+        await expectDraftTenantIsolation(created.draftId, created.ownerId);
       });
 
       await test.step('a fresh session returns with a second real code and resumes', async () => {
@@ -270,6 +257,20 @@ test.describe('S5 new-account email OTP secure save', () => {
           summary,
         ])
           await expect(again).toContainText(fact);
+
+        await test.step('continues the exact draft through the existing membership decision', async () => {
+          await continueSavedDraftWithoutMembership(fresh, {
+            origin: idaOrigin(info),
+            draftId: created.draftId,
+            counterparty,
+            summary,
+          });
+          expect(await db.$count(subscriptions, eq(subscriptions.userId, created.ownerId))).toBe(0);
+          expect(await db.$count(claims, eq(claims.userId, created.ownerId))).toBe(0);
+          expect(await db.$count(crmLeads, eq(crmLeads.email, email))).toBe(0);
+          expect((await drafts()).map(draft => draft.id)).toEqual([created.draftId]);
+          await gotoApp(fresh, routes.home('en'), info, { marker: 'free-start-intake-shell' });
+        });
 
         await again.getByTestId('free-start-manage-open').click();
         await again.getByTestId(`free-start-delete-${created.draftId}`).click();
