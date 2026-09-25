@@ -11,6 +11,7 @@ const hoisted = vi.hoisted(() => ({
   getSessionSafeMock: vi.fn(async () => null),
   loadTenantOptionsMock: vi.fn(async () => [{ id: 'tenant_ks', name: 'KS', countryCode: 'XK' }]),
   loginFormMock: vi.fn((_: unknown) => <div>login-form</div>),
+  savedDraftSignInMock: vi.fn((_: unknown) => <div>saved-draft-sign-in</div>),
   redirectMock: vi.fn(),
   resolveTenantContextFromRequestMock: vi.fn<() => Promise<MockTenantContext>>(async () => ({
     kind: 'tenant',
@@ -55,6 +56,11 @@ vi.mock('./_core', () => ({
   loadTenantOptions: () => hoisted.loadTenantOptionsMock(),
 }));
 
+// The server entry has its own host/tenant tests; this renderer mounts its resolved boundary.
+vi.mock('./saved-draft-sign-in', () => ({
+  SavedDraftSignInEntry: (props: unknown) => hoisted.savedDraftSignInMock(props),
+}));
+
 import LoginPage from './_core.entry';
 
 describe('LoginPage tenant selection', () => {
@@ -86,6 +92,7 @@ describe('LoginPage tenant selection', () => {
     expect(screen.getByTestId('auth-portal-form-region')).toBeInTheDocument();
     expect(screen.queryByText('tenant-selector')).not.toBeInTheDocument();
     expect(screen.getByText('login-form')).toBeInTheDocument();
+    expect(hoisted.savedDraftSignInMock).toHaveBeenCalledWith({ locale: 'en' });
     expect(hoisted.loginFormMock).toHaveBeenCalledWith(
       expect.objectContaining({ tenantId: 'tenant_ks' })
     );

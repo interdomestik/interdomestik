@@ -39,6 +39,7 @@ const claimCopy = {
 };
 // prettier-ignore
 const secureCopy = {
+  continuation: { body: 'Continue body', label: 'Continue saved draft', loading: 'Loading saved draft', failed: 'Could not open saved draft', retry: 'Try again', back: 'Back to saved drafts' },
   eyebrow: 'Draft', heading: 'Secure save', body: 'Body', privacy: 'Privacy', save: 'Save',
   saveChanges: 'Save changes', startAnother: 'Start another',
   status: Object.fromEntries(saveStates.map(state => [state, state])),

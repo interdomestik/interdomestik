@@ -9,6 +9,7 @@ import { FileText, Globe2, LockKeyhole, ShieldCheck } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 import { getLoginTenantBootstrapRedirect, loadTenantOptions } from './_core';
+import { SavedDraftSignInEntry } from './saved-draft-sign-in';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -163,6 +164,7 @@ export default async function LoginPage({ params, searchParams }: Props) {
           {resolvedTenantId ? null : (
             <TenantSelector tenants={tenantOptions} title={t('portal.tenantTitle')} />
           )}
+          <SavedDraftSignInEntry locale={locale} />
           <LoginForm
             githubOAuthEnabled={hasGitHubOAuthCredentials()}
             tenantId={resolvedTenantId ?? undefined}

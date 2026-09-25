@@ -2,21 +2,14 @@ import {
   E2E_USERS,
   and,
   auditLog,
-  claims,
   crmLeads,
   db,
   eq,
   freeStartDrafts,
   session as authSession,
   sql,
-  subscriptions,
   user,
 } from '@interdomestik/database';
-import {
-  listFreeStartDrafts,
-  resumeFreeStartDraft,
-  type FreeStartDraftContext,
-} from '@interdomestik/database/free-start-drafts';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
@@ -31,6 +24,11 @@ import {
   waitForOtpMail,
 } from './s5-otp-mailbox.fixture';
 import { idaOrigin, idaTarget } from './s5-saved-draft.fixture';
+import {
+  continueSavedDraftWithoutMembership,
+  expectDraftTenantIsolation,
+  expectNoDraftSideEffects,
+} from './s5-draft-continuation.fixture';
 
 // Traces, videos and screenshots would record the typed code, so this spec keeps none.
 test.use({ screenshot: 'off', trace: 'off', video: 'off' });
@@ -87,8 +85,8 @@ test.describe('S5 new-account email OTP secure save', () => {
       pages.push(page);
       return page;
     };
-    const requestCode = async (flow: Locator, openTestId: string) => {
-      await flow.getByTestId(openTestId).click();
+    const requestCode = async (flow: Locator, openTestId?: string) => {
+      if (openTestId) await flow.getByTestId(openTestId).click();
       const panel = flow.getByTestId('free-start-save-otp');
       await panel.getByTestId('free-start-save-email').fill(email);
       await panel.getByTestId('free-start-save-send-code').click();
@@ -215,9 +213,7 @@ test.describe('S5 new-account email OTP secure save', () => {
           resumeStep: 'preview',
           summary,
         });
-        expect(await db.$count(subscriptions, eq(subscriptions.userId, owner.id))).toBe(0);
-        expect(await db.$count(claims, eq(claims.userId, owner.id))).toBe(0);
-        expect(await db.$count(crmLeads, eq(crmLeads.email, email))).toBe(0);
+        await expectNoDraftSideEffects(owner.id, email);
         return { draftId: saved[0]!.id, ownerId: owner.id };
       });
 
@@ -232,19 +228,7 @@ test.describe('S5 new-account email OTP secure save', () => {
       });
 
       await test.step('the secure draft is isolated from a foreign tenant context', async () => {
-        const foreignTenant = E2E_USERS.MK_MEMBER.tenantId;
-        const foreign: FreeStartDraftContext = {
-          accessTenantId: foreignTenant,
-          actorRole: 'member',
-          ownerUserId: created.ownerId,
-          tenantId: foreignTenant,
-        };
-        const listed = await listFreeStartDrafts(foreign, { limit: 50 });
-        expect(listed.items.some(item => item.id === created.draftId)).toBe(false);
-        expect(await resumeFreeStartDraft(foreign, created.draftId)).toEqual({
-          code: 'notFound',
-          ok: false,
-        });
+        await expectDraftTenantIsolation(created.draftId, created.ownerId);
       });
 
       await test.step('a fresh session returns with a second real code and resumes', async () => {
@@ -271,6 +255,23 @@ test.describe('S5 new-account email OTP secure save', () => {
         ])
           await expect(again).toContainText(fact);
 
+        await test.step('continues the exact draft through the existing membership decision', async () => {
+          await continueSavedDraftWithoutMembership(fresh, {
+            origin: idaOrigin(info),
+            draftId: created.draftId,
+            counterparty,
+            summary,
+            reauthenticate: async () => {
+              const recovery = await requestCode(fresh.getByTestId('saved-draft-sign-in'));
+              await enter(recovery.panel.getByTestId('free-start-save-code'), recovery.mail.code);
+              await recovery.panel.getByTestId('free-start-save-verify').click();
+            },
+          });
+          await expectNoDraftSideEffects(created.ownerId, email);
+          expect((await drafts()).map(draft => draft.id)).toEqual([created.draftId]);
+          await gotoApp(fresh, routes.home('en'), info, { marker: 'free-start-intake-shell' });
+        });
+
         await again.getByTestId('free-start-manage-open').click();
         await again.getByTestId(`free-start-delete-${created.draftId}`).click();
         await again.getByTestId('free-start-delete-confirm').click();
@@ -283,9 +284,7 @@ test.describe('S5 new-account email OTP secure save', () => {
         expect(audit.map(row => row.action)).toEqual(
           expect.arrayContaining(['free_start_draft.created', 'free_start_draft.deleted'])
         );
-        expect(await db.$count(subscriptions, eq(subscriptions.userId, created.ownerId))).toBe(0);
-        expect(await db.$count(claims, eq(claims.userId, created.ownerId))).toBe(0);
-        expect(await db.$count(crmLeads, eq(crmLeads.email, email))).toBe(0);
+        await expectNoDraftSideEffects(created.ownerId, email);
       });
     } catch (error) {
       failure = await redactOtpFailure(error, mails, pages);

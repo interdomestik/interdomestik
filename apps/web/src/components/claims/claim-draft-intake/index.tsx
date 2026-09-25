@@ -6,7 +6,10 @@ import {
   getSelectedIssueLabel,
   getSelectedOutcomeLabel,
 } from '@/app/[locale]/components/home/free-start-intake-shell/helpers';
-import type { CategoryId } from '@/app/[locale]/components/home/free-start-intake-shell/types';
+import {
+  parseSecureSaveCopy,
+  type CategoryId,
+} from '@/app/[locale]/components/home/free-start-intake-shell/types';
 import { useDraftLifecycle } from '@/app/[locale]/components/home/free-start-intake-shell/use-draft-lifecycle';
 import { useOrganizerFlow } from '@/app/[locale]/components/home/free-start-intake-shell/use-organizer-flow';
 import type { ClaimStartHandoffContext } from '@interdomestik/domain-claims/claims/types';
@@ -15,6 +18,8 @@ import { useState } from 'react';
 // prettier-ignore
 import { parseClaimDraftCopy, type ClaimDraftCopy, type SavedDraftSubmitCopy } from './dormant-preview';
 import { ClaimDraftMainPanel } from './main-panel';
+import { DraftContinuationNotice } from './draft-continuation-notice';
+import { useDraftContinuation } from './use-draft-continuation';
 // prettier-ignore
 type Props = Readonly<{ freeStartMessages: AbstractIntlMessages; handoffContext?: ClaimStartHandoffContext | null; initialCategory?: string; locale: string; managerOnly?: boolean; neutralOtpHost?: string | null; tenantId: string }>;
 // prettier-ignore
@@ -37,6 +42,10 @@ function ClaimDraftIntakeBody({ copy, handoffContext, handoffCountryLabel, initi
     onResume: flow.resumeDraft,
     step: flow.step,
   });
+  const continuation = useDraftContinuation(
+    id => lifecycle.resume(id, { reviewOnly: true }),
+    flow.stageHeadingRef
+  );
   const issueIds = getIssueIds(flow.selectedCategory);
   const labels = {
     category: getSelectedCategoryLabel(tFree, flow.selectedCategory),
@@ -44,6 +53,13 @@ function ClaimDraftIntakeBody({ copy, handoffContext, handoffCountryLabel, initi
     outcome: getSelectedOutcomeLabel(tFree, flow.draft.desiredOutcome),
   };
   const saveBandProps = { lifecycle, locale, manageOnly: managerOnly, neutralOtpHost, tenantId };
+  if (continuation.blocked) {
+    return (
+      <section data-testid="claim-draft-intake" data-save-behavior="explicit-only" className="mx-auto max-w-5xl">
+        <DraftContinuationNotice continuation={continuation} copy={parseSecureSaveCopy(tFree.raw('secureSave')).continuation} locale={locale} />
+      </section>
+    );
+  }
   // prettier-ignore
   return (
 <section
