@@ -114,7 +114,7 @@ describe('reconcileCheckoutUser', () => {
         id: 'user_new',
         tenantId: 'tenant_mk',
         email: 'buyer@example.com',
-        name: '',
+        name: 'buyer',
         memberNumber: 'MEM-2026-000123',
       });
     hoisted.db.query.account.findFirst.mockResolvedValue(null);
@@ -395,7 +395,7 @@ describe('reconcileCheckoutUser', () => {
       id: 'user_new',
       tenantId: 'tenant_mk',
       email: 'buyer@example.com',
-      name: '',
+      name: 'buyer',
       memberNumber: 'MEM-2026-000123',
     });
     hoisted.db.query.account.findFirst.mockResolvedValue(null);
