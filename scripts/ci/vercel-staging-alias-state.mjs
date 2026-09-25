@@ -222,6 +222,7 @@ export async function prepareStagingAlias({
   if (baseUrl !== `https://${host}` || !/^[a-f0-9]{40}$/u.test(expectedCommitSha || '')) {
     throw new Error('Staging candidate must have an exact immutable URL and commit SHA');
   }
-  await healthImpl({ healthUrl: `${baseUrl}/api/health`, expectedCommitSha });
+  // stdout is the GitHub output protocol in the deployment caller.
+  await healthImpl({ healthUrl: `${baseUrl}/api/health`, expectedCommitSha, log: console.error });
   return snapshotImpl({ env });
 }

@@ -22,7 +22,14 @@ test('candidate must pass exact health before any previous-target snapshot or mo
     },
   };
   await assert.rejects(prepareStagingAlias(options), /candidate unhealthy/u);
-  assert.deepEqual(calls, [{ healthUrl: `https://${HOST}/api/health`, expectedCommitSha: COMMIT }]);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].healthUrl, `https://${HOST}/api/health`);
+  assert.equal(calls[0].expectedCommitSha, COMMIT);
+  assert.equal(
+    calls[0].log,
+    console.error,
+    'health diagnostics must not corrupt GITHUB_OUTPUT on stdout'
+  );
   for (const baseUrl of ['https://foreign.example', `https://${HOST}/other`, `http://${HOST}`]) {
     await assert.rejects(prepareStagingAlias({ ...options, baseUrl }), /exact immutable URL/u);
   }
