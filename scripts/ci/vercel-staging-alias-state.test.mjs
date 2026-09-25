@@ -115,18 +115,22 @@ test('snapshot rejects alias project and foreign deployment ownership', async ()
     );
   }
 });
-test('snapshot rejects missing or malformed build commits', async () => {
+test('snapshot records malformed old health as unavailable instead of blocking recovery', async () => {
   const fixture = snapshotFetch();
-  for (const commitSha of [undefined, 'ABC123', 'b'.repeat(39)]) {
-    await assert.rejects(
-      snapshotStagingAlias({
-        env: ENV,
-        fetchImpl: fixture.fetchImpl,
-        attestationImpl,
-        healthImpl: async () => JSON.stringify({ build: { commitSha } }),
-      }),
-      /commit mismatch/u
-    );
+  for (const body of [
+    '',
+    '<html>failure</html>',
+    '{}',
+    JSON.stringify({ build: { commitSha: 'ABC123' } }),
+  ]) {
+    const result = await snapshotStagingAlias({
+      env: ENV,
+      fetchImpl: fixture.fetchImpl,
+      attestationImpl,
+      healthImpl: async () => body,
+    });
+    assert.equal(result.commitSha, COMMIT);
+    assert.equal(result.previousHealth.status, 'unavailable');
   }
 });
 test('provider errors are bounded and redact secrets', async () => {

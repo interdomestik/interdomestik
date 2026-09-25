@@ -123,16 +123,21 @@ export async function snapshotStagingAlias({
     deployment.id === deploymentId && deployment.projectId === projectId && resolvedTeam === teamId;
   if (!ownershipMatches) throw new Error('Vercel deployment project/team ownership mismatch');
   const commitSha = await readStagingDeploymentIdentity(deploymentHostname, attestationImpl);
-  let body;
+  let healthCommit;
   let previousHealth;
   try {
-    body = await healthImpl({ healthUrl: `https://${deploymentHostname}/api/health` });
+    const body = await healthImpl({ healthUrl: `https://${deploymentHostname}/api/health` });
+    const observedCommit = JSON.parse(body)?.build?.commitSha;
+    if (!/^[a-f0-9]{40}$/u.test(observedCommit || '')) {
+      throw new Error('Preimage health has no valid commit identity');
+    }
+    healthCommit = observedCommit;
     previousHealth = { status: 'healthy' };
   } catch (error) {
     previousHealth = { status: 'unavailable', error: boundedProviderText(error?.message) };
   }
   // Identity disagreement is never downgraded to an unavailable health observation.
-  if (body !== undefined && JSON.parse(body)?.build?.commitSha !== commitSha) {
+  if (healthCommit !== undefined && healthCommit !== commitSha) {
     throw new Error('Preimage health and immutable release metadata commit mismatch');
   }
   return { deploymentHostname, commitSha, previousHealth };
