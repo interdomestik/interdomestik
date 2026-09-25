@@ -6,7 +6,7 @@ export function isSelfServePlanId(planId: PlanId): planId is SelfServePlanId {
 }
 
 export function shouldOpenSelfServePrecheckout(args: { userId?: string; planId: PlanId }): boolean {
-  return !args.userId && isSelfServePlanId(args.planId);
+  return isSelfServePlanId(args.planId);
 }
 
 export function shouldRenderBusinessMembershipLink(args: {

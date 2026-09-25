@@ -1,7 +1,7 @@
 import type { PublicBillingCheckoutConfig } from '@interdomestik/domain-membership-billing/paddle-server';
 import type { EntityDisclosureNoticeModel } from '@/components/commercial/entity-disclosure-notice';
 import type { LucideIcon } from 'lucide-react';
-import type { RefObject } from 'react';
+import type { MouseEvent, RefObject } from 'react';
 
 export type PricingTableProps = Readonly<{
   userId?: string;
@@ -54,7 +54,7 @@ export type PlanCardProps = Readonly<{
   billedAnnuallyLabel: string;
   popularLabel: string;
   ctaLabel: string;
-  onClick: () => void;
+  onClick: (event: MouseEvent<HTMLButtonElement>) => void;
 }>;
 
 export type PricingPlanGridProps = Readonly<{
@@ -64,7 +64,7 @@ export type PricingPlanGridProps = Readonly<{
   isPilotMode: boolean;
   isSessionPending: boolean;
   t: TranslateFn;
-  onPlanCtaClick: (plan: PricingPlan) => void;
+  onPlanCtaClick: (plan: PricingPlan, trigger: HTMLButtonElement) => void;
 }>;
 
 export type LocalCheckoutWarningProps = Readonly<{

@@ -49,7 +49,7 @@ test.describe('Subscription Contract Verification', () => {
     await context.close();
   });
 
-  test('Logged in Join Now triggers checkout (Contract only)', async ({
+  test('Logged in member reviews and cancels before deliberately continuing (Contract only)', async ({
     authenticatedPage: page,
   }, testInfo) => {
     await page.addInitScript(() => {
@@ -73,7 +73,19 @@ test.describe('Subscription Contract Verification', () => {
     await expect(standardCta).toBeEnabled();
     await standardCta.click();
 
-    // In Billing Test Mode, it should redirect to success
+    const review = page.getByTestId('pricing-precheckout-confirmation');
+    await expect(review).toBeVisible();
+    await expect(review).toBeFocused();
+    await expect(page.getByTestId('pricing-entity-disclosure')).toBeVisible();
+    await expect(page).not.toHaveURL(/membership\/success/);
+    await page.getByTestId('precheckout-cancel-cta').click();
+    await expect(review).toBeHidden();
+    await expect(standardCta).toBeFocused();
+    await expect(page).not.toHaveURL(/membership\/success/);
+    await standardCta.click();
+    await page.getByTestId('precheckout-continue-cta').click();
+
+    // In Billing Test Mode, explicit continuation should redirect to success
     await expect(page).toHaveURL(/.*\/member\/membership\/success\?test=true/, {
       timeout: 15000,
     });
