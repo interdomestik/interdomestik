@@ -13,7 +13,9 @@ export function useDraftContinuation(
   const mounted = useRef(false);
   const pending = useRef(false);
   const resumeRef = useRef(resume);
-  resumeRef.current = resume;
+  useEffect(() => {
+    resumeRef.current = resume;
+  }, [resume]);
 
   async function retry() {
     if (!target.current || pending.current) return;

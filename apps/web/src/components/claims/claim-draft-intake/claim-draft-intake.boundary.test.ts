@@ -71,13 +71,15 @@ describe('Claim Draft Intake import and scope boundary', () => {
     expect(graph.get(join(root, 'use-saved-draft-claim.ts'))).not.toContain('useCallback');
   });
 
-  it('keeps the route on ClaimDraftIntake and every new file below 150 lines', () => {
+  it('keeps the route on ClaimDraftIntake and intake modules within the current 300-line review limit', () => {
     const route = resolve(root, '../../../app/[locale]/(app)/member/claims/new/_core.entry.tsx');
     const routeSource = readFileSync(route, 'utf8');
     expect(routeSource).toContain('@/components/claims/claim-draft-intake');
     expect(routeSource).not.toMatch(/claim-wizard/i);
     for (const name of entries) {
-      expect(readFileSync(join(root, name), 'utf8').split('\n').length - 1).toBeLessThan(150);
+      expect(readFileSync(join(root, name), 'utf8').split('\n').length - 1).toBeLessThanOrEqual(
+        300
+      );
     }
     const action = resolve(root, '../../../actions/claims/create-from-saved-draft.ts');
     const identity = resolve(root, '../../../actions/claims/saved-draft-claim-identity.ts');

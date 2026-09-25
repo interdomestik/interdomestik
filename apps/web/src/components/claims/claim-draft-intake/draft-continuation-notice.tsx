@@ -16,6 +16,7 @@ export function DraftContinuationNotice({
   useEffect(() => {
     if (failed) errorRef.current?.focus();
   }, [failed]);
+  if (continuation.state === 'initial') return null;
   return (
     <div data-testid="draft-continuation-notice" className="space-y-4 rounded-xl border p-5">
       {failed ? (

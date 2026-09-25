@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SecureSaveBand } from '@/app/[locale]/components/home/free-start-intake-shell/secure-save-band';
 import enFree from '@/messages/en/freeStart.json';
@@ -12,6 +13,7 @@ import sq from '@/messages/sq/claims.json';
 import mk from '@/messages/mk/claims.json';
 import sr from '@/messages/sr/claims.json';
 import { ClaimDraftIntake } from './index';
+import { DraftContinuationNotice } from './draft-continuation-notice';
 
 vi.unmock('next-intl');
 const actions = vi.hoisted(() => ({
@@ -81,6 +83,16 @@ function view(locale: keyof typeof catalogs = 'en') {
 }
 
 describe('saved draft continuation mounted contract', () => {
+  it('does not announce loading before a draft selection has been read', () => {
+    const html = renderToStaticMarkup(
+      <DraftContinuationNotice
+        locale="en"
+        continuation={{ blocked: true, canRetry: false, retry: async () => {}, state: 'initial' }}
+        copy={JSON.parse(enFree.freeStart.secureSave).continuation}
+      />
+    );
+    expect(html).toBe('');
+  });
   it.each(Object.keys(catalogs) as (keyof typeof catalogs)[])(
     'reviews exact facts in %s without granting membership or submitting',
     async locale => {
