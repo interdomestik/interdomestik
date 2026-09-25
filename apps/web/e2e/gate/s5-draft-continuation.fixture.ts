@@ -41,8 +41,12 @@ export async function continueSavedDraftWithoutMembership(
   await page.keyboard.press('Enter');
   for (const [locale, catalog] of Object.entries({ en, sq, mk, sr })) {
     if (locale !== 'en') await page.goto(`${args.origin}/${locale}${path}`);
-    const intake = page.getByTestId('claim-draft-intake');
-    await expect(page.getByTestId('new-claim-page-ready')).toBeVisible();
+    const intake = page.locator('[data-testid="claim-draft-intake"]:visible');
+    // The existing shell can retain a hidden duplicate, matching gotoApp's marker contract.
+    await expect(
+      page.locator('[data-testid="new-claim-page-ready"]:visible').first()
+    ).toBeVisible();
+    await expect(intake).toHaveCount(1);
     await expect(intake.getByTestId('claim-draft-dormant-preview')).toBeVisible();
     for (const fact of [S3_JOURNEY_INCIDENT_DATE, args.counterparty, args.summary]) {
       await expect(intake.locator('dl')).toContainText(fact);
@@ -57,7 +61,7 @@ export async function continueSavedDraftWithoutMembership(
     await expect(intake.getByTestId('saved-draft-continue')).toHaveCount(0);
   }
   await page.goto(`${args.origin}${routes.memberNewClaim('en')}?mode=drafts#draft=malformed`);
-  const notice = page.getByTestId('draft-continuation-notice');
+  const notice = page.locator('[data-testid="draft-continuation-notice"]:visible');
   await expect(notice.getByRole('alert')).toBeVisible();
   await expect(page.getByTestId('claim-draft-dormant-preview')).toHaveCount(0);
   await expect(notice.getByRole('button')).toHaveCount(0);
