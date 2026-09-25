@@ -5,37 +5,17 @@ import {
   createSelfServeOwnershipAttribution,
   revokeAgentClientReadScope,
 } from '../../../ownership-attribution';
-import type { RequestPasswordResetOnboarding } from '../../types';
+import type {
+  RequestPasswordResetOnboarding,
+  ResolvePaddleCustomer,
+  SubscriptionPayloadLike,
+} from '../../types';
+import { resolveCheckoutTransactionEvidence } from './checkout-transaction-evidence';
 import { resolveBranchId } from './context';
-
-type CheckoutCustomData = {
-  userId?: string;
-  agentId?: string;
-  tenantId?: string;
-  acquisitionSource?: string;
-  utmSource?: string;
-  utmMedium?: string;
-  utmCampaign?: string;
-  utmContent?: string;
-};
-
-type SubscriptionPayloadLike = {
-  id: string;
-  transactionId?: string | null;
-  transaction_id?: string | null;
-  customData?: CheckoutCustomData;
-  custom_data?: CheckoutCustomData;
-};
-
-type TransactionPayloadLike = {
-  customerEmail?: string | null;
-  customer_email?: string | null;
-  customData?: CheckoutCustomData;
-  custom_data?: CheckoutCustomData;
-};
 
 type ReconcileCheckoutUserDeps = {
   requestPasswordResetOnboarding?: RequestPasswordResetOnboarding;
+  resolvePaddleCustomer?: ResolvePaddleCustomer;
 };
 
 type ReconciledUserRecord = {
@@ -59,24 +39,6 @@ function normalizeText(value: string | null | undefined): string | null {
 
 function emailDisplayName(email: string): string {
   return email.split('@')[0]?.trim() || 'Member';
-}
-
-function toCustomData(
-  value: CheckoutCustomData | undefined,
-  fallback: CheckoutCustomData | undefined
-): CheckoutCustomData | undefined {
-  if (!value && !fallback) return undefined;
-  return { ...fallback, ...value };
-}
-
-function hasCustomDataConflict(
-  field: 'tenantId' | 'userId',
-  value: CheckoutCustomData | undefined,
-  fallback: CheckoutCustomData | undefined
-): boolean {
-  const current = normalizeText(value?.[field]);
-  const previous = normalizeText(fallback?.[field]);
-  return Boolean(current && previous && current !== previous);
 }
 
 function shouldPromoteRole(role: string | null | undefined): boolean {
@@ -115,55 +77,18 @@ async function findUserByEmail(email: string): Promise<ReconciledUserRecord | nu
 
 export async function reconcileCheckoutUser(
   sub: SubscriptionPayloadLike,
-  deps: ReconcileCheckoutUserDeps = {}
+  deps: ReconcileCheckoutUserDeps = {},
+  processingScopeKey = ''
 ) {
-  const transactionId = normalizeText(sub.transactionId || sub.transaction_id);
-  if (!transactionId) {
-    console.warn(
-      `[Webhook] Cannot reconcile checkout user for subscription ${sub.id}; missing transactionId`
-    );
-    return null;
-  }
+  const evidence = await resolveCheckoutTransactionEvidence(
+    sub,
+    processingScopeKey,
+    deps.resolvePaddleCustomer
+  );
+  if (!evidence) return null;
 
-  // db-access-guard: system-exempt -- reason: provider transaction lookup bootstraps checkout reconciliation before tenant context exists
-  const webhookEvent = await db.query.webhookEvents.findFirst({
-    where: (events, { eq }) => eq(events.providerTransactionId, transactionId),
-    columns: { payload: true },
-  });
-
-  const payload = webhookEvent?.payload as { data?: TransactionPayloadLike } | undefined;
-  const transactionData = payload?.data;
-  if (!transactionData) {
-    console.warn(
-      `[Webhook] Cannot reconcile checkout user for subscription ${sub.id}; stored transaction ${transactionId} not found`
-    );
-    return null;
-  }
-
-  const subscriptionCustomData = sub.customData || sub.custom_data;
-  const transactionCustomData = transactionData.customData || transactionData.custom_data;
-  if (
-    hasCustomDataConflict('tenantId', subscriptionCustomData, transactionCustomData) ||
-    hasCustomDataConflict('userId', subscriptionCustomData, transactionCustomData)
-  ) {
-    console.warn(
-      `[Webhook] Cannot reconcile checkout user for subscription ${sub.id}; subscription customData conflicts with stored transaction ${transactionId}`
-    );
-    return null;
-  }
-
-  const mergedCustomData = toCustomData(subscriptionCustomData, transactionCustomData);
-  const tenantId = normalizeText(mergedCustomData?.tenantId);
-  const customerEmail = normalizeText(
-    transactionData.customerEmail || transactionData.customer_email
-  )?.toLowerCase();
-
-  if (!tenantId || !customerEmail) {
-    console.warn(
-      `[Webhook] Cannot reconcile checkout user for subscription ${sub.id}; missing tenant/email in stored transaction ${transactionId}`
-    );
-    return null;
-  }
+  const { customerEmail, customData: mergedCustomData } = evidence;
+  const tenantId = normalizeText(mergedCustomData.tenantId)!;
 
   let existingUser = await findUserByEmail(customerEmail);
   const customDataUserId = normalizeText(mergedCustomData?.userId);

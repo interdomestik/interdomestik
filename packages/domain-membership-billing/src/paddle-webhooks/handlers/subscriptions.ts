@@ -9,8 +9,11 @@ import { handleNewSubscriptionExtras } from './utils/extras';
 import { reconcileCheckoutUser } from './utils/reconcile-checkout-user';
 
 export async function handleSubscriptionChanged(
-  params: { eventType: string; data: unknown },
-  deps: Pick<PaddleWebhookDeps, 'sendThankYouLetter' | 'requestPasswordResetOnboarding'> &
+  params: { eventType: string; data: unknown; processingScopeKey?: string },
+  deps: Pick<
+    PaddleWebhookDeps,
+    'sendThankYouLetter' | 'requestPasswordResetOnboarding' | 'resolvePaddleCustomer'
+  > &
     PaddleWebhookAuditDeps = {}
 ) {
   const parseResult = subscriptionEventDataSchema.safeParse(params.data);
@@ -23,7 +26,7 @@ export async function handleSubscriptionChanged(
   // 1. Resolve Context (User, Tenant, Branch)
   let context = await resolveSubscriptionContext(sub);
   if (!context && params.eventType === 'subscription.created' && canReconcileCheckoutUser(sub)) {
-    context = await reconcileCheckoutUser(sub, deps);
+    context = await reconcileCheckoutUser(sub, deps, params.processingScopeKey ?? '');
   }
   if (!context) {
     throw new Error(`Unable to resolve subscription context for ${sub.id}`);

@@ -16,19 +16,19 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`STAGING-READINESS-RECOVERY` is the sole active bounded repair, authorized by the owner after
-recurring staging failures blocked #1822. Base is protected main
-`e0cbdf1548fc5968f6714dbf68d630eb44dd4722`. Fix the mounted health probe's missing call into existing
-RLS timeout recovery and remove the deployment deadlock caused by requiring the previous target
-to be healthy before capturing its identity. Do not relax RLS posture or replacement health gates.
+`S6-PROVIDER-ACTIVATION-RETRY` is the sole active bounded product increment. Base is protected main
+`369bbd0987fab894958f125492aa3df909ecb196`. Restore a verified Paddle `subscription.created`
+notification after its related processed `transaction.completed` arrives out of order, without
+treating browser state or Paddle-echoed custom data as entitlement authority. Preserve the existing
+tenant-scoped subscription writer and lifecycle access contract.
 
-PR [#1822](https://github.com/interdomestik/interdomestik/pull/1822) merged the exact saved-draft
-continuation, including expired-session recovery, with protected current-head proof. Its immutable
-preview reported exact-main healthy; CD [#36103643236](https://github.com/interdomestik/interdomestik/actions/runs/36103643236)
-failed before alias movement because the previous deployment returned database-readiness HTTP 503.
-Canonical staging/browser acceptance remains pending this repair. The continuation preserves
-membership refusal; fresh-account first submission still requires S6 activation (`IDA-MEM-006`).
-Whole S5/S6, business acceptance and production deployment remain outside scope.
+PR [#1823](https://github.com/interdomestik/interdomestik/pull/1823) completed the prior staging
+readiness repair on exact main `369bbd0987fab894958f125492aa3df909ecb196`. Protected checks and
+automatic staging CD [#36111178342](https://github.com/interdomestik/interdomestik/actions/runs/36111178342)
+passed immutable/canonical health and P0.1/P0.2/P0.3/P0.4/P0.6; production stayed unchanged. This
+also completes canonical staging for #1822's saved-draft continuation. Both repairs are credited and
+closed. Fresh-account first submission still requires the bounded S6 dependency below; whole S5/S6,
+business acceptance and production deployment remain outside scope.
 
 PR [#1817](https://github.com/interdomestik/interdomestik/pull/1817) delivered the bounded
 `IDA-FST-004` local disclosure as `a5dd1e455628b7c9826c80683237adcbd0d2d4f3`. Following the separate
@@ -46,14 +46,16 @@ They do not establish new-account activation, request fulfilment, whole S5/S6/S7
 
 ## Program Goals
 
-1. Let health-only traffic invoke the existing fail-closed RLS readiness recovery after a settled
-   timeout; preserve cooldown, single-flight behavior and permanent unsafe-role rejection.
-2. Capture the owned previous immutable deployment's identity from validated static staging release
-   metadata, separately recording runtime health. Missing/conflicting identity remains a blocker.
-3. Require the replacement's exact-SHA immutable health before alias mutation and strict immutable,
-   canonical health and provider mapping afterwards. Preserve serialized CD and durable receipts.
-4. Restore a previous target only after fresh exact health; an unavailable rollback stays explicitly
-   failed without moving to an unhealthy target. Verify protected main staging and existing P0 gate.
+1. Classify only missing same-scope processed transaction evidence or a documented transient Paddle
+   customer lookup failure as a retryable pre-write activation deferral. Tenant/custom-data/customer
+   conflicts, permanent provider errors and failures after any mutation remain permanent.
+2. Compare-and-set reclaim only the exact verified failed receipt by dedupe key, billing scope,
+   payload hash and retryable state. One parallel retry may proceed; current, successful and
+   permanent failures remain duplicates.
+3. Reuse the existing provider subscription writer and lifecycle contract, including current
+   `active` and `trialing` access behavior. Do not grant access from success URLs or query values.
+4. Prove failure-before-write, exact replay recovery, post-success replay safety and tenant conflict
+   isolation. Keep entity/terms snapshots, price/offer changes and broad reconciliation outside scope.
 
 ## Enduring Safety Boundaries
 
@@ -122,17 +124,18 @@ clauses and supplementary controls. SRS v0.9 remains the reviewed baseline at SH
 `8bc2b69c9babf8f228941378a01a32340f23d3ff061f92c574a9a908472981a2`; repo/program and accepted
 ADR authority control until explicitly amended.
 
-Continue the owner-adopted outcome order without rebuilding delivered behavior: the active staging-readiness repair completing
-#1822 staging acceptance, remaining S5 gaps, remaining S6 acceptance after the delivered
-#1815 disclosure, S7 staff handling, S8 agent handoff, S9 assisted activation, S10 branch oversight,
+Continue the owner-adopted outcome order without rebuilding delivered behavior: the active bounded
+S6 provider-activation dependency for fresh-account S5 submission, remaining S5 gaps, remaining S6
+acceptance after the delivered #1815 disclosure, S7 staff handling, S8 agent handoff, S9 assisted activation, S10 branch oversight,
 S11 tenant administration, S12 platform operations and S13 outcome/closure, followed by S14
 whole-pilot rehearsal. H1 Help Now keeps its priority lane when its direct dependencies are ready.
 
 Direct dependencies remain local to their consumers. PR #1814 proves request-bound upload and
 assigned-staff acknowledgement; PR #1815 proves the bounded member lifecycle/access disclosure.
-This slice consumes existing secure-save, member draft, auth, tenant and audit boundaries but
-does not re-prove their delivered outcomes or prove provider confirmation, webhook/payment
-readiness, offer or activation acceptance. Reviewed signed/versioned/integrity/expiry
+This slice consumes existing Paddle signature, webhook receipt, tenant-context, subscription and
+lifecycle boundaries. It proves only recovery of a provider-confirmed activation after safe
+out-of-order deferral. It does not prove checkout-time entity/terms snapshot capture, prices, full
+offer, renewal, invoice, payment operations or whole activation acceptance. Reviewed signed/versioned/integrity/expiry
 contracts precede offline pack readiness; S8 precedes dependent S9; recovery, partner, mandate,
 consent and billing receipts precede affected S13 promises. T-411 keeps its T-401, SVC-CORE and
 FLIGHT-03 dependency chain. No whole-overlay or stale historical row becomes a blanket pilot gate.
@@ -144,20 +147,25 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-### Current staging recovery acceptance
+### Current S6 provider-activation retry acceptance
 
-- A real readiness regression reproduces timeout → cached health failure, then verifies recovery
-  through health requests alone after SQL settlement/cooldown, including concurrent requests.
-- No liveness query runs while posture is unresolved or unsafe. No new retryable error class,
-  tenant bypass, admin fallback, schema or auth change is introduced.
-- Unhealthy old runtime plus valid owned staging metadata permits preparing a healthy replacement;
-  malformed/foreign/mismatched identity and unhealthy/wrong-SHA replacement fail before movement.
-- Exact new immutable and canonical health remain mandatory after movement. Rollback rechecks the
-  old target and never claims restoration when it cannot safely restore.
-- Final focused, security, protected hosted and exact-main staging P0 evidence bind to the repair;
-  prior #1822 source proof remains credited, not substituted for changed inputs.
+- A verified entity-routed anonymous `subscription.created` whose related processed
+  `transaction.completed` is not yet available fails before user/subscription writes and records a
+  typed retryable result.
+- Redelivery reclaims only the exact signature-valid failed row in the same entity processing
+  scope and with the same payload hash. The compare-and-set permits at most one concurrent claimant.
+- Reconciliation consumes only a signature-valid, successfully processed Paddle transaction from
+  the same billing scope. Its customer ID must equal the subscription customer ID, and the
+  entity-configured Paddle client must return that same active customer with a valid email.
+  Missing/unsupported tenant context, archived customers, foreign ownership and conflicting
+  provider metadata remain fail-closed and are never classified by error-message text.
+- Once authoritative context exists, the established tenant-scoped writer creates or updates one
+  subscription and preserves the current active/trialing lifecycle access contract. A later replay
+  is a duplicate and performs no second entitlement, invoice, ledger or lifecycle event write.
+- Browser success/query state remains non-authoritative. No schema, proxy, route, auth, RLS, price,
+  offer, terms acceptance, entity snapshot or production configuration change is introduced.
 
-### Credited #1822 product acceptance (canonical staging pending)
+### Credited #1822 product acceptance
 
 - A clean confirmed, complete, preview-ready vehicle/property secure draft exposes one explicit continuation action with
   EN/SQ/MK/SR copy stating that membership and separate submission remain necessary. Dirty,
@@ -206,15 +214,23 @@ alone is not business or user acceptance.
 
 ## Bounded Research Brief
 
-Recovery investigation checked 2026-09-25 against current source and historical exact-deployment
-logs. The previous instance emitted `RlsRolePostureTimeoutError`; mounted health bypassed the
-asynchronous readiness entry point used by tenant requests. This integration omission is reproduced
-by the new regression; logs alone do not identify whether different events share one instance.
-[Official Vercel CLI log implementation](https://github.com/vercel/vercel/blob/main/packages/cli/src/util/logs-v2.ts)
-provided the bounded historical read API. [Postgres.js connection documentation](https://github.com/porsager/postgres/blob/master/README.md)
-explains lazy reconnect on a later query; preserve the existing narrow timeout recovery instead of
-broadening retries speculatively. Static metadata establishes owned immutable identity, not runtime
-health or independent cryptographic verification. Existing CD digest verification stays mandatory.
+Checked 2026-09-25 against current source, installed manifests and the SRS v0.9 membership clauses.
+[Paddle's webhook guide](https://developer.paddle.com/webhooks/about/how-webhooks-work/) says events
+may arrive out of order and identifies `subscription.created` as the subscription-recording event and
+`transaction.completed` as completion of provider processing. The
+[subscription-created reference](https://developer.paddle.com/webhooks/subscriptions/subscription-created/)
+binds that event to its causal `transaction_id`; Paddle signature verification remains mandatory.
+[Paddle's get-customer reference](https://developer.paddle.com/api-reference/customers/get-customer/)
+provides the authoritative customer email and active/archived status and requires `customer.read`;
+current deployed entity-token permission is an unverified operations dependency, not a source claim.
+The [Paddle error contract](https://developer.paddle.com/api-reference/about/errors/) distinguishes
+retryable provider 5xx/rate-limit failures from permanent authentication, permission, validation and
+not-found failures.
+Adopt an exact, typed pre-write deferral plus compare-and-set retry. Reject generic failed-event retry,
+browser-success activation, cross-scope transaction lookup, message-based error classification and
+mutable tenant data as proof of checkout-time terms. Test focused failure/replay/isolation and retain
+protected full verification. The expected benefit is recovery from documented provider event ordering
+without duplicate entitlement; no complete `IDA-MEM-002`–`005` or whole-S6 claim follows.
 
 ### Reused saved-draft research
 

@@ -1,8 +1,10 @@
 import { db, webhookEvents } from '@interdomestik/database';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 import type { PaddleWebhookAuditDeps } from './types';
+
+export { isRetryablePaddleWebhookError } from './errors';
 
 export async function persistInvalidSignatureAttempt(
   params: {
@@ -90,6 +92,29 @@ export async function insertWebhookEvent(
     .returning({ id: webhookEvents.id });
 
   if (inserted.length === 0) {
+    const reclaimed = await reclaimRetryableWebhookEvent(params);
+    if (reclaimed) {
+      if (deps.logAuditEvent) {
+        await deps.logAuditEvent({
+          actorRole: 'system',
+          action: 'webhook.retry_received',
+          entityType: 'webhook_event',
+          entityId: reclaimed.id,
+          tenantId: params.tenantId ?? undefined,
+          metadata: {
+            provider: 'paddle',
+            dedupeKey: params.dedupeKey,
+            processingScopeKey: params.processingScopeKey,
+            eventType: params.eventType,
+            eventId: params.eventId,
+          },
+          headers: params.headers,
+        });
+      }
+
+      return { inserted: true as const, webhookEventRowId: reclaimed.id };
+    }
+
     if (deps.logAuditEvent) {
       await deps.logAuditEvent({
         actorRole: 'system',
@@ -133,6 +158,33 @@ export async function insertWebhookEvent(
   }
 
   return { inserted: true as const, webhookEventRowId };
+}
+
+async function reclaimRetryableWebhookEvent(params: {
+  processingScopeKey: string;
+  dedupeKey: string;
+  payloadHash: string;
+}) {
+  // db-access-guard: system-exempt -- reason: compare-and-set reclaims only the exact verified failed Paddle receipt.
+  const reclaimed = await db
+    .update(webhookEvents)
+    .set({
+      processedAt: null,
+      processingResult: null,
+      error: null,
+    })
+    .where(
+      and(
+        eq(webhookEvents.dedupeKey, params.dedupeKey),
+        eq(webhookEvents.processingScopeKey, params.processingScopeKey),
+        eq(webhookEvents.payloadHash, params.payloadHash),
+        eq(webhookEvents.signatureValid, true),
+        eq(webhookEvents.processingResult, 'retryable_error')
+      )
+    )
+    .returning({ id: webhookEvents.id });
+
+  return reclaimed[0] ?? null;
 }
 
 export async function markWebhookProcessed(
@@ -180,6 +232,7 @@ export async function markWebhookFailed(
     eventType: string | undefined;
     eventId: string | undefined;
     error: unknown;
+    retryable?: boolean;
     tenantId?: string | null;
   },
   deps: PaddleWebhookAuditDeps = {}
@@ -191,7 +244,7 @@ export async function markWebhookFailed(
     .update(webhookEvents)
     .set({
       processedAt: new Date(),
-      processingResult: 'error',
+      processingResult: params.retryable ? 'retryable_error' : 'error',
       error: message.slice(0, 2000),
     })
     .where(eq(webhookEvents.id, params.webhookEventRowId));

@@ -60,6 +60,8 @@ const E2E_TREE_SHAS = new Set([
   'af7392271f9e8486a384055c3167706ebb8f6cb9',
   // S5 disclosure review corrections: reversible discard and opt-out promotion safety.
   '9ef1cb4b99bdba458fffec42ff0e6e4284eceb1a',
+  // S6 provider retry receipt compare-and-set gate proof.
+  'ca01b15f7761a1a9eae2c86e9b8f97c99747c444',
 ]);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {
