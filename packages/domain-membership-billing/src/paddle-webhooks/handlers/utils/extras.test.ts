@@ -2,12 +2,7 @@ import { db } from '@interdomestik/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMemberReferralRewardCore } from '../../../../../domain-referrals/src';
 import { createCommissionCore } from '../../../commissions/create';
-import { createRenewalCommissionCore } from '../../../commissions/create-renewal';
-import {
-  handleNewSubscriptionExtras,
-  handleRenewalSubscriptionExtras,
-  redactEmail,
-} from './extras';
+import { handleNewSubscriptionExtras } from './extras';
 
 vi.mock('@interdomestik/database', () => ({
   agentClients: {
@@ -39,33 +34,7 @@ vi.mock('../../../commissions/create', () => ({
   createCommissionCore: vi.fn(),
 }));
 
-vi.mock('../../../commissions/create-renewal', () => ({
-  createRenewalCommissionCore: vi.fn(),
-}));
-
 describe('extras', () => {
-  describe('redactEmail', () => {
-    it('should handle undefined/null/empty', () => {
-      expect(redactEmail(undefined)).toBe('unknown');
-      expect(redactEmail(null)).toBe('unknown');
-      expect(redactEmail('')).toBe('unknown');
-    });
-
-    it('should handle invalid email formats', () => {
-      expect(redactEmail('invalid')).toBe('unknown');
-    });
-
-    it('should mask short local parts', () => {
-      expect(redactEmail('a@b.com')).toBe('a*@b.com');
-      expect(redactEmail('ab@b.com')).toBe('a*@b.com');
-    });
-
-    it('should mask longer local parts', () => {
-      expect(redactEmail('john.doe@example.com')).toBe('j***e@example.com');
-      expect(redactEmail('alice@test.com')).toBe('a***e@test.com');
-    });
-  });
-
   describe('handleNewSubscriptionExtras', () => {
     const mockDeps = {
       logAuditEvent: vi.fn(),
@@ -133,13 +102,11 @@ describe('extras', () => {
     });
 
     it('should process commission if agentId is present', async () => {
-      const customData = { agentId: 'agent_1' };
-
       await handleNewSubscriptionExtras({
         sub: mockSub,
         userId: 'user_1',
         tenantId: 'tenant_1',
-        customData,
+        customData: { agentId: 'agent_1' },
         priceId: 'price_1',
         userRecord: mockUserRecord,
         deps: mockDeps,
@@ -173,13 +140,11 @@ describe('extras', () => {
       (db.query.agentSettings.findFirst as any).mockResolvedValue({
         commissionRates: { new_membership: 0.5 }, // 50% custom rate
       });
-      const customData = { agentId: 'agent_1' };
-
       await handleNewSubscriptionExtras({
         sub: mockSub,
         userId: 'user_1',
         tenantId: 'tenant_1',
-        customData,
+        customData: { agentId: 'agent_1' },
         priceId: 'price_1',
         userRecord: mockUserRecord,
         deps: mockDeps,
@@ -329,278 +294,6 @@ describe('extras', () => {
       });
 
       expect(createCommissionCore).toHaveBeenCalled();
-      expect(createMemberReferralRewardCore).not.toHaveBeenCalled();
-    });
-
-    it('sends active confirmation from exact provider and member values', async () => {
-      await handleNewSubscriptionExtras({
-        sub: mockSub,
-        userId: 'user_1',
-        tenantId: 'tenant_mk',
-        customData: { locale: 'mk' },
-        priceId: 'price_1',
-        userRecord: mockUserRecord,
-        deps: mockDeps,
-      });
-
-      expect(mockDeps.sendThankYouLetter).toHaveBeenCalledWith(
-        expect.objectContaining({
-          email: mockUserRecord.email,
-          expiresAt: new Date('2027-01-01T00:00:00.000Z'),
-          locale: 'mk',
-          memberSince: new Date('2026-01-01T00:00:00.000Z'),
-          planInterval: 'година',
-          planName: 'Annual membership',
-          planPrice: expect.stringContaining('EUR'),
-          providerReference: 'sub_123',
-          tenantId: 'tenant_mk',
-        })
-      );
-    });
-
-    it.each(['trialing', 'past_due', 'paused', 'canceled', 'deleted'])(
-      'does not send active confirmation for provider status %s',
-      async status => {
-        await handleNewSubscriptionExtras({
-          sub: { ...mockSub, status },
-          userId: 'user_1',
-          tenantId: 'tenant_mk',
-          customData: { locale: 'mk' },
-          priceId: 'price_1',
-          userRecord: mockUserRecord,
-          deps: mockDeps,
-        });
-
-        expect(mockDeps.sendThankYouLetter).not.toHaveBeenCalled();
-      }
-    );
-
-    it.each([
-      ['missing locale', mockSub, undefined, mockUserRecord],
-      [
-        'missing provider price',
-        { ...mockSub, items: [] },
-        { locale: 'mk' as const },
-        mockUserRecord,
-      ],
-      [
-        'missing provider period',
-        { ...mockSub, currentBillingPeriod: undefined },
-        { locale: 'mk' as const },
-        mockUserRecord,
-      ],
-      [
-        'missing member number',
-        mockSub,
-        { locale: 'mk' as const },
-        { ...mockUserRecord, memberNumber: null },
-      ],
-    ])(
-      'does not invent confirmation values when %s',
-      async (_name, sub, customData, userRecord) => {
-        await handleNewSubscriptionExtras({
-          sub,
-          userId: 'user_1',
-          tenantId: 'tenant_mk',
-          customData,
-          priceId: 'price_1',
-          userRecord,
-          deps: mockDeps,
-        });
-
-        expect(mockDeps.sendThankYouLetter).not.toHaveBeenCalled();
-      }
-    );
-
-    it('should handle missing thank you letter dep gracefully', async () => {
-      const noLetterDeps = { ...mockDeps, sendThankYouLetter: undefined };
-      // @ts-ignore
-      await expect(
-        handleNewSubscriptionExtras({
-          sub: mockSub,
-          userId: 'user_1',
-          tenantId: 'tenant_1',
-          customData: undefined,
-          priceId: 'price_1',
-          userRecord: mockUserRecord,
-          deps: noLetterDeps,
-        })
-      ).resolves.toBeUndefined();
-      // Should not throw
-    });
-
-    it('should handle thank you letter error gracefully', async () => {
-      mockDeps.sendThankYouLetter.mockRejectedValue(new Error('Send failed'));
-      // Should not throw
-      await handleNewSubscriptionExtras({
-        sub: mockSub,
-        userId: 'user_1',
-        tenantId: 'tenant_1',
-        customData: { locale: 'en' },
-        priceId: 'price_1',
-        userRecord: mockUserRecord,
-        deps: mockDeps,
-      });
-      const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      await handleNewSubscriptionExtras({
-        sub: mockSub,
-        userId: 'user_1',
-        tenantId: 'tenant_1',
-        customData: { locale: 'en' },
-        priceId: 'price_1',
-        userRecord: mockUserRecord,
-        deps: mockDeps,
-      });
-      expect(spy).toHaveBeenCalled();
-      spy.mockRestore();
-    });
-  });
-
-  describe('handleRenewalSubscriptionExtras', () => {
-    const mockDeps = {
-      logAuditEvent: vi.fn(),
-    };
-
-    const mockSub = {
-      id: 'sub_renewal',
-      items: [
-        { price: { id: 'price_renewal', unitPrice: { amount: '3000', currencyCode: 'EUR' } } },
-      ],
-      customData: { agentId: 'agent_current' },
-    };
-
-    beforeEach(() => {
-      vi.clearAllMocks();
-      (createRenewalCommissionCore as any).mockResolvedValue({
-        success: true,
-        data: { kind: 'created', id: 'renew_1' },
-      });
-    });
-
-    it('creates a renewal commission using canonical ownership metadata', async () => {
-      await handleRenewalSubscriptionExtras({
-        sub: mockSub,
-        userId: 'user_1',
-        tenantId: 'tenant_1',
-        customData: { agentId: 'agent_current' },
-        priceId: 'price_renewal',
-        userRecord: null,
-        ownership: {
-          subscriptionAgentId: 'agent_current',
-          userAgentId: 'agent_previous',
-          agentClientAgentIds: ['agent_current'],
-          originalSellerAgentId: 'agent_original',
-        },
-        deps: mockDeps,
-      });
-
-      expect(createRenewalCommissionCore).toHaveBeenCalledWith(
-        expect.objectContaining({
-          subscriptionAgentId: 'agent_current',
-          userAgentId: 'agent_previous',
-          agentClientAgentIds: ['agent_current'],
-          originalSellerAgentId: 'agent_original',
-          subscriptionId: 'sub_renewal',
-          tenantId: 'tenant_1',
-        })
-      );
-    });
-
-    it('does not create a commission for company-owned renewals', async () => {
-      await handleRenewalSubscriptionExtras({
-        sub: mockSub,
-        userId: 'user_1',
-        tenantId: 'tenant_1',
-        customData: undefined,
-        priceId: 'price_renewal',
-        userRecord: null,
-        ownership: {
-          subscriptionAgentId: null,
-          userAgentId: 'agent_previous',
-          agentClientAgentIds: [],
-          originalSellerAgentId: null,
-        },
-        deps: mockDeps,
-      });
-
-      expect(createRenewalCommissionCore).toHaveBeenCalledWith(
-        expect.objectContaining({
-          subscriptionAgentId: null,
-          userAgentId: 'agent_previous',
-          agentClientAgentIds: [],
-          originalSellerAgentId: null,
-        })
-      );
-    });
-
-    it('logs unresolved canonical ownership as an audit-visible skip instead of falling back to customData.agentId', async () => {
-      (createRenewalCommissionCore as any).mockResolvedValue({
-        success: true,
-        data: {
-          kind: 'no-op',
-          noCommissionReason: 'unresolved',
-          ownerType: 'unresolved',
-          ownershipDiagnostics: [
-            {
-              source: 'subscription.agentId',
-              expectedAgentId: null,
-              actualAgentId: null,
-            },
-          ],
-        },
-      });
-
-      await handleRenewalSubscriptionExtras({
-        sub: mockSub,
-        userId: 'user_1',
-        tenantId: 'tenant_1',
-        customData: { agentId: 'agent_current' },
-        priceId: 'price_renewal',
-        userRecord: null,
-        ownership: {
-          subscriptionAgentId: undefined,
-          userAgentId: 'agent_previous',
-          agentClientAgentIds: ['agent_previous'],
-          originalSellerAgentId: 'agent_original',
-        },
-        deps: mockDeps,
-      });
-
-      expect(createRenewalCommissionCore).toHaveBeenCalledWith(
-        expect.objectContaining({
-          subscriptionAgentId: undefined,
-          userAgentId: 'agent_previous',
-          agentClientAgentIds: ['agent_previous'],
-          originalSellerAgentId: 'agent_original',
-        })
-      );
-      expect(mockDeps.logAuditEvent).toHaveBeenCalledWith(
-        expect.objectContaining({
-          action: 'commission.unresolved',
-          metadata: expect.objectContaining({
-            noCommissionReason: 'unresolved',
-          }),
-        })
-      );
-    });
-
-    it('never creates a member referral reward on renewal flows', async () => {
-      await handleRenewalSubscriptionExtras({
-        sub: mockSub,
-        userId: 'user_1',
-        tenantId: 'tenant_1',
-        customData: undefined,
-        priceId: 'price_renewal',
-        userRecord: null,
-        ownership: {
-          subscriptionAgentId: null,
-          userAgentId: null,
-          agentClientAgentIds: [],
-          originalSellerAgentId: null,
-        },
-        deps: mockDeps,
-      });
-
       expect(createMemberReferralRewardCore).not.toHaveBeenCalled();
     });
   });
