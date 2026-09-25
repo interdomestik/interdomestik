@@ -87,9 +87,9 @@ SRS/frontier index. Its unresolved rows are not automatic features, deferrals or
 - A focused Playwright attempt reached the command-owned web-server auto-build but could not start:
   webpack cache write returned `ENOSPC`, followed by a missing standalone stamp. Current-head E2E
   execution remains pending hosted proof; no browser/database pass is claimed from that attempt.
-- No provider configuration, production deployment, whole activation, product readiness or user-
-  acceptance claim is made. The unresolved MK Paddle webhook secret and unverified `customer.read`
-  permission on deployed entity API tokens remain external operations dependencies.
+- No deployment, product readiness or user-acceptance claim is made. No provider configuration or
+  whole activation is claimed. The unresolved MK Paddle webhook secret and unverified
+  `customer.read` permission on deployed entity API tokens remain external operations dependencies.
 
 ## Next Selection
 
