@@ -90,6 +90,16 @@ record exact source/test/PR/merge evidence, outstanding UI/operational acceptanc
 decision. Reuse unchanged evidence; reopen only changed or ambiguous contracts. At completion update
 this map and the tracker in normal delivery, without another status system or closeout PR.
 
+## Current bounded S6 work
+
+`S6-MEMBER-CHECKOUT-REVIEW` advances only the existing pre-checkout presentation portion of
+IDA-MEM-005 for signed-in members; implementation/verification are pending in the current program.
+No whole-requirement disposition changes. Approved effective-dated offer/terms, acceptance evidence
+and IDA-MEM-002/003 snapshots remain open. #1824's
+[receipt](https://github.com/interdomestik/interdomestik/pull/1824#issuecomment-5831196011) credits
+entity-routed activation retry on main `c020c20` and exact-main automatic staging `36124511981`,
+without whole IDA-MEM-006/007 or live activation claims.
+
 ## Credited delivery, without whole-requirement overclaim
 
 | Delivered increment                | Receipt                                                                                                                                                                              | Requirement links to reconcile        | Remaining acceptance                                                                                       |

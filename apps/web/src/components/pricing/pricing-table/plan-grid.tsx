@@ -20,7 +20,7 @@ export function PricingPlanGrid({
         const renderBusinessMembershipLink = shouldRenderBusinessMembershipLink({
           planId: plan.id,
           isPilotMode,
-          isSessionPending,
+          isSessionPending: isSessionPending || loadingPriceId !== null,
         });
 
         return (
@@ -29,17 +29,13 @@ export function PricingPlanGrid({
             plan={plan}
             selected={selectedPlanId === plan.id}
             loading={loadingPriceId === plan.priceId}
-            disabled={
-              isPilotMode ||
-              isSessionPending ||
-              (plan.priceId !== null && loadingPriceId === plan.priceId)
-            }
+            disabled={isPilotMode || isSessionPending || loadingPriceId !== null}
             renderBusinessMembershipLink={renderBusinessMembershipLink}
             colorClass={getPlanColorClass(plan.color)}
             billedAnnuallyLabel={t('billedAnnually')}
             popularLabel={t('standard.popular')}
             ctaLabel={t('cta')}
-            onClick={() => onPlanCtaClick(plan)}
+            onClick={event => onPlanCtaClick(plan, event.currentTarget)}
           />
         );
       })}

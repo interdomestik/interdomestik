@@ -2,6 +2,7 @@
 import { CommercialFunnelEvents } from '@/lib/analytics';
 import { useRouter } from '@/i18n/routing';
 import { Badge } from '@interdomestik/ui';
+import { useRef } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { FALLBACK_CHECKOUT_PRICE_IDS, hasUsablePaddleClientToken } from './checkout-helpers';
 import { LocalCheckoutWarning } from './local-checkout-warning';
@@ -25,6 +26,7 @@ export function PricingTable({
   neutralPricingEntryUrl,
   navigateTopLevel,
 }: PricingTableProps) {
+  const reviewTrigger = useRef<HTMLButtonElement | null>(null);
   const [t, locale, router] = [useTranslations('pricing'), useLocale(), useRouter()];
   const priceIds = {
     standardYear: checkoutConfig?.priceIds.standardYear ?? FALLBACK_CHECKOUT_PRICE_IDS.standardYear,
@@ -71,14 +73,16 @@ export function PricingTable({
     otp.reset();
   };
   const handlePreCheckoutContinue = () => {
-    if (!preCheckoutPlan?.priceId) return;
+    if (!preCheckoutPlan?.priceId || view.loading || isSessionPending) return;
     if (!userId) {
       if (view.continueAnonymousPlan(preCheckoutPlan.id)) return;
       return setOtpStep(preCheckoutPlan.id);
     }
     void view.handleAction(preCheckoutPlan.id, preCheckoutPlan.priceId);
   };
-  const handlePlanCtaClick = (plan: PricingPlan) => {
+  const handlePlanCtaClick = (plan: PricingPlan, trigger: HTMLButtonElement) => {
+    if (view.loading || isSessionPending) return;
+    reviewTrigger.current = trigger;
     CommercialFunnelEvents.pricingPlanCtaClicked(
       { tenantId: null, variant: 'hero_v1', locale },
       {
@@ -121,10 +125,13 @@ export function PricingTable({
           ref={view.preCheckoutSectionRef}
           plan={preCheckoutPlan}
           entityDisclosure={entityDisclosure ?? checkoutConfig?.entityDisclosure ?? null}
-          loading={view.loading === preCheckoutPlan.priceId}
+          loading={view.loading !== null || isSessionPending}
           t={t}
           onContinue={handlePreCheckoutContinue}
-          onCancel={() => view.setPreCheckoutPlanId(null)}
+          onCancel={() => {
+            view.setPreCheckoutPlanId(null);
+            reviewTrigger.current?.focus();
+          }}
         />
       ) : null}
       {otpPlan ? (

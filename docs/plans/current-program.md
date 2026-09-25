@@ -16,11 +16,19 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`S6-PROVIDER-ACTIVATION-RETRY` is the sole active bounded product increment. Base is protected main
-`369bbd0987fab894958f125492aa3df909ecb196`. Restore a verified Paddle `subscription.created`
-notification after its related processed `transaction.completed` arrives out of order, without
-treating browser state or Paddle-echoed custom data as entitlement authority. Preserve the existing
-tenant-scoped subscription writer and lifecycle access contract.
+`S6-MEMBER-CHECKOUT-REVIEW` is the sole active bounded product increment, selected under the
+owner's standing implementation/merge/staging authorization. Base is protected main
+`c020c20c685c6cf5dbf2ae2569eb35eb6deca62c`. Signed-in self-service members currently skip the
+existing plan/entity review and open Paddle immediately. Show that same review before explicit
+continuation, with cancel/reselect and retry proof. This advances the presentation portion of
+IDA-MEM-005 only; it does not record accepted terms or establish an approved versioned offer.
+
+PR [#1824](https://github.com/interdomestik/interdomestik/pull/1824) delivered safe, exact retry of
+entity-routed Paddle activation after out-of-order transaction evidence. Its
+[receipt](https://github.com/interdomestik/interdomestik/pull/1824#issuecomment-5831196011) records
+protected merge `c020c20`, 292 gate and 24 smoke passes, and automatic staging CD `36124511981`
+with exact-main health and P0.1/P0.2/P0.3/P0.4/P0.6 passing. Production jobs were skipped.
+Credit this bounded fix, not live activation or whole IDA-MEM-006/007 acceptance.
 
 PR [#1823](https://github.com/interdomestik/interdomestik/pull/1823) completed the prior staging
 readiness repair on exact main `369bbd0987fab894958f125492aa3df909ecb196`. Protected checks and
@@ -46,16 +54,13 @@ They do not establish new-account activation, request fulfilment, whole S5/S6/S7
 
 ## Program Goals
 
-1. Classify only missing same-scope processed transaction evidence or a documented transient Paddle
-   customer lookup failure as a retryable pre-write activation deferral. Tenant/custom-data/customer
-   conflicts, permanent provider errors and failures after any mutation remain permanent.
-2. Compare-and-set reclaim only the exact verified failed receipt by dedupe key, billing scope,
-   payload hash and retryable state. One parallel retry may proceed; current, successful and
-   permanent failures remain duplicates.
-3. Reuse the existing provider subscription writer and lifecycle contract, including current
-   `active` and `trialing` access behavior. Do not grant access from success URLs or query values.
-4. Prove failure-before-write, exact replay recovery, post-success replay safety and tenant conflict
-   isolation. Keep entity/terms snapshots, price/offer changes and broad reconciliation outside scope.
+1. Require the existing plan/entity review for signed-in standard/family purchases, including
+   newly verified members returning from the saved-draft journey.
+2. Keep opening/canceling/reselecting the review presentation-only. Start the established checkout
+   only after explicit continuation; preserve the selected plan, identity and configured entity.
+3. Prove focus, cancel/reselect, initialization retry, four-locale routing and query isolation.
+   Preserve anonymous OTP, assisted business entry, pilot freeze and pending-session controls.
+4. Do not invent prices, legal terms, entitlement, an acceptance receipt or a checkout snapshot.
 
 ## Enduring Safety Boundaries
 
@@ -125,17 +130,16 @@ clauses and supplementary controls. SRS v0.9 remains the reviewed baseline at SH
 ADR authority control until explicitly amended.
 
 Continue the owner-adopted outcome order without rebuilding delivered behavior: the active bounded
-S6 provider-activation dependency for fresh-account S5 submission, remaining S5 gaps, remaining S6
+S6 member checkout review prerequisite for fresh-account S5 submission, remaining S5 gaps, remaining S6
 acceptance after the delivered #1815 disclosure, S7 staff handling, S8 agent handoff, S9 assisted activation, S10 branch oversight,
 S11 tenant administration, S12 platform operations and S13 outcome/closure, followed by S14
 whole-pilot rehearsal. H1 Help Now keeps its priority lane when its direct dependencies are ready.
 
 Direct dependencies remain local to their consumers. PR #1814 proves request-bound upload and
 assigned-staff acknowledgement; PR #1815 proves the bounded member lifecycle/access disclosure.
-This slice consumes existing Paddle signature, webhook receipt, tenant-context, subscription and
-lifecycle boundaries. It proves only recovery of a provider-confirmed activation after safe
-out-of-order deferral. It does not prove checkout-time entity/terms snapshot capture, prices, full
-offer, renewal, invoice, payment operations or whole activation acceptance. Reviewed signed/versioned/integrity/expiry
+This slice reuses the mounted pricing review and Paddle checkout. The delivered retry fix remains
+credited. Approved effective-dated offer/terms, durable checkout acceptance and stored entity evidence,
+live activation, renewal, invoice and payment-operations acceptance remain open. Reviewed signed/versioned/integrity/expiry
 contracts precede offline pack readiness; S8 precedes dependent S9; recovery, partner, mandate,
 consent and billing receipts precede affected S13 promises. T-411 keeps its T-401, SVC-CORE and
 FLIGHT-03 dependency chain. No whole-overlay or stale historical row becomes a blanket pilot gate.
@@ -147,7 +151,22 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-### Current S6 provider-activation retry acceptance
+### Current S6 member checkout review acceptance
+
+- Signed-in standard/family plan selection opens the existing focused review with the selected plan
+  and configured entity disclosure, without initializing Paddle, requesting OTP or navigating.
+- Cancel before continuation performs no checkout and restores focus to the originating CTA.
+  Reselecting another plan displays and continues that exact plan. Initialization locks cancel,
+  continue and plan changes until the checkout attempt settles.
+- Explicit continue uses the existing checkout identity/configuration; URL tenant/plan values do not
+  replace them. Failed Paddle initialization leaves the review available for a deliberate retry.
+- EN/SQ/MK/SR retain existing catalogs and layout. Pending-session and pilot freezes still disable
+  entry; assisted business and anonymous OTP behavior remain unchanged.
+- Focused tests, independent integrated review, required verification and protected hosted checks
+  precede merge; exact-main automatic staging is separately evidenced.
+- No accepted terms/version/snapshot, live activation, whole S6, user acceptance or production claim.
+
+### Credited #1824 provider-activation retry acceptance
 
 - A verified entity-routed anonymous `subscription.created` whose related processed
   `transaction.completed` is not yet available fails before user/subscription writes and records a
@@ -213,6 +232,23 @@ alone is not business or user acceptance.
   user-acceptance or production-deployment claim follows.
 
 ## Bounded Research Brief
+
+Checked 2026-09-25. Reuse the existing mounted plan/entity review and unchanged installed manifests.
+[W3C financial error-prevention guidance](https://www.w3.org/WAI/WCAG22/Understanding/error-prevention-legal-financial-data.html)
+supports reviewing/correcting before financial commitment. Inference: applying the existing review
+consistently gives signed-in members the same opportunity to cancel/reselect. Adopt reuse, explicit
+continue and focused negative/retry proof; reject a new offer or acceptance claim. This is a narrow
+journey correction, not new visual design or a full accessibility-conformance assessment.
+
+G06's SHA-256 matches the release manifest, but its July T-503 ratification references MINSAS
+terms (Lithuanian operator, Stripe/app stores) and MK conditions effective June 2021 (prorated refund,
+registration activation). These do not resolve current Paddle pilot offer/version/effective-date
+approval and conflict with current product behavior. Keep them historical; owner selection of a
+current approved package remains required for actual terms capture. The owner reconfirmed Paddle-only.
+Paddle business-model acceptance, the unresolved MK webhook secret and deployed entity-token
+`customer.read` permission remain separate operations/business evidence, not delivered by this UI fix.
+
+### Reused #1824 research
 
 Checked 2026-09-25 against current source, installed manifests and the SRS v0.9 membership clauses.
 [Paddle's webhook guide](https://developer.paddle.com/webhooks/about/how-webhooks-work/) says events

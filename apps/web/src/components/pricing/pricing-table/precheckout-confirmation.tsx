@@ -90,6 +90,7 @@ export const PrecheckoutConfirmation = forwardRef<HTMLElement, PrecheckoutConfir
             data-testid="precheckout-cancel-cta"
             variant="outline"
             className="min-h-[44px] touch-manipulation rounded-2xl px-6"
+            disabled={loading}
             onClick={onCancel}
           >
             {t('preCheckout.cancel')}
