@@ -51,22 +51,7 @@ vi.mock('@interdomestik/database', () => ({
 }));
 
 import { insertWebhookEvent, markWebhookFailed, persistInvalidSignatureAttempt } from './persist';
-
-function subscriptionCreatedReceipt(suffix: string) {
-  return {
-    headers: new Headers(),
-    processingScopeKey: 'tenant:tenant_mk',
-    dedupeKey: `paddle:tenant:tenant_mk:event:evt_${suffix}`,
-    eventType: 'subscription.created',
-    eventId: `evt_${suffix}`,
-    eventTimestamp: new Date('2026-09-25T08:00:00.000Z'),
-    payloadHash: `hash_${suffix}`,
-    parsedPayload: { data: { id: `sub_${suffix}` } },
-    signatureValid: true,
-    signatureBypassed: false,
-    tenantId: 'tenant_mk',
-  };
-}
+import { subscriptionCreatedReceipt } from './persist.test-support';
 
 describe('webhook persistence idempotency', () => {
   beforeEach(() => {
@@ -110,7 +95,6 @@ describe('webhook persistence idempotency', () => {
     );
     expect(hoisted.onConflictDoNothing).toHaveBeenCalledWith();
   });
-
   it('preserves nullable tenant persistence for invalid signatures when tenant is unsafe', async () => {
     await persistInvalidSignatureAttempt({
       headers: new Headers(),
@@ -131,7 +115,6 @@ describe('webhook persistence idempotency', () => {
       })
     );
   });
-
   it('returns duplicate=false when DB unique linkage blocks a replayed transaction identity', async () => {
     hoisted.insertReturning.mockResolvedValueOnce([{ id: 'we_tx_1' }]).mockResolvedValueOnce([]);
 
@@ -260,10 +243,26 @@ describe('webhook persistence idempotency', () => {
     expect(hoisted.eq).toHaveBeenCalledWith('event_type_col', 'subscription.created');
   });
 
-  it('keeps an exact active subscription-created lease retryable before stale recovery', async () => {
+  it('keeps every exact non-terminal subscription-created lease retryable', async () => {
     hoisted.insertReturning.mockResolvedValueOnce([]);
     hoisted.updateReturning.mockResolvedValueOnce([]);
-    hoisted.findFirst.mockResolvedValueOnce({ id: 'we_active' });
+    hoisted.findFirst.mockImplementationOnce(query => {
+      const queryEq = vi.fn();
+      query.where(
+        {
+          provider: 'provider_col',
+          processingScopeKey: 'processing_scope_key_col',
+          dedupeKey: 'dedupe_key_col',
+          eventType: 'event_type_col',
+          payloadHash: 'payload_hash_col',
+          signatureValid: 'signature_valid_col',
+          processingResult: 'processing_result_col',
+        },
+        { and: vi.fn(), eq: queryEq, isNull: vi.fn(), or: vi.fn() }
+      );
+      expect(queryEq).toHaveBeenCalledWith('processing_result_col', 'retryable_error');
+      return { id: 'we_active' };
+    });
 
     await expect(insertWebhookEvent(subscriptionCreatedReceipt('active'))).rejects.toMatchObject({
       name: 'RetryablePaddleWebhookError',
