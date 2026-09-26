@@ -16,23 +16,25 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`S6-PROVIDER-ENTITLEMENT-CONTINUATION` is the sole active bounded product increment, selected under
+`S6-SIGNED-EVENT-DOWNSTREAM-CONTINUATION` is the sole active bounded product increment, selected under
 the owner's standing implementation/merge/staging authorization. Base is protected main
 `c9238bfe8cf31421606579533d40ef521473d5d4`. Prove on the existing KS sandbox boundary that an
 email-verified member with a persisted first-case draft remains unable to submit until an exact
-signed Paddle active-subscription event is reconciled to one tenant-scoped entitlement, and can then
-submit that exact draft once. Exact provider-event replay must leave one subscription, one lifecycle
-event and one claim. This is bounded IDA-MEM-006/007 executable evidence, not an approved
-offer/terms package, browser- or mail-granted entitlement, a production charge, live paid activation,
-MK configuration evidence or whole IDA-MEM-006/007 acceptance.
+synthetic Paddle-shaped active-subscription event passes the existing raw-body signature, entity,
+tenant and user boundary and reaches the downstream tenant-scoped access mapping. Exact event replay
+must leave one subscription and one lifecycle event; one later explicit submit must leave one claim.
+This is downstream continuation/idempotency evidence only. The synthetic fixture contains no
+authoritative amount, currency, order or transaction evidence, so commercial provider reconciliation,
+IDA-CTR-022, approved offer/terms, live paid activation and whole IDA-MEM-006/007 remain open.
 
 PR [#1827](https://github.com/interdomestik/interdomestik/pull/1827) delivered immutable membership
 confirmation storage and safe retry as protected merge
 `c9238bfe8cf31421606579533d40ef521473d5d4`. Its
-[receipt](https://github.com/interdomestik/interdomestik/pull/1827#issuecomment-5844085799) records
-required local/protected checks and exact-main automatic CD `36224361750`: deterministic
-build/attestation, health, build and canonical-alias provenance, and staging release-gate E2E passed.
-Production jobs were skipped. Credit that delivery reliability; do not rebuild it or infer
+[receipt](https://github.com/interdomestik/interdomestik/pull/1827#issuecomment-5844085799) records that
+final-head local `pr:verify` stopped at the 4 GiB preflight, while protected checks and hosted
+exact-head browser evidence passed. Exact-main automatic CD `36224361750` then passed deterministic
+build/attestation, health, build and canonical-alias provenance, and staging release-gate E2E;
+production jobs were skipped. Credit that delivery reliability, not a complete local lane,
 offer/terms approval, live paid activation, whole S6 or user acceptance.
 
 PR [#1826](https://github.com/interdomestik/interdomestik/pull/1826) delivered fail-closed localized
@@ -85,11 +87,11 @@ They do not establish new-account activation, request fulfilment, whole S5/S6/S7
 
 1. Start from the verified, tenant-scoped KS member fixture with no subscription and one persisted
    preview-ready saved draft; prove browser state alone exposes management but not submission.
-2. Send one raw-body, entity-specific, correctly signed Paddle `subscription.updated` event whose
-   canonical user and tenant evidence resolves to that member, and prove reconciliation records one
-   active subscription, one successful signed receipt and one deterministic lifecycle event.
+2. Send one raw-body, entity-specific, correctly signed synthetic Paddle `subscription.updated`
+   event whose canonical user and tenant evidence resolves to that member, and assert the existing
+   downstream handler records one active subscription, one signed receipt and one lifecycle event.
 3. Replay the exact event and prove the receipt short-circuits without duplicate subscription or
-   lifecycle effects; after reconciliation, prove the same persisted draft creates exactly one claim.
+   lifecycle effects; after processing, explicitly submit the same persisted draft to create one claim.
 4. Reuse existing tenant-conflict, role, invalid-signature, retry and concurrency contracts. Do not
    trigger entitlement from browser continuation or mail success, copy KS secrets into MK, perform a
    provider charge, or invent offer/terms approval, production readiness or user acceptance.
@@ -162,7 +164,7 @@ clauses and supplementary controls. SRS v0.9 remains the reviewed baseline at SH
 ADR authority control until explicitly amended.
 
 Continue the owner-adopted outcome order without rebuilding delivered behavior: the active bounded
-S6 provider-entitlement continuation proof for fresh-account S5 submission, remaining S5 gaps,
+S6 signed-event downstream continuation proof for fresh-account S5 submission, remaining S5 gaps,
 remaining S6 acceptance after the delivered #1815 disclosure, #1825 review and #1827 delivery, S7 staff handling,
 S8 agent handoff, S9 assisted activation, S10 branch oversight, S11 tenant administration, S12
 platform operations and S13 outcome/closure, followed by S14 whole-pilot rehearsal. H1 Help Now
@@ -186,7 +188,7 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-### Current S6 provider-entitlement continuation acceptance
+### Current S6 signed-event downstream continuation acceptance
 
 - The canonical KS proof starts with an email-verified `member` who has no subscription and a
   persisted preview-ready draft. Managing or resuming that draft renders an inert membership gate;
@@ -198,7 +200,7 @@ alone is not business or user acceptance.
   `entity:ks` receipt with valid signature and `ok` result, and one provider-event-stable
   `membership.subscription_changed` event. Exact replay returns the duplicate receipt result and
   creates none of those effects again.
-- A fresh server render after provider reconciliation exposes submission for the same persisted
+- A fresh server render after synthetic event processing exposes submission for the same persisted
   draft, and explicit submit creates exactly one claim for its owner. Task-owned draft, claim,
   subscription, receipt, event, audit and session state is removed and checked after the proof.
 - Existing automated contracts remain the negative authority for wrong tenant/entity, non-member
@@ -206,9 +208,9 @@ alone is not business or user acceptance.
   adds the missing cross-surface happy path and exact replay assertion rather than duplicating them.
 - Focused tests, independent current-head review, required verification and protected hosted checks
   precede merge; exact-main staging is separate evidence. No charge or provider mutation is made.
-- Approved versioned offer/entity/terms, actual paid-service approval, deployed MK secret,
-  entity-token `customer.read`, live paid activation, whole IDA-MEM-006/007, user acceptance and
-  production deployment remain open.
+- Approved versioned offer/entity/terms, authoritative identity/amount/currency/order reconciliation,
+  actual paid-service approval, deployed MK secret, entity-token `customer.read`, IDA-CTR-022, live
+  paid activation, whole IDA-MEM-006/007, user acceptance and production deployment remain open.
 
 ### Current source check
 
@@ -220,8 +222,9 @@ alone is not business or user acceptance.
   [`subscription.updated`](https://developer.paddle.com/webhooks/subscriptions/subscription-updated)
   as the complete subscription object carrying status changes, and recommends
   [provisioning/adjusting access from webhooks](https://developer.paddle.com/build/subscriptions/provision-access-webhooks)
-  rather than browser continuation. Adopt the existing active-status reconciliation and receipt
-  idempotency; reject any browser-success or email-success entitlement path.
+  rather than browser continuation. Exercise the existing active-status mapping and receipt
+  idempotency downstream, but do not treat the synthetic fixture as SRS §9.2 commercial
+  reconciliation; reject any browser-success or email-success entitlement path.
 - The repository manifests remain the dependency-version authority. Executable tests cover raw-body
   signing, entity scope, canonical user/tenant binding, active lifecycle mapping and replay.
 
