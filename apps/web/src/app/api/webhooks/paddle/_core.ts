@@ -330,6 +330,7 @@ export async function handlePaddleWebhookCore(args: {
         tenantId,
         billingEntity: billingEntity ?? null,
         providerTransactionId,
+        storedSubscriptionId: subscription?.id ?? null,
         data,
       },
       { logAuditEvent }

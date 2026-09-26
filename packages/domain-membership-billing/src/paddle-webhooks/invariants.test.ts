@@ -9,6 +9,7 @@ const hoisted = vi.hoisted(() => ({
   ledgerValues: vi.fn(),
   ledgerOnConflictDoNothing: vi.fn(),
   ledgerReturning: vi.fn(),
+  subscriptionFindFirst: vi.fn(),
   sql: vi.fn(() => ({ mockedSql: true })),
   billingInvoices: {
     id: 'invoice_id_col',
@@ -25,6 +26,9 @@ const hoisted = vi.hoisted(() => ({
 vi.mock('@interdomestik/database', () => ({
   db: {
     transaction: hoisted.transaction,
+    query: {
+      subscriptions: { findFirst: hoisted.subscriptionFindFirst },
+    },
   },
   billingInvoices: hoisted.billingInvoices,
   billingLedgerEntries: hoisted.billingLedgerEntries,
@@ -36,6 +40,7 @@ import { persistInvoiceAndLedgerInvariants } from './invariants';
 describe('persistInvoiceAndLedgerInvariants', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.subscriptionFindFirst.mockResolvedValue(null);
 
     const tx = {
       insert: hoisted.txInsert,
@@ -171,6 +176,7 @@ describe('persistInvoiceAndLedgerInvariants', () => {
       eventId: 'evt_1',
       tenantId: 'tenant_ks',
       providerTransactionId: 'tx_1',
+      storedSubscriptionId: 'sub_internal_1',
       data: {
         details: {
           totals: {
@@ -193,6 +199,7 @@ describe('persistInvoiceAndLedgerInvariants', () => {
         billingEntity: 'ks',
         providerTransactionId: 'tx_1',
         webhookEventId: 'we_1',
+        subscriptionId: 'sub_internal_1',
         currencyCode: 'EUR',
       })
     );
@@ -215,6 +222,25 @@ describe('persistInvoiceAndLedgerInvariants', () => {
       })
     );
     expect(hoisted.ledgerOnConflictDoNothing).toHaveBeenCalledWith();
+  });
+
+  it('does not create a foreign-key dependency on an out-of-order provider subscription', async () => {
+    await persistInvoiceAndLedgerInvariants({
+      headers: new Headers(),
+      webhookEventRowId: 'we_1',
+      eventType: 'transaction.completed',
+      eventId: 'evt_1',
+      tenantId: 'tenant_ks',
+      providerTransactionId: 'tx_1',
+      data: {
+        subscriptionId: 'sub_not_persisted_yet',
+        details: { totals: { total: '1000', currencyCode: 'EUR' } },
+      },
+    });
+
+    expect(hoisted.invoiceValues).toHaveBeenCalledWith(
+      expect.objectContaining({ subscriptionId: null })
+    );
   });
 
   it('marks replay when ledger uniqueness rejects duplicate posting', async () => {

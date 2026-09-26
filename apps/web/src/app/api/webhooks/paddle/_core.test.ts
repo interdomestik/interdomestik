@@ -193,6 +193,10 @@ describe('handlePaddleWebhookCore tenant resolution', () => {
       }),
       expect.any(Object)
     );
+    expect(hoisted.persistInvoiceAndLedgerInvariants).toHaveBeenCalledWith(
+      expect.objectContaining({ storedSubscriptionId: 'sub_internal_1' }),
+      expect.any(Object)
+    );
   });
 
   it('falls back to customData user tenant only when subscription lookup cannot resolve tenant', async () => {

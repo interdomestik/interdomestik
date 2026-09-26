@@ -45,6 +45,7 @@ function transactionInput(customData?: Record<string, string>) {
     eventType: 'transaction.completed',
     headers: new Headers(),
     providerTransactionId: 'tx_1',
+    storedSubscriptionId: 'sub_1',
     tenantId: 'tenant_ks',
     webhookEventRowId: 'we_1',
   };
@@ -85,7 +86,7 @@ describe('persistInvoiceAndLedgerInvariants snapshot scope', () => {
     expect(hoisted.invoiceValues).toHaveBeenCalledWith(
       expect.objectContaining({
         billingEntity: 'mk',
-        subscriptionId: 'sub_paddle_1',
+        subscriptionId: 'sub_1',
         tenantId: 'tenant_mk',
       })
     );

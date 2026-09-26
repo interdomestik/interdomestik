@@ -34,8 +34,8 @@ import {
   postKsWebhook,
 } from './s6-provider-entitlement.fixture';
 
-test.describe('S6 synthetic signed-event downstream continuation', () => {
-  test('a verified member can submit the saved first case only after downstream signed-event processing', async ({
+test.describe('S6 provider-order entitlement boundary', () => {
+  test('a signed subscription update without causal order authority cannot grant entitlement', async ({
     browser,
   }, testInfo) => {
     testInfo.skip(testInfo.project.name !== 'gate-ks-sq', 'One canonical KS run owns activation.');
@@ -49,7 +49,7 @@ test.describe('S6 synthetic signed-event downstream continuation', () => {
     const eventId = `evt_s6_activation_${runId}`;
     const providerSubscriptionId = `sub_s6_activation_${runId}`;
     const owner = await ownerContext(E2E_USERS.KS_MEMBER_EMPTY);
-    let claimId: string | null = null;
+    const claimId: string | null = null;
     let failure: unknown;
     let page: Page | null = null;
     let session: S5Session | null = null;
@@ -120,12 +120,8 @@ test.describe('S6 synthetic signed-event downstream continuation', () => {
       };
 
       const activation = await postKsWebhook(page, idaOrigin(info), payload);
-      expect(activation.status(), await activation.text()).toBe(200);
-      expect(await activation.json()).toEqual({ success: true });
-
-      const replay = await postKsWebhook(page, idaOrigin(info), payload);
-      expect(replay.status(), await replay.text()).toBe(200);
-      expect(await replay.json()).toEqual({ success: true, duplicate: true });
+      expect(activation.status(), await activation.text()).toBe(500);
+      expect(await activation.json()).toEqual({ error: 'Internal Server Error' });
 
       const membership = await db.query.subscriptions.findMany({
         columns: {
@@ -141,16 +137,7 @@ test.describe('S6 synthetic signed-event downstream continuation', () => {
           eq(subscriptions.userId, owner.ownerUserId)
         ),
       });
-      expect(membership).toEqual([
-        {
-          id: providerSubscriptionId,
-          planId: 'standard',
-          providerSubscriptionId,
-          status: 'active',
-          tenantId: owner.tenantId,
-          userId: owner.ownerUserId,
-        },
-      ]);
+      expect(membership, 'unreconciled signed traffic creates no entitlement').toEqual([]);
       const receipt = await db.query.webhookEvents.findMany({
         columns: {
           eventId: true,
@@ -167,7 +154,7 @@ test.describe('S6 synthetic signed-event downstream continuation', () => {
       expect(receipt).toEqual([
         {
           eventId,
-          processingResult: 'ok',
+          processingResult: 'retryable_error',
           processingScopeKey: 'entity:ks',
           signatureValid: true,
         },
@@ -180,12 +167,7 @@ test.describe('S6 synthetic signed-event downstream continuation', () => {
             eq(domainEvents.entityId, providerSubscriptionId)
           ),
         })
-      ).toEqual([
-        {
-          eventName: 'membership.subscription_changed',
-          id: `paddle:${owner.tenantId}:${eventId}:subscription-changed`,
-        },
-      ]);
+      ).toEqual([]);
 
       const after = await openSavedDrafts(page, info);
       await after
@@ -193,13 +175,13 @@ test.describe('S6 synthetic signed-event downstream continuation', () => {
         .filter({ hasText: journey.summary })
         .getByTestId(/^free-start-resume-/)
         .click();
-      const submit = after.getByTestId('claim-draft-submit');
-      await expect(submit).toBeEnabled();
-      await submit.click();
-      await expect(after.getByTestId('claim-created-success')).toBeVisible();
-      const claims = await journeyClaims(journey);
-      expect(claims).toEqual([{ id: expect.any(String), userId: owner.ownerUserId }]);
-      claimId = claims[0]!.id;
+      await expect(after.getByTestId('claim-draft-submit-disabled')).toBeDisabled();
+      await expect(
+        after.getByText(
+          'To submit a claim, you need an active membership. You can keep managing this saved draft; saving it does not submit the claim.'
+        )
+      ).toBeVisible();
+      expect(await journeyClaims(journey), 'provider failure creates no claim').toEqual([]);
     } catch (error) {
       failure = error;
       throw error;

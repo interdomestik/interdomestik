@@ -31,10 +31,12 @@ function subscriptionData(id: string, transactionId: string) {
     status: 'active',
     customerId: CUSTOMER_ID,
     transactionId,
+    currencyCode: 'EUR',
     customData: { tenantId: 'tenant_mk', agentId: 'agent_9' },
     items: [
       {
         price: { id: 'pri_123', unitPrice: { amount: '2000', currencyCode: 'EUR' } },
+        quantity: 1,
       },
     ],
     currentBillingPeriod: { startsAt: '2026-01-01', endsAt: '2027-01-01' },
@@ -71,8 +73,16 @@ describe('handleSubscriptionChanged entity retry', () => {
       processingResult: 'ok',
       payload: {
         data: {
+          id: 'txn_anon',
+          status: 'completed',
+          subscriptionId: 'sub_new',
           customerId: CUSTOMER_ID,
+          currencyCode: 'EUR',
           customData: transactionCustomData,
+          details: {
+            totals: { total: '2000', currencyCode: 'EUR' },
+            lineItems: [{ priceId: 'pri_123', quantity: 1, totals: { total: '2000' } }],
+          },
         },
       },
     });

@@ -17,6 +17,8 @@ function subscription(overrides: Record<string, unknown> = {}) {
     id: 'sub_1',
     customerId: CUSTOMER_ID,
     transactionId: 'txn_1',
+    currencyCode: 'EUR',
+    items: [{ price: { id: 'pri_membership' }, quantity: 1 }],
     customData: { tenantId: 'tenant_mk' },
     ...overrides,
   };
@@ -30,8 +32,16 @@ function storedTransaction(
     processingResult,
     payload: {
       data: {
+        id: 'txn_1',
+        status: 'completed',
+        subscriptionId: 'sub_1',
         customerId: CUSTOMER_ID,
+        currencyCode: 'EUR',
         customData: { tenantId: 'tenant_mk' },
+        details: {
+          totals: { total: '2000', currencyCode: 'EUR' },
+          lineItems: [{ priceId: 'pri_membership', quantity: 1, totals: { total: '2000' } }],
+        },
         ...overrides,
       },
     },

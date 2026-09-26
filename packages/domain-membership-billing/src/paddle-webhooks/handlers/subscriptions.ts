@@ -1,4 +1,5 @@
 import { resolveCanonicalMembershipPlanState } from '../../annual-membership';
+import { RetryablePaddleWebhookError } from '../errors';
 import { subscriptionEventDataSchema } from '../schemas';
 import { mapPaddleStatus } from '../subscription-status';
 
@@ -13,6 +14,7 @@ import {
 } from './utils/membership-confirmation';
 import { prepareStoredMembershipConfirmationRetry } from './utils/membership-confirmation-retry';
 import { reconcileCheckoutUser } from './utils/reconcile-checkout-user';
+import { resolveEntityCheckoutTransactionAuthority } from './utils/checkout-transaction-evidence';
 
 type SubscriptionChangedParams = {
   eventType: string;
@@ -48,8 +50,12 @@ export async function handleSubscriptionChanged(
 
   // 1. Resolve Context (User, Tenant, Branch)
   let context = await resolveSubscriptionContext(sub);
+  let checkoutAuthorityVerified = false;
   if (!context && params.eventType === 'subscription.created' && canReconcileCheckoutUser(sub)) {
     context = await reconcileCheckoutUser(sub, deps, params.processingScopeKey ?? '');
+    checkoutAuthorityVerified = Boolean(
+      context && params.processingScopeKey?.startsWith('entity:')
+    );
   }
   if (!context) {
     throw new Error(`Unable to resolve subscription context for ${sub.id}`);
@@ -66,6 +72,22 @@ export async function handleSubscriptionChanged(
     tenantId,
     userId,
   });
+
+  // A user-scoped fallback row can represent an older subscription. Only an
+  // exact provider-reference match is already authoritative for lifecycle updates.
+  if (params.processingScopeKey?.startsWith('entity:') && !existingSub) {
+    if (params.eventType !== 'subscription.created') {
+      throw new RetryablePaddleWebhookError(
+        `Initial entity subscription requires subscription.created for ${sub.id}`
+      );
+    }
+    if (
+      !checkoutAuthorityVerified &&
+      !(await resolveEntityCheckoutTransactionAuthority(sub, params.processingScopeKey))
+    ) {
+      throw new Error(`Provider order integrity failed for subscription ${sub.id}`);
+    }
+  }
 
   const confirmationPreparation =
     params.eventType === 'subscription.created'

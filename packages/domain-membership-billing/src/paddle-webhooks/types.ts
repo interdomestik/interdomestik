@@ -157,8 +157,16 @@ export type SubscriptionPayloadLike = {
   customer_id?: string | null;
   transactionId?: string | null;
   transaction_id?: string | null;
+  currencyCode?: string | null;
+  currency_code?: string | null;
   customData?: CheckoutCustomData;
   custom_data?: CheckoutCustomData;
+  items?: Array<{
+    price?: { id?: string | null } | null;
+    priceId?: string | null;
+    price_id?: string | null;
+    quantity?: number | null;
+  }> | null;
 };
 
 export type PaddleCustomerLookupResult =

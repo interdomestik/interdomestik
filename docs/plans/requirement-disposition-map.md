@@ -92,21 +92,23 @@ this map and the tracker in normal delivery, without another status system or cl
 
 ## Current bounded S6 work
 
-`S6-SIGNED-EVENT-DOWNSTREAM-CONTINUATION` advances only a synthetic signed-event continuation
-adjacent to IDA-MEM-006/007. #1827 delivered immutable confirmation delivery/retry; the current
-increment is intended to assert that an email-verified KS member without a subscription remains
-unable to submit until one entity-specific, correctly signed synthetic Paddle event reaches the
-existing downstream tenant/user mapping. Exact replay must leave one subscription and one lifecycle
-event; one later explicit submit must leave one claim. No whole-requirement disposition changes.
-Authoritative identity/amount/currency/order reconciliation, IDA-CTR-022, approved effective-dated
-offer/terms, acceptance evidence and IDA-MEM-002/003 snapshots remain open. #1824's
+`S6-PROVIDER-ORDER-INTEGRITY` advances the IDA-CTR-022/IDA-MEM-006 boundary after #1828's credited
+synthetic continuation. A first entity-scoped subscription must be `subscription.created` and must
+match the same-scope, signature-valid, successfully processed causal `transaction.completed`
+receipt across transaction/subscription/customer identities, completed status, currency,
+price/quantity multiset and calculated line totals. Missing/in-flight evidence retries; conflicting
+completed evidence fails closed. No whole-requirement disposition changes. Comparison with an
+approved effective-dated offer/entity/versioned terms, live provider evidence, actual paid-service
+approval, acceptance evidence and IDA-MEM-002/003 snapshots remain open. #1824's
 [receipt](https://github.com/interdomestik/interdomestik/pull/1824#issuecomment-5831196011) credits
 entity-routed activation retry on main `c020c20` and exact-main automatic staging `36124511981`,
 without whole IDA-MEM-006/007 or live activation claims. #1827's
 [receipt](https://github.com/interdomestik/interdomestik/pull/1827#issuecomment-5844085799) credits
 immutable confirmation delivery/retry on main `c9238bf` and exact-main automatic staging
-`36224361750`, without the current synthetic signed-event downstream continuation, commercial
-reconciliation, offer/terms or live activation claims.
+`36224361750`, without commercial reconciliation, offer/terms or live activation claims. #1828's
+[receipt](https://github.com/interdomestik/interdomestik/pull/1828#issuecomment-5845556668) credits
+synthetic downstream continuation on main `d8ba217` and exact-main staging `36235608949`, without
+transaction/order/amount/currency reconciliation or whole IDA-CTR-022/IDA-MEM-006.
 
 ## Credited delivery, without whole-requirement overclaim
 
@@ -121,6 +123,7 @@ reconciliation, offer/terms or live activation claims.
 | Member lifecycle/access disclosure | PR #1815, 966a774028dc113757c298876e442e1ae80c73b5                                                                                                                                   | IDA-MEM-008; IDA-MEM-009; IDA-MEM-012 | Bounded portal disclosure delivered; whole membership family and non-software acceptance remain open       |
 | Membership confirmation safety     | PR #1826, d2a37205ca8db13e684228c9288dd7bbcbd667ec                                                                                                                                   | IDA-MEM-006; IDA-MEM-007              | Active/complete/localized gate credited; commercial reconciliation and whole activation remain open        |
 | Membership confirmation delivery   | PR #1827, c9238bfe8cf31421606579533d40ef521473d5d4                                                                                                                                   | IDA-MEM-006; IDA-MEM-007              | Immutable delivery/retry credited; commercial reconciliation and whole activation remain open              |
+| Synthetic downstream continuation  | PR #1828, d8ba217319d92d48940cfbbbcf4621dd92eeb491                                                                                                                                   | IDA-MEM-006; IDA-MEM-007              | Signed downstream/replay/draft-submit proof credited; provider order and commercial authority remain open  |
 | New-account OTP secure save        | Protected PR #1803, `12699481a1e1f3e231ca6c13844d4152125d02e4`                                                                                                                       | IDA-CTX/IAM/FST scoped links          | Native-origin verification/save/return/delete increment credited; whole S5 and user acceptance remain open |
 | S1 agent message visibility        | PR #1780, f3d36b2e7781654fe5448fab11da891368d95f19; 13 exact-main checks                                                                                                             | IAM/COM/CRM visibility clauses        | Bounded query/render exclusion only; broader role acceptance remains                                       |
 | S2 branch overview scope           | PR #1781, de15d4cac87d7ba6ce15d98c75069445bb84dcb4; 13 exact-main checks                                                                                                             | TEN/IAM/RPT/KPI scope clauses         | Bounded branch route/query protection only; full oversight remains                                         |
@@ -257,8 +260,8 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-MEM-003 | No ambient entity recomputation | Canonical | unresolved | S6/S9 | open | none | U | U | U |
 | IDA-MEM-004 | Plan versioning | Target | unresolved | S6/S9 | open | none | U | U | U |
 | IDA-MEM-005 | Price disclosure | Target | unresolved | S6/S9; #1825 requires the existing plan/entity review before signed-in checkout but does not approve or snapshot a versioned offer | open | none | bounded #1825 delivered; whole acceptance open; Product + Engineering | U | U |
-| IDA-MEM-006 | Provider confirmation | Target | unresolved | S6/S9; #1826 proves exact active Paddle status plus complete provider/member values and localized separate-case next steps; #1827 binds delivery to immutable tenant/member/subscription/event evidence; current candidate is intended to assert a verified member's saved draft stays blocked before and becomes submittable after a correctly signed synthetic KS active-subscription event reaches the downstream mapping | open; verified provider/commercial evidence with authoritative identity, amount, currency, order and idempotency remains required; browser continuation and mail success grant no entitlement; approved offer/terms and live paid activation remain open | none | bounded #1826/#1827 delivered; current synthetic sandbox continuation candidate pending; whole acceptance open; Engineering | U | U |
-| IDA-MEM-007 | Idempotent activation | Canonical | unresolved | S6/S9; #1824 proves exact retry/dedupe before entitlement writes, #1826 preserves duplicate receipt short-circuiting and #1827 adds immutable delivery CAS/retry; current candidate asserts exact synthetic event replay leaves one subscription and one lifecycle event, then one later explicit exact-draft submit leaves one claim | open; existing wrong-tenant/entity, role, invalid-signature, failure, retry and concurrency contracts remain negative authority; provider/commercial reconciliation, offer/terms, live paid activation and whole acceptance remain unresolved | none | bounded #1824/#1826/#1827 delivered; current synthetic sandbox continuation candidate pending; whole acceptance open; Engineering | U | U |
+| IDA-MEM-006 | Provider confirmation | Target | unresolved | S6/S9; #1826 proves exact active provider/member confirmation values, #1827 immutable delivery and #1828 signed downstream continuation; current candidate requires first entity entitlement to match its completed causal transaction across provider identities, customer, currency, items and amount | open; approved effective-dated offer/entity/versioned terms and expected order/price comparison, live provider evidence and paid-service approval remain required; browser/mail success grant no entitlement | none | bounded #1826–#1828 delivered; current provider-order integrity candidate pending; whole acceptance open; Engineering | U | U |
+| IDA-MEM-007 | Idempotent activation | Canonical | unresolved | S6/S9; #1824 proves exact retry/dedupe, #1826 duplicate short-circuiting, #1827 immutable delivery CAS/retry and #1828 exact synthetic replay; current candidate keeps missing causal transaction evidence retryable and conflicting completed evidence permanent before first entitlement | open; wrong-tenant/entity, role, invalid-signature, failure, retry and concurrency contracts remain negative authority; approved commercial authority, live paid activation and whole acceptance remain unresolved | none | bounded #1824/#1826–#1828 delivered; current provider-order integrity candidate pending; whole acceptance open; Engineering | U | U |
 | IDA-MEM-008 | Lifecycle states | Canonical | unresolved | S6/S9 | PR #1815 renders the existing canonical lifecycle bucket and derives new-case access from the shared lifecycle contract; whole lifecycle/activation acceptance remains open | none | delivered-bounded; PR #1815 / 966a774028dc113757c298876e442e1ae80c73b5; Product + Engineering | U | U |
 | IDA-MEM-009 | Grace and dunning | Target | unresolved | S6/S9 | PR #1815 distinguishes active-in-grace allowed access from grace-expired denied access and preserves existing truthful warning copy; provider dunning operations and business acceptance remain open | none | delivered-bounded; PR #1815 / 966a774028dc113757c298876e442e1ae80c73b5; Product + Engineering | U | U |
 | IDA-MEM-010 | Cancellation | Target | unresolved | S6/S9 | open | none | U | U | U |
@@ -677,7 +680,7 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-CTR-019 | Command idempotency | Target | unresolved | Affected contract/S14 | open | none | U | U | U |
 | IDA-CTR-020 | Optimistic concurrency | Target | unresolved | Affected contract/S14 | open | none | U | U | U |
 | IDA-CTR-021 | Atomic effects | Canonical | unresolved | Affected contract/S14 | open | none | U | U | U |
-| IDA-CTR-022 | Provider traffic validation | Canonical | unresolved | S6/S9/S14; current candidate exercises raw-body KS signing, entity routing, tenant/user binding and receipt replay with a synthetic event only | open; authoritative provider/commercial identity, amount, currency, order and idempotency validation requires approved offer/order authority and provider evidence | none | current synthetic continuation candidate pending; whole acceptance open; Product + Engineering | U | U |
+| IDA-CTR-022 | Provider traffic validation | Canonical | unresolved | S6/S9/S14; #1828 credits raw-body signing/entity routing and synthetic downstream replay; current candidate additionally validates a same-scope successful completed transaction and exact transaction/subscription/customer/currency/item/amount consistency before first entitlement | open; expected order/price comparison requires approved effective-dated offer/entity/versioned terms and live provider evidence; whole provider-traffic acceptance remains open | none | #1828 bounded proof delivered; current provider-order integrity candidate pending; whole acceptance open; Product + Engineering | U | U |
 | IDA-CTR-023 | Replay and ordering | Target | unresolved | Affected contract/S14 | open | none | U | U | U |
 | IDA-CTR-024 | API query bounds | Target | unresolved | Affected contract/S14 | open | none | U | U | U |
 | IDA-CTR-025 | Data minimization | Canonical | unresolved | Affected contract/S14 | open | none | U | U | U |

@@ -15,51 +15,57 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                                        | Status        | Owner                   | Work                                                                                        | Exit Criteria                                                                                                                                              |
-| ----------------------------------------- | ------------- | ----------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S6-SIGNED-EVENT-DOWNSTREAM-CONTINUATION` | `in_progress` | Codex integration owner | Exercise saved-draft continuation after a correctly signed synthetic KS subscription event. | Pre-event denial, downstream subscription/lifecycle mapping, exact replay idempotency, one later explicit exact-draft claim; protected checks and staging. |
+| ID                            | Status        | Owner                   | Work                                                                                         | Exit Criteria                                                                                                                                                                  |
+| ----------------------------- | ------------- | ----------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `S6-PROVIDER-ORDER-INTEGRITY` | `in_progress` | Codex integration owner | Reconcile first entity-scoped entitlement with its authoritative Paddle transaction receipt. | Exact causal identity/customer/currency/items/total match; out-of-order retry; no provider-ID foreign key; browser fail-closed proof; protected checks and exact-main staging. |
 
 ### Current acceptance
 
-- Base: protected main `c9238bfe8cf31421606579533d40ef521473d5d4`; #1827 is staging-delivered.
-- Start with the canonical email-verified KS member who has no subscription and one persisted
-  preview-ready saved draft; management stays available but submission remains inert.
-- Process one synthetic active `subscription.updated` event only through the existing raw-body
-  signature and `/api/webhooks/paddle/ks` entity boundary, with canonical user and explicit tenant
-  evidence agreeing. This exercises downstream mapping, not commercial provider reconciliation.
-- Assert one active subscription, one valid/processed KS receipt and one deterministic membership
-  lifecycle event; exact event replay must return duplicate and create no second effect.
-- Reload from the server, submit that exact saved draft once, and prove one owner claim. Remove and
-  verify all task-owned subscription, webhook, event, audit, draft, claim and session state.
-- Reuse existing wrong-tenant/entity, role, invalid-signature, handler-failure, retry and concurrency
-  contracts. Mail and browser success never grant entitlement; no real provider charge is made.
-- This is sandbox executable evidence, not authoritative amount/currency/order validation,
-  IDA-CTR-022, offer/terms approval, live paid activation, MK configuration evidence, whole
-  IDA-MEM-006/007, production readiness or user acceptance.
+- Base: protected main `d8ba217319d92d48940cfbbbcf4621dd92eeb491`; #1828 and staging CD
+  `36235608949` are credited and must not be repeated as if they proved commercial reconciliation.
+- A first entity-scoped subscription row requires `subscription.created` plus the exact same-scope,
+  signature-valid and successfully processed `transaction.completed` receipt.
+- Match transaction/subscription/customer IDs, completed status, currency, price/quantity multiset
+  and calculated line-item sum before any entitlement write. Missing/in-flight evidence is retryable;
+  malformed, failed or conflicting completed evidence grants nothing.
+- A transaction arriving before the subscription may persist invoice/ledger rows, but only an
+  already-resolved internal subscription ID may populate the invoice foreign key.
+- The mounted KS member proof keeps the saved draft blocked when a signed lifecycle update attempts
+  first activation without order authority. Clean all task-owned draft/receipt/audit/session state.
+- No proxy/auth, tenancy, schema, expected-price, pricing, production or guard bypass changes. No
+  charge is made. Approved effective-dated offer/entity/versioned terms and live provider evidence
+  remain precise business/operations dependencies.
 - No proxy/auth, tenancy, schema, pricing, production or guard bypass changes.
 
 ## Product Queue
 
-| Outcome                                     | Status                | Direct next evidence                                                                                                                                         |
-| ------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| S5 — member first-case journey              | `active_bounded`      | Credit #1801/#1803/#1814/#1817/#1822/#1823/#1825/#1826/#1827; downstream signed-event continuation is selected while commercial reconciliation remains open. |
-| S6 — member continuation/membership         | `active_bounded`      | Exercise downstream signed-event continuation; credit #1815 and #1824–#1827; provider/commercial reconciliation, paid activation and renewal remain open.    |
-| S7 — staff handling                         | `delivered_bounded`   | Credit #1814 assigned-staff acknowledgement; fulfilment and whole S7 remain open.                                                                            |
-| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                                         |
-| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                    |
-| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                                 |
-| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                           |
+| Outcome                                     | Status                | Direct next evidence                                                                                                                       |
+| ------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| S5 — member first-case journey              | `active_bounded`      | Credit #1801/#1803/#1814/#1817/#1822/#1823/#1825–#1828; provider-order integrity is selected while approved offer comparison remains open. |
+| S6 — member continuation/membership         | `active_bounded`      | Deliver provider-order integrity; credit #1815 and #1824–#1828; approved offer/terms, live paid activation and renewal remain open.        |
+| S7 — staff handling                         | `delivered_bounded`   | Credit #1814 assigned-staff acknowledgement; fulfilment and whole S7 remain open.                                                          |
+| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                       |
+| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                  |
+| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                               |
+| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                         |
 
 The [requirement disposition map](requirement-disposition-map.md) preserves the full 510-clause
 frontier. Unresolved rows are neither automatic features nor blanket blockers.
 
 ## Proof Ledger
 
-| ID                                        | Source Refs                                                               | Execution  | Run ID  | Run Root                                                     | Sonar   | Docker         | Sentry         | Learning | Evidence Refs                                                                                                               |
-| ----------------------------------------- | ------------------------------------------------------------------------- | ---------- | ------- | ------------------------------------------------------------ | ------- | -------------- | -------------- | -------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `S6-SIGNED-EVENT-DOWNSTREAM-CONTINUATION` | owner continuation; SRS 19.1.6/19.1.7 adjacency; protected main `c9238bf` | `scripted` | pending | focused synthetic signed-event saved-draft continuation gate | pending | not_applicable | not_applicable | pending  | KS signed receipt; downstream subscription/lifecycle replay; later explicit exact-draft submit; existing negative contracts |
+| ID                            | Source Refs                                                                     | Execution  | Run ID  | Run Root                                               | Sonar   | Docker         | Sentry         | Learning | Evidence Refs                                                                                                                       |
+| ----------------------------- | ------------------------------------------------------------------------------- | ---------- | ------- | ------------------------------------------------------ | ------- | -------------- | -------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `S6-PROVIDER-ORDER-INTEGRITY` | owner continuation; IDA-CTR-022/IDA-MEM-006; protected main `d8ba217`; PR #1828 | `scripted` | pending | provider-order unit/integration and KS fail-closed E2E | pending | not_applicable | not_applicable | pending  | same-scope completed transaction reconciliation; out-of-order invoice safety; obsolete signed update grants no entitlement or claim |
 
 ## Current Facts
+
+- #1828 protected-merged at `d8ba217319d92d48940cfbbbcf4621dd92eeb491`. Protected evidence and
+  automatic staging CD `36235608949` passed; production jobs were skipped. See the
+  [delivery receipt](https://github.com/interdomestik/interdomestik/pull/1828#issuecomment-5845556668).
+- #1828 proves synthetic signed-event downstream continuation, exact replay and explicit saved-draft
+  submit only. It carries no authoritative transaction/order/amount/currency evidence and cannot
+  satisfy the current provider-order integrity boundary or whole IDA-CTR-022/IDA-MEM-006.
 
 - #1827 protected-merged at `c9238bfe8cf31421606579533d40ef521473d5d4`. Final-head local
   `pr:verify` stopped at the 4 GiB preflight; protected checks and hosted exact-head browser evidence
@@ -103,11 +109,11 @@ frontier. Unresolved rows are neither automatic features nor blanket blockers.
 
 ## Next Selection
 
-Complete this bounded synthetic signed-event downstream continuation proof through one protected
-product PR and exact-main automatic staging. Hand off approved offer/terms, authoritative
-identity/amount/currency/order reconciliation, IDA-CTR-022, delayed-onboarding localization, live paid
+Complete this bounded provider-order integrity boundary through one protected product PR and
+exact-main automatic staging. Hand off approved effective-dated offer/entity/versioned terms and
+expected provider order/price/currency comparison, delayed-onboarding localization, live paid
 activation, MK secret and deployed provider-permission gaps without starting another slice. Browser
-or email success never grants membership; the proof uses a signed sandbox receipt and no charge.
+or email success never grants membership; the proof uses signed sandbox receipts and no charge.
 Final merge/staging facts may be reconciled in the next ordinary authorized product amendment;
 no status-only PR is required.
 

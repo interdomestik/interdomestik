@@ -16,16 +16,24 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`S6-SIGNED-EVENT-DOWNSTREAM-CONTINUATION` is the sole active bounded product increment, selected under
-the owner's standing implementation/merge/staging authorization. Base is protected main
-`c9238bfe8cf31421606579533d40ef521473d5d4`. Prove on the existing KS sandbox boundary that an
-email-verified member with a persisted first-case draft remains unable to submit until an exact
-synthetic Paddle-shaped active-subscription event passes the existing raw-body signature, entity,
-tenant and user boundary and reaches the downstream tenant-scoped access mapping. Exact event replay
-must leave one subscription and one lifecycle event; one later explicit submit must leave one claim.
-This is downstream continuation/idempotency evidence only. The synthetic fixture contains no
-authoritative amount, currency, order or transaction evidence, so commercial provider reconciliation,
-IDA-CTR-022, approved offer/terms, live paid activation and whole IDA-MEM-006/007 remain open.
+`S6-PROVIDER-ORDER-INTEGRITY` is the sole active bounded product increment, selected under the
+owner's standing implementation/merge/staging authorization. Base is protected main
+`d8ba217319d92d48940cfbbbcf4621dd92eeb491`. Fail closed before the first entity-scoped entitlement
+write unless `subscription.created` identifies a same-scope, signature-valid, successfully processed
+`transaction.completed` receipt and the provider transaction, subscription, customer, currency,
+line-item quantities and calculated total agree exactly. Missing or in-flight causal evidence remains
+retryable; contradictory completed evidence is permanent. Existing rows may still follow verified
+lifecycle updates. This advances IDA-CTR-022 and IDA-MEM-006 at the provider-integrity boundary, but
+does not compare the order to an approved effective-dated offer because that commercial authority is
+not present in the repository or owner-held SRS evidence.
+
+PR [#1828](https://github.com/interdomestik/interdomestik/pull/1828) delivered the credited synthetic
+downstream continuation as protected merge `d8ba217319d92d48940cfbbbcf4621dd92eeb491`. Its
+[receipt](https://github.com/interdomestik/interdomestik/pull/1828#issuecomment-5845556668) records
+passing protected evidence and automatic staging CD `36235608949`; production jobs were skipped.
+Credit its pre-event denial, signed downstream activation, replay and explicit saved-draft submit
+proof. Its synthetic `subscription.updated` carried no transaction, order, amount or currency, so it
+does not satisfy the active provider-order boundary or whole IDA-CTR-022/IDA-MEM-006.
 
 PR [#1827](https://github.com/interdomestik/interdomestik/pull/1827) delivered immutable membership
 confirmation storage and safe retry as protected merge
@@ -85,16 +93,15 @@ They do not establish new-account activation, request fulfilment, whole S5/S6/S7
 
 ## Program Goals
 
-1. Start from the verified, tenant-scoped KS member fixture with no subscription and one persisted
-   preview-ready saved draft; prove browser state alone exposes management but not submission.
-2. Send one raw-body, entity-specific, correctly signed synthetic Paddle `subscription.updated`
-   event whose canonical user and tenant evidence resolves to that member, and assert the existing
-   downstream handler records one active subscription, one signed receipt and one lifecycle event.
-3. Replay the exact event and prove the receipt short-circuits without duplicate subscription or
-   lifecycle effects; after processing, explicitly submit the same persisted draft to create one claim.
-4. Reuse existing tenant-conflict, role, invalid-signature, retry and concurrency contracts. Do not
-   trigger entitlement from browser continuation or mail success, copy KS secrets into MK, perform a
-   provider charge, or invent offer/terms approval, production readiness or user acceptance.
+1. Require `subscription.created`, not a later lifecycle update, to establish a first entity-scoped
+   subscription row and bind it to its causal Paddle transaction receipt.
+2. Match transaction/subscription/customer identities, completed status, currency, price/quantity
+   multiset and the sum of provider-calculated line totals before entitlement writes.
+3. Preserve out-of-order delivery: a transaction may post an invoice before the subscription exists
+   without creating a foreign-key dependency, and the later subscription event retries until the
+   exact processed receipt is available.
+4. Keep browser and mail results non-authoritative and exercise the mounted member gate as negative
+   proof. Do not charge a customer, mutate production, or invent approved offer/terms authority.
 
 ## Enduring Safety Boundaries
 
@@ -164,8 +171,8 @@ clauses and supplementary controls. SRS v0.9 remains the reviewed baseline at SH
 ADR authority control until explicitly amended.
 
 Continue the owner-adopted outcome order without rebuilding delivered behavior: the active bounded
-S6 signed-event downstream continuation proof for fresh-account S5 submission, remaining S5 gaps,
-remaining S6 acceptance after the delivered #1815 disclosure, #1825 review and #1827 delivery, S7 staff handling,
+S6 provider-order integrity boundary after credited #1828 continuation, remaining S5 gaps,
+remaining S6 acceptance after the delivered #1815 disclosure and #1824–#1828 chain, S7 staff handling,
 S8 agent handoff, S9 assisted activation, S10 branch oversight, S11 tenant administration, S12
 platform operations and S13 outcome/closure, followed by S14 whole-pilot rehearsal. H1 Help Now
 keeps its priority lane when its direct dependencies are ready.
@@ -173,7 +180,7 @@ keeps its priority lane when its direct dependencies are ready.
 Direct dependencies remain local to their consumers. PR #1814 proves request-bound upload and
 assigned-staff acknowledgement; PR #1815 proves the bounded member lifecycle/access disclosure.
 This slice reuses #1824 provider-event reconciliation/dedupe, #1825 checkout locale/review, #1826
-fail-closed confirmation and #1827 immutable delivery/retry. Approved effective-dated offer/terms,
+fail-closed confirmation, #1827 immutable delivery/retry and #1828 downstream continuation. Approved effective-dated offer/terms,
 delayed-onboarding localization, live paid activation, renewal, invoice and payment-operations
 acceptance remain open.
 Reviewed signed/versioned/integrity/expiry contracts precede offline pack readiness; S8 precedes
@@ -188,45 +195,39 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-### Current S6 signed-event downstream continuation acceptance
+### Current S6 provider-order integrity acceptance
 
-- The canonical KS proof starts with an email-verified `member` who has no subscription and a
-  persisted preview-ready draft. Managing or resuming that draft renders an inert membership gate;
-  no browser success query, email result or client assertion creates entitlement or a claim.
-- Only an exact raw body signed with the KS webhook destination secret reaches the existing
-  entity-routed Paddle boundary. Canonical user lookup and explicit `tenant_ks` custom data must agree
-  before the existing tenant-scoped subscription write can record `active` access.
-- Successful processing leaves one active subscription bound to the member/provider reference, one
-  `entity:ks` receipt with valid signature and `ok` result, and one provider-event-stable
-  `membership.subscription_changed` event. Exact replay returns the duplicate receipt result and
-  creates none of those effects again.
-- A fresh server render after synthetic event processing exposes submission for the same persisted
-  draft, and explicit submit creates exactly one claim for its owner. Task-owned draft, claim,
-  subscription, receipt, event, audit and session state is removed and checked after the proof.
-- Existing automated contracts remain the negative authority for wrong tenant/entity, non-member
-  role, malformed/invalid signature, handler failure, retry and concurrent replay. This increment
-  adds the missing cross-surface happy path and exact replay assertion rather than duplicating them.
+- A first entity-scoped subscription row requires `subscription.created`; an otherwise valid signed
+  `subscription.updated` without an established row remains retryable and grants no access.
+- The causal `transaction.completed` receipt must be signature-valid, processed successfully and in
+  the same entity scope. Its transaction/subscription/customer IDs, completed status, currency,
+  price/quantity multiset and calculated line totals must exactly match the subscription event.
+- A missing or still-processing causal receipt defers before writes. Malformed, failed or conflicting
+  evidence fails closed. Existing tenant/custom-data and Paddle customer lookup constraints remain.
+- An out-of-order transaction can persist invoice/ledger evidence without pointing at a provider ID
+  that is not yet an internal subscription row. Only a resolved stored row may populate that foreign key.
+- The KS browser gate proves the obsolete synthetic update now leaves the verified member's saved
+  draft blocked, creates no subscription/lifecycle event/claim and records a retryable receipt.
 - Focused tests, independent current-head review, required verification and protected hosted checks
   precede merge; exact-main staging is separate evidence. No charge or provider mutation is made.
-- Approved versioned offer/entity/terms, authoritative identity/amount/currency/order reconciliation,
-  actual paid-service approval, deployed MK secret, entity-token `customer.read`, IDA-CTR-022, live
-  paid activation, whole IDA-MEM-006/007, user acceptance and production deployment remain open.
+- Expected-order comparison against an approved effective-dated offer/entity/versioned terms,
+  actual paid-service approval, live provider evidence, deployed MK secret/entity-token permission,
+  whole IDA-CTR-022/IDA-MEM-006/007, user acceptance and production deployment remain open.
 
 ### Current source check
 
-- Checked 2026-09-26: Paddle's official
-  [signature-verification contract](https://developer.paddle.com/webhooks/about/signature-verification)
-  requires the raw body and `Paddle-Signature` HMAC using the destination's own secret; adopt that
-  exact KS boundary and keep MK configuration separate.
-- Checked 2026-09-26: Paddle documents
-  [`subscription.updated`](https://developer.paddle.com/webhooks/subscriptions/subscription-updated)
-  as the complete subscription object carrying status changes, and recommends
-  [provisioning/adjusting access from webhooks](https://developer.paddle.com/build/subscriptions/provision-access-webhooks)
-  rather than browser continuation. Exercise the existing active-status mapping and receipt
-  idempotency downstream, but do not treat the synthetic fixture as SRS §9.2 commercial
-  reconciliation; reject any browser-success or email-success entitlement path.
-- The repository manifests remain the dependency-version authority. Executable tests cover raw-body
-  signing, entity scope, canonical user/tenant binding, active lifecycle mapping and replay.
+- Checked 2026-09-26: Paddle documents `transaction_id` on
+  [`subscription.created`](https://developer.paddle.com/webhooks/subscriptions/subscription-created/)
+  and `subscription_id`, customer, currency, completed status and calculated totals/line items on
+  [`transaction.completed`](https://developer.paddle.com/webhooks/transactions/transaction-completed/).
+  Adopt those fields as the causal provider-order integrity boundary.
+- Paddle's official
+  [access-provisioning guidance](https://developer.paddle.com/build/subscriptions/provision-access-webhooks/)
+  makes provider webhooks, not browser continuation, authoritative. Reject first activation from a
+  lifecycle update alone, while preserving later verified updates for an established row.
+- The repository manifests remain dependency-version authority. The reviewed SRS OD-01 decision
+  describes a governed versioned offer catalogue, but does not supply or authorize a runtime pilot
+  offer. Therefore compare provider evidence internally now and keep expected offer/price/terms open.
 
 ### Credited #1826 membership-confirmation safety acceptance
 
@@ -323,6 +324,12 @@ alone is not business or user acceptance.
   user-acceptance or production-deployment claim follows.
 
 ## Bounded Research Brief
+
+Checked 2026-09-26 against Paddle's official subscription-created, transaction-completed and access
+provisioning references. Adopt causal transaction linkage, exact provider identities, completed
+status, currency, price/quantity multiset and calculated total consistency. Reject entitlement from
+an initial lifecycle update, inferred line prices, browser/mail success and any claim that provider
+internal consistency equals approval of the expected commercial offer.
 
 Checked 2026-09-25 against the installed Paddle/Resend SDKs, signed webhook path and current SRS map.
 [Paddle's webhook delivery guidance](https://developer.paddle.com/webhooks/about/respond-to-webhooks/)
