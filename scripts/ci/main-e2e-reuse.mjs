@@ -70,6 +70,8 @@ const E2E_TREE_SHAS = new Set([
   '2dfef30c0d684a6ec18ada2b029280e37837a086',
   // Same S6 corpus with Playwright-owned conditional runtime selection.
   'f05c43dc355d7b6c158845be232c047645ea5c77',
+  // S6 provider-order boundary rejects a lifecycle update without causal order authority.
+  'e15f6aacf5fa605641978c3594e8c4e57f81f2d0',
 ]);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {

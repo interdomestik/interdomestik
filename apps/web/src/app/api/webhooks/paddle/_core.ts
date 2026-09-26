@@ -319,7 +319,6 @@ export async function handlePaddleWebhookCore(args: {
   }
 
   const webhookEventRowId = insertResult.webhookEventRowId;
-
   try {
     await persistInvoiceAndLedgerInvariants(
       {

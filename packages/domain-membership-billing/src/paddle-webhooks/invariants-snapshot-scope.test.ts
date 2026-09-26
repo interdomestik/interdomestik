@@ -95,6 +95,20 @@ describe('persistInvoiceAndLedgerInvariants snapshot scope', () => {
     );
   });
 
+  it('does not link an invoice to an out-of-order provider subscription id', async () => {
+    hoisted.subscriptionFindFirst.mockResolvedValue(null);
+
+    await persistInvoiceAndLedgerInvariants({
+      ...transactionInput({ tenantId: 'tenant_mk' }),
+      storedSubscriptionId: undefined,
+      tenantId: 'tenant_mk',
+    });
+
+    expect(hoisted.invoiceValues).toHaveBeenCalledWith(
+      expect.objectContaining({ subscriptionId: null })
+    );
+  });
+
   it('uses recovery success-fee legal tenant metadata before subscription scope', async () => {
     hoisted.subscriptionFindFirst.mockResolvedValue({
       billingEntity: 'ks',
